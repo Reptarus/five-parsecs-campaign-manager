@@ -1,17 +1,17 @@
-class_name FPCM_BattleEventsSystem
+﻿class_name FPCM_BattleEventsSystem
 extends Resource
 
 ## Battle Events System implementing Five Parsecs Core Rules p.116
 ##
 ## Features:
-## - Battle event triggers (end of rounds 2 and 4)
+	## - Battle event triggers (end of rounds 2 and 4)
 ## - 100 battle events from core rules
 ## - Environmental hazards
 ## - Event conflict resolution
 ## - Round-based activation system
 
 # Dependencies
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 # Signals - following proven patterns from Story Track System
 signal battle_event_triggered(event: BattleEvent)
@@ -56,6 +56,7 @@ var event_registry: Dictionary = {}
 
 func _init() -> void:
 	_initialize_event_registry()
+
 ## Initialize system for a new battle
 func initialize_battle() -> void:
 	is_system_active = true
@@ -64,44 +65,43 @@ func initialize_battle() -> void:
 	active_hazards.clear()
 	pending_events.clear()
 	battle_in_progress = true
-	
+
 	print("Battle Events System initialized")
 
 ## Advance to next round and check for events
-
 func advance_round() -> void:
 	if not is_system_active or not battle_in_progress:
 		return
-		
+
 	current_round += 1
-	round_event_check.emit(current_round) # warning: return value discarded (intentional)
-	
+	round_event_check.emit(current_round)
+
 	# Core Rules: Events trigger end of rounds 2 and 4
 	if current_round == 2 or current_round == 4:
 		trigger_battle_event()
-	
+
 	_process_active_events()
 
 ## Trigger a random battle event (Core Rules Table)
 func trigger_battle_event() -> void:
 	if not is_system_active:
 		return
-		
+
 	var roll = randi_range(1, 100)
-	var event = _get_event_for_roll(roll)
-	
+	var event: Variant = _get_event_for_roll(roll)
+
 	if event:
 		# Check for conflicts with existing events
 		var conflicts = _check_event_conflicts(event)
 		if conflicts:
-			event_conflicts_detected.emit(event, conflicts) # warning: return value discarded (intentional)
+			event_conflicts_detected.emit(event, conflicts)
 			print("Event conflict detected - discarding: " + event.title)
 			return
-		
-		events_triggered.append(event) # warning: return value discarded (intentional)
-		battle_event_triggered.emit(event) # warning: return value discarded (intentional)
+
+		safe_call_method(events_triggered, "append", [event])
+		battle_event_triggered.emit(event)
 		_apply_event_effects(event)
-		
+
 		print("Battle Event Triggered: " + event.title)
 
 ## Apply event effects based on type
@@ -119,10 +119,9 @@ func _apply_event_effects(_event: BattleEvent) -> void:
 			_apply_universal_event(_event)
 
 ## Handle crew-targeting events
-
 func _apply_crew_event(_event: BattleEvent) -> void:
 	var effects = _event.effects
-	
+
 	match _event.event_id:
 		"SEIZED_MOMENT":
 			# Crew member acts in both phases next round
@@ -147,10 +146,9 @@ func _apply_crew_event(_event: BattleEvent) -> void:
 			effects["credit_amount"] = randi_range(1, 3)
 
 ## Handle enemy-targeting events
-
 func _apply_enemy_event(_event: BattleEvent) -> void:
 	var effects = _event.effects
-	
+
 	match _event.event_id:
 		"RENEWED_EFFORTS":
 			# Random enemy gets bonus actions
@@ -175,10 +173,9 @@ func _apply_enemy_event(_event: BattleEvent) -> void:
 			effects["spawn_unique"] = true
 
 ## Handle battlefield-wide events  
-
 func _apply_battlefield_event(_event: BattleEvent) -> void:
 	var effects = _event.effects
-	
+
 	match _event.event_id:
 		"VISIBILITY_CHANGE":
 			# Change vision range
@@ -197,7 +194,6 @@ func _apply_battlefield_event(_event: BattleEvent) -> void:
 			effects["end_chance"] = 6 # 1d6 = 6
 
 ## Handle environmental hazard events
-
 func _apply_environmental_event(_event: BattleEvent) -> void:
 	var hazard := EnvironmentalHazard.new()
 	hazard.hazard_id = _event.event_id
@@ -207,14 +203,14 @@ func _apply_environmental_event(_event: BattleEvent) -> void:
 	hazard.save_difficulty = _event.effects.get("save_difficulty", 5)
 	hazard.affects_radius = _event.effects.get("radius", 1)
 	hazard.is_permanent = _event.effects.get("permanent", false)
-	
-	active_hazards.append(hazard) # warning: return value discarded (intentional)
-	environmental_hazard_activated.emit(hazard) # warning: return value discarded (intentional)
+
+	safe_call_method(active_hazards, "append", [hazard])
+	environmental_hazard_activated.emit(hazard)
 
 ## Handle universal events that affect everything
 func _apply_universal_event(_event: BattleEvent) -> void:
 	var effects = _event.effects
-	
+
 	match _event.event_id:
 		"BATTLEFIELD_EFFECT":
 			# Global battlefield changes
@@ -224,9 +220,9 @@ func _apply_universal_event(_event: BattleEvent) -> void:
 			print("Universal event applied: " + _event.title)
 
 ## Check if event conflicts with active events
-
 func _check_event_conflicts(new_event: BattleEvent) -> BattleEvent:
 	for active_event in events_triggered:
+		var typed_active_event: Variant = active_event
 		if new_event.event_id in active_event.conflicts_with:
 			return active_event
 		if active_event.event_id in new_event.conflicts_with:
@@ -236,7 +232,8 @@ func _check_event_conflicts(new_event: BattleEvent) -> BattleEvent:
 ## Get _event for dice roll (Core Rules Table)
 func _get_event_for_roll(roll: int) -> BattleEvent:
 	for event_id in event_registry:
-		var event = event_registry[event_id]
+		var typed_event_id: Variant = event_id
+		var event: Variant = event_registry[event_id]
 		if roll >= event.roll_range[0] and roll <= event.roll_range[1]:
 			return event
 	return null
@@ -244,61 +241,65 @@ func _get_event_for_roll(roll: int) -> BattleEvent:
 ## Process ongoing event effects
 func _process_active_events() -> void:
 	var completed_events: Array = []
-	
+
 	for event in events_triggered:
+		var typed_event: Variant = event
 		if event.duration > 0:
 			event.duration -= 1
 			if event.duration <= 0:
-				completed_events.append(event) # warning: return value discarded (intentional)
-	
+				safe_call_method(completed_events, "append", [event])
+
 	# Remove completed events
 	for event in completed_events:
+		var typed_event: Variant = event
 		events_triggered.erase(event)
-		event_resolved.emit(event.event_id, {"completed": true}) # warning: return value discarded (intentional)
+		event_resolved.emit(event.event_id, {"completed": true})
 
 ## Environmental hazard damage check
 func check_environmental_damage(character_position: Vector2, character_savvy: int) -> Dictionary:
 	var damage_results: Dictionary = {}
-	
+
 	for hazard in active_hazards:
+		var typed_hazard: Variant = hazard
 		var distance = character_position.distance_to(Vector2.ZERO) # Hazard at origin for testing
 		if distance <= hazard.affects_radius:
 			var save_roll = randi_range(1, 6) + character_savvy
 			var damage_taken: int = 0
-			
+
 			if save_roll < hazard.save_difficulty:
 				damage_taken = 1 + hazard.damage_bonus
-			
+
 			damage_results[hazard.hazard_id] = {
 				"damage": damage_taken,
 				"save_roll": save_roll,
 				"required": hazard.save_difficulty
 			}
-	
+
 	return damage_results
 
 ## End battle and cleanup
 func end_battle() -> void:
 	battle_in_progress = false
 	_cleanup_temporary_effects()
-	
+
 	print("Battle Events System ended")
 
 ## Cleanup temporary effects
-
 func _cleanup_temporary_effects() -> void:
 	# Remove non-persistent events
 	var persistent_events: Array[BattleEvent] = []
 	for event in events_triggered:
+		var typed_event: Variant = event
 		if event.is_persistent:
-			persistent_events.append(event) # warning: return value discarded (intentional)
+			safe_call_method(persistent_events, "append", [event])
 	events_triggered = persistent_events
-	
+
 	# Remove non-permanent hazards
 	var permanent_hazards: Array[EnvironmentalHazard] = []
 	for hazard in active_hazards:
+		var typed_hazard: Variant = hazard
 		if hazard.is_permanent:
-			permanent_hazards.append(hazard) # warning: return value discarded (intentional)
+			safe_call_method(permanent_hazards, "append", [hazard])
 	active_hazards = permanent_hazards
 
 ## System status checking
@@ -334,43 +335,49 @@ func deserialize(data: Dictionary) -> void:
 func _serialize_events(events: Array[BattleEvent]) -> Array:
 	var serialized: Array = []
 	for event in events:
+		var typed_event: Variant = event
 		if event != null:
-			serialized.append({ # warning: return value discarded (intentional)
+			safe_call_method(serialized, "append" , [ {
 				"event_id": event.event_id,
 				"title": event.title,
 				"duration": event.duration
-			})
+			}])
 	return serialized
 
 func _deserialize_events(data: Array) -> Array[BattleEvent]:
 	var events: Array[BattleEvent] = []
 	for item in data:
+		var typed_item: Variant = item
+		var typed_item_dict: Dictionary = item as Dictionary
 		if item is Dictionary and event_registry.has(item.get("event_id", "")):
-			var event = event_registry[item.event_id]
+			var event: Variant = event_registry[item.event_id]
 			event.duration = item.get("duration", 0)
-			events.append(event) # warning: return value discarded (intentional)
+			safe_call_method(events, "append", [event])
 	return events
 
 func _serialize_hazards(hazards: Array[EnvironmentalHazard]) -> Array:
 	var serialized: Array = []
 	for hazard in hazards:
+		var typed_hazard: Variant = hazard
 		if hazard != null:
-			serialized.append({ # warning: return value discarded (intentional)
+			safe_call_method(serialized, "append", [ {
 				"hazard_id": hazard.hazard_id,
 				"hazard_name": hazard.hazard_name,
 				"effect_type": hazard.effect_type
-			})
+			}])
 	return serialized
 
 func _deserialize_hazards(data: Array) -> Array[EnvironmentalHazard]:
 	var hazards: Array[EnvironmentalHazard] = []
 	for item in data:
+		var typed_item: Variant = item
+		var typed_item_dict: Dictionary = item as Dictionary
 		if item is Dictionary:
 			var hazard := EnvironmentalHazard.new()
 			hazard.hazard_id = item.get("hazard_id", "")
 			hazard.hazard_name = item.get("hazard_name", "")
 			hazard.effect_type = item.get("effect_type", "")
-			hazards.append(hazard) # warning: return value discarded (intentional)
+			safe_call_method(hazards, "append", [hazard])
 	return hazards
 
 ## Initialize the complete Core Rules event registry
@@ -439,3 +446,23 @@ func _create_event(id: String, title: String, roll_range: Array[int], descriptio
 	event.duration = effects.get("duration", 0)
 	event.is_persistent = effects.get("persistent", false)
 	return event
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

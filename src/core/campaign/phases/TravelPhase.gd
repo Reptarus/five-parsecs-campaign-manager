@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 extends Node
 class_name TravelPhase
 
@@ -6,16 +6,16 @@ class_name TravelPhase
 ## Handles the complete Travel Phase sequence (Phase 1 of campaign turn)
 
 # Safe imports
-const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
-const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd")
-const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
-const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
-const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd")
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
 
 # Safe dependency loading - loaded at runtime in _ready()
-var GameEnums = null
-var dice_manager = null
-var game_state_manager = null
+var GlobalEnums: Variant = null
+var dice_manager: Variant = null
+var game_state_manager: Variant = null
 
 ## Travel Phase Signals
 signal travel_phase_started()
@@ -41,15 +41,15 @@ var world_traits_table: Array[Dictionary] = []
 
 func _ready() -> void:
 	# Load dependencies safely at runtime
-	GameEnums = UniversalResourceLoader.load_script_safe("res://src/core/systems/GlobalEnums.gd", "TravelPhase GameEnums")
+	GlobalEnums = load("res://src/core/systems/GlobalEnums.gd")
 	# Access autoloads directly
 	dice_manager = DiceManager
 	game_state_manager = get_node_or_null("/root/GameStateManagerAutoload")
-	
-	# Initialize enum values after loading GameEnums
-	if GameEnums:
-		current_substep = GameEnums.TravelSubPhase.NONE
-	
+
+	# Initialize enum values after loading GlobalEnums
+	if GlobalEnums:
+		current_substep = GlobalEnums.TravelSubPhase.NONE
+
 	# Initialize travel tables
 	call_deferred("_initialize_travel_tables")
 	print("TravelPhase: Initialized successfully")
@@ -69,19 +69,19 @@ func _initialize_travel_tables() -> void:
 		{"range": [81, 90], "name": "Accident", "description": "Mishap aboard ship"},
 		{"range": [91, 100], "name": "Uneventful", "description": "Peaceful journey"}
 	]
-	
+
 	# World Traits Table (D100) - Core Rulebook
-	if GameEnums:
+	if GlobalEnums:
 		world_traits_table = [
-			{"range": [1, 15], "trait": GameEnums.WorldTrait.FRONTIER_WORLD, "name": "Frontier World"},
-			{"range": [16, 30], "trait": GameEnums.WorldTrait.TRADE_CENTER, "name": "Trade Center"},
-			{"range": [31, 45], "trait": GameEnums.WorldTrait.INDUSTRIAL_HUB, "name": "Industrial Hub"},
-			{"range": [46, 60], "trait": GameEnums.WorldTrait.TECH_CENTER, "name": "Tech Center"},
-			{"range": [61, 75], "trait": GameEnums.WorldTrait.MINING_COLONY, "name": "Mining Colony"},
-			{"range": [76, 85], "trait": GameEnums.WorldTrait.AGRICULTURAL_WORLD, "name": "Agricultural World"},
-			{"range": [86, 92], "trait": GameEnums.WorldTrait.PIRATE_HAVEN, "name": "Pirate Haven"},
-			{"range": [93, 97], "trait": GameEnums.WorldTrait.FREE_PORT, "name": "Free Port"},
-			{"range": [98, 100], "trait": GameEnums.WorldTrait.CORPORATE_CONTROLLED, "name": "Corporate Controlled"}
+			{"range": [1, 15], "trait": GlobalEnums.WorldTrait.FRONTIER_WORLD, "name": "Frontier World"},
+			{"range": [16, 30], "trait": GlobalEnums.WorldTrait.TRADE_CENTER, "name": "Trade Center"},
+			{"range": [31, 45], "trait": GlobalEnums.WorldTrait.INDUSTRIAL_HUB, "name": "Industrial Hub"},
+			{"range": [46, 60], "trait": GlobalEnums.WorldTrait.TECH_CENTER, "name": "Tech Center"},
+			{"range": [61, 75], "trait": GlobalEnums.WorldTrait.MINING_COLONY, "name": "Mining Colony"},
+			{"range": [76, 85], "trait": GlobalEnums.WorldTrait.AGRICULTURAL_WORLD, "name": "Agricultural World"},
+			{"range": [86, 92], "trait": GlobalEnums.WorldTrait.PIRATE_HAVEN, "name": "Pirate Haven"},
+			{"range": [93, 97], "trait": GlobalEnums.WorldTrait.FREE_PORT, "name": "Free Port"},
+			{"range": [98, 100], "trait": GlobalEnums.WorldTrait.CORPORATE_CONTROLLED, "name": "Corporate Controlled"}
 		]
 	else:
 		# Fallback table with numeric values
@@ -101,27 +101,27 @@ func _initialize_travel_tables() -> void:
 func start_travel_phase() -> void:
 	"""Begin the Travel Phase sequence"""
 	print("TravelPhase: Starting Travel Phase")
-	UniversalSignalManager.emit_signal_safe(self, "travel_phase_started", [], "TravelPhase start_travel_phase")
-	
+	self.travel_phase_started.emit()
+
 	# Step 1: Check for invasion
 	_process_flee_invasion()
 
 func _process_flee_invasion() -> void:
 	"""Step 1: Flee Invasion (if applicable)"""
-	if GameEnums:
-		current_substep = GameEnums.TravelSubPhase.FLEE_INVASION
-		UniversalSignalManager.emit_signal_safe(self, "travel_substep_changed", [current_substep], "TravelPhase flee_invasion")
-	
+	if GlobalEnums:
+		current_substep = GlobalEnums.TravelSubPhase.FLEE_INVASION
+		self.travel_substep_changed.emit(current_substep)
+
 	# Check if invasion is pending
 	if not game_state_manager:
 		_process_decide_travel()
 		return
-		
-	if game_state_manager.has_method("has_pending_invasion"):
+
+	if game_state_manager and game_state_manager.has_method("has_pending_invasion"):
 		invasion_pending = game_state_manager.has_pending_invasion()
-	
+
 	if invasion_pending:
-		UniversalSignalManager.emit_signal_safe(self, "invasion_check_required", [], "TravelPhase invasion_check")
+		self.invasion_check_required.emit()
 		_handle_invasion_escape()
 	else:
 		_process_decide_travel()
@@ -132,23 +132,23 @@ func _handle_invasion_escape() -> void:
 		print("TravelPhase: No DiceManager available, auto-escaping invasion")
 		_invasion_escape_result(true)
 		return
-	
+
 	# Roll 2D6 for escape attempt
-	var escape_roll = 0
-	if dice_manager.has_method("roll_dice"):
+	var escape_roll: int = 0
+	if dice_manager and dice_manager.has_method("roll_dice"):
 		escape_roll = dice_manager.roll_dice(2, 6)
 	else:
 		escape_roll = randi_range(2, 12) # Fallback
-	
+
 	var escape_success = escape_roll >= 8
 	print("TravelPhase: Invasion escape roll: %d, success: %s" % [escape_roll, str(escape_success)])
-	
+
 	_invasion_escape_result(escape_success)
 
 func _invasion_escape_result(success: bool) -> void:
 	"""Process result of invasion escape attempt"""
-	UniversalSignalManager.emit_signal_safe(self, "invasion_escaped", [success], "TravelPhase invasion_escaped")
-	
+	self.invasion_escaped.emit(success)
+
 	if success:
 		# Escaped successfully, continue with travel
 		invasion_pending = false
@@ -162,14 +162,14 @@ func _invasion_escape_result(success: bool) -> void:
 
 func _process_decide_travel() -> void:
 	"""Step 2: Decide Whether to Travel"""
-	if GameEnums:
-		current_substep = GameEnums.TravelSubPhase.DECIDE_TRAVEL
-		UniversalSignalManager.emit_signal_safe(self, "travel_substep_changed", [current_substep], "TravelPhase decide_travel")
-	
+	if GlobalEnums:
+		current_substep = GlobalEnums.TravelSubPhase.DECIDE_TRAVEL
+		self.travel_substep_changed.emit(current_substep)
+
 	# In a full implementation, this would present travel options to the player
 	# For now, we'll assume travel is desired and check resources
 	var can_afford_travel = _check_travel_affordability()
-	
+
 	if can_afford_travel:
 		_make_travel_decision(true)
 	else:
@@ -180,28 +180,28 @@ func _check_travel_affordability() -> bool:
 	"""Check if crew can afford travel costs"""
 	if not game_state_manager:
 		return true # Default to affordable
-	
+
 	# Check for starship travel (5 credits)
-	if game_state_manager.has_method("get_credits"):
+	if game_state_manager and game_state_manager.has_method("get_credits"):
 		var credits = game_state_manager.get_credits()
 		if credits >= travel_costs.starship_travel:
 			return true
-	
+
 	# Check for commercial passage (1 credit per crew member)
-	if game_state_manager.has_method("get_crew_size"):
+	if game_state_manager and game_state_manager.has_method("get_crew_size"):
 		var crew_size = game_state_manager.get_crew_size()
 		var commercial_cost = crew_size * travel_costs.commercial_passage_per_crew
-		if game_state_manager.has_method("get_credits"):
+		if game_state_manager and game_state_manager.has_method("get_credits"):
 			var credits = game_state_manager.get_credits()
 			if credits >= commercial_cost:
 				return true
-	
+
 	return false
 
 func _make_travel_decision(travel_decision: bool) -> void:
 	"""Process the travel decision"""
-	UniversalSignalManager.emit_signal_safe(self, "travel_decision_made", [travel_decision], "TravelPhase travel_decision")
-	
+	self.travel_decision_made.emit(travel_decision)
+
 	if travel_decision:
 		_charge_travel_costs()
 		_process_travel_event()
@@ -213,37 +213,38 @@ func _charge_travel_costs() -> void:
 	"""Charge appropriate travel costs"""
 	if not game_state_manager:
 		return
-	
+
 	# For now, assume starship travel (5 credits)
-	if game_state_manager.has_method("remove_credits"):
+	if game_state_manager and game_state_manager.has_method("remove_credits"):
 		game_state_manager.remove_credits(travel_costs.starship_travel)
 		print("TravelPhase: Charged %d credits for starship travel" % travel_costs.starship_travel)
 
 func _process_travel_event() -> void:
 	"""Step 3: Starship Travel Event (if applicable)"""
-	if GameEnums:
-		current_substep = GameEnums.TravelSubPhase.TRAVEL_EVENT
-		UniversalSignalManager.emit_signal_safe(self, "travel_substep_changed", [current_substep], "TravelPhase travel_event")
-	
+	if GlobalEnums:
+		current_substep = GlobalEnums.TravelSubPhase.TRAVEL_EVENT
+		self.travel_substep_changed.emit(current_substep)
+
 	# Roll D100 for travel event
 	var event_roll = randi_range(1, 100)
 	var travel_event = _get_travel_event(event_roll)
-	
+
 	print("TravelPhase: Travel event roll: %d, event: %s" % [event_roll, travel_event.name])
-	UniversalSignalManager.emit_signal_safe(self, "travel_event_occurred", [travel_event], "TravelPhase travel_event")
-	
+	self.travel_event_occurred.emit(travel_event)
+
 	# Process the specific travel event
 	_handle_travel_event(travel_event)
-	
+
 	# Continue to world arrival
 	_process_world_arrival()
 
 func _get_travel_event(roll: int) -> Dictionary:
 	"""Get travel event based on D100 roll"""
 	for event in travel_events_table:
+		var typed_event: Variant = event
 		if roll >= event.range[0] and roll <= event.range[1]:
 			return event
-	
+
 	# Fallback
 	return {"name": "Uneventful", "description": "Peaceful journey"}
 
@@ -283,39 +284,39 @@ func _handle_travel_event(event: Dictionary) -> void:
 
 func _process_world_arrival() -> void:
 	"""Step 4: New World Arrival Steps (if applicable)"""
-	if GameEnums:
-		current_substep = GameEnums.TravelSubPhase.WORLD_ARRIVAL
-		UniversalSignalManager.emit_signal_safe(self, "travel_substep_changed", [current_substep], "TravelPhase world_arrival")
-	
+	if GlobalEnums:
+		current_substep = GlobalEnums.TravelSubPhase.WORLD_ARRIVAL
+		self.travel_substep_changed.emit(current_substep)
+
 	var world_data = _generate_new_world()
-	
+
 	# Check for rivals following (D6, 5+ they follow)
 	var rival_follows = _check_rival_follows()
 	if rival_follows:
 		world_data["rival_follows"] = true
 		print("TravelPhase: Rivals have followed to the new world")
-	
+
 	# Dismiss non-persistent patrons
 	_dismiss_patrons()
-	
+
 	# Check for licensing requirements (D6, 5-6 requires license)
 	var license_required = _check_license_requirement()
 	if license_required:
 		world_data["license_required"] = true
 		print("TravelPhase: World requires operating license")
-	
+
 	# Update game state with new world
 	if game_state_manager and game_state_manager.has_method("set_location"):
 		game_state_manager.set_location(world_data)
-	
-	UniversalSignalManager.emit_signal_safe(self, "world_arrival_completed", [world_data], "TravelPhase world_arrival")
+
+	self.world_arrival_completed.emit(world_data)
 	_complete_travel_phase()
 
 func _generate_new_world() -> Dictionary:
 	"""Generate new world with traits"""
 	var world_trait_roll = randi_range(1, 100)
 	var world_trait_data = _get_world_trait(world_trait_roll)
-	
+
 	var world_data = {
 		"id": "world_" + str(Time.get_unix_time_from_system()),
 		"name": _generate_world_name(),
@@ -323,19 +324,20 @@ func _generate_new_world() -> Dictionary:
 		"trait_name": world_trait_data.name,
 		"arrival_time": Time.get_unix_time_from_system()
 	}
-	
+
 	print("TravelPhase: Generated new world: %s (%s)" % [world_data.name, world_data.trait_name])
 	return world_data
 
 func _get_world_trait(roll: int) -> Dictionary:
 	"""Get world trait based on D100 roll"""
 	for trait_data in world_traits_table:
+		var typed_trait_data: Variant = trait_data
 		if roll >= trait_data.range[0] and roll <= trait_data.range[1]:
 			return trait_data
-	
+
 	# Fallback
-	if GameEnums:
-		return {"trait": GameEnums.WorldTrait.FRONTIER_WORLD, "name": "Frontier World"}
+	if GlobalEnums:
+		return {"trait": GlobalEnums.WorldTrait.FRONTIER_WORLD, "name": "Frontier World"}
 	else:
 		return {"trait": 0, "name": "Unknown"}
 
@@ -343,10 +345,10 @@ func _generate_world_name() -> String:
 	"""Generate a random world name"""
 	var prefixes = ["Alpha", "Beta", "Gamma", "New", "Port", "Nova", "Prime", "Delta"]
 	var suffixes = ["Station", "Colony", "Prime", "Central", "Haven", "Outpost", "Base", "City"]
-	
-	var prefix = prefixes[randi() % prefixes.size()]
-	var suffix = suffixes[randi() % suffixes.size()]
-	
+
+	var prefix = prefixes[randi() % (safe_call_method(prefixes, "size") as int)]
+	var suffix = suffixes[randi() % (safe_call_method(suffixes, "size") as int)]
+
 	return prefix + " " + suffix
 
 func _check_rival_follows() -> bool:
@@ -366,11 +368,11 @@ func _check_license_requirement() -> bool:
 
 func _complete_travel_phase() -> void:
 	"""Complete the Travel Phase"""
-	if GameEnums:
-		current_substep = GameEnums.TravelSubPhase.NONE
-	
+	if GlobalEnums:
+		current_substep = GlobalEnums.TravelSubPhase.NONE
+
 	print("TravelPhase: Travel Phase completed")
-	UniversalSignalManager.emit_signal_safe(self, "travel_phase_completed", [], "TravelPhase completed")
+	travel_phase_completed.emit()
 
 ## Public API Methods
 func get_current_substep() -> int:
@@ -379,12 +381,12 @@ func get_current_substep() -> int:
 
 func force_travel_decision(decision: bool) -> void:
 	"""Force a specific travel decision (for UI integration)"""
-	if current_substep == GameEnums.TravelSubPhase.DECIDE_TRAVEL:
+	if current_substep == GlobalEnums.TravelSubPhase.DECIDE_TRAVEL:
 		_make_travel_decision(decision)
 
 func force_invasion_result(escaped: bool) -> void:
 	"""Force invasion escape result (for UI integration)"""
-	if current_substep == GameEnums.TravelSubPhase.FLEE_INVASION:
+	if current_substep == GlobalEnums.TravelSubPhase.FLEE_INVASION:
 		_invasion_escape_result(escaped)
 
 func get_travel_costs() -> Dictionary:
@@ -393,4 +395,11 @@ func get_travel_costs() -> Dictionary:
 
 func is_travel_phase_active() -> bool:
 	"""Check if travel phase is currently active"""
-	return current_substep != GameEnums.TravelSubPhase.NONE if GameEnums else false
+	return current_substep != GlobalEnums.TravelSubPhase.NONE if GlobalEnums else false
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

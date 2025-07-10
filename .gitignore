@@ -35,3 +35,6 @@ data_*/
 override.cfg
 *.save
 *.bak
+
+# Node.js
+node_modules/

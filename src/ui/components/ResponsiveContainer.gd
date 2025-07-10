@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 class_name ResponsiveContainer
 extends Container
 
@@ -53,16 +53,15 @@ var is_compact: bool = false
 var _scale_factor: float = 1.0
 
 ## Reference to the theme manager
-var _theme_manager = null # Will be assigned in _find_theme_manager
+var _theme_manager: Variant = null # Will be assigned in _find_theme_manager
 
 func _ready() -> void:
 	# Connect to size changed signal
+	resized.connect(_on_resized)
 
-	resized.connect(_on_resized)  # warning: return value discarded (intentional)
-	
 	# Find theme manager in the scene tree
 	_find_theme_manager()
-	
+
 	# Initial layout update
 	_update_layout()
 
@@ -88,74 +87,73 @@ func _find_theme_manager() -> void:
 func _sort_children() -> void:
 	# Determine if we should use compact layout
 	var use_compact := _should_use_compact_layout()
-	
+
 	# If layout mode changed, emit signal
 	if is_compact != use_compact:
 		is_compact = use_compact
-		layout_changed.emit(is_compact)  # warning: return value discarded (intentional)
-	
+		layout_changed.emit(is_compact)
+
 	# Apply the current scale factor to spacing
 	var h_spacing := int(horizontal_spacing * _scale_factor)
 	var v_spacing := int(vertical_spacing * _scale_factor)
 	var p := int(padding * _scale_factor)
-	
+
 	# Calculate positions for children
 	var pos := Vector2(p, p)
 	var size_left := size - Vector2(p * 2, p * 2)
-	
+
 	if is_compact:
 		# Vertical layout
 		for child in get_children():
 			if not child is Control or not child.visible:
 				continue
-				
+
 			var child_min_size: Vector2 = child.get_combined_minimum_size()
 			var rect := Rect2(pos, Vector2(size_left.x, child_min_size.y))
 			fit_child_in_rect(child, rect)
-			
+
 			pos.y += child_min_size.y + v_spacing
 	else:
 		# Horizontal layout
 		var total_width := 0
 		var expandable_children: Array[Control] = []
 		var fixed_width := 0
-		
+
 		# First pass: calculate total minimum width and find expandable children
 		for child in get_children():
 			if not child is Control or not child.visible:
 				continue
-				
+
 			var child_min_size: Vector2 = child.get_combined_minimum_size()
 			total_width += child_min_size.x
-			
-			if child.size_flags_horizontal & SIZE_EXPAND:
 
-				expandable_children.append(child)  # warning: return value discarded (intentional)
+			if child.size_flags_horizontal & SIZE_EXPAND:
+				expandable_children.append(child)
 			else:
 				fixed_width += child_min_size.x
-		
+
 		# Add spacing
 		total_width += h_spacing * (get_child_count() - 1)
-		
+
 		# Second pass: position children
 		var extra_width: float = max(0.0, size_left.x - total_width)
 		var expand_width := 0.0
-		if expandable_children.size() > 0:
-			expand_width = extra_width / expandable_children.size()
-		
+		if (safe_call_method(expandable_children, "size") as int) > 0:
+			expand_width = extra_width / (safe_call_method(expandable_children, "size") as int)
+
 		for child in get_children():
 			if not child is Control or not child.visible:
 				continue
-				
+
 			var child_min_size: Vector2 = child.get_combined_minimum_size()
 			var child_width: float = child_min_size.x
-			
+
 			if child in expandable_children:
 				child_width += expand_width
-			
+
 			var rect := Rect2(pos, Vector2(child_width, size_left.y))
 			fit_child_in_rect(child, rect)
-			
+
 			pos.x += child_width + h_spacing
 
 func _should_use_compact_layout() -> bool:
@@ -183,14 +181,17 @@ func _on_scale_changed(scale_factor: float) -> void:
 	_scale_factor = scale_factor
 	queue_sort()
 
-func _on_theme_changed(_theme) -> void:
+func _on_theme_changed(_theme: Variant) -> void:
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return
 	queue_sort()
 
 ## Register this container with the UI manager for responsive updates
-	
+
 func register_with_ui_manager() -> void:
-	var ui_manager = null
-	
+	var ui_manager: Variant = null
+
 	# Try to find the UI manager in the scene tree
 	var node := self
 	while node:
@@ -198,12 +199,12 @@ func register_with_ui_manager() -> void:
 			ui_manager = node.get_node("/root/UIManager")
 			break
 		node = node.get_parent()
-	
+
 	if ui_manager and ui_manager.has_method("register_responsive_element"):
 		ui_manager.register_responsive_element(self)
 
 ## Get the current layout mode (compact or not)
-	
+
 func is_compact_layout() -> bool:
 	return is_compact
 
@@ -211,3 +212,11 @@ func is_compact_layout() -> bool:
 func force_layout_update() -> void:
 	_update_layout()
 
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

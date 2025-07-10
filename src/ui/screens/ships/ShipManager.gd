@@ -1,4 +1,4 @@
-class_name ShipManagerUI
+﻿class_name ShipManagerUI
 extends Control
 
 signal ship_repaired(hull_points: int)
@@ -39,21 +39,21 @@ func _load_ship_data() -> void:
 
 func _refresh_display() -> void:
 	"""Refresh all ship information displays"""
-	if ship_data.is_empty():
+	if (safe_call_method(ship_data, "is_empty") == true):
 		return
-	
+
 	ship_name.text = "Ship Name: " + ship_data.get("name", "Unknown")
 	ship_type.text = "Type: " + ship_data.get("type", "Unknown")
-	
+
 	current_hull.max_value = ship_data.get("max_hull", 30)
 	current_hull._value = ship_data.get("hull_points", 30)
 	max_hull.text = "/ " + str(ship_data.get("max_hull", 30))
-	
+
 	debt_amount._value = ship_data.get("debt", 0)
-	
+
 	fuel_level.text = ship_data.get("fuel", "Empty")
 	cost_amount.text = str(_calculate_travel_cost()) + " credit"
-	
+
 	_refresh_traits()
 	_refresh_upgrades()
 
@@ -63,10 +63,10 @@ func _refresh_traits() -> void:
 	for child in ship_traits.get_children():
 		if child.name != "Label":
 			child.queue_free()
-	
+
 	# Add traits
 	for ship_trait in ship_data.get("traits", []):
-		var trait_label = Label.new()
+		var trait_label: Label = Label.new()
 		trait_label.text = "• " + ship_trait
 		ship_traits.add_child(trait_label)
 
@@ -75,45 +75,45 @@ func _refresh_upgrades() -> void:
 	# Clear existing upgrades
 	for child in upgrades_list.get_children():
 		child.queue_free()
-	
+
 	# Add current upgrades
 	for upgrade in ship_data.get("upgrades", []):
-		var upgrade_panel = _create_upgrade_panel(upgrade, true)
+		var upgrade_panel: Panel = _create_upgrade_panel(upgrade, true)
 		upgrades_list.add_child(upgrade_panel)
-	
+
 	# Add available upgrades
 	var available_upgrades = _get_available_upgrades()
 	for upgrade in available_upgrades:
-		var upgrade_panel = _create_upgrade_panel(upgrade, false)
+		var upgrade_panel: Panel = _create_upgrade_panel(upgrade, false)
 		upgrades_list.add_child(upgrade_panel)
 
 func _create_upgrade_panel(upgrade_name: String, owned: bool) -> Control:
 	"""Create a panel for ship upgrade"""
-	var panel = PanelContainer.new()
+	var panel: PanelContainer = PanelContainer.new()
 	var hbox = HBoxContainer.new()
 	panel.add_child(hbox)
-	
+
 	# Upgrade _name
-	var name_label = Label.new()
+	var name_label: Label = Label.new()
 	name_label.text = upgrade_name
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hbox.add_child(name_label)
-	
+
 	if owned:
-		var owned_label = Label.new()
+		var owned_label: Label = Label.new()
 		owned_label.text = "INSTALLED"
 		owned_label.modulate = Color.GREEN
 		hbox.add_child(owned_label)
 	else:
-		var cost_label = Label.new()
+		var cost_label: Label = Label.new()
 		cost_label.text = str(_get_upgrade_cost(upgrade_name)) + " credits"
 		hbox.add_child(cost_label)
-		
-		var buy_button = Button.new()
+
+		var buy_button: Button = Button.new()
 		buy_button.text = "Purchase"
 		buy_button.pressed.connect(_on_upgrade_purchased.bind(upgrade_name))
 		hbox.add_child(buy_button)
-	
+
 	return panel
 
 func _get_available_upgrades() -> Array[String]:
@@ -123,14 +123,14 @@ func _get_available_upgrades() -> Array[String]:
 		"Fuel Efficient Engines", "Expanded Cargo Bay", "Advanced Sensors",
 		"Defensive Turrets", "Stealth Systems", "Navigation Computer"
 	]
-	
+
 	var current_upgrades = ship_data.get("upgrades", [])
 	var available: Array[String] = []
-	
+
 	for upgrade in all_upgrades:
 		if upgrade not in current_upgrades:
-			available.append(upgrade) # warning: return value discarded (intentional)
-	
+			available.append(upgrade)
+
 	return available
 
 func _get_upgrade_cost(upgrade_name: String) -> int:
@@ -151,11 +151,11 @@ func _get_upgrade_cost(upgrade_name: String) -> int:
 func _calculate_travel_cost() -> int:
 	"""Calculate cost of travel based on ship traits"""
 	var base_cost: int = 1
-	
+
 	# Check for fuel efficient trait
 	if "Fuel Efficient" in ship_data.get("traits", []):
 		return 0 # Free travel
-	
+
 	return base_cost
 
 func _calculate_repair_cost() -> int:
@@ -186,7 +186,7 @@ func _on_travel_pressed() -> void:
 	"""Handle travel button press"""
 	var cost = _calculate_travel_cost()
 	print("ShipManager: Travel initiated, cost: ", cost)
-	travel_initiated.emit() # warning: return value discarded (intentional)
+	travel_initiated.emit()
 
 func _on_refuel_pressed() -> void:
 	"""Handle refuel button press"""
@@ -198,11 +198,11 @@ func _on_repair_pressed() -> void:
 	"""Handle repair button press"""
 	var cost = _calculate_repair_cost()
 	print("ShipManager: Repair cost: ", cost)
-	
+
 	# TODO: Check if player has enough credits
 	ship_data["hull_points"] = ship_data.get("max_hull", 30)
 	_refresh_display()
-	ship_repaired.emit(ship_data.get("max_hull", 30)) # warning: return value discarded (intentional)
+	ship_repaired.emit(ship_data.get("max_hull", 30))
 
 func _on_upgrade_pressed() -> void:
 	"""Handle upgrade button press"""
@@ -214,15 +214,33 @@ func _on_pay_debt_pressed() -> void:
 	if debt > 0:
 		ship_data["debt"] = 0
 		_refresh_display()
-		debt_paid.emit(debt) # warning: return value discarded (intentional)
+		debt_paid.emit(debt)
 		print("ShipManager: Debt paid: ", debt)
 
 func _on_upgrade_purchased(upgrade_name: String) -> void:
 	"""Handle upgrade purchase"""
 	var cost = _get_upgrade_cost(upgrade_name)
 	print("ShipManager: Purchasing upgrade: ", upgrade_name, " for ", cost, " credits")
-	
+
 	# TODO: Check if player has enough credits
 	ship_data.get("upgrades", []).append(upgrade_name)
 	_refresh_display()
-	upgrade_purchased.emit({"name": upgrade_name, "cost": cost}) # warning: return value discarded (intentional)
+	upgrade_purchased.emit({"name": upgrade_name, "cost": cost})
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

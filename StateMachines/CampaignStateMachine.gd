@@ -74,12 +74,12 @@ func _on_phase_changed(new_phase: FiveParsecsCampaignPhase) -> void:
 	match new_phase:
 		FiveParsecsCampaignPhase.SETUP:
 			change_state(FiveParsecsGameEnums.GameState.SETUP)
-		FiveParsecsCampaignPhase.UPKEEP, \
+		FiveParsecsCampaignPhase.SETUP:
+			change_state(FiveParsecsGameEnums.GameState.SETUP)
 		FiveParsecsCampaignPhase.TRAVEL, \
 		FiveParsecsCampaignPhase.WORLD, \
 		FiveParsecsCampaignPhase.POST_BATTLE:
 			change_state(FiveParsecsGameEnums.GameState.CAMPAIGN)
-		FiveParsecsCampaignPhase.BATTLE_SETUP, \
 		FiveParsecsCampaignPhase.BATTLE:
 			change_state(FiveParsecsGameEnums.GameState.BATTLE)
 

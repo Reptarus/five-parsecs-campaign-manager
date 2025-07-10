@@ -1,29 +1,22 @@
-@tool
+﻿@tool
 @warning_ignore("return_value_discarded")
 @warning_ignore("unsafe_method_access")
-@warning_ignore("unsafe_call_argument")
 @warning_ignore("untyped_declaration")
-@warning_ignore("unused_variable")
-@warning_ignore("redundant_await")
-@warning_ignore("unsafe_cast")
-@warning_ignore("inference_on_variant")
-@warning_ignore("static_called_on_instance")
 @warning_ignore("unused_signal")
-@warning_ignore("shadowed_global_identifier")
 extends Node
 class_name GameCampaignManager
 
 ## Game Campaign Manager for Five Parsecs from Home
 ## Manages campaign-level operations, integrating with various game systems
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 # Note: GameState injected via initialize() to avoid circular dependencies
 const CampaignPhaseManager = preload("res://src/core/campaign/CampaignPhaseManager.gd")
 
 signal campaign_updated()
 signal phase_changed(old_phase: int, new_phase: int)
 signal event_occurred(event_data: Dictionary)
-signal resource_updated(resource_type: GameEnums.ResourceType, new_value: int)
+signal resource_updated(resource_type: GlobalEnums.ResourceType, new_value: int)
 
 var gamestate: Node # GameState - avoiding circular dependency
 var phase_manager: CampaignPhaseManager
@@ -36,7 +29,7 @@ func initialize(game_state: Node) -> void:
 	gamestate = game_state
 	phase_manager = CampaignPhaseManager.new()
 	add_child(phase_manager)
-	
+
 	# Connect phase manager signals
 	phase_manager.phase_changed.connect(_on_phase_changed)
 
@@ -95,3 +88,11 @@ func _exit_tree() -> void:
 	if gamestate:
 		gamestate.queue_free()
 	current_campaign.clear()
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

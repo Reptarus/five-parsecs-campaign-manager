@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://src/ui/screens/campaign/panels/ShipPanel.gd" id="1_ship"]
 
-[node name="ShipPanel" type="VBoxContainer"]
+[node name="ShipPanel" type="Control"]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -10,64 +10,98 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_ship")
 
-[node name="Title" type="Label" parent="."]
+[node name="Content" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+
+[node name="Title" type="Label" parent="Content"]
 layout_mode = 2
 text = "Ship Assignment"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 24
 
-[node name="HSeparator" type="HSeparator" parent="."]
+[node name="Description" type="Label" parent="Content"]
+layout_mode = 2
+text = "Configure your starting ship. All crews start with a basic ship."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="ShipName" type="VBoxContainer" parent="Content"]
 layout_mode = 2
 
-[node name="ScrollContainer" type="ScrollContainer" parent="."]
+[node name="Label" type="Label" parent="Content/ShipName"]
 layout_mode = 2
-size_flags_vertical = 3
+text = "Ship Name:"
 
-[node name="VBoxContainer" type="VBoxContainer" parent="ScrollContainer"]
+[node name="LineEdit" type="LineEdit" parent="Content/ShipName"]
 layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
+placeholder_text = "Enter ship name"
 
-[node name="ShipOptions" type="VBoxContainer" parent="ScrollContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="ScrollContainer/VBoxContainer/ShipOptions"]
-layout_mode = 2
-text = "Choose your starting ship:"
-
-[node name="RandomShipButton" type="Button" parent="ScrollContainer/VBoxContainer/ShipOptions"]
-layout_mode = 2
-text = "Generate Random Ship"
-
-[node name="SelectShipButton" type="Button" parent="ScrollContainer/VBoxContainer/ShipOptions"]
-layout_mode = 2
-text = "Select Specific Ship"
-
-[node name="ShipDetails" type="VBoxContainer" parent="ScrollContainer/VBoxContainer"]
+[node name="ShipType" type="VBoxContainer" parent="Content"]
 layout_mode = 2
 
-[node name="ShipName" type="LineEdit" parent="ScrollContainer/VBoxContainer/ShipDetails"]
+[node name="Label" type="Label" parent="Content/ShipType"]
 layout_mode = 2
-placeholder_text = "Ship Name"
+text = "Ship Type:"
 
-[node name="ShipType" type="OptionButton" parent="ScrollContainer/VBoxContainer/ShipDetails"]
+[node name="Value" type="OptionButton" parent="Content/ShipType"]
 layout_mode = 2
 
-[node name="ShipStats" type="GridContainer" parent="ScrollContainer/VBoxContainer/ShipDetails"]
+[node name="HullPoints" type="VBoxContainer" parent="Content"]
 layout_mode = 2
-columns = 2
 
-[node name="HullLabel" type="Label" parent="ScrollContainer/VBoxContainer/ShipDetails/ShipStats"]
+[node name="Label" type="Label" parent="Content/HullPoints"]
 layout_mode = 2
 text = "Hull Points:"
 
-[node name="HullValue" type="SpinBox" parent="ScrollContainer/VBoxContainer/ShipDetails/ShipStats"]
+[node name="Value" type="SpinBox" parent="Content/HullPoints"]
 layout_mode = 2
 max_value = 20.0
 value = 10.0
 
-[node name="ValidationLabel" type="Label" parent="ScrollContainer/VBoxContainer"]
+[node name="Debt" type="VBoxContainer" parent="Content"]
 layout_mode = 2
-text = "Ship configuration complete"
-horizontal_alignment = 1
-modulate = Color(0.5, 1, 0.5, 1)
+
+[node name="Label" type="Label" parent="Content/Debt"]
+layout_mode = 2
+text = "Ship Debt:"
+
+[node name="Value" type="SpinBox" parent="Content/Debt"]
+layout_mode = 2
+max_value = 10000.0
+step = 100.0
+
+[node name="Traits" type="VBoxContainer" parent="Content"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Content/Traits"]
+layout_mode = 2
+text = "Ship Traits:"
+
+[node name="Container" type="VBoxContainer" parent="Content/Traits"]
+layout_mode = 2
+
+[node name="Controls" type="HBoxContainer" parent="Content"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="GenerateButton" type="Button" parent="Content/Controls"]
+custom_minimum_size = Vector2(150, 40)
+layout_mode = 2
+text = "Generate Ship"
+
+[node name="RerollButton" type="Button" parent="Content/Controls"]
+custom_minimum_size = Vector2(150, 40)
+layout_mode = 2
+text = "Reroll Ship"
+
+[node name="SelectButton" type="Button" parent="Content/Controls"]
+custom_minimum_size = Vector2(150, 40)
+layout_mode = 2
+text = "Select Ship"

@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 class_name BaseCrewMember
 extends Node
 
@@ -60,14 +60,14 @@ const MAX_STAT_VALUE: int = 6
 @export var level: int = 1
 
 # Character data
-var character = null
+var character: Variant = null
 var special_ability: String = ""
 var advances_available: int = 0
 var specialization: String = ""
 var traits: Array[String] = []
 var relationships: Dictionary = {}
-var _inventory = null
-var _active_weapon = null
+var _inventory: Variant = null
+var _active_weapon: Variant = null
 var status: int = 0 # Will be defined by game-specific enums
 
 @export var items: Array[Dictionary] = []
@@ -148,7 +148,7 @@ func get_stat_modifier(stat_name: String) -> int:
 
 func to_dict() -> Dictionary:
 	# Base implementation for serialization
-	var data = {
+	var data: Dictionary = {
 		"character_name": character_name,
 		"reactions": reactions,
 		"speed": speed,
@@ -195,5 +195,4 @@ func from_dict(data: Dictionary) -> void:
 	if data.has("relationships"): relationships = data.relationships
 	if data.has("items"): items = data.items
 	if data.has("weapon_proficiencies"): weapon_proficiencies = data.weapon_proficiencies
-	if data.has("status"): status = data.status
 	if data.has("status"): status = data.status

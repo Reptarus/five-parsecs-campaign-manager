@@ -2,8 +2,8 @@
 extends GdUnitGameTest
 
 # Table processor performance test constants
-const TableProcessorScript: GDScript = preload("res://src/core/systems/TableProcessor.gd")
-const TableLoaderScript: GDScript = preload("res://src/core/systems/TableLoader.gd")
+const TableProcessorScript: GDScript = preload("res://src/core/mission/ReactTables.gd")
+const TableLoaderScript: GDScript = preload("res://src/core/mission/ReactTables.gd")
 
 # Test variables with explicit types
 var _processor: Node = null

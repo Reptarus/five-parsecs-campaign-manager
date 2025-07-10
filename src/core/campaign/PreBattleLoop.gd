@@ -1,22 +1,22 @@
-# PreBattleLoop.gd
+﻿# PreBattleLoop.gd
 extends Node
 
 ## Dependencies
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
-const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
-const Mission = preload("res://src/core/systems/Mission.gd")
-const UnifiedTerrainSystem = preload("res://src/core/terrain/UnifiedTerrainSystem.gd")
-const PreBattleUI = preload("res://src/ui/screens/battle/PreBattleUI.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameState = preload("res://src/core/state/GameState.gd")
+const CharacterManager = preload("res://src/core/character/Management/CharacterDataManager.gd")
+const MissionSystem = preload("res://src/core/systems/Mission.gd")
+const TerrainSystem = preload("res://src/core/terrain/UnifiedTerrainSystem.gd")
+const BattleUI = preload("res://src/ui/screens/battle/PreBattleUI.gd")
 
 ## Optional dependencies that may not exist
-var _terrain_system_script = preload("res://src/core/terrain/UnifiedTerrainSystem.gd") if FileAccess.file_exists("res://src/core/terrain/UnifiedTerrainSystem.gd") else null
-var _battle_ui_script = preload("res://src/ui/screens/battle/PreBattleUI.gd") if FileAccess.file_exists("res://src/ui/screens/battle/PreBattleUI.gd") else null
+var _terrain_system_script: Resource = preload("res://src/core/terrain/UnifiedTerrainSystem.gd") if FileAccess.file_exists("res://src/core/terrain/UnifiedTerrainSystem.gd") else null
+var _battle_ui_script: Resource = preload("res://src/ui/screens/battle/PreBattleUI.gd") if FileAccess.file_exists("res://src/ui/screens/battle/PreBattleUI.gd") else null
 
 ## Signals
 signal battle_ready(mission_data: Dictionary)
 signal phase_completed
-signal crew_selection_changed(crew: Array[Character])
+signal crew_selection_changed(crew: Array)
 signal deployment_updated(zones: Array[Dictionary])
 signal error_occurred(message: String)
 signal pre_battle_completed
@@ -27,9 +27,9 @@ signal pre_battle_completed
 
 ## Mission data
 var current_mission: StoryQuestData
-var selected_crew: Array[Character]
+var selected_crew: Array
 var deployment_zones: Array[Dictionary]
-var game_state: FiveParsecsGameState
+var game_state: GameState
 
 func _init() -> void:
 	selected_crew = []
@@ -40,16 +40,16 @@ func _ready() -> void:
 	_connect_signals()
 
 ## Initialize required systems
-	
+
 func _initialize_systems() -> void:
 	if not ui or not terrain_system:
-		error_occurred.emit("Required nodes not found")  # warning: return value discarded (intentional)
+		error_occurred.emit("Required nodes not found")
 		push_error("PreBattleLoop: Required nodes not found")
 		return
 
 	if _battle_ui_script and ui:
 		ui.set_script(_battle_ui_script)
-	
+
 	if _terrain_system_script and terrain_system:
 		terrain_system.set_script(_terrain_system_script)
 
@@ -68,33 +68,33 @@ func _connect_ui_signal(signal_name: String, callback: Callable) -> void:
 	if not ui:
 		push_error("PreBattleLoop: Cannot connect signal '%s' - UI node not found" % signal_name)
 		return
-		
+
 	if not ui.has_signal(signal_name):
 		push_warning("PreBattleLoop: UI missing signal '%s'" % signal_name)
 		return
-		
+
 	var signal_is_connected := false
 	for connection in ui.get_signal_connection_list(signal_name):
 		if connection.callable.get_method() == callback.get_method():
 			signal_is_connected = true
 			break
-			
+
 	if not signal_is_connected:
 
-		ui.connect(signal_name, callback)  # warning: return value discarded (intentional)
+		ui.connect(signal_name, callback)
 
 ## Start the pre-battle phase with mission data
-func start_phase(mission: StoryQuestData, state: FiveParsecsGameState) -> void:
+func start_phase(mission: StoryQuestData, state: GameState) -> void:
 	if not mission or not state:
-		error_occurred.emit("Invalid mission or game state")  # warning: return value discarded (intentional)
+		error_occurred.emit("Invalid mission or game state")
 		push_error("PreBattleLoop: Invalid mission or game state")
 		return
-		
+
 	if not _validate_mission(mission):
-		error_occurred.emit("Invalid mission data")  # warning: return value discarded (intentional)
+		error_occurred.emit("Invalid mission data")
 		push_error("PreBattleLoop: Invalid mission data")
 		return
-		
+
 	current_mission = mission
 	game_state = state
 	_setup_battle_preview()
@@ -117,7 +117,7 @@ func _get_mission_description(mission: StoryQuestData) -> String:
 	return _get_mission_property(mission, "description", "No description available")
 
 func _get_mission_battle_type(mission: StoryQuestData) -> int:
-	return _get_mission_property(mission, "battle_type", GameEnums.BattleType.NONE)
+	return _get_mission_property(mission, "battle_type", GlobalEnums.BattleType.NONE)
 
 func _get_mission_enemy_force(mission: StoryQuestData) -> Array:
 	return _get_mission_property(mission, "enemy_force", [])
@@ -132,14 +132,14 @@ func _get_mission_special_conditions(mission: StoryQuestData) -> Array:
 	return _get_mission_property(mission, "special_conditions", [])
 
 func _get_mission_difficulty(mission: StoryQuestData) -> int:
-	return _get_mission_property(mission, "difficulty", GameEnums.DifficultyLevel.NORMAL)
+	return _get_mission_property(mission, "difficulty", GlobalEnums.DifficultyLevel.NORMAL)
 
 ## Setup the battle preview
 func _setup_battle_preview() -> void:
 	if not ui or not current_mission:
-		error_occurred.emit("Missing UI or mission data")  # warning: return value discarded (intentional)
+		error_occurred.emit("Missing UI or mission data")
 		return
-		
+
 	var preview_data := {
 		"title": _get_mission_title(current_mission),
 		"description": _get_mission_description(current_mission),
@@ -150,57 +150,57 @@ func _setup_battle_preview() -> void:
 		"special_conditions": _get_mission_special_conditions(current_mission),
 		"difficulty": _get_mission_difficulty(current_mission)
 	}
-	
-	if ui.has_method("setup_preview"):
+
+	if ui and ui.has_method("setup_preview"):
 		ui.setup_preview(preview_data)
 
 ## Setup crew selection interface
 func _setup_crew_selection() -> void:
 	if not ui or not game_state:
-		error_occurred.emit("Missing UI or game state")  # warning: return value discarded (intentional)
+		error_occurred.emit("Missing UI or game state")
 		return
-		
+
 	var available_crew: Array[Character] = game_state.get_crew()
-	if ui.has_method("setup_crew_selection"):
+	if ui and ui.has_method("setup_crew_selection"):
 		ui.setup_crew_selection(available_crew)
 
 ## Handle crew selection
 func _on_crew_selected(crew: Array[Character]) -> void:
 	selected_crew = crew
-	crew_selection_changed.emit(crew)  # warning: return value discarded (intentional)
+	crew_selection_changed.emit(crew)
 	_validate_battle_readiness()
 
 ## Handle deployment confirmation
 func _on_deployment_confirmed() -> void:
 	if _validate_battle_readiness():
 		var battle_data := _prepare_battle_data()
-		battle_ready.emit(battle_data)  # warning: return value discarded (intentional)
-		phase_completed.emit()  # warning: return value discarded (intentional)
+		battle_ready.emit(battle_data)
+		phase_completed.emit()
 
 ## Validate if battle can begin
 func _validate_battle_readiness() -> bool:
-	if selected_crew.is_empty():
-		error_occurred.emit("No crew selected")  # warning: return value discarded (intentional)
+	if (safe_call_method(selected_crew, "is_empty") == true):
+		error_occurred.emit("No crew selected")
 		return false
-		
+
 	if not current_mission:
-		error_occurred.emit("No mission data")  # warning: return value discarded (intentional)
+		error_occurred.emit("No mission data")
 		return false
-		
-	if not terrain_system or not terrain_system.has_method("is_terrain_ready") or not terrain_system.is_terrain_ready():
-		error_occurred.emit("Terrain not ready")  # warning: return value discarded (intentional)
+
+	if not terrain_system or not terrain_system and terrain_system.has_method("is_terrain_ready") or not terrain_system.is_terrain_ready():
+		error_occurred.emit("Terrain not ready")
 		return false
-		
+
 	return true
 
 ## Prepare battle data for next phase
 func _prepare_battle_data() -> Dictionary:
 	var terrain_data := {}
-	if terrain_system and terrain_system.has_method("get_terrain_data"):
+	if terrain_system and terrain_system and terrain_system.has_method("get_terrain_data"):
 		terrain_data = terrain_system.get_terrain_data()
-	
+
 	return {
-		"mission": current_mission.serialize() if current_mission else {},
+		"mission": current_mission.serialize() if current_mission and current_mission.has_method("serialize") else {},
 		"crew": selected_crew,
 		"deployment_zones": deployment_zones,
 		"terrain_data": terrain_data,
@@ -211,7 +211,7 @@ func _prepare_battle_data() -> Dictionary:
 ## Update deployment zones
 func update_deployment_zones(zones: Array[Dictionary]) -> void:
 	deployment_zones = zones
-	deployment_updated.emit(zones)  # warning: return value discarded (intentional)
+	deployment_updated.emit(zones)
 
 ## Get current mission
 func get_current_mission() -> StoryQuestData:
@@ -233,15 +233,22 @@ func cleanup() -> void:
 	game_state = null
 
 ## Validate mission data structure
-	
+
 func _validate_mission(mission: StoryQuestData) -> bool:
 	if not mission:
 		return false
-		
-	if _get_mission_battle_type(mission) == GameEnums.BattleType.NONE:
+
+	if _get_mission_battle_type(mission) == GlobalEnums.BattleType.NONE:
 		return false
-		
+
 	if _get_mission_enemy_force(mission).is_empty():
 		return false
-		
+
 	return true
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

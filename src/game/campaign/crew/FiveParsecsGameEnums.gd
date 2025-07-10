@@ -1,7 +1,7 @@
 @tool
 extends Node
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 ## Five Parsecs Character Classes
 enum CharacterClass {

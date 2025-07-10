@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 class_name PositionValidator
 extends Node
 
@@ -13,48 +13,48 @@ const MIN_DISTANCE_FROM_EDGE := 2.0
 func get_valid_cover_point(existing_points: Array) -> Vector2:
 	if force_invalid_points:
 		return Vector2.ZERO
-	
+
 	var attempts := 0
 	const MAX_ATTEMPTS := 50
-	
+
 	while attempts < MAX_ATTEMPTS:
 		var point := _generate_random_point()
 		if _is_valid_cover_point(point, existing_points):
 			return point
 		attempts += 1
-	
+
 	return Vector2.ZERO
 
 ## Get a valid point for hazard placement
 func get_valid_hazard_point(existing_points: Array) -> Vector2:
 	if force_invalid_points:
 		return Vector2.ZERO
-	
+
 	var attempts := 0
 	const MAX_ATTEMPTS := 50
-	
+
 	while attempts < MAX_ATTEMPTS:
 		var point := _generate_random_point()
 		if _is_valid_hazard_point(point, existing_points):
 			return point
 		attempts += 1
-	
+
 	return Vector2.ZERO
 
 ## Get a valid point for strategic point placement
 func get_valid_strategic_point(existing_points: Array) -> Vector2:
 	if force_invalid_points:
 		return Vector2.ZERO
-	
+
 	var attempts := 0
 	const MAX_ATTEMPTS := 50
-	
+
 	while attempts < MAX_ATTEMPTS:
 		var point := _generate_random_point()
 		if _is_valid_strategic_point(point, existing_points):
 			return point
 		attempts += 1
-	
+
 	return Vector2.ZERO
 
 ## Generate a random point within the battlefield bounds
@@ -70,7 +70,7 @@ func _is_valid_cover_point(point: Vector2, existing_points: Array) -> bool:
 		var existing_pos: Vector2 = existing["position"]
 		if point.distance_to(existing_pos) < MIN_DISTANCE_BETWEEN_POINTS:
 			return false
-	
+
 	return true
 
 ## Check if a point is valid for hazard placement
@@ -81,7 +81,7 @@ func _is_valid_hazard_point(point: Vector2, existing_points: Array) -> bool:
 		var min_distance := MIN_DISTANCE_BETWEEN_POINTS * 2.0
 		if point.distance_to(existing_pos) < min_distance:
 			return false
-	
+
 	return true
 
 ## Check if a point is valid for strategic point placement
@@ -92,7 +92,7 @@ func _is_valid_strategic_point(point: Vector2, existing_points: Array) -> bool:
 		var min_distance := MIN_DISTANCE_BETWEEN_POINTS * 3.0
 		if point.distance_to(existing_pos) < min_distance:
 			return false
-	
+
 	return true
 
 ## Set the battlefield size for point validation

@@ -1,4 +1,4 @@
-extends Control
+﻿extends Control
 
 ## World Phase UI for Five Parsecs Campaign Manager
 ## Handles crew tasks, job offers, and mission preparation
@@ -53,9 +53,9 @@ func _ready() -> void:
 
 func _initialize_managers() -> void:
 	"""Initialize manager references from autoloads"""
-	alpha_manager = get_node("/root/AlphaGameManager") if has_node("/root/AlphaGameManager") else null
+	alpha_manager = get_node("/root/FPCM_AlphaGameManager") if has_node("/root/FPCM_AlphaGameManager") else null
 	campaign_manager = get_node("/root/CampaignManager") if has_node("/root/CampaignManager") else null
-	
+
 	if alpha_manager:
 		if alpha_manager.has_method("get_trading_system"):
 			trading_system = alpha_manager.get_trading_system()
@@ -66,7 +66,7 @@ func _setup_ui() -> void:
 	"""Setup initial UI state"""
 	_show_step(0) # Start with upkeep step
 	next_button.disabled = true
-	
+
 	# Setup task assignment options
 	task_assignment.add_item("Trade")
 	task_assignment.add_item("Explore")
@@ -79,13 +79,13 @@ func _connect_signals() -> void:
 	back_button.pressed.connect(_on_back_pressed)
 	next_button.pressed.connect(_on_next_pressed)
 	options_button.pressed.connect(_on_options_pressed)
-	
+
 	# Step buttons
 	step1_button.pressed.connect(func(): _show_step(0))
 	step2_button.pressed.connect(func(): _show_step(1))
 	step3_button.pressed.connect(func(): _show_step(2))
 	step4_button.pressed.connect(func(): _show_step(3))
-	
+
 	# Content signals
 	resolve_task_button.pressed.connect(_on_resolve_tasks)
 	accept_job_button.pressed.connect(_on_accept_job)
@@ -96,7 +96,7 @@ func setup_phase(data: Resource) -> void:
 	campaign_data = data
 	current_world = data.get_meta("current_world", "Unknown World") if data else "Unknown World"
 	title_label.text = "World Phase: %s" % current_world
-	
+
 	_update_crew_list()
 	_update_job_offers()
 	_update_step_availability()
@@ -104,7 +104,7 @@ func setup_phase(data: Resource) -> void:
 func _show_step(step: int) -> void:
 	"""Show a specific step in the world phase"""
 	current_step = step
-	
+
 	# Hide all panels
 	upkeep_panel.visible = false
 	crew_tasks_panel.visible = false
@@ -113,13 +113,13 @@ func _show_step(step: int) -> void:
 		mission_prep_panel.visible = false
 	if equipment_panel:
 		equipment_panel.visible = false
-	
+
 	# Update step button states
 	step1_button.disabled = false
 	step2_button.disabled = false
 	step3_button.disabled = false
 	step4_button.disabled = false
-	
+
 	# Show current step panel
 	match step:
 		0:
@@ -141,32 +141,31 @@ func _show_step(step: int) -> void:
 func _update_crew_list() -> void:
 	"""Update the crew list for task assignment"""
 	crew_list.clear()
-	
+
 	if not campaign_data:
 		return
-	
+
 	var crew_data = campaign_data.get_meta("crew", [])
 	for crew_member in crew_data:
 		var name = crew_member.get("name", "Unknown")
-
 		var status = crew_member.get("status", "Available")
 		crew_list.add_item("%s (%s)" % [name, status])
 
 func _update_job_offers() -> void:
 	"""Update available job offers"""
 	patron_list.clear()
-	
+
 	if not job_system or not campaign_data:
 		job_details.text = "No job system available"
 		return
-	
+
 	var available_jobs = job_system.generate_job_offers(campaign_data)
 	for job in available_jobs:
 		var patron_name = job.get("patron", "Unknown Patron")
 
 		var job_type = job.get("type", "Standard")
 		patron_list.add_item("%s - %s" % [patron_name, job_type])
-	
+
 	if available_jobs.size() > 0:
 		job_details.text = "Select a patron to view job details"
 	else:
@@ -189,7 +188,7 @@ func _on_next_pressed() -> void:
 	if current_step < 3:
 		_show_step(current_step + 1)
 	else:
-		phase_completed.emit() # warning: return value discarded (intentional)
+		phase_completed.emit()
 
 func _on_options_pressed() -> void:
 	"""Handle options button press"""
@@ -201,10 +200,10 @@ func _on_resolve_tasks() -> void:
 	var selected_indices = crew_list.get_selected_items()
 	if selected_indices.size() == 0:
 		return
-	
+
 	var task_type = task_assignment.get_item_text(task_assignment.selected)
 	print("Resolving %s task for crew members" % task_type)
-	
+
 	# TODO: Implement actual task resolution
 	resolve_task_button.text = "Tasks Resolved ✓"
 	resolve_task_button.disabled = true
@@ -214,13 +213,13 @@ func _on_accept_job() -> void:
 	var selected_indices = patron_list.get_selected_items()
 	if selected_indices.size() == 0:
 		return
-	
+
 	var job_index = selected_indices[0]
 	if job_system:
 		var available_jobs = job_system.generate_job_offers(campaign_data)
 		if job_index < available_jobs.size():
 			selected_job = available_jobs[job_index]
-			job_selected.emit(selected_job) # warning: return value discarded (intentional)
+			job_selected.emit(selected_job)
 			accept_job_button.text = "Job Accepted ✓"
 			accept_job_button.disabled = true
 			next_button.disabled = false
@@ -229,7 +228,7 @@ func _on_patron_selected(index: int) -> void:
 	"""Handle patron selection to show job details"""
 	if not job_system:
 		return
-	
+
 	var available_jobs = job_system.generate_job_offers(campaign_data)
 	if index < available_jobs.size():
 		var job = available_jobs[index]
@@ -241,7 +240,7 @@ func _on_patron_selected(index: int) -> void:
 		details += "Payment: %d credits\n" % job.get("payment", 0)
 
 		details += "Description: %s" % job.get("description", "No description available")
-		
+
 		job_details.text = details
 		accept_job_button.disabled = false
 
@@ -261,3 +260,22 @@ func load_campaign_data(data: Resource) -> void:
 	title_label.text = "World Phase: %s" % current_world
 	_update_crew_list()
 	_update_job_offers()
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

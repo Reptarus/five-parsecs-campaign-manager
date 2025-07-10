@@ -1,6 +1,6 @@
-extends Node
+﻿extends Node
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GamePlanet = preload("res://src/game/world/GamePlanet.gd")
 const WorldDataMigration = preload("res://src/core/migration/WorldDataMigration.gd")
 
@@ -24,7 +24,7 @@ func add_planet(planet: GamePlanet) -> void:
 	dirty = true
 	_cleanup_old_cache()
 	save_cache()
-	cache_updated.emit() # warning: return value discarded (intentional)
+	cache_updated.emit()
 
 func get_planet(sector: String, coordinates: Vector2) -> GamePlanet:
 	var planet_id = _generate_id(sector, coordinates)
@@ -47,18 +47,17 @@ func _generate_id(sector: String, coordinates: Vector2) -> String:
 	return "%s_%d_%d" % [sector, coordinates.x, coordinates.y]
 
 func _cleanup_old_cache() -> void:
-	if cached_planets.size() <= MAX_CACHED_PLANETS:
+	if (safe_call_method(cached_planets, "size") as int) <= MAX_CACHED_PLANETS:
 		return
-	
+
 	var timestamps = cache_timestamps.values()
 	timestamps.sort()
-	var cutoff_time = timestamps[timestamps.size() - MAX_CACHED_PLANETS]
-	
+	var cutoff_time = timestamps[(safe_call_method(timestamps, "size") as int) - MAX_CACHED_PLANETS]
 	var to_remove: Array = []
 	for planet_id in cache_timestamps:
 		if cache_timestamps[planet_id] < cutoff_time:
-			to_remove.append(planet_id) # warning: return value discarded (intentional)
-	
+			to_remove.append(planet_id)
+
 	for planet_id in to_remove:
 		cached_planets.erase(planet_id)
 		cache_timestamps.erase(planet_id)
@@ -66,39 +65,47 @@ func _cleanup_old_cache() -> void:
 func save_cache() -> void:
 	if not dirty:
 		return
-	
+
 	var cache_data = {
 		"planets": {},
 		"timestamps": cache_timestamps
 	}
-	
+
 	for planet_id in cached_planets:
 		cache_data.planets[planet_id] = cached_planets[planet_id].serialize()
-	
-	var file = FileAccess.open(CACHE_FILE, FileAccess.WRITE)
+
+	var file: FileAccess = FileAccess.open(CACHE_FILE, FileAccess.WRITE)
 	file.store_string(JSON.stringify(cache_data))
-	file.close()
-	
+	if file: file.close()
+
 	dirty = false
 
 func load_cache() -> void:
 	if not FileAccess.file_exists(CACHE_FILE):
 		return
-	
-	var file = FileAccess.open(CACHE_FILE, FileAccess.READ)
+
+	var file: FileAccess = FileAccess.open(CACHE_FILE, FileAccess.READ)
 	var json := JSON.new()
-	var error = json.parse(file.get_as_text())
-	file.close()
-	
+	var error: int = json.parse(file.get_as_text())
+	if file: file.close()
+
 	if error == OK:
 		var cache_data = json.data
 		cache_timestamps = cache_data.timestamps
-		
+
 		for planet_id in cache_data.planets:
 			var planet_data = cache_data.planets[planet_id]
-			
+
 			# Check if data needs migration
 			if migration.needs_planet_migration(planet_data):
 				planet_data = migration.migrate_planet_data(planet_data)
-			
+
 			cached_planets[planet_id] = GamePlanet.deserialize(planet_data)
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

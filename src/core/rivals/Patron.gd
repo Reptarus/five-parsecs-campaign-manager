@@ -1,7 +1,7 @@
-extends Resource
+﻿extends Resource
 class_name FPCM_Patron
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
 const GameLocation = preload("res://src/game/world/GameLocation.gd")
 
@@ -35,11 +35,11 @@ signal patron_status_changed
 		var old_value := _relationship
 		_relationship = clamp(_value, -100, 100)
 		if old_value != _relationship:
-			relationship_changed.emit(_relationship) # warning: return value discarded (intentional)
+			relationship_changed.emit(_relationship)
 			_check_relationship_status()
 			notify_property_list_changed()
 
-@export var faction_type: GameEnums.FactionType:
+@export var faction_type: GlobalEnums.FactionType:
 	get: return _faction_type
 	set(_value):
 		_faction_type = _value
@@ -55,7 +55,7 @@ signal patron_status_changed
 var _patron_name: String = ""
 var _location: GameLocation
 var _relationship: int = 0
-var _faction_type: GameEnums.FactionType = GameEnums.FactionType.NEUTRAL
+var _faction_type: GlobalEnums.FactionType = GlobalEnums.FactionType.NEUTRAL
 var _economic_influence: float = 1.0
 var _missions: Array[Mission] = []
 var _is_dismissed: bool = false
@@ -68,7 +68,7 @@ var mission_bonus: int = 0
 
 func _init(p_name: String = "",
 		  p_location: GameLocation = null,
-		  p_faction: GameEnums.FactionType = GameEnums.FactionType.NEUTRAL) -> void:
+		  p_faction: GlobalEnums.FactionType = GlobalEnums.FactionType.NEUTRAL) -> void:
 	patron_name = p_name
 	location = p_location
 	faction_type = p_faction
@@ -89,14 +89,14 @@ func _setup_patron_characteristics() -> void:
 		"Professional: Always pays on time",
 		"Shady: May try to avoid payment"
 	]
-	
+
 	var num_characteristics := randi() % 2 + 1
 	possible_characteristics.shuffle()
-	
-	for i in range(num_characteristics):
+
+	for i: int in range(num_characteristics):
 		var characteristic: String = possible_characteristics[i]
 
-		characteristics.append(characteristic) # warning: return value discarded (intentional)
+		characteristics.append(characteristic)
 		_apply_characteristic_bonuses(characteristic)
 
 func _apply_characteristic_bonuses(characteristic: String) -> void:
@@ -108,46 +108,46 @@ func add_mission(mission: Mission) -> void:
 	if not mission:
 		return
 
-	_missions.append(mission) # warning: return value discarded (intentional)
+	_missions.append(mission)
 	_last_mission_turn = mission.turn_offered
-	missions_updated.emit() # warning: return value discarded (intentional)
+	missions_updated.emit()
 
 func remove_mission(mission: Mission) -> void:
 	if not mission:
 		return
 	_missions.erase(mission)
-	missions_updated.emit() # warning: return value discarded (intentional)
+	missions_updated.emit()
 
 func get_available_missions() -> Array[Mission]:
 	return _missions.filter(func(m: Mission) -> bool: return not m.is_completed and not m.is_failed)
 
 func get_mission_reward_modifier() -> float:
 	var modifier := economic_influence
-	
+
 	if has_characteristic("Wealthy"):
 		modifier *= 1.2
 	if has_characteristic("Shady"):
 		modifier *= 0.8
-	
+
 	return modifier
 
 func complete_mission(mission: Mission) -> void:
 	if not mission or not mission in _missions:
 		return
-		
+
 	mission.complete(true)
 	change_relationship(2) # Base relationship gain
-	
+
 	if has_characteristic("Generous"):
 		change_relationship(1)
 
 func fail_mission(mission: Mission) -> void:
 	if not mission or not mission in _missions:
 		return
-		
+
 	mission.fail(false)
 	change_relationship(-1) # Base relationship loss
-	
+
 	if has_characteristic("Demanding"):
 		change_relationship(-1)
 
@@ -156,7 +156,7 @@ func change_relationship(amount: int) -> void:
 func dismiss() -> void:
 	if not _is_dismissed:
 		_is_dismissed = true
-		patron_dismissed.emit() # warning: return value discarded (intentional)
+		patron_dismissed.emit()
 
 func can_offer_mission() -> bool:
 	return not _is_dismissed and _missions.size() < 3
@@ -185,17 +185,17 @@ func get_status() -> String:
 func _check_relationship_status() -> void:
 	if _relationship <= -75:
 		dismiss()
-	patron_status_changed.emit() # warning: return value discarded (intentional)
+	patron_status_changed.emit()
 
 func serialize() -> Dictionary:
 	return {
 		"name": _patron_name,
 
-		"location": _location.serialize() if _location else {} as Dictionary,
+		"location": _location.serialize() if _location and _location.has_method("serialize") else {},
 		"relationship": _relationship,
-		"faction_type": GameEnums.FactionType.keys()[_faction_type],
+		"faction_type": GlobalEnums.FactionType.keys()[_faction_type],
 		"economic_influence": _economic_influence,
-		"missions": _missions.map(func(m): return m.serialize()),
+		"missions": _missions.map(func(m): return m.serialize() if m and m.has_method("serialize") else {}),
 		"is_dismissed": _is_dismissed,
 		"last_mission_turn": _last_mission_turn,
 		"characteristics": characteristics.duplicate(),
@@ -211,14 +211,14 @@ static func deserialize(data: Dictionary) -> Resource:
 	var location_data = data.get("location", {})
 	if not location_data.is_empty():
 		var location := GameLocation.new()
-		location.deserialize(location_data)
+		if location and location.has_method("deserialize"): location.deserialize(location_data)
 		patron._location = location
 	else:
 		patron._location = null
 
 	patron._relationship = data.get("relationship", 0)
 
-	patron._faction_type = GameEnums.FactionType[data.get("faction_type", "NEUTRAL")]
+	patron._faction_type = GlobalEnums.FactionType[data.get("faction_type", "NEUTRAL")]
 
 	patron._economic_influence = data.get("economic_influence", 1.0)
 
@@ -235,6 +235,25 @@ static func deserialize(data: Dictionary) -> Resource:
 	for mission_data in data.get("missions", []):
 		if mission_data is Dictionary:
 			var mission := Mission.new()
-			patron._missions.append(mission.deserialize(mission_data))
-	
+			patron._missions.append(mission.deserialize(mission_data) if mission and mission.has_method("deserialize") else {})
+
 	return patron
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

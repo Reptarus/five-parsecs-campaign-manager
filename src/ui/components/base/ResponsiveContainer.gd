@@ -1,4 +1,4 @@
-class_name FPCM_ResponsiveContainer
+﻿class_name FPCM_ResponsiveContainer
 extends Control
 
 signal orientation_changed(is_portrait: bool)
@@ -10,28 +10,31 @@ var is_portrait := false
 var main_container: Container
 
 func _ready() -> void:
-	resized.connect(_check_orientation)  # warning: return value discarded (intentional)
+	resized.connect(_check_orientation)
 	_setup_container()
 	_check_orientation()
 
 func _setup_container() -> void:
 	main_container = $MainContainer if has_node("MainContainer") else null
 	if not main_container:
-		push_error("ResponsiveContainer: MainContainer node not found")
-	
+		push_warning("ResponsiveContainer: MainContainer node not found - creating default container")
+		main_container = VBoxContainer.new()
+		main_container.name = "MainContainer"
+		add_child(main_container)
+
 func _check_orientation() -> void:
 	var size_ratio := size.x / size.y if size.y > 0 else 1.0
 	var new_is_portrait := size_ratio < portrait_threshold or size.x < min_width
-	
+
 	if new_is_portrait != is_portrait:
 		is_portrait = new_is_portrait
 		_apply_layout()
-		orientation_changed.emit(is_portrait)  # warning: return value discarded (intentional)
+		orientation_changed.emit(is_portrait)
 
 func _apply_layout() -> void:
 	if not main_container:
 		return
-		
+
 	if is_portrait:
 		_apply_portrait_layout()
 	else:
@@ -40,7 +43,7 @@ func _apply_layout() -> void:
 func _apply_portrait_layout() -> void:
 	# Override in child classes
 	pass
-	
+
 func _apply_landscape_layout() -> void:
 	# Override in child classes
 	pass

@@ -1,4 +1,4 @@
-class_name UIAnimationSystem
+﻿class_name UIAnimationSystem
 extends RefCounted
 
 ## UI Animation System for Five Parsecs Campaign Manager
@@ -77,7 +77,7 @@ static func animate(target: Node, animation_type: AnimationType, duration: float
 	var anim_duration = duration if duration > 0 else ANIMATION_DURATIONS.get(animation_type, 0.3)
 
 	var easing = EASING_PRESETS.get(animation_type, Tween.EASE_OUT)
-	
+
 	match animation_type:
 		AnimationType.FADE_IN:
 			_animate_fade_in(target, tween, anim_duration, easing)
@@ -119,10 +119,10 @@ static func animate(target: Node, animation_type: AnimationType, duration: float
 			_animate_card_flip(target, tween, anim_duration)
 		AnimationType.EXPAND_COLLAPSE:
 			_animate_expand_collapse(target, tween, anim_duration)
-	
+
 	if callback.is_valid():
 		tween.tween_callback(callback)
-	
+
 	return tween
 
 ## ===== ANIMATION IMPLEMENTATIONS =====
@@ -138,7 +138,7 @@ static func _animate_slide_in_left(target: Node, tween: Tween, duration: float, 
 	var original_pos = target.position
 	target.position.x -= 200
 	target.modulate.a = 0.0
-	
+
 	tween.parallel().tween_property(target, "position:x", original_pos.x, duration).set_ease(easing)
 	tween.parallel().tween_property(target, "modulate:a", 1.0, duration * 0.7).set_ease(easing)
 
@@ -146,7 +146,7 @@ static func _animate_slide_in_right(target: Node, tween: Tween, duration: float,
 	var original_pos = target.position
 	target.position.x += 200
 	target.modulate.a = 0.0
-	
+
 	tween.parallel().tween_property(target, "position:x", original_pos.x, duration).set_ease(easing)
 	tween.parallel().tween_property(target, "modulate:a", 1.0, duration * 0.7).set_ease(easing)
 
@@ -154,7 +154,7 @@ static func _animate_slide_in_up(target: Node, tween: Tween, duration: float, ea
 	var original_pos = target.position
 	target.position.y += 150
 	target.modulate.a = 0.0
-	
+
 	tween.parallel().tween_property(target, "position:y", original_pos.y, duration).set_ease(easing)
 	tween.parallel().tween_property(target, "modulate:a", 1.0, duration * 0.7).set_ease(easing)
 
@@ -162,42 +162,42 @@ static func _animate_slide_in_down(target: Node, tween: Tween, duration: float, 
 	var original_pos = target.position
 	target.position.y -= 150
 	target.modulate.a = 0.0
-	
+
 	tween.parallel().tween_property(target, "position:y", original_pos.y, duration).set_ease(easing)
 	tween.parallel().tween_property(target, "modulate:a", 1.0, duration * 0.7).set_ease(easing)
 
 static func _animate_slide_out_left(target: Node, tween: Tween, duration: float, easing: int):
 	var target_pos = target.position
 	target_pos.x -= 200
-	
+
 	tween.parallel().tween_property(target, "position:x", target_pos.x, duration).set_ease(easing)
 	tween.parallel().tween_property(target, "modulate:a", 0.0, duration * 0.8).set_ease(easing)
 
 static func _animate_slide_out_right(target: Node, tween: Tween, duration: float, easing: int):
 	var target_pos = target.position
 	target_pos.x += 200
-	
+
 	tween.parallel().tween_property(target, "position:x", target_pos.x, duration).set_ease(easing)
 	tween.parallel().tween_property(target, "modulate:a", 0.0, duration * 0.8).set_ease(easing)
 
 static func _animate_slide_out_up(target: Node, tween: Tween, duration: float, easing: int):
 	var target_pos = target.position
 	target_pos.y -= 150
-	
+
 	tween.parallel().tween_property(target, "position:y", target_pos.y, duration).set_ease(easing)
 	tween.parallel().tween_property(target, "modulate:a", 0.0, duration * 0.8).set_ease(easing)
 
 static func _animate_slide_out_down(target: Node, tween: Tween, duration: float, easing: int):
 	var target_pos = target.position
 	target_pos.y += 150
-	
+
 	tween.parallel().tween_property(target, "position:y", target_pos.y, duration).set_ease(easing)
 	tween.parallel().tween_property(target, "modulate:a", 0.0, duration * 0.8).set_ease(easing)
 
 static func _animate_scale_in(target: Node, tween: Tween, duration: float, easing: int):
 	target.scale = Vector2.ZERO
 	target.modulate.a = 0.7
-	
+
 	tween.parallel().tween_property(target, "scale", Vector2.ONE, duration).set_ease(easing)
 	tween.parallel().tween_property(target, "modulate:a", 1.0, duration * 0.6).set_ease(easing)
 
@@ -208,7 +208,7 @@ static func _animate_scale_out(target: Node, tween: Tween, duration: float, easi
 static func _animate_bounce_in(target: Node, tween: Tween, duration: float):
 	target.scale = Vector2.ZERO
 	target.modulate.a = 0.8
-	
+
 	# Bounce effect with multiple keyframes
 	tween.parallel().tween_property(target, "scale", Vector2(1.2, 1.2), duration * 0.6).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 	tween.chain().tween_property(target, "scale", Vector2.ONE, duration * 0.4).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
@@ -222,7 +222,7 @@ static func _animate_bounce_out(target: Node, tween: Tween, duration: float):
 static func _animate_pulse(target: Node, tween: Tween, duration: float):
 	var original_scale = target.scale
 	var pulse_scale = Vector2(1.1, 1.1)
-	
+
 	tween.tween_property(target, "scale", pulse_scale, duration * 0.5).set_trans(Tween.TRANS_SINE)
 	tween.chain().tween_property(target, "scale", original_scale, duration * 0.5).set_trans(Tween.TRANS_SINE)
 
@@ -230,7 +230,7 @@ static func _animate_shake(target: Node, tween: Tween, duration: float):
 	var original_pos = target.position
 	var shake_strength: int = 5
 	var shake_count: int = 8
-	
+
 	for i in shake_count:
 		var shake_offset = Vector2(
 			randf_range(-shake_strength, shake_strength),
@@ -239,33 +239,33 @@ static func _animate_shake(target: Node, tween: Tween, duration: float):
 		var shake_duration = duration / shake_count
 		tween.tween_property(target, "position", original_pos + shake_offset, shake_duration)
 		tween.chain()
-	
+
 	tween.tween_property(target, "position", original_pos, duration / shake_count)
 
 static func _animate_highlight_flash(target: Node, tween: Tween, duration: float):
 	var original_modulate = target.modulate
 	var highlight_color = Color(1.4, 1.4, 1.0, 1.0) # Bright yellow tint
-	
+
 	tween.tween_property(target, "modulate", highlight_color, duration * 0.2)
 	tween.chain().tween_property(target, "modulate", original_modulate, duration * 0.8)
 
 static func _animate_button_press(target: Node, tween: Tween, duration: float):
 	var original_scale = target.scale
 	var pressed_scale = Vector2(0.95, 0.95)
-	
+
 	tween.tween_property(target, "scale", pressed_scale, duration * 0.5).set_trans(Tween.TRANS_QUART)
 	tween.chain().tween_property(target, "scale", original_scale, duration * 0.5).set_trans(Tween.TRANS_ELASTIC)
 
 static func _animate_card_flip(target: Node, tween: Tween, duration: float):
 	var original_scale = target.scale
-	
+
 	# Flip horizontally
 	tween.tween_property(target, "scale:x", 0.0, duration * 0.5).set_trans(Tween.TRANS_QUART)
 	tween.chain().tween_property(target, "scale:x", original_scale.x, duration * 0.5).set_trans(Tween.TRANS_QUART)
 
 static func _animate_expand_collapse(target: Node, tween: Tween, duration: float):
 	var is_expanded = target.get_meta("is_expanded", false)
-	
+
 	if is_expanded:
 		# Collapse
 		tween.tween_property(target, "scale:y", 0.0, duration).set_trans(Tween.TRANS_QUART)
@@ -326,43 +326,51 @@ static func button_press_animation(target: Node, duration: float = 0.1, callback
 static func sequence_fade_in_elements(elements: Array[Node], stagger_delay: float = 0.1) -> Array[Tween]:
 	"""Animate multiple elements fading in with staggered timing"""
 	var tweens: Array[Tween] = []
-	
-	for i in range(elements.size()):
+
+	for i: int in range(elements.size()):
 		var element = elements[i]
 		if is_instance_valid(element):
 			var delay = i * stagger_delay
 			var tween = element.create_tween()
-			
+
 			element.modulate.a = 0.0
 			tween.tween_delay(delay)
 			tween.tween_property(element, "modulate:a", 1.0, 0.3).set_ease(Tween.EASE_OUT)
 
-			tweens.append(tween) # warning: return value discarded (intentional)
-	
+			tweens.append(tween)
+
 	return tweens
 
 static func sequence_slide_in_elements(elements: Array[Node], direction: AnimationType = AnimationType.SLIDE_IN_LEFT, stagger_delay: float = 0.1) -> Array[Tween]:
 	"""Animate multiple elements sliding in with staggered timing"""
 	var tweens: Array[Tween] = []
-	
-	for i in range(elements.size()):
+
+	for i: int in range(elements.size()):
 		var element = elements[i]
 		if is_instance_valid(element):
 			var delay = i * stagger_delay
 			var tween = element.create_tween()
-			
+
 			tween.tween_delay(delay)
 			var anim_tween = animate(element, direction)
 
-			tweens.append(anim_tween) # warning: return value discarded (intentional)
-	
+			tweens.append(anim_tween)
+
 	return tweens
 
 static func create_loading_animation(target: Node) -> Tween:
 	"""Create a continuous loading animation"""
 	var tween = target.create_tween()
 	tween.set_loops()
-	
+
 	tween.tween_property(target, "rotation", TAU, 1.0).set_trans(Tween.TRANS_LINEAR)
-	
+
 	return tween
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

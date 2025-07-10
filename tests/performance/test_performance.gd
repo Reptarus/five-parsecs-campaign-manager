@@ -3,7 +3,7 @@ extends GdUnitGameTest
 
 # Performance test constants
 const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
-const BattlefieldGeneratorScript: GDScript = preload("res://src/core/systems/BattlefieldGenerator.gd")
+const BattlefieldGeneratorScript: GDScript = preload("res://src/core/battle/BattlefieldSetupAssistant.gd")
 const BattlefieldManagerScript: GDScript = preload("res://src/base/combat/battlefield/BaseBattlefieldManager.gd")
 const TerrainTypesScript: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")
 

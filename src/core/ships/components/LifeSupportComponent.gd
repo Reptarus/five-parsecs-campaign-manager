@@ -1,4 +1,4 @@
-# Scripts/ShipAndCrew/LifeSupportComponent.gd
+﻿# Scripts/ShipAndCrew/LifeSupportComponent.gd
 @tool
 extends "res://src/core/ships/components/ShipComponent.gd"
 class_name FPCM_LifeSupportComponent
@@ -15,10 +15,10 @@ const ShipComponentClass = preload("res://src/core/ships/components/ShipComponen
 
 func _init() -> void:
 	super()
-	name = "Life Support"
-	description = "Basic life support system"
-	cost = 250
-	power_draw = 4
+	self.name = "Life Support"
+	self.description = "Basic life support system"
+	self.cost = 250
+	self.power_draw = 4
 func _apply_upgrade_effects() -> void:
 	super()
 	oxygen_generation += 0.2
@@ -52,20 +52,20 @@ func is_functional() -> bool:
 
 func check_life_support_failure() -> bool:
 	var base_failure = check_failure()
-	
+
 	# Critical system - additional safety check
 	if base_failure and has_emergency_systems:
 		# Emergency systems give a second chance
 		return randf() < 0.3 # 30% chance of failure even with emergency systems
-	
+
 	return base_failure
 
 func handle_environmental_hazard(hazard_type: int, hazard_level: float) -> float:
 	var damage_reduction: int = 0
-	
+
 	if not is_functional():
 		return 0.0
-	
+
 	match hazard_type:
 		0: # Radiation
 			damage_reduction = get_radiation_protection()
@@ -75,14 +75,14 @@ func handle_environmental_hazard(hazard_type: int, hazard_level: float) -> float
 			damage_reduction = get_oxygen_generation() * 0.7
 		3: # Pressure issues
 			damage_reduction = get_recycling_rating() * 0.5
-	
+
 	# Reduce hazard by the calculated amount
 	var reduced_hazard = max(0.0, hazard_level - (damage_reduction * hazard_level))
-	
+
 	# Life support takes wear from handling hazards
 	if hazard_level > 0.5:
 		increase_wear()
-	
+
 	return reduced_hazard
 
 func serialize() -> Dictionary:
@@ -101,7 +101,7 @@ static func create_from_data(data: Dictionary) -> Resource:
 	# Use direct instantiation
 	var component = new()
 	var base_data = ShipComponentClass.deserialize(data)
-	
+
 	# Copy base data
 	component.name = base_data.name
 	component.description = base_data.description
@@ -116,7 +116,7 @@ static func create_from_data(data: Dictionary) -> Resource:
 	component.efficiency = base_data.efficiency
 	component.power_draw = base_data.power_draw
 	component.status_effects = base_data.status_effects
-	
+
 	# Life support-specific properties
 
 	component.oxygen_generation = data.get("oxygen_generation", 1.0)
@@ -132,7 +132,7 @@ static func create_from_data(data: Dictionary) -> Resource:
 	component.has_emergency_systems = data.get("has_emergency_systems", false)
 
 	component.radiation_protection = data.get("radiation_protection", 0.7)
-	
+
 	return component
 
 # Return serialized data with proper life support type
@@ -154,3 +154,22 @@ static func deserialize(data: Dictionary) -> Dictionary:
 
 	base_data["radiation_protection"] = data.get("radiation_protection", 0.7)
 	return base_data
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

@@ -1,4 +1,4 @@
-# Scripts/ShipAndCrew/CargoComponent.gd
+﻿# Scripts/ShipAndCrew/CargoComponent.gd
 @tool
 extends "res://src/core/ships/components/ShipComponent.gd"
 class_name FPCM_CargoComponent
@@ -25,11 +25,11 @@ const CARGO_TYPE_CONTRABAND = 7
 
 func _init() -> void:
 	super()
-	name = "Cargo Hold"
+	cargo_types = [CARGO_TYPE_STANDARD]
 	description = "Standard cargo storage"
 	cost = 200
-	power_draw = 1
-	
+	power_draw = 1.0
+
 	# Default to standard cargo
 	cargo_types = [CARGO_TYPE_STANDARD]
 	current_cargo = {}
@@ -40,7 +40,6 @@ func _apply_upgrade_effects() -> void:
 func get_total_cargo_weight() -> int:
 	var total: int = 0
 	for cargo_id in current_cargo:
-
 		total += current_cargo[cargo_id].get("weight", 0)
 	return total
 
@@ -50,12 +49,12 @@ func get_available_capacity() -> int:
 func can_store_cargo(cargo_data: Dictionary) -> bool:
 	if not is_active:
 		return false
-		
+
 	# Check capacity
 
 	if get_available_capacity() < cargo_data.get("weight", 0):
 		return false
-		
+
 	# Check cargo type compatibility
 
 	var cargo_type = cargo_data.get("type", CARGO_TYPE_STANDARD)
@@ -67,7 +66,7 @@ func can_store_cargo(cargo_data: Dictionary) -> bool:
 			return false
 		if cargo_type == CARGO_TYPE_CONTRABAND and not has_security_systems:
 			return false
-			
+
 	return true
 
 func add_cargo(cargo_data: Dictionary) -> bool:
@@ -88,20 +87,19 @@ func remove_cargo(cargo_id: String) -> Dictionary:
 func get_cargo_by_type(cargo_type: int) -> Array:
 	var filtered_cargo: Array = []
 	for cargo_id in current_cargo:
-
 		if current_cargo[cargo_id].get("_type", CARGO_TYPE_STANDARD) == cargo_type:
 
-			filtered_cargo.append(current_cargo[cargo_id])  # warning: return value discarded (intentional)
+			filtered_cargo.append(current_cargo[cargo_id])
 	return filtered_cargo
 
 func add_cargo_type(cargo_type: int) -> void:
 	if not cargo_type in cargo_types:
 
-		cargo_types.append(cargo_type)  # warning: return value discarded (intentional)
+		cargo_types.append(cargo_type)
 
 func check_cargo_spoilage() -> Array:
 	var spoiled_items: Array = []
-	
+
 	# Food items can spoil if no refrigeration
 	if not has_refrigeration:
 		var food_items = get_cargo_by_type(CARGO_TYPE_FOOD)
@@ -109,8 +107,8 @@ func check_cargo_spoilage() -> Array:
 			# Random chance of spoilage based on time
 			if randf() < 0.05: # 5% chance per check
 
-				spoiled_items.append(item)  # warning: return value discarded (intentional)
-				
+				spoiled_items.append(item)
+
 	# Hazardous cargo can leak if no containment
 	if not has_hazard_containment:
 		var hazardous_items = get_cargo_by_type(CARGO_TYPE_HAZARDOUS)
@@ -118,28 +116,27 @@ func check_cargo_spoilage() -> Array:
 			# Random chance of leakage based on time
 			if randf() < 0.03: # 3% chance per check
 
-				spoiled_items.append(item)  # warning: return value discarded (intentional)
+				spoiled_items.append(item)
 				# Hazardous leaks might damage the ship
 				damage(10)
-	
+
 	# Remove spoiled items from cargo
 	for item in spoiled_items:
-
 		remove_cargo(item.get("id", ""))
-		
+
 	return spoiled_items
 
 func check_contraband_detection(security_level: float) -> Array:
 	var detected_items: Array = []
-	
+
 	if not has_security_systems:
 		var contraband_items = get_cargo_by_type(CARGO_TYPE_CONTRABAND)
 		for item in contraband_items:
 			var detection_chance: int = 0 * security_level
 			if randf() < detection_chance:
 
-				detected_items.append(item)  # warning: return value discarded (intentional)
-	
+				detected_items.append(item)
+
 	return detected_items
 
 func serialize() -> Dictionary:
@@ -158,7 +155,7 @@ static func create_from_data(data: Dictionary) -> Resource:
 	# Use basic instantiation
 	var component = new()
 	var base_data = ShipComponentClass.deserialize(data)
-	
+
 	# Copy base data
 	component.name = base_data.name
 	component.description = base_data.description
@@ -173,7 +170,7 @@ static func create_from_data(data: Dictionary) -> Resource:
 	component.efficiency = base_data.efficiency
 	component.power_draw = base_data.power_draw
 	component.status_effects = base_data.status_effects
-	
+
 	# Cargo-specific properties
 
 	component.storage_capacity = data.get("storage_capacity", 100)
@@ -189,7 +186,7 @@ static func create_from_data(data: Dictionary) -> Resource:
 	component.organization_level = data.get("organization_level", 1.0)
 
 	component.cargo_types = data.get("cargo_types", [CARGO_TYPE_STANDARD])
-	
+
 	return component
 
 # Return serialized data with proper cargo type
@@ -211,3 +208,22 @@ static func deserialize(data: Dictionary) -> Dictionary:
 
 	base_data["cargo_types"] = data.get("cargo_types", [CARGO_TYPE_STANDARD])
 	return base_data
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	else:
+		return obj.get(property)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

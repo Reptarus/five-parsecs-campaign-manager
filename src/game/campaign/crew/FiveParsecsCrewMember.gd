@@ -1,15 +1,15 @@
-@tool
+﻿@tool
 extends Node
 class_name FPCM_CrewMember
 
 signal health_changed(new_health: int)
-signal status_changed(new_status: FiveParsecsGameEnums.CharacterStatus)
+signal status_changed(new_status: GlobalEnums.CharacterStatus)
 signal experience_gained(amount: int)
 signal level_up(new_level: int)
 
 # Dependencies
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const FiveParsecsGlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 # Character data
 var character: Node
@@ -17,7 +17,7 @@ var inventory: Dictionary = {}
 var active_weapon: Dictionary = {}
 
 # Basic character attributes
-var character_class: FiveParsecsGameEnums.CharacterClass = FiveParsecsGameEnums.CharacterClass.SOLDIER
+var character_class: FiveParsecsGlobalEnums.CharacterClass = FiveParsecsGlobalEnums.CharacterClass.SOLDIER
 var combat_skill: int = 0
 var reactions: int = 0
 var savvy: int = 0
@@ -29,7 +29,7 @@ var luck: int = 0
 var health: int = 10
 var max_health: int = 10
 var morale: int = 10
-var status: GameEnums.CharacterStatus = GameEnums.CharacterStatus.HEALTHY
+var status: GlobalEnums.CharacterStatus = GlobalEnums.CharacterStatus.HEALTHY
 
 # Experience
 var level: int = 1
@@ -66,34 +66,34 @@ func _init() -> void:
 
 func _apply_class_bonuses() -> void:
 	match character_class:
-		FiveParsecsGameEnums.CharacterClass.SOLDIER:
+		FiveParsecsGlobalEnums.CharacterClass.SOLDIER:
 			combat_skill = 1
-		FiveParsecsGameEnums.CharacterClass.SECURITY:
+		FiveParsecsGlobalEnums.CharacterClass.SECURITY:
 			reactions = 2
-		FiveParsecsGameEnums.CharacterClass.BROKER:
+		FiveParsecsGlobalEnums.CharacterClass.BROKER:
 			savvy = 1
-		FiveParsecsGameEnums.CharacterClass.ENGINEER:
+		FiveParsecsGlobalEnums.CharacterClass.ENGINEER:
 			savvy = 1
-		FiveParsecsGameEnums.CharacterClass.MEDIC:
+		FiveParsecsGlobalEnums.CharacterClass.MEDIC:
 			savvy = 1
-		FiveParsecsGameEnums.CharacterClass.BOT_TECH:
+		FiveParsecsGlobalEnums.CharacterClass.BOT_TECH:
 			toughness = 4
 			speed = 3
-		FiveParsecsGameEnums.CharacterClass.MERCHANT:
+		FiveParsecsGlobalEnums.CharacterClass.MERCHANT:
 			reactions = 2
-		FiveParsecsGameEnums.CharacterClass.ROGUE:
+		GlobalEnums.CharacterClass.ROGUE:
 			speed = 3
-		FiveParsecsGameEnums.CharacterClass.PSIONICIST:
+		GlobalEnums.CharacterClass.PSIONICIST:
 			savvy = 2
-		FiveParsecsGameEnums.CharacterClass.TECH:
+		GlobalEnums.CharacterClass.TECH:
 			savvy = 2
-		FiveParsecsGameEnums.CharacterClass.BRUTE:
+		GlobalEnums.CharacterClass.BRUTE:
 			toughness = 3
-		FiveParsecsGameEnums.CharacterClass.GUNSLINGER:
+		GlobalEnums.CharacterClass.GUNSLINGER:
 			combat_skill = 2
-		FiveParsecsGameEnums.CharacterClass.ACADEMIC:
+		GlobalEnums.CharacterClass.ACADEMIC:
 			savvy = 2
-		FiveParsecsGameEnums.CharacterClass.PILOT:
+		GlobalEnums.CharacterClass.PILOT:
 			reactions = 3
 
 func set_default_stats() -> void:
@@ -101,98 +101,98 @@ func set_default_stats() -> void:
 	max_health = 10 + toughness
 	health = max_health
 	morale = 10
-	status = GameEnums.CharacterStatus.HEALTHY
+	status = GlobalEnums.CharacterStatus.HEALTHY
 
 func equip_default_gear() -> void:
 	# Simplified gear setup
 	if not inventory:
 		inventory = {}
-	
+
 	# Add basic weapon data
 	var default_weapon = {
 		"name": "Basic Weapon",
-		"type": GameEnums.WeaponType.PISTOL,
+		"type": GlobalEnums.WeaponType.PISTOL,
 		"damage": 1
 	}
-	
+
 	match character_class:
-		FiveParsecsGameEnums.CharacterClass.SOLDIER:
-			default_weapon.type = GameEnums.WeaponType.RIFLE
-		FiveParsecsGameEnums.CharacterClass.SECURITY:
-			default_weapon.type = GameEnums.WeaponType.PISTOL
-		FiveParsecsGameEnums.CharacterClass.BOT_TECH:
-			default_weapon.type = GameEnums.WeaponType.HEAVY
-		FiveParsecsGameEnums.CharacterClass.MERCHANT:
-			default_weapon.type = GameEnums.WeaponType.PISTOL
+		FiveParsecsGlobalEnums.CharacterClass.SOLDIER:
+			default_weapon.type = GlobalEnums.WeaponType.RIFLE
+		FiveParsecsGlobalEnums.CharacterClass.SECURITY:
+			default_weapon.type = GlobalEnums.WeaponType.PISTOL
+		FiveParsecsGlobalEnums.CharacterClass.BOT_TECH:
+			default_weapon.type = GlobalEnums.WeaponType.HEAVY
+		FiveParsecsGlobalEnums.CharacterClass.MERCHANT:
+			default_weapon.type = GlobalEnums.WeaponType.PISTOL
 		_:
-			default_weapon.type = GameEnums.WeaponType.PISTOL
-	
+			default_weapon.type = GlobalEnums.WeaponType.PISTOL
+
 	inventory["weapon"] = default_weapon
 	active_weapon = default_weapon
 
 func handle_incapacitation() -> void:
 	# Handle character being reduced to 0 health
-	status = GameEnums.CharacterStatus.CRITICAL
-	
+	status = GlobalEnums.CharacterStatus.CRITICAL
+
 	# Roll for injury
 	var injury_roll = randi() % 6 + 1
 	if injury_roll <= 2:
 		# Minor injury - will recover after battle
-		status = GameEnums.CharacterStatus.INJURED
+		status = GlobalEnums.CharacterStatus.INJURED
 	elif injury_roll <= 5:
 		# Serious injury - will need medical attention
-		status = GameEnums.CharacterStatus.CRITICAL
+		status = GlobalEnums.CharacterStatus.CRITICAL
 	else:
 		# Critical injury - may die without immediate help
-		status = GameEnums.CharacterStatus.CRITICAL
+		status = GlobalEnums.CharacterStatus.CRITICAL
 
 func apply_status_effect(effect_data: Dictionary) -> void:
 	# Apply status effects specific to Five Parsecs
 	var effect = effect_data.get("effect", "")
 
 	var duration = effect_data.get("duration", 1)
-	
+
 	# Store the recovery time
 	recovery_time = duration
-	
+
 	# Reset status flags
 	is_inspired = false
 	is_focused = false
 	is_enraged = false
-	
+
 	# Map our custom status effects to the available CharacterStatus enum values
 	match effect:
 		"stunned", "stun":
-			status = GameEnums.CharacterStatus.INJURED
+			status = GlobalEnums.CharacterStatus.INJURED
 		"suppress":
-			status = GameEnums.CharacterStatus.INJURED
+			status = GlobalEnums.CharacterStatus.INJURED
 		"disarmed":
-			status = GameEnums.CharacterStatus.INJURED
+			status = GlobalEnums.CharacterStatus.INJURED
 		"bleeding":
-			status = GameEnums.CharacterStatus.INJURED
+			status = GlobalEnums.CharacterStatus.INJURED
 		"inspire":
-			status = GameEnums.CharacterStatus.HEALTHY
+			status = GlobalEnums.CharacterStatus.HEALTHY
 			is_inspired = true
 		"focus":
-			status = GameEnums.CharacterStatus.HEALTHY
+			status = GlobalEnums.CharacterStatus.HEALTHY
 			is_focused = true
 		"rage":
-			status = GameEnums.CharacterStatus.HEALTHY
+			status = GlobalEnums.CharacterStatus.HEALTHY
 			is_enraged = true
 		"tech_boost":
-			status = GameEnums.CharacterStatus.HEALTHY
+			status = GlobalEnums.CharacterStatus.HEALTHY
 		"wounded":
-			status = GameEnums.CharacterStatus.INJURED
+			status = GlobalEnums.CharacterStatus.INJURED
 		"seriously_wounded":
-			status = GameEnums.CharacterStatus.CRITICAL
+			status = GlobalEnums.CharacterStatus.CRITICAL
 		"critically_wounded":
-			status = GameEnums.CharacterStatus.CRITICAL
-	
-	status_changed.emit( status)
+			status = GlobalEnums.CharacterStatus.CRITICAL
+
+	status_changed.emit(status)
 
 func remove_status_effect(effect_name: String) -> void:
 	# Reset status to healthy
-	status = GameEnums.CharacterStatus.HEALTHY
+	status = GlobalEnums.CharacterStatus.HEALTHY
 	recovery_time = 0
 	is_inspired = false
 	is_focused = false
@@ -201,9 +201,9 @@ func remove_status_effect(effect_name: String) -> void:
 func get_stat_modifier(stat_name: String) -> int:
 	# Get modifiers for stats based on status effects
 	var modifier: int = 0
-	
+
 	match status:
-		GameEnums.CharacterStatus.HEALTHY:
+		GlobalEnums.CharacterStatus.HEALTHY:
 			if is_inspired:
 				if stat_name == "combat_skill":
 					modifier += 1
@@ -215,11 +215,30 @@ func get_stat_modifier(stat_name: String) -> int:
 					modifier += 1
 				if stat_name == "reactions":
 					modifier -= 1
-		GameEnums.CharacterStatus.INJURED:
+		GlobalEnums.CharacterStatus.INJURED:
 			if stat_name in ["combat_skill", "speed"]:
 				modifier -= 1
-		GameEnums.CharacterStatus.CRITICAL:
+		GlobalEnums.CharacterStatus.CRITICAL:
 			if stat_name in ["combat_skill", "reactions", "speed"]:
 				modifier -= 3
-	
+
 	return modifier
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

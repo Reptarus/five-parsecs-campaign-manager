@@ -13,7 +13,7 @@ extends "res://src/core/character/Base/CharacterBox.gd"
 # Override _ready to initialize game-specific components
 func _ready() -> void:
 	super._ready()
-	
+
 	# Initialize game-specific UI components
 	if character_data:
 		update_game_specific_ui()
@@ -22,10 +22,10 @@ func _ready() -> void:
 func update_game_specific_ui() -> void:
 	if morale_value and character_data:
 		morale_value.text = str(character_data.morale)
-	
+
 	if credits_value and character_data:
 		credits_value.text = str(character_data.credits_earned)
-		
+
 	if missions_value and character_data:
 		missions_value.text = str(character_data.missions_completed)
 

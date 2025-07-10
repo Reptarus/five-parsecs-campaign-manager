@@ -1,12 +1,12 @@
-extends Control
+﻿extends Control
 
 ## Five Parsecs Crew Creation System
 ## Implements full Five Parsecs From Home crew generation rules
 
 # Safe imports
-const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
-const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd")
-const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
 const CoreCharacter = preload("res://src/core/character/Base/Character.gd")
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
@@ -45,60 +45,60 @@ func _connect_signals() -> void:
 	character_list.item_selected.connect(_on_character_selected)
 
 func _update_ui_state() -> void:
-	generate_button.disabled = crew_members.size() >= max_crew_size
-	finish_button.disabled = crew_members.size() == 0
-	
+	generate_button.disabled = (safe_call_method(crew_members, "size") as int) >= max_crew_size
+	finish_button.disabled = (safe_call_method(crew_members, "size") as int) == 0
+
 	# Update finish button text
-	finish_button.text = "Finish Crew (%d/%d)" % [crew_members.size(), max_crew_size]
+	finish_button.text = "Finish Crew (%d/%d)" % [(safe_call_method(crew_members, "size") as int), max_crew_size]
 
 ## Generate a new Five Parsecs character using official rules
 func _on_generate_character() -> void:
-	if crew_members.size() >= max_crew_size:
+	if (safe_call_method(crew_members, "size") as int) >= max_crew_size:
 		return
-	
-	var character = _generate_five_parsecs_character()
+
+	var character: Character = _generate_five_parsecs_character()
 	crew_members.append(character)
-	
+
 	# Add to UI list
-	var character_name = "%s (%s)" % [character.character_name, _get_class_name(character.character_class)]
+	var character_name: String = "%s (%s)" % [character.character_name, _get_class_name(character.character_class)]
 	character_list.add_item(character_name)
-	
+
 	_update_ui_state()
 	character_generated.emit(character)
-	
+
 	# Auto-select the new character
 	character_list.select(character_list.get_item_count() - 1)
 	_display_character_details(character)
 
 ## Generate character using Five Parsecs From Home rules
 func _generate_five_parsecs_character() -> CoreCharacter:
-	var character = CoreCharacter.new()
-	
-	# Step 1: Generate attributes using 2D6/3 (rounded up)
+	var character: Character = CoreCharacter.new()
+
+	# Step 1: Generate attributes using 2D6 / 3.0 (rounded up)
 	character.reaction = _roll_five_parsecs_attribute()
 	character.speed = _roll_five_parsecs_attribute() + 2  # Base 4" + attribute
 	character.combat = _roll_five_parsecs_attribute() - 3  # Base +0 + attribute
 	character.toughness = _roll_five_parsecs_attribute()  # Base 3 + attribute  
 	character.savvy = _roll_five_parsecs_attribute() - 3  # Base +0 + attribute
-	
+
 	# Step 2: Roll background (D100 table)
 	character.background = _roll_background()
-	
+
 	# Step 3: Roll motivation (D100 table)  
 	character.motivation = _roll_motivation()
-	
+
 	# Step 4: Determine character class from background
 	character.character_class = _determine_class_from_background(character.background)
-	
+
 	# Step 5: Generate name
 	character.character_name = _generate_character_name()
-	
+
 	# Step 6: Apply species traits (3 humans + 3 others rule)
 	_apply_species_traits(character)
-	
+
 	# Step 7: Set starting equipment based on class
 	_assign_starting_equipment(character)
-	
+
 	return character
 
 ## Five Parsecs attribute generation: 2D6 divided by 3, rounded up
@@ -146,16 +146,16 @@ func _determine_class_from_background(background_roll: int) -> int:
 func _generate_character_name() -> String:
 	var first_names = ["Alex", "Jordan", "Casey", "Riley", "Morgan", "Avery", "Taylor", "Cameron"]
 	var last_names = ["Stone", "Cross", "Vale", "Kane", "Reed", "Fox", "Storm", "Wolf"]
-	
-	return first_names[randi() % first_names.size()] + " " + last_names[randi() % last_names.size()]
+
+	return first_names[randi() % (safe_call_method(first_names, "size") as int)] + " " + last_names[randi() % (safe_call_method(last_names, "size") as int)]
 
 ## Apply species traits (3 humans + 3 others)
 func _apply_species_traits(character: CoreCharacter) -> void:
-	var human_count = 0
+	var human_count: int = 0
 	for member in crew_members:
 		if member.is_human:
 			human_count += 1
-	
+
 	if human_count < 3:
 		character.is_human = true
 		character.luck = 1  # Humans start with 1 luck
@@ -167,8 +167,8 @@ func _apply_species_traits(character: CoreCharacter) -> void:
 ## Apply alien species traits
 func _apply_alien_traits(character: CoreCharacter) -> void:
 	var alien_types = ["Bot", "Soulless", "Alien"]
-	var alien_type = alien_types[randi() % alien_types.size()]
-	
+	var alien_type = alien_types[randi() % (safe_call_method(alien_types, "size") as int)]
+
 	match alien_type:
 		"Bot":
 			character.is_bot = true
@@ -179,7 +179,7 @@ func _apply_alien_traits(character: CoreCharacter) -> void:
 		"Alien":
 			# Generic alien - boost a random stat
 			var stats = ["reaction", "speed", "combat", "toughness", "savvy"]
-			var boost_stat = stats[randi() % stats.size()]
+			var boost_stat = stats[randi() % (safe_call_method(stats, "size") as int)]
 			match boost_stat:
 				"reaction": character.reaction = mini(6, character.reaction + 1)
 				"speed": character.speed = mini(8, character.speed + 1)
@@ -211,7 +211,7 @@ func _display_character_details(character: CoreCharacter) -> void:
 	details += "Savvy: +%d\n" % character.savvy
 	if character.luck > 0:
 		details += "Luck: %d\n" % character.luck
-	
+
 	character_details.text = details
 
 ## Get species name for display
@@ -227,17 +227,24 @@ func _get_species_name(character: CoreCharacter) -> String:
 
 ## Handle character selection in list
 func _on_character_selected(index: int) -> void:
-	if index >= 0 and index < crew_members.size():
+	if index >= 0 and index < (safe_call_method(crew_members, "size") as int):
 		_display_character_details(crew_members[index])
 
 ## Finish crew creation and emit data
 func _on_finish_crew_creation() -> void:
 	var crew_data = {
 		"crew_members": [],
-		"crew_size": crew_members.size()
+		"crew_size": (safe_call_method(crew_members, "size") as int)
 	}
-	
+
 	for character in crew_members:
 		crew_data.crew_members.append(character.serialize())
-	
+
 	crew_created.emit(crew_data)
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

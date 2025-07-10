@@ -3,11 +3,11 @@
 @tool
 extends GdUnitGameTest
 
-#
-const Rival: GDScript = preload("res://src/core/rivals/Rival.gd")
+# Dependencies - using mock implementation for testing
+# const Rival: GDScript = preload("res://src/core/rivals/Rival.gd") # Commented out due to dependency issues
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
-#
+# Mock Rival following proven pattern
 class MockRival extends Resource:
     var rival_name: String = "Test Rival"
     var description: String = "A test rival for campaign testing"

@@ -1,4 +1,4 @@
-class_name FPCM_DiceSystem
+﻿class_name FPCM_DiceSystem
 extends Resource
 
 ## Digital Dice System for Five Parsecs Campaign Manager
@@ -22,7 +22,7 @@ class DiceRoll extends Resource:
 	@export var timestamp: float = 0.0
 	@export var is_manual: bool = false
 	@export var roll_id: String = ""
-	
+
 	func _init(p_dice_count: int = 1, p_dice_type: String = "d6", p_modifier: int = 0, p_context: String = "") -> void:
 		dice_count = p_dice_count
 		dice_type = p_dice_type
@@ -30,7 +30,7 @@ class DiceRoll extends Resource:
 		context = p_context
 		timestamp = Time.get_ticks_msec() / 1000.0
 		roll_id = "roll_" + str(randi()) + "_" + str(timestamp)
-	
+
 	func get_display_text() -> String:
 		var rolls_text = str(individual_rolls).replace("[", "").replace("]", "")
 		if modifier != 0:
@@ -38,7 +38,7 @@ class DiceRoll extends Resource:
 			return "%dd%s %s = %s %s = %d" % [dice_count, dice_type.substr(1), mod_text, rolls_text, mod_text, total]
 		else:
 			return "%dd%s = %s = %d" % [dice_count, dice_type.substr(1), rolls_text, total]
-	
+
 	func get_simple_text() -> String:
 		if modifier != 0:
 			var mod_text: String = "+" + str(modifier) if modifier > 0 else str(modifier)
@@ -64,7 +64,7 @@ enum DicePattern {
 	D10, # Standard d10 (1-10)
 	D66, # Two d6 read as tens/ones (11-66)
 	D100, # Percentile dice (1-100)
-	ATTRIBUTE, # 2d6/3 rounded up for character generation
+	ATTRIBUTE, # 2d6 / 3.0 rounded up for character generation
 	COMBAT, # Combat resolution dice
 	INJURY, # Injury table roll (d100)
 	REACTION, # Reaction test (d6)
@@ -74,10 +74,10 @@ enum DicePattern {
 ## Roll dice with visual feedback and manual override option
 func roll_dice(pattern: DicePattern, context: String = "", allow_manual: bool = true) -> DiceRoll:
 	var dice_roll = _create_dice_roll_for_pattern(pattern, context)
-	
+
 	if allow_manual and allow_manual_override and not auto_roll_enabled:
 		# Request _manual input
-		manual_input_requested.emit(dice_roll) # warning: return value discarded (intentional)
+		manual_input_requested.emit(dice_roll)
 		return dice_roll
 	else:
 		# Perform automatic roll
@@ -86,7 +86,7 @@ func roll_dice(pattern: DicePattern, context: String = "", allow_manual: bool = 
 ## Roll custom dice configuration
 func roll_custom(dice_count: int, dice_sides: int, modifier: int = 0, context: String = "", allow_manual: bool = true) -> DiceRoll:
 	var dice_roll = DiceRoll.new(dice_count, "d" + str(dice_sides), modifier, context)
-	
+
 	if allow_manual and allow_manual_override and not auto_roll_enabled:
 		manual_input_requested.emit(dice_roll) # warning: return value discarded (intentional)
 		return dice_roll
@@ -97,40 +97,40 @@ func roll_custom(dice_count: int, dice_sides: int, modifier: int = 0, context: S
 func _execute_dice_roll(dice_roll: DiceRoll) -> DiceRoll:
 	if show_animations:
 		dice_animation_started.emit(dice_roll.dice_count, dice_roll.dice_type) # warning: return value discarded (intentional)
-	
+
 	# Perform the actual rolling
 	dice_roll.individual_rolls.clear()
-	
+
 	match dice_roll.dice_type:
 		"d6":
-			for i in range(dice_roll.dice_count):
+			for i: int in range(dice_roll.dice_count):
 				dice_roll.individual_rolls.append(randi() % 6 + 1)
 		"d10":
-			for i in range(dice_roll.dice_count):
+			for i: int in range(dice_roll.dice_count):
 				dice_roll.individual_rolls.append(randi() % 10 + 1)
 		"d20":
-			for i in range(dice_roll.dice_count):
+			for i: int in range(dice_roll.dice_count):
 				dice_roll.individual_rolls.append(randi() % 20 + 1)
 		"d100":
-			for i in range(dice_roll.dice_count):
+			for i: int in range(dice_roll.dice_count):
 				dice_roll.individual_rolls.append(randi() % 100 + 1)
 		"d66":
-			for i in range(dice_roll.dice_count):
+			for i: int in range(dice_roll.dice_count):
 				var tens = randi() % 6 + 1
 				var ones = randi() % 6 + 1
 				dice_roll.individual_rolls.append(tens * 10 + ones)
-	
+
 	# Calculate total
 	dice_roll.total = dice_roll.individual_rolls.reduce(func(a, b): return a + b, 0) + dice_roll.modifier
-	
+
 	# Add to history
 	_add_to_history(dice_roll)
-	
+
 	# Emit signals
 	dice_rolled.emit(dice_roll) # warning: return value discarded (intentional)
 	if show_animations:
 		dice_animation_completed.emit(dice_roll) # warning: return value discarded (intentional)
-	
+
 	return dice_roll
 
 ## Handle manual dice input from UI
@@ -138,10 +138,10 @@ func input_manual_result(dice_roll: DiceRoll, manual_rolls: Array[int]) -> DiceR
 	dice_roll.individual_rolls = manual_rolls.duplicate()
 	dice_roll.total = dice_roll.individual_rolls.reduce(func(a, b): return a + b, 0) + dice_roll.modifier
 	dice_roll.is_manual = true
-	
+
 	_add_to_history(dice_roll)
 	dice_rolled.emit(dice_roll) # warning: return value discarded (intentional)
-	
+
 	return dice_roll
 
 ## Create dice roll configuration for common patterns
@@ -172,27 +172,27 @@ func _create_dice_roll_for_pattern(pattern: DicePattern, context: String) -> Dic
 
 ## Convenience methods for common Five Parsecs rolls
 func roll_d6(context: String = "") -> int:
-	var result = roll_dice(DicePattern.D6, context)
+	var result: Variant = roll_dice(DicePattern.D6, context)
 	return result.total
 
 func roll_d10(context: String = "") -> int:
-	var result = roll_dice(DicePattern.D10, context)
+	var result: Variant = roll_dice(DicePattern.D10, context)
 	return result.total
 
 func roll_d66(context: String = "") -> int:
-	var result = roll_dice(DicePattern.D66, context)
+	var result: Variant = roll_dice(DicePattern.D66, context)
 	return result.total
 
 func roll_d100(context: String = "") -> int:
-	var result = roll_dice(DicePattern.D100, context)
+	var result: Variant = roll_dice(DicePattern.D100, context)
 	return result.total
 
 func roll_2d6(context: String = "") -> int:
-	var result = roll_custom(2, 6, 0, context)
+	var result: Variant = roll_custom(2, 6, 0, context)
 	return result.total
 
 func roll_attribute(context: String = "") -> int:
-	var result = roll_dice(DicePattern.ATTRIBUTE, context)
+	var result: Variant = roll_dice(DicePattern.ATTRIBUTE, context)
 	# For attribute generation: 2d6, divide by 3, round up
 	return int(ceil(float(result.total) / 3.0))
 
@@ -256,16 +256,16 @@ func get_roll_statistics() -> Dictionary:
 		"average_d6": 0.0,
 		"average_d10": 0.0
 	}
-	
+
 	var d6_sum: int = 0
 	var d6_count: int = 0
 	var d10_sum: int = 0
 	var d10_count: int = 0
-	
+
 	for roll in roll_history:
 		if roll.is_manual:
 			stats.manual_rolls += 1
-		
+
 		match roll.dice_type:
 			"d6":
 				stats.d6_rolls += 1
@@ -279,10 +279,11 @@ func get_roll_statistics() -> Dictionary:
 				stats.d100_rolls += 1
 			"d66":
 				stats.d66_rolls += 1
-	
+
 	if d6_count > 0:
 		stats.average_d6 = float(d6_sum) / float(d6_count)
 	if d10_count > 0:
 		stats.average_d10 = float(d10_sum) / float(d10_count)
-	
+
 	return stats
+                                                

@@ -1,7 +1,7 @@
-class_name FPCM_QuickStartDialog
+﻿class_name FPCM_QuickStartDialog
 extends Control
 
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const GestureManager = preload("res://src/ui/components/gesture/GestureManager.gd")
 
 signal import_requested(data: Dictionary)
@@ -32,28 +32,28 @@ func _setup_mobile_ui() -> void:
 		var viewport_size = get_viewport().get_visible_rect().size
 		custom_minimum_size = Vector2(0, viewport_size.y * 0.8)
 		position = Vector2(0, viewport_size.y * 0.2)
-		
+
 		template_list.add_theme_constant_override("v_separation", 20)
 		template_list.add_theme_constant_override("h_separation", 20)
 
 func load_templates() -> void:
 	templates = {
 		"Solo Campaign": {
-			"crew_size": GameEnums.CrewSize.FOUR,
-			"difficulty": GameEnums.DifficultyLevel.NORMAL,
-			"victory_condition": GameEnums.FiveParcsecsCampaignVictoryType.WEALTH_GOAL,
+			"crew_size": GlobalEnums.CrewSize.FOUR,
+			"difficulty": GlobalEnums.DifficultyLevel.NORMAL,
+			"victory_condition": GlobalEnums.FiveParcsecsCampaignVictoryType.WEALTH_GOAL,
 			"mobile_friendly": true
 		},
 		"Standard Campaign": {
-			"crew_size": GameEnums.CrewSize.FIVE,
-			"difficulty": GameEnums.DifficultyLevel.NORMAL,
-			"victory_condition": GameEnums.FiveParcsecsCampaignVictoryType.REPUTATION_GOAL,
+			"crew_size": GlobalEnums.CrewSize.FIVE,
+			"difficulty": GlobalEnums.DifficultyLevel.NORMAL,
+			"victory_condition": GlobalEnums.FiveParcsecsCampaignVictoryType.REPUTATION_GOAL,
 			"mobile_friendly": true
 		},
 		"Challenge Campaign": {
-			"crew_size": GameEnums.CrewSize.SIX,
-			"difficulty": GameEnums.DifficultyLevel.HARDCORE,
-			"victory_condition": GameEnums.FiveParcsecsCampaignVictoryType.FACTION_DOMINANCE,
+			"crew_size": GlobalEnums.CrewSize.SIX,
+			"difficulty": GlobalEnums.DifficultyLevel.HARDCORE,
+			"victory_condition": GlobalEnums.FiveParcsecsCampaignVictoryType.FACTION_DOMINANCE,
 			"mobile_friendly": false
 		}
 	}
@@ -90,17 +90,17 @@ func _on_import_pressed() -> void:
 	file_dialog.popup_centered()
 
 func _on_file_selected(path: String) -> void:
-	var file = FileAccess.open(path, FileAccess.READ)
+	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
 	var json := JSON.new()
 	var parse_result = json.parse(file.get_as_text())
 	if parse_result == OK:
-		import_requested.emit(json.data) # warning: return value discarded (intentional)
+		import_requested.emit(json.data)
 	else:
 		push_error("Failed to parse import file")
 
 func _on_template_selected(index: int) -> void:
 	var template_name = template_list.get_item_text(index)
-	template_selected.emit(template_name) # warning: return value discarded (intentional)
+	template_selected.emit(template_name)
 
 func _show_template_details(template_name: String) -> void:
 	if template_name in templates:
@@ -111,13 +111,20 @@ func _show_template_details(template_name: String) -> void:
 func _on_campaign_victory_achieved(victory_type: int) -> void:
 	var victory_message := ""
 	match victory_type:
-		GameEnums.FiveParcsecsCampaignVictoryType.WEALTH_GOAL:
+		GlobalEnums.FiveParcsecsCampaignVictoryType.WEALTH_GOAL:
 			victory_message = "You've amassed great wealth!"
-		GameEnums.FiveParcsecsCampaignVictoryType.REPUTATION_GOAL:
+		GlobalEnums.FiveParcsecsCampaignVictoryType.REPUTATION_GOAL:
 			victory_message = "Your reputation precedes you!"
-		GameEnums.FiveParcsecsCampaignVictoryType.FACTION_DOMINANCE:
+		GlobalEnums.FiveParcsecsCampaignVictoryType.FACTION_DOMINANCE:
 			victory_message = "You've become a dominant force!"
-		GameEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE:
+		GlobalEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE:
 			victory_message = "You've completed your epic journey!"
-	
-	victory_achieved.emit(true, victory_message) # warning: return value discarded (intentional)
+
+	victory_achieved.emit(true, victory_message)
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

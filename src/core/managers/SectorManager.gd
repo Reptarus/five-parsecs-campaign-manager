@@ -1,4 +1,4 @@
-extends Node
+﻿extends Node
 
 const GamePlanet = preload("res://src/game/world/GamePlanet.gd")
 
@@ -18,127 +18,149 @@ var current_sector: String = ""
 const PlanetNameGenerator = preload("res://src/game/world/PlanetNameGenerator.gd")
 var name_generator: PlanetNameGenerator
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameState = preload("res://src/core/state/GameState.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
 const WorldManager = preload("res://src/game/world/GameWorldManager.gd")
-const GameLocation = preload("res://src/game/world/GameLocation.gd")
+const GameLocation = preload("res://src/base/world/location_base.gd")
 const WorldDataMigration = preload("res://src/core/migration/WorldDataMigration.gd")
 
 var migration: WorldDataMigration
 
 func _init() -> void:
-    name_generator = PlanetNameGenerator.new()
-    migration = WorldDataMigration.new()
+	name_generator = PlanetNameGenerator.new()
+	migration = WorldDataMigration.new()
 func generate_sector(sector_name: String) -> void:
-    if sectors.has(sector_name):
-        return
-        
-    var new_planets: Array[GamePlanet] = []
-    var planet_count = randi_range(MIN_PLANETS_PER_SECTOR, MAX_PLANETS_PER_SECTOR)
-    
-    # Generate planet positions
-    var positions = _generate_planet_positions(planet_count)
-    
-    # Create planets at each position
-    for pos in positions:
-        var planet = _generate_planet(sector_name, pos)
+	if sectors.has(sector_name):
+		return
 
-        new_planets.append(planet) # warning: return value discarded (intentional)
-        discovered_planets[pos] = planet
-    
-    sectors[sector_name] = new_planets
-    sector_generated.emit(sector_name) # warning: return value discarded (intentional)
+	var new_planets: Array[GamePlanet] = []
+	var planet_count = randi_range(MIN_PLANETS_PER_SECTOR, MAX_PLANETS_PER_SECTOR)
+
+	# Generate planet positions
+	var positions = _generate_planet_positions(planet_count)
+
+	# Create planets at each position
+	for pos in positions:
+		var planet = _generate_planet(sector_name, pos)
+
+		new_planets.append(planet)
+		discovered_planets[pos] = planet
+
+	sectors[sector_name] = new_planets
+	sector_generated.emit(sector_name)
 
 func _generate_planet_positions(count: int) -> Array[Vector2]:
-    var positions: Array[Vector2] = []
-    var available_positions: Array = []
-    
-    # Create grid of possible positions
-    for x in range(SECTOR_SIZE.x):
-        for y in range(SECTOR_SIZE.y):
-            available_positions.append(Vector2(x, y)) # warning: return value discarded (intentional)
-    
-    # Randomly select positions
-    for i in range(count):
-        if available_positions.is_empty():
-            break
-        var index = randi() % available_positions.size()
+	var positions: Array[Vector2] = []
+	var available_positions: Array = []
 
-        positions.append(available_positions[index]) # warning: return value discarded (intentional)
-        available_positions.remove_at(index)
-    
-    return positions
+	# Create grid of possible positions
+	for x: int in range(SECTOR_SIZE.x):
+		for y: int in range(SECTOR_SIZE.y):
+			available_positions.append(Vector2(x, y))
+
+	# Randomly select positions
+	for i: int in range(count):
+		if available_positions.is_empty():
+			break
+		var index = randi() % available_positions.size()
+
+		positions.append(available_positions[index])
+		available_positions.remove_at(index)
+
+	return positions
 
 func _generate_planet(sector_name: String, coordinates: Vector2) -> GamePlanet:
-    var planet := GamePlanet.new()
-    planet.planet_name = name_generator.generate_name()
-    planet.sector = sector_name
-    planet.coordinates = coordinates
-    
-    # Randomly assign planet type and properties
-    planet.planet_type = randi() % GameEnums.PlanetType.size()
-    planet.faction_type = randi() % GameEnums.FactionType.size()
-    planet.environment_type = randi() % GameEnums.PlanetEnvironment.size()
-    
-    # Generate world traits
-    var world_trait_enum = randi() % GameEnums.WorldTrait.size()
-    var trait_id = migration.convert_world_trait_to_id(world_trait_enum)
-    if trait_id:
-        planet.add_world_trait_by_id(trait_id)
-    
-    # Generate threats
-    var threat = randi() % GameEnums.ThreatType.size()
-    planet.add_threat(threat)
-    
-    planet.strife_level = randi() % GameEnums.StrifeType.size()
-    planet.instability = randi() % GameEnums.StrifeType.size()
-    
-    planet_discovered.emit(planet) # warning: return value discarded (intentional)
-    return planet
+	var planet := GamePlanet.new()
+	planet.planet_name = name_generator.generate_name()
+	planet.sector = sector_name
+	planet.coordinates = coordinates
+
+	# Randomly assign planet type and properties
+	planet.planet_type = randi() % GlobalEnums.PlanetType.size()
+	planet.faction_type = randi() % GlobalEnums.FactionType.size()
+	planet.environment_type = randi() % GlobalEnums.PlanetEnvironment.size()
+
+	# Generate world traits
+	var world_trait_enum = randi() % GlobalEnums.WorldTrait.size()
+	var trait_id = migration.convert_world_trait_to_id(world_trait_enum)
+	if trait_id:
+		planet.add_world_trait_by_id(trait_id)
+
+	# Generate threats
+	var threat = randi() % GlobalEnums.ThreatType.size()
+	planet.add_threat(threat)
+
+	planet.strife_level = randi() % GlobalEnums.StrifeType.size()
+	planet.instability = randi() % GlobalEnums.StrifeType.size()
+
+	planet_discovered.emit(planet)
+	return planet
 
 func get_planets_in_sector(sector_name: String) -> Array[GamePlanet]:
-    return sectors.get(sector_name, [])
+	return sectors.get(sector_name, [])
 
 func get_planet_at_coordinates(coordinates: Vector2) -> GamePlanet:
-    return discovered_planets.get(coordinates)
+	return discovered_planets.get(coordinates)
 
 func update_sector(sector_name: String, current_turn: int) -> void:
-    if not sectors.has(sector_name):
-        return
-        
-    for planet in sectors[sector_name]:
-        # GamePlanet doesn't have update_for_visit, but we can add custom logic here
-        # or implement the method in GamePlanet if needed
-        pass
-    
-    sector_updated.emit(sector_name) # warning: return value discarded (intentional)
+	if not sectors.has(sector_name):
+		return
+
+	for planet in sectors[sector_name]:
+		# GamePlanet doesn't have update_for_visit, but we can add custom logic here
+		# or implement the method in GamePlanet if needed
+		pass
+
+	sector_updated.emit(sector_name) # warning: return value discarded (intentional)
 
 func serialize() -> Dictionary:
-    var serialized_sectors: Dictionary = {}
-    for sector_name in sectors:
-        serialized_sectors[sector_name] = sectors[sector_name].map(func(p): return p.serialize())
-    
-    return {
-        "sectors": serialized_sectors,
-        "current_sector": current_sector
-    }
+	var serialized_sectors: Dictionary = {}
+	for sector_name in sectors:
+		serialized_sectors[sector_name] = sectors[sector_name].map(func(p): return p.serialize() if p and p.has_method("serialize") else {})
+
+	return {
+		"sectors": serialized_sectors,
+		"current_sector": current_sector
+	}
 
 func deserialize(data: Dictionary) -> void:
-    sectors.clear()
-    discovered_planets.clear()
-    
-    for sector_name in data.sectors:
-        var planets: Array[GamePlanet] = []
-        for planet_data in data.sectors[sector_name]:
-            # Check if data needs migration
-            if migration.needs_planet_migration(planet_data):
-                planet_data = migration.migrate_planet_data(planet_data)
-            
-            var planet = GamePlanet.deserialize(planet_data)
+	sectors.clear()
+	discovered_planets.clear()
 
-            planets.append(planet) # warning: return value discarded (intentional)
-            discovered_planets[planet.coordinates] = planet
-        sectors[sector_name] = planets
+	for sector_name in data.sectors:
+		var planets: Array[GamePlanet] = []
+		for planet_data in data.sectors[sector_name]:
+			# Check if data needs migration
+			if migration.needs_planet_migration(planet_data):
+				planet_data = migration.migrate_planet_data(planet_data)
 
-    current_sector = data.get("current_sector", "")
+			var planet = GamePlanet.deserialize(planet_data)
+
+			if planet:
+				planets.append(planet)
+			discovered_planets[planet.coordinates] = planet
+		sectors[sector_name] = planets
+
+	current_sector = data.get("current_sector", "")
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if not is_instance_valid(self) or not is_instance_valid(obj) or not is_instance_valid(method_name) or not is_instance_valid(args):
+		return null
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

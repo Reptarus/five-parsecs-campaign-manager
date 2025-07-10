@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 extends Resource
 
 signal mission_generated(mission_data: Dictionary)
@@ -32,23 +32,22 @@ func generate_mission(difficulty: int = 2, type: int = -1) -> Dictionary:
 
 func generate_random_mission() -> Dictionary:
 	var difficulty = randi() % 5 + 1
-	var type = randi() % mission_types.size()
-	
+	var type = randi() % (safe_call_method(mission_types, "size") as int)
+
 	return generate_mission(difficulty, type)
 
 func generate_mission_batch(count: int = 3, min_difficulty: int = 1, max_difficulty: int = 5) -> Array:
-	var missions: Array = []
-	
-	for i in range(count):
+	var missions: Array[Dictionary] = []
+
+	for i: int in range(count):
 		var _difficulty = randi() % (max_difficulty - min_difficulty + 1) + min_difficulty
 		var mission = generate_mission(_difficulty)
+		missions.append(mission)
 
-		missions.append(mission) 
-	
 	return missions
 
 func complete_mission(mission_data: Dictionary, success: bool = true) -> void:
-	mission_completed.emit(mission_data, success) 
+	mission_completed.emit(mission_data, success)
 
 func get_difficulty_name(difficulty: int) -> String:
 	if difficulty_levels.has(difficulty):
@@ -71,7 +70,7 @@ func generate_mission_description(type: int, difficulty: int) -> String:
 func calculate_mission_reward(difficulty: int, type: int) -> int:
 	# Base reward calculation
 	var base_reward: int = 100 * difficulty
-	
+
 	# Adjust based on mission type
 	match type:
 		0: # Combat
@@ -94,7 +93,7 @@ func calculate_mission_reward(difficulty: int, type: int) -> int:
 			base_reward *= 1.3
 		9: # Investigation
 			base_reward *= 0.9
-	
+
 	return int(base_reward)
 
 func serialize_mission(mission_data: Dictionary) -> Dictionary:
@@ -104,3 +103,11 @@ func serialize_mission(mission_data: Dictionary) -> Dictionary:
 func deserialize_mission(serialized_data: Dictionary) -> Dictionary:
 	# Base implementation just returns a copy of the serialized _data
 	return serialized_data.duplicate(true)
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

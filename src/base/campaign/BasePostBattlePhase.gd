@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 extends Resource
 
 signal post_battle_phase_started
@@ -17,14 +17,14 @@ func _init() -> void:
 	pass
 func start_post_battle_phase(result: Dictionary) -> void:
 	battle_result = result
-	post_battle_phase_started.emit() 
-	
+	post_battle_phase_started.emit()
+
 	calculate_rewards()
 	process_casualties()
 	award_experience()
 
 func complete_post_battle_phase() -> void:
-	post_battle_phase_completed.emit() 
+	post_battle_phase_completed.emit()
 
 func calculate_rewards() -> void:
 	# Base implementation - override in derived classes
@@ -33,22 +33,22 @@ func calculate_rewards() -> void:
 		"items": [],
 		"resources": {}
 	}
-	
-	rewards_calculated.emit(rewards) 
+
+	rewards_calculated.emit(rewards)
 
 func distribute_rewards() -> void:
 	# Base implementation - override in derived classes
-	rewards_distributed.emit() 
+	rewards_distributed.emit()
 
 func process_casualties() -> void:
 	# Base implementation - override in derived classes
 	casualties = []
-	casualties_processed.emit() 
+	casualties_processed.emit()
 
 func award_experience() -> void:
 	# Base implementation - override in derived classes
 	experience_gains = {}
-	experience_awarded.emit() 
+	experience_awarded.emit()
 
 func get_victory_status() -> bool:
 	if battle_result.has("victory"):
@@ -79,12 +79,12 @@ func serialize() -> Dictionary:
 func deserialize(data: Dictionary) -> void:
 	if data.has("battle_result"):
 		battle_result = data.battle_result
-	
+
 	if data.has("rewards"):
 		rewards = data.rewards
-	
+
 	if data.has("casualties"):
 		casualties = data.casualties
-	
+
 	if data.has("experience_gains"):
 		experience_gains = data.experience_gains

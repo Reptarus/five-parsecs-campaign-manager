@@ -13,7 +13,7 @@ func use() -> void:
 		uses_remaining = maxi(0, uses_remaining - 1)
 func is_usable() -> bool:
 	return not is_consumable or uses_remaining > 0
-	
+
 func get_display_name() -> String:
 	var display = "Gear" # Fallback display name
 	if is_consumable:

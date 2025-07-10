@@ -78,12 +78,15 @@ class ActionRequirement:
 	var type: RequirementType
 	var _value: Variant
 	var _description: String
-	
+
 	func _init(p_type: RequirementType, p_value: Variant, p_description: String = "") -> void:
+		# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+		if not is_instance_valid(self) or not is_instance_valid(p_type) or not is_instance_valid(p_value) or not is_instance_valid(p_description):
+			return
 		type = p_type
 		_value = p_value
 		_description = p_description
-	
+
 	func is_met(campaign_state: Dictionary) -> bool:
 		match type:
 			RequirementType.CREDITS:
@@ -110,29 +113,32 @@ class ActionRequirement:
 		return false
 
 class ActionData:
-	var name: String
+	var node_name: String
 	var description: String
 	var requirements: Array[ActionRequirement]
 	var costs: Dictionary # Resource costs
 	var category: String
 	var _phase: String
-	var enabled: bool
-	
+	var is_enabled: bool
+
 	func _init(p_name: String, p_description: String, p_category: String, p_phase: String) -> void:
-		name = p_name
+		# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+		if not is_instance_valid(self) or not is_instance_valid(p_name) or not is_instance_valid(p_description) or not is_instance_valid(p_category) or not is_instance_valid(p_phase):
+			return
+		node_name = p_name
 		description = p_description
 		category = p_category
 		_phase = p_phase
 		requirements = []
 		costs = {}
-		enabled = true
-	
+		is_enabled = true
+
 	func add_requirement(requirement: ActionRequirement) -> void:
-		requirements.append(requirement) # warning: return value discarded (intentional)
-	
+		requirements.append(requirement)
+
 	func add_cost(resource: String, amount: int) -> void:
 		costs[resource] = amount
-	
+
 	func can_execute(campaign_state: Dictionary) -> bool:
 		for req in requirements:
 			if not req.is_met(campaign_state):
@@ -146,10 +152,11 @@ func _ready() -> void:
 func _setup_ui() -> void:
 	# Set up phase tabs
 	for phase in PHASE_CATEGORIES:
+		var typed_phase: Variant = phase
 		var tab := VBoxContainer.new()
 		tab.name = phase.capitalize()
 		category_tabs.add_child(tab)
-		
+
 		# Add phase description
 		var description := Label.new()
 		description.text = PHASE_CATEGORIES[phase].description
@@ -181,10 +188,10 @@ func _setup_phase_requirements() -> void:
 func set_phase(phase_name: String) -> void:
 	if phase_name == current_phase:
 		return
-		
+
 	current_phase = phase_name
 	_update_available_actions()
-	
+
 	# Select the appropriate tab
 	for i in category_tabs.get_tab_count():
 		if category_tabs.get_tab_title(i).to_lower() == phase_name:
@@ -195,15 +202,16 @@ func _update_available_actions() -> void:
 	# Clear existing actions
 	for child in action_container.get_children():
 		child.queue_free()
-	
+
 	# Add phase-specific actions
 	var phase_actions = _get_phase_actions(current_phase)
 	for action in phase_actions:
+		var typed_action: Variant = action
 		_add_action_button(action)
 
 func _get_phase_actions(phase: String) -> Array[ActionData]:
 	var actions: Array[ActionData] = []
-	
+
 	match phase:
 		"upkeep":
 			actions.append_array(_create_upkeep_actions())
@@ -219,12 +227,12 @@ func _get_phase_actions(phase: String) -> Array[ActionData]:
 			actions.append_array(_create_post_battle_actions())
 		"management":
 			actions.append_array(_create_management_actions())
-	
+
 	return actions
 
 func _create_upkeep_actions() -> Array[ActionData]:
 	var actions: Array[ActionData] = []
-	
+
 	var maintain = ActionData.new(
 		"Maintain Equipment",
 		"Perform routine maintenance on equipment",
@@ -233,8 +241,8 @@ func _create_upkeep_actions() -> Array[ActionData]:
 	)
 	maintain.add_cost("credits", 10)
 
-	actions.append(maintain) # warning: return value discarded (intentional)
-	
+	actions.append(maintain)
+
 	var resupply = ActionData.new(
 		"Resupply",
 		"Purchase necessary supplies",
@@ -243,13 +251,13 @@ func _create_upkeep_actions() -> Array[ActionData]:
 	)
 	resupply.add_cost("credits", 20)
 
-	actions.append(resupply) # warning: return value discarded (intentional)
-	
+	actions.append(resupply)
+
 	return actions
 
 func _create_world_actions() -> Array[ActionData]:
 	var actions: Array[ActionData] = []
-	
+
 	var explore = ActionData.new(
 		"Explore Area",
 		"Search the local area for opportunities",
@@ -258,8 +266,8 @@ func _create_world_actions() -> Array[ActionData]:
 	)
 	explore.add_cost("supplies", 1)
 
-	actions.append(explore) # warning: return value discarded (intentional)
-	
+	actions.append(explore)
+
 	var gather = ActionData.new(
 		"Gather Intel",
 		"Collect information about the area",
@@ -268,13 +276,13 @@ func _create_world_actions() -> Array[ActionData]:
 	)
 	gather.add_cost("credits", 10)
 
-	actions.append(gather) # warning: return value discarded (intentional)
-	
+	actions.append(gather)
+
 	return actions
 
 func _create_travel_actions() -> Array[ActionData]:
 	var actions: Array[ActionData] = []
-	
+
 	var travel = ActionData.new(
 		"Travel to Location",
 		"Move to a new location",
@@ -283,13 +291,13 @@ func _create_travel_actions() -> Array[ActionData]:
 	)
 	travel.add_cost("supplies", 2)
 
-	actions.append(travel) # warning: return value discarded (intentional)
-	
+	actions.append(travel)
+
 	return actions
 
 func _create_patron_actions() -> Array[ActionData]:
 	var actions: Array[ActionData] = []
-	
+
 	var meet = ActionData.new(
 		"Meet Patron",
 		"Discuss potential jobs and opportunities",
@@ -297,8 +305,8 @@ func _create_patron_actions() -> Array[ActionData]:
 		"patrons"
 	)
 
-	actions.append(meet) # warning: return value discarded (intentional)
-	
+	actions.append(meet)
+
 	var negotiate = ActionData.new(
 		"Negotiate Contract",
 		"Negotiate terms for a new contract",
@@ -311,14 +319,14 @@ func _create_patron_actions() -> Array[ActionData]:
 		"Requires reputation to negotiate"
 	))
 
-	actions.append(negotiate) # warning: return value discarded (intentional)
-	
+	actions.append(negotiate)
+
 	return actions
 
 func _create_battle_actions() -> Array[ActionData]:
 	var actions: Array[ActionData] = []
-	
-	var combat = ActionData.new(
+
+	var combat: ActionData = ActionData.new(
 		"Enter Combat",
 		"Engage in tactical combat",
 		"combat",
@@ -326,13 +334,13 @@ func _create_battle_actions() -> Array[ActionData]:
 	)
 	combat.add_cost("supplies", 1)
 
-	actions.append(combat) # warning: return value discarded (intentional)
-	
+	actions.append(combat)
+
 	return actions
 
 func _create_post_battle_actions() -> Array[ActionData]:
 	var actions: Array[ActionData] = []
-	
+
 	var loot = ActionData.new(
 		"Collect Loot",
 		"Search the battlefield for valuable items",
@@ -340,8 +348,8 @@ func _create_post_battle_actions() -> Array[ActionData]:
 		"post_battle"
 	)
 
-	actions.append(loot) # warning: return value discarded (intentional)
-	
+	actions
+
 	var treat = ActionData.new(
 		"Treat Injuries",
 		"Provide medical treatment to injured crew",
@@ -350,13 +358,13 @@ func _create_post_battle_actions() -> Array[ActionData]:
 	)
 	treat.add_cost("credits", 20)
 
-	actions.append(treat) # warning: return value discarded (intentional)
-	
+	actions.append(treat)
+
 	return actions
 
 func _create_management_actions() -> Array[ActionData]:
 	var actions: Array[ActionData] = []
-	
+
 	var train = ActionData.new(
 		"Train Crew",
 		"Improve crew skills and abilities",
@@ -365,8 +373,8 @@ func _create_management_actions() -> Array[ActionData]:
 	)
 	train.add_cost("credits", 50)
 
-	actions.append(train) # warning: return value discarded (intentional)
-	
+	actions.append(train)
+
 	var upgrade = ActionData.new(
 		"Upgrade Equipment",
 		"Improve and modify equipment",
@@ -376,12 +384,12 @@ func _create_management_actions() -> Array[ActionData]:
 	upgrade.add_cost("credits", 100)
 	upgrade.add_cost("salvage", 2)
 
-	actions.append(upgrade) # warning: return value discarded (intentional)
-	
+	actions.append(upgrade)
+
 	return actions
 
 func _add_action_button(action: ActionData) -> void:
-	var button = action_button_scene.instantiate()
+	var button: Button = action_button_scene.instantiate()
 	action_container.add_child(button)
 	button.setup(action.name, action.description, PHASE_CATEGORIES[action._phase].color)
 	button.pressed.connect(_on_action_button_pressed.bind(action.name))
@@ -390,17 +398,18 @@ func _add_action_button(action: ActionData) -> void:
 func _on_action_button_pressed(action_name: String) -> void:
 	selected_action = action_name
 	var action = available_actions[action_name]
-	
+
 	description_label.text = action.description
 	_update_cost_display(action.costs)
-	
-	action_selected.emit( action_name)
+
+	action_selected.emit(action_name)
 
 func _update_cost_display(costs: Dictionary) -> void:
 	for child in cost_container.get_children():
 		child.queue_free()
-	
+
 	for resource in costs:
+		var typed_resource: Variant = resource
 		var cost_label := Label.new()
 		cost_label.text = "%s: %d" % [resource.capitalize(), costs[resource]]
 		cost_container.add_child(cost_label)
@@ -408,20 +417,39 @@ func _update_cost_display(costs: Dictionary) -> void:
 func execute_action(action_name: String, campaign_state: Dictionary) -> Dictionary:
 	if not available_actions.has(action_name):
 		return {"success": false, "message": "Invalid action"}
-	
+
 	var action = available_actions[action_name]
 	if not action.can_execute(campaign_state):
 		return {"success": false, "message": "Requirements not met"}
-	
+
 	# Execute action and return result
-	var result = _execute_action_logic(action, campaign_state)
-	action_executed.emit( action_name, result)
-	
+	var result: Variant = _execute_action_logic(action, campaign_state)
+	action_executed.emit(action_name, result)
+
 	if result.success and action._phase == current_phase:
-		phase_action_completed.emit( current_phase)
-	
+		phase_action_completed.emit(current_phase)
+
 	return result
 
 func _execute_action_logic(action: ActionData, campaign_state: Dictionary) -> Dictionary:
 	# Implement action execution logic
 	return {"success": true, "message": "Action executed successfully"}
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

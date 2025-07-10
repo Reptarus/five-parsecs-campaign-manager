@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 extends Control
 class_name FPCM_PhaseIndicator
 
@@ -42,26 +42,26 @@ var phase_description_text: String = "":
 func _ready() -> void:
 	_setup_ui()
 	_update_display()
-	
+
 func _setup_ui() -> void:
 	# Set up the visual style and layout
 	custom_minimum_size = Vector2(200, 80)
-	
+
 	# Configure progress bar
 	if progress_bar:
 		progress_bar.min_value = 0
 		progress_bar.max_value = 100
 		progress_bar._value = 0
-		
+
 	# Configure labels
 	if phase_label:
 		phase_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		phase_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		
+
 	if next_phase_label:
 		next_phase_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		next_phase_label.modulate = Color(1, 1, 1, 0.7)
-		
+
 	if phase_description:
 		phase_description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		phase_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -70,15 +70,15 @@ func _setup_ui() -> void:
 func _update_display() -> void:
 	if not is_inside_tree():
 		return
-		
+
 	# Update phase label
 	if phase_label:
 		phase_label.text = current_phase.capitalize()
-		
+
 	# Update color
 	if current_phase in PHASE_COLORS:
 		modulate = PHASE_COLORS[current_phase]
-		
+
 	# Update next phase
 	var next_phase = _get_next_phase()
 	if next_phase_label:
@@ -87,7 +87,7 @@ func _update_display() -> void:
 func _get_next_phase() -> String:
 	var phases = PHASE_COLORS.keys()
 	var current_index = phases.find(current_phase)
-	if current_index == -1 or current_index == phases.size() - 1:
+	if current_index == -1 or current_index == (safe_call_method(phases, "size") as int) - 1:
 		return phases[0]
 	return phases[current_index + 1]
 
@@ -98,7 +98,11 @@ func reset_progress() -> void:
 	phase_progress = 0.0
 
 # Input handling
-func _gui_input(event) -> void:
+func _gui_input(event: Variant) -> void:
+
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			phase_clicked.emit( current_phase)
@@ -115,3 +119,11 @@ func set_phase_data(phase_name: String, progress: float = 0.0, description: Stri
 	phase_progress = progress
 	phase_description_text = description
 
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

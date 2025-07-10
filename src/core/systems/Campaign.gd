@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 extends Node
 
 ## Signals
@@ -17,76 +17,94 @@ var equipment: Array[Dictionary] = []
 var story_progress: int = 0
 
 ## Constructor
-func _init(state: GameState = null) -> void:
-    if state:
-        # Initialize with game state if provided
-        pass
+func _init() -> void:
+	# Initialize with game state if provided
+	pass
 
 ## Get the total number of completed missions
 func get_completed_missions_count() -> int:
-    return completed_missions
+	return completed_missions
 
 ## Get the total resources
 func get_total_resources() -> int:
-    return total_resources
+	return total_resources
 
 ## Get current reputation
 func get_reputation() -> int:
-    return reputation
+	return reputation
 
 ## Get number of active crew members
 func get_active_crew_count() -> int:
-    return active_crew.size()
+	return active_crew.size()
 
 ## Get number of active rivals
 func get_active_rivals_count() -> int:
-    return active_rivals.size()
+	return active_rivals.size()
 
 ## Check if crew has exploration capability
 func has_exploration_capability() -> bool:
-    for crew_member in active_crew:
-        if crew_member.get("skills", []).has("exploration"):
-            return true
-    return false
+	for crew_member in active_crew:
+		if crew_member.get("skills", []).has("exploration"):
+			return true
+	return false
 
 ## Check if crew has advanced equipment
 func has_advanced_equipment() -> bool:
-    for item in equipment:
-        if item.get("tier", 0) >= 2:
-            return true
-    return false
+	for item in equipment:
+		if item.get("tier", 0) >= 2:
+			return true
+	return false
 
 ## Check if there is story progress
 func has_story_progress() -> bool:
-    return story_progress > 0
+	return story_progress > 0
 
 ## Add resources
 func add_resources(amount: int) -> void:
-    total_resources += amount
-    resources_changed.emit(total_resources) # warning: return value discarded (intentional)
+	total_resources += amount
+	resources_changed.emit(total_resources)
 
 ## Add reputation
 func add_reputation(amount: int) -> void:
-    reputation += amount
-    reputation_changed.emit(reputation) # warning: return value discarded (intentional)
+	reputation += amount
+	reputation_changed.emit(reputation)
 
 ## Complete a mission
 func complete_mission() -> void:
-    completed_missions += 1
-    missions_completed.emit(completed_missions) # warning: return value discarded (intentional)
+	completed_missions += 1
+	missions_completed.emit(completed_missions)
 
 ## Add crew member
 func add_crew_member(member: Dictionary) -> void:
-    active_crew.append(member) # warning: return value discarded (intentional)
+	active_crew.append(member)
 
 ## Add rival
 func add_rival(rival: Dictionary) -> void:
-    active_rivals.append(rival) # warning: return value discarded (intentional)
+	active_rivals.append(rival)
 
 ## Add equipment
 func add_equipment(item: Dictionary) -> void:
-    equipment.append(item) # warning: return value discarded (intentional)
+	equipment.append(item)
 
 ## Advance story progress
 func advance_story() -> void:
-    story_progress += 1
+	story_progress += 1
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

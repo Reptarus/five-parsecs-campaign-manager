@@ -1,4 +1,4 @@
-# Universal Connection Validation Applied
+﻿# Universal Connection Validation Applied
 # Based on proven patterns: Universal Mock Strategy + 7-Stage Methodology
 @tool
 extends Container
@@ -8,11 +8,11 @@ class_name FPCM_BaseContainer
 ## Provides horizontal and vertical layout capabilities with spacing
 
 # Safe imports
-const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
-const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd") 
-const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
-const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
-const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd")
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
 
 enum ContainerOrientation {
 	HORIZONTAL,
@@ -37,19 +37,19 @@ func _validate_base_container_connections() -> void:
 
 func _setup_signal_connections() -> void:
 	# Connect sort_children signal safely
-	UniversalSignalManager.connect_signal_safe(self, "sort_children", _on_sort_children, "BaseContainer sort_children")
+	self.sort_children.connect(_on_sort_children)
 
 func _on_sort_children() -> void:
 	var offset := Vector2.ZERO
 	var available_size := size
-	
+
 	for child in get_children():
 		if not child is Control or not child.visible:
 			continue
-			
+
 		var child_min_size: Vector2 = child.get_combined_minimum_size()
 		var child_size := Vector2.ZERO
-		
+
 		match orientation:
 			ContainerOrientation.HORIZONTAL:
 				child_size.x = child_min_size.x
@@ -63,9 +63,9 @@ func _on_sort_children() -> void:
 				if offset.y + child_size.y > available_size.y:
 					offset.y = 0
 					offset.x += child_min_size.x + spacing
-		
+
 		fit_child_in_rect(child, Rect2(offset, child_size))
-		
+
 		match orientation:
 			ContainerOrientation.HORIZONTAL:
 				offset.x += child_size.x + spacing

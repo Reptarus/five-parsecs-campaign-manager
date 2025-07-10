@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 class_name FPCM_AutomationSettingsPanel
 extends Control
 
@@ -43,44 +43,44 @@ func _setup_ui_layout() -> void:
 	# Main layout
 	var main_vbox := VBoxContainer.new()
 	add_child(main_vbox)
-	
+
 	# Title
 	var title_label := Label.new()
 	title_label.text = "Automation & Accessibility Settings"
 	title_label.add_theme_font_size_override("font_size", 18)
 	main_vbox.add_child(title_label)
-	
+
 	var separator := HSeparator.new()
 	main_vbox.add_child(separator)
-	
+
 	# Accessibility Section
 	_create_accessibility_section(main_vbox)
-	
+
 	# Automation Level Section
 	_create_automation_section(main_vbox)
-	
+
 	# Dice Settings Section
 	_create_dice_section(main_vbox)
-	
+
 	# Confirmation Settings Section
 	_create_confirmation_section(main_vbox)
-	
+
 	# Rules & Calculations Section
 	_create_rules_section(main_vbox)
 
 ## Create accessibility section with clear benefits
 func _create_accessibility_section(parent: Node) -> void:
 	var section = _create_section("Accessibility Features", parent)
-	
+
 	# Accessibility mode toggle
 	accessibility_mode_check = CheckBox.new()
 	accessibility_mode_check.text = "Enable Accessibility Mode"
 	section.add_child(accessibility_mode_check)
-	
+
 	# Description
 	accessibility_description = Label.new()
 	accessibility_description.text = """Enhanced features for users with disabilities:
-• Slower animations and clearer visual feedback
+	• Slower animations and clearer visual feedback
 • Always show calculation breakdowns
 • Larger text and high contrast options
 • Audio cues for important events
@@ -92,10 +92,10 @@ func _create_accessibility_section(parent: Node) -> void:
 ## Create automation level section
 func _create_automation_section(parent: Node) -> void:
 	var section = _create_section("Automation Level", parent)
-	
+
 	automation_level_option = OptionButton.new()
 	section.add_child(automation_level_option)
-	
+
 	automation_description = Label.new()
 	automation_description.autowrap_mode = TextServer.AUTOWRAP_WORD
 	automation_description.add_theme_color_override("font_color", Color.GRAY)
@@ -104,19 +104,19 @@ func _create_automation_section(parent: Node) -> void:
 ## Create dice settings section
 func _create_dice_section(parent: Node) -> void:
 	var section = _create_section("Digital Dice Options", parent)
-	
+
 	dice_auto_roll_check = CheckBox.new()
 	dice_auto_roll_check.text = "Auto-roll dice (can still enter manual results)"
 	section.add_child(dice_auto_roll_check)
-	
+
 	dice_animations_check = CheckBox.new()
 	dice_animations_check.text = "Show dice rolling animations"
 	section.add_child(dice_animations_check)
-	
+
 	dice_sound_check = CheckBox.new()
 	dice_sound_check.text = "Play dice rolling sounds"
 	section.add_child(dice_sound_check)
-	
+
 	var dice_note := Label.new()
 	dice_note.text = "Note: You can always override digital rolls with physical dice results"
 	dice_note.add_theme_color_override("font_color", Color.GRAY)
@@ -126,11 +126,11 @@ func _create_dice_section(parent: Node) -> void:
 ## Create confirmation section
 func _create_confirmation_section(parent: Node) -> void:
 	var section = _create_section("Confirmation & Safety", parent)
-	
+
 	always_confirm_check = CheckBox.new()
 	always_confirm_check.text = "Always confirm automated actions"
 	section.add_child(always_confirm_check)
-	
+
 	show_calculations_check = CheckBox.new()
 	show_calculations_check.text = "Show calculation steps for all automated results"
 	section.add_child(show_calculations_check)
@@ -138,11 +138,11 @@ func _create_confirmation_section(parent: Node) -> void:
 ## Create rules assistance section
 func _create_rules_section(parent: Node) -> void:
 	var section = _create_section("Rules Assistance", parent)
-	
+
 	rule_suggestions_check = CheckBox.new()
 	rule_suggestions_check.text = "Suggest relevant rules and page references"
 	section.add_child(rule_suggestions_check)
-	
+
 	var rules_note := Label.new()
 	rules_note.text = "Provides helpful rule reminders - you're still the Game Master!"
 	rules_note.add_theme_color_override("font_color", Color.GRAY)
@@ -155,15 +155,15 @@ func _create_section(title: String, parent: Node) -> VBoxContainer:
 	section_label.text = title
 	section_label.add_theme_font_size_override("font_size", 14)
 	parent.add_child(section_label)
-	
+
 	var section := VBoxContainer.new()
 	section.add_theme_constant_override("separation", 5)
 	parent.add_child(section)
-	
+
 	var spacer := Control.new()
 	spacer.custom_minimum_size.y = 10
 	parent.add_child(spacer)
-	
+
 	return section
 
 ## Setup automation level options with descriptions
@@ -173,35 +173,43 @@ func _setup_automation_options() -> void:
 	automation_level_option.add_item("Basic Help - Dice + calculations")
 	automation_level_option.add_item("Guided Play - Suggestions with confirmation")
 	automation_level_option.add_item("Full Assistance - Maximum help (still requires confirmation)")
-	
+
 	# Set default
 	automation_level_option.selected = 1 # DICE_ASSISTANCE
 
 ## Setup signal connections
 func _setup_connections() -> void:
 	if automation_level_option:
-		automation_level_option.item_selected.connect(_on_automation_level_changed)
-	
+		var result1: Error = automation_level_option.item_selected.connect(_on_automation_level_changed)
+		assert(result1 == OK, "Failed to connect automation_level_option signal")
+
 	if accessibility_mode_check:
-		accessibility_mode_check.toggled.connect(_on_accessibility_mode_toggled)
-	
+		var result2: Error = accessibility_mode_check.toggled.connect(_on_accessibility_mode_toggled)
+		assert(result2 == OK, "Failed to connect accessibility_mode_check signal")
+
 	if always_confirm_check:
-		always_confirm_check.toggled.connect(_on_setting_changed)
-	
+		var result3: Error = always_confirm_check.toggled.connect(_on_setting_changed)
+		assert(result3 == OK, "Failed to connect always_confirm_check signal")
+
 	if show_calculations_check:
-		show_calculations_check.toggled.connect(_on_setting_changed)
-	
+		var result4: Error = show_calculations_check.toggled.connect(_on_setting_changed)
+		assert(result4 == OK, "Failed to connect show_calculations_check signal")
+
 	if rule_suggestions_check:
-		rule_suggestions_check.toggled.connect(_on_setting_changed)
-	
+		var result5: Error = rule_suggestions_check.toggled.connect(_on_setting_changed)
+		assert(result5 == OK, "Failed to connect rule_suggestions_check signal")
+
 	if dice_auto_roll_check:
-		dice_auto_roll_check.toggled.connect(_on_setting_changed)
-	
+		var result6: Error = dice_auto_roll_check.toggled.connect(_on_setting_changed)
+		assert(result6 == OK, "Failed to connect dice_auto_roll_check signal")
+
 	if dice_animations_check:
-		dice_animations_check.toggled.connect(_on_setting_changed)
-	
+		var result7: Error = dice_animations_check.toggled.connect(_on_setting_changed)
+		assert(result7 == OK, "Failed to connect dice_animations_check signal")
+
 	if dice_sound_check:
-		dice_sound_check.toggled.connect(_on_setting_changed)
+		var result8: Error = dice_sound_check.toggled.connect(_on_setting_changed)
+		assert(result8 == OK, "Failed to connect dice_sound_check signal")
 
 ## Load default accessibility-friendly settings
 func _load_default_settings() -> void:
@@ -210,12 +218,12 @@ func _load_default_settings() -> void:
 	always_confirm_check.button_pressed = true
 	show_calculations_check.button_pressed = true
 	rule_suggestions_check.button_pressed = true
-	
+
 	# Dice defaults - user choice
 	dice_auto_roll_check.button_pressed = false # Default to manual
 	dice_animations_check.button_pressed = true
 	dice_sound_check.button_pressed = false # Accessibility consideration
-	
+
 	_update_automation_description()
 
 ## Initialize with automation manager
@@ -227,7 +235,7 @@ func setup_automation_manager(manager: OptionalAutomationManager) -> void:
 func _load_settings_from_manager() -> void:
 	if not automation_manager:
 		return
-	
+
 	var settings = automation_manager.export_settings()
 
 	automation_level_option.selected = settings.get("automation_level", 1)
@@ -247,7 +255,7 @@ func _load_settings_from_manager() -> void:
 	dice_animations_check.button_pressed = dice_settings.get("show_animations", true)
 
 	dice_sound_check.button_pressed = dice_settings.get("dice_sound_enabled", false)
-	
+
 	_update_automation_description()
 
 ## Handle automation level changes
@@ -255,7 +263,7 @@ func _on_automation_level_changed(index: int) -> void:
 	if automation_manager:
 
 		automation_manager.set_automation_level(index as OptionalAutomationManager.AutomationLevel)
-	
+
 	_update_automation_description()
 	_emit_settings_changed()
 
@@ -263,14 +271,14 @@ func _on_automation_level_changed(index: int) -> void:
 func _on_accessibility_mode_toggled(_pressed: bool) -> void:
 	if automation_manager:
 		automation_manager.enable_accessibility_mode(_pressed)
-	
+
 	# Auto-adjust other settings for accessibility
 	if _pressed:
 		show_calculations_check.button_pressed = true
 		always_confirm_check.button_pressed = true
 		dice_sound_check.button_pressed = false # Avoid audio clutter
-	
-	accessibility_mode_toggled.emit(_pressed)  # warning: return value discarded (intentional)
+
+	accessibility_mode_toggled.emit(_pressed)
 	_emit_settings_changed()
 
 ## Handle general setting changes
@@ -282,11 +290,11 @@ func _on_setting_changed(_pressed: bool = false) -> void:
 func _apply_settings_to_manager() -> void:
 	if not automation_manager:
 		return
-	
+
 	automation_manager.always_confirm_actions = always_confirm_check.button_pressed
 	automation_manager.show_calculation_steps = show_calculations_check.button_pressed
 	automation_manager.enable_rule_suggestions = rule_suggestions_check.button_pressed
-	
+
 	# Dice settings
 	automation_manager.dice_system.auto_roll_enabled = dice_auto_roll_check.button_pressed
 	automation_manager.dice_system.show_animations = dice_animations_check.button_pressed
@@ -301,9 +309,9 @@ func _update_automation_description() -> void:
 		"AI suggests actions and provides rule references - you confirm everything",
 		"Maximum assistance while maintaining your control and decision-making"
 	]
-	
+
 	var index = automation_level_option.selected
-	if index >= 0 and index < descriptions.size():
+	if index >= 0 and index < (safe_call_method(descriptions, "size") as int):
 		automation_description.text = descriptions[index]
 
 ## Emit settings changed signal
@@ -318,7 +326,7 @@ func _emit_settings_changed() -> void:
 		"dice_animations": dice_animations_check.button_pressed,
 		"dice_sound": dice_sound_check.button_pressed
 	}
-	
+
 	settings_changed.emit(current_settings)  # warning: return value discarded (intentional)
 
 ## Export current settings for saving
@@ -356,7 +364,7 @@ func import_settings(settings: Dictionary) -> void:
 	dice_animations_check.button_pressed = dice_settings.get("show_animations", true)
 
 	dice_sound_check.button_pressed = dice_settings.get("dice_sound_enabled", false)
-	
+
 	_update_automation_description()
 	_apply_settings_to_manager()
 
@@ -380,22 +388,22 @@ func _show_standard_options() -> void:
 ## Create quick preset buttons for common use cases
 func _add_preset_buttons(parent: Node) -> void:
 	var presets_section = _create_section("Quick Presets", parent)
-	
+
 	var preset_container := HBoxContainer.new()
 	presets_section.add_child(preset_container)
-	
+
 	# Tabletop purist preset
 	var tabletop_button := Button.new()
 	tabletop_button.text = "Tabletop Purist"
 	tabletop_button.pressed.connect(_apply_tabletop_preset)
 	preset_container.add_child(tabletop_button)
-	
+
 	# Accessibility preset
 	var accessibility_button := Button.new()
 	accessibility_button.text = "Accessibility"
 	accessibility_button.pressed.connect(_apply_accessibility_preset)
 	preset_container.add_child(accessibility_button)
-	
+
 	# Convenience preset
 	var convenience_button := Button.new()
 	convenience_button.text = "Digital Convenience"
@@ -425,3 +433,22 @@ func _apply_convenience_preset() -> void:
 	rule_suggestions_check.button_pressed = true
 	_on_setting_changed()
 
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

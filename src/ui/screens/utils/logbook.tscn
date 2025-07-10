@@ -1,9 +1,6 @@
-[gd_scene load_steps=3 format=3 uid="uid://so5y02msjm1d"]
+[gd_scene load_steps=2 format=3 uid="uid://so5y02msjm1d"]
 
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_eac00"]
-
-[sub_resource type="Resource" id="Resource_h48yu"]
-metadata/__load_path__ = "res://Resources/UI/Components/Logbook/logbook.gd"
 
 [node name="Logbook" type="Control"]
 layout_mode = 3
@@ -13,7 +10,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("1_eac00")
-script = SubResource("Resource_h48yu")
 
 [node name="Background" type="ColorRect" parent="."]
 layout_mode = 1

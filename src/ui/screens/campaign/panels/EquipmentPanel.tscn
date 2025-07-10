@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://c70ak0t3l4e5g"]
+[gd_scene load_steps=2 format=3 uid="uid://c7y9k0t3l4e5g"]
 
-[ext_resource type="Script" path="res://src/ui/screens/campaign/panels/EquipmentGenerationPanel.gd" id="1_equipment"]
+[ext_resource type="Script" path="res://src/ui/screens/campaign/panels/EquipmentPanel.gd" id="1_equipment"]
 
-[node name="EquipmentPanel" type="VBoxContainer"]
+[node name="EquipmentPanel" type="Control"]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -10,63 +10,77 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_equipment")
 
-[node name="Title" type="Label" parent="."]
+[node name="Content" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+
+[node name="Title" type="Label" parent="Content"]
 layout_mode = 2
 text = "Starting Equipment"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 24
 
-[node name="HSeparator" type="HSeparator" parent="."]
+[node name="Description" type="Label" parent="Content"]
 layout_mode = 2
+text = "Generate starting equipment according to Five Parsecs rules."
+horizontal_alignment = 1
+autowrap_mode = 2
 
-[node name="ScrollContainer" type="ScrollContainer" parent="."]
+[node name="EquipmentList" type="VBoxContainer" parent="Content"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="VBoxContainer" type="VBoxContainer" parent="ScrollContainer"]
+[node name="Label" type="Label" parent="Content/EquipmentList"]
 layout_mode = 2
-size_flags_horizontal = 3
+text = "Generated Equipment:"
+
+[node name="Container" type="VBoxContainer" parent="Content/EquipmentList"]
+layout_mode = 2
 size_flags_vertical = 3
 
-[node name="GenerationOptions" type="VBoxContainer" parent="ScrollContainer/VBoxContainer"]
+[node name="Summary" type="VBoxContainer" parent="Content"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="ScrollContainer/VBoxContainer/GenerationOptions"]
+[node name="Label" type="Label" parent="Content/Summary"]
 layout_mode = 2
-text = "Generate starting equipment for your crew:"
+text = "Equipment generated: 0 items"
+horizontal_alignment = 1
 
-[node name="GenerateButton" type="Button" parent="ScrollContainer/VBoxContainer/GenerationOptions"]
+[node name="Credits" type="VBoxContainer" parent="Content"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Content/Credits"]
+layout_mode = 2
+text = "Starting Credits:"
+horizontal_alignment = 1
+
+[node name="Value" type="Label" parent="Content/Credits"]
+layout_mode = 2
+text = "1000"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 18
+
+[node name="Controls" type="HBoxContainer" parent="Content"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="GenerateButton" type="Button" parent="Content/Controls"]
+custom_minimum_size = Vector2(150, 40)
 layout_mode = 2
 text = "Generate Equipment"
 
-[node name="ManualButton" type="Button" parent="ScrollContainer/VBoxContainer/GenerationOptions"]
+[node name="RerollButton" type="Button" parent="Content/Controls"]
+custom_minimum_size = Vector2(150, 40)
 layout_mode = 2
-text = "Select Equipment Manually"
+text = "Reroll Equipment"
 
-[node name="EquipmentList" type="VBoxContainer" parent="ScrollContainer/VBoxContainer"]
+[node name="ManualButton" type="Button" parent="Content/Controls"]
+custom_minimum_size = Vector2(150, 40)
 layout_mode = 2
-
-[node name="Label2" type="Label" parent="ScrollContainer/VBoxContainer/EquipmentList"]
-layout_mode = 2
-text = "Current Equipment:"
-
-[node name="ItemList" type="ItemList" parent="ScrollContainer/VBoxContainer/EquipmentList"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 200)
-
-[node name="Controls" type="HBoxContainer" parent="ScrollContainer/VBoxContainer/EquipmentList"]
-layout_mode = 2
-
-[node name="AddItemButton" type="Button" parent="ScrollContainer/VBoxContainer/EquipmentList/Controls"]
-layout_mode = 2
-text = "Add Item"
-
-[node name="RemoveItemButton" type="Button" parent="ScrollContainer/VBoxContainer/EquipmentList/Controls"]
-layout_mode = 2
-text = "Remove Item"
-
-[node name="ValidationLabel" type="Label" parent="ScrollContainer/VBoxContainer"]
-layout_mode = 2
-text = "Equipment setup complete"
-horizontal_alignment = 1
-modulate = Color(0.5, 1, 0.5, 1)
+text = "Manual Selection"

@@ -1,0 +1,72 @@
+{
+    "barrier": {
+        "name": "Barrier",
+        "affects_robotic_targets": true,
+        "target_self": true,
+        "persists": true,
+        "description": "Select a target figure. Any ranged hit on the target is negated by the barrier on a D6 roll of 4+."
+    },
+    "grab": {
+        "name": "Grab",
+        "affects_robotic_targets": true,
+        "target_self": false,
+        "persists": false,
+        "description": "Select a target figure. The target may either be pushed 1D6” directly away from or pulled 1D6” directly towards the Psionic."
+    },
+    "lift": {
+        "name": "Lift",
+        "affects_robotic_targets": true,
+        "target_self": true,
+        "persists": false,
+        "description": "Select a friendly or neutral* target figure (up to human-sized) and move them 1D6+1” in any direction."
+    },
+    "shroud": {
+        "name": "Shroud",
+        "affects_robotic_targets": true,
+        "target_self": false,
+        "persists": true,
+        "description": "Place a wall of fog entirely within range. The wall is 3” wide , the height of a typical human miniature and 1” thick."
+    },
+    "enrage": {
+        "name": "Enrage",
+        "affects_robotic_targets": false,
+        "target_self": true,
+        "persists": false,
+        "description": "This power is only usable on a figure that has not yet acted this round. They immediately move a full move +2” towards the nearest visible opponent, and attempt to engage them in Brawling combat."
+    },
+    "predict": {
+        "name": "Predict",
+        "affects_robotic_targets": false,
+        "target_self": true,
+        "persists": true,
+        "description": "When the target character next activates, they may roll twice for any one action they perform and pick the better score."
+    },
+    "shock": {
+        "name": "Shock",
+        "affects_robotic_targets": false,
+        "target_self": false,
+        "persists": false,
+        "description": "The target receives 1 Stun marker"
+    },
+    "rejuvenate": {
+        "name": "Rejuvenate",
+        "affects_robotic_targets": false,
+        "target_self": true,
+        "persists": false,
+        "description": "The target removes 1 Stun marker"
+    },
+    "guide": {
+        "name": "Guide",
+        "affects_robotic_targets": false,
+        "target_self": false,
+        "persists": false,
+        "description": "An allied figure may immediately takes one Shot with any non- Area weapon carried."
+    },
+    "psionic_scare": {
+        "name": "Psionic Scare",
+        "affects_robotic_targets": false,
+        "target_self": false,
+        "persists": false,
+        "description": "Immediately make a Morale check for the target figure, unless they would normally be immune to morale checks."
+    }
+}

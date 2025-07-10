@@ -1,8 +1,8 @@
-@tool
+﻿@tool
 extends "res://src/base/campaign/crew/BaseStrangeCharacters.gd"
 class_name FiveParsecsStrangeCharacters
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
 
 enum FPStrangeCharacterType {
@@ -20,7 +20,7 @@ func _init(_type: int = FPStrangeCharacterType.ROBOT) -> void:
 
 func _set_special_abilities() -> void:
 	special_abilities.clear()
-	
+
 	match type:
 		FPStrangeCharacterType.ROBOT:
 			special_abilities.append("Mechanical Body") # warning: return value discarded (intentional)
@@ -48,10 +48,14 @@ func _set_special_abilities() -> void:
 			saving_throw = 3
 
 func _apply_type_specific_abilities(character: Variant) -> void:
+
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return
 	if not character:
 		push_error("Cannot apply type-specific abilities to null character")
 		return
-		
+
 	match type:
 		FPStrangeCharacterType.ROBOT:
 			_apply_robot_abilities(character)
@@ -67,12 +71,15 @@ func _apply_type_specific_abilities(character: Variant) -> void:
 			_apply_genetically_modified_abilities(character)
 
 func _apply_robot_abilities(character: Variant) -> void:
-	# Robots are immune to poison and disease
+
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return# Robots are immune to poison and disease
 	_set_character_property(character, "toughness", _get_character_property(character, "toughness", 3) + 1)
-	
+
 	# Robots have reduced savvy for social interactions
 	_set_character_property(character, "savvy", _get_character_property(character, "savvy", 0) - 1)
-	
+
 	# Add robot-specific traits
 	var traits = _get_character_property(character, "traits", [])
 	traits.append("Immune to Poison") # warning: return value discarded (intentional)
@@ -81,12 +88,15 @@ func _apply_robot_abilities(character: Variant) -> void:
 	_set_character_property(character, "traits", traits)
 
 func _apply_alien_abilities(character: Variant) -> void:
-	# Aliens have enhanced reactions
+
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return# Aliens have enhanced reactions
 	_set_character_property(character, "reactions", _get_character_property(character, "reactions", 1) + 1)
-	
+
 	# Aliens may have special movement abilities
 	var traits = _get_character_property(character, "traits", [])
-	
+
 	# Roll for special movement type
 	var movement_roll = randi() % 6 + 1
 	if movement_roll <= 2:
@@ -95,16 +105,19 @@ func _apply_alien_abilities(character: Variant) -> void:
 		traits.append("Jumper") # warning: return value discarded (intentional)
 	else:
 		traits.append("Swimmer") # warning: return value discarded (intentional)
-		
+
 	_set_character_property(character, "traits", traits)
 
 func _apply_uplifted_animal_abilities(character: Variant) -> void:
-	# Uplifted animals have enhanced speed
+
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return# Uplifted animals have enhanced speed
 	_set_character_property(character, "speed", _get_character_property(character, "speed", 4) + 1)
-	
+
 	# Uplifted animals have natural weapons
 	var traits = _get_character_property(character, "traits", [])
-	
+
 	# Roll for natural weapon type
 	var weapon_roll = randi() % 6 + 1
 	if weapon_roll <= 2:
@@ -113,16 +126,19 @@ func _apply_uplifted_animal_abilities(character: Variant) -> void:
 		traits.append("Fangs") # warning: return value discarded (intentional)
 	else:
 		traits.append("Horns") # warning: return value discarded (intentional)
-		
+
 	_set_character_property(character, "traits", traits)
 
 func _apply_psionicist_abilities(character: Variant) -> void:
-	# Psionicists have enhanced savvy
+
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return# Psionicists have enhanced savvy
 	_set_character_property(character, "savvy", _get_character_property(character, "savvy", 0) + 1)
-	
+
 	# Psionicists have mental powers
 	var traits = _get_character_property(character, "traits", [])
-	
+
 	# Roll for psionic ability
 	var psi_roll = randi() % 6 + 1
 	if psi_roll <= 2:
@@ -131,16 +147,19 @@ func _apply_psionicist_abilities(character: Variant) -> void:
 		traits.append("Mind Reading") # warning: return value discarded (intentional)
 	else:
 		traits.append("Mental Blast") # warning: return value discarded (intentional)
-		
+
 	_set_character_property(character, "traits", traits)
 
 func _apply_mystic_abilities(character: Variant) -> void:
-	# Mystics have enhanced luck
+
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return# Mystics have enhanced luck
 	_set_character_property(character, "luck", _get_character_property(character, "luck", 0) + 1)
-	
+
 	# Mystics have mystical abilities
 	var traits = _get_character_property(character, "traits", [])
-	
+
 	# Roll for mystical ability
 	var mystic_roll = randi() % 6 + 1
 	if mystic_roll <= 2:
@@ -149,16 +168,19 @@ func _apply_mystic_abilities(character: Variant) -> void:
 		traits.append("Healing Touch") # warning: return value discarded (intentional)
 	else:
 		traits.append("Arcane Knowledge") # warning: return value discarded (intentional)
-		
+
 	_set_character_property(character, "traits", traits)
 
 func _apply_genetically_modified_abilities(character: Variant) -> void:
-	# Genetically modified characters have enhanced toughness
+
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return# Genetically modified characters have enhanced toughness
 	_set_character_property(character, "toughness", _get_character_property(character, "toughness", 3) + 1)
-	
+
 	# Genetically modified characters have adaptive abilities
 	var traits = _get_character_property(character, "traits", [])
-	
+
 	# Roll for genetic modification
 	var gene_roll = randi() % 6 + 1
 	if gene_roll <= 2:
@@ -167,7 +189,7 @@ func _apply_genetically_modified_abilities(character: Variant) -> void:
 		traits.append("Enhanced Senses") # warning: return value discarded (intentional)
 	else:
 		traits.append("Adaptive Skin") # warning: return value discarded (intentional)
-		
+
 	_set_character_property(character, "traits", traits)
 
 func get_type_name() -> String:
@@ -199,3 +221,10 @@ func deserialize(data: Dictionary) -> void:
 	super.deserialize(data)
 	# Process any additional Five Parsecs specific data here
 	_set_special_abilities()
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

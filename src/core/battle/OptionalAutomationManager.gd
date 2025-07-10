@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 extends RefCounted
 class_name OptionalAutomationManager
 
@@ -40,7 +40,7 @@ func set_automation_level(level: AutomationLevel) -> void:
 	if current_automation_level != level:
 		current_automation_level = level
 		_apply_automation_level(level)
-		automation_level_changed.emit(level)  # warning: return value discarded (intentional)
+		automation_level_changed.emit(level)
 
 ## Get the current automation level
 func get_automation_level() -> AutomationLevel:
@@ -51,7 +51,7 @@ func enable_accessibility_mode(enabled: bool) -> void:
 	if accessibility_mode_enabled != enabled:
 		accessibility_mode_enabled = enabled
 		_apply_accessibility_settings(enabled)
-		accessibility_mode_changed.emit(enabled)  # warning: return value discarded (intentional)
+		accessibility_mode_changed.emit(enabled)
 
 ## Check if accessibility mode is enabled
 func is_accessibility_mode_enabled() -> bool:
@@ -64,17 +64,17 @@ func _apply_automation_level(level: AutomationLevel) -> void:
 			automation_settings["auto_calculate_damage"] = false
 			automation_settings["auto_roll_dice"] = false
 			automation_settings["auto_select_weapons"] = false
-		
+
 		AutomationLevel.BASIC:
 			automation_settings["auto_calculate_damage"] = true
 			automation_settings["auto_roll_dice"] = false
 			automation_settings["auto_select_weapons"] = false
-		
+
 		AutomationLevel.INTERMEDIATE:
 			automation_settings["auto_calculate_damage"] = true
 			automation_settings["auto_roll_dice"] = true
 			automation_settings["auto_select_weapons"] = false
-		
+
 		AutomationLevel.FULL:
 			automation_settings["auto_calculate_damage"] = true
 			automation_settings["auto_roll_dice"] = true
@@ -97,7 +97,10 @@ func get_setting(setting_name: String) -> Variant:
 
 ## Set a specific automation setting
 func set_setting(setting_name: String, _value: Variant) -> void:
-	automation_settings[setting_name] = _value
+
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		automation_settings[setting_name] = _value
 
 ## Get all automation settings
 

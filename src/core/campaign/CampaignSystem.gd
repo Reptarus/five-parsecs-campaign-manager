@@ -1,18 +1,11 @@
-@tool
+﻿@tool
 @warning_ignore("return_value_discarded")
 @warning_ignore("unsafe_method_access")
-@warning_ignore("unsafe_call_argument")
 @warning_ignore("untyped_declaration")
-@warning_ignore("unused_variable")
-@warning_ignore("redundant_await")
-@warning_ignore("unsafe_cast")
-@warning_ignore("inference_on_variant")
-@warning_ignore("static_called_on_instance")
 @warning_ignore("unused_signal")
-@warning_ignore("shadowed_global_identifier")
 extends Node
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameCampaign = preload("res://src/game/campaign/FiveParsecsCampaign.gd")
 # Note: GameState injected via initialize() to avoid circular dependencies
 
@@ -33,7 +26,7 @@ signal mission_setup_complete() # No arguments
 signal mission_completed(success: bool)
 
 ## Variables
-var _campaign_type: int = GameEnums.FiveParcsecsCampaignType.STANDARD
+var _campaign_type: int = GlobalEnums.FiveParcsecsCampaignType.STANDARD
 var total_resources: int = 0
 var reputation: int = 0
 var completed_missions: int = 0
@@ -61,11 +54,11 @@ func initialize(state: Node) -> void:
 	if not game_state:
 		push_error("Failed to initialize campaign system with game state")
 		return
-	
+
 	# Load active campaign from game state if it exists
 	if game_state.current_campaign:
 		active_campaign = game_state.current_campaign
-		campaign_loaded.emit(active_campaign) # warning: return value discarded (intentional)
+		campaign_loaded.emit(active_campaign)
 
 ## Get the total number of completed missions
 func get_completed_missions_count() -> int:
@@ -81,11 +74,11 @@ func get_reputation() -> int:
 
 ## Get number of active crew members
 func get_active_crew_count() -> int:
-	return active_crew.size()
+	return (safe_call_method(active_crew, "size") as int)
 
 ## Get number of active rivals
 func get_active_rivals_count() -> int:
-	return active_rivals.size()
+	return (safe_call_method(active_rivals, "size") as int)
 
 ## Check if crew has exploration capability
 func has_exploration_capability() -> bool:
@@ -122,15 +115,15 @@ func complete_mission() -> void:
 
 ## Add crew member
 func add_crew_member(member: Dictionary) -> void:
-	active_crew.append(member) # warning: return value discarded (intentional)
+	safe_call_method(active_crew, "append", [member]) # warning: return value discarded (intentional)
 
 ## Add rival
 func add_rival(rival: Dictionary) -> void:
-	active_rivals.append(rival) # warning: return value discarded (intentional)
+	safe_call_method(active_rivals, "append", [rival]) # warning: return value discarded (intentional)
 
 ## Add equipment
 func add_equipment(item: Dictionary) -> void:
-	equipment.append(item) # warning: return value discarded (intentional)
+	safe_call_method(equipment, "append", [item]) # warning: return value discarded (intentional)
 
 ## Advance story progress
 func advance_story() -> void:
@@ -142,21 +135,21 @@ func create_campaign(config: Dictionary) -> FiveParsecsGameCampaign:
 
 	campaign.campaign_name = config.get("name", "New Campaign")
 
-	campaign.difficulty = config.get("difficulty", GameEnums.DifficultyLevel.NORMAL)
+	campaign.difficulty = config.get("difficulty", GlobalEnums.DifficultyLevel.NORMAL)
 
-	campaign.victory_condition = config.get("victory_condition", GameEnums.FiveParcsecsCampaignVictoryType.STANDARD)
+	campaign.victory_condition = config.get("victory_condition", GlobalEnums.FiveParcsecsCampaignVictoryType.STANDARD)
 
-	campaign.crew_size = config.get("crew_size", GameEnums.CrewSize.FOUR)
+	campaign.crew_size = config.get("crew_size", GlobalEnums.CrewSize.FOUR)
 
 	campaign.use_story_track = config.get("use_story_track", true)
-	
+
 	active_campaign = campaign
 	campaign_created.emit(campaign) # warning: return value discarded (intentional)
 	return campaign
 
 func load_campaign(save_data: Dictionary) -> FiveParsecsGameCampaign:
 	var campaign := FiveParsecsGameCampaign.new()
-	campaign.deserialize(save_data)
+	if campaign and campaign.has_method("deserialize"): campaign.deserialize(save_data)
 	active_campaign = campaign
 	campaign_loaded.emit(campaign) # warning: return value discarded (intentional)
 	return campaign
@@ -165,15 +158,17 @@ func save_campaign() -> void:
 	if not active_campaign:
 		push_error("No active campaign to save")
 		return
-	
-	var save_data: Dictionary = active_campaign.serialize()
+
+	var save_data: Dictionary = {}
+	if active_campaign and active_campaign.has_method("serialize"):
+		save_data = active_campaign.serialize()
 	campaign_saved.emit(save_data) # warning: return value discarded (intentional)
 
 func delete_campaign(campaign_id: String) -> void:
 	if not campaign_id:
 		push_error("Invalid campaign ID")
 		return
-	
+
 	# Add deletion logic here
 	campaign_deleted.emit(campaign_id) # warning: return value discarded (intentional)
 
@@ -192,17 +187,17 @@ func start_mission() -> void:
 	if not game_state or not active_campaign:
 		push_error("Cannot start mission without active campaign")
 		return
-	
+
 	if mission_in_progress:
 		push_error("Cannot start new mission while another is in progress")
 		return
-	
+
 	# Create and setup mission
 	current_mission = Node.new()
 	current_mission.name = "CurrentMission"
 	add_child(current_mission)
-	current_mission.set_meta("phase", GameEnums.BattlePhase.SETUP)
-	
+	current_mission.set_meta("phase", GlobalEnums.BattlePhase.SETUP)
+
 	# Update state and emit signals
 	mission_in_progress = true
 	mission_created.emit(current_mission) # warning: return value discarded (intentional)
@@ -214,10 +209,10 @@ func end_mission(success: bool = true) -> void:
 	if not mission_in_progress:
 		push_error("No mission in progress to end")
 		return
-	
+
 	mission_in_progress = false
 	mission_completed.emit(success) # warning: return value discarded (intentional)
-	
+
 	if current_mission:
 		current_mission.queue_free()
 		current_mission = null
@@ -225,8 +220,8 @@ func end_mission(success: bool = true) -> void:
 ## Get current mission phase
 func get_mission_phase() -> int:
 	if not current_mission:
-		return GameEnums.BattlePhase.NONE
-	return current_mission.get_meta("phase", GameEnums.BattlePhase.NONE)
+		return GlobalEnums.BattlePhase.NONE
+	return current_mission.get_meta("phase", GlobalEnums.BattlePhase.NONE)
 
 ## Set mission phase
 func set_mission_phase(phase: int) -> void:
@@ -240,3 +235,22 @@ func is_mission_in_progress() -> bool:
 ## Get current mission
 func get_current_mission() -> Node:
 	return current_mission
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

@@ -1,8 +1,8 @@
-@tool
+﻿@tool
 extends Resource
 class_name CharacterInventory # Changed to avoid conflicts
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GameWeapon = preload("res://src/core/systems/items/GameWeapon.gd")
 const BaseArmor = preload("res://src/core/systems/items/GameArmor.gd")
 const BaseGear = preload("res://src/core/character/Equipment/base/gear.gd")
@@ -18,7 +18,7 @@ signal weight_changed(new_weight: float)
 var total_weight: float = 0.0:
 	set(_value):
 		total_weight = _value
-		weight_changed.emit(total_weight)  # warning: return value discarded (intentional)
+		weight_changed.emit(total_weight)
 
 func _init() -> void:
 	weapons = []
@@ -29,7 +29,7 @@ func add_weapon(weapon: GameWeapon) -> bool:
 	if not weapon:
 		push_error("Attempting to add null weapon to inventory")
 		return false
-	
+
 	if _would_exceed_weight_limit(weapon.weight):
 		return false
 
@@ -42,7 +42,7 @@ func remove_weapon(weapon: GameWeapon) -> void:
 	if not weapon:
 		push_error("Attempting to remove null weapon from inventory")
 		return
-	
+
 	weapons.erase(weapon)
 	_calculate_total_weight()
 	inventory_changed.emit()  # warning: return value discarded (intentional)
@@ -50,7 +50,7 @@ func remove_weapon(weapon: GameWeapon) -> void:
 func get_all_weapons() -> Array[GameWeapon]:
 	return weapons
 
-func get_weapons_by_type(type: GameEnums.WeaponType) -> Array[GameWeapon]:
+func get_weapons_by_type(type: GlobalEnums.WeaponType) -> Array[GameWeapon]:
 	return weapons.filter(func(w): return w.type == type)
 
 func clear_weapons() -> void:
@@ -87,15 +87,15 @@ func serialize() -> Dictionary:
 
 static func deserialize(data: Dictionary) -> CharacterInventory:
 	var inventory := CharacterInventory.new()
-	
+
 	if data.has("weapons"):
 		for weapon_data in data.weapons:
 			var weapon = GameWeapon.create_from_profile(weapon_data)
 			inventory.add_weapon(weapon)
-	
+
 	if data.has("max_weight"):
 		inventory.max_weight = data.max_weight
-	
+
 	inventory._calculate_total_weight()
 	return inventory
 
@@ -113,3 +113,11 @@ func get_total_count() -> int:
 
 func is_empty() -> bool:
 	return get_total_count() == 0
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

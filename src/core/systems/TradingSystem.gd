@@ -1,4 +1,4 @@
-class_name TradingSystem
+﻿class_name TradingSystem
 extends Resource
 
 ## Trading System for Five Parsecs Campaign Manager
@@ -61,47 +61,47 @@ func generate_market(world_type: String = "frontier", faction: String = "") -> A
 	var market_items: Array[Resource] = []
 	var market_condition = _determine_market_condition(world_type)
 	var item_count = _calculate_market_size(market_condition)
-	
+
 	# Set faction influence if provided
 	if faction != "":
 		current_faction_influence = faction
-	
+
 	# Apply price fluctuations
 	_apply_market_fluctuations()
-	
+
 	# Generate items for each category
 	for category in equipment_categories.keys():
 		var category_items = _generate_category_items(category, market_condition, world_type)
 		market_items.append_array(category_items)
-	
+
 	# Generate rare items (small chance)
 	var rare_item_chance = _calculate_rare_item_chance(world_type, market_condition)
 	if randf() < rare_item_chance:
 		var rare_item = _generate_rare_item(world_type)
 		if rare_item:
-			market_items.append(rare_item) # warning: return value discarded (intentional)
-			rare_item_available.emit(rare_item) # warning: return value discarded (intentional)
-	
+			market_items.append(rare_item)
+			rare_item_available.emit(rare_item)
+
 	# Generate trade opportunities
 	var opportunities = _generate_advanced_trade_opportunities(world_type)
 	for opportunity in opportunities:
-		trade_opportunity_discovered.emit(opportunity) # warning: return value discarded (intentional)
-	
+		trade_opportunity_discovered.emit(opportunity)
+
 	# Limit total items
 	if market_items.size() > item_count:
 		market_items.shuffle()
 		market_items = market_items.slice(0, item_count)
-	
+
 	# Update supply/demand tracking
 	_update_supply_demand_tracking(market_items)
-	
+
 	market_generated.emit(market_items) # warning: return value discarded (intentional)
 	return market_items
 
 func _determine_market_condition(world_type: String) -> String:
 	"""Determine market condition based on world _type"""
 	var condition_roll = randi_range(1, 6)
-	
+
 	match world_type:
 		"core":
 			return market_conditions[min(3, condition_roll - 1)] # Better markets
@@ -126,67 +126,67 @@ func _generate_category_items(category: String, market_condition: String, world_
 	var items: Array[Resource] = []
 
 	var category_items = equipment_categories.get(category, [])
-	
+
 	# Calculate items to generate based on availability and faction preferences
 	var base_items = randi_range(1, 3)
 	var availability_modifier = get_item_category_availability(category, world_type)
 
 	var faction_modifier = faction_preferences.get(current_faction_influence, {}).get(category, 1.0)
-	
+
 	var items_to_generate = max(1, int(base_items * availability_modifier * faction_modifier))
-	
-	for i in range(items_to_generate):
+
+	for i: int in range(items_to_generate):
 		var item_name = category_items.pick_random()
 		var item = _create_market_item(item_name, category, market_condition)
 
-		items.append(item) # warning: return value discarded (intentional)
-	
+		items.append(item)
+
 	return items
 
 func _create_market_item(item_name: String, category: String, market_condition: String) -> Resource:
 	"""Create a market item with pricing and availability"""
 	var item := Resource.new()
-	
+
 	# Basic item properties
 	item.set_meta("name", item_name)
 	item.set_meta("category", category)
 
 	item.set_meta("base_price", item_base_prices.get(item_name, 5))
-	
+
 	# Apply market _condition modifiers
 	var market_price = _calculate_market_price(item.get_meta("base_price"), market_condition)
 	item.set_meta("market_price", market_price)
-	
+
 	# Generate item _condition
 	var _condition = _generate_item_condition()
 	item.set_meta("_condition", _condition)
 	item.set_meta("condition_modifier", _get_condition_modifier(_condition))
-	
+
 	# Final price with _condition modifier
 	var final_price = int(market_price * item.get_meta("condition_modifier"))
 	item.set_meta("final_price", final_price)
-	
+
 	# Generate item description
 	item.set_meta("description", _generate_item_description(item))
-	
+
 	return item
 
 func _calculate_market_price(base_price: int, condition: String) -> int:
 	"""Calculate market _price based on condition"""
 	var modifier: int = 1
-	
+
 	match condition:
 		"Poor": modifier = 0.7
 		"Average": modifier = 1.0
 		"Good": modifier = 1.2
 		"Excellent": modifier = 1.5
-	
+
 	return int(base_price * modifier)
 
 func _generate_item_condition() -> String:
 	"""Generate random item condition"""
 	var condition_roll = randi_range(1, 6)
-	
+
 	match condition_roll:
 		1: return "Damaged"
 		2, 3: return "Used"
@@ -209,80 +209,80 @@ func _generate_item_description(item: Resource) -> String:
 	var category = item.get_meta("category")
 	var condition = item.get_meta("condition")
 	var price = item.get_meta("final_price")
-	
+
 	var condition_text: String = ""
 	match condition:
 		"Damaged": condition_text = " (needs repair)"
 		"Used": condition_text = " (well-worn)"
 		"Good": condition_text = ""
 		"Excellent": condition_text = " (pristine condition)"
-	
+
 	return "%s%s - %d credits" % [name, condition_text, price]
 
 func buy_item(item: Resource, campaign_data: Resource) -> bool:
 	"""Attempt to buy an item"""
 	var price = item.get_meta("final_price")
 	var current_credits = _get_credits(campaign_data)
-	
+
 	if current_credits >= price:
 		# Complete purchase
 		_set_credits(campaign_data, current_credits - price)
 		_add_item_to_inventory(campaign_data, item)
-		
+
 		# Update demand tracking
-		var item_name = item.get_meta("name") if item.has_method("get_meta") else "unknown"
+		var item_name = item.get_meta("name") if item and item.has_method("get_meta") else "unknown"
 		update_demand_tracking(item_name, "purchase")
-		
-		trade_completed.emit(item, "purchase", price) # warning: return value discarded (intentional)
+
+		trade_completed.emit(item, "purchase", price)
 		return true
 	else:
-		trade_failed.emit("Insufficient credits") # warning: return value discarded (intentional)
+		trade_failed.emit("Insufficient credits")
 		return false
 
 func sell_item(item: Resource, campaign_data: Resource) -> bool:
 	"""Sell an item for credits"""
 	# Calculate sell price (typically 50% of market _value)
-	var base_price = item.get_meta("base_price") if item.has_method("get_meta") else 5
-	var condition_modifier = item.get_meta("condition_modifier") if item.has_method("get_meta") else 1.0
+	var base_price = item.get_meta("base_price") if item and item.has_method("get_meta") else 5
+	var condition_modifier = item.get_meta("condition_modifier") if item and item.has_method("get_meta") else 1.0
 	var sell_price = int(base_price * condition_modifier * 0.5)
-	
+
 	# Remove from inventory and add credits
 	if _remove_item_from_inventory(campaign_data, item):
 		var current_credits = _get_credits(campaign_data)
 		_set_credits(campaign_data, current_credits + sell_price)
-		
+
 		# Update demand tracking
-		var item_name = item.get_meta("name") if item.has_method("get_meta") else "unknown"
+		var item_name = item.get_meta("name") if item and item.has_method("get_meta") else "unknown"
 		update_demand_tracking(item_name, "sale")
-		
-		trade_completed.emit(item, "sale", sell_price) # warning: return value discarded (intentional)
+
+		trade_completed.emit(item, "sale", sell_price)
 		return true
 	else:
-		trade_failed.emit("Item not found in inventory") # warning: return value discarded (intentional)
+		trade_failed.emit("Item not found in inventory")
 		return false
 
 func generate_trade_opportunities(world_type: String) -> Array[Dictionary]:
 	"""Generate special trade opportunities"""
 	var opportunities: Array = []
-	
+
 	# Trade mission opportunities
 	var trade_roll = randi_range(1, 6)
 	if trade_roll >= 4: # 50% chance
-		opportunities.append({ # warning: return value discarded (intentional)
+		opportunities.append({
 			"type": "bulk_trade",
 			"description": "Bulk goods transport",
 			"profit": randi_range(100, 300),
 			"risk": "Low"
 		})
-	
+
 	if trade_roll >= 5: # 33% chance
-		opportunities.append({ # warning: return value discarded (intentional)
+		opportunities.append({
 			"type": "rare_goods",
 			"description": "Rare artifact sale",
 			"profit": randi_range(200, 500),
 			"risk": "Medium"
 		})
-	
+
 	return opportunities
 
 func get_item_category_availability(category: String, world_type: String) -> float:
@@ -297,27 +297,27 @@ func get_item_category_availability(category: String, world_type: String) -> flo
 
 func _get_credits(campaign_data: Resource) -> int:
 	"""Get current credits from campaign"""
-	if campaign_data and campaign_data.has_method("get_meta"):
+	if campaign_data and campaign_data and campaign_data.has_method("get_meta"):
 		return campaign_data.get_meta("credits")
 	return 0
 
 func _set_credits(campaign_data: Resource, credits: int) -> void:
 	"""Set current credits in campaign"""
-	if campaign_data and campaign_data.has_method("set_meta"):
+	if campaign_data and campaign_data and campaign_data.has_method("set_meta"):
 		campaign_data.set_meta("credits", credits)
 func _add_item_to_inventory(campaign_data: Resource, item: Resource) -> void:
 	"""Add item to campaign inventory"""
-	if campaign_data and campaign_data.has_method("get_meta") and campaign_data.has_method("set_meta"):
+	if campaign_data and campaign_data.has_method("get_meta") and campaign_data and campaign_data.has_method("set_meta"):
 		var inventory = campaign_data.get_meta("inventory")
 		if inventory == null:
 			inventory = []
 
-		inventory.append(item) # warning: return value discarded (intentional)
+		inventory.append(item)
 		campaign_data.set_meta("inventory", inventory)
 
 func _remove_item_from_inventory(campaign_data: Resource, item: Resource) -> bool:
 	"""Remove item from campaign inventory"""
-	if campaign_data and campaign_data.has_method("get_meta") and campaign_data.has_method("set_meta"):
+	if campaign_data and campaign_data.has_method("get_meta") and campaign_data and campaign_data.has_method("set_meta"):
 		var inventory = campaign_data.get_meta("inventory")
 		if inventory and inventory.has(item):
 			inventory.erase(item)
@@ -333,29 +333,29 @@ func get_market_summary(items: Array[Resource]) -> Dictionary:
 		"price_range": {"min": 999, "max": 0},
 		"average_condition": 0.0
 	}
-	
+
 	var condition_total: int = 0
-	
+
 	for item in items:
-		var category = item.get_meta("category") if item.has_method("get_meta") else "unknown"
-		var price = item.get_meta("final_price") if item.has_method("get_meta") else 0
-		var condition_modifier = item.get_meta("condition_modifier") if item.has_method("get_meta") else 1.0
-		
+		var category = item.get_meta("category") if item and item.has_method("get_meta") else "unknown"
+		var price = item.get_meta("final_price") if item and item.has_method("get_meta") else 0
+		var condition_modifier = item.get_meta("condition_modifier") if item and item.has_method("get_meta") else 1.0
+
 		# Count categories
 		if not summary.categories.has(category):
 			summary.categories[category] = 0
 		summary.categories[category] += 1
-		
+
 		# Track price range
 		summary.price_range.min = min(summary.price_range.min, price)
 		summary.price_range.max = max(summary.price_range.max, price)
-		
+
 		# Average condition
 		condition_total += condition_modifier
-	
+
 	if items.size() > 0:
 		summary.average_condition = condition_total / items.size()
-	
+
 	return summary
 
 ## ===== ADVANCED MARKET DYNAMICS =====
@@ -363,10 +363,10 @@ func get_market_summary(items: Array[Resource]) -> Dictionary:
 func _apply_market_fluctuations() -> void:
 	"""Apply price fluctuations based on market volatility"""
 	turns_since_last_fluctuation += 1
-	
+
 	# Chance of price fluctuation increases over time
 	var fluctuation_chance = (turns_since_last_fluctuation * 0.1) + market_volatility
-	
+
 	if randf() < fluctuation_chance:
 		_trigger_price_fluctuation()
 		turns_since_last_fluctuation = 0
@@ -376,11 +376,11 @@ func _trigger_price_fluctuation() -> void:
 		var old_price = item_base_prices[item_name]
 		var fluctuation: int = 1 + (randf() - 0.5) * market_volatility * 2.0
 		var new_price = max(1, int(old_price * fluctuation))
-		
+
 		if new_price != old_price:
 			item_base_prices[item_name] = new_price
 			price_fluctuation_occurred.emit(item_name, old_price, new_price) # warning: return value discarded (intentional)
-			
+
 			# Track price history
 			if not price_history.has(item_name):
 				price_history[item_name] = []
@@ -389,17 +389,17 @@ func _trigger_price_fluctuation() -> void:
 func _calculate_rare_item_chance(world_type: String, market_condition: String) -> float:
 	"""Calculate chance of rare items appearing"""
 	var base_chance: int = 0 # 5% base chance
-	
+
 	match world_type:
 		"core": base_chance *= 2.0
 		"industrial": base_chance *= 1.5
 		"frontier": base_chance *= 0.5
-	
+
 	match market_condition:
 		"Excellent": base_chance *= 2.0
 		"Good": base_chance *= 1.5
 		"Poor": base_chance *= 0.5
-	
+
 	return base_chance
 
 func _generate_rare_item(world_type: String) -> Resource:
@@ -407,26 +407,26 @@ func _generate_rare_item(world_type: String) -> Resource:
 	var rare_categories = rare_items.keys()
 	var category = rare_categories.pick_random()
 	var item_name = rare_items[category].pick_random()
-	
+
 	var item := Resource.new()
 	item.set_meta("name", item_name)
 	item.set_meta("category", "rare_" + category.split("_")[0])
 	item.set_meta("rarity", "rare")
 
 	item.set_meta("base_price", rare_item_base_prices.get(item_name, 25))
-	
+
 	# Rare items are typically in good condition
 	var condition: String = "Good" if randf() < 0.7 else "Excellent"
 	item.set_meta("condition", condition)
 	item.set_meta("condition_modifier", _get_condition_modifier(condition))
-	
+
 	# Calculate final price with rarity bonus
 	var market_price = item.get_meta("base_price") * 1.2 # Rare item markup
 	var final_price = int(market_price * item.get_meta("condition_modifier"))
 	item.set_meta("final_price", final_price)
-	
+
 	item.set_meta("description", _generate_rare_item_description(item))
-	
+
 	return item
 
 func _generate_rare_item_description(item: Resource) -> String:
@@ -434,21 +434,21 @@ func _generate_rare_item_description(item: Resource) -> String:
 	var name = item.get_meta("name")
 	var price = item.get_meta("final_price")
 	var condition = item.get_meta("condition")
-	
+
 	var rarity_text: String = " ★ RARE ★ "
 	var condition_text: String = " (%s condition)" % condition.to_lower()
-	
+
 	return "%s%s%s - %d credits" % [rarity_text, name, condition_text, price]
 
 func _generate_advanced_trade_opportunities(world_type: String) -> Array[Dictionary]:
 	"""Generate advanced trade opportunities with better mechanics"""
 	var opportunities: Array = []
-	
+
 	# Faction-specific opportunities
 	match current_faction_influence:
 		"unity":
 			if randf() < 0.3:
-				opportunities.append({ # warning: return value discarded (intentional)
+				opportunities.append({
 					"type": "unity_contract",
 					"title": "Unity Research Data",
 					"description": "Transport sensitive research data to Unity facilities",
@@ -459,7 +459,7 @@ func _generate_advanced_trade_opportunities(world_type: String) -> Array[Diction
 				})
 		"corpo":
 			if randf() < 0.35:
-				opportunities.append({ # warning: return value discarded (intentional)
+				opportunities.append({
 					"type": "corporate_merger",
 					"title": "Corporate Asset Transfer",
 					"description": "Facilitate asset transfer between competing corporations",
@@ -470,7 +470,7 @@ func _generate_advanced_trade_opportunities(world_type: String) -> Array[Diction
 				})
 		"pirates":
 			if randf() < 0.4:
-				opportunities.append({ # warning: return value discarded (intentional)
+				opportunities.append({
 					"type": "salvage_rights",
 					"title": "Exclusive Salvage Rights",
 					"description": "Gain temporary exclusive access to a wreck site",
@@ -479,10 +479,10 @@ func _generate_advanced_trade_opportunities(world_type: String) -> Array[Diction
 					"requirements": ["Salvage Equipment", "Combat Readiness"],
 					"success_chance": 0.7
 				})
-	
+
 	# World-specific opportunities
 	if world_type == "industrial" and randf() < 0.25:
-		opportunities.append({ # warning: return value discarded (intentional)
+		opportunities.append({
 			"type": "industrial_surplus",
 			"title": "Factory Surplus Sale",
 			"description": "Purchase industrial surplus at bulk discount rates",
@@ -491,32 +491,33 @@ func _generate_advanced_trade_opportunities(world_type: String) -> Array[Diction
 			"requirements": ["Cargo Space", "Industrial Contacts"],
 			"success_chance": 0.9
 		})
-	
+
 	return opportunities
 
 func _update_supply_demand_tracking(market_items: Array[Resource]) -> void:
 	"""Update supply and demand tracking for market analysis"""
 	for item in market_items:
-		var item_name = item.get_meta("name") if item.has_method("get_meta") else "unknown"
-		
+
+		var item_name = item.get_meta("name") if item and item.has_method("get_meta") else "unknown"
+
 		# Initialize tracking if needed
 		if not supply_demand.has(item_name):
 			supply_demand[item_name] = {"supply": 0, "demand": 0, "transactions": 0}
-		
+
 		# Increase supply
 		supply_demand[item_name]["supply"] += 1
 func update_demand_tracking(item_name: String, transaction_type: String) -> void:
 	"""Update demand tracking when items are bought/sold"""
 	if not supply_demand.has(item_name):
 		supply_demand[item_name] = {"supply": 0, "demand": 0, "transactions": 0}
-	
+
 	match transaction_type:
 		"purchase":
 			supply_demand[item_name]["demand"] += 1
 			supply_demand[item_name]["supply"] = max(0, supply_demand[item_name]["supply"] - 1)
 		"sale":
 			supply_demand[item_name]["supply"] += 1
-	
+
 	supply_demand[item_name]["transactions"] += 1
 func get_market_trends() -> Dictionary:
 	"""Get current market trends for UI display"""
@@ -527,18 +528,18 @@ func get_market_trends() -> Dictionary:
 		"faction_influence": current_faction_influence,
 		"volatility": market_volatility
 	}
-	
+
 	for item_name in supply_demand.keys():
 		var data = supply_demand[item_name]
 		var demand_ratio = float(data.demand) / max(1, data.supply)
-		
+
 		if demand_ratio > 1.5:
 			trends.hot_items.append(item_name)
 		elif demand_ratio < 0.5:
 			trends.declining_items.append(item_name)
-		else:
+		elif demand_ratio > 0.5 and demand_ratio < 1.5:
 			trends.stable_items.append(item_name)
-	
+
 	return trends
 
 func set_faction_influence(faction: String) -> void:
@@ -549,3 +550,11 @@ func get_price_history(item_name: String) -> Array:
 	"""Get price history for a specific item"""
 
 	return price_history.get(item_name, [])
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

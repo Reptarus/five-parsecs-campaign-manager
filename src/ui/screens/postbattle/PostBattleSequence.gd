@@ -1,4 +1,4 @@
-class_name PostBattleSequenceUI
+﻿class_name PostBattleSequenceUI
 extends Control
 
 signal post_battle_completed(results: Dictionary)
@@ -46,9 +46,9 @@ func _initialize_steps() -> void:
 	"""Initialize the post-battle sequence"""
 	# Initialize step results array
 	step_results.resize(max_steps)
-	for i in range(max_steps):
+	for i: int in range(max_steps):
 		step_results[i] = {}
-	
+
 	# Create step list display
 	_refresh_steps_list()
 
@@ -69,21 +69,21 @@ func _refresh_steps_list() -> void:
 	# Clear existing steps
 	for child in steps_container.get_children():
 		child.queue_free()
-	
+
 	# Add step items
-	for i in range(max_steps):
-		var step_panel = _create_step_panel(i)
+	for i: int in range(max_steps):
+		var step_panel: Panel = _create_step_panel(i)
 		steps_container.add_child(step_panel)
 
 func _create_step_panel(step_index: int) -> Control:
 	"""Create a panel for a post-battle step"""
-	var panel = PanelContainer.new()
-	var label = Label.new()
+	var panel: PanelContainer = PanelContainer.new()
+	var label: Label = Label.new()
 	panel.add_child(label)
-	
+
 	var step = post_battle_steps[step_index]
 	label.text = step.name
-	
+
 	# Color coding based on completion status
 	if step_index < current_step:
 		label.modulate = Color.GREEN # Completed
@@ -91,7 +91,7 @@ func _create_step_panel(step_index: int) -> Control:
 		label.modulate = Color.YELLOW # Current
 	else:
 		label.modulate = Color.WHITE # Pending
-	
+
 	return panel
 
 func _show_current_step() -> void:
@@ -99,31 +99,31 @@ func _show_current_step() -> void:
 	if current_step >= max_steps:
 		_finish_post_battle()
 		return
-	
+
 	var step = post_battle_steps[current_step]
-	
+
 	# Update UI
 	step_counter.text = "Step " + str(current_step + 1) + " of " + str(max_steps)
 	step_title.text = step.name
-	
+
 	# Clear step content
 	for child in step_content.get_children():
 		child.queue_free()
-	
+
 	# Add step description
-	var description_label = Label.new()
+	var description_label: Label = Label.new()
 	description_label.text = step.description
 	description_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	step_content.add_child(description_label)
-	
+
 	# Add step-specific content
 	_add_step_specific_content(current_step)
-	
+
 	# Update button states
 	previous_button.disabled = (current_step == 0)
 	roll_button.visible = step.requires_roll
 	finish_button.visible = (current_step == max_steps - 1)
-	
+
 	# Refresh steps list
 	_refresh_steps_list()
 
@@ -161,91 +161,91 @@ func _add_step_specific_content(step_index: int) -> void:
 
 func _add_rival_status_content() -> void:
 	"""Add rival status check content"""
-	var label = Label.new()
+	var label: Label = Label.new()
 	label.text = "Roll D6 for each rival to see if they follow you to the next world."
 	step_content.add_child(label)
 
 func _add_patron_status_content() -> void:
 	"""Add patron status content"""
-	var label = Label.new()
+	var label: Label = Label.new()
 	label.text = "Update patron relationships based on mission success."
 	step_content.add_child(label)
 
 func _add_quest_progress_content() -> void:
 	"""Add quest progress content"""
-	var label = Label.new()
+	var label: Label = Label.new()
 	label.text = "Check if any active quests advance based on mission results."
 	step_content.add_child(label)
 
 func _add_payment_content() -> void:
 	"""Add payment content"""
-	var label = Label.new()
+	var label: Label = Label.new()
 	label.text = "Receive payment: " + str(battle_results.get("payment", 0)) + " credits"
 	step_content.add_child(label)
 
 func _add_battlefield_finds_content() -> void:
 	"""Add battlefield finds content"""
-	var label = Label.new()
+	var label: Label = Label.new()
 	label.text = "Roll D6 for battlefield finds based on enemy types defeated."
 	step_content.add_child(label)
 
 func _add_invasion_check_content() -> void:
 	"""Add invasion check content"""
-	var label = Label.new()
+	var label: Label = Label.new()
 	label.text = "Roll D6 to check for invasion threats."
 	step_content.add_child(label)
 
 func _add_loot_content() -> void:
 	"""Add loot content"""
-	var label = Label.new()
+	var label: Label = Label.new()
 	label.text = "Roll on loot tables for items found."
 	step_content.add_child(label)
 
 func _add_injury_content() -> void:
 	"""Add injury content"""
-	var label = Label.new()
+	var label: Label = Label.new()
 	label.text = "Check crew injuries and roll for recovery."
 	step_content.add_child(label)
 
 func _add_experience_content() -> void:
 	"""Add experience content"""
-	var label = Label.new()
+	var label: Label = Label.new()
 	label.text = "Gain experience points and apply character upgrades."
 	step_content.add_child(label)
 
 func _add_training_content() -> void:
 	"""Add training content"""
-	var label = Label.new()
+	var label: Label = Label.new()
 	label.text = "Invest credits in advanced training for crew members."
 	step_content.add_child(label)
 
 func _add_purchase_content() -> void:
 	"""Add purchase content"""
-	var label = Label.new()
+	var label: Label = Label.new()
 	label.text = "Purchase new equipment and supplies."
 	step_content.add_child(label)
 
 func _add_campaign_events_content() -> void:
 	"""Add campaign events content"""
-	var label = Label.new()
+	var label: Label = Label.new()
 	label.text = "Roll D100 on campaign events table."
 	step_content.add_child(label)
 
 func _add_character_events_content() -> void:
 	"""Add character events content"""
-	var label = Label.new()
+	var label: Label = Label.new()
 	label.text = "Roll D100 on character events table for each crew member."
 	step_content.add_child(label)
 
 func _add_galactic_war_content() -> void:
 	"""Add galactic war content"""
-	var label = Label.new()
+	var label: Label = Label.new()
 	label.text = "Check Galactic War progression and effects."
 	step_content.add_child(label)
 
 func _add_result_to_log(result: String) -> void:
 	"""Add a result to the results log"""
-	var result_label = Label.new()
+	var result_label: Label = Label.new()
 	result_label.text = "Step " + str(current_step + 1) + ": " + result
 	results_container.add_child(result_label)
 
@@ -258,10 +258,10 @@ func _on_previous_pressed() -> void:
 func _on_next_pressed() -> void:
 	"""Handle next button press"""
 	# Store current step result
-	var result = _get_current_step_result()
+	var result: Variant = _get_current_step_result()
 	step_results[current_step] = result
-	step_completed.emit(current_step, result) # warning: return value discarded (intentional)
-	
+	step_completed.emit(current_step, result)
+
 	# Move to next step
 	current_step += 1
 	_show_current_step()
@@ -270,7 +270,7 @@ func _on_roll_pressed() -> void:
 	"""Handle roll dice button press"""
 	var roll_result = randi_range(1, 6)
 	var result_text: String = "Rolled: " + str(roll_result)
-	
+
 	# Add step-specific roll interpretation
 	match current_step:
 		0: # Rival Status
@@ -279,7 +279,7 @@ func _on_roll_pressed() -> void:
 			result_text += " - " + ("Found item" if roll_result >= 4 else "No finds")
 		5: # Invasion Check
 			result_text += " - " + ("Invasion threat" if roll_result == 1 else "No invasion")
-	
+
 	_add_result_to_log(result_text)
 	print("PostBattleSequence: Rolled ", roll_result, " for step ", current_step + 1)
 
@@ -303,8 +303,8 @@ func _finish_post_battle() -> void:
 		"step_results": step_results,
 		"completion_time": Time.get_unix_time_from_system()
 	}
-	
-	post_battle_completed.emit(final_results) # warning: return value discarded (intentional)
+
+	post_battle_completed.emit(final_results)
 	print("PostBattleSequence: Completed all steps")
 
 func _on_back_pressed() -> void:
@@ -315,3 +315,21 @@ func _on_back_pressed() -> void:
 		scene_router.navigate_back()
 	else:
 		get_tree().change_scene_to_file("res://src/ui/screens/main/MainMenu.tscn")
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

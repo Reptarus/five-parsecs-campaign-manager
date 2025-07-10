@@ -1,4 +1,4 @@
-extends Control
+﻿extends Control
 
 const Character = preload("res://src/core/character/Base/Character.gd")
 const CharacterStats = preload("res://src/core/character/Base/CharacterStats.gd")
@@ -35,7 +35,7 @@ func _populate_dropdowns() -> void:
 	# Populate origin dropdown
 	for origin in GlobalEnums.Origin.keys():
 		origin_option.add_item(origin)
-	
+
 	# Populate class dropdown
 	for class_type in GlobalEnums.CharacterClass.keys():
 		class_option.add_item(class_type)
@@ -54,20 +54,20 @@ func _on_confirm_pressed() -> void:
 		"origin": GlobalEnums.Origin.values()[origin_option.selected],
 		"class": GlobalEnums.CharacterClass.values()[class_option.selected]
 	}
-	captain_created.emit(captain_data) # warning: return value discarded (intentional)
+	captain_created.emit(captain_data)
 
 func _on_back_pressed() -> void:
-	back_pressed.emit() # warning: return value discarded (intentional)
+	back_pressed.emit()
 
 func _update_preview() -> void:
 	var preview_text: String = "[center][color=yellow]Captain Preview[/color][/center]\n\n"
-	
+
 	if not name_input.text.strip_edges().is_empty():
 		preview_text += "[color=lime]Name:[/color] %s\n" % name_input.text
-	
+
 	if origin_option.selected >= 0:
 		preview_text += "[color=lime]Origin:[/color] %s\n" % GlobalEnums.Origin.keys()[origin_option.selected]
-	
+
 	if class_option.selected >= 0:
 		preview_text += "[color=lime]Class:[/color] %s\n" % GlobalEnums.CharacterClass.keys()[class_option.selected]
 

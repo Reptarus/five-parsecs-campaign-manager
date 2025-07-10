@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 extends BaseBattleRules
 class_name FPCM_BattleRules
 
@@ -9,13 +9,12 @@ class_name FPCM_BattleRules
 # Import game-specific enums
 # Note: These paths need to be updated to match your actual enum file locations
 # We're using a conditional approach to avoid errors if the files don't exist
-var GameEnums = null
-var GlobalEnums = null
+var GlobalEnums: Variant = null
 
 func _ready() -> void:
 	# Try to load the enum files
-	if ResourceLoader.exists("res://src/core/systems/GameEnums.gd"):
-		GameEnums = load("res://src/core/systems/GameEnums.gd")
+	if ResourceLoader.exists("res://src/core/systems/GlobalEnums.gd"):
+		GlobalEnums = load("res://src/core/systems/GlobalEnums.gd")
 	if ResourceLoader.exists("res://src/core/systems/GlobalEnums.gd"):
 		GlobalEnums = load("res://src/core/systems/GlobalEnums.gd")
 
@@ -31,16 +30,16 @@ class FiveParsecsCombatModifiers:
 	var _range_modifier: float = 0.0
 	var critical: bool = false
 	var armor: int = 0
-	
+
 	# Five Parsecs specific properties
-	var _combat_advantage: int = 0 # Will be set to GameEnums.CombatAdvantage.NONE
-	var _combat_status: int = 0 # Will be set to GameEnums.CombatStatus.NONE
-	var combat_range: int = 0 # Will be set to GameEnums.CombatRange.MEDIUM
-	var combat_tactic: int = 0 # Will be set to GameEnums.CombatTactic.NONE
-	
+	var _combat_advantage: int = 0 # Will be set to GlobalEnums.CombatAdvantage.NONE
+	var _combat_status: int = 0 # Will be set to GlobalEnums.CombatStatus.NONE
+	var combat_range: int = 0 # Will be set to GlobalEnums.CombatRange.MEDIUM
+	var combat_tactic: int = 0 # Will be set to GlobalEnums.CombatTactic.NONE
+
 	func _init() -> void:
 		# Initialize with default values
-		# These will be set to the proper enum values when GameEnums is available
+		# These will be set to the proper enum values when GlobalEnums is available
 		pass
 
 func _init() -> void:
@@ -81,10 +80,10 @@ func calculate_hit_chance(base_chance: float, modifiers) -> float:
 		if modifiers.has("armor"):
 			base_modifiers.armor = modifiers.armor
 		return super.calculate_hit_chance(base_chance, base_modifiers)
-	
+
 	# Use our custom implementation
 	var final_chance := base_chance
-	
+
 	# Apply standard modifiers
 	if five_parsecs_modifiers.cover:
 		final_chance += COVER_MODIFIER
@@ -94,18 +93,18 @@ func calculate_hit_chance(base_chance: float, modifiers) -> float:
 		final_chance += FLANK_MODIFIER
 	if five_parsecs_modifiers.suppressed:
 		final_chance += SUPPRESSION_MODIFIER
-	
+
 	# Apply Five Parsecs specific range modifiers
 	# Note: Update these to use your actual enum values
 	# For now, we'll use hardcoded values
-	var combat_range = five_parsecs_modifiers.combat_range
+	var combat_range: int = five_parsecs_modifiers.combat_range
 	if combat_range == 0: # POINT_BLANK
 		final_chance += OPTIMAL_RANGE_BONUS
 	elif combat_range == 2: # LONG
 		final_chance += LONG_RANGE_PENALTY
 	elif combat_range == 3: # EXTREME
 		final_chance += EXTREME_RANGE_PENALTY
-	
+
 	return clampf(final_chance, MINIMUM_HIT_CHANCE, MAXIMUM_HIT_CHANCE)
 
 ## Calculate the damage for an attack
@@ -116,21 +115,21 @@ func calculate_damage(base_damage: int, modifiers) -> int:
 	# Similar implementation as calculate_hit_chance
 	# For brevity, we'll use a simplified version
 	var final_damage := base_damage
-	
+
 	# Apply critical hit if applicable
 	if modifiers.has("critical") and modifiers.critical:
 		final_damage *= 2
-	
+
 	# Apply _damage modifiers
 	if modifiers.has("flanking") and modifiers.flanking:
 		final_damage += 1
 	if modifiers.has("height_advantage") and modifiers.height_advantage:
 		final_damage += 1
-	
+
 	# Apply armor reduction if applicable
 	if modifiers.has("armor"):
 		final_damage = maxi(1, final_damage - modifiers.armor) # Minimum 1 _damage
-	
+
 	return final_damage
 
 ## Calculate the movement cost for a distance
@@ -139,7 +138,7 @@ func calculate_damage(base_damage: int, modifiers) -> int:
 ## @return: The movement cost
 func calculate_movement_cost(distance: float, terrain_type: int) -> int:
 	var cost := int(distance / BASE_MOVEMENT)
-	
+
 	# Apply terrain modifiers
 	# Note: Update these to use your actual enum values
 	# For now, we'll use hardcoded values
@@ -151,7 +150,7 @@ func calculate_movement_cost(distance: float, terrain_type: int) -> int:
 		cost += 1
 	elif terrain_type == 4: # WATER_HAZARD
 		cost *= 2
-	
+
 	return maxi(1, cost) # Minimum 1 movement point
 
 ## Get the result of a combat roll
@@ -161,15 +160,15 @@ func calculate_movement_cost(distance: float, terrain_type: int) -> int:
 func get_combat_result(hit_chance: float, modifiers) -> int:
 	# Similar implementation as calculate_hit_chance
 	# For brevity, we'll use a simplified version
-	var dice_manager = get_node_or_null("/root/DiceManager")
-	var roll: float = 0.5  # Default fallback
+	var dice_manager: Node = get_node_or_null("/root/DiceManager")
+	var roll: float = 0.5 # Default fallback
 	if dice_manager and dice_manager.has_method("roll_d100"):
 		roll = dice_manager.roll_d100("Combat Result") / 100.0
 	else:
-		roll = randf()  # Fallback if DiceManager unavailable
-	
+		roll = randf() # Fallback if DiceManager unavailable
+
 	var is_suppressed = modifiers.has("suppressed") and modifiers.suppressed
-	
+
 	if roll >= CRITICAL_THRESHOLD and not is_suppressed:
 		return 1 # CRITICAL
 	elif roll >= hit_chance:
@@ -192,10 +191,18 @@ func get_combat_result(hit_chance: float, modifiers) -> int:
 		if modifiers.has("combat_tactic") and modifiers.combat_tactic == 2 and block_roll < 0.3:
 			return 5 # BLOCK
 		return 2 # GRAZE
-	
+
 	return 3 # HIT"
 
 # Range modifiers for Five Parsecs combat
 const OPTIMAL_RANGE_BONUS: int = 1
 const LONG_RANGE_PENALTY: int = -1
 const EXTREME_RANGE_PENALTY: int = -2
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

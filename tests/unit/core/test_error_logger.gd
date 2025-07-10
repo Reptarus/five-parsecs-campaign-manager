@@ -181,9 +181,9 @@ func test_phase_transition_errors() -> void:
         MockErrorLogger.ErrorCategory.VALIDATION,
         MockErrorLogger.ErrorSeverity.ERROR,
         {
-            "from_phase": GameEnums.CampaignPhase.SETUP,
-            "to_phase": GameEnums.CampaignPhase.BATTLE_RESOLUTION,
-            "expected": GameEnums.CampaignPhase.CAMPAIGN,
+            "from_phase": GameEnums.FiveParsecsCampaignPhase.SETUP,
+            "to_phase": GameEnums.FiveParsecsCampaignPhase.POST_BATTLE,
+            "expected": GameEnums.FiveParsecsCampaignPhase.WORLD,
         }
     )
     

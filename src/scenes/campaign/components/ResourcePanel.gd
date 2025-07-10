@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 extends Panel
 class_name FPCM_ResourcePanel
 
@@ -33,7 +33,7 @@ class ResourceData:
 	var _icon: Texture
 	var color: Color
 	var description: String
-	
+
 	func _init(p_name: String, p_current: int = 0, p_max: int = -1, p_trend: int = 0) -> void:
 		name = p_name
 		current_value = p_current
@@ -41,7 +41,7 @@ class ResourceData:
 		_trend = p_trend
 		color = _get_resource_color(p_name)
 		description = RESOURCE_DESCRIPTIONS[p_name]
-		
+
 	func _get_resource_color(res_name: String) -> Color:
 		match res_name:
 			"credits": return Color(0.9, 0.8, 0.2) # Gold
@@ -64,11 +64,11 @@ func _ready() -> void:
 func _setup_ui() -> void:
 	# Set up the panel style
 	custom_minimum_size = Vector2(250, 0)
-	
+
 	# Initialize default resources if empty
-	if _resources.is_empty():
+	if (_resources.is_empty()):
 		_initialize_default_resources()
-	
+
 	_update_display()
 func _initialize_default_resources() -> void:
 	add_resource("credits", 1000) # Starting credits
@@ -80,11 +80,11 @@ func _initialize_default_resources() -> void:
 func _update_display() -> void:
 	if not is_inside_tree() or not resources_container:
 		return
-		
+
 	# Clear existing resource displays
 	for child in resources_container.get_children():
 		child.queue_free()
-	
+
 	# Add resource displays in order
 	var resource_order = ["credits", "story_points", "reputation", "supplies", "intel", "salvage"]
 	for resource_name in resource_order:
@@ -95,7 +95,7 @@ func _add_resource_display(resource_name: String) -> void:
 	var resource = _resources[resource_name]
 	var resource_item = resource_item_scene.instantiate()
 	resources_container.add_child(resource_item)
-	
+
 	resource_item.setup(
 		resource_name,
 		resource.current_value,
@@ -104,7 +104,7 @@ func _add_resource_display(resource_name: String) -> void:
 		resource.color,
 		resource.description
 	)
-	
+
 	resource_item.resource_clicked.connect(_on_resource_clicked)
 func _on_resource_clicked(resource_name: String) -> void:
 	if _resources.has(resource_name):
@@ -147,3 +147,11 @@ func get_all_resources() -> Dictionary:
 	for name in _resources:
 		resources[name] = _resources[name].current_value
 	return resources
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return

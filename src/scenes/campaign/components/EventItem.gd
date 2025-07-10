@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 extends Control
 class_name FPCM_EventItem
 
@@ -26,30 +26,34 @@ func _ready() -> void:
 
 func _setup_ui() -> void:
 	custom_minimum_size = Vector2(0, 80)
-	
+
 	if background:
 		background.mouse_filter = Control.MOUSE_FILTER_PASS
-	
+
 	if category_indicator:
 		category_indicator.color = event_color
-		
+
 	if title_label:
 		title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		
+
 	if timestamp_label:
 		timestamp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		timestamp_label.modulate = Color(1, 1, 1, 0.6)
-		
+
 	if description_label:
 		description_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		description_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		description_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 
 func _connect_signals() -> void:
-	gui_input.connect(_on_gui_input) # warning: return value discarded (intentional)
+	gui_input.connect(_on_gui_input)
 
-func _on_gui_input(event) -> void:
+func _on_gui_input(event: Variant) -> void:
+
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			event_selected.emit( event_id)
@@ -58,13 +62,13 @@ func _on_gui_input(event) -> void:
 func setup(id: String, title: String, description: String, timestamp: int, color: Color) -> void:
 	event_id = id
 	event_color = color
-	
+
 	if title_label:
 		title_label.text = title
-		
+
 	if description_label:
 		description_label.text = description
-		
+
 	if timestamp_label:
 		timestamp_label.text = _format_timestamp(timestamp)
 

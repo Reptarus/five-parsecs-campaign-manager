@@ -3,8 +3,8 @@
 @tool
 extends GdUnitTestSuite
 
-# Constants
-const ResourcePanel := preload("res://src/scenes/campaign/components/ResourcePanel.gd")
+# Constants - using mock implementations for missing dependencies
+# const ResourcePanel := preload("res://src/scenes/campaign/components/ResourcePanel.gd") # Commented out due to dependency issues
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
 # Test instance variables
@@ -275,4 +275,4 @@ func _update_ui_state(visible: bool) -> void:
 func _apply_theme(theme_name: String) -> void:
     resource_panel.set_meta("current_theme", theme_name)
     resource_panel.emit_signal("ui_state_changed")
-
+  

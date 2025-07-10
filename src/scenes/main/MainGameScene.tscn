@@ -4,7 +4,6 @@
 [ext_resource type="PackedScene" uid="uid://b4q8j6q8j6q8j" path="res://src/ui/screens/campaign/CampaignDashboard.tscn" id="2"]
 [ext_resource type="PackedScene" uid="uid://bjdo0o2bet0av" path="res://src/ui/screens/travel/TravelPhaseUI.tscn" id="3"]
 [ext_resource type="PackedScene" uid="uid://b8cqdvcppb5lt" path="res://src/ui/screens/world/WorldPhaseUI.tscn" id="4"]
-[ext_resource type="PackedScene" uid="uid://c8x7y0q5n3j4w" path="res://src/ui/screens/campaign/phases/StoryPhasePanel.tscn" id="5"]
 [ext_resource type="PackedScene" uid="uid://cedco4m5xy05m" path="res://src/ui/screens/battle/PreBattle.tscn" id="6"]
 [ext_resource type="PackedScene" uid="uid://njli0sntham3" path="res://src/ui/screens/battle/BattlefieldMain.tscn" id="7"]
 [ext_resource type="PackedScene" uid="uid://dedco4m5x005m" path="res://src/ui/screens/battle/PostBattle.tscn" id="8"]

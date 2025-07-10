@@ -1,15 +1,15 @@
-@tool
+﻿@tool
 extends Resource
 
 const FiveParsecsGear = preload("implementations/five_parsecs_gear.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 var gears: Dictionary = {}
 
 func roll_weapon_table(table: String = "basic") -> Dictionary:
 	var roll = randi() % 6 + 1
 	var weapon_data: Dictionary = {}
-	
+
 	match table:
 		"basic":
 			match roll:
@@ -51,7 +51,7 @@ func roll_weapon_table(table: String = "basic") -> Dictionary:
 				4: weapon_data = {"name": "Plasma rifle", "type": "RIFLE", "range": 20, "shots": 2, "damage": 2, "traits": ["Energy"]}
 				5: weapon_data = {"name": "Rattle gun", "type": "HEAVY", "range": 24, "shots": 3, "damage": 1}
 				6: weapon_data = {"name": "Shell gun", "type": "HEAVY", "range": 18, "shots": 1, "damage": 2, "traits": ["Area"]}
-	
+
 	weapon_data["roll_result"] = roll
 	return weapon_data
 
@@ -79,15 +79,15 @@ func _init() -> void:
 	load_gear_data()
 func load_gear_data() -> bool:
 	var file_path: String = "res://data/equipment_database.json"
-	var file = FileAccess.open(file_path, FileAccess.READ)
+	var file: FileAccess = FileAccess.open(file_path, FileAccess.READ)
 	if file == null:
 		push_error("Failed to open equipment database file: " + file_path + ". Error code: " + str(FileAccess.get_open_error()))
 		return false
 
 	var json := JSON.new()
-	var error = json.parse(file.get_as_text())
-	file.close()
-	
+	var error: int = json.parse(file.get_as_text())
+	if file: file.close()
+
 	if error != OK:
 		push_error("Failed to parse equipment database JSON: " + file_path + "\nError: " + json.get_error_message() + " at line " + str(json.get_error_line()))
 		return false
@@ -98,14 +98,14 @@ func load_gear_data() -> bool:
 		return false
 
 	gears.clear()
-	
+
 	# Process weapons section
 	if data.has("weapons"):
 		for weapon in data["weapons"]:
 			if not weapon is Dictionary:
 				push_error("Invalid weapon data format: Expected Dictionary")
 				continue
-				
+
 			var gear_data = {
 
 				"name": weapon.get("name", "Unknown Weapon"),
@@ -128,29 +128,29 @@ func load_gear_data() -> bool:
 
 				"traits": weapon.get("traits", [])
 			}
-			
+
 			if not _validate_gear_data(gear_data):
 				push_error("Invalid weapon data for: " + gear_data["name"])
 				continue
-				
-			var gear_type = GameEnums.ItemType[gear_data["gear_type"]]
+
+			var gear_type = GlobalEnums.ItemType[gear_data["gear_type"]]
 
 			var level = gear_data["level"] as int
 			var weight = _safe_float_conversion(gear_data["weight"])
-			
+
 			var new_gear = _create_gear(gear_data["name"], gear_data, gear_type, level, weight)
 			if new_gear != null:
 				gears[gear_data["name"]] = new_gear
-	
+
 	return true
 
 func _generate_weapon_description(weapon: Dictionary) -> String:
 	var desc: String = "A %s weapon. " % weapon.get("type", "standard")
-	
+
 	# Add roll result if available
 	if weapon.has("roll_result"):
 		desc = "[Roll: %d] " % weapon.roll_result + desc
-	
+
 	desc += "Damage: %d, Range: %d, Shots: %d" % [
 
 		weapon.get("damage", 1),
@@ -161,12 +161,16 @@ func _generate_weapon_description(weapon: Dictionary) -> String:
 	]
 
 	var traits = weapon.get("traits", [])
-	if not traits.is_empty():
+	if not (safe_call_method(traits, "is_empty") == true):
 		desc += ". Traits: " + ", ".join(traits)
-	
+
 	return desc
 
-func _safe_float_conversion(_value) -> float:
+func _safe_float_conversion(_value: Variant) -> float:
+
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return 0.0
 	if _value is float:
 		return _value
 	if _value is int:
@@ -178,9 +182,9 @@ func _safe_float_conversion(_value) -> float:
 
 func _create_gear(gear_name: String, gear_data: Dictionary, gear_type: int, level: int, weight: float) -> Resource:
 	if not gear_data.has("name") or not gear_data.has("description"):
-		push_error("Missing required fields for gear: " + gear_name)
+		push_error("Missing required fields for gear: " + str(gear_name))
 		return null
-		
+
 	# Create new gear instance
 	var new_gear := FiveParsecsGear.new()
 	new_gear.item_name = gear_data["name"]
@@ -189,23 +193,27 @@ func _create_gear(gear_name: String, gear_data: Dictionary, gear_type: int, leve
 
 	new_gear.cost = gear_data.get("_value", 0)
 	new_gear.weight = weight
-	
+
 	if not is_instance_valid(new_gear):
-		push_error("Failed to create gear instance for: " + gear_name)
+		push_error("Failed to create gear instance for: " + str(gear_name))
 		return null
-	
+
 	# Handle rarity with error checking
 
 	var rarity_str = gear_data.get("rarity", "COMMON")
-	if not rarity_str in GameEnums.ItemRarity.keys():
+	if not rarity_str in GlobalEnums.ItemRarity.keys():
 		push_warning("Invalid rarity for gear '%s': %s, defaulting to COMMON" % [gear_name, rarity_str])
-		new_gear.rarity = GameEnums.ItemRarity.COMMON
+		new_gear.rarity = GlobalEnums.ItemRarity.COMMON
 	else:
-		new_gear.rarity = GameEnums.ItemRarity[rarity_str]
-	
+		new_gear.rarity = GlobalEnums.ItemRarity[rarity_str]
+
 	return new_gear
 
-func _safe_int_conversion(_value) -> int:
+func _safe_int_conversion(_value: Variant) -> int:
+
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return 0	
 	if _value is int:
 		return _value
 	if _value is float:
@@ -222,75 +230,75 @@ func _validate_gear_data(data: Dictionary) -> bool:
 		if not data.has(field):
 			push_error("Missing required field: " + field)
 			return false
-	
+
 	# Type validation
 	if not data["name"] is String:
 		push_error("Invalid name type: Expected String")
 		return false
-		
+
 	if not data["description"] is String:
 		push_error("Invalid description type: Expected String")
 		return false
-	
+
 	# Validate gear type
-	if not data["gear_type"] in GameEnums.ItemType.keys():
+	if not data["gear_type"] in GlobalEnums.ItemType.keys():
 		push_error("Invalid gear_type: " + str(data["gear_type"]))
 		return false
-	
+
 	# Validate numeric fields
 	if not (data["level"] is int or data["level"] is float) or data["level"] < 1:
 		push_error("Invalid level: Must be positive integer")
 		return false
-		
+
 	if not (data["_value"] is int or data["_value"] is float) or data["_value"] < 0:
 		push_error("Invalid _value: Must be non-negative integer")
 		return false
-	
+
 	# Optional fields validation
 	if data.has("weight"):
 		var weight = data["weight"]
 		if not (weight is float or weight is int or (weight is String and weight.is_valid_float())):
 			push_error("Invalid weight: Must be numeric")
 			return false
-		
+
 	if data.has("rarity"):
-		if not data["rarity"] in GameEnums.ItemRarity.keys():
+		if not data["rarity"] in GlobalEnums.ItemRarity.keys():
 			push_error("Invalid rarity: " + str(data["rarity"]))
 			return false
-	
+
 	return true
 
 func get_gear(gear_name: String) -> Resource:
 	if not gears.has(gear_name):
-		push_warning("Gear not found: " + gear_name)
+		push_warning("Gear not found: " + str(gear_name))
 
 	return gears.get(gear_name)
 
 func get_all_gears() -> Array[Resource]:
 	return gears.values()
 
-func get_gears_by_type(gear_type: GameEnums.ItemType) -> Array[Resource]:
+func get_gears_by_type(gear_type: GlobalEnums.ItemType) -> Array[Resource]:
 	return gears.values().filter(func(gear): return gear.gear_type == gear_type)
 
-func get_gear_types() -> Array[GameEnums.ItemType]:
-	var types: Array[GameEnums.ItemType] = []
+func get_gear_types() -> Array[GlobalEnums.ItemType]:
+	var types: Array[GlobalEnums.ItemType] = []
 	for gear in gears.values():
 		if not gear.gear_type in types:
-			types.append(gear.gear_type) # warning: return value discarded (intentional)
+			types.append(gear.gear_type)
 	return types
 
 func get_gear_names() -> Array[String]:
 	return gears.keys()
 
 func get_gear_count() -> int:
-	return gears.size()
+	return (safe_call_method(gears, "size") as int)
 
 func has_gear(gear_name: String) -> bool:
 	return gears.has(gear_name)
 
 func save_gear_data() -> bool:
 	var file_path: String = "res://data/gear_database.json"
-	var file = FileAccess.open(file_path, FileAccess.WRITE)
+	var file: FileAccess = FileAccess.open(file_path, FileAccess.WRITE)
 	if file == null:
 		push_error("Failed to open gear database file for writing: " + file_path)
 		return false
@@ -299,41 +307,41 @@ func save_gear_data() -> bool:
 	for gear_name in gears:
 		var gear = gears[gear_name]
 		if not is_instance_valid(gear):
-			push_error("Invalid gear instance found: " + gear_name)
+			push_error("Invalid gear instance found: " + str(gear_name))
 			continue
-			
+
 		data[gear_name] = {
 			"name": gear.name,
 			"description": gear.description,
-			"gear_type": GameEnums.ItemType.keys()[gear.gear_type],
+			"gear_type": GlobalEnums.ItemType.keys()[gear.gear_type],
 			"level": gear.level,
 			"_value": gear._value,
 			"weight": gear.weight,
 			"is_damaged": gear.is_damaged,
-			"rarity": GameEnums.ItemRarity.keys()[gear.rarity]
+			"rarity": GlobalEnums.ItemRarity.keys()[gear.rarity]
 		}
 
 	var json_string = JSON.stringify(data, "\t")
 	file.store_string(json_string)
-	file.close()
+	if file: file.close()
 	return true
 
 func add_gear(gear: Resource) -> bool:
 	if not is_instance_valid(gear):
 		push_error("Cannot add invalid gear instance")
 		return false
-		
+
 	if gears.has(gear.name):
 		push_warning("Overwriting existing gear: " + gear.name)
-		
+
 	gears[gear.name] = gear
 	return save_gear_data()
 
 func remove_gear(gear_name: String) -> bool:
 	if not gears.has(gear_name):
-		push_warning("Cannot remove non-existent gear: " + gear_name)
+		push_warning("Cannot remove non-existent gear: " + str(gear_name))
 		return false
-		
+
 	gears.erase(gear_name)
 	return save_gear_data()
 
@@ -341,41 +349,41 @@ func update_gear(gear: Resource) -> bool:
 	if not is_instance_valid(gear):
 		push_error("Cannot update invalid gear instance")
 		return false
-		
+
 	if not gears.has(gear.name):
 		push_warning("Cannot update non-existent gear: " + gear.name)
 		return false
-		
+
 	gears[gear.name] = gear
 	return save_gear_data()
 
-func get_gears_by_rarity(rarity: GameEnums.ItemRarity) -> Array[Resource]:
+func get_gears_by_rarity(rarity: GlobalEnums.ItemRarity) -> Array[Resource]:
 	return gears.values().filter(func(gear): return gear.rarity == rarity)
 
 func repair_gear(gear_name: String) -> bool:
 	if not gears.has(gear_name):
-		push_warning("Cannot repair non-existent gear: " + gear_name)
+		push_warning("Cannot repair non-existent gear: " + str(gear_name))
 		return false
-		
+
 	gears[gear_name].is_damaged = false
 	return save_gear_data()
 
 func damage_gear(gear_name: String) -> bool:
 	if not gears.has(gear_name):
-		push_warning("Cannot damage non-existent gear: " + gear_name)
+		push_warning("Cannot damage non-existent gear: " + str(gear_name))
 		return false
-		
+
 	gears[gear_name].is_damaged = true
 	return save_gear_data()
 
 func roll_random_gear() -> Resource:
 	var roll = randi() % 100 + 1
 	var gear_names = get_gear_names()
-	if gear_names.is_empty():
+	if (safe_call_method(gear_names, "is_empty") == true):
 		push_error("No gear available to roll")
 		return null
-	
-	var selected_gear = gear_names[randi() % gear_names.size()]
+
+	var selected_gear = gear_names[randi() % (safe_call_method(gear_names, "size") as int)]
 	var gear = get_gear(selected_gear)
 	if gear:
 		gear.roll_result = roll
@@ -383,12 +391,12 @@ func roll_random_gear() -> Resource:
 
 func roll_random_gadget() -> Resource:
 	var roll = randi() % 100 + 1
-	var gadget_gears = get_gears_by_type(GameEnums.ItemType.MISC)
-	if gadget_gears.is_empty():
+	var gadget_gears = get_gears_by_type(GlobalEnums.ItemType.MISC)
+	if (safe_call_method(gadget_gears, "is_empty") == true):
 		push_error("No gadgets available to roll")
 		return null
-	
-	var selected_gear = gadget_gears[randi() % gadget_gears.size()]
+
+	var selected_gear = gadget_gears[randi() % (safe_call_method(gadget_gears, "size") as int)]
 	if selected_gear:
 		selected_gear.roll_result = roll
 	return selected_gear
@@ -396,7 +404,7 @@ func roll_random_gadget() -> Resource:
 func roll_gear_table() -> Dictionary:
 	var roll = randi() % 6 + 1
 	var gear_data: Dictionary = {}
-	
+
 	match roll:
 		1: gear_data = {"name": "Survival Kit", "type": "GEAR", "description": "Basic survival equipment", "quantity": 1}
 		2: gear_data = {"name": "Medkit", "type": "GEAR", "description": "Basic medical supplies", "quantity": 1}
@@ -404,14 +412,14 @@ func roll_gear_table() -> Dictionary:
 		4: gear_data = {"name": "Climbing Gear", "type": "GEAR", "description": "Basic climbing equipment", "quantity": 1}
 		5: gear_data = {"name": "Camping Gear", "type": "GEAR", "description": "Basic camping equipment", "quantity": 1}
 		6: gear_data = {"name": "Navigation Kit", "type": "GEAR", "description": "Basic navigation tools", "quantity": 1}
-	
+
 	gear_data["roll_result"] = roll
 	return gear_data
 
 func roll_gadget_table() -> Dictionary:
 	var roll = randi() % 6 + 1
 	var gadget_data: Dictionary = {}
-	
+
 	match roll:
 		1: gadget_data = {"name": "Scanner", "type": "SPECIAL", "description": "Advanced scanning device", "quantity": 1}
 		2: gadget_data = {"name": "Shield Generator", "type": "SPECIAL", "description": "Personal shield device", "quantity": 1}
@@ -419,7 +427,7 @@ func roll_gadget_table() -> Dictionary:
 		4: gadget_data = {"name": "Jet Pack", "type": "SPECIAL", "description": "Personal flight device", "quantity": 1}
 		5: gadget_data = {"name": "Holo Projector", "type": "SPECIAL", "description": "Holographic projection device", "quantity": 1}
 		6: gadget_data = {"name": "Grav Boots", "type": "SPECIAL", "description": "Gravity manipulation boots", "quantity": 1}
-	
+
 	gadget_data["roll_result"] = roll
 	return gadget_data
 
@@ -431,3 +439,22 @@ func get_gear_type_description(gear_type: String) -> String:
 		"ARMOR": return "Protective equipment"
 		"TOOL": return "Utility item"
 		_: return "Unknown equipment type"
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

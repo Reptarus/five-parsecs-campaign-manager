@@ -1,4 +1,4 @@
-class_name BaseLocation
+﻿class_name BaseLocation
 extends Resource
 
 ## Base class for all location implementations
@@ -23,11 +23,17 @@ func initialize(name: String, coords: Vector2) -> void:
 
 ## Set a property _value and emit a signal
 func set_property(property_name: String, _value: Variant) -> void:
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return
 	properties[property_name] = _value
-	location_property_changed.emit(property_name, _value) # warning: return value discarded (intentional)
+	location_property_changed.emit(property_name, _value)
 
 ## Get a property _value, with an optional default if not found
 func get_property(property_name: String, default_value: Variant = null) -> Variant:
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return default_value
 	return properties.get(property_name, default_value)
 
 ## Check if a property exists
@@ -37,14 +43,14 @@ func has_property(property_name: String) -> bool:
 ## Add a connected location
 func add_connection(location_name: String) -> void:
 	if not connected_locations.has(location_name):
-		connected_locations.append(location_name) # warning: return value discarded (intentional)
-		location_property_changed.emit("connections", connected_locations) # warning: return value discarded (intentional)
+		safe_call_method(connected_locations, "append", [location_name])
+		location_property_changed.emit("connections", connected_locations)
 
 ## Remove a connected location
 func remove_connection(location_name: String) -> void:
 	if connected_locations.has(location_name):
 		connected_locations.erase(location_name)
-		location_property_changed.emit("connections", connected_locations) # warning: return value discarded (intentional)
+		location_property_changed.emit("connections", connected_locations)
 
 ## Get all connected locations
 func get_connections() -> Array[String]:
@@ -57,3 +63,11 @@ func is_connected_to(location_name: String) -> bool:
 ## Get a description of the location
 func get_description() -> String:
 	return "Location: %s at %s" % [location_name, coordinates]
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

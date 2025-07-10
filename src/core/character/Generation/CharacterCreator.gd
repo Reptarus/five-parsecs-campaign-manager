@@ -1,11 +1,11 @@
-@tool
+﻿@tool
 extends Control
 class_name CharacterCreator
 
 ## Character creation system for Five Parsecs campaign
 ## Handles character generation, customization, and validation
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
 
 signal character_created(character: Character)
@@ -78,32 +78,32 @@ func _get_random_class_index() -> int:
 
 func _randomize_stats() -> void:
 	# Randomize character stats within reasonable bounds
-	for i in range(6):
+	for i: int in range(6):
 		var stat_value = randi() % 6 + 1
 		current_character.set_stat(i, stat_value)
 
 func validate_character() -> Dictionary:
 	var errors: Array[String] = []
 	var warnings: Array[String] = []
-	
+
 	# Validate name
 	if current_character.character_name.strip_edges().is_empty():
 		errors.append("Character name cannot be empty")
-	
+
 	# Validate class (check if it's a valid index)
 	if current_character.character_class < 0:
 		errors.append("Character class must be selected")
-	
+
 	# Validate stats (assuming we have some constraints)
-	var total_stats = 0
-	for i in range(6):
+	var total_stats: int = 0
+	for i: int in range(6):
 		total_stats += current_character.get_stat(i)
-	
+
 	if total_stats < 6:
 		errors.append("Character stats are too low")
 	elif total_stats > 30:
 		warnings.append("Character stats are very high")
-	
+
 	return {
 		"is_valid": errors.is_empty(),
 		"errors": errors,
@@ -112,11 +112,11 @@ func validate_character() -> Dictionary:
 
 func finalize_character() -> bool:
 	var validation = validate_character()
-	
+
 	if not validation.is_valid:
 		validation_failed.emit(validation.errors)
 		return false
-	
+
 	character_created.emit(current_character)
 	hide_creator()
 	return true
@@ -171,3 +171,11 @@ func _on_class_selected(index: int) -> void:
 func _on_background_selected(index: int) -> void:
 	if index >= 0:
 		set_character_background(index) # Use the index directly
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

@@ -1,4 +1,4 @@
-extends Node
+﻿extends Node
 
 ## Edit Mode
 enum EditMode {
@@ -9,17 +9,14 @@ enum EditMode {
 }
 
 ## Official Five Parsecs Campaign Phases (Core Rulebook Compliance)
-## Four-Phase Campaign Turn Structure
+## Four-Phase Campaign Turn Structure (plus SETUP and NONE for state management)
 enum FiveParsecsCampaignPhase {
-	NONE,
+	NONE, # No active phase / initialization state
 	SETUP, # Initial crew creation (not part of regular turn)
-	UPKEEP, # Upkeep and ship repairs
 	TRAVEL, # Phase 1: Travel Phase
 	WORLD, # Phase 2: World Phase
-	BATTLE_SETUP, # Battle preparation
 	BATTLE, # Phase 3: Tabletop Battle
-	POST_BATTLE, # Phase 4: Post-Battle Sequence
-	END # Campaign end/turn completion
+	POST_BATTLE # Phase 4: Post-Battle Sequence
 }
 
 ## Travel Phase Sub-Steps (Official Rules)
@@ -87,25 +84,19 @@ enum CrewTaskType {
 const PHASE_NAMES = {
 	FiveParsecsCampaignPhase.NONE: "None",
 	FiveParsecsCampaignPhase.SETUP: "Crew Creation",
-	FiveParsecsCampaignPhase.UPKEEP: "Upkeep Phase",
 	FiveParsecsCampaignPhase.TRAVEL: "Travel Phase",
 	FiveParsecsCampaignPhase.WORLD: "World Phase",
-	FiveParsecsCampaignPhase.BATTLE_SETUP: "Battle Setup",
 	FiveParsecsCampaignPhase.BATTLE: "Battle Phase",
-	FiveParsecsCampaignPhase.POST_BATTLE: "Post-Battle Phase",
-	FiveParsecsCampaignPhase.END: "Campaign End"
+	FiveParsecsCampaignPhase.POST_BATTLE: "Post-Battle Phase"
 }
 
 const PHASE_DESCRIPTIONS = {
 	FiveParsecsCampaignPhase.NONE: "No active phase",
 	FiveParsecsCampaignPhase.SETUP: "Create your crew and prepare for adventure",
-	FiveParsecsCampaignPhase.UPKEEP: "Handle ship repairs and crew maintenance",
 	FiveParsecsCampaignPhase.TRAVEL: "Decide travel, handle events, and arrive at new worlds",
-	FiveParsecsCampaignPhase.WORLD: "Handle crew tasks, jobs, and mission selection",
-	FiveParsecsCampaignPhase.BATTLE_SETUP: "Prepare for tactical combat deployment",
+	FiveParsecsCampaignPhase.WORLD: "Handle crew tasks, jobs, equipment, and mission selection",
 	FiveParsecsCampaignPhase.BATTLE: "Resolve tactical combat on the tabletop",
-	FiveParsecsCampaignPhase.POST_BATTLE: "Handle battle aftermath, advancement, and events",
-	FiveParsecsCampaignPhase.END: "Complete campaign turn and prepare for next"
+	FiveParsecsCampaignPhase.POST_BATTLE: "Handle battle aftermath, advancement, and events"
 }
 
 const TRAVEL_SUBSTEP_NAMES = {
@@ -190,7 +181,13 @@ enum CharacterClass {
 	MERCHANT,
 	SECURITY,
 	BROKER,
-	BOT_TECH
+	BOT_TECH,
+	ROGUE,
+	PSIONICIST,
+	TECH,
+	BRUTE,
+	GUNSLINGER,
+	ACADEMIC
 }
 
 ## Training Levels
@@ -297,6 +294,31 @@ enum FiveParcsecsCampaignType {
 	TUTORIAL,
 	STORY,
 	SANDBOX
+}
+
+## Campaign Types (Alternative naming)
+enum CampaignType {
+	NONE,
+	STANDARD,
+	FREELANCER,
+	MERCENARY,
+	EXPLORER,
+	TRADER,
+	BOUNTY_HUNTER
+}
+
+## Ship Types
+enum ShipType {
+	NONE,
+	SCOUT,
+	TRADER,
+	MILITARY,
+	EXPLORER,
+	RAIDER,
+	FREIGHTER,
+	CORVETTE,
+	FRIGATE,
+	CRUISER
 }
 
 enum FiveParcsecsCampaignVictoryType {
@@ -696,19 +718,13 @@ enum ArmorType {
 	SHIELD
 }
 
-## Campaign Phases
-enum CampaignPhase {
-	NONE,
-	SETUP,
-	UPKEEP,
-	STORY,
-	CAMPAIGN,
-	BATTLE_SETUP,
-	BATTLE_RESOLUTION,
-	ADVANCEMENT,
-	TRADE,
-	END
-}
+## Campaign Phases - DEPRECATED
+## This enum has been deprecated in favor of FiveParsecsCampaignPhase
+## which follows the official Four-Phase campaign structure.
+## Use safe_get_property(GlobalEnums, "FiveParsecsCampaignPhase") instead.
+##
+## REMOVAL SCHEDULED: This enum will be removed in the next major version
+## All references should be updated to use FiveParsecsCampaignPhase
 
 ## Combat Modifiers
 enum CombatModifier {
@@ -1014,6 +1030,11 @@ enum CharacterStatus {
 	NONE,
 	HEALTHY,
 	INJURED,
+	SERIOUSLY_INJURED,
+	CRITICALLY_INJURED,
+	INCAPACITATED,
+	STUNNED,
+	SUPPRESSED,
 	CRITICAL,
 	DEAD,
 	CAPTURED,

@@ -1,4 +1,4 @@
-extends Control
+﻿extends Control
 
 @onready var return_button: Button = $Button
 @onready var victory_label: Label = $VictoryLabel
@@ -7,7 +7,7 @@ extends Control
 var game_state_manager: Node # GameStateManagerAutoload
 
 func _ready() -> void:
-	var potential_game_state_manager = get_node("/root/GameStateManagerAutoload")
+	var potential_game_state_manager: Node = get_node("/root/GameStateManagerAutoload")
 	if potential_game_state_manager:
 		game_state_manager = potential_game_state_manager
 	else:
@@ -27,7 +27,7 @@ func _update_game_over_display() -> void:
 		push_error("GameState not found. Make sure GameStateManager.game_state is properly initialized.")
 		return
 
-	if game_state_manager.check_victory_conditions():
+	if game_state.check_victory_conditions():
 		victory_label.show()
 		defeat_label.hide()
 	else:
@@ -36,3 +36,11 @@ func _update_game_over_display() -> void:
 
 func _on_return_button_pressed() -> void:
 	get_tree().call_deferred("change_scene_to_file", "res://ui/mainmenu/MainMenu.tscn")
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 extends Node
 
 ## Signals
@@ -23,53 +23,53 @@ func _ready() -> void:
 		override_panel.override_cancelled.connect(_on_override_cancelled)
 
 ## Sets up combat system references
-	
+
 func setup_combat_system(resolver: Node, manager: BaseCombatManager) -> void:
 	combat_resolver = resolver
 	combat_manager = manager
-	
+
 	# Connect combat system signals
 	if combat_resolver:
 		combat_resolver.override_requested.connect(_on_combat_override_requested)
 		combat_resolver.dice_roll_completed.connect(_on_dice_roll_completed)
-	
+
 	if combat_manager:
 		combat_manager.combat_state_changed.connect(_on_combat_state_changed)
 		combat_manager.override_validation_requested.connect(_on_override_validation_requested)
 
 ## Shows override panel for combat context
-	
+
 func request_override(context: String, current_value: int, min_val: int = 1, max_val: int = 6) -> void:
 	active_context = context
 	override_panel.show_override(context, current_value, min_val, max_val)
 
 ## Validates override _value against current combat state
-	
+
 func validate_override(context: String, _value: int) -> bool:
 	if not combat_manager:
 		return true
-	
+
 	# Get validation rules based on context
 	var validation_rules = _get_validation_rules(context)
-	
+
 	# Check against current combat state
 	var current_state = combat_manager.get_current_state()
-	
+
 	# Apply validation rules
 	for rule in validation_rules:
 		if not rule.validate(current_state, _value):
 			return false
-	
+
 	return true
 
 ## Gets validation rules for context
 func _get_validation_rules(context: String) -> Array:
 	var rules: Array = []
-	
+
 	match context:
 		"attack_roll":
 
-			rules.append({  # warning: return value discarded (intentional)
+			rules.append({
 				validate = func(state: Dictionary, _value: int) -> bool:
 
 					var max_bonus = state.get("attack_bonus", 0)
@@ -77,7 +77,7 @@ func _get_validation_rules(context: String) -> Array:
 			})
 		"damage_roll":
 
-			rules.append({  # warning: return value discarded (intentional)
+			rules.append({
 				validate = func(state: Dictionary, _value: int) -> bool:
 
 					var weapon_damage = state.get("weapon_damage", 0)
@@ -85,19 +85,19 @@ func _get_validation_rules(context: String) -> Array:
 			})
 		"defense_roll":
 
-			rules.append({  # warning: return value discarded (intentional)
+			rules.append({
 				validate = func(state: Dictionary, _value: int) -> bool:
 
 					var max_defense = state.get("defense_value", 0)
 					return _value <= (6 + max_defense)
 			})
-	
+
 	return rules
 
 ## Signal handlers
 func _on_override_applied(_value: int) -> void:
 	if validate_override(active_context, _value):
-		override_applied.emit(active_context, _value)  # warning: return value discarded (intentional)
+		override_applied.emit(active_context, _value)
 		if combat_resolver:
 			combat_resolver.apply_override(active_context, _value)
 	else:
@@ -105,7 +105,7 @@ func _on_override_applied(_value: int) -> void:
 		pass
 
 func _on_override_cancelled() -> void:
-	override_cancelled.emit(active_context)  # warning: return value discarded (intentional)
+	override_cancelled.emit(active_context)
 	active_context = ""
 
 func _on_combat_override_requested(context: String, current_value: int) -> void:
@@ -124,3 +124,22 @@ func _on_combat_state_changed(_new_state: Dictionary) -> void:
 
 func _on_override_validation_requested(context: String, _value: int) -> bool:
 	return validate_override(context, _value)
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

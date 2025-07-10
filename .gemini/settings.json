@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx @playwright/mcp@latest"
+    },
+    "filesystem": {
+      "command": "npx -y @modelcontextprotocol/server-filesystem@latest /mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager"
+    },
+    "memory": {
+      "command": "npx -y @modelcontextprotocol/server-memory@latest"
+    },
+    "everything": {
+      "command": "npx -y @modelcontextprotocol/server-everything@latest"
+    },
+    "github": {
+      "command": "npx -y @modelcontextprotocol/server-github@latest"
+    },
+    "puppeteer": {
+      "command": "npx -y @modelcontextprotocol/server-puppeteer@latest"
+    },
+    "godot": {
+      "command": "./godot-mcp-server/start-server.sh"
+    }
+  }
+}

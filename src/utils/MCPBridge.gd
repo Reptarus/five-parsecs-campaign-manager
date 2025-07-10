@@ -1,4 +1,4 @@
-class_name MCPBridge
+﻿class_name MCPBridge
 extends RefCounted
 
 ## Bridge to MCP servers for Five Parsecs Campaign Manager
@@ -99,62 +99,62 @@ func _execute_mcp_command(args: Array[String], callback: Callable) -> void:
 	var script_path = ProjectSettings.globalize_path(SCRIPT_PATH)
 	var full_args = ["python3", script_path]
 	full_args.append_array(args)
-	
+
 	print("MCPBridge: Executing command: ", " ".join(full_args))
-	
+
 	# For now, we'll use a simple approach since OS.execute is synchronous
 	# In a production environment, you might want to use threads or async execution
-	var output = []
+	var output: Array = []
 	var exit_code = OS.execute("python3", [script_path] + args, output)
-	
-	var result = {
+
+	var result: Variant = {
 		"exit_code": exit_code,
 		"output": "\n".join(output),
 		"success": exit_code == 0
 	}
-	
+
 	# Parse JSON output if possible
-	if result.success and not result.output.is_empty():
+	if result.success and not (safe_call_method(output, "is_empty") == true):
 		var json = JSON.new()
 		var parse_result = json.parse(result.output)
 		if parse_result == OK:
 			result["data"] = json.data
-	
+
 	# Call the callback with results
 	callback.call(result)
 
 ## Helper method to execute Godot MCP commands
 func _execute_godot_mcp_command(args: Array[String], callback: Callable) -> void:
 	var server_path = ProjectSettings.globalize_path(GODOT_MCP_SERVER_PATH)
-	var godot_path = "/mnt/c/Users/elija/Desktop/GoDot/Godot_v4.4-stable_mono_win64/Godot_v4.4-stable_mono_win64.exe"
-	
+	var godot_path: String = "/mnt/c/Users/elija/Desktop/GoDot/Godot_v4.4-stable_mono_win64/Godot_v4.4-stable_mono_win64.exe"
+
 	# Environment variables can be set using the 5th argument of OS.execute if needed.
 	# The following code is invalid and has been removed:
 	# var env = OS.get_environment()
 	# env["GODOT_PATH"] = godot_path
 	# env["PROJECT_PATH"] = ProjectSettings.globalize_path("res://")
-	
+
 	print("MCPBridge: Executing Godot MCP command: ", " ".join(args))
 	print("MCPBridge: Using Godot at: ", godot_path)
-	
+
 	# Execute the MCP server with the command
-	var output = []
+	var output: Array = []
 	var exit_code = OS.execute("node", [server_path] + args, output, false, false)
-	
-	var result = {
+
+	var result: Variant = {
 		"exit_code": exit_code,
 		"output": "\n".join(output),
 		"success": exit_code == 0,
-		"command": args[0] if args.size() > 0 else "unknown"
+		"command": args[0] if (safe_call_method(args, "size") as int) > 0 else "unknown"
 	}
-	
+
 	# Parse JSON output if possible
-	if result.success and not result.output.is_empty():
+	if result.success and not (safe_call_method(output, "is_empty") == true):
 		var json = JSON.new()
 		var parse_result = json.parse(result.output)
 		if parse_result == OK:
 			result["data"] = json.data
-	
+
 	# Call the callback with results
 	callback.call(result)
 
@@ -166,10 +166,10 @@ func _on_obsidian_search_completed(result: Dictionary) -> void:
 
 func _on_obsidian_note_created(result: Dictionary) -> void:
 	var success = result.get("success", false)
-	var path = ""
+	var path: String = ""
 	if result.has("data") and result.data.has("result"):
 		path = str(result.data.get("result", ""))
-	
+
 	print("MCPBridge: Obsidian note creation ", "succeeded" if success else "failed")
 	obsidian_note_created.emit(success, path)
 
@@ -179,10 +179,10 @@ func _on_desktop_command_completed(result: Dictionary) -> void:
 
 func _on_rule_documented(result: Dictionary) -> void:
 	var success = result.get("success", false)
-	var rule_name = ""
+	var rule_name: String = ""
 	if result.has("data"):
 		rule_name = str(result.data.get("rule_name", ""))
-	
+
 	print("MCPBridge: Rule documentation ", "succeeded" if success else "failed")
 	rule_documented.emit(success, rule_name)
 
@@ -204,7 +204,7 @@ func cleanup() -> void:
 ## Quick method to document a character system implementation
 static func document_character_system(system_name: String, implementation: String) -> void:
 	var bridge = MCPBridge.new()
-	var full_impl = """
+	var full_impl: String = """
 ## Character System: %s
 
 ### Implementation
@@ -224,13 +224,13 @@ static func document_character_system(system_name: String, implementation: Strin
 - Unit tests in tests/unit/character/
 - Integration tests in tests/integration/character/
 """ % [system_name, implementation]
-	
-	bridge.document_rule_implementation("Character System - " + system_name, full_impl)
+
+	bridge.document_rule_implementation("Character System - " + str(system_name), full_impl)
 
 ## Quick method to document a combat system implementation
 static func document_combat_system(system_name: String, implementation: String) -> void:
 	var bridge = MCPBridge.new()
-	var full_impl = """
+	var full_impl: String = """
 ## Combat System: %s
 
 ### Implementation
@@ -251,13 +251,13 @@ static func document_combat_system(system_name: String, implementation: String) 
 - Unit tests in tests/unit/combat/
 - Integration tests in tests/integration/battle/
 """ % [system_name, implementation]
-	
-	bridge.document_rule_implementation("Combat System - " + system_name, full_impl)
+
+	bridge.document_rule_implementation("Combat System - " + str(system_name), full_impl)
 
 ## Quick method to document a campaign system implementation
 static func document_campaign_system(system_name: String, implementation: String) -> void:
 	var bridge = MCPBridge.new()
-	var full_impl = """
+	var full_impl: String = """
 ## Campaign System: %s
 
 ### Implementation
@@ -277,5 +277,25 @@ static func document_campaign_system(system_name: String, implementation: String
 - Unit tests in tests/unit/campaign/
 - Integration tests in tests/integration/campaign/
 """ % [system_name, implementation]
-	
-	bridge.document_rule_implementation("Campaign System - " + system_name, full_impl)
+
+	bridge.document_rule_implementation("Campaign System - " + str(system_name), full_impl)
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

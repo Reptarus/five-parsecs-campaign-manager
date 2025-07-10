@@ -1,7 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://cjw6o27m0r8g2"]
-
-[sub_resource type="Resource" id="Resource_vp3bo"]
-metadata/__load_path__ = "res://Resources/CrewAndCharacters/ConnectionsCreation.gd"
+[gd_scene load_steps=1 format=3 uid="uid://cjw6o27m0r8g2"]
 
 [node name="ConnectionsCreation" type="Control"]
 layout_mode = 3
@@ -10,7 +7,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = SubResource("Resource_vp3bo")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
 layout_mode = 1

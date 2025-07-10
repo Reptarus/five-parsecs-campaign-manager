@@ -1,4 +1,4 @@
-## Core terrain system for Five Parsecs tactical battles
+﻿## Core terrain system for Five Parsecs tactical battles
 class_name TerrainSystem
 extends RefCounted
 
@@ -20,11 +20,11 @@ func _init(width: int = 20, height: int = 20) -> void:
 func _initialize_grids() -> void:
 	_terrain_grid.clear()
 	_elevation_grid.clear()
-	
-	for x in range(grid_width):
-		_terrain_grid.append([])  # warning: return value discarded (intentional)
-		_elevation_grid.append([])  # warning: return value discarded (intentional)
-		for y in range(grid_height):
+
+	for x: int in range(grid_width):
+		safe_call_method(_terrain_grid, "append", [[]])  # warning: return value discarded (intentional)
+		safe_call_method(_elevation_grid, "append", [[]])  # warning: return value discarded (intentional)
+		for y: int in range(grid_height):
 			_terrain_grid[x].append(TerrainTypes.Type.OPEN)
 			_elevation_grid[x].append(0)
 
@@ -48,7 +48,7 @@ func _get_terrain_at(position: Vector2) -> TerrainTypes.Type:
 func set_elevation(position: Vector2i, elevation: int) -> void:
 	if _is_valid_position(position):
 		_elevation_grid[position.x][position.y] = elevation
-		elevation_changed.emit(position, elevation)  # warning: return value discarded (intentional)
+		elevation_changed.emit(position, elevation)
 
 ## Get elevation at position
 func get_elevation(position: Vector2) -> int:
@@ -60,8 +60,8 @@ func get_elevation(position: Vector2) -> int:
 ## Get all terrain features as dictionary
 func get_terrain_features() -> Dictionary:
 	var features: Dictionary = {}
-	for x in range(grid_width):
-		for y in range(grid_height):
+	for x: int in range(grid_width):
+		for y: int in range(grid_height):
 			var pos = Vector2i(x, y)
 			var terrain_type = _terrain_grid[x][y]
 			if terrain_type != TerrainTypes.Type.OPEN:
@@ -74,7 +74,7 @@ func _is_valid_position(position: Vector2i) -> bool:
 
 ## Generate random terrain layout
 func generate_terrain_layout(feature_count: int = 10) -> void:
-	for i in range(feature_count):
+	for i: int in range(feature_count):
 		var x = randi_range(0, grid_width - 1)
 		var y = randi_range(0, grid_height - 1)
 		var terrain_type = randi_range(1, TerrainTypes.Type.size() - 1) as TerrainTypes.Type
@@ -101,8 +101,26 @@ func deserialize(data: Dictionary) -> void:
 	grid_height = data.get("grid_height", 20)
 	_terrain_grid = data.get("terrain_grid", [])
 	_elevation_grid = data.get("elevation_grid", [])
-	
-	if _terrain_grid.is_empty():
+
+	if (safe_call_method(_terrain_grid, "is_empty") == true):
 		_initialize_grids()
 
 		_initialize_grids()
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

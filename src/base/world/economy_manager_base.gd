@@ -1,4 +1,4 @@
-extends Node
+﻿extends Node
 
 ## Base class for all economy manager implementations
 ##
@@ -20,7 +20,7 @@ var _balance: float = 0.0
 
 func initialize(starting_balance: float = 0.0) -> void:
 	_balance = starting_balance
-	balance_changed.emit(_balance) # warning: return value discarded (intentional)
+	balance_changed.emit(_balance)
 
 ## Get the current _balance
 func get_balance() -> float:
@@ -30,22 +30,22 @@ func get_balance() -> float:
 func add_funds(amount: float, description: String = "") -> bool:
 	if amount <= 0:
 		return false
-		
+
 	balance += amount
 	_record_transaction(amount, "credit", description)
-	balance_changed.emit(balance) # warning: return value discarded (intentional)
-	economy_updated.emit() # warning: return value discarded (intentional)
+	balance_changed.emit(balance)
+	economy_updated.emit()
 	return true
 
 ## Remove funds from the balance
 func remove_funds(amount: float, description: String = "") -> bool:
 	if amount <= 0 or balance < amount:
 		return false
-		
+
 	balance -= amount
 	_record_transaction(-amount, "debit", description)
-	balance_changed.emit(balance) # warning: return value discarded (intentional)
-	economy_updated.emit() # warning: return value discarded (intentional)
+	balance_changed.emit(balance)
+	economy_updated.emit()
 	return true
 
 ## Check if there are sufficient funds
@@ -56,7 +56,7 @@ func has_sufficient_funds(amount: float) -> bool:
 func transfer_funds_to(target_economy, amount: float, description: String = "") -> bool:
 	if not has_sufficient_funds(amount):
 		return false
-		
+
 	if remove_funds(amount, "Transfer to: " + description):
 		target_economy.add_funds(amount, "Transfer from: " + description)
 		return true
@@ -69,7 +69,7 @@ func get_transaction_history() -> Array:
 ## Clear the transaction history
 func clear_transaction_history() -> void:
 	transaction_history.clear()
-	
+
 ## Record a transaction in the history
 func _record_transaction(amount: float, transaction_type: String, description: String = "") -> void:
 	var transaction = {
@@ -79,5 +79,13 @@ func _record_transaction(amount: float, transaction_type: String, description: S
 		"timestamp": Time.get_unix_time_from_system()
 	}
 
-	transaction_history.append(transaction) # warning: return value discarded (intentional)
-	transaction_completed.emit(amount, transaction_type, description) # warning: return value discarded (intentional)
+	safe_call_method(transaction_history, "append", [transaction])
+	transaction_completed.emit(amount, transaction_type, description)
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

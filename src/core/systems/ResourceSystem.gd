@@ -1,4 +1,4 @@
-class_name ResourceSystemClass
+﻿class_name ResourceSystemClass
 extends Node
 
 ## Simple resource management system for Five Parsecs
@@ -15,7 +15,7 @@ class ResourceTransaction:
 	var timestamp: int
 	var transaction_type: String
 	var description: String
-	
+
 	func _init(res_type: int, res_amount: int, trans_type: String, desc: String = ""):
 		type = res_type
 		amount = res_amount
@@ -49,32 +49,32 @@ func _initialize_resources() -> void:
 
 func add_resource(type: ResourceSystemClass.ResourceType, amount: int, description: String = "") -> void:
 	if amount <= 0:
-		validation_failed.emit(type, amount, "Amount must be positive") # warning: return value discarded (intentional)
+		validation_failed.emit(type, amount, "Amount must be positive")
 		return
-	
+
 	resources[type] += amount
 	var transaction = ResourceTransaction.new(type, amount, "ADD", description)
-	transaction_history.append(transaction) # warning: return value discarded (intentional)
-	
-	resource_changed.emit(type, resources[type]) # warning: return value discarded (intentional)
-	transaction_recorded.emit(transaction) # warning: return value discarded (intentional)
+	transaction_history.append(transaction)
+
+	resource_changed.emit(type, resources[type])
+	transaction_recorded.emit(transaction)
 
 ## Remove resources
 func remove_resource(type: ResourceSystemClass.ResourceType, amount: int, description: String = "") -> bool:
 	if amount <= 0:
-		validation_failed.emit(type, amount, "Amount must be positive") # warning: return value discarded (intentional)
+		validation_failed.emit(type, amount, "Amount must be positive")
 		return false
-	
+
 	if resources[type] < amount:
-		validation_failed.emit(type, amount, "Insufficient resources") # warning: return value discarded (intentional)
+		validation_failed.emit(type, amount, "Insufficient resources")
 		return false
-	
+
 	resources[type] -= amount
 	var transaction = ResourceTransaction.new(type, -amount, "REMOVE", description)
-	transaction_history.append(transaction) # warning: return value discarded (intentional)
-	
-	resource_changed.emit(type, resources[type]) # warning: return value discarded (intentional)
-	transaction_recorded.emit(transaction) # warning: return value discarded (intentional)
+	transaction_history.append(transaction)
+
+	resource_changed.emit(type, resources[type])
+	transaction_recorded.emit(transaction)
 	return true
 
 ## Get resource amount
@@ -102,14 +102,14 @@ func clear_transaction_history() -> void:
 func serialize() -> Dictionary:
 	var transactions_data: Array = []
 	for transaction in transaction_history:
-		transactions_data.append({ # warning: return value discarded (intentional)
+		transactions_data.append({
 			"type": transaction.type,
 			"amount": transaction.amount,
 			"timestamp": transaction.timestamp,
 			"transaction_type": transaction.transaction_type,
 			"description": transaction.description
 		})
-	
+
 	return {
 		"resources": resources,
 		"transaction_history": transactions_data
@@ -119,7 +119,7 @@ func serialize() -> Dictionary:
 func deserialize(data: Dictionary) -> void:
 	resources = data.get("resources", {})
 	transaction_history.clear()
-	
+
 	var transactions_data = data.get("transaction_history", [])
 	for transaction_data in transactions_data:
 		var transaction = ResourceTransaction.new(
@@ -129,4 +129,22 @@ func deserialize(data: Dictionary) -> void:
 			transaction_data.get("description", "")
 		)
 		transaction.timestamp = transaction_data.timestamp
-		transaction_history.append(transaction) # warning: return value discarded (intentional)
+		transaction_history.append(transaction)
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

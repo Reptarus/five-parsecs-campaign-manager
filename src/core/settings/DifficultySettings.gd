@@ -1,7 +1,7 @@
 # DifficultySettings.gd
 extends Resource
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 var enemy_health_modifier: float = 1.0
 var enemy_damage_modifier: float = 1.0
@@ -12,9 +12,9 @@ var mission_reward_modifier: float = 1.0
 var permadeath_enabled: bool = false
 var tutorial_enabled: bool = true
 
-func apply_difficulty_settings(difficulty: GameEnums.DifficultyLevel) -> void:
+func apply_difficulty_settings(difficulty: GlobalEnums.DifficultyLevel) -> void:
 	match difficulty:
-		GameEnums.DifficultyLevel.EASY:
+		GlobalEnums.DifficultyLevel.EASY:
 			enemy_health_modifier = 0.8
 			enemy_damage_modifier = 0.8
 			enemy_count_modifier = 0.8
@@ -23,7 +23,7 @@ func apply_difficulty_settings(difficulty: GameEnums.DifficultyLevel) -> void:
 			mission_reward_modifier = 1.2
 			permadeath_enabled = false
 			tutorial_enabled = true
-		GameEnums.DifficultyLevel.NORMAL:
+		GlobalEnums.DifficultyLevel.NORMAL:
 			enemy_health_modifier = 1.0
 			enemy_damage_modifier = 1.0
 			enemy_count_modifier = 1.0
@@ -32,7 +32,7 @@ func apply_difficulty_settings(difficulty: GameEnums.DifficultyLevel) -> void:
 			mission_reward_modifier = 1.0
 			permadeath_enabled = false
 			tutorial_enabled = true
-		GameEnums.DifficultyLevel.HARD:
+		GlobalEnums.DifficultyLevel.HARD:
 			enemy_health_modifier = 1.2
 			enemy_damage_modifier = 1.2
 			enemy_count_modifier = 1.2
@@ -41,7 +41,7 @@ func apply_difficulty_settings(difficulty: GameEnums.DifficultyLevel) -> void:
 			mission_reward_modifier = 0.9
 			permadeath_enabled = false
 			tutorial_enabled = false
-		GameEnums.DifficultyLevel.HARDCORE:
+		GlobalEnums.DifficultyLevel.HARDCORE:
 			enemy_health_modifier = 1.4
 			enemy_damage_modifier = 1.3
 			enemy_count_modifier = 1.3
@@ -50,7 +50,7 @@ func apply_difficulty_settings(difficulty: GameEnums.DifficultyLevel) -> void:
 			mission_reward_modifier = 0.8
 			permadeath_enabled = true
 			tutorial_enabled = false
-		GameEnums.DifficultyLevel.ELITE:
+		GlobalEnums.DifficultyLevel.ELITE:
 			enemy_health_modifier = 1.6
 			enemy_damage_modifier = 1.4
 			enemy_count_modifier = 1.4

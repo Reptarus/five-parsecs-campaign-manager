@@ -1,0 +1,330 @@
+[gd_scene load_steps=3 format=3 uid="uid://b8yxm2vq3wv6j"]
+
+[ext_resource type="Script" path="res://src/ui/screens/battle/BattleCompanionUI.gd" id="1_p8h2q"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1"]
+bg_color = Color(0.1, 0.1, 0.15, 0.95)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_left = 8
+corner_radius_bottom_right = 8
+
+[node name="BattleCompanionUI" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_p8h2q")
+
+[node name="ResponsiveContainer" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="DesktopLayout" type="Control" parent="ResponsiveContainer"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="MainContainer" type="VBoxContainer" parent="ResponsiveContainer/DesktopLayout"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="TopBar" type="HBoxContainer" parent="ResponsiveContainer/DesktopLayout/MainContainer"]
+layout_mode = 2
+size_flags_vertical = 0
+
+[node name="PhaseIndicator" type="Label" parent="ResponsiveContainer/DesktopLayout/MainContainer/TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Battlefield Setup"
+horizontal_alignment = 1
+
+[node name="PhaseProgress" type="ProgressBar" parent="ResponsiveContainer/DesktopLayout/MainContainer/TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 100.0
+value = 25.0
+show_percentage = false
+
+[node name="NavigationContainer" type="HBoxContainer" parent="ResponsiveContainer/DesktopLayout/MainContainer/TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="PreviousPhaseButton" type="Button" parent="ResponsiveContainer/DesktopLayout/MainContainer/TopBar/NavigationContainer"]
+layout_mode = 2
+text = "Previous"
+
+[node name="NextPhaseButton" type="Button" parent="ResponsiveContainer/DesktopLayout/MainContainer/TopBar/NavigationContainer"]
+layout_mode = 2
+text = "Next"
+
+[node name="ContentArea" type="HBoxContainer" parent="ResponsiveContainer/DesktopLayout/MainContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="SetupPhasePanel" type="Panel" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_1")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/SetupPhasePanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -8.0
+
+[node name="Title" type="Label" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/SetupPhasePanel/VBoxContainer"]
+layout_mode = 2
+text = "Battlefield Setup"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/SetupPhasePanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="SuggestionsList" type="ScrollContainer" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/SetupPhasePanel/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/SetupPhasePanel/VBoxContainer/SuggestionsList"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Controls" type="HBoxContainer" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/SetupPhasePanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="GenerateButton" type="Button" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/SetupPhasePanel/VBoxContainer/Controls"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Generate Terrain"
+
+[node name="RegenerateButton" type="Button" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/SetupPhasePanel/VBoxContainer/Controls"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Regenerate"
+
+[node name="ConfirmButton" type="Button" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/SetupPhasePanel/VBoxContainer/Controls"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Confirm Setup"
+
+[node name="SetupSummary" type="Label" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/SetupPhasePanel/VBoxContainer"]
+layout_mode = 2
+text = "Click Generate Terrain to begin"
+horizontal_alignment = 1
+
+[node name="DeploymentPhasePanel" type="Panel" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_1")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/DeploymentPhasePanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -8.0
+
+[node name="Title" type="Label" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/DeploymentPhasePanel/VBoxContainer"]
+layout_mode = 2
+text = "Unit Deployment"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/DeploymentPhasePanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="DeploymentGuide" type="RichTextLabel" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/DeploymentPhasePanel/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "[b]Deployment Instructions:[/b]
+
+[color=cyan]Crew Deployment:[/color] Western 4 inches of battlefield
+[color=red]Enemy Deployment:[/color] Eastern 4 inches of battlefield
+
+Deploy your miniatures according to the battlefield layout you confirmed in the previous phase."
+
+[node name="Controls" type="HBoxContainer" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/DeploymentPhasePanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="DeploymentGuideButton" type="Button" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/DeploymentPhasePanel/VBoxContainer/Controls"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Show Guide"
+
+[node name="StartTrackingButton" type="Button" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/DeploymentPhasePanel/VBoxContainer/Controls"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Start Battle Tracking"
+
+[node name="TrackingPhasePanel" type="Panel" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_1")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/TrackingPhasePanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -8.0
+
+[node name="Title" type="Label" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/TrackingPhasePanel/VBoxContainer"]
+layout_mode = 2
+text = "Battle Tracking"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/TrackingPhasePanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="UnitsArea" type="HBoxContainer" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/TrackingPhasePanel/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CrewUnits" type="VBoxContainer" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/TrackingPhasePanel/VBoxContainer/UnitsArea"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CrewLabel" type="Label" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/TrackingPhasePanel/VBoxContainer/UnitsArea/CrewUnits"]
+layout_mode = 2
+text = "Crew"
+horizontal_alignment = 1
+
+[node name="CrewScroll" type="ScrollContainer" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/TrackingPhasePanel/VBoxContainer/UnitsArea/CrewUnits"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CrewContainer" type="VBoxContainer" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/TrackingPhasePanel/VBoxContainer/UnitsArea/CrewUnits/CrewScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="EnemyUnits" type="VBoxContainer" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/TrackingPhasePanel/VBoxContainer/UnitsArea"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="EnemyLabel" type="Label" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/TrackingPhasePanel/VBoxContainer/UnitsArea/EnemyUnits"]
+layout_mode = 2
+text = "Enemies"
+horizontal_alignment = 1
+
+[node name="EnemyScroll" type="ScrollContainer" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/TrackingPhasePanel/VBoxContainer/UnitsArea/EnemyUnits"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="EnemyContainer" type="VBoxContainer" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/TrackingPhasePanel/VBoxContainer/UnitsArea/EnemyUnits/EnemyScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="QuickActions" type="HBoxContainer" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/TrackingPhasePanel/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="EndRoundButton" type="Button" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/TrackingPhasePanel/VBoxContainer/QuickActions"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "End Round"
+
+[node name="RandomEventButton" type="Button" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/TrackingPhasePanel/VBoxContainer/QuickActions"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Random Event"
+
+[node name="EndBattleButton" type="Button" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/TrackingPhasePanel/VBoxContainer/QuickActions"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "End Battle"
+
+[node name="ResultsPhasePanel" type="Panel" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_1")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/ResultsPhasePanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -8.0
+
+[node name="Title" type="Label" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/ResultsPhasePanel/VBoxContainer"]
+layout_mode = 2
+text = "Battle Results"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/ResultsPhasePanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="ResultsDisplay" type="ScrollContainer" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/ResultsPhasePanel/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ResultsContainer" type="VBoxContainer" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/ResultsPhasePanel/VBoxContainer/ResultsDisplay"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Controls" type="HBoxContainer" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/ResultsPhasePanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="ProcessResultsButton" type="Button" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/ResultsPhasePanel/VBoxContainer/Controls"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Process Results"
+
+[node name="ContinueCampaignButton" type="Button" parent="ResponsiveContainer/DesktopLayout/MainContainer/ContentArea/ResultsPhasePanel/VBoxContainer/Controls"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Continue Campaign"
+
+[node name="MobileLayout" type="Control" parent="ResponsiveContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="StatusBar" type="Panel" parent="ResponsiveContainer/DesktopLayout/MainContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 0
+custom_minimum_size = Vector2(0, 32)
+
+[node name="StatusLabel" type="Label" parent="ResponsiveContainer/DesktopLayout/MainContainer/StatusBar"]
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 8.0
+offset_top = -11.5
+offset_right = 48.0
+offset_bottom = 11.5
+text = "Ready"

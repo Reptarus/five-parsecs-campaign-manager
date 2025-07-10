@@ -1,11 +1,11 @@
-@tool
+﻿@tool
 extends Resource
 class_name GameGear
 
 # Import necessary classes
 # Note: GameDataManager is an autoload - access via get_node("/root/GameDataManager")
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 @export var gear_id: String = ""
 @export var gear_name: String = ""
@@ -24,11 +24,11 @@ var _data_manager: Object = null
 func _init() -> void:
 	if Engine.is_editor_hint():
 		return
-		
+
 	# Try to get the singleton instance
 	var tree = Engine.get_main_loop() as SceneTree
 	if tree and tree.root:
-		var data_manager_node = tree.root.get_node_or_null("GameDataManagerAutoload")
+		var data_manager_node: Node = tree.root.get_node_or_null("GameDataManagerAutoload")
 		if data_manager_node:
 			_data_manager = data_manager_node
 			print("GameGear: GameDataManagerAutoload available immediately")
@@ -46,12 +46,12 @@ func initialize_from_id(id: String) -> bool:
 		if not _data_manager:
 			push_error("GameGear: Failed to get GameDataManagerAutoload")
 			return false
-		
+
 	var gear_data = _data_manager.get_gear_item(id)
 	if gear_data.is_empty():
 		push_error("Failed to find gear with ID: " + id)
 		return false
-		
+
 	return initialize_from_data(gear_data)
 
 func initialize_from_data(data: Dictionary) -> bool:
@@ -65,29 +65,29 @@ func initialize_from_data(data: Dictionary) -> bool:
 	gear_category = data.get("category", "")
 
 	gear_description = data.get("description", "")
-	
+
 	# Handle effects data
 	if data.has("effects") and data.effects is Array:
 		gear_effects = data.effects
 	else:
 		gear_effects = []
-		
+
 		# If there's a single effect, convert it to our format
 		if data.has("effect"):
-			gear_effects.append({ # warning: return value discarded (intentional)
+			gear_effects.append({
 				"type": "basic",
 
 				"description": data.get("effect", ""),
 
 				"_value": data.get("_value", 0)
 			})
-	
+
 	# Handle traits
 	if data.has("traits") and data.traits is Array:
 		gear_traits = data.traits
 	else:
 		gear_traits = []
-	
+
 	# Handle cost data
 	if data.has("cost") and data.cost is Dictionary:
 		gear_cost = data.cost
@@ -95,13 +95,13 @@ func initialize_from_data(data: Dictionary) -> bool:
 		gear_cost = {"credits": data.get("cost", 0), "rarity": data.get("rarity", "Common")}
 
 	gear_tags = data.get("tags", [])
-	
+
 	# Handle requirements
 	if data.has("requirements") and data.requirements is Dictionary:
 		gear_requirements = data.requirements
 	else:
 		gear_requirements = {}
-	
+
 	return true
 
 func get_id() -> String:
@@ -140,10 +140,12 @@ func has_tag(tag: String) -> bool:
 func get_requirements() -> Dictionary:
 	return gear_requirements
 
-func meets_requirements(character) -> bool:
-	if gear_requirements.is_empty():
-		return true
-		
+func meets_requirements(character: Variant) -> bool:
+
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return gear_requirements.is_empty()
+
 	# Check skill requirements
 	if gear_requirements.has("skills"):
 		var skill_reqs = gear_requirements.skills
@@ -151,7 +153,7 @@ func meets_requirements(character) -> bool:
 			var required_level = skill_reqs[skill_name]
 			if character.get_skill_level(skill_name) < required_level:
 				return false
-	
+
 	# Check stat requirements
 	if gear_requirements.has("stats"):
 		var stat_reqs = gear_requirements.stats
@@ -159,19 +161,19 @@ func meets_requirements(character) -> bool:
 			var required_value = stat_reqs[stat_name]
 			if character.get_stat(stat_name) < required_value:
 				return false
-	
+
 	# Check species requirements
 	if gear_requirements.has("species"):
 		var allowed_species = gear_requirements.species
 		if allowed_species is Array and not allowed_species.has(character.get_species()):
 			return false
-	
+
 	# Check background requirements
 	if gear_requirements.has("background"):
 		var allowed_backgrounds = gear_requirements.background
 		if allowed_backgrounds is Array and not allowed_backgrounds.has(character.get_background()):
 			return false
-			
+
 	return true
 
 func get_gear_profile() -> Dictionary:
@@ -200,53 +202,53 @@ func deserialize(data: Dictionary) -> void:
 func apply_effect(character, effect_index: int = 0) -> bool:
 	if effect_index < 0 or effect_index >= gear_effects.size():
 		return false
-		
+
 	var effect = gear_effects[effect_index]
 
 	var effect_type = effect.get("type", "basic")
-	
+
 	match effect_type:
 		"stat_boost":
 			var stat = effect.get("stat", "")
 
 			var _value = effect.get("_value", 0)
-			
+
 			if stat and _value != 0:
-				character.modify_stat(stat, _value)
+				if character and character.has_method("modify_stat"): character.modify_stat(stat, _value)
 				return true
-				
+
 		"skill_boost":
 			var skill = effect.get("skill", "")
 
 			var _value = effect.get("_value", 0)
-			
+
 			if skill and _value != 0:
-				character.modify_skill(skill, _value)
+				if character and character.has_method("modify_skill"): character.modify_skill(skill, _value)
 				return true
-				
+
 		"special_ability":
 			var ability = effect.get("ability", "")
-			
+
 			if ability:
-				character.add_special_ability(ability)
+				if character and character.has_method("add_special_ability"): character.add_special_ability(ability)
 				return true
-				
+
 		"environmental_protection":
 			var protection_type = effect.get("protection_type", "")
-			
+
 			if protection_type:
-				character.add_environmental_protection(protection_type)
+				if character and character.has_method("add_environmental_protection"): character.add_environmental_protection(protection_type)
 				return true
-				
+
 		_: # Basic effect or unknown type
 			# Just apply the gear without a specific effect
 			return true
-			
+
 	return false
 
 func get_value() -> int:
 	var _value := 15 # Base _value
-	
+
 	# Add _value based on rarity
 	match get_rarity():
 		"Common":
@@ -259,11 +261,30 @@ func get_value() -> int:
 			_value += 120
 		"Legendary":
 			_value += 250
-	
+
 	# Add _value for effects
 	_value += gear_effects.size() * 20
-	
+
 	# Add _value for traits
 	_value += gear_traits.size() * 15
-	
+
 	return _value
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

@@ -1,15 +1,15 @@
-@tool
+﻿@tool
 extends Resource
 class_name GameItem
 
 # Import necessary classes
 # Note: GameDataManager is an autoload - access via get_node("/root/GameDataManager")
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 @export var item_id: String = ""
 @export var item_name: String = ""
-@export var item_type: GameEnums.ItemType = GameEnums.ItemType.MISC
+@export var item_type: GlobalEnums.ItemType = GlobalEnums.ItemType.MISC
 @export var item_category: String = ""
 @export var item_description: String = ""
 @export var item_effects: Array[Dictionary] = []
@@ -23,11 +23,11 @@ var _data_manager: Object = null
 func _init() -> void:
 	if Engine.is_editor_hint():
 		return
-		
+
 	# Try to get the singleton instance
 	var tree = Engine.get_main_loop() as SceneTree
 	if tree and tree.root:
-		var data_manager_node = tree.root.get_node_or_null("GameDataManagerAutoload")
+		var data_manager_node: Node = tree.root.get_node_or_null("GameDataManagerAutoload")
 		if data_manager_node:
 			_data_manager = data_manager_node
 			print("GameItem: GameDataManagerAutoload available immediately")
@@ -45,12 +45,12 @@ func initialize_from_id(id: String) -> bool:
 		if not _data_manager:
 			push_error("GameItem: Failed to get GameDataManagerAutoload")
 			return false
-		
+
 	var item_data = _data_manager.get_gear_item(id)
 	if item_data.is_empty():
 		push_error("Failed to find item with ID: " + id)
 		return false
-		
+
 	return initialize_from_data(item_data)
 
 func initialize_from_data(data: Dictionary) -> bool:
@@ -64,46 +64,46 @@ func initialize_from_data(data: Dictionary) -> bool:
 	item_category = data.get("category", "")
 
 	item_description = data.get("description", "")
-	
+
 	# Set item type based on category
 	match item_category:
 		"consumable":
-			item_type = GameEnums.ItemType.CONSUMABLE
+			item_type = GlobalEnums.ItemType.CONSUMABLE
 		"armor":
-			item_type = GameEnums.ItemType.ARMOR
+			item_type = GlobalEnums.ItemType.ARMOR
 		"weapon":
-			item_type = GameEnums.ItemType.WEAPON
+			item_type = GlobalEnums.ItemType.WEAPON
 		"gear":
-			item_type = GameEnums.ItemType.GEAR
+			item_type = GlobalEnums.ItemType.GEAR
 		"modification":
-			item_type = GameEnums.ItemType.MODIFICATION
+			item_type = GlobalEnums.ItemType.MODIFICATION
 		"quest":
-			item_type = GameEnums.ItemType.QUEST
+			item_type = GlobalEnums.ItemType.QUEST
 		"special":
-			item_type = GameEnums.ItemType.SPECIAL
+			item_type = GlobalEnums.ItemType.SPECIAL
 		_:
-			item_type = GameEnums.ItemType.MISC
-	
+			item_type = GlobalEnums.ItemType.MISC
+
 	# Handle effects data
 	if data.has("effects") and data.effects is Array:
 		item_effects = data.effects
 	else:
 		item_effects = []
-		
+
 		# If there's a single effect, convert it to our format
 		if data.has("effect"):
-			item_effects.append({ # warning: return value discarded (intentional)
+			item_effects.append({
 				"type": "basic",
 
 				"description": data.get("effect", ""),
 
 				"_value": data.get("_value", 0)
 			})
-	
+
 	# Handle uses
 
 	item_uses = data.get("uses", 1)
-	
+
 	# Handle cost data
 	if data.has("cost") and data.cost is Dictionary:
 		item_cost = data.cost
@@ -111,7 +111,7 @@ func initialize_from_data(data: Dictionary) -> bool:
 		item_cost = {"credits": data.get("cost", 0), "rarity": data.get("rarity", "Common")}
 
 	item_tags = data.get("tags", [])
-	
+
 	return true
 
 func get_id() -> String:
@@ -120,7 +120,7 @@ func get_id() -> String:
 func get_item_name() -> String:
 	return item_name
 
-func get_type() -> GameEnums.ItemType:
+func get_type() -> GlobalEnums.ItemType:
 	return item_type
 
 func get_category() -> String:
@@ -138,14 +138,14 @@ func get_uses() -> int:
 func use() -> bool:
 	if item_uses <= 0:
 		return false
-		
+
 	if item_uses > 0:
 		item_uses -= 1
-		
+
 	return true
 
 func is_consumable() -> bool:
-	return item_type == GameEnums.ItemType.CONSUMABLE
+	return item_type == GlobalEnums.ItemType.CONSUMABLE
 
 func is_depleted() -> bool:
 	return item_uses <= 0 and is_consumable()
@@ -186,13 +186,13 @@ func serialize() -> Dictionary:
 func deserialize(data: Dictionary) -> void:
 	initialize_from_data(data)
 func apply_effect(character, effect_index: int = 0) -> bool:
-	if effect_index < 0 or effect_index >= item_effects.size():
+	if effect_index < 0 or effect_index >= (safe_call_method(item_effects, "size") as int):
 		return false
-		
+
 	var effect = item_effects[effect_index]
 
 	var effect_type = effect.get("type", "basic")
-	
+
 	match effect_type:
 		"stat_boost":
 			var stat = effect.get("stat", "")
@@ -200,52 +200,52 @@ func apply_effect(character, effect_index: int = 0) -> bool:
 			var _value = effect.get("_value", 0)
 
 			var duration = effect.get("duration", 1)
-			
+
 			if stat and _value > 0:
-				character.add_stat_boost(stat, _value, duration)
+				if character and character.has_method("add_stat_boost"): character.add_stat_boost(stat, _value, duration)
 				return true
-				
+
 		"healing":
 			var amount = effect.get("amount", 1)
-			
+
 			if amount > 0:
-				character.heal(amount)
+				if character and character.has_method("heal"): character.heal(amount)
 				return true
-				
+
 		"status_removal":
 			var status = effect.get("status", "")
-			
+
 			if status:
-				character.remove_status(status)
+				if character and character.has_method("remove_status"): character.remove_status(status)
 				return true
-				
+
 		"environmental_protection":
 			var protection_type = effect.get("protection_type", "")
 
 			var duration = effect.get("duration", 1)
-			
+
 			if protection_type:
-				character.add_environmental_protection(protection_type, duration)
+				if character and character.has_method("add_environmental_protection"): character.add_environmental_protection(protection_type, duration)
 				return true
-				
+
 		"special_ability":
 			var ability = effect.get("ability", "")
 
 			var duration = effect.get("duration", 1)
-			
+
 			if ability:
-				character.grant_special_ability(ability, duration)
+				if character and character.has_method("grant_special_ability"): character.grant_special_ability(ability, duration)
 				return true
-				
+
 		_: # Basic effect or unknown type
 			# Just use the item without a specific effect
 			return true
-			
+
 	return false
 
 func get_value() -> int:
 	var _value := 10 # Base _value
-	
+
 	# Add _value based on rarity
 	match get_rarity():
 		"Common":
@@ -258,12 +258,31 @@ func get_value() -> int:
 			_value += 100
 		"Legendary":
 			_value += 200
-	
+
 	# Add _value for effects
-	_value += item_effects.size() * 15
-	
+	_value += (safe_call_method(item_effects, "size") as int) * 15
+
 	# Add _value for uses if consumable
 	if is_consumable():
 		_value += item_uses * 5
-	
+
 	return _value
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

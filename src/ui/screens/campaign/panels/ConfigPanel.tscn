@@ -49,6 +49,28 @@ text = "Difficulty Level"
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 
+[node name="VictoryCondition" type="VBoxContainer" parent="Content"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Content/VictoryCondition"]
+layout_mode = 2
+text = "Victory Condition"
+
+[node name="OptionButton" type="OptionButton" parent="Content/VictoryCondition"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+
+[node name="StoryTrack" type="VBoxContainer" parent="Content"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Content/StoryTrack"]
+layout_mode = 2
+text = "Story Track"
+
+[node name="CheckBox" type="CheckBox" parent="Content/StoryTrack"]
+layout_mode = 2
+text = "Enable Story Track campaign"
+
 [node name="Description" type="VBoxContainer" parent="Content"]
 layout_mode = 2
 size_flags_vertical = 3

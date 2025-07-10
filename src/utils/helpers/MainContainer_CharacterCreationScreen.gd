@@ -1,4 +1,4 @@
-extends MarginContainer
+﻿extends MarginContainer
 
 func _ready() -> void:
 	setup_ui()
@@ -19,7 +19,11 @@ func setup_ui() -> void:
 	setup_left_column(left_column)
 	setup_right_column(right_column)
 
-func setup_left_column(left_column) -> void:
+func setup_left_column(left_column: Variant) -> void:
+
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return
 	var portrait := TextureRect.new()
 	portrait.name = "CharacterPortrait"
 	left_column.add_child(portrait)
@@ -44,7 +48,11 @@ func setup_left_column(left_column) -> void:
 	random_button.text = "Randomize"
 	left_column.add_child(random_button)
 
-func setup_right_column(right_column) -> void:
+func setup_right_column(right_column: Variant) -> void:
+
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return
 	var type_label := Label.new()
 	type_label.name = "CharacterTypeLabel"
 	type_label.text = "Captain/Crewmate"
@@ -83,7 +91,11 @@ func setup_right_column(right_column) -> void:
 	user_notes.placeholder_text = "User notes"
 	right_column.add_child(user_notes)
 
-func setup_stat_distribution(parent) -> void:
+func setup_stat_distribution(parent: Variant) -> void:
+
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return
 	var stat_distribution := GridContainer.new()
 	stat_distribution.name = "StatDistribution"
 	stat_distribution.columns = 2

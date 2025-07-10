@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 class_name GameWeapon
 extends Resource
 
@@ -24,12 +24,12 @@ func load_from_data(data: Dictionary) -> bool:
 	if not data.has("name"):
 		push_error("Weapon data must have a name")
 		return false
-	
+
 	weapon_id = data.get("id", "")
 	weapon_name = data.get("name", "")
 	weapon_category = data.get("category", "")
 	weapon_description = data.get("description", "")
-	
+
 	# Handle damage data
 	if data.has("damage") and data.damage is Dictionary:
 		weapon_damage = data.damage
@@ -39,7 +39,7 @@ func load_from_data(data: Dictionary) -> bool:
 			"die_type": data.get("damage_die_type", 6),
 			"bonus": data.get("damage_bonus", 0)
 		}
-	
+
 	# Handle range data
 	if data.has("range") and data.range is Dictionary:
 		weapon_range = data.range
@@ -49,19 +49,19 @@ func load_from_data(data: Dictionary) -> bool:
 			"medium": data.get("range_medium", 0),
 			"long": data.get("range_long", 0)
 		}
-	
+
 	# Handle traits
 	if data.has("traits") and data.traits is Array:
 		weapon_traits = data.traits
 	else:
 		weapon_traits = []
-	
+
 	# Handle special rules
 	if data.has("special_rules") and data.special_rules is Array:
 		weapon_special_rules = data.special_rules
 	else:
 		weapon_special_rules = []
-		
+
 		# If there's a single special rule, convert it to our format
 		if data.has("special_rule"):
 			weapon_special_rules.append({
@@ -69,7 +69,7 @@ func load_from_data(data: Dictionary) -> bool:
 				"description": data.get("special_rule_description", ""),
 				"effect": data.get("special_rule_effect", {})
 			})
-	
+
 	# Handle cost data
 	if data.has("cost") and data.cost is Dictionary:
 		weapon_cost = data.cost
@@ -78,9 +78,9 @@ func load_from_data(data: Dictionary) -> bool:
 			"credits": data.get("cost", 0),
 			"rarity": data.get("rarity", "Common")
 		}
-	
+
 	weapon_tags = data.get("tags", [])
-	
+
 	# Handle ammo data
 	if data.has("ammo") and data.ammo is Dictionary:
 		weapon_ammo = data.ammo
@@ -90,7 +90,7 @@ func load_from_data(data: Dictionary) -> bool:
 			"capacity": data.get("ammo_capacity", 0),
 			"current": data.get("ammo_current", 0)
 		}
-	
+
 	return true
 
 func get_id() -> String:
@@ -112,13 +112,13 @@ func get_damage_string() -> String:
 	var dice = weapon_damage.get("dice", 1)
 	var die_type = weapon_damage.get("die_type", 6)
 	var bonus = weapon_damage.get("bonus", 0)
-	
+
 	var damage_str = str(dice) + "d" + str(die_type)
 	if bonus > 0:
 		damage_str += "+" + str(bonus)
 	elif bonus < 0:
 		damage_str += str(bonus)
-		
+
 	return damage_str
 
 func get_range() -> Dictionary:
@@ -128,24 +128,24 @@ func get_range_string() -> String:
 	var short_range = weapon_range.get("short", 0)
 	var medium_range = weapon_range.get("medium", 0)
 	var long_range = weapon_range.get("long", 0)
-	
+
 	if short_range == 0 and medium_range == 0 and long_range == 0:
 		return "Melee"
-		
+
 	var range_str: String = ""
 	if short_range > 0:
 		range_str += "S:" + str(short_range)
-		
+
 	if medium_range > 0:
 		if range_str.length() > 0:
 			range_str += ", "
 		range_str += "M:" + str(medium_range)
-	
+
 	if long_range > 0:
 		if range_str.length() > 0:
 			range_str += ", "
 		range_str += "L:" + str(long_range)
-		
+
 	return range_str
 
 func get_traits() -> Array[String]:
@@ -175,7 +175,7 @@ func use_ammo(amount: int = 1) -> bool:
 	var current = weapon_ammo.get("current", 0)
 	if current < amount:
 		return false
-	
+
 	weapon_ammo["current"] = current - amount
 	return true
 
@@ -194,11 +194,11 @@ func calculate_damage_roll() -> int:
 	var dice = weapon_damage.get("dice", 1)
 	var die_type = weapon_damage.get("die_type", 6)
 	var bonus = weapon_damage.get("bonus", 0)
-	
+
 	var total: int = 0
-	for i in range(dice):
+	for i: int in range(dice):
 		total += randi() % die_type + 1
-	
+
 	return total + bonus
 
 func to_dict() -> Dictionary:
@@ -230,3 +230,22 @@ static func create_from_profile(profile: Dictionary) -> GameWeapon:
 
 func _to_string() -> String:
 	return "GameWeapon<%s>" % weapon_name
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

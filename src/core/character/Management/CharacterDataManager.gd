@@ -1,12 +1,12 @@
-extends Node
+﻿extends Node
 
 const SAVE_DIR = "user://saves/"
 const CHARACTER_FILE_EXTENSION = ".char.json"
 const CREW_FILE_EXTENSION = ".crew.json"
 const PORTRAIT_DIR = "user://portraits/"
-const Character = preload("res://src/core/character/Base/Character.gd")
+const CharacterBase = preload("res://src/core/character/Base/Character.gd")
 # Note: GameStateManager is an autoload - access via get_node("/root/GameStateManager")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 var game_state_manager: Node # FPCM_GameStateManager
 
@@ -21,37 +21,37 @@ func _ensure_directories_exist() -> void:
 func save_character(character: Character, file_name: String) -> void:
 	# Save portrait if it exists
 	if character.portrait_path.length() > 0:
-		var portrait_file_name = file_name + "_portrait.png"
+		var portrait_file_name = str(file_name) + "_portrait.png"
 		var portrait_path = PORTRAIT_DIR + portrait_file_name
-		
+
 		# Copy portrait to portraits directory
 		if FileAccess.file_exists(character.portrait_path):
 			var image := Image.new()
-			var err = image.load(character.portrait_path)
+			var err: int = image.load(character.portrait_path)
 			if err == OK:
 				err = image.save_png(portrait_path)
 				if err == OK:
 					character.portrait_path = portrait_path
-	
+
 	# Save character data
-	var file = FileAccess.open(SAVE_DIR + file_name + CHARACTER_FILE_EXTENSION, FileAccess.WRITE)
+	var file: FileAccess = FileAccess.open(SAVE_DIR + file_name + CHARACTER_FILE_EXTENSION, FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(character.serialize()))
-		file.close()
+		if file: file.close()
 	else:
 		push_error("Failed to open file for writing: " + SAVE_DIR + file_name + CHARACTER_FILE_EXTENSION)
 func load_character(file_name: String) -> Character:
-	var file = FileAccess.open(SAVE_DIR + file_name + CHARACTER_FILE_EXTENSION, FileAccess.READ)
+	var file: FileAccess = FileAccess.open(SAVE_DIR + file_name + CHARACTER_FILE_EXTENSION, FileAccess.READ)
 	if file:
 		var json := JSON.new()
 		var content = file.get_as_text()
-		file.close()
-		
+		if file: file.close()
+
 		var parse_result = json.parse(content)
 		if parse_result == OK:
-			var character_data = json.data
-			var character = Character.new()
-			character.deserialize(character_data)
+			var character_data: Character = json.data
+			var character: Character = CharacterBase.new()
+			character.deserialize(character_data.serialize())
 			return character
 		else:
 			push_error("Failed to parse character data: " + str(parse_result))
@@ -63,51 +63,51 @@ func save_crew(crew: Array[Character], file_name: String) -> void:
 	# Save each character's portrait
 	for character in crew:
 		if character.portrait_path.length() > 0:
-			var portrait_file_name = file_name + "_" + character.character_name.to_lower().replace(" ", "_") + "_portrait.png"
+			var portrait_file_name = str(file_name) + "_" + character.character_name.to_lower().replace(" ", "_") + "_portrait.png"
 			var portrait_path = PORTRAIT_DIR + portrait_file_name
-			
+
 			# Copy portrait to portraits directory
 			if FileAccess.file_exists(character.portrait_path):
 				var image := Image.new()
-				var err = image.load(character.portrait_path)
+				var err: int = image.load(character.portrait_path)
 				if err == OK:
 					err = image.save_png(portrait_path)
 					if err == OK:
 						character.portrait_path = portrait_path
-	
+
 	# Save crew data
 	var crew_data = crew.map(func(character: Character): return character.serialize())
-	var file = FileAccess.open(SAVE_DIR + file_name + CREW_FILE_EXTENSION, FileAccess.WRITE)
+	var file: FileAccess = FileAccess.open(SAVE_DIR + file_name + CREW_FILE_EXTENSION, FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(crew_data))
-		file.close()
+		if file: file.close()
 	else:
 		push_error("Failed to open file for writing: " + SAVE_DIR + file_name + CREW_FILE_EXTENSION)
 
 func load_crew(file_name: String) -> Array[Character]:
-	var file = FileAccess.open(SAVE_DIR + file_name + CREW_FILE_EXTENSION, FileAccess.READ)
+	var file: FileAccess = FileAccess.open(SAVE_DIR + file_name + CREW_FILE_EXTENSION, FileAccess.READ)
 	if file:
 		var json := JSON.new()
-		var error = json.parse(file.get_as_text())
-		file.close()
+		var error: int = json.parse(file.get_as_text())
+		if file: file.close()
 		if error == OK:
 			var characters: Array[Character] = []
 			for char_data in json.data:
-				var character := Character.new()
+				var character := CharacterBase.new()
 				character.deserialize(char_data)
 				character.initialize_managers(game_state_manager)
-				
+
 				# Load portrait if it exists
 				if character.portrait_path.length() > 0 and FileAccess.file_exists(character.portrait_path):
 					var image := Image.new()
-					var err = image.load(character.portrait_path)
+					var err: int = image.load(character.portrait_path)
 					if err != OK:
 						push_error("Failed to load portrait: " + character.portrait_path)
 						character.portrait_path = ""
 				else:
 					character.portrait_path = ""
 
-				characters.append(character) # warning: return value discarded (intentional)
+				characters.append(character)
 			return characters
 		else:
 			push_error("JSON Parse Error: " + json.get_error_message())
@@ -116,29 +116,34 @@ func load_crew(file_name: String) -> Array[Character]:
 	return []
 
 func get_all_saved_characters() -> Array[String]:
-	var dir = DirAccess.open(SAVE_DIR)
+	var dir: DirAccess = DirAccess.open(SAVE_DIR)
 	var characters: Array[String] = []
 	if dir:
-		dir.list_dir_begin()
-		var file_name = dir.get_next()
+		if dir: dir.list_dir_begin()
+		var file_name = dir.get_next() if dir else ""
 		while file_name != "":
 			if file_name.ends_with(CHARACTER_FILE_EXTENSION):
-				characters.append(file_name.trim_suffix(CHARACTER_FILE_EXTENSION)) # warning: return value discarded (intentional)
-			file_name = dir.get_next()
+				characters.append(file_name.trim_suffix(CHARACTER_FILE_EXTENSION))
+			file_name = dir.get_next() if dir else ""
 	else:
 		push_error("An error occurred when trying to access the save directory.")
 	return characters
 
 func get_all_saved_crews() -> Array[String]:
-	var dir = DirAccess.open(SAVE_DIR)
+	var dir: DirAccess = DirAccess.open(SAVE_DIR)
 	var crews: Array[String] = []
 	if dir:
-		dir.list_dir_begin()
-		var file_name = dir.get_next()
+		if dir: dir.list_dir_begin()
+		var file_name = dir.get_next() if dir else ""
 		while file_name != "":
 			if file_name.ends_with(CREW_FILE_EXTENSION):
-				crews.append(file_name.trim_suffix(CREW_FILE_EXTENSION)) # warning: return value discarded (intentional)
-			file_name = dir.get_next()
+				crews.append(file_name.trim_suffix(CREW_FILE_EXTENSION))
+			file_name = dir.get_next() if dir else ""
 	else:
 		push_error("An error occurred when trying to access the save directory.")
 	return crews
+
+func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	return obj.get(property) if obj.has(property) else default_value

@@ -1,8 +1,8 @@
-# CharacterNameGenerator.gd
+﻿# CharacterNameGenerator.gd
 class_name FPCM_CharacterNameGenerator
 extends RefCounted
 
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
 const FIRST_NAMES: Array[String] = [
 	# Original names
@@ -10,7 +10,7 @@ const FIRST_NAMES: Array[String] = [
 	"Bill", "Jason", "Maria", "David", "Anna", "Robert", "Lisa",
 	"Marcus", "Elena", "Kai", "Zara", "Omar", "Nina", "Felix", "Maya",
 	"Dante", "Luna", "Atlas", "Nova", "Cora", "Rex", "Vera",
-	
+
 	# Sci-fi references (subtle variants)
 	"Malcolm", "River", "Kaidan", "Tali", "Gordon", "Ellen", "Isaac",
 	"Amos", "James", "Naomi", "Alex", "Camina", "Kara", "William",
@@ -18,11 +18,11 @@ const FIRST_NAMES: Array[String] = [
 	"Duncan", "Leto", "Paul", "Chani", "Zoe", "Wash", "Kaylee",
 	"Gaius", "Laura", "Kara", "Shepard", "Garrus", "Liara", "Tali",
 	"Cortana", "Miranda", "Jacob", "Thane", "Legion", "Mordin",
-	
+
 	# Military/Tough sounding names
 	"Stone", "Steel", "Brick", "Slate", "Flint", "Jet", "Drake",
 	"Storm", "Blaze", "Hawk", "Wolf", "Viper", "Phoenix", "Raven",
-	
+
 	# Cyberpunk-inspired
 	"Spike", "Ghost", "Zero", "Cipher", "Vector", "Cache", "Pixel",
 	"Binary", "Core", "Data", "Net", "Chrome", "Neon", "Glitch"
@@ -34,22 +34,22 @@ const LAST_NAMES: Array[String] = [
 	"Davis", "Anderson", "Wilson", "Taylor", "Moore", "Martin", "Lee",
 	"Chen", "Patel", "Kim", "Singh", "Cohen", "Murphy", "O'Brien",
 	"Kowalski", "Petrov", "Santos", "Silva", "Kumar", "Zhang", "Sato",
-	
+
 	# Sci-fi references
 	"Shepard", "Ryder", "Vakarian", "Reynolds", "Holden", "Burton",
 	"Nagata", "Kamal", "Drummer", "Thrace", "Adama", "Roslin",
 	"Freeman", "Vance", "Ripley", "Hicks", "Rico", "Hawthorne",
 	"Vorkosigan", "Wiggin", "Naismith", "Atreides", "Harkonnen",
 	"Malcolm", "Serra", "Washburne", "Frye", "Baltar", "Roslin",
-	
+
 	# Military/Corporate sounding
 	"Sterling", "Drake", "Stone", "Steele", "Black", "Frost", "Storm",
 	"Wolf", "Sharp", "Edge", "Cross", "Shield", "Striker", "Viper",
-	
+
 	# Cyberpunk-inspired
 	"Chrome", "Wire", "Steel", "Flux", "Void", "Shadow", "Neon",
 	"Circuit", "Binary", "Core", "Vector", "Matrix", "Grid", "Net",
-	
+
 	# Megacorp names
 	"Weyland", "Tyrell", "Rosen", "Tessier", "Ashpool", "Maelcum",
 	"Wintermute", "Armitage", "Yakamoto", "Arasaka", "Militech"
@@ -68,7 +68,7 @@ const ALIEN_LAST_NAMES: Array[String] = [
 	"Starforge", "Voidwalker", "Nebula", "Cosmic", "Stellar",
 	"Astral", "Quantum", "Plasma", "Fusion", "Reactor",
 	"Hyperdrive", "Warpcore", "Photon", "Neutron", "Quark",
-	
+
 	# Tech/Cyberpunk
 	"Nexus", "Matrix", "Vector", "Cipher", "Binary", "Quantum",
 	"Cortex", "Neural", "Cyber", "Digital", "Chrome", "Silicon"
@@ -77,42 +77,41 @@ const ALIEN_LAST_NAMES: Array[String] = [
 static func get_random_name() -> String:
 	var first_name := FIRST_NAMES[randi() % FIRST_NAMES.size()]
 	var last_name := LAST_NAMES[randi() % LAST_NAMES.size()]
-	return first_name + " " + last_name
-
-static func get_random_name_for_origin(origin: GameEnums.Origin) -> String:
+	return str(first_name) + " " + str(last_name)
+static func get_random_name_for_origin(origin: GlobalEnums.Origin) -> String:
 	var first_name: String
 	var last_name: String
-	
+
 	match origin:
-		GameEnums.Origin.HUMAN:
+		GlobalEnums.Origin.HUMAN:
 			first_name = FIRST_NAMES[randi() % FIRST_NAMES.size()]
 			last_name = LAST_NAMES[randi() % LAST_NAMES.size()]
-		GameEnums.Origin.ENGINEER:
+		GlobalEnums.Origin.ENGINEER:
 			first_name = "Eng-" + ALIEN_FIRST_NAMES[randi() % ALIEN_FIRST_NAMES.size()]
 			last_name = ALIEN_LAST_NAMES[randi() % ALIEN_LAST_NAMES.size()]
-		GameEnums.Origin.FERAL:
+		GlobalEnums.Origin.FERAL:
 			first_name = ALIEN_FIRST_NAMES[randi() % ALIEN_FIRST_NAMES.size()]
 			last_name = "Feral"
-		GameEnums.Origin.KERIN:
+		GlobalEnums.Origin.KERIN:
 			first_name = "K'" + ALIEN_FIRST_NAMES[randi() % ALIEN_FIRST_NAMES.size()]
 			last_name = "Erin"
-		GameEnums.Origin.PRECURSOR:
+		GlobalEnums.Origin.PRECURSOR:
 			first_name = "Ancient-" + str(randi() % 1000).pad_zeros(3)
 			last_name = ALIEN_LAST_NAMES[randi() % ALIEN_LAST_NAMES.size()]
-		GameEnums.Origin.SOULLESS:
+		GlobalEnums.Origin.SOULLESS:
 			first_name = "Unit-" + str(randi() % 1000).pad_zeros(3)
 			last_name = ""
-		GameEnums.Origin.SWIFT:
+		GlobalEnums.Origin.SWIFT:
 			first_name = ALIEN_FIRST_NAMES[randi() % ALIEN_FIRST_NAMES.size()]
 			last_name = "Swift"
-		GameEnums.Origin.BOT:
+		GlobalEnums.Origin.BOT:
 			first_name = "Bot-" + str(randi() % 1000).pad_zeros(3)
 			last_name = ALIEN_LAST_NAMES[randi() % ALIEN_LAST_NAMES.size()]
 		_:
 			first_name = FIRST_NAMES[randi() % FIRST_NAMES.size()]
 			last_name = LAST_NAMES[randi() % LAST_NAMES.size()]
-	
-	return (first_name + " " + last_name).strip_edges()
+
+	return (str(first_name) + " " + str(last_name)).strip_edges()
 
 static func generate_character_name() -> String:
 	# Get a random name from the appropriate tables
@@ -123,7 +122,7 @@ static func generate_character_name() -> String:
 		"Phoenix", "Quinn", "Remy", "Sage", "Tate", "Unity", "Val", "Winter",
 		"Xen", "Yuri", "Zen"
 	]
-	
+
 	var last_names = [
 		"Smith", "Jones", "Williams", "Brown", "Taylor", "Davies", "Wilson",
 		"Evans", "Thomas", "Roberts", "Johnson", "Walker", "Wright", "Robinson",
@@ -131,8 +130,16 @@ static func generate_character_name() -> String:
 		"Harris", "Lewis", "Martin", "Jackson", "Clarke", "Clark", "Scott",
 		"Turner", "Hill", "Moore", "Cooper", "Ward", "Morris", "King"
 	]
-	
+
 	return "%s %s" % [
 		first_names[randi() % first_names.size()],
 		last_names[randi() % last_names.size()]
 	]
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

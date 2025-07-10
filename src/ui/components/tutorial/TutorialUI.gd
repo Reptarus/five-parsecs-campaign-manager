@@ -1,4 +1,4 @@
-class_name FPCM_TutorialUI
+﻿class_name FPCM_TutorialUI
 extends Control
 
 const TutorialOverlay = preload("res://src/ui/components/tutorial/TutorialOverlay.gd")
@@ -13,89 +13,102 @@ var current_tutorial: String = ""
 var tutorial_progress: Dictionary
 
 func _ready() -> void:
-    overlay = TutorialOverlay.new()
-    add_child(overlay)
-    _connect_signals()
-    _load_tutorial_progress()
+	overlay = TutorialOverlay.new()
+	add_child(overlay)
+	_connect_signals()
+	_load_tutorial_progress()
 
 func _connect_signals() -> void:
-    overlay.tutorial_completed.connect(_on_tutorial_completed)
-    overlay.tutorial_skipped.connect(_on_tutorial_skipped)
+	overlay.tutorial_completed.connect(_on_tutorial_completed)
+	overlay.tutorial_skipped.connect(_on_tutorial_skipped)
 
 func start_tutorial(tutorial_name: String) -> void:
-    if tutorial_progress.has(tutorial_name) and tutorial_progress[tutorial_name].completed:
-        return
-    
-    current_tutorial = tutorial_name
-    var steps = _load_tutorial_steps(tutorial_name)
-    if steps.is_empty():
-        push_error("Tutorial steps not found for: " + tutorial_name)
-        return
-    
-    overlay.start_tutorial(steps)
+	if tutorial_progress.has(tutorial_name) and tutorial_progress[tutorial_name].completed:
+		return
+
+	current_tutorial = tutorial_name
+	var steps = _load_tutorial_steps(tutorial_name)
+	if (safe_call_method(steps, "is_empty") == true):
+		push_error("Tutorial steps not found for: " + str(tutorial_name))
+		return
+
+	overlay.start_tutorial(steps)
 
 func skip_tutorial(tutorial_name: String) -> void:
-    if current_tutorial == tutorial_name:
-        overlay.hide_overlay()
-    tutorial_progress[tutorial_name] = {"completed": true, "skipped": true}
-    _save_tutorial_progress()
-    tutorial_skipped.emit() # warning: return value discarded (intentional)
+	if current_tutorial == tutorial_name:
+		overlay.hide_overlay()
+	tutorial_progress[tutorial_name] = {"completed": true, "skipped": true}
+	_save_tutorial_progress()
+	tutorial_skipped.emit() # warning: return value discarded (intentional)
 
 func is_tutorial_completed(tutorial_name: String) -> bool:
-    return tutorial_progress.has(tutorial_name) and tutorial_progress[tutorial_name].completed
+	return tutorial_progress.has(tutorial_name) and tutorial_progress[tutorial_name].completed
 
 func _load_tutorial_steps(tutorial_name: String) -> Array[Dictionary]:
-    # Load tutorial steps from configuration
-    if tutorial_data.has(tutorial_name):
-        return tutorial_data[tutorial_name]
-    
-    # Try loading from file
-    var file_path: String = "res://data/tutorials/" + tutorial_name + ".json"
-    if not FileAccess.file_exists(file_path):
-        return []
-    
-    var file = FileAccess.open(file_path, FileAccess.READ)
-    var json := JSON.new()
-    var parse_result = json.parse(file.get_as_text())
-    if parse_result != OK:
-        push_error("Failed to parse tutorial file: " + file_path)
-        return []
-    
-    var steps: Array = json.get_data()
-    tutorial_data[tutorial_name] = steps
-    return steps
+	# Load tutorial steps from configuration
+	if tutorial_data.has(tutorial_name):
+		return tutorial_data[tutorial_name]
+
+	# Try loading from file
+	var tutorial_path: String = "res://data/tutorials/" + str(tutorial_name) + ".json"
+	if not FileAccess.file_exists(tutorial_path):
+		return []
+
+	var file: FileAccess = FileAccess.open(tutorial_path, FileAccess.READ)
+	if not file:
+		return []
+		
+	var json := JSON.new()
+	var parse_result = json.parse(file.get_as_text())
+	if parse_result != OK:
+		return []
+	
+	file.close()
+	return json.get_data()
 
 func _load_tutorial_progress() -> void:
-    var save_path: String = "user://tutorial_progress.json"
-    if not FileAccess.file_exists(save_path):
-        tutorial_progress = {}
-        return
-    
-    var file = FileAccess.open(save_path, FileAccess.READ)
-    var json := JSON.new()
-    var parse_result = json.parse(file.get_as_text())
-    if parse_result != OK:
-        push_error("Failed to parse tutorial progress file")
-        tutorial_progress = {}
-        return
-    
-    tutorial_progress = json.get_data()
+	var save_path: String = "user://tutorial_progress.json"
+	if not FileAccess.file_exists(save_path):
+		return
+
+	var file: FileAccess = FileAccess.open(save_path, FileAccess.READ)
+	if not file:
+		return
+		
+	var json := JSON.new()
+	var parse_result = json.parse(file.get_as_text())
+	if parse_result != OK:
+		return
+	
+	file.close()
+	tutorial_progress = json.get_data()
 
 func _save_tutorial_progress() -> void:
-    var save_path: String = "user://tutorial_progress.json"
-    var file = FileAccess.open(save_path, FileAccess.WRITE)
-    file.store_string(JSON.stringify(tutorial_progress))
+	var save_path: String = "user://tutorial_progress.json"
+	var file: FileAccess = FileAccess.open(save_path, FileAccess.WRITE)
+	if not file:
+		return
+		
+	file.store_string(JSON.stringify(tutorial_progress))
+	file.close()
 
 func _on_tutorial_completed() -> void:
-    if current_tutorial:
-        tutorial_progress[current_tutorial] = {"completed": true, "skipped": false}
-        _save_tutorial_progress()
-        tutorial_completed.emit() # warning: return value discarded (intentional)
-        current_tutorial = ""
-        
+	if current_tutorial:
+		tutorial_progress[current_tutorial] = {"completed": true, "skipped": false}
+		_save_tutorial_progress()
+		tutorial_completed.emit() # warning: return value discarded (intentional)
+		current_tutorial = ""
+
 func _on_tutorial_skipped() -> void:
-    if current_tutorial:
-        tutorial_progress[current_tutorial] = {"completed": true, "skipped": true}
-        _save_tutorial_progress()
-        tutorial_skipped.emit() # warning: return value discarded (intentional)
-        current_tutorial = ""
+	if current_tutorial:
+		tutorial_progress[current_tutorial] = {"completed": true, "skipped": true}
+		_save_tutorial_progress()
+		tutorial_skipped.emit() # warning: return value discarded (intentional)
+		current_tutorial = ""
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

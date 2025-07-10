@@ -1,4 +1,4 @@
-## Handles tooltips for terrain features and effects
+﻿## Handles tooltips for terrain features and effects
 class_name FPCM_TerrainTooltip
 extends Control
 
@@ -46,76 +46,76 @@ func update_tooltip(grid_position: Vector2) -> void:
 	if not terrain_system or not terrain_effects:
 		hide()
 		return
-	
+
 	var features := _get_terrain_features(grid_position)
 	var effects := _get_active_effects(grid_position)
 	var modifiers := _get_terrain_modifiers(grid_position)
-	
+
 	if features.is_empty() and effects.is_empty():
 		hide()
 		return
-	
+
 	title_label.text = "Position: (%d, %d)" % [grid_position.x, grid_position.y]
-	
+
 	var features_text := "Features:"
 	for feature in features:
 		features_text += "\n" + feature
 	features_label.text = features_text
-	
+
 	var effects_text := "Effects:"
 	for effect in effects:
 		effects_text += "\n" + effect
 	effects_label.text = effects_text
-	
+
 	var modifiers_text := "Modifiers:"
 	for modifier in modifiers:
 		modifiers_text += "\n" + modifier
 	modifiers_label.text = modifiers_text
-	
+
 	show()
 
 ## Gets terrain feature descriptions for a _position
 func _get_terrain_features(position: Vector2) -> Array[String]:
 	var features: Array[String] = []
 	var terrain_type = terrain_system._get_terrain_at(position)
-	
+
 	if terrain_type in terrain_descriptions:
-		features.append(terrain_descriptions[terrain_type]) # warning: return value discarded (intentional)
-	
+		features.append(terrain_descriptions[terrain_type])
+
 	var elevation: int = terrain_system.get_elevation(position)
 	if elevation > 0:
-		features.append("Elevation: Level %d" % elevation) # warning: return value discarded (intentional)
-	
+		features.append("Elevation: Level %d" % elevation)
+
 	return features
 
 ## Gets active effect descriptions for a position
 func _get_active_effects(position: Vector2) -> Array[String]:
 	var effects: Array[String] = []
 	var active_effects: Array = terrain_effects.get_active_effects(position)
-	
+
 	for effect in active_effects:
 		if effect in EFFECT_DESCRIPTIONS:
 			var duration: int = terrain_effects.get_effect_duration(position, effect)
-			effects.append("%s (%d turns)" % [EFFECT_DESCRIPTIONS[effect], duration]) # warning: return value discarded (intentional)
-	
+			effects.append("%s (%d turns)" % [EFFECT_DESCRIPTIONS[effect], duration])
+
 	return effects
 
 ## Gets terrain modifier descriptions for a position
 func _get_terrain_modifiers(position: Vector2) -> Array[String]:
 	var modifiers: Array[String] = []
-	
+
 	var movement_penalty: float = terrain_effects.get_movement_penalty(position)
 	if movement_penalty > 0:
-		modifiers.append("Movement: -%d%%" % (movement_penalty * 100)) # warning: return value discarded (intentional)
-	
+		modifiers.append("Movement: -%d%%" % (movement_penalty * 100))
+
 	var visibility_penalty: float = terrain_effects.get_visibility_penalty(position)
 	if visibility_penalty > 0:
-		modifiers.append("Visibility: -%d%%" % (visibility_penalty * 100)) # warning: return value discarded (intentional)
-	
+		modifiers.append("Visibility: -%d%%" % (visibility_penalty * 100))
+
 	var combat_modifier: int = terrain_effects.get_combat_modifier(position)
 	if combat_modifier != 0:
-		modifiers.append("Combat: %+d" % combat_modifier) # warning: return value discarded (intentional)
-	
+		modifiers.append("Combat: %+d" % combat_modifier)
+
 	return modifiers
 
 ## Sets tooltip position near the mouse
@@ -123,7 +123,7 @@ func set_tooltip_position(mouse_position: Vector2) -> void:
 	# Add some offset to prevent tooltip from appearing under the cursor
 	var offset := Vector2(10, 10)
 	position = mouse_position + offset
-	
+
 	# Ensure tooltip stays within view
 	var viewport_size := get_viewport_rect().size
 	if position.x + size.x > viewport_size.x:

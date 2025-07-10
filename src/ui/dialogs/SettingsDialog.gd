@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 class_name SettingsDialog
 extends Window
 
@@ -30,31 +30,31 @@ func _ready() -> void:
 	theme_option.clear()
 	for theme_name in ThemeManager.ThemeVariant.keys():
 		theme_option.add_item(theme_name.capitalize())
-	
+
 	# Set up scale slider
 	scale_slider.min_value = ThemeManager.MIN_SCALE_FACTOR
 	scale_slider.max_value = ThemeManager.MAX_SCALE_FACTOR
 	scale_slider.step = 0.05
 	scale_slider._value = ThemeManager.DEFAULT_SCALE_FACTOR
 	update_scale_label(ThemeManager.DEFAULT_SCALE_FACTOR)
-	
+
 	# Connect signals
 	scale_slider.value_changed.connect(_on_scale_changed)
 	theme_option.item_selected.connect(_on_theme_selected)
 	high_contrast_check.toggled.connect(_on_high_contrast_toggled)
 	reduced_animation_check.toggled.connect(_on_reduced_animation_toggled)
-	
+
 	$VBoxContainer/ButtonSection/ApplyButton.pressed.connect(_on_apply_pressed)
 	$VBoxContainer/ButtonSection/ResetButton.pressed.connect(_on_reset_pressed)
 	$VBoxContainer/ButtonSection/CloseButton.pressed.connect(_on_close_pressed)
 
-	close_requested.connect(_on_close_pressed) # warning: return value discarded (intentional)
+	var _connect_result: int = close_requested.connect(_on_close_pressed) # warning: return value discarded (intentional)
 
 ## Connect the theme manager to this dialog
 ## @param manager: Reference to the theme manager
 func connect_theme_manager(manager: ThemeManager) -> void:
 	theme_manager = manager
-	
+
 	# Update controls to match current theme settings
 	theme_option.selected = theme_manager.get_theme_variant()
 	scale_slider._value = theme_manager.get_scale_factor()
@@ -99,16 +99,16 @@ func _on_apply_pressed() -> void:
 	if not theme_manager:
 		push_error("Theme manager not connected")
 		return
-	
+
 	# Apply all settings
 	theme_manager.set_theme_variant(theme_option.selected)
 	theme_manager.set_scale_factor(scale_slider._value)
 	theme_manager.set_high_contrast(high_contrast_check.button_pressed)
 	theme_manager.set_reduced_animation(reduced_animation_check.button_pressed)
-	
+
 	# Save settings
 	theme_manager.save_config()
-	
+
 	# Emit signal with current settings
 	var settings = {
 		"theme_variant": theme_option.selected,
@@ -117,7 +117,7 @@ func _on_apply_pressed() -> void:
 		"reduced_animation": reduced_animation_check.button_pressed
 	}
 	settings_applied.emit(settings) # warning: return value discarded (intentional)
-	
+
 	# Close dialog
 	hide()
 
@@ -129,16 +129,24 @@ func _on_reset_pressed() -> void:
 	update_scale_label(ThemeManager.DEFAULT_SCALE_FACTOR)
 	high_contrast_check.button_pressed = false
 	reduced_animation_check.button_pressed = false
-	
+
 	# Apply immediately for feedback
 	if theme_manager:
 		theme_manager.set_theme_variant(ThemeManager.ThemeVariant.DEFAULT)
 		theme_manager.set_scale_factor(ThemeManager.DEFAULT_SCALE_FACTOR)
 		theme_manager.set_high_contrast(false)
 		theme_manager.set_reduced_animation(false)
-	
+
 	settings_reset.emit() # warning: return value discarded (intentional)
 
 ## Handle close button press
 func _on_close_pressed() -> void:
 	hide()
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

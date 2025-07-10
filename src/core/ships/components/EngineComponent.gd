@@ -1,4 +1,4 @@
-# Scripts/ShipAndCrew/EngineComponent.gd
+﻿# Scripts/ShipAndCrew/EngineComponent.gd
 @tool
 extends FPCM_ShipComponent
 class_name EngineComponent
@@ -12,10 +12,10 @@ class_name EngineComponent
 
 func _init() -> void:
 	super()
-	name = "Engine"
-	description = "Standard propulsion system"
-	cost = 300
-	power_draw = 5
+	self.name = "Engine"
+	self.description = "Standard propulsion system"
+	self.cost = 300
+	self.power_draw = 5
 func _apply_upgrade_effects() -> void:
 	super()
 	speed += 1.0
@@ -38,13 +38,13 @@ func check_engine_failure() -> bool:
 	# Additional engine-specific failure check
 	var base_failure_chance = check_failure()
 	var engine_specific_reliability = reliability * (float(durability) / float(max_durability))
-	
+
 	return base_failure_chance or (randf() > engine_specific_reliability)
 
 func activate_emergency_boost() -> bool:
 	if not emergency_boost or not is_functional():
 		return false
-		
+
 	# Emergency boost causes wear
 	increase_wear()
 	return true
@@ -52,7 +52,7 @@ func activate_emergency_boost() -> bool:
 func perform_jump() -> bool:
 	if not jump_capability or not is_functional():
 		return false
-		
+
 	# Jumping causes stress on the engine
 	if randf() < 0.3:
 		increase_wear()
@@ -72,7 +72,7 @@ func serialize() -> Dictionary:
 static func create_from_data(data: Dictionary) -> EngineComponent:
 	var component := EngineComponent.new()
 	var base_data = FPCM_ShipComponent.deserialize(data)
-	
+
 	# Copy base data
 	component.name = base_data.name
 	component.description = base_data.description
@@ -87,7 +87,7 @@ static func create_from_data(data: Dictionary) -> EngineComponent:
 	component.efficiency = base_data.efficiency
 	component.power_draw = base_data.power_draw
 	component.status_effects = base_data.status_effects
-	
+
 	# Engine-specific properties
 
 	component.speed = data.get("speed", 5.0)
@@ -101,14 +101,13 @@ static func create_from_data(data: Dictionary) -> EngineComponent:
 	component.emergency_boost = data.get("emergency_boost", false)
 
 	component.jump_capability = data.get("jump_capability", false)
-	
+
 	return component
 
 # Return serialized data with proper engine type
 static func deserialize(data: Dictionary) -> Dictionary:
 	var base_data = FPCM_ShipComponent.deserialize(data)
 	base_data["component_type"] = "engine"
-
 	base_data["speed"] = data.get("speed", 5.0)
 
 	base_data["fuel_efficiency"] = data.get("fuel_efficiency", 1.0)
@@ -121,3 +120,22 @@ static func deserialize(data: Dictionary) -> Dictionary:
 
 	base_data["jump_capability"] = data.get("jump_capability", false)
 	return base_data
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

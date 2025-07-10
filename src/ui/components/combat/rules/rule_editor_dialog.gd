@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 extends Window
 
 ## Signals
@@ -25,14 +25,14 @@ func _ready() -> void:
 		save_button.pressed.connect(_on_save_pressed)
 		cancel_button.pressed.connect(_on_cancel_pressed)
 		add_effect_button.pressed.connect(_on_add_effect_pressed)
-		close_requested.connect(_on_cancel_pressed)
-		
+		var _connect_result: int = close_requested.connect(_on_cancel_pressed)
+
 		_setup_category_options()
 
 ## Sets up the category dropdown
 func _setup_category_options() -> void:
 	category_option.clear()
-	
+
 	var index: int = 0
 	for key in rule_categories:
 		category_option.add_item(rule_categories[key], index)
@@ -72,7 +72,7 @@ func _clear_form() -> void:
 func _populate_form(rule_data: Dictionary) -> void:
 	name_edit.text = rule_data.get("name", "")
 	var category = rule_data.get("category", "")
-	for i in range(category_option.item_count):
+	for i: int in range(category_option.item_count):
 		if category_option.get_item_metadata(i) == category:
 			category_option.selected = i
 			break
@@ -85,7 +85,7 @@ func _refresh_effects_list() -> void:
 	# Clear existing effect widgets
 	for child in effects_container.get_children():
 		child.queue_free()
-	
+
 	# Add effect widgets
 	for effect in current_effects:
 		_add_effect_widget(effect)
@@ -93,39 +93,39 @@ func _refresh_effects_list() -> void:
 ## Adds a new effect widget to the container
 func _add_effect_widget(effect_data: Dictionary = {}) -> void:
 	var effect_widget := HBoxContainer.new()
-	
+
 	var type_option := OptionButton.new()
 	type_option.add_item("Modifier", 0)
 	type_option.add_item("Override", 1)
 	type_option.add_item("Restriction", 2)
-	
+
 	var value_edit := SpinBox.new()
 	value_edit.min_value = -10
 	value_edit.max_value = 10
 	value_edit.step = 1
-	
+
 	var description_edit := LineEdit.new()
 	description_edit.placeholder_text = "Effect description"
 	description_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	
+
 	var remove_button := Button.new()
 	remove_button.text = "Remove"
-	
+
 	effect_widget.add_child(type_option)
 	effect_widget.add_child(value_edit)
 	effect_widget.add_child(description_edit)
 	effect_widget.add_child(remove_button)
-	
-	if not effect_data.is_empty():
+
+	if not (safe_call_method(effect_data, "is_empty") == true):
 		type_option.selected = effect_data.get("type", 0)
 		value_edit._value = effect_data.get("_value", 0)
 		description_edit.text = effect_data.get("description", "")
-	
+
 	remove_button.pressed.connect(func():
 		effect_widget.queue_free()
 		_update_current_effects()
 	)
-	
+
 	effects_container.add_child(effect_widget)
 
 ## Updates the current effects array from widgets
@@ -136,8 +136,8 @@ func _update_current_effects() -> void:
 			var type_option = child.get_child(0) as OptionButton
 			var value_edit = child.get_child(1) as SpinBox
 			var description_edit = child.get_child(2) as LineEdit
-			var remove_button = child.get_child(3) as Button
-			current_effects.append({ # warning: return value discarded (intentional)
+			var remove_button: Button = child.get_child(3) as Button
+			current_effects.append({
 				"type": type_option.selected,
 				"_value": value_edit._value,
 				"description": description_edit.text
@@ -156,18 +156,18 @@ func _on_save_pressed() -> void:
 	if not _validate_form():
 		# TODO: Show validation error
 		return
-	
+
 	_update_current_effects()
-	
+
 	var rule_data = {
-		"id": editing_rule_id if not editing_rule_id.is_empty() else str(Time.get_unix_time_from_system()),
+		"id": editing_rule_id if not (safe_call_method(editing_rule_id, "is_empty") == true) else str(Time.get_unix_time_from_system()),
 		"name": name_edit.text.strip_edges(),
 		"category": category_option.get_selected_metadata(),
 		"description": description_edit.text.strip_edges(),
 		"effects": current_effects.duplicate()
 	}
-	
-	rule_saved.emit(rule_data) # warning: return value discarded (intentional)
+
+	rule_saved.emit(rule_data)
 	hide()
 
 func _on_cancel_pressed() -> void:
@@ -176,3 +176,22 @@ func _on_cancel_pressed() -> void:
 
 func _on_add_effect_pressed() -> void:
 	_add_effect_widget()
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

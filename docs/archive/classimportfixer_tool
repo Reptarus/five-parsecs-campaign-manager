@@ -1,0 +1,190 @@
+#!/usr/bin/env -S godot --headless --script
+# Universal Class Import Fixer
+# Fixes SHADOWED_GLOBAL_IDENTIFIER warnings by removing global class declarations
+# and updating import patterns across the project
+
+extends ScriptContext
+
+const UNIVERSAL_CLASSES = [
+	"UniversalNodeAccess",
+	"UniversalSignalManager", 
+	"UniversalResourceLoader",
+	"UniversalDataAccess",
+	"UniversalSceneManager",
+	"UniversalNodeValidator"
+]
+
+const PROJECT_ROOT = "C:/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager"
+const SRC_PATH = PROJECT_ROOT + "/src"
+
+var files_processed: int = 0
+var files_with_errors: Array[String] = []
+var warnings_fixed: int = 0
+
+func _init():
+	print("🔧 Starting Universal Class Import Fixer...")
+	print("📁 Project root: " + PROJECT_ROOT)
+	
+	# Phase 1: Remove class_name declarations from utility files
+	print("\n📋 Phase 1: Removing global class declarations...")
+	remove_global_class_declarations()
+	
+	# Phase 2: Update all files that import Universal classes
+	print("\n📋 Phase 2: Scanning and fixing import conflicts...")
+	fix_import_conflicts()
+	
+	# Phase 3: Generate report
+	print_summary()
+	
+	# Exit cleanly
+	get_tree().quit()
+
+func remove_global_class_declarations():
+	for class_name in UNIVERSAL_CLASSES:
+		var file_path = SRC_PATH + "/utils/" + class_name + ".gd"
+		
+		if not FileAccess.file_exists(file_path):
+			print("⚠️  File not found: " + file_path)
+			continue
+			
+		var content = load_file_content(file_path)
+		if content.is_empty():
+			continue
+			
+		# Remove the class_name declaration
+		var regex = RegEx.new()
+		regex.compile("^\\s*class_name\\s+" + class_name + "\\s*$")
+		
+		var original_content = content
+		content = regex.sub(content, "# Removed class_name " + class_name + " to fix SHADOWED_GLOBAL_IDENTIFIER", true)
+		
+		if content != original_content:
+			if save_file_content(file_path, content):
+				print("✅ Removed global class declaration from: " + class_name + ".gd")
+				warnings_fixed += 1
+			else:
+				print("❌ Failed to save: " + file_path)
+				files_with_errors.append(file_path)
+
+func fix_import_conflicts():
+	var gd_files = find_all_gd_files(SRC_PATH)
+	
+	for file_path in gd_files:
+		if file_path.ends_with("UniversalNodeAccess.gd") or file_path.ends_with("UniversalSignalManager.gd"):
+			continue # Skip the utility files themselves
+			
+		process_file_imports(file_path)
+
+func process_file_imports(file_path: String):
+	var content = load_file_content(file_path)
+	if content.is_empty():
+		return
+		
+	var original_content = content
+	var lines = content.split("\n")
+	var modified = false
+	
+	for i in range(lines.size()):
+		var line = lines[i]
+		
+		# Look for const declarations of Universal classes
+		for class_name in UNIVERSAL_CLASSES:
+			var pattern = "^\\s*const\\s+" + class_name + "\\s*=\\s*preload\\s*\\("
+			var regex = RegEx.new()
+			regex.compile(pattern)
+			
+			if regex.search(line):
+				# Comment out the const declaration and add explanation
+				lines[i] = "# " + line.strip_edges() + " # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class"
+				modified = true
+				warnings_fixed += 1
+				break
+	
+	if modified:
+		var new_content = "\n".join(lines)
+		if save_file_content(file_path, new_content):
+			files_processed += 1
+			var relative_path = file_path.replace(PROJECT_ROOT + "/", "")
+			print("✅ Fixed imports in: " + relative_path)
+		else:
+			files_with_errors.append(file_path)
+			print("❌ Failed to save: " + file_path)
+
+func find_all_gd_files(directory: String) -> Array[String]:
+	var files: Array[String] = []
+	var dir = DirAccess.open(directory)
+	
+	if not dir:
+		print("❌ Cannot open directory: " + directory)
+		return files
+	
+	_scan_directory_recursive(dir, directory, files)
+	return files
+
+func _scan_directory_recursive(dir: DirAccess, path: String, files: Array[String]):
+	dir.list_dir_begin()
+	var file_name = dir.get_next()
+	
+	while file_name != "":
+		var full_path = path + "/" + file_name
+		
+		if dir.current_is_dir() and not file_name.begins_with("."):
+			var sub_dir = DirAccess.open(full_path)
+			if sub_dir:
+				_scan_directory_recursive(sub_dir, full_path, files)
+		elif file_name.ends_with(".gd"):
+			files.append(full_path)
+		
+		file_name = dir.get_next()
+
+func load_file_content(file_path: String) -> String:
+	var file = FileAccess.open(file_path, FileAccess.READ)
+	if not file:
+		print("❌ Cannot read file: " + file_path + " (Error: " + str(FileAccess.get_open_error()) + ")")
+		files_with_errors.append(file_path)
+		return ""
+	
+	var content = file.get_as_text()
+	file.close()
+	return content
+
+func save_file_content(file_path: String, content: String) -> bool:
+	# Create backup first
+	var backup_path = file_path + ".backup"
+	var original_content = load_file_content(file_path)
+	if not original_content.is_empty():
+		var backup_file = FileAccess.open(backup_path, FileAccess.WRITE)
+		if backup_file:
+			backup_file.store_string(original_content)
+			backup_file.close()
+	
+	# Save new content
+	var file = FileAccess.open(file_path, FileAccess.WRITE)
+	if not file:
+		print("❌ Cannot write file: " + file_path + " (Error: " + str(FileAccess.get_open_error()) + ")")
+		return false
+	
+	file.store_string(content)
+	file.close()
+	return true
+
+func print_summary():
+	print("\n" + "=".repeat(60))
+	print("🎯 UNIVERSAL CLASS IMPORT FIXER - SUMMARY")
+	print("=".repeat(60))
+	print("📊 Files processed: " + str(files_processed))
+	print("🔧 Warnings fixed: " + str(warnings_fixed))
+	print("❌ Files with errors: " + str(files_with_errors.size()))
+	
+	if files_with_errors.size() > 0:
+		print("\n⚠️  Files that had errors:")
+		for error_file in files_with_errors:
+			var relative_path = error_file.replace(PROJECT_ROOT + "/", "")
+			print("   • " + relative_path)
+	
+	print("\n✅ Phase 1 Complete!")
+	print("💡 Next step: Run your project and verify Universal classes still work")
+	print("💡 Then run the Type Annotation Fixer for the next phase")
+	
+	if warnings_fixed > 0:
+		print("\n🎉 Estimated warnings reduced: ~" + str(warnings_fixed) + " SHADOWED_GLOBAL_IDENTIFIER warnings")

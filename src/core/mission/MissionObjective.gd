@@ -1,13 +1,13 @@
-@tool
+﻿@tool
 extends Resource
 class_name MissionObjective
 
 ## Mission Objective for Five Parsecs from Home
 ## Represents a single objective within a mission
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
-@export var objective_type: int = GameEnums.MissionObjective.WIN_BATTLE
+@export var objective_type: int = GlobalEnums.MissionObjective.WIN_BATTLE
 @export var description: String = ""
 @export var is_optional: bool = false
 @export var is_completed: bool = false
@@ -32,7 +32,7 @@ func update_progress(_value: int) -> void:
 	current_value = _value
 	var progress = get_progress_percentage()
 	objective_progress_updated.emit(self, progress)
-	
+
 	if current_value >= target_value and not is_completed:
 		complete_objective()
 
@@ -53,10 +53,28 @@ func serialize() -> Dictionary:
 	}
 
 func deserialize(data: Dictionary) -> void:
-	objective_type = data.get("objective_type", GameEnums.MissionObjective.WIN_BATTLE)
+	objective_type = data.get("objective_type", GlobalEnums.MissionObjective.WIN_BATTLE)
 	description = data.get("description", "")
 	is_optional = data.get("is_optional", false)
 	is_completed = data.get("is_completed", false)
 	target_value = data.get("target_value", 0)
 	current_value = data.get("current_value", 0)
 	rewards = data.get("rewards", {})
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

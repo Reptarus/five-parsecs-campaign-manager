@@ -1,16 +1,10 @@
-@tool
+﻿@tool
 @warning_ignore("return_value_discarded")
 @warning_ignore("unsafe_method_access")
-@warning_ignore("unsafe_call_argument")
 @warning_ignore("untyped_declaration")
-@warning_ignore("unused_variable")
-@warning_ignore("redundant_await")
-@warning_ignore("unsafe_cast")
-@warning_ignore("inference_on_variant")
-@warning_ignore("static_called_on_instance")
 extends Node
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 # Note: CharacterManager is an autoload - access via get_node("/root/CharacterManager")
 # Note: GameState will be injected via setup() to avoid circular dependencies
 
@@ -44,8 +38,8 @@ func reset_current_battle() -> void:
 	_current_battle = {
 		"id": "",
 		"mission_id": "",
-		"mission_type": GameEnums.MissionType.NONE,
-		"objective": GameEnums.MissionObjective.NONE,
+		"mission_type": GlobalEnums.MissionType.NONE,
+		"objective": GlobalEnums.MissionObjective.NONE,
 		"planet": "",
 		"turn": 0,
 		"outcome": "",
@@ -61,19 +55,19 @@ func reset_current_battle() -> void:
 ## Initialize a new battle record
 func start_battle(mission_data: Dictionary) -> void:
 	reset_current_battle()
-	
+
 	_current_battle.id = "battle_" + str(Time.get_unix_time_from_system()) + "_" + str(randi() % 1000)
 
 	_current_battle.mission_id = mission_data.get("id", "")
 
-	_current_battle.mission_type = mission_data.get("type", GameEnums.MissionType.NONE)
+	_current_battle.mission_type = mission_data.get("type", GlobalEnums.MissionType.NONE)
 
-	_current_battle.objective = mission_data.get("objective", GameEnums.MissionObjective.NONE)
+	_current_battle.objective = mission_data.get("objective", GlobalEnums.MissionObjective.NONE)
 
 	_current_battle.planet = mission_data.get("planet", "")
-	_current_battle.turn = game_state.turn_number
+	_current_battle.turn = safe_get_property(game_state, "turn_number")
 	_current_battle.timestamp = Time.get_unix_time_from_system()
-	
+
 	log_battle_event({
 		"type": "battle_started",
 
@@ -84,7 +78,7 @@ func start_battle(mission_data: Dictionary) -> void:
 ## Record a character casualty during battle
 func record_casualty(character, damage: int, is_critical: bool, is_enemy: bool = false) -> void:
 	if is_enemy:
-		var enemy_data = {
+		var enemy_data: Dictionary = {
 
 			"id": character.get("id", ""),
 
@@ -95,7 +89,7 @@ func record_casualty(character, damage: int, is_critical: bool, is_enemy: bool =
 			"is_killed": damage >= character.get("toughness", 1) * 2
 		}
 		_current_battle.enemy_casualties.append(enemy_data)
-		
+
 		log_battle_event({
 			"type": "enemy_casualty",
 			"enemy_type": enemy_data.type,
@@ -118,7 +112,7 @@ func record_casualty(character, damage: int, is_critical: bool, is_enemy: bool =
 			"injury_type": injury_data.get("injury_type", "minor")
 		}
 		_current_battle.player_casualties.append(casualty_data)
-		
+
 		log_battle_event({
 			"type": "player_casualty",
 			"character_name": casualty_data.name,
@@ -129,13 +123,13 @@ func record_casualty(character, damage: int, is_critical: bool, is_enemy: bool =
 
 ## Record a special event that occurred during battle
 func record_special_event(event_type: String, event_data: Dictionary) -> void:
-	var event = event_data.duplicate()
+	var event: Variant = event_data.duplicate()
 	event["type"] = event_type
 
 	event["turn"] = _current_battle.get("current_turn", 0)
-	
+
 	_current_battle.special_events.append(event)
-	
+
 	log_battle_event({
 		"type": "special_event",
 		"event_type": event_type,
@@ -147,7 +141,7 @@ func record_special_event(event_type: String, event_data: Dictionary) -> void:
 func complete_battle(outcome: String) -> Dictionary:
 	_current_battle.outcome = outcome
 	_current_battle.completed = true
-	
+
 	# Process outcome-based data
 	match outcome:
 		OUTCOME_VICTORY:
@@ -158,51 +152,50 @@ func complete_battle(outcome: String) -> Dictionary:
 			_process_draw()
 		OUTCOME_RETREAT:
 			_process_retreat()
-	
+
 	# Calculate rewards
 	_calculate_rewards()
-	
+
 	# Add to battle history
 
-	_battle_history.append(_current_battle.duplicate()) # warning: return value discarded (intentional)
-	
+	_battle_history.append(_current_battle.duplicate())
+
 	# Emit signal
-	battle_results_recorded.emit(_current_battle) # warning: return value discarded (intentional)
-	
+	battle_results_recorded.emit(_current_battle)
+
 	log_battle_event({
 		"type": "battle_completed",
 		"outcome": outcome,
 		"total_enemy_casualties": _current_battle.enemy_casualties.size(),
 		"total_player_casualties": _current_battle.player_casualties.size()
 	})
-	
+
 	return _current_battle
 
 ## Process casualties after battle
 func process_casualties() -> Array:
 	var casualties: Array = []
-	
+
 	for casualty in _current_battle.player_casualties:
-		var character_id = casualty.get("character_id", "")
-		if character_id.is_empty():
+		var character_id: Character = casualty.get("character_id", "")
+		if (safe_call_method(character_id, "is_empty") == true):
 			continue
-			
-		var character = character_manager.get_character(character_id)
+
+		var character: Character = character_manager.get_character(character_id)
 		if not character:
 			continue
-		
+
 		# Determine the detailed injury result based on the Five Parsecs rulebook's tables
 		var injury_result = _determine_injury_by_rulebook()
-		
+
 		# Apply the result to the character
 
 		match injury_result.get("result", ""):
 			"dead":
 				# Character died
-				if character_manager.has_method("set_character_status"):
-					character_manager.set_character_status(character, "dead")
+				character_manager.set_character_status(character, "dead")
 
-				casualties.append({ # warning: return value discarded (intentional)
+				casualties.append({
 					"character": character,
 					"status": "dead",
 
@@ -210,10 +203,9 @@ func process_casualties() -> Array:
 				})
 			"critical":
 				# Critical injury
-				if character_manager.has_method("set_character_status"):
-					character_manager.set_character_status(character, "critical")
+				character_manager.set_character_status(character, "critical")
 
-				casualties.append({ # warning: return value discarded (intentional)
+				casualties.append({
 					"character": character,
 					"status": "critical",
 
@@ -221,10 +213,9 @@ func process_casualties() -> Array:
 				})
 			"injured":
 				# Regular injury
-				if character_manager.has_method("set_character_status"):
-					character_manager.set_character_status(character, "injured")
+				character_manager.set_character_status(character, "injured")
 
-				casualties.append({ # warning: return value discarded (intentional)
+				casualties.append({
 					"character": character,
 					"status": "injured",
 
@@ -234,7 +225,7 @@ func process_casualties() -> Array:
 				})
 			"recovered":
 				# Character recovered without serious injury
-				casualties.append({ # warning: return value discarded (intentional)
+				casualties.append({
 					"character": character,
 					"status": "recovered",
 
@@ -242,22 +233,22 @@ func process_casualties() -> Array:
 				})
 			"miraculous":
 				# Miraculous escape (special case in rulebook)
-				casualties.append({ # warning: return value discarded (intentional)
+				casualties.append({
 					"character": character,
 					"status": "miraculous_escape",
 					"description": "Miraculous escape from certain death",
 
 					"luck_bonus": injury_result.get("luck_bonus", 1)
 				})
-	
-	casualties_processed.emit(casualties) # warning: return value discarded (intentional)
+
+	casualties_processed.emit(casualties)
 	return casualties
 
 ## Determine injury details according to the Five Parsecs rulebook tables
 func _determine_injury_by_rulebook() -> Dictionary:
 	# Roll D100 as per the rulebook
 	var roll = randi() % 100 + 1
-	
+
 	if roll <= 5:
 		# Gruesome Fate / "Dead and gone" result
 		return {
@@ -311,25 +302,26 @@ func _determine_injury_by_rulebook() -> Dictionary:
 ## Calculate experience for characters based on battle outcome according to the Five Parsecs rulebook
 func calculate_experience() -> Dictionary:
 	var experience_data: Dictionary = {}
-	
+
 	# Get all active characters
-	var characters = character_manager.get_active_characters()
+	var characters: Character = character_manager.get_active_characters()
 	for character in characters:
+		var typed_character: Character = character as Character
 		var char_id = character.get("id", "")
-		if char_id.is_empty():
+		if (safe_call_method(char_id, "is_empty") == true):
 			continue
-		
+
 		# 1. Base XP for participating in battle (rulebook: each character gets XP for participating)
 		var base_xp: int = 1
-		
+
 		# 2. XP for holding the field - Five Parsecs rulebook awards 1 XP if the crew holds the field
 		var held_field_xp: int = 1 if _current_battle.outcome == OUTCOME_VICTORY else 0
-		
+
 		# 3. XP for Black Zone Missions - Five Parsecs rulebook awards 1 XP for Black Zone missions
 		var black_zone_xp: int = 0
-		if _current_battle.mission_type == GameEnums.MissionType.BLACK_ZONE:
+		if _current_battle.mission_type == GlobalEnums.MissionType.BLACK_ZONE:
 			black_zone_xp = 1
-		
+
 		# 4. XP for leading combat (assuming the "Main Character" led the combat)
 		var leader_xp: int = 0
 
@@ -342,12 +334,12 @@ func calculate_experience() -> Dictionary:
 			if casualty.get("character_id", "") == char_id and casualty.get("survived", true):
 				survival_xp = 1
 				break
-		
+
 		# 6. XP for enemy casualties (handled by mission objectives, not direct XP in the rulebook)
-		
+
 		# Calculate total XP for this character
 		var total_xp = base_xp + held_field_xp + black_zone_xp + leader_xp + survival_xp
-		
+
 		# Store experience for this character
 		experience_data[char_id] = {
 			"character": character,
@@ -358,16 +350,16 @@ func calculate_experience() -> Dictionary:
 			"survival_xp": survival_xp,
 			"total": total_xp
 		}
-	
+
 	return experience_data
 
 ## Apply calculated experience to characters
 func apply_experience(experience_data: Dictionary) -> void:
 	for char_id in experience_data:
 		var _data = experience_data[char_id]
-		var character = _data["character"]
+		var character: Character = _data["character"]
 		var xp_amount = _data["total"]
-		
+
 		character_manager.process_advancement(character, xp_amount)
 
 ## Log an event to the battle log
@@ -375,8 +367,8 @@ func log_battle_event(_event: Dictionary) -> void:
 	var log_entry = _event.duplicate()
 	log_entry["timestamp"] = Time.get_unix_time_from_system()
 
-	_current_battle_log.append(log_entry) # warning: return value discarded (intentional)
-	battle_log_updated.emit(log_entry) # warning: return value discarded (intentional)
+	_current_battle_log.append(log_entry)
+	battle_log_updated.emit(log_entry)
 
 ## Get the battle log
 func get_battle_log() -> Array:
@@ -413,7 +405,7 @@ func _process_retreat() -> void:
 	pass
 func _calculate_rewards() -> void:
 	var reward_data: Dictionary = {}
-	
+
 	# Base rewards based on outcome
 	match _current_battle.outcome:
 		OUTCOME_VICTORY:
@@ -428,39 +420,39 @@ func _calculate_rewards() -> void:
 		OUTCOME_RETREAT:
 			reward_data["credits"] = 0
 			reward_data["reputation"] = -2
-			
+
 	# Additional rewards based on mission type
 	match _current_battle.mission_type:
-		GameEnums.MissionType.BLACK_ZONE:
+		GlobalEnums.MissionType.BLACK_ZONE:
 			reward_data["credits"] += 100
 			reward_data["tech_parts"] = 1 + randi() % 3
-		GameEnums.MissionType.RESCUE:
+		GlobalEnums.MissionType.RESCUE:
 			reward_data["credits"] += 50
 			reward_data["reputation"] += 3
-			
+
 	# Calculate loot drops
 	reward_data["loot"] = _generate_battle_loot()
-		
+
 	_current_battle.rewards = reward_data
 	rewards_calculated.emit(reward_data) # warning: return value discarded (intentional)
-	
+
 ## Generate loot items based on battle outcome
 func _generate_battle_loot() -> Array:
 	var loot_items: Array = []
-	
+
 	# Only generate loot for victories or draws
 	if _current_battle.outcome == OUTCOME_DEFEAT or _current_battle.outcome == OUTCOME_RETREAT:
 		return loot_items
-		
+
 	# Chance of finding loot depends on outcome
 	var loot_chance: float = 0.6 if _current_battle.outcome == OUTCOME_VICTORY else 0.3
-	
+
 	# Number of loot items depends on enemy casualties
-	var enemy_count = _current_battle.enemy_casualties.size()
-	var max_items = min(enemy_count / 2, 5) # Cap at 5 items
-	
+	var enemy_count: int = _current_battle.enemy_casualties.size()
+	var max_items = min(enemy_count / 2.0, 5) # Cap at 5 items
+
 	# Generate random loot
-	for i in range(max_items):
+	for i: int in range(max_items):
 		if randf() <= loot_chance:
 			# Simplified loot generation - would be more complex in real implementation
 			var loot_item = {
@@ -469,6 +461,25 @@ func _generate_battle_loot() -> Array:
 				"quality": randi() % 3, # 0=common, 1=uncommon, 2=rare
 				"_value": 50 + randi() % 200
 			}
-			loot_items.append(loot_item) # warning: return value discarded (intentional)
-		
+			loot_items.append(loot_item)
+
 	return loot_items
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null                                                                       

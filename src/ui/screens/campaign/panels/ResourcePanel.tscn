@@ -86,6 +86,22 @@ custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 text = "0"
 
+[node name="StoryPoints" type="HBoxContainer" parent="Content/Resources"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Label" type="Label" parent="Content/Resources/StoryPoints"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+text = "Story Points:"
+horizontal_alignment = 2
+
+[node name="Value" type="Label" parent="Content/Resources/StoryPoints"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+text = "0"
+
 [node name="Patron" type="HBoxContainer" parent="Content/Resources"]
 layout_mode = 2
 theme_override_constants/separation = 20
@@ -101,3 +117,71 @@ horizontal_alignment = 2
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 text = "0"
+
+[node name="Patrons" type="HBoxContainer" parent="Content/Resources"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Label" type="Label" parent="Content/Resources/Patrons"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+text = "Patrons:"
+horizontal_alignment = 2
+
+[node name="Value" type="Label" parent="Content/Resources/Patrons"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+text = "0"
+
+[node name="Rivals" type="HBoxContainer" parent="Content/Resources"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Label" type="Label" parent="Content/Resources/Rivals"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+text = "Rivals:"
+horizontal_alignment = 2
+
+[node name="Value" type="Label" parent="Content/Resources/Rivals"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+text = "0"
+
+[node name="QuestRumors" type="HBoxContainer" parent="Content/Resources"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Label" type="Label" parent="Content/Resources/QuestRumors"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+text = "Quest Rumors:"
+horizontal_alignment = 2
+
+[node name="Value" type="Label" parent="Content/Resources/QuestRumors"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+text = "0"
+
+[node name="Controls" type="HBoxContainer" parent="Content"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="CalculateButton" type="Button" parent="Content/Controls"]
+custom_minimum_size = Vector2(150, 40)
+layout_mode = 2
+text = "Calculate Resources"
+
+[node name="GenerateButton" type="Button" parent="Content/Controls"]
+custom_minimum_size = Vector2(150, 40)
+layout_mode = 2
+text = "Generate Patrons"
+
+[node name="RerollButton" type="Button" parent="Content/Controls"]
+custom_minimum_size = Vector2(150, 40)
+layout_mode = 2
+text = "Reroll"

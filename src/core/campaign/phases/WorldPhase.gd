@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 extends Node
 class_name WorldPhase
 
@@ -6,16 +6,16 @@ class_name WorldPhase
 ## Handles the complete World Phase sequence (Phase 2 of campaign turn)
 
 # Safe imports
-const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
-const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd")
-const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
-const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
-const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd")
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
 
 # Safe dependency loading - loaded at runtime in _ready()
-var GameEnums = null
-var dice_manager = null
-var game_state_manager = null
+var GlobalEnums: Variant = null
+var dice_manager: Variant = null
+var game_state_manager: Variant = null
 
 ## World Phase Signals
 signal world_phase_started()
@@ -45,39 +45,39 @@ var upkeep_costs: Dictionary = {
 
 func _ready() -> void:
 	# Load dependencies safely at runtime
-	GameEnums = UniversalResourceLoader.load_script_safe("res://src/core/systems/GlobalEnums.gd", "WorldPhase GameEnums")
+	GlobalEnums = load("res://src/core/systems/GlobalEnums.gd")
 	dice_manager = DiceManager
 	game_state_manager = get_node_or_null("/root/GameStateManagerAutoload")
-	
-	# Initialize enum values after loading GameEnums
-	if GameEnums:
-		current_substep = GameEnums.WorldSubPhase.NONE
-	
+
+	# Initialize enum values after loading GlobalEnums
+	if GlobalEnums:
+		current_substep = GlobalEnums.WorldSubPhase.NONE
+
 	print("WorldPhase: Initialized successfully")
 
 ## Main World Phase Processing
 func start_world_phase() -> void:
 	"""Begin the World Phase sequence"""
 	print("WorldPhase: Starting World Phase")
-	UniversalSignalManager.emit_signal_safe(self, "world_phase_started", [], "WorldPhase start_world_phase")
-	
+	self.world_phase_started.emit()
+
 	# Step 1: Upkeep and ship repairs
 	_process_upkeep()
 
 func _process_upkeep() -> void:
 	"""Step 1: Upkeep and Ship Repairs"""
-	if GameEnums:
-		current_substep = GameEnums.WorldSubPhase.UPKEEP
-		UniversalSignalManager.emit_signal_safe(self, "world_substep_changed", [current_substep], "WorldPhase upkeep")
-	
+	if GlobalEnums:
+		current_substep = GlobalEnums.WorldSubPhase.UPKEEP
+		self.world_substep_changed.emit(current_substep)
+
 	var total_upkeep_cost = _calculate_upkeep_cost()
-	
+
 	# Pay upkeep costs
 	if game_state_manager and game_state_manager.has_method("remove_credits"):
-		var credits_available = 0
+		var credits_available: int = 0
 		if game_state_manager.has_method("get_credits"):
 			credits_available = game_state_manager.get_credits()
-		
+
 		if credits_available >= total_upkeep_cost:
 			game_state_manager.remove_credits(total_upkeep_cost)
 			print("WorldPhase: Paid %d credits for upkeep" % total_upkeep_cost)
@@ -85,44 +85,44 @@ func _process_upkeep() -> void:
 			print("WorldPhase: Insufficient credits for upkeep (need %d, have %d)" % [total_upkeep_cost, credits_available])
 			# Handle consequences of unpaid upkeep
 			_handle_unpaid_upkeep(total_upkeep_cost - credits_available)
-	
+
 	# Handle ship repairs (if applicable)
 	_handle_ship_repairs()
-	
-	UniversalSignalManager.emit_signal_safe(self, "upkeep_completed", [total_upkeep_cost], "WorldPhase upkeep_completed")
-	
+
+	self.upkeep_completed.emit(total_upkeep_cost)
+
 	# Continue to crew tasks
 	_process_crew_tasks()
 
 func _calculate_upkeep_cost() -> int:
 	"""Calculate total upkeep cost based on crew size and conditions"""
-	var total_cost = 0
-	
+	var total_cost: int = 0
+
 	if not game_state_manager:
 		return upkeep_costs.base_crew_4_to_6 # Default cost
-	
+
 	# Get crew size
 	var crew_size = 4 # Default
-	if game_state_manager.has_method("get_crew_size"):
+	if game_state_manager and game_state_manager.has_method("get_crew_size"):
 		crew_size = game_state_manager.get_crew_size()
-	
+
 	# Base cost for crew of 4-6
 	if crew_size >= 4 and crew_size <= 6:
 		total_cost += upkeep_costs.base_crew_4_to_6
-	
+
 	# Additional cost for crew beyond 6
 	if crew_size > 6:
 		total_cost += upkeep_costs.base_crew_4_to_6
 		total_cost += (crew_size - 6) * upkeep_costs.additional_crew
-	
+
 	# Sick bay costs (1 credit per crew member in sick bay)
 	var sick_crew_count = _get_sick_crew_count()
 	total_cost += sick_crew_count * upkeep_costs.sick_bay_per_patient
-	
+
 	# Ship debt interest (if applicable)
 	var debt_interest = _get_ship_debt_interest()
 	total_cost += debt_interest
-	
+
 	return total_cost
 
 func _get_sick_crew_count() -> int:
@@ -144,7 +144,7 @@ func _handle_unpaid_upkeep(shortage: int) -> void:
 
 func _handle_ship_repairs() -> void:
 	"""Handle ship hull repairs"""
-	if GameState and GameState.has_method("get_player_ship"):
+	if GameState and GameState and GameState.has_method("get_player_ship"):
 		var ship = GameState.get_player_ship()
 		if ship and ship.has_method("needs_repair") and ship.needs_repair():
 			# Auto-repair logic or present repair options
@@ -152,78 +152,78 @@ func _handle_ship_repairs() -> void:
 
 func _process_crew_tasks() -> void:
 	"""Step 2: Assign and Resolve Crew Tasks"""
-	if GameEnums:
-		current_substep = GameEnums.WorldSubPhase.CREW_TASKS
-		UniversalSignalManager.emit_signal_safe(self, "world_substep_changed", [current_substep], "WorldPhase crew_tasks")
-	
+	if GlobalEnums:
+		current_substep = GlobalEnums.WorldSubPhase.CREW_TASKS
+		self.world_substep_changed.emit(current_substep)
+
 	# In a full implementation, this would present crew task assignment UI
 	# For now, we'll auto-assign tasks or use defaults
 	_auto_assign_crew_tasks()
-	
+
 	# Resolve each crew task
 	_resolve_crew_tasks()
-	
+
 	# Continue to job offers
 	_process_job_offers()
 
 func _auto_assign_crew_tasks() -> void:
 	"""Auto-assign crew tasks for demonstration"""
 	crew_task_assignments.clear()
-	
-	if not GameState or not GameState.has_method("get_crew_members"):
+
+	if not GameState or not GameState and GameState.has_method("get_crew_members"):
 		return
-	
+
 	var crew_members = GameState.get_crew_members()
 	var available_tasks = [
-		GameEnums.CrewTaskType.FIND_PATRON,
-		GameEnums.CrewTaskType.TRAIN,
-		GameEnums.CrewTaskType.TRADE,
-		GameEnums.CrewTaskType.EXPLORE,
-		GameEnums.CrewTaskType.REPAIR_KIT
-	] if GameEnums else [0, 1, 2, 3, 4]
-	
-	for i in range(crew_members.size()):
+		GlobalEnums.CrewTaskType.FIND_PATRON,
+		GlobalEnums.CrewTaskType.TRAIN,
+		GlobalEnums.CrewTaskType.TRADE,
+		GlobalEnums.CrewTaskType.EXPLORE,
+		GlobalEnums.CrewTaskType.REPAIR_KIT
+	] if GlobalEnums else [0, 1, 2, 3, 4]
+
+	for i: int in range((safe_call_method(crew_members, "size") as int)):
 		var crew_member = crew_members[i]
-		var task = available_tasks[i % available_tasks.size()]
+		var task = available_tasks[i % (safe_call_method(available_tasks, "size") as int)]
 		var crew_id = crew_member.get("id", "crew_" + str(i)) if crew_member is Dictionary else "crew_" + str(i)
 		crew_task_assignments[crew_id] = task
-	
-	UniversalSignalManager.emit_signal_safe(self, "crew_tasks_assigned", [crew_task_assignments.keys()], "WorldPhase crew_tasks_assigned")
+
+	self.crew_tasks_assigned.emit(crew_task_assignments.keys())
 
 func _resolve_crew_tasks() -> void:
 	"""Resolve all assigned crew tasks"""
 	for crew_id in crew_task_assignments:
 		var task = crew_task_assignments[crew_id]
-		var result = _resolve_single_crew_task(crew_id, task)
-		UniversalSignalManager.emit_signal_safe(self, "crew_task_completed", [crew_id, task, result], "WorldPhase crew_task_completed")
+		var result: Variant = _resolve_single_crew_task(crew_id, task)
+		self.crew_task_completed.emit(crew_id, task, result)
 
 func _resolve_single_crew_task(crew_id: String, task: int) -> Dictionary:
 	"""Resolve a single crew member's task"""
-	var result = {"crew_id": crew_id, "task": task, "success": false, "details": ""}
-	
-	if not GameEnums:
+	var result: Variant = {"crew_id": crew_id, "task": task, "success": false, "details": ""}
+
+	if not GlobalEnums:
 		return result
-	
+
 	match task:
-		GameEnums.CrewTaskType.FIND_PATRON:
+		GlobalEnums.CrewTaskType.FIND_PATRON:
 			result = _resolve_find_patron_task(crew_id)
-		GameEnums.CrewTaskType.TRAIN:
+		GlobalEnums.CrewTaskType.TRAIN:
 			result = _resolve_train_task(crew_id)
-		GameEnums.CrewTaskType.TRADE:
+		GlobalEnums.CrewTaskType.TRADE:
 			result = _resolve_trade_task(crew_id)
-		GameEnums.CrewTaskType.RECRUIT:
+		GlobalEnums.CrewTaskType.RECRUIT:
 			result = _resolve_recruit_task(crew_id)
-		GameEnums.CrewTaskType.EXPLORE:
+		GlobalEnums.CrewTaskType.EXPLORE:
 			result = _resolve_explore_task(crew_id)
-		GameEnums.CrewTaskType.TRACK:
+		GlobalEnums.CrewTaskType.TRACK:
 			result = _resolve_track_task(crew_id)
-		GameEnums.CrewTaskType.REPAIR_KIT:
+		GlobalEnums.CrewTaskType.REPAIR_KIT:
 			result = _resolve_repair_kit_task(crew_id)
-		GameEnums.CrewTaskType.DECOY:
+		GlobalEnums.CrewTaskType.DECOY:
 			result = _resolve_decoy_task(crew_id)
 		_:
 			result.details = "Unknown task type"
-	
+
 	return result
 
 func _resolve_find_patron_task(crew_id: String) -> Dictionary:
@@ -231,10 +231,10 @@ func _resolve_find_patron_task(crew_id: String) -> Dictionary:
 	# Roll on Patron table to find potential employer
 	var patron_roll = randi_range(1, 10)
 	var patron_found = patron_roll >= 6 # 50% chance of finding patron
-	
+
 	return {
 		"crew_id": crew_id,
-		"task": GameEnums.CrewTaskType.FIND_PATRON,
+		"task": GlobalEnums.CrewTaskType.FIND_PATRON,
 		"success": patron_found,
 		"details": "Found patron" if patron_found else "No patron found",
 		"patron_data": _generate_patron_data() if patron_found else null
@@ -243,12 +243,12 @@ func _resolve_find_patron_task(crew_id: String) -> Dictionary:
 func _resolve_train_task(crew_id: String) -> Dictionary:
 	"""Resolve Train task - gain 1 XP"""
 	# Award 1 XP to crew member
-	if GameState and GameState.has_method("add_crew_experience"):
+	if GameState and GameState and GameState.has_method("add_crew_experience"):
 		GameState.add_crew_experience(crew_id, 1)
-	
+
 	return {
 		"crew_id": crew_id,
-		"task": GameEnums.CrewTaskType.TRAIN,
+		"task": GlobalEnums.CrewTaskType.TRAIN,
 		"success": true,
 		"details": "Gained 1 XP from training",
 		"xp_gained": 1
@@ -257,8 +257,8 @@ func _resolve_train_task(crew_id: String) -> Dictionary:
 func _resolve_trade_task(crew_id: String) -> Dictionary:
 	"""Resolve Trade task - roll on trade table"""
 	var trade_roll = randi_range(1, 6)
-	var credits_gained = 0
-	
+	var credits_gained: int = 0
+
 	match trade_roll:
 		1, 2:
 			credits_gained = 0
@@ -266,13 +266,13 @@ func _resolve_trade_task(crew_id: String) -> Dictionary:
 			credits_gained = randi_range(1, 3)
 		5, 6:
 			credits_gained = randi_range(2, 5)
-	
-	if credits_gained > 0 and GameState and GameState.has_method("add_credits"):
+
+	if credits_gained > 0 and GameState and GameState and GameState.has_method("add_credits"):
 		GameState.add_credits(credits_gained)
-	
+
 	return {
 		"crew_id": crew_id,
-		"task": GameEnums.CrewTaskType.TRADE,
+		"task": GlobalEnums.CrewTaskType.TRADE,
 		"success": credits_gained > 0,
 		"details": "Earned %d credits from trading" % credits_gained if credits_gained > 0 else "No profit from trading",
 		"credits_gained": credits_gained
@@ -282,10 +282,10 @@ func _resolve_recruit_task(crew_id: String) -> Dictionary:
 	"""Resolve Recruit task - attempt to expand crew"""
 	var recruit_roll = randi_range(1, 6)
 	var recruit_found = recruit_roll >= 5 # 33% chance of finding recruit
-	
+
 	return {
 		"crew_id": crew_id,
-		"task": GameEnums.CrewTaskType.RECRUIT,
+		"task": GlobalEnums.CrewTaskType.RECRUIT,
 		"success": recruit_found,
 		"details": "Found potential recruit" if recruit_found else "No suitable recruits found",
 		"recruit_data": _generate_recruit_data() if recruit_found else null
@@ -295,10 +295,10 @@ func _resolve_explore_task(crew_id: String) -> Dictionary:
 	"""Resolve Explore task - roll on exploration table"""
 	var explore_roll = randi_range(1, 100)
 	var exploration_result = _get_exploration_result(explore_roll)
-	
+
 	return {
 		"crew_id": crew_id,
-		"task": GameEnums.CrewTaskType.EXPLORE,
+		"task": GlobalEnums.CrewTaskType.EXPLORE,
 		"success": true,
 		"details": exploration_result.description,
 		"exploration_data": exploration_result
@@ -307,10 +307,10 @@ func _resolve_explore_task(crew_id: String) -> Dictionary:
 func _resolve_track_task(crew_id: String) -> Dictionary:
 	"""Resolve Track task - locate rivals"""
 	var track_success = randi_range(1, 6) >= 4 # 50% chance
-	
+
 	return {
 		"crew_id": crew_id,
-		"task": GameEnums.CrewTaskType.TRACK,
+		"task": GlobalEnums.CrewTaskType.TRACK,
 		"success": track_success,
 		"details": "Located rival" if track_success else "Failed to track rival"
 	}
@@ -319,7 +319,7 @@ func _resolve_repair_kit_task(crew_id: String) -> Dictionary:
 	"""Resolve Repair Kit task - fix damaged equipment"""
 	return {
 		"crew_id": crew_id,
-		"task": GameEnums.CrewTaskType.REPAIR_KIT,
+		"task": GlobalEnums.CrewTaskType.REPAIR_KIT,
 		"success": true,
 		"details": "Repaired damaged equipment"
 	}
@@ -328,7 +328,7 @@ func _resolve_decoy_task(crew_id: String) -> Dictionary:
 	"""Resolve Decoy task - help avoid rivals"""
 	return {
 		"crew_id": crew_id,
-		"task": GameEnums.CrewTaskType.DECOY,
+		"task": GlobalEnums.CrewTaskType.DECOY,
 		"success": true,
 		"details": "Created diversion to avoid rivals"
 	}
@@ -368,33 +368,33 @@ func _get_exploration_result(roll: int) -> Dictionary:
 
 func _process_job_offers() -> void:
 	"""Step 3: Determine Job Offers"""
-	if GameEnums:
-		current_substep = GameEnums.WorldSubPhase.JOB_OFFERS
-		UniversalSignalManager.emit_signal_safe(self, "world_substep_changed", [current_substep], "WorldPhase job_offers")
-	
+	if GlobalEnums:
+		current_substep = GlobalEnums.WorldSubPhase.JOB_OFFERS
+		self.world_substep_changed.emit(current_substep)
+
 	# Generate job offers based on patrons found
 	available_job_offers = _generate_job_offers()
-	
-	UniversalSignalManager.emit_signal_safe(self, "job_offers_generated", [available_job_offers], "WorldPhase job_offers_generated")
-	
+
+	self.job_offers_generated.emit(available_job_offers)
+
 	# Continue to equipment assignment
 	_process_equipment()
 
 func _generate_job_offers() -> Array[Dictionary]:
 	"""Generate available job offers"""
 	var offers: Array[Dictionary] = []
-	
+
 	# Always have at least one opportunity mission available
 	offers.append(_generate_opportunity_mission())
-	
+
 	# Add patron jobs based on crew task results
 	for crew_id in crew_task_assignments:
-		if crew_task_assignments[crew_id] == GameEnums.CrewTaskType.FIND_PATRON:
+		if crew_task_assignments[crew_id] == GlobalEnums.CrewTaskType.FIND_PATRON:
 			# Check if this crew member found a patron
 			var patron_job = _generate_patron_job()
 			if patron_job:
 				offers.append(patron_job)
-	
+
 	return offers
 
 func _generate_opportunity_mission() -> Dictionary:
@@ -421,15 +421,15 @@ func _generate_patron_job() -> Dictionary:
 
 func _process_equipment() -> void:
 	"""Step 4: Assign Equipment"""
-	if GameEnums:
-		current_substep = GameEnums.WorldSubPhase.EQUIPMENT
-		UniversalSignalManager.emit_signal_safe(self, "world_substep_changed", [current_substep], "WorldPhase equipment")
-	
+	if GlobalEnums:
+		current_substep = GlobalEnums.WorldSubPhase.EQUIPMENT
+		self.world_substep_changed.emit(current_substep)
+
 	# Handle equipment redistribution and stash management
 	_handle_equipment_assignment()
-	
-	UniversalSignalManager.emit_signal_safe(self, "equipment_assigned", [], "WorldPhase equipment_assigned")
-	
+
+	self.equipment_assigned.emit()
+
 	# Continue to rumors
 	_process_rumors()
 
@@ -440,14 +440,14 @@ func _handle_equipment_assignment() -> void:
 
 func _process_rumors() -> void:
 	"""Step 5: Resolve any Rumors"""
-	if GameEnums:
-		current_substep = GameEnums.WorldSubPhase.RUMORS
-		UniversalSignalManager.emit_signal_safe(self, "world_substep_changed", [current_substep], "WorldPhase rumors")
-	
+	if GlobalEnums:
+		current_substep = GlobalEnums.WorldSubPhase.RUMORS
+		self.world_substep_changed.emit(current_substep)
+
 	var quest_triggered = _check_quest_trigger()
-	
-	UniversalSignalManager.emit_signal_safe(self, "rumors_resolved", [quest_triggered], "WorldPhase rumors_resolved")
-	
+
+	self.rumors_resolved.emit(quest_triggered)
+
 	# Continue to battle choice
 	_process_battle_choice()
 
@@ -455,20 +455,20 @@ func _check_quest_trigger() -> bool:
 	"""Check if rumors trigger a quest"""
 	if current_rumors <= 0:
 		return false
-	
+
 	# Roll D6 vs number of rumors to trigger quest
 	var trigger_roll = randi_range(1, 6)
 	return trigger_roll <= current_rumors
 
 func _process_battle_choice() -> void:
 	"""Step 6: Choose Your Battle"""
-	if GameEnums:
-		current_substep = GameEnums.WorldSubPhase.BATTLE_CHOICE
-		UniversalSignalManager.emit_signal_safe(self, "world_substep_changed", [current_substep], "WorldPhase battle_choice")
-	
+	if GlobalEnums:
+		current_substep = GlobalEnums.WorldSubPhase.BATTLE_CHOICE
+		self.world_substep_changed.emit(current_substep)
+
 	# Check for rival attacks first
 	var rival_attack = _check_rival_attack()
-	
+
 	var battle_choice: Dictionary
 	if rival_attack:
 		battle_choice = {"type": "rival_attack", "forced": true}
@@ -476,50 +476,50 @@ func _process_battle_choice() -> void:
 	else:
 		# Present battle options
 		battle_choice = _present_battle_options()
-	
-	UniversalSignalManager.emit_signal_safe(self, "battle_choice_made", [battle_choice], "WorldPhase battle_choice_made")
+
+	self.battle_choice_made.emit(battle_choice)
 	_complete_world_phase()
 
 func _check_rival_attack() -> bool:
 	"""Check if rivals attack (D6 vs number of rivals)"""
-	if not GameState or not GameState.has_method("get_rival_count"):
+	if not GameState or not GameState and GameState.has_method("get_rival_count"):
 		return false
-	
+
 	var rival_count = GameState.get_rival_count()
 	if rival_count <= 0:
 		return false
-	
+
 	var attack_roll = randi_range(1, 6)
 	return attack_roll <= rival_count
 
 func _present_battle_options() -> Dictionary:
 	"""Present available battle options"""
-	var options = []
-	
+	var options: Array = []
+
 	# Always available: Opportunity mission
 	options.append({"type": "opportunity", "name": "Opportunity Mission"})
-	
+
 	# Available job offers
 	for offer in available_job_offers:
 		options.append({"type": "job_offer", "name": offer.name, "data": offer})
-	
+
 	# Other options (track rivals, continue quest, etc.)
 	if GameState:
 		if GameState.has_method("has_active_quest") and GameState.has_active_quest():
 			options.append({"type": "quest", "name": "Continue Quest"})
 		if GameState.has_method("can_attack_rival") and GameState.can_attack_rival():
 			options.append({"type": "attack_rival", "name": "Attack Rival"})
-	
+
 	# For now, auto-select opportunity mission
 	return options[0] if options.size() > 0 else {"type": "none", "name": "No Battle"}
 
 func _complete_world_phase() -> void:
 	"""Complete the World Phase"""
-	if GameEnums:
-		current_substep = GameEnums.WorldSubPhase.NONE
-	
+	if GlobalEnums:
+		current_substep = GlobalEnums.WorldSubPhase.NONE
+
 	print("WorldPhase: World Phase completed")
-	UniversalSignalManager.emit_signal_safe(self, "world_phase_completed", [], "WorldPhase completed")
+	world_phase_completed.emit()
 
 ## Public API Methods
 func get_current_substep() -> int:
@@ -540,10 +540,28 @@ func assign_crew_task(crew_id: String, task: int) -> void:
 
 func force_battle_choice(choice: Dictionary) -> void:
 	"""Force a specific battle choice (for UI integration)"""
-	if current_substep == GameEnums.WorldSubPhase.BATTLE_CHOICE:
-		UniversalSignalManager.emit_signal_safe(self, "battle_choice_made", [choice], "WorldPhase forced_battle_choice")
+	if current_substep == GlobalEnums.WorldSubPhase.BATTLE_CHOICE:
+		self.battle_choice_made.emit(choice)
 		_complete_world_phase()
 
 func is_world_phase_active() -> bool:
 	"""Check if world phase is currently active"""
-	return current_substep != GameEnums.WorldSubPhase.NONE if GameEnums else false
+	return current_substep != GlobalEnums.WorldSubPhase.NONE if GlobalEnums else false
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

@@ -1,7 +1,7 @@
-extends Node
+﻿extends Node
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameState = preload("res://src/core/state/GameState.gd")
 # Note: GameStateManager is an autoload - access via get_node("/root/GameStateManager")
 const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
@@ -10,7 +10,7 @@ const BaseCombatManager = preload("res://src/base/combat/BaseCombatManager.gd")
 
 signal ai_action_completed(action: Dictionary)
 
-@export var ai_behavior: int = GameEnums.AIBehavior.CAUTIOUS
+@export var ai_behavior: int = GlobalEnums.AIBehavior.CAUTIOUS
 
 var combat_manager: BaseCombatManager
 var _game_state_manager: Node # FPCM_GameStateManager
@@ -22,14 +22,14 @@ func _calculate_attack_score(character: Character, enemy: Character) -> float:
 	# Distance to target
 	var distance = character.global_position.distance_to(enemy.global_position)
 	score -= distance * 0.1
-	
+
 	# Target's health
 	score += (1.0 - enemy.health / enemy.max_health) * 50
-	
+
 	# Weapon effectiveness
 	if character.has_weapon():
 		score += 25
-		
+
 	return score
 
 func _calculate_defensive_score(character: Character, position: Vector2) -> float:
@@ -38,17 +38,25 @@ func _calculate_defensive_score(character: Character, position: Vector2) -> floa
 	# Distance to cover
 	var distance = character.global_position.distance_to(position)
 	score -= distance * 0.1
-	
+
 	# Cover effectiveness
 	if combat_manager.has_cover_at_position(position):
 		score += 30
-		
+
 	# Distance to enemies
 	var closest_enemy_distance := 1000.0
 	for enemy in combat_manager.get_active_enemies():
 		var enemy_distance = position.distance_to(enemy.global_position)
 		closest_enemy_distance = min(closest_enemy_distance, enemy_distance)
-	
+
 	score += closest_enemy_distance * 0.2
-	
+
 	return score
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

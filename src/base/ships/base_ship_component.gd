@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 extends Resource
 class_name BaseShipComponent
 
@@ -21,109 +21,130 @@ class_name BaseShipComponent
 @export var status_effects: Array = []
 
 func _init() -> void:
-    component_name = ""
-    component_description = ""
-    component_cost = 0
-    level = 1
-    max_level = 3
-    is_active = true
-    upgrade_cost = 100
-    maintenance_cost = 10
-    durability = 100
-    max_durability = 100
-    efficiency = 1.0
-    power_draw = 1
-    status_effects = []
+	component_name = ""
+	component_description = ""
+	component_cost = 0
+	level = 1
+	max_level = 3
+	is_active = true
+	upgrade_cost = 100
+	maintenance_cost = 10
+	durability = 100
+	max_durability = 100
+	efficiency = 1.0
+	power_draw = 1
+	status_effects = []
 func can_upgrade() -> bool:
-    return level < max_level
+	return level < max_level
 
 func upgrade() -> bool:
-    if not can_upgrade():
-        return false
-    level += 1
-    _apply_upgrade_effects()
-    return true
+	if not can_upgrade():
+		return false
+	level += 1
+	_apply_upgrade_effects()
+	return true
 
 func repair(amount: int) -> void:
-    durability = mini(durability + amount, max_durability)
+	durability = mini(durability + amount, max_durability)
 func take_damage(amount: int) -> void:
-    durability = maxi(0, durability - amount)
-    if durability == 0:
-        deactivate()
+	durability = maxi(0, durability - amount)
+	if durability == 0:
+		deactivate()
 func activate() -> void:
-    is_active = true
+	is_active = true
 func deactivate() -> void:
-    is_active = false
+	is_active = false
 func get_efficiency() -> float:
-    var base_efficiency = efficiency * (float(durability) / float(max_durability))
-    return base_efficiency * (1.0 + (level - 1) * 0.2)
+	var base_efficiency = efficiency * (float(durability) / float(max_durability))
+	return base_efficiency * (1.0 + (level - 1) * 0.2)
 
 func get_power_consumption() -> int:
-    return power_draw * level
+	return power_draw * level
 
 func get_maintenance_cost() -> int:
-    return maintenance_cost * level
+	return maintenance_cost * level
 
 func get_upgrade_cost() -> int:
-    return upgrade_cost * level
+	return upgrade_cost * level
 
 func add_status_effect(effect: Dictionary) -> void:
-    if not status_effects.has(effect):
-        status_effects.append(effect) # warning: return value discarded (intentional)
+	if not status_effects.has(effect):
+		status_effects.append(effect)
 
 func remove_status_effect(effect: Dictionary) -> void:
-    status_effects.erase(effect)
+	status_effects.erase(effect)
+
 func clear_status_effects() -> void:
-    status_effects.clear()
+	status_effects.clear()
+	status_effects.clear()
 func _apply_upgrade_effects() -> void:
-    efficiency += 0.2
-    max_durability += 25
-    durability = max_durability
-    maintenance_cost = get_maintenance_cost()
-    power_draw = get_power_consumption()
+	efficiency += 0.2
+	max_durability += 25
+	durability = max_durability
+	maintenance_cost = get_maintenance_cost()
+	power_draw = get_power_consumption()
 func serialize() -> Dictionary:
-    return {
-        "name": component_name,
-        "description": component_description,
-        "cost": component_cost,
-        "level": level,
-        "max_level": max_level,
-        "is_active": is_active,
-        "upgrade_cost": upgrade_cost,
-        "maintenance_cost": maintenance_cost,
-        "durability": durability,
-        "max_durability": max_durability,
-        "efficiency": efficiency,
-        "power_draw": power_draw,
-        "status_effects": status_effects
-    }
+	return {
+		"name": component_name,
+		"description": component_description,
+		"cost": component_cost,
+		"level": level,
+		"max_level": max_level,
+		"is_active": is_active,
+		"upgrade_cost": upgrade_cost,
+		"maintenance_cost": maintenance_cost,
+		"durability": durability,
+		"max_durability": max_durability,
+		"efficiency": efficiency,
+		"power_draw": power_draw,
+		"status_effects": status_effects
+	}
 
 static func deserialize(data: Dictionary) -> BaseShipComponent:
-    var component := BaseShipComponent.new()
+	var component := BaseShipComponent.new()
 
-    component.component_name = data.get("name", "")
+	component.component_name = data.get("name", "")
 
-    component.component_description = data.get("description", "")
+	component.component_description = data.get("description", "")
 
-    component.component_cost = data.get("cost", 0)
+	component.component_cost = data.get("cost", 0)
 
-    component.level = data.get("level", 1)
+	component.level = data.get("level", 1)
 
-    component.max_level = data.get("max_level", 3)
+	component.max_level = data.get("max_level", 3)
 
-    component.is_active = data.get("is_active", true)
+	component.is_active = data.get("is_active", true)
 
-    component.upgrade_cost = data.get("upgrade_cost", 100)
+	component.upgrade_cost = data.get("upgrade_cost", 100)
 
-    component.maintenance_cost = data.get("maintenance_cost", 10)
+	component.maintenance_cost = data.get("maintenance_cost", 10)
 
-    component.durability = data.get("durability", 100)
+	component.durability = data.get("durability", 100)
 
-    component.max_durability = data.get("max_durability", 100)
+	component.max_durability = data.get("max_durability", 100)
 
-    component.efficiency = data.get("efficiency", 1.0)
+	component.efficiency = data.get("efficiency", 1.0)
 
-    component.power_draw = data.get("power_draw", 1)
+	component.power_draw = data.get("power_draw", 1)
 
-    component.status_effects = data.get("status_effects", [])
-    return component
+	component.status_effects = data.get("status_effects", [])
+	return component
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

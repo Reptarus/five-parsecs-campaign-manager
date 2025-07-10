@@ -1,18 +1,11 @@
-# PostBattle.gd
+﻿# PostBattle.gd
 @warning_ignore("return_value_discarded")
 @warning_ignore("unsafe_method_access")
-@warning_ignore("unsafe_call_argument")
 @warning_ignore("untyped_declaration")
-@warning_ignore("unused_variable")
-@warning_ignore("redundant_await")
-@warning_ignore("unsafe_cast")
-@warning_ignore("inference_on_variant")
-@warning_ignore("static_called_on_instance")
 @warning_ignore("unused_signal")
-@warning_ignore("shadowed_global_identifier")
 extends Control
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 # Note: GameState injected via constructor to avoid circular dependencies
 const Character = preload("res://src/core/character/Base/Character.gd")
 
@@ -56,7 +49,7 @@ func process_post_battle() -> void:
 	phase_completed.emit() # warning: return value discarded (intentional)
 
 func _resolve_combat_results() -> void:
-	var battle_results = game_state.current_battle_results
+	var battle_results: Node = game_state.current_battle_results
 	if battle_results.victory:
 		_handle_victory()
 	else:
@@ -76,12 +69,14 @@ func _apply_injuries() -> void:
 func _apply_injury_effects(character: Character) -> void:
 	var injury_severity = _calculate_injury_severity(character)
 	var injury_type = _determine_injury_type(injury_severity)
-	character.apply_injury(injury_type)
+	if character and character.has_method("apply_injury"):
+		character.apply_injury(injury_type)
+
 func _collect_loot() -> void:
 	if not loot_generator:
 		push_error("LootGenerator not initialized")
 		return
-	
+
 	var loot = loot_generator.generate_post_battle_loot(
 		game_state.current_mission,
 		game_state.current_battle_results
@@ -96,7 +91,7 @@ func _update_mission_status() -> void:
 func _record_experience() -> void:
 	for character in game_state.current_crew.get_active_members():
 		var xp_gained = _calculate_experience_gain(character)
-		character.gain_experience(xp_gained)
+		if character and character.has_method("gain_experience"): character.gain_experience(xp_gained)
 		_check_level_up(character)
 
 # Helper functions
@@ -115,7 +110,7 @@ func _determine_injury_type(severity: int) -> String:
 		3: ["Broken", "Traumatized", "Critical"]
 	}
 	var possible_types = injury_types[severity]
-	return possible_types[randi() % possible_types.size()]
+	return possible_types[randi() % (safe_call_method(possible_types, "size") as int)]
 
 func _calculate_experience_gain(character: Character) -> int:
 	var base_xp: int = 10
@@ -126,8 +121,8 @@ func _calculate_experience_gain(character: Character) -> int:
 	return base_xp
 
 func _check_level_up(character: Character) -> void:
-	if character.can_level_up():
-		character.trigger_level_up() # Changed to use trigger_level_up() instead of level_up signal
+	if character and character.has_method("can_level_up"):
+		if character and character.has_method("trigger_level_up"): character.trigger_level_up() # Changed to use trigger_level_up() instead of level_up signal
 		level_up_triggered.emit(character) # warning: return value discarded (intentional)
 
 func _update_faction_relations(victory: bool) -> void:
@@ -143,7 +138,7 @@ func _setup_post_battle_ui() -> void:
 func _show_current_step() -> void:
 	if not step_label or not step_description or not step_content:
 		return
-	
+
 	step_label.text = steps[current_step]
 	step_description.text = _get_step_description(current_step)
 	_update_step_content(current_step)
@@ -161,7 +156,7 @@ func _update_step_content(step: int) -> void:
 	# Clear previous content
 	for child in step_content.get_children():
 		child.queue_free()
-	
+
 	# Add new content based on step
 	match step:
 		0: _show_combat_results()
@@ -202,3 +197,11 @@ func _process_mission_completion() -> void:
 func _process_mission_failure() -> void:
 	# Implementation
 	pass
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

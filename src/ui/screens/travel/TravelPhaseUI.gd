@@ -1,4 +1,4 @@
-extends Control
+﻿extends Control
 
 ## Travel Phase UI for Five Parsecs Campaign Manager
 ## Handles upkeep and travel decisions for the campaign turn flow
@@ -36,9 +36,9 @@ func _ready() -> void:
 
 func _initialize_managers() -> void:
 	"""Initialize manager references from autoloads"""
-	alpha_manager = get_node("/root/AlphaGameManager") if has_node("/root/AlphaGameManager") else null
+	alpha_manager = get_node("/root/FPCM_AlphaGameManager") if has_node("/root/FPCM_AlphaGameManager") else null
 	campaign_manager = get_node("/root/CampaignManager") if has_node("/root/CampaignManager") else null
-	
+
 	if alpha_manager and alpha_manager.has_method("get_upkeep_system"):
 		upkeep_system = alpha_manager.get_upkeep_system()
 
@@ -76,11 +76,11 @@ func _update_upkeep_display() -> void:
 		upkeep_button.text = "Perform Upkeep (No Data)"
 		upkeep_button.disabled = true
 		return
-	
+
 	# Clear existing upkeep details
 	for child in upkeep_details.get_children():
 		child.queue_free()
-	
+
 	# Get upkeep costs
 	var upkeep_costs = upkeep_system.calculate_upkeep_costs(campaign_data)
 
@@ -90,16 +90,16 @@ func _update_upkeep_display() -> void:
 
 	var ship_cost = upkeep_costs.get("ship_cost", 0)
 	var current_credits = campaign_data.get_meta("credits", 0) if campaign_data else 0
-	
+
 	# Create upkeep cost display
 	var cost_label: Label = Label.new()
 	cost_label.text = "Upkeep Costs:\n• Crew: %d credits\n• Ship: %d credits\n• Total: %d credits" % [crew_cost, ship_cost, total_cost]
 	upkeep_details.add_child(cost_label)
-	
+
 	var credits_label: Label = Label.new()
 	credits_label.text = "Current Credits: %d" % current_credits
 	upkeep_details.add_child(credits_label)
-	
+
 	# Update button state
 	if current_credits >= total_cost:
 		upkeep_button.text = "Pay Upkeep (%d credits)" % total_cost
@@ -120,8 +120,8 @@ func _on_upkeep_button_pressed() -> void:
 	if not upkeep_system or not campaign_data:
 		_add_log_entry("Error: Cannot perform upkeep - missing data")
 		return
-	
-	var result = upkeep_system.perform_upkeep(campaign_data)
+
+	var result: Variant = upkeep_system.perform_upkeep(campaign_data)
 
 	if result.get("success", false):
 		is_upkeep_completed = true
@@ -130,8 +130,7 @@ func _on_upkeep_button_pressed() -> void:
 		_add_log_entry("Upkeep completed successfully")
 		_advance_to_travel()
 	else:
-
-		var error = result.get("error", "Unknown error")
+		var error: int = result.get("error", "Unknown error")
 		_add_log_entry("Upkeep failed: %s" % error)
 
 func _advance_to_travel() -> void:
@@ -139,7 +138,7 @@ func _advance_to_travel() -> void:
 	current_step = 1
 	step_label.text = "Step 2: Travel Decision"
 	tab_container.current_tab = 1
-	upkeep_completed.emit()  # warning: return value discarded (intentional)
+	upkeep_completed.emit()
 
 func _on_stay_button_pressed() -> void:
 	"""Handle stay in current location"""
@@ -161,7 +160,7 @@ func _on_next_event_button_pressed() -> void:
 func _complete_travel_phase() -> void:
 	"""Complete the travel phase"""
 	next_button.disabled = false
-	travel_completed.emit()  # warning: return value discarded (intentional)
+	travel_completed.emit() # warning: return value discarded (intentional)
 	_add_log_entry("Travel phase completed")
 
 func _on_back_button_pressed() -> void:
@@ -176,7 +175,7 @@ func _on_back_button_pressed() -> void:
 func _on_next_button_pressed() -> void:
 	"""Handle next button press"""
 	if is_upkeep_completed and travel_decision_made:
-		phase_completed.emit()  # warning: return value discarded (intentional)
+		phase_completed.emit() # warning: return value discarded (intentional)
 		_add_log_entry("Travel phase complete - advancing to World phase")
 
 func _on_upkeep_calculated(costs: Dictionary) -> void:
@@ -197,3 +196,22 @@ func load_campaign_data(data: Resource) -> void:
 	campaign_data = data
 	_update_upkeep_display()
 
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

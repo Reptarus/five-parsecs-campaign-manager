@@ -1,4 +1,4 @@
-## Handles tactical decision making for enemy units in combat
+﻿## Handles tactical decision making for enemy units in combat
 class_name FPCM_EnemyTacticalAI
 extends Node
 
@@ -63,16 +63,16 @@ func make_tactical_decision(enemy: Character) -> Dictionary:
 	if not enemy in _enemy_personalities:
 		push_warning("EnemyTacticalAI: Enemy not initialized with AI")
 		return {}
-		
+
 	var personality: AIPersonality = _enemy_personalities[enemy]
-	
+
 	# Update threat assessment
 	_update_threat_assessment(enemy)
-	
+
 	# Check for group coordination
 	if _tactical_states[enemy].group:
 		return _make_group_decision(enemy, _tactical_states[enemy].group)
-	
+
 	# Make individual decision based on personality
 	match personality:
 		AIPersonality.AGGRESSIVE:
@@ -92,13 +92,13 @@ func make_tactical_decision(enemy: Character) -> Dictionary:
 func _update_threat_assessment(enemy: Object) -> void:
 	var threats: Dictionary = {}
 	var enemy_pos: Vector2 = battlefield_manager.get_character_position(enemy)
-	
+
 	for target in battlefield_manager.get_player_characters():
 		var target_pos: Vector2 = battlefield_manager.get_character_position(target)
 		var distance: float = enemy_pos.distance_to(target_pos)
 		var threat_score: float = _calculate_threat_score(target, distance)
 		threats[target] = threat_score
-	
+
 	_threat_assessments[enemy] = threats
 	_tactical_states[enemy].threat_level = threats.values().max()
 
@@ -107,36 +107,36 @@ func _calculate_threat_score(target: Object, distance: float) -> float:
 	var base_threat: float = target.get_combat_rating()
 	var distance_factor: float = 1.0 / max(1.0, distance)
 	var health_factor: float = float(target.get_health()) / float(target.get_max_health())
-	
+
 	return base_threat * distance_factor * health_factor
 
 ## Makes a decision for aggressive personality
 func _make_aggressive_decision(enemy: Object) -> Dictionary:
 	var threats: Dictionary = _threat_assessments[enemy]
-	
+
 	# Find closest high-threat target
 	var best_target: Object = null
 	var highest_threat: float = 0.0
-	
+
 	for target in threats:
 		var threat_score: float = threats[target]
 		if threat_score > highest_threat:
 			highest_threat = threat_score
 			best_target = target
-	
+
 	if best_target:
 		return {
 			"action": GlobalEnums.UnitAction.ATTACK,
 			"target": best_target,
 			"tactic": GlobalEnums.CombatTactic.AGGRESSIVE
 		}
-	
+
 	return _make_default_decision(enemy)
 
 ## Makes a decision for cautious personality
 func _make_cautious_decision(enemy: Object) -> Dictionary:
 	var safe_positions: Array[Vector2] = _find_safe_positions(enemy)
-	
+
 	if not safe_positions.is_empty():
 		var best_pos: Vector2 = safe_positions[0]
 		return {
@@ -144,14 +144,14 @@ func _make_cautious_decision(enemy: Object) -> Dictionary:
 			"position": best_pos,
 			"tactic": GlobalEnums.CombatTactic.DEFENSIVE
 		}
-	
+
 	return _make_default_decision(enemy)
 
 ## Makes a decision for tactical personality
 func _make_tactical_decision(enemy: Object) -> Dictionary:
 	# Analyze battlefield situation
 	var situation: String = _analyze_battlefield_situation(enemy)
-	
+
 	match situation:
 		"advantageous":
 			return _make_aggressive_decision(enemy)
@@ -159,7 +159,7 @@ func _make_tactical_decision(enemy: Object) -> Dictionary:
 			return _make_cautious_decision(enemy)
 		"neutral":
 			return _make_balanced_decision(enemy)
-	
+
 	return _make_default_decision(enemy)
 
 ## Makes a decision for protective personality
@@ -167,14 +167,14 @@ func _make_protective_decision(enemy: Object) -> Dictionary:
 	# Find allies to protect
 	var allies: Array = _find_nearby_allies(enemy)
 	var threatened_ally: Object = _find_most_threatened_ally(allies)
-	
+
 	if threatened_ally:
 		return {
 			"action": GlobalEnums.UnitAction.MOVE,
 			"target": threatened_ally,
 			"tactic": GlobalEnums.CombatTactic.DEFENSIVE
 		}
-	
+
 	return _make_default_decision(enemy)
 
 ## Makes an unpredictable decision
@@ -199,7 +199,7 @@ func _make_default_decision(enemy: Object) -> Dictionary:
 func _make_group_decision(enemy: Object, group: Array) -> Dictionary:
 	var group_state: Dictionary = _analyze_group_state(group)
 	var group_tactic: GroupTactic = _determine_group_tactic(group_state)
-	
+
 	match group_tactic:
 		GroupTactic.COORDINATED_ATTACK:
 			return _coordinate_group_attack(enemy, group)
@@ -217,73 +217,70 @@ func _find_safe_positions(enemy: Object) -> Array[Vector2]:
 	var safe_positions: Array[Vector2] = []
 	var current_pos: Vector2 = battlefield_manager.get_character_position(enemy)
 	var movement_range: int = enemy.get_movement_range()
-	
+
 	# Analyze positions within movement range
-	for x in range(-movement_range, movement_range + 1):
-		for y in range(-movement_range, movement_range + 1):
+	for x: int in range(-movement_range, movement_range + 1):
+		for y: int in range(-movement_range, movement_range + 1):
 			var test_pos: Vector2 = Vector2(current_pos.x + x, current_pos.y + y)
 			if _is_position_safe(enemy, test_pos):
-				safe_positions.append(test_pos) # warning: return value discarded (intentional)
-	
+				safe_positions.append(test_pos)
+
 	return safe_positions
 
 ## Checks if a position is safe
 func _is_position_safe(enemy: Object, position: Vector2) -> bool:
 	if not battlefield_manager.is_valid_position(position):
 		return false
-		
+
 	# Check for cover
 	var has_cover: bool = battlefield_manager.position_has_cover(position)
-	
+
 	# Check enemy lines of sight
 	var exposed_to_enemies: bool = false
 	for target in battlefield_manager.get_player_characters():
 		if battlefield_manager.check_line_of_sight(position, battlefield_manager.get_character_position(target)):
 			exposed_to_enemies = true
 			break
-	
+
 	return has_cover and not exposed_to_enemies
 
 ## Finds nearby allies
 func _find_nearby_allies(enemy: Object) -> Array:
 	var allies: Array = []
 	var enemy_pos: Vector2 = battlefield_manager.get_character_position(enemy)
-	
+
 	for other in battlefield_manager.get_enemy_characters():
 		if other == enemy:
 			continue
-			
+
 		var other_pos: Vector2 = battlefield_manager.get_character_position(other)
 		if enemy_pos.distance_to(other_pos) <= 5: # 5 tile radius
-			allies.append(other) # warning: return value discarded (intentional)
-	
+			allies.append(other)
+
 	return allies
 
 ## Finds the most threatened ally
 func _find_most_threatened_ally(allies: Array) -> Object:
 	var most_threatened: Object = null
 	var highest_threat: float = 0.0
-	
+
 	for ally in allies:
 		var threat: float = _tactical_states.get(ally, {}).get("threat_level", 0.0)
 		if threat > highest_threat:
 			highest_threat = threat
 			most_threatened = ally
-	
+
 	return most_threatened
 
 ## Analyzes the battlefield situation
 func _analyze_battlefield_situation(enemy: Object) -> String:
 	var enemy_strength: float = _calculate_force_strength([enemy])
 	# Convert the array to the expected type
-	var player_characters = battlefield_manager.get_player_characters()
-	var player_characters_converted: Array = []
-	for character in player_characters:
-		player_characters_converted.append(character) # warning: return value discarded (intentional)
-	var player_strength: float = _calculate_force_strength(player_characters_converted)
-	
+	var player_characters: Array[Character] = battlefield_manager.get_player_characters()
+	var player_strength: float = _calculate_force_strength(player_characters)
+
 	var strength_ratio: float = enemy_strength / max(1.0, player_strength)
-	
+
 	if strength_ratio > 1.2:
 		return "advantageous"
 	elif strength_ratio < 0.8:
@@ -294,17 +291,17 @@ func _analyze_battlefield_situation(enemy: Object) -> String:
 ## Calculates total force strength
 func _calculate_force_strength(forces: Array) -> float:
 	var total_strength := 0.0
-	
+
 	for unit in forces:
 		var health_ratio := float(unit.get_health()) / float(unit.get_max_health())
 		total_strength += unit.get_combat_rating() * health_ratio
-	
+
 	return total_strength
 
 ## Makes a balanced decision
 func _make_balanced_decision(enemy: Object) -> Dictionary:
 	var safe_positions: Array[Vector2] = _find_safe_positions(enemy)
-	
+
 	if not safe_positions.is_empty():
 		var best_pos: Vector2 = safe_positions[0]
 		return {
@@ -312,7 +309,7 @@ func _make_balanced_decision(enemy: Object) -> Dictionary:
 			"position": best_pos,
 			"tactic": GlobalEnums.CombatTactic.NONE
 		}
-	
+
 	return _make_default_decision(enemy)
 
 ## Analyzes the state of a group
@@ -320,13 +317,13 @@ func _analyze_group_state(group: Array) -> Dictionary:
 	var group_health := 0.0
 	var group_strength := 0.0
 	var group_positions: Array[Vector2] = []
-	
+
 	for member in group:
 		group_health += float(member.get_health()) / float(member.get_max_health())
 		group_strength += member.get_combat_rating()
 
-		group_positions.append(battlefield_manager.get_character_position(member)) # warning: return value discarded (intentional)
-	
+		group_positions.append(battlefield_manager.get_character_position(member))
+
 	return {
 		"average_health": group_health / float(group.size()),
 		"total_strength": group_strength,
@@ -341,7 +338,7 @@ func _determine_group_tactic(group_state: Dictionary) -> GroupTactic:
 	var total_strength: float = group_state.get("total_strength", 0.0)
 
 	var size: int = group_state.get("size", 0)
-	
+
 	if average_health > 0.7 and total_strength > 10.0:
 		return GroupTactic.COORDINATED_ATTACK
 	elif average_health < 0.3:
@@ -356,7 +353,7 @@ func _coordinate_group_attack(enemy: Object, group: Array) -> Dictionary:
 	var target := _find_best_group_target(group)
 	if not target:
 		return _make_default_decision(enemy)
-	
+
 	return {
 		"action": GlobalEnums.UnitAction.MOVE,
 		"target": target,
@@ -367,7 +364,7 @@ func _coordinate_group_attack(enemy: Object, group: Array) -> Dictionary:
 ## Coordinates group defense
 func _coordinate_group_defense(enemy: Object, group: Array) -> Dictionary:
 	var defensive_position := _find_best_defensive_position(group)
-	
+
 	return {
 		"action": GlobalEnums.UnitAction.MOVE,
 		"position": defensive_position,
@@ -380,9 +377,9 @@ func _coordinate_group_flanking(enemy: Object, group: Array) -> Dictionary:
 	var target := _find_best_group_target(group)
 	if not target:
 		return _make_default_decision(enemy)
-	
+
 	var flank_position := _calculate_flank_position(target, enemy)
-	
+
 	return {
 		"action": GlobalEnums.UnitAction.MOVE,
 		"position": flank_position,
@@ -396,7 +393,7 @@ func _coordinate_group_suppression(enemy: Object, group: Array) -> Dictionary:
 	var target := _find_best_group_target(group)
 	if not target:
 		return _make_default_decision(enemy)
-	
+
 	return {
 		"action": GlobalEnums.UnitAction.MOVE,
 		"target": target,
@@ -409,96 +406,115 @@ func _coordinate_group_suppression(enemy: Object, group: Array) -> Dictionary:
 func _find_best_group_target(group: Array) -> Object:
 	var best_target: Object = null
 	var highest_priority := 0.0
-	
+
 	for target in battlefield_manager.get_player_characters():
 		var priority := _calculate_group_target_priority(target, group)
 		if priority > highest_priority:
 			highest_priority = priority
 			best_target = target
-	
+
 	return best_target
 
 ## Calculates target priority for a group
 func _calculate_group_target_priority(target: Object, group: Array) -> float:
 	var priority: float = 0.0
-	
+
 	for member in group:
 		var member_pos: Vector2 = battlefield_manager.get_character_position(member)
 		var target_pos: Vector2 = battlefield_manager.get_character_position(target)
 		var distance: float = member_pos.distance_to(target_pos)
 		priority += _calculate_threat_score(target, distance)
-	
-	return priority / float(group.size())
+
+	return priority / float((safe_call_method(group, "size") as int))
 
 ## Finds best defensive position for a group
 func _find_best_defensive_position(group: Array) -> Vector2:
 	var center := Vector2.ZERO
-	
+
 	for member in group:
 		center += battlefield_manager.get_character_position(member)
-	
+
 	center /= float(group.size())
-	
+
 	# Find nearest position with cover
 	var best_pos := center
 	var best_cover := 0.0
-	
-	for x in range(-5, 6):
-		for y in range(-5, 6):
+
+	for x: int in range(-5, 6):
+		for y: int in range(-5, 6):
 			var test_pos := Vector2(center.x + x, center.y + y)
 			if battlefield_manager.is_valid_position(test_pos):
 				var cover: float = float(battlefield_manager.get_cover_value(test_pos))
 				if cover > best_cover:
 					best_cover = cover
 					best_pos = test_pos
-	
+
 	return best_pos
 
 ## Calculates flanking position
 func _calculate_flank_position(target: Object, flanker: Object) -> Vector2:
 	var target_pos: Vector2 = battlefield_manager.get_character_position(target)
 	var flanker_pos: Vector2 = battlefield_manager.get_character_position(flanker)
-	
+
 	# Calculate position behind target
 	var direction: Vector2 = (target_pos - flanker_pos).normalized()
 	var flank_pos: Vector2 = target_pos + direction * 3.0 # 3 tiles behind target
-	
+
 	# Ensure position is valid
 	if not battlefield_manager.is_valid_position(flank_pos):
 		return _find_nearest_valid_position(flank_pos)
-	
+
 	return flank_pos
 
 ## Finds nearest valid position
 func _find_nearest_valid_position(position: Vector2) -> Vector2:
 	var radius := 1
 	var max_radius := 5
-	
+
 	while radius <= max_radius:
-		for x in range(-radius, radius + 1):
-			for y in range(-radius, radius + 1):
+		for x: int in range(-radius, radius + 1):
+			for y: int in range(-radius, radius + 1):
 				var test_pos := Vector2(position.x + x, position.y + y)
 				if battlefield_manager.is_valid_position(test_pos):
 					return test_pos
 		radius += 1
-	
+
 	return position # Return original position if no valid position found
 
 func _find_best_cover_position(character: Character, center: Vector2, radius: float) -> Vector2:
 	var best_cover: float = 0.0
 	var best_pos: Vector2 = center
-	
+
 	# Check positions in a grid within the radius
-	for x in range(-int(radius), int(radius) + 1):
-		for y in range(-int(radius), int(radius) + 1):
+	for x: int in range(-int(radius), int(radius) + 1):
+		for y: int in range(-int(radius), int(radius) + 1):
 			if Vector2(x, y).length() > radius:
 				continue
-				
+
 			var test_pos := Vector2(center.x + x, center.y + y)
 			if battlefield_manager.is_valid_position(test_pos):
 				var cover: float = float(battlefield_manager.get_cover_value(test_pos))
 				if cover > best_cover:
 					best_cover = cover
 					best_pos = test_pos
-	
+
 	return best_pos
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

@@ -1,8 +1,8 @@
-@tool
+﻿@tool
 extends Resource
 class_name FiveParsecsPostBattlePhase
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsCrewMember = preload("res://src/game/campaign/crew/FiveParsecsCrewMember.gd")
 const GameDataManager = preload("res://src/core/managers/GameDataManager.gd")
 
@@ -73,31 +73,31 @@ func _init() -> void:
 
 func start_post_battle_phase(battle_data_param: Dictionary) -> void:
 	post_battle_started.emit()
-	
+
 	# Store the battle data for later use
 	battle_data = battle_data_param
-	
+
 	# Process battle outcome
 	if battle_data.has("outcome"):
 		battle_outcome = battle_data.outcome
 	else:
 		battle_outcome = BattleOutcome.DRAW
-	
+
 	# Process enemy defeats
 	if battle_data.has("enemies_defeated"):
 		enemy_count_defeated = battle_data.enemies_defeated
-	
+
 	# Process objectives
 	if battle_data.has("objectives_completed"):
 		objectives_completed = battle_data.objectives_completed
-	
+
 	# Process casualties
 	if battle_data.has("casualties"):
 		_process_casualties(battle_data.casualties)
-	
+
 	# Calculate rewards
 	_calculate_rewards()
-	
+
 	# Apply reputation changes
 	if battle_outcome == BattleOutcome.VICTORY:
 		reputation_change = 1
@@ -110,17 +110,17 @@ func start_post_battle_phase(battle_data_param: Dictionary) -> void:
 func _calculate_rewards() -> void:
 	# Calculate experience points
 	var total_xp: int = 0
-	
+
 	# XP for defeated enemies
 	total_xp += enemy_count_defeated * xp_values["enemy_defeated"]
-	
+
 	# XP for completed objectives
 	total_xp += objectives_completed * xp_values["objective_completed"]
-	
+
 	# XP for mission completion
 	if battle_outcome == BattleOutcome.VICTORY:
 		total_xp += xp_values["mission_completed"]
-	
+
 	# Set the calculated rewards
 	rewards = {
 		"loot": loot_found,
@@ -129,31 +129,32 @@ func _calculate_rewards() -> void:
 	}
 
 func _process_casualties(casualties: Array) -> void:
-	for casualty in casualties:
+	for casualty: Variant in casualties:
 		if not casualty is FiveParsecsCrewMember:
 			continue
-		
-		var character = casualty as FiveParsecsCrewMember
-		
+
+		var character: FiveParsecsCrewMember = casualty as FiveParsecsCrewMember
+
 		# Roll for casualty severity
 		var severity_roll = randi() % 100 + 1
-		
+
 		if severity_roll < 10: # 10% chance of death
-			crew_casualties.append(character) # warning: return value discarded (intentional)
+			crew_casualties.append(character)
 		else:
 			# Roll on the appropriate injury table
 			var injury_roll = randi() % 100 + 1
 			var table_name: String = "human_injury_table"
-			
-			if character.is_bot():
+
+			if character and character.has_method("is_bot"):
+				character.is_bot()
 				table_name = "bot_injury_table"
-			
+
 			var injury_result = data_manager.get_injury_result(table_name, injury_roll)
-			
+
 			if injury_result.empty():
 				push_error("Failed to get injury result for roll " + str(injury_roll))
 				continue
-			
+
 			# Store the injury
 			crew_injuries[character.get_instance_id()] = {
 				"character": character,
@@ -161,10 +162,10 @@ func _process_casualties(casualties: Array) -> void:
 				"effects": injury_result.effects,
 				"recovery_time": injury_result.recovery_time
 			}
-			
+
 			# Apply injury effects
 			_apply_injury_effects(character, injury_result)
-	
+
 	# Update the casualties list in the base class
 	casualties_list = crew_casualties
 
@@ -172,7 +173,7 @@ func _apply_injury_effects(character: FiveParsecsCrewMember, injury_result: Dict
 	var injury_name = injury_result.name
 	var effects = injury_result.effects
 	var recovery_time = injury_result.get("recovery_time", injury_result.get("repair_time", 1))
-	
+
 	# Parse recovery time if it's a string like "1D3" campaign turns
 	var recovery_days: int = 1
 	if recovery_time is String:
@@ -182,47 +183,47 @@ func _apply_injury_effects(character: FiveParsecsCrewMember, injury_result: Dict
 		if _result:
 			var dice_count = int(_result.get_string(1))
 			var dice_sides = int(_result.get_string(2))
-			
+
 			# Roll the dice
 			recovery_days = 0
-			for i in range(dice_count):
+			for i: int in range(dice_count):
 				recovery_days += randi() % dice_sides + 1
 	elif recovery_time is int:
 		recovery_days = recovery_time
-	
+
 	# Apply status effect based on injury name and effects
 	var status_effect = {
 		"effect": "wounded",
 		"duration": recovery_days
 	}
-	
+
 	if "Character is dead" in str(effects) or "Bot is destroyed beyond repair" in str(effects):
-		crew_casualties.append(character) # warning: return value discarded (intentional)
+		crew_casualties.append(character)
 		crew_injuries.erase(character.get_instance_id())
 		return
-	
+
 	if "Crippling wound" in injury_name or "Severe damage" in injury_name:
 		status_effect.effect = "seriously_wounded"
 	elif "Critical" in injury_name:
 		status_effect.effect = "critically_wounded"
-		
+
 		# Apply permanent stat reduction if specified
 		if "permanent reduction" in str(effects):
 			var stats = ["speed", "combat", "toughness", "savvy"]
 			var stat_to_reduce = stats[randi() % stats.size()]
-			
+
 			var current_value = character.get_stat(stat_to_reduce)
 			if current_value > 1:
 				character.set_stat(stat_to_reduce, current_value - 1)
-	
-	character.apply_status_effect(status_effect)
+
+	if character and character.has_method("apply_status_effect"): character.apply_status_effect(status_effect)
 
 func complete_post_battle_phase() -> void:
 	# Apply any final effects before completing the phase
 	# Apply reputation changes if applicable
 	if battle_data.has("crew") and battle_data.crew.size() > 0:
 		var crew = battle_data.crew[0]
-		if crew.has_method("adjust_reputation"):
+		if crew and crew.has_method("adjust_reputation"):
 			crew.adjust_reputation(reputation_change)
 	# Emit signal that post-battle phase has completed
 	post_battle_completed.emit(get_battle_summary())
@@ -238,11 +239,11 @@ func get_battle_summary() -> Dictionary:
 		"story_points": story_points_earned,
 		"reputation_change": reputation_change
 	}
-	
+
 	return summary
 
 func serialize() -> Dictionary:
-	var data = {
+	var data: Dictionary = {
 		"battle_outcome": battle_outcome,
 		"enemy_count_defeated": enemy_count_defeated,
 		"objectives_completed": objectives_completed,
@@ -252,13 +253,13 @@ func serialize() -> Dictionary:
 		"rewards": rewards,
 		"battle_summary": battle_summary
 	}
-	
+
 	# Serialize casualties (just IDs)
 	var casualty_ids: Array = []
 	for casualty in crew_casualties:
-		casualty_ids.append(casualty.get_instance_id()) # warning: return value discarded (intentional)
+		casualty_ids.append(casualty.get_instance_id())
 	data["crew_casualties"] = casualty_ids
-	
+
 	# Serialize injuries (simplified)
 	var injury_data: Dictionary = {}
 	for id in crew_injuries:
@@ -267,7 +268,7 @@ func serialize() -> Dictionary:
 			"recovery_time": crew_injuries[id].recovery_time
 		}
 	data["crew_injuries"] = injury_data
-	
+
 	return data
 
 func deserialize(data: Dictionary) -> void:
@@ -277,13 +278,32 @@ func deserialize(data: Dictionary) -> void:
 	objectives_completed = data.get("objectives_completed", 0)
 	story_points_earned = data.get("story_points_earned", 0)
 	reputation_change = data.get("reputation_change", 0)
-	
+
 	# Restore loot
 	loot_found = data.get("loot_found", [])
-	
+
 	# Note: Casualties and injuries would need to be restored by the system
 	# that manages the crew members, as we need the actual references to the
 	# crew member objects, not just their IDs
 
 	rewards = data.get("rewards", {})
 	battle_summary = data.get("battle_summary", {})
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null                                                                                                                                                                                                

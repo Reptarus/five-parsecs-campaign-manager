@@ -1,4 +1,4 @@
-extends Resource
+﻿extends Resource
 
 # Base Stats
 @export var reactions: int = 3
@@ -33,10 +33,10 @@ func reset_to_base_stats() -> void:
 	savvy = 3
 	luck = 3
 	level = 1
-	
+
 	_recalculate_max_health()
 	current_health = max_health
-	
+
 	stat_modifiers.clear()
 	stat_modifiers = {
 		"reactions": 0,
@@ -126,8 +126,27 @@ func deserialize(data: Dictionary) -> void:
 	max_health = data.get("max_health", 10)
 
 	current_health = data.get("current_health", max_health)
-	
+
 	stat_modifiers.clear()
 
 	for key in data.get("stat_modifiers", {}).keys():
 		stat_modifiers[key] = data.stat_modifiers[key]
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

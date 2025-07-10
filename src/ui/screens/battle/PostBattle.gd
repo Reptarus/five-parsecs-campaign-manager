@@ -1,4 +1,4 @@
-extends Control
+﻿extends Control
 
 ## PostBattle UI for Five Parsecs Campaign Manager
 ## Handles post-battle results, rewards, and progression
@@ -25,7 +25,7 @@ func _ready() -> void:
 
 func _initialize_managers() -> void:
 	"""Initialize manager references from autoloads"""
-	alpha_manager = get_node("/root/AlphaGameManager") if has_node("/root/AlphaGameManager") else null
+	alpha_manager = get_node("/root/FPCM_AlphaGameManager") if has_node("/root/FPCM_AlphaGameManager") else null
 	campaign_manager = get_node("/root/CampaignManager") if has_node("/root/CampaignManager") else null
 
 func _connect_signals() -> void:
@@ -48,12 +48,12 @@ func _process_battle_results() -> void:
 	if not alpha_manager:
 		print("No alpha manager available for post-battle processing")
 		return
-	
+
 	# Get battle outcome
 	var victory = battle_results.get("victory", false)
 	var _casualties: Array = battle_results.get("casualties", [])
 	var loot_found: Array = battle_results.get("loot", [])
-	
+
 	# Generate rewards based on outcome
 	rewards_data = {
 		"victory": victory,
@@ -72,18 +72,18 @@ func _calculate_credit_rewards(victory: bool) -> int:
 	if victory:
 		return base_credits
 	else:
-		return base_credits / 2 # Half payment for partial success
+		return base_credits / 2.0 # Half payment for partial success
 
 func _calculate_experience_rewards() -> Dictionary:
 	"""Calculate experience rewards for crew members"""
 	var exp_rewards: Dictionary = {}
 	var crew_data: Array = campaign_data.get_meta("crew", []) if campaign_data else []
-	
+
 	for crew_member in crew_data:
 		var member_id = crew_member.get("id", "")
 		if member_id != "":
 			exp_rewards[member_id] = 1 # Base experience for participation
-	
+
 	return exp_rewards
 
 func _calculate_story_progress(victory: bool) -> int:
@@ -96,39 +96,39 @@ func _calculate_story_progress(victory: bool) -> int:
 func _update_displays() -> void:
 	"""Update the summary and rewards displays"""
 	# Update mission summary
-	if mission_summary and mission_summary.has_method("set_battle_results"):
+	if mission_summary and mission_summary and mission_summary.has_method("set_battle_results"):
 		mission_summary.set_battle_results(battle_results)
-	
+
 	# Update rewards panel
-	if rewards_panel and rewards_panel.has_method("set_rewards"):
+	if rewards_panel and rewards_panel and rewards_panel.has_method("set_rewards"):
 		rewards_panel.set_rewards(rewards_data)
 
 func _apply_rewards_to_campaign() -> void:
 	"""Apply the rewards to the campaign data"""
 	if not campaign_data:
 		return
-	
+
 	# Add credits
 	var current_credits = campaign_data.get_meta("credits", 0)
 	var new_credits = current_credits + rewards_data.get("credits", 0)
 	campaign_data.set_meta("credits", new_credits)
-	
+
 	# Apply experience to crew
 	var experience_rewards = rewards_data.get("experience", {})
 	var crew_data: Array = campaign_data.get_meta("crew", [])
-	for i in range(crew_data.size()):
+	for i: int in range((safe_call_method(crew_data, "size") as int)):
 		var crew_member = crew_data[i]
 		var member_id = crew_member.get("id", "")
 		if member_id in experience_rewards:
 			var current_exp = crew_member.get("experience", 0)
 			crew_member["experience"] = current_exp + experience_rewards[member_id]
 	campaign_data.set_meta("crew", crew_data)
-	
+
 	# Add story progress
 	var current_story_points = campaign_data.get_meta("story_points", 0)
 	var new_story_points = current_story_points + rewards_data.get("story_progress", 0)
 	campaign_data.set_meta("story_points", new_story_points)
-	
+
 	print("Rewards applied to campaign: +%d credits, +%d story points" % [
 		rewards_data.get("credits", 0),
 		rewards_data.get("story_progress", 0)
@@ -142,19 +142,19 @@ func _on_summary_acknowledged() -> void:
 func _on_rewards_claimed() -> void:
 	"""Handle rewards being claimed"""
 	_apply_rewards_to_campaign()
-	results_processed.emit()  # warning: return value discarded (intentional)
+	results_processed.emit()
 	print("Rewards claimed and applied")
-	
+
 	# Auto-advance after a short delay
 	await get_tree().create_timer(1.0).timeout
-	phase_completed.emit()  # warning: return value discarded (intentional)
+	phase_completed.emit()
 
 func get_phase_status() -> Dictionary:
 	"""Get the current phase status"""
 	return {
 		"battle_results": battle_results,
 		"rewards_data": rewards_data,
-		"results_processed": not rewards_data.is_empty()
+		"results_processed": not (safe_call_method(rewards_data, "is_empty") == true)
 	}
 
 func load_campaign_data(data: Resource) -> void:
@@ -164,3 +164,22 @@ func load_campaign_data(data: Resource) -> void:
 	_process_battle_results()
 	_update_displays()
 
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

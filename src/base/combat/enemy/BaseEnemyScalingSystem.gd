@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 extends Node
 class_name BaseEnemyScalingSystem
 
@@ -41,7 +41,7 @@ func initialize(config: Dictionary = {}) -> void:
 		scaling_enabled = config.scaling_enabled
 	if "adaptive_scaling" in config:
 		adaptive_scaling = config.adaptive_scaling
-	
+
 	# Apply scaling factors
 	if "scaling_factors" in config:
 		var factors = config.scaling_factors
@@ -59,30 +59,30 @@ func initialize(config: Dictionary = {}) -> void:
 			special_ability_scaling = factors.special_ability
 		if "quantity" in factors:
 			quantity_scaling = factors.quantity
-	
-	scaling_rules_updated.emit() # warning: return value discarded (intentional)
+
+	scaling_rules_updated.emit()
 
 func scale_enemy(enemy: Node, enemy_type: String = "") -> void:
 	if not scaling_enabled:
 		return
-	
+
 	var current_difficulty = calculate_current_difficulty()
 	var scale_factors = calculate_scale_factors(enemy_type, current_difficulty)
-	
+
 	_apply_scaling(enemy, scale_factors)
-	
-	enemy_scaled.emit(enemy, current_difficulty, scale_factors) # warning: return value discarded (intentional)
+
+	enemy_scaled.emit(enemy, current_difficulty, scale_factors)
 
 func calculate_current_difficulty() -> float:
 	var difficulty = base_difficulty * difficulty_multiplier
-	
+
 	if adaptive_scaling:
 		var performance_factor = player_performance_score * player_performance_weight
 		var mission_factor = mission_progress * mission_progress_weight
 		var game_factor = game_progress * game_progress_weight
-		
+
 		difficulty *= (1.0 + performance_factor + mission_factor + game_factor)
-	
+
 	return difficulty
 
 func calculate_scale_factors(enemy_type: String, difficulty: float) -> Dictionary:
@@ -95,10 +95,10 @@ func calculate_scale_factors(enemy_type: String, difficulty: float) -> Dictionar
 		"special_ability": special_ability_scaling * difficulty,
 		"quantity": quantity_scaling * difficulty
 	}
-	
+
 	# Apply enemy _type specific modifiers
 	_apply_enemy_type_modifiers(factors, enemy_type)
-	
+
 	return factors
 
 func _apply_enemy_type_modifiers(factors: Dictionary, enemy_type: String) -> void:
@@ -112,34 +112,34 @@ func _apply_scaling(enemy: Node, scale_factors: Dictionary) -> void:
 func update_player_performance(performance_data: Dictionary) -> void:
 	if not adaptive_scaling:
 		return
-	
+
 	# Calculate new performance score
 	var new_score = _calculate_performance_score(performance_data)
-	
+
 	# Update performance score with smoothing
 	player_performance_score = lerp(player_performance_score, new_score, 0.3)
-	
+
 	# Update difficulty
 	var new_difficulty = calculate_current_difficulty()
-	difficulty_changed.emit(new_difficulty) # warning: return value discarded (intentional)
+	difficulty_changed.emit(new_difficulty)
 
 func update_mission_progress(progress: float) -> void:
 	mission_progress = clamp(progress, 0.0, 1.0)
-	
+
 	if adaptive_scaling:
 		var new_difficulty = calculate_current_difficulty()
-		difficulty_changed.emit(new_difficulty) # warning: return value discarded (intentional)
+		difficulty_changed.emit(new_difficulty)
 
 func update_game_progress(progress: float) -> void:
 	game_progress = clamp(progress, 0.0, 1.0)
-	
+
 	if adaptive_scaling:
 		var new_difficulty = calculate_current_difficulty()
-		difficulty_changed.emit(new_difficulty) # warning: return value discarded (intentional)
+		difficulty_changed.emit(new_difficulty)
 
 func _calculate_performance_score(performance_data: Dictionary) -> float:
 	var score: int = 0
-	
+
 	# Factors to consider
 	if "kills" in performance_data:
 		score += performance_data.kills * 0.2
@@ -151,7 +151,7 @@ func _calculate_performance_score(performance_data: Dictionary) -> float:
 		score += performance_data.objectives_completed * 0.3
 	if "turns_taken" in performance_data and performance_data.turns_taken > 0:
 		score -= 1.0 / performance_data.turns_taken * 0.2
-	
+
 	return clamp(score, -1.0, 1.0)
 
 # Utility methods

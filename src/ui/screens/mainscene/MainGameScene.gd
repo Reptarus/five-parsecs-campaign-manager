@@ -1,9 +1,9 @@
-# MainGameScene.gd
+﻿# MainGameScene.gd
 extends Node
 
 # Only preload what we know exists
 const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const UIManager = preload("res://src/ui/screens/UIManager.gd")
 
 signal scene_changed(scene_name: String)
@@ -34,11 +34,11 @@ func _ready() -> void:
 	# Initialize managers
 	game_state_manager = GameStateManager.new()
 	add_child(game_state_manager)
-	
+
 	# Setup initial display
 	transition_overlay.color.a = 0.0
 	_validate_scenes()
-	
+
 	# Start with main menu
 	change_scene("main_menu")
 
@@ -51,45 +51,45 @@ func change_scene(scene_name: String) -> void:
 	if _is_transitioning:
 		push_warning("Scene transition already in progress")
 		return
-		
+
 	if not SCENES.has(scene_name):
 		push_error("Invalid scene _name: %s" % scene_name)
 		return
-		
+
 	_is_transitioning = true
-	
+
 	var transition = create_tween()
 	transition.tween_property(transition_overlay, "color:a", 1.0, 0.3)
 	await transition.finished
-	
+
 	_change_scene_content(scene_name)
-	
+
 	transition = create_tween()
 	transition.tween_property(transition_overlay, "color:a", 0.0, 0.3)
 	await transition.finished
-	
+
 	_is_transitioning = false
 	_current_scene_name = scene_name
-	scene_changed.emit(scene_name) # warning: return value discarded (intentional)
+	scene_changed.emit(scene_name)
 
 func _change_scene_content(scene_name: String) -> void:
 	# Clear existing scene
 	for child in scene_container.get_children():
 		child.queue_free()
-	
+
 	var scene_path = SCENES[scene_name]
 	if ResourceLoader.exists(scene_path):
 		var new_scene = load(scene_path)
 		if new_scene:
 			var instance = new_scene.instantiate()
 			scene_container.add_child(instance)
-			
+
 			# Register with UI Manager
 			ui_manager.register_screen(scene_name, instance)
 			ui_manager.change_screen(scene_name)
-			
+
 			# Initialize if it's the main menu
-			if scene_name == "main_menu" and instance.has_method("setup"):
+			if scene_name == "main_menu" and instance and instance.has_method("setup"):
 				instance.setup(game_state_manager)
 		else:
 			push_error("Failed to load scene: %s" % scene_path)
@@ -99,3 +99,11 @@ func _change_scene_content(scene_name: String) -> void:
 func preload_scene(scene_name: String) -> void:
 	if SCENES.has(scene_name) and ResourceLoader.exists(SCENES[scene_name]):
 		ResourceLoader.load_threaded_request(SCENES[scene_name])
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

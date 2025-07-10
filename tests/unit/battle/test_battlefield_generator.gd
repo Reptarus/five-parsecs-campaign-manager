@@ -9,7 +9,7 @@
 extends GdUnitGameTest
 
 # Mock dependencies
-const BattlefieldGenerator: GDScript = preload("res://src/core/systems/BattlefieldGenerator.gd")
+const BattlefieldGenerator: GDScript = preload("res://src/core/battle/BattlefieldSetupAssistant.gd")
 const TerrainTypes: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")
 const TerrainRules: GDScript = preload("res://src/core/terrain/TerrainRules.gd")
 

@@ -1,16 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://b4jy1ry6g1x8n"]
-
-[sub_resource type="Resource" id="Resource_4xilf"]
-metadata/__load_path__ = "res://ui/mainscene/MainGameScene.gd"
-
-[sub_resource type="Resource" id="Resource_ujc8u"]
-metadata/__load_path__ = "res://ui/UIManager.gd"
+[gd_scene load_steps=1 format=3 uid="uid://b4jy1ry6g1x8n"]
 
 [node name="Main" type="Node"]
-script = SubResource("Resource_4xilf")
 
 [node name="UIManager" type="Node" parent="."]
-script = SubResource("Resource_ujc8u")
 
 [node name="SceneContainer" type="Control" parent="."]
 layout_mode = 3

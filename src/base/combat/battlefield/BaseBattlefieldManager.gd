@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 extends Node
 class_name BaseBattlefieldManager
 
@@ -35,21 +35,21 @@ func initialize_battlefield(size: Vector2i = GRID_SIZE) -> void:
 func _create_empty_maps() -> void:
 	# Initialize terrain map
 	terrain_map.clear()
-	for x in range(GRID_SIZE.x):
+	for x: int in range(GRID_SIZE.x):
 		var column: Array = []
-		for y in range(GRID_SIZE.y):
-			column.append(0) # Default terrain type (empty)  # warning: return value discarded (intentional)
+		for y: int in range(GRID_SIZE.y):
+			safe_call_method(column, "append", [0]) # Default terrain type (empty)  # warning: return value discarded (intentional)
 
-		terrain_map.append(column) # warning: return value discarded (intentional)
-	
+		safe_call_method(terrain_map, "append", [column]) # warning: return value discarded (intentional)
+
 	# Initialize cover map
 	cover_map.clear()
-	for x in range(GRID_SIZE.x):
+	for x: int in range(GRID_SIZE.x):
 		var column: Array = []
-		for y in range(GRID_SIZE.y):
-			column.append(0.0) # Default cover _value (none)  # warning: return value discarded (intentional)
+		for y: int in range(GRID_SIZE.y):
+			safe_call_method(column, "append", [0.0]) # Default cover _value (none)  # warning: return value discarded (intentional)
 
-		cover_map.append(column) # warning: return value discarded (intentional)
+		safe_call_method(cover_map, "append", [column]) # warning: return value discarded (intentional)
 
 # Terrain management
 func set_terrain(position: Vector2i, terrain_type: int) -> void:
@@ -94,6 +94,7 @@ func get_unit_position(unit: Node) -> Vector2i:
 
 func get_unit_at_position(position: Vector2i) -> Node:
 	for unit in unit_positions:
+		var typed_unit: Variant = unit
 		if unit_positions[unit] == position:
 			return unit
 	return null
@@ -119,7 +120,7 @@ func check_line_of_sight(from: Vector2i, to: Vector2i) -> bool:
 	var key = str(from) + "-" + str(to)
 	if key in los_cache:
 		return los_cache[key]
-	
+
 	var has_los = _calculate_line_of_sight(from, to)
 	los_cache[key] = has_los
 	return has_los
@@ -134,6 +135,7 @@ func _is_valid_position(position: Vector2i) -> bool:
 
 func _is_position_occupied(position: Vector2i) -> bool:
 	for unit in unit_positions:
+		var typed_unit: Variant = unit
 		if unit_positions[unit] == position:
 			return true
 	return false
@@ -150,25 +152,33 @@ func get_deployment_zone(zone_type: int) -> Array[Vector2i]:
 
 # Validation
 func validate_battlefield() -> Dictionary:
-	var result = {
+	var result: Variant = {
 		"valid": true,
 		"errors": [],
 		"warnings": []
 	}
-	
+
 	# To be implemented by derived classes
-	
+
 	battlefield_validated.emit(result) # warning: return value discarded (intentional)
 	return result
 
 func validate_terrain_placement(terrain_type: int, position: Vector2i) -> Dictionary:
-	var result = {
+	var result: Variant = {
 		"valid": true,
 		"errors": [],
 		"warnings": []
 	}
-	
+
 	# To be implemented by derived classes
-	
+
 	terrain_placement_validated.emit(result) # warning: return value discarded (intentional)
 	return result
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

@@ -1,4 +1,4 @@
-extends Control
+﻿extends Control
 
 # TODO: Connect to a real mission management system
 signal mission_selected(mission_index)
@@ -15,7 +15,7 @@ func popup_missions(missions: Array) -> void:
 
 func _on_mission_selected(mission_index: int) -> void:
 	print("Mission selected: ", mission_index)
-	emit_signal("mission_selected", mission_index)
+	var _signal_result: Variant = emit_signal("mission_selected", mission_index)
 	$PopupPanel.hide()
 
 func _on_close_pressed() -> void:

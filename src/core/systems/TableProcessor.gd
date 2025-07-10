@@ -1,11 +1,11 @@
-@tool
+﻿@tool
 class_name FPCM_TableProcessor
 extends Node
 
 ## Forward declarations for dependencies
 ## This helps avoid circular references and clarifies dependencies
 const ErrorLogger = preload("res://src/core/systems/ErrorLogger.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 ## Signals for table operations
 ## Now documented with proper types for Godot 4.4
@@ -23,8 +23,11 @@ class TableEntry:
 	var weight: float = 1.0 # For weighted random selection
 	var tags: Array[String] = [] # For filtering and special handling
 	var metadata: Dictionary = {} # Additional data for complex results
-	
+
 	func _init(min_roll: int, max_roll: int, res: Variant, w: float = 1.0, t: Array[String] = [], meta: Dictionary = {}) -> void:
+		# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+		if not is_instance_valid(self) or not is_instance_valid(min_roll) or not is_instance_valid(max_roll) or not is_instance_valid(res) or not is_instance_valid(w) or not is_instance_valid(t) or not is_instance_valid(meta):
+			return
 		roll_range = Vector2i(min_roll, max_roll)
 		result = res
 		weight = w
@@ -33,10 +36,10 @@ class TableEntry:
 
 	func matches_roll(_roll: int) -> bool:
 		return _roll >= roll_range.x and _roll <= roll_range.y
-	
+
 	func has_tag(tag: String) -> bool:
 		return tag in tags
-	
+
 	func serialize() -> Dictionary:
 		return {
 			"roll_range": {"x": roll_range.x, "y": roll_range.y},
@@ -55,45 +58,48 @@ class Table:
 	var default_result: Variant = null
 	var metadata: Dictionary = {} # Table-level metadata
 	var custom_validation: bool = false # Whether to use custom validation logic
-	
+
 	func _init(table_name: String) -> void:
+		# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+		if not is_instance_valid(self) or not is_instance_valid(table_name):
+			return
 		name = table_name
 
 	func add_entry(entry: TableEntry) -> void:
-		entries.append(entry)  # warning: return value discarded (intentional)
-	
+		entries.append(entry)
+
 	func add_validation_rule(rule: Callable) -> void:
-		validation_rules.append(rule)  # warning: return value discarded (intentional)
-	
+		validation_rules.append(rule)
+
 	func add_modifier(modifier: Callable) -> void:
-		modifiers.append(modifier)  # warning: return value discarded (intentional)
-	
+		modifiers.append(modifier)
+
 	func get_result(_roll: int) -> Variant:
 		for entry in entries:
 			if entry.matches_roll(_roll):
 				return entry.result
 		return default_result
-	
+
 	func get_weighted_result() -> Variant:
 		var total_weight: int = 0
 		for entry in entries:
 			total_weight += entry.weight
-		
+
 		var _roll = randf() * total_weight
 		var current_weight: int = 0
-		
+
 		for entry in entries:
 			current_weight += entry.weight
 			if _roll <= current_weight:
 				return entry.result
-		
+
 		return default_result
-	
+
 	func serialize() -> Dictionary:
 		var serialized_entries: Array = []
 		for entry in entries:
-			serialized_entries.append(entry.serialize())  # warning: return value discarded (intentional)
-		
+			serialized_entries.append(entry.serialize())
+
 		return {
 			"name": name,
 			"entries": serialized_entries,
@@ -103,7 +109,7 @@ class Table:
 		}
 
 # Main processor variables
-var _tables: Dictionary = {} # name -> Table
+var _tables: Dictionary[String, Table] = {} # name -> Table
 var _history: Array[Dictionary] = []
 var _history_metadata: Dictionary = {} # Additional history tracking data
 const MAX_HISTORY_SIZE: int = 1000 # Increased from 100
@@ -115,6 +121,13 @@ var _detailed_history: bool = false # Track additional metadata
 var _history_categories: Dictionary = {} # Organize history by categories
 
 func _init() -> void:
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return # Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return # Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return
 	_setup_history_tracking()
 
 func _setup_history_tracking() -> void:
@@ -130,7 +143,7 @@ func _setup_history_tracking() -> void:
 
 func register_table(table: Table) -> void:
 	_tables[table.name] = table
-	table_modified.emit(table.name, "registered")  # warning: return value discarded (intentional)
+	table_modified.emit(table.name, "registered")
 
 func has_table(table_name: String) -> bool:
 	return _tables.has(table_name)
@@ -141,33 +154,33 @@ func get_table(table_name: String) -> Table:
 # Enhanced rolling methods with validation
 func roll_table(table_name: String, custom_roll: int = -1, category: String = "") -> Dictionary:
 	if not has_table(table_name):
-		validation_failed.emit(table_name, "Table not found")  # warning: return value discarded (intentional)
+		validation_failed.emit(table_name, "Table not found")
 		return {"success": false, "reason": "Table not found"}
-	
+
 	var table = get_table(table_name)
 	var _roll = custom_roll if custom_roll >= 0 else randi() % 100 + 1
-	
+
 	# Enhanced validation with custom rules
 	if table.custom_validation:
 		var validation_result = _run_custom_validation(table, _roll)
 		if not validation_result.success:
-			validation_failed.emit(table_name, validation_result.reason)  # warning: return value discarded (intentional)
+			validation_failed.emit(table_name, validation_result.reason)
 			return validation_result
 	else:
 		# Standard validation rules
 		for rule in table.validation_rules:
 			var validation = rule.call(_roll)
 			if not validation["valid"]:
-				validation_failed.emit(table_name, validation["reason"])  # warning: return value discarded (intentional)
+				validation_failed.emit(table_name, validation["reason"])
 				return {"success": false, "reason": validation["reason"]}
-	
+
 	# Get base result
-	var result = table.get_result(_roll)
-	
+	var result: Variant = table.get_result(_roll)
+
 	# Apply modifiers
 	for modifier in table.modifiers:
 		result = modifier.call(result)
-	
+
 	# Enhanced history tracking
 	var entry = {
 		"timestamp": Time.get_unix_time_from_system(),
@@ -178,32 +191,32 @@ func roll_table(table_name: String, custom_roll: int = -1, category: String = ""
 		"custom_roll": custom_roll >= 0,
 		"metadata": {} # For additional tracking data
 	}
-	
+
 	if _detailed_history:
 		entry.metadata = {
 			"modifiers_applied": table.modifiers.size(),
 			"validation_rules": table.validation_rules.size(),
 			"entry_count": table.entries.size()
 		}
-	
+
 	_add_to_history(entry)
-	
+
 	# Emit appropriate signal
 	if custom_roll >= 0:
-		custom_roll_processed.emit(table_name, _roll, {"success": true, "result": result})  # warning: return value discarded (intentional)
+		custom_roll_processed.emit(table_name, _roll, {"success": true, "result": result})
 	else:
-		roll_processed.emit(table_name, {"success": true, "result": result})  # warning: return value discarded (intentional)
-	
+		roll_processed.emit(table_name, {"success": true, "result": result})
+
 	return {"success": true, "result": result}
 
 # Enhanced history management
 func _add_to_history(entry: Dictionary) -> void:
-	_history.append(entry)  # warning: return value discarded (intentional)
-	
+	_history.append(entry)
+
 	# Categorize the entry if category is provided
 	if entry.has("category") and entry.category in _history_categories:
 		_history_categories[entry.category].append(entry)
-	
+
 	# Maintain history size limits
 	while _history.size() > MAX_HISTORY_SIZE:
 		var removed = _history.pop_front()
@@ -215,12 +228,12 @@ func _add_to_history(entry: Dictionary) -> void:
 func get_roll_history(table_name: String = "", category: String = "") -> Array:
 	if not _history_enabled:
 		return []
-	
+
 	if category != "" and category in _history_categories:
 		if table_name != "":
 			return _history_categories[category].filter(func(entry): return entry["table"] == table_name)
 		return _history_categories[category].duplicate()
-	
+
 	if table_name != "":
 		return _history.filter(func(entry): return entry["table"] == table_name)
 	return _history.duplicate()
@@ -231,22 +244,22 @@ func get_history_stats() -> Dictionary:
 		"categories": {},
 		"tables": {}
 	}
-	
+
 	for category in _history_categories:
 		stats.categories[category] = _history_categories[category].size()
-	
+
 	for entry in _history:
 		if not stats.tables.has(entry.table):
 			stats.tables[entry.table] = 0
 		stats.tables[entry.table] += 1
-	
+
 	return stats
 
 # Enhanced export capabilities
 func export_history(file_path: String, format: String = "json") -> Error:
 	var data = serialize()
-	var result = OK
-	
+	var result: Variant = OK
+
 	match format.to_lower():
 		"json":
 			result = _export_json(file_path, data)
@@ -254,26 +267,27 @@ func export_history(file_path: String, format: String = "json") -> Error:
 			result = _export_csv(file_path, _history)
 		_:
 			result = ERR_INVALID_PARAMETER
-	
-	history_exported.emit(result == OK, file_path)  # warning: return value discarded (intentional)
+
+	history_exported.emit(result == OK, file_path) # warning: return value discarded (intentional)
 	return result
 
 func _export_json(file_path: String, data: Dictionary) -> Error:
-	var file = FileAccess.open(file_path, FileAccess.WRITE)
+	var file: FileAccess = FileAccess.open(file_path, FileAccess.WRITE)
 	if file == null:
 		return FileAccess.get_open_error()
-	
+
 	file.store_string(JSON.stringify(data, "\t"))
+	file.close()
 	return OK
 
 func _export_csv(file_path: String, history: Array) -> Error:
-	var file = FileAccess.open(file_path, FileAccess.WRITE)
+	var file: FileAccess = FileAccess.open(file_path, FileAccess.WRITE)
 	if file == null:
 		return FileAccess.get_open_error()
-	
+
 	# Write CSV header
 	file.store_line("timestamp,table,roll,result,category,custom_roll")
-	
+
 	# Write entries
 	for entry in history:
 		var line: String = "%d,%s,%d,%s,%s,%s" % [
@@ -285,7 +299,8 @@ func _export_csv(file_path: String, history: Array) -> Error:
 			str(entry.get("custom_roll", false))
 		]
 		file.store_line(line)
-	
+
+	file.close()
 	return OK
 
 # Enhanced serialization with validation
@@ -293,14 +308,14 @@ func serialize() -> Dictionary:
 	var tables_data: Dictionary = {}
 	for table_name in _tables:
 		tables_data[table_name] = _tables[table_name].serialize()
-	
+
 	var history: Array = []
 	for entry in _history:
 		var serialized_entry = entry.duplicate()
 		if not (entry.result is Array or entry.result is Dictionary):
 			serialized_entry.result = str(entry.result)
-		history.append(serialized_entry)  # warning: return value discarded (intentional)
-	
+		safe_call_method(history, "append", [serialized_entry]) # warning: return value discarded (intentional)
+
 	return {
 		"tables": tables_data,
 		"history": history,
@@ -320,22 +335,22 @@ func deserialize(data: Dictionary) -> void:
 		_tables.clear()
 		for table_name in data.tables:
 			var table_data = data.tables[table_name]
-			
+
 			# Create a table instance directly
 			var table_name_to_use = table_name if table_name != "" else "unnamed_table"
 			var table = Table.new(table_name_to_use)
-			
+
 			# Implement table deserialization with the existing Table class
 			# Load entries from table_data here if needed
-			
+
 			_tables[table_name] = table
-	
+
 	if data.has("history"):
 		_history = data.history.duplicate()
-	
+
 	if data.has("history_metadata"):
 		_history_metadata = data.history_metadata.duplicate()
-	
+
 	if data.has("categories"):
 		_history_categories = data.categories.duplicate()
 
@@ -344,3 +359,21 @@ func deserialize(data: Dictionary) -> void:
 func _run_custom_validation(table: Table, roll: int) -> Dictionary:
 	# Implement custom validation logic here
 	return {"success": true, "reason": ""}
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

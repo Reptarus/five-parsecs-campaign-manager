@@ -1,4 +1,4 @@
-class_name FPCM_CharacterTableRoller
+﻿class_name FPCM_CharacterTableRoller
 extends RefCounted
 
 const FIRST_NAMES: Array[String] = [
@@ -26,10 +26,16 @@ const TITLES: Array[String] = [
 static func generate_random_name() -> String:
 	var first_name = FIRST_NAMES[randi() % FIRST_NAMES.size()]
 	var last_name = LAST_NAMES[randi() % LAST_NAMES.size()]
-	
+
 	# 20% chance to add a title
 	if randf() < 0.2:
 		var title = TITLES[randi() % TITLES.size()]
-		return title + " " + first_name + " " + last_name
-	
-	return first_name + " " + last_name
+		return title + " " + str(first_name) + " " + str(last_name)
+	return str(first_name) + " " + last_name
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

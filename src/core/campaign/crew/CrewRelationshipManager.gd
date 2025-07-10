@@ -1,11 +1,11 @@
-@tool
+﻿@tool
 extends Node
 class_name CrewRelationshipManager
 
 ## Crew Relationship Manager stub
 ## Manages relationships between crew members
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 signal relationship_changed(character_a: String, character_b: String, relationship_type: String)
 signal crew_morale_changed(new_morale: int)

@@ -1,13 +1,9 @@
-[gd_scene load_steps=3 format=3 uid="uid://ul6dro6l70o8"]
-
-[sub_resource type="Resource" id="Resource_yka0m"]
-metadata/__load_path__ = "res://Resources/Battle/Terrain/TerrainPiece.gd"
+[gd_scene load_steps=2 format=3 uid="uid://ul6dro6l70o8"]
 
 [sub_resource type="BoxShape3D" id="1"]
 size = Vector3(2, 2, 2)
 
 [node name="TerrainBase" type="StaticBody3D"]
-script = SubResource("Resource_yka0m")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 shape = SubResource("1")

@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 extends PanelContainer
 
 #region Signals
@@ -70,26 +70,26 @@ func _update_rules_list() -> void:
 func add_rule(rule_data: Dictionary) -> String:
 	var rule_id = str(Time.get_unix_time_from_system())
 	active_rules[rule_id] = rule_data
-	rule_added.emit(rule_data) # warning: return value discarded (intentional)
+	rule_added.emit(rule_data)
 	_update_rules_list()
 	return rule_id
 
 func modify_rule(rule_id: String, rule_data: Dictionary) -> void:
 	if active_rules.has(rule_id):
 		active_rules[rule_id] = rule_data
-		rule_modified.emit(rule_data) # warning: return value discarded (intentional)
+		rule_modified.emit(rule_data)
 		_update_rules_list()
 
 func remove_rule(rule_id: String) -> void:
 	if active_rules.has(rule_id):
 		active_rules.erase(rule_id)
-		rule_removed.emit(rule_id) # warning: return value discarded (intentional)
+		rule_removed.emit(rule_id)
 		_update_rules_list()
 
 func get_active_rules() -> Array[Dictionary]:
 	var rules: Array[Dictionary] = []
 	for rule in active_rules.values():
-		rules.append(rule) # warning: return value discarded (intentional)
+		rules.append(rule)
 	return rules
 #endregion
 
@@ -97,11 +97,11 @@ func get_active_rules() -> Array[Dictionary]:
 func validate_rule(rule: Dictionary, context: String) -> bool:
 	if not rule.has("type") or not rule_templates.has(rule.type):
 		return false
-	
+
 	var template = rule_templates[rule.type]
 	if not template.has("validator"):
 		return true
-	
+
 	validation_requested.emit(rule, context) # warning: return value discarded (intentional)
 
 	return template.validator.call(rule._value, {})
@@ -120,7 +120,7 @@ func _on_rule_selected(index: int) -> void:
 		rule_editor.load_rule(rule_id, active_rules[rule_id])
 
 func _on_rule_saved(rule_id: String, rule_data: Dictionary) -> void:
-	if rule_id.is_empty():
+	if (safe_call_method(rule_id, "is_empty") == true):
 		add_rule(rule_data)
 	else:
 		modify_rule(rule_id, rule_data)
@@ -134,3 +134,11 @@ func _on_validation_completed(rule: Dictionary, context: String, is_valid: bool)
 	else:
 		validation_panel.show_error("Rule validation failed")
 #endregion
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

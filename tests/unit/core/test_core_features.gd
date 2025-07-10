@@ -11,7 +11,7 @@ const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 #
 class MockGameState extends Resource:
     var current_state: int = GameEnums.GameState.SETUP
-    var campaign_phase: int = GameEnums.CampaignPhase.NONE
+    var campaign_phase: int = GameEnums.FiveParsecsCampaignPhase.NONE
     var combat_phase: int = GameEnums.CombatPhase.NONE
     var verification_status: int = GameEnums.VerificationStatus.PENDING
     
@@ -26,11 +26,11 @@ class MockGameState extends Resource:
     func get_campaign_phase() -> int: return campaign_phase
     func set_campaign_phase(phase: int) -> void:
         # Validate campaign phase
-        if current_state == GameEnums.GameState.CAMPAIGN and phase in [GameEnums.CampaignPhase.SETUP, GameEnums.CampaignPhase.UPKEEP, GameEnums.CampaignPhase.STORY, GameEnums.CampaignPhase.CAMPAIGN]:
+        if current_state == GameEnums.GameState.CAMPAIGN and phase in [GameEnums.FiveParsecsCampaignPhase.SETUP, GameEnums.FiveParsecsCampaignPhase.TRAVEL, GameEnums.FiveParsecsCampaignPhase.WORLD, GameEnums.FiveParsecsCampaignPhase.BATTLE, GameEnums.FiveParsecsCampaignPhase.POST_BATTLE]:
             campaign_phase = phase
             campaign_phase_changed.emit(phase)
         elif current_state != GameEnums.GameState.CAMPAIGN:
-            campaign_phase = GameEnums.CampaignPhase.NONE
+            campaign_phase = GameEnums.FiveParsecsCampaignPhase.NONE
     
     func get_combat_phase() -> int: return combat_phase
     func set_combat_phase(phase: int) -> void:
@@ -119,10 +119,11 @@ func test_campaign_phase_transitions() -> void:
     
     # Test campaign phase transitions
     var phases = [
-        GameEnums.CampaignPhase.SETUP,
-        GameEnums.CampaignPhase.UPKEEP,
-        GameEnums.CampaignPhase.STORY,
-        GameEnums.CampaignPhase.CAMPAIGN
+        GameEnums.FiveParsecsCampaignPhase.SETUP,
+        GameEnums.FiveParsecsCampaignPhase.TRAVEL,
+        GameEnums.FiveParsecsCampaignPhase.WORLD,
+        GameEnums.FiveParsecsCampaignPhase.BATTLE,
+        GameEnums.FiveParsecsCampaignPhase.POST_BATTLE
     ]
 
     for phase: int in phases:
@@ -203,7 +204,7 @@ func test_state_dependencies() -> void:
     # Test direct method calls instead of safe wrappers (proven pattern)
     # Test campaign phase requires campaign state
     _game_state.set_state(GameEnums.GameState.SETUP)
-    _game_state.set_campaign_phase(GameEnums.CampaignPhase.STORY)
+    _game_state.set_campaign_phase(GameEnums.FiveParsecsCampaignPhase.WORLD)
     # var campaign_phase: int = _game_state.get_campaign_phase()
     # assert_that() call removed
     
@@ -236,12 +237,12 @@ func test_state_manager_integration() -> void:
     # assert_that() call removed
     
     # Test phase setting through manager
-    _game_state_manager.set_campaign_phase(GameEnums.CampaignPhase.SETUP)
+    _game_state_manager.set_campaign_phase(GameEnums.FiveParsecsCampaignPhase.SETUP)
     var phase = _game_state.get_campaign_phase()
-    # assert_that(phase).is_equal(GameEnums.CampaignPhase.NONE) # Should be NONE because not in campaign state
+    # assert_that(phase).is_equal(GameEnums.FiveParsecsCampaignPhase.NONE) # Should be NONE because not in campaign state
     
     # Set correct state first
     _game_state.set_state(GameEnums.GameState.CAMPAIGN)
-    _game_state_manager.set_campaign_phase(GameEnums.CampaignPhase.SETUP)
+    _game_state_manager.set_campaign_phase(GameEnums.FiveParsecsCampaignPhase.SETUP)
     # phase = _game_state.get_campaign_phase()
     # assert_that() call removed

@@ -171,7 +171,4 @@ layout_mode = 2
 size_flags_horizontal = 4
 text = "Don't show this again"
 
-[connection signal="pressed" from="TutorialPopup/VBoxContainer/StoryTrackButton" to="." method="_on_tutorial_popup_button_pressed" binds= ["story_track"]]
-[connection signal="pressed" from="TutorialPopup/VBoxContainer/CompendiumButton" to="." method="_on_tutorial_popup_button_pressed" binds= ["compendium"]]
-[connection signal="pressed" from="TutorialPopup/VBoxContainer/SkipButton" to="." method="_on_tutorial_popup_button_pressed" binds= ["skip"]]
 [connection signal="toggled" from="TutorialPopup/VBoxContainer/DisableTutorialCheckbox" to="." method="_on_disable_tutorial_toggled"]

@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 class_name FPCM_CrewRelationshipManager
 extends "res://src/base/campaign/crew/BaseCrewRelationshipManager.gd"
 
@@ -49,7 +49,7 @@ func _init() -> void:
 		RelationshipType.BUSINESS_ASSOCIATES: "Business Associates",
 		RelationshipType.STRANGERS: "Strangers"
 	}
-	
+
 	# Initialize the crew characteristics dictionary
 	CREW_CHARACTERISTICS = {
 		CrewCharacteristic.MERCENARY: "Mercenary",
@@ -83,13 +83,13 @@ func roll_meeting_story() -> String:
 		"Survivors of a ship crash",
 		"Former rivals who joined forces"
 	]
-	
-	return stories[randi() % stories.size()]
+
+	return stories[randi() % (safe_call_method(stories, "size") as int)]
 
 func generate_initial_relationships(crew_members: Array) -> void:
 	# Call the base implementation
 	super.generate_initial_relationships(crew_members)
-	
+
 	# Add Five Parsecs specific relationship logic
 	_apply_characteristic_effects(crew_members)
 
@@ -113,22 +113,22 @@ func _apply_characteristic_effects(crew_members: Array) -> void:
 
 func _adjust_relationships_for_mercenaries(crew_members: Array) -> void:
 	# Mercenaries tend to have more business-like relationships
-	for i in range(crew_members.size()):
-		for j in range(i + 1, crew_members.size()):
+	for i: int in range((safe_call_method(crew_members, "size") as int)):
+		for j: int in range(i + 1, (safe_call_method(crew_members, "size") as int)):
 			var char1 = crew_members[i]
 			var char2 = crew_members[j]
-			
+
 			# 50% chance to make the relationship business-like
 			if randf() < 0.5:
 				add_relationship(char1, char2, RELATIONSHIP_TYPES[RelationshipType.BUSINESS_ASSOCIATES])
 
 func _adjust_relationships_for_explorers(crew_members: Array) -> void:
 	# Explorers tend to have stronger bonds from shared adventures
-	for i in range(crew_members.size()):
-		for j in range(i + 1, crew_members.size()):
+	for i: int in range((safe_call_method(crew_members, "size") as int)):
+		for j: int in range(i + 1, (safe_call_method(crew_members, "size") as int)):
 			var char1 = crew_members[i]
 			var char2 = crew_members[j]
-			
+
 			# 40% chance to make them friends
 			if randf() < 0.4:
 				add_relationship(char1, char2, RELATIONSHIP_TYPES[RelationshipType.FRIENDS])
@@ -138,11 +138,11 @@ func _adjust_relationships_for_explorers(crew_members: Array) -> void:
 
 func _adjust_relationships_for_bounty_hunters(crew_members: Array) -> void:
 	# Bounty hunters tend to have more competitive relationships
-	for i in range(crew_members.size()):
-		for j in range(i + 1, crew_members.size()):
+	for i: int in range((safe_call_method(crew_members, "size") as int)):
+		for j: int in range(i + 1, (safe_call_method(crew_members, "size") as int)):
 			var char1 = crew_members[i]
 			var char2 = crew_members[j]
-			
+
 			# 30% chance to make them rivals
 			if randf() < 0.3:
 				add_relationship(char1, char2, RELATIONSHIP_TYPES[RelationshipType.RIVALS])
@@ -152,22 +152,22 @@ func _adjust_relationships_for_bounty_hunters(crew_members: Array) -> void:
 
 func _adjust_relationships_for_rebels(crew_members: Array) -> void:
 	# Rebels tend to have stronger comradery
-	for i in range(crew_members.size()):
-		for j in range(i + 1, crew_members.size()):
+	for i: int in range((safe_call_method(crew_members, "size") as int)):
+		for j: int in range(i + 1, (safe_call_method(crew_members, "size") as int)):
 			var char1 = crew_members[i]
 			var char2 = crew_members[j]
-			
+
 			# 50% chance to make them comrades
 			if randf() < 0.5:
 				add_relationship(char1, char2, RELATIONSHIP_TYPES[RelationshipType.COMRADES])
 
 func _adjust_relationships_for_smugglers(crew_members: Array) -> void:
 	# Smugglers tend to have more secretive relationships
-	for i in range(crew_members.size()):
-		for j in range(i + 1, crew_members.size()):
+	for i: int in range((safe_call_method(crew_members, "size") as int)):
+		for j: int in range(i + 1, (safe_call_method(crew_members, "size") as int)):
 			var char1 = crew_members[i]
 			var char2 = crew_members[j]
-			
+
 			# 30% chance to make them uneasy allies
 			if randf() < 0.3:
 				add_relationship(char1, char2, RELATIONSHIP_TYPES[RelationshipType.UNEASY_ALLIES])
@@ -175,16 +175,16 @@ func _adjust_relationships_for_smugglers(crew_members: Array) -> void:
 			elif randf() < 0.2:
 				add_relationship(char1, char2, RELATIONSHIP_TYPES[RelationshipType.BUSINESS_ASSOCIATES])
 
-func get_relationship_description(char1, char2) -> String:
+func get_relationship_description(char1: Variant, char2: Variant)-> String:
 	var relationship = get_relationship(char1, char2)
-	
-	if relationship.is_empty():
+
+	if (safe_call_method(relationship, "is_empty") == true):
 		return "No relationship"
-	
+
 	# Get character names
 	var name1 = char1.character_name if char1.has("character_name") else "Character 1"
 	var name2 = char2.character_name if char2.has("character_name") else "Character 2"
-	
+
 	# Generate description based on relationship type
 	if relationship == RELATIONSHIP_TYPES[RelationshipType.FRIENDS]:
 		return "%s and %s are close friends who trust each other implicitly." % [name1, name2]
@@ -213,7 +213,7 @@ func evolve_relationship(char1, char2, event_type: String) -> void:
 	# Evolve relationships based on events
 	var current_relationship = get_relationship(char1, char2)
 	var new_relationship = current_relationship
-	
+
 	if event_type == "combat_success":
 		# Successful combat tends to strengthen bonds
 		if current_relationship == RELATIONSHIP_TYPES[RelationshipType.STRANGERS]:
@@ -254,22 +254,30 @@ func evolve_relationship(char1, char2, event_type: String) -> void:
 			new_relationship = RELATIONSHIP_TYPES[RelationshipType.RIVALS]
 		elif current_relationship == RELATIONSHIP_TYPES[RelationshipType.PARTNERS]:
 			new_relationship = RELATIONSHIP_TYPES[RelationshipType.FORMER_ENEMIES]
-	
+
 	# Update the relationship if it changed
 	if new_relationship != current_relationship:
 		add_relationship(char1, char2, new_relationship)
 
 func serialize() -> Dictionary:
 	var data = super.serialize()
-	
+
 	# Add Five Parsecs specific data
 	# (None needed at this time, but the function is here for future expansion)
-	
+
 	return data
 
 func deserialize(data: Dictionary) -> void:
 	super.deserialize(data)
-	
+
 	# Process Five Parsecs specific data
 	# (None needed at this time, but the function is here for future expansion)" 
 
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

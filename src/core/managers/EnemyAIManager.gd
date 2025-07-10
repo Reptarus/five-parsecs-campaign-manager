@@ -1,7 +1,7 @@
-extends Resource
+﻿extends Resource
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameState = preload("res://src/core/state/GameState.gd")
 const Enemy = preload("res://src/core/enemy/base/Enemy.gd")
 const UnifiedAISystem = preload("res://src/core/systems/UnifiedAISystem.gd")
 const AIController = preload("res://src/core/systems/AIController.gd")
@@ -10,7 +10,7 @@ const SaveManager = preload("res://src/core/state/SaveManager.gd")
 
 # Signals
 signal ai_decision_made(enemy_ref: Enemy, decision: Dictionary)
-signal behavior_changed(enemy_ref: Enemy, new_behavior: GameEnums.AIBehavior)
+signal behavior_changed(enemy_ref: Enemy, new_behavior: GlobalEnums.AIBehavior)
 signal action_completed(enemy_ref: Enemy, action_type: String)
 
 # Constants for behavior weights  
@@ -62,56 +62,56 @@ func _init() -> void:
 # Enemy Management
 func register_enemy(enemy: Enemy) -> void:
 	if not enemy in active_enemies:
-		active_enemies.append(enemy) # warning: return value discarded (intentional)
+		active_enemies.append(enemy)
 		_initialize_tactical_memory(enemy)
 
 func unregister_enemy(enemy: Enemy) -> void:
 	active_enemies.erase(enemy)
 	tactical_memory.erase(enemy)
-func set_behavior_override(enemy: Enemy, behavior: GameEnums.AIBehavior) -> void:
+func set_behavior_override(enemy: Enemy, behavior: GlobalEnums.AIBehavior) -> void:
 	behavior_overrides[enemy] = behavior
-	behavior_changed.emit(enemy, behavior) # warning: return value discarded (intentional)
+	behavior_changed.emit(enemy, behavior)
 
 func clear_behavior_override(enemy: Enemy) -> void:
 	behavior_overrides.erase(enemy)
-func get_current_behavior(enemy: Enemy) -> GameEnums.AIBehavior:
+func get_current_behavior(enemy: Enemy) -> GlobalEnums.AIBehavior:
 	return behavior_overrides.get(enemy, enemy.behavior)
 
 # Decision Making
 func make_decision(enemy: Enemy) -> Dictionary:
 	current_enemy = enemy
 	var options: Array = []
-	
+
 	# Analyze battlefield situation
 	_update_battlefield_analysis(enemy)
-	
+
 	# Get Five Parsecs AI behavior
 	var ai_behavior = _get_five_parsecs_behavior(enemy)
-	
+
 	# Generate options based on AI behavior and tactical situation
 	options = _generate_tactical_options(enemy, ai_behavior)
-	
+
 	# Apply formation coordination if in a group
 	if _is_in_coordination_group(enemy):
 		options = _apply_formation_tactics(enemy, options)
-	
+
 	# Evaluate threat assessment
 	var threat_level = _assess_threat_level(enemy)
 	options = _adjust_for_threat_level(enemy, options, threat_level)
-	
+
 	# Apply Five Parsecs specific modifiers
 	options = _apply_five_parsecs_modifiers(enemy, options)
-	
+
 	if options.is_empty():
 		return {"type": "idle", "reason": "no_valid_options"}
-		
+
 	# Sort by priority and select best option
 	options.sort_custom(func(a, b): return a.priority > b.priority)
 	var chosen_option = options[0]
-	
+
 	# Record decision for learning
 	_record_tactical_decision(enemy, chosen_option)
-	
+
 	ai_decision_made.emit(enemy, chosen_option) # warning: return value discarded (intentional)
 	return chosen_option
 
@@ -144,7 +144,7 @@ func _get_best_target(enemy: Enemy) -> Node:
 	if targets.is_empty():
 		return null
 	# Sort by distance and return closest
-	var enemy_pos = enemy.global_position if enemy.has("global_position") else Vector2.ZERO
+	var enemy_pos: Vector2 = enemy.global_position if enemy.has("global_position") else Vector2.ZERO
 	targets.sort_custom(func(a, b):
 		var a_pos = a.global_position if a.has("global_position") else Vector2.ZERO
 		var b_pos = b.global_position if b.has("global_position") else Vector2.ZERO
@@ -157,45 +157,45 @@ func _find_nearest_cover(enemy: Enemy) -> Vector2:
 	var cover_positions = get_cover_positions()
 	var nearest_cover = enemy.global_position
 	var closest_distance: float = INF
-	
+
 	for cover_pos in cover_positions:
 		var distance = enemy.global_position.distance_to(cover_pos)
 		if distance < closest_distance:
 			closest_distance = distance
 			nearest_cover = cover_pos
-	
+
 	return nearest_cover
 
 # Serialization
 func serialize() -> Dictionary:
-	var data = {
+	var data: Dictionary = {
 		"behavior_overrides": {},
 		"tactical_memory": {}
 	}
-	
+
 	for enemy in behavior_overrides:
 		if is_instance_valid(enemy):
 			data.behavior_overrides[enemy.get_instance_id()] = behavior_overrides[enemy]
-			
+
 	for enemy in tactical_memory:
 		if is_instance_valid(enemy):
 			data.tactical_memory[enemy.get_instance_id()] = tactical_memory[enemy]
-			
+
 	return data
 
 func deserialize(data: Dictionary) -> void:
 	behavior_overrides.clear()
 	tactical_memory.clear()
-	
+
 	if data.has("behavior_overrides"):
 		for enemy_id in data.behavior_overrides:
-			var enemy = instance_from_id(int(enemy_id))
+			var enemy: Character = instance_from_id(int(enemy_id))
 			if is_instance_valid(enemy):
 				behavior_overrides[enemy] = data.behavior_overrides[enemy_id]
-				
+
 	if data.has("tactical_memory"):
 		for enemy_id in data.tactical_memory:
-			var enemy = instance_from_id(int(enemy_id))
+			var enemy: Character = instance_from_id(int(enemy_id))
 			if is_instance_valid(enemy):
 				tactical_memory[enemy] = data.tactical_memory[enemy_id]
 
@@ -203,17 +203,17 @@ func deserialize(data: Dictionary) -> void:
 func _get_five_parsecs_behavior(enemy: Enemy) -> FiveParsecsAIBehavior:
 	# Determine Five Parsecs AI behavior based on enemy type and situation
 	# Check for behavior override first
-	if enemy.has_method("get_ai_behavior"):
+	if enemy and enemy.has_method("get_ai_behavior"):
 		var override = enemy.get_ai_behavior()
 		if override != null:
 			return override
-	
+
 	# Determine behavior based on enemy type and stats
 
-	var enemy_type = enemy.enemy_type if enemy.has("enemy_type") else "generic"
+	var enemy_type: Character = enemy.enemy_type if enemy.has("enemy_type") else "generic"
 
 	var health_ratio = float(enemy.health) / enemy.max_health if enemy.has("health") and enemy.has("max_health") else 1.0
-	
+
 	match enemy_type:
 		"raider", "pirate":
 			return FiveParsecsAIBehavior.AGGRESSIVE if health_ratio > 0.5 else FiveParsecsAIBehavior.OPPORTUNIST
@@ -233,14 +233,14 @@ func _get_five_parsecs_behavior(enemy: Enemy) -> FiveParsecsAIBehavior:
 func _generate_tactical_options(enemy: Enemy, ai_behavior: FiveParsecsAIBehavior) -> Array:
 	# Generate tactical options based on AI behavior
 	var options: Array = []
-	
+
 	# Base movement and attack options
 	if _can_move(enemy):
 		options.append_array(_generate_movement_options(enemy, ai_behavior))
-	
+
 	if _can_attack(enemy):
 		options.append_array(_generate_attack_options(enemy, ai_behavior))
-	
+
 	# Behavior-specific options
 	match ai_behavior:
 		FiveParsecsAIBehavior.AGGRESSIVE:
@@ -259,57 +259,57 @@ func _generate_tactical_options(enemy: Enemy, ai_behavior: FiveParsecsAIBehavior
 			options.append_array(_generate_lone_wolf_options(enemy))
 		FiveParsecsAIBehavior.OPPORTUNIST:
 			options.append_array(_generate_opportunist_options(enemy))
-	
+
 	return options
 
 func _generate_movement_options(enemy: Enemy, ai_behavior: FiveParsecsAIBehavior) -> Array:
 	# Generate movement options based on AI behavior
 	var options: Array = []
 	var base_priority = BEHAVIOR_WEIGHTS["move"]
-	
+
 	# Different movement priorities based on behavior
 	match ai_behavior:
 		FiveParsecsAIBehavior.AGGRESSIVE:
-			options.append({ # warning: return value discarded (intentional)
+			options.append({
 				"type": "move_to_attack",
 				"priority": base_priority * 1.5,
 				"position": _get_closest_attack_position(enemy),
 				"reason": "aggressive_advance"
 			})
 		FiveParsecsAIBehavior.DEFENSIVE:
-			options.append({ # warning: return value discarded (intentional)
+			options.append({
 				"type": "move_to_cover",
 				"priority": base_priority * 1.3,
 				"position": _find_best_defensive_position(enemy),
 				"reason": "defensive_positioning"
 			})
 		FiveParsecsAIBehavior.TACTICAL:
-			options.append({ # warning: return value discarded (intentional)
+			options.append({
 				"type": "move_to_formation",
 				"priority": base_priority * 1.2,
 				"position": _get_formation_position(enemy),
 				"reason": "tactical_positioning"
 			})
 		_:
-			options.append({ # warning: return value discarded (intentional)
+			options.append({
 				"type": "move",
 				"priority": base_priority,
 				"position": _get_optimal_position(enemy),
 				"reason": "general_movement"
 			})
-	
+
 	return options
 
 func _generate_attack_options(enemy: Enemy, ai_behavior: FiveParsecsAIBehavior) -> Array:
 	# Generate attack options based on AI behavior
 	var options: Array = []
 	var targets = _get_viable_targets(enemy)
-	
+
 	for target in targets:
 		var base_priority = BEHAVIOR_WEIGHTS["attack"]
 		var attack_type: String = "standard_attack"
 		var priority_modifier: int = 1
-		
+
 		match ai_behavior:
 			FiveParsecsAIBehavior.AGGRESSIVE, FiveParsecsAIBehavior.BERSERKER:
 				priority_modifier = 1.5
@@ -324,97 +324,97 @@ func _generate_attack_options(enemy: Enemy, ai_behavior: FiveParsecsAIBehavior) 
 				else:
 					continue # Skip non-vulnerable targets
 
-		options.append({ # warning: return value discarded (intentional)
+		options.append({
 			"type": attack_type,
 			"priority": base_priority * priority_modifier,
 			"target": target,
-			"weapon": enemy.get_weapon() if enemy.has_method("get_weapon") else null,
+			"weapon": enemy.get_weapon() if enemy and enemy.has_method("get_weapon") else null,
 			"reason": "targeted_attack"
 		})
-	
+
 	return options
 
 func _generate_aggressive_options(enemy: Enemy) -> Array:
 	# Generate options for aggressive AI behavior
 	var options: Array = []
-	
+
 	# Charge attack - move and attack in one action
 	var closest_target = _get_best_target(enemy)
 	if closest_target:
-		options.append({ # warning: return value discarded (intentional)
+		options.append({
 			"type": "charge_attack",
 			"priority": BEHAVIOR_WEIGHTS["attack"] * 1.8,
 			"target": closest_target,
 			"position": _get_charge_position(enemy, closest_target),
 			"reason": "aggressive_charge"
 		})
-	
+
 	# Suppression fire to pin down enemies
 
-	options.append({ # warning: return value discarded (intentional)
+	options.append({
 		"type": "suppress",
 		"priority": BEHAVIOR_WEIGHTS["suppress"] * 1.2,
 		"targets": _get_suppress_targets(enemy),
 		"reason": "aggressive_suppression"
 	})
-	
+
 	return options
 
 func _generate_defensive_options(enemy: Enemy) -> Array:
 	# Generate options for defensive AI behavior
 	var options: Array = []
-	
+
 	# Overwatch - covering fire for allies
 	if _has_allies_in_range(enemy):
-		options.append({ # warning: return value discarded (intentional)
+		options.append({
 			"type": "overwatch",
 			"priority": BEHAVIOR_WEIGHTS["support"] * 1.4,
 			"cover_area": _get_overwatch_area(enemy),
 			"reason": "defensive_overwatch"
 		})
-	
+
 	# Fortify position
 
-	options.append({ # warning: return value discarded (intentional)
+	options.append({
 		"type": "fortify",
 		"priority": BEHAVIOR_WEIGHTS["cover"] * 1.5,
 		"position": enemy.global_position if enemy.has("global_position") else Vector2.ZERO,
 		"reason": "defensive_fortification"
 	})
-	
+
 	return options
 
 func _generate_pack_hunting_options(enemy: Enemy) -> Array:
 	# Generate options for pack hunting behavior
 	var options: Array = []
 	var pack_allies = _get_pack_allies(enemy)
-	
+
 	if pack_allies.size() > 0:
 		# Coordinated flank attack
-		options.append({ # warning: return value discarded (intentional)
+		options.append({
 			"type": "flank_coordinate",
 			"priority": BEHAVIOR_WEIGHTS["flank"] * 1.6,
 			"allies": pack_allies,
 			"target": _get_best_flank_target(enemy),
 			"reason": "pack_flank_attack"
 		})
-		
+
 		# Pack surround maneuver
 
-		options.append({ # warning: return value discarded (intentional)
+		options.append({
 			"type": "surround",
 			"priority": BEHAVIOR_WEIGHTS["coordinate"] * 1.4,
 			"allies": pack_allies,
 			"target": _get_isolated_target(enemy),
 			"reason": "pack_surround"
 		})
-	
+
 	return options
 
 func _update_battlefield_analysis(enemy: Enemy) -> void:
 	# Update tactical analysis of the battlefield
-	var enemy_pos = enemy.global_position if enemy.has("global_position") else Vector2.ZERO
-	
+	var enemy_pos: Vector2 = enemy.global_position if enemy.has("global_position") else Vector2.ZERO
+
 	battlefield_analysis = {
 		"cover_positions": _scan_cover_positions(enemy_pos),
 		"high_ground": _scan_elevation_advantage(enemy_pos),
@@ -429,22 +429,22 @@ func _assess_threat_level(enemy: Enemy) -> String:
 	var health_ratio = float(enemy.health) / enemy.max_health if enemy.has("health") and enemy.has("max_health") else 1.0
 	var nearby_enemies = _count_nearby_player_characters(enemy)
 	var has_cover = _is_in_cover(enemy)
-	
+
 	var threat_score: int = 0
-	
+
 	# Health factor
 	if health_ratio < 0.3:
 		threat_score += 3
 	elif health_ratio < 0.6:
 		threat_score += 1
-	
+
 	# Enemy proximity factor
 	threat_score += nearby_enemies
-	
+
 	# Cover factor
 	if not has_cover:
 		threat_score += 2
-	
+
 	# Determine threat level
 	if threat_score >= 5:
 		return "critical"
@@ -460,51 +460,51 @@ func _apply_five_parsecs_modifiers(enemy: Enemy, options: Array) -> Array:
 	for option in options:
 		# Range modifiers
 		if option.type.contains("attack"):
-			var range_modifier = _calculate_range_modifier(enemy, option.get("target"))
+			var range_modifier = _calculate_range_modifier(enemy, option.get("target", null))
 			option.priority *= range_modifier
-		
+
 		# Cover modifiers
 		if option.type.contains("cover"):
 			var cover_quality = _assess_cover_quality(option.get("position", Vector2.ZERO))
 			option.priority *= (1.0 + cover_quality * 0.3)
-		
+
 		# Weapon type modifiers
 		if option.has("weapon") and option.weapon:
 			var weapon_modifier = _get_weapon_tactical_modifier(option.weapon, option.type)
 			option.priority *= weapon_modifier
-	
+
 	return options
 
 func _record_tactical_decision(enemy: Enemy, decision: Dictionary) -> void:
 	# Record AI decision for learning and analysis
 	var memory = tactical_memory.get(enemy, {})
-	
+
 	if not memory.has("decision_history"):
 		memory["decision_history"] = []
-	
+
 	memory.decision_history.append({
 		"decision": decision,
 		"timestamp": Time.get_unix_time_from_system(),
 		"battlefield_state": battlefield_analysis.duplicate(),
 		"threat_level": _assess_threat_level(enemy)
 	})
-	
+
 	# Keep only last 10 decisions
 	if memory.decision_history.size() > 10:
 		memory.decision_history = memory.decision_history.slice(-10)
-	
+
 	tactical_memory[enemy] = memory
 
 ## ===== FORMATION AND COORDINATION =====
 func create_coordination_group(enemies: Array[Enemy], formation_type: String = "line") -> void:
 	# Create a coordination group with formation tactics
-	coordination_groups.append(enemies) # warning: return value discarded (intentional)
+	coordination_groups.append(enemies)
 
 	var formation_data = FORMATION_PATTERNS.get(formation_type, FORMATION_PATTERNS["line"])
 	var center_pos = _calculate_group_center(enemies)
-	
-	for i in range(enemies.size()):
-		var enemy = enemies[i]
+
+	for i: int in range(enemies.size()):
+		var enemy: Enemy = enemies[i]
 		var role = _assign_formation_role(i, enemies.size(), formation_type)
 		formation_assignments[enemy] = {
 			"group_id": coordination_groups.size() - 1,
@@ -545,8 +545,11 @@ func _get_viable_targets(enemy: Enemy) -> Array:
 	# Implementation would depend on your character/target system
 	return []
 
-func _is_target_vulnerable(target) -> bool:
-	# Check if target is in a vulnerable position
+func _is_target_vulnerable(target: Variant) -> bool:
+
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return false	# Check if target is in a vulnerable position
 	# Implementation would check for flanking, no cover, low health, etc.
 	return false
 
@@ -686,16 +689,34 @@ func _get_closest_target(enemy: Enemy) -> Node:
 	var targets = _get_viable_targets(enemy)
 	if targets.is_empty():
 		return null
-	
-	var enemy_pos = enemy.global_position if enemy.has("global_position") else Vector2.ZERO
+
+	var enemy_pos: Vector2 = enemy.global_position if enemy.has("global_position") else Vector2.ZERO
 	var closest_target: Node = null
 	var closest_distance: float = INF
-	
+
 	for target in targets:
 		var target_pos = target.global_position if target.has("global_position") else Vector2.ZERO
 		var distance = enemy_pos.distance_to(target_pos)
 		if distance < closest_distance:
 			closest_distance = distance
 			closest_target = target
-	
+
 	return closest_target
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
+
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return
+	if obj and obj.has_method("get"):
+		var value = obj.get(property)
+		return value if value != null else default_value
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

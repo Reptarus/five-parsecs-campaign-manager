@@ -1,4 +1,4 @@
-# Scripts/ShipAndCrew/HullComponent.gd
+﻿# Scripts/ShipAndCrew/HullComponent.gd
 @tool
 extends FPCM_ShipComponent
 class_name HullComponent
@@ -14,10 +14,10 @@ class_name HullComponent
 
 func _init() -> void:
 	super()
-	name = "Hull"
-	description = "Basic hull structure"
-	cost = 400
-	power_draw = 1
+	self.name = "Hull"
+	self.description = "Basic hull structure"
+	self.cost = 400
+	self.power_draw = 1
 func _apply_upgrade_effects() -> void:
 	super()
 	hull_durability += 25
@@ -28,7 +28,7 @@ func _apply_upgrade_effects() -> void:
 	breach_resistance += 0.1
 func get_damage_reduction(damage_type: int = 0) -> float:
 	var reduction = armor * 0.1 * get_efficiency()
-	
+
 	# Different damage types could have different effectiveness against armor
 	match damage_type:
 		1: # Energy weapons - less effective against armor
@@ -37,29 +37,29 @@ func get_damage_reduction(damage_type: int = 0) -> float:
 			pass
 		3: # Explosive - more effective against armor
 			reduction *= 0.6
-	
+
 	return reduction
 
 func damage_hull(amount: int, damage_type: int = 0) -> int:
 	var damage_reduction = get_damage_reduction(damage_type)
 	var actual_damage = max(0, amount - damage_reduction)
-	
+
 	# Apply damage to the ship component
 	damage(actual_damage)
-	
+
 	# Check for breach
 	if actual_damage > 0 and randf() > breach_resistance:
 		_trigger_hull_breach()
-	
+
 	return actual_damage
 
 func damage_shield(amount: int) -> int:
 	if not has_shields or current_shield <= 0:
 		return 0
-		
+
 	var before = current_shield
 	current_shield = max(0, current_shield - amount)
-	
+
 	return before - current_shield
 
 # Process shield recharge
@@ -71,7 +71,7 @@ func _trigger_hull_breach() -> void:
 	if has_emergency_bulkheads and randf() < breach_resistance:
 		# Emergency bulkheads prevented a hull breach
 		return
-		
+
 	# Hull breach effects would go here
 	# Add status effects or other consequences
 	var breach_effect = {
@@ -104,7 +104,7 @@ func serialize() -> Dictionary:
 static func create_from_data(data: Dictionary) -> HullComponent:
 	var component := HullComponent.new()
 	var base_data = FPCM_ShipComponent.deserialize(data)
-	
+
 	# Copy base data
 	component.name = base_data.name
 	component.description = base_data.description
@@ -119,7 +119,7 @@ static func create_from_data(data: Dictionary) -> HullComponent:
 	component.efficiency = base_data.efficiency
 	component.power_draw = base_data.power_draw
 	component.status_effects = base_data.status_effects
-	
+
 	# Hull-specific properties
 
 	component.armor = data.get("armor", 5)
@@ -135,12 +135,12 @@ static func create_from_data(data: Dictionary) -> HullComponent:
 	component.has_emergency_bulkheads = data.get("has_emergency_bulkheads", false)
 
 	component.breach_resistance = data.get("breach_resistance", 0.5)
-	
+
 	return component
 
 # Return serialized data with proper hull type
 static func deserialize(data: Dictionary) -> Dictionary:
-	var base_data = FPCM_ShipComponent.deserialize(data)
+	var base_data = FPCM_ShipComponent.new().serialize()
 	base_data["component_type"] = "hull"
 
 	base_data["armor"] = data.get("armor", 5)
@@ -157,3 +157,22 @@ static func deserialize(data: Dictionary) -> Dictionary:
 
 	base_data["breach_resistance"] = data.get("breach_resistance", 0.5)
 	return base_data
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

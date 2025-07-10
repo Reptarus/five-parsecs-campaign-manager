@@ -1,146 +1,144 @@
-# 🚀 Five Parsecs from Home Campaign Manager - Production Ready!
+# Five Parsecs Campaign Manager - Documentation Index
+**Last Updated**: January 2025
 
-## 🎯 **Current Status: PRODUCTION-GRADE QUALITY**
+## 🚀 **Quick Start**
 
-**Achievement**: ✅ **Complete Five Parsecs Campaign Manager** - **Universal Crash Prevention Applied!**  
-**Status**: Enterprise-grade stability with 97.7% crash reduction achieved  
-**Release**: Production-ready with comprehensive Universal Connection Validation across all systems
+**New to the project?** Start here:
+1. **[Project Status](project_status.md)** - Current state (85% complete, Alpha release preparation)
+2. **[Architecture Overview](architecture.md)** - System design and Universal Safety patterns
+3. **[Development Guide](DEVELOPMENT_IMPLEMENTATION_GUIDE.md)** - Production-ready development patterns
 
----
+## 📋 **Active Documentation**
 
-## Table of Contents
-1. [Project Overview](#project-overview)
-2. [Features](#features)
-3. [Technology Stack](#technology-stack)
-4. [Getting Started](#getting-started)
-   - [Prerequisites](#prerequisites)
-   - [Installation](#installation)
-5. [Usage](#usage)
-6. [Project Structure](#project-structure)
-7. [Contributing](#contributing)
-8. [License](#license)
-9. [Acknowledgments](#acknowledgments)
+### **🏗️ Core Development**
+- **[Architecture](architecture.md)** - Enterprise-grade system design with Universal Safety patterns
+- **[Development Guide](DEVELOPMENT_IMPLEMENTATION_GUIDE.md)** - Production-ready development patterns and best practices
+- **[Universal Safety Template](UNIVERSAL_CONNECTION_VALIDATION_TEMPLATE.md)** - Core architectural pattern for crash prevention
 
-## Project Overview
+### **🎮 Game Rules & Implementation**  
+- **[Core Rules](core_rules.md)** - Five Parsecs from Home rule implementation
+- **[Dice System Guide](DICE_SYSTEM_GUIDE.md)** - Digital dice integration patterns
+- **[Official Campaign Rules](OFFICIAL_CAMPAIGN_RULES_IMPLEMENTATION.md)** - Official Five Parsecs compliance
 
-The Five Parsecs from Home Campaign Manager is a digital tool designed to streamline and enhance the gameplay experience of the tabletop miniatures game "Five Parsecs from Home". This application automates various aspects of campaign management, allowing players to focus on the narrative and tactical elements of the game.
+### **🧪 Testing & Quality Assurance**
+- **[Testing Documentation](testing/)** - Comprehensive testing guides and status reports
+- **[Testing Guide](Testing-Guide.md)** - Testing patterns and best practices
+- **[Warning Fixes](warningfixes.md)** - Common warning patterns and solutions
 
-Our goal is to provide a user-friendly interface that closely adheres to the rules presented in the core rulebook while offering additional features to enrich the gaming experience.
+### **🔧 Development Tools**
+- **[MCP Integration](MCP_Integration.md)** - Model Context Protocol setup and usage
+- **[MCP Setup Summary](MCP_Setup_Summary.md)** - Quick MCP configuration guide
+- **[Cursor IDE Integration](CURSOR_IDE_INTEGRATION_GUIDE.md)** - IDE setup and optimization
 
-## Features
+### **📚 Design Documentation**
+- **[Design Documentation](design/)** - UI/UX and visual design specifications
+  - [Accessibility Automation](design/accessibility_automation.md)
+  - [Battlefield Visualization](design/battlefield_visualization.md) 
+  - [Visual Fidelity Options](design/visual_fidelity_options.md)
 
-### **✨ Core Game Features**
-- **Character Creation and Management**: Create and customize characters with various attributes, skills, and backgrounds.
-- **Crew Management**: Organize and manage your crew, including recruitment and dismissal.
-- **Mission Generation**: Automatically generate varied and exciting missions based on the game's rules.
-- **Patron Job System**: Manage relationships with patrons and take on special jobs.
-- **Pre-Battle Preparation**: Set up battles, including deployment and terrain generation.
-- **Post-Battle Sequence**: Handle the aftermath of battles, including loot, experience, and injuries.
-- **Equipment and Inventory Management**: Manage your crew's gear and ship's inventory.
-- **Experience and Skill Progression**: Track character growth and skill improvements.
-- **Galactic War and Invasion Mechanics**: Simulate the larger conflicts in the game universe.
-- **Starship Management**: Manage your crew's spaceship, including upgrades and travel.
-- **Economy System**: Handle credits, trading, and economic events.
+### **📖 Reference Materials**
+- **[Application Purpose](application_purpose.md)** - Project goals, scope, and vision
+- **[Rules Documentation](rules/)** - Five Parsecs source materials and references
+- **[API Documentation](api/)** - Generated API documentation (when available)
 
-### **🛡️ Production-Grade Quality Features**
-- **Universal Crash Prevention**: 97.7% crash reduction through systematic validation
-- **Enterprise-Grade Stability**: No null reference crashes, no missing resource failures
-- **Safe Scene Transitions**: No more scene change crashes or loading failures  
-- **Graceful Error Handling**: Comprehensive fallback systems with detailed context
-- **Resource Safety**: Protected operations on all data structures and file access
-- **Signal Connection Safety**: No signal connection failures or orphaned connections
+## 🎯 **Current Implementation Status**
 
-## Technology Stack
+### **✅ Production Ready**
+- Universal Safety Architecture (crash prevention)
+- Story Track System (20/20 tests passing)
+- Battle Events System (22/22 tests passing) 
+- Digital Dice System (visual interface complete)
+- Core state management and validation
 
-- **Game Engine**: Godot 4.3
-- **Programming Language**: GDScript
-- **Version Control**: Git
+### **🔧 In Progress (85% Complete)**
+- Campaign Creation workflow (Config panel complete)
+- Crew Setup panel (UI integration needed)
+- Character generation system
+- Panel navigation and validation
 
-## Getting Started
+### **⏳ Pending**
+- Captain assignment workflow
+- Ship configuration panel
+- Equipment generation panel
+- Final campaign review and creation
 
-### Prerequisites
+## 📊 **Documentation Health**
 
-- Godot Engine 4.3 or later
-- Git (for version control)
+### **Recently Updated (January 2025)**
+- ✅ [Project Status](project_status.md) - Reflects current 85% completion state
+- ✅ [README](README.md) - Updated documentation index
+- ✅ Archive organization - Moved outdated completion claims
 
-### Installation
+### **Current & Accurate**
+- ✅ [Architecture](architecture.md) - Universal Safety patterns documentation
+- ✅ [Development Guide](DEVELOPMENT_IMPLEMENTATION_GUIDE.md) - Current coding standards
+- ✅ [Testing Documentation](testing/) - Active test status and guides
 
-1. Clone the repository:
-   ```
-   git clone https://github.com/yourusername/five-parsecs-campaign-manager.git
-   ```
+### **Archived (Outdated)**
+- 📦 Previous "100% complete" documents moved to [archive/](archive/)
+- 📦 Superseded implementation plans archived
+- 📦 Completed consolidation plans archived
 
-2. Open the project in Godot Engine:
-   - Launch Godot Engine
-   - Select "Import"
-   - Navigate to the cloned repository and select the `project.godot` file
+## 🎭 **Development Context**
 
-3. Run the project:
-   - Click the "Play" button in the Godot editor or press F5
+### **Project Phase**: Alpha Release Preparation
+The project is in active development toward alpha release. Core systems are production-ready, with remaining work focused on UI integration and user experience polish.
 
-## Usage
+### **Architecture Highlights**
+- **Universal Safety Framework**: 97.7% crash reduction through comprehensive error handling
+- **State Management**: Enterprise-grade validation and phase management
+- **Component Architecture**: Clean separation between base, core, and game-specific implementations
 
-1. **Start a New Campaign**:
-   - From the main menu, select "New Campaign"
-   - Follow the prompts to create your initial crew and ship
+### **Current Focus Areas**
+1. **Campaign Creation UX**: Completing the full workflow from configuration to campaign start
+2. **Character Management**: Robust crew creation and captain assignment
+3. **Integration Testing**: End-to-end workflow validation and error handling
 
-2. **Manage Your Crew**:
-   - Use the Crew Management screen to add, remove, or edit crew members
-   - Equip your crew with weapons and gear
+## 📁 **Documentation Organization**
 
-3. **Embark on Missions**:
-   - From the Campaign Dashboard, select "Find Mission"
-   - Choose from available missions or generate a new one
+```
+docs/
+├── README.md                          # This index (current)
+├── project_status.md                  # Current completion status (85%)
+├── architecture.md                    # System design patterns
+├── DEVELOPMENT_IMPLEMENTATION_GUIDE.md # Coding standards
+├── core_rules.md                      # Five Parsecs rules
+├── design/                            # UI/UX specifications
+├── testing/                           # Test documentation
+├── rules/                             # Source materials
+└── archive/                           # Historical/outdated docs
+    ├── COMPLETE_CAMPAIGN_SETUP_SUMMARY_outdated.md
+    ├── CREW_CREATION_COMPLIANCE_SUMMARY_outdated.md
+    ├── immediate_implementation_steps_superseded.md
+    └── [other archived documents]
+```
 
-4. **Resolve Battles**:
-   - Use the pre-battle setup to position your crew
-   - Resolve the battle manually using your tabletop setup
-   - Input the results into the post-battle screen
+## 🔄 **Maintenance Schedule**
 
-5. **Progress Your Campaign**:
-   - Manage your ship, trade equipment, and interact with patrons between missions
-   - Watch your crew grow and the galaxy change around you
+### **Weekly Updates**
+- Project status updates as milestones are completed
+- Test status reports as new systems come online
 
-## Project Structure
+### **Monthly Reviews**
+- Documentation accuracy review
+- Archive organization and cleanup
+- Architecture document updates
 
-- `/src`: All source code with Universal Connection Validation applied
-  - `/utils`: **Universal Utilities** - Safe operation classes for crash prevention
-  - `/core`: Core game logic (GameState, CampaignManager, etc.) - **Crash-Proofed**
-  - `/game`: Game-specific implementations - **Crash-Proofed** 
-  - `/base`: Base classes and abstractions - **Crash-Proofed**
-  - `/autoload`: Autoload systems - **Crash-Proofed**
-  - `/scenes`: Scene management - **Crash-Proofed**
-  - `/ui`: User interface components - **Crash-Proofed**
-  - `/data`: Data resources and configurations - **Crash-Proofed**
-- `/scenes`: Godot scene files
-- `/assets`: Game assets (images, sounds, etc.)
-- `/tests`: Comprehensive testing infrastructure (gdUnit4) - **191/191 Tests Passing**
-- `/docs`: Project documentation
-  - `/testing`: Testing documentation and status
-  - **UNIVERSAL_CONNECTION_VALIDATION_TEMPLATE.md**: Crash prevention methodology
-
-## Contributing
-
-We welcome contributions to the Five Parsecs from Home Campaign Manager! If you'd like to contribute, please follow these steps:
-
-1. Fork the repository
-2. Create a new branch (`git checkout -b feature/AmazingFeature`)
-3. Make your changes
-4. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-5. Push to the branch (`git push origin feature/AmazingFeature`)
-6. Open a Pull Request
-
-Please make sure to update tests as appropriate and adhere to the project's coding standards.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
-
-## Acknowledgments
-
-- Thanks to Ivan Barontini and Modiphius Entertainment for creating the amazing "Five Parsecs from Home" game.
-- All contributors who have helped to build and improve this project.
+### **Release Updates**
+- Comprehensive documentation refresh for major releases
+- User guide creation for beta/production releases
+- API documentation generation
 
 ---
 
-For more information or support, please open an issue on the GitHub repository or contact the project maintainers.
+## 📞 **Quick References**
+
+- **Current Milestone**: Campaign Creation Integration
+- **Next Release**: Alpha (ETA: 1-2 days after CrewPanel fixes)
+- **Project Completion**: 85%
+- **Active Issues**: CrewPanel UI component integration
+- **Documentation Status**: Current and accurate (January 2025)
+
+**For developers**: Start with [Architecture](architecture.md) and [Development Guide](DEVELOPMENT_IMPLEMENTATION_GUIDE.md)  
+**For testers**: See [Testing Documentation](testing/) for current test status and procedures  
+**For project status**: Check [Project Status](project_status.md) for the latest completion percentage and milestones

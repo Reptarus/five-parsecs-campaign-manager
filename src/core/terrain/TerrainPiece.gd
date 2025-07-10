@@ -1,6 +1,6 @@
-extends StaticBody3D
+﻿extends StaticBody3D
 
-const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
 const TerrainTypes: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")
 
 @export var terrain_type: int = 0 # TerrainTypes.Type.EMPTY equivalent
@@ -37,7 +37,7 @@ func _initialize_terrain_properties() -> void:
 		_:
 			_combat_modifiers = {}
 			_special_effects = {}
-	
+
 	# Set collision properties based on terrain type
 	if terrain_type in [TerrainTypes.Type.WALL, TerrainTypes.Type.COVER_HIGH]:
 		collision_layer = 1 # Collision layer for solid terrain
@@ -80,10 +80,10 @@ func can_be_destroyed() -> bool:
 func take_damage(amount: int) -> void:
 	if not destructible:
 		return
-		
+
 	current_health = max(0, current_health - amount)
 	_is_damaged = current_health < max_health
-	
+
 	if current_health == 0:
 		_handle_destruction()
 	elif _is_damaged:
@@ -93,7 +93,7 @@ func _handle_damage() -> void:
 	# Visual feedback for damage
 	if _mesh_instance:
 		_mesh_instance.set_instance_shader_parameter("damage_color", Color(1.0, 0.7, 0.7))
-	
+
 	# Adjust collision shape if needed
 	if terrain_type == TerrainTypes.Type.WALL:
 		var collision_shape = get_node_or_null("CollisionShape3D")
@@ -106,7 +106,7 @@ func _handle_destruction() -> void:
 		# Convert to rubble
 		terrain_type = TerrainTypes.Type.DIFFICULT
 		_initialize_terrain_properties()
-		
+
 		var collision_shape = get_node_or_null("CollisionShape3D")
 		if collision_shape:
 			var shape = collision_shape.shape
@@ -126,21 +126,21 @@ func get_original_position() -> Vector3:
 func repair(amount: int) -> void:
 	if not _is_damaged:
 		return
-		
+
 	current_health = min(max_health, current_health + amount)
 	_is_damaged = current_health < max_health
-	
+
 	if not _is_damaged:
 		_restore_original_state()
 
 func _restore_original_state() -> void:
 	if _mesh_instance:
 		_mesh_instance.set_instance_shader_parameter("damage_color", Color(1.0, 1.0, 1.0))
-	
+
 	var collision_shape = get_node_or_null("CollisionShape3D")
 	if collision_shape:
 		var shape = collision_shape.shape
 		if shape is BoxShape3D:
 			shape.size = Vector3.ONE
-	
+
 	_initialize_terrain_properties()

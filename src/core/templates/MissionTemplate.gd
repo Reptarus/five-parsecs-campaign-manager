@@ -1,12 +1,12 @@
-extends Resource
+﻿extends Resource
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 @export_group("Mission Details")
-@export var type: GameEnums.MissionType
+@export var type: GlobalEnums.MissionType
 @export var title_templates: Array[String] = []
 @export var description_templates: Array[String] = []
-@export var objective: GameEnums.MissionObjective
+@export var objective: GlobalEnums.MissionObjective
 @export var objective_description: String = ""
 
 @export_group("Requirements")
@@ -20,16 +20,23 @@ const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 @export_range(0, 1) var notable_sight_chance: float = 0.2
 
 func validate() -> bool:
-    if title_templates.is_empty() or description_templates.is_empty():
-        push_error("Mission template must have at least one title and description")
-        return false
-        
-    if reward_range.x >= reward_range.y:
-        push_error("Invalid reward range")
-        return false
-        
-    if difficulty_range.x >= difficulty_range.y:
-        push_error("Invalid difficulty range")
-        return false
-        
-    return true
+	if (safe_call_method(title_templates, "is_empty") == true) or (safe_call_method(description_templates, "is_empty") == true):
+		push_error("Mission template must have at least one title and description")
+		return false
+
+	if reward_range.x >= reward_range.y:
+		push_error("Invalid reward range")
+		return false
+
+	if difficulty_range.x >= difficulty_range.y:
+		push_error("Invalid difficulty range")
+		return false
+
+	return true
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

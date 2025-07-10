@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 extends PanelContainer
 
 ## Signals
@@ -33,14 +33,14 @@ func show_override(context: String, _value: int, min_val: int = 1, max_val: int 
 	current_value = _value
 	min_value = min_val
 	max_value = max_val
-	
+
 	override_type_label.text = _get_context_label(context)
 	current_value_label.text = "Current Value: %d" % _value
-	
+
 	override_value_spinbox.min_value = min_val
 	override_value_spinbox.max_value = max_val
 	override_value_spinbox._value = _value
-	
+
 	show()
 
 ## Converts context string to user-friendly label
@@ -53,12 +53,12 @@ func _get_context_label(context: String) -> String:
 
 ## Called when the apply button is pressed
 func _on_apply_pressed() -> void:
-	override_applied.emit(int(override_value_spinbox._value)) # warning: return value discarded (intentional)
+	override_applied.emit(int(override_value_spinbox._value))
 	hide()
 
 ## Called when the cancel button is pressed
 func _on_cancel_pressed() -> void:
-	override_cancelled.emit() # warning: return value discarded (intentional)
+	override_cancelled.emit()
 	hide()
 
 ## Called when the override _value changes

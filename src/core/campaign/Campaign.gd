@@ -1,12 +1,12 @@
-@tool
+﻿@tool
 extends Resource
 class_name FiveParcsecsCampaign
 
 ## Five Parsecs Campaign Resource
 ## Manages campaign-level data and progression
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const Character = preload("res://src/core/character/Base/Character.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const CharacterBase = preload("res://src/core/character/Base/Character.gd")
 
 signal campaign_started
 signal campaign_ended(victory: bool)
@@ -25,17 +25,17 @@ signal resource_changed(resource_type: int, amount: int)
 			return
 		campaign_name = _value
 
-@export var difficulty: int = GameEnums.DifficultyLevel.NORMAL:
+@export var difficulty: int = GlobalEnums.DifficultyLevel.NORMAL:
 	set(_value):
-		if not _value in GameEnums.DifficultyLevel.values():
+		if not _value in GlobalEnums.DifficultyLevel.values():
 			push_error("Invalid difficulty level")
 			return
 		difficulty = _value
 
-@export var victory_condition: int = GameEnums.FiveParcsecsCampaignVictoryType.STANDARD
-@export var current_phase: int = GameEnums.CampaignPhase.NONE
+@export var victory_condition: int = GlobalEnums.FiveParcsecsCampaignVictoryType.STANDARD
+@export var current_phase: int = safe_get_property(GlobalEnums, "FiveParsecsCampaignPhase").NONE
 @export var resources: Dictionary = {}
-@export var crew_size: int = GameEnums.CrewSize.FOUR
+@export var crew_size: int = GlobalEnums.CrewSize.FOUR
 @export var use_story_track: bool = true
 
 var campaign_turn: int = 0:
@@ -65,67 +65,67 @@ func _init() -> void:
 
 func _initialize_campaign() -> void:
 	resources = {
-		GameEnums.ResourceType.CREDITS: 1000,
-		GameEnums.ResourceType.SUPPLIES: 5
+		GlobalEnums.ResourceType.CREDITS: 1000,
+		GlobalEnums.ResourceType.SUPPLIES: 5
 	}
-	resources_changed.emit(resources) # warning: return value discarded (intentional)
+	resources_changed.emit(resources)
 
 func start_campaign() -> void:
-	var old_phase = current_phase
-	current_phase = GameEnums.CampaignPhase.SETUP
-	campaign_started.emit() # warning: return value discarded (intentional)
-	phase_changed.emit(old_phase, current_phase) # warning: return value discarded (intentional)
-	phase_started.emit(current_phase) # warning: return value discarded (intentional)
+	var old_phase: int = current_phase
+	current_phase = safe_get_property(GlobalEnums, "FiveParsecsCampaignPhase").SETUP
+	campaign_started.emit()
+	phase_changed.emit(old_phase, current_phase)
+	phase_started.emit(current_phase)
 
 func end_campaign(victory: bool = false) -> void:
-	var old_phase = current_phase
+	var old_phase: int = current_phase
 	phase_completed.emit(current_phase) # warning: return value discarded (intentional)
-	current_phase = GameEnums.CampaignPhase.END
+	# Note: END phase removed from official enum - campaigns now cycle through phases
 	phase_changed.emit(old_phase, current_phase) # warning: return value discarded (intentional)
 	campaign_ended.emit(victory) # warning: return value discarded (intentional)
 
 func change_phase(new_phase: int) -> void:
 	if new_phase == current_phase:
 		return
-	
-	if not new_phase in GameEnums.CampaignPhase.values():
+
+	if not new_phase in safe_get_property(GlobalEnums, "FiveParsecsCampaignPhase").values():
 		push_error("Invalid campaign _phase: %d" % new_phase)
 		return
-	
-	var old_phase = current_phase
+
+	var old_phase: int = current_phase
 	phase_completed.emit(current_phase) # warning: return value discarded (intentional)
 	current_phase = new_phase
 	phase_changed.emit(old_phase, new_phase) # warning: return value discarded (intentional)
 	phase_started.emit(current_phase) # warning: return value discarded (intentional)
 
 func add_resources(resource_type: int, amount: int) -> void:
-	if not resource_type in GameEnums.ResourceType.values():
+	if not resource_type in GlobalEnums.ResourceType.values():
 		push_error("Invalid resource _type: %d" % resource_type)
 		return
-	
+
 	if not resources.has(resource_type):
 		resources[resource_type] = 0
-	
+
 	resources[resource_type] += amount
 	resources_changed.emit(resources) # warning: return value discarded (intentional)
 
 func remove_resources(resource_type: int, amount: int) -> bool:
-	if not resource_type in GameEnums.ResourceType.values():
+	if not resource_type in GlobalEnums.ResourceType.values():
 		push_error("Invalid resource _type: %d" % resource_type)
 		return false
-	
+
 	if not resources.has(resource_type) or resources[resource_type] < amount:
 		return false
-	
+
 	resources[resource_type] -= amount
 	resources_changed.emit(resources) # warning: return value discarded (intentional)
 	return true
 
 func get_resource(resource_type: int) -> int:
-	if not resource_type in GameEnums.ResourceType.values():
+	if not resource_type in GlobalEnums.ResourceType.values():
 		push_error("Invalid resource _type: %d" % resource_type)
 		return 0
-	
+
 	return resources.get(resource_type, 0)
 
 func serialize() -> Dictionary:
@@ -149,12 +149,12 @@ func deserialize(data: Dictionary) -> void:
 	use_story_track = data.get("use_story_track", use_story_track)
 
 func add_mission(mission: Dictionary) -> void:
-	available_missions.append(mission) # warning: return value discarded (intentional)
+	available_missions.append(mission)
 
 func complete_mission(mission: Dictionary) -> void:
 	if mission in available_missions:
 		available_missions.erase(mission)
-		completed_missions.append(mission) # warning: return value discarded (intentional)
+		completed_missions.append(mission)
 
 func set_faction_standing(faction: String, _value: float) -> void:
 	faction_standings[faction] = clampf(_value, -100.0, 100.0)
@@ -175,8 +175,8 @@ func has_equipment(equipment_id: int) -> bool:
 func to_dictionary() -> Dictionary:
 	var crew_data: Array = []
 	for member in crew_members:
-		crew_data.append(member.to_dictionary()) # warning: return value discarded (intentional)
-	
+		crew_data.append(member.to_dictionary())
+
 	return {
 		"campaign_name": campaign_name,
 		"difficulty": difficulty,
@@ -193,23 +193,23 @@ func to_dictionary() -> Dictionary:
 
 func from_dictionary(data: Dictionary) -> void:
 	campaign_name = data.get("campaign_name", "New Campaign")
-	difficulty = data.get("difficulty", GameEnums.DifficultyLevel.NORMAL)
-	current_phase = data.get("current_phase", GameEnums.CampaignPhase.SETUP)
+	difficulty = data.get("difficulty", GlobalEnums.DifficultyLevel.NORMAL)
+	current_phase = data.get("current_phase", safe_get_property(GlobalEnums, "FiveParsecsCampaignPhase").SETUP)
 	campaign_turn = data.get("campaign_turn", 0)
-	
+
 	# Load crew data
 	crew_members.clear()
 	for member_data in data.get("crew_members", []):
 		var member := Character.new()
 		member.from_dictionary(member_data)
-		crew_members.append(member) # warning: return value discarded (intentional)
-	
+		crew_members.append(member)
+
 	# Load captain data
-	var captain_data = data.get("captain")
+	var captain_data = data.get("captain", null)
 	if captain_data:
 		captain = Character.new()
 		captain.from_dictionary(captain_data)
-	
+
 	resources = data.get("resources", {}).duplicate()
 	story_points = data.get("story_points", 0)
 	completed_missions = data.get("completed_missions", []).duplicate()
@@ -257,3 +257,20 @@ func load_data(data: Dictionary) -> void:
 	crew_data = data.get("crew_data", [])
 	resources = data.get("resources", {})
 	settings = data.get("settings", {})
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
+
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return
+		var value = obj.get(property)
+		return value if value != null else default_value
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

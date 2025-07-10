@@ -1,4 +1,4 @@
-class_name DiceDisplay
+﻿class_name DiceDisplay
 extends Control
 
 ## Visual dice display component with animations and manual input
@@ -30,14 +30,14 @@ class DiceVisual extends Control:
 	var dice_value: int = 1
 	var dice_type: String = "d6"
 	var is_rolling: bool = false
-	
+
 	@onready var dice_face: Label = $DiceFace
 	@onready var animation_player: AnimationPlayer = $AnimationPlayer
-	
+
 	func _ready() -> void:
 		custom_minimum_size = Vector2(60, 60)
 		_update_display()
-	
+
 	func set_value(_value: int) -> void:
 		dice_value = _value
 		_update_display()
@@ -60,9 +60,9 @@ class DiceVisual extends Control:
 	func _update_display() -> void:
 		if not dice_face:
 			return
-			
+
 		dice_face.text = str(dice_value)
-		
+
 		# Style based on dice type
 		match dice_type:
 			"d6":
@@ -81,7 +81,7 @@ class DiceVisual extends Control:
 func _ready() -> void:
 	_setup_connections()
 	manual_input_panel.visible = false
-	
+
 	# Connect to dice system if available
 	if not dice_system:
 		dice_system = FPCM_DiceSystem.new()
@@ -96,17 +96,17 @@ func _setup_connections() -> void:
 		settings_button.pressed.connect(_on_settings_pressed)
 
 ## Display a dice roll with visual feedback
-	
+
 func display_dice_roll(dice_roll: FPCM_DiceSystem.DiceRoll, show_manual_option: bool = true) -> void:
 	current_dice_roll = dice_roll
-	
+
 	# Update context
 	if context_label:
 		context_label.text = dice_roll.context if dice_roll.context != "" else "Dice Roll"
-	
+
 	# Clear previous dice
 	_clear_dice_display()
-	
+
 	# Check if this is a manual input request
 	if dice_roll.individual_rolls.is_empty() and show_manual_option:
 		_show_manual_input_panel()
@@ -114,21 +114,21 @@ func display_dice_roll(dice_roll: FPCM_DiceSystem.DiceRoll, show_manual_option: 
 		_show_automatic_result()
 
 ## Show the result of an automatic dice roll
-	
+
 func _show_automatic_result() -> void:
 	manual_input_panel.visible = false
-	
+
 	# Create visual dice for each roll
-	for i in range(current_dice_roll.individual_rolls.size()):
+	for i: int in range(current_dice_roll.individual_rolls.size()):
 		var dice_visual = _create_dice_visual(current_dice_roll.dice_type)
 		dice_visual.set_value(current_dice_roll.individual_rolls[i])
 
-		dice_scenes.append(dice_visual) # warning: return value discarded (intentional)
+		dice_scenes.append(dice_visual)
 		dice_container.add_child(dice_visual)
-	
+
 	# Show result
 	_update_result_display()
-	
+
 	# Play animation if enabled
 	if dice_system.show_animations:
 		_play_roll_animation()
@@ -137,17 +137,17 @@ func _show_automatic_result() -> void:
 func _show_manual_input_panel() -> void:
 	manual_input_panel.visible = true
 	manual_input_spinboxes.clear()
-	
+
 	# Clear any existing manual input controls
 	for child in manual_input_container.get_children():
 		if child is SpinBox:
 			child.queue_free()
-	
+
 	# Create input controls for each die
-	for i in range(current_dice_roll.dice_count):
+	for i: int in range(current_dice_roll.dice_count):
 		var spinbox := SpinBox.new()
 		spinbox.min_value = 1
-		
+
 		# Set max _value based on dice type
 		match current_dice_roll.dice_type:
 			"d6":
@@ -163,13 +163,13 @@ func _show_manual_input_panel() -> void:
 				spinbox.max_value = 66
 			_:
 				spinbox.max_value = 6
-		
+
 		spinbox._value = spinbox.min_value
 		spinbox.custom_minimum_size = Vector2(80, 30)
 
-		manual_input_spinboxes.append(spinbox) # warning: return value discarded (intentional)
+		manual_input_spinboxes.append(spinbox)
 		manual_input_container.add_child(spinbox)
-		
+
 		# Move buttons to end
 		manual_input_container.move_child(manual_confirm_button, -1)
 		manual_input_container.move_child(auto_roll_button, -1)
@@ -185,36 +185,36 @@ func _play_roll_animation() -> void:
 	for dice_visual in dice_scenes:
 		if dice_visual is DiceVisual:
 			dice_visual.start_roll_animation()
-	
+
 	# Simulate rolling animation
 	var tween = create_tween()
 	var animation_duration: int = 1 / dice_system.animation_speed
-	
+
 	# Random number animation
-	for step in range(10):
-		tween.tween_callback(_animate_random_numbers).set_delay(animation_duration / 10.0)
-	
+	for step: int in range(10):
+		tween.tween_callback(_animate_random_numbers).set_delay(animation_duration / 1.0)
+
 	# Final result
-	tween.tween_callback(_show_final_result).set_delay(animation_duration / 10.0)
+	tween.tween_callback(_show_final_result).set_delay(animation_duration / 1.0)
 
 ## Animate random numbers during rolling
-	
+
 func _animate_random_numbers() -> void:
-	for i in range(dice_scenes.size()):
+	for i: int in range(dice_scenes.size()):
 		if i < dice_scenes.size() and dice_scenes[i] is DiceVisual:
 			var random_value = randi() % _get_max_value_for_type(current_dice_roll.dice_type) + 1
 			dice_scenes[i].set_value(random_value)
 
 ## Show final dice result
-	
+
 func _show_final_result() -> void:
-	for i in range(dice_scenes.size()):
+	for i: int in range(dice_scenes.size()):
 		if i < dice_scenes.size() and dice_scenes[i] is DiceVisual:
 			dice_scenes[i].stop_roll_animation()
 			if i < current_dice_roll.individual_rolls.size():
 				dice_scenes[i].set_value(current_dice_roll.individual_rolls[i])
-	
-	dice_animation_finished.emit() # warning: return value discarded (intentional)
+
+	dice_animation_finished.emit()
 
 ## Get maximum _value for dice type
 func _get_max_value_for_type(dice_type: String) -> int:
@@ -230,9 +230,9 @@ func _get_max_value_for_type(dice_type: String) -> int:
 func _update_result_display() -> void:
 	if not roll_result_label or not current_dice_roll:
 		return
-	
+
 	roll_result_label.text = current_dice_roll.get_display_text()
-	
+
 	# Color coding based on result
 	if current_dice_roll.total >= _get_max_value_for_type(current_dice_roll.dice_type) * current_dice_roll.dice_count:
 		roll_result_label.modulate = Color.GREEN # Maximum roll
@@ -249,42 +249,42 @@ func _clear_dice_display() -> void:
 	dice_scenes.clear()
 
 ## Handle manual input confirmation
-	
+
 func _on_manual_confirm_pressed() -> void:
 	if manual_input_spinboxes.is_empty():
 		return
-	
+
 	var manual_rolls: Array[int] = []
 	for spinbox in manual_input_spinboxes:
-		manual_rolls.append(int(spinbox._value)) # warning: return value discarded (intentional)
-	
+		manual_rolls.append(int(spinbox._value))
+
 	# Validate d66 rolls
 	if current_dice_roll.dice_type == "d66":
-		for i in range(manual_rolls.size()):
+		for i: int in range(manual_rolls.size()):
 			var roll = manual_rolls[i]
-			var tens = roll / 10
+			var tens = roll / 10.0
 			var ones = roll % 10
 			if tens < 1 or tens > 6 or ones < 1 or ones > 6:
 				# Invalid d66 roll, fix it
 				manual_rolls[i] = 11 # Default to minimum valid d66
-	
+
 	# Apply manual input to dice roll
 	dice_system.input_manual_result(current_dice_roll, manual_rolls)
-	
+
 	# Update display
 	manual_input_panel.visible = false
 	_show_automatic_result()
-	
-	manual_roll_completed.emit(current_dice_roll) # warning: return value discarded (intentional)
+
+	manual_roll_completed.emit(current_dice_roll)
 
 ## Handle auto roll button
 func _on_auto_roll_pressed() -> void:
 	if not current_dice_roll:
 		return
-	
+
 	# Execute automatic roll
 	dice_system._execute_dice_roll(current_dice_roll)
-	
+
 	# Update display
 	manual_input_panel.visible = false
 	_show_automatic_result()
@@ -296,7 +296,7 @@ func _on_history_pressed() -> void:
 	print("Dice Roll History:\n" + history_text)
 
 ## Show dice settings
-	
+
 func _on_settings_pressed() -> void:
 	# TODO: Show settings dialog
 	print("Dice Settings - TODO: Implement settings dialog")
@@ -305,7 +305,7 @@ func _on_settings_pressed() -> void:
 
 func set_dice_system(p_dice_system: FPCM_DiceSystem) -> void:
 	dice_system = p_dice_system
-	
+
 	# Connect signals
 	if dice_system:
 		dice_system.dice_rolled.connect(_on_dice_rolled)
@@ -313,7 +313,7 @@ func set_dice_system(p_dice_system: FPCM_DiceSystem) -> void:
 		dice_system.dice_animation_started.connect(_on_dice_animation_started)
 
 ## Handle dice system signals
-	
+
 func _on_dice_rolled(dice_roll: FPCM_DiceSystem.DiceRoll) -> void:
 	display_dice_roll(dice_roll, false)
 
@@ -323,3 +323,11 @@ func _on_manual_input_requested(dice_roll: FPCM_DiceSystem.DiceRoll) -> void:
 func _on_dice_animation_started(dice_count: int, dice_type: String) -> void:
 	# Prepare for animation
 	pass
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

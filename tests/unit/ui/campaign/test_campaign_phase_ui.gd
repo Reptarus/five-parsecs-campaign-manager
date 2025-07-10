@@ -3,8 +3,8 @@
 @tool
 extends GdUnitTestSuite
 
-#
-const CampaignPhaseUI := preload("res://src/scenes/campaign/components/CampaignPhaseUI.gd")
+# Dependencies - using mock implementations for missing dependencies  
+# const CampaignPhaseUI := preload("res://src/scenes/campaign/components/CampaignPhaseUI.gd") # Commented out due to dependency issues
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 #

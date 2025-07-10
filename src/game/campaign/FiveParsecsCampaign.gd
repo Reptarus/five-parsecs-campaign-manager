@@ -5,9 +5,9 @@ class_name FiveParsecsCampaign
 ## Five Parsecs Campaign Implementation
 ## Manages campaign state and progression for Five Parsecs from Home
 
-const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")
+const FiveParsecsGlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsCrew = preload("res://src/game/campaign/crew/FiveParsecsCrew.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 signal campaign_started
 signal campaign_ended
@@ -66,3 +66,22 @@ func deserialize(data: Dictionary) -> void:
 	current_turn = data.get("current_turn", 1)
 	credits = data.get("credits", 1000)
 	campaign_state = data.get("campaign_state", {})
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

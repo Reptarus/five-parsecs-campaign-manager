@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 extends RefCounted
 class_name BattlefieldDisplayManager
 
@@ -23,17 +23,17 @@ func _initialize_battlefield() -> void:
 	# Clear existing data
 	units.clear()
 	terrain_grid.clear()
-	
+
 	# Initialize empty terrain grid
-	for x in range(grid_size.x):
-		for y in range(grid_size.y):
+	for x: int in range(grid_size.x):
+		for y: int in range(grid_size.y):
 			terrain_grid[Vector2i(x, y)] = 0 # 0 = open terrain
 
 ## Set battlefield grid size
 func set_grid_size(new_size: Vector2i) -> void:
 	grid_size = new_size
 	_initialize_battlefield()
-	battlefield_updated.emit(grid_size) # warning: return value discarded (intentional)
+	battlefield_updated.emit(grid_size)
 
 ## Get world position from grid coordinates
 func grid_to_world(grid_pos: Vector2i) -> Vector2:
@@ -52,15 +52,15 @@ func is_valid_position(grid_pos: Vector2i) -> bool:
 func place_unit(unit: Node, grid_pos: Vector2i) -> bool:
 	if not is_valid_position(grid_pos):
 		return false
-	
+
 	# Remove unit from previous position if it exists
 	for _pos in units.keys():
 		if units[_pos] == unit:
 			units.erase(_pos)
 			break
-	
+
 	units[grid_pos] = unit
-	unit_positioned.emit(unit, grid_pos) # warning: return value discarded (intentional)
+	unit_positioned.emit(unit, grid_pos)
 	return true
 
 ## Remove unit from battlefield
@@ -71,7 +71,6 @@ func remove_unit(unit: Node) -> void:
 			break
 
 ## Get unit at position
-
 func get_unit_at_position(grid_pos: Vector2i) -> Node:
 	return units.get(grid_pos, null)
 
@@ -79,9 +78,9 @@ func get_unit_at_position(grid_pos: Vector2i) -> Node:
 func set_terrain(grid_pos: Vector2i, terrain_type: int) -> bool:
 	if not is_valid_position(grid_pos):
 		return false
-	
+
 	terrain_grid[grid_pos] = terrain_type
-	terrain_updated.emit(grid_pos, terrain_type) # warning: return value discarded (intentional)
+	terrain_updated.emit(grid_pos, terrain_type)
 	return true
 
 ## Get terrain at position
@@ -101,19 +100,20 @@ func get_adjacent_positions(grid_pos: Vector2i) -> Array[Vector2i]:
 		Vector2i(-1, -1), Vector2i(1, -1), # Diagonals
 		Vector2i(-1, 1), Vector2i(1, 1)
 	]
-	
+
 	for direction in directions:
+		var typed_direction: Variant = direction
 		var new_pos = grid_pos + direction
 		if is_valid_position(new_pos):
-			adjacent.append(new_pos) # warning: return value discarded (intentional)
-	
+			adjacent.append(new_pos)
+
 	return adjacent
 
 ## Clear battlefield
 func clear_battlefield() -> void:
 	units.clear()
 	_initialize_battlefield()
-	battlefield_updated.emit(grid_size) # warning: return value discarded (intentional)
+	battlefield_updated.emit(grid_size)
 
 ## Get battlefield state for saving
 func get_battlefield_state() -> Dictionary:
@@ -130,4 +130,24 @@ func load_battlefield_state(state: Dictionary) -> void:
 	cell_size = state.get("cell_size", Vector2(32, 32))
 	battlefield_origin = state.get("battlefield_origin", Vector2.ZERO)
 	terrain_grid = state.get("terrain_grid", {})
-	battlefield_updated.emit(grid_size) # warning: return value discarded (intentional)
+	battlefield_updated.emit(grid_size)
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

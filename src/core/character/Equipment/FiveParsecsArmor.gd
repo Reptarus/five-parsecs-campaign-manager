@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 extends Resource
 class_name FiveParsecsArmor
 
@@ -8,7 +8,7 @@ var _repair_cost: int = 0
 var is_damaged: bool = false
 
 # Basic armor properties
-var name: String = ""
+var node_name: String = ""
 var description: String = ""
 var cost: int = 0
 var _armor_class: int = 0
@@ -22,17 +22,17 @@ func repair() -> void:
 	durability = 100
 	is_damaged = false
 func calculate_repair_cost() -> int:
-	return (100 - durability) * cost / 100
+	return (100 - durability) * cost / 100.0
 
 func get_display_name() -> String:
-	var display = name
+	var display = self.name
 	if is_damaged:
 		display += " (Damaged)"
 	return display
 
 func get_description() -> String:
 	var desc = description
-	desc += "\nDurability: %d/100" % durability
+	desc += "\nDurability: %d / 100.0" % durability
 	if is_damaged:
 		desc += "\nNeeds Repair (Cost: %d credits)" % calculate_repair_cost()
 	return desc

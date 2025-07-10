@@ -1,7 +1,7 @@
-class_name FPCM_ResourceDisplay
+﻿class_name FPCM_ResourceDisplay
 extends Control
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const ResourceItem = preload("res://src/ui/resource/ResourceItem.gd")
 # Note: GameResourceSystem is an autoload - access via get_node("/root/ResourceSystem")
 
@@ -25,8 +25,8 @@ var update_timer: Timer
 func _ready() -> void:
 	# Get reference to resource system with error handling
 	if has_node("/root/Game/Systems/ResourceSystem"):
-		var node = get_node("/root/Game/Systems/ResourceSystem")
-		if node.has_method("get_resource_amount"):
+		var node: Node = get_node("/root/Game/Systems/ResourceSystem")
+		if node and node.has_method("get_resource_amount"):
 			resource_system = node
 		else:
 			push_warning("ResourceDisplay: ResourceSystem node is not the correct type")
@@ -35,7 +35,7 @@ func _ready() -> void:
 		# Fallback: create a stub system
 		push_warning("ResourceDisplay: No ResourceSystem found, using fallback")
 		resource_system = null # No fallback needed as get_resource_amount is now checked
-	
+
 	# Connect signals if resource system exists
 	if resource_system:
 		if resource_system.has_signal("resource_changed"):
@@ -44,13 +44,13 @@ func _ready() -> void:
 			resource_system.transaction_recorded.connect(_on_transaction_recorded)
 		if resource_system.has_signal("validation_failed"):
 			resource_system.validation_failed.connect(_on_validation_failed)
-	
+
 	# Setup UI
 	_setup_filter_options()
 	_setup_resource_display()
 	_setup_history_display()
 	_setup_market_display()
-	
+
 	# Setup market update timer
 	update_timer = Timer.new()
 	add_child(update_timer)
@@ -60,10 +60,10 @@ func _ready() -> void:
 func _setup_filter_options() -> void:
 	filter_type.clear()
 	filter_type.add_item("All Resources", -1)
-	
-	for type in GameEnums.ResourceType.values():
-		if type != GameEnums.ResourceType.NONE:
-			var type_name = GameEnums.ResourceType.keys()[type].capitalize()
+
+	for type in GlobalEnums.ResourceType.values():
+		if type != GlobalEnums.ResourceType.NONE:
+			var type_name = GlobalEnums.ResourceType.keys()[type].capitalize()
 			filter_type.add_item(type_name, type)
 
 func _setup_market_display() -> void:
@@ -72,7 +72,7 @@ func _setup_market_display() -> void:
 func _update_market_state_display() -> void:
 	var market_state = resource_system._market.market_state
 	var state_text: String = "Market State: "
-	
+
 	if market_state > 0.3:
 		state_text += "Boom (+"
 	elif market_state > 0:
@@ -81,7 +81,7 @@ func _update_market_state_display() -> void:
 		state_text += "Stable ("
 	else:
 		state_text += "Recession ("
-	
+
 	state_text += str(int(market_state * 100)) + "%)"
 	market_state_label.text = state_text
 
@@ -90,13 +90,13 @@ func _setup_resource_display() -> void:
 	for child in resource_container.get_children():
 		if child is ResourceItem:
 			child.queue_free()
-	
+
 	# Create resource items
-	for type in GameEnums.ResourceType.values():
-		if type != GameEnums.ResourceType.NONE:
+	for type in GlobalEnums.ResourceType.values():
+		if type != GlobalEnums.ResourceType.NONE:
 			var item = RESOURCE_ITEM_SCENE.instantiate()
 			resource_container.add_child(item)
-			
+
 			var current_amount = resource_system.get_resource_amount(type)
 			var market_value = resource_system.get_market_value(type)
 			var trend: int = 0
@@ -104,7 +104,7 @@ func _setup_resource_display() -> void:
 				trend = 1
 			elif market_value < current_amount:
 				trend = -1
-			
+
 			item.setup(
 				type,
 				current_amount,
@@ -117,13 +117,14 @@ func _setup_history_display() -> void:
 	transaction_list.clear()
 	var history = resource_system.get_transaction_history()
 	for transaction in history:
+		var typed_transaction: Variant = transaction
 		_add_transaction_to_list(transaction)
 
 func _add_transaction_to_list(transaction: Dictionary) -> void:
 	var time_str = Time.get_datetime_string_from_unix_time(transaction.timestamp)
 	var amount_str = ("+" if transaction.transaction_type == "ADD" else "-") + str(transaction.amount)
-	var type_str = GameEnums.ResourceType.keys()[transaction.type].capitalize()
-	
+	var type_str = GlobalEnums.ResourceType.keys()[transaction.type].capitalize()
+
 	var text: String = "%s | %s %s | Source: %s | Balance: %d" % [
 		time_str,
 		amount_str,
@@ -131,7 +132,7 @@ func _add_transaction_to_list(transaction: Dictionary) -> void:
 		transaction.source,
 		transaction.balance
 	]
-	
+
 	transaction_list.add_item(text)
 	# Auto-scroll to bottom
 	transaction_list.ensure_current_is_visible()
@@ -154,11 +155,11 @@ func _on_transaction_recorded(transaction: Dictionary) -> void:
 
 func _on_validation_failed(type: int, amount: int, reason: String) -> void:
 	# Show error notification
-	var type_str = GameEnums.ResourceType.keys()[type].capitalize()
+	var type_str = GlobalEnums.ResourceType.keys()[type].capitalize()
 	OS.alert("Resource validation failed for %s: %s" % [type_str, reason])
 
 func _on_resource_item_pressed(type: int) -> void:
-	resource_clicked.emit(type) # warning: return value discarded (intentional)
+	resource_clicked.emit(type)
 
 func _on_clear_history_pressed() -> void:
 	transaction_list.clear()
@@ -167,15 +168,24 @@ func _on_filter_type_selected(index: int) -> void:
 	var selected_type = filter_type.get_item_id(index)
 	transaction_list.clear()
 	var history = resource_system.get_transaction_history()
-	
+
 	# Filter history by selected type if not "All Resources
 	if selected_type != -1:
 		history = history.filter(func(transaction): return transaction.type == selected_type)
-	
+
 	for transaction in history:
+		var typed_transaction: Variant = transaction
 		_add_transaction_to_list(transaction)
 
 func _on_market_update_timer() -> void:
 	market_update_requested.emit() # warning: return value discarded (intentional)
 	_update_market_state_display()
 	_setup_resource_display() # Refresh display with new values
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

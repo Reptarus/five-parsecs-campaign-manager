@@ -96,6 +96,11 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
+[node name="GenerateButton" type="Button" parent="MarginContainer/VBoxContainer/MainContent/CharacterList/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Generate Character"
+
 [node name="SelectedCharacters" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
 layout_mode = 2
 size_flags_horizontal = 3
@@ -124,6 +129,31 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
+[node name="CharacterDetails" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"DarkPanel"
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/CharacterDetails"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/MainContent/CharacterDetails/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Character Details"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer/MainContent/CharacterDetails/VBoxContainer"]
+layout_mode = 2
+
+[node name="CharacterDetails" type="RichTextLabel" parent="MarginContainer/VBoxContainer/MainContent/CharacterDetails/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "Select or generate a character to view details..."
+
 [node name="FooterPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_type_variation = &"DarkPanel"
@@ -145,5 +175,6 @@ text = "Create Crew"
 
 [connection signal="text_changed" from="MarginContainer/VBoxContainer/TitlePanel/VBoxContainer/CrewNameInput" to="." method="_on_crew_name_changed"]
 [connection signal="item_selected" from="MarginContainer/VBoxContainer/TitlePanel/VBoxContainer/CrewSizeOption" to="." method="_on_crew_size_changed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/MainContent/CharacterList/VBoxContainer/GenerateButton" to="." method="_on_generate_character"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/FooterPanel/HBoxContainer/BackButton" to="." method="_on_back_pressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/FooterPanel/HBoxContainer/CreateButton" to="." method="_on_create_pressed"]

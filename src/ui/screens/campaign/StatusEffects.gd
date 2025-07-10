@@ -1,11 +1,11 @@
-@tool
+﻿@tool
 extends Resource
 class_name StatusEffect
 
 ## Status Effect system for Five Parsecs from Home
 ## Handles temporary and permanent character status effects
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 signal effect_applied(character: Node, effect: StatusEffect)
 signal effect_removed(character: Node, effect: StatusEffect)
@@ -40,27 +40,27 @@ func _init() -> void:
 func apply_to_character(character: Node) -> void:
 	# Apply stat modifiers
 	for stat in stat_modifiers:
-		if character.has_method("modify_stat"):
+		if character and character.has_method("modify_stat"):
 			character.modify_stat(stat, stat_modifiers[stat])
-	
+
 	# Apply special rules
 	for rule in special_rules:
-		if character.has_method("add_special_rule"):
+		if character and character.has_method("add_special_rule"):
 			character.add_special_rule(rule)
-	
+
 	effect_applied.emit(character, self)
 
 func remove_from_character(character: Node) -> void:
 	# Remove stat modifiers
 	for stat in stat_modifiers:
-		if character.has_method("modify_stat"):
+		if character and character.has_method("modify_stat"):
 			character.modify_stat(stat, -stat_modifiers[stat])
-	
+
 	# Remove special rules
 	for rule in special_rules:
-		if character.has_method("remove_special_rule"):
+		if character and character.has_method("remove_special_rule"):
 			character.remove_special_rule(rule)
-	
+
 	effect_removed.emit(character, self)
 
 func tick_duration() -> bool:
@@ -97,3 +97,22 @@ static func deserialize(data: Dictionary) -> StatusEffect:
 	effect.stat_modifiers = data.get("stat_modifiers", {})
 	effect.special_rules = data.get("special_rules", [])
 	return effect
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

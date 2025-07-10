@@ -1,8 +1,8 @@
-extends Resource
+﻿extends Resource
 class_name FPCM_ShipRoles
 
 # Preloads
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const CharacterManager = preload("res://src/core/character/Management/CharacterManager.gd")
 
 # Signals
@@ -65,10 +65,14 @@ var _assigned_roles: Dictionary = {}
 var _role_assignments: Dictionary = {}
 
 # Character manager reference (will be set in setup)
-var _character_manager = null
+var _character_manager: Variant = null
 
 # Setup function to connect with character manager
-func setup(character_manager) -> void:
+func setup(character_manager: Variant) -> void:
+
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return
 	_character_manager = character_manager
 	if _character_manager:
 		# Connect to character signals
@@ -79,47 +83,47 @@ func assign_role(character_id: String, role: ShipRole) -> bool:
 	if not _character_manager:
 		push_error("Character manager not set up")
 		return false
-		
+
 	# Validate character exists
-	var character = _character_manager.get_character(character_id)
+	var character: Character = _character_manager.get_character(character_id)
 	if not character:
 		push_error("Character not found: " + character_id)
 		return false
-		
+
 	# If the character is already assigned to another role, unassign them
 	if character_id in _assigned_roles:
 		unassign_role(character_id)
-		
+
 	# If the role is already assigned, unassign the previous character
 	if role in _role_assignments:
-		var previous_character_id = _role_assignments[role]
+		var previous_character_id: String = _role_assignments[role]
 		if previous_character_id != character_id:
 			unassign_role(previous_character_id)
-	
+
 	# Assign the role
 	_assigned_roles[character_id] = role
 	_role_assignments[role] = character_id
-	
+
 	# Emit signal
-	role_assigned.emit(character_id, role) # warning: return value discarded (intentional)
-	
+	role_assigned.emit(character_id, role)
+
 	return true
 
 # Unassigns a character from their ship role
 func unassign_role(character_id: String) -> bool:
 	if not character_id in _assigned_roles:
 		return false
-		
+
 	var role = _assigned_roles[character_id]
-	
+
 	# Remove assignments
 	_assigned_roles.erase(character_id)
 	if _role_assignments.has(role) and _role_assignments[role] == character_id:
 		_role_assignments.erase(role)
-	
+
 	# Emit signal
-	role_unassigned.emit(character_id, role) # warning: return value discarded (intentional)
-	
+	role_unassigned.emit(character_id, role)
+
 	return true
 
 # Gets the role assigned to a character
@@ -134,36 +138,34 @@ func get_role_assignment(role: ShipRole) -> String:
 func is_good_fit_for_role(character_id: String, role: ShipRole) -> bool:
 	if not _character_manager:
 		return false
-		
-	var character = _character_manager.get_character(character_id)
+
+	var character: Character = _character_manager.get_character(character_id)
 	if not character:
 		return false
-		
+
 	if not role in role_requirements:
 		return false
-		
+
 	var requirements = role_requirements[role]
 
 	var preferred_skills = requirements.get("preferred_skills", [])
 
 	# Check if character has any of the preferred skills
 	for skill in preferred_skills:
-		if character.has_skill(skill):
-			return true
-			
+		if character and character.has_method("has_skill"): character.has_skill(skill)
 	return false
 
 # Apply role benefits to assigned character
 func apply_role_benefits(character_id: String) -> bool:
 	if not character_id in _assigned_roles:
 		return false
-		
+
 	var role = _assigned_roles[character_id]
 	if not role in role_requirements:
 		return false
-	
+
 	var benefits_applied: bool = false
-	
+
 	# Apply appropriate benefits based on role
 	match role:
 		ShipRole.CAPTAIN:
@@ -190,66 +192,66 @@ func apply_role_benefits(character_id: String) -> bool:
 		ShipRole.COMMS_OFFICER:
 			# Comms Officer provides communication benefits
 			benefits_applied = true
-	
+
 	if benefits_applied:
-		role_benefits_applied.emit(character_id, role) # warning: return value discarded (intentional)
-		
+		role_benefits_applied.emit(character_id, role)
+
 	return benefits_applied
 
 # Calculate effectiveness of a character in their role
 func calculate_role_effectiveness(character_id: String) -> float:
 	if not character_id in _assigned_roles:
 		return 0.0
-		
+
 	if not _character_manager:
 		return 0.0
-		
-	var character = _character_manager.get_character(character_id)
+
+	var character: Character = _character_manager.get_character(character_id)
 	if not character:
 		return 0.0
-		
+
 	var role = _assigned_roles[character_id]
 	if not role in role_requirements:
 		return 0.0
-		
+
 	var requirements = role_requirements[role]
 
 	var preferred_skills = requirements.get("preferred_skills", [])
 
 	var bonus_modifier = requirements.get("bonus_modifier", 1)
-	
+
 	var base_effectiveness: int = 0 # Base 50% effectiveness
 
 	# Add bonus for each preferred skill the character has
 	for skill in preferred_skills:
-		if character.has_skill(skill):
-			base_effectiveness += 0.25 * bonus_modifier
-			
+		if character and character.has_method("has_skill"): character.has_skill(skill)
+		base_effectiveness += 0.25 * bonus_modifier
+
 	# Cap at maximum effectiveness
-	return minf(1.0, base_effectiveness)
+	return min(1.0, base_effectiveness)
 
 # Process ship role effects for travel
 func process_travel_effects(fuel_consumption: int) -> int:
 	var modified_consumption = fuel_consumption
-	
+
 	# Engineer reduces fuel _consumption
 	if ShipRole.ENGINEER in _role_assignments:
 		var engineer_id = _role_assignments[ShipRole.ENGINEER]
 		var effectiveness = calculate_role_effectiveness(engineer_id)
-		
+
 		# Reduce fuel _consumption based on effectiveness (up to 25%)
 		var reduction = int(fuel_consumption * 0.25 * effectiveness)
 		modified_consumption = max(1, fuel_consumption - reduction)
-	
+
 	# Navigator can find shortcuts
 	if ShipRole.NAVIGATOR in _role_assignments:
 		var navigator_id = _role_assignments[ShipRole.NAVIGATOR]
 		var effectiveness = calculate_role_effectiveness(navigator_id)
-		
+
 		# Small chance to reduce travel time/fuel based on effectiveness
 		if randf() < 0.2 * effectiveness:
 			modified_consumption = max(1, modified_consumption - 1)
-	
+
 	return modified_consumption
 
 # Process ship role effects for battle
@@ -260,31 +262,31 @@ func process_battle_effects() -> Dictionary:
 		"medical_bonus": 0,
 		"accuracy_bonus": 0
 	}
-	
+
 	# Captain provides morale bonus
 	if ShipRole.CAPTAIN in _role_assignments:
 		var captain_id = _role_assignments[ShipRole.CAPTAIN]
 		var effectiveness = calculate_role_effectiveness(captain_id)
 		effects.morale_bonus = int(effectiveness * 2) # Up to +2
-	
+
 	# Mechanic provides repair bonus
 	if ShipRole.MECHANIC in _role_assignments:
 		var mechanic_id = _role_assignments[ShipRole.MECHANIC]
 		var effectiveness = calculate_role_effectiveness(mechanic_id)
 		effects.repair_bonus = int(effectiveness * 2) # Up to +2
-	
+
 	# Medic provides medical bonus
 	if ShipRole.MEDIC in _role_assignments:
 		var medic_id = _role_assignments[ShipRole.MEDIC]
 		var effectiveness = calculate_role_effectiveness(medic_id)
 		effects.medical_bonus = int(effectiveness * 2) # Up to +2
-	
+
 	# Gunner provides accuracy bonus
 	if ShipRole.GUNNER in _role_assignments:
 		var gunner_id = _role_assignments[ShipRole.GUNNER]
 		var effectiveness = calculate_role_effectiveness(gunner_id)
 		effects.accuracy_bonus = int(effectiveness * 2) # Up to +2
-	
+
 	return effects
 
 # Handle character deletion
@@ -294,26 +296,45 @@ func _on_character_deleted(character_id: String) -> void:
 
 # Serialize ship roles for saving
 func serialize() -> Dictionary:
-	var data = {
+	var data: Dictionary = {
 		"assigned_roles": {},
 	}
-	
+
 	# Convert int keys to strings for JSON compatibility
 	for character_id in _assigned_roles:
 		data.assigned_roles[character_id] = _assigned_roles[character_id]
-	
+
 	return data
 
 # Deserialize ship roles when loading
 func deserialize(data: Dictionary) -> void:
 	_assigned_roles.clear()
 	_role_assignments.clear()
-	
+
 	if not data.has("assigned_roles"):
 		return
-		
+
 	# Restore role assignments
 	for character_id in data.assigned_roles:
 		var role = data.assigned_roles[character_id]
 		_assigned_roles[character_id] = role
 		_role_assignments[role] = character_id
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

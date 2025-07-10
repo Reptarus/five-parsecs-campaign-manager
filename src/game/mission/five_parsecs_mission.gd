@@ -24,9 +24,9 @@ func process_custom_mission_events() -> void:
 
 func calculate_final_rewards() -> Dictionary:
 	var final_rewards = super.calculate_final_rewards()
-	
+
 	# Add game-specific reward calculations
 	if final_rewards.has("credits") and advanced_rules.has("bonus_credits"):
 		final_rewards["credits"] += advanced_rules.bonus_credits
-	
+
 	return final_rewards

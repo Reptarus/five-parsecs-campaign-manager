@@ -40,7 +40,7 @@ var cooldown_progress: float = 1.0:
 	set(_value):
 		cooldown_progress = clamp(_value, 0.0, 1.0)
 		if progress_arc:
-			progress_arc._value = cooldown_progress * 100
+			progress_arc.value = cooldown_progress * 100
 		if cooldown_overlay:
 			cooldown_overlay.visible = cooldown_progress < 1.0
 
@@ -52,15 +52,15 @@ var action_color: Color = Color.WHITE:
 			var style = button.get_theme_stylebox("normal").duplicate()
 			style.bg_color = action_color.darkened(0.7)
 			button.add_theme_stylebox_override("normal", style)
-			
+
 			style = button.get_theme_stylebox("hover").duplicate()
 			style.bg_color = action_color.darkened(0.5)
 			button.add_theme_stylebox_override("hover", style)
-			
+
 			style = button.get_theme_stylebox("pressed").duplicate()
 			style.bg_color = action_color.darkened(0.8)
 			button.add_theme_stylebox_override("pressed", style)
-			
+
 			style = button.get_theme_stylebox("disabled").duplicate()
 			style.bg_color = action_color.darkened(0.9)
 			button.add_theme_stylebox_override("disabled", style)
@@ -74,23 +74,23 @@ func _setup_ui() -> void:
 	if button:
 		button.custom_minimum_size = Vector2(200, 40)
 		button.disabled = not is_enabled
-		
+
 	# Set up icon
 	if icon_rect:
 		icon_rect.custom_minimum_size = Vector2(24, 24)
 		icon_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH
 		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon_rect.visible = action_icon != null
-		
+
 	# Set up cooldown overlay
 	if cooldown_overlay:
 		cooldown_overlay.visible = false
-		
+
 	# Set up progress arc
 	if progress_arc:
 		progress_arc.min_value = 0
 		progress_arc.max_value = 100
-		progress_arc._value = cooldown_progress * 100
+		progress_arc.value = cooldown_progress * 100
 		progress_arc.fill_mode = TextureProgressBar.FILL_CLOCKWISE
 		progress_arc.visible = cooldown_progress < 1.0
 
@@ -101,7 +101,7 @@ func _connect_signals() -> void:
 		button.mouse_exited.connect(_on_button_mouse_exited)
 
 # Signal handlers
-	
+
 func _on_button_pressed() -> void:
 	action_pressed.emit()
 
@@ -112,7 +112,7 @@ func _on_button_mouse_exited() -> void:
 	action_unhovered.emit()
 
 # Public methods
-	
+
 func setup(name: String, icon: Texture = null, enabled: bool = true, color: Color = Color.WHITE) -> void:
 	action_name = name
 	action_icon = icon
@@ -122,7 +122,7 @@ func setup(name: String, icon: Texture = null, enabled: bool = true, color: Colo
 func start_cooldown(duration: float) -> void:
 	cooldown_progress = 0.0
 	is_enabled = false
-	
+
 	var tween = create_tween()
 	tween.tween_property(self, "cooldown_progress", 1.0, duration)
 	tween.tween_callback(func(): is_enabled = true)
@@ -133,4 +133,3 @@ func set_progress(progress: float) -> void:
 func reset_cooldown() -> void:
 	cooldown_progress = 1.0
 	is_enabled = true
-	

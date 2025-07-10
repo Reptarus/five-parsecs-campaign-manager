@@ -27,18 +27,18 @@ func calculate_bonus_health() -> int:
 ## Override get_effective_stat to include game-specific bonuses
 func get_effective_stat(stat_name: String) -> int:
 	var base_value = super.get_effective_stat(stat_name)
-	
+
 	# Add game-specific bonuses
 	if stat_name == "toughness" and morale_bonus > 0:
 		base_value += 1
-	
+
 	return base_value
 
 ## Game-specific method to apply experience with multiplier
 func add_experience(amount: int) -> void:
 	# Apply experience with the game-specific multiplier
 	var adjusted_amount = int(amount * xp_multiplier)
-	
+
 	# Track experience in this class if parent doesn't have the method
 	print("Adding %d experience (adjusted from %d)" % [adjusted_amount, amount])
 

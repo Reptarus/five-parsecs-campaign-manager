@@ -1,4 +1,4 @@
-# GalacticWarManager.gd
+﻿# GalacticWarManager.gd
 extends Node
 
 enum FringeWorldInstability {
@@ -29,7 +29,7 @@ func _ready() -> void:
 		push_error("GameStateManagerAutoload instance not found")
 		queue_free()
 		return
-	
+
 	initialize_faction_strengths()
 	connect_signals()
 
@@ -42,13 +42,13 @@ func initialize_faction_strengths() -> void:
 	}
 func connect_signals() -> void:
 	if game_state:
-		game_state.connect("battle_ended", _on_battle_ended) # warning: return value discarded (intentional)
+		var _connect_result: int = game_state.connect("battle_ended", _on_battle_ended) # warning: return value discarded (intentional)
 
 		game_state.connect("turn_ended", _on_turn_ended) # warning: return value discarded (intentional)
 
 func update_instability() -> void:
 	var previous_instability = current_instability
-	
+
 	# Calculate new instability based on faction strengths
 	var total_conflict_points: int = 0
 	for strength in faction_strengths.values():
@@ -56,12 +56,12 @@ func update_instability() -> void:
 			total_conflict_points += 2
 		elif strength < 30: # Weak factions also contribute to instability
 			total_conflict_points += 1
-	
+
 	# Update instability level based on conflict points
 	current_instability = calculate_instability_level(total_conflict_points)
-	
+
 	if current_instability != previous_instability:
-		war_status_changed.emit(current_instability) # warning: return value discarded (intentional)
+		war_status_changed.emit(current_instability)
 		handle_instability_effects()
 
 func calculate_instability_level(conflict_points: int) -> int:
@@ -108,16 +108,16 @@ func update_faction_strength(faction: String, change: int) -> void:
 		faction_strengths[faction] = clamp(faction_strengths[faction] + change, 0, 100)
 		update_instability()
 func resolve_conflict(location: String, involved_factions: Array) -> void:
-	var battle_result = generate_battle_result(involved_factions)
+	var battle_result: Dictionary = generate_battle_result(involved_factions)
 	apply_battle_results(battle_result, involved_factions)
 	check_war_end_conditions()
 func generate_battle_result(involved_factions: Array) -> Dictionary:
-	var result = {
+	var result: Variant = {
 		"victor": "",
 		"outcome": BattleOutcome.DRAW,
 		"casualties": {}
 	}
-	
+
 	# Calculate battle outcome based on faction strengths
 	var highest_strength: int = 0
 	for faction in involved_factions:
@@ -126,7 +126,7 @@ func generate_battle_result(involved_factions: Array) -> Dictionary:
 			highest_strength = strength
 			result.victor = faction
 			result.outcome = BattleOutcome.VICTORY
-	
+
 	return result
 
 func apply_battle_results(result: Dictionary, involved_factions: Array) -> void:
@@ -156,7 +156,7 @@ func process_active_conflicts() -> void:
 			resolve_conflict(conflict.location, conflict.factions)
 
 			resolved_conflicts.append(conflict) # warning: return value discarded (intentional)
-	
+
 	# Remove resolved conflicts
 	for conflict in resolved_conflicts:
 		active_conflicts.erase(conflict)
@@ -178,3 +178,11 @@ func add_active_conflict(location: String, factions: Array) -> void:
 		"duration": 0
 	})
 	update_instability()
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

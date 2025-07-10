@@ -1,11 +1,11 @@
-@tool
+﻿@tool
 extends Resource
 class_name FiveParsecsStatDistribution
 
 ## Core stat distribution system for Five Parsecs from Home
 ## Handles character stat management and modifiers
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 signal stat_changed(stat: String, new_value: int)
 signal modifier_applied(stat: String, modifier: int, duration: int)
@@ -44,73 +44,73 @@ func get_current_stat(stat: String) -> int:
 	if not base_stats.has(stat):
 		push_error("Invalid stat: " + stat)
 		return 0
-	
+
 	var current_value = base_stats[stat]
-	
+
 	# Apply permanent modifiers
 	if permanent_modifiers.has(stat):
 		current_value += permanent_modifiers[stat]
-	
+
 	# Apply temporary modifiers
 	if temporary_modifiers.has(stat):
 		for modifier in temporary_modifiers[stat]:
 			current_value += modifier["_value"]
-	
+
 	# Apply stat limits
 	if STAT_LIMITS.has(stat):
 		var limits = STAT_LIMITS[stat]
 		current_value = clampi(current_value, limits.min, limits.max)
-	
+
 	return current_value
 
 func set_base_stat(stat: String, _value: int) -> void:
 	if not base_stats.has(stat):
 		push_error("Invalid stat: " + stat)
 		return
-	
+
 	base_stats[stat] = _value
 	stat_changed.emit(stat, get_current_stat(stat))
 
 func add_temporary_modifier(stat: String, _value: int, duration: int) -> void:
 	if not temporary_modifiers.has(stat):
 		temporary_modifiers[stat] = []
-	
+
 	temporary_modifiers[stat].append({
 		"_value": _value,
 		"duration": duration
 	})
-	
+
 	modifier_applied.emit(stat, _value, duration)
 	stat_changed.emit(stat, get_current_stat(stat))
 
 func add_permanent_modifier(stat: String, _value: int) -> void:
 	if not permanent_modifiers.has(stat):
 		permanent_modifiers[stat] = 0
-	
+
 	permanent_modifiers[stat] += _value
 	stat_changed.emit(stat, get_current_stat(stat))
 
 func remove_temporary_modifier(stat: String, index: int) -> void:
 	if not temporary_modifiers.has(stat) or index >= temporary_modifiers[stat].size():
 		return
-	
+
 	var modifier = temporary_modifiers[stat][index]
 	temporary_modifiers[stat].remove_at(index)
-	
+
 	modifier_removed.emit(stat, modifier._value)
 	stat_changed.emit(stat, get_current_stat(stat))
 
 func tick_temporary_modifiers() -> void:
-	var expired_modifiers = []
-	
+	var expired_modifiers: Array = []
+
 	for stat in temporary_modifiers:
-		for i in range(temporary_modifiers[stat].size() - 1, -1, -1):
+		for i: int in range(temporary_modifiers[stat].size() - 1, -1, -1):
 			var modifier = temporary_modifiers[stat][i]
 			modifier.duration -= 1
-			
+
 			if modifier.duration <= 0:
 				expired_modifiers.append({"stat": stat, "index": i})
-	
+
 	for expired in expired_modifiers:
 		remove_temporary_modifier(expired.stat, expired.index)
 
@@ -119,7 +119,7 @@ func meets_requirement(stat: String, threshold: int) -> bool:
 
 func get_stat_modifier(stat: String) -> int:
 	var current = get_current_stat(stat)
-	
+
 	match stat:
 		"combat_skill", "savvy":
 			# These stats can be negative
@@ -153,14 +153,14 @@ func deserialize(data: Dictionary) -> void:
 		temporary_modifiers = data.temporary_modifiers
 	if data.has("permanent_modifiers"):
 		permanent_modifiers = data.permanent_modifiers
-	
+
 	# Emit signals for all stats to update UI
 	for stat in base_stats:
 		stat_changed.emit(stat, get_current_stat(stat))
 
 static func create_random_stats() -> FiveParsecsStatDistribution:
 	var stats := FiveParsecsStatDistribution.new()
-	
+
 	# Generate stats according to Five Parsecs rules
 	stats.set_base_stat("reactions", randi_range(1, 6))
 	stats.set_base_stat("speed", randi_range(4, 8))
@@ -168,12 +168,12 @@ static func create_random_stats() -> FiveParsecsStatDistribution:
 	stats.set_base_stat("toughness", randi_range(3, 5))
 	stats.set_base_stat("savvy", randi_range(-1, 2))
 	stats.set_base_stat("luck", randi_range(0, 2))
-	
+
 	return stats
 
 static func create_balanced_stats() -> FiveParsecsStatDistribution:
 	var stats := FiveParsecsStatDistribution.new()
-	
+
 	# Create balanced starting stats
 	stats.set_base_stat("reactions", 3)
 	stats.set_base_stat("speed", 4)
@@ -181,5 +181,5 @@ static func create_balanced_stats() -> FiveParsecsStatDistribution:
 	stats.set_base_stat("toughness", 3)
 	stats.set_base_stat("savvy", 0)
 	stats.set_base_stat("luck", 0)
-	
+
 	return stats

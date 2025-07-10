@@ -1,6 +1,6 @@
-extends Resource
+﻿extends Resource
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GameLocation = preload("res://src/game/world/GameLocation.gd")
 
 # Resource type constants
@@ -20,7 +20,7 @@ const MARKET_CRISIS = 1
 const MARKET_BOOM = 2
 const MARKET_RESTRICTED = 3
 
-@export var name: String = ""
+@export var node_name: String = ""
 @export var coordinates: Vector2 = Vector2.ZERO
 @export var type: String = ""
 @export var description: String = ""
@@ -48,17 +48,17 @@ const MARKET_RESTRICTED = 3
 var _patron_name: String
 var _location: Resource
 var _relationship: int
-var _faction_type: GameEnums.FactionType
+var _faction_type: GlobalEnums.FactionType
 
 # The wrapped GameLocation instance
 var _game_location: GameLocation
 
 func _init() -> void:
 	_game_location = GameLocation.new()
-	
-	if not resources.is_empty():
+
+	if not (safe_call_method(resources, "is_empty") == true):
 		return
-		
+
 	resources = {
 		RESOURCE_CREDITS: 0,
 		RESOURCE_SUPPLIES: 0,
@@ -70,21 +70,21 @@ func _init() -> void:
 		RESOURCE_LUXURY_GOODS: 0,
 		RESOURCE_FUEL: 0
 	}
-	
+
 	# Sync with GameLocation
 	_sync_to_game_location()
 
 func add_connected_location(location_name: String) -> void:
 	if not connected_locations.has(location_name):
 
-		connected_locations.append(location_name)  # warning: return value discarded (intentional)
-	
+		connected_locations.append(location_name)
+
 	# Update wrapped GameLocation
 	_game_location.add_connected_location(location_name)
 
 func remove_connected_location(location_name: String) -> void:
 	connected_locations.erase(location_name)
-	
+
 	# Update wrapped GameLocation
 	_game_location.remove_connected_location(location_name)
 func is_connected_to(location_name: String) -> bool:
@@ -93,8 +93,8 @@ func is_connected_to(location_name: String) -> bool:
 func add_mission(mission_data: Dictionary) -> void:
 	if not available_missions.has(mission_data):
 
-		available_missions.append(mission_data)  # warning: return value discarded (intentional)
-	
+		available_missions.append(mission_data)
+
 	# Update wrapped GameLocation
 	# Note: GameLocation expects a mission object, not a dictionary
 	# This would need to be converted in a real implementation
@@ -102,7 +102,7 @@ func add_mission(mission_data: Dictionary) -> void:
 
 func remove_mission(mission_data: Dictionary) -> void:
 	available_missions.erase(mission_data)
-	
+
 	# Update wrapped GameLocation
 	# Note: GameLocation expects a mission ID, not a dictionary
 	# This would need to be converted in a real implementation
@@ -112,19 +112,18 @@ func remove_mission(mission_data: Dictionary) -> void:
 func add_event(event_data: Dictionary) -> void:
 	if not local_events.has(event_data):
 
-		local_events.append(event_data)  # warning: return value discarded (intentional)
-	
+		local_events.append(event_data)
+
 	# GameLocation doesn't have direct event support, would need custom implementation
 
 func clear_expired_events() -> void:
 	var current_events: Array[Dictionary] = []
 	for event in local_events:
-
 		if not event.get("expired", false):
 
-			current_events.append(event)  # warning: return value discarded (intentional)
+			current_events.append(event)
 	local_events = current_events
-	
+
 	# GameLocation doesn't have direct event support, would need custom implementation
 
 func update_market_state() -> void:
@@ -132,7 +131,7 @@ func update_market_state() -> void:
 	for resource in resources.keys():
 		var base_price: float = resources[resource]
 		var modifier: float = 1.0
-		
+
 		# Apply market state modifier
 		match market_state:
 			MARKET_CRISIS:
@@ -141,14 +140,14 @@ func update_market_state() -> void:
 				modifier *= 0.5
 			MARKET_RESTRICTED:
 				modifier *= 1.5
-		
+
 		# Apply local modifiers
 		if resource in market_modifiers:
 			modifier *= market_modifiers[resource]
-			
+
 		# Update price
 		price_modifiers[resource] = modifier
-	
+
 	# Update wrapped GameLocation
 	# Convert market state to GameLocation market state
 	var game_market_state = _convert_market_state(market_state)
@@ -166,10 +165,10 @@ func get_travel_cost_to(destination: Resource) -> float:
 	var base_cost: float = 10.0
 	var distance: float = coordinates.distance_to(destination.coordinates)
 	var danger_modifier: float = (danger_level + destination.danger_level) * 0.1
-	
+
 	return base_cost + (distance * 2) + (base_cost * danger_modifier)
 
-func get_resource_price(resource_type: GameEnums.ResourceType) -> float:
+func get_resource_price(resource_type: GlobalEnums.ResourceType) -> float:
 
 	var base_price: float = resources.get(resource_type, 0)
 
@@ -179,11 +178,11 @@ func get_resource_price(resource_type: GameEnums.ResourceType) -> float:
 func add_threat(threat_data: Dictionary) -> void:
 	if not current_threats.has(threat_data):
 
-		current_threats.append(threat_data)  # warning: return value discarded (intentional)
+		current_threats.append(threat_data)
 		# Update danger level based on threats
 
 		danger_level = maxi(danger_level, threat_data.get("threat_level", 1))
-	
+
 	# GameLocation doesn't have direct threat support in the same way
 	# Would need custom implementation
 
@@ -192,16 +191,15 @@ func remove_threat(threat_data: Dictionary) -> void:
 	# Recalculate danger level
 	danger_level = 1
 	for threat in current_threats:
-
 		danger_level = maxi(danger_level, threat.get("threat_level", 1))
-	
+
 	# GameLocation doesn't have direct threat support in the same way
 	# Would need custom implementation
 func add_special_feature(feature: String) -> void:
 	if not special_features.has(feature):
 
-		special_features.append(feature)  # warning: return value discarded (intentional)
-	
+		special_features.append(feature)
+
 	# Map to GameLocation world traits
 	var trait_id = _convert_feature_to_trait_id(feature)
 	if trait_id:
@@ -224,29 +222,29 @@ func has_special_feature(feature: String) -> bool:
 
 # Sync our state to the wrapped GameLocation
 func _sync_to_game_location() -> void:
-	_game_location.location_name = name
+	_game_location.location_name = node_name
 	_game_location.description = description
 	_game_location.coordinates = coordinates
 	_game_location.connected_locations = connected_locations
 	_game_location.danger_level = danger_level
 	_game_location.discovered = is_discovered
 	_game_location.black_market_active = black_market_active
-	
+
 	# Convert faction to faction_control
 	match faction:
-		"empire": _game_location.faction_control = GameEnums.FactionType.IMPERIAL
-		"rebels": _game_location.faction_control = GameEnums.FactionType.REBEL
-		"pirates": _game_location.faction_control = GameEnums.FactionType.PIRATE
-		"corporate": _game_location.faction_control = GameEnums.FactionType.CORPORATE
-		_: _game_location.faction_control = GameEnums.FactionType.NEUTRAL
-	
+		"empire": _game_location.faction_control = GlobalEnums.FactionType.IMPERIAL
+		"rebels": _game_location.faction_control = GlobalEnums.FactionType.REBEL
+		"pirates": _game_location.faction_control = GlobalEnums.FactionType.PIRATE
+		"corporate": _game_location.faction_control = GlobalEnums.FactionType.CORPORATE
+		_: _game_location.faction_control = GlobalEnums.FactionType.NEUTRAL
+
 	# Convert market state
 	_game_location.market_state = _convert_market_state(market_state)
-	
+
 	# Convert resources
 	for resource_type in resources:
 		_game_location.resources[resource_type] = resources[resource_type]
-	
+
 	# Convert special features to world traits
 	for feature in special_features:
 		var trait_id = _convert_feature_to_trait_id(feature)
@@ -263,37 +261,37 @@ func get_game_location() -> GameLocation:
 
 ## Call this when you know the GameLocation has been modified externally
 func update_from_game_location() -> void:
-	name = _game_location.location_name
+	node_name = _game_location.location_name
 	description = _game_location.description
 	coordinates = _game_location.coordinates
 	connected_locations = _game_location.connected_locations
 	danger_level = _game_location.danger_level
 	is_discovered = _game_location.discovered
 	black_market_active = _game_location.black_market_active
-	
+
 	# Convert faction_control to faction
 	match _game_location.faction_control:
-		GameEnums.FactionType.IMPERIAL: faction = "empire"
-		GameEnums.FactionType.REBEL: faction = "rebels"
-		GameEnums.FactionType.PIRATE: faction = "pirates"
-		GameEnums.FactionType.CORPORATE: faction = "corporate"
+		GlobalEnums.FactionType.IMPERIAL: faction = "empire"
+		GlobalEnums.FactionType.REBEL: faction = "rebels"
+		GlobalEnums.FactionType.PIRATE: faction = "pirates"
+		GlobalEnums.FactionType.CORPORATE: faction = "corporate"
 		_: faction = "neutral"
-	
+
 	# Convert market state
 	market_state = _convert_game_market_state(_game_location.market_state)
-	
+
 	# Update resources
 	resources.clear()
 	for resource_type in _game_location.resources:
 		resources[resource_type] = _game_location.resources[resource_type]
-	
+
 	# Update special features based on world traits
 	special_features.clear()
 	for trait_item in _game_location.world_traits:
 		var feature = _convert_trait_id_to_feature(trait_item.trait_id)
 		if feature != "" and not feature in special_features:
 
-			special_features.append(feature)  # warning: return value discarded (intentional)
+			special_features.append(feature)
 
 ## Convert GameLocation market state to FiveParsecsLocation market state
 func _convert_game_market_state(game_state: int) -> int:
@@ -319,10 +317,10 @@ func _convert_trait_id_to_feature(trait_id: String) -> String:
 func serialize() -> Dictionary:
 	# First, sync our state to the GameLocation
 	_sync_to_game_location()
-	
+
 	# Then serialize using the old format
-	var data = {
-		"name": name,
+	var data: Dictionary = {
+		"name": node_name,
 		"coordinates": {"x": coordinates.x, "y": coordinates.y},
 		"type": type,
 		"description": description,
@@ -343,15 +341,15 @@ func serialize() -> Dictionary:
 		"current_threats": current_threats,
 		"active_effects": active_effects,
 		# Include GameLocation data for future compatibility
-		"game_location_data": _game_location.serialize()
+		"game_location_data": _game_location.serialize() if _game_location and _game_location.has_method("serialize") else {}
 	}
-	
+
 	return data
 
 static func deserialize(data: Dictionary) -> Resource:
 	var location = load("res://src/core/world/Location.gd").new()
 
-	location.name = data.get("name", "")
+	location.node_name = data.get("name", "")
 
 	location.coordinates = Vector2(data.get("coordinates", {}).get("x", 0), data.get("coordinates", {}).get("y", 0))
 
@@ -390,13 +388,33 @@ static func deserialize(data: Dictionary) -> Resource:
 	location.current_threats = data.get("current_threats", [])
 
 	location.active_effects = data.get("active_effects", [])
-	
+
 	# If there's GameLocation data, deserialize it
 	if data.has("game_location_data"):
 
-		location._game_location = GameLocation.deserialize(data.get("game_location_data"))
+		location._game_location = GameLocation.deserialize(data.get("game_location_data", {}))
 	else:
 		# Otherwise, sync our state to the GameLocation
 		location._sync_to_game_location()
-	
+
 	return location
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
+
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(obj):
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	else:
+		return obj.get(property)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

@@ -1,9 +1,6 @@
-[gd_scene load_steps=3 format=3 uid="uid://byib6f4w8jlfj"]
+[gd_scene load_steps=2 format=3 uid="uid://byib6f4w8jlfj"]
 
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_theme"]
-
-[sub_resource type="Resource" id="Resource_bskvh"]
-metadata/__load_path__ = "res://Resources/CrewAndCharacters/CharacterProgressionUI.gd"
 
 [node name="CharacterProgression" type="Control"]
 layout_mode = 3
@@ -13,7 +10,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("1_theme")
-script = SubResource("Resource_bskvh")
 
 [node name="Background" type="ColorRect" parent="."]
 layout_mode = 1

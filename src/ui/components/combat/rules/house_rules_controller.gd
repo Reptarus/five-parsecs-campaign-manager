@@ -1,7 +1,7 @@
-extends Node
+﻿extends Node
 
 ## Required dependencies
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const Character := preload("res://src/core/character/Base/Character.gd")
 const BaseCombatManager := preload("res://src/base/combat/BaseCombatManager.gd")
 
@@ -18,7 +18,7 @@ func _ready() -> void:
 	if not house_rules_panel or not combat_manager:
 		push_error("HouseRulesController: Required nodes not found")
 		return
-	
+
 	_connect_signals()
 	_load_saved_rules()
 
@@ -30,7 +30,7 @@ func _connect_signals() -> void:
 	house_rules_panel.rule_removed.connect(_on_rule_removed)
 	house_rules_panel.rule_applied.connect(_on_rule_applied)
 	house_rules_panel.validation_requested.connect(_on_validation_requested)
-	
+
 	# Combat manager signals
 	combat_manager.combat_state_changed.connect(_on_combat_state_changed)
 	combat_manager.combat_result_calculated.connect(_on_combat_result_calculated)
@@ -42,7 +42,7 @@ func _load_saved_rules() -> void:
 	var game_state = get_node("/root/GameState")
 	if not game_state:
 		return
-	
+
 	var saved_rules = game_state.get_house_rules()
 	for rule_id in saved_rules:
 		_add_rule(rule_id, saved_rules[rule_id])
@@ -114,7 +114,7 @@ func _validate_state_condition(rule: Dictionary, context: String) -> bool:
 func _apply_rule_effect(rule_id: String, context: String) -> void:
 	if not rule_effects.has(rule_id):
 		return
-	
+
 	var effect = rule_effects[rule_id]
 	match effect.type:
 		"combat_modifier":
@@ -128,7 +128,7 @@ func _apply_rule_effect(rule_id: String, context: String) -> void:
 func _apply_combat_modifier(effect: Dictionary, context: String) -> void:
 	if not combat_manager:
 		return
-	
+
 	var modifier = {
 		"source": "house_rule",
 		"_value": effect._value,
@@ -141,7 +141,7 @@ func _apply_combat_modifier(effect: Dictionary, context: String) -> void:
 func _apply_resource_modifier(effect: Dictionary, context: String) -> void:
 	if not combat_manager:
 		return
-	
+
 	var modifier = {
 		"source": "house_rule",
 		"_value": effect._value,
@@ -153,7 +153,7 @@ func _apply_resource_modifier(effect: Dictionary, context: String) -> void:
 func _apply_state_condition(effect: Dictionary, context: String) -> void:
 	if not combat_manager:
 		return
-	
+
 	var condition = {
 		"source": "house_rule",
 		"state_key": effect.target,
@@ -185,15 +185,15 @@ func _on_combat_state_changed(new_state: Dictionary) -> void:
 	# Update rule effects based on new combat _state
 	for rule_id in active_rules:
 		_apply_rule_effect(rule_id, "combat_state_changed")
-func _on_combat_result_calculated(attacker: Character, target: Character, result: GameEnums.CombatResult) -> void:
+func _on_combat_result_calculated(attacker: Character, target: Character, result: GlobalEnums.CombatResult) -> void:
 	# Apply relevant rule effects to combat result
 	for rule_id in active_rules:
 		_apply_rule_effect(rule_id, "combat_result")
-func _on_combat_advantage_changed(character: Character, advantage: GameEnums.CombatAdvantage) -> void:
+func _on_combat_advantage_changed(character: Character, advantage: GlobalEnums.CombatAdvantage) -> void:
 	# Apply relevant rule effects to advantage changes
 	for rule_id in active_rules:
 		_apply_rule_effect(rule_id, "combat_advantage")
-func _on_combat_status_changed(character: Character, status: GameEnums.CombatStatus) -> void:
+func _on_combat_status_changed(character: Character, status: GlobalEnums.CombatStatus) -> void:
 	# Apply relevant rule effects to status changes
 	for rule_id in active_rules:
 		_apply_rule_effect(rule_id, "combat_status")

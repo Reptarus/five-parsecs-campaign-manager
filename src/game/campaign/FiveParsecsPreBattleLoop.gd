@@ -1,10 +1,10 @@
-@tool
+﻿@tool
 class_name FiveParsecsPreBattleLoop
 extends BasePreBattleLoop
 
 const BasePreBattleLoop = preload("res://src/base/campaign/BasePreBattleLoop.gd")
 const FiveParsecsMissionGenerator = preload("res://src/game/campaign/FiveParsecsMissionGenerator.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 var mission_generator: FiveParsecsMissionGenerator
 var terrain_types: Array = [
@@ -19,23 +19,23 @@ func _init() -> void:
 
 func _initialize_available_missions() -> void:
 	available_missions.clear()
-	
+
 	# Generate 3-5 missions of varying difficulty
 	var mission_count = randi() % 3 + 3
-	
-	for i in range(mission_count):
+
+	for i: int in range(mission_count):
 		var difficulty = randi() % 4 + 1 # Difficulty 1-4
 		var mission = mission_generator.generate_mission(difficulty)
-		available_missions.append(mission) # warning: return value discarded (intentional)
+		available_missions.append(mission)
 
 func _initialize_available_locations() -> void:
 	available_locations.clear()
-	
+
 	# Generate 3 locations with different terrain types
-	for i in range(3):
+	for i: int in range(3):
 		var terrain_index = randi() % terrain_types.size()
 		var terrain_type = terrain_types[terrain_index]
-		
+
 		var location = {
 			"id": str(randi()),
 			"name": _generate_location_name(terrain_type),
@@ -45,14 +45,14 @@ func _initialize_available_locations() -> void:
 			"features": _generate_terrain_features(terrain_type),
 			"hazards": _generate_terrain_hazards(terrain_type)
 		}
-		available_locations.append(location) # warning: return value discarded (intentional)
+		available_locations.append(location)
 
 func _generate_location_name(terrain_type: String) -> String:
 	var prefixes = [
 		"Abandoned", "Ruined", "Desolate", "Ancient", "Contested",
 		"Remote", "Forgotten", "Hidden", "Dangerous", "Mysterious"
 	]
-	
+
 	var suffixes = {
 		"Urban": ["District", "Sector", "Blocks", "Slums", "Marketplace"],
 		"Wilderness": ["Outpost", "Valley", "Ridge", "Forest", "Plains"],
@@ -65,15 +65,15 @@ func _generate_location_name(terrain_type: String) -> String:
 		"Ice World": ["Glacier", "Outpost", "Caverns", "Research Station", "Mining Camp"],
 		"Volcanic": ["Caldera", "Lava Fields", "Ash Plains", "Thermal Vents", "Obsidian Fortress"]
 	}
-	
+
 	var prefix = prefixes[randi() % prefixes.size()]
 	var suffix: String = ""
-	
+
 	if suffixes.has(terrain_type):
 		suffix = suffixes[terrain_type][randi() % suffixes[terrain_type].size()]
 	else:
 		suffix = "Location"
-	
+
 	return prefix + " " + suffix
 
 func _generate_location_description(terrain_type: String) -> String:
@@ -89,17 +89,17 @@ func _generate_location_description(terrain_type: String) -> String:
 		"Ice World": "A frigid landscape with treacherous footing and deadly cold.",
 		"Volcanic": "An active volcanic region with unstable ground and toxic gases."
 	}
-	
+
 	if descriptions.has(terrain_type):
 		return descriptions[terrain_type]
-	
+
 	return "A dangerous location suitable for combat operations."
 
 func _generate_terrain_features(terrain_type: String) -> Array:
 	var common_features = [
 		"Cover", "Elevation", "Choke Point", "Open Area", "Defensible Position"
 	]
-	
+
 	var terrain_specific_features = {
 		"Urban": ["Buildings", "Streets", "Alleyways", "Rubble", "Barricades"],
 		"Wilderness": ["Trees", "Rocks", "Hills", "Streams", "Clearings"],
@@ -112,35 +112,35 @@ func _generate_terrain_features(terrain_type: String) -> Array:
 		"Ice World": ["Ice Formations", "Crevasses", "Frozen Lakes", "Snow Drifts", "Thermal Vents"],
 		"Volcanic": ["Lava Flows", "Steam Vents", "Ash Clouds", "Rock Formations", "Unstable Ground"]
 	}
-	
+
 	var features: Array = []
-	
+
 	# Add 2-3 common features
 	var common_count = randi() % 2 + 2
-	for i in range(common_count):
+	for i: int in range(common_count):
 		if common_features.size() > 0:
 			var index = randi() % common_features.size()
-			features.append(common_features[index]) # warning: return value discarded (intentional)
+			features.append(common_features[index])
 			common_features.remove_at(index)
-	
+
 	# Add 2-3 terrain-specific features
 	if terrain_specific_features.has(terrain_type):
 		var specific_features = terrain_specific_features[terrain_type]
 		var specific_count = randi() % 2 + 2
-		
-		for i in range(specific_count):
+
+		for i: int in range(specific_count):
 			if specific_features.size() > 0:
 				var index = randi() % specific_features.size()
-				features.append(specific_features[index]) # warning: return value discarded (intentional)
+				features.append(specific_features[index])
 				specific_features.remove_at(index)
-	
+
 	return features
 
 func _generate_terrain_hazards(terrain_type: String) -> Array:
 	var common_hazards = [
 		"Difficult Terrain", "Poor Visibility", "Exposed Position"
 	]
-	
+
 	var terrain_specific_hazards = {
 		"Urban": ["Collapsing Structures", "Exposed Power Lines", "Toxic Waste", "Automated Security", "Unstable Floors"],
 		"Wilderness": ["Quicksand", "Poisonous Plants", "Wild Animals", "Flash Floods", "Falling Trees"],
@@ -153,38 +153,37 @@ func _generate_terrain_hazards(terrain_type: String) -> Array:
 		"Ice World": ["Extreme Cold", "Thin Ice", "Avalanches", "Blizzards", "Hypothermia"],
 		"Volcanic": ["Lava", "Toxic Gases", "Extreme Heat", "Ash Clouds", "Earthquakes"]
 	}
-	
+
 	var hazards: Array = []
-	
+
 	# Add 1-2 common hazards
 	var common_count = randi() % 2 + 1
-	for i in range(common_count):
+	for i: int in range(common_count):
 		if common_hazards.size() > 0:
 			var index = randi() % common_hazards.size()
 
-			hazards.append(common_hazards[index]) # warning: return value discarded (intentional)
+			hazards.append(common_hazards[index])
 			common_hazards.remove_at(index)
-	
+
 	# Add 1-2 terrain-specific hazards
 	if terrain_specific_hazards.has(terrain_type):
 		var specific_hazards = terrain_specific_hazards[terrain_type]
 		var specific_count = randi() % 2 + 1
-		
-		for i in range(specific_count):
+
+		for i: int in range(specific_count):
 			if specific_hazards.size() > 0:
 				var index = randi() % specific_hazards.size()
-
-				hazards.append(specific_hazards[index]) # warning: return value discarded (intentional)
+				hazards.append(specific_hazards[index])
 				specific_hazards.remove_at(index)
-	
+
 	return hazards
 
 func get_deployment_zone_options(location: Dictionary) -> Array:
 	var size_factor = location.get("size", 2)
 	var options: Array = []
-	
+
 	# Generate deployment zones based on location size
-	for i in range(3): # Always provide 3 options
+	for i: int in range(3): # Always provide 3 options
 		var zone = {
 			"id": str(i),
 			"name": "Deployment Zone " + str(i + 1),
@@ -193,8 +192,8 @@ func get_deployment_zone_options(location: Dictionary) -> Array:
 			"advantages": _generate_deployment_advantages(i),
 			"disadvantages": _generate_deployment_disadvantages(i)
 		}
-		options.append(zone) # warning: return value discarded (intentional)
-	
+		options.append(zone)
+
 	return options
 
 func _generate_deployment_description(zone_index: int) -> String:
@@ -203,10 +202,10 @@ func _generate_deployment_description(zone_index: int) -> String:
 		"A flanking position that allows for tactical movement.",
 		"A defensive position with limited approaches."
 	]
-	
+
 	if zone_index < descriptions.size():
 		return descriptions[zone_index]
-	
+
 	return "A suitable deployment zone for your crew."
 
 func _generate_deployment_positions(size_factor: int) -> Array:
@@ -214,14 +213,14 @@ func _generate_deployment_positions(size_factor: int) -> Array:
 	# For this example, we'll just return placeholder data
 	var positions: Array = []
 	var position_count: int = 5 + size_factor # 6-8 positions based on size
-	
-	for i in range(position_count):
-		positions.append({ # warning: return value discarded (intentional)
+
+	for i: int in range(position_count):
+		positions.append({
 			"x": randi() % (10 * size_factor),
 			"y": randi() % (10 * size_factor),
 			"z": 0
 		})
-	
+
 	return positions
 
 func _generate_deployment_advantages(zone_index: int) -> Array:
@@ -230,17 +229,17 @@ func _generate_deployment_advantages(zone_index: int) -> Array:
 		"Defensive Position", "Good Visibility", "Close to Objectives",
 		"Concealed Approach", "Tactical Flexibility", "Resource Access"
 	]
-	
+
 	var advantages: Array = []
 	var advantage_count = randi() % 2 + 1 # 1-2 advantages
-	
-	for i in range(advantage_count):
+
+	for i: int in range(advantage_count):
 		if all_advantages.size() > 0:
 			var _index = randi() % all_advantages.size()
 
-			advantages.append(all_advantages[_index]) # warning: return value discarded (intentional)
+			advantages.append(all_advantages[_index])
 			all_advantages.remove_at(_index)
-	
+
 	return advantages
 
 func _generate_deployment_disadvantages(zone_index: int) -> Array:
@@ -249,39 +248,58 @@ func _generate_deployment_disadvantages(zone_index: int) -> Array:
 		"Poor Visibility", "Far from Objectives", "Hazardous Terrain",
 		"Limited Escape Routes", "Enemy Advantage", "Resource Scarcity"
 	]
-	
+
 	var disadvantages: Array = []
 	var disadvantage_count = randi() % 2 + 1 # 1-2 disadvantages
-	
-	for i in range(disadvantage_count):
+
+	for i: int in range(disadvantage_count):
 		if all_disadvantages.size() > 0:
 			var _index = randi() % all_disadvantages.size()
 
-			disadvantages.append(all_disadvantages[_index]) # warning: return value discarded (intentional)
+			disadvantages.append(all_disadvantages[_index])
 			all_disadvantages.remove_at(_index)
-	
+
 	return disadvantages
 
 func select_deployment_zone(zone_index: int, location: Dictionary) -> bool:
 	var options = get_deployment_zone_options(location)
-	
+
 	if zone_index < 0 or zone_index >= options.size():
 		push_error("Invalid deployment zone _index: " + str(zone_index))
 		return false
-	
+
 	set_deployment_positions(options[zone_index].positions)
 	return true
 
 func serialize() -> Dictionary:
 	var data = super.serialize()
-	
+
 	# Add Five Parsecs specific data
 	# (None needed at this time, but the function is here for future expansion)
-	
+
 	return data
 
 func deserialize(data: Dictionary) -> void:
 	super.deserialize(data)
-	
+
 	# Process Five Parsecs specific data
 	# (None needed at this time, but the function is here for future expansion)" 
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

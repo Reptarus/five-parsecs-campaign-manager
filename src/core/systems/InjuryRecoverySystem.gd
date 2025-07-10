@@ -1,4 +1,4 @@
-class_name InjuryRecoverySystem
+﻿class_name InjuryRecoverySystem
 extends Resource
 
 ## Advanced Injury and Recovery System for Five Parsecs Campaign Manager
@@ -105,28 +105,28 @@ func sustain_injury(character: Resource, damage_amount: int, damage_source: Stri
 	"""Apply injury based on damage taken and character stats"""
 	if not character:
 		return {"injury_type": null, "success": false}
-	
-	var character_id = _get_character_id(character)
 
-	var toughness = character.get("toughness") if character.has("toughness") else 0
-	
+	var character_id: String = _get_character_id(character)
+
+	var toughness: int = character.get("toughness") if character and character.has_method("get") else 0
+
 	# Determine injury severity based on damage vs toughness
 	var injury_severity = _calculate_injury_severity(damage_amount, toughness)
 	var injury_type = _determine_injury_type(injury_severity, damage_source)
-	
+
 	# Create injury data
 	var injury_data = _create_injury_data(injury_type, damage_source, character)
-	
+
 	# Apply the injury
 	_apply_injury_to_character(character, injury_data)
-	
+
 	# Track the injury
 	if not character_injuries.has(character_id):
 		character_injuries[character_id] = []
 	character_injuries[character_id].append(injury_data)
-	
-	injury_sustained.emit(character, injury_type) # warning: return value discarded (intentional)
-	
+
+	injury_sustained.emit(character, injury_type)
+
 	return {
 		"injury_type": injury_type,
 		"injury_data": injury_data,
@@ -137,7 +137,7 @@ func sustain_injury(character: Resource, damage_amount: int, damage_source: Stri
 func _calculate_injury_severity(damage: int, toughness: int) -> InjurySeverity:
 	"""Calculate injury severity based on damage and toughness"""
 	var damage_ratio = float(damage) / max(1, toughness)
-	
+
 	if damage_ratio <= 0.5:
 		return InjurySeverity.MINOR
 	elif damage_ratio <= 1.0:
@@ -155,7 +155,7 @@ func _determine_injury_type(severity: InjurySeverity, source: String) -> InjuryT
 	var luck_roll = randi_range(1, 6)
 	if luck_roll == 6: # Lucky escape
 		return InjuryType.LUCKY_ESCAPE
-	
+
 	match severity:
 		InjurySeverity.MINOR:
 			return InjuryType.LIGHT_INJURY
@@ -181,10 +181,13 @@ func _create_injury_data(injury_type: InjuryType, source: String, character: Res
 	var recovery_range = injury_info.recovery_time
 	var recovery_time = randi_range(recovery_range[0], recovery_range[-1])
 
-	var character_name = character.get("character_name") if character.has("character_name") else "Unknown"
+	var character_name = "Unknown"
+	if character and character.has_method("get") and character.has("character_name"):
+		character_name = character.get("character_name")
+	
 	var description_template = injury_info.description_templates.pick_random()
 	var description = description_template % character_name
-	
+
 	return {
 		"injury_id": _generate_injury_id(),
 		"injury_type": injury_type,
@@ -202,9 +205,9 @@ func _create_injury_data(injury_type: InjuryType, source: String, character: Res
 
 func _apply_injury_to_character(character: Resource, injury_data: Dictionary) -> void:
 	"""Apply injury effects to character"""
-	if not character.has_method("set"):
+	if not character or not character.has_method("set"):
 		return
-	
+
 	# Apply stat penalties
 	for stat in injury_data.stat_penalties.keys():
 		if stat == "varies":
@@ -212,40 +215,40 @@ func _apply_injury_to_character(character: Resource, injury_data: Dictionary) ->
 			var stats = ["combat", "speed", "reaction", "toughness"]
 			stat = stats.pick_random()
 
-		var current_value = character.get(stat) if character.has(stat) else 0
+		var current_value: int = character.get(stat) if character and character.has_method("get") else 0
 		var penalty = injury_data.stat_penalties[stat]
-		character.set(stat, max(0, current_value + penalty))
-	
+		if character and character.has_method("set"): character.set(stat, max(0, current_value + penalty))
+
 	# Set wounded status
 	if injury_data.injury_type >= InjuryType.SERIOUS_INJURY:
-		character.set("is_wounded", true)
+		if character and character.has_method("set"): character.set("is_wounded", true)
 
 ## ===== MEDICAL TREATMENT SYSTEM =====
 
 func apply_medical_treatment(character: Resource, treatment_type: TreatmentType, medical_equipment: Array = []) -> Dictionary:
 	"""Apply medical treatment to an injured character"""
-	var character_id = _get_character_id(character)
+	var character_id: String = _get_character_id(character)
 
 	var injuries = character_injuries.get(character_id, [])
-	
+
 	if injuries.is_empty():
 		return {"success": false, "message": "No injuries to treat"}
-	
+
 	# Calculate treatment effectiveness
 	var treatment_effectiveness = _calculate_treatment_effectiveness(treatment_type, medical_equipment)
 	var complications_risk = _calculate_complications_risk(treatment_type, medical_equipment)
-	
+
 	var treatment_results: Array = []
-	
+
 	# Apply treatment to all active injuries
 	for injury in injuries:
 		if injury.current_recovery >= injury.recovery_time:
 			continue # Already recovered
-		
+
 		var treatment_result = _apply_treatment_to_injury(injury, treatment_effectiveness, complications_risk)
 
-		treatment_results.append(treatment_result) # warning: return value discarded (intentional)
-		
+		treatment_results.append(treatment_result)
+
 		# Record treatment in injury history
 		injury.treatment_history.append({
 			"treatment_type": treatment_type,
@@ -254,7 +257,7 @@ func apply_medical_treatment(character: Resource, treatment_type: TreatmentType,
 			"equipment_used": medical_equipment
 		})
 		injury.treated = true
-	
+
 	# Create treatment record
 	var treatment_data = {
 		"treatment_type": treatment_type,
@@ -262,19 +265,19 @@ func apply_medical_treatment(character: Resource, treatment_type: TreatmentType,
 		"results": treatment_results,
 		"timestamp": Time.get_unix_time_from_system()
 	}
-	
+
 	if not active_treatments.has(character_id):
 		active_treatments[character_id] = []
 	active_treatments[character_id].append(treatment_data)
-	
-	medical_treatment_applied.emit(character, treatment_data) # warning: return value discarded (intentional)
-	
+
+	medical_treatment_applied.emit(character, treatment_data)
+
 	return {"success": true, "treatment_data": treatment_data}
 
 func _calculate_treatment_effectiveness(treatment_type: TreatmentType, equipment: Array) -> float:
 	"""Calculate how effective a treatment will be"""
 	var base_effectiveness: int = 1
-	
+
 	match treatment_type:
 		TreatmentType.FIELD_MEDICINE:
 			base_effectiveness = 0.5
@@ -288,20 +291,20 @@ func _calculate_treatment_effectiveness(treatment_type: TreatmentType, equipment
 			base_effectiveness = 2.5
 		TreatmentType.STIM_PACK:
 			base_effectiveness = 0.8
-	
+
 	# Apply equipment bonuses
 	for item in equipment:
-		var equipment_name = item.get("name", "") if item.has_method("get") else str(item)
+		var equipment_name = item.get("name", "") if item and item.has_method("get") else str(item)
 		if equipment_name in medical_equipment_bonuses:
 			var bonus = medical_equipment_bonuses[equipment_name].get("healing_bonus", 0)
 			base_effectiveness += bonus * 0.2
-	
+
 	return base_effectiveness
 
 func _calculate_complications_risk(treatment_type: TreatmentType, equipment: Array) -> float:
 	"""Calculate risk of treatment complications"""
 	var base_risk: int = 0
-	
+
 	match treatment_type:
 		TreatmentType.FIELD_MEDICINE:
 			base_risk = 0.3
@@ -315,21 +318,21 @@ func _calculate_complications_risk(treatment_type: TreatmentType, equipment: Arr
 			base_risk = 0.1
 		TreatmentType.STIM_PACK:
 			base_risk = 0.25
-	
+
 	# Reduce risk with proper equipment
 	for item in equipment:
-		var equipment_name = item.get("name", "") if item.has_method("get") else str(item)
+		var equipment_name = item.get("name", "") if item and item.has_method("get") else str(item)
 		if equipment_name in medical_equipment_bonuses:
 			var reduction = medical_equipment_bonuses[equipment_name].get("complication_reduction", 0)
 			base_risk -= reduction
-	
+
 	return max(0.01, base_risk)
 
 func _apply_treatment_to_injury(injury: Dictionary, effectiveness: float, complication_risk: float) -> Dictionary:
 	"""Apply treatment effects to a specific injury"""
 	var recovery_boost = int(effectiveness * 2)
 	injury.current_recovery += recovery_boost
-	
+
 	# Check for complications
 	var complication_occurred: bool = false
 	if randf() < complication_risk:
@@ -337,7 +340,7 @@ func _apply_treatment_to_injury(injury: Dictionary, effectiveness: float, compli
 		var complication = _generate_complication(injury)
 		injury.complications.append(complication)
 		injury_complication.emit(null, complication) # Would need character reference  # warning: return value discarded (intentional)
-	
+
 	return {
 		"injury_id": injury.injury_id,
 		"recovery_boost": recovery_boost,
@@ -350,38 +353,38 @@ func _apply_treatment_to_injury(injury: Dictionary, effectiveness: float, compli
 
 func process_natural_recovery(character: Resource, turns_passed: int = 1) -> Dictionary:
 	"""Process natural recovery over time"""
-	var character_id = _get_character_id(character)
+	var character_id: String = _get_character_id(character)
 
 	var injuries = character_injuries.get(character_id, [])
-	
+
 	if injuries.is_empty():
 		return {"recovered_injuries": [], "active_injuries": 0}
-	
+
 	var recovered_injuries: Array = []
 	var updated_injuries: Array = []
-	
+
 	for injury in injuries:
 		# Natural recovery is slower than medical treatment
 		injury.current_recovery += turns_passed * 0.5
-		
+
 		# Check if fully recovered
 		if injury.current_recovery >= injury.recovery_time:
-			recovered_injuries.append(injury) # warning: return value discarded (intentional)
+			recovered_injuries.append(injury)
 			_remove_injury_effects(character, injury)
 		else:
-			updated_injuries.append(injury) # warning: return value discarded (intentional)
-	
+			updated_injuries.append(injury)
+
 	# Update the injuries list
 	character_injuries[character_id] = updated_injuries
-	
+
 	# Emit recovery signals
 	if not recovered_injuries.is_empty():
 		for injury in recovered_injuries:
-			recovery_progress.emit(character, {"injury": injury, "status": "recovered"}) # warning: return value discarded (intentional)
-		
+			recovery_progress.emit(character, {"injury": injury, "status": "recovered"})
+
 		if updated_injuries.is_empty():
-			full_recovery.emit(character) # warning: return value discarded (intentional)
-	
+			full_recovery.emit(character)
+
 	return {
 		"recovered_injuries": recovered_injuries,
 		"active_injuries": updated_injuries.size(),
@@ -390,32 +393,32 @@ func process_natural_recovery(character: Resource, turns_passed: int = 1) -> Dic
 
 func _remove_injury_effects(character: Resource, injury: Dictionary) -> void:
 	"""Remove injury effects when recovered"""
-	if not character.has_method("set") or not character.has_method("get"):
+	if not character or not character.has_method("set") or not character.has_method("get"):
 		return
-	
+
 	# Restore stat penalties (careful not to exceed original values)
 	for stat in injury.stat_penalties.keys():
 		if stat == "varies":
 			continue # Can't automatically restore varied penalties
-		
+
 		var penalty = injury.stat_penalties[stat]
 
-		var current_value = character.get(stat) if character.has(stat) else 0
-		character.set(stat, current_value - penalty) # Remove the penalty
-	
+		var current_value: int = character.get(stat) if character and character.has_method("get") else 0
+		if character and character.has_method("set"): character.set(stat, current_value - penalty) # Remove the penalty
+
 	# Check if character should no longer be wounded
-	var character_id = _get_character_id(character)
+	var character_id: String = _get_character_id(character)
 
 	var remaining_injuries = character_injuries.get(character_id, [])
 	var has_serious_injuries: bool = false
-	
+
 	for remaining_injury in remaining_injuries:
 		if remaining_injury.injury_type >= InjuryType.SERIOUS_INJURY:
 			has_serious_injuries = true
 			break
-	
+
 	if not has_serious_injuries:
-		character.set("is_wounded", false)
+		if character and character.has_method("set"): character.set("is_wounded", false)
 
 ## ===== MEDICAL FACILITIES =====
 
@@ -448,15 +451,15 @@ func _initialize_medical_facilities() -> void:
 ## ===== UTILITY FUNCTIONS =====
 func get_character_injury_status(character: Resource) -> Dictionary:
 	"""Get comprehensive injury status for a character"""
-	var character_id = _get_character_id(character)
+	var character_id: String = _get_character_id(character)
 
 	var injuries = character_injuries.get(character_id, [])
 
 	var treatments = active_treatments.get(character_id, [])
-	
+
 	var active_injuries = injuries.filter(func(injury): return injury.current_recovery < injury.recovery_time)
 	var total_recovery_progress = _calculate_total_recovery_progress(active_injuries)
-	
+
 	return {
 		"character_id": character_id,
 		"total_injuries": injuries.size(),
@@ -499,18 +502,18 @@ func _calculate_total_recovery_progress(injuries: Array) -> float:
 	"""Calculate overall recovery progress as percentage"""
 	if injuries.is_empty():
 		return 1.0
-	
+
 	var total_progress: int = 0
 	for injury in injuries:
 		var progress = float(injury.current_recovery) / injury.recovery_time
 		total_progress += min(1.0, progress)
-	
+
 	return total_progress / injuries.size()
 
 func _get_character_id(character: Resource) -> String:
 	"""Get unique identifier for character"""
-	if character.has_method("get"):
-		return character.get("character_id") if character.has("character_id") else str(character.get_instance_id())
+	if character and character.has_method("get") and character.has("character_id"):
+		return character.get("character_id")
 	return str(character.get_instance_id())
 
 func _generate_injury_id() -> String:
@@ -537,3 +540,22 @@ func deserialize(data: Dictionary) -> void:
 	medical_facilities = data.get("medical_facilities", [])
 	if medical_facilities.is_empty():
 		_initialize_medical_facilities()
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
+
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(obj):
+		return default_value
+	if obj and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	return default_value
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

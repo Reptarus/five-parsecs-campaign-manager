@@ -1,7 +1,7 @@
-class_name FiveParsecsTerrainFactory
+﻿class_name FiveParsecsTerrainFactory
 extends Node
 
-const GameEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsTerrainPiece: GDScript = preload("res://src/core/terrain/TerrainPiece.gd")
 const TerrainTypes: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")
 const TerrainRules: GDScript = preload("res://src/core/terrain/TerrainRules.gd")
@@ -30,39 +30,41 @@ func _ready() -> void:
 	_preload_scenes()
 func _preload_scenes() -> void:
 	for key in TERRAIN_SCENES:
+		var typed_key: Variant = key
 		var scene = load(TERRAIN_SCENES[key])
 		if scene:
 			_scene_cache[key] = scene
+			
 func create_terrain_piece(terrain_type: TerrainTypes.Type, position: Vector3, rotation: float = 0.0) -> Node3D:
 	var base_scene = _get_base_scene_for_type(terrain_type)
 	if not base_scene:
 		push_error("TerrainFactory: Failed to get base scene for _type " + str(terrain_type))
 		return null
-	
+
 	var terrain_piece = base_scene.instantiate()
 	if not terrain_piece:
 		push_error("TerrainFactory: Failed to instantiate terrain piece")
 		return null
-	
+
 	_configure_terrain_piece(terrain_piece, terrain_type, position, rotation)
-	terrain_created.emit(terrain_piece, terrain_type) # warning: return value discarded (intentional)
-	
+	terrain_created.emit(terrain_piece, terrain_type)
+
 	return terrain_piece
 
 func modify_terrain_piece(piece: Node3D, new_type: TerrainTypes.Type) -> bool:
-	if not piece or not piece.has_method("set_terrain_type"):
+	if not piece or not piece and piece.has_method("set_terrain_type"):
 		return false
-	
+
 	var old_type = piece.get_terrain_type()
 	piece.set_terrain_type(new_type)
 	_update_terrain_properties(piece, new_type)
-	
-	terrain_modified.emit(piece, old_type, new_type) # warning: return value discarded (intentional)
+
+	terrain_modified.emit(piece, old_type, new_type)
 	return true
 
 func remove_terrain_piece(piece: Node3D) -> void:
 	if piece:
-		terrain_removed.emit(piece) # warning: return value discarded (intentional)
+		terrain_removed.emit(piece)
 		piece.queue_free()
 
 func _get_base_scene_for_type(terrain_type: TerrainTypes.Type) -> PackedScene:
@@ -81,14 +83,14 @@ func _get_base_scene_for_type(terrain_type: TerrainTypes.Type) -> PackedScene:
 func _configure_terrain_piece(piece: Node3D, type: TerrainTypes.Type, position: Vector3, rotation: float) -> void:
 	piece.position = position
 	piece.rotation.y = rotation
-	
-	if piece.has_method("set_terrain_type"):
+
+	if piece and piece.has_method("set_terrain_type"):
 		piece.set_terrain_type(type)
-	
+
 	_update_terrain_properties(piece, type)
 func _update_terrain_properties(piece: Node3D, type: TerrainTypes.Type) -> void:
 	var properties = TerrainTypes.get_terrain_properties(type)
-	
+
 	# Update collision properties
 
 	if properties.get("blocks_movement", false):
@@ -97,7 +99,7 @@ func _update_terrain_properties(piece: Node3D, type: TerrainTypes.Type) -> void:
 	else:
 		piece.collision_layer = 2 # Passable terrain layer
 		piece.collision_mask = 2
-	
+
 	# Update visual properties (assuming MeshInstance3D is present)
 	var mesh_instance = piece.get_node_or_null("MeshInstance3D")
 	if mesh_instance:
@@ -106,7 +108,7 @@ func _update_mesh_properties(mesh_instance: MeshInstance3D, type: TerrainTypes.T
 	# Update mesh appearance based on terrain type
 	# This would be expanded based on your visual requirements
 	var material := StandardMaterial3D.new()
-	
+
 	match type:
 		TerrainTypes.Type.COVER_LOW:
 			material.albedo_color = Color(0.5, 0.5, 0.5)
@@ -123,5 +125,22 @@ func _update_mesh_properties(mesh_instance: MeshInstance3D, type: TerrainTypes.T
 			material.albedo_color = Color(0.6, 0.4, 0.2)
 		_:
 			material.albedo_color = Color(0.8, 0.8, 0.8)
-	
+
 	mesh_instance.material_override = material
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return default_value
+	if obj and obj.has_method("get"):
+		var value = obj.get(property)
+		return value if value != null else default_value
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

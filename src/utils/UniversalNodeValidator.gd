@@ -1,154 +1,86 @@
-# Universal Node Validation System - Five Parsecs Campaign Manager
-# This system prevents null reference crashes across all UI components
-
+## Universal Node Validator for Five Parsecs Campaign Manager
+## Provides safe node validation following development guidelines
 class_name UniversalNodeValidator
 extends RefCounted
 
-## Universal Node Access - Prevents null reference crashes
-static func safe_get_node(base_node: Node, path: String, context: String = "") -> Node:
-	if not base_node:
-		push_warning("UniversalValidator: Base node is null in context: " + context)
-		return null
-	
-	var target_node = base_node.get_node_or_null(path)
-	if not target_node:
-		push_warning("UniversalValidator: Node not found: '%s' in context: %s" % [path, context])
-		return null
-	
-	return target_node
-
-## Safe Signal Connection - Prevents connection to null nodes
-static func safe_connect_signal(node: Node, signal_name: String, callable: Callable, context: String = "") -> bool:
-	if not node:
-		push_warning("UniversalValidator: Cannot connect signal '%s' - node is null in context: %s" % [signal_name, context])
-		return false
-	
-	if not node.has_signal(signal_name):
-		push_warning("UniversalValidator: Signal '%s' does not exist on node in context: %s" % [signal_name, context])
-		return false
-	
-	# Avoid duplicate connections
-	if node.is_connected(signal_name, callable):
-		return true
-	
-	var error = node.connect(signal_name, callable)
-	if error != OK:
-		push_warning("UniversalValidator: Failed to connect signal '%s' (Error %d) in context: %s" % [signal_name, error, context])
-		return false
-	
-	return true
-
-## Safe Property Access - Prevents crashes when accessing properties
-static func safe_get_property(node: Node, property: String, default_value: Variant = null, context: String = "") -> Variant:
-	if not node:
-		push_warning("UniversalValidator: Cannot get property '%s' - node is null in context: %s" % [property, context])
-		return default_value
-	
-	if not property in node:
-		push_warning("UniversalValidator: Property '%s' does not exist on node in context: %s" % [property, context])
-		return default_value
-	
-	return node.get(property)
-
-## Safe Property Setting - Prevents crashes when setting properties
-static func safe_set_property(node: Node, property: String, value: Variant, context: String = "") -> bool:
-	if not node:
-		push_warning("UniversalValidator: Cannot set property '%s' - node is null in context: %s" % [property, context])
-		return false
-	
-	if not property in node:
-		push_warning("UniversalValidator: Property '%s' does not exist on node in context: %s" % [property, context])
-		return false
-	
-	node.set(property, value)
-	return true
-
-## Comprehensive Node Validation - For complex UI components
-static func validate_required_nodes(base_node: Node, required_paths: Array[String], context: String = "") -> Dictionary:
-	var result = {
-		"all_found": true,
+## Validates that required nodes exist and returns validation results
+## @param parent_node: The parent node to search within
+## @param required_paths: Array of node paths that must exist
+## @return: Dictionary with validation results and node references
+static func validate_required_nodes(parent_node: Node, required_paths: Array[String]) -> Dictionary:
+	var result := {
+		"valid": true,
 		"missing_nodes": [],
-		"found_nodes": {}
+		"found_nodes": {},
+		"errors": []
 	}
 	
+	if not parent_node:
+		result.valid = false
+		result.errors.append("Parent node is null")
+		return result
+	
 	for path in required_paths:
-		var node = safe_get_node(base_node, path, context + " - Required Node")
+		var node := parent_node.get_node_or_null(path) as Node
 		if node:
 			result.found_nodes[path] = node
 		else:
-			result.all_found = false
+			result.valid = false
 			result.missing_nodes.append(path)
+			result.errors.append("Missing required node: " + path)
 	
 	return result
 
-## UI Component Validator - All-in-one solution for UI screens
-static func setup_ui_component(ui_component: Node, required_nodes: Array[String], 
-                                signal_connections: Array[Dictionary] = [], 
-                                context: String = "") -> Dictionary:
-	var setup_result = {
-		"success": true,
-		"errors": [],
-		"warnings": [],
-		"nodes": {}
-	}
+## Safe node getter with type validation
+## @param parent_node: Parent node to search within
+## @param path: Node path to find
+## @param expected_type: Expected class type (optional)
+## @return: Node if found and valid, null otherwise
+static func get_safe_node(parent_node: Node, path: String, expected_type: Script = null) -> Node:
+	if not parent_node:
+		push_error("Parent node is null when looking for: " + path)
+		return null
 	
-	# Validate all required nodes exist
-	var validation_result = validate_required_nodes(ui_component, required_nodes, context)
-	setup_result.nodes = validation_result.found_nodes
-	
-	if not validation_result.all_found:
-		setup_result.success = false
-		setup_result.errors.append("Missing required nodes: " + str(validation_result.missing_nodes))
-	
-	# Setup signal connections safely
-	for connection_config in signal_connections:
-		var node_path = connection_config.get("node_path", "")
-		var signal_name = connection_config.get("signal", "")
-		var method_name = connection_config.get("method", "")
-		
-		var node = setup_result.nodes.get(node_path)
-		if node and ui_component.has_method(method_name):
-			var callable = Callable(ui_component, method_name)
-			if not safe_connect_signal(node, signal_name, callable, context + " - " + signal_name):
-				setup_result.warnings.append("Failed to connect %s.%s" % [node_path, signal_name])
-		else:
-			setup_result.warnings.append("Cannot connect %s.%s - missing node or method" % [node_path, signal_name])
-	
-	return setup_result
-
-## Safe method call - Prevents crashes when calling methods on potentially null nodes
-static func safe_call_method(node: Node, method_name: String, args: Array = [], context: String = "") -> Variant:
+	var node := parent_node.get_node_or_null(path) as Node
 	if not node:
-		push_warning("UniversalValidator: Cannot call method '%s' - node is null in context: %s" % [method_name, context])
+		push_error("Node not found: " + path)
 		return null
 	
-	if not node.has_method(method_name):
-		push_warning("UniversalValidator: Method '%s' does not exist on node in context: %s" % [method_name, context])
+	if expected_type and not node.get_script() == expected_type:
+		push_error("Node type mismatch for: " + path)
 		return null
 	
-	return node.callv(method_name, args)
+	return node
 
-## Safe UI element setup - For common UI patterns
-static func safe_setup_button(button: Node, text: String, callback: Callable, context: String = "") -> bool:
-	if not button:
-		push_warning("UniversalValidator: Cannot setup button - button is null in context: %s" % context)
+## Validates signal connections safely
+## @param source: Source object for signal
+## @param signal_name: Name of signal to connect
+## @param target: Target object for connection
+## @param method_name: Target method name
+## @return: True if connection successful
+static func safe_connect_signal(source: Object, signal_name: String, target: Object, method_name: String) -> bool:
+	if not source:
+		push_error("Source object is null for signal: " + signal_name)
 		return false
 	
-	safe_set_property(button, "text", text, context + " - button text")
-	return safe_connect_signal(button, "pressed", callback, context + " - button pressed")
-
-static func safe_setup_toggle(toggle: Node, initial_state: bool, callback: Callable, context: String = "") -> bool:
-	if not toggle:
-		push_warning("UniversalValidator: Cannot setup toggle - toggle is null in context: %s" % context)
+	if not target:
+		push_error("Target object is null for signal: " + signal_name)
 		return false
 	
-	safe_set_property(toggle, "button_pressed", initial_state, context + " - toggle state")
-	return safe_connect_signal(toggle, "toggled", callback, context + " - toggle toggled")
-
-static func safe_setup_input(input: Node, placeholder: String, callback: Callable, context: String = "") -> bool:
-	if not input:
-		push_warning("UniversalValidator: Cannot setup input - input is null in context: %s" % context)
+	if not source.has_signal(signal_name):
+		push_error("Signal does not exist: " + signal_name)
 		return false
 	
-	safe_set_property(input, "placeholder_text", placeholder, context + " - input placeholder")
-	return safe_connect_signal(input, "text_changed", callback, context + " - input text_changed")
+	if not target.has_method(method_name):
+		push_error("Target method does not exist: " + method_name)
+		return false
+	
+	if source.is_connected(signal_name, Callable(target, method_name)):
+		return true  # Already connected
+	
+	var error := source.connect(signal_name, Callable(target, method_name))
+	if error != OK:
+		push_error("Failed to connect signal: " + signal_name + " Error: " + str(error))
+		return false
+	
+	return true

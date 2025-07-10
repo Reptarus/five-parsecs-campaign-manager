@@ -1,11 +1,11 @@
-@tool
+﻿@tool
 extends RefCounted
 class_name UnifiedTerrainSystem
 
 ## Unified Terrain System for Five Parsecs Campaign Manager
 ## Manages terrain generation, placement, and effects for battles
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 signal terrain_generated(terrain_data: Dictionary)
 signal terrain_updated(position: Vector2i, terrain_type: int)
@@ -28,19 +28,19 @@ func _initialize_terrain_effects() -> void:
 ## Generate terrain for battlefield
 func generate_terrain(size: Vector2i, density: float = 0.3) -> Dictionary:
 	terrain_grid.clear()
-	
+
 	var terrain_count = int(size.x * size.y * density)
-	for i in range(terrain_count):
+	for i: int in range(terrain_count):
 		var pos = Vector2i(randi() % size.x, randi() % size.y)
 		var terrain_type = randi() % 4
 		terrain_grid[pos] = terrain_type
-	
+
 	var terrain_data = {
 		"grid": terrain_grid,
 		"size": size,
 		"density": density
 	}
-	
+
 	terrain_generated.emit(terrain_data)
 	return terrain_data
 

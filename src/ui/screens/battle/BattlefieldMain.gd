@@ -1,4 +1,4 @@
-extends Control
+﻿extends Control
 
 ## BattlefieldMain UI for Five Parsecs Campaign Manager
 ## Handles tactical battle display and controls
@@ -31,9 +31,9 @@ func _ready() -> void:
 
 func _initialize_managers() -> void:
 	"""Initialize manager references from autoloads"""
-	alpha_manager = get_node("/root/AlphaGameManager") if has_node("/root/AlphaGameManager") else null
+	alpha_manager = get_node("/root/FPCM_AlphaGameManager") if has_node("/root/FPCM_AlphaGameManager") else null
 	dice_manager = get_node("/root/DiceManager") if has_node("/root/DiceManager") else null
-	
+
 	if alpha_manager and alpha_manager.has_method("get_battle_manager"):
 		battle_manager = alpha_manager.get_battle_manager()
 
@@ -43,7 +43,7 @@ func _setup_battlefield() -> void:
 	camera_3d.projection = Camera3D.PROJECTION_PERSPECTIVE
 	camera_3d.position = Vector3(0, 10, 10)
 	camera_3d.look_at(Vector3.ZERO, Vector3.UP)
-	
+
 	# Create a simple grid for the battlefield
 	_create_battlefield_grid()
 
@@ -56,20 +56,20 @@ func _create_battlefield_grid() -> void:
 	plane_mesh.subdivide_width = 20
 	plane_mesh.subdivide_depth = 20
 	mesh_instance.mesh = plane_mesh
-	
+
 	# Create a simple material
 	var material: StandardMaterial3D = StandardMaterial3D.new()
 	material.albedo_color = Color(0.3, 0.3, 0.3)
 	material.metallic = 0.0
 	material.roughness = 0.8
 	mesh_instance.material_override = material
-	
+
 	battlefield_node.add_child(mesh_instance)
 
 func _connect_signals() -> void:
 	"""Connect UI signals"""
 	end_turn_button.pressed.connect(_on_end_turn_pressed)
-	
+
 	if battle_manager and battle_manager.has_signal("turn_completed"):
 		battle_manager.turn_completed.connect(_on_turn_completed)
 	if battle_manager and battle_manager.has_signal("battle_ended"):
@@ -79,7 +79,7 @@ func setup_phase(data: Resource) -> void:
 	"""Setup the battle phase with campaign data"""
 	campaign_data = data
 	# Safe property access with Universal Safety System pattern
-	if data and data.has_method("get_meta"):
+	if data and data and data.has_method("get_meta"):
 		battle_data = data.get_meta("current_battle", {})
 	elif typeof(data) == TYPE_DICTIONARY and data.has("current_battle"):
 		battle_data = data["current_battle"]
@@ -94,7 +94,7 @@ func _start_battle() -> void:
 	battle_active = true
 	current_turn = 1
 	_update_ui()
-	
+
 	# Add log entry
 	print("Tactical battle started")
 
@@ -111,10 +111,10 @@ func _on_end_turn_pressed() -> void:
 	"""Handle end turn button press"""
 	if not battle_active:
 		return
-	
+
 	current_turn += 1
-	turn_ended.emit() # warning: return value discarded (intentional)
-	
+	turn_ended.emit()
+
 	# Check if battle should end (simple condition for now)
 	if current_turn > 6: # Simple turn limit
 		_end_battle()
@@ -126,7 +126,7 @@ func _end_battle() -> void:
 	"""End the tactical battle"""
 	battle_active = false
 	_update_ui()
-	battle_completed.emit() # warning: return value discarded (intentional)
+	battle_completed.emit()
 	print("Battle completed")
 
 func _on_turn_completed() -> void:
@@ -152,3 +152,10 @@ func load_campaign_data(data: Resource) -> void:
 	"""Load campaign data for this phase"""
 	campaign_data = data
 	battle_data = data.get_meta("current_battle", {}) if data else {}
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

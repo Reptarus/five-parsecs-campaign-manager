@@ -1,11 +1,11 @@
 extends Resource
 class_name BaseItem
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 @export var item_name: String = ""
-@export var item_type: GameEnums.ItemType = GameEnums.ItemType.NONE
-@export var rarity: GameEnums.ItemRarity = GameEnums.ItemRarity.COMMON
+@export var item_type: GlobalEnums.ItemType = GlobalEnums.ItemType.NONE
+@export var rarity: GlobalEnums.ItemRarity = GlobalEnums.ItemRarity.COMMON
 @export var description: String = ""
 @export var cost: int = 0
 @export var weight: int = 0
@@ -27,4 +27,4 @@ func get_description() -> String:
 	return description
 
 func get_display_name() -> String:
-	return "%s (%s)" % [item_name, GameEnums.ItemRarity.keys()[rarity]]
+	return "%s (%s)" % [item_name, GlobalEnums.ItemRarity.keys()[rarity]]

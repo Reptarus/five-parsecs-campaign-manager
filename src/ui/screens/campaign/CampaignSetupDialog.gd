@@ -1,6 +1,6 @@
-extends Control
+﻿extends Control
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 @onready var difficulty_option: Button = $"VBoxContainer/DifficultyOption"
 @onready var permadeath_toggle: Button = $"VBoxContainer/PermadeathToggle"
@@ -16,12 +16,12 @@ func _ready() -> void:
 
 func _setup_difficulty_options() -> void:
 	difficulty_option.clear()
-	difficulty_option.add_item("Easy", GameEnums.DifficultyLevel.EASY)
-	difficulty_option.add_item("Normal", GameEnums.DifficultyLevel.NORMAL)
-	difficulty_option.add_item("Hard", GameEnums.DifficultyLevel.HARD)
-	difficulty_option.add_item("Hardcore", GameEnums.DifficultyLevel.HARDCORE)
-	difficulty_option.add_item("Elite", GameEnums.DifficultyLevel.ELITE)
-	difficulty_option.select(GameEnums.DifficultyLevel.NORMAL)
+	difficulty_option.add_item("Easy", GlobalEnums.DifficultyLevel.EASY)
+	difficulty_option.add_item("Normal", GlobalEnums.DifficultyLevel.NORMAL)
+	difficulty_option.add_item("Hard", GlobalEnums.DifficultyLevel.HARD)
+	difficulty_option.add_item("Hardcore", GlobalEnums.DifficultyLevel.HARDCORE)
+	difficulty_option.add_item("Elite", GlobalEnums.DifficultyLevel.ELITE)
+	difficulty_option.select(GlobalEnums.DifficultyLevel.NORMAL)
 
 func _connect_signals() -> void:
 	difficulty_option.item_selected.connect(_on_difficulty_changed)
@@ -31,7 +31,7 @@ func _connect_signals() -> void:
 
 func _update_ui_state() -> void:
 	var difficulty_index = difficulty_option.get_selected_id()
-	if difficulty_index == GameEnums.DifficultyLevel.HARDCORE or difficulty_index == GameEnums.DifficultyLevel.ELITE:
+	if difficulty_index == GlobalEnums.DifficultyLevel.HARDCORE or difficulty_index == GlobalEnums.DifficultyLevel.ELITE:
 		permadeath_toggle.button_pressed = true
 		permadeath_toggle.disabled = true
 	else:
@@ -39,15 +39,15 @@ func _update_ui_state() -> void:
 
 func _get_difficulty_description(difficulty: int) -> String:
 	match difficulty:
-		GameEnums.DifficultyLevel.EASY:
+		GlobalEnums.DifficultyLevel.EASY:
 			return "Reduced enemy count and easier combat."
-		GameEnums.DifficultyLevel.NORMAL:
+		GlobalEnums.DifficultyLevel.NORMAL:
 			return "Standard difficulty with balanced challenges."
-		GameEnums.DifficultyLevel.HARD:
+		GlobalEnums.DifficultyLevel.HARD:
 			return "More enemies and tougher combat encounters."
-		GameEnums.DifficultyLevel.HARDCORE:
+		GlobalEnums.DifficultyLevel.HARDCORE:
 			return "Significantly harder with elite enemies. Permadeath enabled."
-		GameEnums.DifficultyLevel.ELITE:
+		GlobalEnums.DifficultyLevel.ELITE:
 			return "The ultimate challenge. Elite enemies and permadeath."
 		_:
 			return "Unknown difficulty level"
@@ -69,7 +69,7 @@ func _on_start_pressed() -> void:
 		"permadeath": permadeath_toggle.button_pressed,
 		"story_track": story_track_toggle.button_pressed
 	}
-	campaign_started.emit(config)  # warning: return value discarded (intentional)
+	campaign_started.emit(config)
 
 func get_difficulty_name(difficulty: int) -> String:
-	return GameEnums.DifficultyLevel.keys()[difficulty]
+	return GlobalEnums.DifficultyLevel.keys()[difficulty]

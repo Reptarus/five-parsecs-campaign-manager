@@ -1,14 +1,14 @@
-# Universal Connection Validation Applied
+﻿# Universal Connection Validation Applied
 # Based on proven patterns: Universal Mock Strategy + 7-Stage Methodology
 @tool
 extends Resource
 
-# Safe imports
-const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
-const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd") 
-const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
-const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
-const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd")
+# Removed Universal class imports to fix SHADOWED_GLOBAL_IDENTIFIER warnings
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
 
 signal campaign_started
 signal campaign_ended(victory: bool)
@@ -27,7 +27,7 @@ signal resources_changed(resources: Dictionary)
 @export var campaign_type: int = 0
 @export var campaign_difficulty: int = 0
 @export var current_phase: int = 0
-@export var completed_phases: Array = []
+@export var completed_phases: Array[int] = []
 @export var resources: Dictionary = {}
 @export var start_date: Dictionary = {}
 @export var current_date: Dictionary = {}
@@ -44,7 +44,7 @@ func _initialize_resources() -> void:
 		"story_points": 0
 	}
 func _initialize_dates() -> void:
-	var current_time = Time.get_datetime_dict_from_system()
+	var current_time: Dictionary = Time.get_datetime_dict_from_system()
 	start_date = {
 		"year": current_time.year,
 		"month": current_time.month,
@@ -60,7 +60,7 @@ func end_campaign(victory: bool = false) -> void:
 	campaign_ended.emit(victory)
 
 func start_phase(phase: int) -> void:
-	var old_phase = current_phase
+	var old_phase: int = current_phase
 	current_phase = phase
 	phase_changed.emit(old_phase, current_phase)
 	phase_started.emit(current_phase)
@@ -72,20 +72,20 @@ func complete_phase() -> void:
 
 func advance_time(days: int = 1) -> void:
 	total_days += days
-	
+
 	# Simple calendar logic (assuming 30 days per month)
-	var day = current_date.day + days
-	var month = current_date.month
-	var year = current_date.year
-	
+	var day: int = current_date.day + days
+	var month: int = current_date.month
+	var year: int = current_date.year
+
 	while day > 30:
 		day -= 30
 		month += 1
-		
+
 		if month > 12:
 			month = 1
 			year += 1
-	
+
 	current_date.day = day
 	current_date.month = month
 	current_date.year = year
@@ -100,10 +100,10 @@ func remove_resource(resource_type: String, amount: int) -> bool:
 	if not resources.has(resource_type):
 		push_error("Unknown resource _type: " + resource_type)
 		return false
-		
+
 	if resources[resource_type] < amount:
 		return false
-		
+
 	resources[resource_type] -= amount
 	resources_changed.emit(resources)
 	return true
@@ -114,7 +114,7 @@ func get_resource(resource_type: String) -> int:
 	return 0
 
 func serialize() -> Dictionary:
-	var data = {
+	var data: Dictionary = {
 		"campaign_name": campaign_name,
 		"campaign_type": campaign_type,
 		"campaign_difficulty": campaign_difficulty,
@@ -137,3 +137,11 @@ func deserialize(data: Dictionary) -> void:
 	if data.has("start_date"): start_date = data.start_date
 	if data.has("current_date"): current_date = data.current_date
 	if data.has("total_days"): total_days = data.total_days
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

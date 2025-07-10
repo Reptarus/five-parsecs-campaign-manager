@@ -1,4 +1,4 @@
-class_name EnemyGenerator
+﻿class_name EnemyGenerator
 extends Resource
 
 ## Enemy Generation System for Five Parsecs Campaign Manager
@@ -7,7 +7,7 @@ extends Resource
 signal enemies_generated(enemies: Array[Resource])
 
 # Enemy types from Five Parsecs rules
-var enemy_categories = {
+var enemy_categories: Dictionary = {
 	"criminal": ["Thug", "Gang Leader", "Crime Boss", "Hired Gun", "Smuggler"],
 	"alien": ["K'Erin Warrior", "Swift Scout", "Engineer Tech", "Precursor", "Soulless"],
 	"hostile": ["Converted", "Swarm Warrior", "Pirate", "Raider", "Mercenary"],
@@ -15,7 +15,7 @@ var enemy_categories = {
 	"wildlife": ["Predator", "Pack Hunter", "Giant Insect", "Toxic Creature"]
 }
 
-var enemy_stats_base = {
+var enemy_stats_base: Dictionary = {
 	"Thug": {"combat_skill": 1, "toughness": 3, "speed": 4, "weapons": ["Blade", "Handgun"]},
 	"Gang Leader": {"combat_skill": 2, "toughness": 4, "speed": 4, "weapons": ["Auto Pistol", "Blade"]},
 	"K'Erin Warrior": {"combat_skill": 3, "toughness": 4, "speed": 5, "weapons": ["Blade", "Handgun"]},
@@ -28,19 +28,19 @@ var enemy_stats_base = {
 func generate_enemies_for_mission(mission: Resource, crew_size: int = 4) -> Array[Resource]:
 	"""Generate appropriate enemies for a mission based on Five Parsecs rules"""
 	var enemies: Array[Resource] = []
-	
-	var mission_type = mission.get_meta("mission_type") if mission.has_method("get_meta") else "Patrol"
-	var difficulty = mission.get_meta("difficulty") if mission.has_method("get_meta") else 1
-	
-	var enemy_category = _determine_enemy_category(mission_type)
-	var enemy_count = _calculate_enemy_count(difficulty, crew_size)
-	
-	for i in range(enemy_count):
-		var enemy = _create_enemy(enemy_category, difficulty)
 
-		enemies.append(enemy) # warning: return value discarded (intentional)
-	
-	enemies_generated.emit(enemies) # warning: return value discarded (intentional)
+	var mission_type = mission.get_meta("mission_type") if mission and mission.has_method("get_meta") else "Patrol"
+	var difficulty = mission.get_meta("difficulty") if mission and mission.has_method("get_meta") else 1
+
+	var enemy_category: String = _determine_enemy_category(mission_type)
+	var enemy_count: int = _calculate_enemy_count(difficulty, crew_size)
+
+	for i: int in range(enemy_count):
+		var enemy: Resource = _create_enemy(enemy_category, difficulty)
+
+		enemies.append(enemy)
+
+	enemies_generated.emit(enemies)
 	return enemies
 
 func _determine_enemy_category(mission_type: String) -> String:
@@ -64,7 +64,7 @@ func _determine_enemy_category(mission_type: String) -> String:
 func _calculate_enemy_count(difficulty: int, crew_size: int) -> int:
 	"""Calculate enemy count based on difficulty and crew _size"""
 	var base_count = crew_size
-	
+
 	match difficulty:
 		1: # Easy
 			return max(1, base_count - 1)
@@ -78,21 +78,21 @@ func _calculate_enemy_count(difficulty: int, crew_size: int) -> int:
 func _create_enemy(category: String, difficulty: int) -> Resource:
 	"""Create a single enemy of specified category and difficulty"""
 	var enemy := Resource.new()
-	
+
 	# Select enemy type from category
 
-	var enemy_types = enemy_categories.get(category, ["Thug"])
-	var enemy_type = enemy_types.pick_random()
-	
+	var enemy_types: Array[String] = enemy_categories.get(category, ["Thug"])
+	var enemy_type: String = enemy_types.pick_random()
+
 	# Get base stats
 
 	var base_stats = enemy_stats_base.get(enemy_type, {
 		"combat_skill": 1, "toughness": 3, "speed": 4, "weapons": ["Handgun"]
 	})
-	
+
 	# Apply difficulty modifiers
 	var modified_stats = _apply_difficulty_modifiers(base_stats, difficulty)
-	
+
 	# Set enemy properties
 	enemy.set_meta("name", enemy_type)
 	enemy.set_meta("category", category)
@@ -101,13 +101,13 @@ func _create_enemy(category: String, difficulty: int) -> Resource:
 	enemy.set_meta("speed", modified_stats.speed)
 	enemy.set_meta("weapons", modified_stats.weapons)
 	enemy.set_meta("difficulty", difficulty)
-	
+
 	return enemy
 
 func _apply_difficulty_modifiers(base_stats: Dictionary, difficulty: int) -> Dictionary:
 	"""Apply difficulty modifiers to enemy _stats"""
 	var modified = base_stats.duplicate()
-	
+
 	match difficulty:
 		1: # Easy - reduce _stats slightly
 			modified.combat_skill = max(0, modified.combat_skill - 1)
@@ -118,7 +118,7 @@ func _apply_difficulty_modifiers(base_stats: Dictionary, difficulty: int) -> Dic
 			# Add better weapons for hard enemies
 			if modified.weapons.size() == 1:
 				modified.weapons.append("Armor")
-	
+
 	return modified
 
 func generate_random_encounter() -> Array[Resource]:
@@ -127,38 +127,46 @@ func generate_random_encounter() -> Array[Resource]:
 	var category = encounter_types.pick_random()
 	var count = randi_range(1, 3)
 	var difficulty = randi_range(1, 2) # Random encounters are usually easier
-	
-	var enemies: Array[Resource] = []
-	for i in range(count):
-		var enemy = _create_enemy(category, difficulty)
 
-		enemies.append(enemy) # warning: return value discarded (intentional)
-	
+	var enemies: Array[Resource] = []
+	for i: int in range(count):
+		var enemy: Resource = _create_enemy(category, difficulty)
+
+		enemies.append(enemy)
+
 	return enemies
 
 func get_enemy_description(enemy: Resource) -> String:
 	"""Get a description of an enemy for UI display"""
-	var name = enemy.get_meta("name") if enemy.has_method("get_meta") else "Unknown"
-	var combat = enemy.get_meta("combat_skill") if enemy.has_method("get_meta") else 1
-	var toughness = enemy.get_meta("toughness") if enemy.has_method("get_meta") else 3
-	var weapons = enemy.get_meta("weapons") if enemy.has_method("get_meta") else []
-	
+	var name = enemy.get_meta("name") if enemy and enemy.has_method("get_meta") else "Unknown"
+	var combat: int = enemy.get_meta("combat_skill") if enemy and enemy.has_method("get_meta") else 1
+	var toughness: int = enemy.get_meta("toughness") if enemy and enemy.has_method("get_meta") else 3
+	var weapons = enemy.get_meta("weapons") if enemy and enemy.has_method("get_meta") else []
+
 	var weapon_text = weapons[0] if weapons.size() > 0 else "Unarmed"
-	
+
 	return "%s (Combat: %d, Toughness: %d) - Armed with %s" % [name, combat, toughness, weapon_text]
 
 func get_enemy_threat_level(enemies: Array[Resource]) -> String:
 	"""Calculate overall threat level of enemy group"""
 	var total_threat: int = 0
-	
+
 	for enemy in enemies:
-		var combat = enemy.get_meta("combat_skill") if enemy.has_method("get_meta") else 1
-		var toughness = enemy.get_meta("toughness") if enemy.has_method("get_meta") else 3
-		total_threat += combat + (toughness / 2)
-	
+		var combat: int = enemy.get_meta("combat_skill") if enemy and enemy.has_method("get_meta") else 1
+		var toughness: int = enemy.get_meta("toughness") if enemy and enemy.has_method("get_meta") else 3
+		total_threat += combat + (toughness / 2.0)
+
 	if total_threat <= 6:
 		return "Low"
 	elif total_threat <= 12:
 		return "Medium"
 	else:
 		return "High"
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

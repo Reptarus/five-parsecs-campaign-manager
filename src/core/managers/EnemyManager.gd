@@ -1,17 +1,17 @@
-extends Node
+﻿extends Node
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 ## Core Rules enemy group sizes - maps EnemyType to base group size
 const GROUP_SIZES := {
-	GameEnums.EnemyType.GANGERS: 4,
-	GameEnums.EnemyType.ELITE: 2,
-	GameEnums.EnemyType.BOSS: 1,
-	GameEnums.EnemyType.MINION: 6,
-	GameEnums.EnemyType.ENFORCERS: 3,
-	GameEnums.EnemyType.WAR_BOTS: 2,
-	GameEnums.EnemyType.ASSASSINS: 2,
-	GameEnums.EnemyType.BLACK_OPS_TEAM: 1
+	GlobalEnums.EnemyType.GANGERS: 4,
+	GlobalEnums.EnemyType.ELITE: 2,
+	GlobalEnums.EnemyType.BOSS: 1,
+	GlobalEnums.EnemyType.MINION: 6,
+	GlobalEnums.EnemyType.ENFORCERS: 3,
+	GlobalEnums.EnemyType.WAR_BOTS: 2,
+	GlobalEnums.EnemyType.ASSASSINS: 2,
+	GlobalEnums.EnemyType.BLACK_OPS_TEAM: 1
 }
 
 ## Current enemy force configuration
@@ -21,24 +21,24 @@ var deployment_positions: Array[Vector2] = []
 
 ## Generates deployment data for an enemy force
 ## Parameters:
-## - enemy_force: Dictionary containing enemy force configuration
+	## - enemy_force: Dictionary containing enemy force configuration
 ## - deployment_zone: Rectangle defining the deployment area
 ## Returns: Dictionary containing groups, positions, and special rules
 func generate_enemy_deployment(enemy_force: Dictionary, deployment_zone: Rect2) -> Dictionary:
 	if not _validate_enemy_force(enemy_force):
 		push_error("Invalid enemy force configuration")
 		return {}
-		
+
 	current_enemy_force = enemy_force
 	deployment_positions.clear()
-	
+
 	var enemy_data: Dictionary = {
 		"groups": _generate_enemy_groups(),
 		"positions": _generate_positions(deployment_zone),
 
 		"special_rules": enemy_force.get("special_rules", [])
 	}
-	
+
 	return enemy_data
 
 ## Returns the current enemy force configuration
@@ -50,7 +50,7 @@ func get_enemy_data() -> Dictionary:
 func _validate_enemy_force(force: Dictionary) -> bool:
 	if not force.has("type") or not force.has("groups"):
 		return false
-	if not force.type in GameEnums.EnemyType.values():
+	if not force.type in GlobalEnums.EnemyType.values():
 		return false
 	return true
 
@@ -63,7 +63,7 @@ func _generate_enemy_groups() -> Array[Dictionary]:
 
 	var total_count: int = base_count + current_enemy_force.get("count_bonus", 0)
 
-	groups.append({ # warning: return value discarded (intentional)
+	groups.append({
 		"type": current_enemy_force.type,
 		"count": total_count,
 
@@ -71,46 +71,65 @@ func _generate_enemy_groups() -> Array[Dictionary]:
 	})
 
 	if current_enemy_force.get("reinforcements", false):
-		groups.append({ # warning: return value discarded (intentional)
-			"type": GameEnums.EnemyType.GANGERS,
-			"count": base_count / 2,
+		groups.append({
+			"type": GlobalEnums.EnemyType.GANGERS,
+			"count": base_count / 2.0,
 
 			"equipment_level": maxi(1, current_enemy_force.get("equipment_level", 1) - 1)
 		})
-	
+
 	return groups
 
 ## Generates deployment positions for all enemy units
 ## Parameters:
-## - deployment_zone: Rectangle defining the deployment area
+	## - deployment_zone: Rectangle defining the deployment area
 ## Returns: Array of Vector2 positions
 func _generate_positions(deployment_zone: Rect2) -> Array[Vector2]:
 	var positions: Array[Vector2] = []
 	var total_enemies: int = 0
-	
+
 	for group in current_enemy_force.groups:
 		total_enemies += group.count
-	
+
 	for i in total_enemies:
 		var pos: Vector2 = _get_random_position_in_zone(deployment_zone)
 		var attempts: int = 0
 		while pos in positions and attempts < 100:
 			pos = _get_random_position_in_zone(deployment_zone)
 			attempts += 1
-		
+
 		if attempts >= 100:
 			push_warning("Could not find unique position for enemy after 100 attempts")
 
-		positions.append(pos) # warning: return value discarded (intentional)
-	
+		positions.append(pos)
+
 	return positions
 
 ## Generates a random position within the deployment zone
 ## Parameters:
-## - zone: Rectangle defining the deployment area
+	## - zone: Rectangle defining the deployment area
 ## Returns: Vector2 position within the zone
 func _get_random_position_in_zone(zone: Rect2) -> Vector2:
 	return Vector2(
 			zone.position.x + randf() * zone.size.x,
 	zone.position.y + randf() * zone.size.y
 )
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

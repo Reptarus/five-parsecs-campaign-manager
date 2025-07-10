@@ -6,15 +6,8 @@ var MockCampaignManagerScript: GDScript
 var MockCampaignPhaseManagerScript: GDScript
 var MockGameStateManagerScript: GDScript
 
-# Campaign Phase Enumeration
-enum CampaignPhase {
-	SETUP,
-	STORY,
-	BATTLE,
-	RESOLUTION,
-	UPKEEP,
-	ADVANCEMENT
-}
+# Import the correct global enums
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 # Type-safe instance variables
 var _phase_manager: Node = null
@@ -234,20 +227,20 @@ func test_phase_manager_initialization() -> void:
 	
 	# Then it should be set to the initial phase
 	var initial_phase: int = _phase_manager.get_current_phase() if _phase_manager.has_method("get_current_phase") else -1
-	assert_that(initial_phase).is_equal(CampaignPhase.SETUP)
+	assert_that(initial_phase).is_equal(GameEnums.FiveParsecsCampaignPhase.SETUP)
 
 func test_phase_transitions() -> void:
 	"""Test that the phase manager can transition between phases correctly."""
 	# When transitioning to a new phase
-	var to_phase: int = CampaignPhase.STORY
-	verify_phase_transition(CampaignPhase.SETUP, to_phase)
+	var to_phase: int = GameEnums.FiveParsecsCampaignPhase.TRAVEL
+	verify_phase_transition(GameEnums.FiveParsecsCampaignPhase.SETUP, to_phase)
 
 	# Then the current phase should be updated
 	var current_phase: int = _phase_manager.get_current_phase() if _phase_manager.has_method("get_current_phase") else -1
 	assert_that(current_phase).is_equal(to_phase)
 
 	# Test invalid transition
-	to_phase = CampaignPhase.ADVANCEMENT
+	to_phase = GameEnums.FiveParsecsCampaignPhase.POST_BATTLE
 	var invalid_result: bool = false
 	if _phase_manager and _phase_manager.has_method("transition_to"):
 		invalid_result = _phase_manager.transition_to(to_phase)
@@ -265,7 +258,7 @@ func test_campaign_integration() -> void:
 	assert_that(campaign_initialized).is_true()
 
 	# When going through the story phase
-	verify_phase_transition(CampaignPhase.SETUP, CampaignPhase.STORY)
+	verify_phase_transition(GameEnums.FiveParsecsCampaignPhase.SETUP, GameEnums.FiveParsecsCampaignPhase.TRAVEL)
 
 	# Then we should be able to get story events
 	var story_events: Array = _campaign_manager.get_story_events() if _campaign_manager.has_method("get_story_events") else []
@@ -280,7 +273,7 @@ func test_campaign_integration() -> void:
 	assert_that(event).contains_keys(["id", "type", "description"])
 
 	# When transitioning to battle phase
-	verify_phase_transition(CampaignPhase.STORY, CampaignPhase.BATTLE)
+	verify_phase_transition(GameEnums.FiveParsecsCampaignPhase.TRAVEL, GameEnums.FiveParsecsCampaignPhase.BATTLE)
 
 	# Then we should be able to set up a battle
 	var battle_setup: bool = _campaign_manager.setup_battle() if _campaign_manager.has_method("setup_battle") else false
@@ -292,7 +285,7 @@ func test_campaign_integration() -> void:
 	assert_that(enemy_registered).is_true()
 
 	# When transitioning to battle resolution
-	verify_phase_transition(CampaignPhase.BATTLE, CampaignPhase.RESOLUTION)
+	verify_phase_transition(GameEnums.FiveParsecsCampaignPhase.BATTLE, GameEnums.FiveParsecsCampaignPhase.POST_BATTLE)
 
 	# Then we should be able to get campaign results
 	var campaign_results: Dictionary = _campaign_manager.get_campaign_results() if _campaign_manager.has_method("get_campaign_results") else {}
@@ -303,7 +296,7 @@ func test_campaign_integration() -> void:
 		enemy.queue_free()
 
 	# When transitioning to upkeep phase
-	verify_phase_transition(CampaignPhase.RESOLUTION, CampaignPhase.UPKEEP)
+	verify_phase_transition(GameEnums.FiveParsecsCampaignPhase.POST_BATTLE, GameEnums.FiveParsecsCampaignPhase.WORLD)
 
 	# Then we should be able to get resources and calculate upkeep
 	var resources: Dictionary = _campaign_manager.get_resources() if _campaign_manager.has_method("get_resources") else {}
@@ -313,7 +306,7 @@ func test_campaign_integration() -> void:
 	assert_that(upkeep_costs).is_not_empty()
 	
 	# When transitioning to advancement phase
-	verify_phase_transition(CampaignPhase.UPKEEP, CampaignPhase.ADVANCEMENT)
+	verify_phase_transition(GameEnums.FiveParsecsCampaignPhase.WORLD, GameEnums.FiveParsecsCampaignPhase.POST_BATTLE)
 
 	# Then we should be able to get characters and advance them
 	var characters: Array = _campaign_manager.get_characters() if _campaign_manager.has_method("get_characters") else []
@@ -340,7 +333,7 @@ func test_full_campaign_cycle() -> void:
 	# When going through all phases in order
 	
 	# 1. Story Phase
-	verify_phase_transition(CampaignPhase.SETUP, CampaignPhase.STORY)
+	verify_phase_transition(GameEnums.FiveParsecsCampaignPhase.SETUP, GameEnums.FiveParsecsCampaignPhase.TRAVEL)
 	var events: Array = _campaign_manager.get_story_events() if _campaign_manager.has_method("get_story_events") else []
 	
 	if events.size() > 0:
@@ -348,7 +341,7 @@ func test_full_campaign_cycle() -> void:
 		assert_that(event_resolved).is_true()
 	
 	# 2. Battle Setup
-	verify_phase_transition(CampaignPhase.STORY, CampaignPhase.BATTLE)
+	verify_phase_transition(GameEnums.FiveParsecsCampaignPhase.TRAVEL, GameEnums.FiveParsecsCampaignPhase.BATTLE)
 	var battle_setup: bool = _campaign_manager.setup_battle() if _campaign_manager.has_method("setup_battle") else false
 	assert_that(battle_setup).is_true()
 	
@@ -358,22 +351,22 @@ func test_full_campaign_cycle() -> void:
 	assert_that(enemy_registered).is_true()
 	
 	# 3. Battle Resolution
-	verify_phase_transition(CampaignPhase.BATTLE, CampaignPhase.RESOLUTION)
+	verify_phase_transition(GameEnums.FiveParsecsCampaignPhase.BATTLE, GameEnums.FiveParsecsCampaignPhase.POST_BATTLE)
 	var results: Dictionary = _campaign_manager.get_campaign_results() if _campaign_manager.has_method("get_campaign_results") else {}
 	
 	# 4. Upkeep
-	verify_phase_transition(CampaignPhase.RESOLUTION, CampaignPhase.UPKEEP)
+	verify_phase_transition(GameEnums.FiveParsecsCampaignPhase.POST_BATTLE, GameEnums.FiveParsecsCampaignPhase.WORLD)
 	var costs: Dictionary = _campaign_manager.calculate_upkeep() if _campaign_manager.has_method("calculate_upkeep") else {}
 	var upkeep_applied: bool = _campaign_manager.apply_upkeep(costs) if _campaign_manager.has_method(": apply_upkeep") else false
 	assert_that(upkeep_applied).is_true()
 	
 	# 5. Advancement
-	verify_phase_transition(CampaignPhase.UPKEEP, CampaignPhase.ADVANCEMENT)
+	verify_phase_transition(GameEnums.FiveParsecsCampaignPhase.WORLD, GameEnums.FiveParsecsCampaignPhase.POST_BATTLE)
 	var campaign_advanced: bool = _campaign_manager.advance_campaign() if _campaign_manager.has_method("advance_campaign") else false
 	assert_that(campaign_advanced).is_true()
 	
 	# Then we should be back at the setup phase
-	verify_phase_transition(CampaignPhase.ADVANCEMENT, CampaignPhase.SETUP)
+	verify_phase_transition(GameEnums.FiveParsecsCampaignPhase.POST_BATTLE, GameEnums.FiveParsecsCampaignPhase.SETUP)
 	
 	# And we should have updated campaign results
 	var final_results: Dictionary = _campaign_manager.get_campaign_results() if _campaign_manager.has_method("get_campaign_results") else {}

@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 class_name CharacterCreationTables
 extends RefCounted
 
@@ -20,62 +20,52 @@ static var _tables_loaded: bool = false
 ## Roll background event using d66 (Core Rules p.14-15)
 static func roll_background_event(background: GlobalEnums.Background) -> Dictionary:
 	_ensure_tables_loaded()
-	
+
 	# Get DiceManager safely through autoload
 	var dice_manager: Node = Engine.get_singleton("DiceManager")
-	if not dice_manager:
-		# Fallback to direct autoload access
-		dice_manager = get_node_or_null("/root/DiceManager")
-	
 	if not dice_manager or not dice_manager.has_method("roll_d66"):
 		push_error("CharacterCreationTables: DiceManager not available")
 		return {"event": "Default background", "effect": "None"}
-	
+
 	var roll: int = dice_manager.roll_d66("Background Event")
-	
+
 	# Convert background enum to string key safely
 	var background_key: String = _safe_get_background_name(background)
 	var events: Dictionary = _background_events.get(background_key, {})
-	
+
 	return _lookup_table_result(events, roll, "background_event")
 
 ## Roll character motivation (Core Rules p.16)
 static func roll_motivation() -> Dictionary:
 	_ensure_tables_loaded()
-	
+
 	var dice_manager: Node = Engine.get_singleton("DiceManager")
-	if not dice_manager:
-		dice_manager = get_node_or_null("/root/DiceManager")
-	
 	if not dice_manager or not dice_manager.has_method("roll_d66"):
 		push_error("CharacterCreationTables: DiceManager not available")
 		return {"name": "Survival", "description": "Basic survival instinct", "bonus": "None"}
-	
+
 	var roll: int = dice_manager.roll_d66("Character Motivation")
 	return _lookup_table_result(_motivation_table, roll, "motivation")
 
 ## Roll character quirk/trait
 static func roll_character_quirk() -> Dictionary:
 	_ensure_tables_loaded()
-	
+
 	var dice_manager: Node = Engine.get_singleton("DiceManager")
-	if not dice_manager:
-		dice_manager = get_node_or_null("/root/DiceManager")
-	
 	if not dice_manager or not dice_manager.has_method("roll_d6"):
 		push_error("CharacterCreationTables: DiceManager not available")
 		return {"name": "Reliable", "effect": "No special effect"}
-	
+
 	var roll: int = dice_manager.roll_d6("Character Quirk")
 	return _lookup_table_result(_quirks_table, roll, "quirk")
 
 ## Get background event without rolling (for testing)
 static func get_background_event(background: GlobalEnums.Background, roll: int) -> Dictionary:
 	_ensure_tables_loaded()
-	
+
 	var background_key: String = _safe_get_background_name(background)
 	var events: Dictionary = _background_events.get(background_key, {})
-	
+
 	return _lookup_table_result(events, roll, "background_event")
 
 ## Get motivation without rolling (for testing)
@@ -92,21 +82,21 @@ static func get_character_quirk(roll: int) -> Dictionary:
 static func _ensure_tables_loaded() -> void:
 	if _tables_loaded:
 		return
-	
+
 	# Load background events table
 	var bg_path := "res://data/character_creation_tables/background_events.json"
 	_background_events = UniversalResourceLoader.load_json_safe(bg_path, "CharacterCreationTables background events")
-	
+
 	# Load motivation table
 	var motivation_path := "res://data/character_creation_tables/motivation_table.json"
 	_motivation_table = UniversalResourceLoader.load_json_safe(motivation_path, "CharacterCreationTables motivation table")
-	
+
 	# Load quirks table
 	var quirks_path := "res://data/character_creation_tables/quirks_table.json"
 	_quirks_table = UniversalResourceLoader.load_json_safe(quirks_path, "CharacterCreationTables quirks table")
-	
+
 	_tables_loaded = true
-	
+
 	# Log successful loading
 	print("CharacterCreationTables: Loaded tables - Background events: ", _background_events.size(), " backgrounds")
 	print("CharacterCreationTables: Loaded tables - Motivations: ", _motivation_table.size(), " entries")
@@ -124,11 +114,11 @@ static func _safe_get_background_name(background: GlobalEnums.Background) -> Str
 ## Lookup table result with d66/d6 range support
 static func _lookup_table_result(table_data: Dictionary, roll: int, context: String) -> Dictionary:
 	var roll_str := str(roll)
-	
+
 	# Direct match first
 	if table_data.has(roll_str):
 		return table_data[roll_str]
-	
+
 	# Range matching for d66 tables (e.g. "11-16" or "21-26")
 	for key: String in table_data.keys():
 		if "-" in key:
@@ -138,7 +128,7 @@ static func _lookup_table_result(table_data: Dictionary, roll: int, context: Str
 				var max_val: int = parts[1].to_int()
 				if roll >= min_val and roll <= max_val:
 					return table_data[key]
-	
+
 	# Fallback result
 	push_warning("CharacterCreationTables: No table entry found for roll %d in %s" % [roll, context])
 	return {"result": "No result found", "effect": "None"}
@@ -146,27 +136,27 @@ static func _lookup_table_result(table_data: Dictionary, roll: int, context: Str
 ## Validate all tables are properly loaded
 static func validate_tables() -> bool:
 	_ensure_tables_loaded()
-	
+
 	var is_valid := true
-	
+
 	# Check background events
 	if _background_events.is_empty():
 		push_error("CharacterCreationTables: Background events table is empty")
 		is_valid = false
-	
+
 	# Check motivation table
 	if _motivation_table.is_empty():
 		push_error("CharacterCreationTables: Motivation table is empty")
 		is_valid = false
-	
+
 	# Check quirks table  
 	if _quirks_table.is_empty():
 		push_error("CharacterCreationTables: Quirks table is empty")
 		is_valid = false
-	
+
 	if is_valid:
 		print("CharacterCreationTables: All tables validated successfully")
-	
+
 	return is_valid
 
 ## Force reload tables (for development/testing)
@@ -185,17 +175,24 @@ static func get_available_backgrounds() -> Array[String]:
 ## Get table statistics for debugging
 static func get_table_statistics() -> Dictionary:
 	_ensure_tables_loaded()
-	
+
 	var stats := {
 		"background_events": {},
 		"motivation_entries": _motivation_table.size(),
 		"quirk_entries": _quirks_table.size()
 	}
-	
+
 	# Count entries per background
-	for bg_key in _background_events.keys():
+	for bg_key: String in _background_events.keys():
 		var bg_data = _background_events[bg_key]
 		if bg_data is Dictionary:
 			stats.background_events[bg_key] = bg_data.size()
-	
+
 	return stats
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

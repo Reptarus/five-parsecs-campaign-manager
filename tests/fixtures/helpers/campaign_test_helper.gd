@@ -76,14 +76,14 @@ func _initialize_test_states() -> void:
 			}
 		},
 		"STORY": {
-			"phase": GameEnums.FiveParsecsCampaignPhase.UPKEEP as int,
+			"phase": GameEnums.FiveParsecsCampaignPhase.WORLD as int,
 			"resources": {
 				"credits": 150 as int,
 				"reputation": 5 as int
 			}
 		},
 		"BATTLE": {
-			"phase": GameEnums.FiveParsecsCampaignPhase.BATTLE_SETUP as int,
+			"phase": GameEnums.FiveParsecsCampaignPhase.SETUP as int,
 			"resources": {
 				"credits": 200 as int,
 				"reputation": 10 as int
@@ -320,22 +320,22 @@ func test_campaign_phase_transition() -> void:
 		push_error("Failed to create campaign")
 		return
 	
-	# Test transition to UPKEEP
+	# Test transition to WORLD phase
 	if campaign.has_method("set_phase"):
-		campaign.call("set_phase", GameEnums.FiveParsecsCampaignPhase.UPKEEP)
+		campaign.call("set_phase", GameEnums.FiveParsecsCampaignPhase.WORLD)
 	
 	var current_phase: int = 0
 	if campaign.has_method("get_current_phase"):
 		current_phase = campaign.call("get_current_phase")
-	assert_that(current_phase).is_equal(GameEnums.FiveParsecsCampaignPhase.UPKEEP)
+	assert_that(current_phase).is_equal(GameEnums.FiveParsecsCampaignPhase.WORLD)
 	
-	# Test transition to BATTLE_SETUP
+	# Test transition to SETUP phase
 	if campaign.has_method("set_phase"):
-		campaign.call("set_phase", GameEnums.FiveParsecsCampaignPhase.BATTLE_SETUP)
+		campaign.call("set_phase", GameEnums.FiveParsecsCampaignPhase.SETUP)
 	
 	if campaign.has_method("get_current_phase"):
 		current_phase = campaign.call("get_current_phase")
-	assert_that(current_phase).is_equal(GameEnums.FiveParsecsCampaignPhase.BATTLE_SETUP)
+	assert_that(current_phase).is_equal(GameEnums.FiveParsecsCampaignPhase.SETUP)
 
 func test_campaign_progress() -> void:
 	var campaign = create_test_campaign_resource()

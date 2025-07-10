@@ -2,8 +2,7 @@
 
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_etehf"]
 
-[sub_resource type="Resource" id="Resource_g7coq"]
-metadata/__load_path__ = "res://Resources/Core/Character/Generation/CharacterCreator.gd"
+[ext_resource type="Script" path="res://src/ui/screens/character/CharacterCreator.gd" id="2_script"]
 
 [node name="CharacterCreator" type="Control"]
 layout_mode = 3
@@ -13,7 +12,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("1_etehf")
-script = SubResource("Resource_g7coq")
+script = ExtResource("2_script")
 
 [node name="MainPanel" type="PanelContainer" parent="."]
 layout_mode = 1

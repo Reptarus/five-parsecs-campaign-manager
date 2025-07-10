@@ -13,6 +13,7 @@ grow_vertical = 2
 script = ExtResource("1_a5m3r")
 
 [node name="Button" type="Button" parent="."]
+custom_minimum_size = Vector2(200, 40)
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -35,10 +36,11 @@ layout_mode = 2
 theme_override_constants/margin_left = 10
 
 [node name="IconRect" type="TextureRect" parent="Button/HBoxContainer"]
+visible = false
 custom_minimum_size = Vector2(24, 24)
 layout_mode = 2
 size_flags_vertical = 4
-expand_mode = 1
+expand_mode = 2
 stretch_mode = 5
 
 [node name="Label" type="Label" parent="Button/HBoxContainer"]
@@ -69,7 +71,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-max_value = 100.0
-value = 50.0
+value = 100.0
 fill_mode = 4
 nine_patch_stretch = true

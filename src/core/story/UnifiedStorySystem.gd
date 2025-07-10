@@ -1,10 +1,10 @@
-## UnifiedStorySystem
+﻿## UnifiedStorySystem
 ## Manages story progression, quests, and events in the Five Parsecs campaign system.
 extends Node
 
 ## Dependencies
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
+const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const GameState = preload("res://src/core/state/GameState.gd")
 const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
 const StoryQuestData := preload("res://src/game/story/StoryQuestData.gd")
@@ -39,7 +39,7 @@ var available_quests: Array[StoryQuestData] = []
 var story_events: Array[StoryQuestData] = []
 
 ## Campaign state references
-var game_state: FiveParsecsGameState = null
+var game_state: GameState = null
 var campaign_manager: Node = null # Will be cast to CampaignManager
 var event_manager: Node = null # Will be cast to EventManager
 
@@ -59,15 +59,15 @@ func _init() -> void:
 
 ## Setup the story system with required references
 
-func setup(state: FiveParsecsGameState, campaign_mgr: Node, event_mgr: Node = null) -> void:
+func setup(state: GameState, campaign_mgr: Node, event_mgr: Node = null) -> void:
 	if not state:
 		push_error("UnifiedStorySystem: Invalid game state provided")
 		return
-		
+
 	game_state = state
 	campaign_manager = campaign_mgr
 	event_manager = event_mgr
-	
+
 	if event_manager and event_manager.has_signal("event_triggered"):
 		event_manager.event_triggered.connect(_on_campaign_event)
 	else:
@@ -77,11 +77,11 @@ func setup(state: FiveParsecsGameState, campaign_mgr: Node, event_mgr: Node = nu
 func advance_story(success: bool = true) -> void:
 	# Reduce story ticks based on success
 	story_ticks = max(0, story_ticks - (STORY_TICK_REDUCTION_ON_SUCCESS if success else 1))
-	
+
 	# Check for chapter completion
 	if story_ticks <= 0:
 		_complete_current_chapter()
-	
+
 	# Update available content
 	_update_available_content()
 
@@ -90,31 +90,31 @@ func advance_story(success: bool = true) -> void:
 func add_story_points(points: int) -> void:
 	if points <= 0:
 		return
-		
+
 	story_points += points
 	var new_milestone := story_points / POINTS_PER_MILESTONE
-	
+
 	if new_milestone > current_milestone:
 		current_milestone = new_milestone
-		story_milestone_reached.emit(current_milestone) # warning: return value discarded (intentional)
-	
-	story_points_changed.emit(story_points) # warning: return value discarded (intentional)
+		story_milestone_reached.emit(current_milestone)
+
+	story_points_changed.emit(story_points)
 
 ## Start a new quest
 func start_quest(quest: StoryQuestData) -> bool:
 	if not quest:
 		push_error("UnifiedStorySystem: Cannot start null quest")
 		return false
-		
+
 	if active_quests.size() >= MAX_ACTIVE_QUESTS:
 		return false
-		
+
 	if available_quests.has(quest):
 		available_quests.erase(quest)
 
-		active_quests.append(quest) # warning: return value discarded (intentional)
+		active_quests.append(quest)
 		quest.start(game_state.current_turn)
-		quest_started.emit(quest) # warning: return value discarded (intentional)
+		quest_started.emit(quest)
 		return true
 	return false
 
@@ -123,20 +123,20 @@ func complete_quest(quest: StoryQuestData) -> void:
 	if not quest:
 		push_error("UnifiedStorySystem: Cannot complete null quest")
 		return
-		
+
 	if active_quests.has(quest):
 		active_quests.erase(quest)
 
-		completed_quests.append(quest) # warning: return value discarded (intentional)
+		completed_quests.append(quest)
 		quest.complete(game_state.current_turn)
-		
+
 		# Award story points
 		add_story_points(quest.story_point_reward)
-		
+
 		# Apply rewards
 		_apply_quest_rewards(quest)
-		
-		quest_completed.emit(quest) # warning: return value discarded (intentional)
+
+		quest_completed.emit(quest)
 		advance_story(true)
 
 ## Fail a quest and apply penalties
@@ -144,15 +144,15 @@ func fail_quest(quest: StoryQuestData) -> void:
 	if not quest:
 		push_error("UnifiedStorySystem: Cannot fail null quest")
 		return
-		
+
 	if active_quests.has(quest):
 		active_quests.erase(quest)
 		quest.fail(game_state.current_turn)
-		
+
 		# Apply penalties
 		_apply_quest_penalties(quest)
-		
-		quest_failed.emit(quest) # warning: return value discarded (intentional)
+
+		quest_failed.emit(quest)
 		advance_story(false)
 
 ## Trigger a story event
@@ -160,16 +160,16 @@ func trigger_story_event(_event: StoryQuestData) -> void:
 	if not _event:
 		push_error("UnifiedStorySystem: Cannot trigger null event")
 		return
-		
-	story_event_triggered.emit(_event) # warning: return value discarded (intentional)
-	
+
+	story_event_triggered.emit(_event)
+
 	# Apply event effects
 	_event.apply_effects(game_state)
-	
+
 	# Generate related quests
 	var related_quests := _generate_related_quests(_event)
 	available_quests.append_array(related_quests)
-	
+
 	# Update campaign state
 	if campaign_manager:
 		campaign_manager.handle_story_event(_event)
@@ -177,11 +177,11 @@ func trigger_story_event(_event: StoryQuestData) -> void:
 ## Handle campaign events
 func _on_campaign_event(event_type: int) -> void:
 	match event_type:
-		GameEnums.GlobalEvent.MARKET_CRASH:
+		GlobalEnums.GlobalEvent.MARKET_CRASH:
 			_handle_market_crash()
-		GameEnums.GlobalEvent.ALIEN_INVASION:
+		GlobalEnums.GlobalEvent.ALIEN_INVASION:
 			_handle_alien_invasion()
-		GameEnums.GlobalEvent.TECH_BREAKTHROUGH:
+		GlobalEnums.GlobalEvent.TECH_BREAKTHROUGH:
 			_handle_tech_breakthrough()
 		_:
 			_handle_generic_event(event_type)
@@ -200,8 +200,8 @@ func _load_story_events() -> void:
 		var file := FileAccess.open("res://src/data/resources/Story/story_events.json", FileAccess.READ)
 		var json := JSON.new()
 		var parse_result := json.parse(file.get_as_text())
-		file.close()
-		
+		if file: file.close()
+
 		if parse_result == OK:
 			story_event_templates = json.get_data()
 		else:
@@ -216,8 +216,8 @@ func _load_quest_templates() -> void:
 		var file := FileAccess.open("res://src/data/resources/Story/quest_templates.json", FileAccess.READ)
 		var json := JSON.new()
 		var parse_result := json.parse(file.get_as_text())
-		file.close()
-		
+		if file: file.close()
+
 		if parse_result == OK:
 			quest_templates = json.get_data()
 		else:
@@ -237,7 +237,7 @@ func _setup_initial_chapter() -> void:
 func _complete_current_chapter() -> void:
 	current_chapter += 1
 	story_ticks = TICKS_PER_CHAPTER
-	
+
 	# Generate new content for next chapter
 	_generate_chapter_content()
 
@@ -246,28 +246,28 @@ func _complete_current_chapter() -> void:
 func _update_available_content() -> void:
 	if not game_state:
 		return
-		
+
 	# Remove expired quests
 	available_quests = available_quests.filter(func(q): return not q.is_expired(game_state.current_turn))
-	
+
 	# Generate new quests if needed
 	while available_quests.size() < 3:
 		var new_quest := _generate_quest()
 		if new_quest:
-			available_quests.append(new_quest) # warning: return value discarded (intentional)
+			available_quests.append(new_quest)
 
 ## Apply rewards for a completed quest
 func _apply_quest_rewards(quest: StoryQuestData) -> void:
 	if not game_state or not quest:
 		return
-		
+
 	# Apply resource rewards
 	if quest.rewards.has("credits"):
 		game_state.add_credits(quest.rewards.credits)
-	
+
 	if quest.rewards.has("reputation"):
 		game_state.add_reputation(quest.rewards.reputation)
-	
+
 	# Apply special rewards
 	if quest.rewards.has("special_effect"):
 		_apply_special_reward(quest.rewards.special_effect)
@@ -276,10 +276,10 @@ func _apply_quest_rewards(quest: StoryQuestData) -> void:
 func _apply_quest_penalties(quest: StoryQuestData) -> void:
 	if not game_state or not quest:
 		return
-		
+
 	# Apply reputation penalty
 	game_state.add_reputation(-2)
-	
+
 	# Apply relationship penalties
 	if quest.patron:
 		quest.patron.change_relationship(-5)
@@ -288,16 +288,16 @@ func _apply_quest_penalties(quest: StoryQuestData) -> void:
 func _generate_related_quests(_event: StoryQuestData) -> Array[StoryQuestData]:
 	if not _event:
 		return []
-		
+
 	var quests: Array[StoryQuestData] = []
-	
+
 	# Generate 1-3 related quests based on the event
 	var quest_count := randi() % 3 + 1
-	for i in range(quest_count):
+	for i: int in range(quest_count):
 		var quest := _create_related_quest(_event)
 		if quest:
-			quests.append(quest) # warning: return value discarded (intentional)
-	
+			quests.append(quest)
+
 	return quests
 
 ## Create a quest related to a specific event
@@ -306,14 +306,14 @@ func _create_related_quest(_event: StoryQuestData) -> StoryQuestData:
 		return null
 
 	var quest := StoryQuestData.new()
-	
+
 	# Set quest properties based on event type
 	match _event.event_type:
-		GameEnums.GlobalEvent.MARKET_CRASH:
+		GlobalEnums.GlobalEvent.MARKET_CRASH:
 			_setup_market_crash_quest(quest)
-		GameEnums.GlobalEvent.ALIEN_INVASION:
+		GlobalEnums.GlobalEvent.ALIEN_INVASION:
 			_setup_alien_invasion_quest(quest)
-		GameEnums.GlobalEvent.TECH_BREAKTHROUGH:
+		GlobalEnums.GlobalEvent.TECH_BREAKTHROUGH:
 			_setup_tech_breakthrough_quest(quest)
 	return quest
 
@@ -321,8 +321,8 @@ func _create_related_quest(_event: StoryQuestData) -> StoryQuestData:
 func _setup_market_crash_quest(quest: StoryQuestData) -> void:
 	if not quest:
 		return
-		
-	quest.objective = GameEnums.MissionObjective.RECON
+
+	quest.objective = GlobalEnums.MissionObjective.RECON
 	quest.story_point_reward = 2
 	quest.rewards = {
 		"credits": 1000,
@@ -333,8 +333,8 @@ func _setup_market_crash_quest(quest: StoryQuestData) -> void:
 func _setup_alien_invasion_quest(quest: StoryQuestData) -> void:
 	if not quest:
 		return
-		
-	quest.objective = GameEnums.MissionObjective.WIN_BATTLE
+
+	quest.objective = GlobalEnums.MissionObjective.WIN_BATTLE
 	quest.story_point_reward = 3
 	quest.rewards = {
 		"credits": 1500,
@@ -345,19 +345,19 @@ func _setup_alien_invasion_quest(quest: StoryQuestData) -> void:
 func _setup_tech_breakthrough_quest(quest: StoryQuestData) -> void:
 	if not quest:
 		return
-		
-	quest.objective = GameEnums.MissionObjective.RECON
+
+	quest.objective = GlobalEnums.MissionObjective.RECON
 	quest.story_point_reward = 2
 	quest.rewards = {
 		"credits": 1200,
 		"reputation": 6,
-		"special": GameEnums.ItemType.MISC
+		"special": GlobalEnums.ItemType.MISC
 	}
 
 ## Create a market crash event
 func _create_market_crash_event() -> StoryQuestData:
 	var event := StoryQuestData.new()
-	event.event_type = GameEnums.GlobalEvent.MARKET_CRASH
+	event.event_type = GlobalEnums.GlobalEvent.MARKET_CRASH
 
 	event.description = "A massive market crash has occurred! Resource values fluctuate wildly."
 	return event
@@ -365,14 +365,14 @@ func _create_market_crash_event() -> StoryQuestData:
 ## Create an alien invasion event
 func _create_alien_invasion_event() -> StoryQuestData:
 	var event := StoryQuestData.new()
-	event.event_type = GameEnums.GlobalEvent.ALIEN_INVASION
+	event.event_type = GlobalEnums.GlobalEvent.ALIEN_INVASION
 	event.description = "Alien forces have been spotted in multiple star systems!"
 	return event
 
 ## Create a tech breakthrough event
 func _create_tech_breakthrough_event() -> StoryQuestData:
 	var event := StoryQuestData.new()
-	event.event_type = GameEnums.GlobalEvent.TECH_BREAKTHROUGH
+	event.event_type = GlobalEnums.GlobalEvent.TECH_BREAKTHROUGH
 
 	event.description = "A technological breakthrough has been announced!"
 	return event
@@ -389,7 +389,7 @@ func _create_generic_event(event_type: int) -> StoryQuestData:
 func _handle_market_crash() -> void:
 	if not game_state:
 		return
-		
+
 	game_state.modify_market_prices(0.75) # 25% price reduction
 	trigger_story_event(_create_market_crash_event())
 
@@ -397,7 +397,7 @@ func _handle_market_crash() -> void:
 func _handle_alien_invasion() -> void:
 	if not game_state:
 		return
-		
+
 	game_state.increase_threat_level()
 	trigger_story_event(_create_alien_invasion_event())
 
@@ -405,7 +405,7 @@ func _handle_alien_invasion() -> void:
 func _handle_tech_breakthrough() -> void:
 	if not game_state:
 		return
-		
+
 	game_state.unlock_tech_upgrade()
 	trigger_story_event(_create_tech_breakthrough_event())
 
@@ -413,7 +413,7 @@ func _handle_tech_breakthrough() -> void:
 func _handle_generic_event(event_type: int) -> void:
 	if not game_state:
 		return
-		
+
 	var event := _create_generic_event(event_type)
 	if event:
 			trigger_story_event(event)
@@ -423,9 +423,9 @@ func _generate_chapter_content() -> void:
 	var chapter_events = _get_chapter_events()
 	for event_data in chapter_events:
 		var event := StoryQuestData.new()
-		event.deserialize(event_data)
+		if event and event.has_method("deserialize"): event.deserialize(event_data)
 
-		story_events.append(event) # warning: return value discarded (intentional)
+		story_events.append(event)
 
 func _get_chapter_events() -> Array:
 	# Get events for current chapter from templates
@@ -435,15 +435,15 @@ func _get_chapter_events() -> Array:
 
 func _generate_quest() -> StoryQuestData:
 	var quest := StoryQuestData.new()
-	
+
 	# Get appropriate quest template for current chapter
 	var templates = _get_available_quest_templates()
 	if templates.is_empty():
 		return quest
 
 	var template = templates[randi() % templates.size()]
-	quest.deserialize(template)
-	
+	if quest and quest.has_method("deserialize"): quest.deserialize(template)
+
 	return quest
 
 func _get_available_quest_templates() -> Array:
@@ -457,7 +457,7 @@ func _apply_special_reward(effect: String) -> void:
 		"unlock_special_mission":
 			var quest = _generate_special_quest()
 			if quest:
-				available_quests.append(quest) # warning: return value discarded (intentional)
+				available_quests.append(quest)
 		"improve_reputation":
 			game_state.add_reputation(5)
 		"resource_bonus":
@@ -466,7 +466,7 @@ func _apply_special_reward(effect: String) -> void:
 ## Generate a special quest
 func _generate_special_quest() -> StoryQuestData:
 	var quest := StoryQuestData.new()
-	quest.quest_type = GameEnums.QuestType.STORY
+	quest.quest_type = GlobalEnums.QuestType.STORY
 	quest.story_point_reward = 5
 	return quest
 
@@ -477,9 +477,9 @@ func serialize() -> Dictionary:
 		"current_milestone": current_milestone,
 		"story_ticks": story_ticks,
 		"current_chapter": current_chapter,
-		"active_quests": active_quests.map(func(q): return q.serialize()),
-		"completed_quests": completed_quests.map(func(q): return q.serialize()),
-		"available_quests": available_quests.map(func(q): return q.serialize())
+		"active_quests": active_quests.map(func(q): return q.serialize() if q and q.has_method("serialize") else {}),
+		"completed_quests": completed_quests.map(func(q): return q.serialize() if q and q.has_method("serialize") else {}),
+		"available_quests": available_quests.map(func(q): return q.serialize() if q and q.has_method("serialize") else {})
 	}
 
 func deserialize(data: Dictionary) -> void:
@@ -490,44 +490,63 @@ func deserialize(data: Dictionary) -> void:
 	story_ticks = data.get("story_ticks", TICKS_PER_CHAPTER)
 
 	current_chapter = data.get("current_chapter", 0)
-	
+
 	# Clear existing quests
 	active_quests.clear()
 	completed_quests.clear()
 	available_quests.clear()
-	
+
 	# Load quest data
 
 	for quest_data in data.get("active_quests", []):
 		var quest := StoryQuestData.new()
-		quest.deserialize(quest_data)
+		if quest and quest.has_method("deserialize"): quest.deserialize(quest_data)
 
-		active_quests.append(quest) # warning: return value discarded (intentional)
+		active_quests.append(quest)
 
 	for quest_data in data.get("completed_quests", []):
 		var quest := StoryQuestData.new()
-		quest.deserialize(quest_data)
+		if quest and quest.has_method("deserialize"): quest.deserialize(quest_data)
 
-		completed_quests.append(quest) # warning: return value discarded (intentional)
+		completed_quests.append(quest)
 
 	for quest_data in data.get("available_quests", []):
 		var quest := StoryQuestData.new()
-		quest.deserialize(quest_data)
+		if quest and quest.has_method("deserialize"): quest.deserialize(quest_data)
 
-		available_quests.append(quest) # warning: return value discarded (intentional)
+		available_quests.append(quest)
 
 ## Setup quest for event based on event type
 func _setup_event_quest(_event: int) -> StoryQuestData:
 	var quest := StoryQuestData.new()
-	
+
 	match _event:
-		GameEnums.GlobalEvent.MARKET_CRASH:
+		GlobalEnums.GlobalEvent.MARKET_CRASH:
 			_setup_market_crash_quest(quest)
-		GameEnums.GlobalEvent.ALIEN_INVASION:
+		GlobalEnums.GlobalEvent.ALIEN_INVASION:
 			_setup_alien_invasion_quest(quest)
-		GameEnums.GlobalEvent.TECH_BREAKTHROUGH:
+		GlobalEnums.GlobalEvent.TECH_BREAKTHROUGH:
 			_setup_tech_breakthrough_quest(quest)
 		_:
 			pass
 
 	return quest
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

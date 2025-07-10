@@ -1,4 +1,4 @@
-extends Control
+﻿extends Control
 
 signal connections_completed(connections: Array)
 signal connections_cancelled
@@ -24,37 +24,37 @@ func _setup_connections_ui() -> void:
 func _apply_portrait_layout() -> void:
 	# Stack elements vertically
 	$VBoxContainer.set("vertical", true)
-	
+
 	# Adjust list size for portrait mode
 	var viewport_height = get_viewport_rect().size.y
 	connections_list.custom_minimum_size.y = viewport_height * PORTRAIT_LIST_HEIGHT_RATIO
-	
+
 	# Make controls touch-friendly
 	_adjust_touch_sizes(true)
-	
+
 	# Adjust margins for mobile
 	$VBoxContainer.add_theme_constant_override("margin_left", 10)
 	$VBoxContainer.add_theme_constant_override("margin_right", 10)
 func _apply_landscape_layout() -> void:
 	# Reset to default layout
 	$VBoxContainer.set("vertical", false)
-	
+
 	# Reset list size
 	connections_list.custom_minimum_size = Vector2(0, 300)
-	
+
 	# Reset control sizes
 	_adjust_touch_sizes(false)
-	
+
 	# Reset margins
 	$VBoxContainer.add_theme_constant_override("margin_left", 20)
 	$VBoxContainer.add_theme_constant_override("margin_right", 20)
 func _adjust_touch_sizes(is_portrait: bool) -> void:
-	var button_height = TOUCH_BUTTON_HEIGHT if is_portrait else TOUCH_BUTTON_HEIGHT * 0.75
-	
+	var button_height: float = TOUCH_BUTTON_HEIGHT if is_portrait else TOUCH_BUTTON_HEIGHT * 0.75
+
 	# Adjust all buttons
 	for button in get_tree().get_nodes_in_group("touch_buttons"):
 		button.custom_minimum_size.y = button_height
-	
+
 	# Adjust input fields
 	name_input.custom_minimum_size.y = button_height
 	relationship_dropdown.custom_minimum_size.y = button_height
@@ -62,9 +62,9 @@ func _setup_input_fields() -> void:
 	name_input.add_to_group("touch_controls")
 	relationship_dropdown.add_to_group("touch_controls")
 func _setup_buttons() -> void:
-	var add_button = $VBoxContainer/AddConnectionButton
-	var finalize_button = $VBoxContainer/FinalizeButton
-	
+	var add_button: Button = $VBoxContainer/AddConnectionButton
+	var finalize_button: Button = $VBoxContainer/FinalizeButton
+
 	for button in [add_button, finalize_button]:
 		button.add_to_group("touch_buttons")
 		button.custom_minimum_size = Vector2(200, TOUCH_BUTTON_HEIGHT)
@@ -77,13 +77,13 @@ func _populate_relationship_types() -> void:
 		"Family",
 		"Business Partner"
 	]
-	
+
 	for type in relationships:
 		relationship_dropdown.add_item(type)
 func _connect_signals() -> void:
-	var add_button = $VBoxContainer/AddConnectionButton
-	var finalize_button = $VBoxContainer/FinalizeButton
-	
+	var add_button: Button = $VBoxContainer/AddConnectionButton
+	var finalize_button: Button = $VBoxContainer/FinalizeButton
+
 	add_button.pressed.connect(_on_add_connection)
 	finalize_button.pressed.connect(_on_finalize)
 	extended_toggle.toggled.connect(_on_extended_toggled)
@@ -93,12 +93,12 @@ func _on_add_connection() -> void:
 		"relationship": relationship_dropdown.get_item_text(relationship_dropdown.selected)
 	}
 
-	current_connections.append(connection) # warning: return value discarded (intentional)
+	current_connections.append(connection)
 	_update_connections_list()
 	name_input.text = ""
 
 func _on_finalize() -> void:
-	connections_completed.emit(current_connections) # warning: return value discarded (intentional)
+	connections_completed.emit(current_connections)
 
 func _on_extended_toggled(enabled: bool) -> void:
 	# Add or remove extended relationship types
@@ -115,3 +115,11 @@ func _add_extended_relationships() -> void:
 func _remove_extended_relationships() -> void:
 	# Remove extended relationship types
 	pass
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

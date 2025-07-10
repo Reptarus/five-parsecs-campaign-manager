@@ -1,9 +1,9 @@
-@tool
+﻿@tool
 extends Resource
 class_name GameWorldTrait
 
 const GameDataManager = preload("res://src/core/managers/GameDataManager.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 ## A class representing a world trait that can be applied to planets and locations
 ## These traits define special characteristics, modifiers, and effects
@@ -28,7 +28,7 @@ var _data_manager: Object = null
 func _init() -> void:
 	if Engine.is_editor_hint():
 		return
-		
+
 	# Use the singleton instance
 	_data_manager = GameDataManager.get_instance()
 	GameDataManager.ensure_data_loaded()
@@ -38,12 +38,12 @@ func initialize_from_id(id: String) -> bool:
 	if _data_manager == null:
 		_data_manager = GameDataManager.get_instance()
 		GameDataManager.ensure_data_loaded()
-		
+
 	var trait_data = _data_manager.get_world_trait(id)
 	if trait_data.is_empty():
 		push_error("GameWorldTrait: Could not find trait with ID '%s'" % id)
 		return false
-		
+
 	return initialize_from_data(trait_data)
 
 ## Initialize from data dictionary
@@ -58,7 +58,7 @@ func initialize_from_data(data: Dictionary) -> bool:
 	trait_description = data.get("description", "")
 
 	effects = data.get("effects", [])
-	
+
 	# Handle complex data
 
 	encounter_modifiers = data.get("encounter_modifiers", {})
@@ -70,7 +70,7 @@ func initialize_from_data(data: Dictionary) -> bool:
 	tech_requirements = data.get("tech_requirements", {})
 
 	tags = data.get("tags", [])
-	
+
 	return true
 
 ## Get resource modifier for a specific resource type
@@ -101,10 +101,10 @@ func meets_tech_requirements(available_tech: Dictionary) -> bool:
 		var required_level = tech_requirements[tech_id]
 
 		var available_level = available_tech.get(tech_id, 0)
-		
+
 		if available_level < required_level:
 			return false
-			
+
 	return true
 
 ## Convert trait to string representation
@@ -130,3 +130,22 @@ static func deserialize(data: Dictionary) -> GameWorldTrait:
 	var world_trait := GameWorldTrait.new()
 	world_trait.initialize_from_data(data)
 	return world_trait
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

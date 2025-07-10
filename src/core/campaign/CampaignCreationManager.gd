@@ -1,25 +1,19 @@
-@tool
+﻿@tool
 @warning_ignore("return_value_discarded")
 @warning_ignore("unsafe_method_access")
-@warning_ignore("unsafe_call_argument")
 @warning_ignore("untyped_declaration")
-@warning_ignore("unused_variable")
-@warning_ignore("redundant_await")
-@warning_ignore("unsafe_cast")
-@warning_ignore("inference_on_variant")
-@warning_ignore("static_called_on_instance")
 extends Node
 class_name CampaignCreationManager
 
 ## Campaign Creation Manager for Five Parsecs from Home
 ## Manages the step-by-step campaign creation process
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const Character = preload("res://src/core/character/Base/Character.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const CharacterBase = preload("res://src/core/character/Base/Character.gd")
 
 # Dynamic loading to avoid circular dependencies
-var FiveParcsecsCampaign = null
-var SaveManager = null
+var FiveParcsecsCampaign: Variant = null
+var SaveManager: Variant = null
 
 signal creation_step_changed(step: int)
 signal campaign_config_completed(config: Dictionary)
@@ -41,7 +35,7 @@ var current_step: CreationStep = CreationStep.CONFIG
 var campaign_data: Dictionary = {}
 var creation_errors: Array[String] = []
 var game_state: Node = null # Injected via setup()
-var save_manager = null
+var save_manager: Variant = null
 
 func _init() -> void:
 	name = "CampaignCreationManager"
@@ -61,9 +55,9 @@ func _load_dependencies() -> void:
 			FiveParcsecsCampaign = load(campaign_path)
 		else:
 			push_warning("CampaignCreationManager: Campaign class not found")
-	
+
 	# Try to load SaveManager
-	var save_path = "res://src/core/state/SaveManager.gd"
+	var save_path: String = "res://src/core/state/SaveManager.gd"
 	if FileAccess.file_exists(save_path):
 		SaveManager = load(save_path)
 		if SaveManager:
@@ -106,7 +100,7 @@ func go_back_step() -> void:
 
 func _validate_current_step() -> bool:
 	creation_errors.clear()
-	
+
 	match current_step:
 		CreationStep.CONFIG:
 			return _validate_config()
@@ -161,7 +155,7 @@ func _validate_final() -> bool:
 	var crew_valid = _validate_crew()
 	var captain_valid = _validate_captain()
 	var resources_valid = _validate_resources()
-	
+
 	return config_valid and crew_valid and captain_valid and resources_valid
 
 func set_config_data(config: Dictionary) -> void:
@@ -186,45 +180,45 @@ func finalize_campaign_creation():
 	if not _validate_all_steps():
 		push_error("CampaignCreationManager: Cannot finalize - validation failed")
 		return null
-	
+
 	if not FiveParcsecsCampaign:
 		push_error("CampaignCreationManager: Campaign class not available")
 		return null
-	
-	var campaign = FiveParcsecsCampaign.new()
-	
+
+	var campaign: Resource = FiveParcsecsCampaign.new()
+
 	# Configure the campaign with our data
-	if campaign.has_method("configure"):
+	if campaign and campaign.has_method("configure"):
 		campaign.configure(campaign_data.config)
-	elif campaign.has_method("set_config"):
+	elif campaign and campaign.has_method("set_config"):
 		campaign.set_config(campaign_data.config)
 	else:
 		push_warning("CampaignCreationManager: Campaign doesn't support configuration")
-	
+
 	# Set additional data if methods exist
 	if campaign.has_method("set_crew") and not campaign_data.crew.is_empty():
 		campaign.set_crew(campaign_data.crew)
-	
+
 	if campaign.has_method("set_captain") and not campaign_data.captain.is_empty():
 		campaign.set_captain(campaign_data.captain)
-	
+
 	if campaign.has_method("set_resources") and not campaign_data.resources.is_empty():
 		campaign.set_resources(campaign_data.resources)
-	
+
 	print("CampaignCreationManager: Campaign creation finalized")
 	return campaign
 
 func _validate_all_steps() -> bool:
 	creation_errors.clear()
-	var valid = true
-	
+	var valid: bool = true
+
 	var original_step = current_step
-	
+
 	for step in CreationStep.values():
 		current_step = step
 		if not _validate_current_step():
 			valid = false
-	
+
 	current_step = original_step
 	return valid
 
@@ -270,22 +264,29 @@ func initialize_resources(difficulty: int) -> void:
 
 func _calculate_initial_resources(difficulty: int) -> Dictionary:
 	var resources = {
-		GameEnums.ResourceType.CREDITS: 1000,
-		GameEnums.ResourceType.SUPPLIES: 5,
-		GameEnums.ResourceType.TECH_PARTS: 0,
-		GameEnums.ResourceType.PATRON: 0
+		GlobalEnums.ResourceType.CREDITS: 1000,
+		GlobalEnums.ResourceType.SUPPLIES: 5,
+		GlobalEnums.ResourceType.TECH_PARTS: 0,
+		GlobalEnums.ResourceType.PATRON: 0
 	}
-	
+
 	# Adjust based on difficulty
 	match difficulty:
-		GameEnums.DifficultyLevel.EASY:
-			resources[GameEnums.ResourceType.CREDITS] = 1200
-			resources[GameEnums.ResourceType.SUPPLIES] = 7
-		GameEnums.DifficultyLevel.HARD:
-			resources[GameEnums.ResourceType.CREDITS] = 800
-			resources[GameEnums.ResourceType.SUPPLIES] = 3
-		GameEnums.DifficultyLevel.NIGHTMARE:
-			resources[GameEnums.ResourceType.CREDITS] = 500
-			resources[GameEnums.ResourceType.SUPPLIES] = 2
-	
+		GlobalEnums.DifficultyLevel.EASY:
+			resources[GlobalEnums.ResourceType.CREDITS] = 1200
+			resources[GlobalEnums.ResourceType.SUPPLIES] = 7
+		GlobalEnums.DifficultyLevel.HARD:
+			resources[GlobalEnums.ResourceType.CREDITS] = 800
+			resources[GlobalEnums.ResourceType.SUPPLIES] = 3
+		GlobalEnums.DifficultyLevel.NIGHTMARE:
+			resources[GlobalEnums.ResourceType.CREDITS] = 500
+			resources[GlobalEnums.ResourceType.SUPPLIES] = 2
+
 	return resources
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

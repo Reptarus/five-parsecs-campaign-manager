@@ -4,6 +4,6 @@ class_name BaseGear
 
 func _init() -> void:
 	super._init()
-	# Set the item type using the parent's GameEnums
+	# Set the item type using the parent's GlobalEnums
 	if "item_type" in self:
-		self.item_type = GameEnums.ItemType.MISC
+		self.item_type = GlobalEnums.ItemType.MISC

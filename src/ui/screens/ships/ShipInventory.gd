@@ -1,8 +1,8 @@
-# Scripts/ShipAndCrew/ShipInventory.gd
+﻿# Scripts/ShipAndCrew/ShipInventory.gd
 class_name FPCM_ShipInventory
 extends Resource
 
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
 signal item_added(item: Resource)
 signal item_removed(item: Resource)
@@ -21,48 +21,48 @@ func add_item(item: Resource) -> bool:
 	if item == null:
 		push_error("Attempted to add null item to inventory")
 		return false
-	
+
 	var item_weight: int = 1
-	if item.has_method("get_weight"):
+	if item and item.has_method("get_weight"):
 		item_weight = item.get_weight()
 	elif item.has("weight"):
 		item_weight = item.weight
-	
+
 	if current_weight + item_weight > max_weight_capacity:
-		inventory_full.emit() # warning: return value discarded (intentional)
+		inventory_full.emit()
 		return false
 
-	items.append(item) # warning: return value discarded (intentional)
+	items.append(item)
 	current_weight += item_weight
-	
+
 	if is_empty():
-		inventory_empty.emit() # warning: return value discarded (intentional)
-		
-	item_added.emit(item) # warning: return value discarded (intentional)
+		inventory_empty.emit()
+
+	item_added.emit(item)
 	return true
 
 func remove_item(item: Resource) -> bool:
 	if item == null:
 		push_error("Attempted to remove null item from inventory")
 		return false
-		
+
 	if not items.has(item):
 		push_error("Item not found in inventory")
 		return false
-	
+
 	var item_weight: int = 1
-	if item.has_method("get_weight"):
+	if item and item.has_method("get_weight"):
 		item_weight = item.get_weight()
 	elif item.has("weight"):
 		item_weight = item.weight
-	
+
 	items.erase(item)
 	current_weight -= item_weight
-	
+
 	if is_empty():
-		inventory_empty.emit() # warning: return value discarded (intentional)
-	
-	item_removed.emit(item) # warning: return value discarded (intentional)
+		inventory_empty.emit()
+
+	item_removed.emit(item)
 	return true
 
 func get_item_count() -> int:
@@ -84,35 +84,35 @@ func update_capacity(new_capacity: float) -> void:
 	if new_capacity <= 0:
 		push_error("Inventory _capacity must be positive")
 		return
-		
+
 	var _old_capacity = max_weight_capacity
 	max_weight_capacity = new_capacity
-	capacity_changed.emit(new_capacity) # warning: return value discarded (intentional)
-	
+	capacity_changed.emit(new_capacity)
+
 	# Remove items if we exceed the new _capacity
 	while current_weight > max_weight_capacity and not items.is_empty():
 		var removed_item = items.pop_back()
-		
+
 		var item_weight: int = 1
-		if removed_item.has_method("get_weight"):
+		if removed_item and removed_item.has_method("get_weight"):
 			item_weight = removed_item.get_weight()
 		elif removed_item.has("weight"):
 			item_weight = removed_item.weight
-			
+
 		current_weight -= item_weight
-		item_removed.emit(removed_item) # warning: return value discarded (intentional)
+		item_removed.emit(removed_item)
 		push_warning("Item %s removed due to _capacity reduction" % removed_item.name)
-	
+
 	if is_full():
-		inventory_full.emit() # warning: return value discarded (intentional)
+		inventory_full.emit()
 	elif is_empty():
-		inventory_empty.emit() # warning: return value discarded (intentional)
+		inventory_empty.emit()
 
-func get_items_by_type(item_type: GameEnums.ItemType) -> Array:
-	return items.filter(func(item): return item.get("item_type", GameEnums.ItemType.NONE) == item_type)
+func get_items_by_type(item_type: GlobalEnums.ItemType) -> Array:
+	return items.filter(func(item): return item.get("item_type", GlobalEnums.ItemType.NONE) == item_type)
 
-func get_items_by_rarity(rarity: GameEnums.ItemRarity) -> Array:
-	return items.filter(func(item): return item.get("rarity", GameEnums.ItemRarity.NONE) == rarity)
+func get_items_by_rarity(rarity: GlobalEnums.ItemRarity) -> Array:
+	return items.filter(func(item): return item.get("rarity", GlobalEnums.ItemRarity.NONE) == rarity)
 
 func has_item(item: Resource) -> bool:
 	return items.has(item)
@@ -121,17 +121,11 @@ func get_item_by_id(item_id: String) -> Resource:
 	if item_id.is_empty():
 		push_error("Item ID cannot be empty")
 		return null
-	
+
 	for item in items:
 		if item.get("id", "") == item_id:
 			return item
 	return null
-	for item in items:
-		var _id: String = ""
-		if item.has("_id"):
-			_id = item._id
-		if _id == item_id:
-			return item
 func get_items() -> Array:
 	return items
 
@@ -155,15 +149,15 @@ func sort_items(sort_type: String = "name") -> void:
 				return a_value < b_value)
 		"_type":
 			items.sort_custom(func(a: Resource, b: Resource) -> bool:
-				var a_type = GameEnums.ItemType.NONE
-				var b_type = GameEnums.ItemType.NONE
+				var a_type = GlobalEnums.ItemType.NONE
+				var b_type = GlobalEnums.ItemType.NONE
 				if a.has("item_type"): a_type = a.item_type
 				if b.has("item_type"): b_type = b.item_type
 				return a_type < b_type)
 		"rarity":
 			items.sort_custom(func(a: Resource, b: Resource) -> bool:
-				var a_rarity = GameEnums.ItemRarity.NONE
-				var b_rarity = GameEnums.ItemRarity.NONE
+				var a_rarity = GlobalEnums.ItemRarity.NONE
+				var b_rarity = GlobalEnums.ItemRarity.NONE
 				if a.has("rarity"): a_rarity = a.rarity
 				if b.has("rarity"): b_rarity = b.rarity
 				return a_rarity < b_rarity)
@@ -173,7 +167,7 @@ func sort_items(sort_type: String = "name") -> void:
 func clear() -> void:
 	items.clear()
 	current_weight = 0.0
-	inventory_empty.emit() # warning: return value discarded (intentional)
+	inventory_empty.emit()
 
 func get_total_value() -> int:
 	var total: int = 0
@@ -186,7 +180,7 @@ func serialize() -> Dictionary:
 	return {
 		"max_weight_capacity": max_weight_capacity,
 		"current_weight": current_weight,
-		"items": items.map(func(item): return item.serialize())
+		"items": items.map(func(item): return item.serialize() if item and item.has_method("serialize") else {})
 	}
 
 static func deserialize(data: Dictionary) -> FPCM_ShipInventory:
@@ -195,12 +189,12 @@ static func deserialize(data: Dictionary) -> FPCM_ShipInventory:
 
 	var inventory = FPCM_ShipInventory.new(data["max_weight_capacity"])
 	inventory.current_weight = data["current_weight"]
-	
+
 	for item_data in data["items"]:
 		var item := Resource.new()
-		item.deserialize(item_data)
+		if item and item.has_method("deserialize"): item.deserialize(item_data)
 		inventory.items.append(item)
-	
+
 	return inventory
 
 func _to_string() -> String:
@@ -229,8 +223,8 @@ func sort_items_by_weight() -> void:
 
 func sort_items_by_type() -> void:
 	items.sort_custom(func(a, b):
-		var a_type = GameEnums.ItemType.NONE
-		var b_type = GameEnums.ItemType.NONE
+		var a_type = GlobalEnums.ItemType.NONE
+		var b_type = GlobalEnums.ItemType.NONE
 		if a.has("item_type"): a_type = a.item_type
 		if b.has("item_type"): b_type = b.item_type
 		return a_type < b_type)
@@ -239,11 +233,30 @@ func optimize_by_value() -> Array:
 	var removed_items: Array = []
 	if is_empty():
 		return removed_items
-		
+
 	sort_items_by_value()
 	while current_weight > max_weight_capacity and not is_empty():
 		var least_valuable = items[-1]
 		if remove_item(least_valuable):
-			removed_items.append(least_valuable) # warning: return value discarded (intentional)
-			
+			removed_items.append(least_valuable)
+
 	return removed_items
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

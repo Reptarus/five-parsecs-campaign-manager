@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 extends Control
 class_name FPCM_EventLog
 
@@ -92,7 +92,7 @@ class EventData:
 	var timestamp: float
 	var actions: Array[Dictionary]
 	var metadata: Dictionary
-	
+
 	func _init(
 		p_title: String,
 		p_description: String,
@@ -109,13 +109,13 @@ class EventData:
 		timestamp = Time.get_unix_time_from_system()
 		actions = []
 		metadata = {}
-	
+
 	func add_action(action_name: String, action_description: String) -> void:
-		actions.append({ # warning: return value discarded (intentional)
+		actions.append({
 			"name": action_name,
 			"description": action_description
 		})
-	
+
 	func to_dictionary() -> Dictionary:
 		return {
 			"id": id,
@@ -128,9 +128,9 @@ class EventData:
 			"actions": actions,
 			"metadata": metadata
 		}
-	
+
 	static func from_dictionary(data: Dictionary) -> EventData:
-		var event = EventData.new(
+		var event: Variant = EventData.new(
 			data.title,
 			data.description,
 			data.category,
@@ -149,22 +149,22 @@ func _ready() -> void:
 
 func _setup_ui() -> void:
 	# Set up category filters
-	for category in EVENT_CATEGORIES:
+	for category in EVENT_CATEGORIES.keys():
 		var filter_button := CheckBox.new()
 		filter_button.text = category.capitalize()
 		filter_button.button_pressed = true
 		category_filters.add_child(filter_button)
 		filter_button.toggled.connect(_on_category_filter_toggled.bind(category))
-		
+
 	# Set up search box
 	if search_box:
 		search_box.placeholder_text = "Search events..."
-		
+
 	# Set up detail panel
 	if detail_text:
 		detail_text.bbcode_enabled = true
 		detail_text.fit_content = true
-		
+
 	# Initial update
 	_update_event_list()
 
@@ -180,30 +180,30 @@ func _update_event_list() -> void:
 	# Clear existing events
 	for child in event_list.get_children():
 		child.queue_free()
-	
+
 	# Apply filters
 	filtered_events = events.filter(func(event: Dictionary) -> bool:
 		# Category filter
-		if not active_filters.is_empty() and not event.category in active_filters:
+		if not (safe_call_method(active_filters, "is_empty") == true) and not event.category in active_filters:
 			return false
-			
+
 		# Search filter
-		if not search_query.is_empty():
+		if not (safe_call_method(search_query, "is_empty") == true):
 			var search_text = search_query.to_lower()
 			var event_text = (event.title + " " + event.description).to_lower()
 			if not search_text in event_text:
 				return false
-				
+
 		return true
 	)
-	
+
 	# Sort events by priority and timestamp
 	filtered_events.sort_custom(func(a, b) -> bool:
 		if a.priority != b.priority:
 			return a.priority > b.priority
 		return a.timestamp > b.timestamp
 	)
-	
+
 	# Add filtered events
 	for event in filtered_events:
 		_add_event_item(event)
@@ -211,7 +211,7 @@ func _update_event_list() -> void:
 func _add_event_item(event_data: Dictionary) -> void:
 	var event_item = event_item_scene.instantiate()
 	event_list.add_child(event_item)
-	
+
 	event_item.setup(
 		event_data.id,
 		event_data.title,
@@ -220,7 +220,7 @@ func _add_event_item(event_data: Dictionary) -> void:
 		EVENT_CATEGORIES[event_data.category].color,
 		event_data.priority
 	)
-	
+
 	# Connect signals
 	event_item.event_selected.connect(_on_event_item_selected)
 	if not event_data.actions.is_empty():
@@ -234,32 +234,32 @@ func _on_event_action_triggered(action: String, event_id: String) -> void:
 	event_action_triggered.emit( event_id, action)
 
 func _show_event_details(event_id: String) -> void:
-	var event = events.filter(func(e): return e._id == event_id)[0]
+	var event: Variant = events.filter(func(e): return e._id == event_id)[0]
 	if not event:
 		return
-		
+
 	var text: String = "[b]%s[/b]\n\n%s\n\n[color=#888888]%s[/color]" % [
 		event.title,
 		event.description,
 		Time.get_datetime_string_from_unix_time(event.timestamp)
 	]
-	
+
 	# Add actions if available
 	if not event.actions.is_empty():
 		text += "\n\n[b]Available Actions:[/b]"
 		for action in event.actions:
 			text += "\n• %s: %s" % [action.name, action.description]
-	
+
 	if detail_text:
 		detail_text.text = text
 
 # Signal handlers
 func _on_category_filter_toggled(_pressed: bool, category: String) -> void:
 	if _pressed:
-		active_filters.append(category) # warning: return value discarded (intentional)
+		active_filters.append(category)
 	else:
 		active_filters.erase(category)
-	
+
 	_update_event_list()
 	category_filter_changed.emit( active_filters)
 
@@ -271,24 +271,24 @@ func _on_search_text_changed(new_text: String) -> void:
 func add_event(_event: EventData) -> void:
 	var event_dict = _event.to_dictionary()
 
-	events.append(event_dict) # warning: return value discarded (intentional)
-	
+	events.append(event_dict)
+
 	# Maintain maximum event count
-	while events.size() > max_events:
+	while (safe_call_method(events, "size") as int) > max_events:
 		events.pop_front()
-	
+
 	_update_event_list()
 
 func add_phase_event(title: String, description: String, category: String, priority: EventPriority = EventPriority.NORMAL) -> void:
-	var event = EventData.new(title, description, category, current_phase, priority)
+	var event: Variant = EventData.new(title, description, category, current_phase, priority)
 	add_event(event)
 
 func add_story_event(title: String, description: String, priority: EventPriority = EventPriority.HIGH) -> void:
-	var event = EventData.new(title, description, "story", current_phase, priority)
+	var event: Variant = EventData.new(title, description, "story", current_phase, priority)
 	add_event(event)
 
 func add_system_event(title: String, description: String, priority: EventPriority = EventPriority.LOW) -> void:
-	var event = EventData.new(title, description, "system", current_phase, priority)
+	var event: Variant = EventData.new(title, description, "system", current_phase, priority)
 	add_event(event)
 
 func clear_events() -> void:
@@ -296,10 +296,10 @@ func clear_events() -> void:
 	_update_event_list()
 
 func get_event_count() -> int:
-	return events.size()
+	return (safe_call_method(events, "size") as int)
 
 func get_filtered_event_count() -> int:
-	return filtered_events.size()
+	return (safe_call_method(filtered_events, "size") as int)
 
 func get_phase_events(phase: String) -> Array[Dictionary]:
 	return events.filter(func(e): return e.phase == phase)
@@ -309,18 +309,26 @@ func get_category_events(category: String) -> Array[Dictionary]:
 
 func set_max_events(count: int) -> void:
 	max_events = count
-	while events.size() > max_events:
+	while (safe_call_method(events, "size") as int) > max_events:
 		events.pop_front()
 	_update_event_list()
 
 func get_event_by_id(event_id: String) -> Dictionary:
 	var matching_events = events.filter(func(e): return e._id == event_id)
-	return matching_events[0] if not matching_events.is_empty() else {}
+	return matching_events[0] if not (safe_call_method(matching_events, "is_empty") == true) else {}
 
 func update_event(event_id: String, updates: Dictionary) -> bool:
-	for i in range(events.size()):
+	for i: int in range((safe_call_method(events, "size") as int)):
 		if events[i].id == event_id:
 			events[i].merge(updates)
 			_update_event_list()
 			return true
 	return false
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

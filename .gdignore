@@ -1,0 +1,19 @@
+# MCP Servers - moved outside project to prevent Godot scanning conflicts
+mcp-servers/
+godot-mcp-server/
+godot-mcp/
+serena/
+
+# Node modules
+node_modules/
+
+# Build artifacts
+builds/
+backups/
+
+# Temporary files
+temp_files.txt
+temp_matches.txt
+all_files.txt
+all_gd_files.txt
+full_script_list.txt

@@ -1,0 +1,4 @@
+[gd_scene load_steps=0 format=3 uid="uid://b4w7g2v2w7q7j"]
+
+[node name="TestMCP" type="Node"]
+script = ExtResource("res://test_godot_mcp.gd")

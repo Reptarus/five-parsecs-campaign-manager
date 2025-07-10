@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 extends Control
 class_name FPCM_ResourceItem
 
@@ -24,14 +24,14 @@ func _ready() -> void:
 
 func _setup_ui() -> void:
 	custom_minimum_size = Vector2(0, 40)
-	
+
 	# Set up progress bar
 	if progress_bar:
 		progress_bar.min_value = 0
 		progress_bar.max_value = max_value
 		progress_bar._value = current_value
 		progress_bar.modulate = resource_color
-		
+
 	# Set up trend indicator
 	if trend_indicator:
 		trend_indicator.modulate = resource_color
@@ -39,26 +39,26 @@ func _setup_ui() -> void:
 func _update_display() -> void:
 	if not is_inside_tree():
 		return
-		
+
 	if name_label:
 		name_label.text = resource_name.capitalize()
-		
+
 	if value_label:
 		value_label.text = str(current_value)
 		if max_value != 9999: # Don't show max for credits
 			value_label.text += "/" + str(max_value)
-			
+
 	if progress_bar:
 		progress_bar.max_value = max_value
 		progress_bar._value = current_value
-		
+
 	if trend_indicator:
 		_update_trend_indicator()
 
 func _update_trend_indicator() -> void:
 	if not trend_indicator:
 		return
-		
+
 	match trend:
 		1: # Increasing
 			trend_indicator.rotation_degrees = 0
@@ -76,13 +76,17 @@ func setup(name: String, current: int, max_val: int, trend_val: int, color: Colo
 	max_value = max_val
 	trend = trend_val
 	resource_color = color
-	
+
 	if is_inside_tree():
 		_setup_ui()
 		_update_display()
 
 # Input handling
-func _gui_input(event) -> void:
+func _gui_input(event: Variant) -> void:
+
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			resource_clicked.emit( resource_name, current_value)

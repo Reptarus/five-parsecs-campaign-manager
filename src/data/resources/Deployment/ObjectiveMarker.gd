@@ -1,17 +1,17 @@
-# Universal Connection Validation Applied
+﻿# Universal Connection Validation Applied
 # Based on proven patterns: Universal Mock Strategy + 7-Stage Methodology
 class_name ObjectiveMarker
 extends Area3D
 
 # Safe imports
-const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
-const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd")
-const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
-const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
-const UniversalSceneManager = preload("res://src/utils/UniversalSceneManager.gd")
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
+# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
 
 # Safe dependency loading
-var Character = null
+var Character: Variant = null
 
 signal objective_reached(by_unit: Node)
 signal objective_completed
@@ -28,8 +28,8 @@ var turns_held := 0
 
 func _ready() -> void:
 	# Load dependencies safely at runtime
-	Character = UniversalResourceLoader.load_script_safe("res://src/core/character/Base/Character.gd", "ObjectiveMarker Character")
-	
+	Character = load("res://src/core/character/Base/Character.gd")
+
 	_validate_universal_connections()
 	add_to_group("objectives")
 	_setup_signal_connections()
@@ -45,25 +45,25 @@ func _validate_data_connections() -> void:
 
 func _setup_signal_connections() -> void:
 	# Connect area signals safely
-	UniversalSignalManager.connect_signal_safe(self, "area_entered", _on_area_entered, "ObjectiveMarker area_entered")
-	UniversalSignalManager.connect_signal_safe(self, "area_exited", _on_area_exited, "ObjectiveMarker area_exited")
+	self.area_entered.connect(_on_area_entered)
+	self.area_exited.connect(_on_area_exited)
 
 func _on_area_entered(area: Area3D) -> void:
 	if not area:
 		push_warning("ObjectiveMarker: null area entered signal")
 		return
-		
+
 	if area.is_in_group("units"):
-		var node = area.get_parent()
+		var node: Node = area.get_parent()
 		if not node:
 			push_warning("ObjectiveMarker: unit area has no parent node")
 			return
-			
+
 		if Character and node.get_script() == Character:
 			capturing_unit = node
 			if fail_on_enemy_capture and capturing_unit.has_method("is_enemy") and capturing_unit.is_enemy():
-				UniversalSignalManager.emit_signal_safe(self, "objective_failed", [], "ObjectiveMarker objective_failed")
-			UniversalSignalManager.emit_signal_safe(self, "objective_reached", [capturing_unit], "ObjectiveMarker objective_reached")
+				self.objective_failed.emit()
+			self.objective_reached.emit(capturing_unit)
 
 func _on_area_exited(area: Area3D) -> void:
 	if area == capturing_unit:
@@ -74,4 +74,12 @@ func process_turn() -> void:
 	if capturing_unit:
 		turns_held += 1
 		if turns_held >= required_turns:
-			UniversalSignalManager.emit_signal_safe(self, "objective_completed", [], "ObjectiveMarker objective_completed")
+			self.objective_completed.emit()
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

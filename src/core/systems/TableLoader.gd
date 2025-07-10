@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 extends RefCounted
 class_name TableLoader
 
@@ -10,57 +10,57 @@ class_name TableLoader
 ## Load all table files from a directory
 static func load_tables_from_directory(directory_path: String) -> Dictionary:
 	var tables: Dictionary = {}
-	var dir = DirAccess.open(directory_path)
-	
+	var dir: DirAccess = DirAccess.open(directory_path)
+
 	if dir == null:
 		push_warning("Could not open directory: " + directory_path)
 		return tables
-	
-	dir.list_dir_begin()
-	var file_name = dir.get_next()
-	
+
+	if dir: dir.list_dir_begin()
+	var file_name = dir.get_next() if dir else ""
+
 	while file_name != "":
 		if file_name.ends_with(".json"):
 			var table_name = file_name.get_basename()
-			var table_data = load_table_from_file(directory_path + "/" + file_name)
+			var table_data = load_table_from_file(directory_path + "/" + str(file_name))
 			if not table_data.is_empty():
 				tables[table_name] = table_data
-		file_name = dir.get_next()
-	
+		file_name = dir.get_next() if dir else ""
+
 	return tables
 
 ## Load a single table from a JSON file
 static func load_table_from_file(file_path: String) -> Dictionary:
-	var file = FileAccess.open(file_path, FileAccess.READ)
+	var file: FileAccess = FileAccess.open(file_path, FileAccess.READ)
 	if file == null:
 		push_warning("Could not open file: " + file_path)
 		return {}
-	
+
 	var json_string = file.get_as_text()
-	file.close()
-	
+	if file: file.close()
+
 	var json = JSON.new()
 	var parse_result = json.parse(json_string)
-	
+
 	if parse_result != OK:
 		push_warning("Could not parse JSON in file: " + file_path)
 		return {}
-	
+
 	var data = json.get_data()
 	if not data is Dictionary:
 		push_warning("Invalid table format in file: " + file_path)
 		return {}
-	
+
 	return data
 
 ## Validate table data structure
 static func validate_table_data(table_data: Dictionary) -> bool:
 	if not table_data.has("name"):
 		return false
-	
+
 	if not table_data.has("entries") or not table_data.entries is Array:
 		return false
-	
+
 	# Validate entries have required fields
 	for entry in table_data.entries:
 		if not entry is Dictionary:
@@ -69,21 +69,21 @@ static func validate_table_data(table_data: Dictionary) -> bool:
 			return false
 		if not entry.has("result"):
 			return false
-	
+
 	return true
 
 ## Convert loaded data to table format expected by TableProcessor
 static func convert_to_table_format(table_data: Dictionary) -> Dictionary:
 	if not validate_table_data(table_data):
 		return {}
-	
+
 	var converted = {
 		"name": table_data.get("name", ""),
 		"entries": [],
 		"modifiers": table_data.get("modifiers", []),
 		"validation_rules": table_data.get("validation_rules", [])
 	}
-	
+
 	for entry in table_data.entries:
 		converted.entries.append({
 			"min_roll": entry.get("min_roll", 1),
@@ -92,5 +92,23 @@ static func convert_to_table_format(table_data: Dictionary) -> Dictionary:
 			"weight": entry.get("weight", 1.0),
 			"metadata": entry.get("metadata", {})
 		})
-	
+
 	return converted
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

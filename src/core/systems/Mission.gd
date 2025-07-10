@@ -1,8 +1,8 @@
-@tool
+﻿@tool
 extends Resource
 class_name Mission
 
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 signal mission_completed
 signal mission_failed
@@ -11,7 +11,7 @@ signal mission_updated
 @export var mission_id: String = ""
 @export var mission_title: String = ""
 @export var mission_description: String = ""
-@export var mission_type: int = GameEnums.MissionType.NONE
+@export var mission_type: int = GlobalEnums.MissionType.NONE
 @export var mission_difficulty: int = 1
 @export var reward_credits: int = 100
 @export var is_completed: bool = false
@@ -48,10 +48,29 @@ func deserialize(data: Dictionary) -> Mission:
 	mission_id = data.get("mission_id", "")
 	mission_title = data.get("mission_title", "")
 	mission_description = data.get("mission_description", "")
-	mission_type = data.get("mission_type", GameEnums.MissionType.NONE)
+	mission_type = data.get("mission_type", GlobalEnums.MissionType.NONE)
 	mission_difficulty = data.get("mission_difficulty", 1)
 	reward_credits = data.get("reward_credits", 100)
 	is_completed = data.get("is_completed", false)
 	is_failed = data.get("is_failed", false)
 	turn_offered = data.get("turn_offered", 0)
 	return self
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

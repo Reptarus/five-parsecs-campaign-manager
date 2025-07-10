@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 extends Node
 class_name ThemeManager
 
@@ -39,12 +39,18 @@ func _setup_default_theme() -> void:
 	pass
 
 func set_theme_variant(variant: ThemeVariant) -> void:
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return
 	if current_theme != variant:
 		current_theme = variant
 		_apply_theme_variant()
 		theme_changed.emit(_get_theme_name(variant))
 
 func _get_theme_name(variant: ThemeVariant) -> String:
+	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
+	if not is_instance_valid(self):
+		return ""
 	match variant:
 		ThemeVariant.DEFAULT:
 			return "Default"
@@ -144,12 +150,12 @@ func save_settings() -> Dictionary:
 func load_settings(settings: Dictionary) -> void:
 	if settings.has("theme_variant"):
 		set_theme_variant(settings.theme_variant)
-	
+
 	if settings.has("scale_factor"):
 		set_scale_factor(settings.scale_factor)
-	
+
 	if settings.has("high_contrast"):
 		set_high_contrast(settings.high_contrast)
-	
+
 	if settings.has("reduced_animation"):
 		set_reduced_animation(settings.reduced_animation)

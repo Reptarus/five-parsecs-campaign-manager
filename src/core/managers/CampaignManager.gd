@@ -1,12 +1,14 @@
 ## Manages campaign flow, missions, and game progression  
 @tool
+class_name CampaignManagerClass
 extends Node
 
-const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
+const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
+const GameState := preload("res://src/core/state/GameState.gd")
 const StoryQuestData = preload("res://src/game/story/StoryQuestData.gd")
 const FPCM_StoryTrackSystem = preload("res://src/core/story/StoryTrackSystem.gd")
 const FPCM_BattleEventsSystem = preload("res://src/core/battle/BattleEventsSystem.gd")
+const StoryEvent = preload("res://src/core/story/StoryEvent.gd")
 
 # DiceManager accessed as autoload singleton
 
@@ -18,8 +20,8 @@ signal validation_failed(errors: Array[String])
 
 # Story Track System signals
 signal story_track_started()
-signal story_event_available(event: FPCM_StoryTrackSystem.StoryEvent)
-signal story_choice_resolved(choice: FPCM_StoryTrackSystem.StoryChoice, outcome: Dictionary)
+signal story_event_available(event: StoryEvent)
+signal story_choice_resolved(choice: Dictionary, outcome: Dictionary)
 
 # Battle Events System signals
 signal battle_events_ready()
@@ -32,7 +34,7 @@ signal campaign_loaded(save_data: Dictionary)
 signal save_failed(error: String)
 signal load_failed(error: String)
 
-var game_state: FiveParsecsGameState
+var game_state: GameState
 var available_missions: Array[StoryQuestData]
 var active_missions: Array[StoryQuestData]
 var completed_missions: Array[StoryQuestData]
@@ -45,7 +47,7 @@ var story_track_system: FPCM_StoryTrackSystem
 var battle_events_system: FPCM_BattleEventsSystem
 
 # Dice System (autoload reference)
-var dice_manager: Node
+var dice_manager: DiceManager
 
 const MAX_ACTIVE_MISSIONS := 5
 const MAX_COMPLETED_MISSIONS := 20
@@ -54,30 +56,30 @@ const MIN_REPUTATION_FOR_PATRONS := 10
 
 # Required resources for campaign management
 const REQUIRED_RESOURCES := [
-	GameEnums.ResourceType.SUPPLIES,
-	GameEnums.ResourceType.MEDICAL_SUPPLIES,
-	GameEnums.ResourceType.FUEL
+	GlobalEnums.ResourceType.SUPPLIES,
+	GlobalEnums.ResourceType.MEDICAL_SUPPLIES,
+	GlobalEnums.ResourceType.FUEL
 ]
 
 func _ready() -> void:
-	game_state = FiveParsecsGameState.new()
+	game_state = GameState.new()
 	available_missions = []
 	active_missions = []
 	completed_missions = []
 	mission_history = []
-	
+
 	# Initialize Dice System first (reference autoload directly with proper typing)
-	dice_manager = DiceManager as Node
+	dice_manager = get_node_or_null("/root/DiceManager") as Node
 	if dice_manager:
 		_connect_dice_signals()
 	else:
 		push_warning("CampaignManager: DiceManager autoload not found")
-	
+
 	# Initialize Story Track System and inject dice manager
 	story_track_system = FPCM_StoryTrackSystem.new()
 	story_track_system.set_dice_manager(dice_manager)
 	_connect_story_track_signals()
-	
+
 	# Initialize Battle Events System
 	battle_events_system = FPCM_BattleEventsSystem.new()
 	_connect_battle_events_signals()
@@ -85,30 +87,41 @@ func _ready() -> void:
 ## Connect story track system signals
 func _connect_story_track_signals() -> void:
 	if story_track_system:
-		story_track_system.story_event_triggered.connect(_on_story_event_triggered)
-		story_track_system.story_choice_made.connect(_on_story_choice_made)
-		story_track_system.story_track_completed.connect(_on_story_track_completed)
-		story_track_system.evidence_discovered.connect(_on_evidence_discovered)
+		var error: Error
+		error = story_track_system.story_event_triggered.connect(_on_story_event_triggered)
+		if error != OK: push_error("Failed to connect story_event_triggered")
+		error = story_track_system.story_choice_made.connect(_on_story_choice_made)
+		if error != OK: push_error("Failed to connect story_choice_made")
+		error = story_track_system.story_track_completed.connect(_on_story_track_completed)
+		if error != OK: push_error("Failed to connect story_track_completed")
+		error = story_track_system.evidence_discovered.connect(_on_evidence_discovered)
+		if error != OK: push_error("Failed to connect evidence_discovered")
 
 ## Connect battle events system signals
 func _connect_battle_events_signals() -> void:
 	if battle_events_system:
-		battle_events_system.battle_event_triggered.connect(_on_battle_event_triggered)
-		battle_events_system.environmental_hazard_activated.connect(_on_environmental_hazard_activated)
-		battle_events_system.event_resolved.connect(_on_battle_event_resolved)
+		var error: Error
+		error = battle_events_system.battle_event_triggered.connect(_on_battle_event_triggered)
+		if error != OK: push_error("Failed to connect battle_event_triggered")
+		error = battle_events_system.environmental_hazard_activated.connect(_on_environmental_hazard_activated)
+		if error != OK: push_error("Failed to connect environmental_hazard_activated")
+		error = battle_events_system.event_resolved.connect(_on_battle_event_resolved)
+		if error != OK: push_error("Failed to connect event_resolved")
 
 ## Handle story events from the story track system
-func _on_story_event_triggered(event: FPCM_StoryTrackSystem.StoryEvent) -> void:
+func _on_story_event_triggered(event: StoryEvent) -> void:
 	story_event_available.emit(event)
 
 ## Handle story choices made by player
-func _on_story_choice_made(choice: FPCM_StoryTrackSystem.StoryChoice) -> void:
+func _on_story_choice_made(choice: Dictionary) -> void:
 	# Advance story clock based on choice outcome
-	var outcome: Dictionary = story_track_system.make_story_choice(choice.parent_event, choice)
-	story_choice_resolved.emit(choice, outcome)
-	
-	# Apply story effects to campaign state
-	_apply_story_effects(outcome)
+	var current_event: StoryEvent = story_track_system.get_current_event()
+	if current_event:
+		var outcome: Dictionary = story_track_system.make_story_choice(current_event, choice)
+		story_choice_resolved.emit(choice, outcome)
+
+		# Apply story effects to campaign state
+		_apply_story_effects(outcome)
 
 ## Handle story track completion
 func _on_story_track_completed() -> void:
@@ -140,9 +153,9 @@ func _on_battle_event_resolved(event_id: String, outcome: Dictionary) -> void:
 func _apply_story_effects(outcome: Dictionary) -> void:
 	if not outcome or not outcome.has("success"):
 		return
-	
-	if outcome.success and outcome.has("reward_type"):
-		match outcome.reward_type:
+
+	if outcome.get("success", false) and outcome.has("reward_type"):
+		match outcome.get("reward_type", ""):
 			"credits":
 				game_state.modify_credits(1000)
 			"reputation":
@@ -160,7 +173,7 @@ func _apply_story_effects(outcome: Dictionary) -> void:
 # Earlier story track functions removed - see end of file for implementations
 
 ## Get current story event for UI
-func get_current_story_event() -> FPCM_StoryTrackSystem.StoryEvent:
+func get_current_story_event() -> StoryEvent:
 	if story_track_system:
 		return story_track_system.get_current_event()
 	return null
@@ -198,9 +211,11 @@ func clear_battle_events() -> void:
 func _connect_dice_signals() -> void:
 	if dice_manager and dice_manager.has_signal("dice_result_ready"):
 		# Use signal connection by string name to avoid type issues
-		dice_manager.connect("dice_result_ready", _on_dice_result_ready)
+		var error: Error = dice_manager.connect("dice_result_ready", _on_dice_result_ready)
+		if error != OK:
+			push_error("CampaignManager: Failed to connect 'dice_result_ready' signal")
 	else:
-		push_warning("CampaignManager: DiceManager signal 'dice_result_ready' not found")
+		push_warning("CampaignManager: DiceManager or its 'dice_result_ready' signal not found")
 
 ## Handle dice results
 func _on_dice_result_ready(result: int, context: String) -> void:
@@ -213,58 +228,58 @@ func get_dice_manager() -> Node:
 func validate_campaign_state() -> Dictionary:
 	var errors: Array[String] = []
 	var warnings: Array[String] = []
-	
+
 	# Validate game state
 	if not game_state:
 		errors.append("Campaign has no associated game state")
 		return {"is_valid": false, "errors": errors, "warnings": warnings}
-	
+
 	# Validate mission arrays
 	if available_missions.size() > MAX_ACTIVE_MISSIONS:
 		errors.append("Too many available missions: %d (max: %d)" % [available_missions.size(), MAX_ACTIVE_MISSIONS])
-	
+
 	if active_missions.size() > MAX_ACTIVE_MISSIONS:
 		errors.append("Too many active missions: %d (max: %d)" % [active_missions.size(), MAX_ACTIVE_MISSIONS])
-	
+
 	if completed_missions.size() > MAX_COMPLETED_MISSIONS:
 		warnings.append("Large number of completed missions stored: %d" % completed_missions.size())
-	
+
 	if mission_history.size() > MAX_MISSION_HISTORY:
 		warnings.append("Large mission history: %d entries" % mission_history.size())
-	
+
 	# Validate mission states
-	for mission in available_missions:
+	for mission: StoryQuestData in available_missions:
 		if not _validate_mission_state(mission, "available"):
 			errors.append("Invalid available mission: %s" % mission.mission_id)
-	
-	for mission in active_missions:
+
+	for mission: StoryQuestData in active_missions:
 		if not _validate_mission_state(mission, "active"):
 			errors.append("Invalid active mission: %s" % mission.mission_id)
-	
+
 	# Validate required resources
-	for resource in REQUIRED_RESOURCES:
+	for resource: int in REQUIRED_RESOURCES:
 		if not game_state.has_resource(resource):
 			errors.append("Missing required resource: %s" % resource)
 		elif game_state.get_resource(resource) <= 0:
 			errors.append("Resource depleted: %s" % resource)
-	
+
 	# Validate active mission requirements
-	for mission in active_missions:
+	for mission: StoryQuestData in active_missions:
 		var mission_errors: Array[String] = _validate_mission_requirements(mission)
 		if not mission_errors.is_empty():
 			errors.append_array(mission_errors)
-	
+
 	# Check for mission duplicates
 	var mission_ids: Dictionary = {}
-	for mission in available_missions + active_missions + completed_missions:
+	for mission: StoryQuestData in available_missions + active_missions + completed_missions:
 		if mission.mission_id in mission_ids:
 			errors.append("Duplicate mission ID found: %s" % mission.mission_id)
 		mission_ids[mission.mission_id] = true
-	
+
 	# Emit validation failed signal if there are errors
 	if not errors.is_empty():
 		validation_failed.emit(errors)
-	
+
 	return {
 		"is_valid": errors.is_empty(),
 		"errors": errors,
@@ -273,18 +288,18 @@ func validate_campaign_state() -> Dictionary:
 
 func _validate_mission_requirements(mission: StoryQuestData) -> Array[String]:
 	var errors: Array[String] = []
-	
+
 	# Check crew size
 	if game_state.get_crew_size() < mission.required_crew_size:
 		errors.append("Insufficient crew size for mission %s: %d/%d" % [mission.mission_id, game_state.get_crew_size(), mission.required_crew_size])
-	
+
 	# Check equipment
-	for equipment in mission.required_equipment:
+	for equipment: String in mission.required_equipment:
 		if not game_state.has_equipment(equipment):
 			errors.append("Missing required equipment for mission %s: %s" % [mission.mission_id, equipment])
-	
+
 	# Check resources
-	for resource_type in mission.required_resources:
+	for resource_type: int in mission.required_resources:
 		var required_amount: int = mission.required_resources[resource_type]
 		if not game_state.has_resource(resource_type):
 			errors.append("Missing required resource for mission %s: %s" % [mission.mission_id, resource_type])
@@ -295,7 +310,7 @@ func _validate_mission_requirements(mission: StoryQuestData) -> Array[String]:
 				game_state.get_resource(resource_type),
 				required_amount
 			])
-	
+
 	return errors
 
 func _validate_mission_state(mission: StoryQuestData, expected_state: String) -> bool:
@@ -314,65 +329,65 @@ func cleanup_campaign_state() -> void:
 	# Remove excess completed missions
 	if completed_missions.size() > MAX_COMPLETED_MISSIONS:
 		completed_missions = completed_missions.slice(-MAX_COMPLETED_MISSIONS)
-	
+
 	# Trim mission history
 	if mission_history.size() > MAX_MISSION_HISTORY:
 		mission_history = mission_history.slice(-MAX_MISSION_HISTORY)
 
-func create_mission(mission_type: GameEnums.MissionType, config: Dictionary = {}) -> StoryQuestData:
-	var mission := StoryQuestData.create_mission(mission_type, config)
-	
+func create_mission(mission_type: GlobalEnums.MissionType, config: Dictionary = {}) -> StoryQuestData:
+	var mission: StoryQuestData = StoryQuestData.create_mission(mission_type, config)
+
 	# Configure the mission with its _type-specific settings
 	mission.configure(mission_type)
-	
+
 	# Add default objective based on mission _type
 	match mission_type:
-		GameEnums.MissionType.PATROL:
-			mission.add_objective(GameEnums.MissionObjective.PATROL, "Patrol the designated area", true)
-		GameEnums.MissionType.RESCUE:
-			mission.add_objective(GameEnums.MissionObjective.RESCUE, "Rescue the target", true)
-		GameEnums.MissionType.SABOTAGE:
-			mission.add_objective(GameEnums.MissionObjective.SABOTAGE, "Sabotage the target", true)
-		GameEnums.MissionType.PATRON:
+		GlobalEnums.MissionType.PATROL:
+			mission.add_objective(GlobalEnums.MissionObjective.PATROL, "Patrol the designated area", true)
+		GlobalEnums.MissionType.RESCUE:
+			mission.add_objective(GlobalEnums.MissionObjective.RESCUE, "Rescue the target", true)
+		GlobalEnums.MissionType.SABOTAGE:
+			mission.add_objective(GlobalEnums.MissionObjective.SABOTAGE, "Sabotage the target", true)
+		GlobalEnums.MissionType.PATRON:
 			# For patron missions, use a standard patrol objective for now
-			mission.add_objective(GameEnums.MissionObjective.PATROL, "Complete patron request", true)
-	
+			mission.add_objective(GlobalEnums.MissionObjective.PATROL, "Complete patron request", true)
+
 	# Add to available missions if valid and campaign state is valid
 	var validation: Dictionary = mission.validate()
-	if validation.is_valid:
+	if validation.get("is_valid", false):
 		var campaign_validation: Dictionary = validate_campaign_state()
-		if campaign_validation.is_valid:
+		if campaign_validation.get("is_valid", false):
 			available_missions.append(mission)
 			mission_available.emit(mission)
 		else:
-			push_warning("Cannot add mission - invalid campaign state: %s" % campaign_validation.errors)
+			push_warning("Cannot add mission - invalid campaign state: %s" % campaign_validation.get("errors", []))
 	else:
-		push_warning("Created mission is invalid: %s" % validation.errors)
-	
+		push_warning("Created mission is invalid: %s" % validation.get("errors", []))
+
 	return mission
 
 func start_mission(mission: StoryQuestData) -> bool:
 	if not mission in available_missions:
 		push_warning("Cannot start mission - not in available missions")
 		return false
-	
+
 	# Validate mission requirements
 	var requirement_errors: Array[String] = _validate_mission_requirements(mission)
 	if not requirement_errors.is_empty():
 		push_warning("Cannot start mission - requirements not met: %s" % requirement_errors)
 		return false
-	
+
 	# Validate campaign state
 	var validation: Dictionary = validate_campaign_state()
-	if not validation.is_valid:
-		push_warning("Cannot start mission - invalid campaign state: %s" % validation.errors)
+	if not validation.get("is_valid", false):
+		push_warning("Cannot start mission - invalid campaign state: %s" % validation.get("errors", []))
 		return false
-	
+
 	available_missions.erase(mission)
 
 	active_missions.append(mission)
 	mission.is_active = true
-	
+
 	_trigger_mission_start_events(mission)
 	return true
 
@@ -381,31 +396,31 @@ func complete_mission(mission: StoryQuestData, force_complete: bool = false) -> 
 	if not mission in active_missions:
 		push_warning("Cannot _complete mission - not in active missions")
 		return
-	
+
 	# Check if mission can be completed
 	if not force_complete and not _is_mission_complete(mission):
 		push_warning("Cannot _complete mission - objectives not met")
 		return
-	
+
 	# Validate campaign state
 	var validation: Dictionary = validate_campaign_state()
-	if not validation.is_valid:
-		push_warning("Cannot _complete mission - invalid campaign state: %s" % validation.errors)
+	if not validation.get("is_valid", false):
+		push_warning("Cannot _complete mission - invalid campaign state: %s" % validation.get("errors", []))
 		return
-	
+
 	# Update mission state first
 	mission.is_completed = true
 	mission.is_active = false
-	
+
 	# Remove from active missions and add to completed missions
 	active_missions.erase(mission)
 
 	completed_missions.append(mission)
-	
+
 	# Apply rewards and consume resources
 	_apply_mission_rewards(mission)
 	_consume_mission_resources(mission)
-	
+
 	# Create and add history entry
 	var mission_data: Dictionary = _create_mission_history_entry(mission)
 	mission_data["rewards"] = {
@@ -414,28 +429,28 @@ func complete_mission(mission: StoryQuestData, force_complete: bool = false) -> 
 		"items": mission.reward_items
 	}
 
-	mission_history.append(mission_data) # warning: return value discarded (intentional)
-	
+	mission_history.append(mission_data)
+
 	# Clean up and emit completion
 	cleanup_campaign_state()
-	mission_completed.emit(mission) # warning: return value discarded (intentional)
+	mission_completed.emit(mission)
 
 func fail_mission(mission: StoryQuestData) -> void:
 	# Check if mission is active
 	if not mission in active_missions:
 		push_warning("Cannot fail mission - not in active missions")
 		return
-	
+
 	# Update mission state first
 	mission.is_failed = true
 	mission.is_active = false
-	
+
 	# Remove from active missions
 	active_missions.erase(mission)
-	
+
 	# Consume resources even on failure (they were committed to the mission)
 	_consume_mission_resources(mission)
-	
+
 	# Create and add history entry
 	var mission_data: Dictionary = _create_mission_history_entry(mission)
 	mission_data["rewards"] = {
@@ -444,11 +459,11 @@ func fail_mission(mission: StoryQuestData) -> void:
 		"items": []
 	}
 
-	mission_history.append(mission_data) # warning: return value discarded (intentional)
-	
+	mission_history.append(mission_data)
+
 	# Clean up and emit failure
 	cleanup_campaign_state()
-	mission_failed.emit(mission) # warning: return value discarded (intentional)
+	mission_failed.emit(mission)
 
 func get_available_missions() -> Array[StoryQuestData]:
 	return available_missions
@@ -463,89 +478,89 @@ func get_mission_history() -> Array[Dictionary]:
 	return mission_history
 
 func generate_available_missions() -> void:
-	var mission_count := _calculate_available_mission_count()
-	var possible_missions := _get_possible_missions()
-	
-	for i in range(mission_count):
-		var mission := _generate_mission(possible_missions)
+	var mission_count: int = _calculate_available_mission_count()
+	var possible_missions: Array[int] = _get_possible_missions()
+
+	for i: int in range(mission_count):
+		var mission: StoryQuestData = _generate_mission(possible_missions)
 		if mission:
 			available_missions.append(mission)
 			mission_available.emit(mission)
 
 func _calculate_available_mission_count() -> int:
-	var base_count := 3
+	var base_count: int = 3
 	if game_state.reputation >= MIN_REPUTATION_FOR_PATRONS:
 		base_count += 1
-	return mini(base_count, MAX_ACTIVE_MISSIONS - active_missions.size())
+	return min(base_count, MAX_ACTIVE_MISSIONS - (active_missions.size()))
 
-func _get_possible_missions() -> Array:
-	var missions: Array[GameEnums.MissionType] = []
-	
+func _get_possible_missions() -> Array[int]:
+	var missions: Array[int] = []
+
 	# Add standard mission types
 
-	missions.append(GameEnums.MissionType.PATROL)
+	missions.append(GlobalEnums.MissionType.PATROL)
 
-	missions.append(GameEnums.MissionType.RESCUE)
+	missions.append(GlobalEnums.MissionType.RESCUE)
 
-	missions.append(GameEnums.MissionType.SABOTAGE)
-	
+	missions.append(GlobalEnums.MissionType.SABOTAGE)
+
 	# Add special mission types based on game state
 	if game_state.reputation >= MIN_REPUTATION_FOR_PATRONS:
-		missions.append(GameEnums.MissionType.PATRON)
-	
+		missions.append(GlobalEnums.MissionType.PATRON)
+
 	return missions
 
-func _generate_mission(possible_missions: Array) -> StoryQuestData:
+func _generate_mission(possible_missions: Array[int]) -> StoryQuestData:
 	if possible_missions.is_empty():
 		return null
-	var mission_type: GameEnums.MissionType = possible_missions[randi() % possible_missions.size()]
-	var config := {
+	var mission_type: GlobalEnums.MissionType = possible_missions[randi() % (possible_missions.size())]
+	var config: Dictionary = {
 		"difficulty": game_state.difficulty_level,
 		"risk_level": _calculate_risk_level()
 	}
-	
+
 	return create_mission(mission_type, config)
 
 func _calculate_risk_level() -> int:
-	var base_risk := 1
-	
+	var base_risk: int = 1
+
 	# Increase risk based on game progression
-	base_risk += floori(game_state.campaign_turn / 5)
-	
+	base_risk += floori(game_state.campaign_turn / 5.0)
+
 	# Adjust for difficulty
 	match game_state.difficulty_level:
-		GameEnums.DifficultyLevel.EASY:
+		GlobalEnums.DifficultyLevel.EASY:
 			base_risk -= 1
-		GameEnums.DifficultyLevel.HARD:
+		GlobalEnums.DifficultyLevel.HARD:
 			base_risk += 1
-		GameEnums.DifficultyLevel.HARDCORE:
+		GlobalEnums.DifficultyLevel.HARDCORE:
 			base_risk += 2
-	
-	return clampi(base_risk, 1, 5)
+
+	return clamp(base_risk, 1, 5)
 
 func _is_mission_complete(mission: StoryQuestData) -> bool:
 	# Check primary objective
-	if mission.primary_objective != GameEnums.MissionObjective.NONE:
+	if mission.primary_objective != GlobalEnums.MissionObjective.NONE:
 		var primary_complete: bool = false
-		for objective in mission.objectives:
-			if objective.type == mission.primary_objective and objective.completed:
+		for objective: Dictionary in mission.objectives:
+			if objective.get("type") == mission.primary_objective and objective.get("completed"):
 				primary_complete = true
 				break
-				
+
 		if not primary_complete:
 			return false
-			
+
 	# Check required secondary objectives
-	for objective_type in mission.secondary_objectives:
+	for objective_type: int in mission.secondary_objectives:
 		var objective_complete: bool = false
-		for objective in mission.objectives:
-			if objective.type == objective_type and objective.completed:
+		for objective: Dictionary in mission.objectives:
+			if objective.get("type") == objective_type and objective.get("completed"):
 				objective_complete = true
 				break
-				
+
 		if not objective_complete:
 			return false
-			
+
 	return true
 
 func _create_mission_history_entry(mission: StoryQuestData) -> Dictionary:
@@ -556,7 +571,7 @@ func _create_mission_history_entry(mission: StoryQuestData) -> Dictionary:
 		"completion_percentage": mission.completion_percentage,
 		"is_completed": mission.is_completed,
 		"is_failed": mission.is_failed,
-		"objectives_completed": mission.objectives.filter(func(obj): return obj.completed).size(),
+		"objectives_completed": mission.objectives.filter(func(obj: Dictionary): return obj.get("completed", false)).size(),
 		"total_objectives": mission.objectives.size(),
 		"resources_consumed": mission.required_resources.duplicate(),
 		"crew_involved": game_state.get_crew_size(),
@@ -569,56 +584,56 @@ func _trigger_mission_start_events(mission: StoryQuestData) -> void:
 func _trigger_mission_completion_events(mission: StoryQuestData) -> void:
 	# Apply mission rewards
 	_apply_mission_rewards(mission)
-	
+
 	# Consume mission resources
 	_consume_mission_resources(mission)
-	
+
 	# Update mission history
 	var mission_data: Dictionary = _create_mission_history_entry(mission)
 
-	mission_history.append(mission_data) # warning: return value discarded (intentional)
-	
-	mission_completed.emit(mission) # warning: return value discarded (intentional)
+	mission_history.append(mission_data)
+
+	mission_completed.emit(mission)
 
 func _apply_mission_rewards(mission: StoryQuestData) -> void:
 	# Apply credits reward
 	if mission.reward_credits > 0:
 		game_state.modify_credits(mission.reward_credits)
-	
+
 	# Apply reputation reward
 	if mission.reward_reputation > 0:
 		game_state.modify_reputation(mission.reward_reputation)
-	
+
 	# Apply item rewards
-	for item in mission.reward_items:
+	for item: Dictionary in mission.reward_items:
 		# TODO: Add item to inventory when inventory system is implemented
 		pass
 
 func _consume_mission_resources(mission: StoryQuestData) -> void:
 	# Consume required resources
-	for resource_type in mission.required_resources:
+	for resource_type: int in mission.required_resources:
 		var amount: int = mission.required_resources[resource_type]
 		game_state.modify_resource(resource_type, -amount)
 
 func _trigger_mission_failure_events(mission: StoryQuestData) -> void:
 	# Consume resources even on failure (they were committed to the mission)
 	_consume_mission_resources(mission)
-	
+
 	# Update mission history
 	var mission_data: Dictionary = _create_mission_history_entry(mission)
 
-	mission_history.append(mission_data) # warning: return value discarded (intentional)
-	
-	mission_failed.emit(mission) # warning: return value discarded (intentional)
+	mission_history.append(mission_data)
+
+	mission_failed.emit(mission)
 
 func save_campaign_state() -> Dictionary:
 	var validation: Dictionary = validate_campaign_state()
-	if not validation.is_valid:
-		push_error("Cannot save invalid campaign state: %s" % validation.errors)
+	if not validation.get("is_valid", false):
+		push_error("Cannot save invalid campaign state: %s" % validation.get("errors", []))
 		save_failed.emit("Invalid campaign state")
 		return {}
-	
-	var save_data := {
+
+	var save_data: Dictionary = {
 		"version": "1.0.0",
 		"timestamp": Time.get_unix_time_from_system(),
 		"available_missions": _serialize_missions(available_missions),
@@ -626,7 +641,7 @@ func save_campaign_state() -> Dictionary:
 		"completed_missions": _serialize_missions(completed_missions),
 		"mission_history": mission_history
 	}
-	
+
 	campaign_saved.emit(save_data)
 	return save_data
 
@@ -634,76 +649,48 @@ func load_campaign_state(save_data: Dictionary) -> bool:
 	if not _validate_save_data(save_data):
 		load_failed.emit("Invalid save _data format")
 		return false
-	
+
 	# Clear current state
 	available_missions.clear()
 	active_missions.clear()
 	completed_missions.clear()
 	mission_history.clear()
-	
+
 	# Load missions
-	available_missions = _deserialize_missions(save_data.available_missions)
-	active_missions = _deserialize_missions(save_data.active_missions)
-	completed_missions = _deserialize_missions(save_data.completed_missions)
-	mission_history = save_data.mission_history
-	
+	available_missions = _deserialize_missions(save_data.get("available_missions", []))
+	active_missions = _deserialize_missions(save_data.get("active_missions", []))
+	completed_missions = _deserialize_missions(save_data.get("completed_missions", []))
+	mission_history = save_data.get("mission_history", [])
+
 	var validation: Dictionary = validate_campaign_state()
-	if not validation.is_valid:
-		push_error("Loaded campaign state is invalid: %s" % validation.errors)
+	if not validation.get("is_valid", false):
+		push_error("Loaded campaign state is invalid: %s" % validation.get("errors", []))
 		load_failed.emit("Invalid loaded state")
 		return false
-	
+
 	campaign_loaded.emit(save_data)
 	return true
 
 func _serialize_missions(missions: Array[StoryQuestData]) -> Array:
 	var serialized: Array = []
-	for mission in missions:
-		serialized.append({
-			"mission_id": mission.mission_id,
-			"mission_type": mission.mission_type,
-			"name": mission.name,
-			"description": mission.description,
-			"is_active": mission.is_active,
-			"is_completed": mission.is_completed,
-			"is_failed": mission.is_failed,
-			"completion_percentage": mission.completion_percentage,
-			"objectives": mission.objectives,
-			"primary_objective": mission.primary_objective,
-			"secondary_objectives": mission.secondary_objectives,
-			"required_crew_size": mission.required_crew_size,
-			"required_equipment": mission.required_equipment,
-			"required_resources": mission.required_resources,
-			"reward_credits": mission.reward_credits,
-			"reward_reputation": mission.reward_reputation,
-			"reward_items": mission.reward_items
-		})
+	for mission: StoryQuestData in missions:
+		serialized.append(mission.serialize())
 	return serialized
 
 func _deserialize_missions(data: Array) -> Array[StoryQuestData]:
 	var missions: Array[StoryQuestData] = []
-	for mission_data in data:
-		var mission := StoryQuestData.create_mission(mission_data.mission_type)
+	for mission_data: Dictionary in data:
+		var mission_type: int = mission_data.get("mission_type", -1)
+		if mission_type == -1:
+			push_warning("Mission data missing mission_type, skipping.")
+			continue
 		
-		# Restore mission state
-		mission.mission_id = mission_data.mission_id
-		mission.name = mission_data.name
-		mission.description = mission_data.description
-		mission.is_active = mission_data.is_active
-		mission.is_completed = mission_data.is_completed
-		mission.is_failed = mission_data.is_failed
-		mission.completion_percentage = mission_data.completion_percentage
-		mission.objectives = mission_data.objectives
-		mission.primary_objective = mission_data.primary_objective
-		mission.secondary_objectives = mission_data.secondary_objectives
-		mission.required_crew_size = mission_data.required_crew_size
-		mission.required_equipment = mission_data.required_equipment
-		mission.required_resources = mission_data.required_resources
-		mission.reward_credits = mission_data.reward_credits
-		mission.reward_reputation = mission_data.reward_reputation
-		mission.reward_items = mission_data.reward_items
-
-		missions.append(mission)
+		var mission: StoryQuestData = StoryQuestData.create_mission(mission_type)
+		if mission:
+			mission.deserialize(mission_data)
+			missions.append(mission)
+		else:
+			push_warning("Failed to create mission of type %s during deserialization." % mission_type)
 	return missions
 
 func _validate_save_data(save_data: Dictionary) -> bool:
@@ -716,17 +703,17 @@ func _validate_save_data(save_data: Dictionary) -> bool:
 		"completed_missions",
 		"mission_history"
 	]
-	
-	for field in required_fields:
-		if not field in save_data:
+
+	for field: String in required_fields:
+		if not save_data.has(field):
 			push_error("Missing required field in save _data: %s" % field)
 			return false
-	
+
 	# Validate version
-	if save_data.version != "1.0.0":
-		push_error("Unsupported save _data version: %s" % save_data.version)
+	if save_data.get("version") != "1.0.0":
+		push_error("Unsupported save _data version: %s" % save_data.get("version"))
 		return false
-	
+
 	return true
 
 ## ===== STORY TRACK SYSTEM METHODS =====
@@ -735,35 +722,40 @@ func _validate_save_data(save_data: Dictionary) -> bool:
 func get_story_track_system() -> FPCM_StoryTrackSystem:
 	return story_track_system
 
+## Apply a story choice (alias for make_story_choice for UI compatibility)
+func apply_story_choice(event: StoryEvent, choice: Dictionary) -> Dictionary:
+	return make_story_choice(event, choice)
+
 ## Make a story choice through the campaign manager
-func make_story_choice(event: FPCM_StoryTrackSystem.StoryEvent, choice: FPCM_StoryTrackSystem.StoryChoice) -> Dictionary:
+func make_story_choice(event: StoryEvent, choice: Dictionary) -> Dictionary:
 	if not story_track_system:
 		return {"success": false, "message": "Story track system not available"}
-	
+
 	# Use the story track system to resolve the choice
 	var outcome: Dictionary = story_track_system.make_story_choice(event, choice)
-	
+
 	# Apply any campaign-level effects from the choice
 	_apply_story_choice_effects(choice, outcome)
-	
+
 	# Emit the choice resolution signal
 	story_choice_resolved.emit(choice, outcome)
-	
+
 	return outcome
 
 ## Apply story choice effects to the campaign
-func _apply_story_choice_effects(choice: FPCM_StoryTrackSystem.StoryChoice, outcome: Dictionary) -> void:
+func _apply_story_choice_effects(choice: Dictionary, outcome: Dictionary) -> void:
 	if not outcome.get("success", false):
 		return
-	
+
 	# Apply rewards based on choice type
-	match choice.potential_reward:
+	var reward_type: String = choice.get("outcome", {}).get("reward", "")
+	match reward_type:
 		"credits":
 			if game_state:
-				game_state.add_credits(1000)
+				game_state.modify_credits(1000)
 		"reputation":
 			if game_state:
-				game_state.add_reputation(10)
+				game_state.modify_reputation(10)
 		"tech_data", "information", "intel":
 			# Could add special items or unlock new missions
 			pass
@@ -788,3 +780,62 @@ func get_story_track_status() -> Dictionary:
 	if story_track_system:
 		return story_track_system.get_story_track_status()
 	return {"is_active": false}
+
+func _exit_tree() -> void:
+	"""Cleanup CampaignManager resources and signal connections"""
+	print("CampaignManager: Shutting down and cleaning up...")
+	
+	# Disconnect story track system signals
+	if story_track_system and is_instance_valid(story_track_system):
+		if story_track_system.story_event_triggered.is_connected(_on_story_event_triggered):
+			story_track_system.story_event_triggered.disconnect(_on_story_event_triggered)
+		if story_track_system.story_choice_made.is_connected(_on_story_choice_made):
+			story_track_system.story_choice_made.disconnect(_on_story_choice_made)
+		if story_track_system.story_track_completed.is_connected(_on_story_track_completed):
+			story_track_system.story_track_completed.disconnect(_on_story_track_completed)
+		if story_track_system.evidence_discovered.is_connected(_on_evidence_discovered):
+			story_track_system.evidence_discovered.disconnect(_on_evidence_discovered)
+		# Removed queue_free() call on RefCounted object
+		story_track_system = null
+	
+	# Disconnect battle events system signals
+	if battle_events_system and is_instance_valid(battle_events_system):
+		if battle_events_system.battle_event_triggered.is_connected(_on_battle_event_triggered):
+			battle_events_system.battle_event_triggered.disconnect(_on_battle_event_triggered)
+		if battle_events_system.environmental_hazard_activated.is_connected(_on_environmental_hazard_activated):
+			battle_events_system.environmental_hazard_activated.disconnect(_on_environmental_hazard_activated)
+		if battle_events_system.event_resolved.is_connected(_on_battle_event_resolved):
+			battle_events_system.event_resolved.disconnect(_on_battle_event_resolved)
+		# Removed queue_free() call on RefCounted object
+		battle_events_system = null
+	
+	# Clear mission arrays
+	available_missions.clear()
+	active_missions.clear()
+	completed_missions.clear()
+	mission_history.clear()
+	
+	# Clear references
+	game_state = null
+	dice_manager = null
+	
+	print("CampaignManager: Cleanup completed")
+
+## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
+func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
+	if obj == null:
+		return default_value
+	if obj is Object and obj.has_method("get"):
+		var value: Variant = obj.get(property)
+		return value if value != null else default_value
+	elif obj is Dictionary:
+		return obj.get(property, default_value)
+	return default_value
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null
