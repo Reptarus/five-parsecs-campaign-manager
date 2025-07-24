@@ -37,93 +37,40 @@ func create_component(component_data: Dictionary) -> Resource:
 	var component
 
 	match component_type:
-		GlobalEnums.ShipComponentType.WEAPON_BASIC_LASER:
+		GlobalEnums.ResourceType.NONE:
 			component = FPCM_ShipComponent.new()
-
 			component.attack = component_data.get("damage", 0)
-
 			component.damage = component_data.get("damage", 0)
-		GlobalEnums.ShipComponentType.WEAPON_ADVANCED_LASER:
+		GlobalEnums.ResourceType.CREDITS:
 			component = FPCM_ShipComponent.new()
-
 			component.attack = component_data.get("damage", 0)
-
-			component.damage = component_data.get("damage", 0)
-		GlobalEnums.ShipComponentType.WEAPON_HEAVY_LASER:
+		GlobalEnums.ResourceType.SUPPLIES:
 			component = FPCM_ShipComponent.new()
-
 			component.attack = component_data.get("damage", 0)
-
-			component.damage = component_data.get("damage", 0)
-		GlobalEnums.ShipComponentType.WEAPON_BASIC_KINETIC:
+		GlobalEnums.ResourceType.TECH_PARTS:
 			component = FPCM_ShipComponent.new()
-
 			component.attack = component_data.get("damage", 0)
-
-			component.damage = component_data.get("damage", 0)
-		GlobalEnums.ShipComponentType.WEAPON_ADVANCED_KINETIC:
+		GlobalEnums.ResourceType.PATRON:
 			component = FPCM_ShipComponent.new()
-
 			component.attack = component_data.get("damage", 0)
-
-			component.damage = component_data.get("damage", 0)
-		GlobalEnums.ShipComponentType.WEAPON_HEAVY_KINETIC:
+		GlobalEnums.ResourceType.FUEL:
 			component = FPCM_ShipComponent.new()
-
 			component.attack = component_data.get("damage", 0)
-
-			component.damage = component_data.get("damage", 0)
-		GlobalEnums.ShipComponentType.ENGINE_BASIC:
+		GlobalEnums.ResourceType.MEDICAL_SUPPLIES:
 			component = FPCM_ShipComponent.new()
-
-			component.speed = component_data.get("speed", 0)
-
-			component.reliability = component_data.get("reliability", 0)
-		GlobalEnums.ShipComponentType.ENGINE_IMPROVED:
+			component.attack = component_data.get("damage", 0)
+		GlobalEnums.ResourceType.WEAPONS:
 			component = FPCM_ShipComponent.new()
-
-			component.speed = component_data.get("speed", 0)
-
-			component.reliability = component_data.get("reliability", 0)
-		GlobalEnums.ShipComponentType.ENGINE_ADVANCED:
+			component.attack = component_data.get("damage", 0)
+		GlobalEnums.ResourceType.STORY_POINT:
 			component = FPCM_ShipComponent.new()
-
-			component.speed = component_data.get("speed", 0)
-
-			component.reliability = component_data.get("reliability", 0)
-		GlobalEnums.ShipComponentType.HULL_BASIC:
+			component.attack = component_data.get("damage", 0)
+		GlobalEnums.ResourceType.REPUTATION:
 			component = FPCM_ShipComponent.new()
-
-			component.durability = component_data.get("hull_points", 0)
-
-			component.armor = component_data.get("armor", 0)
-		GlobalEnums.ShipComponentType.HULL_REINFORCED:
-			component = FPCM_ShipComponent.new()
-
-			component.durability = component_data.get("hull_points", 0)
-
-			component.armor = component_data.get("armor", 0)
-		GlobalEnums.ShipComponentType.HULL_ADVANCED:
-			component = FPCM_ShipComponent.new()
-
-			component.durability = component_data.get("hull_points", 0)
-
-			component.armor = component_data.get("armor", 0)
-		GlobalEnums.ShipComponentType.MEDICAL_BASIC:
-			component = FPCM_ShipComponent.new()
-
-			component.capacity = component_data.get("capacity", 0)
-
-			component.tech_level = component_data.get("tech_level", 0)
-		GlobalEnums.ShipComponentType.MEDICAL_ADVANCED:
-			component = FPCM_ShipComponent.new()
-
-			component.capacity = component_data.get("capacity", 0)
-
-			component.tech_level = component_data.get("tech_level", 0)
+			component.attack = component_data.get("damage", 0)
 		_:
-			push_error("Unknown component type")
-			return null
+			component = FPCM_ShipComponent.new()
+			component.attack = component_data.get("damage", 0)
 
 	# Set common properties
 
@@ -147,7 +94,7 @@ func _validate_component_data(data: Dictionary) -> bool:
 
 	# Check if type is valid
 
-	if not data.get("type", null) in GlobalEnums.ShipComponentType.values():
+	if not data.get("type", null) in GlobalEnums.ResourceType.values():
 		push_error("Invalid component type")
 		return false
 

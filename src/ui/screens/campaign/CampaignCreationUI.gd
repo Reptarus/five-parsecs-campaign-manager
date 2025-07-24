@@ -3,7 +3,7 @@ extends Control
 # Universal framework import
 @warning_ignore("shadowed_global_identifier")
 const UniversalNodeValidator = preload("res://src/utils/UniversalNodeValidator.gd")
-const CharacterBase = preload("res://src/core/character/Base/Character.gd")
+const Character = preload("res://src/core/character/Character.gd")
 const CreationStateManager = preload("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
 
 # State Management Integration
@@ -294,6 +294,7 @@ func _connect_panel_signals() -> void:
 	_safe_connect_signal(captain_panel, "captain_updated", _on_captain_updated)
 	_safe_connect_signal(ship_panel, "ship_updated", _on_ship_updated)
 	_safe_connect_signal(equipment_panel, "equipment_generated", _on_equipment_generated)
+	_safe_connect_signal(final_panel, "campaign_creation_requested", _on_campaign_creation_requested)
 	
 	print("CampaignCreationUI: Panel signals connected to state manager")
 
@@ -361,7 +362,7 @@ func _on_crew_updated(crew: Array) -> void:
 		@warning_ignore("unsafe_method_access")
 		crew_panel.set_crew_data(crew)
 	
-	print("CampaignCreationUI: Enhanced crew data sent - Captain: %s, Completion: %.1f%%" % 
+	print("CampaignCreationUI: Enhanced crew data sent - Captain: %s, Completion: %.1f%%" %
 		  [crew_data.captain, crew_data.completion_level * 100])
 
 ## Enhanced Crew Data Analysis
@@ -369,14 +370,21 @@ func _on_crew_updated(crew: Array) -> void:
 func _find_captain(crew: Array) -> String:
 	"""Find the captain in the crew"""
 	for character in crew:
-		if character.get("is_captain", false):
-			return character.get("character_name", "Unknown Captain")
+		# Use safe property access for Resource objects
+		var is_captain = _safe_get_character_property(character, "is_captain", false)
+		
+		if is_captain:
+			var character_name = _safe_get_character_property(character, "character_name", "Unknown Captain")
+			return character_name
 	return ""
 
 func _has_captain(crew: Array) -> bool:
 	"""Check if crew has a captain assigned"""
 	for character in crew:
-		if character.get("is_captain", false):
+		# Use safe property access for Resource objects
+		var is_captain = _safe_get_character_property(character, "is_captain", false)
+		
+		if is_captain:
 			return true
 	return false
 
@@ -395,33 +403,43 @@ func _calculate_crew_completion_level(crew: Array) -> float:
 	
 	return total_completion / crew.size()
 
+func _safe_get_character_property(character, property: String, default_value: Variant = null) -> Variant:
+	"""Safely get a character property, handling both Resource and Dictionary objects"""
+	if character == null:
+		return default_value
+	if character.has_method("get"):
+		var value = character.get(property)
+		return value if value != null else default_value
+	else:
+		return default_value
+
 func _estimate_character_completeness(character) -> float:
 	"""Estimate character completeness for characters without the method"""
 	var completeness = 0.0
 	var total_criteria = 8.0
 	
 	# Basic info (3 criteria)
-	if character.get("character_name", "") != "":
+	if _safe_get_character_property(character, "character_name", "") != "":
 		completeness += 1.0
-	if character.get("background", 0) > 0:
+	if _safe_get_character_property(character, "background", 0) > 0:
 		completeness += 1.0
-	if character.get("motivation", 0) > 0:
+	if _safe_get_character_property(character, "motivation", 0) > 0:
 		completeness += 1.0
 	
 	# Attributes (2 criteria)
-	if character.get("combat", 0) >= 0 and character.get("toughness", 0) >= 3:
+	if _safe_get_character_property(character, "combat", 0) >= 0 and _safe_get_character_property(character, "toughness", 0) >= 3:
 		completeness += 1.0
-	if character.get("max_health", 0) > 0:
+	if _safe_get_character_property(character, "max_health", 0) > 0:
 		completeness += 1.0
 	
 	# Relationships (2 criteria)
-	if character.get("patrons", []).size() > 0 or character.get("rivals", []).size() > 0:
+	if _safe_get_character_property(character, "patrons", []).size() > 0 or _safe_get_character_property(character, "rivals", []).size() > 0:
 		completeness += 1.0
-	if character.get("traits", []).size() > 0:
+	if _safe_get_character_property(character, "traits", []).size() > 0:
 		completeness += 1.0
 	
 	# Equipment (1 criterion)
-	if character.get("personal_equipment", {}).size() > 0 or character.get("credits_earned", 0) > 0:
+	if _safe_get_character_property(character, "personal_equipment", {}).size() > 0 or _safe_get_character_property(character, "credits_earned", 0) > 0:
 		completeness += 1.0
 	
 	return completeness / total_criteria
@@ -456,12 +474,15 @@ func _get_crew_customization_summary(crew: Array) -> Dictionary:
 			summary.basic_only += 1
 		
 		# Count relationships and equipment
-		summary.total_patrons += character.get("patrons", []).size()
-		summary.total_rivals += character.get("rivals", []).size()
-		summary.total_traits += character.get("traits", []).size()
-		summary.total_starting_credits += character.get("credits_earned", 0)
+		summary.total_patrons += _safe_get_character_property(character, "patrons", []).size()
+		summary.total_rivals += _safe_get_character_property(character, "rivals", []).size()
+		summary.total_traits += _safe_get_character_property(character, "traits", []).size()
+		summary.total_starting_credits += _safe_get_character_property(character, "credits_earned", 0)
 		
-		if character.get("is_captain", false):
+		# Use safe property access for Resource objects
+		var is_captain = _safe_get_character_property(character, "is_captain", false)
+		
+		if is_captain:
 			summary.captain_assigned = true
 	
 	return summary
@@ -507,6 +528,11 @@ func _on_equipment_generated(equipment: Array) -> void:
 	
 	# Update navigation
 	_update_navigation_state()
+
+func _on_campaign_creation_requested(campaign_data: Dictionary) -> void:
+	"""Handle campaign creation request from FinalPanel"""
+	print("CampaignCreationUI: Campaign creation requested from FinalPanel")
+	_on_finish_button_pressed()
 	
 	# Equipment will be included in final campaign creation
 
@@ -572,13 +598,16 @@ func _validate_crew_phase_completion() -> bool:
 	var crew = crew_data.get("members", [])
 	
 	# Check basic requirements
-	if crew.size() < 4:  # Minimum crew size
+	if crew.size() < 4: # Minimum crew size
 		return false
 	
 	# Check captain assignment
 	var has_captain = false
 	for character in crew:
-		if character.get("is_captain", false):
+		# Use safe property access for Resource objects
+		var is_captain = _safe_get_character_property(character, "is_captain", false)
+		
+		if is_captain:
 			has_captain = true
 			break
 	
@@ -594,11 +623,11 @@ func _validate_crew_phase_completion() -> bool:
 		else:
 			completeness = _estimate_character_completeness(character)
 		
-		if completeness < 0.8:  # Require 80% completion
+		if completeness < 0.8: # Require 80% completion
 			incomplete_count += 1
 	
 	# Allow progression if most characters are sufficiently complete
-	return incomplete_count <= (crew.size() / 4)  # Max 25% incomplete
+	return incomplete_count <= (crew.size() / 4) # Max 25% incomplete
 
 func _update_step_progress(current_phase: CampaignCreationStateManager.Phase) -> void:
 	"""Update step progress indicator"""
@@ -611,9 +640,9 @@ func _update_step_progress(current_phase: CampaignCreationStateManager.Phase) ->
 	if current_step_index < phase_names.size():
 		var progress_percent: float = (float(current_step_index) / float(phase_names.size() - 1)) * 100.0
 		step_label.text = "Step %d of %d: %s (%.0f%% Complete)" % [
-			current_step_index + 1, 
-			phase_names.size(), 
-			phase_names[current_step_index], 
+			current_step_index + 1,
+			phase_names.size(),
+			phase_names[current_step_index],
 			progress_percent
 		]
 
@@ -653,7 +682,10 @@ func _show_crew_validation_feedback() -> void:
 	# Check captain assignment
 	var captain_assigned = false
 	for character in crew:
-		if character.get("is_captain", false):
+		# Use safe property access for Resource objects
+		var is_captain = _safe_get_character_property(character, "is_captain", false)
+		
+		if is_captain:
 			captain_assigned = true
 			break
 	
@@ -670,7 +702,7 @@ func _show_crew_validation_feedback() -> void:
 			completeness = _estimate_character_completeness(character)
 		
 		if completeness < 0.8:
-			var name = character.get("character_name", "Unnamed Character")
+			var name = _safe_get_character_property(character, "character_name", "Unnamed Character")
 			incomplete_characters.append("%s (%.0f%%)" % [name, completeness * 100])
 	
 	if incomplete_characters.size() > 0:
@@ -812,7 +844,7 @@ func _collect_current_panel_data() -> void:
 		print("CampaignCreationUI: Collected equipment data")
 	
 	# Apply field mapping for ConfigPanel data
-	if current_step == 0 and panel_data.has("name"):  # ConfigPanel is step 0
+	if current_step == 0 and panel_data.has("name"): # ConfigPanel is step 0
 		panel_data = {
 			"campaign_name": panel_data.get("name", ""),
 			"difficulty_level": panel_data.get("difficulty", 1),
@@ -1204,7 +1236,7 @@ func _finalize_campaign_creation() -> void:
 
 		# Set captain data if available
 		if campaign_config.has("captain") and creation_manager and creation_manager.has_method("set_captain_data"):
-			if campaign_config.captain is CharacterBase:
+			if campaign_config.captain is Character:
 				# Convert Character object to dictionary format
 				@warning_ignore("untyped_declaration")
 				var captain_dict = {

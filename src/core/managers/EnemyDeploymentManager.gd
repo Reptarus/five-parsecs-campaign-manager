@@ -1,28 +1,28 @@
 extends Resource
 
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const Character = preload("res://src/core/character/Base/Character.gd")
+const Character = preload("res://src/core/character/Character.gd")
 
 signal enemy_deployment_generated(positions: Array)
 signal deployment_validated(success: bool)
 
-func get_deployment_type(ai_behavior: GlobalEnums.AIBehavior) -> GlobalEnums.DeploymentType:
+func get_deployment_type(ai_behavior: int) -> GlobalEnums.DeploymentType:
 	var roll := randi() % 100 + 1
 
 	match ai_behavior:
-		GlobalEnums.AIBehavior.AGGRESSIVE:
+		0: # AGGRESSIVE
 			if roll <= 30: return GlobalEnums.DeploymentType.STANDARD
 			elif roll <= 50: return GlobalEnums.DeploymentType.AMBUSH
-			elif roll <= 60: return GlobalEnums.DeploymentType.BOLSTERED_LINE
-			elif roll <= 80: return GlobalEnums.DeploymentType.INFILTRATION
-			elif roll <= 90: return GlobalEnums.DeploymentType.OFFENSIVE
-			else: return GlobalEnums.DeploymentType.CONCEALED
-		GlobalEnums.AIBehavior.CAUTIOUS:
-			if roll <= 30: return GlobalEnums.DeploymentType.LINE
+			elif roll <= 60: return GlobalEnums.DeploymentType.CONCENTRATED
+			elif roll <= 80: return GlobalEnums.DeploymentType.OFFENSIVE
+			elif roll <= 90: return GlobalEnums.DeploymentType.SPECIALIZED
+			else: return GlobalEnums.DeploymentType.SCATTERED
+		1: # CAUTIOUS
+			if roll <= 30: return GlobalEnums.DeploymentType.STANDARD
 			elif roll <= 50: return GlobalEnums.DeploymentType.DEFENSIVE
-			elif roll <= 70: return GlobalEnums.DeploymentType.BOLSTERED_LINE
-			elif roll <= 90: return GlobalEnums.DeploymentType.REINFORCEMENT
-			else: return GlobalEnums.DeploymentType.CONCEALED
+			elif roll <= 70: return GlobalEnums.DeploymentType.CONCENTRATED
+			elif roll <= 90: return GlobalEnums.DeploymentType.SPECIALIZED
+			else: return GlobalEnums.DeploymentType.SCATTERED
 		_:
 			return GlobalEnums.DeploymentType.STANDARD
 
@@ -30,7 +30,7 @@ func generate_deployment_positions(battle_map: Node, deployment_type: GlobalEnum
 	match deployment_type:
 		GlobalEnums.DeploymentType.STANDARD:
 			return _generate_standard_deployment(battle_map)
-		GlobalEnums.DeploymentType.LINE:
+		GlobalEnums.DeploymentType.SCATTERED:
 			return _generate_line_deployment(battle_map)
 		GlobalEnums.DeploymentType.AMBUSH:
 			return _generate_flank_deployment(battle_map)
@@ -38,13 +38,13 @@ func generate_deployment_positions(battle_map: Node, deployment_type: GlobalEnum
 			return _generate_scattered_deployment(battle_map)
 		GlobalEnums.DeploymentType.DEFENSIVE:
 			return _generate_defensive_deployment(battle_map)
-		GlobalEnums.DeploymentType.INFILTRATION:
+		GlobalEnums.DeploymentType.SPECIALIZED:
 			return _generate_infiltration_deployment(battle_map)
-		GlobalEnums.DeploymentType.REINFORCEMENT:
+		GlobalEnums.DeploymentType.CONCENTRATED:
 			return _generate_reinforced_deployment(battle_map)
-		GlobalEnums.DeploymentType.BOLSTERED_LINE:
+		GlobalEnums.DeploymentType.CONCENTRATED:
 			return _generate_bolstered_line_deployment(battle_map)
-		GlobalEnums.DeploymentType.CONCEALED:
+		GlobalEnums.DeploymentType.RANDOM:
 			return _generate_concealed_deployment(battle_map)
 		_:
 			push_error("Invalid deployment _type: %d" % deployment_type)

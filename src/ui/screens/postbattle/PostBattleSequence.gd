@@ -41,6 +41,7 @@ func _ready() -> void:
 	_initialize_steps()
 	_load_battle_results()
 	_show_current_step()
+	_setup_postbattle_icons()
 
 func _initialize_steps() -> void:
 	"""Initialize the post-battle sequence"""
@@ -333,3 +334,26 @@ func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Va
 	if obj is Object and obj.has_method(method_name):
 		return obj.callv(method_name, args)
 	return null
+
+## Setup post-battle phase icons for enhanced visual navigation
+func _setup_postbattle_icons() -> void:
+	"""Setup icons for post-battle phase buttons to improve visual clarity"""
+	# Phase 2: Post-Battle Phase Icons Integration
+	
+	# Next Button (primary post-battle action) - icon_campaign_post_battle.svg
+	if next_button:
+		next_button.icon = preload("res://assets/basic icons/icon_campaign_post_battle.svg")
+		next_button.expand_icon = true
+		next_button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		print("PostBattleSequence: Post-battle phase icon applied to next button successfully")
+	else:
+		push_warning("PostBattleSequence: Next button not found for icon assignment")
+	
+	# Finish Button (completion action) - also use post-battle icon
+	if finish_button:
+		finish_button.icon = preload("res://assets/basic icons/icon_campaign_post_battle.svg")
+		finish_button.expand_icon = true
+		finish_button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		print("PostBattleSequence: Post-battle phase icon applied to finish button successfully")
+	else:
+		push_warning("PostBattleSequence: Finish button not found for icon assignment")

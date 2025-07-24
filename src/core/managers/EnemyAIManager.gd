@@ -4,13 +4,12 @@ const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GameState = preload("res://src/core/state/GameState.gd")
 const Enemy = preload("res://src/core/enemy/base/Enemy.gd")
 const UnifiedAISystem = preload("res://src/core/systems/UnifiedAISystem.gd")
-const AIController = preload("res://src/core/systems/AIController.gd")
-const Character = preload("res://src/core/character/Base/Character.gd")
+const Character = preload("res://src/core/character/Character.gd")
 const SaveManager = preload("res://src/core/state/SaveManager.gd")
 
 # Signals
 signal ai_decision_made(enemy_ref: Enemy, decision: Dictionary)
-signal behavior_changed(enemy_ref: Enemy, new_behavior: GlobalEnums.AIBehavior)
+signal behavior_changed(enemy_ref: Enemy, new_behavior: int)
 signal action_completed(enemy_ref: Enemy, action_type: String)
 
 # Constants for behavior weights  
@@ -68,13 +67,13 @@ func register_enemy(enemy: Enemy) -> void:
 func unregister_enemy(enemy: Enemy) -> void:
 	active_enemies.erase(enemy)
 	tactical_memory.erase(enemy)
-func set_behavior_override(enemy: Enemy, behavior: GlobalEnums.AIBehavior) -> void:
+func set_behavior_override(enemy: Enemy, behavior: int) -> void:
 	behavior_overrides[enemy] = behavior
 	behavior_changed.emit(enemy, behavior)
 
 func clear_behavior_override(enemy: Enemy) -> void:
 	behavior_overrides.erase(enemy)
-func get_current_behavior(enemy: Enemy) -> GlobalEnums.AIBehavior:
+func get_current_behavior(enemy: Enemy) -> int:
 	return behavior_overrides.get(enemy, enemy.behavior)
 
 # Decision Making
@@ -187,13 +186,13 @@ func deserialize(data: Dictionary) -> void:
 	behavior_overrides.clear()
 	tactical_memory.clear()
 
-	if data.has("behavior_overrides"):
+	if "behavior_overrides" in data:
 		for enemy_id in data.behavior_overrides:
 			var enemy: Character = instance_from_id(int(enemy_id))
 			if is_instance_valid(enemy):
 				behavior_overrides[enemy] = data.behavior_overrides[enemy_id]
 
-	if data.has("tactical_memory"):
+	if "tactical_memory" in data:
 		for enemy_id in data.tactical_memory:
 			var enemy: Character = instance_from_id(int(enemy_id))
 			if is_instance_valid(enemy):
@@ -546,10 +545,9 @@ func _get_viable_targets(enemy: Enemy) -> Array:
 	return []
 
 func _is_target_vulnerable(target: Variant) -> bool:
-
 	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
 	if not is_instance_valid(self):
-		return false	# Check if target is in a vulnerable position
+		return false # Check if target is in a vulnerable position
 	# Implementation would check for flanking, no cover, low health, etc.
 	return false
 
@@ -705,7 +703,6 @@ func _get_closest_target(enemy: Enemy) -> Node:
 
 ## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
 func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
-
 	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
 	if not is_instance_valid(self):
 		return

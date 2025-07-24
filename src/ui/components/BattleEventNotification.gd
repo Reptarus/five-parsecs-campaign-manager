@@ -11,7 +11,17 @@ extends Control
 ## Performance: Lightweight animation with memory-efficient lifecycle
 
 # Dependencies
-const BattleTracker = preload("res://src/core/battle/BattleTracker.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const Character = preload("res://src/core/character/Character.gd")
+
+# Battle Event Types
+enum BattleEventType {
+	COMBAT,
+	MOVEMENT,
+	OBJECTIVE,
+	ENVIRONMENTAL,
+	SPECIAL
+}
 
 # Event notification signals
 signal event_acknowledged(event_id: String)
@@ -30,7 +40,7 @@ signal event_details_requested(event_id: String)
 @onready var animation_player: AnimationPlayer = %AnimationPlayer
 
 # Event data
-var event_data: BattleTracker.BattleEvent = null
+var event_data: Resource = null
 var notification_id: String = ""
 var auto_dismiss_enabled: bool = true
 var display_duration: float = 10.0 # seconds
@@ -41,22 +51,27 @@ var is_animating: bool = false
 
 # Event type styling
 var event_type_colors := {
-	BattleTracker.EventType.ENVIRONMENTAL_HAZARD: Color.ORANGE,
-	BattleTracker.EventType.REINFORCEMENTS: Color.RED,
-	BattleTracker.EventType.WEATHER_CHANGE: Color.CYAN,
-	BattleTracker.EventType.EQUIPMENT_MALFUNCTION: Color.YELLOW,
-	BattleTracker.EventType.MORALE_CHECK: Color.PURPLE,
-	BattleTracker.EventType.SPECIAL_MISSION: Color.GOLD
+	0: Color.ORANGE, # ENVIRONMENTAL_HAZARD
+	1: Color.RED, # REINFORCEMENTS
+	2: Color.CYAN, # WEATHER_CHANGE
+	3: Color.YELLOW, # EQUIPMENT_MALFUNCTION
+	4: Color.PURPLE, # MORALE_CHECK
+	5: Color.GOLD # SPECIAL_MISSION
 }
 
 var event_type_icons := {
-	BattleTracker.EventType.ENVIRONMENTAL_HAZARD: "⚠️",
-	BattleTracker.EventType.REINFORCEMENTS: "🚁",
-	BattleTracker.EventType.WEATHER_CHANGE: "🌧️",
-	BattleTracker.EventType.EQUIPMENT_MALFUNCTION: "⚙️",
-	BattleTracker.EventType.MORALE_CHECK: "💭",
-	BattleTracker.EventType.SPECIAL_MISSION: "⭐"
+	0: "⚠️", # ENVIRONMENTAL_HAZARD
+	1: "🚁", # REINFORCEMENTS
+	2: "🌧️", # WEATHER_CHANGE
+	3: "⚙️", # EQUIPMENT_MALFUNCTION
+	4: "💭", # MORALE_CHECK
+	5: "⭐" # SPECIAL_MISSION
 }
+
+# Internal variables
+var _battle_tracker: Resource = null
+var _notification_queue: Array = []
+var _current_notification: Resource = null
 
 func _ready() -> void:
 	"""Initialize notification component"""
@@ -66,6 +81,49 @@ func _ready() -> void:
 
 	# Start hidden
 	hide_notification(false)
+
+## Initialize the notification system
+func initialize(battle_tracker: Resource) -> void:
+	if not battle_tracker:
+		push_error("BattleEventNotification: Cannot initialize with null battle tracker")
+		return
+
+	_battle_tracker = battle_tracker
+	_connect_to_battle_events()
+
+## Connect to battle events
+func _connect_to_battle_events() -> void:
+	if not _battle_tracker:
+		return
+
+	# Connect to battle event signals
+	if _battle_tracker.has_signal("combat_event"):
+		_battle_tracker.combat_event.connect(_on_combat_event)
+	if _battle_tracker.has_signal("movement_event"):
+		_battle_tracker.movement_event.connect(_on_movement_event)
+	if _battle_tracker.has_signal("objective_event"):
+		_battle_tracker.objective_event.connect(_on_objective_event)
+	if _battle_tracker.has_signal("environmental_event"):
+		_battle_tracker.environmental_event.connect(_on_environmental_event)
+	if _battle_tracker.has_signal("special_event"):
+		_battle_tracker.special_event.connect(_on_special_event)
+
+## Disconnect from battle events
+func _disconnect_from_battle_events() -> void:
+	if not _battle_tracker:
+		return
+
+	# Disconnect from battle event signals
+	if _battle_tracker.has_signal("combat_event"):
+		_battle_tracker.combat_event.disconnect(_on_combat_event)
+	if _battle_tracker.has_signal("movement_event"):
+		_battle_tracker.movement_event.disconnect(_on_movement_event)
+	if _battle_tracker.has_signal("objective_event"):
+		_battle_tracker.objective_event.disconnect(_on_objective_event)
+	if _battle_tracker.has_signal("environmental_event"):
+		_battle_tracker.environmental_event.disconnect(_on_environmental_event)
+	if _battle_tracker.has_signal("special_event"):
+		_battle_tracker.special_event.disconnect(_on_special_event)
 
 func _setup_notification_styling() -> void:
 	"""Setup visual styling for notification"""
@@ -150,7 +208,7 @@ func _create_slide_out_animation() -> void:
 # EVENT DISPLAY MANAGEMENT
 # =====================================================
 
-func show_event(event: BattleTracker.BattleEvent, round_number: int = 0) -> void:
+func show_event(event: Resource, round_number: int = 0) -> void:
 	"""
 	Display battle event notification
 
@@ -336,8 +394,8 @@ func _on_acknowledge_pressed() -> void:
 func _on_dice_roll_pressed() -> void:
 	"""Handle dice roll button press"""
 	if event_data:
-		var pattern := event_data.dice_pattern if event_data.requires_dice_roll else "d6"
-		var context := "Event: %s" % event_data.title
+		var pattern: String = event_data.dice_pattern if event_data.requires_dice_roll else "d6"
+		var context: String = "Event: %s" % event_data.title
 		dice_roll_requested.emit(pattern, context)
 
 func _on_details_pressed() -> void:
@@ -426,32 +484,32 @@ func _get_detailed_event_description() -> String:
 	if not event_data:
 		return "No event data available"
 
-	var description := event_data.description
+	var description: String = event_data.description
 
 	# Add event type context
-	var type_context := _get_event_type_context(event_data.event_type)
+	var type_context: String = _get_event_type_context(event_data.event_type)
 	if type_context != "":
 		description += "\n\n[i]" + type_context + "[/i]"
 
 	return description
 
-func _get_event_type_context(event_type: BattleTracker.EventType) -> String:
+func _get_event_type_context(event_type: int) -> String:
 	"""Get contextual information for event type"""
 	match event_type:
-		BattleTracker.EventType.ENVIRONMENTAL_HAZARD:
+		0: # ENVIRONMENTAL_HAZARD
 			return "Environmental hazards can affect movement, visibility, or cause damage to units in specific areas."
-		BattleTracker.EventType.REINFORCEMENTS:
+		1: # REINFORCEMENTS
 			return "Reinforcement events may bring additional enemy units or provide support for existing forces."
-		BattleTracker.EventType.WEATHER_CHANGE:
+		2: # WEATHER_CHANGE
 			return "Weather changes can affect visibility, movement, and weapon effectiveness across the battlefield."
-		BattleTracker.EventType.EQUIPMENT_MALFUNCTION:
+		3: # EQUIPMENT_MALFUNCTION
 			return "Equipment malfunctions may require repair rolls or cause temporary disadvantages."
-		BattleTracker.EventType.MORALE_CHECK:
+		4: # MORALE_CHECK
 			return "Morale checks test unit resolve and may cause retreats or performance penalties."
-		BattleTracker.EventType.SPECIAL_MISSION:
+		5: # SPECIAL_MISSION
 			return "Mission-specific events are unique to the current scenario and may affect victory conditions."
 		_:
-			return ""
+			return "Unknown event type."
 
 func _get_event_effects_text() -> String:
 	"""Get formatted text describing event effects"""
@@ -551,3 +609,19 @@ func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Va
 	if obj is Object and obj.has_method(method_name):
 		return obj.callv(method_name, args)
 	return null
+
+## Event handlers
+func _on_combat_event(event_data: Dictionary) -> void:
+	show_event(Resource.new(), event_data.get("round", 0))
+
+func _on_movement_event(event_data: Dictionary) -> void:
+	show_event(Resource.new(), event_data.get("round", 0))
+
+func _on_objective_event(event_data: Dictionary) -> void:
+	show_event(Resource.new(), event_data.get("round", 0))
+
+func _on_environmental_event(event_data: Dictionary) -> void:
+	show_event(Resource.new(), event_data.get("round", 0))
+
+func _on_special_event(event_data: Dictionary) -> void:
+	show_event(Resource.new(), event_data.get("round", 0))

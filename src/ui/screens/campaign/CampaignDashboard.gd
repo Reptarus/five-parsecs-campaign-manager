@@ -1,19 +1,12 @@
-﻿# Universal Connection Validation Applied
-# Based on proven patterns: Universal Mock Strategy + 7-Stage Methodology
+# Campaign Dashboard UI with BaseCampaignDashboardSystem Integration
+# Part of Phase 2C Campaign Dashboard Consolidation
 class_name FPCM_CampaignDashboardUI
 extends Control
 
 # Safe imports
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-
-# Safe dependency loading with preload pattern
+const BaseCampaignDashboardSystem = preload("res://src/base/ui/BaseCampaignDashboardSystem.gd")
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GameState = preload("res://src/core/state/GameState.gd")
-const CampaignPhaseManagerScript = preload("res://src/core/campaign/CampaignPhaseManager.gd")
 const FPCM_BasePhasePanel = preload("res://src/ui/screens/campaign/phases/BasePhasePanel.gd")
 
 # Official Five Parsecs Phase Panels - following Four-Phase structure
@@ -39,15 +32,20 @@ var PostBattlePhasePanel: PackedScene = null
 @onready var quit_button: Button = get_node("MarginContainer/VBoxContainer/ButtonContainer/QuitButton") as Button
 # @onready var phase_container = $PhaseContainer # This node doesn't exist in scene
 
-var game_state: GameState
-var phase_manager: Node
+# Dashboard system (handles all logic)
+var dashboard_system: BaseCampaignDashboardSystem = null
 var current_phase_panel: FPCM_BasePhasePanel
 
-# Manager references (from autoloads)
-var alpha_manager: Node = null
-var campaign_manager: Node = null
+# Legacy compatibility
+var game_state: GameState
+var phase_manager: Node
+var campaign_manager: Node
 
 func _ready() -> void:
+	# Initialize dashboard system
+	dashboard_system = BaseCampaignDashboardSystem.new()
+	_connect_dashboard_system_signals()
+	
 	# Load official Five Parsecs phase panel scenes
 	print("CampaignDashboard: Loading phase panel scenes...")
 	TravelPhasePanel = load("res://src/ui/screens/travel/TravelPhaseUI.tscn")
@@ -56,25 +54,30 @@ func _ready() -> void:
 	# Note: Battle phase handled by BattlefieldCompanion, not dashboard panel
 	print("CampaignDashboard: Phase panels loaded successfully")
 
-	_initialize_managers()
+	_setup_dashboard_system()
 	_connect_signals()
 	_setup_campaign()
 	_update_ui()
+	_setup_button_icons()
 
-func _initialize_managers() -> void:
-	"""Initialize manager references from autoloads"""
-	alpha_manager = get_node("/root/FPCM_AlphaGameManager") if has_node("/root/FPCM_AlphaGameManager") else null
-	campaign_manager = get_node("/root/CampaignManager") if has_node("/root/CampaignManager") else null
+func _connect_dashboard_system_signals() -> void:
+	"""Connect to dashboard system signals"""
+	if dashboard_system:
+		dashboard_system.campaign_data_updated.connect(_on_system_campaign_data_updated)
+		dashboard_system.phase_changed.connect(_on_system_phase_changed)
+		dashboard_system.phase_completed.connect(_on_system_phase_completed)
+		dashboard_system.phase_event_triggered.connect(_on_system_phase_event)
+		dashboard_system.quick_action_requested.connect(_on_system_quick_action_requested)
 
-	# Use campaign manager if available, otherwise fall back to local implementation
-	if campaign_manager:
-		print("Using CampaignManager from autoload")
-	else:
-		# Fallback to autoload implementation
-		game_state = get_node("/root/GameState")
-		phase_manager = CampaignPhaseManagerScript.new()
-		phase_manager.name = "PhaseManager"
-		add_child(phase_manager)
+func _setup_dashboard_system() -> void:
+	"""Setup dashboard system with game state"""
+	if dashboard_system:
+		# Get game state for dashboard system
+		var game_state_node = get_node("/root/GameState") if has_node("/root/GameState") else null
+		dashboard_system.setup_dashboard(BaseCampaignDashboardSystem.DashboardMode.BASIC, game_state_node)
+		
+		# Set legacy references for compatibility
+		game_state = game_state_node
 
 func _connect_signals() -> void:
 	# Connect to campaign manager signals if available
@@ -177,36 +180,41 @@ func _on_phase_event(_event: Dictionary) -> void:
 			_handle_end_phase_event(_event)
 
 func _on_next_phase_pressed() -> void:
-	if phase_manager:
-		var next_phase: int = _get_next_phase(phase_manager.current_phase)
-		if next_phase != safe_get_property(GlobalEnums, "FiveParsecsCampaignPhase").NONE:
-			if phase_manager.has_method("start_phase"):
-				phase_manager.start_phase(next_phase)
-			if next_phase_button:
-				next_phase_button.disabled = true
+	if dashboard_system:
+		var success = dashboard_system.advance_to_next_phase()
+		if success and next_phase_button:
+			next_phase_button.disabled = true
 
 func _update_phase_ui(phase: int) -> void:
-	if phase_label:
-		var phase_names = ["SETUP", "TRAVEL", "WORLD", "BATTLE", "POST_BATTLE"]
-		var phase_name = phase_names[phase] if phase >= 0 and phase < phase_names.size() else "UNKNOWN"
-		phase_label.text = "Current Phase: " + phase_name
-	if next_phase_button:
-		var next_phase = _get_next_phase(phase)
-		var phase_names = ["SETUP", "TRAVEL", "WORLD", "BATTLE", "POST_BATTLE"]
-		var next_phase_name = phase_names[next_phase] if next_phase >= 0 and next_phase < phase_names.size() else "UNKNOWN"
-		next_phase_button.text = "Next Phase: " + next_phase_name
+	if dashboard_system:
+		var phase_name = dashboard_system.get_phase_name(phase)
+		if phase_label:
+			phase_label.text = "Current Phase: " + phase_name
+		if next_phase_button:
+			var next_phase = dashboard_system._get_next_phase(phase)
+			var next_phase_name = dashboard_system.get_phase_name(next_phase)
+			next_phase_button.text = "Next Phase: " + next_phase_name
 
 func _update_ui() -> void:
-	if not game_state or not game_state.campaign:
-		return
-
-	if credits_label:
-		credits_label.text = "Credits: %d" % game_state.campaign.credits
-	if story_points_label:
-		story_points_label.text = "Story Points: %d" % game_state.campaign.story_points
-
-	_update_crew_list()
-	_update_ship_info()
+	if dashboard_system:
+		var summary = dashboard_system.get_campaign_summary()
+		
+		if credits_label:
+			credits_label.text = "Credits: %d" % summary.get("credits", 0)
+		if story_points_label:
+			story_points_label.text = "Story Points: %d" % summary.get("story_points", 0)
+		
+		_update_crew_list()
+		_update_ship_info()
+	elif game_state and game_state.campaign:
+		# Fallback to legacy update
+		if credits_label:
+			credits_label.text = "Credits: %d" % game_state.campaign.credits
+		if story_points_label:
+			story_points_label.text = "Story Points: %d" % game_state.campaign.story_points
+		
+		_update_crew_list()
+		_update_ship_info()
 
 func _update_crew_list() -> void:
 	if not crew_list:
@@ -328,22 +336,56 @@ func _on_manage_crew_pressed() -> void:
 	get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/crew/CrewManagement.tscn")
 
 func _on_save_pressed() -> void:
-	game_state.save_campaign()
+	if dashboard_system:
+		dashboard_system.execute_quick_action("save_campaign")
+	elif game_state:
+		game_state.save_campaign()
 
 func _on_load_pressed() -> void:
 	get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/campaign/LoadCampaign.tscn")
 
 func _on_quit_pressed() -> void:
-	if campaign_manager and campaign_manager.has_method("save_current_campaign"):
-		campaign_manager.save_current_campaign()
-	elif game_state:
-		if game_state and game_state.has_method("end_campaign"):
-			game_state.end_campaign()
+	# Save campaign before quitting
+	if dashboard_system:
+		dashboard_system.execute_quick_action("save_campaign")
+	elif game_state and game_state.has_method("end_campaign"):
+		game_state.end_campaign()
+	
 	get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/MainMenu.tscn")
 
 func _on_campaign_updated() -> void:
 	"""Handle campaign data updates from campaign manager"""
 	_update_ui()
+
+## Dashboard system signal handlers
+func _on_system_campaign_data_updated(data: Dictionary) -> void:
+	"""Handle campaign data updates from dashboard system"""
+	_update_ui()
+
+func _on_system_phase_changed(old_phase: int, new_phase: int) -> void:
+	"""Handle phase changes from dashboard system"""
+	_update_phase_ui(new_phase)
+	_load_phase_content(new_phase)
+
+func _on_system_phase_completed() -> void:
+	"""Handle phase completion from dashboard system"""
+	if next_phase_button:
+		next_phase_button.disabled = false
+
+func _on_system_phase_event(event: Dictionary) -> void:
+	"""Handle phase events from dashboard system"""
+	_on_phase_event(event)
+
+func _on_system_quick_action_requested(action: String, context: Dictionary) -> void:
+	"""Handle quick action requests from dashboard system"""
+	match action:
+		"manage_crew":
+			_on_manage_crew_pressed()
+		"ship_management":
+			# TODO: Add ship management action
+			pass
+		_:
+			print("Unknown quick action: ", action)
 
 func _load_campaign_data(campaign_data: Variant) -> void:
 	"""Load campaign data from manager"""
@@ -379,3 +421,42 @@ func safe_get_property(obj: Variant, property: String, default_value: Variant = 
 	elif obj is Dictionary:
 		return obj.get(property, default_value)
 	return default_value
+
+## Public API for enhanced dashboard integration
+func enable_enhanced_mode() -> void:
+	"""Enable enhanced dashboard mode with additional features"""
+	if dashboard_system:
+		dashboard_system.current_mode = BaseCampaignDashboardSystem.DashboardMode.ENHANCED
+		_update_ui()
+
+func get_dashboard_system() -> BaseCampaignDashboardSystem:
+	"""Get dashboard system for direct access"""
+	return dashboard_system
+
+func update_campaign_data(campaign_data: Dictionary) -> void:
+	"""Update campaign data through dashboard system"""
+	if dashboard_system:
+		dashboard_system.update_campaign_data(campaign_data)
+
+## Setup button icons for enhanced UI visual hierarchy
+func _setup_button_icons() -> void:
+	"""Setup icons for dashboard buttons to improve visual clarity and user experience"""
+	# Phase 1: Core Dashboard Icons Integration
+	
+	# Manage Crew Button - icon_manage_crew.svg
+	if manage_crew_button:
+		manage_crew_button.icon = preload("res://assets/basic icons/icon_manage_crew.svg")
+		manage_crew_button.expand_icon = true
+		manage_crew_button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		print("CampaignDashboard: Manage crew icon applied successfully")
+	else:
+		push_warning("CampaignDashboard: Manage crew button not found for icon assignment")
+	
+	# Save Campaign Button - icon_save_campaign.svg  
+	if save_button:
+		save_button.icon = preload("res://assets/basic icons/icon_save_campaign.svg")
+		save_button.expand_icon = true
+		save_button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		print("CampaignDashboard: Save campaign icon applied successfully")
+	else:
+		push_warning("CampaignDashboard: Save button not found for icon assignment")

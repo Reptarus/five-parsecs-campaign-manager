@@ -7,7 +7,7 @@ extends Control
 # Safe imports
 # # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const Character = preload("res://src/core/character/Base/Character.gd")
+const Character = preload("res://src/core/character/Character.gd")
 
 # UI Components
 @onready var character_name_label: Label = get_node("VBoxContainer/HeaderSection/NameLabel")

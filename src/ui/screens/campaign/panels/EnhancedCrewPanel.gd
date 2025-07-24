@@ -1,10 +1,10 @@
 @tool
-extends Control
+extends BaseCrewComponent
 class_name EnhancedCrewPanel
 
 ## Enhanced Crew Display Panel - Comprehensive crew management with detailed stats and status
-## Extends existing CampaignDashboard.gd patterns with Digital Dice System visual language
-## Provides rich information cards replacing basic ItemList with contextual data display
+## Now extends BaseCrewComponent for shared crew management functionality
+## Provides rich information cards with enhanced visual features
 
 # Universal Safety patterns
 const BaseEnhancedComponents = preload("res://src/ui/components/enhanced/BaseEnhancedComponents.gd")
@@ -19,8 +19,8 @@ const FPCM_CampaignResponsiveLayout = preload("res://src/ui/components/base/Camp
 @onready var crew_performance_chart: Control = %CrewPerformanceChart
 @onready var crew_equipment_summary: Control = %CrewEquipmentSummary
 
-# Data management
-var crew_data: Array[Dictionary] = []
+# Enhanced display data (BaseCrewComponent handles core crew data)
+var crew_display_data: Array[Dictionary] = []
 var selected_crew_member: String = ""
 var crew_performance_data: Dictionary = {}
 
@@ -28,6 +28,13 @@ var crew_performance_data: Dictionary = {}
 var enhanced_signals: EnhancedCampaignSignals
 
 func _ready() -> void:
+	# Call parent initialization first
+	super._ready()
+	
+	print("EnhancedCrewPanel: Initializing enhanced crew display panel...")
+	call_deferred("_setup_enhanced_panel")
+
+func _setup_enhanced_panel() -> void:
 	_setup_crew_panel()
 	_connect_enhanced_signals()
 	_apply_responsive_layout()
@@ -53,6 +60,10 @@ func _connect_enhanced_signals() -> void:
 	enhanced_signals.connect_signal_safely("crew_performance_updated", self, "_on_crew_performance_updated")
 	enhanced_signals.connect_signal_safely("crew_equipment_changed", self, "_on_crew_equipment_changed")
 	enhanced_signals.connect_signal_safely("crew_health_changed", self, "_on_crew_health_changed")
+	
+	# Connect to base component signals for crew updates
+	crew_updated.connect(_on_base_crew_updated)
+	crew_member_selected.connect(_on_base_crew_member_selected)
 
 func _apply_responsive_layout() -> void:
 	# Apply responsive design patterns
@@ -80,15 +91,17 @@ func _apply_landscape_layout() -> void:
 	if crew_summary:
 		crew_summary.text = _generate_detailed_crew_summary()
 
-## Main crew display update function
-func update_crew_display(new_crew_data: Array) -> void:
-	crew_data = new_crew_data
+## Main crew display update function - uses BaseCrewComponent crew data
+func update_crew_display(display_data: Array = []) -> void:
+	# Use base component crew members if no display data provided
+	var display_crew = display_data if not display_data.is_empty() else _convert_crew_to_display_data()
+	crew_display_data = display_crew
 	
 	# Clear existing crew cards
 	_clear_crew_cards()
 	
 	# Create enhanced crew cards following dice system patterns
-	for member in crew_data:
+	for member in crew_display_data:
 		var crew_card = _create_enhanced_crew_card(member)
 		if crew_card:
 			crew_container.add_child(crew_card)
@@ -97,6 +110,44 @@ func update_crew_display(new_crew_data: Array) -> void:
 	_update_crew_summary()
 	_update_performance_chart()
 	_update_equipment_summary()
+
+func _convert_crew_to_display_data() -> Array[Dictionary]:
+	"""Convert BaseCrewComponent Character objects to display data format"""
+	var display_data: Array[Dictionary] = []
+	
+	for character in crew_members:
+		if not character or not is_instance_valid(character):
+			continue
+			
+		var display_member = {
+			"id": character.character_name,
+			"name": character.character_name,
+			"status": "active",  # Default status
+			"health_ratio": float(character.health) / float(character.max_health) if character.max_health > 0 else 1.0,
+			"stats": {
+				"combat": character.combat,
+				"reaction": character.reaction,
+				"toughness": character.toughness,
+				"savvy": character.savvy,
+				"tech": character.tech,
+				"speed": character.speed,
+				"survival_rate": float(character.health) / float(character.max_health) if character.max_health > 0 else 1.0
+			},
+			"equipment": {
+				"weapons": [],
+				"armor": [],
+				"gear": [],
+				"upgrades": []
+			},
+			"missions": {
+				"total": 0,
+				"successful": 0
+			}
+		}
+		
+		display_data.append(display_member)
+	
+	return display_data
 
 func _clear_crew_cards() -> void:
 	if not crew_container:
@@ -141,12 +192,12 @@ func _update_crew_summary() -> void:
 	if not crew_summary:
 		return
 	
-	var total_crew = crew_data.size()
+	var total_crew = crew_display_data.size()
 	var active_crew = 0
 	var injured_crew = 0
 	var total_health = 0.0
 	
-	for member in crew_data:
+	for member in crew_display_data:
 		var status = member.get("status", "active")
 		var health = member.get("health_ratio", 1.0)
 		
@@ -190,9 +241,9 @@ func _calculate_crew_performance() -> Dictionary:
 	
 	var total_combat = 0.0
 	var total_survival = 0.0
-	var crew_count = crew_data.size()
+	var crew_count = crew_display_data.size()
 	
-	for member in crew_data:
+	for member in crew_display_data:
 		var stats = member.get("stats", {})
 		total_combat += stats.get("combat", 0)
 		total_survival += stats.get("survival_rate", 0.0)
@@ -215,7 +266,7 @@ func _calculate_equipment_summary() -> Dictionary:
 		"upgraded_items": 0
 	}
 	
-	for member in crew_data:
+	for member in crew_display_data:
 		var equipment = member.get("equipment", {})
 		equipment_summary.total_weapons += equipment.get("weapons", []).size()
 		equipment_summary.total_armor += equipment.get("armor", []).size()
@@ -236,22 +287,22 @@ func _on_crew_action_requested(action: String, data: Variant) -> void:
 	enhanced_signals.emit_safe_signal("quick_action_requested", [action, data])
 
 func _on_crew_status_changed(crew_member: String, status: Dictionary) -> void:
-	# Update crew member status in local data
-	for member in crew_data:
+	# Update crew member status in local display data
+	for member in crew_display_data:
 		if member.get("id") == crew_member:
 			member.merge(status)
 			break
 	
 	# Refresh display
-	update_crew_display(crew_data)
+	update_crew_display(crew_display_data)
 
 func _on_crew_performance_updated(crew_id: String, performance: Dictionary) -> void:
 	crew_performance_data[crew_id] = performance
 	_update_performance_chart()
 
 func _on_crew_equipment_changed(crew_id: String, equipment: Dictionary) -> void:
-	# Update crew member equipment
-	for member in crew_data:
+	# Update crew member equipment in display data
+	for member in crew_display_data:
 		if member.get("id") == crew_id:
 			member["equipment"] = equipment
 			break
@@ -259,30 +310,42 @@ func _on_crew_equipment_changed(crew_id: String, equipment: Dictionary) -> void:
 	_update_equipment_summary()
 
 func _on_crew_health_changed(crew_id: String, health_ratio: float) -> void:
-	# Update crew member health
-	for member in crew_data:
+	# Update crew member health in display data
+	for member in crew_display_data:
 		if member.get("id") == crew_id:
 			member["health_ratio"] = health_ratio
 			break
 	
 	# Refresh display with updated health
-	update_crew_display(crew_data)
+	update_crew_display(crew_display_data)
+
+## Base component signal handlers
+func _on_base_crew_updated(crew: Array) -> void:
+	"""Handle crew updates from BaseCrewComponent"""
+	print("EnhancedCrewPanel: Crew updated from base component, refreshing enhanced display...")
+	update_crew_display()  # Will auto-convert base crew data to display format
+
+func _on_base_crew_member_selected(member: Character) -> void:
+	"""Handle crew member selection from BaseCrewComponent"""
+	if member and is_instance_valid(member):
+		selected_crew_member = member.character_name
+		enhanced_signals.emit_safe_signal("crew_member_selected", [selected_crew_member])
 
 ## Helper functions
 func _generate_compact_crew_summary() -> String:
 	var active_count = 0
-	for member in crew_data:
+	for member in crew_display_data:
 		if member.get("status") == "active":
 			active_count += 1
 	
-	return "Crew: %d/%d Active" % [active_count, crew_data.size()]
+	return "Crew: %d/%d Active" % [active_count, crew_display_data.size()]
 
 func _generate_detailed_crew_summary() -> String:
 	var active_count = 0
 	var injured_count = 0
 	var total_health = 0.0
 	
-	for member in crew_data:
+	for member in crew_display_data:
 		var status = member.get("status", "active")
 		var health = member.get("health_ratio", 1.0)
 		
@@ -293,7 +356,7 @@ func _generate_detailed_crew_summary() -> String:
 		
 		total_health += health
 	
-	var avg_health = total_health / crew_data.size() if crew_data.size() > 0 else 0.0
+	var avg_health = total_health / crew_display_data.size() if crew_display_data.size() > 0 else 0.0
 	
 	return "Crew Status: %d Active, %d Injured | Avg Health: %.1f%%" % [
 		active_count, injured_count, avg_health * 100
@@ -309,7 +372,12 @@ func _setup_equipment_summary() -> void:
 
 ## Public API for external access
 func get_crew_data() -> Array:
-	return crew_data
+	# Return base component crew members (Character objects)
+	return get_crew_members()
+
+func get_crew_display_data() -> Array:
+	# Return enhanced display data (Dictionary format)
+	return crew_display_data
 
 func get_selected_crew_member() -> String:
 	return selected_crew_member
@@ -318,4 +386,19 @@ func get_crew_performance_data() -> Dictionary:
 	return crew_performance_data
 
 func refresh_display() -> void:
-	update_crew_display(crew_data)
+	update_crew_display()  # Will auto-refresh from base component data
+
+## Additional public methods for enhanced functionality
+func add_crew_member_enhanced(character: Character) -> bool:
+	"""Add crew member using base component with enhanced display refresh"""
+	var success = add_crew_member(character)  # Use BaseCrewComponent method
+	if success:
+		update_crew_display()  # Refresh enhanced display
+	return success
+
+func remove_crew_member_enhanced(character: Character) -> bool:
+	"""Remove crew member using base component with enhanced display refresh"""
+	var success = remove_crew_member(character)  # Use BaseCrewComponent method
+	if success:
+		update_crew_display()  # Refresh enhanced display
+	return success

@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 extends Node
 class_name TravelPhase
 
@@ -73,15 +73,15 @@ func _initialize_travel_tables() -> void:
 	# World Traits Table (D100) - Core Rulebook
 	if GlobalEnums:
 		world_traits_table = [
-			{"range": [1, 15], "trait": GlobalEnums.WorldTrait.FRONTIER_WORLD, "name": "Frontier World"},
-			{"range": [16, 30], "trait": GlobalEnums.WorldTrait.TRADE_CENTER, "name": "Trade Center"},
-			{"range": [31, 45], "trait": GlobalEnums.WorldTrait.INDUSTRIAL_HUB, "name": "Industrial Hub"},
-			{"range": [46, 60], "trait": GlobalEnums.WorldTrait.TECH_CENTER, "name": "Tech Center"},
-			{"range": [61, 75], "trait": GlobalEnums.WorldTrait.MINING_COLONY, "name": "Mining Colony"},
-			{"range": [76, 85], "trait": GlobalEnums.WorldTrait.AGRICULTURAL_WORLD, "name": "Agricultural World"},
-			{"range": [86, 92], "trait": GlobalEnums.WorldTrait.PIRATE_HAVEN, "name": "Pirate Haven"},
-			{"range": [93, 97], "trait": GlobalEnums.WorldTrait.FREE_PORT, "name": "Free Port"},
-			{"range": [98, 100], "trait": GlobalEnums.WorldTrait.CORPORATE_CONTROLLED, "name": "Corporate Controlled"}
+			{"range": [1, 15], "trait": GlobalEnums.WorldTrait.FRONTIER, "name": "Frontier World"},
+			{"range": [16, 30], "trait": GlobalEnums.WorldTrait.TRADE_HUB, "name": "Trade Hub"},
+			{"range": [31, 45], "trait": GlobalEnums.WorldTrait.INDUSTRIAL, "name": "Industrial"},
+			{"range": [46, 60], "trait": GlobalEnums.WorldTrait.RESEARCH, "name": "Research"},
+			{"range": [61, 75], "trait": GlobalEnums.WorldTrait.CRIMINAL, "name": "Criminal"},
+			{"range": [76, 85], "trait": GlobalEnums.WorldTrait.AFFLUENT, "name": "Affluent"},
+			{"range": [86, 92], "trait": GlobalEnums.WorldTrait.DANGEROUS, "name": "Dangerous"},
+			{"range": [93, 97], "trait": GlobalEnums.WorldTrait.CORPORATE, "name": "Corporate"},
+			{"range": [98, 100], "trait": GlobalEnums.WorldTrait.MILITARY, "name": "Military"}
 		]
 	else:
 		# Fallback table with numeric values
@@ -337,7 +337,7 @@ func _get_world_trait(roll: int) -> Dictionary:
 
 	# Fallback
 	if GlobalEnums:
-		return {"trait": GlobalEnums.WorldTrait.FRONTIER_WORLD, "name": "Frontier World"}
+		return {"trait": GlobalEnums.WorldTrait.FRONTIER, "name": "Frontier World"}
 	else:
 		return {"trait": 0, "name": "Unknown"}
 

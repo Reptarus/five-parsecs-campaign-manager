@@ -4,25 +4,27 @@ const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 signal campaign_started(config: Dictionary)
 
+var easy_config = {
+	"name": "Quick Start - Story Mode",
+	"difficulty": GlobalEnums.DifficultyLevel.STORY,
+	"enable_permadeath": false,
+	"use_story_track": true,
+	"starting_credits": 1500,
+	"starting_supplies": 6
+}
+
+var hardcore_config = {
+	"name": "Quick Start - Nightmare Mode",
+	"difficulty": GlobalEnums.DifficultyLevel.NIGHTMARE,
+	"enable_permadeath": true,
+	"use_story_track": false,
+	"starting_credits": 500,
+	"starting_supplies": 2
+}
+
 var campaign_presets = {
-	"beginner": {
-		"name": "Beginner Campaign",
-		"difficulty": GlobalEnums.DifficultyLevel.EASY,
-		"enable_tutorial": true,
-		"enable_permadeath": false
-	},
-	"standard": {
-		"name": "Standard Campaign",
-		"difficulty": GlobalEnums.DifficultyLevel.NORMAL,
-		"enable_tutorial": false,
-		"enable_permadeath": false
-	},
-	"veteran": {
-		"name": "Hardcore Campaign",
-		"difficulty": GlobalEnums.DifficultyLevel.HARDCORE,
-		"enable_tutorial": false,
-		"enable_permadeath": true
-	}
+	"story": easy_config,
+	"nightmare": hardcore_config
 }
 
 func _ready() -> void:
@@ -39,7 +41,7 @@ func _setup_preset_buttons() -> void:
 
 func _get_preset_description(preset: Dictionary) -> String:
 	var desc: String = "Difficulty: " + GlobalEnums.DifficultyLevel.keys()[preset.difficulty] + "\n"
-	desc += "Tutorial: " + ("Enabled" if preset.enable_tutorial else "Disabled") + "\n"
+	desc += "Story Track: " + ("Enabled" if preset.use_story_track else "Disabled") + "\n"
 	desc += "Permadeath: " + ("Enabled" if preset.enable_permadeath else "Disabled")
 	return desc
 

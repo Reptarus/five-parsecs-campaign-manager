@@ -6,7 +6,8 @@
 # Safe imports
 # # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const Character = preload("res://src/core/character/Base/Character.gd")
+const Character = preload("res://src/core/character/Character.gd")
+const PortraitManager = preload("res://src/utils/PortraitManager.gd")
 
 # UI Components
 @onready var portrait: TextureRect = get_node("MarginContainer/HBoxContainer/PortraitContainer/Portrait")
@@ -177,30 +178,45 @@ func _update_portrait_display(character: Character) -> void:
 	if not portrait:
 		return
 
-	# For now, just show a placeholder based on origin/class
-	# In a full implementation, this would load actual portrait images
+	# Try to load portrait from character's portrait path
+	if character.portrait_path and not character.portrait_path.is_empty():
+		var portrait_manager = PortraitManager.new()
+		var portrait_texture = portrait_manager.load_portrait_from_path(character.portrait_path)
+		
+		if portrait_texture:
+			portrait.texture = portrait_texture
+			portrait.modulate = Color.WHITE
+			return
+		else:
+			print("CharacterBox: Failed to load portrait from path: ", character.portrait_path)
+	
+	# Fallback to default portrait based on character class
+	var portrait_manager = PortraitManager.new()
+	var default_portrait = portrait_manager.get_default_portrait(character.character_class)
+	
+	if default_portrait:
+		portrait.texture = default_portrait
+		portrait.modulate = Color.WHITE
+	else:
+		# Final fallback - colored background based on class
+		portrait.texture = null
+		var bg_color: Color = Color.GRAY
 
-	# Set a default background color based on character class
-	var bg_color: Color = Color.GRAY
+		match character.character_class:
+			GlobalEnums.CharacterClass.SOLDIER:
+				bg_color = Color(0.8, 0.3, 0.3, 1.0) # Red-ish
+			GlobalEnums.CharacterClass.SCOUT:
+				bg_color = Color(0.3, 0.8, 0.3, 1.0) # Green-ish
+			GlobalEnums.CharacterClass.MEDIC:
+				bg_color = Color(0.3, 0.3, 0.8, 1.0) # Blue-ish
+			GlobalEnums.CharacterClass.ENGINEER:
+				bg_color = Color(0.8, 0.8, 0.3, 1.0) # Yellow-ish
+			GlobalEnums.CharacterClass.PILOT:
+				bg_color = Color(0.8, 0.3, 0.8, 1.0) # Purple-ish
+			_:
+				bg_color = Color.GRAY
 
-	match character.character_class:
-		GlobalEnums.CharacterClass.SOLDIER:
-			bg_color = Color(0.8, 0.3, 0.3, 1.0) # Red-ish
-		GlobalEnums.CharacterClass.SCOUT:
-			bg_color = Color(0.3, 0.8, 0.3, 1.0) # Green-ish
-		GlobalEnums.CharacterClass.MEDIC:
-			bg_color = Color(0.3, 0.3, 0.8, 1.0) # Blue-ish
-		GlobalEnums.CharacterClass.ENGINEER:
-			bg_color = Color(0.8, 0.8, 0.3, 1.0) # Yellow-ish
-		GlobalEnums.CharacterClass.PILOT:
-			bg_color = Color(0.8, 0.3, 0.8, 1.0) # Purple-ish
-		_:
-			bg_color = Color.GRAY
-
-	portrait.modulate = bg_color
-
-	# You could add text overlay for initials
-	# This would require creating a custom texture or using a Label overlay
+		portrait.modulate = bg_color
 
 func _clear_display() -> void:
 	"""Clear all character information"""

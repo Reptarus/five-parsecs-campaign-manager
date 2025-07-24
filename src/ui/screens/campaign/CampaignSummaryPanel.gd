@@ -19,15 +19,15 @@ func update_summary(campaign_data: Dictionary) -> void:
 
 func _get_difficulty_name(difficulty: int) -> String:
 	match difficulty:
-		GlobalEnums.DifficultyLevel.EASY:
-			return "Easy"
-		GlobalEnums.DifficultyLevel.NORMAL:
-			return "Normal"
-		GlobalEnums.DifficultyLevel.HARD:
-			return "Hard"
+		GlobalEnums.DifficultyLevel.STORY:
+			return "Story"
+		GlobalEnums.DifficultyLevel.STANDARD:
+			return "Standard"
+		GlobalEnums.DifficultyLevel.CHALLENGING:
+			return "Challenging"
 		GlobalEnums.DifficultyLevel.HARDCORE:
 			return "Hardcore"
-		GlobalEnums.DifficultyLevel.ELITE:
-			return "Elite"
+		GlobalEnums.DifficultyLevel.NIGHTMARE:
+			return "Nightmare"
 		_:
 			return "Unknown"

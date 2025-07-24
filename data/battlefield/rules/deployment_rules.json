@@ -1,0 +1,14 @@
+{
+  "standard": {
+    "crew": { "shape": "edge", "edge": "west", "depth": 4 },
+    "enemy": { "shape": "edge", "edge": "east", "depth": 4 }
+  },
+  "assault": {
+    "crew": { "shape": "edge", "edge": "west", "depth": 6 },
+    "enemy": { "shape": "circle", "around_objective": "A", "radius": 8 }
+  },
+  "defense": {
+    "crew": { "shape": "circle", "around_objective": "A", "radius": 6 },
+    "enemy": { "shape": "edge", "edge": "random", "depth": 4 }
+  }
+}

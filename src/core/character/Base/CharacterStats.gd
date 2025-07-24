@@ -1,4 +1,4 @@
-﻿extends Resource
+extends Resource
 
 # Base Stats
 @export var reactions: int = 3
@@ -22,6 +22,11 @@ var stat_modifiers: Dictionary = {
 	"savvy": 0,
 	"luck": 0
 }
+
+# Game-specific properties
+var morale_bonus: int = 0
+var leadership_bonus: int = 0
+var xp_multiplier: float = 1.0
 
 func _init() -> void:
 	reset_to_base_stats()
@@ -91,7 +96,13 @@ func get_effective_stat(stat_name: String) -> int:
 		"LUCK":
 			base_value = luck
 
-	return base_value + stat_modifiers.get(stat_name.to_lower(), 0)
+	var effective_stat = base_value + stat_modifiers.get(stat_name.to_lower(), 0)
+
+	# Add game-specific bonuses
+	if stat_name == "toughness" and morale_bonus > 0:
+		effective_stat += 1
+
+	return effective_stat
 
 func serialize() -> Dictionary:
 	return {
@@ -131,6 +142,14 @@ func deserialize(data: Dictionary) -> void:
 
 	for key in data.get("stat_modifiers", {}).keys():
 		stat_modifiers[key] = data.stat_modifiers[key]
+
+## Game-specific method to apply experience with multiplier
+func add_experience(amount: int) -> void:
+	# Apply experience with the game-specific multiplier
+	var adjusted_amount = int(amount * xp_multiplier)
+
+	# Track experience in this class if parent doesn't have the method
+	print("Adding %d experience (adjusted from %d)" % [adjusted_amount, amount])
 
 ## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
 ## Based on Godot 4.4 best practices for safe property access

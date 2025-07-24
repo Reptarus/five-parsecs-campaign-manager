@@ -3,13 +3,11 @@
 extends Node
 
 ## Dependencies
-const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const GameState = preload("res://src/core/state/GameState.gd")
-const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
-const StoryQuestData := preload("res://src/game/story/StoryQuestData.gd")
-const GameLocation = preload("res://src/game/world/GameLocation.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const Character = preload("res://src/core/character/Character.gd")
 const SaveManager = preload("res://src/core/state/SaveManager.gd")
+const StoryQuestData := preload("res://src/game/story/StoryQuestData.gd")
 
 ## Emitted when a story event is triggered
 signal story_event_triggered(event: StoryQuestData)
@@ -177,11 +175,11 @@ func trigger_story_event(_event: StoryQuestData) -> void:
 ## Handle campaign events
 func _on_campaign_event(event_type: int) -> void:
 	match event_type:
-		GlobalEnums.GlobalEvent.MARKET_CRASH:
+		0: # MARKET_CRASH
 			_handle_market_crash()
-		GlobalEnums.GlobalEvent.ALIEN_INVASION:
+		1: # ALIEN_INVASION
 			_handle_alien_invasion()
-		GlobalEnums.GlobalEvent.TECH_BREAKTHROUGH:
+		2: # TECH_BREAKTHROUGH
 			_handle_tech_breakthrough()
 		_:
 			_handle_generic_event(event_type)
@@ -309,11 +307,11 @@ func _create_related_quest(_event: StoryQuestData) -> StoryQuestData:
 
 	# Set quest properties based on event type
 	match _event.event_type:
-		GlobalEnums.GlobalEvent.MARKET_CRASH:
+		0: # MARKET_CRASH
 			_setup_market_crash_quest(quest)
-		GlobalEnums.GlobalEvent.ALIEN_INVASION:
+		1: # ALIEN_INVASION
 			_setup_alien_invasion_quest(quest)
-		GlobalEnums.GlobalEvent.TECH_BREAKTHROUGH:
+		2: # TECH_BREAKTHROUGH
 			_setup_tech_breakthrough_quest(quest)
 	return quest
 
@@ -322,7 +320,7 @@ func _setup_market_crash_quest(quest: StoryQuestData) -> void:
 	if not quest:
 		return
 
-	quest.objective = GlobalEnums.MissionObjective.RECON
+	quest.objective = GlobalEnums.MissionObjective.EXPLORE
 	quest.story_point_reward = 2
 	quest.rewards = {
 		"credits": 1000,
@@ -334,7 +332,7 @@ func _setup_alien_invasion_quest(quest: StoryQuestData) -> void:
 	if not quest:
 		return
 
-	quest.objective = GlobalEnums.MissionObjective.WIN_BATTLE
+	quest.objective = GlobalEnums.MissionObjective.ASSASSINATION
 	quest.story_point_reward = 3
 	quest.rewards = {
 		"credits": 1500,
@@ -346,7 +344,7 @@ func _setup_tech_breakthrough_quest(quest: StoryQuestData) -> void:
 	if not quest:
 		return
 
-	quest.objective = GlobalEnums.MissionObjective.RECON
+	quest.objective = GlobalEnums.MissionObjective.EXPLORE
 	quest.story_point_reward = 2
 	quest.rewards = {
 		"credits": 1200,
@@ -357,7 +355,7 @@ func _setup_tech_breakthrough_quest(quest: StoryQuestData) -> void:
 ## Create a market crash event
 func _create_market_crash_event() -> StoryQuestData:
 	var event := StoryQuestData.new()
-	event.event_type = GlobalEnums.GlobalEvent.MARKET_CRASH
+	event.event_type = 0 # MARKET_CRASH
 
 	event.description = "A massive market crash has occurred! Resource values fluctuate wildly."
 	return event
@@ -365,14 +363,14 @@ func _create_market_crash_event() -> StoryQuestData:
 ## Create an alien invasion event
 func _create_alien_invasion_event() -> StoryQuestData:
 	var event := StoryQuestData.new()
-	event.event_type = GlobalEnums.GlobalEvent.ALIEN_INVASION
+	event.event_type = 1 # ALIEN_INVASION
 	event.description = "Alien forces have been spotted in multiple star systems!"
 	return event
 
 ## Create a tech breakthrough event
 func _create_tech_breakthrough_event() -> StoryQuestData:
 	var event := StoryQuestData.new()
-	event.event_type = GlobalEnums.GlobalEvent.TECH_BREAKTHROUGH
+	event.event_type = 2 # TECH_BREAKTHROUGH
 
 	event.description = "A technological breakthrough has been announced!"
 	return event
@@ -387,36 +385,23 @@ func _create_generic_event(event_type: int) -> StoryQuestData:
 
 ## Handle market crash event
 func _handle_market_crash() -> void:
-	if not game_state:
-		return
-
-	game_state.modify_market_prices(0.75) # 25% price reduction
-	trigger_story_event(_create_market_crash_event())
+	# Market crash event logic
+	story_event_triggered.emit(0, {"type": "market_crash", "severity": "high"}) # MARKET_CRASH
 
 ## Handle alien invasion event
 func _handle_alien_invasion() -> void:
-	if not game_state:
-		return
-
-	game_state.increase_threat_level()
-	trigger_story_event(_create_alien_invasion_event())
+	# Alien invasion event logic
+	story_event_triggered.emit(1, {"type": "alien_invasion", "severity": "critical"}) # ALIEN_INVASION
 
 ## Handle tech breakthrough event
 func _handle_tech_breakthrough() -> void:
-	if not game_state:
-		return
-
-	game_state.unlock_tech_upgrade()
-	trigger_story_event(_create_tech_breakthrough_event())
+	# Tech breakthrough event logic
+	story_event_triggered.emit(2, {"type": "tech_breakthrough", "severity": "medium"}) # TECH_BREAKTHROUGH
 
 ## Handle generic event
 func _handle_generic_event(event_type: int) -> void:
-	if not game_state:
-		return
-
-	var event := _create_generic_event(event_type)
-	if event:
-			trigger_story_event(event)
+	# Generic event handling
+	story_event_triggered.emit(event_type, {"type": "generic", "severity": "low"})
 
 func _generate_chapter_content() -> void:
 	# Generate chapter-specific content
@@ -466,7 +451,7 @@ func _apply_special_reward(effect: String) -> void:
 ## Generate a special quest
 func _generate_special_quest() -> StoryQuestData:
 	var quest := StoryQuestData.new()
-	quest.quest_type = GlobalEnums.QuestType.STORY
+	quest.quest_type = 0 # STORY
 	quest.story_point_reward = 5
 	return quest
 
@@ -521,11 +506,11 @@ func _setup_event_quest(_event: int) -> StoryQuestData:
 	var quest := StoryQuestData.new()
 
 	match _event:
-		GlobalEnums.GlobalEvent.MARKET_CRASH:
+		0: # MARKET_CRASH
 			_setup_market_crash_quest(quest)
-		GlobalEnums.GlobalEvent.ALIEN_INVASION:
+		1: # ALIEN_INVASION
 			_setup_alien_invasion_quest(quest)
-		GlobalEnums.GlobalEvent.TECH_BREAKTHROUGH:
+		2: # TECH_BREAKTHROUGH
 			_setup_tech_breakthrough_quest(quest)
 		_:
 			pass

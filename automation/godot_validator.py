@@ -83,7 +83,7 @@ class GodotProjectValidator:
         """
         Validate overall project structure and organization
         """
-        print("🔍 Validating project structure...")
+        print("[VALIDATE] Validating project structure...")
         
         success = True
         
@@ -134,7 +134,7 @@ class GodotProjectValidator:
         """
         Validate scene files and their dependencies
         """
-        print("🎬 Validating scene dependencies...")
+        print("[SCENE] Validating scene dependencies...")
         
         success = True
         scene_files = list(self.project_root.rglob("*.tscn"))
@@ -191,7 +191,7 @@ class GodotProjectValidator:
         """
         Validate resource files and references
         """
-        print("📦 Validating resource integrity...")
+        print("[INSTALL] Validating resource integrity...")
         
         success = True
         resource_files = list(self.project_root.rglob("*.tres")) + list(self.project_root.rglob("*.res"))
@@ -236,7 +236,7 @@ class GodotProjectValidator:
         """
         Validate project.godot configuration for Five Parsecs requirements
         """
-        print("⚙️ Validating project configuration...")
+        print("[SETTINGS] Validating project configuration...")
         
         success = True
         
@@ -310,7 +310,7 @@ class GodotProjectValidator:
         """
         Validate that all GDScript files compile successfully
         """
-        print("📝 Validating script compilation...")
+        print("[FIXING] Validating script compilation...")
         
         success = True
         
@@ -454,7 +454,7 @@ class GodotProjectValidator:
         """
         start_time = time.time()
         
-        print("🚀 Starting comprehensive Godot project validation...")
+        print("[STARTING] Starting comprehensive Godot project validation...")
         
         # Execute all validation phases
         validations = [
@@ -468,18 +468,18 @@ class GodotProjectValidator:
         overall_success = True
         
         for phase_name, validation_func in validations:
-            print(f"\n📋 {phase_name}...")
+            print(f"\n[LIST] {phase_name}...")
             try:
                 phase_success = validation_func()
                 overall_success = overall_success and phase_success
                 
                 if phase_success:
-                    print(f"✅ {phase_name} passed")
+                    print(f"[COMPLETE] {phase_name} passed")
                 else:
-                    print(f"❌ {phase_name} failed")
+                    print(f"[FAIL] {phase_name} failed")
                     
             except Exception as e:
-                print(f"💥 {phase_name} crashed: {str(e)}")
+                print(f"[CRASH] {phase_name} crashed: {str(e)}")
                 self.add_issue(
                     ValidationSeverity.CRITICAL,
                     "validation_system",
@@ -599,8 +599,8 @@ def main():
         }
         print(json.dumps(result_data, indent=2))
     else:
-        print(f"\n🎯 Godot Project Validation Summary")
-        print(f"Overall Status: {'✅ VALID' if result.is_valid else '❌ INVALID'}")
+        print(f"\n[TARGET] Godot Project Validation Summary")
+        print(f"Overall Status: {'[COMPLETE] VALID' if result.is_valid else '[FAIL] INVALID'}")
         print(f"Execution Time: {result.execution_time:.2f}s")
         print(f"Total Issues: {result.total_issues}")
         
@@ -610,7 +610,7 @@ def main():
             print(f"  Warnings: {result.warning_issues}")
             print(f"  Info: {result.info_issues}")
             
-            print(f"\n📋 Issue Details:")
+            print(f"\n[LIST] Issue Details:")
             for issue in result.issues:
                 print(f"\n{issue.severity.value.upper()}: {issue.message}")
                 print(f"  File: {issue.file_path}")

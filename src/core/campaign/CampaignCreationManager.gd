@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 @warning_ignore("return_value_discarded")
 @warning_ignore("unsafe_method_access")
 @warning_ignore("untyped_declaration")
@@ -9,7 +9,7 @@ class_name CampaignCreationManager
 ## Manages the step-by-step campaign creation process
 
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const CharacterBase = preload("res://src/core/character/Base/Character.gd")
+const Character = preload("res://src/core/character/Character.gd")
 
 # Dynamic loading to avoid circular dependencies
 var FiveParcsecsCampaign: Variant = null
@@ -272,15 +272,18 @@ func _calculate_initial_resources(difficulty: int) -> Dictionary:
 
 	# Adjust based on difficulty
 	match difficulty:
-		GlobalEnums.DifficultyLevel.EASY:
+		GlobalEnums.DifficultyLevel.STORY:
 			resources[GlobalEnums.ResourceType.CREDITS] = 1200
 			resources[GlobalEnums.ResourceType.SUPPLIES] = 7
-		GlobalEnums.DifficultyLevel.HARD:
+		GlobalEnums.DifficultyLevel.CHALLENGING:
 			resources[GlobalEnums.ResourceType.CREDITS] = 800
 			resources[GlobalEnums.ResourceType.SUPPLIES] = 3
+		GlobalEnums.DifficultyLevel.HARDCORE:
+			resources[GlobalEnums.ResourceType.CREDITS] = 600
+			resources[GlobalEnums.ResourceType.SUPPLIES] = 2
 		GlobalEnums.DifficultyLevel.NIGHTMARE:
 			resources[GlobalEnums.ResourceType.CREDITS] = 500
-			resources[GlobalEnums.ResourceType.SUPPLIES] = 2
+			resources[GlobalEnums.ResourceType.SUPPLIES] = 1
 
 	return resources
 ## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings

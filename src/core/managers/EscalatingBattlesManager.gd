@@ -44,105 +44,45 @@ func _generate_escalation(strife_type: GlobalEnums.StrifeType) -> Dictionary:
 		GlobalEnums.StrifeType.NONE:
 			escalation.description = "Minor complications arise"
 			escalation.effect = {"damage": 1, "target": "random"}
-		GlobalEnums.StrifeType.LOW:
+		GlobalEnums.StrifeType.TENSIONS:
 			escalation.description = "Situation intensifies"
 			escalation.effect = {
 				"add_units": 1,
 				"target": "enemy"
 			}
-		GlobalEnums.StrifeType.MEDIUM:
+		GlobalEnums.StrifeType.UNREST:
 			escalation.description = "Significant complications"
 			escalation.effect = {
 				"add_units": 2,
-				"environmental_hazard": true,
-				"target": "all"
-			}
-		GlobalEnums.StrifeType.HIGH:
-			escalation.description = "Elite enemy reinforcements"
-			escalation.effect = {
-				"add_elite": true,
+				"damage": 2,
 				"target": "enemy"
 			}
-		GlobalEnums.StrifeType.CRITICAL:
-			escalation.description = "Multiple threats emerge"
+		GlobalEnums.StrifeType.CONFLICT:
+			escalation.description = "Major escalation"
 			escalation.effect = {
-				"add_units": 2,
-				"add_elite": true,
+				"add_units": 3,
+				"damage": 3,
 				"environmental_hazard": true,
 				"target": "all"
 			}
-		GlobalEnums.StrifeType.UNREST:
-			escalation.description = "Unexpected psionic phenomenon"
+		GlobalEnums.StrifeType.WAR:
+			escalation.description = "Critical situation"
 			escalation.effect = {
-				"psionic_boost": true,
-				"psionic_intensity": 2,
-				"target": "all"
-			}
-		GlobalEnums.StrifeType.CIVIL_WAR:
-			escalation.description = "Sudden environmental change"
-			escalation.effect = {
-				"damage": 1,
+				"add_units": 4,
+				"damage": 4,
 				"environmental_hazard": true,
 				"target": "all"
-			}
-		GlobalEnums.StrifeType.INVASION:
-			escalation.description = "Advanced enemy tactics"
-			escalation.effect = {
-				"disable_item": true,
-				"add_elite": true,
-				"target": "player"
 			}
 
 	return escalation
 
-func apply_escalation(escalation: Dictionary, player_team: Array, enemy_team: Array) -> void:
-	match escalation.effect.target:
-		"player":
-			_apply_to_team(escalation.effect, player_team)
-		"enemy":
-			_apply_to_team(escalation.effect, enemy_team)
-		"all":
-			_apply_to_team(escalation.effect, player_team)
-			_apply_to_team(escalation.effect, enemy_team)
-		"random":
-			if randf() > 0.5:
-				_apply_to_team(escalation.effect, player_team)
-			else:
-				_apply_to_team(escalation.effect, enemy_team)
-func _apply_to_team(effect: Dictionary, team: Array) -> void:
-	if "add_units" in effect:
-		for i: int in range(effect.add_units):
-			var new_enemy: FPCM_CrewMember = game_state.character_generator.generate_enemy()
-
-			team.append(new_enemy)
-
-	if "add_elite" in effect:
-		var elite_enemy: FPCM_CrewMember = game_state.character_generator.generate_elite_enemy()
-
-		team.append(elite_enemy)
-
-	if "disable_item" in effect:
-		var random_unit = team[randi() % team.size()]
-		random_unit.disable_random_item()
-
-	if "damage" in effect:
-		for unit: Variant in team:
-			unit.take_damage(effect.damage)
-
-	if "psionic_boost" in effect:
-		for unit: Variant in team:
-			if unit.has_psionic_powers():
-				unit.boost_psionic_power(effect.get("psionic_intensity", 1))
-
-	if "environmental_hazard" in effect:
-		for unit: Variant in team:
-			if not unit.has_trait("Environmental Protection"):
-				unit.apply_status_effect("Hazard", 2)
-
-	if "mutant_bonus" in effect:
-		for unit: Variant in team:
-			if unit.species == GlobalEnums.Origin.FERAL:
-				unit.apply_mutant_bonus()
+func apply_escalation_effects(escalation: Dictionary, crew_members: Array[Character]) -> void:
+	# Apply escalation effects to crew members
+	for crew_member in crew_members:
+		if escalation.effect.has("damage"):
+			crew_member.take_damage(escalation.effect.damage)
+		if escalation.effect.has("psionic_boost"):
+			crew_member.add_psionic_boost(escalation.effect.psionic_intensity)
 
 func generate_suspect(pursuit: bool) -> Dictionary:
 	var suspect: Dictionary = {}

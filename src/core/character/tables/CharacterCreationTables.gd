@@ -7,8 +7,8 @@ extends RefCounted
 ## motivations, and quirks following Core Rules pp.14-17
 
 # Safe imports using Universal Safety System
-const UniversalResourceLoader := preload("res://src/utils/UniversalResourceLoader.gd")
-const UniversalDataAccess := preload("res://src/utils/UniversalDataAccess.gd")
+const UniversalResourceLoader := preload("res://src/core/systems/UniversalResourceLoader.gd")
+const UniversalDataAccess := preload("res://src/core/systems/UniversalDataAccess.gd")
 const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
 # Cached table data - loaded once for performance

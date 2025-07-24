@@ -119,8 +119,8 @@ class TargetedTestRunner:
         # Get relevant test paths
         test_paths = self.get_relevant_tests(changed_file)
         
-        print(f"🎯 Running targeted tests for: {Path(changed_file).name}")
-        print(f"📁 Test paths: {', '.join([Path(p).name for p in test_paths])}")
+        print(f"[TARGET] Running targeted tests for: {Path(changed_file).name}")
+        print(f"[FOLDER] Test paths: {', '.join([Path(p).name for p in test_paths])}")
         
         # Build Godot test command
         cmd = [
@@ -244,7 +244,7 @@ class TargetedTestRunner:
         """
         Run the complete test suite for comprehensive validation
         """
-        print("🧪 Running complete GDUnit4 test suite...")
+        print("[TEST] Running complete GDUnit4 test suite...")
         
         start_time = time.time()
         
@@ -351,7 +351,7 @@ def main():
         }
         print(json.dumps(result_data, indent=2))
     else:
-        print(f"\n📊 Test Execution Summary")
+        print(f"\n[STATUS] Test Execution Summary")
         print(f"Result: {execution.result.value.upper()}")
         print(f"Duration: {execution.duration:.2f}s")
         print(f"Tests Run: {execution.tests_run}")
@@ -359,7 +359,7 @@ def main():
         print(f"Failed: {execution.tests_failed}")
         
         if execution.error_details:
-            print(f"\n❌ Errors:")
+            print(f"\n[FAIL] Errors:")
             for error in execution.error_details:
                 print(f"  • {error}")
     

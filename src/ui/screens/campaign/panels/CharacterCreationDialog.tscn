@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://bf3dh8nan8h1q"]
 
-[ext_resource type="Script" path="res://src/ui/screens/campaign/panels/CharacterCreationDialog.gd" id="1_basic"]
+[ext_resource type="Script" uid="uid://r7yvvyedij1f" path="res://src/ui/screens/campaign/panels/CharacterCreationDialog.gd" id="1_basic"]
 
 [node name="CharacterCreationDialog" type="AcceptDialog"]
 title = "Create Character"
@@ -40,7 +40,7 @@ layout_mode = 2
 size_flags_vertical = 3
 
 [node name="Step1_BasicInfo" type="VBoxContainer" parent="MainContainer/StepContent"]
-anchors_preset = 15
+layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 
@@ -91,7 +91,7 @@ autowrap_mode = 2
 
 [node name="Step2_Attributes" type="VBoxContainer" parent="MainContainer/StepContent"]
 visible = false
-anchors_preset = 15
+layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 
@@ -205,6 +205,6 @@ layout_mode = 2
 text = "Cancel"
 
 [node name="FinishButton" type="Button" parent="MainContainer/StepNavigation"]
+visible = false
 layout_mode = 2
 text = "Create Character"
-visible = false

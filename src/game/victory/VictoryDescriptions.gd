@@ -4,16 +4,16 @@ extends Resource
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 var _CAMPAIGN_DESCRIPTIONS: Dictionary = {
-	GlobalEnums.FiveParcsecsCampaignVictoryType.TURNS_20: "Play 20 campaign turns",
-	GlobalEnums.FiveParcsecsCampaignVictoryType.TURNS_50: "Play 50 campaign turns",
-	GlobalEnums.FiveParcsecsCampaignVictoryType.TURNS_100: "Play 100 campaign turns",
-	GlobalEnums.FiveParcsecsCampaignVictoryType.QUESTS_3: "Complete 3 story quests",
-	GlobalEnums.FiveParcsecsCampaignVictoryType.QUESTS_5: "Complete 5 story quests",
-	GlobalEnums.FiveParcsecsCampaignVictoryType.QUESTS_10: "Complete 10 story quests",
-	GlobalEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE: "Complete the main story",
-	GlobalEnums.FiveParcsecsCampaignVictoryType.WEALTH_GOAL: "Accumulate specified wealth",
-	GlobalEnums.FiveParcsecsCampaignVictoryType.REPUTATION_GOAL: "Achieve specified reputation",
-	GlobalEnums.FiveParcsecsCampaignVictoryType.FACTION_DOMINANCE: "Become the dominant faction"
+	GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_20: "Play 20 campaign turns",
+	GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_50: "Play 50 campaign turns",
+	GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_100: "Play 100 campaign turns",
+	GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_3: "Complete 3 story quests",
+	GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_5: "Complete 5 story quests",
+	GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_10: "Complete 10 story quests",
+	GlobalEnums.FiveParsecsCampaignVictoryType.STORY_COMPLETE: "Complete the main story",
+	GlobalEnums.FiveParsecsCampaignVictoryType.WEALTH_GOAL: "Accumulate specified wealth",
+	GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_GOAL: "Achieve specified reputation",
+	GlobalEnums.FiveParsecsCampaignVictoryType.FACTION_DOMINANCE: "Become the dominant faction"
 }
 
 var _MISSION_DESCRIPTIONS: Dictionary = {
@@ -24,32 +24,32 @@ var _MISSION_DESCRIPTIONS: Dictionary = {
 
 static func get_campaign_description(victory_type: int) -> String:
 	match victory_type:
-		GlobalEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE:
+		GlobalEnums.FiveParsecsCampaignVictoryType.STORY_COMPLETE:
 			return "Complete the main story campaign"
-		GlobalEnums.FiveParcsecsCampaignVictoryType.WEALTH_GOAL:
+		GlobalEnums.FiveParsecsCampaignVictoryType.WEALTH_GOAL:
 			return "Accumulate significant wealth"
-		GlobalEnums.FiveParcsecsCampaignVictoryType.REPUTATION_GOAL:
+		GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_GOAL:
 			return "Build your reputation in the galaxy"
-		GlobalEnums.FiveParcsecsCampaignVictoryType.FACTION_DOMINANCE:
+		GlobalEnums.FiveParsecsCampaignVictoryType.FACTION_DOMINANCE:
 			return "Achieve dominance with your chosen faction"
-		GlobalEnums.FiveParcsecsCampaignVictoryType.CREDITS_THRESHOLD:
+		GlobalEnums.FiveParsecsCampaignVictoryType.CREDITS_THRESHOLD:
 			return "Reach a specific credit threshold"
-		GlobalEnums.FiveParcsecsCampaignVictoryType.REPUTATION_THRESHOLD:
+		GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_THRESHOLD:
 			return "Achieve a specific reputation level"
-		GlobalEnums.FiveParcsecsCampaignVictoryType.MISSION_COUNT:
+		GlobalEnums.FiveParsecsCampaignVictoryType.MISSION_COUNT:
 			return "Complete a set number of missions"
 		_:
 			return "Unknown victory condition"
 
 static func get_mission_description(victory_type: int) -> String:
 	match victory_type:
-		GlobalEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE:
+		GlobalEnums.FiveParsecsCampaignVictoryType.STORY_COMPLETE:
 			return "Story mission objective"
-		GlobalEnums.FiveParcsecsCampaignVictoryType.WEALTH_GOAL:
+		GlobalEnums.FiveParsecsCampaignVictoryType.WEALTH_GOAL:
 			return "Wealth accumulation objective"
-		GlobalEnums.FiveParcsecsCampaignVictoryType.REPUTATION_GOAL:
+		GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_GOAL:
 			return "Reputation building objective"
-		GlobalEnums.FiveParcsecsCampaignVictoryType.FACTION_DOMINANCE:
+		GlobalEnums.FiveParsecsCampaignVictoryType.FACTION_DOMINANCE:
 			return "Faction influence objective"
 		_:
 			return "Standard mission objective"

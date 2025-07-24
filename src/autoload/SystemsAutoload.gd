@@ -41,22 +41,22 @@ func _wait_for_critical_autoloads() -> void:
 	# Wait one frame to ensure all autoloads are registered
 	await get_tree().process_frame
 	
-	# Wait for GameDataManager specifically
-	var game_data_manager = get_node_or_null("/root/GameDataManagerAutoload") as Node
-	if game_data_manager:
-		# Check if GameDataManager has finished loading
-		if game_data_manager.has_method("is_all_data_loaded"):
-			if not game_data_manager.is_all_data_loaded():
-				print("SystemsAutoload: Waiting for GameDataManager to finish loading data...")
-				if game_data_manager.has_signal("all_data_loaded"):
-					await game_data_manager.all_data_loaded
-				print("SystemsAutoload: GameDataManager ready, proceeding with system initialization")
+	# Wait for DataManager specifically
+	var data_manager = get_node_or_null("/root/DataManagerAutoload") as Node
+	if data_manager:
+		# Check if DataManager has finished loading
+		if data_manager.has_method("is_all_data_loaded"):
+			if not data_manager.is_all_data_loaded():
+				print("SystemsAutoload: Waiting for DataManager to finish loading data...")
+				if data_manager.has_signal("all_data_loaded"):
+					await data_manager.all_data_loaded
+				print("SystemsAutoload: DataManager ready, proceeding with system initialization")
 			else:
-				print("SystemsAutoload: GameDataManager already loaded, proceeding immediately")
+				print("SystemsAutoload: DataManager already loaded, proceeding immediately")
 		else:
-			print("SystemsAutoload: GameDataManager missing expected methods, proceeding anyway")
+			print("SystemsAutoload: DataManager missing expected methods, proceeding anyway")
 	else:
-		push_warning("SystemsAutoload: GameDataManager not found, proceeding without waiting")
+		push_warning("SystemsAutoload: DataManager not found, proceeding without waiting")
 	
 	# Ensure other critical autoloads are available
 	var critical_autoloads: Array[String] = [

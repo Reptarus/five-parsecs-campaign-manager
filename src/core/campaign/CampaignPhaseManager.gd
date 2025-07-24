@@ -1,4 +1,4 @@
-﻿# Universal Connection Validation Applied
+# Universal Connection Validation Applied
 # Based on proven patterns: Universal Mock Strategy + 7-Stage Methodology
 @tool
 extends Node
@@ -56,6 +56,9 @@ func _ready() -> void:
 
 	# Initialize phase handlers
 	_initialize_phase_handlers()
+	
+	# Connect to BattleResultsManager for campaign integration
+	_connect_battle_results_manager()
 
 	_validate_universal_connections()
 	print("CampaignPhaseManager: Initialized with official Four-Phase structure")
@@ -94,6 +97,28 @@ func _initialize_phase_handlers() -> void:
 		if post_battle_phase_handler.has_signal("post_battle_substep_changed"):
 			var result6: Error = post_battle_phase_handler.post_battle_substep_changed.connect(_on_post_battle_substep_changed)
 			assert(result6 == OK, "Failed to connect post_battle_substep_changed signal")
+
+func _connect_battle_results_manager() -> void:
+	"""Connect to BattleResultsManager for campaign integration"""
+	# Try to get BattleResultsManager from various possible locations
+	var battle_results_manager = get_node_or_null("/root/BattleResultsManager")
+	
+	if not battle_results_manager:
+		# Try to find it in the scene tree
+		battle_results_manager = get_tree().get_first_node_in_group("battle_results_manager")
+	
+	if battle_results_manager:
+		# Connect to the campaign integration signal
+		if battle_results_manager.has_signal("battle_completed_for_campaign"):
+			var result7: Error = battle_results_manager.battle_completed_for_campaign.connect(_on_battle_finished_for_campaign)
+			if result7 == OK:
+				print("CampaignPhaseManager: Connected to BattleResultsManager successfully")
+			else:
+				push_error("CampaignPhaseManager: Failed to connect to battle_completed_for_campaign signal")
+		else:
+			push_warning("CampaignPhaseManager: BattleResultsManager found but missing battle_completed_for_campaign signal")
+	else:
+		push_warning("CampaignPhaseManager: BattleResultsManager not found - battle integration may not work")
 
 func _validate_universal_connections() -> void:
 	# Validate core system connections
@@ -299,12 +324,43 @@ func _on_battle_completed(results: Dictionary) -> void:
 
 	# Store battle results for post-battle phase
 	_last_battle_results = results
+	
+	# Also store in GameState for CampaignTurnController access
+	var game_state = get_node_or_null("/root/GameState")
+	if game_state and game_state.has_method("set_battle_results"):
+		game_state.set_battle_results(results)
 
 	# Emit battle completion signal
 	self.phase_completed.emit(current_phase)
 
 	# Transition to Post-Battle phase
 	start_phase(GlobalEnums.FiveParsecsCampaignPhase.POST_BATTLE)
+
+func _on_battle_finished_for_campaign(results: Dictionary) -> void:
+	"""Handle battle completion from BattleResultsManager for campaign integration"""
+	print("CampaignPhaseManager: Battle completed for campaign with comprehensive results")
+	
+	# Store battle results for post-battle phase
+	_last_battle_results = results
+	
+	# Store in GameState for UI access
+	var game_state = get_node_or_null("/root/GameState")
+	if game_state and game_state.has_method("set_battle_results"):
+		game_state.set_battle_results(results)
+	
+	# Update campaign statistics
+	_update_campaign_statistics(results)
+	
+	# Emit battle completion signal for phase management
+	self.phase_completed.emit(current_phase)
+	
+	# Trigger post-battle phase with comprehensive data
+	start_phase(GlobalEnums.FiveParsecsCampaignPhase.POST_BATTLE)
+
+func _update_campaign_statistics(results: Dictionary) -> void:
+	"""Update campaign-level statistics from battle results"""
+	# This could be expanded to track campaign-wide metrics
+	print("CampaignPhaseManager: Updating campaign statistics with battle outcome: ", results.get("outcome", "unknown"))
 
 # Store battle results for post-battle phase
 var _last_battle_results: Dictionary = {}
@@ -647,4 +703,4 @@ func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Va
 		return null
 	if obj is Object and obj.has_method(method_name):
 		return obj.callv(method_name, args)
-	return null                                            
+	return null

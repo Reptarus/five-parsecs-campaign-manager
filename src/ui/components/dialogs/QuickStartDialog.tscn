@@ -21,12 +21,15 @@ autowrap_mode = 2
 [node name="Options" type="VBoxContainer" parent="Content"]
 layout_mode = 2
 
-[node name="QuickButton" type="Button" parent="Content/Options"]
+[node name="ImportButton" type="Button" parent="Content/Options"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Quick Start Campaign"
+text = "Import Campaign"
 
-[node name="CustomButton" type="Button" parent="Content/Options"]
+[node name="TemplateList" type="ItemList" parent="Content/Options"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Custom Campaign Setup"
+
+[node name="CrewSizeDropdown" type="OptionButton" parent="Content/Options"]
+unique_name_in_owner = true
+layout_mode = 2

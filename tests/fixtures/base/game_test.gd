@@ -24,7 +24,7 @@ const GAME_TEST_CONFIG := {
 
 #
 const DEFAULT_GAME_STATE := {
-		"difficulty_level": GameEnums.DifficultyLevel.NORMAL,
+		"difficulty_level": GameEnums.DifficultyLevel.STANDARD,
 		"enable_permadeath": true,
 		"use_story_track": true,
 		"auto_save_enabled": true,

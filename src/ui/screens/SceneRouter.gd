@@ -16,6 +16,7 @@ const SCENE_PATHS = {
 	"campaign_creation": "res://src/ui/screens/campaign/CampaignCreationUI.tscn",
 	"campaign_dashboard": "res://src/ui/screens/campaign/CampaignDashboard.tscn",
 	"campaign_setup": "res://src/ui/screens/campaign/CampaignSetupDialog.tscn",
+	"campaign_turn_controller": "res://src/ui/screens/campaign/CampaignTurnController.tscn",
 	"victory_progress": "res://src/ui/screens/campaign/VictoryProgressPanel.tscn",
 
 	# Character management

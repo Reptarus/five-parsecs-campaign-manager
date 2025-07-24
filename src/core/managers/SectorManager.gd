@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 
 const GamePlanet = preload("res://src/game/world/GamePlanet.gd")
 
@@ -21,7 +21,6 @@ var name_generator: PlanetNameGenerator
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GameState = preload("res://src/core/state/GameState.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
-const WorldManager = preload("res://src/game/world/GameWorldManager.gd")
 const GameLocation = preload("res://src/base/world/location_base.gd")
 const WorldDataMigration = preload("res://src/core/migration/WorldDataMigration.gd")
 
@@ -88,7 +87,7 @@ func _generate_planet(sector_name: String, coordinates: Vector2) -> GamePlanet:
 		planet.add_world_trait_by_id(trait_id)
 
 	# Generate threats
-	var threat = randi() % GlobalEnums.ThreatType.size()
+	var threat = randi() % GlobalEnums.EnemyType.size()
 	planet.add_threat(threat)
 
 	planet.strife_level = randi() % GlobalEnums.StrifeType.size()

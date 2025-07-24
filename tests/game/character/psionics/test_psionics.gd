@@ -1,6 +1,6 @@
 
 # tests/game/character/psionics/test_psionics.gd
-extends GutTest
+extends GdUnitTestSuite
 
 const PsionicPower = preload("res://src/game/character/psionics/PsionicPower.gd")
 const PsionicCharacter = preload("res://src/game/character/psionics/PsionicCharacter.gd")
@@ -41,7 +41,7 @@ func _mock_has_special_ability(ability_name: String) -> bool:
     return false
 
 func test_psionic_power_loads_from_data():
-    # This test assumes GameDataManager is set up and loads psionic_powers.json
+    # This test assumes DataManager is set up and loads psionic_powers.json
     # and PsionicPower._ready() is called.
     var barrier_power = PsionicPower.new(PsionicPower.PowerType.BARRIER)
     # Manually call _ready for testing if not in scene tree

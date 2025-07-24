@@ -6,7 +6,19 @@
 # Safe imports
 const UniversalNodeValidator = preload("res://src/utils/UniversalNodeValidator.gd")
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const CharacterBase = preload("res://src/core/character/Base/Character.gd")
+const Character = preload("res://src/core/character/Character.gd")
+
+# Character Stat Types
+enum CharacterStatType {
+	NONE,
+	REACTIONS,
+	SPEED,
+	COMBAT_SKILL,
+	TOUGHNESS,
+	SAVVY,
+	LUCK,
+	TECH
+}
 
 # UI Components - Header
 @onready var title_label: Label = get_node("MainContainer/HeaderPanel/MarginContainer/HeaderContent/TitleLabel")
@@ -29,7 +41,7 @@ const CharacterBase = preload("res://src/core/character/Base/Character.gd")
 @onready var auto_advance_button: Button = get_node("MainContainer/ButtonContainer/AutoAdvanceButton")
 
 # State
-var current_character: CharacterBase = null
+var current_character: Character = null
 var available_stat_points: int = 0
 var available_skill_points: int = 0
 var pending_stat_changes: Dictionary = {}
@@ -50,7 +62,7 @@ var available_skills: Array[Dictionary] = [
 	{"name": "Resilient", "description": "+1 to injury recovery", "cost": 2, "max_level": 2}
 ]
 
-signal progression_applied(character: CharacterBase)
+signal progression_applied(character: Character)
 signal progression_cancelled()
 
 func _ready() -> void:
@@ -188,7 +200,7 @@ func _create_skill_controls() -> void:
 		var separator: HSeparator = HSeparator.new()
 		skill_container.add_child(separator)
 
-func display_character(character: CharacterBase, stat_points: int = 0, skill_points: int = 0) -> void:
+func display_character(character: Character, stat_points: int = 0, skill_points: int = 0) -> void:
 	"""Display character and available advancement points"""
 	current_character = character
 	available_stat_points = stat_points
@@ -303,7 +315,7 @@ func _get_skill_cost(skill_name: String) -> int:
 			return skill.cost
 	return 1
 
-func _calculate_character_level(character: CharacterBase) -> int:
+func _calculate_character_level(character: Character) -> int:
 	"""Calculate character level based on stats and experience"""
 	if not character:
 		return 1
@@ -316,7 +328,7 @@ func _calculate_character_level(character: CharacterBase) -> int:
 	# Fix narrowing conversion - explicit int conversion
 	return 1 + int(bonus_stats / 3.0) # Level up every 3 stat points
 
-func _get_character_xp(character: CharacterBase) -> int:
+func _get_character_xp(character: Character) -> int:
 	"""Get character's current XP"""
 	if not character:
 		return 0
@@ -455,7 +467,7 @@ func _on_auto_advance_pressed() -> void:
 
 	_update_display()
 
-func get_character() -> CharacterBase:
+func get_character() -> Character:
 	"""Get the current character"""
 	return current_character
 

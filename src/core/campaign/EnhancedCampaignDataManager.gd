@@ -7,7 +7,7 @@ class_name EnhancedCampaignDataManager
 ## Provides comprehensive data storage, validation, and analysis capabilities
 
 # Universal Safety patterns
-const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd")
+const UniversalResourceLoader = preload("res://src/core/systems/UniversalResourceLoader.gd")
 const CampaignDataStructures = preload("res://src/core/data/CampaignDataStructures.gd")
 
 # Data storage

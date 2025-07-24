@@ -13,6 +13,10 @@ signal casualties_processed(casualties: Array)
 signal rewards_calculated(rewards: Dictionary)
 signal battle_log_updated(log_entry: Dictionary)
 
+## PRODUCTION CRITICAL: Post-Battle Integration Signals
+signal battle_completed_for_campaign(comprehensive_results: Dictionary)
+signal post_battle_data_ready(battle_data: Dictionary, crew_updates: Array)
+
 var character_manager: Node # CharacterManagerAutoload
 var game_state: Node # GameState - avoiding circular dependency
 
@@ -464,6 +468,76 @@ func _generate_battle_loot() -> Array:
 			loot_items.append(loot_item)
 
 	return loot_items
+
+## Campaign Integration - Production Critical Method
+
+func finalize_battle_for_campaign_flow(outcome: String, casualties: Array, rewards: Dictionary) -> void:
+	"""Finalize battle results and emit for campaign integration"""
+	var comprehensive_results = {
+		"outcome": outcome,
+		"casualties": casualties,
+		"rewards": rewards,
+		"timestamp": Time.get_unix_time_from_system(),
+		"mission_id": _current_battle.get("mission_id", ""),
+		"crew_experience": _calculate_crew_experience(),
+		"equipment_found": _current_battle.get("equipment_found", []),
+		"credits_earned": rewards.get("credits", 0),
+		"battle_duration": _current_battle.get("duration", 0),
+		"enemy_types": _current_battle.get("enemies", []),
+		"objectives_completed": _current_battle.get("objectives", []),
+		"battle_id": _current_battle.get("id", ""),
+		"player_casualties": _current_battle.get("player_casualties", []),
+		"enemy_casualties": _current_battle.get("enemy_casualties", []),
+		"loot": _current_battle.get("loot", []),
+		"turn": _current_battle.get("turn", 0)
+	}
+	
+	print("BattleResultsManager: Finalizing battle for campaign flow - ", outcome)
+	
+	# Emit the production signals for campaign integration
+	battle_completed_for_campaign.emit(comprehensive_results)
+	post_battle_data_ready.emit(_current_battle, _get_crew_updates())
+
+func _calculate_crew_experience() -> Array:
+	"""Calculate experience awards for crew members"""
+	var xp_awards = []
+	var base_xp = 1
+	
+	# Award bonus XP based on battle outcome
+	match _current_battle.get("outcome", ""):
+		"victory":
+			base_xp = 3
+		"defeat":
+			base_xp = 1
+		"draw":
+			base_xp = 2
+		_:
+			base_xp = 1
+	
+	# Calculate XP for each crew member
+	for crew_member in _current_battle.get("crew_participants", []):
+		xp_awards.append({
+			"crew_id": crew_member,
+			"experience": base_xp,
+			"source": "battle_participation"
+		})
+	
+	return xp_awards
+
+func _get_crew_updates() -> Array:
+	"""Get crew status updates from battle"""
+	var updates = []
+	
+	# Add injury status updates
+	for casualty in _current_battle.get("player_casualties", []):
+		updates.append({
+			"crew_id": casualty.get("id", ""),
+			"type": "injury",
+			"status": casualty.get("status", ""),
+			"recovery_time": casualty.get("recovery_time", 0)
+		})
+	
+	return updates
 
 ## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
 ## Based on Godot 4.4 best practices for safe property access

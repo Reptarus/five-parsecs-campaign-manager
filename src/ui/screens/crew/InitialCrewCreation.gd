@@ -1,17 +1,13 @@
 ﻿class_name FPCM_InitialCrewCreationUI
-extends Control
+extends BaseCrewComponent
 
 ## Five Parsecs Initial Crew Creation UI
-## Integrates with CharacterGeneration system for complete crew creation
+## Now extends BaseCrewComponent for shared crew management functionality
+## Focused on standalone crew creation workflow
 
-# Safe imports using Universal Safety System
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-const FiveParsecsCharacterGeneration = preload("res://src/core/character/CharacterGeneration.gd")
-const CoreCharacter = preload("res://src/core/character/Base/Character.gd")
-
+# Additional signals specific to initial crew creation
 signal crew_created(crew_data: Dictionary)
-signal character_generated(character: CoreCharacter)
+signal character_generated(character: Character)
 
 @onready var crew_size_option := %CrewSizeOption
 @onready var crew_name_input := %CrewNameInput
@@ -20,17 +16,23 @@ signal character_generated(character: CoreCharacter)
 @onready var generate_button := %GenerateButton
 @onready var character_details := %CharacterDetails
 
-var crew_data := {
+# Crew creation specific data (BaseCrewComponent handles core crew data)
+var crew_creation_data := {
 	"name": "",
 	"size": 4,
 	"characters": []
 }
 
-# Character generation system
-var generated_characters: Array[CoreCharacter] = []
 var character_manager: Node = null
 
 func _ready() -> void:
+	# Call parent initialization first
+	super._ready()
+	
+	print("InitialCrewCreation: Initializing standalone crew creation UI...")
+	call_deferred("_setup_initial_crew_creation")
+
+func _setup_initial_crew_creation() -> void:
 	_initialize_character_system()
 	_connect_signals()
 	_setup_options()
@@ -77,65 +79,69 @@ func _setup_options() -> void:
 	_update_ui_state()
 
 func _on_crew_size_changed(size: int) -> void:
-	crew_data.size = size
+	crew_creation_data.size = size
 	_validate_crew()
 
 func _on_crew_name_changed(new_name: String) -> void:
-	crew_data.name = new_name
+	crew_creation_data.name = new_name
 	_validate_crew()
 
 func _on_character_selected(character: Dictionary) -> void:
-	if not crew_data.characters.has(character):
-		if crew_data.characters.size() < crew_data.size:
-			crew_data.characters.append(character)
+	if not crew_creation_data.characters.has(character):
+		if crew_creation_data.characters.size() < crew_creation_data.size:
+			crew_creation_data.characters.append(character)
 	else:
-		crew_data.characters.erase(character)
+		crew_creation_data.characters.erase(character)
 
 	_validate_crew()
 
 func _validate_crew() -> bool:
-	var valid: bool = not crew_data.name.strip_edges().is_empty() and (safe_call_method(generated_characters, "size") as int) == crew_data.size
+	var valid: bool = not crew_creation_data.name.strip_edges().is_empty() and get_crew_size() == crew_creation_data.size
 	create_button.disabled = not valid
 	return valid
 
 func _on_generate_character() -> void:
-	"""Generate a new Five Parsecs character using the sophisticated generation system"""
-	if (safe_call_method(generated_characters, "size") as int) >= crew_data.size:
+	"""Generate a new Five Parsecs character using BaseCrewComponent"""
+	if get_crew_size() >= crew_creation_data.size:
 		push_warning("InitialCrewCreation: Crew already at maximum size")
 		return
 
-	# Use FiveParsecsCharacterGeneration for official rules compliance
-	var character: Character = FiveParsecsCharacterGeneration.generate_random_character()
+	# Use BaseCrewComponent's character generation
+	var character: Character = generate_random_character()
 
 	if character:
-		generated_characters.append(character)
+		# Add to base component crew
+		var success = add_crew_member(character)
+		
+		if success:
+			# Add to UI list
+			var character_name: String = "%s (%s)" % [
+				character.character_name,
+				_get_class_name(character.character_class)
+			]
 
-		# Add to UI list
-		var character_name: String = "%s (%s)" % [
-			character.character_name if character and character.has_method("get") else character.character_name,
-			_get_class_name(character.character_class) if character and character.has_method("get") else character.character_class
-		]
+			if character_list:
+				character_list.add_item(character_name)
+				# Auto-select the new character
+				character_list.select(character_list.get_item_count() - 1)
+				_display_character_details(character)
 
-		if character_list:
-			character_list.add_item(character_name)
-			# Auto-select the new character
-			character_list.select(character_list.get_item_count() - 1)
-			_display_character_details(character)
+			# Convert to dictionary format for crew_creation_data
+			var character_dict: Dictionary = _character_to_dict(character)
+			crew_creation_data.characters.append(character_dict)
 
-		# Convert to dictionary format for crew_data
-		var character_dict: Dictionary = _character_to_dict(character)
-		crew_data.characters.append(character_dict)
+			_update_ui_state()
 
-		_update_ui_state()
+			# Emit signal
+			self.character_generated.emit(character)
 
-		# Emit signal using Universal Safety System
-		self.character_generated.emit(character)
-
-		print("InitialCrewCreation: Generated character: ", character_name)
+			print("InitialCrewCreation: Generated character: ", character_name)
+		else:
+			push_error("InitialCrewCreation: Failed to add character to crew")
 	else:
 		push_error("InitialCrewCreation: Failed to generate character")
 
-func _character_to_dict(character: CoreCharacter) -> Dictionary:
+func _character_to_dict(character: Character) -> Dictionary:
 	"""Convert Character object to dictionary format"""
 	return {
 		"name": character.character_name if character and character.has_method("get") else character.character_name,
@@ -158,7 +164,7 @@ func _get_class_name(class_id: int) -> String:
 		return GlobalEnums.CharacterClass.keys()[class_id]
 	return "Unknown"
 
-func _display_character_details(character: CoreCharacter) -> void:
+func _display_character_details(character: Character) -> void:
 	"""Display character details in the UI"""
 	if not character_details:
 		return
@@ -176,31 +182,37 @@ func _display_character_details(character: CoreCharacter) -> void:
 
 func _on_character_list_selected(index: int) -> void:
 	"""Handle character selection in list"""
-	if index >= 0 and index < (safe_call_method(generated_characters, "size") as int):
-		_display_character_details(generated_characters[index])
+	var crew_members_array = get_crew_members()
+	if index >= 0 and index < crew_members_array.size():
+		_display_character_details(crew_members_array[index])
 
 func _update_ui_state() -> void:
 	"""Update UI state based on current crew data"""
+	var current_crew_size = get_crew_size()
+	
 	# Update generate button
 	if generate_button:
-		generate_button.disabled = (safe_call_method(generated_characters, "size") as int) >= crew_data.size
-		if (safe_call_method(generated_characters, "size") as int) >= crew_data.size:
+		generate_button.disabled = current_crew_size >= crew_creation_data.size
+		if current_crew_size >= crew_creation_data.size:
 			generate_button.text = "Crew Complete"
 		else:
-			generate_button.text = "Generate Character (%d/%d)" % [(safe_call_method(generated_characters, "size") as int), crew_data.size]
+			generate_button.text = "Generate Character (%d/%d)" % [current_crew_size, crew_creation_data.size]
 
 	# Update create button
 	_validate_crew()
 
 func _on_create_pressed() -> void:
 	if _validate_crew():
-		# Ensure we have the complete crew data with generated characters
-		var final_crew_data = crew_data.duplicate()
-		final_crew_data["generated_characters"] = generated_characters
+		# Use BaseCrewComponent crew data with creation-specific metadata
+		var final_crew_data = crew_creation_data.duplicate()
+		final_crew_data["crew_members"] = get_crew_members() # Get Character objects from base component
+		final_crew_data["captain"] = get_captain()
+		final_crew_data["crew_statistics"] = calculate_crew_statistics()
+		final_crew_data["crew_export_data"] = export_crew_data()
 
 		self.crew_created.emit(final_crew_data)
 
-		print("InitialCrewCreation: Crew created with %d characters" % (safe_call_method(generated_characters, "size") as int))
+		print("InitialCrewCreation: Crew created with %d characters" % get_crew_size())
 
 		# Navigate to crew management after successful creation
 		_navigate_after_crew_creation()
@@ -228,10 +240,18 @@ func _show_crew_creation_success() -> void:
 	if create_button:
 		create_button.disabled = true
 		create_button.text = "Crew Created"
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null
+
+## Additional public methods for initial crew creation
+func get_crew_creation_data() -> Dictionary:
+	"""Get crew creation specific data"""
+	return crew_creation_data
+
+func set_crew_size(size: int) -> void:
+	"""Set the target crew size for creation"""
+	crew_creation_data.size = size
+	_update_ui_state()
+
+func set_crew_name(name: String) -> void:
+	"""Set the crew name"""
+	crew_creation_data.name = name
+	_validate_crew()

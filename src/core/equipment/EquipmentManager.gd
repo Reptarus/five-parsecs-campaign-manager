@@ -965,9 +965,9 @@ func _calculate_armor_value(armor_type: int, protection: int) -> int:
 			base_value = 300
 		GlobalEnums.ArmorType.POWERED:
 			base_value = 500
-		GlobalEnums.ArmorType.HAZARD:
+		GlobalEnums.ArmorType.SHIELD:
 			base_value = 250
-		GlobalEnums.ArmorType.STEALTH:
+		GlobalEnums.ArmorType.SPECIAL:
 			base_value = 350
 
 	# Adjust for protection
@@ -1263,15 +1263,15 @@ func generate_market_items(location_type: int, item_count: int = 5) -> Array:
 ## Determine market quality based on location type (1-5 scale)
 func _determine_market_quality(location_type: int) -> int:
 	match location_type:
-		GlobalEnums.WorldTrait.TRADE_CENTER:
+		GlobalEnums.WorldTrait.TRADE_HUB:
 			return 4 + (randi() % 2) # 4-5 quality
-		GlobalEnums.WorldTrait.TECH_CENTER:
+		GlobalEnums.WorldTrait.RESEARCH:
 			return 3 + (randi() % 3) # 3-5 quality
-		GlobalEnums.WorldTrait.INDUSTRIAL_HUB:
+		GlobalEnums.WorldTrait.INDUSTRIAL:
 			return 3 + (randi() % 2) # 3-4 quality
-		GlobalEnums.WorldTrait.PIRATE_HAVEN:
+		GlobalEnums.WorldTrait.CRIMINAL:
 			return 2 + (randi() % 3) # 2-4 quality, wide variety
-		GlobalEnums.WorldTrait.FRONTIER_WORLD:
+		GlobalEnums.WorldTrait.FRONTIER:
 			return 1 + (randi() % 3) # 1-3 quality, limited options
 		_:
 			return 2 + (randi() % 2) # 2-3 quality for other locations
@@ -1454,7 +1454,7 @@ func _generate_market_armor(market_quality: int) -> Dictionary:
 	# Special features based on market quality
 	if market_quality >= 4 and randf() < 0.3:
 		# 30% chance for a special trait in high quality markets
-		var available_traits: Array[String] = ["Environmental", "Sealed", "Reinforced", "Stealth"]
+		var available_traits: Array[String] = ["Environmental", "Sealed", "Reinforced", "Special"]
 		var selected_trait: String = available_traits[randi() % available_traits.size()]
 
 		var current_traits: Array = armor.get("traits", [])
@@ -1548,12 +1548,12 @@ func _apply_market_markup(base_value: int, market_quality: int, location_type: i
 
 	# Location-based markup
 	match location_type:
-		GlobalEnums.WorldTrait.TRADE_CENTER:
-			markup = 0.9 # Trade centers have lower prices
-		GlobalEnums.WorldTrait.FRONTIER_WORLD:
+		GlobalEnums.WorldTrait.TRADE_HUB:
+			markup = 0.9 # Trade hubs have lower prices
+		GlobalEnums.WorldTrait.FRONTIER:
 			markup = 1.3 # Frontier worlds have higher prices
-		GlobalEnums.WorldTrait.PIRATE_HAVEN:
-			markup = 1.2 # Pirate havens have slightly higher prices
+		GlobalEnums.WorldTrait.CRIMINAL:
+			markup = 1.2 # Criminal worlds have slightly higher prices
 		_:
 			markup = 1.0
 

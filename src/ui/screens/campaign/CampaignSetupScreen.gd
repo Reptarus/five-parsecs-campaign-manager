@@ -13,7 +13,7 @@ signal campaign_started(config: Dictionary)
 
 var campaign_config = {
 	"name": "",
-	"difficulty_level": GlobalEnums.DifficultyLevel.NORMAL,
+	"difficulty_level": GlobalEnums.DifficultyLevel.STANDARD,
 	"enable_permadeath": false,
 	"use_story_track": true
 }
@@ -29,13 +29,12 @@ func _setup_difficulty_options() -> void:
 		return
 
 	difficulty_option.clear()
-	difficulty_option.add_item("Easy", GlobalEnums.DifficultyLevel.EASY)
-	difficulty_option.add_item("Normal", GlobalEnums.DifficultyLevel.NORMAL)
-	difficulty_option.add_item("Hard", GlobalEnums.DifficultyLevel.HARD)
+	difficulty_option.add_item("Story", GlobalEnums.DifficultyLevel.STORY)
+	difficulty_option.add_item("Standard", GlobalEnums.DifficultyLevel.STANDARD)
+	difficulty_option.add_item("Challenging", GlobalEnums.DifficultyLevel.CHALLENGING)
 	difficulty_option.add_item("Hardcore", GlobalEnums.DifficultyLevel.HARDCORE)
-	difficulty_option.add_item("Elite", GlobalEnums.DifficultyLevel.ELITE)
-
-	difficulty_option.select(GlobalEnums.DifficultyLevel.NORMAL)
+	difficulty_option.add_item("Nightmare", GlobalEnums.DifficultyLevel.NIGHTMARE)
+	difficulty_option.select(GlobalEnums.DifficultyLevel.STANDARD)
 
 func _connect_signals() -> void:
 	if campaign_name_input and campaign_name_input.has_signal("text_changed"):
@@ -54,28 +53,30 @@ func _update_ui_state() -> void:
 		start_button.disabled = campaign_config.name.is_empty()
 
 	if permadeath_toggle:
-		if campaign_config.difficulty_level == GlobalEnums.DifficultyLevel.EASY:
+		if campaign_config.difficulty_level == GlobalEnums.DifficultyLevel.STORY:
 			permadeath_toggle.disabled = true
 			permadeath_toggle.button_pressed = false
 		else:
 			permadeath_toggle.disabled = false
 
-		if campaign_config.difficulty_level in [GlobalEnums.DifficultyLevel.HARDCORE, GlobalEnums.DifficultyLevel.ELITE]:
+		if campaign_config.difficulty_level in [GlobalEnums.DifficultyLevel.HARDCORE, GlobalEnums.DifficultyLevel.NIGHTMARE]:
 			permadeath_toggle.disabled = true
 			permadeath_toggle.button_pressed = true
 
 func _get_difficulty_description(difficulty: int) -> String:
 	match difficulty:
-		GlobalEnums.DifficultyLevel.EASY:
-			return "Reduced enemy count and easier combat."
-		GlobalEnums.DifficultyLevel.NORMAL:
+		GlobalEnums.DifficultyLevel.STORY:
+			return "Casual play with reduced difficulty for learning."
+		GlobalEnums.DifficultyLevel.STANDARD:
 			return "Standard difficulty with balanced challenges."
-		GlobalEnums.DifficultyLevel.HARD:
-			return "More enemies and tougher combat encounters."
+		GlobalEnums.DifficultyLevel.STANDARD:
+			return "Core rules as written - the classic experience."
+		GlobalEnums.DifficultyLevel.CHALLENGING:
+			return "Increased enemy strength and tougher encounters."
 		GlobalEnums.DifficultyLevel.HARDCORE:
-			return "Significantly harder with elite enemies. Permadeath enabled."
-		GlobalEnums.DifficultyLevel.ELITE:
-			return "The ultimate challenge. Elite enemies and permadeath."
+			return "Maximum difficulty with elite enemies. Permadeath enabled."
+		GlobalEnums.DifficultyLevel.NIGHTMARE:
+			return "Custom ultra-hard mode. The ultimate challenge with permadeath."
 		_:
 			return "Unknown difficulty level"
 
@@ -96,7 +97,7 @@ func _on_story_track_toggled(enabled: bool) -> void:
 	campaign_config.use_story_track = enabled
 
 func _on_start_pressed() -> void:
-	if campaign_config.difficulty_level in [GlobalEnums.DifficultyLevel.HARDCORE, GlobalEnums.DifficultyLevel.ELITE] and not campaign_config.enable_permadeath:
+	if campaign_config.difficulty_level in [GlobalEnums.DifficultyLevel.HARDCORE, GlobalEnums.DifficultyLevel.NIGHTMARE] and not campaign_config.enable_permadeath:
 		campaign_config.enable_permadeath = true
 
 	campaign_started.emit(campaign_config)

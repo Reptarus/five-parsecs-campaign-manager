@@ -191,59 +191,59 @@ func _on_phase_changed(old_phase: int, new_phase: int) -> void:
 			push_warning("Entering Battle phase without a prepared mission")
 @warning_ignore("unused_parameter")
 func _on_sub_phase_changed(old_sub_phase: int, new_sub_phase: int) -> void:
-	# When entering Mission Selection sub-_phase, generate mission options
-	if new_sub_phase == GlobalEnums.CampaignSubPhase.MISSION_SELECTION:
-		generate_mission_options()
+	# When entering a new sub-phase, check if we need to generate mission options
+	# This will be handled by the campaign phase manager instead
+	pass
 func _get_appropriate_mission_type(world_type: int) -> int:
 	# Table for mission types based on world traits (Five Parsecs From Home rulebook p.87-94)
 	# Return a mission _type that's appropriate for the given world _type
 	var mission_types: Array = []
 
 	match world_type:
-		GlobalEnums.WorldTrait.INDUSTRIAL_HUB:
+		GlobalEnums.WorldTrait.INDUSTRIAL:
 			# Industrial worlds favor sabotage and retrieval missions
 			mission_types = [
 				GlobalEnums.MissionType.SABOTAGE,
 				GlobalEnums.MissionType.RAID,
 				GlobalEnums.MissionType.RED_ZONE
 			]
-		GlobalEnums.WorldTrait.FRONTIER_WORLD:
+		GlobalEnums.WorldTrait.FRONTIER:
 			# Frontier worlds favor patrol and defense missions
 			mission_types = [
 				GlobalEnums.MissionType.PATROL,
 				GlobalEnums.MissionType.DEFENSE,
 				GlobalEnums.MissionType.RESCUE
 			]
-		GlobalEnums.WorldTrait.TRADE_CENTER:
+		GlobalEnums.WorldTrait.TRADE_HUB:
 			# Trade centers favor escort and green zone missions
 			mission_types = [
 				GlobalEnums.MissionType.ESCORT,
 				GlobalEnums.MissionType.GREEN_ZONE,
 				GlobalEnums.MissionType.PATROL
 			]
-		GlobalEnums.WorldTrait.PIRATE_HAVEN:
-			# Pirate havens favor black zone and assassination missions
+		GlobalEnums.WorldTrait.CRIMINAL:
+			# Criminal worlds favor black zone and assassination missions
 			mission_types = [
 				GlobalEnums.MissionType.BLACK_ZONE,
 				GlobalEnums.MissionType.ASSASSINATION,
 				GlobalEnums.MissionType.RAID
 			]
-		GlobalEnums.WorldTrait.TECH_CENTER:
-			# Tech centers favor defense and sabotage missions
+		GlobalEnums.WorldTrait.RESEARCH:
+			# Research worlds favor defense and sabotage missions
 			mission_types = [
 				GlobalEnums.MissionType.DEFENSE,
 				GlobalEnums.MissionType.RED_ZONE,
 				GlobalEnums.MissionType.SABOTAGE
 			]
-		GlobalEnums.WorldTrait.MINING_COLONY:
-			# Mining colonies favor sabotage and patrol missions
+		GlobalEnums.WorldTrait.DANGEROUS:
+			# Dangerous worlds favor sabotage and patrol missions
 			mission_types = [
 				GlobalEnums.MissionType.SABOTAGE,
 				GlobalEnums.MissionType.PATROL,
 				GlobalEnums.MissionType.RAID
 			]
-		GlobalEnums.WorldTrait.AGRICULTURAL_WORLD:
-			# Agricultural worlds favor defense and patrol missions
+		GlobalEnums.WorldTrait.AFFLUENT:
+			# Affluent worlds favor defense and patrol missions
 			mission_types = [
 				GlobalEnums.MissionType.DEFENSE,
 				GlobalEnums.MissionType.PATROL,
@@ -387,9 +387,9 @@ func _generate_deployment_options() -> Array:
 	match mission_type:
 		0: # BATTLE
 			deployment_options.append({
-				"name": "Line Deployment",
-				"type": GlobalEnums.DeploymentType.LINE,
-				"description": "Deploy your forces in a line formation."
+				"name": "Defensive Deployment",
+				"type": GlobalEnums.DeploymentType.DEFENSIVE,
+				"description": "Deploy your forces in defensive positions."
 			})
 		1: # SALVAGE_RUN
 			deployment_options.append({

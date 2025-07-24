@@ -1,4 +1,4 @@
-﻿class_name FPCM_BattlefieldCompanion
+class_name FPCM_BattlefieldCompanion
 extends Node
 
 ## Battlefield Companion - Main Orchestrator
@@ -14,6 +14,7 @@ extends Node
 const FPCM_BattlefieldTypes = preload("res://src/core/battle/BattlefieldTypes.gd")
 const BattlefieldData = preload("res://src/core/battle/BattlefieldData.gd")
 const BattlefieldSetupAssistant = preload("res://src/core/battle/BattlefieldSetupAssistant.gd")
+const FPCM_SetupSuggestions = preload("res://src/core/battle/SetupSuggestions.gd")
 const BattleTracker = preload("res://src/core/battle/BattleTracker.gd")
 const PostBattleProcessor = preload("res://src/core/battle/PostBattleProcessor.gd")
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
@@ -83,7 +84,7 @@ func _initialize_core_systems() -> void:
 
 	# Initialize setup assistant
 	setup_assistant = BattlefieldSetupAssistant.new()
-	setup_assistant.inject_battlefield_data(battlefield_data)
+	setup_assistant.inject_battlefield_data(battlefield_data as Resource)
 	add_child(setup_assistant)
 
 	# Initialize battle tracker
@@ -97,8 +98,12 @@ func _initialize_core_systems() -> void:
 func _setup_system_connections() -> void:
 	"""Setup signal connections between systems"""
 	# Setup assistant connections
-	setup_assistant.setup_suggestions_ready.connect(_on_setup_suggestions_ready)
+	if setup_assistant.has_signal("setup_suggestions_ready"):
+		setup_assistant.setup_suggestions_ready.connect(_on_setup_suggestions_ready)
 	setup_assistant.setup_error.connect(_on_setup_error)
+	
+	# New battlefield generation signals from integrated JSON generator
+	setup_assistant.battlefield_generated.connect(_on_battlefield_generated)
 
 	# Battle tracker connections
 	battle_tracker.victory_condition_met.connect(_on_victory_condition_met)
@@ -386,7 +391,7 @@ func complete_battle_companion() -> Dictionary:
 # EVENT HANDLERS
 # =====================================================
 
-func _on_setup_suggestions_ready(suggestions: BattlefieldSetupAssistant.SetupSuggestions) -> void:
+func _on_setup_suggestions_ready(suggestions: FPCM_SetupSuggestions) -> void:
 	"""Handle setup suggestions completion"""
 	session_data["setup_suggestions"] = suggestions
 

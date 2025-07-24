@@ -537,13 +537,13 @@ class FiveParsecsRuleValidator:
         all_violations = []
         compliant_count = 0
         
-        print("🎲 Starting Five Parsecs rule compliance validation...")
+        print("[DICE] Starting Five Parsecs rule compliance validation...")
         
         for file_path in target_files:
             if not file_path.endswith('.gd'):
                 continue
                 
-            print(f"📋 Validating: {Path(file_path).name}")
+            print(f"[LIST] Validating: {Path(file_path).name}")
             
             file_violations = self.validate_file(file_path, strict_mode)
             all_violations.extend(file_violations)
@@ -664,8 +664,8 @@ def main():
         }
         print(json.dumps(result_data, indent=2))
     else:
-        print(f"\n🎲 Five Parsecs Rule Compliance Summary")
-        print(f"Overall Compliance: {'✅ COMPLIANT' if result.is_compliant else '❌ VIOLATIONS FOUND'}")
+        print(f"\n[DICE] Five Parsecs Rule Compliance Summary")
+        print(f"Overall Compliance: {'[COMPLETE] COMPLIANT' if result.is_compliant else '[FAIL] VIOLATIONS FOUND'}")
         print(f"Files Validated: {len(target_files)}")
         print(f"Compliant Files: {result.compliant_implementations}")
         print(f"Coverage: {result.coverage_percentage:.1f}%")
@@ -673,7 +673,7 @@ def main():
         print(f"Execution Time: {result.execution_time:.2f}s")
         
         if result.violations:
-            print(f"\n📋 Rule Violations:")
+            print(f"\n[LIST] Rule Violations:")
             for violation in result.violations:
                 print(f"\n{violation.compliance.value.upper()}: {violation.violation_type}")
                 print(f"  File: {Path(violation.file_path).name}")

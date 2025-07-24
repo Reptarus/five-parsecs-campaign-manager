@@ -22,7 +22,7 @@ var current_tween: Tween
 func _ready() -> void:
 	_setup_overlay()
 	_connect_signals()
-	set_process_input(true)
+	# Input processing only enabled when tutorial is active
 
 func _setup_overlay() -> void:
 	# Setup dimmed background
@@ -66,6 +66,7 @@ func _connect_signals() -> void:
 func start_tutorial(steps: Array[Dictionary]) -> void:
 	tutorial_steps = steps
 	current_step = 0
+	set_process_input(true)  # Enable input processing when tutorial starts
 	show_current_step()
 
 func show_current_step() -> void:
@@ -140,6 +141,7 @@ func hide_overlay() -> void:
 	highlight_rect.visible = false
 	dimmed_rect.visible = false
 	tooltip_panel.visible = false
+	set_process_input(false)  # Disable input processing when tutorial ends
 ## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
 func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
 	if obj == null:

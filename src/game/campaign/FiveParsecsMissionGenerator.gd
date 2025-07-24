@@ -1,16 +1,23 @@
-﻿@tool
+@tool
 extends Node
 class_name FiveParsecsMissionGenerator
 
 ## Five Parsecs Mission Generator
-## Generates missions specific to Five Parsecs from Home campaign system
+## Now uses BaseMissionGenerationSystem for unified mission generation logic
+## Part of Phase 3A Mission Generation Consolidation
 
+const BaseMissionGenerationSystem = preload("res://src/base/mission/BaseMissionGenerationSystem.gd")
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
+const Character = preload("res://src/core/character/Character.gd")
+const GameState = preload("res://src/core/state/GameState.gd")
 const MissionObjective = preload("res://src/core/mission/MissionObjective.gd")
 
 signal mission_generated(mission: Mission)
 signal mission_validation_failed(reason: String)
+
+# Mission generation system (handles all logic)
+var generation_system: BaseMissionGenerationSystem = null
 
 var mission_types: Array[String] = [
 	"Patrol", "Salvage", "Trade", "Exploration", "Pursuit",
@@ -28,32 +35,91 @@ var special_rules: Array[String] = [
 
 func _init() -> void:
 	name = "FiveParsecsMissionGenerator"
+	# Initialize mission generation system
+	generation_system = BaseMissionGenerationSystem.new()
+	_connect_generation_system_signals()
+	_setup_generation_system()
+
+func _connect_generation_system_signals() -> void:
+	"""Connect to generation system signals"""
+	if generation_system:
+		generation_system.mission_generated.connect(_on_system_mission_generated)
+		generation_system.mission_validation_failed.connect(_on_system_mission_validation_failed)
+
+func _setup_generation_system() -> void:
+	"""Setup generation system in Five Parsecs mode"""
+	if generation_system:
+		generation_system.setup_mission_generator(BaseMissionGenerationSystem.GenerationMode.FIVE_PARSECS)
 
 func generate_mission(difficulty: int = 1) -> Mission:
+	"""Generate mission using the generation system"""
+	if generation_system:
+		generation_system.set_difficulty(difficulty)
+		return generation_system.generate_mission()
+	else:
+		# Fallback to legacy generation
+		return _generate_legacy_mission(difficulty)
+
+func _generate_legacy_mission(difficulty: int = 1) -> Mission:
+	"""Legacy mission generation for fallback"""
 	var mission := Mission.new()
 
 	# Set basic mission properties  
 	mission.mission_type = GlobalEnums.MissionType.PATROL + (randi() % (GlobalEnums.MissionType.DEFENSE - GlobalEnums.MissionType.PATROL + 1))
-	mission.difficulty = clampi(difficulty, 1, 5)
-	mission.deployment_condition = deployment_conditions[randi() % deployment_conditions.size()]
+	mission.mission_difficulty = clampi(difficulty, 1, 5)
 
-	# Generate mission details
+	# Generate mission details using legacy methods
 	_generate_mission_name(mission)
 	_generate_objectives(mission)
 	_generate_rewards(mission)
-	_generate_enemy_forces(mission)
-	_add_special_rules(mission)
 
 	mission_generated.emit(mission)
 	return mission
 
+## Generation system signal handlers
+func _on_system_mission_generated(mission: Mission) -> void:
+	"""Handle mission generated from generation system"""
+	mission_generated.emit(mission)
+
+func _on_system_mission_validation_failed(reason: String) -> void:
+	"""Handle mission validation failure from generation system"""
+	mission_validation_failed.emit(reason)
+
+## Public API for enhanced mission generation
+func enable_enhanced_mode() -> void:
+	"""Enable enhanced mission generation mode"""
+	if generation_system:
+		generation_system.setup_mission_generator(BaseMissionGenerationSystem.GenerationMode.ENHANCED)
+
+func get_generation_system() -> BaseMissionGenerationSystem:
+	"""Get generation system for direct access"""
+	return generation_system
+
+func generate_mission_batch(count: int = 3, difficulty: int = 1) -> Array[Mission]:
+	"""Generate multiple missions at once"""
+	if generation_system:
+		generation_system.set_difficulty(difficulty)
+		return generation_system.generate_mission_batch(count)
+	else:
+		# Fallback to legacy generation
+		var missions: Array[Mission] = []
+		for i in range(count):
+			missions.append(_generate_legacy_mission(difficulty))
+		return missions
+
+func set_campaign_context(campaign_turn: int, crew_experience: String = "regular") -> void:
+	"""Set campaign context for mission generation"""
+	if generation_system:
+		generation_system.set_campaign_turn(campaign_turn)
+
+## Legacy methods for compatibility
 func _generate_mission_name(mission: Mission) -> void:
 	var prefixes = ["Operation", "Mission", "Assignment", "Contract"]
 	var suffixes = ["Alpha", "Beta", "Gamma", "Prime", "Storm", "Shadow"]
 
 	var prefix = prefixes[randi() % prefixes.size()]
 	var suffix = suffixes[randi() % suffixes.size()]
-	mission.mission_name = prefix + " " + suffix
+	mission.mission_title = prefix + " " + suffix
 
 func _generate_objectives(mission: Mission) -> void:
 	# Primary objective based on mission type
@@ -67,13 +133,13 @@ func _generate_objectives(mission: Mission) -> void:
 			primary_objective.objective_type = GlobalEnums.MissionObjective.SABOTAGE
 			primary_objective.description = "Sabotage the target facility"
 		GlobalEnums.MissionType.ESCORT:
-			primary_objective.objective_type = GlobalEnums.MissionObjective.DEFEND
+			primary_objective.objective_type = GlobalEnums.MissionObjective.DEFENSE
 			primary_objective.description = "Escort convoy to destination"
 		GlobalEnums.MissionType.RESCUE:
 			primary_objective.objective_type = GlobalEnums.MissionObjective.RESCUE
 			primary_objective.description = "Rescue the target and extract safely"
 		_:
-			primary_objective.objective_type = GlobalEnums.MissionObjective.WIN_BATTLE
+			primary_objective.objective_type = GlobalEnums.MissionObjective.ASSASSINATION
 			primary_objective.description = "Complete the assigned objective"
 
 	mission.objectives.append(primary_objective)
@@ -87,7 +153,7 @@ func _add_secondary_objective(mission: Mission) -> void:
 	var secondary_types = [
 		GlobalEnums.MissionObjective.SABOTAGE,
 		GlobalEnums.MissionObjective.RESCUE,
-		GlobalEnums.MissionObjective.RECON
+		GlobalEnums.MissionObjective.EXPLORE
 	]
 
 	secondary_objective.objective_type = secondary_types[randi() % secondary_types.size()]

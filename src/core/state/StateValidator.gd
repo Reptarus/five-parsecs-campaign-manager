@@ -34,15 +34,15 @@ enum ValidationScope {
 
 ## Validation results
 class ValidationResult:
-	var type: GlobalEnums.VerificationType = GlobalEnums.VerificationType.NONE
-	var scope: GlobalEnums.VerificationScope = GlobalEnums.VerificationScope.NONE
-	var result: GlobalEnums.VerificationResult = GlobalEnums.VerificationResult.NONE
+	var type: int = 0 # VerificationType.NONE
+	var scope: int = 0 # VerificationScope.NONE
+	var result: int = 0 # VerificationResult.NONE
 	var message: String = ""
 	var context: Dictionary = {}
 
 	func _init(
-		p_type: GlobalEnums.VerificationType = GlobalEnums.VerificationType.NONE,
-		p_result: GlobalEnums.VerificationResult = GlobalEnums.VerificationResult.NONE,
+		p_type: int = 0, # VerificationType.NONE
+		p_result: int = 0, # VerificationResult.NONE
 		p_message: String = "",
 		p_context: Dictionary = {}
 	) -> void:
@@ -52,18 +52,18 @@ class ValidationResult:
 		context = p_context
 
 	func is_error() -> bool:
-		return result == GlobalEnums.VerificationResult.ERROR or result == GlobalEnums.VerificationResult.CRITICAL
+		return result == 1 or result == 2 # ERROR or CRITICAL
 
 	func is_warning() -> bool:
-		return result == GlobalEnums.VerificationResult.WARNING
+		return result == 3 # WARNING
 
 	func is_success() -> bool:
-		return result == GlobalEnums.VerificationResult.SUCCESS
+		return result == 4 # SUCCESS
 
 # Factory method to create ValidationResult objects
 func create_result(
-	p_type: GlobalEnums.VerificationType = GlobalEnums.VerificationType.NONE,
-	p_result: GlobalEnums.VerificationResult = GlobalEnums.VerificationResult.NONE,
+	p_type: int = 0, # VerificationType.NONE
+	p_result: int = 0, # VerificationResult.NONE
 	p_message: String = "",
 	p_context: Dictionary = {}
 ) -> ValidationResult:
@@ -77,8 +77,8 @@ func validate_game_state(game_state: GameState) -> Array:
 	# Validate basic state integrity
 	if not game_state:
 		results.append(create_result(
-			GlobalEnums.VerificationType.STATE,
-			GlobalEnums.VerificationResult.ERROR,
+			1, # VerificationType.STATE
+			1, # VerificationResult.ERROR
 			"Game state is null or invalid"
 		))
 		return results
@@ -86,39 +86,39 @@ func validate_game_state(game_state: GameState) -> Array:
 	# Check if the campaign is valid
 	if not game_state.has_active_campaign():
 		results.append(create_result(
-			GlobalEnums.VerificationType.STATE,
-			GlobalEnums.VerificationResult.WARNING,
+			1, # VerificationType.STATE
+			3, # VerificationResult.WARNING
 			"No active campaign"
 		))
 
 	# Check if the crew is valid
 	if not game_state.has_crew():
 		results.append(create_result(
-			GlobalEnums.VerificationType.STATE,
-			GlobalEnums.VerificationResult.WARNING,
+			1, # VerificationType.STATE
+			3, # VerificationResult.WARNING
 			"No active crew"
 		))
 	else:
 		var crew_size = game_state.get_crew_size()
 		if crew_size < 1:
 			results.append(create_result(
-				GlobalEnums.VerificationType.STATE,
-				GlobalEnums.VerificationResult.ERROR,
+				1, # VerificationType.STATE
+				1, # VerificationResult.ERROR
 				"Crew size is invalid: " + str(crew_size)
 			))
 
 	# Check resources
 	if not game_state.has_resource(GlobalEnums.ResourceType.CREDITS):
 		results.append(create_result(
-			GlobalEnums.VerificationType.STATE,
-			GlobalEnums.VerificationResult.WARNING,
+			1, # VerificationType.STATE
+			3, # VerificationResult.WARNING
 			"No credits resource found"
 		))
 
 	if not game_state.has_resource(GlobalEnums.ResourceType.FUEL):
 		results.append(create_result(
-			GlobalEnums.VerificationType.STATE,
-			GlobalEnums.VerificationResult.WARNING,
+			1, # VerificationType.STATE
+			3, # VerificationResult.WARNING
 			"No fuel resource found"
 		))
 
@@ -126,8 +126,8 @@ func validate_game_state(game_state: GameState) -> Array:
 	var current_location = game_state.get_current_location()
 	if (safe_call_method(current_location, "is_empty") == true):
 		results.append(create_result(
-			GlobalEnums.VerificationType.STATE,
-			GlobalEnums.VerificationResult.WARNING,
+			1, # VerificationType.STATE
+			3, # VerificationResult.WARNING
 			"No current location set"
 		))
 
@@ -260,14 +260,14 @@ func run_validation(game_state: GameState, validation_type: ValidationType, scop
 				# Convert string errors to ValidationResult objects
 				for error_msg in campaign_errors:
 					results.append(create_result(
-						GlobalEnums.VerificationType.STATE,
-						GlobalEnums.VerificationResult.ERROR,
+						1, # VerificationType.STATE
+						1, # VerificationResult.ERROR
 						error_msg
 					))
 			else:
 				results.append(create_result(
-					GlobalEnums.VerificationType.STATE,
-					GlobalEnums.VerificationResult.ERROR,
+					1, # VerificationType.STATE
+					1, # VerificationResult.ERROR
 					"No active campaign to validate"
 				))
 		ValidationType.CHARACTER_STATE:
@@ -280,20 +280,20 @@ func run_validation(game_state: GameState, validation_type: ValidationType, scop
 						# Convert string errors to ValidationResult objects
 						for error_msg in character_errors:
 							results.append(create_result(
-								GlobalEnums.VerificationType.STATE,
-								GlobalEnums.VerificationResult.ERROR,
+								1, # VerificationType.STATE
+								1, # VerificationResult.ERROR
 								error_msg
 							))
 					else:
 						results.append(create_result(
-							GlobalEnums.VerificationType.STATE,
-							GlobalEnums.VerificationResult.ERROR,
+							1, # VerificationType.STATE
+							1, # VerificationResult.ERROR
 							"Invalid character data type"
 						))
 			else:
 				results.append(create_result(
-					GlobalEnums.VerificationType.STATE,
-					GlobalEnums.VerificationResult.ERROR,
+					1, # VerificationType.STATE
+					1, # VerificationResult.ERROR
 					"No crew to validate characters"
 				))
 

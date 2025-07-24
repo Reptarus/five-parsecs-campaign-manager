@@ -5,9 +5,9 @@ const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 #
 class MockGameSettings extends Resource:
-    var difficulty_level: int = GameEnums.DifficultyLevel.NORMAL
-    var campaign_type: int = GameEnums.FiveParcsecsCampaignType.STANDARD
-    var victory_condition: int = GameEnums.FiveParcsecsCampaignVictoryType.STANDARD
+    var difficulty_level: int = GameEnums.DifficultyLevel.STANDARD
+    var campaign_type: int = GameEnums.DifficultyLevel.STANDARD
+    var victory_condition: int = GameEnums.DifficultyLevel.STANDARD
     var tutorial_enabled: bool = true
     var auto_save_enabled: bool = true
     var auto_save_frequency: int = 15
@@ -78,7 +78,7 @@ class MockGameSettings extends Resource:
         return campaign_type == GameEnums.FiveParcsecsCampaignType.STORY
 
     func is_sandbox_features_enabled() -> bool:
-        return campaign_type == GameEnums.FiveParcsecsCampaignType.SANDBOX
+        return campaign_type == GameEnums.FiveParcsecsCampaignType.STORY
 
     #
     func should_show_tutorial(tutorial_name: String) -> bool:
@@ -109,9 +109,9 @@ class MockGameSettings extends Resource:
     
     static func deserialize_new(data: Dictionary) -> MockGameSettings:
         var settings = MockGameSettings.new()
-        settings.difficulty_level = data.get("difficulty_level", GameEnums.DifficultyLevel.NORMAL)
-        settings.campaign_type = data.get("campaign_type", GameEnums.FiveParcsecsCampaignType.STANDARD)
-        settings.victory_condition = data.get("victory_condition", GameEnums.FiveParcsecsCampaignVictoryType.STANDARD)
+        settings.difficulty_level = data.get("difficulty_level", GameEnums.DifficultyLevel.STANDARD)
+        settings.campaign_type = data.get("campaign_type", GameEnums.DifficultyLevel.STANDARD)
+        settings.victory_condition = data.get("victory_condition", GameEnums.DifficultyLevel.STANDARD)
         settings.tutorial_enabled = data.get("tutorial_enabled", true)
         settings.auto_save_enabled = data.get("auto_save_enabled", true)
         settings.auto_save_frequency = data.get("auto_save_frequency", 15)
@@ -153,7 +153,7 @@ func test_difficulty_settings() -> void:
     pass
     # Test direct method calls instead of safe wrappers (proven pattern)
     # Test hard difficulty
-    settings.set_difficulty(GameEnums.DifficultyLevel.HARD)
+    settings.set_difficulty(GameEnums.DifficultyLevel.HARDCORE)
     # assert_that() call removed
     
     # Test difficulty modifiers
@@ -162,7 +162,7 @@ func test_difficulty_settings() -> void:
     # assert_that() call removed
     
     # Test easy difficulty
-    settings.set_difficulty(GameEnums.DifficultyLevel.EASY)
+    settings.set_difficulty(GameEnums.DifficultyLevel.STORY)
     # assert_that() call removed
     # assert_that() call removed
     # assert_that() call removed
@@ -242,9 +242,9 @@ func test_serialization() -> void:
     pass
     # Test direct method calls instead of safe wrappers (proven pattern)
     # Setup custom settings
-    settings.set_difficulty(GameEnums.DifficultyLevel.HARD)
-    settings.set_campaign_type(GameEnums.FiveParcsecsCampaignType.STORY)
-    settings.set_victory_condition(GameEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE)
+    settings.set_difficulty(GameEnums.DifficultyLevel.HARDCORE)
+    settings.set_campaign_type(GameEnums.DifficultyLevel.STORY)
+    settings.set_victory_condition(GameEnums.FiveParsecsCampaignVictoryType.TURNS_20)
     settings.set_tutorial_enabled(false)
     settings.set_auto_save_enabled(false)
     settings.set_auto_save_frequency(30)

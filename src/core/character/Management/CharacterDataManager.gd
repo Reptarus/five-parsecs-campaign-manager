@@ -4,7 +4,7 @@ const SAVE_DIR = "user://saves/"
 const CHARACTER_FILE_EXTENSION = ".char.json"
 const CREW_FILE_EXTENSION = ".crew.json"
 const PORTRAIT_DIR = "user://portraits/"
-const CharacterBase = preload("res://src/core/character/Base/Character.gd")
+const Character = preload("res://src/core/character/Character.gd")
 # Note: GameStateManager is an autoload - access via get_node("/root/GameStateManager")
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
@@ -50,7 +50,7 @@ func load_character(file_name: String) -> Character:
 		var parse_result = json.parse(content)
 		if parse_result == OK:
 			var character_data: Character = json.data
-			var character: Character = CharacterBase.new()
+			var character: Character = Character.new()
 			character.deserialize(character_data.serialize())
 			return character
 		else:
@@ -93,7 +93,7 @@ func load_crew(file_name: String) -> Array[Character]:
 		if error == OK:
 			var characters: Array[Character] = []
 			for char_data in json.data:
-				var character := CharacterBase.new()
+				var character := Character.new()
 				character.deserialize(char_data)
 				character.initialize_managers(game_state_manager)
 

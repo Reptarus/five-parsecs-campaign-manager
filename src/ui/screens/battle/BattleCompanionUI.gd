@@ -1,4 +1,4 @@
-﻿class_name FPCM_BattleCompanionUI
+class_name FPCM_BattleCompanionUI
 extends Control
 
 ## Battlefield Companion User Interface
@@ -10,14 +10,24 @@ extends Control
 ## Architecture: Phase-based UI with responsive design
 ## Performance: Optimized for smooth transitions and minimal input latency
 
-# Dependencies
+# Dependencies - Enhanced with modernized battle system
 const BattlefieldTypes = preload("res://src/core/battle/BattlefieldTypes.gd")
 const BattlefieldCompanion = preload("res://src/core/battle/BattlefieldCompanion.gd")
+const FPCM_BattleManager = preload("res://src/core/battle/FPCM_BattleManager.gd")
+const FPCM_BattleState = preload("res://src/core/battle/FPCM_BattleState.gd")
+const FPCM_DiceSystem = preload("res://src/core/systems/DiceSystem.gd")
+const FPCM_BattlefieldSetupAssistant = preload("res://src/core/battle/BattlefieldSetupAssistant.gd")
+const FPCM_SetupSuggestions = preload("res://src/core/battle/SetupSuggestions.gd")
+const FPCM_BattlefieldIO = preload("res://src/core/battle/BattlefieldIO.gd")
 
-# UI state signals
+
+# UI state signals - Enhanced with battle manager integration
 signal phase_navigation_requested(phase: BattlefieldTypes.BattlePhase)
 signal battle_action_triggered(action: String, data: Dictionary)
 signal ui_error_occurred(error: String, context: Dictionary)
+signal phase_completed() # For battle manager integration
+signal dice_roll_requested(pattern: FPCM_DiceSystem.DicePattern, context: String)
+signal battle_manager_action(action: String, data: Dictionary)
 
 # Phase-specific UI containers
 @onready var main_container: Control = %MainContainer
@@ -40,9 +50,14 @@ signal ui_error_occurred(error: String, context: Dictionary)
 @onready var mobile_layout: Control = %MobileLayout
 @onready var desktop_layout: Control = %DesktopLayout
 
-# Core system reference
+# Core system references - Enhanced with modern battle management
 var battlefield_companion: BattlefieldCompanion = null
+var battle_manager: FPCM_BattleManager = null
+var dice_system: FPCM_DiceSystem = null
+var battle_state: FPCM_BattleState = null
 var current_phase: BattlefieldTypes.BattlePhase = BattlefieldTypes.BattlePhase.SETUP_TERRAIN
+var battlefield_setup_assistant: FPCM_BattlefieldSetupAssistant
+
 
 # UI state management
 var ui_locked: bool = false
@@ -51,11 +66,44 @@ var update_frequency: float = 0.1 # 10 FPS for UI updates
 var performance_mode: bool = false
 
 func _ready() -> void:
-	"""Initialize companion UI with responsive setup"""
+	"""Initialize companion UI with enhanced modern systems"""
+	_initialize_core_systems()
 	_initialize_battlefield_companion()
 	_setup_responsive_design()
 	_connect_ui_signals()
 	_initialize_phase_ui()
+	_setup_dice_integration()
+	
+	# Setup the assistant and renderer
+	battlefield_setup_assistant = FPCM_BattlefieldSetupAssistant.new()
+	add_child(battlefield_setup_assistant)
+
+	# This path needs to be correct for your scene structure
+	var battlefield_main = get_tree().get_root().get_node_or_null("Root/BattlefieldMain") 
+	if battlefield_main:
+		var renderer = battlefield_main.get_node_or_null("MarginContainer/VBoxContainer/BattlefieldView/SubViewport/Battlefield/BattlefieldRenderer")
+		if renderer:
+			battlefield_setup_assistant.set_renderer(renderer)
+		else:
+			push_error("BattlefieldRenderer node not found.")
+	else:
+		push_error("BattlefieldMain node not found.")
+
+
+func _initialize_core_systems() -> void:
+	"""Initialize modern battle management systems"""
+	# Initialize dice system for battle companion
+	dice_system = FPCM_DiceSystem.new()
+	dice_system.dice_rolled.connect(_on_dice_rolled)
+	
+	# Initialize battle manager
+	battle_manager = FPCM_BattleManager.new()
+	battle_manager.phase_changed.connect(_on_battle_phase_changed)
+	battle_manager.ui_transition_requested.connect(_on_ui_transition_requested)
+	battle_manager.battle_error.connect(_on_battle_manager_error)
+	
+	# Register this UI component with battle manager
+	battle_manager.register_ui_component("BattleCompanionUI", self)
 
 func _initialize_battlefield_companion() -> void:
 	"""Initialize or connect to battlefield companion system"""
@@ -223,6 +271,8 @@ func _setup_terrain_phase_ui() -> void:
 	var generate_button := setup_panel.get_node_or_null("GenerateButton")
 	var regenerate_button := setup_panel.get_node_or_null("RegenerateButton")
 	var confirm_button := setup_panel.get_node_or_null("ConfirmButton")
+	var import_button := setup_panel.get_node_or_null("ImportButton")
+	var export_button := setup_panel.get_node_or_null("ExportButton")
 
 	if generate_button:
 		generate_button.pressed.connect(_on_generate_terrain_pressed)
@@ -230,6 +280,11 @@ func _setup_terrain_phase_ui() -> void:
 		regenerate_button.pressed.connect(_on_regenerate_terrain_pressed)
 	if confirm_button:
 		confirm_button.pressed.connect(_on_confirm_setup_pressed)
+	if import_button:
+		import_button.pressed.connect(_on_import_pressed)
+	if export_button:
+		export_button.pressed.connect(_on_export_pressed)
+
 
 func _on_generate_terrain_pressed() -> void:
 	"""Handle terrain generation request"""
@@ -284,7 +339,7 @@ func _gather_setup_data() -> Dictionary:
 		"user_modifications": []
 	}
 
-func _display_terrain_suggestions(suggestions: FPCM_BattlefieldSetupAssistant.SetupSuggestions) -> void:
+func _display_terrain_suggestions(suggestions: FPCM_SetupSuggestions) -> void:
 	"""Display terrain suggestions in UI"""
 	var suggestions_container := setup_panel.get_node_or_null("SuggestionsList")
 	if not suggestions_container:
@@ -293,9 +348,9 @@ func _display_terrain_suggestions(suggestions: FPCM_BattlefieldSetupAssistant.Se
 	# Clear existing suggestions
 	_clear_container(suggestions_container)
 
-	# Add terrain suggestions
-	for suggestion in suggestions.terrain_suggestions:
-		var suggestion_item := _create_terrain_suggestion_item(suggestion)
+	# Add terrain features from SetupSuggestions
+	for feature in suggestions.get_terrain_features():
+		var suggestion_item := _create_terrain_suggestion_item(feature)
 		suggestions_container.add_child(suggestion_item)
 
 	# Show setup summary
@@ -303,28 +358,41 @@ func _display_terrain_suggestions(suggestions: FPCM_BattlefieldSetupAssistant.Se
 	if summary_label:
 		summary_label.text = suggestions.get_setup_summary()
 
-func _create_terrain_suggestion_item(suggestion: FPCM_BattlefieldSetupAssistant.TerrainSuggestion) -> Control:
-	"""Create UI item for terrain suggestion"""
+func _create_terrain_suggestion_item(feature: FPCM_BattlefieldTypes.TerrainFeature) -> Control:
+	"""Create UI item for terrain feature"""
 	var item := VBoxContainer.new()
 
 	# Title
 	var title_label := Label.new()
-	title_label.text = suggestion.visual_description
+	title_label.text = feature.title
 	title_label.add_theme_stylebox_override("normal", _get_title_style())
 	item.add_child(title_label)
 
 	# Description
 	var desc_label := Label.new()
-	desc_label.text = suggestion.placement_description
+	desc_label.text = feature.description
 	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	item.add_child(desc_label)
 
-	# Game effects
-	if suggestion.game_effects.size() > 0:
-		var effects_label := Label.new()
-		effects_label.text = "Effects: " + ", ".join(suggestion.game_effects)
-		effects_label.modulate = Color.YELLOW
-		item.add_child(effects_label)
+	# Properties
+	if feature.cover_value > 0:
+		var cover_label := Label.new()
+		cover_label.text = "Cover Value: +%d" % feature.cover_value
+		cover_label.modulate = Color.GREEN
+		item.add_child(cover_label)
+
+	if feature.movement_modifier != 1.0:
+		var movement_label := Label.new()
+		movement_label.text = "Movement: %s" % ("Difficult" if feature.movement_modifier < 1.0 else "Enhanced")
+		movement_label.modulate = Color.YELLOW if feature.movement_modifier < 1.0 else Color.CYAN
+		item.add_child(movement_label)
+
+	# Special rules
+	if feature.special_rules.size() > 0:
+		var rules_label := Label.new()
+		rules_label.text = "Special: " + ", ".join(feature.special_rules)
+		rules_label.modulate = Color.ORANGE
+		item.add_child(rules_label)
 
 	return item
 
@@ -786,3 +854,215 @@ func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Va
 	if obj is Object and obj.has_method(method_name):
 		return obj.callv(method_name, args)
 	return null
+
+# =====================================================
+# ENHANCED BATTLE SYSTEM INTEGRATION
+# =====================================================
+
+func _setup_dice_integration() -> void:
+	"""Setup dice system integration with quick action buttons"""
+	if not quick_actions:
+		return
+	
+	# Add dice roll quick action buttons
+	var dice_section := VBoxContainer.new()
+	dice_section.name = "DiceSection"
+	
+	var dice_label := Label.new()
+	dice_label.text = "Quick Dice Rolls"
+	dice_label.add_theme_font_size_override("font_size", 14)
+	dice_section.add_child(dice_label)
+	
+	# Common battle dice rolls
+	var dice_buttons: Array[Dictionary] = [
+		{"text": "D6", "pattern": FPCM_DiceSystem.DicePattern.D6, "context": "Quick D6 Roll"},
+		{"text": "D10", "pattern": FPCM_DiceSystem.DicePattern.D10, "context": "Quick D10 Roll"},
+		{"text": "2D6", "pattern": FPCM_DiceSystem.DicePattern.COMBAT, "context": "Combat Roll"},
+		{"text": "Reaction", "pattern": FPCM_DiceSystem.DicePattern.REACTION, "context": "Reaction Test"}
+	]
+	
+	for button_data: Dictionary in dice_buttons:
+		var button := Button.new()
+		button.text = button_data.text
+		button.custom_minimum_size = Vector2(60, 32)
+		button.pressed.connect(_on_quick_dice_roll.bind(button_data.pattern, button_data.context))
+		dice_section.add_child(button)
+	
+	quick_actions.add_child(dice_section)
+
+func _on_quick_dice_roll(pattern: FPCM_DiceSystem.DicePattern, context: String) -> void:
+	"""Handle quick dice roll requests"""
+	if dice_system:
+		var result: FPCM_DiceSystem.DiceRoll = dice_system.roll_dice(pattern, context)
+		_display_dice_result(result)
+	
+	# Emit signal for other systems
+	dice_roll_requested.emit(pattern, context)
+
+func _display_dice_result(result: FPCM_DiceSystem.DiceRoll) -> void:
+	"""Display dice roll result in status bar or dedicated area"""
+	if status_bar and status_bar.has_method("show_message"):
+		var message: String = "%s: %s" % [result.context, result.get_simple_text()]
+		status_bar.show_message(message, 3.0)
+	else:
+		print("Dice Roll - %s: %s" % [result.context, result.get_display_text()])
+
+func _on_dice_rolled(result: FPCM_DiceSystem.DiceRoll) -> void:
+	"""Handle dice roll completion from dice system"""
+	_display_dice_result(result)
+
+func _on_battle_phase_changed(old_phase: FPCM_BattleManager.BattlePhase, new_phase: FPCM_BattleManager.BattlePhase) -> void:
+	"""Handle battle manager phase changes"""
+	# Map battle manager phases to companion UI phases
+	var ui_phase: BattlefieldTypes.BattlePhase
+	
+	match new_phase:
+		FPCM_BattleManager.BattlePhase.PRE_BATTLE:
+			ui_phase = BattlefieldTypes.BattlePhase.SETUP_TERRAIN
+		FPCM_BattleManager.BattlePhase.TACTICAL_BATTLE:
+			ui_phase = BattlefieldTypes.BattlePhase.TRACK_BATTLE
+		FPCM_BattleManager.BattlePhase.BATTLE_RESOLUTION:
+			ui_phase = BattlefieldTypes.BattlePhase.TRACK_BATTLE
+		FPCM_BattleManager.BattlePhase.POST_BATTLE:
+			ui_phase = BattlefieldTypes.BattlePhase.PREPARE_RESULTS
+		_:
+			ui_phase = BattlefieldTypes.BattlePhase.SETUP_TERRAIN
+	
+	_show_phase_ui(ui_phase)
+
+func _on_ui_transition_requested(target_ui: String, data: Dictionary) -> void:
+	"""Handle UI transition requests from battle manager"""
+	if target_ui == "BattleCompanionUI":
+		# Update battle state if provided
+		if "battle_state" in data:
+			battle_state = data.battle_state
+		
+		# Show appropriate phase
+		if "phase" in data:
+			var manager_phase: FPCM_BattleManager.BattlePhase = data.phase
+			_on_battle_phase_changed(FPCM_BattleManager.BattlePhase.NONE, manager_phase)
+
+func _on_battle_manager_error(error_code: String, context: Dictionary) -> void:
+	"""Handle battle manager errors"""
+	var error_message: String = "Battle Manager Error: %s" % error_code
+	ui_error_occurred.emit(error_message, context)
+	
+	if status_bar and status_bar.has_method("show_error"):
+		status_bar.show_error(error_message, 5.0)
+	else:
+		print("ERROR: %s - %s" % [error_code, str(context)])
+
+func setup_battle(mission_data: Resource, crew_members: Array[Resource], enemy_forces: Array[Resource]) -> bool:
+	"""Setup companion UI for a new battle using modern battle manager"""
+	if not battle_manager:
+		ui_error_occurred.emit("BATTLE_MANAGER_MISSING", {})
+		return false
+	
+	# Initialize battle through battle manager
+	var success: bool = battle_manager.initialize_battle(mission_data, crew_members, enemy_forces)
+	
+	if success:
+		battle_state = battle_manager.battle_state
+		# UI will be updated through battle manager signals
+	
+	return success
+
+func complete_current_phase() -> void:
+	"""Complete current phase and advance battle"""
+	if battle_manager:
+		battle_manager.advance_phase()
+	
+	# Emit completion signal for any direct listeners
+	phase_completed.emit()
+
+func get_battle_status() -> Dictionary:
+	"""Get current battle status from modern systems"""
+	var status: Dictionary = {}
+	
+	if battle_manager:
+		status = battle_manager.get_battle_status()
+	
+	# Add companion UI specific status
+	status["ui_phase"] = current_phase
+	status["ui_locked"] = ui_locked
+	status["performance_mode"] = performance_mode
+	
+	return status
+
+func set_battle_state(new_state: FPCM_BattleState) -> void:
+	"""Set battle state and update UI accordingly"""
+	battle_state = new_state
+	
+	if battle_state:
+		# Update UI based on battle state
+		_update_ui_from_battle_state()
+
+func _update_ui_from_battle_state() -> void:
+	"""Update UI elements based on current battle state"""
+	if not battle_state:
+		return
+	
+	# Update phase progress
+	var status: Dictionary = battle_state.get_battlefield_status()
+	if phase_progress:
+		# Calculate progress based on round number (rough estimate)
+		var progress_value: float = min(float(status.get("round", 0)) / 6.0, 1.0)
+		phase_progress.value = progress_value
+	
+	# Update phase indicator with battle info
+	if phase_indicator:
+		var round_text: String = "Round %d" % status.get("round", 0)
+		phase_indicator.text = "%s - %s" % [phase_indicator.text, round_text]
+
+## Emergency cleanup for battle manager integration
+func _exit_tree() -> void:
+	"""Cleanup when UI is removed from scene"""
+	if battle_manager:
+		battle_manager.unregister_ui_component("BattleCompanionUI")
+	
+	# Disconnect dice system signals
+	if dice_system and dice_system.dice_rolled.is_connected(_on_dice_rolled):
+		dice_system.dice_rolled.disconnect(_on_dice_rolled)
+
+func _on_import_pressed() -> void:
+	var file_dialog = FileDialog.new()
+	file_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+	file_dialog.add_filter("*.5pbf", "Five Parsecs Battlefield")
+	add_child(file_dialog)
+	file_dialog.file_selected.connect(_on_file_imported)
+	file_dialog.popup_centered()
+
+func _on_file_imported(path: String) -> void:
+	var file = FileAccess.open(path, FileAccess.READ)
+	if not file:
+		_show_error("Failed to open imported file.")
+		return
+	var content = file.get_as_text()
+	file.close()
+	var context = FPCM_BattlefieldIO.import_battlefield(content)
+	if context.is_empty():
+		_show_error("Invalid battlefield blueprint file.")
+		return
+	
+	# Use the imported context to generate the battlefield
+	battlefield_setup_assistant.generate_and_render_battlefield(context)
+
+func _on_export_pressed() -> void:
+	var grid_data = battlefield_setup_assistant.get_last_generated_grid()
+	if grid_data.is_empty():
+		_show_error("No battlefield has been generated to export.")
+		return
+
+	var context = battlefield_setup_assistant.get_last_generation_context()
+	var blueprint_string = FPCM_BattlefieldIO.export_battlefield(context, grid_data.grid)
+
+	var file_dialog = FileDialog.new()
+	file_dialog.file_mode = FileDialog.FILE_MODE_SAVE_FILE
+	file_dialog.add_filter("*.5pbf", "Five Parsecs Battlefield")
+	add_child(file_dialog)
+	file_dialog.file_selected.connect(func(path):
+		var file = FileAccess.open(path, FileAccess.WRITE)
+		if file:
+			file.store_string(blueprint_string)
+	)
+	file_dialog.popup_centered()

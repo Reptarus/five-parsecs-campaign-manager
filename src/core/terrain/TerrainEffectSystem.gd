@@ -160,7 +160,7 @@ func _convert_terrain_to_environment(terrain_type: TerrainTypes.Type) -> GlobalE
 		TerrainTypes.Type.HAZARD:
 			return GlobalEnums.PlanetEnvironment.VOLCANIC
 		TerrainTypes.Type.FOREST:
-			return GlobalEnums.PlanetEnvironment.JUNGLE
+			return GlobalEnums.PlanetEnvironment.TEMPERATE
 		_:
 			return GlobalEnums.PlanetEnvironment.TEMPERATE
 

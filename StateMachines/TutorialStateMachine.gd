@@ -8,10 +8,23 @@ class_name FPCM_TutorialStateMachine
 
 # Dependencies
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-# const GameEventLogger = preload("res://src/core/systems/GameEventLogger.gd") # Commented out - file doesn't exist
-# const FiveParsecsCrewSystem = preload("res://src/core/systems/FiveParsecsCrewSystem.gd") # Commented out - file doesn't exist
-const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
-const Mission := preload("res://src/core/systems/Mission.gd")
+const Character = preload("res://src/core/character/Character.gd")
+
+# Tutorial State Types
+enum TutorialState {
+	NONE,
+	INTRODUCTION,
+	MOVEMENT,
+	COMBAT,
+	OBJECTIVES,
+	COMPLETION,
+	QUICK_START,
+	ADVANCED,
+	BATTLE_TUTORIAL,
+	CAMPAIGN_TUTORIAL,
+	STORY_TUTORIAL,
+	COMPLETED
+}
 
 signal state_changed(new_state: int)
 signal track_changed(new_track: int)
@@ -29,29 +42,22 @@ enum TutorialTrack {
 	STORY
 }
 
-enum TutorialState {
-	NONE,
-	SETUP,
-	RUNNING,
-	PAUSED,
-	COMPLETED,
-	QUICK_START,
-	ADVANCED,
-	BATTLE_TUTORIAL,
-	CAMPAIGN_TUTORIAL,
-	STORY_TUTORIAL
-}
-
 # Tutorial state
 var current_state: int = TutorialState.NONE
-var current_track: int = TutorialTrack.NONE
+var previous_state: int = TutorialState.NONE
+var tutorial_data: Dictionary = {}
+var current_track: int = 0 # TutorialTrack.NONE
 var current_step: int = 0
 var completed_steps: Array[String] = []
 var steps_completed: Array[int] = []
-var game_state: FiveParsecsGameState
+var game_state: Resource = null
 
-func _init(state: FiveParsecsGameState) -> void:
-	game_state = state
+# Campaign state
+var campaign_state: Resource = null
+var mission_state: Resource = null
+
+func _init() -> void:
+	name = "TutorialStateMachine"
 
 func _exit_quick_start() -> void:
 	if current_track == TutorialTrack.QUICK_START:
@@ -106,20 +112,50 @@ func start_tutorial_track(track: int) -> void:
 		_:
 			push_error("Invalid tutorial track: %d" % track)
 
-func start_tutorial() -> void:
-	current_step = 0
-	steps_completed.clear()
-	_advance_to_next_step()
+func start_tutorial(tutorial_type: int) -> void:
+	match tutorial_type:
+		TutorialState.INTRODUCTION:
+			_start_introduction_tutorial()
+		TutorialState.MOVEMENT:
+			_start_movement_tutorial()
+		TutorialState.COMBAT:
+			_start_combat_tutorial()
+		TutorialState.OBJECTIVES:
+			_start_objectives_tutorial()
+		TutorialState.COMPLETION:
+			_start_completion_tutorial()
+		_:
+			_start_basic_tutorial()
+
+func _start_basic_tutorial() -> void:
+	# Basic tutorial setup
+	var tutorial_config = {
+		"difficulty": GlobalEnums.DifficultyLevel.STORY,
+		"victory_condition": 0, # WEALTH_GOAL
+		"crew_size": 3 # TRIO
+	}
+	_setup_tutorial_campaign(tutorial_config)
+
+func _start_advanced_tutorial() -> void:
+	# Advanced tutorial setup
+	var tutorial_config = {
+		"difficulty": GlobalEnums.DifficultyLevel.STANDARD,
+		"victory_condition": 1, # REPUTATION_GOAL
+		"crew_size": 4 # QUARTET
+	}
+	_setup_tutorial_campaign(tutorial_config)
+
+func _start_quick_start_tutorial() -> void:
+	# Quick start tutorial
+	var tutorial_config = {
+		"difficulty": GlobalEnums.DifficultyLevel.STORY,
+		"victory_condition": 0, # WEALTH_GOAL
+		"crew_size": 2 # DUO
+	}
+	_setup_tutorial_campaign(tutorial_config)
 
 func complete_current_step() -> void:
 	if current_step > 0:
-
-
-
-
-
-
-
 		steps_completed.append(current_step)
 		tutorial_step_completed.emit(current_step)
 		_advance_to_next_step()
@@ -137,7 +173,7 @@ func _advance_to_next_step() -> void:
 func _setup_step(step: int) -> void:
 	match step:
 		1: # Introduction
-			game_state.set_victory_type(GlobalEnums.FiveParcsecsCampaignVictoryType.STANDARD)
+			game_state.set_victory_type(0) # STANDARD
 		2: # Basic Movement
 			_setup_movement_tutorial()
 		3: # Combat
@@ -187,7 +223,7 @@ func _start_battle_tutorial() -> void:
 	var battle_setup := {
 		"enemy_count": 2,
 		"battle_environment": GlobalEnums.PlanetEnvironment.URBAN,
-		"objective": GlobalEnums.MissionObjective.DEFEND
+		"objective": GlobalEnums.MissionObjective.DEFENSE
 	}
 	game_state.is_tutorial_active = true
 	if game_state.has_method("start_tutorial_battle"):
@@ -199,9 +235,9 @@ func _start_campaign_tutorial() -> void:
 		
 	game_state.is_tutorial_active = true
 	var campaign_setup := {
-		"difficulty": GlobalEnums.DifficultyLevel.NORMAL,
-		"victory_type": GlobalEnums.FiveParcsecsCampaignVictoryType.STANDARD,
-		"crew_size": GlobalEnums.CrewSize.FOUR,
+		"difficulty": GlobalEnums.DifficultyLevel.STANDARD,
+		"victory_type": 0, # STANDARD
+		"crew_size": 3, # TRIO
 		"use_story_track": false
 	}
 	
@@ -218,8 +254,8 @@ func _start_story_tutorial() -> void:
 func _setup_tutorial_mission(track: int) -> void:
 	var mission = {
 		"type": GlobalEnums.MissionType.PATROL, # Using PATROL as a basic mission type for tutorials
-		"difficulty": GlobalEnums.DifficultyLevel.EASY,
-		"victory_type": GlobalEnums.FiveParcsecsCampaignVictoryType.STANDARD,
+		"difficulty": GlobalEnums.DifficultyLevel.STORY,
+		"victory_type": 0, # STANDARD
 		"track": track
 	}
 	
@@ -265,3 +301,47 @@ func transition_to(new_state: int) -> void:
 			_complete_tutorial()
 
 	state_changed.emit(current_state)
+
+func _start_introduction_tutorial() -> void:
+	# Introduction tutorial setup
+	pass
+
+func _start_movement_tutorial() -> void:
+	# Movement tutorial setup
+	pass
+
+func _start_combat_tutorial() -> void:
+	# Combat tutorial setup
+	pass
+
+func _start_objectives_tutorial() -> void:
+	# Objectives tutorial setup
+	pass
+
+func _start_completion_tutorial() -> void:
+	# Completion tutorial setup
+	pass
+
+func _setup_tutorial_campaign(config: Dictionary) -> void:
+	# Setup tutorial campaign with given configuration
+	pass
+
+func _get_mission_objective_name(objective_type: int) -> String:
+	match objective_type:
+		GlobalEnums.MissionObjective.PATROL:
+			return "Patrol"
+		GlobalEnums.MissionObjective.DEFENSE:
+			return "Defend"
+		GlobalEnums.MissionObjective.ASSASSINATION:
+			return "Eliminate"
+		GlobalEnums.MissionObjective.EXPLORE:
+			return "Explore"
+		_:
+			return "Unknown"
+
+func _get_tutorial_track_name(track: int) -> String:
+	match track:
+		0: return "Basic"
+		1: return "Advanced"
+		2: return "Expert"
+		_: return "Unknown"

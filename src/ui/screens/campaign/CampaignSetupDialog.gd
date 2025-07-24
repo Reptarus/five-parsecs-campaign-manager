@@ -16,12 +16,12 @@ func _ready() -> void:
 
 func _setup_difficulty_options() -> void:
 	difficulty_option.clear()
-	difficulty_option.add_item("Easy", GlobalEnums.DifficultyLevel.EASY)
-	difficulty_option.add_item("Normal", GlobalEnums.DifficultyLevel.NORMAL)
-	difficulty_option.add_item("Hard", GlobalEnums.DifficultyLevel.HARD)
+	difficulty_option.add_item("Story", GlobalEnums.DifficultyLevel.STORY)
+	difficulty_option.add_item("Standard", GlobalEnums.DifficultyLevel.STANDARD)
+	difficulty_option.add_item("Challenging", GlobalEnums.DifficultyLevel.CHALLENGING)
 	difficulty_option.add_item("Hardcore", GlobalEnums.DifficultyLevel.HARDCORE)
-	difficulty_option.add_item("Elite", GlobalEnums.DifficultyLevel.ELITE)
-	difficulty_option.select(GlobalEnums.DifficultyLevel.NORMAL)
+	difficulty_option.add_item("Nightmare", GlobalEnums.DifficultyLevel.NIGHTMARE)
+	difficulty_option.select(GlobalEnums.DifficultyLevel.STANDARD)
 
 func _connect_signals() -> void:
 	difficulty_option.item_selected.connect(_on_difficulty_changed)
@@ -31,7 +31,7 @@ func _connect_signals() -> void:
 
 func _update_ui_state() -> void:
 	var difficulty_index = difficulty_option.get_selected_id()
-	if difficulty_index == GlobalEnums.DifficultyLevel.HARDCORE or difficulty_index == GlobalEnums.DifficultyLevel.ELITE:
+	if difficulty_index == GlobalEnums.DifficultyLevel.HARDCORE or difficulty_index == GlobalEnums.DifficultyLevel.NIGHTMARE:
 		permadeath_toggle.button_pressed = true
 		permadeath_toggle.disabled = true
 	else:
@@ -39,16 +39,16 @@ func _update_ui_state() -> void:
 
 func _get_difficulty_description(difficulty: int) -> String:
 	match difficulty:
-		GlobalEnums.DifficultyLevel.EASY:
-			return "Reduced enemy count and easier combat."
-		GlobalEnums.DifficultyLevel.NORMAL:
-			return "Standard difficulty with balanced challenges."
-		GlobalEnums.DifficultyLevel.HARD:
-			return "More enemies and tougher combat encounters."
+		GlobalEnums.DifficultyLevel.STORY:
+			return "Casual play with reduced difficulty for learning."
+		GlobalEnums.DifficultyLevel.STANDARD:
+			return "Core rules as written - the classic experience."
+		GlobalEnums.DifficultyLevel.CHALLENGING:
+			return "Increased enemy strength and tougher encounters."
 		GlobalEnums.DifficultyLevel.HARDCORE:
-			return "Significantly harder with elite enemies. Permadeath enabled."
-		GlobalEnums.DifficultyLevel.ELITE:
-			return "The ultimate challenge. Elite enemies and permadeath."
+			return "Maximum difficulty with elite enemies. Permadeath enabled."
+		GlobalEnums.DifficultyLevel.NIGHTMARE:
+			return "Custom ultra-hard mode. The ultimate challenge with permadeath."
 		_:
 			return "Unknown difficulty level"
 

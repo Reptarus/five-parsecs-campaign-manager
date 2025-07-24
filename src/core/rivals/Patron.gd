@@ -3,7 +3,7 @@ class_name FPCM_Patron
 
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
-const GameLocation = preload("res://src/game/world/GameLocation.gd")
+const Character = preload("res://src/core/character/Character.gd")
 
 signal relationship_changed(new_value: int)
 signal missions_updated
@@ -20,13 +20,13 @@ signal patron_status_changed
 		_patron_name = _value
 		notify_property_list_changed()
 
-@export var location: GameLocation:
+@export var location: Resource:
 	get: return _location
 	set(_value):
 		if not _value:
-			push_error("Location cannot be null")
-			return
-		_location = _value
+			_location = null
+		else:
+			_location = _value
 		notify_property_list_changed()
 
 @export var relationship: int:
@@ -53,7 +53,7 @@ signal patron_status_changed
 
 # Internal variables
 var _patron_name: String = ""
-var _location: GameLocation
+var _location: Resource
 var _relationship: int = 0
 var _faction_type: GlobalEnums.FactionType = GlobalEnums.FactionType.NEUTRAL
 var _economic_influence: float = 1.0
@@ -67,7 +67,7 @@ var reputation_bonus: int = 0
 var mission_bonus: int = 0
 
 func _init(p_name: String = "",
-		  p_location: GameLocation = null,
+		  p_location: Resource = null,
 		  p_faction: GlobalEnums.FactionType = GlobalEnums.FactionType.NEUTRAL) -> void:
 	patron_name = p_name
 	location = p_location
@@ -210,7 +210,7 @@ static func deserialize(data: Dictionary) -> Resource:
 
 	var location_data = data.get("location", {})
 	if not location_data.is_empty():
-		var location := GameLocation.new()
+		var location := Resource.new()
 		if location and location.has_method("deserialize"): location.deserialize(location_data)
 		patron._location = location
 	else:

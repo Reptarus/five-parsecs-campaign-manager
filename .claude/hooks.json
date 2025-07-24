@@ -80,7 +80,7 @@
         "--changed-file",
         "${filePath}",
         "--godot-path",
-        "C:/Users/elija/Desktop/GoDot/Godot_v4.4-stable_mono_win64/Godot_v4.4-stable_mono_win64_console.exe"
+        "C:/Users/elija/Desktop/GoDot/Godot_v4.4.1-stable_win64.exe/Godot_v4.4.1-stable_win64_console.exe"
       ],
       "timeout": 120,
       "errorHandling": "warn",
@@ -118,7 +118,7 @@
         "--validate-resources", 
         "--check-dependencies",
         "--godot-path",
-        "C:/Users/elija/Desktop/GoDot/Godot_v4.4-stable_mono_win64/Godot_v4.4-stable_mono_win64_console.exe"
+        "C:/Users/elija/Desktop/GoDot/Godot_v4.4.1-stable_win64.exe/Godot_v4.4.1-stable_win64_console.exe"
       ],
       "timeout": 45,
       "errorHandling": "continue"
@@ -226,7 +226,7 @@
       "maxSize": "10MB"
     },
     "environment": {
-      "GODOT_PATH": "C:/Users/elija/Desktop/GoDot/Godot_v4.4-stable_mono_win64/Godot_v4.4-stable_mono_win64_console.exe",
+      "GODOT_PATH": "C:/Users/elija/Desktop/GoDot/Godot_v4.4.1-stable_win64.exe/Godot_v4.4.1-stable_win64_console.exe",
       "PROJECT_ROOT": "C:/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager",
       "PYTHON_PATH": "python"
     }

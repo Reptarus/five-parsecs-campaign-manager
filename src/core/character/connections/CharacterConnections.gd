@@ -6,7 +6,7 @@ extends RefCounted
 ## Manages starting contacts, patrons, and rival generation
 
 # Safe imports
-const UniversalResourceLoader := preload("res://src/utils/UniversalResourceLoader.gd")
+const UniversalResourceLoader := preload("res://src/core/systems/UniversalResourceLoader.gd")
 const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
 # Cached connection data

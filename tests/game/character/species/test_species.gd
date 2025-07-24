@@ -1,6 +1,5 @@
-
 # tests/game/character/species/test_species.gd
-extends GutTest
+extends GdUnit4Version
 
 const KragSpecies = preload("res://src/game/character/species/KragSpecies.gd")
 const SkulkerSpecies = preload("res://src/game/character/species/SkulkerSpecies.gd")
@@ -51,11 +50,11 @@ func test_skulker_species_apply_traits():
     assert_true(mock_character.get_node("special_abilities").get_meta("biological_resistance"), "Skulker should have biological_resistance ability")
 
 # Add tests for Updated Primary Alien Table, Krag Colony Worlds, Skulker Colony Worlds
-# These would likely involve mocking GameDataManager or other systems that handle world generation and data tables.
+# These would likely involve mocking DataManager or other systems that handle world generation and data tables.
 # Example (conceptual):
 # func test_updated_primary_alien_table():
-#     var game_data_manager_mock = mock("res://src/core/data/GameDataManager.gd").make_double()
-#     game_data_manager_mock.get_character_creation_data.returns({"alien_table": [KragSpecies, SkulkerSpecies, ...]})
+#     var data_manager_mock = mock("res://src/core/data/DataManager.gd").make_double()
+#     data_manager_mock.get_character_creation_data.returns({"alien_table": [KragSpecies, SkulkerSpecies, ...]})
 #     # Then test that character generation uses this updated table
 #     assert_true(true, "Placeholder for alien table test")
 

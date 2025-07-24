@@ -8,18 +8,17 @@ signal tactic_changed(enemy: Object, new_tactic: int)
 signal group_coordination_updated(group: Array, leader: Object)
 
 ## Dependencies
-const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const Character := preload("res://src/core/character/Base/Character.gd")
-const BattlefieldManagerClass := preload("res://src/core/battle/BattlefieldManager.gd")
-const BaseCombatManager := preload("res://src/base/combat/BaseCombatManager.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const Character = preload("res://src/core/character/Character.gd")
+const Enemy = preload("res://src/core/enemy/base/Enemy.gd")
 
-## AI Personality types
-enum AIPersonality {
+# AI Behavior Types
+enum AIBehavior {
 	AGGRESSIVE,
 	CAUTIOUS,
 	TACTICAL,
-	PROTECTIVE,
-	UNPREDICTABLE
+	DEFENSIVE,
+	SUPPORTIVE
 }
 
 ## Group tactics
@@ -48,7 +47,7 @@ func _ready() -> void:
 		push_warning("EnemyTacticalAI: No combat manager assigned")
 
 ## Initializes AI for an enemy unit
-func initialize_enemy_ai(enemy: Character, personality: AIPersonality = AIPersonality.TACTICAL) -> void:
+func initialize_enemy_ai(enemy: Character, personality: AIBehavior = AIBehavior.TACTICAL) -> void:
 	_enemy_personalities[enemy] = personality
 	_tactical_states[enemy] = {
 		"current_tactic": GlobalEnums.CombatTactic.NONE,
@@ -64,7 +63,7 @@ func make_tactical_decision(enemy: Character) -> Dictionary:
 		push_warning("EnemyTacticalAI: Enemy not initialized with AI")
 		return {}
 
-	var personality: AIPersonality = _enemy_personalities[enemy]
+	var personality: AIBehavior = _enemy_personalities[enemy]
 
 	# Update threat assessment
 	_update_threat_assessment(enemy)
@@ -75,18 +74,18 @@ func make_tactical_decision(enemy: Character) -> Dictionary:
 
 	# Make individual decision based on personality
 	match personality:
-		AIPersonality.AGGRESSIVE:
+		AIBehavior.AGGRESSIVE:
 			return _make_aggressive_decision(enemy)
-		AIPersonality.CAUTIOUS:
+		AIBehavior.CAUTIOUS:
 			return _make_cautious_decision(enemy)
-		AIPersonality.TACTICAL:
+		AIBehavior.TACTICAL:
 			return _make_tactical_decision(enemy)
-		AIPersonality.PROTECTIVE:
+		AIBehavior.DEFENSIVE:
 			return _make_protective_decision(enemy)
-		AIPersonality.UNPREDICTABLE:
+		AIBehavior.SUPPORTIVE:
 			return _make_unpredictable_decision(enemy)
 		_:
-			return _make_default_decision(enemy)
+			return _make_tactical_decision(enemy)
 
 ## Updates threat assessment for an enemy
 func _update_threat_assessment(enemy: Object) -> void:
@@ -191,8 +190,8 @@ func _make_unpredictable_decision(enemy: Object) -> Dictionary:
 ## Makes a default decision
 func _make_default_decision(enemy: Object) -> Dictionary:
 	return {
-		"action": GlobalEnums.UnitAction.TAKE_COVER,
-		"tactic": GlobalEnums.CombatTactic.BALANCED
+		"action": GlobalEnums.UnitAction.MOVE,
+		"tactic": GlobalEnums.CombatTactic.CAUTIOUS
 	}
 
 ## Makes a group-coordinated decision

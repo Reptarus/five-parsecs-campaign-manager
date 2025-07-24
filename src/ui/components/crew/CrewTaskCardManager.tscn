@@ -1,0 +1,145 @@
+[gd_scene load_steps=3 format=3 uid="uid://c8m5vfpqr2k6x"]
+
+[ext_resource type="Script" path="res://src/ui/components/crew/CrewTaskCardManager.gd" id="1_manager_script"]
+[ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="2_theme"]
+
+[node name="CrewTaskCardManager" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_manager_script")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 10
+
+[node name="HeaderSection" type="VBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_constants/separation = 5
+
+[node name="TitleLabel" type="Label" parent="VBoxContainer/HeaderSection"]
+layout_mode = 2
+text = "Crew Task Management"
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+horizontal_alignment = 1
+
+[node name="TaskSummary" type="HBoxContainer" parent="VBoxContainer/HeaderSection"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="ActiveTasksLabel" type="Label" parent="VBoxContainer/HeaderSection/TaskSummary"]
+layout_mode = 2
+text = "Active Tasks: 0"
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.7, 0.9, 0.7, 1)
+
+[node name="AvailableCrewLabel" type="Label" parent="VBoxContainer/HeaderSection/TaskSummary"]
+layout_mode = 2
+text = "Available Crew: 0"
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.7, 0.7, 0.9, 1)
+
+[node name="ControlsSection" type="HBoxContainer" parent="VBoxContainer/HeaderSection"]
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="RefreshButton" type="Button" parent="VBoxContainer/HeaderSection/ControlsSection"]
+custom_minimum_size = Vector2(100, 36)
+layout_mode = 2
+text = "Refresh"
+
+[node name="AutoAssignButton" type="Button" parent="VBoxContainer/HeaderSection/ControlsSection"]
+custom_minimum_size = Vector2(120, 36)
+layout_mode = 2
+text = "Auto Assign"
+
+[node name="ClearAllButton" type="Button" parent="VBoxContainer/HeaderSection/ControlsSection"]
+custom_minimum_size = Vector2(100, 36)
+layout_mode = 2
+text = "Clear All"
+
+[node name="CardsSection" type="VBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer/CardsSection"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="TaskCardsContainer" type="GridContainer" parent="VBoxContainer/CardsSection/ScrollContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 10
+columns = 3
+
+[node name="EmptyStateLabel" type="Label" parent="VBoxContainer/CardsSection"]
+visible = false
+layout_mode = 2
+text = "No crew members available for tasks.
+Add crew members to your campaign to assign tasks."
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="LoadingIndicator" type="Control" parent="VBoxContainer/CardsSection"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="LoadingSpinner" type="Label" parent="VBoxContainer/CardsSection/LoadingIndicator"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -50.0
+offset_top = -12.0
+offset_right = 50.0
+offset_bottom = 12.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Loading crew..."
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StatusSection" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_constants/separation = 20
+
+[node name="StatusLabel" type="Label" parent="VBoxContainer/StatusSection"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Ready"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+
+[node name="LastUpdatedLabel" type="Label" parent="VBoxContainer/StatusSection"]
+layout_mode = 2
+text = "Last Updated: Never"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+horizontal_alignment = 2

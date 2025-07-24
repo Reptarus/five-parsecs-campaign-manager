@@ -12,7 +12,7 @@ signal config_updated(config: Dictionary)
 
 var current_config: Dictionary = {
 	"name": "",
-	"difficulty": GlobalEnums.DifficultyLevel.NORMAL,
+	"difficulty": GlobalEnums.DifficultyLevel.STANDARD,
 	"victory_condition": "none",
 	"story_track_enabled": false,
 	"elite_ranks": 0
@@ -27,12 +27,13 @@ func _ready() -> void:
 func _setup_difficulty_options() -> void:
 	difficulty_option.clear()
 
-	difficulty_option.add_item("Easy", GlobalEnums.DifficultyLevel.EASY)
-	difficulty_option.add_item("Normal", GlobalEnums.DifficultyLevel.NORMAL)
-	difficulty_option.add_item("Hard", GlobalEnums.DifficultyLevel.HARD)
+	difficulty_option.add_item("Story", GlobalEnums.DifficultyLevel.STORY)
+	difficulty_option.add_item("Standard", GlobalEnums.DifficultyLevel.STANDARD)
+	difficulty_option.add_item("Challenging", GlobalEnums.DifficultyLevel.CHALLENGING)
+	difficulty_option.add_item("Hardcore", GlobalEnums.DifficultyLevel.HARDCORE)
 	difficulty_option.add_item("Nightmare", GlobalEnums.DifficultyLevel.NIGHTMARE)
 
-	difficulty_option.select(1) # Default to Normal
+	difficulty_option.select(1) # Default to Standard
 
 func _setup_victory_conditions() -> void:
 	if not victory_condition_option:
@@ -110,14 +111,16 @@ func _update_description() -> void:
 	var description: String = ""
 
 	match current_config.difficulty:
-		GlobalEnums.DifficultyLevel.EASY:
-			description = "Easy Mode: More starting resources, easier combat encounters, more forgiving upkeep costs. Perfect for learning the game mechanics."
-		GlobalEnums.DifficultyLevel.NORMAL:
-			description = "Normal Mode: Standard resource allocation, balanced combat encounters, regular upkeep costs. The classic Five Parsecs experience."
-		GlobalEnums.DifficultyLevel.HARD:
-			description = "Hard Mode: Fewer starting resources, tougher combat encounters, higher upkeep costs. For experienced captains seeking a challenge."
+		GlobalEnums.DifficultyLevel.STORY:
+			description = "Story Mode: Casual play with reduced difficulty, more starting resources, easier combat encounters. Perfect for learning the game mechanics."
+		GlobalEnums.DifficultyLevel.STANDARD:
+			description = "Standard Mode: Core rules as written, balanced challenges, standard resource allocation. The authentic Five Parsecs experience."
+		GlobalEnums.DifficultyLevel.CHALLENGING:
+			description = "Challenging Mode: Increased enemy strength, tougher combat encounters, higher upkeep costs. For experienced captains seeking a challenge."
+		GlobalEnums.DifficultyLevel.HARDCORE:
+			description = "Hardcore Mode: Maximum difficulty with elite enemies, minimal starting resources, brutal combat encounters. The ultimate test of survival."
 		GlobalEnums.DifficultyLevel.NIGHTMARE:
-			description = "Nightmare Mode: Minimal starting resources, brutal combat encounters, extreme upkeep costs. The ultimate test of survival."
+			description = "Nightmare Mode: Custom ultra-hard mode with extreme challenges, minimal resources, and the most difficult encounters possible."
 
 	if description_label:
 		description_label.text = description
@@ -126,17 +129,17 @@ func get_config() -> Dictionary:
 	return current_config.duplicate()
 
 func get_config_data() -> Dictionary:
-	"""Get configuration data in the format expected by CampaignCreationManager"""
-	var config = current_config.duplicate()
-
-	# Ensure the name is properly trimmed
-	config.name = config.name.strip_edges()
-
-	# Add campaign metadata
-	config.created_date = Time.get_datetime_string_from_system()
-	config.version = "1.0"
-
-	return config
+	"""Get configuration data in the format expected by CampaignCreationStateManager"""
+	var config_data = {
+		"campaign_name": current_config.get("name", "").strip_edges(),
+		"difficulty_level": current_config.get("difficulty", GlobalEnums.DifficultyLevel.STANDARD),
+		"victory_condition": current_config.get("victory_condition", "none"),
+		"story_track_enabled": current_config.get("story_track_enabled", false),
+		"elite_ranks": current_config.get("elite_ranks", 0),
+		"created_date": Time.get_datetime_string_from_system(),
+		"version": "1.0"
+	}
+	return config_data
 
 func is_valid() -> bool:
 	return not current_config.name.strip_edges().is_empty()

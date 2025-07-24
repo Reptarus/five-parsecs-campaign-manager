@@ -1,12 +1,12 @@
-﻿@tool
+@tool
 extends Resource
-class_name FiveParcsecsCampaign
+class_name FiveParsecsCampaignCore
 
 ## Five Parsecs Campaign Resource
 ## Manages campaign-level data and progression
 
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const CharacterBase = preload("res://src/core/character/Base/Character.gd")
+const Character = preload("res://src/core/character/Character.gd")
 
 signal campaign_started
 signal campaign_ended(victory: bool)
@@ -17,6 +17,8 @@ signal resources_changed(resources: Dictionary)
 signal campaign_event_occurred(event_type: String, data: Dictionary)
 signal phase_advanced(new_phase: int)
 signal resource_changed(resource_type: int, amount: int)
+signal reputation_changed(new_reputation: int)
+signal turn_advanced(new_turn: int)
 
 @export var campaign_name: String = "":
 	set(_value):
@@ -25,18 +27,20 @@ signal resource_changed(resource_type: int, amount: int)
 			return
 		campaign_name = _value
 
-@export var difficulty: int = GlobalEnums.DifficultyLevel.NORMAL:
+@export var difficulty: int = GlobalEnums.DifficultyLevel.STANDARD:
 	set(_value):
 		if not _value in GlobalEnums.DifficultyLevel.values():
 			push_error("Invalid difficulty level")
 			return
 		difficulty = _value
 
-@export var victory_condition: int = GlobalEnums.FiveParcsecsCampaignVictoryType.STANDARD
-@export var current_phase: int = safe_get_property(GlobalEnums, "FiveParsecsCampaignPhase").NONE
+@export var victory_condition: int = GlobalEnums.FiveParsecsCampaignVictoryType.STORY_COMPLETE
+@export var current_phase: int = GlobalEnums.FiveParsecsCampaignPhase.NONE
 @export var resources: Dictionary = {}
-@export var crew_size: int = GlobalEnums.CrewSize.FOUR
+@export var crew_size: int = 4
 @export var use_story_track: bool = true
+@export var starting_reputation: int = 0
+@export var credits: int = 1000
 
 var campaign_turn: int = 0:
 	set(_value):
@@ -58,10 +62,12 @@ var faction_standings: Dictionary = {}
 var turns_completed: int = 0
 var crew_data: Array = []
 var settings: Dictionary = {}
+var campaign_crew: Array[Character] = []
 
 func _init() -> void:
 	if not Engine.is_editor_hint():
 		_initialize_campaign()
+	campaign_crew = []
 
 func _initialize_campaign() -> void:
 	resources = {
@@ -193,8 +199,8 @@ func to_dictionary() -> Dictionary:
 
 func from_dictionary(data: Dictionary) -> void:
 	campaign_name = data.get("campaign_name", "New Campaign")
-	difficulty = data.get("difficulty", GlobalEnums.DifficultyLevel.NORMAL)
-	current_phase = data.get("current_phase", safe_get_property(GlobalEnums, "FiveParsecsCampaignPhase").SETUP)
+	difficulty = data.get("difficulty", GlobalEnums.DifficultyLevel.STANDARD)
+	current_phase = data.get("current_phase", GlobalEnums.FiveParsecsCampaignPhase.SETUP)
 	campaign_turn = data.get("campaign_turn", 0)
 
 	# Load crew data
@@ -258,9 +264,16 @@ func load_data(data: Dictionary) -> void:
 	resources = data.get("resources", {})
 	settings = data.get("settings", {})
 
+func advance_turn() -> void:
+	campaign_turn += 1
+	turn_advanced.emit(campaign_turn)
+
+func modify_reputation(amount: int) -> void:
+	starting_reputation += amount
+	reputation_changed.emit(starting_reputation)
+
 ## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
 func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
-
 	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
 	if not is_instance_valid(self):
 		return

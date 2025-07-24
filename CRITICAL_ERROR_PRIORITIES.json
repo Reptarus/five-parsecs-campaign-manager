@@ -1,0 +1,2934 @@
+{
+  "immediate_action_required": [
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/autoload/CoreSystemSetup.gd",
+      "line": 42,
+      "error_message": "push_warning(\"AUTOLOAD CONNECTION WARNING: Cannot access %s from %s (may not be critical)\" % [autoload_name, name])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/autoload/CoreSystemSetup.gd",
+      "line": 46,
+      "error_message": "push_error(\"AUTOLOAD CRITICAL FAILURE: GlobalEnums not loaded in CoreSystemSetup\")",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/autoload/CoreSystemSetup.gd",
+      "line": 49,
+      "error_message": "push_error(\"AUTOLOAD CRITICAL FAILURE: AlphaGameManager not loaded in CoreSystemSetup\")",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/autoload/CoreSystemSetup.gd",
+      "line": 59,
+      "error_message": "push_error(\"CRASH PREVENTION: Cannot access FPCM_AlphaGameManager autoload\")",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/autoload/CoreSystemSetup.gd",
+      "line": 125,
+      "error_message": "push_error(\"CRASH PREVENTION: Cannot start campaign - AlphaGameManager not available\")",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/autoload/CoreSystemSetup.gd",
+      "line": 130,
+      "error_message": "push_error(\"CRASH PREVENTION: AlphaGameManager does not have start_new_campaign method\")",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/autoload/SystemsAutoload.gd",
+      "line": 71,
+      "error_message": "push_warning(\"SystemsAutoload: Critical autoload '%s' not found\" % autoload_name)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalDataAccess.gd",
+      "line": 8,
+      "error_message": "push_error(\"CRASH PREVENTION: Dictionary is null for key '%s' - %s\" % [key, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalDataAccess.gd",
+      "line": 24,
+      "error_message": "push_error(\"CRASH PREVENTION: Cannot set value in null dictionary - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalDataAccess.gd",
+      "line": 32,
+      "error_message": "push_error(\"CRASH PREVENTION: Array is null for index %d - %s\" % [index, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalDataAccess.gd",
+      "line": 48,
+      "error_message": "push_error(\"CRASH PREVENTION: Cannot set value in null array - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalDataAccess.gd",
+      "line": 52,
+      "error_message": "push_error(\"CRASH PREVENTION: Negative array index not allowed: %d - %s\" % [index, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalDataAccess.gd",
+      "line": 64,
+      "error_message": "push_error(\"CRASH PREVENTION: Target dictionary is null for merge - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalDataAccess.gd",
+      "line": 68,
+      "error_message": "push_error(\"CRASH PREVENTION: Source dictionary is null for merge - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalDataAccess.gd",
+      "line": 79,
+      "error_message": "push_error(\"CRASH PREVENTION: Dictionary is null for nested access - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalDataAccess.gd",
+      "line": 83,
+      "error_message": "push_error(\"CRASH PREVENTION: Empty key path for nested access - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalDataAccess.gd",
+      "line": 106,
+      "error_message": "push_error(\"CRASH PREVENTION: Dictionary is null for nested set - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalDataAccess.gd",
+      "line": 110,
+      "error_message": "push_error(\"CRASH PREVENTION: Empty key path for nested set - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalDataAccess.gd",
+      "line": 123,
+      "error_message": "push_error(\"CRASH PREVENTION: Cannot create nested path, value at '%s' is not a dictionary - %s\" % [key, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalDataAccess.gd",
+      "line": 134,
+      "error_message": "push_error(\"CRASH PREVENTION: Dictionary is null for structure validation - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalDataAccess.gd",
+      "line": 144,
+      "error_message": "push_error(\"CRASH PREVENTION: Dictionary missing required keys: %s - %s\" % [missing_keys, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalNodeAccess.gd",
+      "line": 8,
+      "error_message": "push_error(\"CRASH PREVENTION: Source node is null - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalNodeAccess.gd",
+      "line": 12,
+      "error_message": "push_error(\"CRASH PREVENTION: Node path not found: %s - %s\" % [path, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalNodeAccess.gd",
+      "line": 17,
+      "error_message": "push_error(\"CRASH PREVENTION: Node exists but is null: %s - %s\" % [path, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalNodeAccess.gd",
+      "line": 24,
+      "error_message": "push_error(\"CRASH PREVENTION: Source node is null for child access - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalNodeAccess.gd",
+      "line": 28,
+      "error_message": "push_error(\"CRASH PREVENTION: Child index out of range: %d (max: %d) - %s\" % [index, node.get_child_count() - 1, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalNodeAccess.gd",
+      "line": 33,
+      "error_message": "push_error(\"CRASH PREVENTION: Child exists but is null at index %d - %s\" % [index, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalNodeAccess.gd",
+      "line": 40,
+      "error_message": "push_error(\"CRASH PREVENTION: Source node is null for find_child - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalNodeAccess.gd",
+      "line": 44,
+      "error_message": "push_error(\"CRASH PREVENTION: Empty search pattern for find_child - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalNodeAccess.gd",
+      "line": 56,
+      "error_message": "push_error(\"CRASH PREVENTION: Parent node is null for add_child - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalNodeAccess.gd",
+      "line": 60,
+      "error_message": "push_error(\"CRASH PREVENTION: Child node is null for add_child - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalNodeAccess.gd",
+      "line": 72,
+      "error_message": "push_error(\"CRASH PREVENTION: Parent node is null for remove_child - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalNodeAccess.gd",
+      "line": 76,
+      "error_message": "push_error(\"CRASH PREVENTION: Child node is null for remove_child - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalNodeAccess.gd",
+      "line": 80,
+      "error_message": "push_error(\"CRASH PREVENTION: Child is not a child of the specified parent - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalResourceLoader.gd",
+      "line": 8,
+      "error_message": "push_error(\"CRASH PREVENTION: Empty resource path - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalResourceLoader.gd",
+      "line": 12,
+      "error_message": "push_error(\"CRASH PREVENTION: Resource not found: %s (%s) - %s\" % [path, expected_type, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalResourceLoader.gd",
+      "line": 17,
+      "error_message": "push_error(\"CRASH PREVENTION: Resource failed to load: %s (%s) - %s\" % [path, expected_type, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalResourceLoader.gd",
+      "line": 38,
+      "error_message": "push_error(\"CRASH PREVENTION: Loaded resource is not a GDScript: %s - %s\" % [path, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalResourceLoader.gd",
+      "line": 49,
+      "error_message": "push_error(\"CRASH PREVENTION: Loaded resource is not a PackedScene: %s - %s\" % [path, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalResourceLoader.gd",
+      "line": 60,
+      "error_message": "push_error(\"CRASH PREVENTION: Loaded resource is not a Texture2D: %s - %s\" % [path, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalResourceLoader.gd",
+      "line": 67,
+      "error_message": "push_error(\"CRASH PREVENTION: Empty JSON file path - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalResourceLoader.gd",
+      "line": 71,
+      "error_message": "push_error(\"CRASH PREVENTION: JSON file not found: %s - %s\" % [path, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalResourceLoader.gd",
+      "line": 76,
+      "error_message": "push_error(\"CRASH PREVENTION: Failed to open JSON file: %s - %s\" % [path, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalResourceLoader.gd",
+      "line": 85,
+      "error_message": "push_error(\"CRASH PREVENTION: Failed to parse JSON: %s (Error: %d) - %s\" % [path, parse_result, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalResourceLoader.gd",
+      "line": 101,
+      "error_message": "push_error(\"CRASH PREVENTION: Loaded resource is not an AudioStream: %s - %s\" % [path, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSceneManager.gd",
+      "line": 8,
+      "error_message": "push_error(\"CRASH PREVENTION: SceneTree is null - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSceneManager.gd",
+      "line": 12,
+      "error_message": "push_error(\"CRASH PREVENTION: Scene file not found: %s - %s\" % [scene_path, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSceneManager.gd",
+      "line": 26,
+      "error_message": "push_error(\"CRASH PREVENTION: Failed to instantiate scene: %s - %s\" % [scene_path, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSceneManager.gd",
+      "line": 33,
+      "error_message": "push_error(\"CRASH PREVENTION: SceneTree is null for packed scene change - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSceneManager.gd",
+      "line": 37,
+      "error_message": "push_error(\"CRASH PREVENTION: PackedScene is null - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSceneManager.gd",
+      "line": 46,
+      "error_message": "push_error(\"CRASH PREVENTION: SceneTree is null for scene reload - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSceneManager.gd",
+      "line": 55,
+      "error_message": "push_error(\"CRASH PREVENTION: SceneTree is null for scene addition - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSceneManager.gd",
+      "line": 59,
+      "error_message": "push_error(\"CRASH PREVENTION: Scene instance is null - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSceneManager.gd",
+      "line": 64,
+      "error_message": "push_error(\"CRASH PREVENTION: Current scene is null, cannot add scene - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSceneManager.gd",
+      "line": 72,
+      "error_message": "push_error(\"CRASH PREVENTION: Scene instance is null for removal - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSceneManager.gd",
+      "line": 89,
+      "error_message": "push_error(\"CRASH PREVENTION: SceneTree is null for current scene access - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSceneManager.gd",
+      "line": 101,
+      "error_message": "push_error(\"CRASH PREVENTION: SceneTree is null for validation - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSceneManager.gd",
+      "line": 106,
+      "error_message": "push_error(\"CRASH PREVENTION: SceneTree root is null - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSceneManager.gd",
+      "line": 118,
+      "error_message": "push_error(\"CRASH PREVENTION: Scene script is null - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSceneManager.gd",
+      "line": 123,
+      "error_message": "push_error(\"CRASH PREVENTION: Failed to create instance from script - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSceneManager.gd",
+      "line": 127,
+      "error_message": "push_error(\"CRASH PREVENTION: Script instance is not a Node - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSceneManager.gd",
+      "line": 139,
+      "error_message": "push_error(\"CRASH PREVENTION: SceneTree is null for queued scene change - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSceneManager.gd",
+      "line": 143,
+      "error_message": "push_error(\"CRASH PREVENTION: Scene file not found for queued change: %s - %s\" % [scene_path, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSceneManager.gd",
+      "line": 152,
+      "error_message": "push_error(\"CRASH PREVENTION: Failed to create timer for delayed scene change - %s\" % context)",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSignalManager.gd",
+      "line": 8,
+      "error_message": "push_error(\"CRASH PREVENTION: Signal source is null: %s - %s\" % [signal_name, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSignalManager.gd",
+      "line": 12,
+      "error_message": "push_error(\"CRASH PREVENTION: Signal does not exist: %s on %s - %s\" % [signal_name, source.get_class(), context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSignalManager.gd",
+      "line": 21,
+      "error_message": "push_error(\"CRASH PREVENTION: Signal connection failed: %s - %s (Error: %s)\" % [signal_name, context, result])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSignalManager.gd",
+      "line": 28,
+      "error_message": "push_error(\"CRASH PREVENTION: Signal source is null for disconnect: %s - %s\" % [signal_name, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSignalManager.gd",
+      "line": 32,
+      "error_message": "push_error(\"CRASH PREVENTION: Signal does not exist for disconnect: %s on %s - %s\" % [signal_name, source.get_class(), context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSignalManager.gd",
+      "line": 44,
+      "error_message": "push_error(\"CRASH PREVENTION: Signal source is null for emit: %s - %s\" % [signal_name, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSignalManager.gd",
+      "line": 48,
+      "error_message": "push_error(\"CRASH PREVENTION: Signal does not exist for emit: %s on %s - %s\" % [signal_name, source.get_class(), context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSignalManager.gd",
+      "line": 60,
+      "error_message": "push_error(\"CRASH PREVENTION: Signal source is null for connection check: %s - %s\" % [signal_name, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSignalManager.gd",
+      "line": 64,
+      "error_message": "push_error(\"CRASH PREVENTION: Signal does not exist for connection check: %s on %s - %s\" % [signal_name, source.get_class(), context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSignalManager.gd",
+      "line": 71,
+      "error_message": "push_error(\"CRASH PREVENTION: Signal source is null for oneshot connection: %s - %s\" % [signal_name, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSignalManager.gd",
+      "line": 75,
+      "error_message": "push_error(\"CRASH PREVENTION: Signal does not exist for oneshot: %s on %s - %s\" % [signal_name, source.get_class(), context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSignalManager.gd",
+      "line": 84,
+      "error_message": "push_error(\"CRASH PREVENTION: Oneshot signal connection failed: %s - %s (Error: %s)\" % [signal_name, context, result])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSignalManager.gd",
+      "line": 91,
+      "error_message": "push_error(\"CRASH PREVENTION: Signal source is null for connections list: %s - %s\" % [signal_name, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSignalManager.gd",
+      "line": 95,
+      "error_message": "push_error(\"CRASH PREVENTION: Signal does not exist for connections list: %s on %s - %s\" % [signal_name, source.get_class(), context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSignalManager.gd",
+      "line": 102,
+      "error_message": "push_error(\"CRASH PREVENTION: Signal source is null for disconnect all: %s - %s\" % [signal_name, context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalSignalManager.gd",
+      "line": 106,
+      "error_message": "push_error(\"CRASH PREVENTION: Signal does not exist for disconnect all: %s on %s - %s\" % [signal_name, source.get_class(), context])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/base/campaign/BaseCampaignManager.gd",
+      "line": 45,
+      "error_message": "push_error(\"CRASH PREVENTION: Cannot access user directory for save operations\")",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/base/campaign/BaseCampaignManager.gd",
+      "line": 51,
+      "error_message": "push_error(\"CRASH PREVENTION: Failed to create save directory: %s (Error: %s)\" % [SAVE_DIR, error])",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/base/campaign/BaseCampaignManager.gd",
+      "line": 64,
+      "error_message": "push_error(\"CRASH PREVENTION: Cannot start campaign - No campaign selected\")",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/base/campaign/BaseCampaignManager.gd",
+      "line": 68,
+      "error_message": "push_error(\"CRASH PREVENTION: Campaign object does not have start_campaign method\")",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/base/campaign/BaseCampaignManager.gd",
+      "line": 76,
+      "error_message": "push_error(\"CRASH PREVENTION: Cannot end campaign - No campaign active\")",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/base/campaign/BaseCampaignManager.gd",
+      "line": 80,
+      "error_message": "push_error(\"CRASH PREVENTION: Campaign object does not have end_campaign method\")",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/data/GameDataManager.gd",
+      "line": 684,
+      "error_message": "push_error(\"FPCM_GameDataManager: Critical data file is empty: \" + file_path)",
+      "severity": "CRITICAL",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/managers/GameStateManager.gd",
+      "line": 59,
+      "error_message": "push_error(\"GameStateManager: CRITICAL - Failed to load required dependencies\")",
+      "severity": "CRITICAL",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/managers/GameStateManager.gd",
+      "line": 86,
+      "error_message": "push_error(\"GameStateManager: Failed to load GlobalEnums - critical dependency missing\")",
+      "severity": "CRITICAL",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/managers/GameStateManager.gd",
+      "line": 91,
+      "error_message": "push_error(\"GameStateManager: Failed to load CoreGameState - critical dependency missing\")",
+      "severity": "CRITICAL",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/managers/GameStateManager.gd",
+      "line": 220,
+      "error_message": "push_error(\"CRASH PREVENTION: Cannot create game state - CoreGameState class not loaded\")",
+      "severity": "CRITICAL",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/managers/GameStateManager.gd",
+      "line": 232,
+      "error_message": "push_error(\"CRASH PREVENTION: Failed to instantiate CoreGameState\")",
+      "severity": "CRITICAL",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/state/GameState.gd",
+      "line": 180,
+      "error_message": "push_error(\"CRASH PREVENTION: Ship class not loaded\")",
+      "severity": "CRITICAL",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/state/GameState.gd",
+      "line": 192,
+      "error_message": "push_error(\"CRASH PREVENTION: FiveParsecsCampaign class not loaded\")",
+      "severity": "CRITICAL",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/state/GameState.gd",
+      "line": 204,
+      "error_message": "push_error(\"CRASH PREVENTION: FiveParsecsCampaign class not loaded\")",
+      "severity": "CRITICAL",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/state/GameState.gd",
+      "line": 905,
+      "error_message": "push_error(\"CRASH PREVENTION: FiveParsecsCampaign class not loaded\")",
+      "severity": "CRITICAL",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/scenes/campaign/CampaignUI.gd",
+      "line": 92,
+      "error_message": "push_error(\"CRASH PREVENTION: Cannot create layout - CampaignResponsiveLayout not loaded\")",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/scenes/campaign/CampaignUI.gd",
+      "line": 107,
+      "error_message": "push_error(\"CRASH PREVENTION: Cannot add dashboard - dashboard_tab not found\")",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/scenes/campaign/CampaignUI.gd",
+      "line": 120,
+      "error_message": "push_error(\"CRASH PREVENTION: Could not load CampaignDashboard scene\")",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/scenes/campaign/CampaignUI.gd",
+      "line": 164,
+      "error_message": "push_error(\"CRASH PREVENTION: Cannot update resource display - GlobalEnums not available\")",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/scenes/campaign/CampaignUI.gd",
+      "line": 285,
+      "error_message": "push_error(\"CRASH PREVENTION: Could not load crew creation scene\")",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/scenes/campaign/CampaignUI.gd",
+      "line": 296,
+      "error_message": "push_error(\"CRASH PREVENTION: Could not load campaign selection scene\")",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/scenes/campaign/CampaignUI.gd",
+      "line": 315,
+      "error_message": "push_error(\"CRASH PREVENTION: Could not load resource management scene\")",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/scenes/campaign/CampaignUI.gd",
+      "line": 326,
+      "error_message": "push_error(\"CRASH PREVENTION: Could not load crew status scene\")",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/scenes/character/CharacterUI.gd",
+      "line": 94,
+      "error_message": "push_error(\"CRASH PREVENTION: Cannot create CharacterCreator - class not loaded\")",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/scenes/main/MainGameScene.gd",
+      "line": 167,
+      "error_message": "push_error(\"CRASH PREVENTION: Could not load main menu scene for fallback navigation\")",
+      "severity": "CRITICAL",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/SceneRouter.gd",
+      "line": 295,
+      "error_message": "push_error(\"SceneRouter: CRITICAL - Missing essential scenes: \" + str(missing_critical))",
+      "severity": "CRITICAL",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/UIManager.gd",
+      "line": 39,
+      "error_message": "push_warning(\"UI SYSTEM INFO: %s not available (UIManager - may not be critical)\" % autoload_name)",
+      "severity": "CRITICAL",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/UIManager.gd",
+      "line": 55,
+      "error_message": "push_error(\"CRASH PREVENTION: Empty screen name provided to show_screen\")",
+      "severity": "CRITICAL",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/UIManager.gd",
+      "line": 75,
+      "error_message": "push_error(\"CRASH PREVENTION: Target screen does not have show method: \" + str(screen_name))",
+      "severity": "CRITICAL",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/campaign/CampaignCreationUI.gd",
+      "line": 41,
+      "error_message": "push_error(\"CampaignCreationUI: Critical scene structure validation failed - cannot initialize\")",
+      "severity": "CRITICAL",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/character/CharacterCreator.gd",
+      "line": 114,
+      "error_message": "push_warning(\"CharacterCreator: Critical UI components missing\")",
+      "severity": "CRITICAL",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/campaign/panels/CrewPanel.gd",
+      "line": 63,
+      "error_message": "push_error(\"CrewPanel: Critical UI components missing - panel cannot function\")",
+      "severity": "CRITICAL",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "EMERGENCY_SAVE",
+      "priority_score": 100
+    }
+  ],
+  "high_priority": [
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/autoload/CoreSystemSetup.gd",
+      "line": 80,
+      "error_message": "push_error(\"CoreSystemSetup: System initialization failed\")",
+      "severity": "HIGH",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/autoload/SystemsAutoload.gd",
+      "line": 139,
+      "error_message": "push_error(\"SystemsAutoload: System initialization failed - errors: \" + str(initialization_errors))",
+      "severity": "HIGH",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/GodotDebugBridge.gd",
+      "line": 27,
+      "error_message": "push_warning(\"GodotDebugBridge: Failed to connect to debug port: \" + str(error))",
+      "severity": "HIGH",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalMCPBridge.gd",
+      "line": 44,
+      "error_message": "push_warning(\"Failed to parse shared state file\")",
+      "severity": "HIGH",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/utils/UniversalNodeValidator.gd",
+      "line": 83,
+      "error_message": "push_error(\"Failed to connect signal: \" + signal_name + \" Error: \" + str(error))",
+      "severity": "HIGH",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/base/campaign/BaseCampaignManager.gd",
+      "line": 103,
+      "error_message": "push_error(\"Failed to open save file: \" + save_path)",
+      "severity": "HIGH",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/base/campaign/BaseCampaignManager.gd",
+      "line": 121,
+      "error_message": "push_error(\"Failed to open save file: \" + save_path)",
+      "severity": "HIGH",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/base/campaign/BaseCampaignManager.gd",
+      "line": 141,
+      "error_message": "push_error(\"Failed to open save directory: \" + SAVE_DIR)",
+      "severity": "HIGH",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/base/campaign/BaseCampaignManager.gd",
+      "line": 164,
+      "error_message": "push_error(\"Failed to open save directory: \" + SAVE_DIR)",
+      "severity": "HIGH",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/base/campaign/BaseCampaignManager.gd",
+      "line": 169,
+      "error_message": "push_error(\"Failed to delete save file: \" + save_path)",
+      "severity": "HIGH",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/base/campaign/crew/BaseCrewSystem.gd",
+      "line": 21,
+      "error_message": "push_error(\"Failed to initialize crew system - current_crew is null\")",
+      "severity": "HIGH",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/application/ApplicationOrchestrator.gd",
+      "line": 96,
+      "error_message": "push_error(\"Failed to load scene: %s\" % scene_path)",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/battle/BattlefieldGenerator.gd",
+      "line": 93,
+      "error_message": "push_error(\"Failed to load JSON file: %s\" % path)",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/battle/BattlefieldIO.gd",
+      "line": 36,
+      "error_message": "push_error(\"Failed to parse battlefield blueprint. Invalid JSON.\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/battle/BattlefieldSetupAssistant.gd",
+      "line": 114,
+      "error_message": "push_error(\"Battlefield generation failed: %s\" % error_message)",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/CampaignCreationManager.gd",
+      "line": 181,
+      "error_message": "push_error(\"CampaignCreationManager: Cannot finalize - validation failed\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/CampaignCreationManager.gd",
+      "line": 231,
+      "error_message": "push_error(\"CampaignCreationManager: Failed to create campaign\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/CampaignPhaseManager.gd",
+      "line": 74,
+      "error_message": "assert(result1 == OK, \"Failed to connect travel_phase_completed signal\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/CampaignPhaseManager.gd",
+      "line": 77,
+      "error_message": "assert(result2 == OK, \"Failed to connect travel_substep_changed signal\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/CampaignPhaseManager.gd",
+      "line": 85,
+      "error_message": "assert(result3 == OK, \"Failed to connect world_phase_completed signal\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/CampaignPhaseManager.gd",
+      "line": 88,
+      "error_message": "assert(result4 == OK, \"Failed to connect world_substep_changed signal\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/CampaignPhaseManager.gd",
+      "line": 96,
+      "error_message": "assert(result5 == OK, \"Failed to connect post_battle_phase_completed signal\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/CampaignPhaseManager.gd",
+      "line": 99,
+      "error_message": "assert(result6 == OK, \"Failed to connect post_battle_substep_changed signal\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/CampaignPhaseManager.gd",
+      "line": 117,
+      "error_message": "push_error(\"CampaignPhaseManager: Failed to connect to battle_completed_for_campaign signal\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/CampaignPhaseManager.gd",
+      "line": 131,
+      "error_message": "push_error(\"CORE SYSTEM FAILURE: GlobalEnums not accessible from CampaignPhaseManager\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/CampaignPhaseManager.gd",
+      "line": 134,
+      "error_message": "push_error(\"CORE SYSTEM FAILURE: GameStateManager not accessible from CampaignPhaseManager\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/CampaignPhaseManager.gd",
+      "line": 248,
+      "error_message": "assert(result7 == OK, \"Failed to connect battle_completed signal\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/CampaignPhaseManager.gd",
+      "line": 253,
+      "error_message": "push_error(\"CampaignPhaseManager: Failed to start battle assistance\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/CampaignPhaseManager.gd",
+      "line": 618,
+      "error_message": "assert(result8 == OK, \"Failed to connect test battle_completed signal\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/CampaignSystem.gd",
+      "line": 48,
+      "error_message": "push_error(\"Failed to initialize GameState\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/CampaignSystem.gd",
+      "line": 55,
+      "error_message": "push_error(\"Failed to initialize campaign system with game state\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/VictoryConditionTracker.gd",
+      "line": 33,
+      "error_message": "push_error(\"Failed to load victory conditions data\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/WorldGenerator.gd",
+      "line": 47,
+      "error_message": "push_error(\"Failed to load planet types data\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/WorldGenerator.gd",
+      "line": 54,
+      "error_message": "push_error(\"Failed to load location types data\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/WorldGenerator.gd",
+      "line": 61,
+      "error_message": "push_error(\"Failed to load world traits data\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/character/CharacterGeneration.gd",
+      "line": 467,
+      "error_message": "push_error(\"CharacterGeneration: Failed to create character in generate_complete_character\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/character/CharacterGeneration.gd",
+      "line": 593,
+      "error_message": "push_error(\"CharacterGeneration: Failed to create simple character\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/data/DataManager.gd",
+      "line": 48,
+      "error_message": "push_error(\"DataManager: Failed to load character creation data\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/data/DataManager.gd",
+      "line": 54,
+      "error_message": "push_error(\"DataManager: Failed to load background data\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/data/DataManager.gd",
+      "line": 67,
+      "error_message": "push_error(\"DataManager: Failed to load equipment system data\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/data/DataManager.gd",
+      "line": 78,
+      "error_message": "push_error(\"DataManager: Failed to load mission system data\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/data/DataManager.gd",
+      "line": 92,
+      "error_message": "push_error(\"DataManager: Failed to load crew task system data\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/data/DataManager.gd",
+      "line": 152,
+      "error_message": "push_error(\"DataManager: Data validation failed:\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/data/GameDataManager.gd",
+      "line": 139,
+      "error_message": "push_error(\"FPCM_GameDataManager: Failed to load armor database\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/data/GameDataManager.gd",
+      "line": 149,
+      "error_message": "push_error(\"FPCM_GameDataManager: Failed to load weapons database\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/data/GameDataManager.gd",
+      "line": 159,
+      "error_message": "push_error(\"FPCM_GameDataManager: Failed to load gear database\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/data/GameDataManager.gd",
+      "line": 169,
+      "error_message": "push_error(\"FPCM_GameDataManager: Failed to load world traits database\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/equipment/EquipmentManager.gd",
+      "line": 61,
+      "error_message": "push_error(\"EquipmentManager: Failed to connect character_added signal\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/equipment/EquipmentManager.gd",
+      "line": 66,
+      "error_message": "push_error(\"EquipmentManager: Failed to connect character_removed signal\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/error/SystemErrorIntegrator.gd",
+      "line": 61,
+      "error_message": "push_error(\"SystemErrorIntegrator: Failed to initialize UniversalErrorBoundary\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/error/UniversalErrorBoundary.gd",
+      "line": 61,
+      "error_message": "push_error(\"UniversalErrorBoundary: Failed to initialize ProductionErrorHandler\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/error/UniversalErrorBoundary.gd",
+      "line": 327,
+      "error_message": "push_error(\"STRICT MODE: Method execution failed for %s.%s\" % [_component_name, method_name])",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/error/UniversalErrorBoundary.gd",
+      "line": 330,
+      "error_message": "assert(false, \"Method execution failed in development mode\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/managers/AlphaGameManager.gd",
+      "line": 249,
+      "error_message": "push_error(\"AlphaGameManager: System '\" + str(system_name) + \"' failed to initialize\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/managers/AlphaGameManager.gd",
+      "line": 273,
+      "error_message": "push_error(\"AlphaGameManager: System initialization failed\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/managers/CampaignManager.gd",
+      "line": 92,
+      "error_message": "if error != OK: push_error(\"Failed to connect story_event_triggered\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/managers/CampaignManager.gd",
+      "line": 94,
+      "error_message": "if error != OK: push_error(\"Failed to connect story_choice_made\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/managers/CampaignManager.gd",
+      "line": 96,
+      "error_message": "if error != OK: push_error(\"Failed to connect story_track_completed\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/managers/CampaignManager.gd",
+      "line": 98,
+      "error_message": "if error != OK: push_error(\"Failed to connect evidence_discovered\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/managers/CampaignManager.gd",
+      "line": 105,
+      "error_message": "if error != OK: push_error(\"Failed to connect battle_event_triggered\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/managers/CampaignManager.gd",
+      "line": 107,
+      "error_message": "if error != OK: push_error(\"Failed to connect environmental_hazard_activated\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/managers/CampaignManager.gd",
+      "line": 109,
+      "error_message": "if error != OK: push_error(\"Failed to connect event_resolved\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/managers/CampaignManager.gd",
+      "line": 216,
+      "error_message": "push_error(\"CampaignManager: Failed to connect 'dice_result_ready' signal\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/managers/CampaignManager.gd",
+      "line": 441,
+      "error_message": "push_warning(\"Cannot fail mission - not in active missions\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/managers/CampaignManager.gd",
+      "line": 695,
+      "error_message": "push_warning(\"Failed to create mission of type %s during deserialization.\" % mission_type)",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/managers/CrewTaskManager.gd",
+      "line": 30,
+      "error_message": "push_error(\"Task assignment validation failed: %s\" % validation_result.reason)",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/managers/GameStateManager.gd",
+      "line": 145,
+      "error_message": "push_error(\"CORE SYSTEM FAILURE: GlobalEnums not accessible from GameStateManager\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/managers/GameStateManager.gd",
+      "line": 150,
+      "error_message": "push_error(\"CORE SYSTEM FAILURE: CoreGameState not accessible from GameStateManager\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/managers/GameStateManager.gd",
+      "line": 157,
+      "error_message": "# \tpush_error(\"CORE SYSTEM FAILURE: UniversalSignalManager not accessible\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/managers/GameStateManager.gd",
+      "line": 261,
+      "error_message": "push_warning(\"GameStateManager: Auto-save failed\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/managers/GameStateManager.gd",
+      "line": 771,
+      "error_message": "push_error(\"GameStateManager: Failed to load save data\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/managers/GameStateManager.gd",
+      "line": 951,
+      "error_message": "push_error(\"GameStateManager: Failed to start base test campaign\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/mission/ReactTables.gd",
+      "line": 67,
+      "error_message": "push_error(\"Failed to load React tables data\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/mission/ReactTables.gd",
+      "line": 74,
+      "error_message": "push_error(\"Failed to load enemy types data\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/mission/ReactTables.gd",
+      "line": 81,
+      "error_message": "push_error(\"Failed to load elite enemy types data\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/state/GameState.gd",
+      "line": 291,
+      "error_message": "push_warning(\"Failed to create _backup before saving\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/state/GameState.gd",
+      "line": 348,
+      "error_message": "push_error(\"Save failure: \" + error_message)",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/state/GameState.gd",
+      "line": 446,
+      "error_message": "push_error(\"Failed to remove existing save file: \" + str(del_error))",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/state/GameState.gd",
+      "line": 464,
+      "error_message": "push_error(\"Failed to open save file for writing: %s (Error: %d)\" % [file_path, error])",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/state/GameState.gd",
+      "line": 475,
+      "error_message": "push_error(\"Failed to stringify save _data\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/story/UnifiedStorySystem.gd",
+      "line": 143,
+      "error_message": "push_error(\"UnifiedStorySystem: Cannot fail null quest\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/story/UnifiedStorySystem.gd",
+      "line": 206,
+      "error_message": "push_error(\"Failed to parse story events file\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/story/UnifiedStorySystem.gd",
+      "line": 222,
+      "error_message": "push_error(\"Failed to parse quest templates file\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/systems/EconomySystem.gd",
+      "line": 143,
+      "error_message": "push_error(\"EconomySystem: Failed to initialize - errors: \" + str(_errors))",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/systems/FactionSystem.gd",
+      "line": 136,
+      "error_message": "push_error(\"FactionSystem: Failed to initialize - errors: \" + str(_errors))",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/systems/PatronSystem.gd",
+      "line": 118,
+      "error_message": "push_error(\"PatronSystem: Failed to initialize - errors: \" + str(_errors))",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/terrain/TerrainFactory.gd",
+      "line": 41,
+      "error_message": "push_error(\"TerrainFactory: Failed to get base scene for _type \" + str(terrain_type))",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/terrain/TerrainFactory.gd",
+      "line": 46,
+      "error_message": "push_error(\"TerrainFactory: Failed to instantiate terrain piece\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/battle/state/BattleCheckpoint.gd",
+      "line": 36,
+      "error_message": "push_error(\"Failed to get GameStateManagerAutoload\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/battle/state/BattleStateMachine.gd",
+      "line": 227,
+      "error_message": "push_error(\"BattleStateMachine: Failed to create ErrorLogger\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/creation/CampaignCreationStateManager.gd",
+      "line": 260,
+      "error_message": "push_error(\"Cannot complete campaign: Validation failed\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/phases/WorldPhase.gd",
+      "line": 914,
+      "error_message": "push_error(\"WorldPhase: Find Patron task failed for %s\" % crew_id)",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/phases/WorldPhase.gd",
+      "line": 922,
+      "error_message": "push_error(\"WorldPhase: Train task failed for %s\" % crew_id)",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/phases/WorldPhase.gd",
+      "line": 930,
+      "error_message": "push_error(\"WorldPhase: Trade task failed for %s\" % crew_id)",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/phases/WorldPhase.gd",
+      "line": 938,
+      "error_message": "push_error(\"WorldPhase: Recruit task failed for %s\" % crew_id)",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/phases/WorldPhase.gd",
+      "line": 946,
+      "error_message": "push_error(\"WorldPhase: Explore task failed for %s\" % crew_id)",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/phases/WorldPhase.gd",
+      "line": 954,
+      "error_message": "push_error(\"WorldPhase: Track task failed for %s\" % crew_id)",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/phases/WorldPhase.gd",
+      "line": 962,
+      "error_message": "push_error(\"WorldPhase: Repair Kit task failed for %s\" % crew_id)",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/campaign/phases/WorldPhase.gd",
+      "line": 970,
+      "error_message": "push_error(\"WorldPhase: Decoy task failed for %s\" % crew_id)",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/character/Equipment/GearDatabase.gd",
+      "line": 84,
+      "error_message": "push_error(\"Failed to open equipment database file: \" + file_path + \". Error code: \" + str(FileAccess.get_open_error()))",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/character/Equipment/GearDatabase.gd",
+      "line": 92,
+      "error_message": "push_error(\"Failed to parse equipment database JSON: \" + file_path + \"\\nError: \" + json.get_error_message() + \" at line \" + str(json.get_error_line()))",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/character/Equipment/GearDatabase.gd",
+      "line": 198,
+      "error_message": "push_error(\"Failed to create gear instance for: \" + str(gear_name))",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/character/Equipment/GearDatabase.gd",
+      "line": 303,
+      "error_message": "push_error(\"Failed to open gear database file for writing: \" + file_path)",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/character/Management/CharacterDataManager.gd",
+      "line": 42,
+      "error_message": "push_error(\"Failed to open file for writing: \" + SAVE_DIR + file_name + CHARACTER_FILE_EXTENSION)",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/character/Management/CharacterDataManager.gd",
+      "line": 57,
+      "error_message": "push_error(\"Failed to parse character data: \" + str(parse_result))",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/character/Management/CharacterDataManager.gd",
+      "line": 60,
+      "error_message": "push_error(\"Failed to open file for reading: \" + SAVE_DIR + file_name + CHARACTER_FILE_EXTENSION)",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/character/Management/CharacterDataManager.gd",
+      "line": 85,
+      "error_message": "push_error(\"Failed to open file for writing: \" + SAVE_DIR + file_name + CREW_FILE_EXTENSION)",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/character/Management/CharacterDataManager.gd",
+      "line": 105,
+      "error_message": "push_error(\"Failed to load portrait: \" + character.portrait_path)",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/character/Management/CharacterDataManager.gd",
+      "line": 115,
+      "error_message": "push_error(\"Failed to open file for reading: \" + SAVE_DIR + file_name + CREW_FILE_EXTENSION)",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/economy/loot/GameGear.gd",
+      "line": 47,
+      "error_message": "push_error(\"GameGear: Failed to get GameDataManagerAutoload\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/economy/loot/GameGear.gd",
+      "line": 52,
+      "error_message": "push_error(\"Failed to find gear with ID: \" + id)",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/economy/loot/GameItem.gd",
+      "line": 46,
+      "error_message": "push_error(\"GameItem: Failed to get GameDataManagerAutoload\")",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/core/economy/loot/GameItem.gd",
+      "line": 51,
+      "error_message": "push_error(\"Failed to find item with ID: \" + id)",
+      "severity": "HIGH",
+      "system": "Core",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/data/resources/Deployment/ObjectiveMarker.gd",
+      "line": 44,
+      "error_message": "push_error(\"DATA SYSTEM FAILURE: Character class not loaded in ObjectiveMarker\")",
+      "severity": "HIGH",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/game/combat/CombatResolver.gd",
+      "line": 260,
+      "error_message": "push_warning(\"Shot endangers allies and roll failed\")",
+      "severity": "HIGH",
+      "system": "Game",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/scenes/campaign/CampaignUI.gd",
+      "line": 76,
+      "error_message": "push_error(\"UI SYSTEM FAILURE: GlobalEnums not loaded in CampaignUI\")",
+      "severity": "HIGH",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/scenes/character/CharacterUI.gd",
+      "line": 78,
+      "error_message": "push_error(\"UI SYSTEM FAILURE: CharacterCreator not loaded in CharacterUI\")",
+      "severity": "HIGH",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/scenes/character/CharacterUI.gd",
+      "line": 81,
+      "error_message": "push_error(\"UI SYSTEM FAILURE: Character class not loaded in CharacterUI\")",
+      "severity": "HIGH",
+      "system": "Data",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/SaveLoadUI.gd",
+      "line": 406,
+      "error_message": "push_warning(\"Failed to load icon: \" + icon_path)",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/components/automation/AutomationSettingsPanel.gd",
+      "line": 184,
+      "error_message": "assert(result1 == OK, \"Failed to connect automation_level_option signal\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/components/automation/AutomationSettingsPanel.gd",
+      "line": 188,
+      "error_message": "assert(result2 == OK, \"Failed to connect accessibility_mode_check signal\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/components/automation/AutomationSettingsPanel.gd",
+      "line": 192,
+      "error_message": "assert(result3 == OK, \"Failed to connect always_confirm_check signal\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/components/automation/AutomationSettingsPanel.gd",
+      "line": 196,
+      "error_message": "assert(result4 == OK, \"Failed to connect show_calculations_check signal\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/components/automation/AutomationSettingsPanel.gd",
+      "line": 200,
+      "error_message": "assert(result5 == OK, \"Failed to connect rule_suggestions_check signal\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/components/automation/AutomationSettingsPanel.gd",
+      "line": 204,
+      "error_message": "assert(result6 == OK, \"Failed to connect dice_auto_roll_check signal\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/components/automation/AutomationSettingsPanel.gd",
+      "line": 208,
+      "error_message": "assert(result7 == OK, \"Failed to connect dice_animations_check signal\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/components/automation/AutomationSettingsPanel.gd",
+      "line": 212,
+      "error_message": "assert(result8 == OK, \"Failed to connect dice_sound_check signal\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/components/base/BaseContainer.gd",
+      "line": 36,
+      "error_message": "push_error(\"UI SYSTEM FAILURE: BaseContainer missing get_children method\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/components/crew/CrewTaskCardManager.gd",
+      "line": 183,
+      "error_message": "push_error(\"Failed to create CrewTaskCard\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/components/dialogs/QuickStartDialog.gd",
+      "line": 141,
+      "error_message": "push_error(\"Failed to parse import file\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/components/options/AppOptions.gd",
+      "line": 72,
+      "error_message": "push_error(\"Failed to load options file\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/components/options/AppOptions.gd",
+      "line": 90,
+      "error_message": "push_error(\"Failed to save options\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/components/story/StoryTrackPanel.gd",
+      "line": 67,
+      "error_message": "push_error(\"StoryTrackPanel: Signal connection failed with error: \" + str(error))",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/components/story/StoryTrackPanel.gd",
+      "line": 155,
+      "error_message": "push_error(\"Failed to connect choice button signal: \" + str(connect_error))",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/components/tutorial/TutorialUI.gd",
+      "line": 45,
+      "error_message": "push_error(\"Tutorial steps validation failed for: \" + tutorial_name)",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/components/tutorial/TutorialUI.gd",
+      "line": 81,
+      "error_message": "push_error(\"Failed to open tutorial file: %s\" % tutorial_path)",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/components/tutorial/TutorialUI.gd",
+      "line": 94,
+      "error_message": "push_error(\"Failed to parse tutorial JSON: %s (Error: %s)\" % [tutorial_path, json.get_error_message()])",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/campaign/CampaignCreationUI.gd",
+      "line": 74,
+      "error_message": "push_error(\"CampaignCreationUI: Scene validation failed:\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/campaign/CampaignCreationUI.gd",
+      "line": 255,
+      "error_message": "push_error(\"Failed to connect next button: \" + str(next_error))",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/campaign/CampaignCreationUI.gd",
+      "line": 267,
+      "error_message": "push_error(\"Failed to connect back button: \" + str(back_error))",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/campaign/CampaignCreationUI.gd",
+      "line": 279,
+      "error_message": "push_error(\"Failed to connect finish button: \" + str(finish_error))",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/campaign/CampaignCreationUI.gd",
+      "line": 1264,
+      "error_message": "push_error(\"CampaignCreationUI: Failed to create campaign\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/campaign/CampaignCreationUI.gd",
+      "line": 1323,
+      "error_message": "push_error(\"Failed to load MainGameScene, returning to main menu\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/campaign/CampaignCreationUI.gd",
+      "line": 1384,
+      "error_message": "push_error(\"CampaignCreationUI: Failed to start campaign\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/campaign/CampaignCreationUI.gd",
+      "line": 1540,
+      "error_message": "push_error(\"CampaignCreationUI: Failed to start campaign with state manager data\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/campaign/CampaignDashboard.gd",
+      "line": 85,
+      "error_message": "assert(result1 == OK, \"Failed to connect campaign_updated signal\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/campaign/CampaignDashboard.gd",
+      "line": 88,
+      "error_message": "assert(result2 == OK, \"Failed to connect phase_changed signal\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/campaign/CampaignDashboard.gd",
+      "line": 94,
+      "error_message": "assert(result3 == OK, \"Failed to connect phase_changed signal\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/campaign/CampaignDashboard.gd",
+      "line": 97,
+      "error_message": "assert(result4 == OK, \"Failed to connect phase_completed signal\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/campaign/CampaignDashboard.gd",
+      "line": 100,
+      "error_message": "assert(result5 == OK, \"Failed to connect phase_event_triggered signal\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/character/CharacterCreator.gd",
+      "line": 79,
+      "error_message": "push_error(\"CharacterCreator: Failed to initialize data system, using fallback mode\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/character/CharacterCreator.gd",
+      "line": 88,
+      "error_message": "push_error(\"CharacterCreator: DiceManager not found. Random generation will fail.\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/character/CharacterCreator.gd",
+      "line": 393,
+      "error_message": "push_error(\"CharacterCreator: Failed to load image: \", path)",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/character/CharacterCreator.gd",
+      "line": 473,
+      "error_message": "push_error(\"CharacterCreator: Failed to export portrait: \", export_path)",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/character/CharacterCreator.gd",
+      "line": 550,
+      "error_message": "push_warning(\"CharacterCreator: Failed to load existing portrait: \", portrait_path)",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/character/CharacterCreator.gd",
+      "line": 833,
+      "error_message": "push_error(\"CharacterCreator: Failed to generate random character\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/character/CharacterCreatorEnhanced.gd",
+      "line": 32,
+      "error_message": "push_error(\"CharacterCreatorEnhanced: Failed to initialize data system, falling back to enum-only mode\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/character/CharacterCreatorEnhanced.gd",
+      "line": 42,
+      "error_message": "push_warning(\"CharacterCreatorEnhanced: DiceManager not found. Random generation will fail.\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/character/CharacterCreatorEnhanced.gd",
+      "line": 529,
+      "error_message": "push_error(\"CharacterCreatorEnhanced: Failed to create random character\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/character/CharacterProgression.gd",
+      "line": 126,
+      "error_message": "push_error(\"Failed to connect decrease button signal: \" + str(decrease_error))",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/character/CharacterProgression.gd",
+      "line": 143,
+      "error_message": "push_error(\"Failed to connect increase button signal: \" + str(increase_error))",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/character/CharacterProgression.gd",
+      "line": 189,
+      "error_message": "push_error(\"Failed to connect skill button signal: \" + str(skill_error))",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/crew/InitialCrewCreation.gd",
+      "line": 136,
+      "error_message": "push_error(\"InitialCrewCreation: Failed to generate character\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/mainmenu/MainMenu.gd",
+      "line": 264,
+      "error_message": "push_error(\"MainMenu: Failed to change scene directly: \" + scene_path + \" (Error: \" + str(error) + \")\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/mainmenu/MainMenu.gd",
+      "line": 442,
+      "error_message": "push_error(\"MainMenu: Failed to instantiate developer panel\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/world/WorldPhaseUI.gd",
+      "line": 137,
+      "error_message": "push_error(\"WorldPhaseUI: Failed to get GameDataManager instance\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/world/WorldPhaseUI.gd",
+      "line": 143,
+      "error_message": "push_error(\"WorldPhaseUI: Failed to get EnhancedCampaignSignals instance\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/world/WorldPhaseUI.gd",
+      "line": 3387,
+      "error_message": "push_error(\"WorldPhaseUI: Failed to initialize CrewTaskPanel\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/world/WorldPhaseUI.gd",
+      "line": 3406,
+      "error_message": "push_error(\"WorldPhaseUI: Failed to initialize JobOfferPanel\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/campaign/panels/CrewPanel.gd",
+      "line": 41,
+      "error_message": "push_error(\"CrewPanel: Failed to initialize data system, using fallback mode\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/campaign/panels/CrewPanel.gd",
+      "line": 211,
+      "error_message": "push_error(\"CrewPanel: Enhanced fallback character creation failed, trying simple creation\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/campaign/panels/CrewPanel.gd",
+      "line": 223,
+      "error_message": "push_error(\"CrewPanel: Failed to create Character instance\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/campaign/panels/CrewPanel.gd",
+      "line": 1045,
+      "error_message": "push_error(\"CrewPanel: Failed to generate crew member %d\" % [i + 1])",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/campaign/panels/CrewPanel.gd",
+      "line": 1516,
+      "error_message": "push_error(\"CrewPanel: Failed to create manual character\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/campaign/panels/CrewPanel.gd",
+      "line": 1526,
+      "error_message": "push_error(\"CrewPanel: Failed to create simple character instance\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    },
+    {
+      "file": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/src/ui/screens/campaign/phases/BasePhasePanel.gd",
+      "line": 26,
+      "error_message": "push_error(\"Failed to get game state in BasePhasePanel\")",
+      "severity": "HIGH",
+      "system": "UI",
+      "impact": "Potential data corruption or crash",
+      "recommended_recovery": "FALLBACK",
+      "priority_score": 80
+    }
+  ],
+  "system_totals": {
+    "ui_system": {
+      "total": 258,
+      "critical": 7,
+      "high": 58
+    },
+    "core_system": {
+      "total": 511,
+      "critical": 10,
+      "high": 102
+    },
+    "game_system": {
+      "total": 44,
+      "critical": 0,
+      "high": 1
+    },
+    "data_system": {
+      "total": 224,
+      "critical": 96,
+      "high": 15
+    },
+    "battle_system": {
+      "total": 0,
+      "critical": 0,
+      "high": 0
+    },
+    "other_system": {
+      "total": 0,
+      "critical": 0,
+      "high": 0
+    }
+  },
+  "recovery_strategy_distribution": {
+    "RETRY": 0,
+    "FALLBACK": 176,
+    "EMERGENCY_SAVE": 113,
+    "GRACEFUL_DEGRADE": 0
+  }
+}

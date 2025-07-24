@@ -71,3 +71,10 @@ text = "Remove Member"
 custom_minimum_size = Vector2(150, 50)
 layout_mode = 2
 text = "Randomize All"
+
+[connection signal="item_selected" from="Content/CrewSize/OptionButton" to="." method="_on_crew_size_selected"]
+[connection signal="item_selected" from="Content/CrewList/ItemList" to="." method="_on_crew_member_selected"]
+[connection signal="pressed" from="Content/Controls/AddButton" to="." method="_on_add_member_pressed"]
+[connection signal="pressed" from="Content/Controls/EditButton" to="." method="_on_edit_member_pressed"]
+[connection signal="pressed" from="Content/Controls/RemoveButton" to="." method="_on_remove_member_pressed"]
+[connection signal="pressed" from="Content/Controls/RandomizeButton" to="." method="_on_randomize_pressed"]

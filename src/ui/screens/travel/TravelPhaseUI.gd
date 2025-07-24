@@ -33,6 +33,7 @@ func _ready() -> void:
 	_initialize_managers()
 	_setup_ui()
 	_connect_additional_signals()
+	_setup_travel_icons()
 
 func _initialize_managers() -> void:
 	"""Initialize manager references from autoloads"""
@@ -53,6 +54,15 @@ func _connect_additional_signals() -> void:
 	"""Connect any additional signals needed"""
 	if upkeep_system and upkeep_system.has_signal("upkeep_calculated"):
 		upkeep_system.upkeep_calculated.connect(_on_upkeep_calculated)
+	
+	# Connect to CampaignPhaseManager for campaign flow integration
+	var campaign_phase_manager = get_node_or_null("/root/CampaignPhaseManager")
+	if campaign_phase_manager:
+		# Connect UI completion signal to phase manager
+		phase_completed.connect(campaign_phase_manager._on_travel_phase_completed)
+		print("TravelPhaseUI: Connected to CampaignPhaseManager")
+	else:
+		push_warning("TravelPhaseUI: CampaignPhaseManager not found - phase transitions may not work")
 
 func setup_phase(data: Resource) -> void:
 	"""Setup the travel phase with campaign data"""
@@ -215,3 +225,17 @@ func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Va
 	if obj is Object and obj.has_method(method_name):
 		return obj.callv(method_name, args)
 	return null
+
+## Setup travel phase icons for enhanced visual navigation
+func _setup_travel_icons() -> void:
+	"""Setup icons for travel phase buttons to improve visual clarity"""
+	# Phase 2: Travel Phase Icons Integration
+	
+	# Next Button (primary travel action) - icon_campaign_travel.svg
+	if next_button:
+		next_button.icon = preload("res://assets/basic icons/icon_campaign_travel.svg")
+		next_button.expand_icon = true
+		next_button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		print("TravelPhaseUI: Travel phase icon applied to next button successfully")
+	else:
+		push_warning("TravelPhaseUI: Next button not found for icon assignment")

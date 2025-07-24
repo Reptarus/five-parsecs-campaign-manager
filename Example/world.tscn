@@ -17,4 +17,3 @@ grid = NodePath("../Grid")
 
 [node name="Grid" type="Node2D" parent="."]
 script = ExtResource("4_5x00f")
-size = 64

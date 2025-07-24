@@ -1,4 +1,4 @@
-﻿# Content from src/core/battle/TerrainRules.gd
+# Content from src/core/battle/TerrainRules.gd
 ## TerrainRules
 # Enforces Core Rules terrain mechanics and validation.
 # Handles terrain placement rules, deployment zone validation, terrain-specific rules, and environment effects.
@@ -180,7 +180,7 @@ func on_terrain_changed(position: Vector2i, new_state: Dictionary) -> void:
 func _check_terrain_rules(position: Vector2i) -> void:
 
 	var current_state = _terrain_states.get(position, {})
-	if (safe_call_method(current_state, "is_empty") == true):
+	if safe_call_method(current_state, "is_empty") == true:
 		return
 
 	# Example rule: Fire spreads to adjacent flammable terrain
@@ -204,7 +204,7 @@ func _check_fire_spread_rule(position: Vector2i) -> void:
 
 	for adj_pos in adjacent_positions:
 		var adj_state = _terrain_states.get(adj_pos, {})
-		if (safe_call_method(adj_state, "is_empty") == true):
+		if safe_call_method(adj_state, "is_empty") == true:
 			continue
 
 		# Check if adjacent terrain can catch fire
@@ -228,7 +228,7 @@ func _check_extinguish_rule(position: Vector2i) -> void:
 
 	for adj_pos in adjacent_positions:
 		var adj_state = _terrain_states.get(adj_pos, {})
-		if (safe_call_method(adj_state, "is_empty") == true):
+		if safe_call_method(adj_state, "is_empty") == true:
 			continue
 
 		# Check if adjacent terrain has fire

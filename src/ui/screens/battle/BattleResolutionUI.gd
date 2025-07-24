@@ -1,12 +1,23 @@
-﻿class_name BattleResolutionUI
+﻿class_name FPCM_BattleResolutionUI
 extends Control
 
-## Battle Resolution UI that handles combat according to Five Parsecs rules
+## Enhanced Battle Resolution UI for Five Parsecs Campaign Manager
+## Handles combat according to Five Parsecs rules with modern architecture
 ## Provides both automated and tactical battle options
+## Integrates with FPCM_BattleManager and DiceSystem for consistent experience
 
-signal battle_completed(battle_result: BattleResult)
+# Enhanced signals for battle manager integration
+signal battle_completed(battle_result: FPCM_BattleManager.BattleResult)
 signal battle_fled()
 signal back_to_pre_battle()
+signal phase_completed() # For battle manager integration
+signal dice_roll_requested(pattern: String, context: String)
+signal ui_error_occurred(error: String, context: Dictionary)
+
+# Dependencies - following modernized pattern
+const FPCM_BattleManager = preload("res://src/core/battle/FPCM_BattleManager.gd")
+const FPCM_BattleState = preload("res://src/core/battle/FPCM_BattleState.gd")
+const FPCM_DiceSystem = preload("res://src/core/systems/DiceSystem.gd")
 
 # UI nodes
 @onready var battle_title: Label = $MainContainer/BattleTitle
@@ -24,24 +35,35 @@ signal back_to_pre_battle()
 @onready var alpha_manager: Node = get_node_or_null("/root/FPCM_AlphaGameManager")
 @onready var dice_manager: Node = get_node_or_null("/root/DiceManager")
 
-# Battle data
+# Enhanced system references
+var battle_manager: FPCM_BattleManager = null
+var dice_system: FPCM_DiceSystem = null
+var battle_state: FPCM_BattleState = null
+
+# Battle data - modernized with strict typing
 var current_mission: Resource = null
 var crew_members: Array[Resource] = []
 var enemy_forces: Array[Resource] = []
-var battle_result: BattleResult = null
+var battle_result: FPCM_BattleManager.BattleResult = null
 var battle_in_progress: bool = false
 
-class BattleResult:
-	var victory: bool = false
-	var crew_casualties: Array[Resource] = []
-	var crew_injuries: Array[Resource] = []
-	var _loot_found: Array[Resource] = []
-	var credits_earned: int = 0
-	var experience_gained: Array[Dictionary] = []
+# BattleResult class removed - now using FPCM_BattleManager.BattleResult
 
 func _ready() -> void:
+	_initialize_systems()
 	_connect_signals()
 	_setup_ui()
+
+func _initialize_systems() -> void:
+	"""Initialize modern battle systems"""
+	# Initialize dice system
+	dice_system = FPCM_DiceSystem.new()
+	dice_system.dice_rolled.connect(_on_dice_rolled)
+	
+	# Initialize battle manager if not provided externally
+	if not battle_manager:
+		battle_manager = FPCM_BattleManager.new()
+		battle_manager.register_ui_component("BattleResolutionUI", self)
 
 func _connect_signals() -> void:
 	"""Connect all UI signals"""
@@ -347,3 +369,169 @@ func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Va
 	if obj is Object and obj.has_method(method_name):
 		return obj.callv(method_name, args)
 	return null
+
+# =====================================================
+# ENHANCED BATTLE SYSTEM INTEGRATION
+# =====================================================
+
+func _on_dice_rolled(result: FPCM_DiceSystem.DiceRoll) -> void:
+	"""Handle dice roll results from dice system"""
+	var message: String = "Dice Roll - %s: %s" % [result.context, result.get_simple_text()]
+	_log_battle_message(message, Color.CYAN)
+
+func setup_with_battle_manager(p_battle_manager: FPCM_BattleManager) -> void:
+	"""Setup UI with external battle manager"""
+	if battle_manager and battle_manager != p_battle_manager:
+		# Cleanup old manager
+		battle_manager.unregister_ui_component("BattleResolutionUI")
+	
+	battle_manager = p_battle_manager
+	battle_manager.register_ui_component("BattleResolutionUI", self)
+	
+	# Get current battle state
+	battle_state = battle_manager.battle_state
+	if battle_state:
+		_update_ui_from_battle_state()
+
+func _update_ui_from_battle_state() -> void:
+	"""Update UI based on current battle state"""
+	if not battle_state:
+		return
+	
+	# Update mission info
+	if battle_state.mission_data:
+		current_mission = battle_state.mission_data
+		mission_type_label.text = battle_state.mission_type
+	
+	# Update crew and enemy lists
+	crew_members = battle_state.crew_members.duplicate()
+	enemy_forces = battle_state.enemy_forces.duplicate()
+	
+	_update_crew_display()
+	_update_enemy_display()
+
+func _on_resolve_battle_automatically() -> void:
+	"""Enhanced automatic battle resolution with dice integration"""
+	if battle_in_progress:
+		return
+	
+	battle_in_progress = true
+	resolve_button.disabled = true
+	_log_battle_message("Resolving battle automatically...", Color.YELLOW)
+	
+	# Use dice system for combat resolution
+	if dice_system:
+		var combat_roll: FPCM_DiceSystem.DiceRoll = dice_system.roll_dice(
+			FPCM_DiceSystem.DicePattern.COMBAT, 
+			"Automatic Battle Resolution"
+		)
+		
+		# Determine outcome based on dice roll and difficulty
+		var difficulty_modifier: int = battle_state.difficulty_level if battle_state else 1
+		var success_threshold: int = 4 + difficulty_modifier
+		var victory: bool = combat_roll.total >= success_threshold
+		
+		# Create battle result
+		battle_result = FPCM_BattleManager.BattleResult.new(victory)
+		_process_automatic_battle_result(victory, combat_roll)
+	else:
+		# Fallback to old random system
+		_resolve_battle_legacy()
+
+func _process_automatic_battle_result(victory: bool, combat_roll: FPCM_DiceSystem.DiceRoll) -> void:
+	"""Process automatic battle result with dice integration"""
+	if victory:
+		_log_battle_message("Victory! Combat roll: %s" % combat_roll.get_display_text(), Color.GREEN)
+		battle_result.credits_earned = 1000 + (combat_roll.total * 50)
+		battle_result.story_points = 2
+	else:
+		_log_battle_message("Defeat. Combat roll: %s" % combat_roll.get_display_text(), Color.RED)
+		battle_result.credits_earned = 200
+		battle_result.story_points = 1
+		
+		# Potential casualties on defeat
+		if combat_roll.total <= 2:
+			_apply_battle_casualties()
+	
+	# Update battle state with results
+	if battle_state:
+		battle_state.complete_battle(
+			"victory" if victory else "defeat",
+			battle_result.credits_earned,
+			battle_result.loot_found
+		)
+	
+	# Finalize resolution
+	_finalize_battle_resolution()
+
+func _apply_battle_casualties() -> void:
+	"""Apply casualties based on poor combat roll"""
+	if crew_members.size() > 0:
+		# Roll for each crew member
+		for crew_member: Resource in crew_members:
+			if dice_system:
+				var injury_roll: FPCM_DiceSystem.DiceRoll = dice_system.roll_dice(
+					FPCM_DiceSystem.DicePattern.D6,
+					"Casualty Check: %s" % _get_crew_name(crew_member)
+				)
+				
+				if injury_roll.total <= 2:
+					battle_result.crew_casualties.append(crew_member)
+					_log_battle_message("Casualty: %s" % _get_crew_name(crew_member), Color.RED)
+				elif injury_roll.total <= 4:
+					battle_result.crew_injuries.append(crew_member)
+					_log_battle_message("Injured: %s" % _get_crew_name(crew_member), Color.ORANGE)
+
+func _get_crew_name(crew_member: Resource) -> String:
+	"""Get crew member name safely"""
+	if not crew_member:
+		return "Unknown"
+	
+	var name_candidates: Array[String] = ["name", "character_name", "id"]
+	for field: String in name_candidates:
+		var name: Variant = safe_get_property(crew_member, field, "")
+		if name != "" and name is String:
+			return name as String
+	
+	return "Unnamed Crew"
+
+func _finalize_battle_resolution() -> void:
+	"""Complete battle resolution and emit results"""
+	battle_in_progress = false
+	continue_button.visible = true
+	
+	# Log final results
+	_log_battle_message("Battle complete: %s" % battle_result.get_summary_text(), 
+		Color.GREEN if battle_result.victory else Color.RED)
+	
+	# Emit completion signal
+	battle_completed.emit(battle_result)
+	
+	# Advance battle manager phase
+	if battle_manager:
+		battle_manager.advance_phase()
+	
+	phase_completed.emit()
+
+func _resolve_battle_legacy() -> void:
+	"""Legacy battle resolution fallback"""
+	var victory: bool = randf() > 0.3 # 70% chance of victory
+	battle_result = FPCM_BattleManager.BattleResult.new(victory)
+	
+	if victory:
+		battle_result.credits_earned = 1000
+		battle_result.story_points = 2
+	else:
+		battle_result.credits_earned = 200
+		battle_result.story_points = 1
+	
+	_finalize_battle_resolution()
+
+## Emergency cleanup
+func _exit_tree() -> void:
+	"""Cleanup when UI is removed"""
+	if battle_manager:
+		battle_manager.unregister_ui_component("BattleResolutionUI")
+	
+	if dice_system and dice_system.dice_rolled.is_connected(_on_dice_rolled):
+		dice_system.dice_rolled.disconnect(_on_dice_rolled)

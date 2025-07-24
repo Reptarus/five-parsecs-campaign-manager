@@ -7,7 +7,7 @@ class_name PsionicPower
 ## Represents a single psionic power with its characteristics and effects
 ## following Five Parsecs From Home Core Rules.
 
-const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd")
+const UniversalResourceLoader = preload("res://src/core/systems/UniversalResourceLoader.gd")
 
 enum PowerType {
     BARRIER, GRAB, LIFT, SHROUD, ENRAGE,

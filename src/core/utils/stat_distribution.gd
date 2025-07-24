@@ -41,30 +41,30 @@ func _initialize_default_stats() -> void:
 	permanent_modifiers = {}
 
 func get_current_stat(stat: String) -> int:
-	if not base_stats.has(stat):
+	if stat not in base_stats:
 		push_error("Invalid stat: " + stat)
 		return 0
 
 	var current_value = base_stats[stat]
 
 	# Apply permanent modifiers
-	if permanent_modifiers.has(stat):
+	if stat in permanent_modifiers:
 		current_value += permanent_modifiers[stat]
 
 	# Apply temporary modifiers
-	if temporary_modifiers.has(stat):
+	if stat in temporary_modifiers:
 		for modifier in temporary_modifiers[stat]:
 			current_value += modifier["_value"]
 
 	# Apply stat limits
-	if STAT_LIMITS.has(stat):
+	if stat in STAT_LIMITS:
 		var limits = STAT_LIMITS[stat]
 		current_value = clampi(current_value, limits.min, limits.max)
 
 	return current_value
 
 func set_base_stat(stat: String, _value: int) -> void:
-	if not base_stats.has(stat):
+	if stat not in base_stats:
 		push_error("Invalid stat: " + stat)
 		return
 
@@ -72,7 +72,7 @@ func set_base_stat(stat: String, _value: int) -> void:
 	stat_changed.emit(stat, get_current_stat(stat))
 
 func add_temporary_modifier(stat: String, _value: int, duration: int) -> void:
-	if not temporary_modifiers.has(stat):
+	if stat not in temporary_modifiers:
 		temporary_modifiers[stat] = []
 
 	temporary_modifiers[stat].append({
@@ -84,14 +84,14 @@ func add_temporary_modifier(stat: String, _value: int, duration: int) -> void:
 	stat_changed.emit(stat, get_current_stat(stat))
 
 func add_permanent_modifier(stat: String, _value: int) -> void:
-	if not permanent_modifiers.has(stat):
+	if stat not in permanent_modifiers:
 		permanent_modifiers[stat] = 0
 
 	permanent_modifiers[stat] += _value
 	stat_changed.emit(stat, get_current_stat(stat))
 
 func remove_temporary_modifier(stat: String, index: int) -> void:
-	if not temporary_modifiers.has(stat) or index >= temporary_modifiers[stat].size():
+	if stat not in temporary_modifiers or index >= temporary_modifiers[stat].size():
 		return
 
 	var modifier = temporary_modifiers[stat][index]
@@ -147,11 +147,11 @@ func serialize() -> Dictionary:
 	}
 
 func deserialize(data: Dictionary) -> void:
-	if data.has("base_stats"):
+	if "base_stats" in data:
 		base_stats = data.base_stats
-	if data.has("temporary_modifiers"):
+	if "temporary_modifiers" in data:
 		temporary_modifiers = data.temporary_modifiers
-	if data.has("permanent_modifiers"):
+	if "permanent_modifiers" in data:
 		permanent_modifiers = data.permanent_modifiers
 
 	# Emit signals for all stats to update UI

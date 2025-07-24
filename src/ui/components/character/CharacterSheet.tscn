@@ -7,6 +7,8 @@ layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_script")
 
 [node name="Panel" type="PanelContainer" parent="."]
@@ -18,27 +20,100 @@ anchor_bottom = 1.0
 [node name="Content" type="VBoxContainer" parent="Panel"]
 layout_mode = 2
 
-[node name="Header" type="HBoxContainer" parent="Panel/Content"]
+[node name="HeaderSection" type="VBoxContainer" parent="Panel/Content"]
 layout_mode = 2
 
-[node name="NameLabel" type="Label" parent="Panel/Content/Header"]
+[node name="NameLabel" type="Label" parent="Panel/Content/HeaderSection"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Character Name"
 
-[node name="HealthLabel" type="Label" parent="Panel/Content/Header"]
+[node name="ClassLabel" type="Label" parent="Panel/Content/HeaderSection"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Health: 5/5"
+text = "Character Class"
 
-[node name="StatsContainer" type="GridContainer" parent="Panel/Content"]
-layout_mode = 2
-columns = 3
-
-[node name="StatsDisplay" type="RichTextLabel" parent="Panel/Content"]
+[node name="BackgroundLabel" type="Label" parent="Panel/Content/HeaderSection"]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_vertical = 3
-bbcode_enabled = true
-text = "Character stats will appear here..."
+text = "Background"
+
+[node name="StatsSection" type="VBoxContainer" parent="Panel/Content"]
+layout_mode = 2
+
+[node name="StatsGrid" type="GridContainer" parent="Panel/Content/StatsSection"]
+layout_mode = 2
+columns = 2
+
+[node name="ReactionLabel" type="Label" parent="Panel/Content/StatsSection/StatsGrid"]
+layout_mode = 2
+text = "Reaction"
+[node name="ReactionValue" type="Label" parent="Panel/Content/StatsSection/StatsGrid"]
+layout_mode = 2
+text = "0"
+
+[node name="CombatLabel" type="Label" parent="Panel/Content/StatsSection/StatsGrid"]
+layout_mode = 2
+text = "Combat"
+[node name="CombatValue" type="Label" parent="Panel/Content/StatsSection/StatsGrid"]
+layout_mode = 2
+text = "0"
+
+[node name="ToughnessLabel" type="Label" parent="Panel/Content/StatsSection/StatsGrid"]
+layout_mode = 2
+text = "Toughness"
+[node name="ToughnessValue" type="Label" parent="Panel/Content/StatsSection/StatsGrid"]
+layout_mode = 2
+text = "0"
+
+[node name="SpeedLabel" type="Label" parent="Panel/Content/StatsSection/StatsGrid"]
+layout_mode = 2
+text = "Speed"
+[node name="SpeedValue" type="Label" parent="Panel/Content/StatsSection/StatsGrid"]
+layout_mode = 2
+text = "0"
+
+[node name="SavvyLabel" type="Label" parent="Panel/Content/StatsSection/StatsGrid"]
+layout_mode = 2
+text = "Savvy"
+[node name="SavvyValue" type="Label" parent="Panel/Content/StatsSection/StatsGrid"]
+layout_mode = 2
+text = "0"
+
+[node name="LuckLabel" type="Label" parent="Panel/Content/StatsSection/StatsGrid"]
+layout_mode = 2
+text = "Luck"
+[node name="LuckValue" type="Label" parent="Panel/Content/StatsSection/StatsGrid"]
+layout_mode = 2
+text = "0"
+
+[node name="HealthSection" type="VBoxContainer" parent="Panel/Content"]
+layout_mode = 2
+
+[node name="HealthValue" type="Label" parent="Panel/Content/HealthSection"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0 / 0.0"
+
+[node name="CreditsSection" type="VBoxContainer" parent="Panel/Content"]
+layout_mode = 2
+
+[node name="CreditsValue" type="Label" parent="Panel/Content/CreditsSection"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0 Credits"
+
+[node name="TraitsSection" type="VBoxContainer" parent="Panel/Content"]
+layout_mode = 2
+
+[node name="TraitsList" type="ItemList" parent="Panel/Content/TraitsSection"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="EquipmentSection" type="VBoxContainer" parent="Panel/Content"]
+layout_mode = 2
+
+[node name="EquipmentList" type="ItemList" parent="Panel/Content/EquipmentSection"]
+unique_name_in_owner = true
+layout_mode = 2

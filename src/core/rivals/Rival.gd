@@ -4,7 +4,7 @@ const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 @export var rival_name: String = ""
 @export var rival_type: String = ""
-@export var threat_level: GlobalEnums.DifficultyLevel = GlobalEnums.DifficultyLevel.NORMAL
+@export var threat_level: GlobalEnums.DifficultyLevel = GlobalEnums.DifficultyLevel.STANDARD
 @export var reputation: int = 0
 @export var active: bool = true
 @export var last_encounter_turn: int = -1
@@ -23,15 +23,15 @@ func _initialize_resources() -> void:
 	}
 func get_threat_modifier() -> float:
 	match threat_level:
-		GlobalEnums.DifficultyLevel.EASY:
+		GlobalEnums.DifficultyLevel.STORY:
 			return 0.8
-		GlobalEnums.DifficultyLevel.NORMAL:
+		GlobalEnums.DifficultyLevel.STANDARD:
 			return 1.0
-		GlobalEnums.DifficultyLevel.HARD:
+		GlobalEnums.DifficultyLevel.CHALLENGING:
 			return 1.2
 		GlobalEnums.DifficultyLevel.HARDCORE:
 			return 1.4
-		GlobalEnums.DifficultyLevel.ELITE:
+		GlobalEnums.DifficultyLevel.NIGHTMARE:
 			return 1.6
 	return 1.0
 
@@ -61,7 +61,7 @@ func deserialize(data: Dictionary) -> void:
 
 	rival_type = data.get("type", "")
 
-	threat_level = data.get("threat_level", GlobalEnums.DifficultyLevel.NORMAL)
+	threat_level = data.get("threat_level", GlobalEnums.DifficultyLevel.STANDARD)
 
 	reputation = data.get("reputation", 0)
 

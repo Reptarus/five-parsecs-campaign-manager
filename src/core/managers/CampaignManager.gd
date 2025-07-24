@@ -3,8 +3,8 @@
 class_name CampaignManagerClass
 extends Node
 
-const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const GameState := preload("res://src/core/state/GameState.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameState = preload("res://src/core/state/GameState.gd")
 const StoryQuestData = preload("res://src/game/story/StoryQuestData.gd")
 const FPCM_StoryTrackSystem = preload("res://src/core/story/StoryTrackSystem.gd")
 const FPCM_BattleEventsSystem = preload("res://src/core/battle/BattleEventsSystem.gd")
@@ -529,12 +529,14 @@ func _calculate_risk_level() -> int:
 
 	# Adjust for difficulty
 	match game_state.difficulty_level:
-		GlobalEnums.DifficultyLevel.EASY:
+		GlobalEnums.DifficultyLevel.STORY:
 			base_risk -= 1
-		GlobalEnums.DifficultyLevel.HARD:
+		GlobalEnums.DifficultyLevel.CHALLENGING:
 			base_risk += 1
 		GlobalEnums.DifficultyLevel.HARDCORE:
 			base_risk += 2
+		GlobalEnums.DifficultyLevel.NIGHTMARE:
+			base_risk += 3
 
 	return clamp(base_risk, 1, 5)
 

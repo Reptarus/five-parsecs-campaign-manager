@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 extends Control
 class_name BaseCharacterBox
 
@@ -16,6 +16,11 @@ var character_data: Resource
 signal character_selected(character: Resource)
 signal character_updated(character: Resource)
 
+# Additional game-specific UI components
+@onready var morale_value: LineEdit = $"MarginContainer/HBoxContainer/InfoContainer/GameStatsContainer/MoraleValue"
+@onready var credits_value: LineEdit = $"MarginContainer/HBoxContainer/InfoContainer/GameStatsContainer/CreditsValue"
+@onready var missions_value: LineEdit = $"MarginContainer/HBoxContainer/InfoContainer/GameStatsContainer/MissionsValue"
+
 func _ready() -> void:
 	_initialize_ui()
 
@@ -27,6 +32,7 @@ func _initialize_ui() -> void:
 func update_display(data: Resource) -> void:
 	character_data = data
 	_refresh_display()
+	update_game_specific_ui()
 
 ## Refresh the display elements
 func _refresh_display() -> void:
@@ -49,6 +55,18 @@ func get_character_data() -> Resource:
 func _on_character_selected() -> void:
 	if character_data:
 		character_selected.emit(character_data)
+
+# Game-specific method to update UI elements
+func update_game_specific_ui() -> void:
+	if morale_value and character_data:
+		morale_value.text = str(character_data.morale)
+
+	if credits_value and character_data:
+		credits_value.text = str(character_data.credits_earned)
+
+	if missions_value and character_data:
+		missions_value.text = str(character_data.missions_completed)
+
 ## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
 func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
 

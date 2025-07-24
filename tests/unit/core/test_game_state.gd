@@ -10,7 +10,7 @@ class MockGameState extends Resource:
     var story_points: int = 0
     var reputation: int = 0
     var current_phase: int = GameEnums.FiveParsecsCampaignPhase.NONE
-    var difficulty_level: int = GameEnums.DifficultyLevel.NORMAL
+    var difficulty_level: int = GameEnums.DifficultyLevel.STANDARD  
     var enable_permadeath: bool = true
     var use_story_track: bool = true
     var auto_save_enabled: bool = true
@@ -141,7 +141,7 @@ class MockGameState extends Resource:
         story_points = data.get("story_points", 0)
         reputation = data.get("reputation", 0)
         current_phase = data.get("current_phase", GameEnums.FiveParsecsCampaignPhase.NONE)
-        difficulty_level = data.get("difficulty_level", GameEnums.DifficultyLevel.NORMAL)
+        difficulty_level = data.get("difficulty_level", GameEnums.DifficultyLevel.STANDARD)
         enable_permadeath = data.get("enable_permadeath", true)
         use_story_track = data.get("use_story_track", true)
         auto_save_enabled = data.get("auto_save_enabled", true)
@@ -269,7 +269,7 @@ func test_quest_management() -> void:
         "id": "quest_1",
         "title": "Test Quest",
         "type": GameEnums.QuestType.MAIN,
-        "status": GameEnums.QuestStatus.ACTIVE,
+        "status": GameEnums.Quest.ACTIVE,
     }
     # var success: bool = state.add_quest(test_quest)
     # assert_that() call removed

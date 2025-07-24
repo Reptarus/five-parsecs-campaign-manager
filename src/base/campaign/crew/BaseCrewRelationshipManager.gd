@@ -31,7 +31,7 @@ func get_relationship(char1: Variant, char2: Variant) -> String:
 	var pair_key = _get_pair_key(char1, char2)
 	return relationships.get(pair_key, "")
 
-func get_all_relationships(character: FPCM_CrewMember) -> Array:
+func get_all_relationships(character: Character) -> Array:
 	var char_relationships: Array = []
 	for pair_key in relationships:
 		var typed_pair_key: Variant = pair_key
@@ -88,7 +88,18 @@ func _get_pair_key(char1: Variant, char2: Variant) -> String:
 
 func _split_pair_key(pair_key: String) -> Array:
 	var ids = pair_key.split("_")
-	return [instance_from_id(int(ids[0])), instance_from_id(int(ids[1]))]
+	if ids.size() != 2:
+		push_warning("BaseCrewRelationshipManager: Invalid pair key format: %s" % pair_key)
+		return []
+	
+	var char1 = instance_from_id(int(ids[0]))
+	var char2 = instance_from_id(int(ids[1]))
+	
+	if not is_instance_valid(char1) or not is_instance_valid(char2):
+		push_warning("BaseCrewRelationshipManager: Invalid character instances for pair key: %s" % pair_key)
+		return []
+		
+	return [char1, char2]
 
 func serialize() -> Dictionary:
 	var serialized_relationships: Dictionary = {}

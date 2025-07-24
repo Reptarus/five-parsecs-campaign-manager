@@ -3,7 +3,7 @@ extends Resource
 class_name GameGear
 
 # Import necessary classes
-# Note: GameDataManager is an autoload - access via get_node("/root/GameDataManager")
+# Note: DataManager is an autoload - access via get_node("/root/DataManager")
 
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
@@ -28,12 +28,12 @@ func _init() -> void:
 	# Try to get the singleton instance
 	var tree = Engine.get_main_loop() as SceneTree
 	if tree and tree.root:
-		var data_manager_node: Node = tree.root.get_node_or_null("GameDataManagerAutoload")
+		var data_manager_node: Node = tree.root.get_node_or_null("DataManagerAutoload")
 		if data_manager_node:
 			_data_manager = data_manager_node
-			print("GameGear: GameDataManagerAutoload available immediately")
+			print("GameGear: DataManagerAutoload available immediately")
 		else:
-			print("GameGear: GameDataManagerAutoload not ready yet")
+			print("GameGear: DataManagerAutoload not ready yet")
 	else:
 		print("GameGear: SceneTree not available yet")
 
@@ -42,9 +42,9 @@ func initialize_from_id(id: String) -> bool:
 	if _data_manager == null:
 		var tree = Engine.get_main_loop() as SceneTree
 		if tree and tree.root:
-			_data_manager = tree.root.get_node_or_null("GameDataManagerAutoload")
+			_data_manager = tree.root.get_node_or_null("DataManagerAutoload")
 		if not _data_manager:
-			push_error("GameGear: Failed to get GameDataManagerAutoload")
+			push_error("GameGear: Failed to get DataManagerAutoload")
 			return false
 
 	var gear_data = _data_manager.get_gear_item(id)

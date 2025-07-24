@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://njli0sntham3"]
 
-[ext_resource type="Script" path="res://src/ui/screens/battle/BattlefieldMain.gd" id="1_battlefield_script"]
+[ext_resource type="Script" uid="uid://6co6jts16162" path="res://src/ui/screens/battle/BattlefieldMain.gd" id="1_battlefield_script"]
 
 [node name="BattlefieldMain" type="Control"]
 layout_mode = 3
@@ -35,7 +35,7 @@ stretch = true
 
 [node name="SubViewport" type="SubViewport" parent="MarginContainer/VBoxContainer/BattlefieldView"]
 handle_input_locally = false
-size = Vector2i(1880, 940)
+size = Vector2i(2, 2)
 render_target_update_mode = 4
 
 [node name="Camera3D" type="Camera3D" parent="MarginContainer/VBoxContainer/BattlefieldView/SubViewport"]

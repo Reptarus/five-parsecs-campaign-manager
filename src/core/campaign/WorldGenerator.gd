@@ -1,11 +1,11 @@
-﻿@tool
+@tool
 extends Node
 
 ## World Generator for Five Parsecs From Home
 ## Implements world generation from rulebook (p.80-86)
 
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-# Note: GameDataManager is an autoload - access via get_node("/root/GameDataManager")
+# Note: DataManager is an autoload - access via get_node("/root/DataManager")
 
 # Signal declarations
 signal world_generated(world_data: Dictionary)
@@ -30,7 +30,7 @@ var _use_specific_planet_type: bool = false
 var _specific_planet_type: String = ""
 
 func _init() -> void:
-	var data_manager_node: Node = get_node_or_null("/root/GameDataManagerAutoload")
+	var data_manager_node: Node = get_node_or_null("/root/DataManagerAutoload")
 	if data_manager_node:
 		_data_manager = data_manager_node
 	_load_data()
@@ -82,7 +82,7 @@ func generate_world(campaign_turn: int = 1) -> Dictionary:
 
 	# Create the world data dictionary
 	var world_data = {
-		"id": "world_" + str(Time.get_unix_time_from_system()),
+		"id": "world_" + str(Time.get_unix_time_from_system()) + "_" + str(randi() % 1000),
 		"name": planet_name,
 
 		"type": planet_type.get("type", "Unknown"),
@@ -332,7 +332,7 @@ func get_world_traits() -> Array:
 func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
 
 	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
-	if not is_instance_valid(obj):
+	if not is_instance_valid(self):
 		return default_value
 	if obj and obj.has_method("get"):
 		var value = obj.get(property)

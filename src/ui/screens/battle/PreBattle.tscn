@@ -76,7 +76,6 @@ horizontal_alignment = 1
 layout_mode = 2
 
 [node name="Content" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/LeftPanel/EnemyInfo/VBoxContainer"]
-unique_name_in_owner = true
 layout_mode = 2
 
 [node name="CenterPanel" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent"]
@@ -133,7 +132,6 @@ layout_mode = 2
 size_flags_vertical = 3
 
 [node name="Content" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/CrewSelection/VBoxContainer/ScrollContainer"]
-unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -156,7 +154,6 @@ horizontal_alignment = 1
 layout_mode = 2
 
 [node name="Content" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/DeploymentPanel/VBoxContainer"]
-unique_name_in_owner = true
 layout_mode = 2
 
 [node name="FooterPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer"]

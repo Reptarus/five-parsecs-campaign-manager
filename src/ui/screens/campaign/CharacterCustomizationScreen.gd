@@ -14,11 +14,11 @@ signal character_customization_cancelled()
 
 # Customization steps
 enum CustomizationStep {
-	BASIC_INFO,      # Name, portrait, background, motivation  
-	ATTRIBUTES,      # Stats adjustment and rerolling
-	RELATIONSHIPS,   # Patron/rival generation (future)
-	EQUIPMENT,       # Starting gear selection (future)
-	REVIEW          # Final confirmation
+	BASIC_INFO, # Name, portrait, background, motivation
+	ATTRIBUTES, # Stats adjustment and rerolling
+	RELATIONSHIPS, # Patron/rival generation (future)
+	EQUIPMENT, # Starting gear selection (future)
+	REVIEW # Final confirmation
 }
 
 # UI Components
@@ -234,7 +234,7 @@ func _create_basic_info_panel() -> Control:
 	# Set current selection
 	var current_bg_index = editing_character.background
 	if current_bg_index > 0 and current_bg_index < bg_option.get_item_count():
-		bg_option.select(current_bg_index - 1)  # Adjust for NONE
+		bg_option.select(current_bg_index - 1) # Adjust for NONE
 	
 	bg_option.item_selected.connect(_on_background_changed)
 	
@@ -259,7 +259,7 @@ func _create_basic_info_panel() -> Control:
 	# Set current selection
 	var current_mot_index = editing_character.motivation
 	if current_mot_index > 0 and current_mot_index < mot_option.get_item_count():
-		mot_option.select(current_mot_index - 1)  # Adjust for NONE
+		mot_option.select(current_mot_index - 1) # Adjust for NONE
 	
 	mot_option.item_selected.connect(_on_motivation_changed)
 	
@@ -426,18 +426,8 @@ func _update_relationships_display() -> void:
 			]
 			display.add_child(rival_info)
 	
-	# Show traits
-	if editing_character.traits.size() > 0:
-		var traits_label = Label.new()
-		traits_label.text = "Traits (%d):" % editing_character.traits.size()
-		traits_label.add_theme_font_size_override("font_size", 16)
-		display.add_child(traits_label)
-		
-		var traits_text = RichTextLabel.new()
-		traits_text.custom_minimum_size.y = 40
-		traits_text.bbcode_enabled = true
-		traits_text.text = "• " + "\n• ".join(editing_character.traits)
-		display.add_child(traits_text)
+	# Character traits are handled through background and motivation effects
+	# rather than as a separate traits attribute to align with Five Parsecs rules
 
 func _show_equipment_step() -> void:
 	"""Show the equipment customization step"""
@@ -616,12 +606,8 @@ func _generate_character_summary() -> String:
 			summary += "• Items: %d\n" % equipment.items.size()
 		summary += "\n"
 	
-	# Traits
-	if editing_character.traits.size() > 0:
-		summary += "[b]Traits:[/b]\n"
-		for trait in editing_character.traits:
-			summary += "• %s\n" % trait
-		summary += "\n"
+	# Character traits are handled through background and motivation effects
+	# rather than as a separate traits attribute to align with Five Parsecs rules
 	
 	# Status
 	if editing_character.is_captain:
@@ -785,7 +771,7 @@ func _validate_basic_info() -> bool:
 
 func _validate_attributes() -> bool:
 	"""Validate attributes step"""
-	return true  # Attributes are automatically valid from generation
+	return true # Attributes are automatically valid from generation
 
 func _validate_relationships() -> bool:
 	"""Validate relationships step"""
@@ -824,7 +810,6 @@ func _serialize_character(character: Character) -> Dictionary:
 		"patrons": character.patrons.duplicate(),
 		"rivals": character.rivals.duplicate(),
 		"personal_equipment": character.personal_equipment.duplicate(),
-		"traits": character.traits.duplicate(),
 		"credits_earned": character.credits_earned,
 		"is_captain": character.is_captain
 	}
@@ -844,7 +829,6 @@ func _restore_character_from_backup(character: Character, backup: Dictionary) ->
 	character.patrons = backup.get("patrons", [])
 	character.rivals = backup.get("rivals", [])
 	character.personal_equipment = backup.get("personal_equipment", {})
-	character.traits = backup.get("traits", [])
 	character.credits_earned = backup.get("credits_earned", 0)
 	character.is_captain = backup.get("is_captain", false)
 

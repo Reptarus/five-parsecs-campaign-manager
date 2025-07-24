@@ -1,7 +1,7 @@
 ﻿extends Resource
 
 const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const Character := preload("res://src/core/character/Base/Character.gd")
+const Character = preload("res://src/core/character/Character.gd")
 const TerrainTypes := preload("res://src/core/terrain/TerrainTypes.gd")
 
 # Local constants for terrain feature types not defined in GlobalEnums
@@ -27,7 +27,7 @@ static func get_zone_size(deployment_type: GlobalEnums.DeploymentType) -> Vector
 	match deployment_type:
 		GlobalEnums.DeploymentType.STANDARD:
 			return Vector2(6, 4)
-		GlobalEnums.DeploymentType.LINE:
+		GlobalEnums.DeploymentType.SCATTERED:
 			return Vector2(8, 2)
 		GlobalEnums.DeploymentType.AMBUSH:
 			return Vector2(4, 6)
@@ -35,15 +35,15 @@ static func get_zone_size(deployment_type: GlobalEnums.DeploymentType) -> Vector
 			return Vector2(3, 3)
 		GlobalEnums.DeploymentType.DEFENSIVE:
 			return Vector2(5, 5)
-		GlobalEnums.DeploymentType.INFILTRATION:
+		GlobalEnums.DeploymentType.SPECIALIZED:
 			return Vector2(4, 4)
-		GlobalEnums.DeploymentType.REINFORCEMENT:
+		GlobalEnums.DeploymentType.CONCENTRATED:
 			return Vector2(6, 3)
 		GlobalEnums.DeploymentType.OFFENSIVE:
 			return Vector2(5, 4)
-		GlobalEnums.DeploymentType.CONCEALED:
+		GlobalEnums.DeploymentType.RANDOM:
 			return Vector2(4, 4)
-		GlobalEnums.DeploymentType.BOLSTERED_LINE:
+		GlobalEnums.DeploymentType.CONCENTRATED:
 			return Vector2(10, 2)
 		_:
 			return Vector2(6, 4)
@@ -59,10 +59,10 @@ func generate_deployment_zones() -> Array[Dictionary]:
 			zones.append(_create_zone(Vector2(2, 2), zone_size, current_deployment_type))
 
 			zones.append(_create_zone(Vector2(grid_size.x - zone_size.x - 2, 2), zone_size, current_deployment_type))
-		GlobalEnums.DeploymentType.LINE:
-			zones.append(_create_zone(Vector2(2, grid_size.y / 2.0 - zone_size.y / 2.0), zone_size, current_deployment_type))
+		GlobalEnums.DeploymentType.SCATTERED:
+			zones.append(_create_zone(Vector2(2, 2), zone_size, current_deployment_type))
 
-			zones.append(_create_zone(Vector2(grid_size.x - zone_size.x - 2, grid_size.y / 2.0 - zone_size.y / 2.0), zone_size, current_deployment_type))
+			zones.append(_create_zone(Vector2(grid_size.x - zone_size.x - 2, grid_size.y - zone_size.y - 2), zone_size, current_deployment_type))
 		GlobalEnums.DeploymentType.AMBUSH:
 			zones.append(_create_zone(Vector2(2, 2), zone_size, current_deployment_type))
 
@@ -77,11 +77,11 @@ func generate_deployment_zones() -> Array[Dictionary]:
 				zones.append(_create_zone(pos, zone_size, current_deployment_type))
 		GlobalEnums.DeploymentType.DEFENSIVE:
 			zones.append(_create_zone(Vector2(grid_size.x / 2.0 - zone_size.x / 2.0, 2), zone_size, current_deployment_type))
-		GlobalEnums.DeploymentType.INFILTRATION:
+		GlobalEnums.DeploymentType.SPECIALIZED:
 			zones.append(_create_zone(Vector2(2, 2), zone_size, current_deployment_type))
 
 			zones.append(_create_zone(Vector2(grid_size.x - zone_size.x - 2, grid_size.y - zone_size.y - 2), zone_size, current_deployment_type))
-		GlobalEnums.DeploymentType.REINFORCEMENT:
+		GlobalEnums.DeploymentType.CONCENTRATED:
 			zones.append(_create_zone(Vector2(2, 2), zone_size, current_deployment_type))
 
 			zones.append(_create_zone(Vector2(grid_size.x / 2.0 - zone_size.x / 2.0, grid_size.y - zone_size.y - 2), zone_size, current_deployment_type))
@@ -91,7 +91,7 @@ func generate_deployment_zones() -> Array[Dictionary]:
 			zones.append(_create_zone(Vector2(grid_size.x - zone_size.x - 2, 2), zone_size, current_deployment_type))
 
 			zones.append(_create_zone(Vector2(grid_size.x / 2.0 - zone_size.x / 2.0, grid_size.y - zone_size.y - 2), zone_size, current_deployment_type))
-		GlobalEnums.DeploymentType.CONCEALED:
+		GlobalEnums.DeploymentType.RANDOM:
 			for i: int in range(3):
 				var pos := Vector2(
 					randf_range(2, grid_size.x - zone_size.x - 2),
@@ -99,7 +99,7 @@ func generate_deployment_zones() -> Array[Dictionary]:
 				)
 
 				zones.append(_create_zone(pos, zone_size, current_deployment_type))
-		GlobalEnums.DeploymentType.BOLSTERED_LINE:
+		GlobalEnums.DeploymentType.CONCENTRATED:
 			zones.append(_create_zone(Vector2(2, grid_size.y / 2.0 - zone_size.y / 2.0), zone_size, current_deployment_type))
 
 			zones.append(_create_zone(Vector2(grid_size.x - zone_size.x - 2, grid_size.y / 2.0 - zone_size.y / 2.0), zone_size, current_deployment_type))
@@ -212,3 +212,22 @@ func _calculate_feature_count(feature_type: GlobalEnums.TerrainFeatureType) -> i
 			return 0
 
 ## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func get_deployment_type(ai_behavior: int) -> GlobalEnums.DeploymentType:
+	var roll := randi() % 100 + 1
+
+	match ai_behavior:
+		0: # AGGRESSIVE
+			if roll <= 30: return GlobalEnums.DeploymentType.STANDARD
+			elif roll <= 50: return GlobalEnums.DeploymentType.AMBUSH
+			elif roll <= 60: return GlobalEnums.DeploymentType.CONCENTRATED
+			elif roll <= 80: return GlobalEnums.DeploymentType.OFFENSIVE
+			elif roll <= 90: return GlobalEnums.DeploymentType.SPECIALIZED
+			else: return GlobalEnums.DeploymentType.SCATTERED
+		1: # CAUTIOUS
+			if roll <= 30: return GlobalEnums.DeploymentType.STANDARD
+			elif roll <= 50: return GlobalEnums.DeploymentType.DEFENSIVE
+			elif roll <= 70: return GlobalEnums.DeploymentType.CONCENTRATED
+			elif roll <= 90: return GlobalEnums.DeploymentType.SPECIALIZED
+			else: return GlobalEnums.DeploymentType.SCATTERED
+		_:
+			return GlobalEnums.DeploymentType.STANDARD

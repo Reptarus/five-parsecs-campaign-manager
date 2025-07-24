@@ -1,7 +1,7 @@
 ﻿@tool
 extends Node
 
-const CharacterScript: GDScript = preload("res://src/core/character/Base/Character.gd")
+const Character = preload("res://src/core/character/Character.gd")
 const TerrainTypesScript: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")
 const GlobalEnumsScript: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
 
@@ -68,7 +68,7 @@ const CHARACTER_PROPERTY_TYPES := {
 }
 
 ## Safe Property Access Methods
-func _get_character_property(character: CharacterScript, property: String, default_value = null) -> Variant:
+func _get_character_property(character: Character, property: String, default_value = null) -> Variant:
 	if not character:
 		push_error("Trying to access property '%s' on null character" % property)
 		return default_value
@@ -88,47 +88,47 @@ func _get_character_property(character: CharacterScript, property: String, defau
 
 	return _value
 
-func _get_character_position(character: CharacterScript) -> Vector2i:
+func _get_character_position(character: Character) -> Vector2i:
 	return _get_character_property(character, "position", Vector2i())
 
-func _get_character_name(character: CharacterScript) -> String:
+func _get_character_name(character: Character) -> String:
 	return _get_character_property(character, "name", "Unknown")
 
-func _is_character_in_cover(character: CharacterScript) -> bool:
+func _is_character_in_cover(character: Character) -> bool:
 	return _get_character_property(character, "in_cover", false)
 
-func _get_character_elevation(character: CharacterScript) -> int:
+func _get_character_elevation(character: Character) -> int:
 	return _get_character_property(character, "elevation", 0)
 
-func _get_character_active_effects(character: CharacterScript) -> Array:
+func _get_character_active_effects(character: Character) -> Array:
 	return _get_character_property(character, "active_effects", [])
 
-func _is_character_wounded(character: CharacterScript) -> bool:
+func _is_character_wounded(character: Character) -> bool:
 	return _get_character_property(character, "is_wounded", false)
 
-func _has_character_moved_this_turn(character: CharacterScript) -> bool:
+func _has_character_moved_this_turn(character: Character) -> bool:
 	return _get_character_property(character, "has_moved_this_turn", false)
 
-func _is_character_player_controlled(character: CharacterScript) -> bool:
+func _is_character_player_controlled(character: Character) -> bool:
 	return _get_character_property(character, "is_player_controlled", false)
 
-func _is_character_bot(character: CharacterScript) -> bool:
+func _is_character_bot(character: Character) -> bool:
 	return _get_character_property(character, "bot", false)
 
-func _is_character_soulless(character: CharacterScript) -> bool:
+func _is_character_soulless(character: Character) -> bool:
 	return _get_character_property(character, "soulless", false)
 
-func _is_character_swift(character: CharacterScript) -> bool:
+func _is_character_swift(character: Character) -> bool:
 	return _get_character_property(character, "is_swift", false)
 
 ## Signals
 signal combat_started()
 signal combat_ended()
-signal hit_calculated(attacker: CharacterScript, target: CharacterScript, hit_roll: int)
-signal damage_calculated(attacker: CharacterScript, target: CharacterScript, damage: int)
-signal special_ability_activated(character: CharacterScript, ability: String)
-signal reaction_triggered(character: CharacterScript, reaction: String, attacker: CharacterScript)
-signal combat_effect_applied(target: CharacterScript, effect: String)
+signal hit_calculated(attacker: Character, target: Character, hit_roll: int)
+signal damage_calculated(attacker: Character, target: Character, damage: int)
+signal special_ability_activated(character: Character, ability: String)
+signal reaction_triggered(character: Character, reaction: String, attacker: Character)
+signal combat_effect_applied(target: Character, effect: String)
 signal combat_log_updated(log_entry: String)
 
 ## Enums
@@ -160,7 +160,7 @@ const ABILITY_COOLDOWN := 3
 ## Variables
 var combat_manager: Node = null
 var battlefield_manager: Node = null
-var _active_combatants: Array[CharacterScript] = []
+var _active_combatants: Array[Character] = []
 var combat_log: Array[String] = []
 var manual_overrides: Dictionary = {}
 
@@ -180,7 +180,7 @@ func _load_terrain_types() -> void:
 	terrain_types.free()
 
 func _validate_character_interface() -> void:
-	var test_character: CharacterScript = CharacterScript.new()
+	var test_character: Character = Character.new()
 
 	# Validate properties and their types
 	for property: String in CHARACTER_PROPERTY_TYPES:
@@ -199,7 +199,7 @@ func _validate_character_interface() -> void:
 
 	test_character.free()
 
-func resolve_combat_action(attacker: CharacterScript, target: CharacterScript, action: GlobalEnumsScript.UnitAction) -> void:
+func resolve_combat_action(attacker: Character, target: Character, action: GlobalEnumsScript.UnitAction) -> void:
 	if not _validate_combat_requirements(attacker, target, action):
 		return
 
@@ -211,16 +211,14 @@ func resolve_combat_action(attacker: CharacterScript, target: CharacterScript, a
 	match action:
 		GlobalEnumsScript.UnitAction.ATTACK:
 			_resolve_ranged_attack(attacker, target)
-		GlobalEnumsScript.UnitAction.BRAWL:
-			_resolve_melee_attack(attacker, target)
-		GlobalEnumsScript.UnitAction.SPECIAL_ABILITY:
+		GlobalEnumsScript.UnitAction.USE_ABILITY:
 			_resolve_special_ability(attacker, target)
 		_:
 			push_warning("Unsupported combat action: %s" % action)
 
 	emit_signal(&"combat_ended")
 
-func _validate_combat_requirements(attacker: CharacterScript, target: CharacterScript, action: GlobalEnumsScript.UnitAction) -> bool:
+func _validate_combat_requirements(attacker: Character, target: Character, action: GlobalEnumsScript.UnitAction) -> bool:
 	if not attacker or not target:
 		push_error("Invalid attacker or target")
 		return false
@@ -246,7 +244,7 @@ func _validate_combat_requirements(attacker: CharacterScript, target: CharacterS
 
 			# Check if must target closest enemy within 3"
 			if distance <= 3.0:
-				var closest_target: CharacterScript = _get_closest_enemy(attacker)
+				var closest_target: Character = _get_closest_enemy(attacker)
 				if closest_target and closest_target != target:
 					push_warning("Must target closest enemy within 3 inches")
 					return false
@@ -265,13 +263,7 @@ func _validate_combat_requirements(attacker: CharacterScript, target: CharacterS
 						push_warning("Shot endangers allies")
 						return false
 
-		GlobalEnumsScript.UnitAction.BRAWL:
-			# Must be in base contact
-			if _get_distance_to_target(attacker, target) > 1.0:
-				push_warning("Target not in base contact for brawl")
-				return false
-
-		GlobalEnumsScript.UnitAction.SPECIAL_ABILITY:
+		GlobalEnumsScript.UnitAction.USE_ABILITY:
 			# Check ability-specific requirements
 			if not _validate_special_ability_requirements(attacker, target):
 				push_warning("Special ability requirements not met")
@@ -279,7 +271,7 @@ func _validate_combat_requirements(attacker: CharacterScript, target: CharacterS
 
 	return true
 
-func _has_valid_line_of_sight(attacker: CharacterScript, target: CharacterScript) -> bool:
+func _has_valid_line_of_sight(attacker: Character, target: Character) -> bool:
 	if not battlefield_manager:
 		push_error("Battlefield manager not found")
 		return false
@@ -291,7 +283,7 @@ func _has_valid_line_of_sight(attacker: CharacterScript, target: CharacterScript
 	# Check if line of sight crosses another character
 	var line: Array[Vector2i] = battlefield_manager.get_line(_get_character_position(attacker), _get_character_position(target))
 	for point in line:
-		var blocking_character: CharacterScript = combat_manager.get_character_at(point)
+		var blocking_character: Character = combat_manager.get_character_at(point)
 		if blocking_character and blocking_character != attacker and blocking_character != target:
 			return false
 
@@ -312,7 +304,7 @@ func _has_valid_line_of_sight(attacker: CharacterScript, target: CharacterScript
 
 	return true
 
-func _validate_special_ability_requirements(attacker: CharacterScript, target: CharacterScript) -> bool:
+func _validate_special_ability_requirements(attacker: Character, target: Character) -> bool:
 	var ability: String = attacker.get_active_ability()
 	if (safe_call_method(ability, "is_empty") == true):
 		push_warning("No active ability")
@@ -326,7 +318,7 @@ func _validate_special_ability_requirements(attacker: CharacterScript, target: C
 	match ability:
 		"LEADERSHIP", "TACTICAL_GENIUS":
 			# Requires allies within range
-			var nearby_allies: Array[CharacterScript] = _get_nearby_allies(attacker)
+			var nearby_allies: Array[Character] = _get_nearby_allies(attacker)
 			if (safe_call_method(nearby_allies, "is_empty") == true):
 				push_warning("No allies in range for leadership/tactical ability")
 				return false
@@ -339,7 +331,7 @@ func _validate_special_ability_requirements(attacker: CharacterScript, target: C
 
 		"TECH_EXPERT":
 			# Requires mechanical allies
-			var nearby_allies: Array[CharacterScript] = _get_nearby_allies(attacker)
+			var nearby_allies: Array[Character] = _get_nearby_allies(attacker)
 			var has_mechanical: bool = false
 			for ally in nearby_allies:
 				if ally.is_mechanical():
@@ -351,14 +343,14 @@ func _validate_special_ability_requirements(attacker: CharacterScript, target: C
 
 	return true
 
-func _shot_endangers_allies(attacker: CharacterScript, target: CharacterScript) -> bool:
+func _shot_endangers_allies(attacker: Character, target: Character) -> bool:
 	if not battlefield_manager:
 		push_error("Battlefield manager not found")
 		return false
 
 	var line: Array[Vector2i] = battlefield_manager.get_line(_get_character_position(attacker), _get_character_position(target))
 	for point in line:
-		var character: CharacterScript = combat_manager.get_character_at(point)
+		var character: Character = combat_manager.get_character_at(point)
 		if character and character != attacker and character != target:
 			if combat_manager.are_allies(attacker, character):
 				return true
@@ -382,15 +374,15 @@ func _get_ability_range(ability: String) -> float:
 		_:
 			return 0.0
 
-func _get_closest_enemy(character: CharacterScript) -> CharacterScript:
+func _get_closest_enemy(character: Character) -> Character:
 	if not combat_manager:
 		push_error("Combat manager not found")
 		return null
 
-	var enemies: Array[CharacterScript] = combat_manager.get_valid_targets(character)
+	var enemies: Array[Character] = combat_manager.get_valid_targets(character)
 	if (safe_call_method(enemies, "is_empty") == true):
 		return
-	var closest_enemy: CharacterScript = null
+	var closest_enemy: Character = null
 	var closest_distance: float = INF
 
 	for enemy in enemies:
@@ -433,7 +425,7 @@ func _is_at_area_edge(position: Vector2i) -> bool:
 
 	return false
 
-func _resolve_ranged_attack(attacker: CharacterScript, target: CharacterScript) -> void:
+func _resolve_ranged_attack(attacker: Character, target: Character) -> void:
 	var hit_modifier: int = _calculate_hit_modifier(attacker, target)
 	var hit_threshold: int = _get_hit_threshold(attacker, target)
 	var hit_roll: int = randi() % 6 + 1 + hit_modifier
@@ -457,7 +449,7 @@ func _resolve_ranged_attack(attacker: CharacterScript, target: CharacterScript) 
 
 			if "Area" in weapon.traits:
 				# Apply area effect to nearby targets
-				var nearby_targets: Array[CharacterScript] = _get_targets_in_radius(_get_character_position(target), 2.0)
+				var nearby_targets: Array[Character] = _get_targets_in_radius(_get_character_position(target), 2.0)
 				for nearby in nearby_targets:
 					if nearby != target:
 						damage = _calculate_damage(attacker, nearby, hit_roll)
@@ -472,7 +464,7 @@ func _resolve_ranged_attack(attacker: CharacterScript, target: CharacterScript) 
 			if "Stun" in weapon.traits:
 				target.apply_status_effect({"effect": "stunned", "duration": 1})
 
-func _calculate_hit_modifier(attacker: CharacterScript, target: CharacterScript) -> int:
+func _calculate_hit_modifier(attacker: Character, target: Character) -> int:
 	var modifier := 0
 	var weapon: Dictionary = attacker.get_equipped_weapon()
 
@@ -514,19 +506,19 @@ func _get_effect_modifier(effects: Array) -> int:
 				modifier += 1
 	return modifier
 
-func _get_weapon_effects(character: CharacterScript) -> Array[String]:
+func _get_weapon_effects(character: Character) -> Array[String]:
 	var effects: Array[String] = []
 	var weapon: Dictionary = character.get_equipped_weapon()
 	if weapon and weapon.has("effects"):
 		effects.append_array(weapon.effects)
 	return effects
 
-func _get_valid_target(attacker: CharacterScript, action: GlobalEnumsScript.UnitAction) -> CharacterScript:
+func _get_valid_target(attacker: Character, action: GlobalEnumsScript.UnitAction) -> Character:
 	if not combat_manager:
 		push_error("Combat manager not found")
 		return null
 
-	var valid_targets: Array[CharacterScript] = combat_manager.get_valid_targets(attacker)
+	var valid_targets: Array[Character] = combat_manager.get_valid_targets(attacker)
 	if (safe_call_method(valid_targets, "is_empty") == true):
 		return null
 	if _is_character_player_controlled(attacker):
@@ -534,28 +526,26 @@ func _get_valid_target(attacker: CharacterScript, action: GlobalEnumsScript.Unit
 	else:
 		return _select_ai_target(attacker, valid_targets)
 
-func _get_max_range_for_action(attacker: CharacterScript, action: GlobalEnumsScript.UnitAction) -> float:
+func _get_max_range_for_action(attacker: Character, action: GlobalEnumsScript.UnitAction) -> float:
 	match action:
 		GlobalEnumsScript.UnitAction.ATTACK:
 			var weapon: Dictionary = attacker.get_equipped_weapon()
 			if weapon:
 				return weapon.range
 			return 0.0
-		GlobalEnumsScript.UnitAction.BRAWL:
-			return 1.0
-		GlobalEnumsScript.UnitAction.SPECIAL_ABILITY:
+		GlobalEnumsScript.UnitAction.USE_ABILITY:
 			var ability: String = attacker.get_active_ability()
 			return _get_ability_range(ability)
 		_:
 			return 0.0
 
-func _get_distance_to_target(attacker: CharacterScript, target: CharacterScript) -> float:
+func _get_distance_to_target(attacker: Character, target: Character) -> float:
 	if not battlefield_manager:
 		push_error("Battlefield manager not found")
 		return 0.0
 	return battlefield_manager.get_distance_between(_get_character_position(attacker), _get_character_position(target))
 
-func _apply_retreat(target: CharacterScript, distance: float, from_position: Vector2) -> void:
+func _apply_retreat(target: Character, distance: float, from_position: Vector2) -> void:
 	if battlefield_manager:
 		var target_pos: Vector2i = _get_character_position(target)
 		# Convert Vector2i to Vector2 for calculations
@@ -565,14 +555,13 @@ func _apply_retreat(target: CharacterScript, distance: float, from_position: Vec
 		# Convert back to Vector2i for move_character
 		battlefield_manager.move_character(target, Vector2i(new_position))
 
-func _get_targets_in_radius(center: Vector2, radius: float) -> Array[CharacterScript]:
-	var targets: Array[CharacterScript] = []
+func _get_targets_in_radius(center: Vector2, radius: float) -> Array[Character]:
+	var targets: Array[Character] = []
 	if battlefield_manager:
 		targets = battlefield_manager.get_characters_in_radius(center, radius)
 	return targets
 
 func add_manual_override(override_type: String, _value: Variant) -> void:
-
 	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
 	if not is_instance_valid(self):
 		return
@@ -583,9 +572,9 @@ func clear_manual_overrides() -> void:
 
 func log_combat_event(_event: String) -> void:
 	combat_log.append(_event)
-	combat_log_updated.emit( _event)
+	combat_log_updated.emit(_event)
 
-func _get_hit_threshold(attacker: CharacterScript, target: CharacterScript) -> int:
+func _get_hit_threshold(attacker: Character, target: Character) -> int:
 	var threshold := 4 # Base threshold for hitting
 
 	# Adjust for cover
@@ -598,7 +587,7 @@ func _get_hit_threshold(attacker: CharacterScript, target: CharacterScript) -> i
 
 	return threshold
 
-func _calculate_damage(attacker: CharacterScript, target: CharacterScript, hit_roll: int) -> int:
+func _calculate_damage(attacker: Character, target: Character, hit_roll: int) -> int:
 	var base_damage: int = attacker.get_ranged_damage()
 	var armor_reduction: int = target.get_armor_value()
 
@@ -608,7 +597,7 @@ func _calculate_damage(attacker: CharacterScript, target: CharacterScript, hit_r
 
 	return maxi(1, base_damage - armor_reduction) # Minimum 1 damage
 
-func _apply_combat_effects(attacker: CharacterScript, target: CharacterScript, hit_roll: int) -> void:
+func _apply_combat_effects(attacker: Character, target: Character, hit_roll: int) -> void:
 	# Status effects based on hit _roll
 	if hit_roll >= STUN_THRESHOLD:
 		target.apply_status_effect({"effect": "stun", "duration": 1})
@@ -637,7 +626,7 @@ func _apply_combat_effects(attacker: CharacterScript, target: CharacterScript, h
 			target.apply_status_effect({"effect": "bleeding", "duration": 2})
 			emit_signal(&"combat_effect_applied", target, "bleeding")
 
-func _apply_knockback(target: CharacterScript, from_position: Vector2i, distance: int) -> void:
+func _apply_knockback(target: Character, from_position: Vector2i, distance: int) -> void:
 	if not battlefield_manager:
 		push_error("Battlefield manager not found")
 		return
@@ -659,7 +648,7 @@ func _apply_knockback(target: CharacterScript, from_position: Vector2i, distance
 			target.apply_damage(1)
 			log_combat_event("%s took collision damage" % _get_character_name(target))
 
-func _resolve_melee_attack(attacker: CharacterScript, target: CharacterScript) -> void:
+func _resolve_melee_attack(attacker: Character, target: Character) -> void:
 	var hit_modifier: int = _calculate_melee_modifier(attacker, target)
 	var hit_threshold: int = _calculate_melee_threshold(attacker, target)
 	var hit_roll: int = randi() % 6 + 1 + hit_modifier
@@ -672,7 +661,7 @@ func _resolve_melee_attack(attacker: CharacterScript, target: CharacterScript) -
 		target.apply_damage(damage)
 		_apply_combat_effects(attacker, target, hit_roll)
 
-func _calculate_melee_modifier(attacker: CharacterScript, target: CharacterScript) -> int:
+func _calculate_melee_modifier(attacker: Character, target: Character) -> int:
 	var modifier := 0
 
 	# Base modifiers
@@ -691,7 +680,7 @@ func _calculate_melee_modifier(attacker: CharacterScript, target: CharacterScrip
 
 	return modifier
 
-func _calculate_melee_threshold(attacker: CharacterScript, target: CharacterScript) -> int:
+func _calculate_melee_threshold(attacker: Character, target: Character) -> int:
 	var threshold := 4 # Base threshold for melee
 
 	# Adjust for target's defense
@@ -700,7 +689,7 @@ func _calculate_melee_threshold(attacker: CharacterScript, target: CharacterScri
 
 	return threshold
 
-func _calculate_melee_damage(attacker: CharacterScript, target: CharacterScript, hit_roll: int) -> int:
+func _calculate_melee_damage(attacker: Character, target: Character, hit_roll: int) -> int:
 	var base_damage: int = attacker.get_melee_damage()
 	var armor_reduction: int = target.get_armor_value()
 
@@ -710,7 +699,7 @@ func _calculate_melee_damage(attacker: CharacterScript, target: CharacterScript,
 
 	return maxi(1, base_damage - armor_reduction) # Minimum 1 damage
 
-func _resolve_special_ability(attacker: CharacterScript, target: CharacterScript) -> void:
+func _resolve_special_ability(attacker: Character, target: Character) -> void:
 	var ability: String = attacker.get_active_ability()
 	if ability == "NONE":
 		return
@@ -737,15 +726,15 @@ func _resolve_special_ability(attacker: CharacterScript, target: CharacterScript
 	var _signal_result: Variant = emit_signal(&"special_ability_activated", attacker, ability)
 	log_combat_event("Special ability %s activated by %s" % [ability, _get_character_name(attacker)])
 
-func _wait_for_player_target_selection(valid_targets: Array[CharacterScript]) -> CharacterScript:
+func _wait_for_player_target_selection(valid_targets: Array[Character]) -> Character:
 	# This will be implemented by the UI system
 	# For now, return the first valid target
 	if not (safe_call_method(valid_targets, "is_empty") == true):
 		return valid_targets[0]
 	return null
-func _select_ai_target(attacker: CharacterScript, valid_targets: Array[CharacterScript]) -> CharacterScript:
+func _select_ai_target(attacker: Character, valid_targets: Array[Character]) -> Character:
 	# Simple AI - select closest valid target
-	var closest_target: CharacterScript = null
+	var closest_target: Character = null
 	var closest_distance: float = INF
 
 	for target in valid_targets:
@@ -756,31 +745,31 @@ func _select_ai_target(attacker: CharacterScript, valid_targets: Array[Character
 
 	return closest_target
 
-func _apply_leadership_bonus(character: CharacterScript) -> void:
-	var allies: Array[CharacterScript] = _get_nearby_allies(character)
+func _apply_leadership_bonus(character: Character) -> void:
+	var allies: Array[Character] = _get_nearby_allies(character)
 	for ally in allies:
 		ally.apply_status_effect({"effect": "inspire", "duration": 2}) # Lasts 2 turns
 		log_combat_event("%s inspired by %s's leadership" % [_get_character_name(ally), _get_character_name(character)])
 
-func _apply_tactical_bonus(character: CharacterScript) -> void:
-	var allies: Array[CharacterScript] = _get_nearby_allies(character)
+func _apply_tactical_bonus(character: Character) -> void:
+	var allies: Array[Character] = _get_nearby_allies(character)
 	for ally in allies:
 		ally.apply_status_effect({"effect": "focus", "duration": 2}) # Lasts 2 turns
 		ally.add_action_points(1) # Bonus action point
 		log_combat_event("%s gained tactical advantage from %s" % [_get_character_name(ally), _get_character_name(character)])
 
-func _apply_marksman_bonus(character: CharacterScript) -> void:
+func _apply_marksman_bonus(character: Character) -> void:
 	if character and character.has_method("apply_status_effect"): character.apply_status_effect({"effect": "focus", "duration": 3}) # Extended focus duration
 	if character and character.has_method("add_combat_modifier"): character.add_combat_modifier(GlobalEnumsScript.CombatModifier.ELEVATION) # Elevation bonus for marksman
 	log_combat_event("%s entered marksman stance" % _get_character_name(character))
 
-func _apply_berserker_bonus(character: CharacterScript) -> void:
+func _apply_berserker_bonus(character: Character) -> void:
 	if character and character.has_method("apply_status_effect"): character.apply_status_effect({"effect": "rage", "duration": 2}) # Lasts 2 turns
 	if character and character.has_method("add_combat_modifier"): character.add_combat_modifier(GlobalEnumsScript.CombatModifier.FLANKING) # Flanking bonus for berserker
 	if character and character.has_method("add_action_points"): character.add_action_points(2) # Two bonus action points
 	log_combat_event("%s entered berserker rage" % _get_character_name(character))
 
-func _apply_medic_bonus(character: CharacterScript, target: CharacterScript) -> void:
+func _apply_medic_bonus(character: Character, target: Character) -> void:
 	if target and _is_character_wounded(target):
 		var heal_amount := 2
 		target.heal_damage(heal_amount)
@@ -788,29 +777,29 @@ func _apply_medic_bonus(character: CharacterScript, target: CharacterScript) -> 
 		target.remove_status_effect("poison")
 		log_combat_event("%s healed %s for %d damage" % [_get_character_name(character), _get_character_name(target), heal_amount])
 
-func _apply_tech_bonus(character: CharacterScript) -> void:
+func _apply_tech_bonus(character: Character) -> void:
 	if character and character.has_method("apply_status_effect"): character.apply_status_effect({"effect": "tech_boost", "duration": 2}) # Lasts 2 turns
 	if character and character.has_method("add_combat_modifier"): character.add_combat_modifier(GlobalEnumsScript.CombatModifier.STEALTH) # Stealth bonus for tech
 	# Repair nearby mechanical allies
-	var allies: Array[CharacterScript] = _get_nearby_allies(character)
+	var allies: Array[Character] = _get_nearby_allies(character)
 	for ally in allies:
 		if ally.is_mechanical():
 			ally.heal_damage(1)
 			log_combat_event("%s repaired %s" % [_get_character_name(character), _get_character_name(ally)])
 
-func _get_nearby_allies(character: CharacterScript) -> Array[CharacterScript]:
-	var allies: Array[CharacterScript] = []
+func _get_nearby_allies(character: Character) -> Array[Character]:
+	var allies: Array[Character] = []
 	if battlefield_manager:
 		allies = battlefield_manager.get_allies_in_range(character, 3.0) # 3 unit radius
 	return allies
 
-func _check_reaction_opportunities(attacker: CharacterScript, target: CharacterScript, action: GlobalEnumsScript.UnitAction) -> void:
+func _check_reaction_opportunities(attacker: Character, target: Character, action: GlobalEnumsScript.UnitAction) -> void:
 	if not combat_manager:
 		push_error("Combat manager not found")
 		return
 
-	var nearby_units: Array[CharacterScript] = _get_nearby_allies(target)
-	for unit: CharacterScript in nearby_units:
+	var nearby_units: Array[Character] = _get_nearby_allies(target)
+	for unit: Character in nearby_units:
 		if unit == attacker or unit == target:
 			continue
 

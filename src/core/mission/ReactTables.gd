@@ -6,7 +6,7 @@ class_name FPCM_ReactTables
 ## Implements React tables for enemy generation (rulebook p.124-129)
 
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-# Note: GameDataManager is an autoload - access via get_node("/root/GameDataManager")
+# Note: DataManager is an autoload - access via get_node("/root/DataManager")
 
 signal enemies_generated(enemies: Array)
 signal enemy_faction_determined(faction: String)
@@ -45,12 +45,12 @@ var _mission_danger_mod: int = 0
 func _init() -> void:
 	var tree = Engine.get_main_loop() as SceneTree
 	if tree and tree.root:
-		var data_manager_node: Node = tree.root.get_node_or_null("GameDataManagerAutoload")
+		var data_manager_node: Node = tree.root.get_node_or_null("DataManagerAutoload")
 		if data_manager_node:
 			_data_manager = data_manager_node
-			print("ReactTables: GameDataManagerAutoload available immediately")
+			print("ReactTables: DataManagerAutoload available immediately")
 		else:
-			print("ReactTables: GameDataManagerAutoload not ready yet")
+			print("ReactTables: DataManagerAutoload not ready yet")
 	else:
 		print("ReactTables: SceneTree not available yet")
 	_load_data()
@@ -75,7 +75,7 @@ func _load_data() -> void:
 
 	# Load elite enemy types
 	var elite_data = _data_manager.load_json_file(ELITE_ENEMY_TYPES_PATH)
-	if elite_data and elite_data.has("elite_enemy_types"):
+	if elite_data and "elite_enemy_types" in elite_data:
 		_elite_enemy_types = elite_data["elite_enemy_types"]
 	else:
 		push_error("Failed to load elite enemy types data")
@@ -145,7 +145,7 @@ func _calculate_enemy_distribution(danger_level: int, mission_type: int) -> Dict
 	var distribution: Dictionary = {}
 	var table_key: String = "danger_level_" + str(danger_level)
 
-	if not _react_tables.has(table_key):
+	if table_key not in _react_tables:
 		push_error("Invalid danger level: " + str(danger_level))
 		return distribution
 
@@ -155,21 +155,21 @@ func _calculate_enemy_distribution(danger_level: int, mission_type: int) -> Dict
 	match mission_type:
 		GlobalEnums.MissionType.BLACK_ZONE:
 			# Increase difficult enemies for black zone missions
-			if base_distribution.has("elite"):
+			if "elite" in base_distribution:
 				base_distribution["elite"] += 1
 			else:
 				base_distribution["elite"] = 1
 
 		GlobalEnums.MissionType.RED_ZONE:
 			# Add more enemies for red zone missions
-			if base_distribution.has("regular"):
+			if "regular" in base_distribution:
 				base_distribution["regular"] += 2
 			else:
 				base_distribution["regular"] = 2
 
 		GlobalEnums.MissionType.SABOTAGE:
 			# Add special defenders for sabotage missions
-			if base_distribution.has("specialist"):
+			if "specialist" in base_distribution:
 				base_distribution["specialist"] += 1
 			else:
 				base_distribution["specialist"] = 1
@@ -203,7 +203,7 @@ func _determine_enemy_faction(location_type: String, mission_type: int) -> Strin
 
 ## Generate an individual enemy based on _type and faction (rulebook p.126-127)
 func _generate_enemy(faction: String, enemy_type: String) -> Dictionary:
-	if not _enemy_types.has(enemy_type) or not _enemy_types[enemy_type].has(faction):
+	if enemy_type not in _enemy_types or faction not in _enemy_types[enemy_type]:
 		push_error("Invalid enemy _type or faction: " + enemy_type + ", " + faction)
 		return {}
 
@@ -215,10 +215,10 @@ func _generate_enemy(faction: String, enemy_type: String) -> Dictionary:
 ## Adjust enemy stats based on danger level
 func _adjust_enemy_stats(enemy: Dictionary) -> void:
 	# Add some randomness to enemy stats
-	if enemy.has("health"):
+	if "health" in enemy:
 		enemy["health"] = int(enemy["health"] * randf_range(0.9, 1.1))
 
-	if enemy.has("morale"):
+	if "morale" in enemy:
 		enemy["morale"] = int(enemy["morale"] * randf_range(0.9, 1.1))
 
 ## Add special abilities to enemies based on danger level (rulebook p.127-128)
@@ -339,7 +339,7 @@ func set_mission_danger_modifier(modifier: int) -> void:
 ## Create an enemy based on type and faction
 func _create_enemy(enemy_type: String, faction: String) -> Dictionary:
 	# Check if we have the needed data structure
-	if not _enemy_types.has("enemy_categories"):
+	if "enemy_categories" not in _enemy_types:
 		push_error("Invalid enemy_types data structure: missing enemy_categories")
 		return {}
 
@@ -358,14 +358,14 @@ func _create_enemy(enemy_type: String, faction: String) -> Dictionary:
 		return {}
 
 	# Find the enemy _type in the enemies array
-	if not enemy_category.has("enemies"):
+	if "enemies" not in enemy_category:
 		push_error("Invalid enemy category: missing enemies array")
 		return {}
 
 	var enemy_template: Variant = null
 	for enemy in enemy_category.enemies:
 		# Match by enemy _type category (grunt, elite, boss, etc.)
-		if enemy.get("tags", []).has(enemy_type):
+		if enemy_type in enemy.get("tags", []):
 			enemy_template = enemy.duplicate(true)
 			break
 

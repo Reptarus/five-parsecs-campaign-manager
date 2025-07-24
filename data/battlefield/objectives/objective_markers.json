@@ -1,0 +1,22 @@
+{
+  "objectives": [
+    {
+      "id": "obj_comm_terminal",
+      "name": "Comms Terminal",
+      "tags": ["urban_terminal", "tech_objective"],
+      "description": "Access the terminal to retrieve data.",
+      "victory_condition": "Interact (Tech)",
+      "placement_hint": "inside_building_wall",
+      "asset": { "type": "primitive", "shape": "box", "size_3d": [0.2, 1.5, 1.0], "color": "#00ffff" }
+    },
+    {
+      "id": "obj_supply_cache",
+      "name": "Supply Cache",
+      "tags": ["generic_loot", "salvage"],
+      "description": "Secure the valuable supplies.",
+      "victory_condition": "Control (End of Game)",
+      "placement_hint": "in_cover",
+      "asset": { "type": "primitive", "shape": "box", "size_3d": [1.0, 1.0, 1.0], "color": "#ffbf00" }
+    }
+  ]
+}

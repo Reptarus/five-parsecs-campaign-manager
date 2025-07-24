@@ -59,7 +59,7 @@ var selected_character: Node = null # Type-safe managed by system
 func _ready() -> void:
 	# Load dependencies safely at runtime
 	Character = load("res://src/game/character/Character.gd")
-	CharacterCreator = load("res://src/game/character/generation/CharacterCreator.gd")
+	CharacterCreator = load("res://src/core/character/Generation/BaseCharacterCreator.gd")
 	GlobalEnums = load("res://src/core/systems/GlobalEnums.gd")
 	GameState = load("res://src/core/state/GameState.gd")
 

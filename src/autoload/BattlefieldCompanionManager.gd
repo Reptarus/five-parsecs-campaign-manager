@@ -373,7 +373,7 @@ func save_session(filepath: String = "user://battlefield_session.save") -> bool:
 	var file: FileAccess = FileAccess.open(filepath, FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(save_data))
-		if file: file.close()
+		file.close() # Always close file if opened successfully
 		return true
 
 	return false
@@ -388,7 +388,7 @@ func load_session(filepath: String = "user://battlefield_session.save") -> bool:
 		return false
 
 	var json_text = file.get_as_text()
-	if file: file.close()
+	file.close() # Always close file if opened successfully
 
 	var json = JSON.new()
 	var parse_result = json.parse(json_text)

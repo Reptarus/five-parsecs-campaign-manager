@@ -33,6 +33,14 @@ extends Resource
 @export var page_reference: String = ""
 @export var tags: Array[String] = []
 
+var _is_active: bool = false
+var is_resolved: bool = false
+var selected_choice: int = -1
+
+# Outcomes
+var rewards: Dictionary = {}
+var consequences: Dictionary = {}
+
 func _init(p_id: String = "", p_title: String = "", p_description: String = "") -> void:
 	event_id = p_id
 	title = p_title
@@ -206,3 +214,44 @@ func validate() -> Dictionary:
 			result.valid = false
 	
 	return result
+
+func configure(config: Dictionary) -> void:
+	if config.has("event_id"):
+		event_id = config.event_id
+	if config.has("event_type"):
+		event_type = config.event_type
+	if config.has("title"):
+		title = config.title
+	if config.has("description"):
+		description = config.description
+
+func select_choice(choice_index: int) -> void:
+	if choice_index >= 0 and choice_index < choices.size():
+		selected_choice = choice_index
+		is_resolved = true
+
+func get_choice(index: int) -> Dictionary:
+	if index >= 0 and index < choices.size():
+		return choices[index]
+	return {}
+
+func set_event_rewards(reward_data: Dictionary) -> void:
+	rewards = reward_data.duplicate()
+func set_event_consequences(consequence_data: Dictionary) -> void:
+	consequences = consequence_data.duplicate()
+
+func get_event_outcome() -> Dictionary:
+	return {
+		"is_resolved": is_resolved,
+		"selected_choice": selected_choice,
+		"rewards": rewards,
+		"consequences": consequences
+	}
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

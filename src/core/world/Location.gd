@@ -1,7 +1,7 @@
-﻿extends Resource
+extends Resource
 
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const GameLocation = preload("res://src/game/world/GameLocation.gd")
+const Character = preload("res://src/core/character/Character.gd")
 
 # Resource type constants
 const RESOURCE_CREDITS = 0
@@ -51,12 +51,12 @@ var _relationship: int
 var _faction_type: GlobalEnums.FactionType
 
 # The wrapped GameLocation instance
-var _game_location: GameLocation
+var _game_location: Resource
 
 func _init() -> void:
-	_game_location = GameLocation.new()
+	_game_location = Resource.new()
 
-	if not (safe_call_method(resources, "is_empty") == true):
+	if not safe_call_method(resources, "is_empty") == true:
 		return
 
 	resources = {
@@ -75,8 +75,7 @@ func _init() -> void:
 	_sync_to_game_location()
 
 func add_connected_location(location_name: String) -> void:
-	if not connected_locations.has(location_name):
-
+	if location_name not in connected_locations:
 		connected_locations.append(location_name)
 
 	# Update wrapped GameLocation
@@ -88,11 +87,10 @@ func remove_connected_location(location_name: String) -> void:
 	# Update wrapped GameLocation
 	_game_location.remove_connected_location(location_name)
 func is_connected_to(location_name: String) -> bool:
-	return connected_locations.has(location_name)
+	return location_name in connected_locations
 
 func add_mission(mission_data: Dictionary) -> void:
-	if not available_missions.has(mission_data):
-
+	if mission_data not in available_missions:
 		available_missions.append(mission_data)
 
 	# Update wrapped GameLocation
@@ -110,8 +108,7 @@ func remove_mission(mission_data: Dictionary) -> void:
 	# var mission_id = mission_data.get("id", "")
 	# _game_location.remove_mission(mission_id)
 func add_event(event_data: Dictionary) -> void:
-	if not local_events.has(event_data):
-
+	if event_data not in local_events:
 		local_events.append(event_data)
 
 	# GameLocation doesn't have direct event support, would need custom implementation
@@ -120,7 +117,6 @@ func clear_expired_events() -> void:
 	var current_events: Array[Dictionary] = []
 	for event in local_events:
 		if not event.get("expired", false):
-
 			current_events.append(event)
 	local_events = current_events
 
@@ -155,11 +151,11 @@ func update_market_state() -> void:
 	_game_location.update_market_state()
 func _convert_market_state(old_state: int) -> int:
 	match old_state:
-		MARKET_NORMAL: return GameLocation.MARKET_STATE_NORMAL
-		MARKET_CRISIS: return GameLocation.MARKET_STATE_SHORTAGE
-		MARKET_BOOM: return GameLocation.MARKET_STATE_BOOM
-		MARKET_RESTRICTED: return GameLocation.MARKET_STATE_BLOCKADE
-		_: return GameLocation.MARKET_STATE_NORMAL
+		MARKET_NORMAL: return 0 # MARKET_STATE_NORMAL
+		MARKET_CRISIS: return 1 # MARKET_STATE_SHORTAGE
+		MARKET_BOOM: return 2 # MARKET_STATE_BOOM
+		MARKET_RESTRICTED: return 3 # MARKET_STATE_BLOCKADE
+		_: return 0 # MARKET_STATE_NORMAL
 
 func get_travel_cost_to(destination: Resource) -> float:
 	var base_cost: float = 10.0
@@ -169,15 +165,13 @@ func get_travel_cost_to(destination: Resource) -> float:
 	return base_cost + (distance * 2) + (base_cost * danger_modifier)
 
 func get_resource_price(resource_type: GlobalEnums.ResourceType) -> float:
-
 	var base_price: float = resources.get(resource_type, 0)
 
 	var modifier: float = price_modifiers.get(resource_type, 1.0)
 	return base_price * modifier
 
 func add_threat(threat_data: Dictionary) -> void:
-	if not current_threats.has(threat_data):
-
+	if threat_data not in current_threats:
 		current_threats.append(threat_data)
 		# Update danger level based on threats
 
@@ -196,8 +190,7 @@ func remove_threat(threat_data: Dictionary) -> void:
 	# GameLocation doesn't have direct threat support in the same way
 	# Would need custom implementation
 func add_special_feature(feature: String) -> void:
-	if not special_features.has(feature):
-
+	if feature not in special_features:
 		special_features.append(feature)
 
 	# Map to GameLocation world traits
@@ -218,7 +211,7 @@ func _convert_feature_to_trait_id(feature: String) -> String:
 		_: return ""
 
 func has_special_feature(feature: String) -> bool:
-	return special_features.has(feature)
+	return feature in special_features
 
 # Sync our state to the wrapped GameLocation
 func _sync_to_game_location() -> void:
@@ -232,9 +225,9 @@ func _sync_to_game_location() -> void:
 
 	# Convert faction to faction_control
 	match faction:
-		"empire": _game_location.faction_control = GlobalEnums.FactionType.IMPERIAL
-		"rebels": _game_location.faction_control = GlobalEnums.FactionType.REBEL
-		"pirates": _game_location.faction_control = GlobalEnums.FactionType.PIRATE
+		"empire": _game_location.faction_control = GlobalEnums.FactionType.MILITARY
+		"rebels": _game_location.faction_control = GlobalEnums.FactionType.CRIMINAL
+		"pirates": _game_location.faction_control = GlobalEnums.FactionType.CRIMINAL
 		"corporate": _game_location.faction_control = GlobalEnums.FactionType.CORPORATE
 		_: _game_location.faction_control = GlobalEnums.FactionType.NEUTRAL
 
@@ -253,7 +246,7 @@ func _sync_to_game_location() -> void:
 
 ## Get the wrapped GameLocation instance
 ## This allows direct access to the new implementation when needed
-func get_game_location() -> GameLocation:
+func get_game_location() -> Resource:
 	_sync_to_game_location() # Ensure the GameLocation is up to date
 	return _game_location
 
@@ -271,9 +264,8 @@ func update_from_game_location() -> void:
 
 	# Convert faction_control to faction
 	match _game_location.faction_control:
-		GlobalEnums.FactionType.IMPERIAL: faction = "empire"
-		GlobalEnums.FactionType.REBEL: faction = "rebels"
-		GlobalEnums.FactionType.PIRATE: faction = "pirates"
+		GlobalEnums.FactionType.MILITARY: faction = "empire"
+		GlobalEnums.FactionType.CRIMINAL: faction = "rebels"
 		GlobalEnums.FactionType.CORPORATE: faction = "corporate"
 		_: faction = "neutral"
 
@@ -290,16 +282,15 @@ func update_from_game_location() -> void:
 	for trait_item in _game_location.world_traits:
 		var feature = _convert_trait_id_to_feature(trait_item.trait_id)
 		if feature != "" and not feature in special_features:
-
 			special_features.append(feature)
 
 ## Convert GameLocation market state to FiveParsecsLocation market state
 func _convert_game_market_state(game_state: int) -> int:
 	match game_state:
-		GameLocation.MARKET_STATE_NORMAL: return MARKET_NORMAL
-		GameLocation.MARKET_STATE_SHORTAGE: return MARKET_CRISIS
-		GameLocation.MARKET_STATE_BOOM: return MARKET_BOOM
-		GameLocation.MARKET_STATE_BLOCKADE: return MARKET_RESTRICTED
+		0: return MARKET_NORMAL # MARKET_STATE_NORMAL
+		1: return MARKET_CRISIS # MARKET_STATE_SHORTAGE
+		2: return MARKET_BOOM # MARKET_STATE_BOOM
+		3: return MARKET_RESTRICTED # MARKET_STATE_BLOCKADE
 		_: return MARKET_NORMAL
 
 ## Convert trait ID to feature string
@@ -390,18 +381,16 @@ static func deserialize(data: Dictionary) -> Resource:
 	location.active_effects = data.get("active_effects", [])
 
 	# If there's GameLocation data, deserialize it
-	if data.has("game_location_data"):
-
-		location._game_location = GameLocation.deserialize(data.get("game_location_data", {}))
-	else:
+	if "game_location_data" in data:
+		location._game_location = Resource.new()
 		# Otherwise, sync our state to the GameLocation
 		location._sync_to_game_location()
 
 	return location
 
 ## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
+## Based on Godot 4.4 best practices for safe property access
 func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
-
 	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
 	if not is_instance_valid(obj):
 		return default_value

@@ -4,7 +4,7 @@
 extends GdUnitTestSuite
 
 # Dependencies - using mock implementations for missing dependencies  
-# const CampaignPhaseUI := preload("res://src/scenes/campaign/components/CampaignPhaseUI.gd") # Commented out due to dependency issues
+# const CampaignPhaseUI := preload("res://src/ui/components/campaign/CampaignPhaseUI.gd") # Commented out due to dependency issues
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 #

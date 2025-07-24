@@ -24,7 +24,7 @@ var mission_id: String = ""
 var mission_name: String = ""
 var mission_type: int = GlobalEnums.MissionType.NONE
 var description: String = ""
-var difficulty: int = GlobalEnums.DifficultyLevel.NORMAL
+var difficulty: int = GlobalEnums.DifficultyLevel.STANDARD
 var objectives: Array[Dictionary] = []
 var rewards: Dictionary = {}
 var special_rules: Array[Dictionary] = []
@@ -40,25 +40,25 @@ func _init() -> void:
 
 ## Initialize the mission with provided data
 func initialize(data: Dictionary) -> void:
-	if data.has("mission_name"):
+	if "mission_name" in data:
 		mission_name = data.mission_name
-	if data.has("mission_type"):
+	if "mission_type" in data:
 		mission_type = data.mission_type
-	if data.has("description"):
+	if "description" in data:
 		description = data.description
-	if data.has("difficulty"):
+	if "difficulty" in data:
 		difficulty = data.difficulty
-	if data.has("objectives"):
+	if "objectives" in data:
 		objectives = data.objectives
-	if data.has("rewards"):
+	if "rewards" in data:
 		rewards = data.rewards
-	if data.has("special_rules"):
+	if "special_rules" in data:
 		special_rules = data.special_rules
-	if data.has("minimum_crew_size"):
+	if "minimum_crew_size" in data:
 		minimum_crew_size = data.minimum_crew_size
-	if data.has("required_skills"):
+	if "required_skills" in data:
 		required_skills = data.required_skills
-	if data.has("required_equipment"):
+	if "required_equipment" in data:
 		required_equipment = data.required_equipment
 
 ## Complete a specific objective

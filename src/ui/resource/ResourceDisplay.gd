@@ -2,7 +2,7 @@
 extends Control
 
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const ResourceItem = preload("res://src/ui/resource/ResourceItem.gd")
+const MarketResourceItem = preload("res://src/ui/resource/MarketResourceItem.gd")
 # Note: GameResourceSystem is an autoload - access via get_node("/root/ResourceSystem")
 
 @onready var resource_container: VBoxContainer = $MainContainer/ResourceContainer
@@ -17,7 +17,7 @@ signal resource_clicked(type: int)
 signal market_update_requested
 
 # Resource item template
-const RESOURCE_ITEM_SCENE = preload("res://src/ui/resource/ResourceItem.tscn")
+const MARKET_RESOURCE_ITEM_SCENE = preload("res://src/ui/resource/MarketResourceItem.tscn")
 
 # Market update timer
 var update_timer: Timer
@@ -94,7 +94,7 @@ func _setup_resource_display() -> void:
 	# Create resource items
 	for type in GlobalEnums.ResourceType.values():
 		if type != GlobalEnums.ResourceType.NONE:
-			var item = RESOURCE_ITEM_SCENE.instantiate()
+			var item = MARKET_RESOURCE_ITEM_SCENE.instantiate()
 			resource_container.add_child(item)
 
 			var current_amount = resource_system.get_resource_amount(type)

@@ -5,7 +5,7 @@ const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 # Core properties
 @export var enemy_data: Resource # Will be cast to FiveParsecsEnemyData
-@export var behavior: GlobalEnums.AIBehavior = GlobalEnums.AIBehavior.CAUTIOUS
+@export var behavior: int = 0 # Default behavior type
 
 # Movement
 @export var movement_range: int = 4
@@ -62,7 +62,7 @@ func _initialize_from_data() -> void:
 		_max_health = 100
 		movement_range = 4
 		weapon_range = 1
-		behavior = GlobalEnums.AIBehavior.CAUTIOUS
+		behavior = 0 # Default behavior
 
 	_current_health = _max_health
 

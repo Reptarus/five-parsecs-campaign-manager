@@ -175,8 +175,15 @@ func _validate_crew_phase() -> bool:
 	for member in crew.members:
 		if member.has_method("get_customization_completeness"):
 			var completeness = member.get_customization_completeness()
-			if completeness < 0.8:  # Require 80% completion
-				var name = member.get("character_name", "Unnamed Character")
+			if completeness < 0.8: # Require 80% completion
+				# Use safe property access for Resource objects
+				var name = ""
+				if member.has_method("get"):
+					name = member.get("character_name")
+				elif member.has_property("character_name"):
+					name = member.character_name
+				else:
+					name = "Unnamed Character"
 				incomplete_characters.append(name)
 	
 	if incomplete_characters.size() > 0:
@@ -185,7 +192,7 @@ func _validate_crew_phase() -> bool:
 
 	# Check crew composition quality
 	var completion_level = crew.get("completion_level", 0.0)
-	if completion_level < 0.75:  # Require 75% overall completion
+	if completion_level < 0.75: # Require 75% overall completion
 		validation_errors.append("Crew setup needs more completion (currently %.0f%%)" % (completion_level * 100))
 		return false
 

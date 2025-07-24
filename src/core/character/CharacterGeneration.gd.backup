@@ -12,7 +12,7 @@ class_name FiveParsecsCharacterGeneration
 
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Character = preload("res://src/core/character/Character.gd")
-const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd")
+const UniversalResourceLoader = preload("res://src/core/systems/UniversalResourceLoader.gd")
 const DataManager = preload("res://src/core/data/DataManager.gd")
 
 # Data-driven character creation tables

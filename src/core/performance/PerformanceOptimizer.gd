@@ -32,10 +32,10 @@ enum OptimizationStrategy {
 # Performance targets
 const PERFORMANCE_TARGETS: Dictionary = {
 	"target_fps": 60,
-	"max_frame_time": 16.67,  # 60 FPS = 16.67ms per frame
-	"max_memory_usage": 512,   # MB
-	"max_load_time": 3000,     # 3 seconds
-	"max_response_time": 100   # 100ms
+	"max_frame_time": 16.67, # 60 FPS = 16.67ms per frame
+	"max_memory_usage": 512, # MB
+	"max_load_time": 3000, # 3 seconds
+	"max_response_time": 100 # 100ms
 }
 
 # Monitoring data
@@ -175,7 +175,7 @@ func execute_comprehensive_optimization() -> Dictionary:
 	var components: Array[String] = ["mission_system", "enemy_system", "economy_system", "ui_system", "data_system"]
 	
 	for component in components:
-		var component_result: Dictionary = optimize_component(component, 3)  # High optimization level
+		var component_result: Dictionary = optimize_component(component, 3) # High optimization level
 		if component_result.success:
 			optimization_result.components_optimized.append(component)
 		else:
@@ -253,12 +253,12 @@ func _setup_performance_timers() -> void:
 	
 	# Memory cleanup timer
 	_cleanup_timer = Timer.new()
-	_cleanup_timer.wait_time = 30.0  # 30 seconds
+	_cleanup_timer.wait_time = 30.0 # 30 seconds
 	_cleanup_timer.timeout.connect(_on_cleanup_timer_timeout)
 	
 	# Auto-optimization timer
 	_optimization_timer = Timer.new()
-	_optimization_timer.wait_time = 300.0  # 5 minutes
+	_optimization_timer.wait_time = 300.0 # 5 minutes
 	_optimization_timer.timeout.connect(_on_optimization_timer_timeout)
 
 func _on_monitoring_timer_timeout() -> void:
@@ -281,12 +281,15 @@ func _update_performance_metrics() -> void:
 	_performance_metrics.fps = Engine.get_frames_per_second()
 	_performance_metrics.frame_time = 1000.0 / max(_performance_metrics.fps, 1.0)
 	
-	# Update memory usage
-	var memory_info = OS.get_static_memory_usage_by_type()
+	# Update memory usage using available OS methods
 	var total_memory = 0
-	for usage in memory_info.values():
-		total_memory += usage
-	_performance_metrics.memory_usage = total_memory / (1024 * 1024)  # Convert to MB
+	# Use available memory methods in Godot 4.4
+	if OS.has_method("get_static_memory_usage"):
+		total_memory = OS.get_static_memory_usage()
+	else:
+		# Fallback to basic memory estimation
+		total_memory = 0
+	_performance_metrics.memory_usage = total_memory / (1024 * 1024) # Convert to MB
 	
 	# Update performance history
 	_frame_time_history.append(_performance_metrics.frame_time)
@@ -301,7 +304,7 @@ func _update_performance_metrics() -> void:
 func _check_performance_degradation() -> void:
 	# Check frame time
 	if _performance_metrics.frame_time > PERFORMANCE_TARGETS.max_frame_time * 1.5:
-		performance_degradation_detected.emit(PerformanceCategory.RENDER_PERFORMANCE, 
+		performance_degradation_detected.emit(PerformanceCategory.RENDER_PERFORMANCE,
 			_performance_metrics.frame_time / PERFORMANCE_TARGETS.max_frame_time)
 	
 	# Check memory usage
@@ -505,8 +508,9 @@ func _execute_global_optimizations() -> Dictionary:
 
 func _execute_memory_cleanup() -> void:
 	# Force garbage collection
-	if OS.can_use_threads():
-		OS.delay_msec(1)  # Give GC a chance to run
+	# Use available threading methods in Godot 4.4
+	if OS.has_method("delay_msec"):
+		OS.delay_msec(1) # Give GC a chance to run
 	
 	# Clean up unused resources in pools
 	for pool in _resource_pools.values():
@@ -521,8 +525,8 @@ func _execute_cache_cleanup() -> void:
 		var cache = _cache_systems[cache_name]
 		var usage_ratio = float(cache.size()) / float(cache.max_size())
 		
-		if usage_ratio > 0.8:  # 80% cache usage
-			cache.cleanup_lru(0.2)  # Remove 20% least recently used
+		if usage_ratio > 0.8: # 80% cache usage
+			cache.cleanup_lru(0.2) # Remove 20% least recently used
 
 func _execute_garbage_collection() -> void:
 	# This would trigger manual garbage collection if supported
@@ -619,11 +623,14 @@ func _generate_optimization_suggestions(metrics: Dictionary) -> Array[String]:
 	return suggestions
 
 func _get_current_memory_usage() -> int:
-	var memory_info = OS.get_static_memory_usage_by_type()
 	var total_memory = 0
-	for usage in memory_info.values():
-		total_memory += usage
-	return total_memory / (1024 * 1024)  # Convert to MB
+	# Use available memory methods in Godot 4.4
+	if OS.has_method("get_static_memory_usage"):
+		total_memory = OS.get_static_memory_usage()
+	else:
+		# Fallback to basic memory estimation
+		total_memory = 0
+	return total_memory / (1024 * 1024) # Convert to MB
 
 func _get_cache_hit_rates() -> Dictionary:
 	var hit_rates: Dictionary = {}
@@ -676,7 +683,7 @@ func _record_optimization(optimization_result: Dictionary) -> void:
 
 func _record_operation_performance(operation_name: String, duration: int) -> void:
 	# This could be used for detailed operation profiling
-	if duration > 100:  # Log operations taking more than 100ms
+	if duration > 100: # Log operations taking more than 100ms
 		print("[PerformanceOptimizer] Slow operation detected: ", operation_name, " (", duration, "ms)")
 
 ## Resource Pool Helper Class
@@ -695,7 +702,7 @@ class ResourcePool:
 			if _active_resources.size() < _max_size:
 				return _create_new_resource()
 			else:
-				return null  # Pool exhausted
+				return null # Pool exhausted
 		else:
 			var resource = _available_resources.pop_back()
 			_active_resources.append(resource)
@@ -733,7 +740,7 @@ class LRUCache:
 	func _init(max_size: int):
 		_max_size = max_size
 	
-	func get(key: String):
+	func get_value(key: String):
 		_request_count += 1
 		if _data.has(key):
 			_hit_count += 1
@@ -763,7 +770,7 @@ class LRUCache:
 		pass
 	
 	func optimize():
-		cleanup_lru(0.1)  # Remove 10% least recently used
+		cleanup_lru(0.1) # Remove 10% least recently used
 	
 	func size() -> int:
 		return _data.size()

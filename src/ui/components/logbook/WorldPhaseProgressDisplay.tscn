@@ -1,0 +1,352 @@
+[gd_scene load_steps=4 format=3 uid="uid://d2n5vfpqr2k8y"]
+
+[ext_resource type="Script" path="res://src/ui/components/logbook/WorldPhaseProgressDisplay.gd" id="1_progress_display"]
+[ext_resource type="PackedScene" uid="uid://bbm3vfpqr2k5x" path="res://src/ui/components/logbook/DataVisualization.tscn" id="2_data_viz"]
+[ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="3_theme"]
+
+[node name="WorldPhaseProgressDisplay" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("3_theme")
+script = ExtResource("1_progress_display")
+
+[node name="HSplitContainer" type="HSplitContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+split_offset = 400
+
+[node name="LeftPanel" type="VBoxContainer" parent="HSplitContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="ProgressOverview" type="VBoxContainer" parent="HSplitContainer/LeftPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_constants/separation = 8
+
+[node name="OverviewTitle" type="Label" parent="HSplitContainer/LeftPanel/ProgressOverview"]
+layout_mode = 2
+text = "Progress Overview"
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+horizontal_alignment = 1
+
+[node name="ProgressBars" type="VBoxContainer" parent="HSplitContainer/LeftPanel/ProgressOverview"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="CampaignProgress" type="VBoxContainer" parent="HSplitContainer/LeftPanel/ProgressOverview/ProgressBars"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="CampaignLabel" type="Label" parent="HSplitContainer/LeftPanel/ProgressOverview/ProgressBars/CampaignProgress"]
+layout_mode = 2
+text = "Campaign Progress"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+
+[node name="CampaignProgressBar" type="ProgressBar" parent="HSplitContainer/LeftPanel/ProgressOverview/ProgressBars/CampaignProgress"]
+unique_name_in_owner = true
+layout_mode = 2
+max_value = 100.0
+step = 1.0
+value = 0.0
+show_percentage = true
+
+[node name="CrewEfficiency" type="VBoxContainer" parent="HSplitContainer/LeftPanel/ProgressOverview/ProgressBars"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="EfficiencyLabel" type="Label" parent="HSplitContainer/LeftPanel/ProgressOverview/ProgressBars/CrewEfficiency"]
+layout_mode = 2
+text = "Crew Efficiency"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+
+[node name="CrewEfficiencyBar" type="ProgressBar" parent="HSplitContainer/LeftPanel/ProgressOverview/ProgressBars/CrewEfficiency"]
+unique_name_in_owner = true
+layout_mode = 2
+max_value = 100.0
+step = 1.0
+value = 0.0
+show_percentage = true
+
+[node name="ResourceUtilization" type="VBoxContainer" parent="HSplitContainer/LeftPanel/ProgressOverview/ProgressBars"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="ResourceLabel" type="Label" parent="HSplitContainer/LeftPanel/ProgressOverview/ProgressBars/ResourceUtilization"]
+layout_mode = 2
+text = "Resource Utilization"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+
+[node name="ResourceUtilizationBar" type="ProgressBar" parent="HSplitContainer/LeftPanel/ProgressOverview/ProgressBars/ResourceUtilization"]
+unique_name_in_owner = true
+layout_mode = 2
+max_value = 100.0
+step = 1.0
+value = 0.0
+show_percentage = true
+
+[node name="ContextPanel" type="VBoxContainer" parent="HSplitContainer/LeftPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_constants/separation = 8
+
+[node name="ContextTitle" type="Label" parent="HSplitContainer/LeftPanel/ContextPanel"]
+layout_mode = 2
+text = "Current Context"
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+horizontal_alignment = 1
+
+[node name="ContextInfo" type="VBoxContainer" parent="HSplitContainer/LeftPanel/ContextPanel"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="CurrentPhaseLabel" type="Label" parent="HSplitContainer/LeftPanel/ContextPanel/ContextInfo"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Phase: Unknown"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+
+[node name="PhaseDurationLabel" type="Label" parent="HSplitContainer/LeftPanel/ContextPanel/ContextInfo"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Duration: 0 turns"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+
+[node name="NextMilestoneLabel" type="Label" parent="HSplitContainer/LeftPanel/ContextPanel/ContextInfo"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Next: None"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+
+[node name="EfficiencyRatingLabel" type="Label" parent="HSplitContainer/LeftPanel/ContextPanel/ContextInfo"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Efficiency: Unknown"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+
+[node name="RealTimeFeed" type="VBoxContainer" parent="HSplitContainer/LeftPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="FeedTitle" type="Label" parent="HSplitContainer/LeftPanel/RealTimeFeed"]
+layout_mode = 2
+text = "Real-Time Status"
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+horizontal_alignment = 1
+
+[node name="StatusMetrics" type="VBoxContainer" parent="HSplitContainer/LeftPanel/RealTimeFeed"]
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_constants/separation = 3
+
+[node name="ActiveTasksLabel" type="Label" parent="HSplitContainer/LeftPanel/RealTimeFeed/StatusMetrics"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Active Tasks: 0"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.7, 0.9, 0.7, 1)
+
+[node name="CreditsLabel" type="Label" parent="HSplitContainer/LeftPanel/RealTimeFeed/StatusMetrics"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Credits: 0"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.9, 0.9, 0.7, 1)
+
+[node name="CrewStatusLabel" type="Label" parent="HSplitContainer/LeftPanel/RealTimeFeed/StatusMetrics"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Crew Health: 100%"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.7, 0.9, 0.7, 1)
+
+[node name="RecentEventsSection" type="VBoxContainer" parent="HSplitContainer/LeftPanel/RealTimeFeed"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 3
+
+[node name="EventsLabel" type="Label" parent="HSplitContainer/LeftPanel/RealTimeFeed/RecentEventsSection"]
+layout_mode = 2
+text = "Recent Events"
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+
+[node name="RecentEventsList" type="ItemList" parent="HSplitContainer/LeftPanel/RealTimeFeed/RecentEventsSection"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 10
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+
+[node name="RightPanel" type="VBoxContainer" parent="HSplitContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="ChartControls" type="HBoxContainer" parent="HSplitContainer/RightPanel"]
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_constants/separation = 10
+
+[node name="ChartTypeLabel" type="Label" parent="HSplitContainer/RightPanel/ChartControls"]
+layout_mode = 2
+text = "Chart Type:"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+
+[node name="ChartTypeSelector" type="OptionButton" parent="HSplitContainer/RightPanel/ChartControls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 32)
+layout_mode = 2
+
+[node name="TimeRangeLabel" type="Label" parent="HSplitContainer/RightPanel/ChartControls"]
+layout_mode = 2
+text = "Time Range:"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+
+[node name="TimeRangeSelector" type="OptionButton" parent="HSplitContainer/RightPanel/ChartControls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 32)
+layout_mode = 2
+
+[node name="RefreshButton" type="Button" parent="HSplitContainer/RightPanel/ChartControls"]
+custom_minimum_size = Vector2(80, 32)
+layout_mode = 2
+text = "Refresh"
+
+[node name="ChartDisplay" type="Control" parent="HSplitContainer/RightPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="DataVisualization" parent="HSplitContainer/RightPanel/ChartDisplay" instance=ExtResource("2_data_viz")]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="LoadingOverlay" type="Control" parent="HSplitContainer/RightPanel/ChartDisplay"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="LoadingBackground" type="ColorRect" parent="HSplitContainer/RightPanel/ChartDisplay/LoadingOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.5)
+
+[node name="LoadingLabel" type="Label" parent="HSplitContainer/RightPanel/ChartDisplay/LoadingOverlay"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -60.0
+offset_top = -12.0
+offset_right = 60.0
+offset_bottom = 12.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Loading Charts..."
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ChartLegend" type="VBoxContainer" parent="HSplitContainer/RightPanel"]
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_constants/separation = 5
+
+[node name="LegendTitle" type="Label" parent="HSplitContainer/RightPanel/ChartLegend"]
+layout_mode = 2
+text = "Chart Legend"
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+horizontal_alignment = 1
+
+[node name="LegendContent" type="HBoxContainer" parent="HSplitContainer/RightPanel/ChartLegend"]
+layout_mode = 2
+theme_override_constants/separation = 15
+alignment = 1
+
+[node name="SuccessLegend" type="HBoxContainer" parent="HSplitContainer/RightPanel/ChartLegend/LegendContent"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="SuccessColor" type="ColorRect" parent="HSplitContainer/RightPanel/ChartLegend/LegendContent/SuccessLegend"]
+custom_minimum_size = Vector2(12, 12)
+layout_mode = 2
+color = Color(0.3, 0.8, 0.3, 1)
+
+[node name="SuccessLabel" type="Label" parent="HSplitContainer/RightPanel/ChartLegend/LegendContent/SuccessLegend"]
+layout_mode = 2
+text = "Success"
+theme_override_font_sizes/font_size = 10
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+
+[node name="WarningLegend" type="HBoxContainer" parent="HSplitContainer/RightPanel/ChartLegend/LegendContent"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="WarningColor" type="ColorRect" parent="HSplitContainer/RightPanel/ChartLegend/LegendContent/WarningLegend"]
+custom_minimum_size = Vector2(12, 12)
+layout_mode = 2
+color = Color(0.9, 0.7, 0.3, 1)
+
+[node name="WarningLabel" type="Label" parent="HSplitContainer/RightPanel/ChartLegend/LegendContent/WarningLegend"]
+layout_mode = 2
+text = "Warning"
+theme_override_font_sizes/font_size = 10
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+
+[node name="DangerLegend" type="HBoxContainer" parent="HSplitContainer/RightPanel/ChartLegend/LegendContent"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="DangerColor" type="ColorRect" parent="HSplitContainer/RightPanel/ChartLegend/LegendContent/DangerLegend"]
+custom_minimum_size = Vector2(12, 12)
+layout_mode = 2
+color = Color(0.9, 0.3, 0.3, 1)
+
+[node name="DangerLabel" type="Label" parent="HSplitContainer/RightPanel/ChartLegend/LegendContent/DangerLegend"]
+layout_mode = 2
+text = "Critical"
+theme_override_font_sizes/font_size = 10
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)

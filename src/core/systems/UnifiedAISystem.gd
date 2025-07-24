@@ -55,7 +55,7 @@ func _ready() -> void:
 		push_warning("UnifiedAISystem: No combat resolver assigned")
 
 ## Initialize a unit with a specific behavior
-func initialize_unit(unit: Character, behavior: GlobalEnums.AIBehavior) -> void:
+func initialize_unit(unit: Character, behavior: int) -> void:
 	if not unit:
 		push_error("UnifiedAISystem: Cannot initialize null unit")
 		return
@@ -77,16 +77,16 @@ func process_turn(unit: Character) -> Dictionary:
 
 	# Determine action based on behavior
 
-	match unit_behaviors.get(unit, GlobalEnums.AIBehavior.TACTICAL):
-		GlobalEnums.AIBehavior.AGGRESSIVE:
+	match unit_behaviors.get(unit, 0):  # TACTICAL
+		0: # AGGRESSIVE
 			action = _process_aggressive_behavior(unit)
-		GlobalEnums.AIBehavior.DEFENSIVE:
+		1: # DEFENSIVE
 			action = _process_defensive_behavior(unit)
-		GlobalEnums.AIBehavior.TACTICAL:
+		2: # TACTICAL
 			action = _process_tactical_behavior(unit)
-		GlobalEnums.AIBehavior.CAUTIOUS:
+		3: # CAUTIOUS
 			action = _process_cautious_behavior(unit)
-		GlobalEnums.AIBehavior.SUPPORTIVE:
+		4: # SUPPORTIVE
 			action = _process_support_behavior(unit)
 		_:
 			action = _process_default_behavior(unit)
@@ -174,7 +174,7 @@ func _update_unit_state(unit: Character) -> void:
 	if not unit:
 		return
 
-	var current_behavior: int = unit_behaviors.get(unit, GlobalEnums.AIBehavior.TACTICAL)
+	var current_behavior: int = unit_behaviors.get(unit, 0) # TACTICAL
 	var new_behavior: int = _determine_behavior(unit)
 
 	if new_behavior != current_behavior:
@@ -182,22 +182,22 @@ func _update_unit_state(unit: Character) -> void:
 		behavior_changed.emit(unit, new_behavior) # warning: return value discarded (intentional)
 
 ## Determine appropriate behavior for a unit based on their state
-func _determine_behavior(unit: Character) -> GlobalEnums.AIBehavior:
+func _determine_behavior(unit: Character) -> int:
 	if not unit:
-		return GlobalEnums.AIBehavior.TACTICAL
+		return 0 # TACTICAL
 
 	var health_ratio: float = float(unit.get_current_health()) / unit.get_max_health()
 	var threat_level: float = _calculate_threat_level(unit)
 	var support_need: float = _evaluate_support_needs(unit)
 
 	if health_ratio < 0.3:
-		return GlobalEnums.AIBehavior.CAUTIOUS
+		return 3 # CAUTIOUS
 	elif threat_level > 0.7:
-		return GlobalEnums.AIBehavior.DEFENSIVE
+		return 1 # DEFENSIVE
 	elif support_need > 0.7:
-		return GlobalEnums.AIBehavior.SUPPORTIVE
+		return 4 # SUPPORTIVE
 
-	return GlobalEnums.AIBehavior.TACTICAL
+	return 0 # TACTICAL
 
 ## Find the best target for a unit to attack
 func _find_best_target(unit: Character) -> Character:

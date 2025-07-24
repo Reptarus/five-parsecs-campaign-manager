@@ -12,11 +12,24 @@ var _current_credits: int = 0
 var _transaction_history: Array = []
 
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const GamePlanet = preload("res://src/game/world/GamePlanet.gd")
-const GameLocation = preload("res://src/game/world/GameLocation.gd")
+const Character = preload("res://src/core/character/Character.gd")
+# GameState reference - loaded at runtime to avoid circular dependencies
+var GameState: Variant = null
+
+# Market State Types
+enum MarketState {
+	NORMAL,
+	CRISIS,
+	BOOM,
+	RESTRICTED
+}
 
 func _init() -> void:
 	_current_credits = 1000 # Starting credits
+
+func _ready() -> void:
+	# Load GameState dependency at runtime to avoid circular dependencies
+	GameState = load("res://src/core/state/GameState.gd")
 
 func get_credits() -> int:
 	return _current_credits

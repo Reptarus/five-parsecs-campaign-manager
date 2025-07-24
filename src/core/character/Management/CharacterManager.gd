@@ -6,7 +6,7 @@ extends Node
 
 # Dependencies loaded at runtime to avoid circular dependencies
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const CoreCharacter = preload("res://src/core/character/Base/Character.gd")
+const CoreCharacter = preload("res://src/core/character/Character.gd")
 
 signal character_created(character: CoreCharacter)
 signal character_removed(character_id: String)

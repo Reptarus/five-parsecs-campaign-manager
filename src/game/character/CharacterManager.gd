@@ -8,7 +8,7 @@ class_name FPCM_GameCharacterManager
 ## functionality for the Five Parsecs From Home implementation.
 
 # Define game-specific character class reference
-const FPCM_CrewMember = preload("res://src/game/campaign/crew/FiveParsecsCrewMember.gd")
+# const FPCM_CrewMember = preload("res://src/game/campaign/crew/FiveParsecsCrewMember.gd")
 
 # Game-specific properties
 var _faction_relations: Dictionary = {}

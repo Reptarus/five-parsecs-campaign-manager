@@ -34,16 +34,16 @@ func update_campaign_list(campaigns: Array) -> void:
 
 func _get_difficulty_name(difficulty: int) -> String:
 	match difficulty:
-		GlobalEnums.DifficultyLevel.EASY:
-			return "Easy"
-		GlobalEnums.DifficultyLevel.NORMAL:
-			return "Normal"
-		GlobalEnums.DifficultyLevel.HARD:
-			return "Hard"
+		GlobalEnums.DifficultyLevel.STORY:
+			return "Story"
+		GlobalEnums.DifficultyLevel.STANDARD:
+			return "Standard"
+		GlobalEnums.DifficultyLevel.CHALLENGING:
+			return "Challenging"
 		GlobalEnums.DifficultyLevel.HARDCORE:
 			return "Hardcore"
-		GlobalEnums.DifficultyLevel.ELITE:
-			return "Elite"
+		GlobalEnums.DifficultyLevel.NIGHTMARE:
+			return "Nightmare"
 		_:
 			return "Unknown"
 
@@ -66,7 +66,7 @@ func _get_campaign_data(index: int) -> Dictionary:
 	# This would be replaced with actual campaign data retrieval
 	return {
 		"name": "Test Campaign",
-		"difficulty_level": GlobalEnums.DifficultyLevel.NORMAL,
+		"difficulty_level": GlobalEnums.DifficultyLevel.STANDARD,
 		"enable_permadeath": false,
 		"use_story_track": true,
 		"missions_completed": 5,

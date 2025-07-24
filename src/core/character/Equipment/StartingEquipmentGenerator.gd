@@ -6,8 +6,8 @@ extends RefCounted
 ## Implements Core Rules equipment tables with class, background, and random bonuses
 
 # Safe imports
-const UniversalResourceLoader := preload("res://src/utils/UniversalResourceLoader.gd")
-const UniversalDataAccess := preload("res://src/utils/UniversalDataAccess.gd")
+const UniversalResourceLoader := preload("res://src/core/systems/UniversalResourceLoader.gd")
+const UniversalDataAccess := preload("res://src/core/systems/UniversalDataAccess.gd")
 const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
 # Cached equipment data

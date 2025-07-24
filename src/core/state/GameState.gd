@@ -54,6 +54,7 @@ var player_ship: Variant = null # Will be typed after Ship is loaded
 var visited_locations: Array[String] = []
 var rivals: Array = []
 var patrons: Array = []
+var battle_results: Dictionary = {}
 
 ## Limits and settings
 var max_turns: int = 100
@@ -772,7 +773,7 @@ func deserialize(data: Dictionary) -> void:
 	visited_locations = data.get("visited_locations", []).duplicate()
 	rivals = data.get("rivals", []).duplicate(true)
 	patrons = data.get("patrons", []).duplicate(true)
-	difficulty_level = data.get("difficulty_level", GlobalEnums.DifficultyLevel.NORMAL)
+	difficulty_level = data.get("difficulty_level", GlobalEnums.DifficultyLevel.STANDARD)
 	enable_permadeath = data.get("enable_permadeath", true)
 	use_story_track = data.get("use_story_track", true)
 	auto_save_enabled = data.get("auto_save_enabled", true)
@@ -810,12 +811,12 @@ static func deserialize_new(data: Dictionary) -> CoreGameState:
 
 func _ready() -> void:
 	# Load runtime dependencies safely
-	FiveParsecsCampaign = load("res://src/game/campaign/FiveParsecsCampaign.gd")
+	FiveParsecsCampaign = load("res://src/core/campaign/Campaign.gd")
 	Ship = load("res://src/core/ships/Ship.gd")
 
 	# Initialize enum defaults now that GlobalEnums is loaded
 	current_phase = GlobalEnums.FiveParsecsCampaignPhase.NONE
-	difficulty_level = GlobalEnums.DifficultyLevel.NORMAL
+	difficulty_level = GlobalEnums.DifficultyLevel.STANDARD
 
 	# Initialize default resources
 	resources[GlobalEnums.ResourceType.CREDITS] = 1000
@@ -845,11 +846,12 @@ func _exit_tree() -> void:
 
 	# Disconnect all custom signals from other objects
 	if save_manager:
+		save_manager = null
 		if save_manager.save_completed.is_connected(_on_save_manager_save_completed):
 			save_manager.save_completed.disconnect(_on_save_manager_save_completed)
 		if save_manager.load_completed.is_connected(_on_save_manager_load_completed):
 			save_manager.load_completed.disconnect(_on_save_manager_load_completed)
-		save_manager = null
+
 
 	# Clear all arrays and dictionaries
 	active_quests.clear()
@@ -859,6 +861,7 @@ func _exit_tree() -> void:
 	visited_locations.clear()
 	rivals.clear()
 	patrons.clear()
+	battle_results.clear()
 	_save_queue.clear()
 
 	# Null out references
@@ -909,7 +912,7 @@ func load_campaign(save_data: Dictionary) -> void:
 	last_save_time = save_data.get("last_save_time", 0)
 
 	# Load game settings
-	difficulty_level = save_data.get("difficulty_level", GlobalEnums.DifficultyLevel.NORMAL)
+	difficulty_level = save_data.get("difficulty_level", GlobalEnums.DifficultyLevel.STANDARD)
 	enable_permadeath = save_data.get("enable_permadeath", true)
 	use_story_track = save_data.get("use_story_track", true)
 	auto_save_enabled = save_data.get("auto_save_enabled", true)
@@ -1175,28 +1178,28 @@ func get_market_price(resource_type: GlobalEnums.ResourceType) -> int:
 		var location_type: GlobalEnums.WorldTrait = _get_safe_world_trait(current_location.get("type"))
 
 		match location_type:
-			GlobalEnums.WorldTrait.TRADE_CENTER:
-				# Trade centers have cheaper resources
+			GlobalEnums.WorldTrait.TRADE_HUB:
+				# Trade hubs have cheaper resources
 				base_price = int(base_price * 0.8)
-			GlobalEnums.WorldTrait.INDUSTRIAL_HUB:
-				# Industrial hubs have cheaper materials
+			GlobalEnums.WorldTrait.INDUSTRIAL:
+				# Industrial worlds have cheaper materials
 				if resource_type == GlobalEnums.ResourceType.TECH_PARTS:
 					base_price = int(base_price * 0.7)
-			GlobalEnums.WorldTrait.FRONTIER_WORLD:
+			GlobalEnums.WorldTrait.FRONTIER:
 				# Frontier worlds have more expensive resources
 				base_price = int(base_price * 1.3)
-			GlobalEnums.WorldTrait.TECH_CENTER:
-				# Tech centers have cheaper luxury goods
+			GlobalEnums.WorldTrait.RESEARCH:
+				# Research worlds have cheaper luxury goods
 				if resource_type == GlobalEnums.ResourceType.WEAPONS:
 					base_price = int(base_price * 0.8)
 				elif resource_type == GlobalEnums.ResourceType.MEDICAL_SUPPLIES:
 					base_price = int(base_price * 0.9)
-			GlobalEnums.WorldTrait.MINING_COLONY:
-				# Mining colonies have cheaper materials but expensive food
+			GlobalEnums.WorldTrait.CORPORATE:
+				# Corporate worlds have controlled pricing
 				if resource_type == GlobalEnums.ResourceType.TECH_PARTS:
-					base_price = int(base_price * 0.6)
+					base_price = int(base_price * 0.9)
 				elif resource_type == GlobalEnums.ResourceType.SUPPLIES:
-					base_price = int(base_price * 1.2)
+					base_price = int(base_price * 1.1)
 
 	# Apply random market fluctuation (+/- 20%)
 	var fluctuation: float = randf_range(0.8, 1.2)
@@ -1254,3 +1257,38 @@ func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Va
 	if obj is Object and obj.has_method(method_name):
 		return obj.callv(method_name, args)
 	return null
+
+## Battle Results Management for Campaign Integration
+
+func set_battle_results(results: Dictionary) -> void:
+	"""Store battle results for post-battle phase processing"""
+	battle_results = results.duplicate()
+	print("GameState: Battle results stored - ", battle_results.get("outcome", "unknown"))
+	_emit_state_changed()
+
+func get_battle_results() -> Dictionary:
+	"""Get the current battle results"""
+	return battle_results
+
+func clear_battle_results() -> void:
+	"""Clear battle results after post-battle processing is complete"""
+	battle_results.clear()
+	_emit_state_changed()
+
+func get_current_mission() -> Dictionary:
+	"""Get current mission data for battle system"""
+	# Return mission data from current campaign state
+	if _current_campaign and _current_campaign.has("current_mission"):
+		return _current_campaign.current_mission
+	return {}
+
+func get_battle_crew_members() -> Array:
+	"""Get active crew members for battle system"""
+	# Return crew data from current campaign state
+	if _current_campaign and _current_campaign.has("crew"):
+		return _current_campaign.crew
+	return []
+
+func get_campaign_turn() -> int:
+	"""Get current campaign turn number"""
+	return turn_number

@@ -1,8 +1,17 @@
 ﻿class_name FPCM_QuickStartDialog
 extends Control
 
-const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const GestureManager = preload("res://src/ui/components/gesture/GestureManager.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const Character = preload("res://src/core/character/Character.gd")
+
+# Dialog Types
+enum DialogType {
+	INFO,
+	WARNING,
+	ERROR,
+	CONFIRMATION,
+	INPUT
+}
 
 signal import_requested(data: Dictionary)
 signal template_selected(template_name: String)
@@ -10,51 +19,84 @@ signal victory_achieved(victory: bool, message: String)
 
 @onready var import_button := $VBoxContainer/ImportButton
 @onready var template_list := $VBoxContainer/TemplateList
-@onready var gesture_manager: Object
+@onready var crew_size_dropdown := $VBoxContainer/CrewSizeDropdown
+
+# Gesture management
+var gesture_manager: Resource = null
+
+# Crew size options
+var crew_size_options: Array[int] = [1, 2, 3, 4, 5, 6]
 
 var templates: Dictionary = {}
 
 func _ready() -> void:
-	_setup_gesture_support()
-	_setup_mobile_ui()
+	setup_ui()
+	load_default_settings()
 	import_button.pressed.connect(_on_import_pressed)
 	load_templates()
 
+func setup_ui() -> void:
+	# Setup crew size dropdown
+	crew_size_dropdown.clear()
+	for size in crew_size_options:
+		crew_size_dropdown.add_item(str(size), size)
+	crew_size_dropdown.select(2) # Default to 3 crew members
+
+func load_default_settings() -> void:
+	# Load default campaign settings
+	pass
+
 func _setup_gesture_support() -> void:
 	if not Engine.is_editor_hint():
-		gesture_manager = GestureManager.new()
-		add_child(gesture_manager)
-		gesture_manager.swipe_detected.connect(_on_swipe)
-		gesture_manager.long_press_detected.connect(_on_long_press)
+		gesture_manager = Resource.new()
+		# Gesture manager setup would go here
 
 func _setup_mobile_ui() -> void:
-	if OS.has_feature("mobile"):
-		var viewport_size = get_viewport().get_visible_rect().size
-		custom_minimum_size = Vector2(0, viewport_size.y * 0.8)
-		position = Vector2(0, viewport_size.y * 0.2)
+	# Mobile UI setup
+	pass
 
-		template_list.add_theme_constant_override("v_separation", 20)
-		template_list.add_theme_constant_override("h_separation", 20)
+func _get_crew_size_from_enum(crew_size_enum: int) -> int:
+	match crew_size_enum:
+		0: return 1 # SOLO
+		1: return 2 # DUO
+		2: return 3 # TRIO
+		3: return 4 # QUARTET
+		4: return 5 # QUINTET
+		5: return 6 # SEXTET
+		_: return 3 # Default to trio
+
+func _get_crew_size_enum(size: int) -> int:
+	match size:
+		1: return 0 # SOLO
+		2: return 1 # DUO
+		3: return 2 # TRIO
+		4: return 3 # QUARTET
+		5: return 4 # QUINTET
+		6: return 5 # SEXTET
+		_: return 2 # Default to trio
 
 func load_templates() -> void:
 	templates = {
-		"Solo Campaign": {
-			"crew_size": GlobalEnums.CrewSize.FOUR,
-			"difficulty": GlobalEnums.DifficultyLevel.NORMAL,
-			"victory_condition": GlobalEnums.FiveParcsecsCampaignVictoryType.WEALTH_GOAL,
-			"mobile_friendly": true
+		"quick_start": {
+			"name": "Quick Start",
+			"description": "Begin with a basic crew and minimal resources",
+			"crew_size": 3, # FOUR
+			"starting_credits": 500,
+			"difficulty": 1
 		},
-		"Standard Campaign": {
-			"crew_size": GlobalEnums.CrewSize.FIVE,
-			"difficulty": GlobalEnums.DifficultyLevel.NORMAL,
-			"victory_condition": GlobalEnums.FiveParcsecsCampaignVictoryType.REPUTATION_GOAL,
-			"mobile_friendly": true
+		"experienced": {
+			"name": "Experienced Crew",
+			"description": "Start with a larger, more experienced crew",
+			"crew_size": 4, # FIVE
+			"starting_credits": 1000,
+			"difficulty": 2
 		},
-		"Challenge Campaign": {
-			"crew_size": GlobalEnums.CrewSize.SIX,
-			"difficulty": GlobalEnums.DifficultyLevel.HARDCORE,
-			"victory_condition": GlobalEnums.FiveParcsecsCampaignVictoryType.FACTION_DOMINANCE,
-			"mobile_friendly": false
+		"veteran": {
+			"name": "Veteran Crew",
+			"description": "Maximum crew size with veteran status",
+			"crew_size": 5, # SIX
+			"starting_credits": 1500,
+			"difficulty": 3
 		}
 	}
 	_populate_templates()
@@ -93,6 +135,7 @@ func _on_file_selected(path: String) -> void:
 	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
 	var json := JSON.new()
 	var parse_result = json.parse(file.get_as_text())
+	file.close()
 	if parse_result == OK:
 		import_requested.emit(json.data)
 	else:
@@ -111,13 +154,13 @@ func _show_template_details(template_name: String) -> void:
 func _on_campaign_victory_achieved(victory_type: int) -> void:
 	var victory_message := ""
 	match victory_type:
-		GlobalEnums.FiveParcsecsCampaignVictoryType.WEALTH_GOAL:
+		GlobalEnums.FiveParsecsCampaignVictoryType.WEALTH_GOAL:
 			victory_message = "You've amassed great wealth!"
-		GlobalEnums.FiveParcsecsCampaignVictoryType.REPUTATION_GOAL:
+		GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_GOAL:
 			victory_message = "Your reputation precedes you!"
-		GlobalEnums.FiveParcsecsCampaignVictoryType.FACTION_DOMINANCE:
+		GlobalEnums.FiveParsecsCampaignVictoryType.FACTION_DOMINANCE:
 			victory_message = "You've become a dominant force!"
-		GlobalEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE:
+		GlobalEnums.FiveParsecsCampaignVictoryType.STORY_COMPLETE:
 			victory_message = "You've completed your epic journey!"
 
 	victory_achieved.emit(true, victory_message)

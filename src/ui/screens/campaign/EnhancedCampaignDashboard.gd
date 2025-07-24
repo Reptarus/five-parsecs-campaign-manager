@@ -3,13 +3,13 @@ extends Control
 class_name EnhancedCampaignDashboard
 
 ## Enhanced Campaign Dashboard - Integrates all new panels with enhanced functionality
-## Enhances existing CampaignDashboard.gd with new panels following Digital Dice System visual patterns
-## Provides comprehensive campaign management with responsive design
+## Now uses BaseCampaignDashboardSystem for unified dashboard logic
+## Part of Phase 2C Campaign Dashboard Consolidation
 
-# Universal Safety patterns
+# Dashboard system integration
+const BaseCampaignDashboardSystem = preload("res://src/base/ui/BaseCampaignDashboardSystem.gd")
 const BaseInformationCard = preload("res://src/base/ui/BaseInformationCard.gd")
 const EnhancedCampaignSignals = preload("res://src/core/signals/EnhancedCampaignSignals.gd")
-const FPCM_CampaignResponsiveLayout = preload("res://src/ui/components/base/CampaignResponsiveLayout.gd")
 
 # Enhanced panel classes
 const EnhancedCrewPanel = preload("res://src/ui/screens/campaign/panels/EnhancedCrewPanel.gd")
@@ -26,7 +26,10 @@ const WorldInfoPanel = preload("res://src/ui/screens/campaign/panels/WorldInfoPa
 @onready var quick_actions_panel: Control = %QuickActionsPanel
 @onready var performance_overview: Control = %PerformanceOverview
 
-# Data management
+# Dashboard system (handles all logic)
+var dashboard_system: BaseCampaignDashboardSystem = null
+
+# Legacy data management (for compatibility)
 var campaign_data: Dictionary = {}
 var crew_data: Array[Dictionary] = []
 var ship_data: Dictionary = {}
@@ -37,11 +40,26 @@ var world_data: Dictionary = {}
 var enhanced_signals: EnhancedCampaignSignals
 
 func _ready() -> void:
+	# Initialize dashboard system
+	dashboard_system = BaseCampaignDashboardSystem.new()
+	_connect_dashboard_system_signals()
+	
 	_setup_enhanced_dashboard()
 	_connect_enhanced_signals()
 	_apply_responsive_layout()
 
+func _connect_dashboard_system_signals() -> void:
+	"""Connect to dashboard system signals"""
+	if dashboard_system:
+		dashboard_system.campaign_data_updated.connect(_on_system_campaign_data_updated)
+		dashboard_system.phase_changed.connect(_on_system_phase_changed)
+		dashboard_system.quick_action_requested.connect(_on_system_quick_action_requested)
+
 func _setup_enhanced_dashboard() -> void:
+	# Setup dashboard system in enhanced mode
+	if dashboard_system:
+		dashboard_system.setup_dashboard(BaseCampaignDashboardSystem.DashboardMode.ENHANCED)
+	
 	# Initialize enhanced dashboard components
 	_setup_enhanced_panels()
 	_setup_quick_actions()
@@ -126,6 +144,11 @@ func _setup_mouse_targets(minimum_size: Vector2) -> void:
 
 ## Main dashboard update function
 func update_dashboard(campaign_data: Dictionary) -> void:
+	# Update dashboard system first
+	if dashboard_system:
+		dashboard_system.update_campaign_data(campaign_data)
+	
+	# Update local data for compatibility
 	self.campaign_data = campaign_data
 	
 	# Update all enhanced panels
@@ -136,47 +159,86 @@ func update_dashboard(campaign_data: Dictionary) -> void:
 	_update_performance_overview()
 
 func _update_enhanced_panels() -> void:
+	# Use dashboard system data if available
+	var display_data = _get_display_data()
+	
 	# Update crew panel
-	if enhanced_crew_panel and campaign_data.has("crew"):
-		enhanced_crew_panel.update_crew_display(campaign_data.get("crew", []))
+	if enhanced_crew_panel:
+		enhanced_crew_panel.update_crew_display(display_data.get("crew", []))
 	
 	# Update ship panel
-	if enhanced_ship_panel and campaign_data.has("ship"):
-		enhanced_ship_panel.display_ship_status(campaign_data.get("ship", {}))
+	if enhanced_ship_panel:
+		enhanced_ship_panel.display_ship_status(display_data.get("ship", {}))
 	
 	# Update quest tracker
-	if quest_tracker and campaign_data.has("quests"):
-		quest_tracker.update_quest_display(campaign_data.get("quests", []))
+	if quest_tracker:
+		quest_tracker.update_quest_display(display_data.get("quests", []))
 	
 	# Update world info panel
-	if world_info_panel and campaign_data.has("current_world"):
-		world_info_panel.update_world_display(campaign_data.get("current_world", "Unknown"))
+	if world_info_panel:
+		world_info_panel.update_world_display(display_data.get("world", {}))
+
+func _get_display_data() -> Dictionary:
+	"""Get display data from dashboard system or fallback to local data"""
+	if dashboard_system:
+		return {
+			"crew": dashboard_system.get_crew_display_data(),
+			"ship": dashboard_system.get_ship_display_data(),
+			"quests": dashboard_system.get_quest_display_data(),
+			"world": dashboard_system.get_world_display_data()
+		}
+	else:
+		# Fallback to local data
+		return {
+			"crew": campaign_data.get("crew", []),
+			"ship": campaign_data.get("ship", {}),
+			"quests": campaign_data.get("quests", []),
+			"world": {"name": campaign_data.get("current_world", "Unknown")}
+		}
 
 func _update_campaign_summary() -> void:
 	if not campaign_summary:
 		return
 	
-	var crew_count = campaign_data.get("crew", []).size()
-	var ship_hull = campaign_data.get("ship", {}).get("hull_current", 0)
-	var ship_max_hull = campaign_data.get("ship", {}).get("hull_max", 100)
-	var active_quests = campaign_data.get("quests", []).size()
-	var current_world = campaign_data.get("current_world", "Unknown")
-	
-	# Update summary with contextual information
-	campaign_summary.text = "Campaign: %d Crew | %d%% Hull | %d Quests | World: %s" % [
-		crew_count,
-		(ship_hull * 100) / ship_max_hull if ship_max_hull > 0 else 0,
-		active_quests,
-		current_world
-	]
+	# Use dashboard system summary if available
+	if dashboard_system:
+		var summary = dashboard_system.get_campaign_summary()
+		campaign_summary.text = "Campaign: %d Crew | %d%% Hull | %d Quests | World: %s" % [
+			summary.get("crew_count", 0),
+			summary.get("ship_hull_percent", 0),
+			summary.get("active_quests", 0),
+			summary.get("current_world", "Unknown")
+		]
+	else:
+		# Fallback to local calculation
+		var crew_count = campaign_data.get("crew", []).size()
+		var ship_hull = campaign_data.get("ship", {}).get("hull_current", 0)
+		var ship_max_hull = campaign_data.get("ship", {}).get("hull_max", 100)
+		var active_quests = campaign_data.get("quests", []).size()
+		var current_world = campaign_data.get("current_world", "Unknown")
+		
+		campaign_summary.text = "Campaign: %d Crew | %d%% Hull | %d Quests | World: %s" % [
+			crew_count,
+			(ship_hull * 100) / ship_max_hull if ship_max_hull > 0 else 0,
+			active_quests,
+			current_world
+		]
 
 func _update_performance_overview() -> void:
 	if not performance_overview:
 		return
 	
-	# Update performance visualization
-	var performance_data = _calculate_campaign_performance()
-	performance_overview.update_performance_display(performance_data)
+	# Use dashboard system performance calculation
+	var performance_data = _get_performance_data()
+	if performance_overview.has_method("update_performance_display"):
+		performance_overview.update_performance_display(performance_data)
+
+func _get_performance_data() -> Dictionary:
+	"""Get performance data from dashboard system or fallback calculation"""
+	if dashboard_system:
+		return dashboard_system.calculate_campaign_performance()
+	else:
+		return _calculate_campaign_performance()
 
 func _calculate_campaign_performance() -> Dictionary:
 	var performance = {
@@ -258,6 +320,20 @@ func _setup_performance_tracking() -> void:
 	# Initialize performance tracking system
 	pass
 
+## Dashboard system signal handlers
+func _on_system_campaign_data_updated(data: Dictionary) -> void:
+	"""Handle campaign data updates from dashboard system"""
+	update_dashboard(data)
+
+func _on_system_phase_changed(old_phase: int, new_phase: int) -> void:
+	"""Handle phase changes from dashboard system"""
+	# Update any phase-specific UI elements
+	_update_enhanced_panels()
+
+func _on_system_quick_action_requested(action: String, context: Dictionary) -> void:
+	"""Handle quick action requests from dashboard system"""
+	_on_quick_action_requested(action, context)
+
 ## Signal handlers
 func _on_dashboard_panel_changed(panel_type: String) -> void:
 	# Handle panel changes
@@ -310,7 +386,13 @@ func _on_campaign_data_updated(update_type: String, data: Dictionary) -> void:
 
 ## Public API for external access
 func get_campaign_data() -> Dictionary:
+	if dashboard_system:
+		return dashboard_system.get_campaign_data()
 	return campaign_data
+
+func get_dashboard_system() -> BaseCampaignDashboardSystem:
+	"""Get dashboard system for direct access"""
+	return dashboard_system
 
 func get_enhanced_crew_panel() -> EnhancedCrewPanel:
 	return enhanced_crew_panel
@@ -325,7 +407,13 @@ func get_world_info_panel() -> WorldInfoPanel:
 	return world_info_panel
 
 func refresh_all_panels() -> void:
-	update_dashboard(campaign_data)
+	var current_data = get_campaign_data()
+	update_dashboard(current_data)
+
+func execute_quick_action(action: String, context: Dictionary = {}) -> void:
+	"""Execute quick action through dashboard system"""
+	if dashboard_system:
+		dashboard_system.execute_quick_action(action, context)
 
 ## Integration with existing systems
 func integrate_with_existing_systems() -> void:

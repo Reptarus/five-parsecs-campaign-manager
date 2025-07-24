@@ -27,11 +27,11 @@ const TRAINING_COSTS = {
 }
 
 # Training requirements and stat bonuses
-const TRAINING_REQUIREMENTS = {
+var TRAINING_REQUIREMENTS = {
 	GlobalEnums.Training.PILOT: {
 		"stats": {
 			GlobalEnums.CharacterStats.REACTIONS: 3,
-			GlobalEnums.CharacterStats.NAVIGATION: 2
+			GlobalEnums.CharacterStats.SPEED: 2
 		},
 		"cost": 100
 	},
@@ -40,57 +40,21 @@ const TRAINING_REQUIREMENTS = {
 			GlobalEnums.CharacterStats.TECH: 3,
 			GlobalEnums.CharacterStats.SAVVY: 2
 		},
-		"cost": 150
+		"cost": 100
 	},
 	GlobalEnums.Training.MEDICAL: {
 		"stats": {
-			GlobalEnums.CharacterStats.TECH: 3,
-			GlobalEnums.CharacterStats.SAVVY: 2
-		},
-		"cost": 200
-	},
-	GlobalEnums.Training.MERCHANT: {
-		"stats": {
-			GlobalEnums.CharacterStats.SOCIAL: 3,
-			GlobalEnums.CharacterStats.SAVVY: 2
+			GlobalEnums.CharacterStats.SAVVY: 3,
+			GlobalEnums.CharacterStats.TOUGHNESS: 2
 		},
 		"cost": 100
 	},
-	GlobalEnums.Training.SECURITY: {
+	GlobalEnums.Training.MERCHANT: {
 		"stats": {
-			GlobalEnums.CharacterStats.COMBAT_SKILL: 3,
-			GlobalEnums.CharacterStats.REACTIONS: 2
+			GlobalEnums.CharacterStats.SAVVY: 3,
+			GlobalEnums.CharacterStats.TECH: 2
 		},
-		"cost": 150
-	},
-	GlobalEnums.Training.BROKER: {
-		"stats": {
-			GlobalEnums.CharacterStats.SOCIAL: 3,
-			GlobalEnums.CharacterStats.SAVVY: 2
-		},
-		"cost": 200
-	},
-	GlobalEnums.Training.BOT_TECH: {
-		"stats": {
-			GlobalEnums.CharacterStats.TECH: 4,
-			GlobalEnums.CharacterStats.SAVVY: 2
-		},
-		"cost": 250
-	},
-	GlobalEnums.Training.SPECIALIST: {
-		"stats": {
-			GlobalEnums.CharacterStats.COMBAT_SKILL: 4,
-			GlobalEnums.CharacterStats.REACTIONS: 3
-		},
-		"cost": 300
-	},
-	GlobalEnums.Training.ELITE: {
-		"stats": {
-			GlobalEnums.CharacterStats.COMBAT_SKILL: 5,
-			GlobalEnums.CharacterStats.REACTIONS: 4,
-			GlobalEnums.CharacterStats.TOUGHNESS: 3
-		},
-		"cost": 500
+		"cost": 100
 	}
 }
 

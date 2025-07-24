@@ -729,13 +729,13 @@ for item in items:
         all_issues = []
         analyzed_files = 0
         
-        print("⚡ Starting comprehensive performance analysis...")
+        print("[PERFORMANCE] Starting comprehensive performance analysis...")
         
         for file_path in target_files:
             if not file_path.endswith('.gd'):
                 continue
                 
-            print(f"📊 Analyzing: {Path(file_path).name}")
+            print(f"[STATUS] Analyzing: {Path(file_path).name}")
             
             file_issues = self.analyze_file_performance(file_path)
             all_issues.extend(file_issues)
@@ -814,34 +814,34 @@ for item in items:
         critical_fps_issues = [i for i in issues if i.level == PerformanceLevel.CRITICAL and 
                               i.category == PerformanceCategory.FRAME_RATE_IMPACT]
         if critical_fps_issues:
-            priorities.append("🚨 CRITICAL: Address frame rate issues immediately - game may be unplayable")
+            priorities.append("[CRITICAL] CRITICAL: Address frame rate issues immediately - game may be unplayable")
         
         # Priority 2: Memory optimization
         memory_issues = categories.get(PerformanceCategory.MEMORY_USAGE, [])
         if len(memory_issues) > 3:
-            priorities.append("🧠 HIGH: Implement object pooling and memory optimization - reduces GC pressure")
+            priorities.append("[MEMORY] HIGH: Implement object pooling and memory optimization - reduces GC pressure")
         
         # Priority 3: Rendering optimization
         rendering_issues = categories.get(PerformanceCategory.RENDERING_PERFORMANCE, [])
         if len(rendering_issues) > 2:
-            priorities.append("🎨 HIGH: Optimize rendering pipeline - cache node references and batch updates")
+            priorities.append("[RENDERING] HIGH: Optimize rendering pipeline - cache node references and batch updates")
         
         # Priority 4: Code complexity
         complexity_issues = categories.get(PerformanceCategory.CODE_COMPLEXITY, [])
         if len(complexity_issues) > 5:
-            priorities.append("📐 MEDIUM: Reduce code complexity - improves maintainability and performance")
+            priorities.append("[COMPLEXITY] MEDIUM: Reduce code complexity - improves maintainability and performance")
         
         # Priority 5: Script efficiency
         script_issues = categories.get(PerformanceCategory.SCRIPT_EFFICIENCY, [])
         if len(script_issues) > 2:
-            priorities.append("⚡ MEDIUM: Optimize script efficiency - avoid expensive operations in critical methods")
+            priorities.append("[PERFORMANCE] MEDIUM: Optimize script efficiency - avoid expensive operations in critical methods")
         
         # General recommendations
         if len(issues) > 10:
-            priorities.append("🔧 GENERAL: Consider performance profiling session with Godot profiler")
+            priorities.append("[CONFIG] GENERAL: Consider performance profiling session with Godot profiler")
         
         if not priorities:
-            priorities.append("✅ EXCELLENT: No major performance issues detected - consider monitoring during gameplay")
+            priorities.append("[COMPLETE] EXCELLENT: No major performance issues detected - consider monitoring during gameplay")
         
         return priorities
 
@@ -959,7 +959,7 @@ def main():
         }
         print(json.dumps(result_data, indent=2))
     else:
-        print(f"\n⚡ Performance Analysis Summary")
+        print(f"\n[PERFORMANCE] Performance Analysis Summary")
         print(f"Overall Performance: {result.overall_performance.value.upper()}")
         print(f"Projected Frame Rate: {result.frame_rate_projection:.1f} FPS")
         print(f"Total Issues: {result.total_issues}")
@@ -974,12 +974,12 @@ def main():
             print(f"  Moderate: {result.moderate_issues}")
         
         if result.optimization_priorities:
-            print(f"\n🎯 Optimization Priorities:")
+            print(f"\n[TARGET] Optimization Priorities:")
             for priority in result.optimization_priorities:
                 print(f"  {priority}")
         
         if result.issues:
-            print(f"\n📊 Performance Issues (showing top 5):")
+            print(f"\n[STATUS] Performance Issues (showing top 5):")
             for issue in result.issues[:5]:
                 print(f"\n{issue.level.value.upper()}: {issue.metric_name}")
                 print(f"  File: {Path(issue.file_path).name}")

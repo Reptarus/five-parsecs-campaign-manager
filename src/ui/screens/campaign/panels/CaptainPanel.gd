@@ -1,7 +1,7 @@
 ﻿extends Control
 
-const Character = preload("res://src/core/character/Base/Character.gd")
-const CharacterCreator = preload("res://src/core/character/Generation/CharacterCreator.gd")
+const Character = preload("res://src/core/character/Character.gd")
+const BaseCharacterCreator = preload("res://src/core/character/Generation/BaseCharacterCreator.gd")
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 signal captain_updated(captain: Character)
@@ -27,7 +27,7 @@ func _connect_signals() -> void:
 	character_creator.character_edited.connect(_on_character_edited)
 
 func _on_create_pressed() -> void:
-	character_creator.start_creation(CharacterCreator.CreatorMode.CAPTAIN)
+	character_creator.start_creation(BaseCharacterCreator.CreatorMode.CAPTAIN)
 	character_creator.show()
 
 func _on_edit_pressed() -> void:
@@ -36,7 +36,7 @@ func _on_edit_pressed() -> void:
 		character_creator.show()
 
 func _on_randomize_pressed() -> void:
-	character_creator.start_creation(CharacterCreator.CreatorMode.CAPTAIN)
+	character_creator.start_creation(BaseCharacterCreator.CreatorMode.CAPTAIN)
 	character_creator._on_randomize_pressed() # Use existing randomization logic
 	character_creator.hide()
 

@@ -649,13 +649,13 @@ func modify_state_safely(new_data: Dictionary) -> void:
         all_issues = []
         validated_files = 0
         
-        print("🛡️ Starting comprehensive state management validation...")
+        print("[GUARDIAN] Starting comprehensive state management validation...")
         
         for file_path in target_files:
             if not file_path.endswith('.gd'):
                 continue
                 
-            print(f"🔍 Validating: {Path(file_path).name}")
+            print(f"[VALIDATE] Validating: {Path(file_path).name}")
             
             file_issues = self.validate_state_manager_integrity(file_path)
             all_issues.extend(file_issues)
@@ -849,8 +849,8 @@ def main():
         }
         print(json.dumps(result_data, indent=2))
     else:
-        print(f"\n🛡️ State Management Guardian Summary")
-        print(f"Security Status: {'✅ SECURE' if result.is_secure else '❌ ISSUES FOUND'}")
+        print(f"\n[GUARDIAN] State Management Guardian Summary")
+        print(f"Security Status: {'[COMPLETE] SECURE' if result.is_secure else '[FAIL] ISSUES FOUND'}")
         print(f"Total Issues: {result.total_issues}")
         print(f"Signal Integrity: {result.signal_integrity_score:.1f}%")
         print(f"Validation Coverage: {result.state_validation_coverage:.1f}%")
@@ -863,12 +863,12 @@ def main():
             print(f"  Info: {result.info_issues}")
         
         if result.recommendations:
-            print(f"\n💡 Recommendations:")
+            print(f"\n[TIP] Recommendations:")
             for rec in result.recommendations:
                 print(f"  • {rec}")
         
         if result.issues:
-            print(f"\n📋 Detailed Issues:")
+            print(f"\n[LIST] Detailed Issues:")
             for issue in result.issues[:10]:  # Show first 10 issues in text mode
                 print(f"\n{issue.level.value.upper()}: {issue.issue_type}")
                 print(f"  File: {Path(issue.file_path).name}")

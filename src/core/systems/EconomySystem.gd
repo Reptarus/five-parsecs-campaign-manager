@@ -22,10 +22,10 @@ const IGameSystem = preload("res://src/core/systems/IGameSystem.gd")
 
 # Proper dependency imports - compile-time validation
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const ValidationManager = preload("res://src/core/systems/ValidationManager.gd")
+const Character = preload("res://src/core/character/Character.gd")
 
 # Remove these runtime variables
-# var GlobalEnums: Variant = null  
+# var GlobalEnums: Variant = null
 # var ValidationManager: Variant = null
 
 # Resource Management Signals

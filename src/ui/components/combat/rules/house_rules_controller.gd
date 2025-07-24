@@ -1,9 +1,9 @@
 ﻿extends Node
 
 ## Required dependencies
-const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const Character := preload("res://src/core/character/Base/Character.gd")
-const BaseCombatManager := preload("res://src/base/combat/BaseCombatManager.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const Character = preload("res://src/core/character/Character.gd")
+const BaseCombatManager = preload("res://src/base/combat/BaseCombatManager.gd")
 
 ## Node references
 @onready var house_rules_panel: PanelContainer = %HouseRulesPanel
@@ -185,7 +185,7 @@ func _on_combat_state_changed(new_state: Dictionary) -> void:
 	# Update rule effects based on new combat _state
 	for rule_id in active_rules:
 		_apply_rule_effect(rule_id, "combat_state_changed")
-func _on_combat_result_calculated(attacker: Character, target: Character, result: GlobalEnums.CombatResult) -> void:
+func _on_combat_result_calculated(attacker: Character, target: Character, result: Dictionary) -> void:
 	# Apply relevant rule effects to combat result
 	for rule_id in active_rules:
 		_apply_rule_effect(rule_id, "combat_result")

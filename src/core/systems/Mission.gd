@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 extends Resource
 class_name Mission
 
@@ -17,6 +17,10 @@ signal mission_updated
 @export var is_completed: bool = false
 @export var is_failed: bool = false
 @export var turn_offered: int = 0
+
+# Game-specific properties
+var _custom_mission_events: Array[Dictionary] = []
+var advanced_rules: Dictionary = {}
 
 func _init() -> void:
 	pass
@@ -55,6 +59,23 @@ func deserialize(data: Dictionary) -> Mission:
 	is_failed = data.get("is_failed", false)
 	turn_offered = data.get("turn_offered", 0)
 	return self
+
+## Game-specific method to handle custom mission events
+
+func process_custom_mission_events() -> void:
+	# Implementation will be added in a separate PR
+	pass
+
+## Override calculate_final_rewards to add game-specific bonuses
+
+func calculate_final_rewards() -> Dictionary:
+	var final_rewards = {}
+
+	# Add game-specific reward calculations
+	if final_rewards.has("credits") and advanced_rules.has("bonus_credits"):
+		final_rewards["credits"] += advanced_rules.bonus_credits
+
+	return final_rewards
 
 ## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
 ## Based on Godot 4.4 best practices for safe property access

@@ -1,0 +1,26 @@
+{
+  "features": [
+    {
+      "id": "pavement",
+      "name": "Pavement",
+      "tags": ["background", "pavement"],
+      "gameplay": { "type": "background", "movement_cost": 1 },
+      "asset": { "type": "primitive", "shape": "plane", "color": "#4a4a4a" }
+    },
+    {
+      "id": "sand",
+      "name": "Sand",
+      "tags": ["background", "sand"],
+      "gameplay": { "type": "background", "movement_cost": 1 },
+      "asset": { "type": "primitive", "shape": "plane", "color": "#c2b280" }
+    },
+    {
+      "id": "generic_cover_low",
+      "name": "Low Cover",
+      "tags": ["generic_cover", "scatter"],
+      "size": [2, 1],
+      "gameplay": { "type": "cover", "height": 0.5, "cover_value": 1 },
+      "asset": { "type": "primitive", "shape": "box", "size_3d": [2.0, 0.5, 0.5], "color": "#999999" }
+    }
+  ]
+}

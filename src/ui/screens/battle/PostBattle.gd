@@ -1,7 +1,13 @@
-﻿extends Control
+﻿class_name FPCM_PostBattleUI
+extends Control
 
-## PostBattle UI for Five Parsecs Campaign Manager
-## Handles post-battle results, rewards, and progression
+## Enhanced PostBattle UI for Five Parsecs Campaign Manager
+## Handles post-battle results, rewards, and progression with modern architecture
+## Integrates with FPCM_BattleManager for consistent experience
+
+# Dependencies
+const FPCM_BattleManager = preload("res://src/core/battle/FPCM_BattleManager.gd")
+const FPCM_BattleState = preload("res://src/core/battle/FPCM_BattleState.gd")
 
 signal phase_completed()
 signal results_processed()
@@ -10,12 +16,16 @@ signal results_processed()
 @onready var mission_summary: Control = $MarginContainer/HBoxContainer/MissionSummary
 @onready var rewards_panel: Control = $MarginContainer/HBoxContainer/Rewards
 
-# State tracking
+# Enhanced system references
+var battle_manager: FPCM_BattleManager = null
+var battle_state: FPCM_BattleState = null
+
+# State tracking - modernized with strict typing
 var campaign_data: Resource = null
 var battle_results: Dictionary = {}
 var rewards_data: Dictionary = {}
 
-# Manager references
+# Legacy manager references (for backward compatibility)
 var alpha_manager: Node = null
 var campaign_manager: Node = null
 

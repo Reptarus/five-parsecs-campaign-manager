@@ -9,12 +9,9 @@ extends Node
 # # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
 
 ## Dependencies with preload pattern
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const GameState = preload("res://src/core/state/GameState.gd")
 const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
-const StoryQuestData = preload("res://src/core/story/StoryQuestData.gd")
-const GameLocation = preload("res://src/game/world/GameLocation.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const MissionGeneratorClass = preload("res://src/core/systems/MissionGenerator.gd")
 
 ## Signals with proper type annotations
@@ -219,7 +216,7 @@ func _process_campaign_events() -> void:
 	var resolved_events: Array[Dictionary] = []
 
 	for event in campaign_events:
-		if not event.has("duration") or not event.has("turn_started"):
+		if "duration" not in event or "turn_started" not in event:
 			push_warning("EventManager: Campaign event missing required fields")
 			continue
 
@@ -241,7 +238,7 @@ func trigger_campaign_event(event_name: String) -> bool:
 		push_error("EventManager: Cannot trigger campaign event with empty name")
 		return false
 
-	if not CAMPAIGN_EVENTS.has(event_name):
+	if event_name not in CAMPAIGN_EVENTS:
 		push_warning("EventManager: Unknown campaign event: %s" % event_name)
 		return false
 
@@ -340,7 +337,7 @@ func _apply_campaign_event_effects(event_data: Dictionary) -> void:
 			push_warning("EventManager: GlobalEnums not available for resource: %s" % resource_name)
 			continue
 
-		if not GlobalEnums.ResourceType.has(resource_name):
+		if resource_name not in GlobalEnums.ResourceType:
 			push_warning("EventManager: Unknown resource type: %s" % resource_name)
 			continue
 
@@ -386,7 +383,7 @@ func _remove_campaign_event_effects(event_data: Dictionary) -> void:
 		if not GlobalEnums:
 			continue
 
-		if not GlobalEnums.ResourceType.has(resource_name):
+		if resource_name not in GlobalEnums.ResourceType:
 			continue
 
 		var resource_type: int = GlobalEnums.ResourceType[resource_name]
@@ -425,9 +422,9 @@ func get_campaign_event_effect(resource_type: int, effect_type: String) -> float
 
 	for event in campaign_events:
 		var effects = event.effects
-		if effects.has("resources"):
+		if "resources" in effects:
 			var resource_name = GlobalEnums.ResourceType.keys()[resource_type]
-			if effects.resources.has(resource_name):
+			if resource_name in effects.resources:
 				var effect = effects.resources[resource_name]
 				if effect._type == effect_type:
 					match effect_type:
@@ -461,25 +458,25 @@ func deserialize(data: Dictionary) -> bool:
 		return false
 
 	# Validate and load active_events
-	if data.has("active_events") and data.active_events is Array:
+	if "active_events" in data and data.active_events is Array:
 		active_events.clear()
 		for event in data.active_events:
 			if event is Dictionary:
 				active_events.append(event)
 
 	# Validate and load event_history
-	if data.has("event_history") and data.event_history is Array:
+	if "event_history" in data and data.event_history is Array:
 		event_history.clear()
 		for event in data.event_history:
 			if event is Dictionary:
 				event_history.append(event)
 
 	# Validate and load event_cooldowns
-	if data.has("event_cooldowns") and data.event_cooldowns is Dictionary:
+	if "event_cooldowns" in data and data.event_cooldowns is Dictionary:
 		event_cooldowns = data.event_cooldowns.duplicate()
 
 	# Validate and load campaign_events
-	if data.has("campaign_events") and data.campaign_events is Array:
+	if "campaign_events" in data and data.campaign_events is Array:
 		campaign_events.clear()
 		for event in data.campaign_events:
 			if event is Dictionary:
@@ -591,7 +588,7 @@ func resolve_event(event_type: int) -> void:
 ## Check if an event can be triggered
 func _can_trigger_event(event_type: int) -> bool:
 	# Check cooldown
-	if event_cooldowns.has(event_type) and event_cooldowns[event_type] > 0:
+	if event_type in event_cooldowns and event_cooldowns[event_type] > 0:
 		return false
 
 	# Check if event is already active
@@ -688,7 +685,7 @@ func _process_mission_events() -> void:
 	var resolved_events: Array[Dictionary] = []
 
 	for event in mission_events:
-		if event.has("duration") and event.has("turn_started"):
+		if "duration" in event and "turn_started" in event:
 			var turns_active: int = game_state.current_turn - event.turn_started
 			if turns_active >= event.duration:
 				resolved_events.append(event)
@@ -700,7 +697,7 @@ func _process_mission_events() -> void:
 
 ## Trigger a mission event
 func trigger_mission_event(event_name: String, mission: Mission) -> void:
-	if not MISSION_EVENTS.has(event_name) or not mission:
+	if event_name not in MISSION_EVENTS or not mission:
 		return
 
 	var event_def = MISSION_EVENTS[event_name]
@@ -724,36 +721,36 @@ func _apply_mission_event_effects(event_data: Dictionary, mission: Mission) -> v
 	var effects = event_data.effects
 
 	# Apply difficulty modifier
-	if effects.has("mission_difficulty"):
+	if "mission_difficulty" in effects:
 		mission.difficulty = roundi(mission.difficulty * effects.mission_difficulty)
 
 	# Apply reward modifiers
-	if effects.has("rewards"):
+	if "rewards" in effects:
 		var rewards = effects.rewards
-		if rewards.has("multiplier"):
+		if "multiplier" in rewards:
 			for reward_type in mission.rewards:
 				if reward_type is int or reward_type is float:
 					mission.rewards[reward_type] = roundi(mission.rewards[reward_type] * rewards.multiplier)
 
-		if rewards.has("intel_points"):
-			if not mission.rewards.has("intel"):
+		if "intel_points" in rewards:
+			if "intel" not in mission.rewards:
 				mission.rewards["intel"] = 0
 			mission.rewards["intel"] += rewards.intel_points
 
 	# Add bonus objectives
-	if effects.has("bonus_objective") and effects.bonus_objective:
+	if "bonus_objective" in effects and effects.bonus_objective:
 		var bonus_objective = _generate_bonus_objective(mission)
 		if bonus_objective:
 			mission.objectives.append(bonus_objective)
 
 	# Add special conditions
-	if effects.has("hazard_level"):
+	if "hazard_level" in effects:
 		mission.special_rules.append("HAZARD_LEVEL_%d" % effects.hazard_level)
 
-	if effects.has("rival_presence") and effects.rival_presence:
+	if "rival_presence" in effects and effects.rival_presence:
 		mission.special_rules.append("RIVAL_PRESENCE")
 
-	if effects.has("ally_support") and effects.ally_support:
+	if "ally_support" in effects and effects.ally_support:
 		mission.special_rules.append("ALLY_SUPPORT")
 
 ## Remove mission event effects
@@ -765,17 +762,17 @@ func _remove_mission_event_effects(event_data: Dictionary) -> void:
 	var effects = event_data.effects
 
 	# Reverse difficulty modifier
-	if effects.has("mission_difficulty"):
+	if "mission_difficulty" in effects:
 		mission.difficulty = roundi(mission.difficulty / effects.mission_difficulty)
 
 	# Remove special conditions
-	if effects.has("hazard_level"):
+	if "hazard_level" in effects:
 		mission.special_rules.erase("HAZARD_LEVEL_%d" % effects.hazard_level)
 
-	if effects.has("rival_presence") and effects.rival_presence:
+	if "rival_presence" in effects and effects.rival_presence:
 		mission.special_rules.erase("RIVAL_PRESENCE")
 
-	if effects.has("ally_support") and effects.ally_support:
+	if "ally_support" in effects and effects.ally_support:
 		mission.special_rules.erase("ALLY_SUPPORT")
 
 ## Generate a bonus objective for a mission
@@ -786,7 +783,7 @@ func _generate_bonus_objective(mission: Mission) -> Dictionary:
 			"description": "Sabotage enemy equipment"
 		},
 		{
-			"type": GlobalEnums.MissionObjective.RECON,
+			"type": GlobalEnums.MissionObjective.EXPLORE,
 			"description": "Gather additional intelligence"
 		},
 		{
@@ -825,7 +822,7 @@ func get_mission_event_effect(effect_type: String) -> float:
 
 	for event in mission_events:
 		var effects = event.effects
-		if effects.has(effect_type):
+		if effect_type in effects:
 			match typeof(effects[effect_type]):
 				TYPE_FLOAT, TYPE_INT:
 					total_effect *= effects[effect_type]

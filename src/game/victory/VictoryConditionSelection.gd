@@ -6,14 +6,14 @@ const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 signal victory_selected(type: int, data: Dictionary)
 
 # Victory types
-var selected_victory_type: int = GlobalEnums.FiveParcsecsCampaignVictoryType.NONE
+var selected_victory_type: int = GlobalEnums.FiveParsecsCampaignVictoryType.NONE
 
 # Define victory categories as an array
 const VICTORY_CATEGORIES = [
-	GlobalEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE,
-	GlobalEnums.FiveParcsecsCampaignVictoryType.WEALTH_GOAL,
-	GlobalEnums.FiveParcsecsCampaignVictoryType.REPUTATION_GOAL,
-	GlobalEnums.FiveParcsecsCampaignVictoryType.FACTION_DOMINANCE
+	GlobalEnums.FiveParsecsCampaignVictoryType.STORY_COMPLETE,
+	GlobalEnums.FiveParsecsCampaignVictoryType.WEALTH_GOAL,
+	GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_GOAL,
+	GlobalEnums.FiveParsecsCampaignVictoryType.FACTION_DOMINANCE
 ]
 
 var _current_condition: String = ""
@@ -50,13 +50,13 @@ func set_victory_type(type: int) -> void:
 
 func get_victory_description(type: int) -> String:
 	match type:
-		GlobalEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE:
+		GlobalEnums.FiveParsecsCampaignVictoryType.STORY_COMPLETE:
 			return "Complete the main story campaign"
-		GlobalEnums.FiveParcsecsCampaignVictoryType.WEALTH_GOAL:
+		GlobalEnums.FiveParsecsCampaignVictoryType.WEALTH_GOAL:
 			return "Accumulate significant wealth"
-		GlobalEnums.FiveParcsecsCampaignVictoryType.REPUTATION_GOAL:
+		GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_GOAL:
 			return "Build your reputation in the galaxy"
-		GlobalEnums.FiveParcsecsCampaignVictoryType.FACTION_DOMINANCE:
+		GlobalEnums.FiveParsecsCampaignVictoryType.FACTION_DOMINANCE:
 			return "Achieve dominance with your chosen faction"
 		_:
 			return "Unknown victory condition"

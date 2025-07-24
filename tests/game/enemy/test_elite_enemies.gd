@@ -1,20 +1,20 @@
 
 # tests/game/enemy/test_elite_enemies.gd
-extends GutTest
+extends GdUnit4Version
 
 const EliteEnemyForce = preload("res://src/game/enemy/EliteEnemyForce.gd")
-const GameDataManager = preload("res://src/core/data/GameDataManager.gd")
+const DataManager = preload("res://src/core/data/DataManager.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
 
 var elite_enemy_force: EliteEnemyForce
-var mock_game_data_manager: GameDataManager
+var mock_data_manager: DataManager
 
 func before_each():
     elite_enemy_force = EliteEnemyForce.new()
 
-    # Mock GameDataManager to provide elite enemy data
-    mock_game_data_manager = mock(GameDataManager).make_double()
-    mock_game_data_manager.get_elite_enemy_types.returns({
+    # Mock DataManager to provide elite enemy data
+    mock_data_manager = mock(DataManager).make_double()
+    mock_data_manager.get_elite_enemy_types.returns({
         "squad_composition": [
             {"size": 4, "basic": 3, "specialists": 1, "lieutenants": 0, "captain": 0},
             {"size": 5, "basic": 2, "specialists": 2, "lieutenants": 1, "captain": 0},
@@ -22,19 +22,19 @@ func before_each():
             {"size": "7+", "basic": "3+", "specialists": 2, "lieutenants": 1, "captain": 1}
         ]
     })
-    # Replace the global GameDataManager instance with the mock for testing
-    # This assumes GameDataManager is accessed via get_node("/root/GameDataManager")
+    # Replace the global DataManager instance with the mock for testing
+    # This assumes DataManager is accessed via get_node("/root/DataManager")
     # In a real project, you might use dependency injection for better testability.
-    if Engine.has_singleton("GameDataManager"):
-        Engine.set_singleton("GameDataManager", mock_game_data_manager)
+    if Engine.has_singleton("DataManager"):
+        Engine.set_singleton("DataManager", mock_data_manager)
     else:
         # If not a singleton, you might need to pass the mock directly
         pass
 
 func after_each():
     # Clean up mock if necessary
-    if Engine.has_singleton("GameDataManager"):
-        Engine.set_singleton("GameDataManager", null) # Restore original or set to null
+    if Engine.has_singleton("DataManager"):
+        Engine.set_singleton("DataManager", null) # Restore original or set to null
 
 func test_generate_composition_size_4():
     var composition = elite_enemy_force.generate_composition(4)

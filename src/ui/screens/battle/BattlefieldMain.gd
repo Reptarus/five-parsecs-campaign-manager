@@ -1,10 +1,20 @@
-﻿extends Control
+class_name FPCM_BattlefieldMain
+extends Control
 
-## BattlefieldMain UI for Five Parsecs Campaign Manager
-## Handles tactical battle display and controls
+## Enhanced BattlefieldMain UI for Five Parsecs Campaign Manager
+## Handles tactical battle display and controls with modern architecture
+## Optimized for 60 FPS performance and battle manager integration
 
+# Dependencies
+const FPCM_BattleManager = preload("res://src/core/battle/FPCM_BattleManager.gd")
+const FPCM_BattleState = preload("res://src/core/battle/FPCM_BattleState.gd")
+const FPCM_DiceSystem = preload("res://src/core/systems/DiceSystem.gd")
+
+# Enhanced signals for battle manager integration
 signal battle_completed()
 signal turn_ended()
+signal phase_completed()
+signal viewport_error(error: String, context: Dictionary)
 
 # UI References
 @onready var battlefield_view: SubViewportContainer = %BattlefieldView
@@ -13,15 +23,20 @@ signal turn_ended()
 @onready var battlefield_node: Node3D = %Battlefield
 @onready var end_turn_button: Button = %EndTurnButton
 
-# State tracking
+# Enhanced system references
+var battle_manager: FPCM_BattleManager = null
+var battle_state: FPCM_BattleState = null
+var dice_system: FPCM_DiceSystem = null
+
+# State tracking - modernized with strict typing
 var campaign_data: Resource = null
 var battle_data: Dictionary = {}
 var current_turn: int = 1
 var battle_active: bool = false
+var performance_mode: bool = false
 
-# Manager references
+# Legacy manager references (for backward compatibility)
 var alpha_manager: Node = null
-var battle_manager: Node = null
 var dice_manager: Node = null
 
 func _ready() -> void:

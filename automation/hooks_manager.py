@@ -106,13 +106,13 @@ class ClaudeHooksManager:
             if hook.get("name") == hook_name:
                 hook["enabled"] = True
                 if self._save_hooks_config():
-                    print(f"✅ Activated hook: {hook_name}")
+                    print(f"[ACTIVATED] Hook: {hook_name}")
                     return True
                 else:
-                    print(f"❌ Failed to save hook activation: {hook_name}")
+                    print(f"[ERROR] Failed to save hook activation: {hook_name}")
                     return False
         
-        print(f"❌ Hook not found: {hook_name}")
+        print(f"[ERROR] Hook not found: {hook_name}")
         return False
     
     def deactivate_hook(self, hook_name: str) -> bool:
@@ -125,18 +125,18 @@ class ClaudeHooksManager:
             if hook.get("name") == hook_name:
                 hook["enabled"] = False
                 if self._save_hooks_config():
-                    print(f"🔌 Deactivated hook: {hook_name}")
+                    print(f"[DEACTIVATED] Deactivated hook: {hook_name}")
                     return True
                 else:
-                    print(f"❌ Failed to save hook deactivation: {hook_name}")
+                    print(f"[FAIL] Failed to save hook deactivation: {hook_name}")
                     return False
         
-        print(f"❌ Hook not found: {hook_name}")
+        print(f"[FAIL] Hook not found: {hook_name}")
         return False
     
     def test_hook(self, hook_name: str, test_file: Optional[str] = None) -> HookTestResult:
         """Test a specific hook with a sample file"""
-        print(f"🧪 Testing hook: {hook_name}")
+        print(f"Testing hook: {hook_name}")
         
         if "hooks" not in self.hooks_config:
             return HookTestResult(
@@ -298,12 +298,12 @@ script = ExtResource("1")
     
     def test_all_hooks(self) -> List[HookTestResult]:
         """Test all enabled hooks"""
-        print("🧪 Testing all enabled hooks...")
+        print("[TEST] Testing all enabled hooks...")
         
         results = []
         
         if "hooks" not in self.hooks_config:
-            print("❌ No hooks configuration found")
+            print("[FAIL] No hooks configuration found")
             return results
         
         for hook in self.hooks_config["hooks"]:
@@ -312,11 +312,11 @@ script = ExtResource("1")
                 results.append(result)
                 
                 if result.success:
-                    print(f"✅ {result.hook_name}: PASSED ({result.execution_time:.2f}s)")
+                    print(f"[OK] {result.hook_name}: PASSED ({result.execution_time:.2f}s)")
                 else:
-                    print(f"❌ {result.hook_name}: FAILED - {result.error_message}")
+                    print(f"[FAIL] {result.hook_name}: FAILED - {result.error_message}")
             else:
-                print(f"⏭️ {hook.get('name', 'Unknown')}: SKIPPED (disabled)")
+                print(f"[SKIP] {hook.get('name', 'Unknown')}: SKIPPED (disabled)")
         
         return results
     
@@ -381,18 +381,18 @@ script = ExtResource("1")
     
     def install_hooks(self) -> bool:
         """Install hooks configuration if not present"""
-        print("📦 Installing Claude Hooks configuration...")
+        print("[INSTALL] Installing Claude Hooks configuration...")
         
         if self.hooks_config_path.exists():
-            print("ℹ️ Hooks configuration already exists")
+            print("[INFO] Hooks configuration already exists")
             return True
         
         # The configuration was already created when we wrote the hooks.json file
         if self.hooks_config_path.exists():
-            print("✅ Hooks configuration installed successfully")
+            print("[OK] Hooks configuration installed successfully")
             return True
         else:
-            print("❌ Failed to install hooks configuration")
+            print("[FAIL] Failed to install hooks configuration")
             return False
     
     def generate_status_report(self) -> Dict[str, Any]:
@@ -437,7 +437,7 @@ script = ExtResource("1")
             if test_path.exists():
                 try:
                     test_path.unlink()
-                    print(f"🧹 Cleaned up: {test_file}")
+                    print(f"[CLEANUP] Cleaned up: {test_file}")
                 except Exception as e:
                     print(f"Warning: Failed to clean up {test_file}: {e}")
 
@@ -502,12 +502,12 @@ def main():
             if args.format == "json":
                 print(json.dumps(hooks, indent=2))
             else:
-                print(f"\n📋 Claude Hooks Status")
+                print(f"\n[LIST] Claude Hooks Status")
                 print(f"{'Hook Name':<30} {'Type':<15} {'Enabled':<8} {'Patterns':<8} {'Timeout':<8}")
                 print("-" * 80)
                 
                 for hook in hooks:
-                    enabled_icon = "✅" if hook["enabled"] else "❌"
+                    enabled_icon = "[OK]" if hook["enabled"] else "[FAIL]"
                     print(f"{hook['name']:<30} {hook['type']:<15} {enabled_icon:<8} {hook['patterns']:<8} {hook['timeout']:<8}")
                 
                 print(f"\nTotal Hooks: {len(hooks)}")
@@ -524,9 +524,9 @@ def main():
         elif args.command == "test":
             result = manager.test_hook(args.hook_name, args.file)
             
-            print(f"\n🧪 Hook Test Results: {result.hook_name}")
+            print(f"\n[TEST] Hook Test Results: {result.hook_name}")
             print(f"Status: {result.status.value.upper()}")
-            print(f"Success: {'✅ PASSED' if result.success else '❌ FAILED'}")
+            print(f"Success: {'[OK] PASSED' if result.success else '[FAIL] FAILED'}")
             print(f"Execution Time: {result.execution_time:.2f}s")
             
             if result.output:
@@ -570,14 +570,14 @@ def main():
                 failed = len([r for r in results if not r.success])
                 total_time = sum(r.execution_time for r in results)
                 
-                print(f"\n📊 Hook Test Summary")
+                print(f"\n[STATUS] Hook Test Summary")
                 print(f"Total Tests: {len(results)}")
-                print(f"Passed: ✅ {passed}")
-                print(f"Failed: ❌ {failed}")
+                print(f"Passed: [OK] {passed}")
+                print(f"Failed: [FAIL] {failed}")
                 print(f"Total Time: {total_time:.2f}s")
                 
                 if failed > 0:
-                    print(f"\n❌ Failed Hooks:")
+                    print(f"\n[FAIL] Failed Hooks:")
                     for result in results:
                         if not result.success:
                             print(f"  • {result.hook_name}: {result.error_message}")
@@ -589,10 +589,10 @@ def main():
             
             all_valid = all(dependencies.values())
             
-            print(f"\n🔍 Dependency Validation: {'✅ PASSED' if all_valid else '❌ FAILED'}")
+            print(f"\n[VALIDATE] Dependency Validation: {'[OK] PASSED' if all_valid else '[FAIL] FAILED'}")
             
             if not all_valid:
-                print(f"\n❌ Missing Dependencies:")
+                print(f"\n[FAIL] Missing Dependencies:")
                 for dep, status in dependencies.items():
                     if not status:
                         print(f"  • {dep}")
@@ -605,19 +605,19 @@ def main():
             if args.format == "json":
                 print(json.dumps(report, indent=2))
             else:
-                print(f"\n📊 Claude Hooks Status Report")
+                print(f"\n[STATUS] Claude Hooks Status Report")
                 print(f"Project: {report['project_root']}")
-                print(f"Configuration Valid: {'✅' if report['configuration']['config_valid'] else '❌'}")
+                print(f"Configuration Valid: {'[OK]' if report['configuration']['config_valid'] else '[FAIL]'}")
                 print(f"Total Hooks: {report['configuration']['total_hooks']}")
                 print(f"Enabled Hooks: {report['configuration']['enabled_hooks']}")
                 
-                print(f"\n🔧 Dependencies:")
+                print(f"\n[CONFIG] Dependencies:")
                 for dep, status in report['dependencies'].items():
-                    print(f"  {dep}: {'✅' if status else '❌'}")
+                    print(f"  {dep}: {'[OK]' if status else '[FAIL]'}")
                 
-                print(f"\n🧪 Hook Test Results:")
+                print(f"\n[TEST] Hook Test Results:")
                 for hook in report['hooks']:
-                    status_icon = "✅" if hook['success'] else "❌"
+                    status_icon = "[OK]" if hook['success'] else "[FAIL]"
                     print(f"  {hook['name']}: {status_icon} ({hook['execution_time']:.2f}s)")
         
         elif args.command == "install":
@@ -626,7 +626,7 @@ def main():
         
         elif args.command == "cleanup":
             manager.cleanup_test_files()
-            print("🧹 Cleanup completed")
+            print("[CLEANUP] Cleanup completed")
         
         else:
             parser.print_help()

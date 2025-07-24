@@ -20,6 +20,9 @@
     },
     "godot": {
       "command": "./godot-mcp-server/start-server.sh"
+    },
+    "desktop-commander": {
+      "command": "npx @wonderwhy-er/desktop-commander@latest"
     }
   }
 }

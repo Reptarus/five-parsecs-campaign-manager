@@ -1,12 +1,21 @@
-﻿## PreBattleUI manages the pre-battle setup interface
+## PreBattleUI manages the pre-battle setup interface
 class_name FPCM_PreBattleUI
 extends Control
 
 ## Dependencies
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const StoryQuestData = preload("res://src/core/story/StoryQuestData.gd")
-const Character = preload("res://src/game/character/Character.gd")
-const UnifiedTerrainSystem = preload("res://src/core/terrain/UnifiedTerrainSystem.gd")
+const Character = preload("res://src/core/character/Character.gd")
+
+# Battle Phase Types
+enum BattlePhase {
+	NONE,
+	SETUP,
+	DEPLOYMENT,
+	INITIATIVE,
+	ACTION,
+	REACTION,
+	CLEANUP
+}
 
 ## Optional dependencies that may not exist
 var _terrain_system_script: GDScript = preload("res://src/core/terrain/UnifiedTerrainSystem.gd") if FileAccess.file_exists("res://src/core/terrain/UnifiedTerrainSystem.gd") else null
@@ -73,7 +82,7 @@ func _setup_mission_info(data: Dictionary) -> void:
 	mission_desc.text = data.description
 
 	var battle_type := Label.new()
-	battle_type.text = "Battle Type: " + GlobalEnums.BattleType.keys()[data.battle_type]
+	battle_type.text = "Battle Type: Standard"
 
 	mission_info_panel.add_child(mission_title)
 	mission_info_panel.add_child(mission_desc)

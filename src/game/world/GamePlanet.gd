@@ -1,11 +1,8 @@
-﻿@tool
+@tool
 extends Resource
 class_name GamePlanet
 
-const GameDataManager = preload("res://src/core/managers/GameDataManager.gd")
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const GameLocation = preload("res://src/game/world/GameLocation.gd")
-const GameWorldTrait = preload("res://src/game/world/GameWorldTrait.gd")
 
 signal planet_updated(property, _value)
 
@@ -18,9 +15,9 @@ signal planet_updated(property, _value)
 @export var description: String = ""
 @export var faction_type: int = GlobalEnums.FactionType.NEUTRAL
 @export var environment_type: int = GlobalEnums.PlanetEnvironment.NONE
-@export var world_traits: Array[GameWorldTrait] = []
+@export var world_traits: Array = []
 @export var resources: Dictionary = {} # ResourceType: amount
-@export var threats: Array[int] = []
+@export var threats: Array[int] = [] # Using EnemyType for threats since ThreatType doesn't exist
 
 # State tracking
 @export var strife_level: int = GlobalEnums.StrifeType.NONE
@@ -28,7 +25,7 @@ signal planet_updated(property, _value)
 @export var unity_progress: int = 0
 @export var market_prices: Dictionary = {} # ItemType: price
 @export var faction_control: int = GlobalEnums.FactionType.NONE
-@export var locations: Array[GameLocation] = []
+@export var locations: Array = []
 @export var visited: bool = false
 @export var discovered: bool = false
 
@@ -37,11 +34,6 @@ var _data_manager: Object = null
 
 func _init() -> void:
 	clear_planet_state()
-
-	# Use the singleton instance
-	if not Engine.is_editor_hint():
-		_data_manager = GameDataManager.get_instance()
-		GameDataManager.ensure_data_loaded()
 
 func clear_planet_state() -> void:
 	resources.clear()
@@ -54,27 +46,21 @@ func clear_planet_state() -> void:
 
 ## Add a world trait to this planet by ID
 func add_world_trait_by_id(trait_id: String) -> bool:
-	if _data_manager == null:
-		_data_manager = GameDataManager.get_instance()
-		GameDataManager.ensure_data_loaded()
-
 	# Check if we already have this trait
 	for trait_item in world_traits:
 		if trait_item.trait_id == trait_id:
 			return false
 
 	# Create and initialize the new trait
-	var new_trait := GameWorldTrait.new()
-	if new_trait.initialize_from_id(trait_id):
-		world_traits.append(new_trait)
+	var new_trait = {}
+	new_trait.trait_id = trait_id
+	world_traits.append(new_trait)
 
-		# Apply trait effects to planet
-		_apply_trait_effects(new_trait)
+	# Apply trait effects to planet
+	_apply_trait_effects(new_trait)
 
-		planet_updated.emit("world_traits", world_traits)
-		return true
-
-	return false
+	planet_updated.emit("world_traits", world_traits)
+	return true
 
 ## Remove a world trait from this planet by ID
 func remove_world_trait_by_id(trait_id: String) -> bool:
@@ -92,26 +78,28 @@ func remove_world_trait_by_id(trait_id: String) -> bool:
 	return false
 
 ## Apply the effects of a world trait to this planet
-func _apply_trait_effects(world_trait: GameWorldTrait) -> void:
+func _apply_trait_effects(world_trait: Dictionary) -> void:
 	# Apply resource modifiers
-	for resource_key in world_trait.resource_modifiers:
-		var resource_type = _get_resource_type_from_key(resource_key)
-		if resource_type >= 0:
-			var modifier = world_trait.resource_modifiers[resource_key]
-			if not resources.has(resource_type):
-				resources[resource_type] = 0
-			resources[resource_type] += modifier
+	if world_trait.has("resource_modifiers"):
+		for resource_key in world_trait.resource_modifiers:
+			var resource_type = _get_resource_type_from_key(resource_key)
+			if resource_type >= 0:
+				var modifier = world_trait.resource_modifiers[resource_key]
+				if not resources.has(resource_type):
+					resources[resource_type] = 0
+				resources[resource_type] += modifier
 
 ## Remove the effects of a world _trait from this planet
-func _remove_trait_effects(world_trait: GameWorldTrait) -> void:
+func _remove_trait_effects(world_trait: Dictionary) -> void:
 	# Remove resource modifiers
-	for resource_key in world_trait.resource_modifiers:
-		var resource_type = _get_resource_type_from_key(resource_key)
-		if resource_type >= 0 and resources.has(resource_type):
-			var modifier = world_trait.resource_modifiers[resource_key]
-			resources[resource_type] -= modifier
-			if resources[resource_type] <= 0:
-				resources.erase(resource_type)
+	if world_trait.has("resource_modifiers"):
+		for resource_key in world_trait.resource_modifiers:
+			var resource_type = _get_resource_type_from_key(resource_key)
+			if resource_type >= 0 and resources.has(resource_type):
+				var modifier = world_trait.resource_modifiers[resource_key]
+				resources[resource_type] -= modifier
+				if resources[resource_type] <= 0:
+					resources.erase(resource_type)
 
 ## Convert a string resource key to a resource type enum _value
 func _get_resource_type_from_key(key: String) -> int:
@@ -151,7 +139,7 @@ func remove_resource(resource_type: int, amount: int = 1) -> bool:
 	return true
 
 func add_threat(threat: int) -> void:
-	if not threat in range(GlobalEnums.ThreatType.size()):
+	if not threat in range(GlobalEnums.EnemyType.size()):
 		push_error("Invalid threat type provided")
 		return
 
@@ -160,7 +148,8 @@ func add_threat(threat: int) -> void:
 		planet_updated.emit("threats", threats)
 
 func remove_threat(threat: int) -> void:
-	if not threat in range(GlobalEnums.ThreatType.size()):
+	# Threats can be either EnemyType (for roving threats) or StrifeType.INVASION (for invasion threats)
+	if not threat in range(GlobalEnums.EnemyType.size()) and threat != GlobalEnums.StrifeType.INVASION:
 		push_error("Invalid threat type provided")
 		return
 
@@ -214,7 +203,8 @@ func has_trait(trait_id: String) -> bool:
 	return false
 
 func has_threat(threat: int) -> bool:
-	if not threat in range(GlobalEnums.ThreatType.size()):
+	# Threats can be either EnemyType (for roving threats) or StrifeType.INVASION (for invasion threats)
+	if not threat in range(GlobalEnums.EnemyType.size()) and threat != GlobalEnums.StrifeType.INVASION:
 		push_error("Invalid threat type provided")
 		return false
 
@@ -227,23 +217,23 @@ func get_resource_amount(resource_type: int) -> int:
 
 	return resources.get(resource_type, 0)
 
-func add_location(location: GameLocation) -> void:
+func add_location(location: Dictionary) -> void:
 	if not location in locations:
 		locations.append(location)
 		planet_updated.emit("locations", locations)
 
-func remove_location(location: GameLocation) -> void:
+func remove_location(location: Dictionary) -> void:
 	var idx = locations.find(location)
 	if idx != -1:
 		locations.remove_at(idx)
 		planet_updated.emit("locations", locations)
 
-func get_location_by_id(location_id: String) -> GameLocation:
+func get_location_by_id(location_id: String) -> Dictionary:
 	for location in locations:
 		var typed_location: Variant = location
 		if location.location_id == location_id:
 			return location
-	return null
+	return {}
 
 # Serialization
 func serialize() -> Dictionary:
@@ -258,7 +248,11 @@ func serialize() -> Dictionary:
 	var threat_keys: Array[String] = []
 	for t in threats:
 		var typed_t: Variant = t
-		safe_call_method(threat_keys, "append", [GlobalEnums.ThreatType.keys()[t]]) # warning: return value discarded (intentional)
+		# Handle both EnemyType and StrifeType.INVASION threats
+		if t == GlobalEnums.StrifeType.INVASION:
+			safe_call_method(threat_keys, "append", ["INVASION"]) # warning: return value discarded (intentional)
+		elif t in range(GlobalEnums.EnemyType.size()):
+			safe_call_method(threat_keys, "append", [GlobalEnums.EnemyType.keys()[t]]) # warning: return value discarded (intentional)
 
 	var location_data: Array = []
 	for location in locations:
@@ -319,9 +313,7 @@ static func deserialize(data: Dictionary) -> GamePlanet:
 	var traits_data = data.get("world_traits", [])
 	for trait_data in traits_data:
 		var typed_trait_data: Variant = trait_data
-		var world_trait = GameWorldTrait.deserialize(trait_data) if GameWorldTrait else null
-		if world_trait:
-			planet.world_traits.append(world_trait)
+		planet.world_traits.append(trait_data)
 
 	planet.resources = data.get("resources", {})
 
@@ -329,8 +321,11 @@ static func deserialize(data: Dictionary) -> GamePlanet:
 	var threats_data: Array = data.get("threats", [])
 	for threat in threats_data:
 		var typed_threat: Variant = threat
-		if threat in GlobalEnums.ThreatType.keys():
-			planet.safe_call_method(planet.threats, "append", [GlobalEnums.ThreatType[threat]])
+		# Handle both EnemyType and StrifeType.INVASION threats
+		if threat == "INVASION":
+			planet.safe_call_method(planet.threats, "append", [GlobalEnums.StrifeType.INVASION])
+		elif threat in GlobalEnums.EnemyType.keys():
+			planet.safe_call_method(planet.threats, "append", [GlobalEnums.EnemyType[threat]])
 
 	var strife_level_str: String = data.get("strife_level", "NONE")
 	if strife_level_str in GlobalEnums.StrifeType.keys():
@@ -351,9 +346,7 @@ static func deserialize(data: Dictionary) -> GamePlanet:
 	var locations_data = data.get("locations", [])
 	for location_data in locations_data:
 		var typed_location_data: Variant = location_data
-		var location = GameLocation.deserialize(location_data) if GameLocation else null
-		if location:
-			planet.locations.append(location)
+		planet.locations.append(location_data)
 
 	planet.visited = data.get("visited", false)
 	planet.discovered = data.get("discovered", false)

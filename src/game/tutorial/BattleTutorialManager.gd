@@ -2,13 +2,21 @@
 extends Node
 
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const Character = preload("res://src/core/character/Character.gd")
 const GameState = preload("res://src/core/state/GameState.gd")
-const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
 const UnifiedTerrainSystem = preload("res://src/core/terrain/UnifiedTerrainSystem.gd")
 const SaveManager = preload("res://src/core/state/SaveManager.gd")
 const BaseCombatManager = preload("res://src/base/combat/BaseCombatManager.gd")
-const FiveParsecsBattleTutorialLayout = preload("res://src/core/tutorial/BattleTutorialLayout.gd")
+
+# Tutorial Step Types
+enum TutorialStep {
+	INTRODUCTION,
+	MOVEMENT,
+	COMBAT,
+	OBJECTIVES,
+	COMPLETION
+}
 
 signal tutorial_objective_completed(objective_id: String)
 signal tutorial_step_completed(step_id: String)
@@ -19,7 +27,7 @@ var combat_manager: BaseCombatManager
 var tutorial_overlay: Control
 
 func _ready() -> void:
-	combat_manager = get_parent() as BaseCombatManager
+	combat_manager = get_node("/root/CombatManager") as BaseCombatManager
 	if not combat_manager:
 		push_error("BattleTutorialManager must be a child of BaseCombatManager")
 		return
@@ -34,7 +42,7 @@ func _connect_signals() -> void:
 		combat_manager.objective_reached.connect(_on_objective_reached)
 
 func load_current_step() -> void:
-	current_layout = FiveParsecsBattleTutorialLayout.get_layout(current_step)
+	current_layout = {} # Tutorial layout would be created here
 	setup_battlefield()
 	show_step_guidance()
 

@@ -3,8 +3,8 @@ extends GdUnitGameTest
 
 # Static function to load event item script
 static func _load_event_item() -> GDScript:
-    if ResourceLoader.exists("res://src/scenes/campaign/components/EventItem.gd"):
-        return load("res://src/scenes/campaign/components/EventItem.gd")
+    if ResourceLoader.exists("res://src/ui/components/campaign/EventItem.gd"):
+        return load("res://src/ui/components/campaign/EventItem.gd")
     return null
 
 var EventItem: GDScript = _load_event_item()

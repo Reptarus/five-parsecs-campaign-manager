@@ -6,10 +6,8 @@ class_name DeveloperQuickStart
 ## Provides instant access to test campaigns and scenarios
 
 # Safe imports  
-# const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd") # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd") # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd") # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd") # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
+# Removed legacy Universal framework references to reduce architectural debt
+# Modern Godot 4.4 provides sufficient built-in utilities for our use cases
 
 signal test_campaign_requested(campaign_data: Dictionary)
 signal direct_phase_requested(phase_name: String)

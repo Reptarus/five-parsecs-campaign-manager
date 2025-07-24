@@ -1,45 +1,26 @@
 {
   "universal_mcp": {
     "version": "1.0",
-    "session_id": "mcp_session_1737304800",
+    "session_id": "mcp_session_1753241483",
     "paths": {
-      "project_windows": "C:\\Users\\elija\\SynologyDrive\\Godot\\five-parsecs-campaign-manager",
+      "project_windows": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager",
       "project_wsl": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager",
       "godot_windows": "C:\\Users\\elija\\Desktop\\GoDot\\Godot_v4.4-stable_mono_win64\\Godot_v4.4-stable_mono_win64_console.exe",
-      "godot_wsl": "/mnt/c/Users/elija/Desktop/GoDot/Godot_v4.4-stable_mono_win64/Godot_v4.4-stable_mono_win64.exe"
+      "godot_wsl": "/mnt/c/Users/elija/Desktop/GoDot/Godot_v4.4-stable_mono_win64/Godot_v4.4-stable_mono_win64_console.exe"
     },
     "systems": {
       "claude_desktop": {
         "config_file": ".claude/settings.local.json",
-        "path_format": "windows",
-        "permissions_updated": true,
-        "status": "configured"
+        "path_format": "windows"
       },
       "gemini": {
-        "config_file": ".gemini/settings.json", 
-        "path_format": "wsl",
-        "mcp_servers_configured": true,
-        "status": "configured"
+        "config_file": ".gemini/settings.json",
+        "path_format": "wsl"
       },
       "godot_mcp": {
         "config_file": "godot-mcp-server/config.json",
-        "path_format": "wsl",
-        "server_built": true,
-        "status": "configured"
+        "path_format": "wsl"
       }
-    },
-    "integration": {
-      "coordinator_script": "scripts/universal_mcp_coordinator.py",
-      "bridge_script": "src/utils/UniversalMCPBridge.gd",
-      "shared_state_file": "mcp_shared_state.json",
-      "handoff_context_file": "mcp_handoff_context.json"
-    },
-    "fixes_applied": [
-      "Consistent path formats across all systems",
-      "Unified configuration management", 
-      "Shared state management",
-      "Cross-system operation coordination",
-      "Enhanced error handling and context sharing"
-    ]
+    }
   }
 }

@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://ba6i5pjwvyko7"]
 
-[ext_resource type="Script" path="res://src/ui/screens/campaign/CharacterCustomizationScreen.gd" id="1_y7k8x"]
+[ext_resource type="Script" uid="uid://l4i2p0dhxn2o" path="res://src/ui/screens/campaign/CharacterCustomizationScreen.gd" id="1_y7k8x"]
 
 [node name="CharacterCustomizationScreen" type="Window"]
 title = "Character Customization"

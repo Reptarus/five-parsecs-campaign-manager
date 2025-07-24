@@ -47,33 +47,63 @@ func delete_campaign(campaign_name: String) -> void:
 
 func _get_starting_credits(difficulty: int) -> int:
 	match difficulty:
-		GlobalEnums.DifficultyLevel.EASY:
+		GlobalEnums.DifficultyLevel.STORY:
 			return 1500
-		GlobalEnums.DifficultyLevel.NORMAL:
+		GlobalEnums.DifficultyLevel.STANDARD:
 			return 1000
-		GlobalEnums.DifficultyLevel.HARD:
+		GlobalEnums.DifficultyLevel.CHALLENGING:
 			return 800
 		GlobalEnums.DifficultyLevel.HARDCORE:
 			return 600
-		GlobalEnums.DifficultyLevel.ELITE:
+		GlobalEnums.DifficultyLevel.NIGHTMARE:
 			return 500
 		_:
 			return 1000
 
 func _get_starting_supplies(difficulty: int) -> int:
 	match difficulty:
-		GlobalEnums.DifficultyLevel.EASY:
+		GlobalEnums.DifficultyLevel.STORY:
 			return 6
-		GlobalEnums.DifficultyLevel.NORMAL:
+		GlobalEnums.DifficultyLevel.STANDARD:
 			return 5
-		GlobalEnums.DifficultyLevel.HARD:
+		GlobalEnums.DifficultyLevel.CHALLENGING:
 			return 4
 		GlobalEnums.DifficultyLevel.HARDCORE:
 			return 3
-		GlobalEnums.DifficultyLevel.ELITE:
+		GlobalEnums.DifficultyLevel.NIGHTMARE:
 			return 2
 		_:
 			return 5
+
+func _get_difficulty_name(difficulty: int) -> String:
+	match difficulty:
+		GlobalEnums.DifficultyLevel.STORY:
+			return "Story"
+		GlobalEnums.DifficultyLevel.STANDARD:
+			return "Standard"
+		GlobalEnums.DifficultyLevel.CHALLENGING:
+			return "Challenging"
+		GlobalEnums.DifficultyLevel.HARDCORE:
+			return "Hardcore"
+		GlobalEnums.DifficultyLevel.NIGHTMARE:
+			return "Nightmare"
+		_:
+			return "Unknown"
+
+func _get_difficulty_description(difficulty: int) -> String:
+	match difficulty:
+		GlobalEnums.DifficultyLevel.STORY:
+			return "Casual play with reduced difficulty"
+		GlobalEnums.DifficultyLevel.STANDARD:
+			return "Core rules as written"
+		GlobalEnums.DifficultyLevel.CHALLENGING:
+			return "Increased enemy strength"
+		GlobalEnums.DifficultyLevel.HARDCORE:
+			return "Maximum difficulty with elite enemies"
+		GlobalEnums.DifficultyLevel.NIGHTMARE:
+			return "Custom ultra-hard mode"
+		_:
+			return "Unknown difficulty level"
 
 func _find_campaign_index(campaign_name: String) -> int:
 	for i: int in range((safe_call_method(saved_campaigns, "size") as int)):

@@ -44,7 +44,7 @@ func after_test() -> void:
 func _initialize_game_systems() -> void:
 	"""Initialize core game systems for testing"""
 	# Try to get autoload instances safely
-	game_data_manager = get_node_or_null("/root/GameDataManager")
+	game_data_manager = get_node_or_null("/root/DataManager")
 	game_state_manager = get_node_or_null("/root/GameStateManager")
 	character_manager = get_node_or_null("/root/CharacterManager")
 	

@@ -1,4 +1,4 @@
-﻿# PostBattle.gd
+# PostBattle.gd
 @warning_ignore("return_value_discarded")
 @warning_ignore("unsafe_method_access")
 @warning_ignore("untyped_declaration")
@@ -7,7 +7,7 @@ extends Control
 
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 # Note: GameState injected via constructor to avoid circular dependencies
-const Character = preload("res://src/core/character/Base/Character.gd")
+const Character = preload("res://src/core/character/Character.gd")
 
 signal phase_completed
 signal level_up_triggered(character: Character)
@@ -110,7 +110,7 @@ func _determine_injury_type(severity: int) -> String:
 		3: ["Broken", "Traumatized", "Critical"]
 	}
 	var possible_types = injury_types[severity]
-	return possible_types[randi() % (safe_call_method(possible_types, "size") as int)]
+	return possible_types[randi() % safe_call_method(possible_types, "size") as int]
 
 func _calculate_experience_gain(character: Character) -> int:
 	var base_xp: int = 10

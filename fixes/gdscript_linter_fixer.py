@@ -379,7 +379,7 @@ def main():
     with open(type_registry_path, 'w') as f:
         f.write(fixer.generate_type_registry())
     
-    print("✅ Generated central type registry")
+    print("[COMPLETE] Generated central type registry")
     
     # Parse and categorize errors
     if os.path.exists(ERRORS_JSON):
@@ -395,14 +395,14 @@ def main():
         
         # Apply fixes file by file
         for file_path, file_errors in errors_by_file.items():
-            print(f"📝 Fixing {len(file_errors)} errors in {Path(file_path).name}")
+            print(f"[FIXING] Fixing {len(file_errors)} errors in {Path(file_path).name}")
             success = fixer.apply_fixes_to_file(file_path, file_errors)
             if success:
-                print(f"✅ Fixed {file_path}")
+                print(f"[COMPLETE] Fixed {file_path}")
             else:
-                print(f"❌ Failed to fix {file_path}")
+                print(f"[FAIL] Failed to fix {file_path}")
     
-    print("🎯 Automated fixes complete. Run linter validation to verify.")
+    print("[TARGET] Automated fixes complete. Run linter validation to verify.")
 
 if __name__ == "__main__":
     main()

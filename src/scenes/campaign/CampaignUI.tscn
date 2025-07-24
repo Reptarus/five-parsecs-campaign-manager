@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://b3l4kfjh1mgrb" path="res://src/scenes/campaign/CampaignUI.gd" id="1_script"]
 [ext_resource type="PackedScene" uid="uid://dp66b6flafme3" path="res://src/ui/screens/campaign/setup/VictoryConditionSelection.tscn" id="5_event"]
-[ext_resource type="PackedScene" uid="uid://cq8qj5v2xv6n" path="res://src/scenes/campaign/components/CampaignPhaseUI.tscn" id="6_phase"]
+[ext_resource type="PackedScene" uid="uid://cq8qj5v2xv6n" path="res://src/ui/components/campaign/CampaignPhaseUI.tscn" id="6_phase"]
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="7_theme"]
 
 [node name="CampaignUI" type="Control"]
@@ -33,7 +33,6 @@ offset_left = -100.0
 offset_top = -20.0
 offset_right = 100.0
 offset_bottom = 20.0
-script = null
 
 [node name="MainContent" type="Control" parent="."]
 layout_mode = 1
@@ -67,12 +66,10 @@ grow_vertical = 2
 [node name="ResourcePanel" parent="MainContent/HBoxContainer/Sidebar/VBoxContainer" instance=ExtResource("5_event")]
 layout_mode = 2
 size_flags_vertical = 3
-script = null
 
 [node name="ActionPanel" parent="MainContent/HBoxContainer/Sidebar/VBoxContainer" instance=ExtResource("5_event")]
 layout_mode = 2
 size_flags_vertical = 3
-script = null
 
 [node name="MainTabs" type="TabContainer" parent="MainContent/HBoxContainer"]
 layout_mode = 2
@@ -108,4 +105,3 @@ metadata/_tab_index = 4
 
 [node name="EventLog" parent="MainContent/HBoxContainer/MainTabs/Events" instance=ExtResource("5_event")]
 layout_mode = 1
-script = null

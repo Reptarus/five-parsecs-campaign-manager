@@ -1,6 +1,6 @@
 ﻿extends Control
 
-const Character = preload("res://src/core/character/Base/Character.gd")
+const Character = preload("res://src/core/character/Character.gd")
 const CrewRelationshipManager = preload("res://src/core/campaign/crew/CrewRelationshipManager.gd")
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 

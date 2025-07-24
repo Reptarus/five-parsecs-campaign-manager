@@ -1,4 +1,4 @@
-﻿class_name FPCM_BattleSystemIntegration
+class_name FPCM_BattleSystemIntegration
 extends Node
 
 ## Battle System Integration Layer
@@ -386,7 +386,7 @@ func _save_battle_session(session_data: Dictionary) -> bool:
 
 	if file:
 		file.store_string(JSON.stringify(save_data))
-		if file: file.close()
+		file.close()  # Always close file if opened successfully
 		return true
 
 	return false
@@ -403,7 +403,7 @@ func _load_battle_session(load_request: Dictionary) -> bool:
 		return false
 
 	var json_text := file.get_as_text()
-	if file: file.close()
+	file.close()  # Always close file if opened successfully
 
 	var json := JSON.new()
 	var parse_result := json.parse(json_text)

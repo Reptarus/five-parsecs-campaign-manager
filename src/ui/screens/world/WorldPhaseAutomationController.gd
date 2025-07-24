@@ -86,7 +86,7 @@ var last_signal_batch_time: int = 0
 
 enum AutomationStep {
 	UPKEEP_CALCULATION,
-	CREW_TASK_ASSIGNMENT, 
+	CREW_TASK_ASSIGNMENT,
 	CREW_TASK_RESOLUTION,
 	JOB_OFFER_GENERATION,
 	EQUIPMENT_ASSIGNMENT,
@@ -160,9 +160,9 @@ class PerformanceMetric extends RefCounted:
 		memory_end_mb = _get_memory_usage_mb()
 	
 	func _get_memory_usage_mb() -> float:
-		# Godot doesn't have direct memory tracking, use OS.get_static_memory_usage_by_type() approximation
-		if OS.has_method("get_static_memory_usage_by_type"):
-			return float(OS.get_static_memory_usage_by_type()) / 1024.0 / 1024.0
+		# Use available memory methods in Godot 4.4
+		if OS.has_method("get_static_memory_usage"):
+			return float(OS.get_static_memory_usage()) / 1024.0 / 1024.0
 		return 0.0
 
 ## Notification data for pooling
@@ -274,8 +274,8 @@ class MemoryTracker extends RefCounted:
 		return last_memory_mb
 	
 	func _get_current_memory_mb() -> float:
-		if OS.has_method("get_static_memory_usage_by_type"):
-			return float(OS.get_static_memory_usage_by_type()) / 1024.0 / 1024.0
+		if OS.has_method("get_static_memory_usage"):
+			return float(OS.get_static_memory_usage()) / 1024.0 / 1024.0
 		return 0.0
 	
 	func check_warnings() -> Dictionary:
@@ -647,7 +647,7 @@ func automate_crew_task_resolution(crew_assignments: Dictionary) -> void:
 	
 	# Performance notification with metrics
 	var performance_summary = "Tasks: %d, Duration: %d ms, Yields: %d, Avg/Task: %.1f ms" % [
-		total_tasks, 
+		total_tasks,
 		final_metric.duration_ms if final_metric else 0,
 		batch_operation_data["yields_performed"],
 		(final_metric.duration_ms / total_tasks) if final_metric and total_tasks > 0 else 0
@@ -677,8 +677,8 @@ func _process_crew_task_batch_optimized(batch_tasks: Array[Dictionary], complete
 		# Update progress for current task (optimized signaling)
 		_emit_signal_optimized("task_progress_updated", [crew_member, task_name, 0.0, "Starting..."])
 		_emit_signal_optimized("batch_progress_updated", [
-			completed_offset + i, 
-			total_tasks, 
+			completed_offset + i,
+			total_tasks,
 			"Processing %s's %s task" % [crew_member, task_name]
 		])
 		
@@ -970,7 +970,7 @@ func _automate_trade_action(crew_member: String) -> Dictionary:
 		return world_phase_handler._resolve_trade_task(crew_member)
 	
 	# Enhanced fallback with Digital Dice System integration
-	var trade_roll: int = _perform_validated_dice_roll(
+	var trade_roll: int = await _perform_validated_dice_roll(
 		func(): return dice_manager.roll_d6("Crew Task: Trade - Marketplace Activity"),
 		"Trade Task",
 		{"min_value": 1, "max_value": 6, "expected_type": "integer"}
@@ -992,7 +992,7 @@ func _automate_exploration(crew_member: String) -> Dictionary:
 		return world_phase_handler._resolve_explore_task(crew_member)
 	
 	# Enhanced fallback with Digital Dice System integration
-	var exploration_roll: int = _perform_validated_dice_roll(
+	var exploration_roll: int = await _perform_validated_dice_roll(
 		func(): return dice_manager.roll_d100("Crew Task: Exploration - Area Survey"),
 		"Exploration Task",
 		{"min_value": 1, "max_value": 100, "expected_type": "integer"}
@@ -1014,7 +1014,7 @@ func _automate_patron_search(crew_member: String) -> Dictionary:
 		return world_phase_handler._resolve_find_patron_task(crew_member)
 	
 	# Enhanced fallback with Digital Dice System integration
-	var patron_roll: int = _perform_validated_dice_roll(
+	var patron_roll: int = await _perform_validated_dice_roll(
 		func(): return dice_manager.roll_2d6("Crew Task: Find Patron - Contact Network"),
 		"Find Patron Task",
 		{"min_value": 2, "max_value": 12, "expected_type": "integer"}
@@ -1377,7 +1377,7 @@ func _automate_recruitment(crew_member: String) -> Dictionary:
 		return world_phase_handler._resolve_recruit_task(crew_member)
 	
 	# Enhanced fallback with Digital Dice System integration
-	var recruit_roll: int = _perform_validated_dice_roll(
+	var recruit_roll: int = await _perform_validated_dice_roll(
 		func(): return dice_manager.roll_d6("Crew Task: Recruit - Talent Search"),
 		"Recruit Task",
 		{"min_value": 1, "max_value": 6, "expected_type": "integer"}
@@ -1398,7 +1398,7 @@ func _automate_training(crew_member: String) -> Dictionary:
 		return world_phase_handler._resolve_train_task(crew_member)
 	
 	# Enhanced fallback with Digital Dice System integration
-	var training_roll: int = _perform_validated_dice_roll(
+	var training_roll: int = await _perform_validated_dice_roll(
 		func(): return dice_manager.roll_d6("Crew Task: Training - Skill Development for %s" % crew_member),
 		"Training Task",
 		{"min_value": 1, "max_value": 6, "expected_type": "integer"}
@@ -1430,7 +1430,7 @@ func _automate_rival_tracking(crew_member: String) -> Dictionary:
 		return world_phase_handler._resolve_track_task(crew_member)
 	
 	# Enhanced fallback with Digital Dice System integration
-	var track_roll: int = _perform_validated_dice_roll(
+	var track_roll: int = await _perform_validated_dice_roll(
 		func(): return dice_manager.roll_d6("Crew Task: Track Rival - Investigation"),
 		"Track Task",
 		{"min_value": 1, "max_value": 6, "expected_type": "integer"}
@@ -1450,7 +1450,7 @@ func _automate_kit_repair(crew_member: String) -> Dictionary:
 		return world_phase_handler._resolve_repair_kit_task(crew_member)
 	
 	# Enhanced fallback with Digital Dice System integration
-	var repair_roll: int = _perform_validated_dice_roll(
+	var repair_roll: int = await _perform_validated_dice_roll(
 		func(): return dice_manager.roll_d6("Crew Task: Kit Repair - Equipment Maintenance by %s" % crew_member),
 		"Kit Repair Task",
 		{"min_value": 1, "max_value": 6, "expected_type": "integer"}
@@ -1485,7 +1485,7 @@ func _automate_decoy_action(crew_member: String) -> Dictionary:
 		return world_phase_handler._resolve_decoy_task(crew_member)
 	
 	# Enhanced fallback with Digital Dice System integration
-	var decoy_roll: int = _perform_validated_dice_roll(
+	var decoy_roll: int = await _perform_validated_dice_roll(
 		func(): return dice_manager.roll_2d6("Crew Task: Decoy Action - Diversion Tactics by %s" % crew_member),
 		"Decoy Action Task",
 		{"min_value": 2, "max_value": 12, "expected_type": "integer"}
@@ -1523,7 +1523,7 @@ func _automate_upkeep_calculation() -> void:
 		world_phase_handler._process_upkeep()
 	else:
 		# Enhanced fallback with dice integration for upkeep events
-		var upkeep_event_roll: int = _perform_validated_dice_roll(
+		var upkeep_event_roll: int = await 	_perform_validated_dice_roll(
 			func(): return dice_manager.roll_upkeep_event("World Phase: Upkeep Event Check"),
 			"Upkeep Event Check",
 			{"min_value": 1, "max_value": 6, "expected_type": "integer"}
@@ -1547,7 +1547,7 @@ func _automate_job_offers() -> void:
 		world_phase_handler._process_job_offers()
 	else:
 		# Enhanced fallback with dice integration for job generation
-		var job_count_roll: int = _perform_validated_dice_roll(
+		var job_count_roll: int = await _perform_validated_dice_roll(
 			func(): return dice_manager.roll_d6("World Phase: Job Offer Count"),
 			"Job Offer Generation",
 			{"min_value": 1, "max_value": 6, "expected_type": "integer"}
@@ -1555,7 +1555,7 @@ func _automate_job_offers() -> void:
 		
 		var job_offers: Array[Dictionary] = []
 		for i in range(min(job_count_roll, 3)): # Maximum 3 job offers
-			var job_type_roll: int = _perform_validated_dice_roll(
+			var job_type_roll: int = await _perform_validated_dice_roll(
 				func(): return dice_manager.roll_mission_type("Job Offer %d Type" % (i + 1)),
 				"Job Type Generation",
 				{"min_value": 1, "max_value": 6, "expected_type": "integer"}
@@ -1598,7 +1598,7 @@ func _automate_equipment_assignment() -> void:
 			2.0
 		)
 		
-		var equipment_event_roll: int = _perform_validated_dice_roll(
+		var equipment_event_roll: int = await _perform_validated_dice_roll(
 			func(): return dice_manager.roll_d6("World Phase: Equipment Event Check"),
 			"Equipment Event Check",
 			{"min_value": 1, "max_value": 6, "expected_type": "integer"}
@@ -1652,7 +1652,7 @@ func _automate_rumor_resolution() -> void:
 			2.0
 		)
 		
-		var rumor_roll: int = _perform_validated_dice_roll(
+		var rumor_roll: int = await _perform_validated_dice_roll(
 			func(): return dice_manager.roll_d100("World Phase: Rumor Investigation"),
 			"Rumor Resolution",
 			{"min_value": 1, "max_value": 100, "expected_type": "integer"}
@@ -1878,7 +1878,9 @@ func get_dice_roll_statistics() -> Dictionary:
 func _calculate_average_attempts() -> float:
 	if dice_roll_history.is_empty():
 		return 0.0
-	var total_attempts := dice_roll_history.reduce(func(acc, roll): return acc + roll.attempts, 0)
+	var total_attempts := 0
+	for roll in dice_roll_history:
+		total_attempts += roll.attempts
 	return float(total_attempts) / float(dice_roll_history.size())
 
 ## Count performance warnings in recent history
@@ -1895,7 +1897,7 @@ func set_dice_validation_enabled(enabled: bool) -> void:
 func set_performance_monitoring(enabled: bool, target_ms: float = 16.67) -> void:
 	performance_monitoring_enabled = enabled
 	animation_performance_target_ms = target_ms
-	print("Performance monitoring %s with target %f ms" % ("enabled" if enabled else "disabled", target_ms))
+	print("Performance monitoring %s with target %f ms" % ["enabled" if enabled else "disabled", target_ms])
 
 ## ENHANCED BATCH AUTOMATION METHODS
 
@@ -2182,18 +2184,13 @@ func test_dice_system_integration() -> Dictionary:
 	]
 	
 	for test in test_rolls:
-		try:
-			var result := test.func.call()
-			test_results[test.name] = {
-				"success": true,
-				"result": result,
-				"valid_range": _validate_test_result(test.name, result)
-			}
-		except:
-			test_results[test.name] = {
-				"success": false,
-				"error": "Exception during roll"
-			}
+		var result: int = test.func.call()
+		test_results[test.name] = {
+			"success": true,
+			"result": result,
+			"valid_range": _validate_test_result(test.name, result)
+		}
+		
 	
 	return test_results
 
@@ -2364,7 +2361,7 @@ func get_optimization_status() -> Dictionary:
 		"current_operation_count": current_frame_operation_count,
 		"optimization_features": [
 			"Async Processing",
-			"Frame Yielding", 
+			"Frame Yielding",
 			"Object Pooling",
 			"Signal Batching",
 			"Memory Monitoring",

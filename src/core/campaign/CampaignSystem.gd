@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 @warning_ignore("return_value_discarded")
 @warning_ignore("unsafe_method_access")
 @warning_ignore("untyped_declaration")
@@ -6,12 +6,12 @@
 extends Node
 
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const FiveParsecsGameCampaign = preload("res://src/game/campaign/FiveParsecsCampaign.gd")
+const Campaign = preload("res://src/core/campaign/Campaign.gd")
 # Note: GameState injected via initialize() to avoid circular dependencies
 
 ## Signals
-signal campaign_created(campaign: FiveParsecsGameCampaign)
-signal campaign_loaded(campaign: FiveParsecsGameCampaign)
+signal campaign_created(campaign: Campaign)
+signal campaign_loaded(campaign: Campaign)
 signal campaign_saved(save_data: Dictionary)
 signal campaign_deleted(campaign_id: String)
 signal story_progressed(progress: int)
@@ -26,7 +26,7 @@ signal mission_setup_complete() # No arguments
 signal mission_completed(success: bool)
 
 ## Variables
-var _campaign_type: int = GlobalEnums.FiveParcsecsCampaignType.STANDARD
+var _campaign_type: int = GlobalEnums.CampaignType.STANDARD
 var total_resources: int = 0
 var reputation: int = 0
 var completed_missions: int = 0
@@ -34,7 +34,7 @@ var active_crew: Array[Dictionary] = []
 var active_rivals: Array[Dictionary] = []
 var equipment: Array[Dictionary] = []
 var story_progress: int = 0
-var active_campaign: FiveParsecsGameCampaign = null
+var active_campaign: Campaign = null
 var game_state: Node = null # GameState - avoiding circular dependency
 
 ## Mission state
@@ -74,11 +74,11 @@ func get_reputation() -> int:
 
 ## Get number of active crew members
 func get_active_crew_count() -> int:
-	return (safe_call_method(active_crew, "size") as int)
+	return safe_call_method(active_crew, "size") as int
 
 ## Get number of active rivals
 func get_active_rivals_count() -> int:
-	return (safe_call_method(active_rivals, "size") as int)
+	return safe_call_method(active_rivals, "size") as int
 
 ## Check if crew has exploration capability
 func has_exploration_capability() -> bool:
@@ -130,16 +130,16 @@ func advance_story() -> void:
 	story_progress += 1
 	story_progressed.emit(story_progress) # warning: return value discarded (intentional)
 
-func create_campaign(config: Dictionary) -> FiveParsecsGameCampaign:
-	var campaign := FiveParsecsGameCampaign.new()
+func create_campaign(config: Dictionary) -> Campaign:
+	var campaign := Campaign.new()
 
 	campaign.campaign_name = config.get("name", "New Campaign")
 
-	campaign.difficulty = config.get("difficulty", GlobalEnums.DifficultyLevel.NORMAL)
+	campaign.difficulty = config.get("difficulty", GlobalEnums.DifficultyLevel.STANDARD)
 
-	campaign.victory_condition = config.get("victory_condition", GlobalEnums.FiveParcsecsCampaignVictoryType.STANDARD)
+	campaign.victory_condition = config.get("victory_condition", GlobalEnums.FiveParsecsCampaignVictoryType.STORY_COMPLETE)
 
-	campaign.crew_size = config.get("crew_size", GlobalEnums.CrewSize.FOUR)
+	campaign.crew_size = config.get("crew_size", 4) # Default to 4 crew members
 
 	campaign.use_story_track = config.get("use_story_track", true)
 
@@ -147,8 +147,8 @@ func create_campaign(config: Dictionary) -> FiveParsecsGameCampaign:
 	campaign_created.emit(campaign) # warning: return value discarded (intentional)
 	return campaign
 
-func load_campaign(save_data: Dictionary) -> FiveParsecsGameCampaign:
-	var campaign := FiveParsecsGameCampaign.new()
+func load_campaign(save_data: Dictionary) -> Campaign:
+	var campaign := Campaign.new()
 	if campaign and campaign.has_method("deserialize"): campaign.deserialize(save_data)
 	active_campaign = campaign
 	campaign_loaded.emit(campaign) # warning: return value discarded (intentional)
@@ -172,7 +172,7 @@ func delete_campaign(campaign_id: String) -> void:
 	# Add deletion logic here
 	campaign_deleted.emit(campaign_id) # warning: return value discarded (intentional)
 
-func get_active_campaign() -> FiveParsecsGameCampaign:
+func get_active_campaign() -> Campaign:
 	return active_campaign
 
 func _exit_tree() -> void:

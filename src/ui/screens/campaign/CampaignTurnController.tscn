@@ -1,0 +1,111 @@
+[gd_scene load_steps=5 format=3 uid="uid://bbdf8j6xqaohc"]
+
+[ext_resource type="Script" path="res://src/ui/screens/campaign/CampaignTurnController.gd" id="1_2xv8n"]
+[ext_resource type="PackedScene" path="res://src/ui/screens/travel/TravelPhaseUI.tscn" id="2_4k3m1"]
+[ext_resource type="PackedScene" path="res://src/ui/screens/world/WorldPhaseUI.tscn" id="3_7n2p5"]
+[ext_resource type="PackedScene" path="res://src/ui/screens/postbattle/PostBattleSequence.tscn" id="4_m8k2r"]
+
+[node name="CampaignTurnController" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_2xv8n")
+
+[node name="MainContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="HeaderPanel" type="PanelContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HeaderContent" type="HBoxContainer" parent="MainContainer/HeaderPanel"]
+layout_mode = 2
+
+[node name="CurrentTurnLabel" type="Label" parent="MainContainer/HeaderPanel/HeaderContent"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Turn 1"
+horizontal_alignment = 1
+
+[node name="CurrentPhaseLabel" type="Label" parent="MainContainer/HeaderPanel/HeaderContent"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Phase: Travel"
+horizontal_alignment = 1
+
+[node name="PhaseProgressBar" type="ProgressBar" parent="MainContainer/HeaderPanel/HeaderContent"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+value = 25.0
+
+[node name="PhaseContainer" type="Control" parent="MainContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TravelPhaseUI" parent="MainContainer/PhaseContainer" instance=ExtResource("2_4k3m1")]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+visible = false
+
+[node name="WorldPhaseUI" parent="MainContainer/PhaseContainer" instance=ExtResource("3_7n2p5")]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+visible = false
+
+[node name="BattleTransitionUI" type="Control" parent="MainContainer/PhaseContainer"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+visible = false
+
+[node name="BattleTransitionPanel" type="PanelContainer" parent="MainContainer/PhaseContainer/BattleTransitionUI"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -100.0
+offset_right = 200.0
+offset_bottom = 100.0
+
+[node name="BattleTransitionContent" type="VBoxContainer" parent="MainContainer/PhaseContainer/BattleTransitionUI/BattleTransitionPanel"]
+layout_mode = 2
+
+[node name="BattleTitle" type="Label" parent="MainContainer/PhaseContainer/BattleTransitionUI/BattleTransitionPanel/BattleTransitionContent"]
+layout_mode = 2
+text = "Battle Phase"
+horizontal_alignment = 1
+
+[node name="BattleStatus" type="Label" parent="MainContainer/PhaseContainer/BattleTransitionUI/BattleTransitionPanel/BattleTransitionContent"]
+layout_mode = 2
+text = "Launching Battle Companion..."
+horizontal_alignment = 1
+
+[node name="BattleProgress" type="ProgressBar" parent="MainContainer/PhaseContainer/BattleTransitionUI/BattleTransitionPanel/BattleTransitionContent"]
+layout_mode = 2
+value = 50.0
+
+[node name="PostBattleUI" parent="MainContainer/PhaseContainer" instance=ExtResource("4_m8k2r")]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+visible = false

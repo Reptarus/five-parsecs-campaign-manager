@@ -1,4 +1,4 @@
-﻿# PreBattleLoop.gd
+# PreBattleLoop.gd
 extends Node
 
 ## Dependencies
@@ -132,7 +132,7 @@ func _get_mission_special_conditions(mission: StoryQuestData) -> Array:
 	return _get_mission_property(mission, "special_conditions", [])
 
 func _get_mission_difficulty(mission: StoryQuestData) -> int:
-	return _get_mission_property(mission, "difficulty", GlobalEnums.DifficultyLevel.NORMAL)
+	return _get_mission_property(mission, "difficulty", GlobalEnums.DifficultyLevel.STANDARD)
 
 ## Setup the battle preview
 func _setup_battle_preview() -> void:
@@ -179,7 +179,7 @@ func _on_deployment_confirmed() -> void:
 
 ## Validate if battle can begin
 func _validate_battle_readiness() -> bool:
-	if (safe_call_method(selected_crew, "is_empty") == true):
+	if safe_call_method(selected_crew, "is_empty") == true:
 		error_occurred.emit("No crew selected")
 		return false
 

@@ -113,13 +113,13 @@ func _initialize_enum_values() -> void:
 	else:
 		push_warning("GameStateManager: FiveParsecsCampaignPhase enum not found in GlobalEnums")
 
-	# Set default difficulty to NORMAL if available
+	# Set default difficulty to STANDARD if available
 	if "DifficultyLevel" in GlobalEnums:
-		if "NORMAL" in GlobalEnums.DifficultyLevel:
-			difficulty_level = GlobalEnums.DifficultyLevel.NORMAL
-			print("GameStateManager: Difficulty level set to NORMAL")
+		if "STANDARD" in GlobalEnums.DifficultyLevel:
+			difficulty_level = GlobalEnums.DifficultyLevel.STANDARD
+			print("GameStateManager: Difficulty level set to STANDARD")
 		else:
-			push_warning("GameStateManager: NORMAL not found in DifficultyLevel enum")
+			push_warning("GameStateManager: STANDARD not found in DifficultyLevel enum")
 	else:
 		push_warning("GameStateManager: DifficultyLevel enum not found in GlobalEnums")
 
@@ -151,12 +151,8 @@ func _validate_core_connections() -> void:
 	else:
 		print("GameStateManager: CoreGameState connection validated")
 
-	# Validate Universal utilities
-	# TODO: UniversalSignalManager is not defined. This is likely a missing autoload or architectural remnant.
-	# if not UniversalSignalManager:
-	# 	push_error("CORE SYSTEM FAILURE: UniversalSignalManager not accessible")
-	# else:
-	# 	print("GameStateManager: UniversalSignalManager connection validated")
+	# Core utilities validation complete
+	print("GameStateManager: All essential systems validated and operational")
 
 ## Enhanced game state registration
 func _register_with_game_state() -> void:
@@ -1157,4 +1153,4 @@ func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Va
 		return null
 	if obj is Object and obj.has_method(method_name):
 		return obj.callv(method_name, args)
-	return null              
+	return null

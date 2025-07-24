@@ -1,4 +1,4 @@
-﻿extends Control
+extends Control
 
 ## Five Parsecs Crew Creation System
 ## Implements full Five Parsecs From Home crew generation rules
@@ -7,7 +7,7 @@
 # # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
 # # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
 # # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-const CoreCharacter = preload("res://src/core/character/Base/Character.gd")
+const CoreCharacter = preload("res://src/core/character/Character.gd")
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 signal crew_created(crew_data: Dictionary)
@@ -45,15 +45,15 @@ func _connect_signals() -> void:
 	character_list.item_selected.connect(_on_character_selected)
 
 func _update_ui_state() -> void:
-	generate_button.disabled = (safe_call_method(crew_members, "size") as int) >= max_crew_size
-	finish_button.disabled = (safe_call_method(crew_members, "size") as int) == 0
+	generate_button.disabled = safe_call_method(crew_members, "size") as int >= max_crew_size
+	finish_button.disabled = safe_call_method(crew_members, "size") as int == 0
 
 	# Update finish button text
-	finish_button.text = "Finish Crew (%d/%d)" % [(safe_call_method(crew_members, "size") as int), max_crew_size]
+	finish_button.text = "Finish Crew (%d/%d)" % [safe_call_method(crew_members, "size") as int, max_crew_size]
 
 ## Generate a new Five Parsecs character using official rules
 func _on_generate_character() -> void:
-	if (safe_call_method(crew_members, "size") as int) >= max_crew_size:
+	if safe_call_method(crew_members, "size") as int >= max_crew_size:
 		return
 
 	var character: Character = _generate_five_parsecs_character()
@@ -76,10 +76,10 @@ func _generate_five_parsecs_character() -> CoreCharacter:
 
 	# Step 1: Generate attributes using 2D6 / 3.0 (rounded up)
 	character.reaction = _roll_five_parsecs_attribute()
-	character.speed = _roll_five_parsecs_attribute() + 2  # Base 4" + attribute
-	character.combat = _roll_five_parsecs_attribute() - 3  # Base +0 + attribute
-	character.toughness = _roll_five_parsecs_attribute()  # Base 3 + attribute  
-	character.savvy = _roll_five_parsecs_attribute() - 3  # Base +0 + attribute
+	character.speed = _roll_five_parsecs_attribute() + 2 # Base 4" + attribute
+	character.combat = _roll_five_parsecs_attribute() - 3 # Base +0 + attribute
+	character.toughness = _roll_five_parsecs_attribute() # Base 3 + attribute
+	character.savvy = _roll_five_parsecs_attribute() - 3 # Base +0 + attribute
 
 	# Step 2: Roll background (D100 table)
 	character.background = _roll_background()
@@ -93,8 +93,8 @@ func _generate_five_parsecs_character() -> CoreCharacter:
 	# Step 5: Generate name
 	character.character_name = _generate_character_name()
 
-	# Step 6: Apply species traits (3 humans + 3 others rule)
-	_apply_species_traits(character)
+	# Step 6: Apply origin traits (using Origin enum instead of species)
+	_apply_origin_traits(character)
 
 	# Step 7: Set starting equipment based on class
 	_assign_starting_equipment(character)
@@ -147,45 +147,27 @@ func _generate_character_name() -> String:
 	var first_names = ["Alex", "Jordan", "Casey", "Riley", "Morgan", "Avery", "Taylor", "Cameron"]
 	var last_names = ["Stone", "Cross", "Vale", "Kane", "Reed", "Fox", "Storm", "Wolf"]
 
-	return first_names[randi() % (safe_call_method(first_names, "size") as int)] + " " + last_names[randi() % (safe_call_method(last_names, "size") as int)]
+	return first_names[randi() % safe_call_method(first_names, "size") as int] + " " + last_names[randi() % safe_call_method(last_names, "size") as int]
 
-## Apply species traits (3 humans + 3 others)
-func _apply_species_traits(character: CoreCharacter) -> void:
-	var human_count: int = 0
-	for member in crew_members:
-		if member.is_human:
-			human_count += 1
+## Apply origin traits
+func _apply_origin_traits(character: CoreCharacter) -> void:
+	var origin_roll = _roll_background() # Re-use background roll for origin
 
-	if human_count < 3:
-		character.is_human = true
-		character.luck = 1  # Humans start with 1 luck
+	if origin_roll <= 20:
+		character.origin = GlobalEnums.Origin.HUMAN if GlobalEnums else 1
+		character.luck = 1 # Humans start with 1 luck
+	elif origin_roll <= 40:
+		character.origin = GlobalEnums.Origin.ENGINEER if GlobalEnums else 2
+		character.luck = 1 # Engineers start with 1 luck
+	elif origin_roll <= 60:
+		character.origin = GlobalEnums.Origin.FERAL if GlobalEnums else 3
+		character.luck = 1 # Ferals start with 1 luck
+	elif origin_roll <= 80:
+		character.origin = GlobalEnums.Origin.KERIN if GlobalEnums else 4
+		character.luck = 1 # K'Erin start with 1 luck
 	else:
-		# Non-human species
-		character.is_human = false
-		_apply_alien_traits(character)
-
-## Apply alien species traits
-func _apply_alien_traits(character: CoreCharacter) -> void:
-	var alien_types = ["Bot", "Soulless", "Alien"]
-	var alien_type = alien_types[randi() % (safe_call_method(alien_types, "size") as int)]
-
-	match alien_type:
-		"Bot":
-			character.is_bot = true
-			character.toughness += 1  # Bots are tougher
-		"Soulless":
-			character.is_soulless = true
-			character.combat += 1  # Soulless are better fighters
-		"Alien":
-			# Generic alien - boost a random stat
-			var stats = ["reaction", "speed", "combat", "toughness", "savvy"]
-			var boost_stat = stats[randi() % (safe_call_method(stats, "size") as int)]
-			match boost_stat:
-				"reaction": character.reaction = mini(6, character.reaction + 1)
-				"speed": character.speed = mini(8, character.speed + 1)
-				"combat": character.combat = mini(3, character.combat + 1)
-				"toughness": character.toughness = mini(6, character.toughness + 1)
-				"savvy": character.savvy = mini(3, character.savvy + 1)
+		character.origin = GlobalEnums.Origin.PRECURSOR if GlobalEnums else 5
+		character.luck = 1 # Precursors start with 1 luck
 
 ## Assign starting equipment based on class
 func _assign_starting_equipment(character: CoreCharacter) -> void:
@@ -202,7 +184,7 @@ func _get_class_name(class_id: int) -> String:
 func _display_character_details(character: CoreCharacter) -> void:
 	var details = "[b]%s[/b]\n\n" % character.character_name
 	details += "Class: %s\n" % _get_class_name(character.character_class)
-	details += "Species: %s\n\n" % _get_species_name(character)
+	details += "Origin: %s\n\n" % _get_origin_name(character)
 	details += "[b]Attributes:[/b]\n"
 	details += "Reactions: %d\n" % character.reaction
 	details += "Speed: %d\"\n" % character.speed
@@ -214,27 +196,31 @@ func _display_character_details(character: CoreCharacter) -> void:
 
 	character_details.text = details
 
-## Get species name for display
-func _get_species_name(character: CoreCharacter) -> String:
-	if character.is_human:
+## Get origin name for display
+func _get_origin_name(character: CoreCharacter) -> String:
+	if character.origin == GlobalEnums.Origin.HUMAN:
 		return "Human"
-	elif character.is_bot:
-		return "Bot"
-	elif character.is_soulless:
-		return "Soulless"
+	elif character.origin == GlobalEnums.Origin.ENGINEER:
+		return "Engineer"
+	elif character.origin == GlobalEnums.Origin.FERAL:
+		return "Feral"
+	elif character.origin == GlobalEnums.Origin.KERIN:
+		return "K'Erin"
+	elif character.origin == GlobalEnums.Origin.PRECURSOR:
+		return "Precursor"
 	else:
-		return "Alien"
+		return "Unknown"
 
 ## Handle character selection in list
 func _on_character_selected(index: int) -> void:
-	if index >= 0 and index < (safe_call_method(crew_members, "size") as int):
+	if index >= 0 and index < safe_call_method(crew_members, "size") as int:
 		_display_character_details(crew_members[index])
 
 ## Finish crew creation and emit data
 func _on_finish_crew_creation() -> void:
 	var crew_data = {
 		"crew_members": [],
-		"crew_size": (safe_call_method(crew_members, "size") as int)
+		"crew_size": safe_call_method(crew_members, "size") as int
 	}
 
 	for character in crew_members:

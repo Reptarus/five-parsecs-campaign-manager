@@ -2,9 +2,56 @@
 extends Node
 
 ## Required dependencies
-const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const Character := preload("res://src/core/character/Base/Character.gd")
-const BaseCombatManager := preload("res://src/base/combat/BaseCombatManager.gd")
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const Character = preload("res://src/core/character/Character.gd")
+const BaseCombatManager = preload("res://src/base/combat/BaseCombatManager.gd")
+
+## Combat Log Entry Types
+enum CombatLogEntryType {
+	COMBAT,
+	MOVEMENT,
+	OBJECTIVE,
+	ENVIRONMENTAL,
+	SPECIAL
+}
+
+## Validation results
+class ValidationResult:
+	var type: int = 0 # VerificationType.NONE
+	var result: int = 0 # VerificationResult.NONE
+	var message: String = ""
+	var context: Dictionary = {}
+
+	func _init(
+		p_type: int = 0, # VerificationType.NONE
+		p_result: int = 0, # VerificationResult.NONE
+		p_message: String = "",
+		p_context: Dictionary = {}
+	) -> void:
+		type = p_type
+		result = p_result
+		message = p_message
+		context = p_context
+
+	func is_error() -> bool:
+		return result == 1 or result == 2 # ERROR or CRITICAL
+
+	func is_warning() -> bool:
+		return result == 3 # WARNING
+
+	func is_success() -> bool:
+		return result == 4 # SUCCESS
+
+# Factory method to create ValidationResult objects
+func create_result(
+	p_type: int = 0, # VerificationType.NONE
+	p_result: int = 0, # VerificationResult.NONE
+	p_message: String = "",
+	p_context: Dictionary = {}
+) -> ValidationResult:
+	var result = ValidationResult.new()
+	result._init(p_type, p_result, p_message, p_context)
+	return result
 
 ## Node references
 @onready var combat_log_panel: PanelContainer = %CombatLogPanel
@@ -81,7 +128,6 @@ func add_log_entry(entry_type: String, entry_data: Dictionary) -> void:
 
 ## Checks if an entry should be displayed based on filters
 func _should_display_entry(entry: Dictionary) -> bool:
-
 	return active_filters.get(entry.type, true)
 
 ## Updates the display based on current filters
@@ -142,15 +188,15 @@ func _on_verification_requested(entry_id: String) -> void:
 func _verify_entry(entry: Dictionary) -> void:
 	match entry.type:
 		"combat":
-			combat_manager.verify_state(GlobalEnums.VerificationType.COMBAT)
+			combat_manager.verify_state(0) # COMBAT
 		"movement":
-			combat_manager.verify_state(GlobalEnums.VerificationType.MOVEMENT)
+			combat_manager.verify_state(1) # MOVEMENT
 		"status":
-			combat_manager.verify_state(GlobalEnums.VerificationType.STATE)
+			combat_manager.verify_state(2) # STATE
 		"resource":
-			combat_manager.verify_state(GlobalEnums.VerificationType.DEPLOYMENT)
+			combat_manager.verify_state(3) # DEPLOYMENT
 		"override":
-			combat_manager.verify_state(GlobalEnums.VerificationType.MOVEMENT)
+			combat_manager.verify_state(1) # MOVEMENT
 
 func _export_entry(entry: Dictionary) -> void:
 	var file: FileAccess = FileAccess.open("user://combat_log.json", FileAccess.WRITE)
@@ -202,7 +248,7 @@ func _on_manual_override_applied(override_type: String, override_data: Dictionar
 	})
 
 ## Verification signal handlers
-func _on_verification_completed(verification_type: GlobalEnums.VerificationType, result: GlobalEnums.VerificationResult, details: Dictionary) -> void:
+func _on_verification_completed(verification_type: int, result: int, details: Dictionary) -> void:
 	add_log_entry("verification", {
 		"_type": verification_type,
 		"result": result,
@@ -214,15 +260,15 @@ func _on_verification_completed(verification_type: GlobalEnums.VerificationType,
 		"details": details
 	})
 
-func _on_verification_failed(verification_type: GlobalEnums.VerificationType, error: String) -> void:
+func _on_verification_failed(verification_type: int, error: String) -> void:
 	add_log_entry("verification", {
 		"_type": verification_type,
-		"result": GlobalEnums.VerificationResult.ERROR,
+		"result": 1, # ERROR
 		"details": {"error": error}
 	})
 
 	combat_log_panel.show_verification_result(str(Time.get_unix_time_from_system()), {
-		"status": GlobalEnums.VerificationResult.ERROR,
+		"status": 1, # ERROR
 		"details": {"error": error}
 	})
 

@@ -21,6 +21,7 @@ func _ready() -> void:
 	print("AdvancementManager: Initializing...")
 	_load_crew_roster()
 	_refresh_crew_list()
+	_setup_advancement_icons()
 
 func _load_crew_roster() -> void:
 	"""Load crew roster from campaign data"""
@@ -195,10 +196,19 @@ func _create_injury_panel(injury: String) -> Control:
 	var hbox = HBoxContainer.new()
 	panel.add_child(hbox)
 
+	# Injury icon - Phase 4: Character Injury Status Integration
+	var injury_icon: TextureRect = TextureRect.new()
+	injury_icon.texture = preload("res://assets/basic icons/icon_character_injury.svg")
+	injury_icon.custom_minimum_size = Vector2(24, 24)
+	injury_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	injury_icon.modulate = Color.RED  # Red tint to indicate injury status
+	hbox.add_child(injury_icon)
+
 	# Injury name
 	var injury_label: Label = Label.new()
 	injury_label.text = injury
 	injury_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	injury_label.modulate = Color.RED  # Red text to match injury theme
 	hbox.add_child(injury_label)
 
 	# Heal button
@@ -280,6 +290,9 @@ func _create_advancement_option_panel(option: Dictionary) -> Control:
 
 	var select_button: Button = Button.new()
 	select_button.text = "Select"
+	select_button.icon = preload("res://assets/basic icons/icon_character_advancement.svg")
+	select_button.expand_icon = true
+	select_button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	select_button.pressed.connect(_on_advancement_selected.bind(option))
 	controls.add_child(select_button)
 
@@ -380,3 +393,17 @@ func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Va
 	if obj is Object and obj.has_method(method_name):
 		return obj.callv(method_name, args)
 	return null
+
+## Setup advancement icons for enhanced visual clarity
+func _setup_advancement_icons() -> void:
+	"""Setup icons for character advancement buttons to improve user experience"""
+	# Phase 4: Character Advancement Icons Integration
+	
+	# Apply Advancement Button - icon_character_advancement.svg
+	if apply_advancement_button:
+		apply_advancement_button.icon = preload("res://assets/basic icons/icon_character_advancement.svg")
+		apply_advancement_button.expand_icon = true
+		apply_advancement_button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		print("AdvancementManager: Character advancement icon applied to apply button successfully")
+	else:
+		push_warning("AdvancementManager: Apply advancement button not found for icon assignment")

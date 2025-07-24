@@ -7,7 +7,7 @@ class_name MissionObjective
 
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
-@export var objective_type: int = GlobalEnums.MissionObjective.WIN_BATTLE
+@export var objective_type: int = GlobalEnums.MissionObjective.DEFENSE
 @export var description: String = ""
 @export var is_optional: bool = false
 @export var is_completed: bool = false
@@ -53,7 +53,7 @@ func serialize() -> Dictionary:
 	}
 
 func deserialize(data: Dictionary) -> void:
-	objective_type = data.get("objective_type", GlobalEnums.MissionObjective.WIN_BATTLE)
+	objective_type = data.get("objective_type", GlobalEnums.MissionObjective.DEFENSE)
 	description = data.get("description", "")
 	is_optional = data.get("is_optional", false)
 	is_completed = data.get("is_completed", false)

@@ -294,8 +294,7 @@ func clear_combat_history() -> void:
 	combat_validation_history.clear()
 	_log_combat_system_action("Combat history cleared")
 
-func is_combat_system_ready() -> bool:
-	return universal_node_access != null and universal_signal_manager != null and universal_resource_loader != null and universal_data_access != null
+
 
 func get_active_unit() -> Node:
 	return active_unit

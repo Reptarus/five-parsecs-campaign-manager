@@ -1,4 +1,4 @@
-﻿@warning_ignore("return_value_discarded")
+@warning_ignore("return_value_discarded")
 @warning_ignore("unsafe_method_access")
 @warning_ignore("untyped_declaration")
 class_name FPCM_BattleTracker
@@ -9,7 +9,6 @@ extends Node
 ## Production-grade unit tracking for tabletop Five Parsecs battles.
 ## Designed for minimal latency and maximum reliability during live play.
 ## Handles health, status effects, activation tracking, and battle events.
-##
 ## Architecture: Event-driven with efficient state management
 ## Performance: Optimized for real-time updates with <16ms response times
 
@@ -35,7 +34,7 @@ enum EventType {
 	WEATHER_CHANGE,
 	EQUIPMENT_MALFUNCTION,
 	MORALE_CHECK,
-	SPECIAL_MISSION
+	SPECIAL_MISSION,
 }
 
 # Round summary data structure
@@ -46,7 +45,7 @@ class RoundSummary extends Resource:
 	@export var status_changes: Array[Dictionary] = []
 	@export var events_triggered: Array[String] = []
 	@export var round_duration_seconds: float = 0.0
-
+	
 	func get_casualties_this_round() -> Array[String]:
 		var casualties: Array[String] = []
 		for unit_id in damage_dealt.keys():
@@ -102,10 +101,9 @@ func _initialize_dependencies() -> void:
 	"""Initialize dependencies with graceful degradation"""
 	dice_manager = _get_singleton_or_node("DiceManager")
 	battle_events_system = _get_singleton_or_node("BattleEventsSystem")
-
+	
 	if not dice_manager:
 		push_warning("BattleTracker: DiceManager unavailable, using fallback")
-
 	if not battle_events_system:
 		push_warning("BattleTracker: BattleEventsSystem unavailable, using simple events")
 
@@ -113,13 +111,12 @@ func _get_singleton_or_node(name: String) -> Node:
 	"""Safe singleton/node retrieval with fallback"""
 	if Engine.has_singleton(name):
 		return Engine.get_singleton(name)
-
+	
 	var node_paths := ["/root/%s" % name, "../%s" % name]
 	for path in node_paths:
 		var typed_path: Variant = path
 		if has_node(path):
 			return get_node(path)
-
 	return null
 
 func _setup_performance_monitoring() -> void:
@@ -129,9 +126,9 @@ func _setup_performance_monitoring() -> void:
 		"average_response_time": 0.0,
 		"peak_response_time": 0.0,
 		"total_operations": 0,
-		"error_count": 0
+		"error_count": 0,
 	}
-
+	
 	# Monitor update frequency in debug builds
 	if OS.is_debug_build():
 		var timer := Timer.new()
@@ -143,7 +140,7 @@ func _setup_performance_monitoring() -> void:
 func _initialize_undo_system() -> void:
 	"""Initialize undo system for mistake correction"""
 	_undo_stack.clear()
-
+	
 	# Connect to state changes for undo tracking
 	var _connect_result: int = unit_health_changed.connect(_record_undo_state.bind("health_change"))
 	unit_activated.connect(_record_undo_state.bind("activation"))
@@ -155,7 +152,6 @@ func _initialize_undo_system() -> void:
 func initialize_battle(crew_units: Array, enemy_units: Array, options: Dictionary = {}) -> bool:
 	"""
 	Initialize battle tracking with comprehensive setup
-
 	@param crew_units: Array of crew member resources
 	@param enemy_units: Array of enemy resources
 	@param options: Battle configuration options
@@ -163,28 +159,25 @@ func initialize_battle(crew_units: Array, enemy_units: Array, options: Dictionar
 	"""
 	# Clear existing state
 	reset_battle_state()
-
+	
 	# Add units to tracking with validation
 	var crew_added := _add_units_batch(crew_units, "crew")
 	var enemies_added := _add_units_batch(enemy_units, "enemy")
-
+	
 	if crew_added == 0 or enemies_added == 0:
 		tracking_error.emit("INVALID_UNITS", {"crew": crew_added, "enemies": enemies_added})
 		return false
-
+	
 	# Apply battle configuration
 	_apply_battle_options(options)
-
+	
 	# Initialize battle state
 	battle_active = true
 	current_round = 0
-	round_start_time = Time.get_time_dict_from_system().hour * 3600.0 + \
-					  Time.get_time_dict_from_system().minute * 60.0 + \
-					  Time.get_time_dict_from_system().second
-
+	round_start_time = Time.get_time_dict_from_system().hour * 3600.0 + Time.get_time_dict_from_system().minute * 60.0 + Time.get_time_dict_from_system().second
+	
 	# Generate initial activation order
 	_generate_activation_order()
-
 	return true
 
 func start_new_round() -> void:
@@ -192,24 +185,24 @@ func start_new_round() -> void:
 	if not battle_active:
 		push_warning("BattleTracker: Cannot start round - battle not active")
 		return
-
+	
 	# Save previous round summary
 	if current_round > 0:
 		var summary := _generate_round_summary()
 		round_ended.emit(current_round, summary)
-
+	
 	# Increment round and reset state
 	current_round += 1
 	current_activation_index = 0
 	round_start_time = Time.get_unix_time_from_system()
-
+	
 	# Reset unit activations efficiently
 	_reset_unit_activations()
-
+	
 	# Check for random events
 	if auto_event_checks:
 		_check_for_battle_events()
-
+	
 	round_started.emit(current_round)
 
 func end_battle(victory_team: String = "") -> Dictionary:
@@ -217,14 +210,14 @@ func end_battle(victory_team: String = "") -> Dictionary:
 	if not battle_active:
 		push_warning("BattleTracker: Battle already ended")
 		return {}
-
+	
 	battle_active = false
 	var end_time := Time.get_unix_time_from_system()
-
+	
 	# Generate final round summary
 	var final_summary := _generate_round_summary()
 	round_ended.emit(current_round, final_summary)
-
+	
 	# Compile battle statistics
 	var battle_results := {
 		"victory_team": victory_team,
@@ -232,9 +225,8 @@ func end_battle(victory_team: String = "") -> Dictionary:
 		"battle_duration": end_time - round_start_time,
 		"units_final_state": _get_all_unit_states(),
 		"casualties": _get_casualties_by_team(),
-		"performance_metrics": _performance_metrics.duplicate()
+		"performance_metrics": _performance_metrics.duplicate(),
 	}
-
 	return battle_results
 
 # =====================================================
@@ -246,65 +238,62 @@ func add_unit(unit_data: Resource, team: String) -> String:
 	if not unit_data:
 		tracking_error.emit("INVALID_UNIT_DATA", {"team": team})
 		return ""
-
+	
 	var tracked_unit := BattlefieldTypes.UnitData.new()
-
+	
 	# Use appropriate initialization based on team
 	if team == "crew":
 		tracked_unit.initialize_from_crew_member(unit_data)
 	else:
 		tracked_unit.initialize_from_enemy(unit_data)
-
+	
 	# Add to efficient tracking dictionary
 	tracked_units[tracked_unit.unit_id] = tracked_unit
-
+	
 	# Emit signal for UI updates
 	unit_added.emit(tracked_unit)
-
 	return tracked_unit.unit_id
 
 func update_unit_health(unit_id: String, new_health: int, damage_source: String = "") -> bool:
 	"""
 	High-performance health update with comprehensive tracking
-
 	@param unit_id: Unit identifier
 	@param new_health: New health value
 	@param damage_source: Optional damage source for logging
 	@return: Success status
 	"""
 	var start_time := Time.get_ticks_usec()
-
+	
 	# Fast lookup with null check
 	var unit := tracked_units.get(unit_id) as BattlefieldTypes.UnitData
 	if not unit:
 		tracking_error.emit("UNIT_NOT_FOUND", {"unit_id": unit_id})
 		return false
-
+	
 	var old_health := unit.current_health
 	var clamped_health := clampi(new_health, 0, unit.max_health)
-
+	
 	# Only update if health actually changed
 	if old_health == clamped_health:
 		return true
-
+	
 	# Update health efficiently
 	unit.current_health = clamped_health
-
+	
 	# Track detailed statistics if enabled
 	if track_detailed_stats:
 		_record_damage_statistics(unit_id, old_health - clamped_health, damage_source)
-
+	
 	# Emit appropriate signals
 	unit_health_changed.emit(unit_id, old_health, clamped_health)
-
+	
 	# Check for defeat condition
 	if clamped_health <= 0 and old_health > 0:
 		_handle_unit_defeat(unit_id, unit)
-
+	
 	# Record performance metrics
 	var end_time := Time.get_ticks_usec()
 	_record_operation_performance("health_update", end_time - start_time)
-
 	return true
 
 func toggle_unit_activation(unit_id: String) -> bool:
@@ -312,23 +301,20 @@ func toggle_unit_activation(unit_id: String) -> bool:
 	var unit := tracked_units.get(unit_id) as BattlefieldTypes.UnitData
 	if not unit:
 		return false
-
+	
 	unit.activated_this_round = !unit.activated_this_round
-
 	if unit.activated_this_round:
 		unit_activated.emit(unit_id, current_round)
-
 	return true
 
 func batch_update_health(updates: Array[Dictionary]) -> Dictionary:
 	"""
 	Batch health updates for performance optimization
-
 	@param updates: Array of {unit_id: String, health: int, source: String}
 	@return: Results summary
 	"""
 	var results := {"success": 0, "failed": 0, "errors": []}
-
+	
 	for update in updates:
 		var typed_update: Variant = update
 		var success := update_unit_health(
@@ -336,13 +322,12 @@ func batch_update_health(updates: Array[Dictionary]) -> Dictionary:
 			update.get("health", 0),
 			update.get("source", "batch_update")
 		)
-
 		if success:
 			results.success += 1
 		else:
 			results.failed += 1
 			results.errors.append(update.get("unit_id", "unknown"))
-
+	
 	return results
 
 # =====================================================
@@ -353,7 +338,7 @@ func _check_for_battle_events() -> void:
 	"""Check for random battle events with configurable frequency"""
 	if not auto_event_checks:
 		return
-
+	
 	var event_roll := randf()
 	if event_roll < event_frequency:
 		var event := _generate_battle_event()
@@ -365,14 +350,14 @@ func _generate_battle_event() -> BattleEvent:
 	var event := BattleEvent.new()
 	event.event_id = "event_%d_%d" % [current_round, Time.get_unix_time_from_system()]
 	event.triggered_round = current_round
-
+	
 	# Use battle events system if available, otherwise use simple generation
 	if battle_events_system and battle_events_system.has_method("generate_event"):
 		var system_event: BattleEvent = battle_events_system.generate_event(current_round)
 		if system_event:
 			_copy_system_event_to_tracker_event(system_event, event)
 			return event
-
+	
 	# Fallback: Simple event generation
 	_generate_simple_battle_event(event)
 	return event
@@ -384,28 +369,28 @@ func _generate_simple_battle_event(event: BattleEvent) -> void:
 			"type": EventType.ENVIRONMENTAL_HAZARD,
 			"title": "Environmental Hazard",
 			"description": "Terrain hazard activates - check for effects",
-			"affects": "all"
+			"affects": "all",
 		},
 		{
 			"type": EventType.REINFORCEMENTS,
 			"title": "Possible Reinforcements",
 			"description": "Roll for reinforcement arrival",
-			"affects": "enemy"
+			"affects": "enemy",
 		},
 		{
 			"type": EventType.WEATHER_CHANGE,
 			"title": "Weather Change",
 			"description": "Battlefield conditions change - visibility affected",
-			"affects": "all"
+			"affects": "all",
 		},
 		{
 			"type": EventType.MORALE_CHECK,
 			"title": "Morale Check",
 			"description": "Units must make morale checks",
-			"affects": "all"
-		}
+			"affects": "all",
+		},
 	]
-
+	
 	var selected_event: Dictionary = event_types[randi() % event_types.size()]
 	event.event_type = selected_event.type
 	event.title = selected_event.title
@@ -420,7 +405,6 @@ func trigger_manual_event(event_type: EventType, custom_description: String = ""
 	event.triggered_round = current_round
 	event.title = "Manual Event"
 	event.description = custom_description if custom_description != "" else "GM-triggered event"
-
 	battle_event_occurred.emit(event)
 
 # =====================================================
@@ -431,15 +415,15 @@ func check_victory_conditions() -> Dictionary:
 	"""Check for victory conditions and return status"""
 	var crew_alive := _count_alive_units("crew")
 	var enemies_alive := _count_alive_units("enemy")
-
+	
 	var victory_status := {
 		"victory_achieved": false,
 		"winning_team": "",
 		"condition": "",
 		"crew_alive": crew_alive,
-		"enemies_alive": enemies_alive
+		"enemies_alive": enemies_alive,
 	}
-
+	
 	# Check standard victory conditions
 	if crew_alive == 0:
 		victory_status.victory_achieved = true
@@ -456,7 +440,7 @@ func check_victory_conditions() -> Dictionary:
 		victory_status.winning_team = "draw" if crew_alive == enemies_alive else ("crew" if crew_alive > enemies_alive else "enemy")
 		victory_status.condition = "time_limit"
 		victory_condition_met.emit(victory_status.winning_team, "time_limit")
-
+	
 	return victory_status
 
 # =====================================================
@@ -467,10 +451,9 @@ func undo_last_action() -> bool:
 	"""Undo the last tracked action"""
 	if not enable_undo_system or (_undo_stack.is_empty()):
 		return false
-
+	
 	var last_state: Dictionary = _undo_stack.pop_back()
 	_restore_state_from_undo(last_state)
-
 	return true
 
 func get_undo_available() -> bool:
@@ -481,16 +464,15 @@ func _record_undo_state(action_type: String) -> void:
 	"""Record current state for undo functionality"""
 	if not enable_undo_system:
 		return
-
+	
 	var state := {
 		"action_type": action_type,
 		"timestamp": Time.get_unix_time_from_system(),
 		"round": current_round,
-		"unit_states": _get_all_unit_states()
+		"unit_states": _get_all_unit_states(),
 	}
-
 	_undo_stack.append(state)
-
+	
 	# Maintain maximum undo depth
 	while _undo_stack.size() > MAX_UNDO_DEPTH:
 		_undo_stack.pop_front()
@@ -498,9 +480,9 @@ func _record_undo_state(action_type: String) -> void:
 func _restore_state_from_undo(state: Dictionary) -> void:
 	"""Restore state from undo record"""
 	current_round = state.get("round", current_round)
-
 	var unit_states_raw = state.unit_states if state else null
 	var unit_states: Dictionary = unit_states_raw if unit_states_raw != null else {}
+	
 	for unit_id in unit_states.keys():
 		var unit := tracked_units.get(unit_id) as BattlefieldTypes.UnitData
 		if unit:
@@ -523,7 +505,7 @@ func get_battle_analytics() -> Dictionary:
 		"crew_status": _get_team_status("crew"),
 		"enemy_status": _get_team_status("enemy"),
 		"damage_statistics": _get_damage_statistics(),
-		"performance_metrics": _performance_metrics.duplicate()
+		"performance_metrics": _performance_metrics.duplicate(),
 	}
 
 func _get_team_status(team: String) -> Dictionary:
@@ -532,38 +514,36 @@ func _get_team_status(team: String) -> Dictionary:
 	var alive_count := 0
 	var total_health := 0
 	var max_health := 0
-
+	
 	for unit in team_units:
 		var typed_unit: Variant = unit
 		if unit.is_alive():
 			alive_count += 1
-		total_health += unit.current_health
-		max_health += unit.max_health
-
+			total_health += unit.current_health
+			max_health += unit.max_health
+	
 	return {
 		"total_units": team_units.size(),
 		"alive_units": alive_count,
-		"health_percentage": float(total_health) / float(max_health) if max_health > 0 else 0.0
+		"health_percentage": float(total_health) / float(max_health) if max_health > 0 else 0.0,
 	}
 
 func _update_performance_metrics() -> void:
 	"""Update performance metrics for monitoring"""
 	var current_time := Time.get_unix_time_from_system()
 	var time_delta := current_time - _last_update_time
-
 	if time_delta > 0:
 		_performance_metrics.updates_per_second = 1.0 / time_delta
-
-	_last_update_time = current_time
+		_last_update_time = current_time
 
 func _record_operation_performance(operation: String, duration_usec: int) -> void:
 	"""Record operation performance metrics"""
 	_performance_metrics.total_operations += 1
-
 	var duration_ms := duration_usec / 1000.0
+	
 	if duration_ms > _performance_metrics.peak_response_time:
 		_performance_metrics.peak_response_time = duration_ms
-
+	
 	# Calculate rolling average
 	var current_avg: float = _performance_metrics.average_response_time
 	var count: int = _performance_metrics.total_operations
@@ -576,13 +556,11 @@ func _record_operation_performance(operation: String, duration_usec: int) -> voi
 func _add_units_batch(units: Array, team: String) -> int:
 	"""Add multiple units efficiently"""
 	var added_count := 0
-
 	for unit_data in units:
 		var typed_unit_data: Variant = unit_data
 		var unit_id := add_unit(unit_data, team)
 		if unit_id != "":
 			added_count += 1
-
 	return added_count
 
 func _reset_unit_activations() -> void:
@@ -599,7 +577,7 @@ func _generate_activation_order() -> void:
 func _handle_unit_defeat(unit_id: String, unit: BattlefieldTypes.UnitData) -> void:
 	"""Handle unit defeat with appropriate effects"""
 	var defeat_type := "unconscious" # Five Parsecs uses unconscious vs. killed
-
+	
 	# Roll for casualty vs unconscious (Five Parsecs rule)
 	if dice_manager and dice_manager.has_method("roll_dice"):
 		var casualty_roll: int = dice_manager.roll_dice("BattleTracker", "d6")
@@ -608,51 +586,43 @@ func _handle_unit_defeat(unit_id: String, unit: BattlefieldTypes.UnitData) -> vo
 	else:
 		if randi_range(1, 6) <= 2:
 			defeat_type = "casualty"
-
+	
 	unit_defeated.emit(unit_id, defeat_type)
 
 func _count_alive_units(team: String) -> int:
 	"""Count alive units for specified team"""
 	var count := 0
-
 	for unit in tracked_units.values():
 		if (team == "all" or unit.team == team) and unit.is_alive():
 			count += 1
-
 	return count
 
 func _get_units_by_team(team: String) -> Array[BattlefieldTypes.UnitData]:
 	"""Get all units for specified team"""
 	var team_units: Array[BattlefieldTypes.UnitData] = []
-
 	for unit in tracked_units.values():
 		if unit.team == team:
 			team_units.append(unit)
-
 	return team_units
 
 func _get_all_unit_states() -> Dictionary:
 	"""Get current state of all units"""
 	var states := {}
-
 	for unit_id in tracked_units.keys():
 		var unit := tracked_units[unit_id] as BattlefieldTypes.UnitData
 		states[unit_id] = {
 			"health": unit.current_health,
 			"activated": unit.activated_this_round,
-			"alive": unit.is_alive()
+			"alive": unit.is_alive(),
 		}
-
 	return states
 
 func _get_casualties_by_team() -> Dictionary:
 	"""Get casualties organized by team"""
 	var casualties := {"crew": [], "enemy": []}
-
 	for unit in tracked_units.values():
 		if not unit.is_alive():
 			casualties[unit.team].append(unit.unit_name)
-
 	return casualties
 
 func _generate_round_summary() -> RoundSummary:
@@ -660,12 +630,12 @@ func _generate_round_summary() -> RoundSummary:
 	var summary := RoundSummary.new()
 	summary.round_number = current_round
 	summary.round_duration_seconds = Time.get_unix_time_from_system() - round_start_time
-
+	
 	# Collect activated units
 	for unit in tracked_units.values():
 		if unit.activated_this_round:
 			summary.units_activated.append(unit.unit_id)
-
+	
 	return summary
 
 func _record_damage_statistics(unit_id: String, damage: int, source: String) -> void:
@@ -684,6 +654,7 @@ func _copy_system_event_to_tracker_event(system_event: Resource, tracker_event: 
 	"""Copy event data from battle events system"""
 	var title_value = system_event.title if system_event else null
 	tracker_event.title = title_value if title_value != null else "Unknown Event"
+	
 	var description_value = system_event.description if system_event else null
 	tracker_event.description = description_value if description_value != null else ""
 	# Additional mapping as needed
@@ -709,10 +680,12 @@ func safe_get_property(obj: Object, property: String, default_value: Variant = n
 	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
 	if not is_instance_valid(self):
 		return default_value
+	
 	if obj and obj.has_method("get"):
 		var value = obj.get(property)
 		return value if value != null else default_value
 	return default_value
+
 ## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
 func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
 	if obj == null:
