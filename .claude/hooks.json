@@ -1,0 +1,255 @@
+{
+  "version": "1.0",
+  "description": "Five Parsecs Campaign Manager - Production Claude Hooks Configuration",
+  "project": {
+    "name": "five-parsecs-campaign-manager",
+    "type": "godot-game",
+    "version": "0.85.0",
+    "language": "gdscript"
+  },
+  "hooks": [
+    {
+      "name": "gdscript_quality_enforcer",
+      "description": "Automatically fix GDScript linter errors and enforce coding standards",
+      "type": "PreToolUse",
+      "enabled": true,
+      "patterns": [
+        {
+          "tool": "write_file",
+          "filePattern": "*.gd"
+        },
+        {
+          "tool": "replace",
+          "filePattern": "*.gd"
+        },
+        {
+          "tool": "edit_block",
+          "filePattern": "*.gd"
+        }
+      ],
+      "command": "python",
+      "args": [
+        "fixes/gdscript_linter_fixer.py",
+        "--target-file",
+        "${filePath}",
+        "--fix-mode",
+        "pre-commit",
+        "--project-root",
+        "${workingDirectory}",
+        "--backup-enabled"
+      ],
+      "timeout": 30,
+      "errorHandling": "continue",
+      "conditions": {
+        "fileSize": "< 100KB",
+        "excludePaths": [
+          "addons/",
+          "tests/fixtures/",
+          ".godot/"
+        ]
+      }
+    },
+    {
+      "name": "comprehensive_test_suite",
+      "description": "Run GDUnit4 test suite after code modifications",
+      "type": "PostToolUse",
+      "enabled": true,
+      "patterns": [
+        {
+          "tool": "write_file",
+          "filePattern": "src/core/**/*.gd"
+        },
+        {
+          "tool": "write_file",
+          "filePattern": "src/game/**/*.gd"
+        },
+        {
+          "tool": "replace",
+          "filePattern": "src/**/*.gd"
+        },
+        {
+          "tool": "edit_block", 
+          "filePattern": "src/**/*.gd"
+        }
+      ],
+      "command": "python",
+      "args": [
+        "automation/test_runner.py",
+        "--mode",
+        "targeted",
+        "--changed-file",
+        "${filePath}",
+        "--godot-path",
+        "C:/Users/elija/Desktop/GoDot/Godot_v4.4-stable_mono_win64/Godot_v4.4-stable_mono_win64_console.exe"
+      ],
+      "timeout": 120,
+      "errorHandling": "warn",
+      "conditions": {
+        "excludePaths": [
+          "tests/",
+          "docs/",
+          "automation/"
+        ]
+      }
+    },
+    {
+      "name": "godot_project_validator",
+      "description": "Validate Godot project integrity and scene dependencies",
+      "type": "PostToolUse",
+      "enabled": true,
+      "patterns": [
+        {
+          "tool": "write_file",
+          "filePattern": "*.tscn"
+        },
+        {
+          "tool": "write_file",
+          "filePattern": "*.tres"
+        },
+        {
+          "tool": "write_file",
+          "filePattern": "project.godot"
+        }
+      ],
+      "command": "python",
+      "args": [
+        "automation/godot_validator.py",
+        "--validate-scenes",
+        "--validate-resources", 
+        "--check-dependencies",
+        "--godot-path",
+        "C:/Users/elija/Desktop/GoDot/Godot_v4.4-stable_mono_win64/Godot_v4.4-stable_mono_win64_console.exe"
+      ],
+      "timeout": 45,
+      "errorHandling": "continue"
+    },
+    {
+      "name": "five_parsecs_rule_compliance",
+      "description": "Validate Five Parsecs tabletop rule implementation accuracy",
+      "type": "PostToolUse",
+      "enabled": true,
+      "patterns": [
+        {
+          "tool": "write_file",
+          "filePattern": "src/game/campaign/**/*.gd"
+        },
+        {
+          "tool": "write_file",
+          "filePattern": "src/game/combat/**/*.gd"
+        },
+        {
+          "tool": "write_file",
+          "filePattern": "src/game/character/**/*.gd"
+        },
+        {
+          "tool": "edit_block",
+          "filePattern": "src/game/**/*.gd"
+        }
+      ],
+      "command": "python",
+      "args": [
+        "automation/rule_validator.py",
+        "--validate-file",
+        "${filePath}",
+        "--ruleset",
+        "five-parsecs-core",
+        "--strict-mode"
+      ],
+      "timeout": 15,
+      "errorHandling": "warn"
+    },
+    {
+      "name": "campaign_state_guardian",
+      "description": "Protect enterprise-grade state management integrity",
+      "type": "PreToolUse",
+      "enabled": true,
+      "patterns": [
+        {
+          "tool": "write_file",
+          "filePattern": "*StateManager.gd"
+        },
+        {
+          "tool": "replace",
+          "filePattern": "*StateManager.gd"
+        },
+        {
+          "tool": "edit_block",
+          "filePattern": "src/ui/screens/campaign/**/*.gd"
+        }
+      ],
+      "command": "python",
+      "args": [
+        "automation/state_guardian.py",
+        "--validate-state-integrity",
+        "--check-signal-connections",
+        "--verify-validation-logic",
+        "--target-file",
+        "${filePath}"
+      ],
+      "timeout": 20,
+      "errorHandling": "fail"
+    },
+    {
+      "name": "performance_monitor",
+      "description": "Monitor build performance and code complexity",
+      "type": "PostToolUse",
+      "enabled": true,
+      "patterns": [
+        {
+          "tool": "write_file",
+          "filePattern": "src/**/*.gd"
+        }
+      ],
+      "command": "python",
+      "args": [
+        "automation/performance_monitor.py",
+        "--analyze-complexity",
+        "--check-memory-usage",
+        "--validate-60fps-target",
+        "--file",
+        "${filePath}"
+      ],
+      "timeout": 10,
+      "errorHandling": "continue",
+      "conditions": {
+        "minInterval": 300
+      }
+    }
+  ],
+  "globalSettings": {
+    "workingDirectory": "C:\\Users\\elija\\SynologyDrive\\Godot\\five-parsecs-campaign-manager",
+    "defaultTimeout": 60,
+    "errorHandling": "continue",
+    "logging": {
+      "level": "info",
+      "file": ".claude/hooks.log",
+      "maxSize": "10MB"
+    },
+    "environment": {
+      "GODOT_PATH": "C:/Users/elija/Desktop/GoDot/Godot_v4.4-stable_mono_win64/Godot_v4.4-stable_mono_win64_console.exe",
+      "PROJECT_ROOT": "C:/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager",
+      "PYTHON_PATH": "python"
+    }
+  },
+  "notifications": {
+    "onSuccess": {
+      "enabled": true,
+      "message": "Hook completed successfully"
+    },
+    "onFailure": {
+      "enabled": true,
+      "message": "Hook failed - check logs for details"
+    },
+    "onTimeout": {
+      "enabled": true,
+      "message": "Hook timed out - consider increasing timeout"
+    }
+  },
+  "metadata": {
+    "created": "2025-01-20",
+    "lastModified": "2025-01-20",
+    "version": "1.0.0",
+    "author": "Five Parsecs Development Team",
+    "description": "Production-grade Claude Hooks for automated quality assurance, testing, and Five Parsecs rule compliance in the campaign manager project."
+  }
+}

@@ -1,0 +1,159 @@
+{
+  "name": "Exploration Events Table",
+  "version": "1.0",
+  "source": "Five Parsecs from Home Core Rules p.50",
+  "description": "Table for determining exploration task outcomes and discoveries",
+  "dice_type": "d100",
+  "results": {
+    "1-15": {
+      "outcome": "nothing_found",
+      "type": "empty",
+      "description": "Nothing of interest found",
+      "narrative": "Despite thorough searching, you find nothing of value in the area"
+    },
+    "16-25": {
+      "outcome": "minor_credits",
+      "type": "credits",
+      "credits": 1,
+      "description": "Found 1 credit worth of salvage",
+      "narrative": "You discover some minor salvageable materials"
+    },
+    "26-35": {
+      "outcome": "decent_credits",
+      "type": "credits",
+      "credits": 2,
+      "description": "Found 2 credits worth of materials",
+      "narrative": "A thorough search reveals valuable scrap and components"
+    },
+    "36-45": {
+      "outcome": "good_credits",
+      "type": "credits",
+      "credits": 3,
+      "description": "Found 3 credits worth of valuable items",
+      "narrative": "Your exploration uncovers a cache of valuable materials"
+    },
+    "46-55": {
+      "outcome": "basic_equipment",
+      "type": "equipment",
+      "equipment_type": "consumable",
+      "description": "Found basic equipment or supplies",
+      "narrative": "You discover useful equipment abandoned or overlooked by others"
+    },
+    "56-65": {
+      "outcome": "useful_gear",
+      "type": "equipment",
+      "equipment_type": "gear",
+      "description": "Found useful gear or tools",
+      "narrative": "Your search turns up functional gear that could prove useful"
+    },
+    "66-75": {
+      "outcome": "rumor_gained",
+      "type": "information",
+      "quest_rumor": true,
+      "description": "Learned a rumor about work opportunities",
+      "narrative": "Local contacts share information about potential opportunities"
+    },
+    "76-80": {
+      "outcome": "patron_contact",
+      "type": "contact",
+      "patron_lead": true,
+      "description": "Made contact with a potential patron",
+      "narrative": "Your exploration leads to contact with someone who might have work"
+    },
+    "81-85": {
+      "outcome": "rare_item",
+      "type": "equipment",
+      "equipment_type": "valuable",
+      "description": "Found a rare or valuable item",
+      "narrative": "Exceptional luck leads to the discovery of something truly valuable"
+    },
+    "86-90": {
+      "outcome": "story_point",
+      "type": "advancement",
+      "story_points": 1,
+      "description": "Gained 1 Story Point from interesting discovery",
+      "narrative": "Your exploration uncovers something that could prove significant later"
+    },
+    "91-95": {
+      "outcome": "character_event",
+      "type": "event",
+      "character_event": true,
+      "description": "Character has an interesting encounter",
+      "narrative": "The exploring character has a meaningful encounter during their search"
+    },
+    "96-98": {
+      "outcome": "danger_encounter",
+      "type": "danger",
+      "combat_encounter": true,
+      "description": "Encountered danger requiring resolution",
+      "narrative": "Your exploration attracts unwanted attention or reveals hidden dangers"
+    },
+    "99-100": {
+      "outcome": "major_discovery",
+      "type": "special",
+      "credits": 5,
+      "story_points": 1,
+      "description": "Major discovery worth 5 credits and 1 Story Point",
+      "narrative": "An exceptional discovery that could change everything"
+    }
+  },
+  "modifiers": {
+    "skill_bonuses": {
+      "SAVVY": {
+        "bonus": 5,
+        "description": "Savvy characters are better at spotting opportunities"
+      },
+      "LUCK": {
+        "bonus": 10,
+        "description": "Lucky characters find better results"
+      }
+    },
+    "world_modifiers": {
+      "FRONTIER": {
+        "bonus": 10,
+        "description": "Frontier worlds have more undiscovered opportunities"
+      },
+      "DANGEROUS": {
+        "bonus": 5,
+        "description": "Dangerous worlds hide valuable secrets"
+      },
+      "RUINS": {
+        "bonus": 15,
+        "description": "Ancient ruins contain forgotten treasures"
+      },
+      "CIVILIZED": {
+        "penalty": -10,
+        "description": "Well-explored civilized worlds offer fewer discoveries"
+      },
+      "CORPORATE": {
+        "penalty": -5,
+        "description": "Corporate worlds are thoroughly monitored and searched"
+      }
+    },
+    "equipment_bonuses": {
+      "scanner": {
+        "bonus": 5,
+        "description": "Electronic scanners improve search efficiency"
+      },
+      "survey_tools": {
+        "bonus": 10,
+        "description": "Professional survey equipment greatly aids exploration"
+      }
+    }
+  },
+  "special_rules": {
+    "multiple_explorers": {
+      "rule": "Each additional explorer beyond the first adds +5 to the roll",
+      "max_bonus": 15,
+      "description": "Multiple explorers can cover more ground effectively"
+    },
+    "dangerous_results": {
+      "rule": "Results 96-98 require immediate combat or skill resolution",
+      "description": "Some exploration results involve immediate danger"
+    },
+    "follow_up_opportunities": {
+      "rule": "Rumor and patron contact results may provide benefits in future turns",
+      "description": "Information gained through exploration has lasting value"
+    }
+  }
+}

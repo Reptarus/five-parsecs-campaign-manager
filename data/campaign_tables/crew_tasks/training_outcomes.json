@@ -1,0 +1,144 @@
+{
+  "name": "Training Outcomes Table",
+  "version": "1.0",
+  "source": "Five Parsecs from Home Core Rules",
+  "description": "Table for determining training task outcomes and character advancement",
+  "automatic_success": true,
+  "base_xp_award": 1,
+  "training_types": {
+    "basic_training": {
+      "xp_award": 1,
+      "description": "Standard training provides 1 XP",
+      "narrative": "Character undergoes basic skill training and practice"
+    },
+    "intensive_training": {
+      "xp_award": 2,
+      "cost": 1,
+      "description": "Intensive training costs 1 credit but provides 2 XP",
+      "narrative": "Character receives professional instruction and advanced training"
+    },
+    "specialized_training": {
+      "xp_award": 1,
+      "skill_focus": true,
+      "cost": 2,
+      "description": "Specialized training focuses on specific skills",
+      "narrative": "Character receives targeted training in their area of expertise"
+    }
+  },
+  "advancement_checks": {
+    "threshold": 3,
+    "description": "Characters advance when they reach 3 XP",
+    "advancement_options": [
+      "increase_attribute",
+      "gain_skill",
+      "improve_existing_skill",
+      "gain_special_ability"
+    ]
+  },
+  "training_modifiers": {
+    "character_conditions": {
+      "wounded": {
+        "restriction": true,
+        "description": "Wounded characters cannot train effectively"
+      },
+      "stunned": {
+        "restriction": true,
+        "description": "Stunned characters cannot focus on training"
+      },
+      "motivated": {
+        "bonus": "potential_extra_xp",
+        "description": "Highly motivated characters may gain additional benefits"
+      }
+    },
+    "facility_bonuses": {
+      "training_facility": {
+        "bonus": 1,
+        "description": "Access to proper training facilities improves results"
+      },
+      "academy": {
+        "bonus": 2,
+        "description": "Military or technical academies provide superior training"
+      },
+      "mentor": {
+        "bonus": 1,
+        "description": "Having an experienced mentor improves training efficiency"
+      }
+    },
+    "world_modifiers": {
+      "CIVILIZED": {
+        "bonus": 1,
+        "description": "Civilized worlds have better training opportunities"
+      },
+      "ACADEMIC": {
+        "bonus": 2,
+        "description": "Academic worlds excel at knowledge-based training"
+      },
+      "MILITARY": {
+        "bonus": 1,
+        "description": "Military worlds provide excellent combat training"
+      },
+      "BACKWATER": {
+        "penalty": -1,
+        "description": "Limited training opportunities on backwater worlds"
+      }
+    }
+  },
+  "special_training_opportunities": {
+    "combat_training": {
+      "focus": "combat_skills",
+      "bonus": "combat_advancement",
+      "description": "Specialized combat training improves fighting abilities"
+    },
+    "technical_training": {
+      "focus": "technical_skills", 
+      "bonus": "tech_advancement",
+      "description": "Technical training improves technology and repair skills"
+    },
+    "social_training": {
+      "focus": "social_skills",
+      "bonus": "social_advancement", 
+      "description": "Social training improves leadership and negotiation abilities"
+    },
+    "survival_training": {
+      "focus": "survival_skills",
+      "bonus": "survival_advancement",
+      "description": "Survival training improves wilderness and exploration abilities"
+    }
+  },
+  "results": {
+    "standard_outcome": {
+      "xp_gained": 1,
+      "description": "Character gains 1 XP from training",
+      "narrative": "Dedicated practice and study improve the character's abilities",
+      "advancement_check": true
+    },
+    "exceptional_outcome": {
+      "trigger": "special_circumstances",
+      "xp_gained": 2,
+      "description": "Exceptional training session provides 2 XP",
+      "narrative": "Outstanding dedication and ideal conditions lead to exceptional progress",
+      "advancement_check": true
+    },
+    "breakthrough": {
+      "trigger": "natural_talent_or_perfect_conditions",
+      "xp_gained": 1,
+      "bonus_advancement": true,
+      "description": "Training breakthrough provides advancement opportunity",
+      "narrative": "A moment of insight leads to a significant breakthrough in understanding"
+    }
+  },
+  "training_restrictions": {
+    "one_per_turn": {
+      "rule": "Each character can only train once per turn",
+      "description": "Training requires dedicated time and focus"
+    },
+    "status_requirements": {
+      "rule": "Character must be healthy and available",
+      "description": "Injured or occupied characters cannot train effectively"
+    },
+    "resource_limits": {
+      "rule": "Some training types require credits or facilities",
+      "description": "Advanced training may have additional costs"
+    }
+  }
+}

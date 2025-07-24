@@ -1,0 +1,174 @@
+{
+  "name": "Five Parsecs Crew Task Resolution",
+  "version": "1.0",
+  "source": "Five Parsecs from Home Core Rules",
+  "description": "Main table for resolving crew task assignments and basic outcomes",
+  "tasks": {
+    "FIND_PATRON": {
+      "name": "Find a Patron",
+      "description": "Search for a patron willing to offer work",
+      "base_difficulty": 6,
+      "dice_type": "2d6",
+      "skill_modifiers": {
+        "SAVVY": 1,
+        "CONNECTIONS": 2
+      },
+      "world_modifiers": {
+        "CORPORATE": 1,
+        "BUSY": 1,
+        "BACKWATER": -1
+      },
+      "crew_size_bonus": {
+        "4_or_more": 1,
+        "6_or_more": 2
+      },
+      "results": {
+        "success": {
+          "patron_gained": true,
+          "description": "You find a patron willing to offer work",
+          "story_point_bonus": 1
+        },
+        "failure": {
+          "patron_gained": false,
+          "description": "No suitable patrons are found this turn",
+          "story_point_bonus": 0
+        }
+      }
+    },
+    "TRAIN": {
+      "name": "Train",
+      "description": "Character undergoes training to improve skills",
+      "automatic_success": true,
+      "xp_award": 1,
+      "skill_requirements": {
+        "wounded": false,
+        "stunned": false
+      },
+      "results": {
+        "success": {
+          "xp_gained": 1,
+          "description": "Character completes training and gains experience",
+          "advancement_check": true
+        }
+      }
+    },
+    "TRADE": {
+      "name": "Trade",
+      "description": "Engage in commerce and trading activities",
+      "table_reference": "trade_results",
+      "dice_type": "d6",
+      "skill_modifiers": {
+        "SAVVY": 1,
+        "CONNECTIONS": 1
+      },
+      "equipment_bonuses": {
+        "trade_goods": 1,
+        "luxury_items": 2
+      }
+    },
+    "RECRUIT": {
+      "name": "Recruit",
+      "description": "Search for new crew members to join your team",
+      "table_reference": "recruitment_opportunities",
+      "dice_type": "d6",
+      "skill_modifiers": {
+        "SAVVY": 1,
+        "CONNECTIONS": 1
+      },
+      "crew_size_penalty": {
+        "5_or_more": -1,
+        "6_or_more": -2
+      }
+    },
+    "EXPLORE": {
+      "name": "Explore",
+      "description": "Search the local area for opportunities and discoveries",
+      "table_reference": "exploration_events",
+      "dice_type": "d100",
+      "skill_modifiers": {
+        "SAVVY": 5,
+        "LUCK": 10
+      },
+      "world_modifiers": {
+        "FRONTIER": 10,
+        "DANGEROUS": 5,
+        "CIVILIZED": -10
+      }
+    },
+    "TRACK": {
+      "name": "Track",
+      "description": "Investigate and track rival activities",
+      "base_difficulty": 6,
+      "dice_type": "2d6",
+      "skill_modifiers": {
+        "SAVVY": 1,
+        "CONNECTIONS": 1
+      },
+      "results": {
+        "success": {
+          "rival_located": true,
+          "description": "You successfully track down rival activities",
+          "intel_bonus": 1
+        },
+        "failure": {
+          "rival_located": false,
+          "description": "No useful intelligence is gathered",
+          "intel_bonus": 0
+        }
+      }
+    },
+    "REPAIR_KIT": {
+      "name": "Repair Kit",
+      "description": "Repair and maintain equipment and gear",
+      "automatic_success": true,
+      "equipment_repair": true,
+      "results": {
+        "success": {
+          "equipment_repaired": 1,
+          "description": "One piece of damaged equipment is repaired",
+          "consumable_used": "repair_parts"
+        }
+      }
+    },
+    "DECOY": {
+      "name": "Decoy",
+      "description": "Lay false trails to avoid rival attention",
+      "base_difficulty": 6,
+      "dice_type": "2d6",
+      "skill_modifiers": {
+        "SAVVY": 1,
+        "TECH": 1
+      },
+      "results": {
+        "success": {
+          "rival_avoidance": true,
+          "description": "Successfully lay false trails to confuse rivals",
+          "stealth_bonus": 1
+        },
+        "failure": {
+          "rival_avoidance": false,
+          "description": "Decoy attempts are ineffective",
+          "stealth_bonus": 0
+        }
+      }
+    }
+  },
+  "validation_rules": {
+    "max_tasks_per_turn": 6,
+    "required_crew_status": "AVAILABLE",
+    "wounded_restrictions": ["TRAIN", "EXPLORE"],
+    "equipment_requirements": {
+      "REPAIR_KIT": ["repair_parts", "tools"]
+    }
+  },
+  "task_assignment_priority": [
+    "TRAIN",
+    "FIND_PATRON", 
+    "TRADE",
+    "EXPLORE",
+    "RECRUIT",
+    "TRACK",
+    "REPAIR_KIT",
+    "DECOY"
+  ]
+}

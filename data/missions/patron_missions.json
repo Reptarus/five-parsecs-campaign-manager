@@ -1,0 +1,691 @@
+{
+  "patron_missions": {
+    "delivery_mission": {
+      "mission_type": "delivery",
+      "display_name": "Delivery Contract",
+      "description": "Transport cargo safely from origin to destination",
+      "base_payment": 800,
+      "difficulty_range": [1, 5],
+      "duration_estimate": "2-5 turns",
+      
+      "mission_parameters": {
+        "cargo_types": {
+          "standard_goods": {
+            "description": "Regular commercial cargo",
+            "difficulty_modifier": 0,
+            "payment_modifier": 1.0,
+            "risk_level": 1,
+            "special_requirements": []
+          },
+          
+          "valuable_goods": {
+            "description": "High-value commercial cargo",
+            "difficulty_modifier": 1,
+            "payment_modifier": 1.3,
+            "risk_level": 2,
+            "special_requirements": ["security_escort", "insurance_required"]
+          },
+          
+          "medical_supplies": {
+            "description": "Time-sensitive medical cargo",
+            "difficulty_modifier": 1,
+            "payment_modifier": 1.2,
+            "risk_level": 2,
+            "special_requirements": ["time_limit", "environmental_protection"],
+            "time_pressure": "high"
+          },
+          
+          "hazardous_materials": {
+            "description": "Dangerous or unstable cargo",
+            "difficulty_modifier": 2,
+            "payment_modifier": 1.6,
+            "risk_level": 4,
+            "special_requirements": ["hazmat_certification", "specialized_equipment"],
+            "environmental_risks": ["contamination", "explosion"]
+          },
+          
+          "classified_cargo": {
+            "description": "Government or corporate secrets",
+            "difficulty_modifier": 3,
+            "payment_modifier": 2.0,
+            "risk_level": 5,
+            "special_requirements": ["security_clearance", "no_questions_asked"],
+            "pursuit_likelihood": "high"
+          }
+        },
+        
+        "route_complications": {
+          "clear_route": {
+            "probability": 0.4,
+            "description": "Direct route with minimal complications",
+            "travel_time_modifier": 1.0,
+            "encounter_chance": 0.1
+          },
+          
+          "crowded_space_lanes": {
+            "probability": 0.3,
+            "description": "Heavy traffic increases detection risk",
+            "travel_time_modifier": 1.2,
+            "encounter_chance": 0.2,
+            "complications": ["customs_inspection", "traffic_delays"]
+          },
+          
+          "pirate_territory": {
+            "probability": 0.2,
+            "description": "Route passes through known pirate hunting grounds",
+            "travel_time_modifier": 0.9,
+            "encounter_chance": 0.4,
+            "enemy_types": ["pirates", "raiders"],
+            "evasion_options": true
+          },
+          
+          "contested_space": {
+            "probability": 0.1,
+            "description": "Active conflict zone with multiple hostiles",
+            "travel_time_modifier": 1.5,
+            "encounter_chance": 0.6,
+            "enemy_types": ["corporate_security", "enforcers", "rival_gang"],
+            "diplomacy_options": true
+          }
+        },
+        
+        "time_pressure_levels": {
+          "relaxed": {
+            "time_multiplier": 2.0,
+            "payment_modifier": 0.8,
+            "stress_level": "low"
+          },
+          
+          "standard": {
+            "time_multiplier": 1.0,
+            "payment_modifier": 1.0,
+            "stress_level": "moderate"
+          },
+          
+          "urgent": {
+            "time_multiplier": 0.7,
+            "payment_modifier": 1.3,
+            "stress_level": "high",
+            "penalties": ["reputation_loss", "payment_reduction"]
+          },
+          
+          "emergency": {
+            "time_multiplier": 0.5,
+            "payment_modifier": 1.8,
+            "stress_level": "extreme",
+            "benefits": ["reputation_bonus"],
+            "penalties": ["severe_reputation_loss"]
+          }
+        }
+      },
+      
+      "success_conditions": {
+        "primary": [
+          "cargo_delivered_intact",
+          "delivery_within_time_limit"
+        ],
+        "optional": [
+          "zero_cargo_damage",
+          "early_delivery",
+          "evaded_all_encounters",
+          "maintained_cargo_secrecy"
+        ]
+      },
+      
+      "failure_conditions": [
+        "cargo_destroyed",
+        "cargo_stolen",
+        "deadline_missed_severely",
+        "crew_casualties_exceed_limit"
+      ],
+      
+      "rewards": {
+        "base_payment": "mission_base_payment",
+        "performance_bonuses": {
+          "perfect_delivery": 0.3,
+          "early_delivery": 0.2,
+          "zero_damage": 0.15,
+          "stealth_bonus": 0.1
+        },
+        "reputation_gains": {
+          "successful_completion": 1,
+          "perfect_performance": 2,
+          "repeat_client_bonus": 1
+        }
+      }
+    },
+    
+    "bounty_hunting_mission": {
+      "mission_type": "bounty_hunting",
+      "display_name": "Bounty Contract",
+      "description": "Track down and capture or eliminate specified targets",
+      "base_payment": 1200,
+      "difficulty_range": [2, 5],
+      "duration_estimate": "3-8 turns",
+      
+      "mission_parameters": {
+        "target_types": {
+          "petty_criminal": {
+            "description": "Low-level offender with minor crimes",
+            "difficulty_modifier": 0,
+            "payment_modifier": 0.8,
+            "threat_level": 1,
+            "capture_preferred": true,
+            "backup_likelihood": "low"
+          },
+          
+          "gang_lieutenant": {
+            "description": "Mid-level gang member with connections",
+            "difficulty_modifier": 1,
+            "payment_modifier": 1.0,
+            "threat_level": 2,
+            "capture_preferred": true,
+            "backup_likelihood": "moderate",
+            "gang_retaliation": true
+          },
+          
+          "corporate_traitor": {
+            "description": "Former corporate employee with secrets",
+            "difficulty_modifier": 2,
+            "payment_modifier": 1.4,
+            "threat_level": 3,
+            "capture_required": true,
+            "security_protection": "high",
+            "information_value": "classified"
+          },
+          
+          "crime_boss": {
+            "description": "High-level criminal organization leader",
+            "difficulty_modifier": 3,
+            "payment_modifier": 1.8,
+            "threat_level": 4,
+            "eliminate_allowed": true,
+            "gang_retaliation": "severe",
+            "security_protection": "extreme"
+          },
+          
+          "war_criminal": {
+            "description": "Former military officer with government protection",
+            "difficulty_modifier": 4,
+            "payment_modifier": 2.2,
+            "threat_level": 5,
+            "capture_required": true,
+            "government_interference": true,
+            "military_protection": "active"
+          }
+        },
+        
+        "investigation_phases": {
+          "information_gathering": {
+            "required": true,
+            "skills_needed": ["investigation", "social"],
+            "time_cost": 1,
+            "success_threshold": 3,
+            "failure_consequences": ["false_leads", "target_alerted"]
+          },
+          
+          "target_location": {
+            "required": true,
+            "skills_needed": ["tracking", "technology"],
+            "time_cost": 1,
+            "success_threshold": 4,
+            "failure_consequences": ["target_relocated", "ambush_risk"]
+          },
+          
+          "approach_planning": {
+            "required": false,
+            "skills_needed": ["tactics", "stealth"],
+            "time_cost": 1,
+            "success_threshold": 2,
+            "benefits": ["surprise_bonus", "escape_route_identified"]
+          }
+        },
+        
+        "target_awareness_levels": {
+          "unaware": {
+            "detection_chance": 0.1,
+            "preparation_bonus": 0,
+            "escape_difficulty": 2
+          },
+          
+          "suspicious": {
+            "detection_chance": 0.3,
+            "preparation_bonus": 1,
+            "escape_difficulty": 3,
+            "security_increase": "moderate"
+          },
+          
+          "alerted": {
+            "detection_chance": 0.6,
+            "preparation_bonus": 2,
+            "escape_difficulty": 4,
+            "security_increase": "high",
+            "backup_called": true
+          },
+          
+          "fully_prepared": {
+            "detection_chance": 0.9,
+            "preparation_bonus": 3,
+            "escape_difficulty": 5,
+            "security_increase": "maximum",
+            "trap_probability": 0.4
+          }
+        }
+      },
+      
+      "success_conditions": {
+        "primary": [
+          "target_captured_or_eliminated",
+          "proof_of_completion_obtained"
+        ],
+        "optional": [
+          "target_captured_alive",
+          "minimal_collateral_damage",
+          "stealth_approach_successful",
+          "additional_intelligence_gathered"
+        ]
+      },
+      
+      "failure_conditions": [
+        "target_escaped_permanently",
+        "wrong_target_eliminated",
+        "excessive_collateral_damage",
+        "crew_captured_by_authorities"
+      ],
+      
+      "rewards": {
+        "base_payment": "mission_base_payment",
+        "capture_bonuses": {
+          "alive_when_required": 0.5,
+          "additional_evidence": 0.2,
+          "gang_intelligence": 0.3
+        },
+        "reputation_gains": {
+          "successful_capture": 2,
+          "clean_operation": 1,
+          "law_enforcement_cooperation": 1
+        }
+      }
+    },
+    
+    "escort_mission": {
+      "mission_type": "escort",
+      "display_name": "Protection Detail",
+      "description": "Provide security for VIP during dangerous transit",
+      "base_payment": 1000,
+      "difficulty_range": [1, 4],
+      "duration_estimate": "2-6 turns",
+      
+      "mission_parameters": {
+        "vip_types": {
+          "corporate_executive": {
+            "description": "High-ranking corporate official",
+            "difficulty_modifier": 1,
+            "payment_modifier": 1.2,
+            "threat_level": 2,
+            "enemy_types": ["rival_gang", "corporate_security"],
+            "resources_available": "high",
+            "cooperation_level": "professional"
+          },
+          
+          "government_official": {
+            "description": "Planetary or system government representative",
+            "difficulty_modifier": 2,
+            "payment_modifier": 1.4,
+            "threat_level": 3,
+            "enemy_types": ["enforcers", "cultists", "mercenaries"],
+            "resources_available": "government",
+            "cooperation_level": "formal"
+          },
+          
+          "diplomat": {
+            "description": "Inter-system diplomatic envoy",
+            "difficulty_modifier": 1,
+            "payment_modifier": 1.3,
+            "threat_level": 2,
+            "enemy_types": ["pirates", "rival_gang"],
+            "resources_available": "moderate",
+            "cooperation_level": "diplomatic",
+            "neutrality_required": true
+          },
+          
+          "witness": {
+            "description": "Key witness in major criminal case",
+            "difficulty_modifier": 3,
+            "payment_modifier": 1.6,
+            "threat_level": 4,
+            "enemy_types": ["rival_gang", "mercenaries", "enforcers"],
+            "resources_available": "limited",
+            "cooperation_level": "reluctant",
+            "secrecy_required": true
+          },
+          
+          "defector": {
+            "description": "High-value defector with critical intelligence",
+            "difficulty_modifier": 4,
+            "payment_modifier": 2.0,
+            "threat_level": 5,
+            "enemy_types": ["corporate_security", "enforcers", "mercenaries"],
+            "resources_available": "none",
+            "cooperation_level": "paranoid",
+            "multiple_pursuers": true
+          }
+        },
+        
+        "threat_escalation": {
+          "phase_1": {
+            "turn_range": [1, 2],
+            "threat_level": 1,
+            "encounter_types": ["surveillance", "probe_attempts"],
+            "enemy_count": [1, 2]
+          },
+          
+          "phase_2": {
+            "turn_range": [3, 4],
+            "threat_level": 2,
+            "encounter_types": ["harassment", "intimidation"],
+            "enemy_count": [2, 4]
+          },
+          
+          "phase_3": {
+            "turn_range": [5, 6],
+            "threat_level": 3,
+            "encounter_types": ["direct_assault", "kidnap_attempt"],
+            "enemy_count": [4, 8]
+          }
+        },
+        
+        "stress_management": {
+          "vip_stress_factors": [
+            "prolonged_danger_exposure",
+            "uncomfortable_conditions",
+            "crew_casualties",
+            "mission_delays",
+            "communication_restrictions"
+          ],
+          
+          "stress_effects": {
+            "low_stress": {
+              "cooperation_modifier": 1.0,
+              "decision_quality": "optimal",
+              "additional_demands": false
+            },
+            
+            "moderate_stress": {
+              "cooperation_modifier": 0.8,
+              "decision_quality": "impaired",
+              "additional_demands": true,
+              "irrational_requests": "occasional"
+            },
+            
+            "high_stress": {
+              "cooperation_modifier": 0.5,
+              "decision_quality": "poor",
+              "additional_demands": true,
+              "irrational_requests": "frequent",
+              "panic_risk": 0.3
+            }
+          }
+        }
+      },
+      
+      "success_conditions": {
+        "primary": [
+          "vip_delivered_safely",
+          "vip_stress_level_manageable"
+        ],
+        "optional": [
+          "zero_injuries_to_vip",
+          "mission_completed_early",
+          "all_threats_neutralized",
+          "vip_satisfaction_high"
+        ]
+      },
+      
+      "failure_conditions": [
+        "vip_killed_or_captured",
+        "vip_stress_breakdown",
+        "mission_abandoned_by_vip",
+        "protection_detail_compromised"
+      ],
+      
+      "rewards": {
+        "base_payment": "mission_base_payment",
+        "protection_bonuses": {
+          "zero_harm_to_vip": 0.4,
+          "threat_elimination": 0.2,
+          "stress_management": 0.15,
+          "early_completion": 0.1
+        },
+        "reputation_gains": {
+          "successful_protection": 2,
+          "vip_satisfaction": 1,
+          "professional_service": 1
+        }
+      }
+    },
+    
+    "investigation_mission": {
+      "mission_type": "investigation",
+      "display_name": "Investigation Contract",
+      "description": "Gather intelligence and evidence through careful investigation",
+      "base_payment": 900,
+      "difficulty_range": [1, 4],
+      "duration_estimate": "4-10 turns",
+      
+      "mission_parameters": {
+        "investigation_types": {
+          "corporate_espionage": {
+            "description": "Infiltrate competitor to steal trade secrets",
+            "difficulty_modifier": 2,
+            "payment_modifier": 1.5,
+            "stealth_required": true,
+            "evidence_type": "data_files",
+            "security_level": "high",
+            "detection_consequences": "severe"
+          },
+          
+          "criminal_network": {
+            "description": "Map criminal organization structure and operations",
+            "difficulty_modifier": 1,
+            "payment_modifier": 1.2,
+            "stealth_required": false,
+            "evidence_type": "network_intelligence",
+            "security_level": "moderate",
+            "detection_consequences": "retaliation"
+          },
+          
+          "missing_person": {
+            "description": "Locate and determine fate of missing individual",
+            "difficulty_modifier": 1,
+            "payment_modifier": 1.0,
+            "stealth_required": false,
+            "evidence_type": "location_data",
+            "security_level": "variable",
+            "time_pressure": "moderate"
+          },
+          
+          "corruption_probe": {
+            "description": "Investigate official corruption and gather evidence",
+            "difficulty_modifier": 3,
+            "payment_modifier": 1.8,
+            "stealth_required": true,
+            "evidence_type": "corruption_proof",
+            "security_level": "government",
+            "detection_consequences": "legal_action",
+            "authority_interference": true
+          },
+          
+          "elder_influence": {
+            "description": "Investigate suspected Elder manipulation",
+            "difficulty_modifier": 4,
+            "payment_modifier": 2.2,
+            "stealth_required": true,
+            "evidence_type": "elder_artifacts",
+            "security_level": "unknown",
+            "detection_consequences": "extreme",
+            "sanity_risk": true
+          }
+        },
+        
+        "evidence_gathering": {
+          "document_acquisition": {
+            "skill_required": "stealth",
+            "difficulty": 3,
+            "time_cost": 1,
+            "detection_risk": 0.3,
+            "evidence_value": 2
+          },
+          
+          "witness_interviews": {
+            "skill_required": "social",
+            "difficulty": 2,
+            "time_cost": 1,
+            "detection_risk": 0.2,
+            "evidence_value": 1,
+            "reliability_variable": true
+          },
+          
+          "surveillance_data": {
+            "skill_required": "technology",
+            "difficulty": 4,
+            "time_cost": 2,
+            "detection_risk": 0.1,
+            "evidence_value": 3
+          },
+          
+          "physical_evidence": {
+            "skill_required": "investigation",
+            "difficulty": 3,
+            "time_cost": 1,
+            "detection_risk": 0.4,
+            "evidence_value": 2,
+            "degradation_risk": true
+          }
+        },
+        
+        "network_contacts": {
+          "informants": {
+            "reliability": 0.7,
+            "cost": "moderate",
+            "information_quality": "variable",
+            "exposure_risk": 0.3
+          },
+          
+          "inside_sources": {
+            "reliability": 0.9,
+            "cost": "high",
+            "information_quality": "excellent",
+            "exposure_risk": 0.6,
+            "access_restrictions": true
+          },
+          
+          "public_records": {
+            "reliability": 1.0,
+            "cost": "low",
+            "information_quality": "basic",
+            "exposure_risk": 0.1,
+            "completeness": "limited"
+          }
+        }
+      },
+      
+      "success_conditions": {
+        "primary": [
+          "sufficient_evidence_gathered",
+          "investigation_objectives_completed"
+        ],
+        "optional": [
+          "all_evidence_types_collected",
+          "zero_detection_incidents",
+          "network_contacts_preserved",
+          "additional_intelligence_discovered"
+        ]
+      },
+      
+      "failure_conditions": [
+        "investigation_discovered_prematurely",
+        "key_evidence_destroyed",
+        "network_contacts_compromised",
+        "investigation_team_captured"
+      ],
+      
+      "rewards": {
+        "base_payment": "mission_base_payment",
+        "evidence_bonuses": {
+          "complete_evidence_set": 0.5,
+          "undiscovered_operation": 0.3,
+          "bonus_intelligence": 0.2,
+          "network_preservation": 0.1
+        },
+        "reputation_gains": {
+          "successful_investigation": 1,
+          "stealth_operation": 2,
+          "intelligence_quality": 1
+        }
+      }
+    }
+  },
+  
+  "common_mission_elements": {
+    "difficulty_scaling": {
+      "crew_experience_modifier": {
+        "rookie": 0.8,
+        "experienced": 1.0,
+        "veteran": 1.2,
+        "elite": 1.4
+      },
+      
+      "patron_relationship_modifier": {
+        "unknown": 1.0,
+        "neutral": 1.0,
+        "friendly": 0.9,
+        "trusted": 0.8,
+        "hostile": 1.3
+      }
+    },
+    
+    "environmental_factors": {
+      "location_types": {
+        "civilized_world": {
+          "law_enforcement": "high",
+          "medical_facilities": "excellent",
+          "equipment_availability": "full",
+          "corruption_level": "low"
+        },
+        
+        "frontier_world": {
+          "law_enforcement": "limited",
+          "medical_facilities": "basic",
+          "equipment_availability": "limited",
+          "corruption_level": "moderate"
+        },
+        
+        "lawless_system": {
+          "law_enforcement": "none",
+          "medical_facilities": "poor",
+          "equipment_availability": "black_market",
+          "corruption_level": "extreme"
+        }
+      }
+    },
+    
+    "patron_relationships": {
+      "reputation_thresholds": {
+        "trusted_ally": 10,
+        "reliable_contact": 6,
+        "known_quantity": 3,
+        "new_contact": 0,
+        "suspicious": -3,
+        "hostile": -6
+      },
+      
+      "relationship_benefits": {
+        "mission_availability": "expanded",
+        "payment_bonuses": "increased",
+        "equipment_access": "enhanced",
+        "information_sharing": "improved"
+      }
+    }
+  }
+}

@@ -1,0 +1,312 @@
+{
+  "name": "World Step Crew Task Modifiers",
+  "version": "1.0",
+  "source": "Five Parsecs from Home Core Rules p.74-82",
+  "description": "Comprehensive modifiers for all crew tasks during the World Step",
+  "task_types": {
+    "EXPLORE": {
+      "base_dice": "d100",
+      "description": "Search for valuable items, equipment, or opportunities",
+      "skill_modifiers": {
+        "SAVVY": {
+          "bonus": 5,
+          "description": "Better at spotting opportunities and valuable items"
+        },
+        "LUCK": {
+          "bonus": 10,
+          "description": "Lucky characters find better results"
+        },
+        "TECH": {
+          "bonus": 3,
+          "description": "Technical knowledge helps identify valuable technology"
+        }
+      },
+      "equipment_modifiers": {
+        "scanner": {
+          "bonus": 5,
+          "description": "Electronic scanners improve search efficiency"
+        },
+        "survey_tools": {
+          "bonus": 10,
+          "description": "Professional survey equipment greatly aids exploration"
+        },
+        "combat_armor": {
+          "bonus": 3,
+          "description": "Protection allows exploration of dangerous areas"
+        }
+      }
+    },
+    "TRADE": {
+      "base_dice": "d6",
+      "description": "Engage in commercial activities for profit",
+      "skill_modifiers": {
+        "SAVVY": {
+          "bonus": 1,
+          "description": "Better at identifying profitable deals"
+        },
+        "CONNECTIONS": {
+          "bonus": 1,
+          "description": "Network contacts provide trading opportunities"
+        }
+      },
+      "equipment_modifiers": {
+        "trade_goods": {
+          "bonus": 1,
+          "description": "Having goods to trade improves prospects"
+        },
+        "luxury_items": {
+          "bonus": 2,
+          "description": "High-value items command premium prices"
+        },
+        "cargo_hold": {
+          "bonus": 1,
+          "description": "Larger capacity enables bulk trading"
+        }
+      }
+    },
+    "FIND_PATRON": {
+      "base_dice": "2d6",
+      "description": "Seek out patrons offering job opportunities",
+      "skill_modifiers": {
+        "CONNECTIONS": {
+          "bonus": 2,
+          "description": "Network connections lead to patron contacts"
+        },
+        "SAVVY": {
+          "bonus": 1,
+          "description": "Social awareness helps locate potential patrons"
+        }
+      },
+      "equipment_modifiers": {
+        "formal_wear": {
+          "bonus": 1,
+          "description": "Proper attire improves first impressions"
+        },
+        "communicator": {
+          "bonus": 1,
+          "description": "Better communication equipment helps networking"
+        }
+      }
+    },
+    "TRAIN": {
+      "base_dice": "d6",
+      "description": "Improve skills and abilities through practice",
+      "skill_modifiers": {
+        "existing_skill_level": {
+          "penalty": -1,
+          "per_level": true,
+          "description": "Higher skill levels are harder to improve"
+        }
+      },
+      "equipment_modifiers": {
+        "training_materials": {
+          "bonus": 1,
+          "description": "Quality training materials improve learning"
+        },
+        "simulation_equipment": {
+          "bonus": 2,
+          "description": "Advanced simulation provides superior training"
+        }
+      }
+    },
+    "RECRUIT": {
+      "base_dice": "d6",
+      "description": "Find potential new crew members",
+      "skill_modifiers": {
+        "CONNECTIONS": {
+          "bonus": 1,
+          "description": "Network helps find quality recruits"
+        },
+        "SAVVY": {
+          "bonus": 1,
+          "description": "Good judge of character"
+        }
+      },
+      "equipment_modifiers": {
+        "reputation_boost": {
+          "bonus": 1,
+          "description": "Good reputation attracts better recruits"
+        }
+      }
+    },
+    "TRACK": {
+      "base_dice": "d6",
+      "description": "Investigate and pursue specific targets or information",
+      "skill_modifiers": {
+        "SAVVY": {
+          "bonus": 2,
+          "description": "Investigation skills crucial for tracking"
+        },
+        "CONNECTIONS": {
+          "bonus": 1,
+          "description": "Network provides information sources"
+        }
+      },
+      "equipment_modifiers": {
+        "investigation_gear": {
+          "bonus": 1,
+          "description": "Professional investigation equipment"
+        },
+        "data_pad": {
+          "bonus": 1,
+          "description": "Information processing capabilities"
+        }
+      }
+    },
+    "REPAIR": {
+      "base_dice": "d6",
+      "description": "Maintain and repair ship systems and equipment",
+      "skill_modifiers": {
+        "TECH": {
+          "bonus": 2,
+          "description": "Technical expertise essential for repairs"
+        }
+      },
+      "equipment_modifiers": {
+        "repair_kit": {
+          "bonus": 1,
+          "description": "Proper tools improve repair success"
+        },
+        "spare_parts": {
+          "bonus": 2,
+          "description": "Having parts available makes repairs easier"
+        },
+        "workshop": {
+          "bonus": 3,
+          "description": "Proper workshop facilities greatly aid repairs"
+        }
+      }
+    },
+    "DECOY": {
+      "base_dice": "d6",
+      "description": "Distract enemies or create false trails",
+      "skill_modifiers": {
+        "SAVVY": {
+          "bonus": 1,
+          "description": "Understanding of psychology helps with deception"
+        },
+        "CONNECTIONS": {
+          "bonus": 1,
+          "description": "Network can provide false information or alibis"
+        }
+      },
+      "equipment_modifiers": {
+        "false_documents": {
+          "bonus": 2,
+          "description": "Fake IDs and papers support deception"
+        },
+        "disguise_kit": {
+          "bonus": 1,
+          "description": "Disguises help avoid recognition"
+        }
+      }
+    }
+  },
+  "universal_modifiers": {
+    "world_type_modifiers": {
+      "TRADE_HUB": {
+        "TRADE": 2,
+        "FIND_PATRON": 1,
+        "description": "Trade hubs offer commercial opportunities"
+      },
+      "INDUSTRIAL": {
+        "TRADE": 1,
+        "REPAIR": 1,
+        "RECRUIT": 1,
+        "description": "Industrial worlds need materials and have skilled workers"
+      },
+      "FRONTIER": {
+        "EXPLORE": 10,
+        "FIND_PATRON": -1,
+        "RECRUIT": -1,
+        "description": "Frontier worlds offer exploration but limited civilization"
+      },
+      "CAPITAL": {
+        "FIND_PATRON": 2,
+        "TRAIN": 1,
+        "RECRUIT": 1,
+        "description": "Capital worlds have many opportunities and resources"
+      },
+      "BACKWATER": {
+        "FIND_PATRON": -2,
+        "TRADE": -1,
+        "TRAIN": -1,
+        "description": "Backwater worlds offer limited opportunities"
+      },
+      "DANGEROUS": {
+        "EXPLORE": 5,
+        "RECRUIT": -1,
+        "description": "Dangerous worlds hide treasures but deter recruits"
+      },
+      "HIGH_TECH": {
+        "REPAIR": 2,
+        "TRAIN": 1,
+        "EXPLORE": 5,
+        "description": "High-tech worlds offer advanced facilities and equipment"
+      },
+      "LOW_TECH": {
+        "REPAIR": -2,
+        "TRAIN": -1,
+        "description": "Low-tech worlds lack modern facilities"
+      }
+    },
+    "crew_status_modifiers": {
+      "injured_crew": {
+        "penalty": -1,
+        "description": "Injured crew members are less effective at tasks"
+      },
+      "well_equipped": {
+        "bonus": 1,
+        "description": "Having proper equipment improves all tasks"
+      },
+      "veteran_crew": {
+        "bonus": 1,
+        "threshold": "average_level_3",
+        "description": "Experienced crew performs better"
+      }
+    },
+    "reputation_modifiers": {
+      "excellent_reputation": {
+        "threshold": 25,
+        "FIND_PATRON": 2,
+        "RECRUIT": 2,
+        "description": "Excellent reputation opens many doors"
+      },
+      "good_reputation": {
+        "threshold": 10,
+        "FIND_PATRON": 1,
+        "RECRUIT": 1,
+        "description": "Good reputation provides advantages"
+      },
+      "poor_reputation": {
+        "threshold": -5,
+        "FIND_PATRON": -1,
+        "RECRUIT": -1,
+        "description": "Poor reputation limits opportunities"
+      },
+      "terrible_reputation": {
+        "threshold": -15,
+        "FIND_PATRON": -2,
+        "RECRUIT": -2,
+        "description": "Terrible reputation creates significant obstacles"
+      }
+    }
+  },
+  "special_rules": {
+    "multiple_crew_same_task": {
+      "rule": "Only one crew member per task type per turn unless specified",
+      "exceptions": ["EXPLORE", "TRADE"],
+      "description": "Most tasks can only be attempted once per turn"
+    },
+    "crew_limitations": {
+      "rule": "Injured crew cannot perform tasks requiring physical activity",
+      "affected_tasks": ["EXPLORE", "REPAIR"],
+      "description": "Physical condition affects task capability"
+    },
+    "world_restrictions": {
+      "rule": "Some worlds may restrict certain activities",
+      "examples": ["No trading on blockaded worlds", "No recruitment in quarantine zones"],
+      "description": "World conditions can prevent certain tasks"
+    }
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "name": "Trade Results Table",
+  "version": "1.0",
+  "source": "Five Parsecs from Home Core Rules p.49",
+  "description": "Table for determining trade task outcomes and credit rewards",
+  "dice_type": "d6",
+  "results": {
+    "1": {
+      "outcome": "trade_loss",
+      "credits": -1,
+      "description": "Bad deal - lose 1 credit",
+      "narrative": "Your trading attempt backfires, costing you resources"
+    },
+    "2": {
+      "outcome": "no_profit",
+      "credits": 0,
+      "description": "Break even - no profit or loss",
+      "narrative": "You find some trading opportunities but they barely cover expenses"
+    },
+    "3": {
+      "outcome": "small_profit",
+      "credits": 1,
+      "description": "Small profit - gain 1 credit",
+      "narrative": "A modest trading opportunity provides a small profit"
+    },
+    "4": {
+      "outcome": "decent_profit",
+      "credits": 2,
+      "description": "Decent profit - gain 2 credits",
+      "narrative": "You find a good trading opportunity and make a decent profit"
+    },
+    "5": {
+      "outcome": "good_profit",
+      "credits": 3,
+      "description": "Good profit - gain 3 credits",
+      "narrative": "Excellent trading instincts lead to a profitable day"
+    },
+    "6": {
+      "outcome": "excellent_profit",
+      "credits": 4,
+      "description": "Excellent profit - gain 4 credits",
+      "narrative": "You strike gold with an exceptional trading opportunity"
+    }
+  },
+  "modifiers": {
+    "skill_bonuses": {
+      "SAVVY": {
+        "bonus": 1,
+        "description": "Savvy characters are better at spotting good deals"
+      },
+      "CONNECTIONS": {
+        "bonus": 1,
+        "description": "Connections help find better trading partners"
+      }
+    },
+    "equipment_bonuses": {
+      "trade_goods": {
+        "bonus": 1,
+        "description": "Having trade goods to start with improves prospects"
+      },
+      "luxury_items": {
+        "bonus": 2,
+        "description": "Luxury items command premium prices"
+      }
+    },
+    "world_modifiers": {
+      "TRADE_HUB": {
+        "bonus": 1,
+        "description": "Trade hubs offer more opportunities"
+      },
+      "INDUSTRIAL": {
+        "bonus": 1,
+        "description": "Industrial worlds need raw materials"
+      },
+      "BACKWATER": {
+        "penalty": -1,
+        "description": "Limited trading opportunities on backwater worlds"
+      },
+      "BLOCKADE": {
+        "penalty": -2,
+        "description": "Blockades severely restrict trade"
+      }
+    }
+  },
+  "special_rules": {
+    "critical_success": {
+      "trigger": "natural_6_plus_modifiers_8_or_more",
+      "effect": "double_credits",
+      "description": "Exceptional trading success doubles credit rewards"
+    },
+    "critical_failure": {
+      "trigger": "modified_result_negative",
+      "effect": "lose_additional_credit",
+      "description": "Particularly bad trading outcomes cost extra"
+    }
+  }
+}

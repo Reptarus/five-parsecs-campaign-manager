@@ -1,0 +1,399 @@
+Godot Engine v4.4.1.stable.official.49a5bc7b6 - https://godotengine.org
+TextServer: Added interface "Dummy"
+TextServer: Added interface "ICU / HarfBuzz / Graphite (Built-in)"
+Requested V-Sync mode: Enabled - FPS will likely be capped to the monitor refresh rate.
+Using "default" pen tablet driver...
+
+TextServer: Primary interface set to: "ICU / HarfBuzz / Graphite (Built-in)".
+CORE API HASH: 4052744068
+EDITOR API HASH: 910296392
+Loading resource: res://test_crew_fixes.gd
+Loading resource: res://src/ui/screens/character/CharacterCreator.tscn
+Loading resource: res://assets/5PFH.tres
+Loading resource: res://assets/button.tres
+Loading resource: res://assets/Basic assets/5PFHUIAssets/Sci-Fi-Infoboxes_0001s_0001s_0001s_0005_Brush.png
+Loading resource: res://.godot/imported/Sci-Fi-Infoboxes_0001s_0001s_0001s_0005_Brush.png-deb15ce3c975978324b4c16da87c2d64.ctex
+Loading resource: res://src/ui/screens/character/CharacterCreator.gd
+=== TESTING CREW PANEL FIXES ===
+
+--- Testing Character .has() method fix ---
+✓ Safe property access works: portrait_path = ''
+✓ Safe property access with value: portrait_path = 'test/path.png'
+
+--- Testing Crew Index Calculation Fix ---
+✓ Index calculation correct: selected=3 -> crew_index=0 (First Character)
+✓ Index calculation correct: selected=4 -> crew_index=1 (Second Character)
+✓ Index calculation correct: selected=5 -> crew_index=2 (Third Character)
+
+--- Testing Edge Cases ---
+✓ Invalid selection 0 correctly identified (crew_index=-3 < 0)
+✓ Invalid selection 1 correctly identified (crew_index=-2 < 0)
+✓ Invalid selection 2 correctly identified (crew_index=-1 < 0)
+=== ALL TESTS COMPLETED ===
+Loading resource: res://src/autoload/SystemsAutoload.gd
+Loading resource: res://src/core/managers/GameDataManager.gd
+ERROR: Attempt to open script 'res://src/core/managers/GameDataManager.gd' resulted in error 'File not found'.
+   at: load_source_code (modules/gdscript/gdscript.cpp:1115)
+Failed loading resource: res://src/core/managers/GameDataManager.gd
+ERROR: Failed loading resource: res://src/core/managers/GameDataManager.gd. Make sure resources have been imported by opening the project in the editor at least once.
+   at: _load (core/io/resource_loader.cpp:343)
+ERROR: Failed to instantiate an autoload, can't load from path: res://src/core/managers/GameDataManager.gd.
+   at: start (main/main.cpp:4069)
+Loading resource: res://src/core/managers/GameStateManager.gd
+Loading resource: res://src/core/character/Management/CharacterManager.gd
+Loading resource: res://src/core/world/PlanetCache.gd
+ERROR: Attempt to open script 'res://src/core/world/PlanetCache.gd' resulted in error 'File not found'.
+   at: load_source_code (modules/gdscript/gdscript.cpp:1115)
+Failed loading resource: res://src/core/world/PlanetCache.gd
+ERROR: Failed loading resource: res://src/core/world/PlanetCache.gd. Make sure resources have been imported by opening the project in the editor at least once.
+   at: _load (core/io/resource_loader.cpp:343)
+ERROR: Failed to instantiate an autoload, can't load from path: res://src/core/world/PlanetCache.gd.
+   at: start (main/main.cpp:4069)
+Loading resource: res://src/core/battle/state/BattleStateMachine.gd
+Loading resource: res://src/core/managers/AlphaGameManager.gd
+AlphaGameManager: Initializing (Performance tracking enabled)...
+Loading resource: res://src/core/managers/CampaignManager.gd
+Loading resource: res://src/autoload/CoreSystemSetup.gd
+Loading resource: res://src/autoload/BattlefieldCompanionManager.gd
+Loading resource: res://src/ui/screens/SceneRouter.gd
+Loaded system CA certificates
+SystemsAutoload: Starting system initialization...
+SystemsAutoload: Waiting for critical autoloads...
+GameStateManager: Starting enhanced initialization...
+GameStateManager: Dependencies validated successfully
+GameStateManager: Campaign phase set to NONE
+GameStateManager: Difficulty level set to STANDARD
+GameStateManager: GlobalEnums connection validated
+GameStateManager: CoreGameState connection validated
+GameStateManager: Initializing state values...
+WARNING: GameStateManager: Attempting to set credits before initialization complete
+   at: push_warning (core/variant/variant_utility.cpp:1118)
+WARNING: GameStateManager: Attempting to set supplies before initialization complete
+   at: push_warning (core/variant/variant_utility.cpp:1118)
+WARNING: GameStateManager: Attempting to set reputation before initialization complete
+   at: push_warning (core/variant/variant_utility.cpp:1118)
+WARNING: GameStateManager: Attempting to set story progress before initialization complete
+   at: push_warning (core/variant/variant_utility.cpp:1118)
+GameStateManager: State values initialized - Credits: 1000, Supplies: 5, Reputation: 0
+GameStateManager: Created new game state instance
+GameStateManager: State synchronized to game state instance
+GameStateManager: Auto-save timer setup with interval: 300.000000 seconds
+GameStateManager: Enhanced initialization complete
+GameStateManager: Registered manager: CharacterManager
+CharacterManager: Registered with GameStateManager
+WARNING: AUTOLOAD CONNECTION WARNING: Cannot access EventBus from CoreSystemSetup (may not be critical)
+   at: push_warning (core/variant/variant_utility.cpp:1118)
+WARNING: AUTOLOAD CONNECTION WARNING: Cannot access ConfigManager from CoreSystemSetup (may not be critical)
+   at: push_warning (core/variant/variant_utility.cpp:1118)
+CoreSystemSetup: Starting core system initialization...
+BattlefieldCompanionManager: Debug mode enabled
+WARNING: BattlefieldData: DiceManager not found, using fallback
+   at: push_warning (core/variant/variant_utility.cpp:1118)
+WARNING: BattleTracker: BattleEventsSystem unavailable, using simple events
+   at: push_warning (core/variant/variant_utility.cpp:1118)
+BattlefieldCompanionManager: System initialized successfully
+Loading resource: res://src/game/campaign/FiveParsecsCampaign.gd
+ERROR: Attempt to open script 'res://src/game/campaign/FiveParsecsCampaign.gd' resulted in error 'File not found'.
+   at: load_source_code (modules/gdscript/gdscript.cpp:1115)
+Failed loading resource: res://src/game/campaign/FiveParsecsCampaign.gd
+ERROR: Failed loading resource: res://src/game/campaign/FiveParsecsCampaign.gd. Make sure resources have been imported by opening the project in the editor at least once.
+   at: _load (core/io/resource_loader.cpp:343)
+Loading resource: res://src/core/ships/Ship.gd
+GameState: Initialized successfully
+SceneRouter: Initialized with 33 registered scenes
+SceneRouter: All critical scenes validated successfully
+AlphaGameManager: Starting optimized system initialization...
+AlphaGameManager: Initializing GameStateManager...
+GameStateManager: Game state already exists, skipping initialization
+GameStateManager: Game state initialized via public API
+AlphaGameManager: GameStateManager loaded in 0 ms
+AlphaGameManager: Initializing CampaignCreationManager...
+Loading resource: res://src/core/campaign/Campaign.gd
+CampaignCreationManager: Initializing...
+CampaignCreationManager: Creation reset
+CampaignCreationManager: Setup complete with game state
+AlphaGameManager: CampaignCreationManager setup completed with dependencies
+AlphaGameManager: CampaignCreationManager loaded in 19 ms
+AlphaGameManager: Initializing CampaignPhaseManager...
+Loading resource: res://src/core/campaign/CampaignPhaseManager.gd
+Loading resource: res://src/core/campaign/phases/TravelPhase.gd
+Loading resource: res://src/core/campaign/phases/WorldPhase.gd
+Loading resource: res://src/core/campaign/phases/PostBattlePhase.gd
+TravelPhase: Initialized successfully
+DataManager: Initializing hybrid data system...
+DataManager: Loaded Character Creation successfully (3 entries)
+DataManager: Loaded Character Backgrounds successfully (4 entries)
+DataManager: Loaded Weapons Database successfully (5 entries)
+DataManager: Loaded Armor Database successfully (6 entries)
+DataManager: Loaded Gear Database successfully (6 entries)
+DataManager: Loaded Mission Templates successfully (1 entries)
+DataManager: Loaded Event Tables successfully (3 entries)
+DataManager: Loaded Crew Task Resolution successfully (7 entries)
+DataManager: Loaded Trade Results successfully (8 entries)
+DataManager: Loaded Exploration Events successfully (8 entries)
+DataManager: Loaded Recruitment Opportunities successfully (10 entries)
+DataManager: Loaded Training Outcomes successfully (12 entries)
+DataManager: Data validation passed successfully
+DataManager: System initialization completed in 7 ms
+WorldPhase: Initialized successfully
+PostBattlePhase: Initialized successfully
+CampaignPhaseManager: Initialized with official Four-Phase structure
+AlphaGameManager: CampaignPhaseManager loaded in 128 ms
+AlphaGameManager: Initializing BattleResultsManager...
+PostBattlePhase: Initialized successfully
+AlphaGameManager: BattleResultsManager loaded in 0 ms
+AlphaGameManager: Initializing DiceManager...
+AlphaGameManager: DiceManager loaded in 1 ms
+AlphaGameManager: Initialization complete - 5/5 systems ready in 560 ms
+AlphaGameManager: Performance breakdown:
+  - GameStateManager: 0 ms
+  - CampaignCreationManager: 19 ms
+  - CampaignPhaseManager: 128 ms
+  - BattleResultsManager: 0 ms
+  - DiceManager: 1 ms
+AlphaGameManager: All systems ready! Total startup time: 560 ms
+CoreSystemSetup: Connected to existing FPCM_AlphaGameManager autoload
+GameStateManager: Registered manager: SaveManager
+SaveManager: Registered with GameStateManager
+GameState: Connected to SaveManager successfully
+WARNING: SystemsAutoload: GameDataManager not found, proceeding without waiting
+   at: push_warning (core/variant/variant_utility.cpp:1118)
+SystemsAutoload: Critical autoload 'GlobalEnums' verified
+SystemsAutoload: Critical autoload 'GameStateManagerAutoload' verified
+SystemsAutoload: Critical autoload 'SceneRouter' verified
+EconomySystem: Initializing with verified dependencies...
+EconomySystem: Successfully initialized
+PatronSystem: Connections data file not found, using defaults
+PatronSystem: Successfully initialized
+FactionSystem: Successfully initialized
+SystemsAutoload: All systems initialized successfully
+GameState: Shutting down and cleaning up...
+GameState: Cleanup completed
+SaveManager: Shutting down and cleaning up...
+GameStateManager: Unregistered manager: SaveManager
+SaveManager: Unregistered from GameStateManager
+SaveManager: Cleanup completed
+CampaignManager: Shutting down and cleaning up...
+CampaignManager: Cleanup completed
+AlphaGameManager: Shutting down...
+AlphaGameManager: Signal disconnection completed
+AlphaGameManager: Cleanup completed
+WARNING: BattleStateMachine: BattleStateMachine: Cleanup completed
+   at: push_warning (core/variant/variant_utility.cpp:1118)
+SystemsAutoload: Shutting down and cleaning up all systems...
+SystemsAutoload: All systems cleaned up
+SystemsAutoload: Shutdown complete
+XR: Clearing primary interface
+XR: Removed interface "Native mobile"
+XR: Removed interface "OpenXR"
+WARNING: ObjectDB instances leaked at exit (run with --verbose for details).
+   at: cleanup (core/object/object.cpp:2378)
+Leaked instance: GDScriptNativeClass:9223372048363946643
+Leaked instance: GDScript:9223372074066642384 - Resource path: res://src/core/state/GameState.gd
+Leaked instance: GDScript:9223372076130239956 - Resource path: res://src/core/state/SaveManager.gd
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2345)
+Leaked instance: Node:57763956217 - Node path: 
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2345)
+Leaked instance: Node:57864619526 - Node path: 
+ERROR: Cannot get path of node as it is not in a scene tree.
+   at: get_path (scene/main/node.cpp:2345)
+Leaked instance: Node:59877885490 - Node path: 
+Hint: Leaked instances typically happen when nodes are removed from the scene tree (with `remove_child()`) but not freed (with `free()` or `queue_free()`).
+ERROR: 2 resources still in use at exit.
+   at: clear (core/io/resource.cpp:609)
+Resource still in use: res://src/core/state/GameState.gd (GDScript)
+Resource still in use: res://src/core/state/SaveManager.gd (GDScript)
+Orphan StringName: _get_safe_crew_members (static: 0, total: 1)
+Orphan StringName: get_player_ship (static: 0, total: 1)
+Orphan StringName: quest_completed (static: 0, total: 2)
+Orphan StringName: _register_with_game_state (static: 0, total: 1)
+Orphan StringName: _enter_tree (static: 0, total: 3)
+Orphan StringName: calculate_total_resource_value (static: 0, total: 1)
+Orphan StringName: _set_path_cache (static: 0, total: 2)
+Orphan StringName: add_quest (static: 0, total: 1)
+Orphan StringName: _reset_state (static: 0, total: 2)
+Orphan StringName: BACKUP_FILE_EXTENSION (static: 0, total: 1)
+Orphan StringName: _queue_save_operation (static: 0, total: 1)
+Orphan StringName: MAX_BACKUP_FILES (static: 0, total: 1)
+Orphan StringName: _unhandled_input (static: 0, total: 3)
+Orphan StringName: _ready (static: 0, total: 5)
+Orphan StringName: apply_ship_damage (static: 0, total: 1)
+Orphan StringName: has_equipment (static: 0, total: 1)
+Orphan StringName: get_credits (static: 0, total: 1)
+Orphan StringName: @current_campaign_getter (static: 0, total: 1)
+Orphan StringName: save_campaign (static: 0, total: 1)
+Orphan StringName: _exit_tree (static: 0, total: 5)
+Orphan StringName: max_turns (static: 0, total: 6)
+Orphan StringName: AUTOSAVE_FILE_NAME (static: 0, total: 1)
+Orphan StringName: reputation (static: 0, total: 6)
+Orphan StringName: _deserialize_player_ship (static: 0, total: 1)
+Orphan StringName: _write_save_file (static: 0, total: 1)
+Orphan StringName: get_crew_members (static: 0, total: 1)
+Orphan StringName: _emit_resources_changed (static: 0, total: 1)
+Orphan StringName: patrons (static: 0, total: 5)
+Orphan StringName: max_story_points (static: 0, total: 6)
+Orphan StringName: current_phase (static: 0, total: 6)
+Orphan StringName: remove_credits (static: 0, total: 1)
+Orphan StringName: SAVE_DIRECTORY (static: 0, total: 1)
+Orphan StringName: add_story_points (static: 0, total: 1)
+Orphan StringName: story_points (static: 0, total: 6)
+Orphan StringName: _emit_state_changed (static: 0, total: 1)
+Orphan StringName: _replace_file (static: 0, total: 1)
+Orphan StringName: _setup_local_to_scene (static: 0, total: 2)
+Orphan StringName: _save_operation_in_progress (static: 0, total: 6)
+Orphan StringName: set_player_ship (static: 0, total: 1)
+Orphan StringName: resources (static: 0, total: 5)
+Orphan StringName: complete_phase (static: 0, total: 1)
+Orphan StringName: _load_campaign_from_dictionary (static: 0, total: 1)
+Orphan StringName: current_location (static: 0, total: 5)
+Orphan StringName: add_credits (static: 0, total: 1)
+Orphan StringName: quick_save (static: 0, total: 1)
+Orphan StringName: SAVE_FILE_EXTENSION (static: 0, total: 1)
+Orphan StringName: _add_backup_entry (static: 0, total: 1)
+Orphan StringName: save_completed (static: 0, total: 4)
+Orphan StringName: remove_materials (static: 0, total: 1)
+Orphan StringName: _on_save_manager_load_completed (static: 0, total: 1)
+Orphan StringName: remove_fuel (static: 0, total: 1)
+Orphan StringName: save_game (static: 0, total: 2)
+Orphan StringName: set_story_track (static: 0, total: 1)
+Orphan StringName: has_resource (static: 0, total: 1)
+Orphan StringName: visited_locations (static: 0, total: 5)
+Orphan StringName: get_resource (static: 0, total: 1)
+Orphan StringName: get_crew_size (static: 0, total: 1)
+Orphan StringName: state_changed (static: 0, total: 2)
+Orphan StringName: campaign_saved (static: 0, total: 2)
+Orphan StringName: set_phase (static: 0, total: 1)
+Orphan StringName: start_new_campaign (static: 0, total: 1)
+Orphan StringName: add_resource (static: 0, total: 1)
+Orphan StringName: serialize (static: 0, total: 1)
+Orphan StringName: _get_safe_world_trait (static: 0, total: 1)
+Orphan StringName: MAX_SAVE_ATTEMPTS (static: 0, total: 1)
+Orphan StringName: enable_permadeath (static: 0, total: 6)
+Orphan StringName: get_fuel (static: 0, total: 1)
+Orphan StringName: save_started (static: 0, total: 2)
+Orphan StringName: Ship (static: 0, total: 6)
+Orphan StringName: _process_save_queue (static: 0, total: 1)
+Orphan StringName: load_started (static: 0, total: 2)
+Orphan StringName: max_reputation (static: 0, total: 6)
+Orphan StringName: advance_turn (static: 0, total: 1)
+Orphan StringName: has_crew (static: 0, total: 1)
+Orphan StringName: get_rivals (static: 0, total: 1)
+Orphan StringName: remove_reputation (static: 0, total: 1)
+Orphan StringName: _input (static: 0, total: 3)
+Orphan StringName: FiveParsecsCampaign (static: 0, total: 6)
+Orphan StringName: _emit_save_completed (static: 0, total: 1)
+Orphan StringName: CoreGameState (static: 0, total: 3)
+Orphan StringName: set_difficulty (static: 0, total: 1)
+Orphan StringName: _get_safe_resource_type (static: 0, total: 1)
+Orphan StringName: modify_resource (static: 0, total: 1)
+Orphan StringName: _load_operation_in_progress (static: 0, total: 6)
+Orphan StringName: difficulty_level (static: 0, total: 6)
+Orphan StringName: get_turn_events (static: 0, total: 1)
+Orphan StringName: can_transition_to (static: 0, total: 1)
+Orphan StringName: _emit_campaign_loaded (static: 0, total: 1)
+Orphan StringName: game_ended (static: 0, total: 2)
+Orphan StringName: complete_quest (static: 0, total: 1)
+Orphan StringName: end_campaign (static: 0, total: 1)
+Orphan StringName: get_materials (static: 0, total: 1)
+Orphan StringName: _emit_campaign_saved (static: 0, total: 1)
+Orphan StringName: add_reputation (static: 0, total: 1)
+Orphan StringName: set_location (static: 0, total: 1)
+Orphan StringName: load_campaign (static: 0, total: 1)
+Orphan StringName: has_active_campaign (static: 0, total: 1)
+Orphan StringName: _get_safe_dictionary_data (static: 0, total: 1)
+Orphan StringName: get_current_location (static: 0, total: 1)
+Orphan StringName: SAVE_RETRY_DELAY (static: 0, total: 1)
+Orphan StringName: _emit_quest_added (static: 0, total: 1)
+Orphan StringName: get_medical_supplies (static: 0, total: 1)
+Orphan StringName: set_auto_save (static: 0, total: 1)
+Orphan StringName: _gather_save_data (static: 0, total: 1)
+Orphan StringName: _emit_save_started (static: 0, total: 1)
+Orphan StringName: _shortcut_input (static: 0, total: 3)
+Orphan StringName: _deserialize_campaign (static: 0, total: 1)
+Orphan StringName: rivals (static: 0, total: 5)
+Orphan StringName: _emit_load_started (static: 0, total: 1)
+Orphan StringName: _connect_save_manager (static: 0, total: 1)
+Orphan StringName: _init (static: 0, total: 1)
+Orphan StringName: add_materials (static: 0, total: 1)
+Orphan StringName: get_save_list (static: 0, total: 1)
+Orphan StringName: _emit_turn_advanced (static: 0, total: 1)
+Orphan StringName: add_fuel (static: 0, total: 1)
+Orphan StringName: get_market_price (static: 0, total: 1)
+Orphan StringName: _process (static: 0, total: 3)
+Orphan StringName: _handle_save_failure (static: 0, total: 1)
+Orphan StringName: _add_visited_location (static: 0, total: 1)
+Orphan StringName: _get_safe_campaign_data (static: 0, total: 1)
+Orphan StringName: save_manager (static: 0, total: 6)
+Orphan StringName: deserialize (static: 0, total: 1)
+Orphan StringName: get_save_details (static: 0, total: 1)
+Orphan StringName: SaveManagerClass (static: 0, total: 4)
+Orphan StringName: _on_save_manager_save_completed (static: 0, total: 1)
+Orphan StringName: load_game (static: 0, total: 1)
+Orphan StringName: autosave_triggered (static: 0, total: 2)
+Orphan StringName: resources_changed (static: 0, total: 2)
+Orphan StringName: get_patrons (static: 0, total: 1)
+Orphan StringName: trade_resources (static: 0, total: 1)
+Orphan StringName: set_resource (static: 0, total: 1)
+Orphan StringName: turn_number (static: 0, total: 6)
+Orphan StringName: get_resource_sell_price (static: 0, total: 1)
+Orphan StringName: backup_created (static: 0, total: 2)
+Orphan StringName: use_story_track (static: 0, total: 6)
+Orphan StringName: deserialize_new (static: 0, total: 1)
+Orphan StringName: _add_turn_event (static: 0, total: 1)
+Orphan StringName: _current_campaign (static: 0, total: 6)
+Orphan StringName: get_active_campaign_data (static: 0, total: 1)
+Orphan StringName: Node (static: 5, total: 7)
+Orphan StringName: campaign_loaded (static: 0, total: 2)
+Orphan StringName: _unhandled_key_input (static: 0, total: 3)
+Orphan StringName: _get_campaign_dictionary (static: 0, total: 1)
+Orphan StringName: _emit_quest_completed (static: 0, total: 1)
+Orphan StringName: player_ship (static: 0, total: 6)
+Orphan StringName: _validate_quest_data (static: 0, total: 1)
+Orphan StringName: turn_advanced (static: 0, total: 2)
+Orphan StringName: quest_added (static: 0, total: 2)
+Orphan StringName: last_save_time (static: 0, total: 6)
+Orphan StringName: load_completed (static: 0, total: 4)
+Orphan StringName: repair_ship (static: 0, total: 1)
+Orphan StringName: buy_resources (static: 0, total: 1)
+Orphan StringName: active_quests (static: 0, total: 5)
+Orphan StringName: use_story_point (static: 0, total: 1)
+Orphan StringName: _auto_save (static: 0, total: 1)
+Orphan StringName: _get_configuration_warnings (static: 0, total: 3)
+Orphan StringName: _create_backup (static: 0, total: 1)
+Orphan StringName: can_afford (static: 0, total: 1)
+Orphan StringName: remove_resource (static: 0, total: 1)
+Orphan StringName: apply_location_effects (static: 0, total: 1)
+Orphan StringName: _rotate_backups (static: 0, total: 1)
+Orphan StringName: GlobalEnums (static: 0, total: 1)
+Orphan StringName: auto_save_frequency (static: 0, total: 6)
+Orphan StringName: remove_medical_supplies (static: 0, total: 1)
+Orphan StringName: completed_quests (static: 0, total: 5)
+Orphan StringName: game_started (static: 0, total: 2)
+Orphan StringName: _add_completed_quest (static: 0, total: 1)
+Orphan StringName: _emit_backup_created (static: 0, total: 1)
+Orphan StringName: ErrorLogger (static: 0, total: 1)
+Orphan StringName: save_exists (static: 0, total: 1)
+Orphan StringName: make_purchase (static: 0, total: 1)
+Orphan StringName: safe_get_property (static: 0, total: 2)
+Orphan StringName: delete_save (static: 0, total: 1)
+Orphan StringName: add_medical_supplies (static: 0, total: 1)
+Orphan StringName: get_campaign (static: 0, total: 1)
+Orphan StringName: _get_rid (static: 0, total: 2)
+Orphan StringName: SAVE_EXTENSION (static: 0, total: 1)
+Orphan StringName: _save_retry_count (static: 0, total: 6)
+Orphan StringName: safe_call_method (static: 0, total: 2)
+Orphan StringName: _save_queue (static: 0, total: 5)
+Orphan StringName: modify_reputation (static: 0, total: 1)
+Orphan StringName: set_permadeath (static: 0, total: 1)
+Orphan StringName: sell_resources (static: 0, total: 1)
+Orphan StringName: auto_save_enabled (static: 0, total: 6)
+Orphan StringName: _emit_load_completed (static: 0, total: 1)
+Orphan StringName: _physics_process (static: 0, total: 3)
+Orphan StringName: current_campaign (static: 0, total: 5)
+Orphan StringName: _get_safe_ship_component (static: 0, total: 1)
+Orphan StringName: _add_active_quest (static: 0, total: 1)
+Orphan StringName: @current_campaign_setter (static: 0, total: 1)
+Orphan StringName: get_save_info (static: 0, total: 1)
+StringName: 191 unclaimed string names at exit.

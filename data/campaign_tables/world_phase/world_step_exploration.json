@@ -1,0 +1,232 @@
+{
+  "name": "World Step Exploration Table",
+  "version": "1.0",
+  "source": "Five Parsecs from Home Core Rules p.80",
+  "description": "D100 table for determining exploration outcomes in the World Step",
+  "dice_type": "d100",
+  "results": {
+    "1-10": {
+      "outcome": "nothing_found",
+      "type": "empty",
+      "credits": 0,
+      "description": "Nothing of interest found",
+      "narrative": "Despite thorough searching, you find nothing of value in the area"
+    },
+    "11-20": {
+      "outcome": "minor_salvage",
+      "type": "credits",
+      "credits": 1,
+      "description": "Found 1 credit worth of salvage",
+      "narrative": "You discover some minor salvageable materials"
+    },
+    "21-30": {
+      "outcome": "decent_salvage",
+      "type": "credits",
+      "credits": 2,
+      "description": "Found 2 credits worth of materials",
+      "narrative": "A thorough search reveals valuable scrap and components"
+    },
+    "31-35": {
+      "outcome": "good_salvage",
+      "type": "credits",
+      "credits": 3,
+      "description": "Found 3 credits worth of valuable items",
+      "narrative": "Your exploration uncovers a cache of valuable materials"
+    },
+    "36-40": {
+      "outcome": "excellent_salvage",
+      "type": "credits",
+      "credits": 4,
+      "description": "Found 4 credits worth of excellent salvage",
+      "narrative": "Exceptional luck leads to discovery of high-value salvage"
+    },
+    "41-45": {
+      "outcome": "outstanding_salvage",
+      "type": "credits",
+      "credits": 5,
+      "description": "Found 5 credits worth of outstanding materials",
+      "narrative": "You strike gold with an incredible salvage discovery"
+    },
+    "46-50": {
+      "outcome": "basic_equipment",
+      "type": "equipment",
+      "equipment_type": "consumable",
+      "description": "Found basic equipment or supplies",
+      "narrative": "You discover useful equipment abandoned or overlooked by others"
+    },
+    "51-55": {
+      "outcome": "useful_gear",
+      "type": "equipment",
+      "equipment_type": "gear",
+      "description": "Found useful gear or tools",
+      "narrative": "Your search turns up functional gear that could prove useful"
+    },
+    "56-60": {
+      "outcome": "military_equipment",
+      "type": "equipment",
+      "equipment_type": "military",
+      "description": "Found military-grade equipment",
+      "narrative": "A hidden cache reveals military equipment left behind"
+    },
+    "61-65": {
+      "outcome": "high_tech_gear",
+      "type": "equipment",
+      "equipment_type": "high_tech",
+      "description": "Found advanced technological equipment",
+      "narrative": "Advanced technology hidden away from prying eyes"
+    },
+    "66-70": {
+      "outcome": "rare_item",
+      "type": "equipment",
+      "equipment_type": "rare",
+      "description": "Found a rare or unique item",
+      "narrative": "Exceptional luck leads to the discovery of something truly special"
+    },
+    "71-75": {
+      "outcome": "quest_rumor",
+      "type": "information",
+      "quest_rumor": true,
+      "description": "Learned a rumor about potential opportunities",
+      "narrative": "Local contacts share information about interesting opportunities"
+    },
+    "76-80": {
+      "outcome": "patron_contact",
+      "type": "contact",
+      "patron_lead": true,
+      "description": "Made contact with a potential patron",
+      "narrative": "Your exploration leads to contact with someone who might have work"
+    },
+    "81-85": {
+      "outcome": "story_point",
+      "type": "advancement",
+      "story_points": 1,
+      "description": "Gained 1 Story Point from significant discovery",
+      "narrative": "Your exploration uncovers something that could prove significant later"
+    },
+    "86-90": {
+      "outcome": "character_event",
+      "type": "event",
+      "character_event": true,
+      "description": "Character has an interesting encounter",
+      "narrative": "The exploring character has a meaningful encounter during their search"
+    },
+    "91-93": {
+      "outcome": "minor_danger",
+      "type": "danger",
+      "combat_encounter": false,
+      "injury_roll": true,
+      "description": "Minor hazard - make injury roll",
+      "narrative": "Your exploration leads to a dangerous situation requiring quick thinking"
+    },
+    "94-96": {
+      "outcome": "combat_encounter",
+      "type": "danger",
+      "combat_encounter": true,
+      "description": "Combat encounter - roll on enemy tables",
+      "narrative": "Your exploration attracts unwanted attention from hostile forces"
+    },
+    "97-98": {
+      "outcome": "valuable_discovery",
+      "type": "special",
+      "credits": 6,
+      "description": "Major discovery worth 6 credits",
+      "narrative": "An exceptional discovery that provides significant resources"
+    },
+    "99": {
+      "outcome": "exceptional_find",
+      "type": "special",
+      "credits": 8,
+      "story_points": 1,
+      "description": "Exceptional find worth 8 credits and 1 Story Point",
+      "narrative": "A once-in-a-lifetime discovery that could change everything"
+    },
+    "100": {
+      "outcome": "legendary_discovery",
+      "type": "special",
+      "credits": 10,
+      "story_points": 2,
+      "equipment_type": "unique",
+      "description": "Legendary discovery - 10 credits, 2 Story Points, and unique equipment",
+      "narrative": "A discovery that will be remembered for generations"
+    }
+  },
+  "modifiers": {
+    "skill_bonuses": {
+      "SAVVY": {
+        "bonus": 5,
+        "description": "Savvy characters are better at spotting opportunities"
+      },
+      "LUCK": {
+        "bonus": 10,
+        "description": "Lucky characters find better results"
+      },
+      "TECH": {
+        "bonus": 3,
+        "description": "Tech skill helps identify valuable technology"
+      }
+    },
+    "world_modifiers": {
+      "FRONTIER": {
+        "bonus": 10,
+        "description": "Frontier worlds have more undiscovered opportunities"
+      },
+      "DANGEROUS": {
+        "bonus": 5,
+        "description": "Dangerous worlds hide valuable secrets"
+      },
+      "RUINS": {
+        "bonus": 15,
+        "description": "Ancient ruins contain forgotten treasures"
+      },
+      "CIVILIZED": {
+        "penalty": -10,
+        "description": "Well-explored civilized worlds offer fewer discoveries"
+      },
+      "CORPORATE": {
+        "penalty": -5,
+        "description": "Corporate worlds are thoroughly monitored and searched"
+      },
+      "HIGH_TECH": {
+        "bonus": 5,
+        "description": "High-tech worlds contain advanced equipment"
+      },
+      "LOW_TECH": {
+        "penalty": -3,
+        "description": "Low-tech worlds have limited valuable technology"
+      }
+    },
+    "equipment_bonuses": {
+      "scanner": {
+        "bonus": 5,
+        "description": "Electronic scanners improve search efficiency"
+      },
+      "survey_tools": {
+        "bonus": 10,
+        "description": "Professional survey equipment greatly aids exploration"
+      },
+      "combat_armor": {
+        "bonus": 3,
+        "description": "Protection allows exploration of dangerous areas"
+      }
+    }
+  },
+  "special_rules": {
+    "multiple_explorers": {
+      "rule": "Each additional explorer beyond the first adds +5 to the roll",
+      "max_bonus": 15,
+      "description": "Multiple explorers can cover more ground effectively"
+    },
+    "dangerous_results": {
+      "rule": "Results 91-96 require immediate danger resolution",
+      "description": "Some exploration results involve immediate peril"
+    },
+    "equipment_finds": {
+      "rule": "Equipment finds should be rolled on appropriate equipment tables",
+      "description": "Use equipment generation tables for specific item details"
+    },
+    "patron_contacts": {
+      "rule": "Patron contacts may provide benefits in future turns",
+      "description": "New patron relationships have lasting campaign value"
+    }
+  }
+}

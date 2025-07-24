@@ -1,0 +1,159 @@
+{
+  "name": "Recruitment Opportunities Table",
+  "version": "1.0",
+  "source": "Five Parsecs from Home Core Rules p.51",
+  "description": "Table for determining recruitment task outcomes and potential crew members",
+  "dice_type": "d6",
+  "results": {
+    "1": {
+      "outcome": "no_recruits",
+      "success": false,
+      "description": "No suitable recruits found",
+      "narrative": "Despite searching, no one suitable is interested in joining your crew"
+    },
+    "2": {
+      "outcome": "potential_recruit",
+      "success": false,
+      "future_opportunity": true,
+      "description": "Found potential recruit for next turn",
+      "narrative": "You find someone interested but they need time to consider the offer"
+    },
+    "3": {
+      "outcome": "basic_recruit",
+      "success": true,
+      "recruit_type": "basic",
+      "description": "Found basic recruit willing to join",
+      "narrative": "A willing individual with basic skills agrees to join your crew"
+    },
+    "4": {
+      "outcome": "skilled_recruit",
+      "success": true,
+      "recruit_type": "skilled",
+      "description": "Found recruit with useful skills",
+      "narrative": "You recruit someone with valuable experience and abilities"
+    },
+    "5": {
+      "outcome": "specialist_recruit",
+      "success": true,
+      "recruit_type": "specialist",
+      "description": "Found specialist recruit",
+      "narrative": "An experienced specialist agrees to join your team"
+    },
+    "6": {
+      "outcome": "exceptional_recruit",
+      "success": true,
+      "recruit_type": "exceptional",
+      "bonus_equipment": true,
+      "description": "Found exceptional recruit with equipment",
+      "narrative": "You recruit an exceptional individual who brings their own gear"
+    }
+  },
+  "recruit_types": {
+    "basic": {
+      "background": "random",
+      "motivation": "random",
+      "equipment": "basic_kit",
+      "cost": 1,
+      "description": "Standard recruit with basic equipment and random background"
+    },
+    "skilled": {
+      "background": "beneficial",
+      "motivation": "random", 
+      "equipment": "improved_kit",
+      "cost": 2,
+      "description": "Recruit with a beneficial background and better equipment"
+    },
+    "specialist": {
+      "background": "specialist",
+      "motivation": "beneficial",
+      "equipment": "specialist_kit",
+      "cost": 3,
+      "description": "Specialist recruit with specific expertise"
+    },
+    "exceptional": {
+      "background": "elite",
+      "motivation": "beneficial",
+      "equipment": "premium_kit",
+      "bonus_gear": true,
+      "cost": 1,
+      "description": "Elite recruit who brings additional equipment"
+    }
+  },
+  "modifiers": {
+    "skill_bonuses": {
+      "SAVVY": {
+        "bonus": 1,
+        "description": "Savvy characters are better at evaluating potential recruits"
+      },
+      "CONNECTIONS": {
+        "bonus": 1,
+        "description": "Connections help find better candidates"
+      }
+    },
+    "crew_size_penalties": {
+      "5_members": {
+        "penalty": -1,
+        "description": "Larger crews are harder to expand"
+      },
+      "6_members": {
+        "penalty": -2,
+        "description": "Very large crews have difficulty finding compatible members"
+      }
+    },
+    "world_modifiers": {
+      "BUSY": {
+        "bonus": 1,
+        "description": "Busy worlds have more potential recruits"
+      },
+      "TRADE_HUB": {
+        "bonus": 1,
+        "description": "Trade hubs attract travelers looking for work"
+      },
+      "FRONTIER": {
+        "bonus": 1,
+        "description": "Frontier worlds have desperate individuals seeking opportunity"
+      },
+      "BACKWATER": {
+        "penalty": -1,
+        "description": "Limited population on backwater worlds"
+      },
+      "CORPORATE": {
+        "penalty": -1,
+        "description": "Corporate worlds have fewer independent contractors"
+      }
+    },
+    "reputation_bonuses": {
+      "high_reputation": {
+        "bonus": 1,
+        "description": "Good reputation attracts better recruits"
+      },
+      "low_reputation": {
+        "penalty": -1,
+        "description": "Poor reputation makes recruitment difficult"
+      }
+    }
+  },
+  "recruitment_costs": {
+    "base_cost": 1,
+    "description": "Standard cost to recruit new crew member",
+    "payment_options": [
+      "credits",
+      "equipment_share",
+      "future_earnings"
+    ]
+  },
+  "special_rules": {
+    "crew_limit": {
+      "rule": "Maximum crew size is typically 6 members",
+      "description": "Most ships cannot support more than 6 crew members"
+    },
+    "background_compatibility": {
+      "rule": "Some backgrounds may create crew tension",
+      "description": "Consider background compatibility when recruiting"
+    },
+    "equipment_requirements": {
+      "rule": "New recruits may need additional equipment",
+      "description": "Budget for outfitting new crew members"
+    }
+  }
+}

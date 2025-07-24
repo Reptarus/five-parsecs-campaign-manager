@@ -1,0 +1,54 @@
+[gd_scene load_steps=3 format=3 uid="uid://b2y8k8g7q3yk4"]
+
+[ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_theme"]
+[ext_resource type="Script" path="res://src/ui/screens/campaign/panels/FinalPanel.gd" id="2_script"]
+
+[node name="FinalPanel" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme = ExtResource("1_theme")
+script = ExtResource("2_script")
+
+[node name="Content" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Title" type="Label" parent="Content"]
+layout_mode = 2
+text = "Campaign Review"
+horizontal_alignment = 1
+
+[node name="ScrollContainer" type="ScrollContainer" parent="Content"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ReviewContent" type="VBoxContainer" parent="Content/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ConfigSummary" type="RichTextLabel" parent="Content/ScrollContainer/ReviewContent"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "Campaign configuration will appear here..."
+
+[node name="CrewSummary" type="RichTextLabel" parent="Content/ScrollContainer/ReviewContent"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "Crew summary will appear here..."
+
+[node name="ButtonContainer" type="HBoxContainer" parent="Content"]
+layout_mode = 2
+alignment = 1
+
+[node name="CreateCampaignButton" type="Button" parent="Content/ButtonContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Create Campaign"

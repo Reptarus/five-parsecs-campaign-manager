@@ -1,0 +1,713 @@
+{
+  "opportunity_missions": {
+    "raid_mission": {
+      "mission_type": "raid",
+      "display_name": "Assault Operation",
+      "description": "Coordinate multi-phase assault on heavily defended target",
+      "base_payment": 1500,
+      "difficulty_range": [3, 5],
+      "duration_estimate": "1-3 turns",
+      
+      "mission_parameters": {
+        "target_types": {
+          "supply_depot": {
+            "description": "Military or corporate supply facility",
+            "difficulty_modifier": 2,
+            "loot_modifier": 1.4,
+            "security_level": 3,
+            "defender_types": ["corporate_security", "enforcers"],
+            "special_rewards": ["military_equipment", "bulk_supplies"]
+          },
+          
+          "research_facility": {
+            "description": "High-tech research and development complex",
+            "difficulty_modifier": 3,
+            "loot_modifier": 1.8,
+            "security_level": 4,
+            "defender_types": ["corporate_security", "mercenaries"],
+            "special_rewards": ["prototype_technology", "research_data"],
+            "intelligence_value": "high"
+          },
+          
+          "criminal_stronghold": {
+            "description": "Fortified gang or syndicate headquarters",
+            "difficulty_modifier": 2,
+            "loot_modifier": 1.2,
+            "security_level": 3,
+            "defender_types": ["rival_gang", "mercenaries"],
+            "special_rewards": ["contraband", "criminal_intelligence"],
+            "reputation_impact": "high"
+          },
+          
+          "mining_operation": {
+            "description": "Asteroid mining or planetary extraction site",
+            "difficulty_modifier": 1,
+            "loot_modifier": 1.6,
+            "security_level": 2,
+            "defender_types": ["corporate_security", "raiders"],
+            "special_rewards": ["rare_minerals", "industrial_equipment"],
+            "environmental_hazards": ["industrial", "vacuum"]
+          },
+          
+          "pirate_base": {
+            "description": "Hidden pirate outpost or fleet anchorage",
+            "difficulty_modifier": 3,
+            "loot_modifier": 2.0,
+            "security_level": 4,
+            "defender_types": ["pirates", "mercenaries"],
+            "special_rewards": ["ship_components", "navigation_data"],
+            "escape_difficulty": "high"
+          }
+        },
+        
+        "assault_phases": {
+          "reconnaissance": {
+            "required": true,
+            "skills_needed": ["stealth", "technology"],
+            "time_cost": 1,
+            "success_threshold": 3,
+            "benefits": ["layout_knowledge", "security_assessment"],
+            "failure_consequences": ["detection_risk", "reinforcement_alert"]
+          },
+          
+          "approach": {
+            "required": true,
+            "approach_types": {
+              "stealth_infiltration": {
+                "skills_needed": ["stealth", "technology"],
+                "difficulty": 4,
+                "detection_risk": 0.2,
+                "assault_bonus": 2
+              },
+              "frontal_assault": {
+                "skills_needed": ["combat", "tactics"],
+                "difficulty": 2,
+                "detection_risk": 1.0,
+                "intimidation_bonus": 1
+              },
+              "diversionary_attack": {
+                "skills_needed": ["tactics", "explosives"],
+                "difficulty": 3,
+                "detection_risk": 0.8,
+                "confusion_bonus": 1
+              }
+            }
+          },
+          
+          "breach": {
+            "required": true,
+            "breach_methods": {
+              "explosive_entry": {
+                "equipment_needed": ["explosives"],
+                "difficulty": 2,
+                "noise_level": "extreme",
+                "structural_damage": true,
+                "speed_bonus": 2
+              },
+              "technical_override": {
+                "equipment_needed": ["hacking_gear"],
+                "difficulty": 4,
+                "noise_level": "minimal",
+                "security_bypass": true,
+                "stealth_bonus": 1
+              },
+              "forced_entry": {
+                "equipment_needed": ["heavy_weapons"],
+                "difficulty": 3,
+                "noise_level": "high",
+                "intimidation_factor": true
+              }
+            }
+          },
+          
+          "combat": {
+            "required": true,
+            "combat_modifiers": {
+              "defender_advantage": 1,
+              "fortified_positions": true,
+              "reinforcement_likelihood": 0.6,
+              "environmental_factors": ["cover", "chokepoints"]
+            }
+          },
+          
+          "extraction": {
+            "required": true,
+            "extraction_methods": {
+              "predetermined_route": {
+                "preparation_required": true,
+                "speed_bonus": 2,
+                "pursuit_reduction": 1
+              },
+              "improvised_escape": {
+                "skills_needed": ["pilot", "tactics"],
+                "difficulty": 3,
+                "chaos_bonus": 1
+              },
+              "fighting_withdrawal": {
+                "skills_needed": ["combat", "tactics"],
+                "difficulty": 4,
+                "loot_preservation": true
+              }
+            }
+          }
+        },
+        
+        "security_measures": {
+          "automated_defenses": {
+            "turret_systems": {
+              "threat_level": 3,
+              "override_difficulty": 4,
+              "area_denial": true
+            },
+            "sensor_networks": {
+              "detection_bonus": 2,
+              "early_warning": true,
+              "stealth_penalty": 1
+            },
+            "alarm_systems": {
+              "reinforcement_speed": 2,
+              "communication_range": "system_wide"
+            }
+          },
+          
+          "human_security": {
+            "guard_patrols": {
+              "detection_chance": 0.3,
+              "response_time": 2,
+              "coordination_level": "professional"
+            },
+            "elite_defenders": {
+              "combat_effectiveness": 4,
+              "equipment_quality": "military",
+              "tactical_coordination": true
+            }
+          }
+        }
+      },
+      
+      "success_conditions": {
+        "primary": [
+          "target_objective_secured",
+          "extraction_successful"
+        ],
+        "optional": [
+          "minimal_casualties",
+          "stealth_maintained_until_breach",
+          "bonus_objectives_completed",
+          "enemy_leaders_eliminated"
+        ]
+      },
+      
+      "failure_conditions": [
+        "assault_team_eliminated",
+        "mission_objective_unreachable",
+        "extraction_impossible",
+        "collateral_damage_excessive"
+      ],
+      
+      "rewards": {
+        "base_payment": "mission_base_payment",
+        "assault_bonuses": {
+          "flawless_execution": 0.5,
+          "stealth_bonus": 0.3,
+          "speed_bonus": 0.2,
+          "tactical_superiority": 0.4
+        },
+        "loot_categories": [
+          "target_specific_loot",
+          "enemy_equipment",
+          "intelligence_data",
+          "facility_assets"
+        ],
+        "reputation_gains": {
+          "successful_raid": 2,
+          "professional_execution": 1,
+          "minimal_collateral": 1
+        }
+      }
+    },
+    
+    "pursuit_mission": {
+      "mission_type": "pursuit",
+      "display_name": "Chase & Intercept",
+      "description": "Track and intercept fleeing targets across multiple locations",
+      "base_payment": 1200,
+      "difficulty_range": [2, 4],
+      "duration_estimate": "3-7 turns",
+      
+      "mission_parameters": {
+        "target_categories": {
+          "fleeing_criminal": {
+            "description": "Escaped convict or wanted fugitive",
+            "difficulty_modifier": 1,
+            "payment_modifier": 1.0,
+            "evasion_skill": 3,
+            "resources": "limited",
+            "desperation_level": "high"
+          },
+          
+          "stolen_cargo": {
+            "description": "Thieves with valuable stolen goods",
+            "difficulty_modifier": 2,
+            "payment_modifier": 1.3,
+            "evasion_skill": 2,
+            "resources": "moderate",
+            "cargo_value": "high"
+          },
+          
+          "rogue_agent": {
+            "description": "Former ally turned traitor with secrets",
+            "difficulty_modifier": 3,
+            "payment_modifier": 1.6,
+            "evasion_skill": 4,
+            "resources": "substantial",
+            "intelligence_threat": "critical"
+          },
+          
+          "escaped_specimen": {
+            "description": "Dangerous creature or experimental subject",
+            "difficulty_modifier": 2,
+            "payment_modifier": 1.4,
+            "evasion_skill": 1,
+            "resources": "none",
+            "threat_level": "extreme",
+            "containment_required": true
+          },
+          
+          "defecting_informant": {
+            "description": "Intelligence asset attempting to switch sides",
+            "difficulty_modifier": 1,
+            "payment_modifier": 1.2,
+            "evasion_skill": 2,
+            "resources": "moderate",
+            "time_pressure": "extreme"
+          }
+        },
+        
+        "pursuit_phases": {
+          "initial_tracking": {
+            "skills_needed": ["investigation", "technology"],
+            "difficulty_base": 3,
+            "time_limit": 2,
+            "trail_degradation": true,
+            "false_leads_risk": 0.3
+          },
+          
+          "location_prediction": {
+            "skills_needed": ["investigation", "social"],
+            "difficulty_base": 4,
+            "intelligence_gathering": true,
+            "contact_network_usage": true,
+            "misinformation_risk": 0.2
+          },
+          
+          "closing_distance": {
+            "skills_needed": ["pilot", "tactics"],
+            "difficulty_base": 3,
+            "vehicle_capabilities": "important",
+            "terrain_factors": true,
+            "ambush_risk": 0.4
+          },
+          
+          "final_confrontation": {
+            "skills_needed": ["combat", "negotiation"],
+            "difficulty_base": 4,
+            "target_desperation": "maximum",
+            "collateral_risk": true,
+            "capture_vs_eliminate": "choice"
+          }
+        },
+        
+        "evasion_tactics": {
+          "misdirection": {
+            "effectiveness": 2,
+            "detection_difficulty": 3,
+            "time_cost": 1
+          },
+          
+          "safe_house_network": {
+            "effectiveness": 3,
+            "detection_difficulty": 4,
+            "resource_cost": "high"
+          },
+          
+          "identity_change": {
+            "effectiveness": 4,
+            "detection_difficulty": 5,
+            "preparation_time": 2
+          },
+          
+          "terrain_advantage": {
+            "effectiveness": 2,
+            "local_knowledge_required": true,
+            "environmental_hazards": true
+          }
+        },
+        
+        "pursuit_complications": {
+          "jurisdiction_conflicts": {
+            "probability": 0.3,
+            "description": "Local authorities interfere with pursuit",
+            "resolution_options": ["legal_cooperation", "jurisdiction_bypass", "authority_conflict"]
+          },
+          
+          "civilian_areas": {
+            "probability": 0.4,
+            "description": "Chase moves through populated zones",
+            "complications": ["collateral_damage_risk", "publicity_concerns", "escape_opportunities"]
+          },
+          
+          "environmental_hazards": {
+            "probability": 0.2,
+            "description": "Dangerous terrain or conditions",
+            "hazard_types": ["asteroid_field", "hostile_atmosphere", "unstable_terrain"]
+          },
+          
+          "third_party_interference": {
+            "probability": 0.3,
+            "description": "Other factions become involved",
+            "interference_types": ["rival_hunters", "target_allies", "opportunistic_pirates"]
+          }
+        }
+      },
+      
+      "success_conditions": {
+        "primary": [
+          "target_captured_or_eliminated",
+          "pursuit_objective_achieved"
+        ],
+        "optional": [
+          "minimal_collateral_damage",
+          "target_captured_alive",
+          "pursuit_time_minimized",
+          "additional_intelligence_gathered"
+        ]
+      },
+      
+      "failure_conditions": [
+        "target_permanently_escaped",
+        "pursuit_team_eliminated",
+        "jurisdiction_violation_severe",
+        "mission_time_limit_exceeded"
+      ],
+      
+      "rewards": {
+        "base_payment": "mission_base_payment",
+        "pursuit_bonuses": {
+          "quick_resolution": 0.3,
+          "clean_capture": 0.4,
+          "intelligence_bonus": 0.2,
+          "jurisdiction_cooperation": 0.1
+        },
+        "reputation_gains": {
+          "successful_pursuit": 1,
+          "professional_conduct": 1,
+          "rapid_resolution": 1
+        }
+      }
+    },
+    
+    "defending_mission": {
+      "mission_type": "defending",
+      "display_name": "Defensive Operation",
+      "description": "Protect assets or personnel from incoming threats",
+      "base_payment": 1100,
+      "difficulty_range": [2, 5],
+      "duration_estimate": "2-5 turns",
+      
+      "mission_parameters": {
+        "defense_targets": {
+          "civilian_evacuation": {
+            "description": "Protect evacuating civilians from hostile forces",
+            "difficulty_modifier": 1,
+            "payment_modifier": 1.0,
+            "protected_count": 50,
+            "evacuation_time": 4,
+            "threat_types": ["raiders", "wildlife", "pirates"]
+          },
+          
+          "facility_defense": {
+            "description": "Defend critical infrastructure from assault",
+            "difficulty_modifier": 2,
+            "payment_modifier": 1.3,
+            "facility_value": "high",
+            "defender_advantage": 2,
+            "threat_types": ["rival_gang", "pirates", "mercenaries"]
+          },
+          
+          "convoy_protection": {
+            "description": "Escort valuable convoy through dangerous territory",
+            "difficulty_modifier": 2,
+            "payment_modifier": 1.2,
+            "convoy_speed": "limited",
+            "route_hazards": true,
+            "threat_types": ["raiders", "pirates", "rival_gang"]
+          },
+          
+          "dignitary_protection": {
+            "description": "Safeguard VIP during public appearance",
+            "difficulty_modifier": 3,
+            "payment_modifier": 1.5,
+            "public_exposure": true,
+            "assassination_risk": "high",
+            "threat_types": ["cultists", "rival_gang", "mercenaries"]
+          },
+          
+          "archaeological_site": {
+            "description": "Protect research team at dangerous excavation",
+            "difficulty_modifier": 1,
+            "payment_modifier": 1.1,
+            "research_value": "significant",
+            "environmental_dangers": true,
+            "threat_types": ["wildlife", "cultists", "raiders"]
+          }
+        },
+        
+        "defensive_phases": {
+          "preparation": {
+            "time_available": 3,
+            "preparation_options": {
+              "fortification": {
+                "skills_needed": ["engineering", "tactics"],
+                "defense_bonus": 2,
+                "resource_cost": "moderate"
+              },
+              "early_warning": {
+                "skills_needed": ["technology", "investigation"],
+                "detection_bonus": 1,
+                "time_advantage": 1
+              },
+              "reinforcement_coordination": {
+                "skills_needed": ["social", "tactics"],
+                "support_units": true,
+                "communication_network": true
+              }
+            }
+          },
+          
+          "threat_assessment": {
+            "intelligence_gathering": true,
+            "threat_analysis": {
+              "enemy_numbers": "variable",
+              "attack_timing": "estimated",
+              "attack_vectors": "multiple",
+              "special_capabilities": "unknown"
+            }
+          },
+          
+          "defensive_combat": {
+            "combat_modifiers": {
+              "defensive_position": 2,
+              "prepared_defenses": 1,
+              "terrain_advantage": 1,
+              "supply_limitations": -1
+            },
+            "wave_attacks": true,
+            "attrition_factor": "high"
+          },
+          
+          "crisis_management": {
+            "emergency_situations": {
+              "defense_breach": {
+                "probability": 0.3,
+                "response_options": ["tactical_withdrawal", "counterattack", "reinforcement_call"]
+              },
+              "civilian_panic": {
+                "probability": 0.4,
+                "response_options": ["crowd_control", "evacuation_acceleration", "morale_boosting"]
+              },
+              "critical_system_failure": {
+                "probability": 0.2,
+                "response_options": ["emergency_repair", "backup_systems", "manual_override"]
+              }
+            }
+          }
+        },
+        
+        "attack_patterns": {
+          "probe_attacks": {
+            "phase": 1,
+            "intensity": "low",
+            "purpose": "reconnaissance",
+            "enemy_commitment": "minimal"
+          },
+          
+          "diversionary_assault": {
+            "phase": 2,
+            "intensity": "moderate",
+            "purpose": "misdirection",
+            "real_target": "elsewhere"
+          },
+          
+          "main_assault": {
+            "phase": 3,
+            "intensity": "high",
+            "purpose": "breakthrough",
+            "enemy_commitment": "maximum"
+          },
+          
+          "final_push": {
+            "phase": 4,
+            "intensity": "extreme",
+            "purpose": "desperation",
+            "all_or_nothing": true
+          }
+        },
+        
+        "environmental_factors": {
+          "weather_conditions": {
+            "clear_conditions": {
+              "visibility": "excellent",
+              "mobility": "normal",
+              "detection_range": "maximum"
+            },
+            "adverse_weather": {
+              "visibility": "reduced",
+              "mobility": "impaired",
+              "equipment_malfunction_risk": 0.2
+            },
+            "extreme_conditions": {
+              "visibility": "minimal",
+              "mobility": "severely_limited",
+              "survival_challenge": true
+            }
+          },
+          
+          "terrain_advantages": {
+            "high_ground": {
+              "defensive_bonus": 2,
+              "visibility_bonus": 1,
+              "supply_difficulty": 1
+            },
+            "chokepoints": {
+              "force_multiplier": 2,
+              "flanking_protection": true,
+              "retreat_limitation": true
+            },
+            "cover_abundance": {
+              "protection_bonus": 1,
+              "mobility_options": true,
+              "concealment_opportunities": true
+            }
+          }
+        }
+      },
+      
+      "success_conditions": {
+        "primary": [
+          "defense_target_protected",
+          "attacking_force_repelled"
+        ],
+        "optional": [
+          "zero_protected_casualties",
+          "attackers_completely_defeated",
+          "defense_perimeter_intact",
+          "minimal_resource_expenditure"
+        ]
+      },
+      
+      "failure_conditions": [
+        "defense_target_lost",
+        "defensive_force_eliminated",
+        "evacuation_route_compromised",
+        "mission_objectives_impossible"
+      ],
+      
+      "rewards": {
+        "base_payment": "mission_base_payment",
+        "defense_bonuses": {
+          "perfect_defense": 0.4,
+          "heroic_stand": 0.3,
+          "tactical_excellence": 0.2,
+          "minimal_losses": 0.2
+        },
+        "reputation_gains": {
+          "successful_defense": 2,
+          "civilian_protection": 1,
+          "heroic_action": 1
+        }
+      }
+    }
+  },
+  
+  "common_opportunity_elements": {
+    "risk_assessment": {
+      "low_risk": {
+        "payment_modifier": 0.8,
+        "crew_safety": "high",
+        "success_probability": 0.8
+      },
+      "moderate_risk": {
+        "payment_modifier": 1.0,
+        "crew_safety": "moderate",
+        "success_probability": 0.6
+      },
+      "high_risk": {
+        "payment_modifier": 1.4,
+        "crew_safety": "low",
+        "success_probability": 0.4
+      },
+      "extreme_risk": {
+        "payment_modifier": 2.0,
+        "crew_safety": "minimal",
+        "success_probability": 0.2
+      }
+    },
+    
+    "time_pressure": {
+      "relaxed_timeline": {
+        "preparation_time": "ample",
+        "stress_level": "low",
+        "planning_bonus": 1
+      },
+      "standard_timeline": {
+        "preparation_time": "adequate",
+        "stress_level": "moderate",
+        "planning_bonus": 0
+      },
+      "urgent_timeline": {
+        "preparation_time": "limited",
+        "stress_level": "high",
+        "payment_bonus": 0.2
+      },
+      "emergency_timeline": {
+        "preparation_time": "minimal",
+        "stress_level": "extreme",
+        "payment_bonus": 0.5
+      }
+    },
+    
+    "crew_requirements": {
+      "minimum_crew": 3,
+      "optimal_crew": 5,
+      "maximum_crew": 8,
+      "specialist_skills": [
+        "combat",
+        "tactics",
+        "technology",
+        "pilot",
+        "explosives"
+      ]
+    },
+    
+    "equipment_needs": {
+      "basic_loadout": [
+        "personal_weapons",
+        "basic_armor",
+        "communication_gear"
+      ],
+      "specialized_equipment": [
+        "heavy_weapons",
+        "explosives",
+        "hacking_gear",
+        "medical_supplies"
+      ],
+      "optional_equipment": [
+        "vehicles",
+        "drones",
+        "surveillance_gear",
+        "environmental_suits"
+      ]
+    }
+  }
+}
