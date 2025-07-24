@@ -5,21 +5,16 @@ class_name WorldPhase
 ## World Phase Implementation - Official Five Parsecs Rules
 ## Handles the complete World Phase sequence (Phase 2 of campaign turn)
 
-# Safe imports
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
+# Imports
 
-# Safe dependency loading - loaded at runtime in _ready()
-var GlobalEnums: Variant = null
-var dice_manager: Variant = null
-var game_state_manager: Variant = null
-var data_manager: Variant = null
+# Consistent compile-time dependencies
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const EnhancedCampaignSignals = preload("res://src/core/signals/EnhancedCampaignSignals.gd")
+const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
 
-# Feature 5 integration - Enhanced dependencies
-var game_data_manager: DataManager = null
+# Runtime autoload references
+var dice_manager: Node = null
+var game_state_manager: Node = null
 var enhanced_signals: EnhancedCampaignSignals = null
 var world_phase_state: WorldPhaseResources.WorldPhaseState = null
 
@@ -50,28 +45,26 @@ var upkeep_costs: Dictionary = {
 }
 
 func _ready() -> void:
-	# Load dependencies safely at runtime
-	GlobalEnums = load("res://src/core/systems/GlobalEnums.gd")
-	dice_manager = DiceManager
+	# Get autoload references safely
+	dice_manager = get_node_or_null("/root/DiceManager")
 	game_state_manager = get_node_or_null("/root/GameStateManagerAutoload")
-	data_manager = load("res://src/core/data/DataManager.gd")
-
-	# Feature 5 integration - Initialize enhanced dependencies
-	game_data_manager = get_node_or_null("/root/DataManagerAutoload")
-	if not game_data_manager:
-		# Create instance if not found as autoload
-		game_data_manager = DataManager.new()
-		DataManager.load_all_data()
 	
-	enhanced_signals = EnhancedCampaignSignals.new()
-	world_phase_state = WorldPhaseResources.create_world_phase_state()
+	# Initialize DataManager static system if not already done
+	if not DataManager._is_data_loaded:
+		DataManager.initialize_data_system()
+	
+	# Initialize enhanced dependencies with safe creation
+	if ClassDB.class_exists("EnhancedCampaignSignals"):
+		enhanced_signals = EnhancedCampaignSignals.new()
+	else:
+		push_warning("WorldPhase: EnhancedCampaignSignals not available")
+	
+	if ClassDB.class_exists("WorldPhaseResources"):
+		world_phase_state = WorldPhaseResources.create_world_phase_state()
+	else:
+		push_warning("WorldPhase: WorldPhaseResources not available")
 
-	# Initialize data system if not already loaded
-	if data_manager and not data_manager.is_system_ready():
-		data_manager.initialize_data_system()
-
-	# Initialize enum values after loading GlobalEnums
-	if GlobalEnums:
+	# Initialize enum values with GlobalEnums available at compile time
 		current_substep = GlobalEnums.WorldSubPhase.NONE
 
 	print("WorldPhase: Initialized successfully with enhanced integration")

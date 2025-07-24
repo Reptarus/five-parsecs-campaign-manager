@@ -20,7 +20,7 @@ const ELITE_ENEMY_TYPES_PATH = "res://data/elite_enemy_types.json"
 var _react_tables: Dictionary = {}
 var _enemy_types: Dictionary = {}
 var _elite_enemy_types: Array = []
-var _data_manager: Variant = null
+# DataManager is now used as static class - no instance needed
 
 # React Tables
 enum ReactTable {

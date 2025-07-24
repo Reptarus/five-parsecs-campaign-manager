@@ -19,9 +19,8 @@ config/icon="res://icon.svg"
 [autoload]
 
 GlobalEnums="*res://src/core/systems/GlobalEnums.gd"
-DataManager="*res://src/core/data/DataManager.gd"
-SystemsAutoload="*res://src/autoload/SystemsAutoload.gd"
 DataManagerAutoload="*res://src/core/data/DataManager.gd"
+SystemsAutoload="*res://src/autoload/SystemsAutoload.gd"
 GameStateManagerAutoload="*res://src/core/managers/GameStateManager.gd"
 CharacterManagerAutoload="*res://src/core/character/Management/CharacterManager.gd"
 PlanetCache="*res://src/game/world/PlanetCache.gd"

@@ -41,22 +41,20 @@ func _wait_for_critical_autoloads() -> void:
 	# Wait one frame to ensure all autoloads are registered
 	await get_tree().process_frame
 	
-	# Wait for DataManager specifically
+	# Wait for DataManager specifically - using static API
 	var data_manager = get_node_or_null("/root/DataManagerAutoload") as Node
 	if data_manager:
-		# Check if DataManager has finished loading
-		if data_manager.has_method("is_all_data_loaded"):
-			if not data_manager.is_all_data_loaded():
-				print("SystemsAutoload: Waiting for DataManager to finish loading data...")
-				if data_manager.has_signal("all_data_loaded"):
-					await data_manager.all_data_loaded
-				print("SystemsAutoload: DataManager ready, proceeding with system initialization")
-			else:
-				print("SystemsAutoload: DataManager already loaded, proceeding immediately")
+		# Check if DataManager static system has finished loading
+		if not DataManager._is_data_loaded:
+			print("SystemsAutoload: Waiting for DataManager to finish loading data...")
+			# Initialize DataManager if not already done
+			DataManager.initialize_data_system()
+			print("SystemsAutoload: DataManager ready, proceeding with system initialization")
 		else:
-			print("SystemsAutoload: DataManager missing expected methods, proceeding anyway")
+			print("SystemsAutoload: DataManager already loaded, proceeding immediately")
 	else:
-		push_warning("SystemsAutoload: DataManager not found, proceeding without waiting")
+		push_warning("SystemsAutoload: DataManager not found, initializing directly")
+		DataManager.initialize_data_system()
 	
 	# Ensure other critical autoloads are available
 	var critical_autoloads: Array[String] = [

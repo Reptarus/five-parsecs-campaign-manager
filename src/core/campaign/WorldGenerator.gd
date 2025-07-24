@@ -22,7 +22,7 @@ var _location_types: Array = []
 var _world_traits: Array = []
 var _world_data: Dictionary = {}
 var _sector_data: Array[Dictionary] = []
-var _data_manager: Object
+# DataManager is now used as static class - no instance needed
 
 # Generator settings
 var _danger_level_modifier: int = 0
@@ -30,9 +30,9 @@ var _use_specific_planet_type: bool = false
 var _specific_planet_type: String = ""
 
 func _init() -> void:
-	var data_manager_node: Node = get_node_or_null("/root/DataManagerAutoload")
-	if data_manager_node:
-		_data_manager = data_manager_node
+	# Initialize DataManager static system if not already done
+	if not DataManager._is_data_loaded:
+		DataManager.initialize_data_system()
 	_load_data()
 func _ready() -> void:
 	pass
@@ -40,21 +40,21 @@ func _ready() -> void:
 ## Load all required data from JSON files
 func _load_data() -> void:
 	# Load planet types
-	var planet_data = _data_manager.load_json_file(PLANET_TYPES_PATH)
+	var planet_data = DataManager._load_json_safe(PLANET_TYPES_PATH, "WorldGenerator")
 	if planet_data and planet_data.has("planet_types"):
 		_planet_types = planet_data["planet_types"]
 	else:
 		push_error("Failed to load planet types data")
 
 	# Load location types
-	var location_data = _data_manager.load_json_file(LOCATION_TYPES_PATH)
+	var location_data = DataManager._load_json_safe(LOCATION_TYPES_PATH, "WorldGenerator")
 	if location_data and location_data.has("location_types"):
 		_location_types = location_data["location_types"]
 	else:
 		push_error("Failed to load location types data")
 
 	# Load world traits
-	var trait_data = _data_manager.load_json_file(WORLD_TRAITS_PATH)
+	var trait_data = DataManager._load_json_safe(WORLD_TRAITS_PATH, "WorldGenerator")
 	if trait_data and trait_data.has("world_traits"):
 		_world_traits = trait_data["world_traits"]
 	else:

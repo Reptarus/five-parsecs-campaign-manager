@@ -14,19 +14,20 @@ signal victory_condition_reached(condition_type: int, details: Dictionary)
 signal victory_progress_updated(condition_type: int, current: int, required: int)
 
 # Private variables
-var _data_manager: Object
+# DataManager is now used as static class - no instance needed
 var _active_conditions: Dictionary = {}
 var _campaign_data: Dictionary = {}
 
 # Initialize the tracker
 func _init() -> void:
-	_data_manager = DataManager.get_instance() if _data_manager and _data_manager.has_method("get_instance") else null
-	_data_manager.ensure_data_loaded() if _data_manager and _data_manager.has_method("ensure_data_loaded") else null
+	# Initialize DataManager static system if not already done
+	if not DataManager._is_data_loaded:
+		DataManager.initialize_data_system()
 	_load_data()
 
 # Load necessary data
 func _load_data() -> void:
-	var victory_data = _data_manager.load_json_file("res://data/victory_conditions.json")
+	var victory_data = DataManager._load_json_safe("res://data/victory_conditions.json", "VictoryConditionTracker")
 	if victory_data:
 		_campaign_data = victory_data
 	else:

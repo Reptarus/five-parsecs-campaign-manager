@@ -68,15 +68,17 @@ func _wait_for_essential_autoloads() -> void:
 	
 	# Check for DataManager but don't block if it's still loading
 	var data_manager = get_node_or_null("/root/DataManagerAutoload")
-	if data_manager and data_manager.has_method("is_essential_data_loaded"):
-		# Only wait if essential data isn't ready yet
-		if not data_manager.is_essential_data_loaded():
+	if data_manager:
+		# Check DataManager static system state
+		if not DataManager._is_data_loaded:
 			print("OptimizedSystemsAutoload: DataManager essential data loading...")
-			# Wait a short time, then proceed regardless
-			var wait_start = Time.get_ticks_msec()
-			while not data_manager.is_essential_data_loaded() and Time.get_ticks_msec() - wait_start < 100:
-				await get_tree().process_frame
-			print("OptimizedSystemsAutoload: Continued after DataManager wait")
+			# Initialize but don't wait - proceed regardless
+			DataManager.initialize_data_system()
+			print("OptimizedSystemsAutoload: Continued after DataManager initialization")
+		else:
+			print("OptimizedSystemsAutoload: DataManager already loaded")
+	else:
+		print("OptimizedSystemsAutoload: DataManager not found - proceeding without")
 
 func _initialize_systems_lazy() -> void:
 	"""Initialize systems with lazy loading and error resilience"""
