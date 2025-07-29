@@ -11,7 +11,7 @@ extends Control
 ## Performance: Lightweight animation with memory-efficient lifecycle
 
 # Dependencies
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const Character = preload("res://src/core/character/Character.gd")
 
 # Battle Event Types

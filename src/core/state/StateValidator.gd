@@ -8,7 +8,7 @@
 # Use explicit preloads to reference this class: preload("res://src/core/state/StateValidator.gd")
 extends Node
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const GameState = preload("res://src/core/state/GameState.gd")
 
 signal validation_complete(results: Array)
@@ -22,7 +22,8 @@ enum ValidationType {
 	CHARACTER_STATE,
 	CREW_STATE,
 	BATTLE_STATE,
-	MISSION_STATE
+	MISSION_STATE,
+	UI_BACKEND_INTEGRATION # SPRINT ENHANCEMENT: UI-Backend integration validation
 }
 
 ## Validation scopes define what to validate
@@ -59,6 +60,12 @@ class ValidationResult:
 
 	func is_success() -> bool:
 		return result == 4 # SUCCESS
+
+# Safe access to ValidationManager
+func _get_safe_validationmanager() -> Variant:
+	if ClassDB.class_exists("ValidationManager"):
+		return get_node_or_null("/root/ValidationManager")
+	return null
 
 # Factory method to create ValidationResult objects
 func create_result(

@@ -1,4 +1,4 @@
-[gd_scene load_steps=1 format=3 uid="uid://b0dleo1n7pcen"]
+[gd_scene format=3 uid="uid://b0dleo1n7pcen"]
 
 [node name="CrewRelationshipsPanel" type="Control"]
 layout_mode = 3

@@ -1,6 +1,6 @@
 ﻿extends Resource
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 var game_state: Node
 var difficulty_settings: Resource

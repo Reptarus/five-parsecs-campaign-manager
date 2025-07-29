@@ -46,7 +46,7 @@ var editing_character: Dictionary = {}
 var character_data: Dictionary = {}
 
 # Game data
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 func _ready():
 	_setup_navigation()

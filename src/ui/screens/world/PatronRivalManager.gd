@@ -9,69 +9,254 @@ signal job_assigned(patron: Dictionary, job: Dictionary)
 @onready var rivals_list: VBoxContainer = %RivalsList
 @onready var details_container: VBoxContainer = %DetailsContainer
 
+# Enhanced with JSON data management
+const DataManager = preload("res://src/core/data/DataManager.gd")
+var data_manager: DataManager = DataManager.new()
+
 var patrons: Array[Dictionary] = []
 var rivals: Array[Dictionary] = []
 var selected_patron: Dictionary = {}
 var selected_rival: Dictionary = {}
 
+# JSON data storage
+var patron_templates: Dictionary = {}
+var rival_templates: Dictionary = {}
+var job_templates: Dictionary = {}
+
 func _ready() -> void:
-	print("PatronRivalManager: Initializing...")
+	print("PatronRivalManager: Initializing with JSON data support...")
+	_load_json_templates()
 	_load_patrons_and_rivals()
 	_refresh_displays()
 
+func _load_json_templates() -> void:
+	"""Load JSON template data for enhanced patron/rival generation"""
+	# Load patron templates
+	patron_templates = data_manager.load_json_file("res://data/patrons/patron_templates.json")
+	if patron_templates.is_empty():
+		print("PatronRivalManager: patron_templates.json not found, creating fallback data")
+		_create_patron_templates_fallback()
+	else:
+		print("PatronRivalManager: Loaded %d patron categories from JSON" % patron_templates.get("patron_categories", []).size())
+	
+	# Load rival templates
+	rival_templates = data_manager.load_json_file("res://data/rivals/rival_templates.json")
+	if rival_templates.is_empty():
+		print("PatronRivalManager: rival_templates.json not found, creating fallback data")
+		_create_rival_templates_fallback()
+	else:
+		print("PatronRivalManager: Loaded %d rival categories from JSON" % rival_templates.get("rival_categories", []).size())
+	
+	# Load job templates
+	job_templates = data_manager.load_json_file("res://data/jobs/job_templates.json")
+	if job_templates.is_empty():
+		print("PatronRivalManager: job_templates.json not found, creating fallback data")
+		_create_job_templates_fallback()
+	else:
+		print("PatronRivalManager: Loaded %d job types from JSON" % job_templates.get("job_types", []).size())
+
+func _create_patron_templates_fallback() -> void:
+	"""Create fallback patron templates when JSON is not available"""
+	patron_templates = {
+		"patron_categories": [
+			{
+				"type": "Corporate",
+				"names": ["Director Johnson", "Executive Martinez", "Chairman Wu", "VP Anderson"],
+				"base_jobs": 3,
+				"relationship_range": ["Neutral", "Friendly", "Business"],
+				"special_rules": ["High-paying missions", "Corporate resources", "Dangerous assignments"],
+				"job_multiplier": 1.5
+			},
+			{
+				"type": "Government",
+				"names": ["Captain Torres", "Sheriff Blake", "Commander Singh", "Marshal Carter"],
+				"base_jobs": 2,
+				"relationship_range": ["Neutral", "Friendly", "Allied"],
+				"special_rules": ["Law enforcement", "Public safety", "Authority backing"],
+				"job_multiplier": 1.2
+			},
+			{
+				"type": "Independent",
+				"names": ["Trader Kim", "Explorer Voss", "Merchant Chen", "Captain Reeves"],
+				"base_jobs": 2,
+				"relationship_range": ["Neutral", "Friendly"],
+				"special_rules": ["Flexible missions", "Trade bonuses", "Exploration focus"],
+				"job_multiplier": 1.0
+			},
+			{
+				"type": "Faction",
+				"names": ["Agent Smith", "Delegate Rhodes", "Representative Liu", "Ambassador Kane"],
+				"base_jobs": 3,
+				"relationship_range": ["Neutral", "Allied", "Hostile"],
+				"special_rules": ["Faction politics", "Territory disputes", "Diplomatic missions"],
+				"job_multiplier": 1.3
+			}
+		]
+	}
+
+func _create_rival_templates_fallback() -> void:
+	"""Create fallback rival templates when JSON is not available"""
+	rival_templates = {
+		"rival_categories": [
+			{
+				"type": "Military",
+				"names": ["Black Squadron", "Steel Legion", "Iron Guard", "Crimson Company"],
+				"threat_levels": ["Medium", "High", "Extreme"],
+				"special_rules": ["Military tactics", "Advanced equipment", "Coordinated attacks"],
+				"equipment_bonus": 1.5
+			},
+			{
+				"type": "Criminal",
+				"names": ["The Syndicate", "Shadow Cartel", "Blood Ravens", "Void Pirates"],
+				"threat_levels": ["Low", "Medium", "High"],
+				"special_rules": ["Underhanded tactics", "Criminal networks", "Illegal equipment"],
+				"equipment_bonus": 1.2
+			},
+			{
+				"type": "Corporate",
+				"names": ["SecCorp Strike Team", "Industrial Enforcers", "Corporate Security", "Executive Guard"],
+				"threat_levels": ["Medium", "High"],
+				"special_rules": ["Corporate backing", "High-tech gear", "Professional training"],
+				"equipment_bonus": 1.4
+			},
+			{
+				"type": "Raider",
+				"names": ["Iron Wolves", "Red Hawks", "Void Hunters", "Storm Riders"],
+				"threat_levels": ["Low", "Medium", "High"],
+				"special_rules": ["Hit-and-run tactics", "Salvaged equipment", "Tribal warfare"],
+				"equipment_bonus": 0.8
+			}
+		]
+	}
+
+func _create_job_templates_fallback() -> void:
+	"""Create fallback job templates when JSON is not available"""
+	job_templates = {
+		"job_types": [
+			{
+				"type": "Escort",
+				"descriptions": [
+					"Escort valuable cargo through dangerous territory",
+					"Protect VIP during dangerous journey",
+					"Guard supply convoy to frontier outpost"
+				],
+				"base_payment": [4, 6],
+				"difficulty_range": [1, 3]
+			},
+			{
+				"type": "Investigation",
+				"descriptions": [
+					"Investigate suspicious activity at mining facility",
+					"Uncover corporate espionage operation",
+					"Research mysterious alien artifacts"
+				],
+				"base_payment": [3, 5],
+				"difficulty_range": [2, 4]
+			},
+			{
+				"type": "Recovery",
+				"descriptions": [
+					"Recover stolen data from criminal hideout",
+					"Retrieve lost expedition equipment",
+					"Salvage valuable technology from crash site"
+				],
+				"base_payment": [3, 7],
+				"difficulty_range": [2, 4]
+			},
+			{
+				"type": "Defense",
+				"descriptions": [
+					"Protect civilians during evacuation",
+					"Defend settlement from raider attacks",
+					"Hold strategic position against enemy forces"
+				],
+				"base_payment": [4, 6],
+				"difficulty_range": [2, 5]
+			},
+			{
+				"type": "Pursuit",
+				"descriptions": [
+					"Hunt down escaped prisoners",
+					"Track notorious bounty targets",
+					"Pursue fleeing enemy operatives"
+				],
+				"base_payment": [5, 8],
+				"difficulty_range": [3, 5]
+			}
+		]
+	}
+
 func _load_patrons_and_rivals() -> void:
-	"""Load patrons and rivals from campaign data"""
+	"""Load patrons and rivals from campaign data with JSON enhancement"""
 	var systems_autoload: Node = get_node_or_null("/root/SystemsAutoload")
 	if not systems_autoload:
 		push_error("SystemsAutoload not available")
 		return
 
 	# Load patrons from the consolidated PatronSystem
-	patrons = systems_autoload.get_active_patrons()
+	patrons = systems_autoload.get_active_patrons() if systems_autoload.has_method("get_active_patrons") else []
 
 	# Load rivals from the consolidated FactionSystem
-	rivals = systems_autoload.get_active_rivals()
+	rivals = systems_autoload.get_active_rivals() if systems_autoload.has_method("get_active_rivals") else []
 
-	# Fallback to sample data if systems aren't ready
-	if (safe_call_method(patrons, "is_empty") == true):
-		patrons = [
-			{
-				"name": "Corporate Executive",
-				"type": "Corporate",
-				"status": "Active",
-				"jobs_offered": 3,
-				"relationship": "Neutral",
-				"special_rules": "Pays well but dangerous jobs"
-			},
-			{
-				"name": "Frontier Sheriff",
-				"type": "Government",
-				"status": "Active",
-				"jobs_offered": 2,
-				"relationship": "Friendly",
-				"special_rules": "Law enforcement missions"
-			}
-		]
+	# Enhanced fallback using JSON templates
+	if patrons.is_empty():
+		_generate_patrons_from_templates()
 
-	if (safe_call_method(rivals, "is_empty") == true):
-		rivals = [
-			{
-				"name": "Black Squadron",
-				"type": "Military",
-				"status": "Active",
-				"threat_level": "High",
-				"relationship": "Hostile",
-				"special_rules": "Elite mercenary unit, advanced equipment"
-			},
-			{
-				"name": "The Syndicate",
-				"type": "Criminal",
-				"status": "Active",
-				"threat_level": "Medium",
-				"relationship": "Hostile",
-				"special_rules": "Criminal organization, underhanded tactics"
-			}
-		]
+	if rivals.is_empty():
+		_generate_rivals_from_templates()
+
+func _generate_patrons_from_templates() -> void:
+	"""Generate patrons using JSON template data"""
+	var patron_categories = patron_templates.get("patron_categories", [])
+	
+	for i in range(2): # Generate 2 patrons initially
+		if not patron_categories.is_empty():
+			var category = patron_categories[randi() % patron_categories.size()]
+			var new_patron = _create_patron_from_template(category)
+			patrons.append(new_patron)
+
+func _generate_rivals_from_templates() -> void:
+	"""Generate rivals using JSON template data"""
+	var rival_categories = rival_templates.get("rival_categories", [])
+	
+	for i in range(2): # Generate 2 rivals initially
+		if not rival_categories.is_empty():
+			var category = rival_categories[randi() % rival_categories.size()]
+			var new_rival = _create_rival_from_template(category)
+			rivals.append(new_rival)
+
+func _create_patron_from_template(template: Dictionary) -> Dictionary:
+	"""Create a patron from a JSON template"""
+	var names = template.get("names", ["Unknown Patron"])
+	var relationships = template.get("relationship_range", ["Neutral"])
+	var rules = template.get("special_rules", ["Standard patron"])
+	
+	return {
+		"name": names[randi() % names.size()],
+		"type": template.get("type", "Unknown"),
+		"status": "Active",
+		"jobs_offered": template.get("base_jobs", 2) + randi_range(-1, 1),
+		"relationship": relationships[randi() % relationships.size()],
+		"special_rules": rules[randi() % rules.size()],
+		"job_multiplier": template.get("job_multiplier", 1.0)
+	}
+
+func _create_rival_from_template(template: Dictionary) -> Dictionary:
+	"""Create a rival from a JSON template"""
+	var names = template.get("names", ["Unknown Rival"])
+	var threat_levels = template.get("threat_levels", ["Medium"])
+	var rules = template.get("special_rules", ["Standard rival"])
+	
+	return {
+		"name": names[randi() % names.size()],
+		"type": template.get("type", "Unknown"),
+		"status": "Active",
+		"threat_level": threat_levels[randi() % threat_levels.size()],
+		"relationship": "Hostile",
+		"special_rules": rules[randi() % rules.size()],
+		"equipment_bonus": template.get("equipment_bonus", 1.0)
+	}
 
 func _refresh_displays() -> void:
 	"""Refresh all display lists"""
@@ -220,37 +405,26 @@ func _update_details(entity: Dictionary, is_patron: bool) -> void:
 		details_container.add_child(rules_text)
 
 func _generate_patron() -> Dictionary:
-	"""Generate a new patron using tables"""
-	var patron_types = ["Corporate", "Government", "Independent", "Faction", "Criminal"]
-	var patron_names = ["Director Johnson", "Captain Torres", "Elder Voss", "Agent Smith", "Boss Carrera"]
-
-	var new_patron = {
-		"name": patron_names[randi() % patron_names.size()],
-		"type": patron_types[randi() % patron_types.size()],
-		"status": "Active",
-		"jobs_offered": randi_range(1, 3),
-		"relationship": "Neutral",
-		"special_rules": "Standard patron rules apply"
-	}
-
-	return new_patron
+	"""Generate a new patron using JSON templates"""
+	var patron_categories = patron_templates.get("patron_categories", [])
+	
+	if patron_categories.is_empty():
+		push_warning("PatronRivalManager: No patron categories available for generation")
+		return {}
+	
+	var category = patron_categories[randi() % patron_categories.size()]
+	return _create_patron_from_template(category)
 
 func _generate_rival() -> Dictionary:
-	"""Generate a new rival using tables"""
-	var rival_types = ["Military", "Criminal", "Corporate", "Alien", "Raider"]
-	var rival_names = ["Shadow Company", "Steel Legion", "Iron Wolves", "Red Hawks", "Void Hunters"]
-	var threat_levels = ["Low", "Medium", "High"]
-
-	var new_rival = {
-		"name": rival_names[randi() % rival_names.size()],
-		"type": rival_types[randi() % rival_types.size()],
-		"status": "Active",
-		"threat_level": threat_levels[randi() % threat_levels.size()],
-		"relationship": "Hostile",
-		"special_rules": "Standard rival rules apply"
-	}
-
-	return new_rival
+	"""Generate a new rival using JSON templates"""
+	var rival_categories = rival_templates.get("rival_categories", [])
+	
+	if rival_categories.is_empty():
+		push_warning("PatronRivalManager: No rival categories available for generation")
+		return {}
+	
+	var category = rival_categories[randi() % rival_categories.size()]
+	return _create_rival_from_template(category)
 
 func _on_patron_selected(patron: Dictionary) -> void:
 	"""Handle patron selection"""
@@ -276,21 +450,35 @@ func _on_request_job(patron: Dictionary) -> void:
 		print("Job offered by ", patron.name, ": ", job.description)
 
 func _generate_job_offer(patron: Dictionary) -> Dictionary:
-	"""Generate a job offer from a patron"""
-	var job_types = ["Opportunist", "Patron", "Rivals"]
-	var descriptions = [
-		"Escort valuable cargo through dangerous territory",
-		"Investigate suspicious activity at mining facility",
-		"Recover stolen data from criminal hideout",
-		"Protect civilians during evacuation",
-		"Hunt down escaped prisoners"
-	]
-
+	"""Generate a job offer from a patron using JSON templates"""
+	var job_types = job_templates.get("job_types", [])
+	
+	if job_types.is_empty():
+		push_warning("PatronRivalManager: No job types available for generation")
+		return {
+			"type": "Unknown",
+			"description": "Generic job assignment",
+			"payment": 3,
+			"patron": patron.get("name", "Unknown Patron")
+		}
+	
+	var job_type = job_types[randi() % job_types.size()]
+	var descriptions = job_type.get("descriptions", ["Unknown job"])
+	var payment_range = job_type.get("base_payment", [3, 5])
+	var difficulty_range = job_type.get("difficulty_range", [1, 3])
+	
+	# Apply patron job multiplier if available
+	var base_payment = randi_range(payment_range[0], payment_range[1])
+	var patron_multiplier = patron.get("job_multiplier", 1.0)
+	var final_payment = int(base_payment * patron_multiplier)
+	
 	return {
-		"type": job_types[randi() % job_types.size()],
+		"type": job_type.get("type", "Unknown"),
 		"description": descriptions[randi() % descriptions.size()],
-		"payment": randi_range(3, 8),
-		"patron": patron.name
+		"payment": final_payment,
+		"difficulty": randi_range(difficulty_range[0], difficulty_range[1]),
+		"patron": patron.get("name", "Unknown Patron"),
+		"patron_type": patron.get("type", "Unknown")
 	}
 
 func _on_back_pressed() -> void:
@@ -327,7 +515,224 @@ func _on_generate_rival_pressed() -> void:
 func _on_manage_jobs_pressed() -> void:
 	"""Handle manage jobs button press"""
 	print("PatronRivalManager: Manage jobs pressed")
-	# TODO: Open job management interface
+	_open_job_management_interface()
+
+func _open_job_management_interface() -> void:
+	"""Open job management interface for patron job assignment"""
+	# Create job management dialog
+	var job_dialog = _create_job_management_dialog()
+	
+	if job_dialog:
+		# Add to scene tree and display
+		get_tree().current_scene.add_child(job_dialog)
+		job_dialog.popup_centered_ratio(0.8)
+		
+		# Connect job assignment signal
+		if not job_dialog.job_assigned.is_connected(_on_job_assigned_from_dialog):
+			job_dialog.job_assigned.connect(_on_job_assigned_from_dialog)
+		
+		print("PatronRivalManager: Job management interface opened")
+	else:
+		push_error("PatronRivalManager: Failed to create job management dialog")
+
+func _create_job_management_dialog() -> Control:
+	"""Create job management dialog with patron job assignment functionality"""
+	var dialog = AcceptDialog.new()
+	dialog.title = "Job Management"
+	dialog.set_flag(Window.FLAG_RESIZE_DISABLED, false)
+	
+	# Create main container
+	var main_container = VBoxContainer.new()
+	dialog.add_child(main_container)
+	
+	# Create job assignment section
+	var job_section = _create_job_assignment_section()
+	main_container.add_child(job_section)
+	
+	# Create available jobs section
+	var available_jobs_section = _create_available_jobs_section()
+	main_container.add_child(available_jobs_section)
+	
+	# Create action buttons
+	var button_container = HBoxContainer.new()
+	main_container.add_child(button_container)
+	
+	var assign_button = Button.new()
+	assign_button.text = "Assign Selected Job"
+	assign_button.pressed.connect(_on_assign_job_pressed.bind(dialog))
+	button_container.add_child(assign_button)
+	
+	var generate_button = Button.new()
+	generate_button.text = "Generate New Job"
+	generate_button.pressed.connect(_on_generate_job_pressed.bind(dialog))
+	button_container.add_child(generate_button)
+	
+	var close_button = Button.new()
+	close_button.text = "Close"
+	close_button.pressed.connect(dialog.queue_free)
+	button_container.add_child(close_button)
+	
+	# Add custom signal for job assignment
+	dialog.add_user_signal("job_assigned", [{"name": "patron", "type": TYPE_DICTIONARY}, {"name": "job", "type": TYPE_DICTIONARY}])
+	
+	return dialog
+
+func _create_job_assignment_section() -> Control:
+	"""Create job assignment section with patron selection"""
+	var section = VBoxContainer.new()
+	
+	var label = Label.new()
+	label.text = "Available Patrons:"
+	section.add_child(label)
+	
+	var patron_list = ItemList.new()
+	patron_list.name = "PatronList"
+	patron_list.custom_minimum_size = Vector2(300, 150)
+	
+	# Populate with current patrons
+	for i in range(patrons.size()):
+		var patron = patrons[i]
+		var patron_text = "%s (%s)" % [patron.get("name", "Unknown"), patron.get("type", "Unknown")]
+		patron_list.add_item(patron_text)
+	
+	section.add_child(patron_list)
+	
+	return section
+
+func _create_available_jobs_section() -> Control:
+	"""Create available jobs section with job listings"""
+	var section = VBoxContainer.new()
+	
+	var label = Label.new()
+	label.text = "Available Jobs:"
+	section.add_child(label)
+	
+	var job_list = ItemList.new()
+	job_list.name = "JobList"
+	job_list.custom_minimum_size = Vector2(300, 200)
+	
+	# Generate and populate available jobs
+	var available_jobs = _generate_available_jobs()
+	for i in range(available_jobs.size()):
+		var job = available_jobs[i]
+		var job_text = "%s - %s credits (%s)" % [job.get("title", "Unknown Job"), job.get("payment", 0), job.get("difficulty", "Normal")]
+		job_list.add_item(job_text)
+		job_list.set_item_metadata(i, job)
+	
+	section.add_child(job_list)
+	
+	return section
+
+func _generate_available_jobs() -> Array[Dictionary]:
+	"""Generate available jobs using JSON template data"""
+	var available_jobs: Array[Dictionary] = []
+	
+	if job_templates.has("job_categories"):
+		var job_categories = job_templates.job_categories
+		
+		# Generate 3-5 random jobs
+		var num_jobs = randi_range(3, 5)
+		for i in range(num_jobs):
+			var category = job_categories[randi() % job_categories.size()]
+			var job = _create_job_from_template(category)
+			available_jobs.append(job)
+	else:
+		# Fallback job generation
+		available_jobs = [
+			{"title": "Escort Convoy", "payment": 2000, "difficulty": "Normal", "type": "escort", "danger_level": 2},
+			{"title": "Investigate Outpost", "payment": 1500, "difficulty": "Easy", "type": "investigation", "danger_level": 1},
+			{"title": "Clear Pirate Base", "payment": 3500, "difficulty": "Hard", "type": "combat", "danger_level": 4},
+			{"title": "Deliver Supplies", "payment": 1200, "difficulty": "Easy", "type": "delivery", "danger_level": 1}
+		]
+	
+	return available_jobs
+
+func _create_job_from_template(category: Dictionary) -> Dictionary:
+	"""Create job from template category"""
+	var base_payment = category.get("base_payment", 1000)
+	var payment_variance = randi_range(-200, 500)
+	
+	return {
+		"title": category.get("name", "Unknown Job"),
+		"description": category.get("description", "A job that needs doing."),
+		"payment": base_payment + payment_variance,
+		"difficulty": category.get("difficulty", "Normal"),
+		"type": category.get("type", "general"),
+		"danger_level": category.get("danger_level", 2),
+		"requirements": category.get("requirements", []),
+		"estimated_duration": category.get("estimated_duration", "1-2 hours")
+	}
+
+func _on_assign_job_pressed(dialog: Control) -> void:
+	"""Handle job assignment button press"""
+	var patron_list = dialog.find_child("PatronList")
+	var job_list = dialog.find_child("JobList")
+	
+	if patron_list and job_list:
+		var selected_patron_idx = patron_list.get_selected_items()
+		var selected_job_idx = job_list.get_selected_items()
+		
+		if selected_patron_idx.size() > 0 and selected_job_idx.size() > 0:
+			var patron = patrons[selected_patron_idx[0]]
+			var job = job_list.get_item_metadata(selected_job_idx[0])
+			
+			# Emit job assignment signal
+			dialog.emit_signal("job_assigned", patron, job)
+			
+			print("PatronRivalManager: Assigned job '%s' to patron '%s'" % [job.get("title", "Unknown"), patron.get("name", "Unknown")])
+		else:
+			_show_assignment_error("Please select both a patron and a job to assign.")
+	else:
+		push_error("PatronRivalManager: Could not find patron or job lists in dialog")
+
+func _on_generate_job_pressed(dialog: Control) -> void:
+	"""Handle generate new job button press"""
+	var job_list = dialog.find_child("JobList")
+	
+	if job_list:
+		# Generate new job
+		var new_jobs = _generate_available_jobs()
+		if new_jobs.size() > 0:
+			var new_job = new_jobs[0]  # Take first generated job
+			var job_text = "%s - %s credits (%s)" % [new_job.get("title", "Unknown Job"), new_job.get("payment", 0), new_job.get("difficulty", "Normal")]
+			
+			var item_idx = job_list.add_item(job_text)
+			job_list.set_item_metadata(item_idx, new_job)
+			
+			print("PatronRivalManager: Generated new job: %s" % new_job.get("title", "Unknown"))
+		else:
+			push_error("PatronRivalManager: Failed to generate new job")
+	else:
+		push_error("PatronRivalManager: Could not find job list in dialog")
+
+func _on_job_assigned_from_dialog(patron: Dictionary, job: Dictionary) -> void:
+	"""Handle job assignment from dialog"""
+	# Add job to patron's active jobs
+	if not patron.has("active_jobs"):
+		patron["active_jobs"] = []
+	
+	patron.active_jobs.append(job)
+	
+	# Emit the main job assignment signal
+	job_assigned.emit(patron, job)
+	
+	# Refresh displays to show updated patron information
+	_refresh_displays()
+	
+	print("PatronRivalManager: Job assignment completed - '%s' assigned to '%s'" % [job.get("title", "Unknown"), patron.get("name", "Unknown")])
+
+func _show_assignment_error(message: String) -> void:
+	"""Show error message for job assignment"""
+	var error_dialog = AcceptDialog.new()
+	error_dialog.dialog_text = message
+	error_dialog.title = "Assignment Error"
+	
+	get_tree().current_scene.add_child(error_dialog)
+	error_dialog.popup_centered()
+	
+	# Auto-remove after user closes
+	error_dialog.confirmed.connect(error_dialog.queue_free)
+	error_dialog.canceled.connect(error_dialog.queue_free)
 ## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
 func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
 	if obj == null:

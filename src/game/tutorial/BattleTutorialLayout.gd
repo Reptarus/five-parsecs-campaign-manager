@@ -1,7 +1,7 @@
 # Battle tutorial layout configuration
 extends Resource
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 # Based on Core Rules combat tutorial structure
 const BATTLE_TUTORIAL_STEPS := {

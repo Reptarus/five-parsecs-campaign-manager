@@ -5,7 +5,7 @@ extends Node
 ## Manages character creation, advancement, and crew management
 
 # Dependencies loaded at runtime to avoid circular dependencies
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const CoreCharacter = preload("res://src/core/character/Character.gd")
 
 signal character_created(character: CoreCharacter)

@@ -1,7 +1,7 @@
 ﻿@tool
 extends Node
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
 const TerrainLayout = preload("res://src/core/terrain/TerrainLayout.gd")
 const TerrainSystem = preload("res://src/core/terrain/TerrainSystem.gd")

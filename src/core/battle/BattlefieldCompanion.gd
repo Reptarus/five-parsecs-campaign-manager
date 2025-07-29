@@ -17,7 +17,7 @@ const BattlefieldSetupAssistant = preload("res://src/core/battle/BattlefieldSetu
 const FPCM_SetupSuggestions = preload("res://src/core/battle/SetupSuggestions.gd")
 const BattleTracker = preload("res://src/core/battle/BattleTracker.gd")
 const PostBattleProcessor = preload("res://src/core/battle/PostBattleProcessor.gd")
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 # Main workflow signals
 signal phase_changed(old_phase: FPCM_BattlefieldTypes.BattlePhase, new_phase: FPCM_BattlefieldTypes.BattlePhase)

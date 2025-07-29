@@ -1,0 +1,36 @@
+{
+  "system_configuration": {
+    "autoload_systems": {
+      "data_manager": {
+        "priority": 1,
+        "enabled": true,
+        "initialization_timeout": 5000
+      },
+      "systems_autoload": {
+        "priority": 2,
+        "enabled": true,
+        "dependencies": ["data_manager"]
+      },
+      "game_state_manager": {
+        "priority": 3,
+        "enabled": true,
+        "dependencies": ["data_manager", "systems_autoload"]
+      }
+    },
+    "logging": {
+      "level": "INFO",
+      "performance_monitoring": true,
+      "system_startup_logging": true
+    },
+    "performance": {
+      "target_load_time_ms": 100,
+      "cache_enabled": true,
+      "async_loading": true
+    },
+    "validation": {
+      "strict_mode": false,
+      "validate_data_integrity": true,
+      "fail_on_missing_files": false
+    }
+  }
+}

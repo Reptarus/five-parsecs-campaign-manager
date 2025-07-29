@@ -11,7 +11,7 @@ class_name FPCM_HelperPathFinder
 
 const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
 const BattlefieldManager = preload("res://src/core/battle/BattlefieldManager.gd")
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const AuthPathFinder = preload("res://src/core/utils/PathFinder.gd")
 
 signal path_found(path: Array[Vector2])

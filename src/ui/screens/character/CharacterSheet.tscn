@@ -1,4 +1,4 @@
-[gd_scene load_steps=1 format=3 uid="uid://dxxx"]
+[gd_scene format=3 uid="uid://dxxx"]
 
 [node name="CharacterSheet" type="Control"]
 layout_mode = 3

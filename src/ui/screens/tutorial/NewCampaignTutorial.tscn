@@ -1,4 +1,4 @@
-[gd_scene load_steps=1 format=3 uid="uid://dqm3lo5kr00pm"]
+[gd_scene format=3 uid="uid://dqm3lo5kr00pm"]
 
 [node name="NewCampaignTutorial" type="Control"]
 layout_mode = 3

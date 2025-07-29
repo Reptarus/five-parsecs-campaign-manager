@@ -5,7 +5,7 @@
 @warning_ignore("unused_signal")
 extends Node
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const Campaign = preload("res://src/core/campaign/Campaign.gd")
 # Note: GameState injected via initialize() to avoid circular dependencies
 

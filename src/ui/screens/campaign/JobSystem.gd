@@ -2,7 +2,7 @@
 extends Node
 
 const GameState = preload("res://src/core/state/GameState.gd")
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 signal job_generated(job: Mission)
 signal job_completed(job: Mission)

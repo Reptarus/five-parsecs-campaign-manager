@@ -1,15 +1,17 @@
 [gd_scene load_steps=5 format=3 uid="uid://bbdf8j6xqaohc"]
 
-[ext_resource type="Script" path="res://src/ui/screens/campaign/CampaignTurnController.gd" id="1_2xv8n"]
-[ext_resource type="PackedScene" path="res://src/ui/screens/travel/TravelPhaseUI.tscn" id="2_4k3m1"]
-[ext_resource type="PackedScene" path="res://src/ui/screens/world/WorldPhaseUI.tscn" id="3_7n2p5"]
-[ext_resource type="PackedScene" path="res://src/ui/screens/postbattle/PostBattleSequence.tscn" id="4_m8k2r"]
+[ext_resource type="Script" uid="uid://sukbnoomk4wu" path="res://src/ui/screens/campaign/CampaignTurnController.gd" id="1_2xv8n"]
+[ext_resource type="PackedScene" uid="uid://bjdo0o2bet0av" path="res://src/ui/screens/travel/TravelPhaseUI.tscn" id="2_4k3m1"]
+[ext_resource type="PackedScene" uid="uid://b8cqdvcppb5lt" path="res://src/ui/screens/world/WorldPhaseUI.tscn" id="3_7n2p5"]
+[ext_resource type="PackedScene" uid="uid://bfkce100cwseu" path="res://src/ui/screens/postbattle/PostBattleSequence.tscn" id="4_m8k2r"]
 
 [node name="CampaignTurnController" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_2xv8n")
 
 [node name="MainContainer" type="VBoxContainer" parent="."]
@@ -17,6 +19,8 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="HeaderPanel" type="PanelContainer" parent="MainContainer"]
 layout_mode = 2
@@ -51,27 +55,23 @@ size_flags_vertical = 3
 
 [node name="TravelPhaseUI" parent="MainContainer/PhaseContainer" instance=ExtResource("2_4k3m1")]
 unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
 visible = false
+layout_mode = 1
 
 [node name="WorldPhaseUI" parent="MainContainer/PhaseContainer" instance=ExtResource("3_7n2p5")]
 unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
 visible = false
+layout_mode = 1
 
 [node name="BattleTransitionUI" type="Control" parent="MainContainer/PhaseContainer"]
 unique_name_in_owner = true
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-visible = false
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="BattleTransitionPanel" type="PanelContainer" parent="MainContainer/PhaseContainer/BattleTransitionUI"]
 layout_mode = 1
@@ -84,6 +84,8 @@ offset_left = -200.0
 offset_top = -100.0
 offset_right = 200.0
 offset_bottom = 100.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="BattleTransitionContent" type="VBoxContainer" parent="MainContainer/PhaseContainer/BattleTransitionUI/BattleTransitionPanel"]
 layout_mode = 2
@@ -104,8 +106,5 @@ value = 50.0
 
 [node name="PostBattleUI" parent="MainContainer/PhaseContainer" instance=ExtResource("4_m8k2r")]
 unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
 visible = false
+layout_mode = 1

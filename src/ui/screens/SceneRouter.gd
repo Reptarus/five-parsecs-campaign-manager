@@ -14,6 +14,7 @@ const SCENE_PATHS = {
 
 	# Campaign management
 	"campaign_creation": "res://src/ui/screens/campaign/CampaignCreationUI.tscn",
+	"campaign_creation_modular": "res://src/ui/screens/campaign/ModularCampaignCreationFlow.tscn",
 	"campaign_dashboard": "res://src/ui/screens/campaign/CampaignDashboard.tscn",
 	"campaign_setup": "res://src/ui/screens/campaign/CampaignSetupDialog.tscn",
 	"campaign_turn_controller": "res://src/ui/screens/campaign/CampaignTurnController.tscn",
@@ -28,6 +29,7 @@ const SCENE_PATHS = {
 
 	# Equipment and ship management
 	"equipment_manager": "res://src/ui/screens/equipment/EquipmentManager.tscn",
+	"equipment_generation": "res://src/ui/screens/equipment/EquipmentGenerationScene.tscn",
 	"ship_manager": "res://src/ui/screens/ships/ShipManager.tscn",
 	"ship_inventory": "res://src/ui/screens/ships/ShipInventory.tscn",
 
@@ -75,6 +77,24 @@ var navigation_history: Array[String] = []
 var current_scene: String = ""
 var max_history_size: int = 20
 
+# Scene preloading and caching for performance
+var scene_cache: Dictionary = {} # String -> PackedScene
+var loading_scenes: Dictionary = {} # String -> bool (currently loading)
+var preload_enabled: bool = true
+var max_cache_size: int = 10
+
+# Campaign creation specific scenes for preloading
+const CAMPAIGN_CREATION_SCENES = [
+	"campaign_setup",
+	"crew_creation",
+	"character_creator", 
+	"equipment_generation",
+	"campaign_dashboard"
+]
+
+# Scene transition context storage
+var scene_contexts: Dictionary = {} # String -> Dictionary
+
 func _ready() -> void:
 	print("SceneRouter: Initialized with ", SCENE_PATHS.size(), " registered scenes")
 	# Validate critical scenes on startup
@@ -86,7 +106,7 @@ func _ready() -> void:
 
 ## Navigate to a specific scene
 
-func navigate_to(scene_name: String, add_to_history: bool = true) -> void:
+func navigate_to(scene_name: String, context: Dictionary = {}, add_to_history: bool = true) -> void:
 	print("SceneRouter: Navigating to ", scene_name)
 
 	if not SCENE_PATHS.has(scene_name):
@@ -95,6 +115,19 @@ func navigate_to(scene_name: String, add_to_history: bool = true) -> void:
 		navigation_error.emit(scene_name, error_msg)
 		return
 
+	# Store context for the target scene
+	if not context.is_empty():
+		scene_contexts[scene_name] = context.duplicate()
+
+	# Try to use cached scene first for better performance
+	if preload_enabled and scene_cache.has(scene_name):
+		print("SceneRouter: Using cached scene for ", scene_name)
+		var cached_scene = scene_cache[scene_name]
+		if cached_scene and is_instance_valid(cached_scene):
+			_transition_to_cached_scene(scene_name, cached_scene, add_to_history)
+			return
+
+	# Fall back to regular file loading
 	@warning_ignore("untyped_declaration")
 	var scene_path = SCENE_PATHS[scene_name]
 
@@ -126,6 +159,9 @@ func navigate_to(scene_name: String, add_to_history: bool = true) -> void:
 		return
 
 	scene_changed.emit(scene_name, previous_scene)
+	
+	# Preload next likely scenes for campaign creation flow
+	_preload_campaign_flow_scenes(scene_name)
 
 ## Navigate back to the previous scene
 func navigate_back() -> void:
@@ -261,6 +297,120 @@ func start_battle_sequence() -> void:
 func start_post_battle_sequence() -> void:
 	# Start the post-battle sequence
 	navigate_to("post_battle_sequence")
+
+## Scene caching and preloading methods
+
+func preload_scene(scene_name: String) -> void:
+	"""Preload a scene into cache for faster transitions"""
+	if not SCENE_PATHS.has(scene_name):
+		push_warning("SceneRouter: Cannot preload unknown scene: " + scene_name)
+		return
+	
+	if scene_cache.has(scene_name):
+		return # Already cached
+	
+	if loading_scenes.get(scene_name, false):
+		return # Already loading
+	
+	print("SceneRouter: Preloading scene: ", scene_name)
+	loading_scenes[scene_name] = true
+	
+	var scene_path = SCENE_PATHS[scene_name]
+	var packed_scene = load(scene_path) as PackedScene
+	
+	if packed_scene:
+		_add_to_cache(scene_name, packed_scene)
+		print("SceneRouter: Successfully preloaded: ", scene_name)
+	else:
+		push_error("SceneRouter: Failed to preload scene: " + scene_path)
+	
+	loading_scenes[scene_name] = false
+
+func preload_campaign_scenes() -> void:
+	"""Preload all campaign creation flow scenes"""
+	print("SceneRouter: Preloading campaign creation scenes...")
+	for scene_name in CAMPAIGN_CREATION_SCENES:
+		preload_scene(scene_name)
+
+func get_scene_context(scene_name: String) -> Dictionary:
+	"""Get stored context for a scene"""
+	return scene_contexts.get(scene_name, {})
+
+func clear_scene_context(scene_name: String) -> void:
+	"""Clear stored context for a scene"""
+	if scene_contexts.has(scene_name):
+		scene_contexts.erase(scene_name)
+
+func clear_scene_cache() -> void:
+	"""Clear all cached scenes"""
+	scene_cache.clear()
+	loading_scenes.clear()
+	print("SceneRouter: Scene cache cleared")
+
+func get_cache_info() -> Dictionary:
+	"""Get cache information for debugging"""
+	return {
+		"cached_scenes": scene_cache.keys(),
+		"cache_size": scene_cache.size(),
+		"max_cache_size": max_cache_size,
+		"loading_scenes": loading_scenes.keys(),
+		"preload_enabled": preload_enabled
+	}
+
+func _transition_to_cached_scene(scene_name: String, packed_scene: PackedScene, add_to_history: bool) -> void:
+	"""Transition to a cached scene"""
+	# Add current scene to history if requested
+	if add_to_history and not current_scene.is_empty():
+		_add_to_history(current_scene)
+	
+	var previous_scene = current_scene
+	current_scene = scene_name
+	
+	# Instantiate and change to cached scene
+	var scene_instance = packed_scene.instantiate()
+	if scene_instance:
+		get_tree().current_scene.queue_free()
+		get_tree().current_scene = scene_instance
+		get_tree().root.add_child(scene_instance)
+		
+		scene_changed.emit(scene_name, previous_scene)
+		_preload_campaign_flow_scenes(scene_name)
+		print("SceneRouter: Successfully transitioned to cached scene: ", scene_name)
+	else:
+		push_error("SceneRouter: Failed to instantiate cached scene: " + scene_name)
+
+func _add_to_cache(scene_name: String, packed_scene: PackedScene) -> void:
+	"""Add a scene to cache with size management"""
+	# Remove oldest entries if cache is full
+	if scene_cache.size() >= max_cache_size:
+		var oldest_key = scene_cache.keys()[0]
+		scene_cache.erase(oldest_key)
+		print("SceneRouter: Removed oldest cached scene: ", oldest_key)
+	
+	scene_cache[scene_name] = packed_scene
+
+func _preload_campaign_flow_scenes(current_scene_name: String) -> void:
+	"""Preload likely next scenes based on campaign creation flow"""
+	if not preload_enabled:
+		return
+	
+	# Determine which scenes to preload based on current scene
+	var scenes_to_preload: Array[String] = []
+	
+	match current_scene_name:
+		"campaign_setup":
+			scenes_to_preload = ["crew_creation"]
+		"crew_creation":
+			scenes_to_preload = ["character_creator", "equipment_generation"]
+		"character_creator":
+			scenes_to_preload = ["crew_creation", "equipment_generation"]
+		"equipment_generation":
+			scenes_to_preload = ["campaign_dashboard"]
+	
+	# Preload scenes in background
+	for scene_name in scenes_to_preload:
+		if not scene_cache.has(scene_name) and not loading_scenes.get(scene_name, false):
+			call_deferred("preload_scene", scene_name)
 
 ## Private helper methods
 

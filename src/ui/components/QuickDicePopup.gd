@@ -1,4 +1,4 @@
-﻿class_name FPCM_QuickDicePopup
+class_name FPCM_QuickDicePopup
 extends Window
 
 ## Quick Dice Roller Popup

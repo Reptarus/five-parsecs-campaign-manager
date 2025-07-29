@@ -1,7 +1,7 @@
 ﻿@tool
 extends Node
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const GameState = preload("res://src/core/state/GameState.gd")
 const CampaignPhaseManager = preload("res://src/core/campaign/CampaignPhaseManager.gd")
 # Note: CharacterManager is an autoload - access via get_node("/root/CharacterManager")

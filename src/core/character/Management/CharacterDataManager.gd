@@ -6,7 +6,7 @@ const CREW_FILE_EXTENSION = ".crew.json"
 const PORTRAIT_DIR = "user://portraits/"
 const Character = preload("res://src/core/character/Character.gd")
 # Note: GameStateManager is an autoload - access via get_node("/root/GameStateManager")
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 var game_state_manager: Node # FPCM_GameStateManager
 

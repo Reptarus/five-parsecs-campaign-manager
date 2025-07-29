@@ -7,12 +7,13 @@ extends RefCounted
 ## Calculates mission rewards based on difficulty, performance, and Five Parsecs rules.
 ## Integrates with existing reward data and provides dynamic bonus calculations.
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const MissionTypeRegistry = preload("res://src/game/missions/enhanced/MissionTypeRegistry.gd")
 const MissionDifficultyScaler = preload("res://src/game/missions/enhanced/MissionDifficultyScaler.gd")
 
-# Load existing reward data
-const REWARDS_DATA: Dictionary = preload("res://data/mission_tables/mission_rewards.json")
+# Reward data paths - loaded at runtime
+const REWARDS_DATA_PATH: String = "res://data/mission_tables/mission_rewards.json"
+static var _rewards_data: Dictionary = {}
 
 # Performance multipliers based on mission completion quality
 const PERFORMANCE_MULTIPLIERS: Dictionary = {
@@ -34,6 +35,41 @@ const PATRON_RELATIONSHIP_BONUSES: Dictionary = {
 
 # Danger pay scaling (Five Parsecs core rule)
 const DANGER_PAY_SCALING: Array[int] = [0, 100, 250, 500, 750, 1000]
+
+## Load reward data if not already loaded
+static func _ensure_rewards_data_loaded() -> void:
+	if _rewards_data.is_empty():
+		_rewards_data = _load_json_safe(REWARDS_DATA_PATH, "rewards_data")
+
+## Safe JSON loading method (similar to DataManager)
+static func _load_json_safe(file_path: String, context: String) -> Dictionary:
+	if not FileAccess.file_exists(file_path):
+		push_warning("MissionRewardCalculator: Data file not found: " + file_path)
+		return {}
+	
+	var file: FileAccess = FileAccess.open(file_path, FileAccess.READ)
+	if not file:
+		push_warning("MissionRewardCalculator: Failed to open file: " + file_path)
+		return {}
+	
+	var text: String = file.get_as_text()
+	file.close()
+	
+	if text.is_empty():
+		return {}
+	
+	var json: JSON = JSON.new()
+	var parse_result: Error = json.parse(text)
+	
+	if parse_result != OK:
+		push_warning("MissionRewardCalculator: JSON Parse Error in " + file_path)
+		return {}
+	
+	var data = json.get_data()
+	if typeof(data) != TYPE_DICTIONARY:
+		return {}
+	
+	return data as Dictionary
 
 ## Calculate complete mission rewards
 static func calculate_mission_rewards(mission_context: Dictionary, performance_context: Dictionary) -> Dictionary:
@@ -104,7 +140,7 @@ static func calculate_danger_pay(base_pay: int, danger_level: int) -> int:
 		return 0
 	
 	var danger_bonus: int = DANGER_PAY_SCALING[danger_level]
-	return minii(danger_bonus, base_pay)  # Cap at base pay amount
+	return mini(danger_bonus, base_pay) # Cap at base pay amount
 
 ## Calculate patron job bonus
 static func calculate_patron_bonus(base_reward: int, patron_relationship: String, job_complexity: int) -> Dictionary:
@@ -141,7 +177,7 @@ static func _calculate_base_credits(mission_context: Dictionary, performance_con
 	
 	# Get base reward from mission type data
 	var mission_data: Dictionary = MissionTypeRegistry.get_mission_type_data(mission_type)
-	var base_credits: int = 200  # Five Parsecs standard base
+	var base_credits: int = 200 # Five Parsecs standard base
 	var difficulty_bonus: int = difficulty * 100
 	var type_multiplier: float = mission_data.get("reward_multiplier", 1.0)
 	
@@ -159,13 +195,13 @@ static func _calculate_base_credits(mission_context: Dictionary, performance_con
 	# Apply patron bonus if applicable
 	if mission_context.has("patron_relationship"):
 		var patron_bonus: Dictionary = calculate_patron_bonus(
-			total_credits, 
+			total_credits,
 			mission_context.get("patron_relationship", "neutral"),
 			difficulty
 		)
 		total_credits += patron_bonus.credits
 	
-	return maxii(total_credits, 50)  # Minimum payment
+	return maxi(total_credits, 50) # Minimum payment
 
 static func _calculate_reputation_gain(mission_context: Dictionary, performance_context: Dictionary) -> int:
 	var base_reputation: int = mission_context.get("difficulty", 1)
@@ -180,15 +216,15 @@ static func _calculate_reputation_gain(mission_context: Dictionary, performance_
 	var mission_category: MissionTypeRegistry.MissionCategory = MissionTypeRegistry.get_mission_category(mission_type)
 	match mission_category:
 		MissionTypeRegistry.MissionCategory.PATRON_CONTRACT:
-			base_reputation = roundi(base_reputation * 1.2)  # Patron jobs build reputation faster
+			base_reputation = roundi(base_reputation * 1.2) # Patron jobs build reputation faster
 		MissionTypeRegistry.MissionCategory.OPPORTUNITY:
-			base_reputation = roundi(base_reputation * 0.8)  # Opportunity missions give less reputation
+			base_reputation = roundi(base_reputation * 0.8) # Opportunity missions give less reputation
 	
 	# Bonus for exceptional performance
 	if performance in ["exceptional", "legendary"]:
 		base_reputation += 1
 	
-	return maxii(base_reputation, 0)
+	return maxi(base_reputation, 0)
 
 static func _calculate_experience_gain(mission_context: Dictionary, performance_context: Dictionary) -> int:
 	var difficulty: int = mission_context.get("difficulty", 1)
@@ -205,7 +241,7 @@ static func _calculate_experience_gain(mission_context: Dictionary, performance_
 	# Distribute among crew
 	var total_xp: int = base_xp * crew_size
 	
-	return maxii(total_xp, crew_size)  # Minimum 1 XP per crew member
+	return maxi(total_xp, crew_size) # Minimum 1 XP per crew member
 
 static func _generate_item_rewards(mission_context: Dictionary, performance_context: Dictionary) -> Array[Dictionary]:
 	var items: Array[Dictionary] = []
@@ -224,7 +260,7 @@ static func _generate_item_rewards(mission_context: Dictionary, performance_cont
 	var mission_category: MissionTypeRegistry.MissionCategory = MissionTypeRegistry.get_mission_category(mission_type)
 	match mission_category:
 		MissionTypeRegistry.MissionCategory.OPPORTUNITY:
-			item_chance *= 1.5  # Opportunity missions often have loot
+			item_chance *= 1.5 # Opportunity missions often have loot
 	
 	# Generate items
 	while item_chance > 0.0:
@@ -235,21 +271,24 @@ static func _generate_item_rewards(mission_context: Dictionary, performance_cont
 	return items
 
 static func _generate_single_item(difficulty: int, mission_type: int) -> Dictionary:
+	# Ensure rewards data is loaded
+	_ensure_rewards_data_loaded()
+	
 	# Use existing reward data for item generation
-	var reward_entries: Array = REWARDS_DATA.get("entries", [])
+	var reward_entries: Array = _rewards_data.get("entries", [])
 	var selected_entry: Dictionary = {}
 	
 	# Weight selection by difficulty
 	for entry in reward_entries:
 		var roll_range: Array = entry.get("roll_range", [1, 100])
-		var adjusted_roll: int = 50 + (difficulty * 10)  # Higher difficulty = better items
+		var adjusted_roll: int = 50 + (difficulty * 10) # Higher difficulty = better items
 		
 		if adjusted_roll >= roll_range[0] and adjusted_roll <= roll_range[1]:
 			selected_entry = entry.result
 			break
 	
 	if selected_entry.is_empty():
-		selected_entry = REWARDS_DATA.get("default_result", {})
+		selected_entry = _rewards_data.get("default_result", {})
 	
 	# Generate item based on selected entry
 	var item: Dictionary = {
@@ -281,7 +320,7 @@ static func _calculate_special_bonuses(mission_context: Dictionary, performance_
 		})
 	elif performance == "legendary":
 		bonuses.append({
-			"type": "legendary_bonus", 
+			"type": "legendary_bonus",
 			"description": "Legendary mission achievement",
 			"credit_value": difficulty * 100,
 			"reputation_bonus": 2,

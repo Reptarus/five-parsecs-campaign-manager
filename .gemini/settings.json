@@ -23,6 +23,18 @@
     },
     "desktop-commander": {
       "command": "npx @wonderwhy-er/desktop-commander@latest"
+    },
+    "gemini-ai-orchestrator": {
+      "command": "C:\\Python313\\python.exe",
+      "args": [
+        "C:\\Users\\elija\\SynologyDrive\\Godot\\five-parsecs-campaign-manager\\Creative-Tools-MCP\\community-mcp-servers\\claude-gemini-mcp-slim-main\\gemini_mcp_server.py"
+      ],
+      "env": {
+        "MCP_TRANSPORT": "stdio",
+        "MCP_TIMEOUT": "30000",
+        "GOOGLE_API_KEY": "AIzaSyDQRZcWjWQXgM__y2jF78HDJLNspszABrI",
+        "GEMINI_FLASH_MODEL": "gemini-2.5-flash"
+      }
     }
   }
 }

@@ -7,7 +7,7 @@ class_name ConsolidatedArmor
 ## Combines core, game-specific, and data management functionalities.
 
 # Import required resources
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 # Basic armor properties
 @export var armor_id: String = ""

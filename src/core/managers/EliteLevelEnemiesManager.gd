@@ -5,7 +5,7 @@ const ELITE_COMBAT_SKILL_BONUS: int = 2
 const ELITE_TOUGHNESS_BONUS: int = 2
 const ELITE_REACTIONS_BONUS: int = 1
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const Enemy = preload("res://src/core/enemy/base/Enemy.gd")
 
 ## Upgrades a regular enemy to an elite version

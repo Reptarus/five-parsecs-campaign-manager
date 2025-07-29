@@ -34,6 +34,9 @@ func _ready() -> void:
 	_connect_core_signals()
 	_initialize_ui_state()
 	
+	# SPRINT ENHANCEMENT: Initialize backend integration systems
+	_initialize_backend_systems()
+	
 	# Start first campaign turn if new campaign
 	if game_state.get_campaign_turn() == 0:
 		start_new_campaign_turn()
@@ -68,6 +71,158 @@ func _initialize_ui_state() -> void:
 	
 	_update_turn_display(turn_number)
 	_show_phase_ui(current_phase)
+
+## SPRINT ENHANCEMENT: Backend Integration Systems
+
+func _initialize_backend_systems() -> void:
+	"""Initialize validated backend systems for campaign turn management"""
+	print("CampaignTurnController: Initializing backend integration systems...")
+	
+	# Initialize PlanetDataManager for world persistence
+	var PlanetDataManager = preload("res://src/core/world/PlanetDataManager.gd")
+	if PlanetDataManager:
+		var planet_manager = PlanetDataManager.new()
+		add_child(planet_manager)
+		planet_manager.name = "BackendPlanetManager"
+		print("CampaignTurnController: PlanetDataManager initialized")
+		
+		# Connect planet manager signals
+		planet_manager.planet_discovered.connect(_on_backend_planet_discovered)
+		planet_manager.planet_visited.connect(_on_backend_planet_visited)
+		planet_manager.planet_data_updated.connect(_on_backend_planet_data_updated)
+	else:
+		push_warning("CampaignTurnController: PlanetDataManager not available")
+	
+	# Initialize ContactManager for persistent contact tracking
+	var ContactManager = preload("res://src/core/world/ContactManager.gd")
+	if ContactManager:
+		var contact_manager = ContactManager.new()
+		add_child(contact_manager)
+		contact_manager.name = "BackendContactManager"
+		print("CampaignTurnController: ContactManager initialized")
+		
+		# Connect contact manager signals
+		contact_manager.contact_discovered.connect(_on_backend_contact_discovered)
+	else:
+		push_warning("CampaignTurnController: ContactManager not available")
+	
+	# Initialize RivalBattleGenerator for rival encounters
+	var RivalBattleGenerator = preload("res://src/core/rivals/RivalBattleGenerator.gd")
+	if RivalBattleGenerator:
+		var rival_generator = RivalBattleGenerator.new()
+		add_child(rival_generator)
+		rival_generator.name = "BackendRivalGenerator"
+		print("CampaignTurnController: RivalBattleGenerator initialized")
+		
+		# Connect rival generator signals
+		rival_generator.rival_battle_generated.connect(_on_backend_rival_battle_generated)
+		rival_generator.rival_escalated.connect(_on_backend_rival_escalated)
+		rival_generator.rival_defeated_permanently.connect(_on_backend_rival_defeated)
+	else:
+		push_warning("CampaignTurnController: RivalBattleGenerator not available")
+	
+	print("CampaignTurnController: Backend integration systems initialization complete")
+
+## Backend System Signal Handlers
+
+func _on_backend_planet_discovered(planet_data) -> void:
+	"""Handle planet discovery from backend PlanetDataManager"""
+	print("CampaignTurnController: Backend planet discovered - %s" % planet_data.name)
+
+func _on_backend_planet_visited(planet_id: String, visit_count: int) -> void:
+	"""Handle planet visit tracking from backend"""
+	print("CampaignTurnController: Planet %s visited (count: %d)" % [planet_id, visit_count])
+
+func _on_backend_planet_data_updated(planet_id: String, update_type: String) -> void:
+	"""Handle planet data updates from backend"""
+	print("CampaignTurnController: Planet %s data updated (%s)" % [planet_id, update_type])
+
+func _on_backend_contact_discovered(contact) -> void:
+	"""Handle contact discovery from backend ContactManager"""
+	print("CampaignTurnController: Backend contact discovered - %s" % contact.name)
+
+func _on_backend_rival_battle_generated(battle_data) -> void:
+	"""Handle rival battle generation from backend RivalBattleGenerator"""
+	print("CampaignTurnController: Backend rival battle generated - %s" % battle_data.battle_type)
+	
+	# Store battle data for the battle sequence
+	battle_results["rival_battle_data"] = battle_data
+	
+	# Update battle UI if available
+	if battle_transition_ui and battle_transition_ui.has_method("set_rival_battle_data"):
+		battle_transition_ui.set_rival_battle_data(battle_data)
+
+func _on_backend_rival_escalated(rival_id: String, new_threat_level: int) -> void:
+	"""Handle rival escalation from backend"""
+	print("CampaignTurnController: Rival %s escalated to threat level %d" % [rival_id, new_threat_level])
+
+func _on_backend_rival_defeated(rival_id: String) -> void:
+	"""Handle rival permanent defeat from backend"""
+	print("CampaignTurnController: Rival %s permanently defeated" % rival_id)
+
+## Backend System Integration Methods
+
+func _trigger_world_phase_backend_integration() -> void:
+	"""Trigger backend system integration when entering world phase"""
+	print("CampaignTurnController: Triggering world phase backend integration")
+	
+	var current_turn = campaign_phase_manager.get_turn_number()
+	var current_planet_id = _get_current_planet_id()
+	
+	# Update planet data using backend PlanetDataManager
+	var planet_manager = get_node("BackendPlanetManager")
+	if planet_manager and planet_manager.has_method("get_or_generate_planet"):
+		var planet_data = planet_manager.get_or_generate_planet(current_planet_id, current_turn)
+		print("CampaignTurnController: Planet data updated - %s" % planet_data.name)
+		
+		# Pass planet data to world phase UI if it has backend integration
+		if world_phase_ui and world_phase_ui.has_method("update_planet_data_backend"):
+			world_phase_ui.update_planet_data_backend(current_planet_id, current_turn)
+	
+	# Generate random contacts using backend ContactManager
+	var contact_manager = get_node("BackendContactManager")
+	if contact_manager and contact_manager.has_method("generate_random_contact"):
+		# Generate 1-3 random contacts for this planet/turn
+		var contact_count = randi_range(1, 3)
+		for i in range(contact_count):
+			var contact = contact_manager.generate_random_contact(current_planet_id, current_turn)
+			print("CampaignTurnController: Generated contact %d - %s" % [i + 1, contact.name])
+		
+		# Notify world phase UI if it has backend integration
+		if world_phase_ui and world_phase_ui.has_method("generate_random_contact_backend"):
+			world_phase_ui.generate_random_contact_backend(current_planet_id, current_turn)
+
+func _get_current_planet_id() -> String:
+	"""Get current planet ID from game state or generate one"""
+	if game_state and game_state.has_method("get_current_planet"):
+		var planet = game_state.get_current_planet()
+		if planet:
+			return planet.get("id", "planet_" + str(campaign_phase_manager.get_turn_number()))
+	
+	# Fallback to turn-based planet ID
+	return "planet_" + str(campaign_phase_manager.get_turn_number())
+
+func _check_rival_encounter_backend(planet_id: String, turn_number: int) -> void:
+	"""Check for rival encounters using backend RivalBattleGenerator"""
+	print("CampaignTurnController: Checking for rival encounters on %s (turn %d)" % [planet_id, turn_number])
+	
+	var rival_generator = get_node("BackendRivalGenerator")
+	if rival_generator and rival_generator.has_method("check_rival_encounter"):
+		var encounter_data = rival_generator.check_rival_encounter(planet_id, turn_number)
+		
+		if encounter_data and encounter_data.get("has_encounter", false):
+			print("CampaignTurnController: Rival encounter detected - %s" % encounter_data.get("rival_name", "Unknown"))
+			
+			# Store encounter data for battle sequence
+			battle_results["rival_encounter"] = encounter_data
+			
+			# Update battle UI with rival encounter information
+			if battle_transition_ui and battle_transition_ui.has_method("set_rival_encounter_data"):
+				battle_transition_ui.set_rival_encounter_data(encounter_data)
+		else:
+			print("CampaignTurnController: No rival encounters this turn")
+	else:
+		push_warning("CampaignTurnController: RivalBattleGenerator not available for encounter checks")
 
 ## Campaign Turn Orchestration
 func start_new_campaign_turn() -> void:
@@ -121,6 +276,9 @@ func _show_phase_ui(phase: int) -> void:
 			world_phase_ui.show()
 			current_ui_phase = world_phase_ui
 			
+			# SPRINT ENHANCEMENT: Initialize backend systems for world phase
+			_trigger_world_phase_backend_integration()
+			
 		GlobalEnums.FiveParsecsCampaignPhase.BATTLE:
 			battle_transition_ui.show()
 			current_ui_phase = battle_transition_ui
@@ -139,9 +297,14 @@ func _hide_all_phase_uis() -> void:
 
 ## Battle Integration
 func _initiate_battle_sequence() -> void:
-	"""Start battle with current mission data"""
+	"""Start battle with current mission data and check for rival encounters"""
 	var mission_data = game_state.get_current_mission()
 	var crew_data = game_state.get_active_crew()
+	var current_turn = campaign_phase_manager.get_turn_number()
+	var current_planet_id = _get_current_planet_id()
+	
+	# SPRINT ENHANCEMENT: Check for rival encounters before starting battle
+	_check_rival_encounter_backend(current_planet_id, current_turn)
 	
 	# Launch battlefield companion with data
 	var battle_manager = get_node("/root/BattlefieldManager")

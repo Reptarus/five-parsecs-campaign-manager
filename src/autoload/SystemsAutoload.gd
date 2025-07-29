@@ -7,10 +7,11 @@ extends Node
 ## - EconomySystem (formerly ResourceManager + EconomyManager + WorldEconomyManager)
 ## - FactionSystem (formerly RivalManager + FactionManager + ExpandedFactionManager)
 
-# Load system classes - with error handling
+# Load system classes - with error handling (fixed paths)
 const PatronSystem = preload("res://src/core/systems/PatronSystem.gd")
 const EconomySystem = preload("res://src/core/systems/EconomySystem.gd")
 const FactionSystem = preload("res://src/core/systems/FactionSystem.gd")
+const DataManager = preload("res://src/core/data/DataManager.gd")
 
 # System instances
 var patron_system: PatronSystem
@@ -41,11 +42,11 @@ func _wait_for_critical_autoloads() -> void:
 	# Wait one frame to ensure all autoloads are registered
 	await get_tree().process_frame
 	
-	# Wait for DataManager specifically - using static API
+	# Wait for DataManager specifically - using public API
 	var data_manager = get_node_or_null("/root/DataManagerAutoload") as Node
 	if data_manager:
-		# Check if DataManager static system has finished loading
-		if not DataManager._is_data_loaded:
+		# Check if DataManager static system has finished loading using public API
+		if not DataManager.is_system_ready():
 			print("SystemsAutoload: Waiting for DataManager to finish loading data...")
 			# Initialize DataManager if not already done
 			DataManager.initialize_data_system()

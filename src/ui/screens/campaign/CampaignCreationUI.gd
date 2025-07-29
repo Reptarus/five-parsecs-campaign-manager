@@ -4,14 +4,15 @@ extends Control
 @warning_ignore("shadowed_global_identifier")
 const UniversalNodeValidator = preload("res://src/utils/UniversalNodeValidator.gd")
 const Character = preload("res://src/core/character/Character.gd")
-const CreationStateManager = preload("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
+const SafeDataAccess = preload("res://src/utils/SafeDataAccess.gd")
 
-# State Management Integration
+# Unified Systems removed - simplified architecture
+
+# Legacy State Management (for backwards compatibility)
+const CreationStateManager = preload("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
 var state_manager: CreationStateManager = null
 
-# Use the new core system setup
-var core_systems: Node = null # Type-safe managed by system
-var creation_manager: Node = null # Type-safe managed by system
+# Simplified state management - using proven CampaignCreationStateManager
 
 # UI Components - Safe node access with fallback handling
 @onready var config_panel: Control = get_node_or_null("MarginContainer/VBoxContainer/StepPanels/ConfigPanel") as Node
@@ -113,22 +114,24 @@ func _enter_degraded_mode() -> void:
 
 # Add this method to store node references
 func _store_node_references(nodes: Dictionary) -> void:
-	config_panel = nodes.get("MarginContainer/VBoxContainer/StepPanels/ConfigPanel") if nodes else null
-	crew_panel = nodes.get("MarginContainer/VBoxContainer/StepPanels/CrewPanel") if nodes else null
-	captain_panel = nodes.get("MarginContainer/VBoxContainer/StepPanels/CaptainPanel") if nodes else null
-	ship_panel = nodes.get("MarginContainer/VBoxContainer/StepPanels/ShipPanel") if nodes else null
-	equipment_panel = nodes.get("MarginContainer/VBoxContainer/StepPanels/EquipmentPanel") if nodes else null
-	final_panel = nodes.get("MarginContainer/VBoxContainer/StepPanels/FinalPanel") if nodes else null
-	step_label = nodes.get("MarginContainer/VBoxContainer/Header/StepLabel") if nodes else null
-	next_button = nodes.get("MarginContainer/VBoxContainer/Navigation/NextButton") if nodes else null
-	back_button = nodes.get("MarginContainer/VBoxContainer/Navigation/BackButton") if nodes else null
-	finish_button = nodes.get("MarginContainer/VBoxContainer/Navigation/FinishButton") if nodes else null
+	var nodes_dict = SafeDataAccess.safe_dict_access(nodes, "dynamic UI creation")
+	config_panel = SafeDataAccess.safe_get(nodes_dict, "MarginContainer/VBoxContainer/StepPanels/ConfigPanel", null, "UI node access")
+	crew_panel = SafeDataAccess.safe_get(nodes_dict, "MarginContainer/VBoxContainer/StepPanels/CrewPanel", null, "UI node access")
+	captain_panel = SafeDataAccess.safe_get(nodes_dict, "MarginContainer/VBoxContainer/StepPanels/CaptainPanel", null, "UI node access")
+	ship_panel = SafeDataAccess.safe_get(nodes_dict, "MarginContainer/VBoxContainer/StepPanels/ShipPanel", null, "UI node access")
+	equipment_panel = SafeDataAccess.safe_get(nodes_dict, "MarginContainer/VBoxContainer/StepPanels/EquipmentPanel", null, "UI node access")
+	final_panel = SafeDataAccess.safe_get(nodes_dict, "MarginContainer/VBoxContainer/StepPanels/FinalPanel", null, "UI node access")
+	step_label = SafeDataAccess.safe_get(nodes_dict, "MarginContainer/VBoxContainer/Header/StepLabel", null, "UI node access")
+	next_button = SafeDataAccess.safe_get(nodes_dict, "MarginContainer/VBoxContainer/Navigation/NextButton", null, "UI node access")
+	back_button = SafeDataAccess.safe_get(nodes_dict, "MarginContainer/VBoxContainer/Navigation/BackButton", null, "UI node access")
+	finish_button = SafeDataAccess.safe_get(nodes_dict, "MarginContainer/VBoxContainer/Navigation/FinishButton", null, "UI node access")
 
 func _initialize_state_manager() -> void:
-	"""Initialize the CampaignCreationStateManager for centralized state management"""
+	"""Initialize both legacy and unified state management systems"""
+	# Legacy state manager for backwards compatibility
 	state_manager = CampaignCreationStateManager.new()
 
-	# Connect state manager signals for UI updates
+	# Connect legacy state manager signals for UI updates
 	@warning_ignore("return_value_discarded")
 	state_manager.state_updated.connect(_on_state_updated)
 	@warning_ignore("return_value_discarded")
@@ -138,7 +141,24 @@ func _initialize_state_manager() -> void:
 	@warning_ignore("return_value_discarded")
 	state_manager.creation_completed.connect(_on_creation_completed)
 
-	print("CampaignCreationUI: State manager initialized")
+	print("CampaignCreationUI: Legacy state manager initialized")
+
+	"""Initialize connections to the new unified systems"""
+		return
+	
+	print("CampaignCreationUI: Connecting to unified systems...")
+	
+	# Get unified system references from orchestrator
+	
+		if not workflow_id.is_empty():
+			print("CampaignCreationUI: Campaign creation workflow started: %s" % workflow_id)
+			# Connect to workflow signals
+		else:
+			push_warning("CampaignCreationUI: Failed to start campaign creation workflow")
+	
+	# Connect to state changes if available
+	
+	print("CampaignCreationUI: Unified systems integration complete")
 
 # Add this method for successful initialization
 func _initialize_component() -> void:
@@ -283,12 +303,12 @@ func _connect_button_signals() -> void:
 		push_warning("CampaignCreationUI: Finish button not found")
 
 func _connect_panel_signals() -> void:
-	"""Connect panel signals to state manager integration"""
+	"""Connect panel signals to state manager integration with backend system bridges"""
 	if not state_manager:
 		push_warning("CampaignCreationUI: Cannot connect panel signals - state manager not available")
 		return
 	
-	# Connect each panel's existing signals
+	# Connect each panel's existing signals to state manager
 	_safe_connect_signal(config_panel, "config_updated", _on_config_updated)
 	_safe_connect_signal(crew_panel, "crew_updated", _on_crew_updated)
 	_safe_connect_signal(captain_panel, "captain_updated", _on_captain_updated)
@@ -296,7 +316,12 @@ func _connect_panel_signals() -> void:
 	_safe_connect_signal(equipment_panel, "equipment_generated", _on_equipment_generated)
 	_safe_connect_signal(final_panel, "campaign_creation_requested", _on_campaign_creation_requested)
 	
-	print("CampaignCreationUI: Panel signals connected to state manager")
+	# SPRINT ENHANCEMENT: Connect backend system integration signals
+	_safe_connect_signal(crew_panel, "crew_generation_requested", _on_crew_generation_requested)
+	_safe_connect_signal(equipment_panel, "equipment_requested", _on_equipment_requested_with_backend)
+	_safe_connect_signal(crew_panel, "character_customization_needed", _on_character_customization_needed)
+	
+	print("CampaignCreationUI: Panel signals connected to state manager with backend integration")
 
 # ADD: Helper method for safe signal connections
 func _safe_connect_signal(panel: Node, signal_name: String, handler: Callable) -> void:
@@ -356,6 +381,12 @@ func _on_crew_updated(crew: Array) -> void:
 	if equipment_panel and equipment_panel and equipment_panel.has_method("set_crew_size"):
 		@warning_ignore("unsafe_method_access")
 		equipment_panel.set_crew_size(crew.size())
+	
+	# SPRINT ENHANCEMENT: Trigger backend equipment generation when crew is complete
+	if equipment_panel and equipment_panel.has_method("request_equipment_generation") and crew.size() >= 4:
+		print("CampaignCreationUI: Triggering backend equipment generation for complete crew")
+		@warning_ignore("unsafe_method_access")
+		equipment_panel.request_equipment_generation(crew)
 
 	# Update resource panel with crew data for bonus calculation
 	if crew_panel and crew_panel and crew_panel.has_method("set_crew_data"):
@@ -535,6 +566,100 @@ func _on_campaign_creation_requested(campaign_data: Dictionary) -> void:
 	_on_finish_button_pressed()
 	
 	# Equipment will be included in final campaign creation
+
+## SPRINT ENHANCEMENT: Backend System Integration Handlers
+
+func _on_crew_generation_requested(crew_size: int) -> void:
+	"""Handle crew generation using validated SimpleCharacterCreator"""
+	print("CampaignCreationUI: Crew generation requested for %d members using backend systems" % crew_size)
+	
+	# Load the validated SimpleCharacterCreator
+	var SimpleCharacterCreator = preload("res://src/core/character/Generation/SimpleCharacterCreator.gd")
+	if not SimpleCharacterCreator:
+		push_error("CampaignCreationUI: SimpleCharacterCreator not available")
+		return
+	
+	var generated_crew: Array = []
+	
+	# Generate each crew member using the tested character creation system
+	var character_creator = SimpleCharacterCreator.new()
+	for i in range(crew_size):
+		var character = character_creator.create_character()
+		if character:
+			# Set character as captain if it's the first member
+			if i == 0:
+				character.is_captain = true
+				character.character_name = "Captain " + character.character_name
+			generated_crew.append(character)
+			print("CampaignCreationUI: Generated character %d: %s" % [i + 1, character.character_name])
+	
+	# Send generated crew back to crew panel
+	if crew_panel and crew_panel.has_method("set_generated_crew"):
+		crew_panel.set_generated_crew(generated_crew)
+	
+	# Also update our state manager
+	_on_crew_updated(generated_crew)
+
+func _on_equipment_requested_with_backend(crew_data: Array) -> void:
+	"""Handle equipment generation using validated StartingEquipmentGenerator"""
+	print("CampaignCreationUI: Equipment generation requested for %d crew members using backend systems" % crew_data.size())
+	
+	# Load the validated StartingEquipmentGenerator
+	var StartingEquipmentGenerator = preload("res://src/core/character/Equipment/StartingEquipmentGenerator.gd")
+	if not StartingEquipmentGenerator:
+		push_error("CampaignCreationUI: StartingEquipmentGenerator not available")
+		return
+	
+	var all_equipment: Array = []
+	var total_credits: int = 0
+	
+	# Generate equipment for each crew member using the tested system
+	for character in crew_data:
+		if character == null:
+			continue
+			
+		var character_equipment = StartingEquipmentGenerator.generate_starting_equipment(character, null)
+		StartingEquipmentGenerator.apply_equipment_condition(character_equipment, null)
+		
+		# Process weapons
+		for weapon in character_equipment.get("weapons", []):
+			weapon["type"] = "Weapon"
+			weapon["owner"] = character.get("character_name", "Unknown")
+			all_equipment.append(weapon)
+		
+		# Process armor
+		for armor in character_equipment.get("armor", []):
+			armor["type"] = "Armor"
+			armor["owner"] = character.get("character_name", "Unknown")
+			all_equipment.append(armor)
+		
+		# Process gear
+		for gear in character_equipment.get("gear", []):
+			gear["type"] = "Gear"
+			gear["owner"] = character.get("character_name", "Unknown")
+			all_equipment.append(gear)
+		
+		total_credits += character_equipment.get("credits", 0)
+	
+	print("CampaignCreationUI: Generated %d equipment items, %d credits total" % [all_equipment.size(), total_credits])
+	
+	# Send equipment back to equipment panel
+	if equipment_panel and equipment_panel.has_method("set_generated_equipment"):
+		equipment_panel.set_generated_equipment(all_equipment, total_credits)
+	
+	# Also trigger the standard equipment generated signal
+	_on_equipment_generated(all_equipment)
+
+func _on_character_customization_needed(character_index: int, character: Variant) -> void:
+	"""Handle character customization using backend character systems"""
+	print("CampaignCreationUI: Character customization requested for character %d" % character_index)
+	
+	# For now, log that this customization hook is available
+	# This could be extended to call specialized character customization systems
+	print("CampaignCreationUI: Character customization hook - ready for advanced character systems")
+	
+	# The character is already being handled by the crew panel's existing logic
+	# This provides an additional integration point for future enhancements
 
 # ADD: Navigation state management
 func _update_navigation_state() -> void:
@@ -921,33 +1046,244 @@ func _on_back_button_pressed() -> void:
 			_update_ui_for_step(current_step - 1)
 
 func _on_finish_button_pressed() -> void:
-	"""Handle finish button press - explicitly start campaign creation"""
-	print("CampaignCreationUI: Finish button pressed")
+	"""Handle finish button press with comprehensive validation and error handling"""
+	print("CampaignCreationUI: Finish button pressed - beginning comprehensive validation")
 	
-	# Validation check
-	if not state_manager:
-		_show_error_dialog("Critical Error", "State manager not available")
+	# Phase 1: Critical system validation
+	if not _validate_critical_systems():
 		return
+	
+	# Phase 2: Campaign data validation
+	if not _validate_campaign_data():
+		return
+	
+	# Phase 3: Pre-creation system check
+	if not _validate_creation_systems():
+		return
+	
+	# Phase 4: Execute campaign creation with enhanced error handling
+	await _execute_campaign_creation_workflow()
+
+func _validate_critical_systems() -> bool:
+	"""Phase 1: Validate critical systems are available"""
+	print("CampaignCreationUI: Phase 1 - Validating critical systems...")
+	
+	if not state_manager:
+		_show_enhanced_error_dialog("Critical System Error",
+			"Campaign State Manager is not available.",
+			"This is a system-level issue. Please restart the application.")
+		return false
+	
+	var core_systems: Node = get_node_or_null("/root/CoreSystemSetup")
+	if not core_systems:
+		_show_enhanced_error_dialog("Core System Error",
+			"Core game systems are not properly initialized.",
+			"Please restart the application and try again.")
+		return false
+	
+	print("CampaignCreationUI: ✅ Critical systems validation passed")
+	return true
+
+func _validate_campaign_data() -> bool:
+	"""Phase 2: Validate campaign data completeness"""
+	print("CampaignCreationUI: Phase 2 - Validating campaign data...")
 	
 	var validation: Dictionary = state_manager.get_validation_summary()
+	var completion_pct: float = validation.get("completion_percentage", 0.0)
+	
+	print("CampaignCreationUI: Campaign completion: %.1f%%" % completion_pct)
+	
 	if not validation.get("can_complete", false):
 		var errors: Array = validation.get("validation_errors", [])
-		_show_error_dialog("Incomplete Setup", "Please complete:\n\n" + "\n".join(errors))
-		return
+		_show_enhanced_error_dialog("Incomplete Campaign Setup",
+			"Your campaign setup needs to be completed before creation:",
+			"\n• " + "\n• ".join(errors) + "\n\nPlease complete these items and try again.")
+		return false
 	
-	# Campaign creation workflow
-	_set_loading_state(true)
+	if completion_pct < 75.0:
+		_show_enhanced_error_dialog("Campaign Setup Warning",
+			"Your campaign is only %.1f%% complete." % completion_pct,
+			"While you can proceed, we recommend completing more setup for the best experience.")
+		# Allow continuation but warn user
+	
+	print("CampaignCreationUI: ✅ Campaign data validation passed")
+	return true
+
+func _validate_creation_systems() -> bool:
+	"""Phase 3: Validate campaign creation systems are ready"""
+	print("CampaignCreationUI: Phase 3 - Validating creation systems...")
+	
+	var core_systems: Node = get_node_or_null("/root/CoreSystemSetup")
+	if not core_systems or not core_systems.has_method("get_campaign_creation_manager"):
+		_show_enhanced_error_dialog("Creation System Error",
+			"Campaign creation systems are not available.",
+			"The game's campaign creation backend is not properly loaded. Please restart the application.")
+		return false
+	
+	var creation_manager = core_systems.get_campaign_creation_manager()
+	if not creation_manager:
+		_show_enhanced_error_dialog("Creation Manager Error",
+			"Campaign creation manager is not initialized.",
+			"This may be a temporary issue. Please try again, or restart the application.")
+		return false
+	
+	print("CampaignCreationUI: ✅ Creation systems validation passed")
+	return true
+
+func _execute_campaign_creation_workflow() -> void:
+	"""Phase 4: Execute campaign creation with comprehensive error handling"""
+	print("CampaignCreationUI: Phase 4 - Executing campaign creation workflow...")
+	
+	_set_loading_state(true, "Finalizing campaign data...")
+	
+	# Step 1: Finalize campaign data
 	var final_data: Dictionary = state_manager.complete_campaign_creation()
 	if final_data.is_empty():
 		_set_loading_state(false)
-		_show_error_dialog("Creation Failed", "Failed to finalize campaign data")
+		_show_enhanced_error_dialog("Data Finalization Error",
+			"Failed to finalize your campaign data.",
+			"There may be an issue with your campaign setup. Please review your configuration and try again.")
 		return
 	
-	await _create_campaign_from_data(final_data)
+	print("CampaignCreationUI: Campaign data finalized successfully")
+	_set_loading_state(true, "Creating campaign...")
+	
+	# Step 2: Execute creation
+	var success: bool = await _create_campaign_from_data_enhanced(final_data)
+	_set_loading_state(false)
+	
+	if success:
+		_show_success_dialog()
+		await get_tree().create_timer(1.5).timeout # Show success briefly
+		_navigate_to_campaign()
+	else:
+		# All fallbacks failed - show comprehensive error
+		_show_enhanced_error_dialog("Campaign Creation Failed",
+			"We were unable to create your campaign using any available method.",
+			"This may indicate a system issue. Please try restarting the application, or contact support if the problem persists.")
+
+func _show_enhanced_error_dialog(title: String, primary_message: String, additional_info: String = "") -> void:
+	"""Show an enhanced error dialog with better formatting and information"""
+	var dialog: AcceptDialog = AcceptDialog.new()
+	dialog.title = title
+	
+	var formatted_message = primary_message
+	if not additional_info.is_empty():
+		formatted_message += "\n\n" + additional_info
+	
+	dialog.dialog_text = formatted_message
+	dialog.dialog_autowrap = true
+	dialog.min_size = Vector2(400, 200)
+	
+	add_child(dialog)
+	dialog.popup_centered()
+	
+	# Auto-remove dialog after user closes it
+	@warning_ignore("untyped_declaration", "return_value_discarded")
+	dialog.confirmed.connect(func(): dialog.queue_free())
+	
+	# Log the error for debugging
+	push_error("CampaignCreationUI Error: %s - %s" % [title, primary_message])
+
+func _show_success_dialog() -> void:
+	"""Show a success message for campaign creation"""
+	var dialog: AcceptDialog = AcceptDialog.new()
+	dialog.title = "Campaign Created Successfully!"
+	dialog.dialog_text = "Your campaign has been created and is ready to begin. You'll be taken to the campaign dashboard momentarily."
+	dialog.dialog_autowrap = true
+	
+	add_child(dialog)
+	dialog.popup_centered()
+	
+	# Auto-close after 2 seconds or user input
+	var timer = get_tree().create_timer(2.0)
+	timer.timeout.connect(func():
+		if dialog and is_instance_valid(dialog):
+			dialog.queue_free()
+	)
+	
+	@warning_ignore("untyped_declaration", "return_value_discarded")
+	dialog.confirmed.connect(func(): dialog.queue_free())
+
+func _create_campaign_from_data_enhanced(campaign_data: Dictionary) -> bool:
+	"""Enhanced campaign creation with comprehensive error handling and fallbacks"""
+	print("CampaignCreationUI: Beginning enhanced campaign creation workflow")
+	
+	# Primary creation attempt
+	print("CampaignCreationUI: Attempting primary campaign creation method...")
+	var success: bool = await _try_primary_campaign_creation(campaign_data)
+	if success:
+		print("CampaignCreationUI: ✅ Primary campaign creation successful")
+		return true
+	
+	# Fallback creation attempt
+	print("CampaignCreationUI: Primary method failed, attempting fallback creation...")
+	success = await _try_fallback_campaign_creation(campaign_data)
+	if success:
+		print("CampaignCreationUI: ✅ Fallback campaign creation successful")
+		return true
+	
+	# Emergency fallback (basic campaign state)
+	print("CampaignCreationUI: Fallback failed, attempting emergency creation...")
+	success = await _try_emergency_campaign_creation(campaign_data)
+	if success:
+		print("CampaignCreationUI: ✅ Emergency campaign creation successful")
+		return true
+	
+	print("CampaignCreationUI: ❌ All campaign creation methods failed")
+	return false
+
+func _try_primary_campaign_creation(campaign_data: Dictionary) -> bool:
+	"""Try the primary campaign creation method"""
+	var core_systems: Node = get_node_or_null("/root/CoreSystemSetup")
+	if not core_systems:
+		return false
+	
+	var campaign_creation_manager = core_systems.get_campaign_creation_manager()
+	if not campaign_creation_manager:
+		return false
+	
+	# Transfer data to creation manager
+	_transfer_data_to_creation_manager(campaign_creation_manager, campaign_data)
+	
+	# Execute creation
+	if campaign_creation_manager.has_method("finalize_campaign_creation"):
+		var new_campaign = campaign_creation_manager.finalize_campaign_creation()
+		if new_campaign:
+			_save_created_campaign(new_campaign)
+			return true
+	
+	return false
+
+func _try_emergency_campaign_creation(campaign_data: Dictionary) -> bool:
+	"""Emergency fallback - create minimal campaign state"""
+	print("CampaignCreationUI: Attempting emergency minimal campaign creation")
+	
+	# Create a minimal campaign state directly
+	var emergency_campaign = {
+		"name": campaign_data.get("config", {}).get("campaign_name", "Emergency Campaign"),
+		"difficulty": campaign_data.get("config", {}).get("difficulty_level", 1),
+		"crew": campaign_data.get("crew", {}),
+		"captain": campaign_data.get("captain", {}),
+		"created_date": Time.get_datetime_string_from_system(),
+		"emergency_created": true,
+		"status": "active"
+	}
+	
+	# Try to save this minimal state
+	var core_systems: Node = get_node_or_null("/root/CoreSystemSetup")
+	if core_systems and core_systems.has_method("get_campaign_manager"):
+		var campaign_manager = core_systems.get_campaign_manager()
+		if campaign_manager and campaign_manager.has_method("set_current_campaign"):
+			campaign_manager.set_current_campaign(emergency_campaign)
+			print("CampaignCreationUI: Emergency campaign state created and saved")
+			return true
+	
+	return false
 
 # ADD: New methods for campaign creation
 func _create_campaign_from_data(campaign_data: Dictionary) -> void:
-	"""Create campaign from validated data"""
+	"""Create campaign from validated data (legacy method)"""
 	var core_systems: Node = get_node("/root/CoreSystemSetup")
 	if not core_systems:
 		_set_loading_state(false)
@@ -1080,11 +1416,14 @@ func _try_fallback_campaign_creation(campaign_data: Dictionary) -> bool:
 	print("CampaignCreationUI: Fallback campaign creation failed")
 	return false
 
-func _set_loading_state(loading: bool) -> void:
-	"""Set loading state for UI feedback"""
+func _set_loading_state(loading: bool, message: String = "") -> void:
+	"""Set loading state for UI feedback with custom message"""
 	if finish_button:
 		finish_button.disabled = loading
-		finish_button.text = "Creating..." if loading else "Create Campaign"
+		if loading:
+			finish_button.text = message if not message.is_empty() else "Creating..."
+		else:
+			finish_button.text = "Create Campaign"
 
 func _navigate_to_campaign() -> void:
 	"""Navigate to campaign dashboard or main game"""
@@ -1201,24 +1540,18 @@ func _finalize_campaign_creation() -> void:
 	"""Finalize campaign creation with data from UI panels"""
 	print("CampaignCreationUI: Finalizing campaign creation...")
 
-	# For development, make validation optional
-	const DEBUG_MODE = true
-	
-	if not DEBUG_MODE:
-		# Final validation before creating campaign
-		var all_errors: Array[String] = []
-		for step: int in range(step_panels.size()):
-			current_step = step
-			@warning_ignore("untyped_declaration")
-			var step_errors = _validate_current_step()
-			@warning_ignore("unsafe_call_argument")
-			all_errors.append_array(step_errors)
+	# Production validation - always validate before creating campaign
+	var all_errors: Array[String] = []
+	for step: int in range(step_panels.size()):
+		current_step = step
+		var step_errors: Array[String] = _validate_current_step()
+		all_errors.append_array(step_errors)
 
-		if not all_errors.is_empty():
-			_show_error_dialog("Campaign Creation Failed", "Please fix all issues before creating the campaign:\n\n" + "\n".join(all_errors))
-			return
-	else:
-		print("CampaignCreationUI: DEBUG MODE - skipping final validation")
+	if not all_errors.is_empty():
+		_show_error_dialog("Campaign Creation Failed", "Please fix all issues before creating the campaign:\n\n" + "\n".join(all_errors))
+		return
+	
+	print("CampaignCreationUI: All validation steps passed - proceeding with campaign creation")
 
 	# Collect data from UI panels
 	var campaign_config: Dictionary = _collect_campaign_config_safe()
@@ -1231,20 +1564,17 @@ func _finalize_campaign_creation() -> void:
 
 		# Set crew data if available
 		if campaign_config.has("crew") and creation_manager and creation_manager.has_method("set_crew_data"):
-			@warning_ignore("unsafe_method_access")
-			creation_manager.set_crew_data(campaign_config.crew)
+			creation_manager.call("set_crew_data", campaign_config.crew)
 
 		# Set captain data if available
 		if campaign_config.has("captain") and creation_manager and creation_manager.has_method("set_captain_data"):
 			if campaign_config.captain is Character:
 				# Convert Character object to dictionary format
-				@warning_ignore("untyped_declaration")
-				var captain_dict = {
+				var captain_dict: Dictionary = {
 					"character_object": campaign_config.captain,
 					"name": campaign_config.captain.character_name if campaign_config.captain.has("character_name") else "Captain"
 				}
-				@warning_ignore("unsafe_method_access")
-				creation_manager.set_captain_data(captain_dict)
+				creation_manager.call("set_captain_data", captain_dict)
 			elif campaign_config.captain is Dictionary:
 				@warning_ignore("unsafe_method_access")
 				creation_manager.set_captain_data(campaign_config.captain)
@@ -1898,3 +2228,117 @@ func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Va
 		@warning_ignore("unsafe_method_access")
 		return obj.callv(method_name, args)
 	return null
+
+# ==============================================================================
+# NEW: Unified Systems Signal Handlers
+# ==============================================================================
+
+	print("CampaignCreationUI: Unified workflow completed: %s" % workflow_id)
+	print("CampaignCreationUI: Final workflow data: ", data)
+	
+	# Create campaign using unified systems
+	await _create_campaign_with_unified_systems(data)
+
+	print("CampaignCreationUI: Unified step changed: %d -> %d" % [old_step, new_step])
+	
+	# Update UI to reflect new step
+	current_step = new_step
+	_update_ui_for_step(new_step)
+	
+	# Update step label with step data
+	if step_label and step_data.has("name"):
+		step_label.text = "Step %d: %s" % [new_step + 1, step_data.name]
+
+	if back_button:
+		back_button.disabled = not can_go_back
+	
+	if next_button:
+		next_button.disabled = not can_go_forward
+		next_button.visible = not can_finish
+	
+	if finish_button:
+		finish_button.disabled = not can_finish
+		finish_button.visible = can_finish
+
+	print("CampaignCreationUI: Unified state changed - %s: %s -> %s" % [property, old_value, new_value])
+	
+	# Update UI based on state changes
+	match property:
+		"credits":
+			_update_credits_display(new_value)
+		"supplies":
+			_update_supplies_display(new_value)
+		"reputation":
+			_update_reputation_display(new_value)
+
+func _create_campaign_with_unified_systems(workflow_data: Dictionary) -> void:
+	"""Create campaign using the unified systems architecture"""
+	print("CampaignCreationUI: Creating campaign with unified systems...")
+	_set_loading_state(true, "Creating campaign with unified systems...")
+	
+		print("CampaignCreationUI: Generating campaign content...")
+		
+		# Generate campaign scenario
+		if scenario.is_empty():
+			_set_loading_state(false)
+			_show_enhanced_error_dialog("Content Generation Error",
+				"Failed to generate campaign scenario.",
+				"There was an issue with the campaign content generation system.")
+			return
+		
+		print("CampaignCreationUI: Campaign scenario generated successfully")
+	
+		var starting_credits = workflow_data.get("starting_credits", 1000)
+		print("CampaignCreationUI: Initial resources set - Credits: %d" % starting_credits)
+	
+	# Finalize campaign creation
+	await _finalize_unified_campaign_creation(workflow_data)
+
+func _finalize_unified_campaign_creation(workflow_data: Dictionary) -> void:
+	"""Finalize campaign creation using unified systems"""
+	_set_loading_state(true, "Finalizing campaign...")
+	
+	# Create campaign data structure
+	var campaign_data = {
+		"name": workflow_data.get("campaign_name", "New Campaign"),
+		"difficulty": workflow_data.get("difficulty_level", 1),
+		"created_with_unified_systems": true,
+		"creation_time": Time.get_datetime_dict_from_system(),
+		"workflow_data": workflow_data
+	}
+	
+		var save_path = "user://campaigns/" + campaign_data.name.replace(" ", "_") + ".json"
+		
+		if success:
+			print("CampaignCreationUI: Campaign created successfully with unified systems")
+			_set_loading_state(false)
+			_show_success_dialog("Campaign Created", 
+				"Your campaign '%s' has been created successfully using the new unified systems!" % campaign_data.name)
+			
+			# Navigate to campaign dashboard
+			if has_method("_navigate_to_campaign_dashboard"):
+				_navigate_to_campaign_dashboard(campaign_data)
+		else:
+			_set_loading_state(false)
+			_show_enhanced_error_dialog("Save Error",
+				"Campaign was created but could not be saved.",
+				"There was an issue saving your campaign to disk.")
+	else:
+		# Fallback to legacy creation if unified systems not available
+		print("CampaignCreationUI: Falling back to legacy campaign creation")
+		await _create_campaign_from_data_enhanced(workflow_data)
+
+func _update_credits_display(credits: int) -> void:
+	"""Update credits display in UI"""
+	# Update any credits display elements
+	pass
+
+func _update_supplies_display(supplies: int) -> void:
+	"""Update supplies display in UI"""
+	# Update any supplies display elements
+	pass
+
+func _update_reputation_display(reputation: int) -> void:
+	"""Update reputation display in UI"""
+	# Update any reputation display elements
+	pass

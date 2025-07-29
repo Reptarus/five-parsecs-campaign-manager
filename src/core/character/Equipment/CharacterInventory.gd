@@ -2,7 +2,7 @@
 extends Resource
 class_name CharacterInventory # Changed to avoid conflicts
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const GameWeapon = preload("res://src/core/systems/items/GameWeapon.gd")
 const BaseArmor = preload("res://src/core/systems/items/GameArmor.gd")
 const BaseGear = preload("res://src/core/character/Equipment/base/gear.gd")

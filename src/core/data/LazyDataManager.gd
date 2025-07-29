@@ -5,7 +5,7 @@ extends Node
 ## Reduces startup time from 361ms to <250ms via lazy loading and async operations
 ## Only loads essential data at startup, defers everything else until needed
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 # Essential data loaded at startup (core functionality)
 static var _essential_data: Dictionary = {

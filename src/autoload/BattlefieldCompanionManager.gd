@@ -14,6 +14,7 @@ extends Node
 const BattlefieldCompanion = preload("res://src/core/battle/BattlefieldCompanion.gd")
 const FPCM_BattleSystemIntegration = preload("res://src/core/battle/BattleSystemIntegration.gd")
 const FPCM_BattlefieldTypes = preload("res://src/core/battle/BattlefieldTypes.gd")
+const DataManager = preload("res://src/core/data/DataManager.gd")
 
 # Global signals for campaign integration
 signal battle_system_ready()
@@ -21,26 +22,94 @@ signal battle_phase_changed(phase: String)
 signal battle_completed(results: Dictionary)
 signal system_error(error_code: String, details: Dictionary)
 
+# JSON configuration support
+var companion_config_data: Dictionary = {}
+var battlefield_settings: Dictionary = {}
+
 # System references
 var integration_system: FPCM_BattleSystemIntegration = null
 var current_session_id: String = ""
 var system_initialized: bool = false
 
-# Configuration
+# Configuration (with JSON override support)
 var auto_initialize: bool = true
 var debug_mode: bool = false
 var performance_monitoring: bool = false
 
 func _ready() -> void:
 	"""Initialize global battlefield companion system"""
+	_load_companion_configuration()
 	_setup_debug_configuration()
 
 	if auto_initialize:
 		initialize_system()
 
+func _load_companion_configuration() -> void:
+	"""Load companion configuration from JSON files"""
+	# DataManager is static, use direct static calls
+	
+	# Load companion config data
+	companion_config_data = DataManager._load_json_safe("res://data/battlefield/companion_config.json", "BattlefieldCompanionManager")
+	if companion_config_data.is_empty():
+		print("BattlefieldCompanionManager: companion_config.json not found, using defaults")
+		_create_companion_config_fallback()
+	else:
+		print("BattlefieldCompanionManager: Loaded companion configuration from JSON")
+		_apply_companion_configuration()
+	
+	# Extract battlefield settings
+	battlefield_settings = companion_config_data.get("battlefield_settings", {})
+
+func _create_companion_config_fallback() -> void:
+	"""Create fallback companion configuration when JSON unavailable"""
+	companion_config_data = {
+		"system_settings": {
+			"auto_initialize": true,
+			"debug_mode_default": false,
+			"performance_monitoring_default": false,
+			"session_timeout_minutes": 60,
+			"max_concurrent_battles": 1
+		},
+		"battlefield_settings": {
+			"default_terrain_complexity": "medium",
+			"setup_time_target_minutes": 10,
+			"auto_terrain_generation": true,
+			"quick_setup_enabled": true,
+			"advanced_features_enabled": false
+		},
+		"integration_settings": {
+			"campaign_integration_enabled": true,
+			"crew_data_validation": true,
+			"mission_data_validation": true,
+			"result_persistence": true,
+			"performance_tracking": false
+		},
+		"ui_settings": {
+			"show_detailed_tooltips": true,
+			"enable_keyboard_shortcuts": true,
+			"auto_save_preferences": true,
+			"theme": "default"
+		}
+	}
+	
+	battlefield_settings = companion_config_data.battlefield_settings
+
+func _apply_companion_configuration() -> void:
+	"""Apply companion configuration from JSON data"""
+	if companion_config_data.has("system_settings"):
+		var settings = companion_config_data.system_settings
+		auto_initialize = settings.get("auto_initialize", true)
+		# Note: debug_mode and performance_monitoring are set later in _setup_debug_configuration()
+	
+	if companion_config_data.has("battlefield_settings"):
+		battlefield_settings = companion_config_data.battlefield_settings
+
 func _setup_debug_configuration() -> void:
 	"""Setup debug configuration based on build type"""
-	debug_mode = OS.is_debug_build()
+	if OS and OS.has_method("is_debug_build"):
+		debug_mode = OS.is_debug_build()
+	else:
+		debug_mode = false
 	performance_monitoring = debug_mode
 
 	if debug_mode:
@@ -60,9 +129,17 @@ func initialize_system() -> bool:
 		push_warning("BattlefieldCompanionManager: System already initialized")
 		return true
 
-	# Create integration system
-	integration_system = FPCM_BattleSystemIntegration.new()
-	add_child(integration_system)
+	# Create integration system with null safety
+	if FPCM_BattleSystemIntegration:
+		integration_system = FPCM_BattleSystemIntegration.new()
+		if integration_system:
+			add_child(integration_system)
+		else:
+			push_error("BattlefieldCompanionManager: Failed to create integration system")
+			return false
+	else:
+		push_error("BattlefieldCompanionManager: FPCM_BattleSystemIntegration not available")
+		return false
 
 	# Connect integration signals
 	_connect_integration_signals()
@@ -80,7 +157,7 @@ func initialize_system() -> bool:
 
 func shutdown_system() -> void:
 	"""Shutdown the battlefield companion system"""
-	if integration_system:
+	if integration_system and integration_system.has_method("queue_free"):
 		integration_system.queue_free()
 		integration_system = null
 
@@ -95,8 +172,11 @@ func _connect_integration_signals() -> void:
 	if not integration_system:
 		return
 
-	integration_system.battle_workflow_complete.connect(_on_battle_workflow_complete)
-	integration_system.integration_error.connect(_on_integration_error)
+	if integration_system:
+		if integration_system.has_signal("battle_workflow_complete"):
+			integration_system.battle_workflow_complete.connect(_on_battle_workflow_complete)
+		if integration_system.has_signal("integration_error"):
+			integration_system.integration_error.connect(_on_integration_error)
 
 # =====================================================
 # CAMPAIGN MANAGER API
@@ -120,7 +200,11 @@ func start_battle_assistance(mission_data: Resource, crew_data: Array) -> bool:
 		"timestamp": Time.get_unix_time_from_system()
 	}
 
-	return integration_system.start_battle_workflow(battle_request)
+	if integration_system and integration_system.has_method("start_battle_workflow"):
+		return integration_system.start_battle_workflow(battle_request)
+	else:
+		push_error("BattlefieldCompanionManager: Integration system not available")
+		return false
 
 func is_battle_active() -> bool:
 	"""Check if a battle session is currently active"""

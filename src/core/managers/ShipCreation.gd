@@ -1,6 +1,6 @@
 ﻿extends Node
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const GameState = preload("res://src/core/state/GameState.gd")
 const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const SaveManager = preload("res://src/core/state/SaveManager.gd")
@@ -8,7 +8,13 @@ const Ship = preload("res://src/core/ships/Ship.gd")
 const FPCM_ShipComponent = preload("res://src/core/ships/components/ShipComponent.gd")
 
 # Create a ship from the provided data
-func create_ship(ship_data: Dictionary) -> Ship:
+
+# Safe access to SaveManager
+func _get_safe_savemanager() -> Variant:
+    if ClassDB.class_exists("SaveManager"):
+        return get_node_or_null("/root/SaveManager")
+    return null
+\1 Dictionary) -> Ship:
 	if not _validate_ship_data(ship_data):
 		return null
 	var ship := Ship.new()

@@ -1,7 +1,7 @@
 ﻿@tool
 extends CharacterBody2D
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 # Core properties
 @export var enemy_data: Resource # Will be cast to FiveParsecsEnemyData

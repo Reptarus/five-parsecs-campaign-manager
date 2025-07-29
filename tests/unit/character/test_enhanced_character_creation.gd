@@ -6,69 +6,121 @@ extends GdUnitGameTest
 ## Comprehensive tests for the enhanced character creation tables,
 ## equipment generation, and connections system following proven patterns.
 
-# Test subjects - using mock implementations for missing dependencies
-# const CharacterCreationTables = preload("res://src/core/character/tables/CharacterCreationTables.gd") # Commented out due to dependency issues
-# const StartingEquipmentGenerator = preload("res://src/core/character/Equipment/StartingEquipmentGenerator.gd") # Commented out due to dependency issues
-# const CharacterConnections = preload("res://src/core/character/connections/CharacterConnections.gd") # Commented out due to dependency issues
-# const FiveParsecsCharacterGeneration = preload("res://src/core/character/CharacterGeneration.gd") # Commented out due to dependency issues
+# Real system imports - dependency issues resolved
+const CharacterCreationTables = preload("res://src/core/character/tables/CharacterCreationTables.gd")
+const StartingEquipmentGenerator = preload("res://src/core/character/Equipment/StartingEquipmentGenerator.gd")
+const CharacterConnections = preload("res://src/core/character/connections/CharacterConnections.gd")
+const CharacterGeneration = preload("res://src/core/character/CharacterGeneration.gd")
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-# const Character = preload("res://src/core/character/Character.gd") # Commented out due to dependency issues
+const Character = preload("res://src/core/character/Character.gd")
+const TestDataFactory = preload("res://tests/fixtures/TestDataFactory.gd")
 
-# Mock Character following proven pattern
-class MockCharacter extends Resource:
-	var character_name: String = "Test Hero"
-	var character_class: int = GlobalEnums.CharacterClass.SOLDIER
-	var background: int = GlobalEnums.Background.MILITARY
-	var motivation: int = GlobalEnums.Motivation.GLORY
-	var origin: int = GlobalEnums.Origin.HUMAN
-	var reaction: int = 2
-	var combat: int = 1
-	var toughness: int = 3
-	var speed: int = 4
-	var savvy: int = 1
-	var luck: int = 1
-	var traits: Array[String] = []
-	var credits_earned: int = 1000
-	
-	func add_trait(attribute_name: String) -> void:
-		if not attribute_name in traits:
-			traits.append(attribute_name)
-	
-	func has_trait(attribute_name: String) -> bool:
-		return attribute_name in traits
-	
-	func get_trait(attribute_name: String) -> String:
-		for i in range(traits.size()):
-			var character_attribute: String = traits[i]
-			if attribute_name in character_attribute:
-				return character_attribute
-		return ""
-	
-	func supports_method(method_name: StringName) -> bool:
-		var valid_methods := ["add_trait", "has_trait", "get_trait"]
-		return method_name in valid_methods
+# Real system instances
+var character_generation: CharacterGeneration
+var equipment_generator: StartingEquipmentGenerator
+var character_connections: CharacterConnections
+var _tracked_objects: Array[Node] = []
 
 # Test setup and teardown
 func before_test() -> void:
 	super.before_test()
-	await get_tree().process_frame
+	await _initialize_real_systems()
 
 func after_test() -> void:
+	# Clean up tracked objects
+	for obj in _tracked_objects:
+		if is_instance_valid(obj):
+			obj.queue_free()
+	_tracked_objects.clear()
+	
+	# Clean up main systems
+	if is_instance_valid(character_generation):
+		character_generation.queue_free()
+		character_generation = null
+	if is_instance_valid(equipment_generator):
+		equipment_generator.queue_free()
+		equipment_generator = null
+	if is_instance_valid(character_connections):
+		character_connections.queue_free()
+		character_connections = null
+	
 	super.after_test()
+
+func _initialize_real_systems() -> void:
+	# Initialize real character generation system
+	character_generation = CharacterGeneration.new()
+	character_generation.name = "TestCharacterGeneration"
+	add_child(character_generation)
+	_tracked_objects.append(character_generation)
+	
+	# Initialize real equipment generator
+	equipment_generator = StartingEquipmentGenerator.new()
+	equipment_generator.name = "TestEquipmentGenerator"
+	add_child(equipment_generator)
+	_tracked_objects.append(equipment_generator)
+	
+	# Initialize real character connections system
+	character_connections = CharacterConnections.new()
+	character_connections.name = "TestCharacterConnections"
+	add_child(character_connections)
+	_tracked_objects.append(character_connections)
+	
+	# Allow systems to initialize
+	await get_tree().process_frame
 
 ## Table Loading Tests
 func test_character_creation_tables_validation() -> void:
-	# Test table validation (using mock)
-	# var is_valid = CharacterCreationTables.validate_tables()
-	var is_valid = true
-	assert_that(is_valid).is_true()
+	"""Test character creation tables with real systems."""
+	# Test table validation with real CharacterCreationTables
+	var tables = CharacterCreationTables.new()
+	_tracked_objects.append(tables)
 	
-	# Test table statistics (using mock)
-	# var stats = CharacterCreationTables.get_table_statistics()
-	var stats = {"motivation_entries": 20, "quirk_entries": 6}
-	assert_that(stats).is_not_null()
-	assert_that(stats.motivation_entries).is_greater(0)
-	assert_that(stats.quirk_entries).is_equal(6)
+	# Test that tables can be accessed and contain valid data
+	var table_data = tables.get_table_data()
+	assert_that(table_data).is_not_empty()
+	
+	# Test character generation integration
+	var character_data = TestDataFactory.create_test_character("Tables Test")
+	var character = Character.new()
+	character.initialize_from_data(character_data)
+	_tracked_objects.append(character)
+	
+	assert_that(character.get_character_name()).is_equal("Tables Test")
+	assert_that(character.get_background()).is_not_equal("")
+
+func test_real_character_creation_workflow() -> void:
+	"""Test complete character creation workflow with real systems."""
+	# Given the character generation system
+	assert_that(character_generation).is_not_null()
+	
+	# When creating a character using the real generation system
+	var generation_result = character_generation.generate_character({
+		"name": "Generated Character",
+		"background": GlobalEnums.Background.MILITARY,
+		"motivation": GlobalEnums.Motivation.ESCAPE
+	})
+	
+	# Then the character should be properly generated
+	assert_that(generation_result).is_not_empty()
+	assert_that(generation_result).contains_key("character_data")
+	
+	var character_data = generation_result.character_data
+	assert_that(character_data.character_name).is_equal("Generated Character")
+	assert_that(character_data.background).is_equal("Military")
+
+func test_equipment_generation_integration() -> void:
+	"""Test equipment generation with real systems."""
+	# Given the equipment generator
+	assert_that(equipment_generator).is_not_null()
+	
+	# When generating starting equipment
+	var character_data = TestDataFactory.create_test_character("Equipment Test")
+	var equipment_result = equipment_generator.generate_starting_equipment(character_data)
+	
+	# Then equipment should be generated successfully
+	assert_that(equipment_result).is_not_empty()
+	assert_that(equipment_result).contains_key("equipment")
+	assert_that(equipment_result.equipment).is_not_empty()
 
 func test_background_event_generation() -> void:
 	# Test with valid background (using mock)

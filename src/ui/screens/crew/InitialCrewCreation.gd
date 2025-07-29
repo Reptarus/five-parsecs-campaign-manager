@@ -1,4 +1,4 @@
-﻿class_name FPCM_InitialCrewCreationUI
+class_name FPCM_InitialCrewCreationUI
 extends BaseCrewComponent
 
 ## Five Parsecs Initial Crew Creation UI
@@ -25,12 +25,7 @@ var crew_creation_data := {
 
 var character_manager: Node = null
 
-func _ready() -> void:
-	# Call parent initialization first
-	super._ready()
-	
-	print("InitialCrewCreation: Initializing standalone crew creation UI...")
-	call_deferred("_setup_initial_crew_creation")
+# _ready() implementation moved to end of file for campaign integration
 
 func _setup_initial_crew_creation() -> void:
 	_initialize_character_system()
@@ -158,7 +153,7 @@ func _character_to_dict(character: Character) -> Dictionary:
 
 func _get_class_name(class_id: int) -> String:
 	"""Get class name for display"""
-	const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+	# GlobalEnums available as autoload singleton
 
 	if GlobalEnums and class_id >= 0 and class_id < GlobalEnums.CharacterClass.size():
 		return GlobalEnums.CharacterClass.keys()[class_id]
@@ -255,3 +250,157 @@ func set_crew_name(name: String) -> void:
 	"""Set the crew name"""
 	crew_creation_data.name = name
 	_validate_crew()
+
+## Campaign Creation State Bridge Integration
+
+func setup_for_campaign_creation() -> void:
+	"""Setup InitialCrewCreation for campaign creation workflow integration"""
+	print("InitialCrewCreation: Setting up for campaign creation workflow")
+	
+	# Connect to campaign creation state bridge
+	var state_bridge = get_node_or_null("/root/CampaignCreationStateBridge")
+	if state_bridge:
+		print("InitialCrewCreation: Connected to CampaignCreationStateBridge")
+		
+		# Get scene context from bridge
+		var scene_context = state_bridge.get_scene_context()
+		print("InitialCrewCreation: Scene context: ", scene_context)
+		
+		# Apply any pre-configured crew settings
+		if scene_context.has("crew_size"):
+			set_crew_size(scene_context.crew_size)
+		if scene_context.has("crew_name"):
+			set_crew_name(scene_context.crew_name)
+		
+		# Connect our signals to the state bridge
+		_connect_state_bridge_signals(state_bridge)
+		
+		# Load any existing crew data from campaign state
+		_load_existing_crew_from_campaign(state_bridge)
+	else:
+		push_warning("InitialCrewCreation: CampaignCreationStateBridge not found - operating in standalone mode")
+
+func _connect_state_bridge_signals(state_bridge: Node) -> void:
+	"""Connect InitialCrewCreation signals to CampaignCreationStateBridge"""
+	if not state_bridge:
+		return
+	
+	# Connect crew creation signals to bridge
+	if not crew_created.is_connected(_on_crew_created_for_campaign):
+		crew_created.connect(_on_crew_created_for_campaign)
+
+func _load_existing_crew_from_campaign(state_bridge: Node) -> void:
+	"""Load existing crew data from campaign state if available"""
+	if not state_bridge or not state_bridge.has_method("get_campaign_data"):
+		return
+	
+	var campaign_data = state_bridge.get_campaign_data()
+	var crew_data = campaign_data.get("crew", {})
+	
+	if not crew_data.is_empty():
+		print("InitialCrewCreation: Loading existing crew data from campaign")
+		
+		# Load crew metadata
+		if crew_data.has("name"):
+			crew_name_input.text = crew_data.name
+			crew_creation_data.name = crew_data.name
+		
+		if crew_data.has("size"):
+			crew_creation_data.size = crew_data.size
+			crew_size_option.value = crew_data.size
+		
+		# Load existing crew members
+		var existing_members = crew_data.get("crew_members", [])
+		for member in existing_members:
+			if member is Character:
+				# Add existing character to crew
+				add_crew_member(member)
+				
+				# Add to UI list
+				var character_name: String = "%s (%s)" % [
+					member.character_name,
+					_get_class_name(member.character_class)
+				]
+				
+				if character_list:
+					character_list.add_item(character_name)
+		
+		_update_ui_state()
+		print("InitialCrewCreation: Loaded %d existing crew members" % existing_members.size())
+
+func _on_crew_created_for_campaign(crew_data: Dictionary) -> void:
+	"""Handle crew creation completion in campaign context"""
+	print("InitialCrewCreation: Crew created for campaign with %d members" % crew_data.get("crew_members", []).size())
+	
+	var state_bridge = get_node_or_null("/root/CampaignCreationStateBridge")
+	if state_bridge and state_bridge.has_method("handle_crew_creation_data"):
+		state_bridge.handle_crew_creation_data(crew_data)
+		
+		# Mark crew creation as complete
+		state_bridge.register_scene_completion("crew_creation", true)
+	
+	# Navigate to next step in campaign creation
+	_proceed_to_next_campaign_step()
+
+func _proceed_to_next_campaign_step() -> void:
+	"""Proceed to the next step in campaign creation workflow"""
+	var state_bridge = get_node_or_null("/root/CampaignCreationStateBridge")
+	var scene_router = get_node_or_null("/root/SceneRouter")
+	
+	if state_bridge and scene_router:
+		# Determine next scene based on campaign creation flow
+		var next_scene = state_bridge.get_next_scene_in_flow("crew_creation")
+		
+		if next_scene.is_empty():
+			# Default to equipment generation if no specific next scene
+			next_scene = "equipment_generation"
+		
+		print("InitialCrewCreation: Proceeding to next campaign step: ", next_scene)
+		
+		# Navigate to next scene
+		if scene_router.has_method("navigate_to"):
+			scene_router.navigate_to(next_scene)
+		else:
+			state_bridge.transition_to_scene(next_scene)
+	else:
+		push_warning("InitialCrewCreation: Cannot proceed to next step - state bridge or scene router not available")
+
+func request_character_editing(character: Character) -> void:
+	"""Request character editing through campaign creation flow"""
+	print("InitialCrewCreation: Requesting character editing for: ", character.character_name)
+	
+	var state_bridge = get_node_or_null("/root/CampaignCreationStateBridge")
+	var scene_router = get_node_or_null("/root/SceneRouter")
+	
+	if state_bridge and scene_router:
+		# Set up context for character editing
+		var edit_context = {
+			"edit_character": true,
+			"character_data": character,
+			"return_scene": "crew_creation"
+		}
+		
+		# Navigate to character creator
+		if scene_router.has_method("navigate_to"):
+			scene_router.navigate_to("character_creator", edit_context)
+		else:
+			state_bridge.transition_to_scene("character_creator", edit_context)
+	else:
+		push_warning("InitialCrewCreation: Cannot request character editing - state bridge or scene router not available")
+
+func add_edit_character_button() -> void:
+	"""Add character editing functionality to the UI"""
+	# This would be called from the UI setup to add edit buttons to character list items
+	# Implementation depends on the specific UI structure
+	print("InitialCrewCreation: Character editing functionality available through campaign flow")
+
+## Enhanced _ready() for campaign integration
+func _ready() -> void:
+	# Call parent initialization first
+	super._ready()
+	
+	print("InitialCrewCreation: Initializing standalone crew creation UI...")
+	call_deferred("_setup_initial_crew_creation")
+	
+	# Setup campaign integration
+	call_deferred("setup_for_campaign_creation")

@@ -8,7 +8,7 @@ extends RefCounted
 ## with the existing economy framework and all enemy type loot tables.
 
 const GameItem = preload("res://src/core/economy/loot/GameItem.gd")
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 # Enemy type classes for loot generation
 const CorporateSecurity = preload("res://src/game/enemy/types/CorporateSecurity.gd")

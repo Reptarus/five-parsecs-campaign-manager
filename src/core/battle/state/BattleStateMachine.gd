@@ -10,7 +10,7 @@ extends Node
 ## @tutorial: See docs/battle_system.md for detailed usage and examples
 
 # Safe dependency loading with proper error handling
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const ErrorLogger = preload("res://src/core/systems/ErrorLogger.gd")
 
 # Runtime dependencies loaded safely
@@ -227,10 +227,10 @@ func _ready() -> void:
 		push_error("BattleStateMachine: Failed to create ErrorLogger")
 	
 	# Load runtime dependencies safely with comprehensive error handling
-	if ResourceLoader.exists("res://src/game/combat/BattleCharacter.gd"):
-		BattleCharacter = load("res://src/game/combat/BattleCharacter.gd")
+	if ResourceLoader.exists("res://src/base/combat/BaseBattleCharacter.gd"):
+		BattleCharacter = load("res://src/base/combat/BaseBattleCharacter.gd")
 		if not BattleCharacter:
-			_log_error("Failed to load BattleCharacter.gd")
+			_log_error("Failed to load BaseBattleCharacter.gd")
 	else:
 		_log_warning("Cannot load BattleCharacter.gd - using base functionality")
 	

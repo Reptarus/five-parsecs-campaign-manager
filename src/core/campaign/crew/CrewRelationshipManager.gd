@@ -5,7 +5,7 @@ class_name CrewRelationshipManager
 ## Crew Relationship Manager stub
 ## Manages relationships between crew members
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 signal relationship_changed(character_a: String, character_b: String, relationship_type: String)
 signal crew_morale_changed(new_morale: int)

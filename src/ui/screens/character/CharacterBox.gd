@@ -4,8 +4,7 @@
 ## Compact display widget for character information in lists/grids
 
 # Safe imports
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const Character = preload("res://src/core/character/Character.gd")
 const PortraitManager = preload("res://src/utils/PortraitManager.gd")
 

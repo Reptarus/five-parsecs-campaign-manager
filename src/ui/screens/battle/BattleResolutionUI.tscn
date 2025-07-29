@@ -130,4 +130,133 @@ horizontal_alignment = 1
 [node name="ContinueButton" type="Button" parent="MainContainer/BattleControls"]
 layout_mode = 2
 text = "Continue to Post-Battle"
-disabled = true 
+disabled = true
+
+[node name="BattleResultsPanel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+visible = false
+
+[node name="ResultsBackground" type="ColorRect" parent="BattleResultsPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.8)
+
+[node name="ResultsContainer" type="VBoxContainer" parent="BattleResultsPanel"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -400.0
+offset_top = -300.0
+offset_right = 400.0
+offset_bottom = 300.0
+
+[node name="ResultsTitle" type="Label" parent="BattleResultsPanel/ResultsContainer"]
+layout_mode = 2
+text = "BATTLE RESULTS"
+horizontal_alignment = 1
+
+[node name="VictoryStatus" type="HBoxContainer" parent="BattleResultsPanel/ResultsContainer"]
+layout_mode = 2
+
+[node name="VictoryLabel" type="Label" parent="BattleResultsPanel/ResultsContainer/VictoryStatus"]
+layout_mode = 2
+text = "Outcome:"
+
+[node name="VictoryValue" type="Label" parent="BattleResultsPanel/ResultsContainer/VictoryStatus"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Victory"
+horizontal_alignment = 2
+
+[node name="ResultsContent" type="HSplitContainer" parent="BattleResultsPanel/ResultsContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="LeftResults" type="VBoxContainer" parent="BattleResultsPanel/ResultsContainer/ResultsContent"]
+layout_mode = 2
+
+[node name="CrewSection" type="GroupContainer" parent="BattleResultsPanel/ResultsContainer/ResultsContent/LeftResults"]
+layout_mode = 2
+title = "Crew Status"
+
+[node name="CrewResults" type="VBoxContainer" parent="BattleResultsPanel/ResultsContainer/ResultsContent/LeftResults/CrewSection"]
+layout_mode = 2
+
+[node name="CasualtiesLabel" type="Label" parent="BattleResultsPanel/ResultsContainer/ResultsContent/LeftResults/CrewSection/CrewResults"]
+layout_mode = 2
+text = "Casualties: 0"
+
+[node name="InjuriesLabel" type="Label" parent="BattleResultsPanel/ResultsContainer/ResultsContent/LeftResults/CrewSection/CrewResults"]
+layout_mode = 2
+text = "Injuries: 0"
+
+[node name="CrewStatusList" type="ItemList" parent="BattleResultsPanel/ResultsContainer/ResultsContent/LeftResults/CrewSection/CrewResults"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="RightResults" type="VBoxContainer" parent="BattleResultsPanel/ResultsContainer/ResultsContent"]
+layout_mode = 2
+
+[node name="RewardsSection" type="GroupContainer" parent="BattleResultsPanel/ResultsContainer/ResultsContent/RightResults"]
+layout_mode = 2
+title = "Rewards"
+
+[node name="RewardsResults" type="VBoxContainer" parent="BattleResultsPanel/ResultsContainer/ResultsContent/RightResults/RewardsSection"]
+layout_mode = 2
+
+[node name="CreditsLabel" type="Label" parent="BattleResultsPanel/ResultsContainer/ResultsContent/RightResults/RewardsSection/RewardsResults"]
+layout_mode = 2
+text = "Credits Earned: 0"
+
+[node name="StoryPointsLabel" type="Label" parent="BattleResultsPanel/ResultsContainer/ResultsContent/RightResults/RewardsSection/RewardsResults"]
+layout_mode = 2
+text = "Story Points: 0"
+
+[node name="ExperienceLabel" type="Label" parent="BattleResultsPanel/ResultsContainer/ResultsContent/RightResults/RewardsSection/RewardsResults"]
+layout_mode = 2
+text = "Experience Gained"
+
+[node name="LootSection" type="GroupContainer" parent="BattleResultsPanel/ResultsContainer/ResultsContent/RightResults"]
+layout_mode = 2
+title = "Loot Found"
+
+[node name="LootList" type="ItemList" parent="BattleResultsPanel/ResultsContainer/ResultsContent/RightResults/LootSection"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BattleStatsSection" type="GroupContainer" parent="BattleResultsPanel/ResultsContainer"]
+layout_mode = 2
+title = "Battle Statistics"
+
+[node name="BattleStats" type="HBoxContainer" parent="BattleResultsPanel/ResultsContainer/BattleStatsSection"]
+layout_mode = 2
+
+[node name="DurationLabel" type="Label" parent="BattleResultsPanel/ResultsContainer/BattleStatsSection/BattleStats"]
+layout_mode = 2
+text = "Duration: 0 rounds"
+
+[node name="EventsLabel" type="Label" parent="BattleResultsPanel/ResultsContainer/BattleStatsSection/BattleStats"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Events Triggered: 0"
+horizontal_alignment = 2
+
+[node name="ResultsButtons" type="HBoxContainer" parent="BattleResultsPanel/ResultsContainer"]
+layout_mode = 2
+
+[node name="CloseResultsButton" type="Button" parent="BattleResultsPanel/ResultsContainer/ResultsButtons"]
+layout_mode = 2
+text = "Close"
+
+[node name="ContinueFromResultsButton" type="Button" parent="BattleResultsPanel/ResultsContainer/ResultsButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Continue to Post-Battle" 

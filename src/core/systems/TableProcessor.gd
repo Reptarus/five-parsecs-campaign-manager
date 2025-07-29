@@ -5,7 +5,7 @@ extends Node
 ## Forward declarations for dependencies
 ## This helps avoid circular references and clarifies dependencies
 const ErrorLogger = preload("res://src/core/systems/ErrorLogger.gd")
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 ## Signals for table operations
 ## Now documented with proper types for Godot 4.4

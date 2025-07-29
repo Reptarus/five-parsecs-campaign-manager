@@ -4,7 +4,7 @@ extends Node
 
 ## Utility class to help migrate between old and new world data formats
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const GamePlanet = preload("res://src/game/world/GamePlanet.gd")
 const Character = preload("res://src/core/character/Character.gd")
 

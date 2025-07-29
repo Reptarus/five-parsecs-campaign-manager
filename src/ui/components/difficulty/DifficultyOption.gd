@@ -3,7 +3,7 @@ extends Control
 
 signal value_changed(difficulty: GlobalEnums.DifficultyLevel)
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const Character = preload("res://src/core/character/Character.gd")
 
 # Difficulty Level Constants

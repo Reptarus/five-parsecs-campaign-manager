@@ -5,8 +5,8 @@ class_name FPCM_ReactTables
 ## React Tables Implementation for Five Parsecs From Home
 ## Implements React tables for enemy generation (rulebook p.124-129)
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-# Note: DataManager is an autoload - access via get_node("/root/DataManager")
+# GlobalEnums available as autoload singleton
+const DataManager = preload("res://src/core/data/DataManager.gd")
 
 signal enemies_generated(enemies: Array)
 signal enemy_faction_determined(faction: String)
@@ -20,7 +20,6 @@ const ELITE_ENEMY_TYPES_PATH = "res://data/elite_enemy_types.json"
 var _react_tables: Dictionary = {}
 var _enemy_types: Dictionary = {}
 var _elite_enemy_types: Array = []
-# DataManager is now used as static class - no instance needed
 
 # React Tables
 enum ReactTable {
@@ -43,38 +42,30 @@ var _campaign_difficulty_mod: int = 0
 var _mission_danger_mod: int = 0
 
 func _init() -> void:
-	var tree = Engine.get_main_loop() as SceneTree
-	if tree and tree.root:
-		var data_manager_node: Node = tree.root.get_node_or_null("DataManagerAutoload")
-		if data_manager_node:
-			_data_manager = data_manager_node
-			print("ReactTables: DataManagerAutoload available immediately")
-		else:
-			print("ReactTables: DataManagerAutoload not ready yet")
-	else:
-		print("ReactTables: SceneTree not available yet")
+	# DataManager is static class - no instance needed
 	_load_data()
+
 func _ready() -> void:
 	pass
 
 ## Load all required data from JSON files
 func _load_data() -> void:
 	# Load React tables
-	var react_tables_data = _data_manager.load_json_file(REACT_TABLES_PATH)
+	var react_tables_data = DataManager._load_json_safe(REACT_TABLES_PATH, "ReactTables")
 	if react_tables_data:
 		_react_tables = react_tables_data
 	else:
 		push_error("Failed to load React tables data")
 
 	# Load enemy types
-	var enemy_types_data: Dictionary = _data_manager.load_json_file(ENEMY_TYPES_PATH)
+	var enemy_types_data: Dictionary = DataManager._load_json_safe(ENEMY_TYPES_PATH, "ReactTables")
 	if enemy_types_data:
 		_enemy_types = enemy_types_data
 	else:
 		push_error("Failed to load enemy types data")
 
 	# Load elite enemy types
-	var elite_data = _data_manager.load_json_file(ELITE_ENEMY_TYPES_PATH)
+	var elite_data = DataManager._load_json_safe(ELITE_ENEMY_TYPES_PATH, "ReactTables")
 	if elite_data and "elite_enemy_types" in elite_data:
 		_elite_enemy_types = elite_data["elite_enemy_types"]
 	else:
@@ -378,7 +369,6 @@ func _create_enemy(enemy_type: String, faction: String) -> Dictionary:
 
 ## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
 func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
-
 	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
 	if not is_instance_valid(self):
 		return null

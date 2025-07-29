@@ -5,7 +5,7 @@ class_name UnifiedTerrainSystem
 ## Unified Terrain System for Five Parsecs Campaign Manager
 ## Manages terrain generation, placement, and effects for battles
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 signal terrain_generated(terrain_data: Dictionary)
 signal terrain_updated(position: Vector2i, terrain_type: int)

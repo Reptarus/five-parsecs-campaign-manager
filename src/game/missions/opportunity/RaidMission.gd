@@ -7,7 +7,7 @@ extends Mission
 ## Implements Five Parsecs raid mechanics with target assessment, loot focus,
 ## and aggressive tactical requirements.
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const MissionTypeRegistry = preload("res://src/game/missions/enhanced/MissionTypeRegistry.gd")
 
 # Raid target parameters

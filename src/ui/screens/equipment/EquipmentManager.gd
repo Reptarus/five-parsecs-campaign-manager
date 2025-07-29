@@ -22,7 +22,13 @@ func _ready() -> void:
 
 func _load_equipment_database() -> void:
 	"""Load equipment from data systems"""
-	# TODO: Connect to equipment database
+	# Connect to equipment database
+	var data_manager = get_node_or_null("/root/DataManagerAutoload")
+	if data_manager and data_manager.has_method("load_equipment_data"):
+		equipment_database = data_manager.load_equipment_data()
+		return
+	
+	# Fallback to hardcoded data if database not available
 	equipment_database = [
 		{"name": "Military Rifle", "type": "weapon", "range": 24, "shots": 1, "damage": 1, "traits": ["Military"]},
 		{"name": "Scrap Pistol", "type": "weapon", "range": 12, "shots": 1, "damage": 1, "traits": ["Pistol"]},
@@ -33,7 +39,13 @@ func _load_equipment_database() -> void:
 
 func _load_crew_roster() -> void:
 	"""Load current crew from campaign data"""
-	# TODO: Connect to campaign manager
+	# Connect to campaign manager
+	var campaign_mgr = get_node_or_null("/root/CampaignManager")
+	if campaign_mgr and campaign_mgr.has_method("get_crew_roster"):
+		crew_roster = campaign_mgr.get_crew_roster()
+		return
+	
+	# Fallback to default crew if campaign manager not available
 	crew_roster = [
 		{"name": "Captain Reynolds", "class": "Soldier", "equipment": []},
 		{"name": "Dr. Chen", "class": "Scientist", "equipment": []},
@@ -188,17 +200,559 @@ func _on_back_pressed() -> void:
 func _on_generate_equipment_pressed() -> void:
 	"""Generate new equipment using tables"""
 	print("EquipmentManager: Generate equipment pressed")
-	# TODO: Implement equipment generation tables
+	# Implement equipment generation tables
+	var dice_mgr = get_node_or_null("/root/DiceManager")
+	var new_equipment = _generate_random_equipment(dice_mgr)
+	equipment_database.append(new_equipment)
+	_refresh_equipment_display()
+	print("Generated new equipment: %s" % new_equipment.name)
+
+func _generate_random_equipment(dice_mgr) -> Dictionary:
+	"""Generate random equipment based on tables"""
+	var roll = 0
+	if dice_mgr and dice_mgr.has_method("roll_dice"):
+		roll = dice_mgr.roll_dice(1, 6)
+	else:
+		roll = randi_range(1, 6)
+	
+	match roll:
+		1, 2:
+			return {"name": "Basic Weapon", "type": "weapon", "range": 12, "shots": 1, "damage": 1, "traits": []}
+		3, 4:
+			return {"name": "Light Armor", "type": "armor", "save": 6, "traits": []}
+		5:
+			return {"name": "Tech Gadget", "type": "gadget", "traits": ["Tech"]}
+		6:
+			return {"name": "Survival Gear", "type": "gear", "traits": ["Utility"]}
+		_:
+			return {"name": "Mystery Item", "type": "gear", "traits": []}
 
 func _on_trade_pressed() -> void:
 	"""Open trade/market interface"""
 	print("EquipmentManager: Trade pressed")
-	# TODO: Open trade interface
+	_open_trade_interface()
 
 func _on_repair_pressed() -> void:
 	"""Open equipment repair interface"""
 	print("EquipmentManager: Repair pressed")
-	# TODO: Implement repair system
+	_open_repair_interface()
+
+func _open_trade_interface() -> void:
+	"""Open equipment trading interface with market functionality"""
+	# Create trade dialog
+	var trade_dialog = _create_trade_dialog()
+	
+	if trade_dialog:
+		# Add to scene tree and display
+		get_tree().current_scene.add_child(trade_dialog)
+		trade_dialog.popup_centered_ratio(0.9)
+		
+		# Connect trade signals
+		if not trade_dialog.equipment_traded.is_connected(_on_equipment_traded):
+			trade_dialog.equipment_traded.connect(_on_equipment_traded)
+		
+		print("EquipmentManager: Trade interface opened")
+	else:
+		push_error("EquipmentManager: Failed to create trade dialog")
+
+func _open_repair_interface() -> void:
+	"""Open equipment repair interface for damaged equipment"""
+	# Create repair dialog
+	var repair_dialog = _create_repair_dialog()
+	
+	if repair_dialog:
+		# Add to scene tree and display
+		get_tree().current_scene.add_child(repair_dialog)
+		repair_dialog.popup_centered_ratio(0.8)
+		
+		# Connect repair signals
+		if not repair_dialog.equipment_repaired.is_connected(_on_equipment_repaired):
+			repair_dialog.equipment_repaired.connect(_on_equipment_repaired)
+		
+		print("EquipmentManager: Repair interface opened")
+	else:
+		push_error("EquipmentManager: Failed to create repair dialog")
+
+func _create_trade_dialog() -> Control:
+	"""Create equipment trading dialog with buy/sell functionality"""
+	var dialog = AcceptDialog.new()
+	dialog.title = "Equipment Trade Market"
+	dialog.set_flag(Window.FLAG_RESIZE_DISABLED, false)
+	
+	# Create main container with split layout
+	var hsplit = HSplitContainer.new()
+	dialog.add_child(hsplit)
+	
+	# Create inventory section (left side)
+	var inventory_section = _create_inventory_trade_section()
+	hsplit.add_child(inventory_section)
+	
+	# Create market section (right side)
+	var market_section = _create_market_section()
+	hsplit.add_child(market_section)
+	
+	# Create trade status section
+	var status_section = _create_trade_status_section()
+	dialog.add_child(status_section)
+	
+	# Create action buttons
+	var button_container = HBoxContainer.new()
+	dialog.add_child(button_container)
+	
+	var buy_button = Button.new()
+	buy_button.text = "Buy Selected"
+	buy_button.pressed.connect(_on_buy_equipment_pressed.bind(dialog))
+	button_container.add_child(buy_button)
+	
+	var sell_button = Button.new()
+	sell_button.text = "Sell Selected"
+	sell_button.pressed.connect(_on_sell_equipment_pressed.bind(dialog))
+	button_container.add_child(sell_button)
+	
+	var close_button = Button.new()
+	close_button.text = "Close Market"
+	close_button.pressed.connect(dialog.queue_free)
+	button_container.add_child(close_button)
+	
+	# Add custom signal for equipment trading
+	dialog.add_user_signal("equipment_traded", [ {"name": "action", "type": TYPE_STRING}, {"name": "equipment", "type": TYPE_DICTIONARY}, {"name": "credits", "type": TYPE_INT}])
+	
+	return dialog
+
+func _create_inventory_trade_section() -> Control:
+	"""Create inventory section for trading"""
+	var section = VBoxContainer.new()
+	section.custom_minimum_size = Vector2(300, 400)
+	
+	var label = Label.new()
+	label.text = "Your Equipment (Sell):"
+	section.add_child(label)
+	
+	var inventory_list = ItemList.new()
+	inventory_list.name = "InventoryList"
+	inventory_list.custom_minimum_size = Vector2(280, 300)
+	
+	# Populate with current equipment
+	for i in range(equipment_database.size()):
+		var equipment = equipment_database[i]
+		var price = _calculate_sell_price(equipment)
+		var item_text = "%s - %d credits" % [equipment.get("name", "Unknown"), price]
+		inventory_list.add_item(item_text)
+		inventory_list.set_item_metadata(i, equipment)
+	
+	section.add_child(inventory_list)
+	
+	# Add credits display
+	var credits_label = Label.new()
+	credits_label.name = "CreditsLabel"
+	credits_label.text = "Credits: %d" % _get_current_credits()
+	section.add_child(credits_label)
+	
+	return section
+
+func _create_market_section() -> Control:
+	"""Create market section for buying equipment"""
+	var section = VBoxContainer.new()
+	section.custom_minimum_size = Vector2(300, 400)
+	
+	var label = Label.new()
+	label.text = "Market Equipment (Buy):"
+	section.add_child(label)
+	
+	var market_list = ItemList.new()
+	market_list.name = "MarketList"
+	market_list.custom_minimum_size = Vector2(280, 300)
+	
+	# Generate market equipment
+	var market_equipment = _generate_market_equipment()
+	for i in range(market_equipment.size()):
+		var equipment = market_equipment[i]
+		var price = _calculate_buy_price(equipment)
+		var item_text = "%s - %d credits" % [equipment.get("name", "Unknown"), price]
+		market_list.add_item(item_text)
+		market_list.set_item_metadata(i, equipment)
+	
+	section.add_child(market_list)
+	
+	# Add market refresh button
+	var refresh_button = Button.new()
+	refresh_button.text = "Refresh Market"
+	refresh_button.pressed.connect(_on_refresh_market_pressed.bind(market_list))
+	section.add_child(refresh_button)
+	
+	return section
+
+func _create_trade_status_section() -> Control:
+	"""Create trade status section"""
+	var section = HBoxContainer.new()
+	
+	var status_label = Label.new()
+	status_label.name = "TradeStatusLabel"
+	status_label.text = "Select equipment to buy or sell"
+	section.add_child(status_label)
+	
+	return section
+
+func _create_repair_dialog() -> Control:
+	"""Create equipment repair dialog"""
+	var dialog = AcceptDialog.new()
+	dialog.title = "Equipment Repair Station"
+	dialog.set_flag(Window.FLAG_RESIZE_DISABLED, false)
+	
+	# Create main container
+	var main_container = VBoxContainer.new()
+	dialog.add_child(main_container)
+	
+	# Create damaged equipment section
+	var damaged_section = _create_damaged_equipment_section()
+	main_container.add_child(damaged_section)
+	
+	# Create repair options section
+	var repair_options_section = _create_repair_options_section()
+	main_container.add_child(repair_options_section)
+	
+	# Create repair status section
+	var status_section = _create_repair_status_section()
+	main_container.add_child(status_section)
+	
+	# Create action buttons
+	var button_container = HBoxContainer.new()
+	main_container.add_child(button_container)
+	
+	var repair_button = Button.new()
+	repair_button.text = "Repair Selected"
+	repair_button.pressed.connect(_on_repair_equipment_pressed.bind(dialog))
+	button_container.add_child(repair_button)
+	
+	var repair_all_button = Button.new()
+	repair_all_button.text = "Repair All"
+	repair_all_button.pressed.connect(_on_repair_all_pressed.bind(dialog))
+	button_container.add_child(repair_all_button)
+	
+	var close_button = Button.new()
+	close_button.text = "Close"
+	close_button.pressed.connect(dialog.queue_free)
+	button_container.add_child(close_button)
+	
+	# Add custom signal for equipment repair
+	dialog.add_user_signal("equipment_repaired", [ {"name": "equipment", "type": TYPE_DICTIONARY}, {"name": "cost", "type": TYPE_INT}])
+	
+	return dialog
+
+func _create_damaged_equipment_section() -> Control:
+	"""Create damaged equipment section"""
+	var section = VBoxContainer.new()
+	
+	var label = Label.new()
+	label.text = "Damaged Equipment:"
+	section.add_child(label)
+	
+	var damaged_list = ItemList.new()
+	damaged_list.name = "DamagedList"
+	damaged_list.custom_minimum_size = Vector2(400, 200)
+	
+	# Find damaged equipment
+	var damaged_equipment = _get_damaged_equipment()
+	for i in range(damaged_equipment.size()):
+		var equipment = damaged_equipment[i]
+		var repair_cost = _calculate_repair_cost(equipment)
+		var item_text = "%s - %d credits to repair" % [equipment.get("name", "Unknown"), repair_cost]
+		damaged_list.add_item(item_text)
+		damaged_list.set_item_metadata(i, equipment)
+	
+	if damaged_equipment.is_empty():
+		damaged_list.add_item("No damaged equipment found")
+	
+	section.add_child(damaged_list)
+	
+	return section
+
+func _create_repair_options_section() -> Control:
+	"""Create repair options section"""
+	var section = VBoxContainer.new()
+	
+	var label = Label.new()
+	label.text = "Repair Options:"
+	section.add_child(label)
+	
+	var options_container = VBoxContainer.new()
+	section.add_child(options_container)
+	
+	var quick_repair = CheckBox.new()
+	quick_repair.name = "QuickRepair"
+	quick_repair.text = "Quick Repair (+50% cost, immediate)"
+	options_container.add_child(quick_repair)
+	
+	var quality_repair = CheckBox.new()
+	quality_repair.name = "QualityRepair"
+	quality_repair.text = "Quality Repair (+100% cost, improved durability)"
+	options_container.add_child(quality_repair)
+	
+	return section
+
+func _create_repair_status_section() -> Control:
+	"""Create repair status section"""
+	var section = HBoxContainer.new()
+	
+	var status_label = Label.new()
+	status_label.name = "RepairStatusLabel"
+	status_label.text = "Credits available: %d" % _get_current_credits()
+	section.add_child(status_label)
+	
+	return section
+
+# Supporting functions for trade system
+func _generate_market_equipment() -> Array[Dictionary]:
+	"""Generate equipment available in market"""
+	var market_equipment: Array[Dictionary] = [
+		{"name": "Pulse Rifle", "type": "weapon", "range": 30, "shots": 1, "damage": 2, "traits": ["Energy", "Military"], "rarity": "uncommon"},
+		{"name": "Boarding Saber", "type": "weapon", "range": 0, "shots": 0, "damage": 2, "traits": ["Melee", "Blade"], "rarity": "common"},
+		{"name": "Shield Generator", "type": "gadget", "traits": ["Tech", "Defensive"], "rarity": "rare"},
+		{"name": "Stims", "type": "consumable", "traits": ["Medical", "Enhancement"], "rarity": "common"},
+		{"name": "Camo Cloak", "type": "gear", "traits": ["Stealth", "Utility"], "rarity": "uncommon"}
+	]
+	
+	# Add some random equipment
+	for i in range(randi_range(2, 5)):
+		market_equipment.append(_generate_random_market_equipment())
+	
+	return market_equipment
+
+func _generate_random_market_equipment() -> Dictionary:
+	"""Generate random equipment for market"""
+	var equipment_types = ["weapon", "armor", "gadget", "gear"]
+	var type = equipment_types[randi() % equipment_types.size()]
+	
+	match type:
+		"weapon":
+			return {
+				"name": "Random Weapon %d" % randi_range(100, 999),
+				"type": "weapon",
+				"range": randi_range(12, 36),
+				"damage": randi_range(1, 3),
+				"traits": ["Random"],
+				"rarity": "common"
+			}
+		"armor":
+			return {
+				"name": "Random Armor %d" % randi_range(100, 999),
+				"type": "armor",
+				"save": randi_range(4, 6),
+				"traits": ["Protection"],
+				"rarity": "common"
+			}
+		_:
+			return {
+				"name": "Random Gear %d" % randi_range(100, 999),
+				"type": type,
+				"traits": ["Utility"],
+				"rarity": "common"
+			}
+
+func _calculate_buy_price(equipment: Dictionary) -> int:
+	"""Calculate buy price for equipment"""
+	var base_price = 500
+	var rarity_multiplier = 1.0
+	
+	match equipment.get("rarity", "common"):
+		"common": rarity_multiplier = 1.0
+		"uncommon": rarity_multiplier = 1.5
+		"rare": rarity_multiplier = 2.5
+		"legendary": rarity_multiplier = 5.0
+	
+	return int(base_price * rarity_multiplier)
+
+func _calculate_sell_price(equipment: Dictionary) -> int:
+	"""Calculate sell price for equipment (60% of buy price)"""
+	return int(_calculate_buy_price(equipment) * 0.6)
+
+func _calculate_repair_cost(equipment: Dictionary) -> int:
+	"""Calculate repair cost for damaged equipment"""
+	var base_cost = _calculate_buy_price(equipment) * 0.3
+	var damage_severity = equipment.get("damage_level", 1)
+	return int(base_cost * damage_severity)
+
+func _get_current_credits() -> int:
+	"""Get current credits from campaign data"""
+	# Try to get from campaign manager
+	var campaign_mgr = get_node_or_null("/root/CampaignManager")
+	if campaign_mgr and campaign_mgr.has_method("get_credits"):
+		return campaign_mgr.get_credits()
+	
+	# Fallback amount
+	return 2500
+
+func _get_damaged_equipment() -> Array[Dictionary]:
+	"""Get list of damaged equipment"""
+	var damaged: Array[Dictionary] = []
+	
+	for equipment in equipment_database:
+		if equipment.get("damaged", false) or equipment.get("damage_level", 0) > 0:
+			damaged.append(equipment)
+	
+	# Add some sample damaged equipment if none found
+	if damaged.is_empty():
+		damaged = [
+			{"name": "Damaged Rifle", "type": "weapon", "damaged": true, "damage_level": 2},
+			{"name": "Cracked Armor", "type": "armor", "damaged": true, "damage_level": 1}
+		]
+	
+	return damaged
+
+# Event handlers for trade system
+func _on_buy_equipment_pressed(dialog: Control) -> void:
+	"""Handle buy equipment button press"""
+	var market_list = dialog.find_child("MarketList")
+	var credits_label = dialog.find_child("CreditsLabel")
+	
+	if market_list:
+		var selected_items = market_list.get_selected_items()
+		if selected_items.size() > 0:
+			var equipment = market_list.get_item_metadata(selected_items[0])
+			var price = _calculate_buy_price(equipment)
+			var current_credits = _get_current_credits()
+			
+			if current_credits >= price:
+				# Process purchase
+				equipment_database.append(equipment)
+				dialog.emit_signal("equipment_traded", "buy", equipment, price)
+				
+				# Update UI
+				if credits_label:
+					credits_label.text = "Credits: %d" % (current_credits - price)
+				
+				print("EquipmentManager: Bought %s for %d credits" % [equipment.get("name", "Unknown"), price])
+			else:
+				_show_trade_error("Insufficient credits to purchase this item.")
+		else:
+			_show_trade_error("Please select an item to purchase.")
+
+func _on_sell_equipment_pressed(dialog: Control) -> void:
+	"""Handle sell equipment button press"""
+	var inventory_list = dialog.find_child("InventoryList")
+	var credits_label = dialog.find_child("CreditsLabel")
+	
+	if inventory_list:
+		var selected_items = inventory_list.get_selected_items()
+		if selected_items.size() > 0:
+			var equipment = inventory_list.get_item_metadata(selected_items[0])
+			var price = _calculate_sell_price(equipment)
+			
+			# Remove from inventory
+			equipment_database.erase(equipment)
+			inventory_list.remove_item(selected_items[0])
+			
+			# Process sale
+			dialog.emit_signal("equipment_traded", "sell", equipment, price)
+			
+			# Update UI
+			if credits_label:
+				var current_credits = _get_current_credits()
+				credits_label.text = "Credits: %d" % (current_credits + price)
+			
+			print("EquipmentManager: Sold %s for %d credits" % [equipment.get("name", "Unknown"), price])
+		else:
+			_show_trade_error("Please select an item to sell.")
+
+func _on_refresh_market_pressed(market_list: ItemList) -> void:
+	"""Handle market refresh button press"""
+	market_list.clear()
+	
+	var market_equipment = _generate_market_equipment()
+	for i in range(market_equipment.size()):
+		var equipment = market_equipment[i]
+		var price = _calculate_buy_price(equipment)
+		var item_text = "%s - %d credits" % [equipment.get("name", "Unknown"), price]
+		market_list.add_item(item_text)
+		market_list.set_item_metadata(i, equipment)
+	
+	print("EquipmentManager: Market refreshed with %d items" % market_equipment.size())
+
+func _on_repair_equipment_pressed(dialog: Control) -> void:
+	"""Handle repair equipment button press"""
+	var damaged_list = dialog.find_child("DamagedList")
+	var quick_repair = dialog.find_child("QuickRepair")
+	var quality_repair = dialog.find_child("QualityRepair")
+	
+	if damaged_list:
+		var selected_items = damaged_list.get_selected_items()
+		if selected_items.size() > 0:
+			var equipment = damaged_list.get_item_metadata(selected_items[0])
+			var repair_cost = _calculate_repair_cost(equipment)
+			
+			# Apply repair modifiers
+			if quick_repair and quick_repair.button_pressed:
+				repair_cost = int(repair_cost * 1.5)
+			elif quality_repair and quality_repair.button_pressed:
+				repair_cost = int(repair_cost * 2.0)
+			
+			var current_credits = _get_current_credits()
+			if current_credits >= repair_cost:
+				# Process repair
+				equipment["damaged"] = false
+				equipment["damage_level"] = 0
+				
+				if quality_repair and quality_repair.button_pressed:
+					equipment["enhanced_durability"] = true
+				
+				dialog.emit_signal("equipment_repaired", equipment, repair_cost)
+				
+				# Remove from damaged list
+				damaged_list.remove_item(selected_items[0])
+				
+				print("EquipmentManager: Repaired %s for %d credits" % [equipment.get("name", "Unknown"), repair_cost])
+			else:
+				_show_trade_error("Insufficient credits for repair.")
+		else:
+			_show_trade_error("Please select equipment to repair.")
+
+func _on_repair_all_pressed(dialog: Control) -> void:
+	"""Handle repair all button press"""
+	var damaged_equipment = _get_damaged_equipment()
+	var total_cost = 0
+	
+	for equipment in damaged_equipment:
+		total_cost += _calculate_repair_cost(equipment)
+	
+	var current_credits = _get_current_credits()
+	if current_credits >= total_cost:
+		# Repair all equipment
+		for equipment in damaged_equipment:
+			equipment["damaged"] = false
+			equipment["damage_level"] = 0
+		
+		# Clear damaged list
+		var damaged_list = dialog.find_child("DamagedList")
+		if damaged_list:
+			damaged_list.clear()
+			damaged_list.add_item("No damaged equipment found")
+		
+		print("EquipmentManager: Repaired all equipment for %d credits" % total_cost)
+	else:
+		_show_trade_error("Insufficient credits to repair all equipment.")
+
+func _on_equipment_traded(action: String, equipment: Dictionary, credits: int) -> void:
+	"""Handle equipment trade completion"""
+	print("EquipmentManager: Trade completed - %s %s for %d credits" % [action, equipment.get("name", "Unknown"), credits])
+	_refresh_equipment_display()
+
+func _on_equipment_repaired(equipment: Dictionary, cost: int) -> void:
+	"""Handle equipment repair completion"""
+	print("EquipmentManager: Repair completed - %s repaired for %d credits" % [equipment.get("name", "Unknown"), cost])
+	_refresh_equipment_display()
+
+func _show_trade_error(message: String) -> void:
+	"""Show error message for trade operations"""
+	var error_dialog = AcceptDialog.new()
+	error_dialog.dialog_text = message
+	error_dialog.title = "Trade Error"
+	
+	get_tree().current_scene.add_child(error_dialog)
+	error_dialog.popup_centered()
+	
+	# Auto-remove after user closes
+	error_dialog.confirmed.connect(error_dialog.queue_free)
+	error_dialog.canceled.connect(error_dialog.queue_free)
 ## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
 ## Based on Godot 4.4 best practices for safe property access
 func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:

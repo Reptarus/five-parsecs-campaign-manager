@@ -1,0 +1,57 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem@latest",
+        "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager"
+      ],
+      "env": {}
+    },
+    "memory": {
+      "command": "npx", 
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-memory@latest"
+      ],
+      "env": {}
+    },
+    "gemini-orchestrator": {
+      "command": "python",
+      "args": [
+        "C:/Users/elija/Creative-Tools-MCP/community-mcp-servers/claude-gemini-mcp-slim-main/gemini_mcp_server.py"
+      ],
+      "env": {
+        "GOOGLE_API_KEY": "AIzaSyDQRZcWjWQXgM__y2jF78HDJLNspszABrI",,
+        "GEMINI_FLASH_MODEL": "gemini-2.0-flash-exp",
+        "GEMINI_PRO_MODEL": "gemini-2.0-flash-thinking-exp"
+      }
+    },
+    "desktop-commander": {
+      "command": "python",
+      "args": [
+        "-m",
+        "desktop_commander.server"
+      ],
+      "env": {}
+    },
+    "blender-creative": {
+      "command": "uvx",
+      "args": [
+        "blender-mcp"
+      ],
+      "env": {}
+    },
+    "windows-automation": {
+      "command": "python", 
+      "args": [
+        "C:/Users/elija/AppData/Roaming/Claude/Claude Extensions/ant.dir.cursortouch.windows-mcp/main.py"
+      ],
+      "env": {}
+    }
+  },
+  "version": "1.0.0",
+  "description": "Production MCP ecosystem configuration for cross-platform development workflow",
+  "last_updated": "2025-07-28"
+}

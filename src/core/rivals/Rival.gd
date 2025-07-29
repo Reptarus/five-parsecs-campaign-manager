@@ -1,6 +1,6 @@
 ﻿extends Resource
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 @export var rival_name: String = ""
 @export var rival_type: String = ""

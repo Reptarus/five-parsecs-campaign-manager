@@ -1,6 +1,6 @@
 ﻿extends Control
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 signal config_updated(config: Dictionary)
 

@@ -7,7 +7,7 @@ extends Mission
 ## Implements Five Parsecs VIP protection mechanics with threat assessment,
 ## protection protocols, and dynamic threat escalation.
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const MissionTypeRegistry = preload("res://src/game/missions/enhanced/MissionTypeRegistry.gd")
 
 # VIP and escort data

@@ -19,6 +19,13 @@ const FPCM_BattleManager = preload("res://src/core/battle/FPCM_BattleManager.gd"
 const FPCM_BattleState = preload("res://src/core/battle/FPCM_BattleState.gd")
 const FPCM_DiceSystem = preload("res://src/core/systems/DiceSystem.gd")
 
+# Type alias for easier usage
+const BattleResult = FPCM_BattleManager.BattleResult
+
+## Battle Resolution UI for Five Parsecs
+##
+## Handles battle setup, combat resolution, and result display
+
 # UI nodes
 @onready var battle_title: Label = $MainContainer/BattleTitle
 @onready var mission_type_label: Label = $MainContainer/BattleInfo/MissionType
@@ -35,6 +42,21 @@ const FPCM_DiceSystem = preload("res://src/core/systems/DiceSystem.gd")
 @onready var alpha_manager: Node = get_node_or_null("/root/FPCM_AlphaGameManager")
 @onready var dice_manager: Node = get_node_or_null("/root/DiceManager")
 
+# Battle results panel elements
+@onready var battle_results_panel: Panel = $BattleResultsPanel
+@onready var victory_value_label: Label = $BattleResultsPanel/ResultsContainer/VictoryStatus/VictoryValue
+@onready var casualties_label: Label = $BattleResultsPanel/ResultsContainer/ResultsContent/LeftResults/CrewSection/CrewResults/CasualtiesLabel
+@onready var injuries_label: Label = $BattleResultsPanel/ResultsContainer/ResultsContent/LeftResults/CrewSection/CrewResults/InjuriesLabel
+@onready var crew_status_list: ItemList = $BattleResultsPanel/ResultsContainer/ResultsContent/LeftResults/CrewSection/CrewResults/CrewStatusList
+@onready var credits_label: Label = $BattleResultsPanel/ResultsContainer/ResultsContent/RightResults/RewardsSection/RewardsResults/CreditsLabel
+@onready var story_points_label: Label = $BattleResultsPanel/ResultsContainer/ResultsContent/RightResults/RewardsSection/RewardsResults/StoryPointsLabel
+@onready var experience_label: Label = $BattleResultsPanel/ResultsContainer/ResultsContent/RightResults/RewardsSection/RewardsResults/ExperienceLabel
+@onready var loot_list: ItemList = $BattleResultsPanel/ResultsContainer/ResultsContent/RightResults/LootSection/LootList
+@onready var duration_label: Label = $BattleResultsPanel/ResultsContainer/BattleStatsSection/BattleStats/DurationLabel
+@onready var events_label: Label = $BattleResultsPanel/ResultsContainer/BattleStatsSection/BattleStats/EventsLabel
+@onready var close_results_button: Button = $BattleResultsPanel/ResultsContainer/ResultsButtons/CloseResultsButton
+@onready var continue_from_results_button: Button = $BattleResultsPanel/ResultsContainer/ResultsButtons/ContinueFromResultsButton
+
 # Enhanced system references
 var battle_manager: FPCM_BattleManager = null
 var dice_system: FPCM_DiceSystem = null
@@ -47,7 +69,6 @@ var enemy_forces: Array[Resource] = []
 var battle_result: FPCM_BattleManager.BattleResult = null
 var battle_in_progress: bool = false
 
-# BattleResult class removed - now using FPCM_BattleManager.BattleResult
 
 func _ready() -> void:
 	_initialize_systems()
@@ -72,6 +93,10 @@ func _connect_signals() -> void:
 	flee_button.pressed.connect(_on_attempt_flee)
 	back_button.pressed.connect(_on_back_pressed)
 	continue_button.pressed.connect(_on_continue_pressed)
+	
+	# Connect battle results panel signals
+	close_results_button.pressed.connect(_on_close_results_pressed)
+	continue_from_results_button.pressed.connect(_on_continue_from_results_pressed)
 
 func _setup_ui() -> void:
 	"""Initialize UI state"""
@@ -159,6 +184,50 @@ func _create_enemy_card(enemy: Resource) -> Control:
 
 	return card
 
+func _generate_battle_loot(decisive_victory: bool) -> Array[String]:
+	"""Generate loot found after battle using Five Parsecs loot tables"""
+	var loot_found: Array[String] = []
+	
+	# Five Parsecs loot generation (Core Rules p.74-75)
+	var loot_roll = _roll_dice("Loot Generation", "D100")
+	
+	if decisive_victory:
+		loot_roll += 20 # Bonus for decisive victory
+	
+	if loot_roll >= 80:
+		loot_found.append("Military Rifle")
+		_log_battle_message("Found military-grade weapon!", Color.CYAN)
+	elif loot_roll >= 60:
+		loot_found.append("Combat Armor")
+		_log_battle_message("Found protective equipment!", Color.CYAN)
+	elif loot_roll >= 40:
+		loot_found.append("Credits (" + str(_roll_dice("Bonus Credits", "D6") * 50) + ")")
+		_log_battle_message("Found additional credits!", Color.CYAN)
+	elif loot_roll >= 20:
+		loot_found.append("Medical Supplies")
+		_log_battle_message("Found medical equipment!", Color.CYAN)
+	
+	return loot_found
+
+func _process_post_battle_procedures() -> void:
+	"""Process Five Parsecs post-battle procedures"""
+	# Story Point generation
+	if battle_result.victory:
+		_log_battle_message("Earned %d Story Point(s) for victory!" % battle_result.story_points, Color.BLUE)
+	
+	# Experience gain for crew
+	for crew_member in crew_members:
+		if not battle_result.crew_casualties.has(crew_member):
+			var character_name: String = safe_get_property(crew_member, "character_name", "Crew member")
+			_log_battle_message("%s gained combat experience!" % character_name, Color.BLUE)
+	
+	# Mission completion bonuses
+	if current_mission:
+		var mission_bonus = safe_get_property(current_mission, "completion_bonus", 0)
+		if mission_bonus > 0:
+			battle_result.credits_earned += mission_bonus
+			_log_battle_message("Mission completion bonus: %d credits" % mission_bonus, Color.GREEN)
+
 func _on_resolve_battle_automatically() -> void:
 	"""Resolve battle automatically using Five Parsecs rules"""
 	if battle_in_progress:
@@ -169,7 +238,7 @@ func _on_resolve_battle_automatically() -> void:
 	_log_battle_message("Resolving battle automatically...", Color.CYAN)
 
 	battle_result = _calculate_automatic_battle_result()
-	_display_battle_results()
+	_display_comprehensive_battle_results() # Use comprehensive display instead of simple one
 
 	battle_in_progress = false
 	continue_button.disabled = false
@@ -267,17 +336,12 @@ func _calculate_battle_casualties(result: BattleResult) -> void:
 		var character_name: String = safe_get_property(crew_member, "character_name", "Crew member")
 		var casualty_roll = _roll_dice("Injury Check - " + str(character_name), "D6")
 		if casualty_roll <= 2:
-			result.crew_injuries.append(crew_member)
+			result.crew_casualties.append(crew_member)
 			_log_battle_message("%s was injured! (rolled %d)" % [character_name, casualty_roll], Color.ORANGE)
 
 func _display_battle_results() -> void:
-	"""Display the final battle results"""
-	if battle_result.victory:
-		battle_status.text = "Victory! Credits earned: %d" % battle_result.credits_earned
-		_log_battle_message("Battle completed successfully!", Color.GREEN)
-	else:
-		battle_status.text = "Defeat! %d crew members injured." % battle_result.crew_injuries.size()
-		_log_battle_message("Battle ended in defeat.", Color.RED)
+	"""Display the final battle results (legacy method - redirects to comprehensive display)"""
+	_display_comprehensive_battle_results()
 
 func _disable_battle_actions() -> void:
 	"""Disable battle action buttons during resolution"""
@@ -300,7 +364,7 @@ func _on_continue_pressed() -> void:
 	if battle_result:
 		battle_completed.emit(battle_result) # warning: return value discarded (intentional)
 
-func get_battle_result() -> BattleResult:
+func get_battle_result() -> FPCM_BattleManager.BattleResult:
 	"""Get the current battle result"""
 	return battle_result
 
@@ -332,16 +396,16 @@ func _on_tactical_battle_completed(tactical_result: Variant) -> void:
 		return
 	_log_battle_message("Tactical battle completed!", Color.GREEN)
 
-	# Convert tactical _result to battle _result
-	battle_result = BattleResult.new()
+	# Convert tactical result to battle result
+	battle_result = FPCM_BattleManager.BattleResult.new()
 	battle_result.victory = tactical_result.victory
 	battle_result.crew_casualties = tactical_result.crew_casualties
 	battle_result.crew_injuries = tactical_result.crew_injuries
 	battle_result.credits_earned = tactical_result.credits_earned
 	battle_result.experience_gained = tactical_result.experience_gained
 
-	# Show results
-	_display_battle_results()
+	# Show comprehensive results instead of simple display
+	_display_comprehensive_battle_results()
 
 	# Return to normal UI
 	visible = true
@@ -410,7 +474,7 @@ func _update_ui_from_battle_state() -> void:
 	_update_crew_display()
 	_update_enemy_display()
 
-func _on_resolve_battle_automatically() -> void:
+func _on_resolve_battle_automatically_with_dice() -> void:
 	"""Enhanced automatic battle resolution with dice integration"""
 	if battle_in_progress:
 		return
@@ -422,7 +486,7 @@ func _on_resolve_battle_automatically() -> void:
 	# Use dice system for combat resolution
 	if dice_system:
 		var combat_roll: FPCM_DiceSystem.DiceRoll = dice_system.roll_dice(
-			FPCM_DiceSystem.DicePattern.COMBAT, 
+			FPCM_DiceSystem.DicePattern.COMBAT,
 			"Automatic Battle Resolution"
 		)
 		
@@ -501,7 +565,7 @@ func _finalize_battle_resolution() -> void:
 	continue_button.visible = true
 	
 	# Log final results
-	_log_battle_message("Battle complete: %s" % battle_result.get_summary_text(), 
+	_log_battle_message("Battle complete: %s" % battle_result.get_summary_text(),
 		Color.GREEN if battle_result.victory else Color.RED)
 	
 	# Emit completion signal
@@ -535,3 +599,104 @@ func _exit_tree() -> void:
 	
 	if dice_system and dice_system.dice_rolled.is_connected(_on_dice_rolled):
 		dice_system.dice_rolled.disconnect(_on_dice_rolled)
+
+func _display_comprehensive_battle_results() -> void:
+	"""Display comprehensive battle results to the player using the detailed UI panels"""
+	if not battle_result:
+		return
+	
+	# Show the battle results panel
+	battle_results_panel.visible = true
+	
+	# Update victory status
+	if battle_result.victory:
+		victory_value_label.text = "VICTORY"
+		victory_value_label.add_theme_color_override("font_color", Color.GREEN)
+	else:
+		victory_value_label.text = "DEFEAT"
+		victory_value_label.add_theme_color_override("font_color", Color.RED)
+	
+	# Update crew status section
+	casualties_label.text = "Casualties: " + str(battle_result.crew_casualties.size())
+	injuries_label.text = "Injuries: " + str(battle_result.crew_injuries.size())
+	
+	# Populate crew status list
+	crew_status_list.clear()
+	for crew_member in crew_members:
+		var crew_name: String = _get_crew_name(crew_member)
+		var status: String = "Healthy"
+		var status_color: String = "#00FF00" # Green
+		
+		if crew_member in battle_result.crew_casualties:
+			status = "Casualty"
+			status_color = "#FF0000" # Red
+		elif crew_member in battle_result.crew_injuries:
+			status = "Injured"
+			status_color = "#FFA500" # Orange
+		
+		crew_status_list.add_item("[color=" + status_color + "]" + crew_name + " - " + status + "[/color]")
+	
+	# Update rewards section
+	credits_label.text = "Credits Earned: " + str(battle_result.credits_earned)
+	story_points_label.text = "Story Points: " + str(battle_result.story_points)
+	
+	# Update experience section
+	var exp_count: int = battle_result.experience_gained.size()
+	if exp_count > 0:
+		experience_label.text = "Experience Gained (" + str(exp_count) + " crew members)"
+		experience_label.add_theme_color_override("font_color", Color.CYAN)
+	else:
+		experience_label.text = "No Experience Gained"
+		experience_label.add_theme_color_override("font_color", Color.GRAY)
+	
+	# Populate loot list
+	loot_list.clear()
+	if battle_result.loot_found.size() > 0:
+		for loot_item in battle_result.loot_found:
+			var loot_name: String = _get_loot_name(loot_item)
+			loot_list.add_item(loot_name)
+	else:
+		loot_list.add_item("No loot found")
+	
+	# Update battle statistics
+	duration_label.text = "Duration: " + str(battle_result.battle_duration) + " rounds"
+	events_label.text = "Events Triggered: " + str(battle_result.events_triggered.size())
+	
+	# Log comprehensive results to battle log as well
+	_log_battle_message("=== COMPREHENSIVE BATTLE RESULTS ===", Color.GOLD)
+	_log_battle_message("Victory: " + ("YES" if battle_result.victory else "NO"),
+		Color.GREEN if battle_result.victory else Color.RED)
+	_log_battle_message("Casualties: " + str(battle_result.crew_casualties.size()), Color.WHITE)
+	_log_battle_message("Credits Earned: " + str(battle_result.credits_earned), Color.YELLOW)
+	_log_battle_message("Battle Duration: " + str(battle_result.battle_duration) + " rounds", Color.WHITE)
+	
+	# Hide main battle interface
+	get_node("MainContainer").visible = false
+
+func _get_loot_name(loot_item: Resource) -> String:
+	"""Get loot item name safely"""
+	if not loot_item:
+		return "Unknown Item"
+	
+	var name_candidates: Array[String] = ["name", "item_name", "title", "id"]
+	for field: String in name_candidates:
+		var name: Variant = safe_get_property(loot_item, field, "")
+		if name != "" and name is String:
+			return name as String
+	
+	return "Unnamed Item"
+
+func _on_close_results_pressed() -> void:
+	"""Close the battle results panel and return to main battle interface"""
+	battle_results_panel.visible = false
+	get_node("MainContainer").visible = true
+
+func _on_continue_from_results_pressed() -> void:
+	"""Continue to post-battle phase from the results panel"""
+	if battle_result:
+		battle_completed.emit(battle_result)
+
+## Signal handlers for battle results panel
+func show_battle_results() -> void:
+	"""Public method to show the battle results panel"""
+	_display_comprehensive_battle_results()

@@ -1,7 +1,7 @@
 ﻿class_name FPCM_CampaignSetupScreen
 extends Control
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 @onready var campaign_name_input: LineEdit = $"VBoxContainer/CampaignNameInput"
 @onready var difficulty_option: OptionButton = $"VBoxContainer/DifficultyOption"

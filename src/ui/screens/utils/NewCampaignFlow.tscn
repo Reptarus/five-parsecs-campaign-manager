@@ -5,8 +5,8 @@
 [ext_resource type="Script" path="res://src/data/resources/Scene Container/CrewSizeSelection.gd" id="3_3xjq0"]
 [ext_resource type="Script" path="res://src/data/resources/CrewAndCharacters/CharacterCreationScene.gd" id="4_lrtqq"]
 [ext_resource type="Script" path="res://src/data/resources/CampaignManagement/CrewManagement.gd" id="5_l4k6d"]
-[ext_resource type="Script" path="res://src/data/resources/GameData/CampaignSetupScreen.gd" id="6_2yj0n"]
-[ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://src/data/resources/Utilities/GameOverScreen.tscn" id="7_theme"]
+[ext_resource type="Script" uid="uid://pnjx7j7qhcqe" path="res://src/ui/screens/campaign/CampaignSetupScreen.gd" id="6_2yj0n"]
+[ext_resource type="Theme" uid="uid://d1you1rrwuu48" path="res://src/ui/screens/utils/GameOverScreen.tscn" id="7_theme"]
 
 [node name="NewCampaignFlow" type="Control"]
 layout_mode = 3

@@ -1,7 +1,7 @@
 # DifficultySettings.gd
 extends Resource
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 var enemy_health_modifier: float = 1.0
 var enemy_damage_modifier: float = 1.0

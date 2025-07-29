@@ -1,0 +1,15 @@
+{
+  "request_id": "47078188-7621-4e80-b022-b96675a50547",
+  "response_type": "gemini_quick_query",
+  "status": "success",
+  "timestamp": "2025-07-28T15:00:00Z",
+  "data": {
+    "query": "What is the purpose of the gemini-ai-orchestrator?",
+    "answer": "The gemini-ai-orchestrator serves as the central AI gateway for your MCP ecosystem. It intelligently routes requests to optimal Gemini models (flash for quick queries, pro for deep analysis), provides API fallbacks, handles input sanitization, path validation, and enables cross-client communication through the file-based bridge system. It's the backbone that enables seamless context sharing between Claude Desktop, Gemini CLI, Cursor IDE, and Godot Engine."
+  },
+  "metadata": {
+    "model_used": "gemini-2.0-flash-exp",
+    "processing_time_ms": 1250,
+    "token_count": 89
+  }
+}

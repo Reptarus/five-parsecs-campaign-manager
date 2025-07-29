@@ -3,7 +3,7 @@ class_name FPCM_PreBattleUI
 extends Control
 
 ## Dependencies
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const Character = preload("res://src/core/character/Character.gd")
 
 # Battle Phase Types

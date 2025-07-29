@@ -1,4 +1,4 @@
-﻿class_name FPCM_TutorialUI
+class_name FPCM_TutorialUI
 extends Control
 
 const TutorialOverlay = preload("res://src/ui/components/tutorial/TutorialOverlay.gd")

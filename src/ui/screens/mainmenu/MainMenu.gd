@@ -1,21 +1,9 @@
-# Universal Connection Validation Applied
-# Based on proven patterns: Universal Mock Strategy + 7-Stage Methodology
 extends Control
 
 # Safe imports
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-
-# Developer Quick Start Panel for playtesting efficiency
-@warning_ignore("shadowed_global_identifier")
 const DeveloperQuickStart = preload("res://src/ui/debug/DeveloperQuickStart.gd")
-
-# Safe dependency loading - loaded at runtime in _ready()
-var GameStateManager: Variant = null
-var GlobalEnums: Variant = null
+const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
+# GlobalEnums available as autoload singleton
 
 # Node references using safe access
 @warning_ignore("untyped_declaration")
@@ -59,10 +47,6 @@ func setup(manager: Node) -> void:
 
 func _ready() -> void:
 	print("MainMenu: Starting initialization...")
-
-	# Load dependencies safely at runtime
-	GameStateManager = load("res://src/core/managers/GameStateManager.gd")
-	GlobalEnums = load("res://src/core/systems/GlobalEnums.gd")
 
 	if not _validate_required_nodes():
 		push_error("MainMenu: Required nodes are missing")

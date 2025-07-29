@@ -1,6 +1,6 @@
 [gd_scene load_steps=5 format=3 uid="uid://bm8y3vfpqr2k4"]
 
-[ext_resource type="Script" path="res://src/ui/components/crew/CrewTaskCard.gd" id="1_crew_task_card"]
+[ext_resource type="Script" uid="uid://bh20iakfhmxf8" path="res://src/ui/components/crew/CrewTaskCard.gd" id="1_crew_task_card"]
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="2_theme"]
 [ext_resource type="Texture2D" uid="uid://cac7q24qi2e5c" path="res://assets/Basic assets/5PFHUIAssets/Sci-Fi-Infoboxes_0000s_0003s_0002s_0001s_0000_empty.png" id="3_card_bg"]
 [ext_resource type="Texture2D" uid="uid://4b7oasvcfbv3" path="res://assets/Basic assets/5PFHUIAssets/Sci-Fi-Infoboxes_0001s_0001s_0001s_0008_Brush.png" id="4_button_bg"]
@@ -41,10 +41,10 @@ size_flags_vertical = 0
 
 [node name="CharacterPortrait" type="TextureRect" parent="TaskContainer/VBoxContainer/HeaderSection"]
 unique_name_in_owner = true
+texture_filter = 1
 custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 size_flags_horizontal = 0
-texture_filter = 1
 expand_mode = 1
 stretch_mode = 5
 
@@ -56,16 +56,16 @@ theme_override_constants/separation = 2
 [node name="CharacterNameLabel" type="Label" parent="TaskContainer/VBoxContainer/HeaderSection/CharacterInfo"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Character Name"
-theme_override_font_sizes/font_size = 16
 theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_font_sizes/font_size = 16
+text = "Character Name"
 
 [node name="TaskStatusLabel" type="Label" parent="TaskContainer/VBoxContainer/HeaderSection/CharacterInfo"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "[Available]"
-theme_override_font_sizes/font_size = 12
 theme_override_colors/font_color = Color(0.7, 0.9, 0.7, 1)
+theme_override_font_sizes/font_size = 12
+text = "[Available]"
 
 [node name="TaskSection" type="VBoxContainer" parent="TaskContainer/VBoxContainer"]
 layout_mode = 2
@@ -80,27 +80,25 @@ theme_override_constants/separation = 2
 [node name="TaskTypeLabel" type="Label" parent="TaskContainer/VBoxContainer/TaskSection/TaskInfo"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "No Task Assigned"
-theme_override_font_sizes/font_size = 14
 theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+text = "No Task Assigned"
 
 [node name="ProgressBar" type="ProgressBar" parent="TaskContainer/VBoxContainer/TaskSection/TaskInfo"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
-max_value = 100.0
 step = 1.0
-value = 0.0
 show_percentage = false
 
 [node name="TaskDetails" type="RichTextLabel" parent="TaskContainer/VBoxContainer/TaskSection"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_colors/default_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/normal_font_size = 11
 bbcode_enabled = true
 text = "No task details available."
-theme_override_font_sizes/normal_font_size = 11
-theme_override_colors/default_color = Color(0.7, 0.7, 0.7, 1)
 fit_content = true
 scroll_active = false
 
@@ -112,7 +110,7 @@ alignment = 1
 
 [node name="AssignButton" type="Button" parent="TaskContainer/VBoxContainer/ButtonSection"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(80, 32)
+custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Assign"
@@ -132,7 +130,7 @@ expand_mode = 2
 [node name="CompleteButton" type="Button" parent="TaskContainer/VBoxContainer/ButtonSection"]
 unique_name_in_owner = true
 visible = false
-custom_minimum_size = Vector2(80, 32)
+custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Complete"
@@ -152,7 +150,7 @@ expand_mode = 2
 [node name="CancelButton" type="Button" parent="TaskContainer/VBoxContainer/ButtonSection"]
 unique_name_in_owner = true
 visible = false
-custom_minimum_size = Vector2(80, 32)
+custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Cancel"
@@ -188,8 +186,8 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(1, 1, 1, 0.05)
 mouse_filter = 2
+color = Color(1, 1, 1, 0.05)
 
 [node name="SelectionEffect" type="ColorRect" parent="VisualEffects"]
 visible = false
@@ -199,8 +197,8 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.3, 0.6, 1, 0.1)
 mouse_filter = 2
+color = Color(0.3, 0.6, 1, 0.1)
 
 [node name="ProgressEffect" type="ColorRect" parent="VisualEffects"]
 visible = false
@@ -210,8 +208,8 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.3, 1, 0.3, 0.1)
 mouse_filter = 2
+color = Color(0.3, 1, 0.3, 0.1)
 
 [node name="CompletionEffect" type="ColorRect" parent="VisualEffects"]
 visible = false
@@ -221,8 +219,8 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.3, 1, 0.3, 0.2)
 mouse_filter = 2
+color = Color(0.3, 1, 0.3, 0.2)
 
 [node name="FailureEffect" type="ColorRect" parent="VisualEffects"]
 visible = false
@@ -232,5 +230,5 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(1, 0.3, 0.3, 0.2)
 mouse_filter = 2
+color = Color(1, 0.3, 0.3, 0.2)

@@ -7,7 +7,7 @@ class_name BaseCampaignDashboardSystem
 ## Part of Phase 2C Campaign Dashboard Integration
 
 # Safe imports
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const GameState = preload("res://src/core/state/GameState.gd")
 const CampaignPhaseManagerScript = preload("res://src/core/campaign/CampaignPhaseManager.gd")
 const DataManager = preload("res://src/core/data/DataManager.gd")

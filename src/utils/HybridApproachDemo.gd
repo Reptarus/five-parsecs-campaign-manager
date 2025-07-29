@@ -6,7 +6,7 @@ extends Node
 const DataManager = preload("res://src/core/data/DataManager.gd")
 const FiveParsecsCharacterGeneration = preload("res://src/core/character/CharacterGeneration.gd")
 const Character = preload("res://src/core/character/Character.gd")
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 # Demo Types
 enum DemoType {
@@ -125,10 +125,17 @@ func _demonstrate_validation() -> void:
 			print("  - %s" % error)
 	
 	# Test data validation
-	var validation_result = DataManager.validate_character_creation({
+	# Note: validate_character_creation method doesn't exist, using simple validation
+	var validation_result = {"valid": true, "errors": []}
+	var character_data = {
 		"origin": "HUMAN",
 		"background": "military"
-	})
+	}
+	
+	# Simple validation check
+	if not character_data.has("origin") or not character_data.has("background"):
+		validation_result.valid = false
+		validation_result.errors = ["Missing required character data"]
 	
 	print("Data validation: %s" % ("VALID" if validation_result.valid else "INVALID"))
 	

@@ -1,7 +1,7 @@
 extends Resource
 class_name GameSettings
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 @export var difficulty_level: GlobalEnums.DifficultyLevel = GlobalEnums.DifficultyLevel.STANDARD
 @export var campaign_type: int = 0 # Using int for now since CampaignType enum exists but may need different values

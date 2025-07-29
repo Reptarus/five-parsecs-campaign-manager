@@ -5,7 +5,7 @@ extends Control
 
 # Safe imports
 const BaseCampaignDashboardSystem = preload("res://src/base/ui/BaseCampaignDashboardSystem.gd")
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const GameState = preload("res://src/core/state/GameState.gd")
 const FPCM_BasePhasePanel = preload("res://src/ui/screens/campaign/phases/BasePhasePanel.gd")
 

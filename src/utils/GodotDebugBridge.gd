@@ -4,7 +4,6 @@ extends RefCounted
 ## Debug Port Communication Bridge
 ## Connects to existing Godot debug session instead of launching new instances
 
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
 
 signal debug_command_completed(result: Dictionary)
 signal debug_data_received(data: Dictionary)

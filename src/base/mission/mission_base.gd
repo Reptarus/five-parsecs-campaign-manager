@@ -6,7 +6,7 @@ extends Resource
 ## Provides core functionality and type safety for the mission system.
 ## All mission-related classes should extend from this.
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 # Type-safe signals
 signal mission_state_changed(new_state: int)

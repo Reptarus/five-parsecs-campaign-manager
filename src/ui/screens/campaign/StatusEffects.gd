@@ -5,7 +5,7 @@ class_name StatusEffect
 ## Status Effect system for Five Parsecs from Home
 ## Handles temporary and permanent character status effects
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 signal effect_applied(character: Node, effect: StatusEffect)
 signal effect_removed(character: Node, effect: StatusEffect)

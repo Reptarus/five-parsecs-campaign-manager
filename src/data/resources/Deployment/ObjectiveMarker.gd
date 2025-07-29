@@ -28,7 +28,7 @@ var turns_held := 0
 
 func _ready() -> void:
 	# Load dependencies safely at runtime
-	Character = load("res://src/core/character/Base/Character.gd")
+	Character = load("res://src/core/character/Character.gd")
 
 	_validate_universal_connections()
 	add_to_group("objectives")

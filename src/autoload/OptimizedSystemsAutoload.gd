@@ -1,4 +1,5 @@
-extends Node
+extends Node # Essential imports
+const DataManager = preload("res://src/core/data/DataManager.gd")
 
 ## Optimized Systems Autoload - Load Time Optimization
 ## Reduces autoload initialization time via deferred and lazy initialization

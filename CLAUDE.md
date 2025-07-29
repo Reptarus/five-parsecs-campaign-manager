@@ -6,7 +6,7 @@
 **Primary Project Path**: `C:\Users\elija\SynologyDrive\Godot\five-parsecs-campaign-manager\`
 
 ### 🛠️ **Godot Console Path**  
-**Console Executable**: `"C:\Users\elija\Desktop\GoDot\Godot_v4.4-stable_mono_win64\Godot_v4.4-stable_mono_win64_console.exe"`
+**Console Executable**: `"C:\Users\elija\Desktop\GoDot\Godot 4.4\Godot_v4.4.1-stable_win64_console.exe"`
 
 ### 🔧 **MCP Tool Usage & Integration**
 **ALWAYS Available**: I can use MCP (Model Context Protocol) tools on every single message to:
@@ -116,6 +116,41 @@ src/
 - ✅ `src/core/campaign/creation/CampaignCreationStateManager.gd` - **Enterprise-grade, complete**
 - ⚠️ `src/ui/screens/campaign/CampaignCreationUI.gd` - **Needs signal integration**
 - ✅ `src/ui/screens/campaign/panels/*.gd` - **All panels emit proper signals**
+
+---
+
+## 🏭 PRODUCTION CONFIGURATION SYSTEM
+
+### **ProductionConfig.gd - Centralized Configuration Management**
+```gdscript
+# Production-safe configuration with environment detection
+const ProductionConfig = preload("res://src/core/config/ProductionConfig.gd")
+
+# Environment-based feature flags
+if ProductionConfig.is_production():
+    # Production mode - strict validation, no debug features
+    enable_strict_validation = true
+    show_debug_panels = false
+else:
+    # Development mode - full debugging capabilities
+    enable_debug_logging = true
+    show_developer_shortcuts = true
+
+# Production-safe logging
+ProductionConfig.log_debug("Debug information", "CampaignCreation")
+ProductionConfig.log_error("Critical error occurred", "DataManager")
+```
+
+### **Environment Detection**
+- **PRODUCTION**: Strict validation, minimal logging, no debug features
+- **STAGING**: Moderate logging, validation enabled, limited debug
+- **DEVELOPMENT**: Full debug capabilities, extensive logging
+
+### **Configuration Guidelines**
+- Never use `const DEBUG_MODE = true` - use ProductionConfig instead
+- All validation must run in production (no skip flags)
+- Use production-safe logging methods
+- Feature flags controlled by environment detection
 
 ---
 

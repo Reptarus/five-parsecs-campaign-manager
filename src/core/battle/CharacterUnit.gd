@@ -2,7 +2,7 @@
 class_name CharacterUnit
 extends Node2D
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 ## Character Properties
 var character_id: String = ""

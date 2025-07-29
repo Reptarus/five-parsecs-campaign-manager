@@ -62,6 +62,8 @@ signal crew_task_assigned(crew_id: String, task_type: String, task_data: Diction
 signal crew_task_started(crew_id: String, task_type: String)
 signal crew_task_rolling(crew_id: String, dice_type: String, context: String)
 signal crew_task_result(crew_id: String, task_result: Dictionary)
+signal crew_task_progress_updated(crew_id: String, task_type: String, progress: float, status: String)
+signal crew_task_failed(crew_id: String, task_type: String, reason: String)
 signal crew_task_completed(crew_id: String, task_type: String, success: bool, rewards: Dictionary)
 signal all_crew_tasks_resolved(crew_results: Array)
 
@@ -235,6 +237,31 @@ func emit_crew_task_sequence(crew_id: String, task_type: String, task_data: Dict
 	if not dice_type.is_empty():
 		crew_task_rolling.emit(crew_id, dice_type, task_type)
 
+## Emit crew task progress update
+func emit_crew_task_progress(crew_id: String, task_type: String, progress: float, status: String) -> void:
+	"""Emit crew task progress update with validation"""
+	if crew_id.is_empty() or task_type.is_empty():
+		push_warning("EnhancedCampaignSignals: Invalid crew task progress parameters")
+		return
+	
+	if progress < 0.0 or progress > 1.0:
+		push_warning("EnhancedCampaignSignals: Invalid progress value (must be 0.0-1.0)")
+		return
+	
+	crew_task_progress_updated.emit(crew_id, task_type, progress, status)
+
+## Emit crew task failure
+func emit_crew_task_failed(crew_id: String, task_type: String, reason: String) -> void:
+	"""Emit crew task failure with validation"""
+	if crew_id.is_empty() or task_type.is_empty():
+		push_warning("EnhancedCampaignSignals: Invalid crew task failure parameters")
+		return
+	
+	if reason.is_empty():
+		reason = "Unknown failure"
+	
+	crew_task_failed.emit(crew_id, task_type, reason)
+
 ## Emit world phase progress signals
 func emit_world_phase_progress(phase_results: Dictionary) -> void:
 	"""Emit comprehensive world phase completion signals"""
@@ -318,8 +345,9 @@ func connect_world_phase_signals(target: Object) -> bool:
 	var connections_made: int = 0
 	var world_phase_signals: Array[String] = [
 		"world_phase_started", "world_phase_completed", "world_substep_changed",
-		"crew_task_assigned", "crew_task_started", "crew_task_rolling", 
-		"crew_task_result", "crew_task_completed", "all_crew_tasks_resolved",
+		"crew_task_assigned", "crew_task_started", "crew_task_rolling",
+		"crew_task_result", "crew_task_progress_updated", "crew_task_failed",
+		"crew_task_completed", "all_crew_tasks_resolved",
 		"automation_started", "automation_progress_updated", "automation_completed",
 		"patron_contact_established", "job_offer_generated", "trade_opportunity_found",
 		"exploration_result_processed", "equipment_discovered", "story_point_gained"

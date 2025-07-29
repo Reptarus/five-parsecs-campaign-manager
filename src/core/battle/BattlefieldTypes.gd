@@ -8,7 +8,7 @@ extends Resource
 ## and maintainability while maintaining Five Parsecs rule compliance.
 
 # Dependencies
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 ## Battle Phase enumeration for companion workflow
 enum BattlePhase {

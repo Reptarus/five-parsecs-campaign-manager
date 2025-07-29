@@ -2,7 +2,7 @@
 extends Resource
 class_name GamePlanet
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 signal planet_updated(property, _value)
 

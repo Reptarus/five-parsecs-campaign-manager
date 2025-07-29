@@ -6,14 +6,9 @@ class_name TravelPhase
 ## Handles the complete Travel Phase sequence (Phase 1 of campaign turn)
 
 # Safe imports
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
 
 # Safe dependency loading - loaded at runtime in _ready()
-var GlobalEnums: Variant = null
+# GlobalEnums available as autoload singleton
 var dice_manager: Variant = null
 var game_state_manager: Variant = null
 
@@ -40,19 +35,32 @@ var travel_events_table: Array[Dictionary] = []
 var world_traits_table: Array[Dictionary] = []
 
 func _ready() -> void:
-	# Load dependencies safely at runtime
-	GlobalEnums = load("res://src/core/systems/GlobalEnums.gd")
-	# Access autoloads directly
-	dice_manager = DiceManager
-	game_state_manager = get_node_or_null("/root/GameStateManagerAutoload")
-
 	# Initialize enum values after loading GlobalEnums
 	if GlobalEnums:
 		current_substep = GlobalEnums.TravelSubPhase.NONE
 
-	# Initialize travel tables
+	# Defer autoload access to avoid loading order issues
+	call_deferred("_initialize_autoloads")
 	call_deferred("_initialize_travel_tables")
 	print("TravelPhase: Initialized successfully")
+
+func _initialize_autoloads() -> void:
+	"""Initialize autoloads with retry logic to handle loading order"""
+	dice_manager = get_node_or_null("/root/DiceManager")
+	if not dice_manager:
+		push_warning("TravelPhase: DiceManager not found - will retry")
+		await get_tree().create_timer(0.1).timeout
+		dice_manager = get_node_or_null("/root/DiceManager")
+		if not dice_manager:
+			push_error("TravelPhase: DiceManager autoload not found after retry")
+	
+	game_state_manager = get_node_or_null("/root/GameStateManagerAutoload")
+	if not game_state_manager:
+		push_warning("TravelPhase: GameStateManagerAutoload not found - will retry")
+		await get_tree().create_timer(0.1).timeout
+		game_state_manager = get_node_or_null("/root/GameStateManagerAutoload")
+		if not game_state_manager:
+			push_error("TravelPhase: GameStateManagerAutoload not found after retry")
 
 func _initialize_travel_tables() -> void:
 	"""Initialize the travel events and world traits tables"""

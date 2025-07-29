@@ -5,7 +5,7 @@
 @warning_ignore("unused_signal")
 extends Control
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 # Note: GameState injected via constructor to avoid circular dependencies
 const Character = preload("res://src/core/character/Character.gd")
 

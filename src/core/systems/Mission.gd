@@ -2,7 +2,7 @@
 extends Resource
 class_name Mission
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 signal mission_completed
 signal mission_failed

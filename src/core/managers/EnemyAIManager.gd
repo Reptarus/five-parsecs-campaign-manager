@@ -1,6 +1,6 @@
 ﻿extends Resource
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const GameState = preload("res://src/core/state/GameState.gd")
 const Enemy = preload("res://src/core/enemy/base/Enemy.gd")
 const UnifiedAISystem = preload("res://src/core/systems/UnifiedAISystem.gd")
@@ -59,7 +59,13 @@ func _init() -> void:
 	pass
 
 # Enemy Management
-func register_enemy(enemy: Enemy) -> void:
+
+# Safe access to SaveManager
+func _get_safe_savemanager() -> Variant:
+    if ClassDB.class_exists("SaveManager"):
+        return get_node_or_null("/root/SaveManager")
+    return null
+\1 Enemy) -> void:
 	if not enemy in active_enemies:
 		active_enemies.append(enemy)
 		_initialize_tactical_memory(enemy)

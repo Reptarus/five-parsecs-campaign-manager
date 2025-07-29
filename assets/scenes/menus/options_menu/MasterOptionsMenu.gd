@@ -8,12 +8,6 @@
 @warning_ignore("return_value_discarded")
 extends Control
 
-# Universal Framework Enhancement - Added on top of existing warning suppressions
-const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
-const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
-const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd")
-const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
-
 # Enhanced type safety while preserving warning suppressions
 @onready var graphics_tab: Control = $TabContainer/Graphics
 @onready var audio_tab: Control = $TabContainer/Audio
@@ -111,40 +105,20 @@ func _connect_signals() -> void:
 	
 	# Connect tab container
 	if tab_container:
-		UniversalSignalManager.connect_signal_safe(
-			tab_container,
-			"tab_changed",
-			_on_tab_changed,
-			"MasterOptionsMenu tab_container"
-		)
+		tab_container.connect("tab_changed", _on_tab_changed)
 		print("MasterOptionsMenu: Connected tab container signals")
 	
 	# Connect buttons
 	if back_button:
-		UniversalSignalManager.connect_signal_safe(
-			back_button,
-			"pressed",
-			_on_back_button_pressed,
-			"MasterOptionsMenu back_button"
-		)
+		back_button.connect("pressed", _on_back_button_pressed)
 		print("MasterOptionsMenu: Connected back button")
 	
 	if apply_button:
-		UniversalSignalManager.connect_signal_safe(
-			apply_button,
-			"pressed",
-			_on_apply_button_pressed,
-			"MasterOptionsMenu apply_button"
-		)
+		apply_button.connect("pressed", _on_apply_button_pressed)
 		print("MasterOptionsMenu: Connected apply button")
 	
 	if reset_button:
-		UniversalSignalManager.connect_signal_safe(
-			reset_button,
-			"pressed",
-			_on_reset_button_pressed,
-			"MasterOptionsMenu reset_button"
-		)
+		reset_button.connect("pressed", _on_reset_button_pressed)
 		print("MasterOptionsMenu: Connected reset button")
 
 func _backup_current_settings() -> void:
@@ -167,7 +141,7 @@ func _on_tab_changed(tab_index: int) -> void:
 	print("MasterOptionsMenu: Tab changed to index: %d" % tab_index)
 	
 	# Enhanced signal emission
-	UniversalSignalManager.emit_signal_safe(self, "tab_changed", [tab_index], "MasterOptionsMenu _on_tab_changed")
+	emit_signal("tab_changed", tab_index)
 	
 	# Update tab-specific functionality
 	_update_tab_visibility(tab_index)
@@ -227,7 +201,7 @@ func _apply_all_settings() -> void:
 	print("MasterOptionsMenu: Applied settings for %d tabs" % applied_count)
 	
 	# Enhanced signal emission
-	UniversalSignalManager.emit_signal_safe(self, "settings_applied", [], "MasterOptionsMenu _apply_all_settings")
+	emit_signal("settings_applied")
 	
 	# Save settings to file
 	_save_settings_to_file()
@@ -261,19 +235,8 @@ func _show_unsaved_changes_dialog() -> void:
 	add_child(dialog)
 	
 	# Connect dialog signals
-	UniversalSignalManager.connect_signal_safe(
-		dialog,
-		"confirmed",
-		func(): _apply_all_settings(); _close_options_menu(),
-		"MasterOptionsMenu unsaved_changes_dialog"
-	)
-	
-	UniversalSignalManager.connect_signal_safe(
-		dialog,
-		"cancelled",
-		func(): _close_options_menu(),
-		"MasterOptionsMenu unsaved_changes_dialog"
-	)
+	dialog.connect("confirmed", _apply_all_settings)
+	dialog.connect("cancelled", _close_options_menu)
 	
 	dialog.popup_centered()
 
@@ -288,12 +251,7 @@ func _show_reset_confirmation_dialog() -> void:
 	add_child(dialog)
 	
 	# Connect dialog signals
-	UniversalSignalManager.connect_signal_safe(
-		dialog,
-		"confirmed",
-		_reset_all_settings,
-		"MasterOptionsMenu reset_confirmation_dialog"
-	)
+	dialog.connect("confirmed", _reset_all_settings)
 	
 	dialog.popup_centered()
 
@@ -316,7 +274,7 @@ func _reset_all_settings() -> void:
 	print("MasterOptionsMenu: Reset settings for %d tabs" % reset_count)
 	
 	# Enhanced signal emission
-	UniversalSignalManager.emit_signal_safe(self, "settings_reset", [], "MasterOptionsMenu _reset_all_settings")
+	emit_signal("settings_reset")
 
 func _close_options_menu() -> void:
 	"""Close options menu with enhanced cleanup"""
@@ -324,10 +282,10 @@ func _close_options_menu() -> void:
 	print("MasterOptionsMenu: Closing options menu")
 	
 	# Enhanced signal emission
-	UniversalSignalManager.emit_signal_safe(self, "options_menu_closed", [], "MasterOptionsMenu _close_options_menu")
+	emit_signal("options_menu_closed")
 	
 	# Navigate back to main menu
-	var main_node: Node = UniversalNodeAccess.get_node_safe(get_tree().root, "Main", "MasterOptionsMenu _close_options_menu")
+	var main_node: Node = get_tree().root.get_node("Main")
 	
 	if main_node and main_node.has_method("goto_scene"):
 		main_node.goto_scene("res://assets/scenes/menus/main_menu/main_menu.tscn")
@@ -342,7 +300,7 @@ func show_options_menu() -> void:
 	print("MasterOptionsMenu: Showing options menu")
 	
 	# Enhanced signal emission
-	UniversalSignalManager.emit_signal_safe(self, "options_menu_opened", [], "MasterOptionsMenu show_options_menu")
+	emit_signal("options_menu_opened")
 	
 	# Refresh all tabs
 	for tab_name in _tab_connections:

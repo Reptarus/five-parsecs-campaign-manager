@@ -15,10 +15,10 @@ static var _initialized: bool = false
 
 # Integration configuration
 enum IntegrationMode {
-	SILENT,      # Log errors, continue operation
-	GRACEFUL,    # Attempt recovery, degrade gracefully  
-	STRICT,      # Halt operation on critical errors
-	DEVELOPMENT  # Show all errors, detailed logging
+	SILENT, # Log errors, continue operation
+	GRACEFUL, # Attempt recovery, degrade gracefully
+	STRICT, # Halt operation on critical errors
+	DEVELOPMENT # Show all errors, detailed logging
 }
 
 # Component types for specialized handling
@@ -26,7 +26,7 @@ enum ComponentType {
 	UI_COMPONENT,
 	CORE_SYSTEM,
 	DATA_MANAGER,
-	DATA_SYSTEM,    # Added for Gemini analysis compatibility
+	DATA_SYSTEM, # Added for Gemini analysis compatibility
 	BATTLE_SYSTEM,
 	CAMPAIGN_MANAGER
 }
@@ -132,7 +132,7 @@ static func validate_system_integrity() -> Dictionary:
 		var component_stats = _integration_stats.active_components[component_name]
 		var error_rate = float(component_stats.error_count) / max(float(Time.get_ticks_msec() - component_stats.integration_time) / 60000.0, 1.0)
 		
-		if error_rate > 5.0:  # More than 5 errors per minute
+		if error_rate > 5.0: # More than 5 errors per minute
 			component_issues.append({
 				"component": component_name,
 				"issue": "High error rate: %.1f errors/minute" % error_rate,
@@ -233,36 +233,59 @@ class ErrorBoundaryWrapper extends RefCounted:
 		if not _component or not _component.has_method(method_name):
 			return _handle_missing_method(method_name)
 		
-		try:
-			match args.size():
-				0: return _component.call(method_name)
-				1: return _component.call(method_name, args[0])
-				2: return _component.call(method_name, args[0], args[1])  
-				3: return _component.call(method_name, args[0], args[1], args[2])
-				_: return _component.callv(method_name, args)
-		except:
-			return _handle_method_error(method_name, args, get_stack())
+		# Safe method call with error handling
+		var result = null
+		match args.size():
+			0:
+				if _component.has_method(method_name):
+					result = _component.call(method_name)
+				else:
+					return _handle_method_error(method_name, args, [])
+			1:
+				if _component.has_method(method_name):
+					result = _component.call(method_name, args[0])
+				else:
+					return _handle_method_error(method_name, args, [])
+			2:
+				if _component.has_method(method_name):
+					result = _component.call(method_name, args[0], args[1])
+				else:
+					return _handle_method_error(method_name, args, [])
+			3:
+				if _component.has_method(method_name):
+					result = _component.call(method_name, args[0], args[1], args[2])
+				else:
+					return _handle_method_error(method_name, args, [])
+			_:
+				if _component.has_method(method_name):
+					result = _component.callv(method_name, args)
+				else:
+					return _handle_method_error(method_name, args, [])
+		
+		return result
 	
 	## Handle property access with error boundaries
 	func safe_get(property_name: String) -> Variant:
 		if not _component:
 			return _handle_component_unavailable()
 		
-		try:
+		# Safe property access with error handling
+		if _component.has_method("get"):
 			return _component.get(property_name)
-		except:
-			return _handle_property_error(property_name, "get", get_stack())
+		else:
+			return _handle_property_error(property_name, "get", [])
 	
 	func safe_set(property_name: String, value: Variant) -> bool:
 		if not _component:
 			_handle_component_unavailable()
 			return false
 		
-		try:
+		# Safe property setting with error handling
+		if _component.has_method("set"):
 			_component.set(property_name, value)
 			return true
-		except:
-			_handle_property_error(property_name, "set", get_stack())
+		else:
+			_handle_property_error(property_name, "set", [])
 			return false
 	
 	## Signal connection with error boundaries
@@ -270,22 +293,24 @@ class ErrorBoundaryWrapper extends RefCounted:
 		if not _component or not _component.has_signal(signal_name):
 			return _handle_signal_error(signal_name, "connect")
 		
-		try:
+		# Safe signal connection with error handling
+		if _component.has_signal(signal_name):
 			_component.connect(signal_name, callable, flags)
 			return true
-		except:
-			_handle_signal_error(signal_name, "connect", get_stack())
+		else:
+			_handle_signal_error(signal_name, "connect", [])
 			return false
 	
 	func safe_disconnect_signal(signal_name: String, callable: Callable) -> bool:
 		if not _component or not _component.has_signal(signal_name):
 			return _handle_signal_error(signal_name, "disconnect")
 		
-		try:
+		# Safe signal disconnection with error handling
+		if _component.has_signal(signal_name):
 			_component.disconnect(signal_name, callable)
 			return true
-		except:
-			_handle_signal_error(signal_name, "disconnect", get_stack())
+		else:
+			_handle_signal_error(signal_name, "disconnect", [])
 			return false
 	
 	# Error handling methods
@@ -352,7 +377,7 @@ class ErrorBoundaryWrapper extends RefCounted:
 	
 	func _handle_signal_error(signal_name: String, operation: String, stack_trace: Array = []) -> bool:
 		var error_data = {
-			"type": "signal_connection_error", 
+			"type": "signal_connection_error",
 			"message": "Error %s signal '%s' on component '%s'" % [operation, signal_name, _component_name],
 			"component": _component_name,
 			"signal": signal_name,

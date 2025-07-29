@@ -2,7 +2,10 @@
 extends Resource
 
 ## Trading System for Five Parsecs Campaign Manager
-## Handles equipment trading, market generation, and trade opportunities
+## Enhanced with JSON data integration for comprehensive equipment trading
+## Uses data/equipment_database.json and other data files for trading
+
+const DataManager = preload("res://src/core/data/DataManager.gd")
 
 signal market_generated(items: Array[Resource])
 signal trade_completed(item: Resource, transaction_type: String, credits: int)
@@ -10,25 +13,111 @@ signal trade_failed(reason: String)
 signal price_fluctuation_occurred(item_type: String, old_price: int, new_price: int)
 signal rare_item_available(item: Resource)
 signal trade_opportunity_discovered(opportunity: Dictionary)
+signal equipment_data_loaded(items_count: int)
 
-# Trading categories from Five Parsecs rules
-var equipment_categories = {
-	"weapons": ["Handgun", "Shotgun", "Military Rifle", "Blade", "Auto Pistol", "Scrap Pistol"],
-	"armor": ["Combat Armor", "Flak Screen", "Shield Belt", "Mesh Armor"],
-	"gear": ["Scanner", "Comms", "Med Kit", "Stimm", "Boosters", "Bypass"],
-	"supplies": ["Ration Pack", "Fuel Cell", "Spare Parts", "Ammunition"]
-}
+# JSON data loaded from files
+var equipment_data: Dictionary = {}
+var weapons_data: Dictionary = {}
+var armor_data: Dictionary = {}
+var gear_data: Dictionary = {}
+var loot_tables: Dictionary = {}
+var data_manager: DataManager = null
 
-# Base prices from Five Parsecs rules (simplified)
-var item_base_prices = {
-	"Handgun": 6, "Shotgun": 8, "Military Rifle": 12, "Blade": 3, "Auto Pistol": 9,
-	"Combat Armor": 15, "Flak Screen": 8, "Shield Belt": 10, "Mesh Armor": 6,
-	"Scanner": 7, "Comms": 5, "Med Kit": 4, "Stimm": 3, "Boosters": 5,
-	"Ration Pack": 1, "Fuel Cell": 2, "Spare Parts": 3, "Ammunition": 1
-}
+# Legacy compatibility - fallback data
+var equipment_categories = {}
+var item_base_prices = {}
 
 # Market conditions
 var market_conditions = ["Poor", "Average", "Good", "Excellent"]
+
+func _init() -> void:
+	"""Initialize trading system with JSON data"""
+	_load_trading_data()
+
+func _load_trading_data() -> void:
+	"""Load trading data from JSON files"""
+	data_manager = DataManager.new()
+	
+	# Load equipment database
+	equipment_data = data_manager.load_json_file("res://data/equipment_database.json")
+	if equipment_data.is_empty():
+		push_warning("Equipment database not found, trying individual files")
+		_load_individual_equipment_files()
+	else:
+		print("TradingSystem: Loaded equipment database with %d total items" % _count_total_items())
+		_extract_equipment_categories()
+		equipment_data_loaded.emit(_count_total_items())
+	
+	# Load loot tables if available
+	loot_tables = data_manager.load_json_file("res://data/loot_tables.json")
+	if loot_tables.is_empty():
+		print("TradingSystem: No loot tables found, using defaults")
+	
+	# Build legacy compatibility
+	_build_legacy_compatibility()
+
+func _load_individual_equipment_files() -> void:
+	"""Load equipment from individual JSON files as fallback"""
+	weapons_data = data_manager.load_json_file("res://data/weapons.json")
+	armor_data = data_manager.load_json_file("res://data/armor.json")
+	gear_data = data_manager.load_json_file("res://data/gear_database.json")
+	
+	# Combine into equipment_data structure
+	equipment_data = {
+		"weapons": weapons_data.get("weapons", []),
+		"armor": armor_data.get("armor", []),
+		"gear": gear_data.get("gear", [])
+	}
+	
+	if equipment_data.get("weapons", []).size() > 0 or equipment_data.get("armor", []).size() > 0:
+		print("TradingSystem: Loaded equipment from individual files - %d total items" % _count_total_items())
+		equipment_data_loaded.emit(_count_total_items())
+	else:
+		push_error("Failed to load equipment data from any JSON files")
+		_load_fallback_trading_data()
+
+func _load_fallback_trading_data() -> void:
+	"""Load fallback trading data if JSON fails"""
+	equipment_categories = {
+		"weapons": ["Handgun", "Shotgun", "Military Rifle", "Blade", "Auto Pistol", "Scrap Pistol"],
+		"armor": ["Combat Armor", "Flak Screen", "Shield Belt", "Mesh Armor"],
+		"gear": ["Scanner", "Comms", "Med Kit", "Stimm", "Boosters", "Bypass"],
+		"supplies": ["Ration Pack", "Fuel Cell", "Spare Parts", "Ammunition"]
+	}
+	
+	item_base_prices = {
+		"Handgun": 6, "Shotgun": 8, "Military Rifle": 12, "Blade": 3, "Auto Pistol": 9,
+		"Combat Armor": 15, "Flak Screen": 8, "Shield Belt": 10, "Mesh Armor": 6,
+		"Scanner": 7, "Comms": 5, "Med Kit": 4, "Stimm": 3, "Boosters": 5,
+		"Ration Pack": 1, "Fuel Cell": 2, "Spare Parts": 3, "Ammunition": 1
+	}
+
+func _count_total_items() -> int:
+	"""Count total items across all equipment categories"""
+	var total = 0
+	for category in ["weapons", "armor", "gear", "attachments"]:
+		total += equipment_data.get(category, []).size()
+	return total
+
+func _extract_equipment_categories() -> void:
+	"""Extract equipment categories from JSON data"""
+	equipment_categories = {}
+	
+	for category in ["weapons", "armor", "gear", "attachments"]:
+		var items = []
+		for item in equipment_data.get(category, []):
+			items.append(item.get("name", "Unknown Item"))
+		equipment_categories[category] = items
+
+func _build_legacy_compatibility() -> void:
+	"""Build legacy item_base_prices from JSON data"""
+	item_base_prices = {}
+	
+	for category in ["weapons", "armor", "gear", "attachments"]:
+		for item in equipment_data.get(category, []):
+			var name = item.get("name", "Unknown Item")
+			var cost = item.get("cost", 5)
+			item_base_prices[name] = cost
 
 # Advanced market dynamics
 var price_history: Dictionary = {} # Track price changes over time
@@ -122,9 +211,15 @@ func _calculate_market_size(condition: String) -> int:
 		_: return 8
 
 func _generate_category_items(category: String, market_condition: String, world_type: String) -> Array[Resource]:
-	"""Generate items for a specific category with faction and world influences"""
+	"""Generate items for a specific category with faction and world influences using JSON data"""
 	var items: Array[Resource] = []
 
+	# Try to use JSON data first
+	var json_items = equipment_data.get(category, [])
+	if not json_items.is_empty():
+		return _generate_json_category_items(category, market_condition, world_type, json_items)
+	
+	# Fallback to legacy system
 	var category_items = equipment_categories.get(category, [])
 
 	# Calculate items to generate based on availability and faction preferences
@@ -142,6 +237,170 @@ func _generate_category_items(category: String, market_condition: String, world_
 		items.append(item)
 
 	return items
+
+func _generate_json_category_items(category: String, market_condition: String, world_type: String, json_items: Array) -> Array[Resource]:
+	"""Generate items from JSON data with enhanced filtering"""
+	var items: Array[Resource] = []
+	
+	# Calculate items to generate based on availability and faction preferences
+	var base_items = randi_range(1, 3)
+	var availability_modifier = get_item_category_availability(category, world_type)
+	var faction_modifier = faction_preferences.get(current_faction_influence, {}).get(category, 1.0)
+	var items_to_generate = max(1, int(base_items * availability_modifier * faction_modifier))
+	
+	# Filter items by rarity and world type
+	var suitable_items = _filter_items_by_availability(json_items, world_type, market_condition)
+	
+	for i: int in range(items_to_generate):
+		if suitable_items.is_empty():
+			break
+			
+		var item_template = suitable_items.pick_random()
+		var item = _create_json_market_item(item_template, category, market_condition)
+		items.append(item)
+	
+	return items
+
+func _filter_items_by_availability(json_items: Array, world_type: String, market_condition: String) -> Array:
+	"""Filter items based on world type and market condition"""
+	var filtered_items = []
+	
+	for item in json_items:
+		var rarity = item.get("rarity", "Common").to_lower()
+		var should_include = false
+		
+		# Determine if item should be available based on world type and market condition
+		match world_type:
+			"core":
+				should_include = true  # Core worlds have everything
+			"industrial":
+				should_include = rarity in ["common", "uncommon"] or (rarity == "rare" and market_condition == "Excellent")
+			"frontier":
+				should_include = rarity == "common" or (rarity == "uncommon" and market_condition in ["Good", "Excellent"])
+			_:
+				should_include = rarity in ["common", "uncommon"]
+		
+		# Additional rarity checks based on market condition
+		if should_include:
+			match rarity:
+				"rare":
+					should_include = randf() < _get_rare_item_chance(market_condition)
+				"uncommon":
+					should_include = randf() < _get_uncommon_item_chance(market_condition)
+				"common":
+					should_include = true
+		
+		if should_include:
+			filtered_items.append(item)
+	
+	return filtered_items
+
+func _get_rare_item_chance(market_condition: String) -> float:
+	"""Get chance for rare items to appear"""
+	match market_condition:
+		"Poor": return 0.05
+		"Average": return 0.15
+		"Good": return 0.25
+		"Excellent": return 0.40
+		_: return 0.15
+
+func _get_uncommon_item_chance(market_condition: String) -> float:
+	"""Get chance for uncommon items to appear"""
+	match market_condition:
+		"Poor": return 0.30
+		"Average": return 0.60
+		"Good": return 0.80
+		"Excellent": return 0.95
+		_: return 0.60
+
+func _create_json_market_item(item_template: Dictionary, category: String, market_condition: String) -> Resource:
+	"""Create a market item from JSON template with enhanced pricing and properties"""
+	var item := Resource.new()
+	
+	# Basic item properties from JSON
+	item.set_meta("id", item_template.get("id", "unknown"))
+	item.set_meta("name", item_template.get("name", "Unknown Item"))
+	item.set_meta("category", category)
+	item.set_meta("type", item_template.get("type", "Basic"))
+	item.set_meta("description", item_template.get("description", ""))
+	
+	# Enhanced properties from JSON
+	item.set_meta("rarity", item_template.get("rarity", "Common"))
+	item.set_meta("traits", item_template.get("traits", []))
+	item.set_meta("tags", item_template.get("tags", []))
+	
+	# Category-specific properties
+	match category:
+		"weapons":
+			item.set_meta("damage", item_template.get("damage", 1))
+			item.set_meta("range", item_template.get("range", 12))
+			item.set_meta("shots", item_template.get("shots", 1))
+		"armor":
+			item.set_meta("protection", item_template.get("protection", 1))
+			item.set_meta("mobility_penalty", item_template.get("mobility_penalty", 0))
+		"gear":
+			item.set_meta("effect", item_template.get("effect", "No effect"))
+			item.set_meta("uses", item_template.get("uses", "Unlimited"))
+		"attachments":
+			item.set_meta("compatible_with", item_template.get("compatible_with", []))
+			item.set_meta("effect", item_template.get("effect", "No effect"))
+	
+	# Pricing with JSON base cost
+	var base_price = item_template.get("cost", 5)
+	item.set_meta("base_price", base_price)
+	
+	# Apply market condition modifiers
+	var market_price = _calculate_market_price(base_price, market_condition)
+	item.set_meta("market_price", market_price)
+	
+	# Generate item condition
+	var condition = _generate_item_condition()
+	item.set_meta("condition", condition)
+	item.set_meta("condition_modifier", _get_condition_modifier(condition))
+	
+	# Final price with condition modifier
+	var final_price = int(market_price * item.get_meta("condition_modifier"))
+	item.set_meta("final_price", final_price)
+	
+	# Enhanced description with JSON data
+	item.set_meta("full_description", _generate_json_item_description(item))
+	
+	return item
+
+func _generate_json_item_description(item: Resource) -> String:
+	"""Generate enhanced description for JSON-based items"""
+	var name = item.get_meta("name")
+	var category = item.get_meta("category")
+	var condition = item.get_meta("condition")
+	var price = item.get_meta("final_price")
+	var rarity = item.get_meta("rarity")
+	var description = item.get_meta("description")
+	
+	var condition_text: String = ""
+	match condition:
+		"Damaged": condition_text = " (needs repair)"
+		"Used": condition_text = " (well-worn)"
+		"Good": condition_text = ""
+		"Excellent": condition_text = " (pristine condition)"
+	
+	var rarity_prefix = ""
+	if rarity != "Common":
+		rarity_prefix = "[" + rarity.to_upper() + "] "
+	
+	var category_info = ""
+	match category:
+		"weapons":
+			var damage = item.get_meta("damage", 1)
+			var range_val = item.get_meta("range", 12)
+			category_info = " (Damage: %d, Range: %d)" % [damage, range_val]
+		"armor":
+			var protection = item.get_meta("protection", 1)
+			category_info = " (Protection: %d)" % protection
+		"gear":
+			var uses = item.get_meta("uses", "Unlimited")
+			category_info = " (Uses: %s)" % uses
+	
+	return "%s%s%s%s - %d credits\n%s" % [rarity_prefix, name, condition_text, category_info, price, description]
 
 func _create_market_item(item_name: String, category: String, market_condition: String) -> Resource:
 	"""Create a market item with pricing and availability"""

@@ -10,10 +10,11 @@ class_name FiveParsecsCharacterGeneration
 ## - Five Parsecs specific traits and equipment
 ## - Hybrid approach: Type-safe enums + Rich JSON data
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const Character = preload("res://src/core/character/Character.gd")
 const UniversalResourceLoader = preload("res://src/core/systems/UniversalResourceLoader.gd")
 const DataManager = preload("res://src/core/data/DataManager.gd")
+const SafeDataAccess = preload("res://src/utils/SafeDataAccess.gd")
 
 # Data-driven character creation tables
 static var _character_data: Dictionary = {}
@@ -60,6 +61,11 @@ static func roll_d10() -> int:
 static func create_character(config: Dictionary = {}) -> Character:
 	_load_character_data()
 	
+	# Validate config parameter type
+	if not config is Dictionary:
+		push_error("CharacterGeneration: config parameter must be a Dictionary, got %s. Using empty config." % typeof(config))
+		config = {}
+	
 	# Debug: Check if Character class is available
 	if not Character:
 		push_error("CharacterGeneration: Character class not available")
@@ -75,22 +81,58 @@ static func create_character(config: Dictionary = {}) -> Character:
 	print("CharacterGeneration: Successfully created character instance")
 
 	# Basic identity from config or defaults
-	character.character_name = config.get("name", "New Character")
-	var p_class_name: String = config.get("class", "SOLDIER")
-	var p_background_name: String = config.get("background", "MILITARY")
+	var config_dict = SafeDataAccess.safe_dict_access(config, "character name configuration")
+	character.character_name = SafeDataAccess.safe_get(config_dict, "name", "New Character", "character name lookup")
 	
-	if p_class_name in GlobalEnums.CharacterClass:
-		character.character_class = GlobalEnums.CharacterClass[p_class_name]
+	# Handle class assignment - accept both String and int values
+	var class_value = SafeDataAccess.safe_get(config_dict, "class", "SOLDIER", "character class lookup")
+	if class_value is String:
+		var p_class_name: String = class_value
+		if p_class_name in GlobalEnums.CharacterClass:
+			character.character_class = GlobalEnums.CharacterClass[p_class_name]
+		else:
+			character.character_class = GlobalEnums.CharacterClass.SOLDIER
+	elif class_value is int:
+		character.character_class = class_value
 	else:
 		character.character_class = GlobalEnums.CharacterClass.SOLDIER
-
-	if p_background_name in GlobalEnums.Background:
-		character.background = GlobalEnums.Background[p_background_name]
+	
+	# Handle background assignment - accept both String and int values
+	var background_value = SafeDataAccess.safe_get(config_dict, "background", "MILITARY", "character background lookup")
+	if background_value is String:
+		var p_background_name: String = background_value
+		if p_background_name in GlobalEnums.Background:
+			character.background = GlobalEnums.Background[p_background_name]
+		else:
+			character.background = GlobalEnums.Background.MILITARY
+	elif background_value is int:
+		character.background = background_value
 	else:
 		character.background = GlobalEnums.Background.MILITARY
-		
-	character.motivation = config.get("motivation", GlobalEnums.Motivation.SURVIVAL)
-	character.origin = config.get("origin", GlobalEnums.Origin.HUMAN)
+	
+	# Handle motivation assignment - accept both String and int values  
+	var motivation_value = SafeDataAccess.safe_get(config_dict, "motivation", GlobalEnums.Motivation.SURVIVAL, "character motivation lookup")
+	if motivation_value is String:
+		if motivation_value in GlobalEnums.Motivation:
+			character.motivation = GlobalEnums.Motivation[motivation_value]
+		else:
+			character.motivation = GlobalEnums.Motivation.SURVIVAL
+	elif motivation_value is int:
+		character.motivation = motivation_value
+	else:
+		character.motivation = GlobalEnums.Motivation.SURVIVAL
+	
+	# Handle origin assignment - accept both String and int values
+	var origin_value = SafeDataAccess.safe_get(config_dict, "origin", GlobalEnums.Origin.HUMAN, "character origin lookup")
+	if origin_value is String:
+		if origin_value in GlobalEnums.Origin:
+			character.origin = GlobalEnums.Origin[origin_value]
+		else:
+			character.origin = GlobalEnums.Origin.HUMAN
+	elif origin_value is int:
+		character.origin = origin_value
+	else:
+		character.origin = GlobalEnums.Origin.HUMAN
 
 	# Generate attributes
 	generate_character_attributes(character)
@@ -156,28 +198,35 @@ static func apply_background_bonuses(character: Character) -> void:
 ## Enhanced background data application using rich JSON
 static func _apply_background_data_bonuses(character: Character, background_data: Dictionary) -> void:
 	# Apply stat bonuses from JSON
-	var stat_bonuses = background_data.get("stat_bonuses", {})
-	for stat_name in stat_bonuses.keys():
-		var bonus = stat_bonuses[stat_name]
-		_apply_stat_bonus(character, stat_name, bonus)
+	var background_dict = SafeDataAccess.safe_dict_access(background_data, "background data validation")
+	var stat_bonuses = SafeDataAccess.safe_get(background_dict, "stat_bonuses", {}, "background stat bonuses lookup")
+	if stat_bonuses is Dictionary:
+		for stat_name in stat_bonuses.keys():
+			var bonus = stat_bonuses[stat_name]
+			_apply_stat_bonus(character, stat_name, bonus)
 	
 	# Apply stat penalties
-	var stat_penalties = background_data.get("stat_penalties", {})
-	for stat_name in stat_penalties.keys():
-		var penalty = stat_penalties[stat_name]
-		_apply_stat_bonus(character, stat_name, penalty) # Penalty is negative bonus
+	var stat_penalties = SafeDataAccess.safe_get(background_dict, "stat_penalties", {}, "background stat penalties lookup")
+	if stat_penalties is Dictionary:
+		for stat_name in stat_penalties.keys():
+			var penalty = stat_penalties[stat_name]
+			_apply_stat_bonus(character, stat_name, penalty) # Penalty is negative bonus
 	
 	# Add starting skills as traits
-	var starting_skills = background_data.get("starting_skills", [])
-	for skill in starting_skills:
-		character.add_trait("Skill: " + skill)
+	var starting_skills = SafeDataAccess.safe_get(background_dict, "starting_skills", [], "background starting skills lookup")
+	if starting_skills is Array:
+		for skill in starting_skills:
+			character.add_trait("Skill: " + skill)
 	
 	# Add special abilities as traits
-	var special_abilities = background_data.get("special_abilities", [])
-	for ability in special_abilities:
-		var ability_name = ability.get("name", "Unknown Ability")
-		var ability_desc = ability.get("description", "")
-		character.add_trait("Ability: %s - %s" % [ability_name, ability_desc])
+	var special_abilities = SafeDataAccess.safe_get(background_dict, "special_abilities", [], "background special abilities lookup")
+	if special_abilities is Array:
+		for ability in special_abilities:
+			if ability is Dictionary:
+				var ability_dict = SafeDataAccess.safe_dict_access(ability, "special ability validation")
+				var ability_name = SafeDataAccess.safe_get(ability_dict, "name", "Unknown Ability", "ability name lookup")
+				var ability_desc = ability.get("description", "")
+				character.add_trait("Ability: %s - %s" % [ability_name, ability_desc])
 	
 	print("CharacterGeneration: Applied rich background bonuses for %s" % background_data.get("name", "Unknown"))
 
@@ -229,11 +278,20 @@ static func _apply_enum_background_bonuses(character: Character) -> void:
 	var background_name = GlobalEnums.Background.keys()[character.background]
 	if _backgrounds_data.has(background_name):
 		var bg_data = _backgrounds_data[background_name]
+		
+		# Ensure bg_data is a Dictionary before calling .get()
+		if not bg_data is Dictionary:
+			push_warning("CharacterGeneration: Expected Dictionary for background data, got %s" % typeof(bg_data))
+			return
+		
 		var stat_bonuses = bg_data.get("stat_bonuses", {})
-		for key in stat_bonuses:
-			character.set(key, character.get(key) + stat_bonuses[key])
+		if stat_bonuses is Dictionary:
+			for key in stat_bonuses:
+				character.set(key, character.get(key) + stat_bonuses[key])
+		
 		var features = bg_data.get("traits", [])
-		for feature in features:
+		if features is Array:
+			for feature in features:
 				character.add_trait(feature)
 
 ## Apply class-specific bonuses
@@ -285,13 +343,26 @@ static func _get_starting_equipment_data(character: Character) -> Dictionary:
 	if DataManager.is_system_ready():
 		var origin_name = GlobalEnums.get_origin_name(character.origin)
 		var origin_data = DataManager.get_origin_data(origin_name)
+		
+		# Validate origin_data is a Dictionary before calling .get()
+		if not origin_data is Dictionary:
+			push_warning("CharacterGeneration: Expected Dictionary for origin data, got %s" % typeof(origin_data))
+			return {}
+		
 		var starting_gear_array = origin_data.get("starting_gear", [])
 		return _convert_gear_array_to_dict(starting_gear_array)
 	
 	# Fallback to local data
 	var origin_name = GlobalEnums.Origin.keys()[character.origin]
 	if _character_data.has("origins") and _character_data["origins"].has(origin_name):
-		var starting_gear_array = _character_data["origins"][origin_name].get("starting_gear", [])
+		var origin_local_data = _character_data["origins"][origin_name]
+		
+		# Validate origin_local_data is a Dictionary before calling .get()
+		if not origin_local_data is Dictionary:
+			push_warning("CharacterGeneration: Expected Dictionary for local origin data, got %s" % typeof(origin_local_data))
+			return {}
+		
+		var starting_gear_array = origin_local_data.get("starting_gear", [])
 		return _convert_gear_array_to_dict(starting_gear_array)
 	
 	return {}
@@ -302,13 +373,26 @@ static func _get_background_equipment_data(character: Character) -> Dictionary:
 	if DataManager.is_system_ready():
 		var background_id = _get_background_id_from_enum(character.background)
 		var background_data = DataManager.get_background_data(background_id)
+		
+		# Validate background_data is a Dictionary before calling .get()
+		if not background_data is Dictionary:
+			push_warning("CharacterGeneration: Expected Dictionary for background data, got %s" % typeof(background_data))
+			return {}
+		
 		var starting_gear_array = background_data.get("starting_gear", [])
 		return _convert_gear_array_to_dict(starting_gear_array)
 	
 	# Fallback to local data
 	var background_name = GlobalEnums.Background.keys()[character.background]
 	if _backgrounds_data.has(background_name):
-		var starting_gear_array = _backgrounds_data[background_name].get("starting_gear", [])
+		var background_local_data = _backgrounds_data[background_name]
+		
+		# Validate background_local_data is a Dictionary before calling .get()
+		if not background_local_data is Dictionary:
+			push_warning("CharacterGeneration: Expected Dictionary for local background data, got %s" % typeof(background_local_data))
+			return {}
+		
+		var starting_gear_array = background_local_data.get("starting_gear", [])
 		return _convert_gear_array_to_dict(starting_gear_array)
 	
 	return {}
@@ -363,6 +447,11 @@ static func _convert_gear_array_to_dict(gear_array: Array) -> Dictionary:
 			# Complex object format (from background data)
 			var item_type = item.get("type", "").to_lower()
 			var options = item.get("options", [])
+			
+			# Validate options is an Array before iterating
+			if not options is Array:
+				push_warning("CharacterGeneration: Expected Array for options, got %s" % typeof(options))
+				continue
 			
 			# Add all options to the appropriate category
 			for option in options:

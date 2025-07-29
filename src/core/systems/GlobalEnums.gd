@@ -75,8 +75,31 @@ enum CrewTaskType {
 }
 
 ## Character Classes
+## Character Background (based on Five Parsecs Core Rules)
+enum CharacterBackground {
+	MILITARY,
+	CRIMINAL,
+	ACADEMIC,
+	COLONIST,
+	CORPORATE,
+	DRIFTER
+}
+
+## Character Motivation (Five Parsecs Core Rules compliance)
+enum CharacterMotivation {
+	WEALTH,
+	FAME,
+	REVENGE,
+	REDEMPTION,
+	KNOWLEDGE,
+	FREEDOM
+}
+
 enum CharacterClass {
 	NONE,
+	BASELINE,
+	CAPTAIN,
+	SPECIALIST,
 	SOLDIER,
 	SCOUT,
 	MEDIC,
@@ -249,6 +272,30 @@ enum CampaignType {
 	EXPLORER,
 	TRADER,
 	BOUNTY_HUNTER
+}
+
+## Battle Event Categories
+enum EventCategory {
+	NONE,
+	COMBAT,
+	EQUIPMENT,
+	TACTICAL,
+	ENVIRONMENTAL,
+	SPECIAL
+}
+
+## Battle Types
+enum BattleType {
+	NONE,
+	STANDARD,
+	RAID,
+	DEFENSE,
+	RESCUE,
+	ESCORT,
+	PATROL,
+	ASSASSINATION,
+	SABOTAGE,
+	EXPLORATION
 }
 
 ## Ship Types
@@ -487,7 +534,17 @@ enum WorldTrait {
 	CRIMINAL, # High crime rates
 	MILITARY, # Heavy security presence
 	RUINS, # Ancient structures
-	ENERGY_STORMS # Environmental hazards
+	ENERGY_STORMS, # Environmental hazards
+	# Additional missing traits
+	TRADE_CENTER, # Major commercial hub
+	INDUSTRIAL_HUB, # Manufacturing center
+	FRONTIER_WORLD, # Remote settlement world
+	TECH_CENTER, # Advanced technology hub
+	MINING_COLONY, # Resource extraction colony
+	AGRICULTURAL_WORLD, # Food production world
+	PIRATE_HAVEN, # Criminal safe harbor
+	CORPORATE_CONTROLLED, # Corporate-owned world
+	FREE_PORT # Unregulated trade port
 }
 
 ## Difficulty Levels (Campaign Scaling)
@@ -497,7 +554,11 @@ enum DifficultyLevel {
 	STANDARD, # Core rules as written
 	CHALLENGING, # Increased enemy strength
 	HARDCORE, # Maximum difficulty
-	NIGHTMARE # Custom ultra-hard mode
+	NIGHTMARE, # Custom ultra-hard mode
+	# Legacy compatibility aliases
+	EASY, # Alias for STORY mode
+	NORMAL, # Alias for STANDARD mode
+	HARD # Alias for CHALLENGING mode
 }
 
 ## Market Economic States (Economy System)
@@ -617,6 +678,38 @@ enum StrifeType {
 	CRIMINAL # Gang warfare
 }
 
+## Threat Types (Enemy and Danger Classification)
+enum ThreatType {
+	NONE,
+	MINOR, # Low-level threats
+	MODERATE, # Standard danger level
+	MAJOR, # Significant threats
+	EXTREME, # Maximum danger
+	BOSS, # Boss-level threats
+	ENVIRONMENTAL, # Environmental hazards
+	MECHANICAL, # Automated threats
+	BIOLOGICAL, # Living threats
+	ENERGY, # Energy-based threats
+	PSIONIC, # Psychic threats
+	UNKNOWN # Unidentified threats
+}
+
+
+## Combat Modifiers System (Combat Effects)
+enum CombatModifier {
+	NONE, # No modifier
+	COVER_LIGHT, # Light cover bonus
+	COVER_HEAVY, # Heavy cover bonus
+	HEIGHT_ADVANTAGE, # Elevated position
+	FLANKING_BONUS, # Side/rear attack
+	SUPPRESSION_PENALTY, # Under suppressive fire
+	MOVEMENT_PENALTY, # Moving while shooting
+	RANGE_PENALTY, # Long range penalty
+	CLOSE_QUARTERS, # Point blank bonus
+	WEAPON_FAMILIARITY, # Weapon training bonus
+	TACTICAL_ADVANTAGE, # Strategic positioning
+	ENVIRONMENTAL_HAZARD # Environmental penalty
+}
 
 ## Psionic Powers System (Five Parsecs Core Rules)
 enum PsionicPower {
@@ -1252,6 +1345,22 @@ const STRIFE_TYPE_NAMES = {
 	StrifeType.CRIMINAL: "Criminal War"
 }
 
+## Threat Type Names Lookup
+const THREAT_TYPE_NAMES = {
+	ThreatType.NONE: "None",
+	ThreatType.MINOR: "Minor Threat",
+	ThreatType.MODERATE: "Moderate Threat",
+	ThreatType.MAJOR: "Major Threat",
+	ThreatType.EXTREME: "Extreme Threat",
+	ThreatType.BOSS: "Boss Threat",
+	ThreatType.ENVIRONMENTAL: "Environmental Hazard",
+	ThreatType.MECHANICAL: "Mechanical Threat",
+	ThreatType.BIOLOGICAL: "Biological Threat",
+	ThreatType.ENERGY: "Energy Threat",
+	ThreatType.PSIONIC: "Psionic Threat",
+	ThreatType.UNKNOWN: "Unknown Threat"
+}
+
 ## Enhanced Helper Functions for New Enums
 static func get_market_state_name(market_state: MarketState) -> String:
 	return MARKET_STATE_NAMES.get(market_state, "Unknown Market State")
@@ -1268,6 +1377,9 @@ static func get_planet_environment_name(environment: PlanetEnvironment) -> Strin
 static func get_strife_type_name(strife_type: StrifeType) -> String:
 	return STRIFE_TYPE_NAMES.get(strife_type, "Unknown Strife")
 
+static func get_threat_type_name(threat_type: ThreatType) -> String:
+	return THREAT_TYPE_NAMES.get(threat_type, "Unknown Threat")
+
 ## Validation Functions for New Enums
 static func is_valid_market_state(state: int) -> bool:
 	return state >= MarketState.NONE and state < MarketState.size()
@@ -1283,6 +1395,9 @@ static func is_valid_planet_environment(environment: int) -> bool:
 
 static func is_valid_strife_type(strife_type: int) -> bool:
 	return strife_type >= StrifeType.NONE and strife_type < StrifeType.size()
+
+static func is_valid_threat_type(threat_type: int) -> bool:
+	return threat_type >= ThreatType.NONE and threat_type < ThreatType.size()
 
 ## Enhanced Difficulty Level Support (Legacy Compatibility)
 static func get_difficulty_level_name(difficulty: DifficultyLevel) -> String:
@@ -1319,6 +1434,11 @@ static func clamp_to_valid_strife_type(strife_type: int) -> StrifeType:
 	if is_valid_strife_type(strife_type):
 		return strife_type as StrifeType
 	return StrifeType.PEACEFUL
+
+static func clamp_to_valid_threat_type(threat_type: int) -> ThreatType:
+	if is_valid_threat_type(threat_type):
+		return threat_type as ThreatType
+	return ThreatType.MINOR
 
 ## New Enum Helper Functions
 
@@ -1429,3 +1549,40 @@ static func clamp_to_valid_armor_category(category: int) -> ArmorCategory:
 	if is_valid_armor_category(category):
 		return category as ArmorCategory
 	return ArmorCategory.LIGHT_ARMOR
+
+## Phase Sub-Step Names (Required by CampaignPhaseManager)
+const TRAVEL_SUBSTEP_NAMES = {
+	TravelSubPhase.NONE: "None",
+	TravelSubPhase.FLEE_INVASION: "Flee Invasion",
+	TravelSubPhase.DECIDE_TRAVEL: "Decide Travel",
+	TravelSubPhase.TRAVEL_EVENT: "Travel Event",
+	TravelSubPhase.WORLD_ARRIVAL: "World Arrival"
+}
+
+const WORLD_SUBSTEP_NAMES = {
+	WorldSubPhase.NONE: "None",
+	WorldSubPhase.UPKEEP: "Upkeep & Ship Repairs",
+	WorldSubPhase.CREW_TASKS: "Assign Crew Tasks",
+	WorldSubPhase.JOB_OFFERS: "Determine Job Offers",
+	WorldSubPhase.EQUIPMENT: "Assign Equipment",
+	WorldSubPhase.RUMORS: "Resolve Rumors",
+	WorldSubPhase.BATTLE_CHOICE: "Choose Your Battle"
+}
+
+const POST_BATTLE_SUBSTEP_NAMES = {
+	PostBattleSubPhase.NONE: "None",
+	PostBattleSubPhase.RIVAL_STATUS: "Resolve Rival Status",
+	PostBattleSubPhase.PATRON_STATUS: "Resolve Patron Status",
+	PostBattleSubPhase.QUEST_PROGRESS: "Determine Quest Progress",
+	PostBattleSubPhase.GET_PAID: "Get Paid",
+	PostBattleSubPhase.BATTLEFIELD_FINDS: "Battlefield Finds",
+	PostBattleSubPhase.CHECK_INVASION: "Check for Invasion",
+	PostBattleSubPhase.GATHER_LOOT: "Gather the Loot",
+	PostBattleSubPhase.INJURIES: "Determine Injuries",
+	PostBattleSubPhase.EXPERIENCE: "Experience & Upgrades",
+	PostBattleSubPhase.TRAINING: "Advanced Training",
+	PostBattleSubPhase.PURCHASES: "Purchase Items",
+	PostBattleSubPhase.CAMPAIGN_EVENT: "Campaign Event",
+	PostBattleSubPhase.CHARACTER_EVENT: "Character Event",
+	PostBattleSubPhase.GALACTIC_WAR: "Galactic War Progress"
+}

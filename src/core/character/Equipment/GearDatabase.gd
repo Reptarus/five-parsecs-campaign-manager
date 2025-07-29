@@ -2,7 +2,7 @@
 extends Resource
 
 const FiveParsecsGear = preload("implementations/five_parsecs_gear.gd")
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 var gears: Dictionary = {}
 

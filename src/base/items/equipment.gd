@@ -1,7 +1,7 @@
 extends Resource
 class_name BaseItem
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 @export var item_name: String = ""
 @export var item_type: GlobalEnums.ItemType = GlobalEnums.ItemType.NONE

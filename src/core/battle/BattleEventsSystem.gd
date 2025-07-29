@@ -11,7 +11,7 @@ extends Resource
 ## - Round-based activation system
 
 # Dependencies
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 # Signals - following proven patterns from Story Track System
 signal battle_event_triggered(event: BattleEvent)

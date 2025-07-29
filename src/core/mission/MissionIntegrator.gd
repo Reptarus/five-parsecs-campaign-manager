@@ -1,9 +1,9 @@
 ﻿@tool
 extends Node
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const CampaignPhaseManager = preload("res://src/core/campaign/CampaignPhaseManager.gd")
-const FiveParsecsMissionGenerator = preload("res://src/game/campaign/FiveParsecsMissionGenerator.gd")
+const FiveParsecsMissionGenerator = preload("res://src/base/mission/BaseMissionGenerationSystem.gd")
 const BattleResultsManager = preload("res://src/core/battle/BattleResultsManager.gd")
 const GameState = preload("res://src/core/state/GameState.gd")
 

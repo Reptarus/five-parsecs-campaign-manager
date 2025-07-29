@@ -176,10 +176,8 @@ func assert_touch_target_size(node: Node, expected_size: Vector2 = Vector2(MOBIL
 		return
 	
 	var control = node as Control
-	# assert_that() call removed
-	# "Touch target width should be at least %d pixels" % expected_size.x
-	# assert_that() call removed
-	# "Touch target height should be at least %d pixels" % expected_size.y
+	assert_that(control.get_rect().size.x).is_greater_equal(expected_size.x).override_failure_message("Touch target width should be at least %d pixels" % expected_size.x)
+	assert_that(control.get_rect().size.y).is_greater_equal(expected_size.y).override_failure_message("Touch target height should be at least %d pixels" % expected_size.y)
 
 func verify_touch_targets(parent: Control) -> void:
 	var interactive_controls = parent.find_children("*", "Control")
@@ -195,8 +193,9 @@ func assert_fits_screen(control: Control, message: String = "") -> void:
 	var control_size := control.get_rect().size
 	var screen_size := get_viewport().get_visible_rect().size
 	
-	# assert_that() call removed
-	# message if message else "Control should fit within screen bounds"
+	var error_message = message if message else "Control should fit within screen bounds"
+	assert_that(control_size.x).is_less_equal(screen_size.x).override_failure_message(error_message + " (width)")
+	assert_that(control_size.y).is_less_equal(screen_size.y).override_failure_message(error_message + " (height)")
 
 # Testing methods
 
@@ -210,10 +209,8 @@ func test_responsive_layout() -> void:
 		var resolution_size: Vector2i = MOBILE_SCREEN_SIZES[resolution_name]
 		
 		# Verify layout constraints
-		# assert_that() call removed
-		# "Control width should fit screen size %s" % resolution_name
-		# assert_that() call removed
-		# "Control height should fit screen size %s" % resolution_name
+		assert_that(control.get_rect().size.x).is_less_equal(resolution_size.x).override_failure_message("Control width should fit screen size %s" % resolution_name)
+		assert_that(control.get_rect().size.y).is_less_equal(resolution_size.y).override_failure_message("Control height should fit screen size %s" % resolution_name)
 		
 		# Verify touch targets
 		verify_touch_targets(control)

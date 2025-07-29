@@ -8,15 +8,18 @@ class_name WorldPhase
 # Imports
 
 # Consistent compile-time dependencies
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const EnhancedCampaignSignals = preload("res://src/core/signals/EnhancedCampaignSignals.gd")
-const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
+# GlobalEnums available as autoload singleton
+const DataManager = preload("res://src/core/data/DataManager.gd")
+
+# Runtime-loaded optional dependencies (loaded conditionally in _ready)
+var EnhancedCampaignSignals = null
+var WorldPhaseResources = null
 
 # Runtime autoload references
 var dice_manager: Node = null
 var game_state_manager: Node = null
-var enhanced_signals: EnhancedCampaignSignals = null
-var world_phase_state: WorldPhaseResources.WorldPhaseState = null
+var enhanced_signals = null
+var world_phase_state = null
 
 ## World Phase Signals
 signal world_phase_started()
@@ -53,19 +56,23 @@ func _ready() -> void:
 	if not DataManager._is_data_loaded:
 		DataManager.initialize_data_system()
 	
-	# Initialize enhanced dependencies with safe creation
-	if ClassDB.class_exists("EnhancedCampaignSignals"):
-		enhanced_signals = EnhancedCampaignSignals.new()
+	# Load optional dependencies conditionally
+	if ResourceLoader.exists("res://src/core/signals/EnhancedCampaignSignals.gd"):
+		EnhancedCampaignSignals = load("res://src/core/signals/EnhancedCampaignSignals.gd")
+		if EnhancedCampaignSignals:
+			enhanced_signals = EnhancedCampaignSignals.new()
 	else:
-		push_warning("WorldPhase: EnhancedCampaignSignals not available")
+		print("WorldPhase: EnhancedCampaignSignals not found, using basic signals")
 	
-	if ClassDB.class_exists("WorldPhaseResources"):
-		world_phase_state = WorldPhaseResources.create_world_phase_state()
+	if ResourceLoader.exists("res://src/core/world_phase/WorldPhaseResources.gd"):
+		WorldPhaseResources = load("res://src/core/world_phase/WorldPhaseResources.gd")
+		if WorldPhaseResources and WorldPhaseResources.has_method("create_world_phase_state"):
+			world_phase_state = WorldPhaseResources.create_world_phase_state()
 	else:
-		push_warning("WorldPhase: WorldPhaseResources not available")
+		print("WorldPhase: WorldPhaseResources not found, using basic state management")
 
 	# Initialize enum values with GlobalEnums available at compile time
-		current_substep = GlobalEnums.WorldSubPhase.NONE
+	current_substep = GlobalEnums.WorldSubPhase.NONE
 
 	print("WorldPhase: Initialized successfully with enhanced integration")
 
@@ -281,7 +288,7 @@ func _resolve_find_patron_task(crew_id: String) -> Dictionary:
 	
 	# Get crew member data and task configuration from enhanced data manager
 	var crew_member = _get_crew_member_data(crew_id)
-	var task_modifiers = DataManager.get_crew_task_modifiers("FIND_PATRON") if DataManager else {}
+	var task_modifiers = DataManager.get_crew_task_modifiers("FIND_PATRON")
 	
 	# Roll 2d6 + modifiers using enhanced system
 	var base_roll = dice_manager.roll_2d6("Find Patron")
@@ -289,7 +296,7 @@ func _resolve_find_patron_task(crew_id: String) -> Dictionary:
 	var final_roll = base_roll + modifiers
 	
 	# Use patron jobs table for enhanced patron generation
-	var patron_jobs_table = DataManager.get_world_phase_patron_jobs_table() if DataManager else {}
+	var patron_jobs_table = DataManager.get_world_phase_patron_jobs_table()
 	var patron_contact_table = patron_jobs_table.get("patron_contact_table", {})
 	
 	# Get difficulty and check success
@@ -332,7 +339,7 @@ func _resolve_find_patron_task(crew_id: String) -> Dictionary:
 func _resolve_train_task(crew_id: String) -> Dictionary:
 	"""Resolve Train task using Five Parsecs rules"""
 	# Get training outcome data
-	var training_outcome = data_manager.get_training_outcome() if data_manager else {}
+	var training_outcome = DataManager.get_training_outcome()
 	
 	var xp_gained = training_outcome.get("xp_gained", 1)
 	var description = training_outcome.get("narrative", "Character completes training and gains experience")
@@ -360,7 +367,7 @@ func _resolve_trade_task(crew_id: String) -> Dictionary:
 	
 	# Get crew member data for skill modifiers
 	var crew_member = _get_crew_member_data(crew_id)
-	var task_modifiers = DataManager.get_crew_task_modifiers("TRADE") if DataManager else {}
+	var task_modifiers = DataManager.get_crew_task_modifiers("TRADE")
 	
 	var base_roll = dice_manager.roll_d6("Trade Task")
 	var modifiers = _calculate_enhanced_task_modifiers(crew_member, "TRADE", task_modifiers)
@@ -370,7 +377,7 @@ func _resolve_trade_task(crew_id: String) -> Dictionary:
 	final_roll = max(1, min(6, final_roll))
 	
 	# Get result from enhanced trade table
-	var trade_result = DataManager.get_trade_result(final_roll) if DataManager else {}
+	var trade_result = DataManager.get_trade_result(final_roll)
 	
 	# Create enhanced result using WorldPhaseResources
 	var task_result = WorldPhaseResources.create_crew_task_result(crew_id, "TRADE")
@@ -447,7 +454,7 @@ func _resolve_explore_task(crew_id: String) -> Dictionary:
 	final_roll = max(1, min(100, final_roll))
 	
 	# Get result from exploration table
-	var exploration_result = data_manager.get_exploration_result(final_roll) if data_manager else {}
+	var exploration_result = DataManager.get_exploration_result(final_roll)
 	
 	var success = true
 	var description = "Nothing of interest found"
@@ -873,20 +880,15 @@ func _calculate_task_modifiers(crew_member: Dictionary, task_name: String) -> in
 	"""Calculate total modifiers for a crew task"""
 	var total_modifier = 0
 	
-	if not data_manager:
-		return total_modifier
-	
 	# Get skill modifiers from task configuration
-	var skill_modifiers = data_manager.get_task_modifiers(task_name)
+	var skill_modifiers = DataManager.get_crew_task_modifiers(task_name)
 	
 	for skill in skill_modifiers.keys():
 		var skill_value = crew_member.get(skill.to_lower(), 0)
 		var modifier_per_point = skill_modifiers[skill]
 		total_modifier += skill_value * modifier_per_point
 	
-	# Add world modifiers (would need world data)
-	var world_modifiers = data_manager.get_world_modifiers(task_name)
-	# TODO: Implement world modifier calculation when world system is available
+	# TODO: Add world modifiers when world system is available
 	
 	# Add crew size bonuses
 	total_modifier += _calculate_crew_size_bonus()
@@ -1020,11 +1022,11 @@ func _get_table_data_cached(table_name: String, key: Variant) -> Dictionary:
 	var table_data = {}
 	match table_name:
 		"exploration":
-			table_data = data_manager.get_exploration_result(key) if data_manager else {}
+			table_data = DataManager.get_exploration_result(key)
 		"trade":
 			table_data = DataManager.get_trade_result(key) if DataManager else {}
 		"training":
-			table_data = data_manager.get_training_outcome() if data_manager else {}
+			table_data = DataManager.get_training_outcome()
 		_:
 			push_warning("WorldPhase: Unknown table requested: " + table_name)
 	
@@ -1076,3 +1078,4 @@ func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Va
 	if obj is Object and obj.has_method(method_name):
 		return obj.callv(method_name, args)
 	return null
+ 

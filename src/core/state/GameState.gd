@@ -2,19 +2,14 @@ extends Node
 class_name CoreGameState
 
 # Safe imports
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
 
 # Safe dependency loading - loaded at compile time for type safety
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const ErrorLogger = preload("res://src/core/systems/ErrorLogger.gd")
 
-# Safe dependency loading - loaded at runtime in _ready()
-var FiveParsecsCampaign: Variant = null
-var Ship: Variant = null
+# Safe dependency loading - compile-time preload for type safety
+const FiveParsecsCampaign = preload("res://src/core/campaign/Campaign.gd")
+const Ship = preload("res://src/core/ships/Ship.gd")
 
 ## Signals with proper type annotations
 signal state_changed
@@ -810,10 +805,7 @@ static func deserialize_new(data: Dictionary) -> CoreGameState:
 	return state
 
 func _ready() -> void:
-	# Load runtime dependencies safely
-	FiveParsecsCampaign = load("res://src/core/campaign/Campaign.gd")
-	Ship = load("res://src/core/ships/Ship.gd")
-
+	# Dependencies loaded at compile time with preload
 	# Initialize enum defaults now that GlobalEnums is loaded
 	current_phase = GlobalEnums.FiveParsecsCampaignPhase.NONE
 	difficulty_level = GlobalEnums.DifficultyLevel.STANDARD
@@ -846,11 +838,13 @@ func _exit_tree() -> void:
 
 	# Disconnect all custom signals from other objects
 	if save_manager:
-		save_manager = null
+		# Disconnect signals before nullifying the reference
 		if save_manager.save_completed.is_connected(_on_save_manager_save_completed):
 			save_manager.save_completed.disconnect(_on_save_manager_save_completed)
 		if save_manager.load_completed.is_connected(_on_save_manager_load_completed):
 			save_manager.load_completed.disconnect(_on_save_manager_load_completed)
+		# Now safe to nullify the reference
+		save_manager = null
 
 
 	# Clear all arrays and dictionaries

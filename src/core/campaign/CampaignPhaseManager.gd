@@ -7,18 +7,13 @@ extends Node
 ## Coordinates the Four-Phase Campaign Turn Structure
 
 # Safe imports
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
 
-# Safe dependency loading - loaded at runtime in _ready()
-var GlobalEnums: Resource = null
+# Safe dependency loading - compile-time preload for type safety
+# GlobalEnums available as autoload singleton
 var game_state_manager: Node = null
-var TravelPhase: Resource = null
-var WorldPhase: Resource = null
-var PostBattlePhase: Resource = null
+const TravelPhase = preload("res://src/core/campaign/phases/TravelPhase.gd")
+const WorldPhase = preload("res://src/core/campaign/phases/WorldPhase.gd")
+const PostBattlePhase = preload("res://src/core/campaign/phases/PostBattlePhase.gd")
 
 ## Current campaign state
 var current_phase: int = 0
@@ -40,28 +35,25 @@ signal campaign_turn_started(turn: int)
 signal campaign_turn_completed(turn: int)
 
 func _ready() -> void:
-	# Load dependencies safely at runtime
-	GlobalEnums = load("res://src/core/systems/GlobalEnums.gd")
-	# Access GameStateManagerAutoload autoload directly
-	game_state_manager = get_node_or_null("/root/GameStateManagerAutoload")
+	# Initialize enum values with compile-time loaded GlobalEnums
+	current_phase = GlobalEnums.FiveParsecsCampaignPhase.NONE
 
-	# Load phase classes
-	TravelPhase = load("res://src/core/campaign/phases/TravelPhase.gd")
-	WorldPhase = load("res://src/core/campaign/phases/WorldPhase.gd")
-	PostBattlePhase = load("res://src/core/campaign/phases/PostBattlePhase.gd")
-
-	# Initialize enum values after loading GlobalEnums
-	if GlobalEnums:
-		current_phase = safe_get_property(GlobalEnums, "FiveParsecsCampaignPhase").NONE
-
-	# Initialize phase handlers
-	_initialize_phase_handlers()
-	
-	# Connect to BattleResultsManager for campaign integration
-	_connect_battle_results_manager()
-
-	_validate_universal_connections()
+	# Defer autoload access to avoid loading order issues
+	call_deferred("_initialize_autoloads")
+	call_deferred("_initialize_phase_handlers")
+	call_deferred("_connect_battle_results_manager")
+	call_deferred("_validate_universal_connections")
 	print("CampaignPhaseManager: Initialized with official Four-Phase structure")
+
+func _initialize_autoloads() -> void:
+	"""Initialize autoloads with retry logic to handle loading order"""
+	game_state_manager = get_node_or_null("/root/GameStateManagerAutoload")
+	if not game_state_manager:
+		push_warning("CampaignPhaseManager: GameStateManagerAutoload not found - will retry")
+		await get_tree().create_timer(0.1).timeout
+		game_state_manager = get_node_or_null("/root/GameStateManagerAutoload")
+		if not game_state_manager:
+			push_error("CampaignPhaseManager: CORE SYSTEM FAILURE: GameStateManager not accessible from CampaignPhaseManager")
 
 func _initialize_phase_handlers() -> void:
 	"""Initialize the phase handler instances"""
@@ -100,12 +92,14 @@ func _initialize_phase_handlers() -> void:
 
 func _connect_battle_results_manager() -> void:
 	"""Connect to BattleResultsManager for campaign integration"""
-	# Try to get BattleResultsManager from various possible locations
+	# Try to get BattleResultsManager from autoload
 	var battle_results_manager = get_node_or_null("/root/BattleResultsManager")
 	
 	if not battle_results_manager:
-		# Try to find it in the scene tree
-		battle_results_manager = get_tree().get_first_node_in_group("battle_results_manager")
+		push_warning("CampaignPhaseManager: BattleResultsManager not found - battle integration may not work")
+		# Retry after a short delay
+		await get_tree().create_timer(0.1).timeout
+		battle_results_manager = get_node_or_null("/root/BattleResultsManager")
 	
 	if battle_results_manager:
 		# Connect to the campaign integration signal

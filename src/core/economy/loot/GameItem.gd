@@ -5,7 +5,7 @@ class_name GameItem
 # Import necessary classes
 # Note: DataManager is an autoload - access via get_node("/root/DataManager")
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 @export var item_id: String = ""
 @export var item_name: String = ""

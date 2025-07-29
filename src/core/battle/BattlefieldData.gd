@@ -14,7 +14,7 @@ extends Resource
 
 # Dependencies
 const BattlefieldTypes = preload("res://src/core/battle/BattlefieldTypes.gd")
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 # Signals for system communication
 signal battlefield_generated(battlefield_data: BattlefieldTypes.BattlefieldData)

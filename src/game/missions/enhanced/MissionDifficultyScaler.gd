@@ -7,16 +7,17 @@ extends RefCounted
 ## Provides dynamic difficulty scaling based on crew experience, equipment, and campaign progression.
 ## Integrates with existing difficulty data and Five Parsecs balancing principles.
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const MissionTypeRegistry = preload("res://src/game/missions/enhanced/MissionTypeRegistry.gd")
 
-# Load existing difficulty data
-const DIFFICULTY_DATA: Dictionary = preload("res://data/mission_tables/mission_difficulty.json")
+# Difficulty data paths - loaded at runtime
+const DIFFICULTY_DATA_PATH: String = "res://data/mission_tables/mission_difficulty.json"
+static var _difficulty_data: Dictionary = {}
 
 # Difficulty scaling factors
 const CREW_EXPERIENCE_WEIGHTS: Dictionary = {
 	"rookie": 0.8,
-	"regular": 1.0, 
+	"regular": 1.0,
 	"veteran": 1.2,
 	"elite": 1.4
 }
@@ -36,6 +37,41 @@ const CAMPAIGN_TURN_SCALING: Array[Dictionary] = [
 	{"turn_range": [16, 30], "modifier": 1.2, "description": "Late campaign - increased difficulty"},
 	{"turn_range": [31, 999], "modifier": 1.4, "description": "Extended campaign - high difficulty"}
 ]
+
+## Load difficulty data if not already loaded
+static func _ensure_difficulty_data_loaded() -> void:
+	if _difficulty_data.is_empty():
+		_difficulty_data = _load_json_safe(DIFFICULTY_DATA_PATH, "difficulty_data")
+
+## Safe JSON loading method (similar to DataManager)
+static func _load_json_safe(file_path: String, context: String) -> Dictionary:
+	if not FileAccess.file_exists(file_path):
+		push_warning("MissionDifficultyScaler: Data file not found: " + file_path)
+		return {}
+	
+	var file: FileAccess = FileAccess.open(file_path, FileAccess.READ)
+	if not file:
+		push_warning("MissionDifficultyScaler: Failed to open file: " + file_path)
+		return {}
+	
+	var text: String = file.get_as_text()
+	file.close()
+	
+	if text.is_empty():
+		return {}
+	
+	var json: JSON = JSON.new()
+	var parse_result: Error = json.parse(text)
+	
+	if parse_result != OK:
+		push_warning("MissionDifficultyScaler: JSON Parse Error in " + file_path)
+		return {}
+	
+	var data = json.get_data()
+	if typeof(data) != TYPE_DICTIONARY:
+		return {}
+	
+	return data as Dictionary
 
 ## Calculate the final difficulty for a mission
 static func calculate_mission_difficulty(base_difficulty: int, scaling_context: Dictionary) -> int:
@@ -71,7 +107,7 @@ static func get_difficulty_description(difficulty: int) -> String:
 
 ## Calculate recommended crew size for difficulty
 static func get_recommended_crew_size(difficulty: int, mission_type: int) -> int:
-	var base_crew: int = 3  # Five Parsecs standard
+	var base_crew: int = 3 # Five Parsecs standard
 	
 	# Adjust for difficulty
 	match difficulty:
@@ -83,11 +119,11 @@ static func get_recommended_crew_size(difficulty: int, mission_type: int) -> int
 	var mission_category: MissionTypeRegistry.MissionCategory = MissionTypeRegistry.get_mission_category(mission_type)
 	match mission_category:
 		MissionTypeRegistry.MissionCategory.PATRON_CONTRACT:
-			base_crew -= 1  # Patron missions often allow smaller crews
+			base_crew -= 1 # Patron missions often allow smaller crews
 		MissionTypeRegistry.MissionCategory.OPPORTUNITY:
-			base_crew += 1  # Opportunity missions benefit from larger crews
+			base_crew += 1 # Opportunity missions benefit from larger crews
 	
-	return clampi(base_crew, 2, 6)  # Five Parsecs crew size limits
+	return clampi(base_crew, 2, 6) # Five Parsecs crew size limits
 
 ## Calculate enemy deployment points based on difficulty
 static func calculate_enemy_deployment_points(difficulty: int, crew_size: int) -> int:
@@ -185,7 +221,7 @@ static func _get_crew_experience_modifier(context: Dictionary) -> float:
 	return CREW_EXPERIENCE_WEIGHTS.get(experience_level, 1.0)
 
 static func _get_equipment_quality_modifier(context: Dictionary) -> float:
-	var equipment_quality: String = context.get("equipment_quality", "standard") 
+	var equipment_quality: String = context.get("equipment_quality", "standard")
 	return EQUIPMENT_QUALITY_MODIFIERS.get(equipment_quality, 1.0)
 
 static func _get_campaign_progression_modifier(context: Dictionary) -> float:
@@ -201,8 +237,11 @@ static func _get_campaign_progression_modifier(context: Dictionary) -> float:
 static func _get_mission_type_modifier(context: Dictionary) -> float:
 	var mission_type: int = context.get("mission_type", MissionTypeRegistry.EnhancedMissionType.RED_ZONE)
 	
+	# Ensure difficulty data is loaded
+	_ensure_difficulty_data_loaded()
+	
 	# Mission type difficulty modifiers from existing data
-	for rule in DIFFICULTY_DATA.get("modifiers", []):
+	for rule in _difficulty_data.get("modifiers", []):
 		if rule.type == "mission_type_modifier":
 			var type_string: String = _convert_mission_type_to_string(mission_type)
 			return rule.params.get(type_string, 1.0)

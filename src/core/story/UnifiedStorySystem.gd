@@ -4,7 +4,7 @@ extends Node
 
 ## Dependencies
 const Mission = preload("res://src/core/systems/Mission.gd")
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const Character = preload("res://src/core/character/Character.gd")
 const SaveManager = preload("res://src/core/state/SaveManager.gd")
 const StoryQuestData := preload("res://src/game/story/StoryQuestData.gd")
@@ -57,7 +57,14 @@ func _init() -> void:
 
 ## Setup the story system with required references
 
-func setup(state: GameState, campaign_mgr: Node, event_mgr: Node = null) -> void:
+
+# Safe access to SaveManager
+func _get_safe_savemanager() -> Variant:
+	if ClassDB.class_exists("SaveManager"):
+		return get_node_or_null("/root/SaveManager")
+	return null
+
+func _init_story_system(state: GameState, campaign_mgr: Node, event_mgr: Node = null) -> void:
 	if not state:
 		push_error("UnifiedStorySystem: Invalid game state provided")
 		return

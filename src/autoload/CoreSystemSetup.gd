@@ -12,8 +12,14 @@ extends Node
 # # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
 # # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const AlphaGameManagerScript = preload("res://src/core/managers/AlphaGameManager.gd")
+const DataManager = preload("res://src/core/data/DataManager.gd")
+
+# JSON configuration support
+var system_config_data: Dictionary = {}
+var autoload_parameters: Dictionary = {}
+# DataManager is static, no instance needed
 
 var alpha_game_manager: Variant = null
 var initialization_complete: bool = false
@@ -22,9 +28,57 @@ signal core_systems_ready()
 signal initialization_failed(errors: Array[String])
 
 func _ready() -> void:
+	_load_system_configuration()
 	_validate_universal_connections()
 	print("CoreSystemSetup: Starting core system initialization...")
 	call_deferred("setup_core_systems")
+
+func _load_system_configuration() -> void:
+	"""Load system configuration from JSON files"""
+	# DataManager is static, don't instantiate
+	
+	# Load system config data using static method
+	system_config_data = DataManager._load_json_safe("res://data/autoload/system_config.json", "CoreSystemSetup")
+	if system_config_data.is_empty():
+		print("CoreSystemSetup: system_config.json not found, using default parameters")
+		_create_system_config_fallback()
+	else:
+		print("CoreSystemSetup: Loaded system configuration from JSON")
+	
+	# Extract autoload parameters
+	autoload_parameters = system_config_data.get("autoload_parameters", {})
+
+func _create_system_config_fallback() -> void:
+	"""Create fallback system configuration when JSON unavailable"""
+	system_config_data = {
+		"autoload_parameters": {
+			"initialization_timeout": 10.0,
+			"debug_logging": true,
+			"performance_monitoring": false,
+			"error_recovery": true,
+			"system_validation": true
+		},
+		"system_priorities": {
+			"core_systems": 1,
+			"game_managers": 2,
+			"ui_systems": 3,
+			"peripheral_systems": 4
+		},
+		"initialization_config": {
+			"parallel_loading": false,
+			"dependency_checking": true,
+			"graceful_degradation": true,
+			"retry_failed_systems": true,
+			"max_retry_attempts": 3
+		},
+		"performance_thresholds": {
+			"max_init_time_ms": 5000,
+			"warning_threshold_ms": 2000,
+			"memory_limit_mb": 512
+		}
+	}
+	
+	autoload_parameters = system_config_data.autoload_parameters
 
 func _validate_universal_connections() -> void:
 	_validate_autoload_connections()

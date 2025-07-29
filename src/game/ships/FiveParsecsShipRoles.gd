@@ -2,7 +2,7 @@
 class_name FPCM_ShipRoles
 
 # Preloads
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const CharacterManager = preload("res://src/core/character/Management/CharacterManager.gd")
 
 # Signals

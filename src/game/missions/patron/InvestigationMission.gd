@@ -7,7 +7,7 @@ extends Mission
 ## Implements Five Parsecs investigation mechanics with evidence gathering,
 ## stealth requirements, and information-based rewards.
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const MissionTypeRegistry = preload("res://src/game/missions/enhanced/MissionTypeRegistry.gd")
 
 # Investigation parameters

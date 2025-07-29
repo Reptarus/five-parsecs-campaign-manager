@@ -7,7 +7,7 @@ extends RefCounted
 ## Provides centralized management and generation of mission types with full Five Parsecs integration.
 ## Built on existing Mission base class and leverages current JSON data structure.
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const Mission = preload("res://src/core/systems/Mission.gd")
 
 # Static typing for performance

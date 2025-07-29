@@ -2,7 +2,7 @@
 extends Node
 
 ## Dependencies
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const GameState = preload("res://src/core/state/GameState.gd")
 const CharacterManager = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const MissionSystem = preload("res://src/core/systems/Mission.gd")
@@ -80,7 +80,6 @@ func _connect_ui_signal(signal_name: String, callback: Callable) -> void:
 			break
 
 	if not signal_is_connected:
-
 		ui.connect(signal_name, callback)
 
 ## Start the pre-battle phase with mission data

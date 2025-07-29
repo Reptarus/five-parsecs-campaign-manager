@@ -1,7 +1,7 @@
 ﻿extends Resource
 class_name FPCM_Patron
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const Mission = preload("res://src/core/systems/Mission.gd")
 const Character = preload("res://src/core/character/Character.gd")
 

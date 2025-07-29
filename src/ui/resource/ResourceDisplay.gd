@@ -1,7 +1,7 @@
 ﻿class_name FPCM_ResourceDisplay
 extends Control
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const MarketResourceItem = preload("res://src/ui/resource/MarketResourceItem.gd")
 # Note: GameResourceSystem is an autoload - access via get_node("/root/ResourceSystem")
 
@@ -88,7 +88,7 @@ func _update_market_state_display() -> void:
 func _setup_resource_display() -> void:
 	# Clear existing items
 	for child in resource_container.get_children():
-		if child is ResourceItem:
+		if child is Button:
 			child.queue_free()
 
 	# Create resource items
@@ -140,7 +140,7 @@ func _add_transaction_to_list(transaction: Dictionary) -> void:
 func _on_resource_changed(type: int, amount: int) -> void:
 	# Update resource display
 	for child in resource_container.get_children():
-		if child is ResourceItem and child.resource_type == type:
+		if child is Button and child.has_method("update_values") and child.resource_type == type:
 			var market_value = resource_system.get_market_value(type)
 			var trend: int = 0
 			if market_value > amount:

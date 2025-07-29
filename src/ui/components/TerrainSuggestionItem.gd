@@ -37,7 +37,7 @@ signal help_requested(suggestion_id: String)
 @onready var help_button: Button = %HelpButton
 
 # Suggestion data
-var suggestion_data: BattlefieldSetupAssistant.TerrainSuggestion = null
+var suggestion_data: Dictionary = {}
 var is_confirmed: bool = false
 var is_rejected: bool = false
 
@@ -113,7 +113,7 @@ func _ensure_button_accessibility() -> void:
 # SUGGESTION SETUP AND DISPLAY
 # =====================================================
 
-func setup_suggestion(suggestion: BattlefieldSetupAssistant.TerrainSuggestion) -> void:
+func setup_suggestion(suggestion: Dictionary) -> void:
 	"""
 	Setup the item with terrain suggestion data
 

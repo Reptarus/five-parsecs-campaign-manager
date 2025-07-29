@@ -1,41 +1,43 @@
 ﻿extends Resource
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 # Event definitions with their effects and requirements
-const BATTLE_EVENTS = {
-	"CRITICAL_HIT": {
-		"category": GlobalEnums.EventCategory.COMBAT,
-		"probability": 0.15,
-		"effect": {
-			"type": "damage_multiplier",
-			"_value": 2.0
+static func get_battle_events() -> Dictionary:
+	return {
+		"CRITICAL_HIT": {
+			"category": GlobalEnums.EventCategory.COMBAT,
+			"probability": 0.15,
+			"effect": {
+				"type": "damage_multiplier",
+				"_value": 2.0
+			},
+			"requirements": ["attack_roll >= 6"]
 		},
-		"requirements": ["attack_roll >= 6"]
-	},
-	"WEAPON_JAM": {
-		"category": GlobalEnums.EventCategory.EQUIPMENT,
-		"probability": 0.1,
-		"effect": {
-			"type": "disable_weapon",
-			"duration": 1
+		"WEAPON_JAM": {
+			"category": GlobalEnums.EventCategory.EQUIPMENT,
+			"probability": 0.1,
+			"effect": {
+				"type": "disable_weapon",
+				"duration": 1
+			},
+			"requirements": ["has_ranged_weapon", "attack_roll <= 1"]
 		},
-		"requirements": ["has_ranged_weapon", "attack_roll <= 1"]
-	},
-	"TAKE_COVER": {
-		"category": GlobalEnums.EventCategory.TACTICAL,
-		"probability": 0.2,
-		"effect": {
-			"type": "defense_bonus",
-			"_value": 2,
-			"duration": 1
-		},
-		"requirements": ["near_cover"]
+		"TAKE_COVER": {
+			"category": GlobalEnums.EventCategory.TACTICAL,
+			"probability": 0.2,
+			"effect": {
+				"type": "defense_bonus",
+				"_value": 2,
+				"duration": 1
+			},
+			"requirements": ["near_cover"]
+		}
 	}
-}
 
 # Event trigger conditions
 static func check_event_requirements(event_name: String, context: Dictionary) -> bool:
+	var BATTLE_EVENTS = get_battle_events()
 	if not BATTLE_EVENTS.has(event_name):
 		return false
 

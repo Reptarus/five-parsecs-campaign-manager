@@ -1,7 +1,7 @@
 ﻿@tool
 extends Node
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const GamePlanet = preload("res://src/game/world/GamePlanet.gd")
 
 signal cache_updated

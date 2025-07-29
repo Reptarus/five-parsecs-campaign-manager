@@ -10,7 +10,7 @@ extends Resource
 ## Integration: Compatible with all battle UI components and core systems
 
 # Dependencies
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 # Battle progress tracking
 @export var current_phase: int = 0 # FPCM_BattleManager.BattlePhase

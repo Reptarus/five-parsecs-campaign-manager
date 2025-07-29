@@ -7,8 +7,9 @@ class_name BaseCrewComponent
 
 const Character = preload("res://src/core/character/Character.gd")
 const DataManager = preload("res://src/core/data/DataManager.gd")
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const FiveParsecsCharacterGeneration = preload("res://src/core/character/CharacterGeneration.gd")
+const SafeDataAccess = preload("res://src/utils/SafeDataAccess.gd")
 
 # Common signals for all crew components
 signal crew_updated(crew: Array)
@@ -29,8 +30,8 @@ func _ready() -> void:
 
 func _initialize_base_component() -> void:
 	"""Initialize base component systems"""
-	# Initialize data system if not already loaded
-	if not DataManager._is_data_loaded:
+	# Initialize data system if not already loaded using public API
+	if not DataManager.is_system_ready():
 		var success = DataManager.initialize_data_system()
 		if not success:
 			push_warning("BaseCrewComponent: DataManager initialization failed, using fallback mode")
@@ -239,14 +240,26 @@ func calculate_crew_statistics() -> Dictionary:
 		# Health total
 		stats.total_health += member.health
 		
-		# Distribution tracking
-		var bg_key = GlobalEnums.Background.keys()[member.background]
-		var origin_key = GlobalEnums.Origin.keys()[member.origin]
-		var class_key = GlobalEnums.CharacterClass.keys()[member.character_class]
+		# Distribution tracking with safe enum access
+		var bg_key = "UNKNOWN"
+		var origin_key = "UNKNOWN"  
+		var class_key = "UNKNOWN"
 		
-		stats.background_distribution[bg_key] = stats.background_distribution.get(bg_key, 0) + 1
-		stats.origin_distribution[origin_key] = stats.origin_distribution.get(origin_key, 0) + 1
-		stats.class_distribution[class_key] = stats.class_distribution.get(class_key, 0) + 1
+		# Safely get background key
+		if member.background >= 0 and member.background < GlobalEnums.Background.size():
+			bg_key = GlobalEnums.Background.keys()[member.background]
+			
+		# Safely get origin key
+		if member.origin >= 0 and member.origin < GlobalEnums.Origin.size():
+			origin_key = GlobalEnums.Origin.keys()[member.origin]
+			
+		# Safely get class key
+		if member.character_class >= 0 and member.character_class < GlobalEnums.CharacterClass.size():
+			class_key = GlobalEnums.CharacterClass.keys()[member.character_class]
+		
+		stats.background_distribution[bg_key] = SafeDataAccess.safe_get(stats.background_distribution, bg_key, 0, "background distribution lookup") + 1
+		stats.origin_distribution[origin_key] = SafeDataAccess.safe_get(stats.origin_distribution, origin_key, 0, "origin distribution lookup") + 1
+		stats.class_distribution[class_key] = SafeDataAccess.safe_get(stats.class_distribution, class_key, 0, "class distribution lookup") + 1
 	
 	# Calculate averages
 	var crew_size = crew_members.size()
@@ -282,8 +295,9 @@ func import_crew_data(data: Dictionary) -> bool:
 	
 	clear_crew()
 	
-	var crew_data = data.get("crew_members", [])
-	var captain_name = data.get("captain_name", "")
+	var data_dict = SafeDataAccess.safe_dict_access(data, "crew data loading")
+	var crew_data = SafeDataAccess.safe_get(data_dict, "crew_members", [], "crew members lookup")
+	var captain_name = SafeDataAccess.safe_get(data_dict, "captain_name", "", "captain name lookup")
 	
 	for member_data in crew_data:
 		var character = Character.new()
@@ -336,11 +350,25 @@ func _get_captain_summary() -> Dictionary:
 	if not current_captain:
 		return {}
 	
+	# Safely get enum keys with fallbacks
+	var origin_key = "UNKNOWN"
+	var background_key = "UNKNOWN"
+	var class_key = "UNKNOWN"
+	
+	if current_captain.origin >= 0 and current_captain.origin < GlobalEnums.Origin.size():
+		origin_key = GlobalEnums.Origin.keys()[current_captain.origin]
+		
+	if current_captain.background >= 0 and current_captain.background < GlobalEnums.Background.size():
+		background_key = GlobalEnums.Background.keys()[current_captain.background]
+		
+	if current_captain.character_class >= 0 and current_captain.character_class < GlobalEnums.CharacterClass.size():
+		class_key = GlobalEnums.CharacterClass.keys()[current_captain.character_class]
+	
 	return {
 		"name": current_captain.character_name,
-		"origin": GlobalEnums.Origin.keys()[current_captain.origin],
-		"background": GlobalEnums.Background.keys()[current_captain.background],
-		"class": GlobalEnums.CharacterClass.keys()[current_captain.character_class],
+		"origin": origin_key,
+		"background": background_key,
+		"class": class_key,
 		"health": current_captain.health,
 		"max_health": current_captain.max_health
 	}
@@ -371,11 +399,12 @@ func _serialize_character_fallback(character: Character) -> Dictionary:
 
 func _deserialize_character_fallback(character: Character, data: Dictionary) -> void:
 	"""Fallback character deserialization"""
-	character.character_name = data.get("name", "Unknown")
-	character.origin = data.get("origin", GlobalEnums.Origin.HUMAN)
-	character.background = data.get("background", GlobalEnums.Background.MILITARY)
-	character.character_class = data.get("character_class", GlobalEnums.CharacterClass.SOLDIER)
-	character.motivation = data.get("motivation", GlobalEnums.Motivation.SURVIVAL)
+	var character_data = SafeDataAccess.safe_dict_access(data, "character data creation")
+	character.character_name = SafeDataAccess.safe_get(character_data, "name", "Unknown", "character name lookup")
+	character.origin = SafeDataAccess.safe_get(character_data, "origin", GlobalEnums.Origin.HUMAN, "character origin lookup")
+	character.background = SafeDataAccess.safe_get(character_data, "background", GlobalEnums.Background.MILITARY, "character background lookup")
+	character.character_class = SafeDataAccess.safe_get(character_data, "character_class", GlobalEnums.CharacterClass.SOLDIER, "character class lookup")
+	character.motivation = SafeDataAccess.safe_get(character_data, "motivation", GlobalEnums.Motivation.SURVIVAL, "character motivation lookup")
 	character.reaction = data.get("reaction", 2)
 	character.combat = data.get("combat", 1)
 	character.toughness = data.get("toughness", 3)

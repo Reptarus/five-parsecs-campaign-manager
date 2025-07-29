@@ -6,14 +6,9 @@ class_name PostBattlePhase
 ## Handles the complete Post-Battle sequence (Phase 4 of campaign turn)
 
 # Safe imports
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
 
 # Safe dependency loading - loaded at runtime in _ready()
-var GlobalEnums: Variant = null
+# GlobalEnums available as autoload singleton
 var dice_manager: Variant = null
 var game_state_manager: Variant = null
 
@@ -50,11 +45,11 @@ var injuries_sustained: Array[Dictionary] = []
 
 func _ready() -> void:
 	# Load dependencies safely at runtime
-	GlobalEnums = load("res://src/core/systems/GlobalEnums.gd")
+	# GlobalEnums already loaded as const at compile time
 	dice_manager = DiceManager
 	game_state_manager = get_node_or_null("/root/GameStateManagerAutoload")
 
-	# Initialize enum values after loading GlobalEnums
+	# Initialize enum values using preloaded GlobalEnums
 	if GlobalEnums:
 		current_substep = GlobalEnums.PostBattleSubPhase.NONE
 

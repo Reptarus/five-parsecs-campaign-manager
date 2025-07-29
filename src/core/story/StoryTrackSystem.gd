@@ -11,7 +11,7 @@ extends Resource
 ## - Rewards and consequences
 
 # Dependencies
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const StoryEvent = preload("res://src/core/story/StoryEvent.gd")
 
 # Manager references for dice system integration (accessed as autoload)

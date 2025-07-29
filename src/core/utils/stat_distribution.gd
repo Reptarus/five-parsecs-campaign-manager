@@ -5,7 +5,7 @@ class_name FiveParsecsStatDistribution
 ## Core stat distribution system for Five Parsecs from Home
 ## Handles character stat management and modifiers
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 signal stat_changed(stat: String, new_value: int)
 signal modifier_applied(stat: String, modifier: int, duration: int)

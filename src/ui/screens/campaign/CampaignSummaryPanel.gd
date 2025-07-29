@@ -1,6 +1,6 @@
 extends Control
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 @onready var campaign_name_label: Label = $"VBoxContainer/CampaignNameLabel"
 @onready var difficulty_label: Label = $"VBoxContainer/DifficultyLabel"

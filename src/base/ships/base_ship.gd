@@ -27,7 +27,10 @@ var power_usage: int = 0
 var components: Array[Resource] = []
 
 func _init() -> void:
-	pass
+	# Initialize ship with default values
+	if ship_name.is_empty():
+		ship_name = "Unknown Ship"
+	update_power_state()
 
 # Component management
 func add_component(component: Resource) -> bool:

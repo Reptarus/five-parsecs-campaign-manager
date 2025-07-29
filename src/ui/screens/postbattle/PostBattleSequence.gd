@@ -55,15 +55,23 @@ func _initialize_steps() -> void:
 
 func _load_battle_results() -> void:
 	"""Load battle results from the completed battle"""
-	# TODO: Connect to battle system
-	battle_results = {
-		"victory": true,
-		"mission_type": "Opportunist",
-		"enemy_defeated": 4,
-		"crew_casualties": 1,
-		"loot_opportunities": 2,
-		"payment": 5
-	}
+	# Connect to battle system and load actual results
+	var battle_manager = get_node_or_null("/root/BattleManager")
+	if battle_manager and battle_manager.has_method("get_last_battle_result"):
+		battle_results = battle_manager.get_last_battle_result()
+	else:
+		# Fallback to default results for testing
+		battle_results = {
+			"victory": true,
+			"mission_type": "Opportunist",
+			"enemy_defeated": 4,
+			"crew_casualties": 1,
+			"crew_injuries": 0,
+			"loot_opportunities": 2,
+			"payment": 5,
+			"story_points_earned": 1,
+			"loot_found": []
+		}
 
 func _refresh_steps_list() -> void:
 	"""Refresh the steps list display"""
@@ -161,10 +169,39 @@ func _add_step_specific_content(step_index: int) -> void:
 			_add_galactic_war_content()
 
 func _add_rival_status_content() -> void:
-	"""Add rival status check content"""
+	"""Add rival status check content with Five Parsecs rules"""
 	var label: Label = Label.new()
-	label.text = "Roll D6 for each rival to see if they follow you to the next world."
+	label.text = "Roll D6 for each rival to see if they follow you to the next world.\nRival follows on 1-3, stays behind on 4-6."
 	step_content.add_child(label)
+	
+	# Get current rivals from campaign data
+	var campaign_manager = get_node_or_null("/root/CampaignManager")
+	if campaign_manager and campaign_manager.has_method("get_active_rivals"):
+		var rivals = campaign_manager.get_active_rivals()
+		for rival in rivals:
+			var rival_panel = _create_rival_status_panel(rival)
+			step_content.add_child(rival_panel)
+
+func _create_rival_status_panel(rival: Dictionary) -> Control:
+	"""Create a panel for rival status checking"""
+	var panel = HBoxContainer.new()
+	
+	var name_label = Label.new()
+	name_label.text = rival.get("name", "Unknown Rival")
+	name_label.custom_minimum_size.x = 150
+	panel.add_child(name_label)
+	
+	var roll_button = Button.new()
+	roll_button.text = "Roll for " + rival.get("name", "Rival")
+	roll_button.pressed.connect(_on_rival_status_roll.bind(rival))
+	panel.add_child(roll_button)
+	
+	var result_label = Label.new()
+	result_label.name = "result_" + str(rival.get("id", 0))
+	result_label.text = "Not rolled"
+	panel.add_child(result_label)
+	
+	return panel
 
 func _add_patron_status_content() -> void:
 	"""Add patron status content"""
@@ -179,16 +216,65 @@ func _add_quest_progress_content() -> void:
 	step_content.add_child(label)
 
 func _add_payment_content() -> void:
-	"""Add payment content"""
+	"""Add payment content with automatic credit application"""
+	var payment = battle_results.get("payment", 0)
+	var victory_bonus = 0
+	
+	if battle_results.get("victory", false):
+		victory_bonus = payment * 0.5 # 50% bonus for victory
+	
+	var total_payment = payment + victory_bonus
+	
 	var label: Label = Label.new()
-	label.text = "Receive payment: " + str(battle_results.get("payment", 0)) + " credits"
+	label.text = "Base payment: %d credits\nVictory bonus: %d credits\nTotal received: %d credits" % [payment, victory_bonus, total_payment]
 	step_content.add_child(label)
+	
+	# Apply payment to campaign
+	var campaign_manager = get_node_or_null("/root/CampaignManager")
+	if campaign_manager and campaign_manager.has_method("add_credits"):
+		campaign_manager.add_credits(total_payment)
+		_add_result_to_log("Received %d credits" % total_payment)
+	
+	var apply_button = Button.new()
+	apply_button.text = "Apply Payment"
+	apply_button.pressed.connect(_on_apply_payment.bind(total_payment))
+	step_content.add_child(apply_button)
 
 func _add_battlefield_finds_content() -> void:
-	"""Add battlefield finds content"""
+	"""Add battlefield finds content with Five Parsecs loot tables"""
 	var label: Label = Label.new()
-	label.text = "Roll D6 for battlefield finds based on enemy types defeated."
+	label.text = "Search the battlefield for equipment and supplies.\nRoll D6 for each enemy defeated."
 	step_content.add_child(label)
+	
+	var enemies_defeated = battle_results.get("enemy_defeated", 0)
+	var finds_container = VBoxContainer.new()
+	
+	for i in range(enemies_defeated):
+		var find_panel = _create_battlefield_find_panel(i + 1)
+		finds_container.add_child(find_panel)
+	
+	step_content.add_child(finds_container)
+
+func _create_battlefield_find_panel(enemy_num: int) -> Control:
+	"""Create a panel for battlefield finds"""
+	var panel = HBoxContainer.new()
+	
+	var label = Label.new()
+	label.text = "Enemy %d:" % enemy_num
+	label.custom_minimum_size.x = 80
+	panel.add_child(label)
+	
+	var roll_button = Button.new()
+	roll_button.text = "Search"
+	roll_button.pressed.connect(_on_battlefield_find_roll.bind(enemy_num))
+	panel.add_child(roll_button)
+	
+	var result_label = Label.new()
+	result_label.name = "find_result_" + str(enemy_num)
+	result_label.text = "Not searched"
+	panel.add_child(result_label)
+	
+	return panel
 
 func _add_invasion_check_content() -> void:
 	"""Add invasion check content"""
@@ -203,16 +289,101 @@ func _add_loot_content() -> void:
 	step_content.add_child(label)
 
 func _add_injury_content() -> void:
-	"""Add injury content"""
+	"""Add injury content with Five Parsecs injury tables"""
 	var label: Label = Label.new()
-	label.text = "Check crew injuries and roll for recovery."
+	label.text = "Determine injuries for crew members and recovery time."
 	step_content.add_child(label)
+	
+	var casualties = battle_results.get("crew_casualties", 0)
+	var injuries = battle_results.get("crew_injuries", 0)
+	
+	if casualties > 0 or injuries > 0:
+		var injury_container = VBoxContainer.new()
+		
+		# Handle casualties
+		for i in range(casualties):
+			var casualty_panel = _create_injury_panel("Casualty", i + 1, true)
+			injury_container.add_child(casualty_panel)
+		
+		# Handle injuries
+		for i in range(injuries):
+			var injury_panel = _create_injury_panel("Injury", i + 1, false)
+			injury_container.add_child(injury_panel)
+		
+		step_content.add_child(injury_container)
+	else:
+		var no_injuries_label = Label.new()
+		no_injuries_label.text = "No crew injuries to resolve!"
+		no_injuries_label.modulate = Color.GREEN
+		step_content.add_child(no_injuries_label)
+
+func _create_injury_panel(type: String, num: int, is_casualty: bool) -> Control:
+	"""Create a panel for injury resolution"""
+	var panel = HBoxContainer.new()
+	
+	var label = Label.new()
+	label.text = "%s %d:" % [type, num]
+	label.custom_minimum_size.x = 100
+	panel.add_child(label)
+	
+	var roll_button = Button.new()
+	roll_button.text = "Roll Injury" if not is_casualty else "Roll Severity"
+	roll_button.pressed.connect(_on_injury_roll.bind(type, num, is_casualty))
+	panel.add_child(roll_button)
+	
+	var result_label = Label.new()
+	result_label.name = "injury_result_%s_%d" % [type.to_lower(), num]
+	result_label.text = "Not rolled"
+	panel.add_child(result_label)
+	
+	return panel
 
 func _add_experience_content() -> void:
-	"""Add experience content"""
+	"""Add experience content with Five Parsecs advancement"""
 	var label: Label = Label.new()
-	label.text = "Gain experience points and apply character upgrades."
+	label.text = "Crew members gain experience from battle. Roll for advancement!"
 	step_content.add_child(label)
+	
+	# Get crew from campaign
+	var campaign_manager = get_node_or_null("/root/CampaignManager")
+	if campaign_manager and campaign_manager.has_method("get_crew_members"):
+		var crew = campaign_manager.get_crew_members()
+		var exp_container = VBoxContainer.new()
+		
+		for crew_member in crew:
+			# Skip if crew member was a casualty
+			if not _was_crew_casualty(crew_member):
+				var exp_panel = _create_experience_panel(crew_member)
+				exp_container.add_child(exp_panel)
+		
+		step_content.add_child(exp_container)
+	
+	var story_points = battle_results.get("story_points_earned", 1)
+	var story_label = Label.new()
+	story_label.text = "Story Points earned this battle: %d" % story_points
+	story_label.modulate = Color.CYAN
+	step_content.add_child(story_label)
+
+func _create_experience_panel(crew_member: Dictionary) -> Control:
+	"""Create experience gain panel for crew member"""
+	var panel = HBoxContainer.new()
+	
+	var name_label = Label.new()
+	name_label.text = crew_member.get("name", "Unknown")
+	name_label.custom_minimum_size.x = 120
+	panel.add_child(name_label)
+	
+	var roll_button = Button.new()
+	roll_button.text = "Roll Advancement"
+	roll_button.pressed.connect(_on_experience_roll.bind(crew_member))
+	panel.add_child(roll_button)
+	
+	var result_label = Label.new()
+	result_label.name = "exp_result_" + str(crew_member.get("id", 0))
+	result_label.text = "Not rolled"
+	panel.add_child(result_label)
+	
+	return panel
 
 func _add_training_content() -> void:
 	"""Add training content"""
@@ -227,16 +398,119 @@ func _add_purchase_content() -> void:
 	step_content.add_child(label)
 
 func _add_campaign_events_content() -> void:
-	"""Add campaign events content"""
+	"""Add campaign events content with Five Parsecs event tables"""
 	var label: Label = Label.new()
-	label.text = "Roll D100 on campaign events table."
+	label.text = "Roll D100 on campaign events table for random encounters and opportunities."
 	step_content.add_child(label)
+	
+	var roll_panel = HBoxContainer.new()
+	
+	var roll_button = Button.new()
+	roll_button.text = "Roll Campaign Event"
+	roll_button.pressed.connect(_on_campaign_event_roll)
+	roll_panel.add_child(roll_button)
+	
+	var result_label = Label.new()
+	result_label.name = "campaign_event_result"
+	result_label.text = "Not rolled"
+	roll_panel.add_child(result_label)
+	
+	step_content.add_child(roll_panel)
+
+func _on_campaign_event_roll() -> void:
+	"""Handle campaign event roll"""
+	var dice_manager = get_node_or_null("/root/DiceManager")
+	var roll = 0
+	
+	if dice_manager:
+		roll = dice_manager.roll_dice("Campaign Event", "D100")
+	else:
+		roll = randi_range(1, 100)
+	
+	var event_result = _interpret_campaign_event(roll)
+	var result_text = "Rolled %d - %s" % [roll, event_result]
+	
+	# Update UI
+	var result_label = step_content.find_child("campaign_event_result")
+	if result_label:
+		result_label.text = result_text
+		result_label.modulate = _get_event_color(roll)
+	
+	_add_result_to_log("Campaign Event: %s" % result_text)
+
+func _get_event_color(roll: int) -> Color:
+	"""Get color for event based on roll"""
+	if roll >= 90:
+		return Color.CYAN # Major positive
+	elif roll >= 70:
+		return Color.GREEN # Minor positive
+	elif roll >= 30:
+		return Color.WHITE # Neutral
+	elif roll >= 10:
+		return Color.ORANGE # Minor negative
+	else:
+		return Color.RED # Major negative
 
 func _add_character_events_content() -> void:
-	"""Add character events content"""
+	"""Add character events content with individual crew rolls"""
 	var label: Label = Label.new()
 	label.text = "Roll D100 on character events table for each crew member."
 	step_content.add_child(label)
+	
+	# Get crew from campaign
+	var campaign_manager = get_node_or_null("/root/CampaignManager")
+	if campaign_manager and campaign_manager.has_method("get_crew_members"):
+		var crew = campaign_manager.get_crew_members()
+		var char_events_container = VBoxContainer.new()
+		
+		for crew_member in crew:
+			if not _was_crew_casualty(crew_member):
+				var char_panel = _create_character_event_panel(crew_member)
+				char_events_container.add_child(char_panel)
+		
+		step_content.add_child(char_events_container)
+
+func _create_character_event_panel(crew_member: Dictionary) -> Control:
+	"""Create character event panel for crew member"""
+	var panel = HBoxContainer.new()
+	
+	var name_label = Label.new()
+	name_label.text = crew_member.get("name", "Unknown")
+	name_label.custom_minimum_size.x = 120
+	panel.add_child(name_label)
+	
+	var roll_button = Button.new()
+	roll_button.text = "Roll Event"
+	roll_button.pressed.connect(_on_character_event_roll.bind(crew_member))
+	panel.add_child(roll_button)
+	
+	var result_label = Label.new()
+	result_label.name = "char_event_" + str(crew_member.get("id", 0))
+	result_label.text = "Not rolled"
+	panel.add_child(result_label)
+	
+	return panel
+
+func _on_character_event_roll(crew_member: Dictionary) -> void:
+	"""Handle character event roll"""
+	var dice_manager = get_node_or_null("/root/DiceManager")
+	var roll = 0
+	
+	if dice_manager:
+		roll = dice_manager.roll_dice("Character Event: " + crew_member.get("name", "Unknown"), "D100")
+	else:
+		roll = randi_range(1, 100)
+	
+	var event_result = _interpret_character_event(roll)
+	var result_text = "Rolled %d - %s" % [roll, event_result]
+	
+	# Update UI
+	var result_label = step_content.find_child("char_event_" + str(crew_member.get("id", 0)))
+	if result_label:
+		result_label.text = result_text
+		result_label.modulate = _get_event_color(roll)
+	
+	_add_result_to_log("%s Character Event: %s" % [crew_member.get("name", "Crew"), result_text])
 
 func _add_galactic_war_content() -> void:
 	"""Add galactic war content"""
@@ -268,18 +542,37 @@ func _on_next_pressed() -> void:
 	_show_current_step()
 
 func _on_roll_pressed() -> void:
-	"""Handle roll dice button press"""
-	var roll_result = randi_range(1, 6)
-	var result_text: String = "Rolled: " + str(roll_result)
+	"""Handle roll dice button press with proper dice system integration"""
+	var dice_manager = get_node_or_null("/root/DiceManager")
+	var roll_result = 0
+	
+	# Determine dice type based on step
+	var dice_type = "D6"
+	match current_step:
+		11, 12: # Campaign and Character Events
+			dice_type = "D100"
+	
+	if dice_manager and dice_manager.has_method("roll_dice"):
+		roll_result = dice_manager.roll_dice("Post-Battle Step %d" % (current_step + 1), dice_type)
+	else:
+		roll_result = randi_range(1, 6) if dice_type == "D6" else randi_range(1, 100)
+	
+	var result_text: String = "Rolled %s: %d" % [dice_type, roll_result]
 
-	# Add step-specific roll interpretation
+	# Add step-specific roll interpretation using Five Parsecs tables
 	match current_step:
 		0: # Rival Status
-			result_text += " - " + ("Rival follows" if roll_result <= 3 else "Rival doesn't follow")
+			result_text += " - " + ("Rival follows" if roll_result <= 3 else "Rival stays behind")
 		4: # Battlefield Finds
-			result_text += " - " + ("Found item" if roll_result >= 4 else "No finds")
+			result_text += " - " + _interpret_battlefield_find(roll_result)
 		5: # Invasion Check
-			result_text += " - " + ("Invasion threat" if roll_result == 1 else "No invasion")
+			result_text += " - " + ("Invasion threat!" if roll_result == 1 else "No invasion")
+		6: # Loot
+			result_text += " - " + _interpret_loot_roll(roll_result)
+		11: # Campaign Events
+			result_text += " - " + _interpret_campaign_event(roll_result)
+		12: # Character Events
+			result_text += " - " + _interpret_character_event(roll_result)
 
 	_add_result_to_log(result_text)
 	print("PostBattleSequence: Rolled ", roll_result, " for step ", current_step + 1)
@@ -357,3 +650,188 @@ func _setup_postbattle_icons() -> void:
 		print("PostBattleSequence: Post-battle phase icon applied to finish button successfully")
 	else:
 		push_warning("PostBattleSequence: Finish button not found for icon assignment")
+
+# Enhanced roll interpretation functions using Five Parsecs tables
+
+func _interpret_battlefield_find(roll: int) -> String:
+	"""Interpret battlefield find roll using Five Parsecs tables"""
+	if roll >= 5:
+		return "Found equipment!"
+	elif roll >= 3:
+		return "Found supplies"
+	else:
+		return "Nothing useful found"
+
+func _interpret_loot_roll(roll: int) -> String:
+	"""Interpret loot roll using Five Parsecs loot tables"""
+	if roll == 6:
+		return "Rare equipment found!"
+	elif roll >= 4:
+		return "Standard equipment found"
+	elif roll >= 2:
+		return "Credits found"
+	else:
+		return "No loot"
+
+func _interpret_campaign_event(roll: int) -> String:
+	"""Interpret campaign event roll"""
+	if roll >= 90:
+		return "Major positive event!"
+	elif roll >= 70:
+		return "Minor positive event"
+	elif roll >= 30:
+		return "No significant event"
+	elif roll >= 10:
+		return "Minor complication"
+	else:
+		return "Major complication!"
+
+func _interpret_character_event(roll: int) -> String:
+	"""Interpret character event roll"""
+	if roll >= 95:
+		return "Character gains special ability!"
+	elif roll >= 80:
+		return "Character makes useful contact"
+	elif roll >= 60:
+		return "Character gains minor benefit"
+	elif roll >= 40:
+		return "No event"
+	else:
+		return "Character faces personal challenge"
+
+# Enhanced signal handlers for specific rolls
+
+func _on_rival_status_roll(rival: Dictionary) -> void:
+	"""Handle rival status roll"""
+	var dice_manager = get_node_or_null("/root/DiceManager")
+	var roll = 0
+	
+	if dice_manager:
+		roll = dice_manager.roll_dice("Rival Status: " + rival.get("name", "Unknown"), "D6")
+	else:
+		roll = randi_range(1, 6)
+	
+	var follows = roll <= 3
+	var result_text = "Rolled %d - %s" % [roll, "Follows" if follows else "Stays behind"]
+	
+	# Update UI
+	var result_label = step_content.find_child("result_" + str(rival.get("id", 0)))
+	if result_label:
+		result_label.text = result_text
+		result_label.modulate = Color.GREEN if follows else Color.RED
+	
+	_add_result_to_log("%s: %s" % [rival.get("name", "Rival"), result_text])
+
+func _on_apply_payment(amount: int) -> void:
+	"""Apply payment to campaign"""
+	var campaign_manager = get_node_or_null("/root/CampaignManager")
+	if campaign_manager and campaign_manager.has_method("add_credits"):
+		campaign_manager.add_credits(amount)
+		_add_result_to_log("Applied %d credits to campaign" % amount)
+
+func _on_battlefield_find_roll(enemy_num: int) -> void:
+	"""Handle battlefield find roll"""
+	var dice_manager = get_node_or_null("/root/DiceManager")
+	var roll = 0
+	
+	if dice_manager:
+		roll = dice_manager.roll_dice("Battlefield Find %d" % enemy_num, "D6")
+	else:
+		roll = randi_range(1, 6)
+	
+	var find_result = _interpret_battlefield_find(roll)
+	var result_text = "Rolled %d - %s" % [roll, find_result]
+	
+	# Update UI
+	var result_label = step_content.find_child("find_result_" + str(enemy_num))
+	if result_label:
+		result_label.text = result_text
+		result_label.modulate = Color.GREEN if roll >= 3 else Color.GRAY
+	
+	_add_result_to_log("Enemy %d search: %s" % [enemy_num, result_text])
+
+func _on_injury_roll(type: String, num: int, is_casualty: bool) -> void:
+	"""Handle injury severity roll"""
+	var dice_manager = get_node_or_null("/root/DiceManager")
+	var roll = 0
+	
+	if dice_manager:
+		roll = dice_manager.roll_dice("%s %d Injury" % [type, num], "D100")
+	else:
+		roll = randi_range(1, 100)
+	
+	var severity = _interpret_injury_roll(roll, is_casualty)
+	var result_text = "Rolled %d - %s" % [roll, severity]
+	
+	# Update UI
+	var result_label = step_content.find_child("injury_result_%s_%d" % [type.to_lower(), num])
+	if result_label:
+		result_label.text = result_text
+		result_label.modulate = _get_injury_color(severity)
+	
+	_add_result_to_log("%s %d: %s" % [type, num, result_text])
+
+func _on_experience_roll(crew_member: Dictionary) -> void:
+	"""Handle experience advancement roll"""
+	var dice_manager = get_node_or_null("/root/DiceManager")
+	var roll = 0
+	
+	if dice_manager:
+		roll = dice_manager.roll_dice("Advancement: " + crew_member.get("name", "Unknown"), "D6")
+	else:
+		roll = randi_range(1, 6)
+	
+	var advancement = _interpret_advancement_roll(roll)
+	var result_text = "Rolled %d - %s" % [roll, advancement]
+	
+	# Update UI
+	var result_label = step_content.find_child("exp_result_" + str(crew_member.get("id", 0)))
+	if result_label:
+		result_label.text = result_text
+		result_label.modulate = Color.GREEN if roll >= 4 else Color.GRAY
+	
+	_add_result_to_log("%s: %s" % [crew_member.get("name", "Crew"), result_text])
+
+func _interpret_injury_roll(roll: int, is_casualty: bool) -> String:
+	"""Interpret injury roll using Five Parsecs injury table"""
+	if is_casualty:
+		if roll >= 80:
+			return "Light injury - 1 turn recovery"
+		elif roll >= 50:
+			return "Serious injury - 2 turns recovery"
+		elif roll >= 20:
+			return "Severe injury - 3 turns recovery"
+		else:
+			return "Critical injury - permanent effect"
+	else:
+		if roll >= 70:
+			return "Minor wound - no effect"
+		elif roll >= 40:
+			return "Light injury - 1 turn recovery"
+		else:
+			return "Serious injury - 2 turns recovery"
+
+func _interpret_advancement_roll(roll: int) -> String:
+	"""Interpret advancement roll"""
+	if roll == 6:
+		return "Major advancement - gain 2 skill points!"
+	elif roll >= 4:
+		return "Advancement - gain 1 skill point"
+	else:
+		return "No advancement this time"
+
+func _get_injury_color(severity: String) -> Color:
+	"""Get color for injury severity"""
+	if "Critical" in severity or "permanent" in severity:
+		return Color.RED
+	elif "Severe" in severity or "Serious" in severity:
+		return Color.ORANGE
+	elif "Light" in severity or "Minor" in severity:
+		return Color.YELLOW
+	else:
+		return Color.GREEN
+
+func _was_crew_casualty(crew_member: Dictionary) -> bool:
+	"""Check if crew member was a casualty in battle"""
+	# This would need to check against actual battle results
+	return false # Placeholder implementation

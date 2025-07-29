@@ -1,7 +1,7 @@
 class_name FPCM_TutorialBattlefieldLayouts
 extends Resource
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 const TUTORIAL_LAYOUTS := {
 	"movement_basics": {

@@ -1,495 +1,168 @@
 @tool
 extends GdUnitGameTest
 
-#
+# Real system imports
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const CampaignManager = preload("res://src/core/managers/CampaignManager.gd")
+const GameState = preload("res://src/core/state/GameState.gd")
+const StoryQuestData = preload("res://src/game/story/StoryQuestData.gd")
 
-#
-var MockCampaignManagerScript: GDScript
-var MockGameStateManagerScript: GDScript
-var MockSaveManagerScript: GDScript
-var MockEnemyScript: GDScript
-
-#
-var _test_game_state: Node
-var _campaign_manager: Node
-var _save_manager: Node
+# Real system instances
+var _campaign_manager: CampaignManager
+var _game_state: GameState
 var _tracked_objects: Array[Node] = []
 
-#
+# Test constants
 const TEST_SAVE_SLOT := "test_campaign"
 
 func before_test() -> void:
     super.before_test()
     
-    # Create mock scripts
-#     _create_mock_scripts()
-    
-    # Initialize test environment with proper resource management
-#
+    # Initialize real game systems
+    _initialize_real_systems()
 
 func after_test() -> void:
-    pass
-    #
+    # Clean up tracked objects
     for obj in _tracked_objects:
         if is_instance_valid(obj):
             obj.queue_free()
     _tracked_objects.clear()
     
-    #
+    # Clean up main systems
     if is_instance_valid(_campaign_manager):
         _campaign_manager.queue_free()
         _campaign_manager = null
-    if is_instance_valid(_test_game_state):
-        _test_game_state.queue_free()
-        _test_game_state = null
-    if is_instance_valid(_save_manager):
-        _save_manager.queue_free()
-        _save_manager = null
-    
-    #
-    MockCampaignManagerScript = null
-    MockGameStateManagerScript = null
-    MockSaveManagerScript = null
-    MockEnemyScript = null
-    
-    # Wait for cleanup to complete
-#
+    if is_instance_valid(_game_state):
+        _game_state.queue_free()
+        _game_state = null
     
     super.after_test()
 
-func _create_mock_scripts() -> void:
-    pass
-    #
-    MockCampaignManagerScript = GDScript.new()
-    MockCampaignManagerScript.source_code = '''
-extends Node
-
-signal campaign_created(campaign_data: Dictionary)
-signal campaign_saved(save_data: Dictionary)
-signal campaign_loaded(load_data: Dictionary)
-signal enemy_registered(enemy_data: Dictionary)
-signal credits_changed(new_amount: int)
-signal supplies_changed(new_amount: int)
-signal story_progressed(story_data: Dictionary)
-signal mission_generated(mission_data: Dictionary)
-signal difficulty_scaled(new_difficulty: int)
-
-# var campaign_data: Dictionary = {}
-# var credits: int = 0
-# var supplies: int = 0
-# var registered_enemies: Array = []
-# var story_progress: int = 0
-# var completed_missions: int = 0
-#
-
-func initialize() -> void:
-    campaign_data = {
-        "name": ": Test Campaign","turn_count": 0,
-        "phase": 0,
-func create_campaign(data: Dictionary) -> bool:
-    campaign_data = data.duplicate()
-
-    credits = data.get(": credits",1000)
-
-    supplies = data.get("supplies": ,50)
-
-    story_progress = data.get("story_progress": ,0)
-
-    completed_missions = data.get("completed_missions": ,0)
-
-    difficulty_level = data.get("difficulty": ,1)
-    campaign_created.emit(campaign_data)
-
-func get_campaign_state() -> Dictionary:
-    pass
-        "campaign_id": str(Time.get_unix_time_from_system()),
-        "difficulty_level": difficulty_level,
-        "credits": credits,
-        "supplies": supplies,
-        "story_progress": story_progress,
-        "completed_missions": completed_missions,
-func save_campaign(slot_name: String) -> bool:
-    pass
-#     var save_data := {
-        "campaign": campaign_data,
-        "credits": credits,
-        "supplies": supplies,
-        "slot": slot_name,
-    campaign_saved.emit(save_data)
-
-func load_campaign(slot_name: String) -> bool:
-    pass
-    #
-    campaign_data = {"_name": ": Loaded Campaign","turn_count": 5}
-    credits = 1500
-    supplies = 15
-    campaign_loaded.emit(campaign_data)
-
-func register_enemy(enemy: Node) -> bool:
-    if enemy:
-
-        registered_enemies.append(enemy)
-        enemy_registered.emit({"enemy": enemy.name})
-
-func get_registered_enemies() -> Array:
-    pass
-
-func modify_credits(amount: int) -> bool:
-    credits += amount
-    credits_changed.emit(credits)
-
-func modify_supplies(amount: int) -> bool:
-    supplies += amount
-    supplies_changed.emit(supplies)
-
-func get_credits() -> int:
-    pass
-
-func get_supplies() -> int:
-    pass
-
-func advance_story() -> bool:
-    story_progress += 1
-    story_progressed.emit({"progress": story_progress})
-
-func get_story_progress() -> int:
-    pass
-
-func get_current_story_event() -> Dictionary:
-    pass
-
-func resolve_story_event(_event: Dictionary) -> bool:
-    pass
-
-func generate_mission() -> Dictionary:
-    pass
-#     var mission := {
-        "mission_id": ": test_mission","name": ": Test Mission","difficulty": difficulty_level,
-        "type": ": patrol",mission_generated.emit(mission)
-
-func accept_mission(mission: Dictionary) -> bool:
-    pass
-#
-
-func complete_mission(completion_data: Dictionary) -> bool:
-    pass
-
-    if completion_data.get("success": ,false):
-        completed_missions += 1
-
-#
-
-        credits += rewards.get("credits": ,0)
-        credits_changed.emit(credits)
-
-func get_completed_missions() -> int:
-    pass
-
-func validate_state() -> Dictionary:
-    pass
-
-func get_difficulty() -> int:
-    pass
-
-func scale_enemy(enemy: Node) -> bool:
-    if enemy and enemy.has_method("set_level"):
-
-        enemy.call(": set_level",get_difficulty())
-
-'''
-    MockCampaignManagerScript.reload() # Compile the script
+func _initialize_real_systems() -> void:
+    # Initialize real GameState
+    _game_state = GameState.new()
+    _game_state.name = "TestGameState"
+    add_child(_game_state)
+    _tracked_objects.append(_game_state)
     
-    #
-    MockGameStateManagerScript = GDScript.new()
-    MockGameStateManagerScript.source_code = '''
-extends Node
-
-#
-
-func initialize() -> void:
-    pass
-
-func get_campaign_manager() -> Node:
-    pass
-
-func set_campaign_manager(manager: Node) -> void:
-    campaign_manager = manager
-'''
-    MockGameStateManagerScript.reload() # Compile the script
-    
-    #
-    MockSaveManagerScript = GDScript.new()
-    MockSaveManagerScript.source_code = '''
-extends Node
-
-func save_data(data: Dictionary, slot: String) -> bool:
-    pass
-
-func load_data(slot: String) -> Dictionary:
-    pass
-
-'''
-    MockSaveManagerScript.reload() # Compile the script
-
-    #
-    MockEnemyScript = GDScript.new()
-    MockEnemyScript.source_code = '''
-extends Node
-
-# var health: int = 10
-# var damage: int = 2
-# var speed: int = 3
-# var level: int = 1
-#
-
-func initialize(data: Dictionary) -> void:
-    enemy_data = data
-
-    health = data.get("health": ,10)
-
-    damage = data.get("damage": ,2)
-
-    speed = data.get("speed": ,3)
-
-    level = data.get("level": ,1)
-
-func get_level() -> int:
-    pass
-
-func set_level(new_level: int) -> void:
-    _level = new_level
-
-func get_health() -> int:
-    pass
-
-func get_damage() -> int:
-    pass
-
-func get_speed() -> int:
-    pass
-
-func get_enemy_data() -> Dictionary:
-    pass
-
-'''
-    MockEnemyScript.reload() #
-
-func _initialize_test_environment() -> void:
-    pass
-    #
-    _test_game_state = Node.new()
-    _test_game_state.name = "TestGameState"
-    _test_game_state.set_script(MockGameStateManagerScript)
-#
-    _tracked_objects.append(_test_game_state)
-    
-    #
-    _campaign_manager = Node.new()
+    # Initialize real CampaignManager
+    _campaign_manager = CampaignManager.new()
     _campaign_manager.name = "TestCampaignManager"
-    _campaign_manager.set_script(MockCampaignManagerScript)
-#
+    _campaign_manager.game_state = _game_state
+    add_child(_campaign_manager)
     _tracked_objects.append(_campaign_manager)
     
-    #
-    _save_manager = Node.new()
-    _save_manager.name = "TestSaveManager"
-    _save_manager.set_script(MockSaveManagerScript)
-#
-    _tracked_objects.append(_save_manager)
-    
-    # Ensure everything is properly initialized
-#
+    # Allow systems to initialize
+    await get_tree().process_frame
 
-func _create_test_campaign_data() -> Dictionary:
+func _create_test_mission_config() -> Dictionary:
     return {
-        "name": ": Test Campaign","difficulty": 1,
-        "credits": 1000,
-        "supplies": 50,
-        "crew": [],
-        "enemies": [],
-        "story_progress": 0,
-        "completed_missions": 0,
+        "name": "Test Mission",
+        "description": "A test mission for integration testing",
+        "mission_type": GlobalEnums.MissionType.PATROL,
+        "difficulty": 1,
+        "reward_credits": 100,
+        "reward_experience": 50
     }
 
-func _create_test_enemy() -> Node:
-    var enemy = Node.new()
-    enemy.name = "TestEnemy_%d" % Time.get_unix_time_from_system()
-    enemy.set_script(MockEnemyScript)
+func test_mission_creation() -> void:
+    """Test that missions can be created using the real campaign manager."""
+    # Given a campaign manager with initialized game state
+    assert_that(_campaign_manager).is_not_null()
+    assert_that(_game_state).is_not_null()
     
-    # Initialize with test data
-    var enemy_data = {
-        "id": ": test_enemy","name": ": Test Enemy","health": 10,
-        "damage": 2,
-        "speed": 3,
-        "level": 1,
-    }
-    enemy.call(": initialize",enemy_data)
-    _tracked_objects.append(enemy)
-    return enemy
-
-#
-func test_campaign_creation() -> void:
-    """Test that a campaign can be created with valid data."""
-    # Given valid campaign data
-    var campaign_data := _create_test_campaign_data()
+    # When creating a mission
+    var mission_config := _create_test_mission_config()
+    var mission: StoryQuestData = _campaign_manager.create_mission(GlobalEnums.MissionType.PATROL, mission_config)
     
-    # When creating a campaign
-    # assert_that(_campaign_manager.create_campaign(campaign_data)).is_true()
-    
-    # Then the campaign state should be initialized
-    # var state: Dictionary = _campaign_manager.get_campaign_state()
-    # assert_that(state).is_not_empty()
-    # assert_that(state.get(": name","")).is_equal(campaign_data.get(": name",""))
-    # assert_that(state.get(": credits",0)).is_equal(campaign_data.get("credits": ,0))
+    # Then the mission should be created successfully
+    assert_that(mission).is_not_null()
+    assert_that(mission.get_title()).is_equal("Test Mission")
+    assert_that(mission.get_description()).is_equal("A test mission for integration testing")
 
 func test_campaign_save_load() -> void:
-    """Test that a campaign can be saved and loaded."""
-    # Given a campaign
-    var campaign_data := _create_test_campaign_data()
-    _campaign_manager.create_campaign(campaign_data)
+    """Test that campaign state can be saved and loaded."""
+    # Given a campaign with some mission data
+    var mission_config := _create_test_mission_config()
+    var mission := _campaign_manager.create_mission(GlobalEnums.MissionType.PATROL, mission_config)
     
-    # When saving the campaign
-    # assert_that(_campaign_manager.save_campaign(TEST_SAVE_SLOT)).is_true()
+    # When saving the campaign state
+    var save_data: Dictionary = _campaign_manager.save_campaign_state()
+    assert_that(save_data).is_not_empty()
+    assert_that(save_data).contains_keys(["available_missions", "completed_missions", "story_track"])
     
-    # When loading the campaign
-    # assert_that(_campaign_manager.load_campaign(TEST_SAVE_SLOT)).is_true()
+    # When loading the campaign state
+    var load_success: bool = _campaign_manager.load_campaign_state(save_data)
+    assert_that(load_success).is_true()
 
-func test_enemy_registration() -> void:
-    """Test that enemies can be registered with the campaign."""
-    # Given a campaign
-    var campaign_data := _create_test_campaign_data()
-    _campaign_manager.create_campaign(campaign_data)
+func test_mission_workflow() -> void:
+    """Test the complete mission workflow from creation to completion."""
+    # Given a mission is created
+    var mission_config := _create_test_mission_config()
+    var mission := _campaign_manager.create_mission(GlobalEnums.MissionType.PATROL, mission_config)
     
-    # When registering an enemy
-    var enemy := _create_test_enemy()
-    # assert_that(_campaign_manager.register_enemy(enemy)).is_true()
+    # When starting the mission
+    var start_success: bool = _campaign_manager.start_mission(mission)
+    assert_that(start_success).is_true()
     
-    # Then the enemy should be in the registered enemies list
-    # var enemies: Array = _campaign_manager.get_registered_enemies()
-    # assert_that(enemies).contains([enemy])
+    # Then the mission should be in active missions
+    var active_missions: Array[StoryQuestData] = _campaign_manager.get_active_missions()
+    assert_that(active_missions).contains([mission])
+    
+    # When completing the mission
+    _campaign_manager.complete_mission(mission)
+    
+    # Then the mission should be in completed missions
+    var completed_missions: Array[StoryQuestData] = _campaign_manager.get_completed_missions()
+    assert_that(completed_missions).contains([mission])
+    assert_that(active_missions.size()).is_equal(0)
 
-func test_credit_management() -> void:
-    """Test that credits can be added and deducted."""
-    # Given a campaign
-    var campaign_data := _create_test_campaign_data()
-    _campaign_manager.create_campaign(campaign_data)
+func test_story_track_integration() -> void:
+    """Test that story track system integrates properly with campaign manager."""
+    # Given the campaign manager has a story track system
+    var story_track_system = _campaign_manager.get_story_track_system()
+    assert_that(story_track_system).is_not_null()
     
-    # Get initial credits
-    # var initial_credits: int = _campaign_manager.get_credits()
+    # When starting the story track
+    _campaign_manager.start_story_track()
     
-    # When modifying credits
-    var credit_change: int = 250
-    _campaign_manager.modify_credits(credit_change)
+    # Then the story track should be active
+    assert_that(_campaign_manager.is_story_track_active()).is_true()
     
-    # Then credits should be updated
-    # var new_credits: int = _campaign_manager.get_credits()
-    # assert_that(new_credits).is_equal(initial_credits + credit_change)
-
-func test_supply_management() -> void:
-    """Test that supplies can be added and deducted."""
-    # Given a campaign
-    var campaign_data := _create_test_campaign_data()
-    _campaign_manager.create_campaign(campaign_data)
-    
-    # Get initial supplies
-    # var initial_supplies: int = _campaign_manager.get_supplies()
-    
-    # When modifying supplies
-    var supply_change: int = -10
-    _campaign_manager.modify_supplies(supply_change)
-    
-    # Then supplies should be updated
-    # var new_supplies: int = _campaign_manager.get_supplies()  
-    # assert_that(new_supplies).is_equal(initial_supplies + supply_change)
-
-func test_story_progression() -> void:
-    """Test that the story can progress."""
-    # Given a campaign
-    var campaign_data := _create_test_campaign_data()
-    _campaign_manager.create_campaign(campaign_data)
-    
-    # When advancing story
-    _campaign_manager.advance_story()
-    
-    # Then the story progress should be updated
-    # var progress: int = _campaign_manager.get_story_progress()
-    # assert_that(progress).is_greater_equal(1)
-    
-    # Verify current story event
-    # var event: Dictionary = _campaign_manager.get_current_story_event()
-    # assert_that(event).is_not_empty()
-    
-    # Resolve the story event
-    # assert_that(_campaign_manager.resolve_story_event(event)).is_true()
-
-func test_mission_generation() -> void:
-    """Test that missions can be generated."""
-    # Given a campaign
-    var campaign_data := _create_test_campaign_data()
-    _campaign_manager.create_campaign(campaign_data)
-    
-    # When generating a mission
-    # var mission: Dictionary = _campaign_manager.generate_mission()
-    # assert_that(mission).is_not_empty()
-    
-    # When accepting a mission
-    # assert_that(_campaign_manager.accept_mission(mission)).is_true()
-    
-    # Simulate mission completion
-    var completion_data := {
-        "success": true,
-        "rewards": {
-            "credits": 100,
-            "experience": 50,
-            "items": [],
-        },
-        "casualties": [],
-    }
-    # When completing a mission
-    # assert_that(_campaign_manager.complete_mission(completion_data)).is_true()
-    
-    # Then completed missions should be incremented
-    # var completed_missions: int = _campaign_manager.get_completed_missions()
-    # assert_that(completed_missions).is_greater_equal(1)
+    # When getting story track status
+    var status: Dictionary = _campaign_manager.get_story_track_status()
+    assert_that(status).is_not_empty()
+    assert_that(status).contains_key("active")
 
 func test_campaign_validation() -> void:
-    """Test that campaign validation works."""
-    # Given a campaign
-    var campaign_data := _create_test_campaign_data()
-    _campaign_manager.create_campaign(campaign_data)
+    """Test that campaign state validation works with real systems."""
+    # Given a campaign manager with some test data
+    var mission_config := _create_test_mission_config()
+    var mission := _campaign_manager.create_mission(GlobalEnums.MissionType.PATROL, mission_config)
     
-    # When validating a normal state
-    # var validation_result: Dictionary = _campaign_manager.validate_state()
-    # assert_that(validation_result).contains_keys([": valid","errors": ])
-    # assert_that(validation_result.get("valid",false)).is_true()
+    # When validating the campaign state
+    var validation_result: Dictionary = _campaign_manager.validate_campaign_state()
+    
+    # Then the validation should pass
+    assert_that(validation_result).contains_keys(["valid", "errors", "warnings"])
+    assert_that(validation_result.get("valid", false)).is_true()
+    assert_that(validation_result.get("errors", [])).is_empty()
 
-func test_difficulty_scaling() -> void:
-    """Test that difficulty affects enemy scaling."""
-    # Given a campaign
-    var campaign_data := _create_test_campaign_data()
-    _campaign_manager.create_campaign(campaign_data)
+func test_battle_events_integration() -> void:
+    """Test that battle events system integrates properly with campaign manager."""
+    # Given the campaign manager has battle events initialized
+    _campaign_manager.initialize_battle_events()
     
-    # Complete a mission to increase difficulty
-    var completion_data := {
-        "success": true,
-        "rewards": {
-            "credits": 100,
-            "experience": 50,
-        },
-        "casualties": [],
-    }
-    _campaign_manager.complete_mission(completion_data)
+    # When checking for battle events in round 1
+    var events: Array = _campaign_manager.check_battle_events(1)
     
-    # Then difficulty should increase
-    # var difficulty: int = _campaign_manager.get_difficulty()
-    # assert_that(difficulty).is_greater_equal(1)
+    # Then events should be available (array should exist, even if empty)
+    assert_that(events).is_not_null()
     
-    # When scaling an enemy
-    var enemy := _create_test_enemy()
-    _campaign_manager.register_enemy(enemy)
-    _campaign_manager.scale_enemy(enemy)
+    # When getting environmental hazards
+    var hazards: Array = _campaign_manager.get_active_environmental_hazards()
+    assert_that(hazards).is_not_null()
     
-    # Then enemy level should be scaled
-    # var enemy_level: int = enemy.get_level()
-    # assert_that(enemy_level).is_greater_equal(1)
+    # When clearing battle events
+    _campaign_manager.clear_battle_events()
+    # Should not throw errors

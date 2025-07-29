@@ -4,7 +4,7 @@
 @warning_ignore("untyped_declaration")
 extends Node
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 # Note: CharacterManager is an autoload - access via get_node("/root/CharacterManager")
 # Note: GameState will be injected via setup() to avoid circular dependencies
 

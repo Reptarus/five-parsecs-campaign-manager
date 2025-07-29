@@ -1,1 +1,13 @@
-{}
+{
+  "world_traits": [
+    {"id": 1, "name": "Frontier World", "description": "Remote and undeveloped"},
+    {"id": 2, "name": "Trade Hub", "description": "Commercial center"},
+    {"id": 3, "name": "Industrial", "description": "Manufacturing focused"},
+    {"id": 4, "name": "Research", "description": "Scientific community"},
+    {"id": 5, "name": "Criminal", "description": "Lawless and dangerous"},
+    {"id": 6, "name": "Affluent", "description": "Wealthy and developed"},
+    {"id": 7, "name": "Dangerous", "description": "Hostile environment"},
+    {"id": 8, "name": "Corporate", "description": "Corporate controlled"},
+    {"id": 9, "name": "Military", "description": "Military presence"}
+  ]
+}

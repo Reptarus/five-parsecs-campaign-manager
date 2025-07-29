@@ -1,7 +1,7 @@
 ﻿# VictoryConditionSelection.gd
 extends Resource
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 signal victory_selected(type: int, data: Dictionary)
 

@@ -5,7 +5,7 @@ class_name CharacterCreator
 ## Character creation system for Five Parsecs campaign
 ## Handles character generation, customization, and validation
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const Character = preload("res://src/core/character/Character.gd")
 
 signal character_created(character: Character)

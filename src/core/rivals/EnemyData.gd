@@ -1,7 +1,7 @@
 ﻿@tool
 extends Resource
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const GameWeapon = preload("res://src/core/systems/items/GameWeapon.gd")
 
 # Core enemy properties

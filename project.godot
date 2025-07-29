@@ -20,20 +20,23 @@ config/icon="res://icon.svg"
 
 GlobalEnums="*res://src/core/systems/GlobalEnums.gd"
 DataManagerAutoload="*res://src/core/data/DataManager.gd"
-SystemsAutoload="*res://src/autoload/SystemsAutoload.gd"
+DiceManager="*res://src/core/managers/DiceManager.gd"
+SceneRouter="*res://src/ui/screens/SceneRouter.gd"
+# SystemOrchestrator removed - unified systems architecture eliminated
+#LegacySystems(Maintainedforbackwardscompatibilityduringtransition)SystemsAutoload="*res://src/autoload/SystemsAutoload.gd"
 GameStateManagerAutoload="*res://src/core/managers/GameStateManager.gd"
 CharacterManagerAutoload="*res://src/core/character/Management/CharacterManager.gd"
 PlanetCache="*res://src/game/world/PlanetCache.gd"
 BattleStateMachineAutoload="*res://src/core/battle/state/BattleStateMachine.gd"
 FPCM_AlphaGameManager="*res://src/core/managers/AlphaGameManager.gd"
 CampaignManager="*res://src/core/managers/CampaignManager.gd"
-DiceManager="*res://src/core/managers/DiceManager.gd"
 CoreSystemSetup="*res://src/autoload/CoreSystemSetup.gd"
 BattlefieldCompanionManager="*res://src/autoload/BattlefieldCompanionManager.gd"
 CampaignPhaseManager="*res://src/core/campaign/CampaignPhaseManager.gd"
+BattleResultsManager="*res://src/core/battle/BattleResultsManager.gd"
 SaveManager="*res://src/core/state/SaveManager.gd"
 GameState="*res://src/core/state/GameState.gd"
-SceneRouter="*res://src/ui/screens/SceneRouter.gd"
+CampaignCreationStateBridge="*res://src/core/campaign/creation/CampaignCreationStateBridge.gd"
 
 [debug]
 

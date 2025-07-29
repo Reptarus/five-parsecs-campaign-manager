@@ -10,6 +10,7 @@ const WorldPhase = preload("res://src/core/campaign/phases/WorldPhase.gd")
 const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
 const EnhancedCampaignSignals = preload("res://src/core/signals/EnhancedCampaignSignals.gd")
 const FPCM_DataManager = preload("res://src/core/data/DataManager.gd")
+const SafeDataAccess = preload("res://src/utils/SafeDataAccess.gd")
 
 # Feature 8: Job System Integration
 const JobDataAdapter = preload("res://src/core/world_phase/JobDataAdapter.gd")
@@ -21,6 +22,7 @@ signal world_phase_completed()
 signal crew_task_assigned(crew_id: String, task_type: String)
 signal crew_task_resolved(crew_id: String, result: WorldPhaseResources.CrewTaskResult)
 signal patron_contacted(patron_data: WorldPhaseResources.PatronData)
+signal contact_discovered(contact: Dictionary)
 signal job_offer_generated(job: WorldPhaseResources.JobOpportunity)
 signal job_accepted(job_id: String)
 signal equipment_discovered(equipment: WorldPhaseResources.EquipmentDiscovery)
@@ -166,6 +168,9 @@ func _initialize_core_systems() -> void:
 	if not signals_manager:
 		push_warning("WorldPhaseUI: EnhancedCampaignSignals not available - using fallback")
 	
+	# SPRINT ENHANCEMENT: Initialize validated backend systems
+	_initialize_backend_integration_systems()
+	
 	# Connect world phase to data layer
 	world_phase.initialize_with_data_manager(data_manager)
 	world_phase.connect_to_signals(signals_manager)
@@ -175,6 +180,171 @@ func _initialize_core_systems() -> void:
 	add_child(automation_controller)
 	automation_controller.initialize(world_phase, null, self)
 	_connect_automation_signals()
+
+## SPRINT ENHANCEMENT: Backend Integration Systems
+
+func _initialize_backend_integration_systems() -> void:
+	"""Initialize the validated backend systems for world phase operations"""
+	print("WorldPhaseUI: Initializing backend integration systems...")
+	
+	# Initialize ContactManager for NPC/contact tracking
+	var ContactManager = preload("res://src/core/world/ContactManager.gd")
+	if ContactManager:
+		var contact_manager = ContactManager.new()
+		add_child(contact_manager)
+		contact_manager.name = "BackendContactManager"
+		print("WorldPhaseUI: ContactManager initialized")
+		
+		# Connect contact manager signals
+		contact_manager.contact_discovered.connect(_on_backend_contact_discovered)
+		contact_manager.contact_reputation_changed.connect(_on_backend_contact_reputation_changed)
+	else:
+		push_warning("WorldPhaseUI: ContactManager not available")
+	
+	# Initialize PatronJobGenerator for patron missions
+	var PatronJobGenerator = preload("res://src/core/patrons/PatronJobGenerator.gd")
+	if PatronJobGenerator:
+		var patron_generator = PatronJobGenerator.new()
+		add_child(patron_generator)
+		patron_generator.name = "BackendPatronGenerator"
+		print("WorldPhaseUI: PatronJobGenerator initialized")
+		
+		# Connect patron generator signals
+		patron_generator.patron_job_generated.connect(_on_backend_patron_job_generated)
+		patron_generator.patron_relationship_updated.connect(_on_backend_patron_relationship_updated)
+	else:
+		push_warning("WorldPhaseUI: PatronJobGenerator not available")
+	
+	# Initialize PlanetDataManager for world persistence
+	var PlanetDataManager = preload("res://src/core/world/PlanetDataManager.gd")
+	if PlanetDataManager:
+		var planet_manager = PlanetDataManager.new()
+		add_child(planet_manager)
+		planet_manager.name = "BackendPlanetManager"
+		print("WorldPhaseUI: PlanetDataManager initialized")
+		
+		# Connect planet manager signals
+		planet_manager.planet_discovered.connect(_on_backend_planet_discovered)
+		planet_manager.planet_visited.connect(_on_backend_planet_visited)
+	else:
+		push_warning("WorldPhaseUI: PlanetDataManager not available")
+	
+	# Initialize RivalBattleGenerator for rival encounters
+	var RivalBattleGenerator = preload("res://src/core/rivals/RivalBattleGenerator.gd")
+	if RivalBattleGenerator:
+		var rival_generator = RivalBattleGenerator.new()
+		add_child(rival_generator)
+		rival_generator.name = "BackendRivalGenerator"
+		print("WorldPhaseUI: RivalBattleGenerator initialized")
+		
+		# Connect rival generator signals
+		rival_generator.rival_battle_generated.connect(_on_backend_rival_battle_generated)
+		rival_generator.rival_escalated.connect(_on_backend_rival_escalated)
+	else:
+		push_warning("WorldPhaseUI: RivalBattleGenerator not available")
+	
+	print("WorldPhaseUI: Backend integration systems initialization complete")
+
+## Backend System Signal Handlers
+
+func _on_backend_contact_discovered(contact) -> void:
+	"""Handle contact discovery from backend ContactManager"""
+	print("WorldPhaseUI: Backend contact discovered - %s" % contact.name)
+	
+	# Update UI to show new contact
+	if patron_list:
+		patron_list.add_item(contact.name + " (" + contact.contact_type + ")")
+	
+	# Emit UI signal for further processing
+	contact_discovered.emit(contact)
+
+func _on_backend_contact_reputation_changed(contact_id: String, old_reputation: int, new_reputation: int) -> void:
+	"""Handle contact reputation changes from backend"""
+	print("WorldPhaseUI: Contact %s reputation changed: %d -> %d" % [contact_id, old_reputation, new_reputation])
+
+func _on_backend_patron_job_generated(job) -> void:
+	"""Handle patron job generation from backend PatronJobGenerator"""
+	print("WorldPhaseUI: Backend patron job generated - %s" % job.mission_title)
+	
+	# Update job details display
+	if job_details:
+		var job_text = "JOB: %s\n%s\nPayment: %d credits" % [job.mission_title, job.mission_description, job.base_payment]
+		job_details.text = job_text
+	
+	# Emit UI signal for job processing
+	job_offer_generated.emit(job)
+
+func _on_backend_patron_relationship_updated(patron_id: String, relationship_level: int) -> void:
+	"""Handle patron relationship updates from backend"""
+	print("WorldPhaseUI: Patron %s relationship updated to %d" % [patron_id, relationship_level])
+
+func _on_backend_planet_discovered(planet_data: Variant) -> void:
+	"""Handle planet discovery from backend PlanetDataManager"""
+	print("WorldPhaseUI: Backend planet discovered - %s" % planet_data.name)
+
+func _on_backend_planet_visited(planet_id: String, visit_count: int) -> void:
+	"""Handle planet visit tracking from backend"""
+	print("WorldPhaseUI: Planet %s visited (count: %d)" % [planet_id, visit_count])
+
+func _on_backend_rival_battle_generated(battle_data: Variant) -> void:
+	"""Handle rival battle generation from backend RivalBattleGenerator"""
+	print("WorldPhaseUI: Backend rival battle generated - %s" % battle_data.battle_type)
+
+func _on_backend_rival_escalated(rival_id: String, new_threat_level: int) -> void:
+	"""Handle rival escalation from backend"""
+	print("WorldPhaseUI: Rival %s escalated to threat level %d" % [rival_id, new_threat_level])
+
+## Backend System Interaction Methods
+
+func generate_random_contact_backend(planet_id: String, turn_number: int = 0) -> void:
+	"""Generate a random contact using the backend ContactManager"""
+	var contact_manager = get_node("BackendContactManager")
+	if contact_manager and contact_manager.has_method("generate_random_contact"):
+		var contact = contact_manager.generate_random_contact(planet_id, turn_number)
+		print("WorldPhaseUI: Generated random contact through backend - %s" % contact.name)
+	else:
+		print("WorldPhaseUI: ContactManager not available for random contact generation")
+
+func generate_patron_job_backend(patron_data: Variant, crew_size: int = 4, relationship_level: int = 0) -> void:
+	"""Generate a patron job using the backend PatronJobGenerator"""
+	var patron_generator = get_node("BackendPatronGenerator")
+	if patron_generator and patron_generator.has_method("generate_patron_job"):
+		var job = patron_generator.generate_patron_job(patron_data, crew_size, relationship_level)
+		print("WorldPhaseUI: Generated patron job through backend - %s" % job.mission_title)
+	else:
+		print("WorldPhaseUI: PatronJobGenerator not available for job generation")
+
+func check_rival_encounter_backend(rival_data: Variant, current_turn: int, crew_size: int = 4) -> void:
+	"""Check for rival encounter using the backend RivalBattleGenerator"""
+	var rival_generator = get_node("BackendRivalGenerator")
+	if rival_generator and rival_generator.has_method("should_rival_attack"):
+		var should_attack = rival_generator.should_rival_attack(rival_data, current_turn)
+		if should_attack and rival_generator.has_method("generate_rival_battle"):
+			var battle = rival_generator.generate_rival_battle(rival_data, current_turn, crew_size)
+			print("WorldPhaseUI: Rival encounter generated through backend - %s" % battle.battle_type)
+		else:
+			print("WorldPhaseUI: No rival encounter this turn")
+	else:
+		print("WorldPhaseUI: RivalBattleGenerator not available for encounter check")
+
+func update_planet_data_backend(planet_id: String, campaign_turn: int = 0) -> void:
+	"""Update or generate planet data using the backend PlanetDataManager"""
+	var planet_manager = get_node("BackendPlanetManager")
+	if planet_manager and planet_manager.has_method("get_or_generate_planet"):
+		var planet_data = planet_manager.get_or_generate_planet(planet_id, campaign_turn)
+		print("WorldPhaseUI: Planet data updated through backend - %s" % planet_data.name)
+		
+		# Update current world display
+		if planet_data:
+			current_world = planet_data.name
+			_update_world_display()
+	else:
+		print("WorldPhaseUI: PlanetDataManager not available for planet data update")
+
+func _update_world_display() -> void:
+	"""Update the world display with current world information"""
+	if title_label:
+		title_label.text = "World Phase - %s" % current_world
 
 func _create_responsive_layout() -> void:
 	# Create header panel in sidebar for mobile, top for desktop
@@ -201,7 +371,8 @@ func _create_header_panel() -> Control:
 	var title_label = Label.new()
 	title_label.name = "TitleLabel"
 	title_label.text = "World Phase"
-	# title_label.add_theme_stylebox_override("normal", preload("res://ui/theme/campaign_title_style.tres"))
+	# Use existing sci-fi theme for styling
+	title_label.add_theme_font_size_override("font_size", 24)
 	panel.add_child(title_label)
 	
 	var world_label = Label.new()
@@ -218,7 +389,8 @@ func _create_step_navigation() -> Control:
 	
 	var nav_label = Label.new()
 	nav_label.text = "Phase Steps"
-	# nav_label.add_theme_stylebox_override("normal", preload("res://ui/theme/section_header_style.tres"))
+	# Use existing theme styling
+	nav_label.add_theme_font_size_override("font_size", 18)
 	nav_container.add_child(nav_label)
 	
 	# Create step buttons with touch-friendly sizing
@@ -278,7 +450,8 @@ func _create_progress_display() -> Control:
 	
 	var progress_label = Label.new()
 	progress_label.text = "Progress"
-	# progress_label.add_theme_stylebox_override("normal", preload("res://ui/theme/section_header_style.tres"))
+	# Use existing theme styling
+	progress_label.add_theme_font_size_override("font_size", 18)
 	display.add_child(progress_label)
 	
 	var progress_bar = ProgressBar.new()
@@ -302,7 +475,8 @@ func _create_automation_controls() -> Control:
 	# Automation header
 	var auto_label = Label.new()
 	auto_label.text = "Automation & Controls"
-	# auto_label.add_theme_stylebox_override("normal", preload("res://ui/theme/section_header_style.tres"))
+	# Use existing theme styling
+	auto_label.add_theme_font_size_override("font_size", 18)
 	controls.add_child(auto_label)
 	
 	# Master automation toggle
@@ -1133,15 +1307,16 @@ func _on_unified_progress_bar_updated(id: String, progress: float, status: Strin
 
 func _on_unified_notification_displayed(notification: Dictionary) -> void:
 	# Handle unified notifications
-	var title = notification.get("title", "Notification")
-	var message = notification.get("message", "")
-	var priority = notification.get("priority", "info")
-	var duration = notification.get("duration", 2.0)
+	var title = SafeDataAccess.safe_get(notification, "title", "Notification", "unified notification")
+	var message = SafeDataAccess.safe_get(notification, "message", "", "unified notification")
+	var priority = SafeDataAccess.safe_get(notification, "priority", "info", "unified notification")
+	var duration = SafeDataAccess.safe_get(notification, "duration", 2.0, "unified notification")
 	show_notification(title, message, priority, duration)
 
 func _on_unified_critical_event_highlighted(event_data: Dictionary) -> void:
 	# Handle unified critical events
-	show_critical_event(event_data.get("type", "critical"), event_data)
+	var event_type = SafeDataAccess.safe_get(event_data, "type", "critical", "critical event handling")
+	show_critical_event(event_type, event_data)
 
 func _on_unified_orientation_changed(new_orientation: String) -> void:
 	# Handle responsive layout changes
@@ -1353,9 +1528,9 @@ func _show_dice_result_feedback(data: Dictionary) -> void:
 	if not dice_result_display:
 		return
 	
-	var crew_member: String = data.get("crew_member", "Unknown")
-	var dice_roll: int = data.get("dice_roll", 0)
-	var success: bool = data.get("success", false)
+	var crew_member: String = SafeDataAccess.safe_get(data, "crew_member", "Unknown", "dice result feedback")
+	var dice_roll: int = SafeDataAccess.safe_get(data, "dice_roll", 0, "dice result feedback")
+	var success: bool = SafeDataAccess.safe_get(data, "success", false, "dice result feedback")
 	
 	var dice_label: Label = dice_result_display.get_node("DiceLabel")
 	var result_label: Label = dice_result_display.get_node("ResultLabel")
@@ -1372,8 +1547,8 @@ func _show_dice_result_feedback(data: Dictionary) -> void:
 
 ## Show step start feedback
 func _show_step_start_feedback(data: Dictionary) -> void:
-	var step_name: String = data.get("step_name", "Unknown Step")
-	var icon: String = data.get("icon", "🔄")
+	var step_name: String = SafeDataAccess.safe_get(data, "step_name", "Unknown Step", "step start feedback")
+	var icon: String = SafeDataAccess.safe_get(data, "icon", "🔄", "step start feedback")
 	
 	show_notification(
 		"%s %s Starting" % [icon, step_name],
@@ -1384,8 +1559,8 @@ func _show_step_start_feedback(data: Dictionary) -> void:
 
 ## Show step completion feedback
 func _show_step_complete_feedback(data: Dictionary) -> void:
-	var step_name: String = data.get("step_name", "Unknown Step")
-	var duration: int = data.get("duration_ms", 0)
+	var step_name: String = SafeDataAccess.safe_get(data, "step_name", "Unknown Step", "step complete feedback")
+	var duration: int = SafeDataAccess.safe_get(data, "duration_ms", 0, "step complete feedback")
 	
 	show_notification(
 		"✅ %s Complete" % step_name,
@@ -1550,8 +1725,9 @@ func _on_auto_resolve_crew_tasks() -> void:
 	var crew_assignments := {}
 	
 	for crew_member in crew_data:
-		var crew_id = crew_member.get("id", "")
-		var crew_name = crew_member.get("name", "Unknown")
+		var crew_dict = SafeDataAccess.safe_dict_access(crew_member, "crew data processing")
+		var crew_id = SafeDataAccess.safe_get(crew_dict, "id", "", "crew data processing")
+		var crew_name = SafeDataAccess.safe_get(crew_dict, "name", "Unknown", "crew data processing")
 		# Assign default exploration task
 		crew_assignments[crew_name] = GlobalEnums.CrewTaskType.EXPLORE
 	
@@ -1600,12 +1776,13 @@ func _on_auto_select_job() -> void:
 	# Auto-select best job based on payment and risk
 	var best_job = _select_best_job(available_jobs)
 	if best_job:
-		var job_id = best_job.get("id", "")
+		var job_dict = SafeDataAccess.safe_dict_access(best_job, "auto job selection")
+		var job_id = SafeDataAccess.safe_get(job_dict, "id", "", "auto job selection")
 		_on_accept_job(job_id)
 		
 		show_notification(
 			"Job Auto-Selected",
-			"Accepted: %s" % best_job.get("mission_type", "Unknown"),
+			"Accepted: %s" % SafeDataAccess.safe_get(job_dict, "mission_type", "Unknown", "auto job selection"),
 			"success",
 			3.0
 		)
@@ -1702,8 +1879,9 @@ func _select_best_job(available_jobs: Array) -> Dictionary:
 	var best_score = -1
 	
 	for job in available_jobs:
-		var payment = job.get("payment", 0)
-		var danger = job.get("danger_level", 1)
+		var job_dict = SafeDataAccess.safe_dict_access(job, "best job selection")
+		var payment = SafeDataAccess.safe_get(job_dict, "payment", 0, "best job selection")
+		var danger = SafeDataAccess.safe_get(job_dict, "danger_level", 1, "best job selection")
 		
 		# Simple scoring: prioritize high pay, low danger
 		var score = payment - (danger * 100)
@@ -1936,7 +2114,7 @@ func _handle_job_selection_open_state(context: Dictionary) -> void:
 	show_notification("Job Selection", "Job selection interface opened", "info", 2.0)
 
 func _handle_job_selected_state(context: Dictionary) -> void:
-	var job = context.get("job", null)
+	var job = SafeDataAccess.safe_get(context, "job", null, "job selected state")
 	if job:
 		selected_job = job
 		show_notification("Job Selected", "Job selected for validation", "info", 2.0)
@@ -1945,7 +2123,7 @@ func _handle_job_selected_state(context: Dictionary) -> void:
 		_change_job_workflow_state("job_validation", {"job": job})
 
 func _handle_job_validation_state(context: Dictionary) -> void:
-	var job = context.get("job", selected_job)
+	var job = SafeDataAccess.safe_get(context, "job", selected_job, "job validation state")
 	if job:
 		job_validation_started.emit(job)
 		show_notification("Validating Job", "Checking job requirements...", "info", 2.0)
@@ -1957,7 +2135,7 @@ func _handle_job_validated_state(context: Dictionary) -> void:
 	show_notification("Job Valid", "Job requirements validated successfully", "success", 2.0)
 
 func _handle_job_acceptance_state(context: Dictionary) -> void:
-	var job = context.get("job", selected_job)
+	var job = SafeDataAccess.safe_get(context, "job", selected_job, "job acceptance state")
 	if job:
 		job_acceptance_started.emit(job)
 		show_notification("Accepting Job", "Processing job acceptance...", "info", 2.0)
@@ -1966,7 +2144,7 @@ func _handle_job_acceptance_state(context: Dictionary) -> void:
 		_accept_job_async(job)
 
 func _handle_job_accepted_state(context: Dictionary) -> void:
-	var job = context.get("job", selected_job)
+	var job = SafeDataAccess.safe_get(context, "job", selected_job, "job accepted state")
 	if job:
 		show_notification("Job Accepted", "Job successfully accepted!", "success", 3.0)
 		job_acceptance_completed.emit(job, true)
@@ -1986,8 +2164,8 @@ func _handle_job_workflow_complete_state(context: Dictionary) -> void:
 	available_job_offers.clear()
 
 func _handle_job_error_state(context: Dictionary) -> void:
-	var error_type = context.get("error_type", "unknown")
-	var error_message = context.get("error_message", "Unknown error occurred")
+	var error_type = SafeDataAccess.safe_get(context, "error_type", "unknown", "job error state")
+	var error_message = SafeDataAccess.safe_get(context, "error_message", "Unknown error occurred", "job error state")
 	
 	show_notification("Job Error", error_message, "critical", 5.0)
 	job_error_count += 1
@@ -2111,7 +2289,8 @@ func _validate_crew_capabilities(job: Resource) -> Dictionary:
 func _crew_has_combat_experience(crew_members: Array) -> bool:
 	for crew_member in crew_members:
 		if typeof(crew_member) == TYPE_DICTIONARY:
-			var combat_skill = crew_member.get("combat", 0)
+			var crew_dict = SafeDataAccess.safe_dict_access(crew_member, "combat crew check")
+			var combat_skill = SafeDataAccess.safe_get(crew_dict, "combat", 0, "combat crew check")
 			if combat_skill >= 2: # Minimum combat experience threshold
 				return true
 	return false
@@ -2120,10 +2299,11 @@ func _crew_has_combat_experience(crew_members: Array) -> bool:
 func _crew_has_medic(crew_members: Array) -> bool:
 	for crew_member in crew_members:
 		if typeof(crew_member) == TYPE_DICTIONARY:
-			var background = crew_member.get("background", "")
+			var crew_dict = SafeDataAccess.safe_dict_access(crew_member, "medical crew check")
+			var background = SafeDataAccess.safe_get(crew_dict, "background", "", "medical crew check")
 			if "medic" in str(background).to_lower():
 				return true
-			var skills = crew_member.get("skills", [])
+			var skills = SafeDataAccess.safe_get(crew_dict, "skills", [], "medical crew check")
 			for skill in skills:
 				if "medical" in str(skill).to_lower():
 					return true
@@ -2133,7 +2313,8 @@ func _crew_has_medic(crew_members: Array) -> bool:
 func _crew_has_tech_specialist(crew_members: Array) -> bool:
 	for crew_member in crew_members:
 		if typeof(crew_member) == TYPE_DICTIONARY:
-			var tech_skill = crew_member.get("tech", 0)
+			var crew_dict = SafeDataAccess.safe_dict_access(crew_member, "tech crew check")
+			var tech_skill = SafeDataAccess.safe_get(crew_dict, "tech", 0, "tech crew check")
 			if tech_skill >= 2: # Minimum tech skill threshold
 				return true
 	return false
@@ -2783,7 +2964,7 @@ func _handle_automation_error_recovery(error_type: String, error_message: String
 
 ## Progress tracking helpers
 func _update_unified_progress(operation_type: String, data: Dictionary) -> void:
-	var progress = data.get("progress", 0.0)
+	var progress = SafeDataAccess.safe_get(data, "progress", 0.0, "unified progress update")
 	
 	# Update unified progress display
 	var unified_progress = automation_controls.get_node_or_null("UnifiedProgressDisplay/PhaseProgress")
@@ -2804,15 +2985,15 @@ func _update_unified_progress(operation_type: String, data: Dictionary) -> void:
 func _get_operation_status_text(operation_type: String, data: Dictionary) -> String:
 	match operation_type:
 		"crew_task_assigned":
-			return "Assigning: %s" % data.get("task_type", "Unknown Task")
+			return "Assigning: %s" % SafeDataAccess.safe_get(data, "task_type", "Unknown Task", "operation status")
 		"crew_task_resolved":
-			return "Task completed: %s" % data.get("crew_id", "Unknown")
+			return "Task completed: %s" % SafeDataAccess.safe_get(data, "crew_id", "Unknown", "operation status")
 		"job_selected":
-			return "Job selected: %s" % data.get("job_id", "Unknown")
+			return "Job selected: %s" % SafeDataAccess.safe_get(data, "job_id", "Unknown", "operation status")
 		"job_accepted":
-			return "Job accepted: %s" % data.get("job_id", "Unknown")
+			return "Job accepted: %s" % SafeDataAccess.safe_get(data, "job_id", "Unknown", "operation status")
 		"all_crew_tasks_resolved":
-			return "All crew tasks completed (%d)" % data.get("results_count", 0)
+			return "All crew tasks completed (%d)" % SafeDataAccess.safe_get(data, "results_count", 0, "operation status")
 		"world_phase_completed":
 			return "World phase completed successfully"
 		_:
@@ -3225,14 +3406,8 @@ func _update_navigation_buttons() -> void:
 	if next_button:
 		next_button.disabled = current_step >= total_steps - 1
 
-## Update world display information
-func _update_world_display() -> void:
-	if not header_panel:
-		return
-	
-	var world_label = header_panel.get_node("WorldLabel")
-	if world_label and world_phase_state:
-		world_label.text = "Current World: %s" % world_phase_state.world_name
+## Update world display information (duplicate removed)
+# This function is already defined earlier in the file
 
 ## Handle auto upkeep button
 func _on_auto_upkeep() -> void:
@@ -3258,8 +3433,9 @@ func _update_crew_list() -> void:
 
 	var crew_data = campaign_data.get_meta("crew", [])
 	for crew_member in crew_data:
-		var name = crew_member.get("name", "Unknown")
-		var status = crew_member.get("status", "Available")
+		var crew_dict = SafeDataAccess.safe_dict_access(crew_member, "crew display setup")
+		var name = SafeDataAccess.safe_get(crew_dict, "name", "Unknown", "crew display setup")
+		var status = SafeDataAccess.safe_get(crew_dict, "status", "Available", "crew display setup")
 		crew_list.add_item("%s (%s)" % [name, status])
 
 func _update_job_offers() -> void:
@@ -3272,9 +3448,9 @@ func _update_job_offers() -> void:
 
 	var available_jobs = job_system.generate_job_offers(campaign_data)
 	for job in available_jobs:
-		var patron_name = job.get("patron", "Unknown Patron")
-
-		var job_type = job.get("type", "Standard")
+		var job_dict = SafeDataAccess.safe_dict_access(job, "patron list update")
+		var patron_name = SafeDataAccess.safe_get(job_dict, "patron", "Unknown Patron", "patron list update")
+		var job_type = SafeDataAccess.safe_get(job_dict, "type", "Standard", "patron list update")
 		patron_list.add_item("%s - %s" % [patron_name, job_type])
 
 	if available_jobs.size() > 0:
@@ -3303,8 +3479,21 @@ func _on_next_pressed() -> void:
 
 func _on_options_pressed() -> void:
 	"""Handle options button press"""
-	# TODO: Show world phase options menu
-	print("Options menu not implemented")
+	# Show world phase options menu
+	var options_menu = AcceptDialog.new()
+	options_menu.title = "World Phase Options"
+	
+	var vbox = VBoxContainer.new()
+	vbox.add_child(Label.new())
+	vbox.get_child(0).text = "World Phase Settings:"
+	
+	var auto_resolve_check = CheckBox.new()
+	auto_resolve_check.text = "Auto-resolve simple tasks"
+	vbox.add_child(auto_resolve_check)
+	
+	options_menu.add_child(vbox)
+	add_child(options_menu)
+	options_menu.popup_centered()
 
 func _on_resolve_tasks() -> void:
 	"""Handle resolving crew tasks"""
@@ -3312,12 +3501,57 @@ func _on_resolve_tasks() -> void:
 	if selected_indices.size() == 0:
 		return
 
+	# Get crew data from game state
+	var crew_data = []
+	if game_state_manager:
+		crew_data = game_state_manager.get_crew_members()
+	
 	var task_type = task_assignment.get_item_text(task_assignment.selected)
 	print("Resolving %s task for crew members" % task_type)
 
-	# TODO: Implement actual task resolution
+	# Implement actual task resolution
+	var dice_mgr = get_node_or_null("/root/DiceManager")
+	for index in selected_indices:
+		var crew_member = crew_data[index]
+		var task_result = _resolve_crew_task(crew_member, task_type, dice_mgr)
+		var crew_dict = SafeDataAccess.safe_dict_access(crew_member, "task resolution")
+		var crew_name = SafeDataAccess.safe_get(crew_dict, "name", "Unknown", "task resolution")
+		print("Task result for %s: %s" % [crew_name, task_result])
+	
 	resolve_task_button.text = "Tasks Resolved ✓"
 	resolve_task_button.disabled = true
+
+func _resolve_crew_task(crew_member: Dictionary, task_type: String, dice_mgr) -> String:
+	"""Resolve a crew member's task"""
+	var crew_dict = SafeDataAccess.safe_dict_access(crew_member, "crew task resolution")
+	var base_skill = SafeDataAccess.safe_get(crew_dict, "savvy", 3, "crew task resolution")
+	var roll = 0
+	
+	if dice_mgr and dice_mgr.has_method("roll_dice"):
+		roll = dice_mgr.roll_dice(1, 6)
+	else:
+		roll = randi_range(1, 6)
+	
+	var total = base_skill + roll
+	
+	match task_type:
+		"Trade":
+			if total >= 8:
+				return "Successful trade (+2 credits)"
+			else:
+				return "Trade failed"
+		"Explore":
+			if total >= 7:
+				return "Found something interesting"
+			else:
+				return "Nothing found"
+		"Recruit":
+			if total >= 9:
+				return "Potential recruit found"
+			else:
+				return "No suitable candidates"
+		_:
+			return "Task completed"
 
 func _on_accept_job(job_id: String = "") -> void:
 	"""Handle accepting a job with optional job_id parameter"""
@@ -3580,8 +3814,8 @@ func _on_automation_update(update_data: Dictionary) -> void:
 	print("WorldPhaseUI: Automation update received")
 	
 	# Update automation status display
-	var status = update_data.get("status", "Unknown")
-	var progress = update_data.get("progress", 0.0)
+	var status = SafeDataAccess.safe_get(update_data, "status", "Unknown", "automation update")
+	var progress = SafeDataAccess.safe_get(update_data, "progress", 0.0, "automation update")
 	
 	_update_automation_operation_status(status)
 	

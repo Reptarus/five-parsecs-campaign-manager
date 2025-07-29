@@ -9,7 +9,7 @@ class_name GameCampaignManager
 ## Game Campaign Manager for Five Parsecs from Home
 ## Manages campaign-level operations, integrating with various game systems
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 # Note: GameState injected via initialize() to avoid circular dependencies
 const CampaignPhaseManager = preload("res://src/core/campaign/CampaignPhaseManager.gd")
 

@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 extends Control
 class_name DeveloperQuickStart
 

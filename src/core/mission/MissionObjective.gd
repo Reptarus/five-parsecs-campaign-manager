@@ -5,7 +5,7 @@ class_name MissionObjective
 ## Mission Objective for Five Parsecs from Home
 ## Represents a single objective within a mission
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 @export var objective_type: int = GlobalEnums.MissionObjective.DEFENSE
 @export var description: String = ""

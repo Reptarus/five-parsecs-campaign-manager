@@ -5,7 +5,7 @@ class_name GameArmor
 ## Game Armor class for Five Parsecs
 ## Provides armor protection and characteristics
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 @export var armor_id: String = ""
 @export var armor_name: String = ""

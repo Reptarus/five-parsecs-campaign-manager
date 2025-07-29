@@ -1,6 +1,6 @@
 ﻿extends Button
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 var resource_type: int = GlobalEnums.ResourceType.NONE
 var current_amount: int = 0

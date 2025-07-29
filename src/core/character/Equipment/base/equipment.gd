@@ -4,7 +4,7 @@ class_name BaseEquipment
 ## Base equipment class for Five Parsecs
 ## Provides common functionality for all equipment types
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 signal equipment_used
 signal equipment_destroyed

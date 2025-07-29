@@ -5,7 +5,7 @@ class_name FiveParsecsCampaignCore
 ## Five Parsecs Campaign Resource
 ## Manages campaign-level data and progression
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const Character = preload("res://src/core/character/Character.gd")
 
 signal campaign_started
@@ -63,6 +63,9 @@ var turns_completed: int = 0
 var crew_data: Array = []
 var settings: Dictionary = {}
 var campaign_crew: Array[Character] = []
+var current_world: String = "New Hope"
+var galactic_war_progress: int = 0
+var story_track: Dictionary = {}
 
 func _init() -> void:
 	if not Engine.is_editor_hint():
@@ -85,10 +88,9 @@ func start_campaign() -> void:
 
 func end_campaign(victory: bool = false) -> void:
 	var old_phase: int = current_phase
-	phase_completed.emit(current_phase) # warning: return value discarded (intentional)
-	# Note: END phase removed from official enum - campaigns now cycle through phases
-	phase_changed.emit(old_phase, current_phase) # warning: return value discarded (intentional)
-	campaign_ended.emit(victory) # warning: return value discarded (intentional)
+	phase_completed.emit(current_phase)
+	phase_changed.emit(old_phase, current_phase)
+	campaign_ended.emit(victory)
 
 func change_phase(new_phase: int) -> void:
 	if new_phase == current_phase:
@@ -99,10 +101,10 @@ func change_phase(new_phase: int) -> void:
 		return
 
 	var old_phase: int = current_phase
-	phase_completed.emit(current_phase) # warning: return value discarded (intentional)
+	phase_completed.emit(current_phase)
 	current_phase = new_phase
-	phase_changed.emit(old_phase, new_phase) # warning: return value discarded (intentional)
-	phase_started.emit(current_phase) # warning: return value discarded (intentional)
+	phase_changed.emit(old_phase, new_phase)
+	phase_started.emit(current_phase)
 
 func add_resources(resource_type: int, amount: int) -> void:
 	if not resource_type in GlobalEnums.ResourceType.values():
@@ -113,7 +115,7 @@ func add_resources(resource_type: int, amount: int) -> void:
 		resources[resource_type] = 0
 
 	resources[resource_type] += amount
-	resources_changed.emit(resources) # warning: return value discarded (intentional)
+	resources_changed.emit(resources)
 
 func remove_resources(resource_type: int, amount: int) -> bool:
 	if not resource_type in GlobalEnums.ResourceType.values():
@@ -124,7 +126,7 @@ func remove_resources(resource_type: int, amount: int) -> bool:
 		return false
 
 	resources[resource_type] -= amount
-	resources_changed.emit(resources) # warning: return value discarded (intentional)
+	resources_changed.emit(resources)
 	return true
 
 func get_resource(resource_type: int) -> int:
@@ -142,7 +144,10 @@ func serialize() -> Dictionary:
 		"current_phase": current_phase,
 		"resources": resources.duplicate(),
 		"crew_size": crew_size,
-		"use_story_track": use_story_track
+		"use_story_track": use_story_track,
+		"current_world": current_world,
+		"galactic_war_progress": galactic_war_progress,
+		"story_track": story_track
 	}
 
 func deserialize(data: Dictionary) -> void:
@@ -153,6 +158,9 @@ func deserialize(data: Dictionary) -> void:
 	resources = data.get("resources", {}).duplicate()
 	crew_size = data.get("crew_size", crew_size)
 	use_story_track = data.get("use_story_track", use_story_track)
+	current_world = data.get("current_world", "New Hope")
+	galactic_war_progress = data.get("galactic_war_progress", 0)
+	story_track = data.get("story_track", {})
 
 func add_mission(mission: Dictionary) -> void:
 	available_missions.append(mission)
@@ -271,6 +279,18 @@ func advance_turn() -> void:
 func modify_reputation(amount: int) -> void:
 	starting_reputation += amount
 	reputation_changed.emit(starting_reputation)
+
+func check_galactic_war_progress() -> void:
+	var roll = randi() % 100 + 1
+	if roll > 90:
+		galactic_war_progress += 1
+		campaign_event_occurred.emit("galactic_war_progress", {"progress": galactic_war_progress})
+
+func get_current_world() -> String:
+	return current_world
+
+func set_current_world(world_name: String) -> void:
+	current_world = world_name
 
 ## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
 func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:

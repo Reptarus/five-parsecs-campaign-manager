@@ -11,7 +11,7 @@ signal transaction_completed(amount: int, type: String)
 var _current_credits: int = 0
 var _transaction_history: Array = []
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const Character = preload("res://src/core/character/Character.gd")
 # GameState reference - loaded at runtime to avoid circular dependencies
 var GameState: Variant = null

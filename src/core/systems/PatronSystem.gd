@@ -14,15 +14,12 @@ extends Node
 ## Implements IGameSystem interface for standardized integration
 
 # Safe imports
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
 const IGameSystem = preload("res://src/core/systems/IGameSystem.gd")
+const DataManager = preload("res://src/core/data/DataManager.gd")
+const SafeDataAccess = preload("res://src/utils/SafeDataAccess.gd")
 
 # Proper dependency imports - compile-time validation
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const Character = preload("res://src/core/character/Character.gd")
 const GameState = preload("res://src/core/state/GameState.gd")
 
@@ -50,6 +47,11 @@ var _game_state: Node = null # Type-safe managed by system
 var _errors: Array[String] = []
 var _last_update: int = 0
 
+# JSON data loaded from files
+var patron_types_data: Dictionary = {}
+var mission_data: Dictionary = {}
+var connections_data: Dictionary = {}
+
 # Patron Management Data
 var active_patrons: Array[Dictionary] = []
 var patron_reputations: Dictionary = {} # patron_id -> reputation
@@ -63,7 +65,7 @@ var job_benefits_hazards: Dictionary = {}
 
 # Connection Management Data
 var active_connections: Dictionary = {} # faction_id -> connection
-var connections_data: Dictionary = {}
+
 
 # Configuration
 var max_active_quests: int = 5
@@ -74,8 +76,77 @@ func _init() -> void:
 	_load_dependencies()
 
 func _load_dependencies() -> void:
-	# Dependencies will be loaded here when needed
-	pass
+	"""Load all JSON data dependencies using DataManager static API"""
+	# Remove unnecessary DataManager instance - use static API
+	
+	# Load patron types data using static DataManager API
+	var patron_data_file = DataManager._load_json_safe("res://data/patron_types.json", "patron_types")
+	if not patron_data_file.is_empty():
+		patron_types_data = patron_data_file
+		var patron_types_array = SafeDataAccess.safe_get(patron_types_data, "patron_types", [], "patron types loading")
+		print("PatronSystem: Loaded %d patron types from DataManager" % patron_types_array.size())
+	else:
+		push_warning("Patron types data not found in DataManager, using fallback")
+		_load_fallback_patron_data()
+	
+	# Load mission data using static DataManager API
+	var mission_data_file = DataManager._load_json_safe("res://data/mission_tables/mission_types.json", "mission_types")
+	if not mission_data_file.is_empty():
+		mission_data = mission_data_file
+		print("PatronSystem: Loaded mission types from DataManager")
+	else:
+		push_warning("Mission types data not found in DataManager, using fallback")
+		_load_fallback_mission_data()
+	
+	# Load expanded connections data using static DataManager API  
+	var connections_data_file = DataManager._load_json_safe("res://data/expanded_connections.json", "expanded_connections")
+	if not connections_data_file.is_empty():
+		connections_data = connections_data_file
+		print("PatronSystem: Loaded connections data from DataManager")
+	else:
+		push_warning("Connections data not found in DataManager, using fallback")
+		_load_fallback_connections_data()
+
+func _load_fallback_patron_data() -> void:
+	"""Load fallback patron data if JSON fails"""
+	patron_types_data = {
+		"patron_types": [
+			{
+				"type": "CORPORATION",
+				"job_types": ["Corporate Security", "Asset Recovery"],
+				"reward_modifier": 1.2,
+				"risk_factor": 1.1
+			},
+			{
+				"type": "LOCAL_GOVERNMENT", 
+				"job_types": ["Law Enforcement", "Civil Protection"],
+				"reward_modifier": 1.0,
+				"risk_factor": 0.9
+			}
+		]
+	}
+
+func _load_fallback_mission_data() -> void:
+	"""Load fallback mission data if JSON fails"""
+	mission_data = {
+		"mission_types": [
+			{"name": "Security", "difficulty": 1},
+			{"name": "Escort", "difficulty": 2},
+			{"name": "Assault", "difficulty": 3}
+		]
+	}
+
+func _load_fallback_connections_data() -> void:
+	"""Load fallback connections data if JSON fails"""
+	connections_data = {
+		"connections": [
+			{
+				"id": "trade_alliance",
+				"name": "Trade Alliance",
+				"effects": [{"type": "CREDITS", "value": 100}]
+			}
+		]
+	}
 	
 # =====================================================
 # IGameSystem Interface Implementation
@@ -215,8 +286,9 @@ func validate_state() -> Dictionary:
 		if not patron.has("id"):
 			result.errors.append("Patron missing required 'id' field")
 			result.valid = false
-		elif not patron_reputations.has(patron.id):
-			result.warnings.append("Patron '" + patron.id + "' missing reputation entry")
+		elif not patron_reputations.has(SafeDataAccess.safe_get(patron, "id", "", "patron ID lookup")):
+			var patron_id = SafeDataAccess.safe_get(patron, "id", "", "patron ID lookup")
+			result.warnings.append("Patron '" + patron_id + "' missing reputation entry")
 
 	# Validate quest consistency
 	for quest_id in active_quests.keys():
@@ -224,7 +296,7 @@ func validate_state() -> Dictionary:
 		if not quest.has("patron_id"):
 			result.errors.append("Quest '" + quest_id + "' missing patron_id")
 			result.valid = false
-		elif not _get_patron_by_id(quest.patron_id):
+		elif not _get_patron_by_id(SafeDataAccess.safe_get(quest, "patron_id", "", "quest patron ID lookup")):
 			result.warnings.append("Quest '" + quest_id + "' references non-existent patron")
 
 	# Validate current job
@@ -258,9 +330,11 @@ func generate_patron() -> Dictionary:
 	# Add to system if not at capacity
 	if (safe_call_method(active_patrons, "size") as int) < max_active_patrons:
 		active_patrons.append(patron)
-		patron_reputations[patron.id] = 0
+		var patron_id = SafeDataAccess.safe_get(patron, "id", "", "patron ID lookup")
+		patron_reputations[patron_id] = 0
 		patron_encountered.emit(patron)
-		print("PatronSystem: Generated new patron: " + patron.name)
+		var patron_name = SafeDataAccess.safe_get(patron, "name", "Unknown", "patron name lookup")
+		print("PatronSystem: Generated new patron: " + patron_name)
 	else:
 		print("PatronSystem: Patron capacity reached, patron not added")
 
@@ -281,7 +355,7 @@ func update_patron_reputation(patron_id: String, change: int) -> void:
 
 func get_patron_reputation(patron_id: String) -> int:
 	"""Get current reputation with specific patron"""
-	return patron_reputations.get(patron_id, 0)
+	return SafeDataAccess.safe_get(patron_reputations, patron_id, 0, "patron reputation lookup")
 
 func get_available_quests(patron_id: String) -> Array[Dictionary]:
 	"""Generate available quests for specific patron"""
@@ -321,9 +395,11 @@ func accept_job(job_data: Dictionary) -> bool:
 
 	# Generate benefits, hazards, conditions
 	if job_data.has("patron_id"):
-		var patron = _get_patron_by_id(job_data.patron_id)
+		var job_patron_id = SafeDataAccess.safe_get(job_data, "patron_id", "", "job patron ID lookup")
+		var patron = _get_patron_by_id(job_patron_id)
 		if patron:
-			job_benefits_hazards[current_job.id] = generate_benefits_hazards_conditions(patron)
+			var current_job_id = SafeDataAccess.safe_get(current_job, "id", "", "current job ID lookup")
+			job_benefits_hazards[current_job_id] = generate_benefits_hazards_conditions(patron)
 
 	job_accepted.emit(current_job)
 	return true
@@ -341,12 +417,14 @@ func complete_job(success: bool, results: Dictionary = {}) -> void:
 	if success:
 		_apply_job_rewards(current_job)
 		if current_job.has("patron_id"):
-			update_patron_reputation(current_job.patron_id, 10)
+			var current_job_patron_id = SafeDataAccess.safe_get(current_job, "patron_id", "", "current job patron ID lookup")
+			update_patron_reputation(current_job_patron_id, 10)
 		job_completed.emit(current_job, true)
 	else:
 		_apply_failure_consequences(current_job)
 		if current_job.has("patron_id"):
-			update_patron_reputation(current_job.patron_id, -5)
+			var current_job_patron_id = SafeDataAccess.safe_get(current_job, "patron_id", "", "current job patron ID lookup")
+			update_patron_reputation(current_job_patron_id, -5)
 		job_failed.emit(current_job, "Mission failed")
 
 	# Move to history
@@ -484,7 +562,8 @@ func _validate_job_acceptance(job_data: Dictionary) -> Dictionary:
 func _get_patron_by_id(patron_id: String) -> Dictionary:
 	"""Find patron by ID"""
 	for patron in active_patrons:
-		if patron.has("id") and patron.id == patron_id:
+		var patron_dict = SafeDataAccess.safe_dict_access(patron, "patron lookup validation")
+		if patron_dict.has("id") and SafeDataAccess.safe_get(patron_dict, "id", "", "patron ID comparison") == patron_id:
 			return patron
 	return {}
 
@@ -497,9 +576,14 @@ func _generate_patron_name() -> String:
 	return titles.pick_random() + " " + first_names.pick_random() + " " + last_names.pick_random()
 
 func _select_patron_type() -> String:
-	"""Select random patron type"""
-	var types = ["CORPORATE", "NOBLE", "MILITARY", "POLITICAL", "CRIMINAL", "UNITY", "FRINGE"]
-	return types.pick_random()
+	"""Select random patron type from JSON data"""
+	var patron_types = SafeDataAccess.safe_get(patron_types_data, "patron_types", [], "patron generation")
+	if patron_types.is_empty():
+		return "CORPORATION"  # Fallback
+	
+	var selected_type = patron_types.pick_random()
+	var selected_type_dict = SafeDataAccess.safe_dict_access(selected_type, "patron type selection")
+	return SafeDataAccess.safe_get(selected_type_dict, "type", "CORPORATION", "patron type lookup")
 
 func _select_specialization() -> String:
 	"""Select patron specialization"""
@@ -543,11 +627,15 @@ func _select_preferred_reward_types() -> Array[String]:
 
 func _generate_quest(patron: Dictionary) -> Dictionary:
 	"""Generate quest for patron"""
-	var quest_type = patron.preferences.mission_types.pick_random()
+	var patron_dict = SafeDataAccess.safe_dict_access(patron, "patron preferences access")
+	var preferences = SafeDataAccess.safe_get(patron_dict, "preferences", {}, "patron preferences lookup")
+	var preferences_dict = SafeDataAccess.safe_dict_access(preferences, "preferences validation")
+	var mission_types = SafeDataAccess.safe_get(preferences_dict, "mission_types", ["COMBAT"], "mission types lookup")
+	var quest_type = mission_types.pick_random()
 
 	return {
 		"id": "quest_" + str(Time.get_unix_time_from_system()) + "_" + str(randi()),
-		"patron_id": patron.id,
+		"patron_id": SafeDataAccess.safe_get(patron_dict, "id", "", "quest patron ID assignment"),
 		"type": quest_type,
 		"name": _generate_quest_name(quest_type),
 		"description": _generate_quest_description(quest_type),
@@ -578,7 +666,7 @@ func _generate_quest_name(quest_type: String) -> String:
 	}
 
 	var locations = ["New Eden", "Starfall Station", "The Reach", "Deep Space Outpost", "Frontier Colony", "Trade Hub Alpha"]
-	var prefix_list = prefixes.get(quest_type, ["Mission to"])
+	var prefix_list = SafeDataAccess.safe_get(prefixes, quest_type, ["Mission to"], "quest name prefix lookup")
 
 	return prefix_list.pick_random() + " " + locations.pick_random()
 
@@ -593,15 +681,21 @@ func _generate_quest_description(quest_type: String) -> String:
 		"SECURITY": "Provide protection and maintain security for valuable assets."
 	}
 
-	return descriptions.get(quest_type, "Complete the assigned mission objectives successfully.")
+	return SafeDataAccess.safe_get(descriptions, quest_type, "Complete the assigned mission objectives successfully.", "quest description lookup")
 
 func _calculate_quest_difficulty(patron: Dictionary) -> int:
 	"""Calculate quest difficulty based on patron influence"""
-	return clamp(patron.influence + randi_range(-1, 1), 1, 5)
+	var patron_dict = SafeDataAccess.safe_dict_access(patron, "patron difficulty calculation")
+	var influence = SafeDataAccess.safe_get(patron_dict, "influence", 1, "patron influence lookup")
+	return clamp(influence + randi_range(-1, 1), 1, 5)
 
 func _generate_quest_rewards(patron: Dictionary) -> Dictionary:
 	"""Generate quest rewards based on patron resources"""
-	var base_credits = patron.resources.credits / 10.0
+	var patron_dict = SafeDataAccess.safe_dict_access(patron, "patron rewards calculation")
+	var resources = SafeDataAccess.safe_get(patron_dict, "resources", {}, "patron resources lookup")
+	var resources_dict = SafeDataAccess.safe_dict_access(resources, "resources validation")
+	var credits = SafeDataAccess.safe_get(resources_dict, "credits", 1000, "patron credits lookup")
+	var base_credits = credits / 10.0
 	var reward_variance = randf_range(0.8, 1.2)
 
 	return {
@@ -645,12 +739,14 @@ func _calculate_time_limit(quest_type: String) -> int:
 		"SECURITY": randi_range(2, 5)
 	}
 
-	return base_limits.get(quest_type, 5)
+	return SafeDataAccess.safe_get(base_limits, quest_type, 5, "quest time limit lookup")
 
 func _calculate_risk_level(patron: Dictionary) -> String:
 	"""Calculate quest risk level"""
 	var risk_levels = ["LOW", "MEDIUM", "HIGH", "EXTREME"]
-	var risk_index = clamp(patron.influence - 1, 0, 3)
+	var patron_dict = SafeDataAccess.safe_dict_access(patron, "patron risk calculation")
+	var influence = SafeDataAccess.safe_get(patron_dict, "influence", 1, "patron influence lookup")
+	var risk_index = clamp(influence - 1, 0, 3)
 	return risk_levels[risk_index]
 
 func _apply_job_rewards(job: Dictionary) -> void:
@@ -658,31 +754,38 @@ func _apply_job_rewards(job: Dictionary) -> void:
 	if not job.has("rewards"):
 		return
 
-	var rewards = job.rewards
+	var job_dict = SafeDataAccess.safe_dict_access(job, "job rewards application")
+	var rewards = SafeDataAccess.safe_get(job_dict, "rewards", {}, "job rewards lookup")
+	var rewards_dict = SafeDataAccess.safe_dict_access(rewards, "rewards validation")
 
 	# Apply credit rewards
-	if rewards.has("credits") and _game_state:
+	if rewards_dict.has("credits") and _game_state:
 		if _game_state and _game_state.has_method("add_credits"):
-			_game_state.add_credits(rewards.credits)
+			var credits = SafeDataAccess.safe_get(rewards_dict, "credits", 0, "rewards credits lookup")
+			_game_state.add_credits(credits)
 
 	# Apply reputation rewards
-	if rewards.has("reputation") and _game_state:
+	if rewards_dict.has("reputation") and _game_state:
 		if _game_state and _game_state.has_method("add_reputation"):
-			_game_state.add_reputation(rewards.reputation)
+			var reputation = SafeDataAccess.safe_get(rewards_dict, "reputation", 0, "rewards reputation lookup")
+			_game_state.add_reputation(reputation)
 
 	# Apply equipment rewards
-	if rewards.has("equipment"):
-		for item in rewards.equipment:
+	if rewards_dict.has("equipment"):
+		var equipment = SafeDataAccess.safe_get(rewards_dict, "equipment", [], "rewards equipment lookup")
+		for item in equipment:
 			if _game_state and _game_state and _game_state.has_method("add_equipment"):
 				_game_state.add_equipment(item)
 
-	job_rewards_applied.emit(job, rewards)
+	job_rewards_applied.emit(job, rewards_dict)
 
 func _apply_failure_consequences(job: Dictionary) -> void:
 	"""Apply consequences of job failure"""
-	if job.has("hazards"):
+	var job_dict = SafeDataAccess.safe_dict_access(job, "job failure consequences")
+	if job_dict.has("hazards"):
 		# Apply any hazard-based consequences
-		for hazard in job.hazards:
+		var hazards = SafeDataAccess.safe_get(job_dict, "hazards", [], "job hazards lookup")
+		for hazard in hazards:
 			_apply_hazard_consequence(hazard)
 
 	# Apply reputation loss
@@ -701,17 +804,23 @@ func _apply_hazard_consequence(hazard: String) -> void:
 
 func _should_generate_benefit(patron: Dictionary) -> bool:
 	"""Check if patron should provide job benefits"""
-	var chance: int = 0.8 if patron.type in ["CORPORATE", "UNITY"] else 0.5
+	var patron_dict = SafeDataAccess.safe_dict_access(patron, "patron benefit check")
+	var patron_type = SafeDataAccess.safe_get(patron_dict, "type", "CORPORATE", "patron type lookup")
+	var chance: int = 0.8 if patron_type in ["CORPORATE", "UNITY"] else 0.5
 	return randf() < chance
 
 func _should_generate_hazard(patron: Dictionary) -> bool:
 	"""Check if patron should impose job hazards"""
-	var chance: int = 0.5 if patron.type == "FRINGE" else 0.8
+	var patron_dict = SafeDataAccess.safe_dict_access(patron, "patron hazard check")
+	var patron_type = SafeDataAccess.safe_get(patron_dict, "type", "CORPORATE", "patron type lookup")
+	var chance: int = 0.5 if patron_type == "FRINGE" else 0.8
 	return randf() < chance
 
 func _should_generate_condition(patron: Dictionary) -> bool:
 	"""Check if patron should impose job conditions"""
-	var chance: int = 0.5 if patron.type == "CORPORATE" else 0.8
+	var patron_dict = SafeDataAccess.safe_dict_access(patron, "patron condition check")
+	var patron_type = SafeDataAccess.safe_get(patron_dict, "type", "CORPORATE", "patron type lookup")
+	var chance: int = 0.5 if patron_type == "CORPORATE" else 0.8
 	return randf() < chance
 
 func _generate_benefit() -> String:
@@ -743,18 +852,19 @@ func _validate_connection_request(faction_id: String, connection_type: String) -
 
 func _create_connection(faction_id: String, connection_type: String) -> Dictionary:
 	"""Create new faction connection"""
-	var connection_template = connections_data.get(connection_type, {})
-	if (safe_call_method(connection_template, "is_empty") == true):
+	var connection_template = SafeDataAccess.safe_get(connections_data, connection_type, {}, "connection template lookup")
+	var template_dict = SafeDataAccess.safe_dict_access(connection_template, "connection template validation")
+	if template_dict.is_empty():
 		return {}
 
 	return {
 		"id": faction_id + "_" + connection_type,
 		"faction_id": faction_id,
 		"type": connection_type,
-		"strength": connection_template.get("base_strength", 50),
-		"effects": connection_template.get("effects", []).duplicate(),
-		"requirements": connection_template.get("requirements", []).duplicate(),
-		"duration": connection_template.get("duration", -1),
+		"strength": SafeDataAccess.safe_get(template_dict, "base_strength", 50, "connection strength lookup"),
+		"effects": SafeDataAccess.safe_get(template_dict, "effects", [], "connection effects lookup").duplicate(),
+		"requirements": SafeDataAccess.safe_get(template_dict, "requirements", [], "connection requirements lookup").duplicate(),
+		"duration": SafeDataAccess.safe_get(template_dict, "duration", -1, "connection duration lookup"),
 		"created_at": Time.get_unix_time_from_system()
 	}
 
@@ -763,18 +873,20 @@ func _apply_connection_effect(effect: Dictionary) -> void:
 	if not effect.has("type"):
 		return
 
-	match effect.type:
+	var effect_dict = SafeDataAccess.safe_dict_access(effect, "connection effect validation")
+	var effect_type = SafeDataAccess.safe_get(effect_dict, "type", "", "effect type lookup")
+	match effect_type:
 		"CREDITS":
 			if _game_state and _game_state and _game_state.has_method("add_credits"):
-				_game_state.add_credits(effect.get("value", 0))
+				_game_state.add_credits(SafeDataAccess.safe_get(effect_dict, "value", 0, "credit effect value lookup"))
 		"REPUTATION":
 			if _game_state and _game_state and _game_state.has_method("add_reputation"):
-				_game_state.add_reputation(effect.get("value", 0))
+				_game_state.add_reputation(SafeDataAccess.safe_get(effect_dict, "value", 0, "reputation effect value lookup"))
 		"MILITARY":
 			if _game_state and _game_state and _game_state.has_method("apply_military_bonus"):
-				_game_state.apply_military_bonus(effect.get("value", 0))
+				_game_state.apply_military_bonus(SafeDataAccess.safe_get(effect_dict, "value", 0, "military effect value lookup"))
 		_:
-			print("PatronSystem: Unknown connection effect: " + effect.type)
+			print("PatronSystem: Unknown connection effect: " + effect_type)
 
 # Public API methods for backward compatibility
 func get_active_patrons() -> Array[Dictionary]:
@@ -809,7 +921,7 @@ func safe_get_property(obj: Variant, property: String, default_value: Variant = 
 		var value: Variant = obj.get(property)
 		return value if value != null else default_value
 	elif obj is Dictionary:
-		return obj.get(property, default_value)
+		return SafeDataAccess.safe_get(obj, property, default_value, "safe property access")
 	return default_value
 ## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
 func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:

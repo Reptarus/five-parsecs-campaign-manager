@@ -8,7 +8,7 @@ const BASE_INTEREST_RATE := 0.1
 const LATE_PAYMENT_PENALTY := 0.2
 const MAX_LOAN_AMOUNT := 50000
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const GameState = preload("res://src/core/state/GameState.gd")
 const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const EconomySystem = preload("res://src/core/systems/EconomySystem.gd")

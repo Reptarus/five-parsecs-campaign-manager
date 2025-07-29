@@ -8,12 +8,6 @@
 @warning_ignore("return_value_discarded")
 extends Control
 
-# Universal Framework Enhancement - Added on top of existing warning suppressions
-const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
-const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
-const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd")
-const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
-
 # Enhanced type safety while preserving warning suppressions
 @onready var new_mission_button: Button = $"Menu Buttons/NewMission"
 @onready var continue_mission_button: Button = $"Menu Buttons/ContinueMission"
@@ -69,7 +63,7 @@ func _validate_menu_components() -> void:
 			print("MainMenuWithAnimations: Validated button: " + button_name)
 	
 	# Try to find animation player
-	_animation_player = UniversalNodeAccess.get_node_safe(self, "AnimationPlayer", "MainMenuWithAnimations _validate_menu_components")
+	_animation_player = get_node_or_null("AnimationPlayer")
 	if _animation_player:
 		print("MainMenuWithAnimations: AnimationPlayer found")
 	else:
@@ -99,12 +93,7 @@ func _connect_button_safe(button: Button, button_id: String, callback: Callable)
 		push_warning("MainMenuWithAnimations: Cannot connect %s button - not available" % button_id)
 		return
 	
-	var connection_success: bool = UniversalSignalManager.connect_signal_safe(
-		button,
-		"pressed",
-		callback,
-		"MainMenuWithAnimations " + button_id
-	)
+	var connection_success: bool = button.connect("pressed", callback)
 	
 	if connection_success:
 		_button_connections[button_id] = button
@@ -126,7 +115,7 @@ func _on_new_mission_pressed() -> void:
 	print("MainMenuWithAnimations: New Mission button pressed")
 	
 	# Enhanced signal emission
-	UniversalSignalManager.emit_signal_safe(self, "menu_button_pressed", ["new_mission"], "MainMenuWithAnimations _on_new_mission_pressed")
+	emit_signal("menu_button_pressed", "new_mission")
 	
 	# Enhanced navigation
 	_navigate_to_scene("res://assets/scenes/bug_hunt/mission_setup.tscn", "New Mission")
@@ -134,7 +123,7 @@ func _on_new_mission_pressed() -> void:
 func _on_continue_mission_pressed() -> void:
 	print("MainMenuWithAnimations: Continue Mission button pressed")
 	
-	UniversalSignalManager.emit_signal_safe(self, "menu_button_pressed", ["continue_mission"], "MainMenuWithAnimations _on_continue_mission_pressed")
+	emit_signal("menu_button_pressed", "continue_mission")
 	
 	# Enhanced game loading
 	_load_game_safe()
@@ -142,28 +131,28 @@ func _on_continue_mission_pressed() -> void:
 func _on_squad_management_pressed() -> void:
 	print("MainMenuWithAnimations: Squad Management button pressed")
 	
-	UniversalSignalManager.emit_signal_safe(self, "menu_button_pressed", ["squad_management"], "MainMenuWithAnimations _on_squad_management_pressed")
+	emit_signal("menu_button_pressed", "squad_management")
 	
 	_navigate_to_scene("res://assets/scenes/bug_hunt/squad_management.tscn", "Squad Management")
 
 func _on_armory_pressed() -> void:
 	print("MainMenuWithAnimations: Armory button pressed")
 	
-	UniversalSignalManager.emit_signal_safe(self, "menu_button_pressed", ["armory"], "MainMenuWithAnimations _on_armory_pressed")
+	emit_signal("menu_button_pressed", "armory")
 	
 	_navigate_to_scene("res://assets/scenes/bug_hunt/armory.tscn", "Armory")
 
 func _on_options_pressed() -> void:
 	print("MainMenuWithAnimations: Options button pressed")
 	
-	UniversalSignalManager.emit_signal_safe(self, "menu_button_pressed", ["options"], "MainMenuWithAnimations _on_options_pressed")
+	emit_signal("menu_button_pressed", "options")
 	
 	_navigate_to_scene("res://assets/scenes/menus/options_menu/options_menu.tscn", "Options")
 
 func _on_rules_reference_pressed() -> void:
 	print("MainMenuWithAnimations: Rules Reference button pressed")
 	
-	UniversalSignalManager.emit_signal_safe(self, "menu_button_pressed", ["rules_reference"], "MainMenuWithAnimations _on_rules_reference_pressed")
+	emit_signal("menu_button_pressed", "rules_reference")
 	
 	_navigate_to_scene("res://assets/scenes/bug_hunt/rules_reference.tscn", "Rules Reference")
 
@@ -179,14 +168,14 @@ func _navigate_to_scene(scene_path: String, scene_name: String) -> void:
 		return
 	
 	# Enhanced signal emission
-	UniversalSignalManager.emit_signal_safe(self, "scene_transition_requested", [scene_path], "MainMenuWithAnimations _navigate_to_scene")
+	emit_signal("scene_transition_requested", scene_path)
 	
 	# Play exit animation if available
 	if _animations_enabled and _animation_player and _animation_player.has_animation("menu_exit"):
 		_animation_player.play("menu_exit")
 	
 	# Enhanced navigation
-	var main_node: Node = UniversalNodeAccess.get_node_safe(get_tree().root, "Main", "MainMenuWithAnimations _navigate_to_scene")
+	var main_node: Node = get_tree().root.get_node("Main")
 	
 	if main_node and main_node.has_method("goto_scene"):
 		main_node.goto_scene(scene_path)
@@ -200,7 +189,7 @@ func _load_game_safe() -> void:
 	
 	print("MainMenuWithAnimations: Attempting to load game")
 	
-	var main_node: Node = UniversalNodeAccess.get_node_safe(get_tree().root, "Main", "MainMenuWithAnimations _load_game_safe")
+	var main_node: Node = get_tree().root.get_node("Main")
 	
 	if main_node and main_node.has_method("load_game"):
 		main_node.load_game()

@@ -6,7 +6,7 @@ class_name WorldPhaseResources
 ## Resource-based data structures for crew tasks, patrons, and equipment
 ## Follows SerializableResource patterns with Universal Safety Framework
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 ## Crew Task Result Resource
 class CrewTaskResult extends Resource:

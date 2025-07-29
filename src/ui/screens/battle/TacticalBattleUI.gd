@@ -16,7 +16,7 @@ signal return_to_battle_resolution()
 const BattlefieldDisplayManager = preload("res://src/core/battle/BattlefieldDisplayManager.gd")
 const BattlefieldManager = preload("res://src/core/battle/BattlefieldManager.gd")
 const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 # UI Nodes
 @onready var battlefield_display: Control = $MainContainer/BattlefieldArea/BattlefieldDisplay

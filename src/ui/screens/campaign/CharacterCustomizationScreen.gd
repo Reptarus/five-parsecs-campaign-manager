@@ -6,7 +6,7 @@ class_name CharacterCustomizationScreen
 ## Multi-step character editing interface for Five Parsecs Campaign Manager
 
 const Character = preload("res://src/core/character/Character.gd")
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const FiveParsecsCharacterGeneration = preload("res://src/core/character/CharacterGeneration.gd")
 
 signal character_customization_complete(character: Character)

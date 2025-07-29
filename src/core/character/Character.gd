@@ -8,7 +8,7 @@ class_name Character
 ## Five Parsecs specific functionality. It extends BaseCharacter and adds
 ## all game-specific features in one place.
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 # Five Parsecs specific character properties
 var character_class: int = GlobalEnums.CharacterClass.NONE
@@ -70,11 +70,7 @@ func _init() -> void:
 	# Set a default character class as the character type
 	character_type = GlobalEnums.CharacterClass.SOLDIER
 
-# Override character_name property to provide access
-var character_name: String:
-	get: return _character_name
-	set(_value):
-		_character_name = _value
+# character_name property is now inherited from BaseCharacter
 
 # Maximum values for stats (extending the base stats)
 const MAX_STATS = {

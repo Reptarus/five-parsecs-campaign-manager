@@ -4,6 +4,9 @@ class_name BaseBattleRules
 
 # Enhanced battle rules management - Universal framework removed for simplification
 
+# Dependencies
+const DataManager = preload("res://src/core/data/DataManager.gd")
+
 # Comprehensive Warning Ignore Coverage
 @warning_ignore("unused_signal")
 
@@ -19,31 +22,37 @@ signal combat_calculation_performed(calculation_type: String, result: Dictionary
 signal action_cost_calculated(action: int, cost: int)
 signal hit_chance_calculated(base_chance: float, final_chance: float, modifiers: Dictionary)
 
-## Core game constants
+# JSON data loaded from data/ directory
+var rule_constants_data: Dictionary = {}
+var action_costs_data: Dictionary = {}
+var terrain_effects_data: Dictionary = {}
+var data_manager: DataManager
+
+## Core game constants (fallback values)
 var BASE_MOVEMENT: int = 6 # Base movement in inches
 var _BASE_ACTION_POINTS: int = 2 # Base action points per turn
 var _BASE_ATTACK_RANGE: int = 24 # Base attack range in inches
 var _BASE_HIT_CHANCE: float = 0.65 # Base 65% hit chance
 var BASE_DAMAGE: int = 3 # Base damage value
 
-## Combat modifiers
+## Combat modifiers (fallback values)
 var COVER_MODIFIER: float = -0.25 # -25% when target is in cover
 var HEIGHT_MODIFIER: float = 0.15 # +15% when attacker has height advantage
 var FLANK_MODIFIER: float = 0.2 # +20% when attacking from flank
 var SUPPRESSION_MODIFIER: float = -0.2 # -20% when suppressed
 
-## Range modifiers
+## Range modifiers (fallback values)
 var _OPTIMAL_RANGE_BONUS: float = 0.1 # +10% at optimal range
 var _LONG_RANGE_PENALTY: float = -0.2 # -20% at long range
 var _EXTREME_RANGE_PENALTY: float = -0.4 # -40% at extreme range
 
-## Status effect thresholds
+## Status effect thresholds (fallback values)
 var CRITICAL_THRESHOLD: float = 0.9 # 90% for critical hits
 var GRAZE_THRESHOLD: float = 0.35 # 35% for graze hits
 var MINIMUM_HIT_CHANCE: float = 0.05 # 5% minimum hit chance
 var MAXIMUM_HIT_CHANCE: float = 0.95 # 95% maximum hit chance
 
-## Action point costs
+## Action point costs (fallback values)
 var _MOVE_COST: int = 1
 var _ATTACK_COST: int = 1
 var _DEFEND_COST: int = 1
@@ -57,7 +66,7 @@ var _BRAWL_COST: int = 1
 var _SNAP_FIRE_COST: int = 1
 var _END_TURN_COST: int = 0
 
-## Terrain effects
+## Terrain effects (fallback values)
 var _DIFFICULT_TERRAIN_MODIFIER: float = 0.5 # Halves movement
 var _HAZARDOUS_TERRAIN_DAMAGE: int = 1 # Damage per turn in hazardous terrain
 
@@ -70,6 +79,169 @@ func _ready() -> void:
 	# Initialize enhanced rules tracking
 	_initialize_rules_statistics()
 	_setup_universal_framework()
+	_load_rule_configuration()
+
+func _load_rule_configuration() -> void:
+	"""Load rule configuration from JSON files"""
+	data_manager = DataManager.new()
+	
+	# Load rule constants data
+	rule_constants_data = data_manager.load_json_file("res://data/combat/rule_constants.json")
+	if rule_constants_data.is_empty():
+		print("BaseBattleRules: rule_constants.json not found, using fallback values")
+		_create_rule_constants_fallback()
+	else:
+		print("BaseBattleRules: Loaded rule constants from JSON")
+		_apply_rule_constants()
+	
+	# Load action costs data
+	action_costs_data = data_manager.load_json_file("res://data/combat/action_costs.json")
+	if action_costs_data.is_empty():
+		print("BaseBattleRules: action_costs.json not found, using fallback values")
+		_create_action_costs_fallback()
+	else:
+		print("BaseBattleRules: Loaded action costs from JSON")
+		_apply_action_costs()
+	
+	# Load terrain effects data
+	terrain_effects_data = data_manager.load_json_file("res://data/combat/terrain_effects.json")
+	if terrain_effects_data.is_empty():
+		print("BaseBattleRules: terrain_effects.json not found, using fallback values")
+		_create_terrain_effects_fallback()
+	else:
+		print("BaseBattleRules: Loaded terrain effects from JSON")
+		_apply_terrain_effects()
+
+func _create_rule_constants_fallback() -> void:
+	"""Create fallback rule constants when JSON unavailable"""
+	rule_constants_data = {
+		"movement": {
+			"base_movement": 6,
+			"base_action_points": 2,
+			"base_attack_range": 24
+		},
+		"combat_modifiers": {
+			"cover_modifier": - 0.25,
+			"height_modifier": 0.15,
+			"flank_modifier": 0.2,
+			"suppression_modifier": - 0.2
+		},
+		"range_modifiers": {
+			"optimal_range_bonus": 0.1,
+			"long_range_penalty": - 0.2,
+			"extreme_range_penalty": - 0.4
+		},
+		"hit_thresholds": {
+			"base_hit_chance": 0.65,
+			"critical_threshold": 0.9,
+			"graze_threshold": 0.35,
+			"minimum_hit_chance": 0.05,
+			"maximum_hit_chance": 0.95
+		},
+		"damage": {
+			"base_damage": 3
+		}
+	}
+
+func _create_action_costs_fallback() -> void:
+	"""Create fallback action costs when JSON unavailable"""
+	action_costs_data = {
+		"action_costs": {
+			"move": 1,
+			"attack": 1,
+			"defend": 1,
+			"overwatch": 2,
+			"reload": 1,
+			"use_item": 1,
+			"special": 2,
+			"take_cover": 1,
+			"dash": 2,
+			"brawl": 1,
+			"snap_fire": 1,
+			"end_turn": 0
+		},
+		"cost_modifiers": {
+			"heavy_weapon_penalty": 1,
+			"wounded_penalty": 1,
+			"expertise_bonus": 0
+		}
+	}
+
+func _create_terrain_effects_fallback() -> void:
+	"""Create fallback terrain effects when JSON unavailable"""
+	terrain_effects_data = {
+		"terrain_modifiers": {
+			"difficult_terrain_modifier": 0.5,
+			"hazardous_terrain_damage": 1,
+			"cover_bonus": 0.3,
+			"elevation_bonus": 0.2
+		},
+		"terrain_types": {
+			"open": {"movement_modifier": 1.0, "cover_value": 0.0},
+			"rough": {"movement_modifier": 0.75, "cover_value": 0.1},
+			"difficult": {"movement_modifier": 0.5, "cover_value": 0.2},
+			"cover": {"movement_modifier": 1.0, "cover_value": 0.5},
+			"heavy_cover": {"movement_modifier": 0.8, "cover_value": 0.8},
+			"hazardous": {"movement_modifier": 0.5, "damage_per_turn": 1}
+		}
+	}
+
+func _apply_rule_constants() -> void:
+	"""Apply rule constants from JSON data"""
+	if rule_constants_data.has("movement"):
+		var movement = rule_constants_data.movement
+		BASE_MOVEMENT = movement.get("base_movement", 6)
+		_BASE_ACTION_POINTS = movement.get("base_action_points", 2)
+		_BASE_ATTACK_RANGE = movement.get("base_attack_range", 24)
+	
+	if rule_constants_data.has("combat_modifiers"):
+		var modifiers = rule_constants_data.combat_modifiers
+		COVER_MODIFIER = modifiers.get("cover_modifier", -0.25)
+		HEIGHT_MODIFIER = modifiers.get("height_modifier", 0.15)
+		FLANK_MODIFIER = modifiers.get("flank_modifier", 0.2)
+		SUPPRESSION_MODIFIER = modifiers.get("suppression_modifier", -0.2)
+	
+	if rule_constants_data.has("range_modifiers"):
+		var range_mods = rule_constants_data.range_modifiers
+		_OPTIMAL_RANGE_BONUS = range_mods.get("optimal_range_bonus", 0.1)
+		_LONG_RANGE_PENALTY = range_mods.get("long_range_penalty", -0.2)
+		_EXTREME_RANGE_PENALTY = range_mods.get("extreme_range_penalty", -0.4)
+	
+	if rule_constants_data.has("hit_thresholds"):
+		var thresholds = rule_constants_data.hit_thresholds
+		_BASE_HIT_CHANCE = thresholds.get("base_hit_chance", 0.65)
+		CRITICAL_THRESHOLD = thresholds.get("critical_threshold", 0.9)
+		GRAZE_THRESHOLD = thresholds.get("graze_threshold", 0.35)
+		MINIMUM_HIT_CHANCE = thresholds.get("minimum_hit_chance", 0.05)
+		MAXIMUM_HIT_CHANCE = thresholds.get("maximum_hit_chance", 0.95)
+	
+	if rule_constants_data.has("damage"):
+		var damage = rule_constants_data.damage
+		BASE_DAMAGE = damage.get("base_damage", 3)
+
+func _apply_action_costs() -> void:
+	"""Apply action costs from JSON data"""
+	if action_costs_data.has("action_costs"):
+		var costs = action_costs_data.action_costs
+		_MOVE_COST = costs.get("move", 1)
+		_ATTACK_COST = costs.get("attack", 1)
+		_DEFEND_COST = costs.get("defend", 1)
+		_OVERWATCH_COST = costs.get("overwatch", 2)
+		_RELOAD_COST = costs.get("reload", 1)
+		_USE_ITEM_COST = costs.get("use_item", 1)
+		_SPECIAL_COST = costs.get("special", 2)
+		_TAKE_COVER_COST = costs.get("take_cover", 1)
+		_DASH_COST = costs.get("dash", 2)
+		_BRAWL_COST = costs.get("brawl", 1)
+		_SNAP_FIRE_COST = costs.get("snap_fire", 1)
+		_END_TURN_COST = costs.get("end_turn", 0)
+
+func _apply_terrain_effects() -> void:
+	"""Apply terrain effects from JSON data"""
+	if terrain_effects_data.has("terrain_modifiers"):
+		var modifiers = terrain_effects_data.terrain_modifiers
+		_DIFFICULT_TERRAIN_MODIFIER = modifiers.get("difficult_terrain_modifier", 0.5)
+		_HAZARDOUS_TERRAIN_DAMAGE = modifiers.get("hazardous_terrain_damage", 1)
 
 func _setup_universal_framework() -> void:
 	# Configure enhanced rules tracking
@@ -412,3 +584,85 @@ func apply_rules_modifier(modifier_type: String, modifier_data: Dictionary) -> v
 
 	# Emit enhanced signal
 	modifier_applied.emit(modifier_type, modifier_data)
+
+## Enhanced JSON-driven rule methods
+func get_terrain_modifier(terrain_type: String) -> Dictionary:
+	"""Get terrain modifier from JSON data"""
+	var default_modifier = {"movement_modifier": 1.0, "cover_value": 0.0}
+	
+	if terrain_effects_data.has("terrain_types") and terrain_effects_data.terrain_types.has(terrain_type):
+		return terrain_effects_data.terrain_types[terrain_type]
+	
+	return default_modifier
+
+func get_action_cost_with_modifiers(action_name: String, modifiers: Array = []) -> int:
+	"""Get action cost with modifiers from JSON data"""
+	var base_cost = 1
+	
+	# Get base cost from JSON data
+	if action_costs_data.has("action_costs") and action_costs_data.action_costs.has(action_name):
+		base_cost = action_costs_data.action_costs[action_name]
+	
+	# Apply cost modifiers
+	var final_cost = base_cost
+	if action_costs_data.has("cost_modifiers"):
+		for modifier in modifiers:
+			if action_costs_data.cost_modifiers.has(modifier):
+				final_cost += action_costs_data.cost_modifiers[modifier]
+	
+	return maxi(0, final_cost) # Minimum 0 cost
+
+func get_rule_constant_from_category(constant_category: String, constant_name: String) -> Variant:
+	"""Get rule constant from JSON data with fallback"""
+	if rule_constants_data.has(constant_category):
+		var category = rule_constants_data[constant_category]
+		if category.has(constant_name):
+			return category[constant_name]
+	
+	# Fallback to hardcoded values
+	return get(constant_name.to_upper()) if has_method("get") else null
+
+func update_rule_from_json(json_file_path: String) -> bool:
+	"""Update specific rule configuration from JSON file"""
+	if not data_manager:
+		data_manager = DataManager.new()
+	
+	var new_data = data_manager.load_json_file(json_file_path)
+	if new_data.is_empty():
+		return false
+	
+	# Determine which type of data this is and update accordingly
+	if json_file_path.ends_with("rule_constants.json"):
+		rule_constants_data = new_data
+		_apply_rule_constants()
+	elif json_file_path.ends_with("action_costs.json"):
+		action_costs_data = new_data
+		_apply_action_costs()
+	elif json_file_path.ends_with("terrain_effects.json"):
+		terrain_effects_data = new_data
+		_apply_terrain_effects()
+	else:
+		return false
+	
+	rules_updated.emit()
+	return true
+
+func get_combat_configuration_summary() -> Dictionary:
+	"""Get summary of current combat configuration"""
+	return {
+		"rule_constants_loaded": not rule_constants_data.is_empty(),
+		"action_costs_loaded": not action_costs_data.is_empty(),
+		"terrain_effects_loaded": not terrain_effects_data.is_empty(),
+		"current_modifiers": {
+			"cover": COVER_MODIFIER,
+			"height": HEIGHT_MODIFIER,
+			"flank": FLANK_MODIFIER,
+			"suppression": SUPPRESSION_MODIFIER
+		},
+		"action_costs": {
+			"move": _MOVE_COST,
+			"attack": _ATTACK_COST,
+			"special": _SPECIAL_COST
+		},
+		"statistics": _rules_statistics
+	}

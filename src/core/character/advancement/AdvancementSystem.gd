@@ -11,7 +11,7 @@ extends RefCounted
 ## - Integration with dice system for advancement rolls
 
 # Dependencies
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 # Signals
 signal character_advanced(character: Resource, advancement_type: String, new_value: int)

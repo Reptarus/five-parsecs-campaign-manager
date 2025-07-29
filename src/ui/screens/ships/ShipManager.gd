@@ -25,7 +25,13 @@ func _ready() -> void:
 
 func _load_ship_data() -> void:
 	"""Load ship data from campaign manager"""
-	# TODO: Connect to campaign manager
+	# Connect to campaign manager
+	var campaign_mgr = get_node_or_null("/root/CampaignManager")
+	if campaign_mgr and campaign_mgr.has_method("get_ship_data"):
+		ship_data = campaign_mgr.get_ship_data()
+		return
+	
+	# Fallback to default data if campaign manager not available
 	ship_data = {
 		"name": "Wandering Star",
 		"type": "Worn Freighter",
@@ -199,7 +205,17 @@ func _on_repair_pressed() -> void:
 	var cost = _calculate_repair_cost()
 	print("ShipManager: Repair cost: ", cost)
 
-	# TODO: Check if player has enough credits
+	# Check if player has enough credits
+	var game_state = get_node_or_null("/root/GameState")
+	if game_state and game_state.has_method("get_credits"):
+		var current_credits = game_state.get_credits()
+		if current_credits < cost:
+			print("Not enough credits for repair. Need: %d, Have: %d" % [cost, current_credits])
+			return
+		game_state.remove_credits(cost)
+	else:
+		print("Warning: Cannot verify credits - proceeding with repair")
+	
 	ship_data["hull_points"] = ship_data.get("max_hull", 30)
 	_refresh_display()
 	ship_repaired.emit(ship_data.get("max_hull", 30))
@@ -222,7 +238,17 @@ func _on_upgrade_purchased(upgrade_name: String) -> void:
 	var cost = _get_upgrade_cost(upgrade_name)
 	print("ShipManager: Purchasing upgrade: ", upgrade_name, " for ", cost, " credits")
 
-	# TODO: Check if player has enough credits
+	# Check if player has enough credits
+	var game_state = get_node_or_null("/root/GameState")
+	if game_state and game_state.has_method("get_credits"):
+		var current_credits = game_state.get_credits()
+		if current_credits < cost:
+			print("Not enough credits for upgrade. Need: %d, Have: %d" % [cost, current_credits])
+			return
+		game_state.remove_credits(cost)
+	else:
+		print("Warning: Cannot verify credits - proceeding with upgrade")
+	
 	ship_data.get("upgrades", []).append(upgrade_name)
 	_refresh_display()
 	upgrade_purchased.emit({"name": upgrade_name, "cost": cost})

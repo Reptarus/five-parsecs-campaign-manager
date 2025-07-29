@@ -7,7 +7,7 @@ extends Mission
 ## Implements Five Parsecs bounty hunting mechanics with target tracking,
 ## capture vs elimination choices, and bounty-specific complications.
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const MissionTypeRegistry = preload("res://src/game/missions/enhanced/MissionTypeRegistry.gd")
 
 # Bounty target data

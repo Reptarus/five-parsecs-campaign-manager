@@ -7,23 +7,28 @@ extends Mission
 ## Implements Five Parsecs delivery contract mechanics with cargo protection,
 ## time pressure, and route-based complications.
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums is inherited from Mission parent class
 const MissionTypeRegistry = preload("res://src/game/missions/enhanced/MissionTypeRegistry.gd")
 const MissionDifficultyScaler = preload("res://src/game/missions/enhanced/MissionDifficultyScaler.gd")
 
 # Delivery-specific data
 @export var cargo_type: String = ""
 @export var cargo_value: int = 0
-@export var delivery_distance: int = 1  # In parsecs
-@export var time_limit: int = 3  # In campaign turns
+@export var delivery_distance: int = 1 # In parsecs
+@export var time_limit: int = 3 # In campaign turns
 @export var fragile_cargo: bool = false
 @export var dangerous_cargo: bool = false
 @export var requires_special_handling: bool = false
 
 # Route and complication tracking
 var route_complications: Array[Dictionary] = []
-var cargo_condition: String = "intact"  # intact, damaged, lost
+var cargo_condition: String = "intact" # intact, damaged, lost
 var delivery_progress: int = 0
+
+# Mission properties not in base class
+var objectives: Array[Dictionary] = []
+var minimum_crew_size: int = 2
+var required_skills: Array[String] = []
 
 # Signals for delivery-specific events
 signal cargo_damaged(damage_type: String, severity: int)
@@ -37,8 +42,13 @@ func _init() -> void:
 
 ## Initialize delivery mission with specific parameters
 func initialize_delivery(delivery_data: Dictionary) -> void:
-	# Set basic mission data
-	initialize(delivery_data)
+	# Set basic mission data from dictionary
+	mission_id = delivery_data.get("mission_id", "")
+	mission_title = delivery_data.get("mission_title", "Delivery Contract")
+	mission_description = delivery_data.get("mission_description", "Transport cargo safely to destination")
+	mission_difficulty = delivery_data.get("mission_difficulty", 1)
+	reward_credits = delivery_data.get("reward_credits", 200)
+	turn_offered = delivery_data.get("turn_offered", 0)
 	
 	# Set delivery-specific data
 	cargo_type = delivery_data.get("cargo_type", "Standard Goods")
@@ -101,7 +111,7 @@ func get_delivery_status() -> Dictionary:
 		"cargo_condition": cargo_condition,
 		"delivery_progress": delivery_progress,
 		"total_distance": delivery_distance,
-		"time_remaining": maxii(time_limit - (Time.get_unix_time_from_system() - turn_offered), 0),
+		"time_remaining": maxi(time_limit - (Time.get_unix_time_from_system() - turn_offered), 0),
 		"complications_remaining": route_complications.size(),
 		"is_fragile": fragile_cargo,
 		"is_dangerous": dangerous_cargo,
@@ -111,7 +121,7 @@ func get_delivery_status() -> Dictionary:
 ## Handle cargo damage from combat or complications
 func damage_cargo(damage_source: String, severity: int) -> void:
 	if cargo_condition == "lost":
-		return  # Already lost
+		return # Already lost
 	
 	# Fragile cargo takes more damage
 	if fragile_cargo:
@@ -136,7 +146,7 @@ func get_combat_modifiers() -> Dictionary:
 	# Cargo protection requirements
 	if fragile_cargo:
 		modifiers["avoid_explosives"] = true
-		modifiers["movement_penalty"] = 1  # Careful movement
+		modifiers["movement_penalty"] = 1 # Careful movement
 	
 	if dangerous_cargo:
 		modifiers["explosion_risk"] = true
@@ -174,8 +184,8 @@ func get_enemy_deployment_context() -> Dictionary:
 func _setup_delivery_mission() -> void:
 	mission_title = "Delivery Contract"
 	mission_description = "Transport cargo safely to the destination within the time limit"
-	minimum_crew_size = 2  # Need pilot + escort minimum
-	required_skills = ["pilot"]  # Essential for delivery missions
+	minimum_crew_size = 2 # Need pilot + escort minimum
+	required_skills = ["pilot"] # Essential for delivery missions
 
 func _generate_route_complications() -> void:
 	route_complications.clear()
@@ -240,7 +250,7 @@ func _generate_route_complications() -> void:
 		if not possible_complications.is_empty():
 			var complication: Dictionary = possible_complications[randi() % possible_complications.size()]
 			route_complications.append(complication)
-			possible_complications.erase(complication)  # No duplicates
+			possible_complications.erase(complication) # No duplicates
 
 func _setup_delivery_objectives() -> void:
 	objectives.clear()
@@ -314,7 +324,7 @@ func _check_route_complications(turn_context: Dictionary) -> Array:
 	
 	# Check if any complications trigger this turn
 	for complication in route_complications:
-		var trigger_chance: float = 0.3  # Base 30% chance per turn
+		var trigger_chance: float = 0.3 # Base 30% chance per turn
 		
 		# Modify chance based on context
 		if turn_context.has("stealth_approach") and turn_context.stealth_approach:
@@ -331,7 +341,7 @@ func _check_route_complications(turn_context: Dictionary) -> Array:
 	return encountered_complications
 
 func _calculate_turn_progress(turn_context: Dictionary) -> int:
-	var base_progress: int = 1  # Standard 1 parsec per turn
+	var base_progress: int = 1 # Standard 1 parsec per turn
 	
 	# Modify based on ship capabilities
 	if turn_context.has("ship_speed_bonus"):
@@ -339,7 +349,7 @@ func _calculate_turn_progress(turn_context: Dictionary) -> int:
 	
 	# Cargo may slow progress
 	if fragile_cargo and not turn_context.get("careful_handling", false):
-		base_progress = maxii(base_progress - 1, 0)
+		base_progress = maxi(base_progress - 1, 0)
 	
 	return base_progress
 
@@ -348,18 +358,18 @@ func _complete_delivery() -> void:
 	var condition_multiplier: float = advanced_rules.cargo_condition_bonus.get(cargo_condition, 1.0)
 	reward_credits = roundi(reward_credits * condition_multiplier)
 	
-	complete_mission()
+	complete(true)
 
 func _fail_delivery_time_limit() -> void:
-	fail_mission()
+	fail(true)
 	advanced_rules["failure_reason"] = "time_limit_exceeded"
 
 func _fail_delivery_cargo_lost() -> void:
-	fail_mission()
+	fail(true)
 	advanced_rules["failure_reason"] = "cargo_lost"
 
 func _get_route_enemy_types() -> Array[String]:
-	var enemy_types: Array[String] = ["Pirates"]  # Default threat
+	var enemy_types: Array[String] = ["Pirates"] # Default threat
 	
 	# High-value cargo attracts organized crime
 	if cargo_value > 5000:

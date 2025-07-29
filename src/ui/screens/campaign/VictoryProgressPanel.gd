@@ -1,6 +1,6 @@
 ﻿extends PanelContainer
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const GameState = preload("res://src/core/state/GameState.gd")
 
 @onready var progress_bar := $MarginContainer/VBoxContainer/ProgressBar

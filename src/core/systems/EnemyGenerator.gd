@@ -2,28 +2,88 @@
 extends Resource
 
 ## Enemy Generation System for Five Parsecs Campaign Manager
-## Generates appropriate enemies based on mission type, difficulty, and world conditions
+## Enhanced with JSON data integration for comprehensive enemy generation
+## Uses data/enemy_types.json for detailed enemy configurations
+
+const DataManager = preload("res://src/core/data/DataManager.gd")
 
 signal enemies_generated(enemies: Array[Resource])
+signal enemy_data_loaded(categories_count: int)
+signal generation_failed(error: String)
 
-# Enemy types from Five Parsecs rules
-var enemy_categories: Dictionary = {
-	"criminal": ["Thug", "Gang Leader", "Crime Boss", "Hired Gun", "Smuggler"],
-	"alien": ["K'Erin Warrior", "Swift Scout", "Engineer Tech", "Precursor", "Soulless"],
-	"hostile": ["Converted", "Swarm Warrior", "Pirate", "Raider", "Mercenary"],
-	"security": ["Unity Guard", "Corporate Security", "Local Militia", "Police Officer"],
-	"wildlife": ["Predator", "Pack Hunter", "Giant Insect", "Toxic Creature"]
-}
+# JSON data loaded from files
+var enemy_data: Dictionary = {}
+var loot_tables: Dictionary = {}
+var spawn_rules: Dictionary = {}
+var data_manager: DataManager = null
 
-var enemy_stats_base: Dictionary = {
-	"Thug": {"combat_skill": 1, "toughness": 3, "speed": 4, "weapons": ["Blade", "Handgun"]},
-	"Gang Leader": {"combat_skill": 2, "toughness": 4, "speed": 4, "weapons": ["Auto Pistol", "Blade"]},
-	"K'Erin Warrior": {"combat_skill": 3, "toughness": 4, "speed": 5, "weapons": ["Blade", "Handgun"]},
-	"Unity Guard": {"combat_skill": 2, "toughness": 4, "speed": 4, "weapons": ["Military Rifle", "Armor"]},
-	"Pirate": {"combat_skill": 2, "toughness": 3, "speed": 4, "weapons": ["Shotgun", "Blade"]},
-	"Converted": {"combat_skill": 2, "toughness": 5, "speed": 3, "weapons": ["Bio Weapon", "Armor"]},
-	"Predator": {"combat_skill": 2, "toughness": 4, "speed": 6, "weapons": ["Natural Weapons"]}
-}
+# Legacy compatibility - fallback data
+var enemy_categories: Dictionary = {}
+var enemy_stats_base: Dictionary = {}
+
+func _init() -> void:
+	"""Initialize enemy generator with JSON data"""
+	_load_enemy_data()
+
+func _load_enemy_data() -> void:
+	"""Load enemy data from JSON files"""
+	data_manager = DataManager.new()
+	
+	# Load main enemy types data
+	enemy_data = data_manager.load_json_file("res://data/enemy_types.json")
+	if enemy_data.is_empty():
+		push_error("Failed to load enemy data from res://data/enemy_types.json")
+		_load_fallback_enemy_data()
+	else:
+		print("EnemyGenerator: Loaded %d enemy categories from JSON" % enemy_data.get("enemy_categories", []).size())
+		
+		# Extract loot tables and spawn rules
+		loot_tables = enemy_data.get("enemy_loot_tables", {})
+		spawn_rules = enemy_data.get("enemy_spawn_rules", {})
+		
+		# Build legacy compatibility structures
+		_build_legacy_compatibility()
+		
+		enemy_data_loaded.emit(enemy_data.get("enemy_categories", []).size())
+
+func _load_fallback_enemy_data() -> void:
+	"""Load fallback enemy data if JSON fails"""
+	enemy_categories = {
+		"criminal": ["Thug", "Gang Leader", "Crime Boss", "Hired Gun", "Smuggler"],
+		"alien": ["K'Erin Warrior", "Swift Scout", "Engineer Tech", "Precursor", "Soulless"],
+		"hostile": ["Converted", "Swarm Warrior", "Pirate", "Raider", "Mercenary"],
+		"security": ["Unity Guard", "Corporate Security", "Local Militia", "Police Officer"],
+		"wildlife": ["Predator", "Pack Hunter", "Giant Insect", "Toxic Creature"]
+	}
+	
+	enemy_stats_base = {
+		"Thug": {"combat_skill": 1, "toughness": 3, "speed": 4, "weapons": ["Blade", "Handgun"]},
+		"Gang Leader": {"combat_skill": 2, "toughness": 4, "speed": 4, "weapons": ["Auto Pistol", "Blade"]},
+		"K'Erin Warrior": {"combat_skill": 3, "toughness": 4, "speed": 5, "weapons": ["Blade", "Handgun"]},
+		"Unity Guard": {"combat_skill": 2, "toughness": 4, "speed": 4, "weapons": ["Military Rifle", "Armor"]},
+		"Pirate": {"combat_skill": 2, "toughness": 3, "speed": 4, "weapons": ["Shotgun", "Blade"]},
+		"Converted": {"combat_skill": 2, "toughness": 5, "speed": 3, "weapons": ["Bio Weapon", "Armor"]},
+		"Predator": {"combat_skill": 2, "toughness": 4, "speed": 6, "weapons": ["Natural Weapons"]}
+	}
+
+func _build_legacy_compatibility() -> void:
+	"""Build legacy enemy_categories structure from JSON data"""
+	for category_data in enemy_data.get("enemy_categories", []):
+		var category_id = category_data.get("id", "")
+		var enemies = []
+		
+		for enemy in category_data.get("enemies", []):
+			enemies.append(enemy.get("name", "Unknown"))
+			
+			# Also populate legacy stats
+			enemy_stats_base[enemy.get("name", "Unknown")] = {
+				"combat_skill": enemy.get("stats", {}).get("combat", 3),
+				"toughness": enemy.get("stats", {}).get("toughness", 3),
+				"speed": enemy.get("stats", {}).get("speed", 4),
+				"weapons": enemy.get("equipment", {}).get("weapons", ["Basic Weapon"])
+			}
+		
+		enemy_categories[category_id] = enemies
 
 func generate_enemies_for_mission(mission: Resource, crew_size: int = 4) -> Array[Resource]:
 	"""Generate appropriate enemies for a mission based on Five Parsecs rules"""
@@ -44,7 +104,42 @@ func generate_enemies_for_mission(mission: Resource, crew_size: int = 4) -> Arra
 	return enemies
 
 func _determine_enemy_category(mission_type: String) -> String:
-	"""Determine enemy category based on mission _type"""
+	"""Determine enemy category based on mission type using JSON spawn rules"""
+	var mission_spawn_rules = spawn_rules.get("mission_type", {})
+	
+	# Check if we have specific spawn rules for this mission type
+	if mission_spawn_rules.has(mission_type):
+		var rules = mission_spawn_rules[mission_type]
+		var primary_categories = rules.get("primary", [])
+		var secondary_categories = rules.get("secondary", [])
+		
+		# 70% chance for primary categories, 30% for secondary
+		if randf() < 0.7 and not primary_categories.is_empty():
+			return primary_categories.pick_random()
+		elif not secondary_categories.is_empty():
+			return secondary_categories.pick_random()
+		elif not primary_categories.is_empty():
+			return primary_categories.pick_random()
+	
+	# Enhanced fallback logic using JSON category data
+	if not enemy_data.get("enemy_categories", []).is_empty():
+		match mission_type:
+			"Patrol", "Investigate":
+				return _select_from_categories(["raiders", "corporate_security"])
+			"Hunt", "Bounty":
+				return _select_from_categories(["raiders", "alien_creatures"])
+			"Guard", "Defend":
+				return _select_from_categories(["raiders", "cultists"])
+			"Deliver", "Trade":
+				return _select_from_categories(["raiders", "corporate_security"])
+			"Explore":
+				return _select_from_categories(["alien_creatures", "cultists", "raiders"])
+			"Salvage":
+				return _select_from_categories(["raiders", "alien_creatures"])
+			_:
+				return _select_from_categories(["raiders", "corporate_security"])
+	
+	# Ultimate fallback to legacy system
 	match mission_type:
 		"Patrol", "Investigate":
 			return ["criminal", "hostile"].pick_random()
@@ -61,6 +156,26 @@ func _determine_enemy_category(mission_type: String) -> String:
 		_:
 			return "criminal"
 
+func _select_from_categories(preferred_categories: Array[String]) -> String:
+	"""Select enemy category from preferred list, fallback to available categories"""
+	var available_categories = []
+	
+	# Get available category IDs from JSON data
+	for category_data in enemy_data.get("enemy_categories", []):
+		available_categories.append(category_data.get("id", ""))
+	
+	# Try preferred categories first
+	for category in preferred_categories:
+		if category in available_categories:
+			return category
+	
+	# Fallback to any available category
+	if not available_categories.is_empty():
+		return available_categories.pick_random()
+	
+	# Ultimate fallback
+	return "raiders"
+
 func _calculate_enemy_count(difficulty: int, crew_size: int) -> int:
 	"""Calculate enemy count based on difficulty and crew _size"""
 	var base_count = crew_size
@@ -76,15 +191,17 @@ func _calculate_enemy_count(difficulty: int, crew_size: int) -> int:
 			return base_count
 
 func _create_enemy(category: String, difficulty: int) -> Resource:
-	"""Create a single enemy of specified category and difficulty"""
+	"""Create a single enemy of specified category and difficulty using JSON data"""
 	var enemy := Resource.new()
 
-	# Select enemy type from category
-
+	# Try to use JSON data first
+	var enemy_template = _get_enemy_template_from_json(category, difficulty)
+	if not enemy_template.is_empty():
+		return _create_enemy_from_template(enemy_template, difficulty)
+	
+	# Fallback to legacy system
 	var enemy_types: Array[String] = enemy_categories.get(category, ["Thug"])
 	var enemy_type: String = enemy_types.pick_random()
-
-	# Get base stats
 
 	var base_stats = enemy_stats_base.get(enemy_type, {
 		"combat_skill": 1, "toughness": 3, "speed": 4, "weapons": ["Handgun"]
@@ -103,6 +220,108 @@ func _create_enemy(category: String, difficulty: int) -> Resource:
 	enemy.set_meta("difficulty", difficulty)
 
 	return enemy
+
+func _get_enemy_template_from_json(category: String, difficulty: int) -> Dictionary:
+	"""Get enemy template from JSON data based on category and difficulty"""
+	for category_data in enemy_data.get("enemy_categories", []):
+		if category_data.get("id", "") == category:
+			var enemies = category_data.get("enemies", [])
+			
+			# Filter enemies by difficulty if available
+			var suitable_enemies = []
+			for enemy in enemies:
+				var enemy_threat = _calculate_enemy_threat_level(enemy)
+				if enemy_threat <= difficulty:
+					suitable_enemies.append(enemy)
+			
+			# If no suitable enemies found, use any from the category
+			if suitable_enemies.is_empty():
+				suitable_enemies = enemies
+			
+			if not suitable_enemies.is_empty():
+				return suitable_enemies.pick_random()
+	
+	return {}
+
+func _calculate_enemy_threat_level(enemy_template: Dictionary) -> int:
+	"""Calculate threat level of enemy template"""
+	var stats = enemy_template.get("stats", {})
+	var combat = stats.get("combat", 3)
+	var toughness = stats.get("toughness", 3)
+	
+	# Simple threat calculation: (combat + toughness) / 2
+	return max(1, (combat + toughness) / 2)
+
+func _create_enemy_from_template(template: Dictionary, difficulty: int) -> Resource:
+	"""Create enemy from JSON template with difficulty adjustments"""
+	var enemy := Resource.new()
+	
+	# Basic information
+	enemy.set_meta("id", template.get("id", "unknown"))
+	enemy.set_meta("name", template.get("name", "Unknown Enemy"))
+	enemy.set_meta("description", template.get("description", ""))
+	
+	# Stats with difficulty modifiers
+	var base_stats = template.get("stats", {})
+	var modified_stats = _apply_json_difficulty_modifiers(base_stats, difficulty)
+	
+	enemy.set_meta("combat", modified_stats.get("combat", 3))
+	enemy.set_meta("toughness", modified_stats.get("toughness", 3))
+	enemy.set_meta("speed", modified_stats.get("speed", 4))
+	enemy.set_meta("savvy", modified_stats.get("savvy", 2))
+	
+	# Equipment
+	var equipment = template.get("equipment", {})
+	enemy.set_meta("weapons", equipment.get("weapons", ["Basic Weapon"]))
+	enemy.set_meta("armor", equipment.get("armor", "No Armor"))
+	enemy.set_meta("gear", equipment.get("gear", []))
+	
+	# Abilities
+	enemy.set_meta("abilities", template.get("abilities", []))
+	
+	# XP and loot
+	enemy.set_meta("xp_value", template.get("xp_value", 1))
+	enemy.set_meta("loot_table", template.get("loot_table", "common"))
+	enemy.set_meta("tags", template.get("tags", []))
+	
+	# Difficulty and category tracking
+	enemy.set_meta("difficulty", difficulty)
+	enemy.set_meta("threat_level", _calculate_enemy_threat_level(template))
+	
+	return enemy
+
+func _apply_json_difficulty_modifiers(base_stats: Dictionary, difficulty: int) -> Dictionary:
+	"""Apply difficulty modifiers to JSON enemy stats"""
+	var modified = base_stats.duplicate()
+	
+	# Use spawn rules if available
+	var difficulty_rules = spawn_rules.get("difficulty", {})
+	var difficulty_name = _get_difficulty_name(difficulty)
+	
+	if difficulty_rules.has(difficulty_name):
+		var rules = difficulty_rules[difficulty_name]
+		var modifier = rules.get("enemy_count_modifier", 1.0)
+		
+		# Apply stat modifications based on difficulty
+		if modifier < 1.0:  # Easy difficulty
+			modified["combat"] = max(1, modified.get("combat", 3) - 1)
+			modified["toughness"] = max(1, modified.get("toughness", 3) - 1)
+		elif modifier > 1.3:  # Hard or higher difficulty
+			modified["combat"] = modified.get("combat", 3) + 1
+			modified["toughness"] = modified.get("toughness", 3) + 1
+			modified["savvy"] = modified.get("savvy", 2) + 1
+	
+	return modified
+
+func _get_difficulty_name(difficulty: int) -> String:
+	"""Convert difficulty number to name used in spawn rules"""
+	match difficulty:
+		1: return "EASY"
+		2: return "NORMAL"
+		3: return "HARD"
+		4: return "VETERAN"
+		5: return "ELITE"
+		_: return "NORMAL"
 
 func _apply_difficulty_modifiers(base_stats: Dictionary, difficulty: int) -> Dictionary:
 	"""Apply difficulty modifiers to enemy _stats"""

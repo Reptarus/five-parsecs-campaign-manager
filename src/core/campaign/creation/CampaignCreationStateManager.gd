@@ -42,6 +42,10 @@ signal creation_completed(campaign_data: Dictionary)
 func _init() -> void:
 	_initialize_state()
 
+func initialize() -> void:
+	"""Public method to initialize the state manager"""
+	_initialize_state()
+
 func _initialize_state() -> void:
 	"""Initialize campaign data with default values"""
 	campaign_data.metadata.created_at = Time.get_datetime_string_from_system()
@@ -195,6 +199,11 @@ func _validate_crew_phase() -> bool:
 	if completion_level < 0.75: # Require 75% overall completion
 		validation_errors.append("Crew setup needs more completion (currently %.0f%%)" % (completion_level * 100))
 		return false
+	
+	# SPRINT ENHANCEMENT: Validate backend integration for crew generation
+	if not crew.get("backend_generated", false):
+		validation_errors.append("Warning: Crew not generated via backend system (mock data in use)")
+		# Note: This is a warning, not a failure - allows for fallback behavior
 
 	return true
 
@@ -227,7 +236,7 @@ func _validate_ship_phase() -> bool:
 	return true
 
 func _validate_equipment_phase() -> bool:
-	"""Validate equipment generation"""
+	"""Validate equipment generation with backend integration check"""
 	var equipment = campaign_data.equipment
 
 	if not equipment.has("equipment") or equipment.equipment.is_empty():
@@ -237,6 +246,11 @@ func _validate_equipment_phase() -> bool:
 	if not equipment.get("is_complete", false):
 		validation_errors.append("Equipment setup incomplete")
 		return false
+	
+	# SPRINT ENHANCEMENT: Validate backend integration for equipment generation
+	if not equipment.get("backend_generated", false):
+		validation_errors.append("Warning: Equipment not generated via backend system (mock data in use)")
+		# Note: This is a warning, not a failure - allows for fallback behavior
 
 	return true
 

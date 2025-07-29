@@ -4,8 +4,9 @@ extends Node
 ## World Generator for Five Parsecs From Home
 ## Implements world generation from rulebook (p.80-86)
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-# Note: DataManager is an autoload - access via get_node("/root/DataManager")
+# GlobalEnums available as autoload singleton
+const DataManager = preload("res://src/core/data/DataManager.gd")
+# Note: DataManager is accessed via DataManagerAutoload autoload singleton
 
 # Signal declarations
 signal world_generated(world_data: Dictionary)
@@ -330,7 +331,6 @@ func get_world_traits() -> Array:
 
 ## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
 func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
-
 	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
 	if not is_instance_valid(self):
 		return default_value

@@ -5,11 +5,12 @@ extends Node
 ## Hybrid architecture combining type-safe enums with rich JSON content
 ## Provides caching, validation, and hot-reloading capabilities
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
+const SafeDataAccess = preload("res://src/utils/SafeDataAccess.gd")
 
 # Paths to data files
 const ARMOR_DATA_PATH: String = "res://data/armor.json"
-const WEAPON_DATA_PATH: String = "res://src/data/weapons.json"
+const WEAPON_DATA_PATH: String = "res://data/weapons.json"
 const GEAR_DATA_PATH: String = "res://data/gear_database.json"
 const WORLD_TRAITS_PATH: String = "res://data/world_traits.json"
 const INJURY_TABLES_PATH: String = "res://data/injury_table.json"
@@ -27,6 +28,8 @@ const WORLD_PHASE_EXPLORATION_PATH: String = "res://data/campaign_tables/world_p
 const WORLD_PHASE_TRADE_PATH: String = "res://data/campaign_tables/world_phase/world_step_trade.json"
 const WORLD_PHASE_PATRON_JOBS_PATH: String = "res://data/campaign_tables/world_phase/patron_jobs.json"
 const WORLD_PHASE_CREW_TASK_MODIFIERS_PATH: String = "res://data/campaign_tables/world_phase/crew_task_modifiers.json"
+const SYSTEM_CONFIG_PATH: String = "res://data/autoload/system_config.json"
+const BATTLEFIELD_COMPANION_CONFIG_PATH: String = "res://data/battlefield/companion_config.json"
 
 # Cached data structures for performance
 static var _character_data: Dictionary = {}
@@ -56,6 +59,8 @@ static var _world_phase_exploration_table: Dictionary = {}
 static var _world_phase_trade_table: Dictionary = {}
 static var _world_phase_patron_jobs_table: Dictionary = {}
 static var _world_phase_crew_task_modifiers: Dictionary = {}
+static var _system_config: Dictionary = {}
+static var _battlefield_companion_config: Dictionary = {}
 
 # Performance monitoring
 static var _load_time_ms: int = 0
@@ -114,6 +119,10 @@ static func load_all_data() -> void:
 	_world_phase_trade_table = _load_json_safe(WORLD_PHASE_TRADE_PATH, "world_phase_trade")
 	_world_phase_patron_jobs_table = _load_json_safe(WORLD_PHASE_PATRON_JOBS_PATH, "patron_jobs")
 	_world_phase_crew_task_modifiers = _load_json_safe(WORLD_PHASE_CREW_TASK_MODIFIERS_PATH, "world_phase_crew_task_modifiers")
+	
+	# Load system configuration files
+	_system_config = _load_json_safe(SYSTEM_CONFIG_PATH, "system_config")
+	_battlefield_companion_config = _load_json_safe(BATTLEFIELD_COMPANION_CONFIG_PATH, "battlefield_companion_config")
 
 	_loading_in_progress = false
 
@@ -168,7 +177,9 @@ static func _validate_data_paths() -> void:
 		PSIONIC_POWERS_DATA_PATH, ELITE_ENEMY_TYPES_PATH,
 		# World Phase tables - Feature 2 integration
 		WORLD_PHASE_EXPLORATION_PATH, WORLD_PHASE_TRADE_PATH,
-		WORLD_PHASE_PATRON_JOBS_PATH, WORLD_PHASE_CREW_TASK_MODIFIERS_PATH
+		WORLD_PHASE_PATRON_JOBS_PATH, WORLD_PHASE_CREW_TASK_MODIFIERS_PATH,
+		# System configuration files
+		SYSTEM_CONFIG_PATH, BATTLEFIELD_COMPANION_CONFIG_PATH
 	]
 
 	for path in paths:
@@ -404,12 +415,14 @@ static func get_background_data(background_id: String) -> Dictionary:
 	
 	# Search by ID in background array
 	for background in _character_creation_data["backgrounds"]:
-		if background.get("id", "") == background_id:
+		var bg_dict = SafeDataAccess.safe_dict_access(background, "background lookup")
+		if SafeDataAccess.safe_get(bg_dict, "id", "", "background ID check") == background_id:
 			return background
 	
 	# Try default background as fallback
-	var default_bg = _character_creation_data.get("default_background", {})
-	if default_bg.get("id", "") == background_id:
+	var default_bg = SafeDataAccess.safe_get(_character_creation_data, "default_background", {}, "background fallback")
+	var default_bg_dict = SafeDataAccess.safe_dict_access(default_bg, "default background access")
+	if SafeDataAccess.safe_get(default_bg_dict, "id", "", "default background ID check") == background_id:
 		return default_bg
 	
 	push_warning("DataManager: Background data not found: %s" % background_id)
@@ -420,7 +433,9 @@ static func get_character_class_data(class_id: String) -> Dictionary:
 	if "classes" not in _character_creation_data:
 		return {}
 	
-	return _character_creation_data.get("classes", {}).get(class_id.to_upper(), {})
+	var classes_data = SafeDataAccess.safe_get(_character_creation_data, "classes", {}, "class data lookup")
+	var classes_dict = SafeDataAccess.safe_dict_access(classes_data, "class data access")
+	return SafeDataAccess.safe_get(classes_dict, class_id.to_upper(), {}, "class ID lookup")
 
 ## Equipment Data Access
 static func get_weapon_data(weapon_id: String) -> Dictionary:
@@ -428,14 +443,18 @@ static func get_weapon_data(weapon_id: String) -> Dictionary:
 	if "weapons" not in _equipment_database:
 		return {}
 	
-	return _equipment_database["weapons"].get(weapon_id, {})
+	var weapons_data = SafeDataAccess.safe_get(_equipment_database, "weapons", {}, "weapons database access")
+	var weapons_dict = SafeDataAccess.safe_dict_access(weapons_data, "weapons data access")
+	return SafeDataAccess.safe_get(weapons_dict, weapon_id, {}, "weapon ID lookup")
 
 static func get_armor_data(armor_id: String) -> Dictionary:
 	## Get armor data with protection values and special properties
 	if "armor" not in _equipment_database:
 		return {}
 	
-	return _equipment_database["armor"].get(armor_id, {})
+	var armor_data = SafeDataAccess.safe_get(_equipment_database, "armor", {}, "armor database access")
+	var armor_dict = SafeDataAccess.safe_dict_access(armor_data, "armor data access")
+	return SafeDataAccess.safe_get(armor_dict, armor_id, {}, "armor ID lookup")
 
 static func get_gear_item(gear_id: String) -> Dictionary:
 	## Get gear item data by ID with enhanced validation
@@ -485,7 +504,8 @@ static func get_backgrounds_for_species(species_id: String) -> Array:
 	var all_backgrounds = get_all_backgrounds()
 	
 	for background in all_backgrounds:
-		var suitable_species = background.get("suitable_species", [])
+		var bg_dict = SafeDataAccess.safe_dict_access(background, "species compatibility check")
+		var suitable_species = SafeDataAccess.safe_get(bg_dict, "suitable_species", [], "suitable species lookup")
 		if species_id in suitable_species:
 			compatible_backgrounds.append(background)
 	
@@ -603,6 +623,14 @@ static func get_world_phase_crew_task_modifiers() -> Dictionary:
 	"""Get the complete world phase crew task modifiers"""
 	return _world_phase_crew_task_modifiers.duplicate()
 
+static func get_system_config() -> Dictionary:
+	"""Get system configuration data"""
+	return _system_config.duplicate()
+
+static func get_battlefield_companion_config() -> Dictionary:
+	"""Get battlefield companion configuration data"""
+	return _battlefield_companion_config.duplicate()
+
 static func get_exploration_result(roll: int) -> Dictionary:
 	"""Get exploration result for given d100 roll with comprehensive error handling"""
 	if _world_phase_exploration_table.is_empty():
@@ -717,7 +745,9 @@ static func filter_by_tags(items: Array, required_tags: Array[String], excluded_
 
 		var item_tags = item_dict["_tags"]
 		if typeof(item_tags) != TYPE_ARRAY:
-			push_warning("DataManager: Invalid _tags type in item: " + str(item_dict.get("id", "unknown")))
+			var item_dict_safe = SafeDataAccess.safe_dict_access(item_dict, "item tags validation")
+			var item_id = SafeDataAccess.safe_get(item_dict_safe, "id", "unknown", "item ID lookup")
+			push_warning("DataManager: Invalid _tags type in item: " + str(item_id))
 			continue
 
 		var item_tags_array: Array = item_tags as Array
@@ -770,7 +800,9 @@ static func get_performance_stats() -> Dictionary:
 		"world_phase_trade_count": _world_phase_trade_table.size(),
 		"world_phase_patron_jobs_count": _world_phase_patron_jobs_table.size(),
 		"world_phase_crew_task_modifiers_count": _world_phase_crew_task_modifiers.size(),
-		"total_items": _armor_database.size() + _weapons_database.size() + _gear_database.size() + _world_traits_database.size() + _injury_tables.size() + _enemy_types.size() + _planet_types.size() + _location_types.size() + _mission_templates.size() + _loot_tables.size() + _character_creation_data.size() + _status_effects.size() + _equipment_database.size() + _psionic_powers_database.size() + _elite_enemy_types.size() + _world_phase_exploration_table.size() + _world_phase_trade_table.size() + _world_phase_patron_jobs_table.size() + _world_phase_crew_task_modifiers.size(),
+		"system_config_count": _system_config.size(),
+		"battlefield_companion_config_count": _battlefield_companion_config.size(),
+		"total_items": _armor_database.size() + _weapons_database.size() + _gear_database.size() + _world_traits_database.size() + _injury_tables.size() + _enemy_types.size() + _planet_types.size() + _location_types.size() + _mission_templates.size() + _loot_tables.size() + _character_creation_data.size() + _status_effects.size() + _equipment_database.size() + _psionic_powers_database.size() + _elite_enemy_types.size() + _world_phase_exploration_table.size() + _world_phase_trade_table.size() + _world_phase_patron_jobs_table.size() + _world_phase_crew_task_modifiers.size() + _system_config.size() + _battlefield_companion_config.size(),
 		"load_errors": _load_errors.size(),
 		"loading_in_progress": _loading_in_progress
 	}
@@ -780,6 +812,26 @@ static func reset_performance_stats() -> void:
 	_cache_hits = 0
 	_cache_misses = 0
 	_load_time_ms = 0
+
+static func get_training_outcome() -> Dictionary:
+	"""Get training outcome from crew task data"""
+	if not _is_data_loaded:
+		push_error("DataManager: Data system not initialized")
+		return {"xp_gained": 1, "narrative": "Basic training completed", "advancement_check": true}
+	
+	if "training" not in _crew_task_data:
+		push_warning("DataManager: Training data not loaded")
+		return {"xp_gained": 1, "narrative": "Basic training completed", "advancement_check": true}
+	
+	# Return a random training outcome from the data
+	var training_data = _crew_task_data["training"]
+	if training_data.has("outcomes") and training_data["outcomes"] is Array:
+		var outcomes = training_data["outcomes"] as Array
+		if not outcomes.is_empty():
+			return outcomes[randi() % outcomes.size()]
+	
+	# Fallback
+	return {"xp_gained": 1, "narrative": "Basic training completed", "advancement_check": true}
 
 ## Hot Reloading Support (Development)
 static func reload_data() -> bool:
@@ -810,5 +862,46 @@ static func reload_data() -> bool:
 	_world_phase_trade_table.clear()
 	_world_phase_patron_jobs_table.clear()
 	_world_phase_crew_task_modifiers.clear()
+	_system_config.clear()
+	_battlefield_companion_config.clear()
 	
 	return initialize_data_system()
+
+## Utility Method for Safe Property Access
+static func safe_get_property(obj: Variant, property_name: String, default_value: Variant = null) -> Variant:
+	"""Safely get a property from an object or dictionary with a default fallback"""
+	if obj == null:
+		return default_value
+	
+	# Handle dictionary access
+	if obj is Dictionary:
+		var dict_obj = obj as Dictionary
+		return SafeDataAccess.safe_get(dict_obj, property_name, default_value, "safe property access")
+	
+	# Handle object property access with reflection
+	if obj is Object:
+		var object_obj = obj as Object
+		# Use has_method to check if property exists as a getter
+		var getter_name = "get_" + property_name
+		if object_obj.has_method(getter_name):
+			return object_obj.call(getter_name)
+		# Try direct property access if available
+		elif property_name in object_obj:
+			return SafeDataAccess.enhanced_safe_get(object_obj, property_name, default_value, "object property access")
+	
+	return default_value
+
+## Alias for get_crew_task_modifiers for backward compatibility
+static func get_task_modifiers(task_name: String) -> Dictionary:
+	"""Get task modifiers for crew tasks - alias for get_crew_task_modifiers"""
+	return get_crew_task_modifiers(task_name)
+
+## System readiness check for character generation
+static func is_system_ready() -> bool:
+	"""Check if DataManager system is ready and data is loaded"""
+	return _is_data_loaded
+
+## Export character creation data for character generation
+static func export_character_data() -> Dictionary:
+	"""Export complete character creation data for external use"""
+	return get_character_creation_data()

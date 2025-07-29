@@ -8,12 +8,12 @@ class_name CampaignCreationManager
 ## Campaign Creation Manager for Five Parsecs from Home
 ## Manages the step-by-step campaign creation process
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const Character = preload("res://src/core/character/Character.gd")
 
 # Dynamic loading to avoid circular dependencies
-var FiveParcsecsCampaign: Variant = null
-var SaveManager: Variant = null
+const FiveParcsecsCampaign = preload("res://src/core/campaign/Campaign.gd")
+# SaveManager accessed as autoload when needed
 
 signal creation_step_changed(step: int)
 signal campaign_config_completed(config: Dictionary)
@@ -35,7 +35,7 @@ var current_step: CreationStep = CreationStep.CONFIG
 var campaign_data: Dictionary = {}
 var creation_errors: Array[String] = []
 var game_state: Node = null # Injected via setup()
-var save_manager: Variant = null
+# save_manager accessed as autoload when needed
 
 func _init() -> void:
 	name = "CampaignCreationManager"
@@ -43,32 +43,30 @@ func _init() -> void:
 	_load_dependencies()
 
 func _load_dependencies() -> void:
-	"""Load dependencies dynamically to avoid circular references"""
-	# Try to load Campaign class
-	var campaign_path = "res://src/core/campaign/Campaign.gd"
-	if FileAccess.file_exists(campaign_path):
-		FiveParcsecsCampaign = load(campaign_path)
-	else:
+	"""Dependencies loaded at compile time with preload"""
+	# FiveParcsecsCampaign loaded at compile time
+	if not FiveParcsecsCampaign:
 		# Try alternative path
-		campaign_path = "res://src/game/campaign/FiveParsecsCampaign.gd"
+		var campaign_path = "res://src/game/campaign/FiveParsecsCampaign.gd"
 		if FileAccess.file_exists(campaign_path):
-			FiveParcsecsCampaign = load(campaign_path)
+			# Note: Cannot reassign const FiveParcsecsCampaign at runtime
+			push_warning("CampaignCreationManager: Alternative campaign path found but cannot reassign const")
 		else:
 			push_warning("CampaignCreationManager: Campaign class not found")
 
-	# Try to load SaveManager
-	var save_path: String = "res://src/core/state/SaveManager.gd"
-	if FileAccess.file_exists(save_path):
-		SaveManager = load(save_path)
-		if SaveManager:
-			save_manager = SaveManager.new()
-	else:
-		push_warning("CampaignCreationManager: SaveManager class not found")
+	# SaveManager accessed as autoload when needed - no need to instantiate here
+	print("CampaignCreationManager: Dependencies loading complete")
 
 func _ready() -> void:
 	print("CampaignCreationManager: Initializing...")
 	reset_creation()
 
+
+# Safe access to SaveManager
+func _get_safe_savemanager() -> Variant:
+	if ClassDB.class_exists("SaveManager"):
+		return get_node_or_null("/root/SaveManager")
+	return null
 func setup(state: Node) -> void:
 	"""Setup with external dependencies"""
 	game_state = state

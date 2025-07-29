@@ -14,7 +14,7 @@ extends Node
 
 # Dependencies
 const BattlefieldTypes = preload("res://src/core/battle/BattlefieldTypes.gd")
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 # Real-time tracking signals
 signal unit_health_changed(unit_id: String, old_health: int, new_health: int)

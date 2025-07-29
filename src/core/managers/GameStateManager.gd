@@ -4,14 +4,9 @@ class_name GameStateManagerClass
 extends Node
 
 # Stage 1: Enhanced Universal imports with comprehensive safety patterns
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
 
 # Safe dependency loading with preload pattern
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const CoreGameState = preload("res://src/core/state/GameState.gd")
 
 # Stage 2: Enhanced signal definitions with comprehensive type safety
@@ -35,7 +30,7 @@ signal state_load_completed(success: bool)
 @export var auto_save_interval: float = 300.0 # 5 minutes
 
 # Core state variables with enhanced type safety
-var game_state: Variant = null
+var game_state: CoreGameState = null
 var campaign_phase: int = 0 # Will be set to NONE enum value in _ready()
 var difficulty_level: int = 1 # Will be set to NORMAL enum value in _ready()
 var credits: int = initial_credits
@@ -162,11 +157,18 @@ func _register_with_game_state() -> void:
 	# Commenting out to prevent errors until the architecture is clarified.
 	# Register this manager with the global game state system using direct autoload access
 	# if GameState and GameState and GameState.has_method("register_manager"):
-	# 	GameState.register_manager("GameStateManager", self)
-	# 	print("GameStateManager: Successfully registered with global GameState")
-	# else:
-	# 	push_warning("GameStateManager: Global GameState not available or missing register_manager method")
-	pass
+	# Try to register with global GameState if available
+	var global_game_state = get_node_or_null("/root/GameState")
+	if global_game_state and global_game_state.has_method("register_manager"):
+		global_game_state.register_manager("GameStateManager", self)
+		print("GameStateManager: Successfully registered with global GameState")
+	else:
+		# Register with local game state instead
+		if game_state and game_state.has_method("register_manager"):
+			game_state.register_manager("GameStateManager", self)
+			print("GameStateManager: Registered with local game state")
+		else:
+			print("GameStateManager: No GameState available for registration")
 
 ## Enhanced signal connection validation
 func _validate_signal_connections() -> void:
@@ -416,16 +418,26 @@ func set_reputation(new_amount: int) -> void:
 		push_warning("GameStateManager: Reputation value outside expected range [-100, 100]: " + str(new_amount))
 
 	if reputation != new_amount:
-		var old_reputation: int = reputation
+		var old_reputation = reputation
 		reputation = new_amount
-
-		self.reputation_changed.emit(reputation)
 
 		# Sync to game state if available
 		_sync_reputation_to_game_state()
 
 		if enable_debug_logging:
 			print("GameStateManager: Reputation changed from %d to %d" % [old_reputation, reputation])
+
+## Add to reputation (convenience function)
+func add_reputation(amount: int) -> void:
+	set_reputation(reputation + amount)
+
+## Add to supplies (convenience function)  
+func add_supplies(amount: int) -> void:
+	set_supplies(supplies + amount)
+
+## Add to story progress (convenience function)
+func add_story_progress(amount: int) -> void:
+	set_story_progress(story_progress + amount)
 
 ## Set story progress with enhanced validation
 func set_story_progress(new_amount: int) -> void:
@@ -829,6 +841,128 @@ func get_crew_members() -> Array:
 		return game_state.get_crew_members()
 	return []
 
+## Enhanced state persistence methods
+func auto_save_current_state() -> bool:
+	"""Perform automatic save with error handling"""
+	print("GameStateManager: Performing auto-save...")
+	var success = save_current_state()
+	
+	if success:
+		print("GameStateManager: Auto-save completed successfully")
+	else:
+		push_warning("GameStateManager: Auto-save failed")
+	
+	state_save_completed.emit(success)
+	return success
+
+func create_state_backup() -> bool:
+	"""Create a backup of current state"""
+	var timestamp = Time.get_unix_time_from_system()
+	var backup_name = "backup_%d" % timestamp
+	
+	# Collect all manager data
+	var backup_data = _collect_all_manager_data()
+	
+	# Get SaveManager for backup operations
+	var save_manager: Node = get_manager("SaveManager")
+	if save_manager and save_manager.has_method("save_game"):
+		var success = save_manager.save_game(backup_data, backup_name)
+		print("GameStateManager: State backup created: %s" % backup_name)
+		return success
+	else:
+		push_warning("GameStateManager: No save system available for backup")
+		return false
+
+func restore_from_backup(backup_name: String) -> bool:
+	"""Restore state from a backup"""
+	print("GameStateManager: Restoring from backup: %s" % backup_name)
+	var success = load_saved_state(backup_name)
+	
+	if success:
+		print("GameStateManager: Backup restoration completed")
+	else:
+		push_error("GameStateManager: Failed to restore from backup")
+	
+	state_load_completed.emit(success)
+	return success
+
+func validate_current_state() -> Dictionary:
+	"""Validate the current game state for consistency"""
+	var validation_result = {
+		"valid": true,
+		"errors": [],
+		"warnings": [],
+		"state_summary": {}
+	}
+	
+	# Validate basic state values
+	if credits < 0:
+		validation_result.errors.append("Credits cannot be negative")
+		validation_result.valid = false
+	
+	if supplies < 0:
+		validation_result.errors.append("Supplies cannot be negative")
+		validation_result.valid = false
+	
+	if story_progress < 0 or story_progress > 100:
+		validation_result.warnings.append("Story progress seems out of normal range")
+	
+	# Validate campaign phase
+	if campaign_phase < 0 or campaign_phase > 4:
+		validation_result.errors.append("Invalid campaign phase")
+		validation_result.valid = false
+	
+	# Collect state summary
+	validation_result.state_summary = {
+		"credits": credits,
+		"supplies": supplies,
+		"reputation": reputation,
+		"story_progress": story_progress,
+		"campaign_phase": campaign_phase,
+		"difficulty_level": difficulty_level,
+		"registered_managers": registered_managers.keys(),
+		"has_active_campaign": has_active_campaign()
+	}
+	
+	print("GameStateManager: State validation completed - Valid: %s" % validation_result.valid)
+	return validation_result
+
+func reset_to_defaults() -> void:
+	"""Reset state to default values"""
+	print("GameStateManager: Resetting to default state")
+	
+	credits = initial_credits
+	supplies = initial_supplies
+	reputation = initial_reputation
+	story_progress = 0
+	campaign_phase = GlobalEnums.FiveParsecsCampaignPhase.NONE if GlobalEnums else 0
+	difficulty_level = 1
+	
+	# Emit all change signals
+	credits_changed.emit(credits)
+	supplies_changed.emit(supplies)
+	reputation_changed.emit(reputation)
+	story_progress_changed.emit(story_progress)
+	campaign_phase_changed.emit(campaign_phase)
+	difficulty_changed.emit(difficulty_level)
+	
+	print("GameStateManager: State reset completed")
+
+func get_save_file_info(save_name: String = "current_campaign") -> Dictionary:
+	"""Get information about a save file"""
+	var save_manager: Node = get_manager("SaveManager")
+	if save_manager and save_manager.has_method("get_save_info"):
+		return save_manager.get_save_info(save_name)
+	
+	# Fallback info
+	return {
+		"exists": false,
+		"save_name": save_name,
+		"timestamp": 0,
+		"size": 0,
+		"version": "unknown"
+	}
+
 ## Get current crew size
 func get_crew_size() -> int:
 	if game_state and game_state and game_state.has_method("get_crew_size"):
@@ -1059,23 +1193,77 @@ func _apply_test_equipment_level(level: String) -> void:
 
 ## Apply basic equipment set
 func _apply_basic_equipment() -> void:
-	# Basic starting equipment
-	pass
+	"""Apply basic starting equipment for new campaigns"""
+	var equipment_manager = get_manager("EquipmentManager")
+	if equipment_manager and equipment_manager.has_method("add_equipment"):
+		# Basic Five Parsecs starting equipment
+		equipment_manager.add_equipment({"name": "Scrap Pistol", "type": "weapon", "range": 12, "damage": 1, "traits": ["Pistol"]})
+		equipment_manager.add_equipment({"name": "Blade", "type": "weapon", "range": 0, "damage": 1, "traits": ["Melee"]})
+		equipment_manager.add_equipment({"name": "Basic Kit", "type": "gear", "traits": ["Utility"]})
+		equipment_manager.add_equipment({"name": "Worn Clothing", "type": "armor", "save": 6, "traits": ["Basic"]})
+		print("GameStateManager: Applied basic equipment set")
+	else:
+		print("GameStateManager: EquipmentManager not available for basic equipment")
 
 ## Apply improved equipment set
 func _apply_improved_equipment() -> void:
-	# Mid-tier equipment
-	pass
+	"""Apply improved equipment for experienced crews"""
+	var equipment_manager = get_manager("EquipmentManager")
+	if equipment_manager and equipment_manager.has_method("add_equipment"):
+		# Improved Five Parsecs equipment
+		equipment_manager.add_equipment({"name": "Military Rifle", "type": "weapon", "range": 24, "damage": 1, "traits": ["Military"]})
+		equipment_manager.add_equipment({"name": "Combat Armor", "type": "armor", "save": 5, "traits": ["Protection"]})
+		equipment_manager.add_equipment({"name": "Analyzer", "type": "gadget", "traits": ["Tech"]})
+		equipment_manager.add_equipment({"name": "Stims", "type": "consumable", "traits": ["Medical"]})
+		equipment_manager.add_equipment({"name": "Credits Boost", "type": "special", "value": 1000})
+		
+		# Apply credits boost
+		add_credits(1000)
+		print("GameStateManager: Applied improved equipment set")
+	else:
+		print("GameStateManager: EquipmentManager not available for improved equipment")
 
 ## Apply advanced equipment set
 func _apply_advanced_equipment() -> void:
-	# High-tier equipment
-	pass
+	"""Apply advanced equipment for veteran crews"""
+	var equipment_manager = get_manager("EquipmentManager")
+	if equipment_manager and equipment_manager.has_method("add_equipment"):
+		# Advanced Five Parsecs equipment
+		equipment_manager.add_equipment({"name": "Plasma Rifle", "type": "weapon", "range": 30, "damage": 2, "traits": ["Energy", "Military"]})
+		equipment_manager.add_equipment({"name": "Power Armor", "type": "armor", "save": 4, "traits": ["Heavy", "Powered"]})
+		equipment_manager.add_equipment({"name": "Shield Generator", "type": "gadget", "traits": ["Tech", "Defensive"]})
+		equipment_manager.add_equipment({"name": "Advanced Medkit", "type": "gear", "traits": ["Medical", "Advanced"]})
+		equipment_manager.add_equipment({"name": "Ship Upgrade", "type": "special", "value": 2500})
+		
+		# Apply credits and reputation boost
+		add_credits(2500)
+		add_reputation(10)
+		print("GameStateManager: Applied advanced equipment set")
+	else:
+		print("GameStateManager: EquipmentManager not available for advanced equipment")
 
 ## Apply elite equipment set
 func _apply_elite_equipment() -> void:
-	# Top-tier equipment
-	pass
+	"""Apply elite equipment for legendary crews"""
+	var equipment_manager = get_manager("EquipmentManager")
+	if equipment_manager and equipment_manager.has_method("add_equipment"):
+		# Elite Five Parsecs equipment
+		equipment_manager.add_equipment({"name": "Fusion Cannon", "type": "weapon", "range": 36, "damage": 3, "traits": ["Energy", "Heavy", "Rare"]})
+		equipment_manager.add_equipment({"name": "Exoskeleton", "type": "armor", "save": 3, "traits": ["Heavy", "Powered", "Elite"]})
+		equipment_manager.add_equipment({"name": "AI Assistant", "type": "gadget", "traits": ["Tech", "AI", "Legendary"]})
+		equipment_manager.add_equipment({"name": "Nano-medics", "type": "gear", "traits": ["Medical", "Nano", "Elite"]})
+		equipment_manager.add_equipment({"name": "Elite Package", "type": "special", "value": 5000})
+		
+		# Apply major boosts
+		add_credits(5000)
+		add_reputation(25)
+		add_supplies(10)
+		
+		# Unlock story progress
+		add_story_progress(5)
+		print("GameStateManager: Applied elite equipment set")
+	else:
+		print("GameStateManager: EquipmentManager not available for elite equipment")
 
 ## Test Scenario Setups
 

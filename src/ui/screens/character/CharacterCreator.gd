@@ -8,7 +8,7 @@ class_name CharacterCreatorUI
 
 # Safe imports
 const BaseCharacterCreationSystem = preload("res://src/base/character/BaseCharacterCreationSystem.gd")
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const Character = preload("res://src/core/character/Character.gd")
 const FiveParsecsCharacterGeneration = preload("res://src/core/character/CharacterGeneration.gd")
 const CharacterCreationTables = preload("res://src/core/character/tables/CharacterCreationTables.gd")
@@ -57,6 +57,11 @@ const DataManager = preload("res://src/core/data/DataManager.gd")
 # Character creation system (handles all logic)
 var creation_system: BaseCharacterCreationSystem = null
 
+# Character state management
+var current_character: Character = null
+var is_editing_mode: bool = false
+var original_character: Character = null
+
 # State (managed by creation system)
 var character_equipment: Dictionary = {}
 var current_portrait_path: String = ""
@@ -72,29 +77,7 @@ signal portrait_loaded(path: String)
 signal portrait_cleared()
 signal portrait_exported(path: String)
 
-func _ready() -> void:
-	print("CharacterCreator: Initializing unified character creator with BaseCharacterCreationSystem...")
-	
-	# Initialize creation system
-	creation_system = BaseCharacterCreationSystem.new()
-	_connect_creation_system_signals()
-	
-	_setup_ui_validation()
-	_setup_ui_components()
-	_connect_signals()
-
-	# Get singleton dependencies
-	dice_manager = get_node_or_null("/root/DiceManager")
-	if not dice_manager:
-		push_error("CharacterCreator: DiceManager not found. Random generation will fail.")
-
-	# Start character creation
-	var current_character = creation_system.get_current_character()
-	if not current_character:
-		creation_system.start_creation(BaseCharacterCreationSystem.CreationMode.STANDARD)
-	
-	_update_ui_from_character()
-	_update_portrait_preview() # Initialize portrait display state
+# _ready() implementation moved to end of file for campaign integration
 
 func _connect_creation_system_signals() -> void:
 	"""Connect to creation system signals"""
@@ -167,23 +150,6 @@ func _populate_origin_options_enhanced() -> void:
 				origin_options.set_item_tooltip(item_count - 1, tooltip_text)
 	
 	print("CharacterCreator: Populated %d origin options with enhanced data" % origin_options.get_item_count())
-		{"id": GlobalEnums.Origin.SOULLESS, "name": "Soulless"},
-		{"id": GlobalEnums.Origin.PRECURSOR, "name": "Precursor"},
-		{"id": GlobalEnums.Origin.FERAL, "name": "Feral"},
-		{"id": GlobalEnums.Origin.SWIFT, "name": "Swift"},
-		{"id": GlobalEnums.Origin.BOT, "name": "Bot"},
-		{"id": GlobalEnums.Origin.CORE_WORLDS, "name": "Core Worlds"},
-		{"id": GlobalEnums.Origin.FRONTIER, "name": "Frontier"},
-		{"id": GlobalEnums.Origin.DEEP_SPACE, "name": "Deep Space"},
-		{"id": GlobalEnums.Origin.COLONY, "name": "Colony"},
-		{"id": GlobalEnums.Origin.HIVE_WORLD, "name": "Hive World"},
-		{"id": GlobalEnums.Origin.FORGE_WORLD, "name": "Forge World"}
-	]
-	
-	for origin_data in all_origins:
-		origin_options.add_item(origin_data.name, origin_data.id)
-	
-	print("CharacterCreator: Populated %d origin options (complete set)" % origin_options.get_item_count())
 
 func _populate_background_options_enhanced() -> void:
 	"""Populate background dropdown using BaseCharacterCreationSystem data"""
@@ -1025,3 +991,138 @@ func safe_get_property(obj: Variant, property_name: String, default_value: Varia
 		return obj[property_name]
 	
 	return default_value
+
+## Campaign Creation State Bridge Integration
+
+func setup_for_campaign_creation(character_to_edit: Character = null) -> void:
+	"""Setup CharacterCreator for campaign creation workflow integration"""
+	print("CharacterCreator: Setting up for campaign creation workflow")
+	
+	# Connect to campaign creation state bridge
+	var state_bridge = get_node_or_null("/root/CampaignCreationStateBridge")
+	if state_bridge:
+		print("CharacterCreator: Connected to CampaignCreationStateBridge")
+		
+		# Get scene context from bridge
+		var scene_context = state_bridge.get_scene_context()
+		print("CharacterCreator: Scene context: ", scene_context)
+		
+		# Handle different context scenarios
+		if scene_context.has("edit_character") and scene_context.edit_character:
+			# We're editing an existing character
+			var character_data = scene_context.get("character_data", null)
+			if character_data and character_data is Character:
+				set_character_for_editing(character_data)
+				print("CharacterCreator: Setup for editing character: ", character_data.character_name)
+			elif character_to_edit:
+				set_character_for_editing(character_to_edit)
+				print("CharacterCreator: Setup for editing provided character: ", character_to_edit.character_name)
+		else:
+			# Creating a new character for campaign
+			print("CharacterCreator: Setup for new character creation")
+			_create_new_character()
+		
+		# Connect our signals to the state bridge
+		_connect_state_bridge_signals(state_bridge)
+	else:
+		push_warning("CharacterCreator: CampaignCreationStateBridge not found - operating in standalone mode")
+		
+		# Fallback to standalone operation
+		if character_to_edit:
+			set_character_for_editing(character_to_edit)
+		else:
+			_create_new_character()
+
+func _connect_state_bridge_signals(state_bridge: Node) -> void:
+	"""Connect CharacterCreator signals to CampaignCreationStateBridge"""
+	if not state_bridge:
+		return
+	
+	# Connect character creation/update signals to bridge
+	if not character_created.is_connected(_on_character_created_for_campaign):
+		character_created.connect(_on_character_created_for_campaign)
+	if not character_updated.is_connected(_on_character_updated_for_campaign):
+		character_updated.connect(_on_character_updated_for_campaign)
+	if not creation_cancelled.is_connected(_on_creation_cancelled_for_campaign):
+		creation_cancelled.connect(_on_creation_cancelled_for_campaign)
+
+func _on_character_created_for_campaign(character: Character) -> void:
+	"""Handle character creation in campaign context"""
+	print("CharacterCreator: Character created for campaign: ", character.character_name)
+	
+	var state_bridge = get_node_or_null("/root/CampaignCreationStateBridge")
+	if state_bridge and state_bridge.has_method("handle_character_update"):
+		state_bridge.handle_character_update(character)
+	
+	# Return to crew creation or advance to next step
+	_return_to_campaign_flow()
+
+func _on_character_updated_for_campaign(character: Character) -> void:
+	"""Handle character update in campaign context"""
+	print("CharacterCreator: Character updated for campaign: ", character.character_name)
+	
+	var state_bridge = get_node_or_null("/root/CampaignCreationStateBridge")
+	if state_bridge and state_bridge.has_method("handle_character_update"):
+		state_bridge.handle_character_update(character)
+	
+	# Return to crew creation
+	_return_to_campaign_flow()
+
+func _on_creation_cancelled_for_campaign() -> void:
+	"""Handle character creation cancellation in campaign context"""
+	print("CharacterCreator: Character creation cancelled for campaign")
+	
+	# Return to crew creation
+	_return_to_campaign_flow()
+
+func _return_to_campaign_flow() -> void:
+	"""Return to the appropriate scene in campaign creation flow"""
+	var state_bridge = get_node_or_null("/root/CampaignCreationStateBridge")
+	var scene_router = get_node_or_null("/root/SceneRouter")
+	
+	if state_bridge and scene_router:
+		# Get scene context to determine where to return
+		var scene_context = state_bridge.get_scene_context()
+		var return_scene = scene_context.get("return_scene", "crew_creation")
+		
+		print("CharacterCreator: Returning to campaign flow scene: ", return_scene)
+		
+		# Clear our context since we're leaving
+		state_bridge.clear_scene_context("character_creator")
+		
+		# Navigate back
+		if scene_router.has_method("navigate_to"):
+			scene_router.navigate_to(return_scene)
+		else:
+			# Fallback
+			state_bridge.return_to_previous_scene()
+	else:
+		push_warning("CharacterCreator: Cannot return to campaign flow - state bridge or scene router not available")
+
+## Standalone Integration Point
+func _ready() -> void:
+	print("CharacterCreator: Initializing unified character creator with BaseCharacterCreationSystem...")
+	
+	# Initialize creation system
+	creation_system = BaseCharacterCreationSystem.new()
+	_connect_creation_system_signals()
+	
+	_setup_ui_validation()
+	_setup_ui_components()
+	_connect_signals()
+
+	# Get singleton dependencies
+	dice_manager = get_node_or_null("/root/DiceManager")
+	if not dice_manager:
+		push_error("CharacterCreator: DiceManager not found. Random generation will fail.")
+
+	# Start character creation
+	var current_character = creation_system.get_current_character()
+	if not current_character:
+		creation_system.start_creation(BaseCharacterCreationSystem.CreationMode.STANDARD)
+	
+	_update_ui_from_character()
+	_update_portrait_preview() # Initialize portrait display state
+	
+	# Check if we're in campaign creation mode
+	call_deferred("setup_for_campaign_creation")

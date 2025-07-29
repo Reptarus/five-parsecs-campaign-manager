@@ -3,7 +3,7 @@
 class_name CampaignManagerClass
 extends Node
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const GameState = preload("res://src/core/state/GameState.gd")
 const StoryQuestData = preload("res://src/game/story/StoryQuestData.gd")
 const FPCM_StoryTrackSystem = preload("res://src/core/story/StoryTrackSystem.gd")
@@ -68,12 +68,24 @@ func _ready() -> void:
 	completed_missions = []
 	mission_history = []
 
-	# Initialize Dice System first (reference autoload directly with proper typing)
+	# Defer autoload access to avoid loading order issues
+	call_deferred("_initialize_autoloads")
+	call_deferred("_initialize_systems")
+
+func _initialize_autoloads() -> void:
+	"""Initialize autoloads with retry logic to handle loading order"""
 	dice_manager = get_node_or_null("/root/DiceManager") as Node
+	if not dice_manager:
+		push_warning("CampaignManager: DiceManager not found - will retry")
+		await get_tree().create_timer(0.1).timeout
+		dice_manager = get_node_or_null("/root/DiceManager") as Node
+		if not dice_manager:
+			push_warning("CampaignManager: DiceManager autoload not found")
+
+func _initialize_systems() -> void:
+	"""Initialize systems after autoloads are available"""
 	if dice_manager:
 		_connect_dice_signals()
-	else:
-		push_warning("CampaignManager: DiceManager autoload not found")
 
 	# Initialize Story Track System and inject dice manager
 	story_track_system = FPCM_StoryTrackSystem.new()
@@ -608,8 +620,7 @@ func _apply_mission_rewards(mission: StoryQuestData) -> void:
 
 	# Apply item rewards
 	for item: Dictionary in mission.reward_items:
-		# TODO: Add item to inventory when inventory system is implemented
-		pass
+		_add_item_to_inventory(item)
 
 func _consume_mission_resources(mission: StoryQuestData) -> void:
 	# Consume required resources
@@ -759,11 +770,9 @@ func _apply_story_choice_effects(choice: Dictionary, outcome: Dictionary) -> voi
 			if game_state:
 				game_state.modify_reputation(10)
 		"tech_data", "information", "intel":
-			# Could add special items or unlock new missions
-			pass
+			_handle_information_reward(reward_type)
 		"ally", "contacts":
-			# Could add contacts or reduce future mission difficulty
-			pass
+			_handle_contact_reward(reward_type)
 
 ## Start the story track system
 func start_story_track() -> void:
@@ -822,6 +831,194 @@ func _exit_tree() -> void:
 	dice_manager = null
 	
 	print("CampaignManager: Cleanup completed")
+
+## Missing helper functions for campaign lifecycle
+func _add_item_to_inventory(item: Dictionary) -> void:
+	"""Add item to crew inventory"""
+	# Get equipment manager to handle inventory
+	var equipment_manager = get_node_or_null("/root/EquipmentManager")
+	if equipment_manager and equipment_manager.has_method("add_equipment"):
+		equipment_manager.add_equipment(item)
+		print("CampaignManager: Added item to inventory: %s" % item.get("name", "Unknown"))
+	else:
+		# Fallback: add to game state if available
+		if game_state and game_state.has_method("add_inventory_item"):
+			game_state.add_inventory_item(item)
+		else:
+			print("CampaignManager: No inventory system available for item: %s" % item.get("name", "Unknown"))
+
+func _handle_information_reward(reward_type: String) -> void:
+	"""Handle information-based rewards"""
+	match reward_type:
+		"tech_data":
+			# Unlock new equipment options or improve existing ones
+			if game_state:
+				game_state.modify_resource(GlobalEnums.ResourceType.TECHNOLOGY, 5)
+			print("CampaignManager: Gained valuable tech data")
+		"information":
+			# Provide intelligence that could affect future missions
+			_unlock_special_missions("information_unlocked")
+			print("CampaignManager: Gained valuable information")
+		"intel":
+			# Reduce difficulty of future enemy encounters
+			if game_state and game_state.has_method("add_temporary_bonus"):
+				game_state.add_temporary_bonus("enemy_difficulty_reduction", -1, 3)
+			print("CampaignManager: Gained tactical intelligence")
+
+func _handle_contact_reward(reward_type: String) -> void:
+	"""Handle contact/ally-based rewards"""
+	match reward_type:
+		"ally":
+			# Add a permanent ally that provides ongoing benefits
+			if game_state and game_state.has_method("add_ally"):
+				var ally_data = {
+					"name": "Campaign Ally",
+					"type": "support",
+					"benefit": "mission_support",
+					"duration": - 1 # Permanent
+				}
+				game_state.add_ally(ally_data)
+			print("CampaignManager: Gained a valuable ally")
+		"contacts":
+			# Add contacts that provide future opportunities
+			if game_state:
+				game_state.modify_reputation(5) # Contacts improve reputation
+			_unlock_special_missions("contact_missions")
+			print("CampaignManager: Expanded contact network")
+
+func _unlock_special_missions(unlock_type: String) -> void:
+	"""Unlock special missions based on achievements"""
+	match unlock_type:
+		"information_unlocked":
+			# Create information-based missions
+			var info_mission = _create_special_mission("Investigation", "Use gathered intel to uncover secrets", 2)
+			if info_mission:
+				available_missions.append(info_mission)
+		"contact_missions":
+			# Create contact-based missions
+			var contact_mission = _create_special_mission("Favor", "Help your new contacts with a task", 1)
+			if contact_mission:
+				available_missions.append(contact_mission)
+	
+	print("CampaignManager: Unlocked special missions for: %s" % unlock_type)
+
+func _create_special_mission(mission_type: String, description: String, difficulty: int) -> StoryQuestData:
+	"""Create a special mission based on campaign events"""
+	if not StoryQuestData:
+		print("CampaignManager: Cannot create special mission - StoryQuestData not available")
+		return null
+	
+	var mission = StoryQuestData.new()
+	mission.title = "Special %s Mission" % mission_type
+	mission.description = description
+	mission.difficulty = difficulty
+	mission.reward_credits = 500 + (difficulty * 250)
+	mission.reward_reputation = difficulty
+	mission.required_resources = {}
+	mission.reward_items = []
+	
+	# Add some randomization based on mission type
+	match mission_type:
+		"Investigation":
+			mission.reward_items.append({"name": "Data Chip", "type": "special", "value": 100})
+		"Favor":
+			mission.reward_reputation += 5 # Favors give extra reputation
+	
+	return mission
+
+func advance_campaign_turn() -> void:
+	"""Advance the campaign by one turn"""
+	print("CampaignManager: Advancing campaign turn")
+	
+	# Process turn-based events
+	_process_turn_events()
+	
+	# Update mission availability
+	_refresh_available_missions()
+	
+	# Process story track progression
+	if story_track_system and story_track_system.has_method("advance_turn"):
+		story_track_system.advance_turn()
+	
+	# Update game state
+	if game_state and game_state.has_method("advance_turn"):
+		game_state.advance_turn()
+	
+	print("CampaignManager: Campaign turn advanced")
+
+func _process_turn_events() -> void:
+	"""Process events that occur each turn"""
+	# Check for random events
+	if dice_manager:
+		var event_roll = dice_manager.roll_dice("CampaignManager", "d6")
+		if event_roll == 6: # 1 in 6 chance of random event
+			_trigger_random_event()
+	
+	# Process ongoing effects
+	_process_ongoing_effects()
+
+func _refresh_available_missions() -> void:
+	"""Refresh the pool of available missions"""
+	# Remove old missions that have expired
+	available_missions = available_missions.filter(func(mission): return mission.difficulty > 0)
+	
+	# Add new missions if pool is low
+	if available_missions.size() < 3:
+		var new_mission = _generate_random_mission()
+		if new_mission:
+			available_missions.append(new_mission)
+
+func _trigger_random_event() -> void:
+	"""Trigger a random campaign event"""
+	var events = [
+		"market_crash",
+		"resource_discovery",
+		"enemy_activity",
+		"ally_assistance",
+		"equipment_malfunction"
+	]
+	
+	var event_type = events[randi() % events.size()]
+	_handle_campaign_event(event_type)
+
+func _handle_campaign_event(event_type: String) -> void:
+	"""Handle different types of campaign events"""
+	print("CampaignManager: Campaign event triggered: %s" % event_type)
+	
+	match event_type:
+		"market_crash":
+			if game_state:
+				game_state.modify_credits(-200)
+			print("Market crash! Lost credits due to economic instability")
+		"resource_discovery":
+			if game_state:
+				game_state.modify_supplies(3)
+			print("Resource discovery! Found additional supplies")
+		"enemy_activity":
+			# Increase difficulty of next mission
+			if available_missions.size() > 0:
+				available_missions[0].difficulty += 1
+			print("Enemy activity increased! Next mission will be more difficult")
+		"ally_assistance":
+			if game_state:
+				game_state.modify_reputation(3)
+			print("Ally assistance! Reputation improved through connections")
+		"equipment_malfunction":
+			# Could damage equipment or require repairs
+			print("Equipment malfunction! Check your gear for damage")
+
+func _process_ongoing_effects() -> void:
+	"""Process ongoing campaign effects"""
+	# This would handle things like:
+	# - Temporary bonuses/penalties that expire
+	# - Ongoing story effects
+	# - Rival actions
+	# - Patron relationships
+	pass
+
+func _generate_random_mission() -> StoryQuestData:
+	"""Generate a random mission for the mission pool"""
+	return _create_special_mission("Random", "A mission opportunity has presented itself", randi_range(1, 3))
 
 ## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
 ## Based on Godot 4.4 best practices for safe property access

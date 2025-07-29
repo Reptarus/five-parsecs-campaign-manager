@@ -21,7 +21,7 @@ var current_mission: Mission
 var initial_state: Dictionary
 var mission_specific_inputs: Dictionary = {}
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 # Core Setup Functions
 

@@ -1,6 +1,6 @@
 ﻿extends Control
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 @onready var difficulty_option: Button = $"VBoxContainer/DifficultyOption"
 @onready var permadeath_toggle: Button = $"VBoxContainer/PermadeathToggle"

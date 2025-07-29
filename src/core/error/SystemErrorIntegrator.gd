@@ -14,31 +14,31 @@ const CRITICAL_SYSTEMS = {
 		"path": "src/core/managers/GameStateManager.gd",
 		"type": UniversalErrorBoundary.ComponentType.CORE_SYSTEM,
 		"priority": 10,
-		"error_calls": 55  # Highest in codebase
+		"error_calls": 55 # Highest in codebase
 	},
 	"WorldPhaseUI": {
-		"path": "src/ui/screens/world/WorldPhaseUI.gd", 
+		"path": "src/ui/screens/world/WorldPhaseUI.gd",
 		"type": UniversalErrorBoundary.ComponentType.UI_COMPONENT,
 		"priority": 9,
-		"error_calls": 13  # User-facing system
+		"error_calls": 13 # User-facing system
 	},
 	"BattleSystemIntegration": {
 		"path": "src/core/battle/BattleSystemIntegration.gd",
 		"type": UniversalErrorBoundary.ComponentType.BATTLE_SYSTEM,
 		"priority": 8,
-		"error_calls": 2   # Battle-critical
+		"error_calls": 2 # Battle-critical
 	},
 	"CampaignManager": {
 		"path": "src/core/managers/CampaignManager.gd",
 		"type": UniversalErrorBoundary.ComponentType.CAMPAIGN_MANAGER,
 		"priority": 7,
-		"error_calls": 25  # Campaign flow critical
+		"error_calls": 25 # Campaign flow critical
 	},
 	"DataManager": {
-		"path": "src/core/data/DataManager.gd", 
+		"path": "src/core/data/DataManager.gd",
 		"type": UniversalErrorBoundary.ComponentType.DATA_MANAGER,
 		"priority": 6,
-		"error_calls": 46  # Data integrity critical
+		"error_calls": 46 # Data integrity critical
 	}
 }
 
@@ -91,7 +91,7 @@ func integrate_all_critical_systems() -> Dictionary:
 	
 	var final_result = _create_integration_summary()
 	print("[SystemErrorIntegrator] Integration complete: %d/%d systems successful" % [
-		_integration_stats.successful_integrations, 
+		_integration_stats.successful_integrations,
 		_integration_stats.total_systems
 	])
 	
@@ -130,62 +130,61 @@ func integrate_system_with_analysis(system_name: String, file_path: String, anal
 	integration_result.errors_protected = critical_errors
 	integration_result.recovery_strategy = recovery_strategy
 	
-	try:
-		# Step 1: Create a representative component for integration testing
-		var test_component = _create_test_component_for_system(system_name, file_path)
-		if not test_component:
-			integration_result.error = "Failed to create test component for " + system_name
-			integration_result.integration_time_ms = Time.get_ticks_msec() - start_time
-			return integration_result
-		
-		# Step 2: Wrap with error boundary using analysis-informed configuration
-		var error_strategy = _convert_recovery_strategy_to_error_strategy(recovery_strategy)
-		var wrapper = UniversalErrorBoundary.wrap_component(
-			test_component,
-			system_name + "_ErrorBoundary",
-			component_type,
-			integration_mode
-		)
-		
-		if not wrapper:
-			integration_result.error = "Failed to create error boundary wrapper for " + system_name
-			integration_result.integration_time_ms = Time.get_ticks_msec() - start_time
-			return integration_result
-		
-		integration_result.wrapper_created = true
-		
-		# Step 3: Configure wrapper with Gemini analysis insights
-		wrapper._configure_recovery_strategy(error_strategy, {
-			"critical_error_count": critical_errors,
-			"priority_level": priority,
-			"system_category": _get_system_category(component_type),
-			"enable_emergency_save": recovery_strategy == "EMERGENCY_SAVE"
-		})
-		
-		# Step 4: Test error handling for critical error patterns
-		var validation_result = _validate_error_handling_with_patterns(wrapper, system_name, analysis_config)
-		integration_result.component_validated = validation_result.success
-		
-		if not validation_result.success:
-			integration_result.error = "Error handling validation failed: " + validation_result.error
-			integration_result.integration_time_ms = Time.get_ticks_msec() - start_time
-			return integration_result
-		
-		# Step 5: Register with global error tracking
-		UniversalErrorBoundary._register_integrated_component(system_name, {
-			"wrapper": wrapper,
-			"file_path": file_path,
-			"critical_errors": critical_errors,
-			"recovery_strategy": recovery_strategy,
-			"integration_timestamp": Time.get_ticks_msec(),
-			"validation_results": validation_result
-		})
-		
-		integration_result.success = true
-		print("[SystemErrorIntegrator] ✅ %s integration successful - %d critical errors protected" % [system_name, critical_errors])
-		
-	except:
-		integration_result.error = "Exception during integration of " + system_name
+	# Error handling using GDScript patterns (no try/except in GDScript)
+	var integration_success = false
+	
+	# Step 1: Create a representative component for integration testing
+	var test_component = _create_test_component_for_system(system_name, file_path)
+	if not test_component:
+		integration_result.error = "Failed to create test component for " + system_name
+		integration_result.integration_time_ms = Time.get_ticks_msec() - start_time
+		return integration_result
+	
+	# Step 2: Wrap with error boundary using analysis-informed configuration
+	var error_strategy = _convert_recovery_strategy_to_error_strategy(recovery_strategy)
+	var wrapper = UniversalErrorBoundary.wrap_component(
+		test_component,
+		system_name + "_ErrorBoundary",
+		component_type,
+		integration_mode
+	)
+	
+	if not wrapper:
+		integration_result.error = "Failed to create error boundary wrapper for " + system_name
+		integration_result.integration_time_ms = Time.get_ticks_msec() - start_time
+		return integration_result
+	
+	integration_result.wrapper_created = true
+	
+	# Step 3: Configure wrapper with Gemini analysis insights
+	wrapper._configure_recovery_strategy(error_strategy, {
+		"critical_error_count": critical_errors,
+		"priority_level": priority,
+		"system_category": _get_system_category(component_type),
+		"enable_emergency_save": recovery_strategy == "EMERGENCY_SAVE"
+	})
+	
+	# Step 4: Test error handling for critical error patterns
+	var validation_result = _validate_error_handling_with_patterns(wrapper, system_name, analysis_config)
+	integration_result.component_validated = validation_result.success
+	
+	if not validation_result.success:
+		integration_result.error = "Error handling validation failed: " + validation_result.error
+		integration_result.integration_time_ms = Time.get_ticks_msec() - start_time
+		return integration_result
+	
+	# Step 5: Register with global error tracking
+	UniversalErrorBoundary._register_integrated_component(system_name, {
+		"wrapper": wrapper,
+		"file_path": file_path,
+		"critical_errors": critical_errors,
+		"recovery_strategy": recovery_strategy,
+		"integration_timestamp": Time.get_ticks_msec(),
+		"validation_results": validation_result
+	})
+	
+	integration_result.success = true
+	print("[SystemErrorIntegrator] ✅ %s integration successful - %d critical errors protected" % [system_name, critical_errors])
 	
 	integration_result.integration_time_ms = Time.get_ticks_msec() - start_time
 	return integration_result
@@ -259,13 +258,13 @@ func _validate_error_handling_with_patterns(wrapper: Object, system_name: String
 	# Test 1: Safe method calls (covers push_error patterns)
 	validation_result.total_tests += 1
 	var safe_call_result = wrapper.safe_call("nonexistent_method")
-	if safe_call_result == null:  # Expected safe failure
+	if safe_call_result == null: # Expected safe failure
 		validation_result.tests_passed += 1
 	
 	# Test 2: Safe property access (covers null access patterns)  
 	validation_result.total_tests += 1
 	var safe_get_result = wrapper.safe_get("nonexistent_property")
-	if safe_get_result == null:  # Expected safe failure
+	if safe_get_result == null: # Expected safe failure
 		validation_result.tests_passed += 1
 	
 	# Test 3: Recovery strategy validation
@@ -287,7 +286,7 @@ func _validate_error_handling_with_patterns(wrapper: Object, system_name: String
 		if protection_config.get("critical_error_count", 0) == critical_errors:
 			validation_result.tests_passed += 1
 	else:
-		validation_result.tests_passed += 1  # No critical errors is valid
+		validation_result.tests_passed += 1 # No critical errors is valid
 	
 	validation_result.success = validation_result.tests_passed == validation_result.total_tests
 	
@@ -324,7 +323,7 @@ func _get_system_instance(system_name: String) -> Object:
 	# Common autoload/singleton patterns
 	var autoload_names = [
 		system_name,
-		"FPCM_" + system_name, 
+		"FPCM_" + system_name,
 		system_name.replace("Manager", ""),
 		system_name.to_snake_case().to_upper()
 	]
@@ -353,27 +352,23 @@ func _integrate_system_direct(system: Object, system_name: String, config: Dicti
 		"error_calls_wrapped": 0
 	}
 	
-	try:
-		# Create error boundary wrapper
-		var wrapper = UniversalErrorBoundary.wrap_component(
-			system,
-			system_name,
-			config.type,
-			UniversalErrorBoundary.IntegrationMode.GRACEFUL
-		)
-		
-		if wrapper:
-			# Add error boundary methods to system
-			_add_error_boundary_methods(system, wrapper, system_name)
-			
-			result.success = true
-			result.features_added = ["error_boundary_wrapper", "safe_method_calls", "error_recovery"]
-			result.error_calls_wrapped = config.get("error_calls", 0)
-		else:
-			result.error = "Failed to create error boundary wrapper"
+	# Create error boundary wrapper using GDScript error handling
+	var wrapper = UniversalErrorBoundary.wrap_component(
+		system,
+		system_name,
+		config.type,
+		UniversalErrorBoundary.IntegrationMode.GRACEFUL
+	)
 	
-	except:
-		result.error = "Exception during direct integration: " + str(get_stack())
+	if wrapper:
+		# Add error boundary methods to system
+		_add_error_boundary_methods(system, wrapper, system_name)
+		
+		result.success = true
+		result.features_added = ["error_boundary_wrapper", "safe_method_calls", "error_recovery"]
+		result.error_calls_wrapped = config.get("error_calls", 0)
+	else:
+		result.error = "Failed to create error boundary wrapper"
 	
 	return result
 
@@ -381,7 +376,7 @@ func _integrate_system_direct(system: Object, system_name: String, config: Dicti
 func _integrate_system_file_based(system_name: String, config: Dictionary) -> Dictionary:
 	var result = {
 		"system": system_name,
-		"success": false,  
+		"success": false,
 		"error": "",
 		"integration_type": "FILE_BASED",
 		"features_added": [],
@@ -460,7 +455,7 @@ func _inject_error_boundary_into_file(content: String, system_name: String, conf
 				modified_lines.append("\t_error_boundary = UniversalErrorBoundary.wrap_component(")
 				modified_lines.append("\t\tself,")
 				modified_lines.append('\t\t"%s",' % system_name)
-				modified_lines.append("\t\tUniversalErrorBoundary.ComponentType.%s," % ComponentType.keys()[config.type])
+				modified_lines.append("\t\tUniversalErrorBoundary.ComponentType.CORE_SYSTEM,")
 				modified_lines.append("\t\tUniversalErrorBoundary.IntegrationMode.GRACEFUL")
 				modified_lines.append("\t)")
 				modified_lines.append("")

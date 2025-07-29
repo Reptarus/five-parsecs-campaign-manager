@@ -13,20 +13,15 @@ extends Node
 ## Implements IGameSystem interface for standardized integration
 
 # Safe imports
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
 const IGameSystem = preload("res://src/core/systems/IGameSystem.gd")
 
 # Proper dependency imports - compile-time validation
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const Character = preload("res://src/core/character/Character.gd")
 
 # Remove these runtime variables
-# var GlobalEnums: Variant = null
-# var ValidationManager: Variant = null
+# # GlobalEnums available as autoload singleton
+# # ValidationManager accessed as autoload when needed
 
 # Resource Management Signals
 signal resource_changed(resource_type: int, old_value: int, new_value: int, source: String)

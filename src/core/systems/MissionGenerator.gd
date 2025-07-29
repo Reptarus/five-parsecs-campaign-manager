@@ -7,7 +7,7 @@ class_name FPCM_MissionGenerator
 ## Part of Phase 3A Mission Generation Consolidation
 
 const BaseMissionGenerationSystem = preload("res://src/base/mission/BaseMissionGenerationSystem.gd")
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const Mission = preload("res://src/core/systems/Mission.gd")
 
 signal mission_generated(mission_data: Dictionary)

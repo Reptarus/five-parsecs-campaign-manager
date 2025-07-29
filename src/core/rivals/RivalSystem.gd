@@ -1,6 +1,6 @@
 ﻿extends Node
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 signal rival_created(rival_data: Dictionary)
 signal rival_defeated(rival_data: Dictionary)

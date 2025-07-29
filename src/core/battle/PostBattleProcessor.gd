@@ -12,7 +12,7 @@ extends Node
 
 # Dependencies
 const BattlefieldTypes = preload("res://src/core/battle/BattlefieldTypes.gd")
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 # Processing completion signals
 signal results_processed(battle_results: BattlefieldTypes.BattleResults)

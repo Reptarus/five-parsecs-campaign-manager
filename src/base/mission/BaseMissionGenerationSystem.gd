@@ -7,7 +7,7 @@ class_name BaseMissionGenerationSystem
 ## Part of Phase 3A Mission Generation Consolidation
 
 # Safe imports
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const Mission = preload("res://src/core/systems/Mission.gd")
 const MissionObjective = preload("res://src/core/mission/MissionObjective.gd")
 const GameState = preload("res://src/core/state/GameState.gd")

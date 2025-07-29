@@ -2,7 +2,7 @@
 
 const Character = preload("res://src/core/character/Character.gd")
 const CrewRelationshipManager = preload("res://src/core/campaign/crew/CrewRelationshipManager.gd")
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 @onready var crew_characteristic_label := $VBoxContainer/CrewCharacteristicLabel
 @onready var meeting_story_label := $VBoxContainer/MeetingStoryLabel

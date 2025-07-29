@@ -4,7 +4,7 @@ extends Node
 
 const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
 const BattlefieldManagerClass = preload("res://src/core/battle/BattlefieldManager.gd")
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 signal path_found(path: Array[Vector2])
 signal path_not_found

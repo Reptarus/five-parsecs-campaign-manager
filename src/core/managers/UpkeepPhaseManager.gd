@@ -1,6 +1,6 @@
 extends Node
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 func calculate_upkeep_cost(crew_size: int, difficulty: GlobalEnums.DifficultyLevel) -> int:
 	var base_cost: int = 100 * crew_size

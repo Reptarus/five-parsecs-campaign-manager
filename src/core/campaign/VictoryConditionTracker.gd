@@ -6,7 +6,7 @@ class_name VictoryConditionTracker
 ## Tracks the progress of various victory conditions for campaign completion
 
 # Preload necessary enums and data managers
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const DataManager = preload("res://src/core/data/DataManager.gd")
 
 # Signals
@@ -39,17 +39,17 @@ func setup_victory_conditions(campaign_type: int, custom_conditions: Array = [])
 
 	# Set default _conditions based on campaign type
 	match campaign_type:
-		GlobalEnums.FiveParcsecsCampaignType.STANDARD:
+		GlobalEnums.CampaignType.STANDARD:
 			_add_condition(GlobalEnums.FiveParsecsCampaignVictoryType.CREDITS_THRESHOLD, {"threshold": 10000})
 			_add_condition(GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_THRESHOLD, {"threshold": 20})
 
-		GlobalEnums.FiveParcsecsCampaignType.STORY:
+		GlobalEnums.CampaignType.FREELANCER:
 			_add_condition(GlobalEnums.FiveParsecsCampaignVictoryType.STORY_COMPLETE, {})
 
-		GlobalEnums.FiveParcsecsCampaignType.SANDBOX:
+		GlobalEnums.CampaignType.MERCENARY:
 			_add_condition(GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_100, {})
 
-		GlobalEnums.FiveParcsecsCampaignType.TUTORIAL:
+		GlobalEnums.CampaignType.EXPLORER:
 			_add_condition(GlobalEnums.FiveParsecsCampaignVictoryType.MISSION_COUNT, {"count": 3})
 
 	# Add any custom _conditions
@@ -201,4 +201,3 @@ func record_quest_complete() -> void:
 
 	if _active_conditions.has(GlobalEnums.FiveParsecsCampaignVictoryType.STORY_COMPLETE):
 		increment_progress(GlobalEnums.FiveParsecsCampaignVictoryType.STORY_COMPLETE)
-

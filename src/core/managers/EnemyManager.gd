@@ -1,6 +1,6 @@
 ﻿extends Node
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 ## Core Rules enemy group sizes - maps EnemyType to base group size
 const GROUP_SIZES := {

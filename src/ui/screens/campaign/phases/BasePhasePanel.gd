@@ -2,7 +2,7 @@
 class_name FPCM_BasePhasePanel
 
 const GameState = preload("res://src/core/state/GameState.gd")
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 signal phase_completed(phase_data: Dictionary)
 signal phase_failed(reason: String)

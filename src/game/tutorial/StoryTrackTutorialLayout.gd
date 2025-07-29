@@ -1,7 +1,7 @@
 # Story track tutorial layout configuration
 extends Resource
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 # Based on Appendix V from Core Rules
 const STORY_TRACK_TUTORIAL := {

@@ -1,7 +1,7 @@
 class_name FPCM_VictoryDescriptions
 extends Resource
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 var _CAMPAIGN_DESCRIPTIONS: Dictionary = {
 	GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_20: "Play 20 campaign turns",

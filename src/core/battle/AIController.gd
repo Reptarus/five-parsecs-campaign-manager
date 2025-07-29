@@ -1,7 +1,7 @@
 ﻿@tool
 extends Node
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 # Removed to fix SHADOWED_GLOBAL_IDENTIFIER("res://src/core/battle/CharacterUnit.gd")
 const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
 

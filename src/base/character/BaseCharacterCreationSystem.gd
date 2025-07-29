@@ -7,7 +7,7 @@ class_name BaseCharacterCreationSystem
 ## Part of Phase 2B Character Creator Consolidation
 
 # Safe imports
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const Character = preload("res://src/core/character/Character.gd")
 const FiveParsecsCharacterGeneration = preload("res://src/core/character/CharacterGeneration.gd")
 const CharacterCreationTables = preload("res://src/core/character/tables/CharacterCreationTables.gd")

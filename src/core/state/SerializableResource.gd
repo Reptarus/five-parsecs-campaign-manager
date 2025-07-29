@@ -1,7 +1,7 @@
 ﻿extends Resource
 class_name SerializableResource
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 # Base properties that all serializable resources should have
 @export var resource_id: String = ""

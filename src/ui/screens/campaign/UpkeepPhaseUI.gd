@@ -1,4 +1,4 @@
-﻿extends Control
+extends Control
 
 const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const GameState := preload("res://src/core/state/GameState.gd")

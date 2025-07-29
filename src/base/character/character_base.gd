@@ -24,6 +24,7 @@ var _reaction: int = 0
 var _combat: int = 0
 var _toughness: int = 0
 var _speed: int = 0
+var _tech: int = 0
 
 # Status
 var is_active: bool = true
@@ -45,6 +46,11 @@ var abilities: Array[String] = []
 func _init() -> void:
 	character_id = str(Time.get_unix_time_from_system())
 
+## Getters and setters for basic properties
+var character_name: String:
+	get: return _character_name
+	set(value): _character_name = value
+
 ## Getters and setters for core stats with validation
 var reaction: int:
 	get: return _reaction
@@ -65,6 +71,11 @@ var speed: int:
 	get: return _speed
 	set(_value):
 		_speed = clampi(_value, 0, 8)
+
+var tech: int:
+	get: return _tech
+	set(_value):
+		_tech = clampi(_value, 0, 6)
 
 ## Core character methods
 

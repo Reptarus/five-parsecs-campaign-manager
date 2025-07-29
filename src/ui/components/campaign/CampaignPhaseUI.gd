@@ -1,7 +1,7 @@
-﻿class_name FPCM_CampaignPhaseUI
+class_name FPCM_CampaignPhaseUI
 extends Control
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const CampaignPhaseManager = preload("res://src/core/campaign/CampaignPhaseManager.gd")
 
 signal action_requested(action_type: String)

@@ -1,21 +1,10 @@
-# Universal Connection Validation Applied
-# Based on proven patterns: Universal Mock Strategy + 7-Stage Methodology
 extends Control
 
 # Safe imports
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-# # Universal framework import removed to fix SHADOWED_GLOBAL_IDENTIFIER # Removed to fix SHADOWED_GLOBAL_IDENTIFIER - using global class
-
-# Safe dependencies using Universal loading
-@warning_ignore("shadowed_global_identifier")
-var Character: Variant = null
-@warning_ignore("shadowed_global_identifier")
-var CharacterCreator: Variant = null
-var GlobalEnums: Variant = null
-var GameState: Variant = null
+const Character = preload("res://src/core/character/Character.gd")
+const CharacterCreator = preload("res://src/core/character/Generation/BaseCharacterCreator.gd")
+# GlobalEnums available as autoload singleton
+const GameState = preload("res://src/core/state/GameState.gd")
 
 # Node references using safe access
 @onready var character_list: Button = get_node("Panel/HSplitContainer/CharacterList/ItemList")
@@ -57,12 +46,6 @@ var character_creator
 var selected_character: Node = null # Type-safe managed by system
 
 func _ready() -> void:
-	# Load dependencies safely at runtime
-	Character = load("res://src/game/character/Character.gd")
-	CharacterCreator = load("res://src/core/character/Generation/BaseCharacterCreator.gd")
-	GlobalEnums = load("res://src/core/systems/GlobalEnums.gd")
-	GameState = load("res://src/core/state/GameState.gd")
-
 	_validate_universal_connections()
 	_setup_character_creator()
 	_connect_to_character_manager()

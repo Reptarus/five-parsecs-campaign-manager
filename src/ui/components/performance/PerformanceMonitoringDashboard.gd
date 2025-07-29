@@ -7,9 +7,9 @@ class_name PerformanceMonitoringDashboard
 ## Provides real-time performance monitoring and optimization controls
 
 const PerformanceOptimizer = preload("res://src/core/performance/PerformanceOptimizer.gd")
-const ProductionPerformanceMonitor = preload("res://src/core/performance/ProductionPerformanceMonitor.gd")
-const MemoryOptimizer = preload("res://src/core/performance/MemoryOptimizer.gd")
-const CrewTaskCardManager = preload("res://src/ui/components/crew/CrewTaskCardManager.gd")
+# const ProductionPerformanceMonitor = preload("res://src/core/performance/ProductionPerformanceMonitor.gd") # File doesn't exist
+# const MemoryOptimizer = preload("res://src/core/performance/MemoryOptimizer.gd") # File doesn't exist - use PerformanceOptimizer instead
+const CrewTaskCardManager = preload("res://src/core/managers/CrewTaskManager.gd")
 const WorldPhaseProgressDisplay = preload("res://src/ui/components/logbook/WorldPhaseProgressDisplay.gd")
 const EnhancedCampaignSignals = preload("res://src/core/signals/EnhancedCampaignSignals.gd")
 const BaseInformationCard = preload("res://src/base/ui/BaseInformationCard.gd")
@@ -59,8 +59,6 @@ const BaseInformationCard = preload("res://src/base/ui/BaseInformationCard.gd")
 
 # System management
 var performance_optimizer: PerformanceOptimizer
-var production_monitor: ProductionPerformanceMonitor
-var memory_optimizer: MemoryOptimizer
 var enhanced_signals: EnhancedCampaignSignals
 var monitored_components: Dictionary = {}
 
@@ -77,7 +75,7 @@ var current_performance_grade: String = "Unknown"
 
 # Alert configuration
 @export var alert_enabled: bool = true
-@export var alert_threshold: float = 0.7  # 0.0-1.0 sensitivity
+@export var alert_threshold: float = 0.7 # 0.0-1.0 sensitivity
 @export var regression_detection_enabled: bool = true
 
 # Update timer
@@ -111,24 +109,22 @@ func _setup_performance_dashboard() -> void:
 
 func _initialize_performance_systems() -> void:
 	# Initialize production performance monitor
-	production_monitor = ProductionPerformanceMonitor.new()
-	production_monitor.initialize()
-	
+	# production_monitor = ProductionPerformanceMonitor.new() # Removed
+	# production_monitor.initialize() # Removed
 	# Initialize memory optimizer
 	# MemoryOptimizer is static, so we just apply optimizations
-	var memory_result = MemoryOptimizer.optimize_memory_usage()
-	if memory_result["success"]:
-		print("Dashboard: Memory optimization applied - ", memory_result["current_mb"], "MB")
-	
+	# var memory_result = MemoryOptimizer.optimize_memory_usage() # Removed
+	# if memory_result["success"]: # Removed
+	# 	print("Dashboard: Memory optimization applied - ", memory_result["current_mb"], "MB") # Removed
 	# Initialize legacy performance optimizer for compatibility
 	performance_optimizer = PerformanceOptimizer.new()
 	
 	# Connect production monitor signals if available
-	if production_monitor.has_signal("performance_regression_detected"):
-		production_monitor.performance_regression_detected.connect(_on_performance_regression)
+	# if production_monitor.has_signal("performance_regression_detected"): # Removed
+	# 	production_monitor.performance_regression_detected.connect(_on_performance_regression) # Removed
 	
 	# Configure monitoring
-	production_monitor.start_monitoring()
+	# production_monitor.start_monitoring() # Removed
 	
 	# Configure auto-optimization
 	if performance_optimizer.has_method("configure_auto_optimization"):
@@ -207,15 +203,15 @@ func update_performance_metrics() -> void:
 	var current_metrics = {}
 	
 	# Get metrics from production monitor
-	if production_monitor:
-		var production_metrics = production_monitor.get_current_performance_metrics()
-		current_metrics.merge(production_metrics)
+	# if production_monitor: # Removed
+	# 	var production_metrics = production_monitor.get_current_performance_metrics() # Removed
+	# 	current_metrics.merge(production_metrics) # Removed
 	
 	# Get memory metrics from MemoryOptimizer
-	var memory_report = MemoryOptimizer.get_memory_report()
-	current_metrics["memory_usage"] = memory_report.get("current_memory_mb", 0)
-	current_metrics["memory_baseline"] = memory_report.get("baseline_memory_mb", 111.4)
-	current_metrics["memory_target_achieved"] = memory_report.get("target_achieved", false)
+	# var memory_report = MemoryOptimizer.get_memory_report() # Removed
+	# current_metrics["memory_usage"] = memory_report.get("current_memory_mb", 0) # Removed
+	# current_metrics["memory_baseline"] = memory_report.get("baseline_memory_mb", 111.4) # Removed
+	# current_metrics["memory_target_achieved"] = memory_report.get("target_achieved", false) # Removed
 	
 	# Get basic system metrics
 	current_metrics["fps"] = Engine.get_frames_per_second()
@@ -240,14 +236,14 @@ func optimize_all_systems() -> Dictionary:
 	var optimization_result = {"success": true, "optimizations": []}
 	
 	# Execute production performance optimizations
-	if production_monitor:
-		var auto_optimization = production_monitor.execute_auto_optimizations()
-		optimization_result["optimizations"].append("Production optimizations: " + str(auto_optimization["optimizations_executed"]))
+	# if production_monitor: # Removed
+	# 	var auto_optimization = production_monitor.execute_auto_optimizations() # Removed
+	# 	optimization_result["optimizations"].append("Production optimizations: " + str(auto_optimization["optimizations_executed"])) # Removed
 	
 	# Execute memory optimizations
-	var memory_result = MemoryOptimizer.optimize_memory_usage()
-	if memory_result["success"]:
-		optimization_result["optimizations"].append("Memory optimized: " + str(memory_result["current_mb"]) + "MB")
+	# var memory_result = MemoryOptimizer.optimize_memory_usage() # Removed
+	# if memory_result["success"]: # Removed
+	# 	optimization_result["optimizations"].append("Memory optimized: " + str(memory_result["current_mb"]) + "MB") # Removed
 	
 	# Optimize new UI components specifically
 	_optimize_crew_task_cards()
@@ -296,11 +292,11 @@ func _calculate_performance_grade(metrics: Dictionary) -> String:
 	
 	# Frame time stability (20 points max)
 	var frame_time = metrics.get("frame_time", 0.0)
-	if frame_time <= 16.67:  # 60 FPS
+	if frame_time <= 16.67: # 60 FPS
 		score += 20
-	elif frame_time <= 22.22:  # 45 FPS
+	elif frame_time <= 22.22: # 45 FPS
 		score += 15
-	elif frame_time <= 33.33:  # 30 FPS
+	elif frame_time <= 33.33: # 30 FPS
 		score += 10
 	else:
 		score += 5
@@ -406,7 +402,7 @@ func _optimize_crew_task_cards() -> void:
 			
 			# Optimize update frequency
 			if manager.has_property("auto_refresh_interval"):
-				manager.auto_refresh_interval = 3.0  # Reduce frequency for performance
+				manager.auto_refresh_interval = 3.0 # Reduce frequency for performance
 
 func _optimize_data_visualization() -> void:
 	var data_viz_nodes = _find_nodes_by_type("DataVisualization")
@@ -597,13 +593,13 @@ func _on_clear_cache_button_pressed() -> void:
 	var result = {"success": true, "operation": "cache_cleared", "details": []}
 	
 	# Clear production monitor cache
-	if production_monitor:
-		production_monitor.clear_performance_history()
-		result["details"].append("Performance history cleared")
+	# if production_monitor: # Removed
+	# 	production_monitor.clear_performance_history() # Removed
+	# result["details"].append("Performance history cleared") # Removed
 	
 	# Clear memory optimizer data
 	# MemoryOptimizer is static, so we just record the action
-	result["details"].append("Memory optimization cache cleared")
+	# result["details"].append("Memory optimization cache cleared") # Removed
 	
 	# Clear dashboard history
 	performance_history.clear()
@@ -621,8 +617,8 @@ func _on_gc_button_pressed() -> void:
 	result["details"].append("Garbage collection completed (5 passes)")
 	
 	# Log memory usage after GC
-	var memory_report = MemoryOptimizer.get_memory_report()
-	result["details"].append("Memory after GC: " + str(memory_report.get("current_memory_mb", 0)) + "MB")
+	# var memory_report = MemoryOptimizer.get_memory_report() # Removed
+	# result["details"].append("Memory after GC: " + str(memory_report.get("current_memory_mb", 0)) + "MB") # Removed
 	
 	_log_optimization_result(result)
 
@@ -630,8 +626,8 @@ func _on_auto_optimize_toggled(enabled: bool) -> void:
 	auto_optimization_enabled = enabled
 	
 	# Configure production monitor auto-optimization
-	if production_monitor:
-		production_monitor.set_auto_optimization_enabled(enabled)
+	# if production_monitor: # Removed
+	# 	production_monitor.set_auto_optimization_enabled(enabled) # Removed
 	
 	# Configure legacy performance optimizer if available
 	if performance_optimizer and performance_optimizer.has_method("configure_auto_optimization"):
@@ -643,10 +639,13 @@ func _on_auto_optimize_toggled(enabled: bool) -> void:
 func _on_memory_optimize_button_pressed() -> void:
 	"""Execute targeted memory optimization"""
 	var start_time = Time.get_ticks_msec()
-	var memory_before = MemoryOptimizer.get_current_memory_usage()
+	var memory_before = _get_current_memory_usage() # Use our own helper function
 	
-	var result = MemoryOptimizer.optimize_memory_usage()
-	var memory_after = MemoryOptimizer.get_current_memory_usage()
+	var result = {"success": true, "optimizations_applied": []}
+	if performance_optimizer:
+		result = performance_optimizer.optimize_component("memory_system", 3)
+	
+	var memory_after = _get_current_memory_usage() # Use our own helper function
 	var optimization_time = Time.get_ticks_msec() - start_time
 	
 	var log_result = {
@@ -662,12 +661,12 @@ func _on_memory_optimize_button_pressed() -> void:
 
 func _on_performance_profile_button_pressed() -> void:
 	"""Generate comprehensive performance profile"""
-	if not production_monitor:
-		_log_optimization_result({"success": false, "operation": "performance_profile", "error": "Production monitor not available"})
+	if not performance_optimizer:
+		_log_optimization_result({"success": false, "operation": "performance_profile", "error": "Performance optimizer not available"})
 		return
 	
-	var profile_data = production_monitor.generate_performance_profile()
-	var memory_report = MemoryOptimizer.get_memory_report()
+	var profile_data = performance_optimizer.get_performance_status() # Use available method
+	var memory_report = _get_memory_report() # Use our own helper function
 	
 	# Combine all performance data
 	var comprehensive_profile = {
@@ -692,16 +691,17 @@ func _on_performance_profile_button_pressed() -> void:
 
 func _on_regression_check_button_pressed() -> void:
 	"""Manual regression detection check"""
-	if not production_monitor:
-		_log_optimization_result({"success": false, "operation": "regression_check", "error": "Production monitor not available"})
+	if not performance_optimizer:
+		_log_optimization_result({"success": false, "operation": "regression_check", "error": "Performance optimizer not available"})
 		return
 	
-	var regressions = production_monitor.detect_performance_regressions()
+	# Simple regression check using performance history
+	var regressions = _detect_simple_regressions()
 	var regression_count = regressions.size()
 	
 	if regression_count > 0:
 		for regression in regressions:
-			_log_performance_alert("REGRESSION", regression["severity"], regression["description"])
+			_log_performance_alert("REGRESSION", regression.get("severity", "MEDIUM"), regression.get("description", "Performance regression detected"))
 	
 	_log_optimization_result({
 		"success": true,
@@ -712,9 +712,6 @@ func _on_regression_check_button_pressed() -> void:
 
 func _on_baseline_reset_button_pressed() -> void:
 	"""Reset performance baselines to current values"""
-	if production_monitor:
-		production_monitor.reset_performance_baseline()
-	
 	# Reset dashboard baseline data
 	if not performance_history.is_empty():
 		var latest_metrics = performance_history[-1]
@@ -731,13 +728,62 @@ func _on_baseline_reset_button_pressed() -> void:
 			"message": "Baseline reset to current system state"
 		})
 
+## Helper functions for missing functionality
+func _get_current_memory_usage() -> int:
+	"""Get current memory usage in MB"""
+	# Use available OS methods in Godot 4.4
+	if OS.has_method("get_static_memory_usage"):
+		return OS.get_static_memory_usage() / (1024 * 1024) # Convert to MB
+	else:
+		# Fallback estimation
+		return 0
+
+func _get_memory_report() -> Dictionary:
+	"""Get memory report"""
+	var current_memory = _get_current_memory_usage()
+	return {
+		"current_memory_mb": current_memory,
+		"baseline_memory_mb": 111.4,
+		"target_achieved": current_memory <= 512
+	}
+
+func _detect_simple_regressions() -> Array:
+	"""Simple regression detection using performance history"""
+	var regressions: Array = []
+	
+	if performance_history.size() < 2:
+		return regressions
+	
+	var recent_performance = performance_history[-1]
+	var baseline_performance = performance_history[0]
+	
+	# Check FPS regression
+	var fps_degradation = baseline_performance.get("fps", 60.0) - recent_performance.get("fps", 60.0)
+	if fps_degradation > 10.0: # More than 10 FPS loss
+		regressions.append({
+			"type": "FPS_REGRESSION",
+			"severity": "HIGH",
+			"description": "FPS dropped by " + str(fps_degradation) + " frames"
+		})
+	
+	# Check memory regression
+	var memory_increase = recent_performance.get("memory_usage", 0) - baseline_performance.get("memory_usage", 0)
+	if memory_increase > 100: # More than 100MB increase
+		regressions.append({
+			"type": "MEMORY_REGRESSION",
+			"severity": "MEDIUM",
+			"description": "Memory usage increased by " + str(memory_increase) + " MB"
+		})
+	
+	return regressions
+
 func _on_alert_threshold_changed(value: float) -> void:
 	"""Update alert sensitivity threshold"""
 	alert_threshold = value
 	
 	# Update production monitor threshold if available
-	if production_monitor:
-		production_monitor.set_alert_threshold(value)
+	# if production_monitor: # Removed
+	# 	production_monitor.set_alert_threshold(value) # Removed
 	
 	print("Dashboard: Alert threshold set to ", value)
 
@@ -745,8 +791,8 @@ func _on_alert_enabled_toggled(enabled: bool) -> void:
 	"""Enable/disable performance alerts"""
 	alert_enabled = enabled
 	
-	if production_monitor:
-		production_monitor.set_alerts_enabled(enabled)
+	# if production_monitor: # Removed
+	# 	production_monitor.set_alerts_enabled(enabled) # Removed
 	
 	print("Dashboard: Performance alerts ", "enabled" if enabled else "disabled")
 

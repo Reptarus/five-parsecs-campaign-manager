@@ -9,7 +9,7 @@ class_name CrewTaskCardManager
 const CrewTaskCard = preload("res://src/ui/components/crew/CrewTaskCard.gd")
 const CrewTaskManager = preload("res://src/core/managers/CrewTaskManager.gd")
 const EnhancedCampaignSignals = preload("res://src/core/signals/EnhancedCampaignSignals.gd")
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 
 # UI container for task cards
 @onready var task_cards_container: Container = %TaskCardsContainer

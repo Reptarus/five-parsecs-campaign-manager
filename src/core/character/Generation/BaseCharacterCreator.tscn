@@ -1,0 +1,143 @@
+[gd_scene load_steps=2 format=3 uid="uid://bc8n7m2k4p5q"]
+
+[ext_resource type="Script" path="res://src/core/character/Generation/SimpleCharacterCreator.gd" id="1_bc_script"]
+
+[node name="SimpleCharacterCreator" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+visible = false
+script = ExtResource("1_bc_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.7)
+
+[node name="Dialog" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -250.0
+offset_right = 300.0
+offset_bottom = 250.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Dialog"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 15
+
+[node name="Title" type="Label" parent="Dialog/VBoxContainer"]
+layout_mode = 2
+text = "Character Creator"
+horizontal_alignment = 1
+
+[node name="NameContainer" type="HBoxContainer" parent="Dialog/VBoxContainer"]
+layout_mode = 2
+
+[node name="NameLabel" type="Label" parent="Dialog/VBoxContainer/NameContainer"]
+layout_mode = 2
+text = "Name:"
+custom_minimum_size = Vector2(80, 0)
+
+[node name="NameInput" type="LineEdit" parent="Dialog/VBoxContainer/NameContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Character Name"
+
+[node name="StatsContainer" type="VBoxContainer" parent="Dialog/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="StatsLabel" type="Label" parent="Dialog/VBoxContainer/StatsContainer"]
+layout_mode = 2
+text = "Stats:"
+
+[node name="StatsDisplay" type="GridContainer" parent="Dialog/VBoxContainer/StatsContainer"]
+layout_mode = 2
+columns = 2
+
+[node name="CombatLabel" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+text = "Combat:"
+
+[node name="CombatValue" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+text = "3"
+
+[node name="ToughnessLabel" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+text = "Toughness:"
+
+[node name="ToughnessValue" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+text = "3"
+
+[node name="SavvyLabel" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+text = "Savvy:"
+
+[node name="SavvyValue" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+text = "3"
+
+[node name="TechLabel" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+text = "Tech:"
+
+[node name="TechValue" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+text = "3"
+
+[node name="SpeedLabel" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+text = "Speed:"
+
+[node name="SpeedValue" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+text = "3"
+
+[node name="LuckLabel" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+text = "Luck:"
+
+[node name="LuckValue" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+text = "1"
+
+[node name="ButtonContainer" type="HBoxContainer" parent="Dialog/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="RandomizeButton" type="Button" parent="Dialog/VBoxContainer/ButtonContainer"]
+layout_mode = 2
+text = "Randomize"
+
+[node name="CreateButton" type="Button" parent="Dialog/VBoxContainer/ButtonContainer"]
+layout_mode = 2
+text = "Create"
+
+[node name="CancelButton" type="Button" parent="Dialog/VBoxContainer/ButtonContainer"]
+layout_mode = 2
+text = "Cancel"

@@ -2,7 +2,7 @@
 class_name BattlefieldManager
 extends Node
 
-const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
+# GlobalEnums available as autoload singleton
 const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
 
 ## Signals
