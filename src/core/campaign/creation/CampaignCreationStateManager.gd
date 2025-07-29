@@ -4,6 +4,10 @@ extends RefCounted
 ## Enterprise-grade Campaign Creation State Manager
 ## Provides centralized state management and validation for campaign creation workflow
 
+# Security validation integration
+const SecurityValidator = preload("res://src/core/validation/SecurityValidator.gd")
+const ValidationResult = preload("res://src/core/validation/ValidationResult.gd")
+
 # State validation framework
 enum ValidationResult {VALID, INCOMPLETE, INVALID}
 
@@ -444,6 +448,148 @@ func export_for_save() -> Dictionary:
 
 func import_from_save(save_data: Dictionary) -> bool:
 	"""Import campaign data from save file"""
+	# Security validation for imported data
+	var validation_result = _validate_imported_data(save_data)
+	if not validation_result.valid:
+		SecurityValidator.log_security_event("IMPORT_FAILED", validation_result.error)
+		return false
+	
+	campaign_data = validation_result.sanitized_value
+	_validate_current_phase()
+	return true
+
+# Security validation methods
+func _validate_imported_data(save_data: Dictionary) -> ValidationResult:
+	"""Validate imported save data for security threats"""
+	var result = ValidationResult.new()
+	
+	# Check for required structure
+	var required_keys = ["config", "crew", "captain", "ship", "equipment", "metadata"]
+	for key in required_keys:
+		if not save_data.has(key):
+			result.valid = false
+			result.error = "Missing required key: " + key
+			return result
+	
+	# Validate campaign name if present
+	if save_data.config.has("campaign_name"):
+		var name_validation = SecurityValidator.validate_campaign_name(save_data.config.campaign_name)
+		if not name_validation.valid:
+			result.valid = false
+			result.error = "Invalid campaign name: " + name_validation.error
+			return result
+		save_data.config.campaign_name = name_validation.sanitized_value
+	
+	# Validate character names
+	if save_data.crew.has("members"):
+		for member in save_data.crew.members:
+			if member.has("name"):
+				var name_validation = SecurityValidator.validate_character_name(member.name)
+				if not name_validation.valid:
+					result.valid = false
+					result.error = "Invalid character name: " + name_validation.error
+					return result
+				member.name = name_validation.sanitized_value
+	
+	# Validate captain name
+	if save_data.captain.has("name"):
+		var name_validation = SecurityValidator.validate_character_name(save_data.captain.name)
+		if not name_validation.valid:
+			result.valid = false
+			result.error = "Invalid captain name: " + name_validation.error
+			return result
+		save_data.captain.name = name_validation.sanitized_value
+	
+	result.valid = true
+	result.sanitized_value = save_data
+	return result
+
+func update_campaign_config_secure(config_data: Dictionary) -> bool:
+	"""Update campaign configuration with security validation"""
+	var validation_errors = []
+	
+	# Validate campaign name
+	if config_data.has("campaign_name"):
+		var name_validation = SecurityValidator.validate_campaign_name(config_data.campaign_name)
+		if not name_validation.valid:
+			validation_errors.append("Campaign name: " + name_validation.error)
+		else:
+			config_data.campaign_name = name_validation.sanitized_value
+	
+	# Validate difficulty setting
+	if config_data.has("difficulty"):
+		var diff_validation = SecurityValidator.validate_numeric_input(
+			config_data.difficulty, 1, 5, "Difficulty"
+		)
+		if not diff_validation.valid:
+			validation_errors.append("Difficulty: " + diff_validation.error)
+	
+	# Validate crew size
+	if config_data.has("crew_size"):
+		var crew_validation = SecurityValidator.validate_numeric_input(
+			config_data.crew_size, 1, 8, "Crew size"
+		)
+		if not crew_validation.valid:
+			validation_errors.append("Crew size: " + crew_validation.error)
+	
+	if validation_errors.size() > 0:
+		SecurityValidator.log_security_event("CONFIG_VALIDATION_FAILED", 
+			"Errors: " + str(validation_errors))
+		return false
+	
+	campaign_data.config.merge(config_data)
+	SecurityValidator.log_security_event("CONFIG_UPDATED", "Campaign config validated and updated")
+	return true
+
+func update_character_secure(character_data: Dictionary, character_type: String = "crew") -> bool:
+	"""Update character data with security validation"""
+	var validation_errors = []
+	
+	# Validate character name
+	if character_data.has("name"):
+		var name_validation = SecurityValidator.validate_character_name(character_data.name)
+		if not name_validation.valid:
+			validation_errors.append("Character name: " + name_validation.error)
+		else:
+			character_data.name = name_validation.sanitized_value
+	
+	# Validate background text
+	if character_data.has("background_text"):
+		var text_validation = SecurityValidator.validate_text_input(
+			character_data.background_text, 500, "Background"
+		)
+		if not text_validation.valid:
+			validation_errors.append("Background: " + text_validation.error)
+		else:
+			character_data.background_text = text_validation.sanitized_value
+	
+	# Validate numeric attributes
+	var numeric_attrs = ["combat", "reaction", "toughness", "savvy", "tech", "move"]
+	for attr in numeric_attrs:
+		if character_data.has(attr):
+			var attr_validation = SecurityValidator.validate_numeric_input(
+				character_data[attr], 1, 6, attr.capitalize()
+			)
+			if not attr_validation.valid:
+				validation_errors.append(attr.capitalize() + ": " + attr_validation.error)
+	
+	if validation_errors.size() > 0:
+		SecurityValidator.log_security_event("CHARACTER_VALIDATION_FAILED", 
+			"Character: " + character_data.get("name", "Unknown") + ", Errors: " + str(validation_errors))
+		return false
+	
+	# Update appropriate data structure
+	match character_type:
+		"captain":
+			campaign_data.captain.merge(character_data)
+		"crew":
+			if not campaign_data.crew.has("members"):
+				campaign_data.crew.members = []
+			campaign_data.crew.members.append(character_data)
+	
+	SecurityValidator.log_security_event("CHARACTER_UPDATED", 
+		"Character validated: " + character_data.get("name", "Unknown"))
+	return true
 	if not save_data.has("metadata"):
 		push_error("Invalid save data: Missing metadata")
 		return false
