@@ -1,0 +1,124 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [ main, development, production-sprint-recovery ]
+  pull_request:
+    branches: [ main, development ]
+  workflow_dispatch:
+    inputs:
+      test_suite:
+        description: 'Test suite to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - campaign
+        - persistence
+        - ui
+
+env:
+  GODOT_VERSION: "4.4.1"
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        lfs: true
+        
+    - name: Cache Godot
+      uses: actions/cache@v3
+      id: godot-cache
+      with:
+        path: /opt/godot
+        key: godot-${{ env.GODOT_VERSION }}-linux
+        
+    - name: Download and setup Godot
+      if: steps.godot-cache.outputs.cache-hit != 'true'
+      run: |
+        wget -q https://github.com/godotengine/godot/releases/download/${{ env.GODOT_VERSION }}-stable/Godot_v${{ env.GODOT_VERSION }}-stable_linux.x86_64.zip
+        unzip -q Godot_v${{ env.GODOT_VERSION }}-stable_linux.x86_64.zip
+        sudo mkdir -p /opt/godot
+        sudo mv Godot_v${{ env.GODOT_VERSION }}-stable_linux.x86_64 /opt/godot/godot
+        sudo chmod +x /opt/godot/godot
+        
+    - name: Verify Godot installation
+      run: |
+        /opt/godot/godot --version
+        
+    - name: Import project assets
+      run: |
+        /opt/godot/godot --path . --headless --import
+        
+    - name: Create test results directory
+      run: |
+        mkdir -p test_results
+        
+    - name: Run integration tests
+      run: |
+        # Update script to use Linux Godot path
+        sed -i 's|GODOT_EXECUTABLE=.*|GODOT_EXECUTABLE="/opt/godot/godot"|' scripts/run_integration_tests.sh
+        sed -i 's|PROJECT_PATH=.*|PROJECT_PATH="$(pwd)"|' scripts/run_integration_tests.sh
+        
+        # Determine which test suite to run
+        case "${{ github.event.inputs.test_suite || 'all' }}" in
+          campaign)
+            ./scripts/run_integration_tests.sh --campaign --timeout 300
+            ;;
+          persistence)
+            ./scripts/run_integration_tests.sh --persistence --timeout 180
+            ;;
+          ui)
+            ./scripts/run_integration_tests.sh --ui --timeout 300
+            ;;
+          *)
+            ./scripts/run_integration_tests.sh --all --timeout 300
+            ;;
+        esac
+        
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: integration-test-results-${{ github.run_number }}
+        path: |
+          test_results/
+          logs/
+        retention-days: 30
+        
+    - name: Parse test results
+      if: always()
+      run: |
+        echo "## Integration Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -d "test_results" ]; then
+          echo "### Test Artifacts Generated:" >> $GITHUB_STEP_SUMMARY
+          find test_results -type f -name "*.log" -o -name "*.json" -o -name "*.md" | while read file; do
+            echo "- $(basename "$file")" >> $GITHUB_STEP_SUMMARY
+          done
+          
+          # Look for test report
+          REPORT=$(find test_results -name "integration_test_report_*.md" | head -1)
+          if [ -f "$REPORT" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Test Report Summary:" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            # Include relevant parts of the report
+            sed -n '/## Results Summary/,/## Files Generated/p' "$REPORT" | head -n -1 >> $GITHUB_STEP_SUMMARY
+          fi
+        else
+          echo "⚠️ No test results directory found" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+    - name: Notify on failure
+      if: failure()
+      run: |
+        echo "❌ Integration tests failed. Check the uploaded artifacts for detailed logs."
+        echo "::error::Integration tests failed. Check test_results artifacts for details."

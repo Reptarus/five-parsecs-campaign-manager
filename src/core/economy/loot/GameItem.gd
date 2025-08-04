@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 extends Resource
 class_name GameItem
 
@@ -25,7 +25,7 @@ func _init() -> void:
 		return
 
 	# Try to get the singleton instance
-	var tree = Engine.get_main_loop() as SceneTree
+	var tree: SceneTree = Engine.get_main_loop() as SceneTree
 	if tree and tree.root:
 		var data_manager_node: Node = tree.root.get_node_or_null("DataManagerAutoload")
 		if data_manager_node:
@@ -39,14 +39,14 @@ func _init() -> void:
 func initialize_from_id(id: String) -> bool:
 	# If we don't have data manager yet, try to get it with retry
 	if _data_manager == null:
-		var tree = Engine.get_main_loop() as SceneTree
+		var tree: SceneTree = Engine.get_main_loop() as SceneTree
 		if tree and tree.root:
 			_data_manager = tree.root.get_node_or_null("DataManagerAutoload")
 		if not _data_manager:
 			push_error("GameItem: Failed to get DataManagerAutoload")
 			return false
 
-	var item_data = _data_manager.get_gear_item(id)
+	var item_data: Dictionary = _data_manager.get_gear_item(id)
 	if item_data.is_empty():
 		push_error("Failed to find item with ID: " + id)
 		return false

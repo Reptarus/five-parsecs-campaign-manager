@@ -1,80 +1,115 @@
-[gd_scene load_steps=2 format=3 uid="uid://ddmexnm0dog68"]
+[gd_scene load_steps=4 format=3 uid="uid://hp9rm8n6l4xkq"]
 
-[ext_resource type="Script" uid="uid://2omxjg1p5h8" path="res://src/ui/screens/campaign/panels/CrewPanel.gd" id="1_3euny"]
+[ext_resource type="PackedScene" uid="uid://bxkj8l2m9n6r5" path="res://src/ui/screens/campaign/panels/BaseCampaignPanel.tscn" id="1_base"]
+[ext_resource type="Script" uid="uid://2omxjg1p5h8" path="res://src/ui/screens/campaign/panels/CrewPanel.gd" id="2_script"]
+[ext_resource type="PackedScene" uid="uid://bc8n7m2k4p5q" path="res://src/core/character/Generation/BaseCharacterCreator.tscn" id="3_character_creator"]
 
-[node name="CrewPanel" type="Control"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("1_3euny")
+[node name="CrewPanel" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
 
-[node name="Content" type="VBoxContainer" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+[node name="CharacterCreator" parent="." instance=ExtResource("3_character_creator")]
+visible = false
+
+[node name="Content" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer"]
+layout_mode = 2
 theme_override_constants/separation = 20
 
-[node name="CrewSize" type="VBoxContainer" parent="Content"]
+[node name="Instructions" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+text = "Set up your initial crew. You can have between 1-8 crew members. Each member will have unique backgrounds, motivations, and attributes."
+autowrap_mode = 2
+
+[node name="CrewSizeSection" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="CrewSizeLabel" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/CrewSizeSection"]
+layout_mode = 2
+text = "Crew Size:"
+theme_override_font_sizes/font_size = 18
+
+[node name="CrewSizeOption" type="OptionButton" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/CrewSizeSection"]
+layout_mode = 2
+custom_minimum_size = Vector2(200, 50)
+
+[node name="CrewContainer" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="CrewListHeader" type="HBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/CrewContainer"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="Content/CrewSize"]
+[node name="CrewListLabel" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/CrewContainer/CrewListHeader"]
 layout_mode = 2
-text = "Crew Size"
+size_flags_horizontal = 3
+text = "Crew Members:"
+theme_override_font_sizes/font_size = 18
 
-[node name="OptionButton" type="OptionButton" parent="Content/CrewSize"]
-custom_minimum_size = Vector2(0, 50)
+[node name="CrewSummary" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/CrewContainer/CrewListHeader"]
+unique_name_in_owner = true
 layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.9, 0.7, 1)
+text = "0/4 members"
+horizontal_alignment = 2
 
-[node name="CrewList" type="VBoxContainer" parent="Content"]
+[node name="CrewList" type="ItemList" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/CrewContainer"]
 layout_mode = 2
-size_flags_vertical = 3
-
-[node name="Label" type="Label" parent="Content/CrewList"]
-layout_mode = 2
-text = "Crew Members"
-
-[node name="ItemList" type="ItemList" parent="Content/CrewList"]
-layout_mode = 2
-size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 200)
 allow_reselect = true
 auto_height = true
 
-[node name="Controls" type="HBoxContainer" parent="Content"]
+[node name="CrewControls" type="HBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/CrewContainer"]
 layout_mode = 2
-theme_override_constants/separation = 20
+theme_override_constants/separation = 15
 alignment = 1
 
-[node name="AddButton" type="Button" parent="Content/Controls"]
-custom_minimum_size = Vector2(150, 50)
+[node name="AddButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/CrewContainer/CrewControls"]
+custom_minimum_size = Vector2(120, 40)
 layout_mode = 2
 text = "Add Member"
 
-[node name="EditButton" type="Button" parent="Content/Controls"]
-custom_minimum_size = Vector2(150, 50)
+[node name="EditButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/CrewContainer/CrewControls"]
+custom_minimum_size = Vector2(120, 40)
 layout_mode = 2
 disabled = true
 text = "Edit Member"
 
-[node name="RemoveButton" type="Button" parent="Content/Controls"]
-custom_minimum_size = Vector2(150, 50)
+[node name="RemoveButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/CrewContainer/CrewControls"]
+custom_minimum_size = Vector2(120, 40)
 layout_mode = 2
 disabled = true
-text = "Remove Member"
+text = "Remove"
 
-[node name="RandomizeButton" type="Button" parent="Content/Controls"]
-custom_minimum_size = Vector2(150, 50)
+[node name="RandomizeButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/CrewContainer/CrewControls"]
+custom_minimum_size = Vector2(120, 40)
 layout_mode = 2
 text = "Randomize All"
 
-[connection signal="item_selected" from="Content/CrewSize/OptionButton" to="." method="_on_crew_size_selected"]
-[connection signal="item_selected" from="Content/CrewList/ItemList" to="." method="_on_crew_member_selected"]
-[connection signal="pressed" from="Content/Controls/AddButton" to="." method="_on_add_member_pressed"]
-[connection signal="pressed" from="Content/Controls/EditButton" to="." method="_on_edit_member_pressed"]
-[connection signal="pressed" from="Content/Controls/RemoveButton" to="." method="_on_remove_member_pressed"]
-[connection signal="pressed" from="Content/Controls/RandomizeButton" to="." method="_on_randomize_pressed"]
+[node name="CrewValidationPanel" type="PanelContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+layout_mode = 2
+theme_type_variation = &"ValidationPanel"
+
+[node name="ValidationContent" type="HBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/CrewValidationPanel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ValidationIcon" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/CrewValidationPanel/ValidationContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "✓"
+theme_override_colors/font_color = Color(0.4, 0.8, 0.4, 1)
+
+[node name="ValidationText" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/CrewValidationPanel/ValidationContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Crew setup is ready to proceed"
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+
+[connection signal="item_selected" from="ContentMargin/MainContent/FormContent/FormContainer/Content/CrewSizeSection/CrewSizeOption" to="." method="_on_crew_size_selected"]
+[connection signal="item_selected" from="ContentMargin/MainContent/FormContent/FormContainer/Content/CrewContainer/CrewList" to="." method="_on_crew_member_selected"]
+[connection signal="pressed" from="ContentMargin/MainContent/FormContent/FormContainer/Content/CrewContainer/CrewControls/AddButton" to="." method="_on_add_member_pressed"]
+[connection signal="pressed" from="ContentMargin/MainContent/FormContent/FormContainer/Content/CrewContainer/CrewControls/EditButton" to="." method="_on_edit_member_pressed"]
+[connection signal="pressed" from="ContentMargin/MainContent/FormContent/FormContainer/Content/CrewContainer/CrewControls/RemoveButton" to="." method="_on_remove_member_pressed"]
+[connection signal="pressed" from="ContentMargin/MainContent/FormContent/FormContainer/Content/CrewContainer/CrewControls/RandomizeButton" to="." method="_on_randomize_pressed"]

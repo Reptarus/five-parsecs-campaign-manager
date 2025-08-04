@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3 uid="uid://c8r6x2j4y0m5q"]
+[gd_scene load_steps=3 format=3 uid="uid://bg9nx7m4k5vjp"]
 
 [ext_resource type="Script" uid="uid://d11twad3teew8" path="res://src/ui/components/combat/log/combat_log_controller.gd" id="1_v4r3n"]
 [ext_resource type="PackedScene" uid="uid://c8q6y4n2x0m5q" path="res://src/ui/components/combat/log/combat_log_panel.tscn" id="2_w4r3p"]

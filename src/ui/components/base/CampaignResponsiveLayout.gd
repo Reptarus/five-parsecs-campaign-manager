@@ -1,4 +1,4 @@
-﻿class_name FPCM_CampaignResponsiveLayout
+class_name FPCM_CampaignResponsiveLayout
 extends FPCM_ResponsiveContainer
 
 const VERTICAL = 1

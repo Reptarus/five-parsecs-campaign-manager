@@ -1,4 +1,4 @@
-﻿extends Control
+extends Control
 class_name FPCM_BasePhasePanel
 
 const GameState = preload("res://src/core/state/GameState.gd")

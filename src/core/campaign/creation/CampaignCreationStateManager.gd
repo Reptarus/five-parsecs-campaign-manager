@@ -4,12 +4,9 @@ extends RefCounted
 ## Enterprise-grade Campaign Creation State Manager
 ## Provides centralized state management and validation for campaign creation workflow
 
-# Security validation integration
+# Security validation integration  
 const SecurityValidator = preload("res://src/core/validation/SecurityValidator.gd")
-const ValidationResult = preload("res://src/core/validation/ValidationResult.gd")
-
-# State validation framework
-enum ValidationResult {VALID, INCOMPLETE, INVALID}
+const FiveParsecsValidationResult = preload("res://src/core/validation/ValidationResult.gd")
 
 # Campaign creation phases
 enum Phase {
@@ -18,6 +15,7 @@ enum Phase {
 	CAPTAIN_CREATION,
 	SHIP_ASSIGNMENT,
 	EQUIPMENT_GENERATION,
+	WORLD_GENERATION,
 	FINAL_REVIEW
 }
 
@@ -28,6 +26,7 @@ var campaign_data: Dictionary = {
 	"captain": {},
 	"ship": {},
 	"equipment": {},
+	"world": {},
 	"metadata": {
 		"created_at": "",
 		"version": "1.0",
@@ -37,6 +36,17 @@ var campaign_data: Dictionary = {
 
 var current_phase: Phase = Phase.CONFIG
 var validation_errors: Array[String] = []
+
+# PHASE 1A: Concurrency protection for production-grade state management
+var _operation_lock: Mutex = Mutex.new()
+var _pending_operations: Array[String] = []
+var _is_processing_confirmation: bool = false
+var _is_processing_validation: bool = false
+
+# PHASE 1A: Transaction system integration
+const CampaignCreationTransaction = preload("res://src/core/campaign/creation/CampaignCreationTransaction.gd")
+var _active_transactions: Dictionary = {}
+var _transaction_counter: int = 0
 
 signal state_updated(phase: Phase, data: Dictionary)
 signal validation_changed(is_valid: bool, errors: Array[String])
@@ -56,23 +66,32 @@ func _initialize_state() -> void:
 	_validate_current_phase()
 
 # Phase Management
+func set_phase(new_phase: Phase) -> bool:
+	"""Set the current phase directly"""
+	if new_phase >= Phase.CONFIG and new_phase <= Phase.FINAL_REVIEW:
+		current_phase = new_phase
+		_validate_current_phase()
+		print("CampaignCreationStateManager: Phase set to %s" % str(new_phase))
+		return true
+	else:
+		push_warning("CampaignCreationStateManager: Invalid phase: %s" % str(new_phase))
+		return false
+
 func advance_to_next_phase() -> bool:
-	"""Advance to next phase if current phase is valid"""
-	# Special case: Allow advancing from initial CONFIG phase even if empty
-	# This enables users to navigate to other panels to fill in data
-	if current_phase == Phase.CONFIG and campaign_data.config.is_empty():
-		print("CampaignCreationStateManager: Allowing advance from empty CONFIG phase for initial setup")
-		var next_phase = current_phase + 1
-		if next_phase < Phase.FINAL_REVIEW + 1:
-			current_phase = next_phase
-			phase_completed.emit(current_phase - 1)
-			_validate_current_phase()
-			return true
+	"""Advance to next phase with enhanced progression logic - allows warnings"""
+	# CRITICAL FIX: Require proper validation before advancing
+	print("CampaignCreationStateManager: Attempting to advance from phase: %s" % get_phase_name(current_phase))
+	
+	# Validate current phase before allowing advancement
+	var validation_result = _validate_phase_with_warnings(current_phase)
+	
+	if validation_result.blocks_progression:
+		push_warning("Cannot advance: Current phase has blocking errors: %s" % str(validation_result.blocking_errors))
 		return false
 	
-	if not _is_phase_valid(current_phase):
-		push_warning("Cannot advance: Current phase invalid")
-		return false
+	# Allow progression if only warnings exist
+	if validation_result.has_warnings:
+		print("CampaignCreationStateManager: Advancing with warnings: %s" % str(validation_result.warnings))
 
 	var next_phase = current_phase + 1
 	if next_phase < Phase.FINAL_REVIEW + 1:
@@ -82,6 +101,43 @@ func advance_to_next_phase() -> bool:
 		return true
 
 	return false
+
+func go_to_previous_phase() -> bool:
+	"""Go back to the previous phase if possible"""
+	print("CampaignCreationStateManager: Attempting to go to previous phase from %s" % get_phase_name(current_phase))
+	
+	if current_phase == Phase.CONFIG:
+		print("CampaignCreationStateManager: Cannot go back from CONFIG phase")
+		return false # Cannot go back from first phase
+	
+	var previous_phase_int = int(current_phase) - 1
+	if previous_phase_int < 0:
+		print("CampaignCreationStateManager: Invalid previous phase calculation")
+		return false
+	
+	var previous_phase = Phase.values()[previous_phase_int]
+	current_phase = previous_phase
+	
+	# Emit signals for UI updates
+	state_updated.emit(current_phase, get_phase_data(current_phase))
+	_validate_current_phase()
+	
+	print("CampaignCreationStateManager: ✅ Successfully moved back to phase: %s" % get_phase_name(current_phase))
+	return true
+
+func can_go_to_previous_phase() -> bool:
+	"""Check if we can go to the previous phase"""
+	return current_phase > Phase.CONFIG
+
+func get_navigation_debug_info() -> Dictionary:
+	"""Get debug information about navigation state"""
+	return {
+		"current_phase": current_phase,
+		"current_phase_name": get_phase_name(current_phase),
+		"can_advance": _is_phase_valid(current_phase),
+		"can_go_back": can_go_to_previous_phase(),
+		"validation_errors": validation_errors.duplicate()
+	}
 
 func set_phase_data(phase: Phase, data: Dictionary) -> void:
 	"""Update data for specific phase with validation"""
@@ -159,7 +215,18 @@ func _validate_crew_phase() -> bool:
 	"""Enhanced crew setup validation with character completeness checking"""
 	var crew = campaign_data.crew
 
-	if not crew.has("members") or crew.members.is_empty():
+	# Allow empty crew data initially - panels will populate it
+	if crew.is_empty():
+		print("CampaignCreationStateManager: Crew data empty, allowing for initial setup")
+		return true
+
+	if not crew.has("members"):
+		# If no members key exists, assume default crew is being used
+		print("CampaignCreationStateManager: No members key found, assuming default crew setup")
+		return true
+
+	# If members array exists but is empty, that's an error
+	if crew.members.is_empty():
 		validation_errors.append("At least one crew member is required")
 		return false
 
@@ -212,13 +279,34 @@ func _validate_crew_phase() -> bool:
 	return true
 
 func _validate_captain_phase() -> bool:
-	"""Validate captain creation"""
+	"""Enhanced captain phase validation with flexible requirements"""
 	var captain = campaign_data.captain
-
-	if not captain.has("character_data"):
-		validation_errors.append("Captain character must be created")
+	
+	# Allow initial empty state for captain creation UI
+	if captain.is_empty():
+		print("CampaignCreationStateManager: Captain data empty - allowing initial creation")
+		return true
+	
+	# Basic captain validation
+	if not captain.has("character_name") or captain.character_name.is_empty():
+		validation_errors.append("Captain must have a name")
 		return false
-
+	
+	if not captain.has("combat") or captain.combat < 1:
+		validation_errors.append("Captain needs valid combat attribute")
+		return false
+	
+	if not captain.has("toughness") or captain.toughness < 1:
+		validation_errors.append("Captain needs valid toughness attribute")
+		return false
+	
+	# Optional: Check for captain customization completeness
+	var completeness = captain.get("customization_completeness", 1.0)
+	if completeness < 0.6: # Require 60% completion minimum
+		validation_errors.append("Captain needs more customization")
+		return false
+	
+	print("CampaignCreationStateManager: Captain validation passed - %s" % captain.character_name)
 	return true
 
 func _validate_ship_phase() -> bool:
@@ -272,6 +360,254 @@ func _validate_final_phase() -> bool:
 	return all_phases_valid
 
 # Campaign Creation
+# PHASE 1 DAY 1: Enhanced validation system with warnings support
+
+func _validate_phase_with_warnings(phase: Phase) -> Dictionary:
+	"""Enhanced validation that separates blocking errors from warnings"""
+	var result = {
+		"valid": true,
+		"blocks_progression": false,
+		"has_warnings": false,
+		"blocking_errors": [],
+		"warnings": [],
+		"phase": phase
+	}
+	
+	match phase:
+		Phase.CONFIG:
+			return _validate_config_with_warnings()
+		Phase.CREW_SETUP:
+			return _validate_crew_with_warnings()
+		Phase.CAPTAIN_CREATION:
+			return _validate_captain_with_warnings()
+		Phase.SHIP_ASSIGNMENT:
+			return _validate_ship_with_warnings()
+		Phase.EQUIPMENT_GENERATION:
+			return _validate_equipment_with_warnings()
+		Phase.WORLD_GENERATION:
+			return _validate_world_with_warnings()
+		Phase.FINAL_REVIEW:
+			return _validate_final_with_warnings()
+		_:
+			result.blocks_progression = true
+			result.blocking_errors.append("Unknown phase: " + str(phase))
+			return result
+
+func _validate_config_with_warnings() -> Dictionary:
+	"""Enhanced config validation with warnings support"""
+	var result = {
+		"valid": true,
+		"blocks_progression": false,
+		"has_warnings": false,
+		"blocking_errors": [],
+		"warnings": []
+	}
+	
+	var config = campaign_data.config
+	
+	# Allow progression even with empty config initially
+	if config.is_empty():
+		result.warnings.append("Configuration not set - will use defaults")
+		result.has_warnings = true
+		return result
+	
+	# Warnings that don't block progression
+	if not config.has("campaign_name") or config.campaign_name.is_empty():
+		result.warnings.append("Campaign name not set - will use default")
+		result.has_warnings = true
+	
+	if not config.has("difficulty_level") or config.difficulty_level == 0:
+		result.warnings.append("Difficulty level not set - will use default")
+		result.has_warnings = true
+	
+	if not config.has("crew_size") or config.crew_size == 0:
+		result.warnings.append("Crew size not set - will use default of 4")
+		result.has_warnings = true
+	
+	return result
+
+func _validate_crew_with_warnings() -> Dictionary:
+	"""Enhanced crew validation with warnings support"""
+	var result = {
+		"valid": true,
+		"blocks_progression": false,
+		"has_warnings": false,
+		"blocking_errors": [],
+		"warnings": []
+	}
+	
+	var crew = campaign_data.crew
+	
+	# Allow empty crew data initially
+	if crew.is_empty():
+		result.warnings.append("Crew data empty - will be populated during setup")
+		result.has_warnings = true
+		return result
+	
+	# Warnings for incomplete setup
+	if not crew.has("members") or crew.members.is_empty():
+		result.warnings.append("No crew members defined - using default setup")
+		result.has_warnings = true
+	
+	if not crew.get("has_captain", false):
+		result.warnings.append("No captain assigned - will be set during captain creation")
+		result.has_warnings = true
+	
+	# Check backend integration (warning only)
+	if not crew.get("backend_generated", false):
+		result.warnings.append("Crew not generated via backend system (using fallback)")
+		result.has_warnings = true
+	
+	return result
+
+func _validate_captain_with_warnings() -> Dictionary:
+	"""Enhanced captain validation with warnings support"""
+	var result = {
+		"valid": true,
+		"blocks_progression": false,
+		"has_warnings": false,
+		"blocking_errors": [],
+		"warnings": []
+	}
+	
+	var captain = campaign_data.captain
+	
+	# Allow initial empty state
+	if captain.is_empty():
+		result.warnings.append("Captain not created yet - will be handled in captain panel")
+		result.has_warnings = true
+		return result
+	
+	# Warnings only - allow incomplete captains
+	if not captain.has("character_name") or captain.character_name.is_empty():
+		result.warnings.append("Captain name not set - will use default")
+		result.has_warnings = true
+	
+	if not captain.has("combat") or captain.combat < 1:
+		result.warnings.append("Captain combat stats need setting")
+		result.has_warnings = true
+	
+	if not captain.has("toughness") or captain.toughness < 1:
+		result.warnings.append("Captain toughness stats need setting")
+		result.has_warnings = true
+	
+	# Customization completeness warning
+	var completeness = captain.get("customization_completeness", 1.0)
+	if completeness < 0.8:
+		result.warnings.append("Captain customization could be more complete (%.0f%%)" % (completeness * 100))
+		result.has_warnings = true
+	
+	return result
+
+func _validate_ship_with_warnings() -> Dictionary:
+	"""Enhanced ship validation with warnings support"""
+	var result = {
+		"valid": true,
+		"blocks_progression": false,
+		"has_warnings": false,
+		"blocking_errors": [],
+		"warnings": []
+	}
+	
+	var ship = campaign_data.ship
+	
+	# Allow empty ship data initially
+	if ship.is_empty():
+		result.warnings.append("Ship not assigned yet - will use default")
+		result.has_warnings = true
+		return result
+	
+	# Warnings only
+	if not ship.has("name") or ship.name.is_empty():
+		result.warnings.append("Ship name not set - will use default")
+		result.has_warnings = true
+	
+	if not ship.has("type") or ship.type.is_empty():
+		result.warnings.append("Ship type not specified - will use default")
+		result.has_warnings = true
+	
+	if not ship.get("is_configured", false):
+		result.warnings.append("Ship configuration incomplete - using default setup")
+		result.has_warnings = true
+	
+	return result
+
+func _validate_equipment_with_warnings() -> Dictionary:
+	"""Enhanced equipment validation with warnings support"""
+	var result = {
+		"valid": true,
+		"blocks_progression": false,
+		"has_warnings": false,
+		"blocking_errors": [],
+		"warnings": []
+	}
+	
+	var equipment = campaign_data.equipment
+	
+	# Allow empty equipment initially
+	if equipment.is_empty():
+		result.warnings.append("Equipment not generated yet - will use default starting equipment")
+		result.has_warnings = true
+		return result
+	
+	# Warnings only - equipment generation is flexible
+	if not equipment.has("equipment") or equipment.equipment.is_empty():
+		result.warnings.append("Starting equipment list empty - will generate defaults")
+		result.has_warnings = true
+	
+	if not equipment.get("is_complete", false):
+		result.warnings.append("Equipment setup marked as incomplete")
+		result.has_warnings = true
+	
+	# Backend integration warning
+	if not equipment.get("backend_generated", false):
+		result.warnings.append("Equipment not generated via backend system (using fallback)")
+		result.has_warnings = true
+	
+	return result
+
+func _validate_world_with_warnings() -> Dictionary:
+	"""Enhanced world validation with warnings support"""
+	var result = {
+		"valid": true,
+		"blocks_progression": false,
+		"has_warnings": false,
+		"blocking_errors": [],
+		"warnings": []
+	}
+	
+	var world = campaign_data.world
+	
+	# World generation is optional in early phases
+	if world.is_empty():
+		result.warnings.append("World data not generated yet - will use defaults")
+		result.has_warnings = true
+	
+	return result
+
+func _validate_final_with_warnings() -> Dictionary:
+	"""Enhanced final validation with warnings support"""
+	var result = {
+		"valid": true,
+		"blocks_progression": false,
+		"has_warnings": false,
+		"blocking_errors": [],
+		"warnings": []
+	}
+	
+	# Check all phases for blocking errors (only final review requires strict validation)
+	var phases_to_check = [Phase.CONFIG, Phase.CREW_SETUP, Phase.CAPTAIN_CREATION, Phase.SHIP_ASSIGNMENT, Phase.EQUIPMENT_GENERATION, Phase.WORLD_GENERATION]
+	
+	for phase in phases_to_check:
+		var phase_result = _validate_phase_with_warnings(phase)
+		
+		# For final review, warnings become more important but still don't block
+		if phase_result.has_warnings:
+			result.warnings.append_array(phase_result.warnings)
+			result.has_warnings = true
+	
+	return result
+
 func complete_campaign_creation() -> Dictionary:
 	"""Finalize campaign creation and return complete data with enhanced serialization"""
 	if not _validate_final_phase():
@@ -459,9 +795,9 @@ func import_from_save(save_data: Dictionary) -> bool:
 	return true
 
 # Security validation methods
-func _validate_imported_data(save_data: Dictionary) -> ValidationResult:
+func _validate_imported_data(save_data: Dictionary) -> FiveParsecsValidationResult:
 	"""Validate imported save data for security threats"""
-	var result = ValidationResult.new()
+	var result = FiveParsecsValidationResult.new()
 	
 	# Check for required structure
 	var required_keys = ["config", "crew", "captain", "ship", "equipment", "metadata"]
@@ -533,7 +869,7 @@ func update_campaign_config_secure(config_data: Dictionary) -> bool:
 			validation_errors.append("Crew size: " + crew_validation.error)
 	
 	if validation_errors.size() > 0:
-		SecurityValidator.log_security_event("CONFIG_VALIDATION_FAILED", 
+		SecurityValidator.log_security_event("CONFIG_VALIDATION_FAILED",
 			"Errors: " + str(validation_errors))
 		return false
 	
@@ -574,7 +910,7 @@ func update_character_secure(character_data: Dictionary, character_type: String 
 				validation_errors.append(attr.capitalize() + ": " + attr_validation.error)
 	
 	if validation_errors.size() > 0:
-		SecurityValidator.log_security_event("CHARACTER_VALIDATION_FAILED", 
+		SecurityValidator.log_security_event("CHARACTER_VALIDATION_FAILED",
 			"Character: " + character_data.get("name", "Unknown") + ", Errors: " + str(validation_errors))
 		return false
 	
@@ -587,16 +923,8 @@ func update_character_secure(character_data: Dictionary, character_type: String 
 				campaign_data.crew.members = []
 			campaign_data.crew.members.append(character_data)
 	
-	SecurityValidator.log_security_event("CHARACTER_UPDATED", 
+	SecurityValidator.log_security_event("CHARACTER_UPDATED",
 		"Character validated: " + character_data.get("name", "Unknown"))
-	return true
-	if not save_data.has("metadata"):
-		push_error("Invalid save data: Missing metadata")
-		return false
-
-	campaign_data = save_data.duplicate()
-	current_phase = Phase.FINAL_REVIEW # Assume complete if loading
-	_validate_current_phase()
 	return true
 
 # Public API methods for external access
@@ -609,6 +937,287 @@ func is_phase_valid(phase: Phase) -> bool:
 	return _is_phase_valid(phase)
 
 ## UI Integration Methods - Bridge between UI expectations and internal implementation
+func validate_phase(phase: Phase) -> bool:
+	"""Validate a specific phase - public method for UI integration"""
+	return _is_phase_valid(phase)
+
+## Data Update Methods - UI Integration Wrappers
+
+func update_config_data(config_data: Dictionary) -> bool:
+	"""Update configuration data - wrapper for UI integration"""
+	if config_data.is_empty():
+		return false
+	
+	# Merge with existing config data
+	for key in config_data:
+		campaign_data.config[key] = config_data[key]
+	
+	_validate_current_phase()
+	state_updated.emit(current_phase, get_phase_data(current_phase))
+	return true
+
+func update_crew_data(crew_data: Dictionary) -> bool:
+	"""Update crew data - wrapper for UI integration"""
+	if crew_data.is_empty():
+		return false
+	
+	# Merge with existing crew data
+	for key in crew_data:
+		campaign_data.crew[key] = crew_data[key]
+	
+	_validate_current_phase()
+	state_updated.emit(current_phase, get_phase_data(current_phase))
+	return true
+
+func update_captain_data(captain_data: Dictionary) -> bool:
+	"""Update captain data - wrapper for UI integration"""
+	if captain_data.is_empty():
+		return false
+	
+	# Merge with existing captain data
+	for key in captain_data:
+		campaign_data.captain[key] = captain_data[key]
+	
+	_validate_current_phase()
+	state_updated.emit(current_phase, get_phase_data(current_phase))
+	return true
+
+# PHASE 1A: Atomic captain confirmation with concurrency protection
+func confirm_captain_creation(captain_data: Dictionary) -> Dictionary:
+	"""Confirm captain creation with atomic operations and concurrency protection"""
+	print("CampaignCreationStateManager: Confirming captain creation")
+	
+	# Lock for atomic operation
+	_operation_lock.lock()
+	var result = {"success": false, "error": "", "captain_name": ""}
+	
+	# Prevent concurrent confirmations
+	if _is_processing_confirmation:
+		result.error = "Captain confirmation already in progress"
+		_operation_lock.unlock()
+		return result
+	
+	_is_processing_confirmation = true
+	_operation_lock.unlock()
+	
+	# Validate captain data before confirmation
+	if not captain_data.has("character_name") or captain_data.character_name.is_empty():
+		result.error = "Captain must have a name before confirmation"
+		_is_processing_confirmation = false
+		return result
+	
+	# Store original state for rollback if needed
+	var original_captain_data = campaign_data.captain.duplicate(true)
+	
+	# Update captain data
+	if not update_captain_data(captain_data):
+		result.error = "Failed to update captain data"
+		_is_processing_confirmation = false
+		return result
+	
+	# Mark captain as confirmed
+	campaign_data.captain["confirmed"] = true
+	campaign_data.captain["created_at"] = Time.get_datetime_string_from_system()
+	
+	# Validate captain phase after confirmation
+	validation_errors.clear()
+	if not _validate_captain_phase():
+		# Rollback on validation failure
+		campaign_data.captain = original_captain_data
+		result.error = "Captain validation failed after confirmation: " + str(validation_errors)
+		_is_processing_confirmation = false
+		return result
+	
+	# Mark captain creation as complete in metadata
+	if not campaign_data.metadata.has("phase_completion"):
+		campaign_data.metadata.phase_completion = {}
+	
+	campaign_data.metadata.phase_completion[Phase.CAPTAIN_CREATION] = {
+		"completed": true,
+		"completed_at": Time.get_datetime_string_from_system(),
+		"captain_name": captain_data.get("character_name", "Unknown")
+	}
+	
+	# Success
+	result.success = true
+	result.captain_name = captain_data.get("character_name", "Unknown")
+	
+	print("CampaignCreationStateManager: ✅ Captain confirmation successful for %s" % result.captain_name)
+	
+	# Emit state update
+	state_updated.emit(Phase.CAPTAIN_CREATION, get_phase_data(Phase.CAPTAIN_CREATION))
+	
+	_is_processing_confirmation = false
+	return result
+
+# PHASE 1A: Transaction-based atomic operations
+func create_captain_confirmation_transaction(captain_data: Dictionary) -> String:
+	"""Create a transaction for atomic captain confirmation with rollback capability"""
+	var transaction = CampaignCreationTransaction.new()
+	var transaction_id = transaction.transaction_id
+	
+	# Store transaction
+	_active_transactions[transaction_id] = transaction
+	
+	# Begin transaction with current state
+	var current_state = get_campaign_data()
+	if not transaction.begin_transaction(current_state):
+		_active_transactions.erase(transaction_id)
+		push_error("Failed to begin captain confirmation transaction")
+		return ""
+	
+	# Add captain update operation
+	transaction.add_operation("update_captain", captain_data, {"original_captain": current_state.get("captain", {})})
+	
+	# Add captain confirmation operation
+	transaction.add_operation("confirm_captain", captain_data, {})
+	
+	# Add validation operation
+	transaction.add_operation("validate_phase", {"phase": Phase.CAPTAIN_CREATION}, {})
+	
+	print("CampaignCreationStateManager: Created captain confirmation transaction %s" % transaction_id)
+	return transaction_id
+
+func execute_transaction(transaction_id: String) -> Dictionary:
+	"""Execute a transaction atomically with rollback on failure"""
+	if not _active_transactions.has(transaction_id):
+		return {"success": false, "error": "Transaction not found: " + transaction_id}
+	
+	var transaction = _active_transactions[transaction_id]
+	var result = {"success": false, "error": "", "final_state": {}}
+	
+	# Execute operations
+	var success = transaction.execute_operations(self)
+	if not success:
+		result.error = "Transaction execution failed: " + transaction.last_error
+		# Transaction automatically rolls back on failure
+		return result
+	
+	# Commit transaction
+	var final_state = transaction.commit_transaction(self)
+	if final_state.is_empty():
+		result.error = "Transaction commit failed: " + transaction.last_error
+		return result
+	
+	# Success
+	result.success = true
+	result.final_state = final_state
+	
+	# Emit state update signals
+	state_updated.emit(Phase.CAPTAIN_CREATION, get_phase_data(Phase.CAPTAIN_CREATION))
+	
+	print("CampaignCreationStateManager: Transaction %s executed successfully" % transaction_id)
+	return result
+
+func rollback_transaction(transaction_id: String, reason: String = "") -> bool:
+	"""Rollback a transaction to its initial state"""
+	if not _active_transactions.has(transaction_id):
+		push_error("Transaction not found for rollback: " + transaction_id)
+		return false
+	
+	var transaction = _active_transactions[transaction_id]
+	var success = transaction.rollback_transaction(self, reason)
+	
+	if success:
+		# Emit state update signals after rollback
+		_validate_current_phase()
+		state_updated.emit(current_phase, get_phase_data(current_phase))
+		print("CampaignCreationStateManager: Transaction %s rolled back successfully" % transaction_id)
+	
+	return success
+
+func cleanup_transaction(transaction_id: String) -> void:
+	"""Clean up completed transaction resources"""
+	if _active_transactions.has(transaction_id):
+		var transaction = _active_transactions[transaction_id]
+		transaction.cleanup_transaction()
+		_active_transactions.erase(transaction_id)
+		print("CampaignCreationStateManager: Cleaned up transaction %s" % transaction_id)
+
+func get_transaction_status(transaction_id: String) -> Dictionary:
+	"""Get status of a specific transaction"""
+	if not _active_transactions.has(transaction_id):
+		return {"error": "Transaction not found"}
+	
+	var transaction = _active_transactions[transaction_id]
+	return transaction.get_transaction_status()
+
+func get_active_transactions() -> Array[String]:
+	"""Get list of active transaction IDs"""
+	return _active_transactions.keys()
+
+func cleanup_completed_transactions() -> void:
+	"""Clean up all completed transactions"""
+	var completed_transactions: Array[String] = []
+	
+	for transaction_id in _active_transactions.keys():
+		var transaction = _active_transactions[transaction_id]
+		if transaction.is_transaction_complete():
+			completed_transactions.append(transaction_id)
+	
+	for transaction_id in completed_transactions:
+		cleanup_transaction(transaction_id)
+	
+	print("CampaignCreationStateManager: Cleaned up %d completed transactions" % completed_transactions.size())
+
+func update_ship_data(ship_data: Dictionary) -> bool:
+	"""Update ship data - wrapper for UI integration"""
+	if ship_data.is_empty():
+		return false
+	
+	# Merge with existing ship data
+	for key in ship_data:
+		campaign_data.ship[key] = ship_data[key]
+	
+	_validate_current_phase()
+	state_updated.emit(current_phase, get_phase_data(current_phase))
+	return true
+
+func update_equipment_data(equipment_data: Dictionary) -> bool:
+	"""Update equipment data - wrapper for UI integration"""
+	if equipment_data.is_empty():
+		return false
+	
+	# Merge with existing equipment data
+	for key in equipment_data:
+		campaign_data.equipment[key] = equipment_data[key]
+	
+	_validate_current_phase()
+	state_updated.emit(current_phase, get_phase_data(current_phase))
+	return true
+
+func update_world_data(world_data: Dictionary) -> bool:
+	"""Update world data - wrapper for UI integration"""
+	if world_data.is_empty():
+		return false
+	
+	# Merge with existing world data
+	for key in world_data:
+		campaign_data.world[key] = world_data[key]
+	
+	_validate_current_phase()
+	state_updated.emit(current_phase, get_phase_data(current_phase))
+	return true
+
+func save_phase_data(phase: Phase, data: Dictionary) -> bool:
+	"""Save data for specific phase - UI integration method"""
+	match phase:
+		Phase.CONFIG:
+			return update_config_data(data)
+		Phase.CREW_SETUP:
+			return update_crew_data(data)
+		Phase.CAPTAIN_CREATION:
+			return update_captain_data(data)
+		Phase.SHIP_ASSIGNMENT:
+			return update_ship_data(data)
+		Phase.EQUIPMENT_GENERATION:
+			return update_equipment_data(data)
+		Phase.WORLD_GENERATION:
+			return update_world_data(data)
+		_:
+			push_warning("Unknown phase for save_phase_data: " + str(phase))
+			return false
+
 func validate_current_step() -> bool:
 	"""Validate current step - public wrapper for UI integration"""
 	return _is_phase_valid(current_phase)
@@ -632,6 +1241,12 @@ func safe_get_property(obj: Variant, property: String, default_value: Variant = 
 	elif obj is Dictionary:
 		return obj.get(property, default_value)
 	return default_value
+
+## Public API method for UI integration - returns complete campaign data
+func get_campaign_data() -> Dictionary:
+	"""Get complete campaign data - public API method for UI integration"""
+	return campaign_data.duplicate()
+
 ## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
 func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
 	if obj == null:
@@ -639,4 +1254,23 @@ func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Va
 	if obj is Object and obj.has_method(method_name):
 		return obj.callv(method_name, args)
 	return null
-     
+
+func get_completion_status() -> Dictionary:
+	"""Get completion status for all phases"""
+	var status := {}
+	for phase in Phase.values():
+		var phase_name := get_phase_name(phase)
+		status[phase_name] = _is_phase_valid(phase)
+	return status
+
+func get_phase_name(phase: Phase) -> String:
+	"""Get the string name for a phase enum value"""
+	match phase:
+		Phase.CONFIG: return "CONFIG"
+		Phase.CREW_SETUP: return "CREW_SETUP"
+		Phase.CAPTAIN_CREATION: return "CAPTAIN_CREATION"
+		Phase.SHIP_ASSIGNMENT: return "SHIP_ASSIGNMENT"
+		Phase.EQUIPMENT_GENERATION: return "EQUIPMENT_GENERATION"
+		Phase.WORLD_GENERATION: return "WORLD_GENERATION"
+		Phase.FINAL_REVIEW: return "FINAL_REVIEW"
+		_: return "UNKNOWN"

@@ -18,18 +18,18 @@ enum CreatorMode {
 	CUSTOM
 }
 
-# UI Components
-@onready var name_input: LineEdit = $Dialog/VBoxContainer/NameContainer/NameInput
-@onready var combat_value: Label = $Dialog/VBoxContainer/StatsContainer/StatsDisplay/CombatValue
-@onready var toughness_value: Label = $Dialog/VBoxContainer/StatsContainer/StatsDisplay/ToughnessValue
-@onready var savvy_value: Label = $Dialog/VBoxContainer/StatsContainer/StatsDisplay/SavvyValue
-@onready var tech_value: Label = $Dialog/VBoxContainer/StatsContainer/StatsDisplay/TechValue
-@onready var speed_value: Label = $Dialog/VBoxContainer/StatsContainer/StatsDisplay/SpeedValue
-@onready var luck_value: Label = $Dialog/VBoxContainer/StatsContainer/StatsDisplay/LuckValue
+# UI Components - using safe node access
+var name_input: LineEdit
+var combat_value: Label
+var toughness_value: Label
+var savvy_value: Label
+var tech_value: Label
+var speed_value: Label
+var luck_value: Label
 
-@onready var randomize_button: Button = $Dialog/VBoxContainer/ButtonContainer/RandomizeButton
-@onready var create_button: Button = $Dialog/VBoxContainer/ButtonContainer/CreateButton
-@onready var cancel_button: Button = $Dialog/VBoxContainer/ButtonContainer/CancelButton
+var randomize_button: Button
+var create_button: Button
+var cancel_button: Button
 
 var current_mode: CreatorMode = CreatorMode.CREW_MEMBER
 var editing_character: Character = null
@@ -38,15 +38,50 @@ var current_character: Character = null
 func _ready() -> void:
 	name = "SimpleCharacterCreator"
 	visible = false
+	_initialize_ui_components()
 	_connect_signals()
 
+func _initialize_ui_components() -> void:
+	"""Initialize UI components with safe node access"""
+	name_input = get_node_or_null("Dialog/VBoxContainer/NameContainer/NameInput")
+	combat_value = get_node_or_null("Dialog/VBoxContainer/StatsContainer/StatsDisplay/CombatValue")
+	toughness_value = get_node_or_null("Dialog/VBoxContainer/StatsContainer/StatsDisplay/ToughnessValue")
+	savvy_value = get_node_or_null("Dialog/VBoxContainer/StatsContainer/StatsDisplay/SavvyValue")
+	tech_value = get_node_or_null("Dialog/VBoxContainer/StatsContainer/StatsDisplay/TechValue")
+	speed_value = get_node_or_null("Dialog/VBoxContainer/StatsContainer/StatsDisplay/SpeedValue")
+	luck_value = get_node_or_null("Dialog/VBoxContainer/StatsContainer/StatsDisplay/LuckValue")
+	
+	randomize_button = get_node_or_null("Dialog/VBoxContainer/ButtonContainer/RandomizeButton")
+	create_button = get_node_or_null("Dialog/VBoxContainer/ButtonContainer/CreateButton")
+	cancel_button = get_node_or_null("Dialog/VBoxContainer/ButtonContainer/CancelButton")
+	
+	# Log any missing components
+	var missing_components = []
+	if not name_input: missing_components.append("NameInput")
+	if not combat_value: missing_components.append("CombatValue")
+	if not toughness_value: missing_components.append("ToughnessValue")
+	if not savvy_value: missing_components.append("SavvyValue")
+	if not tech_value: missing_components.append("TechValue")
+	if not speed_value: missing_components.append("SpeedValue")
+	if not luck_value: missing_components.append("LuckValue")
+	if not randomize_button: missing_components.append("RandomizeButton")
+	if not create_button: missing_components.append("CreateButton")
+	if not cancel_button: missing_components.append("CancelButton")
+	
+	if missing_components.size() > 0:
+		push_warning("SimpleCharacterCreator: Missing UI components: %s" % str(missing_components))
+	else:
+		print("SimpleCharacterCreator: All UI components initialized successfully")
+
 func _connect_signals() -> void:
-	if randomize_button:
+	if randomize_button and not randomize_button.pressed.is_connected(_on_randomize_pressed):
 		randomize_button.pressed.connect(_on_randomize_pressed)
-	if create_button:
+	if create_button and not create_button.pressed.is_connected(_on_create_pressed):
 		create_button.pressed.connect(_on_create_pressed)
-	if cancel_button:
+	if cancel_button and not cancel_button.pressed.is_connected(_on_cancel_pressed):
 		cancel_button.pressed.connect(_on_cancel_pressed)
+	
+	print("SimpleCharacterCreator: Signal connections completed")
 
 func start_creation(mode: CreatorMode = CreatorMode.CREW_MEMBER) -> void:
 	current_mode = mode
@@ -54,20 +89,27 @@ func start_creation(mode: CreatorMode = CreatorMode.CREW_MEMBER) -> void:
 	_reset_form()
 	_generate_random_stats()
 	show()
+	print("SimpleCharacterCreator: Started creation in mode: %s" % mode)
 
 func edit_character(character: Character) -> void:
+	if not character:
+		push_warning("SimpleCharacterCreator: Cannot edit null character")
+		return
+		
 	editing_character = character
 	current_character = character.duplicate()
 	_populate_form(character)
 	show()
+	print("SimpleCharacterCreator: Started editing character: %s" % character.character_name)
 
 func _reset_form() -> void:
 	if name_input:
 		name_input.text = ""
 	current_character = Character.new()
+	_update_stats_display()
 
 func _populate_form(character: Character) -> void:
-	if name_input:
+	if name_input and character:
 		name_input.text = character.character_name
 	_update_stats_display()
 
@@ -81,7 +123,7 @@ func _generate_random_stats() -> void:
 	current_character.savvy = _roll_2d6()
 	current_character.tech = _roll_2d6()
 	current_character.speed = _roll_2d6()
-	current_character.luck = 1  # Starting luck
+	current_character.luck = 1 # Starting luck
 	
 	# Captains get better stats
 	if current_mode == CreatorMode.CAPTAIN:
@@ -95,6 +137,7 @@ func _generate_random_stats() -> void:
 	current_character.health = current_character.max_health
 	
 	_update_stats_display()
+	print("SimpleCharacterCreator: Generated random stats for mode: %s" % current_mode)
 
 func _roll_2d6() -> int:
 	return randi_range(1, 6) + randi_range(1, 6)
@@ -115,6 +158,11 @@ func _update_stats_display() -> void:
 		speed_value.text = str(current_character.speed)
 	if luck_value:
 		luck_value.text = str(current_character.luck)
+	
+	print("SimpleCharacterCreator: Stats updated - Combat:%d Tough:%d Savvy:%d Tech:%d Speed:%d Luck:%d" % [
+		current_character.combat, current_character.toughness, current_character.savvy,
+		current_character.tech, current_character.speed, current_character.luck
+	])
 
 func _on_randomize_pressed() -> void:
 	_generate_random_stats()
@@ -157,8 +205,8 @@ func set_character_name(new_name: String) -> void:
 		name_input.text = new_name
 
 # Core API method for backend integration
-func create_character(background: GlobalEnums.CharacterBackground = GlobalEnums.CharacterBackground.MILITARY, 
-					motivation: GlobalEnums.CharacterMotivation = GlobalEnums.CharacterMotivation.FAME, 
+func create_character(background: GlobalEnums.CharacterBackground = GlobalEnums.CharacterBackground.MILITARY,
+					motivation: GlobalEnums.CharacterMotivation = GlobalEnums.CharacterMotivation.FAME,
 					character_class: GlobalEnums.CharacterClass = GlobalEnums.CharacterClass.BASELINE) -> Character:
 	var character = Character.new()
 	
@@ -168,7 +216,7 @@ func create_character(background: GlobalEnums.CharacterBackground = GlobalEnums.
 	character.savvy = _roll_2d6()
 	character.tech = _roll_2d6()
 	character.speed = _roll_2d6()
-	character.luck = 1  # Starting luck
+	character.luck = 1 # Starting luck
 	
 	# Apply background bonuses
 	match background:
@@ -203,15 +251,15 @@ func create_character(background: GlobalEnums.CharacterBackground = GlobalEnums.
 			var attributes = ["combat", "toughness", "savvy", "tech", "speed"]
 			var boost_attribute = attributes[randi() % attributes.size()]
 			match boost_attribute:
-				"combat": 
+				"combat":
 					character.combat += 1
-				"toughness": 
+				"toughness":
 					character.toughness += 1
-				"savvy": 
+				"savvy":
 					character.savvy += 1
-				"tech": 
+				"tech":
 					character.tech += 1
-				"speed": 
+				"speed":
 					character.speed += 1
 	
 	# Calculate health

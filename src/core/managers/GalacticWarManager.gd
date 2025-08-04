@@ -1,4 +1,4 @@
-﻿# GalacticWarManager.gd
+# GalacticWarManager.gd
 extends Node
 
 enum FringeWorldInstability {

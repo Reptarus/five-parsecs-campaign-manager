@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 extends Node
 
 ## Base class for world systems

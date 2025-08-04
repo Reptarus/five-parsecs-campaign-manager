@@ -1,4 +1,4 @@
-﻿extends Control
+extends Control
 
 const Character = preload("res://src/core/character/Character.gd")
 const CrewRelationshipManager = preload("res://src/core/campaign/crew/CrewRelationshipManager.gd")

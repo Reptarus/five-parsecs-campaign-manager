@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 extends CharacterBody2D
 
 # GlobalEnums available as autoload singleton

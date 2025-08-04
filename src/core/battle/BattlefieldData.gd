@@ -1,4 +1,4 @@
-﻿class_name FPCM_BattlefieldData
+class_name FPCM_BattlefieldData
 extends Resource
 
 ## Battlefield Data Management System

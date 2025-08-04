@@ -1,6 +1,6 @@
-﻿@tool
+@tool
 extends Resource
-class_name BaseShipComponent
+class_name FiveParsecsBaseShipComponent
 
 ## Base class for ship components
 ##

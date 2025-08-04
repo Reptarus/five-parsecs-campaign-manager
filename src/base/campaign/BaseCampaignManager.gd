@@ -1,4 +1,4 @@
-﻿# Universal Connection Validation Applied
+# Universal Connection Validation Applied
 # Based on proven patterns: Universal Mock Strategy + 7-Stage Methodology
 @tool
 extends Node

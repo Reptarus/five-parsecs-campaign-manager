@@ -1,4 +1,4 @@
-﻿class_name InjuryRecoverySystem
+class_name InjuryRecoverySystem
 extends Resource
 
 ## Advanced Injury and Recovery System for Five Parsecs Campaign Manager

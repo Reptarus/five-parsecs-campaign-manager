@@ -1,4 +1,4 @@
-﻿# Content from src/core/battle/PathFinder.gd
+# Content from src/core/battle/PathFinder.gd
 # REMOVED: class_name FiveParsecsPathFinder
 
 # This class previously used class_name FiveParsecsPathFinder but it was removed to prevent conflicts
@@ -47,8 +47,8 @@ func equals(other: Variant) -> bool:
 var _path_node_script: Variant = null
 
 var battlefield_manager: Node # Will be cast to BattlefieldManager
-var _open_set: Array = [] # Array of PathNodes
-var _closed_set: Array = [] # Array of PathNodes
+var _open_set: Array[Object] = [] # Array of PathNodes
+var _closed_set: Array[Object] = [] # Array of PathNodes
 var _movement_directions := [
 	Vector2i(1, 0), # Right
 	Vector2i(-1, 0), # Left
@@ -142,7 +142,7 @@ func _get_neighbors(node: Variant) -> Array:
 	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
 	if not is_instance_valid(self):
 		return []
-	var neighbors: Array = []
+	var neighbors: Array[Vector2i] = []
 
 	for direction in _movement_directions:
 		var typed_direction: Variant = direction

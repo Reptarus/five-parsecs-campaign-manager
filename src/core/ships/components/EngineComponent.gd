@@ -1,4 +1,4 @@
-﻿# Scripts/ShipAndCrew/EngineComponent.gd
+# Scripts/ShipAndCrew/EngineComponent.gd
 @tool
 extends FPCM_ShipComponent
 class_name EngineComponent

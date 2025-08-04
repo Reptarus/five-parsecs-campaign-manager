@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 
 ## Dice Manager for Five Parsecs Campaign Manager
 ## Integrates the dice system with existing game systems

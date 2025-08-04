@@ -1,4 +1,4 @@
-﻿class_name FPCM_SimpleUnitCard
+class_name FPCM_SimpleUnitCard
 extends Control
 
 ## Simple Unit Tracking Card

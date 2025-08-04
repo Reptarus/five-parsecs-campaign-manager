@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 extends Resource
 
 signal mission_generated(mission_data: Dictionary)

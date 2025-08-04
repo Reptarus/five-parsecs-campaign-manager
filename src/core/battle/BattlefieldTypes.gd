@@ -1,4 +1,4 @@
-﻿class_name FPCM_BattlefieldTypes
+class_name FPCM_BattlefieldTypes
 extends Resource
 
 ## Battlefield Companion Data Types

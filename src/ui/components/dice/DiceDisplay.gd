@@ -1,13 +1,13 @@
-﻿class_name DiceDisplay
+class_name DiceDisplay
 extends Control
 
-## Visual dice display component with animations and manual input
+## Visual dice display component with immediate results - Framework Bible compliant
 ## Provides real-time visual feedback for dice rolls
 
 const FPCM_DiceSystem = preload("res://src/core/systems/DiceSystem.gd")
 
 signal manual_roll_completed(dice_roll: FPCM_DiceSystem.DiceRoll)
-signal dice_animation_finished()
+# Animation signals removed - immediate dice results preferred
 
 @onready var dice_container: HBoxContainer = $VBoxContainer/DiceContainer
 @onready var roll_result_label: Label = $VBoxContainer/ResultPanel/RollResultLabel
@@ -18,7 +18,7 @@ signal dice_animation_finished()
 @onready var auto_roll_button: Button = $VBoxContainer/ManualInputPanel/HBoxContainer/AutoRollButton
 @onready var history_button: Button = $VBoxContainer/ButtonsPanel/HistoryButton
 @onready var settings_button: Button = $VBoxContainer/ButtonsPanel/SettingsButton
-@onready var animation_player: AnimationPlayer = $AnimationPlayer
+# Animation player removed - Framework Bible compliance (immediate UI)
 
 var dice_system: FPCM_DiceSystem
 var current_dice_roll: FPCM_DiceSystem.DiceRoll
@@ -32,7 +32,7 @@ class DiceVisual extends Control:
 	var is_rolling: bool = false
 
 	@onready var dice_face: Label = $DiceFace
-	@onready var animation_player: AnimationPlayer = $AnimationPlayer
+	# Animation player removed - Framework Bible compliance (immediate UI)
 
 	func _ready() -> void:
 		custom_minimum_size = Vector2(60, 60)
@@ -46,15 +46,13 @@ class DiceVisual extends Control:
 		dice_type = type
 		_update_display()
 
-	func start_roll_animation() -> void:
+	func start_roll() -> void:
 		is_rolling = true
-		if animation_player:
-			animation_player.play("roll_animation")
+		# Immediate state change - no animation
 
-	func stop_roll_animation() -> void:
+	func stop_roll() -> void:
 		is_rolling = false
-		if animation_player:
-			animation_player.stop()
+		# Immediate state change - no animation
 		_update_display()
 
 	func _update_display() -> void:
@@ -129,9 +127,8 @@ func _show_automatic_result() -> void:
 	# Show result
 	_update_result_display()
 
-	# Play animation if enabled
-	if dice_system.show_animations:
-		_play_roll_animation()
+	# Animation removed - immediate result display
+	_show_dice_result_immediately()
 
 ## Show manual input panel for player to enter their own rolls
 func _show_manual_input_panel() -> void:
@@ -331,3 +328,10 @@ func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Va
 	if obj is Object and obj.has_method(method_name):
 		return obj.callv(method_name, args)
 	return null
+
+## Framework Bible Compliant - immediate result display
+func _show_dice_result_immediately() -> void:
+	"""Show dice results immediately without animation"""
+	# All dice results are already displayed by _update_result_display()
+	# This method is a placeholder for Framework Bible compliance
+	pass

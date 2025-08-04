@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 class_name CharacterUnit
 extends Node2D
 

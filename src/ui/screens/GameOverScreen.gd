@@ -1,4 +1,4 @@
-﻿extends Control
+extends Control
 
 @onready var return_button: Button = $Button
 @onready var victory_label: Label = $VictoryLabel

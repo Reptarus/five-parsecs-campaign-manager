@@ -1,4 +1,4 @@
-﻿extends Resource
+extends Resource
 class_name FPCM_Patron
 
 # GlobalEnums available as autoload singleton

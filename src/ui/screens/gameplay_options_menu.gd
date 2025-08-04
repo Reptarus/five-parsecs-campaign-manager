@@ -1,4 +1,4 @@
-﻿extends Control
+extends Control
 
 const GameManager = preload("res://src/core/managers/GameStateManager.gd")
 

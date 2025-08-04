@@ -1,10 +1,11 @@
-extends Control
+extends FiveParsecsCampaignPanel
 
 ## Five Parsecs Equipment Generation Panel
 ## Production-ready implementation with comprehensive equipment systems
 
 const StartingEquipmentGenerator = preload("res://src/core/character/Equipment/StartingEquipmentGenerator.gd")
 const Character = preload("res://src/core/character/Character.gd")
+
 # GlobalEnums available as autoload singleton
 
 signal equipment_generated(equipment: Array[Dictionary])
@@ -12,6 +13,20 @@ signal equipment_generated(equipment: Array[Dictionary])
 signal equipment_setup_complete(equipment_data: Dictionary)
 # SPRINT ENHANCEMENT: Backend integration signal
 signal equipment_requested(crew_data: Array)
+
+# Autonomous signals for coordinator pattern
+signal equipment_data_complete(data: Dictionary)
+signal equipment_validation_failed(errors: Array[String])
+
+# Granular signals for real-time integration
+signal equipment_data_changed(data: Dictionary)
+signal equipment_generation_complete(equipment: Array)
+
+var local_equipment_data: Dictionary = {
+	"equipment": [],
+	"credits": 0,
+	"is_complete": false
+}
 
 # UI Components with safe access
 var equipment_list: VBoxContainer
@@ -26,8 +41,30 @@ var starting_credits: int = 0
 var crew_size: int = 4
 var dice_manager: Node # Add dice_manager reference
 
+func _on_campaign_state_updated(state_data: Dictionary) -> void:
+	"""Override from interface - handle campaign state updates"""
+	# Update panel state based on campaign state if needed
+	if state_data.has("equipment") and state_data.equipment is Dictionary:
+		var equipment_state_data = state_data.equipment
+		if equipment_state_data.has("credits"):
+			# Update local equipment state from external changes
+			starting_credits = equipment_state_data.credits
+			_update_display()
+
 func _ready() -> void:
+	# Set panel info before base initialization
+	set_panel_info("Equipment Generation", "Generate starting equipment and credits for your crew based on their backgrounds.")
+	
+	# Call parent _ready() to initialize BaseCampaignPanel structure
+	super._ready()
+	
+	# Initialize equipment-specific functionality
 	call_deferred("_initialize_components")
+
+func _setup_panel_content() -> void:
+	"""Override from BaseCampaignPanel - setup equipment-specific content"""
+	# This will be called after BaseCampaignPanel structure is ready
+	pass
 
 func _initialize_components() -> void:
 	"""Initialize equipment panel with safe component access"""
@@ -46,6 +83,7 @@ func _initialize_components() -> void:
 
 	_connect_signals()
 	_generate_starting_equipment()
+	call_deferred("_emit_panel_ready")
 
 func _connect_signals() -> void:
 	"""Establish signal connections with error handling"""
@@ -76,6 +114,10 @@ func set_generated_equipment(equipment: Array, credits: int) -> void:
 	_update_equipment_display()
 	_update_summary()
 	equipment_generated.emit(generated_equipment)
+	
+	# Emit granular signal for real-time integration
+	equipment_data_changed.emit(get_data())
+	_validate_and_complete()
 
 func _generate_starting_equipment(crew: Array[Character] = []) -> void:
 	"""Generate starting equipment using StartingEquipmentGenerator"""
@@ -113,6 +155,10 @@ func _generate_starting_equipment(crew: Array[Character] = []) -> void:
 	_update_equipment_display()
 	_update_summary()
 	equipment_generated.emit(generated_equipment)
+	
+	# Emit granular signal for real-time integration
+	equipment_data_changed.emit(get_data())
+	_validate_and_complete()
 
 func _create_mock_crew() -> Array[Character]:
 	"""Creates a mock crew for testing and demonstration purposes"""
@@ -154,14 +200,7 @@ func _on_manual_select_pressed() -> void:
 	"""Show manual equipment selection - implement based on UI architecture"""
 	print("Manual equipment selection not yet implemented")
 
-func get_equipment_data() -> Dictionary:
-	"""Return equipment data for campaign creation"""
-	return {
-		"equipment": generated_equipment,
-		"starting_credits": starting_credits,
-		"crew_size": crew_size,
-		"is_complete": generated_equipment.size() > 0
-	}
+# get_equipment_data() function moved to line 336
 
 func is_setup_complete() -> bool:
 	"""Check if equipment setup is complete"""
@@ -199,24 +238,10 @@ func _update_equipment_display() -> void:
 			
 			equipment_list.add_child(item_container)
 
-func is_valid() -> bool:
-	return generated_equipment.size() > 0
-
 func validate() -> Array[String]:
 	"""Validate equipment data and return error messages"""
-	var errors: Array[String] = []
-	
-	if generated_equipment.is_empty():
-		errors.append("No equipment was generated for the crew.")
-	
-	if starting_credits <= 0:
-		errors.append("Invalid starting credits. Must be greater than zero.")
-	
-	return errors
-
-func get_data() -> Dictionary:
-	"""Get panel data - generic interface method"""
-	return get_equipment_data()
+	var validation = validate_panel()
+	return validation.errors if validation.errors else []
 
 func set_data(data: Dictionary) -> void:
 	"""Set panel data - generic interface method"""
@@ -228,9 +253,154 @@ func set_data(data: Dictionary) -> void:
 		_generate_starting_equipment()
 
 ## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+func safe_call_method(obj: Node, method_name: String, args: Array = []):
 	if obj == null:
 		return null
 	if obj is Object and obj.has_method(method_name):
 		return obj.callv(method_name, args)
 	return null
+
+# --- Additions to EquipmentPanel.gd ---
+
+func _validate_and_complete() -> void:
+	local_equipment_data.equipment = generated_equipment
+	local_equipment_data.credits = starting_credits
+	
+	# Validate equipment data
+	var errors = validate()
+	if not errors.is_empty():
+		local_equipment_data.is_complete = false
+		validation_failed.emit(errors)
+		equipment_validation_failed.emit(errors)
+		return
+	
+	local_equipment_data.is_complete = true
+
+	# Emit panel data update for signal-based architecture (no arguments needed)
+	panel_data_changed.emit()
+	
+	# Emit granular data change signal for real-time integration
+	equipment_data_changed.emit(get_data())
+
+	# Emit completion signal if the panel is valid
+	if local_equipment_data.is_complete:
+		panel_completed.emit(get_data())
+		equipment_data_complete.emit(get_data())
+		equipment_generation_complete.emit(generated_equipment)
+
+func get_data() -> Dictionary:
+	"""Get panel data - generic interface method"""
+	var data = get_equipment_data()
+	data["is_complete"] = local_equipment_data.is_complete
+	return data
+
+## Required Interface Methods from ICampaignCreationPanel
+
+func validate_panel() -> ValidationResult:
+	"""Validate panel data and return ValidationResult"""
+	var result = ValidationResult.new()
+	var errors = _validate_equipment_data()
+	
+	if errors.is_empty():
+		result.valid = true
+		result.sanitized_value = get_equipment_data()
+	else:
+		result.valid = false
+		result.error = errors[0] if errors.size() > 0 else "Equipment validation failed"
+		# Add additional errors as warnings since ValidationResult only has one error field
+		for i in range(1, errors.size()):
+			result.add_warning(errors[i])
+	
+	return result
+
+func get_panel_data() -> Dictionary:
+	"""Get panel data - interface implementation"""
+	return get_equipment_data()
+
+func reset_panel() -> void:
+	"""Reset panel to default state"""
+	generated_equipment.clear()
+	starting_credits = 0
+	crew_size = 4
+	local_equipment_data = {
+		"equipment": [],
+		"credits": 0,
+		"is_complete": false
+	}
+	
+	_update_display()
+
+func _validate_equipment_data() -> Array[String]:
+	"""Validate equipment data and return array of error messages"""
+	var errors: Array[String] = []
+	
+	# Basic validation - equipment generation is optional but if present, should be valid
+	if generated_equipment.size() > 0:
+		for item in generated_equipment:
+			if not item.has("name") or item.name.strip_edges().is_empty():
+				errors.append("All equipment items must have valid names")
+				break
+	
+	# Credits should not be negative
+	if starting_credits < 0:
+		errors.append("Starting credits cannot be negative")
+	
+	return errors
+
+func get_equipment_data() -> Dictionary:
+	"""Get equipment data in standardized format"""
+	return {
+		"equipment": generated_equipment.duplicate(),
+		"starting_credits": starting_credits,
+		"crew_size": crew_size,
+		"is_complete": local_equipment_data.is_complete,
+		"metadata": {
+			"last_modified": Time.get_unix_time_from_system(),
+			"version": "1.0",
+			"panel_type": "equipment_generation"
+		}
+	}
+
+## Panel Data Persistence Implementation
+
+func restore_panel_data(data: Dictionary) -> void:
+	"""Restore panel data from persistence system"""
+	if data.is_empty():
+		print("EquipmentPanel: No data to restore")
+		return
+	
+	print("EquipmentPanel: Restoring panel data: ", data.keys())
+	
+	# Restore equipment data
+	if data.has("equipment"):
+		generated_equipment = data.equipment.duplicate() if data.equipment is Array else []
+	
+	# Restore credits
+	if data.has("starting_credits"):
+		starting_credits = data.starting_credits
+	
+	# Restore crew size
+	if data.has("crew_size"):
+		crew_size = data.crew_size
+	
+	# Restore completion status
+	if data.has("is_complete"):
+		local_equipment_data.is_complete = data.is_complete
+	
+	print("EquipmentPanel: Restored %d equipment items, %d credits" % [generated_equipment.size(), starting_credits])
+	
+	# Update UI with restored data
+	_update_display()
+	
+	# Emit signal
+	if not generated_equipment.is_empty():
+		equipment_generated.emit(generated_equipment)
+	
+	print("EquipmentPanel: Panel data restoration complete")
+
+func _update_display() -> void:
+	"""Update all UI displays - used by both testing and production"""
+	_update_equipment_display()
+	_update_summary()
+
+# --- End of additions ---

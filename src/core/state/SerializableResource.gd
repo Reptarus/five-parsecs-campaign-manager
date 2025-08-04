@@ -1,4 +1,4 @@
-﻿extends Resource
+extends Resource
 class_name SerializableResource
 
 # GlobalEnums available as autoload singleton

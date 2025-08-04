@@ -1,9 +1,0 @@
-{
-  "request_id": "production_test_001",
-  "tool_name": "gemini_quick_query",
-  "arguments": {
-    "query": "Explain the purpose of the MCP ecosystem in 2 sentences."
-  },
-  "client_id": "production_validator",
-  "timestamp": "2025-07-28T16:31:14Z"
-}

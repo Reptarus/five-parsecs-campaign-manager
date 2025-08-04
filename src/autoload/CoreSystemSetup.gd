@@ -16,6 +16,12 @@ extends Node
 const AlphaGameManagerScript = preload("res://src/core/managers/AlphaGameManager.gd")
 const DataManager = preload("res://src/core/data/DataManager.gd")
 
+# Memory management systems
+const MemoryLeakPrevention = preload("res://src/core/memory/MemoryLeakPrevention.gd")
+const UniversalCleanupFramework = preload("res://src/core/memory/UniversalCleanupFramework.gd")
+const CleanupHelpers = preload("res://src/core/memory/CleanupHelpers.gd")
+const MemoryPerformanceOptimizer = preload("res://src/core/memory/MemoryPerformanceOptimizer.gd")
+
 # JSON configuration support
 var system_config_data: Dictionary = {}
 var autoload_parameters: Dictionary = {}
@@ -107,6 +113,10 @@ func _can_access_autoload(autoload_name: String) -> bool:
 
 func setup_core_systems() -> void:
 	# Setup all core systems in the correct order
+	
+	# Initialize memory management systems first
+	_initialize_memory_management()
+	
 	# Get reference to the existing AlphaGameManager autoload with correct name
 	alpha_game_manager = get_node_or_null("/root/FPCM_AlphaGameManager") as Node
 	if not alpha_game_manager:
@@ -121,11 +131,84 @@ func setup_core_systems() -> void:
 
 	print("CoreSystemSetup: Connected to existing FPCM_AlphaGameManager autoload")
 
+## Initialize memory management systems
+func _initialize_memory_management() -> void:
+	print("CoreSystemSetup: Initializing memory management systems...")
+	
+	# Initialize MemoryLeakPrevention system
+	if MemoryLeakPrevention.initialize():
+		print("CoreSystemSetup: ✅ MemoryLeakPrevention initialized")
+	else:
+		print("CoreSystemSetup: ⚠️ MemoryLeakPrevention initialization failed")
+	
+	# Initialize UniversalCleanupFramework
+	if UniversalCleanupFramework.initialize():
+		print("CoreSystemSetup: ✅ UniversalCleanupFramework initialized")
+	else:
+		print("CoreSystemSetup: ⚠️ UniversalCleanupFramework initialization failed")
+	
+	# Initialize global cleanup helpers
+	CleanupHelpers.initialize_global_cleanup()
+	print("CoreSystemSetup: ✅ CleanupHelpers initialized")
+	
+	# Initialize MemoryPerformanceOptimizer (skip during testing)
+	var is_testing = OS.has_feature("debug") and Engine.get_process_frames() < 10
+	if not is_testing:
+		var optimization_level = _get_optimization_level_from_config()
+		if MemoryPerformanceOptimizer.initialize(optimization_level):
+			print("CoreSystemSetup: ✅ MemoryPerformanceOptimizer initialized (level: %s)" % MemoryPerformanceOptimizer.OptimizationLevel.keys()[optimization_level])
+		else:
+			print("CoreSystemSetup: ⚠️ MemoryPerformanceOptimizer initialization failed")
+	else:
+		print("CoreSystemSetup: 🧪 Skipping MemoryPerformanceOptimizer during testing")
+	
+	# Register CoreSystemSetup for cleanup
+	CleanupHelpers.setup_autoload_cleanup("CoreSystemSetup", self)
+	
+	print("CoreSystemSetup: ✅ Memory management systems fully initialized")
+
+## Get optimization level from configuration
+func _get_optimization_level_from_config() -> MemoryPerformanceOptimizer.OptimizationLevel:
+	var performance_config = system_config_data.get("performance_thresholds", {})
+	var memory_limit_mb = performance_config.get("memory_limit_mb", 512)
+	
+	# Determine optimization level based on memory limit
+	if memory_limit_mb <= 256:
+		return MemoryPerformanceOptimizer.OptimizationLevel.EXTREME
+	elif memory_limit_mb <= 512:
+		return MemoryPerformanceOptimizer.OptimizationLevel.AGGRESSIVE
+	elif memory_limit_mb <= 1024:
+		return MemoryPerformanceOptimizer.OptimizationLevel.BALANCED
+	else:
+		return MemoryPerformanceOptimizer.OptimizationLevel.CONSERVATIVE
+
 func _on_all_systems_ready() -> void:
 	# Handle successful system initialization
 	initialization_complete = true
 	self.core_systems_ready.emit()
 	print("CoreSystemSetup: All core systems are ready!")
+
+## Cleanup method for autoload shutdown
+func cleanup() -> void:
+	print("CoreSystemSetup: Performing cleanup shutdown...")
+	
+	# Shutdown memory management systems
+	await MemoryLeakPrevention.shutdown()
+	print("CoreSystemSetup: MemoryLeakPrevention shutdown complete")
+	
+	await UniversalCleanupFramework.shutdown()
+	print("CoreSystemSetup: UniversalCleanupFramework shutdown complete")
+	
+	await MemoryPerformanceOptimizer.shutdown()
+	print("CoreSystemSetup: MemoryPerformanceOptimizer shutdown complete")
+	
+	# Reset state
+	initialization_complete = false
+	alpha_game_manager = null
+	system_config_data.clear()
+	autoload_parameters.clear()
+	
+	print("CoreSystemSetup: ✅ Cleanup complete")
 
 func _on_systems_initialized(success: bool, errors: Array[String]) -> void:
 	# Handle system initialization completion
@@ -137,7 +220,7 @@ func _on_systems_initialized(success: bool, errors: Array[String]) -> void:
 
 # Public API for accessing systems
 @warning_ignore("untyped_declaration")
-func get_alpha_game_manager():
+func get_alpha_game_manager() -> Object:
 	# Get the Alpha Game Manager instance
 	return alpha_game_manager
 

@@ -22,8 +22,7 @@ GlobalEnums="*res://src/core/systems/GlobalEnums.gd"
 DataManagerAutoload="*res://src/core/data/DataManager.gd"
 DiceManager="*res://src/core/managers/DiceManager.gd"
 SceneRouter="*res://src/ui/screens/SceneRouter.gd"
-# SystemOrchestrator removed - unified systems architecture eliminated
-#LegacySystems(Maintainedforbackwardscompatibilityduringtransition)SystemsAutoload="*res://src/autoload/SystemsAutoload.gd"
+SystemsAutoload="*res://src/autoload/SystemsAutoload.gd"
 GameStateManagerAutoload="*res://src/core/managers/GameStateManager.gd"
 CharacterManagerAutoload="*res://src/core/character/Management/CharacterManager.gd"
 PlanetCache="*res://src/game/world/PlanetCache.gd"
@@ -37,6 +36,11 @@ BattleResultsManager="*res://src/core/battle/BattleResultsManager.gd"
 SaveManager="*res://src/core/state/SaveManager.gd"
 GameState="*res://src/core/state/GameState.gd"
 CampaignCreationStateBridge="*res://src/core/campaign/creation/CampaignCreationStateBridge.gd"
+CampaignStateService="*res://src/core/services/CampaignStateService.gd"
+PersistenceService="*res://src/core/services/PersistenceService.gd"
+SceneTransitionManager="*res://src/core/services/SceneTransitionManager.gd"
+BattleResultProcessor="*res://src/core/services/battle/BattleResultProcessor.gd"
+WorkflowContextManager="*res://src/core/workflow/WorkflowContextManager.gd"
 
 [debug]
 
@@ -50,6 +54,7 @@ gdscript/warnings/unsafe_method_access=true
 gdscript/warnings/unsafe_cast=true
 gdscript/warnings/unsafe_call_argument=true
 gdscript/warnings/return_value_discarded=true
+enable_dev_dashboard=true
 gdscript/warnings/treat_warnings_as_errors=false
 gdscript/completion/autocomplete_setters_and_getters=true
 

@@ -1,4 +1,4 @@
-﻿class_name FPCM_CharacterSheet
+class_name FPCM_CharacterSheet
 extends Control
 
 ## Five Parsecs Character Sheet Display Component

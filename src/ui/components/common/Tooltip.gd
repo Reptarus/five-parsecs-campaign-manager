@@ -1,4 +1,4 @@
-﻿class_name Tooltip
+class_name Tooltip
 extends Control
 
 ## Universal Tooltip System for Five Parsecs Campaign Manager

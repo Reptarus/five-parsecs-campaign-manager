@@ -1,4 +1,4 @@
-﻿class_name FPCM_TerrainLayout
+class_name FPCM_TerrainLayout
 extends Resource
 
 const GlobalEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")

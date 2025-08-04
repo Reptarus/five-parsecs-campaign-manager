@@ -1,4 +1,4 @@
-﻿extends Control
+extends Control
 
 signal checkpoint_validated(result: Dictionary)
 signal checkpoint_failed(reason: String)

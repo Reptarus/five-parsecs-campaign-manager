@@ -1,4 +1,4 @@
-﻿class_name JobSelectionUI
+class_name JobSelectionUI
 extends Control
 
 ## Job Selection UI for choosing missions according to Five Parsecs rules

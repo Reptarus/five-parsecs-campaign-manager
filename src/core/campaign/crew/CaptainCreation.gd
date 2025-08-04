@@ -1,4 +1,4 @@
-﻿extends Control
+extends Control
 
 const Character = preload("res://src/core/character/Character.gd")
 const CharacterStats = preload("res://src/core/character/Base/CharacterStats.gd")

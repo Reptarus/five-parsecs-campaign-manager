@@ -61,13 +61,13 @@ func _connect_button_safe(button: Button, button_id: String, callback: Callable)
 		print("MainMenu: Connected %s button successfully" % button_id)
 
 func _on_new_mission_pressed() -> void:
-	print("MainMenu: New Mission button pressed")
+	print("MainMenu: New Campaign button pressed")
 	
 	# Enhanced signal emission
-	emit_signal("menu_button_pressed", "new_mission")
+	emit_signal("menu_button_pressed", "new_campaign")
 	
-	# Enhanced navigation
-	_navigate_to_scene("res://assets/scenes/bug_hunt/mission_setup.tscn", "New Mission")
+	# Enhanced navigation - Fixed to use correct campaign creation scene
+	_navigate_to_scene("res://src/ui/screens/campaign/ModularCampaignCreationFlow.tscn", "New Campaign")
 
 func _on_continue_mission_pressed() -> void:
 	print("MainMenu: Continue Mission button pressed")

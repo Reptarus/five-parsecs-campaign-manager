@@ -1,4 +1,4 @@
-﻿# Scripts/ShipAndCrew/ShipComponent.gd
+# Scripts/ShipAndCrew/ShipComponent.gd
 extends Resource
 class_name FPCM_ShipComponent
 

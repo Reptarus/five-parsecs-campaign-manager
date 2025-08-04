@@ -1,6 +1,6 @@
 @tool
 extends Control
-class_name BaseInformationCard
+class_name FiveParsecsInfoCard
 
 ## Base Information Card - Abstract base for all information display cards
 ## Follows Digital Dice System visual patterns and Universal Safety framework

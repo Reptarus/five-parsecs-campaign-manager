@@ -9,14 +9,21 @@ signal mission_selected(mission: Resource)
 signal mission_generation_requested()
 signal mission_selection_cancelled()
 
-# UI nodes
+# UI nodes - Updated to match actual scene structure
 @onready var popup_panel: PopupPanel = $PopupPanel
-@onready var mission_container: VBoxContainer = $PopupPanel/MainContainer/MissionList/MissionContainer
-@onready var mission_title: Label = $PopupPanel/MainContainer/Header/MissionTitle
-@onready var mission_count_label: Label = $PopupPanel/MainContainer/Header/MissionCount
-@onready var generate_button: Button = $PopupPanel/MainContainer/Controls/GenerateButton
-@onready var cancel_button: Button = $PopupPanel/MainContainer/Controls/CancelButton
-@onready var status_label: Label = $PopupPanel/MainContainer/Controls/StatusLabel
+@onready var mission_container: HBoxContainer = $PopupPanel/MarginContainer/VBoxContainer/HBoxContainer
+@onready var mission_title: Label = $PopupPanel/MarginContainer/VBoxContainer/Label
+@onready var close_button: Button = $PopupPanel/MarginContainer/VBoxContainer/CloseButton
+
+# Mission buttons from actual scene
+@onready var mission1_button: Button = $PopupPanel/MarginContainer/VBoxContainer/HBoxContainer/Mission1/Button
+@onready var mission2_button: Button = $PopupPanel/MarginContainer/VBoxContainer/HBoxContainer/Mission2/Button
+@onready var mission3_button: Button = $PopupPanel/MarginContainer/VBoxContainer/HBoxContainer/Mission3/Button
+
+# Additional UI elements referenced in code
+@onready var generate_button: Button = get_node_or_null("PopupPanel/MarginContainer/VBoxContainer/GenerateButton")
+@onready var cancel_button: Button = get_node_or_null("PopupPanel/MarginContainer/VBoxContainer/CancelButton")
+@onready var status_label: Label = get_node_or_null("PopupPanel/MarginContainer/VBoxContainer/StatusLabel")
 
 # Mission data
 var available_missions: Array[Resource] = []
@@ -49,6 +56,16 @@ func _connect_signals() -> void:
 		generate_button.pressed.connect(_on_generate_missions)
 	if cancel_button:
 		cancel_button.pressed.connect(_on_cancel_pressed)
+	if close_button:
+		close_button.pressed.connect(_on_close_pressed)
+	
+	# Connect mission buttons if they exist
+	if mission1_button:
+		mission1_button.pressed.connect(_on_mission_selected_by_index.bind(0))
+	if mission2_button:
+		mission2_button.pressed.connect(_on_mission_selected_by_index.bind(1))
+	if mission3_button:
+		mission3_button.pressed.connect(_on_mission_selected_by_index.bind(2))
 
 func _setup_ui() -> void:
 	"""Setup initial UI state"""
@@ -105,8 +122,9 @@ func _update_mission_display() -> void:
 	for child in mission_container.get_children():
 		child.queue_free()
 	
-	# Update header
-	if mission_count_label:
+	# Update header - use defensive null check for mission_count_label
+	var mission_count_label = get_node_or_null("PopupPanel/MarginContainer/VBoxContainer/MissionCountLabel")
+	if mission_count_label and mission_count_label is Label:
 		mission_count_label.text = "%d Available" % available_missions.size()
 	
 	if available_missions.is_empty():
@@ -258,13 +276,31 @@ func _apply_difficulty_button_style(button: Button, difficulty: int) -> void:
 
 func _on_mission_selected(mission: Resource) -> void:
 	"""Handle mission selection"""
+	if not mission:
+		print("MissionSelectionUI: Error - null mission selected")
+		return
+		
 	selected_mission = mission
-	mission_selected.emit(mission)
-	if status_label:
-		status_label.text = "Mission selected: %s" % mission.get_meta("name", "Unknown")
+	mission_selected.emit(selected_mission)
+	
+	# Update UI with mission info
+	var mission_name = selected_mission.get_meta("name", "Unknown Mission")
+	print("MissionSelectionUI: Mission selected - %s" % mission_name)
+	
 	if popup_panel:
 		popup_panel.hide()
-	print("MissionSelectionUI: Mission selected - %s" % mission.get_meta("name", "Unknown"))
+
+func _on_mission_selected_by_index(mission_index: int) -> void:
+	"""Handle mission selection by index (legacy support)"""
+	if mission_index < 0 or mission_index >= available_missions.size():
+		# Create default missions if none exist
+		if available_missions.is_empty():
+			_create_default_missions()
+		# Clamp to valid range
+		mission_index = clampi(mission_index, 0, available_missions.size() - 1)
+	
+	if mission_index < available_missions.size():
+		_on_mission_selected(available_missions[mission_index])
 
 func _on_generate_missions() -> void:
 	"""Generate new missions using Five Parsecs rules"""
@@ -338,6 +374,21 @@ func _generate_mission_description(mission_type: String, difficulty: int) -> Str
 	var modifier = difficulty_modifiers[min(difficulty - 1, 2)]
 	
 	return "%s. This is a %s assignment." % [base_description, modifier]
+
+func _create_default_missions() -> void:
+	"""Create default missions for testing"""
+	available_missions.clear()
+	
+	# Create 3 simple mission resources to match the scene buttons
+	for i in range(3):
+		var mission = Resource.new()
+		mission.set_meta("name", "Mission %d" % (i + 1))
+		mission.set_meta("description", "Default test mission %d" % (i + 1))
+		mission.set_meta("reward", 300 + (i * 100))
+		mission.set_meta("difficulty", i + 1)
+		available_missions.append(mission)
+	
+	print("MissionSelectionUI: Created %d default missions" % available_missions.size())
 
 func _on_cancel_pressed() -> void:
 	"""Handle cancel button press"""

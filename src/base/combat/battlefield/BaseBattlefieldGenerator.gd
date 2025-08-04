@@ -1,8 +1,8 @@
-﻿@tool
+@tool
 extends Node
-class_name BaseBattlefieldGenerator
+class_name FiveParsecsBattlefieldGenerator
 
-const BaseBattlefieldManager = preload("res://src/base/combat/battlefield/BaseBattlefieldManager.gd")
+const FiveParsecsBattlefieldManager = preload("res://src/base/combat/battlefield/BaseBattlefieldManager.gd")
 
 # Signals
 signal generation_started()

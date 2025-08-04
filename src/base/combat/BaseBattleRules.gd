@@ -1,6 +1,6 @@
-﻿@tool
+@tool
 extends Node
-class_name BaseBattleRules
+class_name FiveParsecsBattleRules
 
 # Enhanced battle rules management - Universal framework removed for simplification
 

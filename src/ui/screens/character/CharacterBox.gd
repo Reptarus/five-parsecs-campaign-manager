@@ -1,4 +1,4 @@
-﻿extends PanelContainer
+extends PanelContainer
 
 ## Five Parsecs Character Box UI Component
 ## Compact display widget for character information in lists/grids
@@ -6,7 +6,7 @@
 # Safe imports
 # GlobalEnums available as autoload singleton
 const Character = preload("res://src/core/character/Character.gd")
-const PortraitManager = preload("res://src/utils/PortraitManager.gd")
+# Removed PortraitManager dependency - using simple Godot-native image loading
 
 # UI Components
 @onready var portrait: TextureRect = get_node("MarginContainer/HBoxContainer/PortraitContainer/Portrait")
@@ -177,24 +177,21 @@ func _update_portrait_display(character: Character) -> void:
 	if not portrait:
 		return
 
-	# Try to load portrait from character's portrait path
+	# Simple Godot-native portrait loading - no over-engineered PortraitManager
 	if character.portrait_path and not character.portrait_path.is_empty():
-		var portrait_manager = PortraitManager.new()
-		var portrait_texture = portrait_manager.load_portrait_from_path(character.portrait_path)
-		
-		if portrait_texture:
+		var image = Image.load_from_file(character.portrait_path)
+		if image and image.get_width() > 0:
+			var portrait_texture = ImageTexture.create_from_image(image)
 			portrait.texture = portrait_texture
 			portrait.modulate = Color.WHITE
 			return
 		else:
 			print("CharacterBox: Failed to load portrait from path: ", character.portrait_path)
 	
-	# Fallback to default portrait based on character class
-	var portrait_manager = PortraitManager.new()
-	var default_portrait = portrait_manager.get_default_portrait(character.character_class)
-	
-	if default_portrait:
-		portrait.texture = default_portrait
+	# Simple fallback to default portrait - no complex portrait management
+	var default_portrait_path = "res://assets/portraits/default_character.png"
+	if FileAccess.file_exists(default_portrait_path):
+		portrait.texture = load(default_portrait_path)
 		portrait.modulate = Color.WHITE
 	else:
 		# Final fallback - colored background based on class

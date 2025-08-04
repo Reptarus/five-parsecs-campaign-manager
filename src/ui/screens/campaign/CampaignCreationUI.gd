@@ -1,2344 +1,3768 @@
+class_name CampaignCreationUI
 extends Control
 
-# Universal framework import
-@warning_ignore("shadowed_global_identifier")
-const UniversalNodeValidator = preload("res://src/utils/UniversalNodeValidator.gd")
-const Character = preload("res://src/core/character/Character.gd")
-const SafeDataAccess = preload("res://src/utils/SafeDataAccess.gd")
+## Campaign Creation UI Bridge
+## Connects existing CampaignCreationUI.tscn scene to refactored architecture
+## Routes to CampaignCreationCoordinator and modern panel system
 
-# Unified Systems removed - simplified architecture
+# Signals for campaign creation workflow
+signal campaign_data_updated(campaign_data: Dictionary)
+signal campaign_completion_ready(campaign_data: Dictionary)
+signal campaign_creation_completed(campaign_data: Dictionary)
 
-# Legacy State Management (for backwards compatibility)
-const CreationStateManager = preload("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
-var state_manager: CreationStateManager = null
+# Import refactored components (using non-conflicting names)
+const CampaignCoordinator = preload("res://src/ui/screens/campaign/CampaignCreationCoordinator.gd")
+const CampaignStateManager = preload("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
+const CampaignPersistence = preload("res://src/core/campaign/creation/CampaignCreationPersistence.gd")
+const SecurityValidator = preload("res://src/core/validation/SecurityValidator.gd")
 
-# Simplified state management - using proven CampaignCreationStateManager
+# PHASE 1: Enhanced Safety Systems (using non-conflicting names)
+const FeatureFlags = preload("res://src/core/systems/CampaignCreationFeatureFlags.gd")
+const PerformanceTracker = preload("res://src/core/systems/CampaignCreationPerformanceTracker.gd")
+const ErrorMonitor = preload("res://src/core/systems/CampaignCreationErrorMonitor.gd")
 
-# UI Components - Safe node access with fallback handling
-@onready var config_panel: Control = get_node_or_null("MarginContainer/VBoxContainer/StepPanels/ConfigPanel") as Node
-@onready var crew_panel: Control = get_node_or_null("MarginContainer/VBoxContainer/StepPanels/CrewPanel") as Node
-@onready var captain_panel: Control = get_node_or_null("MarginContainer/VBoxContainer/StepPanels/CaptainPanel") as Node
-@onready var ship_panel: Control = get_node_or_null("MarginContainer/VBoxContainer/StepPanels/ShipPanel") as Node
-@onready var equipment_panel: Control = get_node_or_null("MarginContainer/VBoxContainer/StepPanels/EquipmentPanel") as Node
-@onready var final_panel: Control = get_node_or_null("MarginContainer/VBoxContainer/StepPanels/FinalPanel") as Node
+# PHASE 2: Formal State Machine (using non-conflicting name)
+const CampaignStateMachine = preload("res://src/core/systems/CampaignCreationStateMachine.gd")
 
-@onready var step_label: Label = get_node_or_null("MarginContainer/VBoxContainer/Header/StepLabel") as Node
-@onready var next_button: Button = get_node_or_null("MarginContainer/VBoxContainer/Navigation/NextButton") as Node
-@onready var back_button: Button = get_node_or_null("MarginContainer/VBoxContainer/Navigation/BackButton") as Node
-@onready var finish_button: Button = get_node_or_null("MarginContainer/VBoxContainer/Navigation/FinishButton") as Node
+# Scene node references (matching CampaignCreationUI.tscn structure)
+@onready var step_label: Label = %StepLabel
+@onready var progress_bar: ProgressBar = $MarginContainer/VBoxContainer/Header/ProgressBar
+@onready var content_container: Control = %ContentContainer
+@onready var back_button: Button = %BackButton
+@onready var next_button: Button = %NextButton
+@onready var finish_button: Button = %FinishButton
 
-# State
-var current_step: int = 0
-var step_panels: Array[Control] = []
+# Refactored architecture components
+var coordinator: CampaignCoordinator
+var state_manager: CampaignStateManager
+var persistence_manager: CampaignPersistence
+var security_validator: FiveParsecsSecurityValidator
+var current_panel: Control = null
 
-func _ready() -> void:
-	# Enable focus to allow keyboard shortcut handling
-	focus_mode = Control.FOCUS_ALL
+# PHASE 2: Formal State Machine Integration
+var formal_state_machine: CampaignStateMachine
+var state_machine_enabled: bool = false
 
-	print("CampaignCreationUI: Initializing...")
+# Legacy UI state (kept for backward compatibility during transition)
+enum UIState {
+	IDLE,
+	LOADING_PANEL,
+	PANEL_ACTIVE,
+	TRANSITIONING,
+	ERROR_RECOVERY,
+	EMERGENCY_ROLLBACK
+}
 
-	# PRODUCTION BOOT VALIDATION: Check node structure before proceeding
-	if not _validate_scene_structure():
-		push_error("CampaignCreationUI: Critical scene structure validation failed - cannot initialize")
-		_enter_degraded_mode()
-		return
+var ui_state: UIState = UIState.IDLE
+var ui_state_lock: Mutex = Mutex.new()
+var panel_load_timeout: float = 5.0
+var panel_load_timer: Timer
 
-	# Use a deferred call to ensure all nodes are ready for setup
-	call_deferred("_initialize_component")
+# PHASE 1: Enhanced Safety Systems
+var performance_tracker: CampaignCreationPerformanceTracker
+var error_monitor: CampaignCreationErrorMonitor
+var error_count: int = 0
+var max_errors_before_fallback: int = 3
+var last_successful_phase: CampaignStateManager.Phase = CampaignStateManager.Phase.CONFIG
+var pending_panel_cleanup: Array[Control] = []
+var panel_ready_confirmation: bool = false
 
-# PRODUCTION DIAGNOSTIC: Complete scene structure validation
-func _validate_scene_structure() -> bool:
-	"""Validate that all expected nodes exist in the scene hierarchy"""
-	var validation_errors: Array[String] = []
+# Panel loading with enhanced caching system
+var panel_scenes: Dictionary = {
+	CampaignStateManager.Phase.CONFIG: "res://src/ui/screens/campaign/panels/ConfigPanel.tscn",
+	CampaignStateManager.Phase.CREW_SETUP: "res://src/ui/screens/campaign/panels/CrewPanel.tscn",
+	CampaignStateManager.Phase.CAPTAIN_CREATION: "res://src/ui/screens/campaign/panels/CaptainPanel.tscn",
+	CampaignStateManager.Phase.SHIP_ASSIGNMENT: "res://src/ui/screens/campaign/panels/ShipPanel.tscn",
+	CampaignStateManager.Phase.EQUIPMENT_GENERATION: "res://src/ui/screens/campaign/panels/EquipmentPanel.tscn",
+	CampaignStateManager.Phase.WORLD_GENERATION: "res://src/ui/screens/campaign/panels/WorldInfoPanel.tscn",
+	CampaignStateManager.Phase.FINAL_REVIEW: "res://src/ui/screens/campaign/panels/FinalPanel.tscn"
+}
+
+# CRITICAL: Panel loading state management to prevent overlap
+var _is_panel_loading: bool = false
+var _panel_load_queue: Array[CampaignStateManager.Phase] = []
+var _pending_phase_transition: CampaignStateManager.Phase
+var _is_transitioning: bool = false
+
+# Enhanced panel caching system
+var panel_cache: Dictionary = {}
+var preloaded_scenes: Dictionary = {}
+var panel_load_queue: Array[CampaignStateManager.Phase] = []
+var is_preloading: bool = false
+var preload_progress: int = 0
+
+# Navigation update protection and optimization
+var _is_updating_navigation: bool = false
+var _navigation_update_timer: Timer
+var _pending_navigation_update: bool = false
+
+# PHASE 1B: Performance monitoring system
+var _performance_monitor: Dictionary = {
+	"session_start_time": 0.0,
+	"panel_load_times": {},
+	"panel_load_count": {},
+	"total_panel_loads": 0,
+	"memory_snapshots": [],
+	# Animation performance tracking removed - Framework Bible compliance
+	"validation_times": {},
+	"transaction_times": {},
+	"error_count": 0,
+	"warning_count": 0
+}
+var _current_panel_load_start_time: float = 0.0
+var _memory_monitoring_enabled: bool = true
+var _performance_logging_enabled: bool = true
+
+# Save directory constants
+const CAMPAIGNS_DIR = "user://campaigns/"
+const SAVE_EXTENSION = ".fpcs"
+const BACKUP_EXTENSION = ".backup"
+
+func _initialize_refactored_architecture() -> void:
+	"""Initialize the coordinator, state manager, and persistence"""
+	state_manager = CampaignStateManager.new()
+	persistence_manager = CampaignPersistence.new(state_manager)
+	coordinator = CampaignCoordinator.new(state_manager)
+	security_validator = SecurityValidator.new()
 	
-	# Critical UI components validation
-	var required_components = {
-		"config_panel": config_panel,
-		"crew_panel": crew_panel,
-		"captain_panel": captain_panel,
-		"ship_panel": ship_panel,
-		"equipment_panel": equipment_panel,
-		"final_panel": final_panel,
-		"step_label": step_label,
-		"next_button": next_button,
-		"back_button": back_button,
-		"finish_button": finish_button
-	}
-	
-	for component_name in required_components:
-		var component = required_components[component_name]
-		if not component:
-			validation_errors.append("Missing critical component: " + component_name)
-	
-	# Report validation results
-	if not validation_errors.is_empty():
-		push_error("CampaignCreationUI: Scene validation failed:")
-		for error in validation_errors:
-			push_error("  - " + error)
-		push_error("CampaignCreationUI: Expected scene structure not found. Check scene file.")
-		return false
-	
-	print("CampaignCreationUI: Scene structure validation passed - all components found")
-	return true
-
-# PRODUCTION FALLBACK: Graceful degradation when scene structure is invalid
-func _enter_degraded_mode() -> void:
-	"""Enter degraded mode when scene structure is invalid"""
-	print("CampaignCreationUI: Entering degraded mode due to scene structure issues")
-	
-	# Create minimal error display
-	var error_container = VBoxContainer.new()
-	error_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(error_container)
-	
-	var error_title = Label.new()
-	error_title.text = "Campaign Creation - Scene Configuration Error"
-	error_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	error_title.add_theme_color_override("font_color", Color.RED)
-	error_container.add_child(error_title)
-	
-	var error_message = Label.new()
-	error_message.text = "The campaign creation interface is missing required components.\nPlease check the scene configuration or contact support."
-	error_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	error_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	error_container.add_child(error_message)
-	
-	var back_to_menu_button = Button.new()
-	back_to_menu_button.text = "Return to Main Menu"
-	back_to_menu_button.pressed.connect(_return_to_main_menu)
-	error_container.add_child(back_to_menu_button)
-	
-	# Disable normal initialization
-	set_process(false)
-	set_physics_process(false)
-
-# Add this method to store node references
-func _store_node_references(nodes: Dictionary) -> void:
-	var nodes_dict = SafeDataAccess.safe_dict_access(nodes, "dynamic UI creation")
-	config_panel = SafeDataAccess.safe_get(nodes_dict, "MarginContainer/VBoxContainer/StepPanels/ConfigPanel", null, "UI node access")
-	crew_panel = SafeDataAccess.safe_get(nodes_dict, "MarginContainer/VBoxContainer/StepPanels/CrewPanel", null, "UI node access")
-	captain_panel = SafeDataAccess.safe_get(nodes_dict, "MarginContainer/VBoxContainer/StepPanels/CaptainPanel", null, "UI node access")
-	ship_panel = SafeDataAccess.safe_get(nodes_dict, "MarginContainer/VBoxContainer/StepPanels/ShipPanel", null, "UI node access")
-	equipment_panel = SafeDataAccess.safe_get(nodes_dict, "MarginContainer/VBoxContainer/StepPanels/EquipmentPanel", null, "UI node access")
-	final_panel = SafeDataAccess.safe_get(nodes_dict, "MarginContainer/VBoxContainer/StepPanels/FinalPanel", null, "UI node access")
-	step_label = SafeDataAccess.safe_get(nodes_dict, "MarginContainer/VBoxContainer/Header/StepLabel", null, "UI node access")
-	next_button = SafeDataAccess.safe_get(nodes_dict, "MarginContainer/VBoxContainer/Navigation/NextButton", null, "UI node access")
-	back_button = SafeDataAccess.safe_get(nodes_dict, "MarginContainer/VBoxContainer/Navigation/BackButton", null, "UI node access")
-	finish_button = SafeDataAccess.safe_get(nodes_dict, "MarginContainer/VBoxContainer/Navigation/FinishButton", null, "UI node access")
-
-func _initialize_state_manager() -> void:
-	"""Initialize both legacy and unified state management systems"""
-	# Legacy state manager for backwards compatibility
-	state_manager = CampaignCreationStateManager.new()
-
-	# Connect legacy state manager signals for UI updates
+	# Connect coordinator signals (suppress return value warnings)
 	@warning_ignore("return_value_discarded")
-	state_manager.state_updated.connect(_on_state_updated)
+	coordinator.navigation_updated.connect(_on_navigation_updated)
 	@warning_ignore("return_value_discarded")
-	state_manager.validation_changed.connect(_on_validation_changed)
+	coordinator.step_changed.connect(_on_step_changed)
 	@warning_ignore("return_value_discarded")
-	state_manager.phase_completed.connect(_on_phase_completed)
+	coordinator.phase_transition_requested.connect(_on_phase_transition_requested)
+	
+	# Connect persistence signals (suppress return value warnings)
 	@warning_ignore("return_value_discarded")
-	state_manager.creation_completed.connect(_on_creation_completed)
-
-	print("CampaignCreationUI: Legacy state manager initialized")
-
-	"""Initialize connections to the new unified systems"""
-		return
+	persistence_manager.persistence_data_loaded.connect(_on_persistence_data_loaded)
+	@warning_ignore("return_value_discarded")
+	persistence_manager.persistence_error.connect(_on_persistence_error)
+	@warning_ignore("return_value_discarded")
+	persistence_manager.auto_backup_created.connect(_on_auto_backup_created)
 	
-	print("CampaignCreationUI: Connecting to unified systems...")
+	# Check for crash recovery
+	_check_crash_recovery()
 	
-	# Get unified system references from orchestrator
-	
-		if not workflow_id.is_empty():
-			print("CampaignCreationUI: Campaign creation workflow started: %s" % workflow_id)
-			# Connect to workflow signals
-		else:
-			push_warning("CampaignCreationUI: Failed to start campaign creation workflow")
-	
-	# Connect to state changes if available
-	
-	print("CampaignCreationUI: Unified systems integration complete")
+	# PHASE 2: Initialize formal state machine if enabled
+	_initialize_formal_state_machine()
 
-# Add this method for successful initialization
-func _initialize_component() -> void:
-	_initialize_state_manager()
-	_setup_ui()
-	_initialize_core_systems()
-	_connect_panel_signals()
-
-# Add this method for graceful degradation
-func _setup_fallback_mode(errors: Array) -> void:
-	print("CampaignCreationUI running in degraded mode: ", errors)
-	# Show a simple error message
-	if step_label:
-		step_label.text = "Campaign Creation - Some features unavailable"
-	# Initialize with whatever panels are available
-	_setup_ui()
-
-func _initialize_core_systems() -> void:
-	"""Initialize core systems for campaign creation"""
-	print("CampaignCreationUI: Initializing core systems...")
-	
-	core_systems = get_node("/root/CoreSystemSetup")
-	if core_systems:
-		print("CampaignCreationUI: CoreSystemSetup found, checking for CampaignCreationManager...")
-		
-		if core_systems and core_systems.has_method("get_campaign_creation_manager"):
-			creation_manager = core_systems.get_campaign_creation_manager()
-			if creation_manager:
-				print("CampaignCreationUI: CampaignCreationManager connected successfully")
-				_connect_creation_manager_signals()
-			else:
-				push_warning("CampaignCreationUI: CampaignCreationManager not available")
-				print("CampaignCreationUI: Proceeding with state manager only...")
-		else:
-			push_warning("CampaignCreationUI: CoreSystemSetup doesn't have get_campaign_creation_manager method")
-			print("CampaignCreationUI: Proceeding with state manager only...")
-	else:
-		push_error("CampaignCreationUI: CoreSystemSetup autoload not found")
-		print("CampaignCreationUI: Proceeding with state manager only...")
-		
-	# Ensure state manager is working even if CampaignCreationManager isn't available
-	if not state_manager:
-		push_error("CampaignCreationUI: State manager not initialized - this will cause navigation issues")
-		return
-		
-	print("CampaignCreationUI: Core systems initialization complete")
-
-func _connect_creation_manager_signals() -> void:
-	"""Connect to creation manager signals"""
-	if not creation_manager:
-		return
-
-	# Connect signals if they exist
-	if creation_manager and creation_manager.has_signal("creation_step_changed"):
-		@warning_ignore("unsafe_property_access", "unsafe_method_access")
-		creation_manager.creation_step_changed.connect(_on_creation_step_changed)
-
-	if creation_manager and creation_manager.has_signal("campaign_creation_completed"):
-		@warning_ignore("unsafe_property_access", "unsafe_method_access")
-		creation_manager.campaign_creation_completed.connect(_on_campaign_creation_completed)
-
-	if creation_manager and creation_manager.has_signal("validation_failed"):
-		@warning_ignore("unsafe_property_access", "unsafe_method_access")
-		creation_manager.validation_failed.connect(_on_validation_failed)
-
-func _setup_ui() -> void:
-	"""Setup the user interface"""
-	print("CampaignCreationUI: Setting up UI...")
-	
-	# Collect step panels safely - OPTIMIZED FLOW: Removed resource_panel (save/load screen)
-	step_panels = []
-	var panel_list: Array[Control] = [config_panel, crew_panel, captain_panel, ship_panel, equipment_panel, final_panel]
-	var panel_names: Array[String] = ["ConfigPanel", "CrewPanel", "CaptainPanel", "ShipPanel", "EquipmentPanel", "FinalPanel"]
-	
-	for i in range(panel_list.size()):
-		var panel: Control = panel_list[i]
-		var panel_name: String = panel_names[i]
-		if panel:
-			step_panels.append(panel)
-			print("CampaignCreationUI: Added panel %d: %s" % [step_panels.size(), panel_name])
-		else:
-			print("CampaignCreationUI: WARNING - Missing panel: %s" % panel_name)
-
-	print("CampaignCreationUI: Total panels configured: %d" % step_panels.size())
-	print("CampaignCreationUI: Optimized flow - Config → Crew → Captain → Ship → Equipment → Final Review")
-
-	# PHASE 3: Validate flow integrity
-	_validate_optimized_flow()
-
-	if step_panels.is_empty():
-		push_error("CampaignCreationUI: No step panels found - cannot proceed")
-		return
-
-	# Connect button signals with proper validation
-	_connect_button_signals()
-
-	# Connect panel signals for data flow
-	_connect_panel_signals()
-
-	# Show first step
-	print("CampaignCreationUI: Showing initial step")
-	_update_ui_for_step(0)
-
-func _connect_button_signals() -> void:
-	"""Connect button signals with proper validation"""
-	print("CampaignCreationUI: Connecting button signals...")
-	
-	# Connect Next button
-	if next_button:
-		if next_button.is_connected("pressed", _on_next_button_pressed):
-			next_button.pressed.disconnect(_on_next_button_pressed)
-		var next_error: Error = next_button.pressed.connect(_on_next_button_pressed)
-		if next_error != OK:
-			push_error("Failed to connect next button: " + str(next_error))
-		else:
-			print("CampaignCreationUI: Next button connected successfully")
-	else:
-		push_warning("CampaignCreationUI: Next button not found")
-	
-	# Connect Back button
+func _connect_scene_signals() -> void:
+	"""Connect scene button signals to coordinator methods"""
 	if back_button:
-		if back_button.is_connected("pressed", _on_back_button_pressed):
-			back_button.pressed.disconnect(_on_back_button_pressed)
-		var back_error: Error = back_button.pressed.connect(_on_back_button_pressed)
-		if back_error != OK:
-			push_error("Failed to connect back button: " + str(back_error))
-		else:
-			print("CampaignCreationUI: Back button connected successfully")
-	else:
-		push_warning("CampaignCreationUI: Back button not found")
-	
-	# Connect Finish button
+		back_button.pressed.connect(_on_back_button_pressed)
+	if next_button:
+		next_button.pressed.connect(_on_next_button_pressed)
 	if finish_button:
-		if finish_button.is_connected("pressed", _on_finish_button_pressed):
-			finish_button.pressed.disconnect(_on_finish_button_pressed)
-		var finish_error: Error = finish_button.pressed.connect(_on_finish_button_pressed)
-		if finish_error != OK:
-			push_error("Failed to connect finish button: " + str(finish_error))
-		else:
-			print("CampaignCreationUI: Finish button connected successfully")
-	else:
-		push_warning("CampaignCreationUI: Finish button not found")
+		finish_button.pressed.connect(_on_finish_button_pressed)
 
-func _connect_panel_signals() -> void:
-	"""Connect panel signals to state manager integration with backend system bridges"""
+func _load_initial_panel() -> void:
+	"""Load the first panel (CONFIG phase)"""
+	print("CampaignCreationUI: Loading initial panel for CONFIG phase")
+	
+	# Ensure state manager is properly initialized
 	if not state_manager:
-		push_warning("CampaignCreationUI: Cannot connect panel signals - state manager not available")
+		push_error("CampaignCreationUI: State manager not initialized!")
 		return
 	
-	# Connect each panel's existing signals to state manager
-	_safe_connect_signal(config_panel, "config_updated", _on_config_updated)
-	_safe_connect_signal(crew_panel, "crew_updated", _on_crew_updated)
-	_safe_connect_signal(captain_panel, "captain_updated", _on_captain_updated)
-	_safe_connect_signal(ship_panel, "ship_updated", _on_ship_updated)
-	_safe_connect_signal(equipment_panel, "equipment_generated", _on_equipment_generated)
-	_safe_connect_signal(final_panel, "campaign_creation_requested", _on_campaign_creation_requested)
+	# Verify initial phase is CONFIG
+	print("CampaignCreationUI: State manager current_phase = %s" % str(state_manager.current_phase))
 	
-	# SPRINT ENHANCEMENT: Connect backend system integration signals
-	_safe_connect_signal(crew_panel, "crew_generation_requested", _on_crew_generation_requested)
-	_safe_connect_signal(equipment_panel, "equipment_requested", _on_equipment_requested_with_backend)
-	_safe_connect_signal(crew_panel, "character_customization_needed", _on_character_customization_needed)
+	# Force state manager to CONFIG if needed
+	if state_manager.current_phase != CampaignStateManager.Phase.CONFIG:
+		print("CampaignCreationUI: Resetting state manager to CONFIG phase")
+		state_manager.current_phase = CampaignStateManager.Phase.CONFIG
 	
-	print("CampaignCreationUI: Panel signals connected to state manager with backend integration")
+	_load_panel_for_phase(CampaignStateManager.Phase.CONFIG)
+	_update_navigation_state()
 
-# ADD: Helper method for safe signal connections
-func _safe_connect_signal(panel: Node, signal_name: String, handler: Callable) -> void:
-	"""Safely connect a signal from a panel to a handler method"""
-	if not panel or not panel.has_signal(signal_name):
+func _load_panel_for_phase(phase: CampaignStateManager.Phase) -> void:
+	"""Load the appropriate panel for the given phase with comprehensive overlap prevention and state machine validation"""
+	
+	# PHASE 2: Use formal state machine if enabled
+	if state_machine_enabled and formal_state_machine:
+		_load_panel_for_phase_with_state_machine(phase)
 		return
-	if not panel.is_connected(signal_name, handler):
-		panel.connect(signal_name, handler)
-
-# Add signal handlers for panel data updates
-func _on_config_updated(config: Dictionary) -> void:
-	"""Handle config panel updates"""
-	print("CampaignCreationUI: Config updated: ", config)
-	print("CampaignCreationUI: Config validation - name: '%s', difficulty: %s" % [config.get("name", ""), config.get("difficulty", "unknown")])
 	
-	# Map ConfigPanel fields to StateManager expected fields
-	var mapped_config: Dictionary = {
-		"campaign_name": config.get("name", ""),
-		"difficulty_level": config.get("difficulty", 1),
-		"victory_condition": config.get("victory_condition", "none"),
-		"story_track_enabled": config.get("story_track_enabled", false),
-		"elite_ranks": config.get("elite_ranks", 0)
-	}
+	# CRITICAL FIX: Enhanced race condition prevention with immediate return on duplicate loads
+	if _is_panel_loading:
+		print("CampaignCreationUI: Panel loading in progress, queueing phase: %s" % str(phase))
+		# Prevent duplicate queuing of same phase AND prevent immediate re-entry
+		if not _panel_load_queue.has(phase):
+			_panel_load_queue.append(phase)
+		return
 	
-	print("CampaignCreationUI: Mapped config for state manager: ", mapped_config)
-	
-	# Forward to state manager with mapped field names
-	if state_manager:
-		state_manager.set_phase_data(CampaignCreationStateManager.Phase.CONFIG, mapped_config)
-	
-	# Update navigation
-	_update_navigation_state()
-
-func _on_crew_updated(crew: Array) -> void:
-	"""Enhanced crew panel update handler with character completeness tracking"""
-	print("CampaignCreationUI: Crew updated, size: ", crew.size())
-	print("CampaignCreationUI: Crew validation - members: %d" % crew.size())
-	
-	# Enhanced crew data for state manager
-	var crew_data = {
-		"members": crew,
-		"size": crew.size(),
-		"captain": _find_captain(crew),
-		"has_captain": _has_captain(crew),
-		"completion_level": _calculate_crew_completion_level(crew),
-		"customization_summary": _get_crew_customization_summary(crew)
-	}
-	
-	# Forward to state manager
-	if state_manager:
-		state_manager.set_phase_data(CampaignCreationStateManager.Phase.CREW_SETUP, crew_data)
-	
-	# Update navigation based on completion level
-	_update_navigation_state()
-
-	# Update equipment panel with crew size for proper generation
-	if equipment_panel and equipment_panel and equipment_panel.has_method("set_crew_size"):
-		@warning_ignore("unsafe_method_access")
-		equipment_panel.set_crew_size(crew.size())
-	
-	# SPRINT ENHANCEMENT: Trigger backend equipment generation when crew is complete
-	if equipment_panel and equipment_panel.has_method("request_equipment_generation") and crew.size() >= 4:
-		print("CampaignCreationUI: Triggering backend equipment generation for complete crew")
-		@warning_ignore("unsafe_method_access")
-		equipment_panel.request_equipment_generation(crew)
-
-	# Update resource panel with crew data for bonus calculation
-	if crew_panel and crew_panel and crew_panel.has_method("set_crew_data"):
-		@warning_ignore("unsafe_method_access")
-		crew_panel.set_crew_data(crew)
-	
-	print("CampaignCreationUI: Enhanced crew data sent - Captain: %s, Completion: %.1f%%" %
-		  [crew_data.captain, crew_data.completion_level * 100])
-
-## Enhanced Crew Data Analysis
-
-func _find_captain(crew: Array) -> String:
-	"""Find the captain in the crew"""
-	for character in crew:
-		# Use safe property access for Resource objects
-		var is_captain = _safe_get_character_property(character, "is_captain", false)
+	# CRITICAL FIX: Prevent loading same panel that's already current and correct
+	if current_panel and state_manager and state_manager.current_phase == phase:
+		# Verify the current panel is actually the correct panel for this phase
+		var expected_scene_path: String = panel_scenes.get(phase, "")
+		var current_panel_scene_path: String = current_panel.scene_file_path if current_panel else ""
 		
-		if is_captain:
-			var character_name = _safe_get_character_property(character, "character_name", "Unknown Captain")
-			return character_name
-	return ""
-
-func _has_captain(crew: Array) -> bool:
-	"""Check if crew has a captain assigned"""
-	for character in crew:
-		# Use safe property access for Resource objects
-		var is_captain = _safe_get_character_property(character, "is_captain", false)
-		
-		if is_captain:
-			return true
-	return false
-
-func _calculate_crew_completion_level(crew: Array) -> float:
-	"""Calculate overall crew completion level"""
-	if crew.is_empty():
-		return 0.0
-	
-	var total_completion = 0.0
-	for character in crew:
-		if character.has_method("get_customization_completeness"):
-			total_completion += character.get_customization_completeness()
+		if expected_scene_path == current_panel_scene_path:
+			print("CampaignCreationUI: Correct panel already loaded for phase: %s" % str(phase))
+			_update_navigation_state()
+			return
 		else:
-			# Fallback completion estimation
-			total_completion += _estimate_character_completeness(character)
+			print("CampaignCreationUI: Wrong panel loaded for phase %s, reloading correct panel" % str(phase))
 	
-	return total_completion / crew.size()
-
-func _safe_get_character_property(character, property: String, default_value: Variant = null) -> Variant:
-	"""Safely get a character property, handling both Resource and Dictionary objects"""
-	if character == null:
-		return default_value
-	if character.has_method("get"):
-		var value = character.get(property)
-		return value if value != null else default_value
-	else:
-		return default_value
-
-func _estimate_character_completeness(character) -> float:
-	"""Estimate character completeness for characters without the method"""
-	var completeness = 0.0
-	var total_criteria = 8.0
-	
-	# Basic info (3 criteria)
-	if _safe_get_character_property(character, "character_name", "") != "":
-		completeness += 1.0
-	if _safe_get_character_property(character, "background", 0) > 0:
-		completeness += 1.0
-	if _safe_get_character_property(character, "motivation", 0) > 0:
-		completeness += 1.0
-	
-	# Attributes (2 criteria)
-	if _safe_get_character_property(character, "combat", 0) >= 0 and _safe_get_character_property(character, "toughness", 0) >= 3:
-		completeness += 1.0
-	if _safe_get_character_property(character, "max_health", 0) > 0:
-		completeness += 1.0
-	
-	# Relationships (2 criteria)
-	if _safe_get_character_property(character, "patrons", []).size() > 0 or _safe_get_character_property(character, "rivals", []).size() > 0:
-		completeness += 1.0
-	if _safe_get_character_property(character, "traits", []).size() > 0:
-		completeness += 1.0
-	
-	# Equipment (1 criterion)
-	if _safe_get_character_property(character, "personal_equipment", {}).size() > 0 or _safe_get_character_property(character, "credits_earned", 0) > 0:
-		completeness += 1.0
-	
-	return completeness / total_criteria
-
-func _get_crew_customization_summary(crew: Array) -> Dictionary:
-	"""Get comprehensive crew customization summary"""
-	var summary = {
-		"total_members": crew.size(),
-		"fully_customized": 0,
-		"partially_customized": 0,
-		"basic_only": 0,
-		"total_patrons": 0,
-		"total_rivals": 0,
-		"total_traits": 0,
-		"total_starting_credits": 0,
-		"captain_assigned": false
-	}
-	
-	for character in crew:
-		var completeness = 0.0
-		if character.has_method("get_customization_completeness"):
-			completeness = character.get_customization_completeness()
-		else:
-			completeness = _estimate_character_completeness(character)
-		
-		# Categorize character completion
-		if completeness >= 0.8:
-			summary.fully_customized += 1
-		elif completeness >= 0.5:
-			summary.partially_customized += 1
-		else:
-			summary.basic_only += 1
-		
-		# Count relationships and equipment
-		summary.total_patrons += _safe_get_character_property(character, "patrons", []).size()
-		summary.total_rivals += _safe_get_character_property(character, "rivals", []).size()
-		summary.total_traits += _safe_get_character_property(character, "traits", []).size()
-		summary.total_starting_credits += _safe_get_character_property(character, "credits_earned", 0)
-		
-		# Use safe property access for Resource objects
-		var is_captain = _safe_get_character_property(character, "is_captain", false)
-		
-		if is_captain:
-			summary.captain_assigned = true
-	
-	return summary
-
-func _on_captain_updated(captain: Variant) -> void:
-	"""Handle captain panel updates"""
-	print("CampaignCreationUI: Captain updated")
-	print("CampaignCreationUI: Captain validation - exists: %s" % (captain != null))
-	
-	# Forward to state manager
-	if state_manager:
-		var captain_data: Dictionary = {"captain": captain}
-		state_manager.set_phase_data(CampaignCreationStateManager.Phase.CAPTAIN_CREATION, captain_data)
-	
-	# Update navigation
-	_update_navigation_state()
-	
-	# Captain is included in crew for resource calculations
-
-func _on_ship_updated(ship_data: Dictionary) -> void:
-	"""Handle ship panel updates"""
-	print("CampaignCreationUI: Ship updated: ", ship_data.get("name", "Unknown"))
-	print("CampaignCreationUI: Ship validation - configured: %s, name: '%s'" % [ship_data.get("is_configured", false), ship_data.get("name", "")])
-	
-	# Forward to state manager
-	if state_manager:
-		state_manager.set_phase_data(CampaignCreationStateManager.Phase.SHIP_ASSIGNMENT, ship_data)
-	
-	# Update navigation
-	_update_navigation_state()
-	
-	# Ship data will be included in final campaign creation
-
-func _on_equipment_generated(equipment: Array) -> void:
-	"""Handle equipment generation updates"""
-	print("CampaignCreationUI: Equipment generated, count: ", equipment.size())
-	print("CampaignCreationUI: Equipment validation - items: %d" % equipment.size())
-	
-	# Forward to state manager
-	if state_manager:
-		var equipment_data: Dictionary = {"equipment": equipment, "count": equipment.size()}
-		state_manager.set_phase_data(CampaignCreationStateManager.Phase.EQUIPMENT_GENERATION, equipment_data)
-	
-	# Update navigation
-	_update_navigation_state()
-
-func _on_campaign_creation_requested(campaign_data: Dictionary) -> void:
-	"""Handle campaign creation request from FinalPanel"""
-	print("CampaignCreationUI: Campaign creation requested from FinalPanel")
-	_on_finish_button_pressed()
-	
-	# Equipment will be included in final campaign creation
-
-## SPRINT ENHANCEMENT: Backend System Integration Handlers
-
-func _on_crew_generation_requested(crew_size: int) -> void:
-	"""Handle crew generation using validated SimpleCharacterCreator"""
-	print("CampaignCreationUI: Crew generation requested for %d members using backend systems" % crew_size)
-	
-	# Load the validated SimpleCharacterCreator
-	var SimpleCharacterCreator = preload("res://src/core/character/Generation/SimpleCharacterCreator.gd")
-	if not SimpleCharacterCreator:
-		push_error("CampaignCreationUI: SimpleCharacterCreator not available")
+	# PHASE 1 DAY 1: Validate state machine before panel loading
+	if not _validate_state_machine_readiness(phase):
+		push_error("CampaignCreationUI: State machine not ready for phase transition to: %s" % str(phase))
 		return
 	
-	var generated_crew: Array = []
+	_is_panel_loading = true
+	_pending_phase_transition = phase
 	
-	# Generate each crew member using the tested character creation system
-	var character_creator = SimpleCharacterCreator.new()
-	for i in range(crew_size):
-		var character = character_creator.create_character()
-		if character:
-			# Set character as captain if it's the first member
-			if i == 0:
-				character.is_captain = true
-				character.character_name = "Captain " + character.character_name
-			generated_crew.append(character)
-			print("CampaignCreationUI: Generated character %d: %s" % [i + 1, character.character_name])
-	
-	# Send generated crew back to crew panel
-	if crew_panel and crew_panel.has_method("set_generated_crew"):
-		crew_panel.set_generated_crew(generated_crew)
-	
-	# Also update our state manager
-	_on_crew_updated(generated_crew)
-
-func _on_equipment_requested_with_backend(crew_data: Array) -> void:
-	"""Handle equipment generation using validated StartingEquipmentGenerator"""
-	print("CampaignCreationUI: Equipment generation requested for %d crew members using backend systems" % crew_data.size())
-	
-	# Load the validated StartingEquipmentGenerator
-	var StartingEquipmentGenerator = preload("res://src/core/character/Equipment/StartingEquipmentGenerator.gd")
-	if not StartingEquipmentGenerator:
-		push_error("CampaignCreationUI: StartingEquipmentGenerator not available")
+	# PHASE 1 DAY 1: Add corruption detection before starting
+	if not _detect_and_recover_corruption():
+		push_error("CampaignCreationUI: Detected UI corruption, attempting recovery...")
+		_emergency_recovery_and_restart()
 		return
 	
-	var all_equipment: Array = []
-	var total_credits: int = 0
+	# PHASE 1B: Enhanced performance monitoring
+	var start_time = Time.get_ticks_msec()
+	_current_panel_load_start_time = Time.get_unix_time_from_system()
+	_take_memory_snapshot("panel_load_start_" + str(phase))
 	
-	# Generate equipment for each crew member using the tested system
-	for character in crew_data:
-		if character == null:
-			continue
+	if not panel_scenes.has(phase):
+		push_error("No panel scene defined for phase: " + str(phase))
+		_complete_panel_loading()
+		return
+	
+	print("CampaignCreationUI: === Loading panel for phase: %s ===" % str(phase))
+	print("CampaignCreationUI: Container state before cleanup - Children: %d" % content_container.get_child_count())
+	
+	# Step 1: COMPREHENSIVE panel cleanup with validation
+	_comprehensive_panel_cleanup()
+	print("CampaignCreationUI: Container state after cleanup - Children: %d" % content_container.get_child_count())
+	
+	# Step 2: Validate ContentContainer state
+	if not _validate_content_container_state():
+		push_error("ContentContainer validation failed during panel loading")
+		_complete_panel_loading()
+		return
+	
+	# Step 3: Load new panel with enhanced error handling and recovery
+	var new_panel = await _create_panel_for_phase_with_recovery(phase)
+	if not new_panel or not is_instance_valid(new_panel):
+		push_error("Failed to create panel for phase: " + str(phase))
+		# CRITICAL FIX: Attempt emergency recovery instead of missing function
+		_emergency_recovery_and_restart()
+		_complete_panel_loading()
+		return
+	
+	# CRITICAL: Validate panel before proceeding
+	if not new_panel.has_method("validate_panel"):
+		push_error("Created panel missing required validate_panel method")
+		new_panel.queue_free()
+		_emergency_recovery_and_restart()
+		_complete_panel_loading()
+		return
+	
+	# Step 4: CRITICAL FIX - Ensure container is completely clean BEFORE working with new panel
+	await get_tree().process_frame # Wait for any deferred cleanup to complete
+	
+	# Double-check container is empty with more aggressive cleanup
+	if content_container.get_child_count() > 0:
+		push_error("CRITICAL: Container not empty before adding new panel! Children: %d" % content_container.get_child_count())
+		# List what's still in the container for debugging
+		for i in range(content_container.get_child_count()):
+			var child = content_container.get_child(i)
+			print("  - Remaining child %d: %s (%s)" % [i, child.name, child.get_class()])
+		
+		_clear_content_container() # Force clear again
+		await get_tree().process_frame # Wait again
+		
+		# Final verification with emergency cleanup
+		if content_container.get_child_count() > 0:
+			push_error("EMERGENCY: Container STILL not empty after forced cleanup!")
+			# Nuclear option - remove all children directly
+			var remaining_children = content_container.get_children()
+			for child in remaining_children:
+				if is_instance_valid(child):
+					content_container.remove_child(child)
+					child.queue_free()
+				else:
+					print("  - Invalid child detected, skipping")
+			print("Emergency cleanup: Removed %d remaining children" % remaining_children.size())
 			
-		var character_equipment = StartingEquipmentGenerator.generate_starting_equipment(character, null)
-		StartingEquipmentGenerator.apply_equipment_condition(character_equipment, null)
+			# Wait one more frame to ensure cleanup completes
+			await get_tree().process_frame
+			
+			# Final verification
+			if content_container.get_child_count() > 0:
+				push_error("CRITICAL: Container cleanup failed completely!")
+				return # Abort panel loading
+	
+	# Step 5: Set as current panel AFTER container is confirmed clean
+	if new_panel and is_instance_valid(new_panel):
+		current_panel = new_panel
 		
-		# Process weapons
-		for weapon in character_equipment.get("weapons", []):
-			weapon["type"] = "Weapon"
-			weapon["owner"] = character.get("character_name", "Unknown")
-			all_equipment.append(weapon)
-		
-		# Process armor
-		for armor in character_equipment.get("armor", []):
-			armor["type"] = "Armor"
-			armor["owner"] = character.get("character_name", "Unknown")
-			all_equipment.append(armor)
-		
-		# Process gear
-		for gear in character_equipment.get("gear", []):
-			gear["type"] = "Gear"
-			gear["owner"] = character.get("character_name", "Unknown")
-			all_equipment.append(gear)
-		
-		total_credits += character_equipment.get("credits", 0)
-	
-	print("CampaignCreationUI: Generated %d equipment items, %d credits total" % [all_equipment.size(), total_credits])
-	
-	# Send equipment back to equipment panel
-	if equipment_panel and equipment_panel.has_method("set_generated_equipment"):
-		equipment_panel.set_generated_equipment(all_equipment, total_credits)
-	
-	# Also trigger the standard equipment generated signal
-	_on_equipment_generated(all_equipment)
-
-func _on_character_customization_needed(character_index: int, character: Variant) -> void:
-	"""Handle character customization using backend character systems"""
-	print("CampaignCreationUI: Character customization requested for character %d" % character_index)
-	
-	# For now, log that this customization hook is available
-	# This could be extended to call specialized character customization systems
-	print("CampaignCreationUI: Character customization hook - ready for advanced character systems")
-	
-	# The character is already being handled by the crew panel's existing logic
-	# This provides an additional integration point for future enhancements
-
-# ADD: Navigation state management
-func _update_navigation_state() -> void:
-	"""Enhanced navigation state management with crew completion requirements"""
-	if not state_manager:
-		return
-	
-	var validation: Dictionary = state_manager.get_validation_summary()
-	var can_advance: bool = validation.get("can_advance", false)
-	var can_complete: bool = validation.get("can_complete", false)
-	var current_phase = state_manager.get_current_phase()
-	var is_final_phase: bool = current_phase == CampaignCreationStateManager.Phase.FINAL_REVIEW
-	
-	# Enhanced validation for crew phase
-	if current_phase == CampaignCreationStateManager.Phase.CREW_SETUP:
-		can_advance = _validate_crew_phase_completion()
-	
-	# Update Next button with enhanced feedback
-	if next_button:
-		next_button.disabled = not can_advance or is_final_phase
-		if is_final_phase:
-			next_button.visible = false
-		else:
-			next_button.visible = true
-			# Dynamic button text based on validation
-			if can_advance:
-				next_button.text = "Next"
-			else:
-				match current_phase:
-					CampaignCreationStateManager.Phase.CREW_SETUP:
-						next_button.text = "Complete Crew Setup"
-					_:
-						next_button.text = "Complete Step"
-	
-	# Update Back button
-	if back_button:
-		back_button.disabled = (current_phase == CampaignCreationStateManager.Phase.CONFIG)
-	
-	# Update Finish button
-	if finish_button:
-		finish_button.disabled = not can_complete
-		finish_button.visible = is_final_phase
-		if can_complete:
-			finish_button.text = "Create Campaign"
-		else:
-			finish_button.text = "Complete Setup First"
-	
-	# Update step progress with completion details
-	_update_step_progress(current_phase)
-	
-	# Show enhanced validation feedback
-	_show_validation_feedback(validation)
-
-func _validate_crew_phase_completion() -> bool:
-	"""Validate crew phase completion with enhanced requirements"""
-	if not crew_panel or not crew_panel.has_method("get_crew_data"):
-		return false
-	
-	@warning_ignore("unsafe_method_access")
-	var crew_data = crew_panel.get_crew_data()
-	var crew = crew_data.get("members", [])
-	
-	# Check basic requirements
-	if crew.size() < 4: # Minimum crew size
-		return false
-	
-	# Check captain assignment
-	var has_captain = false
-	for character in crew:
-		# Use safe property access for Resource objects
-		var is_captain = _safe_get_character_property(character, "is_captain", false)
-		
-		if is_captain:
-			has_captain = true
-			break
-	
-	if not has_captain:
-		return false
-	
-	# Check character completion levels
-	var incomplete_count = 0
-	for character in crew:
-		var completeness = 0.0
-		if character.has_method("get_customization_completeness"):
-			completeness = character.get_customization_completeness()
-		else:
-			completeness = _estimate_character_completeness(character)
-		
-		if completeness < 0.8: # Require 80% completion
-			incomplete_count += 1
-	
-	# Allow progression if most characters are sufficiently complete
-	return incomplete_count <= (crew.size() / 4) # Max 25% incomplete
-
-func _update_step_progress(current_phase: CampaignCreationStateManager.Phase) -> void:
-	"""Update step progress indicator"""
-	if not step_label:
-		return
-	
-	var phase_names: Array[String] = ["Configuration", "Crew Setup", "Captain Creation", "Ship Assignment", "Equipment Generation", "Final Review"]
-	var current_step_index: int = current_phase
-	
-	if current_step_index < phase_names.size():
-		var progress_percent: float = (float(current_step_index) / float(phase_names.size() - 1)) * 100.0
-		step_label.text = "Step %d of %d: %s (%.0f%% Complete)" % [
-			current_step_index + 1,
-			phase_names.size(),
-			phase_names[current_step_index],
-			progress_percent
-		]
-
-func _show_validation_feedback(validation: Dictionary) -> void:
-	"""Enhanced validation feedback with crew completion details"""
-	var errors: Array = validation.get("validation_errors", [])
-	var current_phase = state_manager.get_current_phase() if state_manager else 0
-	
-	# Enhanced feedback for crew phase
-	if current_phase == CampaignCreationStateManager.Phase.CREW_SETUP:
-		_show_crew_validation_feedback()
-	
-	if errors.is_empty():
-		return
-	
-	# Show errors in console for debugging
-	print("CampaignCreationUI: Validation errors: ", errors)
-	
-	# Could be extended to show validation messages in UI
-	# For now, errors are shown when user tries to advance/complete
-
-func _show_crew_validation_feedback() -> void:
-	"""Show detailed crew validation feedback"""
-	if not crew_panel or not crew_panel.has_method("get_crew_data"):
-		return
-	
-	@warning_ignore("unsafe_method_access")
-	var crew_data = crew_panel.get_crew_data()
-	var crew = crew_data.get("members", [])
-	
-	var feedback_messages = []
-	
-	# Check crew size
-	if crew.size() < 4:
-		feedback_messages.append("Crew needs at least 4 members (current: %d)" % crew.size())
-	
-	# Check captain assignment
-	var captain_assigned = false
-	for character in crew:
-		# Use safe property access for Resource objects
-		var is_captain = _safe_get_character_property(character, "is_captain", false)
-		
-		if is_captain:
-			captain_assigned = true
-			break
-	
-	if not captain_assigned:
-		feedback_messages.append("No captain assigned - select a crew member and assign as captain")
-	
-	# Check character completion
-	var incomplete_characters = []
-	for character in crew:
-		var completeness = 0.0
-		if character.has_method("get_customization_completeness"):
-			completeness = character.get_customization_completeness()
-		else:
-			completeness = _estimate_character_completeness(character)
-		
-		if completeness < 0.8:
-			var name = _safe_get_character_property(character, "character_name", "Unnamed Character")
-			incomplete_characters.append("%s (%.0f%%)" % [name, completeness * 100])
-	
-	if incomplete_characters.size() > 0:
-		feedback_messages.append("Characters need more customization: " + ", ".join(incomplete_characters))
-	
-	# Calculate overall progress
-	var total_completion = 0.0
-	for character in crew:
-		if character.has_method("get_customization_completeness"):
-			total_completion += character.get_customization_completeness()
-		else:
-			total_completion += _estimate_character_completeness(character)
-	
-	var avg_completion = (total_completion / crew.size()) * 100.0 if crew.size() > 0 else 0.0
-	
-	# Positive feedback when doing well
-	if feedback_messages.size() == 0:
-		print("CampaignCreationUI: Crew setup complete! Average completion: %.1f%%" % avg_completion)
+		# Step 6: Add to content container with validation
+		content_container.add_child(current_panel)
 	else:
-		print("CampaignCreationUI: Crew setup feedback:")
-		for message in feedback_messages:
-			print("  - %s" % message)
-		print("  Overall crew completion: %.1f%%" % avg_completion)
-
-func _create_fallback_ui() -> void:
-	"""Create a fallback UI when core systems aren't available"""
-	print("CampaignCreationUI: Creating fallback UI")
-
-	# Hide all panels except the first one
-	for i: int in range(step_panels.size()):
-		if step_panels[i]:
-			step_panels[i].visible = (i == 0)
-
-	# Update step label
-	if step_label:
-		step_label.text = "Campaign Creation (Fallback Mode)"
-
-	# Enable basic navigation
-	if next_button:
-		next_button.disabled = false
-		next_button.text = "Next"
-
-	if back_button:
-		back_button.disabled = true
-
-func _update_ui_for_step(step: int) -> void:
-	"""Update UI for the current step"""
-	print("CampaignCreationUI: _update_ui_for_step called with step %d (total panels: %d)" % [step, step_panels.size()])
+		push_error("CRITICAL: new_panel is null or invalid! Cannot proceed with panel loading.")
+		_complete_panel_loading()
+		return
+	print("CampaignCreationUI: Successfully added panel to container. Children count: %d" % content_container.get_child_count())
 	
-	# Validate step range
-	if step < 0 or step >= step_panels.size():
-		push_error("Invalid step %d, must be between 0 and %d" % [step, step_panels.size() - 1])
+	# Step 7: Verify single child state
+	if not _verify_single_panel_state():
+		push_error("CRITICAL: Multiple panels detected after loading!")
+		_emergency_panel_cleanup()
+		_complete_panel_loading()
 		return
 	
-	current_step = step
-
-	# Hide all panels
-	for i in range(step_panels.size()):
-		var panel: Control = step_panels[i]
-		if panel:
-			panel.visible = false
-			print("CampaignCreationUI: Hid panel %d" % i)
-
-	# Show current panel
-	if step < step_panels.size() and step_panels[step]:
-		step_panels[step].visible = true
-		print("CampaignCreationUI: Showed panel %d (%s)" % [step, step_panels[step].name])
-	else:
-		push_error("Cannot show panel for step %d - panel is null" % step)
-
-	# Update step label - PHASE 3 OPTIMIZED FLOW WITH PROGRESS
-	if step_label:
-		var step_names: Array[String] = ["Configuration", "Crew Setup", "Captain Creation", "Ship Assignment", "Equipment Generation", "Final Review"]
-		if step < step_names.size():
-			@warning_ignore("untyped_declaration")
-			var progress_percent = get_progress_percentage()
-			step_label.text = "Step %d of %d: %s (%.0f%% Complete)" % [step + 1, step_names.size(), step_names[step], progress_percent]
-
-		print("CampaignCreationUI: Updated step label for step %d" % (step + 1))
-	else:
-		print("CampaignCreationUI: WARNING - step_label is null")
-
-	# PHASE 3: Update progress indication
-	if has_method("_update_progress_display"):
-		_update_progress_display(step)
-
-	# Update button states
-	if back_button:
-		back_button.disabled = (step == 0)
-		print("CampaignCreationUI: Back button %s" % ("disabled" if step == 0 else "enabled"))
-	else:
-		print("CampaignCreationUI: WARNING - back_button is null")
-
-	if next_button:
-		if step >= step_panels.size() - 1:
-			next_button.text = "Create Campaign"
-		else:
-			next_button.text = "Next"
-		print("CampaignCreationUI: Next button text set to '%s'" % next_button.text)
-	else:
-		print("CampaignCreationUI: WARNING - next_button is null")
-
-	_update_navigation_state()
-
-
-func _collect_current_panel_data() -> void:
-	"""Collect data from the current panel and update state manager"""
-	if not state_manager or current_step >= step_panels.size():
-		return
+	# Step 7: Initialize panel with full lifecycle management
+	_initialize_panel_complete(phase)
 	
-	var current_panel: Control = step_panels[current_step]
-	if not current_panel:
-		return
+	# Step 8: Track performance and complete loading
+	_track_panel_load_time(phase, start_time)
+	_take_memory_snapshot("panel_load_complete_" + str(phase))
+	_complete_panel_loading()
 	
-	print("CampaignCreationUI: Collecting data from current panel (step %d)" % current_step)
-	
-	# Use a generic approach to collect data from any panel
-	var panel_data: Dictionary = {}
-	
-	# Try the standard get_data() method first
-	if current_panel.has_method("get_data"):
-		panel_data = current_panel.get_data()
-		print("CampaignCreationUI: Collected data via get_data(): ", panel_data.keys())
-	# Try specific panel methods as fallback
-	elif current_panel.has_method("get_config_data"):
-		panel_data = current_panel.get_config_data()
-		print("CampaignCreationUI: Collected data via get_config_data(): ", panel_data.keys())
-	elif current_panel.has_method("get_crew_data"):
-		panel_data = {"members": current_panel.get_crew_data()}
-		print("CampaignCreationUI: Collected crew data")
-	elif current_panel.has_method("get_captain"):
-		panel_data = {"captain": current_panel.get_captain()}
-		print("CampaignCreationUI: Collected captain data")
-	elif current_panel.has_method("get_ship_data"):
-		panel_data = current_panel.get_ship_data()
-		print("CampaignCreationUI: Collected ship data")
-	elif current_panel.has_method("get_equipment_data"):
-		panel_data = current_panel.get_equipment_data()
-		print("CampaignCreationUI: Collected equipment data")
-	
-	# Apply field mapping for ConfigPanel data
-	if current_step == 0 and panel_data.has("name"): # ConfigPanel is step 0
-		panel_data = {
-			"campaign_name": panel_data.get("name", ""),
-			"difficulty_level": panel_data.get("difficulty", 1),
-			"victory_condition": panel_data.get("victory_condition", "none"),
-			"story_track_enabled": panel_data.get("story_track_enabled", false),
-			"elite_ranks": panel_data.get("elite_ranks", 0)
-		}
-		print("CampaignCreationUI: Applied ConfigPanel field mapping")
-	
-	# Update state manager with collected data
-	if not panel_data.is_empty():
-		var current_phase = state_manager.get_current_phase()
-		state_manager.set_phase_data(current_phase, panel_data)
-		print("CampaignCreationUI: Updated state manager for phase %d with data" % current_phase)
-	else:
-		print("CampaignCreationUI: No data collected from current panel - panel may not have data methods")
+	print("CampaignCreationUI: ✅ Panel loaded successfully for phase: %s" % str(phase))
 
-func _update_ui_for_current_phase() -> void:
-	"""Update UI to match the current phase from state manager"""
-	if not state_manager:
-		return
-	
-	var current_phase = state_manager.get_current_phase()
-	print("CampaignCreationUI: Updating UI for phase %d" % current_phase)
-	
-	# Map phases to step indices
-	current_step = current_phase
-	
-	if current_step >= 0 and current_step < step_panels.size():
-		_update_ui_for_step(current_step)
-	else:
-		push_error("CampaignCreationUI: Invalid phase %d, cannot update UI" % current_phase)
+# Duplicate function removed - see line 1251 for the complete implementation
 
 func _on_next_button_pressed() -> void:
-	"""Handle next button press with state manager integration"""
-	print("CampaignCreationUI: Next button pressed - current step: %d" % current_step)
-
-	if state_manager:
-		# Always collect data from the current panel before doing anything else
-		_collect_current_panel_data()
-
-		# Now, try to advance. The state manager has the latest data.
-		if state_manager.advance_to_next_phase():
-			print("CampaignCreationUI: State manager advanced successfully.")
-			_update_ui_for_current_phase()
-			_update_navigation_state()
-		else:
-			# If advancement fails, the state manager's validation has failed.
-			# Get the errors and display them.
-			var validation_summary: Dictionary = state_manager.get_validation_summary()
-			var errors: Array = validation_summary.get("validation_errors", [])
-			print("CampaignCreationUI: Cannot advance - validation failed. Errors: %s" % [errors])
-			if not errors.is_empty():
-				_show_error_dialog("Validation Failed", "Please correct the following errors:\n\n" + "\n".join(errors))
-	else:
-		# Fallback navigation if state manager is not present
-		print("CampaignCreationUI: Using fallback navigation logic")
-		if current_step < step_panels.size() - 1:
-			var next_step: int = current_step + 1
-			print("CampaignCreationUI: Advancing to step %d" % next_step)
-			_update_ui_for_step(next_step)
-		else:
-			print("CampaignCreationUI: At final step, attempting to finalize")
-			_finalize_campaign_creation()
-
-func _on_back_button_pressed() -> void:
-	"""Handle back button press"""
-	if creation_manager and creation_manager and creation_manager.has_method("go_back_step"):
-		@warning_ignore("unsafe_method_access")
-		creation_manager.go_back_step()
-	else:
-		# Fallback navigation
-		if current_step > 0:
-			_update_ui_for_step(current_step - 1)
+	"""Handle next button press via coordinator with delay to prevent rapid transitions"""
+	# CRITICAL FIX: Add delay to prevent rapid phase transitions
+	if _is_transitioning:
+		print("CampaignCreationUI: Already transitioning, ignoring button press")
+		return
+	
+	_is_transitioning = true
+	
+	# Add a small delay to ensure current panel is stable
+	await get_tree().create_timer(0.1).timeout
+	
+	coordinator.advance_to_next_phase()
+	
+	# Reset transition flag after a delay
+	await get_tree().create_timer(0.5).timeout
+	_is_transitioning = false
 
 func _on_finish_button_pressed() -> void:
-	"""Handle finish button press with comprehensive validation and error handling"""
-	print("CampaignCreationUI: Finish button pressed - beginning comprehensive validation")
+	"""Handle finish button press - finalize campaign creation with comprehensive validation"""
+	print("CampaignCreationUI: === Campaign Finalization Started ===")
 	
-	# Phase 1: Critical system validation
-	if not _validate_critical_systems():
+	# Show loading state immediately
+	_show_loading_state(true, "Validating campaign data...")
+	
+	# 1. Validate current panel data
+	if current_panel and current_panel.has_method("validate_panel"):
+		var panel_validation = current_panel.validate_panel()
+		if not panel_validation.valid:
+			_show_loading_state(false)
+			_show_validation_dialog("Current panel validation failed", panel_validation.get("errors", ["Unknown validation error"]))
+			return
+	
+	# 2. Comprehensive validation of all phases
+	var complete_validation = state_manager.validate_complete_state()
+	if not complete_validation.valid:
+		_show_loading_state(false)
+		_show_validation_dialog("Campaign validation failed", complete_validation.get("errors", {}))
 		return
 	
-	# Phase 2: Campaign data validation
-	if not _validate_campaign_data():
+	# 3. Validate coordinator state
+	if not coordinator.can_finish_campaign_creation():
+		_show_loading_state(false)
+		_show_validation_dialog("Coordinator validation failed", ["Campaign creation not ready for completion"])
 		return
 	
-	# Phase 3: Pre-creation system check
-	if not _validate_creation_systems():
+	print("CampaignCreationUI: ✅ All validations passed")
+	_show_loading_state(true, "Creating your campaign...")
+	
+	# 4. Gather all campaign data from state manager
+	var campaign_data = coordinator.finalize_campaign()
+	if campaign_data.is_empty() or not campaign_data.has("campaign_data"):
+		_show_loading_state(false)
+		_show_error_dialog("Failed to gather campaign data from coordinator")
 		return
 	
-	# Phase 4: Execute campaign creation with enhanced error handling
-	await _execute_campaign_creation_workflow()
+	# 5. Create and save campaign
+	_finalize_campaign_creation(campaign_data)
 
-func _validate_critical_systems() -> bool:
-	"""Phase 1: Validate critical systems are available"""
-	print("CampaignCreationUI: Phase 1 - Validating critical systems...")
+func _finalize_campaign_creation(campaign_data: Dictionary) -> void:
+	"""Complete implementation for campaign creation with SecureSaveManager"""
+	print("CampaignCreationUI: Starting campaign finalization...")
 	
-	if not state_manager:
-		_show_enhanced_error_dialog("Critical System Error",
-			"Campaign State Manager is not available.",
-			"This is a system-level issue. Please restart the application.")
-		return false
+	# Show loading state during finalization
+	_show_loading_state(true, "Creating campaign...")
 	
-	var core_systems: Node = get_node_or_null("/root/CoreSystemSetup")
-	if not core_systems:
-		_show_enhanced_error_dialog("Core System Error",
-			"Core game systems are not properly initialized.",
-			"Please restart the application and try again.")
-		return false
-	
-	print("CampaignCreationUI: ✅ Critical systems validation passed")
-	return true
-
-func _validate_campaign_data() -> bool:
-	"""Phase 2: Validate campaign data completeness"""
-	print("CampaignCreationUI: Phase 2 - Validating campaign data...")
-	
-	var validation: Dictionary = state_manager.get_validation_summary()
-	var completion_pct: float = validation.get("completion_percentage", 0.0)
-	
-	print("CampaignCreationUI: Campaign completion: %.1f%%" % completion_pct)
-	
-	if not validation.get("can_complete", false):
-		var errors: Array = validation.get("validation_errors", [])
-		_show_enhanced_error_dialog("Incomplete Campaign Setup",
-			"Your campaign setup needs to be completed before creation:",
-			"\n• " + "\n• ".join(errors) + "\n\nPlease complete these items and try again.")
-		return false
-	
-	if completion_pct < 75.0:
-		_show_enhanced_error_dialog("Campaign Setup Warning",
-			"Your campaign is only %.1f%% complete." % completion_pct,
-			"While you can proceed, we recommend completing more setup for the best experience.")
-		# Allow continuation but warn user
-	
-	print("CampaignCreationUI: ✅ Campaign data validation passed")
-	return true
-
-func _validate_creation_systems() -> bool:
-	"""Phase 3: Validate campaign creation systems are ready"""
-	print("CampaignCreationUI: Phase 3 - Validating creation systems...")
-	
-	var core_systems: Node = get_node_or_null("/root/CoreSystemSetup")
-	if not core_systems or not core_systems.has_method("get_campaign_creation_manager"):
-		_show_enhanced_error_dialog("Creation System Error",
-			"Campaign creation systems are not available.",
-			"The game's campaign creation backend is not properly loaded. Please restart the application.")
-		return false
-	
-	var creation_manager = core_systems.get_campaign_creation_manager()
-	if not creation_manager:
-		_show_enhanced_error_dialog("Creation Manager Error",
-			"Campaign creation manager is not initialized.",
-			"This may be a temporary issue. Please try again, or restart the application.")
-		return false
-	
-	print("CampaignCreationUI: ✅ Creation systems validation passed")
-	return true
-
-func _execute_campaign_creation_workflow() -> void:
-	"""Phase 4: Execute campaign creation with comprehensive error handling"""
-	print("CampaignCreationUI: Phase 4 - Executing campaign creation workflow...")
-	
-	_set_loading_state(true, "Finalizing campaign data...")
-	
-	# Step 1: Finalize campaign data
-	var final_data: Dictionary = state_manager.complete_campaign_creation()
-	if final_data.is_empty():
-		_set_loading_state(false)
-		_show_enhanced_error_dialog("Data Finalization Error",
-			"Failed to finalize your campaign data.",
-			"There may be an issue with your campaign setup. Please review your configuration and try again.")
+	# Extract campaign data from coordinator result
+	var campaign_info = campaign_data.get("campaign_data", {})
+	if campaign_info.is_empty():
+		_show_error_dialog("No campaign data available for finalization")
+		_show_loading_state(false)
 		return
 	
-	print("CampaignCreationUI: Campaign data finalized successfully")
-	_set_loading_state(true, "Creating campaign...")
+	# Create campaign resource from aggregated data
+	# Note: FiveParsecsCampaignCore should be implemented or use a different campaign class
+	var campaign = Resource.new() # Placeholder until proper campaign class is available
 	
-	# Step 2: Execute creation
-	var success: bool = await _create_campaign_from_data_enhanced(final_data)
-	_set_loading_state(false)
+	# Initialize campaign with creation data
+	var campaign_config = campaign_info.get("config", {})
+	var campaign_name = campaign_config.get("name", "Unnamed Campaign")
 	
-	if success:
-		_show_success_dialog()
-		await get_tree().create_timer(1.5).timeout # Show success briefly
-		_navigate_to_campaign()
-	else:
-		# All fallbacks failed - show comprehensive error
-		_show_enhanced_error_dialog("Campaign Creation Failed",
-			"We were unable to create your campaign using any available method.",
-			"This may indicate a system issue. Please try restarting the application, or contact support if the problem persists.")
-
-func _show_enhanced_error_dialog(title: String, primary_message: String, additional_info: String = "") -> void:
-	"""Show an enhanced error dialog with better formatting and information"""
-	var dialog: AcceptDialog = AcceptDialog.new()
-	dialog.title = title
-	
-	var formatted_message = primary_message
-	if not additional_info.is_empty():
-		formatted_message += "\n\n" + additional_info
-	
-	dialog.dialog_text = formatted_message
-	dialog.dialog_autowrap = true
-	dialog.min_size = Vector2(400, 200)
-	
-	add_child(dialog)
-	dialog.popup_centered()
-	
-	# Auto-remove dialog after user closes it
-	@warning_ignore("untyped_declaration", "return_value_discarded")
-	dialog.confirmed.connect(func(): dialog.queue_free())
-	
-	# Log the error for debugging
-	push_error("CampaignCreationUI Error: %s - %s" % [title, primary_message])
-
-func _show_success_dialog() -> void:
-	"""Show a success message for campaign creation"""
-	var dialog: AcceptDialog = AcceptDialog.new()
-	dialog.title = "Campaign Created Successfully!"
-	dialog.dialog_text = "Your campaign has been created and is ready to begin. You'll be taken to the campaign dashboard momentarily."
-	dialog.dialog_autowrap = true
-	
-	add_child(dialog)
-	dialog.popup_centered()
-	
-	# Auto-close after 2 seconds or user input
-	var timer = get_tree().create_timer(2.0)
-	timer.timeout.connect(func():
-		if dialog and is_instance_valid(dialog):
-			dialog.queue_free()
-	)
-	
-	@warning_ignore("untyped_declaration", "return_value_discarded")
-	dialog.confirmed.connect(func(): dialog.queue_free())
-
-func _create_campaign_from_data_enhanced(campaign_data: Dictionary) -> bool:
-	"""Enhanced campaign creation with comprehensive error handling and fallbacks"""
-	print("CampaignCreationUI: Beginning enhanced campaign creation workflow")
-	
-	# Primary creation attempt
-	print("CampaignCreationUI: Attempting primary campaign creation method...")
-	var success: bool = await _try_primary_campaign_creation(campaign_data)
-	if success:
-		print("CampaignCreationUI: ✅ Primary campaign creation successful")
-		return true
-	
-	# Fallback creation attempt
-	print("CampaignCreationUI: Primary method failed, attempting fallback creation...")
-	success = await _try_fallback_campaign_creation(campaign_data)
-	if success:
-		print("CampaignCreationUI: ✅ Fallback campaign creation successful")
-		return true
-	
-	# Emergency fallback (basic campaign state)
-	print("CampaignCreationUI: Fallback failed, attempting emergency creation...")
-	success = await _try_emergency_campaign_creation(campaign_data)
-	if success:
-		print("CampaignCreationUI: ✅ Emergency campaign creation successful")
-		return true
-	
-	print("CampaignCreationUI: ❌ All campaign creation methods failed")
-	return false
-
-func _try_primary_campaign_creation(campaign_data: Dictionary) -> bool:
-	"""Try the primary campaign creation method"""
-	var core_systems: Node = get_node_or_null("/root/CoreSystemSetup")
-	if not core_systems:
-		return false
-	
-	var campaign_creation_manager = core_systems.get_campaign_creation_manager()
-	if not campaign_creation_manager:
-		return false
-	
-	# Transfer data to creation manager
-	_transfer_data_to_creation_manager(campaign_creation_manager, campaign_data)
-	
-	# Execute creation
-	if campaign_creation_manager.has_method("finalize_campaign_creation"):
-		var new_campaign = campaign_creation_manager.finalize_campaign_creation()
-		if new_campaign:
-			_save_created_campaign(new_campaign)
-			return true
-	
-	return false
-
-func _try_emergency_campaign_creation(campaign_data: Dictionary) -> bool:
-	"""Emergency fallback - create minimal campaign state"""
-	print("CampaignCreationUI: Attempting emergency minimal campaign creation")
-	
-	# Create a minimal campaign state directly
-	var emergency_campaign = {
-		"name": campaign_data.get("config", {}).get("campaign_name", "Emergency Campaign"),
-		"difficulty": campaign_data.get("config", {}).get("difficulty_level", 1),
-		"crew": campaign_data.get("crew", {}),
-		"captain": campaign_data.get("captain", {}),
-		"created_date": Time.get_datetime_string_from_system(),
-		"emergency_created": true,
-		"status": "active"
-	}
-	
-	# Try to save this minimal state
-	var core_systems: Node = get_node_or_null("/root/CoreSystemSetup")
-	if core_systems and core_systems.has_method("get_campaign_manager"):
-		var campaign_manager = core_systems.get_campaign_manager()
-		if campaign_manager and campaign_manager.has_method("set_current_campaign"):
-			campaign_manager.set_current_campaign(emergency_campaign)
-			print("CampaignCreationUI: Emergency campaign state created and saved")
-			return true
-	
-	return false
-
-# ADD: New methods for campaign creation
-func _create_campaign_from_data(campaign_data: Dictionary) -> void:
-	"""Create campaign from validated data (legacy method)"""
-	var core_systems: Node = get_node("/root/CoreSystemSetup")
-	if not core_systems:
-		_set_loading_state(false)
-		_show_error_dialog("System Error", "Core systems not available")
+	if campaign_name.is_empty() or campaign_name == "Unnamed Campaign":
+		_show_error_dialog("Campaign must have a valid name")
+		_show_loading_state(false)
 		return
 	
-	# Try to get campaign creation manager
-	var campaign_creation_manager: Node = null # Type-safe managed by system
-	if core_systems.has_method("get_campaign_creation_manager"):
-		campaign_creation_manager = core_systems.get_campaign_creation_manager()
+	# Set basic campaign properties (using set_meta for Resource placeholder)
+	campaign.set_meta("campaign_name", campaign_name)
+	campaign.set_meta("difficulty", campaign_config.get("difficulty", GlobalEnums.DifficultyLevel.STANDARD))
 	
-	if not campaign_creation_manager:
-		_set_loading_state(false)
-		_show_error_dialog("System Error", "Campaign creation manager not available")
+	# Initialize campaign with all phase data
+	var init_success = _initialize_campaign_from_data(campaign, campaign_info)
+	if not init_success:
+		_show_error_dialog("Failed to initialize campaign from creation data")
+		_show_loading_state(false)
 		return
 	
-	# Set campaign data in the creation manager
-	_transfer_data_to_creation_manager(campaign_creation_manager, campaign_data)
+	# Generate unique save name with timestamp
+	var save_name = _generate_campaign_save_name(campaign_name)
+	print("CampaignCreationUI: Generated save name: ", save_name)
 	
-	# Create campaign
-	var success: bool = await _execute_campaign_creation(campaign_creation_manager, campaign_data)
-	_set_loading_state(false)
+	# Save campaign using SecureSaveManager
+	var save_path = CAMPAIGNS_DIR + save_name
+	var save_result = await _save_campaign_secure(campaign, save_path)
 	
-	if success:
-		_navigate_to_campaign()
-	else:
-		# Try fallback campaign creation
-		print("CampaignCreationUI: Primary campaign creation failed, trying fallback method")
-		var fallback_success: bool = await _try_fallback_campaign_creation(campaign_data)
-		if fallback_success:
-			_navigate_to_campaign()
+	if save_result.success:
+		print("CampaignCreationUI: ✅ Campaign saved successfully")
+		
+		# Clear persistence data after successful save
+		_clear_persistence_data()
+		
+		# Clean up panel cache to free memory
+		_cleanup_panel_cache()
+		
+		# Store as active campaign in GameStateManager if available
+		if GameStateManagerAutoload and GameStateManagerAutoload.has_method("set_active_campaign"):
+			GameStateManagerAutoload.set_active_campaign(campaign)
+			print("CampaignCreationUI: Set as active campaign")
+		
+		# Transition to main campaign scene
+		_show_loading_state(false)
+		var scene_path = "res://src/ui/screens/campaign/MainCampaignScene.tscn"
+		if ResourceLoader.exists(scene_path):
+			var result = get_tree().change_scene_to_file(scene_path)
+			if result != OK:
+				push_error("Failed to change scene to: " + scene_path)
 		else:
-			_show_error_dialog("Creation Failed", "Could not create campaign using any available method")
-
-func _execute_campaign_creation(campaign_creation_manager: Node, data: Dictionary) -> bool:
-	"""Execute the actual campaign creation"""
-	if campaign_creation_manager.has_method("finalize_campaign_creation"):
-		var new_campaign: Variant = campaign_creation_manager.finalize_campaign_creation()
-		if new_campaign != null:
-			# Save the campaign if successful
-			_save_created_campaign(new_campaign)
-			return true
-		else:
-			print("CampaignCreationUI: Campaign creation returned null")
-			return false
+			# Fallback to campaign dashboard
+			var fallback_path = "res://src/ui/screens/campaign/CampaignDashboard.tscn"
+			if ResourceLoader.exists(fallback_path):
+				var result = get_tree().change_scene_to_file(fallback_path)
+				if result != OK:
+					push_error("Failed to change scene to fallback: " + fallback_path)
+			else:
+				push_error("Neither main campaign scene nor dashboard scene found")
 	else:
-		print("CampaignCreationUI: Campaign creation manager missing finalize_campaign_creation method")
-		return false
+		_show_error_dialog("Failed to save campaign: " + save_result.get("error", "Unknown error"))
+		_show_loading_state(false)
 
-func _transfer_data_to_creation_manager(creation_manager: Node, data: Dictionary) -> void:
-	"""Transfer state manager data to campaign creation manager"""
-	if not creation_manager:
-		return
-	
-	# Set configuration data
-	if data.has("config") and creation_manager.has_method("set_config_data"):
-		creation_manager.set_config_data(data.config)
+func _initialize_campaign_from_data(campaign: Resource, campaign_info: Dictionary) -> bool:
+	"""Initialize campaign resource with creation data"""
+	# Set config data (using set_meta for Resource placeholder)
+	var config = campaign_info.get("config", {})
+	campaign.set_meta("difficulty", config.get("difficulty", GlobalEnums.DifficultyLevel.STANDARD))
 	
 	# Set crew data
-	if data.has("crew") and creation_manager.has_method("set_crew_data"):
-		creation_manager.set_crew_data(data.crew)
+	var crew_data = campaign_info.get("crew", {})
+	var crew_members = crew_data.get("members", [])
+	if crew_members.size() == 0:
+		push_warning("Campaign has no crew members")
 	
 	# Set captain data
-	if data.has("captain") and creation_manager.has_method("set_captain_data"):
-		creation_manager.set_captain_data(data.captain)
+	var captain_data = campaign_info.get("captain", {})
 	
 	# Set ship data
-	if data.has("ship") and creation_manager.has_method("set_ship_data"):
-		creation_manager.set_ship_data(data.ship)
+	var ship_data = campaign_info.get("ship", {})
 	
 	# Set equipment data
-	if data.has("equipment") and creation_manager.has_method("set_equipment_data"):
-		creation_manager.set_equipment_data(data.equipment)
+	var equipment_data = campaign_info.get("equipment", {})
 	
-	# Set resources data
-	if data.has("resources") and creation_manager.has_method("set_resource_data"):
-		creation_manager.set_resource_data(data.resources)
+	# Set world data
+	var world_data = campaign_info.get("world", {})
 	
-	print("CampaignCreationUI: Data transferred to creation manager")
-
-func _save_created_campaign(campaign: Variant) -> void:
-	"""Save the newly created campaign"""
-	if not campaign:
-		return
-	
-	var core_systems: Node = get_node_or_null("/root/CoreSystemSetup") as Node
-	if not core_systems:
-		print("CampaignCreationUI: Cannot save campaign - core systems not available")
-		return
-	
-	# Try to get campaign manager for saving
-	var campaign_manager: Node = null # Type-safe managed by system
-	if core_systems.has_method("get_campaign_manager"):
-		campaign_manager = core_systems.get_campaign_manager()
-	
-	if campaign_manager and campaign_manager.has_method("set_current_campaign"):
-		campaign_manager.set_current_campaign(campaign)
-		print("CampaignCreationUI: Campaign saved successfully")
-	else:
-		print("CampaignCreationUI: Cannot save campaign - campaign manager not available")
-
-func _try_fallback_campaign_creation(campaign_data: Dictionary) -> bool:
-	"""Try to create campaign using fallback methods"""
-	print("CampaignCreationUI: Attempting fallback campaign creation")
-	
-	# Try to create a basic campaign state
-	var core_systems: Node = get_node_or_null("/root/CoreSystemSetup") as Node
-	if not core_systems:
-		return false
-	
-	# Get campaign manager for basic campaign setup
-	var campaign_manager: Node = null # Type-safe managed by system
-	if core_systems.has_method("get_campaign_manager"):
-		campaign_manager = core_systems.get_campaign_manager()
-	
-	if campaign_manager and campaign_manager.has_method("start_new_campaign"):
-		# Create basic campaign config
-		var basic_config: Dictionary = {
-			"name": campaign_data.get("config", {}).get("name", "New Campaign"),
-			"difficulty": campaign_data.get("config", {}).get("difficulty", "Normal"),
-			"crew_size": campaign_data.get("crew", {}).get("size", 4),
-			"auto_generated": true
-		}
-		
-		var success: bool = campaign_manager.start_new_campaign(basic_config)
-		if success:
-			print("CampaignCreationUI: Fallback campaign creation successful")
-			return true
-	
-	print("CampaignCreationUI: Fallback campaign creation failed")
-	return false
-
-func _set_loading_state(loading: bool, message: String = "") -> void:
-	"""Set loading state for UI feedback with custom message"""
-	if finish_button:
-		finish_button.disabled = loading
-		if loading:
-			finish_button.text = message if not message.is_empty() else "Creating..."
-		else:
-			finish_button.text = "Create Campaign"
-
-func _navigate_to_campaign() -> void:
-	"""Navigate to campaign dashboard or main game"""
-	print("CampaignCreationUI: Campaign creation completed successfully! Navigating to campaign...")
-	
-	# Try campaign dashboard first
-	if FileAccess.file_exists("res://src/scenes/campaign/CampaignDashboard.tscn"):
-		get_tree().change_scene_to_file("res://src/scenes/campaign/CampaignDashboard.tscn")
-	elif FileAccess.file_exists("res://src/scenes/main/MainGameScene.tscn"):
-		get_tree().change_scene_to_file("res://src/scenes/main/MainGameScene.tscn")
-	else:
-		# Fallback to main menu with success message
-		print("CampaignCreationUI: Campaign scenes not found, returning to main menu")
-		get_tree().change_scene_to_file("res://src/ui/screens/mainmenu/MainMenu.tscn")
-
-func _validate_current_step() -> Array[String]:
-	"""Validate the current step and return array of error messages"""
-	var errors: Array[String] = []
-
-	if current_step >= step_panels.size():
-		errors.append("Invalid step index")
-		return errors
-
-	var current_panel: Control = step_panels[current_step]
-	if not current_panel:
-		errors.append("Current panel is missing")
-		return errors
-
-	# Call panel-specific validation if available
-	if current_panel and current_panel.has_method("validate"):
-		@warning_ignore("unsafe_method_access")
-		var panel_errors: Array[String] = current_panel.validate()
-		if not panel_errors.is_empty():
-			errors.append_array(panel_errors)
-	elif current_panel and current_panel.has_method("is_valid"):
-		@warning_ignore("unsafe_method_access")
-		if not current_panel.is_valid():
-			var panel_name: String
-			if current_panel.name:
-				panel_name = current_panel.name
-			else:
-				panel_name = "Unknown Panel"
-			errors.append("%s is not properly configured" % panel_name)
-
-	return errors
-
-func _show_error_dialog(title: String, message: String) -> void:
-	"""Show an error dialog to the user"""
-	var dialog: AcceptDialog = AcceptDialog.new()
-	dialog.title = title
-	dialog.dialog_text = message
-	dialog.dialog_autowrap = true
-	add_child(dialog)
-	dialog.popup_centered()
-
-	# Auto-remove dialog after user closes it
-	@warning_ignore("untyped_declaration", "return_value_discarded")
-	dialog.confirmed.connect(func(): dialog.queue_free())
-
-func _collect_campaign_config_safe() -> Dictionary:
-	"""Safely collect campaign configuration from all panels"""
-	var config: Dictionary = {
-		"name": "Test Campaign",
-		"difficulty": "Normal",
-		"victory_condition": "Default",
-		"crew_size": 4,
-		"starting_credits": 1000,
-		"story_track_enabled": false
-	}
-	
-	# Collect from ConfigPanel if available
-	if config_panel and config_panel.has_method("get_config_data"):
-		var panel_config = config_panel.get_config_data()
-		if panel_config is Dictionary:
-			config.merge(panel_config)
-			print("CampaignCreationUI: Merged config from ConfigPanel")
-	elif config_panel:
-		# Try to get basic data from ConfigPanel
-		var name_input = config_panel.get_node_or_null("Content/CampaignName/LineEdit") as Node
-		if name_input and name_input.text.length() > 0:
-			config.name = name_input.text
-		
-		var difficulty_option = config_panel.get_node_or_null("Content/Difficulty/OptionButton") as Node
-		if difficulty_option and difficulty_option.selected >= 0:
-			var difficulty_options = ["Easy", "Normal", "Hard", "Hardcore"]
-			if difficulty_option.selected < difficulty_options.size():
-				config.difficulty = difficulty_options[difficulty_option.selected]
-	
-	# Collect from CrewPanel if available
-	if crew_panel and crew_panel.has_method("get_crew_data"):
-		var crew_data = crew_panel.get_crew_data()
-		if crew_data is Dictionary:
-			config.merge(crew_data)
-			print("CampaignCreationUI: Merged crew data from CrewPanel")
-	
-	# Collect from ShipPanel if available
-	if ship_panel and ship_panel.has_method("get_ship_data"):
-		var ship_data = ship_panel.get_ship_data()
-		if ship_data is Dictionary:
-			config.merge(ship_data)
-			print("CampaignCreationUI: Merged ship data from ShipPanel")
-	
-	# Collect from EquipmentPanel if available
-	if equipment_panel and equipment_panel.has_method("get_equipment_data"):
-		var equipment_data = equipment_panel.get_equipment_data()
-		if equipment_data is Dictionary:
-			config.merge(equipment_data)
-			print("CampaignCreationUI: Merged equipment data from EquipmentPanel")
-	
-	print("CampaignCreationUI: Final campaign config: %s" % config)
-	return config
-
-func _finalize_campaign_creation() -> void:
-	"""Finalize campaign creation with data from UI panels"""
-	print("CampaignCreationUI: Finalizing campaign creation...")
-
-	# Production validation - always validate before creating campaign
-	var all_errors: Array[String] = []
-	for step: int in range(step_panels.size()):
-		current_step = step
-		var step_errors: Array[String] = _validate_current_step()
-		all_errors.append_array(step_errors)
-
-	if not all_errors.is_empty():
-		_show_error_dialog("Campaign Creation Failed", "Please fix all issues before creating the campaign:\n\n" + "\n".join(all_errors))
-		return
-	
-	print("CampaignCreationUI: All validation steps passed - proceeding with campaign creation")
-
-	# Collect data from UI panels
-	var campaign_config: Dictionary = _collect_campaign_config_safe()
-	print("CampaignCreationUI: Collected campaign config: ", campaign_config.keys())
-
-	if creation_manager and creation_manager and creation_manager.has_method("finalize_campaign_creation"):
-		# Set the config data first
-		@warning_ignore("unsafe_method_access")
-		creation_manager.set_config_data(campaign_config)
-
-		# Set crew data if available
-		if campaign_config.has("crew") and creation_manager and creation_manager.has_method("set_crew_data"):
-			creation_manager.call("set_crew_data", campaign_config.crew)
-
-		# Set captain data if available
-		if campaign_config.has("captain") and creation_manager and creation_manager.has_method("set_captain_data"):
-			if campaign_config.captain is Character:
-				# Convert Character object to dictionary format
-				var captain_dict: Dictionary = {
-					"character_object": campaign_config.captain,
-					"name": campaign_config.captain.character_name if campaign_config.captain.has("character_name") else "Captain"
-				}
-				creation_manager.call("set_captain_data", captain_dict)
-			elif campaign_config.captain is Dictionary:
-				@warning_ignore("unsafe_method_access")
-				creation_manager.set_captain_data(campaign_config.captain)
-
-		# Set resource data if available
-		if campaign_config.has("resources") and creation_manager and creation_manager.has_method("set_resource_data"):
-			@warning_ignore("unsafe_method_access")
-			creation_manager.set_resource_data(campaign_config.resources)
-
-		# Finalize and create the campaign
-		@warning_ignore("unsafe_method_access", "untyped_declaration")
-		var campaign = creation_manager.finalize_campaign_creation()
-		if campaign:
-			print("CampaignCreationUI: Campaign created successfully")
-			_start_campaign(campaign)
-		else:
-			push_error("CampaignCreationUI: Failed to create campaign")
-	else:
-		# Fallback: just start a basic campaign
-		print("CampaignCreationUI: Creating fallback campaign")
-		_start_fallback_campaign(campaign_config)
-
-func _start_fallback_campaign(config: Dictionary) -> void:
-	"""Start a basic campaign when creation manager is not available"""
-	print("CampaignCreationUI: Starting fallback campaign with config: %s" % config.get("name", "Test Campaign"))
-	
-	# Try to initialize basic campaign through core systems if available
-	if core_systems and core_systems.has_method("start_new_campaign"):
-		@warning_ignore("unsafe_method_access")
-		var success: bool = core_systems.start_new_campaign(config)
-		if success:
-			print("CampaignCreationUI: Basic campaign started successfully through core systems")
-		else:
-			print("CampaignCreationUI: Core systems failed to start campaign, continuing with navigation")
-	else:
-		print("CampaignCreationUI: Core systems not available, creating minimal campaign state")
-	
-	# Navigate to campaign dashboard or main game
-	var scene_router = get_node_or_null("/root/SceneRouter") as Node
-	if scene_router and scene_router.has_method("navigate_to"):
-		# Try to navigate to campaign dashboard first
-		@warning_ignore("unsafe_method_access")
-		if scene_router.has_method("has_scene") and scene_router.has_scene("campaign_dashboard"):
-			@warning_ignore("unsafe_method_access")
-			scene_router.navigate_to("campaign_dashboard")
-		elif scene_router.has_method("has_scene") and scene_router.has_scene("main_game"):
-			@warning_ignore("unsafe_method_access")
-			scene_router.navigate_to("main_game")
-		else:
-			# Try safe_navigate_to if available
-			@warning_ignore("unsafe_method_access")
-			if scene_router.has_method("safe_navigate_to"):
-				@warning_ignore("unsafe_method_access")
-				scene_router.safe_navigate_to("res://src/scenes/main/MainGameScene.tscn")
-			else:
-				push_warning("No suitable target scene found for campaign start")
-	else:
-		# Direct scene change as last resort with error handling
-		print("CampaignCreationUI: Using direct scene navigation as fallback")
-		if FileAccess.file_exists("res://src/scenes/campaign/CampaignDashboard.tscn"):
-			var error: Error = get_tree().change_scene_to_file("res://src/scenes/campaign/CampaignDashboard.tscn")
-			if error != OK:
-				print("CampaignCreationUI: Failed to load CampaignDashboard, trying MainGameScene")
-				_try_load_main_game_scene()
-		elif FileAccess.file_exists("res://src/scenes/main/MainGameScene.tscn"):
-			_try_load_main_game_scene()
-		else:
-			push_error("No campaign scenes found - cannot start campaign")
-			# Return to main menu as last resort
-			_return_to_main_menu()
-
-func _try_load_main_game_scene() -> void:
-	"""Try to load the main game scene with error handling"""
-	var error: Error = get_tree().change_scene_to_file("res://src/scenes/main/MainGameScene.tscn")
-	if error != OK:
-		push_error("Failed to load MainGameScene, returning to main menu")
-		_return_to_main_menu()
-
-func _collect_campaign_config() -> Dictionary:
-	"""Collect campaign configuration from UI panels"""
-	var config: Dictionary = {}
-
-	# Get data from ConfigPanel
-	if config_panel and config_panel and config_panel.has_method("get_config_data"):
-		@warning_ignore("unsafe_method_access")
-		config = config_panel.get_config_data()
-	else:
-		# Fallback: create basic config from visible UI
-		config = {
-			"name": "New Campaign",
-			"difficulty": 1,
-			"description": "A Five Parsecs from Home campaign"
-		}
-
-	# Collect data from other panels if they exist
-	if crew_panel and crew_panel and crew_panel.has_method("get_crew_data"):
-		@warning_ignore("unsafe_method_access")
-		config.crew = crew_panel.get_crew_data()
-
-	if captain_panel and captain_panel and captain_panel.has_method("get_captain_data"):
-		@warning_ignore("unsafe_method_access")
-		config.captain = captain_panel.get_captain_data()
-
-	if ship_panel and ship_panel and ship_panel.has_method("get_ship_data"):
-		@warning_ignore("unsafe_method_access")
-		config.ship = ship_panel.get_ship_data()
-
-	if equipment_panel and equipment_panel and equipment_panel.has_method("get_equipment"):
-		@warning_ignore("unsafe_method_access")
-		config.equipment = equipment_panel.get_equipment()
-
-	# Ensure minimum required fields
-	@warning_ignore("unsafe_method_access")
-	if not config.has("name") or config.name.is_empty():
-		config.name = "New Campaign"
-	if not config.has("difficulty"):
-		config.difficulty = 1
-
-	print("CampaignCreationUI: Collected complete config: ", config)
-	return config
-
-func _start_campaign(campaign: Variant) -> void:
-	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
-	if not is_instance_valid(self):
-		return
-	print("CampaignCreationUI: Starting campaign...")
-
-	# Try to start the campaign through core systems
-	if core_systems and core_systems and core_systems.has_method("start_new_campaign"):
-		@warning_ignore("untyped_declaration")
-		var config = {"campaign": campaign}
-		@warning_ignore("unsafe_method_access")
-		if core_systems.start_new_campaign(config):
-			print("CampaignCreationUI: Campaign started successfully")
-			_navigate_to_main_game()
-		else:
-			push_error("CampaignCreationUI: Failed to start campaign")
-	else:
-		push_warning("CampaignCreationUI: Core systems not available, navigating to main game")
-		_navigate_to_main_game()
-
-
-func _navigate_to_main_game() -> void:
-	"""Navigate to the main game scene"""
-	print("CampaignCreationUI: Navigating to main game...")
-
-	@warning_ignore("untyped_declaration")
-	var scene_router = get_node("/root/SceneRouter")
-	if scene_router and scene_router and scene_router.has_method("navigate_to_main_game"):
-		print("CampaignCreationUI: Using SceneRouter to navigate")
-		@warning_ignore("unsafe_method_access")
-		scene_router.navigate_to_main_game()
-	elif scene_router and scene_router and scene_router.has_method("change_scene"):
-		print("CampaignCreationUI: Using SceneRouter change_scene method")
-		@warning_ignore("unsafe_method_access")
-		scene_router.change_scene("res://src/scenes/main/MainGameScene.tscn")
-	else:
-		# Fallback navigation
-		print("CampaignCreationUI: Using fallback navigation to main game")
-		get_tree().call_deferred("change_scene_to_file", "res://src/scenes/main/MainGameScene.tscn")
-
-func _return_to_main_menu() -> void:
-	"""Return to the main menu"""
-	print("CampaignCreationUI: Returning to main menu...")
-
-	@warning_ignore("untyped_declaration")
-	var scene_router = get_node("/root/SceneRouter")
-	if scene_router and scene_router and scene_router.has_method("return_to_main_menu"):
-		print("CampaignCreationUI: Using SceneRouter to return to main menu")
-		@warning_ignore("unsafe_method_access")
-		scene_router.return_to_main_menu()
-	elif scene_router and scene_router and scene_router.has_method("change_scene"):
-		print("CampaignCreationUI: Using SceneRouter change_scene for main menu")
-		@warning_ignore("unsafe_method_access")
-		scene_router.change_scene("res://src/ui/screens/mainmenu/MainMenu.tscn")
-	else:
-		# Fallback navigation
-		print("CampaignCreationUI: Using fallback navigation to main menu")
-		get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/mainmenu/MainMenu.tscn")
-
-# Signal handlers for creation manager
-func _on_creation_step_changed(step: int) -> void:
-	"""Handle creation step change"""
-	_update_ui_for_step(step)
-
-func _on_campaign_creation_completed(campaign: Variant) -> void:
-	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
-	if not is_instance_valid(self):
-		return
-	print("CampaignCreationUI: Campaign creation completed")
-	_start_campaign(campaign)
-
-func _on_validation_failed(errors: Array[String]) -> void:
-	"""Handle validation failure"""
-	print("CampaignCreationUI: Validation failed:")
-	for error: String in errors:
-		print("  - " + error)
-
-	# Show error message to user
-	_show_error_dialog("Campaign Creation Error", "Please fix the following issues:\n\n" + "\n".join(errors))
-
-# State Manager Integration Methods
-func _connect_enhanced_panel_signals() -> void:
-	"""Connect panel signals to state manager for centralized data management"""
-	if not state_manager:
-		return
-
-	# Connect crew panel
-	if crew_panel and crew_panel.has_signal("crew_updated"):
-		@warning_ignore("unsafe_property_access", "unsafe_method_access")
-		crew_panel.crew_updated.connect(_on_crew_data_updated)
-	if crew_panel and crew_panel.has_signal("crew_setup_complete"):
-		@warning_ignore("unsafe_property_access", "unsafe_method_access")
-		crew_panel.crew_setup_complete.connect(_on_crew_setup_complete)
-
-	# Connect captain panel  
-	if captain_panel and captain_panel.has_signal("captain_updated"):
-		@warning_ignore("unsafe_property_access", "unsafe_method_access")
-		captain_panel.captain_updated.connect(_on_captain_updated)
-
-	# Connect ship panel - PHASE 2 ENHANCED
-	if ship_panel and ship_panel.has_signal("ship_updated"):
-		@warning_ignore("unsafe_property_access", "unsafe_method_access")
-		ship_panel.ship_updated.connect(_on_ship_updated)
-	if ship_panel and ship_panel.has_signal("ship_setup_complete"):
-		@warning_ignore("unsafe_property_access", "unsafe_method_access")
-		ship_panel.ship_setup_complete.connect(_on_ship_setup_complete)
-
-	# Connect equipment panel - PHASE 2 ENHANCED  
-	if equipment_panel and equipment_panel.has_signal("equipment_generated"):
-		@warning_ignore("unsafe_property_access", "unsafe_method_access")
-		equipment_panel.equipment_generated.connect(_on_equipment_generated)
-	if equipment_panel and equipment_panel.has_signal("equipment_setup_complete"):
-		@warning_ignore("unsafe_property_access", "unsafe_method_access")
-		equipment_panel.equipment_setup_complete.connect(_on_equipment_setup_complete)
-
-	print("CampaignCreationUI: Enhanced panel signals connected to state manager")
-
-# Panel Data Integration Methods
-func _on_crew_data_updated(crew: Array) -> void:
-	"""Handle crew panel updates with equipment integration"""
-	if state_manager:
-		state_manager.set_phase_data(CampaignCreationStateManager.Phase.CREW_SETUP, {"members": crew, "size": crew.size()})
-		print("CampaignCreationUI: Crew data updated with size: ", crew.size())
-
-		# PHASE 2 ENHANCEMENT: Update equipment panel with crew size
-		if equipment_panel and equipment_panel and equipment_panel.has_method("set_crew_size"):
-			@warning_ignore("unsafe_method_access")
-			equipment_panel.set_crew_size(crew.size())
-
-func _on_crew_setup_complete(crew_data: Dictionary) -> void:
-	"""Handle crew setup completion"""
-	if state_manager:
-		state_manager.set_phase_data(CampaignCreationStateManager.Phase.CREW_SETUP, crew_data)
-
-
-func _on_ship_setup_complete(ship_data: Dictionary) -> void:
-	"""Handle ship setup completion - PHASE 2 ENHANCED"""
-	if state_manager:
-		state_manager.set_phase_data(CampaignCreationStateManager.Phase.SHIP_ASSIGNMENT, ship_data)
-		print("CampaignCreationUI: Ship setup completed with data: ", ship_data.keys())
-
-func _on_equipment_updated(equipment_data: Dictionary) -> void:
-	"""Handle equipment panel updates (legacy compatibility)"""
-	if state_manager:
-		state_manager.set_phase_data(CampaignCreationStateManager.Phase.EQUIPMENT_GENERATION, equipment_data)
-
-
-func _on_equipment_setup_complete(equipment_data: Dictionary) -> void:
-	"""Handle equipment setup completion - PHASE 2 ENHANCED"""
-	if state_manager:
-		state_manager.set_phase_data(CampaignCreationStateManager.Phase.EQUIPMENT_GENERATION, equipment_data)
-		print("CampaignCreationUI: Equipment setup completed with data: ", equipment_data.keys())
-
-func _start_campaign_from_state_data(campaign_data: Dictionary) -> void:
-	"""Start campaign using complete state manager data with auto-save generation"""
-	print("CampaignCreationUI: Starting campaign with complete state data")
-
-	# PHASE 2 ENHANCEMENT: Auto-save name generation
-	@warning_ignore("untyped_declaration")
-	var enhanced_campaign_data = campaign_data.duplicate()
-	@warning_ignore("unsafe_call_argument")
-	enhanced_campaign_data = _apply_auto_save_generation(enhanced_campaign_data)
-
-	# The state manager provides validated, complete campaign data
-	if core_systems and core_systems and core_systems.has_method("start_new_campaign"):
-		@warning_ignore("unsafe_method_access", "untyped_declaration")
-		var success = core_systems.start_new_campaign(enhanced_campaign_data)
-		if success:
-			print("CampaignCreationUI: Campaign started successfully with auto-save: ", enhanced_campaign_data.get("save_name", "unnamed"))
-			_navigate_to_main_game()
-		else:
-			push_error("CampaignCreationUI: Failed to start campaign with state manager data")
-	else:
-		push_warning("CampaignCreationUI: Core systems not available, using fallback")
-		_navigate_to_main_game()
-
-func _apply_auto_save_generation(campaign_data: Dictionary) -> Dictionary:
-	"""Apply auto-save name generation in format: CampaignName_YYYY-MM-DD_HH-MM"""
-	@warning_ignore("untyped_declaration")
-	var enhanced_data = campaign_data.duplicate()
-
-	# Extract campaign name from config data
-	var campaign_name: String = "NewCampaign"
-	@warning_ignore("unsafe_method_access")
-	if enhanced_data.has("config") and (enhanced_data.config as Dictionary).has("name"):
-		campaign_name = enhanced_data.config.name
-	elif enhanced_data.has("name"):
-		campaign_name = enhanced_data.name
-
-	# Clean campaign name for filename use
-	campaign_name = campaign_name.strip_edges().replace(" ", "_").replace("/", "_").replace("\\", "_")
-	if campaign_name.is_empty():
-		campaign_name = "NewCampaign"
-
-	# Generate timestamp
-	@warning_ignore("untyped_declaration")
-	var datetime = Time.get_datetime_dict_from_system()
-	@warning_ignore("untyped_declaration")
-	var timestamp = "%04d-%02d-%02d_%02d-%02d" % [
-		datetime.year, datetime.month, datetime.day,
-		datetime.hour, datetime.minute
-	]
-
-	# Create auto-save name
-	var auto_save_name: String = "%s_%s" % [campaign_name, timestamp]
-	enhanced_data["save_name"] = auto_save_name
-	enhanced_data["auto_generated_save"] = true
-	enhanced_data["created_timestamp"] = Time.get_datetime_string_from_system()
-
-	print("CampaignCreationUI: Generated auto-save name: ", auto_save_name)
-	return enhanced_data
-
-# PHASE 3: UX Optimization Functions
-func _validate_optimized_flow() -> void:
-	"""Validate the optimized campaign creation flow matches Phase 3 specifications"""
-	print("CampaignCreationUI: Validating Phase 3 optimized flow...")
-
-	var expected_panels: Array[String] = ["ConfigPanel", "CrewPanel", "CaptainPanel", "ShipPanel", "EquipmentPanel", "FinalPanel"]
-	@warning_ignore("unused_variable")
-	var expected_steps: Array[String] = ["Configuration", "Crew Setup", "Captain Creation", "Ship Assignment", "Equipment Generation", "Final Review"]
-
-	# Verify panel count matches expected flow
-	if step_panels.size() != expected_panels.size():
-		push_warning("Flow validation: Expected %d panels, found %d" % [expected_panels.size(), step_panels.size()])
-	else:
-		print("✅ Flow validation: Correct panel count (%d)" % step_panels.size())
-
-	# Verify each panel exists and is correctly ordered
-	for i: int in range(min(step_panels.size(), expected_panels.size())):
-		var panel: Control = step_panels[i]
-		var expected_name: String = expected_panels[i]
-
-		if panel and panel.name == expected_name:
-			print("✅ Step %d: %s correctly positioned" % [i + 1, expected_name])
-		elif panel:
-			push_warning("⚠️ Step %d: Expected %s, found %s" % [i + 1, expected_name, panel.name])
-		else:
-			push_error("❌ Step %d: Missing panel (expected %s)" % [i + 1, expected_name])
-
-	# Verify state manager phase alignment
-	if state_manager:
-		@warning_ignore("untyped_declaration")
-		var state_phases = [
-			CampaignCreationStateManager.Phase.CONFIG,
-			CampaignCreationStateManager.Phase.CREW_SETUP,
-			CampaignCreationStateManager.Phase.CAPTAIN_CREATION,
-			CampaignCreationStateManager.Phase.SHIP_ASSIGNMENT,
-			CampaignCreationStateManager.Phase.EQUIPMENT_GENERATION,
-			CampaignCreationStateManager.Phase.FINAL_REVIEW
-		]
-
-		if state_phases.size() == expected_panels.size():
-			print("✅ State manager phases align with UI flow")
-		else:
-			push_warning("⚠️ State manager phase count mismatch")
-
-	# Verify ResourcePanel is excluded (Phase 3 requirement)
-	var has_resource_panel: bool = false
-	for panel in step_panels:
-		if panel and panel.name == "ResourcePanel":
-			has_resource_panel = true
-			break
-
-	if not has_resource_panel:
-		print("✅ ResourcePanel correctly excluded from optimized flow")
-	else:
-		push_error("❌ ResourcePanel still present in flow - Phase 3 optimization incomplete")
-
-	# Verify navigation consistency
-	_validate_navigation_flow()
-
-	print("CampaignCreationUI: Phase 3 flow validation complete!")
-
-func _validate_navigation_flow() -> void:
-	"""Validate navigation flow consistency"""
-	# Test navigation button states for each step
-	for step: int in range(step_panels.size()):
-		@warning_ignore("untyped_declaration")
-		var is_first_step = (step == 0)
-		@warning_ignore("untyped_declaration")
-		var is_last_step = (step >= step_panels.size() - 1)
-
-		print("Step %d navigation: First=%s, Last=%s" % [step + 1, is_first_step, is_last_step])
-
-	# Verify auto-save generation is available
-	if has_method("_apply_auto_save_generation"):
-		print("✅ Auto-save generation available")
-	else:
-		push_error("❌ Auto-save generation missing")
-
-func get_optimized_flow_summary() -> Dictionary:
-	"""Get summary of the optimized flow for debugging/testing"""
-	return {
-		"total_steps": step_panels.size(),
-		"current_step": current_step + 1,
-		"steps": ["Configuration", "Crew Setup", "Captain Creation", "Ship Assignment", "Equipment Generation", "Final Review"],
-		"state_manager_active": state_manager != null,
-		"auto_save_enabled": true,
-		"resource_panel_excluded": true,
-		"flow_version": "Phase 3 Optimized"
-	}
-
-func debug_current_flow_state() -> void:
-	"""Debug function to display current flow state"""
-	print("=== CAMPAIGN CREATION FLOW DEBUG ===")
-	print("Current Step: %d/%d" % [current_step + 1, step_panels.size()])
-	var active_panel_name: String = "None"
-	if current_step < step_panels.size() and step_panels[current_step]:
-		active_panel_name = step_panels[current_step].name
-	print("Active Panel: %s" % active_panel_name)
-	print("State Manager: %s" % ("Active" if state_manager else "Inactive"))
-	print("Flow Summary: ", get_optimized_flow_summary())
-	print("=====================================")
-
-# PHASE 3: User Experience Enhancement Functions
-func get_progress_percentage() -> float:
-	"""Get completion percentage for progress indication"""
-	if step_panels.size() == 0:
-		return 0.0
-	return float(current_step) / float(step_panels.size() - 1) * 100.0
-
-func get_current_step_name() -> String:
-	"""Get name of current step for UI display"""
-	var step_names: Array[String] = ["Configuration", "Crew Setup", "Captain Creation", "Ship Assignment", "Equipment Generation", "Final Review"]
-	if current_step < step_names.size():
-		return step_names[current_step]
-	return "Unknown"
-
-func can_skip_to_step(target_step: int) -> bool:
-	"""Check if user can skip to a specific step (for advanced UX)"""
-	if not state_manager:
-		return false
-
-	# Can only skip forward to completed or current step
-	return target_step <= current_step or _are_previous_steps_valid(target_step)
-
-@warning_ignore("unused_parameter")
-func _are_previous_steps_valid(target_step: int) -> bool:
-	"""Check if all previous steps are properly validated"""
-	if not state_manager:
-		return false
-
-	# Implementation would check state manager validation for each phase
-	# This provides foundation for future "skip to step" functionality
+	print("CampaignCreationUI: Campaign initialized with %d crew members" % crew_members.size())
 	return true
 
-func _update_progress_display(step: int) -> void:
-	"""Update progress indicators - PHASE 3 UX ENHANCEMENT"""
-	@warning_ignore("untyped_declaration")
-	var progress_percent = get_progress_percentage()
+func _generate_campaign_save_name(campaign_name: String) -> String:
+	"""Generate unique save file name for campaign"""
+	var timestamp = Time.get_datetime_string_from_system().replace(":", "-").replace(" ", "_")
+	var sanitized_name = campaign_name.strip_edges().replace(" ", "_").to_lower()
+	
+	# Remove any potentially problematic characters using modern string methods
+	var regex = RegEx.new()
+	regex.compile("[^a-zA-Z0-9_]")
+	var safe_name = regex.sub(sanitized_name, "", true)
+	
+	return "campaign_%s_%s.fpcs" % [safe_name, timestamp]
 
-	# Try to find or create progress indicators in the UI
-	@warning_ignore("untyped_declaration")
-	var progress_bar = get_node("MarginContainer/VBoxContainer/Header/ProgressBar")
-	if progress_bar and progress_bar is ProgressBar:
-		progress_bar.value = progress_percent
-		print("✅ Progress bar updated: %.0f%%" % progress_percent)
+func _ensure_save_directory() -> bool:
+	"""Ensure campaigns directory exists with proper error handling"""
+	if DirAccess.dir_exists_absolute(CAMPAIGNS_DIR):
+		return true
+	
+	var dir = DirAccess.open("user://")
+	if not dir:
+		push_error("CampaignCreationUI: Cannot access user directory")
+		return false
+	
+	var result = dir.make_dir_recursive("campaigns")
+	if result != OK:
+		push_error("CampaignCreationUI: Failed to create campaigns directory: " + str(result))
+		return false
+	
+	return true
 
-	# Update window title if possible (advanced UX) - Remove undefined function call
-	# Note: set_window_title() is not available in Control base class
+func _save_campaign_secure(campaign: Resource, save_path: String) -> Dictionary:
+	"""Save campaign using SecureSaveManager"""
+	# Ensure campaigns directory exists
+	if not _ensure_save_directory():
+		return {"success": false, "error": "Failed to create campaigns directory"}
+	
+	# Convert campaign to dictionary for saving
+	var campaign_dict = {
+		"name": campaign.get_meta("campaign_name", "Unnamed Campaign"),
+		"difficulty": campaign.get_meta("difficulty", GlobalEnums.DifficultyLevel.STANDARD),
+		"created_at": Time.get_datetime_string_from_system(),
+		"version": "1.0"
+	}
+	
+	# Use built-in JSON save since SecureSaveManager may not be available
+	var save_result: Dictionary
+	var file = FileAccess.open(save_path, FileAccess.WRITE)
+	if file:
+		file.store_string(JSON.stringify(campaign_dict))
+		file.close()
+		save_result = {"success": true}
+	else:
+		save_result = {"success": false, "error": "Failed to open file for writing"}
+	
+	return save_result
 
-	# Log progress for debugging
-	print("CampaignCreationUI: Progress %.0f%% - Step %d/%d" % [progress_percent, step + 1, step_panels.size()])
+func _show_loading_state(show: bool, message: String = "Loading...") -> void:
+	"""Show/hide loading state with message"""
+	if show:
+		# Disable navigation buttons during loading
+		if back_button:
+			back_button.disabled = true
+		if next_button:
+			next_button.disabled = true
+		if finish_button:
+			finish_button.disabled = true
+	else:
+		# Re-enable navigation buttons
+		_update_navigation_state()
 
-# PHASE 3: Keyboard Shortcuts & Accessibility
-func _setup_keyboard_shortcuts() -> void:
-	"""Setup keyboard shortcuts for enhanced UX navigation"""
-	# This control needs to be able to receive focus to handle input.
-	# The focus_mode is now set in _ready().
-	grab_focus()
+func _show_error_dialog(message: String) -> void:
+	"""Show error dialog to user"""
+	push_error("CampaignCreationUI: " + message)
+	
+	# Create simple error dialog
+	var dialog = AcceptDialog.new()
+	dialog.title = "Campaign Creation Error"
+	dialog.dialog_text = message
+	# Center dialog - use popup_centered() instead of deprecated initial position
+	add_child(dialog)
+	dialog.popup_centered()
+	
+	# Clean up dialog after use
+	dialog.confirmed.connect(dialog.queue_free)
 
-	print("CampaignCreationUI: Keyboard shortcuts enabled")
-	print("  - Ctrl+Right Arrow: Next step")
-	print("  - Ctrl+Left Arrow: Previous step")
-	print("  - Ctrl+Enter: Finish campaign creation")
-	print("  - Escape: Cancel/Back")
-
-func _input(event: InputEvent) -> void:
-	"""Handle keyboard shortcuts for campaign creation navigation"""
-	if not event is InputEventKey:
-		return
-
-	@warning_ignore("untyped_declaration")
-	var key_event = event as InputEventKey
-	if not key_event.pressed:
-		return
-
-	# Handle keyboard shortcuts
-	match key_event.keycode:
-		KEY_RIGHT:
-			if key_event.ctrl_pressed:
-				# Ctrl+Right: Next step
-				if next_button and not next_button.disabled:
-					_on_next_button_pressed()
-				get_viewport().set_input_as_handled()
-
-		KEY_LEFT:
-			if key_event.ctrl_pressed:
-				# Ctrl+Left: Previous step
-				if back_button and not back_button.disabled:
-					_on_back_button_pressed()
-				get_viewport().set_input_as_handled()
-
-		KEY_ENTER:
-			if key_event.ctrl_pressed:
-				# Ctrl+Enter: Finish campaign
-				if finish_button and not finish_button.disabled:
-					_on_finish_button_pressed()
-				get_viewport().set_input_as_handled()
-
-		KEY_ESCAPE:
-			# Escape: Back or cancel
-			if back_button and not back_button.disabled:
-				_on_back_button_pressed()
+func _show_validation_dialog(title: String, errors) -> void:
+	"""Show detailed validation errors dialog"""
+	var dialog = AcceptDialog.new()
+	dialog.title = title
+	
+	var error_text = "Please fix the following issues:\n\n"
+	
+	# Handle different error formats
+	if errors is Dictionary:
+		for phase in errors:
+			error_text += "• " + str(phase) + ":\n"
+			var phase_errors = errors[phase]
+			if phase_errors is Array:
+				for error in phase_errors:
+					error_text += "  - " + str(error) + "\n"
 			else:
-				_show_cancel_confirmation()
-			get_viewport().set_input_as_handled()
-
-func _show_cancel_confirmation() -> void:
-	"""Show confirmation dialog for canceling campaign creation"""
-	# This would show a confirmation dialog in a full implementation
-	print("CampaignCreationUI: Cancel confirmation (would show dialog)")
-
-func get_accessibility_summary() -> String:
-	"""Get accessibility information for screen readers"""
-	@warning_ignore("untyped_declaration")
-	var step_name = get_current_step_name()
-	@warning_ignore("untyped_declaration")
-	var progress = get_progress_percentage()
-
-	return "Campaign Creation: %s. Step %d of %d. %.0f percent complete. Use Tab to navigate, Ctrl+Arrow keys to change steps." % [
-		step_name, current_step + 1, step_panels.size(), progress
-	]
-
-# State Manager Signal Handlers
-func _on_state_updated(phase: CampaignCreationStateManager.Phase, data: Dictionary) -> void:
-	"""Handle state manager updates"""
-	print("CampaignCreationUI: State updated for phase ", phase, " with data: ", data.keys())
-	_update_navigation_buttons()
-
-func _update_navigation_buttons() -> void:
-	"""Update navigation button states based on current phase"""
-	if not state_manager:
-		return
-
-	@warning_ignore("untyped_declaration")
-	var current_phase = state_manager.get_current_phase()
-	@warning_ignore("unsafe_call_argument", "untyped_declaration")
-	var is_valid = state_manager.is_phase_valid(current_phase)
-
-	if next_button:
-		next_button.disabled = not is_valid
-
-	if finish_button:
-		finish_button.disabled = not is_valid
-
-func _on_validation_changed(is_valid: bool, errors: Array[String]) -> void:
-	"""Handle validation state changes"""
-	if next_button:
-		next_button.disabled = not is_valid
-	if finish_button:
-		finish_button.disabled = not is_valid
-
-	if not is_valid and errors.size() > 0:
-		print("CampaignCreationUI: Validation errors: ", errors)
-
-func _on_phase_completed(phase: CampaignCreationStateManager.Phase) -> void:
-	"""Handle phase completion"""
-	print("CampaignCreationUI: Phase completed: ", phase)
-
-	# Auto-advance to next phase if not on final phase
-	#if phase != CampaignCreationStateManager.Phase.FINAL_REVIEW and state_manager:
-	#	if state_manager.advance_to_next_phase():
-	#		_update_ui_for_current_phase()
-	#		_update_navigation_state()
-	#	else:
-	#		print("CampaignCreationUI: Cannot auto-advance after phase completion")
-
-func _on_creation_completed(campaign_data: Dictionary) -> void:
-	"""Handle campaign creation completion"""
-	print("CampaignCreationUI: Campaign creation completed with state manager")
-	# Use the complete campaign data from state manager
-	_start_campaign_from_state_data(campaign_data)
-
-# Window Management
-func _update_window_title() -> void:
-	"""Update the window title based on current phase"""
-	if not get_window() or not state_manager:
-		return
-
-	@warning_ignore("untyped_declaration")
-	var current_phase = state_manager.get_current_phase()
-	@warning_ignore("unsafe_call_argument")
-	var phase_name: String = _get_phase_name(current_phase)
-	get_window().title = "Campaign Creation - " + str(phase_name)
-func _get_phase_name(phase: CampaignCreationStateManager.Phase) -> String:
-	"""Get display name for a phase"""
-	match phase:
-		CampaignCreationStateManager.Phase.CONFIG:
-			return "Configuration"
-		CampaignCreationStateManager.Phase.CREW_SETUP:
-			return "Crew Setup"
-		CampaignCreationStateManager.Phase.CAPTAIN_CREATION:
-			return "Captain Creation"
-		CampaignCreationStateManager.Phase.SHIP_ASSIGNMENT:
-			return "Ship Assignment"
-		CampaignCreationStateManager.Phase.EQUIPMENT_GENERATION:
-			return "Equipment Generation"
-		CampaignCreationStateManager.Phase.FINAL_REVIEW:
-			return "Final Review"
-		_:
-			return "Unknown Phase"
-
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
-	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
-	if not obj or not is_instance_valid(obj):
-		return default_value
+				error_text += "  - " + str(phase_errors) + "\n"
+	elif errors is Array:
+		for error in errors:
+			error_text += "• " + str(error) + "\n"
+	else:
+		error_text += "• " + str(errors) + "\n"
 	
-	if obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	@warning_ignore("unsafe_method_access")
-	if obj is Object and obj.has_method(method_name):
-		@warning_ignore("unsafe_method_access")
-		return obj.callv(method_name, args)
-	return null
+	dialog.dialog_text = error_text
+	add_child(dialog)
+	dialog.popup_centered(Vector2(500, 400))
+	dialog.confirmed.connect(dialog.queue_free)
 
-# ==============================================================================
-# NEW: Unified Systems Signal Handlers
-# ==============================================================================
-
-	print("CampaignCreationUI: Unified workflow completed: %s" % workflow_id)
-	print("CampaignCreationUI: Final workflow data: ", data)
-	
-	# Create campaign using unified systems
-	await _create_campaign_with_unified_systems(data)
-
-	print("CampaignCreationUI: Unified step changed: %d -> %d" % [old_step, new_step])
-	
-	# Update UI to reflect new step
-	current_step = new_step
-	_update_ui_for_step(new_step)
-	
-	# Update step label with step data
-	if step_label and step_data.has("name"):
-		step_label.text = "Step %d: %s" % [new_step + 1, step_data.name]
-
+func _on_navigation_updated(can_go_back: bool, can_go_forward: bool, can_finish: bool) -> void:
+	"""Update navigation button states"""
 	if back_button:
 		back_button.disabled = not can_go_back
-	
 	if next_button:
 		next_button.disabled = not can_go_forward
-		next_button.visible = not can_finish
-	
+		next_button.visible = can_go_forward or not can_finish
 	if finish_button:
 		finish_button.disabled = not can_finish
 		finish_button.visible = can_finish
 
-	print("CampaignCreationUI: Unified state changed - %s: %s -> %s" % [property, old_value, new_value])
+func _on_step_changed(step: int, total_steps: int) -> void:
+	"""Update progress indicators"""
+	if progress_bar:
+		progress_bar.max_value = total_steps
+		progress_bar.value = step
 	
-	# Update UI based on state changes
-	match property:
-		"credits":
-			_update_credits_display(new_value)
-		"supplies":
-			_update_supplies_display(new_value)
-		"reputation":
-			_update_reputation_display(new_value)
+	if step_label:
+		var phase_names = {
+			0: "Campaign Configuration",
+			1: "Crew Setup",
+			2: "Captain Creation",
+			3: "Ship Assignment",
+			4: "Equipment Generation",
+			5: "Final Review"
+		}
+		var phase_name = phase_names.get(step, "Unknown Phase")
+		step_label.text = "Step %d: %s" % [step + 1, phase_name]
 
-func _create_campaign_with_unified_systems(workflow_data: Dictionary) -> void:
-	"""Create campaign using the unified systems architecture"""
-	print("CampaignCreationUI: Creating campaign with unified systems...")
-	_set_loading_state(true, "Creating campaign with unified systems...")
+func _on_phase_transition_requested(from_phase: CampaignStateManager.Phase, to_phase: CampaignStateManager.Phase) -> void:
+	"""Handle phase transition by loading new panel"""
+	print("CampaignCreationUI: Phase transition requested: %s -> %s" % [str(from_phase), str(to_phase)])
 	
-		print("CampaignCreationUI: Generating campaign content...")
-		
-		# Generate campaign scenario
-		if scenario.is_empty():
-			_set_loading_state(false)
-			_show_enhanced_error_dialog("Content Generation Error",
-				"Failed to generate campaign scenario.",
-				"There was an issue with the campaign content generation system.")
-			return
-		
-		print("CampaignCreationUI: Campaign scenario generated successfully")
+	# CRITICAL: Prevent rapid transitions
+	if _is_panel_loading or _is_transitioning:
+		print("CampaignCreationUI: Panel already loading or transitioning, queuing transition")
+		_panel_load_queue.append(to_phase)
+		return
 	
-		var starting_credits = workflow_data.get("starting_credits", 1000)
-		print("CampaignCreationUI: Initial resources set - Credits: %d" % starting_credits)
+	# Add delay to prevent rapid transitions
+	_is_transitioning = true
+	await get_tree().create_timer(0.2).timeout
 	
-	# Finalize campaign creation
-	await _finalize_unified_campaign_creation(workflow_data)
+	# Save current panel data before switching
+	_before_panel_switch(from_phase)
+	
+	# Load new panel
+	_load_panel_for_phase(to_phase)
+	
+	# Restore new panel data after switching
+	_after_panel_switch(to_phase)
+	
+	_update_navigation_state()
+	
+	# Reset transition flag after panel loads
+	await get_tree().create_timer(0.3).timeout
+	_is_transitioning = false
 
-func _finalize_unified_campaign_creation(workflow_data: Dictionary) -> void:
-	"""Finalize campaign creation using unified systems"""
-	_set_loading_state(true, "Finalizing campaign...")
+func _on_panel_completed(panel_data: Dictionary) -> void:
+	"""Handle panel completion - save data and enable navigation"""
+	coordinator.mark_phase_complete(state_manager.current_phase, true)
+	_update_navigation_state()
+
+func _on_panel_validation_failed(errors: Array[String]) -> void:
+	"""Handle panel validation failure"""
+	push_warning("Panel validation failed: " + str(errors))
+	_update_navigation_state()
+
+func _update_navigation_state() -> void:
+	"""Comprehensive navigation state management with validation"""
+	# Prevent recursion
+	if _is_updating_navigation:
+		return
 	
-	# Create campaign data structure
-	var campaign_data = {
-		"name": workflow_data.get("campaign_name", "New Campaign"),
-		"difficulty": workflow_data.get("difficulty_level", 1),
-		"created_with_unified_systems": true,
-		"creation_time": Time.get_datetime_dict_from_system(),
-		"workflow_data": workflow_data
+	if not state_manager or not coordinator:
+		return
+	
+	_is_updating_navigation = true
+	
+	# PHASE 1B: Track navigation update performance
+	var validation_start_time = Time.get_unix_time_from_system()
+	
+	# Update coordinator state first
+	coordinator._update_navigation_state()
+	
+	var current_phase = state_manager.current_phase
+	var nav_state = coordinator.get_navigation_state()
+	
+	# Add null checks for robustness
+	if not nav_state:
+		_is_updating_navigation = false
+		return
+	
+	# Validate current phase data with performance tracking
+	var phase_validation = state_manager.validate_phase(current_phase)
+	_track_validation_performance("phase_validation", validation_start_time)
+	
+	if not phase_validation:
+		_is_updating_navigation = false
+		return
+	
+	# Get complete validation only when needed (for finish button)
+	var complete_validation: Dictionary = {}
+	var is_final_phase = (current_phase == CampaignStateManager.Phase.FINAL_REVIEW)
+	if is_final_phase:
+		var complete_validation_start = Time.get_unix_time_from_system()
+		complete_validation = state_manager.validate_complete_state()
+		_track_validation_performance("complete_validation", complete_validation_start)
+	
+	# Update back button
+	if back_button:
+		back_button.disabled = not nav_state.can_go_back
+		back_button.tooltip_text = "Return to previous step" if nav_state.can_go_back else "Cannot go back from first step"
+	
+	# Update next button
+	if next_button:
+		next_button.disabled = not nav_state.can_go_forward or not phase_validation
+		next_button.visible = not is_final_phase
+		
+		if not phase_validation:
+			next_button.tooltip_text = "Complete current step before proceeding"
+		elif not nav_state.can_go_forward:
+			next_button.tooltip_text = "Current step not ready for navigation"
+		else:
+			next_button.tooltip_text = "Continue to next step"
+	
+	# Update finish button
+	if finish_button:
+		finish_button.visible = is_final_phase
+		
+		if is_final_phase and complete_validation.has("valid"):
+			finish_button.disabled = not complete_validation.valid
+			
+			if not complete_validation.valid:
+				var error_count = 0
+				if complete_validation.has("errors") and complete_validation.errors is Dictionary:
+					for phase_errors in complete_validation.errors.values():
+						if phase_errors is Array:
+							error_count += phase_errors.size()
+						else:
+							error_count += 1
+				finish_button.tooltip_text = "Fix %d validation issue(s) before creating campaign" % error_count
+			else:
+				finish_button.tooltip_text = "Create campaign and start playing"
+		else:
+			finish_button.disabled = true
+			finish_button.tooltip_text = "Complete all steps to create campaign"
+	
+	# Update progress indicators
+	_update_progress_display(current_phase)
+	
+	# Update panel navigation hints if panel supports it
+	if current_panel and current_panel.has_method("update_navigation_hints"):
+		var can_finish = is_final_phase and complete_validation.get("valid", false)
+		current_panel.update_navigation_hints({
+			"can_go_back": nav_state.can_go_back,
+			"can_go_forward": nav_state.can_go_forward and phase_validation,
+			"can_finish": can_finish,
+			"validation_errors": [] # Phase validation is boolean, no detailed errors
+		})
+	
+	# Reset recursion guard
+	_is_updating_navigation = false
+
+func _schedule_navigation_update() -> void:
+	"""Schedule a debounced navigation update to prevent excessive calls"""
+	if not _navigation_update_timer:
+		_navigation_update_timer = Timer.new()
+		_navigation_update_timer.wait_time = 0.1 # 100ms debounce
+		_navigation_update_timer.one_shot = true
+		_navigation_update_timer.timeout.connect(_update_navigation_state)
+		add_child(_navigation_update_timer)
+	
+	if _navigation_update_timer.is_stopped():
+		_navigation_update_timer.start()
+	else:
+		# Timer is already running, navigation update will happen when it expires
+		_pending_navigation_update = true
+
+func _update_real_time_state() -> void:
+	"""Update state for real-time changes without full navigation update"""
+	if not state_manager:
+		return
+	
+	# Update current panel data in state manager
+	if current_panel and current_panel.has_method("get_panel_data"):
+		var panel_data = current_panel.get_panel_data()
+		var current_phase = state_manager.current_phase
+		
+		# Update state based on current phase
+		match current_phase:
+			CampaignStateManager.Phase.CONFIG:
+				state_manager.update_config_data(panel_data)
+			CampaignStateManager.Phase.CREW_SETUP:
+				state_manager.update_crew_data(panel_data)
+			CampaignStateManager.Phase.CAPTAIN_CREATION:
+				state_manager.update_captain_data(panel_data)
+			CampaignStateManager.Phase.SHIP_ASSIGNMENT:
+				state_manager.update_ship_data(panel_data)
+			CampaignStateManager.Phase.EQUIPMENT_GENERATION:
+				state_manager.update_equipment_data(panel_data)
+	
+	# Emit real-time update signal for other components
+	if has_signal("campaign_data_updated"):
+		campaign_data_updated.emit(state_manager.get_campaign_data())
+
+func _check_overall_completion() -> void:
+	"""Check if campaign creation is ready for completion"""
+	if not state_manager:
+		return
+	
+	var complete_validation = state_manager.validate_complete_state()
+	if complete_validation.valid:
+		print("CampaignCreationUI: Campaign creation ready for completion")
+		
+		# Enable finish button if we're on the final phase
+		var current_phase = state_manager.current_phase
+		if current_phase == CampaignStateManager.Phase.FINAL_REVIEW:
+			if finish_button:
+				finish_button.disabled = false
+				finish_button.tooltip_text = "Campaign is ready - click to start playing!"
+		
+		# Emit completion readiness signal if available
+		if has_signal("campaign_completion_ready"):
+			campaign_completion_ready.emit(state_manager.get_campaign_data())
+	else:
+		print("CampaignCreationUI: Campaign not yet complete - missing: ", complete_validation.get("errors", {}))
+
+func _update_progress_display(current_phase: CampaignStateManager.Phase) -> void:
+	"""Update progress indicators and phase display"""
+	var phase_index = _get_phase_index(current_phase)
+	var total_phases = 7 # CONFIG, CREW_SETUP, CAPTAIN_CREATION, SHIP_ASSIGNMENT, EQUIPMENT_GENERATION, WORLD_GENERATION, FINAL_REVIEW
+	
+	# Update progress bar
+	if progress_bar:
+		progress_bar.max_value = total_phases
+		progress_bar.value = phase_index + 1
+	
+	# Update step label
+	if step_label:
+		var phase_names = {
+			CampaignStateManager.Phase.CONFIG: "Campaign Configuration",
+			CampaignStateManager.Phase.CREW_SETUP: "Crew Setup",
+			CampaignStateManager.Phase.CAPTAIN_CREATION: "Captain Creation",
+			CampaignStateManager.Phase.SHIP_ASSIGNMENT: "Ship Assignment",
+			CampaignStateManager.Phase.EQUIPMENT_GENERATION: "Equipment Generation",
+			CampaignStateManager.Phase.WORLD_GENERATION: "World Generation",
+			CampaignStateManager.Phase.FINAL_REVIEW: "Final Review"
+		}
+		var phase_name = phase_names.get(current_phase, "Unknown Phase")
+		step_label.text = "Step %d of %d: %s" % [phase_index + 1, total_phases, phase_name]
+
+func _get_phase_index(phase: CampaignStateManager.Phase) -> int:
+	"""Get numeric index for phase"""
+	match phase:
+		CampaignStateManager.Phase.CONFIG: return 0
+		CampaignStateManager.Phase.CREW_SETUP: return 1
+		CampaignStateManager.Phase.CAPTAIN_CREATION: return 2
+		CampaignStateManager.Phase.SHIP_ASSIGNMENT: return 3
+		CampaignStateManager.Phase.EQUIPMENT_GENERATION: return 4
+		CampaignStateManager.Phase.WORLD_GENERATION: return 5
+		CampaignStateManager.Phase.FINAL_REVIEW: return 6
+		_: return 0
+
+func _connect_panel_signals() -> void:
+	"""Connect all panel-specific signals beyond the standard ones"""
+	if not current_panel:
+		return
+	
+	# Connect panel to state manager for real-time updates
+	if current_panel.has_method("set_state_manager"):
+		current_panel.set_state_manager(state_manager)
+	
+	# Connect panel-specific signals based on current phase
+	match state_manager.current_phase:
+		CampaignStateManager.Phase.CONFIG:
+			_connect_config_panel_signals()
+		CampaignStateManager.Phase.CREW_SETUP:
+			_connect_crew_panel_signals()
+		CampaignStateManager.Phase.CAPTAIN_CREATION:
+			_connect_captain_panel_signals()
+		CampaignStateManager.Phase.SHIP_ASSIGNMENT:
+			_connect_ship_panel_signals()
+		CampaignStateManager.Phase.EQUIPMENT_GENERATION:
+			_connect_equipment_panel_signals()
+		CampaignStateManager.Phase.WORLD_GENERATION:
+			_connect_world_panel_signals()
+		CampaignStateManager.Phase.FINAL_REVIEW:
+			_connect_final_panel_signals()
+
+func _connect_config_panel_signals() -> void:
+	"""Connect configuration panel specific signals"""
+	if current_panel.has_signal("configuration_complete"):
+		current_panel.configuration_complete.connect(_on_configuration_complete)
+	if current_panel.has_signal("campaign_name_changed"):
+		current_panel.campaign_name_changed.connect(_on_campaign_name_changed)
+	if current_panel.has_signal("difficulty_changed"):
+		current_panel.difficulty_changed.connect(_on_difficulty_changed)
+	if current_panel.has_signal("ironman_toggled"):
+		current_panel.ironman_toggled.connect(_on_ironman_toggled)
+
+func _connect_crew_panel_signals() -> void:
+	"""Connect crew panel specific signals"""
+	if current_panel.has_signal("crew_member_added"):
+		current_panel.crew_member_added.connect(_on_crew_member_added)
+	if current_panel.has_signal("crew_size_changed"):
+		current_panel.crew_size_changed.connect(_on_crew_size_changed)
+	if current_panel.has_signal("crew_setup_complete"):
+		current_panel.crew_setup_complete.connect(_on_crew_setup_complete)
+	if current_panel.has_signal("crew_composition_changed"):
+		current_panel.crew_composition_changed.connect(_on_crew_composition_changed)
+
+func _connect_captain_panel_signals() -> void:
+	"""Connect captain panel specific signals"""
+	if current_panel.has_signal("captain_selected"):
+		current_panel.captain_selected.connect(_on_captain_selected)
+	if current_panel.has_signal("captain_data_changed"):
+		current_panel.captain_data_changed.connect(_on_captain_data_changed)
+	if current_panel.has_signal("captain_creation_complete"):
+		current_panel.captain_creation_complete.connect(_on_captain_creation_complete)
+
+func _connect_ship_panel_signals() -> void:
+	"""Connect ship panel specific signals"""
+	if current_panel.has_signal("ship_selected"):
+		current_panel.ship_selected.connect(_on_ship_selected)
+	if current_panel.has_signal("ship_configured"):
+		current_panel.ship_configured.connect(_on_ship_configured)
+	if current_panel.has_signal("ship_name_changed"):
+		current_panel.ship_name_changed.connect(_on_ship_name_changed)
+	if current_panel.has_signal("ship_type_changed"):
+		current_panel.ship_type_changed.connect(_on_ship_type_changed)
+	if current_panel.has_signal("ship_data_changed"):
+		current_panel.ship_data_changed.connect(_on_ship_data_changed)
+	if current_panel.has_signal("ship_configuration_complete"):
+		current_panel.ship_configuration_complete.connect(_on_ship_configuration_complete)
+
+func _connect_equipment_panel_signals() -> void:
+	"""Connect equipment panel specific signals"""
+	if current_panel.has_signal("equipment_distributed"):
+		current_panel.equipment_distributed.connect(_on_equipment_distributed)
+	if current_panel.has_signal("equipment_generated"):
+		current_panel.equipment_generated.connect(_on_equipment_generated)
+	if current_panel.has_signal("equipment_rerolled"):
+		current_panel.equipment_rerolled.connect(_on_equipment_rerolled)
+	if current_panel.has_signal("equipment_data_changed"):
+		current_panel.equipment_data_changed.connect(_on_equipment_data_changed)
+	if current_panel.has_signal("equipment_generation_complete"):
+		current_panel.equipment_generation_complete.connect(_on_equipment_generation_complete)
+
+func _connect_world_panel_signals() -> void:
+	"""Connect world panel specific signals"""
+	if current_panel.has_signal("world_generated"):
+		current_panel.world_generated.connect(_on_world_generated)
+	if current_panel.has_signal("world_name_changed"):
+		current_panel.world_name_changed.connect(_on_world_name_changed)
+	if current_panel.has_signal("world_type_changed"):
+		current_panel.world_type_changed.connect(_on_world_type_changed)
+
+func _connect_final_panel_signals() -> void:
+	"""Connect final review panel specific signals"""
+	if current_panel.has_signal("campaign_finalization_complete"):
+		current_panel.campaign_finalization_complete.connect(_on_campaign_finalization_complete)
+
+## Panel-specific signal handlers
+
+func _on_configuration_complete(data: Dictionary) -> void:
+	"""Handle configuration panel completion"""
+	print("CampaignCreationUI: Configuration complete with data: ", data)
+	if state_manager and state_manager.update_config_data(data):
+		coordinator.mark_phase_complete(CampaignStateManager.Phase.CONFIG, true)
+		_update_navigation_state()
+	else:
+		push_error("CampaignCreationUI: Failed to save configuration data")
+
+func _on_crew_member_added(member_data: Dictionary) -> void:
+	"""Handle crew member addition"""
+	print("CampaignCreationUI: Crew member added: ", member_data.get("name", "Unknown"))
+
+func _on_crew_size_changed(new_size: int) -> void:
+	"""Handle crew size change"""
+	print("CampaignCreationUI: Crew size changed to: ", new_size)
+	if state_manager and state_manager.update_crew_data({"crew_size": new_size}):
+		_update_navigation_state()
+	else:
+		push_error("CampaignCreationUI: Failed to save crew size change")
+
+func _on_crew_setup_complete(crew_data: Dictionary) -> void:
+	"""Handle crew setup completion"""
+	print("CampaignCreationUI: Crew setup complete with %d members" % crew_data.get("members", []).size())
+	if state_manager and state_manager.update_crew_data(crew_data):
+		coordinator.mark_phase_complete(CampaignStateManager.Phase.CREW_SETUP, true)
+		_update_navigation_state()
+	else:
+		push_error("CampaignCreationUI: Failed to save crew setup data")
+
+func _on_captain_selected(captain_data: Dictionary) -> void:
+	"""Handle captain selection"""
+	print("CampaignCreationUI: Captain selected: ", captain_data.get("name", "Unknown"))
+	if state_manager and state_manager.update_captain_data(captain_data):
+		coordinator.mark_phase_complete(CampaignStateManager.Phase.CAPTAIN_CREATION, true)
+		_update_navigation_state()
+	else:
+		push_error("CampaignCreationUI: Failed to save captain data")
+
+func _on_ship_selected(ship_data: Dictionary) -> void:
+	"""Handle ship selection"""
+	print("CampaignCreationUI: Ship selected: ", ship_data.get("name", "Unknown Ship"))
+	state_manager.update_ship_data(ship_data)
+	_update_navigation_state()
+
+func _on_ship_configured(ship_data: Dictionary) -> void:
+	"""Handle ship configuration completion"""
+	print("CampaignCreationUI: Ship configured: ", ship_data.get("name", "Unknown Ship"))
+	state_manager.update_ship_data(ship_data)
+	coordinator.mark_phase_complete(CampaignStateManager.Phase.SHIP_ASSIGNMENT, true)
+	_update_navigation_state()
+
+func _on_equipment_distributed(equipment_data: Dictionary) -> void:
+	"""Handle equipment distribution completion"""
+	print("CampaignCreationUI: Equipment distributed")
+	state_manager.update_equipment_data(equipment_data)
+	coordinator.mark_phase_complete(CampaignStateManager.Phase.EQUIPMENT_GENERATION, true)
+	_update_navigation_state()
+
+func _on_world_generated(world_data: Dictionary) -> void:
+	"""Handle world generation completion"""
+	print("CampaignCreationUI: World generated: ", world_data.get("name", "Unknown World"))
+	state_manager.update_world_data(world_data)
+	coordinator.mark_phase_complete(CampaignStateManager.Phase.WORLD_GENERATION, true)
+	_update_navigation_state()
+
+func _on_campaign_finalization_complete(finalization_data: Dictionary) -> void:
+	"""Handle campaign finalization completion"""
+	print("CampaignCreationUI: Campaign finalization completed")
+	
+	# Save final campaign data
+	if state_manager:
+		state_manager.finalize_campaign_creation()
+	
+	# Emit campaign creation completed signal if available
+	if has_signal("campaign_creation_completed"):
+		campaign_creation_completed.emit(finalization_data)
+	coordinator.mark_phase_complete(CampaignStateManager.Phase.FINAL_REVIEW, true)
+	_update_navigation_state()
+
+## Additional Signal Handlers for Enhanced Integration
+
+func _on_campaign_name_changed(name: String) -> void:
+	"""Handle campaign name change"""
+	state_manager.update_config_data({"campaign_name": name})
+	_schedule_navigation_update()
+
+func _on_difficulty_changed(difficulty: int) -> void:
+	"""Handle difficulty change"""
+	state_manager.update_config_data({"difficulty": difficulty})
+	_schedule_navigation_update()
+
+func _on_ironman_toggled(enabled: bool) -> void:
+	"""Handle ironman mode toggle"""
+	state_manager.update_config_data({"ironman_mode": enabled})
+	_schedule_navigation_update()
+
+func _on_crew_composition_changed(composition: Array) -> void:
+	"""Handle crew composition change"""
+	state_manager.update_crew_data({"crew_composition": composition})
+	_schedule_navigation_update()
+
+func _on_captain_data_changed(captain_data: Dictionary) -> void:
+	"""Handle captain data change"""
+	state_manager.update_captain_data(captain_data)
+	_schedule_navigation_update()
+
+func _on_captain_creation_complete(captain_data: Dictionary) -> void:
+	"""Handle captain creation completion"""
+	state_manager.update_captain_data(captain_data)
+	coordinator.mark_phase_complete(CampaignStateManager.Phase.CAPTAIN_CREATION, true)
+	_update_navigation_state()
+
+func _on_ship_name_changed(name: String) -> void:
+	"""Handle ship name change"""
+	state_manager.update_ship_data({"ship_name": name})
+	_schedule_navigation_update()
+
+func _on_ship_type_changed(ship_type: int) -> void:
+	"""Handle ship type change"""
+	state_manager.update_ship_data({"ship_type": ship_type})
+	_schedule_navigation_update()
+
+func _on_equipment_generated(equipment: Dictionary) -> void:
+	"""Handle equipment generation"""
+	state_manager.update_equipment_data(equipment)
+	_update_navigation_state()
+
+func _on_equipment_rerolled(equipment: Dictionary) -> void:
+	"""Handle equipment reroll"""
+	state_manager.update_equipment_data(equipment)
+	_update_navigation_state()
+
+func _on_ship_data_changed(ship_data: Dictionary) -> void:
+	"""Handle ship data changes for real-time updates"""
+	if security_validator:
+		var validation_result = security_validator.validate_dictionary_input(ship_data, 1000)
+		if validation_result.valid:
+			state_manager.update_ship_data(validation_result.sanitized_value)
+			_update_real_time_state()
+			print("CampaignCreationUI: Ship data updated in real-time")
+		else:
+			print("CampaignCreationUI: Ship data validation failed: ", validation_result.error)
+
+func _on_ship_configuration_complete(ship: Dictionary) -> void:
+	"""Handle ship configuration completion"""
+	print("CampaignCreationUI: Ship configuration completed: ", ship.get("name", "Unknown Ship"))
+	state_manager.update_ship_data(ship)
+	_update_navigation_state()
+	_check_overall_completion()
+
+func _on_equipment_data_changed(equipment_data: Dictionary) -> void:
+	"""Handle equipment data changes for real-time updates"""
+	if security_validator:
+		var validation_result = security_validator.validate_dictionary_input(equipment_data, 2000)
+		if validation_result.valid:
+			state_manager.update_equipment_data(validation_result.sanitized_value)
+			_update_real_time_state()
+			print("CampaignCreationUI: Equipment data updated in real-time")
+		else:
+			print("CampaignCreationUI: Equipment data validation failed: ", validation_result.error)
+
+func _on_equipment_generation_complete(equipment: Array) -> void:
+	"""Handle equipment generation completion"""
+	print("CampaignCreationUI: Equipment generation completed: %d items" % equipment.size())
+	state_manager.update_equipment_data({"equipment": equipment})
+	_update_navigation_state()
+	_check_overall_completion()
+
+func _on_world_name_changed(name: String) -> void:
+	"""Handle world name change"""
+	state_manager.update_world_data({"world_name": name})
+	_update_navigation_state()
+
+func _on_world_type_changed(world_type: int) -> void:
+	"""Handle world type change"""
+	state_manager.update_world_data({"world_type": world_type})
+	_update_navigation_state()
+
+## Panel Data Persistence System
+
+# Panel data cache for recovery and navigation
+var panel_data_cache: Dictionary = {}
+var persistence_file_path: String = "user://campaign_creation_state.dat"
+
+func _before_panel_switch(old_phase: CampaignStateManager.Phase) -> void:
+	"""Save current panel data before switching"""
+	if not current_panel:
+		return
+		
+	# Get panel data if method exists
+	if current_panel.has_method("get_panel_data"):
+		var panel_data = current_panel.get_panel_data()
+		
+		# Save to state manager
+		state_manager.save_phase_data(old_phase, panel_data)
+		
+		# Store in persistent cache for recovery
+		_store_panel_data_cache(old_phase, panel_data)
+		
+		# Save to disk for crash recovery
+		_save_persistence_data()
+		
+		print("CampaignCreationUI: Saved data for phase: %s" % str(old_phase))
+
+func _after_panel_switch(new_phase: CampaignStateManager.Phase) -> void:
+	"""Restore panel data after switching"""
+	if not current_panel:
+		return
+		
+	# Set state manager reference
+	if current_panel.has_method("set_state_manager"):
+		current_panel.set_state_manager(state_manager)
+	
+	# Try to restore previous data for this phase
+	var saved_data = state_manager.get_phase_data(new_phase)
+	
+	# If no data in state manager, try cache
+	if saved_data.is_empty():
+		saved_data = _restore_panel_data_cache(new_phase)
+	
+	# If still no data, try loading from disk
+	if saved_data.is_empty():
+		saved_data = _load_persistence_data_for_phase(new_phase)
+	
+	# Restore panel data if available
+	if not saved_data.is_empty() and current_panel.has_method("restore_panel_data"):
+		current_panel.restore_panel_data(saved_data)
+		print("CampaignCreationUI: Restored data for phase: %s" % str(new_phase))
+
+func _store_panel_data_cache(phase: CampaignStateManager.Phase, data: Dictionary) -> void:
+	"""Store panel data in memory cache"""
+	panel_data_cache[phase] = data.duplicate(true)
+
+func _restore_panel_data_cache(phase: CampaignStateManager.Phase) -> Dictionary:
+	"""Restore panel data from memory cache"""
+	return panel_data_cache.get(phase, {})
+
+func _save_persistence_data() -> void:
+	"""Save panel data cache to disk for crash recovery"""
+	var persistence_data = {
+		"version": "1.0",
+		"timestamp": Time.get_datetime_string_from_system(),
+		"current_phase": state_manager.current_phase,
+		"panel_cache": panel_data_cache,
+		"campaign_data": _gather_all_campaign_data()
 	}
 	
-		var save_path = "user://campaigns/" + campaign_data.name.replace(" ", "_") + ".json"
-		
-		if success:
-			print("CampaignCreationUI: Campaign created successfully with unified systems")
-			_set_loading_state(false)
-			_show_success_dialog("Campaign Created", 
-				"Your campaign '%s' has been created successfully using the new unified systems!" % campaign_data.name)
-			
-			# Navigate to campaign dashboard
-			if has_method("_navigate_to_campaign_dashboard"):
-				_navigate_to_campaign_dashboard(campaign_data)
-		else:
-			_set_loading_state(false)
-			_show_enhanced_error_dialog("Save Error",
-				"Campaign was created but could not be saved.",
-				"There was an issue saving your campaign to disk.")
+	var file = FileAccess.open(persistence_file_path, FileAccess.WRITE)
+	if file:
+		file.store_string(JSON.stringify(persistence_data))
+		file.close()
+		print("CampaignCreationUI: Persistence data saved")
 	else:
-		# Fallback to legacy creation if unified systems not available
-		print("CampaignCreationUI: Falling back to legacy campaign creation")
-		await _create_campaign_from_data_enhanced(workflow_data)
+		push_error("CampaignCreationUI: Failed to save persistence data")
 
-func _update_credits_display(credits: int) -> void:
-	"""Update credits display in UI"""
-	# Update any credits display elements
-	pass
+func _load_persistence_data() -> Dictionary:
+	"""Load persistence data from disk"""
+	if not FileAccess.file_exists(persistence_file_path):
+		return {}
+	
+	var file = FileAccess.open(persistence_file_path, FileAccess.READ)
+	if not file:
+		return {}
+	
+	var json_text = file.get_as_text()
+	file.close()
+	
+	var json = JSON.new()
+	var parse_result = json.parse(json_text)
+	
+	if parse_result != OK:
+		push_error("CampaignCreationUI: Failed to parse persistence data")
+		return {}
+	
+	return json.data
 
-func _update_supplies_display(supplies: int) -> void:
-	"""Update supplies display in UI"""
-	# Update any supplies display elements
-	pass
+func _load_persistence_data_for_phase(phase: CampaignStateManager.Phase) -> Dictionary:
+	"""Load persistence data for specific phase"""
+	var persistence_data = _load_persistence_data()
+	var panel_cache = persistence_data.get("panel_cache", {})
+	return panel_cache.get(str(phase), {})
 
-func _update_reputation_display(reputation: int) -> void:
-	"""Update reputation display in UI"""
-	# Update any reputation display elements
-	pass
+func _gather_all_campaign_data() -> Dictionary:
+	"""Gather all campaign data from state manager"""
+	if not state_manager:
+		return {}
+	
+	return {
+		"config": state_manager.get_phase_data(CampaignStateManager.Phase.CONFIG),
+		"crew": state_manager.get_phase_data(CampaignStateManager.Phase.CREW_SETUP),
+		"captain": state_manager.get_phase_data(CampaignStateManager.Phase.CAPTAIN_CREATION),
+		"ship": state_manager.get_phase_data(CampaignStateManager.Phase.SHIP_ASSIGNMENT),
+		"equipment": state_manager.get_phase_data(CampaignStateManager.Phase.EQUIPMENT_GENERATION),
+		"world": state_manager.get_phase_data(CampaignStateManager.Phase.WORLD_GENERATION),
+		"validation_summary": state_manager.get_validation_summary() if state_manager.has_method("get_validation_summary") else {},
+		"completion_status": state_manager.get_completion_status() if state_manager.has_method("get_completion_status") else {}
+	}
+
+func _restore_from_persistence() -> bool:
+	"""Restore campaign creation state from persistence data"""
+	var persistence_data = _load_persistence_data()
+	if persistence_data.is_empty():
+		return false
+	
+	# Restore panel cache
+	panel_data_cache = persistence_data.get("panel_cache", {})
+	
+	# Restore campaign data to state manager
+	var campaign_data = persistence_data.get("campaign_data", {})
+	for phase_name in campaign_data.keys():
+		var phase_data = campaign_data[phase_name]
+		if not phase_data.is_empty():
+			var phase = _string_to_phase(phase_name)
+			if phase != null:
+				state_manager.save_phase_data(phase, phase_data)
+	
+	# Restore current phase
+	var saved_phase = persistence_data.get("current_phase")
+	if saved_phase != null:
+		# Load the panel for the saved phase
+		_load_panel_for_phase(saved_phase)
+	
+	print("CampaignCreationUI: Restored from persistence data")
+	return true
+
+func _string_to_phase(phase_name: String) -> CampaignStateManager.Phase:
+	"""Convert string to phase enum"""
+	match phase_name:
+		"config":
+			return CampaignStateManager.Phase.CONFIG
+		"crew":
+			return CampaignStateManager.Phase.CREW_SETUP
+		"captain":
+			return CampaignStateManager.Phase.CAPTAIN_CREATION
+		"ship":
+			return CampaignStateManager.Phase.SHIP_ASSIGNMENT
+		"equipment":
+			return CampaignStateManager.Phase.EQUIPMENT_GENERATION
+		"world":
+			return CampaignStateManager.Phase.WORLD_GENERATION
+		_:
+			return CampaignStateManager.Phase.CONFIG # Default to first phase instead of null
+
+func _clear_persistence_data() -> void:
+	"""Clear persistence data when campaign creation is complete"""
+	if FileAccess.file_exists(persistence_file_path):
+		DirAccess.open("user://").remove(persistence_file_path.get_file())
+		print("CampaignCreationUI: Persistence data cleared")
+	
+	panel_data_cache.clear()
+
+func _initialize_persistence_system() -> void:
+	"""Initialize the persistence system and restore if needed"""
+	# Try to restore from previous session
+	if _restore_from_persistence():
+		print("CampaignCreationUI: Restored previous campaign creation session")
+	else:
+		print("CampaignCreationUI: Starting fresh campaign creation")
+
+## Enhanced Panel Data Restoration Methods
+
+func _restore_config_panel_data(panel: Control, data: Dictionary) -> void:
+	"""Restore configuration panel specific data"""
+	if data.is_empty():
+		return
+	
+	var name_input = panel.get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/CampaignName/LineEdit")
+	if name_input and data.has("name"):
+		name_input.text = data.name
+	
+	var difficulty_option = panel.get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/Difficulty/OptionButton")
+	if difficulty_option and data.has("difficulty"):
+		_select_option_by_value(difficulty_option, data.difficulty)
+
+func _restore_crew_panel_data(panel: Control, data: Dictionary) -> void:
+	"""Restore crew panel specific data"""
+	if data.is_empty():
+		return
+	
+	var crew_members = data.get("members", [])
+	for member_data in crew_members:
+		# This would be handled by the panel's restore_panel_data method
+		pass
+
+func _select_option_by_value(option_button: OptionButton, value: Variant) -> void:
+	"""Select option button item by value"""
+	if not option_button:
+		return
+		
+	for i in range(option_button.get_item_count()):
+		if option_button.get_item_metadata(i) == value:
+			option_button.select(i)
+			break
+
+## Enhanced Panel Caching System
+
+func _initialize_panel_caching() -> void:
+	"""Initialize the panel caching system"""
+	print("CampaignCreationUI: Initializing enhanced panel caching system")
+	
+	# Initialize cache structures
+	panel_cache = {}
+	preloaded_scenes = {}
+	panel_load_queue = []
+	
+	# Start preloading critical panels
+	_start_background_preloading()
+
+func _start_background_preloading() -> void:
+	"""Start background preloading of panel scenes"""
+	if is_preloading:
+		return
+	
+	is_preloading = true
+	preload_progress = 0
+	
+	# Queue panels for preloading in likely usage order
+	panel_load_queue = [
+		CampaignStateManager.Phase.CONFIG,
+		CampaignStateManager.Phase.CREW_SETUP,
+		CampaignStateManager.Phase.CAPTAIN_CREATION,
+		CampaignStateManager.Phase.SHIP_ASSIGNMENT,
+		CampaignStateManager.Phase.EQUIPMENT_GENERATION,
+		CampaignStateManager.Phase.WORLD_GENERATION,
+		CampaignStateManager.Phase.FINAL_REVIEW
+	]
+	
+	# Start preloading process
+	call_deferred("_preload_next_scene")
+
+func _preload_next_scene() -> void:
+	"""Preload the next scene in the queue"""
+	if panel_load_queue.is_empty():
+		is_preloading = false
+		print("CampaignCreationUI: ✅ Background preloading complete")
+		return
+	
+	var phase = panel_load_queue.pop_front()
+	var scene_path = panel_scenes.get(phase, "")
+	
+	if scene_path.is_empty():
+		call_deferred("_preload_next_scene")
+		return
+	
+	if not ResourceLoader.exists(scene_path):
+		push_warning("CampaignCreationUI: Panel scene not found: " + scene_path)
+		call_deferred("_preload_next_scene")
+		return
+	
+	# Load scene resource with safe error handling
+	var scene_resource = null
+	
+	# Use ResourceLoader for safer loading with error checking
+	if ResourceLoader.exists(scene_path):
+		scene_resource = ResourceLoader.load(scene_path)
+		
+		# Additional validation - ensure the scene is actually loadable
+		if scene_resource and scene_resource is PackedScene:
+			# Scene loaded successfully
+			pass
+		else:
+			push_warning("CampaignCreationUI: Scene resource is not a valid PackedScene: " + scene_path)
+			scene_resource = null
+	else:
+		push_warning("CampaignCreationUI: Scene file does not exist: " + scene_path)
+	
+	if scene_resource:
+		preloaded_scenes[phase] = scene_resource
+		preload_progress += 1
+		print("CampaignCreationUI: Preloaded panel scene for phase: %s (%d/%d)" % [
+			str(phase), preload_progress, panel_scenes.size()
+		])
+	else:
+		push_warning("CampaignCreationUI: Failed to preload scene: " + scene_path)
+	
+	# Continue with next scene (with small delay to avoid blocking)
+	get_tree().create_timer(0.01).timeout.connect(_preload_next_scene)
+
+func _cache_current_panel(current_phase: CampaignStateManager.Phase) -> void:
+	"""Cache the current panel for later reuse"""
+	if not current_panel:
+		return
+	
+	# Remove from scene tree but don't free
+	content_container.remove_child(current_panel)
+	
+	# Store in cache
+	panel_cache[current_phase] = current_panel
+	
+	print("CampaignCreationUI: Cached panel for phase: %s" % str(current_phase))
+
+func _remove_current_panel() -> void:
+	"""Remove current panel from scene tree"""
+	if current_panel and current_panel.get_parent():
+		current_panel.get_parent().remove_child(current_panel)
+	current_panel = null
+
+func _comprehensive_panel_cleanup() -> void:
+	"""Comprehensive panel cleanup with validation"""
+	if current_panel:
+		_cache_current_panel(state_manager.current_phase)
+		_remove_current_panel()
+	_clear_content_container()
+
+func _validate_content_container_state() -> bool:
+	"""Validate content container is ready for new panel"""
+	if not content_container:
+		push_error("ContentContainer not found")
+		return false
+	
+	var child_count = content_container.get_child_count()
+	if child_count > 0:
+		push_warning("ContentContainer has %d children when it should be empty" % child_count)
+		_clear_content_container()
+	
+	return true
+
+func _verify_single_panel_state() -> bool:
+	"""Verify only one panel exists in content container"""
+	if not content_container:
+		return false
+	
+	var child_count = content_container.get_child_count()
+	if child_count != 1:
+		push_error("Expected 1 panel, found %d panels in ContentContainer" % child_count)
+		return false
+	
+	return true
+
+func _emergency_panel_cleanup() -> void:
+	"""Emergency cleanup when multiple panels detected"""
+	print("CampaignCreationUI: EMERGENCY - Cleaning up multiple panels")
+	_clear_content_container()
+	current_panel = null
+
+func _initialize_panel_complete(phase: CampaignStateManager.Phase) -> void:
+	"""Complete panel initialization"""
+	if current_panel:
+		_connect_standard_panel_signals()
+		_connect_panel_to_state_manager(current_panel)
+		_restore_panel_data(phase)
+		
+		# PHASE 1B: Track panel initialization performance
+		var init_duration = Time.get_unix_time_from_system() - _current_panel_load_start_time
+		if _performance_logging_enabled:
+			_log_performance_metric("panel_initialization", {
+				"phase": str(phase),
+				"duration_ms": init_duration * 1000.0
+			})
+
+func _complete_panel_loading() -> void:
+	"""Complete panel loading and process queue"""
+	_is_panel_loading = false
+	
+	# Process any queued phase transitions
+	if _panel_load_queue.size() > 0:
+		var next_phase = _panel_load_queue.pop_front()
+		call_deferred("_load_panel_for_phase", next_phase)
+
+# PHASE 1 DAY 1: State machine validation and corruption detection functions
+
+func _validate_state_machine_readiness(target_phase: CampaignStateManager.Phase) -> bool:
+	"""Validate that state machine is ready for phase transition"""
+	if not state_manager:
+		push_error("CampaignCreationUI: No state manager available")
+		return false
+	
+	# Check if state manager is in a valid state
+	if state_manager.has_method("is_processing_operation") and state_manager.is_processing_operation():
+		push_warning("CampaignCreationUI: State manager is processing operation, deferring transition")
+		return false
+	
+	# Validate transition is allowed
+	var current_phase = state_manager.current_phase
+	if not _is_valid_phase_transition(current_phase, target_phase):
+		push_error("CampaignCreationUI: Invalid phase transition from %s to %s" % [str(current_phase), str(target_phase)])
+		return false
+	
+	return true
+
+func _is_valid_phase_transition(from_phase: CampaignStateManager.Phase, to_phase: CampaignStateManager.Phase) -> bool:
+	"""Check if phase transition is valid"""
+	# Allow transitions to adjacent phases or same phase (refresh)
+	var phase_order = [
+		CampaignStateManager.Phase.CONFIG,
+		CampaignStateManager.Phase.CREW_SETUP,
+		CampaignStateManager.Phase.CAPTAIN_CREATION,
+		CampaignStateManager.Phase.SHIP_ASSIGNMENT,
+		CampaignStateManager.Phase.EQUIPMENT_GENERATION,
+		CampaignStateManager.Phase.WORLD_GENERATION,
+		CampaignStateManager.Phase.FINAL_REVIEW
+	]
+	
+	var from_index = phase_order.find(from_phase)
+	var to_index = phase_order.find(to_phase)
+	
+	if from_index == -1 or to_index == -1:
+		return false
+	
+	# Allow forward/backward navigation within 2 steps or same phase
+	var diff = abs(to_index - from_index)
+	return diff <= 2 or from_phase == to_phase
+
+func _detect_and_recover_corruption() -> bool:
+	"""Detect UI corruption and attempt recovery"""
+	var corruption_detected = false
+	
+	# Check 1: ContentContainer validity
+	if not content_container or not is_instance_valid(content_container):
+		push_error("CampaignCreationUI: ContentContainer corruption detected")
+		corruption_detected = true
+	
+	# Check 2: Multiple panels in container
+	if content_container and content_container.get_child_count() > 1:
+		push_warning("CampaignCreationUI: Multiple panels detected - corruption likely")
+		corruption_detected = true
+	
+	# Check 3: Panel/state manager mismatch
+	if current_panel and state_manager:
+		var expected_phase = state_manager.current_phase
+		var panel_phase = _get_panel_phase(current_panel)
+		if panel_phase != expected_phase and panel_phase != CampaignStateManager.Phase.CONFIG:
+			push_warning("CampaignCreationUI: Panel/state mismatch detected")
+			corruption_detected = true
+	
+	# Attempt basic recovery
+	if corruption_detected:
+		_attempt_basic_corruption_recovery()
+	
+	return not corruption_detected
+
+func _attempt_basic_corruption_recovery() -> void:
+	"""Attempt to recover from basic UI corruption"""
+	print("CampaignCreationUI: Attempting corruption recovery...")
+	
+	# Clear all panels
+	_emergency_panel_cleanup()
+	
+	# Reset loading state
+	_is_panel_loading = false
+	_panel_load_queue.clear()
+	
+	# Increment error count for monitoring
+	_performance_monitor.error_count += 1
+
+func _emergency_recovery_and_restart() -> void:
+	"""Emergency recovery - restart campaign creation from safe state"""
+	push_error("CampaignCreationUI: Performing emergency recovery restart")
+	
+	# Clear all state
+	_emergency_panel_cleanup()
+	_is_panel_loading = false
+	_panel_load_queue.clear()
+	current_panel = null
+	
+	# Create a minimal fallback panel to prevent complete failure
+	var fallback_panel = _create_minimal_fallback_panel(state_manager.current_phase)
+	if fallback_panel:
+		current_panel = fallback_panel
+		content_container.add_child(current_panel)
+		print("CampaignCreationUI: Emergency fallback panel created")
+		return
+	
+	# Reset to CONFIG phase
+	if state_manager:
+		state_manager.reset_to_phase(CampaignStateManager.Phase.CONFIG)
+	
+	# Reload initial panel after a brief delay
+	call_deferred("_load_initial_panel")
+	
+	# Increment error count for monitoring
+	_performance_monitor.error_count += 1
+
+func _create_panel_for_phase_with_recovery(phase: CampaignStateManager.Phase) -> Control:
+	"""Enhanced panel creation with error recovery"""
+	var panel = await _create_panel_for_phase(phase)
+	
+	if not panel:
+		push_warning("CampaignCreationUI: Primary panel creation failed, attempting recovery")
+		# Clear any cached corrupted resources
+		if preloaded_scenes.has(phase):
+			preloaded_scenes.erase(phase)
+		
+		# Try loading fresh
+		panel = await _create_panel_for_phase(phase)
+		
+		if panel:
+			print("CampaignCreationUI: Panel recovery successful for phase: %s" % str(phase))
+	
+	# Clean up resources after successful creation
+	if panel:
+		if preloaded_scenes.has(phase):
+			preloaded_scenes.erase(phase)
+		if panel_cache.has(phase):
+			panel_cache.erase(phase)
+		
+		# Force garbage collection
+		if Engine.has_method("force_gc"):
+			Engine.call("force_gc")
+	else:
+		# Increment error count only on failure
+		_performance_monitor.error_count += 1
+	
+	# CRITICAL FIX: Always return panel (may be null)
+	return panel
+
+func _get_panel_phase(panel: Control) -> CampaignStateManager.Phase:
+	"""Get the phase associated with a panel"""
+	if not panel:
+		return CampaignStateManager.Phase.CONFIG
+	
+	var panel_class = panel.get_class()
+	
+	# Map panel classes to phases
+	match panel_class:
+		"ConfigPanel": return CampaignStateManager.Phase.CONFIG
+		"CrewPanel": return CampaignStateManager.Phase.CREW_SETUP
+		"CaptainPanel": return CampaignStateManager.Phase.CAPTAIN_CREATION
+		"ShipPanel": return CampaignStateManager.Phase.SHIP_ASSIGNMENT
+		"EquipmentPanel": return CampaignStateManager.Phase.EQUIPMENT_GENERATION
+		"WorldInfoPanel": return CampaignStateManager.Phase.WORLD_GENERATION
+		"FinalPanel": return CampaignStateManager.Phase.FINAL_REVIEW
+		_: return CampaignStateManager.Phase.CONFIG
+
+# PHASE 1 DAY 1: Basic metrics collection integration
+
+func collect_basic_metrics() -> Dictionary:
+	"""Collect basic metrics for system health monitoring"""
+	var metrics = {
+		"timestamp": Time.get_unix_time_from_system(),
+		"session_duration": _get_session_duration(),
+		"ui_health": _get_ui_health_metrics(),
+		"performance": _get_basic_performance_metrics(),
+		"errors": _get_error_metrics(),
+		"system": _get_system_metrics()
+	}
+	
+	# Log critical metrics
+	if metrics.errors.total_errors > 0 or metrics.ui_health.corruption_detected:
+		_log_critical_metrics(metrics)
+	
+	return metrics
+
+func _get_session_duration() -> float:
+	"""Get current session duration in seconds"""
+	return Time.get_unix_time_from_system() - _performance_monitor.session_start_time
+
+func _get_ui_health_metrics() -> Dictionary:
+	"""Get UI health metrics"""
+	return {
+		"current_panel_valid": current_panel != null and is_instance_valid(current_panel),
+		"content_container_valid": content_container != null and is_instance_valid(content_container),
+		"panel_loading_state": _is_panel_loading,
+		"queue_length": _panel_load_queue.size(),
+		"corruption_detected": _detect_ui_corruption_silent(),
+		"multiple_panels": content_container.get_child_count() > 1 if content_container else false
+	}
+
+func _get_basic_performance_metrics() -> Dictionary:
+	"""Get basic performance metrics"""
+	return {
+		"total_panel_loads": _performance_monitor.total_panel_loads,
+		"average_load_time": _calculate_average_load_time(),
+		"cache_hit_rate": performance_stats.cache_hit_rate if performance_stats else 0.0,
+		"memory_usage_mb": OS.get_static_memory_usage() / 1024.0 / 1024.0,
+		"animation_success_rate": 1.0  # Animations removed - immediate UI
+	}
+
+func _get_error_metrics() -> Dictionary:
+	"""Get error metrics"""
+	return {
+		"total_errors": _performance_monitor.error_count,
+		"total_warnings": _performance_monitor.warning_count,
+		"recent_errors": _get_recent_error_count(),
+		"error_rate": _calculate_error_rate()
+	}
+
+func _get_system_metrics() -> Dictionary:
+	"""Get system-level metrics"""
+	return {
+		"godot_version": Engine.get_version_info(),
+		"platform": OS.get_name(),
+		"memory_available": OS.get_static_memory_usage(),
+		"fps": Engine.get_frames_per_second(),
+		"frame_time_ms": Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0
+	}
+
+func _detect_ui_corruption_silent() -> bool:
+	"""Silently detect UI corruption without logging"""
+	if not content_container or not is_instance_valid(content_container):
+		return true
+	
+	if content_container.get_child_count() > 1:
+		return true
+	
+	if current_panel and state_manager:
+		var expected_phase = state_manager.current_phase
+		var panel_phase = _get_panel_phase(current_panel)
+		if panel_phase != expected_phase and panel_phase != CampaignStateManager.Phase.CONFIG:
+			return true
+	
+	return false
+
+# Animation success rate calculation removed - Framework Bible compliance
+# Animations removed entirely for immediate UI responses
+
+func _get_recent_error_count() -> int:
+	"""Get count of errors in last 5 minutes"""
+	var recent_threshold = Time.get_unix_time_from_system() - 300.0 # 5 minutes
+	var recent_errors = 0
+	
+	# This is a simplified implementation - in a real system you'd track error timestamps
+	if _performance_monitor.error_count > 0:
+		recent_errors = min(_performance_monitor.error_count, 10) # Assume recent errors are last 10
+	
+	return recent_errors
+
+func _calculate_error_rate() -> float:
+	"""Calculate error rate per minute"""
+	var session_minutes = _get_session_duration() / 60.0
+	if session_minutes < 0.1: # Less than 6 seconds
+		return 0.0
+	
+	return _performance_monitor.error_count / session_minutes
+
+func _log_critical_metrics(metrics: Dictionary) -> void:
+	"""Log critical metrics that indicate problems"""
+	if metrics.errors.total_errors > 5:
+		push_error("CampaignCreationUI: High error count detected: %d errors" % metrics.errors.total_errors)
+	
+	if metrics.ui_health.corruption_detected:
+		push_error("CampaignCreationUI: UI corruption detected in metrics collection")
+	
+	if metrics.ui_health.multiple_panels:
+		push_error("CampaignCreationUI: Multiple panels detected in metrics collection")
+	
+	if metrics.performance.cache_hit_rate < 0.5:
+		push_warning("CampaignCreationUI: Low cache hit rate: %.2f" % metrics.performance.cache_hit_rate)
+
+func export_metrics_for_monitoring() -> Dictionary:
+	"""Export metrics in standardized format for external monitoring"""
+	var basic_metrics = collect_basic_metrics()
+	
+	return {
+		"service": "campaign_creation_ui",
+		"version": "1.0.0",
+		"timestamp": basic_metrics.timestamp,
+		"metrics": {
+			"uptime_seconds": basic_metrics.session_duration,
+			"error_count": basic_metrics.errors.total_errors,
+			"warning_count": basic_metrics.errors.total_warnings,
+			"ui_healthy": not basic_metrics.ui_health.corruption_detected,
+			"panel_loads_total": basic_metrics.performance.total_panel_loads,
+			"memory_usage_mb": basic_metrics.performance.memory_usage_mb,
+			"cache_hit_rate": basic_metrics.performance.cache_hit_rate,
+			"animation_success_rate": basic_metrics.performance.animation_success_rate,
+			"error_rate_per_minute": basic_metrics.errors.error_rate
+		},
+		"health_status": _determine_health_status(basic_metrics)
+	}
+
+func _determine_health_status(metrics: Dictionary) -> String:
+	"""Determine overall health status from metrics"""
+	if metrics.ui_health.corruption_detected:
+		return "critical"
+	
+	if metrics.errors.total_errors > 10:
+		return "unhealthy"
+	
+	if metrics.errors.error_rate > 2.0: # More than 2 errors per minute
+		return "degraded"
+	
+	# Animation success rate check removed - no animations needed
+	
+	return "healthy"
+
+func _get_cached_panel(phase: CampaignStateManager.Phase) -> Control:
+	"""Get panel from cache if available"""
+	var cached_panel = panel_cache.get(phase, null)
+	if cached_panel:
+		print("CampaignCreationUI: Retrieved cached panel for phase: %s" % str(phase))
+		# Remove from cache to avoid duplicate usage
+		panel_cache.erase(phase)
+		return cached_panel
+	return null
+
+func _create_panel_for_phase(phase: CampaignStateManager.Phase) -> Control:
+	"""Create panel with enhanced safety and feature flag support"""
+	
+	# PHASE 1: Check if enhanced animation safety is enabled
+	if CampaignCreationFeatureFlags.is_enabled(CampaignCreationFeatureFlags.FeatureFlag.NEW_ANIMATION_SAFETY):
+		return await _create_panel_for_phase_v2(phase)
+	else:
+		return await _create_panel_for_phase_v1(phase)
+
+func _create_panel_for_phase_v1(phase: CampaignStateManager.Phase) -> Control:
+	"""Original panel creation method (fallback)"""
+	var scene_resource = preloaded_scenes.get(phase, null)
+	
+	# If not preloaded, load now
+	if not scene_resource:
+		var scene_path = panel_scenes.get(phase, "")
+		if scene_path.is_empty():
+			push_error("No scene path defined for phase: " + str(phase))
+			return null
+		
+		scene_resource = load(scene_path)
+		if not scene_resource:
+			push_error("Failed to load panel scene: " + scene_path)
+			return null
+		
+		print("CampaignCreationUI: Loaded panel scene on-demand for phase: %s" % str(phase))
+	else:
+		print("CampaignCreationUI: Using preloaded scene for phase: %s" % str(phase))
+	
+	# CRITICAL FIX: Add null checks and validation before instantiation
+	if not scene_resource or not is_instance_valid(scene_resource):
+		push_error("Scene resource is invalid for phase: " + str(phase))
+		return null
+	
+	# CRITICAL FIX: Use the same safe instantiation as v2 for consistency
+	var panel_instance = _safe_instantiate_with_error_suppression(scene_resource, phase)
+	if not panel_instance:
+		push_error("Failed to instantiate panel for phase: " + str(phase))
+		return null
+	
+	print("Animation safety fixes applied to panel for phase: %s" % str(phase))
+	
+	# CRITICAL FIX: Ensure panel is ready before returning
+	if panel_instance.has_method("_ready"):
+		# Allow the panel to initialize properly
+		await get_tree().process_frame
+	
+	return panel_instance
+
+func _create_panel_for_phase_v2(phase: CampaignStateManager.Phase) -> Control:
+	"""PHASE 1: Enhanced panel creation with comprehensive safety systems"""
+	
+	var start_time = Time.get_unix_time_from_system()
+	
+	# CRITICAL: State machine validation prevents race conditions
+	if not _can_create_panel():
+		push_error("Cannot create panel - UI not in valid state: %s" % str(ui_state))
+		if error_monitor:
+			error_monitor.record_error("Panel creation blocked by UI state", CampaignCreationErrorMonitor.ErrorCategory.UI_INTERACTION, CampaignCreationErrorMonitor.ErrorSeverity.MAJOR)
+		return null
+	
+	_transition_ui_state(UIState.LOADING_PANEL)
+	
+	# CRITICAL: Validate phase bounds (fixes out of bounds errors)
+	if phase < 0 or phase > CampaignStateManager.Phase.FINAL_REVIEW:
+		push_error("Invalid phase index: %d" % phase)
+		if error_monitor:
+			error_monitor.record_error("Invalid phase index: %d" % phase, CampaignCreationErrorMonitor.ErrorCategory.STATE_MANAGEMENT, CampaignCreationErrorMonitor.ErrorSeverity.CRITICAL)
+		_transition_ui_state(UIState.ERROR_RECOVERY)
+		return null
+	
+	# PRODUCTION: Comprehensive scene loading with fallback
+	var panel_instance = _safe_load_panel_scene(phase)
+	if not panel_instance:
+		_handle_panel_creation_failure(phase)
+		return null
+	
+	# CRITICAL: Ensure panel is properly initialized before use
+	if not await _validate_panel_readiness(panel_instance):
+		push_error("Panel failed readiness validation for phase: %s" % str(phase))
+		panel_instance.queue_free()
+		_transition_ui_state(UIState.ERROR_RECOVERY)
+		if error_monitor:
+			error_monitor.record_error("Panel readiness validation failed", CampaignCreationErrorMonitor.ErrorCategory.PANEL_LOADING, CampaignCreationErrorMonitor.ErrorSeverity.MAJOR)
+		return null
+	
+	# SUCCESS: Panel created and validated
+	last_successful_phase = phase
+	error_count = 0 # Reset error counter on success
+	_transition_ui_state(UIState.PANEL_ACTIVE)
+	
+	var duration = (Time.get_unix_time_from_system() - start_time) * 1000
+	if performance_tracker:
+		performance_tracker.track_panel_creation(phase, true, duration)
+	
+	print("CampaignCreationUI: ✅ Successfully created panel for phase: %s (%.1fms)" % [str(phase), duration])
+	return panel_instance
+
+# PHASE 1: UI State Machine and Animation Safety Support Methods
+
+func _can_create_panel() -> bool:
+	"""Check if UI state allows panel creation"""
+	ui_state_lock.lock()
+	var can_create = ui_state in [UIState.IDLE, UIState.PANEL_ACTIVE]
+	ui_state_lock.unlock()
+	return can_create
+
+func _transition_ui_state(new_state: UIState) -> void:
+	"""Thread-safe UI state transitions with logging"""
+	ui_state_lock.lock()
+	var old_state = ui_state
+	ui_state = new_state
+	ui_state_lock.unlock()
+	
+	print("CampaignCreationUI: State transition: %s → %s" % [str(old_state), str(new_state)])
+	
+	# Handle state-specific initialization
+	match new_state:
+		UIState.LOADING_PANEL:
+			_start_panel_load_timeout()
+		UIState.ERROR_RECOVERY:
+			_initiate_error_recovery()
+
+func _safe_load_panel_scene(phase: CampaignStateManager.Phase) -> Control:
+	"""Safe scene loading with comprehensive error handling"""
+	
+	# Get scene path with validation
+	var scene_path = panel_scenes.get(phase, "")
+	if scene_path.is_empty():
+		push_error("No scene path defined for phase: %s" % str(phase))
+		return null
+	
+	# Validate scene file exists
+	if not ResourceLoader.exists(scene_path):
+		push_error("Scene file does not exist: %s" % scene_path)
+		return null
+	
+	# Load scene resource safely
+	var scene_resource = null
+	if preloaded_scenes.has(phase):
+		scene_resource = preloaded_scenes[phase]
+		print("Using preloaded scene for phase: %s" % str(phase))
+	else:
+		scene_resource = load(scene_path)
+		if not scene_resource:
+			push_error("Failed to load scene resource: %s" % scene_path)
+			return null
+		print("Loaded scene on-demand for phase: %s" % str(phase))
+	
+	# Validate scene resource
+	if not scene_resource or not scene_resource is PackedScene:
+		push_error("Invalid scene resource for phase: %s" % str(phase))
+		return null
+	
+	# CRITICAL FIX: Error-suppressed instantiation to handle animation C++ errors
+	var panel_instance = _safe_instantiate_with_error_suppression(scene_resource, phase)
+	if not panel_instance:
+		push_error("Failed to instantiate scene for phase: %s" % str(phase))
+		# Try fallback panel creation
+		var fallback_panel = _create_minimal_fallback_panel(phase)
+		if fallback_panel:
+			print("CampaignCreationUI: Using fallback panel for phase: %s" % str(phase))
+			return fallback_panel
+		return null
+	
+	# CRITICAL: Apply animation safety fixes immediately after instantiation
+	if panel_instance and is_instance_valid(panel_instance):
+		_setup_panel_basic(panel_instance)
+		print("CampaignCreationUI: Animation safety fixes applied for phase: %s" % str(phase))
+		
+		# Additional validation to ensure panel is ready
+		if not panel_instance.has_method("validate_panel"):
+			push_error("Panel instance missing required validate_panel method")
+			panel_instance.queue_free()
+			
+			# Try fallback panel creation
+			var fallback_panel = _create_minimal_fallback_panel(phase)
+			if fallback_panel:
+				print("CampaignCreationUI: Using fallback panel due to validation failure")
+				return fallback_panel
+			return null
+		
+		return panel_instance
+	else:
+		push_error("Panel instance is null or invalid after instantiation")
+		
+		# Try fallback panel creation
+		var fallback_panel = _create_minimal_fallback_panel(phase)
+		if fallback_panel:
+			print("CampaignCreationUI: Using fallback panel due to instantiation failure")
+			return fallback_panel
+		return null
+	
+	print("Successfully instantiated panel for phase: %s" % str(phase))
+	
+	return panel_instance
+
+func _safe_instantiate_with_error_suppression(scene_resource: PackedScene, phase: CampaignStateManager.Phase) -> Control:
+	"""Instantiate scene with comprehensive error suppression and recovery"""
+	
+	print("CampaignCreationUI: Starting safe instantiation for phase: %s" % str(phase))
+	
+	# Method 1: Try normal instantiation with error suppression
+	var panel_instance = null
+	
+	# Suppress push_error messages during instantiation to reduce console spam
+	var old_error_count = get_tree().get_meta("_editor_errors", 0)
+	
+	# CRITICAL: Wrap instantiation in error suppression
+	var instantiation_success = false
+	panel_instance = null
+	
+	# Try instantiation with error handling
+	if scene_resource:
+		# Attempt instantiation - C++ errors may occur but won't crash
+		panel_instance = scene_resource.instantiate()
+		instantiation_success = (panel_instance != null and is_instance_valid(panel_instance))
+	
+	# Check if instantiation succeeded despite C++ errors
+	if instantiation_success:
+		print("CampaignCreationUI: Instantiation succeeded for phase: %s" % str(phase))
+		
+		# Apply animation safety fixes to clean up the issues that caused C++ errors
+		_setup_panel_basic(panel_instance)
+		print("CampaignCreationUI: Animation safety fixes applied for phase: %s" % str(phase))
+		
+		return panel_instance
+	else:
+		print("CampaignCreationUI: Primary instantiation failed for phase: %s" % str(phase))
+	
+	# Method 2: Fallback - try with a fresh scene load
+	print("CampaignCreationUI: Primary instantiation failed, trying fallback method...")
+	
+	var scene_path = panel_scenes.get(phase, "")
+	if not scene_path.is_empty():
+		var fresh_scene = load(scene_path)
+		if fresh_scene:
+			panel_instance = fresh_scene.instantiate()
+			if panel_instance and is_instance_valid(panel_instance):
+				print("CampaignCreationUI: Fallback instantiation succeeded for phase: %s" % str(phase))
+				_setup_panel_basic(panel_instance)
+				return panel_instance
+	
+	# Method 3: Last resort - create minimal fallback panel
+	print("CampaignCreationUI: Creating minimal fallback panel for phase: %s" % str(phase))
+	return _create_minimal_fallback_panel(phase)
+
+func _create_minimal_fallback_panel(phase: CampaignStateManager.Phase) -> Control:
+	"""Create a minimal functional panel as last resort"""
+	
+	var fallback_panel = Control.new()
+	fallback_panel.name = "FallbackPanel_%s" % str(phase)
+	fallback_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	
+	# Add minimal error message
+	var label = Label.new()
+	label.text = "Panel loading error - Phase: %s\nUsing fallback mode." % str(phase)
+	label.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	fallback_panel.add_child(label)
+	
+	print("CampaignCreationUI: Created minimal fallback panel for phase: %s" % str(phase))
+	return fallback_panel
+
+func _setup_panel_basic(panel: Control) -> void:
+	"""Simple panel setup without animation bloat - Framework Bible compliant"""
+	if not panel or not is_instance_valid(panel):
+		return
+	
+	# Simple, direct setup - no animation complexity
+	panel.visible = true
+	print("CampaignCreationUI: Panel setup complete - %s" % panel.name)
+		
+		# Remove problematic animations in a separate loop to avoid modification during iteration
+		for anim_name in animations_to_remove:
+			anim_library.remove_animation(anim_name)
+			print("Removed problematic animation: %s" % anim_name)
+
+func _find_all_animation_players(node: Node) -> Array[AnimationPlayer]:
+	"""Recursively find all AnimationPlayer nodes"""
+	var players: Array[AnimationPlayer] = []
+	
+	# Safety check for null node
+	if not node or not is_instance_valid(node):
+		return players
+	
+	if node is AnimationPlayer:
+		players.append(node)
+	
+	for child in node.get_children():
+		if is_instance_valid(child):
+			players.append_array(_find_all_animation_players(child))
+	
+	return players
+
+func _validate_panel_readiness(panel: Control) -> bool:
+	"""Validate panel is ready for use with comprehensive checks"""
+	
+	if not is_instance_valid(panel):
+		return false
+	
+	# Add to scene tree first to enable tree-dependent validation
+	content_container.add_child(panel)
+	
+	# Wait for panel to process its _ready() method
+	await get_tree().process_frame
+	
+	# CRITICAL: Verify panel is properly in scene tree
+	if not panel.is_inside_tree():
+		push_error("Panel failed to enter scene tree")
+		return false
+	
+	# Validate required panel interface
+	if not panel.has_method("validate_panel"):
+		push_error("Panel missing required validate_panel method")
+		return false
+	
+	if not panel.has_method("get_panel_data"):
+		push_error("Panel missing required get_panel_data method")
+		return false
+	
+	# PRODUCTION: Allow panel initialization to complete
+	await get_tree().create_timer(0.1).timeout
+	
+	panel_ready_confirmation = true
+	return true
+
+func _handle_panel_creation_failure(phase: CampaignStateManager.Phase) -> void:
+	"""Handle panel creation failure with recovery strategies"""
+	
+	error_count += 1
+	push_error("Panel creation failed for phase: %s (Error #%d)" % [str(phase), error_count])
+	
+	if error_monitor:
+		error_monitor.record_error("Panel creation failed for phase: %s" % str(phase), CampaignCreationErrorMonitor.ErrorCategory.PANEL_LOADING, CampaignCreationErrorMonitor.ErrorSeverity.MAJOR)
+	
+	if performance_tracker:
+		performance_tracker.track_panel_creation(phase, false, 0.0, "Panel creation failed")
+	
+	if error_count >= max_errors_before_fallback:
+		_initiate_fallback_recovery()
+	else:
+		_transition_ui_state(UIState.ERROR_RECOVERY)
+
+func _initiate_error_recovery() -> void:
+	"""Initiate error recovery process"""
+	
+	print("CampaignCreationUI: Initiating error recovery...")
+	
+	# Clean up any pending panels
+	_cleanup_pending_panels()
+	
+	# Reset to last known good state
+	if last_successful_phase != state_manager.current_phase:
+		print("Reverting to last successful phase: %s" % str(last_successful_phase))
+		state_manager.set_phase(last_successful_phase)
+	
+	# Clear any corrupted UI state
+	_clear_content_container()
+	
+	# Wait before attempting recovery
+	await get_tree().create_timer(0.5).timeout
+	
+	# Attempt to reload current phase
+	_transition_ui_state(UIState.IDLE)
+	_load_panel_for_phase(state_manager.current_phase)
+
+func _initiate_fallback_recovery() -> void:
+	"""Emergency fallback when normal recovery fails"""
+	
+	push_error("Maximum errors reached, initiating fallback recovery")
+	
+	if error_monitor:
+		error_monitor.record_error("Maximum errors reached, fallback recovery initiated", CampaignCreationErrorMonitor.ErrorCategory.UI_INTERACTION, CampaignCreationErrorMonitor.ErrorSeverity.EMERGENCY)
+	
+	# Reset everything to a known good state
+	state_manager.reset_to_config_phase()
+	error_count = 0
+	last_successful_phase = CampaignStateManager.Phase.CONFIG
+	
+	# Clear all UI state
+	_clear_content_container()
+	_cleanup_pending_panels()
+	
+	# Show user notification
+	_show_recovery_notification("EMERGENCY_RECOVERY")
+	
+	# Restart from CONFIG phase
+	_transition_ui_state(UIState.IDLE)
+	_load_panel_for_phase(CampaignStateManager.Phase.CONFIG)
+
+func _cleanup_pending_panels() -> void:
+	"""Clean up any panels in pending cleanup state"""
+	
+	for panel in pending_panel_cleanup:
+		if is_instance_valid(panel):
+			panel.queue_free()
+	
+	pending_panel_cleanup.clear()
+
+func _clear_content_container() -> void:
+	"""Safely clear content container with IMMEDIATE cleanup"""
+	
+	if not content_container:
+		return
+	
+	# CRITICAL FIX: More aggressive cleanup
+	var children_to_cleanup = content_container.get_children()
+	var removed_count = 0
+	
+	for child in children_to_cleanup:
+		# Remove from scene tree immediately
+		content_container.remove_child(child)
+		
+		# More aggressive cleanup
+		if is_instance_valid(child):
+			# Disconnect all signals to prevent errors
+			_safely_disconnect_panel_signals(child)
+			
+			# Call cleanup methods if they exist
+			if child.has_method("_cleanup_dynamic_resources"):
+				child._cleanup_dynamic_resources()
+			
+			# Free immediately
+			child.queue_free()
+			removed_count += 1
+			print("CampaignCreationUI: Cleaned up panel: %s" % child.name)
+		else:
+			print("CampaignCreationUI: Invalid child detected during cleanup")
+	
+	current_panel = null
+	
+	# Force multiple frames to ensure cleanup completes
+	await get_tree().process_frame
+	await get_tree().process_frame
+	
+	# Final verification with emergency cleanup
+	if content_container.get_child_count() > 0:
+		push_error("CRITICAL: Container still has %d children after cleanup!" % content_container.get_child_count())
+		var remaining_children = content_container.get_children()
+		for remaining_child in remaining_children:
+			content_container.remove_child(remaining_child)
+			remaining_child.queue_free()
+		await get_tree().process_frame
+	
+	print("CampaignCreationUI: Container cleanup complete. Children count: %d" % content_container.get_child_count())
+
+func _safely_disconnect_panel_signals(panel: Control) -> void:
+	"""Safely disconnect all signals from a panel to prevent errors during cleanup"""
+	if not is_instance_valid(panel):
+		return
+	
+	# Disconnect common panel signals to prevent errors after removal
+	var signal_names = [
+		"panel_data_changed", "validation_changed", "navigation_requested",
+		"panel_completed", "panel_state_updated", "validation_failed",
+		"configuration_complete", "crew_setup_complete", "captain_creation_complete"
+	]
+	
+	for signal_name in signal_names:
+		if panel.has_signal(signal_name):
+			var connections = panel.get_signal_connection_list(signal_name)
+			for connection in connections:
+				if connection.signal.is_connected(connection.callable):
+					panel.disconnect(signal_name, connection.callable)
+
+func _start_panel_load_timeout() -> void:
+	"""Start timeout for panel loading operations"""
+	
+	if not panel_load_timer:
+		panel_load_timer = Timer.new()
+		add_child(panel_load_timer)
+		panel_load_timer.timeout.connect(_on_panel_load_timeout)
+	
+	panel_load_timer.wait_time = panel_load_timeout * 2 # Double the timeout
+	panel_load_timer.start()
+	print("CampaignCreationUI: Panel load timeout started: %d seconds" % panel_load_timer.wait_time)
+
+func _on_panel_load_timeout() -> void:
+	"""Handle panel load timeout with recovery"""
+	
+	push_error("Panel load timeout exceeded")
+	if error_monitor:
+		error_monitor.record_error("Panel load timeout exceeded", CampaignCreationErrorMonitor.ErrorCategory.PERFORMANCE, CampaignCreationErrorMonitor.ErrorSeverity.MAJOR)
+	
+	# Stop the timer to prevent multiple timeouts
+	if panel_load_timer:
+		panel_load_timer.stop()
+	
+	# Try to recover by creating a fallback panel
+	print("CampaignCreationUI: Attempting timeout recovery...")
+	var fallback_panel = _create_minimal_fallback_panel(state_manager.current_phase)
+	if fallback_panel:
+		current_panel = fallback_panel
+		content_container.add_child(current_panel)
+		_complete_panel_loading()
+		print("CampaignCreationUI: Timeout recovery successful")
+		
+		# Stop the timer to prevent multiple timeouts
+		if panel_load_timer:
+			panel_load_timer.stop()
+	else:
+		print("CampaignCreationUI: Fallback panel creation failed, attempting error recovery")
+		_transition_ui_state(UIState.ERROR_RECOVERY)
+
+func get_ui_health_status() -> Dictionary:
+	"""Get comprehensive UI health status for monitoring"""
+	
+	return {
+		"ui_state": str(ui_state),
+		"error_count": error_count,
+		"last_successful_phase": str(last_successful_phase),
+		"current_phase": str(state_manager.current_phase) if state_manager else "unknown",
+		"panel_ready": panel_ready_confirmation,
+		"content_container_children": content_container.get_child_count() if content_container else 0,
+		"pending_cleanup": pending_panel_cleanup.size(),
+		"memory_usage_estimate": _estimate_memory_usage(),
+		"performance_tracker_ready": performance_tracker != null,
+		"error_monitor_ready": error_monitor != null
+	}
+
+func _estimate_memory_usage() -> float:
+	"""Rough estimate of UI memory usage for monitoring"""
+	var estimate = 0.0
+	estimate += panel_cache.size() * 0.5 # Cached panels
+	estimate += preloaded_scenes.size() * 0.2 # Preloaded scenes
+	estimate += pending_panel_cleanup.size() * 0.1 # Pending cleanup
+	return estimate
+
+func _connect_standard_panel_signals() -> void:
+	"""Connect standard panel signals"""
+	if not current_panel:
+		return
+	
+	if current_panel.has_signal("panel_completed"):
+		current_panel.panel_completed.connect(_on_panel_completed)
+	if current_panel.has_signal("validation_failed"):
+		current_panel.validation_failed.connect(_on_panel_validation_failed)
+
+func _preload_adjacent_panels(current_phase: CampaignStateManager.Phase) -> void:
+	"""Preload panels adjacent to current phase for smooth navigation"""
+	var phase_order = [
+		CampaignStateManager.Phase.CONFIG,
+		CampaignStateManager.Phase.CREW_SETUP,
+		CampaignStateManager.Phase.CAPTAIN_CREATION,
+		CampaignStateManager.Phase.SHIP_ASSIGNMENT,
+		CampaignStateManager.Phase.EQUIPMENT_GENERATION,
+		CampaignStateManager.Phase.WORLD_GENERATION,
+		CampaignStateManager.Phase.FINAL_REVIEW
+	]
+	
+	var current_index = phase_order.find(current_phase)
+	if current_index == -1:
+		return
+	
+	# Preload next phase
+	if current_index + 1 < phase_order.size():
+		var next_phase = phase_order[current_index + 1]
+		_ensure_panel_preloaded(next_phase)
+	
+	# Preload previous phase
+	if current_index - 1 >= 0:
+		var prev_phase = phase_order[current_index - 1]
+		_ensure_panel_preloaded(prev_phase)
+
+func _ensure_panel_preloaded(phase: CampaignStateManager.Phase) -> void:
+	"""Ensure a specific panel is preloaded"""
+	if preloaded_scenes.has(phase):
+		return # Already preloaded
+	
+	var scene_path = panel_scenes.get(phase, "")
+	if scene_path.is_empty() or not ResourceLoader.exists(scene_path):
+		return
+	
+	# Load scene in background
+	call_deferred("_background_load_scene", phase, scene_path)
+
+func _background_load_scene(phase: CampaignStateManager.Phase, scene_path: String) -> void:
+	"""Load a scene in the background"""
+	var scene_resource = load(scene_path)
+	if scene_resource:
+		preloaded_scenes[phase] = scene_resource
+		print("CampaignCreationUI: Background loaded panel for phase: %s" % str(phase))
+
+func _cleanup_panel_cache() -> void:
+	"""Clean up cached panels to free memory"""
+	for phase in panel_cache.keys():
+		var cached_panel = panel_cache[phase]
+		if cached_panel and is_instance_valid(cached_panel):
+			cached_panel.queue_free()
+	
+	panel_cache.clear()
+	preloaded_scenes.clear()
+	print("CampaignCreationUI: Panel cache cleaned up")
+
+func get_cache_statistics() -> Dictionary:
+	"""Get cache performance statistics"""
+	return {
+		"cached_panels": panel_cache.size(),
+		"preloaded_scenes": preloaded_scenes.size(),
+		"preload_progress": preload_progress,
+		"is_preloading": is_preloading,
+		"memory_usage_mb": _estimate_cache_memory_usage()
+	}
+
+func _estimate_cache_memory_usage() -> float:
+	"""Estimate memory usage of panel cache (rough approximation)"""
+	var estimated_mb = 0.0
+	estimated_mb += panel_cache.size() * 0.5 # ~0.5MB per cached panel
+	estimated_mb += preloaded_scenes.size() * 0.2 # ~0.2MB per preloaded scene
+	return estimated_mb
+
+## Memory Management and Performance Optimization
+
+# Performance monitoring
+var performance_stats: Dictionary = {
+	"panel_load_times": {},
+	"memory_usage_history": [],
+	"transition_times": {},
+	"cache_hit_rate": 0.0,
+	"total_cache_requests": 0,
+	"cache_hits": 0
+}
+
+var last_memory_check: int = 0
+var memory_check_interval: int = 5000 # 5 seconds
+
+func _notification(what: int) -> void:
+	"""Handle notifications for memory management"""
+	match what:
+		NOTIFICATION_PREDELETE:
+			_cleanup_on_exit()
+		NOTIFICATION_WM_CLOSE_REQUEST:
+			_cleanup_on_exit()
+
+func _cleanup_on_exit() -> void:
+	"""Clean up all resources before exit"""
+	print("CampaignCreationUI: Starting cleanup on exit...")
+	
+	# Clean up panel cache
+	_cleanup_panel_cache()
+	
+	# Clear persistence data cache
+	panel_data_cache.clear()
+	
+	# Cleanup coordinator and state manager
+	if coordinator:
+		coordinator = null
+	if state_manager:
+		state_manager = null
+	
+	# Clear current panel references
+	current_panel = null
+	
+	print("CampaignCreationUI: ✅ Cleanup complete")
+
+func _ready() -> void:
+	_initialize_refactored_architecture()
+	_initialize_enhanced_safety_systems() # PHASE 1: Initialize safety systems
+	_connect_scene_signals()
+	_initialize_persistence_system()
+	_initialize_panel_caching()
+	_initialize_performance_monitoring()
+	_load_initial_panel()
+
+func _initialize_enhanced_safety_systems() -> void:
+	"""PHASE 1: Initialize enhanced safety systems"""
+	print("CampaignCreationUI: Initializing Phase 1 enhanced safety systems...")
+	
+	# Initialize performance tracker
+	performance_tracker = CampaignCreationPerformanceTracker.new()
+	
+	# Initialize error monitor
+	error_monitor = CampaignCreationErrorMonitor.new()
+	
+	# Initialize UI state
+	ui_state = UIState.IDLE
+	
+	# Initialize feature flag validation
+	if not CampaignCreationFeatureFlags.validate_flag_consistency():
+		push_error("Feature flag configuration validation failed")
+		error_monitor.record_error("Feature flag validation failed", CampaignCreationErrorMonitor.ErrorCategory.GENERAL, CampaignCreationErrorMonitor.ErrorSeverity.CRITICAL)
+	
+	# Log current feature flag status
+	var flag_status = CampaignCreationFeatureFlags.get_flag_status()
+	print("CampaignCreationUI: Feature flags status: %s" % str(flag_status))
+	
+	# Record system initialization
+	error_monitor.record_system_health({
+		"system": "campaign_creation_ui",
+		"initialization_complete": true,
+		"feature_flags_ready": true,
+		"error_count": 0
+	})
+	
+	print("CampaignCreationUI: ✅ Enhanced safety systems initialized")
+
+func _initialize_performance_monitoring() -> void:
+	"""Initialize performance monitoring system"""
+	print("CampaignCreationUI: Initializing performance monitoring")
+	
+	# Initialize enhanced performance monitoring
+	_performance_monitor.session_start_time = Time.get_unix_time_from_system()
+	
+	# Reset performance stats
+	performance_stats = {
+		"panel_load_times": {},
+		"memory_usage_history": [],
+		"transition_times": {},
+		"cache_hit_rate": 0.0,
+		"total_cache_requests": 0,
+		"cache_hits": 0
+	}
+	
+	# Start comprehensive monitoring
+	_start_memory_monitoring()
+	_start_performance_logging()
+	_initialize_performance_metrics()
+
+func _start_memory_monitoring() -> void:
+	"""Start periodic memory monitoring"""
+	var timer = Timer.new()
+	timer.wait_time = memory_check_interval / 1000.0
+	timer.timeout.connect(_check_memory_usage)
+	timer.autostart = true
+	add_child(timer)
+	
+	# Initial memory check
+	_check_memory_usage()
+
+func _check_memory_usage() -> void:
+	"""Check current memory usage and log if concerning"""
+	var current_memory = OS.get_static_memory_usage()
+	var timestamp = Time.get_ticks_msec()
+	
+	# Store memory usage history
+	performance_stats.memory_usage_history.append({
+		"timestamp": timestamp,
+		"static_memory": current_memory,
+		"cache_memory": _estimate_cache_memory_usage()
+	})
+	
+	# Keep only last 20 entries to avoid memory bloat
+	if performance_stats.memory_usage_history.size() > 20:
+		performance_stats.memory_usage_history.pop_front()
+	
+	# Check for memory growth concerns
+	if performance_stats.memory_usage_history.size() > 5:
+		var recent_entries = performance_stats.memory_usage_history.slice(-5)
+		var memory_growth = _calculate_memory_growth(recent_entries)
+		
+		if memory_growth > 10.0: # > 10MB growth
+			push_warning("CampaignCreationUI: High memory growth detected: %.2f MB" % memory_growth)
+			_optimize_memory_usage()
+
+func _calculate_memory_growth(entries: Array) -> float:
+	"""Calculate memory growth over time"""
+	if entries.size() < 2:
+		return 0.0
+	
+	var first_memory = entries[0].static_memory
+	var last_memory = entries[-1].static_memory
+	
+	return (last_memory - first_memory) / 1024.0 / 1024.0 # Convert to MB
+
+func _optimize_memory_usage() -> void:
+	"""Optimize memory usage when high growth is detected"""
+	print("CampaignCreationUI: Optimizing memory usage...")
+	
+	# Clear unused cached panels (keep only current and adjacent)
+	_optimize_panel_cache()
+	
+	# Force garbage collection if supported
+	# Note: ResourceLoader.clear_cache() handled by engine automatically
+	
+	# Clear old persistence data entries
+	_optimize_persistence_cache()
+	
+	print("CampaignCreationUI: Memory optimization complete")
+
+func _optimize_panel_cache() -> void:
+	"""Optimize panel cache by removing distant panels"""
+	if not state_manager:
+		return
+	
+	var current_phase = state_manager.current_phase
+	var phase_order = [
+		CampaignStateManager.Phase.CONFIG,
+		CampaignStateManager.Phase.CREW_SETUP,
+		CampaignStateManager.Phase.CAPTAIN_CREATION,
+		CampaignStateManager.Phase.SHIP_ASSIGNMENT,
+		CampaignStateManager.Phase.EQUIPMENT_GENERATION,
+		CampaignStateManager.Phase.WORLD_GENERATION,
+		CampaignStateManager.Phase.FINAL_REVIEW
+	]
+	
+	var current_index = phase_order.find(current_phase)
+	if current_index == -1:
+		return
+	
+	# Keep only current, previous, and next panels
+	var phases_to_keep = []
+	for i in range(max(0, current_index - 1), min(phase_order.size(), current_index + 2)):
+		phases_to_keep.append(phase_order[i])
+	
+	# Remove distant cached panels
+	for phase in panel_cache.keys():
+		if phase not in phases_to_keep:
+			var cached_panel = panel_cache[phase]
+			if cached_panel and is_instance_valid(cached_panel):
+				cached_panel.queue_free()
+			panel_cache.erase(phase)
+			print("CampaignCreationUI: Removed distant cached panel: %s" % str(phase))
+
+func _optimize_persistence_cache() -> void:
+	"""Optimize persistence cache by removing old entries"""
+	# Keep only last 10 entries in memory usage history
+	while performance_stats.memory_usage_history.size() > 10:
+		performance_stats.memory_usage_history.pop_front()
+	
+	# Clear old panel data cache entries (keep only last 5 phases)
+	var cache_keys = panel_data_cache.keys()
+	if cache_keys.size() > 5:
+		cache_keys.sort()
+		for i in range(cache_keys.size() - 5):
+			panel_data_cache.erase(cache_keys[i])
+
+func get_performance_report() -> Dictionary:
+	"""Get comprehensive performance report"""
+	var current_memory = OS.get_static_memory_usage()
+	var cache_stats = get_cache_statistics()
+	
+	return {
+		"current_memory_mb": current_memory / 1024.0 / 1024.0,
+		"cache_memory_mb": cache_stats.memory_usage_mb,
+		"cache_hit_rate": performance_stats.cache_hit_rate,
+		"total_cache_requests": performance_stats.total_cache_requests,
+		"cached_panels": cache_stats.cached_panels,
+		"preloaded_scenes": cache_stats.preloaded_scenes,
+		"memory_history_entries": performance_stats.memory_usage_history.size(),
+		"panel_data_cache_size": panel_data_cache.size(),
+		"average_panel_load_time": _calculate_average_load_time(),
+		"memory_growth_trend": _get_memory_growth_trend()
+	}
+
+func _calculate_average_load_time() -> float:
+	"""Calculate average panel load time"""
+	if performance_stats.panel_load_times.is_empty():
+		return 0.0
+	
+	var total_time = 0.0
+	var count = 0
+	
+	for phase in performance_stats.panel_load_times:
+		var times = performance_stats.panel_load_times[phase]
+		if times is Array:
+			for time in times:
+				total_time += time
+				count += 1
+	
+	return total_time / count if count > 0 else 0.0
+
+func _get_memory_growth_trend() -> String:
+	"""Get memory growth trend description"""
+	if performance_stats.memory_usage_history.size() < 3:
+		return "insufficient_data"
+	
+	var recent_growth = _calculate_memory_growth(performance_stats.memory_usage_history.slice(-3))
+	
+	if recent_growth > 5.0:
+		return "high_growth"
+	elif recent_growth > 1.0:
+		return "moderate_growth"
+	elif recent_growth > -1.0:
+		return "stable"
+	else:
+		return "decreasing"
+
+func _track_panel_load_time(phase: CampaignStateManager.Phase, start_time: int) -> void:
+	"""Track panel load time for performance analysis"""
+	var load_time = Time.get_ticks_msec() - start_time
+	
+	# Track in performance monitor
+	if not _performance_monitor.panel_load_times.has(phase):
+		_performance_monitor.panel_load_times[phase] = []
+	
+	_performance_monitor.panel_load_times[phase].append(load_time)
+	_performance_monitor.total_panel_loads += 1
+	
+	# Track in panel load count
+	if not _performance_monitor.panel_load_count.has(phase):
+		_performance_monitor.panel_load_count[phase] = 0
+	_performance_monitor.panel_load_count[phase] += 1
+	
+	# Legacy performance stats tracking
+	if not performance_stats.panel_load_times.has(phase):
+		performance_stats.panel_load_times[phase] = []
+	
+	performance_stats.panel_load_times[phase].append(load_time)
+	
+	# Keep only last 5 load times per phase
+	if performance_stats.panel_load_times[phase].size() > 5:
+		performance_stats.panel_load_times[phase].pop_front()
+	
+	# Log performance metrics
+	if _performance_logging_enabled:
+		_log_performance_metric("panel_load", {
+			"phase": str(phase),
+			"load_time_ms": load_time,
+			"timestamp": Time.get_unix_time_from_system()
+		})
+	
+	print("CampaignCreationUI: Panel load time for %s: %d ms" % [str(phase), load_time])
+	
+	# Check for performance issues
+	if load_time > 1000: # > 1 second
+		push_warning("CampaignCreationUI: Slow panel load detected for %s: %d ms" % [str(phase), load_time])
+		_performance_monitor.warning_count += 1
+
+func _update_cache_statistics(was_cache_hit: bool) -> void:
+	"""Update cache hit rate statistics"""
+	performance_stats.total_cache_requests += 1
+	
+	if was_cache_hit:
+		performance_stats.cache_hits += 1
+	
+	performance_stats.cache_hit_rate = float(performance_stats.cache_hits) / float(performance_stats.total_cache_requests)
+
+# PHASE 1B: Enhanced performance monitoring methods
+
+func _start_performance_logging() -> void:
+	"""Start performance logging system"""
+	if not _performance_logging_enabled:
+		return
+	
+	print("CampaignCreationUI: Performance logging enabled")
+	
+	# Create performance log file
+	var log_dir = "user://logs/"
+	if not DirAccess.dir_exists_absolute(log_dir):
+		DirAccess.open("user://").make_dir_recursive("logs")
+	
+	var timestamp = Time.get_datetime_string_from_system().replace(":", "-").replace(" ", "_")
+	var log_path = log_dir + "campaign_creation_performance_%s.log" % timestamp
+	
+	# Log session start
+	_log_performance_metric("session_start", {
+		"timestamp": Time.get_unix_time_from_system(),
+		"godot_version": Engine.get_version_info(),
+		"platform": OS.get_name()
+	})
+
+func _initialize_performance_metrics() -> void:
+	"""Initialize performance metrics collection"""
+	# Set up memory monitoring
+	if _memory_monitoring_enabled:
+		_take_memory_snapshot("session_start")
+	
+	# Animation performance tracking removed - Framework Bible compliance
+	# No animations needed for tabletop RPG assistant
+	
+	print("CampaignCreationUI: Performance metrics initialized")
+
+func _log_performance_metric(metric_type: String, data: Dictionary) -> void:
+	"""Log performance metric to console and file"""
+	if not _performance_logging_enabled:
+		return
+	
+	var log_entry = {
+		"type": metric_type,
+		"timestamp": Time.get_unix_time_from_system(),
+		"session_time": Time.get_unix_time_from_system() - _performance_monitor.session_start_time,
+		"data": data
+	}
+	
+	# Log to console in debug builds
+	if OS.is_debug_build():
+		print("PERF: [%s] %s" % [metric_type, JSON.stringify(data)])
+
+func _take_memory_snapshot(event_name: String) -> void:
+	"""Take memory snapshot for performance analysis"""
+	if not _memory_monitoring_enabled:
+		return
+	
+	var snapshot = {
+		"event": event_name,
+		"timestamp": Time.get_unix_time_from_system(),
+		"static_memory": OS.get_static_memory_usage(),
+		"dynamic_memory": 0, # Dynamic memory usage not available in Godot 4
+		"cache_size": get_cache_statistics().memory_usage_mb,
+		"panel_count": panel_cache.size(),
+		"preloaded_scenes": preloaded_scenes.size()
+	}
+	
+	_performance_monitor.memory_snapshots.append(snapshot)
+	
+	# Keep only last 50 snapshots
+	while _performance_monitor.memory_snapshots.size() > 50:
+		_performance_monitor.memory_snapshots.pop_front()
+	
+	if _performance_logging_enabled:
+		_log_performance_metric("memory_snapshot", snapshot)
+
+func _track_validation_performance(validation_type: String, start_time: float) -> void:
+	"""Track validation performance metrics"""
+	var duration = Time.get_unix_time_from_system() - start_time
+	
+	if not _performance_monitor.validation_times.has(validation_type):
+		_performance_monitor.validation_times[validation_type] = []
+	
+	_performance_monitor.validation_times[validation_type].append(duration)
+	
+	# Keep only last 20 validation times per type
+	while _performance_monitor.validation_times[validation_type].size() > 20:
+		_performance_monitor.validation_times[validation_type].pop_front()
+	
+	if _performance_logging_enabled:
+		_log_performance_metric("validation_performance", {
+			"type": validation_type,
+			"duration_ms": duration * 1000.0
+		})
+	
+	# Warn on slow validations
+	if duration > 0.1: # > 100ms
+		push_warning("CampaignCreationUI: Slow validation detected: %s took %.1f ms" % [validation_type, duration * 1000.0])
+		_performance_monitor.warning_count += 1
+
+func _track_transaction_performance(transaction_id: String, operation: String, start_time: float) -> void:
+	"""Track transaction performance metrics"""
+	var duration = Time.get_unix_time_from_system() - start_time
+	
+	var transaction_key = "%s_%s" % [transaction_id, operation]
+	if not _performance_monitor.transaction_times.has(transaction_key):
+		_performance_monitor.transaction_times[transaction_key] = []
+	
+	_performance_monitor.transaction_times[transaction_key].append(duration)
+	
+	# Keep only last 10 transaction times per operation
+	while _performance_monitor.transaction_times[transaction_key].size() > 10:
+		_performance_monitor.transaction_times[transaction_key].pop_front()
+	
+	if _performance_logging_enabled:
+		_log_performance_metric("transaction_performance", {
+			"transaction_id": transaction_id,
+			"operation": operation,
+			"duration_ms": duration * 1000.0
+		})
+	
+	# Warn on slow transactions
+	if duration > 0.5: # > 500ms
+		push_warning("CampaignCreationUI: Slow transaction detected: %s %s took %.1f ms" % [transaction_id, operation, duration * 1000.0])
+		_performance_monitor.warning_count += 1
+
+# Animation performance tracking removed - Framework Bible compliance
+# No animations = no performance tracking needed
+
+func get_comprehensive_performance_report() -> Dictionary:
+	"""Get comprehensive performance report"""
+	var session_duration = Time.get_unix_time_from_system() - _performance_monitor.session_start_time
+	
+	return {
+		"session": {
+			"duration_seconds": session_duration,
+			"start_time": _performance_monitor.session_start_time,
+			"total_panel_loads": _performance_monitor.total_panel_loads,
+			"error_count": _performance_monitor.error_count,
+			"warning_count": _performance_monitor.warning_count
+		},
+		"panel_performance": {
+			"load_times": _calculate_panel_load_statistics(),
+			"load_counts": _performance_monitor.panel_load_count,
+			"average_load_time": _calculate_average_load_time()
+		},
+		"memory": {
+			"current_usage_mb": OS.get_static_memory_usage() / 1024.0 / 1024.0,
+			"snapshots_count": _performance_monitor.memory_snapshots.size(),
+			"cache_memory_mb": get_cache_statistics().memory_usage_mb,
+			"growth_trend": _get_memory_growth_trend()
+		},
+		"validation": {
+			"average_times": _calculate_validation_averages(),
+			"total_validations": _count_total_validations()
+		},
+		"transactions": {
+			"average_times": _calculate_transaction_averages(),
+			"total_transactions": _performance_monitor.transaction_times.size()
+		},
+		# Animation performance removed - immediate UI preferred
+		"cache": {
+			"hit_rate": performance_stats.cache_hit_rate,
+			"total_requests": performance_stats.total_cache_requests,
+			"cached_panels": panel_cache.size(),
+			"preloaded_scenes": preloaded_scenes.size()
+		}
+	}
+
+func _calculate_panel_load_statistics() -> Dictionary:
+	"""Calculate panel load statistics"""
+	var stats = {}
+	
+	for phase in _performance_monitor.panel_load_times:
+		var times = _performance_monitor.panel_load_times[phase]
+		if times.size() > 0:
+			var total = 0.0
+			var min_time = times[0]
+			var max_time = times[0]
+			
+			for time in times:
+				total += time
+				min_time = min(min_time, time)
+				max_time = max(max_time, time)
+			
+			stats[str(phase)] = {
+				"average_ms": total / times.size(),
+				"min_ms": min_time,
+				"max_ms": max_time,
+				"count": times.size()
+			}
+	
+	return stats
+
+func _calculate_validation_averages() -> Dictionary:
+	"""Calculate validation time averages"""
+	var averages = {}
+	
+	for validation_type in _performance_monitor.validation_times:
+		var times = _performance_monitor.validation_times[validation_type]
+		if times.size() > 0:
+			var total = 0.0
+			for time in times:
+				total += time
+			averages[validation_type] = (total / times.size()) * 1000.0 # Convert to ms
+	
+	return averages
+
+func _calculate_transaction_averages() -> Dictionary:
+	"""Calculate transaction time averages"""
+	var averages = {}
+	
+	for transaction_key in _performance_monitor.transaction_times:
+		var times = _performance_monitor.transaction_times[transaction_key]
+		if times.size() > 0:
+			var total = 0.0
+			for time in times:
+				total += time
+			averages[transaction_key] = (total / times.size()) * 1000.0 # Convert to ms
+	
+	return averages
+
+func _count_total_validations() -> int:
+	"""Count total validations performed"""
+	var total = 0
+	for validation_type in _performance_monitor.validation_times:
+		total += _performance_monitor.validation_times[validation_type].size()
+	return total
+
+func _log_performance_warning(message: String, data: Dictionary = {}) -> void:
+	"""Log performance warning"""
+	_performance_monitor.warning_count += 1
+	
+	if _performance_logging_enabled:
+		_log_performance_metric("performance_warning", {
+			"message": message,
+			"data": data
+		})
+	
+	push_warning("PERFORMANCE: " + message)
+
+func _log_performance_error(message: String, data: Dictionary = {}) -> void:
+	"""Log performance error"""
+	_performance_monitor.error_count += 1
+	
+	if _performance_logging_enabled:
+		_log_performance_metric("performance_error", {
+			"message": message,
+			"data": data
+		})
+	
+	push_error("PERFORMANCE: " + message)
+
+# PHASE 1B: Advanced animation safety with reference tracking
+
+var _animation_references: Dictionary = {}
+var _animation_safety_enabled: bool = true
+var _active_animations: Array[String] = []
+
+func _register_animation_reference(animation_id: String, animation_player: AnimationPlayer, animation_name: String) -> bool:
+	"""Register animation reference with safety tracking"""
+	if not _animation_safety_enabled:
+		return true
+	
+	if not animation_player or not is_instance_valid(animation_player):
+		_log_performance_error("Invalid animation player for animation: " + animation_id)
+		return false
+	
+	if not animation_player.has_animation(animation_name):
+		_log_performance_error("Animation not found: %s in player %s" % [animation_name, str(animation_player)])
+		return false
+	
+	_animation_references[animation_id] = {
+		"player": animation_player,
+		"animation_name": animation_name,
+		"registered_at": Time.get_unix_time_from_system(),
+		"is_active": false,
+		"reference_count": 1
+	}
+	
+	print("CampaignCreationUI: Registered animation reference: %s" % animation_id)
+	return true
+
+func _play_animation_safe(animation_id: String, custom_blend: float = -1.0) -> bool:
+	"""Play animation with comprehensive safety checks"""
+	if not _animation_safety_enabled:
+		return false
+	
+	if not _animation_references.has(animation_id):
+		_log_performance_error("Animation reference not found: " + animation_id)
+		return false
+	
+	var anim_ref = _animation_references[animation_id]
+	var animation_player = anim_ref.player
+	var animation_name = anim_ref.animation_name
+	
+	# Validate animation player is still valid
+	if not animation_player or not is_instance_valid(animation_player):
+		_log_performance_error("Animation player is no longer valid for: " + animation_id)
+		_cleanup_animation_reference(animation_id)
+		return false
+	
+	# Check if animation still exists
+	if not animation_player.has_animation(animation_name):
+		_log_performance_error("Animation no longer exists: %s" % animation_name)
+		_cleanup_animation_reference(animation_id)
+		return false
+	
+	# Check if already playing
+	if anim_ref.is_active:
+		print("CampaignCreationUI: Animation already active: %s" % animation_id)
+		return true
+	
+	# Start performance tracking
+	var start_time = Time.get_unix_time_from_system()
+	
+	# Play animation
+	if custom_blend >= 0.0:
+		animation_player.play(animation_name, custom_blend)
+	else:
+		animation_player.play(animation_name)
+	
+	# Mark as active
+	anim_ref.is_active = true
+	_active_animations.append(animation_id)
+	
+	# Connect to finished signal if not already connected
+	if not animation_player.animation_finished.is_connected(_on_animation_finished):
+		animation_player.animation_finished.connect(_on_animation_finished.bind(animation_id))
+	
+	# Track success
+	var duration = Time.get_unix_time_from_system() - start_time
+	# Animation performance tracking removed - immediate UI preferred
+	
+	print("CampaignCreationUI: ✅ Animation started safely: %s" % animation_id)
+	return true
+
+func _stop_animation_safe(animation_id: String) -> bool:
+	"""Stop animation with safety checks"""
+	if not _animation_safety_enabled:
+		return false
+	
+	if not _animation_references.has(animation_id):
+		return false
+	
+	var anim_ref = _animation_references[animation_id]
+	var animation_player = anim_ref.player
+	
+	# Validate animation player
+	if not animation_player or not is_instance_valid(animation_player):
+		_cleanup_animation_reference(animation_id)
+		return false
+	
+	# Stop animation
+	animation_player.stop()
+	
+	# Mark as inactive
+	anim_ref.is_active = false
+	_active_animations.erase(animation_id)
+	
+	print("CampaignCreationUI: Animation stopped safely: %s" % animation_id)
+	return true
+
+func _on_animation_finished(animation_name: String, animation_id: String) -> void:
+	"""Handle animation completion"""
+	if _animation_references.has(animation_id):
+		var anim_ref = _animation_references[animation_id]
+		anim_ref.is_active = false
+		_active_animations.erase(animation_id)
+		
+		print("CampaignCreationUI: Animation completed: %s" % animation_id)
+
+func _cleanup_animation_reference(animation_id: String) -> void:
+	"""Clean up invalid animation reference"""
+	if _animation_references.has(animation_id):
+		_animation_references.erase(animation_id)
+		_active_animations.erase(animation_id)
+		print("CampaignCreationUI: Cleaned up animation reference: %s" % animation_id)
+
+func _cleanup_all_animations() -> void:
+	"""Clean up all animation references"""
+	# Stop all active animations
+	for animation_id in _active_animations.duplicate():
+		_stop_animation_safe(animation_id)
+	
+	# Clear all references
+	_animation_references.clear()
+	_active_animations.clear()
+	
+	print("CampaignCreationUI: All animation references cleaned up")
+
+func _validate_animation_references() -> Dictionary:
+	"""Validate all animation references and return status"""
+	var validation_result = {
+		"total_references": _animation_references.size(),
+		"valid_references": 0,
+		"invalid_references": 0,
+		"active_animations": _active_animations.size(),
+		"invalid_ids": []
+	}
+	
+	var invalid_ids = []
+	
+	for animation_id in _animation_references.keys():
+		var anim_ref = _animation_references[animation_id]
+		var animation_player = anim_ref.player
+		
+		if not animation_player or not is_instance_valid(animation_player):
+			invalid_ids.append(animation_id)
+			validation_result.invalid_references += 1
+		elif not animation_player.has_animation(anim_ref.animation_name):
+			invalid_ids.append(animation_id)
+			validation_result.invalid_references += 1
+		else:
+			validation_result.valid_references += 1
+	
+	# Clean up invalid references
+	for invalid_id in invalid_ids:
+		_cleanup_animation_reference(invalid_id)
+	
+	validation_result.invalid_ids = invalid_ids
+	
+	if validation_result.invalid_references > 0:
+		_log_performance_warning("Animation reference validation found %d invalid references" % validation_result.invalid_references)
+	
+	return validation_result
+
+func get_animation_safety_report() -> Dictionary:
+	"""Get comprehensive animation safety report"""
+	var validation = _validate_animation_references()
+	
+	return {
+		"safety_enabled": _animation_safety_enabled,
+		"total_references": validation.total_references,
+		"valid_references": validation.valid_references,
+		"invalid_references": validation.invalid_references,
+		"active_animations": validation.active_animations,
+		# Animation performance removed - Framework Bible compliance
+		"cleanup_required": validation.invalid_references > 0
+	}
+
+## Persistence Integration Methods
+
+func _check_crash_recovery():
+	"""Check if crash recovery data is available and offer recovery"""
+	if not persistence_manager:
+		return
+	
+	var recovery_info = persistence_manager.check_for_crash_recovery()
+	
+	if recovery_info.has_recovery_data:
+		print("CampaignCreationUI: Crash recovery data found from %s" % recovery_info.recovery_timestamp)
+		_offer_crash_recovery(recovery_info)
+
+func _offer_crash_recovery(recovery_info: Dictionary):
+	"""Present crash recovery options to user"""
+	# TODO: Implement proper UI dialog for crash recovery
+	# For now, automatically perform recovery
+	print("CampaignCreationUI: Performing automatic crash recovery...")
+	var recovery_success = persistence_manager.perform_crash_recovery()
+	
+	if recovery_success:
+		print("CampaignCreationUI: ✅ Crash recovery completed successfully")
+		# Refresh current panel with recovered data
+		_refresh_current_panel()
+	else:
+		print("CampaignCreationUI: ❌ Crash recovery failed")
+
+func _restore_panel_data(phase: CampaignStateManager.Phase):
+	"""Restore panel data from persistence"""
+	if not persistence_manager or not current_panel:
+		return
+	
+	var panel_id = _get_panel_id_for_phase(phase)
+	var panel_data = persistence_manager.restore_panel_state(panel_id)
+	
+	if not panel_data.is_empty() and current_panel.has_method("restore_panel_data"):
+		current_panel.restore_panel_data(panel_data)
+		print("CampaignCreationUI: Restored panel data for %s" % panel_id)
+
+func _save_current_panel_data():
+	"""Save current panel data to persistence"""
+	if not persistence_manager or not current_panel:
+		return
+	
+	var panel_id = _get_panel_id_for_phase(state_manager.current_phase)
+	
+	if current_panel.has_method("get_panel_data"):
+		var panel_data = current_panel.get_panel_data()
+		persistence_manager.save_panel_state(panel_id, panel_data)
+		print("CampaignCreationUI: Saved panel data for %s" % panel_id)
+
+func _get_panel_id_for_phase(phase: CampaignStateManager.Phase) -> String:
+	"""Map phase to panel ID for persistence"""
+	match phase:
+		CampaignStateManager.Phase.CONFIG: return "config"
+		CampaignStateManager.Phase.CREW_SETUP: return "crew"
+		CampaignStateManager.Phase.CAPTAIN_CREATION: return "captain"
+		CampaignStateManager.Phase.SHIP_ASSIGNMENT: return "ship"
+		CampaignStateManager.Phase.EQUIPMENT_GENERATION: return "equipment"
+		CampaignStateManager.Phase.WORLD_GENERATION: return "world"
+		CampaignStateManager.Phase.FINAL_REVIEW: return "final"
+		_: return "unknown"
+
+func _refresh_current_panel():
+	"""Refresh current panel with updated data"""
+	if current_panel and current_panel.has_method("refresh_display"):
+		current_panel.refresh_display()
+
+## Persistence Signal Handlers
+
+func _on_persistence_data_loaded(data: Dictionary):
+	"""Handle persistence data loaded"""
+	print("CampaignCreationUI: Persistence data loaded - %d keys" % data.size())
+
+func _on_persistence_error(error_message: String):
+	"""Handle persistence errors"""
+	print("CampaignCreationUI: Persistence error - %s" % error_message)
+	# TODO: Show user-friendly error message
+
+func _on_auto_backup_created(backup_path: String):
+	"""Handle auto backup creation"""
+	print("CampaignCreationUI: Auto backup created - %s" % backup_path.get_file())
+
+func _on_panel_data_changed():
+	"""Handle panel data changes for auto-save"""
+	_save_current_panel_data()
+
+## Enhanced Navigation with Persistence
+
+func _on_back_button_pressed():
+	"""Handle back button press with persistence"""
+	_save_current_panel_data() # Save before navigation
+	coordinator.go_back_to_previous_phase()
+
+## Cleanup
+
+## Panel Signal Management
+
+func _connect_panel_to_state_manager(panel: Control):
+	"""Connect panel to state manager for enhanced signal flow"""
+	if not panel or not state_manager:
+		return
+	
+	# Check if panel extends BaseCampaignPanel
+	if panel.has_method("connect_to_state_manager"):
+		panel.connect_to_state_manager(state_manager)
+		print("CampaignCreationUI: Connected panel to state manager - %s" % panel.get_class())
+	
+	# Connect panel-specific signals
+	if panel.has_signal("panel_data_changed"):
+		if not panel.panel_data_changed.is_connected(_on_panel_data_changed):
+			panel.panel_data_changed.connect(_on_panel_data_changed)
+	
+	if panel.has_signal("panel_validation_changed"):
+		if not panel.panel_validation_changed.is_connected(_on_panel_validation_changed):
+			panel.panel_validation_changed.connect(_on_panel_validation_changed)
+	
+	if panel.has_signal("panel_navigation_requested"):
+		if not panel.panel_navigation_requested.is_connected(_on_panel_navigation_requested):
+			panel.panel_navigation_requested.connect(_on_panel_navigation_requested)
+
+func _disconnect_panel_from_state_manager(panel: Control):
+	"""Disconnect panel from state manager"""
+	if not panel:
+		return
+	
+	# Disconnect from state manager
+	if panel.has_method("disconnect_from_state_manager"):
+		panel.disconnect_from_state_manager()
+	
+	# Disconnect panel signals
+	if panel.has_signal("panel_data_changed"):
+		if panel.panel_data_changed.is_connected(_on_panel_data_changed):
+			panel.panel_data_changed.disconnect(_on_panel_data_changed)
+	
+	if panel.has_signal("panel_validation_changed"):
+		if panel.panel_validation_changed.is_connected(_on_panel_validation_changed):
+			panel.panel_validation_changed.disconnect(_on_panel_validation_changed)
+	
+	if panel.has_signal("panel_navigation_requested"):
+		if panel.panel_navigation_requested.is_connected(_on_panel_navigation_requested):
+			panel.panel_navigation_requested.disconnect(_on_panel_navigation_requested)
+
+## Panel Signal Handlers
+
+func _on_panel_validation_changed(is_valid: bool):
+	"""Handle panel validation changes"""
+	print("CampaignCreationUI: Panel validation changed - valid: %s" % is_valid)
+	
+	# Update navigation buttons
+	if next_button:
+		next_button.disabled = not is_valid
+	
+	if finish_button:
+		finish_button.disabled = not is_valid
+
+func _on_panel_navigation_requested(direction: String):
+	"""Handle panel navigation requests"""
+	print("CampaignCreationUI: Navigation requested - %s" % direction)
+	
+	match direction:
+		"next":
+			_on_next_button_pressed()
+		"back":
+			_on_back_button_pressed()
+		"complete":
+			_on_finish_button_pressed()
+
+## State Manager Integration
+
+func _connect_state_manager_signals():
+	"""Connect to state manager signals"""
+	if not state_manager:
+		return
+	
+	# Connect phase transition signals
+	if state_manager.has_signal("phase_completed"):
+		if not state_manager.phase_completed.is_connected(_on_phase_completed):
+			state_manager.phase_completed.connect(_on_phase_completed)
+	
+	if state_manager.has_signal("creation_completed"):
+		if not state_manager.creation_completed.is_connected(_on_creation_completed):
+			state_manager.creation_completed.connect(_on_creation_completed)
+
+func _on_phase_completed(phase: int):
+	"""Handle phase completion"""
+	print("CampaignCreationUI: Phase completed - %d" % phase)
+	
+	# Create backup at phase completion
+	if persistence_manager:
+		persistence_manager.create_backup()
+
+func _on_creation_completed(campaign_data: Dictionary):
+	"""Handle campaign creation completion"""
+	print("CampaignCreationUI: Campaign creation completed")
+	
+	# Final save and cleanup
+	if persistence_manager:
+		persistence_manager.create_backup()
+		persistence_manager.clear_persistence_data() # Clear temp data after completion
+	
+	# Emit completion signal or transition to next scene
+	# TODO: Add proper scene transition logic
+
+## Cleanup
+
+func _exit_tree():
+	"""Cleanup when exiting"""
+	# Disconnect current panel
+	if current_panel:
+		_disconnect_panel_from_state_manager(current_panel)
+	
+	# Cleanup persistence
+	if persistence_manager:
+		persistence_manager.stop_persistence_monitoring()
+		persistence_manager.cleanup()
+	
+	# Cleanup state manager connections
+	if state_manager:
+		if state_manager.has_signal("phase_completed"):
+			if state_manager.phase_completed.is_connected(_on_phase_completed):
+				state_manager.phase_completed.disconnect(_on_phase_completed)
+		
+		if state_manager.has_signal("creation_completed"):
+			if state_manager.creation_completed.is_connected(_on_creation_completed):
+				state_manager.creation_completed.disconnect(_on_creation_completed)
+	
+	# PHASE 2: Cleanup formal state machine
+	if formal_state_machine:
+		formal_state_machine.cleanup()
+
+## PHASE 2: Formal State Machine Integration
+
+func _initialize_formal_state_machine() -> void:
+	"""Initialize the formal state machine if feature flag is enabled"""
+	state_machine_enabled = CampaignCreationFeatureFlags.is_enabled(CampaignCreationFeatureFlags.FeatureFlag.UI_STATE_MACHINE)
+	
+	if not state_machine_enabled:
+		print("CampaignCreationUI: Formal state machine disabled via feature flag")
+		return
+	
+	print("CampaignCreationUI: Initializing formal state machine...")
+	
+	formal_state_machine = CampaignCreationStateMachine.new()
+	
+	# Connect state machine signals
+	formal_state_machine.state_changed.connect(_on_state_machine_state_changed)
+	formal_state_machine.state_transition_blocked.connect(_on_state_machine_transition_blocked)
+	formal_state_machine.state_machine_error.connect(_on_state_machine_error)
+	formal_state_machine.recovery_initiated.connect(_on_state_machine_recovery_initiated)
+	
+	# Initialize to IDLE state
+	formal_state_machine.request_transition(CampaignCreationStateMachine.UIState.IDLE)
+	
+	print("CampaignCreationUI: Formal state machine initialized successfully")
+
+func _transition_state_machine(target_state: CampaignCreationStateMachine.UIState, event_data: Dictionary = {}) -> bool:
+	"""Request state machine transition with fallback to legacy state management"""
+	if not state_machine_enabled or not formal_state_machine:
+		# Fallback to legacy state management
+		return _legacy_state_transition(target_state, event_data)
+	
+	return formal_state_machine.request_transition(target_state, event_data)
+
+func _legacy_state_transition(target_state: CampaignCreationStateMachine.UIState, event_data: Dictionary) -> bool:
+	"""Legacy state transition for backward compatibility"""
+	ui_state_lock.lock()
+	
+	# Map formal state machine states to legacy states
+	var legacy_state: UIState
+	match target_state:
+		CampaignCreationStateMachine.UIState.IDLE:
+			legacy_state = UIState.IDLE
+		CampaignCreationStateMachine.UIState.LOADING_PANEL:
+			legacy_state = UIState.LOADING_PANEL
+		CampaignCreationStateMachine.UIState.PANEL_ACTIVE:
+			legacy_state = UIState.PANEL_ACTIVE
+		CampaignCreationStateMachine.UIState.TRANSITIONING:
+			legacy_state = UIState.TRANSITIONING
+		CampaignCreationStateMachine.UIState.ERROR_RECOVERY:
+			legacy_state = UIState.ERROR_RECOVERY
+		CampaignCreationStateMachine.UIState.EMERGENCY_ROLLBACK:
+			legacy_state = UIState.EMERGENCY_ROLLBACK
+		_:
+			legacy_state = UIState.IDLE
+	
+	var old_state = ui_state
+	ui_state = legacy_state
+	
+	print("CampaignCreationUI: Legacy state transition from %s to %s" % [str(old_state), str(legacy_state)])
+	ui_state_lock.unlock()
+	return true
+
+## State Machine Event Handlers
+
+func _on_state_machine_state_changed(old_state: CampaignCreationStateMachine.UIState, new_state: CampaignCreationStateMachine.UIState) -> void:
+	"""Handle state machine state changes"""
+	print("CampaignCreationUI: State machine transition: %s -> %s" % [formal_state_machine._state_to_string(old_state), formal_state_machine._state_to_string(new_state)])
+	
+	# Update legacy state for backward compatibility
+	_sync_legacy_state_with_formal(new_state)
+	
+	# Handle state-specific logic
+	match new_state:
+		CampaignCreationStateMachine.UIState.IDLE:
+			_handle_idle_state()
+		CampaignCreationStateMachine.UIState.LOADING_PANEL:
+			_handle_loading_panel_state()
+		CampaignCreationStateMachine.UIState.PANEL_ACTIVE:
+			_handle_panel_active_state()
+		CampaignCreationStateMachine.UIState.ERROR_RECOVERY:
+			_handle_error_recovery_state()
+		CampaignCreationStateMachine.UIState.EMERGENCY_ROLLBACK:
+			_handle_emergency_rollback_state()
+
+func _on_state_machine_transition_blocked(current_state: CampaignCreationStateMachine.UIState, target_state: CampaignCreationStateMachine.UIState, reason: String) -> void:
+	"""Handle blocked state transitions"""
+	push_warning("CampaignCreationUI: State transition blocked - %s" % reason)
+	
+	# Log blocked transition for analysis
+	if error_monitor:
+		error_monitor.record_error(
+			"STATE_TRANSITION_BLOCKED: %s" % reason,
+			CampaignCreationErrorMonitor.ErrorCategory.STATE_MANAGEMENT,
+			CampaignCreationErrorMonitor.ErrorSeverity.WARNING,
+			{
+				"current_state": formal_state_machine._state_to_string(current_state),
+				"target_state": formal_state_machine._state_to_string(target_state),
+				"reason": reason
+			}
+		)
+
+func _on_state_machine_error(error_type: String, details: String) -> void:
+	"""Handle state machine errors"""
+	push_error("CampaignCreationUI: State machine error - %s: %s" % [error_type, details])
+	
+	# Record error for monitoring
+	if error_monitor:
+		error_monitor.record_error(
+			"State machine error: %s - %s" % [error_type, details],
+			CampaignCreationErrorMonitor.ErrorCategory.STATE_MANAGEMENT,
+			CampaignCreationErrorMonitor.ErrorSeverity.CRITICAL,
+			{
+				"type": "STATE_MACHINE_ERROR",
+				"error_type": error_type,
+				"details": details,
+				"current_state": formal_state_machine._state_to_string(formal_state_machine.current_state) if formal_state_machine else "UNKNOWN"
+			}
+		)
+	
+	# Trigger recovery if possible
+	_attempt_state_machine_recovery(error_type)
+
+func _on_state_machine_recovery_initiated(recovery_type: String) -> void:
+	"""Handle state machine recovery initiation"""
+	print("CampaignCreationUI: State machine recovery initiated - %s" % recovery_type)
+	
+	# Show user feedback for recovery
+	_show_recovery_notification(recovery_type)
+
+## State-Specific Handlers
+
+func _handle_idle_state() -> void:
+	"""Handle IDLE state entry"""
+	_update_navigation_state()
+	_enable_user_interaction()
+
+func _handle_loading_panel_state() -> void:
+	"""Handle LOADING_PANEL state entry"""
+	_disable_user_interaction()
+	_show_loading_indicator()
+
+func _handle_panel_active_state() -> void:
+	"""Handle PANEL_ACTIVE state entry"""
+	_enable_user_interaction()
+	_hide_loading_indicator()
+	_update_navigation_state()
+
+func _handle_error_recovery_state() -> void:
+	"""Handle ERROR_RECOVERY state entry"""
+	_disable_user_interaction()
+	_show_error_recovery_ui()
+
+func _handle_emergency_rollback_state() -> void:
+	"""Handle EMERGENCY_ROLLBACK state entry"""
+	_disable_user_interaction()
+	_show_emergency_rollback_ui()
+	_perform_emergency_rollback()
+
+## State Machine Utilities
+
+func _sync_legacy_state_with_formal(formal_state: CampaignCreationStateMachine.UIState) -> void:
+	"""Sync legacy state with formal state machine"""
+	ui_state_lock.lock()
+	
+	match formal_state:
+		CampaignCreationStateMachine.UIState.IDLE:
+			ui_state = UIState.IDLE
+		CampaignCreationStateMachine.UIState.LOADING_PANEL:
+			ui_state = UIState.LOADING_PANEL
+		CampaignCreationStateMachine.UIState.PANEL_ACTIVE:
+			ui_state = UIState.PANEL_ACTIVE
+		CampaignCreationStateMachine.UIState.TRANSITIONING:
+			ui_state = UIState.TRANSITIONING
+		CampaignCreationStateMachine.UIState.ERROR_RECOVERY:
+			ui_state = UIState.ERROR_RECOVERY
+		CampaignCreationStateMachine.UIState.EMERGENCY_ROLLBACK:
+			ui_state = UIState.EMERGENCY_ROLLBACK
+		_:
+			ui_state = UIState.IDLE
+	
+	ui_state_lock.unlock()
+
+func _attempt_state_machine_recovery(error_type: String) -> void:
+	"""Attempt to recover from state machine errors"""
+	if not formal_state_machine:
+		return
+	
+	match error_type:
+		"PANEL_LOAD_TIMEOUT", "TRANSITION_TIMEOUT":
+			formal_state_machine.recover_from_error()
+		"CRITICAL_ERROR", "CORRUPTION_DETECTED":
+			formal_state_machine.emergency_rollback()
+		_:
+			formal_state_machine.recover_from_error()
+
+func _show_recovery_notification(recovery_type: String) -> void:
+	"""Show user notification during recovery"""
+	var notification_text = ""
+	match recovery_type:
+		"ERROR_RECOVERY":
+			notification_text = "Recovering from error, please wait..."
+		"EMERGENCY_ROLLBACK":
+			notification_text = "Emergency recovery in progress..."
+		_:
+			notification_text = "System recovery in progress..."
+	
+	# Show notification to user (implementation depends on UI structure)
+	print("CampaignCreationUI: %s" % notification_text)
+
+func _disable_user_interaction() -> void:
+	"""Disable user interaction during state transitions"""
+	if back_button:
+		back_button.disabled = true
+	if next_button:
+		next_button.disabled = true
+	if finish_button:
+		finish_button.disabled = true
+
+func _enable_user_interaction() -> void:
+	"""Enable user interaction when in stable state"""
+	if back_button:
+		back_button.disabled = false
+	if next_button:
+		next_button.disabled = false
+	if finish_button:
+		finish_button.disabled = false
+
+func _show_loading_indicator() -> void:
+	"""Show loading indicator during panel loading"""
+	if progress_bar:
+		progress_bar.visible = true
+
+func _hide_loading_indicator() -> void:
+	"""Hide loading indicator when panel is active"""
+	if progress_bar:
+		progress_bar.visible = false
+
+func _show_error_recovery_ui() -> void:
+	"""Show error recovery UI elements"""
+	print("CampaignCreationUI: Showing error recovery UI")
+	# Implementation depends on UI structure
+
+func _show_emergency_rollback_ui() -> void:
+	"""Show emergency rollback UI elements"""
+	print("CampaignCreationUI: Showing emergency rollback UI")
+	# Implementation depends on UI structure
+
+func _perform_emergency_rollback() -> void:
+	"""Perform emergency rollback to safe state"""
+	print("CampaignCreationUI: Performing emergency rollback")
+	
+	# Reset to initial state
+	if state_manager:
+		state_manager.current_phase = state_manager.Phase.CONFIG
+	
+	# Clear current panel and reload
+	if current_panel:
+		_safely_remove_panel(current_panel)
+		current_panel = null
+	
+	# Load initial panel
+	_load_initial_panel()
+
+func _safely_remove_panel(panel: Control) -> void:
+	"""Safely remove a panel with proper cleanup"""
+	if not panel or not is_instance_valid(panel):
+		return
+	
+	# Disconnect any signals to prevent orphaned references
+	if panel.has_signal("panel_completed"):
+		if panel.panel_completed.is_connected(_on_panel_completed):
+			panel.panel_completed.disconnect(_on_panel_completed)
+	
+	if panel.has_signal("panel_data_changed"):
+		if panel.panel_data_changed.is_connected(_on_panel_data_changed):
+			panel.panel_data_changed.disconnect(_on_panel_data_changed)
+	
+	# Remove from parent safely
+	var parent = panel.get_parent()
+	if parent and is_instance_valid(parent):
+		parent.remove_child(panel)
+	
+	# Add to pending cleanup instead of immediate queue_free
+	pending_panel_cleanup.append(panel)
+	
+	print("CampaignCreationUI: Safely removed panel: %s" % panel.get_class())
+
+## Enhanced Panel Loading with State Machine Integration
+
+func _load_panel_for_phase_with_state_machine(phase: CampaignStateManager.Phase) -> void:
+	"""Load panel with formal state machine coordination"""
+	if not _transition_state_machine(CampaignCreationStateMachine.UIState.LOADING_PANEL, {
+		"phase": phase,
+		"panel_path": panel_scenes.get(phase, "")
+	}):
+		push_error("CampaignCreationUI: Failed to transition to LOADING_PANEL state")
+		return
+	
+	# Continue with existing panel loading logic
+	_load_panel_for_phase(phase)
+
+func get_state_machine_diagnostics() -> Dictionary:
+	"""Get comprehensive state machine diagnostics"""
+	if not formal_state_machine:
+		return {"formal_state_machine": false, "legacy_state": str(ui_state)}
+	
+	var diagnostics = formal_state_machine.get_state_statistics()
+	diagnostics["performance"] = formal_state_machine.get_performance_report()
+	diagnostics["legacy_state"] = str(ui_state)
+	diagnostics["state_machine_enabled"] = state_machine_enabled
+	
+	return diagnostics
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                

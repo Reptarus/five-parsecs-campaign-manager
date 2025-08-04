@@ -1,4 +1,4 @@
-﻿class_name EquipmentManagerUI
+class_name EquipmentManagerUI
 extends Control
 
 signal equipment_assigned(equipment_item: Dictionary, crew_member: Dictionary)

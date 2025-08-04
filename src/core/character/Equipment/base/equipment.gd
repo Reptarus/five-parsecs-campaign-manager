@@ -1,4 +1,4 @@
-﻿extends Resource
+extends Resource
 class_name BaseEquipment
 
 ## Base equipment class for Five Parsecs

@@ -1,4 +1,4 @@
-﻿# Scripts/ShipAndCrew/CargoComponent.gd
+# Scripts/ShipAndCrew/CargoComponent.gd
 @tool
 extends "res://src/core/ships/components/ShipComponent.gd"
 class_name FPCM_CargoComponent

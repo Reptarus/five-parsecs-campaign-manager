@@ -1,4 +1,4 @@
-﻿class_name FPCM_MissionSummaryPanel
+class_name FPCM_MissionSummaryPanel
 extends Control
 
 signal continue_pressed

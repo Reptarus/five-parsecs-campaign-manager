@@ -1,4 +1,4 @@
-﻿## UnifiedStorySystem
+## UnifiedStorySystem
 ## Manages story progression, quests, and events in the Five Parsecs campaign system.
 extends Node
 

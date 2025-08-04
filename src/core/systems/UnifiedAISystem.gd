@@ -1,4 +1,4 @@
-﻿## UnifiedAISystem
+## UnifiedAISystem
 ## Manages AI behavior and decision making for units in the Five Parsecs battle system.
 class_name FPCM_UnifiedAISystem
 extends Node

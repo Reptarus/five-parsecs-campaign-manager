@@ -1,4 +1,4 @@
-﻿extends Control
+extends Control
 
 signal tutorial_started(type: String)
 signal tutorial_skipped

@@ -10,6 +10,10 @@ const FPCM_StoryTrackSystem = preload("res://src/core/story/StoryTrackSystem.gd"
 const FPCM_BattleEventsSystem = preload("res://src/core/battle/BattleEventsSystem.gd")
 const StoryEvent = preload("res://src/core/story/StoryEvent.gd")
 
+# Security validation and save management
+const SecureSaveManager = preload("res://src/core/validation/SecureSaveManager.gd")
+const SecurityValidator = preload("res://src/core/validation/SecurityValidator.gd")
+
 # DiceManager accessed as autoload singleton
 
 signal mission_started(mission: StoryQuestData)
@@ -74,13 +78,15 @@ func _ready() -> void:
 
 func _initialize_autoloads() -> void:
 	"""Initialize autoloads with retry logic to handle loading order"""
-	dice_manager = get_node_or_null("/root/DiceManager") as Node
+	# Wait for DiceManager to be ready
+	for i in range(10):
+		dice_manager = get_node_or_null("/root/DiceManager")
+		if dice_manager:
+			break
+		await get_tree().process_frame
+	
 	if not dice_manager:
-		push_warning("CampaignManager: DiceManager not found - will retry")
-		await get_tree().create_timer(0.1).timeout
-		dice_manager = get_node_or_null("/root/DiceManager") as Node
-		if not dice_manager:
-			push_warning("CampaignManager: DiceManager autoload not found")
+		push_error("CampaignManager: DiceManager autoload not found after retries")
 
 func _initialize_systems() -> void:
 	"""Initialize systems after autoloads are available"""
@@ -619,8 +625,11 @@ func _apply_mission_rewards(mission: StoryQuestData) -> void:
 		game_state.modify_reputation(mission.reward_reputation)
 
 	# Apply item rewards
-	for item: Dictionary in mission.reward_items:
-		_add_item_to_inventory(item)
+	for item: Variant in mission.reward_items:
+		if item is Dictionary:
+			_add_item_to_inventory(item)
+		else:
+			push_warning("Invalid item reward format: %s" % item)
 
 func _consume_mission_resources(mission: StoryQuestData) -> void:
 	# Consume required resources
@@ -658,6 +667,60 @@ func save_campaign_state() -> Dictionary:
 	campaign_saved.emit(save_data)
 	return save_data
 
+## Secure save method using SecureSaveManager
+func save_campaign_secure(file_path: String) -> bool:
+	var validation: Dictionary = validate_campaign_state()
+	if not validation.get("is_valid", false):
+		var error_msg = "Cannot save invalid campaign state: %s" % validation.get("errors", [])
+		FiveParsecsSecurityValidator.log_security_event("SAVE_VALIDATION_FAILED", error_msg)
+		save_failed.emit(error_msg)
+		return false
+
+	# Prepare complete campaign data
+	var campaign_data: Dictionary = {
+		"config": {
+			"campaign_name": game_state.campaign_name if game_state else "Unnamed Campaign",
+			"difficulty": game_state.difficulty if game_state else 3,
+			"crew_size": game_state.crew_size if game_state else 4
+		},
+		"crew": {
+			"members": game_state.crew_members if game_state else []
+		},
+		"captain": {
+			"name": game_state.captain_name if game_state else "Captain",
+			"stats": game_state.captain_stats if game_state else {}
+		},
+		"ship": {
+			"name": game_state.ship_name if game_state else "Ship",
+			"stats": game_state.ship_stats if game_state else {}
+		},
+		"equipment": {
+			"weapons": game_state.weapons if game_state else [],
+			"armor": game_state.armor if game_state else []
+		},
+		"metadata": {
+			"created_at": Time.get_datetime_string_from_system(),
+			"version": "1.0",
+			"is_complete": true,
+			"missions": {
+				"available": _serialize_missions(available_missions),
+				"active": _serialize_missions(active_missions),
+				"completed": _serialize_missions(completed_missions),
+				"history": mission_history
+			}
+		}
+	}
+
+	var save_result = SecureSaveManager.save_campaign_secure(campaign_data, file_path)
+	if save_result.success:
+		FiveParsecsSecurityValidator.log_security_event("CAMPAIGN_SAVED", "Campaign saved successfully: " + file_path)
+		campaign_saved.emit(campaign_data)
+		return true
+	else:
+		FiveParsecsSecurityValidator.log_security_event("CAMPAIGN_SAVE_FAILED", save_result.error)
+		save_failed.emit(save_result.error)
+		return false
+
 func load_campaign_state(save_data: Dictionary) -> bool:
 	if not _validate_save_data(save_data):
 		load_failed.emit("Invalid save _data format")
@@ -682,6 +745,54 @@ func load_campaign_state(save_data: Dictionary) -> bool:
 		return false
 
 	campaign_loaded.emit(save_data)
+	return true
+
+## Secure load method using SecureSaveManager  
+func load_campaign_secure(file_path: String) -> bool:
+	var load_result = SecureSaveManager.load_campaign_secure(file_path)
+	
+	if not load_result.success:
+		FiveParsecsSecurityValidator.log_security_event("CAMPAIGN_LOAD_FAILED", load_result.error)
+		load_failed.emit(load_result.error)
+		return false
+	
+	var campaign_data = load_result.data
+	
+	# Extract mission data from metadata if available
+	var mission_data = campaign_data.metadata.get("missions", {})
+	var legacy_save_data = {
+		"version": campaign_data.metadata.get("version", "1.0"),
+		"timestamp": Time.get_unix_time_from_system(),
+		"available_missions": mission_data.get("available", []),
+		"active_missions": mission_data.get("active", []),
+		"completed_missions": mission_data.get("completed", []),
+		"mission_history": mission_data.get("history", [])
+	}
+	
+	# Use existing load method for mission data
+	var mission_load_success = load_campaign_state(legacy_save_data)
+	if not mission_load_success:
+		FiveParsecsSecurityValidator.log_security_event("MISSION_LOAD_FAILED", "Failed to load mission data from secure save")
+		return false
+	
+	# Update game state with loaded campaign data
+	if game_state:
+		game_state.campaign_name = campaign_data.config.get("campaign_name", "Unnamed Campaign")
+		game_state.difficulty = campaign_data.config.get("difficulty", 3)
+		game_state.crew_size = campaign_data.config.get("crew_size", 4)
+		game_state.crew_members = campaign_data.crew.get("members", [])
+		game_state.captain_name = campaign_data.captain.get("name", "Captain")
+		game_state.captain_stats = campaign_data.captain.get("stats", {})
+		game_state.ship_name = campaign_data.ship.get("name", "Ship")
+		game_state.ship_stats = campaign_data.ship.get("stats", {})
+		game_state.weapons = campaign_data.equipment.get("weapons", [])
+		game_state.armor = campaign_data.equipment.get("armor", [])
+	
+	if load_result.backup_used:
+		FiveParsecsSecurityValidator.log_security_event("CAMPAIGN_BACKUP_USED", "Loaded from backup: " + file_path)
+	
+	FiveParsecsSecurityValidator.log_security_event("CAMPAIGN_LOADED", "Campaign loaded successfully: " + file_path)
+	campaign_loaded.emit(campaign_data)
 	return true
 
 func _serialize_missions(missions: Array[StoryQuestData]) -> Array:

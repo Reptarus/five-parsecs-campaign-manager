@@ -1,13 +1,7 @@
-[gd_scene load_steps=9 format=3 uid="uid://b4jy1ry6g1x8n"]
+[gd_scene load_steps=3 format=3 uid="uid://b4jy1ry6g1x8n"]
 
-[ext_resource type="Script" uid="uid://8iweqgi3k6et" path="res://src/ui/screens/campaign/CampaignCreationUI.gd" id="1_8ykjc"]
+[ext_resource type="Script" uid="uid://d0jvo7pyck2c6" path="res://src/ui/screens/campaign/CampaignCreationUI.gd" id="1_8ykjc"]
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="2_rnx4k"]
-[ext_resource type="PackedScene" uid="uid://c1ipgkdm40l6c" path="res://src/ui/screens/campaign/panels/ConfigPanel.tscn" id="3_mupwv"]
-[ext_resource type="PackedScene" uid="uid://ddmexnm0dog68" path="res://src/ui/screens/campaign/panels/CrewPanel.tscn" id="4_lrtqq"]
-[ext_resource type="PackedScene" uid="uid://swd7rhnhcr41" path="res://src/ui/screens/utils/SaveLoadUI.tscn" id="5_l4k6d"]
-[ext_resource type="PackedScene" uid="uid://b6x8kas2k3e4f" path="res://src/ui/screens/campaign/panels/ShipPanel.tscn" id="6_shipnl"]
-[ext_resource type="PackedScene" uid="uid://c70ak0t3l4e5g" path="res://src/ui/screens/campaign/panels/EquipmentPanel.tscn" id="7_equipnl"]
-[ext_resource type="PackedScene" uid="uid://b2y8k8g7q3yk4" path="res://src/ui/screens/campaign/panels/FinalPanel.tscn" id="8_finalnl"]
 
 [node name="CampaignCreationUI" type="Control"]
 layout_mode = 3
@@ -54,6 +48,7 @@ theme_override_font_sizes/font_size = 32
 text = "Create New Campaign"
 
 [node name="StepLabel" type="Label" parent="MarginContainer/VBoxContainer/Header"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "Step 1: Campaign Configuration"
@@ -62,34 +57,10 @@ text = "Step 1: Campaign Configuration"
 layout_mode = 2
 step = 1.0
 
-[node name="StepPanels" type="Control" parent="MarginContainer/VBoxContainer"]
+[node name="ContentContainer" type="Control" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
-
-[node name="ConfigPanel" parent="MarginContainer/VBoxContainer/StepPanels" instance=ExtResource("3_mupwv")]
-layout_mode = 1
-
-[node name="CrewPanel" parent="MarginContainer/VBoxContainer/StepPanels" instance=ExtResource("4_lrtqq")]
-visible = false
-layout_mode = 1
-
-[node name="CaptainPanel" parent="MarginContainer/VBoxContainer/StepPanels" instance=ExtResource("5_l4k6d")]
-visible = false
-layout_mode = 1
-
-[node name="ShipPanel" parent="MarginContainer/VBoxContainer/StepPanels" instance=ExtResource("6_shipnl")]
-visible = false
-layout_mode = 1
-
-[node name="EquipmentPanel" parent="MarginContainer/VBoxContainer/StepPanels" instance=ExtResource("7_equipnl")]
-visible = false
-layout_mode = 1
-
-[node name="FinalPanel" parent="MarginContainer/VBoxContainer/StepPanels" instance=ExtResource("8_finalnl")]
-visible = false
-layout_mode = 1
-grow_horizontal = 2
-grow_vertical = 2
 
 [node name="Navigation" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -97,16 +68,20 @@ theme_override_constants/separation = 20
 alignment = 1
 
 [node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/Navigation"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(150, 50)
 layout_mode = 2
 text = "Back"
 
 [node name="NextButton" type="Button" parent="MarginContainer/VBoxContainer/Navigation"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(150, 50)
 layout_mode = 2
 text = "Next"
 
 [node name="FinishButton" type="Button" parent="MarginContainer/VBoxContainer/Navigation"]
+unique_name_in_owner = true
+visible = false
 custom_minimum_size = Vector2(150, 50)
 layout_mode = 2
-text = "Start Campaign"
+text = "Create Campaign"

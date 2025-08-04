@@ -1,4 +1,4 @@
-﻿class_name FPCM_BattleTutorialManager
+class_name FPCM_BattleTutorialManager
 extends Node
 
 # GlobalEnums available as autoload singleton

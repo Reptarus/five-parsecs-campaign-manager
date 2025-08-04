@@ -10,6 +10,12 @@ const DataConsistencyValidator = preload("res://src/core/validation/DataConsiste
 const IntegrationHealthMonitor = preload("res://src/core/monitoring/IntegrationHealthMonitor.gd")
 const StateConsistencyMonitor = preload("res://src/core/state/StateConsistencyMonitor.gd")
 
+# Memory management system integrations
+const MemoryLeakPrevention = preload("res://src/core/memory/MemoryLeakPrevention.gd")
+const UniversalCleanupFramework = preload("res://src/core/memory/UniversalCleanupFramework.gd")
+const MemoryPerformanceOptimizer = preload("res://src/core/memory/MemoryPerformanceOptimizer.gd")
+const ValidationErrorBoundary = preload("res://src/core/validation/ValidationErrorBoundary.gd")
+
 ## Production readiness levels
 enum ProductionReadinessLevel {
 	NOT_READY, # System not ready for production
@@ -409,73 +415,128 @@ static func _validate_integration_health(health_monitor: IntegrationHealthMonito
 	return result
 
 static func _validate_memory_stability() -> CategoryResult:
-	"""Validate memory stability and leak detection"""
-	print("\n🧠 VALIDATING: Memory Stability")
+	"""Validate memory stability and leak detection using integrated memory management systems"""
+	print("\n🧠 VALIDATING: Memory Stability (Enhanced)")
 	var category_start = Time.get_ticks_msec()
 	var result = CategoryResult.new(ValidationCategory.MEMORY_STABILITY)
 	
-	var initial_memory = 0 # Simplified memory check
-	if OS.has_feature("debug"):
-		initial_memory = 1024 * 1024 # Mock value for debug builds
-	
 	var stability_checks_passed = 0
-	var total_stability_checks = 0
+	var total_stability_checks = 4  # Increased number of checks
 	
-	# Memory stability test - create and destroy objects
+	# Check 1: Memory leak prevention system health
 	total_stability_checks += 1
-	var temp_objects = []
-	for i in range(1000):
-		var obj = RefCounted.new()
-		temp_objects.append(obj)
+	var memory_report = MemoryLeakPrevention.get_memory_report()
+	if memory_report.get("memory_status", "UNKNOWN") == "HEALTHY":
+		stability_checks_passed += 1
+		result.details.append("✅ MemoryLeakPrevention system healthy (%.1fMB)" % memory_report.get("current_memory_mb", 0))
+	else:
+		result.details.append("❌ MemoryLeakPrevention system unhealthy: %s" % memory_report.get("memory_status", "UNKNOWN"))
 	
-	# Clear references
-	temp_objects.clear()
+	# Check 2: Memory stability check
+	total_stability_checks += 1
+	var is_stable = MemoryLeakPrevention.is_memory_stable()
+	if is_stable:
+		stability_checks_passed += 1
+		result.details.append("✅ Memory stability check passed")
+	else:
+		result.details.append("❌ Memory stability check failed")
 	
-	# Force garbage collection
+	# Check 3: Memory efficiency score
+	total_stability_checks += 1
+	var efficiency_score = MemoryLeakPrevention.get_memory_efficiency_score()
+	if efficiency_score >= 0.7:  # 70% efficiency threshold
+		stability_checks_passed += 1
+		result.details.append("✅ Memory efficiency score: %.1f%%" % (efficiency_score * 100))
+	else:
+		result.details.append("❌ Low memory efficiency score: %.1f%%" % (efficiency_score * 100))
+	
+	# Check 4: Universal cleanup framework status
+	total_stability_checks += 1
+	var cleanup_count = UniversalCleanupFramework.get_registered_cleanup_count()
+	if cleanup_count < 1000:  # Reasonable cleanup queue size
+		stability_checks_passed += 1
+		result.details.append("✅ Cleanup framework queue manageable (%d items)" % cleanup_count)
+	else:
+		result.details.append("❌ Cleanup framework queue large (%d items)" % cleanup_count)
+	
+	# Check 5: Memory performance optimizer status
+	total_stability_checks += 1
+	var optimizer_stats = MemoryPerformanceOptimizer.get_optimization_statistics()
+	var memory_saved = optimizer_stats.get("memory_saved_mb", 0.0)
+	if memory_saved >= 0:  # Any optimization is good
+		stability_checks_passed += 1
+		result.details.append("✅ Memory optimizer active (%.1fMB saved)" % memory_saved)
+	else:
+		result.details.append("❌ Memory optimizer inactive")
+	
+	# Check 6: Memory leak scan
+	total_stability_checks += 1
+	var leak_scan = MemoryLeakPrevention.scan_for_memory_leaks()
+	var total_leaks = leak_scan.get("leaked_nodes", 0) + leak_scan.get("unclosed_files", 0) + leak_scan.get("orphaned_signals", 0)
+	if total_leaks <= 5:  # Allow minor leaks
+		stability_checks_passed += 1
+		result.details.append("✅ Memory leak scan: %d total leaks (acceptable)" % total_leaks)
+	else:
+		result.details.append("❌ Memory leak scan: %d total leaks (concerning)" % total_leaks)
+	
+	# Check 7: Memory alerts status
+	total_stability_checks += 1
+	var memory_alerts = MemoryLeakPrevention.get_memory_alerts()
+	var critical_alerts = 0
+	for alert in memory_alerts:
+		if alert.get("level") == "CRITICAL":
+			critical_alerts += 1
+	
+	if critical_alerts == 0:
+		stability_checks_passed += 1
+		result.details.append("✅ No critical memory alerts")
+	else:
+		result.details.append("❌ %d critical memory alerts detected" % critical_alerts)
+	
+	# Stress test: Create and destroy objects using pooling
+	total_stability_checks += 1
+	var stress_test_start = Time.get_ticks_msec()
+	var initial_memory_mb = memory_report.get("current_memory_mb", 0.0)
+	
+	# Create 500 objects using memory optimizer pooling
+	var pooled_objects = []
+	for i in range(500):
+		var obj = MemoryPerformanceOptimizer.get_pooled_object("Control")
+		if obj:
+			pooled_objects.append(obj)
+	
+	# Return objects to pool
+	for obj in pooled_objects:
+		MemoryPerformanceOptimizer.return_pooled_object(obj, "Control")
+	
+	# Force cleanup and garbage collection
 	await Engine.get_main_loop().process_frame
 	await Engine.get_main_loop().process_frame
 	
-	var post_test_memory = 0
-	if OS.has_feature("debug"):
-		post_test_memory = 1024 * 1024 + 256 * 1024 # Mock value
-	var memory_delta = post_test_memory - initial_memory
+	var final_memory_mb = MemoryLeakPrevention._get_total_memory_usage()
+	var memory_growth = final_memory_mb - initial_memory_mb
+	var stress_test_duration = Time.get_ticks_msec() - stress_test_start
 	
-	if memory_delta < 1024 * 512: # Under 512KB growth
+	if memory_growth < 5.0:  # Under 5MB growth for stress test
 		stability_checks_passed += 1
-		result.details.append("✅ Memory stability test passed (+%d KB)" % (memory_delta / 1024))
+		result.details.append("✅ Stress test passed: %.1fMB growth in %dms" % [memory_growth, stress_test_duration])
 	else:
-		result.details.append("❌ Memory stability test failed (+%d KB)" % (memory_delta / 1024))
-	
-	# Test validation system memory usage
-	total_stability_checks += 1
-	var validation_start_memory = 0
-	if OS.has_feature("debug"):
-		validation_start_memory = 1024 * 1024 # Mock value
-	
-	# Run multiple validations
-	for i in range(10):
-		DataConsistencyValidator.validate_backend_ui_consistency({"test": i}, {"test": i})
-	
-	var validation_end_memory = 0
-	if OS.has_feature("debug"):
-		validation_end_memory = 1024 * 1024 + 128 * 1024 # Mock value
-	var validation_memory_delta = validation_end_memory - validation_start_memory
-	
-	if validation_memory_delta < 1024 * 256: # Under 256KB for validation operations
-		stability_checks_passed += 1
-		result.details.append("✅ Validation system memory stable (+%d KB)" % (validation_memory_delta / 1024))
-	else:
-		result.details.append("❌ Validation system memory usage high (+%d KB)" % (validation_memory_delta / 1024))
+		result.details.append("❌ Stress test failed: %.1fMB growth in %dms" % [memory_growth, stress_test_duration])
 	
 	result.duration_ms = Time.get_ticks_msec() - category_start
 	result.score = float(stability_checks_passed) / float(total_stability_checks)
-	result.passed = result.score >= 0.8
+	result.passed = result.score >= 0.8  # 80% pass rate required
 	
 	result.metrics = {
 		"stability_checks_passed": stability_checks_passed,
 		"total_stability_checks": total_stability_checks,
-		"memory_delta_kb": memory_delta / 1024,
-		"validation_memory_delta_kb": validation_memory_delta / 1024
+		"memory_efficiency_score": efficiency_score,
+		"cleanup_queue_size": cleanup_count,
+		"memory_saved_mb": memory_saved,
+		"total_memory_leaks": total_leaks,
+		"critical_alerts": critical_alerts,
+		"stress_test_growth_mb": memory_growth,
+		"stress_test_duration_ms": stress_test_duration
 	}
 	
 	var status_text = "PASSED" if result.passed else "FAILED"

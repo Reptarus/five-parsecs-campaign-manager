@@ -1,4 +1,4 @@
-﻿# AdvancedTrainingManager.gd
+# AdvancedTrainingManager.gd
 @tool
 extends Node
 

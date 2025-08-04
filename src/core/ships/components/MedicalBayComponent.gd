@@ -1,4 +1,4 @@
-﻿# Scripts/ShipAndCrew/MedicalBayComponent.gd
+# Scripts/ShipAndCrew/MedicalBayComponent.gd
 @tool
 extends FPCM_ShipComponent
 class_name MedicalBayComponent

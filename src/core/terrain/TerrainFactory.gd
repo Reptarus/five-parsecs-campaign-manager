@@ -1,4 +1,4 @@
-﻿class_name FiveParsecsTerrainFactory
+class_name FiveParsecsTerrainFactory
 extends Node
 
 const GlobalEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")

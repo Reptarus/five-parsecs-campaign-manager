@@ -8,29 +8,29 @@ extends RefCounted
 
 # Crew Task Difficulty Thresholds (Five Parsecs Core Rules)
 const CREW_TASK_DIFFICULTIES = {
-	GlobalEnums.CrewTaskType.FIND_PATRON: 7,  # 2d6, 7+ to find patron
-	GlobalEnums.CrewTaskType.TRAIN: 8,        # 2d6, 8+ for training success
-	GlobalEnums.CrewTaskType.TRADE: 5,        # Varies by world, 5+ base
-	GlobalEnums.CrewTaskType.RECRUIT: 5,      # 1d10, varies by candidate quality
-	GlobalEnums.CrewTaskType.EXPLORE: 0,      # Always successful, results vary on d100
-	GlobalEnums.CrewTaskType.TRACK: 8,        # 2d6 + Savvy, 8+ to succeed
-	GlobalEnums.CrewTaskType.REPAIR_KIT: 7,   # 2d6 + Tech, 7+ to repair
-	GlobalEnums.CrewTaskType.DECOY: 8         # 2d6 + Savvy, 8+ to confuse rivals
+	GlobalEnums.CrewTaskType.FIND_PATRON: 7, # 2d6, 7+ to find patron
+	GlobalEnums.CrewTaskType.TRAIN: 8, # 2d6, 8+ for training success
+	GlobalEnums.CrewTaskType.TRADE: 5, # Varies by world, 5+ base
+	GlobalEnums.CrewTaskType.RECRUIT: 5, # 1d10, varies by candidate quality
+	GlobalEnums.CrewTaskType.EXPLORE: 0, # Always successful, results vary on d100
+	GlobalEnums.CrewTaskType.TRACK: 8, # 2d6 + Savvy, 8+ to succeed
+	GlobalEnums.CrewTaskType.REPAIR_KIT: 7, # 2d6 + Tech, 7+ to repair
+	GlobalEnums.CrewTaskType.DECOY: 8 # 2d6 + Savvy, 8+ to confuse rivals
 }
 
 # Dice Types for Consistent Rolling
 const DICE_TYPES = {
 	"d6": "1d6",
-	"2d6": "2d6", 
+	"2d6": "2d6",
 	"d10": "1d10",
 	"d100": "1d100",
-	"attribute": "2d6_divide_3"  # Five Parsecs attribute generation
+	"attribute": "2d6_divide_3" # Five Parsecs attribute generation
 }
 
 # Table Names for Data Manager Access
 const TABLE_NAMES = {
 	"patron_contact": "patron_contact_table",
-	"exploration_results": "exploration_results_table", 
+	"exploration_results": "exploration_results_table",
 	"trade_opportunities": "trade_opportunities_table",
 	"crew_recruitment": "crew_recruitment_table",
 	"training_results": "training_results_table",
@@ -42,55 +42,55 @@ const TABLE_NAMES = {
 
 # World Phase Processing Times (milliseconds)
 const PROCESSING_LIMITS = {
-	"crew_task_resolution": 50,    # Max time per crew task
-	"table_lookup": 10,           # Max time per table lookup
-	"ui_update": 16,              # Target 60fps UI updates
-	"dice_animation": 1500,       # Dice roll animation duration
-	"phase_transition": 1000      # Phase change animation
+	"crew_task_resolution": 50, # Max time per crew task
+	"table_lookup": 10, # Max time per table lookup
+	"ui_update": 16, # Target 60fps UI updates
+	"dice_animation": 1500, # Dice roll animation duration
+	"phase_transition": 1000 # Phase change animation
 }
 
 # Five Parsecs Character Stat Ranges
 const STAT_RANGES = {
-	"min": 1,      # Minimum stat value
-	"max": 6,      # Maximum stat value  
-	"average": 3,  # Average stat value
-	"elite": 5     # Elite character threshold
+	"min": 1, # Minimum stat value
+	"max": 6, # Maximum stat value
+	"average": 3, # Average stat value
+	"elite": 5 # Elite character threshold
 }
 
 # Character Generation Constants (Core Rules)
 const CHARACTER_CREATION = {
-	"starting_credits": 10,       # Credits per character
-	"max_crew_size": 8,           # Maximum crew members
-	"min_crew_size": 4,           # Minimum crew members
-	"attribute_dice": "2d6",      # Dice for attribute generation
-	"attribute_divisor": 3        # Divide by 3, round up
+	"starting_credits": 10, # Credits per character
+	"max_crew_size": 8, # Maximum crew members
+	"min_crew_size": 4, # Minimum crew members
+	"attribute_dice": "2d6", # Dice for attribute generation
+	"attribute_divisor": 3 # Divide by 3, round up
 }
 
 # Campaign Turn Constants
 const CAMPAIGN_TURNS = {
-	"max_turns": 100,             # Standard campaign length
-	"short_campaign": 20,         # Quick campaign
-	"medium_campaign": 50,        # Standard campaign
-	"long_campaign": 100,         # Extended campaign
-	"story_quest_minimum": 3      # Minimum story quests for victory
+	"max_turns": 100, # Standard campaign length
+	"short_campaign": 20, # Quick campaign
+	"medium_campaign": 50, # Standard campaign
+	"long_campaign": 100, # Extended campaign
+	"story_quest_minimum": 3 # Minimum story quests for victory
 }
 
 # Economic System Constants
 const ECONOMY = {
-	"starting_debt": 75,          # Standard starting ship debt
-	"upkeep_threshold": 4,        # Crew size threshold for upkeep
-	"base_upkeep": 1,             # Base upkeep cost per turn
-	"additional_crew_cost": 1,    # Cost per crew member over threshold
+	"starting_debt": 75, # Standard starting ship debt
+	"upkeep_threshold": 4, # Crew size threshold for upkeep
+	"base_upkeep": 1, # Base upkeep cost per turn
+	"additional_crew_cost": 1, # Cost per crew member over threshold
 	"trade_profit_multiplier": 10, # Base trade profit calculation
-	"equipment_degradation": 0.1  # Equipment wear rate per battle
+	"equipment_degradation": 0.1 # Equipment wear rate per battle
 }
 
 # Combat System Constants
 const COMBAT = {
-	"initiative_base": 6,         # Base initiative roll
-	"reaction_threshold": 4,      # Minimum reaction roll
-	"stun_recovery": 5,           # Roll needed to recover from stun
-	"morale_threshold": 7,        # Base morale check difficulty
+	"initiative_base": 6, # Base initiative roll
+	"reaction_threshold": 4, # Minimum reaction roll
+	"stun_recovery": 5, # Roll needed to recover from stun
+	"morale_threshold": 7, # Base morale check difficulty
 	"range_bands": {
 		"point_blank": 0,
 		"short": 6,
@@ -102,31 +102,31 @@ const COMBAT = {
 
 # Mission Generation Constants
 const MISSIONS = {
-	"patron_jobs_per_turn": 3,    # Maximum patron jobs available
-	"opportunity_jobs": 2,        # Opportunity mission chances
-	"mission_pay_multiplier": 5,  # Base mission payment
-	"danger_pay_bonus": 2,        # Bonus for dangerous missions
-	"story_mission_frequency": 6  # Story mission appearance frequency
+	"patron_jobs_per_turn": 3, # Maximum patron jobs available
+	"opportunity_jobs": 2, # Opportunity mission chances
+	"mission_pay_multiplier": 5, # Base mission payment
+	"danger_pay_bonus": 2, # Bonus for dangerous missions
+	"story_mission_frequency": 6 # Story mission appearance frequency
 }
 
 # Tutorial System Configuration
 const TUTORIAL = {
-	"auto_advance_delay": 3.0,    # Seconds before auto-advance
-	"highlight_pulse_speed": 1.0,  # Animation speed for highlights
+	"auto_advance_delay": 3.0, # Seconds before auto-advance
+	"highlight_pulse_speed": 1.0, # Animation speed for highlights
 	"tooltip_offset": Vector2(10, -30), # Tooltip position offset
-	"fade_duration": 0.3,         # Fade in/out duration
+	"fade_duration": 0.3, # Fade in/out duration
 	"step_validation_timeout": 5.0 # Max time to wait for step completion
 }
 
 # UI Layout Constants
 const UI_LAYOUT = {
-	"panel_padding": 10,          # Standard panel padding
-	"button_spacing": 5,          # Button spacing
-	"text_margin": 15,           # Text margins
-	"highlight_alpha": 0.2,       # Highlight overlay alpha
-	"dimmed_alpha": 0.7,         # Dimmed overlay alpha
-	"animation_speed": 0.3,       # Standard animation speed
-	"tooltip_max_width": 300     # Maximum tooltip width
+	"panel_padding": 10, # Standard panel padding
+	"button_spacing": 5, # Button spacing
+	"text_margin": 15, # Text margins
+	"highlight_alpha": 0.2, # Highlight overlay alpha
+	"dimmed_alpha": 0.7, # Dimmed overlay alpha
+	"animation_speed": 0.3, # Standard animation speed
+	"tooltip_max_width": 300 # Maximum tooltip width
 }
 
 # Error and Success Messages
@@ -157,7 +157,7 @@ const MESSAGES = {
 # Signal Names for Enhanced Communication
 const SIGNALS = {
 	"crew_task_started": "crew_task_started",
-	"crew_task_rolling": "crew_task_rolling", 
+	"crew_task_rolling": "crew_task_rolling",
 	"crew_task_completed": "crew_task_completed",
 	"world_phase_started": "world_phase_started",
 	"world_phase_completed": "world_phase_completed",
@@ -184,7 +184,7 @@ const PATHS = {
 # Version Information
 const VERSION = {
 	"major": 1,
-	"minor": 0, 
+	"minor": 0,
 	"patch": 0,
 	"build": "production",
 	"five_parsecs_rules": "2023 Edition",
@@ -245,7 +245,7 @@ static func get_range_band_name(distance: int) -> String:
 	elif distance <= ranges.short:
 		return "Short"
 	elif distance <= ranges.medium:
-		return "Medium" 
+		return "Medium"
 	elif distance <= ranges.long:
 		return "Long"
 	else:
@@ -256,7 +256,7 @@ static func calculate_upkeep_cost(crew_size: int) -> int:
 	if crew_size < ECONOMY.upkeep_threshold:
 		return 0
 	var base_cost = ECONOMY.base_upkeep
-	var additional_crew = max(0, crew_size - 6)  # Crew beyond 6 cost extra
+	var additional_crew = max(0, crew_size - 6) # Crew beyond 6 cost extra
 	return base_cost + (additional_crew * ECONOMY.additional_crew_cost)
 
 static func get_tutorial_config(config_key: String) -> Variant:

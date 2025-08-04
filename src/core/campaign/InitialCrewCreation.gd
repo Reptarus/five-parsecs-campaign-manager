@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 # REMOVED: class_name InitialCrewCreation
 
 # This class previously used class_name but it was removed to prevent conflicts

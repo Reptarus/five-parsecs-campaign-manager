@@ -1,4 +1,4 @@
-﻿class_name FPCM_ErrorDisplay
+class_name FPCM_ErrorDisplay
 extends Control
 
 const ErrorLogger = preload("res://src/core/systems/ErrorLogger.gd")

@@ -1,82 +1,102 @@
-[gd_scene load_steps=2 format=3 uid="uid://c1ipgkdm40l6c"]
+[gd_scene load_steps=3 format=3 uid="uid://c1ipgkdm40l6c"]
 
-[ext_resource type="Script" uid="uid://c8dbobs52fwg5" path="res://src/ui/screens/campaign/panels/ConfigPanel.gd" id="1_sapom"]
+[ext_resource type="PackedScene" uid="uid://bxkj8l2m9n6r5" path="res://src/ui/screens/campaign/panels/BaseCampaignPanel.tscn" id="1_base"]
+[ext_resource type="Script" uid="uid://c8dbobs52fwg5" path="res://src/ui/screens/campaign/panels/ConfigPanel.gd" id="2_script"]
 
-[node name="ConfigPanel" type="Control"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("1_sapom")
+[node name="ConfigPanel" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
 
-[node name="Content" type="VBoxContainer" parent="."]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -300.0
-offset_top = -200.0
-offset_right = 300.0
-offset_bottom = 200.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 20
-
-[node name="CampaignName" type="VBoxContainer" parent="Content"]
+[node name="Content" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer"]
 layout_mode = 2
+theme_override_constants/separation = 25
 
-[node name="Label" type="Label" parent="Content/CampaignName"]
+[node name="CampaignName" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 layout_mode = 2
-text = "Campaign Name"
+theme_override_constants/separation = 8
 
-[node name="LineEdit" type="LineEdit" parent="Content/CampaignName"]
+[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/CampaignName"]
+layout_mode = 2
+text = "Campaign Name:"
+theme_override_font_sizes/font_size = 18
+
+[node name="LineEdit" type="LineEdit" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/CampaignName"]
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 placeholder_text = "Enter campaign name..."
+max_length = 50
 
-[node name="Difficulty" type="VBoxContainer" parent="Content"]
+[node name="Difficulty" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 layout_mode = 2
+theme_override_constants/separation = 8
 
-[node name="Label" type="Label" parent="Content/Difficulty"]
+[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Difficulty"]
 layout_mode = 2
-text = "Difficulty Level"
+text = "Difficulty Level:"
+theme_override_font_sizes/font_size = 18
 
-[node name="OptionButton" type="OptionButton" parent="Content/Difficulty"]
+[node name="OptionButton" type="OptionButton" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Difficulty"]
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 
-[node name="VictoryCondition" type="VBoxContainer" parent="Content"]
+[node name="VictoryCondition" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 layout_mode = 2
+theme_override_constants/separation = 8
 
-[node name="Label" type="Label" parent="Content/VictoryCondition"]
+[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/VictoryCondition"]
 layout_mode = 2
-text = "Victory Condition"
+text = "Victory Condition:"
+theme_override_font_sizes/font_size = 18
 
-[node name="OptionButton" type="OptionButton" parent="Content/VictoryCondition"]
+[node name="OptionButton" type="OptionButton" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/VictoryCondition"]
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 
-[node name="StoryTrack" type="VBoxContainer" parent="Content"]
+[node name="StoryTrack" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 layout_mode = 2
+theme_override_constants/separation = 8
 
-[node name="Label" type="Label" parent="Content/StoryTrack"]
+[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/StoryTrack"]
 layout_mode = 2
-text = "Story Track"
+text = "Story Track:"
+theme_override_font_sizes/font_size = 18
 
-[node name="CheckBox" type="CheckBox" parent="Content/StoryTrack"]
+[node name="CheckBox" type="CheckBox" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/StoryTrack"]
 layout_mode = 2
 text = "Enable Story Track campaign"
 
-[node name="Description" type="VBoxContainer" parent="Content"]
+[node name="Description" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_constants/separation = 8
 
-[node name="Label" type="Label" parent="Content/Description"]
+[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Description"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
 text = "Difficulty description will appear here..."
 autowrap_mode = 2
+vertical_alignment = 1
+
+[node name="ConfigValidationPanel" type="PanelContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+layout_mode = 2
+theme_type_variation = &"ValidationPanel"
+
+[node name="ValidationContent" type="HBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/ConfigValidationPanel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ValidationIcon" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/ConfigValidationPanel/ValidationContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "✓"
+theme_override_colors/font_color = Color(0.4, 0.8, 0.4, 1)
+
+[node name="ValidationText" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/ConfigValidationPanel/ValidationContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Campaign configuration is valid"
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+
+[connection signal="text_changed" from="ContentMargin/MainContent/FormContent/FormContainer/Content/CampaignName/LineEdit" to="." method="_on_campaign_name_changed"]
+[connection signal="item_selected" from="ContentMargin/MainContent/FormContent/FormContainer/Content/Difficulty/OptionButton" to="." method="_on_difficulty_selected"]
+[connection signal="item_selected" from="ContentMargin/MainContent/FormContent/FormContainer/Content/VictoryCondition/OptionButton" to="." method="_on_victory_condition_selected"]
+[connection signal="toggled" from="ContentMargin/MainContent/FormContent/FormContainer/Content/StoryTrack/CheckBox" to="." method="_on_story_track_toggled"]

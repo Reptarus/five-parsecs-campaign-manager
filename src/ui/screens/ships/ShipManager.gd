@@ -1,4 +1,4 @@
-﻿class_name ShipManagerUI
+class_name ShipManagerUI
 extends Control
 
 signal ship_repaired(hull_points: int)

@@ -1,8 +1,0 @@
-{
-  "request_id": "memory_test_1753746417_1",
-  "tool_name": "gemini_quick_query",
-  "arguments": {
-    "query": "What are the best practices for MCP ecosystem deployment?"
-  },
-  "client_id": "claude-desktop"
-}

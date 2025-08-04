@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 @warning_ignore("unused_signal")
 extends Node
 class_name BaseBattleStatisticsTracker

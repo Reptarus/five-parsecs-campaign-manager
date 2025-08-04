@@ -1,6 +1,6 @@
-﻿@tool
+@tool
 extends Node2D
-class_name BaseBattleCharacter
+class_name FiveParsecsBattleCharacter
 
 # Universal Framework Integration - Using global classes directly
 

@@ -1,0 +1,131 @@
+[gd_scene load_steps=3 format=3 uid="uid://main_campaign_scene"]
+
+[ext_resource type="Script" path="res://src/ui/screens/campaign/MainCampaignScene.gd" id="1_main_campaign"]
+[ext_resource type="PackedScene" uid="uid://bbdf8j6xqaohc" path="res://src/ui/screens/campaign/CampaignTurnController.tscn" id="2_campaign_turn"]
+
+[node name="MainCampaignScene" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_main_campaign")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.05, 0.05, 0.1, 1)
+
+[node name="MainContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="CampaignHeader" type="PanelContainer" parent="MainContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HeaderContent" type="HBoxContainer" parent="MainContainer/CampaignHeader"]
+layout_mode = 2
+
+[node name="CampaignTitle" type="Label" parent="MainContainer/CampaignHeader/HeaderContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Five Parsecs Campaign Manager"
+theme_override_font_sizes/font_size = 20
+horizontal_alignment = 1
+
+[node name="CampaignStatus" type="Label" parent="MainContainer/CampaignHeader/HeaderContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Campaign Active"
+horizontal_alignment = 2
+
+[node name="MainContent" type="HBoxContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CampaignSidebar" type="PanelContainer" parent="MainContainer/MainContent"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(250, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+
+[node name="SidebarContent" type="VBoxContainer" parent="MainContainer/MainContent/CampaignSidebar"]
+layout_mode = 2
+
+[node name="QuickStatsLabel" type="Label" parent="MainContainer/MainContent/CampaignSidebar/SidebarContent"]
+layout_mode = 2
+text = "Quick Stats"
+theme_override_font_sizes/font_size = 16
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="MainContainer/MainContent/CampaignSidebar/SidebarContent"]
+layout_mode = 2
+
+[node name="TurnCounter" type="Label" parent="MainContainer/MainContent/CampaignSidebar/SidebarContent"]
+layout_mode = 2
+text = "Turn: 1"
+
+[node name="CrewSize" type="Label" parent="MainContainer/MainContent/CampaignSidebar/SidebarContent"]
+layout_mode = 2
+text = "Crew: 4/6"
+
+[node name="Credits" type="Label" parent="MainContainer/MainContent/CampaignSidebar/SidebarContent"]
+layout_mode = 2
+text = "Credits: 1,250"
+
+[node name="ShipCondition" type="Label" parent="MainContainer/MainContent/CampaignSidebar/SidebarContent"]
+layout_mode = 2
+text = "Ship: Good"
+
+[node name="VSeparator" type="VSeparator" parent="MainContainer/MainContent"]
+layout_mode = 2
+
+[node name="CampaignTurnController" parent="MainContainer/MainContent" instance=ExtResource("2_campaign_turn")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ErrorDisplay" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -200.0
+offset_top = -80.0
+offset_right = 200.0
+grow_horizontal = 2
+grow_vertical = 0
+modulate = Color(1, 0.8, 0.8, 0.95)
+
+[node name="ErrorContent" type="VBoxContainer" parent="ErrorDisplay"]
+layout_mode = 2
+
+[node name="ErrorTitle" type="Label" parent="ErrorDisplay/ErrorContent"]
+layout_mode = 2
+text = "Campaign Error"
+theme_override_font_sizes/font_size = 14
+horizontal_alignment = 1
+
+[node name="ErrorMessage" type="Label" parent="ErrorDisplay/ErrorContent"]
+layout_mode = 2
+text = "An error occurred in the campaign system."
+theme_override_font_sizes/font_size = 12
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[connection signal="resized" from="." to="." method="_on_viewport_size_changed"]

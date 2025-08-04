@@ -1,4 +1,4 @@
-﻿class_name BaseLocation
+class_name BaseLocation
 extends Resource
 
 ## Base class for all location implementations

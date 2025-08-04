@@ -1,4 +1,4 @@
-﻿class_name CampaignEventsManagerUI
+class_name CampaignEventsManagerUI
 extends Control
 
 signal event_resolved(event: Dictionary, choice: String)

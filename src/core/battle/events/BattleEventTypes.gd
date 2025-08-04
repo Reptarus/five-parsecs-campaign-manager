@@ -1,4 +1,4 @@
-﻿extends Resource
+extends Resource
 
 # GlobalEnums available as autoload singleton
 

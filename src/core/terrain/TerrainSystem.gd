@@ -1,4 +1,4 @@
-﻿## Core terrain system for Five Parsecs tactical battles
+## Core terrain system for Five Parsecs tactical battles
 class_name TerrainSystem
 extends RefCounted
 

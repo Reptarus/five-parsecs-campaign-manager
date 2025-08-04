@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 # REMOVED: class_name ValidationManager
 
 # This class previously used class_name ValidationManager but it was removed to prevent conflicts

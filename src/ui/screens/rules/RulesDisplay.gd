@@ -1,4 +1,4 @@
-﻿# RulesDisplay.gd
+# RulesDisplay.gd
 extends Control
 
 # signal back_pressed

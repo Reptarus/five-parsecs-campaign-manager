@@ -1,4 +1,4 @@
-﻿class_name TradingSystem
+class_name TradingSystem
 extends Resource
 
 ## Trading System for Five Parsecs Campaign Manager

@@ -1,5 +1,5 @@
 extends RefCounted
-class_name BaseCharacterCreationSystem
+class_name FiveParsecsCharacterCreationSystem
 
 ## Base Character Creation System
 ## Unified character creation logic without UI dependencies

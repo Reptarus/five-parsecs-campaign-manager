@@ -1,4 +1,4 @@
-﻿## EventManager - Production-Ready Implementation
+## EventManager - Production-Ready Implementation
 ## Manages game events and their effects on the game state with comprehensive type safety
 extends Node
 

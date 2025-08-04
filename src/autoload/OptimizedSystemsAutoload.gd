@@ -140,7 +140,7 @@ func _initialize_system_safe(system_info: Dictionary) -> bool:
 	return true
 
 ## System Access API - Lazy Loading
-func get_patron_system():
+func get_patron_system() -> Object:
 	"""Get PatronSystem instance, loading if necessary"""
 	if not patron_system:
 		if PatronSystem:
@@ -150,7 +150,7 @@ func get_patron_system():
 			_initialize_system_safe({"name": "PatronSystem", "path": "res://src/core/systems/PatronSystem.gd"})
 	return patron_system
 
-func get_economy_system():
+func get_economy_system() -> Object:
 	"""Get EconomySystem instance, loading if necessary"""
 	if not economy_system:
 		if EconomySystem:
@@ -159,7 +159,7 @@ func get_economy_system():
 			_initialize_system_safe({"name": "EconomySystem", "path": "res://src/core/systems/EconomySystem.gd"})
 	return economy_system
 
-func get_faction_system():
+func get_faction_system() -> Object:
 	"""Get FactionSystem instance, loading if necessary"""
 	if not faction_system:
 		if FactionSystem:

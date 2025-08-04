@@ -11,20 +11,20 @@ const CampaignCreationStateManager = preload("res://src/core/campaign/creation/C
 
 ## Data consistency validation types
 enum ConsistencyValidationType {
-	CAMPAIGN_DATA_FLOW,        # Campaign creation data flow integrity
-	MULTI_TURN_PERSISTENCE,    # Multi-turn campaign data persistence
-	CROSS_SYSTEM_SYNC,         # Cross-system data synchronization
-	BACKEND_UI_CONSISTENCY,    # Backend-generated vs UI-displayed data consistency
-	STATE_INTEGRITY,           # State manager data integrity
-	PERFORMANCE_CONSISTENCY    # Performance consistency across operations
+	CAMPAIGN_DATA_FLOW, # Campaign creation data flow integrity
+	MULTI_TURN_PERSISTENCE, # Multi-turn campaign data persistence
+	CROSS_SYSTEM_SYNC, # Cross-system data synchronization
+	BACKEND_UI_CONSISTENCY, # Backend-generated vs UI-displayed data consistency
+	STATE_INTEGRITY, # State manager data integrity
+	PERFORMANCE_CONSISTENCY # Performance consistency across operations
 }
 
 ## Data consistency severity levels
 enum ConsistencySeverity {
-	CONSISTENT,    # All data is consistent
-	MINOR_DRIFT,   # Minor inconsistencies that don't affect functionality
-	MAJOR_DRIFT,   # Significant inconsistencies requiring attention
-	CRITICAL_MISMATCH  # Critical data mismatches that break functionality
+	CONSISTENT, # All data is consistent
+	MINOR_DRIFT, # Minor inconsistencies that don't affect functionality
+	MAJOR_DRIFT, # Significant inconsistencies requiring attention
+	CRITICAL_MISMATCH # Critical data mismatches that break functionality
 }
 
 ## Data consistency result
@@ -92,7 +92,7 @@ static func validate_campaign_creation_data_flow(
 	if not crew_result.success:
 		flow_issues.append("Crew phase: " + crew_result.message)
 	flow_metrics.ui_panels_checked += 1
-	flow_metrics.backend_calls_verified += 1  # Crew uses backend generation
+	flow_metrics.backend_calls_verified += 1 # Crew uses backend generation
 	
 	# Phase 3: Captain Data Flow
 	var captain_result = _validate_captain_data_flow(ui_controller, state_manager, test_campaign_data.captain)
@@ -111,7 +111,7 @@ static func validate_campaign_creation_data_flow(
 	if not equipment_result.success:
 		flow_issues.append("Equipment phase: " + equipment_result.message)
 	flow_metrics.ui_panels_checked += 1
-	flow_metrics.backend_calls_verified += 1  # Equipment uses backend generation
+	flow_metrics.backend_calls_verified += 1 # Equipment uses backend generation
 	
 	# Phase 6: State Consistency
 	var state_result = _validate_state_consistency(state_manager, test_campaign_data)
@@ -129,7 +129,7 @@ static func validate_campaign_creation_data_flow(
 	
 	if flow_issues.size() > 0:
 		success = false
-		if flow_issues.size() >= 4:  # More than half the phases have issues
+		if flow_issues.size() >= 4: # More than half the phases have issues
 			severity = ConsistencySeverity.CRITICAL_MISMATCH
 			message = "Critical data flow issues detected"
 		elif flow_issues.size() >= 2:
@@ -242,10 +242,10 @@ static func validate_multi_turn_persistence(
 		success = false
 		var issue_ratio = float(persistence_issues.size()) / float(campaign_data_sequence.size() * tracked_fields.size())
 		
-		if issue_ratio > 0.2:  # More than 20% of checks failed
+		if issue_ratio > 0.2: # More than 20% of checks failed
 			severity = ConsistencySeverity.CRITICAL_MISMATCH
 			message = "Critical persistence failures detected"
-		elif issue_ratio > 0.1:  # More than 10% of checks failed
+		elif issue_ratio > 0.1: # More than 10% of checks failed
 			severity = ConsistencySeverity.MAJOR_DRIFT
 			message = "Major persistence inconsistencies detected"
 		else:
@@ -599,39 +599,47 @@ static func _generate_mock_backend_data() -> Dictionary:
 
 static func _generate_consistency_validation_summary(results: Array[DataConsistencyResult], total_time_ms: int) -> void:
 	"""Generate comprehensive validation summary"""
-	print("\n" + "=" * 60)
+	print("\n" + "=".repeat(60))
 	print("DATA CONSISTENCY VALIDATION SUMMARY")
-	print("=" * 60)
+	print("=".repeat(60))
 	
 	print("Total Validation Time: %dms" % total_time_ms)
 	print("Validations Performed: %d" % results.size())
 	
-	var consistent_count = 0
-	var minor_drift_count = 0
-	var major_drift_count = 0
-	var critical_count = 0
+	# Count results by status
+	var passed_count: int = 0
+	var failed_count: int = 0
+	var warning_count: int = 0
 	
 	for result in results:
 		match result.severity:
 			ConsistencySeverity.CONSISTENT:
-				consistent_count += 1
+				passed_count += 1
 			ConsistencySeverity.MINOR_DRIFT:
-				minor_drift_count += 1
+				warning_count += 1
 			ConsistencySeverity.MAJOR_DRIFT:
-				major_drift_count += 1
+				failed_count += 1
 			ConsistencySeverity.CRITICAL_MISMATCH:
-				critical_count += 1
+				failed_count += 1
 	
-	print("\nResults Breakdown:")
-	print("  ✅ Consistent: %d" % consistent_count)
-	print("  ⚠️ Minor Drift: %d" % minor_drift_count)
-	print("  ❌ Major Drift: %d" % major_drift_count)
-	print("  🚨 Critical: %d" % critical_count)
+	print("Results: %d Passed, %d Failed, %d Warnings" % [passed_count, failed_count, warning_count])
 	
-	print("\nIndividual Results:")
-	for result in results:
-		var status_icon = "✅" if result.success else "❌"
-		var validation_name = ConsistencyValidationType.keys()[result.validation_type].replace("_", " ").capitalize()
-		print("  %s %s - %s" % [status_icon, validation_name, result.message])
+	# Show failed validations
+	if failed_count > 0:
+		print("\nFAILED VALIDATIONS:")
+		for result in results:
+			if result.severity == ConsistencySeverity.CRITICAL_MISMATCH or result.severity == ConsistencySeverity.MAJOR_DRIFT:
+				var status_icon = "❌"
+				var validation_name = ConsistencyValidationType.keys()[result.validation_type].replace("_", " ").capitalize()
+				print("  %s %s - %s" % [status_icon, validation_name, result.message])
 	
-	print("\n" + "=" * 60)
+	# Show warnings
+	if warning_count > 0:
+		print("\nWARNINGS:")
+		for result in results:
+			if result.severity == ConsistencySeverity.MINOR_DRIFT:
+				var status_icon = "⚠️"
+				var validation_name = ConsistencyValidationType.keys()[result.validation_type].replace("_", " ").capitalize()
+				print("  %s %s - %s" % [status_icon, validation_name, result.message])
+	
+	print("\n" + "=".repeat(60))

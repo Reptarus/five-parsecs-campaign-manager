@@ -9,7 +9,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-visible = false
 script = ExtResource("1_bc_script")
 
 [node name="Background" type="ColorRect" parent="."]
@@ -19,9 +18,9 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0, 0, 0, 0.7)
+color = Color(0.1, 0.1, 0.1, 0.8)
 
-[node name="Dialog" type="Panel" parent="."]
+[node name="Content" type="VBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -32,112 +31,113 @@ offset_left = -300.0
 offset_top = -250.0
 offset_right = 300.0
 offset_bottom = 250.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="VBoxContainer" type="VBoxContainer" parent="Dialog"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 20.0
-offset_top = 20.0
-offset_right = -20.0
-offset_bottom = -20.0
-grow_horizontal = 2
-grow_vertical = 2
 theme_override_constants/separation = 15
 
-[node name="Title" type="Label" parent="Dialog/VBoxContainer"]
+[node name="Title" type="Label" parent="Content"]
 layout_mode = 2
-text = "Character Creator"
+text = "Create Your Captain"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 24
+
+[node name="NameSection" type="VBoxContainer" parent="Content"]
+layout_mode = 2
+
+[node name="NameLabel" type="Label" parent="Content/NameSection"]
+layout_mode = 2
+text = "Captain Name:"
+
+[node name="NameInput" type="LineEdit" parent="Content/NameSection"]
+layout_mode = 2
+placeholder_text = "Enter captain name..."
+
+[node name="StatsSection" type="VBoxContainer" parent="Content"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="StatsTitle" type="Label" parent="Content/StatsSection"]
+layout_mode = 2
+text = "Five Parsecs Stats:"
 horizontal_alignment = 1
 
-[node name="NameContainer" type="HBoxContainer" parent="Dialog/VBoxContainer"]
-layout_mode = 2
-
-[node name="NameLabel" type="Label" parent="Dialog/VBoxContainer/NameContainer"]
-layout_mode = 2
-text = "Name:"
-custom_minimum_size = Vector2(80, 0)
-
-[node name="NameInput" type="LineEdit" parent="Dialog/VBoxContainer/NameContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-placeholder_text = "Character Name"
-
-[node name="StatsContainer" type="VBoxContainer" parent="Dialog/VBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="StatsLabel" type="Label" parent="Dialog/VBoxContainer/StatsContainer"]
-layout_mode = 2
-text = "Stats:"
-
-[node name="StatsDisplay" type="GridContainer" parent="Dialog/VBoxContainer/StatsContainer"]
+[node name="StatsGrid" type="GridContainer" parent="Content/StatsSection"]
 layout_mode = 2
 columns = 2
+theme_override_constants/h_separation = 20
+theme_override_constants/v_separation = 10
 
-[node name="CombatLabel" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+[node name="CombatLabel" type="Label" parent="Content/StatsSection/StatsGrid"]
 layout_mode = 2
 text = "Combat:"
 
-[node name="CombatValue" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+[node name="CombatValue" type="SpinBox" parent="Content/StatsSection/StatsGrid"]
 layout_mode = 2
-text = "3"
+min_value = 1.0
+max_value = 6.0
+value = 1.0
 
-[node name="ToughnessLabel" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+[node name="ToughnessLabel" type="Label" parent="Content/StatsSection/StatsGrid"]
 layout_mode = 2
 text = "Toughness:"
 
-[node name="ToughnessValue" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+[node name="ToughnessValue" type="SpinBox" parent="Content/StatsSection/StatsGrid"]
 layout_mode = 2
-text = "3"
+min_value = 1.0
+max_value = 6.0
+value = 1.0
 
-[node name="SavvyLabel" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+[node name="SavvyLabel" type="Label" parent="Content/StatsSection/StatsGrid"]
 layout_mode = 2
 text = "Savvy:"
 
-[node name="SavvyValue" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+[node name="SavvyValue" type="SpinBox" parent="Content/StatsSection/StatsGrid"]
 layout_mode = 2
-text = "3"
+min_value = 1.0
+max_value = 6.0
+value = 1.0
 
-[node name="TechLabel" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+[node name="TechLabel" type="Label" parent="Content/StatsSection/StatsGrid"]
 layout_mode = 2
 text = "Tech:"
 
-[node name="TechValue" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+[node name="TechValue" type="SpinBox" parent="Content/StatsSection/StatsGrid"]
 layout_mode = 2
-text = "3"
+min_value = 1.0
+max_value = 6.0
+value = 1.0
 
-[node name="SpeedLabel" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+[node name="SpeedLabel" type="Label" parent="Content/StatsSection/StatsGrid"]
 layout_mode = 2
 text = "Speed:"
 
-[node name="SpeedValue" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+[node name="SpeedValue" type="SpinBox" parent="Content/StatsSection/StatsGrid"]
 layout_mode = 2
-text = "3"
+min_value = 1.0
+max_value = 6.0
+value = 1.0
 
-[node name="LuckLabel" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+[node name="LuckLabel" type="Label" parent="Content/StatsSection/StatsGrid"]
 layout_mode = 2
 text = "Luck:"
 
-[node name="LuckValue" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+[node name="LuckValue" type="SpinBox" parent="Content/StatsSection/StatsGrid"]
 layout_mode = 2
-text = "1"
+min_value = 1.0
+max_value = 6.0
+value = 1.0
 
-[node name="ButtonContainer" type="HBoxContainer" parent="Dialog/VBoxContainer"]
+[node name="ButtonSection" type="HBoxContainer" parent="Content"]
 layout_mode = 2
+theme_override_constants/separation = 20
 alignment = 1
 
-[node name="RandomizeButton" type="Button" parent="Dialog/VBoxContainer/ButtonContainer"]
+[node name="RandomizeButton" type="Button" parent="Content/ButtonSection"]
 layout_mode = 2
-text = "Randomize"
+text = "Randomize Stats"
 
-[node name="CreateButton" type="Button" parent="Dialog/VBoxContainer/ButtonContainer"]
+[node name="CreateButton" type="Button" parent="Content/ButtonSection"]
 layout_mode = 2
-text = "Create"
+text = "Create Captain"
 
-[node name="CancelButton" type="Button" parent="Dialog/VBoxContainer/ButtonContainer"]
+[node name="CancelButton" type="Button" parent="Content/ButtonSection"]
 layout_mode = 2
 text = "Cancel"

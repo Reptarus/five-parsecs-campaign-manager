@@ -1,4 +1,4 @@
-﻿class_name ResourceSystemClass
+class_name ResourceSystemClass
 extends Node
 
 ## Simple resource management system for Five Parsecs

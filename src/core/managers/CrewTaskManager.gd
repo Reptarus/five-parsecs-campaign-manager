@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 extends Node
 
 const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")

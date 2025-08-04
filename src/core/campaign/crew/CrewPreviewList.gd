@@ -1,4 +1,4 @@
-﻿extends Control
+extends Control
 
 signal crew_preview_selected(crew_data: Dictionary)
 

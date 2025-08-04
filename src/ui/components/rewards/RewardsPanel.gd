@@ -1,4 +1,4 @@
-﻿class_name FPCM_RewardsPanel
+class_name FPCM_RewardsPanel
 extends Control
 
 const TooltipManager = preload("res://src/ui/components/tooltip/TooltipManager.gd")

@@ -1,9 +1,0 @@
-{
-  "request_id": "memory_test_1753746417_2",
-  "tool_name": "gemini_analyze_code",
-  "arguments": {
-    "code_content": "def deploy_application():\n    # TODO: Add proper error handling\n    return deploy_to_production()",
-    "analysis_type": "security"
-  },
-  "client_id": "claude-code"
-}

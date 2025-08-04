@@ -1,4 +1,4 @@
-﻿# Universal Safe Resource Loading - Apply to ALL files
+# Universal Safe Resource Loading - Apply to ALL files
 # Based on proven patterns: Universal Mock Strategy + 7-Stage Methodology
 class_name UniversalResourceLoader
 extends RefCounted

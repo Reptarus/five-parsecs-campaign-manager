@@ -1,4 +1,4 @@
-﻿extends Resource
+extends Resource
 class_name FPCM_ShipRoles
 
 # Preloads

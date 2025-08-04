@@ -1,4 +1,4 @@
-﻿class_name DiceFeed
+class_name DiceFeed
 extends Control
 
 ## Top-level dice feed that displays recent rolls

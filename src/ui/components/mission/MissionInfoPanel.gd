@@ -1,4 +1,4 @@
-﻿class_name FPCM_MissionInfoPanel
+class_name FPCM_MissionInfoPanel
 extends Control
 
 signal mission_selected(mission_data: Dictionary)

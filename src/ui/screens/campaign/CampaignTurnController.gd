@@ -10,7 +10,7 @@ extends Control
 
 # UI Phase Controllers
 @onready var travel_phase_ui: Control = %TravelPhaseUI
-@onready var world_phase_ui: Control = %WorldPhaseUI  
+@onready var world_phase_controller: Control = %WorldPhaseController
 @onready var battle_transition_ui: Control = %BattleTransitionUI
 @onready var post_battle_ui: Control = %PostBattleUI
 
@@ -46,7 +46,7 @@ func _validate_dependencies() -> void:
 	assert(campaign_phase_manager != null, "CampaignPhaseManager not found in autoload")
 	assert(game_state != null, "GameState not found in autoload")
 	assert(travel_phase_ui != null, "TravelPhaseUI not found in scene")
-	assert(world_phase_ui != null, "WorldPhaseUI not found in scene")
+	assert(world_phase_controller != null, "WorldPhaseController not found in scene")
 
 func _connect_core_signals() -> void:
 	"""Connect to CampaignPhaseManager orchestration signals"""
@@ -176,8 +176,8 @@ func _trigger_world_phase_backend_integration() -> void:
 		print("CampaignTurnController: Planet data updated - %s" % planet_data.name)
 		
 		# Pass planet data to world phase UI if it has backend integration
-		if world_phase_ui and world_phase_ui.has_method("update_planet_data_backend"):
-			world_phase_ui.update_planet_data_backend(current_planet_id, current_turn)
+		if world_phase_controller and world_phase_controller.has_method("update_planet_data_backend"):
+			world_phase_controller.update_planet_data_backend(current_planet_id, current_turn)
 	
 	# Generate random contacts using backend ContactManager
 	var contact_manager = get_node("BackendContactManager")
@@ -188,9 +188,9 @@ func _trigger_world_phase_backend_integration() -> void:
 			var contact = contact_manager.generate_random_contact(current_planet_id, current_turn)
 			print("CampaignTurnController: Generated contact %d - %s" % [i + 1, contact.name])
 		
-		# Notify world phase UI if it has backend integration
-		if world_phase_ui and world_phase_ui.has_method("generate_random_contact_backend"):
-			world_phase_ui.generate_random_contact_backend(current_planet_id, current_turn)
+		# Notify world phase controller if it has backend integration
+		if world_phase_controller and world_phase_controller.has_method("generate_random_contact_backend"):
+			world_phase_controller.generate_random_contact_backend(current_planet_id, current_turn)
 
 func _get_current_planet_id() -> String:
 	"""Get current planet ID from game state or generate one"""
@@ -273,8 +273,8 @@ func _show_phase_ui(phase: int) -> void:
 			current_ui_phase = travel_phase_ui
 			
 		GlobalEnums.FiveParsecsCampaignPhase.WORLD:
-			world_phase_ui.show()
-			current_ui_phase = world_phase_ui
+			world_phase_controller.show()
+			current_ui_phase = world_phase_controller
 			
 			# SPRINT ENHANCEMENT: Initialize backend systems for world phase
 			_trigger_world_phase_backend_integration()
@@ -291,7 +291,7 @@ func _show_phase_ui(phase: int) -> void:
 func _hide_all_phase_uis() -> void:
 	"""Hide all phase UI panels"""
 	travel_phase_ui.hide()
-	world_phase_ui.hide()
+	world_phase_controller.hide()
 	battle_transition_ui.hide()
 	post_battle_ui.hide()
 
@@ -349,7 +349,7 @@ func _update_phase_display(phase_name: String) -> void:
 	# Update progress bar based on phase
 	var progress_map = {
 		"Travel": 25,
-		"World": 50, 
+		"World": 50,
 		"Battle": 75,
 		"Post-Battle": 100
 	}
@@ -363,7 +363,7 @@ func _get_phase_name(phase: int) -> String:
 	# Map phase numbers to names based on GlobalEnums.FiveParsecsCampaignPhase
 	match phase:
 		0: return "None"
-		1: return "Travel"  
+		1: return "Travel"
 		2: return "World"
 		3: return "Battle"
 		4: return "Post-Battle"

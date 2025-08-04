@@ -63,11 +63,21 @@ func _ready() -> void:
 func _connect_dashboard_system_signals() -> void:
 	"""Connect to dashboard system signals"""
 	if dashboard_system:
-		dashboard_system.campaign_data_updated.connect(_on_system_campaign_data_updated)
-		dashboard_system.phase_changed.connect(_on_system_phase_changed)
-		dashboard_system.phase_completed.connect(_on_system_phase_completed)
-		dashboard_system.phase_event_triggered.connect(_on_system_phase_event)
-		dashboard_system.quick_action_requested.connect(_on_system_quick_action_requested)
+		var result1 = dashboard_system.campaign_data_updated.connect(_on_system_campaign_data_updated)
+		if result1 != OK:
+			push_error("CampaignDashboard: Failed to connect campaign_data_updated signal")
+		var result2 = dashboard_system.phase_changed.connect(_on_system_phase_changed)
+		if result2 != OK:
+			push_error("CampaignDashboard: Failed to connect phase_changed signal")
+		var result3 = dashboard_system.phase_completed.connect(_on_system_phase_completed)
+		if result3 != OK:
+			push_error("CampaignDashboard: Failed to connect phase_completed signal")
+		var result4 = dashboard_system.phase_event_triggered.connect(_on_system_phase_event)
+		if result4 != OK:
+			push_error("CampaignDashboard: Failed to connect phase_event_triggered signal")
+		var result5 = dashboard_system.quick_action_requested.connect(_on_system_quick_action_requested)
+		if result5 != OK:
+			push_error("CampaignDashboard: Failed to connect quick_action_requested signal")
 
 func _setup_dashboard_system() -> void:
 	"""Setup dashboard system with game state"""
@@ -181,6 +191,14 @@ func _on_phase_event(_event: Dictionary) -> void:
 
 func _on_next_phase_pressed() -> void:
 	if dashboard_system:
+		var current_phase = dashboard_system.get_current_phase()
+		var next_phase = dashboard_system._get_next_phase(current_phase)
+		
+		# Special handling for World Phase - navigate to WorldPhaseController
+		if next_phase == 2:  # World Phase per Five Parsecs sequence
+			_navigate_to_world_phase()
+			return
+		
 		var success = dashboard_system.advance_to_next_phase()
 		if success and next_phase_button:
 			next_phase_button.disabled = true
@@ -193,7 +211,15 @@ func _update_phase_ui(phase: int) -> void:
 		if next_phase_button:
 			var next_phase = dashboard_system._get_next_phase(phase)
 			var next_phase_name = dashboard_system.get_phase_name(next_phase)
-			next_phase_button.text = "Next Phase: " + next_phase_name
+			
+			# Check if this is a new campaign (starting first turn)
+			if phase == 1 and _is_new_campaign():  # Travel phase at campaign start
+				next_phase_button.text = "▶ START NEW CAMPAIGN TURN"
+				# Make button more prominent for new campaigns
+				if next_phase_button.has_method("add_theme_color_override"):
+					next_phase_button.add_theme_color_override("font_color", Color.WHITE)
+			else:
+				next_phase_button.text = "Next Phase: " + next_phase_name
 
 func _update_ui() -> void:
 	if dashboard_system:
@@ -432,6 +458,42 @@ func enable_enhanced_mode() -> void:
 func get_dashboard_system() -> BaseCampaignDashboardSystem:
 	"""Get dashboard system for direct access"""
 	return dashboard_system
+
+func _is_new_campaign() -> bool:
+	"""Check if this is a new campaign that hasn't started its first turn yet"""
+	if dashboard_system:
+		var summary = dashboard_system.get_campaign_summary()
+		var turn_number = summary.get("turn_number", 0)
+		var battles_fought = summary.get("battles_fought", 0)
+		# New campaign: turn 0-1 and no battles fought yet
+		return turn_number <= 1 and battles_fought == 0
+	elif game_state and game_state.campaign:
+		var turn_number = game_state.campaign.get("turn_number", 0)
+		var battles_fought = game_state.campaign.get("battles_fought", 0)
+		return turn_number <= 1 and battles_fought == 0
+	return true  # Default to new campaign if uncertain
+
+func _navigate_to_world_phase() -> void:
+	"""Navigate to World Phase Controller for proper Five Parsecs workflow"""
+	print("CampaignDashboard: Navigating to World Phase...")
+	
+	# Use SceneRouter for consistent navigation
+	var scene_router = get_node("/root/SceneRouter") if has_node("/root/SceneRouter") else null
+	if scene_router and scene_router.has_method("navigate_to"):
+		# Try WorldPhaseController first (new proper flow)
+		scene_router.navigate_to("world_phase_controller")
+	else:
+		# Direct scene change fallback
+		if FileAccess.file_exists("res://src/ui/screens/world/WorldPhaseController.tscn"):
+			get_tree().change_scene_to_file("res://src/ui/screens/world/WorldPhaseController.tscn")
+		elif FileAccess.file_exists("res://src/ui/screens/world/WorldPhaseUI.tscn"):
+			get_tree().change_scene_to_file("res://src/ui/screens/world/WorldPhaseUI.tscn")
+		else:
+			# Error fallback - stay in dashboard
+			push_error("CampaignDashboard: World Phase scenes not found!")
+			if next_phase_button:
+				next_phase_button.text = "World Phase Not Available"
+				next_phase_button.disabled = true
 
 func update_campaign_data(campaign_data: Dictionary) -> void:
 	"""Update campaign data through dashboard system"""

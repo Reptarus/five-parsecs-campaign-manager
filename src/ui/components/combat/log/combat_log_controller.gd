@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 extends Node
 
 ## Required dependencies
@@ -16,22 +16,22 @@ enum CombatLogEntryType {
 }
 
 ## Validation results
-class ValidationResult:
+class CombatValidationResult:
 	var type: int = 0 # VerificationType.NONE
 	var result: int = 0 # VerificationResult.NONE
 	var message: String = ""
-	var context: Dictionary = {}
+	var details: Dictionary = {}
 
 	func _init(
-		p_type: int = 0, # VerificationType.NONE
-		p_result: int = 0, # VerificationResult.NONE
+		p_type: int = 0,
+		p_result: int = 0,
 		p_message: String = "",
-		p_context: Dictionary = {}
+		p_details: Dictionary = {}
 	) -> void:
 		type = p_type
 		result = p_result
 		message = p_message
-		context = p_context
+		details = p_details
 
 	func is_error() -> bool:
 		return result == 1 or result == 2 # ERROR or CRITICAL
@@ -48,8 +48,8 @@ func create_result(
 	p_result: int = 0, # VerificationResult.NONE
 	p_message: String = "",
 	p_context: Dictionary = {}
-) -> ValidationResult:
-	var result = ValidationResult.new()
+) -> CombatValidationResult:
+	var result = CombatValidationResult.new()
 	result._init(p_type, p_result, p_message, p_context)
 	return result
 

@@ -31,6 +31,11 @@ const WORLD_PHASE_CREW_TASK_MODIFIERS_PATH: String = "res://data/campaign_tables
 const SYSTEM_CONFIG_PATH: String = "res://data/autoload/system_config.json"
 const BATTLEFIELD_COMPANION_CONFIG_PATH: String = "res://data/battlefield/companion_config.json"
 
+# Initialization signals
+signal data_loaded()
+signal data_load_failed(errors: Array)
+signal initialization_complete()
+
 # Cached data structures for performance
 static var _character_data: Dictionary = {}
 static var _background_data: Dictionary = {}
@@ -70,6 +75,28 @@ static var _cache_misses: int = 0
 # Internal state tracking
 static var _loading_in_progress: bool = false
 static var _load_errors: Array[String] = []
+
+func _ready() -> void:
+	"""Initialize data system with proper timing"""
+	# Defer initialization to ensure all autoloads are ready
+	call_deferred("_deferred_initialization")
+
+func _deferred_initialization() -> void:
+	"""Deferred initialization to ensure proper autoload order"""
+	# Wait one frame for all autoloads to be registered
+	await get_tree().process_frame
+	
+	print("DataManager: Starting deferred initialization...")
+	var success = initialize_data_system()
+	
+	if success:
+		data_loaded.emit()
+		print("DataManager: ✅ Initialization successful")
+	else:
+		data_load_failed.emit(_load_errors)
+		push_error("DataManager: ❌ Initialization failed with %d errors" % _load_errors.size())
+	
+	initialization_complete.emit()
 
 ## Optimized Data Loading Strategy - Load Time Reduced from 361ms to <100ms
 static func initialize_data_system() -> bool:

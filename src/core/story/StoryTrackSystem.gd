@@ -1,4 +1,4 @@
-﻿class_name FPCM_StoryTrackSystem
+class_name FPCM_StoryTrackSystem
 extends Resource
 
 ## Story Track System implementing Five Parsecs Core Rules Appendix V

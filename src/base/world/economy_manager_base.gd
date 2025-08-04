@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 
 ## Base class for all economy manager implementations
 ##
@@ -11,7 +11,7 @@ signal balance_changed(new_balance: float)
 
 # Base properties
 var balance: float = 0.0
-var transaction_history: Array = []
+var transaction_history: Array[Dictionary] = []
 
 # --- Core functionality ---
 

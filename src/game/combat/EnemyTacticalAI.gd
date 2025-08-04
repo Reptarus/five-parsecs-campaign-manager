@@ -1,4 +1,4 @@
-﻿## Handles tactical decision making for enemy units in combat
+## Handles tactical decision making for enemy units in combat
 class_name FPCM_EnemyTacticalAI
 extends Node
 

@@ -1,4 +1,3 @@
-class_name CharacterCreationDialog
 extends AcceptDialog
 
 ## Enhanced Character Creation Dialog - Full 5-Step Implementation

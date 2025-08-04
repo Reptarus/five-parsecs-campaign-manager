@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 
 const EXPORT_DIR = "user://exports/"
 

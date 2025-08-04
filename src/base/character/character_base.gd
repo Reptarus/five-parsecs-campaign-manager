@@ -1,6 +1,6 @@
-﻿@tool
+@tool
 extends Resource
-class_name BaseCharacter
+class_name FiveParsecsBaseCharacter
 
 ## Base character class for all character types in the game
 ##

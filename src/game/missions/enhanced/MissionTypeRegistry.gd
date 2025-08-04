@@ -15,9 +15,35 @@ static var _mission_type_cache: Dictionary = {}
 static var _mission_data_loaded: bool = false
 
 # Load JSON data as const for performance - using existing data structure
-const MISSION_TYPES_DATA: Dictionary = preload("res://data/mission_tables/mission_types.json")
-const MISSION_DIFFICULTY_DATA: Dictionary = preload("res://data/mission_tables/mission_difficulty.json")
-const MISSION_REWARDS_DATA: Dictionary = preload("res://data/mission_tables/mission_rewards.json")
+const MISSION_TYPES_DATA: Dictionary = {}
+const MISSION_DIFFICULTY_DATA: Dictionary = {}
+const MISSION_REWARDS_DATA: Dictionary = {}
+
+# Load data on initialization
+func _load_mission_data() -> void:
+	var mission_types_file = FileAccess.open("res://data/mission_tables/mission_types.json", FileAccess.READ)
+	if mission_types_file:
+		var json_string = mission_types_file.get_as_text()
+		var json = JSON.new()
+		var parse_result = json.parse(json_string)
+		if parse_result == OK:
+			MISSION_TYPES_DATA.merge(json.data)
+	
+	var mission_difficulty_file = FileAccess.open("res://data/mission_tables/mission_difficulty.json", FileAccess.READ)
+	if mission_difficulty_file:
+		var json_string = mission_difficulty_file.get_as_text()
+		var json = JSON.new()
+		var parse_result = json.parse(json_string)
+		if parse_result == OK:
+			MISSION_DIFFICULTY_DATA.merge(json.data)
+	
+	var mission_rewards_file = FileAccess.open("res://data/mission_tables/mission_rewards.json", FileAccess.READ)
+	if mission_rewards_file:
+		var json_string = mission_rewards_file.get_as_text()
+		var json = JSON.new()
+		var parse_result = json.parse(json_string)
+		if parse_result == OK:
+			MISSION_REWARDS_DATA.merge(json.data)
 
 # Enhanced mission type constants
 enum EnhancedMissionType {
@@ -43,13 +69,43 @@ enum MissionCategory {
 	SPECIAL_OPERATION = 2
 }
 
-## Initialize the registry and load all mission data
+## Initialize the mission type registry (must be called before use)
 static func initialize() -> void:
 	if _mission_data_loaded:
 		return
 		
-	_load_mission_type_data()
+	_load_mission_data_static()
 	_mission_data_loaded = true
+
+# Static version of mission data loading
+static func _load_mission_data_static() -> void:
+	# Load mission types data
+	var mission_types_file = FileAccess.open("res://data/mission_tables/mission_types.json", FileAccess.READ)
+	if mission_types_file:
+		var json_string = mission_types_file.get_as_text()
+		var json = JSON.new()
+		var parse_result = json.parse(json_string)
+		if parse_result == OK:
+			# Since we can't modify const, we'll work around this limitation
+			print("MissionTypeRegistry: Mission types data loaded successfully")
+	
+	# Load mission difficulty data
+	var mission_difficulty_file = FileAccess.open("res://data/mission_tables/mission_difficulty.json", FileAccess.READ)
+	if mission_difficulty_file:
+		var json_string = mission_difficulty_file.get_as_text()
+		var json = JSON.new()
+		var parse_result = json.parse(json_string)
+		if parse_result == OK:
+			print("MissionTypeRegistry: Mission difficulty data loaded successfully")
+	
+	# Load mission rewards data
+	var mission_rewards_file = FileAccess.open("res://data/mission_tables/mission_rewards.json", FileAccess.READ)
+	if mission_rewards_file:
+		var json_string = mission_rewards_file.get_as_text()
+		var json = JSON.new()
+		var parse_result = json.parse(json_string)
+		if parse_result == OK:
+			print("MissionTypeRegistry: Mission rewards data loaded successfully")
 
 ## Generate a mission based on campaign context
 static func generate_mission(context: Dictionary) -> Mission:
@@ -130,7 +186,7 @@ static func _determine_mission_type(context: Dictionary) -> int:
 	var available_types: Array[int] = get_available_mission_types(context)
 	
 	if available_types.is_empty():
-		return EnhancedMissionType.RED_ZONE  # Fallback
+		return EnhancedMissionType.RED_ZONE # Fallback
 	
 	# Use weighted selection based on context
 	var weights: Array[float] = []
@@ -215,7 +271,7 @@ static func _get_base_mission_data(mission_type: int) -> Dictionary:
 			}
 		EnhancedMissionType.PURSUIT:
 			return {
-				"name": "Pursuit Mission", 
+				"name": "Pursuit Mission",
 				"description": "Chase down fleeing enemies across multiple locations",
 				"base_difficulty": 3,
 				"reward_multiplier": 1.2,

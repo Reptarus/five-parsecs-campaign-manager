@@ -1,4 +1,4 @@
-﻿extends Control
+extends Control
 
 signal connections_completed(connections: Array)
 signal connections_cancelled

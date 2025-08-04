@@ -33,7 +33,7 @@ const GameState := preload("res://src/core/state/GameState.gd")
 # Mission Rewards
 @export var reward_credits: int = 0
 @export var reward_reputation: int = 0
-@export var reward_items: Array = []
+@export var reward_items: Array[String] = []
 var reward_modifiers: Dictionary = {}
 
 # Mission State

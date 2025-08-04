@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 extends Node
 
 const Character = preload("res://src/core/character/Character.gd")
@@ -760,12 +760,12 @@ func _apply_tactical_bonus(character: Character) -> void:
 
 func _apply_marksman_bonus(character: Character) -> void:
 	if character and character.has_method("apply_status_effect"): character.apply_status_effect({"effect": "focus", "duration": 3}) # Extended focus duration
-	if character and character.has_method("add_combat_modifier"): character.add_combat_modifier(GlobalEnumsScript.CombatModifier.ELEVATION) # Elevation bonus for marksman
+	if character and character.has_method("add_combat_modifier"): character.add_combat_modifier(1) # Elevation bonus for marksman (using integer instead of enum)
 	log_combat_event("%s entered marksman stance" % _get_character_name(character))
 
 func _apply_berserker_bonus(character: Character) -> void:
 	if character and character.has_method("apply_status_effect"): character.apply_status_effect({"effect": "rage", "duration": 2}) # Lasts 2 turns
-	if character and character.has_method("add_combat_modifier"): character.add_combat_modifier(GlobalEnumsScript.CombatModifier.FLANKING) # Flanking bonus for berserker
+	if character and character.has_method("add_combat_modifier"): character.add_combat_modifier(2) # Flanking bonus for berserker (using integer instead of enum)
 	if character and character.has_method("add_action_points"): character.add_action_points(2) # Two bonus action points
 	log_combat_event("%s entered berserker rage" % _get_character_name(character))
 
@@ -779,7 +779,7 @@ func _apply_medic_bonus(character: Character, target: Character) -> void:
 
 func _apply_tech_bonus(character: Character) -> void:
 	if character and character.has_method("apply_status_effect"): character.apply_status_effect({"effect": "tech_boost", "duration": 2}) # Lasts 2 turns
-	if character and character.has_method("add_combat_modifier"): character.add_combat_modifier(GlobalEnumsScript.CombatModifier.STEALTH) # Stealth bonus for tech
+	if character and character.has_method("add_combat_modifier"): character.add_combat_modifier(3) # Stealth bonus for tech (using integer instead of enum)
 	# Repair nearby mechanical allies
 	var allies: Array[Character] = _get_nearby_allies(character)
 	for ally in allies:

@@ -12,6 +12,15 @@ const LootEconomyIntegrator = preload("res://src/game/economy/loot/LootEconomyIn
 const GameItem = preload("res://src/core/economy/loot/GameItem.gd")
 const BattleTracker = preload("res://src/core/battle/BattleTracker.gd")
 
+# Define Enemy type for type safety
+class Enemy:
+	extends RefCounted
+	var _max_health: int = 10
+	var _enemy_type: String = "generic"
+	
+	func get_enemy_type() -> String:
+		return _enemy_type
+
 # Integration components
 var loot_generator: EnemyLootGenerator
 var economy_integrator: LootEconomyIntegrator
@@ -59,8 +68,8 @@ func process_post_battle(battle_result: Dictionary, mission_context: Dictionary 
 	# Process loot generation
 	if defeated_enemies.size() > 0:
 		processing_result.loot_generated = _process_battle_loot_generation(
-			defeated_enemies, 
-			battle_conditions, 
+			defeated_enemies,
+			battle_conditions,
 			mission_context
 		)
 		
@@ -99,17 +108,19 @@ func generate_enhanced_loot(defeated_enemies: Array[Enemy], tactical_performance
 	var enhanced_context: Dictionary = {
 		"tactical_bonuses": _calculate_tactical_bonuses(tactical_performance),
 		"crew_skill_bonuses": tactical_performance.get("crew_skills", {}),
-		"mission_difficulty": tactical_performance.get("difficulty", 3),
-		"victory_type": tactical_performance.get("victory_type", "standard")
+		"battle_conditions": tactical_performance.get("battle_conditions", {})
 	}
 	
-	# Generate base loot
-	var battle_loot: Dictionary = loot_generator.generate_battle_loot(defeated_enemies, enhanced_context)
+	# Generate base loot - cast to generic Array for compatibility
+	var enemy_array: Array = []
+	for enemy in defeated_enemies:
+		enemy_array.append(enemy)
+	var base_loot = loot_generator.generate_battle_loot(enemy_array, enhanced_context)
 	
 	# Apply tactical bonuses
-	battle_loot = _apply_tactical_loot_bonuses(battle_loot, enhanced_context.tactical_bonuses)
+	var enhanced_loot = _apply_tactical_bonuses(base_loot, enhanced_context)
 	
-	return battle_loot
+	return enhanced_loot
 
 ## Process crew experience and advancement
 func process_combat_experience(battle_result: Dictionary, crew_data: Dictionary) -> Dictionary:
@@ -281,8 +292,11 @@ func _process_battle_loot_generation(enemies: Array[Enemy], conditions: Dictiona
 	var enhanced_context: Dictionary = context.duplicate()
 	enhanced_context.merge(conditions)
 	
-	# Generate loot
-	var battle_loot: Dictionary = loot_generator.generate_battle_loot(enemies, enhanced_context)
+	# Generate loot - cast to generic Array for compatibility
+	var enemy_array: Array = []
+	for enemy in enemies:
+		enemy_array.append(enemy)
+	var battle_loot: Dictionary = loot_generator.generate_battle_loot(enemy_array, enhanced_context)
 	
 	# Apply any post-generation modifications
 	battle_loot = _apply_battle_condition_modifiers(battle_loot, conditions)
@@ -332,7 +346,7 @@ func _calculate_experience_rewards(battle_result: Dictionary, context: Dictionar
 	
 	# Base experience from enemy difficulty
 	for enemy in enemies_defeated:
-		experience.base_experience += enemy._max_health / 10  # Rough difficulty metric
+		experience.base_experience += maxi(enemy._max_health / 15, 1)
 	
 	# Combat experience from battle conditions
 	var battle_difficulty: int = battle_result.get("difficulty_rating", 3)
@@ -414,7 +428,7 @@ func _apply_tactical_loot_bonuses(loot: Dictionary, bonuses: Dictionary) -> Dict
 		var items: Array[GameItem] = enhanced_loot.get("combined_items", [])
 		for item in items:
 			if randf() < coordination_bonus:
-				item.quality = mini(item.quality + 1, GameItem.Quality.MASTERWORK)
+				item.quality = mini(item.quality + 1, 5) # MASTERWORK = 5 (integer value)
 	
 	# Apply efficiency bonus to credits
 	var efficiency_bonus: float = bonuses.get("efficiency_bonus", 0.0)
@@ -455,13 +469,13 @@ func _calculate_base_experience(enemies: Array[Enemy], battle_duration: int) -> 
 	var base_exp: int = 0
 	
 	for enemy in enemies:
-		base_exp += maxii(enemy._max_health / 15, 1)
+		base_exp += maxi(enemy._max_health / 15, 1)
 	
 	# Duration modifier
 	if battle_duration <= 3:
-		base_exp = roundi(base_exp * 1.2)  # Quick victory bonus
-	elif battle_duration >= 10:
-		base_exp = roundi(base_exp * 0.8)  # Long battle penalty
+		base_exp = roundi(base_exp * 1.2)
+	elif battle_duration >= 8:
+		base_exp = roundi(base_exp * 0.8)
 	
 	return base_exp
 
@@ -522,3 +536,119 @@ func _on_loot_processed(processed_items: Array[GameItem], market_value: int) -> 
 func _on_contraband_detected(item: GameItem, heat_increase: int) -> void:
 	# Handle contraband detection
 	pass
+
+func _calculate_crew_bonuses(battle_result: Dictionary, victory_type: String) -> Dictionary:
+	# Stub implementation
+	return {}
+
+func _check_skill_advancements(individual_experience: Dictionary) -> Array[Dictionary]:
+	# Stub implementation
+	return []
+
+func _calculate_reputation_changes(battle_result: Dictionary, enemies_defeated: Array[Enemy]) -> Dictionary:
+	# Stub implementation
+	return {}
+
+func _evaluate_mission_performance(battle_results: Array[Dictionary], mission_data: Dictionary) -> float:
+	# Stub implementation
+	return 0.5
+
+func _calculate_performance_bonuses(performance_score: float, mission_data: Dictionary) -> Dictionary:
+	# Stub implementation
+	return {}
+
+func _calculate_completion_bonuses(completion_type: String, mission_data: Dictionary) -> Dictionary:
+	# Stub implementation
+	return {}
+
+func _calculate_patron_relationship_changes(performance_score: float, mission_data: Dictionary) -> Dictionary:
+	# Stub implementation
+	return {}
+
+func _calculate_story_progression_rewards(mission_data: Dictionary) -> Dictionary:
+	# Stub implementation
+	return {}
+
+func _calculate_total_mission_value(mission_rewards: Dictionary) -> int:
+	# Stub implementation
+	return 0
+
+func _distribute_merit_based(total_credits: int, valuable_items: Array, crew_data: Dictionary, battle_performance: Dictionary) -> Dictionary:
+	# Distribute based on individual crew performance
+	var distribution_result: Dictionary = {
+		"individual_shares": {},
+		"distribution_method": "merit_based",
+		"performance_bonuses": {}
+	}
+	
+	# Calculate individual merit scores
+	for crew_member in crew_data.get("crew_members", []):
+		var merit_score: float = _calculate_individual_merit(crew_member, battle_performance)
+		var share: int = roundi(total_credits * merit_score)
+		distribution_result.individual_shares[crew_member.get("name", "Unknown")] = share
+	
+	return distribution_result
+
+func _distribute_specialist_priority(total_credits: int, valuable_items: Array, crew_data: Dictionary, specialized_loot: Array) -> Dictionary:
+	# Prioritize specialists for relevant equipment
+	var distribution_result: Dictionary = {
+		"individual_shares": {},
+		"distribution_method": "specialist_priority",
+		"specialist_assignments": {}
+	}
+	
+	# Base share for all crew
+	var base_share: int = total_credits / maxf(crew_data.get("crew_members", []).size(), 1)
+	
+	for crew_member in crew_data.get("crew_members", []):
+		distribution_result.individual_shares[crew_member.get("name", "Unknown")] = base_share
+	
+	return distribution_result
+
+func _apply_tactical_bonuses(base_loot: Dictionary, enhanced_context: Dictionary) -> Dictionary:
+	var enhanced_loot: Dictionary = base_loot.duplicate()
+	var tactical_bonuses: Dictionary = enhanced_context.get("tactical_bonuses", {})
+	
+	# Apply coordination bonus to item quality
+	if tactical_bonuses.has("coordination_bonus"):
+		var coordination_bonus: float = tactical_bonuses.coordination_bonus
+		var items: Array = enhanced_loot.get("items", [])
+		for item in items:
+			if randf() < coordination_bonus:
+				item.quality = mini(item.quality + 1, 5) # MASTERWORK = 5 (integer value)
+	
+	# Apply efficiency bonus to credits
+	if tactical_bonuses.has("efficiency_bonus"):
+		var efficiency_bonus: float = tactical_bonuses.efficiency_bonus
+		var current_credits: int = enhanced_loot.get("total_credits", 0)
+		enhanced_loot.total_credits = roundi(current_credits * (1.0 + efficiency_bonus))
+	
+	return enhanced_loot
+
+func _calculate_individual_merit(crew_member: Dictionary, battle_performance: Dictionary) -> float:
+	# Calculate individual merit score (0.0 to 1.0)
+	var base_merit: float = 0.25 # Base share
+	
+	# Add performance bonuses
+	var crew_name: String = crew_member.get("name", "Unknown")
+	var individual_performance: Dictionary = battle_performance.get("individual_performance", {})
+	
+	if individual_performance.has(crew_name):
+		var performance: Dictionary = individual_performance[crew_name]
+		base_merit += performance.get("damage_dealt", 0) * 0.01
+		base_merit += performance.get("enemies_defeated", 0) * 0.1
+		base_merit -= performance.get("damage_taken", 0) * 0.005
+	
+	return clampf(base_merit, 0.1, 0.5) # Ensure reasonable range
+
+func _distribute_captain_allocation(total_credits: int, valuable_items: Array, crew_data: Dictionary) -> Dictionary:
+	# Stub implementation
+	return {}
+
+func _apply_battle_condition_modifiers(battle_loot: Dictionary, conditions: Dictionary) -> Dictionary:
+	# Stub implementation
+	return battle_loot
+
+func _calculate_performance_multiplier(performance: Dictionary) -> float:
+	# Stub implementation
+	return 1.0

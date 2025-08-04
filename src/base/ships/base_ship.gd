@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 extends Resource
 
 ## Base class for ship systems

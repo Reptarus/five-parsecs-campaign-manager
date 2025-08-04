@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://swd7rhnhcr41"]
+[gd_scene load_steps=4 format=3 uid="uid://fn8ql7m9k2vjr"]
 
 [ext_resource type="Script" uid="uid://bgooi1a18i7kc" path="res://src/ui/screens/campaign/panels/CaptainPanel.gd" id="1_yvr4t"]
 [ext_resource type="Texture2D" uid="uid://bm6c4rx645ove" path="res://assets/BookImages/Nov_23_Sunset2_.png" id="2_kkjtj"]

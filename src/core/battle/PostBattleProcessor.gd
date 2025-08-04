@@ -1,4 +1,4 @@
-﻿class_name FPCM_PostBattleProcessor
+class_name FPCM_PostBattleProcessor
 extends Node
 
 ## Post-Battle Results Processor

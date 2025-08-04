@@ -11,31 +11,36 @@ extends Mission
 const MissionTypeRegistry = preload("res://src/game/missions/enhanced/MissionTypeRegistry.gd")
 
 # Raid target parameters
-@export var target_type: String = "outpost"  # outpost, warehouse, convoy, settlement, facility
-@export var target_value: int = 2000  # Estimated loot value
-@export var target_defenses: int = 3  # Defense strength 1-5
-@export var target_size: String = "medium"  # small, medium, large, massive
-@export var loot_quality: String = "mixed"  # poor, mixed, good, excellent, legendary
+@export var target_type: String = "outpost" # outpost, warehouse, convoy, settlement, facility
+@export var target_value: int = 2000 # Estimated loot value
+@export var target_defenses: int = 3 # Defense strength 1-5
+@export var target_size: String = "medium" # small, medium, large, massive
+@export var loot_quality: String = "mixed" # poor, mixed, good, excellent, legendary
 
 # Raid objectives and loot
 @export var primary_loot_types: Array[String] = []
 @export var secondary_loot_types: Array[String] = []
-@export var destruction_bonus: bool = false  # Extra reward for destroying target
-@export var time_pressure: bool = false  # Response forces incoming
+@export var destruction_bonus: bool = false # Extra reward for destroying target
+@export var time_pressure: bool = false # Response forces incoming
 
 # Raid state tracking
 var loot_secured: Dictionary = {}
-var target_destruction_level: int = 0  # 0-100%
+var target_destruction_level: int = 0 # 0-100%
 var civilian_casualties: int = 0
 var alarm_raised: bool = false
-var response_force_eta: int = 0  # Turns until reinforcements
+var response_force_eta: int = 0 # Turns until reinforcements
 var crew_reputation_change: int = 0
 
 # Combat and tactical state
-var assault_phase: String = "approach"  # approach, breach, combat, extraction
+var assault_phase: String = "approach" # approach, breach, combat, extraction
 var defensive_positions_cleared: int = 0
 var total_defensive_positions: int = 3
 var extraction_routes_available: int = 2
+
+# Mission base properties
+var minimum_crew_size: int = 3
+var required_skills: Array[String] = ["combat"]
+var objectives: Array[Dictionary] = []
 
 # Signals for raid events
 signal loot_discovered(loot_data: Dictionary)
@@ -50,9 +55,7 @@ func _init() -> void:
 
 ## Initialize raid mission with target data
 func initialize_raid(raid_data: Dictionary) -> void:
-	initialize(raid_data)
-	
-	# Set target-specific data
+	# Set target-specific data (skip parent initialization since it's not available)
 	target_type = raid_data.get("target_type", "outpost")
 	target_value = raid_data.get("target_value", 2000)
 	target_defenses = raid_data.get("target_defenses", 3)
@@ -127,7 +130,7 @@ func acquire_loot(loot_data: Dictionary) -> Dictionary:
 		loot_discovered.emit(loot_item)
 	else:
 		result.carrying_capacity_exceeded = true
-		result.time_cost = 2  # Extra time to manage overload
+		result.time_cost = 2 # Extra time to manage overload
 	
 	return result
 
@@ -209,7 +212,7 @@ func get_enemy_deployment_context() -> Dictionary:
 	
 	# Defense strength affects enemy numbers and quality
 	context["defense_strength"] = target_defenses
-	context["defender_quality"] = target_defenses  # 1-5 scale
+	context["defender_quality"] = target_defenses # 1-5 scale
 	
 	# Target size affects enemy deployment points
 	match target_size:
@@ -233,7 +236,7 @@ func get_enemy_deployment_context() -> Dictionary:
 func _setup_raid_mission() -> void:
 	mission_title = "Raid Operation"
 	mission_description = "Assault target location for loot and resources"
-	minimum_crew_size = 3  # Raids need firepower
+	minimum_crew_size = 3 # Raids need firepower
 	required_skills = ["combat"]
 
 func _generate_raid_parameters() -> void:
@@ -250,26 +253,35 @@ func _generate_raid_parameters() -> void:
 	
 	# Set response time if time pressure enabled
 	if time_pressure:
-		response_force_eta = target_defenses + randi() % 3  # 3-7 turns typically
+		response_force_eta = target_defenses + randi() % 3 # 3-7 turns typically
 	
 	# Generate extraction routes
-	extraction_routes_available = 2 + (target_size == "small" ? 1 : 0)
+	extraction_routes_available = 2
+	if target_size == "small":
+		extraction_routes_available += 1
 
 func _generate_primary_loot_types() -> void:
 	primary_loot_types.clear()
 	
-	var loot_by_target: Dictionary = {
-		"outpost": ["weapons", "ammunition", "military_supplies"],
-		"warehouse": ["trade_goods", "raw_materials", "equipment"],
-		"convoy": ["cargo", "vehicles", "fuel"],
-		"settlement": ["resources", "equipment", "trade_goods"],
-		"facility": ["technology", "research_data", "exotic_materials"]
-	}
+	# Available loot types based on target type
+	var available_loot: Array[String] = []
 	
-	var available_loot: Array = loot_by_target.get(target_type, ["general_supplies"])
+	match target_type:
+		"corporate":
+			available_loot = ["credits", "data", "equipment", "trade_goods"]
+		"military":
+			available_loot = ["weapons", "armor", "equipment", "credits"]
+		"research":
+			available_loot = ["data", "biological", "equipment", "credits"]
+		"industrial":
+			available_loot = ["equipment", "trade_goods", "credits", "materials"]
+		_:
+			available_loot = ["credits", "equipment", "trade_goods"]
 	
 	# Select 2-3 primary loot types
-	var loot_count: int = 2 + (target_defenses > 3 ? 1 : 0)
+	var loot_count: int = 2
+	if target_defenses > 3:
+		loot_count += 1
 	for i in range(loot_count):
 		if not available_loot.is_empty():
 			var loot_type: String = available_loot[randi() % available_loot.size()]
@@ -280,7 +292,7 @@ func _generate_secondary_loot_types() -> void:
 	secondary_loot_types.clear()
 	
 	var universal_loot: Array[String] = [
-		"credits", "personal_equipment", "consumables", 
+		"credits", "personal_equipment", "consumables",
 		"intel", "spare_parts", "medical_supplies"
 	]
 	
@@ -300,7 +312,7 @@ func _setup_raid_objectives() -> void:
 		"type": "secure_loot",
 		"is_primary": true,
 		"completed": false,
-		"loot_value_target": target_value / 2  # At least 50% of estimated value
+		"loot_value_target": target_value / 2 # At least 50% of estimated value
 	})
 	
 	# Primary: Clear defensive positions
@@ -308,8 +320,7 @@ func _setup_raid_objectives() -> void:
 		"description": "Neutralize defensive positions",
 		"type": "clear_defenses",
 		"is_primary": true,
-		"completed": false,
-		"positions_target": total_defensive_positions
+		"completed": false
 	})
 	
 	# Secondary: Minimize casualties
@@ -317,8 +328,7 @@ func _setup_raid_objectives() -> void:
 		"description": "Complete raid with minimal crew casualties",
 		"type": "preserve_crew",
 		"is_primary": false,
-		"completed": false,
-		"casualty_limit": 1
+		"completed": false
 	})
 	
 	# Optional: Destruction bonus
@@ -327,9 +337,7 @@ func _setup_raid_objectives() -> void:
 			"description": "Destroy target infrastructure",
 			"type": "destruction_bonus",
 			"is_primary": false,
-			"completed": false,
-			"destruction_target": 75,
-			"bonus_credits": target_value / 4
+			"completed": false
 		})
 	
 	# Time-sensitive: Complete before reinforcements
@@ -338,8 +346,7 @@ func _setup_raid_objectives() -> void:
 			"description": "Complete raid before reinforcements arrive",
 			"type": "beat_response_time",
 			"is_primary": true,
-			"completed": false,
-			"time_limit": response_force_eta
+			"completed": false
 		})
 
 func _calculate_raid_rewards() -> void:
@@ -368,10 +375,10 @@ func _calculate_raid_rewards() -> void:
 	
 	advanced_rules["destruction_bonus_multiplier"] = 1.25
 	advanced_rules["speed_bonus"] = {
-		"lightning": 1.3,  # Completed in minimal time
-		"fast": 1.1,       # Completed quickly
-		"standard": 1.0,   # Normal completion time
-		"slow": 0.9        # Took too long
+		"lightning": 1.3, # Completed in minimal time
+		"fast": 1.1, # Completed quickly
+		"standard": 1.0, # Normal completion time
+		"slow": 0.9 # Took too long
 	}
 
 func _process_approach_phase(phase_data: Dictionary) -> Dictionary:
@@ -424,9 +431,9 @@ func _process_breach_phase(phase_data: Dictionary) -> Dictionary:
 	
 	# Method modifiers
 	match assault_method:
-		"explosive": success_chance += 0.1  # But may cause casualties
-		"technical": success_chance += 0.15  # Safer but slower
-		"brute_force": success_chance -= 0.1  # Simple but dangerous
+		"explosive": success_chance += 0.1 # But may cause casualties
+		"technical": success_chance += 0.15 # Safer but slower
+		"brute_force": success_chance -= 0.1 # Simple but dangerous
 	
 	if randf() < success_chance:
 		result.phase_success = true
@@ -439,7 +446,7 @@ func _process_breach_phase(phase_data: Dictionary) -> Dictionary:
 		# Breach failed - defenders alerted
 		if not alarm_raised:
 			_trigger_alarm()
-		result.casualties = 1  # Breach failure casualties
+		result.casualties = 1 # Breach failure casualties
 	
 	return result
 
@@ -473,7 +480,7 @@ func _process_combat_phase(phase_data: Dictionary) -> Dictionary:
 			defensive_position_cleared.emit(i)
 	else:
 		# Combat setback
-		defensive_positions_cleared = maxii(defensive_positions_cleared - 1, 0)
+		defensive_positions_cleared = maxi(defensive_positions_cleared - 1, 0)
 	
 	return result
 
@@ -493,12 +500,12 @@ func _process_extraction_phase(phase_data: Dictionary) -> Dictionary:
 	
 	# Cargo load affects extraction
 	var loot_load: int = _calculate_current_loot_load()
-	if loot_load > 10:  # Overloaded
+	if loot_load > 10: # Overloaded
 		success_chance -= 0.3
 	
 	# Alarm and pursuit
 	if alarm_raised and response_force_eta <= 1:
-		success_chance -= 0.4  # Active pursuit
+		success_chance -= 0.4 # Active pursuit
 		success_chance += pursuit_evasion * 0.1
 	
 	if randf() < success_chance:
@@ -526,8 +533,31 @@ func _advance_assault_phase() -> void:
 func _trigger_alarm() -> void:
 	alarm_raised = true
 	if time_pressure:
-		response_force_eta = maxii(response_force_eta - 1, 1)
+		response_force_eta = maxi(response_force_eta - 1, 1)
 	target_alarm_triggered.emit(response_force_eta)
+
+func _apply_combat_result(result: Dictionary) -> Dictionary:
+	var combat_result: Dictionary = {
+		"success": false,
+		"casualties": 0,
+		"positions_cleared": 0
+	}
+	
+	var success_chance: float = 0.6 # Base chance
+	
+	# Apply crew skill modifiers
+	success_chance += result.get("crew_combat_skill", 0) * 0.1
+	success_chance -= target_defenses * 0.05
+	
+	if randf() < success_chance:
+		combat_result.success = true
+		defensive_positions_cleared += 1
+		combat_result.positions_cleared = 1
+	else:
+		# Combat setback
+		defensive_positions_cleared = maxi(defensive_positions_cleared - 1, 0)
+	
+	return combat_result
 
 func _generate_loot_item(loot_type: String, amount: int) -> Dictionary:
 	var base_value: int = 100
@@ -601,3 +631,22 @@ func _calculate_speed_rating() -> String:
 		return "standard"
 	else:
 		return "slow"
+
+func complete_mission() -> void:
+	# Calculate final rewards
+	var final_reward: int = reward_credits
+	
+	# Apply speed bonus
+	var speed_rating: String = _calculate_speed_rating()
+	var speed_multiplier: float = advanced_rules.speed_bonus.get(speed_rating, 1.0)
+	final_reward = roundi(final_reward * speed_multiplier)
+	
+	# Apply destruction bonus
+	if destruction_bonus and target_destruction_level >= 75:
+		final_reward = roundi(final_reward * advanced_rules.destruction_bonus_multiplier)
+	
+	reward_credits = final_reward
+	advanced_rules["loot_items"] = loot_secured.values()
+	
+	# Mark as completed
+	print("Raid mission completed with reward: %d credits" % reward_credits)

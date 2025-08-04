@@ -1,4 +1,4 @@
-﻿class_name FPCM_VictoryOption
+class_name FPCM_VictoryOption
 extends Control
 
 # GlobalEnums available as autoload singleton

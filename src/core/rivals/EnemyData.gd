@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 extends Resource
 
 # GlobalEnums available as autoload singleton

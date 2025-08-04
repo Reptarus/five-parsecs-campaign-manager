@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 
 ## Global Enums for Five Parsecs Campaign Manager
 ## Production-Ready Enum System with Complete Type Safety
@@ -19,7 +19,8 @@ enum FiveParsecsCampaignPhase {
 	TRAVEL, # Phase 1: Travel Phase
 	WORLD, # Phase 2: World Phase
 	BATTLE, # Phase 3: Tabletop Battle
-	POST_BATTLE # Phase 4: Post-Battle Sequence
+	POST_BATTLE, # Phase 4: Post-Battle Sequence
+	COMPLETED # Campaign/phase completed state
 }
 
 ## Travel Phase Sub-Steps (Official Rules)

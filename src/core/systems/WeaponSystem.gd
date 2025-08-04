@@ -1,4 +1,4 @@
-﻿# WeaponSystem.gd
+# WeaponSystem.gd
 class_name FPCM_WeaponSystem
 extends Node
 

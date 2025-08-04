@@ -1,4 +1,4 @@
-﻿class_name FPCM_TutorialOverlay
+class_name FPCM_TutorialOverlay
 extends CanvasLayer
 
 signal tutorial_completed

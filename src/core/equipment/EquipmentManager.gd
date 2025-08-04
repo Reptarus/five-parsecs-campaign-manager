@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 extends Node
 
 # GlobalEnums available as autoload singleton
@@ -11,9 +11,9 @@ signal equipment_removed(character_id: String, equipment_id: String)
 signal equipment_sold(equipment_id: String, credits: int)
 signal equipment_list_updated()
 
-var character_manager: Node # CharacterManagerAutoload
-var game_state: Node
-var battle_results_manager: BattleResultsManager
+var character_manager: Node = null # CharacterManagerAutoload
+var game_state: Node = null
+var battle_results_manager: BattleResultsManager = null
 
 # Equipment categories
 enum EquipmentCategory {
@@ -26,7 +26,7 @@ enum EquipmentCategory {
 }
 
 # Equipment storage
-var _equipment_storage: Array = []
+var _equipment_storage: Array[Dictionary] = []
 var _character_equipment: Dictionary = {}
 
 ## SIGNAL EMISSION WRAPPERS - Centralized signal management  

@@ -1,4 +1,4 @@
-﻿# Scripts/ShipAndCrew/Ship.gd
+# Scripts/ShipAndCrew/Ship.gd
 @tool
 extends Node
 class_name Ship

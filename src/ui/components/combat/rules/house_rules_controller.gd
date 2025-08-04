@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 
 ## Required dependencies
 # GlobalEnums available as autoload singleton

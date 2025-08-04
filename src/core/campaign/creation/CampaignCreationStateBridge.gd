@@ -1,4 +1,4 @@
-class_name CampaignCreationStateBridge
+class_name CampaignCreationStateBridgeClass
 extends Node
 
 ## Campaign Creation State Bridge
@@ -9,7 +9,7 @@ const CampaignCreationStateManager = preload("res://src/core/campaign/creation/C
 const SceneRouter = preload("res://src/ui/screens/SceneRouter.gd")
 
 # Singleton reference - this will be an autoload
-static var instance: CampaignCreationStateBridge = null
+static var instance: CampaignCreationStateBridgeClass = null
 
 # State management
 var state_manager: CampaignCreationStateManager = null
@@ -19,12 +19,13 @@ var scene_router: SceneRouter = null
 var scene_history: Array[String] = []
 var current_scene: String = ""
 var scene_context: Dictionary = {}
+var scene_contexts: Dictionary = {} # Scene contexts for each scene
 var scene_states: Dictionary = {} # Saved states for each scene
 
 # Campaign creation flow definition
 const CAMPAIGN_FLOW_SCENES = [
 	"campaign_setup",
-	"crew_creation", 
+	"crew_creation",
 	"character_creator", # Used for character editing
 	"equipment_generation",
 	"final_review",
@@ -363,7 +364,7 @@ func clear_campaign_creation_state() -> void:
 	print("CampaignCreationStateBridge: Campaign creation state cleared")
 
 ## Static access methods for global use
-static func get_instance() -> CampaignCreationStateBridge:
+static func get_instance() -> CampaignCreationStateBridgeClass:
 	"""Get the singleton instance"""
 	return instance
 

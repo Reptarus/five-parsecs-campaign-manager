@@ -8,7 +8,7 @@ class_name WorldPhaseUI
 
 const WorldPhase = preload("res://src/core/campaign/phases/WorldPhase.gd")
 const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
-const EnhancedCampaignSignals = preload("res://src/core/signals/EnhancedCampaignSignals.gd")
+# Enhanced signals removed - using direct signal communication
 const FPCM_DataManager = preload("res://src/core/data/DataManager.gd")
 const SafeDataAccess = preload("res://src/utils/SafeDataAccess.gd")
 
@@ -54,7 +54,8 @@ signal job_offers_updated(job_offers: Array)
 var world_phase: WorldPhase = null
 var world_phase_state: WorldPhaseResources.WorldPhaseState = null
 var data_manager: FPCM_DataManager = null
-var signals_manager: EnhancedCampaignSignals = null
+# Enhanced signals removed - using direct signal communication
+# var signals_manager: EnhancedCampaignSignals = null
 var automation_controller: WorldPhaseAutomationController = null
 var game_state_manager: Node = null
 
@@ -162,11 +163,7 @@ func _initialize_core_systems() -> void:
 		push_warning("WorldPhaseUI: DataManager not available - using fallback")
 	
 	# Get signals manager - use safe loading
-	signals_manager = null
-	if ClassDB.class_exists("EnhancedCampaignSignals"):
-		signals_manager = EnhancedCampaignSignals.new()
-	if not signals_manager:
-		push_warning("WorldPhaseUI: EnhancedCampaignSignals not available - using fallback")
+	# Enhanced signals removed - using direct signal communication
 	
 	# SPRINT ENHANCEMENT: Initialize validated backend systems
 	_initialize_backend_integration_systems()
@@ -2355,15 +2352,15 @@ func _accept_job_async(job: Resource) -> void:
 		# Complete workflow
 		_change_job_workflow_state("job_workflow_complete", {"job": job, "completion_time": Time.get_ticks_msec()})
 	else:
-		job_acceptance_failed.emit(job, acceptance_result.error_message)
-		_change_job_workflow_state("job_acceptance_failed", {"error": acceptance_result.error_message, "job": job})
+		job_acceptance_failed.emit(job, acceptance_result.error)
+		_change_job_workflow_state("job_acceptance_failed", {"error": acceptance_result.error, "job": job})
 
 ## Process job acceptance through WorldPhase system
 func _process_job_acceptance_through_world_phase(world_phase_job: Dictionary) -> Dictionary:
 	var result = {"success": false, "error_message": ""}
 	
 	if not world_phase:
-		result.error_message = "WorldPhase system not available"
+		result.error = "WorldPhase system not available"
 		return result
 	
 	# Check if WorldPhase can accept the job
@@ -2372,14 +2369,14 @@ func _process_job_acceptance_through_world_phase(world_phase_job: Dictionary) ->
 		if acceptance_success:
 			result.success = true
 		else:
-			result.error_message = "WorldPhase rejected job acceptance"
+			result.error = "WorldPhase rejected job acceptance"
 	else:
 		# Fallback: manually set job as accepted in WorldPhase
 		if world_phase.has_method("set_accepted_job"):
 			world_phase.set_accepted_job(world_phase_job)
 			result.success = true
 		else:
-			result.error_message = "WorldPhase does not support job acceptance"
+			result.error = "WorldPhase does not support job acceptance"
 	
 	# Simulate processing delay
 	# Note: await removed since this function is not async

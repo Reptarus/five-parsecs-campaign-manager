@@ -1,4 +1,4 @@
-﻿class_name AdvancementManagerUI
+class_name AdvancementManagerUI
 extends Control
 
 signal character_advanced(character: Dictionary, advancement: Dictionary)

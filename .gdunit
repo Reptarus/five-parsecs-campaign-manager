@@ -1,0 +1,62 @@
+# gdUnit4 Configuration for Five Parsecs Campaign Manager
+# Official gdUnit4 configuration file for test execution
+
+# Test discovery settings
+[discovery]
+# Include all test directories
+include_paths = [
+    "tests/integration",
+    "tests/production", 
+    "tests/unit"
+]
+
+# Exclude specific files or patterns if needed
+exclude_patterns = [
+    "**/.*",
+    "**/*.tmp",
+    "**/test_template.gd"
+]
+
+# Test execution settings
+[execution]
+# Continue running tests even if some fail
+continue_on_failure = true
+
+# Timeout settings (in seconds)
+test_timeout = 300
+suite_timeout = 600
+
+# Memory settings
+initial_memory_pool = 256
+max_memory_pool = 1024
+
+# Reporting settings
+[reporting]
+# Enable HTML and XML reports
+generate_html = true
+generate_xml = true
+
+# Report directory (relative to project root)
+report_directory = "test_results/reports"
+
+# Keep last N reports
+report_history = 10
+
+# Advanced settings
+[advanced]
+# Enable verbose output
+verbose = false
+
+# Enable memory monitoring during tests
+memory_monitoring = true
+
+# Enable performance profiling
+performance_profiling = false
+
+# WSL-specific optimizations
+[wsl]
+# Optimize for Windows/WSL file system performance
+optimize_file_access = true
+
+# Use console executable for better WSL compatibility
+prefer_console_executable = true

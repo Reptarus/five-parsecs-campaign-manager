@@ -1,0 +1,194 @@
+[gd_scene load_steps=2 format=3 uid="uid://bvh7r8qo2qwjm"]
+
+[ext_resource type="Script" path="res://src/ui/CampaignTurnUI.gd" id="1_m4h6k"]
+
+[node name="CampaignTurnUI" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_m4h6k")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Header" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="TurnLabel" type="Label" parent="VBoxContainer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Turn: 1"
+theme_type_variation = &"HeaderLarge"
+
+[node name="VSeparator" type="VSeparator" parent="VBoxContainer/Header"]
+layout_mode = 2
+
+[node name="CreditsLabel" type="Label" parent="VBoxContainer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Credits: 0"
+theme_type_variation = &"HeaderLarge"
+
+[node name="Spacer" type="Control" parent="VBoxContainer/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SaveCampaignButton" type="Button" parent="VBoxContainer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Save Campaign"
+
+[node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="PhaseTabs" type="TabContainer" parent="VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Upkeep" type="VBoxContainer" parent="VBoxContainer/PhaseTabs"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="VBoxContainer/PhaseTabs/Upkeep"]
+layout_mode = 2
+text = "Upkeep Phase"
+theme_type_variation = &"HeaderMedium"
+
+[node name="Description" type="Label" parent="VBoxContainer/PhaseTabs/Upkeep"]
+layout_mode = 2
+text = "Pay crew and ship upkeep costs. Handle maintenance and story progression."
+autowrap_mode = 2
+
+[node name="UpkeepActions" type="VBoxContainer" parent="VBoxContainer/PhaseTabs/Upkeep"]
+layout_mode = 2
+
+[node name="CrewUpkeepLabel" type="Label" parent="VBoxContainer/PhaseTabs/Upkeep/UpkeepActions"]
+layout_mode = 2
+text = "• Crew Upkeep: 1 credit per crew member"
+
+[node name="ShipUpkeepLabel" type="Label" parent="VBoxContainer/PhaseTabs/Upkeep/UpkeepActions"]
+layout_mode = 2
+text = "• Ship Upkeep: 1 credit"
+
+[node name="World" type="VBoxContainer" parent="VBoxContainer/PhaseTabs"]
+visible = false
+layout_mode = 2
+
+[node name="Title" type="Label" parent="VBoxContainer/PhaseTabs/World"]
+layout_mode = 2
+text = "World Phase"
+theme_type_variation = &"HeaderMedium"
+
+[node name="Description" type="Label" parent="VBoxContainer/PhaseTabs/World"]
+layout_mode = 2
+text = "Find jobs, trade goods, and interact with the current world."
+autowrap_mode = 2
+
+[node name="WorldActions" type="VBoxContainer" parent="VBoxContainer/PhaseTabs/World"]
+layout_mode = 2
+
+[node name="JobsLabel" type="Label" parent="VBoxContainer/PhaseTabs/World/WorldActions"]
+layout_mode = 2
+text = "• Check for patron jobs and opportunities"
+
+[node name="TradeLabel" type="Label" parent="VBoxContainer/PhaseTabs/World/WorldActions"]
+layout_mode = 2
+text = "• Visit market and trade equipment"
+
+[node name="Travel" type="VBoxContainer" parent="VBoxContainer/PhaseTabs"]
+visible = false
+layout_mode = 2
+
+[node name="Title" type="Label" parent="VBoxContainer/PhaseTabs/Travel"]
+layout_mode = 2
+text = "Travel Phase"
+theme_type_variation = &"HeaderMedium"
+
+[node name="Description" type="Label" parent="VBoxContainer/PhaseTabs/Travel"]
+layout_mode = 2
+text = "Travel to new worlds and handle hyperspace events."
+autowrap_mode = 2
+
+[node name="TravelActions" type="VBoxContainer" parent="VBoxContainer/PhaseTabs/Travel"]
+layout_mode = 2
+
+[node name="FuelLabel" type="Label" parent="VBoxContainer/PhaseTabs/Travel/TravelActions"]
+layout_mode = 2
+text = "• Pay fuel costs for hyperspace travel"
+
+[node name="EventsLabel" type="Label" parent="VBoxContainer/PhaseTabs/Travel/TravelActions"]
+layout_mode = 2
+text = "• Handle random hyperspace encounters"
+
+[node name="Battle" type="VBoxContainer" parent="VBoxContainer/PhaseTabs"]
+visible = false
+layout_mode = 2
+
+[node name="Title" type="Label" parent="VBoxContainer/PhaseTabs/Battle"]
+layout_mode = 2
+text = "Battle Phase"
+theme_type_variation = &"HeaderMedium"
+
+[node name="Description" type="Label" parent="VBoxContainer/PhaseTabs/Battle"]
+layout_mode = 2
+text = "Deploy crew and resolve combat encounters."
+autowrap_mode = 2
+
+[node name="BattleActions" type="VBoxContainer" parent="VBoxContainer/PhaseTabs/Battle"]
+layout_mode = 2
+
+[node name="DeployLabel" type="Label" parent="VBoxContainer/PhaseTabs/Battle/BattleActions"]
+layout_mode = 2
+text = "• Deploy crew members to battlefield"
+
+[node name="CombatLabel" type="Label" parent="VBoxContainer/PhaseTabs/Battle/BattleActions"]
+layout_mode = 2
+text = "• Resolve combat rounds and objectives"
+
+[node name="PostBattle" type="VBoxContainer" parent="VBoxContainer/PhaseTabs"]
+visible = false
+layout_mode = 2
+
+[node name="Title" type="Label" parent="VBoxContainer/PhaseTabs/PostBattle"]
+layout_mode = 2
+text = "Post-Battle Phase"
+theme_type_variation = &"HeaderMedium"
+
+[node name="Description" type="Label" parent="VBoxContainer/PhaseTabs/PostBattle"]
+layout_mode = 2
+text = "Handle injuries, collect rewards, and advance characters."
+autowrap_mode = 2
+
+[node name="PostBattleActions" type="VBoxContainer" parent="VBoxContainer/PhaseTabs/PostBattle"]
+layout_mode = 2
+
+[node name="InjuryLabel" type="Label" parent="VBoxContainer/PhaseTabs/PostBattle/PostBattleActions"]
+layout_mode = 2
+text = "• Check for injuries and recovery"
+
+[node name="LootLabel" type="Label" parent="VBoxContainer/PhaseTabs/PostBattle/PostBattleActions"]
+layout_mode = 2
+text = "• Collect battlefield loot and rewards"
+
+[node name="ExperienceLabel" type="Label" parent="VBoxContainer/PhaseTabs/PostBattle/PostBattleActions"]
+layout_mode = 2
+text = "• Advance character experience and skills"
+
+[node name="HSeparator2" type="HSeparator" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="Footer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="Spacer2" type="Control" parent="VBoxContainer/Footer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NextPhaseButton" type="Button" parent="VBoxContainer/Footer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Go to World Phase"

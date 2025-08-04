@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 extends BaseEquipment
 
 ## Additional Five Parsecs specific equipment functionality

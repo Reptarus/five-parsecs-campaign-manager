@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 extends Control
 
 signal cell_selected(cell_pos: Vector2i)

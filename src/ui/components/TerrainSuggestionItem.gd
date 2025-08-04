@@ -1,4 +1,4 @@
-﻿class_name FPCM_TerrainSuggestionItem
+class_name FPCM_TerrainSuggestionItem
 extends Control
 
 ## Terrain Suggestion Item Component

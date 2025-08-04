@@ -47,13 +47,15 @@ func _ready() -> void:
 
 func _initialize_autoloads() -> void:
 	"""Initialize autoloads with retry logic to handle loading order"""
-	game_state_manager = get_node_or_null("/root/GameStateManagerAutoload")
-	if not game_state_manager:
-		push_warning("CampaignPhaseManager: GameStateManagerAutoload not found - will retry")
-		await get_tree().create_timer(0.1).timeout
+	# Wait for GameStateManager to be ready
+	for i in range(10):
 		game_state_manager = get_node_or_null("/root/GameStateManagerAutoload")
-		if not game_state_manager:
-			push_error("CampaignPhaseManager: CORE SYSTEM FAILURE: GameStateManager not accessible from CampaignPhaseManager")
+		if game_state_manager:
+			break
+		await get_tree().process_frame
+	
+	if not game_state_manager:
+		push_error("CampaignPhaseManager: GameStateManager not accessible after retries")
 
 func _initialize_phase_handlers() -> void:
 	"""Initialize the phase handler instances"""

@@ -1,4 +1,4 @@
-﻿class_name EnemyGenerator
+class_name EnemyGenerator
 extends Resource
 
 ## Enemy Generation System for Five Parsecs Campaign Manager

@@ -1,4 +1,4 @@
-﻿class_name FPCM_ResponsiveContainer
+class_name FPCM_ResponsiveContainer
 extends Control
 
 signal orientation_changed(is_portrait: bool)

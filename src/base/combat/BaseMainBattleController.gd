@@ -1,7 +1,7 @@
-﻿@tool
+@tool
 @warning_ignore("unused_signal")
 extends Node
-class_name BaseMainBattleController
+class_name FiveParsecsMainBattleController
 
 ## Enhanced Main Battle Controller
 ##
@@ -21,11 +21,11 @@ class_name BaseMainBattleController
 # Enhanced battle controller - Universal framework removed for simplification
 
 # Dependencies
-const BaseBattlefieldManager = preload("res://src/base/combat/battlefield/BaseBattlefieldManager.gd")
-const BaseBattlefieldGenerator = preload("res://src/base/combat/battlefield/BaseBattlefieldGenerator.gd")
-const BaseCombatManager = preload("res://src/base/combat/BaseCombatManager.gd")
-const BaseBattleRules = preload("res://src/base/combat/BaseBattleRules.gd")
-const BaseBattleData = preload("res://src/base/combat/BaseBattleData.gd")
+const FiveParsecsBattlefieldManager = preload("res://src/base/combat/battlefield/BaseBattlefieldManager.gd")
+const FiveParsecsBattlefieldGenerator = preload("res://src/base/combat/battlefield/BaseBattlefieldGenerator.gd")
+const FiveParsecsCombatManager = preload("res://src/base/combat/BaseCombatManager.gd")
+const FiveParsecsBattleRules = preload("res://src/base/combat/BaseBattleRules.gd")
+const FiveParsecsBattleData = preload("res://src/base/combat/BaseBattleData.gd")
 
 # Enhanced Signals
 signal battle_initialized(battle_data: Dictionary)

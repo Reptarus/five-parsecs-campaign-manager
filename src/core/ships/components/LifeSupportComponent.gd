@@ -1,4 +1,4 @@
-﻿# Scripts/ShipAndCrew/LifeSupportComponent.gd
+# Scripts/ShipAndCrew/LifeSupportComponent.gd
 @tool
 extends "res://src/core/ships/components/ShipComponent.gd"
 class_name FPCM_LifeSupportComponent

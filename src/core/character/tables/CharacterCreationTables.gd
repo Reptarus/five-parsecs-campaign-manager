@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 class_name CharacterCreationTables
 extends RefCounted
 

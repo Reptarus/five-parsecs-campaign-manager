@@ -234,7 +234,7 @@ class ShipStatusData extends Resource:
 		return float(cargo_used) / float(cargo_capacity)
 
 # Campaign statistics and analytics
-class CampaignAnalytics extends Resource:
+class _CampaignAnalytics extends Resource:
 	@export var total_missions: int = 0
 	@export var successful_missions: int = 0
 	@export var failed_missions: int = 0
@@ -303,5 +303,5 @@ static func create_crew_performance(crew_id: String) -> CrewPerformanceData:
 static func create_ship_status(ship_name: String) -> ShipStatusData:
 	return ShipStatusData.new(ship_name)
 
-static func create_campaign_analytics() -> CampaignAnalytics:
-	return CampaignAnalytics.new()
+static func create_campaign_analytics() -> _CampaignAnalytics:
+	return _CampaignAnalytics.new()

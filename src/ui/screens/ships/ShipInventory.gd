@@ -1,4 +1,4 @@
-﻿# Scripts/ShipAndCrew/ShipInventory.gd
+# Scripts/ShipAndCrew/ShipInventory.gd
 class_name FPCM_ShipInventory
 extends Resource
 

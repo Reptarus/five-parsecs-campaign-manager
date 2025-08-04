@@ -103,3 +103,31 @@ text = "Status:"
 [node name="StatusValue" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/StatusContainer"]
 layout_mode = 2
 text = "Healthy"
+
+[node name="GameStatsContainer" type="GridContainer" parent="MarginContainer/HBoxContainer/InfoContainer"]
+layout_mode = 2
+columns = 6
+
+[node name="MoraleLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/GameStatsContainer"]
+layout_mode = 2
+text = "Morale:"
+
+[node name="MoraleValue" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/GameStatsContainer"]
+layout_mode = 2
+text = "0"
+
+[node name="CreditsLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/GameStatsContainer"]
+layout_mode = 2
+text = "Credits:"
+
+[node name="CreditsValue" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/GameStatsContainer"]
+layout_mode = 2
+text = "0"
+
+[node name="MissionsLabel" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/GameStatsContainer"]
+layout_mode = 2
+text = "Missions:"
+
+[node name="MissionsValue" type="Label" parent="MarginContainer/HBoxContainer/InfoContainer/GameStatsContainer"]
+layout_mode = 2
+text = "0"

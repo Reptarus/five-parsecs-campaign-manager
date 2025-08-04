@@ -1,4 +1,4 @@
-﻿extends Button
+extends Button
 
 # GlobalEnums available as autoload singleton
 

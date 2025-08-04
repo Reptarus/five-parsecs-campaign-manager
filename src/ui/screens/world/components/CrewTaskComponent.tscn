@@ -1,0 +1,91 @@
+[gd_scene load_steps=2 format=3 uid="uid://bfj8x2n4k9mrl"]
+
+[ext_resource type="Script" path="res://src/ui/screens/world/components/CrewTaskComponent.gd" id="1_crew_task"]
+
+[node name="CrewTaskComponent" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_crew_task")
+
+[node name="CrewTaskContainer" type="VBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Title" type="Label" parent="CrewTaskContainer"]
+layout_mode = 2
+text = "Crew Tasks Phase - Assign & Resolve Tasks"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 20
+
+[node name="HSeparator" type="HSeparator" parent="CrewTaskContainer"]
+layout_mode = 2
+
+[node name="AssignmentContainer" type="HBoxContainer" parent="CrewTaskContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CrewSection" type="VBoxContainer" parent="CrewTaskContainer/AssignmentContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CrewLabel" type="Label" parent="CrewTaskContainer/AssignmentContainer/CrewSection"]
+layout_mode = 2
+text = "Crew Members:"
+theme_override_font_sizes/font_size = 16
+
+[node name="CrewMemberList" type="ItemList" parent="CrewTaskContainer/AssignmentContainer/CrewSection"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TaskSection" type="VBoxContainer" parent="CrewTaskContainer/AssignmentContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TaskLabel" type="Label" parent="CrewTaskContainer/AssignmentContainer/TaskSection"]
+layout_mode = 2
+text = "Available Tasks:"
+theme_override_font_sizes/font_size = 16
+
+[node name="AvailableTasksList" type="ItemList" parent="CrewTaskContainer/AssignmentContainer/TaskSection"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ButtonContainer" type="HBoxContainer" parent="CrewTaskContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="AssignTaskButton" type="Button" parent="CrewTaskContainer/ButtonContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Assign Task"
+
+[node name="ResolveAllButton" type="Button" parent="CrewTaskContainer/ButtonContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Resolve All Tasks"
+
+[node name="HSeparator2" type="HSeparator" parent="CrewTaskContainer"]
+layout_mode = 2
+
+[node name="ProgressSection" type="VBoxContainer" parent="CrewTaskContainer"]
+layout_mode = 2
+
+[node name="ProgressLabel" type="Label" parent="CrewTaskContainer/ProgressSection"]
+layout_mode = 2
+text = "Task Results:"
+theme_override_font_sizes/font_size = 16
+
+[node name="ProgressContainer" type="VBoxContainer" parent="CrewTaskContainer/ProgressSection"]
+unique_name_in_owner = true
+layout_mode = 2

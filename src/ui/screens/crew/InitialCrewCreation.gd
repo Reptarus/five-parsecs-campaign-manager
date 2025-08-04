@@ -257,10 +257,17 @@ func setup_for_campaign_creation() -> void:
 	"""Setup InitialCrewCreation for campaign creation workflow integration"""
 	print("InitialCrewCreation: Setting up for campaign creation workflow")
 	
-	# Connect to campaign creation state bridge
+	# Check for NEW workflow context manager first
+	var workflow_manager = get_node_or_null("/root/WorkflowContextManager")
+	if workflow_manager:
+		print("InitialCrewCreation: NEW workflow context manager found - using modular approach")
+		_setup_workflow_integration(workflow_manager)
+		return
+	
+	# Fallback to legacy state bridge system
 	var state_bridge = get_node_or_null("/root/CampaignCreationStateBridge")
 	if state_bridge:
-		print("InitialCrewCreation: Connected to CampaignCreationStateBridge")
+		print("InitialCrewCreation: Connected to CampaignCreationStateBridge (legacy mode)")
 		
 		# Get scene context from bridge
 		var scene_context = state_bridge.get_scene_context()
@@ -278,7 +285,95 @@ func setup_for_campaign_creation() -> void:
 		# Load any existing crew data from campaign state
 		_load_existing_crew_from_campaign(state_bridge)
 	else:
-		push_warning("InitialCrewCreation: CampaignCreationStateBridge not found - operating in standalone mode")
+		push_warning("InitialCrewCreation: No workflow system found - operating in standalone mode")
+
+func _setup_workflow_integration(workflow_manager: Node) -> void:
+	"""Setup NEW workflow context manager integration"""
+	print("InitialCrewCreation: Setting up NEW workflow integration")
+	
+	# Get current workflow context
+	var context = workflow_manager.get_context()
+	if context and context.has("campaign_data"):
+		var campaign_data = context.campaign_data
+		
+		# Apply pre-configured crew settings from workflow
+		if campaign_data.has("crew_size"):
+			set_crew_size(campaign_data.crew_size)
+			print("InitialCrewCreation: Applied workflow crew size: ", campaign_data.crew_size)
+		
+		if campaign_data.has("crew_name"):
+			set_crew_name(campaign_data.crew_name)
+			print("InitialCrewCreation: Applied workflow crew name: ", campaign_data.crew_name)
+		
+		# Load existing crew data if available
+		if campaign_data.has("crew") and not campaign_data.crew.is_empty():
+			_load_existing_crew_from_workflow(campaign_data.crew)
+	
+	# Connect completion signal to workflow callback
+	if context and context.has("completion_callback"):
+		# Disconnect any existing crew_created connections to avoid duplicates
+		if crew_created.is_connected(_on_crew_created_for_campaign):
+			crew_created.disconnect(_on_crew_created_for_campaign)
+		
+		# Connect to workflow completion handler
+		crew_created.connect(_on_crew_created_for_workflow)
+		print("InitialCrewCreation: Connected to workflow completion system")
+
+func _load_existing_crew_from_workflow(crew_data: Dictionary) -> void:
+	"""Load existing crew data from workflow context"""
+	if crew_data.is_empty():
+		return
+	
+	print("InitialCrewCreation: Loading existing crew data from workflow")
+	
+	# Load crew metadata
+	if crew_data.has("name"):
+		crew_name_input.text = crew_data.name
+		crew_creation_data.name = crew_data.name
+	
+	if crew_data.has("size"):
+		crew_creation_data.size = crew_data.size
+		crew_size_option.value = crew_data.size
+	
+	# Load existing crew members
+	var existing_members = crew_data.get("crew_members", [])
+	for member in existing_members:
+		if member is Character:
+			# Add existing character to crew
+			add_crew_member(member)
+			
+			# Add to UI list
+			var character_name: String = "%s (%s)" % [
+				member.character_name,
+				_get_class_name(member.character_class)
+			]
+			
+			if character_list:
+				character_list.add_item(character_name)
+	
+	_update_ui_state()
+	print("InitialCrewCreation: Loaded %d existing crew members from workflow" % existing_members.size())
+
+func _on_crew_created_for_workflow(crew_data: Dictionary) -> void:
+	"""Handle crew creation completion in NEW workflow context"""
+	print("InitialCrewCreation: Crew created for workflow with %d members" % crew_data.get("crew_members", []).size())
+	
+	var workflow_manager = get_node_or_null("/root/WorkflowContextManager")
+	if not workflow_manager:
+		push_error("InitialCrewCreation: WorkflowContextManager not available for completion")
+		return
+	
+	# Get current context to access completion callback
+	var context = workflow_manager.get_context()
+	if context and context.has("completion_callback"):
+		var completion_callback = context.completion_callback
+		if completion_callback.is_valid():
+			print("InitialCrewCreation: Calling workflow completion callback")
+			completion_callback.call(crew_data)
+		else:
+			push_warning("InitialCrewCreation: Workflow completion callback is invalid")
+	else:
+		push_warning("InitialCrewCreation: No workflow completion callback found")
 
 func _connect_state_bridge_signals(state_bridge: Node) -> void:
 	"""Connect InitialCrewCreation signals to CampaignCreationStateBridge"""

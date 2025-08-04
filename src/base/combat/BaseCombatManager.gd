@@ -1,6 +1,6 @@
-﻿@tool
+@tool
 extends Node
-class_name BaseCombatManager
+class_name FiveParsecsCombatManager
 
 # Enhanced combat management - Universal framework removed for simplification
 
@@ -114,13 +114,19 @@ func _setup_universal_framework() -> void:
 func _connect_enhanced_signals() -> void:
 	# Connect internal signals for combat tracking
 	if not combat_state_changed.is_connected(_on_combat_state_changed_enhanced):
-		combat_state_changed.connect(_on_combat_state_changed_enhanced)
+		var result1 = combat_state_changed.connect(_on_combat_state_changed_enhanced)
+		if result1 != OK:
+			push_error("BaseCombatManager: Failed to connect combat_state_changed signal")
 
 	if not manual_override_applied.is_connected(_on_manual_override_applied_enhanced):
-		manual_override_applied.connect(_on_manual_override_applied_enhanced)
+		var result2 = manual_override_applied.connect(_on_manual_override_applied_enhanced)
+		if result2 != OK:
+			push_error("BaseCombatManager: Failed to connect manual_override_applied signal")
 
 	if not verification_completed.is_connected(_on_verification_completed_enhanced):
-		verification_completed.connect(_on_verification_completed_enhanced)
+		var result3 = verification_completed.connect(_on_verification_completed_enhanced)
+		if result3 != OK:
+			push_error("BaseCombatManager: Failed to connect verification_completed signal")
 
 func _initialize_combat_statistics() -> void:
 	# Initialize comprehensive combat statistics

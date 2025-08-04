@@ -1,4 +1,4 @@
-﻿# Content from src/core/battle/PathFinder.gd
+# Content from src/core/battle/PathFinder.gd
 class_name FPCM_PathFinder
 extends Node
 

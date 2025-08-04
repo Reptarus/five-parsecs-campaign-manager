@@ -1,4 +1,4 @@
-﻿class_name FPCM_PostBattleUI
+class_name FPCM_PostBattleUI
 extends Control
 
 ## Enhanced PostBattle UI for Five Parsecs Campaign Manager

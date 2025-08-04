@@ -1,8 +1,0 @@
-{
-  "request_id": "memory_test_1753746417_3",
-  "tool_name": "gemini_quick_query",
-  "arguments": {
-    "query": "How can I improve the performance of my deployment process?"
-  },
-  "client_id": "gemini-cli"
-}

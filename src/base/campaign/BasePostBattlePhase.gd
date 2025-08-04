@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 extends Resource
 
 signal post_battle_phase_started

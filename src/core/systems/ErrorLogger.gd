@@ -1,4 +1,4 @@
-﻿extends Resource
+extends Resource
 
 signal error_logged(error: Dictionary)
 

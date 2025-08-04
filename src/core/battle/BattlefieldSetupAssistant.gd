@@ -1,4 +1,4 @@
-﻿class_name FPCM_BattlefieldSetupAssistant
+class_name FPCM_BattlefieldSetupAssistant
 extends Node
 
 ## Battlefield Setup Assistant - Refactored
@@ -29,10 +29,18 @@ func _init() -> void:
 func _setup_system_connections() -> void:
 	# Connect generator signals for proper workflow integration
 	if generator:
-		generator.generation_started.connect(_on_generation_started)
-		generator.generation_progress.connect(_on_generation_progress)
-		generator.generation_completed.connect(_on_generation_completed)
-		generator.generation_error.connect(_on_generation_error)
+		var result1 = generator.generation_started.connect(_on_generation_started)
+		if result1 != OK:
+			push_error("BattlefieldSetupAssistant: Failed to connect generation_started signal")
+		var result2 = generator.generation_progress.connect(_on_generation_progress)
+		if result2 != OK:
+			push_error("BattlefieldSetupAssistant: Failed to connect generation_progress signal")
+		var result3 = generator.generation_completed.connect(_on_generation_completed)
+		if result3 != OK:
+			push_error("BattlefieldSetupAssistant: Failed to connect generation_completed signal")
+		var result4 = generator.generation_error.connect(_on_generation_error)
+		if result4 != OK:
+			push_error("BattlefieldSetupAssistant: Failed to connect generation_error signal")
 
 func set_renderer(p_renderer: FPCM_BattlefieldRenderer) -> void:
 	# Connect the renderer node to this assistant

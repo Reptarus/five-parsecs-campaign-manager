@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 
 const GameState = preload("res://src/core/state/GameState.gd")
 

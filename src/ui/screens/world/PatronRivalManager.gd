@@ -1,4 +1,4 @@
-﻿class_name PatronRivalManagerUI
+class_name PatronRivalManagerUI
 extends Control
 
 signal patron_selected(patron: Dictionary)

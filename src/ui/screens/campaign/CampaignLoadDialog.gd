@@ -1,4 +1,4 @@
-﻿extends Control
+extends Control
 
 # GlobalEnums available as autoload singleton
 

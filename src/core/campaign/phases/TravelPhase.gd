@@ -46,18 +46,25 @@ func _ready() -> void:
 
 func _initialize_autoloads() -> void:
 	"""Initialize autoloads with retry logic to handle loading order"""
-	dice_manager = get_node_or_null("/root/DiceManager")
-	if not dice_manager:
-		push_warning("TravelPhase: DiceManager not found - will retry")
-		await get_tree().create_timer(0.1).timeout
+	# Wait for DiceManager to be ready
+	for i in range(10):
 		dice_manager = get_node_or_null("/root/DiceManager")
-		if not dice_manager:
-			push_error("TravelPhase: DiceManager autoload not found after retry")
+		if dice_manager:
+			break
+		await get_tree().process_frame
 	
-	game_state_manager = get_node_or_null("/root/GameStateManagerAutoload")
+	if not dice_manager:
+		push_error("TravelPhase: DiceManager autoload not found after retries")
+	
+	# Wait for GameStateManager to be ready
+	for i in range(10):
+		game_state_manager = get_node_or_null("/root/GameStateManagerAutoload")
+		if game_state_manager:
+			break
+		await get_tree().process_frame
+	
 	if not game_state_manager:
-		push_warning("TravelPhase: GameStateManagerAutoload not found - will retry")
-		await get_tree().create_timer(0.1).timeout
+		push_error("TravelPhase: GameStateManagerAutoload not found after retries")
 		game_state_manager = get_node_or_null("/root/GameStateManagerAutoload")
 		if not game_state_manager:
 			push_error("TravelPhase: GameStateManagerAutoload not found after retry")

@@ -1,4 +1,4 @@
-﻿class_name FPCM_TacticalBattleUI
+class_name FPCM_TacticalBattleUI
 extends Control
 
 ## Tactical Battle UI - Five Parsecs Positioning and Movement

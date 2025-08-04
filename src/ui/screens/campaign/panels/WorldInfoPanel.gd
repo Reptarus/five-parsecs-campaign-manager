@@ -1,6 +1,5 @@
 @tool
-extends Control
-class_name WorldInfoPanel
+extends FiveParsecsCampaignPanel
 
 ## World Information Panel - Current world status and opportunities display
 ## Integrates with enhanced data manager following Digital Dice System visual patterns
@@ -8,7 +7,7 @@ class_name WorldInfoPanel
 
 # Universal Safety patterns
 const BaseInformationCard = preload("res://src/base/ui/BaseInformationCard.gd")
-const EnhancedCampaignSignals = preload("res://src/core/signals/EnhancedCampaignSignals.gd")
+# Enhanced signals removed - using direct signal communication
 const FPCM_CampaignResponsiveLayout = preload("res://src/ui/components/base/CampaignResponsiveLayout.gd")
 
 # UI References
@@ -31,9 +30,21 @@ var selected_opportunity: String = ""
 var enhanced_signals: EnhancedCampaignSignals
 
 func _ready() -> void:
+	# Set panel info before base initialization
+	set_panel_info("World Information", "View current world details, opportunities, and environmental factors.")
+	
+	# Call parent _ready() to initialize BaseCampaignPanel structure
+	super._ready()
+	
+	# Initialize world panel-specific functionality
 	_setup_world_panel()
 	_connect_enhanced_signals()
 	_apply_responsive_layout()
+
+func _setup_panel_content() -> void:
+	"""Override from BaseCampaignPanel - setup world panel-specific content"""
+	# This will be called after BaseCampaignPanel structure is ready
+	pass
 
 func _setup_world_panel() -> void:
 	# Initialize world display components
@@ -359,3 +370,61 @@ func get_world_threats_data() -> Array:
 func refresh_display() -> void:
 	if current_world_data.has("planet_name"):
 		update_world_display(current_world_data.get("planet_name"))
+
+## Required ICampaignCreationPanel implementations
+func validate_panel() -> ValidationResult:
+	var result = ValidationResult.new()
+	result.valid = true  # World generation is optional/automatic
+	result.error = ""
+	return result
+
+func get_panel_data() -> Dictionary:
+	return {
+		"world_data": current_world_data,
+		"opportunities": world_opportunities,
+		"threats": world_threats,
+		"selected_opportunity": selected_opportunity
+	}
+
+func reset_panel() -> void:
+	current_world_data = {}
+	world_opportunities = []
+	world_threats = []
+	selected_opportunity = ""
+	
+	# Clear UI elements
+	if world_name_label:
+		world_name_label.text = ""
+	if world_summary:
+		world_summary.text = ""
+
+## Panel Data Persistence Implementation
+
+func restore_panel_data(data: Dictionary) -> void:
+	"""Restore panel data from persistence system"""
+	if data.is_empty():
+		print("WorldInfoPanel: No data to restore")
+		return
+	
+	print("WorldInfoPanel: Restoring panel data: ", data.keys())
+	
+	# Restore world data
+	if data.has("current_world") and data.current_world is Dictionary:
+		current_world_data = data.current_world.duplicate()
+		print("WorldInfoPanel: Restored world: ", current_world_data.get("name", "Unknown World"))
+	
+	# Restore opportunities
+	if data.has("opportunities") and data.opportunities is Array:
+		world_opportunities = data.opportunities.duplicate()
+		print("WorldInfoPanel: Restored %d opportunities" % world_opportunities.size())
+	
+	# Restore threats
+	if data.has("threats") and data.threats is Array:
+		world_threats = data.threats.duplicate()
+		print("WorldInfoPanel: Restored %d threats" % world_threats.size())
+	
+	# Update display with restored data
+	if current_world_data.has("name"):
+		update_world_display(current_world_data.get("name", "Unknown World"))
+	
+	print("WorldInfoPanel: Panel data restoration complete")

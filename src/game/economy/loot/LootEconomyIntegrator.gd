@@ -13,13 +13,13 @@ const EnemyLootGenerator = preload("res://src/game/economy/loot/EnemyLootGenerat
 
 # Economic integration settings
 @export var market_fluctuation_enabled: bool = true
-@export var illegal_goods_penalty: float = 0.6  # Value reduction for illegal goods
-@export var bulk_sale_bonus: float = 1.15  # Bonus for selling multiple items
-@export var reputation_value_modifier: float = 1.0  # Player reputation affects prices
+@export var illegal_goods_penalty: float = 0.6 # Value reduction for illegal goods
+@export var bulk_sale_bonus: float = 1.15 # Bonus for selling multiple items
+@export var reputation_value_modifier: float = 1.0 # Player reputation affects prices
 
 # Market demand tracking
 var market_demand: Dictionary = {}
-var contraband_heat_level: int = 1  # 1-5, affects illegal goods trading
+var contraband_heat_level: int = 1 # 1-5, affects illegal goods trading
 var trade_routes: Array[String] = []
 
 # Economic signals
@@ -47,33 +47,33 @@ func process_battle_loot(battle_loot: Dictionary, location_context: Dictionary =
 	# Process immediate credits
 	processed_result.immediate_credits = battle_loot.get("total_credits", 0)
 	
-	# Categorize and process items
+	# Process each item by type
 	for item in all_items:
 		match item.item_type:
-			GameItem.ItemType.CREDITS:
+			0: # CREDITS
 				processed_result.immediate_credits += item.value
 			
-			GameItem.ItemType.TRADE_GOOD:
+			5: # TRADE_GOOD
 				var trade_value: int = _process_trade_good(item, location_context)
 				processed_result.trade_goods.append({"item": item, "market_value": trade_value})
 				total_market_value += trade_value
 			
-			GameItem.ItemType.CONTRABAND:
+			7: # CONTRABAND
 				var contraband_result: Dictionary = _process_contraband(item, location_context)
 				processed_result.contraband_items.append(contraband_result)
 				total_market_value += contraband_result.market_value
 			
-			GameItem.ItemType.EQUIPMENT, GameItem.ItemType.WEAPON, GameItem.ItemType.ARMOR:
+			3, 1, 2: # EQUIPMENT, WEAPON, ARMOR
 				var equipment_value: int = _process_equipment(item, location_context)
 				processed_result.equipment_items.append({"item": item, "market_value": equipment_value})
 				total_market_value += equipment_value
 			
-			GameItem.ItemType.BIOLOGICAL:
+			8: # BIOLOGICAL
 				var bio_value: int = _process_biological_sample(item, location_context)
 				processed_result.biological_samples.append({"item": item, "research_value": bio_value})
 				total_market_value += bio_value
 			
-			GameItem.ItemType.DATA:
+			6: # DATA
 				var data_result: Dictionary = _process_data_item(item, location_context)
 				processed_result.data_items.append(data_result)
 				total_market_value += data_result.information_value
@@ -87,7 +87,7 @@ func process_battle_loot(battle_loot: Dictionary, location_context: Dictionary =
 	# Apply bulk processing bonuses
 	if all_items.size() >= 5:
 		var bulk_bonus: int = _apply_bulk_processing_bonus(processed_result, all_items.size())
-		processed_result.economic_impact["bulk_bonus"] = bulk_bonus
+		processed_result.immediate_credits += bulk_bonus
 		bulk_bonus_applied.emit(all_items.size(), bulk_bonus)
 	
 	loot_processed.emit(all_items, total_market_value)
@@ -100,19 +100,19 @@ func calculate_market_value(item: GameItem, market_context: Dictionary = {}) -> 
 	
 	# Apply quality modifiers
 	match item.quality:
-		GameItem.Quality.POOR: market_modifier *= 0.6
-		GameItem.Quality.STANDARD: market_modifier *= 1.0
-		GameItem.Quality.GOOD: market_modifier *= 1.3
-		GameItem.Quality.EXCELLENT: market_modifier *= 1.7
-		GameItem.Quality.MASTERWORK: market_modifier *= 2.5
+		1: market_modifier *= 0.6 # POOR
+		2: market_modifier *= 1.0 # STANDARD
+		3: market_modifier *= 1.3 # GOOD
+		4: market_modifier *= 1.7 # EXCELLENT
+		5: market_modifier *= 2.5 # MASTERWORK
 	
 	# Apply condition modifiers
 	match item.condition:
-		GameItem.Condition.BROKEN: market_modifier *= 0.2
-		GameItem.Condition.POOR: market_modifier *= 0.5
-		GameItem.Condition.DAMAGED: market_modifier *= 0.8
-		GameItem.Condition.GOOD: market_modifier *= 1.0
-		GameItem.Condition.EXCELLENT: market_modifier *= 1.2
+		1: market_modifier *= 0.2 # BROKEN
+		2: market_modifier *= 0.5 # POOR
+		3: market_modifier *= 0.8 # DAMAGED
+		4: market_modifier *= 1.0 # GOOD
+		5: market_modifier *= 1.2 # EXCELLENT
 	
 	# Market demand adjustments
 	var demand_level: float = _get_market_demand(item, market_context)
@@ -171,8 +171,8 @@ func update_market_demand(items_traded: Array[GameItem], location: String) -> vo
 		if not market_demand.has(item_key):
 			market_demand[item_key] = 1.0
 		
-		market_demand[item_key] -= 0.1  # Supply increase reduces price
-		market_demand[item_key] = maxf(market_demand[item_key], 0.3)  # Minimum 30% value
+		market_demand[item_key] -= 0.1 # Supply increase reduces price
+		market_demand[item_key] = maxf(market_demand[item_key], 0.3) # Minimum 30% value
 		
 		market_fluctuation.emit(item_key, market_demand[item_key] - 1.0)
 	
@@ -228,7 +228,7 @@ func _process_contraband(item: GameItem, context: Dictionary) -> Dictionary:
 	
 	# Contraband has high value but significant risks
 	var base_market_value: int = calculate_market_value(item, context)
-	result.market_value = roundi(base_market_value * 1.5)  # 50% premium for contraband
+	result.market_value = roundi(base_market_value * 1.5) # 50% premium for contraband
 	
 	# Calculate risk based on item danger level and local law enforcement
 	var danger_level: int = _extract_danger_level(item)
@@ -246,7 +246,7 @@ func _process_equipment(item: GameItem, context: Dictionary) -> int:
 	
 	# Military equipment has restricted markets
 	if item.tags.has("military"):
-		market_value = roundi(market_value * 0.8)  # Harder to sell legally
+		market_value = roundi(market_value * 0.8) # Harder to sell legally
 	
 	# Illegal equipment is treated as contraband
 	if item.tags.has("illegal"):
@@ -310,29 +310,43 @@ func _get_location_modifier(item: GameItem, context: Dictionary) -> float:
 	var location_type: String = context.get("location_type", "standard")
 	var modifier: float = 1.0
 	
+	# Location-specific modifiers
 	match location_type:
 		"corporate_world":
-			if item.item_type in [GameItem.ItemType.EQUIPMENT, GameItem.ItemType.DATA]:
+			if item.item_type in [3, 6]: # EQUIPMENT, DATA
 				modifier = 1.3
 		"frontier":
-			if item.item_type in [GameItem.ItemType.WEAPON, GameItem.ItemType.ARMOR]:
+			if item.item_type in [1, 2]: # WEAPON, ARMOR
 				modifier = 1.2
 		"research_station":
-			if item.item_type == GameItem.ItemType.BIOLOGICAL:
+			if item.item_type == 8: # BIOLOGICAL
 				modifier = 1.5
 		"trading_hub":
-			modifier = 1.1  # General bonus for all items
+			modifier = 1.1 # General bonus for all items
 		"lawless":
-			if item.tags.has("illegal") or item.item_type == GameItem.ItemType.CONTRABAND:
+			if item.tags.has("illegal") or item.item_type == 7: # CONTRABAND
 				modifier = 1.4
 	
 	return modifier
 
 func _get_item_market_key(item: GameItem) -> String:
-	var key: String = GameItem.ItemType.find_key(item.item_type)
+	var key: String = _get_item_type_string(item.item_type)
 	if item.tags.size() > 0:
 		key += "_" + item.tags[0]
 	return key
+
+func _get_item_type_string(item_type: int) -> String:
+	match item_type:
+		0: return "CREDITS"
+		1: return "WEAPON"
+		2: return "ARMOR"
+		3: return "EQUIPMENT"
+		4: return "CONSUMABLE"
+		5: return "TRADE_GOOD"
+		6: return "DATA"
+		7: return "CONTRABAND"
+		8: return "BIOLOGICAL"
+		_: return "UNKNOWN"
 
 func _extract_danger_level(item: GameItem) -> int:
 	for tag in item.tags:
@@ -371,7 +385,7 @@ func _attempt_contraband_trade(item: GameItem, total_risk: int, context: Diction
 	
 	if randf() < success_chance:
 		trade_result.success = true
-		trade_result.value = roundi(item.value * 1.8)  # High premium for successful contraband trade
+		trade_result.value = roundi(item.value * 1.8) # High premium for successful contraband trade
 		trade_result.heat_increase = 1
 	else:
 		trade_result.success = false
@@ -395,7 +409,7 @@ func _generate_market_report(items: Array[GameItem], context: Dictionary) -> Dic
 	
 	# Analyze item composition
 	for item in items:
-		var type_key: String = GameItem.ItemType.find_key(item.item_type)
+		var type_key: String = _get_item_type_string(item.item_type)
 		report.item_type_breakdown[type_key] = report.item_type_breakdown.get(type_key, 0) + 1
 		
 		total_quality += item.quality
@@ -406,12 +420,24 @@ func _generate_market_report(items: Array[GameItem], context: Dictionary) -> Dic
 		report.average_quality = float(total_quality) / quality_items
 	
 	# Determine market sentiment
-	if report.average_quality >= GameItem.Quality.GOOD:
+	if report.average_quality >= 3: # GOOD
 		report.market_sentiment = "positive"
 		report.recommendations.append("Hold for better prices")
-	elif report.average_quality <= GameItem.Quality.POOR:
+	elif report.average_quality <= 1: # POOR
 		report.market_sentiment = "negative"
 		report.recommendations.append("Sell quickly before further devaluation")
+	else:
+		report.market_sentiment = "neutral"
+		report.recommendations.append("Consider market timing")
+
+	# High quality bonus analysis
+	var high_quality_count: int = 0
+	for item in items:
+		if item.quality >= 4: # EXCELLENT
+			high_quality_count += 1
+	
+	if high_quality_count >= 3:
+		report.reputation_change = 1
 	
 	return report
 
@@ -433,7 +459,7 @@ func _calculate_economic_impact(items: Array[GameItem], total_value: int, contex
 	# High-quality items boost reputation
 	var high_quality_count: int = 0
 	for item in items:
-		if item.quality >= GameItem.Quality.EXCELLENT:
+		if item.quality >= 4: # EXCELLENT
 			high_quality_count += 1
 	
 	if high_quality_count >= 3:
@@ -442,7 +468,7 @@ func _calculate_economic_impact(items: Array[GameItem], total_value: int, contex
 	return impact
 
 func _apply_bulk_processing_bonus(result: Dictionary, item_count: int) -> int:
-	var bonus_percentage: float = mini(item_count * 0.02, 0.3)  # Max 30% bonus
+	var bonus_percentage: float = mini(item_count * 0.02, 0.3) # Max 30% bonus
 	var current_value: int = 0
 	
 	# Calculate current total value

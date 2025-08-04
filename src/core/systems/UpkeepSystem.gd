@@ -1,4 +1,4 @@
-﻿class_name UpkeepSystem
+class_name UpkeepSystem
 extends Resource
 
 ## Upkeep System for Five Parsecs Campaign Manager

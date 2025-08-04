@@ -3,13 +3,13 @@ extends CanvasLayer
 
 const TOOLTIP_OFFSET := Vector2(10, 10)
 const TOOLTIP_MARGIN := Vector2(5, 5)
-const TOOLTIP_FADE_TIME := 0.2
+# Tooltip fade time removed - immediate tooltips for Framework Bible compliance
 
 @onready var tooltip_panel := PanelContainer.new()
 @onready var tooltip_label := Label.new()
 
 var current_control: Control
-var fade_tween: Tween
+# Tween removed - immediate tooltip display
 
 func _ready() -> void:
 	_setup_tooltip()
@@ -75,11 +75,8 @@ func _on_control_mouse_entered(control: Control) -> void:
 	current_control = control
 	tooltip_label.text = control.get_meta("tooltip_text")
 
-	if fade_tween:
-		fade_tween.kill()
-
-	fade_tween = create_tween()
-	fade_tween.tween_property(tooltip_panel, "modulate:a", 1.0, TOOLTIP_FADE_TIME)
+	# Immediate tooltip display - Framework Bible compliance
+	tooltip_panel.modulate.a = 1.0
 	tooltip_panel.visible = true
 	set_process(true)
 
@@ -87,12 +84,8 @@ func _on_control_mouse_exited(control: Control) -> void:
 	if current_control == control:
 		current_control = null
 
-		if fade_tween:
-			fade_tween.kill()
-
-		fade_tween = create_tween()
-		fade_tween.tween_property(tooltip_panel, "modulate:a", 0.0, TOOLTIP_FADE_TIME)
-		fade_tween.tween_callback(func(): tooltip_panel.visible = false)
+		# Immediate tooltip hide - Framework Bible compliance
+		tooltip_panel.visible = false
 		set_process(false)
 
 func _on_node_removed(node: Node) -> void:

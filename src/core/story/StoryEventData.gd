@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 extends Resource
 
 ## Story event data class for managing campaign story events

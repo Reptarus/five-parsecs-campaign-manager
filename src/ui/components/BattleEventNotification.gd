@@ -1,4 +1,4 @@
-﻿class_name FPCM_BattleEventNotification
+class_name FPCM_BattleEventNotification
 extends Control
 
 ## Battle Event Notification Component
@@ -158,51 +158,148 @@ func _setup_auto_dismiss_timer() -> void:
 
 func _setup_animations() -> void:
 	"""Setup animation player with slide animations"""
+	if not is_node_ready():
+		push_warning("BattleEventNotification: Node not ready, deferring animation setup")
+		call_deferred("_setup_animations")
+		return
+	
+	# Skip animation setup if we're in the editor or during scene loading
+	if Engine.is_editor_hint():
+		return
+		
+	# CRITICAL FIX: Skip animation setup entirely during campaign creation to prevent crashes
+	# Check if we're in a campaign creation context
+	var current_scene = get_tree().current_scene if get_tree() else null
+	if current_scene:
+		var scene_name = current_scene.name
+		if scene_name.contains("Campaign") or scene_name.contains("Creation"):
+			print("BattleEventNotification: Skipping animation setup in campaign creation context")
+			return
+	
 	if not animation_player:
 		animation_player = AnimationPlayer.new()
 		add_child(animation_player)
 
-	_create_slide_in_animation()
-	_create_slide_out_animation()
+	# Safely create animations with error handling - defer to avoid scene loading issues
+	call_deferred("_create_animations_deferred")
 
-func _create_slide_in_animation() -> void:
-	"""Create slide-in animation"""
+func _create_animations_deferred() -> void:
+	"""Create animations in a deferred call to avoid scene loading conflicts"""
+	# Additional safety check - don't create animations if we're not properly in the scene tree
+	if not is_inside_tree() or not get_viewport():
+		push_warning("BattleEventNotification: Not properly in scene tree, skipping animation creation")
+		return
+		
+	# Don't create animations during campaign creation UI loading
+	var scene_root = get_tree().current_scene
+	if scene_root and scene_root.name == "CampaignCreationUI":
+		push_warning("BattleEventNotification: Skipping animation creation during campaign UI loading")
+		return
+	
+	if not _create_slide_in_animation():
+		push_warning("BattleEventNotification: Failed to create slide-in animation")
+	
+	if not _create_slide_out_animation():
+		push_warning("BattleEventNotification: Failed to create slide-out animation")
+
+func _create_slide_in_animation() -> bool:
+	"""Create slide-in animation with safe error handling"""
+	if not animation_player or not is_inside_tree():
+		return false
+	
+	# CRITICAL FIX: Add comprehensive null checks for animation creation
+	if not is_instance_valid(animation_player):
+		push_error("BattleEventNotification: AnimationPlayer is not valid")
+		return false
+	
+	# Create animation library first with validation
+	var anim_library = AnimationLibrary.new()
+	if not anim_library or not is_instance_valid(anim_library):
+		push_error("BattleEventNotification: Failed to create AnimationLibrary")
+		return false
+	
+	# Add library to animation player first - with error handling
+	if animation_player.has_animation_library("default"):
+		animation_player.remove_animation_library("default")
+	
+	# CRITICAL FIX: Validate library before adding to prevent null reference
+	if not anim_library:
+		push_error("BattleEventNotification: AnimationLibrary is null before adding")
+		return false
+	
+	var result = animation_player.add_animation_library("default", anim_library)
+	if result != OK:
+		push_error("BattleEventNotification: Failed to add animation library: " + str(result))
+		return false
+	
 	var animation := Animation.new()
 	animation.length = 0.5
 
-	# Position track
+	# Position track - with safe viewport access
 	var position_track := animation.add_track(Animation.TYPE_VALUE)
-	animation.track_set_path(position_track, NodePath(".:position"))
-	animation.track_insert_key(position_track, 0.0, Vector2(get_viewport().get_visible_rect().size.x, position.y))
-	animation.track_insert_key(position_track, 0.5, position)
+	if position_track >= 0:
+		animation.track_set_path(position_track, NodePath(".:position"))
+		var viewport = get_viewport()
+		var start_x = viewport.get_visible_rect().size.x if viewport else 800
+		animation.track_insert_key(position_track, 0.0, Vector2(start_x, position.y))
+		animation.track_insert_key(position_track, 0.5, position)
+	else:
+		push_error("BattleEventNotification: Failed to create position track")
+		return false
 
 	# Modulate track for fade-in
 	var modulate_track := animation.add_track(Animation.TYPE_VALUE)
-	animation.track_set_path(modulate_track, NodePath(".:modulate"))
-	animation.track_insert_key(modulate_track, 0.0, Color(1, 1, 1, 0))
-	animation.track_insert_key(modulate_track, 0.5, Color(1, 1, 1, 1))
+	if modulate_track >= 0:
+		animation.track_set_path(modulate_track, NodePath(".:modulate"))
+		animation.track_insert_key(modulate_track, 0.0, Color(1, 1, 1, 0))
+		animation.track_insert_key(modulate_track, 0.5, Color(1, 1, 1, 1))
+	else:
+		push_error("BattleEventNotification: Failed to create modulate track")
+		return false
 
-	animation_player.add_animation_library("default", AnimationLibrary.new())
-	animation_player.get_animation_library("default").add_animation("slide_in", animation)
+	# Add animation to library
+	anim_library.add_animation("slide_in", animation)
+	return true
 
-func _create_slide_out_animation() -> void:
-	"""Create slide-out animation"""
+func _create_slide_out_animation() -> bool:
+	"""Create slide-out animation with safe error handling"""
+	if not animation_player or not is_inside_tree():
+		return false
+	
+	# Get existing library (should be created by slide_in animation)
+	var library = animation_player.get_animation_library("default")
+	if not library:
+		push_error("BattleEventNotification: Animation library not found for slide_out")
+		return false
+		
 	var animation := Animation.new()
 	animation.length = 0.3
 
-	# Position track
+	# Position track - with safe viewport access
 	var position_track := animation.add_track(Animation.TYPE_VALUE)
-	animation.track_set_path(position_track, NodePath(".:position"))
-	animation.track_insert_key(position_track, 0.0, position)
-	animation.track_insert_key(position_track, 0.3, Vector2(get_viewport().get_visible_rect().size.x, position.y))
+	if position_track >= 0:
+		animation.track_set_path(position_track, NodePath(".:position"))
+		var viewport = get_viewport()
+		var end_x = viewport.get_visible_rect().size.x if viewport else 800
+		animation.track_insert_key(position_track, 0.0, position)
+		animation.track_insert_key(position_track, 0.3, Vector2(end_x, position.y))
+	else:
+		push_error("BattleEventNotification: Failed to create position track for slide-out")
+		return false
 
 	# Modulate track for fade-out
 	var modulate_track := animation.add_track(Animation.TYPE_VALUE)
-	animation.track_set_path(modulate_track, NodePath(".:modulate"))
-	animation.track_insert_key(modulate_track, 0.0, Color(1, 1, 1, 1))
-	animation.track_insert_key(modulate_track, 0.3, Color(1, 1, 1, 0))
+	if modulate_track >= 0:
+		animation.track_set_path(modulate_track, NodePath(".:modulate"))
+		animation.track_insert_key(modulate_track, 0.0, Color(1, 1, 1, 1))
+		animation.track_insert_key(modulate_track, 0.3, Color(1, 1, 1, 0))
+	else:
+		push_error("BattleEventNotification: Failed to create modulate track for slide-out")
+		return false
 
-	animation_player.get_animation_library("default").add_animation("slide_out", animation)
+	# Add animation to existing library
+	library.add_animation("slide_out", animation)
+	return true
 
 # =====================================================
 # EVENT DISPLAY MANAGEMENT

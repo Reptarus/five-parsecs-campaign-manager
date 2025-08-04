@@ -1,4 +1,4 @@
-﻿class_name FPCM_StoryNotificationIndicator
+class_name FPCM_StoryNotificationIndicator
 extends Control
 
 ## Story Track Notification Indicator

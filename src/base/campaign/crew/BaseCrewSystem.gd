@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 extends Node
 
 signal crew_changed(crew_data: Dictionary)

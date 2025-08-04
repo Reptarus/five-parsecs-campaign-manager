@@ -1,4 +1,4 @@
-﻿class_name FPCM_DiceSystem
+class_name FPCM_DiceSystem
 extends Resource
 
 ## Digital Dice System for Five Parsecs Campaign Manager

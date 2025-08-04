@@ -1,4 +1,4 @@
-﻿class_name FPCM_BattleEventsSystem
+class_name FPCM_BattleEventsSystem
 extends Resource
 
 ## Battle Events System implementing Five Parsecs Core Rules p.116

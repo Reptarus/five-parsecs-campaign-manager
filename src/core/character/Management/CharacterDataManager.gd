@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 
 const SAVE_DIR = "user://saves/"
 const CHARACTER_FILE_EXTENSION = ".char.json"

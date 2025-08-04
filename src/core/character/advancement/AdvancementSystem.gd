@@ -1,4 +1,4 @@
-﻿class_name FPCM_AdvancementSystem
+class_name FPCM_AdvancementSystem
 extends RefCounted
 
 ## Five Parsecs Character Advancement System

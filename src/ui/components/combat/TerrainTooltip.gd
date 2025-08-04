@@ -1,4 +1,4 @@
-﻿## Handles tooltips for terrain features and effects
+## Handles tooltips for terrain features and effects
 class_name FPCM_TerrainTooltip
 extends Control
 

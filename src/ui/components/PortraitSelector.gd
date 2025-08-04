@@ -1,10 +1,9 @@
 extends Control
 class_name PortraitSelector
 
-## Portrait Selector Component
-## Reusable UI component for selecting character portraits
-
-const PortraitManager = preload("res://src/utils/PortraitManager.gd")
+## Simple Portrait Selector Component
+## Uses Godot's built-in FileDialog instead of over-engineered PortraitManager
+## Framework Bible compliant: simple, direct implementation
 
 signal portrait_selected(portrait_path: String)
 signal portrait_cleared()
@@ -12,18 +11,20 @@ signal portrait_cleared()
 @onready var portrait_preview: TextureRect = $PortraitPreview
 @onready var select_button: Button = $SelectButton
 @onready var clear_button: Button = $ClearButton
-@onready var file_dialog: FileDialog = $FileDialog
 
 var current_portrait_path: String = ""
 var portrait_texture: Texture2D = null
-var portrait_manager: PortraitManager
+var file_dialog: FileDialog
 
 func _ready() -> void:
-	portrait_manager = PortraitManager.new()
-	portrait_manager.portrait_loaded.connect(_on_portrait_loaded)
-	portrait_manager.portrait_error.connect(_on_portrait_error)
+	# Create file dialog programmatically - simple and effective
+	file_dialog = FileDialog.new()
+	file_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+	file_dialog.add_filter("*.png,*.jpg,*.jpeg", "Image files")
+	file_dialog.file_selected.connect(_on_file_selected)
+	add_child(file_dialog)
 	
-	# Connect signals
+	# Connect UI signals
 	if select_button:
 		select_button.pressed.connect(_on_select_pressed)
 	if clear_button:
@@ -41,21 +42,20 @@ func _on_clear_pressed() -> void:
 	clear_portrait()
 
 func _on_file_selected(path: String) -> void:
-	"""Handle file selection from dialog"""
-	var texture = portrait_manager.import_portrait(path)
-	if texture:
-		portrait_texture = texture
-		current_portrait_path = path
-		_update_preview()
-		portrait_selected.emit(path)
-
-func _on_portrait_loaded(path: String) -> void:
-	"""Handle successful portrait load"""
-	print("PortraitSelector: Portrait loaded: ", path)
-
-func _on_portrait_error(error_message: String) -> void:
-	"""Handle portrait loading error"""
-	_show_error_dialog(error_message)
+	"""Handle file selection from dialog - Simple Godot-native implementation"""
+	var image = Image.load_from_file(path)
+	if image:
+		# Simple validation - check if it's a valid image
+		if image.get_width() > 0 and image.get_height() > 0:
+			portrait_texture = ImageTexture.create_from_image(image)
+			current_portrait_path = path
+			_update_preview()
+			portrait_selected.emit(path)
+			print("PortraitSelector: Portrait loaded successfully: ", path)
+		else:
+			_show_error_dialog("Invalid image file")
+	else:
+		_show_error_dialog("Could not load image file")
 
 func _update_preview() -> void:
 	"""Update the portrait preview"""

@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 extends Node
 
 ## Economy in Five Parsecs from Home
@@ -9,7 +9,7 @@ signal economy_updated
 signal transaction_completed(amount: int, type: String)
 
 var _current_credits: int = 0
-var _transaction_history: Array = []
+var _transaction_history: Array[Dictionary] = []
 
 # GlobalEnums available as autoload singleton
 const Character = preload("res://src/core/character/Character.gd")

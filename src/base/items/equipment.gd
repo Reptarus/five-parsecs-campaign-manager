@@ -1,5 +1,5 @@
 extends Resource
-class_name BaseItem
+class_name FiveParsecsBaseItem
 
 # GlobalEnums available as autoload singleton
 

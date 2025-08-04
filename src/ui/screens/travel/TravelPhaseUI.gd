@@ -1,4 +1,4 @@
-﻿class_name TravelPhaseUI
+class_name TravelPhaseUI
 extends Control
 
 ## Travel Phase UI for Five Parsecs Campaign Manager

@@ -17,9 +17,9 @@ signal character_selected(character: Resource)
 signal character_updated(character: Resource)
 
 # Additional game-specific UI components
-@onready var morale_value: LineEdit = $"MarginContainer/HBoxContainer/InfoContainer/GameStatsContainer/MoraleValue"
-@onready var credits_value: LineEdit = $"MarginContainer/HBoxContainer/InfoContainer/GameStatsContainer/CreditsValue"
-@onready var missions_value: LineEdit = $"MarginContainer/HBoxContainer/InfoContainer/GameStatsContainer/MissionsValue"
+@onready var morale_value: Label = $"MarginContainer/HBoxContainer/InfoContainer/GameStatsContainer/MoraleValue"
+@onready var credits_value: Label = $"MarginContainer/HBoxContainer/InfoContainer/GameStatsContainer/CreditsValue"
+@onready var missions_value: Label = $"MarginContainer/HBoxContainer/InfoContainer/GameStatsContainer/MissionsValue"
 
 func _ready() -> void:
 	_initialize_ui()

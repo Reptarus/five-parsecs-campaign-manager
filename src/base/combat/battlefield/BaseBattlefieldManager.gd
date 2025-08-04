@@ -1,6 +1,6 @@
-﻿@tool
+@tool
 extends Node
-class_name BaseBattlefieldManager
+class_name FiveParsecsBattlefieldManager
 
 # Signals
 signal terrain_updated(position: Vector2i, new_type: int)

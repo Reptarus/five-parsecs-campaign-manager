@@ -1,4 +1,4 @@
-﻿## Handles visual overlay for terrain features and dynamic effects
+## Handles visual overlay for terrain features and dynamic effects
 class_name FPCM_TerrainOverlay
 extends Node2D
 

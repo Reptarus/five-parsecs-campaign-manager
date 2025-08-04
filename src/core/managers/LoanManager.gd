@@ -1,4 +1,4 @@
-﻿extends Resource
+extends Resource
 
 signal loan_taken(amount: int, interest_rate: float)
 signal loan_repaid(amount: int)

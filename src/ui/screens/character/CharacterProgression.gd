@@ -1,10 +1,10 @@
-﻿extends Control
+extends Control
 
 ## Five Parsecs Character Progression UI
 ## Handles character advancement, skill development, and stat improvements
 
 # Safe imports
-const UniversalNodeValidator = preload("res://src/utils/UniversalNodeValidator.gd")
+# Removed UniversalNodeValidator dependency - using simple Godot node validation
 # GlobalEnums available as autoload singleton
 const Character = preload("res://src/core/character/Character.gd")
 
@@ -78,10 +78,14 @@ func _setup_ui_validation() -> void:
 		"MainContainer/ContentContainer/RightPanel/MarginContainer/VBoxContainer/SkillList"
 	]
 
-	# Fix validator call - provide proper parameters (Node, Array[String])
-	var validation_result: Dictionary = UniversalNodeValidator.validate_required_nodes(self, required_nodes)
-	if not validation_result.get("valid", false):
-		push_warning("CharacterProgression: Some UI components not available: " + str(validation_result.get("errors", [])))
+	# Simple Godot-native node validation - no over-engineered Universal framework
+	var missing_nodes = []
+	for node_path in required_nodes:
+		if not has_node(node_path):
+			missing_nodes.append(node_path)
+	
+	if missing_nodes.size() > 0:
+		push_warning("CharacterProgression: Missing UI nodes: " + str(missing_nodes))
 
 func _setup_ui_components() -> void:
 	"""Setup UI components and controls"""

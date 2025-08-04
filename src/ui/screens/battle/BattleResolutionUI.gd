@@ -1,4 +1,4 @@
-﻿class_name FPCM_BattleResolutionUI
+class_name FPCM_BattleResolutionUI
 extends Control
 
 ## Enhanced Battle Resolution UI for Five Parsecs Campaign Manager

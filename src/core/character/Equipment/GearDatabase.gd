@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 extends Resource
 
 const FiveParsecsGear = preload("implementations/five_parsecs_gear.gd")

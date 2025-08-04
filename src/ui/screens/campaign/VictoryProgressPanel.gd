@@ -1,4 +1,4 @@
-﻿extends PanelContainer
+extends PanelContainer
 
 # GlobalEnums available as autoload singleton
 const GameState = preload("res://src/core/state/GameState.gd")

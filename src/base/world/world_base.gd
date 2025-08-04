@@ -1,4 +1,4 @@
-﻿extends Resource
+extends Resource
 
 ## Base class for all world implementations
 ##

@@ -1,4 +1,4 @@
-﻿extends Resource
+extends Resource
 
 # GlobalEnums available as autoload singleton
 const GameState = preload("res://src/core/state/GameState.gd")
@@ -62,10 +62,14 @@ func _init() -> void:
 
 # Safe access to SaveManager
 func _get_safe_savemanager() -> Variant:
-    if ClassDB.class_exists("SaveManager"):
-        return get_node_or_null("/root/SaveManager")
-    return null
-\1 Enemy) -> void:
+	if ClassDB.class_exists("SaveManager"):
+		# For Resource classes, we can't use get_node_or_null directly
+		# This would need to be handled by a Node that has this Resource
+		print("EnemyAIManager: SaveManager access requires Node context")
+		return null
+	return null
+
+func register_enemy(enemy: Enemy) -> void:
 	if not enemy in active_enemies:
 		active_enemies.append(enemy)
 		_initialize_tactical_memory(enemy)

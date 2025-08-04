@@ -14,7 +14,7 @@ const SCENE_PATHS = {
 
 	# Campaign management
 	"campaign_creation": "res://src/ui/screens/campaign/CampaignCreationUI.tscn",
-	"campaign_creation_modular": "res://src/ui/screens/campaign/ModularCampaignCreationFlow.tscn",
+	"campaign_turn": "res://src/ui/CampaignTurnUI.tscn",
 	"campaign_dashboard": "res://src/ui/screens/campaign/CampaignDashboard.tscn",
 	"campaign_setup": "res://src/ui/screens/campaign/CampaignSetupDialog.tscn",
 	"campaign_turn_controller": "res://src/ui/screens/campaign/CampaignTurnController.tscn",
@@ -35,6 +35,7 @@ const SCENE_PATHS = {
 
 	# World and exploration
 	"world_phase": "res://src/ui/screens/world/WorldPhaseUI.tscn",
+	"world_phase_controller": "res://src/ui/screens/world/WorldPhaseController.tscn",
 	"job_selection": "res://src/ui/screens/world/JobSelectionUI.tscn",
 	"mission_selection": "res://src/ui/screens/world/MissionSelectionUI.tscn",
 	"patron_rival_manager": "res://src/ui/screens/world/PatronRivalManager.tscn",
@@ -87,7 +88,7 @@ var max_cache_size: int = 10
 const CAMPAIGN_CREATION_SCENES = [
 	"campaign_setup",
 	"crew_creation",
-	"character_creator", 
+	"character_creator",
 	"equipment_generation",
 	"campaign_dashboard"
 ]
@@ -165,15 +166,15 @@ func navigate_to(scene_name: String, context: Dictionary = {}, add_to_history: b
 
 ## Navigate back to the previous scene
 func navigate_back() -> void:
+	"""Navigate back to the previous scene in history"""
 	if navigation_history.is_empty():
-		print("SceneRouter: No history available for back navigation")
+		push_warning("SceneRouter: No navigation history to go back to")
 		return
-
-	@warning_ignore("untyped_declaration")
+	
 	var previous_scene = navigation_history.pop_back()
 	print("SceneRouter: Navigating back to ", previous_scene)
 	@warning_ignore("unsafe_call_argument")
-	navigate_to(previous_scene, false) # Don't add to history when going back
+	navigate_to(previous_scene, {}, false) # Don't add to history when going back
 
 ## Get the name of the current scene
 func get_current_scene() -> String:
@@ -430,7 +431,7 @@ func _validate_critical_scenes() -> void:
 	# Validate that critical scenes exist on startup
 	var critical_scenes: Array[String] = [
 		"main_menu",
-		"campaign_creation", 
+		"campaign_creation",
 		"crew_creation",
 		"main_game"
 	]

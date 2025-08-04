@@ -1,4 +1,4 @@
-﻿# Universal Safe Dictionary Access - Apply to ALL files
+# Universal Safe Dictionary Access - Apply to ALL files
 # Based on proven patterns: Universal Mock Strategy + 7-Stage Methodology
 class_name UniversalDataAccess
 extends RefCounted

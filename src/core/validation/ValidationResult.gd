@@ -1,6 +1,6 @@
 @tool
 extends RefCounted
-class_name ValidationResult
+class_name FiveParsecsValidationResult
 
 ## ValidationResult: Standardized validation response container
 ## Used across all validation systems to ensure consistent error handling

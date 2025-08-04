@@ -1,4 +1,4 @@
-﻿# Universal Safe Node Access - Apply to ALL files
+# Universal Safe Node Access - Apply to ALL files
 # Based on proven patterns: Universal Mock Strategy + 7-Stage Methodology
 class_name UniversalNodeAccess
 extends RefCounted

@@ -1,4 +1,4 @@
-﻿# Scripts/ShipAndCrew/HullComponent.gd
+# Scripts/ShipAndCrew/HullComponent.gd
 @tool
 extends FPCM_ShipComponent
 class_name HullComponent

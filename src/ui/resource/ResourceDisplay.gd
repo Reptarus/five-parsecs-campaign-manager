@@ -1,4 +1,4 @@
-﻿class_name FPCM_ResourceDisplay
+class_name FPCM_ResourceDisplay
 extends Control
 
 # GlobalEnums available as autoload singleton

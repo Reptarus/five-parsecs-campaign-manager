@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 @warning_ignore("return_value_discarded")
 @warning_ignore("unsafe_method_access")
 @warning_ignore("untyped_declaration")

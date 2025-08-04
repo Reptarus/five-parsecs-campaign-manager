@@ -1,4 +1,4 @@
-﻿class_name FPCM_EnemyInfoPanel
+class_name FPCM_EnemyInfoPanel
 extends Control
 
 @onready var enemy_list := $EnemyList

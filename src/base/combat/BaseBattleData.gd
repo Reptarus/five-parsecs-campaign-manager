@@ -1,6 +1,6 @@
-﻿@tool
+@tool
 extends Resource
-class_name BaseBattleData
+class_name FiveParsecsBattleData
 
 # Enhanced battle data management - Universal framework removed for simplification
 
@@ -58,10 +58,14 @@ func _setup_universal_framework() -> void:
 func _connect_battle_signals() -> void:
 	# Connect internal signals
 	if not battle_state_changed.is_connected(_on_battle_state_changed):
-		if not battle_state_changed.is_connected(_on_battle_state_changed): battle_state_changed.connect(_on_battle_state_changed)
+		var result1 = battle_state_changed.connect(_on_battle_state_changed)
+		if result1 != OK:
+			push_error("BaseBattleData: Failed to connect battle_state_changed signal")
 
 	if not combatant_added.is_connected(_on_combatant_added):
-		if not combatant_added.is_connected(_on_combatant_added): combatant_added.connect(_on_combatant_added)
+		var result2 = combatant_added.connect(_on_combatant_added)
+		if result2 != OK:
+			push_error("BaseBattleData: Failed to connect combatant_added signal")
 
 func _on_battle_state_changed(old_state: Dictionary, new_state: Dictionary) -> void:
 	# Handle battle state changes with Universal framework

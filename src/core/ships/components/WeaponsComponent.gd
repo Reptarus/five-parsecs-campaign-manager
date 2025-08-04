@@ -1,4 +1,4 @@
-﻿# Scripts/ShipAndCrew/WeaponsComponent.gd
+# Scripts/ShipAndCrew/WeaponsComponent.gd
 @tool
 extends FPCM_ShipComponent
 class_name WeaponsComponent

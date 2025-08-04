@@ -1,4 +1,4 @@
-﻿# VictoryConditionSelection.gd
+# VictoryConditionSelection.gd
 extends Resource
 
 # GlobalEnums available as autoload singleton

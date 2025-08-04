@@ -1,0 +1,252 @@
+[gd_scene load_steps=2 format=3 uid="uid://campaign_travel_controller"]
+
+[ext_resource type="Script" path="res://src/ui/screens/campaign/CampaignTravelController.gd" id="1_travel_script"]
+
+[node name="CampaignTravelController" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_travel_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.05, 0.05, 0.1, 1)
+
+[node name="MainContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HeaderPanel" type="PanelContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HeaderContent" type="HBoxContainer" parent="MainContainer/HeaderPanel"]
+layout_mode = 2
+
+[node name="TravelTitle" type="Label" parent="MainContainer/HeaderPanel/HeaderContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Campaign Travel Phase"
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
+
+[node name="TurnInfo" type="Label" parent="MainContainer/HeaderPanel/HeaderContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Turn 1"
+horizontal_alignment = 2
+
+[node name="ContentArea" type="HBoxContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="LeftPanel" type="VBoxContainer" parent="MainContainer/ContentArea"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+
+[node name="CurrentLocationPanel" type="PanelContainer" parent="MainContainer/ContentArea/LeftPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="LocationContent" type="VBoxContainer" parent="MainContainer/ContentArea/LeftPanel/CurrentLocationPanel"]
+layout_mode = 2
+
+[node name="LocationTitle" type="Label" parent="MainContainer/ContentArea/LeftPanel/CurrentLocationPanel/LocationContent"]
+layout_mode = 2
+text = "Current Location"
+theme_override_font_sizes/font_size = 16
+
+[node name="LocationName" type="Label" parent="MainContainer/ContentArea/LeftPanel/CurrentLocationPanel/LocationContent"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Frontier Colony"
+theme_override_font_sizes/font_size = 14
+
+[node name="LocationDescription" type="RichTextLabel" parent="MainContainer/ContentArea/LeftPanel/CurrentLocationPanel/LocationContent"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "A small frontier settlement on the edge of known space."
+
+[node name="ShipStatusPanel" type="PanelContainer" parent="MainContainer/ContentArea/LeftPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ShipContent" type="VBoxContainer" parent="MainContainer/ContentArea/LeftPanel/ShipStatusPanel"]
+layout_mode = 2
+
+[node name="ShipTitle" type="Label" parent="MainContainer/ContentArea/LeftPanel/ShipStatusPanel/ShipContent"]
+layout_mode = 2
+text = "Ship Status"
+theme_override_font_sizes/font_size = 16
+
+[node name="FuelLevel" type="Label" parent="MainContainer/ContentArea/LeftPanel/ShipStatusPanel/ShipContent"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Fuel: 100%"
+
+[node name="RepairStatus" type="Label" parent="MainContainer/ContentArea/LeftPanel/ShipStatusPanel/ShipContent"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Hull: Operational"
+
+[node name="CargoSpace" type="Label" parent="MainContainer/ContentArea/LeftPanel/ShipStatusPanel/ShipContent"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Cargo: 5/20 tons"
+
+[node name="CenterPanel" type="VBoxContainer" parent="MainContainer/ContentArea"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MapPanel" type="PanelContainer" parent="MainContainer/ContentArea/CenterPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MapContent" type="VBoxContainer" parent="MainContainer/ContentArea/CenterPanel/MapPanel"]
+layout_mode = 2
+
+[node name="MapTitle" type="Label" parent="MainContainer/ContentArea/CenterPanel/MapPanel/MapContent"]
+layout_mode = 2
+text = "Sector Map"
+theme_override_font_sizes/font_size = 16
+horizontal_alignment = 1
+
+[node name="MapDisplay" type="Control" parent="MainContainer/ContentArea/CenterPanel/MapPanel/MapContent"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MapBackground" type="ColorRect" parent="MainContainer/ContentArea/CenterPanel/MapPanel/MapContent/MapDisplay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.1, 0.1, 0.15, 1)
+
+[node name="MapGrid" type="Control" parent="MainContainer/ContentArea/CenterPanel/MapPanel/MapContent/MapDisplay"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TravelOptionsPanel" type="PanelContainer" parent="MainContainer/ContentArea/CenterPanel"]
+layout_mode = 2
+size_flags_vertical = 0
+
+[node name="TravelContent" type="VBoxContainer" parent="MainContainer/ContentArea/CenterPanel/TravelOptionsPanel"]
+layout_mode = 2
+
+[node name="TravelTitle" type="Label" parent="MainContainer/ContentArea/CenterPanel/TravelOptionsPanel/TravelContent"]
+layout_mode = 2
+text = "Travel Options"
+theme_override_font_sizes/font_size = 16
+
+[node name="TravelButtons" type="HBoxContainer" parent="MainContainer/ContentArea/CenterPanel/TravelOptionsPanel/TravelContent"]
+layout_mode = 2
+
+[node name="ExploreButton" type="Button" parent="MainContainer/ContentArea/CenterPanel/TravelOptionsPanel/TravelContent/TravelButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Explore Sector"
+
+[node name="TravelButton" type="Button" parent="MainContainer/ContentArea/CenterPanel/TravelOptionsPanel/TravelContent/TravelButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Travel to Destination"
+
+[node name="StayButton" type="Button" parent="MainContainer/ContentArea/CenterPanel/TravelOptionsPanel/TravelContent/TravelButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Stay at Current Location"
+
+[node name="RightPanel" type="VBoxContainer" parent="MainContainer/ContentArea"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+
+[node name="DestinationPanel" type="PanelContainer" parent="MainContainer/ContentArea/RightPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="DestinationContent" type="VBoxContainer" parent="MainContainer/ContentArea/RightPanel/DestinationPanel"]
+layout_mode = 2
+
+[node name="DestinationTitle" type="Label" parent="MainContainer/ContentArea/RightPanel/DestinationPanel/DestinationContent"]
+layout_mode = 2
+text = "Available Destinations"
+theme_override_font_sizes/font_size = 16
+
+[node name="DestinationList" type="ItemList" parent="MainContainer/ContentArea/RightPanel/DestinationPanel/DestinationContent"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="DestinationInfo" type="RichTextLabel" parent="MainContainer/ContentArea/RightPanel/DestinationPanel/DestinationContent"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "Select a destination to view details."
+
+[node name="EventLogPanel" type="PanelContainer" parent="MainContainer/ContentArea/RightPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="EventContent" type="VBoxContainer" parent="MainContainer/ContentArea/RightPanel/EventLogPanel"]
+layout_mode = 2
+
+[node name="EventTitle" type="Label" parent="MainContainer/ContentArea/RightPanel/EventLogPanel/EventContent"]
+layout_mode = 2
+text = "Travel Events"
+theme_override_font_sizes/font_size = 16
+
+[node name="EventLog" type="RichTextLabel" parent="MainContainer/ContentArea/RightPanel/EventLogPanel/EventContent"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "No travel events."
+
+[node name="FooterPanel" type="PanelContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="FooterContent" type="HBoxContainer" parent="MainContainer/FooterPanel"]
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="MainContainer/FooterPanel/FooterContent"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Back to Campaign"
+
+[node name="Spacer" type="Control" parent="MainContainer/FooterPanel/FooterContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ContinueButton" type="Button" parent="MainContainer/FooterPanel/FooterContent"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Continue to World Phase" 

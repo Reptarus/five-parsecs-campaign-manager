@@ -1,4 +1,4 @@
-﻿class_name PostBattleSequenceUI
+class_name PostBattleSequenceUI
 extends Control
 
 signal post_battle_completed(results: Dictionary)

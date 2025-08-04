@@ -1,4 +1,4 @@
-﻿class_name FPCM_CampaignSetupScreen
+class_name FPCM_CampaignSetupScreen
 extends Control
 
 # GlobalEnums available as autoload singleton

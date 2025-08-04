@@ -1,4 +1,4 @@
-﻿extends StaticBody3D
+extends StaticBody3D
 
 const GlobalEnums: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
 const TerrainTypes: GDScript = preload("res://src/core/terrain/TerrainTypes.gd")

@@ -1,4 +1,4 @@
-﻿extends Resource
+extends Resource
 
 const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const Character = preload("res://src/core/character/Character.gd")

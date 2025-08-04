@@ -62,6 +62,9 @@ func _ready() -> void:
 
 	# Setup developer panel if in debug mode
 	_setup_developer_panel()
+	
+	# CRITICAL SECURITY: Apply production security measures
+	_setup_production_security()
 
 	print("MainMenu: Initialization complete!")
 
@@ -221,21 +224,47 @@ func _on_new_campaign_pressed() -> void:
 	#	_show_tutorial_popup()
 
 func _transition_to_campaign_creation() -> void:
-	"""Transition to the campaign creation UI"""
+	"""Transition to campaign creation with error handling and fallback strategy"""
 	print("MainMenu: Transitioning to campaign creation...")
-	@warning_ignore("untyped_declaration")
-	var scene_router = get_node_or_null("/root/SceneRouter") as Node
-	if scene_router and scene_router.has_method("safe_navigate_to"):
-		# Use safe navigation with fallback to main menu if campaign creation fails
-		@warning_ignore("unsafe_method_access")
-		scene_router.safe_navigate_to("campaign_creation", "main_menu")
-	elif scene_router and scene_router.has_method("start_new_campaign"):
-		@warning_ignore("unsafe_method_access")
-		scene_router.start_new_campaign()
-	else:
-		push_error("MainMenu: SceneRouter not found or methods unavailable")
-		# Try direct scene change as last resort
-		_try_direct_scene_change("res://src/ui/screens/campaign/CampaignCreationUI.tscn")
+	
+	# Production-ready scene loading with comprehensive fallback strategy
+	var scene_candidates: Array[String] = [
+		"res://src/ui/screens/campaign/CampaignCreationUI.tscn",
+		"res://src/ui/screens/campaign/ModularCampaignCreationFlow.tscn",
+		"res://src/ui/screens/campaign/CampaignWorkflowOrchestrator.tscn",
+		"res://src/ui/screens/campaign/CampaignSetupDialog.tscn"
+	]
+	
+	for scene_path in scene_candidates:
+		if FileAccess.file_exists(scene_path):
+			print("MainMenu: Loading campaign creation scene: ", scene_path)
+			var result = get_tree().change_scene_to_file(scene_path)
+			if result == OK:
+				return
+			else:
+				print("MainMenu: Failed to load scene: ", scene_path, " - Error: ", result)
+		else:
+			print("MainMenu: Scene not found: ", scene_path)
+	
+	# If all scenes fail, show error dialog
+	_handle_campaign_creation_failure()
+
+func _handle_campaign_creation_failure() -> void:
+	"""Production-ready error handling for campaign creation failures"""
+	push_error("MainMenu: All campaign creation scenes failed to load - critical system issue")
+	
+	# Show user-friendly error dialog
+	var error_dialog := AcceptDialog.new()
+	error_dialog.dialog_text = "Campaign Creation Unavailable\n\nThe campaign creation system is currently experiencing technical difficulties.\nPlease check the console for detailed error information."
+	error_dialog.title = "System Error"
+	error_dialog.size = Vector2i(400, 200)
+	
+	add_child(error_dialog)
+	error_dialog.popup_centered()
+	
+	# Clean up dialog after showing
+	await error_dialog.confirmed
+	error_dialog.queue_free()
 
 func _try_direct_scene_change(scene_path: String) -> void:
 	"""Try direct scene change as a fallback"""
@@ -328,7 +357,7 @@ func _on_options_pressed() -> void:
 
 func _on_library_pressed() -> void:
 	# Use Library button as system test for now
-	_test_autoload_systems()
+	_test_workflow_system()
 	#request_scene_change("library")
 
 func _test_autoload_systems() -> void:
@@ -392,6 +421,68 @@ func _test_autoload_systems() -> void:
 	# Show results in dialog
 	var result_text: String = "\n".join(test_results)
 	show_message("Autoload System Test Results:\n\n" + result_text)
+
+func _test_workflow_system() -> void:
+	"""Test the new workflow system components"""
+	print("=== WORKFLOW SYSTEM TEST ===")
+	var test_results: Array[String] = []
+	
+	# Test WorkflowContextManager
+	@warning_ignore("untyped_declaration")
+	var workflow_manager = get_node_or_null("/root/WorkflowContextManager") as Node
+	if workflow_manager:
+		test_results.append("✓ WorkflowContextManager: WORKING")
+		if workflow_manager.has_method("get_debug_info"):
+			@warning_ignore("unsafe_method_access")
+			var debug_info = workflow_manager.get_debug_info()
+			test_results.append("  - Debug info available: ✓")
+		else:
+			test_results.append("  - Debug info method: ✗")
+	else:
+		test_results.append("✗ WorkflowContextManager: NOT FOUND")
+	
+	# Test CampaignWorkflowOrchestrator scene
+	var orchestrator_scene = "res://src/ui/screens/campaign/CampaignWorkflowOrchestrator.tscn"
+	if FileAccess.file_exists(orchestrator_scene):
+		test_results.append("✓ CampaignWorkflowOrchestrator.tscn: EXISTS")
+		# Try to load the scene to validate it
+		var scene_resource = load(orchestrator_scene) as PackedScene
+		if scene_resource:
+			test_results.append("  - Scene resource loads: ✓")
+		else:
+			test_results.append("  - Scene resource loads: ✗")
+	else:
+		test_results.append("✗ CampaignWorkflowOrchestrator.tscn: MISSING")
+	
+	# Test individual modular scenes
+	var modular_scenes = {
+		"InitialCrewCreation": "res://src/ui/screens/crew/InitialCrewCreation.tscn",
+		"CharacterCreator": "res://src/ui/screens/character/CharacterCreator.tscn",
+		"CampaignDashboard": "res://src/ui/screens/campaign/CampaignDashboard.tscn"
+	}
+	
+	var available_modular = 0
+	for scene_name in modular_scenes:
+		if FileAccess.file_exists(modular_scenes[scene_name]):
+			available_modular += 1
+	
+	test_results.append("✓ Modular scenes available: %d/%d" % [available_modular, modular_scenes.size()])
+	
+	# Test Developer Dashboard
+	var dashboard_scene = "res://src/core/debug/DeveloperDashboard.tscn"
+	if FileAccess.file_exists(dashboard_scene):
+		test_results.append("✓ Developer Dashboard: AVAILABLE")
+	else:
+		test_results.append("✗ Developer Dashboard: MISSING")
+	
+	print("=== WORKFLOW TEST RESULTS ===")
+	for result in test_results:
+		print(result)
+	print("==============================")
+	
+	# Show results in dialog
+	var result_text: String = "\n".join(test_results)
+	show_message("NEW Workflow System Test Results:\n\n" + result_text + "\n\nPress F12 to open Developer Dashboard")
 
 ## Developer Panel Methods
 
@@ -461,14 +552,21 @@ func _connect_developer_signals() -> void:
 	developer_panel.test_scenario_requested.connect(_on_test_scenario_requested)
 
 func _input(event: InputEvent) -> void:
-	"""Handle developer panel hotkey"""
-	if not developer_mode or not developer_panel:
+	"""Handle developer panel hotkey and dashboard access"""
+	# CRITICAL SECURITY FIX: Disable developer access in production builds
+	if not developer_mode or not _is_development_access_allowed():
 		return
 
 	# Toggle developer panel with F11
 	@warning_ignore("unsafe_property_access")
 	if event is InputEventKey and event.pressed and event.keycode == KEY_F11:
-		_toggle_developer_panel()
+		if developer_panel:
+			_toggle_developer_panel()
+	
+	# Open Developer Dashboard with F12 (Emergency Access)
+	@warning_ignore("unsafe_property_access")
+	if event is InputEventKey and event.pressed and event.keycode == KEY_F12:
+		_open_developer_dashboard()
 
 func _toggle_developer_panel() -> void:
 	"""Toggle developer panel visibility"""
@@ -485,6 +583,19 @@ func _toggle_developer_panel() -> void:
 func _on_show_developer_panel_pressed() -> void:
 	"""Handle developer panel button press"""
 	_toggle_developer_panel()
+
+func _open_developer_dashboard() -> void:
+	"""Open Developer Dashboard for system diagnostics and testing"""
+	print("MainMenu: Opening Developer Dashboard (F12)")
+	
+	var dashboard_scene = "res://src/core/debug/DeveloperDashboard.tscn"
+	
+	if FileAccess.file_exists(dashboard_scene):
+		print("MainMenu: Transitioning to Developer Dashboard...")
+		get_tree().change_scene_to_file(dashboard_scene)
+	else:
+		print("MainMenu: Developer Dashboard not found at: " + dashboard_scene)
+		_show_error_dialog("Debug Error", "Developer Dashboard is not available at:\\n" + dashboard_scene)
 
 ## Developer Panel Event Handlers
 
@@ -582,6 +693,56 @@ func request_scene_change(scene_name: String) -> void:
 	else:
 		push_error("MainMenu: Game scene missing change_scene method")
 
+## CRITICAL SECURITY: Production Build Safety System
+func _is_development_access_allowed() -> bool:
+	"""Security check: Only allow developer access in appropriate builds"""
+	# Primary check: Debug build detection
+	if not OS.is_debug_build():
+		print("MainMenu: Developer access blocked - production build detected")
+		return false
+	
+	# Secondary check: Feature flag system
+	var dev_dashboard_enabled = ProjectSettings.get_setting("debug/enable_dev_dashboard", true)
+	if not dev_dashboard_enabled:
+		print("MainMenu: Developer access blocked - feature flag disabled")
+		return false
+	
+	# Tertiary check: Development environment detection
+	var is_dev_environment = _detect_development_environment()
+	if not is_dev_environment:
+		print("MainMenu: Developer access blocked - not in development environment")
+		return false
+	
+	return true
+
+func _detect_development_environment() -> bool:
+	"""Detect if running in development environment"""
+	# Check for development indicators
+	var indicators = [
+		"res://src/core/debug/", # Debug folder exists
+		"project.godot" # Project file in working directory
+	]
+	
+	for indicator in indicators:
+		if not FileAccess.file_exists(indicator) and not DirAccess.dir_exists_absolute(indicator):
+			return false
+	
+	return true
+
+func _setup_production_security() -> void:
+	"""Initialize production security measures"""
+	# Hide developer button in production
+	if show_developer_button and not _is_development_access_allowed():
+		show_developer_button.visible = false
+		show_developer_button.disabled = true
+		print("MainMenu: Developer button hidden for production build")
+	
+	# Remove developer panel in production
+	if developer_panel and not _is_development_access_allowed():
+		developer_panel.queue_free()
+		developer_panel = null
+		print("MainMenu: Developer panel removed for production build")
+
 ## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
 ## Based on Godot 4.4 best practices for safe property access
 func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
@@ -605,3 +766,10 @@ func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Va
 		@warning_ignore("unsafe_method_access")
 		return obj.callv(method_name, args)
 	return null
+
+func _show_error_dialog(title: String, message: String) -> void:
+	"""Show error dialog to the user"""
+	push_error("MainMenu Error Dialog - %s: %s" % [title, message])
+	# TODO: Implement proper error dialog UI when available
+	# For now, just log the error
+	print("ERROR DIALOG: ", title, " - ", message)
