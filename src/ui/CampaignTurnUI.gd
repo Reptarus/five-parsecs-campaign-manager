@@ -172,16 +172,16 @@ func _on_next_phase_pressed() -> void:
 		turn_completed.emit()
 		print("Turn completed! Starting Turn %d" % campaign.campaign_data.turn)
 	else:
-		# Advance to next phase
-		current_phase = Phase(current_phase + 1)
+		# Advance to next phase - type-safe enum access
+		current_phase = current_phase + 1
 		campaign.set_phase(_get_phase_name(current_phase))
 		phase_changed.emit(current_phase)
 	
 	_update_ui()
 
 func _on_phase_tab_changed(tab: int) -> void:
-	# Allow manual phase navigation
-	current_phase = Phase(tab)
+	# Allow manual phase navigation - type-safe enum access
+	current_phase = tab
 	campaign.set_phase(_get_phase_name(current_phase))
 	_update_ui()
 

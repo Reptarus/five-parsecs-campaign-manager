@@ -24,7 +24,6 @@ var local_ship_data: Dictionary = {
 	"ship": {},
 	"is_complete": false
 }
-var security_validator: SecurityValidator
 var is_ship_complete: bool = false
 var last_validation_errors: Array[String] = []
 
@@ -445,14 +444,10 @@ func get_data() -> Dictionary:
 
 ## Required Interface Methods from ICampaignCreationPanel
 
-func validate_panel() -> ValidationResult:
-	"""Validate panel data and return ValidationResult"""
-	var result = ValidationResult.new()
+func validate_panel() -> bool:
+	"""Validate panel data and return simple boolean result"""
 	var errors = _validate_ship_data()
-	
-	if errors.is_empty():
-		result.valid = true
-		result.sanitized_value = get_ship_data()
+	return errors.is_empty()
 	else:
 		result.valid = false
 		result.error = errors[0] if errors.size() > 0 else "Ship validation failed"

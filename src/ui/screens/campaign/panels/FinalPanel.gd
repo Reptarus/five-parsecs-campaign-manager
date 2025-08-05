@@ -44,7 +44,7 @@ func _setup_panel_content() -> void:
 
 func _initialize_security_validator() -> void:
 	"""Initialize security validator for input sanitization"""
-	security_validator = SecurityValidator.new()
+	security_validator = _validate_simple_input()
 
 func set_campaign_data(data: Dictionary) -> void:
 	campaign_data = data

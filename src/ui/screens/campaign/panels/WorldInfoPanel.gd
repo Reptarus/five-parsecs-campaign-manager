@@ -26,8 +26,8 @@ var world_opportunities: Array[Dictionary] = []
 var world_threats: Array[Dictionary] = []
 var selected_opportunity: String = ""
 
-# Signal connections
-var enhanced_signals: EnhancedCampaignSignals
+# Direct signal connections - production-ready pattern
+var world_data_updated: bool = false
 
 func _ready() -> void:
 	# Set panel info before base initialization

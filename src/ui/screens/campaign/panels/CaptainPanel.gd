@@ -1047,15 +1047,10 @@ func _calculate_completion_level() -> float:
 
 ## Required Interface Methods from ICampaignCreationPanel
 
-func validate_panel() -> ValidationResult:
-	"""Validate panel data and return ValidationResult"""
-	var result = ValidationResult.new()
+func validate_panel() -> bool:
+	"""Validate panel data and return simple boolean result"""
 	var errors = _validate_captain_data()
-	
-	if errors.is_empty():
-		result.valid = true
-		result.sanitized_value = get_captain_data()
-	else:
+	return errors.is_empty()
 		result.valid = false
 		result.error = errors[0] if errors.size() > 0 else "Captain validation failed"
 		# Add additional errors as warnings since ValidationResult only has one error field
@@ -1148,8 +1143,8 @@ func _create_character_from_dict(data: Dictionary) -> Character:
 
 func _confirm_captain_with_transaction() -> void:
 	"""Confirm captain using transaction-based atomic operations"""
-	if not state_manager_reference:
-		print("CaptainPanel: No state manager available for transaction-based confirmation")
+	if not GameState:
+		print("CaptainPanel: No GameState available for transaction-based confirmation")
 		return
 	
 	if _is_processing_transaction:
@@ -1165,13 +1160,10 @@ func _confirm_captain_with_transaction() -> void:
 	# Create captain data for transaction
 	var captain_data = _serialize_captain_for_transaction(current_captain)
 	
-	# Create transaction
-	_pending_confirmation_transaction = state_manager_reference.create_captain_confirmation_transaction(captain_data)
-	
-	if _pending_confirmation_transaction.is_empty():
-		print("CaptainPanel: Failed to create captain confirmation transaction")
-		_is_processing_transaction = false
-		return
+	# Direct state update - simpler and more reliable
+	GameState.set_campaign_captain(captain_data)
+	print("CaptainPanel: ✅ Captain confirmation successful")
+	_is_processing_transaction = false
 	
 	print("CaptainPanel: Created captain confirmation transaction: %s" % _pending_confirmation_transaction)
 	

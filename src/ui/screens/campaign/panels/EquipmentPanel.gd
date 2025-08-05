@@ -296,18 +296,10 @@ func get_data() -> Dictionary:
 
 ## Required Interface Methods from ICampaignCreationPanel
 
-func validate_panel() -> ValidationResult:
-	"""Validate panel data and return ValidationResult"""
-	var result = ValidationResult.new()
+func validate_panel() -> bool:
+	"""Validate panel data and return simple boolean result"""
 	var errors = _validate_equipment_data()
-	
-	if errors.is_empty():
-		result.valid = true
-		result.sanitized_value = get_equipment_data()
-	else:
-		result.valid = false
-		result.error = errors[0] if errors.size() > 0 else "Equipment validation failed"
-		# Add additional errors as warnings since ValidationResult only has one error field
+	return errors.is_empty()
 		for i in range(1, errors.size()):
 			result.add_warning(errors[i])
 	

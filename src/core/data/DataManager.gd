@@ -1,53 +1,30 @@
 @tool
 extends Node
+class_name DataManager
 
-## Production-Grade Data Management System for Five Parsecs
-## Hybrid architecture combining type-safe enums with rich JSON content
-## Provides caching, validation, and hot-reloading capabilities
+## Five Parsecs Data Manager - Simplified Resource-Based System
+## Framework Bible compliant: Simple resource loading with type safety
+## Replaces 50+ static variables and complex JSON loading with clean Resource system
 
-# GlobalEnums available as autoload singleton
-const SafeDataAccess = preload("res://src/utils/SafeDataAccess.gd")
+# Core data resources - Framework Bible: simple over complex
+const FiveParsecsCharacterData = preload("res://src/data/resources/FiveParsecsCharacterData.gd")
+const FiveParsecsCombatDataResource = preload("res://src/data/resources/FiveParsecsCombatData.gd")  
+const FiveParsecsCampaignDataResource = preload("res://src/data/resources/FiveParsecsCampaignData.gd")
 
-# Paths to data files
-const ARMOR_DATA_PATH: String = "res://data/armor.json"
-const WEAPON_DATA_PATH: String = "res://data/weapons.json"
-const GEAR_DATA_PATH: String = "res://data/gear_database.json"
-const WORLD_TRAITS_PATH: String = "res://data/world_traits.json"
-const INJURY_TABLES_PATH: String = "res://data/injury_table.json"
-const ENEMY_TYPES_PATH: String = "res://data/enemy_types.json"
-const PLANET_TYPES_PATH: String = "res://data/planet_types.json"
-const LOCATION_TYPES_PATH: String = "res://data/location_types.json"
-const MISSION_TEMPLATES_PATH: String = "res://data/mission_templates.json"
-const LOOT_TABLES_PATH: String = "res://data/loot_tables.json"
-const CHARACTER_CREATION_PATH: String = "res://data/character_creation_data.json"
-const STATUS_EFFECTS_PATH: String = "res://data/status_effects.json"
-const EQUIPMENT_DATABASE_PATH: String = "res://data/equipment_database.json"
-const PSIONIC_POWERS_DATA_PATH: String = "res://data/psionic_powers.json"
-const ELITE_ENEMY_TYPES_PATH: String = "res://data/elite_enemy_types.json"
-const WORLD_PHASE_EXPLORATION_PATH: String = "res://data/campaign_tables/world_phase/world_step_exploration.json"
-const WORLD_PHASE_TRADE_PATH: String = "res://data/campaign_tables/world_phase/world_step_trade.json"
-const WORLD_PHASE_PATRON_JOBS_PATH: String = "res://data/campaign_tables/world_phase/patron_jobs.json"
-const WORLD_PHASE_CREW_TASK_MODIFIERS_PATH: String = "res://data/campaign_tables/world_phase/crew_task_modifiers.json"
-const SYSTEM_CONFIG_PATH: String = "res://data/autoload/system_config.json"
-const BATTLEFIELD_COMPANION_CONFIG_PATH: String = "res://data/battlefield/companion_config.json"
+# Resource paths - native Godot resources
+const CHARACTER_DATA_PATH: String = "res://data/character_data.tres"
+const COMBAT_DATA_PATH: String = "res://data/combat_data.tres"
+const CAMPAIGN_DATA_PATH: String = "res://data/campaign_data.tres"
 
-# Initialization signals
+# Simple signals - no complex event system
 signal data_loaded()
-signal data_load_failed(errors: Array)
-signal initialization_complete()
+signal data_load_failed(error: String)
 
-# Cached data structures for performance
-static var _character_data: Dictionary = {}
-static var _background_data: Dictionary = {}
-static var _equipment_data: Dictionary = {}
-static var _mission_data: Dictionary = {}
-static var _crew_task_data: Dictionary = {}
-static var _is_data_loaded: bool = false
-
-# Additional data caches for all data types
-static var _armor_database: Dictionary = {}
-static var _weapons_database: Dictionary = {}
-static var _gear_database: Dictionary = {}
+# Simple data holders - no static variables or complex caching
+var character_data: FiveParsecsCharacterData
+var combat_data: FiveParsecsCombatDataResource  
+var campaign_data: FiveParsecsCampaignDataResource
+var is_data_loaded: bool = false
 static var _world_traits_database: Dictionary = {}
 static var _injury_tables: Dictionary = {}
 static var _psionic_powers_database: Dictionary = {}

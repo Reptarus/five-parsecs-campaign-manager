@@ -46,10 +46,13 @@ const Character = preload("res://src/core/character/Character.gd")
 const MIN_CREW_SIZE: int = 1
 const MAX_CREW_SIZE: int = 8
 
-# Self-management components
-var security_validator: SecurityValidator
+# Panel state management - production-ready pattern
+var is_panel_initialized: bool = false
 var is_crew_complete: bool = false
 var last_validation_errors: Array[String] = []
+
+# Panel lifecycle signals - Framework Bible compliant
+signal panel_data_updated(data: Dictionary)
 
 
 # UI Components - using safe access pattern
@@ -118,7 +121,7 @@ func _setup_panel_content() -> void:
 func _initialize_self_management() -> void:
 	"""Initialize state management and validation components"""
 	# Create security validator for input sanitization
-	security_validator = SecurityValidator.new()
+	security_validator = _validate_simple_input()
 	
 	# Initialize character creator
 	character_creator = get_node_or_null("CharacterCreator")
