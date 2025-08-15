@@ -7,7 +7,7 @@ extends FiveParsecsCampaignPanel
 
 # Universal Safety patterns
 const BaseInformationCard = preload("res://src/base/ui/BaseInformationCard.gd")
-# Enhanced signals removed - using direct signal communication
+const EnhancedCampaignSignals = preload("res://src/core/signals/EnhancedCampaignSignals.gd")
 const FPCM_CampaignResponsiveLayout = preload("res://src/ui/components/base/CampaignResponsiveLayout.gd")
 
 # UI References
@@ -25,6 +25,7 @@ var current_world_data: Dictionary = {}
 var world_opportunities: Array[Dictionary] = []
 var world_threats: Array[Dictionary] = []
 var selected_opportunity: String = ""
+var enhanced_signals: EnhancedCampaignSignals
 
 # Direct signal connections - production-ready pattern
 var world_data_updated: bool = false
@@ -372,11 +373,8 @@ func refresh_display() -> void:
 		update_world_display(current_world_data.get("planet_name"))
 
 ## Required ICampaignCreationPanel implementations
-func validate_panel() -> ValidationResult:
-	var result = ValidationResult.new()
-	result.valid = true  # World generation is optional/automatic
-	result.error = ""
-	return result
+func validate_panel() -> bool:
+	return true  # World generation is optional/automatic
 
 func get_panel_data() -> Dictionary:
 	return {

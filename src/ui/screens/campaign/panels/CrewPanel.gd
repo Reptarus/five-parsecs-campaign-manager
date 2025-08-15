@@ -776,9 +776,8 @@ func _generate_five_parsecs_attribute() -> int:
 
 # Required interface methods from ICampaignCreationPanel
 
-func validate_panel() -> ValidationResult:
-	"""Validate crew panel data with production-ready error handling"""
-	var result = ValidationResult.new()
+func validate_panel() -> bool:
+	"""Validate crew panel data - simplified validation"""
 	# Clear previous errors
 	last_validation_errors = []
 	
@@ -786,60 +785,29 @@ func validate_panel() -> ValidationResult:
 	if crew_members.size() == 0:
 		last_validation_errors.append("At least one crew member is required")
 		is_crew_complete = false
-		result.valid = false
-		result.error = "At least one crew member is required"
-		# Add additional errors as warnings since ValidationResult only has one error field
-		for i in range(1, last_validation_errors.size()):
-			result.add_warning(last_validation_errors[i])
-		return result
-	elif crew_members.size() < 1: # Five Parsecs minimum
-		last_validation_errors.append("Crew must have at least 1 member")
-		is_crew_complete = false
-		result.valid = false
-		result.error = "Crew must have at least 1 member"
-		# Add additional errors as warnings since ValidationResult only has one error field
-		for i in range(1, last_validation_errors.size()):
-			result.add_warning(last_validation_errors[i])
-		return result
+		return false
 	
 	# Business rule: Maximum crew size validation  
-	elif crew_members.size() > 8: # Five Parsecs maximum
+	if crew_members.size() > 8: # Five Parsecs maximum
 		last_validation_errors.append("Crew cannot exceed 8 members")
 		is_crew_complete = false
-		result.valid = false
-		result.error = "Crew cannot exceed 8 members"
-		# Add additional errors as warnings since ValidationResult only has one error field
-		for i in range(1, last_validation_errors.size()):
-			result.add_warning(last_validation_errors[i])
-		return result
+		return false
 	
 	# Business rule: Captain validation
 	if not current_captain:
 		last_validation_errors.append("A captain must be designated")
 		is_crew_complete = false
-		result.valid = false
-		result.error = "A captain must be designated"
-		# Add additional errors as warnings since ValidationResult only has one error field
-		for i in range(1, last_validation_errors.size()):
-			result.add_warning(last_validation_errors[i])
-		return result
+		return false
 	
 	# Business rule: Captain must be crew member
 	if current_captain and current_captain not in crew_members:
 		last_validation_errors.append("Captain must be a member of the crew")
 		is_crew_complete = false
-		result.valid = false
-		result.error = "Captain must be a member of the crew"
-		# Add additional errors as warnings since ValidationResult only has one error field
-		for i in range(1, last_validation_errors.size()):
-			result.add_warning(last_validation_errors[i])
-		return result
+		return false
 	
 	# All validations passed
 	is_crew_complete = true
-	result.valid = true
-	result.sanitized_value = get_crew_data()
-	return result
+	return true
 
 func get_panel_data() -> Dictionary:
 	"""Get crew panel data for state manager"""

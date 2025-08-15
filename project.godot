@@ -18,7 +18,6 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-# Essential Framework Bible-compliant autoloads only
 GlobalEnums="*res://src/core/systems/GlobalEnums.gd"
 GameState="*res://src/core/state/GameState.gd"
 DataManagerAutoload="*res://src/core/data/DataManager.gd"

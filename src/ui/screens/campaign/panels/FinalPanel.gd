@@ -239,22 +239,10 @@ func is_valid() -> bool:
 
 ## Required Interface Methods from ICampaignCreationPanel
 
-func validate_panel() -> ValidationResult:
-	"""Validate panel data and return ValidationResult"""
-	var result = ValidationResult.new()
+func validate_panel() -> bool:
+	"""Validate panel data - simplified validation"""
 	var errors = _validate_campaign_data()
-	
-	if errors.is_empty():
-		result.valid = true
-		result.sanitized_value = get_data()
-	else:
-		result.valid = false
-		result.error = errors[0] if errors.size() > 0 else "Final campaign validation failed"
-		# Add additional errors as warnings since ValidationResult only has one error field
-		for i in range(1, errors.size()):
-			result.add_warning(errors[i])
-	
-	return result
+	return errors.is_empty()
 
 ## Panel Data Persistence Implementation
 
