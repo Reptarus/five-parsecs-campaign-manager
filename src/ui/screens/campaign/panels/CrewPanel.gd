@@ -6,14 +6,19 @@ extends FiveParsecsCampaignPanel
 
 # Import base crew component functionality
 const BaseCrewComponent = preload("res://src/base/ui/BaseCrewComponent.gd")
+const CharacterClass = preload("res://src/core/character/Character.gd")
 
 # Security validation integration
 const CampaignStateManager = preload("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
+const SecurityValidator = preload("res://src/core/validation/SecurityValidator.gd")
+const ValidationResult = preload("res://src/core/validation/ValidationResult.gd")
 
 # Character creator integration
 const CharacterCreatorClass = preload("res://src/core/character/Generation/SimpleCharacterCreator.gd")
 
-# ValidationResult is inherited from BaseCampaignPanel
+# Enhanced Five Parsecs character generation system - now using static Character methods
+const PatronSystem = preload("res://src/core/systems/PatronSystem.gd")
+const RivalSystem = preload("res://src/core/rivals/RivalSystem.gd")
 
 # Existing signals for backward compatibility
 signal crew_setup_complete(crew_data: Dictionary)
@@ -26,7 +31,7 @@ signal crew_validation_failed(errors: Array[String])
 
 # Additional crew-specific signals
 signal crew_updated(crew: Array)
-signal crew_member_selected(member: Character)
+signal crew_member_selected(member: CharacterClass)
 
 # Granular signals for real-time integration
 signal crew_member_added(member_data: Dictionary)
@@ -36,13 +41,15 @@ signal crew_composition_changed(composition: Array)
 var local_crew_data: Dictionary = {
 	"members": [],
 	"captain": null,
+	"patrons": [],
+	"rivals": [],
+	"starting_equipment": [],
 	"is_complete": false
 }
 
 # Base crew component properties
-var crew_members: Array[Character] = []
-var current_captain: Character = null
-const Character = preload("res://src/core/character/Character.gd")
+var crew_members: Array[CharacterClass] = []
+var current_captain: CharacterClass = null
 const MIN_CREW_SIZE: int = 1
 const MAX_CREW_SIZE: int = 8
 
@@ -50,10 +57,20 @@ const MAX_CREW_SIZE: int = 8
 var is_panel_initialized: bool = false
 var is_crew_complete: bool = false
 var last_validation_errors: Array[String] = []
+var security_validator: SecurityValidator
+
+# Enhanced Five Parsecs system instances
+var patron_system: PatronSystem = null
+var rival_system: RivalSystem = null
+var generated_patrons: Array[Dictionary] = []
+var generated_rivals: Array[Dictionary] = []
 
 # Panel lifecycle signals - Framework Bible compliant
 signal panel_data_updated(data: Dictionary)
 
+# PHASE 1 INTEGRATION: InitialCrewCreation connection
+var crew_creation_instance: Control = null
+var crew_creation_container: Control = null
 
 # UI Components - using safe access pattern
 var crew_size_option: OptionButton
@@ -78,6 +95,11 @@ var randomize_button: Button
 @onready var validation_icon: Label = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/CrewValidationPanel/ValidationContent/ValidationIcon")
 @onready var validation_text: Label = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/CrewValidationPanel/ValidationContent/ValidationText")
 
+# Five Parsecs UI component references for patron/rival/equipment display
+@onready var patron_list: VBoxContainer = %PatronList
+@onready var rival_list: VBoxContainer = %RivalList
+@onready var equipment_list: VBoxContainer = %EquipmentList
+
 # Character creator integration
 var character_creator: SimpleCharacterCreator
 
@@ -101,219 +123,304 @@ func _ready() -> void:
 	super._ready()
 	
 	# Initialize crew-specific functionality
-	_initialize_self_management()
-	print("CrewPanel: Starting enhanced initialization with coordinator pattern...")
-	call_deferred("_initialize_panel")
-	# Connect to the crew_updated signal
-	if not crew_updated.is_connected(_on_local_crew_updated):
-		crew_updated.connect(_on_local_crew_updated)
+	_initialize_security_validator()
+	_initialize_five_parsecs_systems()
+	call_deferred("_initialize_components")
 
 func _setup_panel_content() -> void:
 	"""Override from BaseCampaignPanel - setup crew-specific content"""
-	# Assign UI component references from scene nodes
-	crew_size_option = crew_size_option_node if crew_size_option_node else null
-	crew_list = crew_list_node if crew_list_node else null
-	add_button = add_button_node if add_button_node else null
-	edit_button = edit_button_node if edit_button_node else null
-	remove_button = remove_button_node if remove_button_node else null
-	randomize_button = randomize_button_node if randomize_button_node else null
+	# This will be called after BaseCampaignPanel structure is ready
+	pass
 
-func _initialize_self_management() -> void:
-	"""Initialize state management and validation components"""
-	# Create security validator for input sanitization
-	security_validator = _validate_simple_input()
+func _initialize_security_validator() -> void:
+	"""Initialize security validator for input sanitization"""
+	security_validator = SecurityValidator.new()
+
+func _initialize_five_parsecs_systems() -> void:
+	"""Initialize the Five Parsecs patron and rival systems"""
+	print("CrewPanel: Initializing Five Parsecs patron and rival systems...")
 	
-	# Initialize character creator
-	character_creator = get_node_or_null("CharacterCreator")
-	if not character_creator:
-		print("CrewPanel: CharacterCreator not found, creating instance")
-		character_creator = CharacterCreatorClass.new()
-		if character_creator:
-			add_child(character_creator)
-			character_creator.name = "CharacterCreator"
-			character_creator.visible = false
-			print("CrewPanel: CharacterCreator instance created successfully")
+	# Initialize patron system
+	patron_system = PatronSystem.new()
+	if patron_system and patron_system.has_method("initialize"):
+		var success = patron_system.initialize()
+		if success:
+			print("CrewPanel: Patron system initialized successfully")
 		else:
-			push_warning("CrewPanel: Failed to create CharacterCreator instance")
+			push_warning("CrewPanel: Patron system initialization failed")
 	else:
-		print("CrewPanel: CharacterCreator found in scene")
-		character_creator.visible = false
+		print("CrewPanel: PatronSystem not available, creating basic instance")
+		patron_system = PatronSystem.new()
+	
+	# Initialize rival system
+	rival_system = RivalSystem.new()
+	if rival_system:
+		print("CrewPanel: Rival system initialized successfully")
+	else:
+		push_warning("CrewPanel: Rival system initialization failed")
 
-func _initialize_panel() -> void:
-	"""Initialize the crew panel with fallback UI creation"""
-	# Create basic UI structure if not found in scene
-	_setup_fallback_ui()
+func _initialize_components() -> void:
+	"""Initialize crew panel with safe component access"""
+	# PHASE 1 INTEGRATION: Connect to existing InitialCrewCreation
+	_connect_to_crew_creation()
 	
-	# Setup crew size options
-	_setup_crew_size_options()
+	# Initialize existing components
+	_initialize_existing_components()
 	
-	# Connect UI signals
-	_connect_ui_signals()
+	_connect_signals()
+	_validate_crew_setup()
+	# Don't auto-validate during setup - let user control validation
+
+# PHASE 1 INTEGRATION: Connect to existing InitialCrewCreation with enhanced error handling
+func _connect_to_crew_creation() -> void:
+	"""Connect to the existing InitialCrewCreation system with production-ready error handling"""
+	print("CrewPanel: Connecting to InitialCrewCreation...")
 	
-	# Generate initial crew
-	_generate_initial_crew()
+	# Safe initialization with comprehensive error handling
+	var init_result = _safe_initialize_crew_creation()
+	if not init_result.success:
+		push_warning("CrewPanel: Falling back to manual crew creation - %s" % init_result.error)
+		_create_fallback_crew_interface()
+		return
 	
-	# Update display
+	print("CrewPanel: InitialCrewCreation connected successfully")
+
+func _safe_initialize_crew_creation() -> Dictionary:
+	"""Safely initialize crew creation with comprehensive error handling"""
+	var result = {"success": false, "error": ""}
+	
+	# Verify base panel structure exists
+	var form_container = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer")
+	if not form_container:
+		result.error = "Base panel FormContainer not found"
+		return result
+	
+	# Verify scene exists before attempting load
+	var scene_path = "res://src/ui/screens/crew/InitialCrewCreation.tscn"
+	if not ResourceLoader.exists(scene_path):
+		result.error = "InitialCrewCreation.tscn not found at expected path"
+		return result
+	
+	# Attempt to load with error protection
+	var crew_scene = load(scene_path)
+	if not crew_scene:
+		result.error = "Failed to load crew creation scene resource"
+		return result
+	
+	# Safe instantiation with error boundary
+	var crew_instance = crew_scene.instantiate()
+	if not crew_instance:
+		result.error = "Failed to instantiate crew creation scene"
+		return result
+	
+	# Setup container with proper scene structure
+	crew_creation_container = Control.new()
+	crew_creation_container.name = "CrewCreationContainer"
+	crew_creation_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	crew_creation_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	form_container.add_child(crew_creation_container)
+	
+	# Add crew instance with proper layout
+	crew_instance.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	crew_instance.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	crew_creation_container.add_child(crew_instance)
+	crew_creation_instance = crew_instance
+	
+	# Connect signals and initialize data
+	_connect_crew_creation_signals()
+	_initialize_crew_creation_data()
+	
+	result.success = true
+	return result
+
+func _create_fallback_crew_interface() -> void:
+	"""Create fallback crew interface when InitialCrewCreation unavailable"""
+	print("CrewPanel: Creating fallback crew interface")
+	
+	var form_container = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer")
+	if not form_container:
+		push_error("CrewPanel: Cannot create fallback - FormContainer not found")
+		return
+	
+	var fallback_container = VBoxContainer.new()
+	fallback_container.name = "FallbackCrewInterface"
+	form_container.add_child(fallback_container)
+	
+	# Warning label
+	var warning = Label.new()
+	warning.text = "⚠️ Using simplified crew creation (InitialCrewCreation.tscn not available)"
+	warning.modulate = Color.ORANGE
+	fallback_container.add_child(warning)
+	
+	# Crew size selector
+	var size_container = HBoxContainer.new()
+	fallback_container.add_child(size_container)
+	
+	var size_label = Label.new()
+	size_label.text = "Crew Size:"
+	size_container.add_child(size_label)
+	
+	var size_spin = SpinBox.new()
+	size_spin.min_value = 1
+	size_spin.max_value = 8
+	size_spin.value = 4
+	size_spin.value_changed.connect(_on_fallback_crew_size_changed)
+	size_container.add_child(size_spin)
+	
+	# Generate crew button
+	var generate_btn = Button.new()
+	generate_btn.text = "Generate Random Crew"
+	generate_btn.pressed.connect(_generate_fallback_crew)
+	fallback_container.add_child(generate_btn)
+	
+	# Crew list display
+	var crew_list = ItemList.new()
+	crew_list.custom_minimum_size.y = 200
+	fallback_container.add_child(crew_list)
+	crew_list_node = crew_list
+
+func _on_fallback_crew_size_changed(size: int) -> void:
+	"""Handle crew size changes in fallback mode"""
+	selected_size = size
+
+func _generate_fallback_crew() -> void:
+	"""Generate crew using fallback interface"""
+	clear_crew()
+	
+	for i in range(selected_size):
+		var character = generate_random_character()
+		if character:
+			add_crew_member(character)
+	
 	_update_crew_display()
-	
-	print("CrewPanel: Enhanced initialization complete with coordinator pattern")
-	
-	# Emit panel ready signal after full initialization
-	call_deferred("_emit_panel_ready")
+	# Emit both standard and specialized signals
+	emit_data_changed()
+	crew_updated.emit(crew_members)
+	crew_setup_complete.emit(get_panel_data())
 
-func _setup_fallback_ui() -> void:
-	"""Create basic UI structure if scene doesn't provide it"""
-	print("CrewPanel: Setting up fallback UI - crew_container exists: ", crew_container != null)
+func _connect_crew_creation_signals() -> void:
+	"""Connect signals from InitialCrewCreation to panel"""
+	if not crew_creation_instance:
+		push_warning("CrewPanel: Cannot connect signals - InitialCrewCreation not available")
+		return
 	
-	if not crew_container:
-		# Create a basic container structure
-		var content = VBoxContainer.new()
-		content.name = "Content"
-		content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		add_child(content)
-		
-		# Instructions
-		instructions_label = Label.new()
-		instructions_label.name = "Instructions"
-		instructions_label.text = "Select your crew size and customize your crew members. One member will be designated as captain."
-		instructions_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		instructions_label.add_theme_font_size_override("font_size", 14)
-		content.add_child(instructions_label)
-		
-		# Add spacing
-		var spacer1 = Control.new()
-		spacer1.custom_minimum_size.y = 10
-		content.add_child(spacer1)
-		
-		# Crew size selection
-		var size_container = HBoxContainer.new()
-		content.add_child(size_container)
-		
-		var size_label = Label.new()
-		size_label.text = "Crew Size:"
-		size_label.custom_minimum_size.x = 100
-		size_container.add_child(size_label)
-		
-		crew_size_option = OptionButton.new()
-		crew_size_option.name = "CrewSizeOption"
-		crew_size_option.custom_minimum_size.x = 150
-		size_container.add_child(crew_size_option)
-		
-		# Add spacing
-		var spacer2 = Control.new()
-		spacer2.custom_minimum_size.y = 10
-		content.add_child(spacer2)
-		
-		# Crew list with better styling
-		crew_list = ItemList.new()
-		crew_list.name = "CrewList"
-		crew_list.custom_minimum_size = Vector2(500, 200)
-		crew_list.select_mode = ItemList.SELECT_SINGLE
-		content.add_child(crew_list)
-		
-		# Add spacing
-		var spacer3 = Control.new()
-		spacer3.custom_minimum_size.y = 10
-		content.add_child(spacer3)
-		
-		# Summary
-		crew_summary = Label.new()
-		crew_summary.name = "CrewSummary"
-		crew_summary.text = "Crew: 0 members"
-		crew_summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		crew_summary.add_theme_font_size_override("font_size", 12)
-		content.add_child(crew_summary)
-		
-		# Add spacing
-		var spacer4 = Control.new()
-		spacer4.custom_minimum_size.y = 15
-		content.add_child(spacer4)
-		
-		# Buttons with better layout
-		var button_container = HBoxContainer.new()
-		button_container.alignment = BoxContainer.ALIGNMENT_CENTER
-		content.add_child(button_container)
-		
-		add_button = Button.new()
-		add_button.text = "Add Member"
-		add_button.name = "AddButton"
-		add_button.custom_minimum_size.x = 100
-		button_container.add_child(add_button)
-		
-		# Button spacing
-		var button_spacer1 = Control.new()
-		button_spacer1.custom_minimum_size.x = 10
-		button_container.add_child(button_spacer1)
-		
-		edit_button = Button.new()
-		edit_button.text = "Edit Selected"
-		edit_button.name = "EditButton"
-		edit_button.disabled = true
-		edit_button.custom_minimum_size.x = 100
-		button_container.add_child(edit_button)
-		
-		# Button spacing
-		var button_spacer2 = Control.new()
-		button_spacer2.custom_minimum_size.x = 10
-		button_container.add_child(button_spacer2)
-		
-		remove_button = Button.new()
-		remove_button.text = "Remove Selected"
-		remove_button.name = "RemoveButton"
-		remove_button.disabled = true
-		remove_button.custom_minimum_size.x = 120
-		button_container.add_child(remove_button)
-		
-		# Button spacing
-		var button_spacer3 = Control.new()
-		button_spacer3.custom_minimum_size.x = 10
-		button_container.add_child(button_spacer3)
-		
-		randomize_button = Button.new()
-		randomize_button.text = "Randomize All"
-		randomize_button.name = "RandomizeButton"
-		randomize_button.custom_minimum_size.x = 120
-		button_container.add_child(randomize_button)
-		
-		crew_container = content
-		print("CrewPanel: ✅ Created complete fallback UI structure with proper sizing and layout")
+	# Connect crew creation signals
+	if crew_creation_instance.has_signal("crew_created"):
+		crew_creation_instance.crew_created.connect(_on_crew_created)
+		print("CrewPanel: Connected crew_created signal")
+	
+	if crew_creation_instance.has_signal("character_generated"):
+		crew_creation_instance.character_generated.connect(_on_character_generated)
+		print("CrewPanel: Connected character_generated signal")
+	
+	# Connect any other relevant signals
+	if crew_creation_instance.has_method("get_crew_state"):
+		print("CrewPanel: InitialCrewCreation has get_crew_state method")
+
+func _initialize_crew_creation_data() -> void:
+	"""Initialize InitialCrewCreation with current campaign data"""
+	if not crew_creation_instance:
+		return
+	
+	# Set crew data if available
+	if crew_creation_instance.has_method("set_crew_data"):
+		var current_crew_data = _get_current_crew_data()
+		crew_creation_instance.set_crew_data(current_crew_data)
+		print("CrewPanel: Set crew data in InitialCrewCreation")
+
+func _get_current_crew_data() -> Dictionary:
+	"""Get current crew data from local state"""
+	return local_crew_data
+
+func get_panel_data() -> Dictionary:
+	"""Get panel data - interface implementation (BaseCampaignPanel compliance)"""
+	return _get_current_crew_data()
+
+# InitialCrewCreation signal handlers
+func _on_crew_created(crew_data: Dictionary) -> void:
+	"""Handle crew creation from InitialCrewCreation"""
+	print("CrewPanel: Crew created - %d members" % crew_data.get("size", 0))
+	
+	# Update local crew data
+	_update_crew_data_from_creation()
+	
+	# Emit signal to coordinator
+	crew_data_complete.emit(local_crew_data)
+	
+	# PHASE 2 INTEGRATION: Update coordinator state
+	_notify_coordinator_of_crew_update()
+
+func _notify_coordinator_of_crew_update() -> void:
+	"""Notify the campaign coordinator of crew state changes"""
+	# Try to find the coordinator through the scene tree
+	var coordinator = _find_coordinator()
+	if coordinator:
+		coordinator.update_crew_state(local_crew_data)
+		print("CrewPanel: Notified coordinator of crew update")
 	else:
-		# Try to find existing UI components
-		_find_existing_ui_components()
-		print("CrewPanel: Using existing crew_container from scene")
+		print("CrewPanel: Warning - coordinator not found")
 
-func _find_existing_ui_components() -> void:
-	"""Find existing UI components in the scene"""
-	crew_size_option = find_child("CrewSizeOption", true, false) as OptionButton
-	crew_list = find_child("CrewList", true, false) as ItemList
-	add_button = find_child("AddButton", true, false) as Button
-	edit_button = find_child("EditButton", true, false) as Button
-	remove_button = find_child("RemoveButton", true, false) as Button
-	randomize_button = find_child("RandomizeButton", true, false) as Button
+func _find_coordinator() -> Node:
+	"""Find the campaign coordinator in the scene tree"""
+	# Look for coordinator in parent scenes
+	var current = get_parent()
+	while current:
+		if current.has_method("update_crew_state"):
+			return current
+		current = current.get_parent()
 	
-	print("CrewPanel: Found existing UI components - CrewSize: %s, CrewList: %s" % [
-		crew_size_option != null, crew_list != null
-	])
+	# Look for autoload singleton
+	var coordinator = get_node_or_null("/root/CampaignCreationCoordinator")
+	if coordinator:
+		return coordinator
+	
+	return null
 
-func _setup_crew_size_options() -> void:
-	"""Setup crew size selection options"""
-	if not crew_size_option:
-		print("CrewPanel: Warning - crew_size_option not found, creating fallback")
-		crew_size_option = OptionButton.new()
-		if crew_container:
-			crew_container.add_child(crew_size_option)
+func _on_character_generated(character: CharacterClass) -> void:
+	"""Handle character generation from InitialCrewCreation"""
+	print("CrewPanel: Character generated - %s" % character.name)
 	
-	crew_size_option.clear()
-	for i in range(1, 9):
-		crew_size_option.add_item(str(i) + " Members", i)
+	# Add character to crew
+	crew_members.append(character)
 	
-	# Set default to 4
-	for i in range(crew_size_option.get_item_count()):
-		if crew_size_option.get_item_id(i) == 4:
-			crew_size_option.select(i)
-			break
+	# Update local crew data
+	_update_crew_data_from_creation()
+	
+	# Emit signal to coordinator
+	crew_member_added.emit({
+		"name": character.name,
+		"class": character.character_class,
+		"background": character.background_name,
+		"motivation": character.motivation_name
+	})
+	
+	# PHASE 2 INTEGRATION: Update coordinator state
+	_notify_coordinator_of_crew_update()
 
-func _connect_ui_signals() -> void:
+func _update_crew_data_from_creation() -> void:
+	"""Update local crew data from InitialCrewCreation"""
+	if not crew_creation_instance:
+		return
+	
+	# Get crew state from creation if available
+	if crew_creation_instance.has_method("get_crew_state"):
+		var creation_state = crew_creation_instance.get_crew_state()
+		if creation_state:
+			local_crew_data = creation_state
+			_update_crew_display()
+			print("CrewPanel: Updated crew data from creation")
+
+func _initialize_existing_components() -> void:
+	"""Initialize existing crew panel components"""
+	# Initialize existing component references
+	crew_size_option = crew_size_option_node
+	crew_list = crew_list_node
+	add_button = add_button_node
+	edit_button = edit_button_node
+	remove_button = remove_button_node
+	randomize_button = randomize_button_node
+
+func _connect_signals() -> void:
 	"""Connect UI signals with safety checks"""
 	if crew_size_option and not crew_size_option.item_selected.is_connected(_on_crew_size_selected):
 		crew_size_option.item_selected.connect(_on_crew_size_selected)
@@ -324,12 +431,6 @@ func _connect_ui_signals() -> void:
 	if edit_button and not edit_button.pressed.is_connected(_on_edit_member_pressed):
 		edit_button.pressed.connect(_on_edit_member_pressed)
 	
-	# Connect CharacterCreator signals if available
-	if character_creator:
-		print("CrewPanel: CharacterCreator available, signals will be connected when handlers are implemented")
-	else:
-		print("CrewPanel: CharacterCreator not available for signal connection")
-	
 	if remove_button and not remove_button.pressed.is_connected(_on_remove_member_pressed):
 		remove_button.pressed.connect(_on_remove_member_pressed)
 	
@@ -339,152 +440,39 @@ func _connect_ui_signals() -> void:
 	if crew_list and not crew_list.item_selected.is_connected(_on_crew_member_selected):
 		crew_list.item_selected.connect(_on_crew_member_selected)
 
-func _generate_initial_crew() -> void:
-	"""Generate initial crew based on selected size"""
-	clear_crew()
+func _validate_crew_setup() -> void:
+	"""Validate crew setup and update completion status"""
+	# Update local crew data with current state
+	_update_local_crew_data()
 	
-	for i in range(selected_size):
-		var character = _generate_random_character()
-		if character:
-			add_crew_member(character)
-	
-	print("CrewPanel: Generated %d crew members" % crew_members.size())
+	var validation_result = validate_panel()
+	if validation_result:
+		is_crew_complete = true
+		local_crew_data.is_complete = true
+		crew_data_complete.emit(local_crew_data)
+	else:
+		is_crew_complete = false
+		local_crew_data.is_complete = false
 
-# Base crew component methods
-func add_crew_member(character: Character) -> bool:
-	"""Add a crew member with validation"""
-	if not character or not is_instance_valid(character):
-		push_error("CrewPanel: Cannot add invalid character")
-		return false
+func _update_local_crew_data() -> void:
+	"""Update local crew data with patrons, rivals, and equipment"""
+	# Update crew members
+	local_crew_data.members = crew_members.duplicate()
+	local_crew_data.captain = current_captain
 	
-	if crew_members.size() >= MAX_CREW_SIZE:
-		push_warning("CrewPanel: Cannot add crew member - maximum size reached")
-		return false
+	# Update patrons and rivals from generated lists
+	local_crew_data.patrons = generated_patrons.duplicate()
+	local_crew_data.rivals = generated_rivals.duplicate()
 	
-	crew_members.append(character)
+	# Generate enhanced starting equipment for the crew
+	local_crew_data.starting_equipment = _generate_crew_starting_equipment()
 	
-	# Auto-assign first member as captain if none assigned
-	if not current_captain and crew_members.size() == 1:
-		set_captain(character)
-	
-	# Emit granular signal for real-time integration
-	var member_data = {
-		"name": character.character_name if character.character_name else "Unknown",
-		"combat": character.combat if character.has_method("combat") else 0,
-		"toughness": character.toughness if character.has_method("toughness") else 0,
-		"tech": character.tech if character.has_method("tech") else 0,
-		"savvy": character.savvy if character.has_method("savvy") else 0
-	}
-	crew_member_added.emit(member_data)
-	
-	_emit_crew_updated()
-	return true
-
-func remove_crew_member(character: Character) -> bool:
-	"""Remove a crew member with validation"""
-	if not character or not is_instance_valid(character):
-		return false
-	
-	var index = crew_members.find(character)
-	if index == -1:
-		return false
-	
-	crew_members.remove_at(index)
-	
-	# If removed character was captain, assign new captain
-	if character == current_captain and crew_members.size() > 0:
-		set_captain(crew_members[0])
-	elif character == current_captain:
-		current_captain = null
-	
-	_emit_crew_updated()
-	return true
-
-func clear_crew() -> void:
-	"""Clear all crew members"""
-	crew_members.clear()
-	current_captain = null
-	_emit_crew_updated()
-
-func set_captain(character: Character) -> void:
-	"""Set a crew member as captain"""
-	if character and character in crew_members:
-		# Remove captain status from previous captain
-		if current_captain:
-			current_captain.character_name = current_captain.character_name.replace(" (Captain)", "")
-		
-		current_captain = character
-		character.character_name = character.character_name.replace(" (Captain)", "") + " (Captain)"
-		_emit_crew_updated()
-
-func _emit_crew_updated() -> void:
-	"""Emit crew updated signal"""
-	crew_updated.emit(crew_members)
-	
-	# Emit granular composition signal for real-time integration
-	var composition = []
-	for member in crew_members:
-		if member and is_instance_valid(member):
-			composition.append({
-				"name": member.character_name if member.character_name else "Unknown",
-				"role": "Crew Member", # Could be enhanced with actual roles
-				"combat": member.combat if member.has_method("combat") else 0,
-				"toughness": member.toughness if member.has_method("toughness") else 0,
-				"tech": member.tech if member.has_method("tech") else 0,
-				"savvy": member.savvy if member.has_method("savvy") else 0
-			})
-	crew_composition_changed.emit(composition)
-
-func _generate_random_character() -> Character:
-	"""Generate a random character for the crew"""
-	var character = Character.new()
-	var names = ["Marcus", "Sarah", "Chen", "Nova", "Rex", "Luna", "Storm", "Vale", "Cross", "Hawk"]
-	character.character_name = names[randi() % names.size()] + " " + str(randi_range(100, 999))
-	
-	# Generate Five Parsecs attributes
-	character.combat = _generate_five_parsecs_attribute()
-	character.toughness = _generate_five_parsecs_attribute()
-	character.tech = _generate_five_parsecs_attribute()
-	character.savvy = _generate_five_parsecs_attribute()
-	character.speed = _generate_five_parsecs_attribute()
-	character.reaction = _generate_five_parsecs_attribute()
-	character.luck = 0
-	character.max_health = character.toughness + 2
-	character.health = character.max_health
-	
-	return character
-
-# SPRINT ENHANCEMENT: Backend Integration Methods
-
-func request_backend_crew_generation() -> void:
-	"""Request crew generation through backend systems"""
-	print("CrewPanel: Requesting backend crew generation for %d members" % selected_size)
-	crew_generation_requested.emit(selected_size)
-
-func set_generated_crew(crew: Array) -> void:
-	"""Receive crew generated by backend systems"""
-	print("CrewPanel: Received %d crew members from backend" % crew.size())
-	
-	# Clear existing crew and add the generated ones
-	clear_crew()
-	
-	for character in crew:
-		if character:
-			add_crew_member(character)
-	
-	_update_crew_display()
-	
-	# Emit the standard crew updated signal
-	crew_updated.emit(crew_members)
-
-func request_character_customization(character_index: int) -> void:
-	"""Request character customization through backend systems"""
-	if character_index < 0 or character_index >= crew_members.size():
-		return
-	
-	var character = crew_members[character_index]
-	print("CrewPanel: Requesting character customization for %s" % character.character_name)
-	character_customization_needed.emit(character_index, character)
+	print("CrewPanel: Updated crew data - %d members, %d patrons, %d rivals, %d equipment items" % [
+		local_crew_data.members.size(),
+		local_crew_data.patrons.size(),
+		local_crew_data.rivals.size(),
+		local_crew_data.starting_equipment.size()
+	])
 
 func _update_crew_display() -> void:
 	"""Update the crew list display"""
@@ -528,7 +516,6 @@ func _update_button_states() -> void:
 		add_button.disabled = crew_members.size() >= MAX_CREW_SIZE
 
 # UI Event Handlers
-
 func _on_crew_size_selected(index: int) -> void:
 	"""Handle crew size selection"""
 	if not crew_size_option:
@@ -564,27 +551,139 @@ func _adjust_crew_size() -> void:
 	crew_updated.emit(crew_members)
 
 func _on_add_member_pressed() -> void:
-	"""Handle add crew member button with CharacterCreator integration"""
+	"""Handle add crew member button"""
 	if crew_members.size() >= MAX_CREW_SIZE:
-		_show_message("Cannot add more crew members (maximum %d)" % MAX_CREW_SIZE)
 		return
 	
-	# Use CharacterCreator if available, fallback to random generation
-	if character_creator:
-		print("CrewPanel: Using CharacterCreator for new crew member")
-		character_creator.start_creation(SimpleCharacterCreator.CreatorMode.CREW_MEMBER)
-		character_creator.visible = true
-	else:
-		print("CrewPanel: CharacterCreator not available, using random generation")
+	var character = generate_random_character()
+	if character:
+		add_crew_member(character)
+
+func _on_edit_member_pressed() -> void:
+	"""Handle edit crew member button"""
+	if not crew_list or crew_list.get_selected_items().is_empty():
+		return
+	
+	var index = crew_list.get_selected_items()[0]
+	if index >= 0 and index < crew_members.size():
+		var character = crew_members[index]
+		# TODO: Implement character editing
+
+func _on_remove_member_pressed() -> void:
+	"""Handle remove crew member button"""
+	if not crew_list or crew_list.get_selected_items().is_empty():
+		return
+	
+	if crew_members.size() <= 1:
+		return
+	
+	var index = crew_list.get_selected_items()[0]
+	if index >= 0 and index < crew_members.size():
+		var character = crew_members[index]
+		remove_crew_member(character)
+		_update_crew_display()
+
+func _on_randomize_pressed() -> void:
+	"""Handle randomize crew button"""
+	clear_crew()
+	for i in range(selected_size):
 		var character = generate_random_character()
 		if character:
 			add_crew_member(character)
-			_update_crew_display()
-			crew_updated.emit(crew_members)
+	_update_crew_display()
 
-func generate_random_character() -> Character:
-	"""Generate a random character with Five Parsecs stats"""
-	var character = Character.new()
+func _on_crew_member_selected(index: int) -> void:
+	"""Handle crew member selection"""
+	_update_button_states()
+	
+	if index >= 0 and index < crew_members.size():
+		var character = crew_members[index]
+		crew_member_selected.emit(character)
+
+# Crew management methods
+func add_crew_member(character: CharacterClass) -> bool:
+	"""Add a crew member with validation"""
+	if not character or not is_instance_valid(character):
+		return false
+	
+	if crew_members.size() >= MAX_CREW_SIZE:
+		return false
+	
+	crew_members.append(character)
+	
+	# Auto-assign first member as captain if none assigned
+	if not current_captain and crew_members.size() == 1:
+		set_captain(character)
+	
+	_emit_crew_updated()
+	return true
+
+func remove_crew_member(character: CharacterClass) -> bool:
+	"""Remove a crew member with validation"""
+	if not character or not is_instance_valid(character):
+		return false
+	
+	var index = crew_members.find(character)
+	if index == -1:
+		return false
+	
+	crew_members.remove_at(index)
+	
+	# If removed character was captain, assign new captain
+	if character == current_captain and crew_members.size() > 0:
+		set_captain(crew_members[0])
+	elif character == current_captain:
+		current_captain = null
+	
+	_emit_crew_updated()
+	return true
+
+func clear_crew() -> void:
+	"""Clear all crew members"""
+	crew_members.clear()
+	current_captain = null
+	_emit_crew_updated()
+
+func set_captain(character: CharacterClass) -> void:
+	"""Set a crew member as captain"""
+	if character and character in crew_members:
+		# Remove captain status from previous captain
+		if current_captain:
+			current_captain.character_name = current_captain.character_name.replace(" (Captain)", "")
+		
+		current_captain = character
+		character.character_name = character.character_name.replace(" (Captain)", "") + " (Captain)"
+		_emit_crew_updated()
+
+func _emit_crew_updated() -> void:
+	"""Emit crew updated signal"""
+	crew_updated.emit(crew_members)
+
+func generate_random_character() -> CharacterClass:
+	"""Generate a complete Five Parsecs character with backgrounds, motivations, and relationships"""
+	print("CrewPanel: Generating complete Five Parsecs character...")
+	
+	# Use the complete Five Parsecs character generation system
+	var character = Character.generate_complete_character()
+	
+	if not character:
+		push_warning("CrewPanel: Five Parsecs character generation failed, using fallback")
+		character = _generate_fallback_character()
+	else:
+		print("CrewPanel: Generated character '%s' - %s %s" % [
+			character.character_name,
+			_get_background_name(character.background),
+			_get_motivation_name(character.motivation)
+		])
+		
+		# Generate patrons and rivals for this character
+		_generate_character_relationships(character)
+	
+	return character
+
+func _generate_fallback_character() -> CharacterClass:
+	"""Generate a basic fallback character if the full system fails"""
+	var character = CharacterClass.new()
 	
 	# Generate random name from a pool
 	var first_names = ["Alex", "Casey", "Jordan", "Sam", "Taylor", "Morgan", "Riley", "Avery", "Blake", "Cameron"]
@@ -604,601 +703,404 @@ func generate_random_character() -> Character:
 	character.max_health = character.toughness + 2
 	character.health = character.max_health
 	
+	# Set basic defaults
+	character.background = GlobalEnums.Background.MILITARY
+	character.motivation = GlobalEnums.Motivation.SURVIVAL
+	character.origin = GlobalEnums.Origin.HUMAN
+	
 	return character
 
-func _on_edit_member_pressed() -> void:
-	"""Handle edit crew member button with CharacterCreator integration"""
-	if not crew_list or crew_list.get_selected_items().is_empty():
+func _generate_character_relationships(character: CharacterClass) -> void:
+	"""Generate patrons and rivals for a character based on background and motivation"""
+	if not character:
 		return
 	
-	var index = crew_list.get_selected_items()[0]
-	if index >= 0 and index < crew_members.size():
-		var character = crew_members[index]
+	print("CrewPanel: Generating relationships for %s..." % character.character_name)
+	
+	# Generate patrons based on character background (1-3 patrons per Five Parsecs rules)
+	var patron_count = _calculate_starting_patrons(character)
+	for i in range(patron_count):
+		if patron_system:
+			var patron = patron_system.generate_patron()
+			if not patron.is_empty():
+				# Link patron to character background
+				_customize_patron_for_character(patron, character)
+				generated_patrons.append(patron)
+				print("CrewPanel: Generated patron '%s' for %s" % [patron.get("name", "Unknown"), character.character_name])
+	
+	# Generate rivals based on character background (0-2 rivals per Five Parsecs rules)
+	var rival_count = _calculate_starting_rivals(character)
+	for i in range(rival_count):
+		if rival_system:
+			var rival_params = _get_rival_params_for_character(character)
+			var rival = rival_system.create_rival(rival_params)
+			if not rival.is_empty():
+				generated_rivals.append(rival)
+				print("CrewPanel: Generated rival '%s' for %s" % [rival.get("name", "Unknown"), character.character_name])
+	
+	# Update local crew data with new relationships
+	local_crew_data["patrons"] = generated_patrons
+	local_crew_data["rivals"] = generated_rivals
+	
+	# Update UI displays
+	call_deferred("refresh_all_displays")
+
+func _calculate_starting_patrons(character: CharacterClass) -> int:
+	"""Calculate number of starting patrons based on background and motivation"""
+	var base_count = 1
+	
+	# Background modifiers per Five Parsecs rules
+	if character.background == GlobalEnums.Background.MILITARY:
+		base_count += 1 # Military connections
+	elif character.background == GlobalEnums.Background.NOBLE:
+		base_count += 2 # Noble connections
+	elif character.background == GlobalEnums.Background.MERCHANT:
+		base_count += 1 # Trade connections
+	
+	# Motivation modifiers
+	if character.motivation == GlobalEnums.Motivation.WEALTH:
+		base_count += 1 # Wealth seekers have more contacts
+	elif character.motivation == GlobalEnums.Motivation.POWER:
+		base_count += 1 # Power seekers cultivate connections
+	
+	return clampi(base_count, 1, 3) # Five Parsecs limit: 1-3 patrons
+
+func _calculate_starting_rivals(character: CharacterClass) -> int:
+	"""Calculate number of starting rivals based on background"""
+	var base_count = 0
+	
+	# Background creates enemies per Five Parsecs rules
+	if character.background == GlobalEnums.Background.CRIMINAL:
+		base_count += 2 # Law enforcement and rival criminals
+	elif character.background == GlobalEnums.Background.MILITARY:
+		base_count += 1 # Deserters or enemy forces
+	elif character.background == GlobalEnums.Background.MERCENARY:
+		base_count += 1 # Competing mercenaries
+	elif character.background == GlobalEnums.Background.OUTCAST:
+		base_count += 1 # Those who cast them out
+	
+	# Random chance for additional rival
+	if randf() < 0.3:
+		base_count += 1
+	
+	return clampi(base_count, 0, 2) # Five Parsecs limit: 0-2 rivals
+
+func _customize_patron_for_character(patron: Dictionary, character: CharacterClass) -> void:
+	"""Customize patron based on character background"""
+	if not patron or not character:
+		return
+	
+	# Set patron type based on character background
+	match character.background:
+		GlobalEnums.Background.MILITARY:
+			patron["type"] = "MILITARY_COMMAND"
+		GlobalEnums.Background.MERCHANT, GlobalEnums.Background.TRADER:
+			patron["type"] = "TRADE_GUILD"
+		GlobalEnums.Background.ACADEMIC:
+			patron["type"] = "RESEARCH_INSTITUTE"
+		GlobalEnums.Background.CRIMINAL:
+			patron["type"] = "CRIME_SYNDICATE"
+		GlobalEnums.Background.NOBLE:
+			patron["type"] = "NOBLE_HOUSE"
+		_:
+			patron["type"] = "LOCAL_AUTHORITY"
+
+func _get_rival_params_for_character(character: CharacterClass) -> Dictionary:
+	"""Get rival generation parameters based on character"""
+	var params = {}
+	
+	# Set rival type based on character background
+	match character.background:
+		GlobalEnums.Background.MILITARY:
+			params["type"] = GlobalEnums.EnemyType.RAIDERS
+			params["name"] = "Rogue Squadron"
+		GlobalEnums.Background.CRIMINAL:
+			params["type"] = GlobalEnums.EnemyType.GANGERS
+			params["name"] = "Rival Gang"
+		GlobalEnums.Background.MERCENARY:
+			params["type"] = GlobalEnums.EnemyType.PIRATES
+			params["name"] = "Competing Mercs"
+		_:
+			params["type"] = GlobalEnums.EnemyType.PUNKS
+			params["name"] = "Local Hostiles"
+	
+	params["level"] = randi_range(1, 3) # Starting rival level
+	params["reputation"] = randi_range(0, 2) # Starting reputation
+	
+	return params
+
+func _get_background_name(background_id: int) -> String:
+	"""Get human-readable background name"""
+	var background_keys = GlobalEnums.Background.keys()
+	if background_id >= 0 and background_id < background_keys.size():
+		return background_keys[background_id].capitalize()
+	return "Unknown"
+
+func _get_motivation_name(motivation_id: int) -> String:
+	"""Get human-readable motivation name"""
+	var motivation_keys = GlobalEnums.Motivation.keys()
+	if motivation_id >= 0 and motivation_id < motivation_keys.size():
+		return motivation_keys[motivation_id].capitalize()
+	return "Unknown"
+
+func _generate_crew_starting_equipment() -> Array[Dictionary]:
+	"""Generate enhanced starting equipment for the entire crew using Five Parsecs rules"""
+	var crew_equipment: Array[Dictionary] = []
+	
+	print("CrewPanel: Generating starting equipment for %d crew members..." % crew_members.size())
+	
+	# Generate equipment for each crew member using the enhanced system
+	for member in crew_members:
+		if member and member.has_method("get_meta"):
+			# Check if character already has equipment from generation
+			var character_equipment = member.get_meta("personal_equipment", {})
+			if not character_equipment.is_empty():
+				crew_equipment.append({
+					"character_name": member.character_name,
+					"equipment": character_equipment
+				})
+				continue
 		
-		# Use CharacterCreator if available, fallback to basic dialog
-		if character_creator:
-			print("CrewPanel: Using CharacterCreator for crew member editing")
-			character_creator.edit_character(character)
-			character_creator.visible = true
-		else:
-			print("CrewPanel: CharacterCreator not available, using fallback dialog")
-			_show_edit_dialog(character)
+		# Use Character to generate equipment for this character
+		var equipment = Character.generate_starting_equipment_enhanced(member)
+		crew_equipment.append({
+			"character_name": member.character_name,
+			"equipment": equipment
+		})
+	
+	# Add crew-level starting equipment per Five Parsecs rules
+	var crew_level_equipment = _generate_crew_level_equipment()
+	if not crew_level_equipment.is_empty():
+		crew_equipment.append({
+			"character_name": "Crew Shared Equipment",
+			"equipment": crew_level_equipment
+		})
+	
+	print("CrewPanel: Generated equipment for %d crew members" % crew_equipment.size())
+	
+	# Update local crew data with generated equipment
+	var equipment_items: Array[String] = []
+	for crew_equip in crew_equipment:
+		var equip_dict = crew_equip.get("equipment", {})
+		for category in ["weapons", "armor", "gear"]:
+			if equip_dict.has(category):
+				var items = equip_dict[category]
+				if typeof(items) == TYPE_ARRAY:
+					for item in items:
+						equipment_items.append(str(item))
+	
+	local_crew_data["starting_equipment"] = equipment_items
+	
+	# Update UI display
+	call_deferred("update_equipment_display")
+	
+	return crew_equipment
 
-func _on_remove_member_pressed() -> void:
-	"""Handle remove crew member button"""
-	if not crew_list or crew_list.get_selected_items().is_empty():
-		return
+func _generate_crew_level_equipment() -> Dictionary:
+	"""Generate crew-level shared equipment per Five Parsecs starting rules"""
+	var shared_equipment = {
+		"weapons": [],
+		"armor": [],
+		"gear": [],
+		"credits": 1000
+	}
 	
-	if crew_members.size() <= 1:
-		_show_message("Cannot remove last crew member")
-		return
+	# Five Parsecs starting equipment: 3 military weapons, 3 low-tech weapons
+	var military_weapons = ["Combat Rifle", "Assault Rifle", "Battle Dress"]
+	var low_tech_weapons = ["Blade", "Pistol", "Hand Weapon"]
 	
-	var index = crew_list.get_selected_items()[0]
-	if index >= 0 and index < crew_members.size():
-		var character = crew_members[index]
-		remove_crew_member(character)
-		_update_crew_display()
-		crew_updated.emit(crew_members)
-
-func _on_randomize_pressed() -> void:
-	"""Handle randomize crew button with backend integration option"""
-	var dialog = ConfirmationDialog.new()
-	dialog.dialog_text = "Replace all crew members with randomly generated ones?"
-	dialog.add_to_group("crew_panel_dialogs") # Add to group for cleanup
+	# Add military weapons (crew gets 3)
+	for i in range(3):
+		if i < military_weapons.size():
+			shared_equipment.weapons.append(military_weapons[i])
 	
-	# SPRINT ENHANCEMENT: Try backend generation first, fallback to base class
-	dialog.confirmed.connect(_try_backend_or_fallback_generation)
-	dialog.confirmed.connect(func(): dialog.queue_free())
-	dialog.canceled.connect(func(): dialog.queue_free())
+	# Add low-tech weapons (crew gets 3)  
+	for i in range(3):
+		if i < low_tech_weapons.size():
+			shared_equipment.weapons.append(low_tech_weapons[i])
 	
-	get_tree().current_scene.add_child(dialog)
-	dialog.popup_centered()
-
-func _try_backend_or_fallback_generation() -> void:
-	"""Try backend crew generation, fallback to base class if unavailable"""
-	# Check if we have listeners for backend generation
-	if crew_generation_requested.get_connections().size() > 0:
-		print("CrewPanel: Using backend crew generation")
-		request_backend_crew_generation()
-	else:
-		print("CrewPanel: Falling back to base class crew generation")
-		_generate_initial_crew()
-		_update_crew_display()
-		crew_updated.emit(crew_members)
-
-func _on_crew_member_selected(index: int) -> void:
-	"""Handle crew member selection"""
-	_update_button_states()
+	# Add basic crew gear
+	shared_equipment.gear.append("Comm Unit")
+	shared_equipment.gear.append("Scanner")
+	shared_equipment.gear.append("Repair Kit")
 	
-	if index >= 0 and index < crew_members.size():
-		var character = crew_members[index]
-		crew_member_selected.emit(character)
-
-# Dialog Methods
-
-func _show_edit_dialog(character: Character) -> void:
-	"""Show character edit dialog - fallback when CharacterCreator is not available"""
-	var dialog = AcceptDialog.new()
-	dialog.title = "Edit " + character.character_name.replace(" (Captain)", "")
-	dialog.min_size = Vector2(300, 200)
-	dialog.add_to_group("crew_panel_dialogs") # Add to group for cleanup
+	# Starting credits based on crew size (more crew = more pooled resources)
+	shared_equipment.credits = 1000 + (crew_members.size() * 200)
 	
-	var vbox = VBoxContainer.new()
-	dialog.add_child(vbox)
-	
-	# Name input
-	var name_container = HBoxContainer.new()
-	vbox.add_child(name_container)
-	
-	var name_label = Label.new()
-	name_label.text = "Name:"
-	name_label.custom_minimum_size.x = 80
-	name_container.add_child(name_label)
-	
-	var name_input = LineEdit.new()
-	name_input.text = character.character_name.replace(" (Captain)", "")
-	name_input.placeholder_text = "Character Name"
-	name_container.add_child(name_input)
-	
-	# Captain checkbox
-	var captain_check = CheckBox.new()
-	captain_check.text = "Make Captain"
-	captain_check.button_pressed = (character == current_captain)
-	vbox.add_child(captain_check)
-	
-	# Stats display
-	var stats_label = Label.new()
-	stats_label.text = "Stats: Combat:%d Tough:%d Tech:%d Savvy:%d Speed:%d" % [
-		character.combat, character.toughness, character.tech, character.savvy, character.speed
-	]
-	vbox.add_child(stats_label)
-	
-	# Reroll stats button
-	var reroll_button = Button.new()
-	reroll_button.text = "Reroll Stats"
-	reroll_button.pressed.connect(func():
-		character.combat = _generate_five_parsecs_attribute()
-		character.toughness = _generate_five_parsecs_attribute()
-		character.tech = _generate_five_parsecs_attribute()
-		character.savvy = _generate_five_parsecs_attribute()
-		character.speed = _generate_five_parsecs_attribute()
-		character.reaction = _generate_five_parsecs_attribute()
-		character.max_health = character.toughness + 2
-		character.health = character.max_health
-		stats_label.text = "Stats: Combat:%d Tough:%d Tech:%d Savvy:%d Speed:%d" % [
-			character.combat, character.toughness, character.tech, character.savvy, character.speed
-		]
-	)
-	vbox.add_child(reroll_button)
-	
-	dialog.confirmed.connect(func():
-		var new_name = name_input.text.strip_edges()
-		if not new_name.is_empty():
-			# Remove old captain title
-			if character == current_captain:
-				character.character_name = character.character_name.replace(" (Captain)", "")
-			
-			character.character_name = new_name
-			
-			# Handle captain assignment
-			if captain_check.button_pressed and character != current_captain:
-				set_captain(character)
-			elif not captain_check.button_pressed and character == current_captain:
-				# Need to assign a different captain
-				for member in crew_members:
-					if member != character:
-						set_captain(member)
-						break
-		
-		_update_crew_display()
-		dialog.queue_free()
-	)
-	
-	dialog.canceled.connect(func(): dialog.queue_free())
-	
-	get_tree().current_scene.add_child(dialog)
-	dialog.popup_centered()
-
-func _show_message(message: String) -> void:
-	"""Show a simple message dialog"""
-	var dialog = AcceptDialog.new()
-	dialog.dialog_text = message
-	dialog.add_to_group("crew_panel_dialogs") # Add to group for cleanup
-	dialog.confirmed.connect(func(): dialog.queue_free())
-	
-	get_tree().current_scene.add_child(dialog)
-	dialog.popup_centered()
-
-func _generate_five_parsecs_attribute() -> int:
-	"""Generate Five Parsecs attribute (2d6/3 rounded up) - local implementation"""
-	var roll = (randi() % 6 + 1) + (randi() % 6 + 1) # 2d6
-	return int(ceil(float(roll) / 3.0))
-
-# Required interface methods from ICampaignCreationPanel
+	return shared_equipment
 
 func validate_panel() -> bool:
-	"""Validate crew panel data - simplified validation"""
+	"""Validate crew panel data"""
 	# Clear previous errors
 	last_validation_errors = []
 	
 	# Business rule: Minimum crew size validation
 	if crew_members.size() == 0:
 		last_validation_errors.append("At least one crew member is required")
-		is_crew_complete = false
 		return false
 	
 	# Business rule: Maximum crew size validation  
 	if crew_members.size() > 8: # Five Parsecs maximum
 		last_validation_errors.append("Crew cannot exceed 8 members")
-		is_crew_complete = false
 		return false
 	
 	# Business rule: Captain validation
 	if not current_captain:
 		last_validation_errors.append("A captain must be designated")
-		is_crew_complete = false
 		return false
 	
 	# Business rule: Captain must be crew member
 	if current_captain and current_captain not in crew_members:
 		last_validation_errors.append("Captain must be a member of the crew")
-		is_crew_complete = false
 		return false
 	
 	# All validations passed
-	is_crew_complete = true
 	return true
 
-func get_panel_data() -> Dictionary:
-	"""Get crew panel data for state manager"""
-	return get_crew_data()
-
-func reset_panel() -> void:
-	"""Reset panel to default state"""
-	clear_crew()
-	selected_size = 4
-	is_crew_complete = false
-	local_crew_data.is_complete = false
-	_generate_initial_crew()
-
-# Public API for campaign creation
-
-func set_data(data: Dictionary) -> void:
-	"""Set crew data from saved campaign"""
-	if data.has("crew_members"):
-		clear_crew()
-		var crew_data = data.crew_members
-		var captain_name = ""
-		
-		if data.has("captain") and data.captain:
-			captain_name = data.captain.character_name
-		
-		for member_data in crew_data:
-			if member_data is Character:
-				add_crew_member(member_data)
-				if member_data.character_name == captain_name:
-					set_captain(member_data)
-		
-		_update_crew_display()
-
-func is_valid() -> bool:
-	"""Check if crew panel data is valid"""
-	var validation = validate_panel()
-	return validation.valid
-
-func validate() -> Array[String]:
-	"""Validate crew data and return error messages"""
-	var validation = validate_panel()
-	return validation.errors if validation.errors else []
-
-func get_panel_name() -> String:
-	"""Get panel display name"""
-	return "Crew Setup"
-
-func get_panel_description() -> String:
-	"""Get panel description"""
-	return "Configure your crew size and customize crew members"
-
-func _notification(what: int) -> void:
-	"""Handle notifications for cleanup"""
-	if what == NOTIFICATION_PREDELETE:
-		# Cleanup all signal connections to prevent memory leaks
-		_cleanup_connections()
-		
-		# Properly free dynamically created dialogs and UI components
-		_cleanup_dynamic_resources()
-		
-		# Cleanup complete
-
-func _cleanup_connections() -> void:
-	"""Cleanup all signal connections to prevent memory leaks"""
-	if crew_size_option and crew_size_option.item_selected.is_connected(_on_crew_size_selected):
-		crew_size_option.item_selected.disconnect(_on_crew_size_selected)
+func cleanup_panel() -> void:
+	"""Clean up panel state when navigating away"""
+	print("CrewPanel: Cleaning up panel state")
 	
-	if add_button and add_button.pressed.is_connected(_on_add_member_pressed):
-		add_button.pressed.disconnect(_on_add_member_pressed)
+	# Clear crew creation instance
+	if crew_creation_instance:
+		if crew_creation_instance.has_method("cleanup"):
+			crew_creation_instance.cleanup()
+		crew_creation_instance.queue_free()
+		crew_creation_instance = null
 	
-	if edit_button and edit_button.pressed.is_connected(_on_edit_member_pressed):
-		edit_button.pressed.disconnect(_on_edit_member_pressed)
+	# Clear crew creation container
+	if crew_creation_container:
+		crew_creation_container.queue_free()
+		crew_creation_container = null
 	
-	if remove_button and remove_button.pressed.is_connected(_on_remove_member_pressed):
-		remove_button.pressed.disconnect(_on_remove_member_pressed)
-	
-	if randomize_button and randomize_button.pressed.is_connected(_on_randomize_pressed):
-		randomize_button.pressed.disconnect(_on_randomize_pressed)
-	
-	if crew_list and crew_list.item_selected.is_connected(_on_crew_member_selected):
-		crew_list.item_selected.disconnect(_on_crew_member_selected)
-
-func _cleanup_dynamic_resources() -> void:
-	"""Cleanup dynamically created resources to prevent memory leaks"""
-	# Find and cleanup any remaining dialogs - with null check
-	if get_tree():
-		var dialogs = get_tree().get_nodes_in_group("crew_panel_dialogs")
-		for dialog in dialogs:
-			if is_instance_valid(dialog):
-				dialog.queue_free()
-	
-	# Clear any cached references with null safety
-	if crew_size_option:
-		crew_size_option = null
-	if crew_list:
-		crew_list = null
-	if add_button:
-		add_button = null
-	if edit_button:
-		edit_button = null
-	if remove_button:
-		remove_button = null
-	if randomize_button:
-		randomize_button = null
-	
-	print("CrewPanel: Dynamic resources cleaned up successfully")
-
-# Debug helper
-func debug_crew_status() -> void:
-	"""Debug function to print crew status"""
-	print("=== CREW PANEL DEBUG ===")
-	print("Panel initialized: ", is_panel_initialized)
-	print("Crew size: ", crew_members.size())
-	print("Selected size: ", selected_size)
-	print("Captain: ", current_captain.character_name if current_captain else "None")
-	print("Valid: ", is_valid())
-	
-	for i in range(crew_members.size()):
-		var member = crew_members[i]
-		print("Member %d: %s (Combat:%d Tough:%d)" % [
-			i, member.character_name, member.combat, member.toughness
-		])
-
-# --- Additions to CrewPanel.gd ---
-
-# 3. Add local state update and validation functions
-func _on_local_crew_updated(updated_crew: Array) -> void:
-	"""Enhanced crew update handler with coordinator pattern integration"""
-	local_crew_data.members = updated_crew
-	local_crew_data.captain = current_captain
-
-	# Emit panel data update for signal-based architecture
-	var crew_data = get_crew_data()
-	panel_data_updated.emit(self, crew_data)
-	print("CrewPanel: Updated crew data via signals: ", crew_data.keys())
-
-	# Perform enhanced validation and emit completion signals
-	_validate_and_complete()
-	
-	# Emit backward compatibility signal
-	crew_setup_complete.emit(get_crew_data())
-
-func _validate_and_complete() -> void:
-	"""Enhanced validation with coordinator pattern and security integration"""
-	last_validation_errors = _validate_crew_data()
-	
-	if not last_validation_errors.is_empty():
-		is_crew_complete = false
-		local_crew_data.is_complete = false
-		crew_validation_failed.emit(last_validation_errors)
-		print("CrewPanel: Validation failed: ", last_validation_errors)
-	else:
-		var was_complete = is_crew_complete
-		is_crew_complete = _check_completion_requirements()
-		local_crew_data.is_complete = is_crew_complete
-		
-		# Emit completion signal when transitioning to complete state
-		if is_crew_complete and not was_complete:
-			var crew_data = get_crew_data()
-			crew_data_complete.emit(crew_data)
-			panel_completed.emit(crew_data) # Maintain backward compatibility
-			print("CrewPanel: Crew setup completed autonomously: ", crew_data.keys())
-		elif is_crew_complete:
-			print("CrewPanel: Crew setup validation passed, already complete")
-
-func _check_completion_requirements() -> bool:
-	"""Check if all requirements for crew completion are met"""
-	# Required: At least minimum crew size with valid members
-	if crew_members.size() < 1:
-		return false
-	
-	# Required: Captain assigned
-	if not current_captain:
-		return false
-	
-	# Required: All crew members have valid names
-	for member in crew_members:
-		var name = member.character_name.strip_edges()
-		if name.is_empty() or name.length() < 2:
-			return false
-		
-		# Validate name using SecurityValidator
-		if security_validator:
-			var validation_result = security_validator.validate_character_name(name)
-			if not validation_result.valid:
-				return false
-	
-	# Required: Crew size within acceptable range (1-8)
-	if crew_members.size() < 1 or crew_members.size() > 8:
-		return false
-	
-	return true
-
-func _validate_crew_data() -> Array[String]:
-	"""Performs validation on the crew data."""
-	var errors: Array[String] = []
-	
-	# Rule: Must have between 4 and 8 members
-	if local_crew_data.members.size() < 4 or local_crew_data.members.size() > 8:
-		errors.append("Crew must have between 4 and 8 members.")
-		
-	# Rule: Must have a captain
-	if local_crew_data.captain == null:
-		errors.append("A captain must be assigned.")
-		
-	# Rule: All characters must have a name
-	for member in local_crew_data.members:
-		if member.character_name.is_empty():
-			errors.append("All crew members must have a name.")
-			break # No need to report for every unnamed member
-			
-	return errors
-
-# Override get_data to include completion status
-func get_data() -> Dictionary:
-	"""Get crew data for campaign creation, including completion status."""
-	var data = get_crew_data()
-	data["is_complete"] = local_crew_data.is_complete
-	return data
-
-## Public API for Coordinator Pattern Integration
-
-func get_completion_status() -> bool:
-	"""Get current completion status"""
-	return is_crew_complete
-
-func get_validation_errors() -> Array[String]:
-	"""Get current validation errors"""
-	return last_validation_errors.duplicate()
-
-func force_validation_check() -> void:
-	"""Force a validation check and emit appropriate signals"""
-	_validate_and_complete()
-
-func get_crew_data() -> Dictionary:
-	"""Get crew data in the format expected by FiveParsecsCampaignCreationStateManager"""
-	var crew_data = {
-		"members": crew_members.duplicate(),
-		"captain": current_captain,
-		"size": crew_members.size(),
-		"completion_level": _calculate_completion_level(),
-		"backend_generated": false, # Set to true if generated via backend systems
-		"created_date": Time.get_datetime_string_from_system(),
-		"version": "1.0"
+	# Reset local crew data
+	local_crew_data = {
+		"members": [],
+		"captain": null,
+		"is_complete": false
 	}
-	return crew_data
-
-func _calculate_completion_level() -> float:
-	"""Calculate completion level percentage"""
-	if crew_members.is_empty():
-		return 0.0
 	
-	var completion_factors = 0.0
-	var total_factors = 4.0 # Name, stats, captain assignment, size appropriateness
+	# Clear crew members array
+	crew_members.clear()
+	current_captain = null
 	
-	# Factor 1: All members have valid names
-	var valid_names = true
-	for member in crew_members:
-		if member.character_name.strip_edges().length() < 2:
-			valid_names = false
-			break
-	if valid_names:
-		completion_factors += 1.0
-	
-	# Factor 2: All members have reasonable stats
-	var valid_stats = true
-	for member in crew_members:
-		if member.combat < 1 or member.toughness < 1:
-			valid_stats = false
-			break
-	if valid_stats:
-		completion_factors += 1.0
-	
-	# Factor 3: Captain is assigned
-	if current_captain:
-		completion_factors += 1.0
-	
-	# Factor 4: Crew size is appropriate (4-6 is ideal)
-	if crew_members.size() >= 4 and crew_members.size() <= 6:
-		completion_factors += 1.0
-	elif crew_members.size() >= 1 and crew_members.size() <= 8:
-		completion_factors += 0.5 # Partial credit for acceptable size
-	
-	return completion_factors / total_factors
+	print("CrewPanel: Panel cleanup completed")
 
-func get_panel_phase() -> CampaignStateManager.Phase:
-	"""Get the phase this panel corresponds to"""
-	return CampaignStateManager.Phase.CREW_SETUP
+## Five Parsecs UI Display Functions
 
-# Duplicate functions removed - using original declarations earlier in the file
-
-# --- End of additions ---
-
-## Panel Data Persistence Implementation
-
-func restore_panel_data(data: Dictionary) -> void:
-	"""Restore panel data from persistence system"""
-	if data.is_empty():
-		print("CrewPanel: No data to restore")
+func update_patron_display() -> void:
+	"""Update patron display section in UI"""
+	if not patron_list:
 		return
 	
-	print("CrewPanel: Restoring panel data: ", data.keys())
+	# Clear existing patron display
+	for child in patron_list.get_children():
+		child.queue_free()
 	
-	# Clear existing crew first
-	clear_crew()
-	
-	# Restore crew members
-	if data.has("members") and data.members is Array:
-		var members_data = data.members
-		var captain_name = ""
-		
-		# Identify captain if available
-		if data.has("captain") and data.captain:
-			if data.captain is Dictionary and data.captain.has("character_name"):
-				captain_name = data.captain.character_name
-			elif data.captain is Character:
-				captain_name = data.captain.character_name
-		
-		print("CrewPanel: Restoring %d crew members, captain: %s" % [members_data.size(), captain_name])
-		
-		# Restore each crew member
-		for member_data in members_data:
-			var character: Character
-			
-			# Handle different data formats
-			if member_data is Character:
-				character = member_data
-			elif member_data is Dictionary:
-				character = _create_character_from_dict(member_data)
-			else:
-				print("CrewPanel: Warning - invalid member data format: ", typeof(member_data))
-				continue
-			
-			if character:
-				add_crew_member(character)
-				
-				# Assign captain if this is the captain
-				if character.character_name == captain_name or character.character_name.contains("(Captain)"):
-					set_captain(character)
-					print("CrewPanel: Restored captain: ", character.character_name)
-	
-	# Restore crew size selection
-	if data.has("size"):
-		selected_size = data.size
-		_set_crew_size_selection(selected_size)
-		print("CrewPanel: Restored crew size: ", selected_size)
-	
-	# Update UI after restoration
-	_update_crew_display()
-	_validate_and_complete()
-	
-	print("CrewPanel: Panel data restoration complete - %d members restored" % crew_members.size())
-
-func _create_character_from_dict(data: Dictionary) -> Character:
-	"""Create a Character object from dictionary data"""
-	var character = Character.new()
-	
-	# Restore basic properties
-	if data.has("character_name"):
-		character.character_name = data.character_name
-	if data.has("combat"):
-		character.combat = data.combat
-	if data.has("toughness"):
-		character.toughness = data.toughness
-	if data.has("tech"):
-		character.tech = data.tech
-	if data.has("savvy"):
-		character.savvy = data.savvy
-	if data.has("speed"):
-		character.speed = data.speed
-	if data.has("reaction"):
-		character.reaction = data.reaction
-	if data.has("luck"):
-		character.luck = data.luck
-	if data.has("health"):
-		character.health = data.health
-	if data.has("max_health"):
-		character.max_health = data.max_health
+	# Display current patrons
+	var patrons = local_crew_data.get("patrons", [])
+	if patrons.is_empty():
+		var no_patrons_label = Label.new()
+		no_patrons_label.text = "No patrons yet"
+		no_patrons_label.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+		no_patrons_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		patron_list.add_child(no_patrons_label)
 	else:
-		# Calculate max health from toughness if not provided
-		character.max_health = character.toughness + 2
-		character.health = character.max_health
-	
-	return character
+		for patron in patrons:
+			var patron_container = HBoxContainer.new()
+			
+			# Patron name and type
+			var patron_label = Label.new()
+			patron_label.text = "%s (%s)" % [
+				patron.get("name", "Unknown Patron"),
+				patron.get("type", "Unknown")
+			]
+			patron_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			patron_container.add_child(patron_label)
+			
+			# Patron reputation indicator
+			var reputation = patron.get("reputation", 0)
+			var rep_label = Label.new()
+			rep_label.text = "Rep: %d" % reputation
+			rep_label.add_theme_color_override("font_color", Color.CYAN if reputation > 0 else Color.WHITE)
+			patron_container.add_child(rep_label)
+			
+			patron_list.add_child(patron_container)
 
-func _set_crew_size_selection(size: int) -> void:
-	"""Set crew size selection safely"""
-	if not crew_size_option:
+func update_rival_display() -> void:
+	"""Update rival display section in UI"""
+	if not rival_list:
 		return
 	
-	for i in range(crew_size_option.get_item_count()):
-		if crew_size_option.get_item_id(i) == size:
-			crew_size_option.select(i)
-			break
+	# Clear existing rival display
+	for child in rival_list.get_children():
+		child.queue_free()
+	
+	# Display current rivals
+	var rivals = local_crew_data.get("rivals", [])
+	if rivals.is_empty():
+		var no_rivals_label = Label.new()
+		no_rivals_label.text = "No known rivals"
+		no_rivals_label.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+		no_rivals_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		rival_list.add_child(no_rivals_label)
+	else:
+		for rival in rivals:
+			var rival_container = HBoxContainer.new()
+			
+			# Rival name and type
+			var rival_label = Label.new()
+			rival_label.text = "%s (%s)" % [
+				rival.get("name", "Unknown Rival"),
+				_get_enemy_type_name(rival.get("type", 0))
+			]
+			rival_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			rival_container.add_child(rival_label)
+			
+			# Rival threat level indicator
+			var level = rival.get("level", 1)
+			var level_label = Label.new()
+			level_label.text = "Lvl: %d" % level
+			level_label.add_theme_color_override("font_color", Color.RED if level > 2 else Color.ORANGE)
+			rival_container.add_child(level_label)
+			
+			rival_list.add_child(rival_container)
+
+func update_equipment_display() -> void:
+	"""Update equipment display section in UI"""
+	if not equipment_list:
+		return
+	
+	# Clear existing equipment display
+	for child in equipment_list.get_children():
+		child.queue_free()
+	
+	# Display starting equipment
+	var equipment = local_crew_data.get("starting_equipment", [])
+	if equipment.is_empty():
+		var no_equipment_label = Label.new()
+		no_equipment_label.text = "No starting equipment"
+		no_equipment_label.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+		no_equipment_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		equipment_list.add_child(no_equipment_label)
+	else:
+		for item in equipment:
+			var item_label = Label.new()
+			if typeof(item) == TYPE_STRING:
+				item_label.text = "• %s" % item
+			else:
+				item_label.text = "• %s" % str(item)
+			equipment_list.add_child(item_label)
+
+func _get_enemy_type_name(type_id: int) -> String:
+	"""Get human-readable name for enemy type"""
+	var enemy_types = GlobalEnums.EnemyType
+	if type_id >= 0 and type_id < enemy_types.size():
+		return enemy_types.keys()[type_id]
+	return "Unknown"
+
+func refresh_all_displays() -> void:
+	"""Refresh all Five Parsecs display sections"""
+	update_patron_display()
+	update_rival_display()
+	update_equipment_display()
