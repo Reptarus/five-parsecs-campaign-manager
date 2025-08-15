@@ -5,16 +5,21 @@ extends BaseCrewComponent
 ## Now extends BaseCrewComponent for shared crew management functionality
 ## Focused on standalone crew creation workflow
 
+# Enhanced Five Parsecs character generation system
+
 # Additional signals specific to initial crew creation
 signal crew_created(crew_data: Dictionary)
 signal character_generated(character: Character)
 
 @onready var crew_size_option := %CrewSizeOption
 @onready var crew_name_input := %CrewNameInput
-@onready var character_list := $MarginContainer/VBoxContainer/MainContent/CharacterList
+@onready var character_list_container := %Content  # This should be the available characters container
 @onready var create_button := %CreateButton
 @onready var generate_button := %GenerateButton
 @onready var character_details := %CharacterDetails
+@onready var patron_details := %PatronDetails
+@onready var rival_details := %RivalDetails
+@onready var equipment_details := %EquipmentDetails
 
 # Crew creation specific data (BaseCrewComponent handles core crew data)
 var crew_creation_data := {
@@ -23,7 +28,7 @@ var crew_creation_data := {
 	"characters": []
 }
 
-var character_manager: Node = null
+# REMOVED: var character_manager: Node = null - no longer needed with static methods
 
 # _ready() implementation moved to end of file for campaign integration
 
@@ -33,33 +38,65 @@ func _setup_initial_crew_creation() -> void:
 	_setup_options()
 
 func _initialize_character_system() -> void:
-	"""Initialize connection to character generation system"""
-	# Connect to CharacterManager through GameStateManager
-	var game_state: Node = get_node_or_null("/root/GameStateManagerAutoload")
-	if game_state and game_state and game_state.has_method("get_manager"):
-		character_manager = game_state.get_manager("CharacterManager")
-		if character_manager:
-			print("InitialCrewCreation: Connected to CharacterManager")
-		else:
-			push_warning("InitialCrewCreation: CharacterManager not available")
-	else:
-		push_warning("InitialCrewCreation: GameStateManager not available")
+	"""Framework Bible compliant character generation - no Manager dependencies"""
+	print("InitialCrewCreation: Using direct Character class generation")
 
 func _connect_signals() -> void:
-	crew_size_option.value_changed.connect(_on_crew_size_changed)
+	# Disconnect existing connections to prevent duplicates
+	if crew_size_option.item_selected.is_connected(_on_crew_size_changed):
+		crew_size_option.item_selected.disconnect(_on_crew_size_changed)
+	if crew_name_input.text_changed.is_connected(_on_crew_name_changed):
+		crew_name_input.text_changed.disconnect(_on_crew_name_changed)
+	if create_button.pressed.is_connected(_on_create_pressed):
+		create_button.pressed.disconnect(_on_create_pressed)
+	
+	# Connect signals
+	crew_size_option.item_selected.connect(_on_crew_size_changed)
 	crew_name_input.text_changed.connect(_on_crew_name_changed)
 	create_button.pressed.connect(_on_create_pressed)
 
 	# Connect character generation button if available
-	if generate_button:
-		generate_button.pressed.connect(_on_generate_character)
+func _on_generate_character() -> void:
+	"""Production-ready character generation using Framework Bible patterns"""
+	print("InitialCrewCreation: Generating character via direct Character class")
+	
+	try:
+		# Direct static call eliminates Manager dependency
+		var new_character = Character.generate_character()
+		
+		if new_character and new_character.is_valid():
+			crew_members.append(new_character)
+			_update_character_display()
+			_update_ui_state()
+			print("Character generated successfully: %s (%s)" % [new_character.name, new_character.background])
+			
+			# Emit signal for parent components
+			if has_signal("character_generated"):
+				character_generated.emit(new_character)
+		else:
+			push_error("Generated character failed validation")
+			_show_error_dialog("Character generation failed. Please try again.")
+	except:
+		push_error("Critical error in character generation")
+		_show_error_dialog("System error occurred. Please restart the application.")
 
-	# Connect character list selection
-	if character_list and character_list.has_signal("item_selected"):
-		character_list.item_selected.connect(_on_character_list_selected)
+func _show_error_dialog(message: String) -> void:
+	"""Production-ready error handling with user feedback"""
+	var dialog = AcceptDialog.new()
+	dialog.title = "Character Generation Error"
+	dialog.dialog_text = message
+	add_child(dialog)
+	dialog.popup_centered()
+	dialog.confirmed.connect(func(): dialog.queue_free())
+
+	# Character list selection will be handled by individual character boxes
 
 func _setup_options() -> void:
-	crew_size_option.setup(4, "Select the size of your starting crew")
+	# Setup crew size options
+	crew_size_option.clear()
+	for i in range(1, 9):  # Crew sizes 1-8
+		crew_size_option.add_item(str(i) + " members")
+	crew_size_option.selected = 3  # Default to 4 members (index 3)
 	create_button.disabled = true
 
 	# Enable character generation if components are available
@@ -67,14 +104,16 @@ func _setup_options() -> void:
 		generate_button.text = "Generate Character"
 		generate_button.disabled = false
 
-	# Setup character list
-	if character_list:
-		character_list.clear()
-
+	# Setup character list container
+	if character_list_container:
+		# Clear any existing character boxes
+		for child in character_list_container.get_children():
+			child.queue_free()
+	
 	_update_ui_state()
 
-func _on_crew_size_changed(size: int) -> void:
-	crew_creation_data.size = size
+func _on_crew_size_changed(index: int) -> void:
+	crew_creation_data.size = index + 1  # Convert index to actual size
 	_validate_crew()
 
 func _on_crew_name_changed(new_name: String) -> void:
@@ -95,46 +134,27 @@ func _validate_crew() -> bool:
 	create_button.disabled = not valid
 	return valid
 
-func _on_generate_character() -> void:
-	"""Generate a new Five Parsecs character using BaseCrewComponent"""
-	if get_crew_size() >= crew_creation_data.size:
-		push_warning("InitialCrewCreation: Crew already at maximum size")
+func _create_character_box(character: Character) -> void:
+	"""Create a character box UI component for the character"""
+	if not character_list_container:
 		return
-
-	# Use BaseCrewComponent's character generation
-	var character: Character = generate_random_character()
-
-	if character:
-		# Add to base component crew
-		var success = add_crew_member(character)
-		
-		if success:
-			# Add to UI list
-			var character_name: String = "%s (%s)" % [
-				character.character_name,
-				_get_class_name(character.character_class)
-			]
-
-			if character_list:
-				character_list.add_item(character_name)
-				# Auto-select the new character
-				character_list.select(character_list.get_item_count() - 1)
-				_display_character_details(character)
-
-			# Convert to dictionary format for crew_creation_data
-			var character_dict: Dictionary = _character_to_dict(character)
-			crew_creation_data.characters.append(character_dict)
-
-			_update_ui_state()
-
-			# Emit signal
-			self.character_generated.emit(character)
-
-			print("InitialCrewCreation: Generated character: ", character_name)
-		else:
-			push_error("InitialCrewCreation: Failed to add character to crew")
-	else:
-		push_error("InitialCrewCreation: Failed to generate character")
+	
+	# Load the CharacterBox scene
+	var character_box_scene = preload("res://src/ui/components/character/CharacterBox.tscn")
+	var character_box = character_box_scene.instantiate()
+	
+	# Set up the character box with character data
+	if character_box.has_method("setup_character"):
+		character_box.setup_character(character)
+	
+	# Connect selection signal if available
+	if character_box.has_signal("character_selected"):
+		character_box.character_selected.connect(_on_character_box_selected)
+	
+	# Add to the container
+	character_list_container.add_child(character_box)
+	
+	print("InitialCrewCreation: Created character box for: ", character.character_name)
 
 func _character_to_dict(character: Character) -> Dictionary:
 	"""Convert Character object to dictionary format"""
@@ -155,8 +175,82 @@ func _get_class_name(class_id: int) -> String:
 	"""Get class name for display"""
 	# GlobalEnums available as autoload singleton
 
-	if GlobalEnums and class_id >= 0 and class_id < GlobalEnums.CharacterClass.size():
-		return GlobalEnums.CharacterClass.keys()[class_id]
+	# GlobalEnums should be available as an autoload
+	if GlobalEnums and GlobalEnums.has("CharacterClass") and class_id >= 0:
+		var character_classes = GlobalEnums.CharacterClass
+		if class_id < character_classes.size():
+			return character_classes.keys()[class_id]
+	return "Unknown"
+
+func _get_background_name(background_id: int) -> String:
+	"""Get background name for display"""
+	if GlobalEnums and background_id >= 0 and background_id < GlobalEnums.CharacterBackground.size():
+		return GlobalEnums.CharacterBackground.keys()[background_id]
+	return "Unknown"
+
+func _get_motivation_name(motivation_id: int) -> String:
+	"""Get motivation name for display"""
+	if GlobalEnums and motivation_id >= 0 and motivation_id < GlobalEnums.CharacterMotivation.size():
+		return GlobalEnums.CharacterMotivation.keys()[motivation_id]
+	return "Unknown"
+
+func _update_character_relationship_displays(character: Character) -> void:
+	"""Update patron, rival, and equipment displays for character"""
+	if not character:
+		return
+	
+	# Update patron details
+	if patron_details:
+		var patrons = character.get_meta("generated_patrons", []) if character.has_method("get_meta") else []
+		if patrons.is_empty():
+			patron_details.text = "[color=gray]No patrons generated for this character[/color]"
+		else:
+			var patron_text = ""
+			for patron in patrons:
+				patron_text += "[b]%s[/b] (%s)\n" % [patron.get("name", "Unknown"), patron.get("type", "Unknown")]
+				patron_text += "Reputation: %d\n" % patron.get("reputation", 0)
+				patron_text += "Job Rate: %d%%\n\n" % patron.get("job_rate", 50)
+			patron_details.text = patron_text
+	
+	# Update rival details  
+	if rival_details:
+		var rivals = character.get_meta("generated_rivals", []) if character.has_method("get_meta") else []
+		if rivals.is_empty():
+			rival_details.text = "[color=gray]No rivals generated for this character[/color]"
+		else:
+			var rival_text = ""
+			for rival in rivals:
+				rival_text += "[b][color=red]%s[/color][/b] (%s)\n" % [rival.get("name", "Unknown"), _get_enemy_type_name(rival.get("type", 0))]
+				rival_text += "Threat Level: %d\n" % rival.get("level", 1)
+				rival_text += "Reputation: %d\n\n" % rival.get("reputation", 0)
+			rival_details.text = rival_text
+	
+	# Update equipment details
+	if equipment_details:
+		var equipment = character.get_meta("personal_equipment", {}) if character.has_method("get_meta") else {}
+		if equipment.is_empty():
+			equipment_details.text = "[color=gray]No starting equipment assigned[/color]"
+		else:
+			var equipment_text = ""
+			for category in ["weapons", "armor", "gear"]:
+				if equipment.has(category) and not equipment[category].is_empty():
+					equipment_text += "[b]%s:[/b]\n" % category.capitalize()
+					for item in equipment[category]:
+						equipment_text += "• %s\n" % str(item)
+					equipment_text += "\n"
+			
+			if equipment.has("credits") and equipment.credits > 0:
+				equipment_text += "[b]Credits:[/b] %d\n" % equipment.credits
+			
+			if equipment_text.is_empty():
+				equipment_details.text = "[color=gray]No equipment items listed[/color]"
+			else:
+				equipment_details.text = equipment_text
+
+func _get_enemy_type_name(type_id: int) -> String:
+	"""Get enemy type name for display"""
+	if GlobalEnums and type_id >= 0 and type_id < GlobalEnums.EnemyType.size():
+		return GlobalEnums.EnemyType.keys()[type_id]
 	return "Unknown"
 
 func _display_character_details(character: Character) -> void:
@@ -166,6 +260,14 @@ func _display_character_details(character: Character) -> void:
 
 	var details = "[b]%s[/b]\n\n" % (character.character_name if character.character_name else "Unknown")
 	details += "Class: %s\n" % _get_class_name(character.character_class if character.character_class else 0)
+	
+	# Add background and motivation if available
+	if character.has_method("get") or character.has_meta("background"):
+		var background_id = character.get("background") if character.has_method("get") else character.get_meta("background", 0)
+		var motivation_id = character.get("motivation") if character.has_method("get") else character.get_meta("motivation", 0)
+		details += "Background: %s\n" % _get_background_name(background_id)
+		details += "Motivation: %s\n" % _get_motivation_name(motivation_id)
+	
 	details += "\n[b]Attributes:[/b]\n"
 	details += "Reactions: %d\n" % (character.reaction if character.reaction else 1)
 	details += "Speed: %d\"\n" % (character.speed if character.speed else 4)
@@ -174,12 +276,14 @@ func _display_character_details(character: Character) -> void:
 	details += "Savvy: +%d\n" % (character.savvy if character.savvy else 0)
 
 	character_details.text = details
+	
+	# Update patron, rival, and equipment details
+	_update_character_relationship_displays(character)
 
-func _on_character_list_selected(index: int) -> void:
-	"""Handle character selection in list"""
-	var crew_members_array = get_crew_members()
-	if index >= 0 and index < crew_members_array.size():
-		_display_character_details(crew_members_array[index])
+func _on_character_box_selected(character: Character) -> void:
+	"""Handle character box selection"""
+	if character:
+		_display_character_details(character)
 
 func _update_ui_state() -> void:
 	"""Update UI state based on current crew data"""
@@ -333,7 +437,7 @@ func _load_existing_crew_from_workflow(crew_data: Dictionary) -> void:
 	
 	if crew_data.has("size"):
 		crew_creation_data.size = crew_data.size
-		crew_size_option.value = crew_data.size
+		crew_size_option.selected = crew_data.size - 1  # Convert size to index
 	
 	# Load existing crew members
 	var existing_members = crew_data.get("crew_members", [])
@@ -342,14 +446,8 @@ func _load_existing_crew_from_workflow(crew_data: Dictionary) -> void:
 			# Add existing character to crew
 			add_crew_member(member)
 			
-			# Add to UI list
-			var character_name: String = "%s (%s)" % [
-				member.character_name,
-				_get_class_name(member.character_class)
-			]
-			
-			if character_list:
-				character_list.add_item(character_name)
+			# Add to UI using character box
+			_create_character_box(member)
 	
 	_update_ui_state()
 	print("InitialCrewCreation: Loaded %d existing crew members from workflow" % existing_members.size())
@@ -402,7 +500,7 @@ func _load_existing_crew_from_campaign(state_bridge: Node) -> void:
 		
 		if crew_data.has("size"):
 			crew_creation_data.size = crew_data.size
-			crew_size_option.value = crew_data.size
+			crew_size_option.selected = crew_data.size - 1  # Convert size to index
 		
 		# Load existing crew members
 		var existing_members = crew_data.get("crew_members", [])
@@ -411,14 +509,8 @@ func _load_existing_crew_from_campaign(state_bridge: Node) -> void:
 				# Add existing character to crew
 				add_crew_member(member)
 				
-				# Add to UI list
-				var character_name: String = "%s (%s)" % [
-					member.character_name,
-					_get_class_name(member.character_class)
-				]
-				
-				if character_list:
-					character_list.add_item(character_name)
+				# Add to UI using character box
+				_create_character_box(member)
 		
 		_update_ui_state()
 		print("InitialCrewCreation: Loaded %d existing crew members" % existing_members.size())
@@ -499,3 +591,34 @@ func _ready() -> void:
 	
 	# Setup campaign integration
 	call_deferred("setup_for_campaign_creation")
+
+func cleanup() -> void:
+	"""Clean up the crew creation state when navigating away"""
+	print("InitialCrewCreation: Cleaning up crew creation state")
+	
+	# Clear crew creation data
+	crew_creation_data = {
+		"name": "",
+		"size": 4,
+		"characters": []
+	}
+	
+	# Clear character list container
+	if character_list_container:
+		for child in character_list_container.get_children():
+			child.queue_free()
+	
+	# Reset UI state
+	if crew_size_option:
+		crew_size_option.selected = 3  # Index 3 = 4 members
+	
+	if crew_name_input:
+		crew_name_input.text = ""
+	
+	if create_button:
+		create_button.disabled = true
+	
+	# Clear any stored crew members
+	clear_crew()
+	
+	print("InitialCrewCreation: Cleanup completed")
