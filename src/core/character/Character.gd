@@ -46,15 +46,15 @@ static func generate_character(background_type: String = "") -> Character:
     character.motivation = _generate_motivation()
     
     # Generate stats with proper bounds checking
-    character.combat = SafeTypeConverter.safe_int(DiceManager.roll_dice(1, 6), 1)
-    character.reactions = SafeTypeConverter.safe_int(DiceManager.roll_dice(1, 6), 1)
-    character.toughness = SafeTypeConverter.safe_int(DiceManager.roll_dice(1, 6), 1)
-    character.savvy = SafeTypeConverter.safe_int(DiceManager.roll_dice(1, 6), 1)
-    character.tech = SafeTypeConverter.safe_int(DiceManager.roll_dice(1, 6), 1)
-    character.move = SafeTypeConverter.safe_int(DiceManager.roll_dice(1, 6), 1)
+    character.combat = SafeTypeConverter.safe_int(_roll_dice_safe(1, 6), 1)
+    character.reactions = SafeTypeConverter.safe_int(_roll_dice_safe(1, 6), 1)
+    character.toughness = SafeTypeConverter.safe_int(_roll_dice_safe(1, 6), 1)
+    character.savvy = SafeTypeConverter.safe_int(_roll_dice_safe(1, 6), 1)
+    character.tech = SafeTypeConverter.safe_int(_roll_dice_safe(1, 6), 1)
+    character.move = SafeTypeConverter.safe_int(_roll_dice_safe(1, 6), 1)
     
     # Initial equipment and state
-    character.credits = SafeTypeConverter.safe_int(DiceManager.roll_dice(2, 6) * 10, 20)
+    character.credits = SafeTypeConverter.safe_int(_roll_dice_safe(2, 6) * 10, 20)
     character.equipment = _generate_starting_equipment(character.background)
     character.created_at = Time.get_datetime_string_from_system()
     
@@ -85,6 +85,20 @@ static func create_captain_from_crew(crew_member: Character) -> Character:
     
     print("Captain created: %s" % crew_member.name)
     return crew_member
+
+# Safe dice rolling with fallback for headless mode
+static func _roll_dice_safe(num_dice: int, sides: int) -> int:
+    """Safe dice rolling with DiceManager fallback"""
+    if Engine.has_singleton("DiceManager"):
+        var dice_manager = Engine.get_singleton("DiceManager")
+        if dice_manager and dice_manager.has_method("roll_dice"):
+            return dice_manager.roll_dice(num_dice, sides)
+    
+    # Fallback for headless mode or missing DiceManager
+    var total = 0
+    for i in range(num_dice):
+        total += randi_range(1, sides)
+    return total
 
 # Private generation methods - all logic consolidated here
 static func _generate_name() -> String:
