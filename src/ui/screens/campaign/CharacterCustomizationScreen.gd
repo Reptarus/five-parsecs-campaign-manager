@@ -6,8 +6,7 @@ class_name CharacterCustomizationScreen
 ## Multi-step character editing interface for Five Parsecs Campaign Manager
 
 const Character = preload("res://src/core/character/Character.gd")
-# GlobalEnums available as autoload singleton
-const FiveParsecsCharacterGeneration = preload("res://src/core/character/CharacterGeneration.gd")
+# GlobalEnums available as autoload singleton - Character class now has static methods
 
 signal character_customization_complete(character: Character)
 signal character_customization_cancelled()
@@ -678,7 +677,7 @@ func _on_motivation_changed(index: int) -> void:
 
 func _on_reroll_attributes() -> void:
 	"""Handle attribute reroll"""
-	FiveParsecsCharacterGeneration.generate_character_attributes(editing_character)
+	Character.generate_character_attributes(editing_character)
 	editing_character.max_health = editing_character.toughness + 2
 	editing_character.health = editing_character.max_health
 	
@@ -715,12 +714,12 @@ func _update_attribute_value(attr_name: String, value: int) -> void:
 func _on_generate_relationships() -> void:
 	"""Handle relationship generation"""
 	# Generate patrons and rivals using the enhanced character generation
-	editing_character.patrons = FiveParsecsCharacterGeneration._generate_patrons(editing_character)
-	editing_character.rivals = FiveParsecsCharacterGeneration._generate_rivals(editing_character)
+	editing_character.patrons = Character.generate_patrons(editing_character)
+	editing_character.rivals = Character.generate_rivals(editing_character)
 	
 	# Apply background and motivation effects
-	FiveParsecsCharacterGeneration._apply_background_effects(editing_character)
-	FiveParsecsCharacterGeneration._apply_motivation_effects(editing_character)
+	Character.apply_background_effects(editing_character)
+	Character.apply_motivation_effects(editing_character)
 	
 	# Update the display
 	_update_relationships_display()
@@ -728,7 +727,7 @@ func _on_generate_relationships() -> void:
 func _on_generate_equipment() -> void:
 	"""Handle equipment generation"""
 	# Generate equipment using the enhanced system
-	editing_character.personal_equipment = FiveParsecsCharacterGeneration._generate_starting_equipment_enhanced(editing_character)
+	editing_character.personal_equipment = Character.generate_starting_equipment_enhanced(editing_character)
 	
 	# Update the display
 	_update_equipment_display()
