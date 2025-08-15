@@ -8,9 +8,8 @@ class_name CharacterCreatorUI
 
 # Safe imports
 const BaseCharacterCreationSystem = preload("res://src/base/character/BaseCharacterCreationSystem.gd")
-# GlobalEnums available as autoload singleton
-const Character = preload("res://src/core/character/Character.gd")
-const FiveParsecsCharacterGeneration = preload("res://src/core/character/CharacterGeneration.gd")
+# GlobalEnums available as autoload singleton - Character class now has static methods
+const CharacterClass = preload("res://src/core/character/Character.gd")
 const CharacterCreationTables = preload("res://src/core/character/tables/CharacterCreationTables.gd")
 const StartingEquipmentGenerator = preload("res://src/core/character/Equipment/StartingEquipmentGenerator.gd")
 const CharacterConnections = preload("res://src/core/character/connections/CharacterConnections.gd")
@@ -450,7 +449,7 @@ func clear_portrait() -> void:
 
 func _create_new_character() -> void:
 	"""Create a new character for editing with proper Five Parsecs defaults"""
-	current_character = Character.new()
+	current_character = CharacterClass.new()
 	is_editing_mode = false
 	original_character = null
 	
@@ -462,12 +461,12 @@ func _create_new_character() -> void:
 	current_character.motivation = GlobalEnums.Motivation.SURVIVAL
 	
 	# Generate base attributes using Five Parsecs rules (includes health calculation)
-	FiveParsecsCharacterGeneration.generate_character_attributes(current_character)
+	CharacterClass.generate_character_attributes(current_character)
 	
 	# Apply default bonuses
-	FiveParsecsCharacterGeneration.apply_background_bonuses(current_character)
-	FiveParsecsCharacterGeneration.apply_class_bonuses(current_character)
-	FiveParsecsCharacterGeneration.set_character_flags(current_character)
+	CharacterClass.apply_background_bonuses(current_character)
+	CharacterClass.apply_class_bonuses(current_character)
+	CharacterClass.set_character_flags(current_character)
 	
 	# Update UI to match character
 	_update_ui_from_character()
@@ -620,7 +619,7 @@ func _validate_and_update() -> void:
 	# Remove _update_character_from_ui() call since signal handlers already update character properties
 	if not is_instance_valid(current_character): return
 	
-	var result: Dictionary = FiveParsecsCharacterGeneration.validate_character(current_character)
+	var result: Dictionary = CharacterClass.validate_character(current_character)
 	if validation_label:
 		if result.valid:
 			validation_label.text = "Character is valid"
@@ -720,16 +719,16 @@ func _regenerate_character_attributes() -> void:
 	current_character.traits.clear()
 	
 	# Generate base attributes using Five Parsecs rules (includes health calculation)
-	FiveParsecsCharacterGeneration.generate_character_attributes(current_character)
+	CharacterClass.generate_character_attributes(current_character)
 	
 	# Apply background bonuses
-	FiveParsecsCharacterGeneration.apply_background_bonuses(current_character)
+	CharacterClass.apply_background_bonuses(current_character)
 	
 	# Apply class bonuses
-	FiveParsecsCharacterGeneration.apply_class_bonuses(current_character)
+	CharacterClass.apply_class_bonuses(current_character)
 	
 	# Apply origin effects
-	FiveParsecsCharacterGeneration.set_character_flags(current_character)
+	CharacterClass.set_character_flags(current_character)
 	
 	print("CharacterCreator: Character attributes regenerated - Health: %d, Toughness: %d" % [current_character.max_health, current_character.toughness])
 
@@ -815,7 +814,7 @@ func _on_generate_random_pressed() -> void:
 		return
 	
 	# Generate random character
-	current_character = FiveParsecsCharacterGeneration.generate_random_character()
+	current_character = CharacterClass.generate_random_character()
 	
 	if not current_character:
 		push_error("CharacterCreator: Failed to generate random character")
@@ -840,7 +839,7 @@ func _on_clear_character_pressed() -> void:
 	print("CharacterCreator: Clearing character data")
 	
 	# Reset character to proper Five Parsecs default state
-	current_character = Character.new()
+	current_character = CharacterClass.new()
 	
 	# Set proper Five Parsecs default values
 	current_character.character_name = "New Character"
@@ -850,12 +849,12 @@ func _on_clear_character_pressed() -> void:
 	current_character.motivation = GlobalEnums.Motivation.SURVIVAL
 	
 	# Generate base attributes using Five Parsecs rules (includes health calculation)
-	FiveParsecsCharacterGeneration.generate_character_attributes(current_character)
+	CharacterClass.generate_character_attributes(current_character)
 	
 	# Apply default bonuses
-	FiveParsecsCharacterGeneration.apply_background_bonuses(current_character)
-	FiveParsecsCharacterGeneration.apply_class_bonuses(current_character)
-	FiveParsecsCharacterGeneration.set_character_flags(current_character)
+	CharacterClass.apply_background_bonuses(current_character)
+	CharacterClass.apply_class_bonuses(current_character)
+	CharacterClass.set_character_flags(current_character)
 	
 	# Clear portrait
 	clear_portrait()
@@ -895,7 +894,7 @@ func _on_create_character_pressed() -> void:
 			"motivation": GlobalEnums.Motivation.keys()[current_character.motivation],
 			"origin": GlobalEnums.Origin.keys()[current_character.origin]
 		}
-		var final_character = FiveParsecsCharacterGeneration.create_enhanced_character(
+		var final_character = CharacterClass.create_enhanced_character(
 			config, dice_manager, CharacterCreationTables, StartingEquipmentGenerator, CharacterConnections
 		)
 		
