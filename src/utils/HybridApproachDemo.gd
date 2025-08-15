@@ -4,7 +4,6 @@ extends Node
 ## Shows the hybrid approach in action with practical examples
 
 const DataManager = preload("res://src/core/data/DataManager.gd")
-const FiveParsecsCharacterGeneration = preload("res://src/core/character/CharacterGeneration.gd")
 const Character = preload("res://src/core/character/Character.gd")
 # GlobalEnums available as autoload singleton
 
@@ -30,7 +29,10 @@ func _demonstrate_data_initialization() -> void:
 	print("\n--- Data Initialization ---")
 	
 	# Initialize the data system
-	var success = DataManager.initialize_data_system()
+	var data_manager = get_node_or_null("/root/DataManagerAutoload")
+	var success = false
+	if data_manager and data_manager.has_method("initialize_data_system"):
+		success = data_manager.initialize_data_system()
 	print("Data system initialization: %s" % ("SUCCESS" if success else "FAILED"))
 	
 	# Check system status
@@ -49,7 +51,7 @@ func _demonstrate_character_creation() -> void:
 	print("\n--- Character Creation ---")
 	
 	# Create character with hybrid approach
-	var character = FiveParsecsCharacterGeneration.create_character({
+	var character = Character.create_character({
 		"name": "Alex",
 		"class": "SOLDIER",
 		"background": "MILITARY",
@@ -109,14 +111,14 @@ func _demonstrate_validation() -> void:
 	print("\n--- Data Validation ---")
 	
 	# Test character validation
-	var character = FiveParsecsCharacterGeneration.create_character({
+	var character = Character.create_character({
 		"name": "Test Character",
 		"class": "SOLDIER",
 		"background": "MILITARY",
 		"origin": "HUMAN"
 	})
 	
-	var validation = FiveParsecsCharacterGeneration.validate_character(character)
+	var validation = Character.validate_character(character)
 	print("Character validation: %s" % ("VALID" if validation.valid else "INVALID"))
 	
 	if not validation.valid:
@@ -175,7 +177,7 @@ func _demonstrate_random_character_generation() -> void:
 	print("\n--- Random Character Generation ---")
 	
 	# Generate a random character
-	var character = FiveParsecsCharacterGeneration.generate_random_character()
+	var character = Character.generate_random_character()
 	
 	if character:
 		print("Random character generated:")
@@ -217,7 +219,7 @@ func _demonstrate_fallback_systems() -> void:
 	print("Testing fallback character creation...")
 	
 	# Create a basic character using the fallback system
-	var character = FiveParsecsCharacterGeneration.create_basic_character({
+	var character = Character.create_character({
 		"name": "Fallback Character",
 		"class": "SOLDIER",
 		"background": "MILITARY",
