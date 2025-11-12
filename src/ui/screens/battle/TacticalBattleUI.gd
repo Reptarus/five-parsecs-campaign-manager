@@ -13,7 +13,6 @@ extends Control
 signal tactical_battle_completed(battle_result: BattleResult)
 signal return_to_battle_resolution()
 
-const BattlefieldDisplayManager = preload("res://src/core/battle/BattlefieldDisplayManager.gd")
 const BattlefieldManager = preload("res://src/core/battle/BattlefieldManager.gd")
 const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
 # GlobalEnums available as autoload singleton
@@ -31,7 +30,6 @@ const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
 
 # Core Systems
 var battlefield_manager: BattlefieldManager
-var battlefield_display_manager: BattlefieldDisplayManager
 var dice_manager: Node = null
 var alpha_manager: Node = null
 
@@ -74,11 +72,6 @@ func _initialize_managers() -> void:
 	# Create battlefield systems
 	battlefield_manager = BattlefieldManager.new()
 	add_child(battlefield_manager)
-
-	# Create display manager - needs to be a proper Node type
-	battlefield_display_manager = BattlefieldDisplayManager.new()
-	# Note: Add to scene if BattlefieldDisplayManager extends Node
-	# For now, keep it as a separate object for data management
 
 func _setup_battlefield() -> void:
 	"""Setup the tactical battlefield"""
