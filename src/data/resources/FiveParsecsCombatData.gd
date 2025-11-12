@@ -342,7 +342,7 @@ static func _create_default_armor() -> Array[CombatArmorData]:
 	flak_screen.cost = 4
 	armor_list.append(flak_screen)
 	
-	var combat_armor = ArmorData.new()
+	var combat_armor = CombatArmorData.new()
 	combat_armor.id = 1
 	combat_armor.name = "Combat Armor"
 	combat_armor.armor_save = 5
@@ -350,7 +350,7 @@ static func _create_default_armor() -> Array[CombatArmorData]:
 	combat_armor.cost = 10
 	armor_list.append(combat_armor)
 	
-	var battle_suit = ArmorData.new()
+	var battle_suit = CombatArmorData.new()
 	battle_suit.id = 2
 	battle_suit.name = "Battle Suit"
 	battle_suit.armor_save = 4
