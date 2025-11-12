@@ -1,6 +1,4 @@
 ## Manages campaign flow, missions, and game progression  
-@tool
-class_name CampaignManagerClass
 extends Node
 
 # GlobalEnums available as autoload singleton
@@ -10,8 +8,7 @@ const FPCM_StoryTrackSystem = preload("res://src/core/story/StoryTrackSystem.gd"
 const FPCM_BattleEventsSystem = preload("res://src/core/battle/BattleEventsSystem.gd")
 const StoryEvent = preload("res://src/core/story/StoryEvent.gd")
 
-# Security validation and save management
-const SecureSaveManager = preload("res://src/core/validation/SecureSaveManager.gd")
+# Security validation
 const SecurityValidator = preload("res://src/core/validation/SecurityValidator.gd")
 
 # DiceManager accessed as autoload singleton
@@ -72,21 +69,16 @@ func _ready() -> void:
 	completed_missions = []
 	mission_history = []
 
-	# Defer autoload access to avoid loading order issues
-	call_deferred("_initialize_autoloads")
-	call_deferred("_initialize_systems")
-
-func _initialize_autoloads() -> void:
-	"""Initialize autoloads with retry logic to handle loading order"""
-	# Wait for DiceManager to be ready
-	for i in range(10):
-		dice_manager = get_node_or_null("/root/DiceManager")
-		if dice_manager:
-			break
-		await get_tree().process_frame
+	# Direct autoload access - Godot guarantees autoloads are available in _ready()
+	dice_manager = get_node_or_null("/root/DiceManager")
+	if dice_manager:
+		print("CampaignManager: ✅ DiceManager connected successfully")
+	else:
+		print("CampaignManager: ❌ DiceManager not available - some features will be limited")
 	
-	if not dice_manager:
-		push_error("CampaignManager: DiceManager autoload not found after retries")
+	_initialize_systems()
+
+
 
 func _initialize_systems() -> void:
 	"""Initialize systems after autoloads are available"""
@@ -667,12 +659,12 @@ func save_campaign_state() -> Dictionary:
 	campaign_saved.emit(save_data)
 	return save_data
 
-## Secure save method using SecureSaveManager
+## Secure save method using SaveManager autoload
 func save_campaign_secure(file_path: String) -> bool:
 	var validation: Dictionary = validate_campaign_state()
 	if not validation.get("is_valid", false):
 		var error_msg = "Cannot save invalid campaign state: %s" % validation.get("errors", [])
-		FiveParsecsSecurityValidator.log_security_event("SAVE_VALIDATION_FAILED", error_msg)
+		SecurityValidator.log_security_event("SAVE_VALIDATION_FAILED", error_msg)
 		save_failed.emit(error_msg)
 		return false
 
@@ -684,11 +676,12 @@ func save_campaign_secure(file_path: String) -> bool:
 			"crew_size": game_state.crew_size if game_state else 4
 		},
 		"crew": {
-			"members": game_state.crew_members if game_state else []
+			"members": _serialize_crew_members(game_state.crew_members if game_state else [])
 		},
 		"captain": {
 			"name": game_state.captain_name if game_state else "Captain",
-			"stats": game_state.captain_stats if game_state else {}
+			"stats": game_state.captain_stats if game_state else {},
+			"character_data": _serialize_character(game_state.captain if game_state and game_state.has("captain") else null)
 		},
 		"ship": {
 			"name": game_state.ship_name if game_state else "Ship",
@@ -711,14 +704,17 @@ func save_campaign_secure(file_path: String) -> bool:
 		}
 	}
 
-	var save_result = SecureSaveManager.save_campaign_secure(campaign_data, file_path)
-	if save_result.success:
-		FiveParsecsSecurityValidator.log_security_event("CAMPAIGN_SAVED", "Campaign saved successfully: " + file_path)
+	# Use SaveManager autoload for saving
+	var save_name = file_path.get_file().get_basename()
+	var success = SaveManager.save_game(campaign_data, save_name)
+	if success:
+		SecurityValidator.log_security_event("CAMPAIGN_SAVED", "Campaign saved successfully: " + file_path)
 		campaign_saved.emit(campaign_data)
 		return true
 	else:
-		FiveParsecsSecurityValidator.log_security_event("CAMPAIGN_SAVE_FAILED", save_result.error)
-		save_failed.emit(save_result.error)
+		var error_msg = "Failed to save campaign"
+		SecurityValidator.log_security_event("CAMPAIGN_SAVE_FAILED", error_msg)
+		save_failed.emit(error_msg)
 		return false
 
 func load_campaign_state(save_data: Dictionary) -> bool:
@@ -747,16 +743,16 @@ func load_campaign_state(save_data: Dictionary) -> bool:
 	campaign_loaded.emit(save_data)
 	return true
 
-## Secure load method using SecureSaveManager  
+## Secure load method using SaveManager autoload
 func load_campaign_secure(file_path: String) -> bool:
-	var load_result = SecureSaveManager.load_campaign_secure(file_path)
-	
-	if not load_result.success:
-		FiveParsecsSecurityValidator.log_security_event("CAMPAIGN_LOAD_FAILED", load_result.error)
-		load_failed.emit(load_result.error)
+	var save_name = file_path.get_file().get_basename()
+	var campaign_data = SaveManager.load_game(save_name)
+
+	if campaign_data.is_empty():
+		var error_msg = "Failed to load campaign: " + file_path
+		SecurityValidator.log_security_event("CAMPAIGN_LOAD_FAILED", error_msg)
+		load_failed.emit(error_msg)
 		return false
-	
-	var campaign_data = load_result.data
 	
 	# Extract mission data from metadata if available
 	var mission_data = campaign_data.metadata.get("missions", {})
@@ -772,7 +768,7 @@ func load_campaign_secure(file_path: String) -> bool:
 	# Use existing load method for mission data
 	var mission_load_success = load_campaign_state(legacy_save_data)
 	if not mission_load_success:
-		FiveParsecsSecurityValidator.log_security_event("MISSION_LOAD_FAILED", "Failed to load mission data from secure save")
+		SecurityValidator.log_security_event("MISSION_LOAD_FAILED", "Failed to load mission data from secure save")
 		return false
 	
 	# Update game state with loaded campaign data
@@ -787,11 +783,8 @@ func load_campaign_secure(file_path: String) -> bool:
 		game_state.ship_stats = campaign_data.ship.get("stats", {})
 		game_state.weapons = campaign_data.equipment.get("weapons", [])
 		game_state.armor = campaign_data.equipment.get("armor", [])
-	
-	if load_result.backup_used:
-		FiveParsecsSecurityValidator.log_security_event("CAMPAIGN_BACKUP_USED", "Loaded from backup: " + file_path)
-	
-	FiveParsecsSecurityValidator.log_security_event("CAMPAIGN_LOADED", "Campaign loaded successfully: " + file_path)
+
+	SecurityValidator.log_security_event("CAMPAIGN_LOADED", "Campaign loaded successfully: " + file_path)
 	campaign_loaded.emit(campaign_data)
 	return true
 
@@ -1130,6 +1123,59 @@ func _process_ongoing_effects() -> void:
 func _generate_random_mission() -> StoryQuestData:
 	"""Generate a random mission for the mission pool"""
 	return _create_special_mission("Random", "A mission opportunity has presented itself", randi_range(1, 3))
+
+## Character serialization for Five Parsecs campaign save
+func _serialize_crew_members(crew_members: Array) -> Array:
+	"""Serialize crew members with all Five Parsecs attributes"""
+	var serialized_crew = []
+	
+	for member in crew_members:
+		if member is Character:
+			serialized_crew.append(_serialize_character(member))
+		elif member is Dictionary:
+			# Already serialized or legacy format
+			serialized_crew.append(member)
+		else:
+			push_warning("CampaignManager: Unknown crew member type during save: %s" % type_string(typeof(member)))
+	
+	return serialized_crew
+
+func _serialize_character(character: Character) -> Dictionary:
+	"""Serialize a Character object with all Five Parsecs attributes"""
+	if not character:
+		return {}
+	
+	return {
+		# Basic info
+		"character_name": character.character_name,
+		"name": character.name,
+		"background": character.background,
+		"motivation": character.motivation,
+		"origin": character.origin,
+		"character_class": character.character_class,
+		
+		# Five Parsecs core attributes
+		"reactions": character.reactions,
+		"speed": character.speed,
+		"combat": character.combat,
+		"toughness": character.toughness,
+		"savvy": character.savvy,
+		"tech": character.tech,
+		"move": character.move,
+		"luck": character.luck,
+		
+		# Additional data
+		"health": character.health if character.has("health") else character.toughness,
+		"max_health": character.max_health if character.has("max_health") else character.toughness,
+		"experience": character.experience if character.has("experience") else 0,
+		"credits": character.credits if character.has("credits") else 0,
+		"is_captain": character.is_captain if character.has("is_captain") else false,
+		"created_at": character.created_at if character.has("created_at") else Time.get_datetime_string_from_system(),
+		
+		# Serialization metadata
+		"serialization_version": "1.0",
+		"object_type": "Character"
+	}
 
 ## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
 ## Based on Godot 4.4 best practices for safe property access

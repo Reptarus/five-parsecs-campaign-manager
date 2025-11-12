@@ -38,3 +38,4 @@ override.cfg
 
 # Node.js
 node_modules/
+.venv/
