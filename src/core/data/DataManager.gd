@@ -13,14 +13,7 @@ const FiveParsecsCampaignDataResource = preload("res://src/data/resources/FivePa
 const SafeDataAccess = preload("res://src/utils/SafeDataAccess.gd")
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
-# Resource class imports - surgical fix for compilation
-const ArmorData = preload("res://src/data/resources/ArmorData.gd")
-const ArmorDatabase = preload("res://src/data/resources/ArmorDatabase.gd")
-const WeaponData = preload("res://src/data/resources/WeaponData.gd")
-const WeaponDatabase = preload("res://src/data/resources/WeaponDatabase.gd")
-const EnemyData = preload("res://src/data/resources/EnemyData.gd")
-const EnemyDatabase = preload("res://src/data/resources/EnemyDatabase.gd")
-const CrewTaskModifiersData = preload("res://src/data/resources/CrewTaskModifiersData.gd")
+# Resource class imports removed - unused database schemas deleted in Phase 2B
 
 # Resource paths - native Godot resources
 const CHARACTER_DATA_PATH: String = "res://data/character_data.tres"
@@ -58,11 +51,7 @@ var combat_data: FiveParsecsCombatDataResource
 var campaign_data: FiveParsecsCampaignDataResource
 var is_data_loaded: bool = false
 
-# Resource databases - type-safe game data
-var armor_database: ArmorDatabase
-var weapon_database: WeaponDatabase  
-var enemy_database: EnemyDatabase
-var crew_task_modifiers: CrewTaskModifiersData
+# Resource databases removed - unused database schemas deleted in Phase 2B
 
 # Static data holders
 static var _is_data_loaded: bool = false
@@ -168,27 +157,8 @@ func _load_json_databases() -> void:
 	_load_character_creation_data()
 	_load_equipment_data() 
 	_load_basic_game_data()
-	
-	# Create default database structures for compatibility
-	if not armor_database:
-		armor_database = ArmorDatabase.new()
-		armor_database.name = "Default Armor Database"
-		print("DataManager: Created default armor database")
-	
-	if not weapon_database:
-		weapon_database = WeaponDatabase.new()
-		weapon_database.name = "Default Weapon Database"
-		print("DataManager: Created default weapon database")
-	
-	if not enemy_database:
-		enemy_database = EnemyDatabase.new()
-		enemy_database.name = "Default Enemy Database"
-		print("DataManager: Created default enemy database")
-	
-	if not crew_task_modifiers:
-		crew_task_modifiers = CrewTaskModifiersData.new()
-		crew_task_modifiers.name = "Default Crew Task Modifiers"
-		print("DataManager: Created default crew task modifiers")
+
+	# Default database initialization removed - unused schemas deleted in Phase 2B
 
 func _load_character_creation_data() -> void:
 	"""Load character creation data from JSON"""
@@ -229,19 +199,7 @@ func _load_resource_with_validation(path: String, expected_type: GDScript) -> Re
 
 func _validate_resource_integrity(resource: Resource) -> bool:
 	"""Validate resource using existing enterprise validation systems"""
-	# Work with existing validation, don't create competing systems
-	if resource is ArmorDatabase:
-		var db = resource as ArmorDatabase
-		return not db.armors.is_empty() and db.name != ""
-	elif resource is WeaponDatabase:
-		var db = resource as WeaponDatabase
-		return not db.weapons.is_empty() and db.name != ""
-	elif resource is EnemyDatabase:
-		var db = resource as EnemyDatabase
-		return not db.enemies.is_empty() and db.name != ""
-	elif resource is CrewTaskModifiersData:
-		var data = resource as CrewTaskModifiersData
-		return not data.task_types.is_empty() and data.name != ""
+	# Database validation removed - unused schemas deleted in Phase 2B
 	
 	return true
 
