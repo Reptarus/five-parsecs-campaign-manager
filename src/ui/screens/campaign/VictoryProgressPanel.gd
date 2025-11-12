@@ -15,11 +15,16 @@ var target_progress: float = 20.0 # Default for TURNS_20
 var milestones: Array[float] = []
 
 func _ready() -> void:
-	campaign_manager = get_node("/root/CampaignManager")
-	if not campaign_manager:
-		push_error("CampaignManager not found")
-		queue_free()
-		return
+	# Initialize campaign manager with fallback
+	if has_node("/root/CampaignManager"):
+		campaign_manager = get_node("/root/CampaignManager")
+	else:
+		# Create fallback campaign manager
+		campaign_manager = Node.new()
+		campaign_manager.name = "FallbackCampaignManager"
+		campaign_manager.set_script(preload("res://src/core/systems/FallbackCampaignManager.gd"))
+		print("VictoryProgressPanel: Created fallback CampaignManager")
+		push_warning("VictoryProgressPanel: Using fallback CampaignManager - autoload not available")
 
 	game_state = campaign_manager.game_state
 	if not game_state:
@@ -58,18 +63,18 @@ func _initialize_victory_tracking() -> void:
 		GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_10:
 			target_progress = 10.0
 			milestones = [3.0, 6.0, 9.0]
-		GlobalEnums.FiveParsecsCampaignVictoryType.STORY_COMPLETE:
+		GlobalEnums.FiveParsecsCampaignVictoryType.STORY_POINTS_20:
+			target_progress = 20.0
+			milestones = [6.0, 12.0, 18.0]
+		GlobalEnums.FiveParsecsCampaignVictoryType.CREDITS_100K:
+			target_progress = 100000.0
+			milestones = [25000.0, 50000.0, 75000.0]
+		GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_20:
+			target_progress = 20.0
+			milestones = [5.0, 10.0, 15.0]
+		GlobalEnums.FiveParsecsCampaignVictoryType.CHARACTER_SURVIVAL:
 			target_progress = 1.0
 			milestones = [0.3, 0.6, 0.9]
-		GlobalEnums.FiveParsecsCampaignVictoryType.WEALTH_GOAL:
-			target_progress = 1000.0
-			milestones = [250.0, 500.0, 750.0]
-		GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_GOAL:
-			target_progress = 100.0
-			milestones = [25.0, 50.0, 75.0]
-		GlobalEnums.FiveParsecsCampaignVictoryType.FACTION_DOMINANCE:
-			target_progress = 100.0
-			milestones = [30.0, 60.0, 90.0]
 
 	progress_bar.max_value = target_progress
 	_setup_milestone_icons()
@@ -82,7 +87,7 @@ func _setup_milestone_icons() -> void:
 
 func update_display() -> void:
 	current_progress = _calculate_current_progress()
-	progress_bar._value = current_progress
+	progress_bar.value = current_progress
 
 	var progress_text: String = ""
 	match victory_type:
@@ -90,14 +95,14 @@ func update_display() -> void:
 			progress_text = "Progress: %d/%d Turns" % [current_progress, target_progress]
 		GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_3, GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_5, GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_10:
 			progress_text = "Progress: %d/%d Quests" % [current_progress, target_progress]
-		GlobalEnums.FiveParsecsCampaignVictoryType.STORY_COMPLETE:
-			progress_text = "Story Progress: %d%%" % (current_progress * 100)
-		GlobalEnums.FiveParsecsCampaignVictoryType.WEALTH_GOAL:
+		GlobalEnums.FiveParsecsCampaignVictoryType.STORY_POINTS_20:
+			progress_text = "Story Points: %d/%d" % [current_progress, target_progress]
+		GlobalEnums.FiveParsecsCampaignVictoryType.CREDITS_100K:
 			progress_text = "Credits: %d/%d" % [current_progress, target_progress]
-		GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_GOAL:
+		GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_20:
 			progress_text = "Reputation: %d/%d" % [current_progress, target_progress]
-		GlobalEnums.FiveParsecsCampaignVictoryType.FACTION_DOMINANCE:
-			progress_text = "Faction Control: %d%%" % current_progress
+		GlobalEnums.FiveParsecsCampaignVictoryType.CHARACTER_SURVIVAL:
+			progress_text = "Character Survival: %d%%" % (current_progress * 100)
 
 	progress_label.text = progress_text
 	_update_milestone_display()
@@ -108,14 +113,14 @@ func _calculate_current_progress() -> float:
 			return float(game_state.campaign_turn)
 		GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_3, GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_5, GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_10:
 			return float(game_state.completed_quests.size())
-		GlobalEnums.FiveParsecsCampaignVictoryType.STORY_COMPLETE:
-			return game_state.story_progress
-		GlobalEnums.FiveParsecsCampaignVictoryType.WEALTH_GOAL:
+		GlobalEnums.FiveParsecsCampaignVictoryType.STORY_POINTS_20:
+			return float(game_state.story_points)
+		GlobalEnums.FiveParsecsCampaignVictoryType.CREDITS_100K:
 			return float(game_state.credits)
-		GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_GOAL:
+		GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_20:
 			return float(game_state.reputation)
-		GlobalEnums.FiveParsecsCampaignVictoryType.FACTION_DOMINANCE:
-			return game_state.faction_control
+		GlobalEnums.FiveParsecsCampaignVictoryType.CHARACTER_SURVIVAL:
+			return float(game_state.character_survival_progress)
 	return 0.0
 
 func _update_milestone_display() -> void:

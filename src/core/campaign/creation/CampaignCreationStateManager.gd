@@ -4,26 +4,34 @@ extends RefCounted
 ## Enterprise-grade Campaign Creation State Manager
 ## Provides centralized state management and validation for campaign creation workflow
 
-# Security validation integration  
-const SecurityValidator = preload("res://src/core/validation/SecurityValidator.gd")
-const FiveParsecsValidationResult = preload("res://src/core/validation/ValidationResult.gd")
+# GDScript 2.0: Typed constants
+const SecurityValidator := preload("res://src/core/validation/SecurityValidator.gd")
+const FiveParsecsValidationResult := preload("res://src/core/validation/ValidationResult.gd")
 
-# Campaign creation phases
+# GDScript 2.0: Remove VICTORY_CONDITIONS from enum (merge into CONFIG)
 enum Phase {
-	CONFIG,
-	CREW_SETUP,
+	CONFIG,                    # Now includes victory conditions
 	CAPTAIN_CREATION,
+	CREW_SETUP,
 	SHIP_ASSIGNMENT,
 	EQUIPMENT_GENERATION,
 	WORLD_GENERATION,
 	FINAL_REVIEW
 }
 
-# Centralized state container
+# GDScript 2.0: Typed dictionary with victory conditions merged into config
 var campaign_data: Dictionary = {
-	"config": {},
-	"crew": {},
+	"config": {
+		"campaign_name": "",
+		"campaign_type": "standard",
+		"victory_conditions": {},  # Moved here from separate section
+		"story_track": "",
+		"tutorial_mode": "",
+		"is_complete": false
+	},
+	# REMOVED: separate "victory_conditions": {} entry
 	"captain": {},
+	"crew": {},
 	"ship": {},
 	"equipment": {},
 	"world": {},
@@ -198,15 +206,24 @@ func _is_phase_valid(phase: Phase) -> bool:
 			return false
 
 func _validate_config_phase() -> bool:
-	"""Validate campaign configuration"""
-	var config = campaign_data.config
+	"""GDScript 2.0: Validate campaign configuration including victory conditions"""
+	var config: Dictionary = campaign_data.config
 
 	if not config.has("campaign_name") or config.campaign_name.is_empty():
 		validation_errors.append("Campaign name is required")
 		return false
 
-	if not config.has("difficulty_level"):
-		validation_errors.append("Difficulty level must be selected")
+	# GDScript 2.0: Victory conditions validation (NEW)
+	var has_victory := false
+	if config.has("victory_conditions"):
+		var conditions: Dictionary = config.victory_conditions
+		for key: String in conditions:
+			if conditions.get(key, false) == true:
+				has_victory = true
+				break
+	
+	if not has_victory:
+		validation_errors.append("At least one victory condition must be selected")
 		return false
 
 	return true
@@ -787,7 +804,7 @@ func import_from_save(save_data: Dictionary) -> bool:
 	# Security validation for imported data
 	var validation_result = _validate_imported_data(save_data)
 	if not validation_result.valid:
-		SecurityValidator.log_security_event("IMPORT_FAILED", validation_result.error)
+		print("CampaignCreationStateManager: IMPORT_FAILED - ", validation_result.error)
 		return false
 	
 	campaign_data = validation_result.sanitized_value
@@ -809,7 +826,7 @@ func _validate_imported_data(save_data: Dictionary) -> FiveParsecsValidationResu
 	
 	# Validate campaign name if present
 	if save_data.config.has("campaign_name"):
-		var name_validation = SecurityValidator.validate_campaign_name(save_data.config.campaign_name)
+		var name_validation = SecurityValidator.validate_string_input(save_data.config.campaign_name, 50)
 		if not name_validation.valid:
 			result.valid = false
 			result.error = "Invalid campaign name: " + name_validation.error
@@ -820,7 +837,7 @@ func _validate_imported_data(save_data: Dictionary) -> FiveParsecsValidationResu
 	if save_data.crew.has("members"):
 		for member in save_data.crew.members:
 			if member.has("name"):
-				var name_validation = SecurityValidator.validate_character_name(member.name)
+				var name_validation = SecurityValidator.validate_string_input(member.name, 50)
 				if not name_validation.valid:
 					result.valid = false
 					result.error = "Invalid character name: " + name_validation.error
@@ -829,7 +846,7 @@ func _validate_imported_data(save_data: Dictionary) -> FiveParsecsValidationResu
 	
 	# Validate captain name
 	if save_data.captain.has("name"):
-		var name_validation = SecurityValidator.validate_character_name(save_data.captain.name)
+		var name_validation = SecurityValidator.validate_string_input(save_data.captain.name, 50)
 		if not name_validation.valid:
 			result.valid = false
 			result.error = "Invalid captain name: " + name_validation.error
@@ -846,7 +863,7 @@ func update_campaign_config_secure(config_data: Dictionary) -> bool:
 	
 	# Validate campaign name
 	if config_data.has("campaign_name"):
-		var name_validation = SecurityValidator.validate_campaign_name(config_data.campaign_name)
+		var name_validation = SecurityValidator.validate_string_input(config_data.campaign_name, 50)
 		if not name_validation.valid:
 			validation_errors.append("Campaign name: " + name_validation.error)
 		else:
@@ -855,7 +872,7 @@ func update_campaign_config_secure(config_data: Dictionary) -> bool:
 	# Validate difficulty setting
 	if config_data.has("difficulty"):
 		var diff_validation = SecurityValidator.validate_numeric_input(
-			config_data.difficulty, 1, 5, "Difficulty"
+			config_data.difficulty, 1, 5
 		)
 		if not diff_validation.valid:
 			validation_errors.append("Difficulty: " + diff_validation.error)
@@ -863,18 +880,17 @@ func update_campaign_config_secure(config_data: Dictionary) -> bool:
 	# Validate crew size
 	if config_data.has("crew_size"):
 		var crew_validation = SecurityValidator.validate_numeric_input(
-			config_data.crew_size, 1, 8, "Crew size"
+			config_data.crew_size, 1, 8
 		)
 		if not crew_validation.valid:
 			validation_errors.append("Crew size: " + crew_validation.error)
 	
 	if validation_errors.size() > 0:
-		SecurityValidator.log_security_event("CONFIG_VALIDATION_FAILED",
-			"Errors: " + str(validation_errors))
+		print("CampaignCreationStateManager: CONFIG_VALIDATION_FAILED - Errors: ", validation_errors)
 		return false
 	
 	campaign_data.config.merge(config_data)
-	SecurityValidator.log_security_event("CONFIG_UPDATED", "Campaign config validated and updated")
+	print("CampaignCreationStateManager: CONFIG_UPDATED - Campaign config validated and updated")
 	return true
 
 func update_character_secure(character_data: Dictionary, character_type: String = "crew") -> bool:
@@ -883,7 +899,7 @@ func update_character_secure(character_data: Dictionary, character_type: String 
 	
 	# Validate character name
 	if character_data.has("name"):
-		var name_validation = SecurityValidator.validate_character_name(character_data.name)
+		var name_validation = SecurityValidator.validate_string_input(character_data.name, 50)
 		if not name_validation.valid:
 			validation_errors.append("Character name: " + name_validation.error)
 		else:
@@ -891,8 +907,8 @@ func update_character_secure(character_data: Dictionary, character_type: String 
 	
 	# Validate background text
 	if character_data.has("background_text"):
-		var text_validation = SecurityValidator.validate_text_input(
-			character_data.background_text, 500, "Background"
+		var text_validation = SecurityValidator.validate_string_input(
+			character_data.background_text, 500
 		)
 		if not text_validation.valid:
 			validation_errors.append("Background: " + text_validation.error)
@@ -904,14 +920,13 @@ func update_character_secure(character_data: Dictionary, character_type: String 
 	for attr in numeric_attrs:
 		if character_data.has(attr):
 			var attr_validation = SecurityValidator.validate_numeric_input(
-				character_data[attr], 1, 6, attr.capitalize()
+				character_data[attr], 1, 6
 			)
 			if not attr_validation.valid:
 				validation_errors.append(attr.capitalize() + ": " + attr_validation.error)
 	
 	if validation_errors.size() > 0:
-		SecurityValidator.log_security_event("CHARACTER_VALIDATION_FAILED",
-			"Character: " + character_data.get("name", "Unknown") + ", Errors: " + str(validation_errors))
+		print("CampaignCreationStateManager: CHARACTER_VALIDATION_FAILED - Character: ", character_data.get("name", "Unknown"), ", Errors: ", validation_errors)
 		return false
 	
 	# Update appropriate data structure
@@ -923,8 +938,7 @@ func update_character_secure(character_data: Dictionary, character_type: String 
 				campaign_data.crew.members = []
 			campaign_data.crew.members.append(character_data)
 	
-	SecurityValidator.log_security_event("CHARACTER_UPDATED",
-		"Character validated: " + character_data.get("name", "Unknown"))
+	print("CampaignCreationStateManager: CHARACTER_UPDATED - Character validated: ", character_data.get("name", "Unknown"))
 	return true
 
 # Public API methods for external access
@@ -1274,3 +1288,65 @@ func get_phase_name(phase: Phase) -> String:
 		Phase.WORLD_GENERATION: return "WORLD_GENERATION"
 		Phase.FINAL_REVIEW: return "FINAL_REVIEW"
 		_: return "UNKNOWN"
+
+func update_campaign_data(update_data: Dictionary) -> bool:
+	"""Update complete campaign data - comprehensive update method for UI integration"""
+	if update_data.is_empty():
+		print("CampaignCreationStateManager: Empty update data provided")
+		return false
+	
+	print("CampaignCreationStateManager: Updating campaign data with keys: %s" % str(update_data.keys()))
+	
+	# Update each section of campaign data
+	var sections_updated = []
+	
+	# Update config section
+	if update_data.has("config"):
+		for key in update_data.config:
+			campaign_data.config[key] = update_data.config[key]
+		sections_updated.append("config")
+	
+	# Update captain section
+	if update_data.has("captain"):
+		for key in update_data.captain:
+			campaign_data.captain[key] = update_data.captain[key]
+		sections_updated.append("captain")
+	
+	# Update crew section
+	if update_data.has("crew"):
+		for key in update_data.crew:
+			campaign_data.crew[key] = update_data.crew[key]
+		sections_updated.append("crew")
+	
+	# Update ship section
+	if update_data.has("ship"):
+		for key in update_data.ship:
+			campaign_data.ship[key] = update_data.ship[key]
+		sections_updated.append("ship")
+	
+	# Update equipment section
+	if update_data.has("equipment"):
+		for key in update_data.equipment:
+			campaign_data.equipment[key] = update_data.equipment[key]
+		sections_updated.append("equipment")
+	
+	# Update world section
+	if update_data.has("world"):
+		for key in update_data.world:
+			campaign_data.world[key] = update_data.world[key]
+		sections_updated.append("world")
+	
+	# Update metadata section
+	if update_data.has("metadata"):
+		for key in update_data.metadata:
+			campaign_data.metadata[key] = update_data.metadata[key]
+		sections_updated.append("metadata")
+	
+	# Validate current phase after updates
+	_validate_current_phase()
+	
+	# Emit state update signal
+	state_updated.emit(current_phase, get_phase_data(current_phase))
+	
+	print("CampaignCreationStateManager: ✅ Campaign data updated - sections: %s" % str(sections_updated))
+	return true

@@ -110,15 +110,17 @@ static func apply_equipment_condition(equipment: Dictionary, dice_manager: Node)
 			}
 
 ## Get class-specific equipment
-static func _get_class_equipment(character_class: GlobalEnums.CharacterClass) -> Dictionary:
+static func _get_class_equipment(character_class: String) -> Dictionary:
 	var class_tables: Dictionary = _equipment_tables.get("class_equipment", {})
-	var class_name_str: String = GlobalEnums.get_character_class_name(character_class).to_lower()
+	# Character class is now a string, use directly
+	var class_name_str: String = character_class.to_lower()
 	return class_tables.get(class_name_str, {})
 
 ## Get background-specific equipment bonuses
-static func _get_background_equipment(background: GlobalEnums.Background) -> Dictionary:
+static func _get_background_equipment(background: String) -> Dictionary:
 	var bg_tables: Dictionary = _equipment_tables.get("background_equipment", {})
-	var bg_name: String = GlobalEnums.get_background_name(background).to_lower()
+	# Background is now a string, use directly
+	var bg_name: String = background.to_lower()
 	return bg_tables.get(bg_name, {})
 
 ## Lookup bonus equipment from d66 roll
@@ -223,7 +225,7 @@ static func _get_quality_modifier(condition: String) -> int:
 			return 0
 
 ## Test equipment generation for specific character
-static func test_equipment_generation(class_type: GlobalEnums.CharacterClass, background: GlobalEnums.Background, dice_manager: Node) -> Dictionary:
+static func test_equipment_generation(class_type: String, background: String, dice_manager: Node) -> Dictionary:
 	# Create a minimal character for testing
 	var character: Character = Character.new()
 	character.character_class = class_type

@@ -33,8 +33,8 @@ enum ValidationScope {
 	SPECIFIC
 }
 
-## Validation results
-class ValidationResult:
+## State validation results
+class StateValidationResult:
 	var type: int = 0 # VerificationType.NONE
 	var scope: int = 0 # VerificationScope.NONE
 	var result: int = 0 # VerificationResult.NONE
@@ -67,14 +67,14 @@ func _get_safe_validationmanager() -> Variant:
 		return get_node_or_null("/root/ValidationManager")
 	return null
 
-# Factory method to create ValidationResult objects
+# Factory method to create StateValidationResult objects
 func create_result(
 	p_type: int = 0, # VerificationType.NONE
 	p_result: int = 0, # VerificationResult.NONE
 	p_message: String = "",
 	p_context: Dictionary = {}
-) -> ValidationResult:
-	var result: Variant = ValidationResult.new(p_type, p_result, p_message, p_context)
+) -> StateValidationResult:
+	var result: Variant = StateValidationResult.new(p_type, p_result, p_message, p_context)
 	return result
 
 ## Validate the current game state
@@ -264,7 +264,7 @@ func run_validation(game_state: GameState, validation_type: ValidationType, scop
 			if game_state.has_active_campaign():
 				var campaign_data: Dictionary = game_state.get_active_campaign_data()
 				var campaign_errors: Array[String] = validate_campaign_state(campaign_data)
-				# Convert string errors to ValidationResult objects
+				# Convert string errors to StateValidationResult objects
 				for error_msg in campaign_errors:
 					results.append(create_result(
 						1, # VerificationType.STATE
@@ -284,7 +284,7 @@ func run_validation(game_state: GameState, validation_type: ValidationType, scop
 					if character is Dictionary:
 						var character_dict: Dictionary = character as Dictionary
 						var character_errors: Array[String] = validate_character(character_dict)
-						# Convert string errors to ValidationResult objects
+						# Convert string errors to StateValidationResult objects
 						for error_msg in character_errors:
 							results.append(create_result(
 								1, # VerificationType.STATE
@@ -307,7 +307,7 @@ func run_validation(game_state: GameState, validation_type: ValidationType, scop
 	# Check for errors
 	var errors: Array[String] = []
 	for result in results:
-		if result is ValidationResult and result.is_error():
+		if result is StateValidationResult and result.is_error():
 			errors.append(result.message) # warning: return value discarded (intentional)
 
 	if errors.size() > 0:

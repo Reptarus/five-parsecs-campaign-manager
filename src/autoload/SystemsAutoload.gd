@@ -43,7 +43,7 @@ func _wait_for_critical_autoloads() -> void:
 	await get_tree().process_frame
 	
 	# Wait for DataManager specifically - using signal-based approach
-	var data_manager = get_node_or_null("/root/DataManagerAutoload") as Node
+	var data_manager = DataManager
 	if data_manager:
 		# Check if DataManager static system has finished loading using public API
 		if not DataManager.is_system_ready():
@@ -55,13 +55,17 @@ func _wait_for_critical_autoloads() -> void:
 			print("SystemsAutoload: DataManager already loaded, proceeding immediately")
 	else:
 		push_warning("SystemsAutoload: DataManager not found, attempting fallback initialization")
-		# Fallback for edge cases
-		DataManager.initialize_data_system()
+		# Fallback for edge cases - check if DataManager singleton exists
+		if DataManager:
+			var fallback_data_manager = DataManager
+			fallback_data_manager.initialize_data_system()
+		else:
+			push_error("SystemsAutoload: DataManager autoload not available")
 	
 	# Ensure other critical autoloads are available
 	var critical_autoloads: Array[String] = [
 		"GlobalEnums",
-		"GameStateManagerAutoload",
+		"GameStateManager",
 		"SceneRouter"
 	]
 	

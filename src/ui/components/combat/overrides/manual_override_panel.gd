@@ -39,7 +39,7 @@ func show_override(context: String, _value: int, min_val: int = 1, max_val: int 
 
 	override_value_spinbox.min_value = min_val
 	override_value_spinbox.max_value = max_val
-	override_value_spinbox._value = _value
+	override_value_spinbox.value = _value
 
 	show()
 
@@ -53,7 +53,7 @@ func _get_context_label(context: String) -> String:
 
 ## Called when the apply button is pressed
 func _on_apply_pressed() -> void:
-	override_applied.emit(int(override_value_spinbox._value))
+	override_applied.emit(int(override_value_spinbox.value))
 	hide()
 
 ## Called when the cancel button is pressed

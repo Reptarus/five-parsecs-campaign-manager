@@ -119,10 +119,11 @@ func initialize() -> bool:
 	# Dependencies are now compile-time validated via preload
 	print("EconomySystem: Initializing with verified dependencies...")
 
-	# Try to get game state
-	_game_state = get_node_or_null("/root/GameState") as Node
-	if not _game_state:
-		_game_state = get_node_or_null("/root/GameStateManagerAutoload") as Node
+	# Try to get game state through GameStateManager
+	if GameStateManager and GameStateManager.has_method("get_game_state"):
+		_game_state = GameStateManager.get_game_state()
+	elif GameStateManager:
+		_game_state = GameStateManager
 
 	# Initialize subsystems
 	_initialize_resources()

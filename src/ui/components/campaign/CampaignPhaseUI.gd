@@ -60,7 +60,7 @@ func _update_progress_display() -> void:
 	if required_actions.size() > 0:
 		progress = float(completed_actions) / required_actions.size()
 
-	progress_bar._value = progress * 100
+	progress_bar.value = progress * 100
 
 func _get_required_actions(phase: GlobalEnums.FiveParsecsCampaignPhase) -> Array:
 	match phase:

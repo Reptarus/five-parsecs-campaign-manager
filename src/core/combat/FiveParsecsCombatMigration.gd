@@ -23,7 +23,7 @@ static var legacy_class_mapping: Dictionary = {
 }
 
 ## Migration entry point for legacy combat systems
-static func migrate_combat_system(legacy_system: Node) -> Node:
+static func migrate_combat_system(legacy_system: Node) -> Variant:
 	"""
 	Migrate legacy combat system to new consolidated system
 	Handles migration from any of the 8 Base combat classes

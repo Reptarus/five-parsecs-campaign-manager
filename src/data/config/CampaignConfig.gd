@@ -6,6 +6,9 @@ class_name CampaignConfig
 ## Fully typed replacement for broken backup file
 ## Enterprise validation and serialization included
 
+# Import validation result class
+const ValidationResult = preload("res://src/core/validation/ValidationResult.gd")
+
 # Core configuration properties with explicit typing
 @export var campaign_name: String = ""
 @export var difficulty_level: int = 1
@@ -30,8 +33,8 @@ func _init() -> void:
 	last_modified = creation_date
 
 ## Comprehensive validation following Five Parsecs rules
-func validate() -> FiveParsecsValidationResult:
-	var result = FiveParsecsValidationResult.new()
+func validate() -> ValidationResult:
+	var result = ValidationResult.new()
 	
 	# Campaign name validation
 	if campaign_name.strip_edges().is_empty():

@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://c1ipgkdm40l6c"]
 
-[ext_resource type="PackedScene" uid="uid://bxkj8l2m9n6r5" path="res://src/ui/screens/campaign/panels/BaseCampaignPanel.tscn" id="1_base"]
+[ext_resource type="PackedScene" uid="uid://bxkj8l2nan6r5" path="res://src/ui/screens/campaign/panels/BaseCampaignPanel.tscn" id="1_base"]
 [ext_resource type="Script" uid="uid://c8dbobs52fwg5" path="res://src/ui/screens/campaign/panels/ConfigPanel.gd" id="2_script"]
 
 [node name="ConfigPanel" instance=ExtResource("1_base")]
@@ -19,7 +19,8 @@ layout_mode = 2
 text = "Campaign Name:"
 theme_override_font_sizes/font_size = 18
 
-[node name="LineEdit" type="LineEdit" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/CampaignName"]
+[node name="CampaignNameInput" type="LineEdit" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/CampaignName"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 placeholder_text = "Enter campaign name..."
@@ -34,7 +35,8 @@ layout_mode = 2
 text = "Difficulty Level:"
 theme_override_font_sizes/font_size = 18
 
-[node name="OptionButton" type="OptionButton" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Difficulty"]
+[node name="DifficultyOption" type="OptionButton" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Difficulty"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 
@@ -47,7 +49,8 @@ layout_mode = 2
 text = "Victory Condition:"
 theme_override_font_sizes/font_size = 18
 
-[node name="OptionButton" type="OptionButton" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/VictoryCondition"]
+[node name="VictoryOption" type="OptionButton" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/VictoryCondition"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 
@@ -60,7 +63,8 @@ layout_mode = 2
 text = "Story Track:"
 theme_override_font_sizes/font_size = 18
 
-[node name="CheckBox" type="CheckBox" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/StoryTrack"]
+[node name="StoryTrackCheckBox" type="CheckBox" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/StoryTrack"]
+unique_name_in_owner = true
 layout_mode = 2
 text = "Enable Story Track campaign"
 
@@ -69,7 +73,8 @@ layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 8
 
-[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Description"]
+[node name="DescriptionLabel" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Description"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
 text = "Difficulty description will appear here..."

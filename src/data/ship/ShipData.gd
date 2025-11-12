@@ -1,5 +1,5 @@
 @tool
-extends Resource  
+extends Resource
 class_name ShipData
 
 ## Production Ship Data Resource - Five Parsecs Campaign Manager
@@ -35,7 +35,7 @@ class_name ShipData
 
 enum ShipClass {
 	BASIC_SHIP,
-	MERCHANT_VESSEL, 
+	MERCHANT_VESSEL,
 	PATROL_SHIP,
 	EXPLORATION_SHIP,
 	MILITARY_TRANSPORT,
@@ -74,8 +74,8 @@ func _initialize_ship_defaults() -> void:
 			current_value = 75000
 
 ## Enterprise validation with comprehensive error handling
-func validate() -> FiveParsecsValidationResult:
-	var result = FiveParsecsValidationResult.new()
+func validate() -> ValidationResult:
+	var result = ValidationResult.new()
 	
 	# Ship name validation
 	if ship_name.strip_edges().is_empty():

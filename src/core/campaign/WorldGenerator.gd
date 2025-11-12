@@ -31,10 +31,8 @@ var _use_specific_planet_type: bool = false
 var _specific_planet_type: String = ""
 
 func _init() -> void:
-	# Initialize DataManager static system if not already done
-	if not DataManager._is_data_loaded:
-		DataManager.initialize_data_system()
-	_load_data()
+	# Initialize DataManager using autoload singleton
+	call_deferred("_load_data")  # Load data after scene tree is ready
 func _ready() -> void:
 	pass
 

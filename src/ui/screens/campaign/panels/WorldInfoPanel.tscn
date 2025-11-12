@@ -1,40 +1,100 @@
-[gd_scene load_steps=2 format=3 uid="uid://bvq3i5n3rl4x4"]
+[gd_scene load_steps=3 format=3 uid="uid://bvq3i5n3rl4x4"]
 
-[ext_resource type="Script" path="res://src/ui/screens/campaign/panels/WorldInfoPanel.gd" id="1_xyz"]
+[ext_resource type="PackedScene" uid="uid://bxkj8l2nan6r5" path="res://src/ui/screens/campaign/panels/BaseCampaignPanel.tscn" id="1_base"]
+[ext_resource type="Script" path="res://src/ui/screens/campaign/panels/WorldInfoPanel.gd" id="2_xyz"]
 
-[node name="WorldInfoPanel" type="Control"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("1_xyz")
+[node name="WorldInfoPanel" instance=ExtResource("1_base")]
+script = ExtResource("2_xyz")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="Label" type="Label" parent="VBoxContainer"]
+[node name="Content" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer"]
 layout_mode = 2
-text = "World Generation Phase"
+theme_override_constants/separation = 20
+
+[node name="WorldNameLabel" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(1, 1, 0.8, 1)
+text = "Current World: Unknown"
 horizontal_alignment = 1
 
-[node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
+[node name="HSeparator1" type="HSeparator" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 layout_mode = 2
 
-[node name="Content" type="VBoxContainer" parent="VBoxContainer"]
+[node name="WorldTraitsContainer" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TraitsLabel" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/WorldTraitsContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "World Traits:"
+
+[node name="HSeparator2" type="HSeparator" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+layout_mode = 2
+
+[node name="GovernmentInfo" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 1, 1)
+text = "Government: Unknown"
+
+[node name="TechLevelDisplay" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 1, 0.8, 1)
+text = "Tech Level: Unknown"
+
+[node name="HSeparator3" type="HSeparator" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+layout_mode = 2
+
+[node name="MarketPricesContainer" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="MarketLabel" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MarketPricesContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Market Prices:"
+
+[node name="HSeparator4" type="HSeparator" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+layout_mode = 2
+
+[node name="OpportunitiesContainer" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="OpportunitiesLabel" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/OpportunitiesContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.8, 1, 0.8, 1)
+text = "Opportunities:"
+
+[node name="HSeparator5" type="HSeparator" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+layout_mode = 2
+
+[node name="ThreatsContainer" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="ThreatsLabel" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/ThreatsContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(1, 0.8, 0.8, 1)
+text = "Threats:"
+
+[node name="HSeparator6" type="HSeparator" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+layout_mode = 2
+
+[node name="WorldSummary" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
-
-[node name="PlaceholderLabel" type="Label" parent="VBoxContainer/Content"]
-layout_mode = 2
-text = "World generation panel will be implemented here.
-For now, this phase will be automatically completed."
-horizontal_alignment = 1
-vertical_alignment = 1
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
 autowrap_mode = 2
+text = "World summary will appear here once world generation is implemented..."
+vertical_alignment = 1

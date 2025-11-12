@@ -50,24 +50,34 @@ func _initialize_autoloads() -> void:
 	for i in range(10):
 		dice_manager = get_node_or_null("/root/DiceManager")
 		if dice_manager:
+			print("TravelPhase: ✅ DiceManager found on attempt ", i + 1)
 			break
-		await get_tree().process_frame
+		print("TravelPhase: ⏳ Waiting for DiceManager... attempt ", i + 1)
+		await get_tree().create_timer(0.1).timeout
 	
 	if not dice_manager:
 		push_error("TravelPhase: DiceManager autoload not found after retries")
+		print("TravelPhase: ❌ DiceManager not available - using fallback random generation")
 	
 	# Wait for GameStateManager to be ready
 	for i in range(10):
-		game_state_manager = get_node_or_null("/root/GameStateManagerAutoload")
+		game_state_manager = get_node_or_null("/root/GameStateManager")
 		if game_state_manager:
+			print("TravelPhase: ✅ GameStateManager found on attempt ", i + 1)
 			break
-		await get_tree().process_frame
+		print("TravelPhase: ⏳ Waiting for GameStateManager... attempt ", i + 1)
+		await get_tree().create_timer(0.1).timeout
 	
 	if not game_state_manager:
-		push_error("TravelPhase: GameStateManagerAutoload not found after retries")
-		game_state_manager = get_node_or_null("/root/GameStateManagerAutoload")
-		if not game_state_manager:
-			push_error("TravelPhase: GameStateManagerAutoload not found after retry")
+		push_error("TravelPhase: GameStateManager not found after retries")
+		# Try alternative access methods
+		var alpha_manager = get_node_or_null("/root/FPCM_AlphaGameManager")
+		if alpha_manager and alpha_manager.has_method("get_game_state_manager"):
+			game_state_manager = alpha_manager.get_game_state_manager()
+			if game_state_manager:
+				print("TravelPhase: ✅ Found GameStateManager via AlphaGameManager")
+		else:
+			print("TravelPhase: ❌ No valid GameStateManager fallback available")
 
 func _initialize_travel_tables() -> void:
 	"""Initialize the travel events and world traits tables"""

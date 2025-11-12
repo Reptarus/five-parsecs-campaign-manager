@@ -52,10 +52,10 @@ func _refresh_display() -> void:
 	ship_type.text = "Type: " + ship_data.get("type", "Unknown")
 
 	current_hull.max_value = ship_data.get("max_hull", 30)
-	current_hull._value = ship_data.get("hull_points", 30)
+	current_hull.value = ship_data.get("hull_points", 30)
 	max_hull.text = "/ " + str(ship_data.get("max_hull", 30))
 
-	debt_amount._value = ship_data.get("debt", 0)
+	debt_amount.value = ship_data.get("debt", 0)
 
 	fuel_level.text = ship_data.get("fuel", "Empty")
 	cost_amount.text = str(_calculate_travel_cost()) + " credit"
@@ -84,16 +84,16 @@ func _refresh_upgrades() -> void:
 
 	# Add current upgrades
 	for upgrade in ship_data.get("upgrades", []):
-		var upgrade_panel: Panel = _create_upgrade_panel(upgrade, true)
+		var upgrade_panel = _create_upgrade_panel(upgrade, true)
 		upgrades_list.add_child(upgrade_panel)
 
 	# Add available upgrades
 	var available_upgrades = _get_available_upgrades()
 	for upgrade in available_upgrades:
-		var upgrade_panel: Panel = _create_upgrade_panel(upgrade, false)
+		var upgrade_panel = _create_upgrade_panel(upgrade, false)
 		upgrades_list.add_child(upgrade_panel)
 
-func _create_upgrade_panel(upgrade_name: String, owned: bool) -> Control:
+func _create_upgrade_panel(upgrade_name: String, owned: bool) -> PanelContainer:
 	"""Create a panel for ship upgrade"""
 	var panel: PanelContainer = PanelContainer.new()
 	var hbox = HBoxContainer.new()

@@ -118,7 +118,7 @@ func _add_effect_widget(effect_data: Dictionary = {}) -> void:
 
 	if not (safe_call_method(effect_data, "is_empty") == true):
 		type_option.selected = effect_data.get("type", 0)
-		value_edit._value = effect_data.get("_value", 0)
+		value_edit.value = effect_data.get("_value", 0)
 		description_edit.text = effect_data.get("description", "")
 
 	remove_button.pressed.connect(func():
@@ -139,7 +139,7 @@ func _update_current_effects() -> void:
 			var remove_button: Button = child.get_child(3) as Button
 			current_effects.append({
 				"type": type_option.selected,
-				"_value": value_edit._value,
+				"_value": value_edit.value,
 				"description": description_edit.text
 			})
 

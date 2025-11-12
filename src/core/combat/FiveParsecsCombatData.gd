@@ -95,8 +95,8 @@ class CombatAction:
 		type = action_type
 		character = actor
 
-# Weapon data for combat calculations
-class WeaponData:
+# Combat weapon data for battle calculations (local class)
+class CombatWeaponData:
 	var name: String
 	var range: int
 	var damage: int
@@ -157,7 +157,7 @@ func calculate_hit_chance(attacker: Character, target: Character, range: float, 
 	# Clamp to valid d6 range (1-6, but we'll allow auto-hit at 1+ and auto-miss at 7+)
 	return clamp(base_chance, 1, 7)
 
-func calculate_damage(weapon: WeaponData, attacker: Character, target: Character) -> int:
+func calculate_damage(weapon: CombatWeaponData, attacker: Character, target: Character) -> int:
 	"""Calculate Five Parsecs damage"""
 	var base_damage = weapon.damage
 	
@@ -235,22 +235,22 @@ func _validate_brawl_action(action: CombatAction, combat_character: CombatCharac
 
 ## Default Weapon Database - Five Parsecs Standard
 
-func get_default_weapons() -> Array[WeaponData]:
+func get_default_weapons() -> Array[CombatWeaponData]:
 	"""Get default Five Parsecs weapons"""
 	return [
-		WeaponData.new("Scrap Pistol", PISTOL_RANGE, 1),
-		WeaponData.new("Colony Rifle", RIFLE_RANGE, 1),
-		WeaponData.new("Military Rifle", RIFLE_RANGE, 2),
-		WeaponData.new("Shotgun", SHOTGUN_RANGE, 2),
-		WeaponData.new("Hand Cannon", PISTOL_RANGE, 2),
-		WeaponData.new("Blast Rifle", RIFLE_RANGE, 1),
-		WeaponData.new("Needle Rifle", RIFLE_RANGE, 1),
-		WeaponData.new("Plasma Rifle", RIFLE_RANGE, 2),
-		WeaponData.new("Auto Rifle", RIFLE_RANGE, 1),
-		WeaponData.new("Heavy Support Weapon", HEAVY_WEAPON_RANGE, 3)
+		CombatWeaponData.new("Scrap Pistol", PISTOL_RANGE, 1),
+		CombatWeaponData.new("Colony Rifle", RIFLE_RANGE, 1),
+		CombatWeaponData.new("Military Rifle", RIFLE_RANGE, 2),
+		CombatWeaponData.new("Shotgun", SHOTGUN_RANGE, 2),
+		CombatWeaponData.new("Hand Cannon", PISTOL_RANGE, 2),
+		CombatWeaponData.new("Blast Rifle", RIFLE_RANGE, 1),
+		CombatWeaponData.new("Needle Rifle", RIFLE_RANGE, 1),
+		CombatWeaponData.new("Plasma Rifle", RIFLE_RANGE, 2),
+		CombatWeaponData.new("Auto Rifle", RIFLE_RANGE, 1),
+		CombatWeaponData.new("Heavy Support Weapon", HEAVY_WEAPON_RANGE, 3)
 	]
 
-func get_weapon_by_name(weapon_name: String) -> WeaponData:
+func get_weapon_by_name(weapon_name: String) -> CombatWeaponData:
 	"""Get weapon data by name"""
 	var weapons = get_default_weapons()
 	for weapon in weapons:
@@ -258,11 +258,11 @@ func get_weapon_by_name(weapon_name: String) -> WeaponData:
 			return weapon
 	
 	# Return default weapon if not found
-	return WeaponData.new("Basic Weapon", RIFLE_RANGE, 1)
+	return CombatWeaponData.new("Basic Weapon", RIFLE_RANGE, 1)
 
 ## Combat Resolution Methods
 
-func resolve_ranged_attack(attacker: CombatCharacter, target: CombatCharacter, weapon: WeaponData, modifiers: Dictionary = {}) -> Dictionary:
+func resolve_ranged_attack(attacker: CombatCharacter, target: CombatCharacter, weapon: CombatWeaponData, modifiers: Dictionary = {}) -> Dictionary:
 	"""Resolve Five Parsecs ranged attack"""
 	var distance = _calculate_distance(attacker.position, target.position)
 	var hit_chance = calculate_hit_chance(attacker.character, target.character, distance, modifiers)

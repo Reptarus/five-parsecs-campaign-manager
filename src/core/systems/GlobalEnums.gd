@@ -837,19 +837,25 @@ enum MissionVictoryType {
 
 enum FiveParsecsCampaignVictoryType {
 	NONE,
+	# Official Five Parsecs Core Rules Victory Conditions
 	TURNS_20, # Play 20 campaign turns
 	TURNS_50, # Play 50 campaign turns
 	TURNS_100, # Play 100 campaign turns
+	BATTLES_20, # Fight 20 battles
+	BATTLES_50, # Fight 50 battles  
+	BATTLES_100, # Fight 100 battles
 	QUESTS_3, # Complete 3 story quests
 	QUESTS_5, # Complete 5 story quests
 	QUESTS_10, # Complete 10 story quests
-	STORY_COMPLETE, # Complete the main story
-	WEALTH_GOAL, # Accumulate specified wealth
-	REPUTATION_GOAL, # Achieve specified reputation
-	FACTION_DOMINANCE, # Become the dominant faction
-	CREDITS_THRESHOLD, # Reach credit threshold
-	REPUTATION_THRESHOLD, # Reach reputation threshold
-	MISSION_COUNT # Complete specific number of missions
+	STORY_POINTS_10, # Reach 10 story points
+	STORY_POINTS_20, # Reach 20 story points
+	CREDITS_50K, # Accumulate 50,000 credits
+	CREDITS_100K, # Accumulate 100,000 credits
+	REPUTATION_10, # Achieve reputation level 10
+	REPUTATION_20, # Achieve reputation level 20
+	CHARACTER_SURVIVAL, # Specific character survives campaign
+	CREW_SIZE_10 # Reach crew size of 10 members
+	# Removed non-compliant: STORY_COMPLETE, WEALTH_GOAL, FACTION_DOMINANCE, etc.
 }
 
 ## Planet Type System (Enhanced - Missing TEMPERATE and ROCKY)
@@ -939,7 +945,7 @@ enum ArmorCategory {
 ## Helper Functions - Production Ready with Complete Type Safety
 
 ## Primary Character System Helpers
-static func get_character_class_name(class_type: CharacterClass) -> String:
+static func get_character_class_name(class_type: int) -> String:
 	var keys = CharacterClass.keys()
 	if class_type >= 0 and class_type < keys.size():
 		return keys[class_type]
@@ -950,6 +956,30 @@ static func get_background_name(background_type: Background) -> String:
 	if background_type >= 0 and background_type < keys.size():
 		return keys[background_type]
 	return "Unknown Background"
+
+static func victory_condition_string_to_enum(victory_string: String) -> FiveParsecsCampaignVictoryType:
+	"""Convert victory condition string to enum value"""
+	match victory_string:
+		"none":
+			return FiveParsecsCampaignVictoryType.NONE
+		"play_20_turns":
+			return FiveParsecsCampaignVictoryType.TURNS_20
+		"play_50_turns":
+			return FiveParsecsCampaignVictoryType.TURNS_50
+		"play_100_turns":
+			return FiveParsecsCampaignVictoryType.TURNS_100
+		"complete_3_quests":
+			return FiveParsecsCampaignVictoryType.QUESTS_3
+		"complete_5_quests":
+			return FiveParsecsCampaignVictoryType.QUESTS_5
+		"complete_10_quests":
+			return FiveParsecsCampaignVictoryType.QUESTS_10
+		"win_20_battles":
+			return FiveParsecsCampaignVictoryType.BATTLES_20
+		"win_50_battles":
+			return FiveParsecsCampaignVictoryType.BATTLES_50
+		_:
+			return FiveParsecsCampaignVictoryType.NONE
 
 static func get_origin_name(origin_type: Origin) -> String:
 	var keys = Origin.keys()
@@ -964,8 +994,17 @@ static func get_motivation_name(motivation_type: Motivation) -> String:
 	return "Unknown Motivation"
 
 ## Enhanced Display Name Functions (UI-Friendly)
-static func get_class_display_name(class_type: CharacterClass) -> String:
-	match class_type:
+static func get_class_display_name(class_type) -> String:
+	# Handle both string and int inputs for backward compatibility
+	var class_id: int
+	if class_type is String:
+		class_id = string_to_character_class_enum(class_type)
+	elif class_type is int:
+		class_id = class_type
+	else:
+		return "Unknown Class"
+	
+	match class_id:
 		CharacterClass.SOLDIER: return "Soldier"
 		CharacterClass.SCOUT: return "Scout"
 		CharacterClass.MEDIC: return "Medic"
@@ -982,6 +1021,29 @@ static func get_class_display_name(class_type: CharacterClass) -> String:
 		CharacterClass.GUNSLINGER: return "Gunslinger"
 		CharacterClass.ACADEMIC: return "Academic"
 		_: return "Unknown Class"
+
+## Helper function to convert string class names to enum values
+static func string_to_character_class_enum(class_string: String) -> int:
+	match class_string.to_upper():
+		"SOLDIER": return CharacterClass.SOLDIER
+		"SCOUT": return CharacterClass.SCOUT
+		"MEDIC": return CharacterClass.MEDIC
+		"ENGINEER": return CharacterClass.ENGINEER
+		"PILOT": return CharacterClass.PILOT
+		"MERCHANT": return CharacterClass.MERCHANT
+		"SECURITY": return CharacterClass.SECURITY
+		"BROKER": return CharacterClass.BROKER
+		"BOT_TECH": return CharacterClass.BOT_TECH
+		"ROGUE": return CharacterClass.ROGUE
+		"PSIONICIST": return CharacterClass.PSIONICIST
+		"TECH", "TECHNICIAN": return CharacterClass.TECH
+		"BRUTE": return CharacterClass.BRUTE
+		"GUNSLINGER": return CharacterClass.GUNSLINGER
+		"ACADEMIC": return CharacterClass.ACADEMIC
+		"BASELINE": return CharacterClass.BASELINE
+		"SPECIALIST": return CharacterClass.SPECIALIST
+		"CAPTAIN": return CharacterClass.CAPTAIN
+		_: return CharacterClass.NONE
 
 static func get_background_display_name(background_type: Background) -> String:
 	match background_type:
@@ -1130,34 +1192,34 @@ static func is_valid_enemy_characteristic(characteristic: int) -> bool:
 	return characteristic > EnemyCharacteristic.NONE and characteristic < EnemyCharacteristic.size()
 
 ## Utility Functions for Array Bounds Safety
-static func clamp_to_valid_class(class_type: int) -> CharacterClass:
+static func clamp_to_valid_class(class_type: int) -> int:
 	if is_valid_character_class(class_type):
-		return class_type as CharacterClass
+		return class_type
 	return CharacterClass.SOLDIER # Safe default
 
-static func clamp_to_valid_background(background_type: int) -> Background:
+static func clamp_to_valid_background(background_type: int) -> int:
 	if is_valid_background(background_type):
-		return background_type as Background
+		return background_type
 	return Background.MILITARY # Safe default
 
-static func clamp_to_valid_origin(origin_type: int) -> Origin:
+static func clamp_to_valid_origin(origin_type: int) -> int:
 	if is_valid_origin(origin_type):
-		return origin_type as Origin
+		return origin_type
 	return Origin.HUMAN # Safe default
 
-static func clamp_to_valid_motivation(motivation_type: int) -> Motivation:
+static func clamp_to_valid_motivation(motivation_type: int) -> int:
 	if is_valid_motivation(motivation_type):
-		return motivation_type as Motivation
+		return motivation_type
 	return Motivation.SURVIVAL # Safe default
 
-static func clamp_to_valid_item_type(item_type: int) -> ItemType:
+static func clamp_to_valid_item_type(item_type: int) -> int:
 	if is_valid_item_type(item_type):
-		return item_type as ItemType
+		return item_type
 	return ItemType.GEAR # Safe default
 
-static func clamp_to_valid_item_rarity(rarity: int) -> ItemRarity:
+static func clamp_to_valid_item_rarity(rarity: int) -> int:
 	if is_valid_item_rarity(rarity):
-		return rarity as ItemRarity
+		return rarity
 	return ItemRarity.COMMON # Safe default
 
 ## Phase Management Constants
@@ -1411,34 +1473,34 @@ static func get_difficulty_level_name(difficulty: DifficultyLevel) -> String:
 		_: return "Unknown Difficulty"
 
 ## Safe Clamping Functions for New Enums
-static func clamp_to_valid_market_state(state: int) -> MarketState:
+static func clamp_to_valid_market_state(state: int) -> int:
 	if is_valid_market_state(state):
-		return state as MarketState
+		return state
 	return MarketState.NORMAL
 
-static func clamp_to_valid_planet_type(planet_type: int) -> PlanetType:
+static func clamp_to_valid_planet_type(planet_type: int) -> int:
 	if is_valid_planet_type(planet_type):
-		return planet_type as PlanetType
+		return planet_type
 	return PlanetType.TERRESTRIAL
 
-static func clamp_to_valid_faction_type(faction_type: int) -> FactionType:
+static func clamp_to_valid_faction_type(faction_type: int) -> int:
 	if is_valid_faction_type(faction_type):
-		return faction_type as FactionType
+		return faction_type
 	return FactionType.NEUTRAL
 
-static func clamp_to_valid_planet_environment(environment: int) -> PlanetEnvironment:
+static func clamp_to_valid_planet_environment(environment: int) -> int:
 	if is_valid_planet_environment(environment):
-		return environment as PlanetEnvironment
+		return environment
 	return PlanetEnvironment.HABITABLE
 
-static func clamp_to_valid_strife_type(strife_type: int) -> StrifeType:
+static func clamp_to_valid_strife_type(strife_type: int) -> int:
 	if is_valid_strife_type(strife_type):
-		return strife_type as StrifeType
+		return strife_type
 	return StrifeType.PEACEFUL
 
-static func clamp_to_valid_threat_type(threat_type: int) -> ThreatType:
+static func clamp_to_valid_threat_type(threat_type: int) -> int:
 	if is_valid_threat_type(threat_type):
-		return threat_type as ThreatType
+		return threat_type
 	return ThreatType.MINOR
 
 ## New Enum Helper Functions
@@ -1508,9 +1570,9 @@ static func get_location_type_name(location: LocationType) -> String:
 static func is_valid_location_type(location: int) -> bool:
 	return location >= LocationType.NONE and location < LocationType.size()
 
-static func clamp_to_valid_location_type(location: int) -> LocationType:
+static func clamp_to_valid_location_type(location: int) -> int:
 	if is_valid_location_type(location):
-		return location as LocationType
+		return location
 	return LocationType.SETTLEMENT
 
 ## Weapon Category Helpers
@@ -1527,9 +1589,9 @@ static func get_weapon_category_name(category: WeaponCategory) -> String:
 static func is_valid_weapon_category(category: int) -> bool:
 	return category >= WeaponCategory.NONE and category < WeaponCategory.size()
 
-static func clamp_to_valid_weapon_category(category: int) -> WeaponCategory:
+static func clamp_to_valid_weapon_category(category: int) -> int:
 	if is_valid_weapon_category(category):
-		return category as WeaponCategory
+		return category
 	return WeaponCategory.PISTOLS
 
 ## Armor Category Helpers
@@ -1546,9 +1608,9 @@ static func get_armor_category_name(category: ArmorCategory) -> String:
 static func is_valid_armor_category(category: int) -> bool:
 	return category >= ArmorCategory.NONE and category < ArmorCategory.size()
 
-static func clamp_to_valid_armor_category(category: int) -> ArmorCategory:
+static func clamp_to_valid_armor_category(category: int) -> int:
 	if is_valid_armor_category(category):
-		return category as ArmorCategory
+		return category
 	return ArmorCategory.LIGHT_ARMOR
 
 ## Phase Sub-Step Names (Required by CampaignPhaseManager)
@@ -1587,3 +1649,307 @@ const POST_BATTLE_SUBSTEP_NAMES = {
 	PostBattleSubPhase.CHARACTER_EVENT: "Character Event",
 	PostBattleSubPhase.GALACTIC_WAR: "Galactic War Progress"
 }
+
+# ====================== CHARACTER PROPERTY MIGRATION SYSTEM ======================
+# Production-Ready Validation Layer with Full Observability
+# Handles migration from enum-based character properties to string-based properties
+# Includes performance monitoring, error tracking, and automatic rollback capability
+
+# Performance tracking with percentile metrics
+static var _conversion_metrics = {
+	"conversions": 0,
+	"failures": 0,
+	"p50_us": 0,
+	"p95_us": 0, 
+	"p99_us": 0,
+	"samples": [],
+	"last_reset": 0
+}
+
+# Pre-computed conversion tables for O(1) performance
+static var _string_cache = {}
+static var _enum_cache = {}
+static var _validation_cache = {}
+
+# Feature flags for gradual rollout and emergency rollback
+static var MIGRATION_FLAGS = {
+	"use_string_validation": true,
+	"enable_performance_monitoring": true,
+	"allow_legacy_format": true,
+	"log_type_conversions": false,  # Only in debug
+	"auto_rollback_enabled": true,
+	"error_threshold_percent": 1.0
+}
+
+# Initialize caches at startup
+static func _static_init():
+	_warm_caches()
+	_init_performance_monitoring()
+
+static func _warm_caches():
+	"""Pre-compute ALL conversions at startup for O(1) performance"""
+	print("[MIGRATION] Warming conversion caches...")
+	
+	var enum_types = {
+		"background": Background,
+		"motivation": Motivation, 
+		"origin": Origin,
+		"character_class": CharacterClass
+	}
+	
+	for type_name in enum_types:
+		_string_cache[type_name] = {}
+		_enum_cache[type_name] = {}
+		
+		var enum_dict = enum_types[type_name]
+		var keys = enum_dict.keys()
+		
+		for key in keys:
+			var value = enum_dict[key]
+			var key_upper = key.to_upper()
+			
+			# int -> string conversion
+			_string_cache[type_name][value] = key_upper
+			
+			# string -> int conversion  
+			_enum_cache[type_name][key_upper] = value
+			
+			# O(1) validation lookup
+			_validation_cache[key_upper] = true
+		
+		print("[MIGRATION] Cached %d conversions for %s" % [keys.size(), type_name])
+
+static func _init_performance_monitoring():
+	"""Initialize performance monitoring system"""
+	_conversion_metrics.last_reset = Time.get_ticks_msec()
+	print("[MIGRATION] Performance monitoring initialized")
+
+# CRITICAL: High-performance conversion with optimized fast paths  
+static func to_string_value(enum_type: String, value: Variant) -> String:
+	"""Convert any format to validated string with ultra-fast O(1) lookups"""
+	if not MIGRATION_FLAGS.use_string_validation:
+		return _legacy_conversion(enum_type, value)
+	
+	# ULTRA-FAST PATH: Direct int->string lookup (most performance critical)
+	if value is int:
+		var type_cache = _string_cache.get(enum_type)
+		if type_cache:
+			var cached_result = type_cache.get(value)
+			if cached_result:
+				_conversion_metrics.conversions += 1
+				return cached_result
+		# Invalid int - use fallback
+		_record_failure("invalid_int", enum_type, value)
+		_conversion_metrics.conversions += 1
+		return _get_default(enum_type)
+	
+	# FAST PATH: String validation (already correct format) 
+	if value is String:
+		var upper = value.to_upper()
+		if _validation_cache.get(upper, false):
+			_conversion_metrics.conversions += 1
+			return upper
+		# Invalid string - use fallback  
+		_record_failure("invalid_string", enum_type, value)
+		_conversion_metrics.conversions += 1
+		return _get_default(enum_type)
+	
+	# SLOW PATH: Unsupported types (rare case)
+	_record_failure("unsupported_type", enum_type, value)
+	_conversion_metrics.conversions += 1
+	return _get_default(enum_type)
+
+static func from_string_value(enum_type: String, string_value: String) -> int:
+	"""Convert validated string back to enum value for legacy compatibility"""
+	var upper = string_value.to_upper()
+	if _enum_cache.has(enum_type) and _enum_cache[enum_type].has(upper):
+		return _enum_cache[enum_type][upper]
+	
+	push_warning("[MIGRATION] Cannot convert string to enum: %s.%s" % [enum_type, string_value])
+	return 0
+
+# PHASE 6: Safe enum conversion with comprehensive fallback handling
+static func safe_enum_to_string(enum_type: String, value: Variant, fallback: String = "") -> String:
+	"""Ultra-safe enum to string conversion with multiple fallback layers"""
+	
+	# Layer 1: Try the optimized conversion system
+	var result = to_string_value(enum_type, value)
+	if result != "UNKNOWN" and result != _get_default(enum_type):
+		return result
+	
+	# Layer 2: Try direct enum lookup for specific types
+	match enum_type:
+		"background":
+			if value is int and value >= 0 and value < Background.size():
+				return Background.keys()[value]
+		"motivation":
+			if value is int and value >= 0 and value < Motivation.size():
+				return Motivation.keys()[value]
+		"origin":
+			if value is int and value >= 0 and value < Origin.size():
+				return Origin.keys()[value]
+		"character_class":
+			if value is int and value >= 0 and value < CharacterClass.size():
+				return CharacterClass.keys()[value]
+	
+	# Layer 3: Use provided fallback
+	if fallback != "":
+		print("[MIGRATION WORKAROUND] Using provided fallback for %s: %s" % [enum_type, fallback])
+		return fallback
+	
+	# Layer 4: Use default fallback
+	var default = _get_default(enum_type)
+	print("[MIGRATION WORKAROUND] Using default fallback for %s: %s" % [enum_type, default])
+	return default
+
+static func _record_performance_sample(duration: int):
+	"""Record performance sample and update percentiles"""
+	# Keep rolling window of 1000 samples for statistical accuracy
+	_conversion_metrics.samples.append(duration)
+	if _conversion_metrics.samples.size() > 1000:
+		_conversion_metrics.samples.pop_front()
+	
+	# Calculate percentiles (requires minimum samples for accuracy)
+	if _conversion_metrics.samples.size() >= 100:
+		var sorted = _conversion_metrics.samples.duplicate()
+		sorted.sort()
+		var size = sorted.size()
+		
+		_conversion_metrics.p50_us = sorted[size * 50 / 100]
+		_conversion_metrics.p95_us = sorted[size * 95 / 100] 
+		_conversion_metrics.p99_us = sorted[size * 99 / 100]
+
+static func _record_failure(failure_type: String, enum_type: String, value: Variant):
+	"""Record conversion failure for monitoring and debugging"""
+	_conversion_metrics.failures += 1
+	
+	if OS.is_debug_build():
+		push_error("[MIGRATION] %s failure: %s.%s" % [failure_type, enum_type, str(value)])
+	
+	# Check for auto-rollback threshold
+	if MIGRATION_FLAGS.auto_rollback_enabled:
+		var error_rate = float(_conversion_metrics.failures) / max(_conversion_metrics.conversions, 1)
+		if error_rate > MIGRATION_FLAGS.error_threshold_percent / 100.0:
+			_trigger_emergency_rollback("Error rate %.2f%% exceeds threshold" % (error_rate * 100))
+
+static func _get_default(enum_type: String) -> String:
+	"""Get safe default value for each enum type"""
+	match enum_type:
+		"background":
+			return "COLONIST"
+		"motivation":
+			return "SURVIVAL"
+		"origin":
+			return "HUMAN"
+		"character_class":
+			return "BASELINE"
+		_:
+			return "UNKNOWN"
+
+static func _legacy_conversion(enum_type: String, value: Variant) -> String:
+	"""Legacy conversion for emergency rollback"""
+	if value is String:
+		return value.to_upper()
+	elif value is int:
+		# Simple fallback without caching
+		match enum_type:
+			"background":
+				if value < Background.size():
+					return Background.keys()[value]
+			"motivation":
+				if value < Motivation.size():
+					return Motivation.keys()[value]
+			"origin":
+				if value < Origin.size():
+					return Origin.keys()[value]
+			"character_class":
+				if value < CharacterClass.size():
+					return CharacterClass.keys()[value]
+	
+	return _get_default(enum_type)
+
+# Production health monitoring endpoint
+static func get_migration_health() -> Dictionary:
+	"""Get comprehensive migration health status for monitoring dashboard"""
+	var error_rate = float(_conversion_metrics.failures) / max(_conversion_metrics.conversions, 1)
+	var status = "healthy"
+	
+	# Determine status based on error rate and performance
+	if error_rate > 0.01:  # 1%
+		status = "critical"
+	elif error_rate > 0.001 or _conversion_metrics.p99_us > 1000:  # 0.1% or 1ms P99
+		status = "degraded"
+	
+	return {
+		"status": status,
+		"conversions": _conversion_metrics.conversions,
+		"failures": _conversion_metrics.failures,
+		"error_rate_percent": error_rate * 100,
+		"p50_microseconds": _conversion_metrics.p50_us,
+		"p95_microseconds": _conversion_metrics.p95_us,
+		"p99_microseconds": _conversion_metrics.p99_us,
+		"alert": error_rate > 0.001,  # Alert if >0.1% errors
+		"uptime_minutes": (Time.get_ticks_msec() - _conversion_metrics.last_reset) / 60000.0,
+		"feature_flags": MIGRATION_FLAGS,
+		"cache_size": _validation_cache.size()
+	}
+
+static func reset_migration_metrics():
+	"""Reset metrics for testing or monitoring reset"""
+	_conversion_metrics = {
+		"conversions": 0,
+		"failures": 0,
+		"p50_us": 0,
+		"p95_us": 0,
+		"p99_us": 0,
+		"samples": [],
+		"last_reset": Time.get_ticks_msec()
+	}
+	print("[MIGRATION] Metrics reset")
+
+static func _trigger_emergency_rollback(reason: String):
+	"""Emergency rollback trigger with logging"""
+	push_error("[MIGRATION] EMERGENCY ROLLBACK: %s" % reason)
+	
+	# Disable string validation immediately
+	MIGRATION_FLAGS.use_string_validation = false
+	MIGRATION_FLAGS.allow_legacy_format = true
+	
+	# Log rollback for post-incident analysis
+	print("[MIGRATION] Emergency rollback triggered - system reverted to legacy mode")
+	
+	# Emit signal if available for UI notification
+	if Engine.has_singleton("EventManager"):
+		var event_manager = Engine.get_singleton("EventManager")
+		if event_manager.has_method("emit_system_alert"):
+			event_manager.emit_system_alert("CHARACTER_MIGRATION_ROLLBACK", reason)
+
+# Manual rollback for testing and emergency situations
+static func manual_rollback():
+	"""Manual rollback for testing or emergency situations"""
+	_trigger_emergency_rollback("Manual rollback requested")
+	return true
+
+# Feature flag management for gradual rollout
+static func enable_migration_feature(feature_name: String, enabled: bool):
+	"""Enable/disable specific migration features for gradual rollout"""
+	if MIGRATION_FLAGS.has(feature_name):
+		MIGRATION_FLAGS[feature_name] = enabled
+		print("[MIGRATION] Feature %s %s" % [feature_name, "enabled" if enabled else "disabled"])
+		return true
+	else:
+		push_warning("[MIGRATION] Unknown feature flag: %s" % feature_name)
+		return false
+
+# Validation helpers for specific enum types
+static func is_valid_background_string(background: String) -> bool:
+	return _validation_cache.get(background.to_upper(), false)
+
+static func is_valid_motivation_string(motivation: String) -> bool:
+	return _validation_cache.get(motivation.to_upper(), false)
+
+static func is_valid_origin_string(origin: String) -> bool:
+	return _validation_cache.get(origin.to_upper(), false)
+
+static func is_valid_character_class_string(character_class: String) -> bool:
+	return _validation_cache.get(character_class.to_upper(), false)

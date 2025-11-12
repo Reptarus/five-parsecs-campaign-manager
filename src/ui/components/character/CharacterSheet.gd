@@ -4,8 +4,9 @@ extends Control
 ## Five Parsecs Character Sheet Display Component
 ## Displays character information in a comprehensive, readable format
 
-# Safe imports
-# GlobalEnums available as autoload singleton
+# Safe imports - ensure GlobalEnums access
+# Note: GlobalEnums is configured as an autoload singleton in project.godot
+# but we add this check to ensure it's accessible during compilation
 const Character = preload("res://src/core/character/Character.gd")
 
 # UI Components
@@ -90,19 +91,28 @@ func _update_basic_info(character: Character) -> void:
 	if character_name_label:
 		character_name_label.text = character.character_name if character.character_name else "Unnamed Character"
 
-	# Character class
+	# Character class - safe access to GlobalEnums
 	if character_class_label:
-		var character_class_str: String = GlobalEnums.get_character_class_name(character.character_class)
+		var character_class_str: String = ""
+		# Check if GlobalEnums autoload is available and has the method
+		if GlobalEnums and GlobalEnums.has_method("get_character_class_name"):
+			character_class_str = GlobalEnums.get_character_class_name(character.get_character_class_enum())
+		else:
+			# Fallback: use the character class directly if available
+			if character.has_method("get_character_class_string"):
+				character_class_str = character.get_character_class_string()
+			else:
+				character_class_str = str(character.get_character_class_enum()) if character.has_method("get_character_class_enum") else "Unknown"
 		character_class_label.text = "Class: " + character_class_str
 
 	# Background
 	if background_label:
-		var background_name: String = GlobalEnums.get_background_name(character.background)
+		var background_name: String = character.background if not character.background.is_empty() else "Unknown"
 		background_label.text = "Background: " + str(background_name)
 func _update_stats(character: Character) -> void:
 	"""Update character statistics"""
 	if reaction_label:
-		reaction_label.text = str(character.reaction)
+		reaction_label.text = str(character.reactions)
 
 	if combat_label:
 		combat_label.text = str(character.combat)

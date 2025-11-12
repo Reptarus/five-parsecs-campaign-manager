@@ -82,7 +82,8 @@ func set_portrait_from_path(path: String) -> void:
 		clear_portrait()
 		return
 	
-	var texture = portrait_manager.load_portrait_from_path(path)
+	# Portrait manager not available - use direct image loading
+	var texture = ImageTexture.create_from_image(Image.load_from_file(path))
 	if texture:
 		portrait_texture = texture
 		current_portrait_path = path

@@ -230,8 +230,9 @@ func _process_loot_and_rewards() -> void:
 	
 	# Add loot to ship inventory
 	for item in loot_gained:
-		if GameStateManagerAutoload:
-			GameStateManagerAutoload.add_item_to_inventory(item)
+		# GameStateManagerAutoload not available - use GameState fallback
+		if GameState and GameState.has_method("add_item_to_inventory"):
+			GameState.add_item_to_inventory(item)
 
 func _process_experience_and_advancement() -> void:
 	"""Process experience and advancement according to Five Parsecs rules"""
@@ -248,8 +249,9 @@ func _apply_results_to_characters() -> void:
 	"""Apply all battle results to character states"""
 	# Remove casualties from active crew
 	for casualty in crew_casualties:
-		if GameStateManagerAutoload:
-			GameStateManagerAutoload.remove_character(casualty)
+		# GameStateManagerAutoload not available - use GameState fallback
+		if GameState and GameState.has_method("remove_character"):
+			GameState.remove_character(casualty)
 	
 	# Apply injury states to injured characters
 	for injured in crew_injuries:

@@ -50,11 +50,12 @@ var upkeep_costs: Dictionary = {
 func _ready() -> void:
 	# Get autoload references safely
 	dice_manager = get_node_or_null("/root/DiceManager")
-	game_state_manager = get_node_or_null("/root/GameStateManagerAutoload")
+	game_state_manager = get_node_or_null("/root/GameStateManager")
 	
-	# Initialize DataManager static system if not already done
-	if not DataManager._is_data_loaded:
-		DataManager.initialize_data_system()
+	# Initialize DataManager if needed
+	var data_manager = get_node_or_null("/root/DataManager")
+	if data_manager and data_manager.has_method("_is_data_loaded") and not data_manager._is_data_loaded:
+		data_manager.initialize_data_system()
 	
 	# Load optional dependencies conditionally
 	if ResourceLoader.exists("res://src/core/signals/EnhancedCampaignSignals.gd"):

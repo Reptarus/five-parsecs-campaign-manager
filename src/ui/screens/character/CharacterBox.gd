@@ -110,7 +110,7 @@ func _update_character_display(character: Character) -> void:
 
 	# Stats
 	if reactions_value:
-		reactions_value.text = str(character.reaction)
+		reactions_value.text = str(character.reactions)
 
 	if speed_value:
 		speed_value.text = str(character.speed)
@@ -199,15 +199,15 @@ func _update_portrait_display(character: Character) -> void:
 		var bg_color: Color = Color.GRAY
 
 		match character.character_class:
-			GlobalEnums.CharacterClass.SOLDIER:
+			"SOLDIER":
 				bg_color = Color(0.8, 0.3, 0.3, 1.0) # Red-ish
-			GlobalEnums.CharacterClass.SCOUT:
+			"SCOUT":
 				bg_color = Color(0.3, 0.8, 0.3, 1.0) # Green-ish
-			GlobalEnums.CharacterClass.MEDIC:
+			"MEDIC":
 				bg_color = Color(0.3, 0.3, 0.8, 1.0) # Blue-ish
-			GlobalEnums.CharacterClass.ENGINEER:
+			"ENGINEER":
 				bg_color = Color(0.8, 0.8, 0.3, 1.0) # Yellow-ish
-			GlobalEnums.CharacterClass.PILOT:
+			"PILOT":
 				bg_color = Color(0.8, 0.3, 0.8, 1.0) # Purple-ish
 			_:
 				bg_color = Color.GRAY

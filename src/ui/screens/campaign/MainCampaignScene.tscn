@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3 uid="uid://main_campaign_scene"]
+[gd_scene load_steps=3 format=3 uid="uid://b8x4j7y2n8q4y"]
 
 [ext_resource type="Script" path="res://src/ui/screens/campaign/MainCampaignScene.gd" id="1_main_campaign"]
 [ext_resource type="PackedScene" uid="uid://bbdf8j6xqaohc" path="res://src/ui/screens/campaign/CampaignTurnController.tscn" id="2_campaign_turn"]

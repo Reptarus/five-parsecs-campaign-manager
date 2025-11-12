@@ -5,6 +5,8 @@ extends RefCounted
 ## Rollback and Disaster Recovery System for Campaign Creation
 ## Provides instant rollback capabilities for safe deployment
 
+const CampaignCreationFeatureFlags = preload("res://src/core/systems/CampaignCreationFeatureFlags.gd")
+
 # Rollback configuration mapping components to their backup versions
 const ROLLBACK_CONFIGURATION = {
 	"animation_safety": {

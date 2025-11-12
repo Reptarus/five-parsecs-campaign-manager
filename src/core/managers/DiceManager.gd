@@ -4,39 +4,56 @@ extends Node
 ## Integrates the dice system with existing game systems
 ## Provides centralized dice rolling with visual feedback
 
-const DiceSystemResource = preload("res://src/core/systems/DiceSystem.gd")
-
 signal dice_roll_requested(context: String, dice_pattern: String)
 signal dice_result_ready(result: int, context: String)
 
-var dice_system: DiceSystemResource
+var dice_system: Resource = null
 var dice_feed: Control # Reference to UI dice feed
 var auto_mode: bool = true # Whether to auto-roll or request manual input
 
 ## Initialize the dice manager
 func _ready() -> void:
-	dice_system = DiceSystemResource.new()
-	_setup_dice_system()
+	_initialize_dice_system()
+
+func _initialize_dice_system() -> void:
+	"""Safely initialize dice system with fallback"""
+	# Try to load DiceSystem resource safely
+	var dice_system_script = load("res://src/core/systems/DiceSystem.gd")
+	if dice_system_script:
+		dice_system = dice_system_script.new()
+		_setup_dice_system()
+		print("DiceManager: ✅ DiceSystem loaded successfully")
+	else:
+		print("DiceManager: ❌ Failed to load DiceSystem - using basic random fallback")
+		# Continue without dice_system - methods will use fallback
+
 func _setup_dice_system() -> void:
+	"""Configure dice system if loaded successfully"""
+	if not dice_system:
+		return
+		
 	# Configure dice system for Five Parsecs gameplay
 	dice_system.auto_roll_enabled = auto_mode
 	dice_system.show_animations = true
 	dice_system.allow_manual_override = true
 
-	# Connect signals
-	dice_system.dice_rolled.connect(_on_dice_rolled)
-	dice_system.manual_input_requested.connect(_on_manual_input_requested)
+	# Connect signals safely
+	if dice_system.has_signal("dice_rolled"):
+		dice_system.dice_rolled.connect(_on_dice_rolled)
+	if dice_system.has_signal("manual_input_requested"):
+		dice_system.manual_input_requested.connect(_on_manual_input_requested)
 
 ## Set reference to the dice feed UI component
 func set_dice_feed(feed: Control) -> void:
 	dice_feed = feed
-	if dice_feed and dice_feed and dice_feed.has_method("set_dice_system"):
+	if dice_feed and dice_feed.has_method("set_dice_system") and dice_system:
 		dice_feed.set_dice_system(dice_system)
 
 ## Enable/disable automatic rolling
 func set_auto_mode(enabled: bool) -> void:
 	auto_mode = enabled
-	dice_system.auto_roll_enabled = enabled
+	if dice_system:
+		dice_system.auto_roll_enabled = enabled
 
 ## REPLACEMENT METHODS FOR EXISTING RANDOM CALLS
 ## These replace direct randi() calls throughout the codebase
@@ -259,7 +276,7 @@ func load_dice_settings(settings: Dictionary) -> void:
 ## INTEGRATION HELPERS
 
 ## Get the underlying dice system for advanced operations
-func get_dice_system() -> DiceSystemResource:
+func get_dice_system() -> Resource:
 	return dice_system
 
 ## Check if dice system is ready for rolling

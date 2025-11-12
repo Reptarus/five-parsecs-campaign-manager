@@ -16,7 +16,7 @@ signal checkpoint_completed
 	"validation": validation_label
 }
 
-var game_state_manager: Node # Will contain GameStateManagerAutoload
+var game_state_manager: Node # Will contain GameStateManager
 var current_mission: Mission
 var initial_state: Dictionary
 var mission_specific_inputs: Dictionary = {}
@@ -31,9 +31,9 @@ func _ready() -> void:
 	connect_signals()
 
 func initialize_from_autoload() -> void:
-	game_state_manager = get_node("/root/GameStateManagerAutoload")
+	game_state_manager = get_node("/root/GameStateManager")
 	if not game_state_manager:
-		push_error("Failed to get GameStateManagerAutoload")
+		push_error("Failed to get GameStateManager")
 		return
 
 func initialize(mission: Mission, battle_state: Dictionary) -> void:
@@ -63,7 +63,7 @@ func _validate_ui_elements() -> bool:
 
 func _setup_base_ui() -> void:
 	enemy_count_input.max_value = initial_state.get("total_enemies", 0)
-	enemy_count_input._value = 0
+	enemy_count_input.value = 0
 	notes_input.text = ""
 	validation_label.text = ""
 func _setup_mission_specific_ui() -> void:
@@ -105,7 +105,7 @@ func validate_checkpoint() -> bool:
 	return true
 
 func _validate_basic_requirements() -> bool:
-	if enemy_count_input._value > initial_state.total_enemies:
+	if enemy_count_input.value > initial_state.total_enemies:
 		_show_validation_error("Enemy count exceeds initial number")
 		return false
 
@@ -152,7 +152,7 @@ func _validate_core_rules() -> bool:
 
 func _create_checkpoint_data() -> Dictionary:
 	var data: Dictionary = {
-		"enemies_remaining": enemy_count_input._value,
+		"enemies_remaining": enemy_count_input.value,
 		"objectives_completed": _get_completed_objectives(),
 		"notes": notes_input.text,
 		"mission_specific": {}
@@ -249,7 +249,7 @@ func _get_rescued_units() -> Array:
 	if not rescue_count:
 		return []
 
-	return range(rescue_count._value)
+	return range(rescue_count.value)
 
 func _check_extraction_point() -> bool:
 	var rescue_container = mission_specific_inputs.get("rescue", null)
@@ -268,7 +268,7 @@ func _get_destroyed_targets() -> Array:
 	if not target_count:
 		return []
 
-	return range(target_count._value)
+	return range(target_count.value)
 
 func _check_stealth_status() -> bool:
 	var sabotage_container = mission_specific_inputs.get("sabotage", null)

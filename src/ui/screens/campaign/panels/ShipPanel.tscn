@@ -1,107 +1,88 @@
-[gd_scene load_steps=2 format=3 uid="uid://b6x8kas2k3e4f"]
+[gd_scene load_steps=3 format=3 uid="uid://b6x8kas2k3e4f"]
 
-[ext_resource type="Script" path="res://src/ui/screens/campaign/panels/ShipPanel.gd" id="1_ship"]
+[ext_resource type="PackedScene" uid="uid://bxkj8l2nan6r5" path="res://src/ui/screens/campaign/panels/BaseCampaignPanel.tscn" id="1_base"]
+[ext_resource type="Script" path="res://src/ui/screens/campaign/panels/ShipPanel.gd" id="2_ship"]
 
-[node name="ShipPanel" type="Control"]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("1_ship")
+[node name="ShipPanel" instance=ExtResource("1_base")]
+script = ExtResource("2_ship")
 
-[node name="Content" type="VBoxContainer" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+[node name="Content" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer"]
+layout_mode = 2
 theme_override_constants/separation = 20
 
-[node name="Title" type="Label" parent="Content"]
-layout_mode = 2
-text = "Ship Assignment"
-horizontal_alignment = 1
-theme_override_font_sizes/font_size = 24
-
-[node name="Description" type="Label" parent="Content"]
-layout_mode = 2
-text = "Configure your starting ship. All crews start with a basic ship."
-horizontal_alignment = 1
-autowrap_mode = 2
-
-[node name="ShipName" type="VBoxContainer" parent="Content"]
+[node name="ShipName" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="Content/ShipName"]
+[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/ShipName"]
 layout_mode = 2
 text = "Ship Name:"
 
-[node name="LineEdit" type="LineEdit" parent="Content/ShipName"]
+[node name="ShipNameInput" type="LineEdit" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/ShipName"]
+unique_name_in_owner = true
 layout_mode = 2
 placeholder_text = "Enter ship name"
 
-[node name="ShipType" type="VBoxContainer" parent="Content"]
+[node name="ShipType" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="Content/ShipType"]
+[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/ShipType"]
 layout_mode = 2
 text = "Ship Type:"
 
-[node name="Value" type="OptionButton" parent="Content/ShipType"]
+[node name="ShipTypeOption" type="OptionButton" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/ShipType"]
+unique_name_in_owner = true
 layout_mode = 2
 
-[node name="HullPoints" type="VBoxContainer" parent="Content"]
+[node name="HullPoints" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="Content/HullPoints"]
+[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/HullPoints"]
 layout_mode = 2
 text = "Hull Points:"
 
-[node name="Value" type="SpinBox" parent="Content/HullPoints"]
+[node name="HullPointsSpinBox" type="SpinBox" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/HullPoints"]
+unique_name_in_owner = true
 layout_mode = 2
 max_value = 20.0
 value = 10.0
 
-[node name="Debt" type="VBoxContainer" parent="Content"]
+[node name="Debt" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="Content/Debt"]
+[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Debt"]
 layout_mode = 2
 text = "Ship Debt:"
 
-[node name="Value" type="SpinBox" parent="Content/Debt"]
+[node name="DebtSpinBox" type="SpinBox" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Debt"]
+unique_name_in_owner = true
 layout_mode = 2
 max_value = 10000.0
 step = 100.0
 
-[node name="Traits" type="VBoxContainer" parent="Content"]
+[node name="Traits" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="Content/Traits"]
+[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Traits"]
 layout_mode = 2
 text = "Ship Traits:"
 
-[node name="Container" type="VBoxContainer" parent="Content/Traits"]
+[node name="TraitsContainer" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Traits"]
+unique_name_in_owner = true
 layout_mode = 2
 
-[node name="Controls" type="HBoxContainer" parent="Content"]
+[node name="Controls" type="HBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 layout_mode = 2
 theme_override_constants/separation = 20
 alignment = 1
 
-[node name="GenerateButton" type="Button" parent="Content/Controls"]
+[node name="GenerateButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Controls"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(150, 40)
 layout_mode = 2
 text = "Generate Ship"
 
-[node name="RerollButton" type="Button" parent="Content/Controls"]
+[node name="RerollButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Controls"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(150, 40)
 layout_mode = 2
 text = "Reroll Ship"
-
-[node name="SelectButton" type="Button" parent="Content/Controls"]
-custom_minimum_size = Vector2(150, 40)
-layout_mode = 2
-text = "Select Ship"

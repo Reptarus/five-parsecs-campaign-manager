@@ -65,7 +65,7 @@ func _demonstrate_character_creation() -> void:
 		print("  - Background: %s" % GlobalEnums.get_background_display_name(character.background))
 		print("  - Origin: %s" % GlobalEnums.get_origin_display_name(character.origin))
 		print("  - Stats: Reaction=%d, Speed=%d, Combat=%d, Toughness=%d, Savvy=%d" % [
-			character.reaction, character.speed, character.combat, character.toughness, character.savvy
+			character.reactions, character.speed, character.combat, character.toughness, character.savvy
 		])
 		print("  - Health: %d/%d" % [character.health, character.max_health])
 		print("  - Traits: %s" % character.traits)
@@ -187,7 +187,7 @@ func _demonstrate_random_character_generation() -> void:
 		print("  - Origin: %s" % GlobalEnums.get_origin_display_name(character.origin))
 		print("  - Motivation: %s" % GlobalEnums.get_motivation_display_name(character.motivation))
 		print("  - Stats: Reaction=%d, Speed=%d, Combat=%d, Toughness=%d, Savvy=%d" % [
-			character.reaction, character.speed, character.combat, character.toughness, character.savvy
+			character.reactions, character.speed, character.combat, character.toughness, character.savvy
 		])
 		print("  - Health: %d/%d" % [character.health, character.max_health])
 		print("  - Traits: %s" % character.traits)
@@ -231,7 +231,7 @@ func _demonstrate_fallback_systems() -> void:
 		print("  - Name: %s" % character.character_name)
 		print("  - Class: %s" % GlobalEnums.get_class_display_name(character.character_class))
 		print("  - Stats: Reaction=%d, Speed=%d, Combat=%d, Toughness=%d, Savvy=%d" % [
-			character.reaction, character.speed, character.combat, character.toughness, character.savvy
+			character.reactions, character.speed, character.combat, character.toughness, character.savvy
 		])
 	else:
 		print("Failed to create fallback character")

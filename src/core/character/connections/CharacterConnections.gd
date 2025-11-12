@@ -61,9 +61,9 @@ static func generate_starting_rivals(character: Character) -> Array[Dictionary]:
 static func generate_patron_connections(character: Character) -> Array[Dictionary]:
 	var patrons: Array[Dictionary] = []
 
-	# Check if character qualifies for patron connections based on background
+	# Check if character qualifies for patron connections based on background - now using string comparison
 	match character.background:
-		GlobalEnums.Background.NOBLE:
+		"NOBLE":
 			patrons.append({
 				"type": "patron",
 				"name": "Noble House Contact",
@@ -71,7 +71,7 @@ static func generate_patron_connections(character: Character) -> Array[Dictionar
 				"location": "sector",
 				"relationship": "allied"
 			})
-		GlobalEnums.Background.MILITARY:
+		"MILITARY":
 			patrons.append({
 				"type": "patron",
 				"name": "Military Command",
@@ -79,7 +79,7 @@ static func generate_patron_connections(character: Character) -> Array[Dictionar
 				"location": "regional",
 				"relationship": "friendly"
 			})
-		GlobalEnums.Background.ACADEMIC:
+		"ACADEMIC":
 			patrons.append({
 				"type": "patron",
 				"name": "Research Institution",
@@ -91,9 +91,9 @@ static func generate_patron_connections(character: Character) -> Array[Dictionar
 	return patrons
 
 ## Get background-specific connections
-static func _get_background_connections(background: GlobalEnums.Background) -> Array[Dictionary]:
+static func _get_background_connections(background: String) -> Array[Dictionary]:
 	var bg_connections: Dictionary = _connections_table.get("background_connections", {})
-	var bg_name: String = GlobalEnums.get_background_name(background).to_lower()
+	var bg_name: String = background.to_lower()
 	var connections: Array = bg_connections.get(bg_name, [])
 
 	var result: Array[Dictionary] = []
@@ -201,7 +201,7 @@ static func get_connection_statistics() -> Dictionary:
 	return stats
 
 ## Test connection generation for character
-static func test_connection_generation(background: GlobalEnums.Background) -> Dictionary:
+static func test_connection_generation(background: String) -> Dictionary:
 	var character: Character = Character.new()
 	character.background = background
 

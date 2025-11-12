@@ -455,10 +455,10 @@ func _create_new_character() -> void:
 	
 	# Set proper Five Parsecs default values
 	current_character.character_name = "New Character"
-	current_character.origin = GlobalEnums.Origin.HUMAN
-	current_character.background = GlobalEnums.Background.MILITARY
-	current_character.character_class = GlobalEnums.CharacterClass.SOLDIER
-	current_character.motivation = GlobalEnums.Motivation.SURVIVAL
+	current_character.origin = "Human"
+	current_character.background = "Military"
+	current_character.character_class = "SOLDIER"
+	current_character.motivation = "Survival"
 	
 	# Generate base attributes using Five Parsecs rules (includes health calculation)
 	CharacterClass.generate_character_attributes(current_character)
@@ -593,24 +593,38 @@ func _update_character_from_ui() -> void:
 		current_character.character_name = name_input.text
 	
 	if origin_options and origin_options.selected > -1:
-		current_character.origin = origin_options.get_item_id(origin_options.selected)
+		var origin_id = origin_options.get_item_id(origin_options.selected)
+		if origin_id >= 0 and origin_id < GlobalEnums.Origin.size():
+			current_character.origin = GlobalEnums.Origin.keys()[origin_id]
+		else:
+			current_character.origin = "Human"
 	else:
-		current_character.origin = GlobalEnums.Origin.HUMAN
+		current_character.origin = "Human"
 	
 	if background_options and background_options.selected > -1:
-		current_character.background = background_options.get_item_id(background_options.selected)
+		var bg_id = background_options.get_item_id(background_options.selected)
+		if bg_id >= 0 and bg_id < GlobalEnums.Background.size():
+			current_character.background = GlobalEnums.Background.keys()[bg_id]
+		else:
+			current_character.background = "Military"
 	else:
-		current_character.background = GlobalEnums.Background.MILITARY
+		current_character.background = "Military"
 	
 	if class_options and class_options.selected > -1:
-		current_character.character_class = class_options.get_item_id(class_options.selected)
+		var class_id = class_options.get_item_id(class_options.selected)
+		# Ensure we store as string (Character.gd expects string)
+		current_character.character_class = str(class_id) if class_id is int else class_id
 	else:
-		current_character.character_class = GlobalEnums.CharacterClass.SOLDIER
+		current_character.character_class = "SOLDIER"
 	
 	if motivation_options and motivation_options.selected > -1:
-		current_character.motivation = motivation_options.get_item_id(motivation_options.selected)
+		var motiv_id = motivation_options.get_item_id(motivation_options.selected)
+		if motiv_id >= 0 and motiv_id < GlobalEnums.Motivation.size():
+			current_character.motivation = GlobalEnums.Motivation.keys()[motiv_id]
+		else:
+			current_character.motivation = "Survival"
 	else:
-		current_character.motivation = GlobalEnums.Motivation.SURVIVAL
+		current_character.motivation = "Survival"
 
 # Original _update_character_preview function removed - replaced with enhanced version below
 
@@ -738,7 +752,7 @@ func _apply_stat_bonus(stat_name: String, bonus: int) -> void:
 		"combat", "combat_skill":
 			current_character.combat = clampi(current_character.combat + bonus, 0, 3)
 		"reactions", "reaction":
-			current_character.reaction = clampi(current_character.reaction + bonus, 1, 6)
+			current_character.reactions = clampi(current_character.reactions + bonus, 1, 6)
 		"toughness":
 			current_character.toughness = clampi(current_character.toughness + bonus, 1, 6)
 		"speed":
@@ -759,9 +773,9 @@ func _update_character_preview() -> void:
 
 	# Use proper Five Parsecs enum display names
 	var character_class_name = GlobalEnums.get_class_display_name(current_character.character_class)
-	var background_name = GlobalEnums.get_background_display_name(current_character.background)
-	var origin_name = GlobalEnums.get_origin_display_name(current_character.origin)
-	var motivation_name = GlobalEnums.get_motivation_display_name(current_character.motivation)
+	var background_name = current_character.background # Already a string
+	var origin_name = current_character.origin # Already a string
+	var motivation_name = current_character.motivation # Already a string
 
 	preview_text += "[b]Name:[/b] %s\n" % current_character.character_name
 	preview_text += "[b]Class:[/b] %s\n" % character_class_name
@@ -770,7 +784,7 @@ func _update_character_preview() -> void:
 	preview_text += "[b]Motivation:[/b] %s\n\n" % motivation_name
 	
 	preview_text += "[b]Stats:[/b]\n"
-	preview_text += "  Reaction: %d | Speed: %d\" | Combat: +%d\n" % [current_character.reaction, current_character.speed, current_character.combat]
+	preview_text += "  Reaction: %d | Speed: %d\" | Combat: +%d\n" % [current_character.reactions, current_character.speed, current_character.combat]
 	preview_text += "  Toughness: %d | Savvy: +%d | Luck: %d\n\n" % [current_character.toughness, current_character.savvy, current_character.luck]
 
 	if not current_character.traits.is_empty():
@@ -786,20 +800,20 @@ func _update_character_preview() -> void:
 
 	traits_display.text = preview_text
 
-func _get_background_description(background_enum: int) -> String:
+func _get_background_description(background_string: String) -> String:
 	"""Get background description from Five Parsecs rules"""
-	match background_enum:
-		GlobalEnums.Background.MILITARY: return "You served in a military or security force, gaining combat experience and discipline."
-		GlobalEnums.Background.MERCENARY: return "You worked as a hired gun, learning to fight for profit and survival."
-		GlobalEnums.Background.CRIMINAL: return "You lived on the wrong side of the law, developing street smarts and stealth skills."
-		GlobalEnums.Background.COLONIST: return "You grew up on a frontier colony, learning practical skills for survival."
-		GlobalEnums.Background.ACADEMIC: return "You received formal education, developing analytical and research skills."
-		GlobalEnums.Background.EXPLORER: return "You traveled extensively, mapping new worlds and discovering ancient ruins."
-		GlobalEnums.Background.TRADER: return "You worked in commerce, developing negotiation and business skills."
-		GlobalEnums.Background.NOBLE: return "You were born to privilege, learning leadership and social skills."
-		GlobalEnums.Background.OUTCAST: return "You were rejected by society, developing independence and survival skills."
-		GlobalEnums.Background.SOLDIER: return "You served in organized military forces, gaining tactical training."
-		GlobalEnums.Background.MERCHANT: return "You worked in trade and commerce, developing business acumen."
+	match background_string:
+		"Military": return "You served in a military or security force, gaining combat experience and discipline."
+		"Mercenary": return "You worked as a hired gun, learning to fight for profit and survival."
+		"Criminal": return "You lived on the wrong side of the law, developing street smarts and stealth skills."
+		"Colonist": return "You grew up on a frontier colony, learning practical skills for survival."
+		"Academic": return "You received formal education, developing analytical and research skills."
+		"Explorer": return "You traveled extensively, mapping new worlds and discovering ancient ruins."
+		"Trader": return "You worked in commerce, developing negotiation and business skills."
+		"Noble": return "You were born to privilege, learning leadership and social skills."
+		"Outcast": return "You were rejected by society, developing independence and survival skills."
+		"Soldier": return "You served in organized military forces, gaining tactical training."
+		"Merchant": return "You worked in trade and commerce, developing business acumen."
 		_: return ""
 
 func _on_ui_changed(_arg) -> void:
@@ -823,7 +837,7 @@ func _on_generate_random_pressed() -> void:
 	print("CharacterCreator: Random character generated - Name: %s, Class: %s, Background: %s" % [
 		current_character.character_name,
 		GlobalEnums.get_class_display_name(current_character.character_class),
-		GlobalEnums.get_background_display_name(current_character.background)
+		current_character.background
 	])
 	
 	# Update UI to reflect the new character
@@ -843,10 +857,10 @@ func _on_clear_character_pressed() -> void:
 	
 	# Set proper Five Parsecs default values
 	current_character.character_name = "New Character"
-	current_character.origin = GlobalEnums.Origin.HUMAN
-	current_character.background = GlobalEnums.Background.MILITARY
-	current_character.character_class = GlobalEnums.CharacterClass.SOLDIER
-	current_character.motivation = GlobalEnums.Motivation.SURVIVAL
+	current_character.origin = "Human"
+	current_character.background = "Military"
+	current_character.character_class = "SOLDIER"
+	current_character.motivation = "Survival"
 	
 	# Generate base attributes using Five Parsecs rules (includes health calculation)
 	CharacterClass.generate_character_attributes(current_character)
@@ -889,14 +903,12 @@ func _on_create_character_pressed() -> void:
 		# We're creating a new character
 		var config := {
 			"name": current_character.character_name,
-			"class": GlobalEnums.CharacterClass.keys()[current_character.character_class],
-			"background": GlobalEnums.Background.keys()[current_character.background],
-			"motivation": GlobalEnums.Motivation.keys()[current_character.motivation],
-			"origin": GlobalEnums.Origin.keys()[current_character.origin]
+			"class": current_character.character_class, # Already a string
+			"background": current_character.background, # Already a string
+			"motivation": current_character.motivation, # Already a string
+			"origin": current_character.origin # Already a string
 		}
-		var final_character = CharacterClass.create_enhanced_character(
-			config, dice_manager, CharacterCreationTables, StartingEquipmentGenerator, CharacterConnections
-		)
+		var final_character = Character.create_enhanced_character(config)
 		
 		# Handle portrait export and assignment for new character
 		if portrait_texture and not current_portrait_path.is_empty():
@@ -929,7 +941,7 @@ func _restore_original_character() -> void:
 	current_character.background = original_character.background
 	current_character.character_class = original_character.character_class
 	current_character.motivation = original_character.motivation
-	current_character.reaction = original_character.reaction
+	current_character.reactions = original_character.reactions
 	current_character.combat = original_character.combat
 	current_character.toughness = original_character.toughness
 	current_character.speed = original_character.speed

@@ -263,10 +263,9 @@ func _get_autoload_reference() -> void:
 	# Try multiple possible autoload paths with validation
 	game_state_manager = get_node_or_null("/root/GameStateManager") as Node
 	if not game_state_manager:
-		game_state_manager = get_node_or_null("/root/GameStateManagerAutoload") as Node
-	if not game_state_manager:
 		var alpha_manager: Node = get_node_or_null("/root/FPCM_AlphaGameManager") as Node
 		if alpha_manager and alpha_manager.has_method("get_game_state_manager"):
+			game_state_manager = alpha_manager.get_game_state_manager()
 			game_state_manager = alpha_manager.get_game_state_manager()
 	
 	if not game_state_manager:

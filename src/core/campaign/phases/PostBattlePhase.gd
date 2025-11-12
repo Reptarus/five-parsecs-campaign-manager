@@ -47,7 +47,7 @@ func _ready() -> void:
 	# Load dependencies safely at runtime
 	# GlobalEnums already loaded as const at compile time
 	dice_manager = DiceManager
-	game_state_manager = get_node_or_null("/root/GameStateManagerAutoload")
+	game_state_manager = get_node_or_null("/root/GameStateManager")
 
 	# Initialize enum values using preloaded GlobalEnums
 	if GlobalEnums:

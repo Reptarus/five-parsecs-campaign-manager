@@ -1,6 +1,6 @@
 @tool
 extends RefCounted
-class_name Campaign
+class_name SimpleCampaign
 
 ## Simple Five Parsecs Campaign Data Manager
 ## Consolidates all Enhanced functionality into a simple, unified system

@@ -1,6 +1,5 @@
 # Universal Connection Validation Applied
 # Based on proven patterns: Universal Mock Strategy + 7-Stage Methodology
-@tool
 extends Node
 
 ## Campaign Phase Manager - Official Five Parsecs Rules Implementation
@@ -38,24 +37,26 @@ func _ready() -> void:
 	# Initialize enum values with compile-time loaded GlobalEnums
 	current_phase = GlobalEnums.FiveParsecsCampaignPhase.NONE
 
-	# Defer autoload access to avoid loading order issues
-	call_deferred("_initialize_autoloads")
-	call_deferred("_initialize_phase_handlers")
-	call_deferred("_connect_battle_results_manager")
-	call_deferred("_validate_universal_connections")
+	# Direct autoload access - Godot guarantees autoloads are available in _ready()
+	game_state_manager = get_node_or_null("/root/GameStateManager")
+	if game_state_manager:
+		print("CampaignPhaseManager: ✅ GameStateManager connected successfully")
+	else:
+		# Try alternative access methods
+		var alpha_manager = get_node_or_null("/root/FPCM_AlphaGameManager")
+		if alpha_manager and alpha_manager.has_method("get_game_state_manager"):
+			game_state_manager = alpha_manager.get_game_state_manager()
+			if game_state_manager:
+				print("CampaignPhaseManager: ✅ Found GameStateManager via AlphaGameManager")
+		else:
+			print("CampaignPhaseManager: ❌ No valid GameStateManager fallback available")
+	
+	_initialize_phase_handlers()
+	_connect_battle_results_manager()
+	_validate_universal_connections()
 	print("CampaignPhaseManager: Initialized with official Four-Phase structure")
 
-func _initialize_autoloads() -> void:
-	"""Initialize autoloads with retry logic to handle loading order"""
-	# Wait for GameStateManager to be ready
-	for i in range(10):
-		game_state_manager = get_node_or_null("/root/GameStateManagerAutoload")
-		if game_state_manager:
-			break
-		await get_tree().process_frame
-	
-	if not game_state_manager:
-		push_error("CampaignPhaseManager: GameStateManager not accessible after retries")
+
 
 func _initialize_phase_handlers() -> void:
 	"""Initialize the phase handler instances"""
@@ -283,12 +284,14 @@ func _get_current_crew_data() -> Array:
 		if not crew_data.is_empty():
 			return crew_data
 
-	# Try GameState direct access
-	var game_state = get_node_or_null("/root/GameState")
-	if game_state and game_state and game_state.has_method("get_crew_members"):
-		crew_data = game_state.get_crew_members()
-		if not crew_data.is_empty():
-			return crew_data
+	# Try GameState via AlphaGameManager
+	var alpha_manager = get_node_or_null("/root/FPCM_AlphaGameManager")
+	if alpha_manager and alpha_manager.has_method("get_game_state_manager"):
+		var alt_game_state_manager = alpha_manager.get_game_state_manager()
+		if alt_game_state_manager and alt_game_state_manager.has_method("get_crew_members"):
+			crew_data = alt_game_state_manager.get_crew_members()
+			if not crew_data.is_empty():
+				return crew_data
 
 	# Try Campaign Manager
 	var campaign_manager: Node = get_node_or_null("/root/CampaignManager")
@@ -322,9 +325,10 @@ func _on_battle_completed(results: Dictionary) -> void:
 	_last_battle_results = results
 	
 	# Also store in GameState for CampaignTurnController access
-	var game_state = get_node_or_null("/root/GameState")
-	if game_state and game_state.has_method("set_battle_results"):
-		game_state.set_battle_results(results)
+	if game_state_manager and game_state_manager.has_method("get_game_state"):
+		var game_state = game_state_manager.get_game_state()
+		if game_state and game_state.has_method("set_battle_results"):
+			game_state.set_battle_results(results)
 
 	# Emit battle completion signal
 	self.phase_completed.emit(current_phase)
@@ -340,9 +344,10 @@ func _on_battle_finished_for_campaign(results: Dictionary) -> void:
 	_last_battle_results = results
 	
 	# Store in GameState for UI access
-	var game_state = get_node_or_null("/root/GameState")
-	if game_state and game_state.has_method("set_battle_results"):
-		game_state.set_battle_results(results)
+	if game_state_manager and game_state_manager.has_method("get_game_state"):
+		var game_state = game_state_manager.get_game_state()
+		if game_state and game_state.has_method("set_battle_results"):
+			game_state.set_battle_results(results)
 	
 	# Update campaign statistics
 	_update_campaign_statistics(results)

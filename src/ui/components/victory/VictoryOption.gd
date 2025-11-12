@@ -25,7 +25,7 @@ signal value_changed(condition: GlobalEnums.FiveParsecsCampaignVictoryType)
 @onready var option_button: Button = get_node_or_null("OptionButton")
 @onready var tooltip: Label = get_node_or_null("Tooltip")
 
-var current_condition: GlobalEnums.FiveParsecsCampaignVictoryType = GlobalEnums.FiveParsecsCampaignVictoryType.WEALTH_GOAL
+var current_condition: GlobalEnums.FiveParsecsCampaignVictoryType = GlobalEnums.FiveParsecsCampaignVictoryType.CREDITS_50K
 
 func _ready() -> void:
 	if option_button:

@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://bc8n7m2k4p5q"]
 
-[ext_resource type="Script" path="res://src/core/character/Generation/SimpleCharacterCreator.gd" id="1_bc_script"]
+[ext_resource type="Script" uid="uid://dw8mfqlpextww" path="res://src/core/character/Generation/SimpleCharacterCreator.gd" id="1_bc_script"]
 
 [node name="SimpleCharacterCreator" type="Control"]
 layout_mode = 3
@@ -31,13 +31,15 @@ offset_left = -300.0
 offset_top = -250.0
 offset_right = 300.0
 offset_bottom = 250.0
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_constants/separation = 15
 
 [node name="Title" type="Label" parent="Content"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 24
 text = "Create Your Captain"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 24
 
 [node name="NameSection" type="VBoxContainer" parent="Content"]
 layout_mode = 2
@@ -61,9 +63,9 @@ horizontal_alignment = 1
 
 [node name="StatsGrid" type="GridContainer" parent="Content/StatsSection"]
 layout_mode = 2
-columns = 2
 theme_override_constants/h_separation = 20
 theme_override_constants/v_separation = 10
+columns = 2
 
 [node name="CombatLabel" type="Label" parent="Content/StatsSection/StatsGrid"]
 layout_mode = 2

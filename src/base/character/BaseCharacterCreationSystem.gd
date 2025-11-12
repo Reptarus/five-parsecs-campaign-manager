@@ -7,11 +7,10 @@ class_name FiveParsecsCharacterCreationSystem
 ## Part of Phase 2B Character Creator Consolidation
 
 # Safe imports
-# GlobalEnums available as autoload singleton
+# GlobalEnums and DataManager available as autoload singletons
 const Character = preload("res://src/core/character/Character.gd")
 const FiveParsecsCharacterGeneration = preload("res://src/core/character/CharacterGeneration.gd")
 const CharacterCreationTables = preload("res://src/core/character/tables/CharacterCreationTables.gd")
-const DataManager = preload("res://src/core/data/DataManager.gd")
 
 # Character creation modes
 enum CreationMode {
@@ -46,19 +45,31 @@ func _init() -> void:
 
 func _initialize_data_system() -> void:
 	"""Initialize data system integration"""
-	if not DataManager._is_data_loaded:
-		var success = DataManager.initialize_data_system()
-		is_data_system_available = success
-		if not success:
+	# Safely check for DataManager autoload using Engine singleton check
+	if DataManager:
+		if DataManager.has_method("initialize_data_system"):
+			if not DataManager._is_data_loaded:
+				var success = DataManager.initialize_data_system()
+				is_data_system_available = success
+				if not success:
+					push_warning("BaseCharacterCreationSystem: DataManager not available, using fallback mode")
+			else:
+				is_data_system_available = true
+		else:
+			is_data_system_available = false
 			push_warning("BaseCharacterCreationSystem: DataManager not available, using fallback mode")
 	else:
-		is_data_system_available = true
+		is_data_system_available = false
+		push_warning("BaseCharacterCreationSystem: DataManager not available, using fallback mode")
 	
 	if is_data_system_available:
 		_cache_character_data()
 
 func _cache_character_data() -> void:
 	"""Cache character data for faster access"""
+	if not DataManager:
+		return
+		
 	if DataManager._character_data.has("origins"):
 		character_data_cache["origins"] = DataManager._character_data["origins"]
 	if DataManager._character_data.has("backgrounds"):
@@ -111,7 +122,7 @@ func _apply_enhanced_defaults() -> void:
 	if not origins_data.is_empty():
 		var first_origin_key = origins_data.keys()[0]
 		var origin_enum_id = GlobalEnums.Origin.get(first_origin_key, GlobalEnums.Origin.HUMAN)
-		current_character.origin = origin_enum_id
+		current_character.origin = GlobalEnums.to_string_value("origin", origin_enum_id)
 
 ## Character Generation Methods
 
@@ -131,13 +142,13 @@ func _create_fallback_character() -> Character:
 	var character = Character.new()
 	
 	character.character_name = _generate_fallback_name()
-	character.origin = GlobalEnums.Origin.HUMAN
-	character.background = GlobalEnums.Background.MILITARY
-	character.character_class = GlobalEnums.CharacterClass.SOLDIER
-	character.motivation = GlobalEnums.Motivation.SURVIVAL
+	character.origin = "HUMAN"
+	character.background = "MILITARY"
+	character.character_class = "SOLDIER"
+	character.motivation = "SURVIVAL"
 	
 	# Generate Five Parsecs attributes (2d6/3 rounded up)
-	character.reaction = _generate_five_parsecs_attribute()
+	character.reactions = _generate_five_parsecs_attribute()
 	character.combat = _generate_five_parsecs_attribute()
 	character.toughness = _generate_five_parsecs_attribute()
 	character.savvy = _generate_five_parsecs_attribute()
@@ -342,7 +353,7 @@ func validate_character(character: Character = null) -> Dictionary:
 		errors.append("Valid character class must be selected")
 	
 	# Validate stats (Five Parsecs rules)
-	var stat_total = target_character.reaction + target_character.combat + target_character.toughness + target_character.savvy + target_character.tech + target_character.speed
+	var stat_total = target_character.reactions + target_character.combat + target_character.toughness + target_character.savvy + target_character.tech + target_character.speed
 	if stat_total < 6:
 		errors.append("Character stats are too low (minimum 6 total)")
 	elif stat_total > 30:
@@ -372,22 +383,22 @@ func set_character_name(name: String) -> void:
 func set_character_origin(origin_id: int) -> void:
 	"""Set character origin with validation"""
 	if current_character and origin_id >= 0 and origin_id < GlobalEnums.Origin.size():
-		current_character.origin = origin_id
+		current_character.origin = GlobalEnums.to_string_value("origin", origin_id)
 
 func set_character_background(background_id: int) -> void:
 	"""Set character background with validation"""
 	if current_character and background_id >= 0 and background_id < GlobalEnums.Background.size():
-		current_character.background = background_id
+		current_character.background = GlobalEnums.get_background_name(background_id)
 
 func set_character_class(class_id: int) -> void:
 	"""Set character class with validation"""
 	if current_character and class_id >= 0 and class_id < GlobalEnums.CharacterClass.size():
-		current_character.character_class = class_id
+		current_character.character_class = GlobalEnums.to_string_value("character_class", class_id)
 
 func set_character_motivation(motivation_id: int) -> void:
 	"""Set character motivation with validation"""
 	if current_character and motivation_id >= 0 and motivation_id < GlobalEnums.Motivation.size():
-		current_character.motivation = motivation_id
+		current_character.motivation = GlobalEnums.get_motivation_name(motivation_id)
 
 func set_character_stat(stat_name: String, value: int) -> void:
 	"""Set character stat with validation"""
@@ -399,7 +410,7 @@ func set_character_stat(stat_name: String, value: int) -> void:
 	
 	match stat_name.to_lower():
 		"reaction":
-			current_character.reaction = clamped_value
+			current_character.reactions = clamped_value
 		"combat":
 			current_character.combat = clamped_value
 		"toughness":

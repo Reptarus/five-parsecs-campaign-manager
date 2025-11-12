@@ -185,16 +185,16 @@ func _validate_character_for_equipment(character: Character) -> bool:
 		return false
 	
 	# Validate background enum (common source of crashes)
-	var background = character.background if character.background != null else GlobalEnums.Background.MILITARY
+	var background = character.background if character.background != null else "MILITARY"
 	if not _is_valid_background_enum(background):
 		push_warning("EquipmentGenerationScene: Invalid background for %s, defaulting to MILITARY" % character.character_name)
-		character.background = GlobalEnums.Background.MILITARY
+		character.background = "MILITARY"
 	
 	# Validate character class enum
-	var char_class = character.character_class if character.character_class != null else GlobalEnums.CharacterClass.SOLDIER
+	var char_class = character.character_class if character.character_class != null else "SOLDIER"
 	if not _is_valid_class_enum(char_class):
 		push_warning("EquipmentGenerationScene: Invalid class for %s, defaulting to SOLDIER" % character.character_name)
-		character.character_class = GlobalEnums.CharacterClass.SOLDIER
+		character.character_class = "SOLDIER"
 	
 	return true
 
@@ -266,19 +266,14 @@ func _generate_character_equipment_safe(character: Character) -> Dictionary:
 	"""Generate equipment for a single character with error handling"""
 	var character_equipment = {}
 	
-	try:
-		# Use equipment generator if available
-		if equipment_generator and equipment_generator.has_method("generate_starting_equipment"):
-			character_equipment = equipment_generator.generate_starting_equipment(character)
-		else:
-			# Fallback equipment generation
-			character_equipment = _generate_fallback_equipment(character)
-		
-		print("EquipmentGenerationScene: Generated equipment for %s: %d items" % [character.character_name, character_equipment.size()])
-		
-	except:
-		push_error("EquipmentGenerationScene: Exception during equipment generation for %s" % character.character_name)
+	# Use equipment generator if available
+	if equipment_generator and equipment_generator.has_method("generate_starting_equipment"):
+		character_equipment = equipment_generator.generate_starting_equipment(character)
+	else:
+		# Fallback equipment generation
 		character_equipment = _generate_fallback_equipment(character)
+	
+	print("EquipmentGenerationScene: Generated equipment for %s: %d items" % [character.character_name, character_equipment.size()])
 	
 	return character_equipment
 
@@ -293,11 +288,11 @@ func _generate_fallback_equipment(character: Character) -> Dictionary:
 		"consumables": []
 	}
 	
-	# Basic weapon based on character class
+	# Basic weapon based on character class - now using string comparison
 	match character.character_class:
-		GlobalEnums.CharacterClass.SOLDIER:
+		"SOLDIER":
 			fallback_equipment.weapons.append({"name": "Military Rifle", "type": "rifle", "damage": "1d6+1"})
-		GlobalEnums.CharacterClass.SPECIALIST:
+		"SPECIALIST":
 			fallback_equipment.weapons.append({"name": "Specialist Carbine", "type": "carbine", "damage": "1d6"})
 		_:
 			fallback_equipment.weapons.append({"name": "Basic Pistol", "type": "pistol", "damage": "1d6"})

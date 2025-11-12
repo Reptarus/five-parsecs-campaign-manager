@@ -11,6 +11,7 @@ class_name FiveParsecsCharacterGeneration
 ## - Hybrid approach: Type-safe enums + Rich JSON data
 
 # GlobalEnums available as autoload singleton
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Character = preload("res://src/core/character/Character.gd")
 const UniversalResourceLoader = preload("res://src/core/systems/UniversalResourceLoader.gd")
 const DataManager = preload("res://src/core/data/DataManager.gd")
@@ -89,50 +90,51 @@ static func create_character(config: Dictionary = {}) -> Character:
 	if class_value is String:
 		var p_class_name: String = class_value
 		if p_class_name in GlobalEnums.CharacterClass:
-			character.character_class = GlobalEnums.CharacterClass[p_class_name]
+			character.character_class = p_class_name
 		else:
-			character.character_class = GlobalEnums.CharacterClass.SOLDIER
+			character.character_class = "SOLDIER"
 	elif class_value is int:
-		character.character_class = class_value
+		character.character_class = GlobalEnums.to_string_value("character_class", class_value)
 	else:
-		character.character_class = GlobalEnums.CharacterClass.SOLDIER
+		character.character_class = "SOLDIER"
 	
 	# Handle background assignment - accept both String and int values
 	var background_value = SafeDataAccess.safe_get(config_dict, "background", "MILITARY", "character background lookup")
 	if background_value is String:
 		var p_background_name: String = background_value
 		if p_background_name in GlobalEnums.Background:
-			character.background = GlobalEnums.Background[p_background_name]
+			character.background = p_background_name
 		else:
-			character.background = GlobalEnums.Background.MILITARY
+			character.background = "MILITARY"
 	elif background_value is int:
 		character.background = background_value
 	else:
-		character.background = GlobalEnums.Background.MILITARY
+		character.background = "MILITARY"
 	
 	# Handle motivation assignment - accept both String and int values  
-	var motivation_value = SafeDataAccess.safe_get(config_dict, "motivation", GlobalEnums.Motivation.SURVIVAL, "character motivation lookup")
+	var motivation_value = SafeDataAccess.safe_get(config_dict, "motivation", "SURVIVAL", "character motivation lookup")
 	if motivation_value is String:
 		if motivation_value in GlobalEnums.Motivation:
-			character.motivation = GlobalEnums.Motivation[motivation_value]
+			character.motivation = motivation_value
 		else:
-			character.motivation = GlobalEnums.Motivation.SURVIVAL
+			character.motivation = "SURVIVAL"
 	elif motivation_value is int:
 		character.motivation = motivation_value
 	else:
-		character.motivation = GlobalEnums.Motivation.SURVIVAL
+		character.motivation = "SURVIVAL"
 	
 	# Handle origin assignment - accept both String and int values
-	var origin_value = SafeDataAccess.safe_get(config_dict, "origin", GlobalEnums.Origin.HUMAN, "character origin lookup")
+	var origin_value = SafeDataAccess.safe_get(config_dict, "origin", "HUMAN", "character origin lookup")
 	if origin_value is String:
 		if origin_value in GlobalEnums.Origin:
-			character.origin = GlobalEnums.Origin[origin_value]
+			character.origin = origin_value
 		else:
-			character.origin = GlobalEnums.Origin.HUMAN
+			character.origin = "HUMAN"
 	elif origin_value is int:
-		character.origin = origin_value
+		var global_enums = Engine.get_singleton("GlobalEnums")
+		character.origin = global_enums.to_string_value("origin", origin_value) if global_enums else "HUMAN"
 	else:
-		character.origin = GlobalEnums.Origin.HUMAN
+		character.origin = "HUMAN"
 
 	# Generate attributes
 	generate_character_attributes(character)
@@ -156,14 +158,14 @@ static func create_character(config: Dictionary = {}) -> Character:
 ## Generate all character attributes using Five Parsecs rules
 static func generate_character_attributes(character: Character) -> void:
 	# Core Five Parsecs attributes (2D6 / 3.0 rounded up)
-	character.reaction = generate_attribute() # Base 1, Max 6
+	character.reactions = generate_attribute() # Base 1, Max 6
 	character.speed = generate_attribute() + 2 # Base 4", Max 8"
 	character.combat = generate_attribute() - 1 # Base +0, Max +3
 	character.toughness = generate_attribute() # Base 3, Max 6
 	character.savvy = generate_attribute() - 1 # Base +0, Max +3
 
 	# Clamp values to Five Parsecs ranges
-	character.reaction = clampi(character.reaction, 1, 6)
+	character.reactions = clampi(character.reactions, 1, 6)
 	character.speed = clampi(character.speed, 4, 8)
 	character.combat = clampi(character.combat, 0, 3)
 	character.toughness = clampi(character.toughness, 3, 6)
@@ -177,15 +179,15 @@ static func generate_character_attributes(character: Character) -> void:
 	character.health = character.max_health
 
 	print("CharacterGeneration: Generated attributes - Reaction: %d, Speed: %d, Combat: %d, Toughness: %d, Savvy: %d, Health: %d" % [
-		character.reaction, character.speed, character.combat, character.toughness, character.savvy, character.max_health
+		character.reactions, character.speed, character.combat, character.toughness, character.savvy, character.max_health
 	])
 
 ## Apply background-specific bonuses from loaded data with safe enum access
 static func apply_background_bonuses(character: Character) -> void:
-	# Validate background enum value before using it
-	if character.background < 0 or character.background >= GlobalEnums.Background.size():
-		push_error("CharacterGeneration: Invalid background enum value: %d. Using MILITARY as fallback." % character.background)
-		character.background = GlobalEnums.Background.MILITARY
+	# Validate background string value before using it
+	if not character.background in GlobalEnums.Background:
+		push_error("CharacterGeneration: Invalid background string value: %s. Using MILITARY as fallback." % character.background)
+		character.background = "MILITARY"
 	
 	# Try to get background data from DataManager first
 	var background_data = _get_background_data_for_character(character)
@@ -236,7 +238,7 @@ static func _apply_stat_bonus(character: Character, stat_name: String, bonus: in
 		"combat", "combat_skill":
 			character.combat = clampi(character.combat + bonus, 0, 5)
 		"reactions", "reaction":
-			character.reaction = clampi(character.reaction + bonus, 1, 6)
+			character.reactions = clampi(character.reactions + bonus, 1, 6)
 		"toughness":
 			character.toughness = clampi(character.toughness + bonus, 1, 6)
 		"speed":
@@ -250,32 +252,32 @@ static func _apply_stat_bonus(character: Character, stat_name: String, bonus: in
 static func _get_background_data_for_character(character: Character) -> Dictionary:
 	# Try DataManager first
 	if DataManager.is_system_ready():
-		var background_id = _get_background_id_from_enum(character.background)
+		var background_id = _get_background_id_from_string(character.background)
 		return DataManager.get_background_data(background_id)
 	
 	# Fallback to local data
-	var background_name = GlobalEnums.Background.keys()[character.background]
+	var background_name = character.background
 	if _backgrounds_data.has(background_name):
 		return _backgrounds_data[background_name]
 	
 	return {}
 
-## Convert enum background to JSON background ID
-static func _get_background_id_from_enum(background_enum: int) -> String:
-	match background_enum:
-		GlobalEnums.Background.MILITARY: return "military"
-		GlobalEnums.Background.CRIMINAL: return "criminal"
-		GlobalEnums.Background.ACADEMIC: return "scientist"
-		GlobalEnums.Background.MERCENARY: return "mercenary"
-		GlobalEnums.Background.COLONIST: return "colonist"
-		GlobalEnums.Background.EXPLORER: return "pilot"
-		GlobalEnums.Background.TRADER: return "corporate"
-		GlobalEnums.Background.OUTCAST: return "drifter"
+## Convert background string to JSON background ID
+static func _get_background_id_from_string(background_string: String) -> String:
+	match background_string:
+		"MILITARY": return "military"
+		"CRIMINAL": return "criminal"
+		"ACADEMIC": return "scientist"
+		"MERCENARY": return "mercenary"
+		"COLONIST": return "colonist"
+		"EXPLORER": return "pilot"
+		"TRADER": return "corporate"
+		"OUTCAST": return "drifter"
 		_: return "drifter" # Safe default
 
 ## Fallback enum-based background bonuses
 static func _apply_enum_background_bonuses(character: Character) -> void:
-	var background_name = GlobalEnums.Background.keys()[character.background]
+	var background_name = character.background
 	if _backgrounds_data.has(background_name):
 		var bg_data = _backgrounds_data[background_name]
 		
@@ -297,28 +299,28 @@ static func _apply_enum_background_bonuses(character: Character) -> void:
 ## Apply class-specific bonuses
 static func apply_class_bonuses(character: Character) -> void:
 	match character.character_class:
-		GlobalEnums.CharacterClass.SOLDIER:
+		"SOLDIER":
 			character.combat = clampi(character.combat + 1, 0, 5)
 			character.add_trait("Military Training")
-		GlobalEnums.CharacterClass.SCOUT:
+		"SCOUT":
 			character.speed = clampi(character.speed + 1, 4, 8)
 			character.add_trait("Scout Training")
-		GlobalEnums.CharacterClass.MEDIC:
+		"MEDIC":
 			character.savvy = clampi(character.savvy + 1, 0, 5)
 			character.add_trait("Medical Training")
-		GlobalEnums.CharacterClass.ENGINEER:
+		"ENGINEER":
 			character.savvy = clampi(character.savvy + 1, 0, 5)
 			character.add_trait("Engineering Training")
-		GlobalEnums.CharacterClass.PILOT:
-			character.reaction = clampi(character.reaction + 1, 1, 6)
+		"PILOT":
+			character.reactions = clampi(character.reactions + 1, 1, 6)
 			character.add_trait("Pilot Training")
-		GlobalEnums.CharacterClass.MERCHANT:
+		"MERCHANT":
 			character.savvy = clampi(character.savvy + 1, 0, 5)
 			character.add_trait("Merchant Training")
-		GlobalEnums.CharacterClass.SECURITY:
+		"SECURITY":
 			character.combat = clampi(character.combat + 1, 0, 5)
 			character.add_trait("Security Training")
-		GlobalEnums.CharacterClass.BROKER:
+		"BROKER":
 			character.savvy = clampi(character.savvy + 1, 0, 5)
 			character.add_trait("Broker Training")
 
@@ -341,7 +343,8 @@ static func generate_starting_equipment(character: Character) -> void:
 static func _get_starting_equipment_data(character: Character) -> Dictionary:
 	# Try DataManager first
 	if DataManager.is_system_ready():
-		var origin_name = GlobalEnums.get_origin_name(character.origin)
+		# Origin is now a string, use directly
+		var origin_name = character.origin
 		var origin_data = DataManager.get_origin_data(origin_name)
 		
 		# Validate origin_data is a Dictionary before calling .get()
@@ -353,7 +356,8 @@ static func _get_starting_equipment_data(character: Character) -> Dictionary:
 		return _convert_gear_array_to_dict(starting_gear_array)
 	
 	# Fallback to local data
-	var origin_name = GlobalEnums.Origin.keys()[character.origin]
+	# Origin is now a string, use directly
+	var origin_name = character.origin
 	if _character_data.has("origins") and _character_data["origins"].has(origin_name):
 		var origin_local_data = _character_data["origins"][origin_name]
 		
@@ -371,7 +375,7 @@ static func _get_starting_equipment_data(character: Character) -> Dictionary:
 static func _get_background_equipment_data(character: Character) -> Dictionary:
 	# Try DataManager first
 	if DataManager.is_system_ready():
-		var background_id = _get_background_id_from_enum(character.background)
+		var background_id = _get_background_id_from_string(character.background)
 		var background_data = DataManager.get_background_data(background_id)
 		
 		# Validate background_data is a Dictionary before calling .get()
@@ -383,7 +387,7 @@ static func _get_background_equipment_data(character: Character) -> Dictionary:
 		return _convert_gear_array_to_dict(starting_gear_array)
 	
 	# Fallback to local data
-	var background_name = GlobalEnums.Background.keys()[character.background]
+	var background_name = character.background
 	if _backgrounds_data.has(background_name):
 		var background_local_data = _backgrounds_data[background_name]
 		
@@ -487,24 +491,24 @@ static func _apply_basic_equipment(character: Character) -> void:
 ## Set character flags based on origin
 static func set_character_flags(character: Character) -> void:
 	match character.origin:
-		GlobalEnums.Origin.HUMAN:
+		"HUMAN":
 			character.is_human = true
 			character.luck = clampi(character.luck + 1, 0, 3)
-		GlobalEnums.Origin.BOT:
+		"BOT":
 			character.is_bot = true
 			character.add_trait("Bot: 6+ Armor Save")
-		GlobalEnums.Origin.SOULLESS:
+		"SOULLESS":
 			character.is_soulless = true
 			character.add_trait("Soulless: 6+ Armor Save")
-		GlobalEnums.Origin.ENGINEER:
+		"ENGINEER":
 			character.add_trait("Engineer: +1 to repair rolls")
-		GlobalEnums.Origin.KERIN:
+		"KERIN":
 			character.add_trait("K'Erin: +1 damage with melee weapons")
-		GlobalEnums.Origin.PRECURSOR:
+		"PRECURSOR":
 			character.add_trait("Precursor: Ancient Knowledge +2")
-		GlobalEnums.Origin.FERAL:
+		"FERAL":
 			character.add_trait("Feral: Predator Instinct")
-		GlobalEnums.Origin.SWIFT:
+		"SWIFT":
 			character.add_trait("Swift: Glide and Leap abilities")
 
 ## Validate character meets Five Parsecs constraints
@@ -515,7 +519,7 @@ static func validate_character(character: Character) -> Dictionary:
 	}
 
 	# Check attribute ranges according to Five Parsecs rules
-	if character.reaction < 1 or character.reaction > 6:
+	if character.reactions < 1 or character.reactions > 6:
 		result.errors.append("Reaction must be 1-6")
 		result.valid = false
 
@@ -684,13 +688,13 @@ static func _create_simple_character() -> Character:
 	
 	# Set basic properties
 	character.character_name = "Fallback Character"
-	character.character_class = GlobalEnums.CharacterClass.SOLDIER
-	character.background = GlobalEnums.Background.MILITARY
-	character.motivation = GlobalEnums.Motivation.SURVIVAL
-	character.origin = GlobalEnums.Origin.HUMAN
+	character.character_class = "SOLDIER"
+	character.background = "MILITARY"
+	character.motivation = "SURVIVAL"
+	character.origin = "HUMAN"
 	
 	# Set basic stats (Five Parsecs defaults)
-	character.reaction = 3
+	character.reactions = 3
 	character.combat = 1
 	character.toughness = 4
 	character.savvy = 1
@@ -745,90 +749,295 @@ static func _roll_random_origin() -> int:
 	if "UNKNOWN" in origins: origins.erase("UNKNOWN")
 	return GlobalEnums.Origin[origins[randi() % origins.size()]]
 
-## Enhanced equipment generation
+## Enhanced equipment generation with DiceManager integration
 static func _generate_starting_equipment_enhanced(character: Character) -> Dictionary:
+	print("CharacterGeneration: Generating enhanced starting equipment for %s" % character.character_name)
+	
+	# Get DiceManager through AutoloadManager for safe access
+	var dice_manager = AutoloadManager.get_autoload_safe("DiceManager")
+	if not dice_manager:
+		push_error("CharacterGeneration: DiceManager not available for equipment generation")
+		return _generate_fallback_equipment(character)
+	
+	# Use StartingEquipmentGenerator for proper Five Parsecs equipment generation
+	if not ResourceLoader.exists("res://src/core/character/Equipment/StartingEquipmentGenerator.gd"):
+		push_error("CharacterGeneration: StartingEquipmentGenerator not found")
+		return _generate_fallback_equipment(character)
+	
+	var equipment_generator = preload("res://src/core/character/Equipment/StartingEquipmentGenerator.gd")
+	var equipment = equipment_generator.generate_starting_equipment(character, dice_manager)
+	
+	if equipment.is_empty():
+		push_warning("CharacterGeneration: StartingEquipmentGenerator failed, using fallback")
+		return _generate_fallback_equipment(character)
+	
+	# Apply equipment conditions using dice
+	equipment_generator.apply_equipment_condition(equipment, dice_manager)
+	
+	print("CharacterGeneration: Generated equipment - %d weapons, %d armor, %d gear, %d credits" % [
+		equipment.get("weapons", []).size(),
+		equipment.get("armor", []).size(), 
+		equipment.get("gear", []).size(),
+		equipment.get("credits", 0)
+	])
+	
+	return equipment
+
+## Fallback equipment generation when DiceManager/StartingEquipmentGenerator unavailable
+static func _generate_fallback_equipment(character: Character) -> Dictionary:
+	print("CharacterGeneration: Using fallback equipment generation")
+	
 	var equipment = {
 		"weapons": [],
 		"armor": [],
 		"gear": [],
-		"credits": 1000
+		"credits": 1000,
+		"condition_modifiers": {}
 	}
 	
-	# Add class-specific equipment
+	# Add class-specific equipment (original basic implementation) - now using string comparison
 	match character.character_class:
-		GlobalEnums.CharacterClass.SOLDIER:
+		"SOLDIER":
 			equipment.weapons.append("Combat Rifle")
 			equipment.armor.append("Trooper Armor")
-		GlobalEnums.CharacterClass.SCOUT:
+		"SCOUT":
 			equipment.weapons.append("Carbine")
 			equipment.armor.append("Light Armor")
-		GlobalEnums.CharacterClass.MEDIC:
+		"MEDIC":
 			equipment.weapons.append("Service Pistol")
 			equipment.gear.append("Medkit")
-		GlobalEnums.CharacterClass.ENGINEER:
+		"ENGINEER":
 			equipment.weapons.append("Service Pistol")
 			equipment.gear.append("Repair Kit")
-		GlobalEnums.CharacterClass.PILOT:
+		"PILOT":
 			equipment.weapons.append("Service Pistol")
 			equipment.gear.append("Flight Computer")
-		GlobalEnums.CharacterClass.MERCHANT:
+		"MERCHANT":
 			equipment.weapons.append("Service Pistol")
 			equipment.gear.append("Trade Computer")
-		GlobalEnums.CharacterClass.SECURITY:
+		"SECURITY":
 			equipment.weapons.append("Combat Rifle")
 			equipment.armor.append("Security Armor")
-		GlobalEnums.CharacterClass.BROKER:
+		"BROKER":
 			equipment.weapons.append("Service Pistol")
 			equipment.gear.append("Negotiation Tools")
 	
+	# Add random bonus equipment (simulated without dice)
+	var bonus_weapons = ["Blade", "Pistol", "Hand Weapon"]
+	equipment.weapons.append(bonus_weapons[randi() % bonus_weapons.size()])
+	
+	# Add random credits bonus (500-1500 range)
+	equipment.credits += randi_range(0, 500)
+	
 	return equipment
 
-## Generate patron relationships
+## Public API for UI access
+## These methods wrap the private implementations for external use
+
+static func generate_patrons(character: Character) -> Array:
+	return _generate_patrons(character)
+
+static func generate_rivals(character: Character) -> Array:
+	return _generate_rivals(character)
+
+static func apply_background_effects(character: Character) -> void:
+	_apply_background_effects(character)
+
+static func apply_motivation_effects(character: Character) -> void:
+	_apply_motivation_effects(character)
+
+static func generate_starting_equipment_enhanced(character: Character) -> Dictionary:
+	return _generate_starting_equipment_enhanced(character)
+
+## Generate patron relationships using GameStateManager systems
 static func _generate_patrons(character: Character) -> Array:
+	print("CharacterGeneration: Generating patrons for %s" % character.character_name)
+	
 	var patrons = []
-	# Implementation would use patron tables from data
+	
+	# Get GameStateManager through AutoloadManager
+	var game_state_manager = AutoloadManager.get_autoload_safe("GameStateManager")
+	if not game_state_manager or not game_state_manager.has_method("get_manager"):
+		push_warning("CharacterGeneration: GameStateManager not available, using fallback patron generation")
+		return _generate_fallback_patrons(character)
+	
+	# Get PatronManager from GameStateManager
+	var patron_manager = game_state_manager.get_manager("PatronManager")
+	if not patron_manager:
+		# Try direct PatronSystem access
+		if ResourceLoader.exists("res://src/core/systems/PatronSystem.gd"):
+			var patron_system = preload("res://src/core/systems/PatronSystem.gd").new()
+			patron_manager = patron_system
+		else:
+			push_warning("CharacterGeneration: PatronManager/PatronSystem not available")
+			return _generate_fallback_patrons(character)
+	
+	# Generate 1-3 patrons based on character background
+	var patron_count = randi_range(1, 3)
+	for i in patron_count:
+		var patron = null
+		if patron_manager.has_method("generate_patron"):
+			patron = patron_manager.generate_patron()
+		elif patron_manager.has_method("create_patron"):
+			patron = patron_manager.create_patron()
+		
+		if patron:
+			# Link patron to character background if possible
+			_link_patron_to_character(patron, character)
+			patrons.append(patron)
+	
+	print("CharacterGeneration: Generated %d patrons for %s" % [patrons.size(), character.character_name])
 	return patrons
 
-## Generate rival relationships
+## Generate rival relationships using GameStateManager systems
 static func _generate_rivals(character: Character) -> Array:
+	print("CharacterGeneration: Generating rivals for %s" % character.character_name)
+	
 	var rivals = []
-	# Implementation would use rival tables from data
+	
+	# Get GameStateManager through AutoloadManager
+	var game_state_manager = AutoloadManager.get_autoload_safe("GameStateManager")
+	if not game_state_manager or not game_state_manager.has_method("get_manager"):
+		push_warning("CharacterGeneration: GameStateManager not available, using fallback rival generation")
+		return _generate_fallback_rivals(character)
+	
+	# Get RivalManager from GameStateManager
+	var rival_manager = game_state_manager.get_manager("RivalManager")
+	if not rival_manager:
+		# Try direct RivalSystem access
+		if ResourceLoader.exists("res://src/core/rivals/RivalSystem.gd"):
+			var rival_system = preload("res://src/core/rivals/RivalSystem.gd").new()
+			rival_manager = rival_system
+		else:
+			push_warning("CharacterGeneration: RivalManager/RivalSystem not available")
+			return _generate_fallback_rivals(character)
+	
+	# Generate 0-2 rivals based on character background/class
+	var rival_count = randi_range(0, 2)
+	for i in rival_count:
+		var rival = null
+		if rival_manager.has_method("create_rival"):
+			# Create rival with character-appropriate parameters
+			var rival_params = _get_rival_params_for_character(character)
+			rival = rival_manager.create_rival(rival_params)
+		
+		if rival:
+			rivals.append(rival)
+	
+	print("CharacterGeneration: Generated %d rivals for %s" % [rivals.size(), character.character_name])
 	return rivals
+
+## Fallback patron generation when systems unavailable
+static func _generate_fallback_patrons(character: Character) -> Array:
+	var patrons = []
+	var patron_count = randi_range(1, 2)  # Reduced count for fallback
+	
+	for i in patron_count:
+		var patron = {
+			"id": "patron_%d_%d" % [character.get_instance_id(), i],
+			"name": "Patron %d" % (i + 1),
+			"type": "Corporate",
+			"reputation": 0,
+			"job_rate": 50,
+			"linked_character_id": character.get_instance_id()
+		}
+		patrons.append(patron)
+	
+	return patrons
+
+## Fallback rival generation when systems unavailable  
+static func _generate_fallback_rivals(character: Character) -> Array:
+	var rivals = []
+	var rival_count = randi_range(0, 1)  # Reduced count for fallback
+	
+	for i in rival_count:
+		var rival = {
+			"id": "rival_%d_%d" % [character.get_instance_id(), i],
+			"name": "Rival %d" % (i + 1),
+			"type": 0,  # Default enemy type
+			"level": 1,
+			"reputation": 0,
+			"active": true
+		}
+		rivals.append(rival)
+	
+	return rivals
+
+## Link patron to character background/motivation
+static func _link_patron_to_character(patron: Dictionary, character: Character) -> void:
+	if patron.has("linked_character_id"):
+		patron.linked_character_id = character.get_instance_id()
+	
+	# Adjust patron type based on character background - now using string comparison
+	if patron.has("type"):
+		match character.background:
+			"CORPORATE":
+				patron.type = "Corporate"
+			"MILITARY":
+				patron.type = "Military"
+			"CRIMINAL":
+				patron.type = "Criminal"
+			_:
+				patron.type = "Independent"
+
+## Get rival parameters appropriate for character
+static func _get_rival_params_for_character(character: Character) -> Dictionary:
+	var params = {}
+	
+	# Base rival on character background/class for thematic consistency - now using string comparison
+	match character.background:
+		"MILITARY":
+			params.type = GlobalEnums.EnemyType.get("PIRATES", 0)
+			params.name = "Military Deserter"
+		"CRIMINAL":
+			params.type = GlobalEnums.EnemyType.get("GANGERS", 1)
+			params.name = "Gang Rival"
+		"CORPORATE":
+			params.type = GlobalEnums.EnemyType.get("CORPORATE", 2)
+			params.name = "Corporate Enforcer"
+		_:
+			params.type = GlobalEnums.EnemyType.get("RAIDERS", 3)
+			params.name = "Personal Enemy"
+	
+	params.level = 1
+	params.reputation = 0
+	
+	return params
 
 ## Apply background effects
 static func _apply_background_effects(character: Character) -> void:
 	match character.background:
-		GlobalEnums.Background.MILITARY:
+		"MILITARY":
 			character.add_trait("Military Discipline")
-		GlobalEnums.Background.CRIMINAL:
+		"CRIMINAL":
 			character.add_trait("Street Smarts")
-		GlobalEnums.Background.ACADEMIC:
+		"ACADEMIC":
 			character.add_trait("Academic Training")
-		GlobalEnums.Background.MERCENARY:
+		"MERCENARY":
 			character.add_trait("Mercenary Experience")
-		GlobalEnums.Background.COLONIST:
+		"COLONIST":
 			character.add_trait("Colony Experience")
-		GlobalEnums.Background.EXPLORER:
+		"EXPLORER":
 			character.add_trait("Exploration Experience")
-		GlobalEnums.Background.TRADER:
+		"TRADER":
 			character.add_trait("Trade Experience")
-		GlobalEnums.Background.OUTCAST:
+		"OUTCAST":
 			character.add_trait("Outcast Experience")
 
 ## Apply motivation effects to character
 static func _apply_motivation_effects(character: Character) -> void:
 	match character.motivation:
-		GlobalEnums.Motivation.REVENGE:
+		"REVENGE":
 			character.add_trait("Driven by Revenge")
-		GlobalEnums.Motivation.WEALTH:
+		"WEALTH":
 			character.add_trait("Wealth Seeker")
 			character.credits_earned += 300
-		GlobalEnums.Motivation.POWER:
+		"POWER":
 			character.add_trait("Power Hungry")
-		GlobalEnums.Motivation.SURVIVAL:
+		"SURVIVAL":
 			character.add_trait("Survivalist")
 			character.toughness = mini(character.toughness + 1, 6)
-		GlobalEnums.Motivation.KNOWLEDGE:
+		"KNOWLEDGE":
 			character.add_trait("Knowledge Seeker")
 			character.savvy = mini(character.savvy + 1, 3)
 
@@ -938,21 +1147,21 @@ static func _ensure_character_relationships_static(character: Character) -> void
 	var patrons = []
 	var rivals = []
 	
-	# Add background-appropriate relationships
+	# Add background-appropriate relationships - now using string comparison
 	match character.background:
-		GlobalEnums.Background.MILITARY:
+		"MILITARY":
 			patrons.append("Military Command")
 			rivals.append("Deserters")
-		GlobalEnums.Background.MERCENARY:
+		"MERCENARY":
 			patrons.append("Mercenary Guild")
 			rivals.append("Competing Mercs")
-		GlobalEnums.Background.CRIMINAL:
+		"CRIMINAL":
 			patrons.append("Criminal Syndicate")
 			rivals.append("Law Enforcement")
-		GlobalEnums.Background.ACADEMIC:
+		"ACADEMIC":
 			patrons.append("Research Institute")
 			rivals.append("Competing Scholars")
-		GlobalEnums.Background.TRADER:
+		"TRADER":
 			patrons.append("Trade Federation")
 			rivals.append("Competing Traders")
 		_:
@@ -976,21 +1185,21 @@ func _ensure_character_relationships(character: Character) -> void:
 	var patrons = []
 	var rivals = []
 	
-	# Add background-appropriate relationships
+	# Add background-appropriate relationships - now using string comparison
 	match character.background:
-		GlobalEnums.Background.MILITARY:
+		"MILITARY":
 			patrons.append("Military Command")
 			rivals.append("Deserters")
-		GlobalEnums.Background.MERCENARY:
+		"MERCENARY":
 			patrons.append("Mercenary Guild")
 			rivals.append("Competing Mercs")
-		GlobalEnums.Background.CRIMINAL:
+		"CRIMINAL":
 			patrons.append("Criminal Syndicate")
 			rivals.append("Law Enforcement")
-		GlobalEnums.Background.ACADEMIC:
+		"ACADEMIC":
 			patrons.append("Research Institute")
 			rivals.append("Competing Scholars")
-		GlobalEnums.Background.TRADER:
+		"TRADER":
 			patrons.append("Trade Federation")
 			rivals.append("Competing Traders")
 		_:

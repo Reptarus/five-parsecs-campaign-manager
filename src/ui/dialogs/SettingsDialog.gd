@@ -35,7 +35,7 @@ func _ready() -> void:
 	scale_slider.min_value = ThemeManager.MIN_SCALE_FACTOR
 	scale_slider.max_value = ThemeManager.MAX_SCALE_FACTOR
 	scale_slider.step = 0.05
-	scale_slider._value = ThemeManager.DEFAULT_SCALE_FACTOR
+	scale_slider.value = ThemeManager.DEFAULT_SCALE_FACTOR
 	update_scale_label(ThemeManager.DEFAULT_SCALE_FACTOR)
 
 	# Connect signals
@@ -57,7 +57,7 @@ func connect_theme_manager(manager: ThemeManager) -> void:
 
 	# Update controls to match current theme settings
 	theme_option.selected = theme_manager.get_theme_variant()
-	scale_slider._value = theme_manager.get_scale_factor()
+	scale_slider.value = theme_manager.get_scale_factor()
 	update_scale_label(theme_manager.get_scale_factor())
 	high_contrast_check.button_pressed = theme_manager.is_high_contrast_enabled()
 	reduced_animation_check.button_pressed = theme_manager.is_reduced_animation_enabled()
@@ -102,7 +102,7 @@ func _on_apply_pressed() -> void:
 
 	# Apply all settings
 	theme_manager.set_theme_variant(theme_option.selected)
-	theme_manager.set_scale_factor(scale_slider._value)
+	theme_manager.set_scale_factor(scale_slider.value)
 	theme_manager.set_high_contrast(high_contrast_check.button_pressed)
 	theme_manager.set_reduced_animation(reduced_animation_check.button_pressed)
 
@@ -112,7 +112,7 @@ func _on_apply_pressed() -> void:
 	# Emit signal with current settings
 	var settings = {
 		"theme_variant": theme_option.selected,
-		"scale_factor": scale_slider._value,
+		"scale_factor": scale_slider.value,
 		"high_contrast": high_contrast_check.button_pressed,
 		"reduced_animation": reduced_animation_check.button_pressed
 	}
@@ -125,7 +125,7 @@ func _on_apply_pressed() -> void:
 func _on_reset_pressed() -> void:
 	# Reset to defaults
 	theme_option.selected = ThemeManager.ThemeVariant.DEFAULT
-	scale_slider._value = ThemeManager.DEFAULT_SCALE_FACTOR
+	scale_slider.value = ThemeManager.DEFAULT_SCALE_FACTOR
 	update_scale_label(ThemeManager.DEFAULT_SCALE_FACTOR)
 	high_contrast_check.button_pressed = false
 	reduced_animation_check.button_pressed = false

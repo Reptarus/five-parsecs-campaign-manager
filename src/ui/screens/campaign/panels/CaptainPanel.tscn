@@ -1,63 +1,51 @@
-[gd_scene load_steps=4 format=3 uid="uid://fn8ql7m9k2vjr"]
+[gd_scene load_steps=3 format=3 uid="uid://b8x4j7y2n8q4e"]
 
-[ext_resource type="Script" uid="uid://bgooi1a18i7kc" path="res://src/ui/screens/campaign/panels/CaptainPanel.gd" id="1_yvr4t"]
-[ext_resource type="Texture2D" uid="uid://bm6c4rx645ove" path="res://assets/BookImages/Nov_23_Sunset2_.png" id="2_kkjtj"]
-[ext_resource type="PackedScene" path="res://src/core/character/Generation/BaseCharacterCreator.tscn" id="3_bc_creator"]
+[ext_resource type="PackedScene" uid="uid://bxkj8l2nan6r5" path="res://src/ui/screens/campaign/panels/BaseCampaignPanel.tscn" id="1_base"]
+[ext_resource type="Script" path="res://src/ui/screens/campaign/panels/CaptainPanel.gd" id="2_script"]
 
-[node name="CaptainPanel" type="Control"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("1_yvr4t")
+[node name="CaptainPanel" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
 
-[node name="Content" type="VBoxContainer" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
+[node name="Content" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer"]
+layout_mode = 2
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -150.0
+offset_right = 200.0
+offset_bottom = 150.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 20
 
-[node name="Title" type="Label" parent="Content"]
+[node name="Title" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "Captain Creation"
 horizontal_alignment = 1
 
-[node name="CaptainInfo" type="VBoxContainer" parent="Content"]
+[node name="CaptainNameInput" type="LineEdit" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+unique_name_in_owner = true
 layout_mode = 2
-size_flags_vertical = 3
+placeholder_text = "Enter Captain Name"
 
-[node name="Label" type="Label" parent="Content/CaptainInfo"]
+[node name="BackgroundOption" type="OptionButton" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+unique_name_in_owner = true
 layout_mode = 2
-text = "No captain created yet. Click 'Create Captain' to begin."
-horizontal_alignment = 1
-autowrap_mode = 2
 
-[node name="Controls" type="HBoxContainer" parent="Content"]
+[node name="MotivationOption" type="OptionButton" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 20
-alignment = 1
 
-[node name="CreateButton" type="Button" parent="Content/Controls"]
-custom_minimum_size = Vector2(150, 50)
+[node name="AdvancedCreationButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+unique_name_in_owner = true
 layout_mode = 2
-text = "Create Captain"
+text = "Advanced Character Creation"
 
-[node name="EditButton" type="Button" parent="Content/Controls"]
-visible = false
-custom_minimum_size = Vector2(150, 50)
+[node name="ContinueButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+unique_name_in_owner = true
 layout_mode = 2
-text = "Edit Captain"
-
-[node name="RandomizeButton" type="Button" parent="Content/Controls"]
-custom_minimum_size = Vector2(150, 50)
-layout_mode = 2
-text = "Random Captain"
-
-[node name="CharacterCreator" parent="." instance=ExtResource("3_bc_creator")]
-visible = false
+text = "Continue to Next Step"

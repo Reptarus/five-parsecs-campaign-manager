@@ -25,25 +25,20 @@ func _init() -> void:
 		return
 
 	# Try to get the singleton instance
-	var tree: SceneTree = Engine.get_main_loop() as SceneTree
-	if tree and tree.root:
-		var data_manager_node: Node = tree.root.get_node_or_null("DataManagerAutoload")
-		if data_manager_node:
-			_data_manager = data_manager_node
-			print("GameItem: DataManagerAutoload available immediately")
-		else:
-			print("GameItem: DataManagerAutoload not ready yet")
+	if DataManager:
+		_data_manager = DataManager
+		print("GameItem: DataManager available immediately")
 	else:
-		print("GameItem: SceneTree not available yet")
+		print("GameItem: DataManager not ready yet")
 
 func initialize_from_id(id: String) -> bool:
 	# If we don't have data manager yet, try to get it with retry
 	if _data_manager == null:
 		var tree: SceneTree = Engine.get_main_loop() as SceneTree
 		if tree and tree.root:
-			_data_manager = tree.root.get_node_or_null("DataManagerAutoload")
+			_data_manager = DataManager
 		if not _data_manager:
-			push_error("GameItem: Failed to get DataManagerAutoload")
+			push_error("GameItem: Failed to get DataManager")
 			return false
 
 	var item_data: Dictionary = _data_manager.get_gear_item(id)

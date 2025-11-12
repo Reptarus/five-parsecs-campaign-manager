@@ -264,7 +264,7 @@ func _on_play_tactical_battle() -> void:
 
 func _on_attempt_flee() -> void:
 	"""Attempt to flee from battle"""
-	_log_battle_message("Attempting to flee...", Color.ORANGE)
+	_log_battle_message("Attempting to flee...", Color(1.0, 0.5, 0.0, 1.0))
 
 	# Roll for flee attempt using dice system
 	var flee_roll = _roll_dice("Flee Attempt", "D6")
@@ -337,7 +337,7 @@ func _calculate_battle_casualties(result: BattleResult) -> void:
 		var casualty_roll = _roll_dice("Injury Check - " + str(character_name), "D6")
 		if casualty_roll <= 2:
 			result.crew_casualties.append(crew_member)
-			_log_battle_message("%s was injured! (rolled %d)" % [character_name, casualty_roll], Color.ORANGE)
+			_log_battle_message("%s was injured! (rolled %d)" % [character_name, casualty_roll], Color(1.0, 0.5, 0.0, 1.0))
 
 func _display_battle_results() -> void:
 	"""Display the final battle results (legacy method - redirects to comprehensive display)"""
@@ -544,7 +544,7 @@ func _apply_battle_casualties() -> void:
 					_log_battle_message("Casualty: %s" % _get_crew_name(crew_member), Color.RED)
 				elif injury_roll.total <= 4:
 					battle_result.crew_injuries.append(crew_member)
-					_log_battle_message("Injured: %s" % _get_crew_name(crew_member), Color.ORANGE)
+					_log_battle_message("Injured: %s" % _get_crew_name(crew_member), Color(1.0, 0.5, 0.0, 1.0))
 
 func _get_crew_name(crew_member: Resource) -> String:
 	"""Get crew member name safely"""
@@ -625,16 +625,16 @@ func _display_comprehensive_battle_results() -> void:
 	for crew_member in crew_members:
 		var crew_name: String = _get_crew_name(crew_member)
 		var status: String = "Healthy"
-		var status_color: String = "#00FF00" # Green
+		var status_color: Color = Color.GREEN # Green
 		
 		if crew_member in battle_result.crew_casualties:
 			status = "Casualty"
-			status_color = "#FF0000" # Red
+			status_color = Color.RED # Red
 		elif crew_member in battle_result.crew_injuries:
 			status = "Injured"
-			status_color = "#FFA500" # Orange
+			status_color = Color(1.0, 0.5, 0.0, 1.0) # Orange
 		
-		crew_status_list.add_item("[color=" + status_color + "]" + crew_name + " - " + status + "[/color]")
+		crew_status_list.add_item("[color=" + status_color.to_html() + "]" + crew_name + " - " + status + "[/color]")
 	
 	# Update rewards section
 	credits_label.text = "Credits Earned: " + str(battle_result.credits_earned)
@@ -663,7 +663,7 @@ func _display_comprehensive_battle_results() -> void:
 	events_label.text = "Events Triggered: " + str(battle_result.events_triggered.size())
 	
 	# Log comprehensive results to battle log as well
-	_log_battle_message("=== COMPREHENSIVE BATTLE RESULTS ===", Color.GOLD)
+	_log_battle_message("=== COMPREHENSIVE BATTLE RESULTS ===", Color(1.0, 0.84, 0.0, 1.0))
 	_log_battle_message("Victory: " + ("YES" if battle_result.victory else "NO"),
 		Color.GREEN if battle_result.victory else Color.RED)
 	_log_battle_message("Casualties: " + str(battle_result.crew_casualties.size()), Color.WHITE)

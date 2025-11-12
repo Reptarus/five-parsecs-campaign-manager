@@ -192,7 +192,7 @@ func _on_phase_event(_event: Dictionary) -> void:
 func _on_next_phase_pressed() -> void:
 	if dashboard_system:
 		var current_phase = dashboard_system.get_current_phase()
-		var next_phase = dashboard_system._get_next_phase(current_phase)
+		var next_phase = dashboard_system.get_next_phase(current_phase)
 		
 		# Special handling for World Phase - navigate to WorldPhaseController
 		if next_phase == 2:  # World Phase per Five Parsecs sequence
@@ -209,7 +209,7 @@ func _update_phase_ui(phase: int) -> void:
 		if phase_label:
 			phase_label.text = "Current Phase: " + phase_name
 		if next_phase_button:
-			var next_phase = dashboard_system._get_next_phase(phase)
+			var next_phase = dashboard_system.get_next_phase(phase)
 			var next_phase_name = dashboard_system.get_phase_name(next_phase)
 			
 			# Check if this is a new campaign (starting first turn)

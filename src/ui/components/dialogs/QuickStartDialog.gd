@@ -154,13 +154,13 @@ func _show_template_details(template_name: String) -> void:
 func _on_campaign_victory_achieved(victory_type: int) -> void:
 	var victory_message := ""
 	match victory_type:
-		GlobalEnums.FiveParsecsCampaignVictoryType.WEALTH_GOAL:
+		GlobalEnums.FiveParsecsCampaignVictoryType.CREDITS_50K:
 			victory_message = "You've amassed great wealth!"
-		GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_GOAL:
+		GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_10:
 			victory_message = "Your reputation precedes you!"
-		GlobalEnums.FiveParsecsCampaignVictoryType.FACTION_DOMINANCE:
+		GlobalEnums.FiveParsecsCampaignVictoryType.BATTLES_20:
 			victory_message = "You've become a dominant force!"
-		GlobalEnums.FiveParsecsCampaignVictoryType.STORY_COMPLETE:
+		GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_5:
 			victory_message = "You've completed your epic journey!"
 
 	victory_achieved.emit(true, victory_message)

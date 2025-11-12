@@ -60,10 +60,10 @@ var objectives: Array[Dictionary] = []
 var completed_objectives: Dictionary = {}
 
 # System references
-var battlefield_manager: BaseBattlefieldManager = null
-var battlefield_generator: BaseBattlefieldGenerator = null
-var combat_manager: BaseCombatManager = null
-var _battle_rules: BaseBattleRules = null
+var battlefield_manager: FiveParsecsBattlefieldManager = null
+var battlefield_generator: FiveParsecsBattlefieldGenerator = null
+var combat_manager: FiveParsecsCombatManager = null
+var _battle_rules: FiveParsecsBattleRules = null
 
 # Battle Controller Statistics
 var battle_controller_stats: Dictionary = {

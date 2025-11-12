@@ -55,16 +55,22 @@ func _ready():
 
 func _setup_navigation():
 	"""Setup navigation button connections"""
-	previous_button.pressed.connect(_on_previous_pressed)
-	next_button.pressed.connect(_on_next_pressed)
-	finish_button.pressed.connect(_on_finish_pressed)
-	cancel_button.pressed.connect(_on_cancel_pressed)
+	if not previous_button.pressed.is_connected(_on_previous_pressed):
+		previous_button.pressed.connect(_on_previous_pressed)
+	if not next_button.pressed.is_connected(_on_next_pressed):
+		next_button.pressed.connect(_on_next_pressed)
+	if not finish_button.pressed.is_connected(_on_finish_pressed):
+		finish_button.pressed.connect(_on_finish_pressed)
+	if not cancel_button.pressed.is_connected(_on_cancel_pressed):
+		cancel_button.pressed.connect(_on_cancel_pressed)
 
 func _setup_step1():
 	"""Setup Step 1: Basic Information"""
 	# Name generation
-	name_generate_button.pressed.connect(_on_generate_name_pressed)
-	name_input.text_changed.connect(_on_name_changed)
+	if not name_generate_button.pressed.is_connected(_on_generate_name_pressed):
+		name_generate_button.pressed.connect(_on_generate_name_pressed)
+	if not name_input.text_changed.is_connected(_on_name_changed):
+		name_input.text_changed.connect(_on_name_changed)
 
 	# Setup background options
 	background_option.clear()
@@ -108,7 +114,8 @@ func _add_motivation_options():
 
 func _setup_step2():
 	"""Setup Step 2: Attributes"""
-	roll_all_button.pressed.connect(_on_roll_all_attributes)
+	if not roll_all_button.pressed.is_connected(_on_roll_all_attributes):
+		roll_all_button.pressed.connect(_on_roll_all_attributes)
 
 	# Setup individual attribute roll buttons
 	var attribute_buttons = [
@@ -125,7 +132,7 @@ func _setup_step2():
 	for i: int in range((safe_call_method(attribute_buttons, "size") as int)):
 		var button: Button = attribute_buttons[i]
 		var attribute = attributes[i]
-		if button:
+		if button and not button.pressed.is_connected(_on_roll_attribute.bind(attribute)):
 			button.pressed.connect(_on_roll_attribute.bind(attribute))
 
 func _show_step(step: int):
@@ -257,7 +264,7 @@ func _on_motivation_selected(index: int):
 func _on_roll_all_attributes():
 	"""Roll all character attributes"""
 	character_data.combat = _roll_attribute_value()
-	character_data.reaction = _roll_attribute_value()
+	character_data.reactions = _roll_attribute_value()
 	character_data.toughness = _roll_attribute_value()
 	character_data.savvy = _roll_attribute_value()
 	character_data.tech = _roll_attribute_value()

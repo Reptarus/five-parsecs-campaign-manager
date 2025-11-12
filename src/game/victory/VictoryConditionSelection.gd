@@ -8,12 +8,25 @@ signal victory_selected(type: int, data: Dictionary)
 # Victory types
 var selected_victory_type: int = GlobalEnums.FiveParsecsCampaignVictoryType.NONE
 
-# Define victory categories as an array
+# Define victory categories as an array - Five Parsecs Core Rules compliant
 const VICTORY_CATEGORIES = [
-	GlobalEnums.FiveParsecsCampaignVictoryType.STORY_COMPLETE,
-	GlobalEnums.FiveParsecsCampaignVictoryType.WEALTH_GOAL,
-	GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_GOAL,
-	GlobalEnums.FiveParsecsCampaignVictoryType.FACTION_DOMINANCE
+	GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_20,
+	GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_50,
+	GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_100,
+	GlobalEnums.FiveParsecsCampaignVictoryType.BATTLES_20,
+	GlobalEnums.FiveParsecsCampaignVictoryType.BATTLES_50,
+	GlobalEnums.FiveParsecsCampaignVictoryType.BATTLES_100,
+	GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_3,
+	GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_5,
+	GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_10,
+	GlobalEnums.FiveParsecsCampaignVictoryType.STORY_POINTS_10,
+	GlobalEnums.FiveParsecsCampaignVictoryType.STORY_POINTS_20,
+	GlobalEnums.FiveParsecsCampaignVictoryType.CREDITS_50K,
+	GlobalEnums.FiveParsecsCampaignVictoryType.CREDITS_100K,
+	GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_10,
+	GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_20,
+	GlobalEnums.FiveParsecsCampaignVictoryType.CHARACTER_SURVIVAL,
+	GlobalEnums.FiveParsecsCampaignVictoryType.CREW_SIZE_10
 ]
 
 var _current_condition: String = ""
@@ -25,7 +38,7 @@ func _init() -> void:
 	custom_value_spin.min_value = 1
 	custom_value_spin.max_value = 1000000
 	custom_value_spin.step = 1000
-	custom_value_spin._value = 10000
+	custom_value_spin.value = 10000
 
 	custom_type_option = OptionButton.new()
 	_setup_custom_options()
@@ -50,13 +63,39 @@ func set_victory_type(type: int) -> void:
 
 func get_victory_description(type: int) -> String:
 	match type:
-		GlobalEnums.FiveParsecsCampaignVictoryType.STORY_COMPLETE:
-			return "Complete the main story campaign"
-		GlobalEnums.FiveParsecsCampaignVictoryType.WEALTH_GOAL:
-			return "Accumulate significant wealth"
-		GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_GOAL:
-			return "Build your reputation in the galaxy"
-		GlobalEnums.FiveParsecsCampaignVictoryType.FACTION_DOMINANCE:
-			return "Achieve dominance with your chosen faction"
+		GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_20:
+			return "Play 20 campaign turns"
+		GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_50:
+			return "Play 50 campaign turns"
+		GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_100:
+			return "Play 100 campaign turns"
+		GlobalEnums.FiveParsecsCampaignVictoryType.BATTLES_20:
+			return "Fight 20 battles"
+		GlobalEnums.FiveParsecsCampaignVictoryType.BATTLES_50:
+			return "Fight 50 battles"
+		GlobalEnums.FiveParsecsCampaignVictoryType.BATTLES_100:
+			return "Fight 100 battles"
+		GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_3:
+			return "Complete 3 story quests"
+		GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_5:
+			return "Complete 5 story quests"
+		GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_10:
+			return "Complete 10 story quests"
+		GlobalEnums.FiveParsecsCampaignVictoryType.STORY_POINTS_10:
+			return "Accumulate 10 story points"
+		GlobalEnums.FiveParsecsCampaignVictoryType.STORY_POINTS_20:
+			return "Accumulate 20 story points"
+		GlobalEnums.FiveParsecsCampaignVictoryType.CREDITS_50K:
+			return "Accumulate 50,000 credits"
+		GlobalEnums.FiveParsecsCampaignVictoryType.CREDITS_100K:
+			return "Accumulate 100,000 credits"
+		GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_10:
+			return "Achieve reputation level 10"
+		GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_20:
+			return "Achieve reputation level 20"
+		GlobalEnums.FiveParsecsCampaignVictoryType.CHARACTER_SURVIVAL:
+			return "Keep your original character alive"
+		GlobalEnums.FiveParsecsCampaignVictoryType.CREW_SIZE_10:
+			return "Reach crew size of 10"
 		_:
 			return "Unknown victory condition"

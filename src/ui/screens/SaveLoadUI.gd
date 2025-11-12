@@ -58,7 +58,7 @@ func _initialize_component_direct() -> void:
 
 func _connect_autoloads() -> void:
 	# Get references to required autoloads after they're fully initialized
-	save_manager = get_node_or_null("/root/SaveManager") as Node
+	save_manager = SaveManager as Node
 	game_state = get_node_or_null("/root/GameState") as Node
 
 	if not save_manager:
@@ -208,7 +208,7 @@ func _store_node_references(nodes: Dictionary) -> void:
 
 # Add this method for successful initialization
 func _initialize_component() -> void:
-	save_manager = get_node("/root/SaveManager")
+	save_manager = SaveManager
 	game_state = get_node("/root/GameState")
 
 	if not save_manager or not game_state:

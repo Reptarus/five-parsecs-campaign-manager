@@ -1,13 +1,11 @@
 # Universal Connection Validation Applied - Enhanced with 7-Stage Methodology
 # Based on proven patterns: Universal Mock Strategy + Complete Warning Elimination
-class_name GameStateManagerClass
 extends Node
 
 # Stage 1: Enhanced Universal imports with comprehensive safety patterns
 
-# Safe dependency loading with preload pattern
+# Safe dependency loading - GameState accessed as autoload
 # GlobalEnums available as autoload singleton
-const CoreGameState = preload("res://src/core/state/GameState.gd")
 
 # Stage 2: Enhanced signal definitions with comprehensive type safety
 signal game_state_changed(new_state)
@@ -30,7 +28,7 @@ signal state_load_completed(success: bool)
 @export var auto_save_interval: float = 300.0 # 5 minutes
 
 # Core state variables with enhanced type safety
-var game_state: CoreGameState = null
+var game_state: Node = null
 var campaign_phase: int = 0 # Will be set to NONE enum value in _ready()
 var difficulty_level: int = 1 # Will be set to NORMAL enum value in _ready()
 var credits: int = initial_credits
@@ -72,12 +70,18 @@ func _ready() -> void:
 	_initialization_complete = true
 	print("GameStateManager: Enhanced initialization complete")
 
+## Helper function to safely access GlobalEnums autoload
+func _get_global_enums():
+	"""Safe access to GlobalEnums autoload to avoid compilation errors"""
+	return get_node_or_null("/root/GlobalEnums")
+
 ## Stage 1: Enhanced dependency loading with comprehensive validation
 func _load_dependencies_safe() -> bool:
 	"""Validate preloaded dependencies"""
 
-	# Validate GlobalEnums preload
-	if not GlobalEnums:
+	# Validate GlobalEnums autoload (safe runtime check)
+	var global_enums = _get_global_enums()
+	if not global_enums:
 		push_error("GameStateManager: Failed to load GlobalEnums - critical dependency missing")
 		return false
 
@@ -94,14 +98,15 @@ func _load_dependencies_safe() -> bool:
 func _initialize_enum_values() -> void:
 	"""Initialize enum values after loading GlobalEnums with validation"""
 
-	if not GlobalEnums:
+	var global_enums = _get_global_enums()
+	if not global_enums:
 		push_error("GameStateManager: Cannot initialize enum values - GlobalEnums not loaded")
 		return
 
 	# Set default campaign phase to NONE if available
-	if "FiveParsecsCampaignPhase" in GlobalEnums:
-		if "NONE" in GlobalEnums.FiveParsecsCampaignPhase:
-			campaign_phase = GlobalEnums.FiveParsecsCampaignPhase.NONE
+	if global_enums and "FiveParsecsCampaignPhase" in global_enums:
+		if "NONE" in global_enums.FiveParsecsCampaignPhase:
+			campaign_phase = global_enums.FiveParsecsCampaignPhase.NONE
 			print("GameStateManager: Campaign phase set to NONE")
 		else:
 			push_warning("GameStateManager: NONE not found in FiveParsecsCampaignPhase enum")
@@ -109,9 +114,9 @@ func _initialize_enum_values() -> void:
 		push_warning("GameStateManager: FiveParsecsCampaignPhase enum not found in GlobalEnums")
 
 	# Set default difficulty to STANDARD if available
-	if "DifficultyLevel" in GlobalEnums:
-		if "STANDARD" in GlobalEnums.DifficultyLevel:
-			difficulty_level = GlobalEnums.DifficultyLevel.STANDARD
+	if global_enums and "DifficultyLevel" in global_enums:
+		if "STANDARD" in global_enums.DifficultyLevel:
+			difficulty_level = global_enums.DifficultyLevel.STANDARD
 			print("GameStateManager: Difficulty level set to STANDARD")
 		else:
 			push_warning("GameStateManager: STANDARD not found in DifficultyLevel enum")
@@ -136,7 +141,8 @@ func _validate_core_connections() -> void:
 	"""Validate required dependencies with comprehensive error handling"""
 
 	# Validate required dependencies
-	if not GlobalEnums:
+	var global_enums = _get_global_enums()
+	if not global_enums:
 		push_error("CORE SYSTEM FAILURE: GlobalEnums not accessible from GameStateManager")
 	else:
 		print("GameStateManager: GlobalEnums connection validated")
@@ -214,20 +220,14 @@ func _initialize_game_state_safe() -> void:
 		print("GameStateManager: Game state already exists, skipping initialization")
 		return
 
-	if not CoreGameState:
-		push_error("CRASH PREVENTION: Cannot create game state - CoreGameState class not loaded")
-		return
-
-	# Create instance using proper Godot 4.4 pattern
-	var instance = CoreGameState.new()
-	if instance:
-		game_state = instance
-		print("GameStateManager: Created new game state instance")
-
+	# Connect to GameState autoload instead of creating new instance
+	game_state = get_node_or_null("/root/GameState")
+	if game_state:
+		print("GameStateManager: Connected to GameState autoload")
 		# Initialize the game state with current values
 		_sync_state_to_game_state()
 	else:
-		push_error("CRASH PREVENTION: Failed to instantiate CoreGameState")
+		push_error("CRASH PREVENTION: Failed to connect to GameState autoload")
 
 ## Stage 6: Enhanced auto-save timer setup
 func _setup_auto_save_timer() -> void:
@@ -267,11 +267,12 @@ func _sync_state_to_game_state() -> void:
 		return
 
 	# Set initial values using proper API
-	if game_state.has_method("set_resource") and GlobalEnums and "ResourceType" in GlobalEnums:
-		if "CREDITS" in GlobalEnums.ResourceType:
-			game_state.set_resource(GlobalEnums.ResourceType.CREDITS, credits)
-		if "SUPPLIES" in GlobalEnums.ResourceType:
-			game_state.set_resource(GlobalEnums.ResourceType.SUPPLIES, supplies)
+	var global_enums = _get_global_enums()
+	if game_state.has_method("set_resource") and global_enums and "ResourceType" in global_enums:
+		if "CREDITS" in global_enums.ResourceType:
+			game_state.set_resource(global_enums.ResourceType.CREDITS, credits)
+		if "SUPPLIES" in global_enums.ResourceType:
+			game_state.set_resource(global_enums.ResourceType.SUPPLIES, supplies)
 
 	# Set other properties if they exist
 	if "reputation" in game_state:
@@ -358,7 +359,9 @@ func set_credits(new_amount: int) -> void:
 	if not is_instance_valid(self):
 		return
 	if not _initialization_complete:
-		push_warning("GameStateManager: Attempting to set credits before initialization complete")
+		print("GameStateManager: Deferring credits setting until initialization complete: %d" % new_amount)
+		# Store the value to set after initialization
+		call_deferred("_set_credits_after_init", new_amount)
 		return
 
 	# Validate credits amount (can't be negative)
@@ -377,6 +380,14 @@ func set_credits(new_amount: int) -> void:
 
 		if enable_debug_logging:
 			print("GameStateManager: Credits changed from %d to %d" % [old_credits, credits])
+
+func _set_credits_after_init(amount: int) -> void:
+	"""Set credits after initialization is complete"""
+	if _initialization_complete:
+		set_credits(amount)
+	else:
+		# Still not ready, try again later
+		call_deferred("_set_credits_after_init", amount)
 
 ## Set supplies with enhanced validation and bounds checking
 func set_supplies(new_amount: int) -> void:
@@ -497,11 +508,12 @@ func _validate_game_state_instance(state_instance: Variant) -> bool:
 func _validate_campaign_phase(phase: int) -> bool:
 	"""Validate that a campaign phase value is valid"""
 
-	if not GlobalEnums or not "FiveParsecsCampaignPhase" in GlobalEnums:
+	var global_enums = _get_global_enums()
+	if not global_enums or not "FiveParsecsCampaignPhase" in global_enums:
 		push_warning("GameStateManager: Cannot validate campaign phase - GlobalEnums not available")
 		return true # Allow if we can't validate
 
-	var phase_enum = GlobalEnums.FiveParsecsCampaignPhase
+	var phase_enum = global_enums.FiveParsecsCampaignPhase
 
 	# Check if phase is within valid enum range
 	var valid_phases: Array = []
@@ -515,11 +527,12 @@ func _validate_campaign_phase(phase: int) -> bool:
 func _validate_difficulty_level(level: int) -> bool:
 	"""Validate that a difficulty level value is valid"""
 
-	if not GlobalEnums or not "DifficultyLevel" in GlobalEnums:
+	var global_enums = _get_global_enums()
+	if not global_enums or not "DifficultyLevel" in global_enums:
 		push_warning("GameStateManager: Cannot validate difficulty level - GlobalEnums not available")
 		return true # Allow if we can't validate
 
-	var difficulty_enum = GlobalEnums.DifficultyLevel
+	var difficulty_enum = global_enums.DifficultyLevel
 
 	# Check if level is within valid enum range
 	var valid_levels: Array = []
@@ -538,9 +551,10 @@ func _sync_credits_to_game_state() -> void:
 	if not game_state:
 		return
 
-	if game_state.has_method("set_resource") and GlobalEnums and "ResourceType" in GlobalEnums:
-		if "CREDITS" in GlobalEnums.ResourceType:
-			game_state.set_resource(GlobalEnums.ResourceType.CREDITS, credits)
+	var global_enums = _get_global_enums()
+	if game_state.has_method("set_resource") and global_enums and "ResourceType" in global_enums:
+		if "CREDITS" in global_enums.ResourceType:
+			game_state.set_resource(global_enums.ResourceType.CREDITS, credits)
 		else:
 			push_warning("GameStateManager: CREDITS not found in ResourceType enum")
 	elif "credits" in game_state:
@@ -555,9 +569,10 @@ func _sync_supplies_to_game_state() -> void:
 	if not game_state:
 		return
 
-	if game_state.has_method("set_resource") and GlobalEnums and "ResourceType" in GlobalEnums:
-		if "SUPPLIES" in GlobalEnums.ResourceType:
-			game_state.set_resource(GlobalEnums.ResourceType.SUPPLIES, supplies)
+	var global_enums = _get_global_enums()
+	if game_state.has_method("set_resource") and global_enums and "ResourceType" in global_enums:
+		if "SUPPLIES" in global_enums.ResourceType:
+			game_state.set_resource(global_enums.ResourceType.SUPPLIES, supplies)
 		else:
 			push_warning("GameStateManager: SUPPLIES not found in ResourceType enum")
 	elif "supplies" in game_state:
@@ -626,11 +641,12 @@ func initialize_game_state() -> void:
 	# Additional initialization for public API
 	if game_state:
 		# Set initial values using proper API
-		if game_state.has_method("set_resource") and GlobalEnums and "ResourceType" in GlobalEnums:
-			if "CREDITS" in GlobalEnums.ResourceType:
-				game_state.set_resource(GlobalEnums.ResourceType.CREDITS, initial_credits)
-			if "SUPPLIES" in GlobalEnums.ResourceType:
-				game_state.set_resource(GlobalEnums.ResourceType.SUPPLIES, initial_supplies)
+		var global_enums = _get_global_enums()
+		if game_state.has_method("set_resource") and global_enums and "ResourceType" in global_enums:
+			if "CREDITS" in global_enums.ResourceType:
+				game_state.set_resource(global_enums.ResourceType.CREDITS, initial_credits)
+			if "SUPPLIES" in global_enums.ResourceType:
+				game_state.set_resource(global_enums.ResourceType.SUPPLIES, initial_supplies)
 
 		# Set other properties if they exist
 		if "reputation" in game_state:
@@ -935,7 +951,8 @@ func reset_to_defaults() -> void:
 	supplies = initial_supplies
 	reputation = initial_reputation
 	story_progress = 0
-	campaign_phase = GlobalEnums.FiveParsecsCampaignPhase.NONE if GlobalEnums else 0
+	var global_enums = _get_global_enums()
+	campaign_phase = global_enums.FiveParsecsCampaignPhase.NONE if global_enums else 0
 	difficulty_level = 1
 	
 	# Emit all change signals
@@ -1316,9 +1333,10 @@ func _setup_combat_ready_scenario() -> void:
 	print("GameStateManager: Setting up combat ready scenario")
 
 	# Set to battle phase
-	if GlobalEnums and "FiveParsecsCampaignPhase" in GlobalEnums:
-		if "BATTLE" in GlobalEnums.FiveParsecsCampaignPhase:
-			set_campaign_phase(GlobalEnums.FiveParsecsCampaignPhase.BATTLE)
+	var global_enums = _get_global_enums()
+	if global_enums and "FiveParsecsCampaignPhase" in global_enums:
+		if "BATTLE" in global_enums.FiveParsecsCampaignPhase:
+			set_campaign_phase(global_enums.FiveParsecsCampaignPhase.BATTLE)
 
 	# Create varied enemy types
 	if game_state and game_state and game_state.has_method("setup_varied_enemies"):

@@ -22,13 +22,13 @@ var name_generator: PlanetNameGenerator
 const GameState = preload("res://src/core/state/GameState.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
 const GameLocation = preload("res://src/base/world/location_base.gd")
-const WorldDataMigration = preload("res://src/core/migration/WorldDataMigration.gd")
 
-var migration: WorldDataMigration
+var migration: Node = null
 
 func _init() -> void:
 	name_generator = PlanetNameGenerator.new()
-	migration = WorldDataMigration.new()
+	# Migration system will be initialized when needed
+	migration = null
 func generate_sector(sector_name: String) -> void:
 	if sectors.has(sector_name):
 		return
@@ -82,9 +82,8 @@ func _generate_planet(sector_name: String, coordinates: Vector2) -> GamePlanet:
 
 	# Generate world traits
 	var world_trait_enum = randi() % GlobalEnums.WorldTrait.size()
-	var trait_id = migration.convert_world_trait_to_id(world_trait_enum)
-	if trait_id:
-		planet.add_world_trait_by_id(trait_id)
+	# Migration system not available - use direct trait assignment
+	planet.add_world_trait_by_id(world_trait_enum)
 
 	# Generate threats
 	var threat = randi() % GlobalEnums.EnemyType.size()
@@ -130,15 +129,12 @@ func deserialize(data: Dictionary) -> void:
 	for sector_name in data.sectors:
 		var planets: Array[GamePlanet] = []
 		for planet_data in data.sectors[sector_name]:
-			# Check if data needs migration
-			if migration.needs_planet_migration(planet_data):
-				planet_data = migration.migrate_planet_data(planet_data)
-
+			# Migration system not available - use direct deserialization
 			var planet = GamePlanet.deserialize(planet_data)
 
 			if planet:
 				planets.append(planet)
-			discovered_planets[planet.coordinates] = planet
+				discovered_planets[planet.coordinates] = planet
 		sectors[sector_name] = planets
 
 	current_sector = data.get("current_sector", "")

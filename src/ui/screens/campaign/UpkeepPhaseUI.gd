@@ -42,7 +42,9 @@ enum CrewTask {
 }
 
 func _ready() -> void:
-	game_state = get_node("/root/GameStateManagerAutoload").game_state
+	var game_state_manager = get_node_or_null("/root/GameStateManager")
+	if game_state_manager and game_state_manager.has_method("get_game_state"):
+		game_state = game_state_manager.get_game_state()
 	if not game_state:
 		push_error("GameState not found")
 		queue_free()
@@ -146,7 +148,7 @@ func _populate_task_options() -> void:
 
 func _update_button_states() -> void:
 	pay_upkeep_button.disabled = game_state.credits < current_costs.total
-	repair_button.disabled = not game_state.ship_hull_points or repair_points_spin._value == 0
+	repair_button.disabled = not game_state.ship_hull_points or repair_points_spin.value == 0
 	provide_care_button.disabled = not selected_medical_crew
 	assign_task_button.disabled = not selected_task_crew or task_option.selected == CrewTask.NONE
 	complete_phase_button.disabled = game_state.credits < current_costs.total
@@ -170,7 +172,7 @@ func _on_skip_upkeep_pressed() -> void:
 	_update_button_states()
 
 func _on_repair_pressed() -> void:
-	var points = repair_points_spin._value
+	var points = repair_points_spin.value
 	var cost = points * 2
 
 	if game_state.credits >= cost:
@@ -188,12 +190,12 @@ func _on_medical_turns_changed(_value: float) -> void:
 	_update_medical_cost()
 
 func _update_medical_cost() -> void:
-	var turns = medical_turns_spin._value
+	var turns = medical_turns_spin.value
 	medical_cost_value.text = str(turns * 4) + " credits"
 
 func _on_provide_care_pressed() -> void:
 	if selected_medical_crew:
-		var turns = medical_turns_spin._value
+		var turns = medical_turns_spin.value
 		var cost = turns * 4
 
 		if game_state.credits >= cost:

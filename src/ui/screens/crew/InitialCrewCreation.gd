@@ -13,7 +13,7 @@ signal character_generated(character: Character)
 
 @onready var crew_size_option := %CrewSizeOption
 @onready var crew_name_input := %CrewNameInput
-@onready var character_list_container := %Content  # This should be the available characters container
+@onready var character_list_container := %Content # This should be the available characters container
 @onready var create_button := %CreateButton
 @onready var generate_button := %GenerateButton
 @onready var character_details := %CharacterDetails
@@ -28,9 +28,54 @@ var crew_creation_data := {
 	"characters": []
 }
 
+# PHASE 5: Coordinator integration for workflow support
+var coordinator: Variant = null  # Changed from Node to Variant to accept RefCounted objects
+var workflow_mode: bool = false
+
 # REMOVED: var character_manager: Node = null - no longer needed with static methods
 
 # _ready() implementation moved to end of file for campaign integration
+
+# PHASE 5: Coordinator integration methods
+func set_coordinator(coord: Variant) -> void:
+	"""Set the coordinator for workflow integration - accepts both Node and RefCounted"""
+	coordinator = coord
+	workflow_mode = true
+	print("InitialCrewCreation: Coordinator set - workflow mode enabled")
+	_configure_workflow_mode()
+
+func _configure_workflow_mode() -> void:
+	"""Configure UI for workflow integration with coordinator"""
+	if not coordinator:
+		return
+	
+	print("InitialCrewCreation: Configuring workflow mode with coordinator access")
+	# In workflow mode, we can leverage coordinator's state management
+	# This enables better integration with the overall campaign creation flow
+	
+	# Connect to coordinator signals if available
+	if coordinator.has_signal("panel_transition_requested"):
+		coordinator.connect("panel_transition_requested", _on_coordinator_transition_request)
+
+func _report_workflow_completion(crew_data: Dictionary) -> void:
+	"""Report crew creation completion back to coordinator in workflow mode"""
+	if not coordinator or not workflow_mode:
+		return
+	
+	print("InitialCrewCreation: Reporting workflow completion to coordinator")
+	
+	# Send completion data to coordinator
+	if coordinator.has_method("handle_crew_completion"):
+		coordinator.handle_crew_completion(crew_data)
+	
+	# Trigger workflow progression if coordinator supports it
+	if coordinator.has_method("progress_workflow"):
+		coordinator.progress_workflow("crew_creation", crew_data)
+
+func _on_coordinator_transition_request(transition_data: Dictionary) -> void:
+	"""Handle transition requests from coordinator"""
+	print("InitialCrewCreation: Received transition request from coordinator")
+	# Handle coordinator-driven transitions in workflow mode
 
 func _setup_initial_crew_creation() -> void:
 	_initialize_character_system()
@@ -54,31 +99,30 @@ func _connect_signals() -> void:
 	crew_size_option.item_selected.connect(_on_crew_size_changed)
 	crew_name_input.text_changed.connect(_on_crew_name_changed)
 	create_button.pressed.connect(_on_create_pressed)
-
+	
 	# Connect character generation button if available
+	if generate_button and not generate_button.pressed.is_connected(_on_generate_character):
+		generate_button.pressed.connect(_on_generate_character)
+
 func _on_generate_character() -> void:
 	"""Production-ready character generation using Framework Bible patterns"""
 	print("InitialCrewCreation: Generating character via direct Character class")
 	
-	try:
-		# Direct static call eliminates Manager dependency
-		var new_character = Character.generate_character()
+	# Direct static call eliminates Manager dependency
+	var new_character = Character.generate_character("")
+	
+	if new_character and new_character.is_valid():
+		crew_members.append(new_character)
+		_update_character_display()
+		_update_ui_state()
+		print("Character generated successfully: %s (%s)" % [new_character.name, new_character.background])
 		
-		if new_character and new_character.is_valid():
-			crew_members.append(new_character)
-			_update_character_display()
-			_update_ui_state()
-			print("Character generated successfully: %s (%s)" % [new_character.name, new_character.background])
-			
-			# Emit signal for parent components
-			if has_signal("character_generated"):
-				character_generated.emit(new_character)
-		else:
-			push_error("Generated character failed validation")
-			_show_error_dialog("Character generation failed. Please try again.")
-	except:
-		push_error("Critical error in character generation")
-		_show_error_dialog("System error occurred. Please restart the application.")
+		# Emit signal for parent components
+		if has_signal("character_generated"):
+			character_generated.emit(new_character)
+	else:
+		push_error("Generated character failed validation")
+		_show_error_dialog("Character generation failed. Please try again.")
 
 func _show_error_dialog(message: String) -> void:
 	"""Production-ready error handling with user feedback"""
@@ -94,9 +138,9 @@ func _show_error_dialog(message: String) -> void:
 func _setup_options() -> void:
 	# Setup crew size options
 	crew_size_option.clear()
-	for i in range(1, 9):  # Crew sizes 1-8
+	for i in range(1, 9): # Crew sizes 1-8
 		crew_size_option.add_item(str(i) + " members")
-	crew_size_option.selected = 3  # Default to 4 members (index 3)
+	crew_size_option.selected = 3 # Default to 4 members (index 3)
 	create_button.disabled = true
 
 	# Enable character generation if components are available
@@ -113,7 +157,7 @@ func _setup_options() -> void:
 	_update_ui_state()
 
 func _on_crew_size_changed(index: int) -> void:
-	crew_creation_data.size = index + 1  # Convert index to actual size
+	crew_creation_data.size = index + 1 # Convert index to actual size
 	_validate_crew()
 
 func _on_crew_name_changed(new_name: String) -> void:
@@ -156,6 +200,19 @@ func _create_character_box(character: Character) -> void:
 	
 	print("InitialCrewCreation: Created character box for: ", character.character_name)
 
+func _update_character_display() -> void:
+	"""Update the character display with all current crew members"""
+	if not character_list_container:
+		return
+	
+	# Clear existing character boxes
+	for child in character_list_container.get_children():
+		child.queue_free()
+	
+	# Add character boxes for all crew members
+	for member in crew_members:
+		_create_character_box(member)
+
 func _character_to_dict(character: Character) -> Dictionary:
 	"""Convert Character object to dictionary format"""
 	return {
@@ -173,25 +230,24 @@ func _character_to_dict(character: Character) -> Dictionary:
 
 func _get_class_name(class_id: int) -> String:
 	"""Get class name for display"""
-	# GlobalEnums available as autoload singleton
-
-	# GlobalEnums should be available as an autoload
-	if GlobalEnums and GlobalEnums.has("CharacterClass") and class_id >= 0:
-		var character_classes = GlobalEnums.CharacterClass
-		if class_id < character_classes.size():
-			return character_classes.keys()[class_id]
+	# Use Engine.get_singleton for safe access to GlobalEnums
+	var global_enums = Engine.get_singleton("GlobalEnums")
+	if global_enums and global_enums.has_method("get_character_class_name"):
+		return global_enums.get_character_class_name(class_id)
 	return "Unknown"
 
 func _get_background_name(background_id: int) -> String:
 	"""Get background name for display"""
-	if GlobalEnums and background_id >= 0 and background_id < GlobalEnums.CharacterBackground.size():
-		return GlobalEnums.CharacterBackground.keys()[background_id]
+	var global_enums = Engine.get_singleton("GlobalEnums")
+	if global_enums and global_enums.has_method("get_background_name"):
+		return global_enums.get_background_name(background_id)
 	return "Unknown"
 
 func _get_motivation_name(motivation_id: int) -> String:
 	"""Get motivation name for display"""
-	if GlobalEnums and motivation_id >= 0 and motivation_id < GlobalEnums.CharacterMotivation.size():
-		return GlobalEnums.CharacterMotivation.keys()[motivation_id]
+	var global_enums = Engine.get_singleton("GlobalEnums")
+	if global_enums and global_enums.has_method("get_motivation_name"):
+		return global_enums.get_motivation_name(motivation_id)
 	return "Unknown"
 
 func _update_character_relationship_displays(character: Character) -> void:
@@ -249,8 +305,9 @@ func _update_character_relationship_displays(character: Character) -> void:
 
 func _get_enemy_type_name(type_id: int) -> String:
 	"""Get enemy type name for display"""
-	if GlobalEnums and type_id >= 0 and type_id < GlobalEnums.EnemyType.size():
-		return GlobalEnums.EnemyType.keys()[type_id]
+	var global_enums = Engine.get_singleton("GlobalEnums")
+	if global_enums and global_enums.has_method("get_enemy_type_name"):
+		return global_enums.get_enemy_type_name(type_id)
 	return "Unknown"
 
 func _display_character_details(character: Character) -> void:
@@ -311,6 +368,9 @@ func _on_create_pressed() -> void:
 
 		self.crew_created.emit(final_crew_data)
 
+		# PHASE 5: Report completion to coordinator in workflow mode
+		_report_workflow_completion(final_crew_data)
+
 		print("InitialCrewCreation: Crew created with %d characters" % get_crew_size())
 
 		# Navigate to crew management after successful creation
@@ -361,14 +421,20 @@ func setup_for_campaign_creation() -> void:
 	"""Setup InitialCrewCreation for campaign creation workflow integration"""
 	print("InitialCrewCreation: Setting up for campaign creation workflow")
 	
-	# Check for NEW workflow context manager first
+	# PRIORITY 1: Check if coordinator is already set (preferred method)
+	if coordinator != null:
+		print("InitialCrewCreation: ✅ Coordinator already available - using direct integration")
+		_setup_coordinator_integration()
+		return
+	
+	# PRIORITY 2: Check for NEW workflow context manager
 	var workflow_manager = get_node_or_null("/root/WorkflowContextManager")
 	if workflow_manager:
 		print("InitialCrewCreation: NEW workflow context manager found - using modular approach")
 		_setup_workflow_integration(workflow_manager)
 		return
 	
-	# Fallback to legacy state bridge system
+	# PRIORITY 3: Fallback to legacy state bridge system
 	var state_bridge = get_node_or_null("/root/CampaignCreationStateBridge")
 	if state_bridge:
 		print("InitialCrewCreation: Connected to CampaignCreationStateBridge (legacy mode)")
@@ -389,7 +455,55 @@ func setup_for_campaign_creation() -> void:
 		# Load any existing crew data from campaign state
 		_load_existing_crew_from_campaign(state_bridge)
 	else:
-		push_warning("InitialCrewCreation: No workflow system found - operating in standalone mode")
+		print("InitialCrewCreation: ⚠️ No workflow system available - operating in standalone mode")
+		print("InitialCrewCreation: This is normal if coordinator will be set later by parent panel")
+
+func _setup_coordinator_integration() -> void:
+	"""Setup direct coordinator integration (preferred method)"""
+	if not coordinator:
+		return
+		
+	print("InitialCrewCreation: Setting up direct coordinator integration")
+	
+	# Get existing crew data from coordinator
+	if coordinator.has_method("get_unified_campaign_state"):
+		var state = coordinator.get_unified_campaign_state()
+		if state.has("crew") and state.crew.has("members") and not state.crew.members.is_empty():
+			print("InitialCrewCreation: Loading existing crew data from coordinator")
+			_load_existing_crew_from_coordinator(state.crew)
+	
+	# Setup completion callback
+	if crew_created.is_connected(_on_crew_created_for_campaign):
+		crew_created.disconnect(_on_crew_created_for_campaign)
+	crew_created.connect(_on_crew_created_for_campaign)
+	
+	print("InitialCrewCreation: ✅ Coordinator integration setup complete")
+
+func _load_existing_crew_from_coordinator(crew_state: Dictionary) -> void:
+	"""Load existing crew data from coordinator state"""
+	if crew_state.has("members") and crew_state.members.size() > 0:
+		print("InitialCrewCreation: Loading %d existing crew members from coordinator" % crew_state.members.size())
+		
+		# Update local crew data
+		crew_creation_data.members = crew_state.members.duplicate()
+		crew_creation_data.is_complete = crew_state.get("is_complete", false)
+		
+		# Update UI to reflect loaded data
+		_update_ui_from_loaded_data()
+		
+		print("InitialCrewCreation: ✅ Existing crew data loaded successfully")
+
+func _update_ui_from_loaded_data() -> void:
+	"""Update UI elements to reflect loaded crew data"""
+	if crew_creation_data.members.size() > 0:
+		# Enable relevant UI elements and show loaded crew
+		_update_ui_state()
+		_display_loaded_crew()
+
+func _display_loaded_crew() -> void:
+	"""Display loaded crew in the UI"""
+	print("InitialCrewCreation: Displaying %d loaded crew members" % crew_creation_data.members.size())
+	# Implementation depends on UI structure - could be expanded as needed
 
 func _setup_workflow_integration(workflow_manager: Node) -> void:
 	"""Setup NEW workflow context manager integration"""
@@ -437,7 +551,7 @@ func _load_existing_crew_from_workflow(crew_data: Dictionary) -> void:
 	
 	if crew_data.has("size"):
 		crew_creation_data.size = crew_data.size
-		crew_size_option.selected = crew_data.size - 1  # Convert size to index
+		crew_size_option.selected = crew_data.size - 1 # Convert size to index
 	
 	# Load existing crew members
 	var existing_members = crew_data.get("crew_members", [])
@@ -500,7 +614,7 @@ func _load_existing_crew_from_campaign(state_bridge: Node) -> void:
 		
 		if crew_data.has("size"):
 			crew_creation_data.size = crew_data.size
-			crew_size_option.selected = crew_data.size - 1  # Convert size to index
+			crew_size_option.selected = crew_data.size - 1 # Convert size to index
 		
 		# Load existing crew members
 		var existing_members = crew_data.get("crew_members", [])
@@ -610,7 +724,7 @@ func cleanup() -> void:
 	
 	# Reset UI state
 	if crew_size_option:
-		crew_size_option.selected = 3  # Index 3 = 4 members
+		crew_size_option.selected = 3 # Index 3 = 4 members
 	
 	if crew_name_input:
 		crew_name_input.text = ""

@@ -264,7 +264,7 @@ func _update_stat_display() -> void:
 		return
 
 	var stats: Dictionary = {
-		"Reaction": current_character.reaction,
+		"Reaction": current_character.reactions,
 		"Combat": current_character.combat,
 		"Toughness": current_character.toughness,
 		"Speed": current_character.speed,
@@ -326,7 +326,7 @@ func _calculate_character_level(character: Character) -> int:
 
 	# Simple level calculation based on total stats above starting values
 	var base_stats: int = 12 # Minimum starting stats
-	var current_stats: int = character.reaction + character.combat + character.toughness + character.speed + character.savvy + character.luck
+	var current_stats: int = character.reactions + character.combat + character.toughness + character.speed + character.savvy + character.luck
 	var bonus_stats: int = current_stats - base_stats
 
 	# Fix narrowing conversion - explicit int conversion
@@ -405,7 +405,7 @@ func _on_apply_pressed() -> void:
 		var change: int = pending_stat_changes[stat_name]
 		match stat_name:
 			"Reaction":
-				current_character.reaction += change
+				current_character.reactions += change
 			"Combat":
 				current_character.combat += change
 			"Toughness":

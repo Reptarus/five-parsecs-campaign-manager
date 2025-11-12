@@ -24,9 +24,9 @@ var active_conflicts: Array[Dictionary] = []
 var faction_strengths: Dictionary = {}
 
 func _ready() -> void:
-	game_state = get_node_or_null("/root/GameStateManagerAutoload")
+	game_state = get_node_or_null("/root/GameStateManager")
 	if not game_state:
-		push_error("GameStateManagerAutoload instance not found")
+		push_error("GameStateManager instance not found")
 		queue_free()
 		return
 

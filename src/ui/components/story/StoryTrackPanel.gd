@@ -284,9 +284,18 @@ func apply_story_theme() -> void:
 
 ## Initialize manager references from autoloads
 func _initialize_managers() -> void:
-	"""Initialize manager references from autoloads"""
+	"""Initialize manager references from autoloads with fallbacks"""
 	alpha_manager = get_node("/root/FPCM_AlphaGameManager") if has_node("/root/FPCM_AlphaGameManager") else null
-	dice_manager = get_node("/root/DiceManager") if has_node("/root/DiceManager") else null
+	
+	# Initialize dice manager with fallback
+	if has_node("/root/DiceManager"):
+		dice_manager = get_node("/root/DiceManager")
+	else:
+		# Create fallback dice manager
+		dice_manager = Node.new()
+		dice_manager.name = "FallbackDiceManager"
+		dice_manager.set_script(preload("res://src/core/systems/FallbackDiceManager.gd"))
+		print("StoryTrackPanel: Created fallback DiceManager")
 
 	# Get story track system from alpha manager if available
 	if alpha_manager and alpha_manager.has_method("get_story_track_system"):

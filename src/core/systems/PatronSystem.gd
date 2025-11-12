@@ -14,6 +14,7 @@ extends Node
 ## Implements IGameSystem interface for standardized integration
 
 # Safe imports
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const IGameSystem = preload("res://src/core/systems/IGameSystem.gd")
 const DataManager = preload("res://src/core/data/DataManager.gd")
 const SafeDataAccess = preload("res://src/utils/SafeDataAccess.gd")
@@ -167,12 +168,15 @@ func initialize() -> bool:
 		_errors.append("GameState not available")
 
 	# Try to get game state
-	_game_state = get_node_or_null("/root/GameState") as Node
+	# Use AutoloadManager for safer node access
+	_game_state = AutoloadManager.get_autoload_safe("GameState")
 	if not _game_state:
-		_game_state = get_node_or_null("/root/GameStateManagerAutoload") as Node
-
+		_game_state = AutoloadManager.get_autoload_safe("GameStateManager")
+	
 	if not _game_state:
-		_errors.append("Game state not accessible")
+		# Use fallback approach - this is not critical for patron generation
+		print("PatronSystem: Game state not available - using fallback mode")
+		# Don't add to errors since PatronSystem can work without GameState
 
 	# Load connections data
 	_load_connections_data()

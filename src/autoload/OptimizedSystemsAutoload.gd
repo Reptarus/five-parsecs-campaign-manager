@@ -68,13 +68,13 @@ func _wait_for_essential_autoloads() -> void:
 	await get_tree().process_frame
 	
 	# Check for DataManager but don't block if it's still loading
-	var data_manager = get_node_or_null("/root/DataManagerAutoload")
+	var data_manager = DataManager
 	if data_manager:
-		# Check DataManager static system state
-		if not DataManager._is_data_loaded:
+		# Check DataManager instance state
+		if not data_manager._is_data_loaded:
 			print("OptimizedSystemsAutoload: DataManager essential data loading...")
 			# Initialize but don't wait - proceed regardless
-			DataManager.initialize_data_system()
+			data_manager.initialize_data_system()
 			print("OptimizedSystemsAutoload: Continued after DataManager initialization")
 		else:
 			print("OptimizedSystemsAutoload: DataManager already loaded")

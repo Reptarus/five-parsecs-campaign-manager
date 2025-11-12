@@ -1,5 +1,5 @@
 class_name ConfigPanelController
-extends FiveParsecsUIController
+extends Node
 
 ## ConfigPanelController - Manages campaign configuration UI and validation
 ## Part of the modular campaign creation architecture using scene-based composition
@@ -15,7 +15,7 @@ var description_label: Label
 # Configuration data structure
 const DEFAULT_CONFIG = {
 	"name": "",
-	"difficulty": 1,  # GlobalEnums.DifficultyLevel.STANDARD
+	"difficulty": 2, # GlobalEnums.DifficultyLevel.STANDARD
 	"victory_condition": "none",
 	"story_track_enabled": false,
 	"elite_ranks": 0,
@@ -27,7 +27,7 @@ const DEFAULT_CONFIG = {
 const VICTORY_CONDITIONS = {
 	0: "none",
 	1: "play_20_turns",
-	2: "play_50_turns", 
+	2: "play_50_turns",
 	3: "play_100_turns",
 	4: "complete_3_quests",
 	5: "complete_5_quests",
@@ -42,8 +42,14 @@ const VICTORY_CONDITIONS = {
 	14: "play_50_insanity"
 }
 
+# Base class properties
+var panel_node: Control = null
+var is_initialized: bool = false
+var panel_data: Dictionary = {}
+var is_panel_valid: bool = false
+
 func _init(panel_node: Control = null) -> void:
-	super("ConfigPanel", panel_node)
+	self.panel_node = panel_node
 
 func initialize_panel() -> void:
 	"""Initialize the config panel with UI setup and connections"""
@@ -75,24 +81,13 @@ func _setup_difficulty_options() -> void:
 	
 	difficulty_option.clear()
 	
-	# Use GlobalEnums if available, otherwise use constants
-	var difficulty_enum = GlobalEnums.DifficultyLevel if GlobalEnums else null
-	
-	if difficulty_enum:
-		difficulty_option.add_item("Story", difficulty_enum.STORY)
-		difficulty_option.add_item("Standard", difficulty_enum.STANDARD)
-		difficulty_option.add_item("Challenging", difficulty_enum.CHALLENGING)
-		difficulty_option.add_item("Hardcore", difficulty_enum.HARDCORE)
-		difficulty_option.add_item("Nightmare", difficulty_enum.NIGHTMARE)
-		difficulty_option.select(1)  # Default to Standard
-	else:
-		# Fallback without GlobalEnums
-		difficulty_option.add_item("Story", 0)
-		difficulty_option.add_item("Standard", 1)
-		difficulty_option.add_item("Challenging", 2)
-		difficulty_option.add_item("Hardcore", 3)
-		difficulty_option.add_item("Nightmare", 4)
-		difficulty_option.select(1)
+	# Use literal enum values (GlobalEnums may not be available in controller context)
+	difficulty_option.add_item("Story", 1) # GlobalEnums.DifficultyLevel.STORY
+	difficulty_option.add_item("Standard", 2) # GlobalEnums.DifficultyLevel.STANDARD
+	difficulty_option.add_item("Challenging", 3) # GlobalEnums.DifficultyLevel.CHALLENGING
+	difficulty_option.add_item("Hardcore", 4) # GlobalEnums.DifficultyLevel.HARDCORE
+	difficulty_option.add_item("Nightmare", 5) # GlobalEnums.DifficultyLevel.NIGHTMARE
+	difficulty_option.select(1) # Default to Standard
 
 func _setup_victory_conditions() -> void:
 	"""Setup victory condition dropdown options"""
@@ -105,7 +100,7 @@ func _setup_victory_conditions() -> void:
 	var conditions = [
 		"No Victory Condition",
 		"Play 20 Campaign Turns",
-		"Play 50 Campaign Turns", 
+		"Play 50 Campaign Turns",
 		"Play 100 Campaign Turns",
 		"Complete 3 Quests",
 		"Complete 5 Quests",
@@ -123,7 +118,7 @@ func _setup_victory_conditions() -> void:
 	for i in range(conditions.size()):
 		victory_condition_option.add_item(conditions[i], i)
 	
-	victory_condition_option.select(0)  # Default to no victory condition
+	victory_condition_option.select(0) # Default to no victory condition
 
 func _connect_ui_signals() -> void:
 	"""Connect UI element signals"""
@@ -339,3 +334,38 @@ func get_difficulty_level() -> int:
 func get_victory_condition() -> String:
 	"""Get the victory condition"""
 	return panel_data.get("victory_condition", "none")
+
+# Helper methods for base class compatibility
+func _emit_error(message: String) -> void:
+	push_error("ConfigPanelController: " + message)
+
+func debug_print(message: String) -> void:
+	print("ConfigPanelController: " + message)
+
+func _safe_get_node(path: String) -> Node:
+	if not panel_node:
+		return null
+	return panel_node.get_node_or_null(path)
+
+func _safe_connect_signal(node: Node, signal_name: String, callback: Callable) -> void:
+	if node and node.has_signal(signal_name):
+		node.connect(signal_name, callback)
+
+func _update_data(data: Dictionary) -> void:
+	panel_data = data.duplicate()
+	is_panel_valid = true
+
+func mark_dirty(dirty: bool) -> void:
+	# Implementation for dirty marking
+	pass
+
+func _sanitize_string_input(input: String, max_length: int) -> String:
+	"""Sanitize string input"""
+	var sanitized = input.strip_edges()
+	if sanitized.length() > max_length:
+		sanitized = sanitized.substr(0, max_length)
+	return sanitized
+
+func is_valid() -> bool:
+	"""Check if panel is valid"""
+	return is_panel_valid

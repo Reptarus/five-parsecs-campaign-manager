@@ -310,7 +310,7 @@ func _create_attributes_panel() -> Control:
 	
 	# Attribute rows
 	_add_attribute_row(attrs_grid, "Combat", editing_character.combat, 0, 3)
-	_add_attribute_row(attrs_grid, "Reaction", editing_character.reaction, 1, 6)
+	_add_attribute_row(attrs_grid, "Reaction", editing_character.reactions, 1, 6)
 	_add_attribute_row(attrs_grid, "Toughness", editing_character.toughness, 3, 6)
 	_add_attribute_row(attrs_grid, "Savvy", editing_character.savvy, 0, 3)
 	_add_attribute_row(attrs_grid, "Speed", editing_character.speed, 4, 8)
@@ -569,15 +569,15 @@ func _generate_character_summary() -> String:
 	"""Generate a summary of the character for review"""
 	var summary = "[center][b]%s[/b][/center]\n\n" % editing_character.character_name
 	
-	# Basic info
-	summary += "[b]Background:[/b] %s\n" % GlobalEnums.Background.keys()[editing_character.background].capitalize()
-	summary += "[b]Motivation:[/b] %s\n" % GlobalEnums.Motivation.keys()[editing_character.motivation].capitalize()
-	summary += "[b]Class:[/b] %s\n\n" % GlobalEnums.CharacterClass.keys()[editing_character.character_class].capitalize()
+	# Basic info - background and motivation are now strings
+	summary += "[b]Background:[/b] %s\n" % editing_character.background.capitalize()
+	summary += "[b]Motivation:[/b] %s\n" % editing_character.motivation.capitalize()
+	summary += "[b]Class:[/b] %s\n\n" % editing_character.character_class.capitalize()
 	
 	# Attributes
 	summary += "[b]Attributes:[/b]\n"
 	summary += "• Combat: %d\n" % editing_character.combat
-	summary += "• Reaction: %d\n" % editing_character.reaction
+	summary += "• Reaction: %d\n" % editing_character.reactions
 	summary += "• Toughness: %d\n" % editing_character.toughness
 	summary += "• Savvy: %d\n" % editing_character.savvy
 	summary += "• Speed: %d\n" % editing_character.speed
@@ -667,13 +667,19 @@ func _on_name_changed(new_name: String) -> void:
 
 func _on_background_changed(index: int) -> void:
 	"""Handle background selection change"""
-	# Add 1 to account for NONE being 0
-	editing_character.background = index + 1
+	# Convert index to background name string
+	if index >= 0 and index < GlobalEnums.Background.size():
+		editing_character.background = GlobalEnums.Background.keys()[index]
+	else:
+		editing_character.background = "Unknown"
 
 func _on_motivation_changed(index: int) -> void:
 	"""Handle motivation selection change"""
-	# Add 1 to account for NONE being 0
-	editing_character.motivation = index + 1
+	# Convert index to motivation name string
+	if index >= 0 and index < GlobalEnums.Motivation.size():
+		editing_character.motivation = GlobalEnums.Motivation.keys()[index]
+	else:
+		editing_character.motivation = "Unknown"
 
 func _on_reroll_attributes() -> void:
 	"""Handle attribute reroll"""
@@ -691,7 +697,7 @@ func _update_attributes_display() -> void:
 	
 	# Find and update value labels
 	_update_attribute_value("Combat", editing_character.combat)
-	_update_attribute_value("Reaction", editing_character.reaction)
+	_update_attribute_value("Reaction", editing_character.reactions)
 	_update_attribute_value("Toughness", editing_character.toughness)
 	_update_attribute_value("Savvy", editing_character.savvy)
 	_update_attribute_value("Speed", editing_character.speed)
@@ -758,11 +764,11 @@ func _validate_basic_info() -> bool:
 		_show_validation_error("Character name is required")
 		return false
 	
-	if editing_character.background <= 0:
+	if editing_character.background.is_empty() or editing_character.background == "Unknown":
 		_show_validation_error("Please select a background")
 		return false
 	
-	if editing_character.motivation <= 0:
+	if editing_character.motivation.is_empty() or editing_character.motivation == "Unknown":
 		_show_validation_error("Please select a motivation")
 		return false
 	
@@ -800,7 +806,7 @@ func _serialize_character(character: Character) -> Dictionary:
 		"background": character.background,
 		"motivation": character.motivation,
 		"combat": character.combat,
-		"reaction": character.reaction,
+		"reaction": character.reactions,
 		"toughness": character.toughness,
 		"savvy": character.savvy,
 		"speed": character.speed,
@@ -819,7 +825,7 @@ func _restore_character_from_backup(character: Character, backup: Dictionary) ->
 	character.background = backup.get("background", 0)
 	character.motivation = backup.get("motivation", 0)
 	character.combat = backup.get("combat", 0)
-	character.reaction = backup.get("reaction", 0)
+	character.reactions = backup.get("reaction", 0)
 	character.toughness = backup.get("toughness", 3)
 	character.savvy = backup.get("savvy", 0)
 	character.speed = backup.get("speed", 4)

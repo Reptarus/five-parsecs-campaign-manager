@@ -7,27 +7,27 @@ class_name FiveParsecsCampaignDataResource
 ## Replaces complex JSON loading with type-safe resources
 
 # World and location data
-@export var world_traits: Array[WorldTrait] = []
-@export var planet_types: Array[PlanetType] = []
-@export var location_types: Array[LocationData] = []
+@export var world_traits: Array[Dictionary] = []
+@export var planet_types: Array[Dictionary] = []
+@export var location_types: Array[Dictionary] = []
 
 # Campaign progression data
-@export var victory_conditions: Array[VictoryCondition] = []
-@export var campaign_events: Array[CampaignEvent] = []
-@export var character_events: Array[CharacterEvent] = []
+@export var victory_conditions: Array[Dictionary] = []
+@export var campaign_events: Array[Dictionary] = []
+@export var character_events: Array[Dictionary] = []
 
 # Faction and relationship data
-@export var patron_types: Array[PatronType] = []
-@export var rival_types: Array[RivalType] = []
-@export var faction_data: Array[FactionData] = []
+@export var patron_types: Array[Dictionary] = []
+@export var rival_types: Array[Dictionary] = []
+@export var faction_data: Array[Dictionary] = []
 
 # Economy and trading data
-@export var trade_goods: Array[TradeGood] = []
-@export var market_conditions: Array[MarketCondition] = []
-@export var upkeep_costs: UpkeepCosts
+@export var trade_goods: Array[Dictionary] = []
+@export var market_conditions: Array[Dictionary] = []
+@export var upkeep_costs: Dictionary = {}
 
 # Story and quest data
-@export var story_tracks: Array[StoryTrack] = []
+@export var story_tracks: Array[Dictionary] = []
 @export var quest_templates: Array[QuestTemplate] = []
 
 ## World Trait Resource
@@ -35,7 +35,7 @@ class WorldTrait extends Resource:
 	@export var id: int = 0
 	@export var name: String = ""
 	@export var description: String = ""
-	@export var effects: Dictionary = {}  # effect_type: value
+	@export var effects: Dictionary = {} # effect_type: value
 	@export var trade_modifiers: Dictionary = {}
 	@export var mission_modifiers: Dictionary = {}
 	@export var special_rules: Array[String] = []
@@ -47,7 +47,7 @@ class PlanetType extends Resource:
 	@export var description: String = ""
 	@export var common_traits: Array[String] = []
 	@export var environment_type: String = ""
-	@export var tech_level: int = 3  # 1-5 scale
+	@export var tech_level: int = 3 # 1-5 scale
 	@export var population_density: String = "moderate"
 
 ## Location Data Resource
@@ -65,7 +65,7 @@ class VictoryCondition extends Resource:
 	@export var id: int = 0
 	@export var name: String = ""
 	@export var description: String = ""
-	@export var requirements: Dictionary = {}  # requirement_type: value
+	@export var requirements: Dictionary = {} # requirement_type: value
 	@export var difficulty_modifier: int = 0
 	@export var story_implications: Array[String] = []
 
@@ -74,7 +74,7 @@ class CampaignEvent extends Resource:
 	@export var id: int = 0
 	@export var name: String = ""
 	@export var description: String = ""
-	@export var probability: float = 0.1  # 0.0 to 1.0
+	@export var probability: float = 0.1 # 0.0 to 1.0
 	@export var effects: Dictionary = {}
 	@export var choices: Array[EventChoice] = []
 	@export var prerequisites: Array[String] = []
@@ -98,7 +98,7 @@ class PatronType extends Resource:
 	@export var id: int = 0
 	@export var name: String = ""
 	@export var description: String = ""
-	@export var patron_type: String = ""  # "corporate", "government", "criminal"
+	@export var patron_type: String = "" # "corporate", "government", "criminal"
 	@export var mission_types: Array[String] = []
 	@export var payment_modifier: float = 1.0
 	@export var relationship_effects: Dictionary = {}
@@ -119,7 +119,7 @@ class FactionData extends Resource:
 	@export var description: String = ""
 	@export var faction_type: String = ""
 	@export var influence_areas: Array[String] = []
-	@export var relationships: Dictionary = {}  # faction_id: relationship_value
+	@export var relationships: Dictionary = {} # faction_id: relationship_value
 	@export var special_rules: Array[String] = []
 
 ## Trade Good Resource
@@ -128,17 +128,17 @@ class TradeGood extends Resource:
 	@export var name: String = ""
 	@export var description: String = ""
 	@export var base_value: int = 1
-	@export var volatility: float = 0.2  # How much price varies
-	@export var legality: String = "legal"  # "legal", "restricted", "illegal"
+	@export var volatility: float = 0.2 # How much price varies
+	@export var legality: String = "legal" # "legal", "restricted", "illegal"
 	@export var availability: String = "common"
 
 ## Market Condition Resource
 class MarketCondition extends Resource:
 	@export var name: String = ""
 	@export var description: String = ""
-	@export var price_modifiers: Dictionary = {}  # trade_good_type: modifier
+	@export var price_modifiers: Dictionary = {} # trade_good_type: modifier
 	@export var availability_modifiers: Dictionary = {}
-	@export var duration: int = 1  # Campaign turns
+	@export var duration: int = 1 # Campaign turns
 
 ## Upkeep Costs Resource
 class UpkeepCosts extends Resource:
@@ -171,76 +171,76 @@ class QuestTemplate extends Resource:
 	@export var quest_type: String = ""
 	@export var objectives: Array[String] = []
 	@export var rewards: Dictionary = {}
-	@export var time_limit: int = -1  # -1 for no limit
+	@export var time_limit: int = -1 # -1 for no limit
 
 ## Data Access Methods
 
-func get_world_trait_by_name(trait_name: String) -> WorldTrait:
+func get_world_trait_by_name(trait_name: String) -> Dictionary:
 	"""Get world trait by name"""
-	for trait in world_traits:
-		if trait.name == trait_name:
-			return trait
-	return null
+	for world_trait in world_traits:
+		if world_trait.get("name") == trait_name:
+			return world_trait
+	return {}
 
-func get_planet_type_by_name(planet_name: String) -> PlanetType:
+func get_planet_type_by_name(planet_name: String) -> Dictionary:
 	"""Get planet type by name"""
 	for planet in planet_types:
-		if planet.name == planet_name:
+		if planet.get("name") == planet_name:
 			return planet
-	return null
+	return {}
 
-func get_victory_condition_by_id(condition_id: int) -> VictoryCondition:
+func get_victory_condition_by_id(condition_id: int) -> Dictionary:
 	"""Get victory condition by ID"""
 	for condition in victory_conditions:
-		if condition.id == condition_id:
+		if condition.get("id") == condition_id:
 			return condition
-	return null
+	return {}
 
-func get_patron_type_by_name(patron_name: String) -> PatronType:
+func get_patron_type_by_name(patron_name: String) -> Dictionary:
 	"""Get patron type by name"""
 	for patron in patron_types:
-		if patron.name == patron_name:
+		if patron.get("name") == patron_name:
 			return patron
-	return null
+	return {}
 
-func get_random_campaign_event() -> CampaignEvent:
+func get_random_campaign_event() -> Dictionary:
 	"""Get random campaign event based on probability"""
 	var total_weight = 0.0
 	for event in campaign_events:
-		total_weight += event.probability
+		total_weight += event.get("probability", 0.0)
 	
 	if total_weight <= 0:
-		return null
+		return {}
 	
 	var roll = randf() * total_weight
 	var current_weight = 0.0
 	
 	for event in campaign_events:
-		current_weight += event.probability
+		current_weight += event.get("probability", 0.0)
 		if roll <= current_weight:
 			return event
 	
-	return null
+	return {}
 
-func get_random_character_event(character_data: Dictionary = {}) -> CharacterEvent:
+func get_random_character_event(character_data: Dictionary = {}) -> Dictionary:
 	"""Get random character event matching requirements"""
-	var eligible_events: Array[CharacterEvent] = []
+	var eligible_events: Array[Dictionary] = []
 	
 	for event in character_events:
 		if _meets_character_requirements(event, character_data):
 			eligible_events.append(event)
 	
 	if eligible_events.is_empty():
-		return null
+		return {}
 	
 	return eligible_events[randi() % eligible_events.size()]
 
-func get_trade_good_by_name(good_name: String) -> TradeGood:
+func get_trade_good_by_name(good_name: String) -> Dictionary:
 	"""Get trade good by name"""
 	for good in trade_goods:
 		if good.name == good_name:
 			return good
-	return null
+	return {}
 
 func get_current_market_price(good_name: String, world_conditions: Array[String] = []) -> int:
 	"""Calculate current market price for trade good"""
@@ -260,30 +260,30 @@ func get_current_market_price(good_name: String, world_conditions: Array[String]
 	
 	return max(1, price)
 
-func get_market_condition_by_name(condition_name: String) -> MarketCondition:
+func get_market_condition_by_name(condition_name: String) -> Dictionary:
 	"""Get market condition by name"""
 	for condition in market_conditions:
 		if condition.name == condition_name:
 			return condition
-	return null
+	return {}
 
-func get_story_track_by_name(track_name: String) -> StoryTrack:
+func get_story_track_by_name(track_name: String) -> Dictionary:
 	"""Get story track by name"""
 	for track in story_tracks:
-		if track.name == track_name:
+		if track.get("name") == track_name:
 			return track
-	return null
+	return {}
 
-func get_faction_by_name(faction_name: String) -> FactionData:
+func get_faction_by_name(faction_name: String) -> Dictionary:
 	"""Get faction data by name"""
 	for faction in faction_data:
-		if faction.name == faction_name:
+		if faction.get("name") == faction_name:
 			return faction
-	return null
+	return {}
 
 ## Helper Methods
 
-func _meets_character_requirements(event: CharacterEvent, character_data: Dictionary) -> bool:
+func _meets_character_requirements(event: Dictionary, character_data: Dictionary) -> bool:
 	"""Check if character meets event requirements"""
 	for requirement in event.character_requirements:
 		var req_type = requirement
@@ -306,12 +306,12 @@ func _meets_character_requirements(event: CharacterEvent, character_data: Dictio
 	
 	return true
 
-func roll_world_traits(count: int = 2) -> Array[WorldTrait]:
+func roll_world_traits(count: int = 2) -> Array[Dictionary]:
 	"""Roll random world traits"""
 	if world_traits.is_empty():
 		return []
 	
-	var rolled_traits: Array[WorldTrait] = []
+	var rolled_traits: Array[Dictionary] = []
 	var available_traits = world_traits.duplicate()
 	
 	for i in range(min(count, available_traits.size())):
@@ -324,7 +324,7 @@ func roll_world_traits(count: int = 2) -> Array[WorldTrait]:
 func calculate_upkeep_cost(crew_size: int, ship_data: Dictionary = {}) -> int:
 	"""Calculate total upkeep cost"""
 	if not upkeep_costs:
-		return crew_size  # Fallback
+		return crew_size # Fallback
 	
 	var total = 0
 	total += upkeep_costs.ship_maintenance

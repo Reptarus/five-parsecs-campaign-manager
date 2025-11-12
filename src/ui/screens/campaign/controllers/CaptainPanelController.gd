@@ -1,5 +1,5 @@
 class_name CaptainPanelController
-extends FiveParsecsUIController
+extends Node
 
 ## CaptainPanelController - Manages captain creation and customization UI
 ## Part of the modular campaign creation architecture using scene-based composition
@@ -8,6 +8,12 @@ extends FiveParsecsUIController
 # Character creation system integration
 const Character = preload("res://src/core/character/Character.gd")
 const SimpleCharacterCreator = preload("res://src/core/character/Generation/SimpleCharacterCreator.gd")
+
+# Base class properties
+var panel_node: Control = null
+var is_initialized: bool = false
+var panel_data: Dictionary = {}
+var is_panel_valid: bool = false
 
 # Additional signals specific to captain management
 signal captain_updated(captain: Character)
@@ -20,14 +26,14 @@ var captain_info: Label
 var create_button: Button
 var edit_button: Button
 var randomize_button: Button
-var captain_portrait: Control  # For future portrait display
+var captain_portrait: Control # For future portrait display
 
 # Captain data
 var current_captain: Character = null
 var character_creator_instance: Node = null
 
 func _init(panel_node: Control = null) -> void:
-	super("CaptainPanel", panel_node)
+	self.panel_node = panel_node
 
 func initialize_panel() -> void:
 	"""Initialize the captain panel with UI setup and connections"""
@@ -56,7 +62,7 @@ func _setup_ui_references() -> void:
 func _setup_fallback_ui() -> void:
 	"""Create basic UI structure if scene doesn't provide it"""
 	if captain_info and create_button:
-		return  # UI already exists
+		return # UI already exists
 	
 	if not panel_node:
 		return
@@ -95,7 +101,7 @@ func _setup_fallback_ui() -> void:
 	controls_container.add_child(create_button)
 	
 	edit_button = Button.new()
-	edit_button.name = "EditButton"  
+	edit_button.name = "EditButton"
 	edit_button.text = "Edit Captain"
 	edit_button.disabled = true
 	controls_container.add_child(edit_button)
@@ -221,7 +227,7 @@ func _update_captain_display() -> void:
 		return
 	
 	# Build captain info text
-	var info_text = "Captain Information\n\n"  
+	var info_text = "Captain Information\n\n"
 	info_text += "Name: %s\n\n" % _safe_get_character_property(current_captain, "character_name", "Unknown")
 	
 	# Stats
@@ -436,3 +442,27 @@ func get_captain_name() -> String:
 	if current_captain:
 		return _safe_get_character_property(current_captain, "character_name", "Unknown")
 	return "No Captain"
+
+# Helper methods for base class compatibility
+func _emit_error(message: String) -> void:
+	push_error("CaptainPanelController: " + message)
+
+func debug_print(message: String) -> void:
+	print("CaptainPanelController: " + message)
+
+func _safe_get_node(path: String) -> Node:
+	if not panel_node:
+		return null
+	return panel_node.get_node_or_null(path)
+
+func _safe_connect_signal(node: Node, signal_name: String, callback: Callable) -> void:
+	if node and node.has_signal(signal_name):
+		node.connect(signal_name, callback)
+
+func _update_data(data: Dictionary) -> void:
+	panel_data = data.duplicate()
+	is_panel_valid = true
+
+func mark_dirty(dirty: bool) -> void:
+	# Implementation for dirty marking
+	pass

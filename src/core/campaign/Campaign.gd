@@ -1,6 +1,6 @@
 @tool
 extends Resource
-class_name FiveParsecsCampaignCore
+class_name FiveParsecsCampaign
 
 ## Five Parsecs Campaign Resource
 ## Manages campaign-level data and progression
@@ -27,15 +27,15 @@ signal turn_advanced(new_turn: int)
 			return
 		campaign_name = _value
 
-@export var difficulty: int = GlobalEnums.DifficultyLevel.STANDARD:
+@export var difficulty: int = 1:
 	set(_value):
-		if not _value in GlobalEnums.DifficultyLevel.values():
+		if _value < 0 or _value > 3:
 			push_error("Invalid difficulty level")
 			return
 		difficulty = _value
 
-@export var victory_condition: int = GlobalEnums.FiveParsecsCampaignVictoryType.STORY_COMPLETE
-@export var current_phase: int = GlobalEnums.FiveParsecsCampaignPhase.NONE
+@export var victory_condition: int = 0
+@export var current_phase: int = 0
 @export var resources: Dictionary = {}
 @export var crew_size: int = 4
 @export var use_story_track: bool = true
@@ -74,14 +74,14 @@ func _init() -> void:
 
 func _initialize_campaign() -> void:
 	resources = {
-		GlobalEnums.ResourceType.CREDITS: 1000,
-		GlobalEnums.ResourceType.SUPPLIES: 5
+		"credits": 1000,
+		"supplies": 5
 	}
 	resources_changed.emit(resources)
 
 func start_campaign() -> void:
 	var old_phase: int = current_phase
-	current_phase = safe_get_property(GlobalEnums, "FiveParsecsCampaignPhase").SETUP
+	current_phase = 1  # SETUP phase
 	campaign_started.emit()
 	phase_changed.emit(old_phase, current_phase)
 	phase_started.emit(current_phase)
@@ -96,7 +96,7 @@ func change_phase(new_phase: int) -> void:
 	if new_phase == current_phase:
 		return
 
-	if not new_phase in safe_get_property(GlobalEnums, "FiveParsecsCampaignPhase").values():
+	if new_phase < 0 or new_phase > 5:
 		push_error("Invalid campaign _phase: %d" % new_phase)
 		return
 
@@ -107,7 +107,7 @@ func change_phase(new_phase: int) -> void:
 	phase_started.emit(current_phase)
 
 func add_resources(resource_type: int, amount: int) -> void:
-	if not resource_type in GlobalEnums.ResourceType.values():
+	if resource_type < 0:
 		push_error("Invalid resource _type: %d" % resource_type)
 		return
 
@@ -118,7 +118,7 @@ func add_resources(resource_type: int, amount: int) -> void:
 	resources_changed.emit(resources)
 
 func remove_resources(resource_type: int, amount: int) -> bool:
-	if not resource_type in GlobalEnums.ResourceType.values():
+	if resource_type < 0:
 		push_error("Invalid resource _type: %d" % resource_type)
 		return false
 
@@ -130,7 +130,7 @@ func remove_resources(resource_type: int, amount: int) -> bool:
 	return true
 
 func get_resource(resource_type: int) -> int:
-	if not resource_type in GlobalEnums.ResourceType.values():
+	if resource_type < 0:
 		push_error("Invalid resource _type: %d" % resource_type)
 		return 0
 
@@ -207,8 +207,8 @@ func to_dictionary() -> Dictionary:
 
 func from_dictionary(data: Dictionary) -> void:
 	campaign_name = data.get("campaign_name", "New Campaign")
-	difficulty = data.get("difficulty", GlobalEnums.DifficultyLevel.STANDARD)
-	current_phase = data.get("current_phase", GlobalEnums.FiveParsecsCampaignPhase.SETUP)
+	difficulty = data.get("difficulty", 1)
+	current_phase = data.get("current_phase", 1)
 	campaign_turn = data.get("campaign_turn", 0)
 
 	# Load crew data
@@ -307,3 +307,85 @@ func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Va
 	if obj is Object and obj.has_method(method_name):
 		return obj.callv(method_name, args)
 	return null
+
+## SPRINT 6.2: Campaign Creation Data Initialization
+
+func initialize_from_dict(creation_data: Dictionary) -> void:
+	"""Initialize campaign from campaign creation data structure"""
+	print("FiveParsecsCampaign: Initializing from creation data...")
+	
+	# Basic campaign info
+	campaign_name = creation_data.get("campaign_name", "New Campaign")
+	
+	# Get campaign config section
+	var config = creation_data.get("campaign_config", {})
+	campaign_name = config.get("campaign_name", campaign_name)
+	difficulty = config.get("difficulty", 1)
+	victory_condition = config.get("victory_condition", 0)
+	use_story_track = config.get("use_story_track", true)
+	
+	# Initialize crew from creation data
+	var crew_section = creation_data.get("crew", {})
+	if crew_section.has("members"):
+		crew_data = crew_section.get("members", [])
+		crew_size = crew_data.size()
+		print("FiveParsecsCampaign: Initialized %d crew members" % crew_size)
+		
+		# Initialize crew_members array from crew_data
+		crew_members.clear()
+		for member_data in crew_data:
+			var character = Character.new()
+			character.initialize_from_creation_data(member_data)
+			crew_members.append(character)
+	
+	# Initialize captain from creation data
+	var captain_section = creation_data.get("captain", {})
+	if captain_section.has("character_data"):
+		captain = Character.new()
+		captain.initialize_from_creation_data(captain_section.get("character_data", {}))
+		print("FiveParsecsCampaign: Initialized captain: %s" % captain.character_name)
+	
+	# Initialize resources from equipment/config
+	var equipment_section = creation_data.get("equipment", {})
+	var starting_credits = equipment_section.get("starting_credits", 1000)
+	resources = {
+		"credits": starting_credits,
+		"supplies": 5,
+		"story_points": 0
+	}
+	credits = starting_credits
+	
+	# Initialize world info
+	var world_section = creation_data.get("world", {})
+	current_world = world_section.get("name", "New Hope")
+	
+	# Initialize ship data if available
+	var ship_section = creation_data.get("ship", {})
+	if ship_section.size() > 0:
+		# Store ship data in campaign settings for later use
+		settings["ship"] = ship_section
+	
+	# Campaign progression setup
+	current_phase = 1  # Start in Travel phase
+	campaign_turn = 1
+	story_points = 0
+	turns_completed = 0
+	
+	# Initialize arrays
+	completed_missions = []
+	available_missions = []
+	faction_standings = {}
+	
+	print("FiveParsecsCampaign: Initialization complete - %s (Difficulty: %d)" % [campaign_name, difficulty])
+
+func get_creation_summary() -> Dictionary:
+	"""Get summary of campaign creation for display purposes"""
+	return {
+		"name": campaign_name,
+		"difficulty": difficulty,
+		"crew_size": crew_size,
+		"captain_name": captain.character_name if captain else "Unknown",
+		"starting_credits": credits,
+		"current_world": current_world,
+		"victory_condition": victory_condition
+	}

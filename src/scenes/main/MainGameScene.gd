@@ -18,7 +18,7 @@ signal scene_changed(scene_name: String)
 signal game_state_updated(state: Dictionary)
 
 @onready var campaign_ui: Control = get_node("PhaseContainer/CampaignDashboard")
-@onready var battle_ui: Control = get_node("PhaseContainer/BattlePhase") 
+@onready var battle_ui: Control = get_node("PhaseContainer/BattlePhase")
 @onready var menu_ui: Control = get_node("PhaseContainer")
 
 var current_scene_mode: String = "menu"
@@ -162,7 +162,11 @@ func _return_to_main_menu() -> void:
 		# Safe fallback navigation using Universal scene management
 		var main_menu_scene = load("res://src/ui/screens/mainmenu/MainMenu.tscn")
 		if main_menu_scene:
-			SceneRouter.change_scene_safe(get_tree(), main_menu_scene, "MainGameScene return to main menu")
+			var fallback_router = get_node_or_null("/root/SceneRouter")
+			if fallback_router and fallback_router.has_method("change_scene_safe"):
+				fallback_router.change_scene_safe(get_tree(), main_menu_scene, "MainGameScene return to main menu")
+			else:
+				get_tree().change_scene_to_file("res://src/ui/screens/mainmenu/MainMenu.tscn")
 		else:
 			push_error("CRASH PREVENTION: Could not load main menu scene for fallback navigation")
 

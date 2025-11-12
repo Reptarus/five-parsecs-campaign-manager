@@ -32,9 +32,14 @@ func _initialize_base_component() -> void:
 	"""Initialize base component systems"""
 	# Initialize data system if not already loaded using public API
 	if not DataManager.is_system_ready():
-		var success = DataManager.initialize_data_system()
-		if not success:
-			push_warning("BaseCrewComponent: DataManager initialization failed, using fallback mode")
+		# Get DataManager instance (singleton autoload)
+		var data_manager = get_node("/root/DataManager") as DataManager
+		if data_manager:
+			var success = data_manager.initialize_data_system()
+			if not success:
+				push_warning("BaseCrewComponent: DataManager initialization failed, using fallback mode")
+		else:
+			push_warning("BaseCrewComponent: DataManager autoload not found")
 	
 	is_initialized = true
 	print("BaseCrewComponent: Base initialization complete")
@@ -174,13 +179,13 @@ func _create_fallback_character() -> Character:
 	var character = Character.new()
 	
 	character.character_name = _generate_fallback_name()
-	character.origin = GlobalEnums.Origin.HUMAN
-	character.background = GlobalEnums.Background.MILITARY
-	character.character_class = GlobalEnums.CharacterClass.SOLDIER
-	character.motivation = GlobalEnums.Motivation.SURVIVAL
+	character.origin = "HUMAN"
+	character.background = "MILITARY"
+	character.character_class = "SOLDIER"
+	character.motivation = "SURVIVAL"
 	
 	# Basic Five Parsecs attributes
-	character.reaction = _generate_five_parsecs_attribute()
+	character.reactions = _generate_five_parsecs_attribute()
 	character.combat = _generate_five_parsecs_attribute()
 	character.toughness = _generate_five_parsecs_attribute()
 	character.savvy = _generate_five_parsecs_attribute()
@@ -230,7 +235,7 @@ func calculate_crew_statistics() -> Dictionary:
 	
 	for member in crew_members:
 		# Stat totals
-		stat_totals.reaction += member.reaction
+		stat_totals.reactions += member.reactions
 		stat_totals.combat += member.combat
 		stat_totals.toughness += member.toughness
 		stat_totals.savvy += member.savvy
@@ -245,17 +250,17 @@ func calculate_crew_statistics() -> Dictionary:
 		var origin_key = "UNKNOWN"  
 		var class_key = "UNKNOWN"
 		
-		# Safely get background key
-		if member.background >= 0 and member.background < GlobalEnums.Background.size():
-			bg_key = GlobalEnums.Background.keys()[member.background]
+		# Safely get background key - background is now a String
+		if not member.background.is_empty():
+			bg_key = member.background
 			
-		# Safely get origin key
-		if member.origin >= 0 and member.origin < GlobalEnums.Origin.size():
-			origin_key = GlobalEnums.Origin.keys()[member.origin]
+		# Safely get origin key - origin is now a String
+		if not member.origin.is_empty():
+			origin_key = member.origin
 			
-		# Safely get class key
-		if member.character_class >= 0 and member.character_class < GlobalEnums.CharacterClass.size():
-			class_key = GlobalEnums.CharacterClass.keys()[member.character_class]
+		# Safely get class key - character_class is now a String
+		if not member.character_class.is_empty():
+			class_key = member.character_class
 		
 		stats.background_distribution[bg_key] = SafeDataAccess.safe_get(stats.background_distribution, bg_key, 0, "background distribution lookup") + 1
 		stats.origin_distribution[origin_key] = SafeDataAccess.safe_get(stats.origin_distribution, origin_key, 0, "origin distribution lookup") + 1
@@ -355,14 +360,14 @@ func _get_captain_summary() -> Dictionary:
 	var background_key = "UNKNOWN"
 	var class_key = "UNKNOWN"
 	
-	if current_captain.origin >= 0 and current_captain.origin < GlobalEnums.Origin.size():
-		origin_key = GlobalEnums.Origin.keys()[current_captain.origin]
+	if not current_captain.origin.is_empty():
+		origin_key = current_captain.origin
 		
-	if current_captain.background >= 0 and current_captain.background < GlobalEnums.Background.size():
-		background_key = GlobalEnums.Background.keys()[current_captain.background]
+	if not current_captain.background.is_empty():
+		background_key = current_captain.background
 		
-	if current_captain.character_class >= 0 and current_captain.character_class < GlobalEnums.CharacterClass.size():
-		class_key = GlobalEnums.CharacterClass.keys()[current_captain.character_class]
+	if not current_captain.character_class.is_empty():
+		class_key = current_captain.character_class
 	
 	return {
 		"name": current_captain.character_name,
@@ -379,41 +384,131 @@ func _emit_crew_updated() -> void:
 	validate_crew()  # This will emit validation_changed
 
 func _serialize_character_fallback(character: Character) -> Dictionary:
-	"""Fallback character serialization"""
+	"""Enhanced fallback character serialization with dual-value compatibility"""
+	var global_enums = Engine.get_singleton("GlobalEnums") if Engine.has_singleton("GlobalEnums") else null
+	
+	# Enhanced property serialization with dual values for compatibility
+	var serialize_property = func(property_name: String, value: String) -> Dictionary:
+		if not global_enums:
+			return {"format": "raw", "value": value}
+		
+		var validated_int = global_enums.from_string_value(property_name, value)
+		var is_valid = not value.is_empty() and value != "UNKNOWN"
+		
+		return {
+			"format": "enhanced_v2",
+			"string_value": value,
+			"int_value": validated_int,
+			"is_valid": is_valid,
+			"property": property_name,
+			"version": "2.0"
+		}
+	
 	return {
+		"type": "Character", # Match CampaignSerializer type
+		"version": "2.0",
 		"name": character.character_name,
-		"origin": character.origin,
-		"background": character.background,
-		"character_class": character.character_class,
-		"motivation": character.motivation,
-		"reaction": character.reaction,
-		"combat": character.combat,
-		"toughness": character.toughness,
-		"savvy": character.savvy,
-		"tech": character.tech,
-		"speed": character.speed,
-		"luck": character.luck,
-		"health": character.health,
-		"max_health": character.max_health
+		"character_name": character.character_name, # Compatibility alias
+		
+		# Enhanced property serialization with dual values
+		"origin": serialize_property.call("origin", character.origin),
+		"background": serialize_property.call("background", character.background),
+		"character_class": serialize_property.call("character_class", character.character_class),
+		"motivation": serialize_property.call("motivation", character.motivation),
+		
+		# Core stats
+		"stats": {
+			"reaction": character.reactions,
+			"combat": character.combat,
+			"toughness": character.toughness,
+			"savvy": character.savvy,
+			"tech": character.tech,
+			"speed": character.speed,
+			"luck": character.luck,
+			"health": character.health,
+			"max_health": character.max_health
+		},
+		
+		# Serialization metadata
+		"serialization_timestamp": Time.get_ticks_msec(),
+		"serialization_version": "enhanced_v2_fallback"
 	}
 
 func _deserialize_character_fallback(character: Character, data: Dictionary) -> void:
-	"""Fallback character deserialization"""
+	"""Enhanced fallback character deserialization with auto-migration"""
+	var global_enums = Engine.get_singleton("GlobalEnums") if Engine.has_singleton("GlobalEnums") else null
 	var character_data = SafeDataAccess.safe_dict_access(data, "character data creation")
-	character.character_name = SafeDataAccess.safe_get(character_data, "name", "Unknown", "character name lookup")
-	character.origin = SafeDataAccess.safe_get(character_data, "origin", GlobalEnums.Origin.HUMAN, "character origin lookup")
-	character.background = SafeDataAccess.safe_get(character_data, "background", GlobalEnums.Background.MILITARY, "character background lookup")
-	character.character_class = SafeDataAccess.safe_get(character_data, "character_class", GlobalEnums.CharacterClass.SOLDIER, "character class lookup")
-	character.motivation = SafeDataAccess.safe_get(character_data, "motivation", GlobalEnums.Motivation.SURVIVAL, "character motivation lookup")
-	character.reaction = data.get("reaction", 2)
-	character.combat = data.get("combat", 1)
-	character.toughness = data.get("toughness", 3)
-	character.savvy = data.get("savvy", 1)
-	character.tech = data.get("tech", 1)
-	character.speed = data.get("speed", 4)
-	character.luck = data.get("luck", 1)
-	character.health = data.get("health", 5)
-	character.max_health = data.get("max_health", 5)
+	
+	# Enhanced property deserialization with auto-migration
+	var deserialize_property = func(property_name: String, serialized_data: Variant, fallback: String) -> String:
+		if not global_enums:
+			if serialized_data is String:
+				return serialized_data
+			elif serialized_data is int:
+				return fallback # Can't convert without GlobalEnums
+			elif serialized_data is Dictionary:
+				return serialized_data.get("value", fallback)
+			return fallback
+		
+		var result = ""
+		
+		# Handle different formats
+		if serialized_data is Dictionary:
+			var format = serialized_data.get("format", "legacy")
+			if format == "enhanced_v2":
+				result = serialized_data.get("string_value", "")
+				if result.is_empty():
+					# Fallback to int value migration
+					var int_val = serialized_data.get("int_value", -1)
+					if int_val >= 0:
+						result = global_enums.to_string_value(property_name, int_val)
+			else:
+				# Legacy format migration
+				var old_value = serialized_data.get("value", 0)
+				result = global_enums.to_string_value(property_name, old_value)
+		elif serialized_data is int:
+			# Direct int migration
+			result = global_enums.to_string_value(property_name, serialized_data)
+		elif serialized_data is String:
+			# Direct string (validate)
+			result = global_enums.to_string_value(property_name, serialized_data)
+		
+		# Final validation with safe defaults
+		if result.is_empty() or result == "UNKNOWN":
+			result = fallback
+		
+		return result
+	
+	# Basic properties
+	character.character_name = SafeDataAccess.safe_get(character_data, "name", 
+		SafeDataAccess.safe_get(character_data, "character_name", "Unknown", "character name fallback"), 
+		"character name lookup")
+	
+	# Enhanced property deserialization with auto-migration
+	character.origin = deserialize_property.call("origin", 
+		SafeDataAccess.safe_get(character_data, "origin", "HUMAN", "character origin lookup"), 
+		"HUMAN")
+	character.background = deserialize_property.call("background", 
+		SafeDataAccess.safe_get(character_data, "background", "MILITARY", "character background lookup"), 
+		"MILITARY")
+	character.character_class = deserialize_property.call("character_class", 
+		SafeDataAccess.safe_get(character_data, "character_class", "SOLDIER", "character class lookup"), 
+		"SOLDIER")
+	character.motivation = deserialize_property.call("motivation", 
+		SafeDataAccess.safe_get(character_data, "motivation", "SURVIVAL", "character motivation lookup"), 
+		"SURVIVAL")
+	
+	# Stats - check both direct and nested formats
+	var stats = data.get("stats", {})
+	character.reactions = stats.get("reaction", data.get("reaction", 2))
+	character.combat = stats.get("combat", data.get("combat", 1))
+	character.toughness = stats.get("toughness", data.get("toughness", 3))
+	character.savvy = stats.get("savvy", data.get("savvy", 1))
+	character.tech = stats.get("tech", data.get("tech", 1))
+	character.speed = stats.get("speed", data.get("speed", 4))
+	character.luck = stats.get("luck", data.get("luck", 1))
+	character.health = stats.get("health", data.get("health", 5))
+	character.max_health = stats.get("max_health", data.get("max_health", 5))
 
 ## Safe utility methods
 func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:

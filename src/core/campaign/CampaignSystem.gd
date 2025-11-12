@@ -6,12 +6,12 @@
 extends Node
 
 # GlobalEnums available as autoload singleton
-const Campaign = preload("res://src/core/campaign/Campaign.gd")
+const FiveParsecsCampaign = preload("res://src/core/campaign/Campaign.gd")
 # Note: GameState injected via initialize() to avoid circular dependencies
 
 ## Signals
-signal campaign_created(campaign: Campaign)
-signal campaign_loaded(campaign: Campaign)
+signal campaign_created(campaign: FiveParsecsCampaign)
+signal campaign_loaded(campaign: FiveParsecsCampaign)
 signal campaign_saved(save_data: Dictionary)
 signal campaign_deleted(campaign_id: String)
 signal story_progressed(progress: int)
@@ -34,7 +34,7 @@ var active_crew: Array[Dictionary] = []
 var active_rivals: Array[Dictionary] = []
 var equipment: Array[Dictionary] = []
 var story_progress: int = 0
-var active_campaign: Campaign = null
+var active_campaign: FiveParsecsCampaign = null
 var game_state: Node = null # GameState - avoiding circular dependency
 
 ## Mission state
@@ -130,8 +130,8 @@ func advance_story() -> void:
 	story_progress += 1
 	story_progressed.emit(story_progress) # warning: return value discarded (intentional)
 
-func create_campaign(config: Dictionary) -> Campaign:
-	var campaign := Campaign.new()
+func create_campaign(config: Dictionary) -> FiveParsecsCampaign:
+	var campaign := FiveParsecsCampaign.new()
 
 	campaign.campaign_name = config.get("name", "New Campaign")
 
@@ -147,8 +147,8 @@ func create_campaign(config: Dictionary) -> Campaign:
 	campaign_created.emit(campaign) # warning: return value discarded (intentional)
 	return campaign
 
-func load_campaign(save_data: Dictionary) -> Campaign:
-	var campaign := Campaign.new()
+func load_campaign(save_data: Dictionary) -> FiveParsecsCampaign:
+	var campaign := FiveParsecsCampaign.new()
 	if campaign and campaign.has_method("deserialize"): campaign.deserialize(save_data)
 	active_campaign = campaign
 	campaign_loaded.emit(campaign) # warning: return value discarded (intentional)
@@ -172,7 +172,7 @@ func delete_campaign(campaign_id: String) -> void:
 	# Add deletion logic here
 	campaign_deleted.emit(campaign_id) # warning: return value discarded (intentional)
 
-func get_active_campaign() -> Campaign:
+func get_active_campaign() -> FiveParsecsCampaign:
 	return active_campaign
 
 func _exit_tree() -> void:

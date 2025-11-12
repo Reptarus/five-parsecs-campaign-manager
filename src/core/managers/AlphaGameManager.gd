@@ -17,7 +17,7 @@ static var _script_cache: Dictionary = {}
 var _autoload_cache: Dictionary = {} # Non-static since we're using instance methods
 
 # System references
-var game_state_manager: Node = null # GameStateManagerAutoload when available
+var game_state_manager: Node = null # GameStateManager when available
 var campaign_creation_manager: Node = null # CampaignCreationManager when available
 var campaign_phase_manager: Node = null # CampaignPhaseManager when available
 var battle_results_manager: Node = null # BattleResultsManager when available
@@ -142,7 +142,7 @@ func _create_manager_instance(script_path: String, manager_name: String, setup_d
 
 func _initialize_game_state_manager() -> void:
 	# Optimized GameStateManager initialization
-	game_state_manager = _get_autoload_cached("/root/GameStateManagerAutoload")
+	game_state_manager = _get_autoload_cached("/root/GameStateManager")
 
 	if not game_state_manager:
 		# Create new GameStateManager if not found
@@ -274,10 +274,10 @@ func _finalize_initialization() -> void:
 
 # Type-safe Public API methods
 func get_game_state_manager() -> Node:
-	# Get the GameStateManager instance (GameStateManagerAutoload when available)
+	# Get the GameStateManager instance (GameStateManager when available)
 	if not game_state_manager:
 		push_warning("AlphaGameManager: GameStateManager not available, attempting recovery")
-		game_state_manager = _get_autoload_cached("/root/GameStateManagerAutoload")
+		game_state_manager = _get_autoload_cached("/root/GameStateManager")
 		
 	if not game_state_manager:
 		push_error("AlphaGameManager: GameStateManager unavailable - system degraded")

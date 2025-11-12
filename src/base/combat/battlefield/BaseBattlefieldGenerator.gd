@@ -12,7 +12,7 @@ signal terrain_placed(terrain_type: int, position: Vector2i)
 signal deployment_zone_created(zone_type: int, positions: Array[Vector2i])
 
 # Dependencies
-var battlefield_manager: BaseBattlefieldManager = null
+var battlefield_manager: FiveParsecsBattlefieldManager = null
 
 # Configuration
 var grid_size := Vector2i(24, 24)
@@ -32,7 +32,7 @@ var terrain_pattern: String = "random" # "random", "clustered", "scattered", "sy
 var deployment_style: String = "opposite" # "opposite", "corners", "sides", "random"
 
 # Virtual methods to be implemented by derived classes
-func initialize(manager: BaseBattlefieldManager) -> void:
+func initialize(manager: FiveParsecsBattlefieldManager) -> void:
 	battlefield_manager = manager
 	grid_size = battlefield_manager.GRID_SIZE
 	min_terrain_pieces = battlefield_manager.MIN_TERRAIN_PIECES

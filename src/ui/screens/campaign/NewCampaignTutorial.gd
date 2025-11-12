@@ -17,10 +17,16 @@ var current_step: String = ""
 var tutorial_type: String = "basic"
 
 func _ready() -> void:
-	campaign_manager = get_node("/root/CampaignManager")
-	if not campaign_manager:
-		push_error("CampaignManager not found")
-		return
+	# Initialize campaign manager with fallback
+	if has_node("/root/CampaignManager"):
+		campaign_manager = get_node("/root/CampaignManager")
+	else:
+		# Create fallback campaign manager
+		campaign_manager = Node.new()
+		campaign_manager.name = "FallbackCampaignManager"
+		campaign_manager.set_script(preload("res://src/core/systems/FallbackCampaignManager.gd"))
+		print("NewCampaignTutorial: Created fallback CampaignManager")
+		push_warning("NewCampaignTutorial: Using fallback CampaignManager - autoload not available")
 
 	_connect_signals()
 	_initialize_ui()

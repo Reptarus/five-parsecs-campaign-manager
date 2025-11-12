@@ -108,10 +108,11 @@ func initialize() -> bool:
 	if not GameState:
 		_errors.append("GameState not available")
 
-	# Try to get game state
-	_game_state = get_node_or_null("/root/GameState") as Node
-	if not _game_state:
-		_game_state = get_node_or_null("/root/GameStateManagerAutoload") as Node
+	# Try to get game state through GameStateManager
+	if GameStateManager and GameStateManager.has_method("get_game_state"):
+		_game_state = GameStateManager.get_game_state()
+	elif GameStateManager:
+		_game_state = GameStateManager
 
 	if not _game_state:
 		_errors.append("Game state not accessible")

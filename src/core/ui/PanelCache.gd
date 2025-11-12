@@ -14,29 +14,29 @@ extends RefCounted
 
 ## Cache policy for memory management
 enum CachePolicy {
-	KEEP_ALL,		## Keep all loaded panels in memory
-	LRU,			## Least Recently Used eviction
-	TIME_BASED,		## Time-based expiry
-	MEMORY_LIMIT,	## Memory usage limit
-	HYBRID			## Combination of LRU + memory limit
+	KEEP_ALL, ## Keep all loaded panels in memory
+	LRU, ## Least Recently Used eviction
+	TIME_BASED, ## Time-based expiry
+	MEMORY_LIMIT, ## Memory usage limit
+	HYBRID ## Combination of LRU + memory limit
 }
 
 ## Loading strategy for panels
 enum LoadingStrategy {
-	LAZY,			## Load panels when needed
-	PRELOAD_ALL,	## Preload all panels at startup
-	PRELOAD_NEXT,	## Preload next likely panel
-	SMART			## Intelligent preloading based on usage patterns
+	LAZY, ## Load panels when needed
+	PRELOAD_ALL, ## Preload all panels at startup
+	PRELOAD_NEXT, ## Preload next likely panel
+	SMART ## Intelligent preloading based on usage patterns
 }
 
 ## Panel state tracking
 enum PanelState {
-	UNLOADED,		## Not loaded in memory
-	LOADING,		## Currently being loaded
-	LOADED,			## Loaded and ready
-	CACHED,			## Loaded but not active
-	EXPIRED,		## Cached but expired
-	ERROR			## Failed to load
+	UNLOADED, ## Not loaded in memory
+	LOADING, ## Currently being loaded
+	LOADED, ## Loaded and ready
+	CACHED, ## Loaded but not active
+	EXPIRED, ## Cached but expired
+	ERROR ## Failed to load
 }
 
 # Memory limits (in MB)
@@ -45,8 +45,8 @@ const WARNING_MEMORY_LIMIT_MB: float = 120.0
 const CRITICAL_MEMORY_LIMIT_MB: float = 180.0
 
 # Time limits (in seconds)
-const DEFAULT_CACHE_EXPIRY_TIME: float = 300.0  # 5 minutes
-const MAX_LOADING_TIME: float = 10.0  # Maximum time to wait for loading
+const DEFAULT_CACHE_EXPIRY_TIME: float = 300.0 # 5 minutes
+const MAX_LOADING_TIME: float = 10.0 # Maximum time to wait for loading
 
 # Performance targets
 const TARGET_LOADING_TIME_MS: float = 100.0
@@ -85,15 +85,15 @@ var memory_limit_mb: float = DEFAULT_MEMORY_LIMIT_MB
 var cache_expiry_time: float = DEFAULT_CACHE_EXPIRY_TIME
 
 ## Panel registry and cache
-var panel_registry: Dictionary = {}  # panel_id -> panel_info
-var loaded_panels: Dictionary = {}   # panel_id -> Control instance
-var cached_scenes: Dictionary = {}   # panel_id -> PackedScene
-var panel_states: Dictionary = {}    # panel_id -> PanelState
+var panel_registry: Dictionary = {} # panel_id -> panel_info
+var loaded_panels: Dictionary = {} # panel_id -> Control instance
+var cached_scenes: Dictionary = {} # panel_id -> PackedScene
+var panel_states: Dictionary = {} # panel_id -> PanelState
 
 ## LRU tracking
-var access_order: Array[String] = []  # Most recent first
-var access_times: Dictionary = {}     # panel_id -> last_access_time
-var load_times: Dictionary = {}       # panel_id -> load_time
+var access_order: Array[String] = [] # Most recent first
+var access_times: Dictionary = {} # panel_id -> last_access_time
+var load_times: Dictionary = {} # panel_id -> load_time
 
 ## Memory tracking
 var current_memory_usage_mb: float = 0.0
@@ -108,7 +108,7 @@ var average_loading_time_ms: float = 0.0
 
 ## Loading queue and state
 var loading_queue: Array[String] = []
-var currently_loading: Dictionary = {}  # panel_id -> loading_start_time
+var currently_loading: Dictionary = {} # panel_id -> loading_start_time
 
 # ============================================================================
 # INITIALIZATION
@@ -139,7 +139,7 @@ func _start_memory_monitoring() -> void:
 	if memory_tracking_enabled:
 		# Create a timer for periodic memory checks
 		var timer = Timer.new()
-		timer.wait_time = 2.0  # Check every 2 seconds
+		timer.wait_time = 2.0 # Check every 2 seconds
 		timer.timeout.connect(_update_memory_usage)
 		timer.start()
 		
@@ -150,7 +150,7 @@ func _start_memory_monitoring() -> void:
 # ============================================================================
 
 ## Register a panel for caching
-func register_panel(panel_id: String, scene_path: String, priority: int = 0, preload: bool = false) -> void:
+func register_panel(panel_id: String, scene_path: String, priority: int = 0, should_preload: bool = false) -> void:
 	"""Register a panel with the cache system"""
 	if panel_registry.has(panel_id):
 		push_warning("PanelCache: Panel '%s' already registered - updating" % panel_id)
@@ -158,7 +158,7 @@ func register_panel(panel_id: String, scene_path: String, priority: int = 0, pre
 	panel_registry[panel_id] = {
 		"scene_path": scene_path,
 		"priority": priority,
-		"preload": preload,
+		"preload": should_preload,
 		"registered_time": Time.get_ticks_msec(),
 		"load_count": 0,
 		"last_used": 0,
@@ -168,7 +168,7 @@ func register_panel(panel_id: String, scene_path: String, priority: int = 0, pre
 	panel_states[panel_id] = PanelState.UNLOADED
 	
 	# Auto-preload if requested
-	if preload and loading_strategy in [LoadingStrategy.PRELOAD_ALL, LoadingStrategy.SMART]:
+	if should_preload and loading_strategy in [LoadingStrategy.PRELOAD_ALL, LoadingStrategy.SMART]:
 		_queue_for_loading(panel_id)
 	
 	print("PanelCache: Registered panel '%s' - Path: %s, Priority: %d" % [panel_id, scene_path, priority])
@@ -249,14 +249,13 @@ func _load_panel(panel_id: String) -> Control:
 	var packed_scene: PackedScene = null
 	var panel_instance: Control = null
 	
-	try:
-		# Load PackedScene
-		if ResourceLoader.exists(scene_path):
-			packed_scene = load(scene_path) as PackedScene
-		else:
-			push_error("PanelCache: Scene file not found: %s" % scene_path)
-			_handle_loading_error(panel_id, "Scene file not found")
-			return null
+	# Load PackedScene
+	if ResourceLoader.exists(scene_path):
+		packed_scene = load(scene_path) as PackedScene
+	else:
+		push_error("PanelCache: Scene file not found: %s" % scene_path)
+		_handle_loading_error(panel_id, "Scene file not found")
+		return null
 		
 		if not packed_scene:
 			push_error("PanelCache: Failed to load PackedScene: %s" % scene_path)
@@ -273,12 +272,7 @@ func _load_panel(panel_id: String) -> Control:
 		
 		# Configure the panel instance
 		panel_instance.name = "CachedPanel_%s" % panel_id
-		panel_instance.visible = false  # Hidden by default
-		
-	except:
-		push_error("PanelCache: Exception during panel loading: %s" % panel_id)
-		_handle_loading_error(panel_id, "Exception during loading")
-		return null
+		panel_instance.visible = false # Hidden by default
 	
 	# Loading completed successfully
 	var loading_time_ms = Time.get_ticks_msec() - loading_start_time
@@ -487,7 +481,7 @@ func _update_memory_usage() -> void:
 	peak_memory_usage_mb = max(peak_memory_usage_mb, current_memory_usage_mb)
 	
 	# Emit signal if significant change
-	if abs(current_memory_usage_mb - old_usage) > 5.0:  # 5MB threshold
+	if abs(current_memory_usage_mb - old_usage) > 5.0: # 5MB threshold
 		var percentage = (current_memory_usage_mb / memory_limit_mb) * 100.0
 		memory_usage_changed.emit(current_memory_usage_mb, memory_limit_mb, percentage)
 	
@@ -501,7 +495,7 @@ func _estimate_panel_memory_usage(panel_id: String, panel: Control) -> void:
 	"""Estimate memory usage of a loaded panel"""
 	# Basic estimation based on node count and textures
 	var node_count = _count_nodes_recursive(panel)
-	var base_memory = node_count * 0.001  # ~1KB per node baseline
+	var base_memory = node_count * 0.001 # ~1KB per node baseline
 	
 	# Add texture memory estimates
 	var texture_memory = _estimate_texture_memory(panel)
@@ -548,10 +542,10 @@ func _estimate_single_texture_memory(texture: Texture2D) -> float:
 	
 	var width = texture.get_width()
 	var height = texture.get_height()
-	var bytes_per_pixel = 4  # Assume RGBA8
+	var bytes_per_pixel = 4 # Assume RGBA8
 	var total_bytes = width * height * bytes_per_pixel
 	
-	return total_bytes / (1024.0 * 1024.0)  # Convert to MB
+	return total_bytes / (1024.0 * 1024.0) # Convert to MB
 
 # ============================================================================
 # STATISTICS AND MONITORING

@@ -1,4 +1,4 @@
-[gd_scene load_steps=1 format=3 uid="uid://dp66b6flafme3"]
+[gd_scene format=3 uid="uid://dp66b6flafme3"]
 
 [node name="VictoryConditionSelection" type="Control"]
 layout_mode = 3

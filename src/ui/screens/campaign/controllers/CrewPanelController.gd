@@ -1,5 +1,5 @@
 class_name CrewPanelController
-extends FiveParsecsUIController
+extends Node
 
 ## CrewPanelController - Manages crew selection and character creation UI
 ## Part of the modular campaign creation architecture using scene-based composition  
@@ -8,6 +8,12 @@ extends FiveParsecsUIController
 # Character creation system integration
 const SimpleCharacterCreator = preload("res://src/core/character/Generation/SimpleCharacterCreator.gd")
 const Character = preload("res://src/core/character/Character.gd")
+
+# Base class properties
+var panel_node: Control = null
+var is_initialized: bool = false
+var panel_data: Dictionary = {}
+var is_panel_valid: bool = false
 
 # Additional signals specific to crew management
 signal crew_generation_requested(crew_size: int)
@@ -37,7 +43,7 @@ const MAX_CREW_SIZE = 8
 const DEFAULT_CREW_SIZE = 4
 
 func _init(panel_node: Control = null) -> void:
-	super("CrewPanel", panel_node)
+	self.panel_node = panel_node
 
 func initialize_panel() -> void:
 	"""Initialize the crew panel with UI setup and connections"""
@@ -73,7 +79,7 @@ func _setup_ui_references() -> void:
 func _setup_fallback_ui() -> void:
 	"""Create basic UI structure if scene doesn't provide it"""
 	if crew_container:
-		return  # UI already exists
+		return # UI already exists
 	
 	if not panel_node:
 		return
@@ -176,7 +182,7 @@ func _connect_ui_signals() -> void:
 		_safe_connect_signal(add_button, "pressed", _on_add_member_pressed)
 	
 	if edit_button:
-		_safe_connect_signal(edit_button, "pressed", _on_edit_member_pressed) 
+		_safe_connect_signal(edit_button, "pressed", _on_edit_member_pressed)
 	
 	if remove_button:
 		_safe_connect_signal(remove_button, "pressed", _on_remove_member_pressed)
@@ -437,7 +443,7 @@ func _is_panel_complete() -> bool:
 		is_panel_valid and
 		crew_members.size() >= MIN_CREW_SIZE and
 		_has_captain() and
-		_calculate_crew_completion_level() >= 0.8  # 80% complete
+		_calculate_crew_completion_level() >= 0.8 # 80% complete
 	)
 
 ## UI Event Handlers
@@ -516,7 +522,7 @@ func _on_remove_member_pressed() -> void:
 		
 		# Adjust captain index if needed
 		if captain_index == index:
-			captain_index = 0  # Make first member captain
+			captain_index = 0 # Make first member captain
 			if not crew_members.is_empty():
 				crew_members[0].is_captain = true
 		elif captain_index > index:
@@ -561,3 +567,27 @@ func get_captain() -> Variant:
 	if captain_index >= 0 and captain_index < crew_members.size():
 		return crew_members[captain_index]
 	return null
+
+# Helper methods for base class compatibility
+func _emit_error(message: String) -> void:
+	push_error("CrewPanelController: " + message)
+
+func debug_print(message: String) -> void:
+	print("CrewPanelController: " + message)
+
+func _safe_get_node(path: String) -> Node:
+	if not panel_node:
+		return null
+	return panel_node.get_node_or_null(path)
+
+func _safe_connect_signal(node: Node, signal_name: String, callback: Callable) -> void:
+	if node and node.has_signal(signal_name):
+		node.connect(signal_name, callback)
+
+func _update_data(data: Dictionary) -> void:
+	panel_data = data.duplicate()
+	is_panel_valid = true
+
+func mark_dirty(dirty: bool) -> void:
+	# Implementation for dirty marking
+	pass

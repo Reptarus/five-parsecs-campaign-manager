@@ -17,7 +17,7 @@ func _ready() -> void:
 
 func _register_with_game_state() -> void:
 	"""Register this manager with GameStateManager for cross-system communication"""
-	var game_state = get_node_or_null("/root/GameStateManagerAutoload")
+	var game_state = get_node_or_null("/root/GameStateManager")
 	if game_state and game_state and game_state.has_method("register_manager"):
 		game_state.register_manager("SaveManager", self)
 		print("SaveManager: Registered with GameStateManager")
@@ -183,7 +183,7 @@ func _exit_tree() -> void:
 	print("SaveManager: Shutting down and cleaning up...")
 
 	# Disconnect from GameStateManager if connected
-	var game_state = get_node_or_null("/root/GameStateManagerAutoload")
+	var game_state = get_node_or_null("/root/GameStateManager")
 	if game_state and game_state.has_method("unregister_manager"):
 		game_state.unregister_manager("SaveManager")
 		print("SaveManager: Unregistered from GameStateManager")

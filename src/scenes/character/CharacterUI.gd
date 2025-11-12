@@ -7,7 +7,7 @@ const CharacterCreator = preload("res://src/core/character/Generation/BaseCharac
 const GameState = preload("res://src/core/state/GameState.gd")
 
 # Node references using safe access
-@onready var character_list: Button = get_node("Panel/HSplitContainer/CharacterList/ItemList")
+@onready var character_list: ItemList = get_node("Panel/HSplitContainer/CharacterList/ItemList")
 @onready var remove_button: Button = get_node("Panel/HSplitContainer/CharacterList/ButtonContainer/RemoveButton")
 
 # Stats tab references using safe access
@@ -148,10 +148,10 @@ func _update_character_details(character: Node) -> void:
 	# Update basic info
 	@warning_ignore("unsafe_property_access")
 	name_value.text = character.character_name
-	@warning_ignore("unsafe_method_access", "unsafe_property_access")
-	origin_value.text = GlobalEnums.Origin.keys()[character.origin]
-	@warning_ignore("unsafe_method_access", "unsafe_property_access")
-	class_value.text = GlobalEnums.CharacterClass.keys()[character.character_class]
+	# Origin is now a string, use directly
+	origin_value.text = character.origin
+	# Character class is now a string, use directly
+	class_value.text = character.character_class
 	@warning_ignore("unsafe_property_access")
 	background_value.text = str(character.background)
 	@warning_ignore("unsafe_property_access")
@@ -159,7 +159,7 @@ func _update_character_details(character: Node) -> void:
 
 	# Update stats
 	@warning_ignore("unsafe_property_access")
-	reactions_value.text = str(character.reaction)
+	reactions_value.text = str(character.reactions)
 	@warning_ignore("unsafe_property_access")
 	speed_value.text = str(character.speed)
 	@warning_ignore("unsafe_property_access")

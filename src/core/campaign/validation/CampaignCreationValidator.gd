@@ -1,4 +1,3 @@
-class_name CampaignCreationValidator
 extends RefCounted
 
 ## CampaignCreationValidator - Service layer for campaign creation validation

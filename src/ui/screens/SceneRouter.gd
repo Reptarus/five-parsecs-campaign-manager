@@ -14,6 +14,7 @@ const SCENE_PATHS = {
 
 	# Campaign management
 	"campaign_creation": "res://src/ui/screens/campaign/CampaignCreationUI.tscn",
+	"main_campaign": "res://src/ui/screens/campaign/MainCampaignScene.tscn",
 	"campaign_turn": "res://src/ui/CampaignTurnUI.tscn",
 	"campaign_dashboard": "res://src/ui/screens/campaign/CampaignDashboard.tscn",
 	"campaign_setup": "res://src/ui/screens/campaign/CampaignSetupDialog.tscn",

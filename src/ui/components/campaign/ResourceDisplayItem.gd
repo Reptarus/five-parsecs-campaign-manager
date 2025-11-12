@@ -29,7 +29,7 @@ func _setup_ui() -> void:
 	if progress_bar:
 		progress_bar.min_value = 0
 		progress_bar.max_value = max_value
-		progress_bar._value = current_value
+		progress_bar.value = current_value
 		progress_bar.modulate = resource_color
 
 	# Set up trend indicator
@@ -50,7 +50,7 @@ func _update_display() -> void:
 
 	if progress_bar:
 		progress_bar.max_value = max_value
-		progress_bar._value = current_value
+		progress_bar.value = current_value
 
 	if trend_indicator:
 		_update_trend_indicator()

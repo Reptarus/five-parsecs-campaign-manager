@@ -54,8 +54,7 @@ signal job_offers_updated(job_offers: Array)
 var world_phase: WorldPhase = null
 var world_phase_state: WorldPhaseResources.WorldPhaseState = null
 var data_manager: FPCM_DataManager = null
-# Enhanced signals removed - using direct signal communication
-# var signals_manager: EnhancedCampaignSignals = null
+# Framework Bible compliant - using direct signal communication
 var automation_controller: WorldPhaseAutomationController = null
 var game_state_manager: Node = null
 
@@ -170,7 +169,7 @@ func _initialize_core_systems() -> void:
 	
 	# Connect world phase to data layer
 	world_phase.initialize_with_data_manager(data_manager)
-	world_phase.connect_to_signals(signals_manager)
+	# signals_manager not available - use direct signal connections
 	
 	# Initialize automation controller
 	automation_controller = WorldPhaseAutomationController.new()
@@ -604,27 +603,10 @@ func setup_phase(campaign_data: Resource) -> void:
 	
 	# Emit startup signal
 	world_phase_started.emit()
-	if signals_manager:
-		signals_manager.emit_world_phase_started(world_phase_state.serialize())
+	# signals_manager not available - direct signal emission
 
 func _connect_world_phase_signals() -> void:
-	if not signals_manager:
-		return
-	
-	# Connect to world phase signals - with safe fallbacks
-	if signals_manager.has_signal("crew_task_started"):
-		signals_manager.crew_task_started.connect(_on_crew_task_started)
-	if signals_manager.has_signal("crew_task_completed"):
-		signals_manager.crew_task_completed.connect(_on_crew_task_completed)
-	if signals_manager.has_signal("patron_contacted"):
-		signals_manager.patron_contacted.connect(_on_patron_contacted)
-	if signals_manager.has_signal("job_offer_generated"):
-		signals_manager.job_offer_generated.connect(_on_job_offer_generated)
-	if signals_manager.has_signal("equipment_discovered"):
-		signals_manager.equipment_discovered.connect(_on_equipment_discovered)
-	if signals_manager.has_signal("world_phase_automation_update"):
-		signals_manager.world_phase_automation_update.connect(_on_automation_update)
-	
+	# signals_manager not available - use direct signal connections
 	# Connect internal signals
 	world_phase_step_changed.connect(_on_step_changed)
 	automation_toggled.connect(_on_automation_mode_changed)
@@ -3125,8 +3107,7 @@ func _show_step(step: int) -> void:
 	
 	# Emit step change signal
 	world_phase_step_changed.emit(step, step_names[step])
-	if signals_manager:
-		signals_manager.emit_world_phase_step_changed(step, step_names[step])
+	# signals_manager not available - direct signal emission
 
 ## Clear the content area for new step content
 func _clear_content_area() -> void:

@@ -73,7 +73,7 @@ func load_rule(rule_id: String, rule_data: Dictionary) -> void:
 	if rule_data.has("fields"):
 		for field in rule_data.fields:
 			if field_controls.has(field.name):
-				field_controls[field.name]._value = field._value
+				field_controls[field.name].value = field.value
 
 	_update_button_states()
 
@@ -176,7 +176,7 @@ func get_rule_data() -> Dictionary:
 ## Gets _value from control
 func _get_control_value(control: Control) -> Variant:
 	if control is SpinBox:
-		return control._value
+		return control.value
 	elif control is OptionButton:
 		return control.get_selected_metadata() if control.get_selected_metadata() != null else control.get_selected_id()
 	elif control is LineEdit:

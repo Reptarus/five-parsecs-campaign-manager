@@ -161,7 +161,7 @@ func _show_manual_input_panel() -> void:
 			_:
 				spinbox.max_value = 6
 
-		spinbox._value = spinbox.min_value
+		spinbox.value = spinbox.min_value
 		spinbox.custom_minimum_size = Vector2(80, 30)
 
 		manual_input_spinboxes.append(spinbox)
@@ -211,7 +211,7 @@ func _show_final_result() -> void:
 			if i < current_dice_roll.individual_rolls.size():
 				dice_scenes[i].set_value(current_dice_roll.individual_rolls[i])
 
-	dice_animation_finished.emit()
+	# Animation finished signal removed - Framework Bible compliance (immediate UI)
 
 ## Get maximum _value for dice type
 func _get_max_value_for_type(dice_type: String) -> int:
@@ -253,7 +253,7 @@ func _on_manual_confirm_pressed() -> void:
 
 	var manual_rolls: Array[int] = []
 	for spinbox in manual_input_spinboxes:
-		manual_rolls.append(int(spinbox._value))
+		manual_rolls.append(int(spinbox.value))
 
 	# Validate d66 rolls
 	if current_dice_roll.dice_type == "d66":

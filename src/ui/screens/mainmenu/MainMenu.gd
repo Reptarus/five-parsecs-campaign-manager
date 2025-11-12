@@ -47,6 +47,22 @@ func setup(manager: Node) -> void:
 
 func _ready() -> void:
 	print("MainMenu: Starting initialization...")
+	
+	# CRITICAL: Verify scene tree is properly initialized
+	var scene_tree = get_tree()
+	if not scene_tree:
+		push_error("MainMenu: CRITICAL ERROR - Scene tree not initialized in _ready()!")
+		# Try to recover by waiting a frame and checking again
+		await get_tree().process_frame
+		scene_tree = get_tree()
+		if not scene_tree:
+			push_error("MainMenu: Scene tree still not available after frame wait!")
+			return
+	
+	print("MainMenu: Scene tree is valid, proceeding with initialization...")
+	
+	# Test scene tree functionality
+	test_scene_tree()
 
 	if not _validate_required_nodes():
 		push_error("MainMenu: Required nodes are missing")
@@ -74,7 +90,7 @@ func _try_connect_to_autoloads() -> void:
 
 	# Try to get GameStateManager
 	@warning_ignore("untyped_declaration")
-	var gsm = get_node_or_null("/root/GameStateManagerAutoload") as Node
+	var gsm = get_node_or_null("/root/GameStateManager") as Node
 	if gsm:
 		game_state_manager = gsm
 		print("MainMenu: Connected to GameStateManager")
@@ -148,7 +164,7 @@ func _connect_buttons() -> void:
 		@warning_ignore("unsafe_call_argument")
 		_safe_connect(continue_button, "pressed", _on_continue_pressed)
 	if new_campaign_button:
-		new_campaign_button.text = "New Campaign (Test Main Game)"
+		new_campaign_button.text = "New Campaign"
 		@warning_ignore("unsafe_call_argument")
 		_safe_connect(new_campaign_button, "pressed", _on_new_campaign_pressed)
 	if coop_campaign_button:
@@ -163,7 +179,7 @@ func _connect_buttons() -> void:
 		@warning_ignore("unsafe_call_argument")
 		_safe_connect(options_button, "pressed", _on_options_pressed)
 	if library_button:
-		library_button.text = "Test Autoloads"
+		library_button.text = "Library"
 		@warning_ignore("unsafe_call_argument")
 		_safe_connect(library_button, "pressed", _on_library_pressed)
 
@@ -202,12 +218,28 @@ func _on_continue_pressed() -> void:
 
 	@warning_ignore("unsafe_method_access")
 	if game_state_manager and game_state_manager.has_method("has_method") and game_state_manager.has_method("has_active_campaign") and game_state_manager.has_active_campaign():
-		request_scene_change("crew_management")
+		# Navigate to main campaign scene for existing campaigns
+		@warning_ignore("untyped_declaration")
+		var scene_router = get_node_or_null("/root/SceneRouter") as Node
+		if scene_router and scene_router.has_method("navigate_to"):
+			@warning_ignore("unsafe_method_access")
+			scene_router.navigate_to("main_campaign")
+		else:
+			request_scene_change("main_campaign")
 	else:
 		show_message("No active campaign to continue")
 
 func _on_new_campaign_pressed() -> void:
 	print("MainMenu: New Campaign button pressed")
+	
+	# CRITICAL: Test scene tree before attempting transition
+	var scene_tree = get_tree()
+	if not scene_tree:
+		push_error("MainMenu: CRITICAL ERROR - get_tree() returned null in _on_new_campaign_pressed!")
+		_handle_campaign_creation_failure()
+		return
+	
+	print("MainMenu: Scene tree is valid, proceeding with campaign creation...")
 
 	# Transition to campaign creation UI
 	_transition_to_campaign_creation()
@@ -227,19 +259,44 @@ func _transition_to_campaign_creation() -> void:
 	"""Transition to campaign creation with error handling and fallback strategy"""
 	print("MainMenu: Transitioning to campaign creation...")
 	
-	# Production-ready scene loading with comprehensive fallback strategy
+	# CRITICAL SAFETY CHECK: Ensure we have a valid scene tree
+	var scene_tree = get_tree()
+	if not scene_tree:
+		push_error("MainMenu: CRITICAL ERROR - get_tree() returned null! Scene tree not initialized.")
+		_handle_campaign_creation_failure()
+		return
+	
+	print("MainMenu: Scene tree is valid, proceeding with navigation...")
+	
+	# Try SceneRouter first for consistent navigation
+	@warning_ignore("untyped_declaration")
+	var scene_router = get_node_or_null("/root/SceneRouter") as Node
+	if scene_router and scene_router.has_method("navigate_to"):
+		@warning_ignore("unsafe_method_access")
+		var result = scene_router.navigate_to("campaign_creation")
+		if result == OK:
+			print("MainMenu: Successfully navigated via SceneRouter")
+			return
+		else:
+			print("MainMenu: SceneRouter navigation failed, trying direct scene change")
+	
+	# Fallback to direct scene loading with comprehensive fallback strategy
 	var scene_candidates: Array[String] = [
-		"res://src/ui/screens/campaign/CampaignCreationUI.tscn",
-		"res://src/ui/screens/campaign/ModularCampaignCreationFlow.tscn",
-		"res://src/ui/screens/campaign/CampaignWorkflowOrchestrator.tscn",
-		"res://src/ui/screens/campaign/CampaignSetupDialog.tscn"
+		"res://src/ui/screens/campaign/CampaignCreationUI.tscn",  # PRIMARY: Production-ready UI with state management
+		# Disabled competing implementations to prevent conflicts:
+		# "res://src/ui/screens/campaign/SimpleCampaignCreation.tscn", # DISABLED: Conflicts with main UI
+		# "res://src/ui/screens/campaign/CampaignSetupScreen.tscn", # DISABLED: Legacy implementation
+		# "res://src/ui/screens/campaign/ModularCampaignCreationFlow.tscn", # DISABLED: Not found
+		# "res://src/ui/screens/campaign/CampaignWorkflowOrchestrator.tscn", # DISABLED: Alternative approach
+		# "res://src/ui/screens/campaign/CampaignSetupDialog.tscn" # DISABLED: Dialog-based approach
 	]
 	
 	for scene_path in scene_candidates:
 		if FileAccess.file_exists(scene_path):
 			print("MainMenu: Loading campaign creation scene: ", scene_path)
-			var result = get_tree().change_scene_to_file(scene_path)
+			var result = scene_tree.change_scene_to_file(scene_path)
 			if result == OK:
+				print("MainMenu: ✅ Successfully loaded scene: ", scene_path)
 				return
 			else:
 				print("MainMenu: Failed to load scene: ", scene_path, " - Error: ", result)
@@ -272,7 +329,12 @@ func _try_direct_scene_change(scene_path: String) -> void:
 		push_error("MainMenu: Cannot change to scene - file not found: " + scene_path)
 		return
 	
-	var error: int = get_tree().change_scene_to_file(scene_path)
+	var scene_tree = get_tree()
+	if not scene_tree:
+		push_error("MainMenu: CRITICAL ERROR - get_tree() returned null in _try_direct_scene_change!")
+		return
+	
+	var error: int = scene_tree.change_scene_to_file(scene_path)
 	if error != OK:
 		push_error("MainMenu: Failed to change scene directly: " + scene_path + " (Error: " + str(error) + ")")
 
@@ -367,7 +429,7 @@ func _test_autoload_systems() -> void:
 
 	# Test GameStateManager
 	@warning_ignore("untyped_declaration")
-	var gsm = get_node_or_null("/root/GameStateManagerAutoload") as Node
+	var gsm = get_node_or_null("/root/GameStateManager") as Node
 	if gsm:
 		test_results.append("✓ GameStateManager: WORKING") # warning: return value discarded (intentional)
 		if gsm and gsm.has_method("get_active_campaign"):
@@ -773,3 +835,24 @@ func _show_error_dialog(title: String, message: String) -> void:
 	# TODO: Implement proper error dialog UI when available
 	# For now, just log the error
 	print("ERROR DIALOG: ", title, " - ", message)
+
+func test_scene_tree() -> void:
+	"""Test scene tree functionality"""
+	print("MainMenu: Testing scene tree functionality...")
+	
+	var scene_tree = get_tree()
+	if not scene_tree:
+		push_error("MainMenu: Scene tree test FAILED - get_tree() returned null!")
+		return
+	
+	print("MainMenu: ✅ Scene tree test PASSED - get_tree() returned valid object")
+	
+	# Test basic scene tree operations
+	var current_scene = scene_tree.current_scene
+	if current_scene:
+		print("MainMenu: ✅ Current scene: ", current_scene.name)
+	else:
+		print("MainMenu: ⚠️ No current scene set")
+	
+	# Test scene change capability
+	print("MainMenu: Scene tree is ready for scene changes")

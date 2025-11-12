@@ -93,7 +93,7 @@ func _init() -> void:
 
 func _setup_security_integration() -> void:
 	"""Initialize security manager integration"""
-	if CampaignCreationFeatureFlags.is_enabled(CampaignCreationFeatureFlags.FeatureFlag.SECURITY_FOUNDATION):
+	if CampaignCreationFeatureFlags.is_enabled("security_foundation"):
 		security_manager = CampaignSecurityManager.get_instance()
 
 ## State Machine Configuration

@@ -69,11 +69,15 @@ func _setup_window_properties() -> void:
 	position = (DisplayServer.screen_get_size() - size) / 2
 
 func _initialize_dice_manager() -> void:
-	"""Initialize dice manager reference"""
-	if Engine.has_singleton("DiceManager"):
-		dice_manager = Engine.get_singleton("DiceManager")
-	elif has_node("/root/DiceManager"):
-		dice_manager = get_node("/root/DiceManager")
+	"""Initialize dice manager reference with fallback"""
+	if DiceManager:
+		dice_manager = DiceManager
+	else:
+		# Create fallback dice manager
+		dice_manager = Node.new()
+		dice_manager.name = "FallbackDiceManager"
+		dice_manager.set_script(preload("res://src/core/systems/FallbackDiceManager.gd"))
+		print("QuickDicePopup: Created fallback DiceManager")
 
 func _setup_ui_elements() -> void:
 	"""Setup UI elements with dice patterns and contexts"""

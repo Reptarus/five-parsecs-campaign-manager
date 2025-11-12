@@ -1,1279 +1,1202 @@
-@tool
+class_name CaptainPanel
 extends FiveParsecsCampaignPanel
 
-const CharacterClass = preload("res://src/core/character/Character.gd")
-const CharacterCreatorClass = preload("res://src/core/character/Generation/SimpleCharacterCreator.gd")
-const StateManagerClass = preload("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
-const ErrorBoundaryClass = preload("res://src/core/error/UniversalErrorBoundary.gd")
-const StateMachineClass = preload("res://src/core/state_machines/CaptainConfirmationStateMachine.gd")
-# SecurityValidator is inherited from BaseCampaignPanel
-# ValidationResult is inherited from BaseCampaignPanel
-# GlobalEnums available as autoload singleton
+## Enhanced Captain Creation Panel for Five Parsecs Campaign Manager
+## Uses FiveParsecsCampaignPanel base class for proper integration
+## Implements complete captain generation with Five Parsecs rules
 
-signal captain_updated(captain: Character)
+# Captain-specific imports
+const Character = preload("res://src/core/character/Character.gd")
+const SimpleCharacterCreator = preload("res://src/core/character/Generation/SimpleCharacterCreator.gd")
 
-# Autonomous signals for coordinator pattern
-signal captain_data_complete(data: Dictionary)
-signal captain_validation_failed(errors: Array[String])
+# Captain-specific signals
+signal captain_created(captain_data: Dictionary)
+signal captain_customization_requested(captain: Character)
+signal captain_data_updated(captain_data: Dictionary)
+signal step_completed(step_name: String)
 
-# Granular signals for real-time integration
-signal captain_data_changed(data: Dictionary)
-signal captain_creation_complete(captain: Character)
-
-var local_captain_data: Dictionary = {
-	"captain": null,
-	"is_complete": false
+# State management
+var captain: Character = null
+var creation_method: String = ""
+var captain_bonuses: Dictionary = {
+	"leadership": 0,
+	"experience": 100,
+	"starting_gear": []
 }
-var security_validator: SecurityValidator
-var is_captain_complete: bool = false
-var last_validation_errors: Array[String] = []
 
-# PHASE 1A: Transaction-based confirmation
-var _pending_confirmation_transaction: String = ""
-var _is_processing_transaction: bool = false
+# UI References (safe access pattern with proper node paths)
+@onready var captain_display_container: VBoxContainer = $"ContentMargin/MainContent/FormContent/FormContainer/Content"
+@onready var main_form_container: VBoxContainer = $"ContentMargin/MainContent/FormContent/FormContainer/Content"
 
-# PHASE 2: Error boundary integration
-var _error_boundary: UniversalErrorBoundary
-var _circuit_breaker_failure_count: int = 0
-var _circuit_breaker_last_failure_time: float = 0.0
-var _circuit_breaker_open: bool = false
-const CIRCUIT_BREAKER_FAILURE_THRESHOLD: int = 3
-const CIRCUIT_BREAKER_RECOVERY_TIME: float = 30.0 # 30 seconds
+# UI Component references with unique names
+@onready var captain_name_input: LineEdit = %CaptainNameInput
+@onready var background_option: OptionButton = %BackgroundOption
+@onready var motivation_option: OptionButton = %MotivationOption
+@onready var advanced_creation_button: Button = %AdvancedCreationButton
+@onready var continue_button: Button = %ContinueButton
 
-# PHASE 2: State machine integration
-var _captain_state_machine: CaptainConfirmationStateMachine
-var _state_ui_feedback: Label
-
-# UI Components - Safe node access pattern
-var character_creator: Node
-var captain_info: Label
-var create_button: Button
-var edit_button: Button
-var randomize_button: Button
-
-var current_captain: Character
-
-func _on_campaign_state_updated(state_data: Dictionary) -> void:
-	"""Override from interface - handle campaign state updates"""
-	# Update panel state based on campaign state if needed
-	if state_data.has("captain") and state_data.captain is Dictionary:
-		var captain_data = state_data.captain
-		if captain_data.has("character_name"):
-			# Update local captain state from external changes
-			_update_ui()
+var panel_data: Dictionary = {}
+var character_creator: Node = null
+var current_captain: Character = null
 
 func _ready() -> void:
-	# Set panel info before base initialization
-	set_panel_info("Captain Creation", "Create your captain with enhanced stats and leadership abilities.")
+	# Set panel info before base initialization with more informative description
+	set_panel_info(
+		"Captain Creation",
+		"Create your ship's captain. Stats: Combat, Reactions, Toughness, Savvy, Tech, Move."
+	)
 	
 	# Call parent _ready() to initialize BaseCampaignPanel structure
 	super._ready()
 	
-	# PHASE 2: Initialize error boundary system
-	_initialize_error_boundary()
+	# COMPREHENSIVE DEBUG OUTPUT - Panel Initialization
+	call_deferred("_log_panel_initialization_debug")
 	
-	# PHASE 2: Initialize state machine
-	_initialize_state_machine()
+	# Validate node references
+	_validate_node_references()
 	
-	# Initialize captain-specific functionality
-	_initialize_security_validator()
-	call_deferred("_initialize_components")
+	print("CaptainPanel: Enhanced captain creation ready")
+
+# PHASE 4 FIX: Override coordinator set callback to check access after coordinator is available
+func _on_coordinator_set() -> void:
+	"""Called when coordinator is set - now we can safely check coordinator access"""
+	print("\n==== [PANEL: CaptainPanel] COORDINATOR ACCESS CHECK ====")
+	
+	var coordinator = get_coordinator()
+	if coordinator:
+		print("  ✅ Coordinator Access: true")
+		print("    Coordinator Type: %s" % coordinator.get_class())
+		print("    Has get_current_panel: %s" % coordinator.has_method("get_current_panel"))
+		print("    Has set_current_panel: %s" % coordinator.has_method("set_current_panel"))
+	else:
+		# Try alternative methods to find coordinator
+		var campaign_ui = owner if owner != null else get_parent().get_parent()
+		var has_coordinator = campaign_ui != null and campaign_ui.has_method("get_coordinator")
+		print("  ⚠️  Coordinator Access: false")
+		print("    Fallback check via owner: %s" % has_coordinator)
+		if has_coordinator:
+			var fallback_coord = campaign_ui.get_coordinator()
+			print("    Fallback coordinator available: %s" % (fallback_coord != null))
+
+func _validate_node_references() -> void:
+	"""Validate all critical node references are available"""
+	if OS.is_debug_build():
+		assert(main_form_container != null, "main_form_container not found - check scene structure")
+		if character_creator == null:
+			push_warning("CaptainPanel: character_creator not found - advanced creation disabled")
+		print("CaptainPanel: Node references validated")
 
 func _setup_panel_content() -> void:
 	"""Override from BaseCampaignPanel - setup captain-specific content"""
-	# This will be called after BaseCampaignPanel structure is ready
-	pass
-
-func _initialize_components() -> void:
-	"""Initialize UI components with safe node access"""
-	character_creator = get_node_or_null("CharacterCreator")
-	
-	# CRITICAL FIX: Create CharacterCreator instance if not found as child node
-	if not character_creator:
-		print("CaptainPanel: CharacterCreator node not found, creating instance")
-		character_creator = CharacterCreatorClass.new()
-		if character_creator:
-			# Add as child for proper lifecycle management
-			add_child(character_creator)
-			character_creator.name = "CharacterCreator"
-			print("CaptainPanel: CharacterCreator instance created successfully")
-		else:
-			push_warning("CaptainPanel: Failed to create CharacterCreator instance")
-	
-	captain_info = get_node_or_null("Content/CaptainInfo/Label")
-	create_button = get_node_or_null("Content/Controls/CreateButton")
-	edit_button = get_node_or_null("Content/Controls/EditButton")
-	randomize_button = get_node_or_null("Content/Controls/RandomizeButton")
-	
-	# Initialize state feedback UI
-	_setup_state_feedback_ui()
-	
-	# Connect signals after components are initialized
+	_create_captain_interface()
+	_setup_ui()
 	_connect_signals()
-	_update_ui()
-	call_deferred("_emit_panel_ready")
-	
-	print("CaptainPanel: Components initialized - Creator: %s, Info: %s, Buttons: %d" % [
-		"found" if character_creator else "missing",
-		"found" if captain_info else "missing",
-		[create_button, edit_button, randomize_button].count(null)
-	])
+	_initialize_character_creator()
 
-func _setup_state_feedback_ui() -> void:
-	"""Setup state machine feedback UI"""
-	# Try to find existing state feedback label
-	_state_ui_feedback = get_node_or_null("Content/StateFeedback")
-	
-	# If not found, create one if we have a content container
-	if not _state_ui_feedback:
-		var content_container = get_node_or_null("Content")
-		if content_container:
-			_state_ui_feedback = Label.new()
-			_state_ui_feedback.name = "StateFeedback"
-			_state_ui_feedback.text = "State: IDLE"
-			_state_ui_feedback.add_theme_font_size_override("font_size", 12)
-			_state_ui_feedback.modulate = Color.GRAY
-			content_container.add_child(_state_ui_feedback)
-			content_container.move_child(_state_ui_feedback, 0) # Move to top
-			print("CaptainPanel: Created state feedback UI")
-		else:
-			print("CaptainPanel: Warning - Could not create state feedback UI (no Content container)")
-
-func _initialize_security_validator() -> void:
-	"""Initialize security validator for input sanitization"""
-	security_validator = SecurityValidator.new()
-
-# PHASE 2: State machine initialization and integration
-
-func _initialize_state_machine() -> void:
-	"""Initialize captain confirmation state machine"""
-	_captain_state_machine = CaptainConfirmationStateMachine.new()
-	
-	# Connect state machine signals
-	_captain_state_machine.state_changed.connect(_on_state_machine_state_changed)
-	_captain_state_machine.validation_status_changed.connect(_on_state_machine_validation_changed)
-	_captain_state_machine.confirmation_status_changed.connect(_on_state_machine_confirmation_changed)
-	_captain_state_machine.error_occurred.connect(_on_state_machine_error)
-	_captain_state_machine.operation_progress.connect(_on_state_machine_progress)
-	
-	print("CaptainPanel: State machine initialized successfully")
-
-func _on_state_machine_state_changed(from_state: CaptainConfirmationStateMachine.State, to_state: CaptainConfirmationStateMachine.State, event: CaptainConfirmationStateMachine.Event) -> void:
-	"""Handle state machine state changes and update UI accordingly"""
-	print("CaptainPanel: State changed from %s to %s (event: %s)" % [
-		_captain_state_machine.get_state_name(from_state),
-		_captain_state_machine.get_state_name(to_state),
-		_captain_state_machine.get_event_name(event)
-	])
-	
-	# Update UI based on current state
-	_update_ui_for_state(to_state)
-	
-	# Update state feedback label if available
-	if _state_ui_feedback:
-		_state_ui_feedback.text = "State: %s" % _captain_state_machine.get_state_name(to_state)
-
-func _on_state_machine_validation_changed(is_valid: bool, errors: Array[String]) -> void:
-	"""Handle validation status changes from state machine with advanced feedback"""
-	last_validation_errors = errors.duplicate()
-	
-	# Get comprehensive validation result
-	var validation_result = _get_advanced_validation_result()
-	
-	if captain_info:
-		# Update UI based on validation stage
-		match validation_result.validation_stage:
-			"no_captain":
-				captain_info.modulate = Color.GRAY
-			"has_errors":
-				captain_info.modulate = Color.RED
-			"has_warnings":
-				captain_info.modulate = Color.ORANGE
-			"complete":
-				captain_info.modulate = Color.GREEN
-		
-		# Create comprehensive feedback text
-		var feedback_text = _build_validation_feedback_text(validation_result)
-		
-		# Only update if content has changed to avoid flickering
-		if captain_info.text.find("📊 Validation Status:") == -1:
-			captain_info.text += feedback_text
-
-func _build_validation_feedback_text(validation_result: Dictionary) -> String:
-	"""Build comprehensive validation feedback text"""
-	var feedback = "\n\n📊 Validation Status: %s" % validation_result.validation_stage.capitalize().replace("_", " ")
-	feedback += "\n🎯 Completion: %.0f%%" % (validation_result.completion_level * 100)
-	
-	# Add blocking errors
-	if not validation_result.blocking_errors.is_empty():
-		feedback += "\n\n❌ Issues that must be fixed:\n"
-		for error in validation_result.blocking_errors:
-			feedback += "• " + error + "\n"
-	
-	# Add warnings
-	if not validation_result.warnings.is_empty():
-		feedback += "\n\n⚠️ Recommendations (optional):\n"
-		for warning in validation_result.warnings:
-			feedback += "• " + warning + "\n"
-	
-	# Add suggestions
-	if not validation_result.suggestions.is_empty():
-		feedback += "\n\n💡 Suggestions:\n"
-		for suggestion in validation_result.suggestions:
-			feedback += "• " + suggestion + "\n"
-	
-	return feedback
-
-func _on_state_machine_confirmation_changed(is_confirmed: bool, captain_data: Dictionary) -> void:
-	"""Handle confirmation status changes from state machine"""
-	if is_confirmed:
-		print("CaptainPanel: Captain confirmed successfully via state machine")
-		is_captain_complete = true
-		local_captain_data.is_complete = true
-		
-		# Emit success signals
-		captain_data_changed.emit(get_captain_data())
-		captain_creation_complete.emit(current_captain)
-		
-		# Update UI to show confirmation success
-		if captain_info:
-			captain_info.text += "\n\n✅ Captain confirmed successfully!"
-			captain_info.modulate = Color.GREEN
-	else:
-		print("CaptainPanel: Captain confirmation failed via state machine")
-		is_captain_complete = false
-		local_captain_data.is_complete = false
-
-func _on_state_machine_error(error_message: String, recovery_options: Array[String]) -> void:
-	"""Handle state machine errors with recovery options"""
-	push_error("CaptainPanel: State machine error: %s" % error_message)
-	
-	# Show error in UI
-	if captain_info:
-		captain_info.text = "❌ Error: %s\n\nRecovery options:\n" % error_message
-		for option in recovery_options:
-			captain_info.text += "• " + option + "\n"
-		captain_info.modulate = Color.RED
-	
-	# Add to validation errors
-	last_validation_errors.append("State machine error: " + error_message)
-	captain_validation_failed.emit(last_validation_errors)
-
-func _on_state_machine_progress(operation: String, progress: float, message: String) -> void:
-	"""Handle operation progress updates from state machine"""
-	print("CaptainPanel: Operation progress - %s: %.1f%% - %s" % [operation, progress * 100, message])
-	
-	# Update UI with progress information
-	if captain_info and progress < 1.0:
-		var progress_text = "\n\n🔄 %s... %.0f%%" % [operation.capitalize(), progress * 100]
-		
-		# Only add progress text if not already present
-		if captain_info.text.find("🔄") == -1:
-			captain_info.text += progress_text
-
-func _update_ui_for_state(state: CaptainConfirmationStateMachine.State) -> void:
-	"""Update UI elements based on current state machine state"""
-	if not create_button or not edit_button:
+func _create_captain_interface() -> void:
+	"""Create comprehensive captain creation interface using base panel structure"""
+	if not content_container:
+		push_error("CaptainPanel: FormContainer not found in base panel")
 		return
 	
-	match state:
-		CaptainConfirmationStateMachine.State.IDLE:
-			create_button.disabled = false
-			edit_button.disabled = true
-			if randomize_button:
-				randomize_button.disabled = false
-		
-		CaptainConfirmationStateMachine.State.EDITING:
-			create_button.disabled = true
-			edit_button.disabled = false
-			if randomize_button:
-				randomize_button.disabled = false
-		
-		CaptainConfirmationStateMachine.State.VALIDATING:
-			create_button.disabled = true
-			edit_button.disabled = true
-			if randomize_button:
-				randomize_button.disabled = true
-		
-		CaptainConfirmationStateMachine.State.CONFIRMING:
-			create_button.disabled = true
-			edit_button.disabled = true
-			if randomize_button:
-				randomize_button.disabled = true
-		
-		CaptainConfirmationStateMachine.State.CONFIRMED:
-			create_button.disabled = true
-			edit_button.disabled = false
-			if randomize_button:
-				randomize_button.disabled = true
-		
-		CaptainConfirmationStateMachine.State.ERROR:
-			create_button.disabled = false
-			edit_button.disabled = false
-			if randomize_button:
-				randomize_button.disabled = false
-		
-		CaptainConfirmationStateMachine.State.RECOVERY:
-			create_button.disabled = true
-			edit_button.disabled = true
-			if randomize_button:
-				randomize_button.disabled = true
-
-# PHASE 2: Error boundary system initialization and methods
-
-func _initialize_error_boundary() -> void:
-	"""Initialize error boundary system for captain panel"""
-	_error_boundary = UniversalErrorBoundary.new()
+	var main_container = VBoxContainer.new()
+	main_container.name = "CaptainCreationContainer"
+	content_container.add_child(main_container)
 	
-	if not UniversalErrorBoundary.initialize():
-		push_warning("CaptainPanel: Failed to initialize universal error boundary")
+	# Creation method selection
+	_add_creation_methods(main_container)
+	
+	# Captain preview area
+	_add_captain_preview(main_container)
+	
+	# Advanced options
+	_add_advanced_options(main_container)
+
+func _add_creation_methods(container: VBoxContainer) -> void:
+	"""Add captain creation method buttons"""
+	var methods_label = Label.new()
+	methods_label.text = "Choose Captain Creation Method:"
+	methods_label.add_theme_font_size_override("font_size", 16)
+	container.add_child(methods_label)
+	
+	var button_container = GridContainer.new()
+	button_container.columns = 2
+	container.add_child(button_container)
+	
+	var methods = [
+		{
+			"id": "random",
+			"text": "Random Captain",
+			"tooltip": "Generate a captain with random stats and background",
+			"method": "_generate_random_captain"
+		},
+		{
+			"id": "custom",
+			"text": "Custom Build",
+			"tooltip": "Manually allocate stats and choose background",
+			"method": "_create_custom_captain"
+		},
+		{
+			"id": "veteran",
+			"text": "Veteran Template",
+			"tooltip": "Start with an experienced captain template",
+			"method": "_use_veteran_template"
+		},
+		{
+			"id": "import",
+			"text": "Import Character",
+			"tooltip": "Import an existing character as captain",
+			"method": "_import_character"
+		}
+	]
+	
+	for method_data in methods:
+		var btn = Button.new()
+		btn.text = method_data.text
+		btn.tooltip_text = method_data.tooltip
+		btn.custom_minimum_size.x = 150
+		btn.pressed.connect(Callable(self, method_data.method))
+		button_container.add_child(btn)
+
+func _add_captain_preview(container: VBoxContainer) -> void:
+	"""Add captain preview display area"""
+	var preview_label = Label.new()
+	preview_label.text = "Captain Preview:"
+	preview_label.add_theme_font_size_override("font_size", 16)
+	container.add_child(preview_label)
+	
+	captain_display_container = VBoxContainer.new()
+	captain_display_container.name = "CaptainDisplay"
+	container.add_child(captain_display_container)
+	
+	# Initial empty state
+	var empty_label = Label.new()
+	empty_label.text = "Choose a creation method to generate your captain"
+	empty_label.modulate = Color.GRAY
+	captain_display_container.add_child(empty_label)
+
+func _add_advanced_options(container: VBoxContainer) -> void:
+	"""Add advanced captain options"""
+	var advanced_label = Label.new()
+	advanced_label.text = "Advanced Options:"
+	container.add_child(advanced_label)
+	
+	var options_container = HBoxContainer.new()
+	container.add_child(options_container)
+	
+	# Leadership bonus
+	var leadership_check = CheckBox.new()
+	leadership_check.text = "Natural Leader (+1 to crew morale)"
+	leadership_check.toggled.connect(_on_leadership_toggled)
+	options_container.add_child(leadership_check)
+	
+	# Extra experience
+	var xp_container = HBoxContainer.new()
+	options_container.add_child(xp_container)
+	
+	var xp_label = Label.new()
+	xp_label.text = "Starting XP:"
+	xp_container.add_child(xp_label)
+	
+	var xp_spin = SpinBox.new()
+	xp_spin.min_value = 100
+	xp_spin.max_value = 500
+	xp_spin.value = 100
+	xp_spin.step = 50
+	xp_spin.value_changed.connect(_on_xp_changed)
+	xp_container.add_child(xp_spin)
+
+func _setup_ui() -> void:
+	# Original setup preserved for compatibility
+	_setup_background_options()
+	_setup_motivation_options()
+
+func _setup_background_options() -> void:
+	"""Setup background options from Five Parsecs rules"""
+	if not background_option:
 		return
 	
-	# Register this component with the error boundary
-	var error_wrapper = UniversalErrorBoundary.wrap_component(
-		self,
-		"CaptainPanel",
-		UniversalErrorBoundary.ComponentType.UI_COMPONENT,
-		UniversalErrorBoundary.IntegrationMode.GRACEFUL
-	)
+	background_option.clear()
 	
-	if error_wrapper:
-		print("CaptainPanel: Error boundary integration successful")
-	else:
-		push_warning("CaptainPanel: Error boundary integration failed")
+	# Five Parsecs Background Table (from core rules)
+	var backgrounds = [
+		{"name": "Peaceful, High-Tech Colony", "bonus": {"savvy": 1}, "credits": "1D6"},
+		{"name": "Giant, Overcrowded, Dystopian City", "bonus": {"speed": 1}},
+		{"name": "Low-Tech Colony", "gear": ["Low-tech Weapon"]},
+		{"name": "Mining Colony", "bonus": {"toughness": 1}},
+		{"name": "Military Brat", "bonus": {"combat": 1}},
+		{"name": "Space Station", "gear": ["Gear"]},
+		{"name": "Military Outpost", "bonus": {"reactions": 1}},
+		{"name": "Drifter", "gear": ["Gear"]},
+		{"name": "Lower Megacity Class", "gear": ["Low-tech Weapon"]},
+		{"name": "Wealthy Merchant Family", "credits": "2D6"},
+		{"name": "Frontier Gang", "bonus": {"combat": 1}},
+		{"name": "Religious Cult", "patron": true, "story_points": 1},
+		{"name": "War-Torn Hell-Hole", "bonus": {"reactions": 1}, "gear": ["Military Weapon"]},
+		{"name": "Tech Guild", "bonus": {"savvy": 1}, "credits": "1D6", "gear": ["High-tech Weapon"]},
+		{"name": "Subjugated Colony on Alien World", "gear": ["Gadget"]},
+		{"name": "Long-Term Space Mission", "bonus": {"savvy": 1}},
+		{"name": "Research Outpost", "bonus": {"savvy": 1}, "gear": ["Gadget"]},
+		{"name": "Primitive or Regressed World", "bonus": {"toughness": 1}, "gear": ["Low-tech Weapon"]},
+		{"name": "Orphan Utility Program", "patron": true, "story_points": 1},
+		{"name": "Isolationist Enclave", "rumors": 2},
+		{"name": "Comfortable Megacity Class", "credits": "1D6"},
+		{"name": "Industrial World", "gear": ["Gear"]},
+		{"name": "Bureaucrat", "credits": "1D6"},
+		{"name": "Wasteland Nomads", "bonus": {"reactions": 1}, "gear": ["Low-tech Weapon"]},
+		{"name": "Alien Culture", "gear": ["High-tech Weapon"]}
+	]
+	
+	for i in range(backgrounds.size()):
+		var background = backgrounds[i]
+		background_option.add_item(background.name, i)
+	
+	background_option.select(0) # Default to first option
 
-func _execute_with_error_boundary(operation: Callable, fallback: Callable = Callable(), operation_name: String = "Unknown") -> Variant:
-	"""Execute operation with error boundary protection"""
+func _setup_motivation_options() -> void:
+	"""Setup motivation options from Five Parsecs rules"""
+	if not motivation_option:
+		return
 	
-	# Check circuit breaker state
-	if _is_circuit_breaker_open():
-		push_warning("CaptainPanel: Circuit breaker open for %s, using fallback" % operation_name)
-		if fallback.is_valid():
-			return fallback.call()
-		return null
+	motivation_option.clear()
 	
-	# Simple error handling - just call the operation directly
-	# In a production system, this would have proper error boundaries
-	var result = null
+	# Five Parsecs Motivation Table (from core rules)
+	var motivations = [
+		{"name": "Wealth", "credits": "1D6"},
+		{"name": "Fame", "story_points": 1},
+		{"name": "Glory", "bonus": {"combat": 1}, "gear": ["Military Weapon"]},
+		{"name": "Survival", "bonus": {"toughness": 1}},
+		{"name": "Escape", "bonus": {"speed": 1}},
+		{"name": "Adventure", "credits": "1D6", "gear": ["Low-tech Weapon"]},
+		{"name": "Truth", "rumors": 1, "story_points": 1},
+		{"name": "Technology", "bonus": {"savvy": 1}, "gear": ["Gadget"]},
+		{"name": "Discovery", "bonus": {"savvy": 1}, "gear": ["Gear"]},
+		{"name": "Loyalty", "patron": true, "story_points": 1},
+		{"name": "Revenge", "xp_bonus": 2, "rival": true},
+		{"name": "Romance", "rumors": 1, "story_points": 1},
+		{"name": "Faith", "rumors": 1, "story_points": 1},
+		{"name": "Political", "patron": true, "story_points": 1},
+		{"name": "Power", "xp_bonus": 2, "rival": true},
+		{"name": "Order", "patron": true, "story_points": 1},
+		{"name": "Freedom", "xp_bonus": 2}
+	]
 	
-	if operation.is_valid():
-		result = operation.call()
-	else:
-		print("CaptainPanel: Invalid operation for %s, using fallback" % operation_name)
-		if fallback.is_valid():
-			result = fallback.call()
+	for i in range(motivations.size()):
+		var motivation = motivations[i]
+		motivation_option.add_item(motivation.name, i)
 	
-	return result
-
-func _execute_fallback_safely(fallback: Callable, operation_name: String) -> Variant:
-	"""Execute fallback operation with additional safety"""
-	if fallback.is_valid():
-		return fallback.call()
-	else:
-		push_error("CaptainPanel: Both primary and fallback operations failed for %s" % operation_name)
-		_handle_critical_failure(operation_name)
-		return null
-
-func _handle_operation_failure(operation_name: String, error: String) -> void:
-	"""Handle operation failure and update circuit breaker"""
-	_circuit_breaker_failure_count += 1
-	_circuit_breaker_last_failure_time = Time.get_unix_time_from_system()
-	
-	print("CaptainPanel: Operation failed (%d/%d failures): %s - %s" % [
-		_circuit_breaker_failure_count,
-		CIRCUIT_BREAKER_FAILURE_THRESHOLD,
-		operation_name,
-		error
-	])
-	
-	# Open circuit breaker if threshold reached
-	if _circuit_breaker_failure_count >= CIRCUIT_BREAKER_FAILURE_THRESHOLD:
-		_circuit_breaker_open = true
-		push_error("CaptainPanel: Circuit breaker opened due to repeated failures")
-		_show_circuit_breaker_error()
-
-func _handle_critical_failure(operation_name: String) -> void:
-	"""Handle critical failure that affects panel functionality"""
-	push_error("CaptainPanel: Critical failure in %s - entering safe mode" % operation_name)
-	
-	# Force circuit breaker open
-	_circuit_breaker_open = true
-	_circuit_breaker_failure_count = CIRCUIT_BREAKER_FAILURE_THRESHOLD
-	
-	# Show user error message with recovery options
-	_show_critical_error_dialog(operation_name)
-
-func _is_circuit_breaker_open() -> bool:
-	"""Check if circuit breaker is open and attempt recovery"""
-	if not _circuit_breaker_open:
-		return false
-	
-	var time_since_failure = Time.get_unix_time_from_system() - _circuit_breaker_last_failure_time
-	
-	if time_since_failure >= CIRCUIT_BREAKER_RECOVERY_TIME:
-		print("CaptainPanel: Circuit breaker recovery time elapsed, attempting reset")
-		_reset_circuit_breaker()
-		return false
-	
-	return true
-
-func _reset_circuit_breaker() -> void:
-	"""Reset circuit breaker to closed state"""
-	_circuit_breaker_open = false
-	_circuit_breaker_failure_count = 0
-	_circuit_breaker_last_failure_time = 0.0
-	print("CaptainPanel: Circuit breaker reset successful")
-
-func _show_circuit_breaker_error() -> void:
-	"""Show user-friendly error message when circuit breaker opens"""
-	if captain_info:
-		captain_info.text = "⚠️ Captain creation temporarily unavailable due to repeated errors.\nPlease wait 30 seconds and try again, or use the fallback options below."
-		captain_info.modulate = Color.ORANGE
-
-func _show_critical_error_dialog(operation_name: String) -> void:
-	"""Show critical error dialog with recovery options"""
-	var dialog = AcceptDialog.new()
-	dialog.title = "Captain Creation Error"
-	dialog.dialog_text = "Critical error in %s.\n\nRecovery options:\n• Wait 30 seconds for automatic recovery\n• Use 'Create Basic Captain' for simple creation\n• Restart the campaign creation process" % operation_name
-	
-	get_tree().current_scene.add_child(dialog)
-	dialog.popup_centered()
-	dialog.confirmed.connect(dialog.queue_free)
+	motivation_option.select(0) # Default to first option
 
 func _connect_signals() -> void:
-	if create_button:
-		create_button.pressed.connect(_on_create_pressed)
-	if edit_button:
-		edit_button.pressed.connect(_on_edit_pressed)
-	if randomize_button:
-		randomize_button.pressed.connect(_on_randomize_pressed)
+	if captain_name_input:
+		captain_name_input.text_changed.connect(_on_captain_name_changed)
+	if background_option:
+		background_option.item_selected.connect(_on_background_changed)
+	if motivation_option:
+		motivation_option.item_selected.connect(_on_motivation_changed)
+	if continue_button and not continue_button.pressed.is_connected(_on_continue_pressed):
+		continue_button.pressed.connect(_on_continue_pressed)
+	if advanced_creation_button and not advanced_creation_button.pressed.is_connected(_on_advanced_creation_pressed):
+		advanced_creation_button.pressed.connect(_on_advanced_creation_pressed)
 
-	if character_creator:
-		character_creator.character_created.connect(_on_character_created)
-		character_creator.character_edited.connect(_on_character_edited)
-	else:
-		push_warning("CaptainPanel: CharacterCreator not found, using fallback methods")
-
-func _on_create_pressed() -> void:
-	"""Handle create button press with state machine and error boundary protection"""
-	# Start captain creation via state machine
-	if _captain_state_machine and not _captain_state_machine.start_captain_creation():
-		push_warning("CaptainPanel: Cannot start captain creation - invalid state")
-		return
+func _initialize_character_creator() -> void:
+	"""Initialize character creator for advanced captain creation"""
+	print("CaptainPanel: Starting character creator initialization")
 	
-	var operation = func():
-		if character_creator:
-			character_creator.start_creation(SimpleCharacterCreator.CreatorMode.CAPTAIN)
-		else:
-			_create_basic_captain()
+	# Try to load the SimpleCharacterCreator scene
+	var character_creator_scene = preload("res://src/ui/screens/character/SimpleCharacterCreator.tscn")
+	print("CaptainPanel: Scene preloaded: ", character_creator_scene != null)
 	
-	var fallback = func():
-		_create_basic_captain()
-	
-	_execute_with_error_boundary(operation, fallback, "create_captain")
-
-func _on_edit_pressed() -> void:
-	"""Handle edit button press with state machine and error boundary protection"""
-	# Start captain editing via state machine
-	if _captain_state_machine and current_captain:
-		# CRITICAL FIX: Reset state machine if stuck in EDITING state
-		if _captain_state_machine.current_state == CaptainConfirmationStateMachine.State.EDITING:
-			print("CaptainPanel: State machine stuck in EDITING, resetting to IDLE")
-			if not _captain_state_machine.reset_state_machine():
-				push_warning("CaptainPanel: Failed to reset state machine")
-				return
+	if character_creator_scene:
+		character_creator = character_creator_scene.instantiate()
+		print("CaptainPanel: Scene instantiated: ", character_creator != null)
 		
-		var captain_data = _serialize_captain_for_transaction(current_captain)
-		if not _captain_state_machine.edit_captain(captain_data):
-			push_warning("CaptainPanel: Cannot edit captain - invalid state. Current state: %s" %
-				_captain_state_machine.get_state_name(_captain_state_machine.current_state))
-			return
-	
-	var operation = func():
-		if current_captain and character_creator:
-			character_creator.edit_character(current_captain)
-		elif current_captain:
-			_create_basic_captain()
-	
-	var fallback = func():
-		if current_captain:
-			_edit_captain_fallback()
-		else:
-			_create_basic_captain()
-	
-	_execute_with_error_boundary(operation, fallback, "edit_captain")
-
-func _on_randomize_pressed() -> void:
-	"""Handle randomize button press with error boundary protection"""
-	var operation = func():
 		if character_creator:
-			character_creator.start_creation(SimpleCharacterCreator.CreatorMode.CAPTAIN)
-			character_creator._on_randomize_pressed()
-			character_creator._on_create_pressed() # Auto-create after randomize
-		else:
-			_create_random_captain()
-	
-	var fallback = func():
-		_create_random_captain()
-	
-	_execute_with_error_boundary(operation, fallback, "randomize_captain")
-
-
-func _update_ui() -> void:
-	"""Update UI with enhanced validation feedback"""
-	if current_captain:
-		var info_text: String = "Captain Information:\n"
-		info_text += "Name: %s\n" % current_captain.character_name
-		info_text += "Combat: %d, Toughness: %d, Savvy: %d\n" % [
-			current_captain.combat,
-			current_captain.toughness,
-			current_captain.savvy
-		]
-		info_text += "Tech: %d, Speed: %d, Luck: %d\n" % [
-			current_captain.tech,
-			current_captain.speed,
-			current_captain.luck
-		]
-		info_text += "Health: %d/%d" % [
-			current_captain.health,
-			current_captain.max_health
-		]
-		
-		# Add advanced validation feedback
-		var validation_result = _get_advanced_validation_result()
-		var feedback_text = _build_validation_feedback_text(validation_result)
-		info_text += feedback_text
-
-		if captain_info:
-			captain_info.text = info_text
+			print("CaptainPanel: Character creator class: ", character_creator.get_class())
+			print("CaptainPanel: Character creator script: ", character_creator.get_script())
 			
-			# Update color based on validation stage
-			match validation_result.validation_stage:
-				"no_captain":
-					captain_info.modulate = Color.GRAY
-				"has_errors":
-					captain_info.modulate = Color.RED
-				"has_warnings":
-					captain_info.modulate = Color.ORANGE
-				"complete":
-					captain_info.modulate = Color.GREEN
-		
-		if create_button:
-			create_button.hide()
-		if edit_button:
-			edit_button.show()
-		if randomize_button:
-			randomize_button.hide()
+			# Add as child but keep hidden
+			add_child(character_creator)
+			character_creator.visible = false
+			
+			# Connect character creator signals
+			if character_creator.has_signal("character_created"):
+				character_creator.character_created.connect(_on_character_created)
+				print("CaptainPanel: Connected character_created signal")
+			if character_creator.has_signal("character_edited"):
+				character_creator.character_edited.connect(_on_character_edited)
+				print("CaptainPanel: Connected character_edited signal")
+			if character_creator.has_signal("creation_cancelled"):
+				character_creator.creation_cancelled.connect(_on_character_creation_cancelled)
+				print("CaptainPanel: Connected creation_cancelled signal")
+			
+			print("CaptainPanel: Character creator initialized successfully")
+		else:
+			push_warning("CaptainPanel: Failed to instantiate character creator")
 	else:
-		# No captain case - show creation guidance
-		var validation_result = _get_advanced_validation_result()
-		var guidance_text = "No captain created yet. Click 'Create Captain' to begin."
-		guidance_text += _build_validation_feedback_text(validation_result)
-		
-		if captain_info:
-			captain_info.text = guidance_text
-			captain_info.modulate = Color.GRAY
-		if create_button:
-			create_button.show()
-		if edit_button:
-			edit_button.hide()
-		if randomize_button:
-			randomize_button.show()
+		push_warning("CaptainPanel: Character creator scene not found")
+
+func _on_captain_name_changed(new_text: String) -> void:
+	panel_data["captain_name"] = new_text
 	
-	# Update state machine UI state if available
-	if _captain_state_machine:
-		_update_ui_for_state(_captain_state_machine.current_state)
-
-
-func validate() -> Array[String]:
-	"""Validate captain data and return error messages"""
-	var validation = validate_panel()
-	return validation.errors if validation.errors else []
-
-func set_data(data: Dictionary) -> void:
-	"""Set panel data - generic interface method"""
-	if data.has("captain"):
-		current_captain = data.captain
-		_update_ui()
-		captain_updated.emit(current_captain)
-
-# Fallback methods when CharacterCreator is not available
-func _create_basic_captain() -> void:
-	"""Create a basic captain without the character creator dialog"""
-	var captain = Character.new()
-	captain.character_name = "Captain %s" % ["Steele", "Nova", "Cross", "Vale", "Storm"][randi() % 5]
-	_generate_captain_stats(captain)
-	current_captain = captain
-	_update_ui()
-	captain_updated.emit(current_captain)
-
-func _create_random_captain() -> void:
-	"""Create a random captain directly"""
-	_create_basic_captain()
-
-# PHASE 2: Enhanced fallback methods with error recovery
-
-func _edit_captain_fallback() -> void:
-	"""Fallback method for captain editing when CharacterCreator fails"""
+	# Create captain object if it doesn't exist to enable validation
 	if not current_captain:
-		push_warning("CaptainPanel: No captain to edit, creating new one")
-		_create_basic_captain()
+		current_captain = Character.new()
+		current_captain.is_captain = true
+	current_captain.character_name = new_text
+	
+	panel_data_changed.emit(get_panel_data())
+
+func _on_background_changed(index: int) -> void:
+	"""Handle background selection with Five Parsecs rules"""
+	var backgrounds = [
+		{"id": "peaceful_high_tech", "name": "Peaceful, High-Tech Colony", "bonus": {"savvy": 1}, "credits": "1D6"},
+		{"id": "dystopian_city", "name": "Giant, Overcrowded, Dystopian City", "bonus": {"speed": 1}},
+		{"id": "low_tech_colony", "name": "Low-Tech Colony", "gear": ["Low-tech Weapon"]},
+		{"id": "mining_colony", "name": "Mining Colony", "bonus": {"toughness": 1}},
+		{"id": "military_brat", "name": "Military Brat", "bonus": {"combat": 1}},
+		{"id": "space_station", "name": "Space Station", "gear": ["Gear"]},
+		{"id": "military_outpost", "name": "Military Outpost", "bonus": {"reactions": 1}},
+		{"id": "drifter", "name": "Drifter", "gear": ["Gear"]},
+		{"id": "lower_megacity", "name": "Lower Megacity Class", "gear": ["Low-tech Weapon"]},
+		{"id": "wealthy_merchant", "name": "Wealthy Merchant Family", "credits": "2D6"},
+		{"id": "frontier_gang", "name": "Frontier Gang", "bonus": {"combat": 1}},
+		{"id": "religious_cult", "name": "Religious Cult", "patron": true, "story_points": 1},
+		{"id": "war_torn", "name": "War-Torn Hell-Hole", "bonus": {"reactions": 1}, "gear": ["Military Weapon"]},
+		{"id": "tech_guild", "name": "Tech Guild", "bonus": {"savvy": 1}, "credits": "1D6", "gear": ["High-tech Weapon"]},
+		{"id": "alien_colony", "name": "Subjugated Colony on Alien World", "gear": ["Gadget"]},
+		{"id": "space_mission", "name": "Long-Term Space Mission", "bonus": {"savvy": 1}},
+		{"id": "research_outpost", "name": "Research Outpost", "bonus": {"savvy": 1}, "gear": ["Gadget"]},
+		{"id": "primitive_world", "name": "Primitive or Regressed World", "bonus": {"toughness": 1}, "gear": ["Low-tech Weapon"]},
+		{"id": "orphan_program", "name": "Orphan Utility Program", "patron": true, "story_points": 1},
+		{"id": "isolationist", "name": "Isolationist Enclave", "rumors": 2},
+		{"id": "comfortable_megacity", "name": "Comfortable Megacity Class", "credits": "1D6"},
+		{"id": "industrial_world", "name": "Industrial World", "gear": ["Gear"]},
+		{"id": "bureaucrat", "name": "Bureaucrat", "credits": "1D6"},
+		{"id": "wasteland_nomads", "name": "Wasteland Nomads", "bonus": {"reactions": 1}, "gear": ["Low-tech Weapon"]},
+		{"id": "alien_culture", "name": "Alien Culture", "gear": ["High-tech Weapon"]}
+	]
+	
+	if index >= 0 and index < backgrounds.size():
+		var background = backgrounds[index]
+		panel_data["captain_background"] = background.id
+		panel_data["captain_background_name"] = background.name
+		panel_data["captain_background_data"] = background
+		
+		# Update captain object if it exists
+		if current_captain:
+			current_captain.background = background.id
+		
+		print("CaptainPanel: Selected background: %s" % background.name)
+		panel_data_changed.emit(get_panel_data())
+
+func _on_motivation_changed(index: int) -> void:
+	"""Handle motivation selection with Five Parsecs rules"""
+	var motivations = [
+		{"id": "wealth", "name": "Wealth", "credits": "1D6"},
+		{"id": "fame", "name": "Fame", "story_points": 1},
+		{"id": "glory", "name": "Glory", "bonus": {"combat": 1}, "gear": ["Military Weapon"]},
+		{"id": "survival", "name": "Survival", "bonus": {"toughness": 1}},
+		{"id": "escape", "name": "Escape", "bonus": {"speed": 1}},
+		{"id": "adventure", "name": "Adventure", "credits": "1D6", "gear": ["Low-tech Weapon"]},
+		{"id": "truth", "name": "Truth", "rumors": 1, "story_points": 1},
+		{"id": "technology", "name": "Technology", "bonus": {"savvy": 1}, "gear": ["Gadget"]},
+		{"id": "discovery", "name": "Discovery", "bonus": {"savvy": 1}, "gear": ["Gear"]},
+		{"id": "loyalty", "name": "Loyalty", "patron": true, "story_points": 1},
+		{"id": "revenge", "name": "Revenge", "xp_bonus": 2, "rival": true},
+		{"id": "romance", "name": "Romance", "rumors": 1, "story_points": 1},
+		{"id": "faith", "name": "Faith", "rumors": 1, "story_points": 1},
+		{"id": "political", "name": "Political", "patron": true, "story_points": 1},
+		{"id": "power", "name": "Power", "xp_bonus": 2, "rival": true},
+		{"id": "order", "name": "Order", "patron": true, "story_points": 1},
+		{"id": "freedom", "name": "Freedom", "xp_bonus": 2}
+	]
+	
+	if index >= 0 and index < motivations.size():
+		var motivation = motivations[index]
+		panel_data["captain_motivation"] = motivation.id
+		panel_data["captain_motivation_name"] = motivation.name
+		panel_data["captain_motivation_data"] = motivation
+		
+		# Update captain object if it exists
+		if current_captain:
+			current_captain.motivation = motivation.id
+		
+		print("CaptainPanel: Selected motivation: %s" % motivation.name)
+		panel_data_changed.emit(get_panel_data())
+
+func _on_continue_pressed() -> void:
+	print("CaptainPanel: Continue button pressed")
+	_validate_and_complete()
+
+func _on_advanced_creation_pressed() -> void:
+	"""Enhanced advanced creation with comprehensive error handling and null safety"""
+	print("CaptainPanel: Advanced creation button pressed")
+	
+	# Validate critical dependencies with specific error messaging
+	if not character_creator:
+		push_error("CaptainPanel: Character creator not initialized - cannot start advanced creation")
+		_show_error_fallback("Character creator unavailable. Please try reloading the panel.")
 		return
 	
-	print("CaptainPanel: Using fallback captain editing method")
-	
-	# Create a simple edit dialog as fallback
-	var edit_dialog = _create_captain_edit_dialog()
-	get_tree().current_scene.add_child(edit_dialog)
-	edit_dialog.popup_centered()
-
-func _create_captain_edit_dialog() -> AcceptDialog:
-	"""Create simple captain edit dialog as fallback"""
-	var dialog = AcceptDialog.new()
-	dialog.title = "Edit Captain (Fallback Mode)"
-	dialog.size = Vector2(400, 300)
-	
-	var vbox = VBoxContainer.new()
-	
-	# Name field
-	var name_label = Label.new()
-	name_label.text = "Captain Name:"
-	vbox.add_child(name_label)
-	
-	var name_field = LineEdit.new()
-	name_field.text = current_captain.character_name if current_captain else ""
-	name_field.placeholder_text = "Enter captain name"
-	vbox.add_child(name_field)
-	
-	# Stats info
-	var stats_label = Label.new()
-	if current_captain:
-		stats_label.text = "Current Stats:\nCombat: %d, Toughness: %d, Savvy: %d\nTech: %d, Speed: %d, Luck: %d" % [
-			current_captain.combat, current_captain.toughness, current_captain.savvy,
-			current_captain.tech, current_captain.speed, current_captain.luck
+	# Use null-safe container reference with multiple fallback strategies
+	var form_container = main_form_container
+	if not form_container or not is_instance_valid(form_container):
+		# Fallback 1: Try alternative node paths
+		var fallback_paths = [
+			"ContentMargin/MainContent/FormContent/FormContainer/Content",
+			"Content",
+			"FormContainer/Content"
 		]
-	else:
-		stats_label.text = "No captain data available"
-	vbox.add_child(stats_label)
-	
-	# Buttons
-	var button_box = HBoxContainer.new()
-	
-	var regenerate_btn = Button.new()
-	regenerate_btn.text = "Regenerate Stats"
-	regenerate_btn.pressed.connect(_regenerate_captain_stats.bind(dialog))
-	button_box.add_child(regenerate_btn)
-	
-	var save_btn = Button.new()
-	save_btn.text = "Save Changes"
-	save_btn.pressed.connect(_save_captain_edit.bind(name_field, dialog))
-	button_box.add_child(save_btn)
-	
-	vbox.add_child(button_box)
-	dialog.add_child(vbox)
-	
-	return dialog
-
-func _regenerate_captain_stats(dialog: AcceptDialog) -> void:
-	"""Regenerate captain stats during fallback editing"""
-	if current_captain:
-		_generate_captain_stats(current_captain)
-		_update_ui()
 		
-		# Update dialog stats display
-		var stats_label = dialog.get_child(0).get_child(2) as Label
-		if stats_label:
-			stats_label.text = "Current Stats:\nCombat: %d, Toughness: %d, Savvy: %d\nTech: %d, Speed: %d, Luck: %d" % [
-				current_captain.combat, current_captain.toughness, current_captain.savvy,
-				current_captain.tech, current_captain.speed, current_captain.luck
-			]
-
-func _save_captain_edit(name_field: LineEdit, dialog: AcceptDialog) -> void:
-	"""Save captain changes from fallback edit dialog"""
-	if current_captain and name_field:
-		var new_name = name_field.text.strip_edges()
-		if new_name.length() >= 2:
-			current_captain.character_name = new_name
-			_validate_and_complete()
-			_update_ui()
-			captain_updated.emit(current_captain)
-			print("CaptainPanel: Captain updated via fallback editor")
+		for path in fallback_paths:
+			form_container = get_node_or_null(path)
+			if form_container and is_instance_valid(form_container):
+				print("CaptainPanel: Found form container via fallback path: %s" % path)
+				break
+		
+		# Fallback 2: Hide individual elements if no container found
+		if not form_container:
+			push_warning("CaptainPanel: No form container found - using individual element strategy")
+			_hide_form_elements_individually()
 		else:
-			push_warning("CaptainPanel: Captain name too short, keeping original")
+			form_container.visible = false
+	else:
+		form_container.visible = false
 	
-	dialog.queue_free()
+	# Initialize character creator with validation and error recovery
+	character_creator.visible = true
+	print("CaptainPanel: Initializing character creator...")
+	
+	# Prepare captain data with validation
+	var captain_data = null
+	if current_captain and is_instance_valid(current_captain):
+		if current_captain.has_method("to_dictionary"):
+			captain_data = current_captain.to_dictionary()
+			print("CaptainPanel: Passing existing captain data for editing")
+		else:
+			push_warning("CaptainPanel: Current captain exists but lacks serialization method")
+	
+	# Execute character creation with comprehensive error handling
+	var creation_success = false
+	
+	# Use Godot's error handling pattern
+	if character_creator.has_method("start_creation"):
+		character_creator.start_creation(SimpleCharacterCreator.CreatorMode.CAPTAIN)
+		if captain_data:
+			# Pass existing data for editing if available
+			if character_creator.has_method("load_character_data"):
+				character_creator.load_character_data(captain_data)
+			elif character_creator.has_method("edit_character") and current_captain:
+				character_creator.edit_character(current_captain)
+		creation_success = true
+		print("CaptainPanel: Advanced creation started successfully")
+	else:
+		push_error("CaptainPanel: Character creator missing start_creation method")
+		creation_success = false
+	
+	# Handle creation failure with graceful recovery
+	if not creation_success:
+		_restore_simple_form()
+		_show_error_fallback("Advanced creation failed. Falling back to simple form.")
 
-func _generate_captain_stats(captain: Character) -> void:
-	"""Generate Five Parsecs captain stats"""
-	# Captains get better stats (minimum 3 for combat stats)
-	captain.combat = max(_roll_2d6(), 3)
-	captain.toughness = max(_roll_2d6(), 3)
-	captain.savvy = max(_roll_2d6(), 3)
-	captain.tech = _roll_2d6()
-	captain.speed = _roll_2d6()
-	captain.luck = 2 # Captains start with 2 luck
-	captain.max_health = captain.toughness + 3 # Captains get +1 extra health
-	captain.health = captain.max_health
+func _hide_form_elements_individually() -> void:
+	"""Fallback strategy: Hide form elements when container is unavailable"""
+	var elements_to_hide = [
+		captain_name_input,
+		background_option,
+		motivation_option,
+		advanced_creation_button,
+		continue_button
+	]
+	
+	var hidden_count = 0
+	for element in elements_to_hide:
+		if element and is_instance_valid(element):
+			element.visible = false
+			hidden_count += 1
+	
+	print("CaptainPanel: Hidden %d form elements individually" % hidden_count)
+
+func _restore_simple_form() -> void:
+	"""Restore simple form with comprehensive error recovery"""
+	print("CaptainPanel: Restoring simple form visibility")
+	
+	# Try to restore main container first
+	var form_container = main_form_container
+	if form_container and is_instance_valid(form_container):
+		form_container.visible = true
+	else:
+		# Fallback: show individual elements
+		print("CaptainPanel: Using individual element restoration")
+		_show_form_elements_individually()
+	
+	# Safely hide character creator
+	if character_creator and is_instance_valid(character_creator):
+		character_creator.visible = false
+
+func _show_form_elements_individually() -> void:
+	"""Fallback strategy: Show form elements when container is unavailable"""
+	var elements_to_show = [
+		captain_name_input,
+		background_option,
+		motivation_option,
+		advanced_creation_button,
+		continue_button
+	]
+	
+	var shown_count = 0
+	for element in elements_to_show:
+		if element and is_instance_valid(element):
+			element.visible = true
+			shown_count += 1
+	
+	print("CaptainPanel: Showed %d form elements individually" % shown_count)
+
+func _show_error_fallback(message: String) -> void:
+	"""Display error message with multiple notification strategies"""
+	print("CaptainPanel: Error fallback - %s" % message)
+	
+	# Strategy 1: Use validation_failed signal if available
+	if has_signal("validation_failed"):
+		validation_failed.emit(["Advanced creation error: " + message])
+	
+	# Strategy 2: Use validation_failed signal if available (from base panel)
+	if has_signal("validation_failed"):
+		validation_failed.emit([message])
+	
+	# Strategy 3: Fallback to console warning
+	push_warning("CaptainPanel: " + message)
+
+func _on_character_created(character: Character) -> void:
+	"""Handle character creation completion"""
+	print("CaptainPanel: Character created: %s" % character.character_name)
+	current_captain = character
+	
+	# Update panel data with character info
+	panel_data["captain_character"] = character
+	panel_data["captain_name"] = character.character_name
+	
+	# Hide character creator and show simple form
+	character_creator.visible = false
+	main_form_container.visible = true
+	
+	# Update UI with character data
+	_update_ui_from_character()
+	
+	# Emit data change
+	panel_data_changed.emit(get_panel_data())
+
+func _on_character_edited(character: Character) -> void:
+	"""Handle character editing completion"""
+	print("CaptainPanel: Character edited: %s" % character.character_name)
+	current_captain = character
+	
+	# Update panel data
+	panel_data["captain_character"] = character
+	panel_data["captain_name"] = character.character_name
+	
+	# Hide character creator and show simple form
+	character_creator.visible = false
+	main_form_container.visible = true
+	
+	# Update UI with character data
+	_update_ui_from_character()
+	
+	# Emit data change
+	panel_data_changed.emit(get_panel_data())
+
+func _on_character_creation_cancelled() -> void:
+	"""Handle character creation cancellation"""
+	print("CaptainPanel: Character creation cancelled")
+	
+	# Hide character creator and show simple form
+	character_creator.visible = false
+	main_form_container.visible = true
+
+func _update_ui_from_character() -> void:
+	"""Update UI elements with character data"""
+	if not current_captain:
+		return
+	
+	# Update name input
+	if captain_name_input:
+		captain_name_input.text = current_captain.character_name
+	
+	# Update background and motivation if available
+	if current_captain.has_method("get_background"):
+		var background = current_captain.get_background()
+		var backgrounds = ["SOLDIER", "SCOUT", "SCOUNDREL", "SCHOLAR", "SCIENTIST", "STRANGE"]
+		var index = backgrounds.find(background)
+		if index >= 0 and background_option:
+			background_option.select(index)
+	
+	if current_captain.has_method("get_motivation"):
+		var motivation = current_captain.get_motivation()
+		var motivations = ["REVENGE", "WEALTH", "KNOWLEDGE", "POWER", "SURVIVAL"]
+		var index = motivations.find(motivation)
+		if index >= 0 and motivation_option:
+			motivation_option.select(index)
+
+func _validate_and_complete() -> void:
+	"""Validate captain data and complete step"""
+	var errors = []
+	
+	# Check if we have a captain (either from simple form or character creator)
+	if not current_captain and panel_data.get("captain_name", "").strip_edges().is_empty():
+		errors.append("Captain name is required")
+	
+	# If we have a character creator captain, use that
+	if current_captain:
+		panel_data["captain_character"] = current_captain
+		panel_data["captain_name"] = current_captain.character_name
+		print("CaptainPanel: Using character creator captain")
+	elif not panel_data.get("captain_name", "").strip_edges().is_empty():
+		# Create a basic captain from form data
+		_create_basic_captain()
+		print("CaptainPanel: Created basic captain from form")
+	
+	if errors.is_empty():
+		print("CaptainPanel: Captain validation passed")
+		panel_completed.emit(get_panel_data())
+	else:
+		print("CaptainPanel: Captain validation failed: %s" % str(errors))
+		# Could show errors in UI here
+
+func _create_basic_captain() -> void:
+	"""Create a basic captain from form data with Five Parsecs rules"""
+	var Character = preload("res://src/core/character/Character.gd")
+	current_captain = Character.new()
+	
+	# Set basic properties from form
+	current_captain.character_name = panel_data.get("captain_name", "Captain")
+	current_captain.background = panel_data.get("captain_background", "military_brat")
+	current_captain.motivation = panel_data.get("captain_motivation", "revenge")
+	
+	# Generate base stats using Five Parsecs method (2d6/3 rounded up)
+	current_captain.combat = _generate_five_parsecs_stat()
+	current_captain.toughness = _generate_five_parsecs_stat()
+	current_captain.savvy = _generate_five_parsecs_stat()
+	current_captain.tech = _generate_five_parsecs_stat()
+	current_captain.speed = _generate_five_parsecs_stat()
+	current_captain.reactions = _generate_five_parsecs_stat()
+	current_captain.luck = 2 # Captains start with 2 luck
+	
+	# Apply background bonuses
+	_apply_background_bonuses(current_captain)
+	
+	# Apply motivation bonuses
+	_apply_motivation_bonuses(current_captain)
+	
+	# Set health based on toughness (Five Parsecs rules)
+	current_captain.max_health = current_captain.toughness + 3 # Captains get +1 extra
+	current_captain.health = current_captain.max_health
+	
+	# Store captain data
+	panel_data["captain_character"] = current_captain
+	panel_data["captain_stats"] = {
+		"combat": current_captain.combat,
+		"toughness": current_captain.toughness,
+		"savvy": current_captain.savvy,
+		"tech": current_captain.tech,
+		"speed": current_captain.speed,
+		"reactions": current_captain.reactions,
+		"luck": current_captain.luck,
+		"health": current_captain.health,
+		"max_health": current_captain.max_health
+	}
+	
+	print("CaptainPanel: Created captain with stats: %s" % str(panel_data["captain_stats"]))
+
+func _generate_five_parsecs_stat() -> int:
+	"""Generate a stat using Five Parsecs method (2d6/3 rounded up)"""
+	var roll = _roll_2d6()
+	return ceili(float(roll) / 3.0)
+
+func _apply_background_bonuses(character: Character) -> void:
+	"""Apply background bonuses from Five Parsecs rules"""
+	var background_data = panel_data.get("captain_background_data", {})
+	var bonuses = background_data.get("bonus", {})
+	
+	for stat in bonuses:
+		var bonus_value = bonuses[stat]
+		match stat:
+			"combat":
+				character.combat += bonus_value
+			"toughness":
+				character.toughness += bonus_value
+			"savvy":
+				character.savvy += bonus_value
+			"tech":
+				character.tech += bonus_value
+			"speed":
+				character.speed += bonus_value
+			"reactions":
+				character.reactions += bonus_value
+	
+	print("CaptainPanel: Applied background bonuses: %s" % str(bonuses))
+
+func _apply_motivation_bonuses(character: Character) -> void:
+	"""Apply motivation bonuses from Five Parsecs rules"""
+	var motivation_data = panel_data.get("captain_motivation_data", {})
+	var bonuses = motivation_data.get("bonus", {})
+	
+	for stat in bonuses:
+		var bonus_value = bonuses[stat]
+		match stat:
+			"combat":
+				character.combat += bonus_value
+			"toughness":
+				character.toughness += bonus_value
+			"savvy":
+				character.savvy += bonus_value
+			"tech":
+				character.tech += bonus_value
+			"speed":
+				character.speed += bonus_value
+			"reactions":
+				character.reactions += bonus_value
+	
+	print("CaptainPanel: Applied motivation bonuses: %s" % str(bonuses))
 
 func _roll_2d6() -> int:
 	"""Roll 2d6 for Five Parsecs stats"""
 	return randi_range(1, 6) + randi_range(1, 6)
 
-# --- Additions to CaptainPanel.gd ---
+func _update_ui_from_data() -> void:
+	if captain_name_input and panel_data.has("captain_name"):
+		captain_name_input.text = panel_data["captain_name"]
+	
+	if background_option and panel_data.has("captain_background"):
+		var backgrounds = ["SOLDIER", "SCOUT", "SCOUNDREL", "SCHOLAR", "SCIENTIST", "STRANGE"]
+		var index = backgrounds.find(panel_data["captain_background"])
+		if index >= 0:
+			background_option.select(index)
+	
+	if motivation_option and panel_data.has("captain_motivation"):
+		var motivations = ["REVENGE", "WEALTH", "KNOWLEDGE", "POWER", "SURVIVAL"]
+		var index = motivations.find(panel_data["captain_motivation"])
+		if index >= 0:
+			motivation_option.select(index)
+	
+	# Restore character if available
+	if panel_data.has("captain_character") and panel_data["captain_character"]:
+		current_captain = panel_data["captain_character"]
+		_update_ui_from_character()
 
-func _on_character_created(character: Character) -> void:
-	current_captain = character
+func cleanup_panel() -> void:
+	"""Clean up panel state when navigating away"""
+	print("CaptainPanel: Cleaning up panel state")
 	
-	# Trigger state machine validation if available
-	if _captain_state_machine:
-		_captain_state_machine.validate_captain()
-		
-		# Set validation result based on advanced validation
-		var validation_result = _get_advanced_validation_result()
-		_captain_state_machine.set_validation_result(validation_result.is_valid, validation_result.blocking_errors)
+	# Clear character creator
+	if character_creator:
+		if character_creator.has_method("cleanup"):
+			character_creator.cleanup()
+		character_creator.visible = false
 	
-	_validate_and_complete()
-	_update_ui()
-	captain_updated.emit(current_captain)
-	
-	# Emit granular signals for real-time integration
-	captain_data_changed.emit(get_captain_data())
-
-func _on_character_edited(character: Character) -> void:
-	current_captain = character
-	
-	# Trigger state machine validation if available
-	if _captain_state_machine:
-		_captain_state_machine.validate_captain()
-		
-		# Set validation result based on advanced validation
-		var validation_result = _get_advanced_validation_result()
-		_captain_state_machine.set_validation_result(validation_result.is_valid, validation_result.blocking_errors)
-	
-	_validate_and_complete()
-	_update_ui()
-	captain_updated.emit(current_captain)
-	
-	# Emit granular signals for real-time integration
-	captain_data_changed.emit(get_captain_data())
-
-func _validate_and_complete() -> void:
-	"""Enhanced validation with coordinator pattern and security integration"""
-	last_validation_errors = _validate_captain_data()
-	
-	if not last_validation_errors.is_empty():
-		is_captain_complete = false
-		local_captain_data.is_complete = false
-		captain_validation_failed.emit(last_validation_errors)
-		print("CaptainPanel: Validation failed: ", last_validation_errors)
-	else:
-		var was_complete = is_captain_complete
-		is_captain_complete = _check_completion_requirements()
-		local_captain_data.is_complete = is_captain_complete
-		local_captain_data.captain = current_captain
-		
-		# Emit panel data update for signal-based architecture (no arguments needed)
-		panel_data_changed.emit()
-		
-		# Emit granular data change signal for real-time integration
-		captain_data_changed.emit(get_captain_data())
-		
-		# Emit completion signal when transitioning to complete state
-		if is_captain_complete and not was_complete:
-			var captain_data_result = get_captain_data()
-			captain_data_complete.emit(captain_data_result)
-			captain_creation_complete.emit(current_captain) # Granular completion signal
-			panel_completed.emit(captain_data_result) # Maintain backward compatibility
-			print("CaptainPanel: Captain setup completed autonomously: ", captain_data_result.keys())
-			
-			# PHASE 1A: Use transaction-based confirmation for production reliability
-			_confirm_captain_with_transaction()
-			
-			# PHASE 2: Trigger state machine confirmation
-			if _captain_state_machine and _captain_state_machine.can_confirm():
-				_captain_state_machine.confirm_captain()
-		elif is_captain_complete:
-			print("CaptainPanel: Captain setup validation passed, already complete")
-
-func _check_completion_requirements() -> bool:
-	"""Check if all requirements for captain completion are met"""
-	# Required: Must have a captain
-	if not current_captain:
-		return false
-	
-	# Required: Captain must have a valid name
-	var name = current_captain.character_name.strip_edges()
-	if name.length() < 2:
-		return false
-	
-	# Validate name using SecurityValidator
-	if security_validator:
-		var validation_result = security_validator.validate_character_name(name)
-		if not validation_result.valid:
-			return false
-	
-	# Required: Captain must have reasonable stats
-	if current_captain.combat < 1 or current_captain.toughness < 1:
-		return false
-	
-	return true
-
-func _validate_captain_data() -> Array[String]:
-	"""Performs validation on the captain data with progressive feedback"""
-	var errors: Array[String] = []
-	
-	# Rule: Must have a captain
-	if not current_captain:
-		errors.append("A captain must be created.")
-		return errors
-	
-	# Rule: Captain must have a valid name
-	var name = current_captain.character_name.strip_edges()
-	if name.is_empty():
-		errors.append("Captain name is required.")
-	elif name.length() < 2:
-		errors.append("Captain name must be at least 2 characters long.")
-	elif name.length() > 50:
-		errors.append("Captain name is too long (maximum 50 characters).")
-	
-	# Rule: Captain must have reasonable stats
-	if current_captain.combat < 1:
-		errors.append("Captain must have valid combat stats (minimum 1).")
-	elif current_captain.combat > 15:
-		errors.append("Captain combat stats seem unusually high (maximum recommended: 15).")
-	
-	if current_captain.toughness < 1:
-		errors.append("Captain must have valid toughness stats (minimum 1).")
-	elif current_captain.toughness > 15:
-		errors.append("Captain toughness stats seem unusually high (maximum recommended: 15).")
-	
-	# Advanced validation: Check stat balance
-	var total_stats = current_captain.combat + current_captain.toughness + current_captain.savvy + current_captain.tech + current_captain.speed
-	if total_stats < 15:
-		errors.append("Captain stats seem very low (total: %d, recommended minimum: 15)." % total_stats)
-	elif total_stats > 75:
-		errors.append("Captain stats seem unusually high (total: %d, recommended maximum: 75)." % total_stats)
-	
-	# Health validation
-	if current_captain.health <= 0:
-		errors.append("Captain health must be greater than 0.")
-	elif current_captain.health > current_captain.max_health:
-		errors.append("Captain current health cannot exceed maximum health.")
-	
-	return errors
-
-func _get_validation_warnings() -> Array[String]:
-	"""Get non-critical validation warnings that don't block progression"""
-	var warnings: Array[String] = []
-	
-	if not current_captain:
-		return warnings
-	
-	# Stat distribution warnings
-	var stats = [current_captain.combat, current_captain.toughness, current_captain.savvy, current_captain.tech, current_captain.speed]
-	var max_stat = stats.max()
-	var min_stat = stats.min()
-	
-	if max_stat - min_stat > 8:
-		warnings.append("Captain has unbalanced stats (range: %d-%d). Consider more balanced distribution." % [min_stat, max_stat])
-	
-	if current_captain.luck < 1:
-		warnings.append("Captain has no luck points. This may make the game more challenging.")
-	elif current_captain.luck > 6:
-		warnings.append("Captain has unusually high luck (%d). Consider if this matches your intended difficulty." % current_captain.luck)
-	
-	# Name warnings
-	var name = current_captain.character_name.strip_edges()
-	if name.find(" ") == -1:
-		warnings.append("Captain name has no space. Consider adding a first and last name.")
-	
-	# Character archetype suggestions
-	if current_captain.combat >= 8 and current_captain.tech <= 3:
-		warnings.append("This captain appears to be a warrior archetype (high combat, low tech).")
-	elif current_captain.tech >= 8 and current_captain.combat <= 3:
-		warnings.append("This captain appears to be a tech specialist archetype (high tech, low combat).")
-	elif current_captain.savvy >= 8:
-		warnings.append("This captain appears to be a leader archetype (high savvy).")
-	
-	return warnings
-
-func _get_advanced_validation_result() -> Dictionary:
-	"""Get comprehensive validation result with progressive feedback"""
-	var result = {
-		"is_valid": false,
-		"blocking_errors": [],
-		"warnings": [],
-		"suggestions": [],
-		"completion_level": 0.0,
-		"validation_stage": "incomplete"
-	}
-	
-	# Get blocking errors and warnings
-	result.blocking_errors = _validate_captain_data()
-	result.warnings = _get_validation_warnings()
-	
-	# Determine if captain is valid (no blocking errors)
-	result.is_valid = result.blocking_errors.is_empty()
-	
-	# Calculate completion level
-	result.completion_level = _calculate_completion_level()
-	
-	# Determine validation stage
-	if not current_captain:
-		result.validation_stage = "no_captain"
-	elif not result.blocking_errors.is_empty():
-		result.validation_stage = "has_errors"
-	elif not result.warnings.is_empty():
-		result.validation_stage = "has_warnings"
-	else:
-		result.validation_stage = "complete"
-	
-	# Add suggestions based on validation stage
-	result.suggestions = _get_validation_suggestions(result.validation_stage)
-	
-	return result
-
-func _get_validation_suggestions(stage: String) -> Array[String]:
-	"""Get contextual suggestions based on validation stage"""
-	var suggestions: Array[String] = []
-	
-	match stage:
-		"no_captain":
-			suggestions.append("Click 'Create Captain' to begin character creation.")
-			suggestions.append("Use 'Randomize Captain' for quick setup.")
-		
-		"has_errors":
-			suggestions.append("Review and fix the validation errors above.")
-			suggestions.append("Use 'Edit Captain' to modify character details.")
-		
-		"has_warnings":
-			suggestions.append("Consider reviewing the warnings, but you can proceed if desired.")
-			suggestions.append("Click 'Edit Captain' if you want to make adjustments.")
-		
-		"complete":
-			suggestions.append("Captain setup is complete! You can proceed to the next phase.")
-			suggestions.append("Use 'Edit Captain' if you want to make any final changes.")
-	
-	return suggestions
-
-func get_enhanced_validation_status() -> Dictionary:
-	"""Get enhanced validation status for external systems"""
-	var validation_result = _get_advanced_validation_result()
-	
-	# Add additional metadata for integration
-	validation_result["panel_type"] = "captain_creation"
-	validation_result["timestamp"] = Time.get_unix_time_from_system()
-	validation_result["state_machine_state"] = _captain_state_machine.get_state_name(_captain_state_machine.current_state) if _captain_state_machine else "no_state_machine"
-	validation_result["has_captain"] = current_captain != null
-	validation_result["can_proceed"] = validation_result.is_valid or validation_result.validation_stage == "has_warnings"
-	
-	return validation_result
-
-func trigger_real_time_validation() -> void:
-	"""Trigger real-time validation update"""
-	if not current_captain:
-		return
-	
-	# Get fresh validation results
-	var validation_result = _get_advanced_validation_result()
-	
-	# Update state machine if available
-	if _captain_state_machine and _captain_state_machine.current_state == CaptainConfirmationStateMachine.State.EDITING:
-		_captain_state_machine.set_validation_result(validation_result.is_valid, validation_result.blocking_errors)
-	
-	# Update UI
-	_update_ui()
-	
-	# Emit validation status signals
-	if validation_result.is_valid:
-		captain_data_complete.emit(get_captain_data())
-	else:
-		captain_validation_failed.emit(validation_result.blocking_errors)
-
-func get_validation_stage_color(stage: String) -> Color:
-	"""Get color for validation stage"""
-	match stage:
-		"no_captain":
-			return Color.GRAY
-		"has_errors":
-			return Color.RED
-		"has_warnings":
-			return Color.ORANGE
-		"complete":
-			return Color.GREEN
-		_:
-			return Color.WHITE
-
-
-func get_captain_data() -> Dictionary:
-	"""Return captain data for campaign creation with standardized metadata"""
-	var data = {"captain": current_captain} if current_captain else {}
-	data["is_complete"] = local_captain_data.is_complete
-	data["validation_errors"] = last_validation_errors.duplicate()
-	data["completion_level"] = _calculate_completion_level()
-	data["metadata"] = {
-		"last_modified": Time.get_unix_time_from_system(),
-		"version": "1.0",
-		"panel_type": "captain_creation"
-	}
-	return data
-
-func _calculate_completion_level() -> float:
-	"""Calculate completion level percentage"""
-	if not current_captain:
-		return 0.0
-	
-	var completion_factors = 0.0
-	var total_factors = 4.0 # Name, stats, class features, completeness
-	
-	# Factor 1: Valid name
-	var name = current_captain.character_name.strip_edges()
-	if name.length() >= 2:
-		completion_factors += 1.0
-	
-	# Factor 2: Valid combat stats
-	if current_captain.combat >= 1 and current_captain.toughness >= 1:
-		completion_factors += 1.0
-	
-	# Factor 3: All basic stats present
-	if current_captain.savvy >= 1 and current_captain.tech >= 1:
-		completion_factors += 1.0
-	
-	# Factor 4: Health properly calculated
-	if current_captain.health > 0 and current_captain.max_health > 0:
-		completion_factors += 1.0
-	
-	return completion_factors / total_factors
-
-## Required Interface Methods from ICampaignCreationPanel
-
-func validate_panel() -> bool:
-	"""Validate panel data and return simple boolean result"""
-	var errors = _validate_captain_data()
-	return errors.is_empty()
-		result.valid = false
-		result.error = errors[0] if errors.size() > 0 else "Captain validation failed"
-		# Add additional errors as warnings since ValidationResult only has one error field
-		for i in range(1, errors.size()):
-			result.add_warning(errors[i])
-	
-	return result
-
-func get_panel_data() -> Dictionary:
-	"""Get panel data - interface implementation"""
-	return get_captain_data()
-
-func reset_panel() -> void:
-	"""Reset panel to default state"""
-	current_captain = null
-	local_captain_data = {
-		"captain": null,
+	# Reset panel data
+	panel_data = {
+		"captain_name": "",
+		"captain_background": "",
+		"captain_motivation": "",
+		"captain_character": null,
+		"captain_stats": {},
 		"is_complete": false
 	}
 	
-	is_captain_complete = false
-	last_validation_errors.clear()
-	_update_ui()
+	# Clear current captain
+	current_captain = null
+	
+	# Reset UI components if available
+	if captain_name_input:
+		captain_name_input.text = ""
+	if background_option:
+		background_option.select(0)
+	if motivation_option:
+		motivation_option.select(0)
+	
+	# Show simple form, hide character creator
+	if main_form_container:
+		main_form_container.visible = true
+	if character_creator:
+		character_creator.visible = false
+	
+	print("CaptainPanel: Panel cleanup completed")
 
-## Panel Data Persistence Implementation
+# Enhanced Captain Generation Methods - Production Ready
+func _generate_random_captain() -> void:
+	"""Generate random captain with Five Parsecs rules and captain bonuses"""
+	creation_method = "random"
+	
+	captain = Character.new()
+	
+	# Five Parsecs captain generation (enhanced stats)
+	captain.character_name = _generate_captain_name()
+	captain.combat = _roll_captain_stat() + 1 # Captain bonus
+	captain.reactions = _roll_captain_stat() + 1 # Captain bonus
+	captain.toughness = _roll_captain_stat()
+	captain.savvy = _roll_captain_stat() + 1 # Captain bonus
+	captain.tech = _roll_captain_stat()
+	captain.speed = 4 # Standard movement
+	captain.luck = 2 # Captain gets extra luck
+	
+	# Set captain-specific properties
+	captain.is_captain = true
+	captain.experience = captain_bonuses.experience
+	
+	# Generate background and motivation using existing system
+	_apply_background_and_motivation()
+	
+	# Update display
+	_update_captain_display()
+	
+	# COMPREHENSIVE DEBUG OUTPUT - Captain Data Creation
+	print("\n==== [PANEL: CaptainPanel] CAPTAIN DATA CREATED ====")
+	print("  Panel Phase: 2 of 7 (Captain Creation)")
+	print("  Creation Method: %s" % creation_method)
+	print("  === CAPTAIN DATA BEING SAVED ===")
+	print("    Captain Name: '%s'" % captain.character_name)
+	print("    Stats: Combat:%d Reactions:%d Toughness:%d Savvy:%d Tech:%d Move:%d" % [
+		captain.combat, captain.reactions, captain.toughness, captain.savvy, captain.tech, captain.move
+	])
+	print("    Experience: %d XP" % captain.experience)
+	print("    Background: '%s'" % captain.background)
+	print("    Motivation: '%s'" % captain.motivation)
+	print("    Is Captain: %s" % captain.is_captain)
+	print("    Captain Bonuses: %s" % captain_bonuses)
+	
+	var panel_data_result = get_panel_data()
+	print("  === FORMATTED PANEL DATA ===")
+	print("    Panel Data Keys: %s" % str(panel_data_result.keys()))
+	print("    Is Complete: %s" % panel_data_result.get("is_complete", false))
+	print("    Validation Status: %s" % validate_panel())
+	
+	# Emit both data changed and captain created signals
+	panel_data_changed.emit(panel_data_result)
+	captain_created.emit(panel_data_result)
+	captain_data_updated.emit(panel_data_result)
+	
+	print("  === SIGNAL EMISSIONS ===")
+	print("    panel_data_changed signal emitted")
+	print("    captain_created signal emitted")
+	print("    captain_data_updated signal emitted")
+	print("==== [PANEL: CaptainPanel] CAPTAIN CREATION COMPLETE ====\n")
+	
+	print("CaptainPanel: Random captain generated - %s" % captain.character_name)
 
-func restore_panel_data(data: Dictionary) -> void:
-	"""Restore panel data from persistence system"""
-	if data.is_empty():
-		print("CaptainPanel: No data to restore")
+func _use_veteran_template() -> void:
+	"""Apply veteran captain template with superior stats"""
+	creation_method = "veteran"
+	
+	captain = Character.new()
+	captain.character_name = _generate_captain_name()
+	
+	# Veteran stats (higher baseline for experienced captains)
+	captain.combat = 4
+	captain.reactions = 4
+	captain.toughness = 3
+	captain.savvy = 5 # High savvy for leadership
+	captain.tech = 3
+	captain.speed = 4
+	captain.luck = 3 # Higher luck from experience
+	
+	# Veteran bonuses
+	captain.is_captain = true
+	captain.experience = 250 # More starting XP
+	captain.skills = ["Leadership", "Tactics", "Negotiation"]
+	
+	_update_captain_display()
+	
+	# Emit both data changed and captain created signals
+	panel_data_changed.emit(get_panel_data())
+	captain_created.emit(get_panel_data())
+	captain_data_updated.emit(get_panel_data())
+	
+	print("CaptainPanel: Veteran captain created - %s" % captain.character_name)
+
+func _create_custom_captain() -> void:
+	"""Open custom captain builder interface"""
+	creation_method = "custom"
+	push_warning("CaptainPanel: Custom captain builder will be implemented in next phase")
+
+func _import_character() -> void:
+	"""Import existing character as captain"""
+	creation_method = "import"
+	push_warning("CaptainPanel: Character import will be implemented in next phase")
+
+func _roll_captain_stat() -> int:
+	"""Roll captain stat using Five Parsecs rules (2d6/3)"""
+	randomize()
+	var roll = randi_range(2, 12) # 2d6
+	return max(1, int(ceil(float(roll) / 3.0)))
+
+func _generate_captain_name() -> String:
+	"""Generate appropriate captain name"""
+	var first_names = [
+		"Marcus", "Sarah", "Chen", "Alexei", "Zara", "Diego", "Naomi", "Viktor",
+		"Elena", "Kai", "Juno", "Rex", "Nova", "Phoenix", "Orion", "Vega"
+	]
+	var last_names = [
+		"Steele", "Vega", "Cross", "Raven", "Storm", "Hunter", "Wolf", "Hawk",
+		"Kane", "Stone", "Drake", "Frost", "Vale", "Quinn", "Sharp", "Black"
+	]
+	
+	randomize()
+	return first_names[randi() % first_names.size()] + " " + last_names[randi() % last_names.size()]
+
+func _update_captain_display() -> void:
+	"""Update captain preview display"""
+	if not captain or not captain_display_container:
 		return
 	
-	print("CaptainPanel: Restoring panel data: ", data.keys())
+	# Clear previous display
+	for child in captain_display_container.get_children():
+		child.queue_free()
 	
-	# Restore captain data
-	if data.has("captain") and data.captain:
-		var captain_data = data.captain
+	# Create info display
+	var info_container = VBoxContainer.new()
+	captain_display_container.add_child(info_container)
+	
+	# Name and title
+	var name_label = Label.new()
+	name_label.text = "Captain %s" % captain.character_name
+	name_label.add_theme_font_size_override("font_size", 18)
+	name_label.modulate = Color.GOLD
+	info_container.add_child(name_label)
+	
+	# Creation method
+	var method_label = Label.new()
+	method_label.text = "Created via: %s" % creation_method.capitalize()
+	method_label.modulate = Color.LIGHT_GRAY
+	info_container.add_child(method_label)
+	
+	# Stats grid
+	var stats_grid = GridContainer.new()
+	stats_grid.columns = 2
+	info_container.add_child(stats_grid)
+	
+	var stats = {
+		"Combat": captain.combat,
+		"Reactions": captain.reactions,
+		"Toughness": captain.toughness,
+		"Savvy": captain.savvy,
+		"Tech": captain.tech,
+		"Speed": captain.speed,
+		"Luck": captain.luck
+	}
+	
+	for stat_name in stats:
+		var label = Label.new()
+		label.text = stat_name + ":"
+		stats_grid.add_child(label)
 		
-		# Create character from data
-		if captain_data is Character:
-			current_captain = captain_data
-		elif captain_data is Dictionary:
-			current_captain = _create_character_from_dict(captain_data)
-		
-		if current_captain:
-			print("CaptainPanel: Restored captain: ", current_captain.character_name)
-			
-			# Update local state
-			local_captain_data.captain = current_captain
-			local_captain_data.is_complete = true
-			is_captain_complete = true
-			
-			# Update UI
-			_update_ui()
-			captain_updated.emit(current_captain)
+		var value = Label.new()
+		value.text = str(stats[stat_name])
+		if stats[stat_name] >= 4:
+			value.modulate = Color.GREEN
+		elif stats[stat_name] <= 2:
+			value.modulate = Color.ORANGE
+		stats_grid.add_child(value)
 	
-	print("CaptainPanel: Panel data restoration complete")
-
-func _create_character_from_dict(data: Dictionary) -> Character:
-	"""Create a Character object from dictionary data"""
-	var character = Character.new()
+	# Experience and skills
+	if captain.experience > 100:
+		var xp_label = Label.new()
+		xp_label.text = "Experience: %d XP" % captain.experience
+		xp_label.modulate = Color.CYAN
+		info_container.add_child(xp_label)
 	
-	# Restore basic properties
-	if data.has("character_name"):
-		character.character_name = data.character_name
-	if data.has("combat"):
-		character.combat = data.combat
-	if data.has("toughness"):
-		character.toughness = data.toughness
-	if data.has("tech"):
-		character.tech = data.tech
-	if data.has("savvy"):
-		character.savvy = data.savvy
-	if data.has("speed"):
-		character.speed = data.speed
-	if data.has("luck"):
-		character.luck = data.luck
-	if data.has("health"):
-		character.health = data.health
-	if data.has("max_health"):
-		character.max_health = data.max_health
-	else:
-		# Calculate max health if not provided
-		character.max_health = character.toughness + 3 # Captains get +1 extra
-		character.health = character.max_health
-	
-	return character
+	if captain.skills and captain.skills.size() > 0:
+		var skills_label = Label.new()
+		skills_label.text = "Skills: " + ", ".join(captain.skills)
+		skills_label.modulate = Color.LIGHT_GREEN
+		info_container.add_child(skills_label)
 
-# PHASE 1A: Transaction-based captain confirmation methods
-
-func _confirm_captain_with_transaction() -> void:
-	"""Confirm captain using transaction-based atomic operations"""
-	if not GameState:
-		print("CaptainPanel: No GameState available for transaction-based confirmation")
+func _apply_background_and_motivation() -> void:
+	"""Apply Five Parsecs background and motivation using existing data"""
+	if not captain:
 		return
 	
-	if _is_processing_transaction:
-		print("CaptainPanel: Transaction already in progress, skipping confirmation")
-		return
+	var backgrounds = [
+		"Mining Colony", "High-Tech Colony", "Military Family", "Merchant Family",
+		"Space Station", "Frontier World", "Corporate Sector", "Academic Institution"
+	]
 	
+	randomize()
+	captain.background_name = backgrounds[randi() % backgrounds.size()]
+
+# Event handlers for advanced options
+func _on_leadership_toggled(enabled: bool) -> void:
+	"""Handle leadership bonus toggle"""
+	captain_bonuses.leadership = 1 if enabled else 0
+	if captain:
+		_update_captain_display()
+
+func _on_xp_changed(value: float) -> void:
+	"""Handle experience change"""
+	captain_bonuses.experience = int(value)
+	if captain:
+		captain.experience = int(value)
+		_update_captain_display()
+
+# Panel validation and data methods (FiveParsecsCampaignPanel interface)
+func validate_panel() -> bool:
+	"""Validate captain creation (overrides base class)"""
+	# Accept either a created captain OR filled form data
+	if current_captain and not current_captain.character_name.is_empty():
+		print("CaptainPanel: Validation passed for captain: %s" % current_captain.character_name)
+		return true
+	
+	# Check form data as fallback
+	if panel_data.has("captain_name") and not panel_data["captain_name"].strip_edges().is_empty():
+		print("CaptainPanel: Validation passed for form data with name: %s" % panel_data["captain_name"])
+		return true
+	
+	print("CaptainPanel: Validation failed - no captain name provided")
+	return false
+
+func get_panel_data() -> Dictionary:
+	"""Get captain data for campaign (overrides base class)"""
 	if not current_captain:
-		print("CaptainPanel: No captain to confirm")
-		return
+		return {
+			"is_complete": false,
+			"name": captain_name_input.text if captain_name_input else "",
+			"captain_character": null
+		}
 	
-	_is_processing_transaction = true
-	
-	# Create captain data for transaction
-	var captain_data = _serialize_captain_for_transaction(current_captain)
-	
-	# Direct state update - simpler and more reliable
-	GameState.set_campaign_captain(captain_data)
-	print("CaptainPanel: ✅ Captain confirmation successful")
-	_is_processing_transaction = false
-	
-	print("CaptainPanel: Created captain confirmation transaction: %s" % _pending_confirmation_transaction)
-	
-	# Execute transaction
-	call_deferred("_execute_confirmation_transaction")
-
-func _execute_confirmation_transaction() -> void:
-	"""Execute the captain confirmation transaction"""
-	if _pending_confirmation_transaction.is_empty():
-		_is_processing_transaction = false
-		return
-	
-	var result = state_manager_reference.execute_transaction(_pending_confirmation_transaction)
-	
-	if result.success:
-		print("CaptainPanel: ✅ Captain confirmation transaction successful")
-		_on_transaction_success(result.final_state)
-	else:
-		print("CaptainPanel: ❌ Captain confirmation transaction failed: %s" % result.error)
-		_on_transaction_failure(result.error)
-	
-	# Clean up transaction
-	state_manager_reference.cleanup_transaction(_pending_confirmation_transaction)
-	_pending_confirmation_transaction = ""
-	_is_processing_transaction = false
-
-func _serialize_captain_for_transaction(captain: Character) -> Dictionary:
-	"""Serialize captain data for transaction operations"""
 	return {
-		"character_name": captain.character_name,
-		"combat": captain.combat,
-		"toughness": captain.toughness,
-		"savvy": captain.savvy,
-		"tech": captain.tech,
-		"speed": captain.speed,
-		"luck": captain.luck,
-		"health": captain.health,
-		"max_health": captain.max_health,
-		"is_captain": true,
-		"confirmed": false, # Will be set to true by transaction
-		"transaction_timestamp": Time.get_unix_time_from_system()
+		"captain": {
+			"name": current_captain.character_name,
+			"combat": current_captain.combat,
+			"reactions": current_captain.reactions,
+			"toughness": current_captain.toughness,
+			"savvy": current_captain.savvy,
+			"tech": current_captain.tech,
+			"move": current_captain.move,
+			"experience": current_captain.experience,
+			"background": current_captain.background,
+			"motivation": current_captain.motivation,
+			"is_captain": true,
+			"creation_method": creation_method if creation_method else "manual",
+			"bonuses": captain_bonuses
+		},
+		"name": current_captain.character_name,
+		"captain_character": current_captain,
+		"is_complete": validate_panel()
 	}
 
-func _on_transaction_success(final_state: Dictionary) -> void:
-	"""Handle successful captain confirmation transaction"""
-	print("CaptainPanel: Captain confirmation transaction completed successfully")
-	
-	# Update local state from transaction result
-	if final_state.has("captain"):
-		local_captain_data.captain = current_captain
-		local_captain_data.is_complete = true
-		is_captain_complete = true
-	
-	# Update state machine with confirmation success
-	if _captain_state_machine and _captain_state_machine.current_state == CaptainConfirmationStateMachine.State.CONFIRMING:
-		_captain_state_machine.set_confirmation_result(true, final_state)
-	
-	# Emit success signals
-	captain_data_changed.emit(get_captain_data())
+func set_panel_data(data: Dictionary) -> void:
+	"""Set captain data from campaign state (overrides base class)"""
+	if data.has("captain") and data.captain is Dictionary:
+		var captain_data = data.captain
+		# Load existing captain data if available
+		if captain_data.has("name") and not captain_data.name.is_empty():
+			captain = Character.new()
+			captain.character_name = captain_data.get("name", "")
+			captain.combat = captain_data.get("combat", 1)
+			captain.reactions = captain_data.get("reactions", 1)
+			captain.toughness = captain_data.get("toughness", 1)
+			captain.savvy = captain_data.get("savvy", 1)
+			captain.tech = captain_data.get("tech", 1)
+			captain.speed = captain_data.get("speed", 4)
+			captain.luck = captain_data.get("luck", 1)
+			captain.experience = captain_data.get("experience", 100)
+			captain.skills = captain_data.get("skills", [])
+			captain.background_name = captain_data.get("background", "")
+			captain.is_captain = true
+			creation_method = captain_data.get("creation_method", "loaded")
+			captain_bonuses = captain_data.get("bonuses", captain_bonuses)
+			
+			_update_captain_display()
 
-func _on_transaction_failure(error: String) -> void:
-	"""Handle failed captain confirmation transaction"""
-	print("CaptainPanel: Captain confirmation transaction failed: %s" % error)
-	
-	# Reset local state
-	is_captain_complete = false
-	local_captain_data.is_complete = false
-	
-	# Update state machine with confirmation failure
-	if _captain_state_machine and _captain_state_machine.current_state == CaptainConfirmationStateMachine.State.CONFIRMING:
-		_captain_state_machine.set_confirmation_result(false, {"error": error})
-	
-	# Add error to validation errors
-	last_validation_errors.append("Transaction failed: " + error)
-	
-	# Emit failure signals
-	captain_validation_failed.emit(last_validation_errors)
+## Debug Helper Methods
 
-func force_rollback_transaction(reason: String = "User requested") -> bool:
-	"""Force rollback of pending transaction"""
-	if _pending_confirmation_transaction.is_empty():
-		return false
+func _log_panel_initialization_debug() -> void:
+	"""Comprehensive debug output for panel initialization"""
+	print("\n==== [PANEL: CaptainPanel] INITIALIZATION ====")
+	print("  Phase: 2 of 7 (Captain Creation)")
+	print("  Panel Title: %s" % panel_title)
+	print("  Panel Description: %s" % panel_description)
 	
-	if not state_manager_reference:
-		return false
+	# PHASE 4 FIX: Defer coordinator check until coordinator is actually set
+	print("  Coordinator Access: [Will check after coordinator is set]")
 	
-	var success = state_manager_reference.rollback_transaction(_pending_confirmation_transaction, reason)
+	# Check autoloaded managers availability
+	print("  === AUTOLOAD MANAGER CHECK ===")
+	var campaign_manager = CampaignManager
+	var game_state_manager = get_node_or_null("/root/GameStateManager")
+	var campaign_state_service = get_node_or_null("/root/CampaignStateService")
+	var scene_router = get_node_or_null("/root/SceneRouter")
+	var campaign_phase_manager = get_node_or_null("/root/CampaignPhaseManager")
 	
-	if success:
-		print("CaptainPanel: Transaction rolled back: %s" % reason)
-		_on_transaction_failure("Rolled back: " + reason)
-		
-		# Clean up
-		state_manager_reference.cleanup_transaction(_pending_confirmation_transaction)
-		_pending_confirmation_transaction = ""
-		_is_processing_transaction = false
+	print("    CampaignManager: %s" % (campaign_manager != null))
+	print("    GameStateManager: %s" % (game_state_manager != null))
+	print("    CampaignStateService: %s" % (campaign_state_service != null))
+	print("    SceneRouter: %s" % (scene_router != null))
+	print("    CampaignPhaseManager: %s" % (campaign_phase_manager != null))
 	
-	return success
+	# Check current captain data
+	print("  === INITIAL CAPTAIN DATA ===")
+	print("    Current Captain: %s" % (current_captain != null))
+	if current_captain:
+		print("      Captain Name: '%s'" % current_captain.character_name)
+		print("      Captain Stats: C:%d R:%d T:%d S:%d T:%d M:%d" % [
+			current_captain.combat, current_captain.reactions, current_captain.toughness,
+			current_captain.savvy, current_captain.tech, current_captain.move
+		])
+	print("    Panel Data Keys: %s" % str(panel_data.keys()))
+	print("    Creation Method: '%s'" % creation_method)
+	print("    Captain Bonuses: %s" % captain_bonuses)
+	
+	# Check UI component availability
+	print("  === UI COMPONENTS ===")
+	print("    Captain Name Input: %s" % (captain_name_input != null))
+	print("    Background Option: %s" % (background_option != null))
+	print("    Motivation Option: %s" % (motivation_option != null))
+	print("    Advanced Creation Button: %s" % (advanced_creation_button != null))
+	print("    Continue Button: %s" % (continue_button != null))
+	print("    Character Creator: %s" % (character_creator != null))
+	
+	print("==== [PANEL: CaptainPanel] INIT COMPLETE ====\n")
 
-func get_transaction_status() -> Dictionary:
-	"""Get status of current transaction"""
-	if _pending_confirmation_transaction.is_empty():
-		return {"has_transaction": false}
-	
-	if not state_manager_reference:
-		return {"has_transaction": false, "error": "No state manager"}
-	
-	var status = state_manager_reference.get_transaction_status(_pending_confirmation_transaction)
-	status["has_transaction"] = true
-	status["is_processing"] = _is_processing_transaction
-	return status
+# ============ SIGNAL BRIDGE COMPATIBILITY ============
+# CRITICAL FIX: Add missing _on_campaign_state_updated method for signal bridge
 
-# --- End of CaptainPanel.gd ---
+func _on_campaign_state_updated(state_data: Dictionary) -> void:
+	"""Handle campaign state updates from coordinator - CRITICAL for signal bridge"""
+	print("CaptainPanel: Received campaign state update with keys: %s" % str(state_data.keys()))
+	
+	# Handle captain phase specific data if available
+	var captain_data = state_data.get("captain", {})
+	if captain_data.has("character_name") or captain_data.has("name"):
+		print("CaptainPanel: Captain data found in state - syncing...")
+		_sync_with_state_data(captain_data)
+	
+	# Handle config data that might affect captain creation
+	var config_data = state_data.get("config", {})
+	if config_data.size() > 0:
+		print("CaptainPanel: Config data found - checking for captain-relevant settings...")
+		# Could be used for difficulty settings, custom rules, etc.
+	
+	# Refresh panel if needed
+	call_deferred("_refresh_panel_state")
+
+func _sync_with_state_data(captain_data: Dictionary) -> void:
+	"""Sync captain panel with campaign state data"""
+	if captain_data.has("character_name") and captain_name_input:
+		captain_name_input.text = captain_data.get("character_name", "")
+		print("CaptainPanel: Synced captain name from state")
+	
+	if captain_data.has("background") and background_option:
+		var background = captain_data.get("background", "")
+		# Set background option if it exists
+		print("CaptainPanel: Background data available: %s" % background)
+	
+	if captain_data.has("motivation") and motivation_option:
+		var motivation = captain_data.get("motivation", "")
+		print("CaptainPanel: Motivation data available: %s" % motivation)
+
+func _refresh_panel_state() -> void:
+	"""Refresh the panel state after receiving updates"""
+	if is_inside_tree():
+		validate_panel()
+		print("CaptainPanel: State refreshed after campaign update")

@@ -31,7 +31,7 @@ var phase_progress: float = 0.0:
 	set(_value):
 		phase_progress = clamp(_value, 0.0, 1.0)
 		if progress_bar:
-			progress_bar._value = phase_progress * 100
+			progress_bar.value = phase_progress * 100
 
 var phase_description_text: String = "":
 	set(_value):
@@ -51,7 +51,7 @@ func _setup_ui() -> void:
 	if progress_bar:
 		progress_bar.min_value = 0
 		progress_bar.max_value = 100
-		progress_bar._value = 0
+		progress_bar.value = 0
 
 	# Configure labels
 	if phase_label:

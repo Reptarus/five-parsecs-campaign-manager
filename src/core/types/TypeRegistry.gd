@@ -11,29 +11,29 @@ extends RefCounted
 enum ErrorCategory {SYSTEM, VALIDATION, NETWORK, USER_INPUT}
 enum ErrorSeverity {INFO, WARNING, ERROR, CRITICAL}
 
-# === Validation Result Class ===
-class ValidationResult extends RefCounted:
+# === Type Registry Validation Result Class ===
+class TypeValidationResult extends RefCounted:
 	var is_valid: bool = false
 	var errors: Array[String] = []
 	var sanitized_value: Variant = null
 	var error: String = ""
 	
-	static func success(value: Variant = null) -> ValidationResult:
-		var result := ValidationResult.new()
+	static func success(value: Variant = null) -> TypeValidationResult:
+		var result := TypeValidationResult.new()
 		result.is_valid = true
 		result.sanitized_value = value
 		return result
 		
-	static func failure(error_messages: Array[String]) -> ValidationResult:
-		var result := ValidationResult.new()
+	static func failure(error_messages: Array[String]) -> TypeValidationResult:
+		var result := TypeValidationResult.new()
 		result.is_valid = false
 		result.errors = error_messages
 		if error_messages.size() > 0:
 			result.error = error_messages[0]
 		return result
 	
-	static func single_error(error_message: String) -> ValidationResult:
-		var result := ValidationResult.new()
+	static func single_error(error_message: String) -> TypeValidationResult:
+		var result := TypeValidationResult.new()
 		result.is_valid = false
 		result.errors = [error_message]
 		result.error = error_message
@@ -104,31 +104,31 @@ static func create_battle_data() -> Dictionary:
 	}
 
 # === Validation Helpers ===
-static func validate_campaign_state_data(data: Dictionary) -> ValidationResult:
+static func validate_campaign_state_data(data: Dictionary) -> TypeValidationResult:
 	var required_keys = ["config", "crew", "captain", "ship", "equipment", "world", "metadata"]
 	for key in required_keys:
 		if not data.has(key):
-			return ValidationResult.single_error("Missing required key: " + key)
-	return ValidationResult.success(data)
+			return TypeValidationResult.single_error("Missing required key: " + key)
+	return TypeValidationResult.success(data)
 
-static func validate_character_data(data: Dictionary) -> ValidationResult:
+static func validate_character_data(data: Dictionary) -> TypeValidationResult:
 	var required_keys = ["name", "background", "motivation", "stats"]
 	for key in required_keys:
 		if not data.has(key):
-			return ValidationResult.single_error("Missing required character key: " + key)
+			return TypeValidationResult.single_error("Missing required character key: " + key)
 	
 	if data.get("name", "").strip_edges().is_empty():
-		return ValidationResult.single_error("Character name cannot be empty")
+		return TypeValidationResult.single_error("Character name cannot be empty")
 	
-	return ValidationResult.success(data)
+	return TypeValidationResult.success(data)
 
-static func validate_mission_data(data: Dictionary) -> ValidationResult:
+static func validate_mission_data(data: Dictionary) -> TypeValidationResult:
 	var required_keys = ["id", "type", "objectives"]
 	for key in required_keys:
 		if not data.has(key):
-			return ValidationResult.single_error("Missing required mission key: " + key)
+			return TypeValidationResult.single_error("Missing required mission key: " + key)
 	
 	if data.get("id", "").strip_edges().is_empty():
-		return ValidationResult.single_error("Mission ID cannot be empty")
+		return TypeValidationResult.single_error("Mission ID cannot be empty")
 	
-	return ValidationResult.success(data)
+	return TypeValidationResult.success(data)

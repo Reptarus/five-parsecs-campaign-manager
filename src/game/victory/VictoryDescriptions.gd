@@ -7,13 +7,20 @@ var _CAMPAIGN_DESCRIPTIONS: Dictionary = {
 	GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_20: "Play 20 campaign turns",
 	GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_50: "Play 50 campaign turns",
 	GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_100: "Play 100 campaign turns",
+	GlobalEnums.FiveParsecsCampaignVictoryType.BATTLES_20: "Fight 20 battles",
+	GlobalEnums.FiveParsecsCampaignVictoryType.BATTLES_50: "Fight 50 battles",
+	GlobalEnums.FiveParsecsCampaignVictoryType.BATTLES_100: "Fight 100 battles",
 	GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_3: "Complete 3 story quests",
 	GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_5: "Complete 5 story quests",
 	GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_10: "Complete 10 story quests",
-	GlobalEnums.FiveParsecsCampaignVictoryType.STORY_COMPLETE: "Complete the main story",
-	GlobalEnums.FiveParsecsCampaignVictoryType.WEALTH_GOAL: "Accumulate specified wealth",
-	GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_GOAL: "Achieve specified reputation",
-	GlobalEnums.FiveParsecsCampaignVictoryType.FACTION_DOMINANCE: "Become the dominant faction"
+	GlobalEnums.FiveParsecsCampaignVictoryType.STORY_POINTS_10: "Accumulate 10 story points",
+	GlobalEnums.FiveParsecsCampaignVictoryType.STORY_POINTS_20: "Accumulate 20 story points",
+	GlobalEnums.FiveParsecsCampaignVictoryType.CREDITS_50K: "Accumulate 50,000 credits",
+	GlobalEnums.FiveParsecsCampaignVictoryType.CREDITS_100K: "Accumulate 100,000 credits",
+	GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_10: "Achieve reputation level 10",
+	GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_20: "Achieve reputation level 20",
+	GlobalEnums.FiveParsecsCampaignVictoryType.CHARACTER_SURVIVAL: "Keep your original character alive",
+	GlobalEnums.FiveParsecsCampaignVictoryType.CREW_SIZE_10: "Reach crew size of 10"
 }
 
 var _MISSION_DESCRIPTIONS: Dictionary = {
@@ -24,32 +31,52 @@ var _MISSION_DESCRIPTIONS: Dictionary = {
 
 static func get_campaign_description(victory_type: int) -> String:
 	match victory_type:
-		GlobalEnums.FiveParsecsCampaignVictoryType.STORY_COMPLETE:
-			return "Complete the main story campaign"
-		GlobalEnums.FiveParsecsCampaignVictoryType.WEALTH_GOAL:
-			return "Accumulate significant wealth"
-		GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_GOAL:
-			return "Build your reputation in the galaxy"
-		GlobalEnums.FiveParsecsCampaignVictoryType.FACTION_DOMINANCE:
-			return "Achieve dominance with your chosen faction"
-		GlobalEnums.FiveParsecsCampaignVictoryType.CREDITS_THRESHOLD:
-			return "Reach a specific credit threshold"
-		GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_THRESHOLD:
-			return "Achieve a specific reputation level"
-		GlobalEnums.FiveParsecsCampaignVictoryType.MISSION_COUNT:
-			return "Complete a set number of missions"
+		GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_20:
+			return "Play 20 campaign turns"
+		GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_50:
+			return "Play 50 campaign turns"
+		GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_100:
+			return "Play 100 campaign turns"
+		GlobalEnums.FiveParsecsCampaignVictoryType.BATTLES_20:
+			return "Fight 20 battles"
+		GlobalEnums.FiveParsecsCampaignVictoryType.BATTLES_50:
+			return "Fight 50 battles"
+		GlobalEnums.FiveParsecsCampaignVictoryType.BATTLES_100:
+			return "Fight 100 battles"
+		GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_3:
+			return "Complete 3 story quests"
+		GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_5:
+			return "Complete 5 story quests"
+		GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_10:
+			return "Complete 10 story quests"
+		GlobalEnums.FiveParsecsCampaignVictoryType.STORY_POINTS_10:
+			return "Accumulate 10 story points"
+		GlobalEnums.FiveParsecsCampaignVictoryType.STORY_POINTS_20:
+			return "Accumulate 20 story points"
+		GlobalEnums.FiveParsecsCampaignVictoryType.CREDITS_50K:
+			return "Accumulate 50,000 credits"
+		GlobalEnums.FiveParsecsCampaignVictoryType.CREDITS_100K:
+			return "Accumulate 100,000 credits"
+		GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_10:
+			return "Achieve reputation level 10"
+		GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_20:
+			return "Achieve reputation level 20"
+		GlobalEnums.FiveParsecsCampaignVictoryType.CHARACTER_SURVIVAL:
+			return "Keep your original character alive"
+		GlobalEnums.FiveParsecsCampaignVictoryType.CREW_SIZE_10:
+			return "Reach crew size of 10"
 		_:
 			return "Unknown victory condition"
 
 static func get_mission_description(victory_type: int) -> String:
 	match victory_type:
-		GlobalEnums.FiveParsecsCampaignVictoryType.STORY_COMPLETE:
+		GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_3, GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_5, GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_10:
 			return "Story mission objective"
-		GlobalEnums.FiveParsecsCampaignVictoryType.WEALTH_GOAL:
+		GlobalEnums.FiveParsecsCampaignVictoryType.CREDITS_50K, GlobalEnums.FiveParsecsCampaignVictoryType.CREDITS_100K:
 			return "Wealth accumulation objective"
-		GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_GOAL:
+		GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_10, GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_20:
 			return "Reputation building objective"
-		GlobalEnums.FiveParsecsCampaignVictoryType.FACTION_DOMINANCE:
-			return "Faction influence objective"
+		GlobalEnums.FiveParsecsCampaignVictoryType.BATTLES_20, GlobalEnums.FiveParsecsCampaignVictoryType.BATTLES_50, GlobalEnums.FiveParsecsCampaignVictoryType.BATTLES_100:
+			return "Combat mission objective"
 		_:
 			return "Standard mission objective"

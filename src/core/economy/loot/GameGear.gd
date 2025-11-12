@@ -28,12 +28,11 @@ func _init() -> void:
 	# Try to get the singleton instance
 	var tree = Engine.get_main_loop() as SceneTree
 	if tree and tree.root:
-		var data_manager_node: Node = tree.root.get_node_or_null("DataManagerAutoload")
-		if data_manager_node:
-			_data_manager = data_manager_node
-			print("GameGear: DataManagerAutoload available immediately")
+		if DataManager:
+			_data_manager = DataManager
+			print("GameGear: DataManager available immediately")
 		else:
-			print("GameGear: DataManagerAutoload not ready yet")
+			print("GameGear: DataManager not ready yet")
 	else:
 		print("GameGear: SceneTree not available yet")
 
@@ -42,9 +41,9 @@ func initialize_from_id(id: String) -> bool:
 	if _data_manager == null:
 		var tree = Engine.get_main_loop() as SceneTree
 		if tree and tree.root:
-			_data_manager = tree.root.get_node_or_null("DataManagerAutoload")
+			_data_manager = DataManager
 		if not _data_manager:
-			push_error("GameGear: Failed to get DataManagerAutoload")
+			push_error("GameGear: Failed to get DataManager")
 			return false
 
 	var gear_data = _data_manager.get_gear_item(id)

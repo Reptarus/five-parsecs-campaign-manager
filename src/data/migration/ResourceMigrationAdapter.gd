@@ -17,7 +17,7 @@ const LEGACY_JSON_PATHS = {
 	"backgrounds": "res://data/character_backgrounds.json",
 	"motivations": "res://data/character_motivations.json",
 	"species": "res://data/character_species.json",
-	"weapons": "res://data/weapons.json", 
+	"weapons": "res://data/weapons.json",
 	"armor": "res://data/armor.json",
 	"equipment": "res://data/equipment_database.json",
 	"world_traits": "res://data/world_traits.json",
@@ -84,7 +84,7 @@ static func _migrate_character_data() -> FiveParsecsCharacterData:
 	if character_data.backgrounds.is_empty():
 		character_data = FiveParsecsCharacterData.create_default_character_data()
 	
-	print("ResourceMigrationAdapter: Character data migrated - %d backgrounds, %d motivations, %d species" % 
+	print("ResourceMigrationAdapter: Character data migrated - %d backgrounds, %d motivations, %d species" %
 		[character_data.backgrounds.size(), character_data.motivations.size(), character_data.species.size()])
 	
 	return character_data
@@ -166,22 +166,22 @@ static func _migrate_combat_data() -> FiveParsecsCombatDataResource:
 	if combat_data.weapons.is_empty():
 		combat_data = FiveParsecsCombatDataResource.create_default_combat_data()
 	
-	print("ResourceMigrationAdapter: Combat data migrated - %d weapons, %d armor types, %d equipment, %d enemies" % 
+	print("ResourceMigrationAdapter: Combat data migrated - %d weapons, %d armor types, %d equipment, %d enemies" %
 		[combat_data.weapons.size(), combat_data.armor_types.size(), combat_data.equipment.size(), combat_data.enemy_types.size()])
 	
 	return combat_data
 
-static func _convert_weapons(json_data: Dictionary) -> Array[FiveParsecsCombatDataResource.WeaponData]:
+static func _convert_weapons(json_data: Dictionary) -> Array[FiveParsecsCombatDataResource.CombatWeaponData]:
 	"""Convert JSON weapons to resource format"""
-	var weapons: Array[FiveParsecsCombatDataResource.WeaponData] = []
+	var weapons: Array[FiveParsecsCombatDataResource.CombatWeaponData] = []
 	
 	if json_data.has("weapons"):
 		for weapon_data in json_data.weapons:
-			var weapon = FiveParsecsCombatDataResource.WeaponData.new()
+			var weapon = FiveParsecsCombatDataResource.CombatWeaponData.new()
 			weapon.id = weapon_data.get("id", 0)
 			weapon.name = weapon_data.get("name", "")
 			weapon.weapon_type = weapon_data.get("type", "rifle")
-			weapon.range = weapon_data.get("range", 24)
+			weapon.weapon_range = weapon_data.get("range", 24)
 			weapon.damage = weapon_data.get("damage", 1)
 			weapon.cost = weapon_data.get("cost", 1)
 			weapon.traits = weapon_data.get("traits", [])
@@ -189,13 +189,13 @@ static func _convert_weapons(json_data: Dictionary) -> Array[FiveParsecsCombatDa
 	
 	return weapons
 
-static func _convert_armor(json_data: Dictionary) -> Array[FiveParsecsCombatDataResource.ArmorData]:
+static func _convert_armor(json_data: Dictionary) -> Array[FiveParsecsCombatDataResource.CombatArmorData]:
 	"""Convert JSON armor to resource format"""
-	var armor_list: Array[FiveParsecsCombatDataResource.ArmorData] = []
+	var armor_list: Array[FiveParsecsCombatDataResource.CombatArmorData] = []
 	
 	if json_data.has("armor"):
 		for armor_data in json_data.armor:
-			var armor = FiveParsecsCombatDataResource.ArmorData.new()
+			var armor = FiveParsecsCombatDataResource.CombatArmorData.new()
 			armor.id = armor_data.get("id", 0)
 			armor.name = armor_data.get("name", "")
 			armor.armor_save = armor_data.get("save", 6)
@@ -267,7 +267,7 @@ static func _migrate_campaign_data() -> FiveParsecsCampaignDataResource:
 	if campaign_data.world_traits.is_empty():
 		campaign_data = FiveParsecsCampaignDataResource.create_default_campaign_data()
 	
-	print("ResourceMigrationAdapter: Campaign data migrated - %d world traits, %d planet types, %d patron types" % 
+	print("ResourceMigrationAdapter: Campaign data migrated - %d world traits, %d planet types, %d patron types" %
 		[campaign_data.world_traits.size(), campaign_data.planet_types.size(), campaign_data.patron_types.size()])
 	
 	return campaign_data
@@ -278,13 +278,13 @@ static func _convert_world_traits(json_data: Dictionary) -> Array[FiveParsecsCam
 	
 	if json_data.has("world_traits"):
 		for trait_data in json_data.world_traits:
-			var trait = FiveParsecsCampaignDataResource.WorldTrait.new()
-			trait.id = trait_data.get("id", 0)
-			trait.name = trait_data.get("name", "")
-			trait.description = trait_data.get("description", "")
-			trait.effects = trait_data.get("effects", {})
-			trait.trade_modifiers = trait_data.get("trade_modifiers", {})
-			traits.append(trait)
+			var world_trait = FiveParsecsCampaignDataResource.WorldTrait.new()
+			world_trait.id = trait_data.get("id", 0)
+			world_trait.name = trait_data.get("name", "")
+			world_trait.description = trait_data.get("description", "")
+			world_trait.effects = trait_data.get("effects", {})
+			world_trait.trade_modifiers = trait_data.get("trade_modifiers", {})
+			traits.append(world_trait)
 	
 	return traits
 

@@ -4,6 +4,8 @@ extends FiveParsecsCampaignPanel
 # GlobalEnums available as autoload singleton
 # State management and validation integration
 const StateManagerClass = preload("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
+const SecurityValidator = preload("res://src/core/validation/SecurityValidator.gd")
+const ValidationResult = preload("res://src/core/validation/ValidationResult.gd")
 
 
 # Existing signal for backward compatibility
@@ -17,17 +19,18 @@ signal campaign_name_changed(name: String)
 signal difficulty_changed(difficulty: int)
 signal ironman_toggled(enabled: bool)
 
-@onready var campaign_name_input: LineEdit = get_node("ContentMargin/MainContent/FormContent/FormContainer/Content/CampaignName/LineEdit")
-@onready var difficulty_option: OptionButton = get_node("ContentMargin/MainContent/FormContent/FormContainer/Content/Difficulty/OptionButton")
-@onready var victory_condition_option: OptionButton = get_node("ContentMargin/MainContent/FormContent/FormContainer/Content/VictoryCondition/OptionButton")
-@onready var story_track_toggle: CheckBox = get_node("ContentMargin/MainContent/FormContent/FormContainer/Content/StoryTrack/CheckBox")
-@onready var validation_panel: PanelContainer = get_node("ContentMargin/MainContent/FormContent/FormContainer/Content/ConfigValidationPanel")
-@onready var validation_icon: Label = get_node("ContentMargin/MainContent/FormContent/FormContainer/Content/ConfigValidationPanel/ValidationContent/ValidationIcon")
-@onready var validation_text: Label = get_node("ContentMargin/MainContent/FormContent/FormContainer/Content/ConfigValidationPanel/ValidationContent/ValidationText")
+# UI References - initialized safely in _ready()
+var campaign_name_input: LineEdit
+var difficulty_option: OptionButton
+var victory_condition_option: OptionButton
+var story_track_toggle: CheckBox
+var validation_panel: PanelContainer
+var validation_icon: Label
+var validation_text: Label
 
 var current_config: Dictionary = {
 	"name": "",
-	"difficulty": GlobalEnums.DifficultyLevel.STANDARD,
+	"difficulty": 2, # GlobalEnums.DifficultyLevel.STANDARD
 	"victory_condition": "none",
 	"story_track_enabled": false,
 	"elite_ranks": 0
@@ -37,20 +40,26 @@ var current_config: Dictionary = {
 var is_panel_initialized: bool = false
 var is_configuration_complete: bool = false
 var last_validation_errors: Array[String] = []
+var security_validator: SecurityValidator
+var description_label: Label
+var is_panel_valid: bool = false
 
 # Panel lifecycle signals - Framework Bible compliant
-signal panel_ready
+# panel_ready signal now inherited from BaseCampaignPanel
 
 # CRITICAL FIX: Recursion prevention guards
 var _is_validating: bool = false
 var _validation_scheduled: bool = false
 
 func _ready() -> void:
-	# Set panel info before base initialization
-	set_panel_info("Campaign Configuration", "Set up your campaign's basic settings including name, difficulty, and victory conditions.")
+	# Set panel info before base initialization with more informative description
+	set_panel_info("Campaign Configuration", "Name your campaign and select victory conditions. Your choices here affect the entire campaign.")
 	
 	# Call parent _ready() to initialize BaseCampaignPanel structure
 	super._ready()
+	
+	# COMPREHENSIVE DEBUG OUTPUT - Panel Initialization
+	call_deferred("_log_panel_initialization_debug")
 	
 	# Set up proper focus management
 	call_deferred("_setup_focus_management")
@@ -62,6 +71,52 @@ func _setup_panel_content() -> void:
 	_setup_victory_conditions()
 	_connect_signals()
 	_update_description()
+
+func _log_panel_initialization_debug() -> void:
+	"""Comprehensive debug output for panel initialization"""
+	print("\n==== [PANEL: ConfigPanel] INITIALIZATION ====")
+	print("  Phase: 1 of 7 (Campaign Configuration)")
+	print("  Panel Title: %s" % panel_title)
+	print("  Panel Description: %s" % panel_description)
+	
+	# Check for coordinator access (will be null initially, but we want to track this)
+	# Fixed: Check owner (CampaignCreationUI) instead of direct parent (content_container)
+	var campaign_ui = owner if owner != null else get_parent().get_parent()
+	var has_coordinator = campaign_ui != null and campaign_ui.has_method("get_coordinator")
+	print("  Has Coordinator Access: %s" % has_coordinator)
+	if has_coordinator:
+		var coordinator = campaign_ui.get_coordinator() if campaign_ui.has_method("get_coordinator") else null
+		print("    Coordinator Available: %s" % (coordinator != null))
+	
+	# Check autoloaded managers availability
+	print("  === AUTOLOAD MANAGER CHECK ===")
+	var campaign_manager = CampaignManager
+	var game_state_manager = get_node_or_null("/root/GameStateManager")
+	var campaign_state_service = get_node_or_null("/root/CampaignStateService")
+	var scene_router = get_node_or_null("/root/SceneRouter")
+	var campaign_phase_manager = get_node_or_null("/root/CampaignPhaseManager")
+	
+	print("    CampaignManager: %s" % (campaign_manager != null))
+	print("    GameStateManager: %s" % (game_state_manager != null))
+	print("    CampaignStateService: %s" % (campaign_state_service != null))
+	print("    SceneRouter: %s" % (scene_router != null))
+	print("    CampaignPhaseManager: %s" % (campaign_phase_manager != null))
+	
+	# Check current campaign data
+	print("  === INITIAL CAMPAIGN DATA ===")
+	print("    Current Config Keys: %s" % str(current_config.keys()))
+	print("    Campaign Name: '%s'" % current_config.get("name", ""))
+	print("    Difficulty: %d" % current_config.get("difficulty", 0))
+	print("    Victory Condition: '%s'" % current_config.get("victory_condition", ""))
+	
+	# Check UI component availability
+	print("  === UI COMPONENTS ===")
+	print("    Campaign Name Input: %s" % (campaign_name_input != null))
+	print("    Difficulty Option: %s" % (difficulty_option != null))
+	print("    Victory Condition Option: %s" % (victory_condition_option != null))
+	print("    Story Track Toggle: %s" % (story_track_toggle != null))
+	
+	print("==== [PANEL: ConfigPanel] INIT COMPLETE ====\n")
 
 func _setup_focus_management() -> void:
 	"""Setup proper focus management for input fields"""
@@ -90,23 +145,55 @@ func _on_name_input_focus_exited() -> void:
 
 func _initialize_self_management() -> void:
 	"""Initialize state management and validation components"""
-	# Create security validator for input sanitization
-	security_validator = _validate_simple_input()
+	# Create security validator instance for input sanitization
+	security_validator = SecurityValidator.new()
+	
+	# SAFE UI COMPONENT INITIALIZATION - Using safe_get_node pattern
+	print("ConfigPanel DEBUG: Starting safe UI component initialization")
+	
+	# Safe initialization of UI components with fallback creation
+	campaign_name_input = safe_get_node("ContentMargin/MainContent/FormContent/FormContainer/Content/CampaignName/LineEdit",
+		_create_campaign_name_input)
+	
+	difficulty_option = safe_get_node("ContentMargin/MainContent/FormContent/FormContainer/Content/Difficulty/OptionButton",
+		_create_difficulty_option)
+	
+	victory_condition_option = safe_get_node("ContentMargin/MainContent/FormContent/FormContainer/Content/VictoryCondition/OptionButton",
+		_create_victory_condition_option)
+	
+	story_track_toggle = safe_get_node("ContentMargin/MainContent/FormContent/FormContainer/Content/StoryTrack/CheckBox",
+		_create_story_track_toggle)
+	
+	validation_icon = safe_get_node("ContentMargin/MainContent/FormContent/FormContainer/Content/Validation/Icon",
+		_create_validation_icon)
+	
+	validation_text = safe_get_node("ContentMargin/MainContent/FormContent/FormContainer/Content/Validation/Label",
+		_create_validation_text)
+	
+	# Initialize description label (try to find it in scene or create if needed)
+	description_label = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/Description/Label")
+	if not description_label:
+		# Create description label if not found in scene
+		description_label = Label.new()
+		description_label.name = "DescriptionLabel"
+		description_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	
+	print("ConfigPanel DEBUG: UI component initialization complete")
+	print("  Campaign Name Input: %s" % (campaign_name_input != null))
+	print("  Difficulty Option: %s" % (difficulty_option != null))
+	print("  Victory Condition: %s" % (victory_condition_option != null))
+	print("  Story Track Toggle: %s" % (story_track_toggle != null))
 
-func _emit_panel_ready() -> void:
-	"""Emit panel ready signal after deferred initialization"""
-	if not is_panel_initialized:
-		is_panel_initialized = true
-		panel_ready.emit()
+# _emit_panel_ready method now inherited from BaseCampaignPanel
 
 func _setup_difficulty_options() -> void:
 	difficulty_option.clear()
 
-	difficulty_option.add_item("Story", GlobalEnums.DifficultyLevel.STORY)
-	difficulty_option.add_item("Standard", GlobalEnums.DifficultyLevel.STANDARD)
-	difficulty_option.add_item("Challenging", GlobalEnums.DifficultyLevel.CHALLENGING)
-	difficulty_option.add_item("Hardcore", GlobalEnums.DifficultyLevel.HARDCORE)
-	difficulty_option.add_item("Nightmare", GlobalEnums.DifficultyLevel.NIGHTMARE)
+	difficulty_option.add_item("Story", 1)      # GlobalEnums.DifficultyLevel.STORY
+	difficulty_option.add_item("Standard", 2)   # GlobalEnums.DifficultyLevel.STANDARD
+	difficulty_option.add_item("Challenging", 3) # GlobalEnums.DifficultyLevel.CHALLENGING
+	difficulty_option.add_item("Hardcore", 4)   # GlobalEnums.DifficultyLevel.HARDCORE
+	difficulty_option.add_item("Nightmare", 5)  # GlobalEnums.DifficultyLevel.NIGHTMARE
 
 	difficulty_option.select(1) # Default to Standard
 
@@ -207,6 +294,8 @@ func _on_difficulty_selected(index: int) -> void:
 func _on_victory_condition_selected(index: int) -> void:
 	var victory_id = victory_condition_option.get_item_id(index)
 	current_config.victory_condition = _get_victory_condition_string(victory_id)
+	# Store the enum value as well for consistent usage
+	current_config.victory_condition_enum = GlobalEnums.victory_condition_string_to_enum(current_config.victory_condition)
 	_handle_config_change()
 
 func _on_story_track_toggled(enabled: bool) -> void:
@@ -219,6 +308,22 @@ func _on_story_track_toggled(enabled: bool) -> void:
 
 func _handle_config_change() -> void:
 	"""Handle any configuration change with validation and state updates"""
+	# COMPREHENSIVE DEBUG OUTPUT - Data Flow Tracking
+	print("\n==== [PANEL: ConfigPanel] DATA CHANGE ====")
+	print("  Panel Phase: 1 of 7 (Campaign Configuration)")
+	print("  === DATA BEING SAVED ===")
+	print("    Campaign Name: '%s'" % current_config.get("name", ""))
+	print("    Difficulty: %d (%s)" % [current_config.get("difficulty", 0), _get_difficulty_name(current_config.get("difficulty", 0))])
+	print("    Victory Condition: '%s'" % current_config.get("victory_condition", ""))
+	print("    Story Track: %s" % current_config.get("story_track_enabled", false))
+	print("    Elite Ranks: %d" % current_config.get("elite_ranks", 0))
+	
+	var config_data = get_config_data()
+	print("  === FORMATTED CONFIG DATA ===")
+	print("    Config Data Keys: %s" % str(config_data.keys()))
+	print("    Is Valid: %s" % is_valid())
+	print("    Completion Requirements Met: %s" % _check_completion_requirements())
+	
 	# Emit backward compatibility signal
 	config_updated.emit(current_config)
 	
@@ -227,6 +332,11 @@ func _handle_config_change() -> void:
 	
 	# Emit panel data update for signal-based architecture (no arguments needed)
 	panel_data_changed.emit()
+	
+	print("  === SIGNAL EMISSIONS ===")
+	print("    config_updated signal emitted: %s" % str(current_config.keys()))
+	print("    panel_data_changed signal emitted")
+	print("==== [PANEL: ConfigPanel] DATA CHANGE COMPLETE ====\n")
 
 func _throttle_config_change() -> void:
 	"""Throttle config change handling to prevent validation cascades"""
@@ -261,15 +371,15 @@ func _update_description() -> void:
 	var description: String = ""
 
 	match current_config.difficulty:
-		GlobalEnums.DifficultyLevel.STORY:
+		1: # GlobalEnums.DifficultyLevel.STORY
 			description = "Story Mode: Casual play with reduced difficulty, more starting resources, easier combat encounters. Perfect for learning the game mechanics."
-		GlobalEnums.DifficultyLevel.STANDARD:
+		2: # GlobalEnums.DifficultyLevel.STANDARD
 			description = "Standard Mode: Core rules as written, balanced challenges, standard resource allocation. The authentic Five Parsecs experience."
-		GlobalEnums.DifficultyLevel.CHALLENGING:
+		3: # GlobalEnums.DifficultyLevel.CHALLENGING
 			description = "Challenging Mode: Increased enemy strength, tougher combat encounters, higher upkeep costs. For experienced captains seeking a challenge."
-		GlobalEnums.DifficultyLevel.HARDCORE:
+		4: # GlobalEnums.DifficultyLevel.HARDCORE
 			description = "Hardcore Mode: Maximum difficulty with elite enemies, minimal starting resources, brutal combat encounters. The ultimate test of survival."
-		GlobalEnums.DifficultyLevel.NIGHTMARE:
+		5: # GlobalEnums.DifficultyLevel.NIGHTMARE
 			description = "Nightmare Mode: Custom ultra-hard mode with extreme challenges, minimal resources, and the most difficult encounters possible."
 
 	if description_label:
@@ -282,7 +392,7 @@ func get_config_data() -> Dictionary:
 	"""Get configuration data in the format expected by FiveParsecsCampaignCreationStateManager"""
 	var config_data = {
 		"campaign_name": current_config.get("name", "").strip_edges(),
-		"difficulty_level": current_config.get("difficulty", GlobalEnums.DifficultyLevel.STANDARD),
+		"difficulty_level": current_config.get("difficulty", 2), # GlobalEnums.DifficultyLevel.STANDARD
 		"victory_condition": current_config.get("victory_condition", "none"),
 		"story_track_enabled": current_config.get("story_track_enabled", false),
 		"elite_ranks": current_config.get("elite_ranks", 0),
@@ -354,8 +464,8 @@ func _check_completion_requirements() -> bool:
 	if name.is_empty() or name.length() < 3:
 		return false
 	
-	# Required: Valid difficulty selection
-	if not GlobalEnums or current_config.difficulty < 0:
+	# Required: Valid difficulty selection (1-5 range)
+	if current_config.difficulty < 1 or current_config.difficulty > 5:
 		return false
 	
 	# Required: Valid victory condition
@@ -410,15 +520,6 @@ func validate_panel() -> bool:
 	"""Validate panel data and return simple boolean result"""
 	var errors = validate()
 	return errors.is_empty()
-		result.sanitized_value = get_config_data()
-	else:
-		result.valid = false
-		result.error = errors[0] if errors.size() > 0 else "Validation failed"
-		# Add additional errors as warnings since ValidationResult only has one error field
-		for i in range(1, errors.size()):
-			result.add_warning(errors[i])
-	
-	return result
 
 func get_panel_data() -> Dictionary:
 	"""Get panel data - interface implementation"""
@@ -428,7 +529,7 @@ func reset_panel() -> void:
 	"""Reset panel to default state"""
 	current_config = {
 		"name": "",
-		"difficulty": GlobalEnums.DifficultyLevel.STANDARD,
+		"difficulty": 2, # GlobalEnums.DifficultyLevel.STANDARD
 		"victory_condition": "none",
 		"story_track_enabled": false,
 		"elite_ranks": 0
@@ -542,3 +643,64 @@ func restore_panel_data(data: Dictionary) -> void:
 	_validate_and_check_completion()
 	
 	print("ConfigPanel: Panel data restoration complete")
+
+## FALLBACK UI CREATION METHODS - Safe panel initialization
+
+func _create_campaign_name_input() -> LineEdit:
+	"""Create fallback campaign name input if scene node missing"""
+	print("ConfigPanel DEBUG: Creating fallback campaign name input")
+	var input = LineEdit.new()
+	input.name = "CampaignNameInput"
+	input.placeholder_text = "Enter campaign name..."
+	input.focus_mode = Control.FOCUS_ALL
+	return input
+
+func _create_difficulty_option() -> OptionButton:
+	"""Create fallback difficulty option if scene node missing"""
+	print("ConfigPanel DEBUG: Creating fallback difficulty option")
+	var option = OptionButton.new()
+	option.name = "DifficultyOption"
+	return option
+
+func _create_victory_condition_option() -> OptionButton:
+	"""Create fallback victory condition option if scene node missing"""
+	print("ConfigPanel DEBUG: Creating fallback victory condition option")
+	var option = OptionButton.new()
+	option.name = "VictoryConditionOption"
+	return option
+
+func _create_story_track_toggle() -> CheckBox:
+	"""Create fallback story track toggle if scene node missing"""
+	print("ConfigPanel DEBUG: Creating fallback story track toggle")
+	var toggle = CheckBox.new()
+	toggle.name = "StoryTrackToggle"
+	toggle.text = "Enable Story Track"
+	return toggle
+
+func _create_validation_icon() -> Label:
+	"""Create fallback validation icon if scene node missing"""
+	print("ConfigPanel DEBUG: Creating fallback validation icon")
+	var icon = Label.new()
+	icon.name = "ValidationIcon"
+	icon.text = "✓"
+	return icon
+
+func _create_validation_text() -> Label:
+	"""Create fallback validation text if scene node missing"""
+	print("ConfigPanel DEBUG: Creating fallback validation text")
+	var text = Label.new()
+	text.name = "ValidationText"
+	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	return text
+
+## Debug Helper Methods
+
+func _get_difficulty_name(difficulty: int) -> String:
+	"""Get human-readable difficulty name for debug output"""
+	match difficulty:
+		1: return "Story"
+		2: return "Standard"
+		3: return "Challenging"
+		4: return "Hardcore"
+		5: return "Nightmare"
+		_: return "Unknown"
