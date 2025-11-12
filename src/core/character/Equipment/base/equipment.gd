@@ -90,3 +90,12 @@ func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Va
 	if obj is Object and obj.has_method(method_name):
 		return obj.callv(method_name, args)
 	return null
+
+## BaseGear class - specialized equipment for misc/consumable items
+## Merged from gear.gd for consolidation
+class BaseGear extends BaseEquipment:
+	func _init() -> void:
+		super._init()
+		# Set the item type to MISC for general gear
+		if "item_type" in self:
+			self.item_type = GlobalEnums.ItemType.MISC

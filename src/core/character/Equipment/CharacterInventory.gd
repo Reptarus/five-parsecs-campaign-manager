@@ -5,7 +5,8 @@ class_name CharacterInventory # Changed to avoid conflicts
 # GlobalEnums available as autoload singleton
 const GameWeapon = preload("res://src/core/systems/items/GameWeapon.gd")
 const BaseArmor = preload("res://src/core/systems/items/GameArmor.gd")
-const BaseGear = preload("res://src/core/character/Equipment/base/gear.gd")
+const BaseEquipment = preload("res://src/core/character/Equipment/base/equipment.gd")
+const BaseGear = BaseEquipment.BaseGear
 
 signal inventory_changed
 signal weight_changed(new_weight: float)
