@@ -1,15 +1,5 @@
 {
   "mcpServers": {
-    "memory": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-memory@latest"
-      ],
-      "env": {
-        "NODE_ENV": "production"
-      }
-    },
     "filesystem": {
       "command": "npx",
       "args": [
@@ -42,8 +32,7 @@
         "GEMINI_PRO_MODEL": "gemini-2.0-flash-thinking-exp",
         "PYTHONPATH": "/mnt/c/Users/elija/Creative-Tools-MCP:/mnt/c/Users/elija/Creative-Tools-MCP/community-mcp-servers/claude-gemini-mcp-slim-main",
         "PYTHON_PATH": "/usr/bin/python3"
-      },
-      "cwd": "/mnt/c/Users/elija/Creative-Tools-MCP/community-mcp-servers/claude-gemini-mcp-slim-main"
+      }
     },
     "windows-automation": {
       "command": "python3",
@@ -55,8 +44,7 @@
         "BRIDGE_ENABLED": "true",
         "PYTHONPATH": "/mnt/c/Users/elija/AppData/Roaming/Claude/Claude Extensions/ant.dir.cursortouch.windows-mcp",
         "PYTHON_PATH": "/usr/bin/python3"
-      },
-      "cwd": "/mnt/c/Users/elija/AppData/Roaming/Claude/Claude Extensions/ant.dir.cursortouch.windows-mcp"
+      }
     },
     "blender-creative": {
       "command": "python3",
@@ -68,8 +56,7 @@
         "BLENDER_PATH": "/mnt/c/Program Files/Blender Foundation/Blender 4.2/blender.exe",
         "PYTHONPATH": "/mnt/c/Users/elija/Creative-Tools-MCP/blender-mcp",
         "PYTHON_PATH": "/usr/bin/python3"
-      },
-      "cwd": "/mnt/c/Users/elija/Creative-Tools-MCP/blender-mcp"
+      }
     },
     "claude-diagnostics": {
       "command": "python3",
@@ -81,25 +68,18 @@
         "WORKSPACE_PATH": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager",
         "PYTHONPATH": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/scripts",
         "PYTHON_PATH": "/usr/bin/python3"
-      },
-      "cwd": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager"
+      }
+    },
+    "godot": {
+      "command": "node",
+      "args": [
+        "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/mcp-servers/godot-mcp/build/index.js"
+      ],
+      "env": {
+        "GODOT_PATH": "C:/Users/elija/Desktop/GoDot/Godot 4.4/Godot_v4.4.1-stable_win64_console.exe",
+        "DEBUG": "true",
+        "NODE_ENV": "production"
+      }
     }
-  },
-  "metadata": {
-    "version": "2.1.0",
-    "description": "Production MCP ecosystem configuration for cross-platform Claude Code development with IDE diagnostics integration",
-    "last_updated": "2025-01-16",
-    "environment": "WSL2/Linux",
-    "platform": "cross-platform",
-    "total_servers": 7,
-    "features": [
-      "Cross-platform bridge communication",
-      "Enhanced Gemini AI orchestration",
-      "Desktop automation capabilities",
-      "Persistent memory management",
-      "Advanced filesystem operations",
-      "Blender creative tool integration",
-      "Automated IDE diagnostics monitoring"
-    ]
   }
 }

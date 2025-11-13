@@ -82,9 +82,9 @@ func _process(_delta: float) -> bool:
 func set_current_report_path() -> void:
 	# scan for latest report directory
 	var iteration := GdUnitFileAccess.find_last_path_index(
-		_report_root_path, GdUnitHtmlReport.REPORT_DIR_PREFIX
+		_report_root_path, GdUnitConstants.REPORT_DIR_PREFIX
 	)
-	_current_report_path = "%s/%s%d" % [_report_root_path, GdUnitHtmlReport.REPORT_DIR_PREFIX, iteration]
+	_current_report_path = "%s/%s%d" % [_report_root_path, GdUnitConstants.REPORT_DIR_PREFIX, iteration]
 
 
 func set_report_directory(path: String) -> void:
@@ -123,10 +123,10 @@ func read_log_file_content(log_file: String) -> GdUnitResult:
 		var to_replace := "[38;5;%dm" % color_index
 		content = content.replace(to_replace, "")
 	content += "</pre>"
-	content = content \
-		.replace("[0m", "") \
-		.replace(GdUnitCSIMessageWriter.CSI_BOLD, "") \
-		.replace(GdUnitCSIMessageWriter.CSI_ITALIC, "") \
+	content = content\
+		.replace("[0m", "")\
+		.replace(GdUnitCSIMessageWriter.CSI_BOLD, "")\
+		.replace(GdUnitCSIMessageWriter.CSI_ITALIC, "")\
 		.replace(GdUnitCSIMessageWriter.CSI_UNDERLINE, "")
 	return GdUnitResult.success(content)
 
@@ -153,8 +153,8 @@ func _update_index_html(godot_log_file: String) -> void:
 			% [godot_log_file, index_path, error_string(FileAccess.get_open_error())]
 		)
 		return
-	var content := index_file.get_as_text() \
-		.replace("${log_report}", get_log_report_html()) \
+	var content := index_file.get_as_text()\
+		.replace("${log_report}", get_log_report_html())\
 		.replace("${godot_log_file}", godot_log_file)
 	# overide it
 	index_file.seek(0)

@@ -2,8 +2,8 @@
 extends Window
 
 const EAXAMPLE_URL := "https://github.com/MikeSchulze/gdUnit4-examples/archive/refs/heads/master.zip"
-const GdUnitTools := preload("res://addons/gdUnit4/src/core/GdUnitTools.gd")
-const GdUnitUpdateClient = preload("res://addons/gdUnit4/src/update/GdUnitUpdateClient.gd")
+const GdUnitTools := preload ("res://addons/gdUnit4/src/core/GdUnitTools.gd")
+const GdUnitUpdateClient = preload ("res://addons/gdUnit4/src/update/GdUnitUpdateClient.gd")
 
 @onready var _update_client: GdUnitUpdateClient = $GdUnitUpdateClient
 @onready var _version_label: RichTextLabel = %version
@@ -131,7 +131,7 @@ func _create_input_element(property: GdUnitProperty, reset_btn: Button) -> Node:
 		return input
 	if property.type() == TYPE_PACKED_INT32_ARRAY:
 		var key_input_button := Button.new()
-		var value: PackedInt32Array = property.value()
+		var value:PackedInt32Array = property.value()
 		key_input_button.text = to_shortcut(value)
 		key_input_button.pressed.connect(_on_shortcut_change.bind(key_input_button, property, reset_btn))
 		return key_input_button
@@ -219,19 +219,19 @@ func reimport(path: String) -> void:
 	await get_tree().process_frame
 	var files := DirAccess.get_files_at(path)
 	EditorInterface.get_resource_filesystem().reimport_files(files)
-	for directory in DirAccess.get_directories_at(path):
+	for directory in  DirAccess.get_directories_at(path):
 		reimport(directory)
 
 
 func check_for_update() -> void:
 	if not GdUnitSettings.is_update_notification_enabled():
 		return
-	var response: GdUnitUpdateClient.HttpResponse = await _update_client.request_latest_version()
+	var response :GdUnitUpdateClient.HttpResponse = await _update_client.request_latest_version()
 	if response.status() != 200:
 		printerr("Latest version information cannot be retrieved from GitHub!")
 		printerr("Error:  %s" % response.response())
 		return
-	var latest_version: Variant = _update_client.extract_latest_version(response)
+	var latest_version := _update_client.extract_latest_version(response)
 	if latest_version.is_greater(GdUnit4Version.current()):
 		var tab_index := _tab_container.get_tab_idx_from_control(_update_tab)
 		_tab_container.set_tab_button_icon(tab_index, GdUnitUiTools.get_icon("Notification", Color.YELLOW))

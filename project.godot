@@ -20,8 +20,15 @@ config/icon="res://icon.svg"
 
 GlobalEnums="*res://src/core/systems/GlobalEnums.gd"
 GameState="*res://src/core/state/GameState.gd"
-DataManagerAutoload="*res://src/core/data/DataManager.gd"
+GameStateManager="*res://src/core/managers/GameStateManager.gd"
+DataManager="*res://src/core/data/DataManager.gd"
 DiceManager="*res://src/core/managers/DiceManager.gd"
+SaveManager="*res://src/core/state/SaveManager.gd"
+CampaignManager="*res://src/core/managers/CampaignManager.gd"
+CampaignStateService="*res://src/core/services/CampaignStateService.gd"
+SceneRouter="*res://src/ui/screens/SceneRouter.gd"
+CampaignPhaseManager="*res://src/core/campaign/CampaignPhaseManager.gd"
+BattleResultsManager="*res://src/core/battle/BattleResultsManager.gd"
 
 [debug]
 
