@@ -158,12 +158,7 @@ func _validate_core_connections() -> void:
 ## Enhanced game state registration
 func _register_with_game_state() -> void:
 	"""Register this manager with the global game state system"""
-	# TODO: This logic is flawed. It attempts to call a static method on the GameState class.
-	# The project seems to lack a global GameState autoload/singleton.
-	# Commenting out to prevent errors until the architecture is clarified.
-	# Register this manager with the global game state system using direct autoload access
-	# if GameState and GameState and GameState.has_method("register_manager"):
-	# Try to register with global GameState if available
+	# Register this manager with global GameState autoload if available
 	var global_game_state = get_node_or_null("/root/GameState")
 	if global_game_state and global_game_state.has_method("register_manager"):
 		global_game_state.register_manager("GameStateManager", self)
