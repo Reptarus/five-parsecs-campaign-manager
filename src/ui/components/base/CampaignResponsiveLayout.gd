@@ -1,5 +1,5 @@
 class_name FPCM_CampaignResponsiveLayout
-extends FPCM_ResponsiveContainer
+extends Control
 
 const VERTICAL = 1
 const HORIZONTAL = 0
@@ -7,13 +7,28 @@ const PORTRAIT_SIDEBAR_HEIGHT_RATIO := 0.4 # Sidebar takes 40% in portrait mode
 const LANDSCAPE_SIDEBAR_WIDTH := 300.0 # Fixed sidebar width in landscape mode
 const TOUCH_BUTTON_HEIGHT := 60.0 # Height for touch-friendly buttons
 
+var main_container: Container = null
 @onready var sidebar := _get_or_create_sidebar()
 @onready var main_content := _get_or_create_main_content()
 
 func _ready() -> void:
-	super._ready()
+	# Create main container if not exists
+	if not main_container:
+		main_container = HBoxContainer.new()
+		main_container.name = "MainContainer"
+		add_child(main_container)
+
 	_setup_touch_controls()
 	_connect_signals()
+	_check_orientation()
+
+func _check_orientation() -> void:
+	"""Check and apply appropriate layout based on viewport orientation"""
+	var viewport_size = get_viewport_rect().size
+	if viewport_size.x < viewport_size.y:
+		_apply_portrait_layout()
+	else:
+		_apply_landscape_layout()
 
 func _setup_touch_controls() -> void:
 	if OS.has_feature("mobile"):

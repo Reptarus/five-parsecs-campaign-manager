@@ -1122,7 +1122,7 @@ func _log_panel_initialization_debug() -> void:
 	
 	# Check autoloaded managers availability
 	print("  === AUTOLOAD MANAGER CHECK ===")
-	var campaign_manager = CampaignManager
+	var campaign_manager = get_node_or_null("/root/CampaignManager")
 	var game_state_manager = get_node_or_null("/root/GameStateManager")
 	var campaign_state_service = get_node_or_null("/root/CampaignStateService")
 	var scene_router = get_node_or_null("/root/SceneRouter")

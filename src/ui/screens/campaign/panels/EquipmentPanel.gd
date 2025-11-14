@@ -344,7 +344,7 @@ func _initialize_components() -> void:
 
 	# Get DiceManager from autoload with safe access and fallback creation
 	if has_node("/root/DiceManager"):
-		dice_manager = DiceManager
+		dice_manager = get_node("/root/DiceManager")
 		print("EquipmentPanel: DEBUG - DiceManager found")
 	else:
 		print("EquipmentPanel: DEBUG - DiceManager NOT FOUND - creating fallback")
@@ -1183,10 +1183,10 @@ func _log_panel_initialization_debug() -> void:
 	
 	# Check autoloaded managers availability
 	print("  === AUTOLOAD MANAGER CHECK ===")
-	var campaign_manager = CampaignManager
+	var campaign_manager = get_node_or_null("/root/CampaignManager")
 	var game_state_manager = get_node_or_null("/root/GameStateManager")
-	var dice_manager_autoload = DiceManager
-	
+	var dice_manager_autoload = get_node_or_null("/root/DiceManager")
+
 	print("    CampaignManager: %s" % (campaign_manager != null))
 	print("    GameStateManager: %s" % (game_state_manager != null))
 	print("    DiceManager: %s" % (dice_manager_autoload != null))

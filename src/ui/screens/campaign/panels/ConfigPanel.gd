@@ -1,8 +1,8 @@
 @tool
 extends FiveParsecsCampaignPanel
 
-# GlobalEnums available as autoload singleton
-# State management and validation integration
+# Core systems and validation
+const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const StateManagerClass = preload("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
 const SecurityValidator = preload("res://src/core/validation/SecurityValidator.gd")
 const ValidationResult = preload("res://src/core/validation/ValidationResult.gd")
@@ -90,12 +90,12 @@ func _log_panel_initialization_debug() -> void:
 	
 	# Check autoloaded managers availability
 	print("  === AUTOLOAD MANAGER CHECK ===")
-	var campaign_manager = CampaignManager
+	var campaign_manager = get_node_or_null("/root/CampaignManager")
 	var game_state_manager = get_node_or_null("/root/GameStateManager")
 	var campaign_state_service = get_node_or_null("/root/CampaignStateService")
 	var scene_router = get_node_or_null("/root/SceneRouter")
 	var campaign_phase_manager = get_node_or_null("/root/CampaignPhaseManager")
-	
+
 	print("    CampaignManager: %s" % (campaign_manager != null))
 	print("    GameStateManager: %s" % (game_state_manager != null))
 	print("    CampaignStateService: %s" % (campaign_state_service != null))
