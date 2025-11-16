@@ -1,0 +1,243 @@
+{
+  "military_weapons": [
+    {
+      "name": "Pulse Rifle",
+      "type": "rifle",
+      "range": "24\"",
+      "shots": 3,
+      "damage": 1,
+      "traits": ["Armor Piercing"],
+      "description": "Standard-issue fully automatic rifle with armor-penetrating rounds",
+      "special_rules": [
+        "High Rate of Fire: Can fire 3 shots per activation",
+        "Armor Penetration: Ignores up to 1 point of armor save"
+      ],
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt",
+      "cost": 12
+    },
+    {
+      "name": "Smart Gun",
+      "type": "heavy_weapon",
+      "range": "24\"",
+      "shots": 4,
+      "damage": 2,
+      "traits": ["Heavy", "Auto-Targeting"],
+      "description": "Computer-assisted heavy weapon with target tracking",
+      "special_rules": [
+        "Auto-Targeting: Re-roll one missed shot per activation",
+        "Heavy: Requires 2 actions to fire (move OR shoot)",
+        "Suppression: Target must pass Morale check or cannot act next round"
+      ],
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt",
+      "cost": 18
+    },
+    {
+      "name": "Flamethrower",
+      "type": "special_weapon",
+      "range": "8\"",
+      "shots": 1,
+      "damage": "1D6",
+      "traits": ["Cone", "Ignores Cover", "Terror"],
+      "description": "Short-range area denial weapon that ignites targets",
+      "special_rules": [
+        "Cone Template: Hits all targets in 8\" cone, 4\" wide at end",
+        "Ignores Cover: Cover provides no benefit against flames",
+        "Terror Effect: Bugs hit must immediately make Morale check",
+        "Burning: Targets that survive take 1 additional damage at start of next round"
+      ],
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt",
+      "cost": 15
+    },
+    {
+      "name": "Combat Shotgun",
+      "type": "shotgun",
+      "range": "12\"",
+      "shots": 2,
+      "damage": 2,
+      "traits": ["Close Quarters"],
+      "description": "Powerful close-range weapon for corridor fighting",
+      "special_rules": [
+        "Close Quarters Specialist: +1 to hit at ranges 6\" or less",
+        "Knockback: On successful hit, push target 1D3\" directly away",
+        "Breaching: Can be used to destroy doors and light obstacles"
+      ],
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt",
+      "cost": 10
+    },
+    {
+      "name": "Sniper Rifle",
+      "type": "rifle",
+      "range": "36\"",
+      "shots": 1,
+      "damage": 3,
+      "traits": ["Long Range", "Precise"],
+      "description": "High-powered precision weapon for long-range elimination",
+      "special_rules": [
+        "Precise: Ignores cover bonuses",
+        "Long Range: No penalty at maximum range",
+        "Headshot: Natural 6 to hit deals +2 damage"
+      ],
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt",
+      "cost": 14
+    }
+  ],
+
+  "military_equipment": [
+    {
+      "name": "Motion Tracker",
+      "type": "equipment",
+      "description": "Portable device that detects movement within range",
+      "special_rules": [
+        "Detection Range: Reveals all enemies within 12\" at start of each round",
+        "Blip Tracking: Shows direction and approximate distance to hidden enemies",
+        "Audio Cue: Beeping intensifies as enemies get closer (narrative effect)",
+        "Range Penalty: -2\" range for each previous round of continuous use (battery drain)"
+      ],
+      "usage": "Active (requires action to operate)",
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt",
+      "cost": 8
+    },
+    {
+      "name": "Sentry Gun",
+      "type": "deployable",
+      "description": "Automated defense turret with motion detection",
+      "stats": {
+        "range": "18\"",
+        "shots": 2,
+        "damage": 1,
+        "armor": 5
+      },
+      "special_rules": [
+        "Deployment: Requires 1 action to deploy. Cannot move once placed",
+        "Autonomous: Fires automatically at start of enemy turn at nearest visible enemy",
+        "Arc of Fire: 180° arc in facing direction",
+        "Ammunition: Can fire for 3 rounds before depleting",
+        "Hackable: Bugs with Tech ability can shut down on Savvy check"
+      ],
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt",
+      "cost": 16
+    },
+    {
+      "name": "Combat Armor",
+      "type": "armor",
+      "description": "Military-grade powered armor suit",
+      "armor_save": 4,
+      "special_rules": [
+        "Enhanced Protection: 4+ armor save against all attacks",
+        "Sealed Environment: Immune to acid, fire, and atmospheric hazards",
+        "Powered Servos: Ignore Heavy weapon penalties",
+        "Bulk: -1\" movement speed"
+      ],
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt",
+      "cost": 20
+    },
+    {
+      "name": "Med Kit",
+      "type": "consumable",
+      "description": "Advanced field medical supplies for battlefield trauma care",
+      "special_rules": [
+        "Stabilize: Can revive Knocked Out soldier within 2\" (requires 1 action)",
+        "Heal: Restore 1D3 health to wounded soldier (requires 1 action)",
+        "Limited Uses: Contains 3 doses",
+        "Combat Drugs: Can inject for +1 to all stats for 2 rounds (counts as 1 dose, soldier fatigued after)"
+      ],
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt",
+      "cost": 12
+    },
+    {
+      "name": "Breach Charges",
+      "type": "explosive",
+      "description": "Shaped explosive charges for destroying obstacles",
+      "special_rules": [
+        "Demolition: Automatically destroys doors, barricades, and light obstacles",
+        "Explosive Damage: 2D6 damage in 2\" radius",
+        "Placement: Requires 1 action to place, detonates at start of next round",
+        "Limited: Soldier carries 2 charges"
+      ],
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt",
+      "cost": 10
+    },
+    {
+      "name": "Combat Shield",
+      "type": "equipment",
+      "description": "Ballistic shield for defensive operations",
+      "special_rules": [
+        "Cover Bonus: Grants +1 to armor save against ranged attacks from front arc",
+        "Melee Defense: +1 to melee defense rolls",
+        "Mobile Cover: Can provide cover to adjacent ally",
+        "Restriction: Cannot use two-handed weapons while equipped"
+      ],
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt",
+      "cost": 8
+    },
+    {
+      "name": "Tactical Scanner",
+      "type": "equipment",
+      "description": "Advanced multi-spectrum scanning device",
+      "special_rules": [
+        "Scan: Reveals enemy types and threat levels within 18\"",
+        "Weak Point Detection: Grants +1 to hit against scanned enemies",
+        "Tactical Data: Provides information about enemy special abilities",
+        "Passive: Always active, no action required"
+      ],
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt",
+      "cost": 10
+    },
+    {
+      "name": "Grenade Launcher",
+      "type": "heavy_weapon",
+      "description": "Underslung grenade launcher attachment",
+      "special_rules": [
+        "Indirect Fire: Can shoot over obstacles and cover",
+        "Blast Radius: 3\" radius, hits all targets in area",
+        "Ammunition Types: Frag (2 damage), Smoke (blocks LOS), Flash (stuns enemies)",
+        "Limited Ammo: 6 grenades per mission"
+      ],
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt",
+      "cost": 14
+    }
+  ],
+
+  "military_gear_categories": {
+    "standard_loadout": {
+      "description": "Basic soldier equipment",
+      "items": ["Pulse Rifle", "Combat Armor", "Med Kit"]
+    },
+    "heavy_weapons_specialist": {
+      "description": "Support weapons loadout",
+      "items": ["Smart Gun", "Combat Armor", "Motion Tracker"]
+    },
+    "close_quarters_specialist": {
+      "description": "CQB loadout for tight spaces",
+      "items": ["Combat Shotgun", "Flamethrower", "Combat Shield", "Breach Charges"]
+    },
+    "reconnaissance_specialist": {
+      "description": "Scout and intel gathering",
+      "items": ["Sniper Rifle", "Tactical Scanner", "Motion Tracker"]
+    },
+    "support_specialist": {
+      "description": "Team support and area denial",
+      "items": ["Pulse Rifle", "Sentry Gun", "Med Kit", "Grenade Launcher"]
+    }
+  },
+
+  "equipment_availability": {
+    "starting_equipment": "All soldiers begin with Pulse Rifle and standard Combat Armor",
+    "requisition_system": "Spend Requisition Points between missions to acquire new equipment",
+    "requisition_points_earned": "1-3 RP per successful mission based on performance",
+    "equipment_loss": "Soldiers killed in action lose all equipped items unless recovered"
+  }
+}

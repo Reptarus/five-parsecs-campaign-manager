@@ -1,0 +1,266 @@
+{
+  "bug_enemies": [
+    {
+      "name": "Worker Bug",
+      "enemy_type": "Bug",
+      "classification": "Basic Drone",
+      "combat_skill": "+0",
+      "toughness": 3,
+      "speed": "5\"",
+      "reactions": 1,
+      "armor_save": null,
+      "weapons": ["Claws"],
+      "special_abilities": [
+        {
+          "name": "Swarm Tactics",
+          "effect": "When 3+ Worker Bugs are within 2\" of same target, they gain +1 to hit"
+        },
+        {
+          "name": "Expendable",
+          "effect": "Other bugs ignore morale checks when Workers are killed"
+        }
+      ],
+      "ai_behavior": "Move towards nearest soldier. Always charges if within 8\".",
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt",
+      "deployment_points": 1
+    },
+    {
+      "name": "Soldier Bug",
+      "enemy_type": "Bug",
+      "classification": "Combat Variant",
+      "combat_skill": "+1",
+      "toughness": 4,
+      "speed": "5\"",
+      "reactions": 2,
+      "armor_save": 6,
+      "weapons": ["Heavy Claws", "Mandibles"],
+      "special_abilities": [
+        {
+          "name": "Armored Carapace",
+          "effect": "6+ armor save due to thick chitin plates"
+        },
+        {
+          "name": "Rending Strike",
+          "effect": "On a natural 6 to hit in melee, deals +1 damage"
+        },
+        {
+          "name": "Coordinated Attack",
+          "effect": "Can perform move and charge in same activation"
+        }
+      ],
+      "ai_behavior": "Prioritizes engaged targets. Uses cover if available. Charges when within 6\".",
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt",
+      "deployment_points": 2
+    },
+    {
+      "name": "Hunter Bug",
+      "enemy_type": "Bug",
+      "classification": "Stalker",
+      "combat_skill": "+2",
+      "toughness": 3,
+      "speed": "6\"",
+      "reactions": 3,
+      "armor_save": null,
+      "weapons": ["Piercing Claws"],
+      "special_abilities": [
+        {
+          "name": "Stealth",
+          "effect": "Cannot be detected by Motion Tracker until it attacks or moves within 6\" of a soldier"
+        },
+        {
+          "name": "Ambush Predator",
+          "effect": "First attack each battle is made with +2 to hit if attacking from cover or concealment"
+        },
+        {
+          "name": "Swift",
+          "effect": "Can disengage from melee without penalty"
+        }
+      ],
+      "ai_behavior": "Stalks isolated targets. Attacks from flanks. Withdraws if outnumbered.",
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt",
+      "deployment_points": 3
+    },
+    {
+      "name": "Spitter Bug",
+      "enemy_type": "Bug",
+      "classification": "Ranged Acid Attacker",
+      "combat_skill": "+1",
+      "toughness": 3,
+      "speed": "4\"",
+      "reactions": 2,
+      "armor_save": null,
+      "weapons": ["Acid Spit (12\" range, 1 damage)"],
+      "special_abilities": [
+        {
+          "name": "Acid Spit",
+          "effect": "12\" ranged attack. Ignores cover bonuses. Targets hit must pass Toughness save or take 1 additional damage"
+        },
+        {
+          "name": "Acid Pool",
+          "effect": "When killed, leaves 2\" acid pool dealing 1 damage per round to anyone in contact"
+        },
+        {
+          "name": "Area Denial",
+          "effect": "Can spray acid in 4\" cone instead of normal attack (hits all in area, no cover)"
+        }
+      ],
+      "ai_behavior": "Maintains range. Seeks high ground. Retreats if charged.",
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt",
+      "deployment_points": 2
+    },
+    {
+      "name": "Heavy Bug",
+      "enemy_type": "Bug",
+      "classification": "Tank",
+      "combat_skill": "+1",
+      "toughness": 6,
+      "speed": "4\"",
+      "reactions": 1,
+      "armor_save": 5,
+      "weapons": ["Crushing Mandibles"],
+      "special_abilities": [
+        {
+          "name": "Heavily Armored",
+          "effect": "5+ armor save. Immune to Stun effects"
+        },
+        {
+          "name": "Charge",
+          "effect": "If moves 4\"+ in straight line before melee, deals +2 damage on first attack"
+        },
+        {
+          "name": "Unstoppable",
+          "effect": "Ignores difficult terrain. Destroys cover when charging through it"
+        }
+      ],
+      "ai_behavior": "Charges shortest path to enemy. Targets groups over individuals. Never retreats.",
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt",
+      "deployment_points": 4
+    },
+    {
+      "name": "Flying Bug",
+      "enemy_type": "Bug",
+      "classification": "Aerial Threat",
+      "combat_skill": "+1",
+      "toughness": 3,
+      "speed": "8\"",
+      "reactions": 2,
+      "armor_save": null,
+      "weapons": ["Talons"],
+      "special_abilities": [
+        {
+          "name": "Flight",
+          "effect": "Ignores all terrain. Can move over other models"
+        },
+        {
+          "name": "Dive Attack",
+          "effect": "If moved 6\"+ this turn, first melee attack gains +1 to hit and +1 damage"
+        },
+        {
+          "name": "Hard to Hit",
+          "effect": "Enemies shooting at Flying Bugs suffer -1 to hit while they're airborne"
+        }
+      ],
+      "ai_behavior": "Circles above battlefield. Dives on isolated or wounded soldiers. Evades melee combat.",
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt",
+      "deployment_points": 3
+    },
+    {
+      "name": "Bug Queen",
+      "enemy_type": "Bug",
+      "classification": "Boss/Hive Commander",
+      "combat_skill": "+2",
+      "toughness": 8,
+      "speed": "5\"",
+      "reactions": 3,
+      "armor_save": 4,
+      "weapons": ["Massive Claws", "Tail Spike (8\" range)"],
+      "special_abilities": [
+        {
+          "name": "Command Aura",
+          "effect": "All bugs within 12\" gain +1 Reactions and re-roll failed morale checks"
+        },
+        {
+          "name": "Spawn Workers",
+          "effect": "At start of each round, spawns 1D3 Worker Bugs within 3\" of Queen"
+        },
+        {
+          "name": "Massive",
+          "effect": "Counts as Large model (4\" base). Immune to knockback and stunning"
+        },
+        {
+          "name": "Regeneration",
+          "effect": "Heals 1 damage at start of each round if not killed"
+        }
+      ],
+      "ai_behavior": "Protects nest. Spawns workers. Focuses attacks on highest threat. Fights to death.",
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt",
+      "deployment_points": 8
+    },
+    {
+      "name": "Infested Human",
+      "enemy_type": "Bug",
+      "classification": "Parasite Host",
+      "combat_skill": "+0",
+      "toughness": 3,
+      "speed": "5\"",
+      "reactions": 1,
+      "armor_save": null,
+      "weapons": ["Improvised Weapon", "Parasite Claws"],
+      "special_abilities": [
+        {
+          "name": "Unpredictable",
+          "effect": "Roll 1D6 at start of activation: 1-2 moves randomly, 3-4 attacks nearest target (friend or foe), 5-6 acts normally"
+        },
+        {
+          "name": "Parasite Burst",
+          "effect": "When killed, roll 1D6. On 5-6, parasite emerges and attacks nearest model (deal 1 damage, no armor save)"
+        },
+        {
+          "name": "Horrifying",
+          "effect": "Soldiers within 6\" must pass Morale check or suffer -1 to all actions this round"
+        }
+      ],
+      "ai_behavior": "Erratic movement. May attack allies. Self-preservation instinct absent.",
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt",
+      "deployment_points": 2
+    }
+  ],
+
+  "bug_deployment_rules": {
+    "standard_deployment": "Roll on Bug Type table based on deployment points available",
+    "swarm_deployment": "Primarily Worker Bugs with occasional elites (75% Workers, 25% others)",
+    "elite_deployment": "Higher proportion of Soldier, Hunter, and Heavy Bugs",
+    "hive_deployment": "Balanced mix centered around Queen (requires 15+ deployment points)",
+    "infestation_modifiers": {
+      "level_1": "Standard deployment",
+      "level_2": "+1 deployment point",
+      "level_3": "+2 deployment points, minimum 1 Soldier Bug",
+      "level_4": "+3 deployment points, minimum 1 Heavy Bug",
+      "level_5": "+5 deployment points, Queen may appear"
+    }
+  },
+
+  "ai_priority_system": {
+    "description": "Bug AI uses simple priority-based system",
+    "priorities": [
+      "1. Wounded soldiers (below 50% health)",
+      "2. Isolated soldiers (more than 4\" from allies)",
+      "3. Soldiers carrying objective items",
+      "4. Nearest soldier",
+      "5. Random soldier"
+    ],
+    "special_behaviors": {
+      "queen_present": "All bugs prioritize protecting Queen and staying within command aura",
+      "hive_threatened": "Bugs become more aggressive, gain +1 Speed",
+      "squad_broken": "If 50%+ bugs killed, remaining bugs make morale check or flee"
+    }
+  }
+}
