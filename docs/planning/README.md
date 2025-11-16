@@ -64,6 +64,19 @@ This directory contains comprehensive planning for implementing Five Parsecs exp
 
 ## 📂 Data Reorganization
 
+### Core Rules Overview
+
+The base Five Parsecs from Home game includes:
+- **4-Phase Campaign Turn**: Travel → World → Battle → Post-Battle
+- **8 Crew Tasks**: Find Patron, Train, Trade, Recruit, Explore, Track, Repair, Decoy
+- **14 Post-Battle Steps**: Complete campaign management cycle
+- **3 Core Species**: Human, Swift, Soulless
+- **100-entry tables**: Trade Table, Exploration Table, Loot Table
+- **Patron System**: 6 Patron types with jobs, benefits, hazards
+- **Rivals System**: Persistent enemies across planets
+- **Quest System**: Multi-stage story missions
+- **Starship Management**: Hull, debt, fuel, upgrades
+
 ### Current State
 ```
 /data/RulesReference/

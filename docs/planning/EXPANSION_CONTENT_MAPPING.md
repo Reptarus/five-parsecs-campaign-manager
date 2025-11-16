@@ -8,41 +8,147 @@
 
 ## Core Game (Base - Always Available)
 
-### Species
-- Human
-- Swift
-- Soulless
+### Campaign Turn Structure
 
-### Campaign Types
-- Standard Campaign
-- Four phases (Travel, World, Battle, Post-Battle)
+**The Four Phases:**
 
-### Missions (Core)
-- Patrol missions
-- Defense missions
-- Basic patron jobs
-- Basic opportunity missions
+1. **TRAVEL PHASE**
+   - Flee Invasion (if world is being invaded)
+   - Decide whether to travel to new world
+   - Starship travel event (if traveling)
+   - New world arrival steps
+
+2. **WORLD PHASE** (6 Steps)
+   1. **Upkeep and Ship Repairs** (1 credit per crew member)
+   2. **Assign and Resolve Crew Tasks** (8 available):
+      - Find a Patron
+      - Train (+1 XP)
+      - Trade (roll on 100-entry Trade Table)
+      - Recruit (hire new crew)
+      - Explore (roll on 100-entry Exploration Table)
+      - Track (hunt Rivals)
+      - Repair Your Kit (fix damaged items)
+      - Decoy (avoid Rival tracking)
+   3. **Determine Job Offers** (if Patron found)
+   4. **Assign Equipment** (gear up crew)
+   5. **Resolve any Rumors** (Quest progression)
+   6. **Choose Your Battle** (select mission)
+
+3. **BATTLE PHASE**
+   - Determine Deployment Conditions
+   - Determine the Objective
+   - Determine the Enemy
+   - Set up the Battlefield
+   - Fight tactical tabletop battle
+
+4. **POST-BATTLE PHASE** (14 Steps)
+   1. Resolve Rival Status
+   2. Resolve Patron Status
+   3. Determine Quest Progress
+   4. Get Paid (1D6 credits)
+   5. Battlefield Finds (D100 table)
+   6. Check for Invasion!
+   7. Gather the Loot (Loot Table)
+   8. Determine Injuries and Recovery
+   9. Experience and Character Upgrades
+   10. Invest in Advanced Training
+   11. Purchase Items
+   12. Roll for a Campaign Event
+   13. Roll for a Character Event
+   14. Check for Galactic War Progress
+
+### Core Species
+- **Human** (versatile, no modifiers)
+- **Swift** (fast, +1" movement)
+- **Soulless** (engineered, immune to panic)
+
+### Character Creation
+- **Backgrounds** (12+ types): Military, Colonist, Technician, etc.
+- **Motivations**: Personal goals driving the character
+- **Classes** (8 types): Soldier, Mercenary, Scavenger, Medic, Hacker, Engineer, Psyker, Diplomat
+- **Skills**: Combat Skill, Toughness, Savvy, Reactions, Speed
+- **Experience System**: Earn XP, spend to upgrade abilities
+- **Equipment Loadout**: Weapons, armor, gear
+
+### Mission Types (Core)
+- **Patron Jobs** (6 Patron types):
+  - Corporation
+  - Local Government
+  - Sector Government
+  - Wealthy Individual
+  - Private Organization
+  - Secretive Group
+- **Opportunity Missions** (random encounters)
+- **Quest Missions** (multi-stage story missions with Rumors)
+- **Rival Encounters** (personal vendettas)
+- **Invasion Battles** (Galactic War threat)
 
 ### Enemies (Core)
-- Pirates
-- Raiders
-- Mercenaries
-- Corporate Security
-- Basic alien fauna
+- **Criminal Elements**: Pirates, Gangers, Raiders
+- **Hired Guns**: Mercenaries, Corporate Security
+- **Alien Fauna**: Various hostile creatures
+- **Unique Individuals** (Boss enemies)
+- **Roving Threats** (random dangerous encounters)
 
 ### Equipment (Core)
-- Handguns
-- Shotguns
-- Rifles
-- Blades
-- Basic armor
-- Standard gear
 
-### World Features (Core)
-- Basic world generation
-- Standard locations
-- Core faction relationships
-- Basic trading
+**Weapons:**
+- **Low-Tech**: Handgun, Shotgun, Blade, Colony Rifle
+- **Military**: Auto Rifle, Blast Pistol, Glare Sword
+- **High-Tech**: Beam weapons, advanced firearms
+
+**Armor:**
+- Battle armor
+- Flak screens
+- Shields
+
+**Gear:**
+- Med-packs, Stim-packs
+- Grenades (Frakk, Dazzle)
+- Consumables
+
+**Gadgets:**
+- Laser Sight, Bipod, Beam Light
+- Tech devices
+
+### Economy System
+- **Credits** (primary currency)
+- **Trade Table** (100 entries for random goods)
+- **Loot Tables** (post-battle rewards)
+- **Ship Upkeep** (1 credit per crew member per turn)
+- **Fuel Costs** (starship travel)
+- **Equipment Purchase** (various price points)
+
+### World System
+- **Planetary Travel** (jump between star systems)
+- **World Generation** (procedural world creation)
+- **Exploration Table** (100 entries for exploring)
+- **Story Points** (campaign meta-currency for rerolls)
+- **Factions** (various organizations and relationships)
+
+### Rivals System
+- **Persistent Enemies**: Enemies that hold grudges
+- **Rival Tracking**: Hunt down or be hunted
+- **Rival Resolution**: Settle scores or flee planet
+
+### Patrons System
+- **Job Offers**: Danger Pay, Benefits, Hazards, Conditions
+- **Time Frames**: Mission deadlines
+- **Patron Relationships**: Build contacts on planets
+- **Persistent Patrons**: Some follow you to new worlds
+
+### Starship System
+- **Hull Points** (ship health)
+- **Ship Debt** (starting debt to pay off)
+- **Fuel Costs** (travel expenses)
+- **Ship Upgrades** (components and improvements)
+- **Repairs** (fix hull damage)
+
+### Quest System
+- **Quest Missions** (multi-stage story arcs)
+- **Quest Rumors** (clues to progress quests)
+- **Quest Finale** (climactic final battle)
+- **Quest Rewards** (enhanced loot and XP)
 
 ---
 

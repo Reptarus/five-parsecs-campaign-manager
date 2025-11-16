@@ -39,36 +39,98 @@ Each expansion will be:
 
 ### Core Game (Always Available)
 
-**Campaign System:**
-- Standard campaign type
-- Four campaign phases (Travel, World, Battle, Post-Battle)
-- Basic crew management
-- Ship mechanics
-- Core enemy types
+Based on the official Five Parsecs from Home rulebook, the core game includes:
+
+**Campaign Turn Structure (4 Phases):**
+
+1. **TRAVEL PHASE**
+   - Flee Invasion (if applicable)
+   - Decide whether to travel
+   - Starship travel event (if traveling)
+   - New world arrival steps
+
+2. **WORLD PHASE** (6 Steps)
+   1. Upkeep and Ship Repairs
+   2. Assign and Resolve Crew Tasks (8 tasks available):
+      - **Find a Patron** (seek job offers)
+      - **Train** (earn +1 XP)
+      - **Trade** (roll on Trade Table)
+      - **Recruit** (hire new crew members)
+      - **Explore** (roll on Exploration Table)
+      - **Track** (hunt down Rivals)
+      - **Repair Your Kit** (fix damaged equipment)
+      - **Decoy** (avoid being tracked by Rivals)
+   3. Determine Job Offers (Patron jobs)
+   4. Assign Equipment
+   5. Resolve any Rumors (Quest progression)
+   6. Choose Your Battle
+
+3. **BATTLE PHASE** (4 Steps)
+   1. Determine Deployment Conditions
+   2. Determine the Objective
+   3. Determine the Enemy
+   4. Set up the Battlefield
+   - Fight the Battle (tactical combat)
+
+4. **POST-BATTLE PHASE** (14 Steps)
+   1. Resolve Rival Status
+   2. Resolve Patron Status
+   3. Determine Quest Progress
+   4. Get Paid (1D6 credits base)
+   5. Battlefield Finds (D100 table)
+   6. Check for Invasion!
+   7. Gather the Loot (Loot Table)
+   8. Determine Injuries and Recovery
+   9. Experience and Character Upgrades
+   10. Invest in Advanced Training
+   11. Purchase Items
+   12. Roll for a Campaign Event
+   13. Roll for a Character Event
+   14. Check for Galactic War Progress
 
 **Character System:**
-- Human species (base)
-- Basic backgrounds and motivations
-- Core skills and abilities
-- Standard character progression
+- Human species (core), Swift, Soulless
+- Backgrounds (12+ types)
+- Motivations (personal goals)
+- Classes (8 types: Soldier, Mercenary, Scavenger, etc.)
+- Skills and abilities progression via XP
+- Equipment loadouts
 
 **Combat System:**
-- D6 dice mechanics
-- Basic mission types (patrol, defense)
-- Core enemy deployment
-- Standard difficulty
+- D6-based tabletop wargame combat
+- Movement, actions, reactions
+- Cover and terrain rules
+- Weapons: Low-Tech, Military, High-Tech categories
+- Gear and gadgets
+- Bot companions
 
 **Economy:**
-- Credits and trading
-- Basic equipment shop
-- Core loot tables
-- Ship maintenance
+- Credits (currency)
+- Trade Table (100 entries)
+- Equipment purchase system
+- Ship upkeep costs
+- Loot system with multiple tables
+
+**Mission Types (Core):**
+- Patron jobs (6 Patron types: Corporation, Government, etc.)
+- Opportunity missions
+- Quest missions (multi-stage story missions)
+- Rival encounters
+- Invasion battles (Galactic War)
 
 **World System:**
-- Basic world generation
-- Core location types
-- Simple faction relationships
-- Standard world events
+- Planetary travel
+- World generation (procedural)
+- Exploration Table (100 entries)
+- Rivals (persistent enemies)
+- Patrons (job-givers with relationships)
+- Story Points (campaign currency)
+
+**Starship System:**
+- Hull Points (ship health)
+- Ship debt
+- Fuel costs
+- Ship upgrades and components
 
 ### Expansion Content (Currently Mixed In)
 
