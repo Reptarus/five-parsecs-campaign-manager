@@ -1,0 +1,90 @@
+{
+  "species": [
+    {
+      "name": "Krag",
+      "playable": true,
+      "description": "Stocky, belligerent humanoids known for their aggressive nature and tough constitution. Krag society values strength and direct action above all else.",
+      "homeworld": "Krag diaspora (no unified homeworld)",
+      "traits": [
+        "Belligerent: Prone to aggression and conflict",
+        "Tough: Enhanced physical durability",
+        "Short-legged: Reduced movement speed"
+      ],
+      "starting_bonus": "+1 Toughness, -1\" Movement",
+      "dlc_required": "trailblazers_toolkit",
+      "source": "trailblazers_toolkit",
+      "base_profile": {
+        "reactions": 1,
+        "speed": "3\"",
+        "combat_skill": "+0",
+        "toughness": 4,
+        "savvy": "+0"
+      },
+      "special_rules": [
+        {
+          "name": "Famous Belligerence",
+          "description": "Krag characters are prone to conflict",
+          "mechanical_effect": "When rolling for Rivals, may reroll a natural 1 once per character. However, if creation rolls generate a Krag with one or more Rivals, add an additional Rival."
+        },
+        {
+          "name": "Combat Readiness",
+          "description": "Always ready for a fight",
+          "mechanical_effect": "If getting into a fight or argument, it will always be a Krag that gets involved (player choice if multiple Krag)."
+        },
+        {
+          "name": "Krag-Armor",
+          "description": "Specialized armor designed for Krag physiology",
+          "mechanical_effect": "When acquiring armor, may be selected to be Krag-armor or not. Krag-armor is designed to fit Krag bodies and cannot be worn by other species."
+        },
+        {
+          "name": "Movement Limitation",
+          "description": "Short, stocky build limits mobility",
+          "mechanical_effect": "Movement is reduced by 1\" (base 3\" instead of standard 4\")."
+        }
+      ]
+    },
+    {
+      "name": "Skulker",
+      "playable": true,
+      "description": "Agile, rodent-like humanoids with enhanced senses and natural stealth capabilities. Skulkers are known for their quick reflexes and survival instincts.",
+      "homeworld": "Various underground colonies",
+      "traits": [
+        "Agile: Enhanced speed and mobility",
+        "Keen Senses: Superior detection abilities",
+        "Biological Resistance: Natural immunity to certain effects"
+      ],
+      "starting_bonus": "+1\" Movement, Biological Resistance",
+      "dlc_required": "trailblazers_toolkit",
+      "source": "trailblazers_toolkit",
+      "base_profile": {
+        "reactions": 1,
+        "speed": "5\"",
+        "combat_skill": "+0",
+        "toughness": 3,
+        "savvy": "+0"
+      },
+      "special_rules": [
+        {
+          "name": "Enhanced Mobility",
+          "description": "Natural agility grants increased movement",
+          "mechanical_effect": "Movement is increased by 1\" (base 5\" instead of standard 4\")."
+        },
+        {
+          "name": "Biological Resistance",
+          "description": "Natural resistance to toxins and biological effects",
+          "mechanical_effect": "Ignore effects from biological weapons, toxins, and disease. Immune to certain consumable negative effects."
+        },
+        {
+          "name": "Keen Senses",
+          "description": "Enhanced perception",
+          "mechanical_effect": "+1 to detection rolls and awareness checks during Exploration and stealth missions."
+        },
+        {
+          "name": "Skittish",
+          "description": "Quick to flee danger",
+          "mechanical_effect": "If forced to make a morale check, -1 to the roll. However, may re-roll failed initiative checks once per battle."
+        }
+      ]
+    }
+  ]
+}

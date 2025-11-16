@@ -1,0 +1,254 @@
+{
+  "psionic_powers": [
+    {
+      "name": "Barrier",
+      "description": "Create a protective energy field that intercepts incoming attacks. When successfully activated, negates ranged hits on a target on a roll of 4+ on 1D6.",
+      "target_type": "any",
+      "range": "line_of_sight",
+      "persists": true,
+      "affects_robotic": true,
+      "dlc_required": "trailblazers_toolkit",
+      "source": "trailblazers_toolkit",
+      "cost": 3,
+      "difficulty": "basic",
+      "activation": {
+        "type": "combat_action",
+        "activation_roll": "4+",
+        "duration": "Until caster's next activation"
+      },
+      "effects": [
+        {
+          "name": "Deflection",
+          "description": "Each ranged hit on protected target must roll 4+ or is negated"
+        }
+      ]
+    },
+    {
+      "name": "Grab",
+      "description": "Psionically seize and immobilize a target, holding them in place through mental force.",
+      "target_type": "enemy",
+      "range": "12\"",
+      "persists": true,
+      "affects_robotic": true,
+      "dlc_required": "trailblazers_toolkit",
+      "source": "trailblazers_toolkit",
+      "cost": 4,
+      "difficulty": "intermediate",
+      "activation": {
+        "type": "combat_action",
+        "activation_roll": "5+",
+        "duration": "Until target passes Savvy test or caster releases"
+      },
+      "effects": [
+        {
+          "name": "Immobilization",
+          "description": "Target cannot move but may still attack with -1 Combat Skill. May attempt Savvy test each round to break free."
+        }
+      ]
+    },
+    {
+      "name": "Lift",
+      "description": "Telekinetically lift and move objects or creatures through the air.",
+      "target_type": "any",
+      "range": "line_of_sight",
+      "persists": true,
+      "affects_robotic": true,
+      "dlc_required": "trailblazers_toolkit",
+      "source": "trailblazers_toolkit",
+      "cost": 5,
+      "difficulty": "intermediate",
+      "activation": {
+        "type": "combat_action",
+        "activation_roll": "5+",
+        "duration": "Concentration (caster cannot take other actions)"
+      },
+      "effects": [
+        {
+          "name": "Levitation",
+          "description": "Move target up to 4\" in any direction, including vertical. Can move target over obstacles or terrain."
+        },
+        {
+          "name": "Environmental Manipulation",
+          "description": "Can be used to move objects, create barriers, or reposition terrain elements."
+        }
+      ]
+    },
+    {
+      "name": "Push",
+      "description": "Generate a powerful telekinetic shove that knocks targets backwards.",
+      "target_type": "enemy",
+      "range": "8\"",
+      "persists": false,
+      "affects_robotic": true,
+      "dlc_required": "trailblazers_toolkit",
+      "source": "trailblazers_toolkit",
+      "cost": 3,
+      "difficulty": "basic",
+      "activation": {
+        "type": "combat_action",
+        "activation_roll": "4+",
+        "duration": "Instant"
+      },
+      "effects": [
+        {
+          "name": "Knockback",
+          "description": "Push target 1D6\" directly away from caster. If target impacts terrain or another figure, both take 1 damage."
+        },
+        {
+          "name": "Stunning",
+          "description": "Target must make Reactions test or lose next activation."
+        }
+      ]
+    },
+    {
+      "name": "Sever",
+      "description": "Project a blade of pure psionic energy to cut through matter and minds alike.",
+      "target_type": "enemy",
+      "range": "6\"",
+      "persists": false,
+      "affects_robotic": true,
+      "dlc_required": "trailblazers_toolkit",
+      "source": "trailblazers_toolkit",
+      "cost": 5,
+      "difficulty": "advanced",
+      "activation": {
+        "type": "combat_action",
+        "activation_roll": "5+",
+        "duration": "Instant"
+      },
+      "effects": [
+        {
+          "name": "Psionic Damage",
+          "description": "Make attack roll using Savvy instead of Combat Skill. On hit, target takes 1D6 damage that ignores armor."
+        },
+        {
+          "name": "Mental Strain",
+          "description": "Organic targets that survive must pass Savvy test or suffer -1 to all rolls next round."
+        }
+      ]
+    },
+    {
+      "name": "Shielding",
+      "description": "Envelope yourself in a protective aura of psionic energy.",
+      "target_type": "self",
+      "range": "self",
+      "persists": true,
+      "affects_robotic": false,
+      "dlc_required": "trailblazers_toolkit",
+      "source": "trailblazers_toolkit",
+      "cost": 4,
+      "difficulty": "intermediate",
+      "activation": {
+        "type": "combat_action",
+        "activation_roll": "4+",
+        "duration": "Until caster's next activation"
+      },
+      "effects": [
+        {
+          "name": "Personal Force Field",
+          "description": "Grants 5+ armor save that stacks with worn armor. If already have armor, improve save by 1 (5+ becomes 4+, etc.)"
+        }
+      ]
+    },
+    {
+      "name": "Step",
+      "description": "Instantly teleport to a nearby location through psionic means.",
+      "target_type": "self",
+      "range": "self",
+      "persists": false,
+      "affects_robotic": false,
+      "dlc_required": "trailblazers_toolkit",
+      "source": "trailblazers_toolkit",
+      "cost": 6,
+      "difficulty": "advanced",
+      "activation": {
+        "type": "movement_action",
+        "activation_roll": "5+",
+        "duration": "Instant"
+      },
+      "effects": [
+        {
+          "name": "Teleportation",
+          "description": "Immediately move to any location within line of sight and 8\" range. Ignore terrain and obstacles. Cannot teleport into occupied space."
+        },
+        {
+          "name": "Disorienting Exit",
+          "description": "Enemies within 2\" of departure point must pass Savvy test or suffer -1 Reactions next round."
+        }
+      ]
+    },
+    {
+      "name": "Stun",
+      "description": "Overwhelm a target's nervous system with psionic energy, temporarily incapacitating them.",
+      "target_type": "enemy",
+      "range": "line_of_sight",
+      "persists": true,
+      "affects_robotic": false,
+      "dlc_required": "trailblazers_toolkit",
+      "source": "trailblazers_toolkit",
+      "cost": 4,
+      "difficulty": "intermediate",
+      "activation": {
+        "type": "combat_action",
+        "activation_roll": "6+",
+        "duration": "1D3 rounds or until damage taken"
+      },
+      "effects": [
+        {
+          "name": "Incapacitation",
+          "description": "Target cannot move or take actions. Automatically affected by any attack (no roll to hit needed). Taking any damage breaks the stun."
+        }
+      ]
+    },
+    {
+      "name": "Suggestion",
+      "description": "Implant a subtle mental command that influences a target's actions.",
+      "target_type": "enemy",
+      "range": "12\"",
+      "persists": true,
+      "affects_robotic": false,
+      "dlc_required": "trailblazers_toolkit",
+      "source": "trailblazers_toolkit",
+      "cost": 7,
+      "difficulty": "advanced",
+      "activation": {
+        "type": "combat_action",
+        "activation_roll": "7+",
+        "duration": "1 round or until target takes damage"
+      },
+      "effects": [
+        {
+          "name": "Mind Control",
+          "description": "Target must obey one simple command: 'move here', 'attack that target', 'drop weapon', etc. Target acts on caster's initiative. Savvy test to resist at -2."
+        }
+      ]
+    },
+    {
+      "name": "Weaken",
+      "description": "Sap an enemy's strength and vitality through psionic drain.",
+      "target_type": "enemy",
+      "range": "line_of_sight",
+      "persists": true,
+      "affects_robotic": false,
+      "dlc_required": "trailblazers_toolkit",
+      "source": "trailblazers_toolkit",
+      "cost": 4,
+      "difficulty": "intermediate",
+      "activation": {
+        "type": "combat_action",
+        "activation_roll": "5+",
+        "duration": "1D3 rounds"
+      },
+      "effects": [
+        {
+          "name": "Attribute Reduction",
+          "description": "Reduce target's Toughness by 1 (minimum 1) and Combat Skill by 1 for duration."
+        },
+        {
+          "name": "Cumulative Effect",
+          "description": "Multiple Weaken effects on same target stack (max -2 to each attribute)."
+        }
+      ]
+    }
+  ]
+}

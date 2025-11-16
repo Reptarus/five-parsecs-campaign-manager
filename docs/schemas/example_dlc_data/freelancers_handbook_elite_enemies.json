@@ -1,0 +1,266 @@
+{
+  "elite_enemies": [
+    {
+      "name": "Elite Mercenary",
+      "enemy_type": "Mercenary",
+      "combat_skill": "+2",
+      "toughness": 4,
+      "speed": "5\"",
+      "reactions": 2,
+      "weapons": ["Auto Rifle", "Blade"],
+      "special_abilities": [
+        {
+          "name": "Combat Veteran",
+          "effect": "Re-roll one failed to-hit roll per activation"
+        },
+        {
+          "name": "Tactical Positioning",
+          "effect": "May move 2\" after making a ranged attack instead of standard 1\""
+        }
+      ],
+      "dlc_required": "freelancers_handbook",
+      "source": "freelancers_handbook",
+      "deployment_points": 3
+    },
+    {
+      "name": "Corporate Enforcer",
+      "enemy_type": "Corporate Security",
+      "combat_skill": "+1",
+      "toughness": 5,
+      "speed": "4\"",
+      "reactions": 2,
+      "weapons": ["Blast Pistol", "Glare Sword"],
+      "special_abilities": [
+        {
+          "name": "Heavy Armor",
+          "effect": "4+ armor save due to corporate combat suit"
+        },
+        {
+          "name": "Corporate Resources",
+          "effect": "If killed, roll 1D6. On 6, reinforcements arrive (add 1 additional Corporate Security enemy next round)"
+        }
+      ],
+      "dlc_required": "freelancers_handbook",
+      "source": "freelancers_handbook",
+      "deployment_points": 4
+    },
+    {
+      "name": "Veteran Raider",
+      "enemy_type": "Raider",
+      "combat_skill": "+1",
+      "toughness": 4,
+      "speed": "5\"",
+      "reactions": 2,
+      "weapons": ["Shotgun", "Blade"],
+      "special_abilities": [
+        {
+          "name": "Aggressive Tactics",
+          "effect": "If within 6\" of crew member at start of activation, must charge into brawling combat"
+        },
+        {
+          "name": "Fearless",
+          "effect": "Never makes morale checks, automatically passes panic tests"
+        }
+      ],
+      "dlc_required": "freelancers_handbook",
+      "source": "freelancers_handbook",
+      "deployment_points": 2
+    },
+    {
+      "name": "Alien Hunter",
+      "enemy_type": "Bounty Hunter",
+      "combat_skill": "+2",
+      "toughness": 3,
+      "speed": "6\"",
+      "reactions": 3,
+      "weapons": ["Hunting Rifle", "Blade"],
+      "special_abilities": [
+        {
+          "name": "Tracking Expert",
+          "effect": "Ignores cover bonuses when shooting at targets within 12\""
+        },
+        {
+          "name": "Trophy Hunter",
+          "effect": "Gains +1 to hit against any character that has killed another enemy this battle"
+        },
+        {
+          "name": "Quick Draw",
+          "effect": "May fire immediately when activated, before moving"
+        }
+      ],
+      "dlc_required": "freelancers_handbook",
+      "source": "freelancers_handbook",
+      "deployment_points": 4
+    },
+    {
+      "name": "Psionic Adept",
+      "enemy_type": "Psyker",
+      "combat_skill": "+0",
+      "toughness": 3,
+      "speed": "4\"",
+      "reactions": 2,
+      "weapons": ["Handgun"],
+      "special_abilities": [
+        {
+          "name": "Psionic Powers",
+          "effect": "Knows 2 random psionic powers (requires Trailblazer's Toolkit). If TT not owned, replace with +1 Combat Skill and Hand Cannon."
+        },
+        {
+          "name": "Mental Fortitude",
+          "effect": "Immune to Stun and Suggestion psionic powers"
+        }
+      ],
+      "dlc_required": "freelancers_handbook",
+      "source": "freelancers_handbook",
+      "deployment_points": 5,
+      "cross_dlc_content": {
+        "requires_tt_for_full_effect": true,
+        "fallback_profile": {
+          "combat_skill": "+1",
+          "weapons": ["Hand Cannon"]
+        }
+      }
+    },
+    {
+      "name": "Converted Leader",
+      "enemy_type": "Converted",
+      "combat_skill": "+1",
+      "toughness": 5,
+      "speed": "4\"",
+      "reactions": 1,
+      "weapons": ["Auto Rifle"],
+      "special_abilities": [
+        {
+          "name": "Cybernetic Enhancement",
+          "effect": "5+ armor save from built-in plating"
+        },
+        {
+          "name": "Hive Mind",
+          "effect": "All Converted enemies within 6\" gain +1 Reactions"
+        },
+        {
+          "name": "Relentless",
+          "effect": "Ignore first casualty result, treat as Knocked Out instead"
+        }
+      ],
+      "dlc_required": "freelancers_handbook",
+      "source": "freelancers_handbook",
+      "deployment_points": 4
+    },
+    {
+      "name": "K'Erin Warrior Elite",
+      "enemy_type": "K'Erin",
+      "combat_skill": "+2",
+      "toughness": 5,
+      "speed": "5\"",
+      "reactions": 2,
+      "weapons": ["Glare Sword", "Blast Pistol"],
+      "special_abilities": [
+        {
+          "name": "Honor Duel",
+          "effect": "If engaged in brawl, K'Erin Warrior Elite rolls 3 dice and picks best two"
+        },
+        {
+          "name": "Warrior Pride",
+          "effect": "Cannot voluntarily leave combat once engaged. Gains +1 Combat Skill if outnumbered in brawl"
+        },
+        {
+          "name": "Battle Cry",
+          "effect": "All K'Erin enemies within 8\" gain +1 to morale checks"
+        }
+      ],
+      "dlc_required": "freelancers_handbook",
+      "source": "freelancers_handbook",
+      "deployment_points": 5
+    },
+    {
+      "name": "Pirate Captain",
+      "enemy_type": "Pirate",
+      "combat_skill": "+2",
+      "toughness": 4,
+      "speed": "5\"",
+      "reactions": 3,
+      "weapons": ["Hand Cannon", "Boarding Axe"],
+      "special_abilities": [
+        {
+          "name": "Leadership",
+          "effect": "All Pirate enemies within 8\" gain +1 to hit rolls"
+        },
+        {
+          "name": "Ruthless",
+          "effect": "May execute friendly pirate within 2\" to automatically pass morale check for all pirates"
+        },
+        {
+          "name": "Lucky",
+          "effect": "Has 1 Luck point (can avoid one fatal injury)"
+        }
+      ],
+      "dlc_required": "freelancers_handbook",
+      "source": "freelancers_handbook",
+      "deployment_points": 6
+    },
+    {
+      "name": "Assault Bot Elite",
+      "enemy_type": "Bot",
+      "combat_skill": "+1",
+      "toughness": 5,
+      "speed": "4\"",
+      "reactions": 3,
+      "weapons": ["Heavy Machine Gun"],
+      "special_abilities": [
+        {
+          "name": "Heavy Plating",
+          "effect": "4+ armor save"
+        },
+        {
+          "name": "Targeting Matrix",
+          "effect": "Ignores penalties for shooting while moving"
+        },
+        {
+          "name": "Automated Repair",
+          "effect": "At start of each round, roll 1D6. On 5+, heal 1 damage"
+        },
+        {
+          "name": "No Pain",
+          "effect": "Immune to Stun markers and panic"
+        }
+      ],
+      "dlc_required": "freelancers_handbook",
+      "source": "freelancers_handbook",
+      "deployment_points": 5
+    },
+    {
+      "name": "Feral Pack Alpha",
+      "enemy_type": "Feral",
+      "combat_skill": "+2",
+      "toughness": 4,
+      "speed": "6\"",
+      "reactions": 2,
+      "weapons": ["Claws", "Handgun"],
+      "special_abilities": [
+        {
+          "name": "Pack Leader",
+          "effect": "All Feral enemies within 6\" may re-roll failed initiative checks"
+        },
+        {
+          "name": "Primal Fury",
+          "effect": "When in brawl, gains +1 Combat Skill for each friendly Feral within 2\""
+        },
+        {
+          "name": "Enhanced Senses",
+          "effect": "Cannot be surprised, always acts in Quick Actions phase"
+        }
+      ],
+      "dlc_required": "freelancers_handbook",
+      "source": "freelancers_handbook",
+      "deployment_points": 4
+    }
+  ],
+
+  "elite_enemy_deployment_rules": {
+    "standard_replacement": "When rolling for enemy types, may replace one standard enemy with elite version by spending +1 deployment point per elite",
+    "elite_only_battles": "For maximum challenge, all enemies can be elite versions (multiply deployment points by 1.5x)",
+    "mixed_squads": "For balanced challenge, 1 elite per 3 standard enemies",
+    "boss_battles": "Single elite enemy with +50% deployment points can serve as mission boss"
+  }
+}

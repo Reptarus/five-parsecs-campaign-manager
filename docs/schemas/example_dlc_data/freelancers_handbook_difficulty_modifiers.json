@@ -1,0 +1,197 @@
+{
+  "difficulty_modifiers": [
+    {
+      "name": "Brutal Foes",
+      "category": "enemy_strength",
+      "effect": "Enemy forces are tougher and more resilient than usual",
+      "mechanical_changes": {
+        "enemy_toughness": 1
+      },
+      "dlc_required": "freelancers_handbook",
+      "source": "freelancers_handbook",
+      "stackable": true,
+      "description": "All enemies gain +1 Toughness. This represents facing battle-hardened opponents or genetically enhanced soldiers."
+    },
+    {
+      "name": "Larger Battles",
+      "category": "battle_size",
+      "effect": "Encounter significantly more enemies in each battle",
+      "mechanical_changes": {
+        "deployment_points_multiplier": 1.25
+      },
+      "dlc_required": "freelancers_handbook",
+      "source": "freelancers_handbook",
+      "stackable": false,
+      "description": "Increase deployment points by 25%. Your crew will face larger enemy forces in every encounter."
+    },
+    {
+      "name": "Veteran Opposition",
+      "category": "enemy_strength",
+      "effect": "Enemies are more skilled in combat",
+      "mechanical_changes": {
+        "enemy_combat_skill": 1
+      },
+      "dlc_required": "freelancers_handbook",
+      "source": "freelancers_handbook",
+      "stackable": true,
+      "description": "All enemies gain +1 Combat Skill. Face off against seasoned veterans and crack troops."
+    },
+    {
+      "name": "Elite Foes",
+      "category": "enemy_strength",
+      "effect": "Replace standard enemies with elite variants whenever possible",
+      "mechanical_changes": {
+        "elite_replacement_rate": 0.5
+      },
+      "dlc_required": "freelancers_handbook",
+      "source": "freelancers_handbook",
+      "stackable": false,
+      "description": "50% of enemies are replaced with elite versions (if available). Significantly increases difficulty and tactical challenge."
+    },
+    {
+      "name": "Desperate Combat",
+      "category": "danger",
+      "effect": "Injuries are more severe and frequent",
+      "mechanical_changes": {
+        "injury_roll_modifier": -2
+      },
+      "dlc_required": "freelancers_handbook",
+      "source": "freelancers_handbook",
+      "stackable": true,
+      "description": "Subtract 2 from all injury table rolls, making serious injuries and death more likely. Medical costs increase."
+    },
+    {
+      "name": "Scarcity",
+      "category": "rewards",
+      "effect": "Reduced loot and payment from battles",
+      "mechanical_changes": {
+        "loot_multiplier": 0.75
+      },
+      "dlc_required": "freelancers_handbook",
+      "source": "freelancers_handbook",
+      "stackable": false,
+      "description": "Reduce all credit rewards and loot rolls by 25%. Resources are scarce on the frontier."
+    },
+    {
+      "name": "High Stakes",
+      "category": "campaign_pressure",
+      "effect": "Increased pressure from Rivals and Patrons",
+      "mechanical_changes": {
+        "rival_generation_modifier": 1,
+        "patron_time_pressure": -1
+      },
+      "dlc_required": "freelancers_handbook",
+      "source": "freelancers_handbook",
+      "stackable": false,
+      "description": "+1 to rolls for generating Rivals. Patron time frames reduced by 1 campaign turn (minimum 1). Relationships matter more."
+    },
+    {
+      "name": "Lethal Encounters",
+      "category": "danger",
+      "effect": "Critical hits are more devastating",
+      "mechanical_changes": {
+        "critical_hit_modifier": 1
+      },
+      "dlc_required": "freelancers_handbook",
+      "source": "freelancers_handbook",
+      "stackable": true,
+      "description": "Natural 6s to hit cause +1 additional damage. Combat is deadlier for both sides."
+    }
+  ],
+
+  "difficulty_presets": {
+    "story_mode": {
+      "name": "Story Mode",
+      "description": "Easier difficulty for narrative-focused play",
+      "active_modifiers": [],
+      "bonuses": [
+        "Start with +3 story points",
+        "+1 to all crew member stats",
+        "Re-roll one failed critical roll per battle"
+      ]
+    },
+    "standard": {
+      "name": "Standard",
+      "description": "Core game rules with no modifiers",
+      "active_modifiers": []
+    },
+    "challenging": {
+      "name": "Challenging",
+      "description": "Increased difficulty for experienced players",
+      "active_modifiers": ["Brutal Foes", "Larger Battles"]
+    },
+    "hardcore": {
+      "name": "Hardcore",
+      "description": "Maximum challenge for veterans",
+      "active_modifiers": ["Brutal Foes", "Veteran Opposition", "Elite Foes", "Desperate Combat", "Scarcity"],
+      "restrictions": [
+        "No crew size above 6",
+        "Cannot flee from battles",
+        "Permadeath (no resurrection mechanics)"
+      ]
+    },
+    "iron_man": {
+      "name": "Iron Man",
+      "description": "Ultimate difficulty with no safety nets",
+      "active_modifiers": ["Brutal Foes", "Veteran Opposition", "Elite Foes", "Desperate Combat", "Scarcity", "High Stakes", "Lethal Encounters"],
+      "restrictions": [
+        "No saves/reloads except campaign end",
+        "No story point re-rolls",
+        "Cannot retreat from battles",
+        "Character death is permanent",
+        "Campaign ends if all crew killed"
+      ]
+    }
+  },
+
+  "difficulty_scaling": {
+    "progressive_difficulty": {
+      "description": "Difficulty increases as campaign progresses",
+      "enabled": false,
+      "scaling_rules": [
+        {
+          "campaign_turn": 5,
+          "modifier": "Brutal Foes",
+          "auto_enable": true
+        },
+        {
+          "campaign_turn": 10,
+          "modifier": "Larger Battles",
+          "auto_enable": true
+        },
+        {
+          "campaign_turn": 15,
+          "modifier": "Veteran Opposition",
+          "auto_enable": true
+        },
+        {
+          "campaign_turn": 20,
+          "modifier": "Elite Foes",
+          "auto_enable": true
+        }
+      ]
+    },
+    "adaptive_difficulty": {
+      "description": "Difficulty adjusts based on player performance",
+      "enabled": false,
+      "rules": [
+        "After 3 consecutive victories, enable one random modifier",
+        "After 2 crew deaths, disable one active modifier",
+        "If credits exceed 50, enable 'Scarcity'",
+        "If credits below 10, disable 'Scarcity'"
+      ]
+    }
+  },
+
+  "custom_modifiers": {
+    "allow_custom": true,
+    "description": "Players can create their own difficulty modifiers",
+    "template": {
+      "name": "Custom Modifier Name",
+      "category": "Choose: enemy_strength, battle_size, rewards, danger, campaign_pressure",
+      "effect": "Description of what this modifier does",
+      "mechanical_changes": {},
+      "stackable": false
+    }
+  }
+}

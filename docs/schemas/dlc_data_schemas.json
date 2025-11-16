@@ -1,0 +1,472 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Five Parsecs DLC Content Schemas",
+  "description": "JSON schemas for all DLC content data files",
+
+  "definitions": {
+    "species": {
+      "type": "object",
+      "required": ["name", "playable", "description", "homeworld", "traits", "starting_bonus", "dlc_required"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Species name"
+        },
+        "playable": {
+          "type": "boolean",
+          "description": "Whether this species can be used for player characters"
+        },
+        "description": {
+          "type": "string",
+          "description": "Species lore and background"
+        },
+        "homeworld": {
+          "type": "string",
+          "description": "Species origin world"
+        },
+        "traits": {
+          "type": "array",
+          "description": "Special abilities and characteristics",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "starting_bonus": {
+          "type": "string",
+          "description": "Starting ability bonus or special feature"
+        },
+        "dlc_required": {
+          "type": "string",
+          "enum": ["trailblazers_toolkit", "freelancers_handbook", "fixers_guidebook", "bug_hunt", null],
+          "description": "DLC required to use this species, null for core species"
+        },
+        "source": {
+          "type": "string",
+          "enum": ["core", "trailblazers_toolkit", "freelancers_handbook", "fixers_guidebook", "bug_hunt"],
+          "description": "Source of this content"
+        },
+        "base_profile": {
+          "type": "object",
+          "properties": {
+            "reactions": { "type": "integer", "minimum": 1, "maximum": 6 },
+            "speed": { "type": "string", "pattern": "^[0-9]+\"$" },
+            "combat_skill": { "type": "string", "pattern": "^[+-][0-9]+$" },
+            "toughness": { "type": "integer", "minimum": 1, "maximum": 6 },
+            "savvy": { "type": "string", "pattern": "^[+-][0-9]+$" }
+          }
+        },
+        "special_rules": {
+          "type": "array",
+          "description": "Game mechanical rules for this species",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "description": { "type": "string" },
+              "mechanical_effect": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+
+    "psionic_power": {
+      "type": "object",
+      "required": ["name", "description", "target_type", "range", "dlc_required"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Power name"
+        },
+        "description": {
+          "type": "string",
+          "description": "What the power does"
+        },
+        "target_type": {
+          "type": "string",
+          "enum": ["self", "friendly", "enemy", "any", "terrain", "area"],
+          "description": "Who/what can be targeted"
+        },
+        "range": {
+          "type": "string",
+          "description": "Effective range (e.g., '12\"', 'line_of_sight', 'touch')"
+        },
+        "persists": {
+          "type": "boolean",
+          "description": "Whether effect lasts multiple rounds"
+        },
+        "affects_robotic": {
+          "type": "boolean",
+          "description": "Whether power works on bots/soulless"
+        },
+        "dlc_required": {
+          "type": "string",
+          "const": "trailblazers_toolkit"
+        },
+        "source": {
+          "type": "string",
+          "const": "trailblazers_toolkit"
+        },
+        "cost": {
+          "type": "integer",
+          "description": "XP cost to learn this power",
+          "minimum": 0
+        },
+        "difficulty": {
+          "type": "string",
+          "enum": ["basic", "intermediate", "advanced"],
+          "description": "Power complexity level"
+        }
+      }
+    },
+
+    "elite_enemy": {
+      "type": "object",
+      "required": ["name", "enemy_type", "combat_skill", "toughness", "weapons", "special_abilities", "dlc_required"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Elite enemy name"
+        },
+        "enemy_type": {
+          "type": "string",
+          "description": "Base enemy type (Mercenary, Pirate, etc.)"
+        },
+        "combat_skill": {
+          "type": "string",
+          "pattern": "^[+-][0-9]+$"
+        },
+        "toughness": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6
+        },
+        "speed": {
+          "type": "string",
+          "pattern": "^[0-9]+\"$"
+        },
+        "reactions": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6
+        },
+        "weapons": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "special_abilities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "effect": { "type": "string" }
+            }
+          }
+        },
+        "dlc_required": {
+          "type": "string",
+          "const": "freelancers_handbook"
+        },
+        "source": {
+          "type": "string",
+          "const": "freelancers_handbook"
+        },
+        "deployment_points": {
+          "type": "integer",
+          "description": "Point cost to deploy this enemy",
+          "minimum": 1
+        }
+      }
+    },
+
+    "mission_template": {
+      "type": "object",
+      "required": ["mission_type", "name", "description", "objectives", "enemy_types", "deployment_conditions", "dlc_required"],
+      "properties": {
+        "mission_type": {
+          "type": "string",
+          "enum": ["stealth", "salvage", "street_fight", "expanded_opportunity", "patrol", "defense", "quest", "rival", "patron"],
+          "description": "Category of mission"
+        },
+        "name": {
+          "type": "string",
+          "description": "Mission name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Mission briefing text"
+        },
+        "objectives": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string", "enum": ["acquire", "deliver", "eliminate", "defend", "investigate", "extract", "infiltrate"] },
+              "target": { "type": "string" },
+              "success_condition": { "type": "string" },
+              "failure_condition": { "type": "string" }
+            }
+          },
+          "minItems": 1
+        },
+        "enemy_types": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Possible enemy types for this mission"
+        },
+        "deployment_conditions": {
+          "type": "object",
+          "properties": {
+            "deployment_points_modifier": { "type": "string" },
+            "special_terrain": { "type": "array", "items": { "type": "string" } },
+            "special_rules": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "dlc_required": {
+          "type": "string",
+          "enum": ["fixers_guidebook", "freelancers_handbook", null],
+          "description": "DLC required for this mission type"
+        },
+        "source": {
+          "type": "string",
+          "enum": ["core", "fixers_guidebook", "freelancers_handbook"]
+        },
+        "rewards": {
+          "type": "object",
+          "properties": {
+            "base_credits": { "type": "string" },
+            "bonus_loot_rolls": { "type": "integer" },
+            "experience_modifier": { "type": "integer" },
+            "story_points": { "type": "integer" }
+          }
+        }
+      }
+    },
+
+    "difficulty_modifier": {
+      "type": "object",
+      "required": ["name", "category", "effect", "dlc_required"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Modifier name"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["enemy_strength", "battle_size", "rewards", "danger", "campaign_pressure"],
+          "description": "What aspect this affects"
+        },
+        "effect": {
+          "type": "string",
+          "description": "Mechanical effect description"
+        },
+        "mechanical_changes": {
+          "type": "object",
+          "properties": {
+            "enemy_toughness": { "type": "integer" },
+            "enemy_combat_skill": { "type": "integer" },
+            "deployment_points_multiplier": { "type": "number" },
+            "loot_multiplier": { "type": "number" },
+            "injury_roll_modifier": { "type": "integer" }
+          }
+        },
+        "dlc_required": {
+          "type": "string",
+          "const": "freelancers_handbook"
+        },
+        "source": {
+          "type": "string",
+          "const": "freelancers_handbook"
+        },
+        "stackable": {
+          "type": "boolean",
+          "description": "Whether this can be combined with other modifiers"
+        }
+      }
+    },
+
+    "equipment_item": {
+      "type": "object",
+      "required": ["name", "category", "cost", "dlc_required"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["weapon_low_tech", "weapon_military", "weapon_high_tech", "armor", "gear", "gadget", "consumable", "ship_component", "bot_upgrade", "psionic_equipment"]
+        },
+        "cost": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Cost in credits"
+        },
+        "dlc_required": {
+          "type": "string",
+          "enum": ["trailblazers_toolkit", "freelancers_handbook", "fixers_guidebook", "bug_hunt", null]
+        },
+        "source": {
+          "type": "string",
+          "enum": ["core", "trailblazers_toolkit", "freelancers_handbook", "fixers_guidebook", "bug_hunt"]
+        },
+        "description": {
+          "type": "string"
+        },
+        "effects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "value": { "type": "string" }
+            }
+          }
+        },
+        "restrictions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Species/character type restrictions"
+        }
+      }
+    },
+
+    "world_trait": {
+      "type": "object",
+      "required": ["name", "description", "effects", "dlc_required"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "effects": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Game effects of this trait"
+        },
+        "dlc_required": {
+          "type": "string",
+          "enum": ["trailblazers_toolkit", "fixers_guidebook", null]
+        },
+        "source": {
+          "type": "string",
+          "enum": ["core", "trailblazers_toolkit", "fixers_guidebook"]
+        },
+        "frequency": {
+          "type": "string",
+          "enum": ["common", "uncommon", "rare"],
+          "description": "How often this trait appears"
+        }
+      }
+    },
+
+    "bug_hunt_enemy": {
+      "type": "object",
+      "required": ["name", "bug_type", "combat_skill", "toughness", "speed", "special_abilities", "dlc_required"],
+      "properties": {
+        "name": { "type": "string" },
+        "bug_type": {
+          "type": "string",
+          "enum": ["worker", "soldier", "hunter", "spitter", "heavy", "flyer", "queen", "infested_human"]
+        },
+        "combat_skill": { "type": "string", "pattern": "^[+-][0-9]+$" },
+        "toughness": { "type": "integer", "minimum": 1, "maximum": 8 },
+        "speed": { "type": "string", "pattern": "^[0-9]+\"$" },
+        "reactions": { "type": "integer", "minimum": 1, "maximum": 6 },
+        "special_abilities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "effect": { "type": "string" }
+            }
+          }
+        },
+        "dlc_required": {
+          "type": "string",
+          "const": "bug_hunt"
+        },
+        "source": {
+          "type": "string",
+          "const": "bug_hunt"
+        },
+        "swarm_behavior": {
+          "type": "boolean",
+          "description": "Whether this bug uses swarm tactics"
+        },
+        "deployment_points": { "type": "integer", "minimum": 1 }
+      }
+    }
+  },
+
+  "properties": {
+    "trailblazers_toolkit": {
+      "type": "object",
+      "properties": {
+        "species": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/species" }
+        },
+        "psionic_powers": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/psionic_power" }
+        },
+        "equipment": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/equipment_item" }
+        },
+        "world_traits": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/world_trait" }
+        }
+      }
+    },
+
+    "freelancers_handbook": {
+      "type": "object",
+      "properties": {
+        "elite_enemies": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/elite_enemy" }
+        },
+        "difficulty_modifiers": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/difficulty_modifier" }
+        }
+      }
+    },
+
+    "fixers_guidebook": {
+      "type": "object",
+      "properties": {
+        "mission_templates": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/mission_template" }
+        },
+        "equipment": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/equipment_item" }
+        }
+      }
+    },
+
+    "bug_hunt": {
+      "type": "object",
+      "properties": {
+        "bug_enemies": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/bug_hunt_enemy" }
+        },
+        "equipment": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/equipment_item" }
+        }
+      }
+    }
+  }
+}
