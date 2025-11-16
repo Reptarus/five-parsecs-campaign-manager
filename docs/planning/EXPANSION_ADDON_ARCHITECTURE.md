@@ -89,12 +89,27 @@ Based on the official Five Parsecs from Home rulebook, the core game includes:
    14. Check for Galactic War Progress
 
 **Character System:**
-- Human species (core), Swift, Soulless
-- Backgrounds (12+ types)
-- Motivations (personal goals)
-- Classes (8 types: Soldier, Mercenary, Scavenger, etc.)
-- Skills and abilities progression via XP
-- Equipment loadouts
+- **Baseline Humans** (standard profile, only type that can exceed 1 Luck)
+- **Bots** (Reactions 2, Toughness 4, upgraded via credits, not XP)
+- **Primary Aliens** (6 types):
+  - Engineer (fragile tech specialists)
+  - K'Erin (warlike, must charge enemies)
+  - Soulless (cybernetic hive, 6+ armor)
+  - Precursor (ancient, Speed 5")
+  - Feral (animal-human hybrids)
+  - Swift (winged lizards, Speed 5", glide)
+- **Strange Characters** (17 types):
+  - De-converted, Unity Agent, Mysterious Past, Hakshan, Stalker
+  - Hulker, Hopeful Rookie, Genetic Uplift, Mutant, Assault Bot
+  - Manipulator, Primitive, Feeler, Emo-suppressed, Minor Alien
+  - Traveler, Empath, Bio-upgrade
+- **Backgrounds** (50 entries): Detailed origin stories granting ability bonuses, credits, patrons, rivals
+- **Motivations** (20 entries): Personal goals granting XP, story points, rumors, patrons, rivals
+- **Classes** (25 entries): Professions granting abilities, equipment, and resources
+- **5 Ability Scores**: Reactions (1-6), Speed (4"-8"), Combat Skill (+0-+6), Toughness (3-6), Savvy (+0-+6)
+- **XP Progression**: Spend XP to upgrade abilities
+- **Luck Points**: Avoid death (only Humans can exceed 1 point)
+- **Implants**: Cybernetic upgrades (max 2, varies by character type)
 
 **Combat System:**
 - D6-based tabletop wargame combat

@@ -57,18 +57,81 @@
    13. Roll for a Character Event
    14. Check for Galactic War Progress
 
-### Core Species
-- **Human** (versatile, no modifiers)
-- **Swift** (fast, +1" movement)
-- **Soulless** (engineered, immune to panic)
+### Core Character Types
 
-### Character Creation
-- **Backgrounds** (12+ types): Military, Colonist, Technician, etc.
-- **Motivations**: Personal goals driving the character
-- **Classes** (8 types): Soldier, Mercenary, Scavenger, Medic, Hacker, Engineer, Psyker, Diplomat
-- **Skills**: Combat Skill, Toughness, Savvy, Reactions, Speed
-- **Experience System**: Earn XP, spend to upgrade abilities
-- **Equipment Loadout**: Weapons, armor, gear
+**Baseline Humans:**
+- Standard human profile
+- Only character type that can exceed 1 Luck point
+- Roll on Background, Motivation, and Class tables
+
+**Bots:**
+- Standard Bot profile (Reactions 2, Toughness 4, 6+ armor save)
+- No XP; upgraded via credits
+- Cannot use consumables or implants
+
+**Primary Aliens** (6 types):
+1. **Engineer** - Fragile tech specialists (+1 repair rolls, max Toughness 4)
+2. **K'Erin** - Warlike aliens (Toughness 4, bonuses in brawling, must charge enemies)
+3. **Soulless** - Cybernetic hive organisms (6+ armor save, use Bot injury table, earn XP)
+4. **Precursor** - Ancient refined aliens (Speed 5", roll 2 Character Events and pick)
+5. **Feral** - Animal-human hybrids (ignore Seize Initiative penalties)
+6. **Swift** - Winged lizard people (Speed 5", glide, leap gaps, cannot split fire)
+
+**Strange Characters** (17 types):
+1. **De-converted** - Escaped cyborg conversion (6+ armor save, +3 implants, Savvy locked, always Revenge)
+2. **Unity Agent** - Secret agent (Reactions 2, Call in a Favor ability, always Order)
+3. **Mysterious Past** - Roll 2 Backgrounds (no bonus story points)
+4. **Hakshan** - High-tech aliens (always have Truth motivation)
+5. **Stalker** - Gene-mod teleporters (teleport 1D6" as alternative movement)
+6. **Hulker** - Muscle-bound bruisers (Combat +1, Toughness 5, can't shoot well, ignore Clumsy/Heavy)
+7. **Hopeful Rookie** - Wide-eyed newbie (starts with Luck, bonus XP until first casualty)
+8. **Genetic Uplift** - Super-human (Reactions 2, Speed 5", Combat +1, Tough 4, Savvy +1, +1 Rival)
+9. **Mutant** - Genetic distort (can't Recruit or Find Patron, always Lower classes background)
+10. **Assault Bot** - Military bot (5+ armor save, Savvy +0 locked, ignore Clumsy/Heavy)
+11. **Manipulator** - Tentacled diplomats (Reactions 2, Savvy +1, fire 2 pistols, bonus story points, always Bureaucrat)
+12. **Primitive** - Low-tech warrior (can't use sights or fire >8", all melee is Elegant)
+13. **Feeler** - Emotionally attuned (roll 2 Motivations, mental breakdown if crew conflict)
+14. **Emo-suppressed** - Emotionless (never leaves crew, can't get Luck, always Survival)
+15. **Minor Alien** - Rare species (reduced credit/story point bonuses, cheaper ability upgrade)
+16. **Traveler** - Time/space anomaly (Reactions 3, Savvy +2, +2 story points, 2 Quest Rumors, might disappear)
+17. **Empath** - Minor psionic (+1 Recruit/Patron rolls, can't have implants)
+18. **Bio-upgrade** - Cybernetic-ready (up to 4 implants, can stack same implant, -2 credits from bonuses)
+
+### Character Creation Tables
+
+**50 Background Entries:**
+- Peaceful High-Tech Colony, Overcrowded City, Low-Tech Colony, Mining Colony, Military Brat
+- Space Station, Military Outpost, Drifter, Lower Megacity Class, Wealthy Merchant Family
+- Frontier Gang, Religious Cult, War-Torn Hell-Hole, Tech Guild, Subjugated Colony
+- Long-Term Space Mission, Research Outpost, Primitive/Regressed World, Orphan Program
+- Isolationist Enclave, Comfortable Megacity, Industrial World, Bureaucrat, Wasteland Nomads
+- Alien Culture, and 25+ more variations
+
+**20 Motivation Entries:**
+- Wealth, Fame, Glory, Survival, Escape, Adventure
+- Truth, Technology, Discovery, Loyalty, Revenge
+- Romance, Faith, Political, Power, Order, Freedom
+
+**25 Class Entries:**
+- Working Class, Technician, Scientist, Hacker
+- Soldier, Mercenary, Agitator, Primitive
+- Artist, Negotiator, Trader, Starship Crew
+- Petty Criminal, Ganger, Scoundrel, Enforcer
+- Special Agent, Troubleshooter, Bounty Hunter, Nomad
+- Explorer, Punk, Scavenger
+
+### Character Abilities
+- **Reactions** (1-6): Initiative in combat
+- **Speed** (4"-8"): Movement distance
+- **Combat Skill** (+0 to +6): Attack bonus
+- **Toughness** (3-6): Defense value
+- **Savvy** (+0 to +6): Technical/social aptitude
+
+### Character Progression
+- **Experience Points (XP)**: Earned in battle, spent on ability upgrades
+- **Luck Points**: Avoid death, only Humans can exceed 1 Luck
+- **Implants**: Cybernetic enhancements (max 2, some characters more/less)
+- **Advanced Training**: Special skill courses
 
 ### Mission Types (Core)
 - **Patron Jobs** (6 Patron types):

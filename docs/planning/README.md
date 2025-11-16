@@ -70,7 +70,11 @@ The base Five Parsecs from Home game includes:
 - **4-Phase Campaign Turn**: Travel → World → Battle → Post-Battle
 - **8 Crew Tasks**: Find Patron, Train, Trade, Recruit, Explore, Track, Repair, Decoy
 - **14 Post-Battle Steps**: Complete campaign management cycle
-- **3 Core Species**: Human, Swift, Soulless
+- **25 Character Types**:
+  - Baseline Humans, Bots
+  - 6 Primary Aliens (Engineer, K'Erin, Soulless, Precursor, Feral, Swift)
+  - 17 Strange Characters (De-converted, Unity Agent, Hulker, Genetic Uplift, etc.)
+- **Character Creation**: 50 Backgrounds, 20 Motivations, 25 Classes
 - **100-entry tables**: Trade Table, Exploration Table, Loot Table
 - **Patron System**: 6 Patron types with jobs, benefits, hazards
 - **Rivals System**: Persistent enemies across planets
