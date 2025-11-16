@@ -1,0 +1,487 @@
+{
+  "infestation_levels": {
+    "description": "Colony infestation progression from clear to overrun",
+    "levels": [
+      {
+        "level": 0,
+        "name": "CLEAR",
+        "description": "No bug presence detected",
+        "deployment_modifier": 0,
+        "environmental_penalties": {
+          "movement": 0,
+          "visibility": 0,
+          "damage_per_round": 0,
+          "morale": 0
+        },
+        "mission_availability": "All mission types available",
+        "special_rules": []
+      },
+      {
+        "level": 1,
+        "name": "MINOR",
+        "description": "Early infestation, isolated bug sightings",
+        "deployment_modifier": 1,
+        "environmental_penalties": {
+          "movement": 0,
+          "visibility": 0,
+          "damage_per_round": 0,
+          "morale": 0
+        },
+        "bug_composition": "75% Worker Bugs, 25% Soldier Bugs",
+        "hive_status": "No hive structures yet",
+        "mission_availability": "RECON, EXTERMINATION, INTEL",
+        "special_rules": [
+          "Bugs flee when outnumbered 2:1",
+          "No reinforcements during missions",
+          "Easy to clear with aggressive action"
+        ]
+      },
+      {
+        "level": 2,
+        "name": "MODERATE",
+        "description": "Infestation spreading, multiple nests forming",
+        "deployment_modifier": 2,
+        "environmental_penalties": {
+          "movement": -1,
+          "visibility": 0,
+          "damage_per_round": 0,
+          "morale": -1
+        },
+        "bug_composition": "50% Workers, 30% Soldiers, 15% Hunters, 5% Spitters",
+        "hive_status": "1D3 small nest locations",
+        "mission_availability": "All except ASSAULT",
+        "special_rules": [
+          "Bio-matter begins accumulating in infested areas",
+          "50% chance of bug reinforcements during extended missions",
+          "Motion tracker detects increased activity",
+          "Occasional Hunter Bug patrols"
+        ]
+      },
+      {
+        "level": 3,
+        "name": "SEVERE",
+        "description": "Heavy infestation, hive chambers established",
+        "deployment_modifier": 3,
+        "environmental_penalties": {
+          "movement": -2,
+          "visibility": -1,
+          "damage_per_round": 0,
+          "morale": -2
+        },
+        "bug_composition": "30% Workers, 30% Soldiers, 20% Hunters, 10% Spitters, 5% Heavy, 5% Flying",
+        "hive_status": "1D3+1 established hives with breeding chambers",
+        "mission_availability": "All mission types",
+        "special_rules": [
+          "Thick bio-matter covers infested zones (-2\" movement in affected areas)",
+          "Visibility reduced by organic growths blocking sightlines",
+          "Guaranteed bug reinforcements every 3 rounds during missions",
+          "Environmental hazards spawn naturally",
+          "Hunter Bugs actively patrol territory"
+        ],
+        "environmental_hazards": [
+          "Acid pools",
+          "Bio-matter slowing movement",
+          "Toxic spores",
+          "Organic growths blocking paths"
+        ]
+      },
+      {
+        "level": 4,
+        "name": "CRITICAL",
+        "description": "Colony nearly overrun, Queen confirmed",
+        "deployment_modifier": 4,
+        "environmental_penalties": {
+          "movement": -2,
+          "visibility": -2,
+          "damage_per_round": 1,
+          "morale": -3
+        },
+        "bug_composition": "20% Workers, 25% Soldiers, 25% Hunters, 15% Spitters, 10% Heavy, 5% Flying",
+        "hive_status": "Main hive with Queen + 2D3 satellite hives",
+        "queen_present": true,
+        "mission_availability": "DEFENSE, ASSAULT, EVACUATION only",
+        "special_rules": [
+          "Entire colony is hostile environment",
+          "Constant bug activity, reinforcements every 2 rounds",
+          "Environmental damage: Toxic atmosphere deals 1 damage/round to unprotected soldiers",
+          "Bio-luminescent growths eliminate darkness (bugs always visible, but so are soldiers)",
+          "Queen coordinates bug tactics (bugs gain +1 to hit)",
+          "Hive expansion: Infestation grows by 1 level every 3 missions if not stopped"
+        ],
+        "environmental_hazards": [
+          "Acid pools",
+          "Toxic atmosphere",
+          "Bio-matter terrain",
+          "Organic walls that spawn bugs",
+          "Spore clouds",
+          "Acidic rain"
+        ],
+        "urgency": "Must be addressed immediately or colony is lost"
+      },
+      {
+        "level": 5,
+        "name": "OVERRUN",
+        "description": "Colony completely infested, evacuation only option",
+        "deployment_modifier": 5,
+        "environmental_penalties": {
+          "movement": -3,
+          "visibility": -2,
+          "damage_per_round": 2,
+          "morale": -5
+        },
+        "bug_composition": "All bug types in force, multiple Queens possible",
+        "hive_status": "Entire colony is one massive hive",
+        "queen_present": true,
+        "multiple_queens": "Roll 1D3 for number of Queens",
+        "mission_availability": "EVACUATION, FINAL ASSAULT only",
+        "special_rules": [
+          "Colony is lost, all missions are desperate actions",
+          "Continuous bug spawning, no safe zones",
+          "Environmental damage: 2 damage/round from toxic atmosphere and acid",
+          "All bugs gain +1 to all stats from Queen presence",
+          "Evacuation missions to save remaining colonists",
+          "Final Assault: Suicide mission to destroy all Queens and cleanse colony",
+          "If not cleansed within 3 missions, campaign ends in defeat"
+        ],
+        "environmental_hazards": [
+          "All hazards active simultaneously",
+          "Colony infrastructure failing",
+          "Acid rain constant",
+          "Breathable atmosphere collapsing"
+        ],
+        "narrative": "This is the end. Fight or flee."
+      }
+    ]
+  },
+
+  "infestation_progression": {
+    "description": "How infestation spreads if not contained",
+    "natural_growth": {
+      "minor_to_moderate": "After 5 missions without reducing infestation",
+      "moderate_to_severe": "After 4 missions without destroying nests",
+      "severe_to_critical": "After 3 missions without killing bugs or destroying hives",
+      "critical_to_overrun": "After 3 missions without Queen assault"
+    },
+    "accelerated_growth": {
+      "mission_defeats": "Each mission defeat increases infestation progress by 1",
+      "failed_objectives": "Failed objectives count as half a defeat",
+      "bug_queen_uncontested": "If Queen not engaged within 5 missions of appearing, auto-increase to OVERRUN",
+      "hive_chambers_intact": "Each breeding chamber intact increases growth rate by 10%"
+    },
+    "infestation_reduction": {
+      "mission_victories": "Reduce infestation by 1 level after 3 consecutive victories",
+      "hive_destruction": "Destroying main hive reduces infestation by 2 levels",
+      "queen_killed": "Killing Queen reduces infestation by 3 levels immediately",
+      "nest_clearing": "Each nest destroyed = -1 progression point",
+      "extermination_missions": "Successful EXTERMINATION missions slow growth by 50%"
+    }
+  },
+
+  "environmental_hazards": {
+    "description": "Dangerous terrain and conditions in infested zones",
+    "hazards": [
+      {
+        "name": "Acid Pool",
+        "type": "terrain",
+        "size": "2\" diameter",
+        "effect": "Any model entering or starting turn in pool takes 1D3 acid damage",
+        "armor_interaction": "Ignores armor saves",
+        "duration": "Permanent until mission end",
+        "source": "Spitter Bug deaths, hive leakage",
+        "special": "Pool grows by 1\" each round if multiple Spitters killed nearby"
+      },
+      {
+        "name": "Bio-Matter Terrain",
+        "type": "difficult_terrain",
+        "size": "Variable (1D6\" patches)",
+        "effect": "Counts as difficult terrain, -2\" movement, -1 to dodge rolls",
+        "appearance": "Thick organic sludge covering ground",
+        "special": "May conceal bugs (Hunter Bugs gain +1 to stealth in bio-matter)",
+        "removal": "Can be burned with flamethrower (clears 3\" radius)"
+      },
+      {
+        "name": "Toxic Spore Cloud",
+        "type": "atmospheric",
+        "size": "4\" radius cloud",
+        "effect": "Models in cloud take 1 damage at start of each round",
+        "toughness_save": "Toughness 4+ save to resist damage",
+        "armor_interaction": "Bypasses armor, targets respiratory system",
+        "duration": "1D3 rounds, then dissipates",
+        "source": "Destroyed organic growths, certain bug deaths",
+        "special": "Blocks line of sight through cloud"
+      },
+      {
+        "name": "Organic Wall Growth",
+        "type": "obstacle",
+        "size": "Variable, grows over time",
+        "effect": "Blocks movement and line of sight, treated as hard cover",
+        "destructible": "Can be destroyed (Armor 4, 5 HP)",
+        "growth": "Expands 1\" per round in high infestation zones",
+        "bug_spawning": "Roll 1D6 when destroyed. On 6, spawns 1D3 Worker Bugs",
+        "special": "Bugs can move through organic walls without penalty"
+      },
+      {
+        "name": "Resin Webbing",
+        "type": "trap",
+        "size": "3\" radius",
+        "effect": "Models entering must pass Speed check or become entangled",
+        "entangled_effect": "Cannot move, -2 to all actions while stuck",
+        "escape": "Requires 1 action + Speed check to break free",
+        "armor_interaction": "Not affected by armor",
+        "special": "Flammable - fire weapons auto-destroy but may damage entangled model"
+      },
+      {
+        "name": "Hive Vent",
+        "type": "spawn_point",
+        "size": "2\" vent opening",
+        "effect": "Bugs can emerge from vents as reinforcements",
+        "spawn_rate": "Roll 1D6 each round. On 5-6, spawns 1D3 Worker Bugs",
+        "destructible": "Can be sealed with explosives (requires Breach Charges or grenades)",
+        "special": "Emits toxic gas (treat as Spore Cloud within 3\")"
+      },
+      {
+        "name": "Acidic Rain",
+        "type": "weather",
+        "size": "Entire battlefield",
+        "effect": "All models in open take 1 damage each round",
+        "cover_protection": "Being in cover or structure negates damage",
+        "armor_interaction": "Damages armor - cumulative -1 to armor save each round exposed",
+        "duration": "Entire mission or until environmental condition changes",
+        "special": "Reduces visibility to 18\", makes stealth easier (+1 to stealth checks)"
+      },
+      {
+        "name": "Bio-luminescent Growths",
+        "type": "illumination",
+        "size": "Scattered across battlefield",
+        "effect": "Eliminates darkness, entire area counts as lit",
+        "tactical_impact": "No hiding in shadows, stealth reduced",
+        "benefit_to_bugs": "Bugs gain +1\" speed due to comfortable environment",
+        "benefit_to_soldiers": "Perfect visibility, +1 to shooting beyond 12\"",
+        "special": "Growths pulse and throb, unsettling to witness (-1 to first panic check)"
+      }
+    ]
+  },
+
+  "hive_mechanics": {
+    "description": "Bug hive structures and chambers",
+    "hive_types": [
+      {
+        "name": "Small Nest",
+        "infestation_requirement": 2,
+        "chamber_count": 1,
+        "breeding_capacity": "Spawns 1D3 Worker Bugs per day",
+        "defensive_bugs": "1D6 Soldier Bugs guard nest",
+        "destruction_reward": "2 RP, -1 infestation progression point"
+      },
+      {
+        "name": "Established Hive",
+        "infestation_requirement": 3,
+        "chamber_count": "1D3",
+        "breeding_capacity": "Spawns 1D6 bugs (all types) per day",
+        "defensive_bugs": "2D6 mixed bugs, including Hunters and Heavies",
+        "queen_chance": 0.2,
+        "destruction_reward": "4 RP, -2 infestation progression points, reduce infestation level by 1"
+      },
+      {
+        "name": "Queen's Hive",
+        "infestation_requirement": 4,
+        "chamber_count": "2D3",
+        "breeding_capacity": "Spawns 2D6 bugs per day, all types",
+        "defensive_bugs": "3D6 elite bugs, Queen present",
+        "queen_present": true,
+        "special_defenses": [
+          "Organic walls regenerate",
+          "Constant bug spawning during assault",
+          "Queen's command aura affects all defenders",
+          "Multiple spawn vents"
+        ],
+        "destruction_reward": "10 RP, -3 infestation levels, campaign milestone"
+      }
+    ],
+
+    "breeding_chambers": {
+      "description": "Individual chambers within hives that spawn bugs",
+      "stats": {
+        "armor": 5,
+        "hit_points": 10,
+        "destructible": true
+      },
+      "destruction_methods": [
+        "Sustained fire (3 rounds of concentrated fire)",
+        "Explosives (Breach Charges, Grenade Launcher, demolition)",
+        "Flamethrower (2 rounds of continuous flame)"
+      ],
+      "chamber_destruction_effects": {
+        "immediate": "Spawns 2D3 Worker Bugs in death throes",
+        "long_term": "Reduces daily bug spawning capacity",
+        "infestation_impact": "Each chamber destroyed = -0.5 infestation progression points"
+      },
+      "chamber_types": [
+        {
+          "type": "Worker Chamber",
+          "spawns": "Worker Bugs only",
+          "spawn_rate": "High volume"
+        },
+        {
+          "type": "Soldier Chamber",
+          "spawns": "Soldier Bugs and Hunters",
+          "spawn_rate": "Moderate volume, higher quality"
+        },
+        {
+          "type": "Elite Chamber",
+          "spawns": "Heavy Bugs, Flying Bugs, Spitters",
+          "spawn_rate": "Low volume, elite units"
+        },
+        {
+          "type": "Queen's Chamber",
+          "spawns": "Queen resides here, spawns all types",
+          "special": "Cannot be destroyed while Queen lives, Queen regenerates here"
+        }
+      ]
+    },
+
+    "hive_expansion": {
+      "description": "How hives grow over time",
+      "growth_rate": {
+        "small_nest": "Becomes Established Hive after 5 missions if not destroyed",
+        "established_hive": "Spawns new Small Nests in adjacent sectors (1 per 3 missions)",
+        "queens_hive": "Rapidly expands infestation, +1 infestation level every 3 missions"
+      },
+      "hive_connections": {
+        "description": "High-level hives create tunnel networks",
+        "effect": "Bugs can move between connected hives underground",
+        "tactical_impact": "Bugs may appear from unexpected directions",
+        "detection": "Motion Tracker can detect tunnel vibrations (Savvy check)"
+      }
+    }
+  },
+
+  "infestation_zones": {
+    "description": "Different sectors of colony with varying infestation",
+    "zone_types": [
+      {
+        "name": "Residential District",
+        "typical_infestation": "1-3",
+        "terrain": "Buildings, streets, civilian structures",
+        "hazards": ["Infested civilians", "Trapped survivors", "Collapsing buildings"],
+        "missions": ["RESCUE", "EVACUATION", "DEFENSE"],
+        "special": "Higher chance of encountering Infested Humans"
+      },
+      {
+        "name": "Industrial Sector",
+        "typical_infestation": "2-4",
+        "terrain": "Factories, warehouses, machinery",
+        "hazards": ["Chemical spills", "Machinery hazards", "Acid pools from industrial waste"],
+        "missions": ["SABOTAGE", "SALVAGE", "INTEL"],
+        "special": "More Heavy Bugs due to stable structures for nesting"
+      },
+      {
+        "name": "Agricultural Domes",
+        "typical_infestation": "1-2",
+        "terrain": "Open fields, hydroponics, greenhouses",
+        "hazards": ["Flying Bugs common", "Bio-matter spreads rapidly", "Toxic spore clouds"],
+        "missions": ["EXTERMINATION", "DEFENSE"],
+        "special": "Excellent visibility but little cover, Flying Bugs excel here"
+      },
+      {
+        "name": "Underground Tunnels",
+        "typical_infestation": "3-5",
+        "terrain": "Narrow corridors, service tunnels, maintenance shafts",
+        "hazards": ["Ambush points", "Darkness", "Flooding", "Collapse risk"],
+        "missions": ["ASSAULT", "HIVE_INFILTRATION", "SABOTAGE"],
+        "special": "Bugs have home advantage, close quarters combat favored"
+      },
+      {
+        "name": "Spaceport",
+        "typical_infestation": "0-2",
+        "terrain": "Landing pads, hangars, control towers",
+        "hazards": ["Exposed positions", "Fuel explosions", "No escape if overrun"],
+        "missions": ["DEFENSE", "EVACUATION"],
+        "special": "Critical location - if lost, evacuation becomes impossible"
+      },
+      {
+        "name": "Administrative Center",
+        "typical_infestation": "1-3",
+        "terrain": "Offices, data centers, government buildings",
+        "hazards": ["Survivors hiding", "Data archives at risk", "Limited weapons"],
+        "missions": ["INTEL", "RESCUE", "SALVAGE"],
+        "special": "Contains valuable intel on infestation spread"
+      }
+    ],
+
+    "zone_infestation_spread": {
+      "description": "How infestation moves between zones",
+      "spread_rate": "One zone per 2 missions if adjacent zone is 2+ infestation levels higher",
+      "priority_targets": "Bugs prioritize spreading to Agricultural (food), Residential (hosts), Underground (hiding)",
+      "defensive_measures": "Successful DEFENSE missions prevent spread to that zone for 3 missions",
+      "containment": "If all adjacent zones to infested zone are cleared, infestation cannot spread"
+    }
+  },
+
+  "environmental_adaptation": {
+    "description": "How bugs adapt to environment over time",
+    "adaptation_stages": [
+      {
+        "stage": "Initial Infestation (Level 1-2)",
+        "bug_behavior": "Opportunistic, reactive, disorganized",
+        "adaptations": "None yet"
+      },
+      {
+        "stage": "Established Presence (Level 3)",
+        "bug_behavior": "Coordinated, defensive of territory",
+        "adaptations": [
+          "Hunter Bugs develop stealth tactics",
+          "Soldier Bugs coordinate ambushes",
+          "Bugs learn common soldier tactics (avoid overwatch, use cover)"
+        ]
+      },
+      {
+        "stage": "Dominant Force (Level 4-5)",
+        "bug_behavior": "Aggressive expansion, sophisticated tactics",
+        "adaptations": [
+          "Bugs learn to disable Motion Trackers (spore interference)",
+          "Heavy Bugs develop armor-piercing mandibles",
+          "Flying Bugs attack in coordinated dive formations",
+          "Queen directs tactical responses to soldier strategies"
+        ],
+        "special": "Bugs counter squad's most-used tactics (+1 to defense against repeated strategies)"
+      }
+    ]
+  },
+
+  "cleansing_operations": {
+    "description": "Systematic methods to reduce infestation",
+    "strategies": [
+      {
+        "name": "Aggressive Extermination",
+        "method": "Run EXTERMINATION missions in sequence",
+        "effectiveness": "Reduces infestation by 1 level per 3 successful missions",
+        "risk": "High casualty rate, soldiers gain combat stress"
+      },
+      {
+        "name": "Surgical Strikes",
+        "method": "Target and destroy hive chambers systematically",
+        "effectiveness": "Each hive destroyed = -1 infestation level",
+        "risk": "Requires deep penetration into bug territory"
+      },
+      {
+        "name": "Scorched Earth",
+        "method": "Use flamethrowers and explosives to burn out entire sectors",
+        "effectiveness": "Reduces infestation by 2 levels but destroys colony infrastructure",
+        "risk": "Colony becomes uninhabitable, evacuation required after cleansing"
+      },
+      {
+        "name": "Decapitation Strike",
+        "method": "Locate and kill Bug Queen",
+        "effectiveness": "Immediate -3 infestation levels, breaks bug coordination",
+        "risk": "Extremely dangerous, Queen is heavily defended"
+      },
+      {
+        "name": "Containment and Attrition",
+        "method": "DEFENSE missions to hold line while bugs starve",
+        "effectiveness": "Slow reduction (1 level per 5 missions) but safer",
+        "risk": "Time-consuming, infestation may spread if containment breaks"
+      }
+    ]
+  }
+}

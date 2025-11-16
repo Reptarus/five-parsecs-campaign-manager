@@ -1,0 +1,428 @@
+{
+  "panic_triggers": {
+    "description": "Events that force panic checks with severity ratings (target number to pass)",
+    "triggers": [
+      {
+        "name": "bug_appeared",
+        "severity": 6,
+        "description": "A bug appears within line of sight for the first time this round",
+        "frequency": "Once per round per soldier"
+      },
+      {
+        "name": "close_encounter",
+        "severity": 8,
+        "description": "Bug moves within 4\" of soldier",
+        "frequency": "Immediate when triggered"
+      },
+      {
+        "name": "ally_killed",
+        "severity": 10,
+        "description": "Witness ally being killed by bugs within 6\"",
+        "frequency": "Immediate when ally dies"
+      },
+      {
+        "name": "surrounded",
+        "severity": 9,
+        "description": "3+ bugs within 6\" of soldier",
+        "frequency": "Start of soldier's activation"
+      },
+      {
+        "name": "wounded_badly",
+        "severity": 8,
+        "description": "Soldier reduced to 50% or less HP in single attack",
+        "frequency": "Immediate after taking damage"
+      },
+      {
+        "name": "motion_tracker_swarm",
+        "severity": 7,
+        "description": "Motion tracker shows 5+ blips approaching",
+        "frequency": "When tracker scan reveals swarm"
+      },
+      {
+        "name": "isolated",
+        "severity": 7,
+        "description": "No allies within 8\" and bugs are visible",
+        "frequency": "Start of activation"
+      },
+      {
+        "name": "hive_chamber",
+        "severity": 9,
+        "description": "Enter bug breeding chamber or Queen's lair",
+        "frequency": "Upon entering chamber"
+      },
+      {
+        "name": "darkness_attack",
+        "severity": 8,
+        "description": "Attacked by bug from darkness/behind",
+        "frequency": "Immediate upon attack"
+      },
+      {
+        "name": "infested_human_encounter",
+        "severity": 10,
+        "description": "Encounter infested human for first time",
+        "frequency": "First sighting per mission"
+      },
+      {
+        "name": "parasite_burst",
+        "severity": 9,
+        "description": "Witness parasite emerge from corpse within 6\"",
+        "frequency": "When parasite burst occurs nearby"
+      },
+      {
+        "name": "acid_attack",
+        "severity": 7,
+        "description": "Hit by acid spit or acid pool",
+        "frequency": "Immediate when damaged"
+      },
+      {
+        "name": "queen_appearance",
+        "severity": 11,
+        "description": "Bug Queen enters line of sight",
+        "frequency": "First sighting of Queen"
+      },
+      {
+        "name": "squad_broken",
+        "severity": 10,
+        "description": "50% or more of squad is dead or knocked out",
+        "frequency": "Immediate when threshold crossed"
+      }
+    ]
+  },
+
+  "panic_effects": {
+    "description": "Results of failed panic checks, determined by margin of failure",
+    "effects": [
+      {
+        "name": "SHAKEN",
+        "trigger": "Failed by 1-2",
+        "mechanical_effect": "-1 to all rolls this round",
+        "duration": "1 round",
+        "recovery": "Automatic at end of round, or pass rally check",
+        "narrative": "Soldier's hands shake, aim wavers, movements hesitant"
+      },
+      {
+        "name": "FROZEN",
+        "trigger": "Failed by 3-4",
+        "mechanical_effect": "Cannot take actions this turn, can still defend",
+        "duration": "1 activation",
+        "recovery": "Automatic next activation, or ally rally action",
+        "narrative": "Soldier freezes in terror, unable to move or act"
+      },
+      {
+        "name": "FLEE",
+        "trigger": "Failed by 5-6",
+        "mechanical_effect": "Must use full movement to move away from nearest bug",
+        "duration": "Until rallied or no bugs visible",
+        "recovery": "Rally check at start of each activation",
+        "narrative": "Soldier breaks and runs from the threat"
+      },
+      {
+        "name": "WILD_FIRE",
+        "trigger": "Failed by 7-8",
+        "mechanical_effect": "Fires weapon at nearest target (friend or foe), -2 to hit",
+        "duration": "This activation only",
+        "recovery": "Automatic after firing, but suffers SHAKEN for 1 round",
+        "narrative": "Soldier panics and sprays fire wildly"
+      },
+      {
+        "name": "BROKEN",
+        "trigger": "Failed by 9+",
+        "mechanical_effect": "Drops weapon, flees to extraction at full speed, ignores enemies",
+        "duration": "Rest of mission",
+        "recovery": "Only with leadership intervention at extraction point",
+        "narrative": "Soldier's mind breaks, survival instinct takes over"
+      }
+    ]
+  },
+
+  "rally_mechanics": {
+    "description": "Ways to recover from panic effects",
+    "methods": [
+      {
+        "name": "Self Rally",
+        "action_cost": "Free (start of activation)",
+        "mechanic": "Roll 2D6 + Savvy + Rank bonus. Target 8+",
+        "modifiers": [
+          {"condition": "No bugs within 12\"", "modifier": "+2"},
+          {"condition": "Ally within 4\"", "modifier": "+1"},
+          {"condition": "Officer within 6\"", "modifier": "+2"},
+          {"condition": "Squad morale 70+", "modifier": "+1"},
+          {"condition": "Squad morale below 30", "modifier": "-2"}
+        ],
+        "success": "Remove panic effect",
+        "failure": "Remain panicked, try again next round"
+      },
+      {
+        "name": "Leadership Rally",
+        "action_cost": "1 action by officer",
+        "requirement": "Must be Corporal or higher rank",
+        "mechanic": "Officer within 6\" spends 1 action, target automatically rallies",
+        "limit": "Once per round per officer",
+        "bonus_effect": "Rallied soldier gains +1 to next action"
+      },
+      {
+        "name": "Combat Drugs Rally",
+        "action_cost": "1 action + 1 Med Kit dose",
+        "requirement": "Medic or Med Kit available",
+        "mechanic": "Automatic rally + gain +1 to all stats for 2 rounds",
+        "drawback": "After 2 rounds, soldier is fatigued (-1 to all actions for rest of mission)",
+        "limit": "Once per soldier per mission"
+      },
+      {
+        "name": "Inspirational Moment",
+        "action_cost": "Free (triggered by event)",
+        "triggers": [
+          "Witness Queen being killed",
+          "Witness officer performing heroic action",
+          "Complete mission objective",
+          "Reinforcements arrive"
+        ],
+        "mechanic": "All panicked soldiers immediately roll rally at +3 bonus",
+        "bonus": "Squad morale increases by +10"
+      }
+    ]
+  },
+
+  "squad_morale_system": {
+    "description": "Squad-wide morale affects all soldiers' panic resistance",
+    "morale_scale": {
+      "0-20": {
+        "state": "Broken",
+        "effect": "All panic checks at -2, +1 severity to all triggers",
+        "risk": "Soldiers may refuse dangerous orders"
+      },
+      "21-40": {
+        "state": "Shaky",
+        "effect": "All panic checks at -1",
+        "risk": "More likely to fail panic checks"
+      },
+      "41-60": {
+        "state": "Steady",
+        "effect": "No modifiers",
+        "risk": "Normal operations"
+      },
+      "61-80": {
+        "state": "Confident",
+        "effect": "All panic checks at +1",
+        "risk": "Bonus to rally attempts"
+      },
+      "81-100": {
+        "state": "Unshakable",
+        "effect": "All panic checks at +2, ignore first panic trigger each mission",
+        "risk": "Elite fighting spirit"
+      }
+    },
+
+    "morale_changes": {
+      "positive_events": [
+        {"event": "Mission victory", "change": "+10"},
+        {"event": "Zero casualties mission", "change": "+5"},
+        {"event": "Kill Bug Queen", "change": "+15"},
+        {"event": "Rescue all colonists", "change": "+8"},
+        {"event": "Soldier promoted", "change": "+3"},
+        {"event": "Receive commendation", "change": "+5"},
+        {"event": "Destroy hive chamber", "change": "+7"}
+      ],
+      "negative_events": [
+        {"event": "Mission defeat", "change": "-10"},
+        {"event": "Soldier killed", "change": "-5 per death"},
+        {"event": "Soldier paralyzed/crippled", "change": "-8"},
+        {"event": "Failed to rescue colonists", "change": "-6"},
+        {"event": "Squad wiped to 50%", "change": "-15"},
+        {"event": "Forced to abandon mission", "change": "-12"},
+        {"event": "Encounter infested humans", "change": "-4"}
+      ],
+      "ongoing_modifiers": [
+        {"condition": "Winning streak (3+ victories)", "modifier": "+1 per mission"},
+        {"condition": "Losing streak (3+ defeats)", "modifier": "-1 per mission"},
+        {"condition": "High infestation level (4-5)", "modifier": "-2 per mission"},
+        {"condition": "Long deployment (10+ missions)", "modifier": "-1 every 2 missions"},
+        {"condition": "Rest between missions (3+ days)", "modifier": "+2"}
+      ]
+    }
+  },
+
+  "panic_resistance_modifiers": {
+    "description": "Factors that modify panic check rolls",
+    "soldier_traits": [
+      {"trait": "Veteran (5+ missions)", "modifier": "+1"},
+      {"trait": "Elite (10+ missions)", "modifier": "+2"},
+      {"trait": "Bug Hunter background", "modifier": "+2"},
+      {"trait": "Survivor (witnessed Queen)", "modifier": "+1"},
+      {"trait": "Rookie (first mission)", "modifier": "-1"},
+      {"trait": "Previously broken", "modifier": "-1"}
+    ],
+    "equipment_bonuses": [
+      {"equipment": "Motion Tracker (equipped)", "modifier": "+1"},
+      {"equipment": "Combat Armor (worn)", "modifier": "+1"},
+      {"equipment": "Heavy Weapon (wielding)", "modifier": "+1"},
+      {"equipment": "Combat Drugs (active)", "modifier": "+2"}
+    ],
+    "tactical_situation": [
+      {"situation": "In cover", "modifier": "+1"},
+      {"situation": "Officer within 6\"", "modifier": "+1"},
+      {"situation": "3+ allies within 6\"", "modifier": "+2"},
+      {"situation": "Defensive position", "modifier": "+1"},
+      {"situation": "Extraction point visible", "modifier": "+1"}
+    ],
+    "environmental": [
+      {"condition": "Darkness/Limited visibility", "modifier": "-1"},
+      {"condition": "Hive interior", "modifier": "-1"},
+      {"condition": "Environmental hazard present", "modifier": "-1"},
+      {"condition": "Wounded (below 50% HP)", "modifier": "-1"}
+    ]
+  },
+
+  "officer_leadership_effects": {
+    "description": "How officer presence affects panic",
+    "rank_effects": [
+      {
+        "rank": "Corporal",
+        "aura_radius": "6\"",
+        "panic_bonus": "+1 to panic checks",
+        "rally_ability": "Can rally 1 soldier per round",
+        "morale_impact": "Small boost to nearby troops"
+      },
+      {
+        "rank": "Sergeant",
+        "aura_radius": "8\"",
+        "panic_bonus": "+2 to panic checks",
+        "rally_ability": "Can rally 2 soldiers per round",
+        "morale_impact": "Significant leadership presence",
+        "special": "Immune to FROZEN panic effect"
+      },
+      {
+        "rank": "Lieutenant",
+        "aura_radius": "10\"",
+        "panic_bonus": "+2 to panic checks",
+        "rally_ability": "Can rally 3 soldiers per round",
+        "morale_impact": "Strong command presence",
+        "special": "Immune to FROZEN and FLEE panic effects"
+      },
+      {
+        "rank": "Captain",
+        "aura_radius": "12\"",
+        "panic_bonus": "+3 to panic checks",
+        "rally_ability": "Can rally entire squad as 1 action",
+        "morale_impact": "Commanding presence inspires all",
+        "special": "Immune to all panic effects except BROKEN"
+      }
+    ],
+    "leadership_actions": [
+      {
+        "action": "Steady the Line",
+        "cost": "1 command point",
+        "effect": "All soldiers within radius gain +2 to panic checks this round",
+        "rank_required": "Sergeant+"
+      },
+      {
+        "action": "Inspirational Speech",
+        "cost": "2 command points",
+        "effect": "All soldiers rally automatically, +1 morale bonus for rest of mission",
+        "rank_required": "Lieutenant+",
+        "limitation": "Once per mission"
+      },
+      {
+        "action": "Lead from Front",
+        "cost": "Free",
+        "effect": "Officer charges towards bugs, all soldiers within 12\" gain +1 to all rolls",
+        "rank_required": "Any officer",
+        "risk": "Officer exposed to danger"
+      }
+    ]
+  },
+
+  "group_panic_mechanics": {
+    "description": "How panic spreads through the squad",
+    "panic_cascade": {
+      "trigger": "When soldier panics with FLEE or BROKEN effect",
+      "effect": "All soldiers within 6\" must make panic check at -1",
+      "chain_reaction": "If 2+ soldiers panic simultaneously, severity increases by +1 for next checks"
+    },
+    "mass_panic": {
+      "trigger": "When 50% of squad is panicked simultaneously",
+      "effect": "Squad morale drops by -10, all remaining soldiers at -2 to panic checks",
+      "recovery": "Requires leadership action or extraction"
+    },
+    "panic_immunity": {
+      "conditions": [
+        "Squad morale 80+",
+        "Captain present and not panicked",
+        "Mission nearly complete (final objective visible)",
+        "Bugs reduced to 25% or less"
+      ],
+      "effect": "Squad ignores panic cascade and mass panic triggers"
+    }
+  },
+
+  "panic_recovery_between_missions": {
+    "description": "How soldiers recover from traumatic experiences",
+    "post_mission_trauma": [
+      {
+        "condition": "Panicked once during mission",
+        "effect": "No lasting effect if mission was victory",
+        "penalty": "-1 to first panic check next mission if defeat"
+      },
+      {
+        "condition": "BROKEN during mission",
+        "effect": "Must pass Savvy check or gain 'Shaken Confidence' trait",
+        "trait_effect": "-1 to all panic checks for next 3 missions",
+        "recovery": "Therapy (costs 2 RP) or 3 successful missions"
+      },
+      {
+        "condition": "Witnessed ally death while panicked",
+        "effect": "Must pass Savvy check or gain 'Survivor's Guilt' trait",
+        "trait_effect": "-1 morale contribution, -1 to panic when allies wounded",
+        "recovery": "Counseling (costs 3 RP) or successful rescue mission"
+      }
+    ],
+    "therapy_options": [
+      {
+        "name": "Standard Counseling",
+        "cost": "2 RP",
+        "effect": "Remove one trauma trait",
+        "availability": "Between missions"
+      },
+      {
+        "name": "Combat Psychology Training",
+        "cost": "5 RP",
+        "effect": "Permanent +1 to panic resistance",
+        "availability": "After 5 missions",
+        "limit": "Once per soldier"
+      },
+      {
+        "name": "R&R Leave",
+        "cost": "3 RP + soldier unavailable for 1 mission",
+        "effect": "Remove all trauma traits, restore morale contribution to normal",
+        "availability": "Any time"
+      }
+    ]
+  },
+
+  "special_panic_situations": {
+    "darkness_and_limited_visibility": {
+      "description": "Panic in darkness or heavy fog",
+      "modifier": "-2 to panic checks",
+      "special_rule": "Any attack from unseen enemy forces immediate panic check",
+      "motion_tracker_benefit": "Reduces modifier to -1 if tracker active"
+    },
+    "hive_interior": {
+      "description": "Inside bug hive or breeding chamber",
+      "modifier": "-1 to panic checks",
+      "special_rule": "Bugs can spawn from walls/vents, each spawn triggers panic check",
+      "queen_presence": "Additional -1 if Queen is in hive"
+    },
+    "last_stand": {
+      "description": "Squad reduced to 2 soldiers or less",
+      "effect": "Remaining soldiers become immune to panic (desperation)",
+      "bonus": "+1 to all combat rolls",
+      "narrative": "Nothing left to lose, fight or die"
+    },
+    "evacuation_panic": {
+      "description": "During extraction phase when enemies approach",
+      "special_rule": "Soldiers at extraction point can panic if bugs within 8\"",
+      "evacuation_interrupted": "If panic occurs, extraction delayed 1 round",
+      "transport_arrival": "When transport visible, +2 to panic resistance"
+    }
+  }
+}

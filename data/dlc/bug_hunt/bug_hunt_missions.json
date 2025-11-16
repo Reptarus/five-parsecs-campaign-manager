@@ -1,0 +1,504 @@
+{
+  "mission_types": [
+    {
+      "name": "Bug Extermination",
+      "mission_type": "EXTERMINATION",
+      "description": "Clear out a bug-infested zone and eliminate all hostile contacts",
+      "objectives": [
+        "Eliminate all bugs in the zone",
+        "Secure the perimeter",
+        "Ensure no survivors escape"
+      ],
+      "difficulty_modifiers": {
+        "deployment_points": 10,
+        "infestation_modifier": 1,
+        "reinforcement_chance": 0.3
+      },
+      "victory_conditions": {
+        "primary": "All bugs eliminated",
+        "secondary": "No soldier casualties",
+        "bonus": "Complete within 6 rounds"
+      },
+      "rewards": {
+        "requisition_points": "2D6",
+        "experience_per_soldier": "1D3",
+        "bonus_equipment_chance": 0.2
+      },
+      "special_rules": [
+        "Bugs spawn in waves every 2 rounds",
+        "Last bug may attempt to flee and must be hunted down",
+        "Area is contaminated - environmental hazards present"
+      ],
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt"
+    },
+    {
+      "name": "Colonist Rescue",
+      "mission_type": "RESCUE",
+      "description": "Extract trapped colonists from an infested facility before time runs out",
+      "objectives": [
+        "Locate all colonists (1D6 scattered locations)",
+        "Escort colonists to extraction point",
+        "Hold extraction zone until transport arrives"
+      ],
+      "difficulty_modifiers": {
+        "deployment_points": 8,
+        "time_limit_rounds": 10,
+        "reinforcement_chance": 0.4
+      },
+      "victory_conditions": {
+        "primary": "At least 50% of colonists rescued",
+        "secondary": "All colonists rescued",
+        "bonus": "No colonist injuries during extraction"
+      },
+      "rewards": {
+        "requisition_points": "1D6+2",
+        "experience_per_soldier": "1D3+1",
+        "reputation_gain": 2,
+        "rescued_colonist_bonus": "1 RP per colonist"
+      },
+      "special_rules": [
+        "Colonists are unarmed civilians with Toughness 3, Speed 4\"",
+        "Bugs prioritize attacking colonists over soldiers",
+        "Time pressure: +1 deployment point every 2 rounds",
+        "Extraction zone must be defended for 2 full rounds"
+      ],
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt"
+    },
+    {
+      "name": "Intelligence Gathering",
+      "mission_type": "INTEL",
+      "description": "Infiltrate bug territory and gather data on hive activity",
+      "objectives": [
+        "Plant 3 scanner devices in marked locations",
+        "Avoid detection while gathering data",
+        "Extract without alerting the hive"
+      ],
+      "difficulty_modifiers": {
+        "deployment_points": 6,
+        "stealth_required": true,
+        "detection_threshold": 3
+      },
+      "victory_conditions": {
+        "primary": "At least 2 scanners planted and data retrieved",
+        "secondary": "All 3 scanners planted",
+        "bonus": "Complete mission without triggering alert"
+      },
+      "rewards": {
+        "requisition_points": "1D6+1",
+        "experience_per_soldier": "1D3",
+        "intelligence_bonus": "Reveal infestation level and hive locations",
+        "next_mission_advantage": "+1 to deployment rolls"
+      },
+      "special_rules": [
+        "Stealth Mechanics: Soldiers can move undetected if 12\"+ from bugs",
+        "Detection Accumulation: Loud actions (gunfire, explosions) add detection points",
+        "Alert Level: At 3 detection points, bugs swarm in (double deployment points)",
+        "Scanner Placement: Requires 1 action within 2\" of objective marker"
+      ],
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt"
+    },
+    {
+      "name": "Hive Sabotage",
+      "mission_type": "SABOTAGE",
+      "description": "Plant explosives in a bug hive and destroy their breeding chambers",
+      "objectives": [
+        "Breach hive entrance",
+        "Navigate to central chamber",
+        "Plant demolition charges",
+        "Escape before detonation"
+      ],
+      "difficulty_modifiers": {
+        "deployment_points": 12,
+        "hive_chamber_count": 4,
+        "queen_present_chance": 0.5
+      },
+      "victory_conditions": {
+        "primary": "Charges planted and detonated",
+        "secondary": "All soldiers extracted safely",
+        "bonus": "Queen eliminated or chamber destroyed"
+      },
+      "rewards": {
+        "requisition_points": "2D6+2",
+        "experience_per_soldier": "1D6",
+        "infestation_reduction": -2,
+        "bonus_for_queen_kill": "+5 RP"
+      },
+      "special_rules": [
+        "Hive Interior: Tight corridors, limited sightlines (18\" max)",
+        "Spawn Points: Bugs can emerge from vents and walls",
+        "Detonation Timer: 4 rounds after charges armed",
+        "Escape Rush: Double speed movement allowed during extraction",
+        "Hive Collapse: Any soldier not extracted takes 2D6 damage"
+      ],
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt"
+    },
+    {
+      "name": "Perimeter Defense",
+      "mission_type": "DEFENSE",
+      "description": "Hold a critical position against endless waves of bugs",
+      "objectives": [
+        "Defend objective point for required duration",
+        "Maintain defensive perimeter",
+        "Survive bug assault waves"
+      ],
+      "difficulty_modifiers": {
+        "deployment_points": 8,
+        "wave_count": 5,
+        "points_increase_per_wave": 2
+      },
+      "victory_conditions": {
+        "primary": "Hold position for 8 rounds",
+        "secondary": "Defensive structures intact",
+        "bonus": "Zero soldiers knocked out"
+      },
+      "rewards": {
+        "requisition_points": "2D6+1",
+        "experience_per_soldier": "1D3+1",
+        "defensive_equipment_bonus": "Gain Sentry Gun or Breach Charges"
+      },
+      "special_rules": [
+        "Wave Spawning: New wave every 2 rounds with increasing strength",
+        "Defensive Positions: +1 cover bonus in prepared positions",
+        "Ammo Depletion: Every 2 rounds, roll 1D6. On 1-2, ammo runs low (-1 shots)",
+        "Reinforcements: Can call for ammo drop (costs 1 command point)",
+        "Last Stand: If position breached, all soldiers gain +1 Combat Skill"
+      ],
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt"
+    },
+    {
+      "name": "VIP Escort",
+      "mission_type": "ESCORT",
+      "description": "Protect a high-value target through bug-infested territory",
+      "objectives": [
+        "Escort VIP from start point to extraction",
+        "Protect VIP from all threats",
+        "Navigate through multiple danger zones"
+      ],
+      "difficulty_modifiers": {
+        "deployment_points": 10,
+        "danger_zones": 3,
+        "ambush_chance_per_zone": 0.6
+      },
+      "victory_conditions": {
+        "primary": "VIP reaches extraction alive",
+        "secondary": "VIP takes no damage",
+        "bonus": "Complete within time limit (8 rounds)"
+      },
+      "rewards": {
+        "requisition_points": "2D6+3",
+        "experience_per_soldier": "1D6",
+        "vip_favor": "Unlock special equipment requisition",
+        "reputation_gain": 3
+      },
+      "special_rules": [
+        "VIP Stats: Toughness 3, Speed 4\", Combat Skill +1, carries pistol",
+        "Priority Target: Bugs prioritize attacking VIP over soldiers",
+        "Bodyguard Bonus: Soldier within 2\" of VIP can intercept attacks",
+        "VIP Panic: If VIP panics, may refuse to move (requires rally action)",
+        "Danger Zones: Must pass through 3 marked zones that trigger ambushes"
+      ],
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt"
+    },
+    {
+      "name": "Medical Supply Recovery",
+      "mission_type": "SALVAGE",
+      "description": "Recover critical medical supplies from an overrun medical facility",
+      "objectives": [
+        "Search facility for supply caches (4 locations)",
+        "Recover at least 2 medical crates",
+        "Extract with supplies"
+      ],
+      "difficulty_modifiers": {
+        "deployment_points": 7,
+        "infested_rooms": 6,
+        "search_time_per_location": "1 action"
+      },
+      "victory_conditions": {
+        "primary": "Recover 2+ medical crates",
+        "secondary": "Recover all 4 crates",
+        "bonus": "Find experimental combat drugs (roll 5-6 on search)"
+      },
+      "rewards": {
+        "requisition_points": "1D6",
+        "medical_supplies": "Gain 2D3 Med Kits",
+        "experience_per_soldier": "1D3",
+        "combat_drug_bonus": "+1 to all stats for next mission (if found)"
+      },
+      "special_rules": [
+        "Search Action: Requires 1 action while within 2\" of search location",
+        "Random Contents: Roll 1D6 per crate (1-3: Med Kit, 4-5: 2 Med Kits, 6: Combat Drugs)",
+        "Infested Rooms: Each new room entered triggers bug spawn (1D3 Worker Bugs)",
+        "Heavy Crates: Soldiers carrying crates have -2\" movement",
+        "Drop Crates: If soldier carrying crate is hit, roll 1D6. On 1-2, crate damaged"
+      ],
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt"
+    },
+    {
+      "name": "Hive Recon",
+      "mission_type": "RECON",
+      "description": "Scout bug hive and map its structure without engaging",
+      "objectives": [
+        "Survey 3 hive entry points",
+        "Identify bug types and numbers",
+        "Return with intel without casualties"
+      ],
+      "difficulty_modifiers": {
+        "deployment_points": 5,
+        "stealth_mission": true,
+        "engagement_penalty": -2
+      },
+      "victory_conditions": {
+        "primary": "Survey 2+ entry points and return",
+        "secondary": "Complete survey without combat",
+        "bonus": "Identify Queen location"
+      },
+      "rewards": {
+        "requisition_points": "1D6",
+        "experience_per_soldier": 1,
+        "intelligence_bonus": "Next mission against this hive gets +2 deployment points for squad",
+        "tactical_advantage": "Choose deployment zone in next mission"
+      },
+      "special_rules": [
+        "Observation: Must spend 2 rounds within 12\" of entry point to survey",
+        "Stealth Movement: Can only move at half speed to remain undetected",
+        "Motion Tracker Essential: Without Motion Tracker, -2 to detection rolls",
+        "If Detected: Mission continues but victory conditions change to 'Extract with data'",
+        "Bug Patrols: Roll 1D6 each round. On 6, patrol approaches (must hide or evade)"
+      ],
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt"
+    },
+    {
+      "name": "Xenoarcheology Site Defense",
+      "mission_type": "DEFENSE",
+      "description": "Protect scientists excavating alien artifacts while bugs swarm the dig site",
+      "objectives": [
+        "Defend 3 scientist teams for 6 rounds",
+        "Ensure artifact extraction completes",
+        "Minimize scientist casualties"
+      ],
+      "difficulty_modifiers": {
+        "deployment_points": 9,
+        "artifact_attraction": "Bugs gain +2\" speed when within 12\" of artifacts",
+        "scientists_count": 3
+      },
+      "victory_conditions": {
+        "primary": "Extraction completes (6 rounds held)",
+        "secondary": "All scientists survive",
+        "bonus": "Recover intact alien artifact"
+      },
+      "rewards": {
+        "requisition_points": "2D6",
+        "experience_per_soldier": "1D3+1",
+        "artifact_bonus": "Ancient weapon or tech (if recovered)",
+        "research_grant": "+3 RP for intact artifact delivery"
+      },
+      "special_rules": [
+        "Scientist Stats: Toughness 3, Speed 3\", unarmed, panics easily",
+        "Extraction Progress: Track progress (6 rounds = 100%)",
+        "Artifact Disturbance: Bugs are attracted to artifacts, prioritize dig sites",
+        "Scientific Equipment: Cannot be abandoned, slows evacuation",
+        "Panic Cascade: If 1 scientist panics, others must make morale check"
+      ],
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt"
+    },
+    {
+      "name": "Bug Nest Assault",
+      "mission_type": "ASSAULT",
+      "description": "Direct assault on a confirmed bug nest to prevent hive expansion",
+      "objectives": [
+        "Breach nest defenses",
+        "Destroy breeding chambers (3 objectives)",
+        "Eliminate nest guardian bugs"
+      ],
+      "difficulty_modifiers": {
+        "deployment_points": 14,
+        "nest_guardians": "Heavy Bugs and Soldier Bugs",
+        "queen_present_chance": 0.7
+      },
+      "victory_conditions": {
+        "primary": "Destroy at least 2 breeding chambers",
+        "secondary": "Destroy all breeding chambers",
+        "bonus": "Eliminate Queen if present"
+      },
+      "rewards": {
+        "requisition_points": "3D6",
+        "experience_per_soldier": "1D6+1",
+        "infestation_reduction": -3,
+        "commendation": "+1 rank advancement for squad leader"
+      },
+      "special_rules": [
+        "Breeding Chambers: Destructible objectives (Armor 5, 10 HP each)",
+        "Chamber Destruction: Requires explosives or 3 rounds of sustained fire",
+        "Spawn Surge: Destroying chamber spawns 2D3 Worker Bugs immediately",
+        "Queen's Rage: If Queen present and chamber destroyed, she enters berserker mode (+1 attack)",
+        "Nest Collapse Warning: After all chambers destroyed, 3 rounds to evacuate"
+      ],
+      "dlc_required": "bug_hunt",
+      "source": "bug_hunt"
+    }
+  ],
+
+  "mission_generation_tables": {
+    "random_mission_type": {
+      "description": "Roll 1D10 to determine mission type",
+      "table": [
+        {"roll": "1-2", "mission_type": "EXTERMINATION"},
+        {"roll": "3", "mission_type": "RESCUE"},
+        {"roll": "4", "mission_type": "INTEL"},
+        {"roll": "5", "mission_type": "SABOTAGE"},
+        {"roll": "6-7", "mission_type": "DEFENSE"},
+        {"roll": "8", "mission_type": "ESCORT"},
+        {"roll": "9", "mission_type": "SALVAGE"},
+        {"roll": "10", "mission_type": "RECON"}
+      ]
+    },
+
+    "mission_difficulty_modifiers": {
+      "description": "Factors that modify mission difficulty",
+      "modifiers": [
+        {
+          "factor": "Infestation Level",
+          "effect": "Add infestation level to deployment points"
+        },
+        {
+          "factor": "Squad Morale",
+          "effect": "Low morale (<40): +2 deployment points, High morale (>70): -1 deployment points"
+        },
+        {
+          "factor": "Previous Mission Result",
+          "effect": "Defeat: +2 deployment points, Victory: No change, Flawless: -1 deployment points"
+        },
+        {
+          "factor": "Time Since Last Mission",
+          "effect": "1-2 days: Bugs unprepared (-1 DP), 5+ days: Bugs dug in (+2 DP)"
+        }
+      ]
+    },
+
+    "environmental_conditions": {
+      "description": "Roll 1D6 for environmental conditions",
+      "table": [
+        {
+          "roll": 1,
+          "condition": "Clear",
+          "effect": "No modifiers"
+        },
+        {
+          "roll": 2,
+          "condition": "Heavy Rain",
+          "effect": "Visibility reduced to 18\", +1 to stealth"
+        },
+        {
+          "roll": 3,
+          "condition": "Fog",
+          "effect": "Visibility reduced to 12\", Motion Tracker range -4\""
+        },
+        {
+          "roll": 4,
+          "condition": "Electrical Storm",
+          "effect": "Motion Trackers malfunction, 50% chance to work each use"
+        },
+        {
+          "roll": 5,
+          "condition": "Acid Rain",
+          "effect": "All models in open take 1 damage each round"
+        },
+        {
+          "roll": 6,
+          "condition": "Bio-luminescence",
+          "effect": "No darkness, +1 to detection, bugs gain +1 Speed"
+        }
+      ]
+    },
+
+    "special_mission_complications": {
+      "description": "Roll 1D6 at start of mission for complications (on 5-6)",
+      "complications": [
+        {
+          "name": "Civilian Presence",
+          "effect": "1D3 panicked civilians on map, must be protected or extracted"
+        },
+        {
+          "name": "Equipment Malfunction",
+          "effect": "One random piece of equipment per soldier malfunctions (50% chance to work)"
+        },
+        {
+          "name": "Unexpected Reinforcements",
+          "effect": "Bug deployment points +50%"
+        },
+        {
+          "name": "Environmental Hazard",
+          "effect": "Roll on hazard table, hazard is active throughout mission"
+        },
+        {
+          "name": "Time Pressure",
+          "effect": "Reduce mission time limit by 2 rounds"
+        },
+        {
+          "name": "Intel Failure",
+          "effect": "Bug deployment is hidden, use blips until first contact"
+        }
+      ]
+    }
+  },
+
+  "campaign_mission_progression": {
+    "description": "Suggested mission flow for Bug Hunt campaign",
+    "phases": [
+      {
+        "phase": "Initial Deployment",
+        "missions": 1-3,
+        "mission_types": ["RECON", "EXTERMINATION", "RESCUE"],
+        "narrative": "Squad arrives at infested colony, assesses threat, begins operations"
+      },
+      {
+        "phase": "Escalation",
+        "missions": 4-7,
+        "mission_types": ["DEFENSE", "INTEL", "SALVAGE", "ESCORT"],
+        "narrative": "Infestation spreading, defensive operations, gather intelligence"
+      },
+      {
+        "phase": "Counter-Offensive",
+        "missions": 8-10,
+        "mission_types": ["SABOTAGE", "ASSAULT", "EXTERMINATION"],
+        "narrative": "Push back against bugs, destroy nests, reduce infestation"
+      },
+      {
+        "phase": "Final Operation",
+        "missions": 11-12,
+        "mission_types": ["ASSAULT on Queen's Hive"],
+        "narrative": "Locate and destroy Queen, end infestation permanently"
+      }
+    ]
+  },
+
+  "mission_rewards_scaling": {
+    "description": "Rewards scale with difficulty and performance",
+    "base_rewards": {
+      "requisition_points": "1D6 per mission",
+      "experience": "1D3 per soldier",
+      "reputation": "+1 for victory"
+    },
+    "performance_bonuses": {
+      "flawless_victory": "+2 RP, +1 XP per soldier",
+      "secondary_objectives": "+1D3 RP",
+      "bonus_objectives": "+1D6 RP, special equipment unlock",
+      "zero_casualties": "+1 RP, +1 morale"
+    },
+    "difficulty_multipliers": {
+      "easy": "x0.5 rewards",
+      "normal": "x1 rewards",
+      "hard": "x1.5 rewards",
+      "elite": "x2 rewards"
+    }
+  }
+}

@@ -1,0 +1,590 @@
+{
+  "colony_locations": {
+    "description": "Battlefield locations within the infested colony",
+    "locations": [
+      {
+        "name": "Residential Block",
+        "type": "urban",
+        "size": "36\" x 36\"",
+        "terrain_features": [
+          "4-6 apartment buildings (hard cover)",
+          "2-3 streets (open ground)",
+          "1D3 abandoned vehicles (cover)",
+          "Scattered debris (difficult terrain)"
+        ],
+        "tactical_considerations": {
+          "cover_availability": "High - many buildings and vehicles",
+          "sightlines": "Medium - buildings block long-range fire",
+          "movement": "Moderate - streets allow fast movement, buildings slow",
+          "chokepoints": "Alleyways between buildings"
+        },
+        "bug_advantages": [
+          "Can emerge from buildings",
+          "Ambush opportunities in alleys",
+          "Hunter Bugs excel in urban terrain"
+        ],
+        "soldier_advantages": [
+          "Abundant cover for defensive positions",
+          "High ground from building roofs",
+          "Chokepoints can be defended"
+        ],
+        "special_rules": [
+          "Buildings can be entered (requires 1 action)",
+          "Infested buildings may contain bugs (roll 1D6 on entry, 4+ spawns 1D3 Worker Bugs)",
+          "Rooftops provide +2 to hit for snipers"
+        ],
+        "infestation_effects": {
+          "level_1-2": "Some buildings infested, bio-matter in corners",
+          "level_3-4": "Half of buildings structurally unsound, organic growths common",
+          "level_5": "Buildings collapsing, entire block is hive structure"
+        }
+      },
+      {
+        "name": "Industrial Complex",
+        "type": "industrial",
+        "size": "48\" x 36\"",
+        "terrain_features": [
+          "Large factory building (centerpiece)",
+          "2-4 storage tanks (hard cover, explosive)",
+          "Conveyor systems (elevated platforms)",
+          "Chemical storage (hazard)",
+          "Warehouse structures"
+        ],
+        "tactical_considerations": {
+          "cover_availability": "High - machinery and structures",
+          "sightlines": "Mixed - open factory floor, but machinery blocks",
+          "movement": "Varied - open areas but machinery creates obstacles",
+          "chokepoints": "Factory entrances, loading bays"
+        },
+        "bug_advantages": [
+          "Large spaces favor Heavy Bugs and charging",
+          "Machinery provides hiding spots",
+          "Vertical elements (conveyor systems) suit Flying Bugs"
+        ],
+        "soldier_advantages": [
+          "Elevated positions for overwatch",
+          "Explosive storage can be weaponized",
+          "Sentry Guns effective in open factory floor"
+        ],
+        "special_rules": [
+          "Storage tanks: If hit by fire, roll 1D6. On 5-6, explodes (3D6 damage in 6\" radius)",
+          "Machinery: Can be activated to create moving obstacles",
+          "Conveyor Systems: Provide elevated firing positions (+1 to hit)",
+          "Chemical Leaks: 1D3 acid pool hazards present"
+        ],
+        "infestation_effects": {
+          "level_1-2": "Machinery still functional, limited bio-matter",
+          "level_3-4": "Machinery failing, dangerous chemical interactions with bio-matter",
+          "level_5": "Total industrial collapse, explosive hazards everywhere"
+        }
+      },
+      {
+        "name": "Agricultural Dome",
+        "type": "agricultural",
+        "size": "48\" x 48\"",
+        "terrain_features": [
+          "Crop fields (light cover, difficult terrain)",
+          "Hydroponic towers (hard cover, tall structures)",
+          "Irrigation channels (linear obstacles)",
+          "Greenhouse structures (transparent cover)",
+          "Central control building"
+        ],
+        "tactical_considerations": {
+          "cover_availability": "Low-Medium - fields provide concealment not cover",
+          "sightlines": "Excellent - open fields, long firing lanes",
+          "movement": "Fast in open, slow through crops",
+          "chokepoints": "Irrigation channels create natural barriers"
+        },
+        "bug_advantages": [
+          "Flying Bugs dominate open airspace",
+          "Crops conceal Worker Bug swarms",
+          "Bio-matter spreads rapidly in fertile soil"
+        ],
+        "soldier_advantages": [
+          "Long-range weapons (sniper rifles) excel",
+          "Good fields of fire for defensive positions",
+          "Hydroponic towers provide strong firing positions"
+        ],
+        "special_rules": [
+          "Crop Fields: Provide concealment (-1 to hit) but not cover",
+          "Irrigation Channels: Count as difficult terrain, -2\" movement to cross",
+          "Greenhouses: Transparent - can see and shoot through (glass) but provide cover",
+          "Hydroponic Towers: Can be climbed for elevated positions (requires 2 actions)"
+        ],
+        "infestation_effects": {
+          "level_1-2": "Crops dying, some bio-matter patches",
+          "level_3-4": "Crops completely replaced by bio-matter, toxic spore clouds common",
+          "level_5": "Entire dome is bug breeding ground, constant spore hazard"
+        }
+      },
+      {
+        "name": "Underground Service Tunnels",
+        "type": "subterranean",
+        "size": "36\" x 24\" (narrow corridors)",
+        "terrain_features": [
+          "Main corridor (6\" wide)",
+          "Side passages (3\" wide)",
+          "Service alcoves (cover positions)",
+          "Ventilation shafts (spawn points)",
+          "Maintenance equipment (cover/obstacles)"
+        ],
+        "tactical_considerations": {
+          "cover_availability": "Medium - alcoves and equipment",
+          "sightlines": "Limited - maximum 18\" in corridors",
+          "movement": "Linear - confined to corridors",
+          "chokepoints": "Every junction and doorway"
+        },
+        "bug_advantages": [
+          "Bugs know tunnel layout perfectly",
+          "Can spawn from vents and side passages",
+          "Close quarters favor melee bugs",
+          "Darkness (if power out) helps Hunter Bugs"
+        ],
+        "soldier_advantages": [
+          "Chokepoints can be fortified",
+          "Flamethrowers devastating in confined space",
+          "Motion Tracker essential and effective"
+        ],
+        "special_rules": [
+          "Close Quarters: All ranged weapons beyond 12\" ineffective",
+          "Darkness: If no lights, visibility reduced to 6\" (unless using night vision)",
+          "Ventilation Shafts: Bugs spawn from vents (roll each round)",
+          "Tunnel Collapse: Explosives risk collapse (1D6 damage to all in 12\")",
+          "No Retreat: Limited space means no room to flee"
+        ],
+        "infestation_effects": {
+          "level_1-2": "Some passages infested, vents blocked",
+          "level_3-4": "Heavy bio-matter, organic growths narrow passages",
+          "level_5": "Tunnels completely transformed into hive corridors"
+        }
+      },
+      {
+        "name": "Spaceport Landing Field",
+        "type": "aerospace",
+        "size": "48\" x 48\"",
+        "terrain_features": [
+          "Landing pads (open ground)",
+          "1-2 Grounded spacecraft (large hard cover)",
+          "Control tower (tall structure, elevated position)",
+          "Fuel depot (explosive hazard)",
+          "Cargo containers (cover)",
+          "Hangar buildings (structures)"
+        ],
+        "tactical_considerations": {
+          "cover_availability": "Low - mostly open tarmac",
+          "sightlines": "Excellent - wide open space",
+          "movement": "Very fast - flat open ground",
+          "chokepoints": "Hangar entrances, spacecraft access ramps"
+        },
+        "bug_advantages": [
+          "Open ground favors mass charges by Heavy Bugs",
+          "Flying Bugs have complete aerial freedom",
+          "Little cover for soldiers means exposure"
+        ],
+        "soldier_advantages": [
+          "Perfect fields of fire for heavy weapons",
+          "Control tower provides commanding view",
+          "Spacecraft can be used as fortified positions",
+          "Extraction by dropship possible"
+        ],
+        "special_rules": [
+          "Fuel Depot: If ignited, massive explosion (4D6 damage in 12\" radius)",
+          "Control Tower: 4 levels, provides excellent overwatch position",
+          "Spacecraft: Can be boarded and sealed (creates safe room)",
+          "Landing Pads: Extraction point for evacuation missions",
+          "Open Exposure: No natural cover on tarmac, must use vehicles/containers"
+        ],
+        "infestation_effects": {
+          "level_1-2": "Some bugs on periphery, landing field mostly clear",
+          "level_3-4": "Bio-matter creeping across tarmac, some spacecraft infested",
+          "level_5": "Entire spaceport overrun, spacecraft destroyed or cocooned"
+        }
+      },
+      {
+        "name": "Medical Facility",
+        "type": "medical",
+        "size": "36\" x 36\"",
+        "terrain_features": [
+          "Hospital building (multi-room structure)",
+          "Emergency entrance (potential spawn point)",
+          "Parking area (vehicles for cover)",
+          "Medical equipment (cover, objectives)",
+          "Quarantine wing (isolated section)"
+        ],
+        "tactical_considerations": {
+          "cover_availability": "Medium - rooms and equipment",
+          "sightlines": "Short - walls divide vision",
+          "movement": "Room to room, corridor fighting",
+          "chokepoints": "Doorways, stairwells"
+        },
+        "bug_advantages": [
+          "Many rooms for ambushes",
+          "Infested patients may be present",
+          "Medical waste attracts bugs"
+        ],
+        "soldier_advantages": [
+          "Medical supplies available (Med Kits can be scavenged)",
+          "Rooms can be cleared systematically",
+          "Defensive positions in operating rooms"
+        ],
+        "special_rules": [
+          "Medical Supplies: Can be looted (roll 1D6, 4+ finds Med Kit)",
+          "Infested Patients: Roll when entering occupied rooms (1D3 Infested Humans)",
+          "Quarantine: Special rules - sealed rooms require breaching",
+          "Operating Rooms: Hard cover from equipment, can perform medical actions (+1 to healing)"
+        ],
+        "infestation_effects": {
+          "level_1-2": "Some patients infested, quarantine in effect",
+          "level_3-4": "Facility abandoned, heavy infestation in quarantine wing",
+          "level_5": "Entire hospital is parasite breeding ground"
+        }
+      },
+      {
+        "name": "Administrative Center",
+        "type": "government",
+        "size": "36\" x 36\"",
+        "terrain_features": [
+          "Main government building (large structure)",
+          "Plaza with monument (open area with centerpiece)",
+          "Office blocks (multiple floors)",
+          "Data center (objective location)",
+          "Security checkpoints (fortified positions)"
+        ],
+        "tactical_considerations": {
+          "cover_availability": "Medium - buildings and checkpoints",
+          "sightlines": "Plaza offers long lanes, buildings block",
+          "movement": "Open in plaza, confined in buildings",
+          "chokepoints": "Building entrances, security checkpoints"
+        },
+        "bug_advantages": [
+          "Multiple floors create vertical threats",
+          "Data servers attract bugs (electromagnetic signatures)",
+          "Numerous hiding spots in offices"
+        ],
+        "soldier_advantages": [
+          "Security checkpoints pre-fortified",
+          "Data center contains intel on infestation",
+          "Buildings provide strong defensive positions"
+        ],
+        "special_rules": [
+          "Data Access: Can retrieve colony intel (provides tactical bonuses next mission)",
+          "Security Systems: May still function (automated doors, cameras reveal bug positions)",
+          "Multiple Floors: Each floor must be cleared separately",
+          "Monument: Provides +1 morale if held (symbolic importance)"
+        ],
+        "infestation_effects": {
+          "level_1-2": "Some offices infested, data mostly intact",
+          "level_3-4": "Buildings structurally compromised, data corrupted",
+          "level_5": "Government center is hive nerve center, Queen may be present"
+        }
+      },
+      {
+        "name": "Mining Operation",
+        "type": "mining",
+        "size": "48\" x 36\"",
+        "terrain_features": [
+          "Mine entrance (tunnel access)",
+          "Ore processing facility (industrial structure)",
+          "Mining equipment (heavy machinery)",
+          "Ore piles (cover, difficult terrain)",
+          "Excavated pit (large depression)"
+        ],
+        "tactical_considerations": {
+          "cover_availability": "High - machinery and ore piles",
+          "sightlines": "Variable - equipment blocks, pit offers elevation",
+          "movement": "Difficult - uneven ground, ore piles",
+          "chokepoints": "Mine entrance, processing facility"
+        },
+        "bug_advantages": [
+          "Mine tunnels provide spawn points",
+          "Uneven terrain suits bug mobility",
+          "Ore piles conceal ambushes"
+        ],
+        "soldier_advantages": [
+          "Heavy machinery provides solid cover",
+          "Pit edges offer elevated firing positions",
+          "Mining explosives may be available"
+        ],
+        "special_rules": [
+          "Mine Entrance: Bugs spawn from depths (unlimited reinforcements if not sealed)",
+          "Excavated Pit: -2\" movement to climb, provides elevation bonus",
+          "Mining Explosives: Can be found and used (acts as Breach Charges)",
+          "Ore Piles: Difficult terrain, provide cover"
+        ],
+        "infestation_effects": {
+          "level_1-2": "Surface infestation, mine tunnels becoming nests",
+          "level_3-4": "Deep tunnels fully infested, constant bug emergence",
+          "level_5": "Entire mining complex is massive underground hive"
+        }
+      },
+      {
+        "name": "Hive Chamber",
+        "type": "hive_interior",
+        "size": "Variable (36\"-48\")",
+        "terrain_features": [
+          "Organic walls (living tissue)",
+          "Breeding chambers (destructible objectives)",
+          "Resin pools (difficult terrain)",
+          "Spawn vents (bug emergence points)",
+          "Bio-luminescent growths (illumination)"
+        ],
+        "tactical_considerations": {
+          "cover_availability": "Medium - organic structures",
+          "sightlines": "Limited - twisting organic corridors",
+          "movement": "Difficult - resin and bio-matter everywhere",
+          "chokepoints": "Narrow passages between chambers"
+        },
+        "bug_advantages": [
+          "Home territory - bugs gain +1 to all actions",
+          "Constant reinforcements from vents",
+          "Environment hostile to soldiers",
+          "Queen presence if main hive"
+        ],
+        "soldier_advantages": [
+          "Destroying breeding chambers weakens bugs",
+          "Flamethrowers extremely effective against organic matter",
+          "Clear objectives (destroy chambers)"
+        ],
+        "special_rules": [
+          "Organic Environment: All soldiers at -1 to morale checks",
+          "Living Walls: Walls may attack (tentacles), deal 1 damage if soldier adjacent",
+          "Breeding Chambers: Primary objectives, destructible (Armor 5, 10 HP)",
+          "Spawn Vents: Roll 1D6 each round, bugs emerge on 4+",
+          "Bio-luminescence: No darkness, everything visible",
+          "Toxic Air: Soldiers without sealed armor take 1 damage/round",
+          "Queen's Presence: If Queen in chamber, all bugs gain command bonuses"
+        ],
+        "infestation_effects": {
+          "description": "Hive chamber is always maximum infestation",
+          "permanent_effects": "Environmental damage, spawn points, organic hazards all active"
+        }
+      },
+      {
+        "name": "Research Laboratory",
+        "type": "scientific",
+        "size": "36\" x 30\"",
+        "terrain_features": [
+          "Lab benches (cover, equipment)",
+          "Containment cells (may hold bugs)",
+          "Chemical storage (explosive hazard)",
+          "Clean rooms (sealed areas)",
+          "Specimen tanks (may contain parasites)"
+        ],
+        "tactical_considerations": {
+          "cover_availability": "Medium - equipment and furniture",
+          "sightlines": "Short - rooms and partitions",
+          "movement": "Moderate - lab layout creates paths",
+          "chokepoints": "Clean room airlocks, containment doors"
+        },
+        "bug_advantages": [
+          "Contained specimens may break out",
+          "Lab equipment creates hiding spots",
+          "Parasites may be present in containment"
+        ],
+        "soldier_advantages": [
+          "Scientific equipment can provide intel",
+          "Containment cells can trap bugs",
+          "Chemical weapons may be improvised"
+        ],
+        "special_rules": [
+          "Containment Breach: Roll 1D6 when combat starts. On 5-6, containment fails (bugs escape)",
+          "Chemical Storage: Explosive if ignited (2D6 damage, 4\" radius)",
+          "Research Data: Can be recovered for intel bonus",
+          "Specimen Tanks: May contain parasites (Infested Human encounters)",
+          "Clean Room: Sealed environment, bugs cannot enter without breaching"
+        ],
+        "infestation_effects": {
+          "level_1-2": "Some specimens escaped, partial infestation",
+          "level_3-4": "Containment completely failed, labs overrun",
+          "level_5": "Lab repurposed by bugs as breeding facility"
+        }
+      }
+    ]
+  },
+
+  "terrain_generation": {
+    "description": "Rules for generating terrain for Bug Hunt missions",
+    "standard_setup": {
+      "terrain_density": "30-40% of board covered by terrain",
+      "cover_ratio": "60% hard cover, 40% soft cover or difficult terrain",
+      "sightline_blocking": "At least 3-4 large pieces that block line of sight completely",
+      "elevated_positions": "1-2 elevated positions per table"
+    },
+    "mission_specific_modifications": {
+      "EXTERMINATION": "More open terrain to encourage combat, fewer hiding spots",
+      "DEFENSE": "Pre-built defensive positions, fortifications, clear firing lanes",
+      "ASSAULT": "Hive interior terrain, organic structures, spawn vents",
+      "STEALTH": "More cover and concealment, shadows and hiding spots",
+      "RESCUE": "Buildings and structures with interior rooms",
+      "INTEL": "Mixed terrain with patrol routes and observation points"
+    },
+    "infestation_terrain_effects": {
+      "level_0-1": "Normal colony terrain, minimal bug modification",
+      "level_2-3": "Bio-matter patches appear (1D6 patches, 3\" diameter each)",
+      "level_4": "Heavy bio-matter (40% of board), organic growths, acid pools",
+      "level_5": "Entire battlefield transformed, organic terrain dominates"
+    }
+  },
+
+  "environmental_conditions": {
+    "description": "Weather and atmospheric conditions affecting battles",
+    "conditions": [
+      {
+        "name": "Clear Conditions",
+        "probability": "40%",
+        "effects": "No modifiers",
+        "tactical_impact": "Standard visibility and movement"
+      },
+      {
+        "name": "Heavy Rain",
+        "probability": "15%",
+        "effects": "Visibility reduced to 18\", +1 to stealth checks, -1 to hit beyond 12\"",
+        "tactical_impact": "Favors close combat, reduces ranged effectiveness",
+        "special": "Washes away some bio-matter, no acid pool growth"
+      },
+      {
+        "name": "Dense Fog",
+        "probability": "10%",
+        "effects": "Visibility reduced to 12\", Motion Tracker range -4\", +2 to stealth",
+        "tactical_impact": "Extreme close combat, Motion Tracker less reliable",
+        "special": "Flying Bugs grounded (visibility too low)"
+      },
+      {
+        "name": "Electrical Storm",
+        "probability": "10%",
+        "effects": "Motion Trackers 50% chance to malfunction each use, -1 to hit with energy weapons",
+        "tactical_impact": "Electronic equipment unreliable",
+        "special": "Lightning may strike (roll 1D6 each round, on 1 random model hit for 2D6)"
+      },
+      {
+        "name": "Acid Rain",
+        "probability": "15% (higher at infestation 3+)",
+        "effects": "All models in open take 1 damage each round, armor degrades (-1 save per round exposed)",
+        "tactical_impact": "Forces everyone to seek cover",
+        "special": "Bugs immune to acid rain (adapted)"
+      },
+      {
+        "name": "Toxic Atmosphere",
+        "probability": "10% (only at infestation 4+)",
+        "effects": "Unsealed soldiers take 1 damage/round, -1 to all actions",
+        "tactical_impact": "Requires sealed armor (Combat Armor) to operate safely",
+        "special": "Permanent condition at infestation 5"
+      }
+    ]
+  },
+
+  "tactical_terrain_features": {
+    "description": "Specific terrain elements and their rules",
+    "features": [
+      {
+        "name": "Hard Cover",
+        "examples": "Walls, vehicles, machinery",
+        "defensive_bonus": "+2 to armor save against ranged attacks",
+        "visibility": "Blocks line of sight completely",
+        "usage": "Model must be touching or within 1\" to benefit"
+      },
+      {
+        "name": "Soft Cover",
+        "examples": "Crates, barrels, furniture",
+        "defensive_bonus": "+1 to armor save against ranged attacks",
+        "visibility": "Blocks line of sight for 50% of model",
+        "usage": "Model must be touching or within 1\" to benefit",
+        "destructible": "Can be destroyed by sustained fire or explosives"
+      },
+      {
+        "name": "Difficult Terrain",
+        "examples": "Rubble, bio-matter, debris",
+        "movement_penalty": "-2\" movement when moving through",
+        "tactical_impact": "Slows advances and retreats",
+        "special": "Bugs may ignore certain difficult terrain types (bio-matter)"
+      },
+      {
+        "name": "Elevated Position",
+        "examples": "Rooftops, platforms, towers",
+        "offensive_bonus": "+1 to hit when shooting from elevation",
+        "tactical_impact": "Excellent for snipers and overwatch",
+        "access": "Requires climbing (1-2 actions depending on height)",
+        "risk": "If overrun, limited escape options"
+      },
+      {
+        "name": "Chokepoint",
+        "examples": "Doorways, narrow alleys, bridge crossings",
+        "defensive_bonus": "Defender gets +1 to combat if holding chokepoint",
+        "tactical_impact": "Can funnel enemy movement",
+        "special": "Only 1 model can pass through per activation"
+      },
+      {
+        "name": "Explosive Terrain",
+        "examples": "Fuel tanks, chemical storage, gas cylinders",
+        "danger": "If hit, roll 1D6. On 5-6, explodes (damage varies by type)",
+        "tactical_impact": "Can be weaponized but dangerous",
+        "special": "Flamethrowers auto-trigger explosions"
+      },
+      {
+        "name": "Bio-luminescent Area",
+        "examples": "Hive growths, organic lighting",
+        "illumination": "Eliminates darkness in area",
+        "tactical_impact": "No stealth bonuses in lit areas",
+        "special": "Bugs gain +1\" speed in bio-luminescent areas (comfortable environment)"
+      },
+      {
+        "name": "Ventilation Shaft",
+        "examples": "Air vents, maintenance shafts",
+        "special_rule": "Bug spawn point - roll each round to check for spawns",
+        "tactical_impact": "Must be monitored or sealed",
+        "sealing": "Requires explosives or welding (2 actions + equipment)"
+      }
+    ]
+  },
+
+  "location_selection": {
+    "description": "How to choose battlefield location for missions",
+    "methods": [
+      {
+        "method": "Narrative Choice",
+        "description": "GM selects location based on mission type and story",
+        "example": "RESCUE mission → Residential Block or Medical Facility"
+      },
+      {
+        "method": "Random Roll",
+        "description": "Roll 1D10 on location table",
+        "table": {
+          "1": "Residential Block",
+          "2": "Industrial Complex",
+          "3": "Agricultural Dome",
+          "4": "Underground Tunnels",
+          "5": "Spaceport",
+          "6": "Medical Facility",
+          "7": "Administrative Center",
+          "8": "Mining Operation",
+          "9": "Research Lab",
+          "10": "Hive Chamber (if infestation 3+) or roll again"
+        }
+      },
+      {
+        "method": "Mission-Appropriate",
+        "description": "Select location that fits mission objectives",
+        "guidelines": {
+          "ASSAULT": "Hive Chamber or Underground Tunnels",
+          "DEFENSE": "Spaceport or Administrative Center",
+          "RESCUE": "Residential Block or Medical Facility",
+          "INTEL": "Administrative Center or Research Lab",
+          "SALVAGE": "Industrial Complex or Medical Facility"
+        }
+      }
+    ]
+  },
+
+  "multi-zone_battles": {
+    "description": "Large missions spanning multiple connected areas",
+    "setup": "Use 2-3 location types connected by transition zones",
+    "example": "Start in Residential Block, advance through Underground Tunnels, assault Hive Chamber",
+    "rules": {
+      "zone_transition": "Requires moving to edge of board, triggers next zone setup",
+      "reinforcements": "Bugs may spawn in rear zones (preventing retreat)",
+      "objectives": "Spread across multiple zones",
+      "extraction": "Final zone must lead to extraction point"
+    },
+    "tactical_impact": "Epic multi-phase battles, tests squad endurance and ammunition"
+  }
+}
