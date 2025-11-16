@@ -36,7 +36,7 @@ func _register_all_expansions() -> void:
 	register_expansion(DLC_TRAILBLAZERS_TOOLKIT, {
 		"name": "Trailblazer's Toolkit",
 		"display_name": "Trailblazer's Toolkit",
-		"data_path": "res://data/dlc_trailblazers_toolkit/",
+		"data_path": "res://data/dlc/trailblazers_toolkit/",
 		"description": "New species (Krag, Skulker), complete psionics system, bot upgrades, and advanced training",
 		"version": "1.0.0",
 		"systems": ["PsionicSystem", "ExpandedSpeciesSystem"],
@@ -50,7 +50,7 @@ func _register_all_expansions() -> void:
 	register_expansion(DLC_FREELANCERS_HANDBOOK, {
 		"name": "Freelancer's Handbook",
 		"display_name": "Freelancer's Handbook",
-		"data_path": "res://data/dlc_freelancers_handbook/",
+		"data_path": "res://data/dlc/freelancers_handbook/",
 		"description": "Elite enemies, difficulty scaling, progressive AI, and alternative combat modes",
 		"version": "1.0.0",
 		"systems": ["EliteEnemySystem", "DifficultyScalingSystem", "AdvancedCombatSystem"],
@@ -64,7 +64,7 @@ func _register_all_expansions() -> void:
 	register_expansion(DLC_FIXERS_GUIDEBOOK, {
 		"name": "Fixer's Guidebook",
 		"display_name": "Fixer's Guidebook",
-		"data_path": "res://data/dlc_fixers_guidebook/",
+		"data_path": "res://data/dlc/fixers_guidebook/",
 		"description": "Stealth missions, salvage jobs, street fights, loans system, and world strife",
 		"version": "1.0.0",
 		"systems": ["StealthMissionSystem", "SalvageJobSystem", "LoanManager", "FringeWorldStrifeSystem"],
@@ -78,10 +78,10 @@ func _register_all_expansions() -> void:
 	register_expansion(DLC_BUG_HUNT, {
 		"name": "Bug Hunt",
 		"display_name": "Bug Hunt",
-		"data_path": "res://data/dlc_bug_hunt/",
+		"data_path": "res://data/dlc/bug_hunt/",
 		"description": "Standalone military campaign mode with bug enemies, panic system, and character transfer",
 		"version": "1.0.0",
-		"systems": ["BugHuntCampaignManager", "PanicSystem", "CharacterTransferSystem"],
+		"systems": ["BugHuntCampaignSystem", "PanicSystem", "MotionTrackerSystem", "InfestationSystem", "MilitaryHierarchySystem", "CharacterTransferSystem"],
 		"content_types": ["bug_enemies", "military_equipment", "campaign_mode", "missions"],
 		"price_usd": 9.99,
 		"standalone": true,
@@ -290,23 +290,23 @@ func _load_trailblazers_toolkit_content(content_type: String) -> Array:
 
 	match content_type:
 		"species":
-			var data = load_expansion_data(DLC_TRAILBLAZERS_TOOLKIT, "expanded_species.json")
+			var data = load_expansion_data(DLC_TRAILBLAZERS_TOOLKIT, "trailblazers_toolkit_species.json")
 			return data.get("species", []) if data else []
 
 		"psionic_powers":
-			var data = load_expansion_data(DLC_TRAILBLAZERS_TOOLKIT, "psionic_powers.json")
+			var data = load_expansion_data(DLC_TRAILBLAZERS_TOOLKIT, "trailblazers_toolkit_psionic_powers.json")
 			return data.get("psionic_powers", []) if data else []
 
 		"equipment":
-			var data = load_expansion_data(DLC_TRAILBLAZERS_TOOLKIT, "psionic_equipment.json")
+			var data = load_expansion_data(DLC_TRAILBLAZERS_TOOLKIT, "trailblazers_toolkit_psionic_equipment.json")
 			return data.get("equipment", []) if data else []
 
 		"bot_upgrades":
-			var data = load_expansion_data(DLC_TRAILBLAZERS_TOOLKIT, "bot_upgrades.json")
+			var data = load_expansion_data(DLC_TRAILBLAZERS_TOOLKIT, "trailblazers_toolkit_bot_upgrades.json")
 			return data.get("upgrades", []) if data else []
 
 		"world_traits":
-			var data = load_expansion_data(DLC_TRAILBLAZERS_TOOLKIT, "world_traits.json")
+			var data = load_expansion_data(DLC_TRAILBLAZERS_TOOLKIT, "trailblazers_toolkit_world_traits.json")
 			return data.get("traits", []) if data else []
 
 		_:
@@ -317,11 +317,11 @@ func _load_trailblazers_toolkit_content(content_type: String) -> Array:
 func _load_freelancers_handbook_content(content_type: String) -> Array:
 	match content_type:
 		"elite_enemies":
-			var data = load_expansion_data(DLC_FREELANCERS_HANDBOOK, "elite_enemies.json")
+			var data = load_expansion_data(DLC_FREELANCERS_HANDBOOK, "freelancers_handbook_elite_enemies.json")
 			return data.get("elite_enemies", []) if data else []
 
 		"difficulty_modifiers":
-			var data = load_expansion_data(DLC_FREELANCERS_HANDBOOK, "difficulty_modifiers.json")
+			var data = load_expansion_data(DLC_FREELANCERS_HANDBOOK, "freelancers_handbook_difficulty_modifiers.json")
 			return data.get("difficulty_modifiers", []) if data else []
 
 		"enemies":
@@ -338,27 +338,18 @@ func _load_fixers_guidebook_content(content_type: String) -> Array:
 		"missions", "mission_templates":
 			var missions := []
 
-			# Load all mission types
-			var stealth_data = load_expansion_data(DLC_FIXERS_GUIDEBOOK, "stealth_missions.json")
-			if stealth_data:
-				missions.append_array(stealth_data.get("stealth_missions", []))
-
-			var salvage_data = load_expansion_data(DLC_FIXERS_GUIDEBOOK, "salvage_jobs.json")
-			if salvage_data:
-				missions.append_array(salvage_data.get("salvage_jobs", []))
-
-			var street_data = load_expansion_data(DLC_FIXERS_GUIDEBOOK, "street_fights.json")
-			if street_data:
-				missions.append_array(street_data.get("street_fights", []))
-
-			var opportunity_data = load_expansion_data(DLC_FIXERS_GUIDEBOOK, "expanded_opportunities.json")
-			if opportunity_data:
-				missions.append_array(opportunity_data.get("expanded_opportunities", []))
+			# Load all mission types from combined file
+			var missions_data = load_expansion_data(DLC_FIXERS_GUIDEBOOK, "fixers_guidebook_missions.json")
+			if missions_data:
+				missions.append_array(missions_data.get("stealth_missions", []))
+				missions.append_array(missions_data.get("salvage_jobs", []))
+				missions.append_array(missions_data.get("street_fights", []))
+				missions.append_array(missions_data.get("expanded_opportunities", []))
 
 			return missions
 
 		"equipment":
-			var data = load_expansion_data(DLC_FIXERS_GUIDEBOOK, "stealth_equipment.json")
+			var data = load_expansion_data(DLC_FIXERS_GUIDEBOOK, "fixers_guidebook_equipment.json")
 			return data.get("equipment", []) if data else []
 
 		_:
