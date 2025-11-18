@@ -44,6 +44,9 @@ var _initialization_complete: bool = false
 var _dependencies_loaded: bool = false
 var _auto_save_timer: Timer = null
 
+# Temporary data storage for UI navigation and state
+var temp_data: Dictionary = {}
+
 func _ready() -> void:
 	print("GameStateManager: Starting enhanced initialization...")
 
@@ -623,6 +626,21 @@ func get_reputation() -> int:
 func get_story_progress() -> int:
 	return story_progress
 
+## Campaign Resource Accessors (for UI display of rulebook-accurate data)
+func get_patrons() -> Array:
+	"""Get list of patrons (from character creation or campaign events)"""
+	if game_state and game_state.current_campaign and "patrons" in game_state.current_campaign:
+		return game_state.current_campaign.patrons
+	return []
+
+func get_rivals() -> Array:
+	"""Get list of rivals (from character creation or campaign events)"""
+	if game_state and game_state.current_campaign and "rivals" in game_state.current_campaign:
+		return game_state.current_campaign.rivals
+	return []
+
+## Note: get_quest_rumors() already exists at line 1062 - no duplicate needed
+
 ## Initialize a new game state (Public API)
 func initialize_game_state() -> void:
 	"""Public method to initialize a new game state"""
@@ -1080,6 +1098,51 @@ func add_crew_contact(crew_id: String, contact_id: String) -> void:
 		game_state.add_crew_contact(crew_id, contact_id)
 
 
+# ============================================================================
+# CHARACTER CREATION MODIFIER TABLES (Rulebook pp.24-28)
+# ============================================================================
+# These tables define stat bonuses, equipment, and resources from Background/Motivation/Class rolls
+
+const BACKGROUND_MODIFIERS = {
+	"MILITARY_BRAT": {"stat_bonus": {"combat": 1}, "equipment": [], "credits": 0},
+	"TECH_GUILD": {"stat_bonus": {"savvy": 1}, "equipment": ["HIGH_TECH_WEAPON"], "credits_dice": "1d6"},
+	"RELIGIOUS_CULT": {"stat_bonus": {}, "resources": {"patron": true, "story_points": 1}},
+	"WAR_TORN": {"stat_bonus": {"reactions": 1}, "equipment": ["MILITARY_WEAPON"]},
+	"WEALTHY_MERCHANT": {"stat_bonus": {}, "credits_dice": "2d6"},
+	"ORPHAN": {"stat_bonus": {}, "resources": {"patron": true, "story_points": 1}},
+	"MINING_COLONY": {"stat_bonus": {"toughness": 1}, "equipment": [], "credits": 0},
+	"SPACE_STATION": {"stat_bonus": {}, "starting_rolls": {"gear": 1}},
+	"DRIFTER": {"stat_bonus": {}, "starting_rolls": {"gear": 1}},
+	"FRONTIER_GANG": {"stat_bonus": {"combat": 1}, "equipment": []}
+}
+
+const MOTIVATION_MODIFIERS = {
+	"WEALTH": {"stat_bonus": {}, "credits_dice": "1d6"},
+	"SURVIVAL": {"stat_bonus": {"toughness": 1}},
+	"TECHNOLOGY": {"stat_bonus": {"savvy": 1}, "starting_rolls": {"gadget": 1}},
+	"REVENGE": {"stat_bonus": {}, "resources": {"xp": 2, "rival": true}},
+	"LOYALTY": {"stat_bonus": {}, "resources": {"patron": true, "story_points": 1}},
+	"FREEDOM": {"stat_bonus": {}, "resources": {"xp": 2}},
+	"GLORY": {"stat_bonus": {"combat": 1}, "equipment": ["MILITARY_WEAPON"]},
+	"ESCAPE": {"stat_bonus": {"speed": 1}},
+	"ADVENTURE": {"stat_bonus": {}, "credits_dice": "1d6", "equipment": ["LOW_TECH_WEAPON"]},
+	"POWER": {"stat_bonus": {}, "resources": {"xp": 2, "rival": true}}
+}
+
+const CLASS_MODIFIERS = {
+	"WORKING_CLASS": {"stat_bonus": {"savvy": 1, "luck": 1}},
+	"SOLDIER": {"stat_bonus": {"combat": 1}, "credits_dice": "1d6"},
+	"SCIENTIST": {"stat_bonus": {"savvy": 1}, "starting_rolls": {"gadget": 1}},
+	"MERCENARY": {"stat_bonus": {"combat": 1}, "equipment": ["MILITARY_WEAPON"]},
+	"NEGOTIATOR": {"stat_bonus": {}, "resources": {"patron": true, "story_points": 1}},
+	"SCAVENGER": {"stat_bonus": {}, "equipment": ["HIGH_TECH_WEAPON"], "resources": {"rumors": 1}},
+	"TECHNICIAN": {"stat_bonus": {"savvy": 1}, "starting_rolls": {"gear": 1}},
+	"GANGER": {"stat_bonus": {"reactions": 1}, "equipment": ["LOW_TECH_WEAPON"]},
+	"TRADER": {"stat_bonus": {}, "credits_dice": "2d6"},
+	"EXPLORER": {"stat_bonus": {}, "resources": {"xp": 2}, "starting_rolls": {"gear": 1}}
+}
+
+
 ## Developer Testing Methods
 ## These methods support the DeveloperQuickStart panel for efficient playtesting
 
@@ -1087,10 +1150,23 @@ func add_crew_contact(crew_id: String, contact_id: String) -> void:
 func create_test_campaign(campaign_data: Dictionary) -> bool:
 	print("GameStateManager: Creating test campaign - ", campaign_data.get("name", "Unknown"))
 
-	# Start with basic new campaign
-	var success = start_new_campaign(campaign_data)
-	if not success:
-		push_error("GameStateManager: Failed to start base test campaign")
+	# CRITICAL FIX: Create FiveParsecsCampaign instance first
+	if not game_state:
+		_initialize_game_state_safe()
+
+	# Create new campaign instance using FiveParsecsCampaign
+	const FiveParsecsCampaign = preload("res://src/core/campaign/Campaign.gd")
+	var new_campaign = FiveParsecsCampaign.new()
+	new_campaign.campaign_name = campaign_data.get("name", "Test Campaign")
+	new_campaign.difficulty = campaign_data.get("difficulty", 1)
+	new_campaign.crew_size = campaign_data.get("crew_size", 4)
+
+	# Set campaign in GameState
+	if game_state and "current_campaign" in game_state:
+		game_state.current_campaign = new_campaign
+		print("GameStateManager: Campaign instance created and assigned to GameState")
+	else:
+		push_error("GameStateManager: GameState doesn't support current_campaign property")
 		return false
 
 	# Apply test-specific configurations
@@ -1110,6 +1186,9 @@ func create_test_campaign(campaign_data: Dictionary) -> bool:
 	# Set up test crew size
 	var test_crew_size = campaign_data.get("crew_size", 4)
 	_create_test_crew(test_crew_size)
+
+	# Create test ship
+	_create_test_ship(campaign_data.get("ship_name", "Test Ship"))
 
 	# Set up test scenario elements
 	var test_rivals = campaign_data.get("rivals", 0)
@@ -1160,26 +1239,137 @@ func _simulate_campaign_progression(target_turn: int) -> void:
 		if turn % 3 == 0: # Every 3 turns, add some reputation
 			reputation += 1
 
-## Create test crew members
+## Create test crew members with full rulebook-accurate modifiers
 func _create_test_crew(crew_size: int) -> void:
-	print("GameStateManager: Creating test crew of size ", crew_size)
+	print("GameStateManager: Creating rulebook-accurate test crew of size ", crew_size)
 
-	# This would interface with the crew system to generate test crew
-	# For now, just store the desired size
-	if game_state and game_state and game_state.has_method("set_crew_size"):
-		game_state.set_crew_size(crew_size)
+	if not game_state:
+		push_error("GameStateManager: Cannot create crew - game_state not available")
+		return
+
+	# Initialize campaign resources accumulator
+	var campaign_resources = {
+		"credits": crew_size,  # Base: 1 credit per crew member (rulebook p.29)
+		"story_points": 0,
+		"patrons": [],
+		"rivals": [],
+		"quest_rumors": 0
+	}
+
+	# Generate crew equipment pool (rulebook p.29: 3 military, 3 low-tech, 1 gear, 1 gadget)
+	var equipment_pool = _generate_crew_equipment_pool()
+
+	# Create crew members with full modifiers
+	var test_crew: Array = []
+	var test_names: Array[String] = ["Alex", "Jordan", "Casey", "Riley", "Morgan", "Taylor"]
+
+	for i in range(crew_size):
+		var character = _generate_character_with_modifiers(test_names[i % test_names.size()])
+
+		# Accumulate campaign resources from character creation
+		campaign_resources.credits += character.get("creation_credits", 0)
+		campaign_resources.story_points += character.get("creation_story_points", 0)
+		campaign_resources.quest_rumors += character.get("creation_rumors", 0)
+
+		if character.get("has_patron", false):
+			campaign_resources.patrons.append({"name": "Patron %d" % (i+1), "type": "creation"})
+		if character.get("has_rival", false):
+			campaign_resources.rivals.append({"name": "Rival %d" % (i+1), "type": "creation"})
+
+		# Add individual equipment bonuses to pool
+		equipment_pool.append_array(character.get("bonus_equipment", []))
+
+		test_crew.append(character)
+
+	# Designate first character as Leader (gets +1 Luck per rulebook)
+	if test_crew.size() > 0:
+		test_crew[0]["luck"] = test_crew[0].get("luck", 0) + 1
+		test_crew[0]["is_leader"] = true
+		print("GameStateManager: %s designated as Leader (Luck +1)" % test_crew[0].get("character_name", "Unknown"))
+
+	# Distribute equipment from pool to crew
+	_distribute_equipment_to_crew(test_crew, equipment_pool)
+
+	# Convert to Character instances and set in campaign
+	if "current_campaign" in game_state and game_state.current_campaign:
+		const Character = preload("res://src/core/character/Character.gd")
+		game_state.current_campaign.crew_members.clear()
+
+		for crew_dict in test_crew:
+			var character = Character.deserialize(crew_dict)
+
+			if not character:
+				push_error("GameStateManager: Failed to deserialize crew member: %s" % crew_dict.get("character_name", "Unknown"))
+				continue
+
+			game_state.current_campaign.crew_members.append(character)
+
+		print("GameStateManager: Set %d crew members in current_campaign" % game_state.current_campaign.crew_members.size())
+
+		# Set campaign-level resources
+		set_credits(campaign_resources.credits)
+		story_progress = campaign_resources.story_points
+
+		# Store patrons/rivals/rumors in campaign (if properties exist)
+		if "patrons" in game_state.current_campaign:
+			game_state.current_campaign.patrons = campaign_resources.patrons
+		if "rivals" in game_state.current_campaign:
+			game_state.current_campaign.rivals = campaign_resources.rivals
+		if "quest_rumors" in game_state.current_campaign:
+			game_state.current_campaign.quest_rumors = campaign_resources.quest_rumors
+
+		print("GameStateManager: Campaign resources - Credits: %d, Story Points: %d, Patrons: %d, Rivals: %d, Rumors: %d" % [
+			campaign_resources.credits,
+			campaign_resources.story_points,
+			campaign_resources.patrons.size(),
+			campaign_resources.rivals.size(),
+			campaign_resources.quest_rumors
+		])
+	else:
+		push_error("GameStateManager: current_campaign not available - cannot set crew")
+
+## Create test ship
+func _create_test_ship(ship_name: String = "Starlight") -> void:
+	print("GameStateManager: Creating test ship: ", ship_name)
+
+	if not game_state:
+		push_error("GameStateManager: Cannot create ship - game_state not available")
+		return
+
+	# Create basic ship data
+	var test_ship = {
+		"name": ship_name,
+		"hull_integrity": 100,
+		"fuel": 100,
+		"cargo_capacity": 20,
+		"debt": 0
+	}
+
+	# Store ship in GameState.player_ship (simpler approach)
+	if "player_ship" in game_state:
+		game_state.player_ship = test_ship
+		print("GameStateManager: Set ship data in GameState.player_ship")
+	else:
+		push_error("GameStateManager: player_ship property not found in GameState")
+
+	print("GameStateManager: Created test ship '%s'" % ship_name)
 
 ## Create test rival encounters
 func _create_test_rivals(rival_count: int) -> void:
 	print("GameStateManager: Creating ", rival_count, " test rivals")
 
-	if not game_state or not game_state and game_state.has_method("add_rival"):
-		push_warning("GameStateManager: GameState is not available or does not have add_rival method.")
+	if not game_state or not game_state.current_campaign:
+		push_warning("GameStateManager: GameState or current_campaign is not available.")
 		return
 
-	for i: int in range(rival_count):
-		var test_rival_id = "test_rival_" + str(i + 1)
-		game_state.add_rival(test_rival_id)
+	# Store rivals directly in campaign.rivals array (no add_rival() method exists)
+	if "rivals" in game_state.current_campaign:
+		for i: int in range(rival_count):
+			var test_rival_id = "test_rival_" + str(i + 1)
+			game_state.current_campaign.rivals.append(test_rival_id)
+			print("GameStateManager: Added rival '%s'" % test_rival_id)
+	else:
+		push_error("GameStateManager: current_campaign does not have 'rivals' property")
 
 ## Create test quest scenarios
 func _create_test_quests(quest_count: int) -> void:
@@ -1191,17 +1381,167 @@ func _create_test_quests(quest_count: int) -> void:
 
 ## Apply test equipment level to crew
 func _apply_test_equipment_level(level: String) -> void:
-	print("GameStateManager: Applying equipment level - ", level)
+	print("GameStateManager: Equipment application disabled (EquipmentManager not implemented) - level: ", level)
+	# TODO: Implement equipment system when EquipmentManager is available
+	return
 
-	match level:
-		"basic":
-			_apply_basic_equipment()
-		"improved":
-			_apply_improved_equipment()
-		"advanced":
-			_apply_advanced_equipment()
-		"elite":
-			_apply_elite_equipment()
+# ============================================================================
+# RULEBOOK-ACCURATE CHARACTER GENERATION HELPERS
+# ============================================================================
+
+## Generate character with Background/Motivation/Class modifiers applied
+func _generate_character_with_modifiers(char_name: String) -> Dictionary:
+	"""Generate character with full Background/Motivation/Class modifiers applied per rulebook"""
+
+	# Roll Background/Motivation/Class from available options
+	var backgrounds = BACKGROUND_MODIFIERS.keys()
+	var motivations = MOTIVATION_MODIFIERS.keys()
+	var classes = CLASS_MODIFIERS.keys()
+
+	var background = backgrounds[randi() % backgrounds.size()]
+	var motivation = motivations[randi() % motivations.size()]
+	var char_class = classes[randi() % classes.size()]
+
+	# Base stats (Baseline Human per rulebook p.21)
+	var character = {
+		"character_name": char_name,
+		"origin": "HUMAN",
+		"background": background,
+		"motivation": motivation,
+		"class": char_class,
+		"status": "ACTIVE",
+		"reactions": 1,
+		"speed": 4,
+		"combat": 0,  # Rulebook: Combat Skill +0
+		"toughness": 3,
+		"savvy": 0,  # Rulebook: Savvy +0
+		"luck": 0,  # Baseline: 0 (Leader gets +1)
+		"experience": 0,
+		"equipment": [],
+		# Creation resources (accumulated, then moved to campaign level)
+		"creation_credits": 0,
+		"creation_story_points": 0,
+		"creation_rumors": 0,
+		"has_patron": false,
+		"has_rival": false,
+		"bonus_equipment": []
+	}
+
+	# Apply Background modifiers
+	var bg_data = BACKGROUND_MODIFIERS[background]
+	_apply_stat_bonuses(character, bg_data.get("stat_bonus", {}))
+	_apply_equipment_bonuses(character, bg_data.get("equipment", []))
+	_apply_resource_bonuses(character, bg_data)
+
+	# Apply Motivation modifiers
+	var mot_data = MOTIVATION_MODIFIERS[motivation]
+	_apply_stat_bonuses(character, mot_data.get("stat_bonus", {}))
+	_apply_equipment_bonuses(character, mot_data.get("equipment", []))
+	_apply_resource_bonuses(character, mot_data)
+
+	# Apply Class modifiers
+	var class_data = CLASS_MODIFIERS[char_class]
+	_apply_stat_bonuses(character, class_data.get("stat_bonus", {}))
+	_apply_equipment_bonuses(character, class_data.get("equipment", []))
+	_apply_resource_bonuses(character, class_data)
+
+	print("GameStateManager: Generated %s - %s/%s/%s (C:%d R:%d T:%d Sv:%d L:%d)" % [
+		char_name, background, motivation, char_class,
+		character.combat, character.reactions, character.toughness, character.savvy, character.luck
+	])
+
+	return character
+
+## Apply stat bonuses to character
+func _apply_stat_bonuses(character: Dictionary, bonuses: Dictionary) -> void:
+	for stat in bonuses.keys():
+		character[stat] = character.get(stat, 0) + bonuses[stat]
+
+## Apply equipment bonuses to character's equipment pool
+func _apply_equipment_bonuses(character: Dictionary, equipment: Array) -> void:
+	character["bonus_equipment"].append_array(equipment)
+
+## Apply resource bonuses (credits, story points, XP, patrons, rivals, rumors)
+func _apply_resource_bonuses(character: Dictionary, data: Dictionary) -> void:
+	# Credits from dice rolls
+	if "credits_dice" in data:
+		character["creation_credits"] += _roll_dice_formula(data["credits_dice"])
+
+	# Resources dict (story_points, xp, patron, rival, rumors)
+	if "resources" in data:
+		var resources = data["resources"]
+		character["creation_story_points"] += resources.get("story_points", 0)
+		character["experience"] += resources.get("xp", 0)
+		character["creation_rumors"] += resources.get("rumors", 0)
+		character["has_patron"] = character.get("has_patron", false) or resources.get("patron", false)
+		character["has_rival"] = character.get("has_rival", false) or resources.get("rival", false)
+
+## Simple dice roller for formulas like "1d6", "2d6"
+func _roll_dice_formula(formula: String) -> int:
+	var parts = formula.split("d")
+	if parts.size() == 2:
+		var num_dice = int(parts[0])
+		var sides = int(parts[1])
+		var total = 0
+		for i in range(num_dice):
+			total += randi() % sides + 1
+		return total
+	return 0
+
+## Generate base crew equipment pool per rulebook (3 mil, 3 low, 1 gear, 1 gadget)
+func _generate_crew_equipment_pool() -> Array:
+	"""Generate base crew equipment pool per rulebook p.29"""
+	var pool: Array = []
+
+	# 3 Military Weapons
+	var military_weapons = ["Infantry Laser", "Auto Rifle", "Military Rifle"]
+	pool.append_array(military_weapons)
+
+	# 3 Low-tech Weapons
+	var lowtech_weapons = ["Handgun", "Colony Rifle", "Blade"]
+	pool.append_array(lowtech_weapons)
+
+	# 1 Gear item
+	pool.append("Med-patch")
+
+	# 1 Gadget item
+	pool.append("Scanner Bot")
+
+	return pool
+
+## Distribute equipment from pool to crew members
+func _distribute_equipment_to_crew(crew: Array, equipment_pool: Array) -> void:
+	"""Distribute equipment from pool to crew members (simple round-robin)"""
+	var equipment_index = 0
+
+	for i in range(crew.size()):
+		var character = crew[i]
+		var equipment_list: Array = []
+
+		# Give each character 1-2 items from pool
+		var items_to_assign = min(2, equipment_pool.size() - equipment_index)
+		for j in range(items_to_assign):
+			if equipment_index < equipment_pool.size():
+				equipment_list.append(equipment_pool[equipment_index])
+				equipment_index += 1
+
+		character["equipment"] = equipment_list
+
+		print("GameStateManager: %s equipped with: %s" % [
+			character.get("character_name", "Unknown"),
+			", ".join(equipment_list) if equipment_list.size() > 0 else "none"
+		])
+
+	# Disabled until EquipmentManager is implemented
+	#match level:
+	#	"basic":
+	#		_apply_basic_equipment()
+	#	"improved":
+	#		_apply_improved_equipment()
+	#	"advanced":
+	#		_apply_advanced_equipment()
+	#	"elite":
+	#		_apply_elite_equipment()
 
 ## Apply basic equipment set
 func _apply_basic_equipment() -> void:
@@ -1355,3 +1695,27 @@ func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Va
 	if obj is Object and obj.has_method(method_name):
 		return obj.callv(method_name, args)
 	return null
+
+# ============================================================================
+# TEMPORARY DATA MANAGEMENT
+# ============================================================================
+# Temporary data storage for UI navigation state and inter-screen communication
+
+func set_temp_data(key: String, value: Variant) -> void:
+	"""Store temporary data for UI navigation"""
+	temp_data[key] = value
+
+func get_temp_data(key: String, default = null) -> Variant:
+	"""Retrieve temporary data"""
+	return temp_data.get(key, default)
+
+func has_temp_data(key: String) -> bool:
+	"""Check if temporary data exists"""
+	return key in temp_data
+
+func clear_temp_data(key: String = "") -> void:
+	"""Clear temporary data (all if no key specified)"""
+	if key.is_empty():
+		temp_data.clear()
+	else:
+		temp_data.erase(key)
