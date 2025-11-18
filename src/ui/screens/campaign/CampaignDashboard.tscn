@@ -61,6 +61,18 @@ text = "Credits: 0"
 layout_mode = 2
 text = "Story Points: 0"
 
+[node name="PatronsLabel" type="Label" parent="MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer"]
+layout_mode = 2
+text = "Patrons: 0"
+
+[node name="RivalsLabel" type="Label" parent="MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer"]
+layout_mode = 2
+text = "Rivals: 0"
+
+[node name="RumorsLabel" type="Label" parent="MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer"]
+layout_mode = 2
+text = "Quest Rumors: 0"
+
 [node name="MainContent" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
@@ -80,6 +92,7 @@ layout_mode = 2
 text = "Crew"
 
 [node name="CrewList" type="ItemList" parent="MarginContainer/VBoxContainer/MainContent/LeftPanel/CrewPanel/VBoxContainer"]
+custom_minimum_size = Vector2(0, 200)
 layout_mode = 2
 size_flags_vertical = 3
 
