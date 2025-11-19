@@ -1,7 +1,10 @@
-[gd_scene load_steps=3 format=3 uid="uid://c8vx1k9wp7fqj"]
+[gd_scene load_steps=6 format=3 uid="uid://c8vx1k9wp7fqj"]
 
 [ext_resource type="Script" path="res://src/ui/screens/world/WorldPhaseController.gd" id="1_controller"]
 [ext_resource type="PackedScene" uid="uid://bkw8n7qx3m5jr" path="res://src/ui/screens/world/components/UpkeepPhaseComponent.tscn" id="2_upkeep"]
+[ext_resource type="PackedScene" uid="uid://bfj8x2n4k9mrl" path="res://src/ui/screens/world/components/CrewTaskComponent.tscn" id="3_crew_task"]
+[ext_resource type="PackedScene" uid="uid://c3xk8m9wr1qj" path="res://src/ui/screens/world/components/JobOfferComponent.tscn" id="4_job_offer"]
+[ext_resource type="PackedScene" uid="uid://d2yk7n5vs3pl" path="res://src/ui/screens/world/components/MissionPrepComponent.tscn" id="5_mission_prep"]
 
 [node name="WorldPhaseController" type="Control"]
 layout_mode = 3
@@ -77,6 +80,14 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
+[node name="UpkeepPhaseComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/UpkeepContainer" instance=ExtResource("2_upkeep")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
 [node name="CrewTaskContainer" type="Control" parent="MarginContainer/VBoxContainer/PhaseContainer"]
 unique_name_in_owner = true
 visible = false
@@ -87,21 +98,13 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="CrewTaskPlaceholder" type="Label" parent="MarginContainer/VBoxContainer/PhaseContainer/CrewTaskContainer"]
+[node name="CrewTaskComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/CrewTaskContainer" instance=ExtResource("3_crew_task")]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -100.0
-offset_top = -12.0
-offset_right = 100.0
-offset_bottom = 12.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-text = "Crew Tasks Component (To Be Extracted)"
-horizontal_alignment = 1
 
 [node name="JobOfferContainer" type="Control" parent="MarginContainer/VBoxContainer/PhaseContainer"]
 unique_name_in_owner = true
@@ -113,21 +116,13 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="JobOfferPlaceholder" type="Label" parent="MarginContainer/VBoxContainer/PhaseContainer/JobOfferContainer"]
+[node name="JobOfferComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/JobOfferContainer" instance=ExtResource("4_job_offer")]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -100.0
-offset_top = -12.0
-offset_right = 100.0
-offset_bottom = 12.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-text = "Job Offers Component (To Be Extracted)"
-horizontal_alignment = 1
 
 [node name="MissionPrepContainer" type="Control" parent="MarginContainer/VBoxContainer/PhaseContainer"]
 unique_name_in_owner = true
@@ -139,21 +134,13 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="MissionPrepPlaceholder" type="Label" parent="MarginContainer/VBoxContainer/PhaseContainer/MissionPrepContainer"]
+[node name="MissionPrepComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/MissionPrepContainer" instance=ExtResource("5_mission_prep")]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -100.0
-offset_top = -12.0
-offset_right = 100.0
-offset_bottom = 12.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-text = "Mission Prep Component (To Be Extracted)"
-horizontal_alignment = 1
 
 [node name="Controls" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2

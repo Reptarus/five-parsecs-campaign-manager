@@ -1,0 +1,107 @@
+[gd_scene load_steps=2 format=3 uid="uid://d2yk7n5vs3pl"]
+
+[ext_resource type="Script" path="res://src/ui/screens/world/components/MissionPrepComponent.gd" id="1_mission_prep"]
+
+[node name="MissionPrepComponent" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_mission_prep")
+
+[node name="MissionPrepContainer" type="VBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Title" type="Label" parent="MissionPrepContainer"]
+layout_mode = 2
+text = "Mission Preparation - Equipment & Crew Setup"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 20
+
+[node name="HSeparator" type="HSeparator" parent="MissionPrepContainer"]
+layout_mode = 2
+
+[node name="MissionBriefingLabel" type="Label" parent="MissionPrepContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+text = "Mission briefing will appear here"
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="HSeparator2" type="HSeparator" parent="MissionPrepContainer"]
+layout_mode = 2
+
+[node name="AssignmentContainer" type="HBoxContainer" parent="MissionPrepContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CrewSection" type="VBoxContainer" parent="MissionPrepContainer/AssignmentContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CrewLabel" type="Label" parent="MissionPrepContainer/AssignmentContainer/CrewSection"]
+layout_mode = 2
+text = "Crew Members:"
+theme_override_font_sizes/font_size = 16
+
+[node name="CrewMembersList" type="ItemList" parent="MissionPrepContainer/AssignmentContainer/CrewSection"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="EquipmentSection" type="VBoxContainer" parent="MissionPrepContainer/AssignmentContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="EquipmentLabel" type="Label" parent="MissionPrepContainer/AssignmentContainer/EquipmentSection"]
+layout_mode = 2
+text = "Available Equipment:"
+theme_override_font_sizes/font_size = 16
+
+[node name="EquipmentList" type="ItemList" parent="MissionPrepContainer/AssignmentContainer/EquipmentSection"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="HSeparator3" type="HSeparator" parent="MissionPrepContainer"]
+layout_mode = 2
+
+[node name="StatusSection" type="HBoxContainer" parent="MissionPrepContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="ReadinessStatusLabel" type="Label" parent="MissionPrepContainer/StatusSection"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Status: Preparing
+0/0 crew equipped"
+theme_override_font_sizes/font_size = 16
+horizontal_alignment = 1
+
+[node name="ButtonContainer" type="HBoxContainer" parent="MissionPrepContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="AssignEquipmentButton" type="Button" parent="MissionPrepContainer/ButtonContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Assign Equipment"
+
+[node name="Spacer" type="Control" parent="MissionPrepContainer/ButtonContainer"]
+custom_minimum_size = Vector2(20, 0)
+layout_mode = 2
+
+[node name="ReadyForBattleButton" type="Button" parent="MissionPrepContainer/ButtonContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+text = "Ready for Battle"
