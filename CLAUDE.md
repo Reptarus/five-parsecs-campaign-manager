@@ -1,7 +1,7 @@
 # Five Parsecs Campaign Manager - Living Development Guide
 
-**Last Updated**: 2025-11-16
-**Document Version**: 2.0 (Week 4 Reality Check)
+**Last Updated**: 2025-11-20
+**Document Version**: 2.1 (Week 4 Core Rules Comparison)
 **Update Trigger**: Refresh when workflow productivity measurably improves from knowledge update
 
 ## 📊 EVOLUTION HISTORY - HOW OUR UNDERSTANDING CHANGED
@@ -42,12 +42,12 @@
 - Test Coverage: 96.2% (76/79 tests) ⚠️
 - Save/Load: 100% ✅
 - Performance: 2-3.3x targets ✅
-- File Count: 415 files ⚠️ (target range: 150-250)
+- File Count: 441 files ⚠️ (target range: 150-250)
 - E2E Coverage: 90.9% ⏳ (2 tests failing)
 - Data Presentation: ✅ VALIDATED (first successful backend → UI data flow)
 
 **Flexible Targets** (subject to architectural discoveries):
-- File consolidation: **150-250 files** (current: 415)
+- File consolidation: **150-250 files** (current: 441)
   - Aggressive: 150 files (64% reduction)
   - Realistic: 200 files (52% reduction)
   - Conservative: 250 files (40% reduction)
@@ -71,21 +71,34 @@
    - Known Issues: UI spacing needs refinement, CampaignDashboard missing scene nodes (cosmetic)
    - See: [WEEK_4_SESSION_2_PROGRESS.md](WEEK_4_SESSION_2_PROGRESS.md)
 
-### High Priority (This Week)
-1. **Fix E2E Test Failures** (~35 min) ⏳ IN PROGRESS
+✅ **Core Rules Comparison & Doc Cleanup** (Session 3 - 2025-11-20)
+   - Compared codebase against docs/gameplay/rules/core_rules.md
+   - **Key Finding**: BattlePhase handler MISSING from CampaignPhaseManager
+   - Implementation Status: Character Creation 95%, World Phase 90%, Battle Phase 50%, Post-Battle 75%
+   - Estimated 12-17 hours to functional beta (~60% integration, ~40% new implementation)
+   - Archived 6 outdated docs, deleted 1 malformed report
+   - Created WEEK_4_RETROSPECTIVE.md with comprehensive status
+
+### High Priority (Next Sessions)
+1. **Create BattlePhase Handler** (~3-4 hours) 🔴 CRITICAL
+   - Create: src/core/campaign/phases/BattlePhase.gd
+   - Wire into CampaignPhaseManager alongside Travel/World/PostBattle handlers
+   - Connect battle flow: setup → combat → resolution
+   - **Blocker for functional beta**
+
+2. **Wire Phase Transitions** (~2-3 hours)
+   - Connect CampaignTurnController signals to phase handlers
+   - Implement phase-to-phase handoffs
+   - Test complete turn loop (Travel → World → Battle → Post-Battle)
+
+3. **Fix E2E Test Failures** (~35 min)
    - Source: tests/legacy/test_campaign_e2e_workflow.gd
    - Blocker: 2 tests failing (equipment field mismatch)
    - Success Metric: 100% test coverage (79/79)
 
-2. **Battle Integration Tests** (~3-4 hours)
-   - Create: tests/integration/test_battle_system_integration.gd
-   - Coverage Target: 20-25 tests
-   - Success Metric: Full battle workflow validated
-
-3. **File Consolidation Sprint** (~6-8 hours)
-   - Current: 415 files (measured via `find src -name "*.gd" | wc -l`)
+4. **File Consolidation Sprint** (~6-8 hours)
+   - Current: 441 files (measured via `find src -name "*.gd" | wc -l`)
    - Target Range: 150-250 files
-   - **Flexibility Note**: Target adjusts based on architectural needs
    - Method: Merge UI components, consolidate systems
 
 ### Update This Section When:
@@ -99,7 +112,7 @@
 ## 🏗️ CODEBASE REALITY - MEASURED METRICS
 
 **Measurement Date**: 2025-11-16
-**Measurement Command**: `find src -name "*.gd" | wc -l` → **415 files**
+**Measurement Command**: `find src -name "*.gd" | wc -l` → **441 files**
 
 ### Directory Structure (Actual Counts)
 ```
@@ -134,7 +147,7 @@ tests/ (75+ files)             # Testing infrastructure
 |------|-----------|--------|--------------|--------|
 | Unknown | 518 | Baseline | - | Bloated |
 | Week 3 | 415 | -20% | 150-250 | In Progress |
-| Week 4 | TBD | TBD | 150-250 | Active consolidation |
+| Week 4 | 441 | +6% | 150-250 | Active consolidation |
 
 **Update Trigger**: Re-measure after each consolidation sprint
 
