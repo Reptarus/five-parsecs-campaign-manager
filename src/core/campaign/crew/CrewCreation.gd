@@ -19,17 +19,10 @@ signal character_generated(character: CoreCharacter)
 # Crew data
 var crew_members: Array[CoreCharacter] = []
 var max_crew_size: int = 6
-var dice_manager: Node = null
 
 func _ready() -> void:
-	_validate_universal_connections()
 	_setup_ui()
 	_connect_signals()
-func _validate_universal_connections() -> void:
-	# Validate dice manager access
-	dice_manager = get_node_or_null("/root/DiceManager")
-	if not dice_manager:
-		push_warning("CORE DEPENDENCY MISSING: DiceManager not found (CrewCreation)")
 
 func _setup_ui() -> void:
 	character_list.clear()
@@ -42,15 +35,15 @@ func _connect_signals() -> void:
 	character_list.item_selected.connect(_on_character_selected)
 
 func _update_ui_state() -> void:
-	generate_button.disabled = safe_call_method(crew_members, "size") as int >= max_crew_size
-	finish_button.disabled = safe_call_method(crew_members, "size") as int == 0
+	generate_button.disabled = crew_members.size() >= max_crew_size
+	finish_button.disabled = crew_members.size() == 0
 
 	# Update finish button text
-	finish_button.text = "Finish Crew (%d/%d)" % [safe_call_method(crew_members, "size") as int, max_crew_size]
+	finish_button.text = "Finish Crew (%d/%d)" % [crew_members.size(), max_crew_size]
 
 ## Generate a new Five Parsecs character using official rules
 func _on_generate_character() -> void:
-	if safe_call_method(crew_members, "size") as int >= max_crew_size:
+	if crew_members.size() >= max_crew_size:
 		return
 
 	var character: Character = _generate_five_parsecs_character()
@@ -70,7 +63,7 @@ func _on_generate_character() -> void:
 
 ## Generate character using Five Parsecs From Home rules
 func _generate_five_parsecs_character() -> CoreCharacter:
-	var character: Character = CoreCharacter.new()
+	var character: CoreCharacter = CoreCharacter.new()
 
 	# Step 1: Generate attributes using 2D6 / 3.0 (rounded up)
 	character.reactions = _roll_five_parsecs_attribute()
@@ -107,27 +100,17 @@ func _roll_five_parsecs_attribute() -> int:
 	var roll = _roll_2d6()
 	return ceili(float(roll) / 3.0)
 
-## Roll 2D6 using dice manager or fallback
+## Roll 2D6 for attribute generation
 func _roll_2d6() -> int:
-	if dice_manager and dice_manager.has_method("roll_dice"):
-		return dice_manager.roll_dice(2, 6)
-	else:
-		# Fallback dice rolling
-		return (randi() % 6 + 1) + (randi() % 6 + 1)
+	return (randi() % 6 + 1) + (randi() % 6 + 1)
 
 ## Roll D100 for background
 func _roll_background() -> int:
-	if dice_manager and dice_manager.has_method("roll_d100"):
-		return dice_manager.roll_d100()
-	else:
-		return randi() % 100 + 1
+	return randi() % 100 + 1
 
 ## Roll D100 for motivation
 func _roll_motivation() -> int:
-	if dice_manager and dice_manager.has_method("roll_d100"):
-		return dice_manager.roll_d100()
-	else:
-		return randi() % 100 + 1
+	return randi() % 100 + 1
 
 ## Convert background roll to string
 func _get_background_string_from_roll(roll: int) -> String:
@@ -174,7 +157,7 @@ func _generate_character_name() -> String:
 	var first_names = ["Alex", "Jordan", "Casey", "Riley", "Morgan", "Avery", "Taylor", "Cameron"]
 	var last_names = ["Stone", "Cross", "Vale", "Kane", "Reed", "Fox", "Storm", "Wolf"]
 
-	return first_names[randi() % safe_call_method(first_names, "size") as int] + " " + last_names[randi() % safe_call_method(last_names, "size") as int]
+	return first_names[randi() % first_names.size()] + " " + last_names[randi() % last_names.size()]
 
 ## Apply origin traits
 func _apply_origin_traits(character: CoreCharacter) -> void:
@@ -266,24 +249,49 @@ func _get_origin_name(character: CoreCharacter) -> String:
 
 ## Handle character selection in list
 func _on_character_selected(index: int) -> void:
-	if index >= 0 and index < safe_call_method(crew_members, "size") as int:
+	if index >= 0 and index < crew_members.size():
 		_display_character_details(crew_members[index])
 
 ## Finish crew creation and emit data
 func _on_finish_crew_creation() -> void:
 	var crew_data = {
 		"crew_members": [],
-		"crew_size": safe_call_method(crew_members, "size") as int
+		"crew_size": crew_members.size()
 	}
 
+	# Serialize crew for signal emission
 	for character in crew_members:
 		crew_data.crew_members.append(character.serialize())
 
+	# Save crew to GameStateManager for persistence
+	_save_crew_to_game_state()
+
 	crew_created.emit(crew_data)
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null
+
+## Save created crew to GameStateManager for persistence
+func _save_crew_to_game_state() -> void:
+	if not GameStateManager:
+		push_error("CrewCreation: GameStateManager not available - crew will not be persisted")
+		return
+
+	var game_state = GameStateManager.game_state
+	if not game_state:
+		push_error("CrewCreation: No game_state - crew will not be persisted")
+		return
+
+	if not "current_campaign" in game_state or not game_state.current_campaign:
+		push_error("CrewCreation: No current_campaign - crew will not be persisted")
+		return
+
+	# Clear existing crew and add new members
+	if "crew_members" in game_state.current_campaign:
+		game_state.current_campaign.crew_members.clear()
+	else:
+		game_state.current_campaign.crew_members = []
+
+	# Add each character (serialized) to the campaign
+	for character in crew_members:
+		var serialized = character.serialize()
+		game_state.current_campaign.crew_members.append(serialized)
+
+	print("CrewCreation: Saved %d crew members to GameStateManager" % crew_members.size())

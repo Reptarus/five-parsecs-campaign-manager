@@ -5,7 +5,7 @@ extends Control
 ## Senior Developer Implementation: Complete error handling + diagnostics
 
 # Import workflow testing system
-const WorkflowSystemTester = preload("res://src/core/debug/WorkflowSystemTester.gd")
+# WorkflowSystemTester removed - file does not exist
 
 @onready var dashboard_panel: Panel = $DashboardPanel
 @onready var status_label: Label = $DashboardPanel/VBox/StatusLabel

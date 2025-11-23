@@ -267,7 +267,7 @@ func _on_ready_for_battle_pressed() -> void:
 
 	# Publish mission prep completed event
 	if event_bus:
-		event_bus.publish_event(CampaignTurnEventBus.TurnEvent.MISSION_PREP_COMPLETED, {
+		event_bus.publish_event(CampaignTurnEventBus.TurnEvent.MISSION_PREPARED, {
 			"mission": mission_data,
 			"crew_assignments": crew_equipment_assignments,
 			"readiness": readiness
@@ -406,9 +406,46 @@ func _on_job_accepted(data: Dictionary) -> void:
 	var job_data = data.get("job_data", {})
 	if not job_data.is_empty():
 		print("MissionPrepComponent: Job accepted - preparing for mission")
-		# Initialize with job data
-		# TODO: Get crew and equipment from campaign
-		#initialize_mission_prep(job_data, [], [])
+
+		# Get crew from GameState
+		var crew: Array[Dictionary] = []
+		var game_state = get_node_or_null("/root/GameState")
+		if game_state and game_state.current_campaign:
+			var campaign = game_state.current_campaign
+			# FiveParsecsCampaign has crew_members (Array[Character]) and get_crew_members() method
+			if campaign.has_method("get_crew_members"):
+				crew = campaign.get_crew_members()
+			elif campaign.crew_members.size() > 0:
+				for member in campaign.crew_members:
+					if member is Dictionary:
+						crew.append(member)
+					elif member != null and member.has_method("to_dictionary"):
+						crew.append(member.to_dictionary())
+
+		# Get equipment from stash (stored in campaign settings or resources)
+		var equipment: Array[Dictionary] = []
+		if game_state and game_state.current_campaign:
+			var campaign = game_state.current_campaign
+			# Check for ship stash in settings
+			if campaign.settings.has("ship") and campaign.settings.ship.has("stash"):
+				var stash = campaign.settings.ship.stash
+				for item in stash:
+					if item is Dictionary:
+						equipment.append(item)
+			# Also gather equipment from crew members
+			for member in campaign.crew_members:
+				if member != null and member.has_method("get_equipment"):
+					var member_equipment = member.get_equipment()
+					for item in member_equipment:
+						if item is Dictionary:
+							equipment.append(item)
+						elif item != null and item.has_method("to_dictionary"):
+							equipment.append(item.to_dictionary())
+
+		print("MissionPrepComponent: Initializing with %d crew, %d equipment" % [crew.size(), equipment.size()])
+
+		# Initialize with actual data
+		initialize_mission_prep(job_data, crew, equipment)
 
 ## Public API for integration
 func is_prep_completed() -> bool:

@@ -20,9 +20,9 @@ const OptionalAutomationManager = preload("res://src/core/battle/OptionalAutomat
 @onready var dice_animations_check: CheckBox = $VBox/DiceSection/DiceAnimationsCheck
 @onready var dice_sound_check: CheckBox = $VBox/DiceSection/DiceSoundCheck
 
-# Settings description labels
-@onready var automation_description: Label = $VBox/AutomationSection/AutomationDescription
-@onready var accessibility_description: Label = $VBox/AccessibilitySection/AccessibilityDescription
+# Settings description labels (created programmatically in _create functions)
+var automation_description: Label
+var accessibility_desc_label: Label
 
 # System reference
 var automation_manager: OptionalAutomationManager
@@ -78,16 +78,16 @@ func _create_accessibility_section(parent: Node) -> void:
 	section.add_child(accessibility_mode_check)
 
 	# Description
-	accessibility_description = Label.new()
-	accessibility_description.text = """Enhanced features for users with disabilities:
+	accessibility_desc_label = Label.new()
+	accessibility_desc_label.text = """Enhanced features for users with disabilities:
 	• Slower animations and clearer visual feedback
 • Always show calculation breakdowns
 • Larger text and high contrast options
 • Audio cues for important events
 • Simplified interface options"""
-	accessibility_description.autowrap_mode = TextServer.AUTOWRAP_WORD
-	accessibility_description.add_theme_color_override("font_color", Color.GRAY)
-	section.add_child(accessibility_description)
+	accessibility_desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	accessibility_desc_label.add_theme_color_override("font_color", Color.GRAY)
+	section.add_child(accessibility_desc_label)
 
 ## Create automation level section
 func _create_automation_section(parent: Node) -> void:

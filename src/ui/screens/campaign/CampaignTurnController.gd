@@ -13,6 +13,8 @@ extends Control
 @onready var world_phase_controller: Control = %WorldPhaseController
 @onready var battle_transition_ui: Control = %BattleTransitionUI
 @onready var post_battle_ui: Control = %PostBattleUI
+@onready var pre_battle_ui: Control = %PreBattleUI
+@onready var tactical_battle_ui: Control = %TacticalBattleUI
 
 # UI State
 @onready var current_turn_label: Label = %CurrentTurnLabel
@@ -56,13 +58,39 @@ func _connect_core_signals() -> void:
 	campaign_phase_manager.campaign_turn_completed.connect(_on_campaign_turn_completed)
 	
 	# Connect battle system signals
-	var battle_manager = get_node_or_null("/root/BattlefieldManager")
+	var battle_manager = get_node_or_null("/root/BattlefieldCompanionManager")
 	if battle_manager:
 		battle_manager.battle_completed.connect(_on_battle_completed)
 	
 	# Connect PostBattleSequence completion signal
 	if post_battle_ui and post_battle_ui.has_signal("post_battle_completed"):
 		post_battle_ui.post_battle_completed.connect(_on_post_battle_completed)
+
+	# Connect PostBattlePhase handler signals for backend integration
+	var post_battle_handler = campaign_phase_manager.post_battle_phase_handler
+	if post_battle_handler:
+		if post_battle_handler.has_signal("rival_status_resolved"):
+			post_battle_handler.rival_status_resolved.connect(_on_post_battle_rival_resolved)
+		if post_battle_handler.has_signal("patron_status_resolved"):
+			post_battle_handler.patron_status_resolved.connect(_on_post_battle_patron_resolved)
+		if post_battle_handler.has_signal("experience_awarded"):
+			post_battle_handler.experience_awarded.connect(_on_post_battle_experience_awarded)
+
+	# Connect battle flow signals (BattleTransition → PreBattle → TacticalBattle → PostBattle)
+	if battle_transition_ui and battle_transition_ui.has_signal("battle_ready_to_launch"):
+		battle_transition_ui.battle_ready_to_launch.connect(_on_battle_ready_to_launch)
+
+	if pre_battle_ui:
+		if pre_battle_ui.has_signal("deployment_confirmed"):
+			pre_battle_ui.deployment_confirmed.connect(_on_deployment_confirmed)
+		if pre_battle_ui.has_signal("back_pressed"):
+			pre_battle_ui.back_pressed.connect(_on_prebattle_back)
+
+	if tactical_battle_ui:
+		if tactical_battle_ui.has_signal("tactical_battle_completed"):
+			tactical_battle_ui.tactical_battle_completed.connect(_on_tactical_battle_completed)
+		if tactical_battle_ui.has_signal("return_to_battle_resolution"):
+			tactical_battle_ui.return_to_battle_resolution.connect(_on_return_to_battle_resolution)
 
 func _initialize_ui_state() -> void:
 	"""Initialize UI to current campaign state"""
@@ -159,6 +187,37 @@ func _on_backend_rival_escalated(rival_id: String, new_threat_level: int) -> voi
 func _on_backend_rival_defeated(rival_id: String) -> void:
 	"""Handle rival permanent defeat from backend"""
 	print("CampaignTurnController: Rival %s permanently defeated" % rival_id)
+
+## Post-Battle Phase Signal Handlers
+
+func _on_post_battle_rival_resolved(rivals_removed: Array) -> void:
+	"""Handle rival resolution from PostBattlePhase - update backend RivalBattleGenerator"""
+	print("CampaignTurnController: Post-battle rivals resolved - %d removed" % rivals_removed.size())
+
+	var rival_generator = get_node_or_null("BackendRivalGenerator")
+	if rival_generator:
+		for rival_id in rivals_removed:
+			if rival_generator.has_method("mark_rival_defeated"):
+				rival_generator.mark_rival_defeated(rival_id)
+				print("CampaignTurnController: Marked rival %s as defeated in backend" % rival_id)
+
+func _on_post_battle_patron_resolved(patrons_added: Array) -> void:
+	"""Handle patron resolution from PostBattlePhase - update backend ContactManager"""
+	print("CampaignTurnController: Post-battle patrons resolved - %d added" % patrons_added.size())
+
+	var contact_manager = get_node_or_null("BackendContactManager")
+	if contact_manager:
+		for patron_id in patrons_added:
+			if contact_manager.has_method("register_patron_contact"):
+				contact_manager.register_patron_contact(patron_id)
+				print("CampaignTurnController: Registered patron %s in backend contacts" % patron_id)
+
+func _on_post_battle_experience_awarded(xp_awards: Array) -> void:
+	"""Handle experience awards from PostBattlePhase"""
+	var total_xp := 0
+	for award in xp_awards:
+		total_xp += award.get("xp", 0)
+	print("CampaignTurnController: Post-battle XP awarded - %d total across %d crew" % [total_xp, xp_awards.size()])
 
 ## Backend System Integration Methods
 
@@ -294,6 +353,10 @@ func _hide_all_phase_uis() -> void:
 	world_phase_controller.hide()
 	battle_transition_ui.hide()
 	post_battle_ui.hide()
+	if pre_battle_ui:
+		pre_battle_ui.hide()
+	if tactical_battle_ui:
+		tactical_battle_ui.hide()
 
 ## Battle Integration
 func _initiate_battle_sequence() -> void:
@@ -307,11 +370,11 @@ func _initiate_battle_sequence() -> void:
 	_check_rival_encounter_backend(current_planet_id, current_turn)
 	
 	# Launch battlefield companion with data
-	var battle_manager = get_node("/root/BattlefieldManager")
-	if battle_manager and battle_manager.has_method("start_battle"):
-		battle_manager.start_battle(mission_data, crew_data)
+	var battle_manager = get_node_or_null("/root/BattlefieldCompanionManager")
+	if battle_manager and battle_manager.has_method("start_battle_assistance"):
+		battle_manager.start_battle_assistance(mission_data, crew_data)
 	else:
-		push_error("CampaignTurnController: BattlefieldManager not found or missing start_battle method")
+		push_error("CampaignTurnController: BattlefieldCompanionManager not found or missing start_battle_assistance method")
 
 func _on_battle_completed(results: Dictionary) -> void:
 	"""Handle battle completion - store results for post-battle phase"""
@@ -327,15 +390,93 @@ func _on_battle_completed(results: Dictionary) -> void:
 func _on_post_battle_completed(results: Dictionary) -> void:
 	"""Handle post-battle sequence completion - advance to next turn"""
 	print("CampaignTurnController: Post-battle completed with results: %s" % str(results))
-	
+
 	# Store final post-battle results
 	game_state.set_battle_results(results)
-	
+
 	# Clear battle results after processing
 	game_state.clear_battle_results()
-	
+
 	# Trigger next campaign turn
 	campaign_phase_manager.start_new_campaign_turn()
+
+## Battle Flow Handlers (BattleTransition → PreBattle → TacticalBattle → PostBattle)
+
+func _on_battle_ready_to_launch(mission_context: Dictionary) -> void:
+	"""Transition from BattleTransition to PreBattle for deployment setup"""
+	print("CampaignTurnController: Battle ready, transitioning to PreBattle")
+
+	_hide_all_phase_uis()
+	if pre_battle_ui:
+		pre_battle_ui.show()
+		current_ui_phase = pre_battle_ui
+
+		# Initialize PreBattle with mission context
+		if pre_battle_ui.has_method("initialize_battle"):
+			pre_battle_ui.initialize_battle(mission_context)
+		elif pre_battle_ui.has_method("set_mission_data"):
+			pre_battle_ui.set_mission_data(mission_context.get("mission_data", {}))
+
+func _on_deployment_confirmed() -> void:
+	"""Transition from PreBattle to TacticalBattle for combat"""
+	print("CampaignTurnController: Deployment confirmed, transitioning to TacticalBattle")
+
+	_hide_all_phase_uis()
+	if tactical_battle_ui:
+		tactical_battle_ui.show()
+		current_ui_phase = tactical_battle_ui
+
+		# Initialize TacticalBattle with crew and enemy data
+		var crew_data = game_state.get_active_crew() if game_state.has_method("get_active_crew") else []
+		var enemy_data = game_state.get_current_enemies() if game_state.has_method("get_current_enemies") else []
+		var mission_data = game_state.get_current_mission() if game_state.has_method("get_current_mission") else null
+
+		if tactical_battle_ui.has_method("initialize_battle"):
+			tactical_battle_ui.initialize_battle(crew_data, enemy_data, mission_data)
+
+func _on_prebattle_back() -> void:
+	"""Handle back button from PreBattle - return to BattleTransition"""
+	print("CampaignTurnController: PreBattle cancelled, returning to BattleTransition")
+
+	_hide_all_phase_uis()
+	if battle_transition_ui:
+		battle_transition_ui.show()
+		current_ui_phase = battle_transition_ui
+
+func _on_tactical_battle_completed(battle_result) -> void:
+	"""Handle tactical battle completion - transition to PostBattle"""
+	print("CampaignTurnController: Tactical battle completed")
+
+	# Convert battle result to dictionary if needed
+	var results_dict: Dictionary = {}
+	if battle_result is Dictionary:
+		results_dict = battle_result
+	elif battle_result and battle_result.has_method("to_dict"):
+		results_dict = battle_result.to_dict()
+	else:
+		# Extract properties manually
+		results_dict = {
+			"victory": battle_result.victory if battle_result else false,
+			"rounds_fought": battle_result.rounds_fought if battle_result else 0,
+			"crew_casualties": battle_result.crew_casualties if battle_result else [],
+			"crew_injuries": battle_result.crew_injuries if battle_result else []
+		}
+
+	# Store results and transition to PostBattle
+	game_state.set_battle_results(results_dict)
+	battle_results = results_dict
+
+	_hide_all_phase_uis()
+	campaign_phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.POST_BATTLE)
+
+func _on_return_to_battle_resolution() -> void:
+	"""Handle return from TacticalBattle to battle resolution/PreBattle"""
+	print("CampaignTurnController: Returning from TacticalBattle to PreBattle")
+
+	_hide_all_phase_uis()
+	if pre_battle_ui:
+		pre_battle_ui.show()
+		current_ui_phase = pre_battle_ui
 
 ## UI Updates
 func _update_turn_display(turn_number: int) -> void:

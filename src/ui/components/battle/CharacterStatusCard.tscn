@@ -1,0 +1,98 @@
+[gd_scene load_steps=2 format=3 uid="uid://dpw4k3j8vn2rh"]
+
+[ext_resource type="Script" path="res://src/ui/components/battle/CharacterStatusCard.gd" id="1_character_card"]
+
+[node name="CharacterStatusCard" type="PanelContainer"]
+custom_minimum_size = Vector2(240, 180)
+script = ExtResource("1_character_card")
+
+[node name="CardLayout" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="Header" type="VBoxContainer" parent="CardLayout"]
+layout_mode = 2
+
+[node name="CharacterName" type="Label" parent="CardLayout/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Character Name"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StatsDisplay" type="Label" parent="CardLayout/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Combat: 1 | Tough: 4 | Speed: 4"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HSeparator1" type="HSeparator" parent="CardLayout"]
+layout_mode = 2
+
+[node name="HealthSection" type="VBoxContainer" parent="CardLayout"]
+layout_mode = 2
+
+[node name="HealthLabel" type="Label" parent="CardLayout/HealthSection"]
+layout_mode = 2
+text = "Health"
+horizontal_alignment = 1
+
+[node name="HealthBar" type="ProgressBar" parent="CardLayout/HealthSection"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+max_value = 10.0
+value = 10.0
+show_percentage = false
+
+[node name="HealthText" type="Label" parent="CardLayout/HealthSection"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "10 / 10 HP"
+horizontal_alignment = 1
+
+[node name="HSeparator2" type="HSeparator" parent="CardLayout"]
+layout_mode = 2
+
+[node name="StatusSection" type="VBoxContainer" parent="CardLayout"]
+layout_mode = 2
+
+[node name="StatusLabel" type="Label" parent="CardLayout/StatusSection"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Ready"
+horizontal_alignment = 1
+
+[node name="HSeparator3" type="HSeparator" parent="CardLayout"]
+layout_mode = 2
+
+[node name="ActionSection" type="VBoxContainer" parent="CardLayout"]
+layout_mode = 2
+
+[node name="ActionLabel" type="Label" parent="CardLayout/ActionSection"]
+layout_mode = 2
+text = "Quick Actions"
+horizontal_alignment = 1
+
+[node name="ActionContainer" type="HBoxContainer" parent="CardLayout/ActionSection"]
+unique_name_in_owner = true
+layout_mode = 2
+alignment = 1
+
+[node name="StunButton" type="Button" parent="CardLayout/ActionSection/ActionContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(60, 0)
+layout_mode = 2
+text = "Stun"
+
+[node name="DamageButton" type="Button" parent="CardLayout/ActionSection/ActionContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(60, 0)
+layout_mode = 2
+text = "Dmg"
+
+[node name="UseActionButton" type="Button" parent="CardLayout/ActionSection/ActionContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(60, 0)
+layout_mode = 2
+text = "Action"

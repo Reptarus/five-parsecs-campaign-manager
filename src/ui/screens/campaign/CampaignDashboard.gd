@@ -12,24 +12,35 @@ var WorldPhasePanel: PackedScene = null
 var BattlePhasePanel: PackedScene = null
 var PostBattlePhasePanel: PackedScene = null
 
-# UI Node References using safe access
-@onready var phase_label: Label = get_node("MarginContainer/VBoxContainer/HeaderPanel/GridContainer/PhaseLabel") as Label
-@onready var credits_label: Label = get_node("MarginContainer/VBoxContainer/HeaderPanel/GridContainer/CreditsLabel") as Label
-@onready var story_points_label: Label = get_node("MarginContainer/VBoxContainer/HeaderPanel/GridContainer/StoryPointsLabel") as Label
-@onready var patrons_label: Label = get_node("MarginContainer/VBoxContainer/HeaderPanel/GridContainer/PatronsLabel") as Label
-@onready var rivals_label: Label = get_node("MarginContainer/VBoxContainer/HeaderPanel/GridContainer/RivalsLabel") as Label
-@onready var rumors_label: Label = get_node("MarginContainer/VBoxContainer/HeaderPanel/GridContainer/RumorsLabel") as Label
-@onready var crew_list: ItemList = get_node("MarginContainer/VBoxContainer/MainContent/LeftPanel/CrewPanel/VBoxContainer/CrewList") as ItemList
-@onready var ship_info: Control = get_node("MarginContainer/VBoxContainer/MainContent/LeftPanel/ShipPanel/VBoxContainer/ShipInfo") as Control
+# UI Node References - using %NodeName for maintainability
+@onready var phase_label: Label = %PhaseLabel
+@onready var credits_label: Label = %CreditsLabel
+@onready var story_points_label: Label = %StoryPointsLabel
+@onready var patrons_label: Label = %PatronsLabel
+@onready var rivals_label: Label = %RivalsLabel
+@onready var rumors_label: Label = %RumorsLabel
+@onready var pending_events_label: Label = %PendingEventsLabel
+@onready var crew_list: ItemList = %CrewList
+@onready var ship_info: Label = %ShipInfo
+@onready var world_info_label: Label = %WorldInfo
+@onready var patron_list: ItemList = %PatronList
 @onready var phase_content: Control = get_node("MarginContainer/VBoxContainer/MainContent") as Control
-@onready var next_phase_button: Button = get_node("MarginContainer/VBoxContainer/ButtonContainer/ActionButton") as Button
-@onready var manage_crew_button: Button = get_node("MarginContainer/VBoxContainer/ButtonContainer/ManageCrewButton") as Button
-@onready var save_button: Button = get_node("MarginContainer/VBoxContainer/ButtonContainer/SaveButton") as Button
-@onready var load_button: Button = get_node("MarginContainer/VBoxContainer/ButtonContainer/LoadButton") as Button
-@onready var quit_button: Button = get_node("MarginContainer/VBoxContainer/ButtonContainer/QuitButton") as Button
+@onready var next_phase_button: Button = %ActionButton
+@onready var manage_crew_button: Button = %ManageCrewButton
+@onready var save_button: Button = %SaveButton
+@onready var load_button: Button = %LoadButton
+@onready var quit_button: Button = %QuitButton
+
+# Battle History UI elements
+@onready var battle_history_list: VBoxContainer = %BattleHistoryList
+@onready var resume_battle_button: Button = %ResumeBattleButton
+@onready var current_battle_status: Label = %CurrentBattleStatus
 
 # Current phase panel instance
 var current_phase_panel: FPCM_BasePhasePanel
+
+# Battle history data
+var battle_history: Array = []
 
 # Developer panel variables
 var developer_panel: Control
@@ -64,6 +75,8 @@ func _connect_dashboard_buttons() -> void:
 		load_button.pressed.connect(_on_load_pressed)
 	if quit_button:
 		quit_button.pressed.connect(_on_quit_pressed)
+	if resume_battle_button:
+		resume_battle_button.pressed.connect(_on_resume_battle_pressed)
 
 ## SIMPLIFIED UI UPDATE - Reads directly from GameStateManager
 
@@ -129,6 +142,20 @@ func _update_ui() -> void:
 		else:
 			rumors_label.modulate = Color(0.5, 1.0, 0.5)  # Green - have opportunities
 
+	# Update pending deferred events display
+	if pending_events_label:
+		var pending_events: Array = GameStateManager.get_pending_events()
+		var active_count: int = 0
+		for event in pending_events:
+			if not event.get("consumed", false):
+				active_count += 1
+		pending_events_label.text = "Pending Events: %d" % active_count
+		# Color-code based on pending events
+		if active_count == 0:
+			pending_events_label.modulate = Color(0.8, 0.8, 0.8)  # Gray - none
+		else:
+			pending_events_label.modulate = Color(0.5, 0.8, 1.0)  # Blue - has events
+
 	# Update phase display
 	if phase_label:
 		var current_phase: int = GameStateManager.get_campaign_phase()
@@ -144,6 +171,14 @@ func _update_ui() -> void:
 		if crew_size < 4:
 			warnings.append("⚠️ UNDERSTAFFED")
 
+		# Add warnings for deferred events
+		var battle_events = GameStateManager.get_pending_events_by_trigger("THIS_BATTLE")
+		if battle_events.size() > 0:
+			warnings.append("⚔️ %d BATTLE OBJECTIVES" % battle_events.size())
+		var turn_events = GameStateManager.get_pending_events_by_trigger("NEXT_TURN")
+		if turn_events.size() > 0:
+			warnings.append("⏰ %d TURN EVENTS" % turn_events.size())
+
 		if warnings.size() > 0:
 			phase_text += " | " + " ".join(warnings)
 			phase_label.modulate = Color(1.0, 1.0, 0.5)  # Yellow for warnings
@@ -154,6 +189,9 @@ func _update_ui() -> void:
 
 	_update_crew_list()
 	_update_ship_info()
+	_update_world_info()
+	_update_patron_list()
+	_update_battle_history()
 
 func _update_crew_list() -> void:
 	"""Update crew list from GameStateManager"""
@@ -260,6 +298,90 @@ func _update_ship_info() -> void:
 
 		ship_info.text = ship_text
 
+func _update_world_info() -> void:
+	"""Update world/planet info from GameStateManager"""
+	if not world_info_label:
+		return
+
+	if not GameStateManager:
+		world_info_label.text = "GameStateManager not available"
+		return
+
+	# Get current planet from game state
+	var game_state = GameStateManager.game_state
+	if not game_state or not "current_campaign" in game_state:
+		world_info_label.text = "No Campaign Data"
+		world_info_label.modulate = Color(0.8, 0.8, 0.8)
+		return
+
+	# Get current location from GameState (not campaign dict)
+	var current_location: Dictionary = {}
+	if GameStateManager.has_method("get_current_location"):
+		current_location = GameStateManager.get_current_location()
+
+	# Fallback: check campaign dict
+	if current_location.is_empty():
+		var campaign = game_state.get("current_campaign")
+		if campaign and campaign is Dictionary:
+			current_location = campaign.get("current_location", {})
+
+	if current_location.is_empty():
+		world_info_label.text = "No Planet Selected"
+		world_info_label.modulate = Color(0.8, 0.8, 0.8)
+		return
+
+	# Build world info display
+	var planet_name: String = current_location.get("name", "Unknown Planet")
+	var planet_type: String = current_location.get("type", "Standard")
+	var traits: Array = current_location.get("traits", [])
+
+	var world_text: String = "%s\n" % planet_name
+	world_text += "Type: %s\n" % planet_type
+
+	if not traits.is_empty():
+		world_text += "Traits: %s" % ", ".join(traits)
+	else:
+		world_text += "Traits: None"
+
+	world_info_label.text = world_text
+	world_info_label.modulate = Color(0.5, 1.0, 0.5)  # Green - have location
+
+func _update_patron_list() -> void:
+	"""Update patron list from GameStateManager"""
+	if not patron_list:
+		return
+
+	patron_list.clear()
+
+	if not GameStateManager:
+		patron_list.add_item("GameStateManager not available")
+		return
+
+	var patrons: Array = GameStateManager.get_patrons()
+
+	if patrons.is_empty():
+		patron_list.add_item("No Patrons")
+		return
+
+	# Add each patron to the list
+	for patron in patrons:
+		var patron_name: String = ""
+		var relationship: String = ""
+
+		if patron is Dictionary:
+			patron_name = patron.get("name", "Unknown Patron")
+			relationship = patron.get("relationship", "Neutral")
+		elif patron is Resource:
+			patron_name = patron.get_meta("name", "Unknown Patron") if patron.has_meta("name") else "Unknown Patron"
+			relationship = patron.get_meta("relationship", "Neutral") if patron.has_meta("relationship") else "Neutral"
+		else:
+			patron_name = str(patron)
+			relationship = "Unknown"
+
+		# Format: "Name (Relationship)"
+		var display_text: String = "%s (%s)" % [patron_name, relationship]
+		patron_list.add_item(display_text)
+
 ## Helper methods
 
 func _get_phase_name(phase: int) -> String:
@@ -279,12 +401,18 @@ func _on_next_phase_pressed() -> void:
 	if not next_phase_button:
 		return
 
+	# Verify scene tree exists
+	if not get_tree():
+		push_error("CampaignDashboard: Scene tree not available")
+		return
+
 	# Navigate to World Phase
 	print("CampaignDashboard: Navigating to World Phase...")
 	if SceneRouter and SceneRouter.has_method("navigate_to"):
 		SceneRouter.navigate_to("world_phase")
 	else:
-		push_error("CampaignDashboard: SceneRouter not available")
+		# Fallback: direct scene navigation
+		get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/world/WorldPhaseController.tscn")
 
 func _on_manage_crew_pressed() -> void:
 	# Verify scene tree exists
@@ -437,3 +565,187 @@ func _toggle_developer_panel() -> void:
 	else:
 		developer_panel.show()
 		print("CampaignDashboard: Developer panel shown")
+
+## BATTLE HISTORY TRACKING - Resume suspended games and view history
+
+func _update_battle_history() -> void:
+	"""Update battle history display and check for suspended battles"""
+	_load_battle_history()
+	_display_battle_history()
+	_check_suspended_battle()
+
+func _load_battle_history() -> void:
+	"""Load battle history from GameStateManager"""
+	if not GameStateManager:
+		return
+
+	# Get battle history from game state
+	if GameStateManager.has_method("get_battle_history"):
+		battle_history = GameStateManager.get_battle_history()
+	elif GameStateManager.game_state and "battle_history" in GameStateManager.game_state:
+		# Fix: Only one argument is allowed in get(). Providing default after checking presence.
+		battle_history = GameStateManager.game_state.get("battle_history")
+		if battle_history == null:
+			battle_history = []
+	else:
+		battle_history = []
+
+func _display_battle_history() -> void:
+	"""Display battle history entries in the UI"""
+	if not battle_history_list:
+		return
+
+	# Clear existing entries
+	for child in battle_history_list.get_children():
+		child.queue_free()
+
+	if battle_history.is_empty():
+		var empty_label := Label.new()
+		empty_label.text = "No battles yet"
+		empty_label.modulate = Color(0.7, 0.7, 0.7)
+		battle_history_list.add_child(empty_label)
+		return
+
+	# Display most recent battles first (up to 10)
+	var display_count := mini(battle_history.size(), 10)
+	for i in range(display_count):
+		var battle_data: Dictionary = battle_history[battle_history.size() - 1 - i]
+		var entry := _create_battle_history_entry(battle_data)
+		battle_history_list.add_child(entry)
+
+func _create_battle_history_entry(battle_data: Dictionary) -> Control:
+	"""Create a visual entry for a battle in history"""
+	var container := HBoxContainer.new()
+
+	# Result icon
+	var result_icon := Label.new()
+	if battle_data.get("victory", false):
+		result_icon.text = "✅"
+	else:
+		result_icon.text = "❌"
+	container.add_child(result_icon)
+
+	# Battle info
+	var info_label := Label.new()
+	var turn_num: int = battle_data.get("turn", 0)
+	var mission_type: String = battle_data.get("mission_type", "Battle")
+	var rounds: int = battle_data.get("rounds_fought", 0)
+	var casualties: int = battle_data.get("casualties", 0)
+
+	info_label.text = "T%d: %s (%d rds" % [turn_num, mission_type, rounds]
+	if casualties > 0:
+		info_label.text += ", %d KIA" % casualties
+	info_label.text += ")"
+	info_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	container.add_child(info_label)
+
+	return container
+
+func _check_suspended_battle() -> void:
+	"""Check if there's a suspended battle that can be resumed"""
+	if not GameStateManager:
+		_update_battle_status("No active battle")
+		return
+
+	# Check for suspended battle state
+	var suspended_battle: Dictionary = {}
+	if GameStateManager.has_method("get_suspended_battle"):
+		suspended_battle = GameStateManager.get_suspended_battle()
+	elif GameStateManager.game_state and "suspended_battle" in GameStateManager.game_state:
+		suspended_battle = GameStateManager.game_state.get("suspended_battle")
+		if suspended_battle == null:
+			suspended_battle = {}
+
+	if suspended_battle.is_empty() or not suspended_battle.get("is_active", false):
+		_update_battle_status("No active battle")
+		if resume_battle_button:
+			resume_battle_button.hide()
+		return
+
+	# Show suspended battle info
+	var phase: String = suspended_battle.get("phase", "Unknown")
+	var turn: int = suspended_battle.get("turn", 0)
+	var round_num: int = suspended_battle.get("round", 0)
+
+	var status_text := "⏸️ Battle suspended: Turn %d, %s Phase" % [turn, phase]
+	if round_num > 0:
+		status_text += ", Round %d" % round_num
+
+	_update_battle_status(status_text)
+
+	# Show resume button
+	if resume_battle_button:
+		resume_battle_button.show()
+
+func _update_battle_status(status: String) -> void:
+	"""Update the current battle status display"""
+	if current_battle_status:
+		current_battle_status.text = status
+
+func _on_resume_battle_pressed() -> void:
+	"""Resume a suspended battle"""
+	print("CampaignDashboard: Resuming suspended battle...")
+
+	if not GameStateManager:
+		push_error("CampaignDashboard: Cannot resume - GameStateManager not available")
+		return
+
+	# Get suspended battle data
+	var suspended_battle: Dictionary = {}
+	if GameStateManager.has_method("get_suspended_battle"):
+		suspended_battle = GameStateManager.get_suspended_battle()
+	elif GameStateManager.game_state and "suspended_battle" in GameStateManager.game_state:
+		suspended_battle = GameStateManager.game_state.get("suspended_battle")
+		if suspended_battle == null:
+			suspended_battle = {}
+
+	if suspended_battle.is_empty():
+		push_warning("CampaignDashboard: No suspended battle to resume")
+		return
+
+	# Navigate to appropriate battle scene based on phase
+	var phase: String = suspended_battle.get("phase", "PreBattle")
+
+	match phase:
+		"PreBattle":
+			get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/battle/PreBattle.tscn")
+		"TacticalBattle", "Combat":
+			get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/battle/TacticalBattleUI.tscn")
+		"PostBattle":
+			get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/postbattle/PostBattleSequence.tscn")
+		_:
+			# Default to campaign turn controller
+			get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/campaign/CampaignTurnController.tscn")
+
+	print("CampaignDashboard: Navigating to %s phase" % phase)
+
+## PUBLIC: Add battle to history (call from battle completion)
+
+func add_battle_to_history(battle_result: Dictionary) -> void:
+	"""Add a completed battle to history and save to GameState"""
+	var history_entry := {
+		"turn": GameStateManager.get_campaign_turn() if GameStateManager else 1,
+		"mission_type": battle_result.get("mission_type", "Battle"),
+		"victory": battle_result.get("victory", false),
+		"rounds_fought": battle_result.get("rounds_fought", 0),
+		"casualties": battle_result.get("crew_casualties", []).size(),
+		"injuries": battle_result.get("crew_injuries", []).size(),
+		"loot": battle_result.get("loot_found", []).size(),
+		"credits_earned": battle_result.get("credits_earned", 0),
+		"timestamp": Time.get_datetime_string_from_system()
+	}
+
+	battle_history.append(history_entry)
+
+	# Save to GameState
+	if GameStateManager:
+		if GameStateManager.has_method("set_battle_history"):
+			GameStateManager.set_battle_history(battle_history)
+		elif GameStateManager.game_state:
+			GameStateManager.game_state["battle_history"] = battle_history
+
+	print("CampaignDashboard: Added battle to history (total: %d)" % battle_history.size())
+
+	# Refresh display
+	_update_battle_history()

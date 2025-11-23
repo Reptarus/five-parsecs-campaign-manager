@@ -3,7 +3,7 @@ extends Node
 
 # GlobalEnums available as autoload singleton
 const CampaignPhaseManager = preload("res://src/core/campaign/CampaignPhaseManager.gd")
-const FiveParsecsMissionGenerator = preload("res://src/base/mission/BaseMissionGenerationSystem.gd")
+# FiveParsecsMissionGenerator/BaseMissionGenerationSystem removed - file does not exist
 const BattleResultsManager = preload("res://src/core/battle/BattleResultsManager.gd")
 const GameState = preload("res://src/core/state/GameState.gd")
 
@@ -17,7 +17,9 @@ signal mission_preparation_complete(mission: Dictionary)
 signal mission_canceled(mission: Dictionary)
 
 var campaign_phase_manager: CampaignPhaseManager
-var mission_generator: FiveParsecsMissionGenerator
+# DISABLED - FiveParsecsMissionGenerator does not exist
+# var mission_generator: FiveParsecsMissionGenerator
+var mission_generator = null  # Type removed - FiveParsecsMissionGenerator does not exist
 var battle_results_manager: BattleResultsManager
 var game_state: GameState
 
@@ -27,7 +29,9 @@ var _available_missions: Array = []
 var _mission_history: Array = []
 
 func _init() -> void:
-	mission_generator = FiveParsecsMissionGenerator.new()
+	# DISABLED - FiveParsecsMissionGenerator does not exist
+	# mission_generator = FiveParsecsMissionGenerator.new()
+	pass
 func _ready() -> void:
 	_current_mission = {}
 	_available_missions = []

@@ -53,16 +53,19 @@ theme_override_constants/separation = 20
 alignment = 1
 
 [node name="GenerateButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Controls"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(150, 40)
 layout_mode = 2
 text = "Generate Equipment"
 
 [node name="RerollButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Controls"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(150, 40)
 layout_mode = 2
 text = "Reroll Equipment"
 
 [node name="ManualButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Controls"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(150, 40)
 layout_mode = 2
 text = "Manual Selection"

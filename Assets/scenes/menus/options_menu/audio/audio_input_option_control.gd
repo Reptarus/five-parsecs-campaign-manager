@@ -1,3 +1,11 @@
+# ============================================================================
+# DISABLED: Audio Input Controls - Not Current UI/UX Focus
+# ============================================================================
+# This file is part of the audio configuration menu which will be implemented
+# in a future update. Currently disabled to focus on core campaign UI/UX workflow.
+# To re-enable: Remove this header
+# ============================================================================
+
 # Universal Warning Fixes Applied - 7-Stage Methodology
 # Based on proven patterns: Universal Mock Strategy + comprehensive annotation coverage
 @warning_ignore("unused_parameter")
@@ -6,12 +14,13 @@
 @warning_ignore("unsafe_method_access")
 @warning_ignore("unused_signal")
 @warning_ignore("return_value_discarded")
-extends Control
+extends Control  # Required for @onready and Control features
 
 # Universal Framework Enhancement - Added on top of existing warning suppressions
-const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
-const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
-const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
+const UniversalNodeAccess = preload("res://src/core/systems/UniversalNodeAccess.gd")
+# DISABLED - UniversalSignalManager does not exist
+# const UniversalSignalManager = preload("res://src/core/systems/UniversalSignalManager.gd")
+const UniversalDataAccess = preload("res://src/core/systems/UniversalDataAccess.gd")
 
 # Enhanced type safety while preserving warning suppressions
 @onready var input_option_button: OptionButton = $InputOptionButton

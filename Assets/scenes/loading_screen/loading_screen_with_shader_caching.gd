@@ -1,3 +1,11 @@
+# ============================================================================
+# DISABLED: Loading Screen Template - Not Currently Needed
+# ============================================================================
+# This file is a loading screen template which will be implemented in a future
+# update. Currently disabled to focus on core campaign UI/UX workflow.
+# To re-enable: Remove this header
+# ============================================================================
+
 # Universal Warning Fixes Applied - 7-Stage Methodology
 # Based on proven patterns: Universal Mock Strategy + comprehensive annotation coverage
 @warning_ignore("unused_parameter")
@@ -7,12 +15,13 @@
 @warning_ignore("unused_signal")
 @warning_ignore("return_value_discarded")
 
-extends Control
+extends Control  # Required for @onready and Control features
 
 # Universal Framework Enhancement - Added on top of existing warning suppressions
-const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd")
-const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
-const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
+const UniversalResourceLoader = preload("res://src/core/systems/UniversalResourceLoader.gd")
+# DISABLED - UniversalSignalManager does not exist
+# const UniversalSignalManager = preload("res://src/core/systems/UniversalSignalManager.gd")
+const UniversalDataAccess = preload("res://src/core/systems/UniversalDataAccess.gd")
 
 # Enhanced type safety while preserving warning suppressions
 var progress: float = 0.0
@@ -96,9 +105,11 @@ func _process(_delta: float) -> void:
 		if abs(new_progress - progress) > 0.001:
 			progress = new_progress
 			_update_progress_display()
-			
+
 			# Enhanced signal emission
-			UniversalSignalManager.emit_signal_safe(self, "loading_progress_updated", [progress * 100.0], "LoadingScreen _process")
+			# DISABLED - UniversalSignalManager does not exist
+			# UniversalSignalManager.emit_signal_safe(self, "loading_progress_updated", [progress * 100.0], "LoadingScreen _process")
+			loading_progress_updated.emit(progress * 100.0)
 	
 	if current_shader_index >= shaders_to_load.size() and not _loading_complete:
 		_complete_loading()
@@ -134,8 +145,10 @@ func load_next_shader() -> void:
 		if shader_rid.is_valid():
 			var parameters: Array = RenderingServer.get_shader_parameter_list(shader_rid)
 			print("LoadingScreen: Shader compiled with %d parameters" % parameters.size())
-		
-		UniversalSignalManager.emit_signal_safe(self, "shader_loaded", [shader_path], "LoadingScreen load_next_shader")
+
+		# DISABLED - UniversalSignalManager does not exist
+		# UniversalSignalManager.emit_signal_safe(self, "shader_loaded", [shader_path], "LoadingScreen load_next_shader")
+		shader_loaded.emit(shader_path)
 	else:
 		push_error("LoadingScreen: Failed to load shader: " + shader_path)
 		_load_errors.append("Failed to load: " + shader_path)
@@ -167,8 +180,10 @@ func _complete_loading() -> void:
 			loading_label.text = "Loading Complete!"
 		else:
 			loading_label.text = "Loading Complete (%d warnings)" % _load_errors.size()
-	
-	UniversalSignalManager.emit_signal_safe(self, "loading_completed", [], "LoadingScreen _complete_loading")
+
+	# DISABLED - UniversalSignalManager does not exist
+	# UniversalSignalManager.emit_signal_safe(self, "loading_completed", [], "LoadingScreen _complete_loading")
+	loading_completed.emit()
 	
 	# Enhanced scene transition
 	_transition_to_main_scene()

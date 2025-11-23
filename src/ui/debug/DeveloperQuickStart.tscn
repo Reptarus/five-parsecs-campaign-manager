@@ -52,6 +52,48 @@ Quick Access Panel - Bypass main menu flow for efficient testing"
 [node name="HSeparator1" type="HSeparator" parent="ScrollContainer/MainContainer"]
 layout_mode = 2
 
+[node name="ModeSwitch" type="HBoxContainer" parent="ScrollContainer/MainContainer"]
+layout_mode = 2
+
+[node name="ModeLabel" type="Label" parent="ScrollContainer/MainContainer/ModeSwitch"]
+layout_mode = 2
+text = "Interface Mode:"
+
+[node name="SetupModeButton" type="Button" parent="ScrollContainer/MainContainer/ModeSwitch"]
+unique_name_in_owner = true
+layout_mode = 2
+toggle_mode = true
+button_pressed = true
+text = "📋 Setup Mode"
+
+[node name="PlayModeButton" type="Button" parent="ScrollContainer/MainContainer/ModeSwitch"]
+unique_name_in_owner = true
+layout_mode = 2
+toggle_mode = true
+text = "🎲 Play Mode"
+
+[node name="HSeparator_Mode" type="HSeparator" parent="ScrollContainer/MainContainer"]
+layout_mode = 2
+
+[node name="HealthCheck" type="VBoxContainer" parent="ScrollContainer/MainContainer"]
+layout_mode = 2
+
+[node name="HealthCheckLabel" type="Label" parent="ScrollContainer/MainContainer/HealthCheck"]
+modulate = Color(1, 1, 0.8, 1)
+layout_mode = 2
+text = "💚 System Health Check"
+
+[node name="HealthCheckContainer" type="VBoxContainer" parent="ScrollContainer/MainContainer/HealthCheck"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="RefreshHealthButton" type="Button" parent="ScrollContainer/MainContainer/HealthCheck"]
+layout_mode = 2
+text = "🔄 Refresh Health Status"
+
+[node name="HSeparator_Health" type="HSeparator" parent="ScrollContainer/MainContainer"]
+layout_mode = 2
+
 [node name="CampaignPresets" type="VBoxContainer" parent="ScrollContainer/MainContainer"]
 layout_mode = 2
 
@@ -97,6 +139,21 @@ layout_mode = 2
 [node name="HSeparator4" type="HSeparator" parent="ScrollContainer/MainContainer"]
 layout_mode = 2
 
+[node name="QuickActions" type="VBoxContainer" parent="ScrollContainer/MainContainer"]
+layout_mode = 2
+
+[node name="QuickActionsLabel" type="Label" parent="ScrollContainer/MainContainer/QuickActions"]
+modulate = Color(1, 1, 0.8, 1)
+layout_mode = 2
+text = "⚡ Contextual Quick Actions"
+
+[node name="QuickActionsContainer" type="VBoxContainer" parent="ScrollContainer/MainContainer/QuickActions"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="HSeparator_QuickActions" type="HSeparator" parent="ScrollContainer/MainContainer"]
+layout_mode = 2
+
 [node name="SaveStateManagement" type="VBoxContainer" parent="ScrollContainer/MainContainer"]
 layout_mode = 2
 
@@ -133,4 +190,7 @@ text = "[color=lightblue]QUICK TESTING INSTRUCTIONS:[/color]
 layout_mode = 2
 text = "Close Developer Panel"
 
+[connection signal="pressed" from="ScrollContainer/MainContainer/ModeSwitch/SetupModeButton" to="." method="_on_setup_mode_pressed"]
+[connection signal="pressed" from="ScrollContainer/MainContainer/ModeSwitch/PlayModeButton" to="." method="_on_play_mode_pressed"]
+[connection signal="pressed" from="ScrollContainer/MainContainer/HealthCheck/RefreshHealthButton" to="." method="_on_refresh_health_pressed"]
 [connection signal="pressed" from="ScrollContainer/MainContainer/CloseButton" to="." method="hide"]

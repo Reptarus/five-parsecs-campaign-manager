@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://c3xk8m9wr1qj"]
+[gd_scene load_steps=2 format=3 uid="uid://c3xk8nawr1qj"]
 
 [ext_resource type="Script" path="res://src/ui/screens/world/components/JobOfferComponent.gd" id="1_job_offer"]
 

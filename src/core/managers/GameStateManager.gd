@@ -27,6 +27,15 @@ signal state_load_completed(success: bool)
 @export var enable_debug_logging: bool = false
 @export var auto_save_interval: float = 300.0 # 5 minutes
 
+# ============================================================================
+# STANDARDIZED TEMP DATA KEYS - Use these constants for consistency
+# ============================================================================
+const TEMP_KEY_SELECTED_CHARACTER = "selected_character"
+const TEMP_KEY_EDIT_MODE = "edit_mode"
+const TEMP_KEY_RETURN_SCREEN = "return_screen"
+const TEMP_KEY_CREW_ADD_MODE = "crew_add_mode"
+const TEMP_KEY_NAVIGATION_CONTEXT = "navigation_context"
+
 # Core state variables with enhanced type safety
 var game_state: Node = null
 var campaign_phase: int = 0 # Will be set to NONE enum value in _ready()
@@ -43,6 +52,7 @@ var registered_managers: Dictionary = {}
 var _initialization_complete: bool = false
 var _dependencies_loaded: bool = false
 var _auto_save_timer: Timer = null
+var _campaign_modified: bool = false
 
 # Temporary data storage for UI navigation and state
 var temp_data: Dictionary = {}
@@ -1060,6 +1070,28 @@ func get_quest_rumors() -> int:
 		return game_state.get_quest_rumors()
 	return 0
 
+## Get pending deferred events
+func get_pending_events() -> Array:
+	if not game_state:
+		return []
+	var campaign = game_state.get("current_campaign")
+	if not campaign:
+		return []
+	if campaign is Resource and "pending_events" in campaign:
+		return campaign.pending_events
+	elif campaign is Dictionary:
+		return campaign.get("pending_events", [])
+	return []
+
+## Get pending events filtered by trigger type
+func get_pending_events_by_trigger(trigger_type: String) -> Array:
+	var all_events = get_pending_events()
+	var filtered: Array = []
+	for event in all_events:
+		if event.get("trigger_type", "") == trigger_type and not event.get("consumed", false):
+			filtered.append(event)
+	return filtered
+
 ## Advance quest progress
 func advance_quest(progress: int) -> void:
 	if game_state and game_state and game_state.has_method("advance_quest"):
@@ -1104,39 +1136,61 @@ func add_crew_contact(crew_id: String, contact_id: String) -> void:
 # These tables define stat bonuses, equipment, and resources from Background/Motivation/Class rolls
 
 const BACKGROUND_MODIFIERS = {
-	"MILITARY_BRAT": {"stat_bonus": {"combat": 1}, "equipment": [], "credits": 0},
-	"TECH_GUILD": {"stat_bonus": {"savvy": 1}, "equipment": ["HIGH_TECH_WEAPON"], "credits_dice": "1d6"},
-	"RELIGIOUS_CULT": {"stat_bonus": {}, "resources": {"patron": true, "story_points": 1}},
-	"WAR_TORN": {"stat_bonus": {"reactions": 1}, "equipment": ["MILITARY_WEAPON"]},
-	"WEALTHY_MERCHANT": {"stat_bonus": {}, "credits_dice": "2d6"},
-	"ORPHAN": {"stat_bonus": {}, "resources": {"patron": true, "story_points": 1}},
+	# Official Five Parsecs Rulebook Backgrounds:
+	"PEACEFUL_HIGH_TECH_COLONY": {"stat_bonus": {"savvy": 1}, "equipment": ["HIGH_TECH_WEAPON"], "credits_dice": "1d6"},
+	"OVERCROWDED_DYSTOPIAN_CITY": {"stat_bonus": {"toughness": 1}, "equipment": ["LOW_TECH_WEAPON"]},
+	"LOW_TECH_COLONY": {"stat_bonus": {}, "equipment": ["LOW_TECH_WEAPON"], "starting_rolls": {"gear": 1}},
 	"MINING_COLONY": {"stat_bonus": {"toughness": 1}, "equipment": [], "credits": 0},
+	"MILITARY_BRAT": {"stat_bonus": {"combat": 1}, "equipment": [], "credits": 0},
 	"SPACE_STATION": {"stat_bonus": {}, "starting_rolls": {"gear": 1}},
+	"MILITARY_OUTPOST": {"stat_bonus": {"combat": 1}, "equipment": ["MILITARY_WEAPON"]},
 	"DRIFTER": {"stat_bonus": {}, "starting_rolls": {"gear": 1}},
-	"FRONTIER_GANG": {"stat_bonus": {"combat": 1}, "equipment": []}
+	"LOWER_MEGACITY_CLASS": {"stat_bonus": {"reactions": 1}, "equipment": ["LOW_TECH_WEAPON"]},
+	"WEALTHY_MERCHANT": {"stat_bonus": {}, "credits_dice": "2d6"},
+	"FRONTIER_GANG": {"stat_bonus": {"combat": 1}, "equipment": []},
+	"RELIGIOUS_CULT": {"stat_bonus": {}, "resources": {"patron": true, "story_points": 1}},
+	# Custom/Expansion Backgrounds:
+	"TECH_GUILD": {"stat_bonus": {"savvy": 1}, "equipment": ["HIGH_TECH_WEAPON"], "credits_dice": "1d6"},
+	"WAR_TORN": {"stat_bonus": {"reactions": 1}, "equipment": ["MILITARY_WEAPON"]},
+	"ORPHAN": {"stat_bonus": {}, "resources": {"patron": true, "story_points": 1}}
 }
 
 const MOTIVATION_MODIFIERS = {
+	# Official Five Parsecs Rulebook Motivations:
 	"WEALTH": {"stat_bonus": {}, "credits_dice": "1d6"},
-	"SURVIVAL": {"stat_bonus": {"toughness": 1}},
-	"TECHNOLOGY": {"stat_bonus": {"savvy": 1}, "starting_rolls": {"gadget": 1}},
-	"REVENGE": {"stat_bonus": {}, "resources": {"xp": 2, "rival": true}},
-	"LOYALTY": {"stat_bonus": {}, "resources": {"patron": true, "story_points": 1}},
-	"FREEDOM": {"stat_bonus": {}, "resources": {"xp": 2}},
+	"FAME": {"stat_bonus": {}, "resources": {"patron": true, "xp": 1}},
 	"GLORY": {"stat_bonus": {"combat": 1}, "equipment": ["MILITARY_WEAPON"]},
+	"SURVIVAL": {"stat_bonus": {"toughness": 1}},
 	"ESCAPE": {"stat_bonus": {"speed": 1}},
 	"ADVENTURE": {"stat_bonus": {}, "credits_dice": "1d6", "equipment": ["LOW_TECH_WEAPON"]},
-	"POWER": {"stat_bonus": {}, "resources": {"xp": 2, "rival": true}}
+	"TRUTH": {"stat_bonus": {"savvy": 1}, "resources": {"xp": 1}},
+	"TECHNOLOGY": {"stat_bonus": {"savvy": 1}, "starting_rolls": {"gadget": 1}},
+	"DISCOVERY": {"stat_bonus": {}, "resources": {"xp": 2}, "starting_rolls": {"gear": 1}},
+	# Custom/Expansion Motivations:
+	"REVENGE": {"stat_bonus": {}, "resources": {"xp": 2, "rival": true}},
+	"KNOWLEDGE": {"stat_bonus": {"savvy": 1}, "resources": {"xp": 1}},
+	"POWER": {"stat_bonus": {}, "resources": {"xp": 2, "rival": true}},
+	"JUSTICE": {"stat_bonus": {}, "resources": {"patron": true, "story_points": 1}},
+	"LOYALTY": {"stat_bonus": {}, "resources": {"patron": true, "story_points": 1}},
+	"FREEDOM": {"stat_bonus": {}, "resources": {"xp": 2}},
+	"REDEMPTION": {"stat_bonus": {}, "resources": {"xp": 1, "story_points": 1}},
+	"DUTY": {"stat_bonus": {}, "resources": {"patron": true}}
 }
 
 const CLASS_MODIFIERS = {
+	# Official Five Parsecs Rulebook Classes:
 	"WORKING_CLASS": {"stat_bonus": {"savvy": 1, "luck": 1}},
-	"SOLDIER": {"stat_bonus": {"combat": 1}, "credits_dice": "1d6"},
+	"TECHNICIAN": {"stat_bonus": {"savvy": 1}, "starting_rolls": {"gear": 1}},
 	"SCIENTIST": {"stat_bonus": {"savvy": 1}, "starting_rolls": {"gadget": 1}},
+	"HACKER": {"stat_bonus": {"savvy": 1, "tech": 1}, "starting_rolls": {"gadget": 1}},
+	"SOLDIER": {"stat_bonus": {"combat": 1}, "credits_dice": "1d6"},
 	"MERCENARY": {"stat_bonus": {"combat": 1}, "equipment": ["MILITARY_WEAPON"]},
+	"AGITATOR": {"stat_bonus": {"reactions": 1}, "resources": {"story_points": 1, "rival": true}},
+	"PRIMITIVE": {"stat_bonus": {"toughness": 1}, "equipment": ["LOW_TECH_WEAPON"]},
+	"ARTIST": {"stat_bonus": {"luck": 1}, "credits_dice": "1d6"},
+	# GameStateManager Custom Classes:
 	"NEGOTIATOR": {"stat_bonus": {}, "resources": {"patron": true, "story_points": 1}},
 	"SCAVENGER": {"stat_bonus": {}, "equipment": ["HIGH_TECH_WEAPON"], "resources": {"rumors": 1}},
-	"TECHNICIAN": {"stat_bonus": {"savvy": 1}, "starting_rolls": {"gear": 1}},
 	"GANGER": {"stat_bonus": {"reactions": 1}, "equipment": ["LOW_TECH_WEAPON"]},
 	"TRADER": {"stat_bonus": {}, "credits_dice": "2d6"},
 	"EXPLORER": {"stat_bonus": {}, "resources": {"xp": 2}, "starting_rolls": {"gear": 1}}
@@ -1381,9 +1435,32 @@ func _create_test_quests(quest_count: int) -> void:
 
 ## Apply test equipment level to crew
 func _apply_test_equipment_level(level: String) -> void:
-	print("GameStateManager: Equipment application disabled (EquipmentManager not implemented) - level: ", level)
-	# TODO: Implement equipment system when EquipmentManager is available
-	return
+	print("GameStateManager: Applying equipment level: ", level)
+
+	if not game_state or not game_state.current_campaign:
+		push_warning("GameStateManager: No active campaign for equipment application")
+		return
+
+	# Define equipment tiers
+	var equipment_tiers = {
+		"basic": ["hand_gun", "blade", "light_armor"],
+		"standard": ["military_rifle", "combat_armor", "frag_grenade", "med_kit"],
+		"advanced": ["plasma_rifle", "powered_armor", "targeting_system", "combat_drone"]
+	}
+
+	var tier_items = equipment_tiers.get(level.to_lower(), equipment_tiers.basic)
+	var crew_members = []
+	if game_state.current_campaign and "crew_members" in game_state.current_campaign:
+		crew_members = game_state.current_campaign.crew_members
+
+	for i in range(crew_members.size()):
+		var crew_member = crew_members[i]
+		if crew_member is Dictionary:
+			# Clear existing equipment and add tier-appropriate items
+			crew_member["equipment"] = tier_items.duplicate()
+			print("GameStateManager: Applied %s equipment to crew member %d" % [level, i])
+
+	print("GameStateManager: Equipment level '%s' applied to %d crew members" % [level, crew_members.size()])
 
 # ============================================================================
 # RULEBOOK-ACCURATE CHARACTER GENERATION HELPERS
@@ -1719,3 +1796,142 @@ func clear_temp_data(key: String = "") -> void:
 		temp_data.clear()
 	else:
 		temp_data.erase(key)
+
+# ============================================================================
+# CAMPAIGN MODIFICATION TRACKING
+# ============================================================================
+# Track unsaved changes to prompt user before losing data
+
+func mark_campaign_modified() -> void:
+	"""Mark campaign as having unsaved changes"""
+	_campaign_modified = true
+	if enable_debug_logging:
+		print("GameStateManager: Campaign marked as modified")
+
+func is_campaign_modified() -> bool:
+	"""Check if campaign has unsaved changes"""
+	return _campaign_modified
+
+func clear_modified_flag() -> void:
+	"""Clear the modified flag (call after successful save)"""
+	_campaign_modified = false
+	if enable_debug_logging:
+		print("GameStateManager: Modified flag cleared")
+
+# ============================================================================
+# STANDARDIZED NAVIGATION HELPERS
+# ============================================================================
+# Use these for consistent navigation across all screens
+
+## Navigate to a screen using SceneRouter with fallback
+func navigate_to_screen(screen_name: String, context: Dictionary = {}) -> bool:
+	"""Navigate to screen using SceneRouter with safe fallback.
+
+	Args:
+		screen_name: Name of screen (e.g., 'crew_management', 'campaign_dashboard')
+		context: Optional context data to pass via temp_data
+
+	Returns:
+		true if navigation initiated successfully
+	"""
+	# Store context if provided
+	if not context.is_empty():
+		set_temp_data(TEMP_KEY_NAVIGATION_CONTEXT, context)
+
+	# Try SceneRouter first (preferred)
+	var scene_router = Engine.get_singleton("SceneRouter")
+	if not scene_router:
+		scene_router = get_node_or_null("/root/SceneRouter")
+
+	if scene_router and scene_router.has_method("navigate_to"):
+		scene_router.navigate_to(screen_name)
+		if enable_debug_logging:
+			print("GameStateManager: Navigated to %s via SceneRouter" % screen_name)
+		return true
+
+	# Fallback to direct scene path
+	var scene_path = _get_scene_path_for_screen(screen_name)
+	if not scene_path.is_empty():
+		return navigate_to_scene_path(scene_path)
+
+	push_error("GameStateManager: Cannot navigate to unknown screen: %s" % screen_name)
+	return false
+
+## Navigate directly to a scene path (use call_deferred for safety)
+func navigate_to_scene_path(scene_path: String) -> bool:
+	"""Navigate to scene path safely using call_deferred.
+
+	Args:
+		scene_path: Full resource path (e.g., 'res://src/ui/screens/...')
+
+	Returns:
+		true if navigation initiated
+	"""
+	var tree = get_tree()
+	if not tree:
+		push_error("GameStateManager: Scene tree not available for navigation")
+		return false
+
+	if not ResourceLoader.exists(scene_path):
+		push_error("GameStateManager: Scene does not exist: %s" % scene_path)
+		return false
+
+	tree.call_deferred("change_scene_to_file", scene_path)
+	if enable_debug_logging:
+		print("GameStateManager: Navigating to scene: %s" % scene_path)
+	return true
+
+## Get scene path for common screen names
+func _get_scene_path_for_screen(screen_name: String) -> String:
+	"""Map screen names to scene paths for fallback navigation."""
+	var screen_paths = {
+		"main_menu": "res://src/ui/screens/mainmenu/MainMenu.tscn",
+		"campaign_dashboard": "res://src/ui/screens/campaign/CampaignDashboard.tscn",
+		"crew_management": "res://src/ui/screens/crew/CrewManagementScreen.tscn",
+		"character_details": "res://src/ui/screens/character/CharacterDetailsScreen.tscn",
+		"crew_creation": "res://src/ui/screens/crew/InitialCrewCreation.tscn",
+		"campaign_creation": "res://src/ui/screens/campaign/CampaignCreationUI.tscn",
+		"world_phase": "res://src/ui/screens/world/WorldPhaseController.tscn",
+		"battle_dashboard": "res://src/ui/screens/battle/BattleDashboardUI.tscn",
+		"equipment_manager": "res://src/ui/screens/equipment/EquipmentManager.tscn",
+		"advancement_manager": "res://src/ui/screens/character/AdvancementManager.tscn",
+		"load_campaign": "res://src/ui/screens/campaign/LoadCampaign.tscn"
+	}
+	return screen_paths.get(screen_name, "")
+
+# ============================================================================
+# CHARACTER STATUS HELPERS
+# ============================================================================
+# Standardized status tracking and display
+
+## Character status enum values (match Character.gd status property)
+const STATUS_ACTIVE = "ACTIVE"
+const STATUS_INJURED = "INJURED"
+const STATUS_RECOVERING = "RECOVERING"
+const STATUS_DEAD = "DEAD"
+const STATUS_MISSING = "MISSING"
+const STATUS_RETIRED = "RETIRED"
+
+## Get status icon for display
+static func get_status_icon(status: String) -> String:
+	"""Get emoji icon for character status."""
+	match status:
+		"ACTIVE": return "✅"
+		"INJURED": return "🩹"
+		"RECOVERING": return "🏥"
+		"DEAD": return "💀"
+		"MISSING": return "❓"
+		"RETIRED": return "🏠"
+		_: return "❓"
+
+## Get status color for UI display
+static func get_status_color(status: String) -> Color:
+	"""Get color for character status display."""
+	match status:
+		"ACTIVE": return Color(0.5, 1.0, 0.5)      # Green
+		"INJURED": return Color(1.0, 1.0, 0.5)     # Yellow
+		"RECOVERING": return Color(0.5, 0.8, 1.0)  # Light blue
+		"DEAD": return Color(1.0, 0.3, 0.3)        # Red
+		"MISSING": return Color(0.8, 0.8, 0.8)     # Gray
+		"RETIRED": return Color(0.6, 0.6, 0.8)     # Purple-gray
+		_: return Color(1.0, 1.0, 1.0)             # White

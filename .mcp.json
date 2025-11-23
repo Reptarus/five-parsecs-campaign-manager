@@ -5,10 +5,12 @@
       "args": [
         "-y",
         "@modelcontextprotocol/server-filesystem@latest",
-        "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager"
+        "C:\\Users\\elija\\SynologyDrive\\Godot\\five-parsecs-campaign-manager",
+        "C:\\Users\\elija\\SynologyDrive\\Godot"
       ],
       "env": {
-        "NODE_ENV": "production"
+        "NODE_ENV": "production",
+        "MCP_TIMEOUT": "30000"
       }
     },
     "desktop-commander": {
@@ -18,67 +20,70 @@
         "@wonderwhy-er/desktop-commander@latest"
       ],
       "env": {
-        "NODE_ENV": "production"
+        "NODE_ENV": "production",
+        "MCP_TIMEOUT": "30000"
       }
     },
     "gemini-ai-orchestrator": {
-      "command": "python3",
+      "command": "C:\\Python313\\python.exe",
       "args": [
-        "/mnt/c/Users/elija/Creative-Tools-MCP/community-mcp-servers/claude-gemini-mcp-slim-main/gemini_mcp_server.py"
+        "C:\\Users\\elija\\Creative-Tools-MCP\\community-mcp-servers\\claude-gemini-mcp-slim-main\\gemini_mcp_server.py"
       ],
       "env": {
         "GOOGLE_API_KEY": "AIzaSyDi2NTh6AoLrZlVrbtuLB1fbRenWnhW7mY",
         "GEMINI_FLASH_MODEL": "gemini-2.5-flash",
         "GEMINI_PRO_MODEL": "gemini-2.0-flash-thinking-exp",
-        "PYTHONPATH": "/mnt/c/Users/elija/Creative-Tools-MCP:/mnt/c/Users/elija/Creative-Tools-MCP/community-mcp-servers/claude-gemini-mcp-slim-main",
-        "PYTHON_PATH": "/usr/bin/python3"
+        "MCP_TRANSPORT": "stdio",
+        "MCP_TIMEOUT": "30000"
       }
     },
     "windows-automation": {
-      "command": "python3",
+      "command": "C:\\Users\\elija\\.local\\bin\\uv.exe",
       "args": [
-        "/mnt/c/Users/elija/AppData/Roaming/Claude/Claude Extensions/ant.dir.cursortouch.windows-mcp/main.py"
+        "--directory",
+        "C:\\Users\\elija\\AppData\\Roaming\\Claude\\Claude Extensions\\ant.dir.cursortouch.windows-mcp",
+        "run",
+        "main.py"
       ],
       "env": {
-        "BRIDGE_DIRECTORY": "/mnt/c/Users/elija/Claude-Bridge-State",
+        "BRIDGE_DIRECTORY": "C:\\Users\\elija\\Claude-Bridge-State",
         "BRIDGE_ENABLED": "true",
-        "PYTHONPATH": "/mnt/c/Users/elija/AppData/Roaming/Claude/Claude Extensions/ant.dir.cursortouch.windows-mcp",
-        "PYTHON_PATH": "/usr/bin/python3"
+        "MCP_TIMEOUT": "30000"
       }
     },
     "blender-creative": {
-      "command": "python3",
+      "command": "C:\\Users\\elija\\.local\\bin\\uvx.exe",
       "args": [
-        "-m",
-        "blender_mcp"
+        "blender-mcp"
       ],
       "env": {
-        "BLENDER_PATH": "/mnt/c/Program Files/Blender Foundation/Blender 4.2/blender.exe",
-        "PYTHONPATH": "/mnt/c/Users/elija/Creative-Tools-MCP/blender-mcp",
-        "PYTHON_PATH": "/usr/bin/python3"
+        "BLENDER_PATH": "C:\\Program Files\\Blender Foundation\\Blender 4.2\\blender.exe",
+        "MCP_TRANSPORT": "stdio",
+        "MCP_TIMEOUT": "30000"
       }
     },
     "claude-diagnostics": {
-      "command": "python3",
+      "command": "npx",
       "args": [
-        "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/scripts/claude_diagnostics_reader.py",
-        "--monitor"
+        "-y",
+        "@modelcontextprotocol/server-diagnostics@latest"
       ],
       "env": {
-        "WORKSPACE_PATH": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager",
-        "PYTHONPATH": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/scripts",
-        "PYTHON_PATH": "/usr/bin/python3"
+        "NODE_ENV": "production",
+        "MCP_TIMEOUT": "30000"
       }
     },
     "godot": {
       "command": "node",
       "args": [
-        "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/mcp-servers/godot-mcp/build/index.js"
+        "C:\\Users\\elija\\SynologyDrive\\Godot\\five-parsecs-campaign-manager\\mcp-servers\\godot-mcp\\build\\index.js"
       ],
       "env": {
-        "GODOT_PATH": "C:/Users/elija/Desktop/GoDot/Godot 4.4/Godot_v4.4.1-stable_win64_console.exe",
-        "DEBUG": "true",
-        "NODE_ENV": "production"
+        "GODOT_PATH": "C:\\Users\\elija\\Desktop\\GoDot\\Godot_v4.5.1-stable_win64.exe\\Godot_v4.5.1-stable_win64_console.exe",
+        "DEBUG": "false",
+        "NODE_ENV": "production",
+        "MCP_TIMEOUT": "30000",
+        "MCP_QUIET": "true"
       }
     }
   }

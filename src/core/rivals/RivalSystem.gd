@@ -80,7 +80,7 @@ func _generate_rival_name() -> String:
 
 func _random_rival_type() -> int:
 	var types = GlobalEnums.EnemyType.values()
-	return types[randi() % (safe_call_method(types, "size") as int)]
+	return types[randi() % types.size()]
 
 func _generate_rival_traits() -> Array:
 	# Implement trait generation logic

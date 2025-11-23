@@ -216,15 +216,15 @@ func _update_character_display() -> void:
 func _character_to_dict(character: Character) -> Dictionary:
 	"""Convert Character object to dictionary format"""
 	return {
-		"name": character.character_name if character and character.has_method("get") else character.character_name,
-		"class": character.character_class if character and character.has_method("get") else character.character_class,
-		"background": character.background if character and character.has_method("get") else character.background,
-		"origin": character.origin if character and character.has_method("get") else character.origin,
-		"reaction": character.reaction if character and character.has_method("get") else character.reaction,
-		"speed": character.speed if character and character.has_method("get") else character.speed,
-		"combat": character.combat if character and character.has_method("get") else character.combat,
-		"toughness": character.toughness if character and character.has_method("get") else character.toughness,
-		"savvy": character.savvy if character and character.has_method("get") else character.savvy,
+		"name": character.character_name,
+		"class": character.character_class,
+		"background": character.background,
+		"origin": character.origin,
+		"reactions": character.reactions,
+		"speed": character.speed,
+		"combat": character.combat,
+		"toughness": character.toughness,
+		"savvy": character.savvy,
 		"character_object": character
 	}
 
@@ -326,7 +326,7 @@ func _display_character_details(character: Character) -> void:
 		details += "Motivation: %s\n" % _get_motivation_name(motivation_id)
 	
 	details += "\n[b]Attributes:[/b]\n"
-	details += "Reactions: %d\n" % (character.reaction if character.reaction else 1)
+	details += "Reactions: %d\n" % (character.reactions if character.reactions else 1)
 	details += "Speed: %d\"\n" % (character.speed if character.speed else 4)
 	details += "Combat Skill: +%d\n" % (character.combat if character.combat else 0)
 	details += "Toughness: %d\n" % (character.toughness if character.toughness else 3)

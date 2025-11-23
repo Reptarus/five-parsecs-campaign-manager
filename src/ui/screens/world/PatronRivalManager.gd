@@ -187,24 +187,61 @@ func _create_job_templates_fallback() -> void:
 	}
 
 func _load_patrons_and_rivals() -> void:
-	"""Load patrons and rivals from campaign data with JSON enhancement"""
-	var systems_autoload: Node = get_node_or_null("/root/SystemsAutoload")
-	if not systems_autoload:
-		push_error("SystemsAutoload not available")
-		return
+	"""Load patrons and rivals from GameStateManager (single source of truth)"""
+	# Primary: Load from GameStateManager
+	if GameStateManager:
+		var loaded_patrons: Array = GameStateManager.get_patrons()
+		var loaded_rivals: Array = GameStateManager.get_rivals()
 
-	# Load patrons from the consolidated PatronSystem
-	patrons = systems_autoload.get_active_patrons() if systems_autoload.has_method("get_active_patrons") else []
+		# Convert to typed arrays
+		patrons.clear()
+		for p in loaded_patrons:
+			if p is Dictionary:
+				patrons.append(p)
 
-	# Load rivals from the consolidated FactionSystem
-	rivals = systems_autoload.get_active_rivals() if systems_autoload.has_method("get_active_rivals") else []
+		rivals.clear()
+		for r in loaded_rivals:
+			if r is Dictionary:
+				rivals.append(r)
 
-	# Enhanced fallback using JSON templates
+		print("PatronRivalManager: Loaded %d patrons, %d rivals from GameStateManager" % [patrons.size(), rivals.size()])
+	else:
+		push_warning("PatronRivalManager: GameStateManager not available")
+
+	# Enhanced fallback using JSON templates if no data exists
 	if patrons.is_empty():
 		_generate_patrons_from_templates()
+		# Save generated patrons to GameState for persistence
+		_save_patrons_to_gamestate()
 
 	if rivals.is_empty():
 		_generate_rivals_from_templates()
+		# Save generated rivals to GameState for persistence
+		_save_rivals_to_gamestate()
+
+func _save_patrons_to_gamestate() -> void:
+	"""Save current patrons to GameStateManager for persistence"""
+	if not GameStateManager:
+		return
+
+	if not GameStateManager.game_state or not "current_campaign" in GameStateManager.game_state:
+		return
+
+	var campaign = GameStateManager.game_state.current_campaign
+	campaign.patrons = patrons.duplicate(true)
+	print("PatronRivalManager: Saved %d patrons to GameState" % patrons.size())
+
+func _save_rivals_to_gamestate() -> void:
+	"""Save current rivals to GameStateManager for persistence"""
+	if not GameStateManager:
+		return
+
+	if not GameStateManager.game_state or not "current_campaign" in GameStateManager.game_state:
+		return
+
+	var campaign = GameStateManager.game_state.current_campaign
+	campaign.rivals = rivals.duplicate(true)
+	print("PatronRivalManager: Saved %d rivals to GameState" % rivals.size())
 
 func _generate_patrons_from_templates() -> void:
 	"""Generate patrons using JSON template data"""
@@ -710,15 +747,18 @@ func _on_job_assigned_from_dialog(patron: Dictionary, job: Dictionary) -> void:
 	# Add job to patron's active jobs
 	if not patron.has("active_jobs"):
 		patron["active_jobs"] = []
-	
+
 	patron.active_jobs.append(job)
-	
+
 	# Emit the main job assignment signal
 	job_assigned.emit(patron, job)
-	
+
+	# Save updated patrons to GameState for persistence
+	_save_patrons_to_gamestate()
+
 	# Refresh displays to show updated patron information
 	_refresh_displays()
-	
+
 	print("PatronRivalManager: Job assignment completed - '%s' assigned to '%s'" % [job.get("title", "Unknown"), patron.get("name", "Unknown")])
 
 func _show_assignment_error(message: String) -> void:

@@ -1,0 +1,171 @@
+[gd_scene load_steps=4 format=3 uid="uid://cs6k4w2v3jnvd"]
+
+[ext_resource type="Script" path="res://src/ui/screens/battle/BattleDashboardUI.gd" id="1_battle_dashboard"]
+[ext_resource type="PackedScene" uid="uid://b3mkf7y5q8n2p" path="res://src/ui/components/battle/DiceDashboard.tscn" id="2_dice_dashboard"]
+[ext_resource type="PackedScene" uid="uid://c7mq8r5n4k9wp" path="res://src/ui/components/battle/CombatCalculator.tscn" id="3_combat_calculator"]
+
+[node name="BattleDashboardUI" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_battle_dashboard")
+
+[node name="MainLayout" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TopBar" type="HBoxContainer" parent="MainLayout"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 50)
+
+[node name="RoundInfo" type="HBoxContainer" parent="MainLayout/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RoundLabel" type="Label" parent="MainLayout/TopBar/RoundInfo"]
+layout_mode = 2
+text = "Current Round:"
+vertical_alignment = 1
+
+[node name="RoundCounter" type="Label" parent="MainLayout/TopBar/RoundInfo"]
+layout_mode = 2
+text = "Round: 1"
+vertical_alignment = 1
+
+[node name="RoundControls" type="HBoxContainer" parent="MainLayout/TopBar"]
+layout_mode = 2
+
+[node name="NextRoundButton" type="Button" parent="MainLayout/TopBar/RoundControls"]
+layout_mode = 2
+text = "Next Round"
+
+[node name="EndBattleButton" type="Button" parent="MainLayout/TopBar/RoundControls"]
+layout_mode = 2
+text = "End Battle"
+
+[node name="ContentArea" type="HBoxContainer" parent="MainLayout"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="LeftPanel" type="VBoxContainer" parent="MainLayout/ContentArea"]
+custom_minimum_size = Vector2(250, 0)
+layout_mode = 2
+
+[node name="CharacterPanel" type="Panel" parent="MainLayout/ContentArea/LeftPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CharacterPanelContent" type="VBoxContainer" parent="MainLayout/ContentArea/LeftPanel/CharacterPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="CharacterPanelLabel" type="Label" parent="MainLayout/ContentArea/LeftPanel/CharacterPanel/CharacterPanelContent"]
+layout_mode = 2
+text = "Crew Status"
+horizontal_alignment = 1
+
+[node name="CharacterStatusContainer" type="VBoxContainer" parent="MainLayout/ContentArea/LeftPanel/CharacterPanel/CharacterPanelContent"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CenterPanel" type="Panel" parent="MainLayout/ContentArea"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CenterContent" type="VBoxContainer" parent="MainLayout/ContentArea/CenterPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BattlefieldLabel" type="Label" parent="MainLayout/ContentArea/CenterPanel/CenterContent"]
+layout_mode = 2
+text = "Battlefield (Grid View - Coming Soon)"
+horizontal_alignment = 1
+
+[node name="BattlefieldPlaceholder" type="ColorRect" parent="MainLayout/ContentArea/CenterPanel/CenterContent"]
+layout_mode = 2
+size_flags_vertical = 3
+color = Color(0.2, 0.2, 0.25, 1)
+
+[node name="RightPanel" type="VBoxContainer" parent="MainLayout/ContentArea"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+
+[node name="DicePanel" type="Panel" parent="MainLayout/ContentArea/RightPanel"]
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 2
+
+[node name="DicePanelContent" type="VBoxContainer" parent="MainLayout/ContentArea/RightPanel/DicePanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="DicePanelLabel" type="Label" parent="MainLayout/ContentArea/RightPanel/DicePanel/DicePanelContent"]
+layout_mode = 2
+text = "Dice Dashboard"
+horizontal_alignment = 1
+
+[node name="DiceDashboard" parent="MainLayout/ContentArea/RightPanel/DicePanel/DicePanelContent" instance=ExtResource("2_dice_dashboard")]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CalculatorPanel" type="Panel" parent="MainLayout/ContentArea/RightPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CalculatorPanelContent" type="VBoxContainer" parent="MainLayout/ContentArea/RightPanel/CalculatorPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="CalculatorPanelLabel" type="Label" parent="MainLayout/ContentArea/RightPanel/CalculatorPanel/CalculatorPanelContent"]
+layout_mode = 2
+text = "Combat Calculator"
+horizontal_alignment = 1
+
+[node name="CombatCalculator" parent="MainLayout/ContentArea/RightPanel/CalculatorPanel/CalculatorPanelContent" instance=ExtResource("3_combat_calculator")]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BottomPanel" type="Panel" parent="MainLayout"]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+
+[node name="BattleLogPanel" type="VBoxContainer" parent="MainLayout/BottomPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BattleLogLabel" type="Label" parent="MainLayout/BottomPanel/BattleLogPanel"]
+layout_mode = 2
+text = "Battle Log"
+horizontal_alignment = 1
+
+[node name="BattleLog" type="RichTextLabel" parent="MainLayout/BottomPanel/BattleLogPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+scroll_following = true

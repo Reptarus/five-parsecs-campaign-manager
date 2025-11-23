@@ -6,16 +6,15 @@ extends Node
 
 # Dependencies loaded at runtime to avoid circular dependencies
 # GlobalEnums available as autoload singleton
-const CoreCharacter = preload("res://src/core/character/Character.gd")
 
-signal character_created(character: CoreCharacter)
+signal character_created(character: Character)
 signal character_removed(character_id: String)
-signal character_updated(character: CoreCharacter)
+signal character_updated(character: Character)
 signal crew_size_changed(new_size: int)
 
-var crew_roster: Array[CoreCharacter] = []
+var crew_roster: Array[Character] = []
 var max_crew_size: int = 8
-var active_crew: Array[CoreCharacter] = []
+var active_crew: Array[Character] = []
 
 func _ready() -> void:
 	_initialize_manager()
@@ -34,21 +33,30 @@ func _register_with_game_state() -> void:
 	else:
 		push_warning("CharacterManager: GameStateManager not available for registration")
 
-func create_character(character_data: Dictionary = {}) -> CoreCharacter:
-	var character: CoreCharacter = CoreCharacter.new()
+func create_character(character_data: Dictionary = {}) -> Character:
+	var character: Character = Character.new()
 
 	# Apply provided data or use defaults
 	character.character_name = character_data.get("name", "New Character")
 	character.character_class = character_data.get("class", GlobalEnums.CharacterClass.NONE)
 
-	# Add to roster
-	add_character_to_roster(character)
+	# Add to roster (may fail if roster full or duplicate ID)
+	var added = add_character_to_roster(character)
 
-	character_created.emit(character)
+	# Only emit signal if character was successfully added to roster
+	if added:
+		character_created.emit(character)
+
+	# Return character even if not added (test design expects this)
 	return character
 
-func add_character_to_roster(character: CoreCharacter) -> bool:
+func add_character_to_roster(character: Character) -> bool:
 	if crew_roster.size() >= max_crew_size:
+		return false
+
+	# Prevent duplicate character IDs
+	if get_character_by_id(character.character_id) != null:
+		push_error("Character with ID %s already exists in crew roster" % character.character_id)
 		return false
 
 	crew_roster.append(character)
@@ -56,27 +64,47 @@ func add_character_to_roster(character: CoreCharacter) -> bool:
 	return true
 
 func remove_character_from_roster(character_id: String) -> bool:
+	# Validate character_id (null/empty check)
+	if character_id == null or character_id.is_empty():
+		push_warning("Cannot remove character: invalid character ID")
+		return false
+
 	for i: int in range(crew_roster.size()):
 		if crew_roster[i].character_id == character_id:
+			# Prevent crew size from dropping below minimum
+			if crew_roster.size() <= FiveParsecsConstants.CHARACTER_CREATION.min_crew_size:
+				push_error("Cannot remove character: crew size would drop below minimum of 4")
+				return false
+
 			crew_roster.remove_at(i)
+
+			# SYNCHRONIZE ACTIVE CREW - Remove character from active crew if present
+			for j in range(active_crew.size() - 1, -1, -1):
+				if active_crew[j].character_id == character_id:
+					active_crew.remove_at(j)
+					break
+
 			character_removed.emit(character_id)
 			crew_size_changed.emit(crew_roster.size())
 			return true
 	return false
 
-func get_character_by_id(character_id: String) -> CoreCharacter:
+func get_character_by_id(character_id: String) -> Character:
 	for character in crew_roster:
 		if character.character_id == character_id:
 			return character
 	return null
 
-func get_crew_roster() -> Array[CoreCharacter]:
+func get_crew_roster() -> Array[Character]:
 	return crew_roster.duplicate()
 
-func get_active_crew() -> Array[CoreCharacter]:
+func get_active_crew() -> Array[Character]:
+	# Ensure never returns null, always a valid array
+	if active_crew == null:
+		active_crew = []
 	return active_crew.duplicate()
 
-func set_active_crew(characters: Array[CoreCharacter]) -> void:
+func set_active_crew(characters: Array[Character]) -> void:
 	active_crew = characters.duplicate()
 
 func get_crew_size() -> int:
@@ -88,19 +116,19 @@ func get_max_crew_size() -> int:
 func set_max_crew_size(size: int) -> void:
 	max_crew_size = maxi(1, size)
 
-func advance_character(character: CoreCharacter, advancement_type: String) -> bool:
+func advance_character(character: Character, advancement_type: String) -> bool:
 	# Stub for character advancement
 	if character in crew_roster:
 		character_updated.emit(character)
 		return true
 	return false
 
-func heal_character(character: CoreCharacter, amount: int) -> void:
+func heal_character(character: Character, amount: int) -> void:
 	if character in crew_roster:
 		if character and character.has_method("heal"): character.heal(amount)
 		character_updated.emit(character)
 
-func assign_equipment(character: CoreCharacter, equipment: Dictionary) -> bool:
+func assign_equipment(character: Character, equipment: Dictionary) -> bool:
 	if character in crew_roster:
 		# Stub for equipment assignment
 		character_updated.emit(character)
@@ -156,14 +184,14 @@ func load_crew_data(data: Dictionary) -> bool:
 	# Load crew roster
 	var roster_data = data.get("crew_roster", [])
 	for character_data in roster_data:
-		var character: CoreCharacter = CoreCharacter.new()
+		var character: Character = Character.new()
 		character.deserialize(character_data)
 		crew_roster.append(character)
 
 	# Restore active crew
 	var active_ids = data.get("active_crew_ids", [])
 	for character_id in active_ids:
-		var character: CoreCharacter = get_character_by_id(character_id)
+		var character: Character = get_character_by_id(character_id)
 		if character:
 			active_crew.append(character)
 

@@ -1,0 +1,239 @@
+name: Five Parsecs Test Suite
+
+on:
+  pull_request:
+    branches: [ main, develop, emergency-character-fix-comprehensive ]
+  push:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  comprehensive-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        lfs: true
+        
+    - name: Cache Godot binary
+      id: cache-godot
+      uses: actions/cache@v3
+      with:
+        path: ~/godot
+        key: godot-4.4.1-linux
+        
+    - name: Download Godot Engine
+      if: steps.cache-godot.outputs.cache-hit != 'true'
+      run: |
+        mkdir -p ~/godot
+        cd ~/godot
+        wget https://downloads.tuxfamily.org/godotengine/4.4.1/Godot_v4.4.1-stable_linux.x86_64.zip
+        unzip Godot_v4.4.1-stable_linux.x86_64.zip
+        chmod +x Godot_v4.4.1-stable_linux.x86_64
+        
+    - name: Setup Godot path
+      run: |
+        echo "GODOT_BINARY=$HOME/godot/Godot_v4.4.1-stable_linux.x86_64" >> $GITHUB_ENV
+        
+    - name: Validate test environment
+      run: |
+        echo "Validating Five Parsecs test environment..."
+        ls -la
+        ls -la addons/gdUnit4/ || echo "GdUnit4 addon check"
+        ls -la tests/ || echo "Tests directory check"
+        ls -la scripts/run_comprehensive_test_suite.sh
+        
+    - name: Make test runner executable
+      run: chmod +x scripts/run_comprehensive_test_suite.sh
+      
+    - name: Run comprehensive test suite
+      run: |
+        # Create adapted test runner for CI environment
+        sed 's|/mnt/c/Users/elija/Desktop/GoDot/Godot 4.4/Godot_v4.4.1-stable_win64_console.exe|$GODOT_BINARY|g' \
+            scripts/run_comprehensive_test_suite.sh > scripts/ci_test_runner.sh
+        sed -i 's|/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager|$(pwd)|g' \
+            scripts/ci_test_runner.sh
+        chmod +x scripts/ci_test_runner.sh
+        
+        # Run tests with timeout protection
+        timeout 10m ./scripts/ci_test_runner.sh || {
+          echo "Test suite timed out or failed"
+          echo "Checking for partial results..."
+          ls -la test_results/ 2>/dev/null || echo "No test results directory"
+          exit 1
+        }
+        
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-${{ github.run_number }}
+        path: |
+          test_results/
+          *.log
+        retention-days: 30
+        
+    - name: Parse test results
+      if: always()
+      run: |
+        echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -d "test_results" ]; then
+          total_logs=$(find test_results -name "*.log" | wc -l)
+          echo "📊 **Total test files executed:** $total_logs" >> $GITHUB_STEP_SUMMARY
+          
+          # Count passed/failed based on log content
+          passed=0
+          failed=0
+          for log in test_results/*.log; do
+            if [ -f "$log" ]; then
+              if grep -q "PASSED\|✅" "$log"; then
+                passed=$((passed + 1))
+              elif grep -q "FAILED\|❌\|ERROR" "$log"; then
+                failed=$((failed + 1))
+              fi
+            fi
+          done
+          
+          echo "✅ **Passed:** $passed" >> $GITHUB_STEP_SUMMARY
+          echo "❌ **Failed:** $failed" >> $GITHUB_STEP_SUMMARY
+          
+          if [ $failed -gt 0 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Failed Tests" >> $GITHUB_STEP_SUMMARY
+            for log in test_results/*.log; do
+              if [ -f "$log" ] && grep -q "FAILED\|❌\|ERROR" "$log"; then
+                echo "- $(basename "$log" .log)" >> $GITHUB_STEP_SUMMARY
+              fi
+            done
+          fi
+          
+          # Calculate success rate
+          if [ $((passed + failed)) -gt 0 ]; then
+            success_rate=$((passed * 100 / (passed + failed)))
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "📈 **Success Rate:** $success_rate%" >> $GITHUB_STEP_SUMMARY
+            
+            # Set exit code based on success rate (90% threshold)
+            if [ $success_rate -lt 90 ]; then
+              echo "❌ Test suite failed: Success rate below 90% threshold"
+              exit 1
+            else
+              echo "✅ Test suite passed: Success rate meets 90% threshold"
+            fi
+          fi
+        else
+          echo "❌ No test results found" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+
+  quick-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Cache Godot binary
+      id: cache-godot
+      uses: actions/cache@v3
+      with:
+        path: ~/godot
+        key: godot-4.4.1-linux
+        
+    - name: Download Godot Engine
+      if: steps.cache-godot.outputs.cache-hit != 'true'
+      run: |
+        mkdir -p ~/godot
+        cd ~/godot
+        wget https://downloads.tuxfamily.org/godotengine/4.4.1/Godot_v4.4.1-stable_linux.x86_64.zip
+        unzip Godot_v4.4.1-stable_linux.x86_64.zip
+        chmod +x Godot_v4.4.1-stable_linux.x86_64
+        
+    - name: Quick syntax validation
+      run: |
+        echo "Running quick syntax validation..."
+        GODOT_BINARY="$HOME/godot/Godot_v4.4.1-stable_linux.x86_64"
+        
+        # Check if project loads without errors
+        timeout 60 $GODOT_BINARY --headless --check-only --quit || {
+          echo "❌ Project failed syntax validation"
+          exit 1
+        }
+        
+        echo "✅ Project syntax validation passed"
+        
+    - name: Run critical unit tests only
+      run: |
+        echo "Running critical unit tests..."
+        GODOT_BINARY="$HOME/godot/Godot_v4.4.1-stable_linux.x86_64"
+        
+        # Run just the wrapper unit test (fastest validation)
+        timeout 60 $GODOT_BINARY --headless --path . -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd \
+          -a res://tests/unit/test_global_enums_unit.gd --ignoreHeadlessMode -c || {
+          echo "❌ Critical unit tests failed"
+          exit 1
+        }
+        
+        echo "✅ Critical unit tests passed"
+
+  performance-monitoring:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup performance monitoring
+      run: |
+        echo "Setting up performance monitoring..."
+        mkdir -p performance_reports
+        
+    - name: Cache Godot binary
+      id: cache-godot
+      uses: actions/cache@v3
+      with:
+        path: ~/godot
+        key: godot-4.4.1-linux
+        
+    - name: Download Godot Engine
+      if: steps.cache-godot.outputs.cache-hit != 'true'
+      run: |
+        mkdir -p ~/godot
+        cd ~/godot
+        wget https://downloads.tuxfamily.org/godotengine/4.4.1/Godot_v4.4.1-stable_linux.x86_64.zip
+        unzip Godot_v4.4.1-stable_linux.x86_64.zip
+        chmod +x Godot_v4.4.1-stable_linux.x86_64
+        
+    - name: Run performance benchmarks
+      run: |
+        GODOT_BINARY="$HOME/godot/Godot_v4.4.1-stable_linux.x86_64"
+        
+        # Run performance test
+        echo "Running performance benchmarks..."
+        start_time=$(date +%s)
+        
+        timeout 300 $GODOT_BINARY --headless --path . --script simple_enum_test.gd --quit > performance_reports/enum_performance.log 2>&1 || true
+        
+        end_time=$(date +%s)
+        duration=$((end_time - start_time))
+        
+        echo "Performance test completed in ${duration}s"
+        echo "duration_seconds: $duration" > performance_reports/metrics.txt
+        echo "timestamp: $(date -Iseconds)" >> performance_reports/metrics.txt
+        
+    - name: Upload performance reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: performance-reports-${{ github.run_number }}
+        path: performance_reports/
+        retention-days: 90

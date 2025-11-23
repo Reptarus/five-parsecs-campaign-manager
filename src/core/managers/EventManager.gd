@@ -5,7 +5,8 @@ extends Node
 # Stage 2: Universal Safety Patterns - Safe imports
 
 ## Dependencies with preload pattern
-const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
+# Character/CharacterDataManager reference removed - file does not exist
+const Character = preload("res://src/core/character/Character.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
 # GlobalEnums available as autoload singleton
 const MissionGeneratorClass = preload("res://src/core/systems/MissionGenerator.gd")

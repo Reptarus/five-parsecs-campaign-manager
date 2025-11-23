@@ -1,3 +1,4 @@
+@tool
 extends SceneTree
 
 ## Project Health Validation Script

@@ -1,15 +1,32 @@
-# MCP Servers - moved outside project to prevent Godot scanning conflicts
-mcp-servers/
-godot-mcp-server/
-godot-mcp/
-serena/
+# THIS FILE MUST BE IN PROJECT ROOT TO WORK!
+# Godot will ignore these directories completely
 
-# Node modules
-node_modules/
+# MCP Servers - prevent Godot from indexing these
+mcp-servers
+godot-mcp-server
+godot-mcp
+serena
+godot-mcp-plugin
+
+# Node modules (critical - contains thousands of files)
+node_modules
 
 # Build artifacts
-builds/
-backups/
+builds
+backups
+logs
+test_results
+reports
+
+# Tools and scripts
+tools
+scripts
+
+# Archive
+archive
+
+# Documentation (if causing issues)
+# docs
 
 # Temporary files
 temp_files.txt
@@ -17,3 +34,4 @@ temp_matches.txt
 all_files.txt
 all_gd_files.txt
 full_script_list.txt
+nul

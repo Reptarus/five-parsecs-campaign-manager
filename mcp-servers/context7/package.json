@@ -1,0 +1,21 @@
+{
+  "name": "@upstash/context7-mcp",
+  "version": "1.0.0",
+  "description": "Context7 MCP Server for Godot Five Parsecs Campaign Manager",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0",
+    "@upstash/redis": "^1.28.0",
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

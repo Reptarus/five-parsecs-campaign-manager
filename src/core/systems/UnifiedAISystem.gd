@@ -5,7 +5,8 @@ extends Node
 
 ## Dependencies
 # GlobalEnums available as autoload singleton
-const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
+# Character/CharacterDataManager reference removed - file does not exist
+const Character = preload("res://src/core/character/Character.gd")
 const EnemyData = preload("res://src/core/rivals/EnemyData.gd")
 
 ## Emitted when an AI unit decides on an action

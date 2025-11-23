@@ -28,6 +28,11 @@ const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
 @onready var return_button: Button = $MainContainer/TopBar/ReturnButton
 @onready var auto_resolve_button: Button = $MainContainer/TopBar/AutoResolveButton
 
+# Reaction Dice UI elements
+@onready var dice_pool_display: HBoxContainer = %DicePoolDisplay
+@onready var character_assignment_list: VBoxContainer = %CharacterAssignmentList
+@onready var confirm_assignments_button: Button = %ConfirmAssignmentsButton
+
 # Core Systems
 var battlefield_manager: BattlefieldManager
 var dice_manager: Node = null
@@ -184,6 +189,18 @@ func _connect_signals() -> void:
 		battlefield_manager.terrain_updated.connect(_on_terrain_updated)
 		battlefield_manager.cover_updated.connect(_on_cover_updated)
 
+	# Reaction Dice signals
+	if confirm_assignments_button:
+		confirm_assignments_button.pressed.connect(_on_confirm_dice_assignments)
+
+	# Connect to combat system for reaction dice events
+	var combat_system = get_node_or_null("/root/FiveParsecsCombatSystem")
+	if combat_system:
+		if combat_system.has_signal("reaction_dice_rolled"):
+			combat_system.reaction_dice_rolled.connect(_on_reaction_dice_rolled)
+		if combat_system.has_signal("reaction_dice_assigned"):
+			combat_system.reaction_dice_assigned.connect(_on_reaction_dice_assigned)
+
 func _setup_ui() -> void:
 	"""Setup the tactical UI"""
 	turn_indicator.text = "Deployment Phase"
@@ -336,13 +353,75 @@ func _update_unit_info_display() -> void:
 # Action handlers
 func _on_move_clicked() -> void:
 	"""Handle move action"""
-	_log_message("%s is moving..." % selected_unit.name, Color.CYAN)
-	# TODO: Implement movement selection UI
+	if not selected_unit or not selected_unit.can_move():
+		_log_message("Cannot move - no movement remaining!", Color.RED)
+		return
+	
+	_log_message("%s is moving... (Movement: %d remaining)" % [selected_unit.node_name, selected_unit.movement_remaining], Color.CYAN)
+	
+	# For now, auto-move toward nearest enemy (will be replaced with UI selection)
+	var nearest_enemy = _find_nearest_enemy(selected_unit)
+	if nearest_enemy:
+		var move_vector = (nearest_enemy.node_position - selected_unit.node_position).sign()
+		var new_pos = selected_unit.node_position + Vector2i(move_vector.x, move_vector.y)
+		
+		if _is_valid_position(new_pos):
+			selected_unit.node_position = new_pos
+			selected_unit.movement_remaining = max(0, selected_unit.movement_remaining - 1)
+			_log_message("%s moved to (%d, %d)" % [selected_unit.node_name, new_pos.x, new_pos.y], Color.CYAN)
+		else:
+			_log_message("Invalid move position!", Color.RED)
+	
+	_update_action_buttons_for_combat()
 
 func _on_shoot_clicked() -> void:
 	"""Handle shoot action"""
-	_log_message("%s is shooting..." % selected_unit.name, Color.RED)
-	# TODO: Implement target selection and shooting
+	if not selected_unit or not selected_unit.can_act():
+		_log_message("Cannot shoot - no actions remaining!", Color.RED)
+		return
+	
+	# Find nearest enemy to shoot (will be replaced with UI targeting)
+	var target = _find_nearest_enemy(selected_unit)
+	if not target:
+		_log_message("No valid targets!", Color.RED)
+		return
+	
+	var distance = selected_unit.node_position.distance_to(target.node_position)
+	
+	# Check range (24 inches = 24 grid squares)
+	if distance > 24:
+		_log_message("Target out of range! (Distance: %.0f)" % distance, Color.RED)
+		return
+	
+	_log_message("%s shooting at %s (Range: %.0f)" % [selected_unit.node_name, target.node_name, distance], Color.ORANGE)
+	
+	# Calculate to-hit (Five Parsecs rules)
+	var base_skill = selected_unit.combat_skill
+	var cover_mod = _get_cover_modifier(target)
+	var to_hit_bonus = base_skill + cover_mod
+	
+	# Roll to hit (D6, need <= modified skill + 3)
+	var hit_roll = _roll_dice("To Hit", "D6")
+	var hit_threshold = 3 + to_hit_bonus
+	var hit = hit_roll <= hit_threshold
+	
+	if hit:
+		# Roll damage
+		var damage = _roll_dice("Damage", "D6")
+		var actual_damage = max(1, damage - (target.toughness / 2))
+		
+		target.take_damage(actual_damage)
+		_log_message("HIT! Rolled %d (needed <=%d) - %d damage dealt!" % [hit_roll, hit_threshold, actual_damage], Color.GREEN)
+		_log_message("%s: %d/%d HP remaining" % [target.node_name, target.health, target.max_health], Color.YELLOW)
+		
+		if target.is_dead:
+			_log_message("%s is DOWN!" % target.node_name, Color.RED)
+	else:
+		_log_message("MISS! Rolled %d (needed <=%d)" % [hit_roll, hit_threshold], Color.GRAY)
+	
+	# Consume action
+	selected_unit.actions_remaining -= 1
+	_update_action_buttons_for_combat()
 
 func _on_dash_clicked() -> void:
 	"""Handle dash action (extra movement)"""
@@ -452,12 +531,55 @@ func _on_return_to_battle_resolution() -> void:
 	return_to_battle_resolution.emit() # warning: return value discarded (intentional)
 
 func _on_auto_resolve_battle() -> void:
-	"""Auto-resolve the remaining battle"""
+	"""Auto-resolve the remaining battle using Five Parsecs combat system"""
 	_log_message("Auto-resolving battle...", Color.ORANGE)
-	# TODO: Use existing battle resolution system
+	
+	# Calculate crew power
+	var crew_power = 0
+	for unit in crew_units:
+		if unit.health > 0:
+			crew_power += unit.combat_skill + unit.toughness
+	
+	# Calculate enemy power  
+	var enemy_power = 0
+	for unit in enemy_units:
+		if unit.health > 0:
+			enemy_power += unit.combat_skill + unit.toughness
+	
+	# Roll 2D6 for each side
+	var crew_roll = _roll_dice("Crew Combat", "D6") + _roll_dice("Crew Combat 2", "D6")
+	var enemy_roll = _roll_dice("Enemy Combat", "D6") + _roll_dice("Enemy Combat 2", "D6")
+	
+	var crew_total = crew_power + crew_roll
+	var enemy_total = enemy_power + enemy_roll
+	
+	_log_message("Crew: %d power + %d roll = %d" % [crew_power, crew_roll, crew_total], Color.CYAN)
+	_log_message("Enemy: %d power + %d roll = %d" % [enemy_power, enemy_roll, enemy_total], Color.RED)
+	
 	var result := BattleResult.new()
-	result.victory = true # Simplified for now
-	tactical_battle_completed.emit(result) # warning: return value discarded (intentional)
+	result.rounds_fought = current_turn
+	result.victory = crew_total > enemy_total
+	
+	# Calculate casualties (simplified)
+	if not result.victory:
+		# Defeat - higher casualty chance
+		for unit in crew_units:
+			if unit.health > 0:
+				var casualty_roll = _roll_dice("Casualty", "D6")
+				if casualty_roll <= 3:  # 50% chance
+					result.crew_casualties.append(unit.original_character)
+	else:
+		# Victory - lower casualty chance
+		for unit in crew_units:
+			if unit.health <= 0:
+				var death_roll = _roll_dice("Death Check", "D6")
+				if death_roll <= 2:  # 33% chance
+					result.crew_casualties.append(unit.original_character)
+				else:
+					result.crew_injuries.append(unit.original_character)
+	
+	_log_message("Battle %s!" % ("WON" if result.victory else "LOST"), Color.GREEN if result.victory else Color.RED)
+	tactical_battle_completed.emit(result)
 
 func _on_terrain_updated(position: Vector2, terrain_type: int) -> void:
 	"""Handle terrain updates"""
@@ -490,6 +612,126 @@ func _log_message(message: String, color: Color = Color.WHITE) -> void:
 	var timestamp: String = "[%02d:%02d] " % [current_turn, current_unit_index]
 	battle_log.append_text("[color=%s]%s%s[/color]\n" % [color.to_html(), timestamp, message])
 	battle_log.scroll_to_line(battle_log.get_line_count())
+
+func _find_nearest_enemy(unit: TacticalUnit) -> TacticalUnit:
+	"""Find the nearest enemy unit to the given unit"""
+	var enemies = enemy_units if unit.team == "crew" else crew_units
+	var nearest: TacticalUnit = null
+	var min_distance = INF
+	
+	for enemy in enemies:
+		if enemy.health > 0:
+			var dist = unit.node_position.distance_to(enemy.node_position)
+			if dist < min_distance:
+				min_distance = dist
+				nearest = enemy
+	
+	return nearest
+
+func _get_cover_modifier(unit: TacticalUnit) -> int:
+	"""Get cover modifier for a unit at their position"""
+	# Check terrain at unit position
+	var terrain_data = battlefield_manager.get_terrain_data(unit.node_position)
+	if terrain_data and terrain_data.has("cover"):
+		return -terrain_data["cover"]  # Cover makes them harder to hit (negative modifier)
+	return 0
+
+## Reaction Dice System
+
+var reaction_dice_pool: Array[int] = []
+var dice_assignments: Dictionary = {} # character_id -> dice_value
+
+func _on_reaction_dice_rolled(dice_values: Array) -> void:
+	"""Handle reaction dice rolled at start of round"""
+	reaction_dice_pool = dice_values
+	dice_assignments.clear()
+	_display_dice_pool()
+	_display_character_assignments()
+	_log_message("Reaction dice rolled: %s" % str(dice_values), Color.CYAN)
+
+func _on_reaction_dice_assigned(character_id: String, dice_value: int) -> void:
+	"""Handle dice assignment update"""
+	dice_assignments[character_id] = dice_value
+	_display_character_assignments()
+
+func _on_confirm_dice_assignments() -> void:
+	"""Confirm all dice assignments and proceed"""
+	var combat_system = get_node_or_null("/root/FiveParsecsCombatSystem")
+	if combat_system and combat_system.has_method("confirm_reaction_assignments"):
+		combat_system.confirm_reaction_assignments(dice_assignments)
+	_log_message("Reaction dice assignments confirmed", Color.GREEN)
+
+func _display_dice_pool() -> void:
+	"""Display available reaction dice"""
+	if not dice_pool_display:
+		return
+
+	# Clear existing dice
+	for child in dice_pool_display.get_children():
+		child.queue_free()
+
+	# Create visual for each die
+	for die_value in reaction_dice_pool:
+		var die_label := Label.new()
+		die_label.text = "[%d]" % die_value
+		die_label.add_theme_font_size_override("font_size", 20)
+
+		# Color code by value (higher = better)
+		if die_value >= 5:
+			die_label.add_theme_color_override("font_color", Color.GREEN)
+		elif die_value >= 3:
+			die_label.add_theme_color_override("font_color", Color.YELLOW)
+		else:
+			die_label.add_theme_color_override("font_color", Color.ORANGE)
+
+		dice_pool_display.add_child(die_label)
+
+func _display_character_assignments() -> void:
+	"""Display character assignment options"""
+	if not character_assignment_list:
+		return
+
+	# Clear existing assignments
+	for child in character_assignment_list.get_children():
+		child.queue_free()
+
+	# Create assignment row for each crew member
+	for unit in crew_units:
+		if unit.health <= 0:
+			continue
+
+		var row := HBoxContainer.new()
+
+		var name_label := Label.new()
+		name_label.text = unit.node_name
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(name_label)
+
+		var assigned_value: int = dice_assignments.get(unit.node_name, 0)
+		var value_label := Label.new()
+		value_label.text = str(assigned_value) if assigned_value > 0 else "-"
+		row.add_child(value_label)
+
+		# Add assign button
+		var assign_button := Button.new()
+		assign_button.text = "Assign"
+		assign_button.pressed.connect(_on_assign_dice_to_character.bind(unit.node_name))
+		row.add_child(assign_button)
+
+		character_assignment_list.add_child(row)
+
+func _on_assign_dice_to_character(character_name: String) -> void:
+	"""Assign next available die to character"""
+	# Find first unassigned die
+	var assigned_values = dice_assignments.values()
+	for die_value in reaction_dice_pool:
+		if die_value not in assigned_values:
+			dice_assignments[character_name] = die_value
+			_display_character_assignments()
+			_log_message("%s assigned reaction die: %d" % [character_name, die_value], Color.CYAN)
+			return
+
+	_log_message("No dice available to assign!", Color.RED)
 
 ## Tactical Unit Class
 
@@ -579,4 +821,4 @@ func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Va
 		return null
 	if obj is Object and obj.has_method(method_name):
 		return obj.callv(method_name, args)
-	return null    
+	return null

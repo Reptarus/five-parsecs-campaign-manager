@@ -2,7 +2,8 @@ extends Node
 
 # GlobalEnums available as autoload singleton
 const GameState = preload("res://src/core/state/GameState.gd")
-const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
+# Character/CharacterDataManager reference removed - file does not exist
+const Character = preload("res://src/core/character/Character.gd")
 const SaveManager = preload("res://src/core/state/SaveManager.gd")
 const Ship = preload("res://src/core/ships/Ship.gd")
 const FPCM_ShipComponent = preload("res://src/core/ships/components/ShipComponent.gd")

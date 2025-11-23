@@ -36,6 +36,7 @@ text = "Credits: 0"
 theme_override_font_sizes/font_size = 16
 
 [node name="CostBreakdown" type="VBoxContainer" parent="UpkeepContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 
 [node name="CrewUpkeepLabel" type="Label" parent="UpkeepContainer/CostBreakdown"]

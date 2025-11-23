@@ -9,7 +9,7 @@ class_name GameItem
 
 @export var item_id: String = ""
 @export var item_name: String = ""
-@export var item_type: GlobalEnums.ItemType = GlobalEnums.ItemType.MISC
+@export var item_type: int = 0  # GlobalEnums.ItemType - default to MISC (0)
 @export var item_category: String = ""
 @export var item_description: String = ""
 @export var item_effects: Array[Dictionary] = []
@@ -24,19 +24,23 @@ func _init() -> void:
 	if Engine.is_editor_hint():
 		return
 
-	# Try to get the singleton instance
-	if DataManager:
-		_data_manager = DataManager
-		print("GameItem: DataManager available immediately")
+	# Try to get the DataManager autoload safely
+	var tree = Engine.get_main_loop() as SceneTree
+	if tree and tree.root:
+		_data_manager = tree.root.get_node_or_null("DataManager")
+		if _data_manager:
+			print("GameItem: DataManager available immediately")
+		else:
+			print("GameItem: DataManager not ready yet")
 	else:
-		print("GameItem: DataManager not ready yet")
+		print("GameItem: SceneTree not available yet")
 
 func initialize_from_id(id: String) -> bool:
 	# If we don't have data manager yet, try to get it with retry
 	if _data_manager == null:
 		var tree: SceneTree = Engine.get_main_loop() as SceneTree
 		if tree and tree.root:
-			_data_manager = DataManager
+			_data_manager = tree.root.get_node_or_null("DataManager")
 		if not _data_manager:
 			push_error("GameItem: Failed to get DataManager")
 			return false
@@ -80,8 +84,12 @@ func initialize_from_data(data: Dictionary) -> bool:
 			item_type = GlobalEnums.ItemType.MISC
 
 	# Handle effects data
-	if data.has("effects") and data.effects is Array:
-		item_effects = data.effects
+	if data.has("effects") and data["effects"] is Array:
+		# Convert to typed array
+		item_effects.clear()
+		for effect in data["effects"]:
+			if effect is Dictionary:
+				item_effects.append(effect)
 	else:
 		item_effects = []
 
@@ -100,12 +108,17 @@ func initialize_from_data(data: Dictionary) -> bool:
 	item_uses = data.get("uses", 1)
 
 	# Handle cost data
-	if data.has("cost") and data.cost is Dictionary:
-		item_cost = data.cost
+	if data.has("cost") and data["cost"] is Dictionary:
+		item_cost = data["cost"]
 	else:
 		item_cost = {"credits": data.get("cost", 0), "rarity": data.get("rarity", "Common")}
 
-	item_tags = data.get("tags", [])
+	# Handle tags (convert to typed array)
+	var raw_tags = data.get("tags", [])
+	item_tags.clear()
+	for tag in raw_tags:
+		if tag is String:
+			item_tags.append(tag)
 
 	return true
 

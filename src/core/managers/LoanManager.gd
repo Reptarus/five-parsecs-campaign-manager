@@ -10,7 +10,8 @@ const MAX_LOAN_AMOUNT := 50000
 
 # GlobalEnums available as autoload singleton
 const GameState = preload("res://src/core/state/GameState.gd")
-const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
+# Character/CharacterDataManager reference removed - file does not exist
+const Character = preload("res://src/core/character/Character.gd")
 const EconomySystem = preload("res://src/core/systems/EconomySystem.gd")
 
 var game_state: GameState

@@ -1,10 +1,15 @@
-[gd_scene load_steps=6 format=3 uid="uid://c8vx1k9wp7fqj"]
+[gd_scene load_steps=11 format=3 uid="uid://c8vx1k9wp7fqj"]
 
 [ext_resource type="Script" path="res://src/ui/screens/world/WorldPhaseController.gd" id="1_controller"]
 [ext_resource type="PackedScene" uid="uid://bkw8n7qx3m5jr" path="res://src/ui/screens/world/components/UpkeepPhaseComponent.tscn" id="2_upkeep"]
 [ext_resource type="PackedScene" uid="uid://bfj8x2n4k9mrl" path="res://src/ui/screens/world/components/CrewTaskComponent.tscn" id="3_crew_task"]
-[ext_resource type="PackedScene" uid="uid://c3xk8m9wr1qj" path="res://src/ui/screens/world/components/JobOfferComponent.tscn" id="4_job_offer"]
+[ext_resource type="PackedScene" uid="uid://c3xk8nawr1qj" path="res://src/ui/screens/world/components/JobOfferComponent.tscn" id="4_job_offer"]
 [ext_resource type="PackedScene" uid="uid://d2yk7n5vs3pl" path="res://src/ui/screens/world/components/MissionPrepComponent.tscn" id="5_mission_prep"]
+[ext_resource type="PackedScene" path="res://src/ui/screens/world/components/AssignEquipmentComponent.tscn" id="6_assign_equipment"]
+[ext_resource type="PackedScene" path="res://src/ui/screens/world/components/ResolveRumorsComponent.tscn" id="7_resolve_rumors"]
+[ext_resource type="PackedScene" path="res://src/ui/screens/world/components/PurchaseItemsComponent.tscn" id="8_purchase_items"]
+[ext_resource type="PackedScene" path="res://src/ui/screens/world/components/CampaignEventComponent.tscn" id="9_campaign_event"]
+[ext_resource type="PackedScene" path="res://src/ui/screens/world/components/CharacterEventComponent.tscn" id="10_character_event"]
 
 [node name="WorldPhaseController" type="Control"]
 layout_mode = 3
@@ -52,7 +57,7 @@ horizontal_alignment = 1
 [node name="CurrentStepLabel" type="Label" parent="MarginContainer/VBoxContainer/Header"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Step 1 of 4: Upkeep"
+text = "Step 1 of 9: Upkeep"
 theme_override_font_sizes/font_size = 18
 horizontal_alignment = 1
 
@@ -135,6 +140,96 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="MissionPrepComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/MissionPrepContainer" instance=ExtResource("5_mission_prep")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="AssignEquipmentContainer" type="Control" parent="MarginContainer/VBoxContainer/PhaseContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="AssignEquipmentComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/AssignEquipmentContainer" instance=ExtResource("6_assign_equipment")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ResolveRumorsContainer" type="Control" parent="MarginContainer/VBoxContainer/PhaseContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ResolveRumorsComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/ResolveRumorsContainer" instance=ExtResource("7_resolve_rumors")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PurchaseItemsContainer" type="Control" parent="MarginContainer/VBoxContainer/PhaseContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PurchaseItemsComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/PurchaseItemsContainer" instance=ExtResource("8_purchase_items")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="CampaignEventContainer" type="Control" parent="MarginContainer/VBoxContainer/PhaseContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="CampaignEventComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/CampaignEventContainer" instance=ExtResource("9_campaign_event")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="CharacterEventContainer" type="Control" parent="MarginContainer/VBoxContainer/PhaseContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="CharacterEventComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/CharacterEventContainer" instance=ExtResource("10_character_event")]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0

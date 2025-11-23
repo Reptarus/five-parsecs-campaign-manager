@@ -58,6 +58,18 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 
+[node name="DeploymentConditionLabel" type="Label" parent="MarginContainer/VBoxContainer/MainContent/LeftPanel/MissionInfo/VBoxContainer/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Deployment: Rolling..."
+autowrap_mode = 3
+
+[node name="NotableSightsLabel" type="Label" parent="MarginContainer/VBoxContainer/MainContent/LeftPanel/MissionInfo/VBoxContainer/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Notable Sight: Rolling..."
+autowrap_mode = 3
+
 [node name="EnemyInfo" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent/LeftPanel"]
 layout_mode = 2
 size_flags_vertical = 3
@@ -104,6 +116,46 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
+
+[node name="TerrainSuggestionsPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent/CenterPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_type_variation = &"DarkPanel"
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/CenterPanel/TerrainSuggestionsPanel"]
+layout_mode = 2
+
+[node name="HeaderRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/CenterPanel/TerrainSuggestionsPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/MainContent/CenterPanel/TerrainSuggestionsPanel/VBoxContainer/HeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 24
+text = "Terrain Suggestions"
+
+[node name="GenerateButton" type="Button" parent="MarginContainer/VBoxContainer/MainContent/CenterPanel/TerrainSuggestionsPanel/VBoxContainer/HeaderRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Generate"
+
+[node name="ConfirmAllButton" type="Button" parent="MarginContainer/VBoxContainer/MainContent/CenterPanel/TerrainSuggestionsPanel/VBoxContainer/HeaderRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Confirm All"
+
+[node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer/MainContent/CenterPanel/TerrainSuggestionsPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/MainContent/CenterPanel/TerrainSuggestionsPanel/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TerrainSuggestionsList" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/CenterPanel/TerrainSuggestionsPanel/VBoxContainer/ScrollContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
 
 [node name="RightPanel" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent"]
 layout_mode = 2
@@ -155,6 +207,14 @@ layout_mode = 2
 
 [node name="Content" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/DeploymentPanel/VBoxContainer"]
 layout_mode = 2
+
+[node name="InitiativeResultLabel" type="Label" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/DeploymentPanel/VBoxContainer/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Initiative: Pending..."
+horizontal_alignment = 1
+autowrap_mode = 3
 
 [node name="FooterPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2

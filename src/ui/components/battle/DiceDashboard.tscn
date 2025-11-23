@@ -1,0 +1,116 @@
+[gd_scene load_steps=2 format=3 uid="uid://b3mkf7y5q8n2p"]
+
+[ext_resource type="Script" path="res://src/ui/components/battle/DiceDashboard.gd" id="1_dice_dashboard"]
+
+[node name="DiceDashboard" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_dice_dashboard")
+
+[node name="DashboardLayout" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TitleLabel" type="Label" parent="DashboardLayout"]
+layout_mode = 2
+text = "Quick Dice Rolls"
+horizontal_alignment = 1
+
+[node name="HSeparator1" type="HSeparator" parent="DashboardLayout"]
+layout_mode = 2
+
+[node name="LastRollSection" type="VBoxContainer" parent="DashboardLayout"]
+layout_mode = 2
+
+[node name="LastRollLabel" type="Label" parent="DashboardLayout/LastRollSection"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "No rolls yet"
+horizontal_alignment = 1
+
+[node name="HSeparator2" type="HSeparator" parent="DashboardLayout"]
+layout_mode = 2
+
+[node name="ContextSection" type="VBoxContainer" parent="DashboardLayout"]
+layout_mode = 2
+
+[node name="ContextLabel" type="Label" parent="DashboardLayout/ContextSection"]
+layout_mode = 2
+text = "Roll Context (optional)"
+horizontal_alignment = 1
+
+[node name="ContextInput" type="LineEdit" parent="DashboardLayout/ContextSection"]
+unique_name_in_owner = true
+layout_mode = 2
+placeholder_text = "e.g., 'To Hit', 'Damage', etc."
+alignment = 1
+
+[node name="HSeparator3" type="HSeparator" parent="DashboardLayout"]
+layout_mode = 2
+
+[node name="DiceButtonsSection" type="VBoxContainer" parent="DashboardLayout"]
+layout_mode = 2
+
+[node name="DiceButtonsLabel" type="Label" parent="DashboardLayout/DiceButtonsSection"]
+layout_mode = 2
+text = "Common Rolls"
+horizontal_alignment = 1
+
+[node name="DiceButtonRow1" type="HBoxContainer" parent="DashboardLayout/DiceButtonsSection"]
+layout_mode = 2
+alignment = 1
+
+[node name="D3Button" type="Button" parent="DashboardLayout/DiceButtonsSection/DiceButtonRow1"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(60, 40)
+layout_mode = 2
+text = "D3"
+
+[node name="D6Button" type="Button" parent="DashboardLayout/DiceButtonsSection/DiceButtonRow1"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(60, 40)
+layout_mode = 2
+text = "D6"
+
+[node name="DiceButtonRow2" type="HBoxContainer" parent="DashboardLayout/DiceButtonsSection"]
+layout_mode = 2
+alignment = 1
+
+[node name="TwoD6Button" type="Button" parent="DashboardLayout/DiceButtonsSection/DiceButtonRow2"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(60, 40)
+layout_mode = 2
+text = "2D6"
+
+[node name="D66Button" type="Button" parent="DashboardLayout/DiceButtonsSection/DiceButtonRow2"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(60, 40)
+layout_mode = 2
+text = "D66"
+
+[node name="HSeparator4" type="HSeparator" parent="DashboardLayout"]
+layout_mode = 2
+
+[node name="HistorySection" type="VBoxContainer" parent="DashboardLayout"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="HistoryLabel" type="Label" parent="DashboardLayout/HistorySection"]
+layout_mode = 2
+text = "Roll History"
+horizontal_alignment = 1
+
+[node name="RollHistory" type="RichTextLabel" parent="DashboardLayout/HistorySection"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+scroll_following = true

@@ -51,21 +51,12 @@ func _initialize_managers() -> void:
 
 func _connect_signals() -> void:
 	"""Connect UI signals"""
-	# Check if nodes exist before connecting
+	# Note: close_button and mission buttons already connected in scene file (MissionSelectionUI.tscn lines 101-104)
+	# Only connect optional nodes that use get_node_or_null and might not exist
 	if generate_button:
 		generate_button.pressed.connect(_on_generate_missions)
 	if cancel_button:
 		cancel_button.pressed.connect(_on_cancel_pressed)
-	if close_button:
-		close_button.pressed.connect(_on_close_pressed)
-	
-	# Connect mission buttons if they exist
-	if mission1_button:
-		mission1_button.pressed.connect(_on_mission_selected_by_index.bind(0))
-	if mission2_button:
-		mission2_button.pressed.connect(_on_mission_selected_by_index.bind(1))
-	if mission3_button:
-		mission3_button.pressed.connect(_on_mission_selected_by_index.bind(2))
 
 func _setup_ui() -> void:
 	"""Setup initial UI state"""

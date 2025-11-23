@@ -6,7 +6,7 @@ extends RefCounted
 ## Final checkpoint to ensure 100% production readiness
 
 const IntegrationSmokeRunner = preload("res://src/core/testing/IntegrationSmokeRunner.gd")
-const DataConsistencyValidator = preload("res://src/core/validation/DataConsistencyValidator.gd")
+# DataConsistencyValidator removed - file does not exist
 const IntegrationHealthMonitor = preload("res://src/core/monitoring/IntegrationHealthMonitor.gd")
 const StateConsistencyMonitor = preload("res://src/core/state/StateConsistencyMonitor.gd")
 

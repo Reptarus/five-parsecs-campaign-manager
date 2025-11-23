@@ -1,0 +1,104 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/ui/screens/world/components/AssignEquipmentComponent.gd" id="1_script"]
+
+[node name="AssignEquipmentComponent" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_script")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/separation = 10
+
+[node name="HeaderPanel" type="PanelContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/HeaderPanel"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="VBoxContainer/HeaderPanel/HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Assign Equipment"
+
+[node name="SelectedCrewLabel" type="Label" parent="VBoxContainer/HeaderPanel/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 10
+text = "Select a crew member"
+
+[node name="MainContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 15
+
+[node name="CrewPanel" type="VBoxContainer" parent="VBoxContainer/MainContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CrewLabel" type="Label" parent="VBoxContainer/MainContainer/CrewPanel"]
+layout_mode = 2
+text = "Crew Members"
+
+[node name="CrewList" type="ItemList" parent="VBoxContainer/MainContainer/CrewPanel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="EquipmentPanel" type="VBoxContainer" parent="VBoxContainer/MainContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="EquipmentLabel" type="Label" parent="VBoxContainer/MainContainer/EquipmentPanel"]
+layout_mode = 2
+text = "Crew Equipment"
+
+[node name="CrewEquipmentList" type="ItemList" parent="VBoxContainer/MainContainer/EquipmentPanel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TransferButtons" type="VBoxContainer" parent="VBoxContainer/MainContainer/EquipmentPanel"]
+layout_mode = 2
+
+[node name="TransferToStashButton" type="Button" parent="VBoxContainer/MainContainer/EquipmentPanel/TransferButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Move to Stash"
+
+[node name="TransferBetweenCrewButton" type="Button" parent="VBoxContainer/MainContainer/EquipmentPanel/TransferButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Trade with Crew"
+
+[node name="StashPanel" type="VBoxContainer" parent="VBoxContainer/MainContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="StashLabel" type="Label" parent="VBoxContainer/MainContainer/StashPanel"]
+layout_mode = 2
+text = "Ship Stash"
+
+[node name="StashList" type="ItemList" parent="VBoxContainer/MainContainer/StashPanel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TransferToCrewButton" type="Button" parent="VBoxContainer/MainContainer/StashPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Give to Crew"
+
+[node name="ConfirmButton" type="Button" parent="VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Confirm Equipment Assignments"

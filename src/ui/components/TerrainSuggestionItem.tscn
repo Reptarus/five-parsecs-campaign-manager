@@ -9,7 +9,7 @@ corner_radius_top_right = 8
 corner_radius_bottom_left = 8
 corner_radius_bottom_right = 8
 border_width_left = 3
-border_color = Color.CYAN
+border_color = Color(0, 1, 1, 1)
 
 [node name="TerrainSuggestionItem" type="Control"]
 custom_minimum_size = Vector2(300, 100)

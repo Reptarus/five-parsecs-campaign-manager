@@ -1059,13 +1059,13 @@ func get_panel_data() -> Dictionary:
 	if not current_captain:
 		return {
 			"is_complete": false,
-			"name": captain_name_input.text if captain_name_input else "",
+			"character_name": captain_name_input.text if captain_name_input else "",
 			"captain_character": null
 		}
 	
 	return {
 		"captain": {
-			"name": current_captain.character_name,
+			"character_name": current_captain.character_name,
 			"combat": current_captain.combat,
 			"reactions": current_captain.reactions,
 			"toughness": current_captain.toughness,
@@ -1079,7 +1079,7 @@ func get_panel_data() -> Dictionary:
 			"creation_method": creation_method if creation_method else "manual",
 			"bonuses": captain_bonuses
 		},
-		"name": current_captain.character_name,
+		"character_name": current_captain.character_name,
 		"captain_character": current_captain,
 		"is_complete": validate_panel()
 	}
@@ -1089,9 +1089,9 @@ func set_panel_data(data: Dictionary) -> void:
 	if data.has("captain") and data.captain is Dictionary:
 		var captain_data = data.captain
 		# Load existing captain data if available
-		if captain_data.has("name") and not captain_data.name.is_empty():
+		if captain_data.has("character_name") and not captain_data.character_name.is_empty():
 			captain = Character.new()
-			captain.character_name = captain_data.get("name", "")
+			captain.character_name = captain_data.get("character_name", "")
 			captain.combat = captain_data.get("combat", 1)
 			captain.reactions = captain_data.get("reactions", 1)
 			captain.toughness = captain_data.get("toughness", 1)

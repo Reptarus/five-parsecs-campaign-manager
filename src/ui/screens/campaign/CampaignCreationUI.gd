@@ -59,6 +59,7 @@ var current_panel: Control = null
 
 # PHASE 4: Signal optimization and memory safety
 var _panel_signal_connections: Array[Dictionary] = []
+var _coordinator_panel_connections: Array[Dictionary] = []  # Track coordinator->panel connections separately
 var _cleanup_timer: Timer
 
 # PHASE 2: Formal State Machine Integration
@@ -125,6 +126,7 @@ var preload_progress: int = 0
 
 # Navigation update protection and optimization
 var _is_updating_navigation: bool = false
+var _auto_advance_pending: bool = false
 
 # PHASE 3 INTEGRATION: Enhanced UI Initialization
 func _ready() -> void:
@@ -907,17 +909,32 @@ func _safe_connect_signal(panel: Control, signal_name: String, callback: Callabl
 func _cleanup_panel_signals() -> void:
 	"""Clean up all tracked signal connections for memory safety"""
 	var cleaned_count = 0
-	
+
+	# Clean up panel-to-UI connections
 	for connection in _panel_signal_connections:
 		var panel = connection.get("panel")
 		var signal_name = connection.get("signal_name")
 		var callback = connection.get("callback")
-		
+
 		if panel and is_instance_valid(panel) and panel.is_connected(signal_name, callback):
 			panel.disconnect(signal_name, callback)
 			cleaned_count += 1
-	
+
 	_panel_signal_connections.clear()
+
+	# Clean up coordinator-to-panel connections
+	if coordinator:
+		for connection in _coordinator_panel_connections:
+			var panel = connection.get("panel")
+			var signal_name = connection.get("signal_name")
+			var callback = connection.get("callback")
+
+			if panel and is_instance_valid(panel) and coordinator.is_connected(signal_name, callback):
+				coordinator.disconnect(signal_name, callback)
+				cleaned_count += 1
+
+	_coordinator_panel_connections.clear()
+
 	print("CampaignCreationUI: ✅ Cleaned up %d signal connections" % cleaned_count)
 
 func _setup_memory_safety_timer() -> void:
@@ -954,17 +971,28 @@ func _connect_panel_signals(panel: Control) -> void:
 	
 	# PHASE 4: Clean up previous connections before connecting new ones
 	_cleanup_panel_signals()
-	
-	# CRITICAL FIX: Connect campaign data updates TO the panel
-	# This bridges the gap between coordinator updates and panel state updates
-	if panel.has_method("_on_campaign_state_updated"):
-		if not campaign_data_updated.is_connected(panel._on_campaign_state_updated):
-			campaign_data_updated.connect(panel._on_campaign_state_updated, CONNECT_DEFERRED)
-			print("CampaignCreationUI: ✅ Connected campaign_data_updated -> %s._on_campaign_state_updated" % panel.get_class())
+
+	# CRITICAL FIX: Connect coordinator's campaign_state_updated TO the panel
+	# This enables cross-panel communication and real-time state synchronization
+	if coordinator and panel.has_method("_on_campaign_state_updated"):
+		if not coordinator.campaign_state_updated.is_connected(panel._on_campaign_state_updated):
+			coordinator.campaign_state_updated.connect(panel._on_campaign_state_updated, CONNECT_DEFERRED)
+
+			# Track coordinator->panel connection for cleanup
+			_coordinator_panel_connections.append({
+				"panel": panel,
+				"signal_name": "campaign_state_updated",
+				"callback": panel._on_campaign_state_updated
+			})
+
+			print("CampaignCreationUI: ✅ Connected coordinator.campaign_state_updated -> %s._on_campaign_state_updated" % panel.get_class())
 		else:
-			print("CampaignCreationUI: ⚠️ campaign_data_updated already connected to %s" % panel.get_class())
+			print("CampaignCreationUI: ⚠️ coordinator.campaign_state_updated already connected to %s" % panel.get_class())
 	else:
-		print("CampaignCreationUI: ⚠️ Panel %s missing _on_campaign_state_updated method" % panel.get_class())
+		if not coordinator:
+			print("CampaignCreationUI: ⚠️ Coordinator not initialized")
+		elif not panel.has_method("_on_campaign_state_updated"):
+			print("CampaignCreationUI: ⚠️ Panel %s missing _on_campaign_state_updated method" % panel.get_class())
 	
 	# Connect BaseCampaignPanel signals (standard interface) with safe connections
 	_safe_connect_signal(panel, "panel_data_changed", _on_panel_data_changed)
@@ -1427,18 +1455,45 @@ func _on_panel_completed(data: Dictionary) -> void:
 	# Check if we should auto-advance
 	var can_advance = state_manager.validate_current_step()
 	print("  Can advance: %s" % str(can_advance))
-	
-	# CRITICAL FIX: Disable auto-advance to prevent panel stacking/overlapping
-	# TODO: Re-enable after fixing panel cleanup race conditions
-	# if can_advance:
-	#	print("  Auto-advancing to next panel...")
-	#	_on_next_pressed()
-	# else:
-	#	print("  Not advancing - validation failed or on final panel")
-	print("  Auto-advance disabled to prevent panel overlapping")
-	
+
+	# Safe auto-advance with race condition protection
+	if can_advance and not _auto_advance_pending and not _is_transitioning:
+		print("  Scheduling safe auto-advance...")
+		_auto_advance_pending = true
+		# Use call_deferred to let current panel cleanup finish first
+		call_deferred("_safe_auto_advance")
+	else:
+		if _auto_advance_pending:
+			print("  Auto-advance already pending")
+		elif _is_transitioning:
+			print("  Panel transition in progress, skipping auto-advance")
+		else:
+			print("  Not advancing - validation failed or on final panel")
+
 	print("CampaignCreationUI: Panel completion processing finished")
 	print("=====================================")
+
+func _safe_auto_advance() -> void:
+	"""Safely auto-advance to next panel after ensuring cleanup is complete"""
+	if not _auto_advance_pending:
+		return
+
+	# Wait one frame to ensure previous panel is fully cleaned up
+	await get_tree().process_frame
+
+	_auto_advance_pending = false
+
+	# Re-check conditions after waiting
+	if _is_transitioning:
+		print("CampaignCreationUI: Auto-advance cancelled - transition in progress")
+		return
+
+	if not state_manager.validate_current_step():
+		print("CampaignCreationUI: Auto-advance cancelled - validation failed")
+		return
+
+	print("CampaignCreationUI: Executing safe auto-advance")
+	_on_next_pressed()
 
 func _on_panel_validation_failed(errors: Array[String]) -> void:
 	"""Handle validation failures"""

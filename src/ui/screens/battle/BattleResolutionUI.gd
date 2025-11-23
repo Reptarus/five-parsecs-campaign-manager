@@ -278,11 +278,8 @@ func _on_attempt_flee() -> void:
 		flee_button.disabled = true
 
 func _calculate_automatic_battle_result() -> BattleResult:
-	"""Calculate battle result using simplified Five Parsecs rules"""
+	"""Calculate battle result using Five Parsecs combat tables"""
 	var result := BattleResult.new()
-
-	# Simplified battle resolution
-	# TODO: Implement proper Five Parsecs battle resolution rules
 
 	var crew_power = _calculate_crew_combat_power()
 	var enemy_power: int = _calculate_enemy_combat_power()
@@ -290,22 +287,39 @@ func _calculate_automatic_battle_result() -> BattleResult:
 	_log_battle_message("Crew combat power: %d" % crew_power, Color.WHITE)
 	_log_battle_message("Enemy combat power: %d" % enemy_power, Color.WHITE)
 
-	# Battle resolution using dice system
+	# Battle resolution using dice system (2D6 + advantage)
 	var battle_roll: int = _roll_dice("Battle Resolution", "D6") + _roll_dice("Battle Resolution (2nd die)", "D6")
 	var crew_advantage = crew_power - enemy_power
 	var final_result = battle_roll + crew_advantage
 
 	_log_battle_message("Battle roll: %d + %d advantage = %d" % [battle_roll, crew_advantage, final_result], Color.WHITE)
 
+	# Determine victory/defeat
 	if final_result >= 8:
 		result.victory = true
+		_log_battle_message("Victory! Battle won!", Color.GREEN)
+
+		# Calculate rewards for victory
 		var reward_credits = safe_get_property(current_mission, "reward_credits", 500)
 		result.credits_earned = reward_credits
-		_log_battle_message("Victory! Battle won!", Color.GREEN)
+
+		# Generate loot opportunities (Five Parsecs p.96)
+		_generate_loot_opportunities(result, battle_roll)
+
+		# Calculate experience for victory (Five Parsecs p.97)
+		_calculate_experience_gains(result, true)
+
+		# Check for casualties even in victory
+		_process_crew_casualties_and_injuries(result)
 	else:
 		result.victory = false
-		_calculate_battle_casualties(result)
 		_log_battle_message("Defeat! Battle lost.", Color.RED)
+
+		# Calculate experience for defeat (reduced)
+		_calculate_experience_gains(result, false)
+
+		# Process casualties and injuries (more severe on defeat)
+		_process_crew_casualties_and_injuries(result)
 
 	return result
 
@@ -314,10 +328,40 @@ func _calculate_crew_combat_power() -> int:
 	var total_power: int = 0
 	for crew_member in crew_members:
 		var combat_skill: int = crew_member.combat_skill if crew_member.has("combat_skill") else 1
-		var equipment_bonus: int = 1 # TODO: Calculate from equipment
+		var equipment_bonus: int = _calculate_equipment_bonus(crew_member)
 		total_power += combat_skill + equipment_bonus
 
 	return total_power
+
+func _calculate_equipment_bonus(crew_member) -> int:
+	"""Calculate combat bonus from equipment"""
+	var bonus: int = 1  # Base equipment bonus
+	var equipment = []
+
+	# Get equipment from character
+	if crew_member is Dictionary:
+		equipment = crew_member.get("equipment", [])
+	elif crew_member.has_method("get"):
+		equipment = crew_member.get("equipment")
+		if equipment == null:
+			equipment = []
+
+	# Check for combat-enhancing equipment
+	for item in equipment:
+		var item_id = ""
+		if item is String:
+			item_id = item.to_lower()
+		elif item is Dictionary:
+			item_id = item.get("id", "").to_lower()
+
+		# Equipment that provides combat bonuses
+		match item_id:
+			"combat_armor", "powered_armor": bonus += 1
+			"military_rifle", "plasma_rifle": bonus += 1
+			"targeting_system": bonus += 1
+			"scavenger_kit", "lucky_charm": bonus += 1  # Luck/loot bonus also helps
+
+	return bonus
 
 func _calculate_enemy_combat_power() -> int:
 	"""Calculate total enemy combat effectiveness"""
@@ -329,15 +373,223 @@ func _calculate_enemy_combat_power() -> int:
 
 	return total_power
 
-func _calculate_battle_casualties(result: BattleResult) -> void:
-	"""Calculate casualties from a lost battle"""
-	# Simple casualty calculation using dice system
+func _process_crew_casualties_and_injuries(result: BattleResult) -> void:
+	"""Process crew casualties and injuries per Five Parsecs Core Rules p.94-95"""
+	_log_battle_message("=== Processing Crew Casualties ===", Color.CYAN)
+
 	for crew_member in crew_members:
 		var character_name: String = safe_get_property(crew_member, "character_name", "Crew member")
-		var casualty_roll = _roll_dice("Injury Check - " + str(character_name), "D6")
-		if casualty_roll <= 2:
+
+		# Step 1: Determine if casualty or injury (D6, 1-2 = casualty)
+		var fate_data = _determine_casualty_fate(crew_member, character_name)
+
+		if fate_data.is_casualty:
+			# Character is a casualty
 			result.crew_casualties.append(crew_member)
-			_log_battle_message("%s was injured! (rolled %d)" % [character_name, casualty_roll], Color(1.0, 0.5, 0.0, 1.0))
+			_log_battle_message("💀 %s: CASUALTY - %s (rolled %d)" % [character_name, fate_data.casualty_type, fate_data.roll], Color.RED)
+		else:
+			# Character survives but may be injured
+			var injury_data = _roll_injury_type(crew_member, character_name)
+			result.crew_injuries.append(crew_member)
+
+			if injury_data.recovery_time > 0:
+				_log_battle_message("🩹 %s: %s (%d turns recovery)" % [character_name, injury_data.injury_type, injury_data.recovery_time], Color(1.0, 0.6, 0.0))
+			else:
+				_log_battle_message("⚠️ %s: %s" % [character_name, injury_data.injury_type], Color.YELLOW)
+
+func _determine_casualty_fate(crew_member: Resource, character_name: String) -> Dictionary:
+	"""
+	Determine if crew member is casualty or injured - SIMPLIFIED FOR AUTO-RESOLVE
+
+	NOTE: In actual Five Parsecs tabletop play (Core Rules p.46-47):
+	- Casualties occur when: 3+ Stun markers accumulated OR damage roll >= Toughness
+	- Damage = 1D6 + weapon Damage rating vs target Toughness
+	- Natural 6 on damage roll = automatic casualty
+
+	This simplified version uses a single D6 roll for quick auto-resolution.
+	For full tactical play, use TacticalBattleUI which implements proper Stun/damage mechanics.
+	"""
+	var casualty_roll := _roll_dice("Casualty Check - " + character_name, "D6")
+	var casualty_threshold := 2 # Base: 1-2 = casualty (simplified for auto-resolve)
+
+	# Apply character modifiers
+	var toughness: int = safe_get_property(crew_member, "toughness", 0)
+	if toughness >= 5:
+		casualty_threshold -= 1 # Toughness makes casualties less likely
+		_log_battle_message("  → Toughness bonus applied", Color.GRAY)
+
+	var fate_data := {
+		"roll": casualty_roll,
+		"is_casualty": casualty_roll <= casualty_threshold,
+		"casualty_type": ""
+	}
+
+	if fate_data.is_casualty:
+		# Determine casualty type
+		if casualty_roll == 1:
+			fate_data.casualty_type = "Killed in Action"
+		else:
+			fate_data.casualty_type = "Critically Wounded"
+
+	return fate_data
+
+func _roll_injury_type(crew_member: Resource, character_name: String) -> Dictionary:
+	"""Roll for injury type per Five Parsecs Core Rules Injury Table (D100)"""
+	# Roll D100 using 2D10 method (tens + ones)
+	var tens_roll = _roll_dice("Injury Tens - " + character_name, "D6") % 10
+	var ones_roll = _roll_dice("Injury Ones - " + character_name, "D6") % 10
+	var injury_roll = (tens_roll * 10) + ones_roll
+	if injury_roll == 0:
+		injury_roll = 100 # Handle 00 = 100
+
+	var injury_data := {
+		"injury_roll": injury_roll,
+		"injury_type": "",
+		"recovery_time": 0,
+		"permanent_effects": [],
+		"equipment_damaged": false
+	}
+
+	# Five Parsecs Core Rules Injury Table (exact page references)
+	if injury_roll <= 5:
+		# 1-5: Gruesome fate - Dead, all equipment damaged
+		injury_data.injury_type = "Gruesome Fate"
+		injury_data.recovery_time = -1 # Dead
+		injury_data.equipment_damaged = true
+		injury_data.permanent_effects = ["DEAD", "All carried equipment damaged"]
+	elif injury_roll <= 15:
+		# 6-15: Death or permanent injury
+		injury_data.injury_type = "Death or Permanent Injury"
+		injury_data.recovery_time = -1 # Removed from campaign
+		injury_data.permanent_effects = ["DEAD or removed from campaign"]
+	elif injury_roll == 16:
+		# 16: Miraculous escape - Survives with +1 Luck, items lost
+		injury_data.injury_type = "Miraculous Escape"
+		injury_data.recovery_time = 0
+		injury_data.permanent_effects = ["+1 Luck", "All items permanently lost"]
+	elif injury_roll <= 30:
+		# 17-30: Equipment loss
+		injury_data.injury_type = "Equipment Loss"
+		injury_data.recovery_time = 0
+		injury_data.equipment_damaged = true
+		injury_data.permanent_effects = ["Random carried item damaged"]
+	elif injury_roll <= 45:
+		# 31-45: Crippling wound - Requires surgery or permanent stat reduction
+		var recovery_roll = _roll_dice("Crippling Wound Recovery - " + character_name, "D6")
+		injury_data.injury_type = "Crippling Wound"
+		injury_data.recovery_time = recovery_roll
+		injury_data.permanent_effects = ["Requires 1D6 credits surgery", "OR permanent -1 to Speed/Toughness"]
+	elif injury_roll <= 54:
+		# 46-54: Serious injury - No long-term effect, 1D3+1 recovery
+		var recovery_d3 = (_roll_dice("Serious Injury D3 - " + character_name, "D6") % 3) + 1
+		injury_data.injury_type = "Serious Injury"
+		injury_data.recovery_time = recovery_d3 + 1
+		injury_data.permanent_effects = ["No long-term effect"]
+	elif injury_roll <= 80:
+		# 55-80: Minor injuries - 1 turn recovery
+		injury_data.injury_type = "Minor Injuries"
+		injury_data.recovery_time = 1
+		injury_data.permanent_effects = ["No long-term effect"]
+	elif injury_roll <= 95:
+		# 81-95: Knocked out - No recovery needed
+		injury_data.injury_type = "Knocked Out"
+		injury_data.recovery_time = 0
+		injury_data.permanent_effects = ["No long-term effect"]
+	else:
+		# 96-100: School of hard knocks - Earn 1 XP!
+		injury_data.injury_type = "School of Hard Knocks"
+		injury_data.recovery_time = 0
+		injury_data.permanent_effects = ["Earn 1 XP"]
+
+	return injury_data
+
+func _calculate_experience_gains(result: BattleResult, victory: bool) -> void:
+	"""Calculate experience gains per Five Parsecs Core Rules (p.94-95)"""
+	_log_battle_message("=== Calculating Experience ===", Color.CYAN)
+
+	# Track first casualty dealer
+	var first_casualty_awarded = false
+
+	for crew_member in crew_members:
+		var character_name: String = safe_get_property(crew_member, "character_name", "Crew member")
+		var crew_exp := 0
+
+		# Check if crew member became a casualty
+		var is_casualty := result.crew_casualties.any(func(c): return safe_get_property(c, "character_name", "") == character_name)
+
+		# Core Rules XP Table (exact implementation)
+		if is_casualty:
+			# Became a casualty: +1 XP (Core Rules p.94)
+			crew_exp = 1
+			_log_battle_message("  %s: +1 XP (casualty)" % character_name, Color.ORANGE)
+		elif victory:
+			# Survived and Won: +3 XP (Core Rules p.94)
+			crew_exp = 3
+			_log_battle_message("  %s: +3 XP (survived and won)" % character_name, Color.GREEN)
+		else:
+			# Survived but didn't Win: +2 XP (Core Rules p.94)
+			crew_exp = 2
+			_log_battle_message("  %s: +2 XP (survived)" % character_name, Color.CYAN)
+
+		# Bonus XP opportunities (Core Rules p.94-95)
+		# First character to inflict a casualty: +1 XP
+		if not first_casualty_awarded and victory:
+			crew_exp += 1
+			first_casualty_awarded = true
+			_log_battle_message("  → +1 XP (first casualty)", Color.YELLOW)
+
+		# TODO: Add support for:
+		# - Killed Unique Individual: +1 XP
+		# - Campaign on Easy mode: +1 XP
+		# - Crew completed final stage of Quest: +1 XP
+
+		# Store experience in result
+		result.experience_gained[character_name] = crew_exp
+
+func _generate_loot_opportunities(result: BattleResult, battle_roll: int) -> void:
+	"""Generate loot opportunities per Five Parsecs rules (p.96)"""
+	_log_battle_message("=== Generating Loot ===", Color.CYAN)
+
+	# Calculate number of loot rolls
+	var loot_rolls := 1 # Base victory loot
+
+	# Bonus for high battle roll (12+ = overwhelming victory)
+	if battle_roll >= 12:
+		loot_rolls += 1
+		_log_battle_message("  +1 loot roll (overwhelming victory)", Color.GRAY)
+
+	# Bonus for no casualties
+	if result.crew_casualties.size() == 0:
+		loot_rolls += 1
+		_log_battle_message("  +1 loot roll (no casualties)", Color.GRAY)
+
+	# Mission type bonuses
+	var mission_type: String = safe_get_property(current_mission, "type", "patrol")
+	if mission_type in ["assault", "investigation"]:
+		loot_rolls += 1
+		_log_battle_message("  +1 loot roll (%s mission)" % mission_type, Color.GRAY)
+
+	# Generate loot opportunities
+	for i in loot_rolls:
+		var loot_opportunity := _generate_single_loot_opportunity()
+		result.loot_opportunities.append(loot_opportunity)
+		_log_battle_message("  💎 %s" % loot_opportunity, Color.YELLOW)
+
+func _generate_single_loot_opportunity() -> String:
+	"""Generate single loot opportunity based on Five Parsecs loot table"""
+	var loot_roll := randf()
+
+	# Five Parsecs loot distribution (p.96)
+	if loot_roll < 0.4: # 40% chance
+		return "Credits: Roll 2D6 x 10 credits"
+	elif loot_roll < 0.65: # 25% chance
+		return "Equipment Cache: Roll on equipment table"
+	elif loot_roll < 0.85: # 20% chance
+		return "Consumables: Medical supplies or ammunition"
+	elif loot_roll < 0.95: # 10% chance
+		return "Information: Potential quest hook or intel"
+	else: # 5% chance
+		return "Special Item: Unusual discovery (GM determines)"
 
 func _display_battle_results() -> void:
 	"""Display the final battle results (legacy method - redirects to comprehensive display)"""

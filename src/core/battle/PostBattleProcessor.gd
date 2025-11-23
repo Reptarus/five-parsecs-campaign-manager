@@ -493,24 +493,62 @@ func _get_loot_description(loot_type: String) -> String:
 # =====================================================
 
 func _validate_processing_input(tracked_units: Dictionary, battle_context: Dictionary) -> Dictionary:
-	"""Validate input data for processing"""
+	"""Validate input data for processing with comprehensive checks"""
 	var validation := {"valid": true, "errors": {}}
+
+	# CRITICAL: Null and type validation
+	if tracked_units == null:
+		validation.valid = false
+		validation.errors["units_null"] = "tracked_units is null"
+		return validation
+
+	if battle_context == null:
+		validation.valid = false
+		validation.errors["context_null"] = "battle_context is null"
+		return validation
 
 	# Validate tracked units
 	if (safe_call_method(tracked_units, "is_empty") == true):
 		validation.valid = false
 		validation.errors["units"] = "No tracked units provided"
 
-	# Validate battle context
+	# VALIDATION: Ensure battle context has required fields
 	if not battle_context.has("victory"):
 		validation.valid = false
-		validation.errors["context"] = "Missing victory status"
+		validation.errors["victory"] = "Missing victory status (required)"
+
+	# Validate battle_id exists or can be generated
+	if not battle_context.has("battle_id") or battle_context.get("battle_id") == null:
+		# Warning only - will be auto-generated
+		if not validation.errors.has("warnings"):
+			validation.errors["warnings"] = []
+		validation.errors["warnings"].append("Missing battle_id - will be auto-generated")
+
+	# Validate rounds (critical for experience calculation)
+	if not battle_context.has("rounds"):
+		validation.valid = false
+		validation.errors["rounds"] = "Missing rounds count (required for experience)"
+	else:
+		var rounds_value = battle_context.get("rounds")
+		if rounds_value == null or (not rounds_value is int and not rounds_value is float):
+			validation.valid = false
+			validation.errors["rounds_type"] = "Rounds must be a number"
+		elif rounds_value < 0:
+			validation.valid = false
+			validation.errors["rounds_negative"] = "Rounds cannot be negative"
+
+	# Validate mission_type exists
+	if not battle_context.has("mission_type"):
+		# Warning only - will use default "patrol"
+		if not validation.errors.has("warnings"):
+			validation.errors["warnings"] = []
+		validation.errors["warnings"].append("Missing mission_type - will default to 'patrol'")
 
 	# Validate crew presence
 	var crew_count := _get_crew_units(tracked_units).size()
 	if crew_count == 0:
 		validation.valid = false
-		validation.errors["crew"] = "No crew units found"
+		validation.errors["crew"] = "No crew units found in tracked_units"
 
 	return validation
 

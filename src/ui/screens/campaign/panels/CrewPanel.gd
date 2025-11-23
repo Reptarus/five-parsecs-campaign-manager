@@ -18,6 +18,7 @@ const CharacterCreatorClass = preload("res://src/core/character/Generation/Simpl
 # Enhanced Five Parsecs character generation system - now using static Character methods
 const PatronSystem = preload("res://src/core/systems/PatronSystem.gd")
 const RivalSystem = preload("res://src/core/rivals/RivalSystem.gd")
+const CharacterGeneration = preload("res://src/core/character/CharacterGeneration.gd")
 
 # Existing signals for backward compatibility
 signal crew_setup_complete(crew_data: Dictionary)
@@ -39,7 +40,9 @@ signal crew_composition_changed(composition: Array)
 # Enhanced state management and validation logic
 var local_crew_data: Dictionary = {
 	"members": [],
+	"size": 0,
 	"captain": null,
+	"has_captain": false,
 	"patrons": [],
 	"rivals": [],
 	"starting_equipment": [],
@@ -117,17 +120,18 @@ var randomize_button: Button
 # UI component references for new standardized structure - using safe node access
 @onready var content_area: VBoxContainer = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content")
 @onready var crew_container: VBoxContainer = get_node_or_null("CrewContainer")
-@onready var crew_summary: Label = get_node_or_null("CrewSummary")
-@onready var instructions_label: Label = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/Instructions")
-@onready var crew_size_option_node: OptionButton = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/CrewSizeSection/CrewSizeOption")
-@onready var crew_list_node: Control = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/CrewContainer/CrewList")
-@onready var add_button_node: Button = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/CrewContainer/CrewControls/AddButton")
-@onready var edit_button_node: Button = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/CrewContainer/CrewControls/EditButton")
-@onready var remove_button_node: Button = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/CrewContainer/CrewControls/RemoveButton")
-@onready var randomize_button_node: Button = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/CrewContainer/CrewControls/RandomizeButton")
-@onready var validation_panel: PanelContainer = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/CrewValidationPanel")
-@onready var validation_icon: Label = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/CrewValidationPanel/ValidationContent/ValidationIcon")
-@onready var validation_text: Label = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/CrewValidationPanel/ValidationContent/ValidationText")
+# UI References - using % syntax for unique nodes
+@onready var crew_size_input: SpinBox = %CrewSizeInput
+@onready var crew_size_option_node: OptionButton = get_node_or_null("%CrewSizeOption")
+@onready var crew_list_node: VBoxContainer = %CrewList
+@onready var crew_summary: Label = get_node_or_null("%CrewSummary")
+@onready var add_button_node: Button = %AddCrewButton
+@onready var edit_button_node: Button = %EditButton
+@onready var remove_button_node: Button = %RemoveButton
+@onready var randomize_button_node: Button = %RandomizeButton
+@onready var validation_panel: PanelContainer = %CrewValidationPanel
+@onready var validation_icon: Label = %ValidationIcon
+@onready var validation_text: Label = %ValidationText
 
 # Five Parsecs UI component references for patron/rival/equipment display
 @onready var patron_list: VBoxContainer = %PatronList
@@ -152,13 +156,21 @@ func _on_campaign_state_updated(state_data: Dictionary) -> void:
 func _ready() -> void:
 	# Set panel info before base initialization with more informative description
 	set_panel_info("Crew Generation", "Generate 4 crew members. Each character has unique stats and backgrounds that affect equipment.")
-	
+
 	# Call parent _ready() to initialize BaseCampaignPanel structure
 	super._ready()
-	
+
+	# CRITICAL FIX: Remove BaseCampaignPanel's placeholder label
+	var form_container = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer")
+	if form_container:
+		var placeholder = form_container.get_node_or_null("PlaceholderLabel")
+		if placeholder:
+			placeholder.queue_free()
+			print("CrewPanel: Removed BaseCampaignPanel placeholder label")
+
 	# COMPREHENSIVE DEBUG OUTPUT - Panel Initialization
 	call_deferred("_log_panel_initialization_debug")
-	
+
 	# Initialize crew-specific functionality
 	_initialize_security_validator()
 	_initialize_five_parsecs_systems()
@@ -225,43 +237,51 @@ func _connect_to_crew_creation() -> void:
 func _safe_initialize_crew_creation() -> Dictionary:
 	"""Safely initialize crew creation with comprehensive error handling"""
 	var result = {"success": false, "error": ""}
-	
+
 	# Verify base panel structure exists
 	var form_container = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer")
 	if not form_container:
 		result.error = "Base panel FormContainer not found"
 		return result
-	
+
+	# CRITICAL FIX: Remove conflicting .tscn UI before loading InitialCrewCreation
+	var existing_scroll = form_container.get_node_or_null("ScrollContainer")
+	if existing_scroll:
+		existing_scroll.queue_free()
+		print("CrewPanel: Removed conflicting ScrollContainer from .tscn")
+
 	# Verify scene exists before attempting load
 	var scene_path = "res://src/ui/screens/crew/InitialCrewCreation.tscn"
 	if not ResourceLoader.exists(scene_path):
 		result.error = "InitialCrewCreation.tscn not found at expected path"
 		return result
-	
+
 	# Attempt to load with error protection
 	var crew_scene = load(scene_path)
 	if not crew_scene:
 		result.error = "Failed to load crew creation scene resource"
 		return result
-	
+
 	# Safe instantiation with error boundary
 	var crew_instance = crew_scene.instantiate()
 	if not crew_instance:
 		result.error = "Failed to instantiate crew creation scene"
 		return result
-	
+
 	# Setup container with proper scene structure
 	crew_creation_container = Control.new()
 	crew_creation_container.name = "CrewCreationContainer"
 	crew_creation_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	crew_creation_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	form_container.add_child(crew_creation_container)
-	
+
 	# Add crew instance with proper layout
 	crew_instance.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	crew_instance.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	crew_creation_container.add_child(crew_instance)
 	crew_creation_instance = crew_instance
+
+	print("CrewPanel: InitialCrewCreation loaded and added to FormContainer")
 	
 	# PHASE 5: Pass coordinator to InitialCrewCreation for workflow integration
 	var coord = get_coordinator()
@@ -669,7 +689,15 @@ func _on_edit_member_pressed() -> void:
 	
 	if selected_index >= 0 and selected_index < crew_members.size():
 		var character = crew_members[selected_index]
-		# TODO: Implement character editing
+
+		# Store character for editing using standardized keys
+		if GameStateManager:
+			GameStateManager.set_temp_data(GameStateManager.TEMP_KEY_SELECTED_CHARACTER, character)
+			GameStateManager.set_temp_data(GameStateManager.TEMP_KEY_EDIT_MODE, true)
+			GameStateManager.set_temp_data(GameStateManager.TEMP_KEY_RETURN_SCREEN, "campaign_dashboard")
+
+		# Navigate to character details with edit mode using standardized navigation
+		GameStateManager.navigate_to_screen("character_details")
 
 func _on_remove_member_pressed() -> void:
 	"""Handle remove crew member button"""
@@ -1400,12 +1428,27 @@ func _perform_completion_check() -> void:
 	if member_count >= required_size:
 		is_crew_complete = true
 		local_crew_data.is_complete = true
-		
+
 		# Update coordinator
 		var coord = get_coordinator()
 		if coord and coord.has_method("update_crew_state"):
 			coord.update_crew_state(local_crew_data)
 			print("CrewPanel: ✅ Updated coordinator with %d crew members" % member_count)
+
+		# Finalize crew resources from table rolling (patrons, rivals, rumors, story points)
+		var crew_members: Array = []
+		for member in local_crew_data.members:
+			if member is Dictionary and member.has("character_object"):
+				crew_members.append(member.character_object)
+			elif member is Character:
+				crew_members.append(member)
+
+		if crew_members.size() > 0:
+			var campaign = coord.get_campaign() if coord and coord.has_method("get_campaign") else null
+			var total_resources = CharacterGeneration.finalize_crew_resources(crew_members, campaign)
+			print("CrewPanel: ✅ Finalized crew resources - %d patrons, %d rivals, %d rumors, %d story points" % [
+				total_resources.patrons, total_resources.rivals, total_resources.rumors, total_resources.story_points
+			])
 		
 		# PHASE 3 FIX: Trigger BaseCampaignPanel validation and completion
 		_validate_and_emit_completion()

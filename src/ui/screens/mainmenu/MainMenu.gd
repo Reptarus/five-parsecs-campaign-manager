@@ -674,7 +674,9 @@ func _on_test_campaign_requested(campaign_data: Dictionary) -> void:
 	@warning_ignore("untyped_declaration")
 	var target_phase = campaign_data.get("phase", "world")
 	@warning_ignore("untyped_declaration")
-	var scene_router = get_node_or_null("/root/SceneRouter") as Node
+	var scene_router = null
+	if is_inside_tree():
+		scene_router = get_node_or_null("/root/SceneRouter") as Node
 	if scene_router:
 		if target_phase == "world":
 			@warning_ignore("unsafe_method_access")

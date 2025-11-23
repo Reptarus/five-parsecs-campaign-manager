@@ -2,7 +2,8 @@
 extends Node
 
 const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const Character := preload("res://src/core/character/Management/CharacterDataManager.gd")
+# Character/CharacterDataManager reference removed - file does not exist
+const Character = preload("res://src/core/character/Character.gd")
 const GameState := preload("res://src/core/state/GameState.gd")
 const DataManager := preload("res://src/core/data/DataManager.gd")
 

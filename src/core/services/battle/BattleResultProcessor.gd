@@ -112,9 +112,9 @@ func _process_casualties(casualties: Array) -> Dictionary:
 			var game_state = game_state_manager.get_game_state()
 			if game_state and game_state.has_method("update_campaign_credits"):
 				var current_credits = game_state.get_campaign_credits() or 0
-			var new_credits = max(0, current_credits - casualty_changes.medical_costs)
-			game_state.update_campaign_credits(new_credits)
-			print("BattleResultProcessor: Medical costs: %d credits" % casualty_changes.medical_costs)
+				var new_credits = max(0, current_credits - casualty_changes.medical_costs)
+				game_state.update_campaign_credits(new_credits)
+				print("BattleResultProcessor: Medical costs: %d credits" % casualty_changes.medical_costs)
 	
 	return casualty_changes
 
@@ -156,12 +156,12 @@ func _process_loot(loot_items: Array, credits_earned: int) -> Dictionary:
 	# Add credits to campaign funds using GameState
 	if loot_changes.credits_gained > 0:
 		if game_state_manager and game_state_manager.has_method("get_game_state"):
-		var game_state = game_state_manager.get_game_state()
-		if game_state and game_state.has_method("update_campaign_credits"):
-			var current_credits = game_state.get_campaign_credits() or 0
-			var new_credits = current_credits + loot_changes.credits_gained
-			game_state.update_campaign_credits(new_credits)
-			print("BattleResultProcessor: Gained %d credits" % loot_changes.credits_gained)
+			var game_state = game_state_manager.get_game_state()
+			if game_state and game_state.has_method("update_campaign_credits"):
+				var current_credits = game_state.get_campaign_credits() or 0
+				var new_credits = current_credits + loot_changes.credits_gained
+				game_state.update_campaign_credits(new_credits)
+				print("BattleResultProcessor: Gained %d credits" % loot_changes.credits_gained)
 	
 	# Process items
 	for item in loot_items:
@@ -184,9 +184,9 @@ func _process_story_developments(developments: Array) -> Dictionary:
 	# Add story developments to campaign log using GameState
 	if game_state_manager and game_state_manager.has_method("get_game_state"):
 		var game_state = game_state_manager.get_game_state()
-	if game_state and game_state.has_method("add_story_development"):
-		for development in developments:
-			game_state.add_story_development(development)
+		if game_state and game_state.has_method("add_story_development"):
+			for development in developments:
+				game_state.add_story_development(development)
 	
 	# Process specific story triggers
 	for development in developments:
@@ -209,19 +209,19 @@ func _process_relationships(patron_relationships: Dictionary, rival_encounters: 
 	# Process patron relationships using GameState
 	if game_state_manager and game_state_manager.has_method("get_game_state"):
 		var game_state = game_state_manager.get_game_state()
-	if game_state:
-		for patron_id in patron_relationships:
-			var relationship_change = patron_relationships[patron_id]
-			if game_state.has_method("update_patron_relationship"):
-				game_state.update_patron_relationship(patron_id, relationship_change)
-			print("BattleResultProcessor: Patron relationship updated - %s: %s" % [patron_id, relationship_change])
-		
-		# Process rival encounters
-		for rival_id in rival_encounters:
-			var encounter_data = rival_encounters[rival_id]
-			if game_state.has_method("update_rival_status"):
-				game_state.update_rival_status(rival_id, encounter_data)
-			print("BattleResultProcessor: Rival encounter processed - %s" % rival_id)
+		if game_state:
+			for patron_id in patron_relationships:
+				var relationship_change = patron_relationships[patron_id]
+				if game_state.has_method("update_patron_relationship"):
+					game_state.update_patron_relationship(patron_id, relationship_change)
+				print("BattleResultProcessor: Patron relationship updated - %s: %s" % [patron_id, relationship_change])
+			
+			# Process rival encounters
+			for rival_id in rival_encounters:
+				var encounter_data = rival_encounters[rival_id]
+				if game_state.has_method("update_rival_status"):
+					game_state.update_rival_status(rival_id, encounter_data)
+				print("BattleResultProcessor: Rival encounter processed - %s" % rival_id)
 	
 	return relationship_changes
 
@@ -258,19 +258,19 @@ func _add_item_to_inventory(item: String) -> void:
 	"""Add item to campaign inventory using GameState"""
 	if game_state_manager and game_state_manager.has_method("get_game_state"):
 		var game_state = game_state_manager.get_game_state()
-	if game_state and game_state.has_method("add_inventory_item"):
-		game_state.add_inventory_item({
-			"name": item,
-			"acquired_date": Time.get_datetime_string_from_system(),
-			"source": "battle_loot"
-		})
+		if game_state and game_state.has_method("add_inventory_item"):
+			game_state.add_inventory_item({
+				"name": item,
+				"acquired_date": Time.get_datetime_string_from_system(),
+				"source": "battle_loot"
+			})
 
 func _remove_item_from_inventory(item: String) -> void:
 	"""Remove item from campaign inventory using GameState"""
 	if game_state_manager and game_state_manager.has_method("get_game_state"):
 		var game_state = game_state_manager.get_game_state()
-	if game_state and game_state.has_method("remove_inventory_item"):
-		game_state.remove_inventory_item(item)
+		if game_state and game_state.has_method("remove_inventory_item"):
+			game_state.remove_inventory_item(item)
 
 func _estimate_item_value(item: String) -> int:
 	"""Estimate item value for economic calculations"""
@@ -300,8 +300,10 @@ func _process_story_trigger(development: String, story_changes: Dictionary) -> v
 
 func _update_campaign_state(battle_results: Dictionary, changes: Dictionary) -> void:
 	"""Update overall campaign state based on battle results"""
-	if game_state_manager and game_state_manager.has_method("get_game_state"):
-		var game_state = game_state_manager.get_game_state()
+	if not game_state_manager or not game_state_manager.has_method("get_game_state"):
+		return
+	
+	var game_state = game_state_manager.get_game_state()
 	if not game_state:
 		return
 	

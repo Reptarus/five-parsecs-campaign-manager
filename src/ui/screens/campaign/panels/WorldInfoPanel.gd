@@ -6,7 +6,7 @@ extends FiveParsecsCampaignPanel
 ## Provides comprehensive world information with contextual data display
 
 # Dependencies - all files exist and are required
-const BaseInformationCard = preload("res://src/base/ui/BaseInformationCard.gd")
+const UIColors = preload("res://src/ui/components/base/UIColors.gd")
 const CampaignSignals = preload("res://src/core/signals/CampaignSignals.gd")
 const FPCM_CampaignResponsiveLayout = preload("res://src/ui/components/base/CampaignResponsiveLayout.gd")
 const DataValidator = preload("res://src/core/utils/DataValidator.gd")
@@ -460,24 +460,24 @@ func _display_world_traits(world_features: Array) -> void:
 	for feature in world_features:
 		var feature_label = Label.new()
 		feature_label.text = "• %s" % feature
-		feature_label.add_theme_color_override("font_color", BaseInformationCard.INFO_COLOR)
+		feature_label.add_theme_color_override("font_color", UIColors.INFO_COLOR)
 		world_traits_container.add_child(feature_label)
 
 func _display_government_info(government_type: String, tech_level: int) -> void:
 	if government_info:
 		government_info.text = "Government: %s" % government_type
-		government_info.add_theme_color_override("font_color", BaseInformationCard.NEUTRAL_COLOR)
-	
+		government_info.add_theme_color_override("font_color", UIColors.NEUTRAL_COLOR)
+
 	if tech_level_display:
 		tech_level_display.text = "Tech Level: %d" % tech_level
-		
+
 		# Color coding based on tech level
 		if tech_level >= 5:
-			tech_level_display.add_theme_color_override("font_color", BaseInformationCard.SUCCESS_COLOR)
+			tech_level_display.add_theme_color_override("font_color", UIColors.SUCCESS_COLOR)
 		elif tech_level >= 3:
-			tech_level_display.add_theme_color_override("font_color", BaseInformationCard.INFO_COLOR)
+			tech_level_display.add_theme_color_override("font_color", UIColors.INFO_COLOR)
 		else:
-			tech_level_display.add_theme_color_override("font_color", BaseInformationCard.WARNING_COLOR)
+			tech_level_display.add_theme_color_override("font_color", UIColors.WARNING_COLOR)
 
 func _display_opportunities(known_patrons: Array, market_prices: Dictionary) -> void:
 	if not opportunities_container:
@@ -520,73 +520,71 @@ func _display_threats(rival_threats: Array) -> void:
 			threats_container.add_child(threat_card)
 
 func _create_opportunity_card(opportunity_data: Dictionary, opportunity_type: String) -> Control:
-	# Create opportunity card following dice system design
-	var opportunity_card = BaseInformationCard.new()
-	
-	# Setup with safety validation
-	opportunity_card.setup_with_safety_validation(opportunity_data)
-	
+	# Create opportunity card using PanelContainer
+	var opportunity_card = PanelContainer.new()
+
+	# Create label for opportunity display
+	var opportunity_label = Label.new()
+	opportunity_label.text = opportunity_data.get("name", "Unknown Opportunity")
+	opportunity_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	opportunity_card.add_child(opportunity_label)
+
 	# Apply visual styling
-	_apply_opportunity_styling(opportunity_card, opportunity_data, opportunity_type)
-	
-	# Connect opportunity card signals
-	opportunity_card.card_selected.connect(_on_opportunity_card_selected)
-	opportunity_card.card_action_requested.connect(_on_opportunity_action_requested)
-	
+	_apply_opportunity_styling(opportunity_label, opportunity_data, opportunity_type)
+
 	return opportunity_card
 
 func _apply_opportunity_styling(opportunity_card: Control, opportunity_data: Dictionary, opportunity_type: String) -> void:
 	var opportunity_level = opportunity_data.get("level", "normal")
 	var risk_level = opportunity_data.get("risk", "low")
-	
+
 	# Color coding based on opportunity type and risk
 	match opportunity_type:
 		"patron":
-			opportunity_card.add_theme_color_override("font_color", BaseInformationCard.SUCCESS_COLOR)
+			opportunity_card.add_theme_color_override("font_color", UIColors.SUCCESS_COLOR)
 		"trade":
-			opportunity_card.add_theme_color_override("font_color", BaseInformationCard.INFO_COLOR)
+			opportunity_card.add_theme_color_override("font_color", UIColors.INFO_COLOR)
 		_:
-			opportunity_card.add_theme_color_override("font_color", BaseInformationCard.NEUTRAL_COLOR)
-	
+			opportunity_card.add_theme_color_override("font_color", UIColors.NEUTRAL_COLOR)
+
 	# Additional styling for high-risk opportunities
 	if risk_level == "high":
-		opportunity_card.add_theme_color_override("font_color", BaseInformationCard.WARNING_COLOR)
+		opportunity_card.add_theme_color_override("font_color", UIColors.WARNING_COLOR)
 
 func _create_threat_card(threat_data: Dictionary) -> Control:
-	# Create threat card following dice system design
-	var threat_card = BaseInformationCard.new()
-	
-	# Setup with safety validation
-	threat_card.setup_with_safety_validation(threat_data)
-	
+	# Create threat card using PanelContainer
+	var threat_card = PanelContainer.new()
+
+	# Create label for threat display
+	var threat_label = Label.new()
+	threat_label.text = threat_data.get("name", "Unknown Threat")
+	threat_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	threat_card.add_child(threat_label)
+
 	# Apply visual styling
-	_apply_threat_styling(threat_card, threat_data)
-	
-	# Connect threat card signals
-	threat_card.card_selected.connect(_on_threat_card_selected)
-	threat_card.card_action_requested.connect(_on_threat_action_requested)
-	
+	_apply_threat_styling(threat_label, threat_data)
+
 	return threat_card
 
 func _apply_threat_styling(threat_card: Control, threat_data: Dictionary) -> void:
 	var threat_level = threat_data.get("level", "low")
 	var threat_type = threat_data.get("type", "unknown")
-	
+
 	# Color coding based on threat level
 	match threat_level:
 		"critical":
-			threat_card.add_theme_color_override("font_color", BaseInformationCard.DANGER_COLOR)
+			threat_card.add_theme_color_override("font_color", UIColors.DANGER_COLOR)
 		"high":
-			threat_card.add_theme_color_override("font_color", BaseInformationCard.WARNING_COLOR)
+			threat_card.add_theme_color_override("font_color", UIColors.WARNING_COLOR)
 		"medium":
-			threat_card.add_theme_color_override("font_color", BaseInformationCard.INFO_COLOR)
+			threat_card.add_theme_color_override("font_color", UIColors.INFO_COLOR)
 		_:
-			threat_card.add_theme_color_override("font_color", BaseInformationCard.NEUTRAL_COLOR)
+			threat_card.add_theme_color_override("font_color", UIColors.NEUTRAL_COLOR)
 
 func _show_unexplored_world_placeholder(world_name: String) -> void:
 	if world_name_label:
 		world_name_label.text = "World: %s (Unexplored)" % world_name
-		world_name_label.add_theme_color_override("font_color", BaseInformationCard.WARNING_COLOR)
+		world_name_label.add_theme_color_override("font_color", UIColors.WARNING_COLOR)
 	
 	if world_summary:
 		world_summary.text = "This world has not been explored yet. Send a mission to discover its secrets."

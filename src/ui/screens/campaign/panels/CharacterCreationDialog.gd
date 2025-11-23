@@ -127,9 +127,9 @@ func _setup_step2():
 		$"MainContainer/StepContent/Step2_Attributes/AttributesGrid/MoveRollButton"
 	]
 
-	var attributes = ["combat", "reaction", "toughness", "savvy", "tech", "move"]
+	var attributes = ["combat", "reactions", "toughness", "savvy", "tech", "move"]
 
-	for i: int in range((safe_call_method(attribute_buttons, "size") as int)):
+	for i: int in range(attribute_buttons.size()):
 		var button: Button = attribute_buttons[i]
 		var attribute = attributes[i]
 		if button and not button.pressed.is_connected(_on_roll_attribute.bind(attribute)):
@@ -207,7 +207,7 @@ func _validate_basic_info() -> bool:
 
 func _validate_attributes() -> bool:
 	"""Validate Step 2: Attributes"""
-	var attributes = ["combat", "reaction", "toughness", "savvy", "tech", "move"]
+	var attributes = ["combat", "reactions", "toughness", "savvy", "tech", "move"]
 	for attr in attributes:	
 		if character_data.get(attr, 0) < 1:
 			_show_error("All attributes must be rolled")
@@ -242,7 +242,7 @@ func _on_name_changed(new_text: String):
 func _on_generate_name_pressed():
 	"""Generate random character name"""
 	var names = ["Alex", "Jordan", "Morgan", "Casey", "Riley", "Sam", "Avery", "Quinn", "Taylor", "Blake", "Jamie", "Sage", "River"]
-	var name = names[randi() % (safe_call_method(names, "size") as int)]
+	var name = names[randi() % names.size()]
 	name_input.text = name
 	character_data.name = name
 
@@ -262,13 +262,13 @@ func _on_motivation_selected(index: int):
 
 # Step 2 Signal Handlers
 func _on_roll_all_attributes():
-	"""Roll all character attributes"""
-	character_data.combat = _roll_attribute_value()
-	character_data.reactions = _roll_attribute_value()
-	character_data.toughness = _roll_attribute_value()
-	character_data.savvy = _roll_attribute_value()
-	character_data.tech = _roll_attribute_value()
-	character_data.move = _roll_attribute_value()
+	"""Roll all character attributes using Five Parsecs 2d6/3 system"""
+	character_data["combat"] = _roll_attribute_value()
+	character_data["reactions"] = _roll_attribute_value()
+	character_data["toughness"] = _roll_attribute_value()
+	character_data["savvy"] = _roll_attribute_value()
+	character_data["tech"] = _roll_attribute_value()
+	character_data["move"] = _roll_attribute_value()
 
 	_update_attribute_display()
 
@@ -287,7 +287,7 @@ func _update_attribute_display():
 	if combat_value:
 		combat_value.text = str(character_data.get("combat", 2))
 	if reaction_value:
-		reaction_value.text = str(character_data.get("reaction", 2))
+		reaction_value.text = str(character_data.get("reactions", 2))
 	if toughness_value:
 		toughness_value.text = str(character_data.get("toughness", 2))
 	if savvy_value:
@@ -298,27 +298,101 @@ func _update_attribute_display():
 		move_value.text = str(character_data.get("move", 2))
 
 func _create_character():
-	"""Create final character data"""
-	# Complete character data with all information
+	"""Create final character data matching Character.serialize() format"""
+	# Generate unique character ID
+	var char_id: String = "char_%d_%d" % [Time.get_ticks_msec(), randi() % 10000]
+
+	# Get background and motivation as uppercase strings for enum compatibility
+	var bg_raw: String = character_data.get("background", "soldier")
+	var mot_raw: String = character_data.get("motivation", "survival")
+	var background_str: String = bg_raw.to_upper() if bg_raw else "COLONIST"
+	var motivation_str: String = mot_raw.to_upper() if mot_raw else "SURVIVAL"
+
+	# Determine character class from background
+	var char_class: String = _determine_class_from_background(background_str)
+
+	# Determine origin (default to HUMAN, can be expanded later)
+	var origin_str: String = "HUMAN"
+
+	# Get attribute values
+	var combat_val: int = character_data.get("combat", 3)
+	var reactions_val: int = character_data.get("reactions", character_data.get("reaction", 2))
+	var toughness_val: int = character_data.get("toughness", 3)
+	var savvy_val: int = character_data.get("savvy", 2)
+	var tech_val: int = character_data.get("tech", 2)
+	var move_val: int = character_data.get("move", 4)
+
+	# Complete character data matching Character.serialize() format
 	var final_character: Dictionary = {
+		# Identity
+		"type": "Character",
+		"version": "2.0",
+		"character_id": char_id,
 		"name": character_data.get("name", "Unnamed"),
-		"background": character_data.get("background", "soldier"),
-		"motivation": character_data.get("motivation", "survival"),
-		"combat": character_data.get("combat", 3),
-		"reaction": character_data.get("reaction", 2),
-		"toughness": character_data.get("toughness", 3),
-		"savvy": character_data.get("savvy", 2),
-		"tech": character_data.get("tech", 2),
-		"move": character_data.get("move", 4),
-		"max_health": character_data.get("toughness", 3) + 2,
-		"current_health": character_data.get("toughness", 3) + 2,
+		"character_name": character_data.get("name", "Unnamed"),
+
+		# Character creation properties
+		"background": background_str,
+		"motivation": motivation_str,
+		"origin": origin_str,
+		"character_class": char_class,
+
+		# Core stats (both flat and nested for compatibility)
+		"combat": combat_val,
+		"reactions": reactions_val,
+		"toughness": toughness_val,
+		"savvy": savvy_val,
+		"tech": tech_val,
+		"move": move_val,
+		"speed": move_val,
+		"luck": 1,
+
+		# Nested stats for Character.serialize() compatibility
+		"stats": {
+			"combat": combat_val,
+			"reactions": reactions_val,
+			"toughness": toughness_val,
+			"savvy": savvy_val,
+			"tech": tech_val,
+			"move": move_val
+		},
+
+		# Health (calculated from toughness + 2)
+		"health": toughness_val + 2,
+		"max_health": toughness_val + 2,
+
+		# Character state
+		"experience": 0,
+		"credits": 0,
+		"equipment": [],
 		"is_captain": false,
-		"created_date": Time.get_datetime_string_from_system(),
-		"version": "enhanced"
+		"status": "ACTIVE",
+
+		# Metadata
+		"created_at": Time.get_datetime_string_from_system(),
+		"serialization_version": "enhanced_v2"
 	}
 
 	character_created.emit(final_character)
 	hide()
+
+func _determine_class_from_background(background: String) -> String:
+	"""Determine character class based on background"""
+	match background:
+		"SOLDIER", "MILITARY":
+			return "SOLDIER"
+		"SCAVENGER", "CRIMINAL":
+			return "SCAVENGER"
+		"COLONIST":
+			return "COLONIST"
+		"TECHIE", "ACADEMIC":
+			return "ENGINEER"
+		"MERCHANT":
+			return "MERCHANT"
+		"PILOT":
+			return "PILOT"
+		_:
+			return "BASELINE"
 
 func setup_for_editing(character_data: Dictionary):
 	"""Setup dialog for editing existing character"""
@@ -358,28 +432,10 @@ func _initialize_character_data():
 			"background": "",
 			"motivation": "",
 			"combat": 2,
-			"reaction": 2,
+			"reactions": 2,
 			"toughness": 2,
 			"savvy": 2,
 			"tech": 2,
 			"move": 2
 		}
 		_update_attribute_display()
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return obj.get(property, default_value)
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

@@ -1,0 +1,73 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/ui/screens/world/components/CampaignEventComponent.gd" id="1_script"]
+
+[node name="CampaignEventComponent" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_script")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/separation = 15
+
+[node name="HeaderPanel" type="PanelContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="VBoxContainer/HeaderPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Campaign Event"
+
+[node name="RollPanel" type="VBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="InstructionLabel" type="Label" parent="VBoxContainer/RollPanel"]
+layout_mode = 2
+text = "Roll D100 on Campaign Event Table"
+
+[node name="RollButton" type="Button" parent="VBoxContainer/RollPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Roll Campaign Event"
+
+[node name="RollResultLabel" type="Label" parent="VBoxContainer/RollPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+text = ""
+
+[node name="EventPanel" type="PanelContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="EventContent" type="VBoxContainer" parent="VBoxContainer/EventPanel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="EventTitleLabel" type="Label" parent="VBoxContainer/EventPanel/EventContent"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Roll for Campaign Event"
+
+[node name="EventDescriptionLabel" type="Label" parent="VBoxContainer/EventPanel/EventContent"]
+unique_name_in_owner = true
+layout_mode = 2
+text = ""
+autowrap_mode = 2
+
+[node name="EventEffectLabel" type="Label" parent="VBoxContainer/EventPanel/EventContent"]
+unique_name_in_owner = true
+layout_mode = 2
+text = ""
+autowrap_mode = 2
+
+[node name="ResolveButton" type="Button" parent="VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Resolve Event"

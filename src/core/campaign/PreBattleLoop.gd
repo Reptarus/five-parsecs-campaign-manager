@@ -4,7 +4,8 @@ extends Node
 ## Dependencies
 # GlobalEnums available as autoload singleton
 const GameState = preload("res://src/core/state/GameState.gd")
-const CharacterManager = preload("res://src/core/character/Management/CharacterDataManager.gd")
+# Character/CharacterDataManager reference removed - file does not exist
+const Character = preload("res://src/core/character/Character.gd")
 const MissionSystem = preload("res://src/core/systems/Mission.gd")
 const TerrainSystem = preload("res://src/core/terrain/UnifiedTerrainSystem.gd")
 const BattleUI = preload("res://src/ui/screens/battle/PreBattleUI.gd")
@@ -20,6 +21,7 @@ signal crew_selection_changed(crew: Array)
 signal deployment_updated(zones: Array[Dictionary])
 signal error_occurred(message: String)
 signal pre_battle_completed
+signal initiative_rolled(seized: bool, roll_result: int, savvy_bonus: int)
 
 ## Node references
 @onready var ui: Node = $UI # Will be cast to PreBattleUI if available
@@ -30,6 +32,11 @@ var current_mission: StoryQuestData
 var selected_crew: Array
 var deployment_zones: Array[Dictionary]
 var game_state: GameState
+
+## Initiative state
+var initiative_seized: bool = false
+var initiative_roll_result: int = 0
+var initiative_savvy_bonus: int = 0
 
 func _init() -> void:
 	selected_crew = []
@@ -198,13 +205,75 @@ func _prepare_battle_data() -> Dictionary:
 	if terrain_system and terrain_system and terrain_system.has_method("get_terrain_data"):
 		terrain_data = terrain_system.get_terrain_data()
 
+	# Roll for initiative before battle
+	roll_seize_initiative()
+
 	return {
 		"mission": current_mission.serialize() if current_mission and current_mission.has_method("serialize") else {},
 		"crew": selected_crew,
 		"deployment_zones": deployment_zones,
 		"terrain_data": terrain_data,
 		"battle_type": _get_mission_battle_type(current_mission),
-		"difficulty": _get_mission_difficulty(current_mission)
+		"difficulty": _get_mission_difficulty(current_mission),
+		"initiative_seized": initiative_seized,
+		"initiative_roll": initiative_roll_result,
+		"initiative_savvy_bonus": initiative_savvy_bonus
+	}
+
+## Roll to Seize the Initiative (Five Parsecs Core Rules)
+## Roll 2D6 + highest Savvy in crew, succeed on 9+
+func roll_seize_initiative() -> bool:
+	# Get highest Savvy from selected crew
+	initiative_savvy_bonus = _get_highest_crew_savvy()
+
+	# Roll 2D6
+	var die1 := randi_range(1, 6)
+	var die2 := randi_range(1, 6)
+	initiative_roll_result = die1 + die2 + initiative_savvy_bonus
+
+	# Seize initiative on 9+
+	initiative_seized = initiative_roll_result >= 9
+
+	print("PreBattleLoop: Seize Initiative - Roll: %d + %d, Savvy: +%d, Total: %d - %s" % [
+		die1, die2, initiative_savvy_bonus, initiative_roll_result,
+		"SEIZED!" if initiative_seized else "Failed"
+	])
+
+	initiative_rolled.emit(initiative_seized, initiative_roll_result, initiative_savvy_bonus)
+	return initiative_seized
+
+## Get highest Savvy stat from selected crew
+func _get_highest_crew_savvy() -> int:
+	var highest_savvy := 0
+
+	for character in selected_crew:
+		if character == null:
+			continue
+
+		var savvy := 0
+		# Try different ways to access Savvy stat
+		if character is Object:
+			if character.has_method("get_savvy"):
+				savvy = character.get_savvy()
+			elif "savvy" in character:
+				savvy = character.savvy
+			elif character.has_method("get_stat"):
+				savvy = character.get_stat("savvy")
+			elif "stats" in character and character.stats is Dictionary:
+				savvy = character.stats.get("savvy", 0)
+
+		if savvy > highest_savvy:
+			highest_savvy = savvy
+
+	return highest_savvy
+
+## Get initiative result for display
+func get_initiative_result() -> Dictionary:
+	return {
+		"seized": initiative_seized,
+		"roll": initiative_roll_result,
+		"savvy_bonus": initiative_savvy_bonus,
+		"threshold": 9
 	}
 
 ## Update deployment zones
@@ -230,6 +299,9 @@ func cleanup() -> void:
 	selected_crew.clear()
 	deployment_zones.clear()
 	game_state = null
+	initiative_seized = false
+	initiative_roll_result = 0
+	initiative_savvy_bonus = 0
 
 ## Validate mission data structure
 

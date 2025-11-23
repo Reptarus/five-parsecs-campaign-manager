@@ -1,0 +1,3 @@
+# gdUnit4 integration tests go here
+# Tests must extend GdUnitTestSuite
+

@@ -1,0 +1,115 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/ui/screens/world/components/PurchaseItemsComponent.gd" id="1_script"]
+
+[node name="PurchaseItemsComponent" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_script")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/separation = 10
+
+[node name="HeaderPanel" type="PanelContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/HeaderPanel"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="VBoxContainer/HeaderPanel/HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Purchase Items"
+
+[node name="CreditsDisplay" type="Label" parent="VBoxContainer/HeaderPanel/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 10
+text = "Credits: 0"
+
+[node name="PurchaseContainer" type="HBoxContainer" parent="VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 15
+
+[node name="LeftPanel" type="VBoxContainer" parent="VBoxContainer/PurchaseContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="BasicItemsLabel" type="Label" parent="VBoxContainer/PurchaseContainer/LeftPanel"]
+layout_mode = 2
+text = "Basic Items (1 credit each)"
+
+[node name="BasicItemsList" type="ItemList" parent="VBoxContainer/PurchaseContainer/LeftPanel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TableRollOptions" type="VBoxContainer" parent="VBoxContainer/PurchaseContainer/LeftPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="TableRollLabel" type="Label" parent="VBoxContainer/PurchaseContainer/LeftPanel/TableRollOptions"]
+layout_mode = 2
+text = "Roll on Tables (3 credits each)"
+
+[node name="RollMilitaryButton" type="Button" parent="VBoxContainer/PurchaseContainer/LeftPanel/TableRollOptions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Roll Military Weapons"
+
+[node name="RollGearButton" type="Button" parent="VBoxContainer/PurchaseContainer/LeftPanel/TableRollOptions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Roll Gear"
+
+[node name="RollGadgetButton" type="Button" parent="VBoxContainer/PurchaseContainer/LeftPanel/TableRollOptions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Roll Gadget"
+
+[node name="CenterPanel" type="VBoxContainer" parent="VBoxContainer/PurchaseContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CartLabel" type="Label" parent="VBoxContainer/PurchaseContainer/CenterPanel"]
+layout_mode = 2
+text = "Shopping Cart"
+
+[node name="CartList" type="ItemList" parent="VBoxContainer/PurchaseContainer/CenterPanel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ConfirmPurchaseButton" type="Button" parent="VBoxContainer/PurchaseContainer/CenterPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Confirm Purchase"
+
+[node name="RightPanel" type="VBoxContainer" parent="VBoxContainer/PurchaseContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SellLabel" type="Label" parent="VBoxContainer/PurchaseContainer/RightPanel"]
+layout_mode = 2
+text = "Sell Items (1 credit each, max 3)"
+
+[node name="SellItemsList" type="ItemList" parent="VBoxContainer/PurchaseContainer/RightPanel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="SellButton" type="Button" parent="VBoxContainer/PurchaseContainer/RightPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Sell Selected"

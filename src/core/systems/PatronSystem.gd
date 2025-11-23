@@ -332,7 +332,7 @@ func generate_patron() -> Dictionary:
 	}
 
 	# Add to system if not at capacity
-	if (safe_call_method(active_patrons, "size") as int) < max_active_patrons:
+	if active_patrons.size() < max_active_patrons:
 		active_patrons.append(patron)
 		var patron_id = SafeDataAccess.safe_get(patron, "id", "", "patron ID lookup")
 		patron_reputations[patron_id] = 0

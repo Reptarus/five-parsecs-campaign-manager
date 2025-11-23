@@ -45,18 +45,17 @@ func _ready() -> void:
 
 func _initialize_event_bus() -> void:
 	"""Connect to the centralized event bus"""
-	# Find or create event bus
+
+	# Access the globally registered CampaignTurnEventBus singleton (autoload)
 	event_bus = get_node("/root/CampaignTurnEventBus")
-	if not event_bus:
-		# Create if doesn't exist
-		event_bus = CampaignTurnEventBus.new()
-		get_tree().root.add_child(event_bus)
-		event_bus.name = "CampaignTurnEventBus"
-	
+
+	# Validate event_bus type (for editor and runtime safety)
+	assert(event_bus is CampaignTurnEventBus, "UpkeepPhaseComponent: Event bus is not of type CampaignTurnEventBus")
+
 	# Subscribe to relevant events
 	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
 	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.AUTOMATION_TOGGLED, _on_automation_toggled)
-	
+
 	print("UpkeepPhaseComponent: Connected to event bus")
 
 func _connect_ui_signals() -> void:
@@ -109,9 +108,7 @@ func calculate_upkeep_costs() -> Dictionary:
 	}
 	
 	# Get current credits from campaign data
-	var data_manager = get_node("/root/DataManager") as FPCM_DataManager
-	if data_manager:
-		results.current_credits = data_manager.get_campaign_credits()
+	results.current_credits = GameStateManager.get_credits()
 	
 	# Calculate crew upkeep - 1 credit per crew member (Core Rules p.76)
 	results.crew_upkeep = crew_data.size() * BASE_CREW_UPKEEP_PER_MEMBER
@@ -158,23 +155,22 @@ func apply_upkeep_costs(upkeep_results: Dictionary) -> bool:
 		return false
 	
 	# Deduct credits from campaign
-	var data_manager = get_node("/root/DataManager") as FPCM_DataManager
-	if data_manager:
-		var success = data_manager.spend_credits(upkeep_results.total_cost, "upkeep")
-		if success:
-			upkeep_completed = true
-			current_upkeep_data = upkeep_results
-			
-			print("UpkeepPhaseComponent: Upkeep costs applied successfully")
-			
-			# Publish completion event
-			if event_bus:
-				event_bus.publish_upkeep_completed({
-					"costs_applied": upkeep_results,
-					"remaining_credits": data_manager.get_campaign_credits()
-				})
-			
-			return true
+	var success = GameStateManager.remove_credits(upkeep_results.total_cost)
+	if success:
+		upkeep_completed = true
+		current_upkeep_data = upkeep_results
+
+		print("UpkeepPhaseComponent: Upkeep costs applied successfully")
+
+		# Publish completion event
+		if event_bus:
+			event_bus.publish_event(CampaignTurnEventBus.TurnEvent.PHASE_COMPLETED, {
+				"phase_name": "upkeep",
+				"costs_applied": upkeep_results,
+				"remaining_credits": GameStateManager.get_credits()
+			})
+
+		return true
 	
 	print("UpkeepPhaseComponent: Failed to apply upkeep costs")
 	return false
@@ -221,10 +217,14 @@ func _on_auto_calculate_pressed() -> void:
 	
 	# Apply costs
 	var success = apply_upkeep_costs(results)
-	
+
+	# Update current_upkeep_data with new credits after payment
+	if success:
+		current_upkeep_data["current_credits"] = GameStateManager.get_credits()
+
 	if progress_bar:
 		progress_bar.visible = false
-	
+
 	_update_ui_display()
 	
 	if event_bus:
@@ -250,18 +250,22 @@ func _update_ui_display() -> void:
 	"""Update UI display with current upkeep data"""
 	if not current_upkeep_data.is_empty():
 		if credits_display:
-			credits_display.text = "Credits: %d" % current_upkeep_data.get("current_credits", 0)
-		
+			var credit_text = "Credits: %d" % GameStateManager.get_credits()
+			if upkeep_completed:
+				credit_text += " (Upkeep Paid: -%d)" % current_upkeep_data.get("total_cost", 0)
+			credits_display.text = credit_text
+
 		if crew_upkeep_label:
 			crew_upkeep_label.text = "Crew Upkeep: %d credits" % current_upkeep_data.get("crew_upkeep", 0)
-		
+
 		if maintenance_cost_label:
 			maintenance_cost_label.text = "Ship Maintenance: %d credits" % current_upkeep_data.get("ship_maintenance", 0)
-		
+
 		if total_cost_label:
 			var can_afford = current_upkeep_data.get("can_afford", false)
-			var color = Color.GREEN if can_afford else Color.RED
-			total_cost_label.text = "Total Cost: %d credits" % current_upkeep_data.get("total_cost", 0)
+			var color = Color.GREEN if upkeep_completed else (Color.GREEN if can_afford else Color.RED)
+			var status = " ✓ PAID" if upkeep_completed else ""
+			total_cost_label.text = "Total Cost: %d credits%s" % [current_upkeep_data.get("total_cost", 0), status]
 			total_cost_label.modulate = color
 
 ## Event Bus Handlers

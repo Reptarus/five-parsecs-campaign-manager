@@ -1,9 +1,13 @@
 extends Node
-class_name CampaignTurnEventBus
 
-## Production Event Bus for Campaign Turn Workflow
-## Replaces 28+ scattered signals with centralized, type-safe event system
-## Eliminates signal hell and provides debugging/monitoring capabilities
+## CampaignTurnEventBus
+##
+## Production Event Bus for Campaign Turn Workflow.
+## Centralizes and type-safes campaign turn progression and events, replacing dozens of scattered signals.
+## Monitors, debugs, and routes all campaign turn state changes.
+## 
+## See docs/events/campaign_turn_event_bus.md for usage and event flow examples.
+
 
 # Event types covering all campaign turn workflow needs
 enum TurnEvent {

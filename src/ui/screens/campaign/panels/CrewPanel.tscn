@@ -36,6 +36,48 @@ layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 10
 
+[node name="CrewControls" type="HBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="EditButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/ScrollContainer/VBoxContainer/CrewControls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Edit Member"
+
+[node name="RemoveButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/ScrollContainer/VBoxContainer/CrewControls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Remove Member"
+
+[node name="RandomizeButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/ScrollContainer/VBoxContainer/CrewControls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Randomize Crew"
+
+[node name="CrewValidationPanel" type="PanelContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/ScrollContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"ValidationPanel"
+
+[node name="ValidationContent" type="HBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/ScrollContainer/VBoxContainer/CrewValidationPanel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ValidationIcon" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/ScrollContainer/VBoxContainer/CrewValidationPanel/ValidationContent"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "⚠️"
+
+[node name="ValidationText" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/ScrollContainer/VBoxContainer/CrewValidationPanel/ValidationContent"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Validation messages will appear here"
+autowrap_mode = 2
+
 [node name="HSeparator" type="HSeparator" parent="ContentMargin/MainContent/FormContent/FormContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 

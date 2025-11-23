@@ -182,6 +182,12 @@ func add_equipment(equipment_data: Dictionary) -> bool:
 		push_error("EquipmentManager: Invalid equipment data - missing ID")
 		return false
 
+	# ENFORCE 10-ITEM STASH LIMIT (Five Parsecs rulebook)
+	const MAX_EQUIPMENT_STASH = 10
+	if _equipment_storage.size() >= MAX_EQUIPMENT_STASH:
+		push_warning("EquipmentManager: Equipment stash full (%d/%d) - cannot add %s" % [_equipment_storage.size(), MAX_EQUIPMENT_STASH, equipment_data.get("name", "item")])
+		return false
+
 	# Check for duplicate IDs with production-safe type checking
 	var new_id := _safe_get_string(equipment_data, "id")
 	if new_id.is_empty():
@@ -995,6 +1001,23 @@ func _on_character_added(character: Variant) -> void:
 		_character_equipment[char_id] = []
 
 func _on_character_removed(character_id: String) -> void:
+	"""Handle character removal - unequip all items and return to stash"""
+	if not character_id in _character_equipment:
+		return
+
+	# Get character's equipped items (duplicate to avoid modification during iteration)
+	var equipped_ids: Array = _character_equipment[character_id].duplicate()
+
+	# Unequip each item properly (emits signals, updates state)
+	for equipment_id in equipped_ids:
+		# Verify equipment exists in storage
+		var equipment: Dictionary = get_equipment(equipment_id)
+		if not equipment.is_empty():
+			# Call remove_equipment_from_character to properly unequip
+			# This emits equipment_removed signal and updates equipment list
+			remove_equipment_from_character(character_id, equipment_id)
+
+	# Clean up character entry (may already be empty after removals above)
 	if character_id in _character_equipment:
 		_character_equipment.erase(character_id)
 

@@ -1,12 +1,21 @@
-@tool
-extends Node
+# ============================================================================
+# DISABLED: Future Feature - Combat Override UI
+# ============================================================================
+# This file is part of the combat UI system which will be implemented in a future
+# update. Currently disabled to focus on UI/UX workflow development.
+# References deleted BaseCombatManager abstraction.
+# To re-enable: Remove this header and fix BaseCombatManager references
+# ============================================================================
+
+# DISABLED - @tool
+extends Node  # Required for @onready and Node features
 
 ## Signals
 signal override_applied(context: String, _value: int)
 signal override_cancelled(context: String)
 
 ## Required dependencies
-const BaseCombatManager := preload("res://src/base/combat/BaseCombatManager.gd")
+const FiveParsecsCombatSystem := preload("res://src/core/combat/FiveParsecsCombatSystem.gd")
 
 ## Node references
 @onready var override_panel: PanelContainer = %ManualOverridePanel
@@ -14,7 +23,7 @@ const BaseCombatManager := preload("res://src/base/combat/BaseCombatManager.gd")
 ## Properties
 var active_context: String = ""
 var combat_resolver: Node = null
-var combat_manager: BaseCombatManager = null
+var combat_manager: FiveParsecsCombatSystem = null
 
 ## Called when the node enters scene tree
 func _ready() -> void:
@@ -24,7 +33,7 @@ func _ready() -> void:
 
 ## Sets up combat system references
 
-func setup_combat_system(resolver: Node, manager: BaseCombatManager) -> void:
+func setup_combat_system(resolver: Node, manager: FiveParsecsCombatSystem) -> void:
 	combat_resolver = resolver
 	combat_manager = manager
 

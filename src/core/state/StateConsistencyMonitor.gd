@@ -5,7 +5,7 @@ extends Node
 ## Monitors data consistency across all systems in real-time
 ## Provides automated alerts and recovery suggestions for consistency violations
 
-const DataConsistencyValidator = preload("res://src/core/validation/DataConsistencyValidator.gd")
+# DataConsistencyValidator removed - file does not exist
 const CampaignCreationStateManager = preload("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
 const IntegrationHealthMonitor = preload("res://src/core/monitoring/IntegrationHealthMonitor.gd")
 

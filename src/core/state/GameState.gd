@@ -213,11 +213,21 @@ func _get_campaign_dictionary() -> Dictionary:
 		return {}
 
 func _get_safe_crew_members() -> Array:
+	print("GameState._get_safe_crew_members() called")
+	print("  _current_campaign is null: %s" % str(_current_campaign == null))
+
 	if not _current_campaign:
+		print("  Returning empty array - no campaign")
 		return []
+
+	print("  Campaign exists, checking for get_crew_members method")
 	if _current_campaign and _current_campaign.has_method("get_crew_members"):
-		return _current_campaign.get_crew_members()
+		print("  Calling _current_campaign.get_crew_members()")
+		var crew = _current_campaign.get_crew_members()
+		print("  Received %d crew members from campaign" % crew.size())
+		return crew
 	else:
+		print("  Campaign doesn't have get_crew_members method!")
 		return []
 
 
@@ -750,10 +760,20 @@ func serialize() -> Dictionary:
 		data["current_location"] = current_location.duplicate()
 
 	if player_ship:
-		data["player_ship"] = player_ship.serialize() if player_ship and player_ship.has_method("serialize") else {}
+		# Handle both Dictionary and Object ship data
+		if player_ship is Dictionary:
+			data["player_ship"] = player_ship.duplicate()
+		elif player_ship.has_method("serialize"):
+			data["player_ship"] = player_ship.serialize()
+		else:
+			data["player_ship"] = {}
 
 	if _current_campaign:
-		data["campaign"] = _current_campaign.serialize() if _current_campaign and _current_campaign.has_method("serialize") else {}
+		# Campaign should be an object with serialize method
+		if _current_campaign and _current_campaign.has_method("serialize"):
+			data["campaign"] = _current_campaign.serialize()
+		else:
+			data["campaign"] = {}
 
 	return data
 

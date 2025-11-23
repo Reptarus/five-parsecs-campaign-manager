@@ -23,6 +23,364 @@ static var _backgrounds_data: Dictionary = {}
 static var _skills_data: Dictionary = {}
 static var _is_data_loaded: bool = false
 
+## D100 Background Table (Core Rules p.24)
+## Each entry: {name, effect, stat_bonus, credits_dice, story_points, patron, rumors, starting_rolls}
+static var BACKGROUND_TABLE: Array = [
+	# 1-4: Peaceful, High-Tech Colony
+	{"roll_min": 1, "roll_max": 4, "name": "Peaceful, High-Tech Colony", "stat_bonus": {"savvy": 1}, "credits_dice": 1},
+	# 5-9: Giant, Overcrowded, Dystopian City
+	{"roll_min": 5, "roll_max": 9, "name": "Giant, Overcrowded, Dystopian City", "stat_bonus": {"speed": 1}},
+	# 10-13: Low-Tech Colony
+	{"roll_min": 10, "roll_max": 13, "name": "Low-Tech Colony", "starting_rolls": ["low_tech_weapon"]},
+	# 14-17: Mining Colony
+	{"roll_min": 14, "roll_max": 17, "name": "Mining Colony", "stat_bonus": {"toughness": 1}},
+	# 18-21: Military Brat
+	{"roll_min": 18, "roll_max": 21, "name": "Military Brat", "stat_bonus": {"combat": 1}},
+	# 22-25: Space Station
+	{"roll_min": 22, "roll_max": 25, "name": "Space Station", "starting_rolls": ["gear"]},
+	# 26-29: Military Outpost
+	{"roll_min": 26, "roll_max": 29, "name": "Military Outpost", "stat_bonus": {"reactions": 1}},
+	# 30-34: Drifter
+	{"roll_min": 30, "roll_max": 34, "name": "Drifter", "starting_rolls": ["gear"]},
+	# 35-39: Lower Megacity Class
+	{"roll_min": 35, "roll_max": 39, "name": "Lower Megacity Class", "starting_rolls": ["low_tech_weapon"]},
+	# 40-42: Wealthy Merchant Family
+	{"roll_min": 40, "roll_max": 42, "name": "Wealthy Merchant Family", "credits_dice": 2},
+	# 43-46: Frontier Gang
+	{"roll_min": 43, "roll_max": 46, "name": "Frontier Gang", "stat_bonus": {"combat": 1}},
+	# 47-49: Religious Cult - PATRON + STORY POINT
+	{"roll_min": 47, "roll_max": 49, "name": "Religious Cult", "patron": 1, "story_points": 1},
+	# 50-52: War-Torn Hell-Hole
+	{"roll_min": 50, "roll_max": 52, "name": "War-Torn Hell-Hole", "stat_bonus": {"reactions": 1}, "starting_rolls": ["military_weapon"]},
+	# 53-55: Tech Guild
+	{"roll_min": 53, "roll_max": 55, "name": "Tech Guild", "stat_bonus": {"savvy": 1}, "credits_dice": 1, "starting_rolls": ["high_tech_weapon"]},
+	# 56-59: Subjugated Colony on Alien World
+	{"roll_min": 56, "roll_max": 59, "name": "Subjugated Colony on Alien World", "starting_rolls": ["gadget"]},
+	# 60-64: Long-Term Space Mission
+	{"roll_min": 60, "roll_max": 64, "name": "Long-Term Space Mission", "stat_bonus": {"savvy": 1}},
+	# 65-68: Research Outpost
+	{"roll_min": 65, "roll_max": 68, "name": "Research Outpost", "stat_bonus": {"savvy": 1}, "starting_rolls": ["gadget"]},
+	# 69-72: Primitive or Regressed World
+	{"roll_min": 69, "roll_max": 72, "name": "Primitive or Regressed World", "stat_bonus": {"toughness": 1}, "starting_rolls": ["low_tech_weapon"]},
+	# 73-76: Orphan Utility Program - PATRON + STORY POINT
+	{"roll_min": 73, "roll_max": 76, "name": "Orphan Utility Program", "patron": 1, "story_points": 1},
+	# 77-80: Isolationist Enclave - 2 QUEST RUMORS
+	{"roll_min": 77, "roll_max": 80, "name": "Isolationist Enclave", "rumors": 2},
+	# 81-84: Comfortable Megacity Class
+	{"roll_min": 81, "roll_max": 84, "name": "Comfortable Megacity Class", "credits_dice": 1},
+	# 85-89: Industrial World
+	{"roll_min": 85, "roll_max": 89, "name": "Industrial World", "starting_rolls": ["gear"]},
+	# 90-93: Bureaucrat
+	{"roll_min": 90, "roll_max": 93, "name": "Bureaucrat", "credits_dice": 1},
+	# 94-97: Wasteland Nomads
+	{"roll_min": 94, "roll_max": 97, "name": "Wasteland Nomads", "stat_bonus": {"reactions": 1}, "starting_rolls": ["low_tech_weapon"]},
+	# 98-100: Alien Culture
+	{"roll_min": 98, "roll_max": 100, "name": "Alien Culture", "starting_rolls": ["high_tech_weapon"]}
+]
+
+## D100 Motivation Table (Core Rules p.25)
+static var MOTIVATION_TABLE: Array = [
+	# 1-8: Wealth
+	{"roll_min": 1, "roll_max": 8, "name": "Wealth", "credits_dice": 1},
+	# 9-14: Fame
+	{"roll_min": 9, "roll_max": 14, "name": "Fame", "story_points": 1},
+	# 15-19: Glory
+	{"roll_min": 15, "roll_max": 19, "name": "Glory", "stat_bonus": {"combat": 1}, "starting_rolls": ["military_weapon"]},
+	# 20-26: Survival
+	{"roll_min": 20, "roll_max": 26, "name": "Survival", "stat_bonus": {"toughness": 1}},
+	# 27-32: Escape
+	{"roll_min": 27, "roll_max": 32, "name": "Escape", "stat_bonus": {"speed": 1}},
+	# 33-39: Adventure
+	{"roll_min": 33, "roll_max": 39, "name": "Adventure", "credits_dice": 1, "starting_rolls": ["low_tech_weapon"]},
+	# 40-44: Truth - RUMOR + STORY POINT
+	{"roll_min": 40, "roll_max": 44, "name": "Truth", "rumors": 1, "story_points": 1},
+	# 45-49: Technology
+	{"roll_min": 45, "roll_max": 49, "name": "Technology", "stat_bonus": {"savvy": 1}, "starting_rolls": ["gadget"]},
+	# 50-56: Discovery
+	{"roll_min": 50, "roll_max": 56, "name": "Discovery", "stat_bonus": {"savvy": 1}, "starting_rolls": ["gear"]},
+	# 57-63: Loyalty - PATRON + STORY POINT
+	{"roll_min": 57, "roll_max": 63, "name": "Loyalty", "patron": 1, "story_points": 1},
+	# 64-69: Revenge - RIVAL + XP
+	{"roll_min": 64, "roll_max": 69, "name": "Revenge", "rival": 1, "xp": 2},
+	# 70-74: Romance - RUMOR + STORY POINT
+	{"roll_min": 70, "roll_max": 74, "name": "Romance", "rumors": 1, "story_points": 1},
+	# 75-79: Faith - RUMOR + STORY POINT
+	{"roll_min": 75, "roll_max": 79, "name": "Faith", "rumors": 1, "story_points": 1},
+	# 80-84: Political - PATRON + STORY POINT
+	{"roll_min": 80, "roll_max": 84, "name": "Political", "patron": 1, "story_points": 1},
+	# 85-90: Power - RIVAL + XP
+	{"roll_min": 85, "roll_max": 90, "name": "Power", "rival": 1, "xp": 2},
+	# 91-95: Order - PATRON + STORY POINT
+	{"roll_min": 91, "roll_max": 95, "name": "Order", "patron": 1, "story_points": 1},
+	# 96-100: Freedom
+	{"roll_min": 96, "roll_max": 100, "name": "Freedom", "xp": 2}
+]
+
+## D100 Class Table (Core Rules p.26)
+static var CLASS_TABLE: Array = [
+	# 1-5: Working Class
+	{"roll_min": 1, "roll_max": 5, "name": "Working Class", "stat_bonus": {"savvy": 1, "luck": 1}},
+	# 6-9: Technician
+	{"roll_min": 6, "roll_max": 9, "name": "Technician", "stat_bonus": {"savvy": 1}, "starting_rolls": ["gear"]},
+	# 10-13: Scientist
+	{"roll_min": 10, "roll_max": 13, "name": "Scientist", "stat_bonus": {"savvy": 1}, "starting_rolls": ["gadget"]},
+	# 14-17: Hacker - RIVAL
+	{"roll_min": 14, "roll_max": 17, "name": "Hacker", "stat_bonus": {"savvy": 1}, "rival": 1},
+	# 18-22: Soldier
+	{"roll_min": 18, "roll_max": 22, "name": "Soldier", "stat_bonus": {"combat": 1}, "credits_dice": 1},
+	# 23-27: Mercenary
+	{"roll_min": 23, "roll_max": 27, "name": "Mercenary", "stat_bonus": {"combat": 1}, "starting_rolls": ["military_weapon"]},
+	# 28-32: Agitator - RIVAL
+	{"roll_min": 28, "roll_max": 32, "name": "Agitator", "rival": 1},
+	# 33-36: Primitive
+	{"roll_min": 33, "roll_max": 36, "name": "Primitive", "stat_bonus": {"speed": 1}, "starting_rolls": ["low_tech_weapon"]},
+	# 37-40: Artist
+	{"roll_min": 37, "roll_max": 40, "name": "Artist", "credits_dice": 1},
+	# 41-44: Negotiator - PATRON + STORY POINT
+	{"roll_min": 41, "roll_max": 44, "name": "Negotiator", "patron": 1, "story_points": 1},
+	# 45-49: Trader
+	{"roll_min": 45, "roll_max": 49, "name": "Trader", "credits_dice": 2},
+	# 50-54: Starship Crew
+	{"roll_min": 50, "roll_max": 54, "name": "Starship Crew", "stat_bonus": {"savvy": 1}},
+	# 55-58: Petty Criminal
+	{"roll_min": 55, "roll_max": 58, "name": "Petty Criminal", "stat_bonus": {"speed": 1}},
+	# 59-63: Ganger
+	{"roll_min": 59, "roll_max": 63, "name": "Ganger", "stat_bonus": {"reactions": 1}, "starting_rolls": ["low_tech_weapon"]},
+	# 64-67: Scoundrel
+	{"roll_min": 64, "roll_max": 67, "name": "Scoundrel", "stat_bonus": {"speed": 1}},
+	# 68-71: Enforcer - PATRON
+	{"roll_min": 68, "roll_max": 71, "name": "Enforcer", "stat_bonus": {"combat": 1}, "patron": 1},
+	# 72-75: Special Agent - PATRON + GADGET
+	{"roll_min": 72, "roll_max": 75, "name": "Special Agent", "stat_bonus": {"reactions": 1}, "patron": 1, "starting_rolls": ["gadget"]},
+	# 76-79: Troubleshooter
+	{"roll_min": 76, "roll_max": 79, "name": "Troubleshooter", "stat_bonus": {"reactions": 1}, "starting_rolls": ["low_tech_weapon"]},
+	# 80-83: Bounty Hunter - RUMOR + LOW-TECH WEAPON
+	{"roll_min": 80, "roll_max": 83, "name": "Bounty Hunter", "stat_bonus": {"speed": 1}, "rumors": 1, "starting_rolls": ["low_tech_weapon"]},
+	# 84-88: Nomad
+	{"roll_min": 84, "roll_max": 88, "name": "Nomad", "starting_rolls": ["gear"]},
+	# 89-92: Explorer
+	{"roll_min": 89, "roll_max": 92, "name": "Explorer", "xp": 2, "starting_rolls": ["gear"]},
+	# 93-96: Punk - RIVAL + XP
+	{"roll_min": 93, "roll_max": 96, "name": "Punk", "rival": 1, "xp": 2},
+	# 97-100: Scavenger - RUMOR + HIGH-TECH WEAPON
+	{"roll_min": 97, "roll_max": 100, "name": "Scavenger", "rumors": 1, "starting_rolls": ["high_tech_weapon"]}
+]
+
+## Roll on a D100 table and return the matching entry
+static func _roll_on_table(table: Array) -> Dictionary:
+	var roll = randi_range(1, 100)
+	for entry in table:
+		if roll >= entry.roll_min and roll <= entry.roll_max:
+			var result = entry.duplicate(true)
+			result["roll"] = roll
+			return result
+	# Fallback to first entry if no match (shouldn't happen)
+	var fallback = table[0].duplicate(true)
+	fallback["roll"] = roll
+	return fallback
+
+## Roll on all three character creation tables and aggregate resources
+## Returns: {background_result, motivation_result, class_result, resources}
+static func roll_character_tables() -> Dictionary:
+	var bg_result = _roll_on_table(BACKGROUND_TABLE)
+	var mot_result = _roll_on_table(MOTIVATION_TABLE)
+	var class_result = _roll_on_table(CLASS_TABLE)
+
+	# Aggregate resources from all three tables
+	var resources = {
+		"patrons": 0,
+		"rivals": 0,
+		"rumors": 0,
+		"story_points": 0,
+		"credits_dice": 0,  # Number of D6 to roll for credits
+		"xp": 0,
+		"starting_rolls": []  # Equipment rolls to make
+	}
+
+	# Sum up all resources
+	for result in [bg_result, mot_result, class_result]:
+		resources.patrons += result.get("patron", 0)
+		resources.rivals += result.get("rival", 0)
+		resources.rumors += result.get("rumors", 0)
+		resources.story_points += result.get("story_points", 0)
+		resources.credits_dice += result.get("credits_dice", 0)
+		resources.xp += result.get("xp", 0)
+		resources.starting_rolls.append_array(result.get("starting_rolls", []))
+
+	# Roll for bonus credits
+	var bonus_credits = 0
+	for i in resources.credits_dice:
+		bonus_credits += randi_range(1, 6)
+	resources["bonus_credits"] = bonus_credits
+
+	return {
+		"background_result": bg_result,
+		"motivation_result": mot_result,
+		"class_result": class_result,
+		"resources": resources
+	}
+
+## Apply table results to a character (stat bonuses and traits)
+static func apply_table_results_to_character(character: Character, table_results: Dictionary) -> void:
+	# Apply stat bonuses from all three tables
+	for result_key in ["background_result", "motivation_result", "class_result"]:
+		var result = table_results.get(result_key, {})
+		var stat_bonuses = result.get("stat_bonus", {})
+
+		for stat_name in stat_bonuses:
+			var bonus = stat_bonuses[stat_name]
+			match stat_name:
+				"combat":
+					character.combat = clampi(character.combat + bonus, 0, 5)
+				"reactions":
+					character.reactions = clampi(character.reactions + bonus, 1, 6)
+				"toughness":
+					character.toughness = clampi(character.toughness + bonus, 1, 6)
+				"speed":
+					character.speed = clampi(character.speed + bonus, 4, 8)
+				"savvy":
+					character.savvy = clampi(character.savvy + bonus, 0, 5)
+				"luck":
+					character.luck = clampi(character.luck + bonus, 0, 3)
+
+		# Add trait for the table result
+		var result_name = result.get("name", "")
+		if result_name != "":
+			match result_key:
+				"background_result":
+					character.add_trait("Background: " + result_name)
+				"motivation_result":
+					character.add_trait("Motivation: " + result_name)
+				"class_result":
+					character.add_trait("Class: " + result_name)
+
+	# Apply XP bonus
+	var resources = table_results.get("resources", {})
+	var xp_bonus = resources.get("xp", 0)
+	if xp_bonus > 0:
+		character.experience_points += xp_bonus
+
+	# Apply bonus credits
+	var bonus_credits = resources.get("bonus_credits", 0)
+	if bonus_credits > 0:
+		character.credits_earned += bonus_credits
+
+	# Store table results on character for later reference
+	character.set_meta("creation_table_results", table_results)
+	character.set_meta("creation_resources", resources)
+
+	print("CharacterGeneration: Applied table results - Background: %s, Motivation: %s, Class: %s" % [
+		table_results.background_result.get("name", ""),
+		table_results.motivation_result.get("name", ""),
+		table_results.class_result.get("name", "")
+	])
+	print("CharacterGeneration: Resources generated - Patrons: %d, Rivals: %d, Rumors: %d, Story Points: %d, XP: %d, Credits: %d" % [
+		resources.patrons, resources.rivals, resources.rumors,
+		resources.story_points, resources.xp, resources.bonus_credits
+	])
+
+## Aggregate resources from all crew members and apply to campaign
+static func finalize_crew_resources(characters: Array, campaign) -> Dictionary:
+	var total_resources = {
+		"patrons": 0,
+		"rivals": 0,
+		"rumors": 0,
+		"story_points": 0,
+		"xp": 0,
+		"credits": 0
+	}
+
+	# Sum resources from all characters
+	for character in characters:
+		var char_resources = character.get_meta("creation_resources", {})
+		total_resources.patrons += char_resources.get("patrons", 0)
+		total_resources.rivals += char_resources.get("rivals", 0)
+		total_resources.rumors += char_resources.get("rumors", 0)
+		total_resources.story_points += char_resources.get("story_points", 0)
+		total_resources.xp += char_resources.get("xp", 0)
+		total_resources.credits += char_resources.get("bonus_credits", 0)
+
+	if not campaign:
+		print("CharacterGeneration: No campaign provided, returning resources only")
+		return total_resources
+
+	# Apply to campaign
+	# Generate patron entities
+	for i in total_resources.patrons:
+		var patron = _create_starting_patron(i)
+		if campaign is Resource and "patrons" in campaign:
+			campaign.patrons.append(patron)
+		elif campaign is Dictionary:
+			if not campaign.has("patrons"):
+				campaign["patrons"] = []
+			campaign["patrons"].append(patron)
+		print("CharacterGeneration: Created starting patron: %s" % patron.get("name", "Unknown"))
+
+	# Generate rival entities
+	for i in total_resources.rivals:
+		var rival = _create_starting_rival(i)
+		if campaign is Resource and "rivals" in campaign:
+			campaign.rivals.append(rival)
+		elif campaign is Dictionary:
+			if not campaign.has("rivals"):
+				campaign["rivals"] = []
+			campaign["rivals"].append(rival)
+		print("CharacterGeneration: Created starting rival: %s" % rival.get("name", "Unknown"))
+
+	# Add quest rumors
+	if campaign is Resource and "quest_rumors" in campaign:
+		campaign.quest_rumors += total_resources.rumors
+	elif campaign is Dictionary:
+		campaign["quest_rumors"] = campaign.get("quest_rumors", 0) + total_resources.rumors
+
+	# Add story points
+	if campaign is Resource and "story_points" in campaign:
+		campaign.story_points += total_resources.story_points
+	elif campaign is Dictionary:
+		campaign["story_points"] = campaign.get("story_points", 0) + total_resources.story_points
+
+	# Add credits to campaign pool
+	if campaign is Resource and "credits" in campaign:
+		campaign.credits += total_resources.credits
+	elif campaign is Dictionary:
+		campaign["credits"] = campaign.get("credits", 0) + total_resources.credits
+
+	print("CharacterGeneration: Finalized crew resources - Patrons: %d, Rivals: %d, Rumors: %d, Story Points: %d, Credits: %d" % [
+		total_resources.patrons, total_resources.rivals, total_resources.rumors,
+		total_resources.story_points, total_resources.credits
+	])
+
+	return total_resources
+
+## Create a starting patron from character creation
+static func _create_starting_patron(index: int) -> Dictionary:
+	var patron_types = ["Corporate", "Government", "Criminal", "Military", "Trade Guild", "Religious Order"]
+	var patron_names = ["Director Chen", "Commissioner Vale", "Boss Krynn", "Colonel Drake", "Merchant Lord Vex", "High Priest Zara"]
+
+	return {
+		"id": "starting_patron_%d_%d" % [Time.get_unix_time_from_system(), index],
+		"name": patron_names[index % patron_names.size()],
+		"type": patron_types[index % patron_types.size()],
+		"reputation": 0,
+		"jobs_completed": 0,
+		"jobs_failed": 0,
+		"is_starting_patron": true
+	}
+
+## Create a starting rival from character creation
+static func _create_starting_rival(index: int) -> Dictionary:
+	var rival_types = ["Gang", "Corporate", "Criminal", "Personal Enemy", "Mercenary Band"]
+	var rival_names = ["The Red Fang", "Nexus Corp Enforcers", "Shadow Syndicate", "Vendetta Hunter", "Steel Dogs"]
+
+	return {
+		"id": "starting_rival_%d_%d" % [Time.get_unix_time_from_system(), index],
+		"name": rival_names[index % rival_names.size()],
+		"type": rival_types[index % rival_types.size()],
+		"strength": 1,
+		"hostility": 5,
+		"is_starting_rival": true
+	}
+
 ## Load all necessary JSON data for character creation
 static func _load_character_data() -> void:
 	if _is_data_loaded:
@@ -553,28 +911,34 @@ static func validate_character(character: Character) -> Dictionary:
 	return result
 
 ## Generate a complete character with full Five Parsecs relationships and equipment
+## Now uses D100 table rolling for Background/Motivation/Class per Core Rules
 static func generate_complete_character(config: Dictionary = {}) -> Character:
 	var character = create_character(config)
-	
+
 	if not character:
 		push_error("CharacterGeneration: Failed to create character in generate_complete_character")
 		return null
-	
-	print("CharacterGeneration: Character created successfully, adding relationships and equipment")
-	
-	# Generate relationships
+
+	print("CharacterGeneration: Character created successfully, rolling on creation tables")
+
+	# Roll on D100 tables for Background, Motivation, and Class
+	var table_results = roll_character_tables()
+
+	# Apply table results (stat bonuses, traits, resources)
+	apply_table_results_to_character(character, table_results)
+
+	# Generate starting equipment (includes table-based equipment rolls)
+	character.personal_equipment = _generate_starting_equipment_enhanced(character)
+
+	# Legacy relationship generation (now supplemented by table resources)
+	# These are kept for backward compatibility but resource counting comes from tables
 	character.patrons = _generate_patrons(character)
 	character.rivals = _generate_rivals(character)
-	
-	# Generate starting equipment
-	character.personal_equipment = _generate_starting_equipment_enhanced(character)
-	
-	# Apply background bonuses and effects
+
+	# Apply any additional background/motivation effects not covered by tables
 	_apply_background_effects(character)
-	
-	# Apply motivation effects
 	_apply_motivation_effects(character)
-	
+
 	return character
 
 ## Generate a random character using ALL available enum values

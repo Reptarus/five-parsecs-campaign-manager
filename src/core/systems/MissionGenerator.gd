@@ -1,12 +1,21 @@
-@tool
-extends Node
-class_name FPCM_MissionGenerator
+# ============================================================================
+# DISABLED: Future Feature - Mission Generation System
+# ============================================================================
+# This file is part of the mission generation system which will be implemented
+# in a future update. Currently disabled to focus on UI/UX workflow development.
+# References deleted BaseMissionGenerationSystem abstraction.
+# To re-enable: Remove this header and fix BaseMissionGenerationSystem references
+# ============================================================================
+
+# DISABLED - @tool
+extends Node  # Required for _ready, signals, and Node features
+# DISABLED - class_name FPCM_MissionGenerator
 
 ## Mission generator for Five Parsecs campaign
 ## Now uses BaseMissionGenerationSystem for unified mission generation logic
 ## Part of Phase 3A Mission Generation Consolidation
 
-const BaseMissionGenerationSystem = preload("res://src/base/mission/BaseMissionGenerationSystem.gd")
+# DISABLED - BaseMissionGenerationSystem removed - file does not exist
 # GlobalEnums available as autoload singleton
 const Mission = preload("res://src/core/systems/Mission.gd")
 
@@ -14,7 +23,9 @@ signal mission_generated(mission_data: Dictionary)
 signal generation_failed(error: String)
 
 # Mission generation system (handles all logic)
-var generation_system: BaseMissionGenerationSystem = null
+# DISABLED - BaseMissionGenerationSystem does not exist
+# var generation_system: BaseMissionGenerationSystem = null
+var generation_system = null  # Type removed - BaseMissionGenerationSystem does not exist
 
 # Legacy compatibility
 var mission_templates: Array[Dictionary] = []
@@ -23,10 +34,11 @@ var mission_count: int = 0
 
 func _ready() -> void:
 	# Initialize mission generation system
-	generation_system = BaseMissionGenerationSystem.new()
+	# DISABLED - BaseMissionGenerationSystem does not exist
+	# generation_system = BaseMissionGenerationSystem.new()
 	_connect_generation_system_signals()
 	_setup_generation_system()
-	
+
 	# Legacy initialization for compatibility
 	_initialize_templates()
 
@@ -40,7 +52,9 @@ func _connect_generation_system_signals() -> void:
 func _setup_generation_system() -> void:
 	"""Setup generation system in basic mode"""
 	if generation_system:
-		generation_system.setup_mission_generator(BaseMissionGenerationSystem.GenerationMode.BASIC)
+		# DISABLED - BaseMissionGenerationSystem does not exist
+		# generation_system.setup_mission_generator(BaseMissionGenerationSystem.GenerationMode.BASIC)
+		pass
 
 func _initialize_templates() -> void:
 	# Legacy templates for compatibility
@@ -125,14 +139,20 @@ func _on_system_generation_failed(error: String) -> void:
 func enable_five_parsecs_mode() -> void:
 	"""Enable Five Parsecs mission generation mode"""
 	if generation_system:
-		generation_system.setup_mission_generator(BaseMissionGenerationSystem.GenerationMode.FIVE_PARSECS)
+		# DISABLED - BaseMissionGenerationSystem does not exist
+		# generation_system.setup_mission_generator(BaseMissionGenerationSystem.GenerationMode.FIVE_PARSECS)
+		pass
 
 func enable_enhanced_mode() -> void:
 	"""Enable enhanced mission generation mode"""
 	if generation_system:
-		generation_system.setup_mission_generator(BaseMissionGenerationSystem.GenerationMode.ENHANCED)
+		# DISABLED - BaseMissionGenerationSystem does not exist
+		# generation_system.setup_mission_generator(BaseMissionGenerationSystem.GenerationMode.ENHANCED)
+		pass
 
-func get_generation_system() -> BaseMissionGenerationSystem:
+# DISABLED - BaseMissionGenerationSystem does not exist
+# func get_generation_system() -> BaseMissionGenerationSystem:
+func get_generation_system():
 	"""Get generation system for direct access"""
 	return generation_system
 

@@ -28,6 +28,7 @@ signal resource_changed(resource_type: int, old_value: int, new_value: int, sour
 signal resource_threshold_reached(resource_type: int, threshold: int, current_value: int)
 signal resource_depleted(resource_type: int)
 signal resource_history_updated(resource_type: int, history_entry: Dictionary)
+signal resource_validation_failed(resource_type: int, invalid_value: int)
 
 # Market Management Signals
 signal market_updated(prices: Dictionary)
@@ -316,6 +317,12 @@ func set_resource(resource_type: int, value: int, source: String = "system") -> 
 		_errors.append("Invalid resource type: " + str(resource_type))
 		return
 
+	# Prevent negative resource values
+	if value < 0:
+		_errors.append("Cannot set resource to negative value: " + str(value))
+		resource_validation_failed.emit(resource_type, value)
+		return
+
 	var old_value = resources.get(resource_type) if resources.has(resource_type) else 0
 	resources[resource_type] = value
 
@@ -330,10 +337,27 @@ func set_resource(resource_type: int, value: int, source: String = "system") -> 
 func modify_resource(resource_type: int, amount: int, source: String = "system") -> void:
 	"""Modify resource by amount"""
 	var current_value = get_resource(resource_type)
-	set_resource(resource_type, current_value + amount, source)
+	var new_value = current_value + amount
+
+	# Prevent integer overflow (INT32_MAX = 2147483647)
+	if amount > 0 and new_value < current_value:
+		# Overflow detected, cap at maximum safe value
+		new_value = 2147483647
+		_errors.append("Resource overflow prevented for type %d, capped at INT32_MAX" % resource_type)
+
+	set_resource(resource_type, new_value, source)
 
 func get_resource(resource_type: int) -> int:
 	"""Get current resource amount"""
+	# Validate resource type exists (bounds checking for invalid types)
+	if not GlobalEnums or not "ResourceType" in GlobalEnums:
+		push_warning("Cannot get resource - GlobalEnums.ResourceType not available")
+		return 0
+
+	if not resource_type in GlobalEnums.ResourceType.values():
+		push_warning("Invalid resource type %d accessed, returning 0" % resource_type)
+		return 0
+
 	return resources.get(resource_type) if resources.has(resource_type) else 0
 
 func has_resource(resource_type: int) -> bool:
@@ -398,10 +422,10 @@ func calculate_item_price(item: Resource, is_buying: bool, planet_name: String =
 	"""Calculate item price with all modifiers"""
 	if not item:
 		push_error("Item is required for price calculation")
-		return 0
+		return 1  # MINIMUM 1 CREDIT (enforce minimum even for invalid items)
 
-	var base_price: int = safe_get_property(item, "value") if item.has("value") else 100
-	var item_type = safe_get_property(item, "type") if item.has("type") else 0
+	var base_price: int = safe_get_property(item, "value") if safe_has_property(item, "value") else 100
+	var item_type = safe_get_property(item, "type") if safe_has_property(item, "type") else 0
 
 	# Apply market modifier
 	var market_modifier: float = market_prices.get(item_type) if market_prices.has(item_type) else 1.0
@@ -411,11 +435,15 @@ func calculate_item_price(item: Resource, is_buying: bool, planet_name: String =
 	if planet_name != "":
 		location_modifier = get_trade_modifier(planet_name)
 
-	# Apply markup/markdown
+	# Calculate total modifier and clamp to valid range
+	var total_modifier: float = location_modifier * market_modifier * global_economic_modifier
+	total_modifier = clampf(total_modifier, MIN_PRICE_MULTIPLIER, MAX_PRICE_MULTIPLIER)
+
+	# Apply markup/markdown with clamped modifier
 	if is_buying:
-		base_price = int(base_price * BASE_ITEM_MARKUP * location_modifier * market_modifier * global_economic_modifier)
+		base_price = int(base_price * BASE_ITEM_MARKUP * total_modifier)
 	else:
-		base_price = int(base_price * BASE_ITEM_MARKDOWN * location_modifier * market_modifier * global_economic_modifier)
+		base_price = int(base_price * BASE_ITEM_MARKDOWN * total_modifier)
 
 	return max(1, base_price)
 
@@ -424,11 +452,11 @@ func can_trade_item(item: Resource) -> bool:
 	if not item:
 		return false
 
-	var item_name = safe_get_property(item, "name") if item.has("name") else ""
+	var item_name = safe_get_property(item, "name") if safe_has_property(item, "name") else ""
 	if item_name in trade_restricted_items:
 		return false
 
-	var item_type = safe_get_property(item, "type") if item.has("type") else 0
+	var item_type = safe_get_property(item, "type") if safe_has_property(item, "type") else 0
 	if item_type in scarce_resources and current_market_state == GlobalEnums.MarketState.CRISIS:
 		return false
 
@@ -436,13 +464,25 @@ func can_trade_item(item: Resource) -> bool:
 
 func process_transaction(item: Resource, is_buying: bool, quantity: int = 1, planet_name: String = "") -> bool:
 	"""Process a trade transaction"""
+	# Validate quantity
+	if quantity <= 0:
+		transaction_failed.emit("Transaction quantity must be positive")
+		return false
+
 	if not can_trade_item(item):
 		transaction_failed.emit("This item cannot be traded at this time")
 		return false
 
 	var price := calculate_item_price(item, is_buying, planet_name) * quantity
-	var item_type = safe_get_property(item, "type") if item.has("type") else 0
-	var item_name = safe_get_property(item, "name") if item.has("name") else "Unknown Item"
+	var item_type = safe_get_property(item, "type") if safe_has_property(item, "type") else 0
+	var item_name = safe_get_property(item, "name") if safe_has_property(item, "name") else "Unknown Item"
+
+	# CRITICAL: Check sufficient credits before buying
+	if is_buying:
+		var current_credits = get_resource(GlobalEnums.ResourceType.CREDITS)
+		if current_credits < price:
+			transaction_failed.emit("Insufficient credits: have %d, need %d" % [current_credits, price])
+			return false
 
 	# Update supply/demand
 	if item_type in supply_demand:
@@ -453,6 +493,12 @@ func process_transaction(item: Resource, is_buying: bool, quantity: int = 1, pla
 		else:
 			sd_data.supply = minf(2.0, sd_data.supply + 0.1 * quantity)
 			sd_data.demand = maxf(0.1, sd_data.demand - 0.05 * quantity)
+
+	# Update credits atomically
+	if is_buying:
+		modify_resource(GlobalEnums.ResourceType.CREDITS, -price, "trade_purchase")
+	else:
+		modify_resource(GlobalEnums.ResourceType.CREDITS, price, "trade_sale")
 
 	trade_completed.emit(item_name, is_buying, quantity, price)
 	return true
@@ -576,9 +622,9 @@ func _prune_history_if_needed(resource_type: int) -> void:
 	"""Prune resource history if too large"""
 	if resource_type in resource_history:
 		var history = resource_history[resource_type]
-		if history.size() > HISTORY_PRUNE_THRESHOLD:
-			history = history.slice(-MAX_HISTORY_ENTRIES)
-			resource_history[resource_type] = history
+		# AGGRESSIVE PRUNING: Keep history at MAX_HISTORY_ENTRIES to stay under HISTORY_PRUNE_THRESHOLD
+		if history.size() > MAX_HISTORY_ENTRIES:
+			resource_history[resource_type] = history.slice(-MAX_HISTORY_ENTRIES)
 
 func _check_thresholds(resource_type: int, value: int) -> void:
 	"""Check resource thresholds and emit signals"""
@@ -806,6 +852,17 @@ func safe_get_property(obj: Object, property: String, default_value: Variant = n
 		var value = obj.get(property)
 		return value if value != null else default_value
 	return default_value
+
+## Safe property check helper - works with both Dictionary and Resource
+func safe_has_property(obj: Variant, property: String) -> bool:
+	"""Check if object has property (works with Dictionary and Resource)"""
+	if obj == null:
+		return false
+	if obj is Dictionary:
+		return obj.has(property)
+	elif obj is Object:
+		return obj.has_method("get") and obj.get(property) != null
+	return false
 ## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
 func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
 	if obj == null:

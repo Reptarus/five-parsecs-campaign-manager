@@ -4,7 +4,7 @@
 
 ### 🚀 Getting Started
 - **[Quick Start Guide](QUICK_START.md)** - 5-minute setup for developers
-- **[Project Status](project_status.md)** - Current state: 95% complete
+- **[Project Status](project_status.md)** - Current state: BETA_READY (94/100)
 - **[README](README.md)** - Main documentation hub
 
 ### 🏗️ Technical Documentation
@@ -16,16 +16,19 @@
 - **[API Reference](developer/API_REFERENCE.md)** - Complete API documentation
 - **[Quick Start](QUICK_START.md)** - Developer onboarding guide
 - **[Contributing Guidelines](developer/CONTRIBUTING.md)** - *Coming soon*
-- **[Testing Guide](developer/TESTING_GUIDE.md)** - *Coming soon*
+- **[Testing Guide](../tests/TESTING_GUIDE.md)** - Comprehensive testing methodology (21k lines)
 
 ### 🚀 Release & Deployment
 - **[Deployment Guide](releases/DEPLOYMENT_GUIDE.md)** - Production deployment instructions
 - **[Alpha Release Notes](releases/alpha_release_notes.md)** - Current release information
 
 ### 🎮 Gameplay Documentation
-- **[Rules Implementation](gameplay/rules_implementation.md)** - Five Parsecs rules integration
-- **[Campaign System](gameplay/campaign_system.md)** - Campaign mechanics
-- **[Combat System](gameplay/combat_system.md)** - Battle mechanics
+- **[Player's Guide](player/PLAYERS_GUIDE.md)** - ✨ NEW! Complete beginner's guide (1,582 lines)
+- **[Rules Implementation Guide](gameplay/RULES_IMPLEMENTATION_GUIDE.md)** - ✨ NEW! Tabletop to digital mapping (1,388 lines)
+- **[Compendium Implementation](gameplay/COMPENDIUM_IMPLEMENTATION.md)** - ✨ NEW! Expansion content guide (1,499 lines)
+- **[Dice System Guide](gameplay/DICE_SYSTEM_GUIDE.md)** - Random number generation and resolution
+- **[Official Campaign Rules](gameplay/OFFICIAL_CAMPAIGN_RULES_IMPLEMENTATION.md)** - Campaign turn implementation
+- **[Compendium Source](gameplay/compendium.md)** - Original compendium rulebook text
 
 ### 🎨 Design Documentation
 - **[UI Overview](design/ui_overview.md)** - User interface design
@@ -75,22 +78,33 @@ Located in `docs/archive/`:
 - **Architecture**: Comprehensive guide available
 - **Deployment**: Full production guide created
 
-### Recent Updates (January 2025)
-- ✅ Created Architecture Guide (335 lines)
-- ✅ Created Deployment Guide (325 lines)
-- ✅ Created Quick Start Guide (295 lines)
-- ✅ Updated Project Status to 95%
-- ✅ Reorganized documentation structure
-- ✅ Archived completed plans
+### Recent Updates (November 2025)
+- ✅ **BETA_READY achieved (94/100)** - Test-driven development complete
+- ✅ **76/79 tests passing (96.2%)** - Save/Load: 100%, E2E: 96.2%
+- ✅ **Data persistence validated** - Backend → UI data flow working
+- ✅ **8 critical bugs fixed** - Zero regressions via systematic testing
+- ✅ **2,800+ lines technical docs** - Week 3 retrospective, daily reports
+- ✅ Created Testing Guide in tests/TESTING_GUIDE.md
+- ✅ Updated Project Status to BETA_READY (94/100)
+- ✅ World phase architecture cleanup
+- ✅ File consolidation in progress (441 → target 150-250)
 
 ### Documentation Quality Metrics
-- **Completeness**: All major systems documented
-- **Currency**: Updated for latest refactoring
+- **Player Documentation**: 100% complete (4,469 lines)
+- **Core Systems**: 100% documented
+- **API Methods**: 95% documented
+- **Architecture**: Comprehensive guide available
+- **Deployment**: Full production guide created
 - **Accessibility**: Clear hierarchy and navigation
 - **Examples**: Real code samples throughout
 - **Cross-references**: Comprehensive linking
 
 ## 🎯 Using This Documentation
+
+### For New Players
+1. Start with **[Player's Guide](player/PLAYERS_GUIDE.md)** - Installation to first mission
+2. Reference **[Rules Implementation Guide](gameplay/RULES_IMPLEMENTATION_GUIDE.md)** - How rules work digitally
+3. Explore **[Compendium Implementation](gameplay/COMPENDIUM_IMPLEMENTATION.md)** - Expansion content
 
 ### For New Developers
 1. Start with [Quick Start Guide](QUICK_START.md)
@@ -107,6 +121,11 @@ Located in `docs/archive/`:
 2. Study [Architecture Guide](technical/ARCHITECTURE.md)
 3. Follow code examples in documentation
 
+### For Content Creators
+1. Review **[Compendium Implementation](gameplay/COMPENDIUM_IMPLEMENTATION.md)** - Available systems
+2. Read [Data Architecture](technical/data_architecture.md) - Data formats
+3. *Content Creation Guide coming soon*
+
 ## 🔄 Keeping Documentation Updated
 
 ### When Adding Features
@@ -117,15 +136,4 @@ Located in `docs/archive/`:
 ### When Fixing Bugs
 1. Document in release notes
 2. Update troubleshooting sections
-3. Add to known issues if applicable
-
-### When Refactoring
-1. Update Architecture Guide
-2. Archive old documentation
-3. Create migration guides if needed
-
----
-
-**Last Updated**: January 2025  
-**Documentation Version**: 2.0.0  
-**Aligned with Code Version**: 1.0.0-alpha
+3. Add to

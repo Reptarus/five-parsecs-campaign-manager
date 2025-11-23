@@ -195,6 +195,11 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	# Initialize world (format is compatible)
 	var world_data = data.get("world", {})
 	campaign.initialize_world(world_data)
+
+	# CRITICAL: Set world data as current_location in GameStateManager
+	if GameStateManager and not world_data.is_empty():
+		GameStateManager.set_location(world_data)
+		print("CampaignFinalizationService: Set current_location in GameStateManager")
 	
 	# CRITICAL FIX: Mark campaign as ready for turn system
 	campaign.game_phase = "ready_for_turn_system"

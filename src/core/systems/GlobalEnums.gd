@@ -98,19 +98,36 @@ enum CharacterMotivation {
 
 enum CharacterClass {
 	NONE,
+	# Official Five Parsecs Rulebook Classes:
+	WORKING_CLASS,     # Roll 1-5
+	TECHNICIAN,        # Roll 6-9
+	SCIENTIST,         # Roll 10-13
+	HACKER,            # Roll 14-17
+	SOLDIER,           # Roll 18-22
+	MERCENARY,         # Roll 23-27
+	AGITATOR,          # Roll 28-32
+	PRIMITIVE,         # Roll 33-36
+	ARTIST,            # Roll 37-40
+	# Custom/Expansion (for variety):
 	BASELINE,
+	ENGINEER,
+	MEDIC,
+	PILOT,
+	SCOUT,
+	ROGUE,
+	# GameStateManager modifier table classes:
+	NEGOTIATOR,        # From CLASS_MODIFIERS
+	SCAVENGER,         # From CLASS_MODIFIERS
+	TRADER,            # From CLASS_MODIFIERS
+	EXPLORER,          # From CLASS_MODIFIERS
+	GANGER,            # From CLASS_MODIFIERS
+	# Legacy (for backward compatibility):
 	CAPTAIN,
 	SPECIALIST,
-	SOLDIER,
-	SCOUT,
-	MEDIC,
-	ENGINEER,
-	PILOT,
 	MERCHANT,
 	SECURITY,
 	BROKER,
 	BOT_TECH,
-	ROGUE,
 	PSIONICIST,
 	TECH,
 	BRUTE,
@@ -140,6 +157,24 @@ enum Origin {
 ## Character Background
 enum Background {
 	NONE,
+	# Official Five Parsecs Rulebook Backgrounds:
+	PEACEFUL_HIGH_TECH_COLONY,        # Roll 1-4
+	OVERCROWDED_DYSTOPIAN_CITY,       # Roll 5-9
+	LOW_TECH_COLONY,                  # Roll 10-13
+	MINING_COLONY,                    # Roll 14-17
+	MILITARY_BRAT,                    # Roll 18-21
+	SPACE_STATION,                    # Roll 22-25
+	MILITARY_OUTPOST,                 # Roll 26-29
+	DRIFTER,                          # Roll 30-34
+	LOWER_MEGACITY_CLASS,             # Roll 35-39
+	WEALTHY_MERCHANT,                 # Roll 40-42 (Family)
+	FRONTIER_GANG,                    # Roll 43-46
+	RELIGIOUS_CULT,                   # Roll 47-49
+	# Custom/Expansion (for variety):
+	TECH_GUILD,                       # Tech specialist background
+	WAR_TORN,                         # War survivor
+	ORPHAN,                           # Outcast variant
+	# Legacy (for backward compatibility):
 	MILITARY,
 	MERCENARY,
 	CRIMINAL,
@@ -156,16 +191,23 @@ enum Background {
 ## Character Motivation
 enum Motivation {
 	NONE,
-	WEALTH,
+	# Official Five Parsecs Rulebook Motivations:
+	WEALTH,        # Roll 1-8
+	FAME,          # Roll 9-14
+	GLORY,         # Roll 15-19
+	SURVIVAL,      # Roll 20-26
+	ESCAPE,        # Roll 27-32
+	ADVENTURE,     # Roll 33-39
+	TRUTH,         # Roll 40-44
+	TECHNOLOGY,    # Roll 45-49
+	DISCOVERY,     # Roll 50-56
+	# Custom/Expansion (for variety):
 	REVENGE,
-	GLORY,
 	KNOWLEDGE,
 	POWER,
 	JUSTICE,
-	SURVIVAL,
 	LOYALTY,
 	FREEDOM,
-	DISCOVERY,
 	REDEMPTION,
 	DUTY
 }
@@ -854,8 +896,8 @@ enum FiveParsecsCampaignVictoryType {
 	REPUTATION_10, # Achieve reputation level 10
 	REPUTATION_20, # Achieve reputation level 20
 	CHARACTER_SURVIVAL, # Specific character survives campaign
-	CREW_SIZE_10 # Reach crew size of 10 members
-	# Removed non-compliant: STORY_COMPLETE, WEALTH_GOAL, FACTION_DOMINANCE, etc.
+	CREW_SIZE_10, # Reach crew size of 10 members
+	STORY_COMPLETE # Complete the story track
 }
 
 ## Planet Type System (Enhanced - Missing TEMPERATE and ROCKY)
@@ -946,12 +988,14 @@ enum ArmorCategory {
 
 ## Primary Character System Helpers
 static func get_character_class_name(class_type: int) -> String:
+	@warning_ignore("untyped_declaration")
 	var keys = CharacterClass.keys()
 	if class_type >= 0 and class_type < keys.size():
 		return keys[class_type]
 	return "Unknown Class"
 
 static func get_background_name(background_type: Background) -> String:
+	@warning_ignore("untyped_declaration")
 	var keys = Background.keys()
 	if background_type >= 0 and background_type < keys.size():
 		return keys[background_type]
@@ -982,22 +1026,26 @@ static func victory_condition_string_to_enum(victory_string: String) -> FivePars
 			return FiveParsecsCampaignVictoryType.NONE
 
 static func get_origin_name(origin_type: Origin) -> String:
+	@warning_ignore("untyped_declaration")
 	var keys = Origin.keys()
 	if origin_type >= 0 and origin_type < keys.size():
 		return keys[origin_type]
 	return "Unknown Origin"
 
 static func get_motivation_name(motivation_type: Motivation) -> String:
+	@warning_ignore("untyped_declaration")
 	var keys = Motivation.keys()
 	if motivation_type >= 0 and motivation_type < keys.size():
 		return keys[motivation_type]
 	return "Unknown Motivation"
 
 ## Enhanced Display Name Functions (UI-Friendly)
+@warning_ignore("untyped_declaration")
 static func get_class_display_name(class_type) -> String:
 	# Handle both string and int inputs for backward compatibility
 	var class_id: int
 	if class_type is String:
+		@warning_ignore("unsafe_call_argument")
 		class_id = string_to_character_class_enum(class_type)
 	elif class_type is int:
 		class_id = class_type
@@ -1096,18 +1144,21 @@ static func get_motivation_display_name(motivation_type: Motivation) -> String:
 
 ## Secondary System Helpers
 static func get_skill_name(skill_type: Skill) -> String:
+	@warning_ignore("untyped_declaration")
 	var keys = Skill.keys()
 	if skill_type >= 0 and skill_type < keys.size():
 		return keys[skill_type]
 	return "Unknown Skill"
 
 static func get_ability_name(ability_type: Ability) -> String:
+	@warning_ignore("untyped_declaration")
 	var keys = Ability.keys()
 	if ability_type >= 0 and ability_type < keys.size():
 		return keys[ability_type]
 	return "Unknown Ability"
 
 static func get_trait_name(trait_type: Trait) -> String:
+	@warning_ignore("untyped_declaration")
 	var keys = Trait.keys()
 	if trait_type >= 0 and trait_type < keys.size():
 		return keys[trait_type]
@@ -1656,6 +1707,7 @@ const POST_BATTLE_SUBSTEP_NAMES = {
 # Includes performance monitoring, error tracking, and automatic rollback capability
 
 # Performance tracking with percentile metrics
+@warning_ignore("untyped_declaration")
 static var _conversion_metrics = {
 	"conversions": 0,
 	"failures": 0,
@@ -1667,11 +1719,15 @@ static var _conversion_metrics = {
 }
 
 # Pre-computed conversion tables for O(1) performance
+@warning_ignore("untyped_declaration")
 static var _string_cache = {}
+@warning_ignore("untyped_declaration")
 static var _enum_cache = {}
+@warning_ignore("untyped_declaration")
 static var _validation_cache = {}
 
 # Feature flags for gradual rollout and emergency rollback
+@warning_ignore("untyped_declaration")
 static var MIGRATION_FLAGS = {
 	"use_string_validation": true,
 	"enable_performance_monitoring": true,
@@ -1682,14 +1738,17 @@ static var MIGRATION_FLAGS = {
 }
 
 # Initialize caches at startup
+@warning_ignore("untyped_declaration")
 static func _static_init():
 	_warm_caches()
 	_init_performance_monitoring()
 
+@warning_ignore("untyped_declaration")
 static func _warm_caches():
 	"""Pre-compute ALL conversions at startup for O(1) performance"""
 	print("[MIGRATION] Warming conversion caches...")
 	
+	@warning_ignore("untyped_declaration")
 	var enum_types = {
 		"background": Background,
 		"motivation": Motivation, 
@@ -1697,15 +1756,21 @@ static func _warm_caches():
 		"character_class": CharacterClass
 	}
 	
+	@warning_ignore("untyped_declaration")
 	for type_name in enum_types:
 		_string_cache[type_name] = {}
 		_enum_cache[type_name] = {}
 		
+		@warning_ignore("untyped_declaration")
 		var enum_dict = enum_types[type_name]
+		@warning_ignore("unsafe_method_access", "untyped_declaration")
 		var keys = enum_dict.keys()
 		
+		@warning_ignore("untyped_declaration")
 		for key in keys:
+			@warning_ignore("untyped_declaration")
 			var value = enum_dict[key]
+			@warning_ignore("unsafe_method_access", "untyped_declaration")
 			var key_upper = key.to_upper()
 			
 			# int -> string conversion
@@ -1717,8 +1782,10 @@ static func _warm_caches():
 			# O(1) validation lookup
 			_validation_cache[key_upper] = true
 		
+		@warning_ignore("unsafe_method_access")
 		print("[MIGRATION] Cached %d conversions for %s" % [keys.size(), type_name])
 
+@warning_ignore("untyped_declaration")
 static func _init_performance_monitoring():
 	"""Initialize performance monitoring system"""
 	_conversion_metrics.last_reset = Time.get_ticks_msec()
@@ -1732,8 +1799,10 @@ static func to_string_value(enum_type: String, value: Variant) -> String:
 	
 	# ULTRA-FAST PATH: Direct int->string lookup (most performance critical)
 	if value is int:
+		@warning_ignore("untyped_declaration")
 		var type_cache = _string_cache.get(enum_type)
 		if type_cache:
+			@warning_ignore("unsafe_method_access", "untyped_declaration")
 			var cached_result = type_cache.get(value)
 			if cached_result:
 				_conversion_metrics.conversions += 1
@@ -1745,6 +1814,7 @@ static func to_string_value(enum_type: String, value: Variant) -> String:
 	
 	# FAST PATH: String validation (already correct format) 
 	if value is String:
+		@warning_ignore("unsafe_method_access", "untyped_declaration")
 		var upper = value.to_upper()
 		if _validation_cache.get(upper, false):
 			_conversion_metrics.conversions += 1
@@ -1761,7 +1831,9 @@ static func to_string_value(enum_type: String, value: Variant) -> String:
 
 static func from_string_value(enum_type: String, string_value: String) -> int:
 	"""Convert validated string back to enum value for legacy compatibility"""
+	@warning_ignore("untyped_declaration")
 	var upper = string_value.to_upper()
+	@warning_ignore("unsafe_method_access")
 	if _enum_cache.has(enum_type) and _enum_cache[enum_type].has(upper):
 		return _enum_cache[enum_type][upper]
 	
@@ -1773,6 +1845,7 @@ static func safe_enum_to_string(enum_type: String, value: Variant, fallback: Str
 	"""Ultra-safe enum to string conversion with multiple fallback layers"""
 	
 	# Layer 1: Try the optimized conversion system
+	@warning_ignore("untyped_declaration")
 	var result = to_string_value(enum_type, value)
 	if result != "UNKNOWN" and result != _get_default(enum_type):
 		return result
@@ -1798,27 +1871,37 @@ static func safe_enum_to_string(enum_type: String, value: Variant, fallback: Str
 		return fallback
 	
 	# Layer 4: Use default fallback
+	@warning_ignore("untyped_declaration")
 	var default = _get_default(enum_type)
 	print("[MIGRATION WORKAROUND] Using default fallback for %s: %s" % [enum_type, default])
 	return default
 
+@warning_ignore("untyped_declaration")
 static func _record_performance_sample(duration: int):
 	"""Record performance sample and update percentiles"""
 	# Keep rolling window of 1000 samples for statistical accuracy
+	@warning_ignore("unsafe_method_access")
 	_conversion_metrics.samples.append(duration)
+	@warning_ignore("unsafe_method_access")
 	if _conversion_metrics.samples.size() > 1000:
+		@warning_ignore("unsafe_method_access")
 		_conversion_metrics.samples.pop_front()
 	
 	# Calculate percentiles (requires minimum samples for accuracy)
+	@warning_ignore("unsafe_method_access")
 	if _conversion_metrics.samples.size() >= 100:
+		@warning_ignore("unsafe_method_access", "untyped_declaration")
 		var sorted = _conversion_metrics.samples.duplicate()
+		@warning_ignore("unsafe_method_access")
 		sorted.sort()
+		@warning_ignore("unsafe_method_access", "untyped_declaration")
 		var size = sorted.size()
 		
 		_conversion_metrics.p50_us = sorted[size * 50 / 100]
 		_conversion_metrics.p95_us = sorted[size * 95 / 100] 
 		_conversion_metrics.p99_us = sorted[size * 99 / 100]
 
+@warning_ignore("untyped_declaration")
 static func _record_failure(failure_type: String, enum_type: String, value: Variant):
 	"""Record conversion failure for monitoring and debugging"""
 	_conversion_metrics.failures += 1
@@ -1828,6 +1911,7 @@ static func _record_failure(failure_type: String, enum_type: String, value: Vari
 	
 	# Check for auto-rollback threshold
 	if MIGRATION_FLAGS.auto_rollback_enabled:
+		@warning_ignore("unsafe_call_argument", "untyped_declaration")
 		var error_rate = float(_conversion_metrics.failures) / max(_conversion_metrics.conversions, 1)
 		if error_rate > MIGRATION_FLAGS.error_threshold_percent / 100.0:
 			_trigger_emergency_rollback("Error rate %.2f%% exceeds threshold" % (error_rate * 100))
@@ -1849,6 +1933,7 @@ static func _get_default(enum_type: String) -> String:
 static func _legacy_conversion(enum_type: String, value: Variant) -> String:
 	"""Legacy conversion for emergency rollback"""
 	if value is String:
+		@warning_ignore("unsafe_method_access")
 		return value.to_upper()
 	elif value is int:
 		# Simple fallback without caching
@@ -1871,7 +1956,9 @@ static func _legacy_conversion(enum_type: String, value: Variant) -> String:
 # Production health monitoring endpoint
 static func get_migration_health() -> Dictionary:
 	"""Get comprehensive migration health status for monitoring dashboard"""
+	@warning_ignore("unsafe_call_argument", "untyped_declaration")
 	var error_rate = float(_conversion_metrics.failures) / max(_conversion_metrics.conversions, 1)
+	@warning_ignore("untyped_declaration")
 	var status = "healthy"
 	
 	# Determine status based on error rate and performance
@@ -1894,6 +1981,7 @@ static func get_migration_health() -> Dictionary:
 		"cache_size": _validation_cache.size()
 	}
 
+@warning_ignore("untyped_declaration")
 static func reset_migration_metrics():
 	"""Reset metrics for testing or monitoring reset"""
 	_conversion_metrics = {
@@ -1907,6 +1995,7 @@ static func reset_migration_metrics():
 	}
 	print("[MIGRATION] Metrics reset")
 
+@warning_ignore("untyped_declaration")
 static func _trigger_emergency_rollback(reason: String):
 	"""Emergency rollback trigger with logging"""
 	push_error("[MIGRATION] EMERGENCY ROLLBACK: %s" % reason)
@@ -1920,17 +2009,21 @@ static func _trigger_emergency_rollback(reason: String):
 	
 	# Emit signal if available for UI notification
 	if Engine.has_singleton("EventManager"):
+		@warning_ignore("untyped_declaration")
 		var event_manager = Engine.get_singleton("EventManager")
 		if event_manager.has_method("emit_system_alert"):
+			@warning_ignore("unsafe_method_access")
 			event_manager.emit_system_alert("CHARACTER_MIGRATION_ROLLBACK", reason)
 
 # Manual rollback for testing and emergency situations
+@warning_ignore("untyped_declaration")
 static func manual_rollback():
 	"""Manual rollback for testing or emergency situations"""
 	_trigger_emergency_rollback("Manual rollback requested")
 	return true
 
 # Feature flag management for gradual rollout
+@warning_ignore("untyped_declaration")
 static func enable_migration_feature(feature_name: String, enabled: bool):
 	"""Enable/disable specific migration features for gradual rollout"""
 	if MIGRATION_FLAGS.has(feature_name):

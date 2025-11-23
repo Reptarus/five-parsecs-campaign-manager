@@ -25,11 +25,11 @@ func _init() -> void:
 	if Engine.is_editor_hint():
 		return
 
-	# Try to get the singleton instance
+	# Try to get the DataManager autoload safely
 	var tree = Engine.get_main_loop() as SceneTree
 	if tree and tree.root:
-		if DataManager:
-			_data_manager = DataManager
+		_data_manager = tree.root.get_node_or_null("DataManager")
+		if _data_manager:
 			print("GameGear: DataManager available immediately")
 		else:
 			print("GameGear: DataManager not ready yet")
@@ -41,7 +41,7 @@ func initialize_from_id(id: String) -> bool:
 	if _data_manager == null:
 		var tree = Engine.get_main_loop() as SceneTree
 		if tree and tree.root:
-			_data_manager = DataManager
+			_data_manager = tree.root.get_node_or_null("DataManager")
 		if not _data_manager:
 			push_error("GameGear: Failed to get DataManager")
 			return false
@@ -66,8 +66,11 @@ func initialize_from_data(data: Dictionary) -> bool:
 	gear_description = data.get("description", "")
 
 	# Handle effects data
-	if data.has("effects") and data.effects is Array:
-		gear_effects = data.effects
+	if data.has("effects") and data["effects"] is Array:
+		gear_effects.clear()
+		for effect in data["effects"]:
+			if effect is Dictionary:
+				gear_effects.append(effect)
 	else:
 		gear_effects = []
 
@@ -81,23 +84,31 @@ func initialize_from_data(data: Dictionary) -> bool:
 				"_value": data.get("_value", 0)
 			})
 
-	# Handle traits
-	if data.has("traits") and data.traits is Array:
-		gear_traits = data.traits
+	# Handle traits (convert to typed array)
+	if data.has("traits") and data["traits"] is Array:
+		gear_traits.clear()
+		for trait_item in data["traits"]:
+			if trait_item is String:
+				gear_traits.append(trait_item)
 	else:
 		gear_traits = []
 
 	# Handle cost data
-	if data.has("cost") and data.cost is Dictionary:
-		gear_cost = data.cost
+	if data.has("cost") and data["cost"] is Dictionary:
+		gear_cost = data["cost"]
 	else:
 		gear_cost = {"credits": data.get("cost", 0), "rarity": data.get("rarity", "Common")}
 
-	gear_tags = data.get("tags", [])
+	# Handle tags (convert to typed array)
+	var raw_tags = data.get("tags", [])
+	gear_tags.clear()
+	for tag in raw_tags:
+		if tag is String:
+			gear_tags.append(tag)
 
 	# Handle requirements
-	if data.has("requirements") and data.requirements is Dictionary:
-		gear_requirements = data.requirements
+	if data.has("requirements") and data["requirements"] is Dictionary:
+		gear_requirements = data["requirements"]
 	else:
 		gear_requirements = {}
 

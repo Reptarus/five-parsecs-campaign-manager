@@ -1,10 +1,19 @@
-@tool
-extends Node
+# ============================================================================
+# DISABLED: Future Feature - Combat Log UI
+# ============================================================================
+# This file is part of the combat UI system which will be implemented in a future
+# update. Currently disabled to focus on UI/UX workflow development.
+# References deleted BaseCombatManager abstraction.
+# To re-enable: Remove this header and fix BaseCombatManager references
+# ============================================================================
+
+# DISABLED - @tool
+extends Node  # Required for @onready and Node features
 
 ## Required dependencies
 # GlobalEnums available as autoload singleton
 const Character = preload("res://src/core/character/Character.gd")
-const BaseCombatManager = preload("res://src/base/combat/BaseCombatManager.gd")
+const FiveParsecsCombatSystem = preload("res://src/core/combat/FiveParsecsCombatSystem.gd")
 
 ## Combat Log Entry Types
 enum CombatLogEntryType {
@@ -55,7 +64,7 @@ func create_result(
 
 ## Node references
 @onready var combat_log_panel: PanelContainer = %CombatLogPanel
-@onready var combat_manager: BaseCombatManager = get_node("/root/CombatManager")
+@onready var combat_manager: FiveParsecsCombatSystem = get_node("/root/CombatManager")
 
 ## Properties
 var log_entries: Array = []

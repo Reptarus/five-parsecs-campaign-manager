@@ -1,5 +1,5 @@
 extends Node # Essential imports
-const DataManager = preload("res://src/core/data/DataManager.gd")
+# DataManager is accessed as autoload singleton (registered in project.godot)
 
 ## Optimized Systems Autoload - Load Time Optimization
 ## Reduces autoload initialization time via deferred and lazy initialization

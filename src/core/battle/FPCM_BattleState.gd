@@ -43,6 +43,8 @@ extends Resource
 @export var initiative_order: Array[String] = []
 @export var unit_positions: Dictionary = {}
 @export var unit_status: Dictionary = {} # health, conditions, etc.
+@export var total_damage_dealt: int = 0
+@export var total_damage_taken: int = 0
 
 # Events and story integration
 @export var triggered_events: Array[String] = []
@@ -382,6 +384,16 @@ func get_validation_errors() -> Array[String]:
 func _add_validation_error(error: String) -> void:
 	if not error in _validation_errors:
 		_validation_errors.append(error)
+
+## Record damage dealt by crew
+func record_damage_dealt(amount: int) -> void:
+	total_damage_dealt += amount
+	_update_timestamp()
+
+## Record damage taken by crew
+func record_damage_taken(amount: int) -> void:
+	total_damage_taken += amount
+	_update_timestamp()
 
 ## Update timestamp for change tracking
 func _update_timestamp() -> void:

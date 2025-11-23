@@ -20,12 +20,26 @@ var panel_description: String = ""
 var _coordinator = null # Untyped to avoid circular dependencies
 var _state_manager = null
 
+# Dirty flag to prevent update loops
+var _is_updating_from_coordinator: bool = false
+
 # UI Structure - provide expected content_container
 @onready var content_container: Control = null
 
 func _ready() -> void:
 	_ensure_panel_structure()
 	_setup_panel_content()
+
+func _exit_tree() -> void:
+	"""Cleanup when panel is removed from scene tree"""
+	# Disconnect from coordinator if connected
+	var coordinator = get_coordinator_reference()
+	if coordinator and coordinator.has_signal("campaign_state_updated"):
+		if coordinator.is_connected("campaign_state_updated", _on_campaign_state_updated):
+			coordinator.disconnect("campaign_state_updated", _on_campaign_state_updated)
+			print("%s: ✅ Disconnected from coordinator.campaign_state_updated" % name)
+
+	print("%s: Panel cleanup completed" % name)
 
 func _ensure_panel_structure() -> void:
 	"""Ensure the expected node structure exists for panels"""
@@ -282,6 +296,33 @@ func set_panel_phase_key(key: String) -> void:
 
 # Virtual method for panels to override when receiving state updates
 func _on_campaign_state_updated(state_data: Dictionary) -> void:
-	"""Override in derived panels to handle campaign state updates"""
+	"""
+	Override in derived panels to handle campaign state updates.
+	IMPORTANT: Dirty flag is set automatically to prevent update loops.
+	"""
+	# Set dirty flag to prevent circular updates
+	_is_updating_from_coordinator = true
+
+	# Call derived class implementation
+	_handle_campaign_state_update(state_data)
+
+	# Reset dirty flag
+	_is_updating_from_coordinator = false
+
+func _handle_campaign_state_update(state_data: Dictionary) -> void:
+	"""Override this method in derived panels instead of _on_campaign_state_updated"""
 	print("%s: Received state update with keys: %s" % [name, str(state_data.keys())])
 	pass
+
+## Helper method for safe signal emission (prevents update loops)
+func _emit_panel_data_changed(data: Dictionary) -> void:
+	"""
+	Safely emit panel_data_changed only when not processing coordinator updates.
+	Use this instead of emitting panel_data_changed directly.
+	"""
+	if _is_updating_from_coordinator:
+		print("%s: ⏭️ Skipping panel_data_changed emission (coordinator update in progress)" % name)
+		return
+
+	print("%s: ✅ Emitting panel_data_changed" % name)
+	panel_data_changed.emit(data)

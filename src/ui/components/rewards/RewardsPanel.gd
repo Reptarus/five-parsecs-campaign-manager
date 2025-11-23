@@ -1,21 +1,18 @@
 class_name FPCM_RewardsPanel
 extends Control
 
-const TooltipManager = preload("res://src/ui/components/tooltip/TooltipManager.gd")
+# TooltipManager removed - file does not exist
 
 signal rewards_confirmed(selected_rewards: Array)
 
 @onready var rewards_container := $RewardsContainer
 @onready var confirm_button := $ConfirmButton
-@onready var tooltip_manager: Object
 
 var available_rewards: Array
 var selected_rewards: Array
 var max_selections: int = 3
 
 func _ready() -> void:
-	tooltip_manager = TooltipManager.new()
-	add_child(tooltip_manager)
 	confirm_button.pressed.connect(_on_confirm_pressed)
 	confirm_button.disabled = true
 
@@ -58,10 +55,8 @@ func _create_reward_item(reward: Dictionary) -> Control:
 	checkbox.toggled.connect(_on_reward_toggled.bind(reward))
 	vbox.add_child(checkbox)
 
-	# Add tooltip
-	var tooltip = _get_reward_tooltip(reward)
-	if not tooltip.is_empty():
-		tooltip_manager.register_tooltip(item, tooltip)
+	# Tooltip functionality disabled (TooltipManager removed)
+	# TODO: Re-implement tooltips when tooltip system is available
 
 	return item
 

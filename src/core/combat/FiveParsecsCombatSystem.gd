@@ -19,6 +19,8 @@ signal turn_ended(turn_number: int, active_faction: String)
 signal character_activated(character: Character)
 signal character_action_completed(character: Character, action: String)
 signal combat_result_calculated(attacker: Character, target: Character, result: Dictionary)
+signal reaction_dice_rolled(dice_pool: Array, crew_size: int)
+signal reaction_dice_assigned(character_name: String, die_value: int, is_quick: bool)
 
 # Combat state - unified state management
 enum CombatPhase {
@@ -54,6 +56,11 @@ var all_characters: Array[Character] = []
 # Combat systems
 var battlefield: FiveParsecsBattlefield = null
 var combat_data: FiveParsecsCombatData = null
+
+# Reaction dice system (Five Parsecs rules)
+var reaction_dice_pool: Array[int] = []
+var reaction_dice_assignments: Dictionary = {}  # character_name -> die_value
+var unassigned_dice: Array[int] = []
 
 # Five Parsecs combat rules - direct implementation
 const BASE_MOVEMENT_INCHES = 6
@@ -147,16 +154,101 @@ func _start_turn() -> void:
 	"""Start a new turn for the active faction"""
 	print("FiveParsecsCombatSystem: Turn %d - %s faction" % [current_turn, active_faction])
 	turn_started.emit(current_turn, active_faction)
-	
+
+	# Roll reaction dice at start of crew's turn (Five Parsecs rules)
+	if active_faction == "crew":
+		roll_reaction_dice()
+
 	# Get characters for active faction
 	var active_characters = crew_characters if active_faction == "crew" else enemy_characters
-	
+
 	# Process each character's activation
 	for character in active_characters:
 		if character.health > 0:  # Only activate conscious characters
 			_activate_character(character)
-	
+
 	_end_turn()
+
+## Reaction Dice System (Five Parsecs Core Rules)
+
+func roll_reaction_dice() -> void:
+	"""Roll reaction dice at start of crew turn - one D6 per crew member"""
+	var living_crew = crew_characters.filter(func(c): return c.health > 0)
+	var crew_size = living_crew.size()
+
+	# Clear previous assignments
+	reaction_dice_pool.clear()
+	reaction_dice_assignments.clear()
+	unassigned_dice.clear()
+
+	# Roll one D6 per living crew member
+	for i in range(crew_size):
+		var die_value = randi() % 6 + 1
+		reaction_dice_pool.append(die_value)
+		unassigned_dice.append(die_value)
+
+	# Sort unassigned dice for easier assignment (highest first)
+	unassigned_dice.sort()
+	unassigned_dice.reverse()
+
+	print("FiveParsecsCombatSystem: Rolled %d reaction dice: %s" % [crew_size, str(reaction_dice_pool)])
+	reaction_dice_rolled.emit(reaction_dice_pool, crew_size)
+
+func assign_reaction_die(character: Character, die_index: int) -> bool:
+	"""Assign a reaction die to a character - determines Quick vs Slow action"""
+	if die_index < 0 or die_index >= unassigned_dice.size():
+		return false
+
+	if not character or character.character_name in reaction_dice_assignments:
+		return false
+
+	var die_value = unassigned_dice[die_index]
+	unassigned_dice.remove_at(die_index)
+	reaction_dice_assignments[character.character_name] = die_value
+
+	# Determine if Quick Action (die <= Reactions stat) or Slow Action (die > Reactions)
+	var reactions_stat = _get_character_reactions(character)
+	var is_quick = die_value <= reactions_stat
+
+	print("FiveParsecsCombatSystem: %s assigned die %d (Reactions: %d) - %s Action" % [
+		character.character_name, die_value, reactions_stat,
+		"Quick" if is_quick else "Slow"
+	])
+
+	reaction_dice_assigned.emit(character.character_name, die_value, is_quick)
+	return true
+
+func _get_character_reactions(character: Character) -> int:
+	"""Get character's Reactions stat for Quick/Slow determination"""
+	if character.has_method("get_reactions"):
+		return character.get_reactions()
+	elif "reactions" in character:
+		return character.reactions
+	elif "stats" in character and character.stats is Dictionary:
+		return character.stats.get("reactions", 1)
+	# Default reactions value
+	return 1
+
+func is_quick_action(character: Character) -> bool:
+	"""Check if character has a Quick Action this turn"""
+	if not character.character_name in reaction_dice_assignments:
+		return false
+
+	var die_value = reaction_dice_assignments[character.character_name]
+	var reactions_stat = _get_character_reactions(character)
+	return die_value <= reactions_stat
+
+func get_unassigned_dice() -> Array[int]:
+	"""Get remaining unassigned reaction dice"""
+	return unassigned_dice
+
+func get_reaction_dice_state() -> Dictionary:
+	"""Get current reaction dice state for UI"""
+	return {
+		"pool": reaction_dice_pool,
+		"assignments": reaction_dice_assignments,
+		"unassigned": unassigned_dice
+	}
 
 func _activate_character(character: Character) -> void:
 	"""Activate a character for their turn"""
@@ -380,12 +472,17 @@ func _cleanup_combat() -> void:
 	current_phase = CombatPhase.CLEANUP
 	active_character = null
 	active_faction = ""
-	
+
 	# Clear character arrays
 	crew_characters.clear()
 	enemy_characters.clear()
 	all_characters.clear()
-	
+
+	# Clear reaction dice state
+	reaction_dice_pool.clear()
+	reaction_dice_assignments.clear()
+	unassigned_dice.clear()
+
 	print("FiveParsecsCombatSystem: Combat cleanup completed")
 
 ## Utility Methods

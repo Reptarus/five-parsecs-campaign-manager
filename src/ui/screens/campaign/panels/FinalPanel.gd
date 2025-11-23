@@ -82,16 +82,20 @@ func set_campaign_data(data: Dictionary) -> void:
 	campaign_data = data
 	_update_display()
 
+func _handle_campaign_state_update(state_data: Dictionary) -> void:
+	"""Override from base class - auto-aggregate campaign data on state changes"""
+	print("FinalPanel: Received state update with keys: %s" % str(state_data.keys()))
+
+	# Auto-aggregate data from coordinator when any panel updates
+	_aggregate_campaign_data()
+
 func _aggregate_campaign_data() -> void:
 	"""Aggregate campaign data from coordinator - enhanced for proper data access"""
 	print("FinalPanel: Aggregating campaign data from coordinator")
-	
-	# Try to get coordinator and campaign state
+
+	# Use base class method to get coordinator reference
 	if not coordinator:
-		# Fallback to finding coordinator through UI hierarchy
-		var campaign_ui = owner if owner != null else get_parent().get_parent()
-		if campaign_ui and campaign_ui.has_method("get_coordinator"):
-			coordinator = campaign_ui.get_coordinator()
+		coordinator = get_coordinator_reference()
 	
 	if coordinator and coordinator.has_method("get_unified_campaign_state"):
 			var unified_state = coordinator.get_unified_campaign_state()

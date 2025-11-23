@@ -1,73 +1,75 @@
 {
-    "godot.editorPath": "c:\\Users\\elija\\Desktop\\GoDot\\Godot_v4.3-stable_win64.exe\\Godot_v4.3-stable_win64.exe",
-    "godotTools.editorPath.godot4": "c:\\Users\\elija\\Desktop\\GoDot\\Godot_v4.3-stable_win64.exe\\Godot_v4.3-stable_win64.exe",
-    "godot.editor.port": 6007,
-    "godot.editor.host": "127.0.0.1",
-    "godot.editor.showOutputOnStart": true,
-    "godot.editor.reconnectOnStart": true,
-    "godot.lsp.serverPort": 6008,
-    "godot.lsp.useDefaultHost": true,
-    "godot.lsp.useDefaultPort": false,
-    "godot.lsp.enableDiagnostics": true,
-    "godot.lsp.enableSignatureHelp": true,
-    "godot.lsp.enableHover": true,
-    "godot.lsp.enableCompletions": true,
-    "debug.openDebug": "openOnDebugBreak",
-    "debug.internalConsoleOptions": "openOnSessionStart",
-    "debug.console.closeOnEnd": false,
-    "debug.showInStatusBar": "always",
-    "terminal.integrated.defaultProfile.windows": "PowerShell",
-    "terminal.integrated.profiles.windows": {
-        "PowerShell": {
-            "source": "PowerShell",
-            "icon": "terminal-powershell",
-            "path": "${env:windir}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
-            "args": [
-                "-NoLogo",
-                "-NoExit",
-                "-ExecutionPolicy",
-                "Bypass",
-                "-Command",
-                "Set-Location -LiteralPath '${workspaceFolder}'"
-            ]
-        }
-    },
-    "terminal.integrated.env.windows": {
-        "GODOT_PATH": "${env:GODOT_PATH}",
-        "PROJECT_ROOT": "${workspaceFolder}"
-    },
-    "terminal.integrated.cwd": "${workspaceFolder}",
-    "terminal.integrated.shellArgs.windows": [],
-    "terminal.integrated.persistentSessionReviveProcess": "never",
-    "terminal.integrated.enablePersistentSessions": false,
-    "terminal.integrated.gpuAcceleration": "off",
-    "terminal.integrated.windowsEnableConpty": false,
-    "terminal.integrated.defaultLocation": "editor",
-    "terminal.integrated.showExitAlert": false,
-    "terminal.integrated.allowChords": false,
-    "terminal.integrated.copyOnSelection": false,
-    "terminal.integrated.environmentChangesIndicator": "off",
-    "terminal.integrated.inheritEnv": true,
-    "accessibility.signals.terminalBell": {
-        "sound": "off"
-    },
-    "terminal.integrated.enableVisualBell": false,
-    "problems.decorations.enabled": true,
+    // Godot Editor Path
+    "godotTools.editorPath.godot4": "c:\\Users\\elija\\Desktop\\GoDot\\Godot_v4.5.1-stable_win64.exe\\Godot_v4.5.1-stable_win64.exe",
+    
+    // Language Server Configuration
+    "godotTools.lsp.serverPort": 6007,
+    "godotTools.lsp.serverHost": "127.0.0.1",
+    "godotTools.lsp.headless": false,
+    "godotTools.lsp.reconnectAutomatically": true,
+    "godotTools.lsp.reconnectCooldown": 1000,
+    
+    // NUCLEAR OPTION: Force ALL diagnostic settings
+    "godotTools.gdscript.diagnostics.enable": true,
+    "gdscript.diagnostics.enable": true,
+    "godotTools.checkStatus": true,
+    
+    // Try PULL mode instead (opposite of what we tried)
+    "gdscript.lsp.pullDiagnostics": true,
+    "gdscript.lsp.diagnosticsRefreshDelay": 500,
+    
+    // Force Cursor to show ALL problems
     "problems.autoReveal": true,
-    "godot.problemMatcher.watchFileRegex": "\\.gd$",
-    "godot.problemMatcher.problemPattern": {
-        "regexp": "^\\s*(.*):(\\d+):\\s+(.*)$",
-        "file": 1,
-        "line": 2,
-        "message": 3,
-        "severity": 4
-    },
-    "godot.lsp.checkOnSave": true,
-    "godot.lsp.checkOnType": true,
-    "godot.lsp.checkOnChange": true,
-    "editor.formatOnSave": true,
-    "editor.formatOnType": true,
+    "problems.defaultSeverityFilter": "all",
+    "problems.showCurrentInStatus": true,
+    "problems.sortOrder": "severity",
+    
+    // Force language server to send diagnostics
+    "gdscript.trace.server": "verbose",
+    "godotTools.lsp.trace.server": "verbose",
+    
+    // GDScript LSP Settings - FIXED: port 6007
+    "gdscript.lsp.serverPort": 6007,
+    "gdscript.lsp.serverHost": "127.0.0.1",
+    
+    // File Associations
     "files.associations": {
-        "*.gd": "gdscript"
+        "*.gd": "gdscript",
+        "*.tscn": "gdresource",
+        "*.tres": "gdresource"
+    },
+    
+    // Enable diagnostics and validation
+    "godotTools.checkStatus": true,
+    "godotTools.scenePreview": true,
+    
+    // CRITICAL: Exclude MCP and node_modules from file watching
+    "files.exclude": {
+        "**/mcp-servers": true,
+        "**/node_modules": true,
+        "**/godot-mcp": true,
+        "**/godot-mcp-server": true,
+        "**/.godot": false,
+        "**/builds": true,
+        "**/backups": true,
+        "**/logs": true,
+        "**/test_results": true
+    },
+    "files.watcherExclude": {
+        "**/mcp-servers/**": true,
+        "**/node_modules/**": true,
+        "**/godot-mcp/**": true,
+        "**/godot-mcp-server/**": true,
+        "**/builds/**": true,
+        "**/backups/**": true,
+        "**/logs/**": true,
+        "**/test_results/**": true
+    },
+    "search.exclude": {
+        "**/mcp-servers": true,
+        "**/node_modules": true,
+        "**/godot-mcp": true,
+        "**/builds": true,
+        "**/backups": true
     }
 }

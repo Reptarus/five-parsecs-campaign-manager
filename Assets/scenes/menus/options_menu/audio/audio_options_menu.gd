@@ -1,12 +1,21 @@
+# ============================================================================
+# DISABLED: Audio Menu - Not Current UI/UX Focus
+# ============================================================================
+# This file is part of the audio configuration menu which will be implemented
+# in a future update. Currently disabled to focus on core campaign UI/UX workflow.
+# To re-enable: Remove this header
+# ============================================================================
+
 # Universal Framework + 7-Stage Methodology Applied
 # Based on proven patterns: Universal Mock Strategy + Complete Warning Elimination
-extends Control
+extends Control  # Required for @onready and Control features
 
 # Stage 1: Universal imports with comprehensive safety patterns
-const UniversalNodeAccess = preload("res://src/utils/UniversalNodeAccess.gd")
-const UniversalSignalManager = preload("res://src/utils/UniversalSignalManager.gd")
-const UniversalResourceLoader = preload("res://src/utils/UniversalResourceLoader.gd")
-const UniversalDataAccess = preload("res://src/utils/UniversalDataAccess.gd")
+const UniversalNodeAccess = preload("res://src/core/systems/UniversalNodeAccess.gd")
+# DISABLED - UniversalSignalManager does not exist
+# const UniversalSignalManager = preload("res://src/core/systems/UniversalSignalManager.gd")
+const UniversalResourceLoader = preload("res://src/core/systems/UniversalResourceLoader.gd")
+const UniversalDataAccess = preload("res://src/core/systems/UniversalDataAccess.gd")
 
 # Stage 2: Enhanced type safety with comprehensive annotations
 @onready var master_volume_slider: HSlider = $"MasterVolumeSlider"

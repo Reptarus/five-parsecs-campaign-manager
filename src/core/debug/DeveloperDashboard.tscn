@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://dev_dashboard_emergency"]
+[gd_scene load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://src/core/debug/DeveloperDashboard.gd" id="1_devdash"]
 

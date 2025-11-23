@@ -47,7 +47,7 @@ class BattleResult extends Resource:
 	@export var crew_injuries: Array[Resource] = []
 	@export var loot_found: Array[Resource] = []
 	@export var credits_earned: int = 0
-	@export var experience_gained: Array[Dictionary] = []
+	@export var experience_gained: Dictionary = {}
 	@export var story_points: int = 0
 	@export var battle_duration: int = 0 # rounds
 	@export var events_triggered: Array[String] = []
@@ -109,7 +109,60 @@ func initialize_battle(mission_data: Resource, crew_members: Array[Resource], en
 	if is_active:
 		battle_error.emit("BATTLE_ALREADY_ACTIVE", {"current_phase": current_phase})
 		return false
-	
+
+	# CRITICAL VALIDATION: Ensure crew is available for battle
+	if crew_members.is_empty():
+		battle_error.emit("NO_CREW_AVAILABLE", {
+			"reason": "Cannot start battle with 0 crew members",
+			"crew_count": 0
+		})
+		return false
+
+	# VALIDATION: Check minimum crew composition (at least 1 crew member)
+	var valid_crew_count: int = 0
+	for crew in crew_members:
+		if crew != null:
+			valid_crew_count += 1
+
+	if valid_crew_count == 0:
+		battle_error.emit("NO_VALID_CREW", {
+			"reason": "All crew members are null or invalid",
+			"provided_count": crew_members.size()
+		})
+		return false
+
+	# VALIDATION: Check crew equipment (at least one weapon required for battle)
+	var has_weapon: bool = false
+	var total_equipment: int = 0
+
+	for crew in crew_members:
+		if crew != null:
+			# Check for equipment property (Character resources should have this)
+			var crew_equipment: Variant = safe_get_property(crew, "equipment", [])
+
+			if crew_equipment is Array:
+				total_equipment += (crew_equipment as Array).size()
+				# Check if any equipment is a weapon
+				for item in crew_equipment:
+					if item is Dictionary:
+						var category = item.get("category", "")
+						if category == "WEAPON" or category == "weapon":
+							has_weapon = true
+							break
+
+			if has_weapon:
+				break
+
+	# Warn if no weapons detected (not blocking, but important for gameplay)
+	if not has_weapon and total_equipment == 0:
+		if debug_mode:
+			print("WARNING: No equipment detected on crew - battle may be very difficult")
+		battle_error.emit("NO_EQUIPMENT_WARNING", {
+			"reason": "No weapons or equipment detected on crew members",
+			"crew_count": valid_crew_count,
+			"severity": "warning"
+		})
+
 	# Initialize battle state
 	battle_state = FPCM_BattleState.new()
 	battle_state.mission_data = mission_data
@@ -300,18 +353,107 @@ func _complete_battle() -> void:
 	battle_state = null
 	battle_result = null
 
-## Phase finalization methods (placeholder for future logic)
+## Phase finalization methods
 func _finalize_pre_battle() -> void:
-	pass
+	"""Finalize pre-battle phase - save initial state and emit completion"""
+	if not battle_state:
+		return
+	
+	# Create checkpoint of pre-battle state
+	battle_state.create_checkpoint("pre_battle_complete")
+	
+	# Log phase completion
+	if debug_mode:
+		print("FPCM_BattleManager: Pre-battle phase finalized")
+	
+	# Notify systems that setup is complete
+	ui_refresh_requested.emit(["deployment_complete", "ready_for_combat"])
 
 func _finalize_tactical_battle() -> void:
-	pass
+	"""Finalize tactical battle phase - calculate statistics and prepare for resolution"""
+	if not battle_state:
+		return
+	
+	# Calculate battle statistics
+	var rounds_fought: int = battle_state.current_round if battle_state else 0
+	var total_damage_dealt: int = battle_state.total_damage_dealt if battle_state else 0
+	var total_damage_taken: int = battle_state.total_damage_taken if battle_state else 0
+	
+	# Create checkpoint before resolution
+	battle_state.create_checkpoint("tactical_complete")
+	
+	# Log tactical phase completion
+	if debug_mode:
+		print("FPCM_BattleManager: Tactical phase complete - %d rounds, %d damage dealt" % [rounds_fought, total_damage_dealt])
+	
+	# Prepare for battle resolution
+	ui_transition_requested.emit("battle_resolution", {
+		"rounds": rounds_fought,
+		"damage_dealt": total_damage_dealt,
+		"damage_taken": total_damage_taken
+	})
 
 func _finalize_battle_resolution() -> void:
-	pass
+	"""Finalize battle resolution - apply PostBattleProcessor results and update character states"""
+	if not battle_state or not battle_result:
+		return
+	
+	# Mark battle result as complete
+	battle_result.is_complete = true
+	battle_result.timestamp = Time.get_ticks_msec() / 1000.0
+	
+	# Apply casualties and injuries to battle state
+	for casualty in battle_result.crew_casualties:
+		if battle_state.has_method("mark_unit_casualty"):
+			battle_state.mark_unit_casualty(casualty)
+	
+	for injured in battle_result.crew_injuries:
+		if battle_state.has_method("mark_unit_injured"):
+			battle_state.mark_unit_injured(injured)
+	
+	# Create final checkpoint
+	battle_state.create_checkpoint("resolution_complete")
+	
+	# Log resolution completion
+	if debug_mode:
+		print("FPCM_BattleManager: Resolution complete - %s, %d casualties, %d injuries" % [
+			"Victory" if battle_result.victory else "Defeat",
+			battle_result.crew_casualties.size(),
+			battle_result.crew_injuries.size()
+		])
+	
+	# Notify systems that results are ready
+	ui_refresh_requested.emit(["battle_results", "post_battle_ready"])
 
 func _finalize_post_battle() -> void:
-	pass
+	"""Finalize post-battle phase - clean up resources and emit final results for campaign integration"""
+	if not battle_result:
+		return
+	
+	# Calculate final rewards
+	var rewards = _calculate_rewards()
+	
+	# Add battle statistics to result
+	if battle_state:
+		battle_result.battle_duration = battle_state.current_round
+		battle_result.events_triggered = battle_state.triggered_events
+	
+	# Log post-battle finalization
+	if debug_mode:
+		print("FPCM_BattleManager: Post-battle complete - %d credits, %d XP awards" % [
+			battle_result.credits_earned,
+			battle_result.experience_gained.size()
+		])
+	
+	# Emit final battle completion with comprehensive results
+	battle_completed.emit(battle_result)
+	
+	# Notify UI systems
+	ui_transition_requested.emit("campaign_return", {
+		"victory": battle_result.victory,
+		"rewards": rewards,
+		"casualties": battle_result.crew_casualties.size()
+	})
 
 ## Calculate battle rewards based on outcome
 func _calculate_rewards() -> Dictionary:

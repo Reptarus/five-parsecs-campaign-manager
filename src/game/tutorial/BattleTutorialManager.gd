@@ -1,5 +1,14 @@
-class_name FPCM_BattleTutorialManager
-extends Node
+# ============================================================================
+# DISABLED: Future Feature - Tutorial System
+# ============================================================================
+# This file is part of the tutorial system which will be implemented in a future
+# update. Currently disabled to focus on UI/UX workflow development.
+# References deleted BaseCombatManager abstraction.
+# To re-enable: Remove this header and fix BaseCombatManager references
+# ============================================================================
+
+# DISABLED - class_name FPCM_BattleTutorialManager
+extends Node  # Required for Node features (_ready, signals, etc.)
 
 # GlobalEnums available as autoload singleton
 const Character = preload("res://src/core/character/Character.gd")
@@ -7,7 +16,7 @@ const GameState = preload("res://src/core/state/GameState.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
 const UnifiedTerrainSystem = preload("res://src/core/terrain/UnifiedTerrainSystem.gd")
 const SaveManager = preload("res://src/core/state/SaveManager.gd")
-const BaseCombatManager = preload("res://src/base/combat/BaseCombatManager.gd")
+const FiveParsecsCombatSystem = preload("res://src/core/combat/FiveParsecsCombatSystem.gd")
 
 # Tutorial Step Types
 enum TutorialStep {
@@ -23,13 +32,13 @@ signal tutorial_step_completed(step_id: String)
 
 var current_layout: Dictionary
 var current_step: String = "movement_basics"
-var combat_manager: BaseCombatManager
+var combat_manager: FiveParsecsCombatSystem
 var tutorial_overlay: Control
 
 func _ready() -> void:
-	combat_manager = get_node("/root/CombatManager") as BaseCombatManager
+	combat_manager = get_node("/root/CombatManager") as FiveParsecsCombatSystem
 	if not combat_manager:
-		push_error("BattleTutorialManager must be a child of BaseCombatManager")
+		push_error("BattleTutorialManager must be a child of FiveParsecsCombatSystem")
 		return
 
 	_connect_signals()

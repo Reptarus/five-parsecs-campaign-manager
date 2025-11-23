@@ -66,6 +66,13 @@ var campaign_crew: Array[Character] = []
 var current_world: String = "New Hope"
 var galactic_war_progress: int = 0
 var story_track: Dictionary = {}
+var rivals: Array = []
+var patrons: Array = []
+var quest_rumors: int = 0
+
+# Deferred Events System - events that trigger on future conditions
+# Each event: {id, trigger_type, event_name, crew_id, effect, turn_created, expires_turn, consumed}
+var pending_events: Array = []
 
 func _init() -> void:
 	if not Engine.is_editor_hint():
@@ -179,6 +186,24 @@ func get_faction_standing(faction: String) -> float:
 func get_crew_size() -> int:
 	return crew_members.size()
 
+func get_crew_members() -> Array:
+	"""Get crew members array for external access"""
+	print("Campaign.get_crew_members() called - crew_members.size(): %d" % crew_members.size())
+
+	var crew_data: Array = []
+	for member in crew_members:
+		print("  Processing crew member: %s (type: %s)" % [member.name if member.has_method("get") else "unknown", member.get_class() if member.has_method("get_class") else "unknown"])
+		if member.has_method("to_dictionary"):
+			var dict = member.to_dictionary()
+			print("    Converted to dictionary with name: %s" % dict.get("character_name", "MISSING"))
+			crew_data.append(dict)
+		else:
+			print("    Already dictionary")
+			crew_data.append(member)  # Already dictionary
+
+	print("Campaign.get_crew_members() returning %d crew members" % crew_data.size())
+	return crew_data
+
 func has_equipment(equipment_id: int) -> bool:
 	for member in crew_members:
 		if member.has_equipment(equipment_id):
@@ -202,7 +227,8 @@ func to_dictionary() -> Dictionary:
 		"story_points": story_points,
 		"completed_missions": completed_missions.duplicate(),
 		"available_missions": available_missions.duplicate(),
-		"faction_standings": faction_standings.duplicate()
+		"faction_standings": faction_standings.duplicate(),
+		"pending_events": pending_events.duplicate(true)
 	}
 
 func from_dictionary(data: Dictionary) -> void:
@@ -229,6 +255,7 @@ func from_dictionary(data: Dictionary) -> void:
 	completed_missions = data.get("completed_missions", []).duplicate()
 	available_missions = data.get("available_missions", []).duplicate()
 	faction_standings = data.get("faction_standings", {}).duplicate()
+	pending_events = data.get("pending_events", []).duplicate(true)
 
 func configure(config: Dictionary) -> void:
 	if config.has("name"):

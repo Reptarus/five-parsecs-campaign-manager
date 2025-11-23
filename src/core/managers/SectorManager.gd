@@ -21,7 +21,7 @@ var name_generator: PlanetNameGenerator
 # GlobalEnums available as autoload singleton
 const GameState = preload("res://src/core/state/GameState.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
-const GameLocation = preload("res://src/base/world/location_base.gd")
+# GameLocation/location_base removed - file does not exist
 
 var migration: Node = null
 

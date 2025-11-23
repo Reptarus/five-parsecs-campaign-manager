@@ -7,7 +7,7 @@ extends Control
 
 # Import production classes
 const CampaignFactory = preload("res://src/core/workflow/CampaignFactory.gd")
-const ProductionSaveManager = preload("res://src/core/workflow/ProductionSaveManager.gd")
+# ProductionSaveManager removed - file does not exist
 
 # UI Components
 @onready var loading_screen: ColorRect = $LoadingScreen
@@ -187,11 +187,10 @@ func _transition_to_scene(scene_path: String) -> void:
 	
 	# Log transition for debugging
 	print("CampaignWorkflowOrchestrator: Transitioning to scene: %s" % scene_path)
-	
-	# Perform scene transition
-	var error = get_tree().change_scene_to_file(scene_path)
-	if error != OK:
-		_handle_workflow_error(WorkflowError.SCENE_LOAD_FAILED, "Failed to load scene: " + scene_path + " (Error: " + str(error) + ")")
+
+	# Perform scene transition using standardized navigation
+	if not GameStateManager.navigate_to_scene_path(scene_path):
+		_handle_workflow_error(WorkflowError.SCENE_LOAD_FAILED, "Failed to load scene: " + scene_path)
 
 func _create_completion_callback(step: WorkflowState) -> Callable:
 	"""Create completion callback for current workflow step"""
@@ -323,25 +322,30 @@ func _create_final_campaign() -> Dictionary:
 		return {}
 
 func _save_campaign(campaign: Dictionary) -> Dictionary:
-	"""Save campaign using production ProductionSaveManager"""
-	print("CampaignWorkflowOrchestrator: Saving campaign using ProductionSaveManager...")
-	
-	# Use production save manager for secure, atomic save operations
-	var save_result = ProductionSaveManager.save_campaign(campaign)
-	
-	if save_result.success:
-		print("CampaignWorkflowOrchestrator: ✅ Campaign saved successfully to: %s" % save_result.file_path)
-		print("CampaignWorkflowOrchestrator: Save completed in %d ms (backup: %s)" % [save_result.save_time, "yes" if save_result.backup_created else "no"])
+	"""Save campaign using SaveManager"""
+	print("CampaignWorkflowOrchestrator: Saving campaign using SaveManager...")
+
+	# Use save manager for secure, atomic save operations
+	var save_manager = get_node_or_null("/root/SaveManager")
+	if not save_manager:
+		push_error("CampaignWorkflowOrchestrator: SaveManager not found")
+		return {"success": false, "error": "SaveManager not available"}
+
+	var save_name = campaign.get("crew_name", "campaign") + "_" + str(Time.get_unix_time_from_system())
+	var save_success = save_manager.save_game(campaign, save_name)
+
+	if save_success:
+		var file_path = SaveManagerClass.SAVE_DIRECTORY + save_name + SaveManagerClass.SAVE_EXTENSION
+		print("CampaignWorkflowOrchestrator: ✅ Campaign saved successfully to: %s" % file_path)
 		return {
 			"success": true,
-			"file_path": save_result.file_path,
-			"save_time": save_result.save_time
+			"file_path": file_path
 		}
 	else:
-		print("CampaignWorkflowOrchestrator: ❌ Save failed: %s" % save_result.error_message)
+		print("CampaignWorkflowOrchestrator: ❌ Save failed")
 		return {
 			"success": false,
-			"error_message": save_result.error_message
+			"error_message": "Save operation failed"
 		}
 
 func _transition_to_dashboard(campaign: Dictionary) -> void:
@@ -357,13 +361,11 @@ func _transition_to_dashboard(campaign: Dictionary) -> void:
 	var context_manager = get_node("/root/WorkflowContextManager")
 	context_manager.set_context(context)
 	
-	# Transition to dashboard
-	if FileAccess.file_exists(dashboard_path):
-		get_tree().change_scene_to_file(dashboard_path)
-	else:
+	# Transition to dashboard using standardized navigation
+	if not GameStateManager.navigate_to_scene_path(dashboard_path):
 		# Fallback to main menu with success message
 		print("CampaignWorkflowOrchestrator: Dashboard not found, returning to main menu")
-		get_tree().change_scene_to_file("res://src/ui/screens/mainmenu/MainMenu.tscn")
+		GameStateManager.navigate_to_screen("main_menu")
 
 # Error handling system
 func _handle_workflow_error(error: WorkflowError, details: String) -> void:
@@ -420,7 +422,7 @@ func _hide_error_ui() -> void:
 func _return_to_main_menu() -> void:
 	"""Return to main menu"""
 	print("CampaignWorkflowOrchestrator: Returning to main menu")
-	get_tree().change_scene_to_file("res://src/ui/screens/mainmenu/MainMenu.tscn")
+	GameStateManager.navigate_to_screen("main_menu")
 
 func _retry_workflow() -> void:
 	"""Retry workflow initialization"""

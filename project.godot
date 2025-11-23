@@ -13,7 +13,7 @@ config_version=5
 config/name="Five Parsecs Campaign Manager"
 config/version="0.1.0"
 run/main_scene="res://src/ui/screens/mainmenu/MainMenu.tscn"
-config/features=PackedStringArray("4.4", "Forward Plus")
+config/features=PackedStringArray("4.5", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
@@ -29,6 +29,13 @@ CampaignStateService="*res://src/core/services/CampaignStateService.gd"
 SceneRouter="*res://src/ui/screens/SceneRouter.gd"
 CampaignPhaseManager="*res://src/core/campaign/CampaignPhaseManager.gd"
 BattleResultsManager="*res://src/core/battle/BattleResultsManager.gd"
+BattlefieldCompanionManager="*res://src/autoload/BattlefieldCompanionManager.gd"
+CampaignJournal="*res://src/qol/CampaignJournal.gd"
+LegacySystem="*res://src/qol/LegacySystem.gd"
+TurnPhaseChecklist="*res://src/qol/TurnPhaseChecklist.gd"
+KeywordDB="*res://src/qol/KeywordDB.gd"
+NPCTracker="*res://src/qol/NPCTracker.gd"
+CampaignTurnEventBus="*res://src/core/events/CampaignTurnEventBus.gd"
 
 [debug]
 
@@ -62,10 +69,23 @@ project/assembly_name="Five Parsecs Campaign Manager"
 
 enabled=PackedStringArray("res://addons/gdUnit4/plugin.cfg")
 
+[file_customization]
+
+folder_colors={
+"res://godot-mcp/": "gray",
+"res://mcp-servers/": "gray",
+"res://node_modules/": "gray"
+}
+
+[filesystem]
+
+import/blender/enabled=false
+
 [gdunit4]
 
 settings/test/test_lookup_folder="tests"
 ui/toolbar/run_overall=true
+settings/test/test_discovery=true
 
 [input_devices]
 

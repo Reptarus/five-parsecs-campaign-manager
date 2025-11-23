@@ -36,7 +36,6 @@ const SCENE_PATHS = {
 
 	# World and exploration
 	"world_phase": "res://src/ui/screens/world/WorldPhaseController.tscn",
-	"job_selection": "res://src/ui/screens/world/JobSelectionUI.tscn",
 	"mission_selection": "res://src/ui/screens/world/MissionSelectionUI.tscn",
 	"patron_rival_manager": "res://src/ui/screens/world/PatronRivalManager.tscn",
 	"travel_phase": "res://src/ui/screens/travel/TravelPhaseUI.tscn",

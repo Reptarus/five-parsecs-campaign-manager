@@ -11,6 +11,9 @@ All character generation logic now lives here instead of scattered across 15+ fi
 # Character Attributes
 @export var name: String = ""
 
+# Unique identifier for this character (generated automatically)
+@export var character_id: String = ""
+
 # Smart properties with migration validation and performance tracking
 var _background: String = ""
 var _motivation: String = ""
@@ -18,6 +21,7 @@ var _origin: String = ""
 var _character_class: String = ""
 
 # Performance optimization: Cache GlobalEnums singleton reference
+@warning_ignore("untyped_declaration")
 var _cached_global_enums = null
 
 @export var background: String:
@@ -49,20 +53,32 @@ func _get_validated_enum_string(value: Variant, enum_type: String, default: Stri
 	"""Production-safe enum validation with defensive GlobalEnums access"""
 	# Try cached reference first (fastest path)
 	if _cached_global_enums != null:
+		@warning_ignore("unsafe_method_access")
 		if _cached_global_enums.has_method("to_string_value"):
+			@warning_ignore("unsafe_method_access")
 			return _cached_global_enums.to_string_value(enum_type, value)
 	
 	# Try runtime autoload access (works when game is running)
 	if Engine.has_singleton("GlobalEnums"):
 		_cached_global_enums = Engine.get_singleton("GlobalEnums")
+		@warning_ignore("unsafe_method_access")
 		if _cached_global_enums and _cached_global_enums.has_method("to_string_value"):
+			@warning_ignore("unsafe_method_access")
 			return _cached_global_enums.to_string_value(enum_type, value)
 	
 	# Fallback for development/testing
 	return value if value is String else default
 
 # Initialize smart properties with validated defaults
+@warning_ignore("untyped_declaration")
 func _init():
+	# Generate unique character ID using timestamp + random component
+	@warning_ignore("untyped_declaration")
+	var timestamp = Time.get_ticks_msec()
+	@warning_ignore("untyped_declaration")
+	var random_component = randi() % 10000
+	character_id = "char_%d_%d" % [timestamp, random_component]
+
 	_background = "COLONIST"
 	_motivation = "SURVIVAL"
 	_origin = "HUMAN"
@@ -91,10 +107,16 @@ var character_name: String:
 @export var equipment: Array[String] = []
 @export var is_captain: bool = false
 @export var created_at: String = ""
+@export var status: String = "ACTIVE"  # ACTIVE, INJURED, RECOVERING, DEAD, MISSING, RETIRED
+
+# Health (calculated from toughness + 2 in Five Parsecs)
+@export var health: int = 5
+@export var max_health: int = 5
 
 # Character Generation - Direct static methods replace CharacterManager
 static func generate_character(background_type: String = "") -> Character:
 	"""Production-ready character generation with comprehensive validation"""
+	@warning_ignore("untyped_declaration")
 	var character = Character.new()
 	
 	# Safe random generation using Framework Bible patterns
@@ -114,6 +136,7 @@ static func generate_character(background_type: String = "") -> Character:
 	
 	# Initial equipment and state
 	character.credits = SafeTypeConverter.safe_int(_roll_dice_safe(2, 6) * 10, 20)
+	@warning_ignore("unsafe_call_argument")
 	character.equipment = _generate_starting_equipment(character.background)
 	character.created_at = Time.get_datetime_string_from_system()
 	
@@ -126,6 +149,7 @@ static func generate_crew_members(count: int) -> Array[Character]:
 	count = SafeTypeConverter.safe_int(count, 4)  # Default to 4 crew members
 	
 	for i in range(count):
+		@warning_ignore("untyped_declaration")
 		var member = generate_character()
 		crew.append(member)
 	
@@ -149,11 +173,14 @@ static func create_captain_from_crew(crew_member: Character) -> Character:
 static func _roll_dice_safe(num_dice: int, sides: int) -> int:
 	"""Safe dice rolling with DiceManager fallback"""
 	if Engine.has_singleton("DiceManager"):
+		@warning_ignore("untyped_declaration")
 		var dice_manager = Engine.get_singleton("DiceManager")
 		if dice_manager and dice_manager.has_method("roll_dice"):
+			@warning_ignore("unsafe_method_access")
 			return dice_manager.roll_dice(num_dice, sides)
 	
 	# Fallback for headless mode or missing DiceManager
+	@warning_ignore("untyped_declaration")
 	var total = 0
 	for i in range(num_dice):
 		total += randi_range(1, sides)
@@ -162,6 +189,7 @@ static func _roll_dice_safe(num_dice: int, sides: int) -> int:
 # Private generation methods - all logic consolidated here
 static func _generate_name(existing_names: Array = []) -> String:
 	# Expanded first names (30 names) - diverse, sci-fi appropriate
+	@warning_ignore("untyped_declaration")
 	var first_names = [
 		# Original 8
 		"Alex", "Morgan", "River", "Casey", "Taylor", "Jordan", "Avery", "Riley",
@@ -173,6 +201,7 @@ static func _generate_name(existing_names: Array = []) -> String:
 	]
 	
 	# Expanded last names (50 names) - using Five Parsecs JSON data
+	@warning_ignore("untyped_declaration")
 	var last_names = [
 		# Original 8
 		"Smith", "Chen", "Garcia", "Okafor", "Johansson", "Singh", "Kowalski", "Martinez",
@@ -188,11 +217,15 @@ static func _generate_name(existing_names: Array = []) -> String:
 	]
 	
 	# Try to generate unique name (up to 20 attempts)
+	@warning_ignore("untyped_declaration")
 	var attempts = 0
+	@warning_ignore("untyped_declaration", "shadowed_variable")
 	var name = ""
 	
 	while attempts < 20:
+		@warning_ignore("unsafe_call_argument", "untyped_declaration")
 		var first = SafeTypeConverter.safe_array_get(first_names, randi() % first_names.size(), "Unknown")
+		@warning_ignore("unsafe_call_argument", "untyped_declaration")
 		var last = SafeTypeConverter.safe_array_get(last_names, randi() % last_names.size(), "Spacer")
 		name = "%s %s" % [first, last]
 		
@@ -206,15 +239,21 @@ static func _generate_name(existing_names: Array = []) -> String:
 	return name + " " + str(randi() % 100 + 1)
 
 static func _generate_background() -> String:
+	@warning_ignore("untyped_declaration")
 	var backgrounds = ["Military", "Trader", "Explorer", "Engineer", "Medic", "Pilot", "Criminal", "Scholar"]
+	@warning_ignore("unsafe_call_argument")
 	return SafeTypeConverter.safe_array_get(backgrounds, randi() % backgrounds.size(), "Civilian")
 
 static func _generate_motivation() -> String:
+	@warning_ignore("untyped_declaration")
 	var motivations = ["Wealth", "Fame", "Revenge", "Family", "Adventure", "Knowledge", "Justice", "Survival"]
+	@warning_ignore("unsafe_call_argument")
 	return SafeTypeConverter.safe_array_get(motivations, randi() % motivations.size(), "Unknown")
 
+@warning_ignore("shadowed_variable")
 static func _generate_starting_equipment(background: String) -> Array[String]:
 	"""Generate starting equipment based on character background"""
+	@warning_ignore("shadowed_variable")
 	var equipment: Array[String] = []
 	
 	# Base equipment for all characters
@@ -264,12 +303,17 @@ func get_total_stats() -> int:
 # Enhanced generation method - supports all creation modes
 static func generate_character_enhanced(config: Dictionary = {}) -> Character:
 	"""Enhanced character generation with full configuration support"""
+	@warning_ignore("untyped_declaration")
 	var character = Character.new()
 	
 	# Extract config safely using SafeTypeConverter
+	@warning_ignore("untyped_declaration")
 	var mode = SafeTypeConverter.safe_string(config.get("creation_mode", ""), "standard")
+	@warning_ignore("untyped_declaration", "shadowed_variable")
 	var background = SafeTypeConverter.safe_string(config.get("background", ""), "")
+	@warning_ignore("untyped_declaration")
 	var name_override = SafeTypeConverter.safe_string(config.get("name", ""), "")
+	@warning_ignore("untyped_declaration")
 	var existing_names = config.get("existing_names", []) if config.get("existing_names") is Array else []
 	
 	# Generate using Five Parsecs formula (2d6/3 rounded up)
@@ -292,6 +336,7 @@ static func generate_character_enhanced(config: Dictionary = {}) -> Character:
 		character.combat += 1
 	
 	# Set identity
+	@warning_ignore("unsafe_call_argument")
 	character.name = name_override if not name_override.is_empty() else _generate_name(existing_names)
 	character.background = background if not background.is_empty() else _generate_background()
 	character.motivation = _generate_motivation()
@@ -374,19 +419,23 @@ static func set_character_flags(character: Character) -> void:
 
 static func validate_character(character: Character) -> Dictionary:
 	"""Compatibility: Character validation"""
+	@warning_ignore("untyped_declaration")
 	var result = {"valid": true, "errors": []}
 	
 	if not character:
 		result.valid = false
+		@warning_ignore("unsafe_method_access")
 		result.errors.append("Character is null")
 		return result
 	
 	if character.name.is_empty():
 		result.valid = false
+		@warning_ignore("unsafe_method_access")
 		result.errors.append("Character needs a name")
 	
 	if character.combat <= 0 or character.reactions <= 0 or character.toughness <= 0:
 		result.valid = false
+		@warning_ignore("unsafe_method_access")
 		result.errors.append("Character has invalid stats")
 	
 	return result
@@ -415,6 +464,7 @@ static func generate_starting_equipment_enhanced(character: Character) -> Dictio
 	if not character:
 		return {}
 	# Return character's equipment as dictionary
+	@warning_ignore("untyped_declaration")
 	var equipment_dict = {}
 	for i in range(character.equipment.size()):
 		equipment_dict["item_%d" % i] = character.equipment[i]
@@ -445,6 +495,7 @@ static func apply_motivation_effects(character: Character) -> void:
 
 func validate_character_properties() -> Dictionary:
 	"""Comprehensive validation of all character properties with detailed feedback"""
+	@warning_ignore("untyped_declaration")
 	var result = {
 		"valid": true,
 		"errors": [],
@@ -453,42 +504,52 @@ func validate_character_properties() -> Dictionary:
 	}
 	
 	# Validate background with defensive GlobalEnums access
+	@warning_ignore("untyped_declaration")
 	var global_enums = null
 	if Engine.has_singleton("GlobalEnums"):
 		global_enums = Engine.get_singleton("GlobalEnums")
+	@warning_ignore("unsafe_method_access")
 	if global_enums and global_enums.is_valid_background_string(_background):
 		result.property_status["background"] = "valid"
 	else:
 		result.valid = false
+		@warning_ignore("unsafe_method_access")
 		result.errors.append("Invalid background: %s" % _background)
 		result.property_status["background"] = "invalid"
 	
 	# Validate motivation
+	@warning_ignore("unsafe_method_access")
 	if global_enums and global_enums.is_valid_motivation_string(_motivation):
 		result.property_status["motivation"] = "valid"
 	else:
 		result.valid = false
+		@warning_ignore("unsafe_method_access")
 		result.errors.append("Invalid motivation: %s" % _motivation)
 		result.property_status["motivation"] = "invalid"
 	
 	# Validate origin
+	@warning_ignore("unsafe_method_access")
 	if global_enums and global_enums.is_valid_origin_string(_origin):
 		result.property_status["origin"] = "valid"
 	else:
 		result.valid = false
+		@warning_ignore("unsafe_method_access")
 		result.errors.append("Invalid origin: %s" % _origin)
 		result.property_status["origin"] = "invalid"
 	
 	# Validate character class
+	@warning_ignore("unsafe_method_access")
 	if global_enums and global_enums.is_valid_character_class_string(_character_class):
 		result.property_status["character_class"] = "valid"
 	else:
 		result.valid = false
+		@warning_ignore("unsafe_method_access")
 		result.errors.append("Invalid character class: %s" % _character_class)
 		result.property_status["character_class"] = "invalid"
 	
 	# Check for empty name
 	if name.is_empty():
+		@warning_ignore("unsafe_method_access")
 		result.warnings.append("Character has no name")
 		result.property_status["name"] = "warning"
 	else:
@@ -498,34 +559,41 @@ func validate_character_properties() -> Dictionary:
 
 func migrate_legacy_properties(legacy_data: Dictionary) -> bool:
 	"""Migrate character from legacy enum-based format to string-based format"""
+	@warning_ignore("untyped_declaration")
 	var migration_successful = true
+	@warning_ignore("untyped_declaration")
 	var migration_log = []
 	
 	# Migrate background
 	if legacy_data.has("background"):
+		@warning_ignore("untyped_declaration")
 		var old_background = legacy_data.background
 		background = old_background  # This will trigger the smart setter
 		migration_log.append("Background: %s -> %s" % [old_background, _background])
 	
 	# Migrate motivation
 	if legacy_data.has("motivation"):
+		@warning_ignore("untyped_declaration")
 		var old_motivation = legacy_data.motivation
 		motivation = old_motivation  # This will trigger the smart setter
 		migration_log.append("Motivation: %s -> %s" % [old_motivation, _motivation])
 	
 	# Migrate origin
 	if legacy_data.has("origin"):
+		@warning_ignore("untyped_declaration")
 		var old_origin = legacy_data.origin
 		origin = old_origin  # This will trigger the smart setter
 		migration_log.append("Origin: %s -> %s" % [old_origin, _origin])
 	
 	# Migrate character class
 	if legacy_data.has("character_class"):
+		@warning_ignore("untyped_declaration")
 		var old_character_class = legacy_data.character_class
 		character_class = old_character_class  # This will trigger the smart setter
 		migration_log.append("Character class: %s -> %s" % [old_character_class, _character_class])
 	
 	# Validate after migration
+	@warning_ignore("untyped_declaration")
 	var validation = validate_character_properties()
 	if not validation.valid:
 		push_error("[CHARACTER] Migration validation failed: %s" % validation.errors)
@@ -533,6 +601,7 @@ func migrate_legacy_properties(legacy_data: Dictionary) -> bool:
 	
 	if OS.is_debug_build():
 		print("[CHARACTER] Migration for %s: %s" % [name, "SUCCESS" if migration_successful else "FAILED"])
+		@warning_ignore("untyped_declaration")
 		for log_entry in migration_log:
 			print("  %s" % log_entry)
 	
@@ -540,9 +609,11 @@ func migrate_legacy_properties(legacy_data: Dictionary) -> bool:
 
 func get_property_health() -> Dictionary:
 	"""Get health status of character properties for monitoring"""
+	@warning_ignore("untyped_declaration")
 	var global_enums = null
 	if Engine.has_singleton("GlobalEnums"):
 		global_enums = Engine.get_singleton("GlobalEnums")
+	@warning_ignore("untyped_declaration", "shadowed_variable")
 	var health = {
 		"status": "healthy",
 		"properties": {
@@ -662,6 +733,7 @@ func serialize() -> Dictionary:
 		"equipment": equipment.duplicate(),
 		"is_captain": is_captain,
 		"created_at": created_at,
+		"status": status,
 		
 		# Serialization metadata
 		"serialization_timestamp": Time.get_ticks_msec(),
@@ -676,6 +748,32 @@ func serialize() -> Dictionary:
 		print("[CHARACTER] Serialization for %s: %d μs" % [name, duration])
 	
 	return serialized_data
+
+func to_dictionary() -> Dictionary:
+	"""Convert Character to dictionary for UI display (dashboard compatibility)"""
+	return {
+		"character_name": name,
+		"name": name,  # Alias for compatibility
+		"status": status,
+		"background": background,
+		"motivation": motivation,
+		"origin": origin,
+		"character_class": character_class,
+		"combat": combat,
+		"reactions": reactions,
+		"toughness": toughness,
+		"savvy": savvy,
+		"tech": tech,
+		"move": move,
+		"speed": speed,
+		"luck": luck,
+		"experience": experience,
+		"credits": credits,
+		"equipment": equipment.duplicate(),
+		"is_captain": is_captain,
+		"health": health,
+		"max_health": max_health
+	}
 
 static func deserialize(data: Dictionary) -> Character:
 	"""
@@ -702,24 +800,44 @@ static func deserialize(data: Dictionary) -> Character:
 	character._origin = _deserialize_enhanced_property("origin", data.get("origin", "HUMAN"))
 	character._motivation = _deserialize_enhanced_property("motivation", data.get("motivation", "SURVIVAL"))
 	
-	# Stats with safe defaults
+	# Stats with safe defaults - handle both nested and top-level formats
 	var stats = data.get("stats", {})
-	character.combat = stats.get("combat", 1)
-	character.reactions = stats.get("reactions", stats.get("reaction", 1)) # Handle both formats
-	character.toughness = stats.get("toughness", 3)
-	character.savvy = stats.get("savvy", 1)
-	character.tech = stats.get("tech", 1)
-	character.move = stats.get("move", stats.get("speed", 4)) # Handle both formats
-	character.speed = stats.get("speed", stats.get("move", 4)) # Handle both formats
-	character.luck = stats.get("luck", 0)
+	if stats.is_empty():
+		# Top-level format (GameStateManager uses this)
+		character.combat = data.get("combat", 1)
+		character.reactions = data.get("reactions", data.get("reaction", 1))
+		character.toughness = data.get("toughness", 3)
+		character.savvy = data.get("savvy", 1)
+		character.tech = data.get("tech", 1)
+		character.move = data.get("move", data.get("speed", 4))
+		character.speed = data.get("speed", data.get("move", 4))
+		character.luck = data.get("luck", 0)
+	else:
+		# Nested format (legacy compatibility)
+		character.combat = stats.get("combat", 1)
+		character.reactions = stats.get("reactions", stats.get("reaction", 1))
+		character.toughness = stats.get("toughness", 3)
+		character.savvy = stats.get("savvy", 1)
+		character.tech = stats.get("tech", 1)
+		character.move = stats.get("move", stats.get("speed", 4))
+		character.speed = stats.get("speed", stats.get("move", 4))
+		character.luck = stats.get("luck", 0)
 	
 	# Character state
 	character.experience = data.get("experience", 0)
 	character.credits = data.get("credits", 0)
-	character.equipment = data.get("equipment", []).duplicate()
+
+	# Handle typed array equipment (GDScript 2.0 requires proper typing)
+	var equipment_data = data.get("equipment", [])
+	character.equipment.clear()
+	for item in equipment_data:
+		if item is String:
+			character.equipment.append(item)
+
 	character.is_captain = data.get("is_captain", false)
 	character.created_at = data.get("created_at", Time.get_datetime_string_from_system())
-	
+	character.status = data.get("status", "ACTIVE")
+
 	# Performance tracking
 	var end_time = Time.get_ticks_usec()
 	var duration = end_time - start_time
@@ -755,11 +873,16 @@ static func _deserialize_enhanced_property(property_name: String, serialized_dat
 	var global_enums = null
 	if Engine.has_singleton("GlobalEnums"):
 		global_enums = Engine.get_singleton("GlobalEnums")
+
+	# When GlobalEnums not available, handle strings directly (already in correct format)
 	if not global_enums:
-		# Safe defaults when GlobalEnums not available
+		# If data is already a string, return it (GameStateManager generates valid strings)
+		if serialized_data is String and not serialized_data.is_empty():
+			return serialized_data.to_upper()
+		# Safe defaults for other cases (int/dict/empty)
 		match property_name:
 			"character_class": return "BASELINE"
-			"background": return "COLONIST" 
+			"background": return "COLONIST"
 			"origin": return "HUMAN"
 			"motivation": return "SURVIVAL"
 			_: return "UNKNOWN"
@@ -821,9 +944,13 @@ func initialize_from_creation_data(creation_data: Dictionary) -> void:
 	savvy = creation_data.get("savvy", 4)
 	luck = creation_data.get("luck", 4)
 	
-	# Equipment if provided
+	# Equipment if provided (handle typed array for GDScript 2.0)
 	if creation_data.has("equipment"):
-		equipment = creation_data.get("equipment", [])
+		var equipment_data = creation_data.get("equipment", [])
+		equipment.clear()
+		for item in equipment_data:
+			if item is String:
+				equipment.append(item)
 	
 	# Experience and status (health is derived from toughness in Five Parsecs)
 	experience = creation_data.get("experience", 0)

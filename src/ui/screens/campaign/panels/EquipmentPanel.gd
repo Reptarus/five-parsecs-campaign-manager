@@ -53,10 +53,13 @@ var state_manager: Node = null  # Store state manager reference
 # Guard variable to prevent duplicate panel_completed emissions
 var _completion_emitted: bool = false
 
-func _on_campaign_state_updated(state_data: Dictionary) -> void:
-	"""Override from interface - handle campaign state updates"""
+# Track crew composition for change detection
+var _last_crew_size: int = 0
+
+func _handle_campaign_state_update(state_data: Dictionary) -> void:
+	"""Override from base class - handle campaign state updates"""
 	print("EquipmentPanel: Campaign state updated with keys: %s" % str(state_data.keys()))
-	
+
 	# Update panel state based on campaign state if needed
 	if state_data.has("equipment") and state_data.equipment is Dictionary:
 		var equipment_state_data = state_data.equipment
@@ -64,29 +67,32 @@ func _on_campaign_state_updated(state_data: Dictionary) -> void:
 			# Update local equipment state from external changes
 			starting_credits = equipment_state_data.credits
 			_update_display()
-	
-	# CRITICAL FIX: Only generate once when crew data arrives
-	if generated_equipment.is_empty():
-		var crew_members = _extract_crew_members(state_data)
-		if crew_members.size() > 0:
-			print("EquipmentPanel: First crew data received - generating equipment for %d members" % crew_members.size())
+
+	# CROSS-PANEL COMMUNICATION: React to crew changes
+	var crew_members = _extract_crew_members(state_data)
+	if crew_members.size() > 0:
+		var crew_changed = (crew_members.size() != _last_crew_size)
+
+		if crew_changed or generated_equipment.is_empty():
+			print("EquipmentPanel: Crew composition changed (%d -> %d) - regenerating equipment" % [_last_crew_size, crew_members.size()])
+			_last_crew_size = crew_members.size()
 			crew_size = crew_members.size()
 			_generate_five_parsecs_equipment(crew_members)
-			
-			# Update the hardcoded "1000" label with actual credits
+
+			# Update UI
 			if credits_label:
 				credits_label.text = str(starting_credits)
 			if summary_label:
 				summary_label.text = "Equipment generated for %d crew members: %d items" % [crew_members.size(), generated_equipment.size()]
 		else:
-			print("EquipmentPanel: Waiting for crew data...")
+			print("EquipmentPanel: No crew changes detected")
 	else:
-		print("EquipmentPanel: Equipment already generated - skipping")
-	
+		print("EquipmentPanel: Waiting for crew data...")
+
 	# Also check for captain data
 	if state_data.has("captain") and state_data.captain is Dictionary:
 		var captain_data = state_data.captain
-		print("EquipmentPanel: Captain data found: %s" % captain_data.get("name", "Unknown"))
+		print("EquipmentPanel: Captain data found: %s" % captain_data.get("character_name", "Unknown"))
 
 func _extract_crew_members(state_data) -> Array:
 	"""Extract crew members from various possible data structures - more defensive"""
@@ -303,12 +309,8 @@ func set_coordinator(coord: Node) -> void:
 				state_manager = manager
 				print("EquipmentPanel: State manager reference stored")
 	
-	# TYPE-SAFE: Connect to coordinator signals if available
-	if coord and is_instance_valid(coord):
-		if coord.has_signal("campaign_state_updated"):
-			if not coord.is_connected("campaign_state_updated", _on_campaign_state_updated):
-				coord.connect("campaign_state_updated", _on_campaign_state_updated)
-				print("EquipmentPanel: Connected to coordinator campaign_state_updated signal")
+	# Signal connection now handled centrally by CampaignCreationUI
+	# No need for manual connection here
 
 func _initialize_components() -> void:
 	"""Initialize equipment panel by connecting to actual scene nodes"""
@@ -1080,7 +1082,7 @@ func get_equipment_data() -> Dictionary:
 	"""Get equipment data in standardized format"""
 	return {
 		"equipment": generated_equipment.duplicate(),
-		"starting_credits": starting_credits,
+		"credits": starting_credits,
 		"crew_size": crew_size,
 		"is_complete": local_equipment_data.is_complete,
 		"metadata": {

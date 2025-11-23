@@ -11,7 +11,7 @@ extends Node
 const PatronSystem = preload("res://src/core/systems/PatronSystem.gd")
 const EconomySystem = preload("res://src/core/systems/EconomySystem.gd")
 const FactionSystem = preload("res://src/core/systems/FactionSystem.gd")
-const DataManager = preload("res://src/core/data/DataManager.gd")
+# DataManager is accessed as autoload singleton (registered in project.godot)
 
 # System instances
 var patron_system: PatronSystem

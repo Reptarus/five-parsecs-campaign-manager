@@ -1,6 +1,15 @@
+# ============================================================================
+# DISABLED: Future Feature - Combat System
+# ============================================================================
+# This file is part of the combat system which will be implemented in a future
+# update. Currently disabled to focus on UI/UX workflow development.
+# References deleted BaseCombatManager abstraction.
+# To re-enable: Remove this header and fix BaseCombatManager references
+# ============================================================================
+
 ## Handles tactical decision making for enemy units in combat
-class_name FPCM_EnemyTacticalAI
-extends Node
+# DISABLED - class_name FPCM_EnemyTacticalAI
+extends Node  # Required for Node features (_ready, signals, etc.)
 
 ## Signals
 signal decision_made(enemy: Object, action: Dictionary)
@@ -11,6 +20,7 @@ signal group_coordination_updated(group: Array, leader: Object)
 # GlobalEnums available as autoload singleton
 const Character = preload("res://src/core/character/Character.gd")
 const Enemy = preload("res://src/core/enemy/base/Enemy.gd")
+const FiveParsecsCombatSystem = preload("res://src/core/combat/FiveParsecsCombatSystem.gd")
 
 # AI Behavior Types
 enum AIBehavior {
@@ -32,7 +42,7 @@ enum GroupTactic {
 
 ## References to required systems
 @export var battlefield_manager: Node
-@export var combat_manager: BaseCombatManager # Combat system reference
+@export var combat_manager: FiveParsecsCombatSystem # Combat system reference
 
 ## AI state tracking
 var _enemy_personalities: Dictionary = {}
