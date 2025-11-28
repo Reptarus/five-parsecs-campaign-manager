@@ -298,14 +298,33 @@ func update_crew_state(crew_data: Dictionary) -> void:
 func update_captain_state(captain_data: Dictionary) -> void:
 	"""Update captain state and emit signal"""
 	print("CampaignCreationCoordinator: Updating captain state")
-	
-	# Update captain data
+
+	# NORMALIZATION: Extract captain name from multiple possible locations
+	var captain_name = ""
 	if captain_data.has("name"):
-		unified_campaign_state.captain.name = captain_data.name
+		captain_name = captain_data.name
+	elif captain_data.has("character_name"):
+		captain_name = captain_data.character_name
+	elif captain_data.has("captain") and captain_data.captain is Dictionary:
+		captain_name = captain_data.captain.get("character_name", captain_data.captain.get("name", ""))
+
+	# Update captain data
+	if not captain_name.is_empty():
+		unified_campaign_state.captain.name = captain_name
+		print("CampaignCreationCoordinator: Set captain name to: %s" % captain_name)
+
+	# Extract background from nested or top-level
 	if captain_data.has("background"):
 		unified_campaign_state.captain.background = captain_data.background
+	elif captain_data.has("captain") and captain_data.captain is Dictionary:
+		unified_campaign_state.captain.background = captain_data.captain.get("background", "")
+
+	# Extract motivation from nested or top-level
 	if captain_data.has("motivation"):
 		unified_campaign_state.captain.motivation = captain_data.motivation
+	elif captain_data.has("captain") and captain_data.captain is Dictionary:
+		unified_campaign_state.captain.motivation = captain_data.captain.get("motivation", "")
+
 	if captain_data.has("is_complete"):
 		unified_campaign_state.captain.is_complete = captain_data.is_complete
 	
@@ -427,9 +446,91 @@ func _update_campaign_completion_status() -> void:
 	elif not unified_campaign_state.is_complete and was_complete:
 		print("CampaignCreationCoordinator: Campaign creation status changed to incomplete")
 
+func _character_to_dict(character) -> Dictionary:
+	"""Convert Character object or nested Dictionary to flat Dictionary for serialization"""
+	if character == null:
+		return {}
+
+	# If already a flat Dictionary, return as-is
+	if character is Dictionary and character.has("character_name"):
+		return character
+
+	# Extract from Character object
+	var result = {}
+
+	# Try multiple property access patterns
+	if character.has("character_name"):
+		result["character_name"] = character.character_name
+		result["name"] = character.character_name
+	elif character.has("name"):
+		result["name"] = character.name
+		result["character_name"] = character.name
+
+	# Extract stats with fallback names
+	if character.has("background"):
+		result["background"] = character.background
+	if character.has("motivation"):
+		result["motivation"] = character.motivation
+	if character.has("origin"):
+		result["origin"] = character.origin
+	elif character.has("species"):
+		result["origin"] = character.species
+
+	if character.has("character_class"):
+		result["character_class"] = character.character_class
+	elif character.has("class"):
+		result["character_class"] = character["class"]
+
+	# Stats
+	if character.has("combat"):
+		result["combat"] = character.combat
+	elif character.has("combat_skill"):
+		result["combat"] = character.combat_skill
+
+	if character.has("reactions"):
+		result["reactions"] = character.reactions
+	elif character.has("reaction"):
+		result["reactions"] = character.reaction
+
+	if character.has("toughness"):
+		result["toughness"] = character.toughness
+	if character.has("savvy"):
+		result["savvy"] = character.savvy
+	if character.has("tech"):
+		result["tech"] = character.tech
+	if character.has("speed"):
+		result["speed"] = character.speed
+	if character.has("luck"):
+		result["luck"] = character.luck
+
+	if character.has("xp"):
+		result["xp"] = character.xp
+	elif character.has("experience"):
+		result["xp"] = character.experience
+
+	if character.has("is_captain"):
+		result["is_captain"] = character.is_captain
+
+	return result
+
 func get_unified_campaign_state() -> Dictionary:
-	"""Get the complete unified campaign state"""
-	return unified_campaign_state.duplicate(true)
+	"""Get the complete unified campaign state with Character objects converted to Dictionaries"""
+	var state = unified_campaign_state.duplicate(true)
+
+	# Convert crew members Array[Character] → Array[Dictionary]
+	if state.crew.has("members") and state.crew.members is Array:
+		var dict_members: Array[Dictionary] = []
+		for member in state.crew.members:
+			var member_dict = _character_to_dict(member)
+			if not member_dict.is_empty():
+				dict_members.append(member_dict)
+		state.crew.members = dict_members
+
+	# Convert captain Character → Dictionary if needed
+	if state.crew.has("captain") and state.crew.captain != null:
+		state.crew.captain = _character_to_dict(state.crew.captain)
+
+	return state
 
 func get_complete_campaign_state_for_panel(panel_name: String = "") -> Dictionary:
 	"""Get complete campaign state with all data for panel consumption"""

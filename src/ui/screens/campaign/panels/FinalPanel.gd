@@ -257,21 +257,35 @@ func _update_display() -> void:
 	"""Update comprehensive campaign summary display with styled cards"""
 	if not summary_cards_container:
 		return
-	
+
 	# Clear existing cards
 	for child in summary_cards_container.get_children():
 		child.queue_free()
-	
-	# Build 5 summary cards
-	summary_cards_container.add_child(_create_config_summary_card())
-	summary_cards_container.add_child(_create_ship_summary_card())
-	summary_cards_container.add_child(_create_captain_summary_card())
-	summary_cards_container.add_child(_create_crew_summary_card())
-	summary_cards_container.add_child(_create_equipment_summary_card())
-	
+
+	# Build 5 summary cards with null-safety guards
+	var config_card = _create_config_summary_card()
+	if config_card:
+		summary_cards_container.add_child(config_card)
+
+	var ship_card = _create_ship_summary_card()
+	if ship_card:
+		summary_cards_container.add_child(ship_card)
+
+	var captain_card = _create_captain_summary_card()
+	if captain_card:
+		summary_cards_container.add_child(captain_card)
+
+	var crew_card = _create_crew_summary_card()
+	if crew_card:
+		summary_cards_container.add_child(crew_card)
+
+	var equipment_card = _create_equipment_summary_card()
+	if equipment_card:
+		summary_cards_container.add_child(equipment_card)
+
 	# Update crew preview
 	_update_crew_preview()
-	
+
 	# Update button state
 	_update_create_button_state()
 
@@ -408,37 +422,54 @@ func _create_crew_summary_card() -> PanelContainer:
 	"""Create Card 4: Crew Summary (count, avg stats)"""
 	var content := VBoxContainer.new()
 	content.add_theme_constant_override("separation", SPACING_SM)
-	
-	var crew_members: Array[Dictionary] = campaign_data.get("crew", {}).get("members", [])
-	
+
+	# TYPE CONVERSION FIX: Handle mixed Array (Character objects + Dictionaries)
+	var crew_members_raw: Array = campaign_data.get("crew", {}).get("members", [])
+	var crew_members: Array[Dictionary] = []
+
+	# Convert Character objects to Dictionaries
+	for member in crew_members_raw:
+		if member is Dictionary:
+			crew_members.append(member)
+		elif member != null and member.has_method("to_dict"):
+			crew_members.append(member.to_dict())
+		elif member != null:
+			# Fallback: Extract properties manually from Character object
+			var member_dict = {}
+			if member.has("character_name"):
+				member_dict["character_name"] = member.character_name
+			if member.has("combat"):
+				member_dict["combat"] = member.combat
+			if member.has("reactions"):
+				member_dict["reactions"] = member.reactions
+			crew_members.append(member_dict)
+
 	# Crew Count
 	var count_label := Label.new()
 	count_label.text = "Crew Members: %d" % crew_members.size()
 	count_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
 	count_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	content.add_child(count_label)
-	
+
 	# Calculate average stats
 	if crew_members.size() > 0:
 		var total_combat := 0
 		var total_reactions := 0
 		for member in crew_members:
 			if member is Dictionary:
-				total_combat += int(member.get("combat_skill", 0))
-				total_reactions += int(member.get("reactions", 0))
-			elif member is FiveParsecsCharacter:
-				total_combat += member.combat_skill
-				total_reactions += member.reactions
-		
+				# Check multiple possible key names
+				total_combat += int(member.get("combat", member.get("combat_skill", 0)))
+				total_reactions += int(member.get("reactions", member.get("reaction", 0)))
+
 		var avg_combat: int = total_combat / crew_members.size()
 		var avg_reactions: int = total_reactions / crew_members.size()
-		
+
 		var stats_label := Label.new()
 		stats_label.text = "Avg Combat: +%d | Avg Reactions: %d\"" % [avg_combat, avg_reactions]
 		stats_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
 		stats_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		content.add_child(stats_label)
-	
+
 	return _create_section_card("Crew Summary", content)
 
 func _create_equipment_summary_card() -> PanelContainer:

@@ -1384,17 +1384,28 @@ func _on_next_pressed() -> void:
 # Signal handlers for panel data changes
 func _on_panel_data_changed(data: Dictionary) -> void:
 	"""Handle real-time data updates from panels"""
+
+	# DEFENSIVE PROGRAMMING: If signal emitted without data, fetch manually
+	if data.is_empty():
+		push_warning("CampaignCreationUI: Received empty data from panel - fetching manually")
+		if current_panel and current_panel.has_method("get_panel_data"):
+			data = current_panel.get_panel_data()
+			print("CampaignCreationUI: Fetched panel data manually: ", data.keys())
+		else:
+			push_error("CampaignCreationUI: Cannot retrieve panel data - no get_panel_data() method")
+			return
+
 	print("CampaignCreationUI: Panel data changed: ", data.keys())
-	
+
 	# Update state manager with new data based on current phase
 	if state_manager:
 		var current_phase = state_manager.get_current_phase()
 		_update_state_manager_data(current_phase, data)
-	
+
 	# Update coordinator based on current phase
 	if coordinator:
 		_route_data_to_coordinator(data)
-	
+
 	# Update navigation state
 	_update_navigation_state()
 
