@@ -23,7 +23,7 @@ func _ready() -> void:
 	_update_display()
 
 func _setup_ui() -> void:
-	custom_minimum_size = Vector2(0, 40)
+	custom_minimum_size = Vector2(0, 48)  # TOUCH_TARGET_MIN (mobile-first design)
 
 	# Set up progress bar
 	if progress_bar:

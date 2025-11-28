@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites id="2025-11-23" name="report_74" tests="6" failures="4" skipped="0" flaky="0" time="0.000">
+	<testsuite id="0" name="test_ui_backend_bridge" package="tests/integration" timestamp="2025-11-23T19:25:59" hostname="localhost" tests="6" failures="4" errors="29" skipped="0" flaky="0" time="0.492">
+		<testcase name="test_post_battle_completion_triggers_new_turn" classname="test_ui_backend_bridge" time="0.033">
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:374" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: TravelPhase._generate_world_name (res://src/core/campaign/phases/TravelPhase.gd:374)'
+Error: 'Invalid cast: could not convert value to 'int'.'
+]]>
+			</error>
+			<failure message="FAILED: res://tests/integration/test_ui_backend_bridge.gd:37" type="FAILURE">
+<![CDATA[
+Expecting: 'true' but is 'false'
+]]>
+			</failure>
+			<failure message="FAILED: res://tests/integration/test_ui_backend_bridge.gd:38" type="FAILURE">
+<![CDATA[
+Expecting: 'true' but is 'false'
+]]>
+			</failure>
+		</testcase>
+		<testcase name="test_phase_transition_order" classname="test_ui_backend_bridge" time="0.039">
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:220" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: WorldPhase._auto_assign_crew_tasks (res://src/core/campaign/phases/WorldPhase.gd:220)'
+Error: 'Invalid cast: could not convert value to 'int'.'
+]]>
+			</error>
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:682" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: WorldPhase._check_rival_attack (res://src/core/campaign/phases/WorldPhase.gd:682)'
+Error: 'Invalid call. Nonexistent function 'get_rival_count' in base 'Node (CoreGameState)'.'
+]]>
+			</error>
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:118" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: BattlePhase._start_pre_battle (res://src/core/campaign/phases/BattlePhase.gd:118)'
+Error: 'Invalid type in function 'start_phase' in base 'Node (PreBattleLoop.gd)'. Cannot convert argument 1 from Dictionary to Object.'
+]]>
+			</error>
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:168" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: PostBattlePhase._process_quest_progress (res://src/core/campaign/phases/PostBattlePhase.gd:168)'
+Error: 'Invalid call. Nonexistent function 'has_active_quest' in base 'Node (CoreGameState)'.'
+]]>
+			</error>
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:374" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: TravelPhase._generate_world_name (res://src/core/campaign/phases/TravelPhase.gd:374)'
+Error: 'Invalid cast: could not convert value to 'int'.'
+]]>
+			</error>
+		</testcase>
+		<testcase name="test_battle_results_storage" classname="test_ui_backend_bridge" time="0.042">
+		</testcase>
+		<testcase name="test_multiple_turns_accumulate" classname="test_ui_backend_bridge" time="0.042">
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:220" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: WorldPhase._auto_assign_crew_tasks (res://src/core/campaign/phases/WorldPhase.gd:220)'
+Error: 'Invalid cast: could not convert value to 'int'.'
+]]>
+			</error>
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:682" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: WorldPhase._check_rival_attack (res://src/core/campaign/phases/WorldPhase.gd:682)'
+Error: 'Invalid call. Nonexistent function 'get_rival_count' in base 'Node (CoreGameState)'.'
+]]>
+			</error>
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:168" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: PostBattlePhase._process_quest_progress (res://src/core/campaign/phases/PostBattlePhase.gd:168)'
+Error: 'Invalid call. Nonexistent function 'has_active_quest' in base 'Node (CoreGameState)'.'
+]]>
+			</error>
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:374" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: TravelPhase._generate_world_name (res://src/core/campaign/phases/TravelPhase.gd:374)'
+Error: 'Invalid cast: could not convert value to 'int'.'
+]]>
+			</error>
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:220" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: WorldPhase._auto_assign_crew_tasks (res://src/core/campaign/phases/WorldPhase.gd:220)'
+Error: 'Invalid cast: could not convert value to 'int'.'
+]]>
+			</error>
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:682" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: WorldPhase._check_rival_attack (res://src/core/campaign/phases/WorldPhase.gd:682)'
+Error: 'Invalid call. Nonexistent function 'get_rival_count' in base 'Node (CoreGameState)'.'
+]]>
+			</error>
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:168" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: PostBattlePhase._process_quest_progress (res://src/core/campaign/phases/PostBattlePhase.gd:168)'
+Error: 'Invalid call. Nonexistent function 'has_active_quest' in base 'Node (CoreGameState)'.'
+]]>
+			</error>
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:374" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: TravelPhase._generate_world_name (res://src/core/campaign/phases/TravelPhase.gd:374)'
+Error: 'Invalid cast: could not convert value to 'int'.'
+]]>
+			</error>
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:220" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: WorldPhase._auto_assign_crew_tasks (res://src/core/campaign/phases/WorldPhase.gd:220)'
+Error: 'Invalid cast: could not convert value to 'int'.'
+]]>
+			</error>
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:682" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: WorldPhase._check_rival_attack (res://src/core/campaign/phases/WorldPhase.gd:682)'
+Error: 'Invalid call. Nonexistent function 'get_rival_count' in base 'Node (CoreGameState)'.'
+]]>
+			</error>
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:168" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: PostBattlePhase._process_quest_progress (res://src/core/campaign/phases/PostBattlePhase.gd:168)'
+Error: 'Invalid call. Nonexistent function 'has_active_quest' in base 'Node (CoreGameState)'.'
+]]>
+			</error>
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:374" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: TravelPhase._generate_world_name (res://src/core/campaign/phases/TravelPhase.gd:374)'
+Error: 'Invalid cast: could not convert value to 'int'.'
+]]>
+			</error>
+		</testcase>
+		<testcase name="test_phase_signals_emit_correctly" classname="test_ui_backend_bridge" time="0.035">
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:220" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: WorldPhase._auto_assign_crew_tasks (res://src/core/campaign/phases/WorldPhase.gd:220)'
+Error: 'Invalid cast: could not convert value to 'int'.'
+]]>
+			</error>
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:682" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: WorldPhase._check_rival_attack (res://src/core/campaign/phases/WorldPhase.gd:682)'
+Error: 'Invalid call. Nonexistent function 'get_rival_count' in base 'Node (CoreGameState)'.'
+]]>
+			</error>
+			<failure message="FAILED: res://tests/integration/test_ui_backend_bridge.gd:120" type="FAILURE">
+<![CDATA[
+Expecting: 'true' but is 'false'
+]]>
+			</failure>
+			<failure message="FAILED: res://tests/integration/test_ui_backend_bridge.gd:121" type="FAILURE">
+<![CDATA[
+Expecting: 'true' but is 'false'
+]]>
+			</failure>
+		</testcase>
+		<testcase name="test_campaign_loop_continuity" classname="test_ui_backend_bridge" time="0.044">
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:374" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: TravelPhase._generate_world_name (res://src/core/campaign/phases/TravelPhase.gd:374)'
+Error: 'Invalid cast: could not convert value to 'int'.'
+]]>
+			</error>
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:220" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: WorldPhase._auto_assign_crew_tasks (res://src/core/campaign/phases/WorldPhase.gd:220)'
+Error: 'Invalid cast: could not convert value to 'int'.'
+]]>
+			</error>
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:682" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: WorldPhase._check_rival_attack (res://src/core/campaign/phases/WorldPhase.gd:682)'
+Error: 'Invalid call. Nonexistent function 'get_rival_count' in base 'Node (CoreGameState)'.'
+]]>
+			</error>
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:168" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: PostBattlePhase._process_quest_progress (res://src/core/campaign/phases/PostBattlePhase.gd:168)'
+Error: 'Invalid call. Nonexistent function 'has_active_quest' in base 'Node (CoreGameState)'.'
+]]>
+			</error>
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:374" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: TravelPhase._generate_world_name (res://src/core/campaign/phases/TravelPhase.gd:374)'
+Error: 'Invalid cast: could not convert value to 'int'.'
+]]>
+			</error>
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:220" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: WorldPhase._auto_assign_crew_tasks (res://src/core/campaign/phases/WorldPhase.gd:220)'
+Error: 'Invalid cast: could not convert value to 'int'.'
+]]>
+			</error>
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:682" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: WorldPhase._check_rival_attack (res://src/core/campaign/phases/WorldPhase.gd:682)'
+Error: 'Invalid call. Nonexistent function 'get_rival_count' in base 'Node (CoreGameState)'.'
+]]>
+			</error>
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:168" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: PostBattlePhase._process_quest_progress (res://src/core/campaign/phases/PostBattlePhase.gd:168)'
+Error: 'Invalid call. Nonexistent function 'has_active_quest' in base 'Node (CoreGameState)'.'
+]]>
+			</error>
+			<error message="ERROR: res://tests/integration/test_ui_backend_bridge.gd:374" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: TravelPhase._generate_world_name (res://src/core/campaign/phases/TravelPhase.gd:374)'
+Error: 'Invalid cast: could not convert value to 'int'.'
+]]>
+			</error>
+		</testcase>
+	</testsuite>
+</testsuites>

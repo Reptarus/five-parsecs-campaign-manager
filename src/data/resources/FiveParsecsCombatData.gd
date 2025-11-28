@@ -2,9 +2,12 @@ extends Resource
 class_name FiveParsecsCombatDataResource
 
 ## Five Parsecs Combat Data Resource
-## Consolidated weapon, armor, and combat rules using Godot Resources  
+## Consolidated weapon, armor, and combat rules using Godot Resources
 ## Framework Bible compliant: Simple, type-safe combat data
 ## Replaces complex JSON files with native Godot resources
+
+## Schema version for save file migration (CRITICAL for data integrity)
+@export var schema_version: int = 1
 
 # Weapon and equipment data
 @export var weapons: Array[CombatWeaponData] = []

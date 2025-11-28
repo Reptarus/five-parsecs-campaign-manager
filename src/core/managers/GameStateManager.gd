@@ -12,6 +12,8 @@ signal game_state_changed(new_state)
 signal campaign_phase_changed(new_phase: int)
 signal difficulty_changed(new_difficulty: int)
 signal credits_changed(new_amount: int)
+signal debt_changed(new_amount: int)
+signal ship_seized_due_to_debt()
 signal supplies_changed(new_amount: int)
 signal reputation_changed(new_amount: int)
 signal story_progress_changed(new_amount: int)
@@ -19,6 +21,7 @@ signal manager_registered(manager_name: String)
 signal manager_unregistered(manager_name: String)
 signal state_save_completed(success: bool)
 signal state_load_completed(success: bool)
+signal state_changed()
 
 # Stage 3: Enhanced exported variables with comprehensive validation
 @export var initial_credits: int = 1000
@@ -38,12 +41,19 @@ const TEMP_KEY_NAVIGATION_CONTEXT = "navigation_context"
 
 # Core state variables with enhanced type safety
 var game_state: Node = null
+var current_campaign: Resource = null  # Reference to active campaign data
 var campaign_phase: int = 0 # Will be set to NONE enum value in _ready()
 var difficulty_level: int = 1 # Will be set to NORMAL enum value in _ready()
 var credits: int = initial_credits
+var campaign_debt: int = 0  # Five Parsecs debt system - ship seized at 75 credits
 var supplies: int = initial_supplies
 var reputation: int = initial_reputation
 var story_progress: int = 0
+var victory_conditions: Dictionary = {}  # Victory condition configuration
+var ship_seized: bool = false  # Ship seizure flag for debt system
+
+# Debt system constants (Five Parsecs Core Rules)
+const SHIP_SEIZURE_THRESHOLD: int = 75  # Credits of debt before ship is seized
 
 # Manager registration system for cross-system communication
 var registered_managers: Dictionary = {}
@@ -484,6 +494,113 @@ func set_story_progress(new_amount: int) -> void:
 		if enable_debug_logging:
 			print("GameStateManager: Story progress changed from %d to %d" % [old_progress, story_progress])
 
+## Set victory conditions for campaign
+func set_victory_conditions(conditions: Dictionary) -> void:
+	if not is_instance_valid(self):
+		return
+	if not _initialization_complete:
+		push_warning("GameStateManager: Attempting to set victory_conditions before initialization complete")
+		return
+
+	victory_conditions = conditions.duplicate()
+	if current_campaign and "victory_conditions" in current_campaign:
+		current_campaign.victory_conditions = conditions.duplicate()
+	state_changed.emit()
+	if enable_debug_logging:
+		print("GameStateManager: Set victory_conditions with %d conditions" % conditions.size())
+
+## Get victory conditions for campaign
+func get_victory_conditions() -> Dictionary:
+	return victory_conditions.duplicate()
+
+## Set ship debt (updates ship resource and emits state_changed)
+func set_ship_debt(debt: int) -> void:
+	if not is_instance_valid(self):
+		return
+	var ship = get_player_ship()
+	if ship:
+		ship.debt = debt
+		state_changed.emit()
+		if enable_debug_logging:
+			print("GameStateManager: Ship debt set to %d credits" % debt)
+
+## Set story track enabled setting
+func set_story_track_enabled(enabled: bool) -> void:
+	if not is_instance_valid(self):
+		return
+	if current_campaign:
+		current_campaign.set_meta("story_track_enabled", enabled)
+	state_changed.emit()
+	if enable_debug_logging:
+		print("GameStateManager: Story track %s" % ("enabled" if enabled else "disabled"))
+
+## Get story track enabled setting
+func get_story_track_enabled() -> bool:
+	if current_campaign and current_campaign.has_meta("story_track_enabled"):
+		return current_campaign.get_meta("story_track_enabled")
+	return true  # Default enabled
+
+## Set custom victory targets (stores in victory_conditions dict)
+func set_custom_victory_targets(targets: Dictionary) -> void:
+	if not is_instance_valid(self):
+		return
+	if not victory_conditions.has("custom_targets"):
+		victory_conditions["custom_targets"] = {}
+	victory_conditions["custom_targets"] = targets.duplicate()
+	if current_campaign and "victory_conditions" in current_campaign:
+		if not current_campaign.victory_conditions.has("custom_targets"):
+			current_campaign.victory_conditions["custom_targets"] = {}
+		current_campaign.victory_conditions["custom_targets"] = targets.duplicate()
+	state_changed.emit()
+	if enable_debug_logging:
+		print("GameStateManager: Custom victory targets set for %d conditions" % targets.size())
+
+## Set patrons list for campaign
+func set_patrons(patron_list: Array) -> void:
+	if not is_instance_valid(self):
+		return
+	if not _initialization_complete:
+		push_warning("GameStateManager: Attempting to set patrons before initialization complete")
+		return
+
+	if current_campaign:
+		current_campaign.patrons = patron_list.duplicate()
+		state_changed.emit()
+		if enable_debug_logging:
+			print("GameStateManager: Set %d patrons" % patron_list.size())
+
+## Set rivals list for campaign
+func set_rivals(rival_list: Array) -> void:
+	if not is_instance_valid(self):
+		return
+	if not _initialization_complete:
+		push_warning("GameStateManager: Attempting to set rivals before initialization complete")
+		return
+
+	if current_campaign:
+		current_campaign.rivals = rival_list.duplicate()
+		state_changed.emit()
+		if enable_debug_logging:
+			print("GameStateManager: Set %d rivals" % rival_list.size())
+
+## Set quest rumors count for campaign
+func set_quest_rumors(count: int) -> void:
+	if not is_instance_valid(self):
+		return
+	if not _initialization_complete:
+		push_warning("GameStateManager: Attempting to set quest rumors before initialization complete")
+		return
+
+	if count < 0:
+		push_warning("GameStateManager: Cannot set negative quest rumors: %d" % count)
+		count = 0
+
+	if current_campaign:
+		current_campaign.quest_rumors = count
+		state_changed.emit()
+		if enable_debug_logging:
+			print("GameStateManager: Set quest rumors to %d" % count)
+
 ## Stage 6: Enhanced Validation Methods
 
 ## Validate game state instance
@@ -794,7 +911,8 @@ func serialize_manager_state() -> Dictionary:
 		"reputation": reputation,
 		"story_progress": story_progress,
 		"campaign_phase": campaign_phase,
-		"difficulty_level": difficulty_level
+		"difficulty_level": difficulty_level,
+		"victory_conditions": victory_conditions  # Contains custom_targets within it
 	}
 
 ## Load a saved game state
@@ -841,6 +959,7 @@ func _restore_manager_state(data: Dictionary) -> void:
 	story_progress = data.get("story_progress", 0)
 	campaign_phase = data.get("campaign_phase", 0)
 	difficulty_level = data.get("difficulty_level", 1)
+	victory_conditions = data.get("victory_conditions", {})  # Contains custom_targets within it
 
 	# Emit signals for state changes
 	credits_changed.emit(credits)
@@ -874,23 +993,83 @@ func remove_credits(amount: int) -> bool:
 		return true
 	return false
 
+## Debt Management System (Five Parsecs Core Rules)
+
+## Add debt to campaign total
+func add_debt(amount: int) -> void:
+	if amount <= 0:
+		return
+	
+	var old_debt: int = campaign_debt
+	campaign_debt += amount
+	
+	print("GameStateManager: Debt increased by %d credits (total: %d)" % [amount, campaign_debt])
+	debt_changed.emit(campaign_debt)
+	_mark_campaign_modified()
+	
+	# Check for ship seizure threshold
+	if campaign_debt >= SHIP_SEIZURE_THRESHOLD and not ship_seized:
+		_trigger_ship_seizure()
+
+## Pay down debt
+func pay_debt(amount: int) -> bool:
+	if amount <= 0:
+		return false
+	
+	var payment: int = mini(amount, campaign_debt)
+	
+	if credits >= payment:
+		remove_credits(payment)
+		campaign_debt -= payment
+		
+		print("GameStateManager: Paid %d credits toward debt (remaining: %d)" % [payment, campaign_debt])
+		debt_changed.emit(campaign_debt)
+		_mark_campaign_modified()
+		return true
+	
+	return false
+
+## Get current debt
+func get_debt() -> int:
+	return campaign_debt
+
+## Check if ship is seized
+func is_ship_seized() -> bool:
+	return ship_seized
+
+## Trigger ship seizure due to excessive debt
+func _trigger_ship_seizure() -> void:
+	ship_seized = true
+	print("GameStateManager: ❌ SHIP SEIZED - Debt reached %d credits (threshold: %d)" % [campaign_debt, SHIP_SEIZURE_THRESHOLD])
+	ship_seized_due_to_debt.emit()
+	
+	# Campaign effectively ends when ship is seized
+	# This would typically trigger a game over or forced debt payment scenario
+
 ## Get array of crew members
 func get_crew_members() -> Array:
 	if game_state and game_state and game_state.has_method("get_crew_members"):
 		return game_state.get_crew_members()
 	return []
 
+## Mark campaign as modified (triggers auto-save if enabled)
+func _mark_campaign_modified() -> void:
+	# Mark campaign as modified for save tracking
+	if game_state:
+		# Could trigger auto-save here if needed
+		pass
+
 ## Enhanced state persistence methods
 func auto_save_current_state() -> bool:
-	"""Perform automatic save with error handling"""
+	# Perform automatic save with error handling
 	print("GameStateManager: Performing auto-save...")
 	var success = save_current_state()
-	
+
 	if success:
 		print("GameStateManager: Auto-save completed successfully")
 	else:
 		push_warning("GameStateManager: Auto-save failed")
-	
+
 	state_save_completed.emit(success)
 	return success
 

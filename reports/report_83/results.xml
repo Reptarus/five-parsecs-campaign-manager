@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites id="2025-11-27" name="report_83" tests="11" failures="1" skipped="0" flaky="0" time="0.000">
+	<testsuite id="0" name="test_save_persistence_gaps" package="tests/unit" timestamp="2025-11-27T18:31:11" hostname="localhost" tests="11" failures="1" errors="0" skipped="0" flaky="0" time="0.500">
+		<testcase name="test_battle_results_serialization" classname="test_save_persistence_gaps" time="0.026">
+		</testcase>
+		<testcase name="test_battle_results_empty_serialization" classname="test_save_persistence_gaps" time="0.029">
+		</testcase>
+		<testcase name="test_migration_v1_to_v2_adds_battle_results" classname="test_save_persistence_gaps" time="0.015">
+		</testcase>
+		<testcase name="test_migration_preserves_existing_battle_results" classname="test_save_persistence_gaps" time="0.015">
+		</testcase>
+		<testcase name="test_migration_handles_invalid_version" classname="test_save_persistence_gaps" time="0.008">
+		</testcase>
+		<testcase name="test_migration_no_op_when_versions_match" classname="test_save_persistence_gaps" time="0.015">
+			<failure message="FAILED: res://tests/unit/test_save_persistence_gaps.gd:125" type="FAILURE">
+<![CDATA[
+Expecting:
+ '{
+	"battle_results": {
+	"victory": false
+	},
+	"current_phase": 0,
+	"schema_version": 2
+  }'
+ but was
+ '{
+	"_migration_errors": [{
+	"message": "Save file version (2) is newer than current schema (1)",
+	"timestamp": "2025-11-27T10:31:11",
+	"type": 0
+	}],
+	"_migration_log": Array[String]([])
+  }'
+]]>
+			</failure>
+		</testcase>
+		<testcase name="test_migration_needs_migration" classname="test_save_persistence_gaps" time="0.015">
+		</testcase>
+		<testcase name="test_equipment_integrity_validation_clean_state" classname="test_save_persistence_gaps" time="0.022">
+		</testcase>
+		<testcase name="test_equipment_integrity_detects_missing_ids" classname="test_save_persistence_gaps" time="0.022">
+		</testcase>
+		<testcase name="test_ship_stash_serialization_no_duplicates" classname="test_save_persistence_gaps" time="0.023">
+		</testcase>
+		<testcase name="test_full_save_load_roundtrip_with_battle_results" classname="test_save_persistence_gaps" time="0.022">
+		</testcase>
+	</testsuite>
+</testsuites>

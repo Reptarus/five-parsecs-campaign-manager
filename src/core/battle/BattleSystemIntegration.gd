@@ -109,7 +109,7 @@ func start_battle_workflow(battle_request: Dictionary) -> bool:
 		_initialize_companion_ui()
 
 	# Start battlefield companion workflow
-	var success := battlefield_companion.transition_to_phase(battlefield_companion.FPCM_BattlefieldTypes.BattlePhase.SETUP_TERRAIN)
+	var success := battlefield_companion.transition_to_phase(battlefield_companion.FPCM_BattlefieldTypes.BattleStage.SETUP_TERRAIN)
 
 	if success:
 		# Populate with battle request data
@@ -148,7 +148,7 @@ func _populate_companion_data(battle_request: Dictionary) -> void:
 # BATTLE WORKFLOW ORCHESTRATION
 # =====================================================
 
-func _on_battle_completed(results: FPCM_BattlefieldTypes.BattleResults) -> void:
+func _on_battle_completed(results: FPCM_BattlefieldTypes.LegacyBattleResults) -> void:
 	"""Handle battle completion and return results to campaign"""
 	# Translate companion results to campaign manager format
 	var campaign_results := _translate_results_for_campaign(results)
@@ -163,7 +163,7 @@ func _on_battle_completed(results: FPCM_BattlefieldTypes.BattleResults) -> void:
 	# Cleanup for next battle
 	_cleanup_battle_session()
 
-func _translate_results_for_campaign(companion_results: FPCM_BattlefieldTypes.BattleResults) -> Dictionary:
+func _translate_results_for_campaign(companion_results: FPCM_BattlefieldTypes.LegacyBattleResults) -> Dictionary:
 	"""Translate companion results to campaign manager format"""
 	var campaign_results := {
 		# Core results
@@ -247,7 +247,7 @@ func _restart_battle_workflow() -> void:
 	"""Restart the battle workflow"""
 	if battlefield_companion:
 		battlefield_companion.reset_companion_session()
-		battlefield_companion.transition_to_phase(battlefield_companion.FPCM_BattlefieldTypes.BattlePhase.SETUP_TERRAIN)
+		battlefield_companion.transition_to_phase(battlefield_companion.FPCM_BattlefieldTypes.BattleStage.SETUP_TERRAIN)
 
 # =====================================================
 # LEGACY SYSTEM COMPATIBILITY
@@ -456,7 +456,7 @@ func _attempt_phase_recovery() -> void:
 	"""Attempt to recover from phase transition errors"""
 	if battlefield_companion:
 		# Reset to safe phase
-		battlefield_companion.transition_to_phase(battlefield_companion.FPCM_BattlefieldTypes.BattlePhase.SETUP_TERRAIN)
+		battlefield_companion.transition_to_phase(battlefield_companion.FPCM_BattlefieldTypes.BattleStage.SETUP_TERRAIN)
 
 func _attempt_system_reinit() -> void:
 	"""Attempt system reinitialization"""

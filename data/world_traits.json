@@ -1,13 +1,377 @@
 {
   "world_traits": [
-    {"id": 1, "name": "Frontier World", "description": "Remote and undeveloped"},
-    {"id": 2, "name": "Trade Hub", "description": "Commercial center"},
-    {"id": 3, "name": "Industrial", "description": "Manufacturing focused"},
-    {"id": 4, "name": "Research", "description": "Scientific community"},
-    {"id": 5, "name": "Criminal", "description": "Lawless and dangerous"},
-    {"id": 6, "name": "Affluent", "description": "Wealthy and developed"},
-    {"id": 7, "name": "Dangerous", "description": "Hostile environment"},
-    {"id": 8, "name": "Corporate", "description": "Corporate controlled"},
-    {"id": 9, "name": "Military", "description": "Military presence"}
+    {
+      "roll_min": 1,
+      "roll_max": 3,
+      "id": "haze",
+      "name": "Haze",
+      "description": "Thick atmospheric haze reduces visibility during combat operations.",
+      "mechanical_effect": "During battle, visibility is reduced to 1D6+8 inches",
+      "category": "environmental"
+    },
+    {
+      "roll_min": 4,
+      "roll_max": 6,
+      "id": "overgrown",
+      "name": "Overgrown",
+      "description": "Dense vegetation covers much of the planet's surface.",
+      "mechanical_effect": "When setting up the table, add 1D6+2 individual plant features or 1D3 areas of vegetation (roughly 3-5 inches across)",
+      "category": "environmental"
+    },
+    {
+      "roll_min": 7,
+      "roll_max": 8,
+      "id": "warzone",
+      "name": "Warzone",
+      "description": "Recent or ongoing conflict has left the landscape scarred with destruction.",
+      "mechanical_effect": "When setting up the table, add 1D3 ruined buildings or craters",
+      "category": "environmental"
+    },
+    {
+      "roll_min": 9,
+      "roll_max": 10,
+      "id": "heavily_enforced",
+      "name": "Heavily Enforced",
+      "description": "Strong law enforcement keeps criminal activity suppressed.",
+      "mechanical_effect": "When fighting Criminal Elements opponents, the number encountered is reduced by 1. When rolling to see if they become Rivals, only roll a single die",
+      "category": "social"
+    },
+    {
+      "roll_min": 11,
+      "roll_max": 12,
+      "id": "rampant_crime",
+      "name": "Rampant Crime",
+      "description": "Criminal organizations operate openly with little opposition.",
+      "mechanical_effect": "When fighting Criminal Elements opponents, add 1 to the number encountered",
+      "category": "social"
+    },
+    {
+      "roll_min": 13,
+      "roll_max": 14,
+      "id": "invasion_risk",
+      "name": "Invasion Risk",
+      "description": "The world is vulnerable to external military threats.",
+      "mechanical_effect": "Add +1 to all Invasion rolls",
+      "category": "military"
+    },
+    {
+      "roll_min": 15,
+      "roll_max": 16,
+      "id": "imminent_invasion",
+      "name": "Imminent Invasion",
+      "description": "Enemy forces are massing at the borders, invasion is likely.",
+      "mechanical_effect": "Add +2 to all Invasion rolls. If the world is invaded, rolls for war progress are at -1",
+      "category": "military"
+    },    {
+      "roll_min": 17,
+      "roll_max": 18,
+      "id": "lacks_starship_facilities",
+      "name": "Lacks Starship Facilities",
+      "description": "Limited infrastructure for starship maintenance and repair.",
+      "mechanical_effect": "You cannot spend more than 3 credits per campaign turn on starship Repairs",
+      "category": "technical"
+    },
+    {
+      "roll_min": 19,
+      "roll_max": 20,
+      "id": "easy_recruiting",
+      "name": "Easy Recruiting",
+      "description": "Many skilled individuals seek employment opportunities.",
+      "mechanical_effect": "Add +1 to the roll when Recruiting",
+      "category": "social"
+    },
+    {
+      "roll_min": 21,
+      "roll_max": 22,
+      "id": "medical_science",
+      "name": "Medical Science",
+      "description": "Advanced medical facilities provide excellent care at affordable rates.",
+      "mechanical_effect": "The cost for accelerated medical care is only 3 credits per character",
+      "category": "technical"
+    },
+    {
+      "roll_min": 23,
+      "roll_max": 24,
+      "id": "technical_knowledge",
+      "name": "Technical Knowledge",
+      "description": "Local expertise and tools make repairs easier.",
+      "mechanical_effect": "Add +1 to all Repair attempts",
+      "category": "technical"
+    },
+    {
+      "roll_min": 25,
+      "roll_max": 26,
+      "id": "opportunities",
+      "name": "Opportunities",
+      "description": "Active job market with many potential employers.",
+      "mechanical_effect": "Add +1 to the roll when searching for Patrons",
+      "category": "economic"
+    },
+    {
+      "roll_min": 27,
+      "roll_max": 29,
+      "id": "booming_economy",
+      "name": "Booming Economy",
+      "description": "Economic prosperity means more credits in circulation.",
+      "mechanical_effect": "When rolling for post-battle credit rewards, any 1 on the dice is rerolled until it shows a score other than 1",
+      "category": "economic"
+    },
+    {
+      "roll_min": 30,
+      "roll_max": 32,
+      "id": "busy_markets",
+      "name": "Busy Markets",
+      "description": "Thriving trade centers offer diverse goods and services.",
+      "mechanical_effect": "Each campaign turn, you may spend 2 credits once to roll on the Trade Table",
+      "category": "economic"
+    },    {
+      "roll_min": 33,
+      "roll_max": 34,
+      "id": "bureaucratic_mess",
+      "name": "Bureaucratic Mess",
+      "description": "Excessive red tape complicates even simple transactions.",
+      "mechanical_effect": "When attempting to leave, roll 2D6. On a 2-4, you are delayed and cannot leave this campaign turn without a bribe equal to the roll in credits. You may try again next campaign turn",
+      "category": "social"
+    },
+    {
+      "roll_min": 35,
+      "roll_max": 36,
+      "id": "restricted_education",
+      "name": "Restricted Education",
+      "description": "Training programs have strict approval requirements.",
+      "mechanical_effect": "You must roll 6+ to be approved for Advanced Training on this world",
+      "category": "social"
+    },
+    {
+      "roll_min": 37,
+      "roll_max": 38,
+      "id": "expensive_education",
+      "name": "Expensive Education",
+      "description": "Training programs charge premium rates.",
+      "mechanical_effect": "The fee to enroll in Advanced Training is 3 credits",
+      "category": "economic"
+    },
+    {
+      "roll_min": 39,
+      "roll_max": 41,
+      "id": "travel_restricted",
+      "name": "Travel Restricted",
+      "description": "Movement controls limit exploration activities.",
+      "mechanical_effect": "No more than one crew member may take the Explore option each campaign turn",
+      "category": "social"
+    },
+    {
+      "roll_min": 42,
+      "roll_max": 43,
+      "id": "unity_safe_sector",
+      "name": "Unity Safe Sector",
+      "description": "Strong Unity military presence prevents invasions.",
+      "mechanical_effect": "The world cannot be Invaded",
+      "category": "military"
+    },
+    {
+      "roll_min": 44,
+      "roll_max": 46,
+      "id": "gloom",
+      "name": "Gloom",
+      "description": "Perpetual overcast or atmospheric conditions reduce visibility.",
+      "mechanical_effect": "In battle, maximum visibility is restricted to 1D6+6 inches",
+      "category": "environmental"
+    },
+    {
+      "roll_min": 47,
+      "roll_max": 48,
+      "id": "bot_manufacturing",
+      "name": "Bot Manufacturing",
+      "description": "Local factories produce affordable robot components.",
+      "mechanical_effect": "All Bot upgrades are 1 credit cheaper",
+      "category": "technical"
+    },    {
+      "roll_min": 49,
+      "roll_max": 51,
+      "id": "fuel_refinery",
+      "name": "Fuel Refinery",
+      "description": "Large-scale fuel production facilities reduce travel costs.",
+      "mechanical_effect": "Traveling from this world costs only 3 credits",
+      "category": "economic"
+    },
+    {
+      "roll_min": 52,
+      "roll_max": 53,
+      "id": "alien_species_restricted",
+      "name": "Alien Species Restricted",
+      "description": "Local laws prohibit certain species from full participation.",
+      "mechanical_effect": "Roll 1D10 to determine which species is restricted: 1=Engineer, 2-4=K'Erin, 5=Soulless, 6=Precursor, 7-9=Feral, 10=Swift. Characters of this type cannot be hired here (count as baseline Humans), and cannot undertake any crew jobs. They may participate in combat normally",
+      "category": "social"
+    },
+    {
+      "roll_min": 54,
+      "roll_max": 55,
+      "id": "weapon_licensing",
+      "name": "Weapon Licensing",
+      "description": "Strict weapon controls increase costs.",
+      "mechanical_effect": "Any weapon obtained through the Trade Table or purchased outright costs +1 credit",
+      "category": "economic"
+    },
+    {
+      "roll_min": 56,
+      "roll_max": 57,
+      "id": "import_restrictions",
+      "name": "Import Restrictions",
+      "description": "Trade barriers prevent selling goods on this world.",
+      "mechanical_effect": "You cannot sell any items on this world",
+      "category": "economic"
+    },
+    {
+      "roll_min": 58,
+      "roll_max": 59,
+      "id": "military_outpost",
+      "name": "Military Outpost",
+      "description": "Significant military presence affects local conditions.",
+      "mechanical_effect": "Add +2 to Invasion rolls. Add +2 when checking for war progress",
+      "category": "military"
+    },
+    {
+      "roll_min": 60,
+      "roll_max": 62,
+      "id": "dangerous",
+      "name": "Dangerous",
+      "description": "Hostile creatures or hazardous conditions increase threat levels.",
+      "mechanical_effect": "When rolling on the Roving Threats Encounter Table, increase the number of opponents by +1",
+      "category": "environmental"
+    },
+    {
+      "roll_min": 63,
+      "roll_max": 64,
+      "id": "shipyards",
+      "name": "Shipyards",
+      "description": "Major starship construction facilities offer discounted components.",
+      "mechanical_effect": "The cost of all Ship Components is reduced by 2 credits",
+      "category": "technical"
+    },    {
+      "roll_min": 65,
+      "roll_max": 67,
+      "id": "barren",
+      "name": "Barren",
+      "description": "Lifeless world with minimal vegetation.",
+      "mechanical_effect": "No plant features can be used on the battlefield",
+      "category": "environmental"
+    },
+    {
+      "roll_min": 68,
+      "roll_max": 69,
+      "id": "vendetta_system",
+      "name": "Vendetta System",
+      "description": "Cultural norms encourage blood feuds and long-term grudges.",
+      "mechanical_effect": "Opponents become your Rivals on a roll of 1 or 2",
+      "category": "social"
+    },
+    {
+      "roll_min": 70,
+      "roll_max": 72,
+      "id": "free_trade_zone",
+      "name": "Free Trade Zone",
+      "description": "Unrestricted commerce allows for better trading opportunities.",
+      "mechanical_effect": "One crew member per campaign turn can roll twice when using the Trade Table, and choose either result",
+      "category": "economic"
+    },
+    {
+      "roll_min": 73,
+      "roll_max": 74,
+      "id": "corporate_state",
+      "name": "Corporate State",
+      "description": "Mega-corporations control all aspects of society.",
+      "mechanical_effect": "+2 when rolling to find a Patron. Patrons are always Corporations. Failing a mission means being blacklisted and you cannot get Patrons here again",
+      "category": "social"
+    },
+    {
+      "roll_min": 75,
+      "roll_max": 76,
+      "id": "adventurous_population",
+      "name": "Adventurous Population",
+      "description": "Many skilled adventurers seek employment.",
+      "mechanical_effect": "When successfully Recruiting, you may roll up one additional character and then choose who to hire",
+      "category": "social"
+    },
+    {
+      "roll_min": 77,
+      "roll_max": 79,
+      "id": "frozen",
+      "name": "Frozen",
+      "description": "Ice-covered terrain creates hazardous movement conditions.",
+      "mechanical_effect": "Any character making a Dash may opt to slide. They move 1D6 inches in a straight line, and must move the full distance. If they collide with anything, they and any character they collide with are knocked 1 inch in a random direction and become Stunned",
+      "category": "environmental"
+    },
+    {
+      "roll_min": 80,
+      "roll_max": 81,
+      "id": "flat",
+      "name": "Flat",
+      "description": "Featureless plains dominate the landscape.",
+      "mechanical_effect": "Do not place any hills or raised ground on the battlefield",
+      "category": "environmental"
+    },    {
+      "roll_min": 82,
+      "roll_max": 84,
+      "id": "fuel_shortage",
+      "name": "Fuel Shortage",
+      "description": "Limited fuel supplies increase travel costs.",
+      "mechanical_effect": "The cost to travel from this world is raised by 1D3 credits. You may roll each campaign turn",
+      "category": "economic"
+    },
+    {
+      "roll_min": 85,
+      "roll_max": 86,
+      "id": "reflective_dust",
+      "name": "Reflective Dust",
+      "description": "Atmospheric particles interfere with energy weapons.",
+      "mechanical_effect": "All Laser, Beam, or Blast weapons are -1 to Hit at ranges exceeding 9 inches",
+      "category": "environmental"
+    },
+    {
+      "roll_min": 87,
+      "roll_max": 89,
+      "id": "high_cost",
+      "name": "High Cost",
+      "description": "Expensive living conditions strain crew resources.",
+      "mechanical_effect": "Your crew size counts as being 2 higher for the purpose of Upkeep costs",
+      "category": "economic"
+    },
+    {
+      "roll_min": 90,
+      "roll_max": 91,
+      "id": "interdiction",
+      "name": "Interdiction",
+      "description": "Strict immigration controls limit stay duration.",
+      "mechanical_effect": "You are only approved to stay for 1D3 campaign turns. To extend your stay, you must obtain a license. Roll 2D6, requiring an 8+",
+      "category": "social"
+    },
+    {
+      "roll_min": 92,
+      "roll_max": 93,
+      "id": "null_zone",
+      "name": "Null Zone",
+      "description": "Spatial anomalies disrupt teleportation technology.",
+      "mechanical_effect": "No teleportation device of any type works",
+      "category": "environmental"
+    },
+    {
+      "roll_min": 94,
+      "roll_max": 96,
+      "id": "crystals",
+      "name": "Crystals",
+      "description": "Crystalline formations dot the landscape.",
+      "mechanical_effect": "Place 2D6 crystals on the battlefield. If you don't have any, use rocks",
+      "category": "environmental"
+    },
+    {
+      "roll_min": 97,
+      "roll_max": 100,
+      "id": "fog",
+      "name": "Fog",
+      "description": "Dense fog banks reduce long-range visibility.",
+      "mechanical_effect": "All shots beyond 8 inches are -1 to Hit",
+      "category": "environmental"
+    }
   ]
 }

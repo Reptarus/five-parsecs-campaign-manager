@@ -15,13 +15,20 @@ var story_track_system: Variant = null
 
 # Current state
 var story_available: bool = false
-var last_check_time: float = 0.0
-var check_interval: float = 2.0 # Check every 2 seconds
+var _check_timer: Timer
 
 func _ready() -> void:
 	_initialize_managers()
 	_setup_ui()
 	_connect_signals()
+	_setup_check_timer()
+
+func _exit_tree() -> void:
+	"""Cleanup when indicator is removed from scene tree"""
+	if _check_timer:
+		_check_timer.stop()
+		_check_timer.queue_free()
+		_check_timer = null
 
 func _initialize_managers() -> void:
 	"""Initialize manager references from autoloads"""
@@ -49,12 +56,14 @@ func _connect_signals() -> void:
 	"""Connect UI signals"""
 	notification_button.pressed.connect(_on_notification_clicked)
 
-func _process(_delta: float) -> void:
-	"""Check story status periodically"""
-	last_check_time += _delta
-	if last_check_time >= check_interval:
-		last_check_time = 0.0
-		_check_story_status()
+func _setup_check_timer() -> void:
+	"""Setup periodic status check timer"""
+	_check_timer = Timer.new()
+	add_child(_check_timer)
+	_check_timer.wait_time = 2.0  # Check every 2 seconds
+	_check_timer.timeout.connect(_check_story_status)
+	_check_timer.start()
+	print("StoryNotificationIndicator: Status check timer started")
 
 func _check_story_status() -> void:
 	"""Check if story events are available"""

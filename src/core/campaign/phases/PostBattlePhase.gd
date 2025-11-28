@@ -34,14 +34,14 @@ signal galactic_war_updated(progress: Dictionary)
 ## Current post-battle state
 var current_substep: int = 0 # Will be set to PostBattleSubPhase.NONE in _ready()
 var battle_result: Dictionary = {}
-var defeated_enemies: Array[Dictionary] = []
-var crew_participants: Array[String] = []
+var defeated_enemies: Array = []  # Removed strict typing for dynamic data compatibility
+var crew_participants: Array = []  # Removed strict typing for dynamic data compatibility
 
 ## Battle outcome data
 var mission_successful: bool = false
 var enemies_defeated: int = 0
-var loot_earned: Array[Dictionary] = []
-var injuries_sustained: Array[Dictionary] = []
+var loot_earned: Array = []  # Removed strict typing for dynamic data compatibility
+var injuries_sustained: Array = []  # Removed strict typing for dynamic data compatibility
 
 func _ready() -> void:
 	# Load dependencies safely at runtime
@@ -319,9 +319,36 @@ func _roll_enemy_loot(enemy: Dictionary) -> Array[Dictionary]:
 	return loot
 
 func _add_loot_to_inventory(loot_item: Dictionary) -> void:
-	"""Add loot item to crew inventory"""
-	if GameState and GameState and GameState.has_method("add_inventory_item"):
+	"""Add loot item to ship stash via EquipmentManager"""
+	var equipment_manager = get_node_or_null("/root/EquipmentManager")
+	if not equipment_manager:
+		push_error("PostBattlePhase: EquipmentManager not found - cannot add loot to ship stash")
+		return
+
+	# Convert loot item to equipment format if needed
+	var equipment_data = loot_item.duplicate()
+	if not equipment_data.has("id"):
+		equipment_data["id"] = "loot_" + str(Time.get_ticks_msec()) + "_" + str(randi())
+	if not equipment_data.has("name"):
+		equipment_data["name"] = equipment_data.get("description", "Unknown Loot")
+	if not equipment_data.has("location"):
+		equipment_data["location"] = "ship_stash"
+
+	# Try to add to ship stash using EquipmentManager
+	if equipment_manager.has_method("can_add_to_ship_stash") and equipment_manager.can_add_to_ship_stash():
+		# Direct stash access (EquipmentManager._ship_stash is accessible via method)
+		if equipment_manager.has_method("add_equipment"):
+			equipment_manager.add_equipment(equipment_data)
+			print("PostBattlePhase: Added loot '%s' to ship stash" % equipment_data.get("name", "Unknown"))
+		else:
+			push_warning("PostBattlePhase: EquipmentManager missing add_equipment method")
+	else:
+		push_warning("PostBattlePhase: Ship stash is full (max 10 items) - loot lost")
+
+	# Fallback: Try GameState if EquipmentManager fails
+	if GameState and GameState.has_method("add_inventory_item"):
 		GameState.add_inventory_item(loot_item)
+		print("PostBattlePhase: Loot added to GameState inventory (fallback)")
 
 func _process_injuries() -> void:
 	"""Step 8: Determine Injuries and Recovery"""
@@ -370,9 +397,10 @@ func _process_single_injury(injury_data: Dictionary) -> Dictionary:
 		"permanent_effect": permanent_effect
 	}
 
-	# Apply injury to crew member
-	if GameState and GameState and GameState.has_method("apply_crew_injury"):
-		GameState.apply_crew_injury(crew_id, processed_injury)
+	# Apply injury to crew member via GameStateManager
+	if game_state_manager and game_state_manager.has_method("apply_crew_injury"):
+		game_state_manager.apply_crew_injury(crew_id, processed_injury)
+		print("PostBattlePhase: Applied injury to crew member %s (recovery: %d turns)" % [crew_id, recovery_time])
 
 	return processed_injury
 
@@ -394,7 +422,10 @@ func _process_experience() -> void:
 			if GameState and GameState and GameState.has_method("add_crew_experience"):
 				GameState.add_crew_experience(crew_id, xp_earned)
 
-	print("PostBattlePhase: Awarded XP to %d crew members" % (safe_call_method(xp_awards, "size") as int))
+	# Safe Variant handling for print statement
+	var xp_awards_count_result: Variant = safe_call_method(xp_awards, "size")
+	var xp_awards_count: int = xp_awards_count_result if xp_awards_count_result is int else 0
+	print("PostBattlePhase: Awarded XP to %d crew members" % xp_awards_count)
 
 	self.experience_awarded.emit(xp_awards)
 
@@ -520,10 +551,14 @@ func _process_character_event() -> void:
 
 func _get_character_event() -> Dictionary:
 	"""Get character event for random crew member"""
-	if (safe_call_method(crew_participants, "size") as int) == 0:
+	# Safe Variant handling
+	var crew_size_result: Variant = safe_call_method(crew_participants, "size")
+	var crew_size: int = crew_size_result if crew_size_result is int else 0
+
+	if crew_size == 0:
 		return {"type": "none", "name": "No Event"}
 
-	var random_crew = crew_participants[randi() % (safe_call_method(crew_participants, "size") as int)]
+	var random_crew = crew_participants[randi() % crew_size]
 	var event_roll = randi_range(1, 100)
 
 	# Simplified character events

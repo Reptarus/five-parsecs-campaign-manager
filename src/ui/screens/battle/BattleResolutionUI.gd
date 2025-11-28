@@ -13,6 +13,7 @@ signal back_to_pre_battle()
 signal phase_completed() # For battle manager integration
 signal dice_roll_requested(pattern: String, context: String)
 signal ui_error_occurred(error: String, context: Dictionary)
+signal tactical_battle_requested(tactical_scene: Node) # Request parent to add tactical battle scene
 
 # Dependencies - following modernized pattern
 const FPCM_BattleManager = preload("res://src/core/battle/FPCM_BattleManager.gd")
@@ -258,8 +259,8 @@ func _on_play_tactical_battle() -> void:
 	tactical_battle.tactical_battle_completed.connect(_on_tactical_battle_completed)
 	tactical_battle.return_to_battle_resolution.connect(_on_return_from_tactical)
 
-	# Replace this scene with tactical battle
-	get_parent().add_child(tactical_battle)
+	# Signal up to parent to handle scene switching (call down, signal up pattern)
+	tactical_battle_requested.emit(tactical_battle)
 	visible = false
 
 func _on_attempt_flee() -> void:
@@ -616,6 +617,13 @@ func _on_continue_pressed() -> void:
 	if battle_result:
 		battle_completed.emit(battle_result) # warning: return value discarded (intentional)
 
+		# Navigate to PostBattleSequence UI
+		await get_tree().create_timer(0.3).timeout  # Brief delay for signal processing
+		if has_node("/root/SceneRouter"):
+			get_node("/root/SceneRouter").navigate_to("post_battle_sequence")
+		else:
+			get_tree().change_scene_to_file("res://src/ui/screens/postbattle/PostBattleSequence.tscn")
+
 func get_battle_result() -> FPCM_BattleManager.BattleResult:
 	"""Get the current battle result"""
 	return battle_result
@@ -947,6 +955,13 @@ func _on_continue_from_results_pressed() -> void:
 	"""Continue to post-battle phase from the results panel"""
 	if battle_result:
 		battle_completed.emit(battle_result)
+
+		# Navigate to PostBattleSequence UI
+		await get_tree().create_timer(0.3).timeout  # Brief delay for signal processing
+		if has_node("/root/SceneRouter"):
+			get_node("/root/SceneRouter").navigate_to("post_battle_sequence")
+		else:
+			get_tree().change_scene_to_file("res://src/ui/screens/postbattle/PostBattleSequence.tscn")
 
 ## Signal handlers for battle results panel
 func show_battle_results() -> void:

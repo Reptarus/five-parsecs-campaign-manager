@@ -15,7 +15,7 @@ const DiceSystem = preload("res://src/core/systems/DiceSystem.gd")
 const BattleEventsSystem = preload("res://src/core/battle/BattleEventsSystem.gd")
 
 # FSM States - explicit battle flow control
-enum BattlePhase {
+enum BattleManagerPhase {
 	NONE,
 	PRE_BATTLE,
 	TACTICAL_BATTLE,
@@ -24,8 +24,9 @@ enum BattlePhase {
 	BATTLE_COMPLETE
 }
 
+
 # Core signals - following DiceSystem signal architecture
-signal phase_changed(old_phase: BattlePhase, new_phase: BattlePhase)
+signal phase_changed(old_phase: BattleManagerPhase, new_phase: BattleManagerPhase)
 signal battle_state_updated(state: FPCM_BattleState)
 signal battle_completed(results: BattleResult)
 signal battle_error(error_code: String, context: Dictionary)
@@ -65,7 +66,7 @@ class BattleResult extends Resource:
 		return "%s - %s, %s earned" % [result_text, casualties_text, credits_text]
 
 # Core system properties - following BattleEventsSystem pattern
-@export var current_phase: BattlePhase = BattlePhase.NONE
+@export var current_phase: BattleManagerPhase = BattleManagerPhase.NONE
 @export var battle_state: FPCM_BattleState = null
 @export var battle_result: BattleResult = null
 @export var is_active: bool = false
@@ -79,7 +80,7 @@ var story_system: Node = null
 
 # UI references - managed dynamically
 var active_ui_components: Dictionary = {}
-var ui_history: Array[BattlePhase] = []
+var ui_history: Array[BattleManagerPhase] = []
 
 # Performance tracking
 var phase_start_time: float = 0.0
@@ -168,7 +169,7 @@ func initialize_battle(mission_data: Resource, crew_members: Array[Resource], en
 	battle_state.mission_data = mission_data
 	battle_state.crew_members = crew_members.duplicate()
 	battle_state.enemy_forces = enemy_forces.duplicate()
-	battle_state.current_phase = BattlePhase.PRE_BATTLE
+	battle_state.current_phase = BattleManagerPhase.PRE_BATTLE
 	
 	# Initialize systems
 	if battle_events_system:
@@ -176,12 +177,12 @@ func initialize_battle(mission_data: Resource, crew_members: Array[Resource], en
 	
 	# Reset tracking
 	is_active = true
-	current_phase = BattlePhase.NONE
+	current_phase = BattleManagerPhase.NONE
 	ui_history.clear()
 	phase_start_time = Time.get_ticks_msec() / 1000.0
 	
 	# Transition to pre-battle phase
-	transition_to_phase(BattlePhase.PRE_BATTLE)
+	transition_to_phase(BattleManagerPhase.PRE_BATTLE)
 	
 	if debug_mode:
 		print("Battle initialized: Mission=%s, Crew=%d, Enemies=%d" % [
@@ -193,8 +194,8 @@ func initialize_battle(mission_data: Resource, crew_members: Array[Resource], en
 	return true
 
 ## Transition between battle phases with full validation
-func transition_to_phase(new_phase: BattlePhase) -> bool:
-	if not is_active and new_phase != BattlePhase.NONE:
+func transition_to_phase(new_phase: BattleManagerPhase) -> bool:
+	if not is_active and new_phase != BattleManagerPhase.NONE:
 		battle_error.emit("INVALID_TRANSITION", {"reason": "Battle not active", "target_phase": new_phase})
 		return false
 	
@@ -207,7 +208,7 @@ func transition_to_phase(new_phase: BattlePhase) -> bool:
 		})
 		return false
 	
-	var old_phase: BattlePhase = current_phase
+	var old_phase: BattleManagerPhase = current_phase
 	
 	# Execute phase exit logic
 	_exit_phase(old_phase)
@@ -236,47 +237,47 @@ func transition_to_phase(new_phase: BattlePhase) -> bool:
 	
 	if debug_mode:
 		print("Phase transition: %s -> %s (UI: %s)" % [
-			BattlePhase.keys()[old_phase],
-			BattlePhase.keys()[new_phase],
+			BattleManagerPhase.keys()[old_phase],
+			BattleManagerPhase.keys()[new_phase],
 			ui_name
 		])
 	
 	return true
 
 ## Validate phase transitions according to battle flow
-func _is_valid_transition(from_phase: BattlePhase, to_phase: BattlePhase) -> bool:
+func _is_valid_transition(from_phase: BattleManagerPhase, to_phase: BattleManagerPhase) -> bool:
 	match from_phase:
-		BattlePhase.NONE:
-			return to_phase == BattlePhase.PRE_BATTLE
-		BattlePhase.PRE_BATTLE:
-			return to_phase in [BattlePhase.TACTICAL_BATTLE, BattlePhase.BATTLE_RESOLUTION]
-		BattlePhase.TACTICAL_BATTLE:
-			return to_phase in [BattlePhase.BATTLE_RESOLUTION, BattlePhase.POST_BATTLE]
-		BattlePhase.BATTLE_RESOLUTION:
-			return to_phase == BattlePhase.POST_BATTLE
-		BattlePhase.POST_BATTLE:
-			return to_phase == BattlePhase.BATTLE_COMPLETE
-		BattlePhase.BATTLE_COMPLETE:
-			return to_phase == BattlePhase.NONE
+		BattleManagerPhase.NONE:
+			return to_phase == BattleManagerPhase.PRE_BATTLE
+		BattleManagerPhase.PRE_BATTLE:
+			return to_phase in [BattleManagerPhase.TACTICAL_BATTLE, BattleManagerPhase.BATTLE_RESOLUTION]
+		BattleManagerPhase.TACTICAL_BATTLE:
+			return to_phase in [BattleManagerPhase.BATTLE_RESOLUTION, BattleManagerPhase.POST_BATTLE]
+		BattleManagerPhase.BATTLE_RESOLUTION:
+			return to_phase == BattleManagerPhase.POST_BATTLE
+		BattleManagerPhase.POST_BATTLE:
+			return to_phase == BattleManagerPhase.BATTLE_COMPLETE
+		BattleManagerPhase.BATTLE_COMPLETE:
+			return to_phase == BattleManagerPhase.NONE
 		_:
 			return false
 
 ## Get UI component name for phase
-func _get_ui_name_for_phase(phase: BattlePhase) -> String:
+func _get_ui_name_for_phase(phase: BattleManagerPhase) -> String:
 	match phase:
-		BattlePhase.PRE_BATTLE:
+		BattleManagerPhase.PRE_BATTLE:
 			return "PreBattleUI"
-		BattlePhase.TACTICAL_BATTLE:
+		BattleManagerPhase.TACTICAL_BATTLE:
 			return "TacticalBattleUI"
-		BattlePhase.BATTLE_RESOLUTION:
+		BattleManagerPhase.BATTLE_RESOLUTION:
 			return "BattleResolutionUI"
-		BattlePhase.POST_BATTLE:
+		BattleManagerPhase.POST_BATTLE:
 			return "PostBattleUI"
 		_:
 			return ""
 
 ## Get data package for phase transition
-func _get_phase_data(phase: BattlePhase) -> Dictionary:
+func _get_phase_data(phase: BattleManagerPhase) -> Dictionary:
 	var data: Dictionary = {
 		"battle_state": battle_state,
 		"phase": phase,
@@ -284,42 +285,42 @@ func _get_phase_data(phase: BattlePhase) -> Dictionary:
 	}
 	
 	match phase:
-		BattlePhase.PRE_BATTLE:
+		BattleManagerPhase.PRE_BATTLE:
 			data["mission_data"] = battle_state.mission_data if battle_state else null
 			data["crew_members"] = battle_state.crew_members if battle_state else []
 			data["enemy_forces"] = battle_state.enemy_forces if battle_state else []
-		BattlePhase.BATTLE_RESOLUTION:
+		BattleManagerPhase.BATTLE_RESOLUTION:
 			data["battle_result"] = battle_result
-		BattlePhase.POST_BATTLE:
+		BattleManagerPhase.POST_BATTLE:
 			data["battle_result"] = battle_result
 			data["rewards"] = _calculate_rewards()
 	
 	return data
 
 ## Phase entry logic
-func _enter_phase(phase: BattlePhase) -> void:
+func _enter_phase(phase: BattleManagerPhase) -> void:
 	match phase:
-		BattlePhase.PRE_BATTLE:
+		BattleManagerPhase.PRE_BATTLE:
 			_setup_pre_battle()
-		BattlePhase.TACTICAL_BATTLE:
+		BattleManagerPhase.TACTICAL_BATTLE:
 			_setup_tactical_battle()
-		BattlePhase.BATTLE_RESOLUTION:
+		BattleManagerPhase.BATTLE_RESOLUTION:
 			_setup_battle_resolution()
-		BattlePhase.POST_BATTLE:
+		BattleManagerPhase.POST_BATTLE:
 			_setup_post_battle()
-		BattlePhase.BATTLE_COMPLETE:
+		BattleManagerPhase.BATTLE_COMPLETE:
 			_complete_battle()
 
 ## Phase exit logic  
-func _exit_phase(phase: BattlePhase) -> void:
+func _exit_phase(phase: BattleManagerPhase) -> void:
 	match phase:
-		BattlePhase.PRE_BATTLE:
+		BattleManagerPhase.PRE_BATTLE:
 			_finalize_pre_battle()
-		BattlePhase.TACTICAL_BATTLE:
+		BattleManagerPhase.TACTICAL_BATTLE:
 			_finalize_tactical_battle()
-		BattlePhase.BATTLE_RESOLUTION:
+		BattleManagerPhase.BATTLE_RESOLUTION:
 			_finalize_battle_resolution()
-		BattlePhase.POST_BATTLE:
+		BattleManagerPhase.POST_BATTLE:
 			_finalize_post_battle()
 
 ## Pre-battle setup
@@ -349,7 +350,7 @@ func _complete_battle() -> void:
 		battle_completed.emit(battle_result)
 	
 	# Reset state
-	current_phase = BattlePhase.NONE
+	current_phase = BattleManagerPhase.NONE
 	battle_state = null
 	battle_result = null
 
@@ -491,19 +492,19 @@ func _on_battle_event_triggered(event: BattleEventsSystem.BattleEvent) -> void:
 
 ## Force advance to next phase (for UI automation)
 func advance_phase() -> bool:
-	var next_phase: BattlePhase
+	var next_phase: BattleManagerPhase
 	
 	match current_phase:
-		BattlePhase.PRE_BATTLE:
-			next_phase = BattlePhase.BATTLE_RESOLUTION # Default to automatic resolution
-		BattlePhase.TACTICAL_BATTLE:
-			next_phase = BattlePhase.BATTLE_RESOLUTION
-		BattlePhase.BATTLE_RESOLUTION:
-			next_phase = BattlePhase.POST_BATTLE
-		BattlePhase.POST_BATTLE:
-			next_phase = BattlePhase.BATTLE_COMPLETE
-		BattlePhase.BATTLE_COMPLETE:
-			next_phase = BattlePhase.NONE
+		BattleManagerPhase.PRE_BATTLE:
+			next_phase = BattleManagerPhase.BATTLE_RESOLUTION # Default to automatic resolution
+		BattleManagerPhase.TACTICAL_BATTLE:
+			next_phase = BattleManagerPhase.BATTLE_RESOLUTION
+		BattleManagerPhase.BATTLE_RESOLUTION:
+			next_phase = BattleManagerPhase.POST_BATTLE
+		BattleManagerPhase.POST_BATTLE:
+			next_phase = BattleManagerPhase.BATTLE_COMPLETE
+		BattleManagerPhase.BATTLE_COMPLETE:
+			next_phase = BattleManagerPhase.NONE
 		_:
 			return false
 	
@@ -514,7 +515,7 @@ func get_battle_status() -> Dictionary:
 	return {
 		"is_active": is_active,
 		"current_phase": current_phase,
-		"phase_name": BattlePhase.keys()[current_phase] if current_phase < BattlePhase.size() else "UNKNOWN",
+		"phase_name": BattleManagerPhase.keys()[current_phase] if current_phase < BattleManagerPhase.size() else "UNKNOWN",
 		"phase_duration": Time.get_ticks_msec() / 1000.0 - phase_start_time,
 		"battle_state": battle_state,
 		"battle_result": battle_result
@@ -559,7 +560,7 @@ func _on_ui_error(component_name: String, error: String, context: Dictionary) ->
 ## Emergency reset for error recovery
 func emergency_reset() -> void:
 	is_active = false
-	current_phase = BattlePhase.NONE
+	current_phase = BattleManagerPhase.NONE
 	battle_state = null
 	battle_result = null
 	active_ui_components.clear()

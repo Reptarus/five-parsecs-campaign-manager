@@ -142,6 +142,43 @@ func hide_overlay() -> void:
 	dimmed_rect.visible = false
 	tooltip_panel.visible = false
 	set_process_input(false)  # Disable input processing when tutorial ends
+
+## Show a story hint for guided campaign mode (simpler than full tutorial)
+func show_story_hint(tool_names: Array, story_context: String, hint_text: String = "") -> void:
+	"""Display a non-obtrusive tooltip for story-driven companion tool hints"""
+
+	# Format the hint text
+	var full_hint := ""
+	if not story_context.is_empty():
+		full_hint += story_context + "\n\n"
+
+	if tool_names.size() > 0:
+		full_hint += "Recommended tools:\n"
+		for tool_name in tool_names:
+			full_hint += "  • " + tool_name + "\n"
+
+	if not hint_text.is_empty():
+		full_hint += "\n" + hint_text
+
+	# Show tooltip without highlight (non-obtrusive)
+	tooltip_label.text = full_hint
+	tooltip_panel.visible = true
+	highlight_rect.visible = false  # No highlight for story hints
+	dimmed_rect.visible = false  # No dimming for story hints
+
+	# Position tooltip in bottom-right corner (non-obtrusive)
+	var viewport_size = get_viewport().get_visible_rect().size
+	var tooltip_size = tooltip_panel.size
+	tooltip_panel.position = Vector2(
+		viewport_size.x - tooltip_size.x - 20,  # 20px padding from right edge
+		viewport_size.y - tooltip_size.y - 20   # 20px padding from bottom edge
+	)
+
+	# Auto-dismiss after 15 seconds
+	await get_tree().create_timer(15.0).timeout
+	if tooltip_panel.visible:
+		hide_overlay()
+
 ## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
 func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
 	if obj == null:

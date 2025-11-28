@@ -9,7 +9,12 @@ class_name PurchaseItemsComponent
 
 # Event bus integration
 const CampaignTurnEventBus = preload("res://src/core/events/CampaignTurnEventBus.gd")
+const TradingSystem = preload("res://src/core/systems/TradingSystem.gd")
 var event_bus: CampaignTurnEventBus = null
+
+# Market system integration
+var trading_system: TradingSystem = null
+var equipment_manager: Node = null
 
 # UI Components
 @onready var credits_display: Label = %CreditsDisplay
@@ -60,6 +65,12 @@ func _initialize_event_bus() -> void:
 	if event_bus:
 		event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
 		print("PurchaseItemsComponent: Connected to event bus")
+	
+	# Initialize market systems
+	equipment_manager = get_node_or_null("/root/EquipmentManager")
+	trading_system = TradingSystem.new()
+	if equipment_manager:
+		print("PurchaseItemsComponent: Connected to EquipmentManager")
 
 func _connect_ui_signals() -> void:
 	"""Connect UI button signals"""
@@ -206,27 +217,52 @@ func _on_confirm_purchase_pressed() -> void:
 		print("PurchaseItemsComponent: Not enough credits!")
 		return
 
-	# Deduct credits
-	current_credits -= cart_total
-
-	# Add items to stash
-	for item in cart_items:
-		stash_items.append(item)
-
-	# Update GameStateManager
+	# Update GameStateManager credits first
 	if GameStateManager:
 		GameStateManager.remove_credits(cart_total)
 
-	# Add items to campaign stash
-	var game_state = get_node_or_null("/root/GameState")
-	if game_state and game_state.current_campaign:
-		var campaign = game_state.current_campaign
-		if campaign and campaign is Dictionary:
-			var campaign_stash = campaign.get("stash", [])
-			for item in cart_items:
-				campaign_stash.append(item)
-			campaign["stash"] = campaign_stash
-			print("PurchaseItemsComponent: Added %d items to campaign stash" % cart_items.size())
+	# Add items to ship stash via EquipmentManager (respects 10-item capacity)
+	var items_added = 0
+	var items_failed = 0
+	var refund_amount = 0
+
+	for item in cart_items:
+		# Ensure item has required fields
+		if not item.has("id"):
+			item["id"] = "purchase_" + str(Time.get_ticks_msec()) + "_" + str(randi())
+		item["location"] = "ship_stash"
+		
+		# Use EquipmentManager (validates capacity)
+		if equipment_manager and equipment_manager.has_method("add_to_ship_stash"):
+			if equipment_manager.can_add_to_ship_stash():
+				if equipment_manager.add_to_ship_stash(item):
+					stash_items.append(item)  # Update local state
+					items_added += 1
+				else:
+					push_warning("PurchaseItemsComponent: Failed to add %s to ship stash" % item.get("name", "Unknown"))
+					refund_amount += item.get("cost", 0)
+					items_failed += 1
+			else:
+				push_warning("PurchaseItemsComponent: Ship stash full - refunding %s" % item.get("name", "Unknown"))
+				refund_amount += item.get("cost", 0)
+				items_failed += 1
+				break  # Stop processing remaining items
+		else:
+			push_error("PurchaseItemsComponent: EquipmentManager not available")
+			refund_amount += item.get("cost", 0)
+			items_failed += 1
+
+	# Refund failed items
+	if refund_amount > 0:
+		current_credits += refund_amount
+		if GameStateManager:
+			GameStateManager.add_credits(refund_amount)
+		print("PurchaseItemsComponent: Refunded %d credits for %d failed items" % [refund_amount, items_failed])
+
+	# Update local state with actual items added
+	current_credits -= (cart_total - refund_amount)
+
+	print("PurchaseItemsComponent: Added %d/%d items to ship stash" % [items_added, cart_items.size()])
 
 	purchase_completed = true
 

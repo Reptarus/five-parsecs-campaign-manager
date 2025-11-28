@@ -5,6 +5,9 @@ extends FiveParsecsCampaignPanel
 ## Uses FiveParsecsCampaignPanel base class for proper integration
 ## Implements complete captain generation with Five Parsecs rules
 
+# Progress tracking
+const STEP_NUMBER := 2  # Step 2 of 7 in campaign wizard
+
 # Captain-specific imports
 const Character = preload("res://src/core/character/Character.gd")
 const SimpleCharacterCreator = preload("res://src/core/character/Generation/SimpleCharacterCreator.gd")
@@ -39,25 +42,57 @@ var panel_data: Dictionary = {}
 var character_creator: Node = null
 var current_captain: Character = null
 
+# Labels for better UX
+var background_label: Label
+var background_description: Label
+var motivation_label: Label
+var motivation_description: Label
+
+# Store backgrounds/motivations for reference in descriptions
+var _backgrounds_data: Array = []
+var _motivations_data: Array = []
+
+# Verbose mode for dice roll transparency
+var verbose_mode_toggle: CheckBox
+var roll_log_display: RichTextLabel
+var _verbose_mode: bool = false
+var _roll_log: Array[String] = []
+
 func _ready() -> void:
 	# Set panel info before base initialization with more informative description
 	set_panel_info(
 		"Captain Creation",
 		"Create your ship's captain. Stats: Combat, Reactions, Toughness, Savvy, Tech, Move."
 	)
-	
+
 	# Call parent _ready() to initialize BaseCampaignPanel structure
 	super._ready()
-	
+
+	# Add progress indicator
+	call_deferred("_add_progress_indicator")
+
 	# COMPREHENSIVE DEBUG OUTPUT - Panel Initialization
 	call_deferred("_log_panel_initialization_debug")
-	
+
 	# Validate node references
 	_validate_node_references()
-	
+
 	print("CaptainPanel: Enhanced captain creation ready")
 
 # PHASE 4 FIX: Override coordinator set callback to check access after coordinator is available
+func _add_progress_indicator() -> void:
+	"""Add progress indicator to panel after structure is ready"""
+	var main_content = get_node_or_null("ContentMargin/MainContent")
+	if not main_content:
+		push_warning("CaptainPanel: MainContent node not found for progress indicator")
+		return
+
+	var progress = _create_progress_indicator(STEP_NUMBER, 7)
+	main_content.add_child(progress)
+	main_content.move_child(progress, 0)  # Put at top of panel
+
+	print("CaptainPanel: Progress indicator added (Step %d of 7)" % STEP_NUMBER)
+
 func _on_coordinator_set() -> void:
 	"""Called when coordinator is set - now we can safely check coordinator access"""
 	print("\n==== [PANEL: CaptainPanel] COORDINATOR ACCESS CHECK ====")
@@ -116,13 +151,16 @@ func _add_creation_methods(container: VBoxContainer) -> void:
 	"""Add captain creation method buttons"""
 	var methods_label = Label.new()
 	methods_label.text = "Choose Captain Creation Method:"
-	methods_label.add_theme_font_size_override("font_size", 16)
+	methods_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	methods_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	container.add_child(methods_label)
-	
+
 	var button_container = GridContainer.new()
 	button_container.columns = 2
+	button_container.add_theme_constant_override("h_separation", SPACING_SM)
+	button_container.add_theme_constant_override("v_separation", SPACING_SM)
 	container.add_child(button_container)
-	
+
 	var methods = [
 		{
 			"id": "random",
@@ -149,12 +187,13 @@ func _add_creation_methods(container: VBoxContainer) -> void:
 			"method": "_import_character"
 		}
 	]
-	
+
 	for method_data in methods:
 		var btn = Button.new()
 		btn.text = method_data.text
 		btn.tooltip_text = method_data.tooltip
-		btn.custom_minimum_size.x = 150
+		btn.custom_minimum_size = Vector2(150, TOUCH_TARGET_MIN)
+		btn.add_theme_font_size_override("font_size", FONT_SIZE_MD)
 		btn.pressed.connect(Callable(self, method_data.method))
 		button_container.add_child(btn)
 
@@ -162,64 +201,275 @@ func _add_captain_preview(container: VBoxContainer) -> void:
 	"""Add captain preview display area"""
 	var preview_label = Label.new()
 	preview_label.text = "Captain Preview:"
-	preview_label.add_theme_font_size_override("font_size", 16)
+	preview_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	preview_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	container.add_child(preview_label)
-	
+
 	captain_display_container = VBoxContainer.new()
 	captain_display_container.name = "CaptainDisplay"
+	captain_display_container.add_theme_constant_override("separation", SPACING_SM)
 	container.add_child(captain_display_container)
-	
+
 	# Initial empty state
 	var empty_label = Label.new()
 	empty_label.text = "Choose a creation method to generate your captain"
-	empty_label.modulate = Color.GRAY
+	empty_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	empty_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	captain_display_container.add_child(empty_label)
 
 func _add_advanced_options(container: VBoxContainer) -> void:
 	"""Add advanced captain options"""
 	var advanced_label = Label.new()
 	advanced_label.text = "Advanced Options:"
+	advanced_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	advanced_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	container.add_child(advanced_label)
-	
+
 	var options_container = HBoxContainer.new()
+	options_container.add_theme_constant_override("separation", SPACING_MD)
 	container.add_child(options_container)
-	
+
 	# Leadership bonus
 	var leadership_check = CheckBox.new()
 	leadership_check.text = "Natural Leader (+1 to crew morale)"
+	leadership_check.custom_minimum_size.y = TOUCH_TARGET_MIN
+	leadership_check.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	leadership_check.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	leadership_check.toggled.connect(_on_leadership_toggled)
 	options_container.add_child(leadership_check)
-	
+
 	# Extra experience
 	var xp_container = HBoxContainer.new()
+	xp_container.add_theme_constant_override("separation", SPACING_SM)
 	options_container.add_child(xp_container)
-	
+
 	var xp_label = Label.new()
 	xp_label.text = "Starting XP:"
+	xp_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	xp_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	xp_container.add_child(xp_label)
-	
+
 	var xp_spin = SpinBox.new()
 	xp_spin.min_value = 100
 	xp_spin.max_value = 500
 	xp_spin.value = 100
 	xp_spin.step = 50
+	xp_spin.custom_minimum_size.y = TOUCH_TARGET_MIN
 	xp_spin.value_changed.connect(_on_xp_changed)
 	xp_container.add_child(xp_spin)
+
+	# Verbose mode toggle for dice roll transparency
+	var verbose_container = VBoxContainer.new()
+	verbose_container.name = "VerboseModeContainer"
+	container.add_child(verbose_container)
+
+	var separator = HSeparator.new()
+	verbose_container.add_child(separator)
+
+	verbose_mode_toggle = CheckBox.new()
+	verbose_mode_toggle.text = "🎲 Show Dice Rolls (Verbose Mode)"
+	verbose_mode_toggle.tooltip_text = "Display the actual dice rolls used to generate captain stats"
+	verbose_mode_toggle.toggled.connect(_on_verbose_mode_toggled)
+	verbose_container.add_child(verbose_mode_toggle)
+
+	# Roll log display (initially hidden)
+	roll_log_display = RichTextLabel.new()
+	roll_log_display.name = "RollLogDisplay"
+	roll_log_display.bbcode_enabled = true
+	roll_log_display.fit_content = true
+	roll_log_display.scroll_active = false
+	roll_log_display.custom_minimum_size = Vector2(0, 0)
+	roll_log_display.add_theme_color_override("default_color", Color(0.7, 0.9, 0.7))
+	roll_log_display.add_theme_font_size_override("normal_font_size", 11)
+	roll_log_display.visible = false
+	verbose_container.add_child(roll_log_display)
+
+func _on_verbose_mode_toggled(pressed: bool) -> void:
+	"""Handle verbose mode toggle"""
+	_verbose_mode = pressed
+	if roll_log_display:
+		roll_log_display.visible = pressed
+		if pressed and _roll_log.size() > 0:
+			_update_roll_log_display()
+		elif not pressed:
+			roll_log_display.text = ""
+
+func _log_dice_roll(context: String, roll_value: int, result: int) -> void:
+	"""Log a dice roll for verbose mode display"""
+	var log_entry = "[color=#aaccaa]%s:[/color] Rolled %d → Stat: %d" % [context, roll_value, result]
+	_roll_log.append(log_entry)
+	if _verbose_mode:
+		_update_roll_log_display()
+
+func _update_roll_log_display() -> void:
+	"""Update the roll log display with current logs"""
+	if not roll_log_display:
+		return
+
+	var log_text = "[b]🎲 Dice Roll Log:[/b]\n"
+	for entry in _roll_log:
+		log_text += entry + "\n"
+	roll_log_display.text = log_text
+
+func _clear_roll_log() -> void:
+	"""Clear the roll log for new generation"""
+	_roll_log.clear()
+	if roll_log_display:
+		roll_log_display.text = ""
 
 func _setup_ui() -> void:
 	# Original setup preserved for compatibility
 	_setup_background_options()
 	_setup_motivation_options()
+	_create_option_labels()
+	_update_all_option_descriptions()
+
+func _create_option_labels() -> void:
+	"""Create labels above and descriptions below the OptionButtons"""
+	# Add label and description for Background
+	if background_option:
+		var parent = background_option.get_parent()
+		if parent:
+			var bg_index = background_option.get_index()
+
+			# Create label above
+			background_label = Label.new()
+			background_label.name = "BackgroundLabel"
+			background_label.text = "Captain Background:"
+			background_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+			background_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+			parent.add_child(background_label)
+			parent.move_child(background_label, bg_index)
+
+			# Create description below
+			background_description = Label.new()
+			background_description.name = "BackgroundDescription"
+			background_description.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+			background_description.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			background_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			parent.add_child(background_description)
+			parent.move_child(background_description, bg_index + 2)
+
+	# Add label and description for Motivation
+	if motivation_option:
+		var parent = motivation_option.get_parent()
+		if parent:
+			var mot_index = motivation_option.get_index()
+
+			# Create label above
+			motivation_label = Label.new()
+			motivation_label.name = "MotivationLabel"
+			motivation_label.text = "Captain Motivation:"
+			motivation_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+			motivation_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+			parent.add_child(motivation_label)
+			parent.move_child(motivation_label, mot_index)
+
+			# Create description below
+			motivation_description = Label.new()
+			motivation_description.name = "MotivationDescription"
+			motivation_description.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+			motivation_description.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			motivation_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			parent.add_child(motivation_description)
+			parent.move_child(motivation_description, mot_index + 2)
+
+func _update_all_option_descriptions() -> void:
+	"""Update all option descriptions with current selection info"""
+	_update_background_description()
+	_update_motivation_description()
+
+func _update_background_description() -> void:
+	"""Update background description with bonuses"""
+	if not background_description or not background_option:
+		return
+
+	var index = background_option.selected
+	if index < 0 or index >= _backgrounds_data.size():
+		return
+
+	var bg = _backgrounds_data[index]
+	var desc_parts: Array[String] = []
+
+	# Build description from bonuses
+	if bg.has("bonus"):
+		for stat in bg.bonus.keys():
+			desc_parts.append("+1 %s" % stat.capitalize())
+
+	if bg.has("credits"):
+		desc_parts.append("+ %s credits" % bg.credits)
+
+	if bg.has("gear"):
+		for item in bg.gear:
+			desc_parts.append("+ %s" % item)
+
+	if bg.has("patron"):
+		desc_parts.append("+ Starting Patron")
+
+	if bg.has("story_points"):
+		desc_parts.append("+ %d Story Point(s)" % bg.story_points)
+
+	if bg.has("rumors"):
+		desc_parts.append("+ %d Quest Rumor(s)" % bg.rumors)
+
+	if desc_parts.size() > 0:
+		background_description.text = "→ " + ", ".join(desc_parts)
+	else:
+		background_description.text = "→ No special bonuses"
+
+func _update_motivation_description() -> void:
+	"""Update motivation description with bonuses"""
+	if not motivation_description or not motivation_option:
+		return
+
+	var index = motivation_option.selected
+	if index < 0 or index >= _motivations_data.size():
+		return
+
+	var mot = _motivations_data[index]
+	var desc_parts: Array[String] = []
+
+	# Build description from bonuses
+	if mot.has("bonus"):
+		for stat in mot.bonus.keys():
+			desc_parts.append("+1 %s" % stat.capitalize())
+
+	if mot.has("credits"):
+		desc_parts.append("+ %s credits" % mot.credits)
+
+	if mot.has("gear"):
+		for item in mot.gear:
+			desc_parts.append("+ %s" % item)
+
+	if mot.has("patron"):
+		desc_parts.append("+ Starting Patron")
+
+	if mot.has("story_points"):
+		desc_parts.append("+ %d Story Point(s)" % mot.story_points)
+
+	if mot.has("rumors"):
+		desc_parts.append("+ %d Quest Rumor(s)" % mot.rumors)
+
+	if mot.has("rival"):
+		desc_parts.append("+ Starting Rival")
+
+	if mot.has("xp_bonus"):
+		desc_parts.append("+ %d XP bonus" % mot.xp_bonus)
+
+	if desc_parts.size() > 0:
+		motivation_description.text = "→ " + ", ".join(desc_parts)
+	else:
+		motivation_description.text = "→ No special bonuses"
 
 func _setup_background_options() -> void:
 	"""Setup background options from Five Parsecs rules"""
 	if not background_option:
 		return
-	
+
 	background_option.clear()
-	
+
 	# Five Parsecs Background Table (from core rules)
-	var backgrounds = [
+	_backgrounds_data = [
 		{"name": "Peaceful, High-Tech Colony", "bonus": {"savvy": 1}, "credits": "1D6"},
 		{"name": "Giant, Overcrowded, Dystopian City", "bonus": {"speed": 1}},
 		{"name": "Low-Tech Colony", "gear": ["Low-tech Weapon"]},
@@ -246,22 +496,22 @@ func _setup_background_options() -> void:
 		{"name": "Wasteland Nomads", "bonus": {"reactions": 1}, "gear": ["Low-tech Weapon"]},
 		{"name": "Alien Culture", "gear": ["High-tech Weapon"]}
 	]
-	
-	for i in range(backgrounds.size()):
-		var background = backgrounds[i]
+
+	for i in range(_backgrounds_data.size()):
+		var background = _backgrounds_data[i]
 		background_option.add_item(background.name, i)
-	
+
 	background_option.select(0) # Default to first option
 
 func _setup_motivation_options() -> void:
 	"""Setup motivation options from Five Parsecs rules"""
 	if not motivation_option:
 		return
-	
+
 	motivation_option.clear()
-	
+
 	# Five Parsecs Motivation Table (from core rules)
-	var motivations = [
+	_motivations_data = [
 		{"name": "Wealth", "credits": "1D6"},
 		{"name": "Fame", "story_points": 1},
 		{"name": "Glory", "bonus": {"combat": 1}, "gear": ["Military Weapon"]},
@@ -280,11 +530,11 @@ func _setup_motivation_options() -> void:
 		{"name": "Order", "patron": true, "story_points": 1},
 		{"name": "Freedom", "xp_bonus": 2}
 	]
-	
-	for i in range(motivations.size()):
-		var motivation = motivations[i]
+
+	for i in range(_motivations_data.size()):
+		var motivation = _motivations_data[i]
 		motivation_option.add_item(motivation.name, i)
-	
+
 	motivation_option.select(0) # Default to first option
 
 func _connect_signals() -> void:
@@ -386,8 +636,9 @@ func _on_background_changed(index: int) -> void:
 		# Update captain object if it exists
 		if current_captain:
 			current_captain.background = background.id
-		
+
 		print("CaptainPanel: Selected background: %s" % background.name)
+		_update_background_description()
 		panel_data_changed.emit(get_panel_data())
 
 func _on_motivation_changed(index: int) -> void:
@@ -421,8 +672,9 @@ func _on_motivation_changed(index: int) -> void:
 		# Update captain object if it exists
 		if current_captain:
 			current_captain.motivation = motivation.id
-		
+
 		print("CaptainPanel: Selected motivation: %s" % motivation.name)
+		_update_motivation_description()
 		panel_data_changed.emit(get_panel_data())
 
 func _on_continue_pressed() -> void:
@@ -827,16 +1079,21 @@ func cleanup_panel() -> void:
 func _generate_random_captain() -> void:
 	"""Generate random captain with Five Parsecs rules and captain bonuses"""
 	creation_method = "random"
-	
+
+	# Clear previous roll log
+	_clear_roll_log()
+
 	captain = Character.new()
-	
+
 	# Five Parsecs captain generation (enhanced stats)
 	captain.character_name = _generate_captain_name()
-	captain.combat = _roll_captain_stat() + 1 # Captain bonus
-	captain.reactions = _roll_captain_stat() + 1 # Captain bonus
-	captain.toughness = _roll_captain_stat()
-	captain.savvy = _roll_captain_stat() + 1 # Captain bonus
-	captain.tech = _roll_captain_stat()
+
+	# Roll stats with logging
+	captain.combat = _roll_captain_stat_with_bonus("Combat", 1)
+	captain.reactions = _roll_captain_stat_with_bonus("Reactions", 1)
+	captain.toughness = _roll_captain_stat_logged("Toughness")
+	captain.savvy = _roll_captain_stat_with_bonus("Savvy", 1)
+	captain.tech = _roll_captain_stat_logged("Tech")
 	captain.speed = 4 # Standard movement
 	captain.luck = 2 # Captain gets extra luck
 	
@@ -903,7 +1160,7 @@ func _use_veteran_template() -> void:
 	# Veteran bonuses
 	captain.is_captain = true
 	captain.experience = 250 # More starting XP
-	captain.skills = ["Leadership", "Tactics", "Negotiation"]
+	# Note: skills stored in panel_data, not Character resource
 	
 	_update_captain_display()
 	
@@ -929,6 +1186,26 @@ func _roll_captain_stat() -> int:
 	randomize()
 	var roll = randi_range(2, 12) # 2d6
 	return max(1, int(ceil(float(roll) / 3.0)))
+
+func _roll_captain_stat_logged(stat_name: String) -> int:
+	"""Roll captain stat with logging for verbose mode"""
+	randomize()
+	var roll = randi_range(2, 12) # 2d6
+	var result = max(1, int(ceil(float(roll) / 3.0)))
+	_log_dice_roll(stat_name, roll, result)
+	return result
+
+func _roll_captain_stat_with_bonus(stat_name: String, bonus: int) -> int:
+	"""Roll captain stat with bonus and logging for verbose mode"""
+	randomize()
+	var roll = randi_range(2, 12) # 2d6
+	var base_result = max(1, int(ceil(float(roll) / 3.0)))
+	var final_result = base_result + bonus
+	var log_entry = "[color=#aaccaa]%s:[/color] Rolled %d → Base: %d + %d bonus = [b]%d[/b]" % [stat_name, roll, base_result, bonus, final_result]
+	_roll_log.append(log_entry)
+	if _verbose_mode:
+		_update_roll_log_display()
+	return final_result
 
 func _generate_captain_name() -> String:
 	"""Generate appropriate captain name"""
@@ -1005,11 +1282,7 @@ func _update_captain_display() -> void:
 		xp_label.modulate = Color.CYAN
 		info_container.add_child(xp_label)
 	
-	if captain.skills and captain.skills.size() > 0:
-		var skills_label = Label.new()
-		skills_label.text = "Skills: " + ", ".join(captain.skills)
-		skills_label.modulate = Color.LIGHT_GREEN
-		info_container.add_child(skills_label)
+	# Skills display removed - Character resource doesn't have skills property
 
 func _apply_background_and_motivation() -> void:
 	"""Apply Five Parsecs background and motivation using existing data"""
@@ -1022,7 +1295,7 @@ func _apply_background_and_motivation() -> void:
 	]
 	
 	randomize()
-	captain.background_name = backgrounds[randi() % backgrounds.size()]
+	captain.background = backgrounds[randi() % backgrounds.size()]
 
 # Event handlers for advanced options
 func _on_leadership_toggled(enabled: bool) -> void:
@@ -1100,8 +1373,7 @@ func set_panel_data(data: Dictionary) -> void:
 			captain.speed = captain_data.get("speed", 4)
 			captain.luck = captain_data.get("luck", 1)
 			captain.experience = captain_data.get("experience", 100)
-			captain.skills = captain_data.get("skills", [])
-			captain.background_name = captain_data.get("background", "")
+			captain.background = captain_data.get("background", "")
 			captain.is_captain = true
 			creation_method = captain_data.get("creation_method", "loaded")
 			captain_bonuses = captain_data.get("bonuses", captain_bonuses)
@@ -1200,3 +1472,65 @@ func _refresh_panel_state() -> void:
 	if is_inside_tree():
 		validate_panel()
 		print("CaptainPanel: State refreshed after campaign update")
+
+## Responsive Layout Overrides
+
+func _apply_mobile_layout() -> void:
+	"""Mobile: Single column, 56dp targets, compact roll log"""
+	super._apply_mobile_layout()
+
+	# Increase touch targets to TOUCH_TARGET_COMFORT (56dp)
+	if captain_name_input:
+		captain_name_input.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+	if background_option:
+		background_option.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+	if motivation_option:
+		motivation_option.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+	if advanced_creation_button:
+		advanced_creation_button.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+	if continue_button:
+		continue_button.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+
+	# Compact roll log for mobile
+	if roll_log_display:
+		roll_log_display.custom_minimum_size.y = 80
+
+func _apply_tablet_layout() -> void:
+	"""Tablet: Two columns, 48dp targets, detailed roll log"""
+	super._apply_tablet_layout()
+
+	# Standard touch targets at TOUCH_TARGET_MIN (48dp)
+	if captain_name_input:
+		captain_name_input.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if background_option:
+		background_option.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if motivation_option:
+		motivation_option.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if advanced_creation_button:
+		advanced_creation_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if continue_button:
+		continue_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+
+	# Detailed roll log for tablet
+	if roll_log_display:
+		roll_log_display.custom_minimum_size.y = 120
+
+func _apply_desktop_layout() -> void:
+	"""Desktop: Multi-column, 48dp targets, full roll log"""
+	super._apply_desktop_layout()
+
+	# Standard touch targets at TOUCH_TARGET_MIN (48dp)
+	if captain_name_input:
+		captain_name_input.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if background_option:
+		background_option.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if motivation_option:
+		motivation_option.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if advanced_creation_button:
+		advanced_creation_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if continue_button:
+		continue_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+
+	# Full roll log for desktop
+	if roll_log_display:
+		roll_log_display.custom_minimum_size.y = 150

@@ -25,6 +25,9 @@ signal evidence_discovered(evidence_count: int)
 signal story_track_completed()
 signal story_milestone_reached(milestone: int)
 
+# Tutorial integration signals (for guided campaign mode)
+signal tutorial_requested(event_id: String, companion_tools: Array, story_context: String)
+
 # Story Clock mechanics (from Core Rules Appendix V)
 var story_clock_ticks: int = 6 # Initial clock setting
 var max_clock_ticks: int = 6
@@ -46,10 +49,15 @@ var is_story_track_active: bool = false
 var story_track_phase: String = "inactive" # inactive, active, climax, completed
 var turns_since_discovery: int = 0
 
+# Tutorial integration (for guided campaign mode)
+var guided_mode_enabled: bool = false  # Toggle for tutorial overlays
+var tutorial_config: Dictionary = {}  # Loaded from story_companion_tutorials.json
+
 ## Initialize story track with default events
 func _init() -> void:
 	_initialize_dice_manager()
 	_initialize_story_events()
+	_load_tutorial_config()
 
 ## Initialize dice manager reference
 func _initialize_dice_manager() -> void:
@@ -71,6 +79,7 @@ func _initialize_story_events() -> void:
 	event1.description = "Your crew picks up a mysterious signal from an abandoned research facility..."
 	event1.event_type = "story_track"
 	event1.trigger_conditions = {"required_evidence": 0}
+	event1.tutorial_config_key = "discovery_signal"  # Links to tutorial config JSON
 	_add_event_choices(event1, [
 		{"text": "Investigate immediately", "risk": "high", "reward": "tech_data", "evidence_gain": 2},
 		{"text": "Monitor from distance", "risk": "low", "reward": "information", "evidence_gain": 1},
@@ -86,6 +95,7 @@ func _initialize_story_events() -> void:
 	event2.description = "A transmission reveals someone else is searching for the same thing..."
 	event2.event_type = "story_track"
 	event2.trigger_conditions = {"required_evidence": 1}
+	event2.tutorial_config_key = "first_contact"  # Links to tutorial config JSON
 	_add_event_choices(event2, [
 		{"text": "Attempt to make contact", "risk": "medium", "reward": "ally", "evidence_gain": 2},
 		{"text": "Follow them secretly", "risk": "high", "reward": "intel", "evidence_gain": 3},
@@ -101,6 +111,7 @@ func _initialize_story_events() -> void:
 	event3.description = "Evidence points to a massive corporate cover-up involving illegal experiments..."
 	event3.event_type = "story_track"
 	event3.trigger_conditions = {"required_evidence": 3}
+	event3.tutorial_config_key = "conspiracy_revealed"  # Links to tutorial config JSON
 	_add_event_choices(event3, [
 		{"text": "Expose the conspiracy", "risk": "very_high", "reward": "reputation", "evidence_gain": 1},
 		{"text": "Blackmail for profit", "risk": "high", "reward": "credits", "evidence_gain": 1},
@@ -116,6 +127,7 @@ func _initialize_story_events() -> void:
 	event4.description = "You discover someone close to you was involved in the original research..."
 	event4.event_type = "story_track"
 	event4.trigger_conditions = {"required_evidence": 4}
+	event4.tutorial_config_key = "dangerous_escalation"  # Links to tutorial config JSON
 	_add_event_choices(event4, [
 		{"text": "Confront them directly", "risk": "medium", "reward": "truth", "evidence_gain": 2},
 		{"text": "Search for more evidence", "risk": "low", "reward": "intel", "evidence_gain": 3},
@@ -131,6 +143,7 @@ func _initialize_story_events() -> void:
 	event5.description = "Your old companion has been taken by those who want to silence the truth..."
 	event5.event_type = "story_track"
 	event5.trigger_conditions = {"required_evidence": 5}
+	event5.tutorial_config_key = "final_revelation"  # Links to tutorial config JSON
 	_add_event_choices(event5, [
 		{"text": "Mount immediate rescue", "risk": "very_high", "reward": "companion", "evidence_gain": 1},
 		{"text": "Gather allies first", "risk": "medium", "reward": "support", "evidence_gain": 2},
@@ -146,6 +159,7 @@ func _initialize_story_events() -> void:
 	event6.description = "You've tracked down where they're holding your friend. Time for diplomacy, Fringe-style!"
 	event6.event_type = "story_track"
 	event6.trigger_conditions = {"required_evidence": 7}
+	event6.tutorial_config_key = "story_aftermath"  # Links to tutorial config JSON
 	_add_event_choices(event6, [
 		{"text": "Full frontal assault", "risk": "extreme", "reward": "victory", "evidence_gain": 0},
 		{"text": "Stealth infiltration", "risk": "very_high", "reward": "rescue", "evidence_gain": 0},
@@ -166,6 +180,69 @@ func _add_event_choices(event: StoryEvent, choices_data: Array) -> void:
 			}
 		}
 		event.add_choice(choice_dict["text"], choice_dict["outcome"], choice_dict["risk"])
+
+## Load tutorial configuration from JSON (for guided campaign mode)
+func _load_tutorial_config() -> void:
+	var config_path := "res://data/tutorial/story_companion_tutorials.json"
+
+	if not FileAccess.file_exists(config_path):
+		print("StoryTrackSystem: Tutorial config not found at %s" % config_path)
+		return
+
+	var file := FileAccess.open(config_path, FileAccess.READ)
+	if not file:
+		push_error("StoryTrackSystem: Failed to open tutorial config")
+		return
+
+	var json_text := file.get_as_text()
+	file.close()
+
+	var json := JSON.new()
+	var parse_result := json.parse(json_text)
+
+	if parse_result != OK:
+		push_error("StoryTrackSystem: Failed to parse tutorial config JSON")
+		return
+
+	tutorial_config = json.data as Dictionary
+	print("StoryTrackSystem: Loaded tutorial config with %d entries" % tutorial_config.get("tutorials", {}).size())
+
+## Enable or disable guided campaign mode
+func set_guided_mode(enabled: bool) -> void:
+	guided_mode_enabled = enabled
+	if enabled:
+		print("StoryTrackSystem: Guided campaign mode enabled")
+	else:
+		print("StoryTrackSystem: Guided campaign mode disabled")
+
+## Emit tutorial request for a story event (helper)
+func _emit_tutorial_request_for_event(event: StoryEvent) -> void:
+	if tutorial_config.is_empty():
+		return
+
+	var tutorials := tutorial_config.get("tutorials", {}) as Dictionary
+	var event_tutorial := tutorials.get(event.tutorial_config_key, {}) as Dictionary
+
+	if event_tutorial.is_empty():
+		return
+
+	# Extract companion tools from tutorial config
+	var companion_tools_config := event_tutorial.get("companion_tools", []) as Array
+	var companion_tools: Array[String] = []
+
+	for tool_data in companion_tools_config:
+		if tool_data is Dictionary:
+			var tool_name := tool_data.get("tool", "") as String
+			if not tool_name.is_empty():
+				companion_tools.append(tool_name)
+
+	# Get story context
+	var story_context := event_tutorial.get("story_context", "") as String
+
+	# Emit tutorial request signal
+	if not companion_tools.is_empty():
+		tutorial_requested.emit(event.event_id, companion_tools, story_context)
+		print("StoryTrackSystem: Tutorial requested for event '%s' with %d tools" % [event.event_id, companion_tools.size()])
 
 ## Start the story track
 func start_story_track() -> void:
@@ -233,6 +310,10 @@ func trigger_next_event() -> void:
 	if evidence_pieces >= required_evidence:
 		story_event_triggered.emit(event)
 		story_track_phase = "event_active"
+
+		# Emit tutorial request if guided mode is enabled
+		if guided_mode_enabled and not event.tutorial_config_key.is_empty():
+			_emit_tutorial_request_for_event(event)
 	else:
 		# Reset clock and continue searching
 		story_clock_ticks = max_clock_ticks

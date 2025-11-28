@@ -1,0 +1,86 @@
+{
+  "name": "Crew Flavor Tables",
+  "description": "Five Parsecs From Home crew characterization tables (p.31)",
+  "we_met_through": {
+    "roll_type": "D100",
+    "entries": {
+      "1-10": {
+        "description": "Hired by a random member of the group",
+        "details": "Professional relationship turned into something more."
+      },
+      "11-20": {
+        "description": "Pursuit of random group member's motivation",
+        "details": "Shared goals brought them together."
+      },
+      "21-30": {
+        "description": "Being in trouble with the authorities",
+        "details": "Running from the law makes strange bedfellows."
+      },
+      "31-40": {
+        "description": "A common enemy",
+        "details": "United against a shared foe."
+      },
+      "41-50": {
+        "description": "A common cause or belief",
+        "details": "Ideology or faith brought them together."
+      },
+      "51-65": {
+        "description": "A random meeting in a bar",
+        "details": "Classic spacer tradition of crew recruitment."
+      },
+      "66-75": {
+        "description": "A previous job",
+        "details": "Worked together before and decided to stick together."
+      },
+      "76-90": {
+        "description": "Mutual protection in a hostile universe",
+        "details": "Safety in numbers in dangerous times."
+      },
+      "91-100": {
+        "description": "Being old war buddies",
+        "details": "Served together in a conflict and stayed together after."
+      }
+    }
+  },
+  "best_characterized_as": {
+    "roll_type": "D100",
+    "entries": {
+      "1-12": {
+        "description": "Lovable rogues",
+        "details": "Charming scoundrels with hearts of gold."
+      },
+      "13-21": {
+        "description": "Consummate professionals",
+        "details": "Business-like and efficient in their work."
+      },
+      "22-28": {
+        "description": "Cut-throat outlaws",
+        "details": "Ruthless criminals with few scruples."
+      },
+      "29-34": {
+        "description": "Defenders of the down-trodden",
+        "details": "Fighting for those who can't fight for themselves."
+      },
+      "35-48": {
+        "description": "Hardened rebels",
+        "details": "Fighting against oppressive systems."
+      },
+      "49-58": {
+        "description": "Starport scum",
+        "details": "Lowlifes scraping by on the fringe."
+      },
+      "59-72": {
+        "description": "Somewhat honorable bandits",
+        "details": "Criminals with a code of conduct."
+      },
+      "73-87": {
+        "description": "In it for the credits",
+        "details": "Mercenaries motivated purely by profit."
+      },
+      "88-100": {
+        "description": "Living the dream!",
+        "details": "Adventurers loving life on the fringe."
+      }
+    }
+  }
+}

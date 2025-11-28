@@ -3,11 +3,11 @@ extends Node
 
 ## Dependencies
 # GlobalEnums available as autoload singleton
-const GameState = preload("res://src/core/state/GameState.gd")
+const CoreGameState = preload("res://src/core/state/GameState.gd")
 # Character/CharacterDataManager reference removed - file does not exist
-const Character = preload("res://src/core/character/Character.gd")
+const FPCMCharacter = preload("res://src/core/character/Character.gd")
 const MissionSystem = preload("res://src/core/systems/Mission.gd")
-const TerrainSystem = preload("res://src/core/terrain/UnifiedTerrainSystem.gd")
+const FPCMTerrainSystem = preload("res://src/core/terrain/UnifiedTerrainSystem.gd")
 const BattleUI = preload("res://src/ui/screens/battle/PreBattleUI.gd")
 
 ## Optional dependencies that may not exist
@@ -22,6 +22,8 @@ signal deployment_updated(zones: Array[Dictionary])
 signal error_occurred(message: String)
 signal pre_battle_completed
 signal initiative_rolled(seized: bool, roll_result: int, savvy_bonus: int)
+signal equipment_phase_started()
+signal equipment_locked()
 
 ## Node references
 @onready var ui: Node = $UI # Will be cast to PreBattleUI if available
@@ -31,12 +33,16 @@ signal initiative_rolled(seized: bool, roll_result: int, savvy_bonus: int)
 var current_mission: StoryQuestData
 var selected_crew: Array
 var deployment_zones: Array[Dictionary]
-var game_state: GameState
+var game_state: CoreGameState
 
 ## Initiative state
 var initiative_seized: bool = false
 var initiative_roll_result: int = 0
 var initiative_savvy_bonus: int = 0
+
+## PHASE 3: Equipment management state
+var _equipment_is_locked: bool = false
+var equipment_manager: Node = null
 
 func _init() -> void:
 	selected_crew = []
@@ -59,6 +65,11 @@ func _initialize_systems() -> void:
 
 	if _terrain_system_script and terrain_system:
 		terrain_system.set_script(_terrain_system_script)
+	
+	# PHASE 3: Connect to EquipmentManager
+	equipment_manager = get_node_or_null("/root/EquipmentManager")
+	if equipment_manager:
+		print("PreBattleLoop: Connected to EquipmentManager")
 
 ## Connect to UI signals
 func _connect_signals() -> void:
@@ -90,7 +101,8 @@ func _connect_ui_signal(signal_name: String, callback: Callable) -> void:
 		ui.connect(signal_name, callback)
 
 ## Start the pre-battle phase with mission data
-func start_phase(mission: StoryQuestData, state: GameState) -> void:
+## Accepts either StoryQuestData Resource or Dictionary for flexibility
+func start_phase(mission: Variant, state: Variant) -> void:
 	if not mission or not state:
 		error_occurred.emit("Invalid mission or game state")
 		push_error("PreBattleLoop: Invalid mission or game state")
@@ -107,7 +119,8 @@ func start_phase(mission: StoryQuestData, state: GameState) -> void:
 	_setup_crew_selection()
 
 ## Safe Property Access Methods
-func _get_mission_property(mission: StoryQuestData, property: String, default_value = null) -> Variant:
+## All methods accept Variant (StoryQuestData Resource or Dictionary)
+func _get_mission_property(mission: Variant, property: String, default_value: Variant = null) -> Variant:
 	if not mission:
 		push_error("Trying to access property '%s' on null mission" % property)
 		return default_value
@@ -116,28 +129,28 @@ func _get_mission_property(mission: StoryQuestData, property: String, default_va
 
 	return mission.get(property)
 
-func _get_mission_title(mission: StoryQuestData) -> String:
+func _get_mission_title(mission: Variant) -> String:
 	return _get_mission_property(mission, "title", "Unknown Mission")
 
-func _get_mission_description(mission: StoryQuestData) -> String:
+func _get_mission_description(mission: Variant) -> String:
 	return _get_mission_property(mission, "description", "No description available")
 
-func _get_mission_battle_type(mission: StoryQuestData) -> int:
+func _get_mission_battle_type(mission: Variant) -> int:
 	return _get_mission_property(mission, "battle_type", GlobalEnums.BattleType.NONE)
 
-func _get_mission_enemy_force(mission: StoryQuestData) -> Array:
+func _get_mission_enemy_force(mission: Variant) -> Array:
 	return _get_mission_property(mission, "enemy_force", [])
 
-func _get_mission_deployment_rules(mission: StoryQuestData) -> Dictionary:
+func _get_mission_deployment_rules(mission: Variant) -> Dictionary:
 	return _get_mission_property(mission, "deployment_rules", {})
 
-func _get_mission_victory_conditions(mission: StoryQuestData) -> Array:
+func _get_mission_victory_conditions(mission: Variant) -> Array:
 	return _get_mission_property(mission, "victory_conditions", [])
 
-func _get_mission_special_conditions(mission: StoryQuestData) -> Array:
+func _get_mission_special_conditions(mission: Variant) -> Array:
 	return _get_mission_property(mission, "special_conditions", [])
 
-func _get_mission_difficulty(mission: StoryQuestData) -> int:
+func _get_mission_difficulty(mission: Variant) -> int:
 	return _get_mission_property(mission, "difficulty", GlobalEnums.DifficultyLevel.STANDARD)
 
 ## Setup the battle preview
@@ -207,18 +220,71 @@ func _prepare_battle_data() -> Dictionary:
 
 	# Roll for initiative before battle
 	roll_seize_initiative()
+	
+	# Lock equipment if not already locked
+	if not _equipment_is_locked:
+		lock_crew_equipment()
 
 	return {
 		"mission": current_mission.serialize() if current_mission and current_mission.has_method("serialize") else {},
 		"crew": selected_crew,
+		"crew_equipment": _get_crew_equipment_snapshot(),
 		"deployment_zones": deployment_zones,
 		"terrain_data": terrain_data,
 		"battle_type": _get_mission_battle_type(current_mission),
 		"difficulty": _get_mission_difficulty(current_mission),
 		"initiative_seized": initiative_seized,
 		"initiative_roll": initiative_roll_result,
-		"initiative_savvy_bonus": initiative_savvy_bonus
+		"initiative_savvy_bonus": initiative_savvy_bonus,
+		"equipment_locked": _equipment_is_locked
 	}
+
+## PHASE 3: Equipment Management Methods
+
+## Start the equipment phase
+func start_equipment_phase() -> void:
+	_equipment_is_locked = false
+	equipment_phase_started.emit()
+	print("PreBattleLoop: Equipment phase started - crew can modify loadouts")
+
+## Lock equipment assignments (called before deployment)
+func lock_crew_equipment() -> void:
+	_equipment_is_locked = true
+	equipment_locked.emit()
+	print("PreBattleLoop: Equipment locked for battle")
+
+## Check if equipment is locked
+func is_equipment_locked() -> bool:
+	return _equipment_is_locked
+
+## Get snapshot of crew equipment for battle
+func _get_crew_equipment_snapshot() -> Dictionary:
+	var snapshot := {}
+	
+	if not equipment_manager:
+		return snapshot
+	
+	for character: Variant in selected_crew:
+		if character == null:
+			continue
+		
+		var char_id := ""
+		if character is Object:
+			if "id" in character:
+				char_id = character.id
+			elif "character_name" in character:
+				char_id = character.character_name
+		
+		if not char_id.is_empty() and equipment_manager.has_method("get_character_equipment"):
+			snapshot[char_id] = equipment_manager.get_character_equipment(char_id)
+	
+	return snapshot
+
+## Get ship stash items
+func get_ship_stash() -> Array:
+	if equipment_manager and equipment_manager.has_method("get_ship_stash"):
+		return equipment_manager.get_ship_stash()
+	return []
 
 ## Roll to Seize the Initiative (Five Parsecs Core Rules)
 ## Roll 2D6 + highest Savvy in crew, succeed on 9+
@@ -246,7 +312,7 @@ func roll_seize_initiative() -> bool:
 func _get_highest_crew_savvy() -> int:
 	var highest_savvy := 0
 
-	for character in selected_crew:
+	for character: Variant in selected_crew:
 		if character == null:
 			continue
 
@@ -302,10 +368,12 @@ func cleanup() -> void:
 	initiative_seized = false
 	initiative_roll_result = 0
 	initiative_savvy_bonus = 0
+	_equipment_is_locked = false
 
 ## Validate mission data structure
+## Accepts either StoryQuestData Resource or Dictionary
 
-func _validate_mission(mission: StoryQuestData) -> bool:
+func _validate_mission(mission: Variant) -> bool:
 	if not mission:
 		return false
 

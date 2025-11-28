@@ -5,6 +5,9 @@ extends Resource
 ## Replaces JSON data with Godot's native resource system
 ## Optimized for Five Parsecs character creation
 
+## Schema version for save file migration (CRITICAL for data integrity)
+@export var schema_version: int = 1
+
 @export var id: String = ""
 @export var name: String = ""
 @export var description: String = ""

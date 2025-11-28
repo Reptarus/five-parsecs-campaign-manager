@@ -1,4 +1,4 @@
-class_name BattleStateMachineClass
+class_name FPCM_BattleStateMachine
 extends Node
 
 ## Battle State Machine for Five Parsecs from Home

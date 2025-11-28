@@ -181,17 +181,34 @@ func _on_transfer_to_stash_pressed() -> void:
 
 	if item_index >= 0 and item_index < equipment.size():
 		var item = equipment[item_index]
-		equipment.remove_at(item_index)
-		_set_member_equipment(member, equipment)
-		stash_items.append(item)
+		
+		# Get character and equipment IDs
+		var character_id = member.get("id", member.get("character_id", "")) if member is Dictionary else ""
+		var equipment_id = item.get("id", "") if item is Dictionary else ""
+		
+		# Try EquipmentManager first for proper state management
+		var equipment_manager = get_node_or_null("/root/EquipmentManager")
+		if equipment_manager and equipment_manager.has_method("transfer_to_ship_stash") and not character_id.is_empty() and not equipment_id.is_empty():
+			if equipment_manager.transfer_to_ship_stash(character_id, equipment_id):
+				# Update local state to match EquipmentManager
+				equipment.remove_at(item_index)
+				_set_member_equipment(member, equipment)
+				stash_items.append(item)
+				print("AssignEquipmentComponent: Transferred %s to ship stash via EquipmentManager" % item.get("name", "Unknown"))
+			else:
+				push_warning("AssignEquipmentComponent: EquipmentManager transfer failed - stash may be full")
+				return
+		else:
+			# Fallback to local state update only
+			equipment.remove_at(item_index)
+			_set_member_equipment(member, equipment)
+			stash_items.append(item)
+			print("AssignEquipmentComponent: Transferred %s to stash (local only)" % str(item))
 
 		_populate_crew_equipment()
 		_populate_stash_list()
 		_populate_crew_list()
 		_update_ui_display()
-
-		var item_name = item.get("name", "Item") if item is Dictionary else str(item)
-		print("AssignEquipmentComponent: Transferred %s to stash" % item_name)
 
 func _on_transfer_to_crew_pressed() -> void:
 	"""Transfer selected item from stash to crew"""
@@ -205,20 +222,37 @@ func _on_transfer_to_crew_pressed() -> void:
 	var item_index = selected[0]
 	if item_index >= 0 and item_index < stash_items.size():
 		var item = stash_items[item_index]
-		stash_items.remove_at(item_index)
-
 		var member = crew_data[selected_crew_index]
-		var equipment = _get_member_equipment(member)
-		equipment.append(item)
-		_set_member_equipment(member, equipment)
+		
+		# Get character and equipment IDs
+		var character_id = member.get("id", member.get("character_id", "")) if member is Dictionary else ""
+		var equipment_id = item.get("id", "") if item is Dictionary else ""
+		
+		# Try EquipmentManager first for proper state management
+		var equipment_manager = get_node_or_null("/root/EquipmentManager")
+		if equipment_manager and equipment_manager.has_method("transfer_from_ship_stash") and not character_id.is_empty() and not equipment_id.is_empty():
+			if equipment_manager.transfer_from_ship_stash(equipment_id, character_id):
+				# Update local state to match EquipmentManager
+				stash_items.remove_at(item_index)
+				var equipment = _get_member_equipment(member)
+				equipment.append(item)
+				_set_member_equipment(member, equipment)
+				print("AssignEquipmentComponent: Transferred %s to crew member via EquipmentManager" % item.get("name", "Unknown"))
+			else:
+				push_warning("AssignEquipmentComponent: EquipmentManager transfer from stash failed")
+				return
+		else:
+			# Fallback to local state update only
+			stash_items.remove_at(item_index)
+			var equipment = _get_member_equipment(member)
+			equipment.append(item)
+			_set_member_equipment(member, equipment)
+			print("AssignEquipmentComponent: Transferred %s to crew member (local only)" % str(item))
 
 		_populate_crew_equipment()
 		_populate_stash_list()
 		_populate_crew_list()
 		_update_ui_display()
-
-		var item_name = item.get("name", "Item") if item is Dictionary else str(item)
-		print("AssignEquipmentComponent: Transferred %s to crew member" % item_name)
 
 func _on_transfer_between_crew_pressed() -> void:
 	"""Transfer item between crew members (simplified - select target next)"""

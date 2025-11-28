@@ -1,0 +1,67 @@
+[gd_scene load_steps=2 format=3 uid="uid://character_card_component"]
+
+[ext_resource type="Script" path="res://src/ui/components/character/CharacterCard.gd" id="1_character_card"]
+
+[node name="CharacterCard" type="PanelContainer"]
+custom_minimum_size = Vector2(0, 120)
+script = ExtResource("1_character_card")
+
+[node name="CardContainer" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="Portrait" type="TextureRect" parent="CardContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="PortraitBackground" type="ColorRect" parent="CardContainer/Portrait"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.117647, 0.117647, 0.211765, 1)
+
+[node name="InfoContainer" type="VBoxContainer" parent="CardContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NameLabel" type="Label" parent="CardContainer/InfoContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
+theme_override_font_sizes/font_size = 18
+text = "Character Name"
+
+[node name="SubtitleLabel" type="Label" parent="CardContainer/InfoContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.501961, 0.501961, 0.501961, 1)
+theme_override_font_sizes/font_size = 14
+text = "Baseline • Colonist"
+
+[node name="StatsContainer" type="HBoxContainer" parent="CardContainer/InfoContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="StatLabel1" type="Label" parent="CardContainer/InfoContainer/StatsContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.501961, 0.501961, 0.501961, 1)
+theme_override_font_sizes/font_size = 11
+text = "COM: 4"
+
+[node name="StatLabel2" type="Label" parent="CardContainer/InfoContainer/StatsContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.501961, 0.501961, 0.501961, 1)
+theme_override_font_sizes/font_size = 11
+text = "REA: 4"
+
+[node name="StatLabel3" type="Label" parent="CardContainer/InfoContainer/StatsContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.501961, 0.501961, 0.501961, 1)
+theme_override_font_sizes/font_size = 11
+text = "SAV: 4"

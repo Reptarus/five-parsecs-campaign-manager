@@ -3,28 +3,49 @@
 class_name CrewManagementScreen
 extends Control
 
-# UI Node References
-# UI Node References - using %NodeName for maintainability
-@onready var crew_list: VBoxContainer = %CrewList
+# ============ CONSTANTS (Design System) ============
+const SPACING_MD := 16
+const SPACING_LG := 24
+const COLOR_WARNING := Color("#D97706")
+
+# Responsive breakpoints (mobile-first)
+const BREAKPOINT_MOBILE := 480   # < 480px: 1 column
+const BREAKPOINT_TABLET := 1024  # 480-1024px: 2 columns
+# >= 1024px: 3 columns
+
+const MAX_CREW_SIZE := 8  # Campaign maximum
+
+# ============ PRELOADS ============
+const CharacterCardScene := preload("res://src/ui/components/character/CharacterCard.tscn")
+
+# ============ NODE REFERENCES ============
+@onready var crew_grid: GridContainer = %CrewGrid
 @onready var crew_count_label: Label = %CrewCountLabel
 @onready var add_button: Button = %AddButton
 @onready var save_button: Button = %SaveButton
 @onready var back_button: Button = %BackButton
 
-# State
+# ============ STATE ============
 var current_campaign = null
-var character_cards: Array = []
+var character_cards: Array[CharacterCard] = []  # Typed array for performance
+var current_columns: int = 1  # Track current grid columns
 
 func _ready() -> void:
 	print("CrewManagementScreen: Initializing...")
 
-	# Connect button signals
+	# Setup responsive grid
+	_setup_responsive_grid()
+
+	# Connect signals
 	if add_button:
 		add_button.pressed.connect(_on_add_member_pressed)
 	if save_button:
 		save_button.pressed.connect(_on_save_pressed)
 	if back_button:
 		back_button.pressed.connect(_on_back_pressed)
+	
+	# Connect viewport resize for responsive updates
+	get_viewport().size_changed.connect(_on_viewport_resized)
 
 	# Load crew data
 	load_crew_data()
@@ -51,7 +72,7 @@ func load_crew_data() -> void:
 	print("CrewManagementScreen: Loading crew from campaign...")
 
 	# Clear existing crew cards
-	clear_crew_list()
+	_clear_crew_grid()
 
 	# Get crew members
 	if "crew_members" in current_campaign and current_campaign.crew_members:
@@ -59,140 +80,136 @@ func load_crew_data() -> void:
 		print("CrewManagementScreen: Found %d crew members" % crew_members.size())
 
 		for character in crew_members:
-			create_crew_card(character)
+			_create_character_card(character)
 	else:
 		print("CrewManagementScreen: No crew members found")
 
 	# Update crew count display
-	update_crew_count()
+	_update_crew_count()
 
-func clear_crew_list() -> void:
-	"""Remove all crew cards from UI"""
-	if not crew_list:
+# ============ RESPONSIVE GRID SYSTEM ============
+func _setup_responsive_grid() -> void:
+	"""Initialize responsive grid with mobile-first defaults"""
+	if not crew_grid:
+		return
+	
+	crew_grid.columns = 1  # Start mobile
+	crew_grid.add_theme_constant_override("h_separation", SPACING_MD)
+	crew_grid.add_theme_constant_override("v_separation", SPACING_MD)
+	
+	# Calculate initial column count
+	_update_grid_columns()
+
+func _on_viewport_resized() -> void:
+	"""Handle viewport resize for responsive layout"""
+	_update_grid_columns()
+
+func _update_grid_columns() -> void:
+	"""Calculate and update grid columns based on viewport width"""
+	if not crew_grid:
+		return
+	
+	var viewport_width := get_viewport_rect().size.x
+	var new_columns := _calculate_column_count(viewport_width)
+	
+	# Only update if changed (prevent unnecessary layout recalculation)
+	if new_columns != current_columns:
+		crew_grid.columns = new_columns
+		current_columns = new_columns
+		print("CrewManagementScreen: Grid columns updated to %d (viewport: %dpx)" % [new_columns, viewport_width])
+
+func _calculate_column_count(viewport_width: float) -> int:
+	"""Calculate optimal column count based on viewport width"""
+	if viewport_width < BREAKPOINT_MOBILE:
+		return 1  # Mobile: single column
+	elif viewport_width < BREAKPOINT_TABLET:
+		return 2  # Tablet: two columns
+	else:
+		return 3  # Desktop: three columns
+
+# ============ CHARACTER CARD MANAGEMENT ============
+func _clear_crew_grid() -> void:
+	"""Remove all character cards from grid"""
+	if not crew_grid:
 		return
 
-	for child in crew_list.get_children():
-		child.queue_free()
-
+	for card in character_cards:
+		if is_instance_valid(card):
+			card.queue_free()
+	
 	character_cards.clear()
 
-func create_crew_card(character) -> void:
-	"""Create a crew member card with character info"""
-	if not crew_list:
+func _create_character_card(character: Character) -> void:
+	"""Create and configure CharacterCard STANDARD variant"""
+	if not crew_grid:
 		return
-
-	# Create card container (expanded height for 3-line layout)
-	var card = PanelContainer.new()
-	card.custom_minimum_size = Vector2(0, 80)  # Increased from 60 to accommodate Background/Motivation/Class line
-
-	# Create responsive inner layout
-	var responsive_script = preload("res://src/ui/components/ResponsiveContainer.gd")
-	var card_container = Container.new()
-	card_container.set_script(responsive_script)
-	card_container.min_width_for_horizontal = 500  # Lower breakpoint for cards
-	card_container.horizontal_spacing = 10
-	card_container.vertical_spacing = 5
-	card.add_child(card_container)
-
-	# Character info section (left/top panel)
-	var info_vbox = VBoxContainer.new()
-	info_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card_container.add_child(info_vbox)
-
-	# Name label
-	var name_label = Label.new()
-	name_label.text = character.name if "name" in character else "Unknown"
-	name_label.add_theme_font_size_override("font_size", 16)
-	info_vbox.add_child(name_label)
-
-	# Stats label
-	var stats_label = Label.new()
-	var combat = character.combat if "combat" in character else 0
-	var toughness = character.toughness if "toughness" in character else 0
-	var savvy = character.savvy if "savvy" in character else 0
-	stats_label.text = "Combat: %d | Toughness: %d | Savvy: %d" % [combat, toughness, savvy]
-	stats_label.add_theme_font_size_override("font_size", 12)
-	stats_label.modulate = Color(0.8, 0.8, 0.8)
-	info_vbox.add_child(stats_label)
-
-	# Character creation info label (Background/Motivation/Class)
-	var creation_info_label = Label.new()
-	var background = character.background if "background" in character else "Unknown"
-	var motivation = character.motivation if "motivation" in character else "Unknown"
-	var char_class = character.character_class if "character_class" in character else "Unknown"
-	var origin = character.origin if "origin" in character else "HUMAN"
-	creation_info_label.text = "%s | %s/%s/%s" % [origin, background, motivation, char_class]
-	creation_info_label.add_theme_font_size_override("font_size", 11)
-	creation_info_label.modulate = Color(0.7, 0.9, 1.0)  # Light blue to distinguish from stats
-	info_vbox.add_child(creation_info_label)
-
-	# Actions section (right/bottom panel) - will stack vertically on narrow screens
-	var actions_vbox = VBoxContainer.new()
-	card_container.add_child(actions_vbox)
-
-	# Status icon
-	var status_label = Label.new()
-	status_label.text = "✅"  # Default to active
-	status_label.add_theme_font_size_override("font_size", 24)
-	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	actions_vbox.add_child(status_label)
-
-	# Buttons container
-	var button_box = HBoxContainer.new()
-	button_box.alignment = BoxContainer.ALIGNMENT_CENTER
-	actions_vbox.add_child(button_box)
-
-	# View Details button
-	var details_btn = Button.new()
-	details_btn.text = "View Details"
-	details_btn.custom_minimum_size = Vector2(120, 0)
-	details_btn.pressed.connect(_on_view_character.bind(character))
-	button_box.add_child(details_btn)
-
-	# Remove button
-	var remove_btn = Button.new()
-	remove_btn.text = "Remove"
-	remove_btn.custom_minimum_size = Vector2(80, 0)
-	remove_btn.pressed.connect(_on_remove_character.bind(character))
-	button_box.add_child(remove_btn)
-
-	# Add to crew list
-	crew_list.add_child(card)
+	
+	# Instantiate CharacterCard
+	var card: CharacterCard = CharacterCardScene.instantiate()
+	crew_grid.add_child(card)
+	
+	# Configure card variant
+	card.set_variant(CharacterCard.CardVariant.STANDARD)
+	
+	# Bind character data (call down)
+	card.set_character(character)
+	
+	# Connect signals (signal up)
+	card.view_details_pressed.connect(_on_card_view_details.bind(character))
+	card.edit_pressed.connect(_on_card_edit.bind(character))
+	card.remove_pressed.connect(_on_card_remove.bind(character))
+	card.card_tapped.connect(_on_card_tapped.bind(character))
+	
+	# Track card
 	character_cards.append(card)
 
-func update_crew_count() -> void:
-	"""Update the crew count label"""
+func _update_crew_count() -> void:
+	"""Update crew count label with current/max display"""
 	if not crew_count_label:
 		return
 
-	var crew_size = character_cards.size()
-	crew_count_label.text = "%d Active" % crew_size
+	var crew_size := character_cards.size()
+	crew_count_label.text = "Crew: %d/%d" % [crew_size, MAX_CREW_SIZE]
+	
+	# Warning color if at max capacity
+	if crew_size >= MAX_CREW_SIZE:
+		crew_count_label.add_theme_color_override("font_color", COLOR_WARNING)
+	else:
+		crew_count_label.remove_theme_color_override("font_color")
 
-func _on_view_character(character) -> void:
-	"""Navigate to character details screen"""
-	print("CrewManagementScreen: Viewing character - ", character.name if "name" in character else "Unknown")
+# ============ CHARACTER CARD SIGNAL HANDLERS ============
+func _on_card_view_details(character: Character) -> void:
+	"""Handle CharacterCard view_details_pressed signal"""
+	print("CrewManagementScreen: View details - %s" % character.get_display_name())
 
-	# Store character reference for CharacterDetailsScreen to access
+	# Store character reference for CharacterDetailsScreen
 	if GameStateManager:
 		GameStateManager.set_temp_data(GameStateManager.TEMP_KEY_SELECTED_CHARACTER, character)
 
-	# Navigate to character details screen using standardized navigation
+	# Navigate to character details screen
 	GameStateManager.navigate_to_screen("character_details")
 
-func _on_remove_character(character) -> void:
-	"""Remove a character from the crew (with confirmation)"""
-	var char_name = character.name if "name" in character else "Unknown"
-	print("CrewManagementScreen: Remove character requested - ", char_name)
+func _on_card_edit(character: Character) -> void:
+	"""Handle CharacterCard edit_pressed signal"""
+	print("CrewManagementScreen: Edit character - %s" % character.get_display_name())
+	
+	# TODO: Implement character editor dialog
+	push_warning("CrewManagementScreen: Character editing not yet implemented")
+
+func _on_card_remove(character: Character) -> void:
+	"""Handle CharacterCard remove_pressed signal with confirmation"""
+	var char_name := character.get_display_name()
+	print("CrewManagementScreen: Remove character requested - %s" % char_name)
 
 	# Create confirmation dialog
-	var dialog = ConfirmationDialog.new()
+	var dialog := ConfirmationDialog.new()
 	dialog.title = "Remove Crew Member"
 	dialog.dialog_text = "Remove %s from crew?\nThis cannot be undone." % char_name
 	dialog.ok_button_text = "Remove"
 	dialog.cancel_button_text = "Cancel"
 	add_child(dialog)
 
-	# Connect and show
+	# Connect signals
 	dialog.confirmed.connect(func():
 		_actually_remove_character(character)
 		dialog.queue_free()
@@ -200,31 +217,45 @@ func _on_remove_character(character) -> void:
 	dialog.canceled.connect(func(): dialog.queue_free())
 	dialog.popup_centered()
 
-func _actually_remove_character(character) -> void:
-	"""Actually remove the character after confirmation"""
-	if current_campaign and "crew_members" in current_campaign:
-		var index = current_campaign.crew_members.find(character)
-		if index >= 0:
-			current_campaign.crew_members.remove_at(index)
-			print("CrewManagementScreen: Removed character at index %d" % index)
+func _on_card_tapped(character: Character) -> void:
+	"""Handle CharacterCard card_tapped signal (visual feedback)"""
+	# Optional: Add selection/highlight visual feedback
+	print("CrewManagementScreen: Card tapped - %s" % character.get_display_name())
 
-			# Mark campaign as modified
-			if GameStateManager:
-				GameStateManager.mark_campaign_modified()
+func _actually_remove_character(character: Character) -> void:
+	"""Actually remove character after confirmation"""
+	if not current_campaign or not "crew_members" in current_campaign:
+		return
+	
+	var index := current_campaign.crew_members.find(character)
+	if index >= 0:
+		current_campaign.crew_members.remove_at(index)
+		print("CrewManagementScreen: Removed character at index %d" % index)
 
-			# Reload crew display
-			load_crew_data()
+		# Mark campaign as modified
+		if GameStateManager:
+			GameStateManager.mark_campaign_modified()
 
+		# Reload crew display
+		load_crew_data()
+
+# ============ BUTTON HANDLERS ============
 func _on_add_member_pressed() -> void:
-	"""Add a new crew member"""
+	"""Add new crew member"""
 	print("CrewManagementScreen: Add member requested")
+	
+	# Check max crew size
+	if character_cards.size() >= MAX_CREW_SIZE:
+		push_warning("CrewManagementScreen: Cannot add member - crew at maximum size")
+		# TODO: Show user-facing warning dialog
+		return
 
 	# Store return context for character creation
 	if GameStateManager:
 		GameStateManager.set_temp_data(GameStateManager.TEMP_KEY_CREW_ADD_MODE, true)
 		GameStateManager.set_temp_data(GameStateManager.TEMP_KEY_RETURN_SCREEN, "crew_management")
 
-	# Navigate to character creation using standardized navigation
+	# Navigate to character creation
 	GameStateManager.navigate_to_scene_path("res://src/ui/screens/crew/InitialCrewCreation.tscn")
 
 func _on_save_pressed() -> void:

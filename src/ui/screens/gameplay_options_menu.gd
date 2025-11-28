@@ -13,7 +13,7 @@ var languages = ["English", "Spanish", "French", "German", "Japanese"]
 var game_manager: GameManager
 
 func _ready() -> void:
-	game_manager = get_node("/root/GameManager")
+	game_manager = get_node("/root/GameStateManager")
 	setup_difficulty_options()
 	setup_language_options()
 	load_current_settings()

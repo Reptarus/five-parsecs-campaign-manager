@@ -33,6 +33,9 @@ extends Resource
 @export var page_reference: String = ""
 @export var tags: Array[String] = []
 
+# Tutorial integration (for guided campaign mode)
+@export var tutorial_config_key: String = ""  # References tutorial config in story_companion_tutorials.json
+
 var _is_active: bool = false
 var is_resolved: bool = false
 var selected_choice: int = -1
@@ -158,7 +161,8 @@ func to_dict() -> Dictionary:
 		"follow_up_events": follow_up_events.duplicate(),
 		"source_book": source_book,
 		"page_reference": page_reference,
-		"tags": tags.duplicate()
+		"tags": tags.duplicate(),
+		"tutorial_config_key": tutorial_config_key
 	}
 
 ## Load event from dictionary data
@@ -182,6 +186,7 @@ func from_dict(data: Dictionary) -> void:
 	source_book = data.get("source_book", "Core Rules")
 	page_reference = data.get("page_reference", "")
 	tags = data.get("tags", [])
+	tutorial_config_key = data.get("tutorial_config_key", "")
 
 ## Validate event data integrity
 func validate() -> Dictionary:

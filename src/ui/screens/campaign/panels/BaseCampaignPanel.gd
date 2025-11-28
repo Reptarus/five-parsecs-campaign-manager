@@ -30,6 +30,12 @@ func _ready() -> void:
 	_ensure_panel_structure()
 	_setup_panel_content()
 
+	# Setup responsive layout system
+	_setup_responsive_layout()
+
+	# Connect viewport resize signal for responsive updates
+	get_viewport().size_changed.connect(_on_viewport_resized)
+
 func _exit_tree() -> void:
 	"""Cleanup when panel is removed from scene tree"""
 	# Disconnect from coordinator if connected
@@ -69,9 +75,18 @@ func _ensure_panel_structure() -> void:
 	print("BaseCampaignPanel: Created panel structure for %s" % get_class())
 
 ## Core Interface - Override in derived classes
+# Validation state
+var last_validation_errors: Array[String] = []
+
 func validate_panel() -> bool:
 	"""Simple validation - return true if panel data is valid"""
 	return true
+
+func get_validation_message() -> String:
+	"""Get human-readable validation message for UI display"""
+	if last_validation_errors.size() > 0:
+		return last_validation_errors[0]
+	return "Complete required fields to continue"
 
 func get_panel_data() -> Dictionary:
 	"""Get panel data for campaign creation"""
@@ -131,6 +146,165 @@ func _validate_and_emit_completion() -> void:
 func _setup_panel_content() -> void:
 	"""Setup panel-specific content"""
 	pass
+
+# ============ RESPONSIVE LAYOUT SYSTEM (MOBILE-FIRST) ============
+# Sprint 3: Mobile-first responsive design with breakpoint detection
+
+func _setup_responsive_layout() -> void:
+	"""Initialize responsive layout system on panel load"""
+	_apply_responsive_layout()
+	print("BaseCampaignPanel: Responsive layout initialized - Mode: %s" % _get_layout_mode_name())
+
+func _on_viewport_resized() -> void:
+	"""Handle viewport resize events to update layout"""
+	var previous_mode = current_layout_mode
+	_apply_responsive_layout()
+
+	# Only log if layout mode changed
+	if current_layout_mode != previous_mode:
+		print("BaseCampaignPanel: Layout mode changed: %s → %s" % [
+			_get_layout_mode_name(previous_mode),
+			_get_layout_mode_name()
+		])
+
+func _apply_responsive_layout() -> void:
+	"""Apply responsive layout based on current viewport width"""
+	var viewport_width = get_viewport().get_visible_rect().size.x
+	var new_mode: LayoutMode
+
+	# Determine layout mode from viewport width
+	if viewport_width < BREAKPOINT_MOBILE:
+		new_mode = LayoutMode.MOBILE
+	elif viewport_width < BREAKPOINT_TABLET:
+		new_mode = LayoutMode.TABLET
+	else:
+		new_mode = LayoutMode.DESKTOP
+
+	# Apply layout if mode changed
+	if new_mode != current_layout_mode:
+		current_layout_mode = new_mode
+		_update_layout_for_mode()
+
+func _update_layout_for_mode() -> void:
+	"""Update UI layout based on current mode - override in derived panels"""
+	match current_layout_mode:
+		LayoutMode.MOBILE:
+			_apply_mobile_layout()
+		LayoutMode.TABLET:
+			_apply_tablet_layout()
+		LayoutMode.DESKTOP:
+			_apply_desktop_layout()
+
+# Virtual methods for panels to override
+func _apply_mobile_layout() -> void:
+	"""Apply mobile-specific layout (portrait, single column, large touch targets)"""
+	# Override in derived panels for mobile-specific adjustments
+	pass
+
+func _apply_tablet_layout() -> void:
+	"""Apply tablet-specific layout (two-column where appropriate)"""
+	# Override in derived panels for tablet-specific adjustments
+	pass
+
+func _apply_desktop_layout() -> void:
+	"""Apply desktop-specific layout (multi-column, full data visibility)"""
+	# Override in derived panels for desktop-specific adjustments
+	pass
+
+func is_mobile_layout() -> bool:
+	"""Check if current layout is mobile"""
+	return current_layout_mode == LayoutMode.MOBILE
+
+func is_tablet_layout() -> bool:
+	"""Check if current layout is tablet"""
+	return current_layout_mode == LayoutMode.TABLET
+
+func is_desktop_layout() -> bool:
+	"""Check if current layout is desktop"""
+	return current_layout_mode == LayoutMode.DESKTOP
+
+func _get_layout_mode_name(mode: LayoutMode = current_layout_mode) -> String:
+	"""Get human-readable name for layout mode"""
+	match mode:
+		LayoutMode.MOBILE:
+			return "MOBILE"
+		LayoutMode.TABLET:
+			return "TABLET"
+		LayoutMode.DESKTOP:
+			return "DESKTOP"
+		_:
+			return "UNKNOWN"
+
+# ============ RESPONSIVE HELPER METHODS ============
+
+func get_responsive_font_size(base_size: int) -> int:
+	"""Get font size adjusted for current layout mode"""
+	match current_layout_mode:
+		LayoutMode.MOBILE:
+			# Reduce font sizes on mobile for better density
+			return max(FONT_SIZE_XS, base_size - 2)
+		LayoutMode.TABLET:
+			# Tablet uses base sizes
+			return base_size
+		LayoutMode.DESKTOP:
+			# Desktop can use slightly larger for readability
+			return base_size
+		_:
+			return base_size
+
+func get_responsive_spacing(base_spacing: int) -> int:
+	"""Get spacing adjusted for current layout mode"""
+	match current_layout_mode:
+		LayoutMode.MOBILE:
+			# Tighter spacing on mobile to maximize screen space
+			return max(SPACING_XS, base_spacing - 4)
+		LayoutMode.TABLET:
+			# Tablet uses base spacing
+			return base_spacing
+		LayoutMode.DESKTOP:
+			# Desktop can use more generous spacing
+			return base_spacing + 4
+		_:
+			return base_spacing
+
+func get_responsive_touch_target() -> int:
+	"""Get touch target size for current layout mode"""
+	match current_layout_mode:
+		LayoutMode.MOBILE:
+			# Mobile needs comfortable 56dp targets
+			return TOUCH_TARGET_COMFORT
+		LayoutMode.TABLET:
+			# Tablet uses standard 48dp
+			return TOUCH_TARGET_MIN
+		LayoutMode.DESKTOP:
+			# Desktop can use minimum (mouse precision)
+			return TOUCH_TARGET_MIN
+		_:
+			return TOUCH_TARGET_MIN
+
+func should_use_single_column() -> bool:
+	"""Check if layout should use single column (mobile/portrait)"""
+	if current_layout_mode == LayoutMode.MOBILE:
+		return true
+
+	# Check for portrait orientation even on larger devices
+	var viewport_size = get_viewport().get_visible_rect().size
+	return viewport_size.y > viewport_size.x  # Height > Width = Portrait
+
+func get_optimal_column_count() -> int:
+	"""Get optimal number of columns for current layout"""
+	if should_use_single_column():
+		return 1
+
+	match current_layout_mode:
+		LayoutMode.MOBILE:
+			return 1
+		LayoutMode.TABLET:
+			return 2
+		LayoutMode.DESKTOP:
+			return 3
+		_:
+			return 2
 
 ## Helper methods for safe panel operations
 func emit_data_changed() -> void:
@@ -326,3 +500,393 @@ func _emit_panel_data_changed(data: Dictionary) -> void:
 
 	print("%s: ✅ Emitting panel_data_changed" % name)
 	panel_data_changed.emit(data)
+
+
+# ============ UNIFIED UI DESIGN SYSTEM ============
+# Consistent styling across all 7 campaign creation panels
+
+## Spacing System (8px grid)
+const SPACING_XS := 4   # Icon padding, label-to-input gap
+const SPACING_SM := 8   # Element gaps within cards
+const SPACING_MD := 16  # Inner card padding
+const SPACING_LG := 24  # Section gaps between cards
+const SPACING_XL := 32  # Panel edge padding
+
+## Touch Target Minimums
+const TOUCH_TARGET_MIN := 48      # Minimum interactive element height
+const TOUCH_TARGET_COMFORT := 56  # Comfortable input height
+
+## Typography Sizes
+const FONT_SIZE_XS := 11  # Captions, limits
+const FONT_SIZE_SM := 14  # Descriptions, helpers
+const FONT_SIZE_MD := 16  # Body text, inputs
+const FONT_SIZE_LG := 18  # Section headers
+const FONT_SIZE_XL := 24  # Panel titles
+
+## Responsive Breakpoints (Mobile-First Design)
+const BREAKPOINT_MOBILE := 480    # Mobile portrait: <480px
+const BREAKPOINT_TABLET := 768    # Tablet: 480-768px
+const BREAKPOINT_DESKTOP := 1024  # Desktop: >1024px
+
+# Responsive layout state
+enum LayoutMode { MOBILE, TABLET, DESKTOP }
+var current_layout_mode: LayoutMode = LayoutMode.DESKTOP
+
+## Color Palette - Deep Space Theme
+const COLOR_BASE := Color("#1A1A2E")         # Panel background
+const COLOR_ELEVATED := Color("#252542")     # Card backgrounds
+const COLOR_INPUT := Color("#1E1E36")        # Form field backgrounds
+const COLOR_BORDER := Color("#3A3A5C")       # Card borders
+const COLOR_ACCENT := Color("#2D5A7B")       # Primary accent (Deep Space Blue)
+const COLOR_ACCENT_HOVER := Color("#3A7199") # Hover state
+const COLOR_FOCUS := Color("#4FC3F7")        # Focus ring (cyan)
+
+const COLOR_TEXT_PRIMARY := Color("#E0E0E0")   # Main content
+const COLOR_TEXT_SECONDARY := Color("#808080") # Descriptions
+const COLOR_TEXT_DISABLED := Color("#404040")  # Inactive
+
+const COLOR_SUCCESS := Color("#10B981")  # Green
+const COLOR_WARNING := Color("#D97706")  # Orange
+const COLOR_DANGER := Color("#DC2626")   # Red
+
+
+# ============ UI COMPONENT FACTORY METHODS ============
+
+func _create_section_card(title: String, content: Control, description: String = "") -> PanelContainer:
+	"""Create a styled section card with title, content, and optional description."""
+	var panel := PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	# Apply card styling
+	var style := StyleBoxFlat.new()
+	style.bg_color = COLOR_ELEVATED
+	style.border_color = COLOR_BORDER
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(8)
+	style.set_content_margin_all(SPACING_MD)
+	panel.add_theme_stylebox_override("panel", style)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", SPACING_SM)
+
+	# Section label (uppercase)
+	var label := Label.new()
+	label.text = title.to_upper()
+	label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	vbox.add_child(label)
+
+	# Separator
+	var sep := HSeparator.new()
+	sep.modulate = COLOR_BORDER
+	vbox.add_child(sep)
+
+	# Content
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.add_child(content)
+
+	# Optional description
+	if description != "":
+		var desc := Label.new()
+		desc.text = description
+		desc.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		vbox.add_child(desc)
+
+	panel.add_child(vbox)
+	return panel
+
+
+func _create_labeled_input(label_text: String, input: Control) -> VBoxContainer:
+	"""Create a label above an input field with proper spacing."""
+	var container := VBoxContainer.new()
+	container.add_theme_constant_override("separation", SPACING_XS)
+	container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	if label_text != "":
+		var label := Label.new()
+		label.text = label_text
+		label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		container.add_child(label)
+
+	input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	input.custom_minimum_size.y = TOUCH_TARGET_MIN
+	container.add_child(input)
+
+	return container
+
+
+func _create_stat_display(stat_name: String, value: Variant) -> PanelContainer:
+	"""Create a compact stat display box."""
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(64, 56)
+
+	var style := StyleBoxFlat.new()
+	style.bg_color = COLOR_INPUT
+	style.set_corner_radius_all(6)
+	style.set_content_margin_all(SPACING_SM)
+	panel.add_theme_stylebox_override("panel", style)
+
+	var vbox := VBoxContainer.new()
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+
+	# Stat name
+	var name_label := Label.new()
+	name_label.text = stat_name.to_upper()
+	name_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	name_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(name_label)
+
+	# Value
+	var value_label := Label.new()
+	value_label.text = str(value)
+	value_label.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	value_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(value_label)
+
+	panel.add_child(vbox)
+	return panel
+
+
+func _create_stats_grid(stats: Dictionary, columns: int = 4) -> GridContainer:
+	"""Create a grid of stat displays."""
+	var grid := GridContainer.new()
+	grid.columns = columns
+	grid.add_theme_constant_override("h_separation", SPACING_SM)
+	grid.add_theme_constant_override("v_separation", SPACING_SM)
+
+	for stat_name in stats:
+		var stat_box := _create_stat_display(stat_name, stats[stat_name])
+		grid.add_child(stat_box)
+
+	return grid
+
+
+func _create_button_group_selector(options: Array, selected_index: int = 0) -> HBoxContainer:
+	"""Create a horizontal button group for single selection (radio-like)."""
+	var container := HBoxContainer.new()
+	container.add_theme_constant_override("separation", SPACING_SM)
+
+	var button_group := ButtonGroup.new()
+
+	for i in range(options.size()):
+		var btn := Button.new()
+		btn.text = str(options[i])
+		btn.toggle_mode = true
+		btn.button_group = button_group
+		btn.button_pressed = (i == selected_index)
+		btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		container.add_child(btn)
+
+	return container
+
+
+func _create_character_card(char_name: String, subtitle: String, stats: Dictionary = {}) -> PanelContainer:
+	"""Create a character card with portrait placeholder, name, and stats."""
+	var panel := PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.custom_minimum_size.y = 100
+
+	var style := StyleBoxFlat.new()
+	style.bg_color = COLOR_ELEVATED
+	style.border_color = COLOR_BORDER
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(8)
+	style.set_content_margin_all(SPACING_MD)
+	panel.add_theme_stylebox_override("panel", style)
+
+	var hbox := HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", SPACING_MD)
+
+	# Portrait placeholder
+	var portrait := ColorRect.new()
+	portrait.custom_minimum_size = Vector2(64, 64)
+	portrait.color = COLOR_BORDER
+	hbox.add_child(portrait)
+
+	# Info column
+	var info := VBoxContainer.new()
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var name_label := Label.new()
+	name_label.text = char_name
+	name_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	info.add_child(name_label)
+
+	var sub_label := Label.new()
+	sub_label.text = subtitle
+	sub_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	sub_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	info.add_child(sub_label)
+
+	# Stats row
+	if stats.size() > 0:
+		var stats_text := ""
+		for key in stats:
+			if stats_text != "":
+				stats_text += "  "
+			stats_text += "%s: %s" % [key, stats[key]]
+		var stats_label := Label.new()
+		stats_label.text = stats_text
+		stats_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+		stats_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		info.add_child(stats_label)
+
+	hbox.add_child(info)
+	panel.add_child(hbox)
+	return panel
+
+
+func _create_add_button(text: String) -> Button:
+	"""Create an 'add item' button with dashed border style."""
+	var btn := Button.new()
+	btn.text = text
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color.TRANSPARENT
+	style.border_color = COLOR_TEXT_SECONDARY
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(6)
+	style.set_content_margin_all(SPACING_MD)
+	btn.add_theme_stylebox_override("normal", style)
+
+	btn.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+
+	return btn
+
+
+func _style_line_edit(line_edit: LineEdit) -> void:
+	"""Apply consistent styling to a LineEdit."""
+	line_edit.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+
+	var style := StyleBoxFlat.new()
+	style.bg_color = COLOR_INPUT
+	style.border_color = COLOR_BORDER
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(6)
+	style.set_content_margin_all(SPACING_SM)
+	line_edit.add_theme_stylebox_override("normal", style)
+
+	var focus_style := style.duplicate()
+	focus_style.border_color = COLOR_FOCUS
+	focus_style.set_border_width_all(2)
+	line_edit.add_theme_stylebox_override("focus", focus_style)
+
+
+func _style_option_button(option_btn: OptionButton) -> void:
+	"""Apply consistent styling to an OptionButton."""
+	option_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+
+	var style := StyleBoxFlat.new()
+	style.bg_color = COLOR_INPUT
+	style.border_color = COLOR_BORDER
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(6)
+	style.set_content_margin_all(SPACING_SM)
+	option_btn.add_theme_stylebox_override("normal", style)
+
+
+# ============ PROGRESS INDICATOR ============
+
+func _create_progress_indicator(current_step: int, total_steps: int, step_title: String = "") -> Control:
+	"""
+	Create a visual progress indicator with breadcrumbs for multi-step wizards.
+	
+	Features:
+	- Progress bar showing % completion
+	- Breadcrumb circles (1-N) with visual states
+	- Step title display
+	
+	Visual States:
+	- Completed steps: Green background + checkmark (✓)
+	- Current step: Cyan background + step number
+	- Upcoming steps: Gray background + step number
+	
+	Parameters:
+	- current_step: 0-indexed current step (0 = first step)
+	- total_steps: Total number of steps (e.g., 7 for campaign wizard)
+	- step_title: Optional title override (uses panel_title if empty)
+	"""
+	var container := VBoxContainer.new()
+	container.add_theme_constant_override("separation", SPACING_SM)
+	
+	# === PROGRESS BAR ===
+	var progress_bar := ProgressBar.new()
+	progress_bar.custom_minimum_size = Vector2(0, 8)
+	progress_bar.value = (float(current_step) / float(total_steps)) * 100.0
+	progress_bar.show_percentage = false
+	
+	# Style progress bar
+	var progress_bg := StyleBoxFlat.new()
+	progress_bg.bg_color = COLOR_BORDER
+	progress_bg.set_corner_radius_all(4)
+	progress_bar.add_theme_stylebox_override("background", progress_bg)
+	
+	var progress_fill := StyleBoxFlat.new()
+	progress_fill.bg_color = COLOR_FOCUS
+	progress_fill.set_corner_radius_all(4)
+	progress_bar.add_theme_stylebox_override("fill", progress_fill)
+	
+	container.add_child(progress_bar)
+	
+	# === BREADCRUMB CIRCLES ===
+	var breadcrumb_container := HBoxContainer.new()
+	breadcrumb_container.add_theme_constant_override("separation", SPACING_XS)
+	breadcrumb_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	
+	for i in range(total_steps):
+		var step_indicator := PanelContainer.new()
+		step_indicator.custom_minimum_size = Vector2(32, 32)
+		
+		# Style based on step state
+		var style := StyleBoxFlat.new()
+		var label := Label.new()
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		
+		if i < current_step:
+			# Completed step: Green + checkmark
+			style.bg_color = COLOR_SUCCESS
+			label.text = "✓"
+			label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+			label.add_theme_color_override("font_color", Color.WHITE)
+		elif i == current_step:
+			# Current step: Cyan + number
+			style.bg_color = COLOR_FOCUS
+			label.text = str(i + 1)
+			label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+			label.add_theme_color_override("font_color", Color.WHITE)
+		else:
+			# Upcoming step: Gray + number
+			style.bg_color = COLOR_BORDER
+			label.text = str(i + 1)
+			label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+			label.add_theme_color_override("font_color", COLOR_TEXT_DISABLED)
+		
+		style.set_corner_radius_all(16)  # Circular
+		step_indicator.add_theme_stylebox_override("panel", style)
+		step_indicator.add_child(label)
+		breadcrumb_container.add_child(step_indicator)
+	
+	container.add_child(breadcrumb_container)
+	
+	# === STEP TITLE ===
+	var title := Label.new()
+	var display_title := step_title if not step_title.is_empty() else panel_title
+	title.text = "Step %d of %d: %s" % [current_step + 1, total_steps, display_title]
+	title.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	container.add_child(title)
+	
+	return container

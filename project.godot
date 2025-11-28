@@ -36,6 +36,7 @@ TurnPhaseChecklist="*res://src/qol/TurnPhaseChecklist.gd"
 KeywordDB="*res://src/qol/KeywordDB.gd"
 NPCTracker="*res://src/qol/NPCTracker.gd"
 CampaignTurnEventBus="*res://src/core/events/CampaignTurnEventBus.gd"
+FPCM_AlphaGameManager="*res://src/core/managers/AlphaGameManager.gd"
 
 [debug]
 

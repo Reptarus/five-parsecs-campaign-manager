@@ -12,6 +12,7 @@ extends Node
 var game_state_manager: Node = null
 const TravelPhase = preload("res://src/core/campaign/phases/TravelPhase.gd")
 const WorldPhase = preload("res://src/core/campaign/phases/WorldPhase.gd")
+const BattlePhase = preload("res://src/core/campaign/phases/BattlePhase.gd")
 const PostBattlePhase = preload("res://src/core/campaign/phases/PostBattlePhase.gd")
 
 ## Current campaign state
@@ -20,9 +21,13 @@ var current_substep: int = 0
 var transition_in_progress: bool = false
 var turn_number: int = 1
 
+## Phase transition data storage - passes data between phases
+var _phase_transition_data: Dictionary = {}
+
 ## Phase handlers
 var travel_phase_handler: Node = null
 var world_phase_handler: Node = null
+var battle_phase_handler: Node = null
 var post_battle_phase_handler: Node = null
 
 ## Campaign Phase Manager Signals
@@ -81,6 +86,20 @@ func _initialize_phase_handlers() -> void:
 		if world_phase_handler.has_signal("world_substep_changed"):
 			var result4: Error = world_phase_handler.world_substep_changed.connect(_on_world_substep_changed)
 			assert(result4 == OK, "Failed to connect world_substep_changed signal")
+
+	if BattlePhase:
+		battle_phase_handler = BattlePhase.new()
+		add_child(battle_phase_handler)
+		# Connect signals
+		if battle_phase_handler.has_signal("battle_phase_completed"):
+			var result_bp1: Error = battle_phase_handler.battle_phase_completed.connect(_on_battle_phase_completed)
+			assert(result_bp1 == OK, "Failed to connect battle_phase_completed signal")
+		if battle_phase_handler.has_signal("battle_substep_changed"):
+			var result_bp2: Error = battle_phase_handler.battle_substep_changed.connect(_on_battle_substep_changed)
+			assert(result_bp2 == OK, "Failed to connect battle_substep_changed signal")
+		if battle_phase_handler.has_signal("battle_results_ready"):
+			var result_bp3: Error = battle_phase_handler.battle_results_ready.connect(_on_battle_results_ready)
+			assert(result_bp3 == OK, "Failed to connect battle_results_ready signal")
 
 	if PostBattlePhase:
 		post_battle_phase_handler = PostBattlePhase.new()
@@ -147,7 +166,7 @@ func start_new_campaign_turn() -> bool:
 	self.campaign_turn_started.emit(turn_number)
 
 	# Phase 1: Travel Phase
-	return start_phase(safe_get_property(GlobalEnums, "FiveParsecsCampaignPhase").TRAVEL)
+	return start_phase(GlobalEnums.FiveParsecsCampaignPhase.TRAVEL)
 
 func get_current_phase() -> int:
 	return current_phase
@@ -203,9 +222,23 @@ func _start_phase_handler(phase: int) -> void:
 				world_phase_handler.start_world_phase()
 
 		GlobalEnums.FiveParsecsCampaignPhase.BATTLE:
-			# Battle phase - integrate with BattlefieldCompanionManager
-			print("CampaignPhaseManager: Starting battle phase - launching BattlefieldCompanion")
-			_launch_battle_system()
+			# Battle phase - use BattlePhase handler with World Phase transition data
+			if battle_phase_handler and battle_phase_handler.has_method("start_battle_phase"):
+				print("CampaignPhaseManager: Starting battle phase with BattlePhase handler")
+				
+				# Use stored transition data from World Phase, fallback to _get_current_mission_data()
+				var mission_data: Dictionary = _phase_transition_data if not _phase_transition_data.is_empty() else _get_current_mission_data()
+				
+				if not _phase_transition_data.is_empty():
+					print("CampaignPhaseManager: Using World Phase transition data for battle")
+				else:
+					print("CampaignPhaseManager: ⚠️ No transition data, falling back to _get_current_mission_data()")
+				
+				battle_phase_handler.start_battle_phase(mission_data)
+			else:
+				# Fallback to legacy system
+				print("CampaignPhaseManager: BattlePhase handler not available, using legacy system")
+				_launch_battle_system()
 
 		GlobalEnums.FiveParsecsCampaignPhase.POST_BATTLE:
 			if post_battle_phase_handler and post_battle_phase_handler and post_battle_phase_handler.has_method("start_post_battle_phase"):
@@ -275,13 +308,14 @@ func _get_current_mission_data() -> Variant:
 	return _create_placeholder_mission()
 
 func _get_current_crew_data() -> Array:
-	"""Get current crew data from GameState or CampaignManager"""
+	"""Get current crew data from GameState or CampaignManager with equipment"""
 	var crew_data: Array = []
 
 	# Try GameState first
 	if game_state_manager and game_state_manager.has_method("get_crew_members"):
 		crew_data = game_state_manager.get_crew_members()
 		if not crew_data.is_empty():
+			_add_equipment_to_crew_data(crew_data)
 			return crew_data
 
 	# Try GameState via AlphaGameManager
@@ -291,6 +325,7 @@ func _get_current_crew_data() -> Array:
 		if alt_game_state_manager and alt_game_state_manager.has_method("get_crew_members"):
 			crew_data = alt_game_state_manager.get_crew_members()
 			if not crew_data.is_empty():
+				_add_equipment_to_crew_data(crew_data)
 				return crew_data
 
 	# Try Campaign Manager
@@ -301,7 +336,43 @@ func _get_current_crew_data() -> Array:
 		elif campaign_manager and campaign_manager.has_method("get_active_crew"):
 			crew_data = campaign_manager.get_active_crew()
 
+	# Add equipment data before returning
+	if not crew_data.is_empty():
+		_add_equipment_to_crew_data(crew_data)
+
 	return crew_data
+
+func _add_equipment_to_crew_data(crew_data: Array) -> void:
+	"""Add equipment information to each crew member from EquipmentManager"""
+	var equipment_manager = get_node_or_null("/root/EquipmentManager")
+	if not equipment_manager:
+		print("CampaignPhaseManager: EquipmentManager not found - crew will have no equipment data")
+		return
+
+	for crew_member in crew_data:
+		if not crew_member is Dictionary:
+			continue
+
+		# Get crew member ID
+		var crew_id = crew_member.get("id", crew_member.get("character_id", ""))
+		if crew_id.is_empty():
+			continue
+
+		# Get equipment from EquipmentManager
+		if equipment_manager.has_method("get_character_equipment"):
+			var equipment_list = equipment_manager.get_character_equipment(crew_id)
+			crew_member["equipment"] = equipment_list
+
+			# Get full equipment data for each item
+			var equipment_details: Array[Dictionary] = []
+			for equipment_id in equipment_list:
+				if equipment_manager.has_method("get_equipment"):
+					var equipment_data = equipment_manager.get_equipment(equipment_id)
+					if not equipment_data.is_empty():
+						equipment_details.append(equipment_data)
+
+			crew_member["equipment_details"] = equipment_details
+			print("CampaignPhaseManager: Added %d equipment items to crew member %s" % [equipment_details.size(), crew_id])
 
 func _create_placeholder_mission() -> Dictionary:
 	"""Create a placeholder mission for testing/fallback"""
@@ -448,6 +519,8 @@ func _get_next_phase(phase: int) -> int:
 	match phase:
 		GlobalEnums.FiveParsecsCampaignPhase.SETUP:
 			return GlobalEnums.FiveParsecsCampaignPhase.TRAVEL
+		GlobalEnums.FiveParsecsCampaignPhase.TRAVEL:
+			return GlobalEnums.FiveParsecsCampaignPhase.WORLD
 		GlobalEnums.FiveParsecsCampaignPhase.WORLD:
 			return GlobalEnums.FiveParsecsCampaignPhase.BATTLE
 		GlobalEnums.FiveParsecsCampaignPhase.BATTLE:
@@ -467,8 +540,43 @@ func _on_travel_phase_completed() -> void:
 func _on_world_phase_completed() -> void:
 	"""Handle World Phase completion"""
 	print("CampaignPhaseManager: World Phase completed")
+	
+	# Collect World Phase completion data for Battle Phase
+	if world_phase_handler and world_phase_handler.has_method("get_completion_data"):
+		_phase_transition_data = world_phase_handler.get_completion_data()
+		print("CampaignPhaseManager: Collected World Phase data - mission: ", _phase_transition_data.get("selected_mission", "none"), ", crew assignments: ", _phase_transition_data.get("crew_assignments", []).size())
+	else:
+		print("CampaignPhaseManager: ⚠️ No completion data available from World Phase")
+		_phase_transition_data = {}
+	
 	self.phase_completed.emit(current_phase)
 	start_phase(GlobalEnums.FiveParsecsCampaignPhase.BATTLE)
+
+func _on_battle_phase_completed() -> void:
+	"""Handle Battle Phase completion"""
+	print("CampaignPhaseManager: Battle Phase completed via BattlePhase handler")
+	self.phase_completed.emit(current_phase)
+
+	# Get results from battle phase handler and transition to post-battle
+	if battle_phase_handler and battle_phase_handler.has_method("get_battle_results"):
+		_last_battle_results = battle_phase_handler.get_battle_results()
+
+	start_phase(GlobalEnums.FiveParsecsCampaignPhase.POST_BATTLE)
+
+func _on_battle_substep_changed(substep: int) -> void:
+	"""Handle Battle Phase substep change"""
+	self.substep_changed.emit(current_phase, substep)
+
+func _on_battle_results_ready(results: Dictionary) -> void:
+	"""Handle battle results ready - store for post-battle phase"""
+	print("CampaignPhaseManager: Battle results ready with ", results.get("crew_participants", []).size(), " participants")
+	_last_battle_results = results
+
+	# Store in GameState for UI access
+	if game_state_manager and game_state_manager.has_method("get_game_state"):
+		var game_state = game_state_manager.get_game_state()
+		if game_state and game_state.has_method("set_battle_results"):
+			game_state.set_battle_results(results)
 
 func _on_post_battle_phase_completed() -> void:
 	"""Handle Post-Battle Phase completion"""
@@ -687,21 +795,20 @@ func get_debug_info() -> Dictionary:
 			"PostBattlePhase": PostBattlePhase != null
 		}
 	}
+
 ## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
 ## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return obj.get(property, default_value)
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+func safe_get_property(obj: Variant, property: String):
 	if obj == null:
 		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
+	if typeof(obj) == TYPE_OBJECT and obj.has_signal(property):
+		return obj.get(property)
+	return null
+
+## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
+func safe_call_method(obj: Variant, method: String, args: Array = []):
+	if obj == null:
+		return null
+	if typeof(obj) == TYPE_OBJECT and obj.has_method(method):
+		return obj.callv(method, args)
 	return null

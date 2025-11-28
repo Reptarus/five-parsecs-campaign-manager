@@ -1,0 +1,26 @@
+C\:\\Users\\elija\\SynologyDrive\\Godot\\five-parsecs-campaign-manager\\src\\core\\battle:
+AIController.gd			  BattleTracker.gd
+AIController.gd.uid		  BattleTracker.gd.uid
+BattleEventsSystem.gd		  CharacterUnit.gd
+BattleEventsSystem.gd.uid	  CharacterUnit.gd.uid
+BattlefieldCompanion.gd		  enemy
+BattlefieldCompanion.gd.uid	  EnemyTracker.gd
+BattlefieldData.gd		  EnemyTracker.gd.uid
+BattlefieldData.gd.uid		  events
+BattlefieldDisplayManager.gd.uid  FPCM_BattleEventBus.gd
+BattlefieldGenerator.gd		  FPCM_BattleEventBus.gd.uid
+BattlefieldGenerator.gd.uid	  FPCM_BattleManager.gd
+BattlefieldIO.gd		  FPCM_BattleManager.gd.uid
+BattlefieldIO.gd.uid		  FPCM_BattlePerformanceOptimizer.gd
+BattlefieldManager.gd		  FPCM_BattlePerformanceOptimizer.gd.uid
+BattlefieldManager.gd.uid	  FPCM_BattleState.gd
+BattlefieldRenderer.gd		  FPCM_BattleState.gd.uid
+BattlefieldRenderer.gd.uid	  MainBattle.tscn
+BattlefieldSetupAssistant.gd	  OptionalAutomationManager.gd
+BattlefieldSetupAssistant.gd.uid  OptionalAutomationManager.gd.uid
+BattlefieldTypes.gd		  PostBattleProcessor.gd
+BattlefieldTypes.gd.uid		  PostBattleProcessor.gd.uid
+BattleResultsManager.gd		  README.md
+BattleResultsManager.gd.uid	  SetupSuggestions.gd
+BattleSystemIntegration.gd	  SetupSuggestions.gd.uid
+BattleSystemIntegration.gd.uid	  state

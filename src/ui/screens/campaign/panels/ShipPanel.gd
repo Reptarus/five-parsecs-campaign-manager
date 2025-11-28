@@ -3,6 +3,9 @@ extends FiveParsecsCampaignPanel
 ## Five Parsecs Ship Assignment Panel
 ## Production-ready implementation with comprehensive ship generation
 
+# Progress tracking
+const STEP_NUMBER := 4  # Step 4 of 7 in campaign wizard
+
 # GlobalEnums available as autoload singleton
 
 signal ship_updated(ship_data: Dictionary)
@@ -25,7 +28,7 @@ var local_ship_data: Dictionary = {
 	"is_complete": false
 }
 var is_ship_complete: bool = false
-var last_validation_errors: Array[String] = []
+# Note: last_validation_errors is inherited from BaseCampaignPanel
 
 # UI Components with safe access
 var ship_name_input: LineEdit
@@ -78,17 +81,33 @@ func _on_campaign_state_updated(state_data: Dictionary) -> void:
 func _ready() -> void:
 	# Set panel info before base initialization with more informative description
 	set_panel_info("Ship Selection", "Choose your starting vessel. Ship type affects cargo capacity and combat capabilities.")
-	
+
 	# Call parent _ready() to initialize BaseCampaignPanel structure
 	super._ready()
-	
+
+	# Add progress indicator
+	call_deferred("_add_progress_indicator")
+
 	# COMPREHENSIVE DEBUG OUTPUT - Panel Initialization
 	call_deferred("_log_panel_initialization_debug")
-	
+
 	# Initialize ship-specific functionality
 	_initialize_security_validator()
 	# Initialize components immediately after base structure is ready
 	_initialize_components()
+
+func _add_progress_indicator() -> void:
+	"""Add progress indicator to panel after structure is ready"""
+	var main_content = get_node_or_null("ContentMargin/MainContent")
+	if not main_content:
+		push_warning("ShipPanel: MainContent node not found for progress indicator")
+		return
+
+	var progress = _create_progress_indicator(STEP_NUMBER, 7)
+	main_content.add_child(progress)
+	main_content.move_child(progress, 0)  # Put at top of panel
+
+	print("ShipPanel: Progress indicator added (Step %d of 7)" % STEP_NUMBER)
 
 func _setup_panel_content() -> void:
 	"""Override from BaseCampaignPanel - setup ship-specific content"""
@@ -344,27 +363,13 @@ func _find_containers_recursive(node: Node, content_list: Array, form_list: Arra
 
 func _notify_coordinator_of_ship_update() -> void:
 	"""Notify the campaign coordinator of ship state changes"""
-	# Try to find the coordinator through the scene tree
-	var coordinator = _find_coordinator()
-	if coordinator:
+	# Use base class method instead of get_parent() traversal
+	var coordinator = get_coordinator_reference()
+	if coordinator and coordinator.has_method("update_ship_state"):
 		coordinator.update_ship_state(ship_data)
 		print("ShipPanel: Notified coordinator of ship update")
 	else:
-		print("ShipPanel: Warning - coordinator not found")
-
-func _find_coordinator() -> Variant:
-	"""Find the campaign coordinator in the scene tree"""
-	# Look for coordinator in parent scenes
-	var current = get_parent()
-	while current:
-		if current.has_method("update_ship_state"):
-			return current
-		current = current.get_parent()
-	
-	# CampaignCreationCoordinator is not an autoload - should be accessed through parent UI
-	# This reference is invalid and should be removed
-	
-	return null
+		print("ShipPanel: Warning - coordinator not found or missing update_ship_state method")
 
 func _on_debt_paid(amount: int) -> void:
 	"""Handle debt payment from ShipManager"""
@@ -1024,12 +1029,14 @@ func _create_fallback_ui() -> Control:
 	container.name = "Content"
 	container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	container.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	
+	container.add_theme_constant_override("separation", SPACING_MD)
+
 	var title = Label.new()
 	title.text = "Ship Selection"
-	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	container.add_child(title)
-	
+
 	print("ShipPanel: Created fallback Content container")
 	return container
 
@@ -1037,19 +1044,23 @@ func _create_ship_name_section(parent: Node) -> LineEdit:
 	"""Create ship name input section"""
 	var container = HBoxContainer.new()
 	container.name = "ShipName"
+	container.add_theme_constant_override("separation", SPACING_SM)
 	parent.add_child(container)
-	
+
 	var label = Label.new()
 	label.text = "Ship Name:"
 	label.custom_minimum_size.x = 100
+	label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	container.add_child(label)
-	
+
 	var input = LineEdit.new()
 	input.name = "LineEdit"
 	input.placeholder_text = "Enter ship name"
 	input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_line_edit(input)
 	container.add_child(input)
-	
+
 	print("ShipPanel: Created ship name section")
 	return input
 
@@ -1057,13 +1068,16 @@ func _create_ship_type_section(parent: Node) -> OptionButton:
 	"""Create ship type selection section"""
 	var container = HBoxContainer.new()
 	container.name = "ShipType"
+	container.add_theme_constant_override("separation", SPACING_SM)
 	parent.add_child(container)
-	
+
 	var label = Label.new()
 	label.text = "Ship Type:"
 	label.custom_minimum_size.x = 100
+	label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	container.add_child(label)
-	
+
 	var option = OptionButton.new()
 	option.name = "Value"
 	option.add_item("Light Freighter")
@@ -1071,8 +1085,9 @@ func _create_ship_type_section(parent: Node) -> OptionButton:
 	option.add_item("Transport")
 	option.add_item("Patrol Boat")
 	option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_option_button(option)
 	container.add_child(option)
-	
+
 	print("ShipPanel: Created ship type section")
 	return option
 
@@ -1080,21 +1095,25 @@ func _create_hull_points_section(parent: Node) -> SpinBox:
 	"""Create hull points section"""
 	var container = HBoxContainer.new()
 	container.name = "HullPoints"
+	container.add_theme_constant_override("separation", SPACING_SM)
 	parent.add_child(container)
-	
+
 	var label = Label.new()
 	label.text = "Hull Points:"
 	label.custom_minimum_size.x = 100
+	label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	container.add_child(label)
-	
+
 	var spinbox = SpinBox.new()
 	spinbox.name = "Value"
 	spinbox.min_value = 1
 	spinbox.max_value = 20
 	spinbox.value = 10
 	spinbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	spinbox.custom_minimum_size.y = TOUCH_TARGET_MIN
 	container.add_child(spinbox)
-	
+
 	print("ShipPanel: Created hull points section")
 	return spinbox
 
@@ -1102,13 +1121,16 @@ func _create_debt_section(parent: Node) -> SpinBox:
 	"""Create ship debt section"""
 	var container = HBoxContainer.new()
 	container.name = "Debt"
+	container.add_theme_constant_override("separation", SPACING_SM)
 	parent.add_child(container)
-	
+
 	var label = Label.new()
 	label.text = "Ship Debt:"
 	label.custom_minimum_size.x = 100
+	label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	container.add_child(label)
-	
+
 	var spinbox = SpinBox.new()
 	spinbox.name = "Value"
 	spinbox.min_value = 0
@@ -1116,8 +1138,9 @@ func _create_debt_section(parent: Node) -> SpinBox:
 	spinbox.step = 1000
 	spinbox.value = 0
 	spinbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	spinbox.custom_minimum_size.y = TOUCH_TARGET_MIN
 	container.add_child(spinbox)
-	
+
 	print("ShipPanel: Created debt section")
 	return spinbox
 
@@ -1125,16 +1148,20 @@ func _create_traits_section(parent: Node) -> VBoxContainer:
 	"""Create ship traits section"""
 	var container = VBoxContainer.new()
 	container.name = "Traits"
+	container.add_theme_constant_override("separation", SPACING_SM)
 	parent.add_child(container)
-	
+
 	var label = Label.new()
 	label.text = "Ship Traits:"
+	label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	container.add_child(label)
-	
+
 	var traits_list = VBoxContainer.new()
 	traits_list.name = "Container"
+	traits_list.add_theme_constant_override("separation", SPACING_XS)
 	container.add_child(traits_list)
-	
+
 	print("ShipPanel: Created traits section")
 	return traits_list
 
@@ -1142,26 +1169,30 @@ func _create_control_buttons(parent: Node) -> void:
 	"""Create control buttons section"""
 	var container = HBoxContainer.new()
 	container.name = "Controls"
+	container.add_theme_constant_override("separation", SPACING_SM)
 	parent.add_child(container)
-	
+
 	generate_button = Button.new()
 	generate_button.name = "GenerateButton"
 	generate_button.text = "Generate Ship"
+	generate_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	generate_button.pressed.connect(_on_generate_pressed)
 	container.add_child(generate_button)
-	
+
 	reroll_button = Button.new()
 	reroll_button.name = "RerollButton"
 	reroll_button.text = "Reroll Ship"
+	reroll_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	reroll_button.pressed.connect(_on_reroll_pressed)
 	container.add_child(reroll_button)
-	
+
 	select_button = Button.new()
 	select_button.name = "SelectButton"
 	select_button.text = "Select Ship"
+	select_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	select_button.pressed.connect(_on_select_pressed)
 	container.add_child(select_button)
-	
+
 	print("ShipPanel: Created control buttons")
 
 func _on_select_pressed() -> void:
@@ -1174,5 +1205,43 @@ func _on_select_pressed() -> void:
 		"ship_configuration": "Basic" # Safe default
 	}
 	# Removed redundant panel_completed.emit() - completion handled by _validate_and_complete()
+
+## Responsive Layout Overrides
+
+func _apply_mobile_layout() -> void:
+	"""Mobile: Single column, 56dp targets, compact ship display"""
+	super._apply_mobile_layout()
+
+	# Increase button touch targets to TOUCH_TARGET_COMFORT (56dp)
+	if generate_button:
+		generate_button.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+	if reroll_button:
+		reroll_button.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+	if select_button:
+		select_button.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+
+func _apply_tablet_layout() -> void:
+	"""Tablet: Two columns, 48dp targets, detailed ship display"""
+	super._apply_tablet_layout()
+
+	# Standard button touch targets at TOUCH_TARGET_MIN (48dp)
+	if generate_button:
+		generate_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if reroll_button:
+		reroll_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if select_button:
+		select_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+
+func _apply_desktop_layout() -> void:
+	"""Desktop: Multi-column, 48dp targets, full ship details"""
+	super._apply_desktop_layout()
+
+	# Standard button touch targets at TOUCH_TARGET_MIN (48dp)
+	if generate_button:
+		generate_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if reroll_button:
+		reroll_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if select_button:
+		select_button.custom_minimum_size.y = TOUCH_TARGET_MIN
 
 # --- End of additions ---

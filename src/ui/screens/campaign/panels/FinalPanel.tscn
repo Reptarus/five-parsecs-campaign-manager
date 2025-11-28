@@ -8,36 +8,4 @@
 theme = ExtResource("2_theme")
 script = ExtResource("3_script")
 
-[node name="Content" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer"]
-layout_mode = 2
-
-[node name="ScrollContainer" type="ScrollContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="ReviewContent" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/ScrollContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="ConfigSummary" type="RichTextLabel" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/ScrollContainer/ReviewContent"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_vertical = 3
-bbcode_enabled = true
-text = "Campaign configuration will appear here..."
-
-[node name="CrewSummary" type="RichTextLabel" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/ScrollContainer/ReviewContent"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_vertical = 3
-bbcode_enabled = true
-text = "Crew summary will appear here..."
-
-[node name="ButtonContainer" type="HBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
-layout_mode = 2
-alignment = 1
-
-[node name="CreateCampaignButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/ButtonContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Create Campaign"
+[editable path="ContentMargin/MainContent/FormContent/FormContainer"]

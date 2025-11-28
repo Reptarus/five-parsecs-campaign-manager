@@ -28,6 +28,9 @@ var state_manager: CampaignCreationStateManager
 var current_step: int = 0
 var total_steps: int = 7 # CONFIG (includes victory), CAPTAIN_CREATION, CREW_SETUP, SHIP_ASSIGNMENT, EQUIPMENT_GENERATION, WORLD_GENERATION, FINAL_REVIEW
 
+# Signal debouncing to prevent storm
+var _navigation_update_pending: bool = false
+
 # GDScript 2.0: Phase completion tracking (VICTORY_CONDITIONS removed)
 var phase_completion_status: Dictionary = {
 	CampaignCreationStateManager.Phase.CONFIG: false,  # Includes victory conditions
@@ -616,16 +619,26 @@ func _on_validation_changed(is_valid: bool, errors: Array[String]) -> void:
 ## Internal Navigation Logic
 
 func _update_navigation_state() -> void:
-	"""Centralized navigation state update - single source of truth"""
+	"""Centralized navigation state update - single source of truth with debouncing"""
+	# Debounce: Skip if update already scheduled
+	if _navigation_update_pending:
+		return
+	_navigation_update_pending = true
+	call_deferred("_do_navigation_update")
+
+func _do_navigation_update() -> void:
+	"""Execute the actual navigation state update"""
+	_navigation_update_pending = false
+
 	var nav_state = _calculate_navigation_state()
-	
+
 	# Emit consolidated navigation signals
 	navigation_updated.emit(nav_state.can_go_back, nav_state.can_go_forward, nav_state.can_finish)
 	step_changed.emit(nav_state.current_step, nav_state.total_steps)
-	
+
 	# Debug logging for navigation state changes
 	print("CampaignCreationCoordinator: Navigation updated - Back:%s Forward:%s Finish:%s Step:%d/%d" % [
-		nav_state.can_go_back, nav_state.can_go_forward, nav_state.can_finish, 
+		nav_state.can_go_back, nav_state.can_go_forward, nav_state.can_finish,
 		nav_state.current_step, nav_state.total_steps
 	])
 

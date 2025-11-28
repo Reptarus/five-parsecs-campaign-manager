@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta http-equiv="x-ua-compatible" content="IE=edge" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>GdUnit4 Testsuite</title>
+	<link rel="stylesheet" href="../css/styles.css">
+	<link href="../css/breadcrumb.css" rel="stylesheet" type="text/css" />
+
+	<script src="https://code.jquery.com/jquery-3.6.4.js"></script>
+	<script>
+		$(document).ready(function () {
+			var report_view = $('#report_area').find('.report-column')
+
+			$('#report-table tr').click(function () {
+				var report = $(this).find('.report-column').html();
+				report_view.html(report)
+				$('.selected').removeClass('selected');
+				$(this).addClass('selected');
+			});
+		});
+	</script>
+</head>
+
+<body>
+	<header>
+		<div class="logo">
+			<img src="../css/logo.png" alt="GdUnit4 Logo">
+			<span>GdUnit4</span>
+		</div>
+		<div class="report-container">
+			<h1>Testsuite Report</h1>
+			<div>
+				<span class="label">res://tests/unit/test_save_persistence_gaps.gd</span>
+			</div>
+			<div class="summary">
+				<div class="summary-item">
+					<span class="label">Tests</span>
+					<span class="value">11</span>
+				</div>
+				<div class="summary-item">
+					<span class="label">Skipped</span>
+					<span class="value">0</span>
+				</div>
+				<div class="summary-item">
+					<span class="label">Flaky</span>
+					<span class="value">0</span>
+				</div>
+				<div class="summary-item">
+					<span class="label">Failures</span>
+					<span class="value">1</span>
+				</div>
+				<div class="summary-item">
+					<span class="label">Orphans</span>
+					<span class="value">20</span>
+				</div>
+				<div class="summary-item">
+					<span class="label">Duration</span>
+					<span class="value">496ms</span>
+				</div>
+				<div class="success-rate">
+					<div class="check-icon status-failed">✓</div>
+					<div class="rate-text">
+						<span class="label">Success Rate</span>
+						<span class="value">90%</span>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="breadcrumb">
+			<a href="../index.html"><span>All</span></a>
+			<a href="../path/tests.unit.html"><span>tests/unit</span></a>
+			<a class="active" href="#"><span>test_save_persistence_gaps</span></a>
+		</div>
+	</header>
+
+	<main>
+		<div class="tab-report-grid">
+			<div class="grid-item tab">
+				<table id="report-table">
+					<thead>
+						<tr>
+							<th>Testcase</th>
+							<th>Result</th>
+							<th>Skipped</th>
+							<th>Orphans</th>
+							<th>Duration</th>
+							<th class="report-column">Report</th>
+						</tr>
+					</thead>
+					<tbody>
+						
+								<tr class="failed">
+									<td>TestSuite hooks</td>
+									<td>n/a</td>
+									<td>20</td>
+									<td>496ms</td>
+									<td class="report-column">
+										<pre>
+line 1: WARNING:
+ Detected <10> orphan nodes during test suite setup stage! Check before() and after()!
+										</pre>
+									</td>
+								</tr>
+
+
+								<tr class="testcase-group">
+									<td>test_battle_results_serialization</td>
+									<td><span class="status status-warning">WARNING</span></td>
+									<td>0</td>
+									<td>2</td>
+									<td>40ms</td>
+									<td class="report-column">
+										<pre>
+line 1: WARNING:
+ Detected <2> orphan nodes during test setup! Check before_test() and after_test()!
+line 14: WARNING:
+ Detected <2> orphan nodes during test execution!
+
+										</pre>
+									</td>
+								</tr>
+
+
+								<tr class="testcase-group">
+									<td>test_battle_results_empty_serialization</td>
+									<td><span class="status status-warning">WARNING</span></td>
+									<td>0</td>
+									<td>2</td>
+									<td>15ms</td>
+									<td class="report-column">
+										<pre>
+line 1: WARNING:
+ Detected <2> orphan nodes during test setup! Check before_test() and after_test()!
+line 44: WARNING:
+ Detected <2> orphan nodes during test execution!
+
+										</pre>
+									</td>
+								</tr>
+
+
+								<tr class="testcase-group">
+									<td>test_migration_v1_to_v2_adds_battle_results</td>
+									<td><span class="status status-passed">PASSED</span></td>
+									<td>0</td>
+									<td>0</td>
+									<td>16ms</td>
+									<td class="report-column">
+										<pre>
+
+										</pre>
+									</td>
+								</tr>
+
+
+								<tr class="testcase-group">
+									<td>test_migration_preserves_existing_battle_results</td>
+									<td><span class="status status-passed">PASSED</span></td>
+									<td>0</td>
+									<td>0</td>
+									<td>8ms</td>
+									<td class="report-column">
+										<pre>
+
+										</pre>
+									</td>
+								</tr>
+
+
+								<tr class="testcase-group">
+									<td>test_migration_handles_invalid_version</td>
+									<td><span class="status status-passed">PASSED</span></td>
+									<td>0</td>
+									<td>0</td>
+									<td>9ms</td>
+									<td class="report-column">
+										<pre>
+
+										</pre>
+									</td>
+								</tr>
+
+
+								<tr class="testcase-group">
+									<td>test_migration_no_op_when_versions_match</td>
+									<td><span class="status status-failed">FAILED</span></td>
+									<td>0</td>
+									<td>0</td>
+									<td>9ms</td>
+									<td class="report-column">
+										<pre>
+line 125: Expecting:
+ '{
+	"battle_results": {
+	"victory": false
+	},
+	"current_phase": 0,
+	"schema_version": 2
+  }'
+ to refer to the same object
+ '{
+	"_migration_errors": [{
+	"message": "Save file version (2) is newer than current schema (1)",
+	"timestamp": "2025-11-27T10:41:20",
+	"type": 0
+	}],
+	"_migration_log": Array[String]([])
+  }'
+
+										</pre>
+									</td>
+								</tr>
+
+
+								<tr class="testcase-group">
+									<td>test_migration_needs_migration</td>
+									<td><span class="status status-passed">PASSED</span></td>
+									<td>0</td>
+									<td>0</td>
+									<td>15ms</td>
+									<td class="report-column">
+										<pre>
+
+										</pre>
+									</td>
+								</tr>
+
+
+								<tr class="testcase-group">
+									<td>test_equipment_integrity_validation_clean_state</td>
+									<td><span class="status status-warning">WARNING</span></td>
+									<td>0</td>
+									<td>1</td>
+									<td>21ms</td>
+									<td class="report-column">
+										<pre>
+line 1: WARNING:
+ Detected <1> orphan nodes during test setup! Check before_test() and after_test()!
+line 131: WARNING:
+ Detected <1> orphan nodes during test execution!
+
+										</pre>
+									</td>
+								</tr>
+
+
+								<tr class="testcase-group">
+									<td>test_equipment_integrity_detects_missing_ids</td>
+									<td><span class="status status-warning">WARNING</span></td>
+									<td>0</td>
+									<td>1</td>
+									<td>22ms</td>
+									<td class="report-column">
+										<pre>
+line 1: WARNING:
+ Detected <1> orphan nodes during test setup! Check before_test() and after_test()!
+line 141: WARNING:
+ Detected <1> orphan nodes during test execution!
+
+										</pre>
+									</td>
+								</tr>
+
+
+								<tr class="testcase-group">
+									<td>test_ship_stash_serialization_no_duplicates</td>
+									<td><span class="status status-warning">WARNING</span></td>
+									<td>0</td>
+									<td>2</td>
+									<td>23ms</td>
+									<td class="report-column">
+										<pre>
+line 1: WARNING:
+ Detected <2> orphan nodes during test setup! Check before_test() and after_test()!
+line 156: WARNING:
+ Detected <2> orphan nodes during test execution!
+
+										</pre>
+									</td>
+								</tr>
+
+
+								<tr class="testcase-group">
+									<td>test_full_save_load_roundtrip_with_battle_results</td>
+									<td><span class="status status-warning">WARNING</span></td>
+									<td>0</td>
+									<td>2</td>
+									<td>23ms</td>
+									<td class="report-column">
+										<pre>
+line 1: WARNING:
+ Detected <2> orphan nodes during test setup! Check before_test() and after_test()!
+line 183: WARNING:
+ Detected <2> orphan nodes during test execution!
+
+										</pre>
+									</td>
+								</tr>
+
+					</tbody>
+				</table>
+			</div>
+			<div id="report_area" class="grid-item tab">
+				<h4>Failure Report</h4>
+				<div class="report-column"></div>
+			</div>
+		</div>
+	</main>
+
+	<footer>
+		<p>Generated by <a href="https://github.com/MikeSchulze/gdUnit4">GdUnit4</a> at 2025-11-27 18:41:20</p>
+		<div class="status-legend">
+			<span class="status-legend-item">
+				<span class="status-box status-skipped"></span> Skipped
+			</span>
+			<span class="status-legend-item">
+				<span class="status-box status-passed"></span> Passed
+			</span>
+			<span class="status-legend-item">
+				<span class="status-box status-flaky"></span> Flaky
+			</span>
+			<span class="status-legend-item">
+				<span class="status-box status-warning"></span> Warning
+			</span>
+			<span class="status-legend-item">
+				<span class="status-box status-failed"></span> Failed
+			</span>
+			<span class="status-legend-item">
+				<span class="status-box status-error"></span> Error
+			</span>
+		</div>
+	</footer>
+</body>
+
+<script>
+	function groupTableRows() {
+		const table = document.getElementById('report-table');
+		const rows = table.querySelectorAll('tbody tr');
+
+		let previousTestCase = '';
+		let groupStartIndex = 0;
+		let groupColorToggle = true; // Toggle between two colors
+
+		rows.forEach((row, index) => {
+			const testCaseName = row.cells[0].textContent.trim();
+
+			if (testCaseName !== previousTestCase) {
+				// Close the previous group
+				if (index > 0 && groupStartIndex !== index - 1) {
+					// Apply background color to the group
+					const groupClass = groupColorToggle ? 'group-bg-1' : 'group-bg-2';
+					for (let i = groupStartIndex; i <= index - 1; i++) {
+						rows[i].classList.add(groupClass);
+					}
+
+					// Toggle background color for the next group
+					groupColorToggle = !groupColorToggle;
+				}
+
+				// Start a new group
+				groupStartIndex = index;
+			}
+
+			previousTestCase = testCaseName;
+		});
+
+		// Handle the last group
+		if (groupStartIndex !== rows.length - 1) {
+			// Apply background color to the last group
+			const groupClass = groupColorToggle ? 'group-bg-1' : 'group-bg-2';
+			for (let i = groupStartIndex; i < rows.length; i++) {
+				rows[i].classList.add(groupClass);
+			}
+		}
+	}
+
+	// Call the function to group table rows after the DOM loads
+	document.addEventListener('DOMContentLoaded', groupTableRows);
+</script>
+
+</html>

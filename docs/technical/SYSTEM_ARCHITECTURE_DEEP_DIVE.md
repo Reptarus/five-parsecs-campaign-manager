@@ -187,7 +187,7 @@ func apply_crew_task_results(character: Character, task: int, result: Dictionary
 ```gdscript
 @export var campaign_name: String
 @export var difficulty: int = 1
-@export var victory_condition: int
+@export var victory_conditions: Dictionary = {}  # Multi-select with custom targets
 @export var current_turn: int = 0
 @export var credits: int = 0
 @export var story_points: int = 0
@@ -219,20 +219,42 @@ enum CampaignPhase {
 }
 ```
 
-**Victory Condition Checks**:
+**Victory Condition Checks** (OR Logic - win when ANY condition achieved):
 ```gdscript
-func check_victory_condition() -> bool:
-    match victory_condition:
-        VictoryCondition.WEALTH:
-            return credits >= 500
-        VictoryCondition.FAME:
-            return renown >= 10
-        VictoryCondition.STORY_POINTS:
-            return story_points >= 20
-        VictoryCondition.SURVIVAL:
-            return current_turn >= 50
-        VictoryCondition.QUEST:
-            return check_quest_completion()
+func check_victory_condition() -> Dictionary:
+    # Returns {achieved: bool, condition: String, progress: float}
+    for condition_type in victory_conditions.keys():
+        var config = victory_conditions[condition_type]
+        var target = config.get("target", 0)
+        var current = get_progress_for_condition(condition_type)
+
+        if current >= target:
+            return {"achieved": true, "condition": condition_type, "progress": 1.0}
+
+    return {"achieved": false, "condition": "", "progress": get_closest_progress()}
+
+func get_progress_for_condition(condition_type: String) -> int:
+    match condition_type:
+        "TURNS_20", "TURNS_50", "TURNS_100":
+            return current_turn
+        "WEALTH_100":
+            return credits
+        "FAME_10":
+            return renown
+        "QUEST_VICTORY":
+            return completed_quests
+        # ... etc for all 17 victory types
+```
+
+**Victory Conditions Schema**:
+```gdscript
+# Multi-select Dictionary format
+victory_conditions = {
+    "TURNS_20": {"target": 20, "progress": 15},
+    "WEALTH_100": {"target": 100, "progress": 45}
+}
+# User can select multiple conditions with custom target values
+# Victory achieved when ANY condition reaches target (OR logic)
 ```
 
 ### CampaignManager.gd
@@ -934,10 +956,28 @@ func validate_campaign_data(campaign_data: Dictionary) -> bool:
         push_error("Invalid turn number")
         return false
     
-    # Validate victory condition
-    if not is_valid_victory_condition(campaign_data.get("victory_condition")):
+    # Validate victory conditions (multi-select Dictionary)
+    var victory_conditions = campaign_data.get("victory_conditions", {})
+    if not is_valid_victory_conditions(victory_conditions):
         return false
-    
+
+    return true
+
+func is_valid_victory_conditions(conditions: Dictionary) -> bool:
+    # Empty is valid (no victory conditions set)
+    if conditions.is_empty():
+        return true
+
+    # Each condition must have valid target
+    for condition_type in conditions.keys():
+        var config = conditions[condition_type]
+        if not config is Dictionary:
+            return false
+        if not config.has("target"):
+            return false
+        if config.get("target", 0) <= 0:
+            return false
+
     return true
 ```
 
@@ -1161,6 +1201,7 @@ func clear_los_cache() -> void:
 
 ---
 
-*Last Updated: January 2025*  
-*System Version: 1.0.0-alpha*  
+*Last Updated: November 2025*
+*System Version: 1.1.0-beta*
 *Total Core Systems: 32+*
+*Victory Conditions: Multi-select with custom targets (OR logic)*

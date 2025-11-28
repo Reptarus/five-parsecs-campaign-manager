@@ -12,3 +12,147 @@ grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("2_rnx4k")
 script = ExtResource("1_8ykjc")
+
+[node name="ResponsiveMargin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MainContainer" type="VBoxContainer" parent="ResponsiveMargin"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="HeaderSection" type="MarginContainer" parent="ResponsiveMargin/MainContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 16
+
+[node name="HeaderContainer" type="VBoxContainer" parent="ResponsiveMargin/MainContainer/HeaderSection"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ProgressBar" type="ProgressBar" parent="ResponsiveMargin/MainContainer/HeaderSection/HeaderContainer"]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+max_value = 7.0
+value = 1.0
+show_percentage = false
+
+[node name="BreadcrumbContainer" type="HBoxContainer" parent="ResponsiveMargin/MainContainer/HeaderSection/HeaderContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Step1" type="Label" parent="ResponsiveMargin/MainContainer/HeaderSection/HeaderContainer/BreadcrumbContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "●"
+
+[node name="Step2" type="Label" parent="ResponsiveMargin/MainContainer/HeaderSection/HeaderContainer/BreadcrumbContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "●"
+
+[node name="Step3" type="Label" parent="ResponsiveMargin/MainContainer/HeaderSection/HeaderContainer/BreadcrumbContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "●"
+
+[node name="Step4" type="Label" parent="ResponsiveMargin/MainContainer/HeaderSection/HeaderContainer/BreadcrumbContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "●"
+
+[node name="Step5" type="Label" parent="ResponsiveMargin/MainContainer/HeaderSection/HeaderContainer/BreadcrumbContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "●"
+
+[node name="Step6" type="Label" parent="ResponsiveMargin/MainContainer/HeaderSection/HeaderContainer/BreadcrumbContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "●"
+
+[node name="Step7" type="Label" parent="ResponsiveMargin/MainContainer/HeaderSection/HeaderContainer/BreadcrumbContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "●"
+
+[node name="StepIndicator" type="Label" parent="ResponsiveMargin/MainContainer/HeaderSection/HeaderContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Step 1 of 7 • Campaign Setup"
+horizontal_alignment = 1
+
+[node name="ContentArea" type="PanelContainer" parent="ResponsiveMargin/MainContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ContentMargin" type="MarginContainer" parent="ResponsiveMargin/MainContainer/ContentArea"]
+layout_mode = 2
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 16
+
+[node name="PanelContainer" type="Control" parent="ResponsiveMargin/MainContainer/ContentArea/ContentMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="NavigationFooter" type="MarginContainer" parent="ResponsiveMargin/MainContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 24
+
+[node name="NavigationContainer" type="HBoxContainer" parent="ResponsiveMargin/MainContainer/NavigationFooter"]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="BackButton" type="Button" parent="ResponsiveMargin/MainContainer/NavigationFooter/NavigationContainer"]
+custom_minimum_size = Vector2(100, 48)
+layout_mode = 2
+text = "Back"
+
+[node name="Spacer" type="Control" parent="ResponsiveMargin/MainContainer/NavigationFooter/NavigationContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ValidationStatus" type="HBoxContainer" parent="ResponsiveMargin/MainContainer/NavigationFooter/NavigationContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="ValidationIcon" type="Label" parent="ResponsiveMargin/MainContainer/NavigationFooter/NavigationContainer/ValidationStatus"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "⚠️"
+
+[node name="ValidationText" type="Label" parent="ResponsiveMargin/MainContainer/NavigationFooter/NavigationContainer/ValidationStatus"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Complete required fields to continue"
+horizontal_alignment = 1
+
+[node name="Spacer2" type="Control" parent="ResponsiveMargin/MainContainer/NavigationFooter/NavigationContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NextButton" type="Button" parent="ResponsiveMargin/MainContainer/NavigationFooter/NavigationContainer"]
+custom_minimum_size = Vector2(100, 48)
+layout_mode = 2
+text = "Next"
+
+[node name="FinishButton" type="Button" parent="ResponsiveMargin/MainContainer/NavigationFooter/NavigationContainer"]
+custom_minimum_size = Vector2(100, 48)
+layout_mode = 2
+text = "Finish"
+visible = false

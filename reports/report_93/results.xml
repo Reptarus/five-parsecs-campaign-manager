@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites id="2025-11-28" name="report_93" tests="5" failures="0" skipped="0" flaky="0" time="0.000">
+	<testsuite id="0" name="test_keyword_tooltip" package="tests/unit" timestamp="2025-11-28T18:44:33" hostname="localhost" tests="5" failures="0" errors="5" skipped="0" flaky="0" time="0.348">
+		<testcase name="test_format_keyword_text_creates_correct_bbcode" classname="test_keyword_tooltip" time="0.043">
+			<error message="ERROR: res://tests/unit/test_keyword_tooltip.gd:79" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: test_format_keyword_text_creates_correct_bbcode (res://tests/unit/test_keyword_tooltip.gd:79)'
+Error: 'Invalid assignment of property or key 'current_keyword' with value of type 'Dictionary' on a base object of type 'Nil'.'
+]]>
+			</error>
+		</testcase>
+		<testcase name="test_format_keyword_text_handles_minimal_data" classname="test_keyword_tooltip" time="0.051">
+			<error message="ERROR: res://tests/unit/test_keyword_tooltip.gd:99" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: test_format_keyword_text_handles_minimal_data (res://tests/unit/test_keyword_tooltip.gd:99)'
+Error: 'Invalid assignment of property or key 'current_keyword' with value of type 'Dictionary' on a base object of type 'Nil'.'
+]]>
+			</error>
+		</testcase>
+		<testcase name="test_show_for_keyword_displays_tooltip_with_keyword_data" classname="test_keyword_tooltip" time="0.045">
+			<error message="ERROR: res://tests/unit/test_keyword_tooltip.gd:120" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: test_show_for_keyword_displays_tooltip_with_keyword_data (res://tests/unit/test_keyword_tooltip.gd:120)'
+Error: 'Invalid call. Nonexistent function 'show_for_keyword' in base 'Nil'.'
+]]>
+			</error>
+		</testcase>
+		<testcase name="test_show_for_keyword_handles_unknown_keyword_gracefully" classname="test_keyword_tooltip" time="0.044">
+			<error message="ERROR: res://tests/unit/test_keyword_tooltip.gd:140" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: test_show_for_keyword_handles_unknown_keyword_gracefully (res://tests/unit/test_keyword_tooltip.gd:140)'
+Error: 'Invalid call. Nonexistent function 'show_for_keyword' in base 'Nil'.'
+]]>
+			</error>
+		</testcase>
+		<testcase name="test_bookmark_button_toggles_bookmark_state" classname="test_keyword_tooltip" time="0.045">
+			<error message="ERROR: res://tests/unit/test_keyword_tooltip.gd:155" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: test_bookmark_button_toggles_bookmark_state (res://tests/unit/test_keyword_tooltip.gd:155)'
+Error: 'Invalid call. Nonexistent function 'show_for_keyword' in base 'Nil'.'
+]]>
+			</error>
+		</testcase>
+	</testsuite>
+</testsuites>

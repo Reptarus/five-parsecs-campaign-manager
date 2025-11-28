@@ -4,20 +4,24 @@ extends FiveParsecsCampaignPanel
 const CampaignStateManager = preload("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
 const SecurityValidator = preload("res://src/core/validation/SecurityValidator.gd")
 const ValidationResult = preload("res://src/core/validation/ValidationResult.gd")
+const CharacterCardScene = preload("res://src/ui/components/character/CharacterCard.tscn")
 
 signal campaign_creation_requested(campaign_data: Dictionary)
 
 # Autonomous signals for coordinator pattern
 signal campaign_finalization_complete(data: Dictionary)
+signal campaign_confirmed()  # New signal for Create Campaign button
 
-@onready var config_summary: RichTextLabel = get_node_or_null("Content/ScrollContainer/ReviewContent/ConfigSummary")
-@onready var crew_summary: RichTextLabel = get_node_or_null("Content/ScrollContainer/ReviewContent/CrewSummary")
-@onready var create_button: Button = get_node_or_null("Content/ButtonContainer/CreateCampaignButton")
+# UI References - rebuilt programmatically
+var progress_container: VBoxContainer = null
+var summary_cards_container: VBoxContainer = null
+var crew_preview_container: VBoxContainer = null
+var create_button: Button = null
 
 var campaign_data: Dictionary = {}
 var campaign_state: Dictionary = {}  # Add missing campaign_state variable
 var is_campaign_complete: bool = false
-var last_validation_errors: Array[String] = []
+# Note: last_validation_errors is inherited from BaseCampaignPanel
 
 # Coordinator reference for consistent access
 var coordinator: Node = null
@@ -52,26 +56,154 @@ func _on_campaign_state_updated(state_data: Dictionary) -> void:
 
 func _ready() -> void:
 	# Set panel info before base initialization with more informative description  
-	set_panel_info("Campaign Review", "Verify all settings. All data from previous steps should appear below. Click 'Create Campaign' to start.")
+	set_panel_info("Campaign Review", "Review your campaign setup and create your adventure.")
 	
 	# Call parent _ready() to initialize BaseCampaignPanel structure
 	super._ready()
+	
+	# Build final panel UI
+	call_deferred("_build_final_panel_ui")
 	
 	# COMPREHENSIVE DEBUG OUTPUT - Panel Initialization
 	call_deferred("_log_panel_initialization_debug")
 	
 	# Initialize final panel-specific functionality
 	_initialize_security_validator()
-	if create_button:
-		create_button.pressed.connect(_on_create_campaign_pressed)
 	
 	# CRITICAL FIX: Aggregate campaign data when panel becomes ready
 	call_deferred("_aggregate_campaign_data")
 
 func _setup_panel_content() -> void:
 	"""Override from BaseCampaignPanel - setup final panel-specific content"""
-	# This will be called after BaseCampaignPanel structure is ready
+	# Content built in _build_final_panel_ui
 	pass
+
+func _build_final_panel_ui() -> void:
+	"""Build the complete final panel UI with styled cards"""
+	if not content_container:
+		push_error("FinalPanel: No content_container available")
+		return
+	
+	# Clear existing content
+	for child in content_container.get_children():
+		child.queue_free()
+	
+	var main_scroll := ScrollContainer.new()
+	main_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	main_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content_container.add_child(main_scroll)
+	
+	var main_vbox := VBoxContainer.new()
+	main_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	main_vbox.add_theme_constant_override("separation", SPACING_LG)
+	main_scroll.add_child(main_vbox)
+	
+	# 1. Progress Indicator
+	progress_container = _create_progress_indicator()
+	main_vbox.add_child(progress_container)
+	
+	# 2. Summary Cards Container
+	summary_cards_container = VBoxContainer.new()
+	summary_cards_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	summary_cards_container.add_theme_constant_override("separation", SPACING_MD)
+	main_vbox.add_child(summary_cards_container)
+	
+	# 3. Crew Preview Section
+	crew_preview_container = _create_crew_preview_section()
+	main_vbox.add_child(crew_preview_container)
+	
+	# 4. Create Campaign Button
+	create_button = _create_create_campaign_button()
+	main_vbox.add_child(create_button)
+	
+	print("FinalPanel: UI built successfully")
+
+func _create_progress_indicator(current_step: int = 7, total_steps: int = 7, step_title: String = "Review & Create") -> Control:
+	"""Create Step 7/7 progress indicator with 100% bar"""
+	var container := VBoxContainer.new()
+	container.add_theme_constant_override("separation", SPACING_SM)
+	
+	var label := Label.new()
+	label.text = "Step 7 of 7 - Review & Create"
+	label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	container.add_child(label)
+	
+	# Progress bar
+	var progress := ProgressBar.new()
+	progress.value = 100.0
+	progress.custom_minimum_size.y = 8
+	
+	# Style progress bar
+	var style_bg := StyleBoxFlat.new()
+	style_bg.bg_color = COLOR_INPUT
+	style_bg.set_corner_radius_all(4)
+	progress.add_theme_stylebox_override("background", style_bg)
+	
+	var style_fill := StyleBoxFlat.new()
+	style_fill.bg_color = COLOR_SUCCESS
+	style_fill.set_corner_radius_all(4)
+	progress.add_theme_stylebox_override("fill", style_fill)
+	
+	container.add_child(progress)
+	
+	return container
+
+func _create_crew_preview_section() -> VBoxContainer:
+	"""Create crew preview section with CharacterCard COMPACT"""
+	var section := VBoxContainer.new()
+	section.add_theme_constant_override("separation", SPACING_MD)
+	
+	var title := Label.new()
+	title.text = "Your Crew"
+	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	section.add_child(title)
+	
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.custom_minimum_size.y = 100
+	section.add_child(scroll)
+	
+	var crew_hbox := HBoxContainer.new()
+	crew_hbox.add_theme_constant_override("separation", SPACING_SM)
+	crew_hbox.name = "CrewCardsContainer"
+	scroll.add_child(crew_hbox)
+	
+	return section
+
+func _create_create_campaign_button() -> Button:
+	"""Create large accent 'Create Campaign' button"""
+	var btn := Button.new()
+	btn.text = "Create Campaign & Start Adventure"
+	btn.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	
+	# Accent button styling
+	var style_normal := StyleBoxFlat.new()
+	style_normal.bg_color = COLOR_ACCENT
+	style_normal.set_corner_radius_all(8)
+	style_normal.set_content_margin_all(SPACING_MD)
+	
+	var style_hover := StyleBoxFlat.new()
+	style_hover.bg_color = COLOR_ACCENT_HOVER
+	style_hover.set_corner_radius_all(8)
+	style_hover.set_content_margin_all(SPACING_MD)
+	
+	var style_disabled := StyleBoxFlat.new()
+	style_disabled.bg_color = COLOR_TEXT_DISABLED
+	style_disabled.set_corner_radius_all(8)
+	style_disabled.set_content_margin_all(SPACING_MD)
+	
+	btn.add_theme_stylebox_override("normal", style_normal)
+	btn.add_theme_stylebox_override("hover", style_hover)
+	btn.add_theme_stylebox_override("disabled", style_disabled)
+	btn.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	
+	btn.pressed.connect(_on_create_campaign_pressed)
+	
+	return btn
 
 func _initialize_security_validator() -> void:
 	"""Initialize security validator for input sanitization"""
@@ -122,120 +254,287 @@ func _aggregate_campaign_data() -> void:
 		print("FinalPanel: ⚠️ No campaign data available from coordinator or signals")
 
 func _update_display() -> void:
-	"""Update comprehensive campaign summary display"""
-	_update_config_summary()
-	_update_crew_summary()
-
-func _update_config_summary() -> void:
-	"""Update configuration summary display"""
-	if not config_summary:
+	"""Update comprehensive campaign summary display with styled cards"""
+	if not summary_cards_container:
 		return
 	
-	var config_text = "[b]Campaign Configuration:[/b]\n"
+	# Clear existing cards
+	for child in summary_cards_container.get_children():
+		child.queue_free()
+	
+	# Build 5 summary cards
+	summary_cards_container.add_child(_create_config_summary_card())
+	summary_cards_container.add_child(_create_ship_summary_card())
+	summary_cards_container.add_child(_create_captain_summary_card())
+	summary_cards_container.add_child(_create_crew_summary_card())
+	summary_cards_container.add_child(_create_equipment_summary_card())
+	
+	# Update crew preview
+	_update_crew_preview()
+	
+	# Update button state
+	_update_create_button_state()
+
+func _create_config_summary_card() -> PanelContainer:
+	"""Create Card 1: Campaign Configuration"""
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", SPACING_SM)
+	
 	var config_data = campaign_data.get("campaign_config", campaign_data.get("config", {}))
 	
-	config_text += "Name: %s\n" % config_data.get("campaign_name", "Unknown Campaign")
-	config_text += "Difficulty: %s\n" % config_data.get("difficulty", "Normal")
-	config_text += "Mode: %s\n" % config_data.get("game_mode", "Standard")
+	# Campaign Name
+	var name_label := Label.new()
+	name_label.text = "Campaign: %s" % config_data.get("campaign_name", "Unknown Campaign")
+	name_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	content.add_child(name_label)
 	
-	# CRITICAL FIX: Add victory condition display with proper handling
+	# Difficulty & Mode
+	var difficulty_label := Label.new()
+	difficulty_label.text = "Difficulty: %s | Mode: %s" % [
+		config_data.get("difficulty", "Normal"),
+		config_data.get("game_mode", "Standard")
+	]
+	difficulty_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	difficulty_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	content.add_child(difficulty_label)
+	
+	# Victory Conditions
 	var victory_conditions = config_data.get("victory_conditions", {})
 	var selected_conditions = []
 	for key in victory_conditions.keys():
 		if victory_conditions[key] == true:
 			selected_conditions.append(_get_victory_condition_display_name(key))
 	
+	var victory_label := Label.new()
 	if selected_conditions.size() > 0:
-		config_text += "Victory Conditions: %s\n" % ", ".join(selected_conditions)
+		victory_label.text = "Victory: %s" % ", ".join(selected_conditions)
 	else:
-		config_text += "Victory Conditions: None Selected\n"
+		victory_label.text = "Victory: None Selected"
+	victory_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	victory_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	victory_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	content.add_child(victory_label)
 	
-	# Add story track setting
+	# Story Track
 	var story_track = config_data.get("story_track_enabled", false)
-	config_text += "Story Track: %s\n" % ("Enabled" if story_track else "Disabled")
+	var story_label := Label.new()
+	story_label.text = "Story Track: %s" % ("Enabled" if story_track else "Disabled")
+	story_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	story_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	content.add_child(story_label)
 	
-	# Add validation status
-	var completion_status = campaign_data.get("completion_status", {})
-	var config_complete = completion_status.get("CONFIG", false)
-	config_text += "Status: %s\n" % ("✅ Complete" if config_complete else "❌ Incomplete")
-	
-	config_summary.text = config_text
+	return _create_section_card("Campaign Configuration", content)
 
-func _update_crew_summary() -> void:
-	"""Update crew summary display"""
-	if not crew_summary:
-		return
+func _create_ship_summary_card() -> PanelContainer:
+	"""Create Card 2: Ship Details"""
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", SPACING_SM)
 	
-	var crew_text = "[b]Campaign Summary:[/b]\n"
+	var ship_data = campaign_data.get("ship", {})
 	
-	# Crew information
-	var crew_data = campaign_data.get("crew", {})
-	var crew_members = crew_data.get("members", [])
-	crew_text += "Crew Members: %d\n" % crew_members.size()
+	# Ship Name & Type
+	var name_label := Label.new()
+	name_label.text = "%s (%s)" % [
+		ship_data.get("name", "Unnamed Ship"),
+		ship_data.get("type", "Unknown Type")
+	]
+	name_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	content.add_child(name_label)
 	
-	# Captain information - improved access patterns
+	# Ship Stats Grid
+	var stats := {}
+	stats["Hull"] = ship_data.get("hull_points", 0)
+	stats["Cargo"] = ship_data.get("cargo_capacity", 0)
+	stats["Debt"] = "%d cr" % ship_data.get("debt", 0)
+	
+	var stats_grid := _create_stats_grid(stats, 3)
+	content.add_child(stats_grid)
+	
+	return _create_section_card("Ship Details", content)
+
+func _create_captain_summary_card() -> PanelContainer:
+	"""Create Card 3: Captain Info"""
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", SPACING_SM)
+	
 	var captain_data = campaign_data.get("captain", {})
 	var captain_name = captain_data.get("name", "")
 	if captain_name.is_empty():
-		# Try alternate captain access patterns
 		var captain = captain_data.get("captain")
 		if captain:
 			if captain is Dictionary:
 				captain_name = captain.get("character_name", captain.get("name", "Unknown Captain"))
 			elif captain.has("character_name"):
 				captain_name = captain.character_name
-			else:
-				captain_name = str(captain)
 	
-	if not captain_name.is_empty():
-		crew_text += "Captain: %s\n" % captain_name
-		var captain_background = captain_data.get("background", "")
-		if not captain_background.is_empty():
-			crew_text += "Background: %s\n" % captain_background
-	else:
-		crew_text += "Captain: Not Assigned\n"
+	# Captain Name
+	var name_label := Label.new()
+	name_label.text = captain_name if not captain_name.is_empty() else "No Captain Assigned"
+	name_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	content.add_child(name_label)
 	
-	# Ship information
-	var ship_data = campaign_data.get("ship", {})
-	crew_text += "Ship: %s (%s)\n" % [
-		ship_data.get("name", "Unnamed"),
-		ship_data.get("type", "Unknown Type")
-	]
+	# Background, Class, Motivation
+	var background: String = captain_data.get("background", "")
+	var char_class: String = captain_data.get("class", "")
+	var motivation: String = captain_data.get("motivation", "")
 	
-	# Equipment information
+	if not background.is_empty():
+		var bg_label := Label.new()
+		bg_label.text = "Background: %s" % background
+		bg_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		bg_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		content.add_child(bg_label)
+	
+	if not char_class.is_empty():
+		var class_label := Label.new()
+		class_label.text = "Class: %s" % char_class
+		class_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		class_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		content.add_child(class_label)
+	
+	# Starting XP
+	var xp_label := Label.new()
+	xp_label.text = "Starting XP: %d" % captain_data.get("xp", 0)
+	xp_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	xp_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	content.add_child(xp_label)
+	
+	return _create_section_card("Captain", content)
+
+func _create_crew_summary_card() -> PanelContainer:
+	"""Create Card 4: Crew Summary (count, avg stats)"""
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", SPACING_SM)
+	
+	var crew_members: Array[Dictionary] = campaign_data.get("crew", {}).get("members", [])
+	
+	# Crew Count
+	var count_label := Label.new()
+	count_label.text = "Crew Members: %d" % crew_members.size()
+	count_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	count_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	content.add_child(count_label)
+	
+	# Calculate average stats
+	if crew_members.size() > 0:
+		var total_combat := 0
+		var total_reactions := 0
+		for member in crew_members:
+			if member is Dictionary:
+				total_combat += int(member.get("combat_skill", 0))
+				total_reactions += int(member.get("reactions", 0))
+			elif member is FiveParsecsCharacter:
+				total_combat += member.combat_skill
+				total_reactions += member.reactions
+		
+		var avg_combat: int = total_combat / crew_members.size()
+		var avg_reactions: int = total_reactions / crew_members.size()
+		
+		var stats_label := Label.new()
+		stats_label.text = "Avg Combat: +%d | Avg Reactions: %d\"" % [avg_combat, avg_reactions]
+		stats_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		stats_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		content.add_child(stats_label)
+	
+	return _create_section_card("Crew Summary", content)
+
+func _create_equipment_summary_card() -> PanelContainer:
+	"""Create Card 5: Starting Equipment"""
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", SPACING_SM)
+	
 	var equipment_data = campaign_data.get("equipment", {})
 	var equipment_list = equipment_data.get("items", equipment_data.get("equipment", []))
-	crew_text += "Equipment Items: %d\n" % equipment_list.size()
-	crew_text += "Starting Credits: %d\n" % equipment_data.get("starting_credits", equipment_data.get("credits", 0))
 	
-	# World information if available
-	var world_data = campaign_data.get("world", {})
-	if not world_data.is_empty():
-		crew_text += "Starting World: %s\n" % world_data.get("name", "Unknown World")
+	# Credits
+	var credits_label := Label.new()
+	credits_label.text = "Starting Credits: %d cr" % equipment_data.get("starting_credits", equipment_data.get("credits", 0))
+	credits_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	credits_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	content.add_child(credits_label)
 	
-	# Overall completion status
-	var completion_status = campaign_data.get("completion_status", {})
-	var completed_phases = 0
-	var total_phases = completion_status.keys().size()
+	# Equipment Count
+	var eq_label := Label.new()
+	eq_label.text = "Equipment Items: %d" % equipment_list.size()
+	eq_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	eq_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	content.add_child(eq_label)
 	
-	for phase in completion_status.keys():
-		if completion_status[phase] == true:
-			completed_phases += 1
+	# Resources
+	var resources_data = campaign_data.get("resources", equipment_data.get("resources", {}))
+	if not resources_data.is_empty():
+		var story_points: int = resources_data.get("story_points", 0)
+		var patrons: Array = resources_data.get("patrons", [])
+		var rivals: Array = resources_data.get("rivals", [])
+		
+		if story_points > 0 or patrons.size() > 0 or rivals.size() > 0:
+			var res_label := Label.new()
+			res_label.text = "Story Points: %d | Patrons: %d | Rivals: %d" % [
+				story_points,
+				patrons.size(),
+				rivals.size()
+			]
+			res_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+			res_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+			content.add_child(res_label)
 	
-	var completion_pct = 0.0
-	if total_phases > 0:
-		completion_pct = (float(completed_phases) / float(total_phases)) * 100.0
+	return _create_section_card("Starting Equipment", content)
+
+func _update_crew_preview() -> void:
+	"""Update crew preview with CharacterCard COMPACT"""
+	if not crew_preview_container:
+		return
 	
-	crew_text += "\n[b]Campaign Readiness: %.1f%% (%d/%d phases)[/b]\n" % [completion_pct, completed_phases, total_phases]
+	var crew_hbox = crew_preview_container.get_node_or_null("ScrollContainer/CrewCardsContainer")
+	if not crew_hbox:
+		return
 	
-	if completion_pct >= 100.0:
-		crew_text += "[color=green]✅ Ready to Launch![/color]"
-	elif completion_pct >= 80.0:
-		crew_text += "[color=yellow]⚠️ Nearly Ready[/color]"
-	else:
-		crew_text += "[color=red]❌ Incomplete Setup[/color]"
+	# Clear existing cards
+	for child in crew_hbox.get_children():
+		child.queue_free()
 	
-	crew_summary.text = crew_text
+	var crew_data = campaign_data.get("crew", {})
+	var crew_members = crew_data.get("members", [])
+	
+	if crew_members.is_empty():
+		var no_crew_label := Label.new()
+		no_crew_label.text = "No crew members created yet"
+		no_crew_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		no_crew_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		crew_hbox.add_child(no_crew_label)
+		return
+	
+	# Create CharacterCard COMPACT for each crew member
+	for member in crew_members:
+		var card = CharacterCardScene.instantiate()
+		card.current_variant = 0  # COMPACT = 80px
+		card.custom_minimum_size = Vector2(200, 80)
+		
+		# Set character data
+		if member is Character:
+			card.set_character(member)
+		elif member is Dictionary:
+			# Create temporary Character from dict
+			var temp_char = Character.new()
+			temp_char.character_name = member.get("name", member.get("character_name", "Unknown"))
+			temp_char.background = member.get("background", "")
+			temp_char.char_class = member.get("class", "")
+			temp_char.combat_skill = member.get("combat_skill", 0)
+			temp_char.reactions = member.get("reactions", 0)
+			card.set_character(temp_char)
+		
+		crew_hbox.add_child(card)
+
+func _update_create_button_state() -> void:
+	"""Enable/disable Create Campaign button based on validation"""
+	if not create_button:
+		return
+	
+	var errors = _validate_campaign_data()
+	create_button.disabled = not errors.is_empty()
 
 func _get_victory_condition_display_name(condition_key: String) -> String:
 	"""Get display name for victory condition key"""
@@ -293,6 +592,9 @@ func _on_create_campaign_pressed() -> void:
 		create_button.disabled = true  # Prevent double-clicks
 		print("FinalPanel: Initiating campaign finalization...")
 		
+		# Emit campaign_confirmed signal
+		campaign_confirmed.emit()
+		
 		# Load and use CampaignFinalizationService
 		const CampaignFinalizationService = preload("res://src/core/campaign/creation/CampaignFinalizationService.gd")
 		var service = CampaignFinalizationService.new()
@@ -330,28 +632,62 @@ func _validate_and_complete() -> void:
 			print("FinalPanel: Campaign completion requirements not met")
 
 func _check_completion_requirements() -> bool:
-	"""Check if all requirements for campaign completion are met"""
+	"""Check if all requirements for campaign completion are met based on actual data presence"""
 	# Must have campaign data
 	if campaign_data.is_empty():
+		print("FinalPanel: Completion check failed - empty campaign data")
 		return false
 	
-	# Check completion status from validation summary
-	var validation_summary = campaign_data.get("validation_summary", {})
-	var completion_pct = validation_summary.get("completion_percentage", 0.0)
+	var completed_phases := 0
+	var total_required := 5  # Core required phases
 	
-	# Require at least 80% completion
-	if completion_pct < 80.0:
-		return false
+	# Check CONFIG phase - campaign_config with name
+	var config_data = campaign_data.get("campaign_config", campaign_data.get("config", {}))
+	if config_data.get("campaign_name", "").strip_edges() != "":
+		completed_phases += 1
+		print("FinalPanel: ✅ CONFIG phase complete")
+	else:
+		print("FinalPanel: ❌ CONFIG phase incomplete - no campaign name")
 	
-	# Check critical phases are complete
-	var completion_status = campaign_data.get("completion_status", {})
-	var required_phases = ["CONFIG", "CREW_SETUP", "CAPTAIN_CREATION"]
+	# Check CAPTAIN phase - captain with some data
+	var captain_data = campaign_data.get("captain", {})
+	if captain_data.size() > 0 and (captain_data.get("name", "") != "" or captain_data.get("character_name", "") != "" or captain_data.get("captain") != null):
+		completed_phases += 1
+		print("FinalPanel: ✅ CAPTAIN phase complete")
+	else:
+		print("FinalPanel: ❌ CAPTAIN phase incomplete")
 	
-	for phase in required_phases:
-		if not completion_status.get(phase, false):
-			return false
+	# Check CREW phase - at least 4 crew members
+	var crew_data = campaign_data.get("crew", {})
+	var crew_members = crew_data.get("members", [])
+	if crew_members.size() >= 4:
+		completed_phases += 1
+		print("FinalPanel: ✅ CREW phase complete (%d members)" % crew_members.size())
+	else:
+		print("FinalPanel: ❌ CREW phase incomplete (%d/4 members)" % crew_members.size())
 	
-	return true
+	# Check SHIP phase - ship with name
+	var ship_data = campaign_data.get("ship", {})
+	if ship_data.get("name", "") != "":
+		completed_phases += 1
+		print("FinalPanel: ✅ SHIP phase complete")
+	else:
+		print("FinalPanel: ❌ SHIP phase incomplete")
+	
+	# Check EQUIPMENT phase - any equipment data
+	var equipment_data = campaign_data.get("equipment", {})
+	if equipment_data.size() > 0:
+		completed_phases += 1
+		print("FinalPanel: ✅ EQUIPMENT phase complete")
+	else:
+		print("FinalPanel: ❌ EQUIPMENT phase incomplete")
+	
+	# Calculate completion percentage
+	var completion_pct: float = (float(completed_phases) / float(total_required)) * 100.0
+	print("FinalPanel: Completion: %.1f%% (%d/%d phases)" % [completion_pct, completed_phases, total_required])
+	
+	# Require at least 80% completion (4 of 5 core phases)
+	return completion_pct >= 80.0
 
 func _validate_campaign_data() -> Array[String]:
 	"""Performs validation on the complete campaign data"""
@@ -362,8 +698,8 @@ func _validate_campaign_data() -> Array[String]:
 		errors.append("Campaign data is empty.")
 		return errors
 	
-	# Validate config phase
-	var config_data = campaign_data.get("config", {})
+	# Validate config phase - check both "config" and "campaign_config" keys
+	var config_data = campaign_data.get("campaign_config", campaign_data.get("config", {}))
 	if config_data.is_empty():
 		errors.append("Campaign configuration is missing.")
 	elif config_data.get("campaign_name", "").strip_edges().is_empty():
@@ -375,14 +711,45 @@ func _validate_campaign_data() -> Array[String]:
 	if crew_members.is_empty():
 		errors.append("Campaign must have crew members.")
 	
-	# Validate captain phase
+	# Validate captain phase - check multiple ways captain data can be stored
 	var captain_data = campaign_data.get("captain", {})
-	if not captain_data.get("captain"):
+	var has_captain = false
+	if captain_data.get("captain"):
+		has_captain = true
+	elif captain_data.get("name", "") != "":
+		has_captain = true
+	elif captain_data.get("character_name", "") != "":
+		has_captain = true
+	elif captain_data.size() > 0:
+		# Captain data exists with some content
+		has_captain = true
+	
+	if not has_captain:
 		errors.append("Campaign must have a captain.")
 	
-	# Check overall completion
-	var validation_summary = campaign_data.get("validation_summary", {})
-	var completion_pct = validation_summary.get("completion_percentage", 0.0)
+	# Calculate completion based on actual data (same logic as _check_completion_requirements)
+	var completed_phases := 0
+	var total_required := 5
+	
+	# CONFIG
+	if config_data.get("campaign_name", "").strip_edges() != "":
+		completed_phases += 1
+	# CAPTAIN  
+	if has_captain:
+		completed_phases += 1
+	# CREW
+	if crew_members.size() >= 4:
+		completed_phases += 1
+	# SHIP
+	var ship_data = campaign_data.get("ship", {})
+	if ship_data.get("name", "") != "":
+		completed_phases += 1
+	# EQUIPMENT
+	var equipment_data = campaign_data.get("equipment", {})
+	if equipment_data.size() > 0:
+		completed_phases += 1
+	
+	var completion_pct: float = (float(completed_phases) / float(total_required)) * 100.0
 	if completion_pct < 80.0:
 		errors.append("Campaign setup is only %.1f%% complete. Must be at least 80%% to create." % completion_pct)
 	
@@ -497,8 +864,6 @@ func _log_panel_initialization_debug() -> void:
 	
 	# Check UI component availability
 	print("  === UI COMPONENTS ===")
-	print("    Config Summary: %s" % (config_summary != null))
-	print("    Crew Summary: %s" % (crew_summary != null))
 	print("    Create Button: %s" % (create_button != null))
 	
 	print("==== [PANEL: FinalPanel] INIT COMPLETE ====\n")
@@ -542,3 +907,27 @@ func _log_mathematical_validation() -> void:
 	])
 	print("    Crew Size: %d/4 minimum (%s)" % [crew_size, "VALID" if crew_size >= 4 else "INVALID"])
 	print("    Campaign Ready: %s" % ("YES" if is_campaign_complete else "NO"))
+
+## Responsive Layout Overrides
+
+func _apply_mobile_layout() -> void:
+	"""Mobile: Single column, comfortable touch targets, compact summaries"""
+	super._apply_mobile_layout()
+
+	# Increase button touch target to TOUCH_TARGET_COMFORT for comfortable mobile use
+	if create_button:
+		create_button.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+
+func _apply_tablet_layout() -> void:
+	"""Tablet: Two columns, minimum touch targets, detailed summaries"""
+	super._apply_tablet_layout()
+
+	# Standard button touch target at TOUCH_TARGET_MIN for larger screens
+	if create_button:
+		create_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+
+func _apply_desktop_layout() -> void:
+	"""Desktop: Multi-column, minimum touch targets, full summaries"""
+	super._apply_desktop_layout()
+
+	# Standard button touch target at TOUCH_TARGET_MIN for mouse-first interaction

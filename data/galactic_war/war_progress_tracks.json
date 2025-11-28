@@ -1,0 +1,313 @@
+{
+  "name": "Galactic War Progress Tracks",
+  "version": "1.0",
+  "source": "Five Parsecs from Home Core Rules - Galactic War Campaign",
+  "description": "Tracks for major faction conflicts affecting the galaxy during campaign",
+  "war_tracks": {
+    "unity_expansion": {
+      "id": "unity_expansion",
+      "name": "Unity Expansion",
+      "description": "K'Erin Unity forces push into Fringe Space territories",
+      "faction": "K'Erin Unity",
+      "min_progress": 0,
+      "max_progress": 20,
+      "starting_progress": 8,
+      "active": true,
+      "thresholds": {
+        "5": {
+          "event_id": "unity_border_skirmishes",
+          "name": "Border Skirmishes",
+          "description": "Unity patrols increase in border systems",
+          "effects": {
+            "increased_patrols": true,
+            "travel_cost_modifier": 0.2,
+            "encounter_rate_modifier": 0.15
+          },
+          "narrative": "Unity warships are spotted in increasing numbers along the border worlds. Merchant traffic slows as captains avoid confrontation."
+        },
+        "10": {
+          "event_id": "unity_occupation",
+          "name": "Trade Route Occupation",
+          "description": "Unity occupies key trade routes and stations",
+          "effects": {
+            "increased_patrols": true,
+            "travel_restrictions": true,
+            "travel_cost_modifier": 0.4,
+            "black_market_activity": true,
+            "equipment_price_modifier": 1.3
+          },
+          "narrative": "Unity battlegroups seize control of major hyperspace lanes. Independent traders are forced to take longer, more dangerous routes."
+        },
+        "15": {
+          "event_id": "unity_offensive",
+          "name": "Full-Scale Offensive",
+          "description": "Unity launches coordinated military campaign",
+          "effects": {
+            "increased_patrols": true,
+            "travel_restrictions": true,
+            "combat_deployment_chance": 0.25,
+            "refugee_missions_available": true,
+            "salvage_opportunities": true,
+            "travel_cost_modifier": 0.6
+          },
+          "narrative": "The Unity war machine is in full motion. Entire systems fall under martial law as the invasion accelerates."
+        },
+        "20": {
+          "event_id": "unity_victory",
+          "name": "Sector Conquest",
+          "description": "Unity conquers the entire sector",
+          "effects": {
+            "campaign_ending": true,
+            "unity_controlled": true,
+            "all_worlds_occupied": true
+          },
+          "narrative": "Unity forces have consolidated control over the sector. Independent crews must flee to uncharted space or submit to Unity authority."
+        }
+      }
+    },
+    "corporate_war": {
+      "id": "corporate_war",
+      "name": "Corporate Territorial War",
+      "description": "Megacorporations clash over resource-rich systems",
+      "faction": "Corporate Coalition",
+      "min_progress": 0,
+      "max_progress": 20,
+      "starting_progress": 5,
+      "active": true,
+      "thresholds": {
+        "5": {
+          "event_id": "corporate_tensions",
+          "name": "Rising Tensions",
+          "description": "Corporate security forces mobilize",
+          "effects": {
+            "hiring_demand_increase": true,
+            "patron_job_modifier": 1.2,
+            "corporate_missions_available": true
+          },
+          "narrative": "Rival corporations begin positioning assets. Security contractors are in high demand."
+        },
+        "10": {
+          "event_id": "proxy_conflicts",
+          "name": "Proxy Conflicts",
+          "description": "Corporations hire mercenaries for raids",
+          "effects": {
+            "mercenary_missions_common": true,
+            "patron_job_modifier": 1.5,
+            "rival_generation_rate": 0.2,
+            "equipment_availability_increase": true
+          },
+          "narrative": "Corporate boardrooms wage war through hired guns. Mercenary crews can name their price."
+        },
+        "15": {
+          "event_id": "trade_embargo",
+          "name": "Trade Embargo",
+          "description": "Major trade routes blockaded",
+          "effects": {
+            "equipment_price_modifier": 1.6,
+            "fuel_cost_modifier": 2.0,
+            "smuggling_missions_available": true,
+            "travel_time_modifier": 1.5
+          },
+          "narrative": "Corporate fleets enforce brutal embargoes. Only the bold or desperate attempt the blockade runs."
+        },
+        "20": {
+          "event_id": "corporate_collapse",
+          "name": "Economic Collapse",
+          "description": "Sector economy destabilizes",
+          "effects": {
+            "market_chaos": true,
+            "equipment_price_modifier": 2.0,
+            "credits_value_modifier": 0.5,
+            "salvage_opportunities": true,
+            "lawless_systems": true
+          },
+          "narrative": "The corporate war has destroyed the sector's economy. Chaos reigns as infrastructure crumbles."
+        }
+      }
+    },
+    "alien_incursion": {
+      "id": "alien_incursion",
+      "name": "Converted Incursion",
+      "description": "Converted (cybernetic zealots) spread across border worlds",
+      "faction": "The Converted",
+      "min_progress": 0,
+      "max_progress": 20,
+      "starting_progress": 3,
+      "active": false,
+      "thresholds": {
+        "5": {
+          "event_id": "converted_sightings",
+          "name": "First Contact",
+          "description": "Converted scouts probe colony defenses",
+          "effects": {
+            "converted_encounters": true,
+            "tech_level_concern": true,
+            "research_missions_available": true
+          },
+          "narrative": "Strange ships with biomechanical signatures appear on long-range scans. Local militias go on high alert."
+        },
+        "10": {
+          "event_id": "converted_raids",
+          "name": "Border Raids",
+          "description": "Converted raiders attack isolated settlements",
+          "effects": {
+            "converted_encounters": true,
+            "encounter_rate_modifier": 0.25,
+            "defense_missions_available": true,
+            "evacuation_missions_available": true,
+            "exotic_salvage_available": true
+          },
+          "narrative": "Converted raiding parties strike outlying colonies, seeking technology and captives for conversion."
+        },
+        "15": {
+          "event_id": "converted_invasion",
+          "name": "Full Invasion",
+          "description": "Converted launch coordinated assault",
+          "effects": {
+            "converted_encounters": true,
+            "encounter_rate_modifier": 0.5,
+            "combat_deployment_chance": 0.4,
+            "world_defense_critical": true,
+            "high_value_targets": true
+          },
+          "narrative": "Converted warfleets emerge from the void. Entire worlds face assimilation or destruction."
+        },
+        "20": {
+          "event_id": "converted_assimilation",
+          "name": "Sector Assimilated",
+          "description": "Converted achieve complete conquest",
+          "effects": {
+            "campaign_ending": true,
+            "converted_controlled": true,
+            "human_extinction_event": true
+          },
+          "narrative": "The Converted have consumed the sector. Biological life is extinct or integrated into their collective."
+        }
+      }
+    },
+    "pirate_uprising": {
+      "id": "pirate_uprising",
+      "name": "Pirate Coalition",
+      "description": "Fragmented pirate gangs unite under warlord leadership",
+      "faction": "Pirate Coalition",
+      "min_progress": 0,
+      "max_progress": 15,
+      "starting_progress": 0,
+      "active": false,
+      "thresholds": {
+        "3": {
+          "event_id": "pirate_organization",
+          "name": "Gang Consolidation",
+          "description": "Pirates begin coordinating attacks",
+          "effects": {
+            "pirate_encounters_increase": true,
+            "encounter_rate_modifier": 0.15,
+            "bounty_missions_available": true
+          },
+          "narrative": "Scattered pirate gangs form alliances. Trade ships report increased harassment."
+        },
+        "7": {
+          "event_id": "pirate_strongholds",
+          "name": "Stronghold Establishment",
+          "description": "Pirates seize remote stations",
+          "effects": {
+            "pirate_encounters_increase": true,
+            "black_market_expansion": true,
+            "illegal_goods_available": true,
+            "safe_havens_reduced": true
+          },
+          "narrative": "Pirate warlords claim abandoned stations as bases. The black market flourishes."
+        },
+        "12": {
+          "event_id": "pirate_fleet",
+          "name": "Pirate Armada",
+          "description": "Pirates field organized battle fleet",
+          "effects": {
+            "pirate_encounters_increase": true,
+            "encounter_rate_modifier": 0.4,
+            "convoy_missions_available": true,
+            "travel_danger_increase": true,
+            "military_response_missions": true
+          },
+          "narrative": "A unified pirate armada terrorizes shipping lanes. Merchant convoys require heavy escort."
+        },
+        "15": {
+          "event_id": "pirate_empire",
+          "name": "Pirate Kingdom",
+          "description": "Pirates establish independent territory",
+          "effects": {
+            "pirate_controlled_systems": true,
+            "trade_route_disruption": true,
+            "equipment_price_modifier": 1.4,
+            "lawless_zones": true,
+            "faction_shift": true
+          },
+          "narrative": "The Pirate Coalition declares independence, carving out their own lawless empire from the chaos."
+        }
+      }
+    }
+  },
+  "progression_mechanics": {
+    "turn_advancement": {
+      "dice_type": "d6",
+      "advancement_threshold": 5,
+      "description": "Roll D6 each campaign turn for each active war track. On 5+, track advances by 1.",
+      "modifiers": {
+        "crew_involvement": {
+          "bonus": 1,
+          "description": "If crew participated in mission related to this conflict, +1 to roll"
+        },
+        "major_event": {
+          "bonus": 2,
+          "description": "Major story events can force progression"
+        }
+      }
+    },
+    "player_influence": {
+      "success_mission": {
+        "effect": "Reduce track by 1 (crew helped defenders)",
+        "description": "Successfully defending against faction reduces their progress"
+      },
+      "failure_mission": {
+        "effect": "Increase track by 1 (faction gains ground)",
+        "description": "Failed defense missions accelerate faction conquest"
+      },
+      "sabotage_mission": {
+        "effect": "Reduce track by 2",
+        "description": "Special sabotage missions can significantly hinder faction"
+      }
+    }
+  },
+  "campaign_rules": {
+    "starting_setup": {
+      "default_active_tracks": 2,
+      "description": "Start with 2 active war tracks (Unity Expansion + Corporate War recommended)",
+      "randomize_starting_progress": true,
+      "progress_range": "1d6+2"
+    },
+    "activation": {
+      "dormant_activation_chance": 0.15,
+      "description": "Each turn, dormant tracks have 15% chance to activate",
+      "trigger_events": ["major_story_milestone", "threshold_reached_other_track"]
+    },
+    "multiple_track_effects": {
+      "description": "When multiple tracks reach thresholds, effects stack",
+      "chaos_modifier": "If 3+ tracks active, all encounter rates +25%"
+    }
+  },
+  "ui_configuration": {
+    "display_order": ["unity_expansion", "corporate_war", "alien_incursion", "pirate_uprising"],
+    "color_scheme": {
+      "unity_expansion": "#2D5A7B",
+      "corporate_war": "#7B522D",
+      "alien_incursion": "#5A2D7B",
+      "pirate_uprising": "#7B2D2D"
+    },
+    "progress_bar_style": {
+      "filled_color": "#2D5A7B",
+      "empty_color": "#1E1E36",
+      "height": 8,
+      "show_threshold_markers": true
+    }
+  }
+}

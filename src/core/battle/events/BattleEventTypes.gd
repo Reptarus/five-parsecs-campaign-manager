@@ -1,3 +1,4 @@
+class_name FPCM_BattleEventTypes
 extends Resource
 
 # GlobalEnums available as autoload singleton

@@ -378,19 +378,29 @@ static func safe_transition_to_scene(scene_name: String, context: Dictionary = {
 ## Auto-save and Recovery System
 
 var auto_save_enabled: bool = true
-var auto_save_interval: float = 30.0 # seconds
-var last_auto_save: float = 0.0
 var recovery_save_path: String = "user://campaign_creation_recovery.dat"
+var _auto_save_timer: Timer
 
-func _process(delta: float) -> void:
-	"""Handle auto-save timing"""
-	if not auto_save_enabled:
-		return
-	
-	last_auto_save += delta
-	if last_auto_save >= auto_save_interval:
-		_perform_auto_save()
-		last_auto_save = 0.0
+func _ready() -> void:
+	"""Initialize auto-save timer"""
+	_setup_auto_save_timer()
+
+func _exit_tree() -> void:
+	"""Cleanup when bridge is removed from scene tree"""
+	if _auto_save_timer:
+		_auto_save_timer.stop()
+		_auto_save_timer.queue_free()
+		_auto_save_timer = null
+
+func _setup_auto_save_timer() -> void:
+	"""Setup auto-save timer"""
+	_auto_save_timer = Timer.new()
+	add_child(_auto_save_timer)
+	_auto_save_timer.wait_time = 30.0  # Auto-save every 30 seconds
+	_auto_save_timer.timeout.connect(_perform_auto_save)
+	if auto_save_enabled:
+		_auto_save_timer.start()
+		print("CampaignCreationStateBridge: Auto-save timer started")
 
 func _perform_auto_save() -> void:
 	"""Perform automatic save of campaign creation state"""

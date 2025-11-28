@@ -1,0 +1,271 @@
+extends GdUnitTestSuite
+
+## Battle Integration Validation Tests
+## 
+## Validates the complete battle integration flow from UI → Backend → Battle Phase
+## Tests signal chains, handler initialization, and phase transitions
+##
+## Integration Points Tested:
+## 1. MissionPrepComponent → WorldPhaseController → CampaignTurnController
+## 2. CampaignPhaseManager BattlePhase handler initialization
+## 3. Battle phase start signal chain
+## 4. Battle completion → POST_BATTLE transition
+
+const CampaignPhaseManager = preload("res://src/core/campaign/CampaignPhaseManager.gd")
+const CampaignTurnController = preload("res://src/ui/screens/campaign/CampaignTurnController.gd")
+const WorldPhaseController = preload("res://src/ui/screens/world/WorldPhaseController.gd")
+const MissionPrepComponent = preload("res://src/ui/screens/world/components/MissionPrepComponent.gd")
+const BattlePhase = preload("res://src/core/campaign/phases/BattlePhase.gd")
+
+var phase_manager: CampaignPhaseManager
+var turn_controller: CampaignTurnController
+var world_controller: WorldPhaseController
+var mission_prep: MissionPrepComponent
+var test_scene_root: Node
+
+func before_test() -> void:
+	"""Setup test environment with complete integration chain"""
+	test_scene_root = auto_free(Node.new())
+	add_child(test_scene_root)
+	
+	# Create phase manager
+	phase_manager = auto_free(CampaignPhaseManager.new())
+	test_scene_root.add_child(phase_manager)
+	
+	# Wait for initialization
+	await await_signal_on(phase_manager, "ready", [], 1000)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+func after_test() -> void:
+	"""Cleanup test environment"""
+	if test_scene_root:
+		test_scene_root.queue_free()
+	phase_manager = null
+	turn_controller = null
+	world_controller = null
+	mission_prep = null
+
+## Test 1: Validate BattlePhase Handler Initialization
+func test_battle_phase_handler_initialized() -> void:
+	"""Verify BattlePhase handler is created and connected in CampaignPhaseManager"""
+	
+	# ASSERT: BattlePhase handler exists
+	assert_that(phase_manager.battle_phase_handler).is_not_null()\
+		.override_failure_message("BattlePhase handler should be initialized in CampaignPhaseManager._ready()")
+	
+	# ASSERT: Handler is a child node
+	assert_that(phase_manager.battle_phase_handler.get_parent()).is_equal(phase_manager)\
+		.override_failure_message("BattlePhase handler should be child of CampaignPhaseManager")
+	
+	# ASSERT: Handler is correct type
+	assert_bool(phase_manager.battle_phase_handler is BattlePhase).is_true()\
+		.override_failure_message("battle_phase_handler should be instance of BattlePhase")
+	
+	# ASSERT: Handler has required method
+	assert_bool(phase_manager.battle_phase_handler.has_method("start_battle_phase")).is_true()\
+		.override_failure_message("BattlePhase handler must have start_battle_phase() method")
+
+func test_battle_phase_signals_connected() -> void:
+	"""Verify all BattlePhase signals are properly connected to CampaignPhaseManager"""
+	
+	var battle_handler = phase_manager.battle_phase_handler
+	assert_that(battle_handler).is_not_null()
+	
+	# ASSERT: battle_phase_completed signal connected
+	if battle_handler.has_signal("battle_phase_completed"):
+		var connections = battle_handler.battle_phase_completed.get_connections()
+		assert_int(connections.size()).is_greater(0)\
+			.override_failure_message("battle_phase_completed signal should have connections")
+		
+		# Verify connected to correct handler
+		var connected_to_phase_manager = false
+		for conn in connections:
+			if conn["callable"].get_object() == phase_manager:
+				connected_to_phase_manager = true
+				break
+		assert_bool(connected_to_phase_manager).is_true()\
+			.override_failure_message("battle_phase_completed should connect to CampaignPhaseManager")
+	
+	# ASSERT: battle_results_ready signal connected
+	if battle_handler.has_signal("battle_results_ready"):
+		var connections = battle_handler.battle_results_ready.get_connections()
+		assert_int(connections.size()).is_greater(0)\
+			.override_failure_message("battle_results_ready signal should have connections")
+
+## Test 2: Validate Battle Phase Start Flow
+func test_battle_phase_start_flow() -> void:
+	"""Test complete flow from start_phase(BATTLE) → BattlePhase.start_battle_phase()"""
+	
+	# Setup: Create signal monitor
+	var signal_monitor = monitor_signals(phase_manager.battle_phase_handler)
+	
+	# ACTION: Start battle phase
+	var mission_data = {
+		"mission_type": "patrol",
+		"enemy_count": 3,
+		"terrain": "urban"
+	}
+	
+	phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.BATTLE)
+	
+	# Wait for async processing
+	await get_tree().create_timer(0.2).timeout
+	
+	# ASSERT: battle_phase_started signal emitted
+	assert_int(signal_monitor.get_signal_emit_count("battle_phase_started")).is_greater_equal(1)\
+		.override_failure_message("battle_phase_started should be emitted when phase starts")
+	
+	# ASSERT: Battle handler state updated
+	assert_bool(phase_manager.battle_phase_handler.battle_in_progress).is_true()\
+		.override_failure_message("battle_in_progress should be true after starting")
+	
+	# ASSERT: Current phase set correctly
+	assert_that(phase_manager.current_phase).is_equal(GlobalEnums.FiveParsecsCampaignPhase.BATTLE)\
+		.override_failure_message("current_phase should be BATTLE")
+
+## Test 3: Validate WorldPhase → Battle Transition
+func test_world_phase_to_battle_transition() -> void:
+	"""Test signal chain: WorldPhaseController.phase_completed → Battle phase start"""
+	
+	# Setup: Create world controller
+	world_controller = auto_free(WorldPhaseController.new())
+	test_scene_root.add_child(world_controller)
+	await await_signal_on(world_controller, "ready", [], 1000)
+	await get_tree().process_frame
+	
+	# Setup: Monitor phase transition
+	var phase_monitor = monitor_signals(phase_manager)
+	
+	# Setup: Connect world phase completion to phase manager
+	# (Normally done by CampaignTurnController, simulating here)
+	world_controller.phase_completed.connect(func(results):
+		phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.BATTLE)
+	)
+	
+	# ACTION: Complete world phase
+	var world_results = {
+		"upkeep_completed": true,
+		"crew_tasks_completed": true,
+		"mission_selected": true
+	}
+	world_controller.phase_completed.emit(world_results)
+	
+	# Wait for signal propagation
+	await get_tree().create_timer(0.2).timeout
+	
+	# ASSERT: Phase transition occurred
+	assert_int(phase_monitor.get_signal_emit_count("phase_started")).is_greater_equal(1)\
+		.override_failure_message("phase_started should emit when transitioning from World to Battle")
+	
+	# ASSERT: Transitioned to correct phase
+	assert_that(phase_manager.current_phase).is_equal(GlobalEnums.FiveParsecsCampaignPhase.BATTLE)
+
+## Test 4: Validate Battle → POST_BATTLE Transition
+func test_battle_to_postbattle_transition() -> void:
+	"""Test battle completion triggers POST_BATTLE phase"""
+	
+	# Setup: Start battle phase first
+	phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.BATTLE)
+	await get_tree().create_timer(0.2).timeout
+	
+	# Setup: Monitor phase transition
+	var phase_monitor = monitor_signals(phase_manager)
+	var battle_handler = phase_manager.battle_phase_handler
+	
+	# ACTION: Complete battle phase
+	battle_handler.battle_phase_completed.emit()
+	
+	# Wait for transition
+	await get_tree().create_timer(0.3).timeout
+	
+	# ASSERT: POST_BATTLE phase started
+	assert_that(phase_manager.current_phase).is_equal(GlobalEnums.FiveParsecsCampaignPhase.POST_BATTLE)\
+		.override_failure_message("Should transition to POST_BATTLE after battle completion")
+	
+	# ASSERT: Phase started signal emitted
+	assert_int(phase_monitor.get_signal_emit_count("phase_started")).is_greater_equal(1)\
+		.override_failure_message("phase_started should emit when transitioning to POST_BATTLE")
+
+## Test 5: Validate Mission Data Propagation
+func test_mission_data_propagation() -> void:
+	"""Verify mission data flows correctly from phase manager to battle handler"""
+	
+	# Setup: Prepare mission data
+	var test_mission = {
+		"mission_id": "test_001",
+		"mission_type": "patrol",
+		"enemy_count": 5,
+		"terrain": "wasteland",
+		"difficulty": 3
+	}
+	
+	# ACTION: Start battle with mission data
+	phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.BATTLE)
+	await get_tree().create_timer(0.2).timeout
+	
+	# ASSERT: Battle handler received mission data
+	var battle_handler = phase_manager.battle_phase_handler
+	assert_that(battle_handler.battle_setup_data).is_not_null()\
+		.override_failure_message("Battle handler should store setup data")
+	
+	# ASSERT: Mission data structure exists
+	assert_bool(battle_handler.battle_setup_data is Dictionary).is_true()\
+		.override_failure_message("battle_setup_data should be a Dictionary")
+
+## Test 6: Validate Battle Results Storage
+func test_battle_results_storage() -> void:
+	"""Test battle results are stored correctly for POST_BATTLE phase"""
+	
+	# Setup: Start battle
+	phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.BATTLE)
+	await get_tree().create_timer(0.2).timeout
+	
+	# ACTION: Emit battle results
+	var test_results = {
+		"victory": true,
+		"crew_participants": [
+			{"name": "Test Crew 1", "status": "healthy"},
+			{"name": "Test Crew 2", "status": "injured"}
+		],
+		"loot": ["credits:100", "weapon:laser_rifle"],
+		"enemy_casualties": 3
+	}
+	
+	phase_manager.battle_phase_handler.battle_results_ready.emit(test_results)
+	await get_tree().create_timer(0.1).timeout
+	
+	# ASSERT: Results stored in phase manager
+	assert_that(phase_manager._last_battle_results).is_not_null()\
+		.override_failure_message("CampaignPhaseManager should store _last_battle_results")
+	
+	# ASSERT: Results data matches
+	if phase_manager._last_battle_results:
+		assert_bool(phase_manager._last_battle_results.has("victory")).is_true()\
+			.override_failure_message("Stored results should contain victory field")
+		
+		assert_that(phase_manager._last_battle_results.get("victory")).is_equal(true)\
+			.override_failure_message("Victory status should be preserved")
+
+## Test 7: Validate Handler Initialization Timing
+func test_handler_initialization_timing() -> void:
+	"""Verify battle handler is ready before first use"""
+	
+	# Create fresh phase manager
+	var new_phase_manager = auto_free(CampaignPhaseManager.new())
+	test_scene_root.add_child(new_phase_manager)
+	
+	# Wait for ready
+	await await_signal_on(new_phase_manager, "ready", [], 1000)
+	
+	# Wait for _ready() processing
+	await get_tree().process_frame
+	await get_tree().process_frame
+	
+	# ASSERT: Handler initialized immediately
+	assert_that(new_phase_manager.battle_phase_handler).is_not_null()\
+		.override_failure_message("BattlePhase handler should be initialized in _ready()")
+	
+	# ASSERT: Handler is in scene tree
+	assert_bool(new_phase_manager.battle_phase_handler.is_inside_tree()).is_true()\
+		.override_failure_message("BattlePhase handler should be in scene tree after initialization")

@@ -1,0 +1,171 @@
+{
+  "name": "Class Table",
+  "description": "Five Parsecs From Home character class table (pp.26-27)",
+  "roll_type": "D100",
+  "entries": {
+    "1-5": {
+      "name": "Working Class",
+      "stat_bonuses": { "savvy": 1 },
+      "special": { "luck": 1 },
+      "resources": {},
+      "equipment_rolls": [],
+      "description": "Hard-working common folk with practical wisdom and good fortune."
+    },
+    "6-9": {
+      "name": "Technician",
+      "stat_bonuses": { "savvy": 1 },
+      "resources": {},
+      "equipment_rolls": ["gear"],
+      "description": "Skilled in maintaining and repairing equipment."
+    },
+    "10-13": {
+      "name": "Scientist",
+      "stat_bonuses": { "savvy": 1 },
+      "resources": {},
+      "equipment_rolls": ["gadget"],
+      "description": "Trained in research and analysis of complex problems."
+    },
+    "14-17": {
+      "name": "Hacker",
+      "stat_bonuses": { "savvy": 1 },
+      "resources": { "rival": true },
+      "equipment_rolls": [],
+      "description": "Expert at infiltrating computer systems, has made enemies."
+    },
+    "18-22": {
+      "name": "Soldier",
+      "stat_bonuses": { "combat": 1 },
+      "resources": { "credits_roll": "1D6" },
+      "equipment_rolls": [],
+      "description": "Professional military training and some saved pay."
+    },
+    "23-27": {
+      "name": "Mercenary",
+      "stat_bonuses": { "combat": 1 },
+      "resources": {},
+      "equipment_rolls": ["military_weapon"],
+      "description": "Guns for hire, well-equipped for combat."
+    },
+    "28-32": {
+      "name": "Agitator",
+      "stat_bonuses": {},
+      "resources": { "rival": true },
+      "equipment_rolls": [],
+      "description": "Political activist who has made powerful enemies."
+    },
+    "33-36": {
+      "name": "Primitive",
+      "stat_bonuses": { "speed": 1 },
+      "resources": {},
+      "equipment_rolls": ["low_tech_weapon"],
+      "description": "From a pre-technological culture, fast and resourceful."
+    },
+    "37-40": {
+      "name": "Artist",
+      "stat_bonuses": {},
+      "resources": { "credits_roll": "1D6" },
+      "equipment_rolls": [],
+      "description": "Creative professional with some income from their work."
+    },
+    "41-44": {
+      "name": "Negotiator",
+      "stat_bonuses": {},
+      "resources": { "patron": true, "story_points": 1 },
+      "equipment_rolls": [],
+      "description": "Skilled at making deals and building relationships."
+    },
+    "45-49": {
+      "name": "Trader",
+      "stat_bonuses": {},
+      "resources": { "credits_roll": "2D6" },
+      "equipment_rolls": [],
+      "description": "Experienced merchant with accumulated capital."
+    },
+    "50-54": {
+      "name": "Starship Crew",
+      "stat_bonuses": { "savvy": 1 },
+      "resources": {},
+      "equipment_rolls": [],
+      "description": "Worked aboard starships, familiar with space operations."
+    },
+    "55-58": {
+      "name": "Petty Criminal",
+      "stat_bonuses": { "speed": 1 },
+      "resources": {},
+      "equipment_rolls": [],
+      "description": "Small-time crook who learned to run fast."
+    },
+    "59-63": {
+      "name": "Ganger",
+      "stat_bonuses": { "reactions": 1 },
+      "resources": {},
+      "equipment_rolls": ["low_tech_weapon"],
+      "description": "Street gang member, always alert for trouble."
+    },
+    "64-67": {
+      "name": "Scoundrel",
+      "stat_bonuses": { "speed": 1 },
+      "resources": {},
+      "equipment_rolls": [],
+      "description": "Charming rogue who relies on quick escapes."
+    },
+    "68-71": {
+      "name": "Enforcer",
+      "stat_bonuses": { "combat": 1 },
+      "resources": { "patron": true },
+      "equipment_rolls": [],
+      "description": "Muscle for hire, has connections to employers."
+    },
+    "72-75": {
+      "name": "Special Agent",
+      "stat_bonuses": { "reactions": 1 },
+      "resources": { "patron": true },
+      "equipment_rolls": ["gadget"],
+      "description": "Covert operative with agency backing and special equipment."
+    },
+    "76-79": {
+      "name": "Troubleshooter",
+      "stat_bonuses": { "reactions": 1 },
+      "resources": {},
+      "equipment_rolls": ["low_tech_weapon"],
+      "description": "Problem solver who responds quickly to situations."
+    },
+    "80-83": {
+      "name": "Bounty Hunter",
+      "stat_bonuses": { "speed": 1 },
+      "resources": { "quest_rumors": 1 },
+      "equipment_rolls": ["low_tech_weapon"],
+      "description": "Tracks down fugitives, has leads on potential targets."
+    },
+    "84-88": {
+      "name": "Nomad",
+      "stat_bonuses": {},
+      "resources": {},
+      "equipment_rolls": ["gear"],
+      "description": "Wanderer who has collected useful equipment on travels."
+    },
+    "89-92": {
+      "name": "Explorer",
+      "stat_bonuses": {},
+      "special": { "xp": 2 },
+      "resources": {},
+      "equipment_rolls": ["gear"],
+      "description": "Experienced traveler with knowledge gained from adventures."
+    },
+    "93-96": {
+      "name": "Punk",
+      "stat_bonuses": {},
+      "special": { "xp": 2 },
+      "resources": { "rival": true },
+      "equipment_rolls": [],
+      "description": "Anti-establishment rebel with experience and enemies."
+    },
+    "97-100": {
+      "name": "Scavenger",
+      "stat_bonuses": {},
+      "resources": { "quest_rumors": 1 },
+      "equipment_rolls": ["high_tech_weapon"],
+      "description": "Expert at finding valuable items, knows where to look."
+    }
+  }
+}

@@ -423,7 +423,7 @@ func _process_crew_casualty(unit: BattlefieldTypes.UnitData, results: Battlefiel
 	else: # Injured
 		var injury_type := _roll_injury_type()
 		var recovery_time := _calculate_recovery_time(injury_type)
-		results.add_injury(unit.unit_name, injury_type, recovery_time)
+		results.add_injury(unit.unit_name, injury_type, 1, recovery_time)
 
 # =====================================================
 # UTILITY FUNCTIONS

@@ -741,21 +741,29 @@ func show_message(text: String) -> void:
 	_active_dialogs.erase(dialog)
 
 func request_scene_change(scene_name: String) -> void:
-	var parent := get_parent()
-	if not parent:
-		push_error("MainMenu: Parent node not found")
+	# Map scene names to file paths
+	var scene_paths: Dictionary = {
+		"main_campaign": "res://src/ui/screens/campaign/CampaignDashboard.tscn",
+		"campaign_setup": "res://src/ui/screens/campaign/CampaignCreationUI.tscn",
+		"tutorial_setup": "res://src/ui/screens/tutorial/TutorialSetup.tscn",
+		"battle_simulator": "res://src/ui/screens/battle/BattleSimulator.tscn",
+		"options": "res://src/ui/screens/gameplay_options_menu.tscn",
+		"library": "res://src/ui/screens/library/RulesDisplay.tscn"
+	}
+	
+	if not scene_paths.has(scene_name):
+		push_error("MainMenu: Unknown scene name '%s'" % scene_name)
 		return
-
-	var game_scene := parent.get_parent()
-	if not game_scene:
-		push_error("MainMenu: Game scene node not found")
+	
+	var scene_path: String = scene_paths[scene_name]
+	var scene_tree := get_tree()
+	if not scene_tree:
+		push_error("MainMenu: Scene tree not available")
 		return
-
-	if game_scene and game_scene.has_method("change_scene"):
-		@warning_ignore("unsafe_method_access")
-		game_scene.change_scene(scene_name)
-	else:
-		push_error("MainMenu: Game scene missing change_scene method")
+	
+	var error: int = scene_tree.change_scene_to_file(scene_path)
+	if error != OK:
+		push_error("MainMenu: Failed to change scene to '%s' (error: %d)" % [scene_path, error])
 
 ## CRITICAL SECURITY: Production Build Safety System
 func _is_development_access_allowed() -> bool:

@@ -357,7 +357,7 @@ func _get_world_trait(roll: int) -> Dictionary:
 	"""Get world trait based on D100 roll"""
 	for trait_data in world_traits_table:
 		var typed_trait_data: Variant = trait_data
-		if roll >= trait_data.range[0] and roll <= trait_data.range[1]:
+		if roll >= (trait_data.range[0] as int) and roll <= (trait_data.range[1] as int):
 			return trait_data
 
 	# Fallback
@@ -371,8 +371,8 @@ func _generate_world_name() -> String:
 	var prefixes = ["Alpha", "Beta", "Gamma", "New", "Port", "Nova", "Prime", "Delta"]
 	var suffixes = ["Station", "Colony", "Prime", "Central", "Haven", "Outpost", "Base", "City"]
 
-	var prefix = prefixes[randi() % (safe_call_method(prefixes, "size") as int)]
-	var suffix = suffixes[randi() % (safe_call_method(suffixes, "size") as int)]
+	var prefix = prefixes[randi() % prefixes.size()]
+	var suffix = suffixes[randi() % suffixes.size()]
 
 	return prefix + " " + suffix
 

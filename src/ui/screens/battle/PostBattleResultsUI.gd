@@ -22,19 +22,26 @@ const Mission = preload("res://src/core/systems/Mission.gd")
 var battle_results: Dictionary = {}
 var crew_casualties: Array[Character] = []
 var crew_injuries: Array[Character] = []
-var loot_gained: Array[Resource] = []
+var loot_gained: Array = []  # Changed to untyped for flexibility
 var credits_earned: int = 0
 var experience_gained: Array[Dictionary] = []
+
+# PHASE 5: Equipment and loot management
+var equipment_manager: Node = null
+var loot_assignments: Dictionary = {}  # loot_index -> character_id or "stash"
+var surviving_crew: Array = []
 
 # Signals
 signal results_processed()
 signal continue_to_campaign()
 signal results_saved()
+signal loot_distributed(loot_item: Dictionary, destination: String)
 
 func _ready() -> void:
 	"""Initialize the post-battle results UI"""
 	_setup_ui_components()
 	_connect_signals()
+	_connect_to_equipment_manager()
 	print("PostBattleResultsUI: Initialized")
 
 func _setup_ui_components() -> void:
@@ -50,6 +57,14 @@ func _connect_signals() -> void:
 	continue_button.pressed.connect(_on_continue_pressed)
 	save_results_button.pressed.connect(_on_save_results_pressed)
 
+func _connect_to_equipment_manager() -> void:
+	"""PHASE 5: Connect to EquipmentManager for loot distribution"""
+	equipment_manager = get_node_or_null("/root/EquipmentManager")
+	if equipment_manager:
+		print("PostBattleResultsUI: Connected to EquipmentManager")
+	else:
+		push_warning("PostBattleResultsUI: EquipmentManager not found")
+
 ## Public Interface
 
 func display_battle_results(results: Dictionary) -> void:
@@ -58,6 +73,14 @@ func display_battle_results(results: Dictionary) -> void:
 	
 	# Extract battle outcome data
 	_extract_battle_data(results)
+	
+	# PHASE 5: Setup surviving crew for loot distribution
+	_setup_surviving_crew(results)
+	
+	# Generate loot if not provided
+	if loot_gained.is_empty() and results.get("victory", false):
+		var difficulty = results.get("difficulty", 2)
+		loot_gained = generate_battle_loot(difficulty, true)
 	
 	# Update UI displays
 	_update_battle_outcome()
@@ -73,7 +96,35 @@ func display_battle_results(results: Dictionary) -> void:
 	# Enable continue button
 	continue_button.disabled = false
 	
-	print("PostBattleResultsUI: Battle results displayed")
+	print("PostBattleResultsUI: Battle results displayed with %d loot items" % loot_gained.size())
+
+func _setup_surviving_crew(results: Dictionary) -> void:
+	"""Setup surviving crew list for loot distribution"""
+	surviving_crew.clear()
+	
+	# Get all crew from results
+	var all_crew = results.get("crew", [])
+	var casualties_ids: Array = []
+	
+	# Get casualty IDs
+	for casualty in crew_casualties:
+		if casualty is Dictionary:
+			casualties_ids.append(casualty.get("id", casualty.get("character_name", "")))
+		elif casualty is Character:
+			casualties_ids.append(casualty.id if casualty.id else casualty.character_name)
+	
+	# Filter to surviving crew only
+	for member in all_crew:
+		var member_id: String = ""
+		if member is Dictionary:
+			member_id = member.get("id", member.get("character_name", ""))
+		elif member is Character:
+			member_id = member.id if member.id else member.character_name
+		
+		if member_id not in casualties_ids:
+			surviving_crew.append(member)
+	
+	print("PostBattleResultsUI: %d surviving crew members for loot distribution" % surviving_crew.size())
 
 func process_post_battle_sequence() -> void:
 	"""Process the complete post-battle sequence according to Five Parsecs rules"""
@@ -148,14 +199,115 @@ func _update_injuries_display() -> void:
 			injuries_list.add_item("⚡ Unknown Crew Member - Injury")
 
 func _update_loot_display() -> void:
-	"""Update loot list"""
+	"""Update loot list with assignment options"""
 	loot_list.clear()
+	loot_assignments.clear()
 	
-	for item in loot_gained:
-		if item and item.has_method("get_display_name"):
-			loot_list.add_item("📦 " + item.get_display_name())
-		else:
-			loot_list.add_item("📦 Unknown Item")
+	for i in range(loot_gained.size()):
+		var item = loot_gained[i]
+		var item_name: String = "Unknown Item"
+		
+		# Get item display name based on type
+		if item is Resource and item.has_method("get_display_name"):
+			item_name = item.get_display_name()
+		elif item is Dictionary:
+			item_name = item.get("name", item.get("display_name", "Unknown Item"))
+		elif item is String:
+			item_name = item
+		
+		# Default assignment to ship stash
+		loot_assignments[i] = "stash"
+		
+		loot_list.add_item("📦 " + item_name)
+	
+	# Connect item selection for assignment
+	if not loot_list.item_selected.is_connected(_on_loot_item_selected):
+		loot_list.item_selected.connect(_on_loot_item_selected)
+
+func _on_loot_item_selected(index: int) -> void:
+	"""Handle loot item selection for assignment"""
+	if index < 0 or index >= loot_gained.size():
+		return
+	
+	# Show assignment popup
+	_show_loot_assignment_popup(index)
+
+func _show_loot_assignment_popup(loot_index: int) -> void:
+	"""Show popup to assign loot to crew or stash"""
+	var popup = PopupMenu.new()
+	popup.name = "LootAssignmentPopup"
+	
+	# Add ship stash option
+	popup.add_item("📦 Ship Stash", 0)
+	popup.add_separator()
+	
+	# Add surviving crew options
+	for i in range(surviving_crew.size()):
+		var member = surviving_crew[i]
+		var member_name: String = "Crew Member"
+		
+		if member is Dictionary:
+			member_name = member.get("character_name", member.get("name", "Crew Member"))
+		elif member is Character:
+			member_name = member.character_name if member.character_name else member.name
+		
+		popup.add_item("👤 " + member_name, i + 1)
+	
+	popup.id_pressed.connect(_on_loot_assignment_selected.bind(loot_index))
+	
+	add_child(popup)
+	popup.popup_centered()
+
+func _on_loot_assignment_selected(selected_id: int, loot_index: int) -> void:
+	"""Handle loot assignment selection"""
+	if loot_index < 0 or loot_index >= loot_gained.size():
+		return
+	
+	var item = loot_gained[loot_index]
+	var item_name: String = "item"
+	
+	if item is Dictionary:
+		item_name = item.get("name", "item")
+	elif item is Resource and item.has_method("get_display_name"):
+		item_name = item.get_display_name()
+	
+	if selected_id == 0:
+		# Assign to ship stash
+		loot_assignments[loot_index] = "stash"
+		print("PostBattleResultsUI: Assigned %s to ship stash" % item_name)
+		_update_loot_item_display(loot_index, "Ship Stash")
+	elif selected_id > 0 and selected_id <= surviving_crew.size():
+		# Assign to crew member
+		var crew_index = selected_id - 1
+		var member = surviving_crew[crew_index]
+		var member_id: String = ""
+		var member_name: String = ""
+		
+		if member is Dictionary:
+			member_id = member.get("id", member.get("character_name", str(crew_index)))
+			member_name = member.get("character_name", member.get("name", "Crew"))
+		elif member is Character:
+			member_id = member.id if member.id else member.character_name
+			member_name = member.character_name if member.character_name else member.name
+		
+		loot_assignments[loot_index] = member_id
+		print("PostBattleResultsUI: Assigned %s to %s" % [item_name, member_name])
+		_update_loot_item_display(loot_index, member_name)
+
+func _update_loot_item_display(index: int, assignment: String) -> void:
+	"""Update loot list item to show assignment"""
+	if index < 0 or index >= loot_list.item_count:
+		return
+	
+	var item = loot_gained[index]
+	var item_name: String = "Unknown Item"
+	
+	if item is Resource and item.has_method("get_display_name"):
+		item_name = item.get_display_name()
+	elif item is Dictionary:
+		item_name = item.get("name", "Unknown Item")
+	
+	loot_list.set_item_text(index, "📦 %s → %s" % [item_name, assignment])
 
 func _update_rewards_display() -> void:
 	"""Update rewards display"""
@@ -228,11 +380,97 @@ func _process_loot_and_rewards() -> void:
 	if GameState:
 		GameState.add_credits(credits_earned)
 	
-	# Add loot to ship inventory
-	for item in loot_gained:
-		# GameStateManagerAutoload not available - use GameState fallback
-		if GameState and GameState.has_method("add_item_to_inventory"):
-			GameState.add_item_to_inventory(item)
+	# PHASE 5: Apply loot assignments using EquipmentManager
+	_apply_loot_assignments()
+
+func _apply_loot_assignments() -> void:
+	"""Apply loot assignments to crew or ship stash via EquipmentManager"""
+	for loot_index in loot_assignments.keys():
+		if loot_index < 0 or loot_index >= loot_gained.size():
+			continue
+		
+		var item = loot_gained[loot_index]
+		var destination = loot_assignments[loot_index]
+		
+		# Convert item to dictionary if needed
+		var item_data: Dictionary = {}
+		if item is Dictionary:
+			item_data = item.duplicate()
+		elif item is Resource:
+			item_data = {
+				"name": item.get_meta("name") if item.has_meta("name") else "Unknown",
+				"type": item.get_meta("type") if item.has_meta("type") else "misc",
+				"value": item.get_meta("value") if item.has_meta("value") else 5,
+				"id": "loot_%d_%d" % [Time.get_ticks_msec(), loot_index]
+			}
+		else:
+			item_data = {"name": str(item), "type": "misc", "id": "loot_%d" % loot_index}
+		
+		# Ensure item has ID
+		if not item_data.has("id"):
+			item_data["id"] = "loot_%d_%d" % [Time.get_ticks_msec(), loot_index]
+		
+		if destination == "stash":
+			# Add to ship stash
+			if equipment_manager and equipment_manager.has_method("add_to_ship_stash"):
+				if equipment_manager.add_to_ship_stash(item_data):
+					print("PostBattleResultsUI: Added %s to ship stash" % item_data.get("name", "item"))
+					loot_distributed.emit(item_data, "ship_stash")
+				else:
+					print("PostBattleResultsUI: Failed to add %s to stash (may be full)" % item_data.get("name", "item"))
+			else:
+				# Fallback to GameState
+				if GameState and GameState.has_method("add_item_to_inventory"):
+					GameState.add_item_to_inventory(item)
+		else:
+			# Assign to character
+			if equipment_manager and equipment_manager.has_method("assign_equipment_to_character"):
+				# First add to storage, then assign
+				equipment_manager.add_equipment(item_data)
+				if equipment_manager.assign_equipment_to_character(destination, item_data.id):
+					print("PostBattleResultsUI: Assigned %s to %s" % [item_data.get("name", "item"), destination])
+					loot_distributed.emit(item_data, destination)
+				else:
+					# Fall back to stash if assignment fails
+					equipment_manager.add_to_ship_stash(item_data)
+					print("PostBattleResultsUI: Assignment failed, added %s to stash" % item_data.get("name", "item"))
+
+func generate_battle_loot(difficulty: int, victory: bool) -> Array:
+	"""Generate loot using EquipmentManager based on battle outcome"""
+	var generated_loot: Array = []
+	
+	if equipment_manager and equipment_manager.has_method("generate_battle_loot"):
+		generated_loot = equipment_manager.generate_battle_loot(difficulty, victory)
+		print("PostBattleResultsUI: Generated %d loot items" % generated_loot.size())
+	else:
+		# Fallback: Generate basic loot
+		if victory:
+			var basic_loot = _generate_fallback_loot(difficulty)
+			generated_loot.append_array(basic_loot)
+	
+	return generated_loot
+
+func _generate_fallback_loot(difficulty: int) -> Array:
+	"""Generate fallback loot if EquipmentManager unavailable"""
+	var loot: Array = []
+	
+	# Basic loot generation based on difficulty
+	var item_count = 1 + (difficulty / 2)
+	
+	var possible_items = [
+		{"name": "Credits", "type": "credits", "value": 50 + randi() % 50},
+		{"name": "Military Rifle", "type": "weapon", "value": 12},
+		{"name": "Combat Armor", "type": "armor", "value": 15},
+		{"name": "Med-Kit", "type": "gear", "value": 4},
+		{"name": "Scanner", "type": "gear", "value": 7}
+	]
+	
+	for i in range(item_count):
+		var item = possible_items[randi() % possible_items.size()].duplicate()
+		item["id"] = "fallback_loot_%d" % i
+		loot.append(item)
+	
+	return loot
 
 func _process_experience_and_advancement() -> void:
 	"""Process experience and advancement according to Five Parsecs rules"""

@@ -76,6 +76,13 @@ func _connect_core_signals() -> void:
 		if post_battle_handler.has_signal("experience_awarded"):
 			post_battle_handler.experience_awarded.connect(_on_post_battle_experience_awarded)
 
+	# Connect UI phase completion signals for phase transitions
+	if travel_phase_ui and travel_phase_ui.has_signal("phase_completed"):
+		travel_phase_ui.phase_completed.connect(_on_travel_phase_completed)
+
+	if world_phase_controller and world_phase_controller.has_signal("phase_completed"):
+		world_phase_controller.phase_completed.connect(_on_world_phase_completed)
+
 	# Connect battle flow signals (BattleTransition → PreBattle → TacticalBattle → PostBattle)
 	if battle_transition_ui and battle_transition_ui.has_signal("battle_ready_to_launch"):
 		battle_transition_ui.battle_ready_to_launch.connect(_on_battle_ready_to_launch)
@@ -399,6 +406,25 @@ func _on_post_battle_completed(results: Dictionary) -> void:
 
 	# Trigger next campaign turn
 	campaign_phase_manager.start_new_campaign_turn()
+
+## Phase Completion Handlers
+func _on_travel_phase_completed() -> void:
+	"""Handle travel phase completion - transition to world phase"""
+	print("CampaignTurnController: Travel phase completed, transitioning to world phase")
+
+	# Transition to world phase
+	campaign_phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.WORLD)
+
+func _on_world_phase_completed(results: Dictionary) -> void:
+	"""Handle world phase completion - transition to battle phase"""
+	print("CampaignTurnController: World phase completed, transitioning to battle phase")
+
+	# Store world phase results in game state
+	if game_state.has_method("set_world_phase_results"):
+		game_state.set_world_phase_results(results)
+
+	# Transition to battle phase
+	campaign_phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.BATTLE)
 
 ## Battle Flow Handlers (BattleTransition → PreBattle → TacticalBattle → PostBattle)
 

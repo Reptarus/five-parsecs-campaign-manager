@@ -1,7 +1,9 @@
-[gd_scene load_steps=3 format=3 uid="uid://csqbucd4d273l"]
+[gd_scene load_steps=5 format=3 uid="uid://csqbucd4d273l"]
 
 [ext_resource type="Script" uid="uid://cjsfsfp076uu" path="res://src/ui/screens/character/CharacterDetailsScreen.gd" id="1"]
 [ext_resource type="Script" uid="uid://cq2bcbd6g4t4f" path="res://src/ui/components/ResponsiveContainer.gd" id="2"]
+[ext_resource type="PackedScene" uid="uid://ci3xehq12huc8" path="res://src/ui/components/character/CharacterCard.tscn" id="3"]
+[ext_resource type="Script" uid="uid://de5o1q00s85o7" path="res://src/ui/components/tooltips/KeywordTooltip.gd" id="4"]
 
 [node name="CharacterDetailsScreen" type="Control"]
 layout_mode = 3
@@ -17,48 +19,51 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 20.0
-offset_top = 20.0
-offset_right = -20.0
-offset_bottom = -20.0
+offset_left = 32.0
+offset_top = 32.0
+offset_right = -32.0
+offset_bottom = -32.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 32
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 24
 
-[node name="HeaderPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 60)
+[node name="HeroCard" parent="MarginContainer/VBoxContainer" instance=ExtResource("3")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 160)
 layout_mode = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/HeaderPanel"]
+[node name="XPProgressContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
+theme_override_constants/separation = 4
 
-[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer"]
-layout_mode = 2
-text = "CHARACTER:"
-vertical_alignment = 1
-
-[node name="NameEdit" type="LineEdit" parent="MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer"]
+[node name="XPLabel" type="Label" parent="MarginContainer/VBoxContainer/XPProgressContainer"]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_horizontal = 3
-placeholder_text = "Character Name"
+theme_override_colors/font_color = Color(0.501961, 0.501961, 0.501961, 1)
+theme_override_font_sizes/font_size = 14
+text = "XP: 0/1000"
 
-[node name="ClassLabel" type="Label" parent="MarginContainer/VBoxContainer/HeaderPanel/HBoxContainer"]
+[node name="XPProgressBar" type="ProgressBar" parent="MarginContainer/VBoxContainer/XPProgressContainer"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
-text = "[Baseline]"
-vertical_alignment = 1
+max_value = 1000.0
+show_percentage = false
 
 [node name="TopSection" type="Container" parent="MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 250)
 layout_mode = 2
 script = ExtResource("2")
 min_width_for_horizontal = 800
-horizontal_spacing = 15
-vertical_spacing = 15
+horizontal_spacing = 16
+vertical_spacing = 16
 padding = 0
 
 [node name="CharacterInfoPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/TopSection"]
@@ -74,6 +79,8 @@ theme_override_constants/separation = 8
 
 [node name="InfoTitle" type="Label" parent="MarginContainer/VBoxContainer/TopSection/CharacterInfoPanel/InfoContainer"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
+theme_override_font_sizes/font_size = 18
 text = "CHARACTER INFO"
 
 [node name="StatsPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/TopSection"]
@@ -84,81 +91,125 @@ size_flags_vertical = 0
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel"]
 layout_mode = 2
-theme_override_constants/separation = 5
+theme_override_constants/separation = 16
 
 [node name="StatsTitle" type="Label" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer"]
 layout_mode = 2
-text = "STATS (Read-Only)"
+theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
+theme_override_font_sizes/font_size = 18
+text = "STATS"
 
 [node name="StatsGrid" type="GridContainer" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
-columns = 2
-theme_override_constants/h_separation = 15
-theme_override_constants/v_separation = 4
+columns = 5
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 8
 
-[node name="CombatLabel" type="Label" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid"]
+[node name="CombatCell" type="VBoxContainer" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid"]
+custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
-size_flags_horizontal = 3
-text = "Combat:"
+theme_override_constants/separation = 4
+alignment = 1
 
-[node name="CombatValue" type="Label" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid"]
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid/CombatCell"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.501961, 0.501961, 0.501961, 1)
+theme_override_font_sizes/font_size = 14
+text = "Combat"
+horizontal_alignment = 1
+
+[node name="Value" type="Label" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid/CombatCell"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
+theme_override_font_sizes/font_size = 16
 text = "0"
+horizontal_alignment = 1
 
-[node name="ReactionsLabel" type="Label" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid"]
+[node name="ReactionsCell" type="VBoxContainer" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid"]
+custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
-size_flags_horizontal = 3
-text = "Reactions:"
+theme_override_constants/separation = 4
+alignment = 1
 
-[node name="ReactionsValue" type="Label" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid"]
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid/ReactionsCell"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.501961, 0.501961, 0.501961, 1)
+theme_override_font_sizes/font_size = 14
+text = "Reactions"
+horizontal_alignment = 1
+
+[node name="Value" type="Label" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid/ReactionsCell"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
+theme_override_font_sizes/font_size = 16
 text = "0"
+horizontal_alignment = 1
 
-[node name="ToughnessLabel" type="Label" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid"]
+[node name="ToughnessCell" type="VBoxContainer" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid"]
+custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
-size_flags_horizontal = 3
-text = "Toughness:"
+theme_override_constants/separation = 4
+alignment = 1
 
-[node name="ToughnessValue" type="Label" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid"]
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid/ToughnessCell"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.501961, 0.501961, 0.501961, 1)
+theme_override_font_sizes/font_size = 14
+text = "Toughness"
+horizontal_alignment = 1
+
+[node name="Value" type="Label" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid/ToughnessCell"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
+theme_override_font_sizes/font_size = 16
 text = "0"
+horizontal_alignment = 1
 
-[node name="SavvyLabel" type="Label" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid"]
+[node name="SavvyCell" type="VBoxContainer" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid"]
+custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
-size_flags_horizontal = 3
-text = "Savvy:"
+theme_override_constants/separation = 4
+alignment = 1
 
-[node name="SavvyValue" type="Label" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid"]
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid/SavvyCell"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.501961, 0.501961, 0.501961, 1)
+theme_override_font_sizes/font_size = 14
+text = "Savvy"
+horizontal_alignment = 1
+
+[node name="Value" type="Label" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid/SavvyCell"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
+theme_override_font_sizes/font_size = 16
 text = "0"
+horizontal_alignment = 1
 
-[node name="TechLabel" type="Label" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid"]
+[node name="SpeedCell" type="VBoxContainer" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid"]
+custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
-size_flags_horizontal = 3
-text = "Tech:"
+theme_override_constants/separation = 4
+alignment = 1
 
-[node name="TechValue" type="Label" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid"]
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid/SpeedCell"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.501961, 0.501961, 0.501961, 1)
+theme_override_font_sizes/font_size = 14
+text = "Speed"
+horizontal_alignment = 1
+
+[node name="Value" type="Label" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid/SpeedCell"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
+theme_override_font_sizes/font_size = 16
 text = "0"
-
-[node name="SpeedLabel" type="Label" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Speed:"
-
-[node name="SpeedValue" type="Label" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid"]
-layout_mode = 2
-text = "0"
-
-[node name="LuckLabel" type="Label" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Luck:"
-
-[node name="LuckValue" type="Label" parent="MarginContainer/VBoxContainer/TopSection/StatsPanel/VBoxContainer/StatsGrid"]
-layout_mode = 2
-text = "0"
+horizontal_alignment = 1
 
 [node name="EquipmentPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -169,24 +220,44 @@ layout_mode = 2
 
 [node name="EquipmentTitle" type="Label" parent="MarginContainer/VBoxContainer/EquipmentPanel/VBoxContainer"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
+theme_override_font_sizes/font_size = 18
 text = "EQUIPMENT"
 
-[node name="EquipmentList" type="ItemList" parent="MarginContainer/VBoxContainer/EquipmentPanel/VBoxContainer"]
-unique_name_in_owner = true
+[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/EquipmentPanel/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
 
+[node name="EquipmentRichText" type="RichTextLabel" parent="MarginContainer/VBoxContainer/EquipmentPanel/VBoxContainer/ScrollContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_colors/default_color = Color(0.878431, 0.878431, 0.878431, 1)
+theme_override_font_sizes/normal_font_size = 16
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+text = "No equipment"
+
 [node name="ButtonContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/EquipmentPanel/VBoxContainer"]
 layout_mode = 2
+theme_override_constants/separation = 8
 
 [node name="AddEquipmentButton" type="Button" parent="MarginContainer/VBoxContainer/EquipmentPanel/VBoxContainer/ButtonContainer"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
+theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
+theme_override_font_sizes/font_size = 16
 text = "Add Item"
 
 [node name="RemoveEquipmentButton" type="Button" parent="MarginContainer/VBoxContainer/EquipmentPanel/VBoxContainer/ButtonContainer"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
+theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
+theme_override_font_sizes/font_size = 16
 text = "Remove Selected"
 
 [node name="NotesPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
@@ -199,21 +270,29 @@ layout_mode = 2
 
 [node name="NotesTitle" type="Label" parent="MarginContainer/VBoxContainer/NotesPanel/VBoxContainer"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
+theme_override_font_sizes/font_size = 18
 text = "NOTES"
 
 [node name="NotesEdit" type="TextEdit" parent="MarginContainer/VBoxContainer/NotesPanel/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
+theme_override_font_sizes/font_size = 16
 placeholder_text = "Custom notes about this character..."
 
 [node name="ButtonPanel" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 50)
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
+theme_override_constants/separation = 16
 
 [node name="SaveButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonPanel"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
+theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
+theme_override_font_sizes/font_size = 16
 text = "Save Changes"
 
 [node name="Spacer" type="Control" parent="MarginContainer/VBoxContainer/ButtonPanel"]
@@ -222,5 +301,19 @@ size_flags_horizontal = 3
 
 [node name="CancelButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonPanel"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
+theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
+theme_override_font_sizes/font_size = 16
 text = "Cancel"
+
+[node name="KeywordTooltip" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("4")

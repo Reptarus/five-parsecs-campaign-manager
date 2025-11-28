@@ -1,0 +1,162 @@
+{
+  "$schema": "Story Track Tutorial Configuration",
+  "version": "1.0",
+  "description": "Maps Five Parsecs Story Track events to Battle Companion tool tutorials",
+
+  "tutorials": {
+    "discovery_signal": {
+      "event_title": "Mysterious Signal",
+      "companion_tools": [
+        {
+          "tool": "BattleJournal",
+          "hint": "Use the Battle Journal to track story evidence discovered during missions",
+          "importance": "high"
+        },
+        {
+          "tool": "ObjectiveDisplay",
+          "hint": "Set mission objectives related to investigating the signal source",
+          "importance": "high"
+        },
+        {
+          "tool": "DiceDashboard",
+          "hint": "Roll investigation checks to gather clues about the mysterious transmission",
+          "importance": "medium"
+        }
+      ],
+      "story_context": "Your crew has detected an unusual signal. The Battle Companion tools can help you investigate safely."
+    },
+
+    "first_contact": {
+      "event_title": "Unexpected Contact",
+      "companion_tools": [
+        {
+          "tool": "InitiativeCalculator",
+          "hint": "Calculate initiative bonuses for potential first contact scenarios",
+          "importance": "high"
+        },
+        {
+          "tool": "ReactionDicePanel",
+          "hint": "Roll reaction dice to determine the contact's initial disposition",
+          "importance": "high"
+        },
+        {
+          "tool": "CombatSituationPanel",
+          "hint": "Assess combat readiness before approaching unknown contacts",
+          "importance": "medium"
+        },
+        {
+          "tool": "CharacterStatusCard",
+          "hint": "Check crew member stats for social/negotiation encounters",
+          "importance": "low"
+        }
+      ],
+      "story_context": "Another party is searching for the same thing. Use these tools to prepare for contact."
+    },
+
+    "conspiracy_revealed": {
+      "event_title": "Corporate Conspiracy",
+      "companion_tools": [
+        {
+          "tool": "EnemyGenerationWizard",
+          "hint": "Generate corporate security forces that may oppose your investigation",
+          "importance": "high"
+        },
+        {
+          "tool": "DeploymentConditionsPanel",
+          "hint": "Corporate facilities have special deployment conditions (limited entry points, surveillance)",
+          "importance": "high"
+        },
+        {
+          "tool": "MoralePanicTracker",
+          "hint": "Track morale when facing well-equipped corporate forces",
+          "importance": "medium"
+        },
+        {
+          "tool": "WeaponTableDisplay",
+          "hint": "Review weapon penetration vs. corporate armor",
+          "importance": "medium"
+        }
+      ],
+      "story_context": "You've uncovered corporate involvement. These tools help you plan infiltration missions."
+    },
+
+    "dangerous_escalation": {
+      "event_title": "Dangerous Escalation",
+      "companion_tools": [
+        {
+          "tool": "CombatCalculator",
+          "hint": "Calculate hit chances and damage against escalated threats",
+          "importance": "high"
+        },
+        {
+          "tool": "CharacterStatusCard",
+          "hint": "Monitor crew health and injuries as danger increases",
+          "importance": "high"
+        },
+        {
+          "tool": "BattleJournal",
+          "hint": "Record critical moments and casualties as stakes rise",
+          "importance": "medium"
+        }
+      ],
+      "story_context": "The situation is escalating. Use these tools to manage increased danger."
+    },
+
+    "final_revelation": {
+      "event_title": "The Truth Revealed",
+      "companion_tools": [
+        {
+          "tool": "ObjectiveDisplay",
+          "hint": "Set final mission objectives for the story track climax",
+          "importance": "high"
+        },
+        {
+          "tool": "BattleJournal",
+          "hint": "Document the story conclusion and its impact on your campaign",
+          "importance": "high"
+        },
+        {
+          "tool": "DiceDashboard",
+          "hint": "Roll for final story outcomes and consequences",
+          "importance": "medium"
+        }
+      ],
+      "story_context": "You've reached the truth. These tools help you resolve the story track."
+    },
+
+    "story_aftermath": {
+      "event_title": "Story Aftermath",
+      "companion_tools": [
+        {
+          "tool": "BattleJournal",
+          "hint": "Review the complete story arc and its effects on your crew",
+          "importance": "high"
+        }
+      ],
+      "story_context": "The story has concluded. Reflect on your choices and their consequences."
+    }
+  },
+
+  "general_companion_hints": {
+    "first_battle": {
+      "tools": ["BattleJournal", "ObjectiveDisplay", "CharacterStatusCard"],
+      "hint": "Start with these essential tools to track your first battle"
+    },
+    "combat_focused": {
+      "tools": ["CombatCalculator", "WeaponTableDisplay", "InitiativeCalculator"],
+      "hint": "Use these tools for detailed combat calculations"
+    },
+    "tactical_planning": {
+      "tools": ["DeploymentConditionsPanel", "CombatSituationPanel", "EnemyGenerationWizard"],
+      "hint": "Plan tactical approaches with battlefield analysis tools"
+    }
+  },
+
+  "ui_settings": {
+    "tutorial_overlay_position": "bottom_right",
+    "auto_dismiss_seconds": 15,
+    "show_skip_button": true,
+    "highlight_color": "#4FC3F7",
+    "tooltip_max_width": 400
+  }
+}

@@ -36,7 +36,10 @@ This document details the data models, save file format, and persistence archite
   "campaign": {
     "campaign_name": "Fringe Runners",
     "difficulty": 1,
-    "victory_condition": 0,
+    "victory_conditions": {
+      "TURNS_20": {"target": 20, "progress": 15},
+      "WEALTH_100": {"target": 100, "progress": 45}
+    },
     "current_turn": 15,
     "current_phase": 1,
     "credits": 45,
@@ -185,6 +188,7 @@ This document details the data models, save file format, and persistence archite
 - `world_state.current_world_id`
 
 **Optional Fields** (defaults applied):
+- `campaign.victory_conditions` (default: {} - no specific victory condition)
 - `campaign.renown` (default: 0)
 - `campaign.story_points` (default: 0)
 - `ship.upgrades` (default: [])
@@ -205,7 +209,17 @@ class_name FiveParsecsCampaign extends Resource
 # Core Identity
 @export var campaign_name: String = ""
 @export var difficulty: int = 1  # 0-4
-@export var victory_condition: int = 0  # GlobalEnums.VictoryCondition
+@export var victory_conditions: Dictionary = {}  # Multi-select with custom targets
+
+# Victory Conditions Schema:
+# {
+#   "VICTORY_TYPE": {
+#     "target": int,      # Custom target value
+#     "progress": int     # Current progress (auto-calculated)
+#   }
+# }
+# Example: {"TURNS_20": {"target": 20, "progress": 15}, "WEALTH_100": {"target": 100, "progress": 45}}
+# Victory is achieved when ANY condition reaches target (OR logic)
 
 # Progress Tracking
 @export var current_turn: int = 0
@@ -487,7 +501,7 @@ func deserialize_campaign(data: Dictionary) -> Campaign:
     var campaign_data = data.get("campaign", {})
     campaign.campaign_name = campaign_data.get("campaign_name", "")
     campaign.difficulty = campaign_data.get("difficulty", 1)
-    campaign.victory_condition = campaign_data.get("victory_condition", 0)
+    campaign.victory_conditions = campaign_data.get("victory_conditions", {})
     campaign.current_turn = campaign_data.get("current_turn", 0)
     campaign.current_phase = campaign_data.get("current_phase", 0)
     campaign.credits = campaign_data.get("credits", 0)
@@ -942,6 +956,7 @@ func load_with_checksum_validation(slot: String) -> Campaign:
 
 ---
 
-*Last Updated: January 2025*  
-*Save Format Version: 1.0.0*  
+*Last Updated: November 2025*
+*Save Format Version: 1.1.0*
 *Supports Backward Compatibility: Down to 0.9.0*
+*Victory Conditions: Multi-select with custom targets (OR logic)*

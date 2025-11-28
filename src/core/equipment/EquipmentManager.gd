@@ -316,6 +316,241 @@ func get_all_equipment() -> Array:
 	@warning_ignore("unsafe_method_access")
 	return _equipment_storage.duplicate()
 
+## PHASE 2: Ship Stash Management
+## Max items in ship stash per Five Parsecs rules
+## Can be overridden by ship cargo components
+var _max_ship_stash_items: int = 10
+
+## Ship stash storage (separate from character equipment)
+var _ship_stash: Array[Dictionary] = []
+
+## Set maximum ship stash capacity (called by Ship when loading components)
+func set_max_stash_capacity(capacity: int) -> void:
+	if capacity < 1:
+		push_error("EquipmentManager: Stash capacity must be at least 1")
+		return
+	_max_ship_stash_items = capacity
+	print("EquipmentManager: Ship stash capacity set to %d items" % _max_ship_stash_items)
+	
+	# If current stash exceeds new capacity, warn but don't remove items
+	if _ship_stash.size() > _max_ship_stash_items:
+		push_warning("EquipmentManager: Current stash (%d items) exceeds new capacity (%d)" % [_ship_stash.size(), _max_ship_stash_items])
+
+## Get current maximum ship stash capacity
+func get_max_stash_capacity() -> int:
+	return _max_ship_stash_items
+
+## Get all items in ship stash
+func get_ship_stash() -> Array[Dictionary]:
+	return _ship_stash.duplicate()
+
+## Get current ship stash count
+func get_ship_stash_count() -> int:
+	return _ship_stash.size()
+
+## Check if ship stash has room
+func can_add_to_ship_stash() -> bool:
+	return _ship_stash.size() < _max_ship_stash_items
+
+## Transfer equipment from character to ship stash
+func transfer_to_ship_stash(character_id: String, equipment_id: String) -> bool:
+	if not can_add_to_ship_stash():
+		push_warning("EquipmentManager: Ship stash is full (max %d items)" % _max_ship_stash_items)
+		return false
+	
+	# Find equipment in character's inventory
+	if not character_id in _character_equipment:
+		push_error("EquipmentManager: Character not found: %s" % character_id)
+		return false
+	
+	var equipment_list: Array = _character_equipment[character_id]
+	if not equipment_id in equipment_list:
+		push_error("EquipmentManager: Equipment not found on character: %s" % equipment_id)
+		return false
+	
+	# Get equipment data
+	var equipment_data: Dictionary = get_equipment(equipment_id)
+	if equipment_data.is_empty():
+		return false
+	
+	# Remove from character
+	equipment_list.erase(equipment_id)
+	_update_character_with_equipment(character_id)
+	
+	# Add to ship stash
+	equipment_data["location"] = "ship_stash"
+	equipment_data["previous_owner"] = character_id
+	_ship_stash.append(equipment_data)
+	
+	_emit_equipment_removed(character_id, equipment_id)
+	_emit_equipment_list_updated()
+	
+	print("EquipmentManager: Transferred %s from %s to ship stash" % [equipment_data.get("name", equipment_id), character_id])
+	return true
+
+## Transfer equipment from ship stash to character
+func transfer_from_ship_stash(equipment_id: String, character_id: String) -> bool:
+	# Find equipment in ship stash
+	var stash_index: int = -1
+	var equipment_data: Dictionary = {}
+	
+	for i in range(_ship_stash.size()):
+		if _ship_stash[i].get("id", "") == equipment_id:
+			stash_index = i
+			equipment_data = _ship_stash[i]
+			break
+	
+	if stash_index < 0:
+		push_error("EquipmentManager: Equipment not found in ship stash: %s" % equipment_id)
+		return false
+	
+	# Verify character exists
+	@warning_ignore("unsafe_method_access")
+	if character_manager and not character_manager.has_character(character_id):
+		push_error("EquipmentManager: Character not found: %s" % character_id)
+		return false
+	
+	# Remove from ship stash
+	_ship_stash.remove_at(stash_index)
+	
+	# Add to character equipment
+	equipment_data["location"] = "character"
+	equipment_data["owner"] = character_id
+	equipment_data.erase("previous_owner")
+	
+	if not character_id in _character_equipment:
+		_character_equipment[character_id] = []
+	_character_equipment[character_id].append(equipment_id)
+	
+	_update_character_with_equipment(character_id)
+	_emit_equipment_assigned(character_id, equipment_id)
+	_emit_equipment_list_updated()
+	
+	print("EquipmentManager: Transferred %s from ship stash to %s" % [equipment_data.get("name", equipment_id), character_id])
+	return true
+
+## Add equipment directly to ship stash
+func add_to_ship_stash(equipment_data: Dictionary) -> bool:
+	if not can_add_to_ship_stash():
+		push_warning("EquipmentManager: Ship stash is full")
+		return false
+	
+	# Ensure equipment has an ID
+	if not equipment_data.has("id") or equipment_data.id.is_empty():
+		equipment_data["id"] = "stash_item_%d_%d" % [Time.get_ticks_msec(), randi() % 1000]
+	
+	equipment_data["location"] = "ship_stash"
+	_ship_stash.append(equipment_data)
+	
+	# Also add to main storage for tracking
+	_add_equipment_to_storage(equipment_data)
+	
+	_emit_equipment_acquired(equipment_data)
+	_emit_equipment_list_updated()
+	
+	print("EquipmentManager: Added %s to ship stash" % equipment_data.get("name", "Unknown"))
+	return true
+
+## Remove equipment from ship stash (e.g., when selling)
+func remove_from_ship_stash(equipment_id: String) -> Dictionary:
+	for i in range(_ship_stash.size()):
+		if _ship_stash[i].get("id", "") == equipment_id:
+			var removed = _ship_stash[i]
+			_ship_stash.remove_at(i)
+			_emit_equipment_list_updated()
+			return removed
+	return {}
+
+## Serialize ship stash for save/load
+func serialize_ship_stash() -> Array[Dictionary]:
+	return _ship_stash.duplicate(true)
+
+## Deserialize ship stash from save data
+func deserialize_ship_stash(data: Array) -> void:
+	_ship_stash.clear()
+	for item in data:
+		if item is Dictionary:
+			_ship_stash.append(item)
+
+## Validate equipment integrity across all storage locations
+## Returns detailed report of any data inconsistencies
+func validate_equipment_integrity() -> Dictionary:
+	var report = {
+		"duplicate_ids": [],
+		"orphaned_references": [],
+		"invalid_locations": [],
+		"missing_required_fields": [],
+		"valid": true
+	}
+	
+	# Track all equipment IDs across storage
+	var seen_ids = {}
+	
+	# Check equipment storage for duplicates and required fields
+	for equipment in _equipment_storage:
+		var id = equipment.get("id", "")
+		
+		# Check for required fields
+		if id.is_empty():
+			report.missing_required_fields.append({"location": "equipment_storage", "error": "Missing ID"})
+			report.valid = false
+			continue
+		
+		# Check for duplicate IDs
+		if seen_ids.has(id):
+			report.duplicate_ids.append({
+				"id": id,
+				"locations": [seen_ids[id], "equipment_storage"]
+			})
+			report.valid = false
+		else:
+			seen_ids[id] = "equipment_storage"
+		
+		# Validate required fields
+		if not equipment.has("name") or equipment.get("name", "").is_empty():
+			report.missing_required_fields.append({"id": id, "field": "name"})
+			report.valid = false
+	
+	# Check ship stash for valid references
+	for equipment in _ship_stash:
+		var id = equipment.get("id", "")
+		
+		if id.is_empty():
+			report.missing_required_fields.append({"location": "ship_stash", "error": "Missing ID"})
+			report.valid = false
+			continue
+		
+		# Check if equipment exists in main storage
+		if not seen_ids.has(id):
+			# Ship stash can have standalone items, just track them
+			seen_ids[id] = "ship_stash"
+	
+	# Check character equipment references
+	for character_id in _character_equipment:
+		var equipment_list = _character_equipment[character_id]
+		
+		for equipment in equipment_list:
+			var id = equipment.get("id", "")
+			
+			if id.is_empty():
+				report.orphaned_references.append({
+					"character_id": character_id,
+					"error": "Equipment with missing ID"
+				})
+				report.valid = false
+				continue
+			
+			# Verify equipment exists somewhere
+			if not seen_ids.has(id):
+				report.orphaned_references.append({
+					"character_id": character_id,
+					"equipment_id": id,
+					"error": "Equipment not found in storage"
+				})
+				report.valid = false
+	
+	return report
+
 ## Get equipment of a specific category
 func get_equipment_by_category(category: int) -> Array:
 	var filtered_equipment: Array = []

@@ -20,6 +20,31 @@ signal character_generated(character: Character)
 @onready var patron_details := %PatronDetails
 @onready var rival_details := %RivalDetails
 @onready var equipment_details := %EquipmentDetails
+@onready var species_option := %SpeciesOption
+@onready var random_species := %RandomSpecies
+
+# Bespoke creation mode nodes
+@onready var random_mode_button := %RandomModeButton
+@onready var bespoke_mode_button := %BespokeModeButton
+@onready var background_container := $MarginContainer/VBoxContainer/MainContent/CharacterList/VBoxContainer/BackgroundContainer
+@onready var background_option := %BackgroundOption
+@onready var motivation_container := $MarginContainer/VBoxContainer/MainContent/CharacterList/VBoxContainer/MotivationContainer
+@onready var motivation_option := %MotivationOption
+@onready var class_container := $MarginContainer/VBoxContainer/MainContent/CharacterList/VBoxContainer/ClassContainer
+@onready var class_option := %ClassOption
+
+# Character creation data loaded from JSON
+var species_data: Dictionary = {}
+var background_data: Dictionary = {}
+var motivation_data: Dictionary = {}
+var class_data: Dictionary = {}
+
+# Bespoke creation mode flag
+var bespoke_mode: bool = false
+
+# Resource tracking via CrewCreation
+const CrewCreationClass = preload("res://src/core/campaign/crew/CrewCreation.gd")
+var crew_creation_tracker: Node = null
 
 # Crew creation specific data (BaseCrewComponent handles core crew data)
 var crew_creation_data := {
@@ -78,9 +103,125 @@ func _on_coordinator_transition_request(transition_data: Dictionary) -> void:
 	# Handle coordinator-driven transitions in workflow mode
 
 func _setup_initial_crew_creation() -> void:
+	_load_species_data()
+	_load_character_tables()
 	_initialize_character_system()
+	_initialize_resource_tracker()
 	_connect_signals()
 	_setup_options()
+	_setup_mode_buttons()
+
+func _load_character_tables() -> void:
+	"""Load background, motivation, and class tables from JSON"""
+	# Load background table
+	var bg_path = "res://data/character_creation_tables/background_table.json"
+	if FileAccess.file_exists(bg_path):
+		var file = FileAccess.open(bg_path, FileAccess.READ)
+		if file:
+			var json = JSON.new()
+			if json.parse(file.get_as_text()) == OK:
+				background_data = json.get_data()
+				print("InitialCrewCreation: Loaded background table with %d entries" % background_data.get("entries", {}).size())
+			file.close()
+
+	# Load motivation table
+	var mot_path = "res://data/character_creation_tables/motivation_table.json"
+	if FileAccess.file_exists(mot_path):
+		var file = FileAccess.open(mot_path, FileAccess.READ)
+		if file:
+			var json = JSON.new()
+			if json.parse(file.get_as_text()) == OK:
+				motivation_data = json.get_data()
+				print("InitialCrewCreation: Loaded motivation table with %d entries" % motivation_data.size())
+			file.close()
+
+	# Load class table
+	var cls_path = "res://data/character_creation_tables/class_table.json"
+	if FileAccess.file_exists(cls_path):
+		var file = FileAccess.open(cls_path, FileAccess.READ)
+		if file:
+			var json = JSON.new()
+			if json.parse(file.get_as_text()) == OK:
+				class_data = json.get_data()
+				print("InitialCrewCreation: Loaded class table with %d entries" % class_data.get("entries", {}).size())
+			file.close()
+
+func _setup_mode_buttons() -> void:
+	"""Setup the Random/Bespoke mode toggle buttons"""
+	if random_mode_button:
+		random_mode_button.pressed.connect(_on_random_mode_selected)
+	if bespoke_mode_button:
+		bespoke_mode_button.pressed.connect(_on_bespoke_mode_selected)
+	# Start in random mode
+	_set_creation_mode(false)
+
+func _on_random_mode_selected() -> void:
+	_set_creation_mode(false)
+
+func _on_bespoke_mode_selected() -> void:
+	_set_creation_mode(true)
+
+func _set_creation_mode(is_bespoke: bool) -> void:
+	"""Toggle between random and bespoke creation modes"""
+	bespoke_mode = is_bespoke
+
+	# Update button states
+	if random_mode_button:
+		random_mode_button.button_pressed = not is_bespoke
+	if bespoke_mode_button:
+		bespoke_mode_button.button_pressed = is_bespoke
+
+	# Show/hide bespoke-only fields
+	if background_container:
+		background_container.visible = is_bespoke
+	if motivation_container:
+		motivation_container.visible = is_bespoke
+	if class_container:
+		class_container.visible = is_bespoke
+
+	# Hide random species checkbox in bespoke mode
+	if random_species:
+		random_species.visible = not is_bespoke
+		if is_bespoke:
+			random_species.button_pressed = false
+
+	# Update button text
+	if generate_button:
+		generate_button.text = "Create Character" if is_bespoke else "Generate Character"
+
+	print("InitialCrewCreation: Mode set to %s" % ("Bespoke" if is_bespoke else "Random"))
+
+func _initialize_resource_tracker() -> void:
+	"""Initialize CrewCreation for resource tracking"""
+	crew_creation_tracker = CrewCreationClass.new()
+	crew_creation_tracker.name = "CrewCreationTracker"
+	add_child(crew_creation_tracker)
+	print("InitialCrewCreation: Resource tracker initialized")
+
+func _load_species_data() -> void:
+	"""Load species data from character_creation_data.json"""
+	var file_path = "res://data/character_creation_data.json"
+	if not FileAccess.file_exists(file_path):
+		push_warning("InitialCrewCreation: character_creation_data.json not found")
+		return
+
+	var file = FileAccess.open(file_path, FileAccess.READ)
+	if not file:
+		push_error("InitialCrewCreation: Failed to open character_creation_data.json")
+		return
+
+	var json = JSON.new()
+	var error = json.parse(file.get_as_text())
+	file.close()
+
+	if error != OK:
+		push_error("InitialCrewCreation: Failed to parse character_creation_data.json")
+		return
+
+	var data = json.get_data()
+	if data.has("origins"):
+		species_data = data.origins
+		print("InitialCrewCreation: Loaded %d species from JSON" % species_data.size())
 
 func _initialize_character_system() -> void:
 	"""Framework Bible compliant character generation - no Manager dependencies"""
@@ -106,23 +247,208 @@ func _connect_signals() -> void:
 
 func _on_generate_character() -> void:
 	"""Production-ready character generation using Framework Bible patterns"""
-	print("InitialCrewCreation: Generating character via direct Character class")
-	
+	if bespoke_mode:
+		print("InitialCrewCreation: Creating bespoke character with user selections")
+		_create_bespoke_character()
+	else:
+		print("InitialCrewCreation: Generating random character via direct Character class")
+		_create_random_character()
+
+func _create_random_character() -> void:
+	"""Generate a random character using dice rolls"""
+	# Determine species to use
+	var selected_species := ""
+	if random_species and random_species.button_pressed:
+		# Random species selection
+		if species_data.size() > 0:
+			var species_keys = species_data.keys()
+			selected_species = species_keys[randi() % species_keys.size()]
+			print("InitialCrewCreation: Random species selected: %s" % selected_species)
+	elif species_option and species_option.selected >= 0:
+		# Use selected species from dropdown
+		selected_species = species_option.get_item_metadata(species_option.selected)
+		print("InitialCrewCreation: Selected species: %s" % selected_species)
+
 	# Direct static call eliminates Manager dependency
-	var new_character = Character.generate_character("")
-	
+	var new_character = Character.generate_character(selected_species)
+
 	if new_character and new_character.is_valid():
-		crew_members.append(new_character)
-		_update_character_display()
-		_update_ui_state()
-		print("Character generated successfully: %s (%s)" % [new_character.name, new_character.background])
-		
-		# Emit signal for parent components
-		if has_signal("character_generated"):
-			character_generated.emit(new_character)
+		# Apply species-specific stats if available
+		if selected_species != "" and species_data.has(selected_species):
+			_apply_species_data(new_character, species_data[selected_species])
+
+		# Track resources through CrewCreation
+		if crew_creation_tracker and crew_creation_tracker.has_method("apply_tables_to_character"):
+			crew_creation_tracker.apply_tables_to_character(new_character)
+			print("InitialCrewCreation: Resources tracked for %s" % new_character.character_name)
+
+		_finalize_character(new_character, selected_species)
 	else:
 		push_error("Generated character failed validation")
 		_show_error_dialog("Character generation failed. Please try again.")
+
+func _create_bespoke_character() -> void:
+	"""Create a character with user-selected background, motivation, and class"""
+	# Get selected species
+	var selected_species := ""
+	if species_option and species_option.selected >= 0:
+		selected_species = species_option.get_item_metadata(species_option.selected)
+
+	# Create new character with basic generation
+	var new_character = Character.generate_character(selected_species)
+	if not new_character or not new_character.is_valid():
+		push_error("Failed to create base character")
+		_show_error_dialog("Character creation failed. Please try again.")
+		return
+
+	# Apply species-specific stats
+	if selected_species != "" and species_data.has(selected_species):
+		_apply_species_data(new_character, species_data[selected_species])
+
+	# Apply selected background
+	if background_option and background_option.selected >= 0:
+		var bg_key = background_option.get_item_metadata(background_option.selected)
+		var entries = background_data.get("entries", {})
+		if entries.has(bg_key):
+			var bg = entries[bg_key]
+			new_character.background = bg.get("name", "Unknown")
+			_apply_table_bonuses(new_character, bg)
+			print("InitialCrewCreation: Applied background '%s'" % new_character.background)
+
+	# Apply selected motivation
+	if motivation_option and motivation_option.selected >= 0:
+		var mot_key = motivation_option.get_item_metadata(motivation_option.selected)
+		if motivation_data.has(mot_key):
+			var mot = motivation_data[mot_key]
+			new_character.motivation = mot.get("name", "Unknown")
+			print("InitialCrewCreation: Applied motivation '%s'" % new_character.motivation)
+
+	# Apply selected class
+	if class_option and class_option.selected >= 0:
+		var cls_key = class_option.get_item_metadata(class_option.selected)
+		var entries = class_data.get("entries", {})
+		if entries.has(cls_key):
+			var cls = entries[cls_key]
+			new_character.character_class = cls.get("name", "Unknown")
+			_apply_table_bonuses(new_character, cls)
+			print("InitialCrewCreation: Applied class '%s'" % new_character.character_class)
+
+	# Track resources - add 1 credit per crew member
+	if crew_creation_tracker:
+		crew_creation_tracker.accumulated_resources.credits += 1
+
+	_finalize_character(new_character, selected_species)
+
+func _apply_table_bonuses(character: Character, table_entry: Dictionary) -> void:
+	"""Apply stat bonuses and resources from a background or class table entry"""
+	# Apply stat bonuses
+	var bonuses = table_entry.get("stat_bonuses", {})
+	character.combat += bonuses.get("combat", 0)
+	character.toughness += bonuses.get("toughness", 0)
+	character.savvy += bonuses.get("savvy", 0)
+	character.speed += bonuses.get("speed", 0)
+	character.reactions += bonuses.get("reactions", 0)
+
+	# Apply special bonuses (luck, xp)
+	var special = table_entry.get("special", {})
+	if "luck" in special:
+		character.luck = max(character.luck, int(special.luck))
+	if "xp" in special:
+		character.experience = int(special.xp)
+
+	# Track resources if we have the tracker
+	if not crew_creation_tracker:
+		return
+
+	var resources = table_entry.get("resources", {})
+
+	# Credits
+	if "credits_roll" in resources:
+		var credits = _roll_dice_string(resources.credits_roll)
+		crew_creation_tracker.accumulated_resources.credits += credits
+
+	# Patron
+	if resources.get("patron", false):
+		crew_creation_tracker.accumulated_resources.patrons.append(table_entry.get("name", "Unknown"))
+
+	# Story points
+	crew_creation_tracker.accumulated_resources.story_points += resources.get("story_points", 0)
+
+	# Quest rumors
+	var rumors = resources.get("quest_rumors", 0)
+	for i in range(rumors):
+		crew_creation_tracker.accumulated_resources.quest_rumors.append("From: %s" % table_entry.get("name", "Unknown"))
+
+	# Rival
+	if resources.get("rival", false):
+		crew_creation_tracker.accumulated_resources.rivals.append("From %s" % table_entry.get("name", "Unknown"))
+
+func _roll_dice_string(dice_string: String) -> int:
+	"""Roll dice from a string like '1D6' or '2D6'"""
+	var result = 0
+	dice_string = dice_string.to_upper()
+
+	if "D6" in dice_string:
+		var num_dice = 1
+		var parts = dice_string.split("D")
+		if parts.size() == 2 and parts[0] != "":
+			num_dice = int(parts[0])
+		for i in range(num_dice):
+			result += randi() % 6 + 1
+	elif "D10" in dice_string:
+		var num_dice = 1
+		var parts = dice_string.split("D")
+		if parts.size() == 2 and parts[0] != "":
+			num_dice = int(parts[0])
+		for i in range(num_dice):
+			result += randi() % 10 + 1
+
+	return result
+
+func _finalize_character(new_character: Character, selected_species: String) -> void:
+	"""Add character to crew and update UI"""
+	crew_members.append(new_character)
+	_update_character_display()
+	_update_ui_state()
+	print("Character created successfully: %s (%s/%s/%s) - Species: %s" % [
+		new_character.character_name,
+		new_character.background,
+		new_character.motivation,
+		new_character.character_class,
+		selected_species
+	])
+
+	# Emit signal for parent components
+	if has_signal("character_generated"):
+		character_generated.emit(new_character)
+
+func _apply_species_data(character: Character, species_info: Dictionary) -> void:
+	"""Apply species-specific stats and characteristics to character"""
+	if not character or species_info.is_empty():
+		return
+
+	# Set origin/species name
+	character.origin = species_info.get("name", "Human")
+
+	# Apply base stats
+	var base_stats = species_info.get("base_stats", {})
+	if base_stats.has("REACTIONS"):
+		character.reactions = base_stats.REACTIONS
+	if base_stats.has("SPEED"):
+		character.speed = base_stats.SPEED
+	if base_stats.has("COMBAT_SKILL"):
+		character.combat = base_stats.COMBAT_SKILL
+	if base_stats.has("TOUGHNESS"):
+		character.toughness = base_stats.TOUGHNESS
+	if base_stats.has("SAVVY"):
+		character.savvy = base_stats.SAVVY
+
+	# Store characteristics as metadata for display
+	var characteristics = species_info.get("characteristics", [])
+	if characteristics.size() > 0:
+		character.set_meta("species_characteristics", characteristics)
+
+	print("InitialCrewCreation: Applied %s species data to %s" % [species_info.get("name", "Unknown"), character.character_name])
 
 func _show_error_dialog(message: String) -> void:
 	"""Production-ready error handling with user feedback"""
@@ -143,6 +469,66 @@ func _setup_options() -> void:
 	crew_size_option.selected = 3 # Default to 4 members (index 3)
 	create_button.disabled = true
 
+	# Setup species dropdown
+	if species_option:
+		species_option.clear()
+		for species_key in species_data:
+			var species_info = species_data[species_key]
+			var display_name = species_info.get("name", species_key)
+			species_option.add_item(display_name)
+			species_option.set_item_metadata(species_option.item_count - 1, species_key)
+
+		if species_option.item_count > 0:
+			species_option.selected = 0
+
+	# Setup background dropdown
+	if background_option:
+		background_option.clear()
+		var entries = background_data.get("entries", {})
+		for range_key in entries:
+			var entry = entries[range_key]
+			var name = entry.get("name", "Unknown")
+			background_option.add_item(name)
+			background_option.set_item_metadata(background_option.item_count - 1, range_key)
+
+		if background_option.item_count > 0:
+			background_option.selected = 0
+		print("InitialCrewCreation: Populated %d backgrounds" % background_option.item_count)
+
+	# Setup motivation dropdown
+	if motivation_option:
+		motivation_option.clear()
+		for key in motivation_data:
+			var entry = motivation_data[key]
+			var name = entry.get("name", "Unknown")
+			motivation_option.add_item(name)
+			motivation_option.set_item_metadata(motivation_option.item_count - 1, key)
+
+		if motivation_option.item_count > 0:
+			motivation_option.selected = 0
+		print("InitialCrewCreation: Populated %d motivations" % motivation_option.item_count)
+
+	# Setup class dropdown
+	if class_option:
+		class_option.clear()
+		var entries = class_data.get("entries", {})
+		for range_key in entries:
+			var entry = entries[range_key]
+			var name = entry.get("name", "Unknown")
+			class_option.add_item(name)
+			class_option.set_item_metadata(class_option.item_count - 1, range_key)
+
+		if class_option.item_count > 0:
+			class_option.selected = 0
+		print("InitialCrewCreation: Populated %d classes" % class_option.item_count)
+		print("InitialCrewCreation: Populated species dropdown with %d options" % species_option.item_count)
+
+	# Connect random species checkbox
+	if random_species:
+		if not random_species.toggled.is_connected(_on_random_species_toggled):
+			random_species.toggled.connect(_on_random_species_toggled)
+		_on_random_species_toggled(random_species.button_pressed)
+
 	# Enable character generation if components are available
 	if generate_button:
 		generate_button.text = "Generate Character"
@@ -153,8 +539,13 @@ func _setup_options() -> void:
 		# Clear any existing character boxes
 		for child in character_list_container.get_children():
 			child.queue_free()
-	
+
 	_update_ui_state()
+
+func _on_random_species_toggled(toggled_on: bool) -> void:
+	"""Handle random species checkbox toggle"""
+	if species_option:
+		species_option.disabled = toggled_on
 
 func _on_crew_size_changed(index: int) -> void:
 	crew_creation_data.size = index + 1 # Convert index to actual size
@@ -365,6 +756,17 @@ func _on_create_pressed() -> void:
 		final_crew_data["captain"] = get_captain()
 		final_crew_data["crew_statistics"] = calculate_crew_statistics()
 		final_crew_data["crew_export_data"] = export_crew_data()
+
+		# Include accumulated resources from character creation
+		if crew_creation_tracker and crew_creation_tracker.has_method("get_accumulated_resources"):
+			var resources = crew_creation_tracker.get_accumulated_resources()
+			final_crew_data["resources"] = resources
+			print("InitialCrewCreation: Including accumulated resources - Credits: %d, Story Points: %d, Patrons: %d, Rivals: %d" % [
+				resources.get("credits", 0),
+				resources.get("story_points", 0),
+				resources.get("patrons", []).size(),
+				resources.get("rivals", []).size()
+			])
 
 		self.crew_created.emit(final_crew_data)
 

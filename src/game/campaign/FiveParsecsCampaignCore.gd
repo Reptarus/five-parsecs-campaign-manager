@@ -5,6 +5,9 @@ extends Resource
 ## Framework Bible compliant: Simple data container with validation
 ## Stores complete campaign data for save/load operations
 
+## Schema version for save file migration (CRITICAL for data integrity)
+@export var schema_version: int = 1
+
 @export var campaign_name: String = ""
 @export var difficulty: int = 0
 @export var ironman_mode: bool = false
@@ -20,6 +23,14 @@ var ship_data: Dictionary = {}
 var equipment_data: Dictionary = {}
 var world_data: Dictionary = {}
 var progress_data: Dictionary = {}
+
+# Campaign resources (accumulated from character creation)
+var credits: int = 0
+var story_points: int = 0
+var patrons: Array = []
+var rivals: Array = []
+var quest_rumors: int = 0
+var victory_conditions: Dictionary = {}  # Victory condition configuration
 
 func _init() -> void:
 	created_at = Time.get_datetime_string_from_system()
@@ -66,6 +77,29 @@ func set_config(data: Dictionary) -> void:
 	if data.has("ironman_mode"):
 		ironman_mode = data.ironman_mode
 	_update_modified_time()
+
+func initialize_resources(data: Dictionary) -> void:
+	"""Initialize campaign resources from character creation"""
+	credits = data.get("credits", 0)
+	story_points = data.get("story_points", 0)
+	patrons = data.get("patrons", []).duplicate()
+	rivals = data.get("rivals", []).duplicate()
+	var rumors = data.get("quest_rumors", [])
+	quest_rumors = rumors.size() if rumors is Array else rumors
+	_update_modified_time()
+	print("FiveParsecsCampaignCore: Resources initialized - Credits: %d, SP: %d, Patrons: %d, Rivals: %d, Rumors: %d" % [
+		credits, story_points, patrons.size(), rivals.size(), quest_rumors
+	])
+
+func get_resources() -> Dictionary:
+	"""Get campaign resources"""
+	return {
+		"credits": credits,
+		"story_points": story_points,
+		"patrons": patrons.duplicate(),
+		"rivals": rivals.duplicate(),
+		"quest_rumors": quest_rumors
+	}
 
 ## Validation Methods
 
@@ -122,7 +156,14 @@ func to_dictionary() -> Dictionary:
 		"ship": ship_data,
 		"equipment": equipment_data,
 		"world": world_data,
-		"progress": progress_data
+		"progress": progress_data,
+		"resources": {
+			"credits": credits,
+			"story_points": story_points,
+			"patrons": patrons.duplicate(),
+			"rivals": rivals.duplicate(),
+			"quest_rumors": quest_rumors
+		}
 	}
 
 func from_dictionary(data: Dictionary) -> void:
@@ -144,6 +185,15 @@ func from_dictionary(data: Dictionary) -> void:
 	equipment_data = data.get("equipment", {})
 	world_data = data.get("world", {})
 	progress_data = data.get("progress", {})
+
+	# Load resources
+	if data.has("resources"):
+		var res = data.resources
+		credits = res.get("credits", 0)
+		story_points = res.get("story_points", 0)
+		patrons = res.get("patrons", []).duplicate()
+		rivals = res.get("rivals", []).duplicate()
+		quest_rumors = res.get("quest_rumors", 0)
 
 ## Campaign Management Methods
 

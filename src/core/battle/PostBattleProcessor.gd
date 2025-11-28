@@ -279,7 +279,7 @@ func _process_crew_injuries(tracked_units: Dictionary, results: BattlefieldTypes
 
 			if not is_casualty:
 				var injury_data := _roll_injury_type(unit)
-				results.add_injury(unit.unit_name, injury_data.injury_type, injury_data.recovery_time)
+				results.add_injury(unit.unit_name, injury_data.injury_type, injury_data.get("damage", 1), injury_data.recovery_time)
 				injury_processed.emit(unit.unit_name, injury_data)
 
 func _roll_injury_type(unit: BattlefieldTypes.UnitData) -> Dictionary:

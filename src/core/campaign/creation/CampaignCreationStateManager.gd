@@ -47,14 +47,11 @@ var validation_errors: Array[String] = []
 
 # PHASE 1A: Concurrency protection for production-grade state management
 var _operation_lock: Mutex = Mutex.new()
-var _pending_operations: Array[String] = []
 var _is_processing_confirmation: bool = false
-var _is_processing_validation: bool = false
 
 # PHASE 1A: Transaction system integration
-const CampaignCreationTransaction = preload("res://src/core/campaign/creation/CampaignCreationTransaction.gd")
+const FPCMCampaignCreationTransaction = preload("res://src/core/campaign/creation/CampaignCreationTransaction.gd")
 var _active_transactions: Dictionary = {}
-var _transaction_counter: int = 0
 
 signal state_updated(phase: Phase, data: Dictionary)
 signal validation_changed(is_valid: bool, errors: Array[String])
@@ -91,7 +88,7 @@ func advance_to_next_phase() -> bool:
 	print("CampaignCreationStateManager: Attempting to advance from phase: %s" % get_phase_name(current_phase))
 	
 	# Validate current phase before allowing advancement
-	var validation_result = _validate_phase_with_warnings(current_phase)
+	var validation_result: Dictionary = _validate_phase_with_warnings(current_phase)
 	
 	if validation_result.blocks_progression:
 		push_warning("Cannot advance: Current phase has blocking errors: %s" % str(validation_result.blocking_errors))
@@ -101,10 +98,10 @@ func advance_to_next_phase() -> bool:
 	if validation_result.has_warnings:
 		print("CampaignCreationStateManager: Advancing with warnings: %s" % str(validation_result.warnings))
 
-	var next_phase = current_phase + 1
-	if next_phase < Phase.FINAL_REVIEW + 1:
-		current_phase = next_phase
-		phase_completed.emit(current_phase - 1)
+	var next_phase_int: int = int(current_phase) + 1
+	if next_phase_int < int(Phase.FINAL_REVIEW) + 1:
+		current_phase = next_phase_int as Phase
+		phase_completed.emit((next_phase_int - 1) as Phase)
 		_validate_current_phase()
 		return true
 
@@ -118,12 +115,12 @@ func go_to_previous_phase() -> bool:
 		print("CampaignCreationStateManager: Cannot go back from CONFIG phase")
 		return false # Cannot go back from first phase
 	
-	var previous_phase_int = int(current_phase) - 1
+	var previous_phase_int: int = int(current_phase) - 1
 	if previous_phase_int < 0:
 		print("CampaignCreationStateManager: Invalid previous phase calculation")
 		return false
 	
-	var previous_phase = Phase.values()[previous_phase_int]
+	var previous_phase: Phase = Phase.values()[previous_phase_int] as Phase
 	current_phase = previous_phase
 	
 	# Emit signals for UI updates
@@ -188,7 +185,7 @@ func get_phase_data(phase: Phase) -> Dictionary:
 func _validate_current_phase() -> void:
 	"""Validate current phase and update validation state"""
 	validation_errors.clear()
-	var is_valid = _is_phase_valid(current_phase)
+	var is_valid: bool = _is_phase_valid(current_phase)
 	validation_changed.emit(is_valid, validation_errors)
 
 func _is_phase_valid(phase: Phase) -> bool:
@@ -213,9 +210,9 @@ func _is_phase_valid(phase: Phase) -> bool:
 
 func _validate_config_phase() -> bool:
 	"""GDScript 2.0: Validate campaign configuration including victory conditions"""
-	var config: Dictionary = campaign_data.config
+	var config: Dictionary = campaign_data.config as Dictionary
 
-	if not config.has("campaign_name") or config.campaign_name.is_empty():
+	if not config.has("campaign_name") or str(config.campaign_name).is_empty():
 		validation_errors.append("Campaign name is required")
 		return false
 
@@ -236,7 +233,7 @@ func _validate_config_phase() -> bool:
 
 func _validate_crew_phase() -> bool:
 	"""Enhanced crew setup validation with character completeness checking"""
-	var crew = campaign_data.crew
+	var crew: Dictionary = campaign_data.crew as Dictionary
 
 	# Allow empty crew data initially - panels will populate it
 	if crew.is_empty():
@@ -249,51 +246,52 @@ func _validate_crew_phase() -> bool:
 		return true
 
 	# If members array exists but is empty, that's an error
-	if crew.members.is_empty():
+	var members_array: Array = crew.members as Array
+	if members_array.is_empty():
 		validation_errors.append("At least one crew member is required")
 		return false
 
-	if crew.get("size", 0) < 1:
+	if int(crew.get("size", 0)) < 1:
 		validation_errors.append("Invalid crew size")
 		return false
 
 	# Enhanced validation for character completeness
-	var required_size = crew.get("size", 4)
-	if crew.members.size() < required_size:
-		validation_errors.append("Crew requires %d members, currently has %d" % [required_size, crew.members.size()])
+	var required_size: int = int(crew.get("size", 4))
+	if members_array.size() < required_size:
+		validation_errors.append("Crew requires %d members, currently has %d" % [required_size, members_array.size()])
 		return false
 
 	# Check for captain assignment
-	if not crew.get("has_captain", false):
+	if not bool(crew.get("has_captain", false)):
 		validation_errors.append("Crew must have an assigned captain")
 		return false
 
 	# Check character customization completeness
-	var incomplete_characters = []
-	for member in crew.members:
+	var incomplete_characters: Array[String] = []
+	for member: Variant in members_array:
 		# Handle both Resource and Dictionary members
 		if typeof(member) == TYPE_DICTIONARY:
 			# Dictionary-based members (from tests or simple data) - skip customization check
 			continue
-		elif member.has_method("get_customization_completeness"):
-			var completeness = member.get_customization_completeness()
+		elif member is Object and (member as Object).has_method("get_customization_completeness"):
+			var completeness: float = (member as Object).call("get_customization_completeness")
 			if completeness < 0.8: # Require 80% completion
 				# Use safe property access for Resource objects
-				var name = ""
-				if member.has_method("get"):
-					name = member.get("character_name")
-				elif member.has_property("character_name"):
-					name = member.character_name
+				var char_name: String = ""
+				if (member as Object).has_method("get"):
+					char_name = str((member as Object).call("get", "character_name"))
+				elif "character_name" in member:
+					char_name = str(member.character_name)
 				else:
-					name = "Unnamed Character"
-				incomplete_characters.append(name)
+					char_name = "Unnamed Character"
+				incomplete_characters.append(char_name)
 	
 	if incomplete_characters.size() > 0:
-		validation_errors.append("Characters need more customization: " + ", ".join(incomplete_characters))
+		validation_errors.append("Characters need more customization: " + ", ".join(PackedStringArray(incomplete_characters)))
 		return false
 
 	# Check crew composition quality
-	var completion_level = crew.get("completion_level", 0.0)
+	var completion_level: float = float(crew.get("completion_level", 0.0))
 	if completion_level < 0.75: # Require 75% overall completion
 		validation_errors.append("Crew setup needs more completion (currently %.0f%%)" % (completion_level * 100))
 		return false
@@ -307,7 +305,7 @@ func _validate_crew_phase() -> bool:
 
 func _validate_captain_phase() -> bool:
 	"""Enhanced captain phase validation with flexible requirements"""
-	var captain = campaign_data.captain
+	var captain: Dictionary = campaign_data.captain as Dictionary
 	
 	# Allow initial empty state for captain creation UI
 	if captain.is_empty():
@@ -315,40 +313,40 @@ func _validate_captain_phase() -> bool:
 		return true
 	
 	# Basic captain validation
-	if not captain.has("character_name") or captain.character_name.is_empty():
+	if not captain.has("character_name") or str(captain.character_name).is_empty():
 		validation_errors.append("Captain must have a name")
 		return false
 	
-	if not captain.has("combat") or captain.combat < 1:
+	if not captain.has("combat") or int(captain.combat) < 1:
 		validation_errors.append("Captain needs valid combat attribute")
 		return false
 	
-	if not captain.has("toughness") or captain.toughness < 1:
+	if not captain.has("toughness") or int(captain.toughness) < 1:
 		validation_errors.append("Captain needs valid toughness attribute")
 		return false
 	
 	# Optional: Check for captain customization completeness
-	var completeness = captain.get("customization_completeness", 1.0)
+	var completeness: float = float(captain.get("customization_completeness", 1.0))
 	if completeness < 0.6: # Require 60% completion minimum
 		validation_errors.append("Captain needs more customization")
 		return false
 	
-	print("CampaignCreationStateManager: Captain validation passed - %s" % captain.character_name)
+	print("CampaignCreationStateManager: Captain validation passed - %s" % str(captain.character_name))
 	return true
 
 func _validate_ship_phase() -> bool:
 	"""Validate ship assignment"""
-	var ship = campaign_data.ship
+	var ship: Dictionary = campaign_data.ship as Dictionary
 
-	if not ship.has("name") or ship.name.is_empty():
+	if not ship.has("name") or str(ship.name).is_empty():
 		validation_errors.append("Ship name is required")
 		return false
 
-	if not ship.has("type") or ship.type.is_empty():
+	if not ship.has("type") or str(ship.type).is_empty():
 		validation_errors.append("Ship type must be selected")
 		return false
 
-	if not ship.get("is_configured", false):
+	if not bool(ship.get("is_configured", false)):
 		validation_errors.append("Ship configuration incomplete")
 		return false
 
@@ -356,13 +354,14 @@ func _validate_ship_phase() -> bool:
 
 func _validate_equipment_phase() -> bool:
 	"""Validate equipment generation with backend integration check"""
-	var equipment = campaign_data.equipment
+	var equipment: Dictionary = campaign_data.equipment as Dictionary
 
-	if not equipment.has("equipment") or equipment.equipment.is_empty():
+	# FIX: Use Dictionary access (equipment is stored as Dictionary, not Resource)
+	if not equipment.has("equipment") or (equipment["equipment"] as Array).is_empty():
 		validation_errors.append("Starting equipment must be generated")
 		return false
 
-	if not equipment.get("is_complete", false):
+	if not bool(equipment.get("is_complete", false)):
 		validation_errors.append("Equipment setup incomplete")
 		return false
 	
@@ -375,7 +374,7 @@ func _validate_equipment_phase() -> bool:
 
 func _validate_world_phase() -> bool:
 	"""Validate world generation - very permissive as world can use defaults"""
-	var world = campaign_data.world
+	var _world: Dictionary = campaign_data.world as Dictionary
 	
 	# World generation is optional - empty world data will use defaults
 	# This is intentionally permissive to allow campaign creation to complete
@@ -389,10 +388,10 @@ func _validate_final_phase() -> bool:
 	
 	var all_phases_valid: bool = true
 
-	for phase: int in range(Phase.FINAL_REVIEW):
-		var phase_valid = _is_phase_valid(phase)
+	for phase_idx: int in range(int(Phase.FINAL_REVIEW)):
+		var phase_valid: bool = _is_phase_valid(phase_idx as Phase)
 		if not phase_valid:
-			print("DEBUG: Phase %d failed validation. Errors: %s" % [phase, validation_errors])
+			print("DEBUG: Phase %d failed validation. Errors: %s" % [phase_idx, validation_errors])
 			all_phases_valid = false
 
 	if all_phases_valid:
@@ -407,7 +406,7 @@ func _validate_final_phase() -> bool:
 
 func _validate_phase_with_warnings(phase: Phase) -> Dictionary:
 	"""Enhanced validation that separates blocking errors from warnings"""
-	var result = {
+	var result: Dictionary = {
 		"valid": true,
 		"blocks_progression": false,
 		"has_warnings": false,
@@ -433,12 +432,12 @@ func _validate_phase_with_warnings(phase: Phase) -> Dictionary:
 			return _validate_final_with_warnings()
 		_:
 			result.blocks_progression = true
-			result.blocking_errors.append("Unknown phase: " + str(phase))
+			(result.blocking_errors as Array).append("Unknown phase: " + str(phase))
 			return result
 
 func _validate_config_with_warnings() -> Dictionary:
 	"""Enhanced config validation with warnings support"""
-	var result = {
+	var result: Dictionary = {
 		"valid": true,
 		"blocks_progression": false,
 		"has_warnings": false,
@@ -446,32 +445,32 @@ func _validate_config_with_warnings() -> Dictionary:
 		"warnings": []
 	}
 	
-	var config = campaign_data.config
+	var config: Dictionary = campaign_data.config as Dictionary
 	
 	# Allow progression even with empty config initially
 	if config.is_empty():
-		result.warnings.append("Configuration not set - will use defaults")
+		(result.warnings as Array).append("Configuration not set - will use defaults")
 		result.has_warnings = true
 		return result
 	
 	# Warnings that don't block progression
-	if not config.has("campaign_name") or config.campaign_name.is_empty():
-		result.warnings.append("Campaign name not set - will use default")
+	if not config.has("campaign_name") or str(config.campaign_name).is_empty():
+		(result.warnings as Array).append("Campaign name not set - will use default")
 		result.has_warnings = true
 	
-	if not config.has("difficulty_level") or config.difficulty_level == 0:
-		result.warnings.append("Difficulty level not set - will use default")
+	if not config.has("difficulty_level") or int(config.difficulty_level) == 0:
+		(result.warnings as Array).append("Difficulty level not set - will use default")
 		result.has_warnings = true
 	
-	if not config.has("crew_size") or config.crew_size == 0:
-		result.warnings.append("Crew size not set - will use default of 4")
+	if not config.has("crew_size") or int(config.crew_size) == 0:
+		(result.warnings as Array).append("Crew size not set - will use default of 4")
 		result.has_warnings = true
 	
 	return result
 
 func _validate_crew_with_warnings() -> Dictionary:
 	"""Enhanced crew validation with warnings support"""
-	var result = {
+	var result: Dictionary = {
 		"valid": true,
 		"blocks_progression": false,
 		"has_warnings": false,
@@ -479,33 +478,33 @@ func _validate_crew_with_warnings() -> Dictionary:
 		"warnings": []
 	}
 	
-	var crew = campaign_data.crew
+	var crew: Dictionary = campaign_data.crew as Dictionary
 	
 	# Allow empty crew data initially
 	if crew.is_empty():
-		result.warnings.append("Crew data empty - will be populated during setup")
+		(result.warnings as Array).append("Crew data empty - will be populated during setup")
 		result.has_warnings = true
 		return result
 	
 	# Warnings for incomplete setup
-	if not crew.has("members") or crew.members.is_empty():
-		result.warnings.append("No crew members defined - using default setup")
+	if not crew.has("members") or (crew.members as Array).is_empty():
+		(result.warnings as Array).append("No crew members defined - using default setup")
 		result.has_warnings = true
 	
-	if not crew.get("has_captain", false):
-		result.warnings.append("No captain assigned - will be set during captain creation")
+	if not bool(crew.get("has_captain", false)):
+		(result.warnings as Array).append("No captain assigned - will be set during captain creation")
 		result.has_warnings = true
 	
 	# Check backend integration (warning only)
-	if not crew.get("backend_generated", false):
-		result.warnings.append("Crew not generated via backend system (using fallback)")
+	if not bool(crew.get("backend_generated", false)):
+		(result.warnings as Array).append("Crew not generated via backend system (using fallback)")
 		result.has_warnings = true
 	
 	return result
 
 func _validate_captain_with_warnings() -> Dictionary:
 	"""Enhanced captain validation with warnings support"""
-	var result = {
+	var result: Dictionary = {
 		"valid": true,
 		"blocks_progression": false,
 		"has_warnings": false,
@@ -513,38 +512,38 @@ func _validate_captain_with_warnings() -> Dictionary:
 		"warnings": []
 	}
 	
-	var captain = campaign_data.captain
+	var captain: Dictionary = campaign_data.captain as Dictionary
 	
 	# Allow initial empty state
 	if captain.is_empty():
-		result.warnings.append("Captain not created yet - will be handled in captain panel")
+		(result.warnings as Array).append("Captain not created yet - will be handled in captain panel")
 		result.has_warnings = true
 		return result
 	
 	# Warnings only - allow incomplete captains
-	if not captain.has("character_name") or captain.character_name.is_empty():
-		result.warnings.append("Captain name not set - will use default")
+	if not captain.has("character_name") or str(captain.character_name).is_empty():
+		(result.warnings as Array).append("Captain name not set - will use default")
 		result.has_warnings = true
 	
-	if not captain.has("combat") or captain.combat < 1:
-		result.warnings.append("Captain combat stats need setting")
+	if not captain.has("combat") or int(captain.combat) < 1:
+		(result.warnings as Array).append("Captain combat stats need setting")
 		result.has_warnings = true
 	
-	if not captain.has("toughness") or captain.toughness < 1:
-		result.warnings.append("Captain toughness stats need setting")
+	if not captain.has("toughness") or int(captain.toughness) < 1:
+		(result.warnings as Array).append("Captain toughness stats need setting")
 		result.has_warnings = true
 	
 	# Customization completeness warning
-	var completeness = captain.get("customization_completeness", 1.0)
+	var completeness: float = float(captain.get("customization_completeness", 1.0))
 	if completeness < 0.8:
-		result.warnings.append("Captain customization could be more complete (%.0f%%)" % (completeness * 100))
+		(result.warnings as Array).append("Captain customization could be more complete (%.0f%%)" % (completeness * 100))
 		result.has_warnings = true
 	
 	return result
 
 func _validate_ship_with_warnings() -> Dictionary:
 	"""Enhanced ship validation with warnings support"""
-	var result = {
+	var result: Dictionary = {
 		"valid": true,
 		"blocks_progression": false,
 		"has_warnings": false,
@@ -552,32 +551,32 @@ func _validate_ship_with_warnings() -> Dictionary:
 		"warnings": []
 	}
 	
-	var ship = campaign_data.ship
+	var ship: Dictionary = campaign_data.ship as Dictionary
 	
 	# Allow empty ship data initially
 	if ship.is_empty():
-		result.warnings.append("Ship not assigned yet - will use default")
+		(result.warnings as Array).append("Ship not assigned yet - will use default")
 		result.has_warnings = true
 		return result
 	
 	# Warnings only
-	if not ship.has("name") or ship.name.is_empty():
-		result.warnings.append("Ship name not set - will use default")
+	if not ship.has("name") or str(ship.name).is_empty():
+		(result.warnings as Array).append("Ship name not set - will use default")
 		result.has_warnings = true
 	
-	if not ship.has("type") or ship.type.is_empty():
-		result.warnings.append("Ship type not specified - will use default")
+	if not ship.has("type") or str(ship.type).is_empty():
+		(result.warnings as Array).append("Ship type not specified - will use default")
 		result.has_warnings = true
 	
-	if not ship.get("is_configured", false):
-		result.warnings.append("Ship configuration incomplete - using default setup")
+	if not bool(ship.get("is_configured", false)):
+		(result.warnings as Array).append("Ship configuration incomplete - using default setup")
 		result.has_warnings = true
 	
 	return result
 
 func _validate_equipment_with_warnings() -> Dictionary:
 	"""Enhanced equipment validation with warnings support"""
-	var result = {
+	var result: Dictionary = {
 		"valid": true,
 		"blocks_progression": false,
 		"has_warnings": false,
@@ -585,33 +584,33 @@ func _validate_equipment_with_warnings() -> Dictionary:
 		"warnings": []
 	}
 	
-	var equipment = campaign_data.equipment
+	var equipment: Dictionary = campaign_data.equipment as Dictionary
 	
 	# Allow empty equipment initially
 	if equipment.is_empty():
-		result.warnings.append("Equipment not generated yet - will use default starting equipment")
+		(result.warnings as Array).append("Equipment not generated yet - will use default starting equipment")
 		result.has_warnings = true
 		return result
 	
-	# Warnings only - equipment generation is flexible
-	if not equipment.has("equipment") or equipment.equipment.is_empty():
-		result.warnings.append("Starting equipment list empty - will generate defaults")
+	# Warnings only - equipment generation is flexible (FIX: use Dictionary access)
+	if not equipment.has("equipment") or (equipment["equipment"] as Array).is_empty():
+		(result.warnings as Array).append("Starting equipment list empty - will generate defaults")
 		result.has_warnings = true
 	
-	if not equipment.get("is_complete", false):
-		result.warnings.append("Equipment setup marked as incomplete")
+	if not bool(equipment.get("is_complete", false)):
+		(result.warnings as Array).append("Equipment setup marked as incomplete")
 		result.has_warnings = true
 	
 	# Backend integration warning
-	if not equipment.get("backend_generated", false):
-		result.warnings.append("Equipment not generated via backend system (using fallback)")
+	if not bool(equipment.get("backend_generated", false)):
+		(result.warnings as Array).append("Equipment not generated via backend system (using fallback)")
 		result.has_warnings = true
 	
 	return result
 
 func _validate_world_with_warnings() -> Dictionary:
 	"""Enhanced world validation with warnings support"""
-	var result = {
+	var result: Dictionary = {
 		"valid": true,
 		"blocks_progression": false,
 		"has_warnings": false,
@@ -619,18 +618,18 @@ func _validate_world_with_warnings() -> Dictionary:
 		"warnings": []
 	}
 	
-	var world = campaign_data.world
+	var world: Dictionary = campaign_data.world as Dictionary
 	
 	# World generation is optional in early phases
 	if world.is_empty():
-		result.warnings.append("World data not generated yet - will use defaults")
+		(result.warnings as Array).append("World data not generated yet - will use defaults")
 		result.has_warnings = true
 	
 	return result
 
 func _validate_final_with_warnings() -> Dictionary:
 	"""Enhanced final validation with warnings support"""
-	var result = {
+	var result: Dictionary = {
 		"valid": true,
 		"blocks_progression": false,
 		"has_warnings": false,
@@ -639,14 +638,14 @@ func _validate_final_with_warnings() -> Dictionary:
 	}
 	
 	# Check all phases for blocking errors (only final review requires strict validation)
-	var phases_to_check = [Phase.CONFIG, Phase.CREW_SETUP, Phase.CAPTAIN_CREATION, Phase.SHIP_ASSIGNMENT, Phase.EQUIPMENT_GENERATION, Phase.WORLD_GENERATION]
+	var phases_to_check: Array[Phase] = [Phase.CONFIG, Phase.CREW_SETUP, Phase.CAPTAIN_CREATION, Phase.SHIP_ASSIGNMENT, Phase.EQUIPMENT_GENERATION, Phase.WORLD_GENERATION]
 	
-	for phase in phases_to_check:
-		var phase_result = _validate_phase_with_warnings(phase)
+	for phase: Phase in phases_to_check:
+		var phase_result: Dictionary = _validate_phase_with_warnings(phase)
 		
 		# For final review, warnings become more important but still don't block
 		if phase_result.has_warnings:
-			result.warnings.append_array(phase_result.warnings)
+			(result.warnings as Array).append_array(phase_result.warnings as Array)
 			result.has_warnings = true
 	
 	return result
@@ -658,16 +657,20 @@ func complete_campaign_creation() -> Dictionary:
 		return {}
 
 	# Generate final campaign data with metadata
-	var final_data = campaign_data.duplicate()
-	final_data.metadata.completed_at = Time.get_datetime_string_from_system()
-	final_data.metadata.total_crew_size = final_data.crew.get("size", 0)
-	final_data.metadata.starting_credits = final_data.equipment.get("starting_credits", 1000)
+	var final_data: Dictionary = campaign_data.duplicate()
+	var final_metadata: Dictionary = final_data.metadata as Dictionary
+	var final_crew: Dictionary = final_data.crew as Dictionary
+	var final_equipment: Dictionary = final_data.equipment as Dictionary
+	
+	final_metadata.completed_at = Time.get_datetime_string_from_system()
+	final_metadata.total_crew_size = final_crew.get("size", 0)
+	final_metadata.starting_credits = final_equipment.get("starting_credits", 1000)
 	
 	# Enhanced character data serialization
-	final_data.crew = _serialize_crew_data(final_data.crew)
+	final_data.crew = _serialize_crew_data(final_crew)
 	
 	# Add campaign statistics
-	final_data.metadata.crew_statistics = _calculate_crew_statistics(final_data.crew)
+	final_metadata.crew_statistics = _calculate_crew_statistics(final_data.crew as Dictionary)
 
 	creation_completed.emit(final_data)
 	return final_data
@@ -676,17 +679,18 @@ func complete_campaign_creation() -> Dictionary:
 
 func _serialize_crew_data(crew_data: Dictionary) -> Dictionary:
 	"""Serialize crew data with enhanced character information"""
-	var serialized_crew = crew_data.duplicate()
+	var serialized_crew: Dictionary = crew_data.duplicate()
 	
 	if crew_data.has("members"):
-		var serialized_members = []
-		for member in crew_data.members:
+		var serialized_members: Array = []
+		for member: Variant in crew_data.members as Array:
 			# Check if member is an Object (Character) or raw Dictionary
 			if member is Object:
-				if member.has_method("serialize_enhanced"):
-					serialized_members.append(member.serialize_enhanced())
-				elif member.has_method("serialize"):
-					serialized_members.append(member.serialize())
+				var member_obj: Object = member as Object
+				if member_obj.has_method("serialize_enhanced"):
+					serialized_members.append(member_obj.call("serialize_enhanced"))
+				elif member_obj.has_method("serialize"):
+					serialized_members.append(member_obj.call("serialize"))
 				else:
 					serialized_members.append(_fallback_character_serialization(member))
 			else:
@@ -697,25 +701,32 @@ func _serialize_crew_data(crew_data: Dictionary) -> Dictionary:
 	
 	return serialized_crew
 
-func _fallback_character_serialization(character) -> Dictionary:
+func _fallback_character_serialization(character: Variant) -> Dictionary:
 	"""Fallback character serialization for compatibility"""
+	var char_dict: Dictionary = {}
+	if character is Dictionary:
+		char_dict = character as Dictionary
+	elif character is Object:
+		# Convert object properties to dictionary
+		char_dict = {}
+	
 	return {
-		"character_name": character.get("character_name", ""),
-		"background": character.get("background", 0),
-		"motivation": character.get("motivation", 0),
-		"combat": character.get("combat", 0),
-		"reaction": character.get("reaction", 0),
-		"toughness": character.get("toughness", 3),
-		"savvy": character.get("savvy", 0),
-		"speed": character.get("speed", 4),
-		"max_health": character.get("max_health", 5),
-		"health": character.get("health", 5),
-		"is_captain": character.get("is_captain", false),
-		"patrons": character.get("patrons", []),
-		"rivals": character.get("rivals", []),
-		"personal_equipment": character.get("personal_equipment", {}),
-		"traits": character.get("traits", []),
-		"credits_earned": character.get("credits_earned", 0)
+		"character_name": char_dict.get("character_name", ""),
+		"background": char_dict.get("background", 0),
+		"motivation": char_dict.get("motivation", 0),
+		"combat": char_dict.get("combat", 0),
+		"reaction": char_dict.get("reaction", 0),
+		"toughness": char_dict.get("toughness", 3),
+		"savvy": char_dict.get("savvy", 0),
+		"speed": char_dict.get("speed", 4),
+		"max_health": char_dict.get("max_health", 5),
+		"health": char_dict.get("health", 5),
+		"is_captain": char_dict.get("is_captain", false),
+		"patrons": char_dict.get("patrons", []),
+		"rivals": char_dict.get("rivals", []),
+		"personal_equipment": char_dict.get("personal_equipment", {}),
+		"traits": char_dict.get("traits", []),
+		"credits_earned": char_dict.get("credits_earned", 0)
 	}
 
 func _calculate_crew_statistics(crew_data: Dictionary) -> Dictionary:
@@ -889,34 +900,34 @@ func _validate_imported_data(save_data: Dictionary) -> FiveParsecsValidationResu
 
 func update_campaign_config_secure(config_data: Dictionary) -> bool:
 	"""Update campaign configuration with security validation"""
-	var validation_errors = []
+	var local_validation_errors: Array[String] = []
 	
 	# Validate campaign name
 	if config_data.has("campaign_name"):
-		var name_validation = SecurityValidator.validate_string_input(config_data.campaign_name, 50)
+		var name_validation: FiveParsecsValidationResult = SecurityValidator.validate_string_input(str(config_data.campaign_name), 50)
 		if not name_validation.valid:
-			validation_errors.append("Campaign name: " + name_validation.error)
+			local_validation_errors.append("Campaign name: " + name_validation.error)
 		else:
 			config_data.campaign_name = name_validation.sanitized_value
 	
 	# Validate difficulty setting
 	if config_data.has("difficulty"):
-		var diff_validation = SecurityValidator.validate_numeric_input(
+		var diff_validation: FiveParsecsValidationResult = SecurityValidator.validate_numeric_input(
 			config_data.difficulty, 1, 5
 		)
 		if not diff_validation.valid:
-			validation_errors.append("Difficulty: " + diff_validation.error)
+			local_validation_errors.append("Difficulty: " + diff_validation.error)
 	
 	# Validate crew size
 	if config_data.has("crew_size"):
-		var crew_validation = SecurityValidator.validate_numeric_input(
+		var crew_validation: FiveParsecsValidationResult = SecurityValidator.validate_numeric_input(
 			config_data.crew_size, 1, 8
 		)
 		if not crew_validation.valid:
-			validation_errors.append("Crew size: " + crew_validation.error)
+			local_validation_errors.append("Crew size: " + crew_validation.error)
 	
-	if validation_errors.size() > 0:
-		print("CampaignCreationStateManager: CONFIG_VALIDATION_FAILED - Errors: ", validation_errors)
+	if local_validation_errors.size() > 0:
+		print("CampaignCreationStateManager: CONFIG_VALIDATION_FAILED - Errors: ", local_validation_errors)
 		return false
 	
 	campaign_data.config.merge(config_data)
@@ -925,48 +936,48 @@ func update_campaign_config_secure(config_data: Dictionary) -> bool:
 
 func update_character_secure(character_data: Dictionary, character_type: String = "crew") -> bool:
 	"""Update character data with security validation"""
-	var validation_errors = []
+	var local_validation_errors: Array[String] = []
 	
 	# Validate character name
 	if character_data.has("name"):
-		var name_validation = SecurityValidator.validate_string_input(character_data.name, 50)
+		var name_validation: FiveParsecsValidationResult = SecurityValidator.validate_string_input(str(character_data.name), 50)
 		if not name_validation.valid:
-			validation_errors.append("Character name: " + name_validation.error)
+			local_validation_errors.append("Character name: " + name_validation.error)
 		else:
 			character_data.name = name_validation.sanitized_value
 	
 	# Validate background text
 	if character_data.has("background_text"):
-		var text_validation = SecurityValidator.validate_string_input(
-			character_data.background_text, 500
+		var text_validation: FiveParsecsValidationResult = SecurityValidator.validate_string_input(
+			str(character_data.background_text), 500
 		)
 		if not text_validation.valid:
-			validation_errors.append("Background: " + text_validation.error)
+			local_validation_errors.append("Background: " + text_validation.error)
 		else:
 			character_data.background_text = text_validation.sanitized_value
 	
 	# Validate numeric attributes
-	var numeric_attrs = ["combat", "reaction", "toughness", "savvy", "tech", "move"]
-	for attr in numeric_attrs:
+	var numeric_attrs: Array[String] = ["combat", "reaction", "toughness", "savvy", "tech", "move"]
+	for attr: String in numeric_attrs:
 		if character_data.has(attr):
-			var attr_validation = SecurityValidator.validate_numeric_input(
+			var attr_validation: FiveParsecsValidationResult = SecurityValidator.validate_numeric_input(
 				character_data[attr], 1, 6
 			)
 			if not attr_validation.valid:
-				validation_errors.append(attr.capitalize() + ": " + attr_validation.error)
+				local_validation_errors.append(attr.capitalize() + ": " + attr_validation.error)
 	
-	if validation_errors.size() > 0:
-		print("CampaignCreationStateManager: CHARACTER_VALIDATION_FAILED - Character: ", character_data.get("name", "Unknown"), ", Errors: ", validation_errors)
+	if local_validation_errors.size() > 0:
+		print("CampaignCreationStateManager: CHARACTER_VALIDATION_FAILED - Character: ", character_data.get("name", "Unknown"), ", Errors: ", local_validation_errors)
 		return false
 	
 	# Update appropriate data structure
 	match character_type:
 		"captain":
-			campaign_data.captain.merge(character_data)
+			(campaign_data.captain as Dictionary).merge(character_data)
 		"crew":
-			if not campaign_data.crew.has("members"):
+			if not (campaign_data.crew as Dictionary).has("members"):
 				campaign_data.crew.members = []
-			campaign_data.crew.members.append(character_data)
+			(campaign_data.crew.members as Array).append(character_data)
 	
 	print("CampaignCreationStateManager: CHARACTER_UPDATED - Character validated: ", character_data.get("name", "Unknown"))
 	return true
@@ -1097,7 +1108,7 @@ func confirm_captain_creation(captain_data: Dictionary) -> Dictionary:
 # PHASE 1A: Transaction-based atomic operations
 func create_captain_confirmation_transaction(captain_data: Dictionary) -> String:
 	"""Create a transaction for atomic captain confirmation with rollback capability"""
-	var transaction = CampaignCreationTransaction.new()
+	var transaction := FPCMCampaignCreationTransaction.new()
 	var transaction_id = transaction.transaction_id
 	
 	# Store transaction

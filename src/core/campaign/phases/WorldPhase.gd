@@ -173,9 +173,24 @@ func _get_ship_debt_interest() -> int:
 	return 0
 
 func _handle_unpaid_upkeep(shortage: int) -> void:
-	"""Handle consequences of unpaid upkeep"""
+	"""Handle consequences of unpaid upkeep - go into debt (Five Parsecs Core Rules)"""
 	print("WorldPhase: Cannot pay upkeep, shortage: %d credits" % shortage)
-	# In the full rules, this could lead to crew dissatisfaction, equipment breakdown, etc.
+	
+	# Crew goes into debt for unpaid upkeep
+	if game_state_manager and game_state_manager.has_method("add_debt"):
+		game_state_manager.add_debt(shortage)
+		print("WorldPhase: ⚠️ Incurred %d credits of debt due to insufficient upkeep funds" % shortage)
+		
+		# Check if ship is now seized
+		if game_state_manager.has_method("is_ship_seized") and game_state_manager.is_ship_seized():
+			print("WorldPhase: ❌ CRITICAL - Ship has been seized due to excessive debt!")
+	
+	# Spend all remaining credits toward upkeep
+	if game_state_manager and game_state_manager.has_method("get_credits"):
+		var remaining_credits: int = game_state_manager.get_credits()
+		if remaining_credits > 0 and game_state_manager.has_method("set_credits"):
+			game_state_manager.set_credits(0)
+			print("WorldPhase: Spent remaining %d credits toward upkeep" % remaining_credits)
 
 func _handle_ship_repairs() -> void:
 	"""Handle ship hull repairs"""
@@ -217,9 +232,22 @@ func _auto_assign_crew_tasks() -> void:
 		GlobalEnums.CrewTaskType.REPAIR_KIT
 	] if GlobalEnums else [0, 1, 2, 3, 4]
 
-	for i: int in range((safe_call_method(crew_members, "size") as int)):
+	# Safe Variant handling - validate crew size before loop
+	var crew_size_result: Variant = safe_call_method(crew_members, "size")
+	var crew_size: int = crew_size_result if crew_size_result is int else 0
+
+	if crew_size == 0:
+		return
+
+	var tasks_count_result: Variant = safe_call_method(available_tasks, "size")
+	var tasks_count: int = tasks_count_result if tasks_count_result is int else 0
+
+	if tasks_count == 0:
+		return
+
+	for i: int in range(crew_size):
 		var crew_member = crew_members[i]
-		var task = available_tasks[i % (safe_call_method(available_tasks, "size") as int)]
+		var task = available_tasks[i % tasks_count]
 		var crew_id = crew_member.get("id", "crew_" + str(i)) if crew_member is Dictionary else "crew_" + str(i)
 		crew_task_assignments[crew_id] = task
 
@@ -474,7 +502,23 @@ func _resolve_explore_task(crew_id: String) -> Dictionary:
 					game_state_manager.add_credits(credits_gained)
 			"equipment":
 				var equipment_type = exploration_result.get("equipment_type", "generic")
-				items_found.append({"type": equipment_type, "name": "Found Equipment"})
+				var equipment_item = {
+					"id": "explore_" + str(Time.get_ticks_msec()) + "_" + str(randi()),
+					"type": equipment_type,
+					"name": exploration_result.get("equipment_name", "Found Equipment"),
+					"location": "ship_stash",
+					"quality": exploration_result.get("quality", "standard")
+				}
+				items_found.append(equipment_item)
+
+				# Add to ship stash via EquipmentManager
+				var equipment_manager = get_node_or_null("/root/EquipmentManager")
+				if equipment_manager and equipment_manager.has_method("add_equipment"):
+					if equipment_manager.has_method("can_add_to_ship_stash") and equipment_manager.can_add_to_ship_stash():
+						equipment_manager.add_equipment(equipment_item)
+						print("WorldPhase: Added exploration find '%s' to ship stash" % equipment_item.get("name"))
+					else:
+						push_warning("WorldPhase: Ship stash full - exploration equipment lost")
 			"advancement":
 				story_points = exploration_result.get("story_points", 0)
 				if story_points > 0 and game_state_manager and game_state_manager.has_method("add_story_points"):
@@ -741,6 +785,56 @@ func force_battle_choice(choice: Dictionary) -> void:
 func is_world_phase_active() -> bool:
 	"""Check if world phase is currently active"""
 	return current_substep != GlobalEnums.WorldSubPhase.NONE if GlobalEnums else false
+
+func get_completion_data() -> Dictionary:
+	"""Get World Phase completion data for Battle Phase transition
+	
+	Returns Dictionary with:
+	- selected_mission: Dictionary - The mission/job selected for battle
+	- job_offers: Array[Dictionary] - All available job offers
+	- crew_assignments: Array - Crew members assigned to battle
+	- equipment_loadout: Dictionary - Equipment assignments
+	- rumors_resolved: int - Number of rumors resolved
+	- crew_task_results: Dictionary - Results from crew tasks
+	"""
+	var completion_data: Dictionary = {}
+	
+	# Mission data - get from game state or available offers
+	if game_state_manager and game_state_manager.has_method("get_current_mission"):
+		completion_data["selected_mission"] = game_state_manager.get_current_mission()
+	else:
+		# Fallback: use first available job offer
+		completion_data["selected_mission"] = available_job_offers[0] if available_job_offers.size() > 0 else {}
+	
+	# Job offers
+	completion_data["job_offers"] = available_job_offers.duplicate()
+	
+	# Crew assignments - get battle-ready crew from game state
+	var crew_assignments: Array = []
+	if game_state_manager and game_state_manager.has_method("get_crew"):
+		var crew_list = game_state_manager.get_crew()
+		if crew_list is Array:
+			# Filter for active, non-sick crew members
+			for crew_member in crew_list:
+				if crew_member is Dictionary:
+					var is_sick: bool = crew_member.get("is_sick", false)
+					var is_active: bool = crew_member.get("is_active", true)
+					if is_active and not is_sick:
+						crew_assignments.append(crew_member)
+	completion_data["crew_assignments"] = crew_assignments
+	
+	# Equipment loadout
+	completion_data["equipment_loadout"] = equipment_loadout.duplicate()
+	
+	# Rumors resolved
+	completion_data["rumors_resolved"] = current_rumors
+	
+	# Crew task assignments and results
+	completion_data["crew_task_results"] = crew_task_assignments.duplicate()
+	
+	print("WorldPhase: Prepared completion data - mission: ", completion_data.get("selected_mission", {}).get("name", "Unknown"), ", crew: ", crew_assignments.size(), " members")
+	
+	return completion_data
 
 ## Feature 5 Enhanced Helper Functions
 

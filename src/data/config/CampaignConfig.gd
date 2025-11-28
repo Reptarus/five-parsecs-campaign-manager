@@ -9,12 +9,19 @@ class_name CampaignConfig
 # Import validation result class
 const ValidationResult = preload("res://src/core/validation/ValidationResult.gd")
 
+## Schema version for save file migration (CRITICAL for data integrity)
+@export var schema_version: int = 1
+
 # Core configuration properties with explicit typing
 @export var campaign_name: String = ""
 @export var difficulty_level: int = 1
 @export var starting_credits: int = 1000
 @export var max_crew_size: int = 6
 @export var campaign_length: int = 100  # number of turns
+
+# Victory condition support (multi-select - win when ANY is achieved)
+@export var victory_conditions: Array[int] = []  # GlobalEnums.FiveParsecsCampaignVictoryType values
+@export var victory_targets: Dictionary = {}  # Custom targets: {victory_type: target_value}
 
 # Advanced configuration options
 @export var enable_permadeath: bool = true
@@ -100,6 +107,8 @@ func to_dictionary() -> Dictionary:
 		"starting_credits": starting_credits,
 		"max_crew_size": max_crew_size,
 		"campaign_length": campaign_length,
+		"victory_conditions": victory_conditions,
+		"victory_targets": victory_targets,
 		"enable_permadeath": enable_permadeath,
 		"story_track_enabled": story_track_enabled,
 		"battle_difficulty_modifier": battle_difficulty_modifier,
@@ -112,12 +121,22 @@ func to_dictionary() -> Dictionary:
 ## Deserialization from saved data
 static func from_dictionary(data: Dictionary) -> CampaignConfig:
 	var config = CampaignConfig.new()
-	
+
 	config.campaign_name = data.get("campaign_name", "")
 	config.difficulty_level = data.get("difficulty_level", 1)
 	config.starting_credits = data.get("starting_credits", 1000)
 	config.max_crew_size = data.get("max_crew_size", 6)
 	config.campaign_length = data.get("campaign_length", 100)
+
+	# Victory conditions with type safety
+	var vc = data.get("victory_conditions", [])
+	if vc is Array:
+		config.victory_conditions.clear()
+		for v in vc:
+			if v is int:
+				config.victory_conditions.append(v)
+	config.victory_targets = data.get("victory_targets", {})
+
 	config.enable_permadeath = data.get("enable_permadeath", true)
 	config.story_track_enabled = data.get("story_track_enabled", true)
 	config.battle_difficulty_modifier = data.get("battle_difficulty_modifier", 1.0)
@@ -125,5 +144,5 @@ static func from_dictionary(data: Dictionary) -> CampaignConfig:
 	config.creation_date = data.get("creation_date", "")
 	config.last_modified = data.get("last_modified", "")
 	config.version = data.get("version", "1.0.0")
-	
+
 	return config

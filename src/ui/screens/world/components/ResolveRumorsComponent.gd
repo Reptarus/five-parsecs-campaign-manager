@@ -272,12 +272,43 @@ func add_rumor(rumor: Variant) -> void:
 	if has_active_quest:
 		# During quest, rumors become quest rumors
 		quest_rumors.append(rumor)
-		print("ResolveRumorsComponent: Added quest rumor")
+		print("ResolveRumorsComponent: Added quest rumor (total: %d)" % quest_rumors.size())
 	else:
 		rumors.append(rumor)
 		_populate_rumors_list()
 		_update_ui_display()
 		print("ResolveRumorsComponent: Added rumor")
+
+## Consume quest rumors when advancing quest progress (Five Parsecs p.85)
+func consume_quest_rumor() -> bool:
+	"""Consume one quest rumor to advance quest progress. Returns true if rumor was consumed."""
+	if not has_active_quest:
+		push_warning("ResolveRumorsComponent: Cannot consume quest rumor - no active quest")
+		return false
+
+	if quest_rumors.is_empty():
+		push_warning("ResolveRumorsComponent: No quest rumors to consume")
+		return false
+
+	# Remove the first quest rumor (FIFO)
+	var consumed_rumor = quest_rumors.pop_front()
+	print("ResolveRumorsComponent: Consumed quest rumor (remaining: %d)" % quest_rumors.size())
+
+	# Save to campaign data
+	var game_state = get_node_or_null("/root/GameState")
+	if game_state and game_state.current_campaign:
+		var campaign = game_state.current_campaign
+		if campaign and "active_quest" in campaign and campaign.active_quest:
+			# Update quest_rumors in saved quest
+			campaign.active_quest["quest_rumors"] = quest_rumors.duplicate()
+			print("ResolveRumorsComponent: Updated quest rumors in campaign save")
+
+	return true
+
+## Get count of quest rumors available for quest progression
+func get_quest_rumor_count() -> int:
+	"""Get number of quest rumors available to advance quest"""
+	return quest_rumors.size()
 
 func reset_rumors_phase() -> void:
 	"""Reset for new turn"""

@@ -6,6 +6,7 @@ class_name CoreGameState
 # Safe dependency loading - loaded at compile time for type safety
 # GlobalEnums available as autoload singleton
 const ErrorLogger = preload("res://src/core/systems/ErrorLogger.gd")
+const SaveFileMigration = preload("res://src/core/state/SaveFileMigration.gd")
 
 # Safe dependency loading - compile-time preload for type safety
 const FiveParsecsCampaign = preload("res://src/core/campaign/Campaign.gd")
@@ -30,6 +31,7 @@ signal autosave_triggered
 
 ## Backup and autosave configurations
 const MAX_BACKUP_FILES: int = 5
+const MAX_ROTATION_BACKUPS: int = 3  # For numbered rotation system
 const AUTOSAVE_FILE_NAME: String = "autosave"
 const SAVE_FILE_EXTENSION: String = "json"
 const BACKUP_FILE_EXTENSION: String = "bak"
@@ -295,6 +297,20 @@ func save_game(save_name: String, create_backup: bool = true) -> bool:
 		if not backup_success:
 			push_warning("Failed to create _backup before saving")
 
+	# Validate equipment integrity before save (defensive programming)
+	var equipment_manager = get_node_or_null("/root/EquipmentManager")
+	if equipment_manager and equipment_manager.has_method("validate_equipment_integrity"):
+		var integrity_report = equipment_manager.validate_equipment_integrity()
+		if not integrity_report.valid:
+			push_warning("Equipment integrity validation found issues before save:")
+			if integrity_report.duplicate_ids.size() > 0:
+				push_warning("  - Duplicate IDs: %s" % str(integrity_report.duplicate_ids))
+			if integrity_report.orphaned_references.size() > 0:
+				push_warning("  - Orphaned references: %s" % str(integrity_report.orphaned_references))
+			if integrity_report.missing_required_fields.size() > 0:
+				push_warning("  - Missing fields: %s" % str(integrity_report.missing_required_fields))
+			# Don't fail the save, but log issues for debugging
+	
 	# Gather save data
 	var save_data := _gather_save_data()
 
@@ -361,7 +377,8 @@ func _handle_save_failure(error_message: String, file_path: String) -> void:
 		{"file_path": file_path, "retry_count": _save_retry_count}
 	)
 
-## Create a backup of a save file with rotation
+## Create a backup of a save file with 3-save rotation
+## Before each save, rotates backups: backup_3 deleted, backup_2→3, backup_1→2, current→1
 ## @param file_path: Path to the file to back up
 
 ## @return: Whether the backup was successful
@@ -369,68 +386,67 @@ func _create_backup(file_path: String) -> bool:
 	if not FileAccess.file_exists(file_path):
 		return false
 
-	var timestamp := Time.get_datetime_dict_from_system()
 	var save_dir := "user://saves/backups/"
 
 	# Ensure backup directory exists
 	if not DirAccess.dir_exists_absolute(save_dir):
 		DirAccess.make_dir_recursive_absolute(save_dir)
 
-	# Extract the filename without _path
+	# Extract the base filename (e.g., "current_campaign" from "current_campaign.json")
 	var filename := file_path.get_file()
-	var backup_name := "%s.%04d-%02d-%02d-%02d-%02d-%02d.%s" % [
-		save_dir + filename.get_basename(),
-		timestamp.year, timestamp.month, timestamp.day,
-		timestamp.hour, timestamp.minute, timestamp.second,
-		BACKUP_FILE_EXTENSION
-	]
-
-	var dir := DirAccess.open("user://saves/")
-	if dir:
-		var error := dir.copy(file_path, backup_name)
-		var success := error == OK
-
+	var base_name := filename.get_basename()
+	
+	# Perform 3-save rotation
+	var backup_dir := DirAccess.open(save_dir)
+	if not backup_dir:
+		push_error("Failed to open backup directory for rotation")
+		return false
+	
+	# Step 1: Delete backup_3 if it exists
+	var backup_3_path := save_dir + base_name + "_backup_3." + SAVE_FILE_EXTENSION
+	if FileAccess.file_exists(backup_3_path):
+		var remove_error := backup_dir.remove(base_name + "_backup_3." + SAVE_FILE_EXTENSION)
+		if remove_error != OK:
+			push_warning("Failed to delete backup_3: " + str(remove_error))
+	
+	# Step 2: Rename backup_2 → backup_3
+	var backup_2_path := save_dir + base_name + "_backup_2." + SAVE_FILE_EXTENSION
+	if FileAccess.file_exists(backup_2_path):
+		var rename_error := backup_dir.rename(
+			base_name + "_backup_2." + SAVE_FILE_EXTENSION,
+			base_name + "_backup_3." + SAVE_FILE_EXTENSION
+		)
+		if rename_error != OK:
+			push_warning("Failed to rename backup_2 to backup_3: " + str(rename_error))
+	
+	# Step 3: Rename backup_1 → backup_2
+	var backup_1_path := save_dir + base_name + "_backup_1." + SAVE_FILE_EXTENSION
+	if FileAccess.file_exists(backup_1_path):
+		var rename_error := backup_dir.rename(
+			base_name + "_backup_1." + SAVE_FILE_EXTENSION,
+			base_name + "_backup_2." + SAVE_FILE_EXTENSION
+		)
+		if rename_error != OK:
+			push_warning("Failed to rename backup_1 to backup_2: " + str(rename_error))
+	
+	# Step 4: Copy current save → backup_1
+	var new_backup_1_path := save_dir + base_name + "_backup_1." + SAVE_FILE_EXTENSION
+	var source_dir := DirAccess.open("user://saves/")
+	if source_dir:
+		var copy_error := source_dir.copy(file_path, new_backup_1_path)
+		var success := copy_error == OK
+		
 		if success:
-			# Manage backup rotation - limit the number of backups
-			_rotate_backups(filename.get_basename())
-
-		_emit_backup_created(success, backup_name)
+			_emit_backup_created(success, new_backup_1_path)
+		else:
+			push_error("Failed to create backup_1: " + str(copy_error))
+		
 		return success
-
+	
+	push_error("Failed to open saves directory for backup copy")
 	return false
 
-## Rotate backups to keep only MAX_BACKUP_FILES
-## @param base_name: Base name of the save file
-func _rotate_backups(base_name: String) -> void:
-	var backups_dir := "user://saves/backups/"
-	var dir := DirAccess.open(backups_dir)
-	if not dir:
-		return
-
-	var backups := []
-
-	# List all files in the backup directory
-	dir.list_dir_begin()
-	var file_name := dir.get_next()
-	while file_name != "":
-		if not dir.current_is_dir() and file_name.begins_with(base_name) and file_name.ends_with(BACKUP_FILE_EXTENSION):
-			backups.append({
-				"_name": file_name,
-				"path": backups_dir + file_name,
-				"modified": FileAccess.get_modified_time(backups_dir + file_name)
-			})
-		file_name = dir.get_next()
-	dir.list_dir_end()
-
-	# Sort backups by modification time (newest first)
-	backups.sort_custom(func(a, b): return a.modified > b.modified)
-
-	# Remove oldest backups beyond the limit
-	if backups.size() > MAX_BACKUP_FILES:
-		var dir_remove := DirAccess.open(backups_dir)
-		if dir_remove:
-			for i: int in range(MAX_BACKUP_FILES, backups.size()):
-				dir_remove.remove(backups[i]._name)
+# NOTE: _rotate_backups method removed - now using 3-save numbered rotation in _create_backup()
 
 ## Replace one file with another
 ## @param source_path: Path to the source file
@@ -633,6 +649,31 @@ func complete_quest(quest_id: String) -> bool:
 			return true
 	return false
 
+func has_active_quest() -> bool:
+	"""Check if crew has an active quest in progress"""
+	return active_quests.size() > 0
+
+func advance_quest(progress: int) -> void:
+	"""Advance quest progress during post-battle phase (Five Parsecs p.68)"""
+	if active_quests.is_empty():
+		return
+	
+	# Find the first quest that can be advanced
+	for quest in active_quests:
+		if quest is Dictionary and quest.has("progress"):
+			var current_progress = quest.get("progress", 0)
+			quest["progress"] = current_progress + progress
+			print("GameState: Advanced quest '%s' progress by %d (now: %d)" % [quest.get("id", "unknown"), progress, quest["progress"]])
+			
+			# Check if quest is complete
+			if quest.has("required_progress") and quest["progress"] >= quest["required_progress"]:
+				print("GameState: Quest '%s' ready for completion!" % quest.get("id", "unknown"))
+			
+			_emit_state_changed()
+			return
+	
+	push_warning("GameState: No advanceable quest found")
+
 # Location Management
 func set_location(location: Dictionary) -> void:
 	current_location = location
@@ -753,7 +794,8 @@ func serialize() -> Dictionary:
 		"enable_permadeath": enable_permadeath,
 		"use_story_track": use_story_track,
 		"auto_save_enabled": auto_save_enabled,
-		"auto_save_frequency": auto_save_frequency
+		"auto_save_frequency": auto_save_frequency,
+		"battle_results": battle_results.duplicate(true) if battle_results else {}
 	}
 
 	if current_location:
@@ -778,21 +820,38 @@ func serialize() -> Dictionary:
 	return data
 
 func deserialize(data: Dictionary) -> void:
-	current_phase = data.get("current_phase", GlobalEnums.FiveParsecsCampaignPhase.NONE)
-	turn_number = data.get("turn_number", 0)
-	story_points = data.get("story_points", 0)
-	reputation = data.get("reputation", 0)
-	resources = data.get("resources", {}).duplicate()
-	active_quests = data.get("active_quests", []).duplicate()
-	completed_quests = data.get("completed_quests", []).duplicate()
-	visited_locations = data.get("visited_locations", []).duplicate()
-	rivals = data.get("rivals", []).duplicate(true)
-	patrons = data.get("patrons", []).duplicate(true)
-	difficulty_level = data.get("difficulty_level", GlobalEnums.DifficultyLevel.STANDARD)
-	enable_permadeath = data.get("enable_permadeath", true)
-	use_story_track = data.get("use_story_track", true)
-	auto_save_enabled = data.get("auto_save_enabled", true)
-	auto_save_frequency = data.get("auto_save_frequency", 15)
+	# Apply save file migration if needed
+	var save_version = data.get("schema_version", 1)
+	var migrated_data = data
+	
+	if SaveFileMigration.needs_migration(save_version):
+		print("SaveFileMigration: Migrating save file from v%d to v%d" % [save_version, SaveFileMigration.CURRENT_SCHEMA_VERSION])
+		migrated_data = SaveFileMigration.migrate_save_data(data, save_version, SaveFileMigration.CURRENT_SCHEMA_VERSION)
+		
+		if migrated_data.has("_migration_errors"):
+			push_error("SaveFileMigration FAILED: %s" % SaveFileMigration.get_migration_status(migrated_data))
+			# Fall back to original data (may cause issues but prevents total data loss)
+			migrated_data = data
+		else:
+			print("SaveFileMigration SUCCESS: %s" % SaveFileMigration.get_migration_status(migrated_data))
+	
+	# Deserialize from migrated data
+	current_phase = migrated_data.get("current_phase", GlobalEnums.FiveParsecsCampaignPhase.NONE)
+	turn_number = migrated_data.get("turn_number", 0)
+	story_points = migrated_data.get("story_points", 0)
+	reputation = migrated_data.get("reputation", 0)
+	resources = migrated_data.get("resources", {}).duplicate()
+	active_quests = migrated_data.get("active_quests", []).duplicate()
+	completed_quests = migrated_data.get("completed_quests", []).duplicate()
+	visited_locations = migrated_data.get("visited_locations", []).duplicate()
+	rivals = migrated_data.get("rivals", []).duplicate(true)
+	patrons = migrated_data.get("patrons", []).duplicate(true)
+	battle_results = migrated_data.get("battle_results", {}).duplicate(true)
+	difficulty_level = migrated_data.get("difficulty_level", GlobalEnums.DifficultyLevel.STANDARD)
+	enable_permadeath = migrated_data.get("enable_permadeath", true)
+	use_story_track = migrated_data.get("use_story_track", true)
+	auto_save_enabled = migrated_data.get("auto_save_enabled", true)
+	auto_save_frequency = migrated_data.get("auto_save_frequency", 15)
 
 	if data.has("current_location"):
 		current_location = _get_safe_dictionary_data(data, "current_location")
@@ -1010,8 +1069,123 @@ func get_crew_members() -> Array:
 func get_rivals() -> Array:
 	return rivals
 
+func get_rival_count() -> int:
+	"""Get number of active rivals following the crew"""
+	if not _current_campaign:
+		return 0
+	return rivals.size()
+
 func get_patrons() -> Array:
 	return patrons
+
+## Quest Rumor Management (Five Parsecs p.67)
+func get_quest_rumors() -> int:
+	"""Return quest_rumors count from campaign state"""
+	if not _current_campaign:
+		return 0
+	# Quest rumors stored in campaign data
+	if _current_campaign.has("quest_rumors"):
+		return _current_campaign.quest_rumors
+	elif _current_campaign.has_method("get") and "quest_rumors" in _current_campaign:
+		return _current_campaign.get("quest_rumors")
+	return 0
+
+func add_quest_rumors(count: int) -> void:
+	"""Add quest rumors (accumulated through exploration)"""
+	if not _current_campaign:
+		return
+	
+	var current_rumors = get_quest_rumors()
+	var new_total = current_rumors + count
+	
+	# Update campaign data
+	if _current_campaign.has("quest_rumors"):
+		_current_campaign.quest_rumors = new_total
+	elif _current_campaign.has_method("set"):
+		_current_campaign.set("quest_rumors", new_total)
+	
+	print("GameState: Added %d quest rumors (total: %d)" % [count, new_total])
+	_emit_state_changed()
+
+## Rival Management (Five Parsecs p.80-82)
+func remove_rival(rival_id: String) -> void:
+	"""Remove a rival from the crew's rivals list (defeated/resolved)"""
+	for i in range(rivals.size()):
+		var rival = rivals[i]
+		if rival is Dictionary and rival.get("id") == rival_id:
+			rivals.remove_at(i)
+			print("GameState: Removed rival '%s'" % rival_id)
+			_emit_state_changed()
+			return
+	
+	push_warning("GameState: Rival '%s' not found" % rival_id)
+
+func add_rival(rival: Dictionary) -> void:
+	"""Add a new rival to track (from quest/patron/event)"""
+	if not rival.has("id"):
+		push_error("GameState: Cannot add rival without ID")
+		return
+	
+	# Check for duplicates
+	for existing_rival in rivals:
+		if existing_rival is Dictionary and existing_rival.get("id") == rival.get("id"):
+			push_warning("GameState: Rival '%s' already exists" % rival.get("id"))
+			return
+	
+	rivals.append(rival)
+	print("GameState: Added rival '%s'" % rival.get("id"))
+	_emit_state_changed()
+
+func can_attack_rival() -> bool:
+	"""Check if crew can attack a rival (requires active rival)"""
+	return rivals.size() > 0
+
+## Patron Contact Management (Five Parsecs p.76-79)
+func add_patron_contact(patron_id: String) -> void:
+	"""Add a patron as a contact (earned through jobs)"""
+	# Check if patron already exists
+	for existing_patron in patrons:
+		if existing_patron is Dictionary and existing_patron.get("id") == patron_id:
+			push_warning("GameState: Patron '%s' already exists as contact" % patron_id)
+			return
+	
+	# Create new patron contact entry
+	var new_patron = {
+		"id": patron_id,
+		"contacted": true,
+		"jobs_completed": 0,
+		"relationship": 0
+	}
+	
+	patrons.append(new_patron)
+	print("GameState: Added patron contact '%s'" % patron_id)
+	_emit_state_changed()
+
+func dismiss_non_persistent_patrons() -> void:
+	"""Remove non-persistent patrons at turn end (Five Parsecs p.79)"""
+	var initial_count = patrons.size()
+	var patrons_to_remove: Array = []
+	
+	# Find all non-persistent patrons
+	for i in range(patrons.size()):
+		var patron = patrons[i]
+		if patron is Dictionary:
+			# Patrons without 'persistent' flag or with persistent=false are dismissed
+			var is_persistent = patron.get("persistent", false)
+			if not is_persistent:
+				patrons_to_remove.append(i)
+	
+	# Remove from end to start to maintain array indices
+	patrons_to_remove.reverse()
+	for index in patrons_to_remove:
+		var patron = patrons[index]
+		patrons.remove_at(index)
+		print("GameState: Dismissed non-persistent patron '%s'" % patron.get("id", "unknown"))
+	
+	var removed_count = initial_count - patrons.size()
+	if removed_count > 0:
+		print("GameState: Dismissed %d non-persistent patron(s)" % removed_count)
+		_emit_state_changed()
 
 func get_active_campaign_data() -> Dictionary:
 	if not _current_campaign:
@@ -1304,5 +1478,7 @@ func get_battle_crew_members() -> Array:
 	return []
 
 func get_campaign_turn() -> int:
-	"""Get current campaign turn number"""
-	return turn_number
+	"""Get the current campaign turn number"""
+	if _current_campaign:
+		return _current_campaign.current_turn
+	return 0

@@ -8,19 +8,29 @@ extends Container
 ## and theme settings. It can switch between horizontal and vertical layouts
 ## and adjust spacing based on the current UI scale.
 
-signal layout_changed(is_compact: bool)
+signal layout_changed(is_compact: bool)  ## Legacy signal (deprecated, use layout_mode_changed)
+signal layout_mode_changed(mode: ResponsiveLayoutMode)  ## Emits when layout mode changes (mobile/tablet/desktop)
 
 enum ResponsiveLayoutMode {
-	AUTO, ## Automatically determine layout based on available width
-	HORIZONTAL, ## Force horizontal layout
-	VERTICAL, ## Force vertical layout
+	AUTO,        ## Automatically determine layout based on breakpoints
+	MOBILE,      ## Force mobile layout (<480px) - single column, 56dp targets
+	TABLET,      ## Force tablet layout (480-768px) - 2-column hybrid, 48dp targets
+	DESKTOP,     ## Force desktop layout (>768px) - multi-column, 48dp targets
+	HORIZONTAL,  ## Legacy: Same as DESKTOP (deprecated, use DESKTOP)
+	VERTICAL,    ## Legacy: Same as MOBILE (deprecated, use MOBILE)
 }
 
-## The minimum width at which to use horizontal layout (in pixels)
+## The minimum width at which to use horizontal layout (in pixels) - DEPRECATED
+## Use responsive_mode = AUTO with breakpoint constants instead
 @export var min_width_for_horizontal: int = 600:
 	set(_value):
 		min_width_for_horizontal = _value
 		queue_sort()
+
+## Breakpoint constants (aligned with BaseCampaignPanel)
+const BREAKPOINT_MOBILE := 480   ## Mobile: <480px - single column, 56dp touch targets
+const BREAKPOINT_TABLET := 768   ## Tablet: 480-768px - 2-column hybrid, 48dp targets
+const BREAKPOINT_DESKTOP := 1024 ## Desktop: >1024px - multi-column, optimal spacing
 
 ## The layout mode to use
 @export var responsive_mode: ResponsiveLayoutMode = ResponsiveLayoutMode.AUTO:
@@ -46,8 +56,11 @@ enum ResponsiveLayoutMode {
 		padding = _value
 		queue_sort()
 
-## Whether the container is currently in compact (vertical) mode
+## Whether the container is currently in compact (vertical) mode - LEGACY
 var is_compact: bool = false
+
+## Current layout mode (mobile/tablet/desktop)
+var current_layout_mode: ResponsiveLayoutMode = ResponsiveLayoutMode.DESKTOP
 
 ## The current UI scale factor
 var _scale_factor: float = 1.0
@@ -81,11 +94,23 @@ func _find_theme_manager() -> void:
 			_theme_manager.theme_changed.connect(_on_theme_changed)
 
 func _sort_children() -> void:
-	# Determine if we should use compact layout
-	var use_compact := _should_use_compact_layout()
+	# Determine current layout mode
+	var new_layout_mode := _determine_responsive_mode()
 
-	# If layout mode changed, emit signal
-	if is_compact != use_compact:
+	# Update legacy is_compact for backward compatibility
+	var use_compact := (new_layout_mode == ResponsiveLayoutMode.MOBILE or new_layout_mode == ResponsiveLayoutMode.VERTICAL)
+
+	# If layout mode changed, emit signals
+	if current_layout_mode != new_layout_mode:
+		current_layout_mode = new_layout_mode
+		layout_mode_changed.emit(new_layout_mode)
+
+		# Also emit legacy signal for backward compatibility
+		if is_compact != use_compact:
+			is_compact = use_compact
+			layout_changed.emit(is_compact)
+	elif is_compact != use_compact:
+		# Mode same but compact state changed (shouldn't happen, but handle it)
 		is_compact = use_compact
 		layout_changed.emit(is_compact)
 
@@ -153,14 +178,33 @@ func _sort_children() -> void:
 			pos.x += child_width + h_spacing
 
 func _should_use_compact_layout() -> bool:
+	"""DEPRECATED: Use _determine_responsive_mode() instead. Returns true for MOBILE/VERTICAL."""
+	var mode := _determine_responsive_mode()
+	return (mode == ResponsiveLayoutMode.MOBILE or mode == ResponsiveLayoutMode.VERTICAL)
+
+func _determine_responsive_mode() -> ResponsiveLayoutMode:
+	"""Determine current layout mode based on viewport width and responsive_mode setting."""
+	# Handle explicit mode settings
 	match responsive_mode:
+		ResponsiveLayoutMode.MOBILE:
+			return ResponsiveLayoutMode.MOBILE
+		ResponsiveLayoutMode.TABLET:
+			return ResponsiveLayoutMode.TABLET
+		ResponsiveLayoutMode.DESKTOP:
+			return ResponsiveLayoutMode.DESKTOP
 		ResponsiveLayoutMode.HORIZONTAL:
-			return false
+			return ResponsiveLayoutMode.DESKTOP  # Legacy: map to desktop
 		ResponsiveLayoutMode.VERTICAL:
-			return true
-		_: # AUTO
-			var scaled_min_width := min_width_for_horizontal * _scale_factor
-			return size.x < scaled_min_width
+			return ResponsiveLayoutMode.MOBILE   # Legacy: map to mobile
+		_: # AUTO mode - detect from width
+			var width := size.x * _scale_factor
+
+			if width < BREAKPOINT_MOBILE:
+				return ResponsiveLayoutMode.MOBILE
+			elif width < BREAKPOINT_TABLET:
+				return ResponsiveLayoutMode.TABLET
+			else:
+				return ResponsiveLayoutMode.DESKTOP
 
 func _update_layout() -> void:
 	queue_sort()

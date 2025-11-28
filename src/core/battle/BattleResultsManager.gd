@@ -1,8 +1,10 @@
 @tool
+class_name FPCM_BattleResultsManager
+extends Node
+
 @warning_ignore("return_value_discarded")
 @warning_ignore("unsafe_method_access")
 @warning_ignore("untyped_declaration")
-extends Node
 
 # GlobalEnums available as autoload singleton
 # Note: CharacterManager is an autoload - access via get_node("/root/CharacterManager")

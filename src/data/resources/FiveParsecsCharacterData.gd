@@ -6,6 +6,9 @@ class_name FiveParsecsCharacterData
 ## Framework Bible compliant: Simple, type-safe, with built-in validation
 ## Replaces complex JSON loading with native Godot resource system
 
+## Schema version for save file migration (CRITICAL for data integrity)
+@export var schema_version: int = 1
+
 # Character backgrounds data
 @export var backgrounds: Array[CharacterBackground] = []
 @export var motivations: Array[CharacterMotivation] = []

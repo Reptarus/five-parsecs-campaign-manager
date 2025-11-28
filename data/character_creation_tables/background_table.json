@@ -1,0 +1,182 @@
+{
+  "name": "Background Table",
+  "description": "Five Parsecs From Home character background table (pp.24-25)",
+  "roll_type": "D100",
+  "entries": {
+    "1-4": {
+      "name": "Peaceful High-Tech Colony",
+      "stat_bonuses": { "savvy": 1 },
+      "resources": { "credits_roll": "1D6" },
+      "equipment_rolls": [],
+      "description": "Grew up on a prosperous, technologically advanced world with excellent education."
+    },
+    "5-9": {
+      "name": "Giant Overcrowded Dystopian City",
+      "stat_bonuses": { "speed": 1 },
+      "resources": {},
+      "equipment_rolls": [],
+      "description": "Raised in the crushing urban sprawl, learned to move fast to survive."
+    },
+    "10-13": {
+      "name": "Low-Tech Colony",
+      "stat_bonuses": {},
+      "resources": {},
+      "equipment_rolls": ["low_tech_weapon"],
+      "description": "From a frontier world with minimal technology, but practical survival skills."
+    },
+    "14-17": {
+      "name": "Mining Colony",
+      "stat_bonuses": { "toughness": 1 },
+      "resources": {},
+      "equipment_rolls": [],
+      "description": "Hard labor in the mines built endurance and resilience."
+    },
+    "18-21": {
+      "name": "Military Brat",
+      "stat_bonuses": { "combat": 1 },
+      "resources": {},
+      "equipment_rolls": [],
+      "description": "Grew up on military bases, learned to handle weapons early."
+    },
+    "22-25": {
+      "name": "Space Station",
+      "stat_bonuses": {},
+      "resources": {},
+      "equipment_rolls": ["gear"],
+      "description": "Raised in the artificial environment of an orbital habitat."
+    },
+    "26-29": {
+      "name": "Military Outpost",
+      "stat_bonuses": { "reactions": 1 },
+      "resources": {},
+      "equipment_rolls": [],
+      "description": "Lived on the frontier of civilization, always alert for danger."
+    },
+    "30-34": {
+      "name": "Drifter",
+      "stat_bonuses": {},
+      "resources": {},
+      "equipment_rolls": ["gear"],
+      "description": "Spent youth moving from place to place, picking up useful items."
+    },
+    "35-39": {
+      "name": "Lower Megacity Class",
+      "stat_bonuses": {},
+      "resources": {},
+      "equipment_rolls": ["low_tech_weapon"],
+      "description": "Grew up in the dangerous lower levels, learned to defend yourself."
+    },
+    "40-42": {
+      "name": "Wealthy Merchant Family",
+      "stat_bonuses": {},
+      "resources": { "credits_roll": "2D6" },
+      "equipment_rolls": [],
+      "description": "Born into wealth, with access to resources and connections."
+    },
+    "43-46": {
+      "name": "Frontier Gang",
+      "stat_bonuses": { "combat": 1 },
+      "resources": {},
+      "equipment_rolls": [],
+      "description": "Ran with a rough crowd on the frontier, learned to fight."
+    },
+    "47-49": {
+      "name": "Religious Cult",
+      "stat_bonuses": {},
+      "resources": { "patron": true, "story_points": 1 },
+      "equipment_rolls": [],
+      "description": "Raised in a tight-knit religious community with shared purpose."
+    },
+    "50-52": {
+      "name": "War-Torn Hell-Hole",
+      "stat_bonuses": { "reactions": 1 },
+      "resources": {},
+      "equipment_rolls": ["military_weapon"],
+      "description": "Survived in a war zone, quick reflexes kept you alive."
+    },
+    "53-55": {
+      "name": "Tech Guild",
+      "stat_bonuses": { "savvy": 1 },
+      "resources": { "credits_roll": "1D6" },
+      "equipment_rolls": ["high_tech_weapon"],
+      "description": "Trained by a prestigious technical guild with access to advanced equipment."
+    },
+    "56-59": {
+      "name": "Subjugated Colony on Alien World",
+      "stat_bonuses": {},
+      "resources": {},
+      "equipment_rolls": ["gadget"],
+      "description": "Lived under alien rule, learned to acquire useful tech."
+    },
+    "60-64": {
+      "name": "Long-Term Space Mission",
+      "stat_bonuses": { "savvy": 1 },
+      "resources": {},
+      "equipment_rolls": [],
+      "description": "Spent formative years on a deep space vessel, gaining technical skills."
+    },
+    "65-68": {
+      "name": "Research Outpost",
+      "stat_bonuses": { "savvy": 1 },
+      "resources": {},
+      "equipment_rolls": ["gadget"],
+      "description": "Grew up among scientists and researchers, with access to experimental tech."
+    },
+    "69-72": {
+      "name": "Primitive or Regressed World",
+      "stat_bonuses": { "toughness": 1 },
+      "resources": {},
+      "equipment_rolls": ["low_tech_weapon"],
+      "description": "From a world that has lost or rejected technology."
+    },
+    "73-76": {
+      "name": "Orphan Utility Program",
+      "stat_bonuses": {},
+      "resources": { "patron": true, "story_points": 1 },
+      "equipment_rolls": [],
+      "description": "Raised in a state program, has connections to institutional support."
+    },
+    "77-80": {
+      "name": "Isolationist Enclave",
+      "stat_bonuses": {},
+      "resources": { "quest_rumors": 2 },
+      "equipment_rolls": [],
+      "description": "From a secretive community with knowledge of hidden opportunities."
+    },
+    "81-84": {
+      "name": "Comfortable Megacity Class",
+      "stat_bonuses": {},
+      "resources": { "credits_roll": "1D6" },
+      "equipment_rolls": [],
+      "description": "Grew up in reasonable comfort with access to education and resources."
+    },
+    "85-89": {
+      "name": "Industrial World",
+      "stat_bonuses": {},
+      "resources": {},
+      "equipment_rolls": ["gear"],
+      "description": "Raised among factories and manufacturing, familiar with equipment."
+    },
+    "90-93": {
+      "name": "Bureaucrat",
+      "stat_bonuses": {},
+      "resources": { "credits_roll": "1D6" },
+      "equipment_rolls": [],
+      "description": "Family worked in administration, learned to navigate systems."
+    },
+    "94-97": {
+      "name": "Wasteland Nomads",
+      "stat_bonuses": { "reactions": 1 },
+      "resources": {},
+      "equipment_rolls": ["low_tech_weapon"],
+      "description": "Traveled the wastelands with a nomadic group, always watchful."
+    },
+    "98-100": {
+      "name": "Alien Culture",
+      "stat_bonuses": {},
+      "resources": {},
+      "equipment_rolls": ["high_tech_weapon"],
+      "description": "Raised among aliens, with access to their advanced technology."
+    }
+  }
+}

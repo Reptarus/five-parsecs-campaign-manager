@@ -20,6 +20,17 @@ const FPCM_BattlefieldSetupAssistant = preload("res://src/core/battle/Battlefiel
 const FPCM_SetupSuggestions = preload("res://src/core/battle/SetupSuggestions.gd")
 const FPCM_BattlefieldIO = preload("res://src/core/battle/BattlefieldIO.gd")
 
+# Battle assistance component scenes
+const InitiativeCalculatorScene = preload("res://src/ui/components/battle/InitiativeCalculator.tscn")
+const DeploymentConditionsPanelScene = preload("res://src/ui/components/battle/DeploymentConditionsPanel.tscn")
+const EnemyGenerationWizardScene = preload("res://src/ui/components/battle/EnemyGenerationWizard.tscn")
+const WeaponTableDisplayScene = preload("res://src/ui/components/battle/WeaponTableDisplay.tscn")
+const ObjectiveDisplayScene = preload("res://src/ui/components/battle/ObjectiveDisplay.tscn")
+const ReactionDicePanelScene = preload("res://src/ui/components/battle/ReactionDicePanel.tscn")
+const MoralePanicTrackerScene = preload("res://src/ui/components/battle/MoralePanicTracker.tscn")
+const CombatSituationPanelScene = preload("res://src/ui/components/battle/CombatSituationPanel.tscn")
+const BattleJournalScene = preload("res://src/ui/components/battle/BattleJournal.tscn")
+
 
 # UI state signals - Enhanced with battle manager integration
 signal phase_navigation_requested(phase: BattlefieldTypes.BattlePhase)
@@ -57,6 +68,17 @@ var dice_system: FPCM_DiceSystem = null
 var battle_state: FPCM_BattleState = null
 var current_phase: BattlefieldTypes.BattlePhase = BattlefieldTypes.BattlePhase.SETUP_TERRAIN
 var battlefield_setup_assistant: FPCM_BattlefieldSetupAssistant
+
+# Battle assistance component instances
+var initiative_calculator: Control
+var deployment_conditions_panel: Control
+var enemy_generation_wizard: Control
+var weapon_table_display: Control
+var objective_display: Control
+var reaction_dice_panel: Control
+var morale_panic_tracker: Control
+var combat_situation_panel: Control
+var battle_journal: Control
 
 
 # UI state management
@@ -285,6 +307,49 @@ func _setup_terrain_phase_ui() -> void:
 	if export_button:
 		export_button.pressed.connect(_on_export_pressed)
 
+	# Add battle assistance components to setup phase
+	var setup_container := setup_panel.get_node_or_null("VBoxContainer")
+	if not setup_container:
+		setup_container = setup_panel
+
+	# Initiative Calculator
+	initiative_calculator = InitiativeCalculatorScene.instantiate()
+	setup_container.add_child(initiative_calculator)
+
+	# Deployment Conditions Panel
+	deployment_conditions_panel = DeploymentConditionsPanelScene.instantiate()
+	setup_container.add_child(deployment_conditions_panel)
+
+	# Enemy Generation Wizard
+	enemy_generation_wizard = EnemyGenerationWizardScene.instantiate()
+	setup_container.add_child(enemy_generation_wizard)
+
+	# Connect component signals
+	if initiative_calculator.has_signal("initiative_calculated"):
+		initiative_calculator.initiative_calculated.connect(_on_initiative_calculated)
+	if deployment_conditions_panel.has_signal("conditions_rolled"):
+		deployment_conditions_panel.conditions_rolled.connect(_on_deployment_conditions_rolled)
+	if enemy_generation_wizard.has_signal("enemy_generated"):
+		enemy_generation_wizard.enemy_generated.connect(_on_enemy_generated)
+
+
+func _on_initiative_calculated(seized: bool, roll: int, modifiers: int) -> void:
+	"""Handle initiative calculation result"""
+	if battle_journal:
+		battle_journal.log_initiative(seized, roll + modifiers)
+
+
+func _on_deployment_conditions_rolled(condition: Dictionary) -> void:
+	"""Handle deployment condition roll"""
+	if battle_journal:
+		battle_journal.log_event("Deployment: %s" % condition.get("name", "Unknown"), condition.get("effect", ""))
+
+
+func _on_enemy_generated(enemy_data: Dictionary) -> void:
+	"""Handle enemy generation"""
+	if battle_journal:
+		battle_journal.log_event("Enemy Generated", "%s - %d enemies" % [enemy_data.get("type", "Unknown"), enemy_data.get("count", 0)])
+
 
 func _on_generate_terrain_pressed() -> void:
 	"""Handle terrain generation request"""
@@ -478,10 +543,74 @@ func _setup_tracking_phase_ui() -> void:
 	if end_battle_button:
 		end_battle_button.pressed.connect(_on_end_battle_pressed)
 
+	# Add battle assistance components to tracking phase
+	var tracking_container := tracking_panel.get_node_or_null("VBoxContainer")
+	if not tracking_container:
+		tracking_container = tracking_panel
+
+	# Weapon Table Display (reference)
+	weapon_table_display = WeaponTableDisplayScene.instantiate()
+	tracking_container.add_child(weapon_table_display)
+
+	# Objective Display
+	objective_display = ObjectiveDisplayScene.instantiate()
+	tracking_container.add_child(objective_display)
+
+	# Reaction Dice Panel
+	reaction_dice_panel = ReactionDicePanelScene.instantiate()
+	tracking_container.add_child(reaction_dice_panel)
+
+	# Morale Panic Tracker
+	morale_panic_tracker = MoralePanicTrackerScene.instantiate()
+	tracking_container.add_child(morale_panic_tracker)
+
+	# Combat Situation Panel
+	combat_situation_panel = CombatSituationPanelScene.instantiate()
+	tracking_container.add_child(combat_situation_panel)
+
+	# Connect tracking phase component signals
+	if reaction_dice_panel.has_signal("reaction_spent"):
+		reaction_dice_panel.reaction_spent.connect(_on_reaction_spent)
+	if morale_panic_tracker.has_signal("morale_checked"):
+		morale_panic_tracker.morale_checked.connect(_on_morale_checked)
+	if morale_panic_tracker.has_signal("enemies_fled"):
+		morale_panic_tracker.enemies_fled.connect(_on_enemies_fled)
+	if combat_situation_panel.has_signal("modifiers_changed"):
+		combat_situation_panel.modifiers_changed.connect(_on_combat_modifiers_changed)
+
+
+func _on_reaction_spent(character_name: String, success: bool) -> void:
+	"""Handle reaction dice spent"""
+	if battle_journal:
+		var result := "success" if success else "failed"
+		battle_journal.log_action(character_name, "Reaction (%s)" % result)
+
+
+func _on_morale_checked(result: String, roll: int) -> void:
+	"""Handle morale check result"""
+	if battle_journal:
+		battle_journal.log_morale(result)
+
+
+func _on_enemies_fled(count: int) -> void:
+	"""Handle enemies fleeing from morale"""
+	if battle_journal:
+		battle_journal.log_morale("Panic", count)
+
+
+func _on_combat_modifiers_changed(total: int) -> void:
+	"""Handle combat modifier changes - for UI updates only"""
+	pass  # Modifier display handled by component itself
+
+
 func _on_end_round_pressed() -> void:
 	"""Handle end round request"""
 	if battlefield_companion and battlefield_companion.battle_tracker:
 		battlefield_companion.battle_tracker.end_round()
+
+	# Log new round to journal
+	if battle_journal:
+		battle_journal.new_round()
 
 func _on_random_event_pressed() -> void:
 	"""Handle manual random event trigger"""
@@ -551,6 +680,15 @@ func _setup_results_phase_ui() -> void:
 	if continue_campaign_button:
 		continue_campaign_button.pressed.connect(_on_continue_campaign_pressed)
 
+	# Add battle assistance components to results phase
+	var results_container := results_panel.get_node_or_null("VBoxContainer")
+	if not results_container:
+		results_container = results_panel
+
+	# Battle Journal (narrative review of battle)
+	battle_journal = BattleJournalScene.instantiate()
+	results_container.add_child(battle_journal)
+
 func _on_process_results_pressed() -> void:
 	"""Handle results processing request"""
 	if ui_locked:
@@ -563,6 +701,18 @@ func _on_process_results_pressed() -> void:
 func _on_continue_campaign_pressed() -> void:
 	"""Handle continue to campaign request"""
 	var completion_data := battlefield_companion.complete_battle_companion()
+
+	# Add battle assistance data to completion
+	if battle_journal:
+		completion_data["journal_summary"] = battle_journal.get_summary()
+		completion_data["journal_entries"] = battle_journal.get_entries()
+
+	if morale_panic_tracker and morale_panic_tracker.has_method("get_fled_count"):
+		completion_data["enemies_fled"] = morale_panic_tracker.get_fled_count()
+
+	if reaction_dice_panel and reaction_dice_panel.has_method("get_spent_reactions"):
+		completion_data["reactions_spent"] = reaction_dice_panel.get_spent_reactions()
+
 	battle_action_triggered.emit("continue_campaign", completion_data)
 
 func _display_battle_results(results: BattlefieldTypes.BattleResults) -> void:
@@ -700,10 +850,24 @@ func _on_battle_started(initial_state: Dictionary) -> void:
 	_unlock_ui()
 	# Update tracking UI with initial battle state
 
+	# Initialize journal with battle objective
+	if battle_journal:
+		var objective_name: String = initial_state.get("objective", "")
+		battle_journal.start_battle(objective_name)
+
+
 func _on_battle_completed(results: BattlefieldTypes.BattleResults) -> void:
 	"""Handle battle completion"""
 	_unlock_ui()
 	_display_battle_results(results)
+
+	# Log battle outcome to journal
+	if battle_journal:
+		var reason: String = results.get("reason") if results.get("reason") else ""
+		if results.victory:
+			battle_journal.log_victory(reason)
+		else:
+			battle_journal.log_defeat(reason)
 
 func _on_companion_error(error_code: String, context: Dictionary) -> void:
 	"""Handle companion errors"""
@@ -911,19 +1075,19 @@ func _on_dice_rolled(result: FPCM_DiceSystem.DiceRoll) -> void:
 	"""Handle dice roll completion from dice system"""
 	_display_dice_result(result)
 
-func _on_battle_phase_changed(old_phase: FPCM_BattleManager.BattlePhase, new_phase: FPCM_BattleManager.BattlePhase) -> void:
+func _on_battle_phase_changed(old_phase: FPCM_BattleManager.BattleManagerPhase, new_phase: FPCM_BattleManager.BattleManagerPhase) -> void:
 	"""Handle battle manager phase changes"""
 	# Map battle manager phases to companion UI phases
 	var ui_phase: BattlefieldTypes.BattlePhase
 	
 	match new_phase:
-		FPCM_BattleManager.BattlePhase.PRE_BATTLE:
+		FPCM_BattleManager.BattleManagerPhase.PRE_BATTLE:
 			ui_phase = BattlefieldTypes.BattlePhase.SETUP_TERRAIN
-		FPCM_BattleManager.BattlePhase.TACTICAL_BATTLE:
+		FPCM_BattleManager.BattleManagerPhase.TACTICAL_BATTLE:
 			ui_phase = BattlefieldTypes.BattlePhase.TRACK_BATTLE
-		FPCM_BattleManager.BattlePhase.BATTLE_RESOLUTION:
+		FPCM_BattleManager.BattleManagerPhase.BATTLE_RESOLUTION:
 			ui_phase = BattlefieldTypes.BattlePhase.TRACK_BATTLE
-		FPCM_BattleManager.BattlePhase.POST_BATTLE:
+		FPCM_BattleManager.BattleManagerPhase.POST_BATTLE:
 			ui_phase = BattlefieldTypes.BattlePhase.PREPARE_RESULTS
 		_:
 			ui_phase = BattlefieldTypes.BattlePhase.SETUP_TERRAIN
@@ -939,8 +1103,8 @@ func _on_ui_transition_requested(target_ui: String, data: Dictionary) -> void:
 		
 		# Show appropriate phase
 		if "phase" in data:
-			var manager_phase: FPCM_BattleManager.BattlePhase = data.phase
-			_on_battle_phase_changed(FPCM_BattleManager.BattlePhase.NONE, manager_phase)
+			var manager_phase: FPCM_BattleManager.BattleManagerPhase = data.phase
+			_on_battle_phase_changed(FPCM_BattleManager.BattleManagerPhase.NONE, manager_phase)
 
 func _on_battle_manager_error(error_code: String, context: Dictionary) -> void:
 	"""Handle battle manager errors"""

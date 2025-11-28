@@ -7,7 +7,7 @@ extends Node
 ## system initialization, cleanup, and cross-scene persistence.
 ##
 ## Usage in project.godot autoload settings:
-	## Name: BattlefieldCompanionManager
+## Name: BattlefieldCompanionManager
 ## Path: res://src/autoload/BattlefieldCompanionManager.gd
 
 # Dependencies
@@ -36,6 +36,10 @@ var auto_initialize: bool = true
 var debug_mode: bool = false
 var performance_monitoring: bool = false
 
+# Tutorial integration (for guided campaign mode)
+var guided_mode_enabled: bool = false  # Toggle for story-driven tutorials
+var story_track_system: Variant = null  # Reference to StoryTrackSystem
+
 func _ready() -> void:
 	"""Initialize global battlefield companion system"""
 	_load_companion_configuration()
@@ -43,6 +47,9 @@ func _ready() -> void:
 
 	if auto_initialize:
 		initialize_system()
+
+	# Connect to StoryTrackSystem for guided mode (deferred to allow scene tree setup)
+	call_deferred("_connect_to_story_track_system")
 
 func _load_companion_configuration() -> void:
 	"""Load companion configuration from JSON files"""
@@ -114,6 +121,100 @@ func _setup_debug_configuration() -> void:
 
 	if debug_mode:
 		print("BattlefieldCompanionManager: Debug mode enabled")
+
+func _connect_to_story_track_system() -> void:
+	"""Connect to StoryTrackSystem for guided campaign mode"""
+	# Try to get StoryTrackSystem from GameStateManager or AlphaGameManager
+	var game_state_manager = get_node_or_null("/root/GameStateManager")
+	if game_state_manager and game_state_manager.has_method("get_story_track_system"):
+		story_track_system = game_state_manager.get_story_track_system()
+	else:
+		var alpha_manager = get_node_or_null("/root/FPCM_AlphaGameManager")
+		if alpha_manager and alpha_manager.has_method("get_story_track_system"):
+			story_track_system = alpha_manager.get_story_track_system()
+
+	# Connect to tutorial_requested signal if StoryTrackSystem is available
+	if story_track_system and story_track_system.has_signal("tutorial_requested"):
+		var connection_result = story_track_system.tutorial_requested.connect(_on_tutorial_requested)
+		if connection_result == OK:
+			print("BattlefieldCompanionManager: Connected to StoryTrackSystem tutorial signals")
+		else:
+			push_warning("BattlefieldCompanionManager: Failed to connect to StoryTrackSystem tutorial signals")
+	else:
+		if debug_mode:
+			print("BattlefieldCompanionManager: StoryTrackSystem not available for guided mode")
+
+func _on_tutorial_requested(event_id: String, companion_tools: Array, story_context: String) -> void:
+	"""Handle tutorial request from StoryTrackSystem"""
+	if not guided_mode_enabled:
+		return  # Silently ignore if guided mode is disabled
+
+	if debug_mode:
+		print("BattlefieldCompanionManager: Tutorial requested for event '%s' with %d tools" % [event_id, companion_tools.size()])
+		print("  Story context: %s" % story_context)
+		print("  Companion tools: %s" % str(companion_tools))
+
+	# Route tutorial request to TutorialOverlay via BattleCompanionUI
+	# (This will be implemented in the next step when wiring TutorialOverlay)
+	_route_tutorial_to_overlay(event_id, companion_tools, story_context)
+
+func _route_tutorial_to_overlay(event_id: String, companion_tools: Array, story_context: String) -> void:
+	"""Route tutorial request to TutorialOverlay"""
+	# Get TutorialOverlay from the current scene
+	var tutorial_overlay: Node = _find_tutorial_overlay()
+
+	if not tutorial_overlay:
+		if debug_mode:
+			print("BattlefieldCompanionManager: TutorialOverlay not found in current scene")
+		return
+
+	# Call show_story_hint on TutorialOverlay
+	if tutorial_overlay.has_method("show_story_hint"):
+		tutorial_overlay.show_story_hint(companion_tools, story_context)
+		if debug_mode:
+			print("BattlefieldCompanionManager: Story hint displayed via TutorialOverlay")
+	else:
+		push_warning("BattlefieldCompanionManager: TutorialOverlay missing show_story_hint method")
+
+func _find_tutorial_overlay() -> Node:
+	"""Find TutorialOverlay in the current scene tree"""
+	# Try to find in BattleCompanionUI or other battle screens
+	var root := get_tree().root
+	if not root:
+		return null
+
+	# Search for TutorialOverlay node (could be child of any battle UI)
+	var overlays := _find_nodes_by_class(root, "FPCM_TutorialOverlay")
+	if overlays.size() > 0:
+		return overlays[0]
+
+	return null
+
+func _find_nodes_by_class(node: Node, target_class: String) -> Array:
+	"""Recursively find nodes by class name"""
+	var result: Array = []
+
+	if node.get_class() == target_class or (node.get_script() and node.get_script().get_global_name() == target_class):
+		result.append(node)
+
+	for child in node.get_children():
+		result.append_array(_find_nodes_by_class(child, target_class))
+
+	return result
+
+## Enable or disable guided campaign mode
+func set_guided_mode(enabled: bool) -> void:
+	guided_mode_enabled = enabled
+
+	# Also enable guided mode in StoryTrackSystem if available
+	if story_track_system and story_track_system.has_method("set_guided_mode"):
+		story_track_system.set_guided_mode(enabled)
+
+	if debug_mode:
+		if enabled:
+			print("BattlefieldCompanionManager: Guided campaign mode enabled")
+		else:
+			print("BattlefieldCompanionManager: Guided campaign mode disabled")
 
 # =====================================================
 # SYSTEM INITIALIZATION
@@ -219,7 +320,7 @@ func get_current_battle_phase() -> String:
 		return "none"
 
 	var phase = integration_system.battlefield_companion.current_phase
-	return FPCM_BattlefieldTypes.BattlePhase.keys()[phase]
+	return FPCM_BattlefieldTypes.BattleStage.keys()[phase]
 
 func force_end_battle() -> Dictionary:
 	"""Force end current battle and return results"""

@@ -30,8 +30,8 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="PanelContainer" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(600, 400)
 layout_mode = 2
+size_flags_horizontal = 3
 
 [node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/PanelContainer"]
 layout_mode = 2
@@ -61,6 +61,7 @@ text = "Upkeep Phase"
 layout_mode = 2
 
 [node name="UpkeepButton" type="Button" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Upkeep"]
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 text = "Perform Upkeep"
 
@@ -77,10 +78,12 @@ text = "Travel Phase"
 layout_mode = 2
 
 [node name="StayButton" type="Button" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Travel/TravelOptions"]
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 text = "Stay in Current Location"
 
 [node name="TravelButton" type="Button" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Travel/TravelOptions"]
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 text = "Travel to New Location"
 
@@ -88,6 +91,7 @@ text = "Travel to New Location"
 layout_mode = 2
 
 [node name="NextEventButton" type="Button" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Travel"]
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 text = "Generate Next Event"
 
@@ -100,10 +104,12 @@ layout_mode = 2
 alignment = 1
 
 [node name="BackButton" type="Button" parent="CenterContainer/PanelContainer/VBoxContainer/ButtonContainer"]
+custom_minimum_size = Vector2(120, 56)
 layout_mode = 2
 text = "Back"
 
 [node name="NextButton" type="Button" parent="CenterContainer/PanelContainer/VBoxContainer/ButtonContainer"]
+custom_minimum_size = Vector2(120, 56)
 layout_mode = 2
 text = "Next"
 

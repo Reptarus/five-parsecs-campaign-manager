@@ -1,6 +1,12 @@
 class_name PostBattleSequenceUI
 extends Control
 
+# Backend Service Integrations
+const InjurySystemService = preload("res://src/core/services/InjurySystemService.gd")
+const CharacterAdvancementService = preload("res://src/core/services/CharacterAdvancementService.gd")
+const EnemyLootGenerator = preload("res://src/game/economy/loot/EnemyLootGenerator.gd")
+const GameDataLoader = preload("res://src/utils/GameDataLoader.gd")
+
 signal post_battle_completed(results: Dictionary)
 signal step_completed(step_index: int, results: Dictionary)
 
@@ -283,10 +289,21 @@ func _add_invasion_check_content() -> void:
 	step_content.add_child(label)
 
 func _add_loot_content() -> void:
-	"""Add loot content"""
+	"""Add loot content with EnemyLootGenerator integration"""
 	var label: Label = Label.new()
-	label.text = "Roll on loot tables for items found."
+	label.text = "Roll on loot tables for items found from defeated enemies."
 	step_content.add_child(label)
+
+	# Add button to generate loot
+	var loot_button: Button = Button.new()
+	loot_button.text = "Generate Loot from Defeated Enemies"
+	loot_button.pressed.connect(_on_generate_loot_pressed)
+	step_content.add_child(loot_button)
+
+	# Display area for loot results
+	var loot_results_container: VBoxContainer = VBoxContainer.new()
+	loot_results_container.name = "LootResultsContainer"
+	step_content.add_child(loot_results_container)
 
 func _add_injury_content() -> void:
 	"""Add injury content with Five Parsecs injury tables"""
@@ -601,14 +618,30 @@ func _finish_post_battle() -> void:
 	post_battle_completed.emit(final_results)
 	print("PostBattleSequence: Completed all steps")
 
-func _on_back_pressed() -> void:
-	"""Handle back button press"""
-	print("PostBattleSequence: Back pressed")
+	# Bridge UI to backend: Notify CampaignPhaseManager to complete post-battle phase
+	var phase_manager = get_node_or_null("/root/CampaignPhaseManager")
+	if phase_manager and phase_manager.has_method("_on_post_battle_phase_completed"):
+		print("PostBattleSequence: Triggering CampaignPhaseManager post-battle completion")
+		phase_manager._on_post_battle_phase_completed()
+	else:
+		push_warning("PostBattleSequence: CampaignPhaseManager not found - turn will not advance")
+
+	# Navigate to Campaign Dashboard to show new turn
+	await get_tree().create_timer(0.5).timeout  # Brief delay for user to see completion
 	if has_node("/root/SceneRouter"):
 		var scene_router = get_node("/root/SceneRouter")
-		scene_router.navigate_back()
+		scene_router.navigate_to("campaign_dashboard")
 	else:
-		get_tree().change_scene_to_file("res://src/ui/screens/main/MainMenu.tscn")
+		get_tree().change_scene_to_file("res://src/ui/screens/campaign/CampaignDashboard.tscn")
+
+func _on_back_pressed() -> void:
+	"""Handle back button press - return to Campaign Dashboard"""
+	print("PostBattleSequence: Back pressed - returning to Campaign Dashboard")
+	if has_node("/root/SceneRouter"):
+		var scene_router = get_node("/root/SceneRouter")
+		scene_router.navigate_to("campaign_dashboard")
+	else:
+		get_tree().change_scene_to_file("res://src/ui/screens/campaign/CampaignDashboard.tscn")
 ## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
 ## Based on Godot 4.4 best practices for safe property access
 func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
@@ -730,46 +763,224 @@ func _on_apply_payment(amount: int) -> void:
 		_add_result_to_log("Applied %d credits to campaign" % amount)
 
 func _on_battlefield_find_roll(enemy_num: int) -> void:
-	"""Handle battlefield find roll"""
-	var dice_manager = get_node_or_null("/root/DiceManager")
-	var roll = 0
+	"""Handle battlefield find roll using JSON data table"""
+	# Load battlefield finds table
+	var finds_table = GameDataLoader.get_battlefield_finds_table()
 	
-	if dice_manager:
-		roll = dice_manager.roll_dice("Battlefield Find %d" % enemy_num, "D6")
-	else:
-		roll = randi_range(1, 6)
+	if finds_table.is_empty():
+		push_error("PostBattleSequence: Failed to load battlefield_finds.json")
+		_add_result_to_log("Enemy %d search: ERROR - Could not load loot table" % enemy_num)
+		return
 	
-	var find_result = _interpret_battlefield_find(roll)
-	var result_text = "Rolled %d - %s" % [roll, find_result]
+	# Roll d6 using GameDataLoader helper
+	var roll = GameDataLoader.roll_d6()
+	
+	# Look up result in table
+	var result_data = GameDataLoader.roll_on_table(finds_table, roll)
+	
+	if result_data.is_empty():
+		push_error("PostBattleSequence: No result for battlefield find roll %d" % roll)
+		_add_result_to_log("Enemy %d search: ERROR - Invalid roll result" % enemy_num)
+		return
+	
+	# Extract result information
+	var outcome = result_data.get("outcome", "unknown")
+	var credits = result_data.get("credits", 0)
+	var description = result_data.get("description", "Unknown result")
+	var narrative = result_data.get("narrative", "")
+	var needs_item_roll = result_data.get("item_roll", false)
+	var item_table = result_data.get("item_table", "")
+	
+	# Build result text
+	var result_text = "Rolled %d - %s" % [roll, description]
+	if credits > 0:
+		result_text += " (+%d cr)" % credits
+	if needs_item_roll:
+		result_text += " [Roll on %s table]" % item_table
 	
 	# Update UI
 	var result_label = step_content.find_child("find_result_" + str(enemy_num))
 	if result_label:
 		result_label.text = result_text
-		result_label.modulate = Color.GREEN if roll >= 3 else Color.GRAY
+		# Color based on outcome quality
+		if roll >= 5:
+			result_label.modulate = Color.GREEN  # Valuable/rare
+		elif roll >= 3:
+			result_label.modulate = Color.YELLOW  # Equipment/weapon
+		else:
+			result_label.modulate = Color.GRAY  # Nothing/minor salvage
 	
-	_add_result_to_log("Enemy %d search: %s" % [enemy_num, result_text])
+	# Apply credits to campaign
+	if credits > 0:
+		var campaign_manager = get_node_or_null("/root/CampaignManager")
+		if campaign_manager and campaign_manager.has_method("add_credits"):
+			campaign_manager.add_credits(credits)
+	
+	# Store result for later item table rolls if needed
+	if not step_results[current_step].has("battlefield_finds"):
+		step_results[current_step]["battlefield_finds"] = []
+	
+	step_results[current_step]["battlefield_finds"].append({
+		"enemy_num": enemy_num,
+		"roll": roll,
+		"outcome": outcome,
+		"credits": credits,
+		"needs_item_roll": needs_item_roll,
+		"item_table": item_table,
+		"narrative": narrative
+	})
+	
+	# Log with narrative
+	var log_message = "Enemy %d: %s" % [enemy_num, narrative if not narrative.is_empty() else description]
+	if credits > 0:
+		log_message += " (+%d credits)" % credits
+	_add_result_to_log(log_message)
+	
+	print("PostBattleSequence: Battlefield find - roll=%d, outcome=%s, credits=%d" % [roll, outcome, credits])
 
 func _on_injury_roll(type: String, num: int, is_casualty: bool) -> void:
-	"""Handle injury severity roll"""
+	"""Handle injury severity roll using InjurySystemService"""
 	var dice_manager = get_node_or_null("/root/DiceManager")
 	var roll = 0
-	
+
 	if dice_manager:
 		roll = dice_manager.roll_dice("%s %d Injury" % [type, num], "D100")
 	else:
 		roll = randi_range(1, 100)
-	
-	var severity = _interpret_injury_roll(roll, is_casualty)
+
+	# Use InjurySystemService for proper injury determination
+	var injury_data = InjurySystemService.determine_injury(roll)
+	var severity = injury_data.get("type_name", "Unknown")
+	var description = injury_data.get("description", "")
+	var recovery_turns = injury_data.get("recovery_turns", 0)
+	var is_fatal = injury_data.get("is_fatal", false)
+
 	var result_text = "Rolled %d - %s" % [roll, severity]
-	
+	if is_fatal:
+		result_text += " (FATAL)"
+	elif recovery_turns > 0:
+		result_text += " (%d turns recovery)" % recovery_turns
+
+	# Store injury data for campaign integration
+	step_results[current_step]["%s_%d" % [type.to_lower(), num]] = injury_data
+
 	# Update UI
 	var result_label = step_content.find_child("injury_result_%s_%d" % [type.to_lower(), num])
 	if result_label:
 		result_label.text = result_text
 		result_label.modulate = _get_injury_color(severity)
-	
+
 	_add_result_to_log("%s %d: %s" % [type, num, result_text])
+
+func _on_generate_loot_pressed() -> void:
+	"""Generate loot using EnemyLootGenerator"""
+	# Note: EnemyLootGenerator requires Enemy objects, but we only have battle results
+	# For now, generate generic loot based on enemy count
+	var enemies_defeated = battle_results.get("enemy_defeated", 0)
+	var enemy_type = battle_results.get("enemy_type", "Unknown Hostiles")
+
+	var loot_results_container = step_content.find_child("LootResultsContainer")
+	if not loot_results_container:
+		return
+
+	# Clear previous results
+	for child in loot_results_container.get_children():
+		child.queue_free()
+
+	# Generate loot for each defeated enemy
+	var loot_generator = EnemyLootGenerator.new()
+	var total_loot: Array = []
+
+	for i in range(enemies_defeated):
+		# Simple D6 roll for loot quality
+		var quality_roll = randi_range(1, 6)
+		var loot_desc = ""
+
+		if quality_roll >= 5:
+			loot_desc = "Equipment found!"
+			total_loot.append({"type": "equipment", "enemy": i + 1})
+		elif quality_roll >= 3:
+			loot_desc = "Supplies found"
+			total_loot.append({"type": "supplies", "enemy": i + 1})
+		else:
+			loot_desc = "Nothing useful"
+
+		var loot_label = Label.new()
+		loot_label.text = "Enemy %d: %s (rolled %d)" % [i + 1, loot_desc, quality_roll]
+		loot_results_container.add_child(loot_label)
+
+	# Store loot data for campaign integration
+	step_results[current_step]["loot_found"] = total_loot
+
+	# Persist loot to EquipmentManager
+	_add_loot_to_inventory(total_loot)
+
+	_add_result_to_log("Generated loot from %d enemies: %d items found" % [enemies_defeated, total_loot.size()])
+
+func _add_loot_to_inventory(loot_items: Array) -> void:
+	"""Persist battle loot to EquipmentManager ship stash"""
+	var equipment_manager = get_node_or_null("/root/EquipmentManager")
+	if not equipment_manager:
+		push_error("PostBattle: EquipmentManager not found - loot will be LOST!")
+		_add_result_to_log("[ERROR] EquipmentManager missing - loot not saved!")
+		return
+	
+	var credits_gained: int = 0
+	var items_added: int = 0
+	var items_lost: int = 0  # Stash full
+	
+	for loot_item: Dictionary in loot_items:
+		var loot_type: String = loot_item.get("type", "unknown")
+		
+		# Handle credits separately (if loot has credits value)
+		if loot_type == "credits" or loot_item.has("credits"):
+			var credit_amount: int = loot_item.get("credits", 10)  # Default 10 credits
+			credits_gained += credit_amount
+			# TODO: Add credits to campaign treasury via CampaignManager
+			continue
+		
+		# Handle equipment items - convert to proper equipment data format
+		if loot_type == "equipment" or loot_type == "supplies":
+			var equipment_data: Dictionary = {
+				"id": "loot_%d_%d" % [Time.get_ticks_msec(), loot_item.get("enemy", randi() % 1000)],
+				"name": _generate_loot_item_name(loot_type),
+				"category": "GEAR" if loot_type == "supplies" else "WEAPON",
+				"description": "Found on battlefield from Enemy %d" % loot_item.get("enemy", 0),
+				"value": 10 if loot_type == "supplies" else 20,
+				"location": "ship_stash"
+			}
+			
+			# Try to add to ship stash
+			var added: bool = equipment_manager.add_to_ship_stash(equipment_data)
+			if added:
+				items_added += 1
+				print("PostBattle: Added %s to ship stash" % equipment_data.get("name", "item"))
+			else:
+				items_lost += 1
+				push_warning("PostBattle: Ship stash full - lost %s" % equipment_data.get("name", "item"))
+	
+	# Show summary in results log
+	var summary: String = "Loot Summary: "
+	if credits_gained > 0:
+		summary += "+%d credits, " % credits_gained
+	if items_added > 0:
+		summary += "+%d items added to stash" % items_added
+	if items_lost > 0:
+		summary += " (%d items lost - stash full)" % items_lost
+	
+	print("PostBattle Loot: +%d credits, +%d items, %d lost (stash full)" % [credits_gained, items_added, items_lost])
+	_add_result_to_log(summary)
+
+func _generate_loot_item_name(loot_type: String) -> String:
+	"""Generate procedural loot item names based on type"""
+	if loot_type == "equipment":
+		var weapons: Array[String] = ["Rusty Blade", "Salvaged Pistol", "Combat Knife", "Energy Cell"]
+		return weapons[randi() % weapons.size()]
+	elif loot_type == "supplies":
+		var supplies: Array[String] = ["Medkit", "Ration Pack", "Ammo Clip", "Tool Kit"]
+		return supplies[randi() % supplies.size()]
+	else:
+		return "Unknown Item"
 
 func _on_experience_roll(crew_member: Dictionary) -> void:
 	"""Handle experience advancement roll"""

@@ -1,0 +1,1 @@
+/bin/bash: line 1: /mnt/c/Users/elija/Desktop/GoDot/Godot_v4.5.1-stable_win64/Godot_v4.5.1-stable_win64_console.exe: No such file or directory

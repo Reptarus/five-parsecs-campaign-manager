@@ -38,21 +38,31 @@ func _ready() -> void:
 
 ## Load all required data from JSON files
 func _load_data() -> void:
-	# Load planet types
+	# Load planet types - convert dictionary to array
 	var planet_data = DataManager._load_json_safe(PLANET_TYPES_PATH, "WorldGenerator")
-	if planet_data and planet_data.has("planet_types"):
-		_planet_types = planet_data["planet_types"]
+	if planet_data and planet_data is Dictionary:
+		_planet_types = []
+		for key in planet_data.keys():
+			var planet = planet_data[key].duplicate()
+			planet["type"] = key
+			_planet_types.append(planet)
+		print("WorldGenerator: Loaded %d planet types" % _planet_types.size())
 	else:
 		push_error("Failed to load planet types data")
 
-	# Load location types
+	# Load location types - convert dictionary to array
 	var location_data = DataManager._load_json_safe(LOCATION_TYPES_PATH, "WorldGenerator")
-	if location_data and location_data.has("location_types"):
-		_location_types = location_data["location_types"]
+	if location_data and location_data is Dictionary:
+		_location_types = []
+		for key in location_data.keys():
+			var location = location_data[key].duplicate()
+			location["type"] = key
+			_location_types.append(location)
+		print("WorldGenerator: Loaded %d location types" % _location_types.size())
 	else:
 		push_error("Failed to load location types data")
 
-	# Load world traits
+	# Load world traits (already in correct format)
 	var trait_data = DataManager._load_json_safe(WORLD_TRAITS_PATH, "WorldGenerator")
 	if trait_data and trait_data.has("world_traits"):
 		_world_traits = trait_data["world_traits"]
@@ -111,20 +121,9 @@ func _generate_planet_type() -> Dictionary:
 			if planet.get("type", "") == _specific_planet_type:
 				return planet
 
-	# Otherwise, roll on the table
-	var roll = randi() % 100 + 1
-
-	for planet in _planet_types:
-		var range_min = planet.get("range_min", 0)
-
-		var range_max = planet.get("range_max", 0)
-
-		if roll >= range_min and roll <= range_max:
-			return planet
-
-	# Fallback to first planet type if something went wrong
+	# Random selection from available types (no range_min/max needed)
 	if _planet_types.size() > 0:
-		return _planet_types[0]
+		return _planet_types[randi() % _planet_types.size()]
 
 	# Ultimate fallback if no data loaded
 	return {
@@ -136,10 +135,18 @@ func _generate_planet_type() -> Dictionary:
 
 ## Generate a planet name
 func _generate_planet_name(planet_type: Dictionary) -> String:
-	# Generate a name based on planet _type
-	var base_names = planet_type.get("name_prefixes", ["Alpha", "Beta", "Gamma", "Delta"])
+	# Generate a name based on planet type with thematic Five Parsecs frontier names
+	var base_names = planet_type.get("name_prefixes", [
+		"New", "Haven", "Frontier", "Dust", "Red", "Void", "Iron", "Storm",
+		"Cinder", "Ash", "Dawn", "Dusk", "Edge", "Last", "Far", "Lost",
+		"Broken", "Wild", "Grim", "Hope", "Liberty", "Fortune", "Prosperity"
+	])
 
-	var suffixes = planet_type.get("name_suffixes", ["Prime", "II", "III", "Major", "Minor"])
+	var suffixes = planet_type.get("name_suffixes", [
+		"Station", "Reach", "Point", "Gate", "Rest", "Landing", "Outpost",
+		"Prime", "Minor", "Major", "Rock", "World", "Belt", "Drift",
+		"Harbor", "Junction", "Crossing", "End", "Colony", "Settlement"
+	])
 
 	var base_name = base_names[randi() % (base_names.size())]
 	var suffix = suffixes[randi() % (suffixes.size())]
@@ -160,35 +167,43 @@ func _calculate_danger_level(campaign_turn: int, planet_type: Dictionary) -> int
 	return clamp(danger_level, 1, 6)
 
 ## Generate planetary traits based on planet _type (p.81-82)
+## Uses D100 rolling system from Core Rules World Traits table
 func _generate_planetary_traits(planet_type: Dictionary) -> Array:
 	var traits: Array = []
 
-	var trait_count: int = 1 + (randi() % 2) # 1-2 traits as per rulebook
+	# Roll D100 for world trait (Core Rules p.80-82)
+	var d100_roll = (randi() % 100) + 1
+	var selected_trait = _find_trait_by_roll(d100_roll)
+	
+	if selected_trait:
+		traits.append(selected_trait)
+	else:
+		push_warning("WorldGenerator: No trait found for D100 roll %d" % d100_roll)
 
-	var available_traits = _world_traits.duplicate()
-
-	# Add any mandatory traits for this planet _type
-
-	var mandatory_traits = planet_type.get("mandatory_traits", [])
-	for trait_id in mandatory_traits:
-		traits.append(trait_id)
-		# Remove from available to avoid duplicates
-		for i: int in range(available_traits.size() - 1, -1, -1):
-			if available_traits[i].get("id") == trait_id:
-				available_traits.remove_at(i)
-				break
-
-	# Add random traits
-	for _i: int in range(trait_count):
-		if available_traits.size() == 0:
-			break
-
-		var index = randi() % (available_traits.size())
-
-		traits.append(available_traits[index].get("id"))
-		available_traits.remove_at(index)
+	# Wild Galaxy optional rule: Roll twice for more chaotic worlds
+	# TODO: Add setting to enable Wild Galaxy rule
+	# if use_wild_galaxy_rule:
+	#     var second_roll = (randi() % 100) + 1
+	#     var second_trait = _find_trait_by_roll(second_roll)
+	#     if second_trait and second_trait.get("id") != selected_trait.get("id"):
+	#         traits.append(second_trait)
 
 	return traits
+
+## Find trait matching a D100 roll from the World Traits table
+func _find_trait_by_roll(roll: int) -> Dictionary:
+	for i in range(_world_traits.size()):
+		var trait_data = _world_traits[i]
+		if not trait_data is Dictionary:
+			continue
+			
+		var roll_min = trait_data.get("roll_min", 0)
+		var roll_max = trait_data.get("roll_max", 0)
+		
+		if roll >= roll_min and roll <= roll_max:
+			return trait_data
+	
+	return {}
 
 ## Generate locations for the world (p.82-84)
 func _generate_locations(planet_type: Dictionary, danger_level: int) -> Array:

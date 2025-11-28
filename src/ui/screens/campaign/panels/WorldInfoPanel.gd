@@ -5,6 +5,14 @@ extends FiveParsecsCampaignPanel
 ## Integrates with enhanced data manager following Digital Dice System visual patterns
 ## Provides comprehensive world information with contextual data display
 
+# Progress tracking
+const STEP_NUMBER := 6  # Step 6 of 7 in campaign wizard
+
+# Signals for CampaignCreationUI integration
+signal world_generated(world_data: Dictionary)
+signal world_updated(world_data: Dictionary)
+signal world_created(world_data: Dictionary)
+
 # Dependencies - all files exist and are required
 const UIColors = preload("res://src/ui/components/base/UIColors.gd")
 const CampaignSignals = preload("res://src/core/signals/CampaignSignals.gd")
@@ -79,10 +87,10 @@ var world_threats: Array[Dictionary] = []
 var selected_opportunity: String = ""
 var campaign_signals: CampaignSignals
 
-# Direct signal connections - production-ready pattern
-var world_data_updated: bool = false
-var world_generated: bool = false  # Track if world has been generated
-var world_confirmed: bool = false  # Track if user confirmed the world
+# State flags
+var is_world_data_updated: bool = false
+var is_world_generated: bool = false   # Track if world has been generated
+var is_world_confirmed: bool = false   # Track if user confirmed the world
 
 # UI Control buttons
 var generate_button: Button = null
@@ -95,27 +103,30 @@ var coordinator: Node = null
 func _ready() -> void:
 	# Set panel info before base initialization with more informative description
 	set_panel_info("World Generation", "Generate your starting world and sector. This determines available missions and encounters.")
-	
+
 	# Call parent _ready() to initialize BaseCampaignPanel structure
 	super._ready()
-	
+
+	# Add progress indicator
+	call_deferred("_add_progress_indicator")
+
 	# COMPREHENSIVE DEBUG OUTPUT - Panel Initialization
 	call_deferred("_log_panel_initialization_debug")
-	
+
 	# Initialize world generation system
 	_initialize_world_generator()
-	
+
 	# Initialize world panel-specific functionality
 	_setup_world_panel()
-	
+
 	# Defer button setup to ensure scene is fully loaded
 	call_deferred("_setup_control_buttons")
-	
+
 	# Debug verification of button creation
 	call_deferred("_verify_button_creation")
 	
 	_connect_campaign_signals()
-	_apply_responsive_layout()
+	_apply_mobile_layout()
 
 func _verify_button_creation() -> void:
 	"""Verify buttons were created and added correctly"""
@@ -130,10 +141,17 @@ func _verify_button_creation() -> void:
 		print("❌ Buttons NOT in scene tree - check Content container path")
 	print("")
 
-func _setup_panel_content() -> void:
-	"""Override from BaseCampaignPanel - setup world panel-specific content"""
-	# This will be called after BaseCampaignPanel structure is ready
-	pass
+func _add_progress_indicator() -> void:
+	"""Add progress indicator to panel after structure is ready"""
+	var main_content = get_node_or_null("ContentMargin/MainContent")
+	if not main_content:
+		push_warning("WorldInfoPanel: MainContent node not found for progress indicator")
+		return
+
+	var progress = _create_progress_indicator(STEP_NUMBER, 7)
+	main_content.add_child(progress)
+	main_content.move_child(progress, 0)  # Put at top of panel
+	print("WorldInfoPanel: Progress indicator added (Step %d of 7)" % STEP_NUMBER)
 
 func _initialize_world_generator() -> void:
 	"""Initialize WorldGenerator with defensive error handling"""
@@ -184,34 +202,34 @@ func _setup_control_buttons() -> void:
 	# Add a separator before buttons
 	var separator = HSeparator.new()
 	content_container.add_child(separator)
-	
+
 	# Create button container
 	var button_container = HBoxContainer.new()
 	button_container.name = "WorldControlButtons"
 	button_container.alignment = BoxContainer.ALIGNMENT_CENTER
-	button_container.add_theme_constant_override("separation", 20)
+	button_container.add_theme_constant_override("separation", SPACING_LG)
 	
 	# Create Generate World button
 	generate_button = Button.new()
 	generate_button.text = "Generate World"
-	generate_button.custom_minimum_size = Vector2(150, 40)
+	generate_button.custom_minimum_size = Vector2(150, TOUCH_TARGET_MIN)
 	generate_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	generate_button.pressed.connect(_on_generate_button_pressed)
 	button_container.add_child(generate_button)
-	
+
 	# Create Reroll button (initially disabled)
 	reroll_button = Button.new()
 	reroll_button.text = "Reroll World"
-	reroll_button.custom_minimum_size = Vector2(150, 40)
+	reroll_button.custom_minimum_size = Vector2(150, TOUCH_TARGET_MIN)
 	reroll_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	reroll_button.disabled = true
 	reroll_button.pressed.connect(_on_reroll_button_pressed)
 	button_container.add_child(reroll_button)
-	
+
 	# Create Confirm button (initially disabled)
 	confirm_button = Button.new()
 	confirm_button.text = "Confirm World"
-	confirm_button.custom_minimum_size = Vector2(150, 40)
+	confirm_button.custom_minimum_size = Vector2(150, TOUCH_TARGET_MIN)
 	confirm_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	confirm_button.disabled = true
 	confirm_button.pressed.connect(_on_confirm_button_pressed)
@@ -244,8 +262,8 @@ func _on_generate_button_pressed() -> void:
 		generate_button.disabled = true
 	
 	# Mark world as generated but not confirmed
-	world_generated = true
-	world_confirmed = false
+	is_world_generated = true
+	is_world_confirmed = false
 	
 	# Update validation
 	_update_validation_state()
@@ -260,8 +278,8 @@ func _on_reroll_button_pressed() -> void:
 	_generate_world_with_fallback(campaign_name + " " + world_suffix)
 	
 	# Keep confirm button enabled
-	world_generated = true
-	world_confirmed = false
+	is_world_generated = true
+	is_world_confirmed = false
 	
 	# Update validation
 	_update_validation_state()
@@ -271,7 +289,7 @@ func _on_confirm_button_pressed() -> void:
 	print("WorldInfoPanel: Confirm button pressed")
 	
 	# Mark world as confirmed
-	world_confirmed = true
+	is_world_confirmed = true
 	
 	# Disable reroll button
 	if reroll_button:
@@ -284,18 +302,25 @@ func _on_confirm_button_pressed() -> void:
 	
 	# Update validation and emit completion
 	_update_validation_state()
-	
+
 	# Emit panel completed signal
-	if world_confirmed and not current_world_data.is_empty():
+	if is_world_confirmed and not current_world_data.is_empty():
 		panel_completed.emit(get_panel_data())
 		print("WorldInfoPanel: World confirmed and panel completed")
+
+	# Emit world_created signal for CampaignCreationUI
+	world_created.emit(current_world_data)
 
 func _get_campaign_name_safe() -> String:
 	"""Safely get campaign name from coordinator or use default"""
 	if coordinator and coordinator.has_method("get_unified_campaign_state"):
 		var state = coordinator.get_unified_campaign_state()
 		var campaign_config = state.get("campaign_config", {})
-		return campaign_config.get("campaign_name", "New Campaign")
+		var name = campaign_config.get("campaign_name", "")
+		# Return default if name is empty or only whitespace
+		if name.strip_edges().is_empty():
+			return "New Campaign"
+		return name.strip_edges()
 	return "New Campaign"
 
 func _update_validation_state() -> void:
@@ -324,31 +349,65 @@ func _connect_campaign_signals() -> void:
 	campaign_signals.connect_signal_safely("rival_threat_identified", self, "_on_rival_threat_identified")
 	campaign_signals.connect_signal_safely("trade_opportunity_identified", self, "_on_trade_opportunity_identified")
 
-func _apply_responsive_layout() -> void:
-	# Apply responsive design patterns
-	var viewport_size = get_viewport().get_visible_rect().size
-	if viewport_size.x < viewport_size.y:
-		_apply_portrait_layout()
-	else:
-		_apply_landscape_layout()
-
-func _apply_portrait_layout() -> void:
-	# Mobile-first compact layout
+func _apply_mobile_layout() -> void:
+	"""Mobile-specific layout: Single column, large touch targets, compact info"""
+	# Override from BaseCampaignPanel
 	if world_traits_container:
-		world_traits_container.custom_minimum_size.y = 100
+		world_traits_container.custom_minimum_size.y = 80  # Compact on mobile
 		world_traits_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	
+
 	if world_summary:
 		world_summary.text = _generate_compact_world_summary()
 
-func _apply_landscape_layout() -> void:
-	# Desktop detailed layout
+	# Update control buttons for mobile (comfortable touch targets)
+	if generate_button:
+		generate_button.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+	if reroll_button:
+		reroll_button.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+	if confirm_button:
+		confirm_button.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+
+	print("WorldInfoPanel: Applied MOBILE layout")
+
+func _apply_tablet_layout() -> void:
+	"""Tablet-specific layout: Two-column where appropriate"""
+	# Override from BaseCampaignPanel
 	if world_traits_container:
-		world_traits_container.custom_minimum_size.y = 150
+		world_traits_container.custom_minimum_size.y = 100  # Medium on tablet
 		world_traits_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	
+
 	if world_summary:
 		world_summary.text = _generate_detailed_world_summary()
+
+	# Standard touch targets for tablet
+	if generate_button:
+		generate_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if reroll_button:
+		reroll_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if confirm_button:
+		confirm_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+
+	print("WorldInfoPanel: Applied TABLET layout")
+
+func _apply_desktop_layout() -> void:
+	"""Desktop-specific layout: Full data visibility, multi-column"""
+	# Override from BaseCampaignPanel
+	if world_traits_container:
+		world_traits_container.custom_minimum_size.y = 150  # Generous on desktop
+		world_traits_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	if world_summary:
+		world_summary.text = _generate_detailed_world_summary()
+
+	# Minimum touch targets for desktop (mouse precision)
+	if generate_button:
+		generate_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if reroll_button:
+		reroll_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if confirm_button:
+		confirm_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+
+	print("WorldInfoPanel: Applied DESKTOP layout")
 
 ## Main world display update function
 func update_world_display(world_name: String) -> void:
@@ -453,15 +512,104 @@ func _display_world_traits(world_features: Array) -> void:
 		return
 	
 	# Clear existing world features
-	for child in world_traits_container.get_children():
-		child.queue_free()
+	var children = world_traits_container.get_children()
+	for i in range(children.size()):
+		children[i].queue_free()
 	
-	# Add world feature displays
-	for feature in world_features:
-		var feature_label = Label.new()
-		feature_label.text = "• %s" % feature
-		feature_label.add_theme_color_override("font_color", UIColors.INFO_COLOR)
-		world_traits_container.add_child(feature_label)
+	# Add world trait displays with enhanced information
+	for i in range(world_features.size()):
+		var feature_data = world_features[i]
+		
+		# Feature can be either a Dictionary (new format) or String (legacy format)
+		if feature_data is Dictionary:
+			_create_trait_card(feature_data)
+		elif feature_data is String:
+			# Legacy format - just display the trait ID
+			var feature_label = Label.new()
+			feature_label.text = "• %s" % feature_data
+			feature_label.add_theme_color_override("font_color", UIColors.INFO_COLOR)
+			world_traits_container.add_child(feature_label)
+
+func _create_trait_card(trait_data: Dictionary) -> void:
+	"""Create an enhanced trait card showing name, description, and mechanical effect"""
+	# Container for the entire trait card
+	var card_container = PanelContainer.new()
+	card_container.add_theme_stylebox_override("panel", _create_trait_card_style(trait_data.get("category", "social")))
+	
+	var card_margin = MarginContainer.new()
+	card_margin.add_theme_constant_override("margin_left", SPACING_MD)
+	card_margin.add_theme_constant_override("margin_right", SPACING_MD)
+	card_margin.add_theme_constant_override("margin_top", SPACING_SM)
+	card_margin.add_theme_constant_override("margin_bottom", SPACING_SM)
+	card_container.add_child(card_margin)
+	
+	var card_vbox = VBoxContainer.new()
+	card_vbox.add_theme_constant_override("separation", SPACING_XS)
+	card_margin.add_child(card_vbox)
+	
+	# Trait name with category badge
+	var name_hbox = HBoxContainer.new()
+	card_vbox.add_child(name_hbox)
+	
+	var name_label = Label.new()
+	name_label.text = trait_data.get("name", "Unknown Trait")
+	name_label.add_theme_font_size_override("font_size", 14)
+	name_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0))
+	name_hbox.add_child(name_label)
+	
+	# Category badge
+	var category_label = Label.new()
+	var category = trait_data.get("category", "social")
+	category_label.text = "[%s]" % category.capitalize()
+	category_label.add_theme_font_size_override("font_size", 11)
+	category_label.add_theme_color_override("font_color", _get_category_color(category))
+	name_hbox.add_child(category_label)
+	
+	# Description
+	var desc_label = Label.new()
+	desc_label.text = trait_data.get("description", "")
+	desc_label.add_theme_font_size_override("font_size", 12)
+	desc_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
+	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	card_vbox.add_child(desc_label)
+	
+	# Mechanical effect (highlighted)
+	var effect_label = Label.new()
+	effect_label.text = "⚙ %s" % trait_data.get("mechanical_effect", "No mechanical effect")
+	effect_label.add_theme_font_size_override("font_size", 11)
+	effect_label.add_theme_color_override("font_color", Color(0.4, 0.8, 1.0))
+	effect_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	card_vbox.add_child(effect_label)
+	
+	world_traits_container.add_child(card_container)
+
+func _create_trait_card_style(category: String) -> StyleBoxFlat:
+	"""Create a styled box for trait cards with category-specific accent"""
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.15, 0.15, 0.2, 0.95)
+	style.border_width_left = 3
+	style.border_color = _get_category_color(category)
+	style.corner_radius_top_left = 4
+	style.corner_radius_top_right = 4
+	style.corner_radius_bottom_left = 4
+	style.corner_radius_bottom_right = 4
+	return style
+
+func _get_category_color(category: String) -> Color:
+	"""Get color coding for trait categories"""
+	match category:
+		"environmental":
+			return Color(0.4, 0.7, 1.0)  # Blue
+		"economic":
+			return Color(0.4, 1.0, 0.5)  # Green
+		"social":
+			return Color(1.0, 0.8, 0.2)  # Yellow
+		"military":
+			return Color(1.0, 0.3, 0.3)  # Red
+		"technical":
+			return Color(0.7, 0.4, 1.0)  # Purple
+		_:
+			return Color(0.7, 0.7, 0.7)  # Gray default
 
 func _display_government_info(government_type: String, tech_level: int) -> void:
 	if government_info:
@@ -482,52 +630,129 @@ func _display_government_info(government_type: String, tech_level: int) -> void:
 func _display_opportunities(known_patrons: Array, market_prices: Dictionary) -> void:
 	if not opportunities_container:
 		return
-	
+
 	# Clear existing opportunities
-	for child in opportunities_container.get_children():
-		child.queue_free()
-	
+	var children = opportunities_container.get_children()
+	for i in range(children.size()):
+		children[i].queue_free()
+
+	# Add section header
+	var header = Label.new()
+	header.text = "📋 Available Opportunities"
+	header.add_theme_font_size_override("font_size", 14)
+	header.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	opportunities_container.add_child(header)
+
+	# Track if we have any content
+	var has_content = false
+
 	# Add patron opportunities
-	for patron in known_patrons:
-		var patron_card = _create_opportunity_card(patron, "patron")
-		if patron_card:
-			opportunities_container.add_child(patron_card)
-	
+	if known_patrons.size() > 0:
+		var patron_header = Label.new()
+		patron_header.text = "Patrons:"
+		patron_header.add_theme_font_size_override("font_size", 12)
+		patron_header.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+		opportunities_container.add_child(patron_header)
+
+		for i in range(known_patrons.size()):
+			var patron_data = known_patrons[i]
+			var patron_card = _create_opportunity_card(patron_data, "patron")
+			if patron_card:
+				opportunities_container.add_child(patron_card)
+				has_content = true
+
 	# Add trade opportunities
-	for commodity in market_prices.keys():
-		var price_data = market_prices[commodity]
-		var trade_card = _create_opportunity_card({
-			"type": "trade",
-			"commodity": commodity,
-			"price": price_data.get("current", 0),
-			"trend": price_data.get("trend", "stable")
-		}, "trade")
-		if trade_card:
-			opportunities_container.add_child(trade_card)
+	if market_prices.size() > 0:
+		var trade_header = Label.new()
+		trade_header.text = "Market Prices:"
+		trade_header.add_theme_font_size_override("font_size", 12)
+		trade_header.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+		opportunities_container.add_child(trade_header)
+
+		var commodity_keys = market_prices.keys()
+		for i in range(commodity_keys.size()):
+			var commodity_key = commodity_keys[i]
+			var price_data = market_prices[commodity_key]
+			var trade_card = _create_opportunity_card({
+				"type": "trade",
+				"commodity": commodity_key,
+				"price": price_data.get("current", 0),
+				"trend": price_data.get("trend", "stable")
+			}, "trade")
+			if trade_card:
+				opportunities_container.add_child(trade_card)
+				has_content = true
+
+	# Show placeholder if no opportunities
+	if not has_content:
+		var empty_label = Label.new()
+		empty_label.text = "No opportunities available yet"
+		empty_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+		opportunities_container.add_child(empty_label)
 
 func _display_threats(rival_threats: Array) -> void:
 	if not threats_container:
 		return
-	
+
 	# Clear existing threats
-	for child in threats_container.get_children():
-		child.queue_free()
-	
+	var children = threats_container.get_children()
+	for i in range(children.size()):
+		children[i].queue_free()
+
+	# Add section header
+	var header = Label.new()
+	header.text = "⚠️ Known Threats"
+	header.add_theme_font_size_override("font_size", 14)
+	header.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	threats_container.add_child(header)
+
 	# Add threat cards
-	for threat in rival_threats:
-		var threat_card = _create_threat_card(threat)
-		if threat_card:
-			threats_container.add_child(threat_card)
+	if rival_threats.size() > 0:
+		for i in range(rival_threats.size()):
+			var threat_data = rival_threats[i]
+			var threat_card = _create_threat_card(threat_data)
+			if threat_card:
+				threats_container.add_child(threat_card)
+	else:
+		# Show placeholder if no threats
+		var empty_label = Label.new()
+		empty_label.text = "No known threats in this sector"
+		empty_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+		threats_container.add_child(empty_label)
 
 func _create_opportunity_card(opportunity_data: Dictionary, opportunity_type: String) -> Control:
 	# Create opportunity card using PanelContainer
 	var opportunity_card = PanelContainer.new()
 
+	# Create VBox for multi-line content
+	var content_vbox = VBoxContainer.new()
+	opportunity_card.add_child(content_vbox)
+
 	# Create label for opportunity display
 	var opportunity_label = Label.new()
-	opportunity_label.text = opportunity_data.get("name", "Unknown Opportunity")
+
+	# Handle different opportunity types
+	if opportunity_type == "trade":
+		var commodity = opportunity_data.get("commodity", "Unknown")
+		var price = opportunity_data.get("price", 0)
+		var trend = opportunity_data.get("trend", "stable")
+		var trend_icon = "→" if trend == "stable" else ("↑" if trend == "rising" else "↓")
+		opportunity_label.text = "%s: %d credits %s" % [commodity.capitalize(), price, trend_icon]
+	else:
+		opportunity_label.text = opportunity_data.get("name", "Unknown Opportunity")
+
 	opportunity_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	opportunity_card.add_child(opportunity_label)
+	content_vbox.add_child(opportunity_label)
+
+	# Add description if available
+	var description = opportunity_data.get("description", "")
+	if not description.is_empty():
+		var desc_label = Label.new()
+		desc_label.text = description
+		desc_label.add_theme_font_size_override("font_size", 11)
+		desc_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+		desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		content_vbox.add_child(desc_label)
 
 	# Apply visual styling
 	_apply_opportunity_styling(opportunity_label, opportunity_data, opportunity_type)
@@ -555,11 +780,25 @@ func _create_threat_card(threat_data: Dictionary) -> Control:
 	# Create threat card using PanelContainer
 	var threat_card = PanelContainer.new()
 
+	# Create VBox for multi-line content
+	var content_vbox = VBoxContainer.new()
+	threat_card.add_child(content_vbox)
+
 	# Create label for threat display
 	var threat_label = Label.new()
 	threat_label.text = threat_data.get("name", "Unknown Threat")
 	threat_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	threat_card.add_child(threat_label)
+	content_vbox.add_child(threat_label)
+
+	# Add description if available
+	var description = threat_data.get("description", "")
+	if not description.is_empty():
+		var desc_label = Label.new()
+		desc_label.text = description
+		desc_label.add_theme_font_size_override("font_size", 11)
+		desc_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+		desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		content_vbox.add_child(desc_label)
 
 	# Apply visual styling
 	_apply_threat_styling(threat_label, threat_data)
@@ -663,7 +902,7 @@ func _on_world_generated_from_generator(world_data: Dictionary) -> void:
 	_display_world_data(world_data)
 	
 	# Mark world as generated
-	world_generated = true
+	is_world_generated = true
 	
 	# Update button states if they exist
 	if generate_button:
@@ -683,10 +922,13 @@ func _on_world_generated_from_generator(world_data: Dictionary) -> void:
 	
 	# Update validation state
 	_update_validation_state()
-	
+
 	# Emit enhanced signal for other systems
 	if campaign_signals:
 		campaign_signals.emit_safe_signal("world_generated", [world_data])
+
+	# Emit panel signal for CampaignCreationUI
+	world_generated.emit(world_data)
 
 func _send_world_data_to_coordinator(world_data: Dictionary) -> void:
 	"""Send world data to coordinator for campaign state management"""
@@ -700,10 +942,13 @@ func _send_world_data_to_coordinator(world_data: Dictionary) -> void:
 		print("WorldInfoPanel: World data sent to coordinator")
 	else:
 		push_warning("WorldInfoPanel: Coordinator missing update_world_state method")
-	
+
 	# Also emit panel data changed for UI updates
 	var panel_data = get_panel_data()
 	panel_data_changed.emit(panel_data)
+
+	# Emit world_updated signal for CampaignCreationUI
+	world_updated.emit(world_data)
 
 ## Signal handlers
 func _on_world_discovered(world_data: Dictionary) -> void:
@@ -812,19 +1057,22 @@ func refresh_display() -> void:
 func validate_panel() -> bool:
 	"""Validate that a world has been generated and confirmed"""
 	# World must be generated and confirmed to proceed
-	var is_valid = world_generated and world_confirmed and not current_world_data.is_empty()
+	var is_valid: bool = is_world_generated and is_world_confirmed and not current_world_data.is_empty()
 	
-	if not world_generated:
+	if not is_world_generated:
 		print("WorldInfoPanel: Validation failed - No world generated")
-		validation_failed.emit("Please generate a world before proceeding")
+		var errors: Array[String] = ["Please generate a world before proceeding"]
+		validation_failed.emit(errors)
 		return false
-	elif not world_confirmed:
+	elif not is_world_confirmed:
 		print("WorldInfoPanel: Validation failed - World not confirmed")
-		validation_failed.emit("Please confirm your world selection before proceeding")
+		var errors: Array[String] = ["Please confirm your world selection before proceeding"]
+		validation_failed.emit(errors)
 		return false
 	elif current_world_data.is_empty():
 		print("WorldInfoPanel: Validation failed - World data is empty")
-		validation_failed.emit("World data is missing, please regenerate")
+		var errors: Array[String] = ["World data is missing, please regenerate"]
+		validation_failed.emit(errors)
 		return false
 	
 	print("WorldInfoPanel: Validation passed - World ready")
@@ -837,7 +1085,7 @@ func get_panel_data() -> Dictionary:
 		"opportunities": world_opportunities,
 		"threats": world_threats,
 		"selected_opportunity": selected_opportunity,
-		"is_complete": world_confirmed
+		"is_complete": is_world_confirmed
 	}
 	
 	# Add metadata
@@ -910,16 +1158,16 @@ func _on_campaign_state_updated(state_data: Dictionary) -> void:
 			_display_world_data(current_world_data)
 			
 			# Update button states for existing world
-			world_generated = true
-			world_confirmed = existing_world.get("is_complete", false)
+			is_world_generated = true
+			is_world_confirmed = existing_world.get("is_complete", false)
 			
 			if generate_button:
 				generate_button.disabled = true
 			if reroll_button:
-				reroll_button.disabled = not world_confirmed
+				reroll_button.disabled = not is_world_confirmed
 			if confirm_button:
-				confirm_button.disabled = world_confirmed
-				confirm_button.text = "✓ World Confirmed" if world_confirmed else "Confirm World"
+				confirm_button.disabled = is_world_confirmed
+				confirm_button.text = "✓ World Confirmed" if is_world_confirmed else "Confirm World"
 			
 			_update_validation_state()
 			return
@@ -973,9 +1221,9 @@ func _generate_world_from_campaign_data(campaign_data: Dictionary) -> void:
 		"traits": _generate_world_traits(world_type, danger_level),
 		"locations": _generate_starting_locations(world_type, tech_level),
 		"special_features": _generate_special_features(captain_background, crew_size),
-		"known_patrons": [],
+		"known_patrons": _generate_starting_patrons(world_type, tech_level),
 		"market_prices": _generate_market_prices(tech_level),
-		"rival_threats": []
+		"rival_threats": _generate_starting_threats(danger_level, world_type)
 	}
 	
 	# Apply generated world
@@ -1178,15 +1426,119 @@ func _generate_special_features(captain_background: String, crew_size: int) -> A
 func _generate_market_prices(tech_level: int) -> Dictionary:
 	"""Generate market prices based on tech level"""
 	var prices = {}
-	
+
 	# Base prices modified by tech level
 	var tech_modifier = (tech_level - 3) * 0.1  # +/- 10% per tech level from 3
-	
+
 	prices["food"] = {"current": int(10 * (1.0 + tech_modifier)), "trend": "stable"}
 	prices["equipment"] = {"current": int(25 * (1.0 - tech_modifier)), "trend": "stable"}
 	prices["fuel"] = {"current": int(15 * (1.0 + tech_modifier * 0.5)), "trend": "stable"}
-	
+
 	return prices
+
+func _generate_starting_patrons(world_type: String, tech_level: int) -> Array[Dictionary]:
+	"""Generate starting patron opportunities based on world characteristics"""
+	var patrons: Array[Dictionary] = []
+
+	# Corporate patron for industrial/urban worlds
+	if world_type in ["industrial", "urban", "temperate"]:
+		patrons.append({
+			"name": "Corporate Representative",
+			"type": "corporate",
+			"level": "standard",
+			"risk": "low",
+			"description": "Seeking freelancers for security and transport jobs"
+		})
+
+	# Government patron for established worlds
+	if tech_level >= 3:
+		patrons.append({
+			"name": "Colonial Administrator",
+			"type": "government",
+			"level": "standard",
+			"risk": "medium",
+			"description": "Has contracts for system defense and patrol missions"
+		})
+
+	# Trader patron for frontier/desert worlds
+	if world_type in ["frontier", "desert"]:
+		patrons.append({
+			"name": "Independent Merchant",
+			"type": "merchant",
+			"level": "standard",
+			"risk": "medium",
+			"description": "Looking for escorts and cargo haulers"
+		})
+
+	# Always at least one patron
+	if patrons.is_empty():
+		patrons.append({
+			"name": "Local Contact",
+			"type": "civilian",
+			"level": "minor",
+			"risk": "low",
+			"description": "Has odd jobs and local work available"
+		})
+
+	return patrons
+
+func _generate_starting_threats(danger_level: int, world_type: String) -> Array[Dictionary]:
+	"""Generate starting threats based on danger level and world type"""
+	var threats: Array[Dictionary] = []
+
+	# Base threat from danger level
+	if danger_level >= 3:
+		threats.append({
+			"name": "Pirate Activity",
+			"type": "criminal",
+			"level": "high" if danger_level >= 4 else "medium",
+			"description": "Raiders operating in the sector"
+		})
+
+	# World-type specific threats
+	match world_type:
+		"desert", "volcanic":
+			threats.append({
+				"name": "Harsh Environment",
+				"type": "environmental",
+				"level": "medium",
+				"description": "Extreme conditions reduce crew recovery"
+			})
+		"frontier":
+			threats.append({
+				"name": "Unexplored Hazards",
+				"type": "environmental",
+				"level": "low",
+				"description": "Unknown dangers in uncharted regions"
+			})
+		"industrial":
+			if danger_level >= 2:
+				threats.append({
+					"name": "Corporate Rivals",
+					"type": "faction",
+					"level": "medium",
+					"description": "Competing interests may cause conflicts"
+				})
+
+	# High danger always has rival presence
+	if danger_level >= 4:
+		threats.append({
+			"name": "Rival Crew",
+			"type": "rival",
+			"level": "high",
+			"description": "An established rival operates in this area"
+		})
+
+	# Ensure at least a minor threat for flavor
+	if threats.is_empty():
+		threats.append({
+			"name": "Minor Criminal Element",
+			"type": "criminal",
+			"level": "low",
+			"description": "Petty criminals and opportunists"
+		})
+
+	return threats
 
 ## Debug Helper Methods
 
@@ -1222,7 +1574,7 @@ func _log_panel_initialization_debug() -> void:
 	print("    World Opportunities: %d" % world_opportunities.size())
 	print("    World Threats: %d" % world_threats.size())
 	print("    Selected Opportunity: '%s'" % selected_opportunity)
-	print("    World Data Updated: %s" % world_data_updated)
+	print("    World Data Updated: %s" % is_world_data_updated)
 	
 	# Check UI component availability  
 	print("  === UI COMPONENTS ===")
@@ -1276,8 +1628,8 @@ func _sync_with_coordinator() -> void:
 				_display_world_data(current_world_data)
 				
 				# Update generation state based on existing data
-				world_generated = not current_world_data.is_empty()
-				world_confirmed = world_state.get("is_complete", false)
+				is_world_generated = not current_world_data.is_empty()
+				is_world_confirmed = world_state.get("is_complete", false)
 				
 				# Update button states
 				_update_button_states()
@@ -1287,14 +1639,14 @@ func _sync_with_coordinator() -> void:
 func _update_button_states() -> void:
 	"""Update control button states based on current world status"""
 	if generate_button:
-		generate_button.disabled = world_generated
+		generate_button.disabled = is_world_generated
 	
 	if reroll_button:
-		reroll_button.disabled = not world_generated or world_confirmed
+		reroll_button.disabled = not is_world_generated or is_world_confirmed
 	
 	if confirm_button:
-		confirm_button.disabled = not world_generated or world_confirmed
-		confirm_button.text = "✓ World Confirmed" if world_confirmed else "Confirm World"
+		confirm_button.disabled = not is_world_generated or is_world_confirmed
+		confirm_button.text = "✓ World Confirmed" if is_world_confirmed else "Confirm World"
 	
 	# Trigger initial sync
 	sync_with_coordinator()
@@ -1377,5 +1729,4 @@ func _debug_button_state() -> void:
 	else:
 		print("Content container not found!")
 
-	print("World Generated: %s, World Confirmed: %s" % [world_generated, world_confirmed])
-	print("==== END DEBUG ====\n")
+	print("World Generated: %s, World Confirmed: %s" % [is_world_generated, is_world_confirmed])

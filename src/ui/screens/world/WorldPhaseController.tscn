@@ -260,7 +260,7 @@ alignment = 1
 
 [node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/Controls/StepNavigation"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 40)
+custom_minimum_size = Vector2(120, 56)
 layout_mode = 2
 text = "← Back"
 
@@ -270,6 +270,6 @@ size_flags_horizontal = 3
 
 [node name="NextButton" type="Button" parent="MarginContainer/VBoxContainer/Controls/StepNavigation"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 40)
+custom_minimum_size = Vector2(120, 56)
 layout_mode = 2
 text = "Next →"

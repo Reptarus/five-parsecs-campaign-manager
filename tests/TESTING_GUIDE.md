@@ -39,8 +39,8 @@ Tests split into 3 files to avoid potential issues:
 
 ## Test Results Summary
 
-**Overall Status: 138 tests (136 passing, 2 failing)**
-**Last Updated**: 2025-11-20
+**Overall Status: 164 tests (162 passing, 2 failing)**
+**Last Updated**: 2025-11-27
 
 ### Week 3 - Unit Testing Sprint (138 tests)
 
@@ -62,7 +62,7 @@ Tests split into 3 files to avoid potential issues:
 - ✅ test_state_validation.gd: 12/12 PASSED
 - ✅ test_state_victory.gd: 7/7 PASSED
 
-### Week 4 - Integration Testing Sprint (30 tests)
+### Week 4 - Integration Testing Sprint (56 tests)
 
 #### Day 4 - E2E Workflow & Integration (22 tests)
 - ⚠️ test_campaign_e2e_workflow.gd: 20/22 PASSED (2 tests failing - equipment field mismatch)
@@ -71,6 +71,14 @@ Tests split into 3 files to avoid potential issues:
 - ✅ test_phase_transitions.gd: 8/8 PASSED (campaign phase state machine)
 - ✅ test_equipment_management.gd: 8 tests created (**3 CRITICAL BUGS DISCOVERED**)
 - ✅ test_battle_initialization.gd: 10 tests created (**READY FOR EXECUTION**)
+
+#### Day 5 - Battle HUD Signal Flow & State Management (26 tests)
+- ✅ test_battle_hud_signals.gd: 13/13 CREATED (EventBus infrastructure & signal propagation)
+- ✅ test_battle_ui_components.gd: 13/13 CREATED (UI component interactions & system integration)
+  - **Coverage**: EventBus lifecycle, BattleManager integration, DiceSystem routing, phase transitions
+  - **Signal Chains**: UI → EventBus → BattleManager → State validation
+  - **Performance**: Concurrent UI updates, memory efficiency, cleanup verification
+  - **See**: `tests/integration/BATTLE_HUD_TESTS_README.md` for architecture diagrams
 
 ## Helper Classes
 

@@ -1,0 +1,74 @@
+{
+  "name": "Battlefield Finds Table",
+  "version": "1.0",
+  "source": "Five Parsecs from Home Core Rules",
+  "description": "Loot found when searching battlefields after combat",
+  "dice_type": "d6",
+  "results": {
+    "1": {
+      "outcome": "nothing_found",
+      "credits": 0,
+      "description": "Nothing of value found",
+      "narrative": "The battlefield has been thoroughly picked over by scavengers",
+      "icon": "empty_crate"
+    },
+    "2": {
+      "outcome": "minor_salvage",
+      "credits": 1,
+      "description": "Minor salvage worth 1 credit",
+      "narrative": "You recover some basic components and scrap metal",
+      "icon": "salvage"
+    },
+    "3": {
+      "outcome": "equipment_find",
+      "credits": 0,
+      "item_roll": true,
+      "item_table": "basic_gear",
+      "description": "Found usable equipment - roll on gear table",
+      "narrative": "Intact equipment scattered among the debris",
+      "icon": "equipment"
+    },
+    "4": {
+      "outcome": "weapon_cache",
+      "credits": 0,
+      "item_roll": true,
+      "item_table": "military_weapons",
+      "description": "Found weapon - roll on military weapons table",
+      "narrative": "A functional weapon lies among the fallen",
+      "icon": "weapon"
+    },
+    "5": {
+      "outcome": "valuable_find",
+      "credits": 3,
+      "description": "Valuable salvage worth 3 credits",
+      "narrative": "Rare components and intact systems recovered",
+      "icon": "valuable"
+    },
+    "6": {
+      "outcome": "rare_discovery",
+      "credits": 2,
+      "item_roll": true,
+      "item_table": "gadgets",
+      "description": "2 credits + roll on gadget table",
+      "narrative": "An exceptional find among the wreckage",
+      "icon": "rare"
+    }
+  },
+  "modifiers": {
+    "scanner_bonus": {
+      "bonus": 1,
+      "description": "Having a scanner adds +1 to the roll",
+      "item_required": "scanner"
+    },
+    "high_tech_battlefield": {
+      "bonus": 1,
+      "description": "High-tech battlefields yield better finds"
+    }
+  },
+  "ui_hints": {
+    "display_mode": "dice_roll_results",
+    "show_narratives": true,
+    "allow_reroll": false,
+    "color_scheme": "loot"
+  }
+}

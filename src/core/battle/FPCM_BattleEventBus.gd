@@ -20,7 +20,7 @@ const FPCM_BattleEventsSystem = preload("res://src/core/battle/BattleEventsSyste
 
 # Phase management
 signal battle_initialized(battle_data: Dictionary)
-signal battle_phase_changed(old_phase: FPCM_BattleManager.BattlePhase, new_phase: FPCM_BattleManager.BattlePhase)
+signal battle_phase_changed(old_phase: FPCM_BattleManager.BattleManagerPhase, new_phase: FPCM_BattleManager.BattleManagerPhase)
 signal battle_completed(results: FPCM_BattleManager.BattleResult)
 signal battle_error(error_code: String, context: Dictionary)
 
@@ -105,21 +105,22 @@ var dice_system_instance: FPCM_DiceSystem = null
 
 # Performance tracking
 var signal_count: int = 0
-var last_performance_check: float = 0.0
-var performance_check_interval: float = 5.0
+var _performance_timer: Timer
 
 func _ready() -> void:
 	"""Initialize the battle event bus"""
-	set_process(true)
 	_connect_internal_signals()
+	_setup_performance_monitoring()
 	print("FPCM Battle Event Bus initialized")
 
-func _process(_delta: float) -> void:
-	"""Monitor performance periodically"""
-	var current_time: float = Time.get_ticks_msec() / 1000.0
-	if current_time - last_performance_check > performance_check_interval:
-		_check_performance()
-		last_performance_check = current_time
+func _setup_performance_monitoring() -> void:
+	"""Setup performance monitoring timer"""
+	_performance_timer = Timer.new()
+	add_child(_performance_timer)
+	_performance_timer.wait_time = 5.0  # Check every 5 seconds
+	_performance_timer.timeout.connect(_check_performance)
+	_performance_timer.start()
+	print("FPCM Battle Event Bus: Performance monitoring timer started")
 
 ## Register UI component with the event bus
 func register_ui_component(component_name: String, component: Control) -> void:
@@ -255,7 +256,7 @@ func _on_component_error(component_name: String, error: String, context: Diction
 	error_context["source_component"] = component_name
 	battle_error.emit("UI_COMPONENT_ERROR", error_context)
 
-func _on_battle_phase_changed(old_phase: FPCM_BattleManager.BattlePhase, new_phase: FPCM_BattleManager.BattlePhase) -> void:
+func _on_battle_phase_changed(old_phase: FPCM_BattleManager.BattleManagerPhase, new_phase: FPCM_BattleManager.BattleManagerPhase) -> void:
 	"""Forward battle phase changes"""
 	battle_phase_changed.emit(old_phase, new_phase)
 
@@ -306,6 +307,14 @@ func get_event_bus_status() -> Dictionary:
 		"signal_count": signal_count,
 		"performance_healthy": registered_components.size() < 20
 	}
+
+func _exit_tree() -> void:
+	"""Cleanup when event bus is removed from scene tree"""
+	if _performance_timer:
+		_performance_timer.stop()
+		_performance_timer.queue_free()
+		_performance_timer = null
+	cleanup_for_scene_change()
 
 ## Emergency cleanup for scene transitions
 func cleanup_for_scene_change() -> void:

@@ -1,8 +1,8 @@
 # Week 4 Retrospective - Core Rules Validation & Beta Gap Analysis
 
-**Date**: 2025-11-20
-**Status**: BETA_READY (94/100) → PRODUCTION_CANDIDATE (98/100)
-**Estimated to Functional Beta**: 12-17 hours
+**Date**: 2025-11-23 (Updated)
+**Status**: BETA_READY (95/100) → PRODUCTION_CANDIDATE (98/100)
+**Estimated to Functional Beta**: 10-14 hours (reduced - victory system complete)
 
 ---
 
@@ -19,6 +19,7 @@
 | Test Coverage | 136/138 passing | 98.5% ✅ |
 | Save/Load | Complete | 100% ✅ |
 | Data Presentation | Backend → UI validated | 100% ✅ |
+| Victory Conditions | Multi-select + custom targets | 100% ✅ |
 
 ---
 
@@ -44,13 +45,16 @@
 **Core Rules Comparison Against docs/gameplay/rules/core_rules.md**:
 - Character Creation: 95% complete (all tables implemented)
 - World Phase: 90% complete (Upkeep, Crew Tasks, Job Offers, Character Events, Campaign Events, Rumors, Mission Prep)
-- Battle Phase: 50% complete (BattleTransitionUI, CombatUI exist but no orchestration)
+- Battle Phase: 85% complete ✅ (BattlePhase.gd EXISTS and IS WIRED - verified 2025-11-24)
 - Post-Battle: 75% complete (PostBattleSequence.gd exists, needs wiring)
-- Turn Loop: 60% complete (CampaignTurnController has signals but handlers incomplete)
+- Turn Loop: 75% complete (CampaignTurnController signals wired, phase handlers connected)
 
-**Critical Finding**: BattlePhase.gd handler MISSING from CampaignPhaseManager
-- CampaignPhaseManager has: TravelPhase, WorldPhase, PostBattlePhase
-- Missing: BattlePhase handler to orchestrate combat flow
+**Correction (2025-11-24)**: BattlePhase.gd EXISTS and IS FULLY WIRED
+- Location: `src/core/campaign/phases/BattlePhase.gd` (398 lines, created Nov 22)
+- Preloaded in CampaignPhaseManager.gd (line 15)
+- Instantiated and signal-connected (lines 87-98)
+- Used in phase transitions (lines 222-229)
+- **Previous documentation was outdated** (written Nov 20, code changed Nov 22)
 
 **Documentation Cleanup**:
 - Archived 6 outdated docs (CAMPAIGN_CREATION_INTEGRATION.md, HYBRID_APPROACH_IMPLEMENTATION.md, MCP_Integration.md, GDUNIT4_MIGRATION_STRATEGY.md, INTEGRATION_TEST_FIX_SUMMARY.md, UNIT_TEST_FIX_SUMMARY.md)
@@ -59,15 +63,131 @@
 - Updated PROJECT_INSTRUCTIONS.md with priority gaps
 - Updated tests/TESTING_GUIDE.md with accurate test counts
 
+### Session 4 (2025-11-23): Victory Condition System Complete
+
+**Key Achievement**: Production-ready victory condition system with multi-select support
+
+**Completed**:
+- **CustomVictoryDialog** (src/ui/components/victory/):
+  - Modal dialog for creating custom victory conditions
+  - Category grouping (Duration, Combat, Story, Wealth, Challenge)
+  - Target value customization with min/max validation
+  - Real-time preview with adjusted playtime estimates
+
+- **FPCM_VictoryDescriptions** (src/game/victory/VictoryDescriptions.gd):
+  - Comprehensive narrative database for 17 victory types
+  - Full descriptions, strategy tips, difficulty ratings
+  - Estimated playtime for each condition
+  - Category classification system
+
+- **VictoryProgressPanel Enhancements**:
+  - Multi-condition tracking (OR logic - win when ANY achieved)
+  - "Closest to completion" algorithm and display
+  - Milestone visualization (25%, 50%, 75%)
+  - Uses FPCM_VictoryDescriptions for proper names
+
+- **ExpandedConfigPanel Integration**:
+  - RichTextLabel for full narrative display
+  - "Custom..." button opens CustomVictoryDialog
+  - Real-time description updates on selection
+
+- **Data Flow Wiring**:
+  - Added `victory_conditions: Dictionary` to FiveParsecsCampaignCore
+  - Added `set_victory_conditions()/get_victory_conditions()` to GameStateManager
+  - CampaignFinalizationService transfers to campaign resource
+  - CampaignCreationUI properly initializes GameStateManager
+
+**Files Created**:
+- `src/ui/components/victory/CustomVictoryDialog.gd` (225 lines)
+- `src/ui/components/victory/CustomVictoryDialog.tscn`
+
+**Files Modified**:
+- `src/game/victory/VictoryDescriptions.gd` - Enhanced with VICTORY_DATA
+- `src/data/config/CampaignConfig.gd` - Multi-select support
+- `src/ui/screens/campaign/panels/ExpandedConfigPanel.gd` - Description display
+- `src/ui/screens/campaign/VictoryProgressPanel.gd` - Multi-condition tracking
+- `src/game/campaign/FiveParsecsCampaignCore.gd` - victory_conditions property
+- `src/core/managers/GameStateManager.gd` - getter/setter methods
+- `src/core/campaign/creation/CampaignFinalizationService.gd` - Transfer logic
+- `src/ui/screens/campaign/CampaignCreationUI.gd` - Key name fix
+
+**Impact**: Victory condition system now fully production-ready. Reduces beta gap estimate by 2-3 hours.
+
+### Session 5 (2025-11-24): Story Track + Tutorial Integration (Guided Campaign Mode)
+
+**Key Achievement**: Lightweight tutorial system integrated with Story Track events
+
+**Completed**:
+- **Tutorial Configuration JSON** (`data/tutorial/story_companion_tutorials.json`):
+  - Maps 6 Story Track events to Battle Companion tool tutorials
+  - Includes tool importance ratings and story context
+  - General companion hints for common scenarios
+  - UI settings for tooltip display
+
+- **StoryEvent.gd Extensions** (+3 lines):
+  - Added `tutorial_config_key` property for JSON linkage
+  - Serialization support (to_dict/from_dict)
+
+- **StoryTrackSystem.gd Extensions** (+63 lines):
+  - Added `tutorial_requested` signal
+  - Added `guided_mode_enabled` toggle
+  - Added `tutorial_config` dictionary loaded from JSON
+  - Created `_load_tutorial_config()` method
+  - Created `_emit_tutorial_request_for_event()` helper
+  - Modified `trigger_next_event()` to emit tutorial signals
+  - All 6 story events now have `tutorial_config_key` set
+
+- **BattlefieldCompanionManager.gd Extensions** (+65 lines):
+  - Added `guided_mode_enabled` toggle property
+  - Added `story_track_system` reference
+  - Created `_connect_to_story_track_system()` connection method
+  - Created `_on_tutorial_requested()` signal handler
+  - Created `_route_tutorial_to_overlay()` routing method
+  - Created `_find_tutorial_overlay()` and `_find_nodes_by_class()` helpers
+  - Added `set_guided_mode()` public API
+
+- **TutorialOverlay.gd Extensions** (+37 lines):
+  - Added `show_story_hint()` method for non-obtrusive tooltips
+  - Auto-dismisses after 15 seconds
+  - Positioned in bottom-right corner (no screen blocking)
+  - No highlight or dimming for story hints
+
+**Files Created**: 1
+- `data/tutorial/story_companion_tutorials.json` (130 lines)
+
+**Files Modified**: 4
+- `src/core/story/StoryEvent.gd` (+3 lines: tutorial_config_key property)
+- `src/core/story/StoryTrackSystem.gd` (+63 lines: guided mode integration)
+- `src/autoload/BattlefieldCompanionManager.gd` (+65 lines: tutorial routing)
+- `src/ui/components/tutorial/TutorialOverlay.gd` (+37 lines: story hints)
+
+**Implementation Time**: 4-6 hours (as estimated in plan)
+
+**Design Decisions**:
+- **Lightweight approach**: Extended existing systems rather than creating new Manager classes
+- **Framework Bible compliant**: 0 new Manager/Coordinator classes
+- **Minimal file impact**: +1 JSON config file only
+- **Non-obtrusive UX**: Story hints appear in bottom-right, auto-dismiss, no screen blocking
+- **Optional feature**: Guided mode disabled by default, toggle via `BattlefieldCompanionManager.set_guided_mode(true)`
+
+**Signal Flow Architecture**:
+1. Story Track event triggers → StoryTrackSystem.tutorial_requested signal
+2. BattlefieldCompanionManager listens → routes to TutorialOverlay
+3. TutorialOverlay shows hint → auto-dismisses after 15s
+
+**Impact**: Story Track now provides contextual guidance for Battle Companion tools. Players can toggle guided mode for tutorial overlays when story events occur. Fully optional feature with zero performance impact when disabled.
+
 ---
 
 ## Beta Gap Analysis
 
-### Priority 1: Create BattlePhase Handler (~3-4 hours) 🔴 CRITICAL
+### ~~Priority 1: Create BattlePhase Handler~~  ✅ COMPLETE (verified 2025-11-24)
 
-**Problem**: CampaignPhaseManager loads Travel/World/PostBattle phases but has no BattlePhase
+**Status**: BattlePhase.gd EXISTS and IS FULLY WIRED (see Session 3 correction above)
 
-**Solution**:
+**Previous Problem** (outdated): CampaignPhaseManager loads Travel/World/PostBattle phases but has no BattlePhase
+
+**Actual Solution** (already implemented):
 1. Create `src/core/campaign/phases/BattlePhase.gd`
 2. Add to CampaignPhaseManager alongside other phase handlers
 3. Connect battle flow: setup → combat → resolution

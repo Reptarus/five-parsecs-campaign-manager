@@ -8,44 +8,107 @@ script = ExtResource("2_equipment")
 
 [node name="Content" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer"]
 layout_mode = 2
-theme_override_constants/separation = 20
+theme_override_constants/separation = 16
 
-[node name="EquipmentList" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+[node name="MainSplit" type="HSplitContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 layout_mode = 2
 size_flags_vertical = 3
+split_offset = 400
 
-[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/EquipmentList"]
+[node name="EquipmentSection" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit"]
 layout_mode = 2
-text = "Generated Equipment:"
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
 
-[node name="Container" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/EquipmentList"]
+[node name="EquipmentHeader" type="HBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/EquipmentSection"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/EquipmentSection/EquipmentHeader"]
+layout_mode = 2
+text = "Available Equipment"
+theme_override_font_sizes/font_size = 16
+
+[node name="Spacer" type="Control" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/EquipmentSection/EquipmentHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="AutoAssignButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/EquipmentSection/EquipmentHeader"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 32)
+layout_mode = 2
+text = "Auto-Assign"
+tooltip_text = "Automatically distribute equipment to crew based on their backgrounds"
+
+[node name="EquipmentScroll" type="ScrollContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/EquipmentSection"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Container" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/EquipmentSection/EquipmentScroll"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 size_flags_vertical = 3
+theme_override_constants/separation = 4
 
-[node name="Summary" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+[node name="CrewSection" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit"]
 layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
 
-[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Summary"]
+[node name="CrewHeader" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/CrewSection"]
+layout_mode = 2
+text = "Crew Loadouts"
+theme_override_font_sizes/font_size = 16
+
+[node name="CrewScroll" type="ScrollContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/CrewSection"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="CrewLoadoutContainer" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/CrewSection/CrewScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="SummarySection" type="HBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Summary" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/SummarySection"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/SummarySection/Summary"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Equipment generated: 0 items"
 horizontal_alignment = 1
 
-[node name="Credits" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+[node name="AssignedCount" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/SummarySection/Summary"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Assigned: 0 / 0"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.6, 0.8, 0.6, 1)
+
+[node name="Credits" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/SummarySection"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Credits"]
+[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/SummarySection/Credits"]
 layout_mode = 2
 text = "Starting Credits:"
 horizontal_alignment = 1
 
-[node name="Value" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Credits"]
+[node name="Value" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/SummarySection/Credits"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "0"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
 
 [node name="Controls" type="HBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 layout_mode = 2

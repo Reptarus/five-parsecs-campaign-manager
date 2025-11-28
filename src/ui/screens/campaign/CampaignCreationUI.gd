@@ -33,21 +33,28 @@ const CampaignStateMachine = preload("res://src/core/systems/CampaignCreationSta
 const AutoloadManager = preload("res://src/core/systems/AutoloadManager.gd")
 
 # PHASE 3 INTEGRATION: Enhanced UI Components
-var main_container: VBoxContainer
-var header_container: HBoxContainer
+var header_container: VBoxContainer
 var content_area: HSplitContainer
 var navigation_footer: HBoxContainer
-var progress_indicator: ProgressBar
-var step_indicator: Label
 var status_panel: PanelContainer
 
-# Scene node references (safe node access)
-var content_container: Control
+# Scene node references (from .tscn file)
+@onready var responsive_margin: MarginContainer = $ResponsiveMargin
+@onready var main_container: VBoxContainer = $ResponsiveMargin/MainContainer
+@onready var progress_indicator: ProgressBar = $ResponsiveMargin/MainContainer/HeaderSection/HeaderContainer/ProgressBar
+@onready var breadcrumb_container: HBoxContainer = $ResponsiveMargin/MainContainer/HeaderSection/HeaderContainer/BreadcrumbContainer
+@onready var step_indicator: Label = $ResponsiveMargin/MainContainer/HeaderSection/HeaderContainer/StepIndicator
+@onready var content_container: Control = $ResponsiveMargin/MainContainer/ContentArea/ContentMargin/PanelContainer
+@onready var back_button: Button = $ResponsiveMargin/MainContainer/NavigationFooter/NavigationContainer/BackButton
+@onready var validation_status_container: HBoxContainer = $ResponsiveMargin/MainContainer/NavigationFooter/NavigationContainer/ValidationStatus
+@onready var validation_icon: Label = $ResponsiveMargin/MainContainer/NavigationFooter/NavigationContainer/ValidationStatus/ValidationIcon
+@onready var validation_text: Label = $ResponsiveMargin/MainContainer/NavigationFooter/NavigationContainer/ValidationStatus/ValidationText
+@onready var next_button: Button = $ResponsiveMargin/MainContainer/NavigationFooter/NavigationContainer/NextButton
+@onready var finish_button: Button = $ResponsiveMargin/MainContainer/NavigationFooter/NavigationContainer/FinishButton
 
-# Navigation buttons (programmatically created)
-var back_button: Button
-var next_button: Button
-var finish_button: Button
+# Transition animation properties
+var panel_transition_duration: float = 0.15
+var is_panel_fading: bool = false
 
 # Refactored architecture components
 var coordinator: CampaignCreationCoordinator
@@ -133,8 +140,14 @@ func _ready() -> void:
 	"""Initialize the enhanced campaign creation UI with responsive layout"""
 	print("CampaignCreationUI: Initializing enhanced UI with Phase 3 integration")
 	
-	# Initialize responsive layout
-	_create_unified_layout()
+	# Apply responsive margins based on viewport
+	_apply_responsive_margins()
+	
+	# Style progress bar and breadcrumbs
+	_style_wizard_header()
+	
+	# Connect navigation button signals
+	_connect_navigation_signals()
 	
 	# Initialize coordinator and state management
 	_initialize_coordinator()
@@ -222,133 +235,98 @@ func _show_debug_state_inspection() -> void:
 	
 	print("===== END DEBUG INSPECTION =====\n")
 
-# PHASE 3 INTEGRATION: Create unified responsive layout
-func _create_unified_layout() -> void:
-	"""Create a unified responsive layout for campaign creation"""
-	print("CampaignCreationUI: Creating unified responsive layout")
-	
-	# Clear existing children
-	for child in get_children():
-		child.queue_free()
-	
-	# Create main container
-	main_container = VBoxContainer.new()
-	main_container.name = "MainContainer"
-	main_container.layout_mode = 3 # LAYOUT_MODE_ANCHORS
-	main_container.anchors_preset = 15 # ANCHOR_FULL_RECT
-	main_container.size_flags_horizontal = 3 # SIZE_EXPAND_FILL
-	main_container.size_flags_vertical = 3 # SIZE_EXPAND_FILL
-	add_child(main_container)
-	
-	# Create header with progress
-	_create_header_section()
-	
-	# Create content area with dynamic panels
-	_create_content_section()
-	
-	# Create navigation footer
-	_create_footer_section()
-	
-	print("CampaignCreationUI: Unified layout created successfully")
+# ============ RESPONSIVE WIZARD LAYOUT HELPERS ============
 
-func _create_header_section() -> void:
-	"""Create the header section with progress tracking"""
-	header_container = HBoxContainer.new()
-	header_container.name = "HeaderContainer"
-	header_container.layout_mode = 2 # LAYOUT_MODE_CONTAINER
-	main_container.add_child(header_container)
+func _apply_responsive_margins() -> void:
+	"""Apply responsive margins to the root container based on viewport width"""
+	if not responsive_margin:
+		return
 	
-	# Progress indicator
-	progress_indicator = ProgressBar.new()
-	progress_indicator.name = "ProgressIndicator"
-	progress_indicator.layout_mode = 2
-	progress_indicator.size_flags_horizontal = 3 # SIZE_EXPAND_FILL
-	progress_indicator.max_value = 100
-	progress_indicator.value = 0
-	header_container.add_child(progress_indicator)
+	var viewport_width = get_viewport().get_visible_rect().size.x
+	var margin_size: int
 	
-	# Step indicator
-	step_indicator = Label.new()
-	step_indicator.name = "StepIndicator"
-	step_indicator.layout_mode = 2
-	step_indicator.text = "Step 1 of 7"
-	step_indicator.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	header_container.add_child(step_indicator)
+	# Mobile: 16px, Tablet: 32px, Desktop: 64px
+	if viewport_width < 768:
+		margin_size = 16
+	elif viewport_width < 1024:
+		margin_size = 32
+	else:
+		margin_size = 64
 	
-	# Status panel
-	status_panel = PanelContainer.new()
-	status_panel.name = "StatusPanel"
-	status_panel.layout_mode = 2
-	status_panel.visible = false
-	main_container.add_child(status_panel)
+	responsive_margin.add_theme_constant_override("margin_left", margin_size)
+	responsive_margin.add_theme_constant_override("margin_right", margin_size)
+	responsive_margin.add_theme_constant_override("margin_top", margin_size)
+	responsive_margin.add_theme_constant_override("margin_bottom", margin_size)
+	
+	print("CampaignCreationUI: Applied %dpx responsive margins" % margin_size)
 
-func _create_content_section() -> void:
-	"""Create the main content area for panels"""
-	content_area = HSplitContainer.new()
-	content_area.name = "ContentArea"
-	content_area.layout_mode = 2 # LAYOUT_MODE_CONTAINER
-	content_area.size_flags_vertical = 3 # SIZE_EXPAND_FILL
-	main_container.add_child(content_area)
+func _style_wizard_header() -> void:
+	"""Apply visual styling to progress bar and breadcrumbs"""
+	if not progress_indicator:
+		return
 	
-	# Left panel for navigation/overview (optional)
-	var left_panel = VBoxContainer.new()
-	left_panel.name = "LeftPanel"
-	left_panel.layout_mode = 2
-	left_panel.size_flags_horizontal = 4 # SIZE_SHRINK_CENTER
-	left_panel.custom_minimum_size.x = 200
-	content_area.add_child(left_panel)
+	# Style progress bar
+	var progress_bg = StyleBoxFlat.new()
+	progress_bg.bg_color = Color("#3A3A5C")  # COLOR_BORDER
+	progress_bg.set_corner_radius_all(4)
+	progress_indicator.add_theme_stylebox_override("background", progress_bg)
 	
-	# Right panel for main content
-	var right_panel = Control.new()
-	right_panel.name = "RightPanel"
-	right_panel.layout_mode = 2
-	right_panel.size_flags_horizontal = 3 # SIZE_EXPAND_FILL
-	content_area.add_child(right_panel)
+	var progress_fill = StyleBoxFlat.new()
+	progress_fill.bg_color = Color("#2D5A7B")  # COLOR_ACCENT
+	progress_fill.set_corner_radius_all(4)
+	progress_indicator.add_theme_stylebox_override("fill", progress_fill)
 	
-	# Store reference to content container
-	content_container = right_panel
+	# Style breadcrumbs (Step1-Step7)
+	if breadcrumb_container:
+		for i in range(7):
+			var step_node = breadcrumb_container.get_node_or_null("Step%d" % (i + 1))
+			if step_node:
+				# First step active by default
+				if i == 0:
+					step_node.add_theme_color_override("font_color", Color("#2D5A7B"))
+				else:
+					step_node.add_theme_color_override("font_color", Color("#808080"))
+	
+	print("CampaignCreationUI: Wizard header styled")
 
-func _create_footer_section() -> void:
-	"""Create the navigation footer"""
-	navigation_footer = HBoxContainer.new()
-	navigation_footer.name = "NavigationFooter"
-	navigation_footer.layout_mode = 2 # LAYOUT_MODE_CONTAINER
-	navigation_footer.alignment = BoxContainer.ALIGNMENT_CENTER
-	main_container.add_child(navigation_footer)
+func _connect_navigation_signals() -> void:
+	"""Connect navigation button press signals"""
+	if back_button:
+		back_button.pressed.connect(_on_back_pressed)
+	if next_button:
+		next_button.pressed.connect(_on_next_pressed)
+	if finish_button:
+		finish_button.pressed.connect(_on_finish_pressed)
 	
-	# Back button
-	back_button = Button.new()
-	back_button.name = "BackButton"
-	back_button.layout_mode = 2
-	back_button.text = "Back"
-	back_button.custom_minimum_size.x = 100
-	back_button.pressed.connect(_on_back_pressed)
-	navigation_footer.add_child(back_button)
+	print("CampaignCreationUI: Navigation signals connected")
+
+func update_progress_indicator(step: int, panel_title: String) -> void:
+	"""Update the visual progress indicator with current step"""
+	if not progress_indicator or not step_indicator:
+		return
 	
-	# Spacer
-	var spacer = Control.new()
-	spacer.layout_mode = 2
-	spacer.size_flags_horizontal = 3 # SIZE_EXPAND_FILL
-	navigation_footer.add_child(spacer)
+	# Update progress bar
+	progress_indicator.value = step
 	
-	# Next button
-	next_button = Button.new()
-	next_button.name = "NextButton"
-	next_button.layout_mode = 2
-	next_button.text = "Next"
-	next_button.custom_minimum_size.x = 100
-	next_button.pressed.connect(_on_next_pressed)
-	navigation_footer.add_child(next_button)
+	# Update breadcrumbs
+	if breadcrumb_container:
+		for i in range(7):
+			var dot = breadcrumb_container.get_node_or_null("Step%d" % (i + 1))
+			if dot:
+				if i < step - 1:
+					# Completed steps: accent color
+					dot.add_theme_color_override("font_color", Color("#2D5A7B"))
+				elif i == step - 1:
+					# Current step: focus color
+					dot.add_theme_color_override("font_color", Color("#4FC3F7"))
+				else:
+					# Future steps: secondary color
+					dot.add_theme_color_override("font_color", Color("#808080"))
 	
-	# Finish button (initially hidden)
-	finish_button = Button.new()
-	finish_button.name = "FinishButton"
-	finish_button.layout_mode = 2
-	finish_button.text = "Finish"
-	finish_button.custom_minimum_size.x = 100
-	finish_button.visible = false
-	finish_button.pressed.connect(_on_finish_pressed)
-	navigation_footer.add_child(finish_button)
+	# Update step label
+	step_indicator.text = "Step %d of 7 • %s" % [step, panel_title]
+	
+	print("CampaignCreationUI: Progress updated - Step %d: %s" % [step, panel_title])
 
 # PHASE 3 INTEGRATION: Responsive Layout Management
 func _setup_responsive_layout_monitoring() -> void:
@@ -368,6 +346,7 @@ func _on_viewport_size_changed() -> void:
 		return
 	
 	_check_and_apply_responsive_layout()
+	_apply_responsive_margins()
 
 func _check_and_apply_responsive_layout() -> void:
 	"""Check current viewport size and apply appropriate layout"""
@@ -401,71 +380,82 @@ func _apply_responsive_layout(layout_mode: String) -> void:
 
 func _apply_mobile_layout() -> void:
 	"""Apply mobile-specific layout"""
-	# Hide left panel on mobile
-	var left_panel = content_area.get_node_or_null("LeftPanel")
-	if left_panel:
-		left_panel.visible = false
-	
 	# Adjust button sizes
-	back_button.custom_minimum_size.x = 80
-	next_button.custom_minimum_size.x = 80
-	finish_button.custom_minimum_size.x = 80
+	if back_button:
+		back_button.custom_minimum_size = Vector2(80, 48)
+	if next_button:
+		next_button.custom_minimum_size = Vector2(80, 48)
+	if finish_button:
+		finish_button.custom_minimum_size = Vector2(80, 48)
 	
-	# Adjust header
-	step_indicator.add_theme_font_size_override("font_size", 14)
+	# Adjust header font size
+	if step_indicator:
+		step_indicator.add_theme_font_size_override("font_size", 14)
+	
+	print("CampaignCreationUI: Mobile layout applied (touch targets: 48dp)")
 
 func _apply_tablet_layout() -> void:
 	"""Apply tablet-specific layout"""
-	# Show left panel but smaller
-	var left_panel = content_area.get_node_or_null("LeftPanel")
-	if left_panel:
-		left_panel.visible = true
-		left_panel.custom_minimum_size.x = 150
+	# Standard button sizes
+	if back_button:
+		back_button.custom_minimum_size = Vector2(100, 48)
+	if next_button:
+		next_button.custom_minimum_size = Vector2(100, 48)
+	if finish_button:
+		finish_button.custom_minimum_size = Vector2(100, 48)
 	
-	# Adjust button sizes
-	back_button.custom_minimum_size.x = 100
-	next_button.custom_minimum_size.x = 100
-	finish_button.custom_minimum_size.x = 100
+	# Standard header font
+	if step_indicator:
+		step_indicator.add_theme_font_size_override("font_size", 16)
 	
-	# Adjust header
-	step_indicator.add_theme_font_size_override("font_size", 16)
+	print("CampaignCreationUI: Tablet layout applied")
 
 func _apply_desktop_layout() -> void:
 	"""Apply desktop-specific layout"""
-	# Show left panel at full size
-	var left_panel = content_area.get_node_or_null("LeftPanel")
-	if left_panel:
-		left_panel.visible = true
-		left_panel.custom_minimum_size.x = 200
-	
 	# Standard button sizes
-	back_button.custom_minimum_size.x = 100
-	next_button.custom_minimum_size.x = 100
-	finish_button.custom_minimum_size.x = 100
+	if back_button:
+		back_button.custom_minimum_size = Vector2(100, 48)
+	if next_button:
+		next_button.custom_minimum_size = Vector2(100, 48)
+	if finish_button:
+		finish_button.custom_minimum_size = Vector2(100, 48)
 	
-	# Standard header
-	step_indicator.add_theme_font_size_override("font_size", 18)
+	# Standard header font
+	if step_indicator:
+		step_indicator.add_theme_font_size_override("font_size", 18)
+	
+	print("CampaignCreationUI: Desktop layout applied")
 
-# PHASE 3 INTEGRATION: Enhanced Panel Switching
+# PHASE 3 INTEGRATION: Enhanced Panel Switching with Fade Transitions
 func _switch_to_phase(phase: CampaignStateManager.Phase) -> void:
-	"""Enhanced panel switching with responsive layout support"""
+	"""Enhanced panel switching with smooth fade transitions"""
 	print("CampaignCreationUI: Switching to phase: %s" % phase)
 	
-	if _is_transitioning:
+	if _is_transitioning or is_panel_fading:
 		print("CampaignCreationUI: Already transitioning, queuing phase switch")
 		_panel_load_queue.append(phase)
 		return
 	
 	_is_transitioning = true
 	
-	# Update progress
+	# Update progress indicator
 	_update_progress_for_phase(phase)
 	
+	# Fade out current panel, then load new panel
+	if current_panel and is_instance_valid(current_panel):
+		await _fade_out_panel(current_panel)
+	
 	# Load and display panel
-	_load_and_display_panel(phase)
+	await _load_and_display_panel(phase)
+	
+	# Fade in new panel
+	if current_panel and is_instance_valid(current_panel):
+		await _fade_in_panel(current_panel)
 	
 	# Update navigation state
 	_update_navigation_state()
+	
+	_is_transitioning = false
 
 func _load_and_display_panel(phase: CampaignStateManager.Phase) -> void:
 	"""Load and display panel with enhanced error handling and fallback"""
@@ -546,6 +536,37 @@ func _load_and_display_panel(phase: CampaignStateManager.Phase) -> void:
 	
 	_is_transitioning = false
 	print("Panel loaded successfully: %s" % scene_path)
+
+# ============ PANEL TRANSITION ANIMATIONS ============
+
+func _fade_out_panel(panel: Control) -> void:
+	"""Smoothly fade out a panel over panel_transition_duration seconds"""
+	if not panel or not is_instance_valid(panel):
+		return
+	
+	is_panel_fading = true
+	var tween = create_tween()
+	tween.set_ease(Tween.EASE_IN_OUT)
+	tween.set_trans(Tween.TRANS_CUBIC)
+	tween.tween_property(panel, "modulate:a", 0.0, panel_transition_duration)
+	await tween.finished
+	is_panel_fading = false
+
+func _fade_in_panel(panel: Control) -> void:
+	"""Smoothly fade in a panel over panel_transition_duration seconds"""
+	if not panel or not is_instance_valid(panel):
+		return
+	
+	# Start invisible
+	panel.modulate.a = 0.0
+	
+	is_panel_fading = true
+	var tween = create_tween()
+	tween.set_ease(Tween.EASE_IN_OUT)
+	tween.set_trans(Tween.TRANS_CUBIC)
+	tween.tween_property(panel, "modulate:a", 1.0, panel_transition_duration)
+	await tween.finished
+	is_panel_fading = false
 
 func _clear_current_panel() -> void:
 	"""Clear the current panel safely with enhanced cleanup and race condition prevention"""
@@ -1218,16 +1239,27 @@ func _disconnect_panel_signals(panel: Control) -> void:
 	print("CampaignCreationUI: Signal disconnections completed for %s" % panel.get_class())
 
 func _update_progress_for_phase(phase: CampaignStateManager.Phase) -> void:
-	"""Update progress indicator for current phase"""
-	var phase_index = int(phase)
-	var total_phases = CampaignStateManager.Phase.values().size()
-	var progress_percentage = (float(phase_index) / float(total_phases - 1)) * 100
+	"""Update progress indicator for current phase with step name"""
+	# Map phase enum to step number (1-7)
+	var step_number := 1
+	match phase:
+		CampaignStateManager.Phase.CONFIG:
+			step_number = 1
+		CampaignStateManager.Phase.SHIP_ASSIGNMENT:
+			step_number = 2
+		CampaignStateManager.Phase.CAPTAIN_CREATION:
+			step_number = 3
+		CampaignStateManager.Phase.CREW_SETUP:
+			step_number = 4
+		CampaignStateManager.Phase.EQUIPMENT_GENERATION:
+			step_number = 5
+		CampaignStateManager.Phase.WORLD_GENERATION:
+			step_number = 6
+		CampaignStateManager.Phase.FINAL_REVIEW:
+			step_number = 7
 	
-	if progress_indicator:
-		progress_indicator.value = progress_percentage
-	
-	if step_indicator:
-		step_indicator.text = "Step %d of %d" % [phase_index + 1, total_phases]
+	var phase_name = _get_phase_display_name(phase)
+	update_progress_indicator(step_number, phase_name)
 
 func _update_navigation_state() -> void:
 	"""Update navigation button states with debouncing protection"""
@@ -1288,6 +1320,32 @@ func _perform_navigation_update() -> void:
 
 # Victory conditions handler is implemented above as _on_victory_conditions_updated
 
+# State persistence helper
+func _save_current_panel_state() -> void:
+	"""Save current panel state to coordinator before navigation to prevent data loss"""
+	if not current_panel or not is_instance_valid(current_panel):
+		return
+
+	if not current_panel.has_method("get_panel_data"):
+		return
+
+	var data = current_panel.get_panel_data()
+	if data.is_empty():
+		return
+
+	print("CampaignCreationUI: Saving panel state before navigation")
+
+	# Route data to coordinator based on current phase
+	if coordinator:
+		_route_data_to_coordinator(data)
+
+	# Also update state manager
+	if state_manager:
+		var current_phase = state_manager.get_current_phase()
+		_update_state_manager_data(current_phase, data)
+
+	print("CampaignCreationUI: Panel state saved successfully")
+
 # Navigation button handlers
 func _on_back_pressed() -> void:
 	"""Handle back button press with enhanced safety"""
@@ -1300,7 +1358,10 @@ func _on_back_pressed() -> void:
 	if not coordinator.can_go_back_to_previous_phase():
 		print("CampaignCreationUI: Cannot go back - at first phase")
 		return
-	
+
+	# CRITICAL: Save panel state BEFORE clearing to prevent data loss
+	_save_current_panel_state()
+
 	# Clear current panel before navigation to prevent state conflicts
 	_clear_current_panel()
 	
@@ -1409,15 +1470,44 @@ func _route_data_to_coordinator(data: Dictionary) -> void:
 func _on_panel_validation_changed(is_valid: bool, errors: Array = []) -> void:
 	"""Handle panel validation state changes"""
 	print("CampaignCreationUI: Panel validation changed - Valid: %s" % str(is_valid))
-	
+
+	# Update validation status bar
+	_update_validation_status(is_valid, errors)
+
 	if not coordinator or not state_manager:
 		return
-	
-	# Update coordinator with validation status - THIS IS THE KEY FIX
+
+	# Update coordinator with validation status
 	coordinator.mark_phase_complete(state_manager.current_phase, is_valid)
-	
+
 	# Update navigation
 	_update_navigation_state()
+
+func _update_validation_status(is_valid: bool, errors: Array = []) -> void:
+	"""Update the validation status bar in the footer"""
+	if not validation_icon or not validation_text:
+		return
+
+	if is_valid:
+		validation_icon.text = "✅"
+		validation_text.text = "Ready to continue"
+		validation_text.add_theme_color_override("font_color", Color("#10B981"))  # Green
+	else:
+		validation_icon.text = "⚠️"
+		# Show first error or default message
+		if errors.size() > 0:
+			validation_text.text = str(errors[0])
+		else:
+			# Try to get validation message from current panel
+			var message = "Complete required fields to continue"
+			if current_panel and current_panel.has_method("get_validation_message"):
+				message = current_panel.get_validation_message()
+			elif current_panel and "last_validation_errors" in current_panel:
+				var panel_errors = current_panel.last_validation_errors
+				if panel_errors.size() > 0:
+					message = panel_errors[0]
+			validation_text.text = message
+		validation_text.add_theme_color_override("font_color", Color("#D97706"))  # Orange
 
 func _on_panel_completed(data: Dictionary) -> void:
 	"""Handle panel completion with comprehensive debugging"""
@@ -1498,7 +1588,9 @@ func _safe_auto_advance() -> void:
 func _on_panel_validation_failed(errors: Array[String]) -> void:
 	"""Handle validation failures"""
 	print("CampaignCreationUI: Panel validation failed: ", errors)
-	# Show validation errors to user
+	# Update validation status bar with errors
+	_update_validation_status(false, errors)
+	# Show validation errors to user (popup/toast if implemented)
 	_show_validation_errors(errors)
 
 # Specific panel signal handlers
@@ -1708,20 +1800,26 @@ func _create_and_save_campaign(campaign_data: Dictionary) -> bool:
 	return true
 
 func _initialize_victory_condition_tracker(campaign_data: Dictionary) -> void:
-	"""Initialize VictoryConditionTracker with selected victory condition"""
-	var victory_condition = campaign_data.get("victory_condition", "none")
+	"""Initialize VictoryConditionTracker with selected victory conditions"""
+	# Get victory conditions from config (plural key - multi-select support)
+	var config = campaign_data.get("config", {})
+	var victory_conditions = config.get("victory_conditions", {})
 	var story_track_enabled = campaign_data.get("story_track_enabled", false)
-	
-	print("CampaignCreationUI: Initializing VictoryConditionTracker with condition: %s" % victory_condition)
-	
-	# Initialize VictoryConditionTracker in GameState if available
+
+	print("CampaignCreationUI: Initializing VictoryConditionTracker with %d conditions" % victory_conditions.size())
+
+	# Store victory conditions in GameStateManager (primary storage)
+	if GameStateManager and GameStateManager.has_method("set_victory_conditions"):
+		GameStateManager.set_victory_conditions(victory_conditions)
+		print("CampaignCreationUI: Victory conditions stored in GameStateManager")
+
+	# Also store in GameState meta for legacy compatibility
 	if AutoloadManager:
 		var game_state = AutoloadManager.get_autoload_safe("GameState")
 		if game_state:
-			# Store victory condition data for the campaign
-			game_state.set_meta("victory_condition", victory_condition)
+			game_state.set_meta("victory_conditions", victory_conditions)
 			game_state.set_meta("story_track_enabled", story_track_enabled)
-			print("CampaignCreationUI: Victory condition '%s' stored in GameState" % victory_condition)
+			print("CampaignCreationUI: Victory conditions also stored in GameState meta")
 		else:
 			print("CampaignCreationUI: Warning - GameState not available for victory condition storage")
 	else:
@@ -1729,8 +1827,30 @@ func _initialize_victory_condition_tracker(campaign_data: Dictionary) -> void:
 
 func _transition_to_campaign_scene(campaign_data: Dictionary) -> void:
 	"""Transition to the main campaign management screen with enhanced safety"""
-	print("CampaignCreationUI: Transitioning to campaign scene...")
-	
+	# PHASE 3 FIX: Enhanced structured logging for debugging
+	print("=== CAMPAIGN TRANSITION DEBUG ===")
+	print("Campaign name: %s" % campaign_data.get("campaign_name", "Unknown"))
+	print("Crew size: %d" % campaign_data.get("crew", []).size())
+	print("Ship configured: %s" % str(campaign_data.has("ship")))
+	print("World generated: %s" % str(campaign_data.has("world")))
+	print("Equipment count: %d" % campaign_data.get("equipment", {}).get("items", []).size())
+	print("Victory conditions set: %s" % str(campaign_data.get("campaign_config", {}).has("victory_conditions")))
+	print("================================")
+
+	# PHASE 1 FIX: Validate campaign data integrity before transition
+	if campaign_data.is_empty():
+		push_error("CampaignCreationUI: Empty campaign data - cannot transition")
+		_show_transition_error("Campaign data is missing. Please try creating the campaign again.")
+		return
+
+	if not campaign_data.has("campaign_config") or not campaign_data.has("crew"):
+		push_error("CampaignCreationUI: Invalid campaign data structure - missing required sections")
+		_show_transition_error("Campaign data is incomplete. Please verify all wizard steps are complete.")
+		return
+
+	# PHASE 3 FIX: Log validation success
+	print("✅ Campaign data validation successful - all required sections present")
+
 	# Validate AutoloadManager availability
 	if not AutoloadManager:
 		push_warning("CampaignCreationUI: AutoloadManager not available, proceeding without state storage")
@@ -1743,9 +1863,23 @@ func _transition_to_campaign_scene(campaign_data: Dictionary) -> void:
 			game_state.current_campaign = campaign_data
 			game_state.campaign_loaded = true
 			print("CampaignCreationUI: Campaign data stored in GameState meta and current_campaign")
+
+			# PHASE 3 FIX: Auto-save the newly created campaign
+			var game_state_manager = AutoloadManager.get_autoload_safe("GameStateManager")
+			if game_state_manager and game_state_manager.has_method("save_campaign"):
+				var save_result = game_state_manager.save_campaign()
+				if save_result:
+					print("CampaignCreationUI: Campaign auto-saved successfully")
+				else:
+					push_warning("CampaignCreationUI: Campaign auto-save failed (non-critical)")
+			else:
+				push_warning("CampaignCreationUI: GameStateManager not available for auto-save")
 		else:
 			push_warning("CampaignCreationUI: GameState autoload not available")
 	
+	# PHASE 3 FIX: Log pre-transition state
+	print("📊 Pre-transition checks complete - initiating scene transition")
+
 	# Define scene transition candidates in order of preference
 	var scene_candidates = [
 		"res://src/scenes/campaign/CampaignMainScreen.tscn",
@@ -1753,21 +1887,25 @@ func _transition_to_campaign_scene(campaign_data: Dictionary) -> void:
 		"res://src/scenes/campaign/MainCampaignScene.tscn",
 		"res://src/scenes/MainMenu.tscn"
 	]
-	
+
 	# Try each scene candidate
 	var transition_successful = false
 	for scene_path in scene_candidates:
 		if ResourceLoader.exists(scene_path):
-			print("CampaignCreationUI: Transitioning to scene: %s" % scene_path)
-			
+			# PHASE 3 FIX: Enhanced transition logging
+			print("✅ Scene found: %s" % scene_path)
+			print("🚀 Initiating transition to campaign dashboard...")
+
 			# Show success dialog before transitioning if not going to main menu
 			if not scene_path.ends_with("MainMenu.tscn"):
 				_show_campaign_success_dialog(campaign_data, scene_path)
 			else:
 				# Direct transition to main menu as fallback
+				print("⚠️ Fallback: Transitioning to main menu")
 				get_tree().change_scene_to_file(scene_path)
-			
+
 			transition_successful = true
+			print("✅ Transition initiated successfully")
 			break
 	
 	# If all scenes failed, show error
@@ -1782,7 +1920,8 @@ func _show_campaign_success_dialog(campaign_data: Dictionary, target_scene: Stri
 	# Create success dialog
 	var success_dialog = AcceptDialog.new()
 	success_dialog.title = "Campaign Created Successfully!"
-	success_dialog.dialog_text = "🎉 Campaign '%s' has been created successfully!\n\nYou will now be taken to the campaign management screen where you can start playing Five Parsecs From Home." % campaign_name
+	# PHASE 3 FIX: Enhanced dialog with first-time dashboard hint
+	success_dialog.dialog_text = "🎉 Campaign '%s' has been created successfully!\n\n📊 The Campaign Dashboard is your mission control center:\n• Track crew status and resources\n• Manage equipment and ship\n• Generate missions and progress through campaign turns\n\nYou will now be taken to the dashboard to start playing!" % campaign_name
 	success_dialog.add_cancel_button("Stay Here")
 	
 	# Configure dialog appearance
@@ -1848,6 +1987,36 @@ func _show_campaign_options_dialog(campaign_data: Dictionary) -> void:
 	
 	# Show dialog
 	options_dialog.popup_centered()
+
+func _show_transition_error(error_msg: String) -> void:
+	"""PHASE 1 FIX: Show transition error with recovery options"""
+	push_error("CampaignCreationUI: Transition error - %s" % error_msg)
+
+	var dialog = AcceptDialog.new()
+	dialog.title = "Transition Error"
+	dialog.dialog_text = "Failed to start campaign:\n\n%s\n\n✅ Your campaign has been saved successfully.\n📁 You can load it from the main menu." % error_msg
+
+	# Add return to menu button
+	dialog.add_cancel_button("Return to Menu")
+
+	# Configure dialog
+	dialog.min_size = Vector2(400, 200)
+	add_child(dialog)
+
+	# Connect signals
+	dialog.confirmed.connect(func():
+		print("CampaignCreationUI: User acknowledged transition error")
+		dialog.queue_free()
+	)
+
+	dialog.canceled.connect(func():
+		print("CampaignCreationUI: Returning to main menu after transition error")
+		dialog.queue_free()
+		get_tree().change_scene_to_file("res://src/ui/screens/mainmenu/MainMenu.tscn")
+	)
+
+	# Show dialog
+	dialog.popup_centered()
 
 # PHASE 3 INTEGRATION: Initialize coordinator and panel management
 func _initialize_coordinator() -> void:
@@ -2032,10 +2201,9 @@ func _on_campaign_finalization_complete_from_panel(data: Dictionary) -> void:
 	
 	# Emit completion signal (for any listening MainCampaignScene instances)
 	campaign_completion_ready.emit(data)
-	
-	# Additional processing - try scene transition if configured
-	if data.has("auto_transition") and data.get("auto_transition", false):
-		_transition_to_campaign_scene(data)
+
+	# FIX: Always transition after successful finalization (removed broken auto_transition check)
+	_transition_to_campaign_scene(data)
 
 # Coordinator signal handlers
 func _on_coordinator_equipment_updated(data: Dictionary) -> void:

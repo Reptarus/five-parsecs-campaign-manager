@@ -1,3 +1,4 @@
+class_name FPCM_BattleCheckpoint
 extends Control
 
 signal checkpoint_validated(result: Dictionary)

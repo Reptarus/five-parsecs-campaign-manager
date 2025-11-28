@@ -20,14 +20,14 @@ const PostBattleProcessor = preload("res://src/core/battle/PostBattleProcessor.g
 # GlobalEnums available as autoload singleton
 
 # Main workflow signals
-signal phase_changed(old_phase: FPCM_BattlefieldTypes.BattlePhase, new_phase: FPCM_BattlefieldTypes.BattlePhase)
+signal phase_changed(old_phase: FPCM_BattlefieldTypes.BattleStage, new_phase: FPCM_BattlefieldTypes.BattleStage)
 signal battlefield_ready(battlefield_data: FPCM_BattlefieldTypes.BattlefieldData)
 signal battle_started(initial_state: Dictionary)
-signal battle_completed(results: FPCM_BattlefieldTypes.BattleResults)
+signal battle_completed(results: FPCM_BattlefieldTypes.LegacyBattleResults)
 signal companion_error(error_code: String, context: Dictionary)
 
 # System state management
-@export var current_phase: FPCM_BattlefieldTypes.BattlePhase = FPCM_BattlefieldTypes.BattlePhase.SETUP_TERRAIN
+@export var current_phase: FPCM_BattlefieldTypes.BattleStage = FPCM_BattlefieldTypes.BattleStage.SETUP_TERRAIN
 @export var companion_active: bool = false
 @export var auto_advance_phases: bool = false
 @export var save_session_data: bool = true
@@ -54,7 +54,7 @@ func _ready() -> void:
 	_load_session_data()
 
 	# Start in setup phase
-	transition_to_phase(FPCM_BattlefieldTypes.BattlePhase.SETUP_TERRAIN)
+	transition_to_phase(FPCM_BattlefieldTypes.BattleStage.SETUP_TERRAIN)
 
 func _initialize_dependencies() -> void:
 	"""Initialize external dependencies with error handling"""
@@ -122,7 +122,7 @@ func _setup_system_connections() -> void:
 # PHASE MANAGEMENT - CORE WORKFLOW CONTROL
 # =====================================================
 
-func transition_to_phase(new_phase: FPCM_BattlefieldTypes.BattlePhase) -> bool:
+func transition_to_phase(new_phase: FPCM_BattlefieldTypes.BattleStage) -> bool:
 	"""
 	Transition to new phase with validation and state management
 
@@ -134,8 +134,8 @@ func transition_to_phase(new_phase: FPCM_BattlefieldTypes.BattlePhase) -> bool:
 	# Validate transition
 	if not _validate_phase_transition(old_phase, new_phase):
 		companion_error.emit("INVALID_PHASE_TRANSITION", {
-			"from": FPCM_BattlefieldTypes.BattlePhase.keys()[old_phase],
-			"to": FPCM_BattlefieldTypes.BattlePhase.keys()[new_phase]
+			"from": FPCM_BattlefieldTypes.BattleStage.keys()[old_phase],
+			"to": FPCM_BattlefieldTypes.BattleStage.keys()[new_phase]
 		})
 		return false
 
@@ -157,36 +157,36 @@ func transition_to_phase(new_phase: FPCM_BattlefieldTypes.BattlePhase) -> bool:
 
 	return true
 
-func _validate_phase_transition(from: FPCM_BattlefieldTypes.BattlePhase, to: FPCM_BattlefieldTypes.BattlePhase) -> bool:
+func _validate_phase_transition(from: FPCM_BattlefieldTypes.BattleStage, to: FPCM_BattlefieldTypes.BattleStage) -> bool:
 	"""Validate phase transition according to workflow rules"""
 	match from:
-		FPCM_BattlefieldTypes.BattlePhase.SETUP_TERRAIN:
-			return to in [FPCM_BattlefieldTypes.BattlePhase.SETUP_DEPLOYMENT, FPCM_BattlefieldTypes.BattlePhase.SETUP_TERRAIN]
-		FPCM_BattlefieldTypes.BattlePhase.SETUP_DEPLOYMENT:
-			return to in [FPCM_BattlefieldTypes.BattlePhase.TRACK_BATTLE, FPCM_BattlefieldTypes.BattlePhase.SETUP_TERRAIN]
-		FPCM_BattlefieldTypes.BattlePhase.TRACK_BATTLE:
-			return to in [FPCM_BattlefieldTypes.BattlePhase.PREPARE_RESULTS, FPCM_BattlefieldTypes.BattlePhase.SETUP_DEPLOYMENT]
-		FPCM_BattlefieldTypes.BattlePhase.PREPARE_RESULTS:
-			return to in [FPCM_BattlefieldTypes.BattlePhase.SETUP_TERRAIN] # Reset for new battle
+		FPCM_BattlefieldTypes.BattleStage.SETUP_TERRAIN:
+			return to in [FPCM_BattlefieldTypes.BattleStage.SETUP_DEPLOYMENT, FPCM_BattlefieldTypes.BattleStage.SETUP_TERRAIN]
+		FPCM_BattlefieldTypes.BattleStage.SETUP_DEPLOYMENT:
+			return to in [FPCM_BattlefieldTypes.BattleStage.TRACK_BATTLE, FPCM_BattlefieldTypes.BattleStage.SETUP_TERRAIN]
+		FPCM_BattlefieldTypes.BattleStage.TRACK_BATTLE:
+			return to in [FPCM_BattlefieldTypes.BattleStage.PREPARE_RESULTS, FPCM_BattlefieldTypes.BattleStage.SETUP_DEPLOYMENT]
+		FPCM_BattlefieldTypes.BattleStage.PREPARE_RESULTS:
+			return to in [FPCM_BattlefieldTypes.BattleStage.SETUP_TERRAIN] # Reset for new battle
 
 	return false
 
-func _cleanup_current_phase(phase: FPCM_BattlefieldTypes.BattlePhase) -> void:
+func _cleanup_current_phase(phase: FPCM_BattlefieldTypes.BattleStage) -> void:
 	"""Cleanup resources for current phase"""
 	match phase:
-		FPCM_BattlefieldTypes.BattlePhase.TRACK_BATTLE:
+		FPCM_BattlefieldTypes.BattleStage.TRACK_BATTLE:
 			# Save battle state before leaving
 			if battle_tracker.battle_active:
 				session_data["incomplete_battle"] = battle_tracker.get_battle_analytics()
 
-func _initialize_phase(phase: FPCM_BattlefieldTypes.BattlePhase) -> void:
+func _initialize_phase(phase: FPCM_BattlefieldTypes.BattleStage) -> void:
 	"""Initialize resources for new phase"""
 	match phase:
-		FPCM_BattlefieldTypes.BattlePhase.SETUP_TERRAIN:
+		FPCM_BattlefieldTypes.BattleStage.SETUP_TERRAIN:
 			companion_active = true
-		FPCM_BattlefieldTypes.BattlePhase.TRACK_BATTLE:
+		FPCM_BattlefieldTypes.BattleStage.TRACK_BATTLE:
 			_prepare_battle_tracking()
-		FPCM_BattlefieldTypes.BattlePhase.PREPARE_RESULTS:
+		FPCM_BattlefieldTypes.BattleStage.PREPARE_RESULTS:
 			_prepare_results_processing()
 
 # =====================================================
@@ -195,8 +195,8 @@ func _initialize_phase(phase: FPCM_BattlefieldTypes.BattlePhase) -> void:
 
 func generate_battlefield_suggestions(mission_data: Resource = null, options: Dictionary = {}) -> void:
 	"""Generate battlefield setup suggestions"""
-	if current_phase != FPCM_BattlefieldTypes.BattlePhase.SETUP_TERRAIN:
-		companion_error.emit("WRONG_PHASE", {"expected": "SETUP_TERRAIN", "current": FPCM_BattlefieldTypes.BattlePhase.keys()[current_phase]})
+	if current_phase != FPCM_BattlefieldTypes.BattleStage.SETUP_TERRAIN:
+		companion_error.emit("WRONG_PHASE", {"expected": "SETUP_TERRAIN", "current": FPCM_BattlefieldTypes.BattleStage.keys()[current_phase]})
 		return
 
 	# Get mission data from campaign if not provided
@@ -208,7 +208,7 @@ func generate_battlefield_suggestions(mission_data: Resource = null, options: Di
 
 func regenerate_terrain_only() -> void:
 	"""Regenerate only terrain suggestions, keeping other setup"""
-	if current_phase != FPCM_BattlefieldTypes.BattlePhase.SETUP_TERRAIN:
+	if current_phase != FPCM_BattlefieldTypes.BattleStage.SETUP_TERRAIN:
 		return
 
 	var current_suggestions = session_data.setup_suggestions
@@ -217,7 +217,7 @@ func regenerate_terrain_only() -> void:
 
 func confirm_battlefield_setup(setup_data: Dictionary) -> bool:
 	"""Confirm battlefield setup and advance to deployment"""
-	if current_phase != FPCM_BattlefieldTypes.BattlePhase.SETUP_TERRAIN:
+	if current_phase != FPCM_BattlefieldTypes.BattleStage.SETUP_TERRAIN:
 		return false
 
 	# Store setup data
@@ -228,7 +228,7 @@ func confirm_battlefield_setup(setup_data: Dictionary) -> bool:
 	var battlefield := battlefield_data.generate_battlefield(_get_current_mission_data())
 
 	if auto_advance_phases:
-		transition_to_phase(FPCM_BattlefieldTypes.BattlePhase.SETUP_DEPLOYMENT)
+		transition_to_phase(FPCM_BattlefieldTypes.BattleStage.SETUP_DEPLOYMENT)
 
 	return true
 
@@ -238,8 +238,8 @@ func confirm_battlefield_setup(setup_data: Dictionary) -> bool:
 
 func setup_unit_deployment(crew_members: Array, enemies: Array) -> bool:
 	"""Setup unit deployment for battle tracking"""
-	if current_phase != FPCM_BattlefieldTypes.BattlePhase.SETUP_DEPLOYMENT:
-		companion_error.emit("WRONG_PHASE", {"expected": "SETUP_DEPLOYMENT", "current": FPCM_BattlefieldTypes.BattlePhase.keys()[current_phase]})
+	if current_phase != FPCM_BattlefieldTypes.BattleStage.SETUP_DEPLOYMENT:
+		companion_error.emit("WRONG_PHASE", {"expected": "SETUP_DEPLOYMENT", "current": FPCM_BattlefieldTypes.BattleStage.keys()[current_phase]})
 		return false
 
 	# Add crew members to tracking
@@ -267,7 +267,7 @@ func setup_unit_deployment(crew_members: Array, enemies: Array) -> bool:
 	session_data["enemy_count"] = enemies_added
 
 	if auto_advance_phases:
-		transition_to_phase(FPCM_BattlefieldTypes.BattlePhase.TRACK_BATTLE)
+		transition_to_phase(FPCM_BattlefieldTypes.BattleStage.TRACK_BATTLE)
 
 	return true
 
@@ -294,8 +294,8 @@ func get_deployment_guidance() -> Dictionary:
 
 func start_battle_tracking() -> bool:
 	"""Start active battle tracking"""
-	if current_phase != FPCM_BattlefieldTypes.BattlePhase.TRACK_BATTLE:
-		companion_error.emit("WRONG_PHASE", {"expected": "TRACK_BATTLE", "current": FPCM_BattlefieldTypes.BattlePhase.keys()[current_phase]})
+	if current_phase != FPCM_BattlefieldTypes.BattleStage.TRACK_BATTLE:
+		companion_error.emit("WRONG_PHASE", {"expected": "TRACK_BATTLE", "current": FPCM_BattlefieldTypes.BattleStage.keys()[current_phase]})
 		return false
 
 	# Initialize battle tracker with units
@@ -330,7 +330,7 @@ func _prepare_battle_tracking() -> void:
 
 func end_battle_tracking(victory_team: String) -> bool:
 	"""End battle tracking and prepare results"""
-	if current_phase != FPCM_BattlefieldTypes.BattlePhase.TRACK_BATTLE:
+	if current_phase != FPCM_BattlefieldTypes.BattleStage.TRACK_BATTLE:
 		return false
 
 	# End battle tracking
@@ -338,7 +338,7 @@ func end_battle_tracking(victory_team: String) -> bool:
 	session_data["battle_end_data"] = battle_results
 
 	if auto_advance_phases:
-		transition_to_phase(FPCM_BattlefieldTypes.BattlePhase.PREPARE_RESULTS)
+		transition_to_phase(FPCM_BattlefieldTypes.BattleStage.PREPARE_RESULTS)
 
 	return true
 
@@ -346,11 +346,11 @@ func end_battle_tracking(victory_team: String) -> bool:
 # RESULTS PROCESSING PHASE
 # =====================================================
 
-func process_battle_results() -> FPCM_BattlefieldTypes.BattleResults:
+func process_battle_results() -> BattleResults:
 	"""Process battle results for post-battle phase"""
-	if current_phase != FPCM_BattlefieldTypes.BattlePhase.PREPARE_RESULTS:
-		companion_error.emit("WRONG_PHASE", {"expected": "PREPARE_RESULTS", "current": FPCM_BattlefieldTypes.BattlePhase.keys()[current_phase]})
-		return FPCM_BattlefieldTypes.BattleResults.new()
+	if current_phase != FPCM_BattlefieldTypes.BattleStage.PREPARE_RESULTS:
+		companion_error.emit("WRONG_PHASE", {"expected": "PREPARE_RESULTS", "current": FPCM_BattlefieldTypes.BattleStage.keys()[current_phase]})
+		return BattleResults.new()
 
 	# Get battle context
 	var battle_context: Dictionary = session_data.battle_end_data
@@ -359,7 +359,7 @@ func process_battle_results() -> FPCM_BattlefieldTypes.BattleResults:
 	battle_context["battlefield_setup"] = battlefield_setup_raw if battlefield_setup_raw != null else {}
 
 	# Process through post-battle processor
-	var results := post_battle_processor.process_battle_end(
+	var results: BattleResults = post_battle_processor.process_battle_end(
 		battle_tracker.tracked_units,
 		battle_context
 	)
@@ -396,7 +396,7 @@ func _on_setup_suggestions_ready(suggestions: FPCM_SetupSuggestions) -> void:
 	session_data["setup_suggestions"] = suggestions
 
 	# Auto-advance if enabled
-	if auto_advance_phases and current_phase == FPCM_BattlefieldTypes.BattlePhase.SETUP_TERRAIN:
+	if auto_advance_phases and current_phase == FPCM_BattlefieldTypes.BattleStage.SETUP_TERRAIN:
 		# Could auto-advance to deployment, but better to let user confirm
 		pass
 
@@ -418,7 +418,7 @@ func _on_round_ended(round_number: int, summary: BattleTracker.RoundSummary) -> 
 	session_data["last_round_summary"] = summary
 	_save_session_state()
 
-func _on_results_processed(results: FPCM_BattlefieldTypes.BattleResults) -> void:
+func _on_results_processed(results: FPCM_BattlefieldTypes.LegacyBattleResults) -> void:
 	"""Handle results processing completion"""
 	session_data["processed_results"] = results
 	battle_completed.emit(results)
@@ -444,7 +444,7 @@ func reset_companion_session() -> void:
 	session_data.clear()
 	session_data["session_start"] = Time.get_unix_time_from_system()
 	companion_active = false
-	current_phase = FPCM_BattlefieldTypes.BattlePhase.SETUP_TERRAIN
+	current_phase = FPCM_BattlefieldTypes.BattleStage.SETUP_TERRAIN
 
 	# Reset all systems
 	battlefield_data.cleanup()
@@ -539,14 +539,14 @@ func _get_performance_summary() -> Dictionary:
 # PUBLIC API FOR UI INTEGRATION
 # =====================================================
 
-func get_current_phase() -> FPCM_BattlefieldTypes.BattlePhase:
+func get_current_phase() -> FPCM_BattlefieldTypes.BattleStage:
 	"""Get current companion phase"""
 	return current_phase
 
 func get_phase_status() -> Dictionary:
 	"""Get detailed status for current phase"""
 	return {
-		"phase": FPCM_BattlefieldTypes.BattlePhase.keys()[current_phase],
+		"phase": FPCM_BattlefieldTypes.BattleStage.keys()[current_phase],
 		"active": companion_active,
 		"can_advance": _can_advance_phase(),
 		"session_data": session_data.duplicate()
@@ -555,13 +555,13 @@ func get_phase_status() -> Dictionary:
 func _can_advance_phase() -> bool:
 	"""Check if current phase can advance"""
 	match current_phase:
-		FPCM_BattlefieldTypes.BattlePhase.SETUP_TERRAIN:
+		FPCM_BattlefieldTypes.BattleStage.SETUP_TERRAIN:
 			return session_data.has("setup_confirmed")
-		FPCM_BattlefieldTypes.BattlePhase.SETUP_DEPLOYMENT:
+		FPCM_BattlefieldTypes.BattleStage.SETUP_DEPLOYMENT:
 			return session_data.has("deployment_complete")
-		FPCM_BattlefieldTypes.BattlePhase.TRACK_BATTLE:
+		FPCM_BattlefieldTypes.BattleStage.TRACK_BATTLE:
 			return not battle_tracker.battle_active
-		FPCM_BattlefieldTypes.BattlePhase.PREPARE_RESULTS:
+		FPCM_BattlefieldTypes.BattleStage.PREPARE_RESULTS:
 			return session_data.has("processed_results")
 
 	return false
@@ -569,15 +569,15 @@ func _can_advance_phase() -> bool:
 func force_phase_advance() -> bool:
 	"""Force advance to next phase (for testing/emergency)"""
 	var next_phase_map := {
-		FPCM_BattlefieldTypes.BattlePhase.SETUP_TERRAIN: FPCM_BattlefieldTypes.BattlePhase.SETUP_DEPLOYMENT,
-		FPCM_BattlefieldTypes.BattlePhase.SETUP_DEPLOYMENT: FPCM_BattlefieldTypes.BattlePhase.TRACK_BATTLE,
-		FPCM_BattlefieldTypes.BattlePhase.TRACK_BATTLE: FPCM_BattlefieldTypes.BattlePhase.PREPARE_RESULTS,
-		FPCM_BattlefieldTypes.BattlePhase.PREPARE_RESULTS: FPCM_BattlefieldTypes.BattlePhase.SETUP_TERRAIN
+		FPCM_BattlefieldTypes.BattleStage.SETUP_TERRAIN: FPCM_BattlefieldTypes.BattleStage.SETUP_DEPLOYMENT,
+		FPCM_BattlefieldTypes.BattleStage.SETUP_DEPLOYMENT: FPCM_BattlefieldTypes.BattleStage.TRACK_BATTLE,
+		FPCM_BattlefieldTypes.BattleStage.TRACK_BATTLE: FPCM_BattlefieldTypes.BattleStage.PREPARE_RESULTS,
+		FPCM_BattlefieldTypes.BattleStage.PREPARE_RESULTS: FPCM_BattlefieldTypes.BattleStage.SETUP_TERRAIN
 	}
 
 	var next_phase_raw = next_phase_map.get(current_phase)
 	if next_phase_raw != null:
-		var next_phase: FPCM_BattlefieldTypes.BattlePhase = next_phase_raw
+		var next_phase: FPCM_BattlefieldTypes.BattleStage = next_phase_raw
 		return transition_to_phase(next_phase)
 
 	return false

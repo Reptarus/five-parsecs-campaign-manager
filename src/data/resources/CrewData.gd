@@ -5,6 +5,9 @@ extends Resource
 ## Replaces Dictionary-based crew management with type-safe operations
 ## Implements validation, crew composition rules, and character relationship tracking
 
+## Schema version for save file migration (CRITICAL for data integrity)
+@export var schema_version: int = 1
+
 # Import required classes
 const ValidationResult = preload("res://src/core/validation/ValidationResult.gd")
 

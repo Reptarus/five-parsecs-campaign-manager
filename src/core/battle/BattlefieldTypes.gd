@@ -10,13 +10,19 @@ extends Resource
 # Dependencies
 # GlobalEnums available as autoload singleton
 
-## Battle Phase enumeration for companion workflow
-enum BattlePhase {
+# Re-export BattleResults for backwards compatibility with BattlefieldTypes.BattleResults references
+const BattleResults = preload("res://src/core/battle/BattleResults.gd")
+
+## Battle Stage enumeration for companion workflow
+enum BattleStage {
 	SETUP_TERRAIN, ## Generate battlefield suggestions per rulebook
 	SETUP_DEPLOYMENT, ## Show deployment zones and unit placement
 	TRACK_BATTLE, ## Track units during tabletop play
 	PREPARE_RESULTS ## Process battle end and transition to post-battle
 }
+
+# Alias for backwards compatibility
+const BattlePhase = BattleStage
 
 ## Terrain Feature Resource Class
 class TerrainFeature extends Resource:
@@ -294,7 +300,8 @@ class BattlefieldData extends Resource:
 		environmental_effects.clear()
 
 ## Battle Results Resource Class - Results processing for post-battle
-class BattleResults extends Resource:
+## NOTE: Use BattleResults from res://src/core/battle/BattleResults.gd for new code
+class LegacyBattleResults extends Resource:
 	@export var battle_id: String = ""
 	@export var victory: bool = false
 	@export var rounds_fought: int = 0

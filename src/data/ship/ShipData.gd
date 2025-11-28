@@ -6,6 +6,12 @@ class_name ShipData
 ## Enterprise-grade ship management with comprehensive validation
 ## Follows Five Parsecs Core Rules with extensible architecture
 
+## Schema version for save file migration (CRITICAL for data integrity)
+@export var schema_version: int = 1
+
+# Import validation result class
+const ValidationResult = preload("res://src/core/validation/ValidationResult.gd")
+
 # Core ship properties with explicit typing for Godot 4.x
 @export var ship_name: String = ""
 @export var ship_class: ShipClass = ShipClass.BASIC_SHIP

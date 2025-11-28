@@ -39,7 +39,7 @@ var current_config: Dictionary = {
 # Panel state management - production-ready pattern
 var is_panel_initialized: bool = false
 var is_configuration_complete: bool = false
-var last_validation_errors: Array[String] = []
+# last_validation_errors inherited from BaseCampaignPanel
 var security_validator: SecurityValidator
 var description_label: Label
 var is_panel_valid: bool = false
@@ -144,45 +144,106 @@ func _on_name_input_focus_exited() -> void:
 	print("ConfigPanel: Name input lost focus")
 
 func _initialize_self_management() -> void:
-	"""Initialize state management and validation components"""
+	"""Initialize state management and build card-based UI"""
 	# Create security validator instance for input sanitization
 	security_validator = SecurityValidator.new()
 	
-	# SAFE UI COMPONENT INITIALIZATION - Using safe_get_node pattern
-	print("ConfigPanel DEBUG: Starting safe UI component initialization")
+	print("ConfigPanel: Building card-based UI with design system")
 	
-	# Safe initialization of UI components with fallback creation
-	campaign_name_input = safe_get_node("ContentMargin/MainContent/FormContent/FormContainer/Content/CampaignName/LineEdit",
-		_create_campaign_name_input)
+	# Get or create main container
+	var main_container = safe_get_node("ContentMargin/MainContent/FormContent/FormContainer",
+		func(): return create_basic_container("VBox"))
 	
-	difficulty_option = safe_get_node("ContentMargin/MainContent/FormContent/FormContainer/Content/Difficulty/OptionButton",
-		_create_difficulty_option)
+	# Clear existing content to rebuild with design system
+	for child in main_container.get_children():
+		child.queue_free()
 	
-	victory_condition_option = safe_get_node("ContentMargin/MainContent/FormContent/FormContainer/Content/VictoryCondition/OptionButton",
-		_create_victory_condition_option)
+	# Apply proper spacing between cards (24px)
+	main_container.add_theme_constant_override("separation", SPACING_LG)
 	
-	story_track_toggle = safe_get_node("ContentMargin/MainContent/FormContent/FormContainer/Content/StoryTrack/CheckBox",
-		_create_story_track_toggle)
+	# Add progress indicator at the top
+	var progress = _create_progress_indicator(0, 7)  # Step 1 of 7
+	main_container.add_child(progress)
 	
-	validation_icon = safe_get_node("ContentMargin/MainContent/FormContent/FormContainer/Content/Validation/Icon",
-		_create_validation_icon)
+	# Add visual separator after progress indicator
+	var separator_space = Control.new()
+	separator_space.custom_minimum_size.y = SPACING_LG
+	main_container.add_child(separator_space)
 	
-	validation_text = safe_get_node("ContentMargin/MainContent/FormContent/FormContainer/Content/Validation/Label",
-		_create_validation_text)
+	# Build card-based sections
+	_build_campaign_name_section(main_container)
+	_build_difficulty_section(main_container)
+	_build_victory_section(main_container)
+	_build_story_track_section(main_container)
 	
-	# Initialize description label (try to find it in scene or create if needed)
-	description_label = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/Description/Label")
-	if not description_label:
-		# Create description label if not found in scene
-		description_label = Label.new()
-		description_label.name = "DescriptionLabel"
-		description_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	print("ConfigPanel: Card-based UI built successfully")
+
+func _build_campaign_name_section(parent: Control) -> void:
+	"""Build campaign name input with card design"""
+	campaign_name_input = LineEdit.new()
+	campaign_name_input.placeholder_text = "The Starlight Wanderers"
+	_style_line_edit(campaign_name_input)
 	
-	print("ConfigPanel DEBUG: UI component initialization complete")
-	print("  Campaign Name Input: %s" % (campaign_name_input != null))
-	print("  Difficulty Option: %s" % (difficulty_option != null))
-	print("  Victory Condition: %s" % (victory_condition_option != null))
-	print("  Story Track Toggle: %s" % (story_track_toggle != null))
+	var content = _create_labeled_input("Campaign Name", campaign_name_input)
+	
+	var card = _create_section_card(
+		"CAMPAIGN IDENTITY",
+		content,
+		"Choose a memorable name for your crew's story"
+	)
+	parent.add_child(card)
+
+func _build_difficulty_section(parent: Control) -> void:
+	"""Build difficulty selector with card design and description"""
+	difficulty_option = OptionButton.new()
+	_style_option_button(difficulty_option)
+	
+	# Create description label for difficulty details
+	description_label = Label.new()
+	description_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	description_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	description_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	
+	var content = VBoxContainer.new()
+	content.add_theme_constant_override("separation", SPACING_SM)
+	content.add_child(_create_labeled_input("Difficulty Level", difficulty_option))
+	content.add_child(description_label)
+	
+	var card = _create_section_card(
+		"CHALLENGE LEVEL",
+		content,
+		""
+	)
+	parent.add_child(card)
+
+func _build_victory_section(parent: Control) -> void:
+	"""Build victory condition selector with card design"""
+	victory_condition_option = OptionButton.new()
+	_style_option_button(victory_condition_option)
+	
+	var content = _create_labeled_input("Victory Condition", victory_condition_option)
+	
+	var card = _create_section_card(
+		"VICTORY GOAL",
+		content,
+		"Choose how you'll win this campaign (or select 'None' for sandbox play)"
+	)
+	parent.add_child(card)
+
+func _build_story_track_section(parent: Control) -> void:
+	"""Build story track toggle with card design"""
+	story_track_toggle = CheckBox.new()
+	story_track_toggle.text = "Enable Story Track"
+	story_track_toggle.custom_minimum_size.y = TOUCH_TARGET_MIN
+	story_track_toggle.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	story_track_toggle.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	
+	var card = _create_section_card(
+		"NARRATIVE MODE",
+		story_track_toggle,
+		"Enable for guided story missions and plot progression"
+	)
+	parent.add_child(card)
 
 # _emit_panel_ready method now inherited from BaseCampaignPanel
 
@@ -653,6 +714,8 @@ func _create_campaign_name_input() -> LineEdit:
 	input.name = "CampaignNameInput"
 	input.placeholder_text = "Enter campaign name..."
 	input.focus_mode = Control.FOCUS_ALL
+	# Apply design system styling
+	_style_line_edit(input)
 	return input
 
 func _create_difficulty_option() -> OptionButton:
@@ -660,6 +723,8 @@ func _create_difficulty_option() -> OptionButton:
 	print("ConfigPanel DEBUG: Creating fallback difficulty option")
 	var option = OptionButton.new()
 	option.name = "DifficultyOption"
+	# Apply design system styling
+	_style_option_button(option)
 	return option
 
 func _create_victory_condition_option() -> OptionButton:
@@ -667,6 +732,8 @@ func _create_victory_condition_option() -> OptionButton:
 	print("ConfigPanel DEBUG: Creating fallback victory condition option")
 	var option = OptionButton.new()
 	option.name = "VictoryConditionOption"
+	# Apply design system styling
+	_style_option_button(option)
 	return option
 
 func _create_story_track_toggle() -> CheckBox:
@@ -675,6 +742,9 @@ func _create_story_track_toggle() -> CheckBox:
 	var toggle = CheckBox.new()
 	toggle.name = "StoryTrackToggle"
 	toggle.text = "Enable Story Track"
+	toggle.custom_minimum_size.y = TOUCH_TARGET_MIN
+	toggle.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	toggle.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	return toggle
 
 func _create_validation_icon() -> Label:
@@ -683,6 +753,8 @@ func _create_validation_icon() -> Label:
 	var icon = Label.new()
 	icon.name = "ValidationIcon"
 	icon.text = "✓"
+	icon.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	icon.add_theme_color_override("font_color", COLOR_SUCCESS)
 	return icon
 
 func _create_validation_text() -> Label:
@@ -691,6 +763,8 @@ func _create_validation_text() -> Label:
 	var text = Label.new()
 	text.name = "ValidationText"
 	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	text.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	text.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	return text
 
 ## Debug Helper Methods
@@ -704,3 +778,47 @@ func _get_difficulty_name(difficulty: int) -> String:
 		4: return "Hardcore"
 		5: return "Nightmare"
 		_: return "Unknown"
+
+## Responsive Layout Overrides
+
+func _apply_mobile_layout() -> void:
+	"""Mobile: Single column, 56dp targets, compact descriptions"""
+	super._apply_mobile_layout()
+
+	# Increase touch targets to TOUCH_TARGET_COMFORT (56dp)
+	if difficulty_option:
+		difficulty_option.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+	if victory_condition_option:
+		victory_condition_option.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+	if story_track_toggle:
+		story_track_toggle.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+	if campaign_name_input:
+		campaign_name_input.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+
+func _apply_tablet_layout() -> void:
+	"""Tablet: Two columns, 48dp targets, detailed descriptions"""
+	super._apply_tablet_layout()
+
+	# Standard touch targets at TOUCH_TARGET_MIN (48dp)
+	if difficulty_option:
+		difficulty_option.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if victory_condition_option:
+		victory_condition_option.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if story_track_toggle:
+		story_track_toggle.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if campaign_name_input:
+		campaign_name_input.custom_minimum_size.y = TOUCH_TARGET_MIN
+
+func _apply_desktop_layout() -> void:
+	"""Desktop: Multi-column, 48dp targets, full layout"""
+	super._apply_desktop_layout()
+
+	# Standard touch targets at TOUCH_TARGET_MIN (48dp)
+	if difficulty_option:
+		difficulty_option.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if victory_condition_option:
+		victory_condition_option.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if story_track_toggle:
+		story_track_toggle.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if campaign_name_input:
+		campaign_name_input.custom_minimum_size.y = TOUCH_TARGET_MIN

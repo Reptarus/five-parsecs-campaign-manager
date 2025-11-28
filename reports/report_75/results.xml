@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites id="2025-11-24" name="report_75" tests="2" failures="8" skipped="0" flaky="0" time="0.000">
+	<testsuite id="0" name="test_campaign_turn_loop_e2e" package="tests/integration" timestamp="2025-11-25T02:12:03" hostname="localhost" tests="2" failures="8" errors="2" skipped="0" flaky="0" time="0.144">
+		<testcase name="test_complete_turn_loop_execution" classname="test_campaign_turn_loop_e2e" time="0.040">
+			<error message="ERROR: res://tests/integration/test_campaign_turn_loop_e2e.gd:374" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: TravelPhase._generate_world_name (res://src/core/campaign/phases/TravelPhase.gd:374)'
+Error: 'Invalid cast: could not convert value to 'int'.'
+]]>
+			</error>
+			<failure message="FAILED: res://tests/integration/test_campaign_turn_loop_e2e.gd:37" type="FAILURE">
+<![CDATA[
+Expecting:
+ '3'
+ but was
+ '2'
+]]>
+			</failure>
+			<failure message="FAILED: res://tests/integration/test_campaign_turn_loop_e2e.gd:43" type="FAILURE">
+<![CDATA[
+Expecting:
+ '4'
+ but was
+ '2'
+]]>
+			</failure>
+			<failure message="FAILED: res://tests/integration/test_campaign_turn_loop_e2e.gd:49" type="FAILURE">
+<![CDATA[
+Expecting:
+ '5'
+ but was
+ '2'
+]]>
+			</failure>
+			<failure message="FAILED: res://tests/integration/test_campaign_turn_loop_e2e.gd:56" type="FAILURE">
+<![CDATA[
+Expecting:
+ '2'
+ but was
+ '1'
+]]>
+			</failure>
+		</testcase>
+		<testcase name="test_phase_handlers_execute_during_turn_loop" classname="test_campaign_turn_loop_e2e" time="0.055">
+			<error message="ERROR: res://tests/integration/test_campaign_turn_loop_e2e.gd:374" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: TravelPhase._generate_world_name (res://src/core/campaign/phases/TravelPhase.gd:374)'
+Error: 'Invalid cast: could not convert value to 'int'.'
+]]>
+			</error>
+			<failure message="FAILED: res://tests/integration/test_campaign_turn_loop_e2e.gd:90" type="FAILURE">
+<![CDATA[
+Expecting: 'true' but is 'false'
+]]>
+			</failure>
+			<failure message="FAILED: res://tests/integration/test_campaign_turn_loop_e2e.gd:91" type="FAILURE">
+<![CDATA[
+Expecting: 'true' but is 'false'
+]]>
+			</failure>
+			<failure message="FAILED: res://tests/integration/test_campaign_turn_loop_e2e.gd:92" type="FAILURE">
+<![CDATA[
+Expecting: 'true' but is 'false'
+]]>
+			</failure>
+			<failure message="FAILED: res://tests/integration/test_campaign_turn_loop_e2e.gd:93" type="FAILURE">
+<![CDATA[
+Expecting: 'true' but is 'false'
+]]>
+			</failure>
+		</testcase>
+	</testsuite>
+</testsuites>

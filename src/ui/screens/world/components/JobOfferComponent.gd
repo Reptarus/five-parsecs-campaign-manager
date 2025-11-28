@@ -5,6 +5,35 @@ class_name JobOfferComponent
 ## Extracted from WorldPhaseUI monolith to handle Five Parsecs job offers only
 ## Implements Core Rules p.78-80 - Patron jobs and opportunities
 
+# ============ DESIGN SYSTEM (from BaseCampaignPanel) ============
+
+## Spacing System (8px grid)
+const SPACING_XS := 4   # Icon padding, label-to-input gap
+const SPACING_SM := 8   # Element gaps within cards
+const SPACING_MD := 16  # Inner card padding
+const SPACING_LG := 24  # Section gaps between cards
+const SPACING_XL := 32  # Panel edge padding
+
+## Touch Target Minimums
+const TOUCH_TARGET_MIN := 48      # Minimum interactive element height
+const TOUCH_TARGET_COMFORT := 56  # Comfortable input height
+
+## Typography Sizes
+const FONT_SIZE_XS := 11  # Captions, limits
+const FONT_SIZE_SM := 14  # Descriptions, helpers
+const FONT_SIZE_MD := 16  # Body text, inputs
+const FONT_SIZE_LG := 18  # Section headers
+const FONT_SIZE_XL := 24  # Panel titles
+
+## Color Palette - Deep Space Theme
+const COLOR_TEXT_PRIMARY := Color("#E0E0E0")   # Main content
+const COLOR_TEXT_SECONDARY := Color("#808080") # Descriptions
+const COLOR_TEXT_DISABLED := Color("#404040")  # Inactive
+
+const COLOR_SUCCESS := Color("#10B981")  # Green
+const COLOR_WARNING := Color("#D97706")  # Orange
+const COLOR_DANGER := Color("#DC2626")   # Red
+
 # Event bus integration
 const CampaignTurnEventBus = preload("res://src/core/events/CampaignTurnEventBus.gd")
 var event_bus: CampaignTurnEventBus = null
@@ -12,6 +41,7 @@ var event_bus: CampaignTurnEventBus = null
 # Five Parsecs dependencies
 const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
 const FPCM_DataManager = preload("res://src/core/data/DataManager.gd")
+const GameDataLoader = preload("res://src/utils/GameDataLoader.gd")
 
 # UI Components
 @onready var job_offer_container: VBoxContainer = %JobOfferContainer
@@ -131,30 +161,287 @@ func initialize_job_phase(patron_data: Dictionary, current_location: String) -> 
 
 ## Core Five Parsecs job generation (Core Rules p.78-80)
 func _generate_job_offers(patron_data: Dictionary, location: String) -> Array[Dictionary]:
-	"""Generate job offers based on Five Parsecs rules"""
+	"""Generate job offers based on Five Parsecs rules and JSON data tables"""
 	var jobs: Array[Dictionary] = []
 
-	# If no patron, use "Open Market" for generic jobs
+	# Load patron jobs table
+	var patron_table = GameDataLoader.get_patron_jobs_table()
+	
+	if patron_table.is_empty():
+		push_error("JobOfferComponent: Failed to load patron_jobs.json - falling back to basic generation")
+		return _generate_job_offers_fallback(patron_data, location)
+	
+	# If no patron, roll on patron contact table to see if we get one
 	var effective_patron = patron_data.duplicate()
 	if effective_patron.is_empty():
-		effective_patron = {"patron_name": "Open Market", "patron_type": "generic"}
-		print("JobOfferComponent: No patron - generating open market jobs")
+		var contact_result = _roll_patron_contact(patron_table.get("patron_contact_table", {}))
+		if contact_result.is_empty() or contact_result.get("outcome", "") == "no_contact":
+			effective_patron = {"patron_name": "Open Market", "patron_type": "generic"}
+			print("JobOfferComponent: No patron contact - using open market")
+		else:
+			var patron_tier = contact_result.get("patron_tier", "regular")
+			effective_patron = {
+				"patron_name": _generate_patron_name(patron_tier),
+				"patron_type": patron_tier,
+				"tier": patron_tier
+			}
+			print("JobOfferComponent: Generated %s patron: %s" % [patron_tier, effective_patron.patron_name])
 
-	# Core Rules p.78: Roll for number of available jobs (1d6/2, minimum 1)
-	var dice_manager = get_node_or_null("/root/DiceManager")
+	# Roll for number of available jobs using job_type_table
+	var job_type_table = patron_table.get("job_type_table", {})
 	var job_count = 1
-	if dice_manager:
-		var roll = dice_manager.roll_d6()
-		job_count = max(1, int(roll / 2))
+	
+	if not job_type_table.is_empty():
+		# Generate 1-3 jobs based on patron tier
+		var tier = effective_patron.get("tier", effective_patron.get("patron_type", "regular"))
+		job_count = _get_job_count_for_tier(tier)
+	else:
+		# Fallback: roll d6/2
+		job_count = max(1, int(GameDataLoader.roll_d6() / 2))
 
 	print("JobOfferComponent: Generating %d job offers for %s" % [job_count, effective_patron.get("patron_name", "Unknown")])
 
 	for i in range(job_count):
-		var job = _create_job_offer(effective_patron, location, i)
+		var job = _create_job_offer_from_table(effective_patron, location, i, job_type_table, patron_table)
 		jobs.append(job)
 
 	return jobs
 
+## Fallback job generation if JSON loading fails
+func _generate_job_offers_fallback(patron_data: Dictionary, location: String) -> Array[Dictionary]:
+	"""Fallback to original job generation if JSON fails"""
+	var jobs: Array[Dictionary] = []
+	var effective_patron = patron_data.duplicate()
+	if effective_patron.is_empty():
+		effective_patron = {"patron_name": "Open Market", "patron_type": "generic"}
+	
+	var job_count = max(1, int(GameDataLoader.roll_d6() / 2))
+	
+	for i in range(job_count):
+		var job = _create_job_offer(effective_patron, location, i)
+		jobs.append(job)
+	
+	return jobs
+
+## Roll on patron contact table (2d6)
+func _roll_patron_contact(contact_table: Dictionary) -> Dictionary:
+	"""Roll to see if patron makes contact with skill modifiers"""
+	if contact_table.is_empty():
+		return {}
+	
+	# Base 2d6 roll
+	var base_roll: int = GameDataLoader.roll_2d6()
+	
+	# Apply skill modifiers
+	var skill_bonus: int = _get_patron_contact_skill_modifiers(contact_table)
+	
+	# Apply world trait modifiers
+	var world_bonus: int = _get_world_trait_modifiers(contact_table)
+	
+	var total_roll: int = base_roll + skill_bonus + world_bonus
+	
+	# Lookup result in range-based table
+	var result: Dictionary = _lookup_patron_contact_result(contact_table.get("results", {}), total_roll)
+	
+	print("JobOfferComponent: Patron contact roll = %d (base) + %d (skill) + %d (world) = %d, outcome = %s" % [
+		base_roll, skill_bonus, world_bonus, total_roll, result.get("outcome", "unknown")
+	])
+	
+	return result
+
+## Get skill bonuses for patron contact (CONNECTIONS +2, SAVVY +1)
+func _get_patron_contact_skill_modifiers(contact_table: Dictionary) -> int:
+	"""Calculate skill bonuses from crew for patron contact"""
+	var skill_bonuses: Dictionary = contact_table.get("modifiers", {}).get("skill_bonuses", {})
+	if skill_bonuses.is_empty():
+		return 0
+	
+	var total_bonus: int = 0
+	
+	# Access crew data from GameStateManager
+	var crew_list: Array = GameStateManager.get_crew_list()
+	if crew_list.is_empty():
+		return 0
+	
+	# Check for CONNECTIONS skill (+2)
+	if skill_bonuses.has("CONNECTIONS"):
+		for member in crew_list:
+			if member is Character:
+				# Check if character has skills property
+				if member.get("skills") != null:
+					var member_skills = member.get("skills")
+					if member_skills is Array and "CONNECTIONS" in member_skills:
+						total_bonus += skill_bonuses["CONNECTIONS"].get("bonus", 0)
+						print("JobOfferComponent: Found CONNECTIONS skill, bonus = +%d" % skill_bonuses["CONNECTIONS"].get("bonus", 0))
+						break  # Only apply once
+	
+	# Check for SAVVY skill (+1)
+	if skill_bonuses.has("SAVVY"):
+		for member in crew_list:
+			if member is Character:
+				# Check if character has skills property
+				if member.get("skills") != null:
+					var member_skills = member.get("skills")
+					if member_skills is Array and "SAVVY" in member_skills:
+						total_bonus += skill_bonuses["SAVVY"].get("bonus", 0)
+						print("JobOfferComponent: Found SAVVY skill, bonus = +%d" % skill_bonuses["SAVVY"].get("bonus", 0))
+						break  # Only apply once
+	
+	return total_bonus
+
+## Get world trait modifiers for patron contact
+func _get_world_trait_modifiers(contact_table: Dictionary) -> int:
+	"""Calculate world trait modifiers for patron contact"""
+	var world_modifiers: Dictionary = contact_table.get("modifiers", {}).get("world_modifiers", {})
+	if world_modifiers.is_empty():
+		return 0
+	
+	# Access current world traits from GameStateManager
+	var current_world: Dictionary = GameStateManager.get_current_world()
+	var world_traits: Array = current_world.get("traits", [])
+	
+	if world_traits.is_empty():
+		return 0
+	
+	var total_modifier: int = 0
+	
+	for world_trait in world_traits:
+		var trait_name: String = world_trait if world_trait is String else world_trait.get("name", "")
+		if world_modifiers.has(trait_name):
+			var modifier_data: Dictionary = world_modifiers[trait_name]
+			if modifier_data.has("bonus"):
+				total_modifier += modifier_data["bonus"]
+				print("JobOfferComponent: World trait %s, bonus = +%d" % [trait_name, modifier_data["bonus"]])
+			elif modifier_data.has("penalty"):
+				total_modifier += modifier_data["penalty"]  # Penalty is negative
+				print("JobOfferComponent: World trait %s, penalty = %d" % [trait_name, modifier_data["penalty"]])
+	
+	return total_modifier
+
+## Lookup patron contact result with range checking
+func _lookup_patron_contact_result(results_table: Dictionary, roll: int) -> Dictionary:
+	"""Lookup result in range-based table (handles "2-6", "7-8", etc.)"""
+	if results_table.is_empty():
+		return {}
+	
+	for range_str in results_table.keys():
+		if _is_roll_in_range(roll, range_str):
+			return results_table[range_str]
+	
+	# Fallback: no_contact
+	return {"outcome": "no_contact", "description": "No patron contact"}
+
+## Check if roll falls within range string
+func _is_roll_in_range(value: int, range_str: String) -> bool:
+	"""Check if value is in range (handles "2-6", "7-8", "11", etc.)"""
+	if "-" in range_str:
+		# Range format: "2-6"
+		var parts: PackedStringArray = range_str.split("-")
+		if parts.size() == 2:
+			var min_val: int = int(parts[0])
+			var max_val: int = int(parts[1])
+			return value >= min_val and value <= max_val
+	else:
+		# Single value: "11", "12"
+		return value == int(range_str)
+	
+	return false
+
+## Get job count based on patron tier
+func _get_job_count_for_tier(tier: String) -> int:
+	match tier:
+		"minor":
+			return 1
+		"regular":
+			return randi_range(1, 2)
+		"major":
+			return randi_range(2, 3)
+		"elite":
+			return 3
+		_:
+			return 1
+
+## Generate patron name based on tier
+func _generate_patron_name(tier: String) -> String:
+	var prefixes = {
+		"minor": ["Local", "Small-time", "Independent"],
+		"regular": ["Regional", "Established", "Reputable"],
+		"major": ["Sector", "Corporate", "Government"],
+		"elite": ["Galactic", "Imperial", "High Council"]
+	}
+	
+	var suffixes = ["Contractor", "Broker", "Agent", "Representative", "Official"]
+	
+	var prefix_list = prefixes.get(tier, prefixes["regular"])
+	var prefix = prefix_list[randi() % prefix_list.size()]
+	var suffix = suffixes[randi() % suffixes.size()]
+	
+	return "%s %s" % [prefix, suffix]
+
+## Create job offer using JSON data tables
+func _create_job_offer_from_table(patron_data: Dictionary, location: String, job_index: int, job_type_table: Dictionary, patron_table: Dictionary) -> Dictionary:
+	"""Create job using patron_jobs.json table data"""
+	if job_type_table.is_empty():
+		# Fallback to original method
+		return _create_job_offer(patron_data, location, job_index)
+	
+	# Roll on job type table (d10)
+	var job_roll = GameDataLoader.roll_d10()
+	var job_result = GameDataLoader.roll_on_table(job_type_table, job_roll)
+	
+	if job_result.is_empty():
+		push_warning("JobOfferComponent: No job type for roll %d, using fallback" % job_roll)
+		return _create_job_offer(patron_data, location, job_index)
+	
+	# Extract job type data
+	var job_type = job_result.get("job_type", "DELIVERY")
+	var job_description = job_result.get("description", "Unknown job")
+	var base_pay = job_result.get("base_pay", 4)
+	var danger_level = job_result.get("danger_level", 1)
+	var requirements = job_result.get("typical_requirements", [])
+	
+	# Apply patron tier multiplier
+	var payment_modifiers = patron_table.get("job_payment_modifiers", {})
+	var tier_multipliers = payment_modifiers.get("patron_tier_multipliers", {})
+	var patron_tier = patron_data.get("tier", patron_data.get("patron_type", "regular"))
+	var tier_multiplier = tier_multipliers.get(patron_tier, 1.0)
+	
+	# Apply danger level bonus
+	var danger_bonuses = payment_modifiers.get("danger_level_bonuses", {})
+	var danger_bonus = danger_bonuses.get(str(danger_level), 0)
+	
+	# Calculate final payment
+	var final_pay = int(base_pay * tier_multiplier) + danger_bonus
+	
+	# Build job structure
+	var job = {
+		"id": "job_%d_%s" % [job_index, Time.get_ticks_msec()],
+		"location": location,
+		"patron_type": patron_data.get("patron_type", "generic"),
+		"patron_name": patron_data.get("patron_name", "Unknown Patron"),
+		"job_type": job_type,
+		"objective": job_type.capitalize(),
+		"objective_description": job_description,
+		"danger_pay": final_pay,
+		"pay": final_pay,
+		"danger_level": danger_level,
+		"time_frame": _roll_time_frame(null, 0),  # Use existing function
+		"requirements": requirements,
+		"benefits": [],
+		"hazards": [],
+		"conditions": [],
+		"enemy_type": _determine_enemy_type(),
+		"double_roll_bonus": false,
+		"patron": patron_data.get("patron_name", "Unknown")
+	}
+	
+	print("JobOfferComponent: Created job from table - %s (%s), Pay: %d cr, Danger: %d" % [
+		job_type, job_description, final_pay, danger_level
+	])
+	
+	return job
+
+## Original job creation method (fallback)
 func _create_job_offer(patron_data: Dictionary, location: String, job_index: int) -> Dictionary:
 	"""Create a single job offer using Core Rules tables"""
 	var dice_manager = get_node_or_null("/root/DiceManager")

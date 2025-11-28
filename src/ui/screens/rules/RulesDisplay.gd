@@ -56,11 +56,15 @@ func update_bookmark_button() -> void:
 	bookmark_button.text = "Bookmark" if not is_bookmarked() else "Remove Bookmark"
 
 func is_bookmarked() -> bool:
-	var rules_reference = get_node("/root/RulesReference")
+	var rules_reference = owner if owner and owner.has_method("has") else null
+	if not rules_reference:
+		return false
 	return current_category in rules_reference.bookmarks
 
 func _on_bookmark_pressed() -> void:
-	var rules_reference = get_node("/root/RulesReference")
+	var rules_reference = owner if owner and owner.has_method("has") else null
+	if not rules_reference:
+		return
 	if is_bookmarked():
 		rules_reference.bookmarks.erase(current_category)
 	else:
@@ -80,8 +84,9 @@ func display_related_rules(data: Dictionary) -> void:
 			related_rules.add_child(button)
 
 func _on_related_rule_pressed(rule: String) -> void:
-	var rules_reference = get_node("/root/RulesReference")
-	rules_reference.show_rules_display(rule)
+	var rules_reference = owner if owner and owner.has_method("show_rules_display") else null
+	if rules_reference:
+		rules_reference.show_rules_display(rule)
 
 func _on_back_pressed() -> void:
 	queue_free()

@@ -6,6 +6,9 @@ class_name FiveParsecsCampaignDataResource
 ## Framework Bible compliant: Simple campaign management data
 ## Replaces complex JSON loading with type-safe resources
 
+## Schema version for save file migration (CRITICAL for data integrity)
+@export var schema_version: int = 1
+
 # World and location data
 @export var world_traits: Array[Dictionary] = []
 @export var planet_types: Array[Dictionary] = []

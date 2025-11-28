@@ -5,6 +5,9 @@ extends Resource
 ## Replaces Dictionary-based data structures with type-safe resources
 ## Provides validation, serialization, and upgrade path compatibility
 
+## Schema version for save file migration (CRITICAL for data integrity)
+@export var schema_version: int = 1
+
 # Import required classes
 const ValidationResult = preload("res://src/core/validation/ValidationResult.gd")
 const Character = preload("res://src/core/character/Character.gd")

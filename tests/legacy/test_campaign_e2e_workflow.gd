@@ -245,13 +245,13 @@ func _test_phase_5_equipment():
 		}
 		state_manager.set_phase_data(state_manager.Phase.EQUIPMENT_GENERATION, equipment_data)
 		var retrieved = state_manager.get_phase_data(state_manager.Phase.EQUIPMENT_GENERATION)
-		return retrieved.has("equipment") and not retrieved.equipment.is_empty()
+		return retrieved.has("equipment") and not retrieved["equipment"].is_empty()
 	)
 
 	# Test 5.2: Verify equipment structure
 	_run_test("Equipment has equipment array", func():
 		var equipment = state_manager.campaign_data["equipment"]
-		return equipment.has("equipment") and equipment.equipment is Array
+		return equipment.has("equipment") and equipment["equipment"] is Array
 	)
 
 	# Test 5.3: Advance to World Generation

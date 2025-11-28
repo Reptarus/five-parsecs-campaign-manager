@@ -5,6 +5,9 @@ class_name WorldPhaseController
 ## Replaces 3,910-line WorldPhaseUI monolith with focused component coordination
 ## Implements Mediator pattern for component interactions
 
+# Signals for phase transition integration
+signal phase_completed(results: Dictionary)
+
 # Event bus integration - single source of truth for events
 const CampaignTurnEventBus = preload("res://src/core/events/CampaignTurnEventBus.gd")
 var event_bus: CampaignTurnEventBus = null
@@ -630,9 +633,13 @@ func _complete_world_phase() -> void:
 
 	print("WorldPhaseController: World phase completed successfully")
 
+	# Emit signal for CampaignTurnController integration
+	phase_completed.emit(world_phase_results)
+
 	# TRANSITION TO WORLD PHASE SUMMARY
-	print("WorldPhaseController: Transitioning to WorldPhaseSummary scene")
-	get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/world/WorldPhaseSummary.tscn")
+	# Note: CampaignTurnController should handle phase transition, but keeping this as fallback
+	# print("WorldPhaseController: Transitioning to WorldPhaseSummary scene")
+	# get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/world/WorldPhaseSummary.tscn")
 
 ## Public API for external integration
 func get_current_step() -> WorldPhaseStep:

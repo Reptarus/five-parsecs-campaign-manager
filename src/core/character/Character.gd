@@ -8,6 +8,9 @@ This consolidation eliminates Manager pattern violations while maintaining all f
 All character generation logic now lives here instead of scattered across 15+ files.
 """
 
+## Schema version for save file migration (CRITICAL for data integrity)
+@export var schema_version: int = 1
+
 # Character Attributes
 @export var name: String = ""
 

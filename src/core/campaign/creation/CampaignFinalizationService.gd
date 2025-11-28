@@ -186,7 +186,16 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	# Initialize ship (format is compatible)
 	var ship_data = data.get("ship", {})
 	campaign.initialize_ship(ship_data)
-	
+
+	# PHASE 2 FIX: Transfer ship debt to GameStateManager
+	if GameStateManager and ship_data.has("debt"):
+		var debt = ship_data.get("debt", 0)
+		if GameStateManager.has_method("set_ship_debt"):
+			GameStateManager.set_ship_debt(debt)
+			print("CampaignFinalizationService: Ship debt set to %d credits" % debt)
+		else:
+			print("CampaignFinalizationService: Warning - GameStateManager missing set_ship_debt method")
+
 	# CRITICAL FIX: Transform equipment data from Dictionary to Array[Dictionary]
 	var equipment_data = data.get("equipment", {})
 	var transformed_equipment = _transform_equipment_data_for_turn_system(equipment_data)
@@ -200,6 +209,51 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	if GameStateManager and not world_data.is_empty():
 		GameStateManager.set_location(world_data)
 		print("CampaignFinalizationService: Set current_location in GameStateManager")
+
+	# Transfer victory conditions from config
+	var victory_conditions = config.get("victory_conditions", {})
+	if not victory_conditions.is_empty():
+		campaign.victory_conditions = victory_conditions.duplicate()
+		print("CampaignFinalizationService: Transferred victory_conditions to campaign")
+
+	# PHASE 2 FIX: Store story track setting in GameStateManager
+	var story_track_enabled = config.get("story_track_enabled", false)
+	if GameStateManager and GameStateManager.has_method("set_story_track_enabled"):
+		GameStateManager.set_story_track_enabled(story_track_enabled)
+		print("CampaignFinalizationService: Story track %s" % ("enabled" if story_track_enabled else "disabled"))
+	else:
+		print("CampaignFinalizationService: Warning - GameStateManager missing set_story_track_enabled method")
+
+	# PHASE 2 FIX: Preserve custom victory targets if defined
+	if victory_conditions.has("custom_targets"):
+		var custom_targets = victory_conditions.get("custom_targets", {})
+		if GameStateManager and GameStateManager.has_method("set_custom_victory_targets"):
+			GameStateManager.set_custom_victory_targets(custom_targets)
+			print("CampaignFinalizationService: Custom victory targets preserved")
+		else:
+			print("CampaignFinalizationService: Warning - GameStateManager missing set_custom_victory_targets method")
+
+	# Transfer accumulated resources from character creation
+	var resources = data.get("resources", {})
+	if not resources.is_empty():
+		# Combine credits from character creation + equipment
+		var equipment_credits = equipment_data.get("starting_credits", equipment_data.get("credits", 0))
+		var creation_credits = resources.get("credits", 0)
+		var total_credits = creation_credits + equipment_credits
+
+		campaign.initialize_resources({
+			"credits": total_credits,
+			"story_points": resources.get("story_points", 0),
+			"patrons": resources.get("patrons", []),
+			"rivals": resources.get("rivals", []),
+			"quest_rumors": resources.get("quest_rumors", [])
+		})
+		print("CampaignFinalizationService: Transferred accumulated resources - Credits: %d, Story Points: %d, Patrons: %d, Rivals: %d" % [
+			total_credits,
+			resources.get("story_points", 0),
+			resources.get("patrons", []).size(),
+			resources.get("rivals", []).size()
+		])
 	
 	# CRITICAL FIX: Mark campaign as ready for turn system
 	campaign.game_phase = "ready_for_turn_system"
@@ -313,10 +367,48 @@ func _perform_post_save_operations(campaign: Resource, save_path: String) -> voi
 		var game_state = Engine.get_singleton("GameStateManager")
 		if game_state and game_state.has_method("register_campaign"):
 			game_state.register_campaign(campaign, save_path)
-	
+
+	# Transfer resources to GameStateManager for dashboard display
+	if GameStateManager:
+		# Get resources from campaign
+		var resources = {}
+		if campaign.has_method("get_resources"):
+			resources = campaign.get_resources()
+		else:
+			# Fallback to direct property access
+			resources = {
+				"credits": campaign.get("credits") if campaign.get("credits") else 0,
+				"story_points": campaign.get("story_points") if campaign.get("story_points") else 0,
+				"patrons": campaign.get("patrons") if campaign.get("patrons") else [],
+				"rivals": campaign.get("rivals") if campaign.get("rivals") else [],
+				"quest_rumors": campaign.get("quest_rumors") if campaign.get("quest_rumors") else 0
+			}
+
+		# Set resources in GameStateManager
+		GameStateManager.set_credits(resources.get("credits", 0))
+		if GameStateManager.has_method("set_story_progress"):
+			GameStateManager.set_story_progress(resources.get("story_points", 0))
+		if GameStateManager.has_method("set_patrons"):
+			GameStateManager.set_patrons(resources.get("patrons", []))
+		if GameStateManager.has_method("set_rivals"):
+			GameStateManager.set_rivals(resources.get("rivals", []))
+		if GameStateManager.has_method("set_quest_rumors"):
+			var rumors = resources.get("quest_rumors", [])
+			var rumor_count = rumors.size() if rumors is Array else rumors
+			GameStateManager.set_quest_rumors(rumor_count)
+
+		# Transfer victory conditions to GameStateManager
+		if GameStateManager.has_method("set_victory_conditions"):
+			var victory_conditions = campaign.get("victory_conditions") if "victory_conditions" in campaign else {}
+			if not victory_conditions.is_empty():
+				GameStateManager.set_victory_conditions(victory_conditions)
+				print("CampaignFinalizationService: Transferred victory_conditions to GameStateManager")
+
+		print("CampaignFinalizationService: Transferred resources to GameStateManager for dashboard")
+
 	# Clear temporary data
 	_clear_temporary_data()
-	
+
 	# Log success metrics
 	_log_success_metrics(campaign, save_path)
 

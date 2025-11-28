@@ -19,12 +19,14 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/separation = 16
 
 [node name="Title" type="Label" parent="JobOfferContainer"]
 layout_mode = 2
 text = "Job Offers Phase - Select Mission"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
 
 [node name="HSeparator" type="HSeparator" parent="JobOfferContainer"]
 layout_mode = 2
@@ -32,15 +34,18 @@ layout_mode = 2
 [node name="ContentContainer" type="HBoxContainer" parent="JobOfferContainer"]
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_constants/separation = 16
 
 [node name="JobListSection" type="VBoxContainer" parent="JobOfferContainer/ContentContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/separation = 8
 
 [node name="JobListLabel" type="Label" parent="JobOfferContainer/ContentContainer/JobListSection"]
 layout_mode = 2
 text = "Available Jobs:"
 theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
 
 [node name="AvailableJobsList" type="ItemList" parent="JobOfferContainer/ContentContainer/JobListSection"]
 unique_name_in_owner = true
@@ -50,11 +55,13 @@ size_flags_vertical = 3
 [node name="DetailsSection" type="VBoxContainer" parent="JobOfferContainer/ContentContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/separation = 8
 
 [node name="DetailsLabel" type="Label" parent="JobOfferContainer/ContentContainer/DetailsSection"]
 layout_mode = 2
 text = "Job Details:"
 theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
 
 [node name="JobDetailsLabel" type="Label" parent="JobOfferContainer/ContentContainer/DetailsSection"]
 unique_name_in_owner = true
@@ -63,6 +70,8 @@ size_flags_vertical = 3
 text = "Select a job to view details"
 vertical_alignment = 1
 autowrap_mode = 3
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.878431, 0.878431, 0.878431, 1)
 
 [node name="HSeparator2" type="HSeparator" parent="JobOfferContainer"]
 layout_mode = 2
@@ -70,22 +79,29 @@ layout_mode = 2
 [node name="ButtonContainer" type="HBoxContainer" parent="JobOfferContainer"]
 layout_mode = 2
 alignment = 1
+theme_override_constants/separation = 8
 
 [node name="RerollJobsButton" type="Button" parent="JobOfferContainer/ButtonContainer"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 text = "Reroll Jobs (1 credit)"
+theme_override_font_sizes/font_size = 16
 
 [node name="Spacer" type="Control" parent="JobOfferContainer/ButtonContainer"]
-custom_minimum_size = Vector2(20, 0)
+custom_minimum_size = Vector2(16, 0)
 layout_mode = 2
 
 [node name="DeclineJobButton" type="Button" parent="JobOfferContainer/ButtonContainer"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 text = "Decline Job"
+theme_override_font_sizes/font_size = 16
 
 [node name="AcceptJobButton" type="Button" parent="JobOfferContainer/ButtonContainer"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 text = "Accept Job"
+theme_override_font_sizes/font_size = 16

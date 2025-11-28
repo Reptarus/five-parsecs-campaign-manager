@@ -3,6 +3,9 @@ extends FiveParsecsCampaignPanel
 ## Five Parsecs Equipment Generation Panel
 ## Production-ready implementation with comprehensive equipment systems
 
+# Progress tracking
+const STEP_NUMBER := 5  # Step 5 of 7 in campaign wizard
+
 const StartingEquipmentGenerator = preload("res://src/core/character/Equipment/StartingEquipmentGenerator.gd")
 const CharacterClass = preload("res://src/core/character/Character.gd")
 
@@ -36,6 +39,9 @@ var reroll_button: Button
 var manual_button: Button
 var summary_label: Label
 var credits_label: Label
+var auto_assign_button: Button
+var crew_loadout_container: VBoxContainer
+var assigned_count_label: Label
 
 # PHASE 1 INTEGRATION: EquipmentManager connection
 var equipment_manager_instance: Control = null
@@ -45,6 +51,13 @@ var generated_equipment: Array[Dictionary] = []
 var starting_credits: int = 0
 var crew_size: int = 4
 var dice_manager: Node # Add dice_manager reference
+
+# PHASE 1: Crew and assignment tracking
+var crew_members: Array = []  # Stores crew member data for assignment
+var equipment_assignments: Dictionary = {}  # equipment_index -> character_name
+
+# Equipment data loaded from JSON
+var equipment_tables: Dictionary = {}
 
 # Coordinator and state management references
 var coordinator: Node = null  # Store coordinator reference properly
@@ -69,30 +82,53 @@ func _handle_campaign_state_update(state_data: Dictionary) -> void:
 			_update_display()
 
 	# CROSS-PANEL COMMUNICATION: React to crew changes
-	var crew_members = _extract_crew_members(state_data)
-	if crew_members.size() > 0:
-		var crew_changed = (crew_members.size() != _last_crew_size)
+	var extracted_crew = _extract_crew_members(state_data)
+	if extracted_crew.size() > 0:
+		var crew_changed = (extracted_crew.size() != _last_crew_size)
+		
+		# PHASE 1: Store crew members for assignment UI
+		crew_members = extracted_crew
+		print("EquipmentPanel: Stored %d crew members for assignment" % crew_members.size())
 
 		if crew_changed or generated_equipment.is_empty():
-			print("EquipmentPanel: Crew composition changed (%d -> %d) - regenerating equipment" % [_last_crew_size, crew_members.size()])
-			_last_crew_size = crew_members.size()
-			crew_size = crew_members.size()
-			_generate_five_parsecs_equipment(crew_members)
+			print("EquipmentPanel: Crew composition changed (%d -> %d) - regenerating equipment" % [_last_crew_size, extracted_crew.size()])
+			_last_crew_size = extracted_crew.size()
+			crew_size = extracted_crew.size()
+			_generate_five_parsecs_equipment(extracted_crew)
 
 			# Update UI
 			if credits_label:
 				credits_label.text = str(starting_credits)
 			if summary_label:
-				summary_label.text = "Equipment generated for %d crew members: %d items" % [crew_members.size(), generated_equipment.size()]
+				summary_label.text = "Equipment generated for %d crew members: %d items" % [extracted_crew.size(), generated_equipment.size()]
 		else:
-			print("EquipmentPanel: No crew changes detected")
+			# Even if crew size hasn't changed, update the loadout display
+			print("EquipmentPanel: No crew changes detected, updating loadout display")
+			_update_crew_loadout_display()
 	else:
 		print("EquipmentPanel: Waiting for crew data...")
 
-	# Also check for captain data
+	# Also check for captain data and add to crew_members if not present
 	if state_data.has("captain") and state_data.captain is Dictionary:
 		var captain_data = state_data.captain
 		print("EquipmentPanel: Captain data found: %s" % captain_data.get("character_name", "Unknown"))
+		
+		# Add captain to crew members if not already present
+		var captain_name = captain_data.get("character_name", captain_data.get("name", ""))
+		var captain_exists = false
+		for member in crew_members:
+			var member_name = ""
+			if member is Dictionary:
+				member_name = member.get("character_name", member.get("name", ""))
+			elif member is Character:
+				member_name = member.character_name if member.character_name else member.name
+			if member_name == captain_name:
+				captain_exists = true
+				break
+		
+		if not captain_exists and not captain_name.is_empty():
+			crew_members.insert(0, captain_data)
+			print("EquipmentPanel: Added captain to crew members list")
 
 func _extract_crew_members(state_data) -> Array:
 	"""Extract crew members from various possible data structures - more defensive"""
@@ -208,11 +244,13 @@ func _generate_five_parsecs_equipment(crew_members: Array) -> void:
 	})
 	print("  Generated gadget: %s" % gadget)
 	
-	# Add character-specific equipment based on backgrounds
+	# Add character-specific equipment based on backgrounds using JSON data
+	var background_equipment = equipment_tables.get("background_equipment", {})
+
 	for crew_member in crew_members:
 		var member_name = ""
 		var background = ""
-		
+
 		# CRITICAL FIX: Handle both Character objects and Dictionary data
 		if crew_member is Character:
 			# Direct Character object from Five Parsecs generation
@@ -227,42 +265,73 @@ func _generate_five_parsecs_equipment(crew_members: Array) -> void:
 		else:
 			print("  Warning: Unknown crew member type: %s" % type_string(typeof(crew_member)))
 			continue
-		
-		# Military background gets extra military weapon
-		if background == "military" or background == "soldier":
-			var bonus_weapon = military_weapons[randi() % military_weapons.size()]
-			generated_equipment.append({
-				"name": bonus_weapon,
-				"type": "Military Weapon",
-				"owner": member_name,
-				"condition": "standard",
-				"quality_modifier": 0
-			})
-			print("  Bonus military weapon for %s: %s" % [member_name, bonus_weapon])
-			
-		# Tech/Engineer background gets extra gadget
-		elif background == "tech" or background == "engineer" or background == "scientist":
-			var bonus_gadget = gadget_items[randi() % gadget_items.size()]
-			generated_equipment.append({
-				"name": bonus_gadget,
-				"type": "Gadget",
-				"owner": member_name,
-				"condition": "standard",
-				"quality_modifier": 0
-			})
-			print("  Bonus gadget for %s: %s" % [member_name, bonus_gadget])
-			
-		# Explorer/Scout gets extra gear
-		elif background == "explorer" or background == "scout":
-			var bonus_gear = gear_items[randi() % gear_items.size()]
-			generated_equipment.append({
-				"name": bonus_gear,
-				"type": "Gear",
-				"owner": member_name,
-				"condition": "standard",
-				"quality_modifier": 0
-			})
-			print("  Bonus gear for %s: %s" % [member_name, bonus_gear])
+
+		# Use JSON background equipment if available
+		if background_equipment.has(background):
+			var bg_equip = background_equipment[background]
+			print("  Found background equipment for %s: %s" % [background, bg_equip.keys()])
+
+			# Add weapons from background
+			for weapon in bg_equip.get("weapons", []):
+				generated_equipment.append({
+					"name": weapon,
+					"type": "Weapon",
+					"owner": member_name,
+					"condition": "standard",
+					"quality_modifier": 0
+				})
+				print("  Background weapon for %s: %s" % [member_name, weapon])
+
+			# Add gear from background
+			for gear_item in bg_equip.get("gear", []):
+				generated_equipment.append({
+					"name": gear_item,
+					"type": "Gear",
+					"owner": member_name,
+					"condition": "standard",
+					"quality_modifier": 0
+				})
+				print("  Background gear for %s: %s" % [member_name, gear_item])
+
+			# Add background credits to total
+			starting_credits += bg_equip.get("credits", 0)
+		else:
+			# Fallback to hardcoded logic for unrecognized backgrounds
+			# Military background gets extra military weapon
+			if background == "military" or background == "soldier":
+				var bonus_weapon = military_weapons[randi() % military_weapons.size()]
+				generated_equipment.append({
+					"name": bonus_weapon,
+					"type": "Military Weapon",
+					"owner": member_name,
+					"condition": "standard",
+					"quality_modifier": 0
+				})
+				print("  Bonus military weapon for %s: %s" % [member_name, bonus_weapon])
+
+			# Tech/Engineer background gets extra gadget
+			elif background == "tech" or background == "engineer" or background == "scientist":
+				var bonus_gadget = gadget_items[randi() % gadget_items.size()]
+				generated_equipment.append({
+					"name": bonus_gadget,
+					"type": "Gadget",
+					"owner": member_name,
+					"condition": "standard",
+					"quality_modifier": 0
+				})
+				print("  Bonus gadget for %s: %s" % [member_name, bonus_gadget])
+
+			# Explorer/Scout gets extra gear
+			elif background == "explorer" or background == "scout":
+				var bonus_gear = gear_items[randi() % gear_items.size()]
+				generated_equipment.append({
+					"name": bonus_gear,
+					"type": "Gear",
+					"owner": member_name,
+					"condition": "standard",
+					"quality_modifier": 0
+				})
+				print("  Bonus gear for %s: %s" % [member_name, bonus_gear])
 	
 	# Calculate starting credits: 1 credit per crew member (base)
 	# Plus 1D6+1 x 100 credits total
@@ -281,15 +350,57 @@ func _generate_five_parsecs_equipment(crew_members: Array) -> void:
 func _ready() -> void:
 	# Set panel info before base initialization with more informative description
 	set_panel_info("Equipment Assignment", "Distribute starting gear based on crew backgrounds. Military = combat gear, Tech = tools.")
-	
+
 	# Call parent _ready() to initialize BaseCampaignPanel structure
 	super._ready()
-	
+
+	# Add progress indicator
+	call_deferred("_add_progress_indicator")
+
+	# Load equipment tables from JSON
+	_load_equipment_tables()
+
 	# COMPREHENSIVE DEBUG OUTPUT - Panel Initialization
 	call_deferred("_log_panel_initialization_debug")
-	
+
 	# Initialize equipment-specific functionality
 	call_deferred("_initialize_components")
+
+func _load_equipment_tables() -> void:
+	"""Load equipment data from equipment_tables.json"""
+	var file_path = "res://data/character_creation_tables/equipment_tables.json"
+	if not FileAccess.file_exists(file_path):
+		push_warning("EquipmentPanel: equipment_tables.json not found at %s" % file_path)
+		return
+
+	var file = FileAccess.open(file_path, FileAccess.READ)
+	if not file:
+		push_error("EquipmentPanel: Failed to open equipment_tables.json")
+		return
+
+	var json = JSON.new()
+	var error = json.parse(file.get_as_text())
+	file.close()
+
+	if error != OK:
+		push_error("EquipmentPanel: Failed to parse equipment_tables.json: %s" % json.get_error_message())
+		return
+
+	equipment_tables = json.get_data()
+	print("EquipmentPanel: Loaded equipment tables with keys: %s" % str(equipment_tables.keys()))
+
+func _add_progress_indicator() -> void:
+	"""Add progress indicator to panel after structure is ready"""
+	var main_content = get_node_or_null("ContentMargin/MainContent")
+	if not main_content:
+		push_warning("EquipmentPanel: MainContent node not found for progress indicator")
+		return
+
+	var progress = _create_progress_indicator(STEP_NUMBER, 7)
+	main_content.add_child(progress)
+	main_content.move_child(progress, 0)  # Put at top of panel
+
+	print("EquipmentPanel: Progress indicator added (Step %d of 7)" % STEP_NUMBER)
 
 func _setup_panel_content() -> void:
 	"""Override from BaseCampaignPanel - setup equipment-specific content"""
@@ -316,33 +427,40 @@ func _initialize_components() -> void:
 	"""Initialize equipment panel by connecting to actual scene nodes"""
 	print("========== EquipmentPanel: FINDING ACTUAL SCENE NODES ==========")
 	
-	# Use correct scene paths to find existing UI elements
-	equipment_list = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/EquipmentList/Container")
-	if not equipment_list:
-		# Try unique name access (marked with unique_name_in_owner = true)
-		equipment_list = get_node_or_null("%Container")
+	# Use unique name access (marked with unique_name_in_owner = true)
+	equipment_list = get_node_or_null("%Container")
 	print("EquipmentPanel: equipment_list: %s" % ("FOUND" if equipment_list else "NOT FOUND"))
 	
-	generate_button = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/Controls/GenerateButton")
+	generate_button = get_node_or_null("%GenerateButton")
+	if not generate_button:
+		generate_button = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/Controls/GenerateButton")
 	print("EquipmentPanel: generate_button: %s" % ("FOUND" if generate_button else "NOT FOUND"))
 	
-	reroll_button = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/Controls/RerollButton")
+	reroll_button = get_node_or_null("%RerollButton")
+	if not reroll_button:
+		reroll_button = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/Controls/RerollButton")
 	print("EquipmentPanel: reroll_button: %s" % ("FOUND" if reroll_button else "NOT FOUND"))
 	
-	manual_button = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/Controls/ManualButton")
+	manual_button = get_node_or_null("%ManualButton")
+	if not manual_button:
+		manual_button = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/Controls/ManualButton")
 	print("EquipmentPanel: manual_button: %s" % ("FOUND" if manual_button else "NOT FOUND"))
 	
-	summary_label = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/Summary/Label")
-	if not summary_label:
-		# Try unique name access
-		summary_label = get_node_or_null("%Label")
+	summary_label = get_node_or_null("%Label")
 	print("EquipmentPanel: summary_label: %s" % ("FOUND" if summary_label else "NOT FOUND"))
 	
-	credits_label = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/Credits/Value")
-	if not credits_label:
-		# Try unique name access
-		credits_label = get_node_or_null("%Value")
+	credits_label = get_node_or_null("%Value")
 	print("EquipmentPanel: credits_label: %s" % ("FOUND" if credits_label else "NOT FOUND"))
+	
+	# PHASE 1: New assignment UI components
+	auto_assign_button = get_node_or_null("%AutoAssignButton")
+	print("EquipmentPanel: auto_assign_button: %s" % ("FOUND" if auto_assign_button else "NOT FOUND"))
+	
+	crew_loadout_container = get_node_or_null("%CrewLoadoutContainer")
+	print("EquipmentPanel: crew_loadout_container: %s" % ("FOUND" if crew_loadout_container else "NOT FOUND"))
+	
+	assigned_count_label = get_node_or_null("%AssignedCount")
+	print("EquipmentPanel: assigned_count_label: %s" % ("FOUND" if assigned_count_label else "NOT FOUND"))
 
 	# Get DiceManager from autoload with safe access and fallback creation
 	if has_node("/root/DiceManager"):
@@ -520,6 +638,11 @@ func _connect_signals() -> void:
 		print("EquipmentPanel: ✅ Connected Manual button from scene")
 	else:
 		print("EquipmentPanel: Manual button already connected")
+	
+	# PHASE 1: Connect auto-assign button
+	if auto_assign_button and not auto_assign_button.pressed.is_connected(_on_auto_assign_pressed):
+		auto_assign_button.pressed.connect(_on_auto_assign_pressed)
+		print("EquipmentPanel: ✅ Connected Auto-Assign button from scene")
 
 func set_crew_data(crew: Array[CharacterClass]) -> void:
 	"""Set crew data and generate equipment"""
@@ -717,13 +840,16 @@ func _on_generate_pressed() -> void:
 	if crew_members.size() > 0:
 		print("EquipmentPanel: Generating for %d crew members" % crew_members.size())
 		_generate_five_parsecs_equipment(crew_members)
-		
+
+		# CRITICAL FIX: Persist equipment to EquipmentManager
+		_persist_equipment_to_manager(crew_members)
+
 		# TYPE-SAFE: Notify coordinator to update navigation state (enable Next button)
 		if coordinator and is_instance_valid(coordinator):
 			if coordinator.has_method("update_navigation_state"):
 				coordinator.call("update_navigation_state")
 				print("EquipmentPanel: Notified coordinator to update navigation")
-		
+
 		# Also emit panel data change for real-time updates
 		panel_data_changed.emit(get_data())
 	else:
@@ -732,6 +858,78 @@ func _on_generate_pressed() -> void:
 			summary_label.text = "⚠️ Please complete crew generation first"
 		if credits_label:
 			credits_label.text = "0"
+
+func _persist_equipment_to_manager(crew_members: Array) -> void:
+	"""Persist generated equipment to EquipmentManager autoload for use in World/Battle phases"""
+	print("========== EquipmentPanel: PERSISTING EQUIPMENT TO MANAGER ==========")
+
+	var equipment_manager = get_node_or_null("/root/EquipmentManager")
+	if not equipment_manager:
+		push_error("EquipmentPanel: EquipmentManager autoload not found!")
+		return
+
+	var persisted_count: int = 0
+	var failed_count: int = 0
+
+	for equipment_item: Dictionary in generated_equipment:
+		# Ensure equipment has a unique ID
+		if not equipment_item.has("id") or equipment_item.id.is_empty():
+			equipment_item["id"] = "equip_%d_%d" % [Time.get_ticks_msec(), randi() % 10000]
+
+		var owner_name: String = equipment_item.get("owner", "Unassigned")
+
+		# Add to ship stash if unassigned, or to character if assigned
+		if owner_name == "Unassigned" or owner_name.is_empty():
+			# Add to ship stash (for later assignment in World Phase)
+			if equipment_manager.add_to_ship_stash(equipment_item):
+				persisted_count += 1
+				print("  → Added to ship stash: %s" % equipment_item.get("name", "Unknown"))
+			else:
+				failed_count += 1
+				push_warning("  → Failed to add to stash: %s (stash may be full)" % equipment_item.get("name", "Unknown"))
+		else:
+			# Find character ID from crew_members
+			var character_id = _get_character_id_from_name(crew_members, owner_name)
+
+			if character_id.is_empty():
+				# Character not found, add to stash as fallback
+				if equipment_manager.add_to_ship_stash(equipment_item):
+					persisted_count += 1
+					print("  → Character '%s' not found, added to stash: %s" % [owner_name, equipment_item.get("name")])
+				else:
+					failed_count += 1
+			else:
+				# Add to equipment storage then assign to character
+				if equipment_manager.add_equipment(equipment_item):
+					if equipment_manager.assign_equipment_to_character(character_id, equipment_item.id):
+						persisted_count += 1
+						print("  → Assigned to %s (%s): %s" % [owner_name, character_id, equipment_item.get("name")])
+					else:
+						push_warning("  → Equipment added but assignment failed: %s" % equipment_item.get("name"))
+						failed_count += 1
+				else:
+					failed_count += 1
+					push_warning("  → Failed to add equipment: %s" % equipment_item.get("name"))
+
+	print("Equipment persistence complete: %d succeeded, %d failed" % [persisted_count, failed_count])
+
+func _get_character_id_from_name(crew_members: Array, character_name: String) -> String:
+	"""Get character ID from crew member name"""
+	for member in crew_members:
+		var name: String = ""
+		var id: String = ""
+
+		if member is Dictionary:
+			name = member.get("character_name", member.get("name", ""))
+			id = member.get("id", member.get("character_id", ""))
+		elif member is Character:
+			name = member.character_name if member.character_name else member.name
+			id = member.character_id
+
+		if name == character_name:
+			return id
+
+	return ""
 
 func _on_reroll_equipment_pressed() -> void:
 	print("========== EquipmentPanel: REROLL BUTTON PRESSED ==========")
@@ -849,7 +1047,7 @@ func is_setup_complete() -> bool:
 	return generated_equipment.size() > 0
 
 func _update_equipment_display() -> void:
-	"""Update the equipment list display with proper scene integration"""
+	"""Update the equipment list display with assignment dropdowns"""
 	print("EquipmentPanel: Updating display with %d items" % generated_equipment.size())
 	
 	if not equipment_list:
@@ -863,47 +1061,413 @@ func _update_equipment_display() -> void:
 	# Wait one frame for old children to be removed
 	await get_tree().process_frame
 	
-	# Add equipment items to the visible list
-	for item: Dictionary in generated_equipment:
+	# Build crew options for dropdown
+	var crew_options = _get_crew_assignment_options()
+	
+	# Add equipment items to the visible list with assignment dropdowns
+	for i in range(generated_equipment.size()):
+		var item: Dictionary = generated_equipment[i]
 		var item_container: PanelContainer = PanelContainer.new()
 		var item_hbox: HBoxContainer = HBoxContainer.new()
+		item_hbox.add_theme_constant_override("separation", 8)
 		
+		# Equipment name
 		var name_label: Label = Label.new()
 		name_label.text = str(item.get("name", "Unknown Item"))
-		name_label.custom_minimum_size.x = 200
+		name_label.custom_minimum_size.x = 180
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		item_hbox.add_child(name_label)
 		
+		# Equipment type with color coding
 		var type_label: Label = Label.new()
-		type_label.text = str(item.get("type", "Misc"))
+		var item_type: String = str(item.get("type", "Misc"))
+		type_label.text = item_type
 		type_label.custom_minimum_size.x = 100
+		type_label.add_theme_color_override("font_color", _get_type_color(item_type))
 		item_hbox.add_child(type_label)
 		
+		# Condition indicator
 		var condition_label: Label = Label.new()
 		var condition: String = str(item.get("condition", "standard"))
-		condition_label.text = "Condition: %s" % condition.capitalize()
-		condition_label.custom_minimum_size.x = 150
+		condition_label.text = condition.capitalize()
+		condition_label.custom_minimum_size.x = 80
+		condition_label.add_theme_color_override("font_color", _get_condition_color(condition))
 		item_hbox.add_child(condition_label)
 		
-		var owner_label: Label = Label.new()
-		owner_label.text = "For: %s" % str(item.get("owner", "Crew"))
-		owner_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		item_hbox.add_child(owner_label)
+		# PHASE 1: Assignment dropdown
+		var assign_dropdown: OptionButton = OptionButton.new()
+		assign_dropdown.custom_minimum_size.x = 150
+		assign_dropdown.name = "AssignDropdown_%d" % i
+		
+		# Add options
+		assign_dropdown.add_item("Unassigned", 0)
+		assign_dropdown.add_item("Ship Stash", 1)
+		for j in range(crew_options.size()):
+			assign_dropdown.add_item(crew_options[j], j + 2)
+		
+		# Set current selection based on item owner
+		var current_owner: String = str(item.get("owner", "Unassigned"))
+		var selected_index: int = _get_owner_dropdown_index(current_owner, crew_options)
+		assign_dropdown.select(selected_index)
+		
+		# Connect signal with item index
+		assign_dropdown.item_selected.connect(_on_equipment_assignment_changed.bind(i))
+		
+		item_hbox.add_child(assign_dropdown)
 		
 		item_container.add_child(item_hbox)
 		equipment_list.add_child(item_container)
 	
 	# Update summary and credits labels
+	_update_summary_labels()
+	
+	# Update crew loadout display
+	_update_crew_loadout_display()
+	
+	print("EquipmentPanel: ✅ Display updated with %d visible items" % generated_equipment.size())
+
+func _get_type_color(item_type: String) -> Color:
+	"""Get color for equipment type display"""
+	match item_type.to_lower():
+		"military weapon", "weapon":
+			return Color(1.0, 0.4, 0.4)  # Red for weapons
+		"low-tech weapon":
+			return Color(0.8, 0.6, 0.4)  # Orange for low-tech
+		"gear":
+			return Color(0.4, 0.8, 1.0)  # Blue for gear
+		"gadget":
+			return Color(0.8, 0.4, 1.0)  # Purple for gadgets
+		"armor":
+			return Color(0.6, 0.8, 0.4)  # Green for armor
+		_:
+			return Color(0.8, 0.8, 0.8)  # Gray for misc
+
+func _get_condition_color(condition: String) -> Color:
+	"""Get color for equipment condition display"""
+	match condition.to_lower():
+		"pristine", "excellent":
+			return Color(0.4, 1.0, 0.4)  # Bright green
+		"standard", "good":
+			return Color(0.8, 0.8, 0.8)  # White/gray
+		"worn":
+			return Color(1.0, 0.8, 0.4)  # Yellow/orange
+		"damaged", "poor":
+			return Color(1.0, 0.4, 0.4)  # Red
+		_:
+			return Color(0.8, 0.8, 0.8)
+
+func _get_crew_assignment_options() -> Array[String]:
+	"""Get list of crew member names for assignment dropdown"""
+	var options: Array[String] = []
+	
+	for member in crew_members:
+		var name: String = ""
+		if member is Dictionary:
+			name = member.get("character_name", member.get("name", "Unknown"))
+		elif member is Character:
+			name = member.character_name if member.character_name else member.name
+		else:
+			name = str(member)
+		
+		if not name.is_empty():
+			options.append(name)
+	
+	return options
+
+func _get_owner_dropdown_index(owner: String, crew_options: Array[String]) -> int:
+	"""Get dropdown index for given owner name"""
+	if owner == "Unassigned" or owner.is_empty():
+		return 0
+	if owner == "Ship Stash" or owner == "Ship Inventory":
+		return 1
+	
+	# Search in crew options
+	for i in range(crew_options.size()):
+		if crew_options[i] == owner:
+			return i + 2
+	
+	return 0  # Default to unassigned
+
+func _on_equipment_assignment_changed(selected_index: int, equipment_index: int) -> void:
+	"""Handle equipment assignment dropdown change"""
+	if equipment_index < 0 or equipment_index >= generated_equipment.size():
+		push_error("EquipmentPanel: Invalid equipment index: %d" % equipment_index)
+		return
+	
+	var crew_options = _get_crew_assignment_options()
+	var new_owner: String = "Unassigned"
+	
+	match selected_index:
+		0:
+			new_owner = "Unassigned"
+		1:
+			new_owner = "Ship Stash"
+		_:
+			var crew_index = selected_index - 2
+			if crew_index >= 0 and crew_index < crew_options.size():
+				new_owner = crew_options[crew_index]
+	
+	# Update equipment data
+	var old_owner: String = generated_equipment[equipment_index].get("owner", "Unassigned")
+	generated_equipment[equipment_index]["owner"] = new_owner
+	
+	print("EquipmentPanel: Assigned '%s' from '%s' to '%s'" % [
+		generated_equipment[equipment_index].get("name", "Unknown"),
+		old_owner,
+		new_owner
+	])
+	
+	# Update displays
+	_update_summary_labels()
+	_update_crew_loadout_display()
+	
+	# Emit data change signal
+	equipment_data_changed.emit(get_data())
+	panel_data_changed.emit(get_data())
+	
+	# Validate and potentially complete
+	_validate_and_complete()
+
+func _update_summary_labels() -> void:
+	"""Update summary labels including assignment count"""
 	if summary_label:
 		summary_label.text = "Equipment generated: %d items" % generated_equipment.size()
 		summary_label.visible = true
-		print("EquipmentPanel: Updated summary label")
 	
 	if credits_label:
 		credits_label.text = str(starting_credits)
 		credits_label.visible = true
-		print("EquipmentPanel: Updated credits label to %d" % starting_credits)
 	
-	print("EquipmentPanel: ✅ Display updated with %d visible items" % generated_equipment.size())
+	# Update assigned count
+	if assigned_count_label:
+		var assigned_count: int = 0
+		for item in generated_equipment:
+			var owner: String = item.get("owner", "Unassigned")
+			if owner != "Unassigned" and not owner.is_empty():
+				assigned_count += 1
+		
+		assigned_count_label.text = "Assigned: %d / %d" % [assigned_count, generated_equipment.size()]
+		
+		# Color based on completion
+		if assigned_count == generated_equipment.size():
+			assigned_count_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.4))
+		elif assigned_count > 0:
+			assigned_count_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.4))
+		else:
+			assigned_count_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+
+func _update_crew_loadout_display() -> void:
+	"""Update the crew loadout display showing each character's equipment"""
+	if not crew_loadout_container:
+		return
+	
+	# Clear existing
+	for child in crew_loadout_container.get_children():
+		child.queue_free()
+	
+	# Build loadout per character
+	var loadouts: Dictionary = {"Ship Stash": []}
+	
+	# Initialize loadouts for all crew members
+	for member in crew_members:
+		var name: String = ""
+		if member is Dictionary:
+			name = member.get("character_name", member.get("name", ""))
+		elif member is Character:
+			name = member.character_name if member.character_name else member.name
+		
+		if not name.is_empty():
+			loadouts[name] = []
+	
+	# Populate loadouts from equipment
+	for item in generated_equipment:
+		var owner: String = item.get("owner", "Unassigned")
+		if owner != "Unassigned" and not owner.is_empty():
+			if not loadouts.has(owner):
+				loadouts[owner] = []
+			loadouts[owner].append(item)
+	
+	# Create UI for each character
+	for member in crew_members:
+		var name: String = ""
+		var background: String = ""
+		
+		if member is Dictionary:
+			name = member.get("character_name", member.get("name", ""))
+			background = member.get("background", "")
+		elif member is Character:
+			name = member.character_name if member.character_name else member.name
+			background = member.background if member.background else ""
+		
+		if name.is_empty():
+			continue
+		
+		var char_panel = _create_character_loadout_panel(name, background, loadouts.get(name, []))
+		crew_loadout_container.add_child(char_panel)
+	
+	# Add ship stash section
+	if loadouts.get("Ship Stash", []).size() > 0:
+		var stash_panel = _create_character_loadout_panel("Ship Stash", "spare equipment", loadouts["Ship Stash"])
+		crew_loadout_container.add_child(stash_panel)
+
+func _create_character_loadout_panel(char_name: String, background: String, equipment: Array) -> PanelContainer:
+	"""Create a loadout display panel for a character"""
+	var panel = PanelContainer.new()
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 4)
+	
+	# Header with character name and background
+	var header = HBoxContainer.new()
+	
+	var name_label = Label.new()
+	name_label.text = char_name
+	name_label.add_theme_font_size_override("font_size", 14)
+	name_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.7))
+	header.add_child(name_label)
+	
+	if not background.is_empty():
+		var bg_label = Label.new()
+		bg_label.text = " (%s)" % background.capitalize()
+		bg_label.add_theme_font_size_override("font_size", 12)
+		bg_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+		header.add_child(bg_label)
+	
+	vbox.add_child(header)
+	
+	# Equipment list
+	if equipment.size() == 0:
+		var empty_label = Label.new()
+		empty_label.text = "  No equipment assigned"
+		empty_label.add_theme_font_size_override("font_size", 12)
+		empty_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+		vbox.add_child(empty_label)
+	else:
+		for item in equipment:
+			var item_label = Label.new()
+			var item_name: String = item.get("name", "Unknown")
+			var item_type: String = item.get("type", "")
+			item_label.text = "  • %s" % item_name
+			if not item_type.is_empty():
+				item_label.text += " [%s]" % item_type
+			item_label.add_theme_font_size_override("font_size", 12)
+			item_label.add_theme_color_override("font_color", _get_type_color(item_type))
+			vbox.add_child(item_label)
+	
+	panel.add_child(vbox)
+	return panel
+
+func _on_auto_assign_pressed() -> void:
+	"""Auto-assign equipment to crew based on backgrounds"""
+	print("EquipmentPanel: Auto-assigning equipment to crew...")
+	
+	if crew_members.is_empty():
+		push_warning("EquipmentPanel: No crew members available for auto-assign")
+		return
+	
+	# Build preference map based on backgrounds
+	var preferences: Dictionary = {}
+	for member in crew_members:
+		var name: String = ""
+		var background: String = ""
+		
+		if member is Dictionary:
+			name = member.get("character_name", member.get("name", ""))
+			background = member.get("background", "").to_lower()
+		elif member is Character:
+			name = member.character_name if member.character_name else member.name
+			background = member.background.to_lower() if member.background else ""
+		
+		if not name.is_empty():
+			preferences[name] = {
+				"background": background,
+				"assigned_count": 0,
+				"prefers_weapons": background in ["military", "soldier", "bounty hunter", "mercenary"],
+				"prefers_tech": background in ["tech", "engineer", "scientist", "hacker"],
+				"prefers_gear": background in ["explorer", "scout", "colonist", "trader"]
+			}
+	
+	# Track who has what to ensure fair distribution
+	var assigned_weapons: Dictionary = {}
+	var assigned_items: Dictionary = {}
+	
+	for name in preferences.keys():
+		assigned_weapons[name] = 0
+		assigned_items[name] = 0
+	
+	# First pass: Assign weapons (everyone needs at least one)
+	for i in range(generated_equipment.size()):
+		var item = generated_equipment[i]
+		var item_type = item.get("type", "").to_lower()
+		
+		if "weapon" in item_type:
+			# Find crew member who needs a weapon most
+			var best_match: String = ""
+			var best_score: int = -1
+			
+			for name in preferences.keys():
+				if assigned_weapons[name] == 0:  # Prioritize those without weapons
+					var score: int = 100
+					if preferences[name]["prefers_weapons"]:
+						score += 50
+					if score > best_score:
+						best_score = score
+						best_match = name
+			
+			# If everyone has a weapon, give to weapon-preferring characters
+			if best_match.is_empty():
+				for name in preferences.keys():
+					var score: int = assigned_weapons[name] * -10  # Fewer weapons = higher priority
+					if preferences[name]["prefers_weapons"]:
+						score += 20
+					if score > best_score:
+						best_score = score
+						best_match = name
+			
+			if not best_match.is_empty():
+				generated_equipment[i]["owner"] = best_match
+				assigned_weapons[best_match] += 1
+				assigned_items[best_match] += 1
+	
+	# Second pass: Assign gear and gadgets based on preferences
+	for i in range(generated_equipment.size()):
+		var item = generated_equipment[i]
+		var item_type = item.get("type", "").to_lower()
+		var current_owner = item.get("owner", "Unassigned")
+		
+		# Skip already assigned items
+		if current_owner != "Unassigned" and not current_owner.is_empty():
+			continue
+		
+		var best_match: String = ""
+		var best_score: int = -1
+		
+		for name in preferences.keys():
+			var score: int = 10 - assigned_items[name]  # Favor balanced distribution
+			
+			# Apply preference bonuses
+			if "gadget" in item_type and preferences[name]["prefers_tech"]:
+				score += 15
+			elif "gear" in item_type and preferences[name]["prefers_gear"]:
+				score += 15
+			elif "armor" in item_type:
+				score += 5  # Everyone can use armor
+			
+			if score > best_score:
+				best_score = score
+				best_match = name
+		
+		if not best_match.is_empty():
+			generated_equipment[i]["owner"] = best_match
+			assigned_items[best_match] += 1
+		else:
+			# Put in ship stash if no good match
+			generated_equipment[i]["owner"] = "Ship Stash"
+	
+	print("EquipmentPanel: Auto-assignment complete")
+	
+	# Update display
+	_update_equipment_display()
+	_validate_and_complete()
 
 func validate() -> Array[String]:
 	"""Validate equipment data and return error messages"""
@@ -1218,6 +1782,8 @@ func _create_generate_button() -> Button:
 	var button = Button.new()
 	button.name = "GenerateButton"
 	button.text = "Generate Equipment"
+	button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
 	print("EquipmentPanel: Created generate button")
 	return button
 
@@ -1226,6 +1792,8 @@ func _create_reroll_button() -> Button:
 	var button = Button.new()
 	button.name = "RerollButton"
 	button.text = "Reroll Equipment"
+	button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
 	print("EquipmentPanel: Created reroll button")
 	return button
 
@@ -1234,6 +1802,8 @@ func _create_manual_button() -> Button:
 	var button = Button.new()
 	button.name = "ManualButton"
 	button.text = "Manual Selection"
+	button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
 	print("EquipmentPanel: Created manual button")
 	return button
 
@@ -1243,6 +1813,8 @@ func _create_summary_label() -> Label:
 	label.name = "Label"
 	label.text = "Equipment Summary"
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	print("EquipmentPanel: Created summary label")
 	return label
 
@@ -1251,6 +1823,8 @@ func _create_credits_label() -> Label:
 	var label = Label.new()
 	label.name = "Value"
 	label.text = "Credits: 0"
+	label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	label.add_theme_color_override("font_color", COLOR_ACCENT)
 	print("EquipmentPanel: Created credits label")
 	return label
 
@@ -1394,9 +1968,32 @@ func _validate_equipment_selection() -> void:
 	var equipment_data = get_equipment_data()
 	var total_value = equipment_data.get("total_value", 0)
 	var is_valid = total_value > 0
-	
+
 	if is_valid:
 		print("EquipmentPanel: Equipment selection is valid (value: %d)" % total_value)
 		# Removed redundant panel_completed.emit() - completion handled by _validate_and_complete()
 	else:
 		print("EquipmentPanel: Equipment selection needs review")
+
+## Responsive Layout Overrides
+
+func _apply_mobile_layout() -> void:
+	"""Mobile: Single column, 56dp targets, compact equipment list"""
+	super._apply_mobile_layout()
+
+	# Mobile layouts for equipment panels will have larger touch targets
+	# Touch targets automatically adjusted via design system inheritance
+
+func _apply_tablet_layout() -> void:
+	"""Tablet: Two columns, 48dp targets, detailed equipment list"""
+	super._apply_tablet_layout()
+
+	# Tablet layouts optimized for two-column equipment display
+	# Touch targets at standard 48dp via design system
+
+func _apply_desktop_layout() -> void:
+	"""Desktop: Multi-column, 48dp targets, full equipment details"""
+	super._apply_desktop_layout()
+
+	# Desktop layouts with maximum information density
+	# Standard touch targets via design system

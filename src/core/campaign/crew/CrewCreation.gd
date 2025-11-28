@@ -1,7 +1,7 @@
 extends Control
 
 ## Five Parsecs Crew Creation System
-## Implements full Five Parsecs From Home crew generation rules
+## Implements full Five Parsecs From Home crew generation rules using JSON data
 
 # Safe imports
 const CoreCharacter = preload("res://src/core/character/Character.gd")
@@ -9,217 +9,473 @@ const CoreCharacter = preload("res://src/core/character/Character.gd")
 
 signal crew_created(crew_data: Dictionary)
 signal character_generated(character: CoreCharacter)
+signal resources_updated(resources: Dictionary)
 
-# Character creation UI nodes
-@onready var character_list: ItemList = $VBoxContainer/CharacterList
-@onready var generate_button: Button = $VBoxContainer/GenerateButton
-@onready var finish_button: Button = $VBoxContainer/FinishButton
-@onready var character_details: RichTextLabel = $VBoxContainer/CharacterDetails
+# Character creation UI nodes - use get_node_or_null for safety
+@onready var character_list: ItemList = get_node_or_null("VBoxContainer/CharacterList")
+@onready var generate_button: Button = get_node_or_null("VBoxContainer/GenerateButton")
+@onready var finish_button: Button = get_node_or_null("VBoxContainer/FinishButton")
+@onready var character_details: RichTextLabel = get_node_or_null("VBoxContainer/CharacterDetails")
 
 # Crew data
 var crew_members: Array[CoreCharacter] = []
 var max_crew_size: int = 6
 
+# Loaded JSON data
+var _species_data: Dictionary = {}
+var _motivation_data: Dictionary = {}
+var _background_data: Dictionary = {}
+var _class_data: Dictionary = {}
+var _equipment_data: Dictionary = {}
+var _data_loaded: bool = false
+
+# Accumulated campaign resources from character creation
+var accumulated_resources: Dictionary = {
+	"credits": 0,
+	"story_points": 0,
+	"patrons": [],
+	"rivals": [],
+	"quest_rumors": [],
+	"equipment_rolls": {
+		"military_weapons": 3,  # Base crew gets 3
+		"low_tech_weapons": 3,  # Base crew gets 3
+		"high_tech_weapons": 0,  # Earned via Savvy increases
+		"gear": 1,  # Base crew gets 1
+		"gadgets": 1  # Base crew gets 1
+	}
+}
+
 func _ready() -> void:
+	_load_character_data()
 	_setup_ui()
 	_connect_signals()
+	_initialize_resources()
+
+func _load_character_data() -> void:
+	"""Load all character creation data from JSON files"""
+	# Load species/origins data
+	var species_file = FileAccess.open("res://data/character_creation_data.json", FileAccess.READ)
+	if species_file:
+		var json = JSON.new()
+		var error = json.parse(species_file.get_as_text())
+		if error == OK:
+			_species_data = json.data
+			print("CrewCreation: Loaded species data with %d origins" % _species_data.get("origins", {}).size())
+		species_file.close()
+
+	# Load motivation table (d66)
+	var motivation_file = FileAccess.open("res://data/character_creation_tables/motivation_table.json", FileAccess.READ)
+	if motivation_file:
+		var json = JSON.new()
+		var error = json.parse(motivation_file.get_as_text())
+		if error == OK:
+			_motivation_data = json.data
+			print("CrewCreation: Loaded %d motivations" % _motivation_data.size())
+		motivation_file.close()
+
+	# Load Core Rules background table (pp.24-25)
+	var background_file = FileAccess.open("res://data/character_creation_tables/background_table.json", FileAccess.READ)
+	if background_file:
+		var json = JSON.new()
+		var error = json.parse(background_file.get_as_text())
+		if error == OK:
+			_background_data = json.data
+			print("CrewCreation: Loaded background table with %d entries" % _background_data.get("entries", {}).size())
+		background_file.close()
+
+	# Load Core Rules class table (pp.26-27)
+	var class_file = FileAccess.open("res://data/character_creation_tables/class_table.json", FileAccess.READ)
+	if class_file:
+		var json = JSON.new()
+		var error = json.parse(class_file.get_as_text())
+		if error == OK:
+			_class_data = json.data
+			print("CrewCreation: Loaded class table with %d entries" % _class_data.get("entries", {}).size())
+		class_file.close()
+
+	# Load equipment tables
+	var equipment_file = FileAccess.open("res://data/character_creation_tables/equipment_tables.json", FileAccess.READ)
+	if equipment_file:
+		var json = JSON.new()
+		var error = json.parse(equipment_file.get_as_text())
+		if error == OK:
+			_equipment_data = json.data
+			print("CrewCreation: Loaded equipment tables")
+		equipment_file.close()
+
+	_data_loaded = true
+
+func _initialize_resources() -> void:
+	"""Initialize starting resources for crew creation"""
+	accumulated_resources.credits = 0  # Will add 1 per crew member + table bonuses
+	accumulated_resources.story_points = 0
+	accumulated_resources.patrons.clear()
+	accumulated_resources.rivals.clear()
+	accumulated_resources.quest_rumors.clear()
+	accumulated_resources.equipment_rolls = {
+		"military_weapons": 3,
+		"low_tech_weapons": 3,
+		"high_tech_weapons": 0,
+		"gear": 1,
+		"gadgets": 1
+	}
 
 func _setup_ui() -> void:
-	character_list.clear()
-	finish_button.disabled = true
+	if character_list:
+		character_list.clear()
+	if finish_button:
+		finish_button.disabled = true
 	_update_ui_state()
 
 func _connect_signals() -> void:
-	generate_button.pressed.connect(_on_generate_character)
-	finish_button.pressed.connect(_on_finish_crew_creation)
-	character_list.item_selected.connect(_on_character_selected)
+	if generate_button:
+		if not generate_button.pressed.is_connected(_on_generate_character):
+			generate_button.pressed.connect(_on_generate_character)
+	if finish_button:
+		if not finish_button.pressed.is_connected(_on_finish_crew_creation):
+			finish_button.pressed.connect(_on_finish_crew_creation)
+	if character_list:
+		if not character_list.item_selected.is_connected(_on_character_selected):
+			character_list.item_selected.connect(_on_character_selected)
 
 func _update_ui_state() -> void:
-	generate_button.disabled = crew_members.size() >= max_crew_size
-	finish_button.disabled = crew_members.size() == 0
+	if generate_button:
+		generate_button.disabled = crew_members.size() >= max_crew_size
+	if finish_button:
+		finish_button.disabled = crew_members.size() == 0
+		finish_button.text = "Finish Crew (%d/%d)" % [crew_members.size(), max_crew_size]
 
-	# Update finish button text
-	finish_button.text = "Finish Crew (%d/%d)" % [crew_members.size(), max_crew_size]
-
-## Generate a new Five Parsecs character using official rules
+## Generate a new Five Parsecs character using official rules and JSON data
 func _on_generate_character() -> void:
 	if crew_members.size() >= max_crew_size:
 		return
 
-	var character: Character = _generate_five_parsecs_character()
+	var character: CoreCharacter = _generate_five_parsecs_character()
 	crew_members.append(character)
 
 	# Add to UI list
-	var class_int = _convert_class_string_to_int(character.character_class)
-	var character_name: String = "%s (%s)" % [character.character_name, _get_class_name(class_int)]
-	character_list.add_item(character_name)
+	var display_name: String = "%s (%s - %s)" % [
+		character.character_name,
+		_get_origin_display_name(character.origin),
+		character.character_class
+	]
+	if character_list:
+		character_list.add_item(display_name)
 
 	_update_ui_state()
 	character_generated.emit(character)
+	resources_updated.emit(accumulated_resources)
 
 	# Auto-select the new character
-	character_list.select(character_list.get_item_count() - 1)
+	if character_list:
+		character_list.select(character_list.get_item_count() - 1)
 	_display_character_details(character)
 
-## Generate character using Five Parsecs From Home rules
+## Generate character using Five Parsecs From Home rules with JSON data
 func _generate_five_parsecs_character() -> CoreCharacter:
 	var character: CoreCharacter = CoreCharacter.new()
 
-	# Step 1: Generate attributes using 2D6 / 3.0 (rounded up)
-	character.reactions = _roll_five_parsecs_attribute()
-	character.speed = _roll_five_parsecs_attribute() + 2 # Base 4" + attribute
-	character.combat = _roll_five_parsecs_attribute() - 3 # Base +0 + attribute
-	character.toughness = _roll_five_parsecs_attribute() # Base 3 + attribute
-	character.savvy = _roll_five_parsecs_attribute() - 3 # Base +0 + attribute
+	# Step 1: Determine species/origin (for now random, will be player choice in CrewPanel)
+	var origin_key = _select_random_origin()
+	var origin_data = _get_origin_data(origin_key)
 
-	# Step 2: Roll background (D100 table) - convert to string
-	var background_roll = _roll_background()
-	character.background = _get_background_string_from_roll(background_roll)
+	# Step 2: Apply base stats from species
+	_apply_species_base_stats(character, origin_data)
+	character.origin = origin_key
 
-	# Step 3: Roll motivation (D100 table) - convert to string  
-	var motivation_roll = _roll_motivation()
-	character.motivation = _get_motivation_string_from_roll(motivation_roll)
+	# Step 3: Roll background (D100 table) and apply bonuses
+	var background_result = _roll_and_apply_background(character)
 
-	# Step 4: Determine character class from background roll
-	var class_int = _determine_class_from_background(background_roll)
-	character.character_class = _convert_class_int_to_string(class_int)
+	# Step 4: Roll motivation (D66 table) and apply bonuses
+	var motivation_result = _roll_and_apply_motivation(character)
 
-	# Step 5: Generate name
+	# Step 5: Roll class (D100 table) and apply bonuses
+	var class_result = _roll_and_apply_class(character)
+
+	# Step 6: Generate name
 	character.character_name = _generate_character_name()
 
-	# Step 6: Apply origin traits (using Origin enum instead of species)
-	_apply_origin_traits(character)
+	# Step 7: Add 1 credit per crew member
+	accumulated_resources.credits += 1
 
-	# Step 7: Set starting equipment based on class
-	_assign_starting_equipment(character)
+	# Step 8: Check for Savvy increase → High-tech weapon roll
+	if character.savvy > 0:
+		# Each Savvy increase allows converting a Military roll to High-tech
+		accumulated_resources.equipment_rolls.high_tech_weapons += 1
 
 	return character
 
-## Five Parsecs attribute generation: 2D6 divided by 3, rounded up
-func _roll_five_parsecs_attribute() -> int:
-	var roll = _roll_2d6()
-	return ceili(float(roll) / 3.0)
+func _select_random_origin() -> String:
+	"""Select a random origin for character generation"""
+	var origins = _species_data.get("origins", {})
+	if origins.is_empty():
+		return "HUMAN"
 
-## Roll 2D6 for attribute generation
-func _roll_2d6() -> int:
-	return (randi() % 6 + 1) + (randi() % 6 + 1)
+	var origin_keys = origins.keys()
+	return origin_keys[randi() % origin_keys.size()]
 
-## Roll D100 for background
-func _roll_background() -> int:
-	return randi() % 100 + 1
+func _get_origin_data(origin_key: String) -> Dictionary:
+	"""Get origin data from loaded species data"""
+	var origins = _species_data.get("origins", {})
+	return origins.get(origin_key, {})
 
-## Roll D100 for motivation
-func _roll_motivation() -> int:
-	return randi() % 100 + 1
+func _apply_species_base_stats(character: CoreCharacter, origin_data: Dictionary) -> void:
+	"""Apply base stats from species definition"""
+	var base_stats = origin_data.get("base_stats", {})
 
-## Convert background roll to string
-func _get_background_string_from_roll(roll: int) -> String:
-	if roll <= 20:
-		return "MILITARY"
-	elif roll <= 40:
-		return "CRIMINAL" 
-	elif roll <= 60:
-		return "ACADEMIC"
-	elif roll <= 80:
-		return "MERCENARY"
+	# Apply base stats (Core Rules values)
+	character.reactions = base_stats.get("REACTIONS", 1)
+	character.speed = base_stats.get("SPEED", 4)
+	character.combat = base_stats.get("COMBAT_SKILL", 0)
+	character.toughness = base_stats.get("TOUGHNESS", 3)
+	character.savvy = base_stats.get("SAVVY", 0)
+
+	# Apply species-specific characteristics
+	var characteristics = origin_data.get("characteristics", [])
+
+	# Check for Luck (only Humans can exceed 1)
+	if character.origin == "HUMAN":
+		character.luck = 0  # Will be set to 1 if designated as leader
 	else:
-		return "COLONIST"
+		character.luck = 0  # Non-humans can have max 1 Luck
 
-## Convert motivation roll to string
-func _get_motivation_string_from_roll(roll: int) -> String:
-	if roll <= 20:
-		return "SURVIVAL"
-	elif roll <= 40:
-		return "WEALTH"
-	elif roll <= 60:
-		return "POWER"
-	elif roll <= 80:
-		return "REVENGE"
-	else:
-		return "GLORY"
+func _roll_and_apply_background(character: CoreCharacter) -> Dictionary:
+	"""Roll on background table (D100) and apply results from Core Rules pp.24-25"""
+	var roll = randi() % 100 + 1
+	var result = {}
 
-## Determine character class from background roll
-func _determine_class_from_background(background_roll: int) -> int:
-	# Simplified class determination - in full implementation this would use background tables
-	if background_roll <= 20:
-		return 1 # SOLDIER
-	elif background_roll <= 40:
-		return 2 # ENGINEER
-	elif background_roll <= 60:
-		return 3 # PILOT
-	elif background_roll <= 80:
-		return 4 # MEDIC
-	else:
-		return 5 # MERCHANT
+	# Use loaded background table data
+	var entries = _background_data.get("entries", {})
+	if entries.is_empty():
+		character.background = "Unknown"
+		return result
 
-## Generate character name
+	# Find the matching entry based on roll range
+	var bg = _find_table_entry(entries, roll)
+	if bg.is_empty():
+		character.background = "Unknown"
+		return result
+
+	character.background = bg.get("name", "Unknown")
+	result = bg.duplicate()
+
+	# Apply stat bonuses
+	var bonuses = bg.get("stat_bonuses", {})
+	character.combat += bonuses.get("combat", 0)
+	character.toughness += bonuses.get("toughness", 0)
+	character.savvy += bonuses.get("savvy", 0)
+	character.speed += bonuses.get("speed", 0)
+	character.reactions += bonuses.get("reactions", 0)
+
+	# Apply resources
+	var resources = bg.get("resources", {})
+
+	# Credits (roll dice if specified)
+	if "credits_roll" in resources:
+		var credits = _roll_dice_string(resources.credits_roll)
+		accumulated_resources.credits += credits
+
+	# Patron
+	if resources.get("patron", false):
+		accumulated_resources.patrons.append(character.background)
+
+	# Story points
+	accumulated_resources.story_points += resources.get("story_points", 0)
+
+	# Quest rumors
+	var rumors = resources.get("quest_rumors", 0)
+	for i in range(rumors):
+		accumulated_resources.quest_rumors.append("Background: %s" % character.background)
+
+	# Rival
+	if resources.get("rival", false):
+		accumulated_resources.rivals.append("From %s background" % character.background)
+
+	# Track equipment rolls
+	var equipment_rolls = bg.get("equipment_rolls", [])
+	for roll_type in equipment_rolls:
+		match roll_type:
+			"military_weapon":
+				accumulated_resources.equipment_rolls.military_weapons += 1
+			"low_tech_weapon":
+				accumulated_resources.equipment_rolls.low_tech_weapons += 1
+			"high_tech_weapon":
+				accumulated_resources.equipment_rolls.high_tech_weapons += 1
+			"gear":
+				accumulated_resources.equipment_rolls.gear += 1
+			"gadget":
+				accumulated_resources.equipment_rolls.gadgets += 1
+
+	return result
+
+func _find_table_entry(entries: Dictionary, roll: int) -> Dictionary:
+	"""Find the table entry matching a given roll value"""
+	for range_key in entries.keys():
+		var parts = range_key.split("-")
+		if parts.size() == 2:
+			var low = int(parts[0])
+			var high = int(parts[1])
+			if roll >= low and roll <= high:
+				return entries[range_key]
+		elif parts.size() == 1:
+			if roll == int(parts[0]):
+				return entries[range_key]
+	return {}
+
+func _roll_dice_string(dice_string: String) -> int:
+	"""Roll dice from a string like '1D6' or '2D6'"""
+	var result = 0
+	dice_string = dice_string.to_upper()
+
+	if "D6" in dice_string:
+		var num_dice = 1
+		var parts = dice_string.split("D")
+		if parts.size() == 2 and parts[0] != "":
+			num_dice = int(parts[0])
+		for i in range(num_dice):
+			result += randi() % 6 + 1
+	elif "D10" in dice_string:
+		var num_dice = 1
+		var parts = dice_string.split("D")
+		if parts.size() == 2 and parts[0] != "":
+			num_dice = int(parts[0])
+		for i in range(num_dice):
+			result += randi() % 10 + 1
+
+	return result
+
+func _roll_and_apply_motivation(character: CoreCharacter) -> Dictionary:
+	"""Roll on motivation table (D66) and apply results"""
+	# Roll D66 (two D6 dice: first is tens, second is units)
+	var d1 = randi() % 6 + 1
+	var d2 = randi() % 6 + 1
+	var roll_key = str(d1) + str(d2)
+
+	var result = _motivation_data.get(roll_key, {})
+
+	if result.is_empty():
+		character.motivation = "Survival"
+		return result
+
+	character.motivation = result.get("name", "Unknown")
+
+	# Apply bonus from motivation (parsed from bonus string)
+	# TODO: Parse and apply specific bonuses
+
+	return result
+
+func _roll_and_apply_class(character: CoreCharacter) -> Dictionary:
+	"""Roll on class table (D100) and apply results from Core Rules pp.26-27"""
+	var roll = randi() % 100 + 1
+	var result = {}
+
+	# Use loaded class table data
+	var entries = _class_data.get("entries", {})
+	if entries.is_empty():
+		character.character_class = "Unknown"
+		return result
+
+	# Find the matching entry based on roll range
+	var cls = _find_table_entry(entries, roll)
+	if cls.is_empty():
+		character.character_class = "Unknown"
+		return result
+
+	character.character_class = cls.get("name", "Unknown")
+	result = cls.duplicate()
+
+	# Apply stat bonuses
+	var bonuses = cls.get("stat_bonuses", {})
+	character.combat += bonuses.get("combat", 0)
+	character.toughness += bonuses.get("toughness", 0)
+	character.savvy += bonuses.get("savvy", 0)
+	character.speed += bonuses.get("speed", 0)
+	character.reactions += bonuses.get("reactions", 0)
+
+	# Apply special bonuses (luck, xp)
+	var special = cls.get("special", {})
+	if "luck" in special:
+		character.luck = max(character.luck, int(special.luck))
+	if "xp" in special:
+		character.experience = int(special.xp)
+
+	# Apply resources
+	var resources = cls.get("resources", {})
+
+	# Credits (roll dice if specified)
+	if "credits_roll" in resources:
+		var credits = _roll_dice_string(resources.credits_roll)
+		accumulated_resources.credits += credits
+
+	# Patron
+	if resources.get("patron", false):
+		accumulated_resources.patrons.append(character.character_class)
+
+	# Story points
+	accumulated_resources.story_points += resources.get("story_points", 0)
+
+	# Quest rumors
+	var rumors = resources.get("quest_rumors", 0)
+	for i in range(rumors):
+		accumulated_resources.quest_rumors.append("Class: %s" % character.character_class)
+
+	# Rival
+	if resources.get("rival", false):
+		accumulated_resources.rivals.append("From %s profession" % character.character_class)
+
+	# Track equipment rolls
+	var equipment_rolls = cls.get("equipment_rolls", [])
+	for roll_type in equipment_rolls:
+		match roll_type:
+			"military_weapon":
+				accumulated_resources.equipment_rolls.military_weapons += 1
+			"low_tech_weapon":
+				accumulated_resources.equipment_rolls.low_tech_weapons += 1
+			"high_tech_weapon":
+				accumulated_resources.equipment_rolls.high_tech_weapons += 1
+			"gear":
+				accumulated_resources.equipment_rolls.gear += 1
+			"gadget":
+				accumulated_resources.equipment_rolls.gadgets += 1
+
+	return result
+
+## Generate character name using name tables
 func _generate_character_name() -> String:
-	var first_names = ["Alex", "Jordan", "Casey", "Riley", "Morgan", "Avery", "Taylor", "Cameron"]
-	var last_names = ["Stone", "Cross", "Vale", "Kane", "Reed", "Fox", "Storm", "Wolf"]
+	var first_names = [
+		"Alex", "Jordan", "Casey", "Riley", "Morgan", "Avery", "Taylor", "Cameron",
+		"Kai", "Quinn", "Rowan", "Sage", "River", "Phoenix", "Blake", "Dakota",
+		"Flint", "Kersh", "Milli", "Simon", "Shi", "Neenet", "Zara", "Marcus"
+	]
+	var last_names = [
+		"Stone", "Cross", "Vale", "Kane", "Reed", "Fox", "Storm", "Wolf",
+		"Vance", "Chen", "Okonkwo", "Santos", "Kim", "Petrov", "Al-Hassan", "Nakamura",
+		"Williamson", "Filjan", "Cershaw", "Kurchler", "Jiang", "Torres"
+	]
 
 	return first_names[randi() % first_names.size()] + " " + last_names[randi() % last_names.size()]
 
-## Apply origin traits
-func _apply_origin_traits(character: CoreCharacter) -> void:
-	var origin_roll = _roll_background() # Re-use background roll for origin
-
-	if origin_roll <= 20:
-		character.origin = "HUMAN"
-		character.luck = 1 # Humans start with 1 luck
-	elif origin_roll <= 40:
-		character.origin = "ENGINEER"
-		character.luck = 1 # Engineers start with 1 luck
-	elif origin_roll <= 60:
-		character.origin = "FERAL"
-		character.luck = 1 # Ferals start with 1 luck
-	elif origin_roll <= 80:
-		character.origin = "KERIN"
-		character.luck = 1 # K'Erin start with 1 luck
-	else:
-		character.origin = "PRECURSOR"
-		character.luck = 1 # Precursors start with 1 luck
-
-## Assign starting equipment based on class
-func _assign_starting_equipment(character: CoreCharacter) -> void:
-	# Basic starting equipment - in full implementation this would use equipment tables
-	pass
-
-## Get class name for display
-func _get_class_name(class_id: int) -> String:
-	match class_id:
-		1: return "Soldier"
-		2: return "Engineer"
-		3: return "Pilot"
-		4: return "Medic"
-		5: return "Merchant"
-		_: return "Unknown"
-
-func _convert_class_int_to_string(class_int: int) -> String:
-	"""Convert character class integer to string for Character property"""
-	match class_int:
-		1: return "SOLDIER"
-		2: return "ENGINEER"
-		3: return "PILOT" 
-		4: return "MEDIC"
-		5: return "MERCHANT"
-		_: return "BASELINE"
-
-func _convert_class_string_to_int(class_string: String) -> int:
-	"""Convert character class string to integer for display functions"""
-	match class_string:
-		"SOLDIER": return 1
-		"ENGINEER": return 2
-		"PILOT": return 3
-		"MEDIC": return 4
-		"MERCHANT": return 5
-		_: return 0
+func _get_origin_display_name(origin: String) -> String:
+	"""Get display name for origin/species"""
+	match origin:
+		"HUMAN": return "Human"
+		"ENGINEER": return "Engineer"
+		"KERIN": return "K'Erin"
+		"SOULLESS": return "Soulless"
+		"PRECURSOR": return "Precursor"
+		"FERAL": return "Feral"
+		"SWIFT": return "Swift"
+		"BOT": return "Bot"
+		_: return origin.capitalize()
 
 ## Display character details in the UI
 func _display_character_details(character: CoreCharacter) -> void:
 	var details = "[b]%s[/b]\n\n" % character.character_name
-	var class_int = _convert_class_string_to_int(character.character_class)
-	details += "Class: %s\n" % _get_class_name(class_int)
-	details += "Origin: %s\n\n" % _get_origin_name(character)
+	details += "Origin: %s\n" % _get_origin_display_name(character.origin)
+	details += "Background: %s\n" % character.background
+	details += "Motivation: %s\n" % character.motivation
+	details += "Class: %s\n\n" % character.character_class
+
 	details += "[b]Attributes:[/b]\n"
 	details += "Reactions: %d\n" % character.reactions
 	details += "Speed: %d\"\n" % character.speed
@@ -229,23 +485,16 @@ func _display_character_details(character: CoreCharacter) -> void:
 	if character.luck > 0:
 		details += "Luck: %d\n" % character.luck
 
-	character_details.text = details
+	# Show species characteristics
+	var origin_data = _get_origin_data(character.origin)
+	var characteristics = origin_data.get("characteristics", [])
+	if not characteristics.is_empty():
+		details += "\n[b]Species Abilities:[/b]\n"
+		for ability in characteristics:
+			details += "• %s\n" % ability
 
-## Get origin name for display
-func _get_origin_name(character: CoreCharacter) -> String:
-	match character.origin:
-		"HUMAN":
-			return "Human"
-		"ENGINEER":
-			return "Engineer"
-		"FERAL":
-			return "Feral"
-		"KERIN":
-			return "K'Erin"
-		"PRECURSOR":
-			return "Precursor"
-		_:
-			return "Unknown"
+	if character_details:
+		character_details.text = details
 
 ## Handle character selection in list
 func _on_character_selected(index: int) -> void:
@@ -256,7 +505,8 @@ func _on_character_selected(index: int) -> void:
 func _on_finish_crew_creation() -> void:
 	var crew_data = {
 		"crew_members": [],
-		"crew_size": crew_members.size()
+		"crew_size": crew_members.size(),
+		"resources": accumulated_resources.duplicate(true)
 	}
 
 	# Serialize crew for signal emission
@@ -294,4 +544,67 @@ func _save_crew_to_game_state() -> void:
 		var serialized = character.serialize()
 		game_state.current_campaign.crew_members.append(serialized)
 
-	print("CrewCreation: Saved %d crew members to GameStateManager" % crew_members.size())
+	# Save accumulated resources to campaign
+	if not "resources" in game_state.current_campaign:
+		game_state.current_campaign.resources = {}
+
+	game_state.current_campaign.resources.credits = accumulated_resources.credits
+	game_state.current_campaign.resources.story_points = accumulated_resources.story_points
+	game_state.current_campaign.resources.patrons = accumulated_resources.patrons.duplicate()
+	game_state.current_campaign.resources.rivals = accumulated_resources.rivals.duplicate()
+	game_state.current_campaign.resources.quest_rumors = accumulated_resources.quest_rumors.duplicate()
+
+	print("CrewCreation: Saved %d crew members and resources to GameStateManager" % crew_members.size())
+	print("CrewCreation: Resources - Credits: %d, Story Points: %d, Patrons: %d, Rivals: %d" % [
+		accumulated_resources.credits,
+		accumulated_resources.story_points,
+		accumulated_resources.patrons.size(),
+		accumulated_resources.rivals.size()
+	])
+
+## Get current accumulated resources
+func get_accumulated_resources() -> Dictionary:
+	return accumulated_resources.duplicate(true)
+
+## Apply Core Rules tables to an existing character and track resources
+func apply_tables_to_character(character: CoreCharacter) -> void:
+	"""Apply background and class tables to track accumulated resources for an existing character"""
+	if not character:
+		push_warning("CrewCreation: Cannot apply tables to null character")
+		return
+
+	# Add 1 credit per crew member (Core Rules)
+	accumulated_resources.credits += 1
+
+	# Apply background table
+	var bg_result = _roll_and_apply_background(character)
+	print("CrewCreation: Applied background '%s' to %s" % [bg_result.get("name", "Unknown"), character.character_name])
+
+	# Apply class table
+	var class_result = _roll_and_apply_class(character)
+	print("CrewCreation: Applied class '%s' to %s" % [class_result.get("name", "Unknown"), character.character_name])
+
+	# Emit update signal
+	resources_updated.emit(accumulated_resources)
+
+	print("CrewCreation: Resources tracked for %s - Total Credits: %d, Story Points: %d" % [
+		character.character_name,
+		accumulated_resources.credits,
+		accumulated_resources.story_points
+	])
+
+## Set a specific character as the leader (grants +1 Luck)
+func set_leader(character_index: int) -> void:
+	if character_index < 0 or character_index >= crew_members.size():
+		return
+
+	# Remove leader status from all characters
+	for character in crew_members:
+		if character.origin == "HUMAN":
+			character.luck = 0
+
+	# Set the selected character as leader
+	var leader = crew_members[character_index]
+	leader.luck = 1  # Leader gets +1 Luck
+
+	print("CrewCreation: %s designated as Leader (+1 Luck)" % leader.character_name)
