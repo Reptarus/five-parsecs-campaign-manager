@@ -218,13 +218,19 @@ func populate_ui() -> void:
 	if equipment_rich_text and "equipment" in current_character:
 		_update_equipment_display()
 
+	# Implants display (after equipment)
+	_update_implants_display()
+
 	# Notes (if we add a notes field to Character)
 	if notes_edit:
 		notes_edit.text = ""  # Placeholder for future notes system
 	
-	# Advancement Section (stat upgrades and training)
+	# Advancement Section (stat upgrades and training) OR Bot Upgrades (for bots)
 	if advancement_section:
-		_populate_advancement_section()
+		if current_character.is_bot():
+			_populate_bot_upgrade_section()
+		else:
+			_populate_advancement_section()
 
 func clear_character_info_display() -> void:
 	"""Clear all character info labels"""
@@ -339,30 +345,53 @@ func _format_equipment_with_keywords(item_name: String) -> String:
 func _on_equipment_keyword_clicked(meta: Variant) -> void:
 	"""Handle keyword clicks in equipment list"""
 	var meta_str := str(meta)
-	
+
 	if meta_str.begins_with("keyword:") and keyword_tooltip:
 		var keyword := meta_str.substr(8)  # Remove "keyword:" prefix
-		
+
 		# Get click position for tooltip placement
 		var click_position := equipment_rich_text.global_position
-		
+
 		# Show tooltip at the RichTextLabel position
 		keyword_tooltip.show_for_keyword(keyword, click_position)
 
-		if not current_character:
-			return
+func _update_implants_display() -> void:
+	"""Update implants section after equipment"""
+	if not current_character:
+		return
 
-	# Equipment changes are now read-only (managed through dedicated UI)
-	# Notes can still be edited
-	
-	# Mark campaign as modified (needs save)
-	if GameStateManager:
-		GameStateManager.mark_campaign_modified()
+	# Find implants container (create if not exists)
+	var implants_label := character_info_container.get_node_or_null("ImplantsLabel")
 
-	print("CharacterDetailsScreen: Changes saved to character")
+	# Remove old implants display if it exists
+	if implants_label:
+		implants_label.queue_free()
 
-	# Return to crew management
-	return_to_crew_management()
+	# Skip if no implants
+	if not "implants" in current_character or current_character.implants.size() == 0:
+		return
+
+	# Create implants header
+	var header := Label.new()
+	header.name = "ImplantsLabel"
+	header.text = "INSTALLED IMPLANTS (%d/3)" % current_character.implants.size()
+	header.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	header.add_theme_color_override("font_color", Color("#8B5CF6"))  # Purple for implants
+	character_info_container.add_child(header)
+
+	# List each implant with stat bonus
+	for implant in current_character.implants:
+		var implant_row := Label.new()
+		var formatted := EquipmentFormatter.format_implant(implant)
+		implant_row.text = "  • %s" % formatted
+		implant_row.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		implant_row.add_theme_color_override("font_color", COLOR_FOCUS)  # Cyan highlight
+		character_info_container.add_child(implant_row)
+
+	# Add separator after implants
+	var separator := HSeparator.new()
+	separator.custom_minimum_size = Vector2(0, SPACING_MD)
+	character_info_container.add_child(separator)
 
 func _on_save_pressed() -> void:
 	"""Save character changes and return"""
@@ -769,3 +798,227 @@ func _update_character_from_dict(character: Resource, dict: Dictionary) -> void:
 	# Update training
 	if "training" in dict:
 		character.training = dict.training
+
+# ============ BOT UPGRADE SECTION ============
+
+func _populate_bot_upgrade_section() -> void:
+	"""Populate bot upgrade section (credits-based upgrades instead of XP)"""
+	if not current_character or not advancement_section:
+		return
+	
+	# Clear existing advancement UI
+	for child in advancement_section.get_children():
+		child.queue_free()
+	
+	# Get game state for credits
+	var game_state := GameStateManager.get_game_state()
+	if not game_state:
+		push_error("CharacterDetailsScreen: GameStateManager not available for bot upgrades")
+		return
+	
+	var campaign_credits: int = 0
+	if game_state.has_method("get_credits"):
+		campaign_credits = game_state.get_credits()
+	elif "credits" in game_state:
+		campaign_credits = game_state.credits
+	
+	# Create header
+	var header := _create_bot_upgrade_header(campaign_credits)
+	advancement_section.add_child(header)
+	
+	# Add separator
+	var separator1 := HSeparator.new()
+	separator1.custom_minimum_size = Vector2(0, SPACING_MD)
+	advancement_section.add_child(separator1)
+	
+	# Get advancement system
+	var advancement_system := FPCM_AdvancementSystem.new()
+	
+	# Get available upgrades
+	var available_upgrades := advancement_system.get_available_bot_upgrades(current_character)
+	
+	if available_upgrades.is_empty():
+		var no_upgrades := Label.new()
+		no_upgrades.text = "All upgrades installed!"
+		no_upgrades.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		no_upgrades.add_theme_color_override("font_color", COLOR_SUCCESS)
+		advancement_section.add_child(no_upgrades)
+	else:
+		# Create upgrade grid (2 columns for mobile-friendly layout)
+		var grid := GridContainer.new()
+		grid.columns = 2
+		grid.add_theme_constant_override("h_separation", SPACING_SM)
+		grid.add_theme_constant_override("v_separation", SPACING_SM)
+		
+		for upgrade in available_upgrades:
+			var upgrade_card := _create_bot_upgrade_card(upgrade, campaign_credits, advancement_system)
+			grid.add_child(upgrade_card)
+		
+		advancement_section.add_child(grid)
+	
+	# Add separator
+	var separator2 := HSeparator.new()
+	separator2.custom_minimum_size = Vector2(0, SPACING_LG)
+	advancement_section.add_child(separator2)
+	
+	# Show installed upgrades
+	var installed_section := _create_installed_upgrades_section()
+	advancement_section.add_child(installed_section)
+
+func _create_bot_upgrade_header(campaign_credits: int) -> VBoxContainer:
+	"""Create header for bot upgrade section"""
+	var header := VBoxContainer.new()
+	header.add_theme_constant_override("separation", SPACING_SM)
+	
+	# Title
+	var title := Label.new()
+	title.text = "BOT UPGRADES"
+	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	header.add_child(title)
+	
+	# Subtitle
+	var subtitle := Label.new()
+	subtitle.text = "Bots purchase upgrades with credits (no XP system)"
+	subtitle.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	subtitle.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	header.add_child(subtitle)
+	
+	# Campaign credits display
+	var credits_display := HBoxContainer.new()
+	credits_display.add_theme_constant_override("separation", SPACING_SM)
+	
+	var credits_label := Label.new()
+	credits_label.text = "Campaign Credits:"
+	credits_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	credits_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	credits_display.add_child(credits_label)
+	
+	var credits_value := Label.new()
+	credits_value.text = str(campaign_credits)
+	credits_value.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	credits_value.add_theme_color_override("font_color", COLOR_ACCENT)
+	credits_value.name = "CampaignCreditsValue"
+	credits_display.add_child(credits_value)
+	
+	header.add_child(credits_display)
+	
+	return header
+
+func _create_bot_upgrade_card(upgrade: Dictionary, campaign_credits: int, advancement_system: FPCM_AdvancementSystem) -> PanelContainer:
+	"""Create a card for a single bot upgrade option"""
+	var panel := PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	
+	# Style the card
+	var style := StyleBoxFlat.new()
+	style.bg_color = COLOR_ELEVATED
+	style.border_color = COLOR_BORDER
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(8)
+	style.set_content_margin_all(SPACING_MD)
+	panel.add_theme_stylebox_override("panel", style)
+	
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", SPACING_SM)
+	
+	# Upgrade name
+	var name_label := Label.new()
+	name_label.text = upgrade.get("name", "Unknown Upgrade")
+	name_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	vbox.add_child(name_label)
+	
+	# Description
+	var desc_label := Label.new()
+	desc_label.text = upgrade.get("description", "")
+	desc_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	desc_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	vbox.add_child(desc_label)
+	
+	# Install button
+	var upgrade_id: String = upgrade.get("id", "")
+	var cost: int = upgrade.get("cost", 0)
+	var can_afford: bool = campaign_credits >= cost
+	
+	var button := Button.new()
+	button.custom_minimum_size.y = TOUCH_TARGET_MIN
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	
+	if can_afford:
+		button.text = "Install (%d Credits)" % cost
+		button.disabled = false
+		button.pressed.connect(_on_bot_upgrade_pressed.bind(upgrade_id, advancement_system))
+	else:
+		button.text = "Need %d Credits" % cost
+		button.disabled = true
+	
+	vbox.add_child(button)
+	
+	panel.add_child(vbox)
+	return panel
+
+func _create_installed_upgrades_section() -> VBoxContainer:
+	"""Create section showing installed bot upgrades"""
+	var section := VBoxContainer.new()
+	section.add_theme_constant_override("separation", SPACING_MD)
+	
+	# Title
+	var title := Label.new()
+	title.text = "INSTALLED UPGRADES"
+	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	section.add_child(title)
+	
+	# Get installed upgrades
+	var installed_upgrades: Array = current_character.bot_upgrades if "bot_upgrades" in current_character else []
+	
+	if installed_upgrades.is_empty():
+		var no_upgrades := Label.new()
+		no_upgrades.text = "No upgrades installed yet"
+		no_upgrades.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		no_upgrades.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		section.add_child(no_upgrades)
+	else:
+		# Get upgrade definitions from advancement system
+		var advancement_system := FPCM_AdvancementSystem.new()
+		
+		for upgrade_id in installed_upgrades:
+			if advancement_system.bot_upgrades.has(upgrade_id):
+				var upgrade_data: Dictionary = advancement_system.bot_upgrades[upgrade_id]
+				
+				var upgrade_label := Label.new()
+				upgrade_label.text = "✓ %s: %s" % [upgrade_data.get("name", "Unknown"), upgrade_data.get("description", "")]
+				upgrade_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+				upgrade_label.add_theme_color_override("font_color", COLOR_SUCCESS)
+				section.add_child(upgrade_label)
+	
+	return section
+
+func _on_bot_upgrade_pressed(upgrade_id: String, advancement_system: FPCM_AdvancementSystem) -> void:
+	"""Handle bot upgrade purchase button press"""
+	if not current_character:
+		return
+	
+	print("CharacterDetailsScreen: Installing bot upgrade - ", upgrade_id)
+	
+	# Get game state
+	var game_state := GameStateManager.get_game_state()
+	if not game_state:
+		push_error("CharacterDetailsScreen: GameStateManager not available")
+		return
+	
+	# Attempt installation
+	var success := advancement_system.install_bot_upgrade(current_character, upgrade_id, game_state)
+	
+	if success:
+		# Mark campaign as modified
+		if GameStateManager:
+			GameStateManager.mark_campaign_modified()
+		
+		# Refresh all UI
+		populate_ui()
+		
+		print("CharacterDetailsScreen: Bot upgrade installed successfully")
+	else:
+		print("CharacterDetailsScreen: Bot upgrade installation failed")

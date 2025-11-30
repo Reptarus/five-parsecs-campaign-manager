@@ -117,7 +117,7 @@ func test_show_for_keyword_displays_tooltip_with_keyword_data():
 	var signal_monitor = monitor_signals(tooltip)
 
 	# Show tooltip for known keyword
-	tooltip.show_for_keyword("assault", test_control)
+	tooltip.show_for_keyword("assault", test_control.global_position)
 
 	# Wait for tooltip to show (immediate show)
 	await await_signal_on(tooltip, "tooltip_shown")
@@ -137,7 +137,7 @@ func test_show_for_keyword_displays_tooltip_with_keyword_data():
 func test_show_for_keyword_handles_unknown_keyword_gracefully():
 	"""show_for_keyword() with unknown keyword hides tooltip instead of crashing"""
 	# Attempt to show tooltip for non-existent keyword
-	tooltip.show_for_keyword("NonExistentKeyword", test_control)
+	tooltip.show_for_keyword("NonExistentKeyword", test_control.global_position)
 
 	# Verify tooltip is NOT visible
 	assert_that(tooltip.visible).is_false()
@@ -152,7 +152,7 @@ func test_show_for_keyword_handles_unknown_keyword_gracefully():
 func test_bookmark_button_toggles_bookmark_state():
 	"""Clicking bookmark button toggles KeywordDB bookmark state and updates UI"""
 	# Show tooltip with keyword
-	tooltip.show_for_keyword("assault", test_control)
+	tooltip.show_for_keyword("assault", test_control.global_position)
 	await assert_signal(tooltip).is_emitted("tooltip_shown").wait_until(500)
 
 	# Verify initial bookmark state (not bookmarked)

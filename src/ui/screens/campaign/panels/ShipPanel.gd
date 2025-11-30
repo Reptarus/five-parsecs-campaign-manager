@@ -476,7 +476,7 @@ func _calculate_starting_debt(ship_type: String) -> int:
 		_: return randi_range(2, 12) + randi_range(1, 20) # Variable debt
 
 func _update_ship_display() -> void:
-	"""Update UI to reflect current ship data"""
+	"""Update UI to reflect current ship data with glass morphism styling"""
 	# Ensure ship_data has all required fields
 	_ensure_ship_data_structure()
 	
@@ -490,6 +490,7 @@ func _update_ship_display() -> void:
 		debt_spinbox.value = ship_data.get("debt", 0)
 
 	_update_traits_display()
+	_update_ship_stats_display()
 
 func _ensure_ship_data_structure() -> void:
 	"""Ensure ship_data has all required fields with default values"""
@@ -511,7 +512,7 @@ func _ensure_ship_data_structure() -> void:
 		ship_data["is_configured"] = false
 
 func _update_traits_display() -> void:
-	"""Update the traits display"""
+	"""Update the traits display with glass morphism styling"""
 	if not traits_container:
 		return
 
@@ -523,14 +524,103 @@ func _update_traits_display() -> void:
 	if ship_data.has("traits") and ship_data.traits is Array:
 		for ship_trait in ship_data.traits:
 			if ship_trait is String:
-				var label: Label = Label.new()
-				label.text = "• " + ship_trait
-				traits_container.add_child(label)
+				# GLASS MORPHISM: Create styled trait badge
+				var trait_panel = PanelContainer.new()
+				trait_panel.add_theme_stylebox_override("panel", _create_glass_card_style(0.6))
+				trait_panel.custom_minimum_size.y = 32
+				
+				var trait_hbox = HBoxContainer.new()
+				trait_hbox.add_theme_constant_override("separation", SPACING_SM)
+				
+				# Trait icon (visual indicator)
+				var icon_label = Label.new()
+				icon_label.text = "⭐"  # Star icon for traits
+				icon_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+				icon_label.add_theme_color_override("font_color", COLOR_ACCENT)
+				trait_hbox.add_child(icon_label)
+				
+				# Trait name
+				var label = Label.new()
+				label.text = ship_trait
+				label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+				label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+				label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				trait_hbox.add_child(label)
+				
+				trait_panel.add_child(trait_hbox)
+				traits_container.add_child(trait_panel)
 	else:
 		# Initialize traits array if missing
 		if not ship_data.has("traits"):
 			ship_data["traits"] = []
 		print("ShipPanel: Traits array missing or invalid, initialized empty array")
+
+func _update_ship_stats_display() -> void:
+	"""Create glass morphism stat containers for ship stats"""
+	# Find or create stats container
+	var content_node = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content")
+	if not content_node:
+		return
+	
+	# Check if stats container already exists
+	var stats_container = content_node.get_node_or_null("ShipStats")
+	if stats_container:
+		# Update existing stats
+		for child in stats_container.get_children():
+			child.queue_free()
+	else:
+		# Create new stats container
+		stats_container = HBoxContainer.new()
+		stats_container.name = "ShipStats"
+		stats_container.add_theme_constant_override("separation", SPACING_MD)
+		
+		# Insert stats above hull/debt controls
+		var hull_section = content_node.get_node_or_null("HullPoints")
+		if hull_section:
+			var hull_index = hull_section.get_index()
+			content_node.add_child(stats_container)
+			content_node.move_child(stats_container, hull_index)
+		else:
+			content_node.add_child(stats_container)
+	
+	# Create glass morphism stat cards
+	var hull_stat = _create_ship_stat_card("Hull", ship_data.get("hull_points", 0), ship_data.get("max_hull", 0), COLOR_BLUE)
+	stats_container.add_child(hull_stat)
+	
+	var debt_stat = _create_ship_stat_card("Debt", ship_data.get("debt", 0), 0, COLOR_AMBER)
+	stats_container.add_child(debt_stat)
+
+func _create_ship_stat_card(stat_name: String, current_value: int, max_value: int, accent_color: Color) -> PanelContainer:
+	"""Create a glass morphism stat card for ship stats"""
+	var panel = PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", _create_glass_card_style(0.8))
+	panel.custom_minimum_size = Vector2(120, 80)
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", SPACING_XS)
+	
+	# Stat name label
+	var name_label = Label.new()
+	name_label.text = stat_name.to_upper()
+	name_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	name_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(name_label)
+	
+	# Stat value
+	var value_label = Label.new()
+	if max_value > 0:
+		value_label.text = "%d / %d" % [current_value, max_value]
+	else:
+		value_label.text = str(current_value)
+	value_label.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	value_label.add_theme_color_override("font_color", accent_color)
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(value_label)
+	
+	panel.add_child(vbox)
+	return panel
 
 # Signal handlers
 func _on_generate_pressed() -> void:

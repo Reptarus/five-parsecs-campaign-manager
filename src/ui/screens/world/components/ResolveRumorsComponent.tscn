@@ -1,6 +1,61 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://src/ui/screens/world/components/ResolveRumorsComponent.gd" id="1_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.067, 0.094, 0.153, 0.85)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.216, 0.255, 0.318, 0.5)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_list"]
+bg_color = Color(0.122, 0.137, 0.216, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.216, 0.255, 0.318, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_primary"]
+bg_color = Color(0.545, 0.361, 0.965, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_quest"]
+bg_color = Color(0.545, 0.361, 0.965, 0.2)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.545, 0.361, 0.965, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 12.0
+content_margin_top = 12.0
+content_margin_right = 12.0
+content_margin_bottom = 12.0
 
 [node name="ResolveRumorsComponent" type="Control"]
 layout_mode = 3
@@ -14,70 +69,115 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme_override_constants/separation = 10
+theme_override_constants/separation = 16
 
 [node name="HeaderPanel" type="PanelContainer" parent="VBoxContainer"]
 layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/HeaderPanel"]
+[node name="HeaderContent" type="VBoxContainer" parent="VBoxContainer/HeaderPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TitleRow" type="HBoxContainer" parent="VBoxContainer/HeaderPanel/HeaderContent"]
 layout_mode = 2
 
-[node name="TitleLabel" type="Label" parent="VBoxContainer/HeaderPanel/HBoxContainer"]
+[node name="TitleLabel" type="Label" parent="VBoxContainer/HeaderPanel/HeaderContent/TitleRow"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+size_flags_horizontal = 3
 text = "Resolve Rumors"
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
 
-[node name="RumorsCountLabel" type="Label" parent="VBoxContainer/HeaderPanel/HBoxContainer"]
+[node name="HelpButton" type="Button" parent="VBoxContainer/HeaderPanel/HeaderContent/TitleRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+tooltip_text = "Rumors may lead to Quests with greater rewards (Rules p.86)"
+text = "?"
+theme_override_font_sizes/font_size = 14
+
+[node name="RumorsCountLabel" type="Label" parent="VBoxContainer/HeaderPanel/HeaderContent"]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_horizontal = 10
-text = "Rumors: 0"
+text = "Current Rumors: 0"
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.961, 0.62, 0.043, 1)
 
-[node name="QuestStatusLabel" type="Label" parent="VBoxContainer"]
+[node name="QuestStatusPanel" type="PanelContainer" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_quest")
+
+[node name="QuestStatusLabel" type="Label" parent="VBoxContainer/QuestStatusPanel"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "No Active Quest"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.545, 0.361, 0.965, 1)
+
+[node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
+modulate = Color(0.216, 0.255, 0.318, 1)
+layout_mode = 2
 
 [node name="MainContainer" type="HBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 15
+theme_override_constants/separation = 16
 
 [node name="RumorsPanel" type="VBoxContainer" parent="VBoxContainer/MainContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/separation = 8
 
 [node name="RumorsLabel" type="Label" parent="VBoxContainer/MainContainer/RumorsPanel"]
 layout_mode = 2
-text = "Current Rumors"
+text = "QUEST RUMORS"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
 
 [node name="RumorsList" type="ItemList" parent="VBoxContainer/MainContainer/RumorsPanel"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_list")
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+theme_override_colors/font_selected_color = Color(1, 1, 1, 1)
 
 [node name="RollPanel" type="VBoxContainer" parent="VBoxContainer/MainContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/separation = 12
 
 [node name="InstructionLabel" type="Label" parent="VBoxContainer/MainContainer/RollPanel"]
 layout_mode = 2
-text = "Roll D6 - if result ≤ rumor count, generate Quest"
+text = "Roll D6 - if result ≤ rumor count, a Quest is generated!"
 autowrap_mode = 2
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
 
 [node name="RollButton" type="Button" parent="VBoxContainer/MainContainer/RollPanel"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
-text = "Roll to Resolve"
+tooltip_text = "Roll to see if your rumors lead to a Quest"
+text = "Roll to Resolve Rumors"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_primary")
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 
 [node name="ResultLabel" type="Label" parent="VBoxContainer/MainContainer/RollPanel"]
 unique_name_in_owner = true
 layout_mode = 2
 text = ""
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
 
 [node name="QuestDescriptionLabel" type="Label" parent="VBoxContainer/MainContainer/RollPanel"]
 unique_name_in_owner = true
 layout_mode = 2
 text = ""
 autowrap_mode = 2
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)

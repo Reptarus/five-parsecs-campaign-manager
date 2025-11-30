@@ -54,6 +54,46 @@ var training_costs: Dictionary = {
 	"psionics": 25 # If using psionics rules
 }
 
+# Bot upgrades (credits-based, not XP) - Five Parsecs Core Rules p.98
+var bot_upgrades: Dictionary = {
+	"combat_module": {
+		"name": "Combat Module",
+		"cost": 15,
+		"effects": {"combat_skill": 1},
+		"description": "+1 Combat Skill"
+	},
+	"reflex_enhancer": {
+		"name": "Reflex Enhancer",
+		"cost": 12,
+		"effects": {"reactions": 1},
+		"description": "+1 Reactions"
+	},
+	"armor_plating": {
+		"name": "Armor Plating",
+		"cost": 18,
+		"effects": {"toughness": 1},
+		"description": "+1 Toughness"
+	},
+	"speed_actuator": {
+		"name": "Speed Actuator",
+		"cost": 10,
+		"effects": {"speed": 1},
+		"description": "+1 Speed"
+	},
+	"sensor_array": {
+		"name": "Sensor Array",
+		"cost": 14,
+		"effects": {"savvy": 1},
+		"description": "+1 Savvy"
+	},
+	"repair_module": {
+		"name": "Self-Repair Module",
+		"cost": 20,
+		"effects": {"special": "self_repair"},
+		"description": "Reduces recovery time by 1 turn"
+	}
+}
+
 # Experience gain rates
 var experience_sources: Dictionary = {
 	"mission_victory": 3,
@@ -375,37 +415,41 @@ func _roll_dice(context: String, pattern: String) -> int:
 			"D10": return randi_range(1, 10)
 			_: return randi_range(1, 6)
 
-## Serialization for save/load
-func serialize() -> Dictionary:
-	"""Serialize advancement system data"""
-	return {
-		"stat_advancement_costs": stat_advancement_costs,
-		"training_costs": training_costs,
-		"experience_sources": experience_sources
-	}
+## Bot Upgrade System (Five Parsecs Core Rules p.98)
+## Bots don't gain XP - they purchase upgrades with credits instead
 
-func deserialize(data: Dictionary) -> void:
-	"""Deserialize advancement system data"""
-	if data.has("stat_advancement_costs"):
-		stat_advancement_costs = data["stat_advancement_costs"]
-	if data.has("training_costs"):
-		training_costs = data["training_costs"]
-	if data.has("experience_sources"):
-		experience_sources = data["experience_sources"]
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
+func get_available_bot_upgrades(bot: Resource) -> Array[Dictionary]:
+	"""Get list of available bot upgrades for purchase"""
+	var available: Array[Dictionary] = []
+	
+	if not bot or not _is_bot(bot):
+		return available
+	
+	var installed_upgrades: Array = safe_get_property(bot, "bot_upgrades", [])
+	
+	# Return upgrades not yet installed
+	for upgrade_id in bot_upgrades.keys():
+		if upgrade_id not in installed_upgrades:
+			var upgrade_data: Dictionary = bot_upgrades[upgrade_id].duplicate()
+			upgrade_data["id"] = upgrade_id
+			available.append(upgrade_data)
+	
+	return available
 
-	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
-	if not is_instance_valid(obj):
-		return default_value
-	if obj and obj.has_method("get"):
-		var value = obj.get(property)
-		return value if value != null else default_value
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null
+func can_install_bot_upgrade(bot: Resource, upgrade_id: String, campaign_credits: int) -> bool:
+	"""Check if bot can install upgrade (has credits and doesn't already have it)"""
+	if not bot or not _is_bot(bot):
+		return false
+	
+	if not bot_upgrades.has(upgrade_id):
+		return false
+	
+	var installed_upgrades: Array = safe_get_property(bot, "bot_upgrades", [])
+	if upgrade_id in installed_upgrades:
+		return false
+	
+	var cost: int = bot_upgrades[upgrade_id].get("cost", 0)
+	return campaign_credits >= cost
+
+func install_bot_upgrade(bot: Resource, upgrade_id: String, game_state: Resource) -> bool:
+	"""Install bot upgra

@@ -14,7 +14,7 @@ theme_override_constants/separation = 20
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-theme_override_colors/font_color = Color(1, 1, 0.8, 1)
+theme_override_colors/font_color = Color("#f59e0b")
 text = "Current World: Unknown"
 horizontal_alignment = 1
 
@@ -37,13 +37,13 @@ layout_mode = 2
 [node name="GovernmentInfo" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.8, 0.8, 1, 1)
+theme_override_colors/font_color = Color("#3b82f6")
 text = "Government: Unknown"
 
 [node name="TechLevelDisplay" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.8, 1, 0.8, 1)
+theme_override_colors/font_color = Color("#10b981")
 text = "Tech Level: Unknown"
 
 [node name="HSeparator3" type="HSeparator" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
@@ -70,7 +70,7 @@ theme_override_constants/separation = 5
 [node name="OpportunitiesLabel" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/OpportunitiesContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
-theme_override_colors/font_color = Color(0.8, 1, 0.8, 1)
+theme_override_colors/font_color = Color("#10b981")
 text = "Opportunities:"
 
 [node name="HSeparator5" type="HSeparator" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
@@ -84,7 +84,7 @@ theme_override_constants/separation = 5
 [node name="ThreatsLabel" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/ThreatsContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
-theme_override_colors/font_color = Color(1, 0.8, 0.8, 1)
+theme_override_colors/font_color = Color("#f59e0b")
 text = "Threats:"
 
 [node name="HSeparator6" type="HSeparator" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
@@ -94,7 +94,7 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_colors/font_color = Color("#9ca3af")
 autowrap_mode = 2
 text = "World summary will appear here once world generation is implemented..."
 vertical_alignment = 1

@@ -3,29 +3,52 @@ extends RefCounted
 
 ## Factory for creating test data for battle system tests
 ## Provides consistent mock data without requiring actual game resources
+## UPDATED: Uses correct stat names matching Character.gd (combat, not combat_skill)
 
 #region Character Creation
 
 ## Create a test character with specified stats
+## NOTE: Uses correct stat names matching Character.gd
 static func create_character(
 	name: String = "Test Character",
-	combat_skill: int = 2,
+	combat: int = 2,           # CORRECT: matches Character.gd (NOT combat_skill)
 	toughness: int = 3,
 	savvy: int = 1
 ) -> Dictionary:
 	return {
-		"id": "char_" + str(randi()),
-		"character_name": name,
-		"combat_skill": combat_skill,
+		"character_id": "char_%d_%d" % [Time.get_ticks_msec(), randi() % 10000],
+		"id": "char_" + str(randi()),  # Legacy compatibility
+		"name": name,
+		"character_name": name,  # Compatibility alias
+
+		# Character Properties - matching Character.gd
+		"background": "COLONIST",
+		"motivation": "SURVIVAL",
+		"origin": "HUMAN",
+		"character_class": "BASELINE",
+
+		# Core Stats - CORRECT names matching Character.gd
+		"combat": combat,          # CORRECT: NOT combat_skill
 		"toughness": toughness,
 		"savvy": savvy,
 		"reactions": 1,
+		"tech": 1,                 # ADDED: missing stat
+		"move": 4,                 # ADDED: missing stat
 		"speed": 4,
 		"luck": 0,
-		"health": 3,
-		"max_health": 3,
+
+		# Health
+		"health": toughness + 2,
+		"max_health": toughness + 2,
+
+		# Equipment & State
 		"armor": "none",
-		"equipment": [],
+		"equipment": [] as Array[String],
+		"is_captain": false,
+		"status": "ACTIVE",
+		"experience": 0,
+
+		# Combat state
 		"in_cover": false,
 		"elevated": false,
 		"is_stunned": false,
@@ -36,37 +59,56 @@ static func create_character(
 static func create_test_crew(count: int = 4) -> Array[Dictionary]:
 	var crew: Array[Dictionary] = []
 	var names := ["Captain", "Soldier", "Medic", "Engineer", "Scout", "Heavy"]
+	var backgrounds := ["MILITARY", "MILITARY", "MEDIC", "ENGINEER", "EXPLORER", "MILITARY"]
 
 	for i in range(mini(count, names.size())):
 		var char_data := create_character(
 			names[i],
-			2 + (i % 3),  # Varying combat skills 2-4
+			2 + (i % 3),  # Varying combat 2-4
 			3,
 			1 + (i % 2)  # Varying savvy 1-2
 		)
+		char_data["character_id"] = "crew_%d" % i
 		char_data["id"] = "crew_" + str(i)
+		char_data["background"] = backgrounds[i]
+		if i == 0:
+			char_data["is_captain"] = true
 		crew.append(char_data)
 
 	return crew
 
 ## Create test enemy
+## NOTE: Uses correct stat names matching Character.gd
 static func create_enemy(
 	enemy_type: String = "Raider",
-	combat_skill: int = 1,
+	combat: int = 1,           # CORRECT: matches Character.gd (NOT combat_skill)
 	toughness: int = 3,
 	count: int = 1
 ) -> Dictionary:
 	return {
 		"id": "enemy_" + str(randi()),
 		"enemy_type": enemy_type,
-		"combat_skill": combat_skill,
+		"name": enemy_type,
+
+		# Stats - CORRECT names matching Character.gd
+		"combat": combat,          # CORRECT: NOT combat_skill
 		"toughness": toughness,
-		"health": 2,
-		"max_health": 2,
+		"reactions": 1,
+		"speed": 4,
+		"savvy": 1,
+		"tech": 1,
+		"move": 4,
+
+		# Health
+		"health": toughness,
+		"max_health": toughness,
+
+		# State
 		"armor": "none",
 		"count": count,
 		"in_cover": false,
-		"elevated": false
+		"elevated": false,
+		"ai_type": "AGGRESSIVE"
 	}
 
 ## Create a standard enemy force
@@ -256,11 +298,11 @@ static func create_random_roller() -> Callable:
 
 ## Create attacker data for combat resolution
 static func create_attacker(
-	combat_skill: int = 2,
+	combat: int = 2,           # CORRECT: matches Character.gd (NOT combat_skill)
 	range_to_target: float = 12.0,
 	elevated: bool = false
 ) -> Dictionary:
-	var char_data := create_character("Attacker", combat_skill)
+	var char_data := create_character("Attacker", combat)
 	char_data["range_to_target"] = range_to_target
 	char_data["elevated"] = elevated
 	return char_data
@@ -300,8 +342,9 @@ static func create_crew_xp_data(crew_count: int = 4) -> Array:
 #region Validation Helpers
 
 ## Check if character data has required fields
+## Uses CORRECT stat names matching Character.gd
 static func is_valid_character(char_data: Dictionary) -> bool:
-	var required := ["id", "combat_skill", "toughness", "savvy"]
+	var required := ["combat", "toughness", "savvy", "reactions", "tech", "move"]  # CORRECT names
 	for field in required:
 		if not char_data.has(field):
 			return false

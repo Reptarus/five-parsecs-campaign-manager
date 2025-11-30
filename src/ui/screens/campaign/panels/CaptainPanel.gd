@@ -1222,37 +1222,93 @@ func _generate_captain_name() -> String:
 	return first_names[randi() % first_names.size()] + " " + last_names[randi() % last_names.size()]
 
 func _update_captain_display() -> void:
-	"""Update captain preview display"""
+	"""Update captain preview display with glass morphism and stat badges"""
 	if not captain or not captain_display_container:
 		return
-	
+
 	# Clear previous display
 	for child in captain_display_container.get_children():
 		child.queue_free()
-	
-	# Create info display
-	var info_container = VBoxContainer.new()
-	captain_display_container.add_child(info_container)
-	
-	# Name and title
-	var name_label = Label.new()
+
+	# === GLASS CARD WRAPPER ===
+	var captain_card := PanelContainer.new()
+	captain_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	captain_card.add_theme_stylebox_override("panel", _create_glass_card_elevated())
+	captain_display_container.add_child(captain_card)
+
+	var card_vbox := VBoxContainer.new()
+	card_vbox.add_theme_constant_override("separation", SPACING_MD)
+	captain_card.add_child(card_vbox)
+
+	# === CAPTAIN HEADER (Portrait + Name) ===
+	var header_hbox := HBoxContainer.new()
+	header_hbox.add_theme_constant_override("separation", SPACING_MD)
+	card_vbox.add_child(header_hbox)
+
+	# Portrait frame with glass background
+	var portrait_frame := PanelContainer.new()
+	portrait_frame.custom_minimum_size = Vector2(80, 80)
+	var portrait_style := StyleBoxFlat.new()
+	portrait_style.bg_color = COLOR_INPUT
+	portrait_style.border_color = COLOR_ACCENT
+	portrait_style.set_border_width_all(2)
+	portrait_style.set_corner_radius_all(8)
+	portrait_style.set_content_margin_all(SPACING_SM)
+	portrait_frame.add_theme_stylebox_override("panel", portrait_style)
+	header_hbox.add_child(portrait_frame)
+
+	# Portrait placeholder (future: character portrait)
+	var portrait_label := Label.new()
+	portrait_label.text = "👤"
+	portrait_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	portrait_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	portrait_label.add_theme_font_size_override("font_size", 48)
+	portrait_frame.add_child(portrait_label)
+
+	# Captain info column
+	var info_vbox := VBoxContainer.new()
+	info_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info_vbox.add_theme_constant_override("separation", SPACING_XS)
+	header_hbox.add_child(info_vbox)
+
+	# Name
+	var name_label := Label.new()
 	name_label.text = "Captain %s" % captain.character_name
-	name_label.add_theme_font_size_override("font_size", 18)
-	name_label.modulate = Color.GOLD
-	info_container.add_child(name_label)
-	
-	# Creation method
-	var method_label = Label.new()
+	name_label.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	name_label.add_theme_color_override("font_color", COLOR_ACCENT)
+	info_vbox.add_child(name_label)
+
+	# Creation method badge
+	var method_badge := PanelContainer.new()
+	var method_style := StyleBoxFlat.new()
+	method_style.bg_color = Color(COLOR_ACCENT, 0.2)
+	method_style.border_color = COLOR_ACCENT
+	method_style.set_border_width_all(1)
+	method_style.set_corner_radius_all(4)
+	method_style.set_content_margin_all(SPACING_XS)
+	method_badge.add_theme_stylebox_override("panel", method_style)
+	var method_label := Label.new()
 	method_label.text = "Created via: %s" % creation_method.capitalize()
-	method_label.modulate = Color.LIGHT_GRAY
-	info_container.add_child(method_label)
-	
-	# Stats grid
-	var stats_grid = GridContainer.new()
-	stats_grid.columns = 2
-	info_container.add_child(stats_grid)
-	
-	var stats = {
+	method_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	method_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	method_badge.add_child(method_label)
+	info_vbox.add_child(method_badge)
+
+	# === STATS SECTION (Using Stat Badges) ===
+	var stats_label := Label.new()
+	stats_label.text = "STATS"
+	stats_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	stats_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	card_vbox.add_child(stats_label)
+
+	var stats_grid := GridContainer.new()
+	stats_grid.columns = get_optimal_column_count() + 1  # Adaptive columns
+	stats_grid.add_theme_constant_override("h_separation", SPACING_SM)
+	stats_grid.add_theme_constant_override("v_separation", SPACING_SM)
+	card_vbox.add_child(stats_grid)
+
+	# Create stat badges with color coding
+	var stats := {
 		"Combat": captain.combat,
 		"Reactions": captain.reactions,
 		"Toughness": captain.toughness,
@@ -1261,28 +1317,27 @@ func _update_captain_display() -> void:
 		"Speed": captain.speed,
 		"Luck": captain.luck
 	}
-	
+
 	for stat_name in stats:
-		var label = Label.new()
-		label.text = stat_name + ":"
-		stats_grid.add_child(label)
-		
-		var value = Label.new()
-		value.text = str(stats[stat_name])
-		if stats[stat_name] >= 4:
-			value.modulate = Color.GREEN
-		elif stats[stat_name] <= 2:
-			value.modulate = Color.ORANGE
-		stats_grid.add_child(value)
-	
-	# Experience and skills
+		var badge := _create_stat_badge(stat_name, stats[stat_name])
+		stats_grid.add_child(badge)
+
+	# === EXPERIENCE SECTION (If bonus XP) ===
 	if captain.experience > 100:
-		var xp_label = Label.new()
+		var xp_section := HBoxContainer.new()
+		xp_section.add_theme_constant_override("separation", SPACING_SM)
+		card_vbox.add_child(xp_section)
+
+		var xp_icon := Label.new()
+		xp_icon.text = "⭐"
+		xp_icon.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+		xp_section.add_child(xp_icon)
+
+		var xp_label := Label.new()
 		xp_label.text = "Experience: %d XP" % captain.experience
-		xp_label.modulate = Color.CYAN
-		info_container.add_child(xp_label)
-	
-	# Skills display removed - Character resource doesn't have skills property
+		xp_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		xp_label.add_theme_color_override("font_color", COLOR_PURPLE)
+		xp_section.add_child(xp_label)
 
 func _apply_background_and_motivation() -> void:
 	"""Apply Five Parsecs background and motivation using existing data"""

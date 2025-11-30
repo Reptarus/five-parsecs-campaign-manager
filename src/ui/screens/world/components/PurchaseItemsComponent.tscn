@@ -1,6 +1,61 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://src/ui/screens/world/components/PurchaseItemsComponent.gd" id="1_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.067, 0.094, 0.153, 0.85)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.216, 0.255, 0.318, 0.5)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_list"]
+bg_color = Color(0.122, 0.137, 0.216, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.216, 0.255, 0.318, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_primary"]
+bg_color = Color(0.231, 0.51, 0.965, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_secondary"]
+bg_color = Color(0.122, 0.137, 0.216, 0.8)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.216, 0.255, 0.318, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
 
 [node name="PurchaseItemsComponent" type="Control"]
 layout_mode = 3
@@ -14,102 +69,163 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme_override_constants/separation = 10
+theme_override_constants/separation = 16
 
 [node name="HeaderPanel" type="PanelContainer" parent="VBoxContainer"]
 layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/HeaderPanel"]
+[node name="HeaderContent" type="VBoxContainer" parent="VBoxContainer/HeaderPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TitleRow" type="HBoxContainer" parent="VBoxContainer/HeaderPanel/HeaderContent"]
 layout_mode = 2
 
-[node name="TitleLabel" type="Label" parent="VBoxContainer/HeaderPanel/HBoxContainer"]
+[node name="TitleLabel" type="Label" parent="VBoxContainer/HeaderPanel/HeaderContent/TitleRow"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+size_flags_horizontal = 3
 text = "Purchase Items"
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
 
-[node name="CreditsDisplay" type="Label" parent="VBoxContainer/HeaderPanel/HBoxContainer"]
+[node name="HelpButton" type="Button" parent="VBoxContainer/HeaderPanel/HeaderContent/TitleRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+tooltip_text = "Buy and sell equipment at the local market (Rules p.125)"
+text = "?"
+theme_override_font_sizes/font_size = 14
+
+[node name="CreditsDisplay" type="Label" parent="VBoxContainer/HeaderPanel/HeaderContent"]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_horizontal = 10
-text = "Credits: 0"
+text = "Available Credits: 0"
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.961, 0.62, 0.043, 1)
+
+[node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
+modulate = Color(0.216, 0.255, 0.318, 1)
+layout_mode = 2
 
 [node name="PurchaseContainer" type="HBoxContainer" parent="VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 15
+theme_override_constants/separation = 16
 
 [node name="LeftPanel" type="VBoxContainer" parent="VBoxContainer/PurchaseContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/separation = 8
 
 [node name="BasicItemsLabel" type="Label" parent="VBoxContainer/PurchaseContainer/LeftPanel"]
 layout_mode = 2
-text = "Basic Items (1 credit each)"
+text = "BASIC ITEMS (1 credit each)"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
 
 [node name="BasicItemsList" type="ItemList" parent="VBoxContainer/PurchaseContainer/LeftPanel"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_list")
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+theme_override_colors/font_selected_color = Color(1, 1, 1, 1)
 
 [node name="TableRollOptions" type="VBoxContainer" parent="VBoxContainer/PurchaseContainer/LeftPanel"]
 unique_name_in_owner = true
 layout_mode = 2
+theme_override_constants/separation = 8
 
 [node name="TableRollLabel" type="Label" parent="VBoxContainer/PurchaseContainer/LeftPanel/TableRollOptions"]
 layout_mode = 2
-text = "Roll on Tables (3 credits each)"
+text = "TABLE ROLLS (3 credits each)"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
 
 [node name="RollMilitaryButton" type="Button" parent="VBoxContainer/PurchaseContainer/LeftPanel/TableRollOptions"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
+tooltip_text = "Roll on Military Weapons Table (3 credits)"
 text = "Roll Military Weapons"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_secondary")
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
 
 [node name="RollGearButton" type="Button" parent="VBoxContainer/PurchaseContainer/LeftPanel/TableRollOptions"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
+tooltip_text = "Roll on Gear Table (3 credits)"
 text = "Roll Gear"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_secondary")
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
 
 [node name="RollGadgetButton" type="Button" parent="VBoxContainer/PurchaseContainer/LeftPanel/TableRollOptions"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
+tooltip_text = "Roll on Gadget Table (3 credits)"
 text = "Roll Gadget"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_secondary")
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
 
 [node name="CenterPanel" type="VBoxContainer" parent="VBoxContainer/PurchaseContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/separation = 8
 
 [node name="CartLabel" type="Label" parent="VBoxContainer/PurchaseContainer/CenterPanel"]
 layout_mode = 2
-text = "Shopping Cart"
+text = "SHOPPING CART"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
 
 [node name="CartList" type="ItemList" parent="VBoxContainer/PurchaseContainer/CenterPanel"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_list")
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+theme_override_colors/font_selected_color = Color(1, 1, 1, 1)
 
 [node name="ConfirmPurchaseButton" type="Button" parent="VBoxContainer/PurchaseContainer/CenterPanel"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
+tooltip_text = "Confirm purchase of all items in cart"
 text = "Confirm Purchase"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_primary")
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 
 [node name="RightPanel" type="VBoxContainer" parent="VBoxContainer/PurchaseContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/separation = 8
 
 [node name="SellLabel" type="Label" parent="VBoxContainer/PurchaseContainer/RightPanel"]
 layout_mode = 2
-text = "Sell Items (1 credit each, max 3)"
+text = "SELL ITEMS (1 credit each, max 3)"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
 
 [node name="SellItemsList" type="ItemList" parent="VBoxContainer/PurchaseContainer/RightPanel"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_list")
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+theme_override_colors/font_selected_color = Color(1, 1, 1, 1)
 
 [node name="SellButton" type="Button" parent="VBoxContainer/PurchaseContainer/RightPanel"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
+tooltip_text = "Sell selected item for 1 credit"
 text = "Sell Selected"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_secondary")
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)

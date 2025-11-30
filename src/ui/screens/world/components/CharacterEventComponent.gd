@@ -177,96 +177,69 @@ func _on_resolve_pressed() -> void:
 
 	event_resolved = true
 
-	# Apply event effects
-	_apply_event_effects()
+	# Apply event effects using PostBattlePhase handler
+	var effect_text: String = _apply_event_effects()
+	
+	# Show effect result in UI
+	if event_effect_label:
+		event_effect_label.text = "Result: " + effect_text
+		event_effect_label.modulate = Color(0.5, 1.0, 0.5)
 
 	_update_ui_display()
 
 	var char_name = selected_character.get("name", "Unknown") if selected_character is Dictionary else "Unknown"
-	print("CharacterEventComponent: Event resolved for %s - %s" % [char_name, current_event.get("title", "Unknown")])
+	print("CharacterEventComponent: Event resolved for %s - %s (%s)" % [char_name, current_event.get("title", "Unknown"), effect_text])
 
 	if event_bus:
 		event_bus.publish_event(CampaignTurnEventBus.TurnEvent.PHASE_COMPLETED, {
 			"phase_name": "character_event",
 			"character": selected_character.get("name", "Unknown") if selected_character is Dictionary else "Unknown",
 			"event": current_event,
-			"roll": last_roll
+			"roll": last_roll,
+			"effect": effect_text
 		})
 
-func _apply_event_effects() -> void:
-	"""Apply effects of current event to character"""
+func _apply_event_effects() -> String:
+	"""Apply effects of current event to character using PostBattlePhase handler"""
 	var title = current_event.get("title", "")
-	var char_name = selected_character.get("name", "Unknown") if selected_character is Dictionary else "Unknown"
+	
+	# Get PostBattlePhase handler
+	var post_battle_phase = get_node_or_null("/root/PostBattlePhase")
+	if not post_battle_phase:
+		# Fallback: Try to find in scene tree
+		post_battle_phase = get_tree().root.find_child("PostBattlePhase", true, false)
+	
+	if post_battle_phase and post_battle_phase.has_method("apply_character_event_effect"):
+		var result = post_battle_phase.apply_character_event_effect(title, selected_character)
+		print("CharacterEventComponent: %s" % result)
+		return result
+	else:
+		push_warning("CharacterEventComponent: PostBattlePhase not found - using fallback")
+		return _apply_event_effects_fallback(title)
 
-	# Handle common effect types
+func _apply_event_effects_fallback(title: String) -> String:
+	"""Fallback event effect application if PostBattlePhase not available"""
+	var char_name = selected_character.get("name", "Unknown") if selected_character is Dictionary else "Unknown"
+	
 	match title:
 		"Old Friend", "Moment of Glory":
 			if GameStateManager and GameStateManager.has_method("add_story_points"):
 				GameStateManager.add_story_points(1)
-			print("CharacterEventComponent: %s gains +1 story point" % char_name)
-
-		"Side Job":
-			var credits = randi() % 6 + 1
-			if GameStateManager:
-				GameStateManager.add_credits(credits)
-			print("CharacterEventComponent: %s gains %d credits" % [char_name, credits])
-
-		"Unexpected Windfall":
-			var credits = (randi() % 6 + 1) + (randi() % 6 + 1)
-			if GameStateManager:
-				GameStateManager.add_credits(credits)
-			print("CharacterEventComponent: %s gains %d credits" % [char_name, credits])
-
+			return "%s gained +1 Story Point" % char_name
+		
 		"Personal Growth":
-			# Add XP to character
 			if selected_character is Dictionary:
 				selected_character["experience"] = selected_character.get("experience", 0) + 2
-			print("CharacterEventComponent: %s gains +2 XP" % char_name)
-
-		"Valuable Intel":
-			# Add rumor to campaign
-			var game_state = get_node_or_null("/root/GameState")
-			if game_state and game_state.current_campaign:
-				var campaign = game_state.current_campaign
-				if campaign and campaign is Dictionary:
-					var rumors = campaign.get("rumors", [])
-					var rumor_types = [
-						"An extracted data file", "An extracted data file",
-						"Notebook with secret information", "Notebook with secret information",
-						"Old map showing a location", "Old map showing a location",
-						"A tip from a contact", "A tip from a contact",
-						"An intercepted transmission", "An intercepted transmission"
-					]
-					var roll = randi() % 10
-					rumors.append({
-						"id": "rumor_%d_%d" % [Time.get_ticks_msec(), randi() % 1000],
-						"type": roll + 1,
-						"description": rumor_types[roll],
-						"source": "character_event_%s" % char_name
-					})
-					campaign["rumors"] = rumors
-			print("CharacterEventComponent: %s discovers rumor" % char_name)
-
-		"Made Enemy":
-			# Add rival to campaign
-			var game_state = get_node_or_null("/root/GameState")
-			if game_state and game_state.current_campaign:
-				var campaign = game_state.current_campaign
-				if campaign and campaign is Dictionary:
-					var rivals = campaign.get("rivals", [])
-					rivals.append({
-						"id": "rival_%d_%d" % [Time.get_ticks_msec(), randi() % 1000],
-						"name": "Enemy of %s" % char_name,
-						"type": ["Criminal", "Corporate", "Personal", "Gang"][randi() % 4],
-						"hostility": randi() % 3 + 3,
-						"resources": randi() % 3 + 1,
-						"source": "character_event"
-					})
-					campaign["rivals"] = rivals
-			print("CharacterEventComponent: %s makes enemy - +1 rival" % char_name)
-
+			return "%s gained +2 XP" % char_name
+		
+		"Side Job":
+			var credits = randi_range(1, 6)
+			if GameStateManager:
+				GameStateManager.add_credits(credits)
+			return "%s earned %d Credits" % [char_name, credits]
+		
 		_:
-			print("CharacterEventComponent: Effect for %s requires manual resolution" % char_name)
+			return "%s: Event requires manual resolution" % char_name
 
 ## UI Updates
 func _update_ui_display() -> void:
@@ -333,3 +306,4 @@ func reset_event_phase() -> void:
 		roll_result_label.text = ""
 	_update_ui_display()
 	print("CharacterEventComponent: Reset for new turn")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           

@@ -6,6 +6,23 @@ extends PanelContainer
 ## Displays the rolled deployment condition for pre-battle setup.
 ## Shows condition title, description, effects summary, and action buttons.
 
+## Design System Constants (from BaseCampaignPanel)
+const COLOR_PRIMARY := Color("#0a0d14")      # Darkest background
+const COLOR_SECONDARY := Color("#111827")    # Card backgrounds
+const COLOR_TERTIARY := Color("#1f2937")     # Elevated elements
+const COLOR_BORDER := Color("#374151")       # Border color
+const COLOR_BLUE := Color("#3b82f6")         # Primary accent
+const COLOR_EMERALD := Color("#10b981")      # Success
+const COLOR_AMBER := Color("#f59e0b")        # Warning
+const COLOR_RED := Color("#ef4444")          # Danger
+const COLOR_CYAN := Color("#06b6d4")         # Highlights
+const COLOR_TEXT_PRIMARY := Color("#f3f4f6") # Bright text
+const COLOR_TEXT_SECONDARY := Color("#9ca3af") # Gray text
+
+const SPACING_SM := 8
+const SPACING_MD := 16
+const SPACING_LG := 24
+
 const DeploymentConditionsSystem = preload("res://src/core/battle/DeploymentConditionsSystem.gd")
 
 # Signals
@@ -35,20 +52,14 @@ func _ready() -> void:
 
 func _setup_panel_style() -> void:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.12, 0.18, 0.95)
-	style.corner_radius_top_left = 8
-	style.corner_radius_top_right = 8
-	style.corner_radius_bottom_left = 8
-	style.corner_radius_bottom_right = 8
-	style.border_width_left = 3
-	style.border_width_right = 1
-	style.border_width_top = 1
-	style.border_width_bottom = 1
-	style.border_color = Color.ORANGE
-	style.content_margin_left = 12
-	style.content_margin_right = 12
-	style.content_margin_top = 8
-	style.content_margin_bottom = 8
+	# Glass morphism background
+	style.bg_color = Color(COLOR_SECONDARY.r, COLOR_SECONDARY.g, COLOR_SECONDARY.b, 0.8)
+	style.set_corner_radius_all(16)
+	# Subtle border
+	style.border_color = Color(COLOR_BORDER.r, COLOR_BORDER.g, COLOR_BORDER.b, 0.5)
+	style.set_border_width_all(1)
+	# Generous padding
+	style.set_content_margin_all(SPACING_LG)
 	add_theme_stylebox_override("panel", style)
 
 func _setup_buttons() -> void:
@@ -59,16 +70,40 @@ func _setup_buttons() -> void:
 	for child in button_container.get_children():
 		child.queue_free()
 
-	# Acknowledge button
+	# Acknowledge button (primary action)
 	var ack_btn := Button.new()
 	ack_btn.text = "Continue"
+	ack_btn.custom_minimum_size.y = 48  # Touch target
 	ack_btn.pressed.connect(_on_acknowledge_pressed)
+	
+	# Style as primary button
+	var primary_style := StyleBoxFlat.new()
+	primary_style.bg_color = COLOR_BLUE
+	primary_style.set_corner_radius_all(6)
+	primary_style.set_content_margin_all(SPACING_MD)
+	ack_btn.add_theme_stylebox_override("normal", primary_style)
+	
+	var primary_hover := primary_style.duplicate() as StyleBoxFlat
+	primary_hover.bg_color = COLOR_BLUE.lightened(0.2)
+	ack_btn.add_theme_stylebox_override("hover", primary_hover)
+	
 	button_container.add_child(ack_btn)
 
-	# Details button
+	# Details button (secondary action)
 	var details_btn := Button.new()
 	details_btn.text = "Details"
+	details_btn.custom_minimum_size.y = 48  # Touch target
 	details_btn.pressed.connect(_on_details_pressed)
+	
+	# Style as secondary button
+	var secondary_style := StyleBoxFlat.new()
+	secondary_style.bg_color = Color.TRANSPARENT
+	secondary_style.border_color = COLOR_BORDER
+	secondary_style.set_border_width_all(2)
+	secondary_style.set_corner_radius_all(6)
+	secondary_style.set_content_margin_all(SPACING_MD)
+	details_btn.add_theme_stylebox_override("normal", secondary_style)
+	
 	button_container.add_child(details_btn)
 
 ## Roll and display a new deployment condition
@@ -94,26 +129,29 @@ func _update_display() -> void:
 	# Title with condition name
 	if title_label:
 		title_label.text = current_condition.title
-		# Color based on severity
+		# Color based on severity (semantic colors from design system)
 		if current_condition.condition_id == "NO_CONDITION":
-			title_label.modulate = Color.GREEN
+			title_label.add_theme_color_override("font_color", COLOR_EMERALD)
 		elif current_condition.condition_id in ["SURPRISE_ENCOUNTER"]:
-			title_label.modulate = Color.CYAN # Beneficial
+			title_label.add_theme_color_override("font_color", COLOR_CYAN)  # Beneficial
 		else:
-			title_label.modulate = Color.ORANGE # Challenging
+			title_label.add_theme_color_override("font_color", COLOR_AMBER)  # Challenging
 
 	# Description
 	if description_label:
 		description_label.text = current_condition.description
+		description_label.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 
 	# Effects summary
 	if effects_label:
 		var effects_text := conditions_system.get_condition_effects_summary(current_condition)
 		effects_label.text = effects_text
+		effects_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 
 	# Roll display
 	if roll_display and current_roll > 0:
 		roll_display.text = "Rolled: %d" % current_roll
+		roll_display.add_theme_color_override("font_color", COLOR_BLUE)
 		roll_display.visible = true
 	elif roll_display:
 		roll_display.visible = false
@@ -122,6 +160,7 @@ func _update_display() -> void:
 	if mission_type_label:
 		var type_name := _get_mission_type_name(current_mission_type)
 		mission_type_label.text = "Mission: %s" % type_name
+		mission_type_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 
 ## Get current condition for external use
 func get_current_condition() -> DeploymentConditionsSystem.DeploymentCondition:

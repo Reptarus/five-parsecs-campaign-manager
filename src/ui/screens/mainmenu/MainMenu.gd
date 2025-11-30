@@ -519,7 +519,7 @@ func _test_workflow_system() -> void:
 	# Test individual modular scenes
 	var modular_scenes = {
 		"InitialCrewCreation": "res://src/ui/screens/crew/InitialCrewCreation.tscn",
-		"CharacterCreator": "res://src/ui/screens/character/CharacterCreator.tscn",
+		"CharacterCreator": "res://src/ui/screens/character/SimpleCharacterCreator.tscn",
 		"CampaignDashboard": "res://src/ui/screens/campaign/CampaignDashboard.tscn"
 	}
 	

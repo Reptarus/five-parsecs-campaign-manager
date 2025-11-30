@@ -4,15 +4,20 @@
 
 class_name CharacterAdvancementHelper
 
+## Character Advancement Helper - Production Schema Compliant
+## Uses correct stat names matching Character.gd
+
 func _get_character_advancement_cost(stat: String) -> int:
 	"""Get XP cost for increasing a stat (Five Parsecs rulebook p.6753-6760)"""
 	var costs = {
 		"reactions": 7,
-		"combat_skill": 7,
+		"combat": 7,        # CORRECT: matches Character.gd (NOT combat_skill)
 		"speed": 5,
 		"savvy": 5,
 		"toughness": 6,
-		"luck": 10
+		"luck": 10,
+		"tech": 6,          # ADDED: missing stat
+		"move": 5           # ADDED: missing stat
 	}
 	return costs.get(stat.to_lower(), 999)
 
@@ -22,22 +27,25 @@ func _get_stat_maximum(stat: String, character: Dictionary) -> int:
 
 	# Check for Engineer Toughness restriction
 	if stat_lower == "toughness":
-		if character.get("background", "") == "Engineer":
+		if character.get("background", "") == "Engineer" or character.get("background", "") == "ENGINEER":
 			return 4  # Engineers max Toughness 4
 		return 6  # Normal max Toughness 6
 
-	# Check for Human Luck exception
+	# Check for Human Luck exception - use origin (not species)
 	if stat_lower == "luck":
-		if character.get("species", "Human") == "Human":
+		var origin = character.get("origin", character.get("species", "HUMAN"))  # Fallback to species for compatibility
+		if origin == "Human" or origin == "HUMAN":
 			return 3  # Humans max Luck 3
 		return 1  # Non-humans max Luck 1
 
-	# Standard maximums
+	# Standard maximums - using CORRECT stat names matching Character.gd
 	var maximums = {
 		"reactions": 6,
-		"combat_skill": 5,  # +5 modifier
+		"combat": 5,        # CORRECT: matches Character.gd (NOT combat_skill)
 		"speed": 8,
-		"savvy": 5  # +5 modifier
+		"savvy": 5,
+		"tech": 5,          # ADDED: missing stat
+		"move": 8           # ADDED: missing stat
 	}
 	return maximums.get(stat_lower, 10)
 
@@ -46,7 +54,8 @@ func _can_character_advance(character: Dictionary) -> Array:
 	var available_advancements = []
 	var current_xp = character.get("experience", 0)
 
-	var stats_to_check = ["reactions", "combat_skill", "speed", "savvy", "toughness", "luck"]
+	# CORRECT stat names matching Character.gd
+	var stats_to_check = ["reactions", "combat", "speed", "savvy", "toughness", "luck", "tech", "move"]
 
 	for stat in stats_to_check:
 		var cost = _get_character_advancement_cost(stat)
@@ -86,7 +95,8 @@ func _process_character_advancements(crew: Array, captain: Dictionary) -> Dictio
 	}
 
 	# Priority order for stat advancement (most important first)
-	var advancement_priority = ["combat_skill", "reactions", "toughness", "speed", "savvy", "luck"]
+	# CORRECT stat names matching Character.gd
+	var advancement_priority = ["combat", "reactions", "toughness", "speed", "savvy", "tech", "move", "luck"]
 
 	# Process captain advancements
 	for stat in advancement_priority:

@@ -22,11 +22,12 @@ const SCENE_PATHS = {
 	"victory_progress": "res://src/ui/screens/campaign/VictoryProgressPanel.tscn",
 
 	# Character management
-	"character_creator": "res://src/ui/screens/character/CharacterCreator.tscn",
-	"character_sheet": "res://src/ui/screens/character/CharacterSheet.tscn",
+	"character_creator": "res://src/ui/screens/character/SimpleCharacterCreator.tscn",
+	"character_details": "res://src/ui/screens/character/CharacterDetailsScreen.tscn",
 	"character_progression": "res://src/ui/screens/character/CharacterProgression.tscn",
 	"advancement_manager": "res://src/ui/screens/character/AdvancementManager.tscn",
 	"crew_creation": "res://src/ui/screens/crew/InitialCrewCreation.tscn",
+	"crew_management": "res://src/ui/screens/crew/CrewManagementScreen.tscn",
 
 	# Equipment and ship management
 	"equipment_manager": "res://src/ui/screens/equipment/EquipmentManager.tscn",
@@ -45,8 +46,7 @@ const SCENE_PATHS = {
 	"battlefield_main": "res://src/ui/screens/battle/BattlefieldMain.tscn",
 	"tactical_battle": "res://src/ui/screens/battle/TacticalBattleUI.tscn",
 	"battle_resolution": "res://src/ui/screens/battle/BattleResolutionUI.tscn",
-	"post_battle": "res://src/ui/screens/battle/PostBattle.tscn",
-	"post_battle_results": "res://src/ui/screens/battle/PostBattleResultsUI.tscn",
+	"post_battle": "res://src/ui/screens/postbattle/PostBattleSequence.tscn",
 	"post_battle_sequence": "res://src/ui/screens/postbattle/PostBattleSequence.tscn",
 
 	# Events and story

@@ -2,6 +2,23 @@
 class_name FPCM_PreBattleUI
 extends Control
 
+## Design System Constants (from BaseCampaignPanel)
+const COLOR_PRIMARY := Color("#0a0d14")      # Darkest background
+const COLOR_SECONDARY := Color("#111827")    # Card backgrounds
+const COLOR_TERTIARY := Color("#1f2937")     # Elevated elements
+const COLOR_BORDER := Color("#374151")       # Border color
+const COLOR_BLUE := Color("#3b82f6")         # Primary accent
+const COLOR_EMERALD := Color("#10b981")      # Success
+const COLOR_AMBER := Color("#f59e0b")        # Warning
+const COLOR_RED := Color("#ef4444")          # Danger
+const COLOR_CYAN := Color("#06b6d4")         # Highlights
+const COLOR_TEXT_PRIMARY := Color("#f3f4f6") # Bright text
+const COLOR_TEXT_SECONDARY := Color("#9ca3af") # Gray text
+
+const SPACING_SM := 8
+const SPACING_MD := 16
+const SPACING_LG := 24
+
 ## Dependencies
 # GlobalEnums available as autoload singleton
 const Character = preload("res://src/core/character/Character.gd")
@@ -61,12 +78,50 @@ var terrain_suggestion_items: Array = []
 var confirmed_suggestions: Array = []
 
 func _ready() -> void:
+	_apply_glass_morphism_styling()
 	_initialize_systems()
 	_connect_signals()
 	confirm_button.disabled = true
 
 	# Load mission data from GameState
 	_load_mission_from_gamestate()
+
+## Apply glass morphism styling to panels
+func _apply_glass_morphism_styling() -> void:
+	# Style mission info panel
+	if mission_info_panel and mission_info_panel.get_parent() is PanelContainer:
+		var panel = mission_info_panel.get_parent() as PanelContainer
+		panel.add_theme_stylebox_override("panel", _create_glass_card_style())
+	
+	# Style enemy info panel
+	if enemy_info_panel and enemy_info_panel.get_parent() is PanelContainer:
+		var panel = enemy_info_panel.get_parent() as PanelContainer
+		panel.add_theme_stylebox_override("panel", _create_glass_card_style())
+	
+	# Style battlefield preview
+	if battlefield_preview and battlefield_preview.get_parent() is PanelContainer:
+		var panel = battlefield_preview.get_parent() as PanelContainer
+		panel.add_theme_stylebox_override("panel", _create_glass_card_style())
+	
+	# Style crew selection panel
+	if crew_selection_panel and crew_selection_panel.get_parent() is PanelContainer:
+		var panel = crew_selection_panel.get_parent() as PanelContainer
+		panel.add_theme_stylebox_override("panel", _create_glass_card_style())
+	
+	# Style deployment panel
+	if deployment_panel and deployment_panel.get_parent() is PanelContainer:
+		var panel = deployment_panel.get_parent() as PanelContainer
+		panel.add_theme_stylebox_override("panel", _create_glass_card_style())
+
+func _create_glass_card_style(alpha: float = 0.8) -> StyleBoxFlat:
+	"""Create glass morphism card style"""
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(COLOR_SECONDARY.r, COLOR_SECONDARY.g, COLOR_SECONDARY.b, alpha)
+	style.border_color = Color(COLOR_BORDER.r, COLOR_BORDER.g, COLOR_BORDER.b, 0.5)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(16)
+	style.set_content_margin_all(SPACING_LG)
+	return style
 
 ## Initialize required systems
 func _initialize_systems() -> void:
@@ -378,12 +433,12 @@ func display_prebattle_rolls() -> void:
 	# Update deployment condition label (from scene)
 	if deployment_condition_label:
 		deployment_condition_label.text = "Deployment [%d]: %s\n%s" % [deployment.roll, deployment.name, deployment.effect]
-		deployment_condition_label.add_theme_color_override("font_color", Color.CYAN)
+		deployment_condition_label.add_theme_color_override("font_color", COLOR_CYAN)
 
 	# Update notable sights label (from scene)
 	if notable_sights_label:
 		notable_sights_label.text = "Notable Sight [%d]: %s\n%s" % [sights.roll, sights.name, sights.effect]
-		notable_sights_label.add_theme_color_override("font_color", Color.YELLOW)
+		notable_sights_label.add_theme_color_override("font_color", COLOR_AMBER)
 
 	print("PreBattleUI: Rolled Deployment [%d] %s, Notable Sights [%d] %s" % [deployment.roll, deployment.name, sights.roll, sights.name])
 
@@ -399,9 +454,9 @@ func display_initiative_result(seized: bool, roll_result: int, savvy_bonus: int)
 
 	initiative_result_label.text = result_text
 	if seized:
-		initiative_result_label.add_theme_color_override("font_color", Color.GREEN)
+		initiative_result_label.add_theme_color_override("font_color", COLOR_EMERALD)
 	else:
-		initiative_result_label.add_theme_color_override("font_color", Color.ORANGE)
+		initiative_result_label.add_theme_color_override("font_color", COLOR_AMBER)
 
 # =====================================================
 # TERRAIN SUGGESTION SYSTEM
@@ -574,53 +629,4 @@ func _on_terrain_suggestion_modified(suggestion_id: String, modifications: Dicti
 	# Find and update the suggestion
 	for i in range(terrain_suggestions.size()):
 		if terrain_suggestions[i].suggestion_id == suggestion_id:
-			terrain_suggestions[i].merge(modifications)
-			break
-
-## Handle terrain suggestion rejection
-func _on_terrain_suggestion_rejected(suggestion_id: String) -> void:
-	print("PreBattleUI: Terrain suggestion rejected - %s" % suggestion_id)
-
-	# Remove from confirmed if it was there
-	confirmed_suggestions.erase(suggestion_id)
-
-## Check if all required terrain suggestions are confirmed
-func _check_all_terrain_confirmed() -> void:
-	var required_count := 0
-	var confirmed_required := 0
-
-	for suggestion in terrain_suggestions:
-		if suggestion.priority == 1:  # Required
-			required_count += 1
-			if suggestion.suggestion_id in confirmed_suggestions:
-				confirmed_required += 1
-
-	if confirmed_required >= required_count and required_count > 0:
-		all_terrain_confirmed.emit()
-		_update_confirm_button()
-
-## Clear all terrain suggestions
-func _clear_terrain_suggestions() -> void:
-	for item in terrain_suggestion_items:
-		if is_instance_valid(item):
-			item.queue_free()
-	terrain_suggestion_items.clear()
-	terrain_suggestions.clear()
-	confirmed_suggestions.clear()
-
-## Get terrain placement summary for export
-func get_terrain_placement_summary() -> String:
-	var summary := "=== TERRAIN PLACEMENT GUIDE ===\n\n"
-
-	for i in range(terrain_suggestions.size()):
-		var suggestion: Dictionary = terrain_suggestions[i]
-		var status := "✓ CONFIRMED" if suggestion.suggestion_id in confirmed_suggestions else "○ Pending"
-
-		summary += "%d. %s [%s]\n" % [i + 1, suggestion.visual_description, status]
-		summary += "   Type: %s\n" % suggestion.terrain_type.capitalize()
-		summary += "   Placement: %s\n" % suggestion.placement_description
-		summary += "   Models: %s\n" % ", ".join(suggestion.suggested_models)
-		summary += "\n"
-
-	summary += "=== END TERRAIN GUIDE ===\n"
-	return summary
+			t

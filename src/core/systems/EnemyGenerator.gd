@@ -177,18 +177,51 @@ func _select_from_categories(preferred_categories: Array[String]) -> String:
 	return "raiders"
 
 func _calculate_enemy_count(difficulty: int, crew_size: int) -> int:
-	"""Calculate enemy count based on difficulty and crew _size"""
-	var base_count = crew_size
-
-	match difficulty:
-		1: # Easy
-			return max(1, base_count - 1)
-		2: # Medium
-			return base_count
-		3: # Hard
-			return base_count + 1
+	"""Calculate enemy count based on crew size and difficulty (Core Rules p.63)
+	
+	Crew Size Rules:
+	- Size 6: Roll 2D6, pick HIGHER result
+	- Size 5: Roll 1D6
+	- Size 4: Roll 2D6, pick LOWER result
+	
+	Difficulty Modifiers:
+	- Challenging: Reroll 1s and 2s before picking
+	- Hardcore/Insanity: Add +1 to final count
+	"""
+	var base_count: int = 0
+	
+	# Step 1: Calculate base enemy count using crew-size-based dice rolling
+	match crew_size:
+		6:
+			# Roll 2D6, pick higher
+			var roll1 := randi() % 6 + 1
+			var roll2 := randi() % 6 + 1
+			base_count = max(roll1, roll2)
+		5:
+			# Roll 1D6
+			base_count = randi() % 6 + 1
+		4:
+			# Roll 2D6, pick lower
+			var roll1 := randi() % 6 + 1
+			var roll2 := randi() % 6 + 1
+			base_count = min(roll1, roll2)
 		_:
-			return base_count
+			# Default to crew size 6 behavior for other sizes
+			var roll1 := randi() % 6 + 1
+			var roll2 := randi() % 6 + 1
+			base_count = max(roll1, roll2)
+	
+	# Step 2: Apply difficulty-based modifiers
+	match difficulty:
+		1: # Easy - reduce count slightly
+			base_count = max(1, base_count - 1)
+		3: # Hard - increase count
+			base_count += 1
+		4, 5: # Veteran/Elite - significantly increase count
+			base_count += 2
+	
+	# Ensure minimum of 1 enemy
+	return max(1, base_count)
 
 func _create_enemy(category: String, difficulty: int) -> Resource:
 	"""Create a single enemy of specified category and difficulty using JSON data"""

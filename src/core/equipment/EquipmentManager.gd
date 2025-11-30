@@ -1845,3 +1845,108 @@ func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Va
 	if obj is Object and obj.has_method(method_name):
 		return obj.callv(method_name, args)
 	return null
+
+# ========== IMPLANT SYSTEM (Five Parsecs Odds & Ends Loot) ==========
+
+## Implant effect definitions (based on LootSystemConstants implants)
+const IMPLANT_EFFECTS := {
+	"NEURAL_LINK": {"savvy": 1},          # Boosted cognition
+	"COMBAT_REFLEX": {"reactions": 1},    # Faster response time
+	"DERMAL_ARMOR": {"toughness": 1},     # Subdermal plating
+	"MUSCLE_GRAFT": {"speed": 1},         # Enhanced movement
+	"TARGETING_EYE": {"combat": 1},       # Improved aim
+	"LUCK_CHIP": {"luck": 1}              # Quantum probability modifier (humans only)
+}
+
+## Check if character can install implant
+func can_install_implant(character: Character, implant: Dictionary) -> bool:
+	"""Validate implant installation eligibility
+
+	Args:
+		character: Character resource to receive implant
+		implant: Implant data dictionary with 'type' field
+
+	Returns:
+		bool: True if implant can be installed
+	"""
+	if not character:
+		push_error("EquipmentManager.can_install_implant: Character is null")
+		return false
+
+	if not implant.has("type"):
+		push_error("EquipmentManager.can_install_implant: Implant missing 'type' field")
+		return false
+
+	var implant_type: String = implant.get("type", "")
+
+	# Check maximum implant limit (3 per character)
+	if character.implants.size() >= 3:
+		push_warning("EquipmentManager: Character %s at maximum implants (3)" % character.name)
+		return false
+
+	# Check if character already has this implant type
+	for existing_implant in character.implants:
+		if existing_implant.get("type", "") == implant_type:
+			push_warning("EquipmentManager: Character %s already has %s implant" % [character.name, implant_type])
+			return false
+
+	# Special restriction: Luck Chip only for humans
+	if implant_type == "LUCK_CHIP":
+		var origin := character.origin if "origin" in character else "HUMAN"
+		if origin != "HUMAN":
+			push_warning("EquipmentManager: Luck Chip can only be installed in humans (character is %s)" % origin)
+			return false
+
+	return true
+
+## Install implant on character
+func install_implant(character: Character, implant: Dictionary) -> bool:
+	"""Install implant and apply stat bonuses
+
+	Args:
+		character: Character resource
+		implant: Implant data with 'type' and 'name' fields
+
+	Returns:
+		bool: True if installation succeeded
+	"""
+	if not can_install_implant(character, implant):
+		return false
+
+	var implant_type: String = implant.get("type", "")
+
+	# Get stat bonuses for this implant type
+	var stat_bonus: Dictionary = IMPLANT_EFFECTS.get(implant_type, {})
+
+	if stat_bonus.is_empty():
+		push_error("EquipmentManager: Unknown implant type '%s'" % implant_type)
+		return false
+
+	# Create complete implant data
+	var complete_implant := {
+		"type": implant_type,
+		"name": implant.get("name", implant_type.replace("_", " ").capitalize()),
+		"stat_bonus": stat_bonus
+	}
+
+	# Install via Character method
+	var success := character.add_implant(complete_implant)
+
+	if success:
+		print("EquipmentManager: Installed %s on %s" % [complete_implant.name, character.name])
+
+	return success
+
+## Remove implant from character
+func remove_implant(character: Character, implant_index: int) -> void:
+	"""Remove implant by index
+
+	Args:
+		character: Character resource
+		implant_index: Index in character.implants array
+	"""
+	if not character:
+		push_error("EquipmentManager.remove_implant: Character is null")
+		return
+
+	character.remove_implant(implant_index)

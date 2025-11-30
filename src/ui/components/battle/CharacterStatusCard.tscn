@@ -1,98 +1,191 @@
-[gd_scene load_steps=2 format=3 uid="uid://dpw4k3j8vn2rh"]
+[gd_scene load_steps=6 format=3 uid="uid://dpw4k3j8vn2rh"]
 
 [ext_resource type="Script" path="res://src/ui/components/battle/CharacterStatusCard.gd" id="1_character_card"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
+bg_color = Color(0.145, 0.145, 0.18, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.227, 0.227, 0.361, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_normal"]
+bg_color = Color(0.102, 0.102, 0.137, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.227, 0.227, 0.361, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
+bg_color = Color(0.176, 0.353, 0.482, 0.3)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.176, 0.353, 0.482, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_pressed"]
+bg_color = Color(0.176, 0.353, 0.482, 0.5)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.176, 0.353, 0.482, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
 [node name="CharacterStatusCard" type="PanelContainer"]
-custom_minimum_size = Vector2(240, 180)
+custom_minimum_size = Vector2(240, 200)
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 script = ExtResource("1_character_card")
 
-[node name="CardLayout" type="VBoxContainer" parent="."]
+[node name="CardBackground" type="ColorRect" parent="."]
+visible = false
 layout_mode = 2
+color = Color(0.145, 0.145, 0.18, 0.95)
 
-[node name="Header" type="VBoxContainer" parent="CardLayout"]
+[node name="CardMargin" type="MarginContainer" parent="."]
 layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
 
-[node name="CharacterName" type="Label" parent="CardLayout/Header"]
+[node name="CardLayout" type="VBoxContainer" parent="CardMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Header" type="VBoxContainer" parent="CardMargin/CardLayout"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="CharacterName" type="Label" parent="CardMargin/CardLayout/Header"]
 unique_name_in_owner = true
 layout_mode = 2
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_font_sizes/font_size = 16
 text = "Character Name"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="StatsDisplay" type="Label" parent="CardLayout/Header"]
+[node name="StatsDisplay" type="Label" parent="CardMargin/CardLayout/Header"]
 unique_name_in_owner = true
 layout_mode = 2
+theme_override_colors/font_color = Color(0.502, 0.502, 0.502, 1)
+theme_override_font_sizes/font_size = 12
 text = "Combat: 1 | Tough: 4 | Speed: 4"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="HSeparator1" type="HSeparator" parent="CardLayout"]
+[node name="HSeparator1" type="HSeparator" parent="CardMargin/CardLayout"]
 layout_mode = 2
 
-[node name="HealthSection" type="VBoxContainer" parent="CardLayout"]
+[node name="HealthSection" type="VBoxContainer" parent="CardMargin/CardLayout"]
 layout_mode = 2
+theme_override_constants/separation = 4
 
-[node name="HealthLabel" type="Label" parent="CardLayout/HealthSection"]
+[node name="HealthLabel" type="Label" parent="CardMargin/CardLayout/HealthSection"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_font_sizes/font_size = 14
 text = "Health"
 horizontal_alignment = 1
 
-[node name="HealthBar" type="ProgressBar" parent="CardLayout/HealthSection"]
+[node name="HealthBar" type="ProgressBar" parent="CardMargin/CardLayout/HealthSection"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 20)
+custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
 max_value = 10.0
 value = 10.0
 show_percentage = false
 
-[node name="HealthText" type="Label" parent="CardLayout/HealthSection"]
+[node name="HealthText" type="Label" parent="CardMargin/CardLayout/HealthSection"]
 unique_name_in_owner = true
 layout_mode = 2
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_font_sizes/font_size = 14
 text = "10 / 10 HP"
 horizontal_alignment = 1
 
-[node name="HSeparator2" type="HSeparator" parent="CardLayout"]
+[node name="HSeparator2" type="HSeparator" parent="CardMargin/CardLayout"]
 layout_mode = 2
 
-[node name="StatusSection" type="VBoxContainer" parent="CardLayout"]
+[node name="StatusSection" type="VBoxContainer" parent="CardMargin/CardLayout"]
 layout_mode = 2
 
-[node name="StatusLabel" type="Label" parent="CardLayout/StatusSection"]
+[node name="StatusLabel" type="Label" parent="CardMargin/CardLayout/StatusSection"]
 unique_name_in_owner = true
 layout_mode = 2
+theme_override_colors/font_color = Color(0.063, 0.725, 0.506, 1)
+theme_override_font_sizes/font_size = 14
 text = "Ready"
 horizontal_alignment = 1
 
-[node name="HSeparator3" type="HSeparator" parent="CardLayout"]
+[node name="HSeparator3" type="HSeparator" parent="CardMargin/CardLayout"]
 layout_mode = 2
 
-[node name="ActionSection" type="VBoxContainer" parent="CardLayout"]
+[node name="ActionSection" type="VBoxContainer" parent="CardMargin/CardLayout"]
 layout_mode = 2
+theme_override_constants/separation = 6
 
-[node name="ActionLabel" type="Label" parent="CardLayout/ActionSection"]
+[node name="ActionLabel" type="Label" parent="CardMargin/CardLayout/ActionSection"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.502, 0.502, 0.502, 1)
+theme_override_font_sizes/font_size = 12
 text = "Quick Actions"
 horizontal_alignment = 1
 
-[node name="ActionContainer" type="HBoxContainer" parent="CardLayout/ActionSection"]
+[node name="ActionContainer" type="HBoxContainer" parent="CardMargin/CardLayout/ActionSection"]
 unique_name_in_owner = true
 layout_mode = 2
+theme_override_constants/separation = 6
 alignment = 1
 
-[node name="StunButton" type="Button" parent="CardLayout/ActionSection/ActionContainer"]
+[node name="StunButton" type="Button" parent="CardMargin/CardLayout/ActionSection/ActionContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(60, 0)
+custom_minimum_size = Vector2(60, 44)
 layout_mode = 2
+theme_override_colors/font_color = Color(0.863, 0.388, 0.149, 1)
+theme_override_font_sizes/font_size = 14
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 text = "Stun"
 
-[node name="DamageButton" type="Button" parent="CardLayout/ActionSection/ActionContainer"]
+[node name="DamageButton" type="Button" parent="CardMargin/CardLayout/ActionSection/ActionContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(60, 0)
+custom_minimum_size = Vector2(60, 44)
 layout_mode = 2
+theme_override_colors/font_color = Color(0.863, 0.149, 0.149, 1)
+theme_override_font_sizes/font_size = 14
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 text = "Dmg"
 
-[node name="UseActionButton" type="Button" parent="CardLayout/ActionSection/ActionContainer"]
+[node name="UseActionButton" type="Button" parent="CardMargin/CardLayout/ActionSection/ActionContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(60, 0)
+custom_minimum_size = Vector2(60, 44)
 layout_mode = 2
+theme_override_colors/font_color = Color(0.176, 0.353, 0.482, 1)
+theme_override_font_sizes/font_size = 14
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 text = "Action"

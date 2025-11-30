@@ -6,6 +6,8 @@ const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const StateManagerClass = preload("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
 const SecurityValidator = preload("res://src/core/validation/SecurityValidator.gd")
 const ValidationResult = preload("res://src/core/validation/ValidationResult.gd")
+const FPCM_VictoryDescriptions = preload("res://src/game/victory/VictoryDescriptions.gd")
+const HouseRulesDefinitions = preload("res://src/data/house_rules_definitions.gd")
 
 
 # Existing signal for backward compatibility
@@ -17,11 +19,14 @@ signal configuration_complete(data: Dictionary)
 # Granular signals for real-time integration
 signal campaign_name_changed(name: String)
 signal difficulty_changed(difficulty: int)
+signal crew_size_changed(size: int)
 signal ironman_toggled(enabled: bool)
+signal house_rules_changed(enabled_rules: Array)
 
 # UI References - initialized safely in _ready()
 var campaign_name_input: LineEdit
 var difficulty_option: OptionButton
+var crew_size_option: OptionButton
 var victory_condition_option: OptionButton
 var story_track_toggle: CheckBox
 var validation_panel: PanelContainer
@@ -31,10 +36,15 @@ var validation_text: Label
 var current_config: Dictionary = {
 	"name": "",
 	"difficulty": 2, # GlobalEnums.DifficultyLevel.STANDARD
+	"crew_size": 6, # Default crew size (4, 5, or 6)
 	"victory_condition": "none",
 	"story_track_enabled": false,
-	"elite_ranks": 0
+	"elite_ranks": 0,
+	"house_rules": [] # Array of enabled house rule IDs
 }
+
+# House rules UI tracking
+var house_rule_checkboxes: Dictionary = {} # rule_id -> CheckBox
 
 # Panel state management - production-ready pattern
 var is_panel_initialized: bool = false
@@ -68,6 +78,7 @@ func _setup_panel_content() -> void:
 	"""Override from BaseCampaignPanel - setup config-specific content"""
 	_initialize_self_management()
 	_setup_difficulty_options()
+	_setup_crew_size_options()
 	_setup_victory_conditions()
 	_connect_signals()
 	_update_description()
@@ -173,8 +184,10 @@ func _initialize_self_management() -> void:
 	# Build card-based sections
 	_build_campaign_name_section(main_container)
 	_build_difficulty_section(main_container)
+	_build_crew_size_section(main_container)
 	_build_victory_section(main_container)
 	_build_story_track_section(main_container)
+	_build_house_rules_section(main_container)
 	
 	print("ConfigPanel: Card-based UI built successfully")
 
@@ -216,12 +229,48 @@ func _build_difficulty_section(parent: Control) -> void:
 	)
 	parent.add_child(card)
 
+func _build_crew_size_section(parent: Control) -> void:
+	"""Build crew size selector with card design and description"""
+	crew_size_option = OptionButton.new()
+	_style_option_button(crew_size_option)
+	
+	# Create description label for crew size details
+	var crew_size_description_label = Label.new()
+	crew_size_description_label.name = "CrewSizeDescriptionLabel"
+	crew_size_description_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	crew_size_description_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	crew_size_description_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	crew_size_description_label.text = "Crew size affects enemy number generation in battles"
+	
+	var content = VBoxContainer.new()
+	content.add_theme_constant_override("separation", SPACING_SM)
+	content.add_child(_create_labeled_input("Crew Size", crew_size_option))
+	content.add_child(crew_size_description_label)
+	
+	var card = _create_section_card(
+		"CREW SIZE",
+		content,
+		"Determines how many crew members you'll manage and affects battle difficulty"
+	)
+	parent.add_child(card)
+
 func _build_victory_section(parent: Control) -> void:
-	"""Build victory condition selector with card design"""
+	"""Build victory condition selector with card design and rich descriptions"""
 	victory_condition_option = OptionButton.new()
 	_style_option_button(victory_condition_option)
 	
-	var content = _create_labeled_input("Victory Condition", victory_condition_option)
+	# Add description label for victory condition details
+	var victory_description_label = Label.new()
+	victory_description_label.name = "VictoryDescriptionLabel"
+	victory_description_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	victory_description_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	victory_description_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	victory_description_label.text = "Select a victory condition to see details"
+	
+	var content = VBoxContainer.new()
+	content.add_theme_constant_override("separation", SPACING_SM)
+	content.add_child(_create_labeled_input("Victory Condition", victory_condition_option))
+	content.add_child(victory_description_label)
 	
 	var card = _create_section_card(
 		"VICTORY GOAL",
@@ -237,13 +286,88 @@ func _build_story_track_section(parent: Control) -> void:
 	story_track_toggle.custom_minimum_size.y = TOUCH_TARGET_MIN
 	story_track_toggle.add_theme_font_size_override("font_size", FONT_SIZE_MD)
 	story_track_toggle.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	
+
 	var card = _create_section_card(
 		"NARRATIVE MODE",
 		story_track_toggle,
 		"Enable for guided story missions and plot progression"
 	)
 	parent.add_child(card)
+
+
+func _build_house_rules_section(parent: Control) -> void:
+	"""Build house rules selection with collapsible sections by category"""
+	house_rule_checkboxes.clear()
+
+	# Create main container for all house rules
+	var rules_container := VBoxContainer.new()
+	rules_container.add_theme_constant_override("separation", SPACING_SM)
+
+	# Get all available house rules from definitions
+	var all_rules := HouseRulesDefinitions.get_all_rules()
+
+	# Group by category for cleaner UI
+	var categories := HouseRulesDefinitions.get_category_names()
+	for category in categories:
+		var category_rules := HouseRulesDefinitions.get_rules_by_category(category)
+		if category_rules.is_empty():
+			continue
+
+		var category_info := HouseRulesDefinitions.get_category_info(category)
+
+		# Category header
+		var category_label := Label.new()
+		category_label.text = category_info.get("name", category.capitalize())
+		category_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		category_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		rules_container.add_child(category_label)
+
+		# Add checkboxes for each rule in this category
+		for rule in category_rules:
+			var checkbox := CheckBox.new()
+			checkbox.text = rule.get("name", "Unknown Rule")
+			checkbox.tooltip_text = rule.get("description", "")
+			checkbox.custom_minimum_size.y = TOUCH_TARGET_MIN
+			checkbox.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+			checkbox.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+
+			# Store reference for later access
+			var rule_id: String = rule.get("id", "")
+			house_rule_checkboxes[rule_id] = checkbox
+
+			# Connect toggle signal
+			checkbox.toggled.connect(_on_house_rule_toggled.bind(rule_id))
+
+			rules_container.add_child(checkbox)
+
+		# Small spacer between categories
+		var spacer := Control.new()
+		spacer.custom_minimum_size.y = SPACING_XS
+		rules_container.add_child(spacer)
+
+	var card = _create_section_card(
+		"HOUSE RULES (Optional)",
+		rules_container,
+		"Enable optional rule modifications for your campaign (Core Rules p.65)"
+	)
+	parent.add_child(card)
+
+
+func _on_house_rule_toggled(enabled: bool, rule_id: String) -> void:
+	"""Handle house rule checkbox toggle"""
+	var enabled_rules: Array = current_config.get("house_rules", [])
+
+	if enabled:
+		if not enabled_rules.has(rule_id):
+			enabled_rules.append(rule_id)
+	else:
+		enabled_rules.erase(rule_id)
+
+	current_config.house_rules = enabled_rules
+	house_rules_changed.emit(enabled_rules)
+	_emit_config_update()
+	print("ConfigPanel: House rules updated - %d rules enabled" % enabled_rules.size())
+
 
 # _emit_panel_ready method now inherited from BaseCampaignPanel
 
@@ -257,6 +381,15 @@ func _setup_difficulty_options() -> void:
 	difficulty_option.add_item("Nightmare", 5)  # GlobalEnums.DifficultyLevel.NIGHTMARE
 
 	difficulty_option.select(1) # Default to Standard
+
+func _setup_crew_size_options() -> void:
+	crew_size_option.clear()
+	
+	crew_size_option.add_item("4 Crew (Minimal)", 4)
+	crew_size_option.add_item("5 Crew (Reduced)", 5)
+	crew_size_option.add_item("6 Crew (Standard)", 6)
+	
+	crew_size_option.select(2) # Default to 6 Crew (Standard)
 
 func _setup_victory_conditions() -> void:
 	if not victory_condition_option:
@@ -294,15 +427,20 @@ func _connect_signals() -> void:
 			var result2 = difficulty_option.item_selected.connect(_on_difficulty_selected)
 			if result2 != OK:
 				push_error("ConfigPanel: Failed to connect difficulty item_selected signal")
+	if crew_size_option and crew_size_option.has_signal("item_selected"):
+		if not crew_size_option.item_selected.is_connected(_on_crew_size_selected):
+			var result3 = crew_size_option.item_selected.connect(_on_crew_size_selected)
+			if result3 != OK:
+				push_error("ConfigPanel: Failed to connect crew_size item_selected signal")
 	if victory_condition_option and victory_condition_option.has_signal("item_selected"):
 		if not victory_condition_option.item_selected.is_connected(_on_victory_condition_selected):
-			var result3 = victory_condition_option.item_selected.connect(_on_victory_condition_selected)
-			if result3 != OK:
+			var result4 = victory_condition_option.item_selected.connect(_on_victory_condition_selected)
+			if result4 != OK:
 				push_error("ConfigPanel: Failed to connect victory_condition item_selected signal")
 	if story_track_toggle and story_track_toggle.has_signal("toggled"):
 		if not story_track_toggle.toggled.is_connected(_on_story_track_toggled):
-			var result4 = story_track_toggle.toggled.connect(_on_story_track_toggled)
-			if result4 != OK:
+			var result5 = story_track_toggle.toggled.connect(_on_story_track_toggled)
+			if result5 != OK:
 				push_error("ConfigPanel: Failed to connect toggled signal")
 
 func _on_campaign_name_changed(new_text: String) -> void:
@@ -352,11 +490,22 @@ func _on_difficulty_selected(index: int) -> void:
 	
 	_handle_config_change()
 
+func _on_crew_size_selected(index: int) -> void:
+	var crew_size_value = crew_size_option.get_item_id(index)
+	current_config.crew_size = crew_size_value
+	_update_crew_size_description(crew_size_value)
+	
+	# Emit granular signal for real-time integration
+	crew_size_changed.emit(crew_size_value)
+	
+	_handle_config_change()
+
 func _on_victory_condition_selected(index: int) -> void:
 	var victory_id = victory_condition_option.get_item_id(index)
 	current_config.victory_condition = _get_victory_condition_string(victory_id)
 	# Store the enum value as well for consistent usage
 	current_config.victory_condition_enum = GlobalEnums.victory_condition_string_to_enum(current_config.victory_condition)
+	_update_victory_description(victory_id)
 	_handle_config_change()
 
 func _on_story_track_toggled(enabled: bool) -> void:
@@ -375,6 +524,7 @@ func _handle_config_change() -> void:
 	print("  === DATA BEING SAVED ===")
 	print("    Campaign Name: '%s'" % current_config.get("name", ""))
 	print("    Difficulty: %d (%s)" % [current_config.get("difficulty", 0), _get_difficulty_name(current_config.get("difficulty", 0))])
+	print("    Crew Size: %d" % current_config.get("crew_size", 6))
 	print("    Victory Condition: '%s'" % current_config.get("victory_condition", ""))
 	print("    Story Track: %s" % current_config.get("story_track_enabled", false))
 	print("    Elite Ranks: %d" % current_config.get("elite_ranks", 0))
@@ -446,6 +596,73 @@ func _update_description() -> void:
 	if description_label:
 		description_label.text = description
 
+func _update_crew_size_description(crew_size: int) -> void:
+	"""Update crew size description based on selected size"""
+	var crew_size_desc_label = safe_get_node("ContentMargin/MainContent/FormContent/FormContainer/CrewSizeDescriptionLabel")
+	if not crew_size_desc_label:
+		return
+	
+	var description: String = ""
+	match crew_size:
+		4:
+			description = "Minimal Crew: Roll 2D6 and pick the LOWER result for enemy numbers. Fewer crew to manage, but battles are more challenging."
+		5:
+			description = "Reduced Crew: Roll 1D6 for enemy numbers. Standard difficulty with slightly smaller crew size."
+		6:
+			description = "Standard Crew: Roll 2D6 and pick the HIGHER result for enemy numbers. Full crew complement with easier battles."
+		_:
+			description = "Invalid crew size selected."
+	
+	crew_size_desc_label.text = description
+
+func _update_victory_description(victory_id: int) -> void:
+	"""Update victory condition description with rich details from VictoryDescriptions"""
+	var victory_desc_label = safe_get_node("ContentMargin/MainContent/FormContent/FormContainer/VictoryDescriptionLabel")
+	if not victory_desc_label:
+		return
+	
+	# Map victory_id to GlobalEnums victory type
+	var victory_type = _get_victory_enum_from_id(victory_id)
+	
+	if victory_type == GlobalEnums.FiveParsecsCampaignVictoryType.NONE:
+		victory_desc_label.text = "Sandbox Mode: Play without a victory condition. Perfect for endless exploration and story-driven play."
+		return
+	
+	# Use VictoryDescriptions for rich details
+	var victory_data = FPCM_VictoryDescriptions.VICTORY_DATA.get(victory_type, {})
+	if victory_data.is_empty():
+		victory_desc_label.text = "No description available."
+		return
+	
+	# Format rich description with metadata
+	var desc_parts: Array[String] = []
+	desc_parts.append(victory_data.get("full_desc", ""))
+	desc_parts.append("\n[color=#10B981]Strategy:[/color] " + victory_data.get("strategy", ""))
+	desc_parts.append("[color=#808080]Difficulty:[/color] " + victory_data.get("difficulty", "Unknown"))
+	desc_parts.append("[color=#808080]Estimated Time:[/color] " + victory_data.get("estimated_hours", "Unknown") + " hours")
+	
+	victory_desc_label.text = "\n".join(desc_parts)
+
+func _get_victory_enum_from_id(victory_id: int) -> int:
+	"""Map victory option ID to GlobalEnums.FiveParsecsCampaignVictoryType"""
+	match victory_id:
+		0: return GlobalEnums.FiveParsecsCampaignVictoryType.NONE
+		1: return GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_20
+		2: return GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_50
+		3: return GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_100
+		4: return GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_3
+		5: return GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_5
+		6: return GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_10
+		7: return GlobalEnums.FiveParsecsCampaignVictoryType.BATTLES_20
+		8: return GlobalEnums.FiveParsecsCampaignVictoryType.BATTLES_50
+		9: return GlobalEnums.FiveParsecsCampaignVictoryType.UPGRADE_1_CHARACTER_10_TIMES
+		10: return GlobalEnums.FiveParsecsCampaignVictoryType.UPGRADE_3_CHARACTERS_10_TIMES
+		11: return GlobalEnums.FiveParsecsCampaignVictoryType.UPGRADE_5_CHARACTERS_10_TIMES
+		12: return GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_50_CHALLENGING
+		13: return GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_50_HARDCORE
+		14: return GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_50_INSANITY
+		_: return GlobalEnums.FiveParsecsCampaignVictoryType.NONE
+
 func get_config() -> Dictionary:
 	return current_config.duplicate()
 
@@ -454,9 +671,11 @@ func get_config_data() -> Dictionary:
 	var config_data = {
 		"campaign_name": current_config.get("name", "").strip_edges(),
 		"difficulty_level": current_config.get("difficulty", 2), # GlobalEnums.DifficultyLevel.STANDARD
+		"crew_size": current_config.get("crew_size", 6),
 		"victory_condition": current_config.get("victory_condition", "none"),
 		"story_track_enabled": current_config.get("story_track_enabled", false),
 		"elite_ranks": current_config.get("elite_ranks", 0),
+		"house_rules": current_config.get("house_rules", []),
 		"created_date": Time.get_datetime_string_from_system(),
 		"version": "1.0"
 	}
@@ -547,6 +766,9 @@ func set_data(data: Dictionary) -> void:
 	if data.has("difficulty"):
 		_set_difficulty_selection(data.difficulty)
 		current_config.difficulty = data.difficulty
+	if data.has("crew_size"):
+		_set_crew_size_selection(data.crew_size)
+		current_config.crew_size = data.crew_size
 	if data.has("victory_condition"):
 		_set_victory_condition_selection(data.victory_condition)
 		current_config.victory_condition = data.victory_condition
@@ -561,6 +783,13 @@ func _set_difficulty_selection(difficulty: int) -> void:
 	for i in range(difficulty_option.get_item_count()):
 		if difficulty_option.get_item_id(i) == difficulty:
 			difficulty_option.select(i)
+			break
+
+func _set_crew_size_selection(crew_size: int) -> void:
+	"""Set crew size selection safely"""
+	for i in range(crew_size_option.get_item_count()):
+		if crew_size_option.get_item_id(i) == crew_size:
+			crew_size_option.select(i)
 			break
 
 func _set_victory_condition_selection(victory_condition: String) -> void:
@@ -591,6 +820,7 @@ func reset_panel() -> void:
 	current_config = {
 		"name": "",
 		"difficulty": 2, # GlobalEnums.DifficultyLevel.STANDARD
+		"crew_size": 6, # Default crew size
 		"victory_condition": "none",
 		"story_track_enabled": false,
 		"elite_ranks": 0
@@ -600,6 +830,8 @@ func reset_panel() -> void:
 		campaign_name_input.text = ""
 	if difficulty_option:
 		difficulty_option.select(1) # Default to Standard
+	if crew_size_option:
+		crew_size_option.select(2) # Default to 6 Crew (Standard)
 	if victory_condition_option:
 		victory_condition_option.select(0) # Default to no victory condition
 	if story_track_toggle:
@@ -684,6 +916,13 @@ func restore_panel_data(data: Dictionary) -> void:
 		current_config.difficulty = difficulty
 		_set_difficulty_selection(difficulty)
 		print("ConfigPanel: Restored difficulty: ", difficulty)
+	
+	# Restore crew size
+	if data.has("crew_size"):
+		var crew_size = data.crew_size
+		current_config.crew_size = crew_size
+		_set_crew_size_selection(crew_size)
+		print("ConfigPanel: Restored crew size: ", crew_size)
 	
 	# Restore victory condition
 	if data.has("victory_condition"):
@@ -788,6 +1027,8 @@ func _apply_mobile_layout() -> void:
 	# Increase touch targets to TOUCH_TARGET_COMFORT (56dp)
 	if difficulty_option:
 		difficulty_option.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+	if crew_size_option:
+		crew_size_option.custom_minimum_size.y = TOUCH_TARGET_COMFORT
 	if victory_condition_option:
 		victory_condition_option.custom_minimum_size.y = TOUCH_TARGET_COMFORT
 	if story_track_toggle:
@@ -802,6 +1043,8 @@ func _apply_tablet_layout() -> void:
 	# Standard touch targets at TOUCH_TARGET_MIN (48dp)
 	if difficulty_option:
 		difficulty_option.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if crew_size_option:
+		crew_size_option.custom_minimum_size.y = TOUCH_TARGET_MIN
 	if victory_condition_option:
 		victory_condition_option.custom_minimum_size.y = TOUCH_TARGET_MIN
 	if story_track_toggle:
@@ -816,6 +1059,8 @@ func _apply_desktop_layout() -> void:
 	# Standard touch targets at TOUCH_TARGET_MIN (48dp)
 	if difficulty_option:
 		difficulty_option.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if crew_size_option:
+		crew_size_option.custom_minimum_size.y = TOUCH_TARGET_MIN
 	if victory_condition_option:
 		victory_condition_option.custom_minimum_size.y = TOUCH_TARGET_MIN
 	if story_track_toggle:

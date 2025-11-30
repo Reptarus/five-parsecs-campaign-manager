@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://bd8a27tt8yyi4"]
+
+[ext_resource type="Script" path="res://src/ui/components/world/WorldStatusCard.gd" id="1_c4d5e"]
+
+[node name="WorldStatusCard" type="PanelContainer"]
+script = ExtResource("1_c4d5e")

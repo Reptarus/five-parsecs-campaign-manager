@@ -76,7 +76,7 @@ theme_override_constants/separation = 8
 [node name="DescriptionLabel" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Description"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_colors/font_color = Color("#9ca3af")
 text = "Difficulty description will appear here..."
 autowrap_mode = 2
 vertical_alignment = 1
@@ -93,13 +93,13 @@ theme_override_constants/separation = 10
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "✓"
-theme_override_colors/font_color = Color(0.4, 0.8, 0.4, 1)
+theme_override_colors/font_color = Color("#10b981")
 
 [node name="ValidationText" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/ConfigValidationPanel/ValidationContent"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Campaign configuration is valid"
-theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_colors/font_color = Color("#9ca3af")
 
 [connection signal="text_changed" from="ContentMargin/MainContent/FormContent/FormContainer/Content/CampaignName/LineEdit" to="." method="_on_campaign_name_changed"]
 [connection signal="item_selected" from="ContentMargin/MainContent/FormContent/FormContainer/Content/Difficulty/OptionButton" to="." method="_on_difficulty_selected"]

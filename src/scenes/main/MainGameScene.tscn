@@ -6,7 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://b8cqdvcppb5lt" path="res://src/ui/screens/world/WorldPhaseUI.tscn" id="4"]
 [ext_resource type="PackedScene" uid="uid://cedco4m5xy05m" path="res://src/ui/screens/battle/PreBattle.tscn" id="6"]
 [ext_resource type="PackedScene" uid="uid://njli0sntham3" path="res://src/ui/screens/battle/BattlefieldMain.tscn" id="7"]
-[ext_resource type="PackedScene" uid="uid://dedco4m5x005m" path="res://src/ui/screens/battle/PostBattle.tscn" id="8"]
+[ext_resource type="PackedScene" uid="uid://bfkce100cwseu" path="res://src/ui/screens/postbattle/PostBattleSequence.tscn" id="8"]
 
 [node name="MainGameScene" type="Control"]
 layout_mode = 3

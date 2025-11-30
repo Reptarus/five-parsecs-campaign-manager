@@ -45,7 +45,7 @@ enum WorkflowError {
 var workflow_scenes: Dictionary = {
 	WorkflowState.CONFIG_PHASE: "res://src/ui/screens/campaign/panels/ConfigPanel.tscn",
 	WorkflowState.CREW_PHASE: "res://src/ui/screens/crew/InitialCrewCreation.tscn",
-	WorkflowState.CHARACTER_PHASE: "res://src/ui/screens/character/CharacterCreator.tscn", 
+	WorkflowState.CHARACTER_PHASE: "res://src/ui/screens/character/SimpleCharacterCreator.tscn",
 	WorkflowState.SHIP_PHASE: "res://src/ui/screens/ships/ShipManager.tscn"
 }
 

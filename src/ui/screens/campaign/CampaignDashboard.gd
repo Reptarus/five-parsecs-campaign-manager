@@ -10,6 +10,9 @@ const FPCM_BasePhasePanel = preload("res://src/ui/screens/campaign/phases/BasePh
 const CharacterCardScene = preload("res://src/ui/components/character/CharacterCard.tscn")
 const Character = preload("res://src/core/character/Character.gd")
 
+# Story Point spending dialog (Core Rules p.67 - Story Points)
+const StoryPointDialogScene = preload("res://src/ui/components/story/StoryPointSpendingDialog.tscn")
+
 # Official Five Parsecs Phase Panels - following Four-Phase structure
 var TravelPhasePanel: PackedScene = null
 var WorldPhasePanel: PackedScene = null
@@ -24,20 +27,22 @@ var PostBattlePhasePanel: PackedScene = null
 @onready var rivals_label: Label = %RivalsLabel
 @onready var rumors_label: Label = %RumorsLabel
 @onready var pending_events_label: Label = %PendingEventsLabel
-@onready var campaign_progress_tracker: PanelContainer = %CampaignProgressTracker
+@onready var campaign_progress_tracker: HBoxContainer = %CampaignProgressTracker
 @onready var crew_scroll_container: ScrollContainer = %CrewScrollContainer
 @onready var crew_card_container: Container = %CrewCardContainer
 @onready var ship_info: Label = %ShipInfo
-@onready var world_info_label: Label = %WorldInfo
+# WorldInfo label - may not exist if WorldStatusCard is used instead
+@onready var world_info_label: Label = get_node_or_null("%WorldInfo")
 @onready var quest_info_label: Label = get_node_or_null("MarginContainer/VBoxContainer/MainContent/RightPanel/QuestPanel/VBoxContainer/QuestInfo")
 @onready var patron_list: ItemList = %PatronList
 @onready var rival_list: ItemList = %RivalList
 @onready var phase_content: Control = get_node("MarginContainer/VBoxContainer/MainContent") as Control
-@onready var next_phase_button: Button = %ActionButton
-@onready var manage_crew_button: Button = %ManageCrewButton
-@onready var save_button: Button = %SaveButton
-@onready var load_button: Button = %LoadButton
-@onready var quit_button: Button = %QuitButton
+# Legacy buttons - use get_node_or_null since these may not exist in scene
+@onready var next_phase_button: Button = get_node_or_null("%ActionButton")
+@onready var manage_crew_button: Button = get_node_or_null("%ManageCrewButton")
+@onready var save_button: Button = get_node_or_null("%SaveButton")
+@onready var load_button: Button = get_node_or_null("%LoadButton")
+@onready var quit_button: Button = get_node_or_null("%QuitButton")
 
 # Battle History UI elements
 @onready var battle_history_list: VBoxContainer = %BattleHistoryList
@@ -46,6 +51,17 @@ var PostBattlePhasePanel: PackedScene = null
 
 # Victory Progress UI
 @onready var victory_progress_panel = %VictoryProgressPanel
+
+# Quick Actions Footer (bottom toolbar)
+@onready var quick_actions_footer = %QuickActionsFooter
+
+# Sub-component cards for data display
+@onready var mission_status_card = %MissionStatusCard
+@onready var story_track_section = %StoryTrackSection
+@onready var world_status_card = %WorldStatusCard
+
+# Autoload reference (helps static analyzer)
+@onready var _responsive_manager: Node = get_node("/root/ResponsiveManager")
 
 # Current phase panel instance
 var current_phase_panel: FPCM_BasePhasePanel
@@ -64,6 +80,9 @@ const PHASE_NAMES: Array[String] = ["Travel", "World", "Battle", "Post-Battle"]
 var developer_panel: Control
 var developer_mode: bool = false
 
+# Story Point spending dialog instance
+var story_point_dialog: Window = null
+
 func _ready() -> void:
 	print("CampaignDashboard: Initializing (simplified - reads from GameStateManager directly)")
 
@@ -73,6 +92,10 @@ func _ready() -> void:
 	PostBattlePhasePanel = load("res://src/ui/screens/postbattle/PostBattleSequence.tscn")
 
 	_connect_dashboard_buttons()
+	_connect_quick_actions_footer()
+	_connect_component_signals()
+	_hide_legacy_buttons()
+	_apply_glass_style_to_panels()
 	_setup_campaign_progress_tracker()
 	_setup_responsive_crew_container()
 	_update_ui()
@@ -81,7 +104,15 @@ func _ready() -> void:
 	# Setup developer panel for quick testing
 	_setup_developer_panel()
 
-	# Track viewport size for responsive updates
+	# Setup Story Point spending dialog
+	_setup_story_point_dialog()
+
+	# Connect to ResponsiveManager for centralized breakpoint management
+	_responsive_manager.breakpoint_changed.connect(_on_responsive_breakpoint_changed)
+	# Initialize with current breakpoint
+	_apply_responsive_layout(_responsive_manager.current_breakpoint)
+
+	# Track viewport size for responsive updates (legacy support)
 	get_viewport().size_changed.connect(_on_viewport_resized)
 
 	print("CampaignDashboard: Ready - displaying campaign from GameStateManager")
@@ -100,6 +131,74 @@ func _connect_dashboard_buttons() -> void:
 		quit_button.pressed.connect(_on_quit_pressed)
 	if resume_battle_button:
 		resume_battle_button.pressed.connect(_on_resume_battle_pressed)
+
+func _connect_quick_actions_footer() -> void:
+	"""Connect QuickActionsFooter signals to dashboard handlers"""
+	if not quick_actions_footer:
+		push_warning("CampaignDashboard: QuickActionsFooter not found")
+		return
+
+	quick_actions_footer.save_pressed.connect(_on_save_pressed)
+	quick_actions_footer.characters_pressed.connect(_on_manage_crew_pressed)
+	quick_actions_footer.ship_pressed.connect(_on_ship_info_pressed)
+	quick_actions_footer.trading_pressed.connect(_on_trading_pressed)
+	quick_actions_footer.world_pressed.connect(_on_world_pressed)
+	quick_actions_footer.settings_pressed.connect(_on_settings_pressed)
+	print("CampaignDashboard: QuickActionsFooter signals connected")
+
+func _connect_component_signals() -> void:
+	"""Connect signals from sub-component cards for navigation"""
+	# MissionStatusCard - click to view mission details
+	if mission_status_card and mission_status_card.has_signal("mission_details_requested"):
+		mission_status_card.mission_details_requested.connect(_on_mission_details_requested)
+		print("CampaignDashboard: MissionStatusCard signal connected")
+	
+	# WorldStatusCard - click to view world details
+	if world_status_card and world_status_card.has_signal("world_details_requested"):
+		world_status_card.world_details_requested.connect(_on_world_details_requested)
+		print("CampaignDashboard: WorldStatusCard signal connected")
+	
+	# StoryTrackSection - click to view story/quest details
+	if story_track_section and story_track_section.has_signal("story_details_requested"):
+		story_track_section.story_details_requested.connect(_on_story_details_requested)
+		print("CampaignDashboard: StoryTrackSection signal connected")
+	
+	# VictoryProgressPanel - connect if it has signals
+	if victory_progress_panel and victory_progress_panel.has_signal("victory_details_requested"):
+		victory_progress_panel.victory_details_requested.connect(_on_victory_details_requested)
+		print("CampaignDashboard: VictoryProgressPanel signal connected")
+
+func _hide_legacy_buttons() -> void:
+	"""Hide old header buttons - replaced by QuickActionsFooter (kept for rollback)"""
+	if save_button:
+		save_button.visible = false
+	if manage_crew_button:
+		manage_crew_button.visible = false
+	if load_button:
+		load_button.visible = false
+	if quit_button:
+		quit_button.visible = false
+
+func _apply_glass_style_to_panels() -> void:
+	"""Apply glass morphism style to legacy PanelContainers"""
+	var panels := [
+		"MarginContainer/VBoxContainer/MainContent/LeftPanel/CrewPanel",
+		"MarginContainer/VBoxContainer/MainContent/LeftPanel/ShipPanel",
+		"MarginContainer/VBoxContainer/MainContent/LeftPanel/BattleHistoryPanel",
+		"MarginContainer/VBoxContainer/MainContent/RightPanel/QuestPanel",
+		"MarginContainer/VBoxContainer/MainContent/RightPanel/PatronPanel",
+		"MarginContainer/VBoxContainer/MainContent/RightPanel/RivalPanel"
+	]
+
+	for panel_path in panels:
+		var panel := get_node_or_null(panel_path) as PanelContainer
+		if panel:
+			var style := StyleBoxFlat.new()
+			style.bg_color = Color(0.145, 0.161, 0.259, 0.8)  # COLOR_ELEVATED with alpha
+			style.border_color = Color(0.227, 0.227, 0.361, 0.5)  # COLOR_BORDER
+			style.set_border_width_all(1)
+			style.set_corner_radius_all(12)
+			panel.add_theme_stylebox_override("panel", style)
 
 ## SIMPLIFIED UI UPDATE - Reads directly from GameStateManager
 
@@ -225,6 +324,11 @@ func _update_ui() -> void:
 	if victory_progress_panel and victory_progress_panel.has_method("update_display"):
 		victory_progress_panel.update_display()
 
+	# Update sub-component cards with data from GameStateManager
+	_update_mission_status()
+	_update_story_track()
+	_update_world_status()
+
 func _update_crew_list() -> void:
 	"""Update crew display using CharacterCard components with responsive layout"""
 	print("CampaignDashboard._update_crew_list() called")
@@ -261,8 +365,13 @@ func _update_crew_list() -> void:
 		return
 
 	# Determine variant based on viewport width
-	var viewport_width := get_viewport().get_visible_rect().size.x
-	var card_variant: int = CharacterCardScene.instantiate().CardVariant.COMPACT if viewport_width < 768 else CharacterCardScene.instantiate().CardVariant.STANDARD
+	var viewport := get_viewport()
+	if not viewport:
+		push_warning("CampaignDashboard: Viewport not available for crew list")
+		return
+	var viewport_width := viewport.get_visible_rect().size.x
+	# CardVariant values are pixel heights: COMPACT=80, STANDARD=180
+	var card_variant: int = 80 if viewport_width < 768 else 180
 
 	# Create/reuse CharacterCard for each crew member
 	for i in range(crew_members.size()):
@@ -488,6 +597,68 @@ func _update_quest_info() -> void:
 	else:
 		quest_info_label.modulate = Color(1.0, 1.0, 1.0)  # White - early
 
+func _update_mission_status() -> void:
+	"""Update MissionStatusCard with current mission data"""
+	if not mission_status_card or not mission_status_card.has_method("set_mission_data"):
+		return
+
+	var mission_data := {}
+	if GameStateManager and GameStateManager.has_method("get_active_mission"):
+		mission_data = GameStateManager.get_active_mission()
+	elif GameStateManager and GameStateManager.game_state and "active_mission" in GameStateManager.game_state:
+		mission_data = GameStateManager.game_state.active_mission
+
+	if mission_data == null:
+		mission_data = {}
+
+	mission_status_card.set_mission_data(mission_data)
+
+func _update_story_track() -> void:
+	"""Update StoryTrackSection with quest/story data"""
+	if not story_track_section or not story_track_section.has_method("set_story_data"):
+		return
+
+	var story_data := {}
+	if GameStateManager:
+		var active_quest := {}
+		var story_progress := 0
+
+		if GameStateManager.has_method("get_active_quest"):
+			active_quest = GameStateManager.get_active_quest()
+		elif GameStateManager.game_state and "active_quest" in GameStateManager.game_state:
+			active_quest = GameStateManager.game_state.active_quest
+
+		if GameStateManager.has_method("get_story_progress"):
+			story_progress = GameStateManager.get_story_progress()
+		elif GameStateManager.game_state and "story_progress" in GameStateManager.game_state:
+			story_progress = GameStateManager.game_state.story_progress
+
+		if active_quest == null:
+			active_quest = {}
+
+		story_data = {
+			"active_quest": active_quest,
+			"story_progress": story_progress
+		}
+
+	story_track_section.set_story_data(story_data)
+
+func _update_world_status() -> void:
+	"""Update WorldStatusCard with current location data"""
+	if not world_status_card or not world_status_card.has_method("set_world_data"):
+		return
+
+	var world_data := {}
+	if GameStateManager and GameStateManager.has_method("get_current_location"):
+		world_data = GameStateManager.get_current_location()
+	elif GameStateManager and GameStateManager.game_state and "current_location" in GameStateManager.game_state:
+		world_data = GameStateManager.game_state.current_location
+
+	if world_data == null:
+		world_data = {}
+
+	world_status_card.set_world_data(world_data)
+
 func _update_patron_list() -> void:
 	"""Update patron list from GameStateManager"""
 	if not patron_list:
@@ -567,7 +738,7 @@ func _update_rival_list() -> void:
 		rival_list.add_item(display_text)
 
 func _update_action_button() -> void:
-	"""Update action button text and state based on current phase"""
+	"""Update action button text and state based on current phase - context-specific"""
 	if not next_phase_button:
 		return
 
@@ -576,27 +747,34 @@ func _update_action_button() -> void:
 		return
 
 	var current_phase: int = GameStateManager.get_campaign_phase()
+	var turn_number: int = GameStateManager.get_campaign_turn() if GameStateManager.has_method("get_campaign_turn") else 1
+	var is_new_campaign: bool = turn_number <= 1 and current_phase == 0
 
-	# Set button text and tooltip based on phase
+	# Set button text and tooltip based on phase - follows Five Parsecs turn structure
+	# Campaign Turn: Step 1 (Travel) -> Step 2 (World) -> Step 3 (Battle) -> Step 4 (Post-Battle)
 	match current_phase:
-		0:  # Setup
-			next_phase_button.text = "Begin Campaign"
-			next_phase_button.tooltip_text = "Start your campaign journey"
-		1:  # Travel
-			next_phase_button.text = "Travel Phase"
-			next_phase_button.tooltip_text = "Plan your travel route"
-		2:  # World
-			next_phase_button.text = "World Actions"
-			next_phase_button.tooltip_text = "Perform world phase activities"
-		3:  # Battle
+		0:  # Setup/New Campaign -> Travel Phase
+			if is_new_campaign:
+				next_phase_button.text = "Begin Campaign → Travel Phase"
+				next_phase_button.tooltip_text = "Start Turn 1: Travel Phase (Step 1)"
+			else:
+				next_phase_button.text = "Begin Turn %d → Travel Phase" % turn_number
+				next_phase_button.tooltip_text = "Start campaign turn with Travel Phase"
+		1:  # Travel Phase
+			next_phase_button.text = "Continue Travel Phase"
+			next_phase_button.tooltip_text = "Step 1: Decide whether to travel (p.69)"
+		2:  # World Phase
+			next_phase_button.text = "Continue World Phase"
+			next_phase_button.tooltip_text = "Step 2: Upkeep, tasks, jobs, battle prep (p.76)"
+		3:  # Battle Phase
 			next_phase_button.text = "Enter Battle"
-			next_phase_button.tooltip_text = "Begin tactical combat"
-		4:  # Post-Battle
-			next_phase_button.text = "Post-Battle"
-			next_phase_button.tooltip_text = "Resolve battle aftermath"
+			next_phase_button.tooltip_text = "Step 3: Tabletop Battle (p.87)"
+		4:  # Post-Battle Phase
+			next_phase_button.text = "Post-Battle Sequence"
+			next_phase_button.tooltip_text = "Step 4: Resolve aftermath, loot, XP (p.119)"
 		_:
 			next_phase_button.text = "Next Phase"
-			next_phase_button.tooltip_text = "Advance to next phase"
+			next_phase_button.tooltip_text = "Advance to next campaign phase"
 
 ## Helper methods
 
@@ -701,125 +879,167 @@ func _on_quit_pressed() -> void:
 	else:
 		get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/mainmenu/MainMenu.tscn")
 
-## CAMPAIGN PROGRESS TRACKER - Visual turn phase indicator
+## QUICK ACTIONS FOOTER HANDLERS - New button handlers for bottom toolbar
+
+func _on_ship_info_pressed() -> void:
+	"""Navigate to Ship Management screen"""
+	print("CampaignDashboard: Navigating to Ship Management...")
+	get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/ships/ShipManager.tscn")
+
+func _on_trading_pressed() -> void:
+	"""Navigate to Trading screen"""
+	print("CampaignDashboard: Navigating to Trading...")
+	get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/campaign/TradingScreen.tscn")
+
+func _on_world_pressed() -> void:
+	"""Navigate to World Phase screen"""
+	print("CampaignDashboard: Navigating to World Phase...")
+	get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/world/WorldPhaseController.tscn")
+
+func _on_settings_pressed() -> void:
+	"""Navigate to Settings screen"""
+	print("CampaignDashboard: Navigating to Settings...")
+	get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/settings/SettingsScreen.tscn")
+
+## COMPONENT CARD SIGNAL HANDLERS - Navigation from card clicks
+
+func _on_mission_details_requested() -> void:
+	"""Handle MissionStatusCard click - navigate to mission details"""
+	print("CampaignDashboard: Navigating to Mission Details...")
+	# Navigate to mission/world phase for mission management
+	get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/world/WorldPhaseController.tscn")
+
+func _on_world_details_requested() -> void:
+	"""Handle WorldStatusCard click - navigate to world details"""
+	print("CampaignDashboard: Navigating to World Details...")
+	get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/world/WorldPhaseController.tscn")
+
+func _on_story_details_requested() -> void:
+	"""Handle StoryTrackSection click - navigate to story/quest details"""
+	print("CampaignDashboard: Navigating to Story Details...")
+	# Navigate to a story/quest details screen (fallback to world phase)
+	var story_screen := "res://src/ui/screens/story/StoryDetailsScreen.tscn"
+	if FileAccess.file_exists(story_screen):
+		get_tree().call_deferred("change_scene_to_file", story_screen)
+	else:
+		# Fallback to world phase which handles quests
+		get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/world/WorldPhaseController.tscn")
+
+func _on_victory_details_requested() -> void:
+	"""Handle VictoryProgressPanel click - show victory conditions details"""
+	print("CampaignDashboard: Showing Victory Conditions Details...")
+	# Could open a popup or navigate to victory conditions screen
+	# For now, just log - could be enhanced with a modal later
+	pass
+
+## CAMPAIGN PROGRESS TRACKER - Uses CampaignTurnProgressTracker component
 
 func _setup_campaign_progress_tracker() -> void:
-	"""Setup 7-step campaign phase breadcrumb tracker"""
+	"""Initialize progress tracker component - the component builds its own UI"""
 	if not campaign_progress_tracker:
+		push_warning("CampaignDashboard: CampaignProgressTracker not found")
 		return
 	
-	var progress_container := campaign_progress_tracker.get_node("ProgressContainer") as HBoxContainer
-	if not progress_container:
-		return
+	# Connect the step_clicked signal from the component (check to avoid duplicates)
+	if campaign_progress_tracker.has_signal("step_clicked"):
+		if not campaign_progress_tracker.step_clicked.is_connected(_on_progress_step_clicked):
+			campaign_progress_tracker.step_clicked.connect(_on_progress_step_clicked)
+			print("CampaignDashboard: Progress tracker step_clicked signal connected")
 	
-	# Define phase structure (repeating cycle)
-	var phases := ["Travel", "World", "Battle", "Post-Battle"]
-	
-	# Create phase indicators
-	for i in range(phases.size()):
-		if i > 0:
-			# Add connector line
-			var connector := ColorRect.new()
-			connector.custom_minimum_size = Vector2(24, 2)
-			connector.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-			connector.color = Color("#3A3A5C")  # COLOR_BORDER
-			progress_container.add_child(connector)
-		
-		# Create phase circle button
-		var phase_btn := Button.new()
-		phase_btn.custom_minimum_size = Vector2(48, 48)  # TOUCH_TARGET_MIN
-		phase_btn.text = phases[i].substr(0, 1)  # First letter (T, W, B, P)
-		phase_btn.tooltip_text = phases[i]
-		phase_btn.flat = false
-		
-		# Style phase button
-		var style := StyleBoxFlat.new()
-		style.bg_color = Color("#1E1E36")  # COLOR_INPUT
-		style.border_color = Color("#3A3A5C")  # COLOR_BORDER
-		style.set_border_width_all(2)
-		style.set_corner_radius_all(24)  # Circular
-		phase_btn.add_theme_stylebox_override("normal", style)
-		
-		# Connect to phase jump handler
-		phase_btn.pressed.connect(_on_phase_indicator_pressed.bind(i + 1))  # Phase enum starts at 1
-		
-		progress_container.add_child(phase_btn)
+	# Sync tracker with current game state phase
+	if GameStateManager and campaign_progress_tracker.has_method("set_current_step"):
+		var phase: int = GameStateManager.get_campaign_phase()
+		var step_index: int = _phase_to_step(phase)
+		campaign_progress_tracker.set_current_step(step_index)
 	
 	# Update initial state
 	_update_campaign_progress_tracker()
+	print("CampaignDashboard: Progress tracker initialized and synced")
+
+func _phase_to_step(phase: int) -> int:
+	"""Map campaign phase to progress tracker step index"""
+	# Campaign phases: 0=Setup, 1=Travel, 2=World, 3=Battle, 4=Post-Battle
+	# Step indices: 0=Travel, 1=World, 2=Mission, 3=Battle, 4=Loot, 5=Advance, 6=End Turn
+	match phase:
+		0:  # Setup -> Travel
+			return 0
+		1:  # Travel
+			return 0
+		2:  # World
+			return 1
+		3:  # Battle
+			return 3
+		4:  # Post-Battle
+			return 4
+		_:
+			return 0
 
 func _update_campaign_progress_tracker() -> void:
-	"""Update progress tracker to highlight current phase"""
+	"""Update progress tracker to highlight current phase using component API"""
 	if not campaign_progress_tracker:
 		return
 	
-	var progress_container := campaign_progress_tracker.get_node_or_null("ProgressContainer") as HBoxContainer
-	if not progress_container:
-		return
-	
-	var current_phase: int = 1  # Default to Travel
+	var current_phase: int = 1  # Default to Travel (step index 0)
 	if GameStateManager:
 		current_phase = GameStateManager.get_campaign_phase()
 	
-	# Update phase button styles (skip connectors - every other child)
-	var phase_index := 0
-	for i in range(progress_container.get_child_count()):
-		var child := progress_container.get_child(i)
-		
-		# Skip connector lines (ColorRect)
-		if child is ColorRect:
-			continue
-		
-		if child is Button:
-			var phase_btn := child as Button
-			var is_current := (phase_index + 1 == current_phase)
-			var is_completed := (phase_index + 1 < current_phase)
-			
-			# Update style based on state
-			var style := StyleBoxFlat.new()
-			if is_current:
-				# Current phase - accent color
-				style.bg_color = Color("#2D5A7B")  # COLOR_ACCENT
-				style.border_color = Color("#4FC3F7")  # COLOR_FOCUS (cyan highlight)
-				phase_btn.modulate = Color.WHITE
-			elif is_completed:
-				# Completed phase - success color
-				style.bg_color = Color("#10B981")  # COLOR_SUCCESS (green)
-				style.border_color = Color("#10B981")
-				phase_btn.modulate = Color.WHITE
-			else:
-				# Future phase - disabled color
-				style.bg_color = Color("#1E1E36")  # COLOR_INPUT
-				style.border_color = Color("#404040")  # COLOR_TEXT_DISABLED
-				phase_btn.modulate = Color("#808080")  # COLOR_TEXT_SECONDARY
-			
-			style.set_border_width_all(2)
-			style.set_corner_radius_all(24)
-			phase_btn.add_theme_stylebox_override("normal", style)
-			
-			phase_index += 1
-
-func _on_phase_indicator_pressed(phase: int) -> void:
-	"""Handle phase indicator button press - jump to phase"""
-	print("CampaignDashboard: Phase indicator pressed for phase %d" % phase)
+	# Map campaign phase to step index (0-6 for 7-step tracker)
+	# Campaign phases: 0=Setup, 1=Travel, 2=World, 3=Battle, 4=Post-Battle
+	# Step indices: 0=Travel, 1=World, 2=Mission, 3=Battle, 4=Loot, 5=Advance, 6=End Turn
+	var step_index: int = 0
+	match current_phase:
+		0:  # Setup -> Travel
+			step_index = 0
+		1:  # Travel
+			step_index = 0
+		2:  # World
+			step_index = 1
+		3:  # Battle
+			step_index = 3
+		4:  # Post-Battle
+			step_index = 4
+		_:
+			step_index = 0
 	
-	# Only allow jumping to current or previous phases (no skipping ahead)
+	# Use component's API to update display
+	if campaign_progress_tracker.has_method("set_current_step"):
+		campaign_progress_tracker.set_current_step(step_index)
+
+func _on_progress_step_clicked(step_index: int) -> void:
+	"""Handle progress tracker step click - navigate to corresponding phase"""
+	print("CampaignDashboard: Progress step clicked: %d" % step_index)
+	
+	# Step indices from CampaignTurnProgressTracker:
+	# 0=Travel, 1=World, 2=Mission, 3=Battle, 4=Loot, 5=Advance, 6=End Turn
+	
+	# Only allow jumping to current or completed steps
 	if GameStateManager:
 		var current_phase := GameStateManager.get_campaign_phase()
-		if phase > current_phase:
-			print("  Cannot jump to future phase (current: %d, requested: %d)" % [current_phase, phase])
+		# Map step_index to campaign phase for comparison
+		var target_phase := _step_to_phase(step_index)
+		if target_phase > current_phase:
+			print("  Cannot jump to future phase (current: %d, requested: %d)" % [current_phase, target_phase])
 			return
 	
-	# Navigate to appropriate phase screen
-	match phase:
-		1:  # Travel
+	# Navigate to appropriate phase screen based on step index
+	match step_index:
+		0:  # Travel
 			get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/travel/TravelPhaseUI.tscn")
-		2:  # World
+		1, 2:  # World or Mission (both in World phase)
 			get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/world/WorldPhaseController.tscn")
 		3:  # Battle
 			get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/battle/BattleHUDCoordinator.tscn")
-		4:  # Post-Battle
+		4, 5, 6:  # Loot, Advance, End Turn (all Post-Battle)
 			get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/postbattle/PostBattleSequence.tscn")
+
+func _step_to_phase(step_index: int) -> int:
+	"""Convert step index (0-6) to campaign phase (0-4)"""
+	match step_index:
+		0: return 1  # Travel
+		1, 2: return 2  # World/Mission
+		3: return 3  # Battle
+		4, 5, 6: return 4  # Post-Battle (Loot, Advance, End Turn)
+		_: return 1
 
 ## RESPONSIVE CREW CONTAINER SETUP
 
@@ -833,14 +1053,17 @@ func _setup_responsive_crew_container() -> void:
 	_update_crew_container_layout(viewport_width)
 
 func _update_crew_container_layout(viewport_width: int) -> void:
-	"""Update crew container layout based on viewport width"""
+	"""Update crew container layout based on viewport width with proper breakpoints"""
 	if not crew_card_container:
 		return
 	
-	# Mobile (<768px): Horizontal scroll with VBoxContainer
-	# Desktop (>=768px): GridContainer 2 columns
+	# Breakpoints:
+	# - Mobile (<768px): Single column, horizontal scroll, 8px gap
+	# - Tablet (768-1024px): 2 columns, vertical scroll, 12px gap
+	# - Desktop (>1024px): 2-3 columns, vertical scroll, 16px gap
+	
 	if viewport_width < 768:
-		# Mobile: Horizontal scroll
+		# Mobile: Horizontal scroll with single row
 		if crew_scroll_container:
 			crew_scroll_container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 			crew_scroll_container.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -860,19 +1083,18 @@ func _update_crew_container_layout(viewport_width: int) -> void:
 			parent.remove_child(crew_card_container)
 			parent.add_child(new_container)
 			crew_card_container = new_container
-	else:
-		# Desktop: Grid layout
+	elif viewport_width < 1024:
+		# Tablet: 2 columns with 12px gap
 		if crew_scroll_container:
 			crew_scroll_container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 			crew_scroll_container.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 		
-		# Replace container with GridContainer
 		if not crew_card_container is GridContainer:
 			var new_container := GridContainer.new()
 			new_container.name = "CrewCardContainer"
 			new_container.columns = 2
-			new_container.add_theme_constant_override("h_separation", 8)
-			new_container.add_theme_constant_override("v_separation", 8)
+			new_container.add_theme_constant_override("h_separation", 12)
+			new_container.add_theme_constant_override("v_separation", 12)
 			
 			# Transfer children
 			for child in crew_card_container.get_children():
@@ -883,9 +1105,44 @@ func _update_crew_container_layout(viewport_width: int) -> void:
 			parent.remove_child(crew_card_container)
 			parent.add_child(new_container)
 			crew_card_container = new_container
+		else:
+			# Update existing GridContainer settings
+			crew_card_container.columns = 2
+			crew_card_container.add_theme_constant_override("h_separation", 12)
+			crew_card_container.add_theme_constant_override("v_separation", 12)
+	else:
+		# Desktop: 2-3 columns with 16px gap
+		if crew_scroll_container:
+			crew_scroll_container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+			crew_scroll_container.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+		
+		# Determine column count based on width
+		var columns: int = 2 if viewport_width < 1440 else 3
+		
+		if not crew_card_container is GridContainer:
+			var new_container := GridContainer.new()
+			new_container.name = "CrewCardContainer"
+			new_container.columns = columns
+			new_container.add_theme_constant_override("h_separation", 16)
+			new_container.add_theme_constant_override("v_separation", 16)
+			
+			# Transfer children
+			for child in crew_card_container.get_children():
+				crew_card_container.remove_child(child)
+				new_container.add_child(child)
+			
+			var parent := crew_card_container.get_parent()
+			parent.remove_child(crew_card_container)
+			parent.add_child(new_container)
+			crew_card_container = new_container
+		else:
+			# Update existing GridContainer settings
+			crew_card_container.columns = columns
+			crew_card_container.add_theme_constant_override("h_separation", 16)
+			crew_card_container.add_theme_constant_override("v_separation", 16)
 
 func _on_viewport_resized() -> void:
-	"""Handle viewport resize - update responsive layouts"""
+	"""Handle viewport resize - update responsive layouts (legacy support)"""
 	var viewport_width := get_viewport().get_visible_rect().size.x
 	
 	# Only update if width changed significantly (avoid redundant updates)
@@ -893,6 +1150,85 @@ func _on_viewport_resized() -> void:
 		_current_viewport_width = viewport_width
 		_update_crew_container_layout(viewport_width)
 		_update_crew_list()  # Refresh cards with appropriate variant
+
+func _on_responsive_breakpoint_changed(new_breakpoint: int) -> void:
+	"""Handle ResponsiveManager breakpoint changes"""
+	_apply_responsive_layout(new_breakpoint)
+	_update_crew_list()  # Refresh cards with appropriate variant
+	print("CampaignDashboard: Layout updated via ResponsiveManager - Breakpoint: %s" % _responsive_manager.get_breakpoint_name())
+
+func _apply_responsive_layout(bp: int) -> void:
+	"""Apply responsive layout based on ResponsiveManager breakpoint"""
+	# Note: parameter named 'bp' because 'breakpoint' is a reserved keyword
+	if not crew_card_container:
+		return
+	
+	# Get viewport width for additional breakpoint logic
+	var viewport_width := get_viewport().get_visible_rect().size.x
+	
+	# Use ResponsiveManager helpers for consistent behavior
+	if _responsive_manager.should_use_horizontal_scroll():
+		# Mobile (<768px): Horizontal scroll with 8px gap
+		if crew_scroll_container:
+			crew_scroll_container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+			crew_scroll_container.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		
+		# Replace with HBoxContainer for horizontal layout
+		if not crew_card_container is HBoxContainer:
+			var new_container := HBoxContainer.new()
+			new_container.name = "CrewCardContainer"
+			new_container.add_theme_constant_override("separation", 8)
+			
+			# Transfer children
+			for child in crew_card_container.get_children():
+				crew_card_container.remove_child(child)
+				new_container.add_child(child)
+			
+			var parent := crew_card_container.get_parent()
+			parent.remove_child(crew_card_container)
+			parent.add_child(new_container)
+			crew_card_container = new_container
+	else:
+		# Tablet/Desktop: Grid layout with breakpoint-aware spacing
+		if crew_scroll_container:
+			crew_scroll_container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+			crew_scroll_container.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+		
+		# Determine columns and spacing based on viewport width
+		var columns: int = 2
+		var spacing: int = 12  # Tablet default
+		
+		if viewport_width >= 1024:
+			# Desktop: 2-3 columns with 16px gap
+			columns = 3 if viewport_width >= 1440 else 2
+			spacing = 16
+		else:
+			# Tablet: 2 columns with 12px gap
+			columns = 2
+			spacing = 12
+		
+		# Replace with GridContainer or update existing
+		if not crew_card_container is GridContainer:
+			var new_container := GridContainer.new()
+			new_container.name = "CrewCardContainer"
+			new_container.columns = columns
+			new_container.add_theme_constant_override("h_separation", spacing)
+			new_container.add_theme_constant_override("v_separation", spacing)
+			
+			# Transfer children
+			for child in crew_card_container.get_children():
+				crew_card_container.remove_child(child)
+				new_container.add_child(child)
+			
+			var parent := crew_card_container.get_parent()
+			parent.remove_child(crew_card_container)
+			parent.add_child(new_container)
+			crew_card_container = new_container
+		else:
+			# Update existing GridContainer
+			crew_card_container.columns = columns
+			crew_card_container.add_theme_constant_override("h_separation", spacing)
+			crew_card_container.add_theme_constant_override("v_separation", spacing)
 
 ## Setup button icons for enhanced UI visual hierarchy
 func _setup_button_icons() -> void:
@@ -960,6 +1296,77 @@ func _connect_developer_signals() -> void:
 	@warning_ignore("return_value_discarded")
 	developer_panel.test_campaign_requested.connect(_on_developer_test_campaign)
 
+
+func _setup_story_point_dialog() -> void:
+	"""Setup the Story Point spending dialog (Core Rules p.67)"""
+	# Make story_points_label clickable to open dialog
+	if story_points_label:
+		story_points_label.mouse_filter = Control.MOUSE_FILTER_STOP
+		story_points_label.gui_input.connect(_on_story_points_label_clicked)
+		story_points_label.tooltip_text = "Click to spend Story Points"
+		# Add visual hint that it's clickable
+		story_points_label.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+
+	print("CampaignDashboard: Story Point spending dialog setup complete")
+
+
+func _on_story_points_label_clicked(event: InputEvent) -> void:
+	"""Handle click on story points label to open spending dialog"""
+	if event is InputEventMouseButton:
+		var mouse_event := event as InputEventMouseButton
+		if mouse_event.pressed and mouse_event.button_index == MOUSE_BUTTON_LEFT:
+			_open_story_point_dialog()
+
+
+func _open_story_point_dialog() -> void:
+	"""Open the Story Point spending dialog"""
+	# Get current story points
+	var current_story_points: int = GameStateManager.get_story_progress()
+
+	if current_story_points <= 0:
+		print("CampaignDashboard: No story points available to spend")
+		# Could show a toast/notification here
+		return
+
+	# Create dialog if not exists
+	if not story_point_dialog or not is_instance_valid(story_point_dialog):
+		story_point_dialog = StoryPointDialogScene.instantiate()
+		add_child(story_point_dialog)
+
+		# Connect dialog signals (using actual signal names from StoryPointSpendingDialog)
+		if story_point_dialog.has_signal("option_selected"):
+			story_point_dialog.option_selected.connect(_on_story_point_spent)
+		if story_point_dialog.has_signal("dialog_cancelled"):
+			story_point_dialog.dialog_cancelled.connect(_on_story_point_dialog_closed)
+
+	# Show the dialog with current story points and spending status
+	if story_point_dialog.has_method("show_dialog"):
+		# Get spending status from StoryPointSystem if available
+		var spending_status: Dictionary = {}
+		story_point_dialog.show_dialog(current_story_points, spending_status)
+	else:
+		story_point_dialog.show()
+
+	story_point_dialog.grab_focus()
+	print("CampaignDashboard: Story Point dialog opened with %d points" % current_story_points)
+
+
+func _on_story_point_spent(spend_type: int, details: Dictionary) -> void:
+	"""Handle story point being spent"""
+	print("CampaignDashboard: Story point spent - type: %d, details: %s" % [spend_type, str(details)])
+
+	# Update the UI to reflect the change
+	_update_ui()
+
+	# The actual spending logic is handled by the StoryPointSystem through the dialog
+
+
+func _on_story_point_dialog_closed() -> void:
+	"""Handle dialog being closed"""
+	print("CampaignDashboard: Story Point dialog closed")
+	# Refresh UI in case points were spent
+	_update_ui()
+
 func _on_developer_test_campaign(campaign_data: Variant) -> void:
 	"""Handle test campaign request from developer panel - refresh dashboard"""
 	var campaign_name: String = ""
@@ -989,8 +1396,11 @@ func _input(event: InputEvent) -> void:
 	# Toggle developer panel with F11
 	@warning_ignore("unsafe_property_access")
 	if event is InputEventKey and event.pressed and event.keycode == KEY_F11:
+		get_viewport().set_input_as_handled()  # Consume event to prevent propagation
 		if developer_panel:
 			_toggle_developer_panel()
+		else:
+			push_warning("CampaignDashboard: Developer panel not instantiated - check debug build")
 
 func _toggle_developer_panel() -> void:
 	"""Toggle developer panel visibility"""
@@ -1172,3 +1582,14 @@ func add_battle_to_history(battle_result: Dictionary) -> void:
 		"loot": battle_result.get("loot_found", []).size(),
 		"credits_earned": battle_result.get("credits_earned", 0),
 		"timestamp": Time.get_datetime_string_from_system()
+	}
+	
+	# Add to local history
+	battle_history.append(history_entry)
+	
+	# Save to GameStateManager
+	if GameStateManager and GameStateManager.has_method("add_battle_history"):
+		GameStateManager.add_battle_history(history_entry)
+	
+	# Update display
+	_display_battle_history()

@@ -23,6 +23,7 @@ GameState="*res://src/core/state/GameState.gd"
 GameStateManager="*res://src/core/managers/GameStateManager.gd"
 DataManager="*res://src/core/data/DataManager.gd"
 DiceManager="*res://src/core/managers/DiceManager.gd"
+EquipmentManager="*res://src/core/equipment/EquipmentManager.gd"
 SaveManager="*res://src/core/state/SaveManager.gd"
 CampaignManager="*res://src/core/managers/CampaignManager.gd"
 CampaignStateService="*res://src/core/services/CampaignStateService.gd"
@@ -36,7 +37,9 @@ TurnPhaseChecklist="*res://src/qol/TurnPhaseChecklist.gd"
 KeywordDB="*res://src/qol/KeywordDB.gd"
 NPCTracker="*res://src/qol/NPCTracker.gd"
 CampaignTurnEventBus="*res://src/core/events/CampaignTurnEventBus.gd"
+ResponsiveManager="*res://src/autoload/ResponsiveManager.gd"
 FPCM_AlphaGameManager="*res://src/core/managers/AlphaGameManager.gd"
+ThemeManager="*res://src/ui/themes/ThemeManager.gd"
 
 [debug]
 

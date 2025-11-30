@@ -12,6 +12,7 @@ extends Node
 
 # Dependencies
 const BattlefieldTypes = preload("res://src/core/battle/BattlefieldTypes.gd")
+const DifficultyModifiers = preload("res://src/core/systems/DifficultyModifiers.gd")
 # GlobalEnums available as autoload singleton
 
 # Processing completion signals
@@ -385,6 +386,10 @@ func _calculate_experience_gains(tracked_units: Dictionary, battle_context: Dict
 	# Base experience for all surviving crew
 	var base_exp := BASE_EXPERIENCE.victory if victory else BASE_EXPERIENCE.defeat
 
+	# Get difficulty-based XP bonus (Story/Easy mode: +1 XP per battle)
+	var difficulty_level: int = battle_context.get("difficulty_level", GlobalEnums.DifficultyLevel.STANDARD)
+	var difficulty_xp_bonus: int = DifficultyModifiers.get_xp_bonus(difficulty_level)
+
 	for unit in crew_units:
 		if unit.is_alive():
 			var unit_experience := base_exp
@@ -394,6 +399,9 @@ func _calculate_experience_gains(tracked_units: Dictionary, battle_context: Dict
 
 			# Performance bonuses
 			unit_experience += _calculate_performance_bonuses(unit, tracked_units, battle_context)
+
+			# Apply difficulty-based XP bonus (Core Rules p.65)
+			unit_experience += difficulty_xp_bonus
 
 			results.set_experience_gained(unit.unit_name, unit_experience)
 

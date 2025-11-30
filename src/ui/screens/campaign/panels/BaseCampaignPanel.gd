@@ -26,6 +26,15 @@ var _is_updating_from_coordinator: bool = false
 # UI Structure - provide expected content_container
 @onready var content_container: Control = null
 
+# Autoload reference (helps static analyzer)
+@onready var _responsive_manager: Node = get_node("/root/ResponsiveManager")
+
+# ResponsiveManager breakpoint constants (matches ResponsiveManager.Breakpoint enum)
+const RM_MOBILE := 0
+const RM_TABLET := 1
+const RM_DESKTOP := 2
+const RM_WIDE := 3
+
 func _ready() -> void:
 	_ensure_panel_structure()
 	_setup_panel_content()
@@ -33,7 +42,12 @@ func _ready() -> void:
 	# Setup responsive layout system
 	_setup_responsive_layout()
 
-	# Connect viewport resize signal for responsive updates
+	# Connect to ResponsiveManager for centralized breakpoint management
+	_responsive_manager.breakpoint_changed.connect(_on_responsive_breakpoint_changed)
+	# Initialize with current breakpoint
+	_sync_with_responsive_manager()
+
+	# Connect viewport resize signal for responsive updates (legacy support)
 	get_viewport().size_changed.connect(_on_viewport_resized)
 
 func _exit_tree() -> void:
@@ -44,6 +58,10 @@ func _exit_tree() -> void:
 		if coordinator.is_connected("campaign_state_updated", _on_campaign_state_updated):
 			coordinator.disconnect("campaign_state_updated", _on_campaign_state_updated)
 			print("%s: ✅ Disconnected from coordinator.campaign_state_updated" % name)
+
+	# Disconnect from ResponsiveManager
+	if _responsive_manager and _responsive_manager.breakpoint_changed.is_connected(_on_responsive_breakpoint_changed):
+		_responsive_manager.breakpoint_changed.disconnect(_on_responsive_breakpoint_changed)
 
 	print("%s: Panel cleanup completed" % name)
 
@@ -234,6 +252,50 @@ func _get_layout_mode_name(mode: LayoutMode = current_layout_mode) -> String:
 			return "DESKTOP"
 		_:
 			return "UNKNOWN"
+
+# ============ RESPONSIVE MANAGER INTEGRATION ============
+
+func _sync_with_responsive_manager() -> void:
+	"""Synchronize panel layout mode with ResponsiveManager's current breakpoint"""
+	if not _responsive_manager:
+		return
+
+	# Map ResponsiveManager.Breakpoint to BaseCampaignPanel.LayoutMode
+	match _responsive_manager.current_breakpoint:
+		RM_MOBILE:
+			if current_layout_mode != LayoutMode.MOBILE:
+				current_layout_mode = LayoutMode.MOBILE
+				_update_layout_for_mode()
+		RM_TABLET:
+			if current_layout_mode != LayoutMode.TABLET:
+				current_layout_mode = LayoutMode.TABLET
+				_update_layout_for_mode()
+		_:  # DESKTOP or WIDE
+			if current_layout_mode != LayoutMode.DESKTOP:
+				current_layout_mode = LayoutMode.DESKTOP
+				_update_layout_for_mode()
+
+func _on_responsive_breakpoint_changed(new_breakpoint: int) -> void:
+	"""Handle ResponsiveManager breakpoint changes"""
+	var previous_mode := current_layout_mode
+
+	# Map ResponsiveManager.Breakpoint to BaseCampaignPanel.LayoutMode
+	match new_breakpoint:
+		RM_MOBILE:
+			current_layout_mode = LayoutMode.MOBILE
+		RM_TABLET:
+			current_layout_mode = LayoutMode.TABLET
+		_:  # DESKTOP or WIDE
+			current_layout_mode = LayoutMode.DESKTOP
+
+	# Only update if mode actually changed
+	if current_layout_mode != previous_mode:
+		_update_layout_for_mode()
+		print("%s: Layout updated via ResponsiveManager: %s → %s" % [
+			name,
+			_get_layout_mode_name(previous_mode),
+			_get_layout_mode_name()
+		])
 
 # ============ RESPONSIVE HELPER METHODS ============
 
@@ -532,49 +594,77 @@ const BREAKPOINT_DESKTOP := 1024  # Desktop: >1024px
 enum LayoutMode { MOBILE, TABLET, DESKTOP }
 var current_layout_mode: LayoutMode = LayoutMode.DESKTOP
 
-## Color Palette - Deep Space Theme
-const COLOR_BASE := Color("#1A1A2E")         # Panel background
-const COLOR_ELEVATED := Color("#252542")     # Card backgrounds
-const COLOR_INPUT := Color("#1E1E36")        # Form field backgrounds
-const COLOR_BORDER := Color("#3A3A5C")       # Card borders
-const COLOR_ACCENT := Color("#2D5A7B")       # Primary accent (Deep Space Blue)
-const COLOR_ACCENT_HOVER := Color("#3A7199") # Hover state
-const COLOR_FOCUS := Color("#4FC3F7")        # Focus ring (cyan)
+## Color Palette - Deep Space Theme (from HTML mockup)
+# Background hierarchy
+const COLOR_PRIMARY := Color("#0a0d14")      # Darkest background (main bg)
+const COLOR_SECONDARY := Color("#111827")    # Card backgrounds
+const COLOR_TERTIARY := Color("#1f2937")     # Elevated elements, stat boxes
+const COLOR_BORDER := Color("#374151")       # Border color
 
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")   # Main content
-const COLOR_TEXT_SECONDARY := Color("#808080") # Descriptions
-const COLOR_TEXT_DISABLED := Color("#404040")  # Inactive
+# Accent Colors (colorful highlights)
+const COLOR_BLUE := Color("#3b82f6")         # Primary blue accent
+const COLOR_PURPLE := Color("#8b5cf6")       # Purple (XP, story)
+const COLOR_EMERALD := Color("#10b981")      # Success/completed (keep)
+const COLOR_AMBER := Color("#f59e0b")        # Current/warning/credits
+const COLOR_RED := Color("#ef4444")          # Danger/injured
+const COLOR_CYAN := Color("#06b6d4")         # Save, world actions
 
-const COLOR_SUCCESS := Color("#10B981")  # Green
-const COLOR_WARNING := Color("#D97706")  # Orange
-const COLOR_DANGER := Color("#DC2626")   # Red
+# Text Colors
+const COLOR_TEXT_PRIMARY := Color("#f3f4f6")   # Bright white text
+const COLOR_TEXT_SECONDARY := Color("#9ca3af") # Gray secondary text
+const COLOR_TEXT_MUTED := Color("#6b7280")     # Muted labels/hints
+
+# Legacy aliases (for backwards compatibility)
+const COLOR_BASE := COLOR_PRIMARY
+const COLOR_ELEVATED := COLOR_SECONDARY
+const COLOR_INPUT := COLOR_TERTIARY
+const COLOR_ACCENT := COLOR_BLUE
+const COLOR_ACCENT_HOVER := Color("#60a5fa")   # Lighter blue hover
+const COLOR_FOCUS := Color("#60a5fa")          # Focus ring blue
+const COLOR_SUCCESS := COLOR_EMERALD
+const COLOR_WARNING := COLOR_AMBER
+const COLOR_DANGER := COLOR_RED
+const COLOR_TEXT_DISABLED := COLOR_TEXT_MUTED
 
 
 # ============ UI COMPONENT FACTORY METHODS ============
 
-func _create_section_card(title: String, content: Control, description: String = "") -> PanelContainer:
-	"""Create a styled section card with title, content, and optional description."""
+func _create_section_card(title: String, content: Control, description: String = "", icon: String = "") -> PanelContainer:
+	"""Create a styled section card with title, content, optional description and icon."""
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
-	# Apply card styling
-	var style := StyleBoxFlat.new()
-	style.bg_color = COLOR_ELEVATED
-	style.border_color = COLOR_BORDER
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
-	style.set_content_margin_all(SPACING_MD)
-	panel.add_theme_stylebox_override("panel", style)
+	# Apply glass morphism style (modern look)
+	panel.add_theme_stylebox_override("panel", _create_glass_card_style())
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", SPACING_SM)
 
-	# Section label (uppercase)
-	var label := Label.new()
-	label.text = title.to_upper()
-	label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
-	label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
-	vbox.add_child(label)
+	# Section header with optional icon (updated to support icon parameter)
+	if not icon.is_empty():
+		var header_hbox := HBoxContainer.new()
+		header_hbox.add_theme_constant_override("separation", SPACING_SM)
+		
+		var icon_label := Label.new()
+		icon_label.text = icon
+		icon_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+		icon_label.add_theme_color_override("font_color", COLOR_ACCENT)
+		header_hbox.add_child(icon_label)
+		
+		var title_label := Label.new()
+		title_label.text = title.to_upper()
+		title_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+		title_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		header_hbox.add_child(title_label)
+		
+		vbox.add_child(header_hbox)
+	else:
+		# Original code path (no icon)
+		var title_label := Label.new()
+		title_label.text = title.to_upper()
+		title_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+		title_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		vbox.add_child(title_label)
 
 	# Separator
 	var sep := HSeparator.new()
@@ -596,6 +686,38 @@ func _create_section_card(title: String, content: Control, description: String =
 
 	panel.add_child(vbox)
 	return panel
+
+
+func _create_glass_card_style(alpha: float = 0.8) -> StyleBoxFlat:
+	"""Create glass morphism card style with adjustable transparency"""
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(COLOR_SECONDARY.r, COLOR_SECONDARY.g, COLOR_SECONDARY.b, alpha)
+	style.border_color = Color(COLOR_BORDER.r, COLOR_BORDER.g, COLOR_BORDER.b, 0.5)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(16)
+	style.set_content_margin_all(SPACING_LG)
+	return style
+
+
+func _create_glass_card_elevated() -> StyleBoxFlat:
+	"""Create elevated glass card (higher opacity for prominence)"""
+	return _create_glass_card_style(0.9)
+
+
+func _create_glass_card_subtle() -> StyleBoxFlat:
+	"""Create subtle glass card (lower opacity for backgrounds)"""
+	return _create_glass_card_style(0.6)
+
+
+func _create_elevated_card_style() -> StyleBoxFlat:
+	"""Create elevated card style (solid background, for inner elements)"""
+	var style := StyleBoxFlat.new()
+	style.bg_color = COLOR_TERTIARY
+	style.border_color = COLOR_BORDER
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(8)
+	style.set_content_margin_all(SPACING_MD)
+	return style
 
 
 func _create_labeled_input(label_text: String, input: Control) -> VBoxContainer:
@@ -763,6 +885,44 @@ func _create_add_button(text: String) -> Button:
 	return btn
 
 
+func _create_stat_badge(stat_name: String, value: int, show_plus: bool = false) -> PanelContainer:
+	"""Create a compact stat badge for displaying character stats in summaries."""
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(80, 32)
+	
+	# Subtle background styling
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(COLOR_INPUT, 0.6)  # Semi-transparent background
+	style.border_color = COLOR_BORDER
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(6)
+	style.set_content_margin_all(SPACING_XS)
+	panel.add_theme_stylebox_override("panel", style)
+	
+	# Horizontal layout: stat name + value
+	var hbox := HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", SPACING_XS)
+	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	
+	# Stat name (small, secondary color)
+	var name_label := Label.new()
+	name_label.text = stat_name.to_upper()
+	name_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	name_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	hbox.add_child(name_label)
+	
+	# Stat value (larger, accent color, optional +)
+	var value_label := Label.new()
+	var value_text := str(value) if not show_plus else ("+" + str(value) if value >= 0 else str(value))
+	value_label.text = value_text
+	value_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	value_label.add_theme_color_override("font_color", COLOR_ACCENT)
+	hbox.add_child(value_label)
+	
+	panel.add_child(hbox)
+	return panel
+
+
 func _style_line_edit(line_edit: LineEdit) -> void:
 	"""Apply consistent styling to a LineEdit."""
 	line_edit.custom_minimum_size.y = TOUCH_TARGET_COMFORT
@@ -792,6 +952,89 @@ func _style_option_button(option_btn: OptionButton) -> void:
 	style.set_corner_radius_all(6)
 	style.set_content_margin_all(SPACING_SM)
 	option_btn.add_theme_stylebox_override("normal", style)
+
+
+# ============ GLASS MORPHISM STYLING ============
+
+func _create_glass_panel_style() -> StyleBoxFlat:
+	"""Create glass morphism style matching HTML mockup (semi-transparent with border)"""
+	var style := StyleBoxFlat.new()
+
+	# Background: rgba(17, 24, 39, 0.8) - semi-transparent
+	style.bg_color = Color(COLOR_SECONDARY.r, COLOR_SECONDARY.g, COLOR_SECONDARY.b, 0.8)
+
+	# Border: subtle gray with transparency
+	style.border_color = Color(COLOR_BORDER.r, COLOR_BORDER.g, COLOR_BORDER.b, 0.5)
+	style.set_border_width_all(1)
+
+	# Rounded corners (16px = rounded-2xl in Tailwind)
+	style.set_corner_radius_all(16)
+
+	# Padding
+	style.set_content_margin_all(SPACING_LG)
+
+	return style
+
+
+func _create_glass_panel_style_compact() -> StyleBoxFlat:
+	"""Compact glass panel with smaller padding (for cards within sections)"""
+	var style := _create_glass_panel_style()
+	style.set_content_margin_all(SPACING_MD)
+	style.set_corner_radius_all(12)
+	return style
+
+
+func _create_accent_card_style(accent_color: Color) -> StyleBoxFlat:
+	"""Create accent-tinted card (e.g., amber for current step, pink for quests)"""
+	var style := StyleBoxFlat.new()
+
+	# Tinted background (10% opacity of accent)
+	style.bg_color = Color(accent_color.r, accent_color.g, accent_color.b, 0.1)
+
+	# Accent border (20% opacity)
+	style.border_color = Color(accent_color.r, accent_color.g, accent_color.b, 0.2)
+	style.set_border_width_all(1)
+
+	# Rounded corners
+	style.set_corner_radius_all(12)
+
+	# Padding
+	style.set_content_margin_all(SPACING_MD)
+
+	return style
+
+
+func _create_section_header(title: String, icon: String = "") -> HBoxContainer:
+	"""Create standardized section header with icon + title"""
+	var hbox := HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", SPACING_SM)
+
+	# Icon container (if provided)
+	if not icon.is_empty():
+		var icon_panel := PanelContainer.new()
+		icon_panel.custom_minimum_size = Vector2(32, 32)
+
+		var icon_style := StyleBoxFlat.new()
+		icon_style.bg_color = Color(COLOR_ACCENT.r, COLOR_ACCENT.g, COLOR_ACCENT.b, 0.2)
+		icon_style.set_corner_radius_all(8)
+		icon_panel.add_theme_stylebox_override("panel", icon_style)
+
+		var icon_label := Label.new()
+		icon_label.text = icon
+		icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		icon_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		icon_panel.add_child(icon_label)
+		hbox.add_child(icon_panel)
+
+	# Title
+	var title_label := Label.new()
+	title_label.text = title
+	title_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	hbox.add_child(title_label)
+
+	return hbox
 
 
 # ============ PROGRESS INDICATOR ============
@@ -854,24 +1097,24 @@ func _create_progress_indicator(current_step: int, total_steps: int, step_title:
 		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		
-		if i < current_step:
-			# Completed step: Green + checkmark
+		if i < current_step - 1:
+			# Completed step
 			style.bg_color = COLOR_SUCCESS
 			label.text = "✓"
 			label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
 			label.add_theme_color_override("font_color", Color.WHITE)
-		elif i == current_step:
-			# Current step: Cyan + number
+		elif i == current_step - 1:
+			# Current step
 			style.bg_color = COLOR_FOCUS
 			label.text = str(i + 1)
 			label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
 			label.add_theme_color_override("font_color", Color.WHITE)
 		else:
-			# Upcoming step: Gray + number
+			# Upcoming step
 			style.bg_color = COLOR_BORDER
 			label.text = str(i + 1)
 			label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-			label.add_theme_color_override("font_color", COLOR_TEXT_DISABLED)
+			label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		
 		style.set_corner_radius_all(16)  # Circular
 		step_indicator.add_theme_stylebox_override("panel", style)
@@ -880,13 +1123,13 @@ func _create_progress_indicator(current_step: int, total_steps: int, step_title:
 	
 	container.add_child(breadcrumb_container)
 	
-	# === STEP TITLE ===
-	var title := Label.new()
-	var display_title := step_title if not step_title.is_empty() else panel_title
-	title.text = "Step %d of %d: %s" % [current_step + 1, total_steps, display_title]
-	title.add_theme_font_size_override("font_size", FONT_SIZE_XL)
-	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	container.add_child(title)
+	# === STEP TITLE (Optional) ===
+	if not step_title.is_empty():
+		var title_label := Label.new()
+		title_label.text = step_title
+		title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		title_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+		container.add_child(title_label)
 	
 	return container

@@ -5,6 +5,8 @@ class_name CrewTaskComponent
 ## Extracted from WorldPhaseUI monolith to handle Five Parsecs crew task rules only
 ## Implements Core Rules pp.76-82 - Crew task assignment and resolution
 
+const RulesHelpText = preload("res://src/data/rules_help_text.gd")
+
 # Event bus integration
 const CampaignTurnEventBus = preload("res://src/core/events/CampaignTurnEventBus.gd")
 var event_bus: CampaignTurnEventBus = null
@@ -20,6 +22,10 @@ const DiceManager = preload("res://src/core/managers/DiceManager.gd")
 @onready var assign_task_button: Button = %AssignTaskButton
 @onready var resolve_all_button: Button = %ResolveAllButton
 @onready var progress_container: VBoxContainer = %ProgressContainer
+@onready var help_button: Button = %HelpButton
+
+# Help dialog reference
+var _help_dialog: AcceptDialog = null
 
 # Crew task state
 var crew_data: Array = []
@@ -159,6 +165,36 @@ func _connect_ui_signals() -> void:
 		crew_member_list.item_selected.connect(_on_crew_member_selected)
 	if available_tasks_list:
 		available_tasks_list.item_selected.connect(_on_task_selected)
+	if help_button:
+		help_button.pressed.connect(_on_help_button_pressed)
+
+func _on_help_button_pressed() -> void:
+	"""Show crew tasks help dialog"""
+	_show_help_dialog("Crew Tasks", RulesHelpText.get_tooltip("crew_tasks"))
+
+func _show_help_dialog(title: String, content: String) -> void:
+	"""Show a help dialog with rules text"""
+	if not _help_dialog:
+		_help_dialog = AcceptDialog.new()
+		_help_dialog.dialog_hide_on_ok = true
+		add_child(_help_dialog)
+	
+	_help_dialog.title = title
+	
+	var existing_content := _help_dialog.get_node_or_null("HelpContent")
+	if existing_content:
+		existing_content.queue_free()
+	
+	var rich_text := RichTextLabel.new()
+	rich_text.name = "HelpContent"
+	rich_text.bbcode_enabled = true
+	rich_text.fit_content = true
+	rich_text.custom_minimum_size = Vector2(400, 250)
+	rich_text.text = content
+	rich_text.add_theme_color_override("default_color", Color("#f3f4f6"))
+	_help_dialog.add_child(rich_text)
+	
+	_help_dialog.popup_centered()
 
 func _setup_initial_state() -> void:
 	"""Initialize component state"""

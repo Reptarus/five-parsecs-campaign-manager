@@ -21,7 +21,7 @@ const SCENES: Dictionary = {
 	"campaign_setup": "res://src/ui/screens/management/CampaignSetup.tscn",
 	"campaign_manager": "res://src/ui/screens/management/CampaignManager.tscn",
 	"battle": "res://src/core/battle/Battle.tscn",
-	"post_battle": "res://src/ui/screens/battle/PostBattle.tscn",
+	"post_battle": "res://src/ui/screens/postbattle/PostBattleSequence.tscn",
 	"crew_management": "res://src/ui/screens/management/CrewManagement.tscn",
 	"tutorial_setup": "res://src/ui/screens/tutorial/InitialCrewCreation.tscn",
 	"options": "res://src/ui/screens/options/video_options_menu.tscn",

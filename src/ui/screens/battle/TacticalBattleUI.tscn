@@ -1,6 +1,54 @@
-[gd_scene load_steps=2 format=3 uid="uid://b8x70aq2n1j4w"]
+[gd_scene load_steps=6 format=3 uid="uid://b8x70aq2n1j4w"]
 
 [ext_resource type="Script" path="res://src/ui/screens/battle/TacticalBattleUI.gd" id="1"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1"]
+bg_color = Color(0.145, 0.145, 0.259, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.227, 0.227, 0.361, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2"]
+bg_color = Color(0.145, 0.145, 0.259, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.227, 0.227, 0.361, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3"]
+bg_color = Color(0.102, 0.102, 0.18, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.227, 0.227, 0.361, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4"]
+bg_color = Color(0.176, 0.353, 0.482, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.227, 0.227, 0.361, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 
 [node name="TacticalBattleUI" type="Control"]
 layout_mode = 3
@@ -22,15 +70,27 @@ theme_override_constants/separation = 10
 [node name="TitleLabel" type="Label" parent="MainContainer/TopBar"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_font_sizes/font_size = 24
 text = "Tactical Battle Mode"
 horizontal_alignment = 1
 
 [node name="ReturnButton" type="Button" parent="MainContainer/TopBar"]
 layout_mode = 2
+custom_minimum_size = Vector2(0, 48)
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_3")
+theme_override_styles/hover = SubResource("StyleBoxFlat_2")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_2")
 text = "Return to Battle Resolution"
 
 [node name="AutoResolveButton" type="Button" parent="MainContainer/TopBar"]
 layout_mode = 2
+custom_minimum_size = Vector2(0, 48)
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_3")
+theme_override_styles/hover = SubResource("StyleBoxFlat_2")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_2")
 text = "Auto Resolve"
 
 [node name="BattleArea" type="HBoxContainer" parent="MainContainer"]
@@ -41,12 +101,15 @@ theme_override_constants/separation = 10
 [node name="BattlefieldArea" type="PanelContainer" parent="MainContainer/BattleArea"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_1")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MainContainer/BattleArea/BattlefieldArea"]
 layout_mode = 2
 
 [node name="BattlefieldLabel" type="Label" parent="MainContainer/BattleArea/BattlefieldArea/VBoxContainer"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_font_sizes/font_size = 18
 text = "Battlefield Grid"
 horizontal_alignment = 1
 
@@ -60,11 +123,12 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.2, 0.3, 0.2, 1)
+color = Color(0.145, 0.145, 0.259, 0.8)
 
 [node name="ActionPanel" type="PanelContainer" parent="MainContainer/BattleArea"]
 layout_mode = 2
 custom_minimum_size = Vector2(300, 0)
+theme_override_styles/panel = SubResource("StyleBoxFlat_1")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MainContainer/BattleArea/ActionPanel"]
 layout_mode = 2
@@ -72,6 +136,8 @@ theme_override_constants/separation = 10
 
 [node name="TurnIndicator" type="Label" parent="MainContainer/BattleArea/ActionPanel/VBoxContainer"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_font_sizes/font_size = 18
 text = "Turn: Deployment Phase"
 horizontal_alignment = 1
 
@@ -80,6 +146,7 @@ layout_mode = 2
 
 [node name="ReactionDicePanel" type="PanelContainer" parent="MainContainer/BattleArea/ActionPanel/VBoxContainer"]
 layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_2")
 
 [node name="ReactionDiceContent" type="VBoxContainer" parent="MainContainer/BattleArea/ActionPanel/VBoxContainer/ReactionDicePanel"]
 layout_mode = 2
@@ -87,6 +154,8 @@ theme_override_constants/separation = 5
 
 [node name="ReactionDiceLabel" type="Label" parent="MainContainer/BattleArea/ActionPanel/VBoxContainer/ReactionDicePanel/ReactionDiceContent"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_font_sizes/font_size = 16
 text = "Reaction Dice"
 horizontal_alignment = 1
 
@@ -103,6 +172,11 @@ theme_override_constants/separation = 3
 [node name="ConfirmAssignmentsButton" type="Button" parent="MainContainer/BattleArea/ActionPanel/VBoxContainer/ReactionDicePanel/ReactionDiceContent"]
 unique_name_in_owner = true
 layout_mode = 2
+custom_minimum_size = Vector2(0, 48)
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_3")
+theme_override_styles/hover = SubResource("StyleBoxFlat_2")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_2")
 text = "Confirm Assignments"
 
 [node name="HSeparatorDice" type="HSeparator" parent="MainContainer/BattleArea/ActionPanel/VBoxContainer"]
@@ -117,6 +191,8 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_font_sizes/font_size = 16
 text = "Selected Unit Info"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -137,11 +213,15 @@ size_flags_vertical = 3
 
 [node name="BattleLogLabel" type="Label" parent="MainContainer/BattleArea/ActionPanel/VBoxContainer/BattleLogContainer"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_font_sizes/font_size = 16
 text = "Battle Log"
 
 [node name="BattleLog" type="RichTextLabel" parent="MainContainer/BattleArea/ActionPanel/VBoxContainer/BattleLogContainer"]
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_colors/default_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_font_sizes/normal_font_size = 14
 bbcode_enabled = true
 scroll_following = true
 
@@ -150,4 +230,10 @@ layout_mode = 2
 
 [node name="EndTurnButton" type="Button" parent="MainContainer/BattleArea/ActionPanel/VBoxContainer"]
 layout_mode = 2
+custom_minimum_size = Vector2(0, 56)
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_4")
+theme_override_styles/hover = SubResource("StyleBoxFlat_4")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_4")
 text = "End Turn"

@@ -436,6 +436,20 @@ static func _load_json_safe(file_path: String, context: String) -> Dictionary:
 	print("DataManager: Successfully loaded " + context + " data with " + str(data_dict.size()) + " entries")
 	return data_dict
 
+## Public JSON Loading Method
+## Use this when you need to load arbitrary JSON files from code
+func load_json_file(file_path: String, context: String = "JSON data") -> Dictionary:
+	"""Load a JSON file and return its contents as a Dictionary.
+	
+	Args:
+		file_path: Full resource path to the JSON file (e.g., 'res://data/file.json')
+		context: Optional description for error messages
+	
+	Returns:
+		Dictionary containing the JSON data, or empty Dictionary on failure
+	"""
+	return _load_json_safe(file_path, context)
+
 ## Data Validation System
 static func _validate_data_integrity() -> bool:
 	## Validate data consistency and cross-references

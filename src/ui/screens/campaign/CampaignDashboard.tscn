@@ -1,10 +1,15 @@
-[gd_scene load_steps=6 format=3 uid="uid://b4q8j6q8j6q8j"]
+[gd_scene load_steps=11 format=3 uid="uid://b4q8j6q8j6q8j"]
 
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_ubhx7"]
 [ext_resource type="Script" uid="uid://coorx85tp2aps" path="res://src/ui/screens/campaign/CampaignDashboard.gd" id="2_e34t7"]
 [ext_resource type="Texture2D" uid="uid://dwtv722eqpn51" path="res://assets/BookImages/Nov_24_Cityview_.jpg" id="3_w2v87"]
 [ext_resource type="Script" uid="uid://cq2bcbd6g4t4f" path="res://src/ui/components/ResponsiveContainer.gd" id="4_resp"]
 [ext_resource type="PackedScene" uid="uid://b8x4j7y2n8q4v" path="res://src/ui/screens/campaign/VictoryProgressPanel.tscn" id="5_victory"]
+[ext_resource type="PackedScene" path="res://src/ui/components/campaign/CampaignTurnProgressTracker.tscn" id="6_turn_tracker"]
+[ext_resource type="PackedScene" path="res://src/ui/components/mission/MissionStatusCard.tscn" id="7_mission_card"]
+[ext_resource type="PackedScene" path="res://src/ui/components/world/WorldStatusCard.tscn" id="8_world_card"]
+[ext_resource type="PackedScene" path="res://src/ui/components/campaign/StoryTrackSection.tscn" id="9_story_track"]
+[ext_resource type="PackedScene" path="res://src/ui/components/campaign/QuickActionsFooter.tscn" id="10_quick_actions"]
 
 [node name="CampaignDashboard" type="Control"]
 layout_mode = 3
@@ -41,7 +46,7 @@ theme_override_constants/margin_bottom = 20
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 12
 
 [node name="HeaderPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -101,31 +106,30 @@ size_flags_horizontal = 3
 text = "📋 0 Events"
 horizontal_alignment = 2
 
-[node name="CampaignProgressTracker" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
+[node name="CampaignProgressTracker" parent="MarginContainer/VBoxContainer" instance=ExtResource("6_turn_tracker")]
 unique_name_in_owner = true
 layout_mode = 2
-
-[node name="ProgressContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/CampaignProgressTracker"]
-layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 1
 
 [node name="MainContent" type="Container" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
+clip_contents = true
 script = ExtResource("4_resp")
 min_width_for_horizontal = 800
-horizontal_spacing = 15
+horizontal_spacing = 20
+vertical_spacing = 12
 
 [node name="LeftPanel" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/separation = 12
 
 [node name="CrewPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent/LeftPanel"]
 layout_mode = 2
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/LeftPanel/CrewPanel"]
 layout_mode = 2
+theme_override_constants/separation = 8
 
 [node name="CrewLabel" type="Label" parent="MarginContainer/VBoxContainer/MainContent/LeftPanel/CrewPanel/VBoxContainer"]
 layout_mode = 2
@@ -133,20 +137,26 @@ text = "Crew"
 
 [node name="CrewScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/MainContent/LeftPanel/CrewPanel/VBoxContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 250)
+custom_minimum_size = Vector2(0, 280)
 layout_mode = 2
 size_flags_vertical = 3
+horizontal_scroll_mode = 0
 
-[node name="CrewCardContainer" type="Container" parent="MarginContainer/VBoxContainer/MainContent/LeftPanel/CrewPanel/VBoxContainer/CrewScrollContainer"]
+[node name="CrewCardContainer" type="GridContainer" parent="MarginContainer/VBoxContainer/MainContent/LeftPanel/CrewPanel/VBoxContainer/CrewScrollContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
+columns = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 12
 
 [node name="ShipPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent/LeftPanel"]
 layout_mode = 2
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/LeftPanel/ShipPanel"]
 layout_mode = 2
+theme_override_constants/separation = 8
 
 [node name="ShipLabel" type="Label" parent="MarginContainer/VBoxContainer/MainContent/LeftPanel/ShipPanel/VBoxContainer"]
 layout_mode = 2
@@ -163,6 +173,7 @@ size_flags_vertical = 3
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/LeftPanel/BattleHistoryPanel"]
 layout_mode = 2
+theme_override_constants/separation = 8
 
 [node name="HeaderRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/LeftPanel/BattleHistoryPanel/VBoxContainer"]
 layout_mode = 2
@@ -198,105 +209,95 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 5
 
-[node name="RightPanel" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent"]
+[node name="RightPanel" type="ScrollContainer" parent="MarginContainer/VBoxContainer/MainContent"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
 
-[node name="QuestPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent/RightPanel"]
+[node name="RightPanelContent" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/RightPanel"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="MissionStatusCard" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/RightPanelContent" instance=ExtResource("7_mission_card")]
+unique_name_in_owner = true
 layout_mode = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/QuestPanel"]
+[node name="QuestPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/RightPanelContent"]
 layout_mode = 2
 
-[node name="QuestLabel" type="Label" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/QuestPanel/VBoxContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/RightPanelContent/QuestPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="QuestLabel" type="Label" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/RightPanelContent/QuestPanel/VBoxContainer"]
 layout_mode = 2
 text = "Current Quest"
 
-[node name="QuestInfo" type="Label" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/QuestPanel/VBoxContainer"]
+[node name="QuestInfo" type="Label" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/RightPanelContent/QuestPanel/VBoxContainer"]
 layout_mode = 2
 text = "Quest Info"
 
-[node name="WorldPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent/RightPanel"]
-layout_mode = 2
-
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/WorldPanel"]
-layout_mode = 2
-
-[node name="WorldLabel" type="Label" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/WorldPanel/VBoxContainer"]
-layout_mode = 2
-text = "Current World"
-
-[node name="WorldInfo" type="Label" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/WorldPanel/VBoxContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "World Info"
-
-[node name="VictoryProgressPanel" parent="MarginContainer/VBoxContainer/MainContent/RightPanel" instance=ExtResource("5_victory")]
+[node name="WorldStatusCard" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/RightPanelContent" instance=ExtResource("8_world_card")]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="PatronPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent/RightPanel"]
+[node name="VictoryProgressPanel" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/RightPanelContent" instance=ExtResource("5_victory")]
+unique_name_in_owner = true
 layout_mode = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/PatronPanel"]
+[node name="StoryTrackSection" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/RightPanelContent" instance=ExtResource("9_story_track")]
+unique_name_in_owner = true
 layout_mode = 2
 
-[node name="PatronLabel" type="Label" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/PatronPanel/VBoxContainer"]
+[node name="PatronPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/RightPanelContent"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/RightPanelContent/PatronPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PatronLabel" type="Label" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/RightPanelContent/PatronPanel/VBoxContainer"]
 layout_mode = 2
 text = "Patrons"
 
-[node name="PatronList" type="ItemList" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/PatronPanel/VBoxContainer"]
+[node name="PatronList" type="ItemList" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/RightPanelContent/PatronPanel/VBoxContainer"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 60)
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="RivalPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent/RightPanel"]
+[node name="RivalPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/RightPanelContent"]
 layout_mode = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/RivalPanel"]
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/RightPanelContent/RivalPanel"]
 layout_mode = 2
+theme_override_constants/separation = 8
 
-[node name="RivalLabel" type="Label" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/RivalPanel/VBoxContainer"]
+[node name="RivalLabel" type="Label" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/RightPanelContent/RivalPanel/VBoxContainer"]
 layout_mode = 2
 text = "Rivals"
 
-[node name="RivalList" type="ItemList" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/RivalPanel/VBoxContainer"]
+[node name="RivalList" type="ItemList" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/RightPanelContent/RivalPanel/VBoxContainer"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 60)
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="ButtonContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+[node name="ActionButtonContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 10
-alignment = 1
+alignment = 2
 
-[node name="ActionButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonContainer"]
+[node name="ActionButton" type="Button" parent="MarginContainer/VBoxContainer/ActionButtonContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 56)
+custom_minimum_size = Vector2(200, 48)
 layout_mode = 2
-text = "Action"
+theme_override_font_sizes/font_size = 16
+text = "Next Phase ➡"
+icon_alignment = 2
 
-[node name="ManageCrewButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonContainer"]
+[node name="QuickActionsFooter" parent="MarginContainer/VBoxContainer" instance=ExtResource("10_quick_actions")]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 56)
 layout_mode = 2
-text = "Manage Crew"
-
-[node name="SaveButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonContainer"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(100, 56)
-layout_mode = 2
-text = "Save Game"
-
-[node name="LoadButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonContainer"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(100, 56)
-layout_mode = 2
-text = "Load Game"
-
-[node name="QuitButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonContainer"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(140, 56)
-layout_mode = 2
-text = "Quit to Main Menu"
-                                  
+size_flags_horizontal = 3

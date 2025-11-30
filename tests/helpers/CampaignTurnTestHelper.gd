@@ -2,6 +2,7 @@ class_name CampaignTurnTestHelper
 ## Phase 2 Helper: Campaign Turn and Phase Transition Testing
 ## Provides orchestration, validation, and state management for integration tests
 ## Plain class (no Node inheritance) for gdUnit4 v6.0.1 compatibility
+## UPDATED: Uses correct stat names matching Character.gd
 
 ## Mock campaign data generator
 func create_minimal_campaign() -> Dictionary:
@@ -14,28 +15,45 @@ func create_minimal_campaign() -> Dictionary:
 			"is_complete": true
 		},
 		"captain": {
-			"character_name": "Test Captain",
-			"species": "HUMAN",
+			"name": "Test Captain",
+			"character_name": "Test Captain",  # Compatibility alias
+			"origin": "HUMAN",          # CORRECT: NOT species
 			"background": "MILITARY",
+			"motivation": "SURVIVAL",
+			"character_class": "BASELINE",
 			"experience": 0,
 			"reactions": 1,
 			"speed": 4,
-			"combat_skill": 1,
+			"combat": 1,               # CORRECT: NOT combat_skill
 			"toughness": 3,
 			"savvy": 1,
+			"tech": 1,                 # ADDED: missing stat
+			"move": 4,                 # ADDED: missing stat
 			"luck": 0,
+			"is_captain": true,
+			"status": "ACTIVE",
 			"is_complete": true
 		},
 		"crew": {
 			"members": [
 				{
+					"name": "Crew Member 1",
 					"character_name": "Crew Member 1",
-					"species": "HUMAN",
+					"origin": "HUMAN",         # CORRECT: NOT species
+					"background": "COLONIST",
+					"motivation": "SURVIVAL",
+					"character_class": "BASELINE",
 					"experience": 0,
 					"reactions": 1,
 					"speed": 4,
-					"combat_skill": 0,
-					"toughness": 3
+					"combat": 1,              # CORRECT: NOT combat_skill
+					"toughness": 3,
+					"savvy": 1,
+					"tech": 1,                # ADDED: missing stat
+					"move": 4,                # ADDED: missing stat
+					"luck": 0,
+					"is_captain": false,
+					"status": "ACTIVE"
 				}
 			],
 			"is_complete": true
@@ -69,24 +87,44 @@ func create_full_campaign() -> Dictionary:
 	"""Create campaign with more crew, equipment, and resources for complex testing"""
 	var campaign = create_minimal_campaign()
 
-	# Add more crew
+	# Add more crew - using CORRECT stat names matching Character.gd
 	campaign.crew.members.append({
+		"name": "Crew Member 2",
 		"character_name": "Crew Member 2",
-		"species": "ALIEN_SWIFT",
+		"origin": "ALIEN_SWIFT",       # CORRECT: NOT species
+		"background": "EXPLORER",
+		"motivation": "ADVENTURE",
+		"character_class": "BASELINE",
 		"experience": 5,
 		"reactions": 2,
 		"speed": 5,
-		"combat_skill": 1,
-		"toughness": 2
+		"combat": 1,                   # CORRECT: NOT combat_skill
+		"toughness": 2,
+		"savvy": 1,
+		"tech": 1,
+		"move": 5,
+		"luck": 0,
+		"is_captain": false,
+		"status": "ACTIVE"
 	})
 	campaign.crew.members.append({
+		"name": "Crew Member 3",
 		"character_name": "Crew Member 3",
-		"species": "ALIEN_FERAL",
+		"origin": "ALIEN_FERAL",       # CORRECT: NOT species
+		"background": "MILITARY",
+		"motivation": "SURVIVAL",
+		"character_class": "BASELINE",
 		"experience": 3,
 		"reactions": 1,
 		"speed": 4,
-		"combat_skill": 2,
-		"toughness": 4
+		"combat": 2,                   # CORRECT: NOT combat_skill
+		"toughness": 4,
+		"savvy": 1,
+		"tech": 1,
+		"move": 4,
+		"luck": 0,
+		"is_captain": false,
+		"status": "ACTIVE"
 	})
 
 	# Add more equipment

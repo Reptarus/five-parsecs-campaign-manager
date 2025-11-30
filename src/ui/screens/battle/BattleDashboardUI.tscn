@@ -1,8 +1,54 @@
-[gd_scene load_steps=4 format=3 uid="uid://cs6k4w2v3jnvd"]
+[gd_scene load_steps=8 format=3 uid="uid://cs6k4w2v3jnvd"]
 
 [ext_resource type="Script" path="res://src/ui/screens/battle/BattleDashboardUI.gd" id="1_battle_dashboard"]
 [ext_resource type="PackedScene" uid="uid://b3mkf7y5q8n2p" path="res://src/ui/components/battle/DiceDashboard.tscn" id="2_dice_dashboard"]
 [ext_resource type="PackedScene" uid="uid://c7mq8r5n4k9wp" path="res://src/ui/components/battle/CombatCalculator.tscn" id="3_combat_calculator"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_main_panel"]
+bg_color = Color(0.145, 0.145, 0.259, 0.9)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.227, 0.227, 0.361, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
+bg_color = Color(0.145, 0.145, 0.259, 0.95)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.227, 0.227, 0.361, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_normal"]
+bg_color = Color(0.176, 0.353, 0.482, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
+bg_color = Color(0.227, 0.443, 0.6, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
 
 [node name="BattleDashboardUI" type="Control"]
 layout_mode = 3
@@ -23,7 +69,8 @@ grow_vertical = 2
 
 [node name="TopBar" type="HBoxContainer" parent="MainLayout"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 50)
+custom_minimum_size = Vector2(0, 56)
+theme_override_constants/separation = 16
 
 [node name="RoundInfo" type="HBoxContainer" parent="MainLayout/TopBar"]
 layout_mode = 2
@@ -31,11 +78,15 @@ size_flags_horizontal = 3
 
 [node name="RoundLabel" type="Label" parent="MainLayout/TopBar/RoundInfo"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_font_sizes/font_size = 16
 text = "Current Round:"
 vertical_alignment = 1
 
 [node name="RoundCounter" type="Label" parent="MainLayout/TopBar/RoundInfo"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_font_sizes/font_size = 16
 text = "Round: 1"
 vertical_alignment = 1
 
@@ -44,34 +95,56 @@ layout_mode = 2
 
 [node name="NextRoundButton" type="Button" parent="MainLayout/TopBar/RoundControls"]
 layout_mode = 2
+custom_minimum_size = Vector2(0, 48)
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_hover")
 text = "Next Round"
 
 [node name="EndBattleButton" type="Button" parent="MainLayout/TopBar/RoundControls"]
 layout_mode = 2
+custom_minimum_size = Vector2(0, 48)
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_hover")
 text = "End Battle"
 
 [node name="ContentArea" type="HBoxContainer" parent="MainLayout"]
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_constants/separation = 16
 
 [node name="LeftPanel" type="VBoxContainer" parent="MainLayout/ContentArea"]
 custom_minimum_size = Vector2(250, 0)
 layout_mode = 2
+theme_override_constants/separation = 16
 
 [node name="CharacterPanel" type="Panel" parent="MainLayout/ContentArea/LeftPanel"]
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_main_panel")
 
 [node name="CharacterPanelContent" type="VBoxContainer" parent="MainLayout/ContentArea/LeftPanel/CharacterPanel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/separation = 12
 
 [node name="CharacterPanelLabel" type="Label" parent="MainLayout/ContentArea/LeftPanel/CharacterPanel/CharacterPanelContent"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_font_sizes/font_size = 18
 text = "Crew Status"
 horizontal_alignment = 1
 
@@ -82,17 +155,25 @@ size_flags_vertical = 3
 [node name="CenterPanel" type="Panel" parent="MainLayout/ContentArea"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_main_panel")
 
 [node name="CenterContent" type="VBoxContainer" parent="MainLayout/ContentArea/CenterPanel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/separation = 12
 
 [node name="BattlefieldLabel" type="Label" parent="MainLayout/ContentArea/CenterPanel/CenterContent"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_font_sizes/font_size = 18
 text = "Battlefield (Grid View - Coming Soon)"
 horizontal_alignment = 1
 
@@ -104,21 +185,30 @@ color = Color(0.2, 0.2, 0.25, 1)
 [node name="RightPanel" type="VBoxContainer" parent="MainLayout/ContentArea"]
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
+theme_override_constants/separation = 16
 
 [node name="DicePanel" type="Panel" parent="MainLayout/ContentArea/RightPanel"]
 custom_minimum_size = Vector2(0, 200)
 layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="DicePanelContent" type="VBoxContainer" parent="MainLayout/ContentArea/RightPanel/DicePanel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/separation = 8
 
 [node name="DicePanelLabel" type="Label" parent="MainLayout/ContentArea/RightPanel/DicePanel/DicePanelContent"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_font_sizes/font_size = 18
 text = "Dice Dashboard"
 horizontal_alignment = 1
 
@@ -129,17 +219,25 @@ size_flags_vertical = 3
 [node name="CalculatorPanel" type="Panel" parent="MainLayout/ContentArea/RightPanel"]
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="CalculatorPanelContent" type="VBoxContainer" parent="MainLayout/ContentArea/RightPanel/CalculatorPanel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/separation = 8
 
 [node name="CalculatorPanelLabel" type="Label" parent="MainLayout/ContentArea/RightPanel/CalculatorPanel/CalculatorPanelContent"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_font_sizes/font_size = 18
 text = "Combat Calculator"
 horizontal_alignment = 1
 
@@ -150,22 +248,32 @@ size_flags_vertical = 3
 [node name="BottomPanel" type="Panel" parent="MainLayout"]
 custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_main_panel")
 
 [node name="BattleLogPanel" type="VBoxContainer" parent="MainLayout/BottomPanel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/separation = 8
 
 [node name="BattleLogLabel" type="Label" parent="MainLayout/BottomPanel/BattleLogPanel"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_font_sizes/font_size = 18
 text = "Battle Log"
 horizontal_alignment = 1
 
 [node name="BattleLog" type="RichTextLabel" parent="MainLayout/BottomPanel/BattleLogPanel"]
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_colors/default_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_font_sizes/normal_font_size = 14
 bbcode_enabled = true
 scroll_following = true

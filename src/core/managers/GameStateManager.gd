@@ -49,6 +49,7 @@ var campaign_debt: int = 0  # Five Parsecs debt system - ship seized at 75 credi
 var supplies: int = initial_supplies
 var reputation: int = initial_reputation
 var story_progress: int = 0
+var current_turn: int = 1  # Current campaign turn number
 var victory_conditions: Dictionary = {}  # Victory condition configuration
 var ship_seized: bool = false  # Ship seizure flag for debt system
 
@@ -1308,6 +1309,122 @@ func add_crew_contact(crew_id: String, contact_id: String) -> void:
 	if game_state and game_state and game_state.has_method("add_crew_contact"):
 		game_state.add_crew_contact(crew_id, contact_id)
 
+# ============================================================================
+# DATA ACCESSOR METHODS FOR UI COMPONENTS
+# ============================================================================
+
+## Get battle history array for display
+func get_battle_history() -> Array:
+	# First check campaign property
+	if game_state and "current_campaign" in game_state and game_state.current_campaign:
+		if "battle_history" in game_state.current_campaign:
+			return game_state.current_campaign.battle_history
+	
+	# Fallback to temp data
+	if has_temp_data("battle_history"):
+		return get_temp_data("battle_history")
+	
+	return []
+
+## Add a battle to history
+func add_battle_history(battle_data: Dictionary) -> void:
+	var history = get_battle_history()
+	history.append(battle_data)
+	
+	# Store in campaign if available
+	if game_state and "current_campaign" in game_state and game_state.current_campaign:
+		if "battle_history" in game_state.current_campaign:
+			game_state.current_campaign.battle_history = history
+			return
+	
+	# Fallback to temp data
+	set_temp_data("battle_history", history)
+
+## Get current world data for WorldStatusCard
+func get_current_world_data() -> Dictionary:
+	# First check temp data (where we store full world data)
+	if has_temp_data("world_data"):
+		return get_temp_data("world_data")
+	
+	# Construct from campaign data
+	if game_state and "current_campaign" in game_state and game_state.current_campaign:
+		var world_data: Dictionary = {}
+		
+		# Get world name
+		if "current_world" in game_state.current_campaign:
+			world_data["name"] = game_state.current_campaign.current_world
+		
+		# Get patron count
+		if "patrons" in game_state.current_campaign:
+			world_data["patrons_count"] = game_state.current_campaign.patrons.size()
+		
+		# Get threat level from temp data or default
+		world_data["danger_level"] = get_temp_data("threat_level") if has_temp_data("threat_level") else 1
+		world_data["type"] = get_temp_data("world_type") if has_temp_data("world_type") else "Frontier Colony"
+		
+		return world_data
+	
+	return {"name": "Unknown World", "danger_level": 1, "patrons_count": 0, "type": ""}
+
+## Get current mission data for MissionStatusCard
+func get_current_mission_data() -> Dictionary:
+	# Check temp data first
+	if has_temp_data("current_mission"):
+		return get_temp_data("current_mission")
+	
+	# Check campaign quests
+	if game_state and "current_campaign" in game_state and game_state.current_campaign:
+		if "quests" in game_state.current_campaign:
+			var quests = game_state.current_campaign.quests
+			if quests is Array and not quests.is_empty():
+				# Return the first active quest as mission
+				for quest in quests:
+					if quest is Dictionary and quest.get("status", "") == "active":
+						return {
+							"name": quest.get("name", "Unknown Mission"),
+							"type": quest.get("type", ""),
+							"objectives_completed": quest.get("progress", 0),
+							"objectives_total": quest.get("max_progress", 0),
+							"difficulty": quest.get("difficulty", 1)
+						}
+	
+	return {"name": "No Active Mission", "type": "", "objectives_completed": 0, "objectives_total": 0, "difficulty": 1}
+
+## Get current turn number
+func get_current_turn() -> int:
+	return current_turn
+
+## Set current turn number
+func set_current_turn(turn: int) -> void:
+	current_turn = maxi(1, turn)
+
+## Get quests array for StoryTrackSection
+func get_quests() -> Array:
+	if game_state and "current_campaign" in game_state and game_state.current_campaign:
+		if "quests" in game_state.current_campaign:
+			return game_state.current_campaign.quests
+	
+	# Fallback to temp data
+	if has_temp_data("test_quests"):
+		return get_temp_data("test_quests")
+	
+	return []
+
+## Alias for get_current_mission_data - used by CampaignDashboard
+func get_active_mission() -> Dictionary:
+	return get_current_mission_data()
+
+## Alias for get_current_world_data - used by CampaignDashboard  
+func get_current_location() -> Dictionary:
+	return get_current_world_data()
+
+## Get active quest for story track
+func get_active_quest() -> Dictionary:
+	var quests_array = get_quests()
+	for quest in quests_array:
+		if quest is Dictionary and quest.get("status", "") == "active":
+			return quest
+	return {}
 
 # ============================================================================
 # CHARACTER CREATION MODIFIER TABLES (Rulebook pp.24-28)
@@ -1402,40 +1519,112 @@ func create_test_campaign(campaign_data: Dictionary) -> bool:
 		push_error("GameStateManager: GameState doesn't support current_campaign property")
 		return false
 
-	# Apply test-specific configurations
-	var test_turn = campaign_data.get("turn_number", 1)
+	# Determine game stage for appropriate data generation
+	var game_stage = campaign_data.get("game_stage", "mid")  # early, mid, late
+	
+	# Apply profile defaults based on game stage
+	var profile = _get_campaign_profile(game_stage)
+	
+	# Apply test-specific configurations (override profile with explicit values)
+	var test_turn = campaign_data.get("turn_number", profile.turn_number)
+	current_turn = test_turn
 	if test_turn > 1:
 		_simulate_campaign_progression(test_turn)
 
-	var test_credits = campaign_data.get("credits", initial_credits)
+	var test_credits = campaign_data.get("credits", profile.credits)
 	set_credits(test_credits)
 
-	var test_supplies = campaign_data.get("supplies", initial_supplies)
+	var test_supplies = campaign_data.get("supplies", profile.supplies)
 	set_supplies(test_supplies)
 
-	var test_reputation = campaign_data.get("reputation", initial_reputation)
+	var test_reputation = campaign_data.get("reputation", profile.reputation)
 	set_reputation(test_reputation)
 
-	# Set up test crew size
-	var test_crew_size = campaign_data.get("crew_size", 4)
-	_create_test_crew(test_crew_size)
+	# Set up test crew with XP progression based on game stage
+	var test_crew_size = campaign_data.get("crew_size", profile.crew_size)
+	_create_test_crew(test_crew_size, game_stage)
 
 	# Create test ship
-	_create_test_ship(campaign_data.get("ship_name", "Test Ship"))
+	_create_test_ship(campaign_data.get("ship_name", profile.ship_name))
 
-	# Set up test scenario elements
-	var test_rivals = campaign_data.get("rivals", 0)
+	# Set up test scenario elements based on profile
+	var test_patrons = campaign_data.get("patrons", profile.patrons)
+	_create_test_patrons(test_patrons)
+	
+	var test_rivals = campaign_data.get("rivals", profile.rivals)
 	_create_test_rivals(test_rivals)
 
-	var test_quests = campaign_data.get("quests", 0)
+	var test_quests = campaign_data.get("quests", profile.quests)
 	_create_test_quests(test_quests)
+	
+	var test_battles = campaign_data.get("battles", profile.battles)
+	_create_test_battle_history(test_battles)
+	
+	# Create world data
+	_create_test_world()
 
-	# Set equipment level
-	var equipment_level = campaign_data.get("equipment_level", "basic")
+	# Set equipment level based on game stage
+	var equipment_level = campaign_data.get("equipment_level", profile.equipment_level)
 	_apply_test_equipment_level(equipment_level)
 
-	print("GameStateManager: Test campaign created successfully")
+	print("GameStateManager: Test campaign created (%s game profile):" % game_stage)
+	print("  - Turn: %d, Credits: %d, Reputation: %d" % [test_turn, test_credits, test_reputation])
+	print("  - Crew: %d, Patrons: %d, Rivals: %d, Quests: %d, Battles: %d" % [
+		test_crew_size, test_patrons, test_rivals, test_quests, test_battles
+	])
 	return true
+
+## Get campaign profile defaults for game stage (Core Rules campaign progression)
+func _get_campaign_profile(stage: String) -> Dictionary:
+	match stage.to_lower():
+		"early":
+			# Early game: Turn 1-5, rookies, minimal resources
+			return {
+				"turn_number": randi() % 5 + 1,
+				"credits": randi() % 10 + 5,  # 5-15 credits
+				"supplies": randi() % 3 + 1,
+				"reputation": 0,
+				"crew_size": 4,
+				"patrons": randi() % 2,  # 0-1 patrons
+				"rivals": randi() % 2 + 1,  # 1-2 rivals
+				"quests": 0,
+				"battles": randi() % 3,  # 0-2 battles
+				"ship_name": "Rusty Bucket",
+				"equipment_level": "basic"
+			}
+		"mid":
+			# Mid game: Turn 10-15, mixed crew, growing reputation
+			return {
+				"turn_number": randi() % 6 + 10,  # 10-15
+				"credits": randi() % 30 + 20,  # 20-50 credits
+				"supplies": randi() % 5 + 3,
+				"reputation": randi() % 10 + 5,
+				"crew_size": 5,
+				"patrons": randi() % 2 + 2,  # 2-3 patrons
+				"rivals": randi() % 2 + 2,  # 2-3 rivals
+				"quests": randi() % 2 + 1,  # 1-2 quests
+				"battles": randi() % 5 + 5,  # 5-9 battles
+				"ship_name": "Starlight",
+				"equipment_level": "standard"
+			}
+		"late":
+			# Late game: Turn 25+, veterans, established reputation
+			return {
+				"turn_number": randi() % 10 + 25,  # 25-35
+				"credits": randi() % 50 + 50,  # 50-100 credits
+				"supplies": randi() % 5 + 8,
+				"reputation": randi() % 15 + 15,
+				"crew_size": 6,
+				"patrons": randi() % 2 + 3,  # 3-4 patrons
+				"rivals": randi() % 3 + 3,  # 3-5 rivals
+				"quests": randi() % 2 + 2,  # 2-3 quests
+				"battles": randi() % 10 + 15,  # 15-25 battles
+				"ship_name": "Victory's Edge",
+				"equipment_level": "advanced"
+			}
+		_:
+			# Default to mid game
+			return _get_campaign_profile("mid")
 
 ## Apply a specific test scenario to current campaign
 func apply_test_scenario(scenario_name: String) -> bool:
@@ -1472,9 +1661,9 @@ func _simulate_campaign_progression(target_turn: int) -> void:
 		if turn % 3 == 0: # Every 3 turns, add some reputation
 			reputation += 1
 
-## Create test crew members with full rulebook-accurate modifiers
-func _create_test_crew(crew_size: int) -> void:
-	print("GameStateManager: Creating rulebook-accurate test crew of size ", crew_size)
+## Create test crew members with full rulebook-accurate modifiers and XP progression
+func _create_test_crew(crew_size: int, game_stage: String = "mid") -> void:
+	print("GameStateManager: Creating rulebook-accurate test crew of size %d (%s game)" % [crew_size, game_stage])
 
 	if not game_state:
 		push_error("GameStateManager: Cannot create crew - game_state not available")
@@ -1492,12 +1681,36 @@ func _create_test_crew(crew_size: int) -> void:
 	# Generate crew equipment pool (rulebook p.29: 3 military, 3 low-tech, 1 gear, 1 gadget)
 	var equipment_pool = _generate_crew_equipment_pool()
 
+	# XP progression tiers based on Core Rules p.118
+	# Casualty: 1 XP, Survived no win: 2 XP, Survived + Won: 3 XP, First casualty: +1 bonus
+	# Character Upgrades: 5-10 XP per stat depending on ability
+	var xp_tiers = _get_xp_tiers_for_stage(game_stage)
+
 	# Create crew members with full modifiers
 	var test_crew: Array = []
 	var test_names: Array[String] = ["Alex", "Jordan", "Casey", "Riley", "Morgan", "Taylor"]
 
 	for i in range(crew_size):
 		var character = _generate_character_with_modifiers(test_names[i % test_names.size()])
+		
+		# Apply XP progression based on tier and position
+		var tier_index = mini(i, xp_tiers.size() - 1)
+		var xp_tier = xp_tiers[tier_index]
+		
+		character["experience"] = character.get("experience", 0) + xp_tier.xp
+		character["total_kills"] = xp_tier.kills
+		character["missions_completed"] = xp_tier.missions
+		character["xp_to_next_level"] = _calculate_xp_to_next_upgrade(character["experience"])
+		
+		# Apply stat upgrades for experienced characters (1 stat point per upgrade)
+		if xp_tier.upgrades > 0:
+			var stat_options = ["combat", "reactions", "toughness", "savvy"]
+			for _upgrade in range(xp_tier.upgrades):
+				var stat_to_boost = stat_options[randi() % stat_options.size()]
+				character[stat_to_boost] = character.get(stat_to_boost, 0) + 1
+		
+		# Set tier label for UI display
+		character["experience_tier"] = xp_tier.tier
 
 		# Accumulate campaign resources from character creation
 		campaign_resources.credits += character.get("creation_credits", 0)
@@ -1513,6 +1726,9 @@ func _create_test_crew(crew_size: int) -> void:
 		equipment_pool.append_array(character.get("bonus_equipment", []))
 
 		test_crew.append(character)
+		print("GameStateManager: Created %s - %s (XP: %d, Upgrades: %d, Kills: %d)" % [
+			character.character_name, xp_tier.tier, xp_tier.xp, xp_tier.upgrades, xp_tier.kills
+		])
 
 	# Designate first character as Leader (gets +1 Luck per rulebook)
 	if test_crew.size() > 0:
@@ -1561,6 +1777,48 @@ func _create_test_crew(crew_size: int) -> void:
 	else:
 		push_error("GameStateManager: current_campaign not available - cannot set crew")
 
+## Get XP progression tiers based on game stage (Core Rules p.118)
+func _get_xp_tiers_for_stage(stage: String) -> Array:
+	match stage.to_lower():
+		"early":
+			# Early game: Turn 1-5, mostly rookies
+			return [
+				{"tier": "Rookie", "xp": 3, "upgrades": 0, "kills": 1, "missions": 1},
+				{"tier": "Rookie", "xp": 0, "upgrades": 0, "kills": 0, "missions": 0},
+				{"tier": "Rookie", "xp": 0, "upgrades": 0, "kills": 0, "missions": 0},
+				{"tier": "Rookie", "xp": 0, "upgrades": 0, "kills": 0, "missions": 0},
+			]
+		"mid":
+			# Mid game: Turn 10-15, mixed experience levels
+			return [
+				{"tier": "Veteran", "xp": 18, "upgrades": 3, "kills": 12, "missions": 6},  # Experienced leader
+				{"tier": "Seasoned", "xp": 10, "upgrades": 1, "kills": 6, "missions": 4},
+				{"tier": "Seasoned", "xp": 7, "upgrades": 1, "kills": 4, "missions": 3},
+				{"tier": "Rookie", "xp": 3, "upgrades": 0, "kills": 2, "missions": 1},  # Recent recruit
+				{"tier": "Rookie", "xp": 0, "upgrades": 0, "kills": 0, "missions": 0},  # New recruit
+			]
+		"late":
+			# Late game: Turn 25+, veterans and elites
+			return [
+				{"tier": "Elite", "xp": 35, "upgrades": 5, "kills": 25, "missions": 15},  # Legendary captain
+				{"tier": "Elite", "xp": 28, "upgrades": 4, "kills": 18, "missions": 12},
+				{"tier": "Veteran", "xp": 20, "upgrades": 3, "kills": 14, "missions": 8},
+				{"tier": "Veteran", "xp": 15, "upgrades": 2, "kills": 10, "missions": 6},
+				{"tier": "Seasoned", "xp": 8, "upgrades": 1, "kills": 5, "missions": 3},
+				{"tier": "Rookie", "xp": 2, "upgrades": 0, "kills": 1, "missions": 1},  # New recruit
+			]
+		_:
+			# Default to mid game
+			return _get_xp_tiers_for_stage("mid")
+
+## Calculate XP needed for next character upgrade (Core Rules p.118)
+func _calculate_xp_to_next_upgrade(current_xp: int) -> int:
+	# Cheapest upgrade is Speed/Savvy at 5 XP
+	# Most common upgrades are 6-7 XP
+	var base_upgrade_cost = 6
+	var xp_spent = (current_xp / base_upgrade_cost) * base_upgrade_cost
+	return base_upgrade_cost - (current_xp - xp_spent)
+
 ## Create test ship
 func _create_test_ship(ship_name: String = "Starlight") -> void:
 	print("GameStateManager: Creating test ship: ", ship_name)
@@ -1587,30 +1845,414 @@ func _create_test_ship(ship_name: String = "Starlight") -> void:
 
 	print("GameStateManager: Created test ship '%s'" % ship_name)
 
-## Create test rival encounters
+## Create test patrons with full data (Core Rules p.78-82)
+func _create_test_patrons(patron_count: int) -> void:
+	print("GameStateManager: Creating %d test patrons with full data" % patron_count)
+
+	if not game_state or not game_state.current_campaign:
+		push_warning("GameStateManager: Cannot create patrons - no campaign")
+		return
+
+	# Patron templates with Five Parsecs flavor (Core Rules p.78-82)
+	var patron_templates = [
+		{
+			"id": "patron_1",
+			"name": "Merchant Lord Vazquez",
+			"type": "corporate",
+			"relationship": "neutral",
+			"jobs_completed": 2,
+			"jobs_available": 1,
+			"trust_level": 3,
+			"special_offers": true,
+			"persistent": false,
+			"description": "A wealthy trader dealing in exotic goods across the Fringe.",
+			"payment_bonus": 0
+		},
+		{
+			"id": "patron_2",
+			"name": "Commander Chen",
+			"type": "military",
+			"relationship": "friendly",
+			"jobs_completed": 4,
+			"jobs_available": 2,
+			"trust_level": 5,
+			"special_offers": false,
+			"persistent": true,
+			"description": "A respected military officer seeking deniable assets.",
+			"payment_bonus": 1
+		},
+		{
+			"id": "patron_3",
+			"name": "The Broker",
+			"type": "underworld",
+			"relationship": "cautious",
+			"jobs_completed": 1,
+			"jobs_available": 1,
+			"trust_level": 2,
+			"special_offers": true,
+			"persistent": false,
+			"description": "A mysterious information dealer with connections everywhere.",
+			"payment_bonus": 2
+		},
+		{
+			"id": "patron_4",
+			"name": "Governor Reyes",
+			"type": "government",
+			"relationship": "neutral",
+			"jobs_completed": 0,
+			"jobs_available": 1,
+			"trust_level": 1,
+			"special_offers": false,
+			"persistent": false,
+			"description": "Local planetary administrator needing discrete problem solvers.",
+			"payment_bonus": 0
+		},
+		{
+			"id": "patron_5",
+			"name": "Dr. Elara Voss",
+			"type": "corporate",
+			"relationship": "friendly",
+			"jobs_completed": 3,
+			"jobs_available": 2,
+			"trust_level": 4,
+			"special_offers": true,
+			"persistent": true,
+			"description": "A research scientist with deep pockets and dangerous interests.",
+			"payment_bonus": 1
+		}
+	]
+
+	if "patrons" in game_state.current_campaign:
+		game_state.current_campaign.patrons = []
+		for i: int in range(mini(patron_count, patron_templates.size())):
+			var patron = patron_templates[i].duplicate()
+			game_state.current_campaign.patrons.append(patron)
+			print("GameStateManager: Added patron '%s' (Trust: %d, Jobs: %d)" % [
+				patron.name, patron.trust_level, patron.jobs_completed
+			])
+	else:
+		push_error("GameStateManager: current_campaign does not have 'patrons' property")
+
+## Create test rival encounters with full data (Core Rules p.77)
 func _create_test_rivals(rival_count: int) -> void:
-	print("GameStateManager: Creating ", rival_count, " test rivals")
+	print("GameStateManager: Creating %d test rivals with full data" % rival_count)
 
 	if not game_state or not game_state.current_campaign:
 		push_warning("GameStateManager: GameState or current_campaign is not available.")
 		return
 
-	# Store rivals directly in campaign.rivals array (no add_rival() method exists)
+	# Rival templates with Five Parsecs flavor (Core Rules p.77)
+	var rival_templates = [
+		{
+			"id": "rival_1",
+			"name": "The Red Vipers",
+			"type": "gang",
+			"threat": 2,
+			"status": "active",
+			"encounters": 1,
+			"origin": "Betrayed in a salvage deal",
+			"last_encounter_turn": 3,
+			"grudge_level": "moderate"
+		},
+		{
+			"id": "rival_2",
+			"name": "Commander Vex",
+			"type": "bounty_hunter",
+			"threat": 3,
+			"status": "hunting",
+			"encounters": 2,
+			"origin": "Escaped from their contract",
+			"last_encounter_turn": 7,
+			"grudge_level": "severe"
+		},
+		{
+			"id": "rival_3",
+			"name": "Syndicate Enforcers",
+			"type": "criminal",
+			"threat": 2,
+			"status": "watching",
+			"encounters": 0,
+			"origin": "Witnessed their operation",
+			"last_encounter_turn": 0,
+			"grudge_level": "mild"
+		},
+		{
+			"id": "rival_4",
+			"name": "Rogue AI 'TERMINUS'",
+			"type": "machine",
+			"threat": 4,
+			"status": "pursuing",
+			"encounters": 3,
+			"origin": "Damaged their core systems",
+			"last_encounter_turn": 10,
+			"grudge_level": "extreme"
+		},
+		{
+			"id": "rival_5",
+			"name": "Militia Captain Hark",
+			"type": "military",
+			"threat": 2,
+			"status": "active",
+			"encounters": 1,
+			"origin": "Defied local authority",
+			"last_encounter_turn": 5,
+			"grudge_level": "moderate"
+		}
+	]
+
+	# Store rivals in campaign
 	if "rivals" in game_state.current_campaign:
-		for i: int in range(rival_count):
-			var test_rival_id = "test_rival_" + str(i + 1)
-			game_state.current_campaign.rivals.append(test_rival_id)
-			print("GameStateManager: Added rival '%s'" % test_rival_id)
+		game_state.current_campaign.rivals = []
+		for i: int in range(mini(rival_count, rival_templates.size())):
+			var rival = rival_templates[i].duplicate()
+			rival["created_turn"] = maxi(1, current_turn - rival.encounters)
+			game_state.current_campaign.rivals.append(rival)
+			print("GameStateManager: Added rival '%s' (Threat: %d, Status: %s)" % [
+				rival.name, rival.threat, rival.status
+			])
 	else:
 		push_error("GameStateManager: current_campaign does not have 'rivals' property")
 
-## Create test quest scenarios
+## Create test quest scenarios with full data (Core Rules p.86)
 func _create_test_quests(quest_count: int) -> void:
-	print("GameStateManager: Creating ", quest_count, " test quests")
+	print("GameStateManager: Creating %d test quests with objectives" % quest_count)
 
-	# This would interface with the quest system
-	if game_state and game_state and game_state.has_method("create_test_quests"):
+	if not game_state or not game_state.current_campaign:
+		push_warning("GameStateManager: Cannot create quests - no campaign")
+		return
+
+	# Quest templates with Five Parsecs story flavor (Core Rules p.86)
+	var quest_templates = [
+		{
+			"id": "quest_1",
+			"name": "The Forgotten Colony",
+			"type": "story",
+			"status": "active",
+			"progress": 2,
+			"max_progress": 5,
+			"description": "Investigate the abandoned colony on Kepler-7b and discover what happened to its inhabitants.",
+			"objectives": [
+				{"text": "Travel to Kepler-7b", "complete": true},
+				{"text": "Explore the colony ruins", "complete": true},
+				{"text": "Find survivor logs", "complete": false},
+				{"text": "Confront the threat", "complete": false},
+				{"text": "Report findings", "complete": false}
+			],
+			"rewards": {"credits": 500, "story_points": 2, "reputation": 5},
+			"rumors_collected": 3,
+			"started_turn": 5
+		},
+		{
+			"id": "quest_2",
+			"name": "Patron Debt",
+			"type": "patron",
+			"status": "active",
+			"progress": 1,
+			"max_progress": 3,
+			"description": "Complete jobs for Merchant Lord Vazquez to settle the crew's debt.",
+			"objectives": [
+				{"text": "Complete first delivery", "complete": true},
+				{"text": "Handle the competition", "complete": false},
+				{"text": "Final payment delivery", "complete": false}
+			],
+			"rewards": {"credits": 300, "patron_favor": true},
+			"rumors_collected": 1,
+			"started_turn": 8
+		},
+		{
+			"id": "quest_3",
+			"name": "Ancient Tech Cache",
+			"type": "rumor",
+			"status": "investigating",
+			"progress": 0,
+			"max_progress": 4,
+			"description": "Rumors of pre-collapse technology hidden in the asteroid field.",
+			"objectives": [
+				{"text": "Verify the rumors", "complete": false},
+				{"text": "Navigate the asteroid field", "complete": false},
+				{"text": "Bypass security systems", "complete": false},
+				{"text": "Secure the cache", "complete": false}
+			],
+			"rewards": {"credits": 800, "rare_item": true, "story_points": 1},
+			"rumors_collected": 2,
+			"started_turn": 12
+		},
+		{
+			"id": "quest_4",
+			"name": "The K'Erin Honor Duel",
+			"type": "story",
+			"status": "pending",
+			"progress": 0,
+			"max_progress": 2,
+			"description": "A K'Erin warrior has challenged your captain to an honor duel.",
+			"objectives": [
+				{"text": "Prepare for the duel", "complete": false},
+				{"text": "Face the K'Erin champion", "complete": false}
+			],
+			"rewards": {"credits": 200, "reputation": 10, "ally": true},
+			"rumors_collected": 1,
+			"started_turn": 15
+		}
+	]
+
+	# Store quests in campaign
+	if "quests" in game_state.current_campaign:
+		game_state.current_campaign.quests = []
+		for i: int in range(mini(quest_count, quest_templates.size())):
+			var quest = quest_templates[i].duplicate(true)
+			game_state.current_campaign.quests.append(quest)
+			print("GameStateManager: Added quest '%s' (%d/%d)" % [
+				quest.name, quest.progress, quest.max_progress
+			])
+	elif game_state.has_method("create_test_quests"):
 		game_state.create_test_quests(quest_count)
+	else:
+		# Store in temp data as fallback
+		set_temp_data("test_quests", quest_templates.slice(0, quest_count))
+
+## Create test battle history with varied outcomes (Core Rules Post-Battle p.119)
+func _create_test_battle_history(battle_count: int) -> void:
+	print("GameStateManager: Creating %d battle history entries" % battle_count)
+
+	if not game_state or not game_state.current_campaign:
+		push_warning("GameStateManager: Cannot create battle history - no campaign")
+		return
+
+	var enemy_types = ["Gangers", "Pirates", "Mercenaries", "Cultists", "Robots", "Alien Raiders", "Enforcers", "Ferals"]
+	var outcomes = ["victory", "victory", "victory", "retreat", "pyrrhic"]  # Weighted towards victory
+	var mission_types = ["Patrol", "Raid", "Defense", "Assassination", "Rescue", "Salvage", "Escort", "Recon"]
+	var locations = ["Abandoned Station", "Colony Outskirts", "Industrial Zone", "Spaceport", "Wasteland", "Underground Complex"]
+
+	var battle_history: Array = []
+	for i: int in range(battle_count):
+		var turn_number: int = maxi(1, current_turn - (battle_count - i))
+		var outcome: String = outcomes[randi() % outcomes.size()]
+		var enemy: String = enemy_types[randi() % enemy_types.size()]
+		
+		# Calculate results based on outcome (Core Rules p.119)
+		var kills: int = randi() % 6 + 2 if outcome == "victory" else randi() % 3
+		var injuries: int = 0 if outcome == "victory" else randi() % 2 + 1
+		var credits_earned: int = (randi() % 3 + 1) * 50 if outcome != "retreat" else 0
+		var xp_earned: int = kills * 2 + (5 if outcome == "victory" else 2)
+
+		var battle = {
+			"id": "battle_%d" % (i + 1),
+			"turn": turn_number,
+			"mission_type": mission_types[randi() % mission_types.size()],
+			"location": locations[randi() % locations.size()],
+			"enemy_type": enemy,
+			"enemy_count": randi() % 4 + 4,
+			"outcome": outcome,
+			"kills": kills,
+			"injuries": injuries,
+			"casualties": 1 if outcome == "pyrrhic" else 0,
+			"credits_earned": credits_earned,
+			"loot_found": randi() % 3,
+			"xp_earned": xp_earned,
+			"held_field": outcome == "victory",
+			"notable_events": _generate_battle_events(outcome)
+		}
+		battle_history.append(battle)
+		print("GameStateManager: Battle %d - %s vs %s: %s (+%d credits, %d kills)" % [
+			turn_number, battle.mission_type, enemy, outcome, credits_earned, kills
+		])
+
+	if "battle_history" in game_state.current_campaign:
+		game_state.current_campaign.battle_history = battle_history
+	else:
+		set_temp_data("battle_history", battle_history)
+
+## Generate notable battle events for flavor (Core Rules p.116 Battle Events)
+func _generate_battle_events(outcome: String) -> Array:
+	var victory_events = [
+		"Flawless execution - no casualties",
+		"Enemy leader eliminated",
+		"Valuable intel recovered",
+		"Found hidden stash during sweep",
+		"Local contact made during mission",
+		"Enemy routed before reinforcements arrived"
+	]
+	var retreat_events = [
+		"Tactical withdrawal under fire",
+		"Overwhelmed by reinforcements",
+		"Objective compromised - fell back",
+		"Ambush forced retreat",
+		"Equipment malfunction forced extraction"
+	]
+	var pyrrhic_events = [
+		"Victory at great cost",
+		"Lost crew member covering retreat",
+		"Equipment destroyed in explosion",
+		"Barely survived enemy elite unit",
+		"Mission complete but medic needed"
+	]
+
+	match outcome:
+		"victory":
+			return [victory_events[randi() % victory_events.size()]]
+		"retreat":
+			return [retreat_events[randi() % retreat_events.size()]]
+		"pyrrhic":
+			return [pyrrhic_events[randi() % pyrrhic_events.size()]]
+	return []
+
+## Create test world/location data (Core Rules p.72-75)
+func _create_test_world() -> void:
+	print("GameStateManager: Creating test world data")
+
+	if not game_state or not game_state.current_campaign:
+		push_warning("GameStateManager: Cannot create world - no campaign")
+		return
+
+	# World traits from Core Rules World Traits Table (p.74-75)
+	var world_traits_options = [
+		"Haze", "Overgrown", "Warzone", "Heavily Enforced", "Rampant Crime",
+		"Invasion Risk", "Trade Hub", "Corporate Controlled", "Frontier Settlement"
+	]
+	
+	# Pick 1-3 random traits
+	var num_traits = randi() % 3 + 1
+	var selected_traits: Array = []
+	for _i in range(num_traits):
+		var trait_item = world_traits_options[randi() % world_traits_options.size()]
+		if trait_item not in selected_traits:
+			selected_traits.append(trait_item)
+
+	var world_data = {
+		"name": "Nexus Prime",
+		"type": "frontier_colony",
+		"traits": selected_traits,
+		"threat_level": randi() % 4 + 1,  # 1-4
+		"invasion_status": "none",
+		"licensing_required": randi() % 6 >= 4,  # 5-6 on d6 requires license (Core Rules p.73)
+		"license_cost": randi() % 6 + 1,
+		"local_events": [
+			{"type": "market_boom", "description": "Surplus goods flood the market"},
+			{"type": "gang_war", "description": "Local gangs clash in the lower districts"}
+		],
+		"available_services": [
+			"Medical Bay", "Repair Shop", "Black Market", "Recruitment Office",
+			"Trade Post", "Information Broker"
+		],
+		"travel_options": [
+			{"destination": "Kepler-7b", "fuel_cost": 2, "danger": "low"},
+			{"destination": "The Fringe Station", "fuel_cost": 3, "danger": "medium"},
+			{"destination": "Unity Core Worlds", "fuel_cost": 5, "danger": "high"}
+		],
+		"visited_turns": [1, 3, 5],
+		"turns_on_world": current_turn
+	}
+
+	# Set world name in campaign (current_world is a String property)
+	if "current_world" in game_state.current_campaign:
+		game_state.current_campaign.current_world = world_data.name
+	
+	# Store full world data in temp_data for UI access
+	set_temp_data("world_data", world_data)
+
+	print("GameStateManager: Created world '%s' (%s) with traits: %s" % [
+		world_data.name, world_data.type, str(selected_traits)
+	])
 
 ## Apply test equipment level to crew
 func _apply_test_equipment_level(level: String) -> void:
@@ -2007,8 +2649,8 @@ func navigate_to_screen(screen_name: String, context: Dictionary = {}) -> bool:
 	"""Navigate to screen using SceneRouter with safe fallback.
 
 	Args:
-		screen_name: Name of screen (e.g., 'crew_management', 'campaign_dashboard')
-		context: Optional context data to pass via temp_data
+		screen_name: Scene key registered in SceneRouter (e.g., "campaign_dashboard")
+		context: Optional context dictionary to pass to the target scene
 
 	Returns:
 		true if navigation initiated successfully
@@ -2017,10 +2659,8 @@ func navigate_to_screen(screen_name: String, context: Dictionary = {}) -> bool:
 	if not context.is_empty():
 		set_temp_data(TEMP_KEY_NAVIGATION_CONTEXT, context)
 
-	# Try SceneRouter first (preferred)
-	var scene_router = Engine.get_singleton("SceneRouter")
-	if not scene_router:
-		scene_router = get_node_or_null("/root/SceneRouter")
+	# Try SceneRouter autoload (GDScript autoloads are nodes, not Engine singletons)
+	var scene_router: Node = get_node_or_null("/root/SceneRouter")
 
 	if scene_router and scene_router.has_method("navigate_to"):
 		scene_router.navigate_to(screen_name)
@@ -2052,7 +2692,7 @@ func navigate_to_scene_path(scene_path: String) -> bool:
 		return false
 
 	if not ResourceLoader.exists(scene_path):
-		push_error("GameStateManager: Scene does not exist: %s" % scene_path)
+		push_error("GameStateManager: Scene file not found: %s" % scene_path)
 		return false
 
 	tree.call_deferred("change_scene_to_file", scene_path)
@@ -2060,57 +2700,17 @@ func navigate_to_scene_path(scene_path: String) -> bool:
 		print("GameStateManager: Navigating to scene: %s" % scene_path)
 	return true
 
-## Get scene path for common screen names
+## Get scene path for a screen name
 func _get_scene_path_for_screen(screen_name: String) -> String:
 	"""Map screen names to scene paths for fallback navigation."""
-	var screen_paths = {
+	var paths = {
 		"main_menu": "res://src/ui/screens/mainmenu/MainMenu.tscn",
 		"campaign_dashboard": "res://src/ui/screens/campaign/CampaignDashboard.tscn",
 		"crew_management": "res://src/ui/screens/crew/CrewManagementScreen.tscn",
 		"character_details": "res://src/ui/screens/character/CharacterDetailsScreen.tscn",
-		"crew_creation": "res://src/ui/screens/crew/InitialCrewCreation.tscn",
-		"campaign_creation": "res://src/ui/screens/campaign/CampaignCreationUI.tscn",
+		"ship_manager": "res://src/ui/screens/ships/ShipManager.tscn",
 		"world_phase": "res://src/ui/screens/world/WorldPhaseController.tscn",
-		"battle_dashboard": "res://src/ui/screens/battle/BattleDashboardUI.tscn",
-		"equipment_manager": "res://src/ui/screens/equipment/EquipmentManager.tscn",
-		"advancement_manager": "res://src/ui/screens/character/AdvancementManager.tscn",
-		"load_campaign": "res://src/ui/screens/campaign/LoadCampaign.tscn"
+		"settings": "res://src/ui/dialogs/SettingsDialog.tscn",
+		"trading": "res://src/ui/screens/campaign/TradingScreen.tscn"
 	}
-	return screen_paths.get(screen_name, "")
-
-# ============================================================================
-# CHARACTER STATUS HELPERS
-# ============================================================================
-# Standardized status tracking and display
-
-## Character status enum values (match Character.gd status property)
-const STATUS_ACTIVE = "ACTIVE"
-const STATUS_INJURED = "INJURED"
-const STATUS_RECOVERING = "RECOVERING"
-const STATUS_DEAD = "DEAD"
-const STATUS_MISSING = "MISSING"
-const STATUS_RETIRED = "RETIRED"
-
-## Get status icon for display
-static func get_status_icon(status: String) -> String:
-	"""Get emoji icon for character status."""
-	match status:
-		"ACTIVE": return "✅"
-		"INJURED": return "🩹"
-		"RECOVERING": return "🏥"
-		"DEAD": return "💀"
-		"MISSING": return "❓"
-		"RETIRED": return "🏠"
-		_: return "❓"
-
-## Get status color for UI display
-static func get_status_color(status: String) -> Color:
-	"""Get color for character status display."""
-	match status:
-		"ACTIVE": return Color(0.5, 1.0, 0.5)      # Green
-		"INJURED": return Color(1.0, 1.0, 0.5)     # Yellow
-		"RECOVERING": return Color(0.5, 0.8, 1.0)  # Light blue
-		"DEAD": return Color(1.0, 0.3, 0.3)        # Red
-		"MISSING": return Color(0.8, 0.8, 0.8)     # Gray
-		"RETIRED": return Color(0.6, 0.6, 0.8)     # Purple-gray
-		_: return Color(1.0, 1.0, 1.0)             # White
+	return paths.get(screen_name, "")

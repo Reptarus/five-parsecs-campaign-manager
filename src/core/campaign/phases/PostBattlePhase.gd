@@ -9,6 +9,8 @@ class_name PostBattlePhase
 
 # Safe dependency loading - loaded at runtime in _ready()
 # GlobalEnums available as autoload singleton
+# InjurySystemConstants needed for injury processing (line 379+)
+const InjuryConstants = preload("res://src/core/systems/InjurySystemConstants.gd")
 var dice_manager: Variant = null
 var game_state_manager: Variant = null
 
@@ -383,8 +385,8 @@ func _process_single_injury(injury_data: Dictionary) -> Dictionary:
 	var recovery_time: int = 0
 	if recovery_info.has("dice"):
 		# Use min/max for recovery calculation
-		var min_time := recovery_info.get("min", 0)
-		var max_time := recovery_info.get("max", 0)
+		var min_time: int = recovery_info.get("min", 0)
+		var max_time: int = recovery_info.get("max", 0)
 		if max_time > 0:
 			recovery_time = randi_range(min_time, max_time)
 		else:
@@ -393,7 +395,7 @@ func _process_single_injury(injury_data: Dictionary) -> Dictionary:
 		recovery_time = recovery_info.get("max", 0)
 
 	# Get injury type name and description
-	var injury_type_name := InjurySystemConstants.INJURY_TYPE_NAMES.get(injury_type, "UNKNOWN")
+	var injury_type_name: String = InjurySystemConstants.INJURY_TYPE_NAMES.get(injury_type, "UNKNOWN")
 	var injury_description := InjurySystemConstants.get_injury_description(injury_type)
 
 	# Check for special effects
@@ -646,6 +648,446 @@ func _complete_post_battle_phase() -> void:
 
 	print("PostBattlePhase: Post-Battle Phase completed")
 	self.post_battle_phase_completed.emit()
+
+## Event Effect Application Methods
+func apply_campaign_event_effect(event_title: String) -> String:
+	"""Apply campaign event effects based on event title"""
+	match event_title:
+		# Story Point Events
+		"Local Friends", "Lucky Break", "New Ally":
+			if GameStateManager and GameStateManager.has_method("add_story_points"):
+				GameStateManager.add_story_points(1)
+			return "+1 Story Point"
+		
+		# Credit Events
+		"Valuable Find":
+			var credits: int = randi_range(1, 6)
+			if GameStateManager:
+				GameStateManager.add_credits(credits)
+			return "+%d Credits" % credits
+		
+		"Windfall":
+			var credits: int = randi_range(1, 6) + randi_range(1, 6)
+			if GameStateManager:
+				GameStateManager.add_credits(credits)
+			return "+%d Credits (windfall)" % credits
+		
+		"Life Support Issues":
+			var cost: int = randi_range(1, 6)
+			# Check for Engineer to reduce cost
+			var engineer_present: bool = _has_crew_with_class("Engineer")
+			if engineer_present:
+				cost = max(1, cost - 1)
+			if GameStateManager:
+				GameStateManager.add_credits(-cost)
+			return "Paid %d Credits (Life Support)" % cost
+		
+		"Odd Job":
+			var credits: int = randi_range(1, 6) + 1
+			if GameStateManager:
+				GameStateManager.add_credits(credits)
+			return "+%d Credits (Odd Job)" % credits
+		
+		"Unexpected Bill":
+			var cost: int = randi_range(1, 6)
+			if GameStateManager:
+				var current_credits: int = 0
+				if GameStateManager.has_method("get_credits"):
+					current_credits = GameStateManager.get_credits()
+				if current_credits >= cost:
+					GameStateManager.add_credits(-cost)
+					return "Paid %d Credits" % cost
+				else:
+					# Lose story point instead
+					if GameStateManager.has_method("add_story_points"):
+						GameStateManager.add_story_points(-1)
+					return "Lost 1 Story Point (couldn't pay %d Credits)" % cost
+		
+		# Rumor Events
+		"Old Contact", "Valuable Intel":
+			_add_quest_rumor()
+			return "+1 Quest Rumor"
+		
+		"Information Broker":
+			# Can buy up to 3 rumors for 2 credits each
+			return "Information Broker available (2 credits per rumor)"
+		
+		"Dangerous Information":
+			_add_quest_rumor()
+			_add_quest_rumor()
+			_add_rival("Information leak")
+			return "+2 Quest Rumors, +1 Rival"
+		
+		# Rival Events
+		"Mouthed Off", "Made Enemy":
+			_add_rival("Offended party")
+			return "+1 Rival"
+		
+		"Suspicious Activity":
+			# If has rivals, one tracks down
+			var game_state = get_node_or_null("/root/GameState")
+			if game_state and game_state.current_campaign:
+				var campaign = game_state.current_campaign
+				if campaign is Dictionary:
+					var rivals = campaign.get("rivals", [])
+					if rivals.size() > 0:
+						return "Rival tracks you down this turn"
+			return "No rivals to track you"
+		
+		# Patron Events
+		"Reputation Grows":
+			return "+1 to next Patron search roll"
+		
+		# Market Events
+		"Market Surplus":
+			return "All purchases -1 credit (min 1) this turn"
+		
+		"Trade Opportunity":
+			return "Roll twice on Trade Table this turn"
+		
+		# Equipment/Ship Events
+		"Equipment Malfunction":
+			_damage_random_equipment()
+			return "Random item damaged"
+		
+		"Ship Parts":
+			if GameStateManager and GameStateManager.has_method("repair_hull"):
+				GameStateManager.repair_hull(1)
+			return "Repaired 1 Hull Point"
+		
+		# Medical Events
+		"Friendly Doc":
+			_reduce_recovery_time(2)
+			return "Reduced recovery time by 1 turn (up to 2 crew)"
+		
+		"Medical Supplies":
+			_heal_crew_in_sickbay()
+			return "One crew in Sick Bay recovers immediately"
+		
+		# XP/Training Events
+		"Skill Training":
+			_award_xp_to_random_crew(1)
+			return "+1 XP to random crew member"
+		
+		"Crew Bonding":
+			_award_xp_to_all_crew(1)
+			return "+1 XP to all crew"
+		
+		# Injury Events
+		"Bar Brawl":
+			_injure_random_crew(1)
+			return "Random crew member injured (1 turn recovery)"
+		
+		# Gambling Events
+		"Gambling Opportunity":
+			return "Gambling opportunity (bet 1-6 credits)"
+		
+		# Cargo Events
+		"Cargo Opportunity":
+			return "Cargo job: +3 credits but cannot travel this turn"
+		
+		_:
+			return "Event requires manual resolution"
+	
+	return "Event resolved"
+
+func apply_character_event_effect(event_title: String, character: Variant) -> String:
+	"""Apply character event effects based on event title"""
+	var char_name: String = ""
+	if character is Dictionary:
+		char_name = character.get("name", "Unknown")
+	elif character is Resource and "name" in character:
+		char_name = character.name
+	else:
+		char_name = "Unknown"
+	
+	match event_title:
+		# XP Gain Events
+		"Focused Training":
+			_add_character_xp(character, 1)
+			return "%s gained +1 Combat Skill XP" % char_name
+		
+		"Technical Study":
+			_add_character_xp(character, 1)
+			return "%s gained +1 Savvy XP" % char_name
+		
+		"Physical Training":
+			_add_character_xp(character, 1)
+			return "%s gained +1 Toughness XP" % char_name
+		
+		"Personal Growth":
+			_add_character_xp(character, 2)
+			return "%s gained +2 XP" % char_name
+		
+		"Moment of Glory":
+			_add_character_xp(character, 1)
+			if GameStateManager and GameStateManager.has_method("add_story_points"):
+				GameStateManager.add_story_points(1)
+			return "%s gained +1 XP and +1 Story Point" % char_name
+		
+		# Story Point Events
+		"Old Friend":
+			if GameStateManager and GameStateManager.has_method("add_story_points"):
+				GameStateManager.add_story_points(1)
+			return "%s reconnects with old friend (+1 Story Point)" % char_name
+		
+		# Credits Events
+		"Side Job":
+			var credits: int = randi_range(1, 6)
+			if GameStateManager:
+				GameStateManager.add_credits(credits)
+			return "%s earned %d Credits" % [char_name, credits]
+		
+		"Unexpected Windfall":
+			var credits: int = randi_range(1, 6) + randi_range(1, 6)
+			if GameStateManager:
+				GameStateManager.add_credits(credits)
+			return "%s received %d Credits" % [char_name, credits]
+		
+		"Gambling":
+			var roll: int = randi_range(1, 6)
+			var bet: int = randi_range(1, 6)
+			if roll <= 2:
+				if GameStateManager:
+					GameStateManager.add_credits(-bet)
+				return "%s lost %d Credits gambling" % [char_name, bet]
+			elif roll >= 5:
+				if GameStateManager:
+					GameStateManager.add_credits(bet)
+				return "%s won %d Credits gambling" % [char_name, bet]
+			else:
+				return "%s broke even gambling" % char_name
+		
+		# Equipment Events
+		"Found Item":
+			_add_random_equipment_to_stash()
+			return "%s found random gear item" % char_name
+		
+		"Equipment Care":
+			return "%s repaired one damaged item" % char_name
+		
+		"Equipment Lost":
+			return "%s lost random equipment" % char_name
+		
+		# Injury/Medical Events
+		"Bad Dreams":
+			return "%s suffers -1 to next combat roll (nightmares)" % char_name
+		
+		"Bar Fight":
+			var roll: int = randi_range(1, 6)
+			if roll <= 3:
+				_injure_specific_crew(character, 1)
+				return "%s injured in bar fight (1 turn recovery)" % char_name
+			else:
+				return "%s gained respect in bar fight" % char_name
+		
+		"Wound Heals":
+			_reduce_character_recovery(character, 1)
+			return "%s recovers faster (-1 turn recovery)" % char_name
+		
+		# Relationship Events
+		"Made Contact":
+			return "%s made useful contact (+1 to next Patron search)" % char_name
+		
+		"Made Enemy":
+			_add_rival("%s's enemy" % char_name)
+			return "%s made an enemy (+1 Rival)" % char_name
+		
+		"Valuable Intel":
+			_add_quest_rumor()
+			return "%s discovered valuable intel (+1 Rumor)" % char_name
+		
+		# Trait Events
+		"Trait Development":
+			return "%s develops positive trait (roll on trait table)" % char_name
+		
+		"Life-Changing Event":
+			return "%s experiences life-changing event (reroll Motivation)" % char_name
+		
+		"Quiet Day":
+			_add_character_xp(character, 1)
+			return "%s had a quiet day (+1 XP)" % char_name
+		
+		_:
+			return "%s: Event requires manual resolution" % char_name
+	
+	return "Character event resolved"
+
+## Helper Methods for Event Effects
+func _has_crew_with_class(character_class: String) -> bool:
+	"""Check if any crew member has specific class"""
+	var game_state = get_node_or_null("/root/GameState")
+	if game_state and game_state.current_campaign:
+		var campaign = game_state.current_campaign
+		if campaign is Dictionary:
+			var crew = campaign.get("crew", [])
+			for member in crew:
+				if member is Dictionary and member.get("class", "") == character_class:
+					return true
+	return false
+
+func _add_quest_rumor() -> void:
+	"""Add a quest rumor to campaign"""
+	var game_state = get_node_or_null("/root/GameState")
+	if game_state and game_state.current_campaign:
+		var campaign = game_state.current_campaign
+		if campaign is Dictionary:
+			var rumors = campaign.get("rumors", [])
+			var rumor_types = [
+				"An extracted data file",
+				"Notebook with secret information",
+				"Old map showing a location",
+				"A tip from a contact",
+				"An intercepted transmission"
+			]
+			var roll = randi() % rumor_types.size()
+			rumors.append({
+				"id": "rumor_%d_%d" % [Time.get_ticks_msec(), randi() % 1000],
+				"type": roll + 1,
+				"description": rumor_types[roll],
+				"source": "event"
+			})
+			campaign["rumors"] = rumors
+			print("PostBattlePhase: +1 quest rumor")
+
+func _add_rival(rival_name: String) -> void:
+	"""Add a rival to campaign"""
+	var game_state = get_node_or_null("/root/GameState")
+	if game_state and game_state.current_campaign:
+		var campaign = game_state.current_campaign
+		if campaign is Dictionary:
+			var rivals = campaign.get("rivals", [])
+			rivals.append({
+				"id": "rival_%d_%d" % [Time.get_ticks_msec(), randi() % 1000],
+				"name": rival_name,
+				"type": ["Criminal", "Corporate", "Personal", "Gang"][randi() % 4],
+				"hostility": randi_range(3, 5),
+				"resources": randi_range(1, 3),
+				"source": "event"
+			})
+			campaign["rivals"] = rivals
+			print("PostBattlePhase: +1 rival")
+
+func _damage_random_equipment() -> void:
+	"""Damage random equipment item"""
+	# TODO: Implement equipment damage system
+	print("PostBattlePhase: Random equipment damaged")
+
+func _reduce_recovery_time(max_crew: int) -> void:
+	"""Reduce recovery time for crew in sick bay"""
+	var game_state = get_node_or_null("/root/GameState")
+	if game_state and game_state.current_campaign:
+		var campaign = game_state.current_campaign
+		if campaign is Dictionary:
+			var crew = campaign.get("crew", [])
+			var healed_count: int = 0
+			for member in crew:
+				if member is Dictionary and healed_count < max_crew:
+					if member.has("injury_recovery_turns") and member.injury_recovery_turns > 0:
+						member.injury_recovery_turns = max(0, member.injury_recovery_turns - 1)
+						healed_count += 1
+						print("PostBattlePhase: Reduced recovery time for %s" % member.get("name", "crew"))
+
+func _heal_crew_in_sickbay() -> void:
+	"""Immediately heal one crew member in sick bay"""
+	var game_state = get_node_or_null("/root/GameState")
+	if game_state and game_state.current_campaign:
+		var campaign = game_state.current_campaign
+		if campaign is Dictionary:
+			var crew = campaign.get("crew", [])
+			for member in crew:
+				if member is Dictionary:
+					if member.has("injury_recovery_turns") and member.injury_recovery_turns > 0:
+						member.injury_recovery_turns = 0
+						print("PostBattlePhase: %s recovered from sick bay" % member.get("name", "crew"))
+						return
+
+func _award_xp_to_random_crew(xp_amount: int) -> void:
+	"""Award XP to random crew member"""
+	var game_state = get_node_or_null("/root/GameState")
+	if game_state and game_state.current_campaign:
+		var campaign = game_state.current_campaign
+		if campaign is Dictionary:
+			var crew = campaign.get("crew", [])
+			if crew.size() > 0:
+				var random_index = randi() % crew.size()
+				var member = crew[random_index]
+				if member is Dictionary:
+					member["experience"] = member.get("experience", 0) + xp_amount
+					print("PostBattlePhase: %s gained +%d XP" % [member.get("name", "crew"), xp_amount])
+
+func _award_xp_to_all_crew(xp_amount: int) -> void:
+	"""Award XP to all crew members"""
+	var game_state = get_node_or_null("/root/GameState")
+	if game_state and game_state.current_campaign:
+		var campaign = game_state.current_campaign
+		if campaign is Dictionary:
+			var crew = campaign.get("crew", [])
+			for member in crew:
+				if member is Dictionary:
+					member["experience"] = member.get("experience", 0) + xp_amount
+					print("PostBattlePhase: %s gained +%d XP" % [member.get("name", "crew"), xp_amount])
+
+func _injure_random_crew(recovery_turns: int) -> void:
+	"""Injure random crew member"""
+	var game_state = get_node_or_null("/root/GameState")
+	if game_state and game_state.current_campaign:
+		var campaign = game_state.current_campaign
+		if campaign is Dictionary:
+			var crew = campaign.get("crew", [])
+			if crew.size() > 0:
+				var random_index = randi() % crew.size()
+				var member = crew[random_index]
+				if member is Dictionary:
+					member["injury_recovery_turns"] = recovery_turns
+					print("PostBattlePhase: %s injured (%d turn recovery)" % [member.get("name", "crew"), recovery_turns])
+
+func _add_character_xp(character: Variant, xp_amount: int) -> void:
+	"""Add XP to specific character"""
+	if character is Dictionary:
+		character["experience"] = character.get("experience", 0) + xp_amount
+		print("PostBattlePhase: %s gained +%d XP" % [character.get("name", "Unknown"), xp_amount])
+	elif character is Resource and "experience" in character:
+		character.experience += xp_amount
+		var char_name = character.name if "name" in character else "Unknown"
+		print("PostBattlePhase: %s gained +%d XP" % [char_name, xp_amount])
+
+func _reduce_character_recovery(character: Variant, turns: int) -> void:
+	"""Reduce recovery time for specific character"""
+	if character is Dictionary:
+		if character.has("injury_recovery_turns"):
+			character.injury_recovery_turns = max(0, character.injury_recovery_turns - turns)
+			print("PostBattlePhase: %s recovery reduced by %d turns" % [character.get("name", "Unknown"), turns])
+
+func _injure_specific_crew(character: Variant, recovery_turns: int) -> void:
+	"""Injure specific crew member"""
+	if character is Dictionary:
+		character["injury_recovery_turns"] = recovery_turns
+		print("PostBattlePhase: %s injured (%d turn recovery)" % [character.get("name", "Unknown"), recovery_turns])
+	elif character is Resource and "injury_recovery_turns" in character:
+		character.injury_recovery_turns = recovery_turns
+		var char_name = character.name if "name" in character else "Unknown"
+		print("PostBattlePhase: %s injured (%d turn recovery)" % [char_name, recovery_turns])
+
+func _add_random_equipment_to_stash() -> void:
+	"""Add random equipment to ship stash"""
+	var equipment_manager = get_node_or_null("/root/EquipmentManager")
+	if equipment_manager and equipment_manager.has_method("can_add_to_ship_stash"):
+		if equipment_manager.can_add_to_ship_stash():
+			# Generate random basic equipment
+			var equipment_types = ["Infantry Laser", "Auto Rifle", "Scrap Pistol", "Blade"]
+			var random_item = equipment_types[randi() % equipment_types.size()]
+			var equipment_data = {
+				"id": "found_%d" % Time.get_ticks_msec(),
+				"name": random_item,
+				"type": "weapon",
+				"location": "ship_stash"
+			}
+			if equipment_manager.has_method("add_equipment"):
+				equipment_manager.add_equipment(equipment_data)
+				print("PostBattlePhase: Found %s (added to stash)" % random_item)
+		else:
+			print("PostBattlePhase: Ship stash full - equipment lost")
 
 ## Public API Methods
 func get_current_substep() -> int:

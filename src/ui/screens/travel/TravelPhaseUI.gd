@@ -2,338 +2,596 @@ class_name TravelPhaseUI
 extends Control
 
 ## Travel Phase UI for Five Parsecs Campaign Manager
-## Handles upkeep and travel decisions for the campaign turn flow
+## Handles Step 1: Travel decision for the campaign turn (Core Rules p.69)
+## Travel comes BEFORE World Phase in the campaign turn sequence
+
+const RulesHelpText = preload("res://src/data/rules_help_text.gd")
 
 signal phase_completed()
-signal upkeep_completed()
 signal travel_completed()
 
-# UI References
-@onready var step_label: Label = $CenterContainer/PanelContainer/VBoxContainer/StepLabel
-@onready var tab_container: TabContainer = $CenterContainer/PanelContainer/VBoxContainer/TabContainer
-@onready var upkeep_details: VBoxContainer = $CenterContainer/PanelContainer/VBoxContainer/TabContainer/Upkeep/UpkeepDetails
-@onready var upkeep_button: Button = $CenterContainer/PanelContainer/VBoxContainer/TabContainer/Upkeep/UpkeepButton
-@onready var travel_options: VBoxContainer = $CenterContainer/PanelContainer/VBoxContainer/TabContainer/Travel/TravelOptions
-@onready var travel_event_details: VBoxContainer = $CenterContainer/PanelContainer/VBoxContainer/TabContainer/Travel/TravelEventDetails
-@onready var log_book: RichTextLabel = $LogBook
-@onready var back_button: Button = $CenterContainer/PanelContainer/VBoxContainer/ButtonContainer/BackButton
-@onready var next_button: Button = $CenterContainer/PanelContainer/VBoxContainer/ButtonContainer/NextButton
+# ============================================================================
+# DESIGN SYSTEM CONSTANTS (from BaseCampaignPanel)
+# ============================================================================
 
-# State tracking
-var campaign_data: Resource = null
-var is_upkeep_completed: bool = false
+const COLOR_PRIMARY := Color("#0a0d14")
+const COLOR_SECONDARY := Color("#111827")
+const COLOR_TERTIARY := Color("#1f2937")
+const COLOR_BORDER := Color("#374151")
+const COLOR_BLUE := Color("#3b82f6")
+const COLOR_AMBER := Color("#f59e0b")
+const COLOR_EMERALD := Color("#10b981")
+const COLOR_RED := Color("#ef4444")
+const COLOR_TEXT_PRIMARY := Color("#f3f4f6")
+const COLOR_TEXT_SECONDARY := Color("#9ca3af")
+
+const FONT_SIZE_SM := 14
+const FONT_SIZE_MD := 16
+const FONT_SIZE_LG := 18
+
+# Travel costs per Five Parsecs rules (p.69)
+const SHIP_TRAVEL_COST := 5
+const COMMERCIAL_TRAVEL_COST_PER_CREW := 1
+
+# ============================================================================
+# UI REFERENCES
+# ============================================================================
+
+# Header elements
+@onready var step_label: Label = %StepLabel
+@onready var progress_bar: ProgressBar = %PhaseProgressBar
+@onready var help_button: Button = %HelpButton
+
+# Status display
+@onready var credits_value: Label = %CreditsValue
+@onready var crew_value: Label = %CrewValue
+@onready var ship_value: Label = %ShipValue
+@onready var world_value: Label = %WorldValue
+@onready var commercial_cost_value: Label = %CommercialCostValue
+
+# Travel options
+@onready var stay_button: Button = %StayButton
+@onready var travel_button: Button = %TravelButton
+@onready var travel_event_details: VBoxContainer = %TravelEventDetails
+@onready var travel_help_button: Button = %TravelHelpButton
+
+# Log book
+@onready var log_book: RichTextLabel = %LogBook
+
+# Navigation buttons
+@onready var back_button: Button = %BackButton
+@onready var next_button: Button = %NextButton
+
+# ============================================================================
+# STATE TRACKING
+# ============================================================================
+
+var campaign_data: Variant = null
 var travel_decision_made: bool = false
-var current_step: int = 0
+var chose_to_travel: bool = false
+var has_ship: bool = true  # Default to having a ship
 
-# Manager references
-var alpha_manager: Node = null
-var campaign_manager: Node = null
-var upkeep_system: Node = null
+# Tooltip reference
+var _help_dialog: AcceptDialog = null
+
+# ============================================================================
+# INITIALIZATION
+# ============================================================================
 
 func _ready() -> void:
-	_initialize_managers()
+	_fetch_campaign_data()
 	_setup_ui()
-	_connect_additional_signals()
-	_setup_travel_icons()
+	_setup_tooltips()
+	_add_log_entry("[color=#4FC3F7]Travel Phase started (Step 1 of Campaign Turn)[/color]")
 
-func _initialize_managers() -> void:
-	"""Initialize manager references from autoloads"""
-	alpha_manager = get_node("/root/FPCM_AlphaGameManager") if has_node("/root/FPCM_AlphaGameManager") else null
-	campaign_manager = get_node("/root/CampaignManager") if has_node("/root/CampaignManager") else null
+func _fetch_campaign_data() -> void:
+	"""Fetch campaign data from GameStateManager (self-initialization)"""
+	# Try GameStateManager first (primary source)
+	if GameStateManager:
+		_update_status_from_game_state()
+		return
+	
+	# Fallback: Try GameState autoload
+	var game_state := get_node_or_null("/root/GameState")
+	if game_state and game_state.get("current_campaign"):
+		campaign_data = game_state.current_campaign
+		_update_status_display()
+		return
+	
+	# No data available - use defaults
+	push_warning("TravelPhaseUI: No campaign data available, using defaults")
+	_update_status_display()
 
-	if alpha_manager and alpha_manager.has_method("get_upkeep_system"):
-		upkeep_system = alpha_manager.get_upkeep_system()
+func _update_status_from_game_state() -> void:
+	"""Update status display from GameStateManager"""
+	if not GameStateManager:
+		return
+	
+	# Get current credits
+	var credits: int = GameStateManager.get_credits()
+	if credits_value:
+		credits_value.text = "%d cr" % credits
+		credits_value.add_theme_color_override("font_color", 
+			COLOR_EMERALD if credits >= SHIP_TRAVEL_COST else COLOR_RED)
+	
+	# Get crew size
+	var crew_size: int = GameStateManager.get_crew_size()
+	if crew_value:
+		crew_value.text = str(crew_size)
+	
+	# Calculate commercial travel cost
+	var commercial_cost: int = crew_size * COMMERCIAL_TRAVEL_COST_PER_CREW
+	if commercial_cost_value:
+		commercial_cost_value.text = "%d cr (%d crew)" % [commercial_cost, crew_size]
+	
+	# Get ship status
+	has_ship = _check_has_ship()
+	if ship_value:
+		if has_ship:
+			ship_value.text = "Available"
+			ship_value.add_theme_color_override("font_color", COLOR_EMERALD)
+		else:
+			ship_value.text = "No Ship"
+			ship_value.add_theme_color_override("font_color", COLOR_AMBER)
+	
+	# Get current world
+	var current_world: String = _get_current_world_name()
+	if world_value:
+		world_value.text = current_world if current_world else "Unknown World"
+	
+	# Update travel button states
+	_update_travel_buttons(credits, crew_size)
+
+func _update_status_display() -> void:
+	"""Update status display from campaign_data (fallback)"""
+	var credits := 0
+	var crew_size := 4
+	
+	if campaign_data:
+		if campaign_data is Resource:
+			credits = campaign_data.get_meta("credits", 0)
+			if campaign_data.has_method("get_crew"):
+				var crew: Array = campaign_data.get_crew()
+				crew_size = crew.size()
+		elif campaign_data is Dictionary:
+			credits = campaign_data.get("credits", 0)
+			var crew: Array = campaign_data.get("crew", [])
+			crew_size = crew.size()
+	
+	if credits_value:
+		credits_value.text = "%d cr" % credits
+		credits_value.add_theme_color_override("font_color", 
+			COLOR_EMERALD if credits >= SHIP_TRAVEL_COST else COLOR_RED)
+	
+	if crew_value:
+		crew_value.text = str(crew_size)
+	
+	var commercial_cost: int = crew_size * COMMERCIAL_TRAVEL_COST_PER_CREW
+	if commercial_cost_value:
+		commercial_cost_value.text = "%d cr (%d crew)" % [commercial_cost, crew_size]
+	
+	_update_travel_buttons(credits, crew_size)
+
+func _check_has_ship() -> bool:
+	"""Check if the crew has a ship"""
+	if GameStateManager and GameStateManager.has_method("get_ship"):
+		var ship: Variant = GameStateManager.get_ship()
+		return ship != null
+	return true  # Default to having a ship
+
+func _get_current_world_name() -> String:
+	"""Get the current world name"""
+	if GameStateManager and GameStateManager.has_method("get_current_world"):
+		var world: Variant = GameStateManager.get_current_world()
+		if world and world is Object and world.has_method("get_name"):
+			return world.get_name()
+		elif world is Dictionary:
+			return world.get("name", "Unknown")
+	return "Fringe World"
+
+func _update_travel_buttons(credits: int, crew_size: int) -> void:
+	"""Update travel button states based on available credits"""
+	var ship_travel_affordable: bool = credits >= SHIP_TRAVEL_COST
+	var commercial_cost: int = crew_size * COMMERCIAL_TRAVEL_COST_PER_CREW
+	var commercial_affordable: bool = credits >= commercial_cost
+	
+	if stay_button:
+		stay_button.disabled = false  # Stay is always free
+	
+	if travel_button:
+		if has_ship:
+			# Ship travel
+			if ship_travel_affordable:
+				travel_button.text = "Travel to New World (%d credits)" % SHIP_TRAVEL_COST
+				travel_button.disabled = false
+			else:
+				travel_button.text = "Travel (Need %d credits)" % SHIP_TRAVEL_COST
+				travel_button.disabled = true
+		else:
+			# Commercial travel (no ship)
+			if commercial_affordable:
+				travel_button.text = "Commercial Passage (%d credits)" % commercial_cost
+				travel_button.disabled = false
+			else:
+				travel_button.text = "Passage (Need %d credits)" % commercial_cost
+				travel_button.disabled = true
 
 func _setup_ui() -> void:
 	"""Setup initial UI state"""
-	tab_container.current_tab = 0 # Start with upkeep tab
-	step_label.text = "Step 1: Upkeep Phase"
-	next_button.disabled = true
-	_update_upkeep_display()
+	if next_button:
+		next_button.disabled = true
+	_update_progress_bar()
 
-func _connect_additional_signals() -> void:
-	"""Connect any additional signals needed"""
-	if upkeep_system and upkeep_system.has_signal("upkeep_calculated"):
-		upkeep_system.upkeep_calculated.connect(_on_upkeep_calculated)
+func _setup_tooltips() -> void:
+	"""Setup tooltips for buttons using the existing Tooltip system"""
+	# The built-in tooltip_text property handles basic tooltips
+	# For rich tooltips, we use the help button dialogs
+	pass
+
+# ============================================================================
+# PROGRESS BAR
+# ============================================================================
+
+func _update_progress_bar() -> void:
+	"""Update progress bar based on current phase completion"""
+	if not progress_bar:
+		return
 	
-	# Connect to CampaignPhaseManager for campaign flow integration
-	var campaign_phase_manager = get_node_or_null("/root/CampaignPhaseManager")
-	if campaign_phase_manager:
-		# Connect UI completion signal to phase manager
-		phase_completed.connect(campaign_phase_manager._on_travel_phase_completed)
-		print("TravelPhaseUI: Connected to CampaignPhaseManager")
-	else:
-		push_warning("TravelPhaseUI: CampaignPhaseManager not found - phase transitions may not work")
+	# 4 steps: Flee Invasion, Travel Decision, Travel Event, New World Arrival
+	var progress := 1.0  # Start at step 1 (flee invasion skipped if not applicable)
+	if travel_decision_made:
+		progress = 2.0
+		if chose_to_travel:
+			progress = 3.0  # After travel event
+	
+	progress_bar.value = progress
 
-func setup_phase(data: Resource) -> void:
-	"""Setup the travel phase with campaign data"""
+# ============================================================================
+# HELP SYSTEM
+# ============================================================================
+
+func _show_help_dialog(title: String, content: String) -> void:
+	"""Show a help dialog with rules text"""
+	if not _help_dialog:
+		_help_dialog = AcceptDialog.new()
+		_help_dialog.dialog_hide_on_ok = true
+		add_child(_help_dialog)
+	
+	_help_dialog.title = title
+	
+	# Create or update content
+	var existing_content := _help_dialog.get_node_or_null("HelpContent")
+	if existing_content:
+		existing_content.queue_free()
+	
+	var rich_text := RichTextLabel.new()
+	rich_text.name = "HelpContent"
+	rich_text.bbcode_enabled = true
+	rich_text.fit_content = true
+	rich_text.custom_minimum_size = Vector2(450, 250)
+	rich_text.text = content
+	rich_text.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
+	_help_dialog.add_child(rich_text)
+	
+	_help_dialog.popup_centered()
+
+func _on_help_button_pressed() -> void:
+	"""Show main travel phase help"""
+	_show_help_dialog("Travel Phase (Step 1)", RulesHelpText.get_tooltip("travel_phase"))
+
+func _on_travel_help_pressed() -> void:
+	"""Show travel decision help"""
+	_show_help_dialog("Travel Decision", RulesHelpText.get_tooltip("travel_decision"))
+
+# ============================================================================
+# PHASE MANAGEMENT
+# ============================================================================
+
+func setup_phase(data: Variant) -> void:
+	"""Setup the travel phase with campaign data (legacy support)"""
 	campaign_data = data
 	_reset_phase_state()
-	_update_upkeep_display()
-	_add_log_entry("Travel Phase started")
+	_update_status_display()
+	_add_log_entry("[color=#4FC3F7]Travel Phase initialized[/color]")
 
 func _reset_phase_state() -> void:
 	"""Reset phase state for new campaign turn"""
-	is_upkeep_completed = false
 	travel_decision_made = false
-	current_step = 0
-	tab_container.current_tab = 0
-	step_label.text = "Step 1: Upkeep Phase"
-	next_button.disabled = true
-
-func _update_upkeep_display() -> void:
-	"""Update the upkeep information display"""
-	if not upkeep_system or not campaign_data:
-		upkeep_button.text = "Perform Upkeep (No Data)"
-		upkeep_button.disabled = true
-		return
-
-	# Clear existing upkeep details
-	for child in upkeep_details.get_children():
-		child.queue_free()
-
-	# Get upkeep costs
-	var upkeep_costs = upkeep_system.calculate_upkeep_costs(campaign_data)
-
-	var total_cost = upkeep_costs.get("total_cost", 0)
-
-	var crew_cost = upkeep_costs.get("crew_cost", 0)
-
-	var ship_cost = upkeep_costs.get("ship_cost", 0)
-	var current_credits = campaign_data.get_meta("credits", 0) if campaign_data else 0
-
-	# Create upkeep cost display
-	var cost_label: Label = Label.new()
-	cost_label.text = "Upkeep Costs:\n• Crew: %d credits\n• Ship: %d credits\n• Total: %d credits" % [crew_cost, ship_cost, total_cost]
-	upkeep_details.add_child(cost_label)
-
-	var credits_label: Label = Label.new()
-	credits_label.text = "Current Credits: %d" % current_credits
-	upkeep_details.add_child(credits_label)
-
-	# Update button state
-	if current_credits >= total_cost:
-		upkeep_button.text = "Pay Upkeep (%d credits)" % total_cost
-		upkeep_button.disabled = false
-	else:
-		upkeep_button.text = "Insufficient Credits (%d needed)" % total_cost
-		upkeep_button.disabled = true
-
-func _add_log_entry(text: String) -> void:
-	"""Add an entry to the log book"""
-	var timestamp = Time.get_datetime_string_from_system()
-	log_book.append_text("[%s] %s\n" % [timestamp, text])
-
-# Signal handlers
-
-func _on_upkeep_button_pressed() -> void:
-	"""Handle upkeep button press"""
-	if not upkeep_system or not campaign_data:
-		_add_log_entry("Error: Cannot perform upkeep - missing data")
-		return
-
-	var result: Variant = upkeep_system.perform_upkeep(campaign_data)
-
-	if result.get("success", false):
-		is_upkeep_completed = true
-		upkeep_button.text = "Upkeep Complete ✓"
-		upkeep_button.disabled = true
-		_add_log_entry("Upkeep completed successfully")
-		_advance_to_travel()
-	else:
-		var error: int = result.get("error", "Unknown error")
-		_add_log_entry("Upkeep failed: %s" % error)
-
-func _advance_to_travel() -> void:
-	"""Advance to travel step"""
-	current_step = 1
-	step_label.text = "Step 2: Travel Decision"
-	tab_container.current_tab = 1
-	upkeep_completed.emit()
-
-func _on_stay_button_pressed() -> void:
-	"""Handle stay in current location"""
-	travel_decision_made = true
-	_add_log_entry("Decided to stay in current location")
-	_complete_travel_phase()
-
-func _on_travel_button_pressed() -> void:
-	"""Handle travel to new location with Five Parsecs travel mechanics"""
-	travel_decision_made = true
-	_add_log_entry("Decided to travel to new location")
+	chose_to_travel = false
+	if next_button:
+		next_button.disabled = true
+	_update_progress_bar()
 	
-	# Five Parsecs travel event generation (Core Rules p.58-61)
-	_generate_travel_event()
-	_complete_travel_phase()
-
-func _on_next_event_button_pressed() -> void:
-	"""Generate next travel event using Five Parsecs tables"""
-	_generate_travel_event()
-	_add_log_entry("Travel event generated")
-
-func _complete_travel_phase() -> void:
-	"""Complete the travel phase"""
-	next_button.disabled = false
-	travel_completed.emit() # warning: return value discarded (intentional)
-	_add_log_entry("Travel phase completed")
-
-func _on_back_button_pressed() -> void:
-	"""Handle back button press"""
-	# Go back to previous phase or step
-	if current_step > 0:
-		current_step -= 1
-		if current_step == 0:
-			tab_container.current_tab = 0
-			step_label.text = "Step 1: Upkeep Phase"
-
-func _on_next_button_pressed() -> void:
-	"""Handle next button press"""
-	if is_upkeep_completed and travel_decision_made:
-		phase_completed.emit() # warning: return value discarded (intentional)
-		_add_log_entry("Travel phase complete - advancing to World phase")
-
-func _on_upkeep_calculated(costs: Dictionary) -> void:
-	"""Handle upkeep calculation completion"""
-	_update_upkeep_display()
+	# Clear travel event details
+	if travel_event_details:
+		for child in travel_event_details.get_children():
+			child.queue_free()
 
 func get_phase_status() -> Dictionary:
 	"""Get the current phase status"""
 	return {
-		"upkeep_completed": is_upkeep_completed,
 		"travel_decision_made": travel_decision_made,
-		"current_step": current_step,
-		"can_advance": is_upkeep_completed and travel_decision_made
+		"chose_to_travel": chose_to_travel,
+		"can_advance": travel_decision_made
 	}
 
-func load_campaign_data(data: Resource) -> void:
-	"""Load campaign data for this phase"""
+func load_campaign_data(data: Variant) -> void:
+	"""Load campaign data for this phase (legacy support)"""
 	campaign_data = data
-	_update_upkeep_display()
+	_update_status_display()
 
+# ============================================================================
+# LOG BOOK
+# ============================================================================
 
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return obj.get(property, default_value)
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null
+func _add_log_entry(text: String) -> void:
+	"""Add an entry to the log book with timestamp"""
+	if not log_book:
+		return
+	var time_dict := Time.get_time_dict_from_system()
+	var timestamp := "%02d:%02d" % [time_dict.hour, time_dict.minute]
+	log_book.append_text("[color=#6b7280][%s][/color] %s\n" % [timestamp, text])
 
-## Setup travel phase icons for enhanced visual navigation
-func _setup_travel_icons() -> void:
-	"""Setup icons for travel phase buttons to improve visual clarity"""
-	# Phase 2: Travel Phase Icons Integration
+# ============================================================================
+# BUTTON HANDLERS
+# ============================================================================
+
+func _on_stay_button_pressed() -> void:
+	"""Handle stay in current location - proceed to World Phase"""
+	travel_decision_made = true
+	chose_to_travel = false
 	
-	# Next Button (primary travel action) - icon_campaign_travel.svg
+	_add_log_entry("[color=#4FC3F7]Decided to stay in current location[/color]")
+	_add_log_entry("No travel costs incurred. Proceeding to World Phase...")
+	
+	# Disable travel options after decision
+	if stay_button:
+		stay_button.disabled = true
+		stay_button.text = "✓ Staying in Current Location"
+	if travel_button:
+		travel_button.disabled = true
+	
+	_complete_travel_phase()
+
+func _on_travel_button_pressed() -> void:
+	"""Handle travel to new location with Five Parsecs mechanics"""
+	# Deduct travel cost
+	var travel_cost: int = SHIP_TRAVEL_COST if has_ship else _get_commercial_cost()
+	
+	if GameStateManager and GameStateManager.has_method("modify_credits"):
+		GameStateManager.modify_credits(-travel_cost)
+		_add_log_entry("[color=#f59e0b]Paid %d credits for travel[/color]" % travel_cost)
+	
+	travel_decision_made = true
+	chose_to_travel = true
+	
+	_add_log_entry("[color=#f59e0b]Decided to travel to new location[/color]")
+	
+	# Disable travel options after decision
+	if stay_button:
+		stay_button.disabled = true
+	if travel_button:
+		travel_button.disabled = true
+		travel_button.text = "✓ Traveling to New World"
+	
+	# Generate travel event (Core Rules p.70-71)
+	_generate_travel_event()
+	
+	_update_progress_bar()
+	
+	# Enable next button after travel event is shown
 	if next_button:
-		next_button.icon = preload("res://assets/basic icons/icon_campaign_travel.svg")
-		next_button.expand_icon = true
-		next_button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
-		print("TravelPhaseUI: Travel phase icon applied to next button successfully")
+		next_button.disabled = false
+
+func _get_commercial_cost() -> int:
+	"""Get commercial travel cost based on crew size"""
+	var crew_size := 4
+	if GameStateManager and GameStateManager.has_method("get_crew_size"):
+		crew_size = GameStateManager.get_crew_size()
+	return crew_size * COMMERCIAL_TRAVEL_COST_PER_CREW
+
+func _complete_travel_phase() -> void:
+	"""Complete the travel phase and navigate to World Phase"""
+	if next_button:
+		next_button.disabled = false
+	_update_progress_bar()
+	travel_completed.emit()
+	_add_log_entry("[color=#10b981]Travel phase complete - ready for World Phase[/color]")
+
+func _on_back_button_pressed() -> void:
+	"""Handle back button - return to dashboard"""
+	if SceneRouter and SceneRouter.has_method("navigate_to"):
+		SceneRouter.navigate_to("campaign_dashboard")
 	else:
-		push_warning("TravelPhaseUI: Next button not found for icon assignment")
+		get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/campaign/CampaignDashboard.tscn")
+
+func _on_next_button_pressed() -> void:
+	"""Handle next button - proceed to World Phase"""
+	if not travel_decision_made:
+		_add_log_entry("[color=#ef4444]Please make a travel decision first[/color]")
+		return
+	
+	phase_completed.emit()
+	_add_log_entry("[color=#10b981]Advancing to World Phase (Step 2)[/color]")
+	
+	# Navigate to World Phase
+	if SceneRouter and SceneRouter.has_method("navigate_to"):
+		SceneRouter.navigate_to("world_phase")
+	else:
+		get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/world/WorldPhaseController.tscn")
+
+# ============================================================================
+# TRAVEL EVENT GENERATION
+# ============================================================================
 
 func _generate_travel_event() -> void:
-	"""Generate travel event using Five Parsecs travel tables"""
-	# Five Parsecs Travel Event Generation (Core Rules p.58-61)
-	var dice_manager = get_node_or_null("/root/DiceManager")
-	var travel_roll = 0
+	"""Generate travel event using Five Parsecs tables (p.70-71)"""
+	var dice_manager := get_node_or_null("/root/DiceManager")
+	var travel_roll: int = 0
 	
 	if dice_manager and dice_manager.has_method("roll_dice"):
 		travel_roll = dice_manager.roll_dice("Travel Event", "D100")
 	else:
 		travel_roll = randi_range(1, 100)
 	
-	_add_log_entry("Travel event roll: %d" % travel_roll)
+	_add_log_entry("Starship Travel Event roll: [color=#4FC3F7]%d[/color]" % travel_roll)
 	
-	# Five Parsecs travel event table
-	var event_result = _process_travel_event_roll(travel_roll)
+	var event_result := _process_travel_event_roll(travel_roll)
 	_display_travel_event(event_result)
 
 func _process_travel_event_roll(roll: int) -> Dictionary:
-	"""Process travel event roll using Five Parsecs tables"""
-	var event = {
+	"""Process travel event roll using Five Parsecs tables (p.70-71)"""
+	var event := {
 		"type": "none",
-		"title": "Uneventful Journey",
-		"description": "The journey passes without incident.",
+		"title": "Uneventful Trip",
+		"description": "A lot of time playing cards and cleaning guns. You can Repair one damaged item.",
 		"effects": []
 	}
 	
-	# Five Parsecs travel event probability table
-	if roll <= 10: # Hostile encounter
+	# Five Parsecs Starship Travel Events Table (D100)
+	if roll <= 7:  # Asteroids
+		event.type = "danger"
+		event.title = "Asteroids"
+		event.description = "Rocky debris everywhere! Roll to navigate safely or take Hull damage."
+		event.effects = ["asteroids"]
+	elif roll <= 12:  # Navigation trouble
+		event.type = "setback"
+		event.title = "Navigation Trouble"
+		event.description = "Is this place even on the star maps? Lose 1 story point."
+		event.effects = ["lose_story_point"]
+	elif roll <= 17:  # Raided
 		event.type = "hostile"
-		event.title = "Hostile Encounter"
-		event.description = "Your crew encounters hostile forces during travel. Prepare for battle!"
+		event.title = "Raided"
+		event.description = "Pirates have spotted your vessel! Prepare for potential combat."
 		event.effects = ["combat_encounter"]
-		_add_log_entry("Warning: Hostile encounter detected!")
-	elif roll <= 25: # Equipment malfunction
-		event.type = "malfunction"
-		event.title = "Equipment Malfunction"
-		event.description = "Ship systems malfunction during travel. Repair costs required."
-		event.effects = ["repair_cost_100"]
-		_add_log_entry("Ship malfunction: 100 credits repair cost")
-	elif roll <= 40: # Delayed arrival
-		event.type = "delay"
-		event.title = "Travel Delays"
-		event.description = "Navigation issues cause delays. Arrive late at destination."
-		event.effects = ["time_delay"]
-		_add_log_entry("Travel delayed - late arrival")
-	elif roll <= 60: # Opportunity
+	elif roll <= 25:  # Deep space wreckage
 		event.type = "opportunity"
-		event.title = "Trading Opportunity"
-		event.description = "Encounter traders during journey. Opportunity for profitable exchange."
-		event.effects = ["trading_opportunity"]
-		_add_log_entry("Trading opportunity available")
-	elif roll <= 80: # Information
-		event.type = "information"
-		event.title = "Useful Information"
-		event.description = "Crew learns valuable information about the destination."
-		event.effects = ["information_bonus"]
-		_add_log_entry("Valuable information acquired")
-	else: # Beneficial encounter
+		event.title = "Deep Space Wreckage"
+		event.description = "Found an old wreck drifting through space. Roll twice on the Gear Table."
+		event.effects = ["gear_rolls"]
+	elif roll <= 29:  # Drive trouble
+		event.type = "setback"
+		event.title = "Drive Trouble"
+		event.description = "It's not supposed to make that sound. May be grounded next turn."
+		event.effects = ["drive_trouble"]
+	elif roll <= 38:  # Down-time
 		event.type = "beneficial"
-		event.title = "Helpful Encounter"
-		event.description = "Meet friendly travelers who provide assistance or supplies."
-		event.effects = ["credits_50", "supplies"]
-		_add_log_entry("Beneficial encounter: gained supplies and credits")
+		event.title = "Down-time"
+		event.description = "Select a crew member to earn +1 XP. Repair 1 damaged item for free."
+		event.effects = ["xp_bonus", "free_repair"]
+	elif roll <= 44:  # Distress call
+		event.type = "choice"
+		event.title = "Distress Call"
+		event.description = "'This is Licensed Trader Cyberwolf.' Do you respond?"
+		event.effects = ["distress_call"]
+	elif roll <= 50:  # Patrol ship
+		event.type = "neutral"
+		event.title = "Patrol Ship"
+		event.description = "A Unity patrol vessel hails you. They may confiscate contraband."
+		event.effects = ["patrol_inspection"]
+	elif roll <= 53:  # Cosmic phenomenon
+		event.type = "rare"
+		event.title = "Cosmic Phenomenon"
+		event.description = "A crew member sees something strange... and gains +1 Luck!"
+		event.effects = ["luck_bonus"]
+	elif roll <= 60:  # Escape pod
+		event.type = "choice"
+		event.title = "Escape Pod"
+		event.description = "You find an escape pod drifting through space. Rescue them?"
+		event.effects = ["rescue_choice"]
+	elif roll <= 66:  # Accident
+		event.type = "setback"
+		event.title = "Accident"
+		event.description = "A crew member is injured during maintenance. One item is damaged."
+		event.effects = ["injury", "damaged_item"]
+	elif roll <= 75:  # Travel-time
+		event.type = "neutral"
+		event.title = "Travel-time"
+		event.description = "Long journey under standard drives. Injured crew may rest."
+		event.effects = ["rest_time"]
+	elif roll <= 85:  # Uneventful trip
+		event.type = "neutral"
+		event.title = "Uneventful Trip"
+		event.description = "A lot of time playing cards and cleaning guns. Repair 1 damaged item."
+		event.effects = ["free_repair"]
+	elif roll <= 91:  # Time to reflect
+		event.type = "beneficial"
+		event.title = "Time to Reflect"
+		event.description = "How is the story unfolding? What did it all mean? +1 story point."
+		event.effects = ["story_point"]
+	elif roll <= 95:  # Time to read
+		event.type = "beneficial"
+		event.title = "Time to Read a Book"
+		event.description = "Time for education. Random crew members earn XP."
+		event.effects = ["random_xp"]
+	else:  # Library data
+		event.type = "beneficial"
+		event.title = "Locked in the Library Data"
+		event.description = "You've found information about multiple worlds. Choose your destination!"
+		event.effects = ["world_choice"]
 	
 	return event
 
 func _display_travel_event(event: Dictionary) -> void:
 	"""Display travel event details in the UI"""
+	if not travel_event_details:
+		return
+	
 	# Clear existing event details
 	for child in travel_event_details.get_children():
 		child.queue_free()
 	
-	# Create event display
-	var title_label = Label.new()
-	title_label.text = event.title
-	title_label.add_theme_font_size_override("font_size", 18)
-	travel_event_details.add_child(title_label)
+	# Event type color
+	var type_color := COLOR_TEXT_SECONDARY
+	match event.type:
+		"beneficial": type_color = COLOR_EMERALD
+		"hostile", "danger": type_color = COLOR_RED
+		"setback": type_color = COLOR_AMBER
+		"opportunity": type_color = COLOR_BLUE
+		"choice": type_color = Color("#8b5cf6")  # Purple
 	
-	var description_label = Label.new()
-	description_label.text = event.description
-	description_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	travel_event_details.add_child(description_label)
+	# Create event display panel
+	var panel := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(COLOR_TERTIARY.r, COLOR_TERTIARY.g, COLOR_TERTIARY.b, 0.8)
+	style.border_color = type_color
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(8)
+	style.set_content_margin_all(16)
+	panel.add_theme_stylebox_override("panel", style)
+	
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	
+	# Title
+	var title_label := Label.new()
+	title_label.text = "🎲 " + event.title
+	title_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title_label.add_theme_color_override("font_color", type_color)
+	vbox.add_child(title_label)
+	
+	# Description
+	var desc_label := Label.new()
+	desc_label.text = event.description
+	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	desc_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	vbox.add_child(desc_label)
+	
+	panel.add_child(vbox)
+	travel_event_details.add_child(panel)
+	
+	# Log the event
+	_add_log_entry("[color=%s]%s[/color]: %s" % [type_color.to_html(), event.title, event.description])
 	
 	# Process event effects
 	_process_travel_event_effects(event.effects)
 	
-	# Add event resolution button if needed
-	if event.type in ["hostile", "opportunity", "malfunction"]:
-		var resolve_button = Button.new()
+	# Add resolution button for interactive events
+	if event.type in ["hostile", "choice", "danger"]:
+		var resolve_button := Button.new()
 		resolve_button.text = "Resolve Event"
+		resolve_button.custom_minimum_size.y = 40
 		resolve_button.pressed.connect(_on_resolve_travel_event.bind(event))
 		travel_event_details.add_child(resolve_button)
 
@@ -343,117 +601,83 @@ func _process_travel_event_effects(effects: Array) -> void:
 		match effect:
 			"combat_encounter":
 				_schedule_combat_encounter()
-			"repair_cost_100":
-				_apply_repair_costs(100)
-			"time_delay":
-				_apply_time_delay()
-			"trading_opportunity":
-				_create_trading_opportunity()
-			"information_bonus":
-				_apply_information_bonus()
-			"credits_50":
-				_add_credits(50)
-			"supplies":
-				_add_supplies()
+			"story_point":
+				_add_story_point()
+			"lose_story_point":
+				_remove_story_point()
+			"free_repair":
+				_add_log_entry("You may repair 1 damaged item for free.")
+			"xp_bonus":
+				_add_log_entry("Select a crew member to earn +1 XP.")
+			"luck_bonus":
+				_add_log_entry("A crew member gains +1 Luck!")
+			"gear_rolls":
+				_add_log_entry("Roll twice on the Gear Table (items may be damaged).")
 
 func _schedule_combat_encounter() -> void:
-	"""Schedule a combat encounter for the next phase"""
-	if campaign_data:
-		campaign_data.set_meta("pending_combat", true)
-		campaign_data.set_meta("combat_type", "travel_encounter")
-	_add_log_entry("Combat encounter scheduled for arrival")
+	"""Schedule a combat encounter"""
+	if GameStateManager and GameStateManager.has_method("set_pending_combat"):
+		GameStateManager.set_pending_combat(true, "travel_encounter")
+	_add_log_entry("[color=#ef4444]Combat encounter scheduled![/color]")
 
-func _apply_repair_costs(cost: int) -> void:
-	"""Apply repair costs to campaign funds"""
-	if campaign_data:
-		var current_credits = campaign_data.get_meta("credits", 0)
-		var new_credits = max(0, current_credits - cost)
-		campaign_data.set_meta("credits", new_credits)
-		_add_log_entry("Repair costs applied: -%d credits" % cost)
+func _add_story_point() -> void:
+	"""Add a story point"""
+	if GameStateManager and GameStateManager.has_method("modify_story_progress"):
+		GameStateManager.modify_story_progress(1)
+	_add_log_entry("[color=#8b5cf6]+1 Story Point[/color]")
 
-func _apply_time_delay() -> void:
-	"""Apply time delay effect"""
-	if campaign_data:
-		campaign_data.set_meta("arrival_delayed", true)
-	_add_log_entry("Arrival delayed - some opportunities may be missed")
-
-func _create_trading_opportunity() -> void:
-	"""Create a trading opportunity"""
-	if campaign_data:
-		campaign_data.set_meta("trading_opportunity_available", true)
-	_add_log_entry("Trading opportunity available at destination")
-
-func _apply_information_bonus() -> void:
-	"""Apply information bonus"""
-	if campaign_data:
-		campaign_data.set_meta("information_bonus", true)
-	_add_log_entry("Information bonus: +1 to next mission roll")
-
-func _add_credits(amount: int) -> void:
-	"""Add credits to campaign funds"""
-	if campaign_data:
-		var current_credits = campaign_data.get_meta("credits", 0)
-		campaign_data.set_meta("credits", current_credits + amount)
-		_add_log_entry("Credits gained: +%d" % amount)
-
-func _add_supplies() -> void:
-	"""Add supplies to inventory"""
-	if campaign_data:
-		var current_supplies = campaign_data.get_meta("supplies", 0)
-		campaign_data.set_meta("supplies", current_supplies + 2)
-		_add_log_entry("Supplies gained: +2 units")
+func _remove_story_point() -> void:
+	"""Remove a story point"""
+	if GameStateManager and GameStateManager.has_method("modify_story_progress"):
+		GameStateManager.modify_story_progress(-1)
+	_add_log_entry("[color=#ef4444]-1 Story Point[/color]")
 
 func _on_resolve_travel_event(event: Dictionary) -> void:
-	"""Resolve a travel event that requires player interaction"""
+	"""Resolve a travel event"""
 	match event.type:
 		"hostile":
 			_resolve_hostile_encounter()
-		"opportunity":
-			_resolve_trading_opportunity()
-		"malfunction":
-			_resolve_equipment_malfunction()
+		"choice":
+			_resolve_choice_event(event)
+		"danger":
+			_resolve_danger_event(event)
 	
-	_add_log_entry("Travel event resolved: %s" % event.title)
+	_add_log_entry("Event resolved: %s" % event.title)
 
 func _resolve_hostile_encounter() -> void:
 	"""Resolve hostile encounter during travel"""
-	# Create dialog for player choice
-	var dialog = ConfirmationDialog.new()
+	var dialog := ConfirmationDialog.new()
 	dialog.dialog_text = "Hostile forces approach! Choose your action:"
 	dialog.title = "Hostile Encounter"
 	
-	# Add custom buttons
 	dialog.add_button("Fight", false, "fight")
-	dialog.add_button("Evade", false, "evade")
+	dialog.add_button("Evade (Roll 5+)", false, "evade")
 	dialog.add_button("Negotiate", false, "negotiate")
 	
 	dialog.custom_action.connect(_on_hostile_encounter_choice)
 	add_child(dialog)
 	dialog.popup_centered()
 
-func _resolve_trading_opportunity() -> void:
-	"""Resolve trading opportunity"""
-	var dialog = AcceptDialog.new()
-	dialog.dialog_text = "Trading opportunity available! Gain 150 credits for 1 supply unit?"
-	dialog.title = "Trading Opportunity"
+func _resolve_choice_event(event: Dictionary) -> void:
+	"""Resolve choice-based event"""
+	var dialog := ConfirmationDialog.new()
+	dialog.dialog_text = event.description + "\n\nDo you want to investigate?"
+	dialog.title = event.title
+	dialog.ok_button_text = "Yes"
+	dialog.cancel_button_text = "No"
 	
-	var accept_button = dialog.add_button("Accept Trade", false, "accept")
-	var decline_button = dialog.add_button("Decline", false, "decline")
+	dialog.confirmed.connect(func(): _add_log_entry("Chose to investigate - roll for results."))
+	dialog.canceled.connect(func(): _add_log_entry("Decided to pass - continuing journey."))
 	
-	dialog.custom_action.connect(_on_trading_choice)
 	add_child(dialog)
 	dialog.popup_centered()
 
-func _resolve_equipment_malfunction() -> void:
-	"""Resolve equipment malfunction"""
-	var dialog = AcceptDialog.new()
-	dialog.dialog_text = "Equipment malfunction detected! Pay 100 credits for repairs or risk continued problems?"
-	dialog.title = "Equipment Malfunction"
+func _resolve_danger_event(_event: Dictionary) -> void:
+	"""Resolve danger event"""
+	var dialog := AcceptDialog.new()
+	dialog.dialog_text = "Roll 1D6+Savvy to navigate safely. Need 4+ to succeed."
+	dialog.title = "Navigation Check"
 	
-	dialog.add_button("Pay Repairs", false, "repair")
-	dialog.add_button("Risk It", false, "risk")
-	
-	dialog.custom_action.connect(_on_malfunction_choice)
 	add_child(dialog)
 	dialog.popup_centered()
 
@@ -464,51 +688,16 @@ func _on_hostile_encounter_choice(action: String) -> void:
 			_schedule_combat_encounter()
 			_add_log_entry("Chose to fight - combat encounter scheduled")
 		"evade":
-			# Evasion attempt
-			var dice_manager = get_node_or_null("/root/DiceManager")
-			var evasion_roll = 0
-			if dice_manager:
-				evasion_roll = dice_manager.roll_dice("Evasion", "D6")
-			else:
-				evasion_roll = randi_range(1, 6)
-			
-			if evasion_roll >= 4:
-				_add_log_entry("Successfully evaded hostile forces!")
+			var roll: int = randi_range(1, 6)
+			if roll >= 5:
+				_add_log_entry("[color=#10b981]Successfully evaded! (Rolled %d)[/color]" % roll)
 			else:
 				_schedule_combat_encounter()
-				_add_log_entry("Evasion failed - combat encounter scheduled")
+				_add_log_entry("[color=#ef4444]Evasion failed (Rolled %d) - combat scheduled[/color]" % roll)
 		"negotiate":
-			# Negotiation attempt
-			var negotiation_roll = randi_range(1, 6)
-			if negotiation_roll >= 5:
-				_add_credits(-50) # Bribe cost
-				_add_log_entry("Negotiation successful - paid 50 credits to avoid conflict")
+			var roll: int = randi_range(1, 6)
+			if roll >= 5:
+				_add_log_entry("[color=#10b981]Negotiation successful! (Rolled %d)[/color]" % roll)
 			else:
 				_schedule_combat_encounter()
-				_add_log_entry("Negotiation failed - combat encounter scheduled")
-
-func _on_trading_choice(action: String) -> void:
-	"""Handle trading opportunity choice"""
-	match action:
-		"accept":
-			var current_supplies = campaign_data.get_meta("supplies", 0) if campaign_data else 0
-			if current_supplies >= 1:
-				_add_supplies() # Remove 1 supply
-				campaign_data.set_meta("supplies", current_supplies - 1)
-				_add_credits(150)
-				_add_log_entry("Trade completed: -1 supply, +150 credits")
-			else:
-				_add_log_entry("Insufficient supplies for trade")
-		"decline":
-			_add_log_entry("Trading opportunity declined")
-
-func _on_malfunction_choice(action: String) -> void:
-	"""Handle equipment malfunction choice"""
-	match action:
-		"repair":
-			_apply_repair_costs(100)
-			_add_log_entry("Equipment repaired - no further issues")
-		"risk":
-			if campaign_data:
-				campaign_data.set_meta("equipment_unreliable", true)
-			_add_log_entry("Equipment remains unreliable - may cause problems later")
+				_add_log_entry("[color=#ef4444]Negotiation failed (Rolled %d) - combat scheduled[/color]" % roll)

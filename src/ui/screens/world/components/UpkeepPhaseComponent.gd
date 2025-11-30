@@ -5,6 +5,8 @@ class_name UpkeepPhaseComponent
 ## Extracted from WorldPhaseUI monolith to handle Five Parsecs upkeep rules only
 ## Implements Core Rules p.76 - Ship maintenance and crew upkeep calculations
 
+const RulesHelpText = preload("res://src/data/rules_help_text.gd")
+
 # Event bus integration
 const CampaignTurnEventBus = preload("res://src/core/events/CampaignTurnEventBus.gd")
 var event_bus: CampaignTurnEventBus = null
@@ -22,6 +24,16 @@ const FPCM_DataManager = preload("res://src/core/data/DataManager.gd")
 @onready var auto_calculate_button: Button = %AutoCalculateButton
 @onready var manual_calculate_button: Button = %ManualCalculateButton
 @onready var progress_bar: ProgressBar = %UpkeepProgressBar
+@onready var help_button: Button = %HelpButton
+
+# Design System Colors
+const COLOR_AMBER := Color("#f59e0b")
+const COLOR_EMERALD := Color("#10b981")
+const COLOR_RED := Color("#ef4444")
+const COLOR_TEXT_SECONDARY := Color("#9ca3af")
+
+# Help dialog reference
+var _help_dialog: AcceptDialog = null
 
 # Upkeep calculation state
 var current_upkeep_data: Dictionary = {}
@@ -64,6 +76,8 @@ func _connect_ui_signals() -> void:
 		auto_calculate_button.pressed.connect(_on_auto_calculate_pressed)
 	if manual_calculate_button:
 		manual_calculate_button.pressed.connect(_on_manual_calculate_pressed)
+	if help_button:
+		help_button.pressed.connect(_on_help_button_pressed)
 
 func _setup_initial_state() -> void:
 	"""Initialize the component state"""
@@ -110,8 +124,18 @@ func calculate_upkeep_costs() -> Dictionary:
 	# Get current credits from campaign data
 	results.current_credits = GameStateManager.get_credits()
 	
-	# Calculate crew upkeep - 1 credit per crew member (Core Rules p.76)
-	results.crew_upkeep = crew_data.size() * BASE_CREW_UPKEEP_PER_MEMBER
+	# Calculate crew upkeep with world trait modifiers (Core Rules p.76, p.87-89)
+	var effective_crew_size: int = crew_data.size()
+	
+	# Apply "high_cost" world trait modifier (Core Rules p.87-89)
+	# "Your crew size counts as being 2 higher for the purpose of Upkeep costs"
+	var world_traits: Array = _get_current_world_traits()
+	if "high_cost" in world_traits:
+		effective_crew_size += 2
+		print("UpkeepPhaseComponent: High cost world - effective crew size increased by 2")
+	
+	# Base upkeep: 1 credit per crew member (scales with crew size)
+	results.crew_upkeep = effective_crew_size * BASE_CREW_UPKEEP_PER_MEMBER
 	
 	# Calculate ship maintenance (Core Rules p.76)
 	results.ship_maintenance = _calculate_ship_maintenance()
@@ -122,8 +146,8 @@ func calculate_upkeep_costs() -> Dictionary:
 	# Check if can afford
 	results.can_afford = results.current_credits >= results.total_cost
 	
-	print("UpkeepPhaseComponent: Calculated upkeep - Crew: %d, Ship: %d, Total: %d, Credits: %d" % [
-		results.crew_upkeep, results.ship_maintenance, results.total_cost, results.current_credits
+	print("UpkeepPhaseComponent: Calculated upkeep - Crew: %d (effective size: %d), Ship: %d, Total: %d, Credits: %d" % [
+		results.crew_upkeep, effective_crew_size, results.ship_maintenance, results.total_cost, results.current_credits
 	])
 	
 	return results
@@ -145,6 +169,17 @@ func _calculate_ship_maintenance() -> int:
 			maintenance_cost += equipment.get("maintenance_cost", 0)
 	
 	return maintenance_cost
+
+func _get_current_world_traits() -> Array:
+	"""Get world traits for current location from campaign data"""
+	# Check GameStateManager for world data
+	var world_data: Dictionary = GameStateManager.get_current_world_data()
+	if world_data.has("traits"):
+		return world_data.get("traits", [])
+	
+	# Fallback: check WorldPhaseResources if available
+	# This would be passed during initialize_upkeep_phase if needed
+	return []
 
 ## Apply upkeep costs to campaign data
 func apply_upkeep_costs(upkeep_results: Dictionary) -> bool:
@@ -188,6 +223,36 @@ func _handle_insufficient_funds(upkeep_results: Dictionary) -> void:
 			"available": upkeep_results.current_credits,
 			"deficit": upkeep_results.total_cost - upkeep_results.current_credits
 		})
+
+## Help System
+func _on_help_button_pressed() -> void:
+	"""Show upkeep rules help dialog"""
+	_show_help_dialog("Upkeep Phase", RulesHelpText.get_tooltip("upkeep_phase"))
+
+func _show_help_dialog(title: String, content: String) -> void:
+	"""Show a help dialog with rules text"""
+	if not _help_dialog:
+		_help_dialog = AcceptDialog.new()
+		_help_dialog.dialog_hide_on_ok = true
+		add_child(_help_dialog)
+	
+	_help_dialog.title = title
+	
+	# Create or update content
+	var existing_content := _help_dialog.get_node_or_null("HelpContent")
+	if existing_content:
+		existing_content.queue_free()
+	
+	var rich_text := RichTextLabel.new()
+	rich_text.name = "HelpContent"
+	rich_text.bbcode_enabled = true
+	rich_text.fit_content = true
+	rich_text.custom_minimum_size = Vector2(400, 200)
+	rich_text.text = content
+	rich_text.add_theme_color_override("default_color", Color("#f3f4f6"))
+	_help_dialog.add_child(rich_text)
+	
+	_help_dialog.popup_centered()
 
 ## UI Event Handlers
 func _on_auto_calculate_pressed() -> void:
@@ -248,25 +313,31 @@ func _on_manual_calculate_pressed() -> void:
 ## UI Updates
 func _update_ui_display() -> void:
 	"""Update UI display with current upkeep data"""
-	if not current_upkeep_data.is_empty():
-		if credits_display:
-			var credit_text = "Credits: %d" % GameStateManager.get_credits()
-			if upkeep_completed:
-				credit_text += " (Upkeep Paid: -%d)" % current_upkeep_data.get("total_cost", 0)
-			credits_display.text = credit_text
+	var current_credits: int = GameStateManager.get_credits()
+	
+	if credits_display:
+		var credit_text := "Available Credits: %d" % current_credits
+		if upkeep_completed:
+			credit_text += " (Paid: -%d)" % current_upkeep_data.get("total_cost", 0)
+		credits_display.text = credit_text
+		# Color based on affordability
+		var can_afford: bool = current_upkeep_data.get("can_afford", true)
+		credits_display.add_theme_color_override("font_color", COLOR_EMERALD if can_afford else COLOR_RED)
 
+	if not current_upkeep_data.is_empty():
 		if crew_upkeep_label:
-			crew_upkeep_label.text = "Crew Upkeep: %d credits" % current_upkeep_data.get("crew_upkeep", 0)
+			crew_upkeep_label.text = "%d credits" % current_upkeep_data.get("crew_upkeep", 0)
 
 		if maintenance_cost_label:
-			maintenance_cost_label.text = "Ship Maintenance: %d credits" % current_upkeep_data.get("ship_maintenance", 0)
+			maintenance_cost_label.text = "%d credits" % current_upkeep_data.get("ship_maintenance", 0)
 
 		if total_cost_label:
-			var can_afford = current_upkeep_data.get("can_afford", false)
-			var color = Color.GREEN if upkeep_completed else (Color.GREEN if can_afford else Color.RED)
-			var status = " ✓ PAID" if upkeep_completed else ""
-			total_cost_label.text = "Total Cost: %d credits%s" % [current_upkeep_data.get("total_cost", 0), status]
-			total_cost_label.modulate = color
+			var total_cost: int = current_upkeep_data.get("total_cost", 0)
+			var status := " ✓" if upkeep_completed else ""
+			total_cost_label.text = "%d credits%s" % [total_cost, status]
+			# Color: amber normally, green if paid, red if can't afford
+			var color := COLOR_EMERALD if upkeep_completed else (COLOR_AMBER if current_upkeep_data.get("can_afford", true) else COLOR_RED)
+			total_cost_label.add_theme_color_override("font_color", color)
 
 ## Event Bus Handlers
 func _on_phase_started(data: Dictionary) -> void:

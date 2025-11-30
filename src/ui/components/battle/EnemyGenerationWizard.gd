@@ -8,6 +8,23 @@ extends PanelContainer
 ##
 ## Reference: Core Rules Enemy Tables
 
+## Design System Constants (from BaseCampaignPanel)
+const COLOR_PRIMARY := Color("#0a0d14")      # Darkest background
+const COLOR_SECONDARY := Color("#111827")    # Card backgrounds
+const COLOR_TERTIARY := Color("#1f2937")     # Elevated elements
+const COLOR_BORDER := Color("#374151")       # Border color
+const COLOR_BLUE := Color("#3b82f6")         # Primary accent
+const COLOR_EMERALD := Color("#10b981")      # Success
+const COLOR_AMBER := Color("#f59e0b")        # Warning/credits
+const COLOR_RED := Color("#ef4444")          # Danger/threat
+const COLOR_CYAN := Color("#06b6d4")         # Highlights
+const COLOR_TEXT_PRIMARY := Color("#f3f4f6") # Bright text
+const COLOR_TEXT_SECONDARY := Color("#9ca3af") # Gray text
+
+const SPACING_SM := 8
+const SPACING_MD := 16
+const SPACING_LG := 24
+
 const EnemyGenerator = preload("res://src/core/systems/EnemyGenerator.gd")
 const WeaponTableSystem = preload("res://src/core/battle/WeaponTableSystem.gd")
 
@@ -55,20 +72,14 @@ func _ready() -> void:
 
 func _setup_panel_style() -> void:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.12, 0.1, 0.16, 0.95)
-	style.corner_radius_top_left = 8
-	style.corner_radius_top_right = 8
-	style.corner_radius_bottom_left = 8
-	style.corner_radius_bottom_right = 8
-	style.border_width_left = 3
-	style.border_width_right = 1
-	style.border_width_top = 1
-	style.border_width_bottom = 1
-	style.border_color = Color.CRIMSON
-	style.content_margin_left = 12
-	style.content_margin_right = 12
-	style.content_margin_top = 8
-	style.content_margin_bottom = 8
+	# Glass morphism background
+	style.bg_color = Color(COLOR_SECONDARY.r, COLOR_SECONDARY.g, COLOR_SECONDARY.b, 0.8)
+	style.set_corner_radius_all(16)
+	# Subtle border
+	style.border_color = Color(COLOR_BORDER.r, COLOR_BORDER.g, COLOR_BORDER.b, 0.5)
+	style.set_border_width_all(1)
+	# Generous padding
+	style.set_content_margin_all(SPACING_LG)
 	add_theme_stylebox_override("panel", style)
 
 func _setup_navigation() -> void:
@@ -107,7 +118,7 @@ func _build_mission_step() -> void:
 
 	var desc := Label.new()
 	desc.text = "Mission type determines enemy category probabilities."
-	desc.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD
 	step_container.add_child(desc)
 
@@ -154,7 +165,7 @@ func _build_difficulty_step() -> void:
 
 	var desc := Label.new()
 	desc.text = "Higher difficulty adds more enemies with better stats."
-	desc.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD
 	step_container.add_child(desc)
 
@@ -189,7 +200,7 @@ func _build_category_step() -> void:
 
 	var desc := Label.new()
 	desc.text = "Roll or select enemy category manually."
-	desc.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD
 	step_container.add_child(desc)
 
@@ -221,10 +232,10 @@ func _build_category_step() -> void:
 	selection_label.name = "SelectionLabel"
 	if enemy_category.is_empty():
 		selection_label.text = "No category selected"
-		selection_label.add_theme_color_override("font_color", Color(0.6, 0.4, 0.4))
+		selection_label.add_theme_color_override("font_color", COLOR_AMBER)
 	else:
 		selection_label.text = "Selected: %s" % enemy_category
-		selection_label.add_theme_color_override("font_color", Color(0.4, 0.8, 0.4))
+		selection_label.add_theme_color_override("font_color", COLOR_EMERALD)
 	step_container.add_child(selection_label)
 
 func _build_result_step() -> void:
@@ -250,28 +261,45 @@ func _build_result_step() -> void:
 	# Summary
 	var summary := Label.new()
 	summary.text = "\nTotal: %d enemies" % generated_enemies.size()
-	summary.add_theme_color_override("font_color", Color.GOLD)
+	summary.add_theme_color_override("font_color", COLOR_AMBER)
 	step_container.add_child(summary)
 
 func _create_enemy_display(enemy: Resource, index: int) -> Control:
+	# Glass card for each enemy
+	var card := PanelContainer.new()
+	var card_style := StyleBoxFlat.new()
+	card_style.bg_color = Color(COLOR_TERTIARY.r, COLOR_TERTIARY.g, COLOR_TERTIARY.b, 0.6)
+	card_style.border_color = Color(COLOR_BORDER.r, COLOR_BORDER.g, COLOR_BORDER.b, 0.3)
+	card_style.set_border_width_all(1)
+	card_style.set_corner_radius_all(8)
+	card_style.set_content_margin_all(SPACING_MD)
+	card.add_theme_stylebox_override("panel", card_style)
+	
 	var container := VBoxContainer.new()
+	container.add_theme_constant_override("separation", SPACING_SM)
 
-	# Header with name
+	# Header with name and threat badge
+	var header := HBoxContainer.new()
 	var name_label := Label.new()
 	var enemy_name: String = enemy.get_meta("name") if enemy.has_meta("name") else "Unknown"
 	name_label.text = "%d. %s" % [index, enemy_name]
-	name_label.add_theme_font_size_override("font_size", 13)
-	name_label.add_theme_color_override("font_color", Color.ORANGE)
-	container.add_child(name_label)
+	name_label.add_theme_font_size_override("font_size", 14)
+	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	header.add_child(name_label)
+	
+	# Threat level badge
+	var threat_badge := _create_threat_badge(enemy)
+	header.add_child(threat_badge)
+	container.add_child(header)
 
-	# Stats row
+	# Stats row with color coding
 	var stats_label := Label.new()
 	var combat: int = enemy.get_meta("combat") if enemy.has_meta("combat") else enemy.get_meta("combat_skill") if enemy.has_meta("combat_skill") else 3
 	var toughness: int = enemy.get_meta("toughness") if enemy.has_meta("toughness") else 3
 	var speed: int = enemy.get_meta("speed") if enemy.has_meta("speed") else 4
-	stats_label.text = "  Combat: %d | Toughness: %d | Speed: %d" % [combat, toughness, speed]
+	stats_label.text = "Combat: %d | Toughness: %d | Speed: %d" % [combat, toughness, speed]
 	stats_label.add_theme_font_size_override("font_size", 11)
-	stats_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	stats_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	container.add_child(stats_label)
 
 	# Weapons
@@ -279,16 +307,45 @@ func _create_enemy_display(enemy: Resource, index: int) -> Control:
 	if weapons.size() > 0:
 		var weapons_label := Label.new()
 		var weapons_arr: Array = weapons if weapons is Array else [weapons]
-		weapons_label.text = "  Weapons: %s" % ", ".join(weapons_arr)
+		weapons_label.text = "Weapons: %s" % ", ".join(weapons_arr)
 		weapons_label.add_theme_font_size_override("font_size", 11)
-		weapons_label.add_theme_color_override("font_color", Color(0.8, 0.6, 0.6))
+		weapons_label.add_theme_color_override("font_color", COLOR_AMBER)
 		container.add_child(weapons_label)
 
-	# Separator
-	var sep := HSeparator.new()
-	container.add_child(sep)
+	card.add_child(container)
+	return card
 
-	return container
+func _create_threat_badge(enemy: Resource) -> PanelContainer:
+	"""Create threat level badge based on enemy stats"""
+	var combat: int = enemy.get_meta("combat") if enemy.has_meta("combat") else enemy.get_meta("combat_skill") if enemy.has_meta("combat_skill") else 3
+	var toughness: int = enemy.get_meta("toughness") if enemy.has_meta("toughness") else 3
+	var threat_score := combat + toughness
+	
+	var badge := PanelContainer.new()
+	badge.custom_minimum_size = Vector2(48, 20)
+	
+	var badge_style := StyleBoxFlat.new()
+	badge_style.set_corner_radius_all(4)
+	badge_style.set_content_margin_all(4)
+	
+	var badge_label := Label.new()
+	badge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	badge_label.add_theme_font_size_override("font_size", 10)
+	
+	# Color code by threat level
+	if threat_score <= 4:
+		badge_style.bg_color = COLOR_EMERALD
+		badge_label.text = "LOW"
+	elif threat_score <= 6:
+		badge_style.bg_color = COLOR_AMBER
+		badge_label.text = "MED"
+	else:
+		badge_style.bg_color = COLOR_RED
+		badge_label.text = "HIGH"
+	
+	badge.add_theme_stylebox_override("panel", badge_style)
+	badge.add_child(badge_label)
+	return badge
 
 func _generate_enemies() -> void:
 	generated_enemies.clear()
@@ -326,9 +383,22 @@ func _update_navigation() -> void:
 
 func _update_enemy_count_preview() -> void:
 	if enemy_count_label:
-		var count := enemy_generator._calculate_enemy_count(difficulty, crew_size)
-		enemy_count_label.text = "Expected enemies: %d" % count
-		enemy_count_label.add_theme_color_override("font_color", Color.GOLD)
+		# Explain dice mechanics based on crew size
+		var dice_text := ""
+		match crew_size:
+			6:
+				dice_text = "Roll 2D6, pick HIGHER"
+			5:
+				dice_text = "Roll 1D6"
+			4:
+				dice_text = "Roll 2D6, pick LOWER"
+			_:
+				dice_text = "Roll 2D6, pick HIGHER (default)"
+		
+		# Calculate sample count (for preview purposes)
+		var sample_count := enemy_generator._calculate_enemy_count(difficulty, crew_size)
+		enemy_count_label.text = "Enemy Count: %s (Sample: %d)" % [dice_text, sample_count]
+		enemy_count_label.add_theme_color_override("font_color", COLOR_AMBER)
 
 func _get_difficulty_text(diff: int) -> String:
 	match diff:
@@ -363,7 +433,7 @@ func _on_roll_category() -> void:
 	var selection_label = step_container.get_node_or_null("SelectionLabel")
 	if selection_label:
 		selection_label.text = "Selected: %s" % enemy_category
-		selection_label.add_theme_color_override("font_color", Color(0.4, 0.8, 0.4))
+		selection_label.add_theme_color_override("font_color", COLOR_EMERALD)
 
 func _on_category_selected(index: int) -> void:
 	match index:
@@ -379,7 +449,7 @@ func _on_category_selected(index: int) -> void:
 	var selection_label = step_container.get_node_or_null("SelectionLabel")
 	if selection_label:
 		selection_label.text = "Selected: %s" % enemy_category
-		selection_label.add_theme_color_override("font_color", Color(0.4, 0.8, 0.4))
+		selection_label.add_theme_color_override("font_color", COLOR_EMERALD)
 
 func _on_back_pressed() -> void:
 	if current_step > 0:
@@ -411,3 +481,4 @@ func reset() -> void:
 ## Get generated enemies
 func get_generated_enemies() -> Array:
 	return generated_enemies
+                                                                                                                                             

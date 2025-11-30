@@ -5,6 +5,9 @@ class_name EquipmentFormatter
 ## Static methods for extracting and formatting equipment data with clickable keywords
 ## Works with Equipment resources and raw data dictionaries
 
+# Preload to avoid global class name conflict
+const KeywordTooltipUtil = preload("res://src/ui/components/tooltips/KeywordTooltip.gd")
+
 ## Extract traits from equipment resource/dictionary
 static func extract_traits(equipment: Variant) -> Array[String]:
 	"""
@@ -72,7 +75,7 @@ static func format_for_display(equipment: Variant, include_traits: bool = true) 
 		return name
 	
 	var traits = extract_traits(equipment)
-	return FPCM_KeywordTooltip.format_equipment_with_keywords(name, traits)
+	return KeywordTooltipUtil.format_equipment_with_keywords(name, traits)
 
 ## Format equipment list for ItemList or RichTextLabel
 static func format_list_item(equipment: Variant, show_quantity: bool = false) -> String:
@@ -187,21 +190,68 @@ static func extract_all_keywords(equipment_list: Array) -> Array[String]:
 static func populate_item_list(item_list: ItemList, equipment_array: Array, tooltip_node: Node) -> void:
 	"""
 	Populate ItemList with equipment, but note: ItemList doesn't support BBCode.
-	
+
 	This is a fallback method. For clickable keywords, use RichTextLabel instead.
 	ItemList displays plain text without keyword links.
 	"""
 	item_list.clear()
-	
+
 	for equipment in equipment_array:
 		var name = extract_name(equipment)
 		var traits = extract_traits(equipment)
-		
+
 		# ItemList doesn't support BBCode, so format as plain text
 		var display_text = name
 		if not traits.is_empty():
 			display_text += " (" + ", ".join(traits) + ")"
-		
+
 		item_list.add_item(display_text)
-	
+
 	push_warning("EquipmentFormatter: ItemList doesn't support BBCode keywords. Use RichTextLabel for interactive keywords.")
+
+# ========== IMPLANT FORMATTING ==========
+
+## Format implant with stat bonus indicator
+static func format_implant(implant: Dictionary) -> String:
+	"""
+	Format implant name with stat bonus.
+
+	Args:
+		implant: Dictionary with 'name' and 'stat_bonus' fields
+
+	Returns:
+		Formatted string like "Neural Link (+1 Savvy)"
+	"""
+	var implant_name := implant.get("name", "Unknown Implant")
+	var stat_bonus: Dictionary = implant.get("stat_bonus", {})
+
+	if stat_bonus.is_empty():
+		return implant_name
+
+	# Format stat bonuses as readable text
+	var bonus_text: Array[String] = []
+	for stat_name in stat_bonus:
+		var bonus_value: int = stat_bonus[stat_name]
+		var formatted_stat := stat_name.capitalize()
+		bonus_text.append("+%d %s" % [bonus_value, formatted_stat])
+
+	return "%s (%s)" % [implant_name, ", ".join(bonus_text)]
+
+## Format implant list for display
+static func format_implant_list(implants: Array) -> String:
+	"""
+	Format array of implants as BBCode list.
+
+	Returns:
+		BBCode string with bullet points
+	"""
+	if implants.is_empty():
+		return "[color=#808080]No implants[/color]"
+
+	var formatted_lines: Array[String] = []
+	for implant in implants:
+		if implant is Dictionary:
+			var formatted := format_implant(implant)
+			formatted_lines.append("• %s" % formatted)
+
+	return "\n".join(formatted_lines)

@@ -598,13 +598,17 @@ func _update_crew_display() -> void:
 		var card_instance = CharacterCard.instantiate()
 		card_instance.set_variant(CharacterCard.CardVariant.COMPACT)
 		card_instance.set_character(member)
-		
+
 		# Connect card signals
 		card_instance.card_tapped.connect(_on_crew_card_tapped.bind(member))
 		card_instance.view_details_pressed.connect(_on_crew_card_view.bind(member))
 		card_instance.edit_pressed.connect(_on_crew_card_edit.bind(member))
 		card_instance.remove_pressed.connect(_on_crew_card_remove.bind(member))
-		
+
+		# Add hover effect for better interactivity
+		card_instance.mouse_entered.connect(_on_crew_card_hover_start.bind(card_instance))
+		card_instance.mouse_exited.connect(_on_crew_card_hover_end.bind(card_instance))
+
 		crew_cards_container.add_child(card_instance)
 	
 	# Add "Create Character" button for empty slots
@@ -784,19 +788,29 @@ func _on_crew_member_button_pressed(member_data: Dictionary) -> void:
 # ============ CREW PANEL WIZARD ENHANCEMENTS ============
 
 func _create_responsive_crew_container() -> Control:
-	"""Create responsive container for crew cards (mobile: scroll, tablet/desktop: grid)"""
+	"""Create responsive container for crew cards with glass morphism (mobile: scroll, tablet/desktop: grid)"""
 	if should_use_single_column():
-		# Mobile: Vertical scrollable list
+		# Mobile: Vertical scrollable list with glass background
+		var scroll := ScrollContainer.new()
+		scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		scroll.custom_minimum_size.y = 400
+
+		# Glass background for mobile scroll
+		var scroll_bg := PanelContainer.new()
+		scroll_bg.add_theme_stylebox_override("panel", _create_glass_card_subtle())
+
 		var vbox := VBoxContainer.new()
-		vbox.add_theme_constant_override("separation", SPACING_SM)
+		vbox.add_theme_constant_override("separation", SPACING_MD)
 		vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		return vbox
+		scroll.add_child(vbox)
+		return scroll
 	else:
-		# Tablet/Desktop: 2-column grid
+		# Tablet/Desktop: 2-3 column grid with glass background
 		var grid := GridContainer.new()
 		grid.columns = get_optimal_column_count()
-		grid.add_theme_constant_override("h_separation", SPACING_MD)
-		grid.add_theme_constant_override("v_separation", SPACING_SM)
+		grid.add_theme_constant_override("h_separation", SPACING_LG)
+		grid.add_theme_constant_override("v_separation", SPACING_MD)
 		grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		return grid
 
@@ -824,15 +838,15 @@ func _create_add_character_slot(slot_index: int) -> Button:
 	return btn
 
 func _update_validation_panel() -> void:
-	"""Update validation panel with color-coded crew count feedback"""
+	"""Update validation panel with color-coded crew count feedback and glass morphism"""
 	if not validation_panel or not validation_icon or not validation_text:
 		return
-	
+
 	var crew_count := crew_members.size()
 	var status_color: Color
 	var status_icon: String
 	var status_message: String
-	
+
 	# Validation logic (4-8 crew optimal)
 	if crew_count < 4:
 		status_color = COLOR_DANGER
@@ -850,29 +864,25 @@ func _update_validation_panel() -> void:
 		status_color = COLOR_WARNING
 		status_icon = "⚠️"
 		status_message = "Over maximum (8) - %d members" % crew_count
-	
-	# Update validation panel styling
-	var style := StyleBoxFlat.new()
-	style.bg_color = status_color
-	style.bg_color.a = 0.15  # Semi-transparent background
+
+	# Apply glass morphism with status color tint
+	var style := _create_accent_card_style(status_color)
 	style.border_color = status_color
 	style.set_border_width_all(2)
-	style.set_corner_radius_all(6)
-	style.set_content_margin_all(SPACING_MD)
 	validation_panel.add_theme_stylebox_override("panel", style)
-	
+
 	# Update icon and text
 	validation_icon.text = status_icon
 	validation_icon.add_theme_font_size_override("font_size", FONT_SIZE_LG)
-	
+
 	validation_text.text = status_message
 	validation_text.add_theme_font_size_override("font_size", FONT_SIZE_MD)
 	validation_text.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	
+
 	# Emit validation signal for wizard navigation
 	var is_valid := crew_count >= 4 and crew_count <= 8
 	emit_signal("panel_validation_changed", is_valid)
-	
+
 	print("CrewPanel: Validation updated - %d crew (%s)" % [crew_count, "VALID" if is_valid else "INVALID"])
 
 # ============ CHARACTERCARD SIGNAL HANDLERS ============
@@ -917,6 +927,24 @@ func _on_create_character_slot_pressed(slot_index: int) -> void:
 		_update_crew_display()
 		crew_updated.emit(crew_members)
 		print("CrewPanel: Created new character in slot %d" % slot_index)
+
+func _on_crew_card_hover_start(card: Control) -> void:
+	"""Apply hover effect to crew card"""
+	if card and is_instance_valid(card):
+		# Create tween for smooth hover animation
+		var tween := create_tween()
+		tween.set_ease(Tween.EASE_OUT)
+		tween.set_trans(Tween.TRANS_CUBIC)
+		tween.tween_property(card, "scale", Vector2(1.02, 1.02), 0.15)
+
+func _on_crew_card_hover_end(card: Control) -> void:
+	"""Remove hover effect from crew card"""
+	if card and is_instance_valid(card):
+		# Create tween for smooth return animation
+		var tween := create_tween()
+		tween.set_ease(Tween.EASE_OUT)
+		tween.set_trans(Tween.TRANS_CUBIC)
+		tween.tween_property(card, "scale", Vector2(1.0, 1.0), 0.15)
 
 func _on_crew_member_selected(index: int) -> void:
 	"""Handle crew member selection"""

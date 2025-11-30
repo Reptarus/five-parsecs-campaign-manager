@@ -1064,40 +1064,57 @@ func _update_equipment_display() -> void:
 	# Build crew options for dropdown
 	var crew_options = _get_crew_assignment_options()
 	
-	# Add equipment items to the visible list with assignment dropdowns
+	# Add equipment items to the visible list with assignment dropdowns (GLASS MORPHISM)
 	for i in range(generated_equipment.size()):
 		var item: Dictionary = generated_equipment[i]
+		var item_type: String = str(item.get("type", "Misc"))
+		
+		# GLASS MORPHISM: Create styled equipment card
 		var item_container: PanelContainer = PanelContainer.new()
+		item_container.add_theme_stylebox_override("panel", _create_glass_card_style(0.7))
+		item_container.custom_minimum_size.y = TOUCH_TARGET_MIN
+		
 		var item_hbox: HBoxContainer = HBoxContainer.new()
-		item_hbox.add_theme_constant_override("separation", 8)
+		item_hbox.add_theme_constant_override("separation", SPACING_SM)
+		
+		# SEMANTIC TYPE BADGE: Visual equipment type indicator
+		var type_badge: PanelContainer = _create_equipment_type_badge(item_type)
+		item_hbox.add_child(type_badge)
 		
 		# Equipment name
 		var name_label: Label = Label.new()
 		name_label.text = str(item.get("name", "Unknown Item"))
 		name_label.custom_minimum_size.x = 180
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		item_hbox.add_child(name_label)
 		
-		# Equipment type with color coding
-		var type_label: Label = Label.new()
-		var item_type: String = str(item.get("type", "Misc"))
-		type_label.text = item_type
-		type_label.custom_minimum_size.x = 100
-		type_label.add_theme_color_override("font_color", _get_type_color(item_type))
-		item_hbox.add_child(type_label)
-		
-		# Condition indicator
-		var condition_label: Label = Label.new()
+		# Condition indicator (smaller badge style)
 		var condition: String = str(item.get("condition", "standard"))
-		condition_label.text = condition.capitalize()
-		condition_label.custom_minimum_size.x = 80
-		condition_label.add_theme_color_override("font_color", _get_condition_color(condition))
-		item_hbox.add_child(condition_label)
+		var condition_badge: PanelContainer = PanelContainer.new()
+		condition_badge.custom_minimum_size = Vector2(80, 24)
+		var cond_style := StyleBoxFlat.new()
+		cond_style.bg_color = Color(_get_condition_color(condition), 0.2)
+		cond_style.border_color = _get_condition_color(condition)
+		cond_style.set_border_width_all(1)
+		cond_style.set_corner_radius_all(4)
+		cond_style.set_content_margin_all(SPACING_XS)
+		condition_badge.add_theme_stylebox_override("panel", cond_style)
 		
-		# PHASE 1: Assignment dropdown
+		var condition_label: Label = Label.new()
+		condition_label.text = condition.capitalize()
+		condition_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+		condition_label.add_theme_color_override("font_color", _get_condition_color(condition))
+		condition_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		condition_badge.add_child(condition_label)
+		item_hbox.add_child(condition_badge)
+		
+		# PHASE 1: Assignment dropdown (styled)
 		var assign_dropdown: OptionButton = OptionButton.new()
 		assign_dropdown.custom_minimum_size.x = 150
 		assign_dropdown.name = "AssignDropdown_%d" % i
+		_style_option_button(assign_dropdown)
 		
 		# Add options
 		assign_dropdown.add_item("Unassigned", 0)
@@ -1127,20 +1144,59 @@ func _update_equipment_display() -> void:
 	print("EquipmentPanel: ✅ Display updated with %d visible items" % generated_equipment.size())
 
 func _get_type_color(item_type: String) -> Color:
-	"""Get color for equipment type display"""
+	"""Get color for equipment type display using design system semantic colors"""
 	match item_type.to_lower():
 		"military weapon", "weapon":
-			return Color(1.0, 0.4, 0.4)  # Red for weapons
+			return COLOR_BLUE  # Blue for weapons (design system)
 		"low-tech weapon":
-			return Color(0.8, 0.6, 0.4)  # Orange for low-tech
+			return COLOR_CYAN  # Cyan for low-tech weapons
 		"gear":
-			return Color(0.4, 0.8, 1.0)  # Blue for gear
+			return COLOR_AMBER  # Amber for gear (design system)
 		"gadget":
-			return Color(0.8, 0.4, 1.0)  # Purple for gadgets
+			return COLOR_PURPLE  # Purple for gadgets (design system)
 		"armor":
-			return Color(0.6, 0.8, 0.4)  # Green for armor
+			return COLOR_PURPLE  # Purple for armor (design system)
 		_:
-			return Color(0.8, 0.8, 0.8)  # Gray for misc
+			return COLOR_TEXT_SECONDARY  # Gray for misc
+
+func _create_equipment_type_badge(item_type: String) -> PanelContainer:
+	"""Create semantic type badge for equipment with icon and color coding"""
+	var badge = PanelContainer.new()
+	badge.custom_minimum_size = Vector2(32, 32)
+	
+	# Semantic color styling
+	var type_color = _get_type_color(item_type)
+	var badge_style := StyleBoxFlat.new()
+	badge_style.bg_color = Color(type_color.r, type_color.g, type_color.b, 0.2)
+	badge_style.border_color = type_color
+	badge_style.set_border_width_all(1)
+	badge_style.set_corner_radius_all(6)
+	badge_style.set_content_margin_all(SPACING_XS)
+	badge.add_theme_stylebox_override("panel", badge_style)
+	
+	# Icon label (simple text icon for now)
+	var icon_label = Label.new()
+	match item_type.to_lower():
+		"military weapon", "weapon":
+			icon_label.text = "⚔"  # Weapon icon
+		"low-tech weapon":
+			icon_label.text = "🔫"  # Gun icon
+		"gear":
+			icon_label.text = "⚙"  # Gear icon
+		"gadget":
+			icon_label.text = "🔧"  # Tool icon
+		"armor":
+			icon_label.text = "🛡"  # Shield icon
+		_:
+			icon_label.text = "📦"  # Box icon
+	
+	icon_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	icon_label.add_theme_color_override("font_color", type_color)
+	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	badge.add_child(icon_label)
+	
+	return badge
 
 func _get_condition_color(condition: String) -> Color:
 	"""Get color for equipment condition display"""
@@ -1311,47 +1367,64 @@ func _update_crew_loadout_display() -> void:
 		crew_loadout_container.add_child(stash_panel)
 
 func _create_character_loadout_panel(char_name: String, background: String, equipment: Array) -> PanelContainer:
-	"""Create a loadout display panel for a character"""
+	"""Create a loadout display panel for a character (GLASS MORPHISM)"""
 	var panel = PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", _create_glass_card_style(0.8))
+	
 	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 4)
+	vbox.add_theme_constant_override("separation", SPACING_SM)
 	
 	# Header with character name and background
 	var header = HBoxContainer.new()
+	header.add_theme_constant_override("separation", SPACING_XS)
 	
 	var name_label = Label.new()
 	name_label.text = char_name
-	name_label.add_theme_font_size_override("font_size", 14)
-	name_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.7))
+	name_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	header.add_child(name_label)
 	
 	if not background.is_empty():
 		var bg_label = Label.new()
-		bg_label.text = " (%s)" % background.capitalize()
-		bg_label.add_theme_font_size_override("font_size", 12)
-		bg_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+		bg_label.text = "(%s)" % background.capitalize()
+		bg_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		bg_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		header.add_child(bg_label)
 	
 	vbox.add_child(header)
 	
+	# Separator
+	var sep = HSeparator.new()
+	sep.modulate = COLOR_BORDER
+	vbox.add_child(sep)
+	
 	# Equipment list
 	if equipment.size() == 0:
 		var empty_label = Label.new()
-		empty_label.text = "  No equipment assigned"
-		empty_label.add_theme_font_size_override("font_size", 12)
-		empty_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+		empty_label.text = "No equipment assigned"
+		empty_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		empty_label.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
 		vbox.add_child(empty_label)
 	else:
 		for item in equipment:
+			var item_hbox = HBoxContainer.new()
+			item_hbox.add_theme_constant_override("separation", SPACING_XS)
+			
+			# Equipment type badge
+			var item_type: String = item.get("type", "")
+			var type_badge = _create_equipment_type_badge(item_type)
+			type_badge.custom_minimum_size = Vector2(24, 24)  # Smaller for list
+			item_hbox.add_child(type_badge)
+			
+			# Equipment name
 			var item_label = Label.new()
 			var item_name: String = item.get("name", "Unknown")
-			var item_type: String = item.get("type", "")
-			item_label.text = "  • %s" % item_name
-			if not item_type.is_empty():
-				item_label.text += " [%s]" % item_type
-			item_label.add_theme_font_size_override("font_size", 12)
-			item_label.add_theme_color_override("font_color", _get_type_color(item_type))
-			vbox.add_child(item_label)
+			item_label.text = item_name
+			item_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+			item_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+			item_hbox.add_child(item_label)
+			
+			vbox.add_child(item_hbox)
 	
 	panel.add_child(vbox)
 	return panel

@@ -574,8 +574,8 @@ func _create_character_box(character: Character) -> void:
 	if not character_list_container:
 		return
 	
-	# Load the CharacterBox scene
-	var character_box_scene = preload("res://src/ui/components/character/CharacterBox.tscn")
+	# Load the CharacterCard scene (replaces deleted CharacterBox.tscn)
+	var character_box_scene = preload("res://src/ui/components/character/CharacterCard.tscn")
 	var character_box = character_box_scene.instantiate()
 	
 	# Set up the character box with character data

@@ -22,7 +22,7 @@ var workflow_orchestrator_scene: String = "res://src/ui/screens/campaign/Campaig
 
 var modular_scenes: Dictionary = {
 	"InitialCrewCreation": "res://src/ui/screens/crew/InitialCrewCreation.tscn",
-	"CharacterCreator": "res://src/ui/screens/character/CharacterCreator.tscn", 
+	"CharacterCreator": "res://src/ui/screens/character/SimpleCharacterCreator.tscn",
 	"CampaignDashboard": "res://src/ui/screens/campaign/CampaignDashboard.tscn",
 	"ConfigPanel": "res://src/ui/screens/campaign/panels/ConfigPanel.tscn",
 	"ShipPanel": "res://src/ui/screens/campaign/panels/ShipPanel.tscn",

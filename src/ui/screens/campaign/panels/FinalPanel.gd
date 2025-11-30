@@ -6,6 +6,13 @@ const SecurityValidator = preload("res://src/core/validation/SecurityValidator.g
 const ValidationResult = preload("res://src/core/validation/ValidationResult.gd")
 const CharacterCardScene = preload("res://src/ui/components/character/CharacterCard.tscn")
 
+# Component preloads
+const StatBadge = preload("res://src/ui/components/base/StatBadge.gd")
+const ValidationPanel = preload("res://src/ui/components/feedback/ValidationPanel.gd")
+const StarsOfTheStoryPanelScene = preload("res://src/ui/components/campaign/StarsOfTheStoryPanel.tscn")
+const PlayerProfile = preload("res://src/core/player/PlayerProfile.gd")
+const StarsOfTheStorySystem = preload("res://src/core/systems/StarsOfTheStorySystem.gd")
+
 signal campaign_creation_requested(campaign_data: Dictionary)
 
 # Autonomous signals for coordinator pattern
@@ -15,6 +22,8 @@ signal campaign_confirmed()  # New signal for Create Campaign button
 # UI References - rebuilt programmatically
 var progress_container: VBoxContainer = null
 var summary_cards_container: VBoxContainer = null
+var validation_feedback_container: Control = null  # Validation feedback panel
+var validation_panel: ValidationPanel = null
 var crew_preview_container: VBoxContainer = null
 var create_button: Button = null
 
@@ -111,6 +120,11 @@ func _build_final_panel_ui() -> void:
 	# 3. Crew Preview Section
 	crew_preview_container = _create_crew_preview_section()
 	main_vbox.add_child(crew_preview_container)
+	
+	# 3.5. Validation Feedback Panel (NEW)
+	validation_panel = ValidationPanel.new()
+	validation_panel.name = "ValidationPanel"
+	main_vbox.add_child(validation_panel)
 	
 	# 4. Create Campaign Button
 	create_button = _create_create_campaign_button()
@@ -283,8 +297,16 @@ func _update_display() -> void:
 	if equipment_card:
 		summary_cards_container.add_child(equipment_card)
 
+	# Elite Bonuses card (shows Stars of the Story abilities and Elite Rank bonuses)
+	var elite_card = _create_elite_bonuses_card()
+	if elite_card:
+		summary_cards_container.add_child(elite_card)
+
 	# Update crew preview
 	_update_crew_preview()
+
+	# Update validation feedback panel (inserted before crew preview in UI hierarchy)
+	_update_validation_feedback()
 
 	# Update button state
 	_update_create_button_state()
@@ -296,11 +318,11 @@ func _create_config_summary_card() -> PanelContainer:
 	
 	var config_data = campaign_data.get("campaign_config", campaign_data.get("config", {}))
 	
-	# Campaign Name
+	# Campaign Name (Enhanced: XL size for primary data, accent color for prominence)
 	var name_label := Label.new()
-	name_label.text = "Campaign: %s" % config_data.get("campaign_name", "Unknown Campaign")
-	name_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	name_label.text = config_data.get("campaign_name", "Unknown Campaign")
+	name_label.add_theme_font_size_override("font_size", FONT_SIZE_XL)  # XL for primary data hierarchy
+	name_label.add_theme_color_override("font_color", COLOR_ACCENT)      # Accent color for emphasis
 	content.add_child(name_label)
 	
 	# Difficulty & Mode
@@ -338,7 +360,7 @@ func _create_config_summary_card() -> PanelContainer:
 	story_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	content.add_child(story_label)
 	
-	return _create_section_card("Campaign Configuration", content)
+	return _create_section_card("Campaign Configuration", content, "", "⚙️")
 
 func _create_ship_summary_card() -> PanelContainer:
 	"""Create Card 2: Ship Details"""
@@ -347,26 +369,44 @@ func _create_ship_summary_card() -> PanelContainer:
 	
 	var ship_data = campaign_data.get("ship", {})
 	
-	# Ship Name & Type
+	# Ship Name (Enhanced: XL size, accent color for primary data)
+	var ship_name: String = ship_data.get("name", "Unnamed Ship")
 	var name_label := Label.new()
-	name_label.text = "%s (%s)" % [
-		ship_data.get("name", "Unnamed Ship"),
-		ship_data.get("type", "Unknown Type")
-	]
-	name_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	name_label.text = ship_name
+	name_label.add_theme_font_size_override("font_size", FONT_SIZE_XL)  # XL for primary data
+	name_label.add_theme_color_override("font_color", COLOR_ACCENT)     # Accent color
 	content.add_child(name_label)
 	
-	# Ship Stats Grid
-	var stats := {}
-	stats["Hull"] = ship_data.get("hull_points", 0)
-	stats["Cargo"] = ship_data.get("cargo_capacity", 0)
-	stats["Debt"] = "%d cr" % ship_data.get("debt", 0)
+	# Ship Type (Secondary info)
+	var type_label := Label.new()
+	type_label.text = ship_data.get("type", "Unknown Type")
+	type_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	type_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	content.add_child(type_label)
 	
-	var stats_grid := _create_stats_grid(stats, 3)
-	content.add_child(stats_grid)
+	# Ship Stats (using StatBadge components)
+	var stats_hbox := HBoxContainer.new()
+	stats_hbox.add_theme_constant_override("separation", SPACING_SM)
+
+	var hull_badge = StatBadge.new()
+	hull_badge.stat_name = "Hull"
+	hull_badge.stat_value = ship_data.get("hull_points", 0)
+	stats_hbox.add_child(hull_badge)
+
+	var cargo_badge = StatBadge.new()
+	cargo_badge.stat_name = "Cargo"
+	cargo_badge.stat_value = ship_data.get("cargo_capacity", 0)
+	stats_hbox.add_child(cargo_badge)
+
+	var debt_badge = StatBadge.new()
+	debt_badge.stat_name = "Debt"
+	debt_badge.stat_value = "%d cr" % ship_data.get("debt", 0)
+	debt_badge.accent_color = COLOR_WARNING  # Orange for debt
+	stats_hbox.add_child(debt_badge)
+
+	content.add_child(stats_hbox)
 	
-	return _create_section_card("Ship Details", content)
+	return _create_section_card("Ship Details", content, "", "🚀")
 
 func _create_captain_summary_card() -> PanelContainer:
 	"""Create Card 3: Captain Info"""
@@ -383,11 +423,11 @@ func _create_captain_summary_card() -> PanelContainer:
 			elif captain.has("character_name"):
 				captain_name = captain.character_name
 	
-	# Captain Name
+	# Captain Name (Enhanced: XL size, accent color)
 	var name_label := Label.new()
 	name_label.text = captain_name if not captain_name.is_empty() else "No Captain Assigned"
-	name_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	name_label.add_theme_font_size_override("font_size", FONT_SIZE_XL)  # XL for primary data
+	name_label.add_theme_color_override("font_color", COLOR_ACCENT)     # Accent color
 	content.add_child(name_label)
 	
 	# Background, Class, Motivation
@@ -409,17 +449,27 @@ func _create_captain_summary_card() -> PanelContainer:
 		class_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		content.add_child(class_label)
 	
-	# Starting XP
-	var xp_label := Label.new()
-	xp_label.text = "Starting XP: %d" % captain_data.get("xp", 0)
-	xp_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
-	xp_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
-	content.add_child(xp_label)
+	# Captain Stats (using stat badges)
+	var captain_stats_hbox := HBoxContainer.new()
+	captain_stats_hbox.add_theme_constant_override("separation", SPACING_SM)
 	
-	return _create_section_card("Captain", content)
+	# Extract captain stats safely
+	var captain: Variant = captain_data.get("captain", captain_data)
+	if captain is Dictionary:
+		var combat: int = captain.get("combat_skill", captain.get("combat", 0))
+		var reactions: int = captain.get("reactions", 0)
+		var xp: int = captain.get("xp", 0)
+		
+		captain_stats_hbox.add_child(_create_stat_badge("Combat", combat, true))  # Show +
+		captain_stats_hbox.add_child(_create_stat_badge("Reactions", reactions))
+		captain_stats_hbox.add_child(_create_stat_badge("XP", xp))
+	
+	content.add_child(captain_stats_hbox)
+	
+	return _create_section_card("Captain", content, "", "👤")
 
 func _create_crew_summary_card() -> PanelContainer:
-	"""Create Card 4: Crew Summary (count, avg stats)"""
+	"""Create Card 4: Crew Summary (count, avg stats with stat badges)"""
 	var content := VBoxContainer.new()
 	content.add_theme_constant_override("separation", SPACING_SM)
 
@@ -444,14 +494,14 @@ func _create_crew_summary_card() -> PanelContainer:
 				member_dict["reactions"] = member.reactions
 			crew_members.append(member_dict)
 
-	# Crew Count
+	# Crew Count (Emphasis on number)
 	var count_label := Label.new()
-	count_label.text = "Crew Members: %d" % crew_members.size()
-	count_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	count_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	count_label.text = "%d Crew Members" % crew_members.size()
+	count_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)  # Larger!
+	count_label.add_theme_color_override("font_color", COLOR_ACCENT)  # Accent color!
 	content.add_child(count_label)
 
-	# Calculate average stats
+	# Calculate and display average stats using stat badges
 	if crew_members.size() > 0:
 		var total_combat := 0
 		var total_reactions := 0
@@ -464,13 +514,25 @@ func _create_crew_summary_card() -> PanelContainer:
 		var avg_combat: int = total_combat / crew_members.size()
 		var avg_reactions: int = total_reactions / crew_members.size()
 
-		var stats_label := Label.new()
-		stats_label.text = "Avg Combat: +%d | Avg Reactions: %d\"" % [avg_combat, avg_reactions]
-		stats_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
-		stats_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
-		content.add_child(stats_label)
+		# Average stats (using StatBadge components)
+		var avg_stats_hbox := HBoxContainer.new()
+		avg_stats_hbox.add_theme_constant_override("separation", SPACING_SM)
 
-	return _create_section_card("Crew Summary", content)
+		var combat_badge = StatBadge.new()
+		combat_badge.stat_name = "Avg Combat"
+		combat_badge.stat_value = avg_combat
+		combat_badge.show_plus = true  # Shows "+5"
+		combat_badge.accent_color = COLOR_SUCCESS  # Green for combat bonuses
+		avg_stats_hbox.add_child(combat_badge)
+
+		var reactions_badge = StatBadge.new()
+		reactions_badge.stat_name = "Avg Reactions"
+		reactions_badge.stat_value = avg_reactions
+		avg_stats_hbox.add_child(reactions_badge)
+
+		content.add_child(avg_stats_hbox)
+
+	return _create_section_card("Crew Summary", content, "", "👥")
 
 func _create_equipment_summary_card() -> PanelContainer:
 	"""Create Card 5: Starting Equipment"""
@@ -488,8 +550,9 @@ func _create_equipment_summary_card() -> PanelContainer:
 	content.add_child(credits_label)
 	
 	# Equipment Count
+	# Equipment Count (Secondary info)
 	var eq_label := Label.new()
-	eq_label.text = "Equipment Items: %d" % equipment_list.size()
+	eq_label.text = "%d Equipment Items" % equipment_list.size()
 	eq_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
 	eq_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	content.add_child(eq_label)
@@ -512,7 +575,94 @@ func _create_equipment_summary_card() -> PanelContainer:
 			res_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 			content.add_child(res_label)
 	
-	return _create_section_card("Starting Equipment", content)
+	return _create_section_card("Starting Equipment", content, "", "🎒")
+
+
+func _create_elite_bonuses_card() -> PanelContainer:
+	"""Create Card 6: Elite Rank Bonuses & Stars of the Story"""
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", SPACING_MD)
+
+	# Get player profile for Elite Rank bonuses
+	var profile = PlayerProfile.get_instance()
+	var elite_ranks: int = profile.elite_ranks if profile else 0
+
+	# Elite Rank header
+	var rank_label := Label.new()
+	if elite_ranks > 0:
+		rank_label.text = "Elite Rank: %d" % elite_ranks
+		rank_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+		rank_label.add_theme_color_override("font_color", COLOR_ACCENT)
+	else:
+		rank_label.text = "New Player (No Elite Ranks)"
+		rank_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		rank_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	content.add_child(rank_label)
+
+	# Show bonuses if any
+	if elite_ranks > 0 and profile:
+		var bonus_summary = profile.get_bonus_summary()
+
+		var bonuses_container := VBoxContainer.new()
+		bonuses_container.add_theme_constant_override("separation", SPACING_XS)
+
+		# Story Points bonus
+		if bonus_summary.get("story_points", 0) > 0:
+			var sp_label := Label.new()
+			sp_label.text = "+%d Starting Story Points" % bonus_summary.story_points
+			sp_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+			sp_label.add_theme_color_override("font_color", COLOR_SUCCESS)
+			bonuses_container.add_child(sp_label)
+
+		# Bonus XP
+		if bonus_summary.get("bonus_xp", 0) > 0:
+			var xp_label := Label.new()
+			xp_label.text = "+%d Bonus XP (distributable)" % bonus_summary.bonus_xp
+			xp_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+			xp_label.add_theme_color_override("font_color", COLOR_SUCCESS)
+			bonuses_container.add_child(xp_label)
+
+		# Extra starting characters
+		if bonus_summary.get("extra_characters", 0) > 0:
+			var char_label := Label.new()
+			char_label.text = "+%d Extra Starting Characters" % bonus_summary.extra_characters
+			char_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+			char_label.add_theme_color_override("font_color", COLOR_SUCCESS)
+			bonuses_container.add_child(char_label)
+
+		# Stars of the Story uses
+		var stars_label := Label.new()
+		stars_label.text = "%d Stars of the Story Uses" % bonus_summary.get("stars_uses", 1)
+		stars_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		stars_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+		bonuses_container.add_child(stars_label)
+
+		content.add_child(bonuses_container)
+
+	# Add Stars of the Story panel preview
+	var stars_header := Label.new()
+	stars_header.text = "Emergency Abilities Available:"
+	stars_header.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	stars_header.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	content.add_child(stars_header)
+
+	# Create a preview StarsOfTheStorySystem with current elite ranks and difficulty
+	var config_data = campaign_data.get("campaign_config", campaign_data.get("config", {}))
+	var difficulty: int = config_data.get("difficulty_level", config_data.get("difficulty", 2))
+
+	var preview_stars_system = StarsOfTheStorySystem.new()
+	preview_stars_system.initialize(elite_ranks, difficulty)
+
+	# Instantiate and initialize the StarsOfTheStoryPanel
+	var stars_panel = StarsOfTheStoryPanelScene.instantiate()
+	if stars_panel:
+		content.add_child(stars_panel)
+		# Initialize after adding to tree
+		if stars_panel.has_method("initialize"):
+			stars_panel.initialize(preview_stars_system)
+
+	return _create_section_card("Elite Bonuses & Abilities", content, "Bonuses from completed campaigns", "⭐")
+
 
 func _update_crew_preview() -> void:
 	"""Update crew preview with CharacterCard COMPACT"""
@@ -559,13 +709,89 @@ func _update_crew_preview() -> void:
 		
 		crew_hbox.add_child(card)
 
+func _update_validation_feedback() -> void:
+	"""Update validation feedback panel based on campaign data validation"""
+	if not validation_feedback_container:
+		return
+	
+	# Clear existing feedback
+	for child in validation_feedback_container.get_children():
+		child.queue_free()
+	
+	# Validate campaign data
+	var errors := _validate_campaign_data()
+	
+	# Create feedback panel
+	var feedback_panel := _create_validation_feedback_panel(errors)
+	validation_feedback_container.add_child(feedback_panel)
+
+func _create_validation_feedback_panel(errors: Array[String]) -> PanelContainer:
+	"""Create validation feedback panel with success/error messages"""
+	var panel := PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	
+	# Style based on validation state
+	var style := StyleBoxFlat.new()
+	if errors.is_empty():
+		# Success state: Green border
+		style.bg_color = Color(COLOR_SUCCESS, 0.1)  # Subtle green background
+		style.border_color = COLOR_SUCCESS
+	else:
+		# Error state: Red border
+		style.bg_color = Color(COLOR_DANGER, 0.1)  # Subtle red background
+		style.border_color = COLOR_DANGER
+	
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(8)
+	style.set_content_margin_all(SPACING_MD)
+	panel.add_theme_stylebox_override("panel", style)
+	
+	# Content
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", SPACING_SM)
+	
+	# Rich text label for colored messages
+	var message_label := RichTextLabel.new()
+	message_label.bbcode_enabled = true
+	message_label.fit_content = true
+	message_label.scroll_active = false
+	message_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	
+	if errors.is_empty():
+		# Success message
+		message_label.text = "[color=#10B981]✅ Campaign ready to create![/color]"
+	else:
+		# Error messages with bulleted list
+		var error_text := "[color=#DC2626]❌ Issues to fix:[/color]\n"
+		for error in errors:
+			error_text += "[color=#808080]• %s[/color]\n" % error
+		message_label.text = error_text
+	
+	content.add_child(message_label)
+	panel.add_child(content)
+	
+	return panel
+
 func _update_create_button_state() -> void:
-	"""Enable/disable Create Campaign button based on validation"""
+	"""Enable/disable Create Campaign button AND update validation panel"""
 	if not create_button:
 		return
 	
 	var errors = _validate_campaign_data()
 	create_button.disabled = not errors.is_empty()
+	
+	# Update validation panel
+	if validation_panel:
+		if errors.is_empty():
+			validation_panel.show_feedback(
+				ValidationPanel.FeedbackType.SUCCESS,
+				PackedStringArray([])
+			)
+		else:
+			validation_panel.show_feedback(
+				ValidationPanel.FeedbackType.ERROR,
+				PackedStringArray(errors)
+			)
 
 func _get_victory_condition_display_name(condition_key: String) -> String:
 	"""Get display name for victory condition key"""
@@ -962,3 +1188,5 @@ func _apply_desktop_layout() -> void:
 	super._apply_desktop_layout()
 
 	# Standard button touch target at TOUCH_TARGET_MIN for mouse-first interaction
+	if create_button:
+		create_button.custom_minimum_size.y = TOUCH_TARGET_MIN

@@ -119,6 +119,14 @@ var character_name: String:
 # Injury System (Five Parsecs Core Rules p.94-95)
 @export var injuries: Array[Dictionary] = []  # Each: {type: String, severity: int, recovery_turns: int, turn_sustained: int}
 
+# Bot Upgrade System (Five Parsecs Core Rules p.98)
+# Bots don't gain XP - they purchase upgrades with credits instead
+@export var bot_upgrades: Array[String] = []  # IDs of installed bot upgrades
+
+# Implant System (Five Parsecs odds-and-ends loot table)
+# Maximum 3 implants per character (rulebook limit)
+@export var implants: Array[Dictionary] = []  # Each: {type: String, name: String, stat_bonus: Dictionary}
+
 # Computed properties for injury status
 var is_wounded: bool:
 	get:
@@ -129,9 +137,9 @@ var current_recovery_turns: int:
 		if injuries.is_empty():
 			return 0
 		# Return the longest recovery time remaining
-		var max_recovery := 0
+		var max_recovery: int = 0
 		for injury in injuries:
-			var remaining := injury.get("recovery_turns", 0)
+			var remaining: int = injury.get("recovery_turns", 0)
 			max_recovery = max(max_recovery, remaining)
 		return max_recovery
 
@@ -139,6 +147,10 @@ var current_recovery_turns: int:
 signal injury_added(injury: Dictionary)
 signal injury_removed(index: int)
 signal recovery_progressed(turns_remaining: int)
+
+# Signals for implant events
+signal implant_added(implant: Dictionary)
+signal implant_removed(index: int)
 
 # Character Generation - Direct static methods replace CharacterManager
 static func generate_character(background_type: String = "") -> Character:
@@ -323,6 +335,22 @@ func get_total_stats() -> int:
 	"""Calculate total stat value for balance checking"""
 	return combat + reactions + toughness + savvy + tech + move
 
+# ========== BOT UPGRADE SYSTEM (Five Parsecs p.98) ==========
+
+func is_bot() -> bool:
+	"""Check if this character is a bot (Origin.BOT)"""
+	return origin == "BOT"
+
+func has_bot_upgrade(upgrade_id: String) -> bool:
+	"""Check if bot has specific upgrade installed"""
+	return upgrade_id in bot_upgrades
+
+func add_bot_upgrade(upgrade_id: String) -> void:
+	"""Add bot upgrade to installed list (called by AdvancementSystem)"""
+	if upgrade_id not in bot_upgrades:
+		bot_upgrades.append(upgrade_id)
+		print("Character %s installed bot upgrade: %s" % [name, upgrade_id])
+
 # ========== INJURY MANAGEMENT (Five Parsecs p.94-95) ==========
 
 func add_injury(injury: Dictionary) -> void:
@@ -362,8 +390,8 @@ func process_recovery_turn() -> void:
 
 	# Reduce recovery time for all injuries
 	for i in range(injuries.size()):
-		var injury := injuries[i]
-		var current_turns := injury.get("recovery_turns", 0)
+		var injury: Dictionary = injuries[i]
+		var current_turns: int = injury.get("recovery_turns", 0)
 		injury["recovery_turns"] = max(0, current_turns - 1)
 
 		# Mark as healed if recovery complete
@@ -378,6 +406,97 @@ func process_recovery_turn() -> void:
 	# Emit progress signal
 	if not injuries.is_empty():
 		recovery_progressed.emit(current_recovery_turns)
+
+# ========== IMPLANT MANAGEMENT (Five Parsecs Odds & Ends Loot) ==========
+
+func add_implant(implant: Dictionary) -> bool:
+	"""Add an implant to the character (max 3)
+
+	Args:
+		implant: Dictionary with keys: type (String), name (String), stat_bonus (Dictionary)
+
+	Returns:
+		bool: True if implant was added, False if at maximum (3)
+	"""
+	const MAX_IMPLANTS := 3
+
+	if not implant.has("type") or not implant.has("name"):
+		push_error("Character.add_implant: Invalid implant data - missing required fields")
+		return false
+
+	if implants.size() >= MAX_IMPLANTS:
+		push_warning("Character %s already has maximum implants (%d)" % [name, MAX_IMPLANTS])
+		return false
+
+	implants.append(implant)
+	implant_added.emit(implant)
+	print("Character %s received implant: %s" % [name, implant.get("name", "UNKNOWN")])
+	return true
+
+func remove_implant(index: int) -> void:
+	"""Remove an implant by index"""
+	if index < 0 or index >= implants.size():
+		push_error("Character.remove_implant: Invalid implant index %d" % index)
+		return
+
+	var implant := implants[index]
+	implants.remove_at(index)
+	implant_removed.emit(index)
+	print("Character %s removed implant: %s" % [name, implant.get("name", "UNKNOWN")])
+
+func get_implant_bonuses() -> Dictionary:
+	"""Get combined stat bonuses from all installed implants
+
+	Returns:
+		Dictionary with stat bonuses like {"savvy": 1, "reactions": 2}
+	"""
+	var total_bonuses := {}
+
+	for implant in implants:
+		var stat_bonus: Dictionary = implant.get("stat_bonus", {})
+		for stat_name in stat_bonus:
+			var bonus_value: int = stat_bonus.get(stat_name, 0)
+			if total_bonuses.has(stat_name):
+				total_bonuses[stat_name] += bonus_value
+			else:
+				total_bonuses[stat_name] = bonus_value
+
+	return total_bonuses
+
+func get_effective_stat(stat_name: String) -> int:
+	"""Get effective stat value including implant bonuses
+
+	Args:
+		stat_name: Stat to calculate ("combat", "reactions", "toughness", "savvy", "speed", "luck")
+
+	Returns:
+		int: Base stat + implant bonuses
+	"""
+	var base_stat := 0
+
+	match stat_name:
+		"combat":
+			base_stat = combat
+		"reactions":
+			base_stat = reactions
+		"toughness":
+			base_stat = toughness
+		"savvy":
+			base_stat = savvy
+		"tech":
+			base_stat = tech
+		"speed":
+			base_stat = speed
+		"luck":
+			base_stat = luck
+		_:
+			push_error("Character.get_effective_stat: Unknown stat name '%s'" % stat_name)
+			return 0
+
+	var bonuses: Dictionary = get_implant_bonuses()
+	var bonus: int = bonuses.get(stat_name, 0)
+
+	return base_stat + bonus
 
 # ========== COMPREHENSIVE COMPATIBILITY LAYER ==========
 # These methods provide compatibility for FiveParsecsCharacterGeneration calls
@@ -821,6 +940,12 @@ func serialize() -> Dictionary:
 		# Injury system (Five Parsecs p.94-95)
 		"injuries": injuries.duplicate(),
 
+		# Implant system (Five Parsecs odds-and-ends loot)
+		"implants": implants.duplicate(),
+
+		# Bot upgrade system (Five Parsecs p.98)
+		"bot_upgrades": bot_upgrades.duplicate(),
+
 		# Serialization metadata
 		"serialization_timestamp": Time.get_ticks_msec(),
 		"serialization_version": "enhanced_v2"
@@ -861,7 +986,10 @@ func to_dictionary() -> Dictionary:
 		"max_health": max_health,
 		"injuries": injuries.duplicate(),
 		"is_wounded": is_wounded,
-		"current_recovery_turns": current_recovery_turns
+		"current_recovery_turns": current_recovery_turns,
+		"implants": implants.duplicate(),
+		"bot_upgrades": bot_upgrades.duplicate(),
+		"is_bot": is_bot()
 	}
 
 static func deserialize(data: Dictionary) -> Character:
@@ -933,6 +1061,20 @@ static func deserialize(data: Dictionary) -> Character:
 	for injury in injuries_data:
 		if injury is Dictionary:
 			character.injuries.append(injury)
+
+	# Implant system (Five Parsecs odds-and-ends loot)
+	var implants_data = data.get("implants", [])
+	character.implants.clear()
+	for implant in implants_data:
+		if implant is Dictionary:
+			character.implants.append(implant)
+
+	# Bot upgrade system (Five Parsecs p.98)
+	var bot_upgrades_data = data.get("bot_upgrades", [])
+	character.bot_upgrades.clear()
+	for upgrade_id in bot_upgrades_data:
+		if upgrade_id is String:
+			character.bot_upgrades.append(upgrade_id)
 
 	# Performance tracking
 	var end_time = Time.get_ticks_usec()
@@ -1030,25 +1172,4 @@ func initialize_from_creation_data(creation_data: Dictionary) -> void:
 	background = creation_data.get("background", "COLONIST")
 	motivation = creation_data.get("motivation", "SURVIVAL") 
 	origin = creation_data.get("origin", "HUMAN")
-	character_class = creation_data.get("character_class", "BASELINE")
-	
-	# Stats if provided (using correct property names)
-	reactions = creation_data.get("reactions", 4)
-	speed = creation_data.get("speed", 4)
-	combat = creation_data.get("combat_skill", 4)  # Map combat_skill to combat
-	toughness = creation_data.get("toughness", 4)
-	savvy = creation_data.get("savvy", 4)
-	luck = creation_data.get("luck", 4)
-	
-	# Equipment if provided (handle typed array for GDScript 2.0)
-	if creation_data.has("equipment"):
-		var equipment_data = creation_data.get("equipment", [])
-		equipment.clear()
-		for item in equipment_data:
-			if item is String:
-				equipment.append(item)
-	
-	# Experience and status (health is derived from toughness in Five Parsecs)
-	experience = creation_data.get("experience", 0)
-	
-	print("Character: Initialized %s (%s %s)" % [name, background, character_class])
+	character_class = creation_data.get

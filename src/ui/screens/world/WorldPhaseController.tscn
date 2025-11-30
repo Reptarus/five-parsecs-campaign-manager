@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://c8vx1k9wp7fqj"]
+[gd_scene load_steps=12 format=3 uid="uid://c8vx1k9wp7fqj"]
 
 [ext_resource type="Script" path="res://src/ui/screens/world/WorldPhaseController.gd" id="1_controller"]
 [ext_resource type="PackedScene" uid="uid://bkw8n7qx3m5jr" path="res://src/ui/screens/world/components/UpkeepPhaseComponent.tscn" id="2_upkeep"]
@@ -10,6 +10,49 @@
 [ext_resource type="PackedScene" path="res://src/ui/screens/world/components/PurchaseItemsComponent.tscn" id="8_purchase_items"]
 [ext_resource type="PackedScene" path="res://src/ui/screens/world/components/CampaignEventComponent.tscn" id="9_campaign_event"]
 [ext_resource type="PackedScene" path="res://src/ui/screens/world/components/CharacterEventComponent.tscn" id="10_character_event"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1"]
+bg_color = Color(0.176, 0.353, 0.482, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_content_panel"]
+bg_color = Color(0.145, 0.145, 0.259, 0.85)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.227, 0.227, 0.361, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_normal"]
+bg_color = Color(0.176, 0.353, 0.482, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.227, 0.227, 0.361, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
+bg_color = Color(0.227, 0.443, 0.6, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.31, 0.78, 0.97, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 
 [node name="WorldPhaseController" type="Control"]
 layout_mode = 3
@@ -27,7 +70,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.1, 0.1, 0.1, 1)
+color = Color(0.102, 0.102, 0.18, 1)
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -36,14 +79,14 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 20
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 32
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
 layout_mode = 2
-theme_override_constants/separation = 15
+theme_override_constants/separation = 24
 
 [node name="Header" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -52,6 +95,7 @@ layout_mode = 2
 layout_mode = 2
 text = "World Phase - Campaign Turn Management"
 theme_override_font_sizes/font_size = 24
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
 horizontal_alignment = 1
 
 [node name="CurrentStepLabel" type="Label" parent="MarginContainer/VBoxContainer/Header"]
@@ -59,6 +103,7 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Step 1 of 9: Upkeep"
 theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.502, 0.502, 0.502, 1)
 horizontal_alignment = 1
 
 [node name="PhaseProgressBar" type="ProgressBar" parent="MarginContainer/VBoxContainer/Header"]
@@ -67,14 +112,16 @@ layout_mode = 2
 max_value = 100.0
 value = 25.0
 show_percentage = false
+theme_override_styles/fill = SubResource("StyleBoxFlat_1")
 
 [node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="PhaseContainer" type="Control" parent="MarginContainer/VBoxContainer"]
+[node name="PhaseContainer" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_content_panel")
 
 [node name="UpkeepContainer" type="Control" parent="MarginContainer/VBoxContainer/PhaseContainer"]
 unique_name_in_owner = true
@@ -263,6 +310,10 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(120, 56)
 layout_mode = 2
 text = "← Back"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 
 [node name="Spacer" type="Control" parent="MarginContainer/VBoxContainer/Controls/StepNavigation"]
 layout_mode = 2
@@ -273,3 +324,8 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(120, 56)
 layout_mode = 2
 text = "Next →"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(0.31, 0.78, 0.97, 1)

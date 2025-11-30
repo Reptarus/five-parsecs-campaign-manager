@@ -2,70 +2,84 @@ class_name BattleTestHelper
 ## Phase 2A Helper: Battle Initialization and State Testing
 ## Provides mock battle data, validation, and state management for integration tests
 ## Plain class (no Node inheritance) for gdUnit4 v6.0.1 compatibility
+## UPDATED: Uses correct stat names matching Character.gd
 
 ## Mock battle data generators
 
-func create_minimal_mission() -> Resource:
-	"""Create minimal valid mission data for testing"""
-	var mission = Resource.new()
-	mission.set_meta("name", "Test Mission")
-	mission.set_meta("mission_type", "OPPORTUNITY")
-	mission.set_meta("mission_id", "test_mission_001")
-	mission.set_meta("difficulty", 1)
-	mission.set_meta("credits_reward", 10)
-	return mission
+func create_minimal_mission() -> Dictionary:
+	"""Create minimal valid mission data for testing - Dictionary format"""
+	return {
+		"name": "Test Mission",
+		"mission_type": "OPPORTUNITY",
+		"mission_id": "test_mission_001",
+		"difficulty": 1,
+		"credits_reward": 10
+	}
 
-func create_full_mission() -> Resource:
-	"""Create detailed mission data for complex testing"""
+func create_full_mission() -> Dictionary:
+	"""Create detailed mission data for complex testing - Dictionary format"""
 	var mission = create_minimal_mission()
-	mission.set_meta("description", "Test battle mission with full details")
-	mission.set_meta("enemy_type", "RAIDERS")
-	mission.set_meta("enemy_count", 5)
-	mission.set_meta("battlefield_size", Vector2i(20, 20))
-	mission.set_meta("victory_conditions", {"eliminate_enemies": true})
-	mission.set_meta("special_rules", ["cover_bonus", "night_fighting"])
+	mission["description"] = "Test battle mission with full details"
+	mission["enemy_type"] = "RAIDERS"
+	mission["enemy_count"] = 5
+	mission["battlefield_size"] = Vector2i(20, 20)
+	mission["victory_conditions"] = {"eliminate_enemies": true}
+	mission["special_rules"] = ["cover_bonus", "night_fighting"]
 	return mission
 
-func create_mock_crew_member(crew_name: String = "Test Crew", equipped_items: Array = []) -> Resource:
-	"""Create mock crew member with optional equipment"""
-	var crew = Resource.new()
-	crew.set_meta("name", crew_name)
-	crew.set_meta("species", "HUMAN")
-	crew.set_meta("reactions", 1)
-	crew.set_meta("speed", 4)
-	crew.set_meta("combat_skill", 1)
-	crew.set_meta("toughness", 3)
-	crew.set_meta("savvy", 1)
-	crew.set_meta("luck", 0)
-	crew.set_meta("equipped_items", equipped_items)
-	crew.set_meta("experience", 0)
-	return crew
+func create_mock_crew_member(crew_name: String = "Test Crew", equipped_items: Array = []) -> Dictionary:
+	"""Create mock crew member with optional equipment - Dictionary format
+	Uses CORRECT stat names matching Character.gd"""
+	return {
+		"name": crew_name,
+		"character_name": crew_name,  # Compatibility alias
+		"origin": "HUMAN",            # CORRECT: NOT species
+		"background": "COLONIST",
+		"motivation": "SURVIVAL",
+		"character_class": "BASELINE",
+		"reactions": 1,
+		"speed": 4,
+		"combat": 1,                  # CORRECT: NOT combat_skill
+		"toughness": 3,
+		"savvy": 1,
+		"tech": 1,                    # ADDED: missing stat
+		"move": 4,                    # ADDED: missing stat
+		"luck": 0,
+		"equipment": equipped_items as Array[String],
+		"experience": 0,
+		"is_captain": false,
+		"status": "ACTIVE"
+	}
 
-func create_mock_crew(size: int = 3, with_equipment: bool = false) -> Array[Resource]:
+func create_mock_crew(size: int = 3, with_equipment: bool = false) -> Array[Dictionary]:
 	"""Create array of mock crew members"""
-	var crew: Array[Resource] = []
+	var crew: Array[Dictionary] = []
 	for i in range(size):
-		var equipped: Array = []
+		var equipped: Array[String] = []
 		if with_equipment:
-			equipped = ["weapon_%d" % i, "armor_%d" % i]
+			equipped = ["weapon_%d" % i, "armor_%d" % i] as Array[String]
 		crew.append(create_mock_crew_member("Crew %d" % i, equipped))
 	return crew
 
-func create_mock_enemy(enemy_name: String = "Test Enemy") -> Resource:
-	"""Create mock enemy unit"""
-	var enemy = Resource.new()
-	enemy.set_meta("name", enemy_name)
-	enemy.set_meta("type", "RAIDER")
-	enemy.set_meta("reactions", 1)
-	enemy.set_meta("speed", 4)
-	enemy.set_meta("combat_skill", 0)
-	enemy.set_meta("toughness", 3)
-	enemy.set_meta("ai_type", "AGGRESSIVE")
-	return enemy
+func create_mock_enemy(enemy_name: String = "Test Enemy") -> Dictionary:
+	"""Create mock enemy unit - Dictionary format
+	Uses CORRECT stat names matching Character.gd"""
+	return {
+		"name": enemy_name,
+		"type": "RAIDER",
+		"reactions": 1,
+		"speed": 4,
+		"combat": 1,                  # CORRECT: NOT combat_skill
+		"toughness": 3,
+		"savvy": 1,
+		"tech": 1,
+		"move": 4,
+		"ai_type": "AGGRESSIVE"
+	}
 
-func create_mock_enemies(count: int = 5) -> Array[Resource]:
+func create_mock_enemies(count: int = 5) -> Array[Dictionary]:
 	"""Create array of mock enemy units"""
-	var enemies: Array[Resource] = []
+	var enemies: Array[Dictionary] = []
 	for i in range(count):
 		enemies.append(create_mock_enemy("Enemy %d" % i))
 	return enemies

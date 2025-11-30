@@ -1,5 +1,6 @@
-extends Control
 class_name KeywordTooltip
+extends Control
+
 
 ## KeywordTooltip - Interactive BBCode Tooltip for Game Keywords
 ## Displays keyword definitions with related terms and bookmarking
@@ -48,16 +49,40 @@ func _ready() -> void:
 
 ## Public API
 
+## Format equipment name with clickable keyword traits.
+## 
+## Args:
+##   equipment_name: The name of the equipment (e.g., "Infantry Laser")
+##   traits: Array of trait keywords (e.g., ["Assault", "Bulky"])
+## 
+## Returns:
+##   BBCode string with clickable keywords (e.g., "Infantry Laser ([url=keyword:Assault]Assault[/url], [url=keyword:Bulky]Bulky[/url])")
+static func format_equipment_with_keywords(equipment_name: String, traits: Array[String]) -> String:
+	if traits.is_empty():
+		return equipment_name
+	
+	# Build clickable trait links
+	var formatted_traits: Array[String] = []
+	for trait_keyword in traits:
+		formatted_traits.append("[url=keyword:%s][color=#4FC3F7]%s[/color][/url]" % [trait_keyword, trait_keyword])
+	
+	# Join traits with comma separator
+	var traits_str := ""
+	for i in range(formatted_traits.size()):
+		traits_str += formatted_traits[i]
+		if i < formatted_traits.size() - 1:
+			traits_str += ", "
+	
+	return "%s (%s)" % [equipment_name, traits_str]
+
+## Format keyword data as BBCode with clickable related terms.
+## 
+## Args:
+##   keyword_data: Dictionary with keys: term, definition, related (optional), rule_page (optional)
+## 
+## Returns:
+##   BBCode string with formatted keyword info and clickable links
 func format_keyword_text(keyword_data: Dictionary) -> String:
-	"""
-	Format keyword data as BBCode with clickable related terms.
-	
-	Args:
-		keyword_data: Dictionary with keys: term, definition, related (optional), rule_page (optional)
-	
-	Returns:
-		BBCode string with formatted keyword info and clickable links
-	"""
 	if not keyword_data.has("term") or not keyword_data.has("definition"):
 		push_warning("KeywordTooltip: Invalid keyword data - missing term or definition")
 		return "[color=#DC2626]Invalid keyword data[/color]"
@@ -92,14 +117,12 @@ func format_keyword_text(keyword_data: Dictionary) -> String:
 	
 	return bbcode
 
+## Display tooltip for the specified keyword at the given position.
+## 
+## Args:
+##   keyword: The keyword term to display
+##   position: Screen position for contextual placement (desktop mode)
 func show_for_keyword(keyword: String, position: Vector2) -> void:
-	"""
-	Display tooltip for the specified keyword at the given position.
-	
-	Args:
-		keyword: The keyword term to display
-		position: Screen position for contextual placement (desktop mode)
-	"""
 	# Debounce rapid taps
 	var current_time := Time.get_ticks_msec() / 1000.0
 	if current_time - _last_tap_time < DEBOUNCE_TIMEOUT:
@@ -140,22 +163,22 @@ func show_for_keyword(keyword: String, position: Vector2) -> void:
 	# Emit signal
 	tooltip_opened.emit(keyword)
 
+## Dismiss the tooltip.
 func hide_tooltip() -> void:
-	"""Dismiss the tooltip."""
 	if _dialog and _dialog.visible:
 		_dialog.hide()
 		tooltip_closed.emit()
 
+## Toggle bookmark state for the specified keyword.
 func toggle_bookmark(keyword: String) -> void:
-	"""Toggle bookmark state for the specified keyword."""
 	KeywordDB.toggle_bookmark(keyword)
 	_update_bookmark_button()
 	keyword_bookmarked.emit(keyword)
 
 ## Internal Methods
 
+## Create and configure the AcceptDialog instance.
 func _create_dialog() -> void:
-	"""Create and configure the AcceptDialog instance."""
 	_dialog = AcceptDialog.new()
 	_dialog.title = "Keyword Info"
 	_dialog.dialog_hide_on_ok = true
@@ -204,8 +227,8 @@ func _create_dialog() -> void:
 	_dialog.confirmed.connect(_on_dialog_closed)
 	_dialog.canceled.connect(_on_dialog_closed)
 
+## Determine display mode based on viewport size.
 func _get_display_mode() -> DisplayMode:
-	"""Determine display mode based on viewport size."""
 	var viewport_size := get_viewport_rect().size
 	var width := viewport_size.x
 	
@@ -216,8 +239,8 @@ func _get_display_mode() -> DisplayMode:
 	else:
 		return DisplayMode.DESKTOP
 
+## Apply styling and positioning based on display mode.
 func _apply_display_mode(position: Vector2) -> void:
-	"""Apply styling and positioning based on display mode."""
 	match _current_mode:
 		DisplayMode.MOBILE:
 			# Bottom sheet: 60% viewport height, full width
@@ -236,8 +259,8 @@ func _apply_display_mode(position: Vector2) -> void:
 			_dialog.position = position + Vector2(20, 20)  # Slight offset
 			_dialog.reset_size()
 
+## Update bookmark button state based on KeywordDB.
 func _update_bookmark_button() -> void:
-	"""Update bookmark button state based on KeywordDB."""
 	if not _bookmark_button:
 		return
 	
@@ -249,8 +272,8 @@ func _update_bookmark_button() -> void:
 		_bookmark_button.text = "☆ Bookmark"
 		_bookmark_button.remove_theme_color_override("font_color")
 
+## Handle clicks on BBCode meta tags (related keywords, rule references).
 func _on_meta_clicked(meta: Variant) -> void:
-	"""Handle clicks on BBCode meta tags (related keywords, rule references)."""
 	var meta_str := str(meta)
 	
 	if meta_str.begins_with("keyword:"):
@@ -263,10 +286,10 @@ func _on_meta_clicked(meta: Variant) -> void:
 		var rule_page := meta_str.substr(5)  # Remove "rule:" prefix
 		rule_reference_clicked.emit(rule_page)
 
+## Handle bookmark button press.
 func _on_bookmark_pressed() -> void:
-	"""Handle bookmark button press."""
 	toggle_bookmark(_current_keyword)
 
+## Handle dialog close.
 func _on_dialog_closed() -> void:
-	"""Handle dialog close."""
 	tooltip_closed.emit()

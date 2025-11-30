@@ -132,108 +132,66 @@ func _on_resolve_pressed() -> void:
 
 	event_resolved = true
 
-	# Apply event effects (simplified - full implementation would handle each effect type)
-	_apply_event_effects()
+	# Apply event effects using PostBattlePhase handler
+	var effect_text: String = _apply_event_effects()
+	
+	# Show effect result in UI
+	if event_effect_label:
+		event_effect_label.text = "Result: " + effect_text
+		event_effect_label.modulate = Color(0.5, 1.0, 0.5)
 
 	_update_ui_display()
 
-	print("CampaignEventComponent: Event resolved - %s" % current_event.get("title", "Unknown"))
+	print("CampaignEventComponent: Event resolved - %s (%s)" % [current_event.get("title", "Unknown"), effect_text])
 
 	if event_bus:
 		event_bus.publish_event(CampaignTurnEventBus.TurnEvent.PHASE_COMPLETED, {
 			"phase_name": "campaign_event",
 			"event": current_event,
-			"roll": last_roll
+			"roll": last_roll,
+			"effect": effect_text
 		})
 
-func _apply_event_effects() -> void:
-	"""Apply effects of current event to campaign"""
+func _apply_event_effects() -> String:
+	"""Apply effects of current event to campaign using PostBattlePhase handler"""
 	var title = current_event.get("title", "")
+	
+	# Get PostBattlePhase handler
+	var post_battle_phase = get_node_or_null("/root/PostBattlePhase")
+	if not post_battle_phase:
+		# Fallback: Try to find in scene tree
+		post_battle_phase = get_tree().root.find_child("PostBattlePhase", true, false)
+	
+	if post_battle_phase and post_battle_phase.has_method("apply_campaign_event_effect"):
+		var result = post_battle_phase.apply_campaign_event_effect(title)
+		print("CampaignEventComponent: %s" % result)
+		return result
+	else:
+		push_warning("CampaignEventComponent: PostBattlePhase not found - using fallback")
+		return _apply_event_effects_fallback(title)
 
-	# Handle common effect types
+func _apply_event_effects_fallback(title: String) -> String:
+	"""Fallback event effect application if PostBattlePhase not available"""
 	match title:
 		"Local Friends", "Lucky Break":
 			if GameStateManager and GameStateManager.has_method("add_story_points"):
 				GameStateManager.add_story_points(1)
-			print("CampaignEventComponent: +1 story point")
-
+			return "+1 Story Point"
+		
 		"Valuable Find":
-			var credits = randi() % 6 + 1
+			var credits = randi_range(1, 6)
 			if GameStateManager:
 				GameStateManager.add_credits(credits)
-			print("CampaignEventComponent: +%d credits" % credits)
-
-		"Old Contact":
-			# Add rumor to campaign
-			var game_state = get_node_or_null("/root/GameState")
-			if game_state and game_state.current_campaign:
-				var campaign = game_state.current_campaign
-				if campaign and campaign is Dictionary:
-					var rumors = campaign.get("rumors", [])
-					var rumor_types = [
-						"An extracted data file", "An extracted data file",
-						"Notebook with secret information", "Notebook with secret information",
-						"Old map showing a location", "Old map showing a location",
-						"A tip from a contact", "A tip from a contact",
-						"An intercepted transmission", "An intercepted transmission"
-					]
-					var roll = randi() % 10
-					rumors.append({
-						"id": "rumor_%d_%d" % [Time.get_ticks_msec(), randi() % 1000],
-						"type": roll + 1,
-						"description": rumor_types[roll],
-						"source": "campaign_event_old_contact"
-					})
-					campaign["rumors"] = rumors
-			print("CampaignEventComponent: +1 rumor")
-
-		"Mouthed Off":
-			# Add rival to campaign
-			var game_state = get_node_or_null("/root/GameState")
-			if game_state and game_state.current_campaign:
-				var campaign = game_state.current_campaign
-				if campaign and campaign is Dictionary:
-					var rivals = campaign.get("rivals", [])
-					rivals.append({
-						"id": "rival_%d_%d" % [Time.get_ticks_msec(), randi() % 1000],
-						"name": "Offended Party",
-						"type": ["Criminal", "Corporate", "Personal", "Gang"][randi() % 4],
-						"hostility": randi() % 3 + 3,
-						"resources": randi() % 3 + 1,
-						"source": "campaign_event_mouthed_off"
-					})
-					campaign["rivals"] = rivals
-			print("CampaignEventComponent: +1 rival")
-
-		"Skill Training":
-			# Add XP to random crew member
-			var game_state = get_node_or_null("/root/GameState")
-			if game_state and game_state.current_campaign:
-				var campaign = game_state.current_campaign
-				if campaign and campaign is Dictionary:
-					var crew = campaign.get("crew", [])
-					if crew.size() > 0:
-						var random_index = randi() % crew.size()
-						var member = crew[random_index]
-						if member is Dictionary:
-							member["experience"] = member.get("experience", 0) + 1
-							var member_name = member.get("name", "Crew member")
-							print("CampaignEventComponent: %s gains +1 XP" % member_name)
-						else:
-							print("CampaignEventComponent: +1 XP to crew member")
-					else:
-						print("CampaignEventComponent: No crew to receive XP")
-			else:
-				print("CampaignEventComponent: +1 XP to crew member")
-
+			return "+%d Credits" % credits
+		
 		"Windfall":
-			var credits = (randi() % 6 + 1) + (randi() % 6 + 1)
+			var credits = randi_range(1, 6) + randi_range(1, 6)
 			if GameStateManager:
 				GameStateManager.add_credits(credits)
-			print("CampaignEventComponent: +%d credits (windfall)" % credits)
-
+			return "+%d Credits (windfall)" % credits
+		
 		_:
-			print("CampaignEventComponent: Effect requires manual resolution")
+			return "Event requires manual resolution"
 
 ## UI Updates
 func _update_ui_display() -> void:
@@ -288,3 +246,4 @@ func reset_event_phase() -> void:
 		roll_result_label.text = ""
 	_update_ui_display()
 	print("CampaignEventComponent: Reset for new turn")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                

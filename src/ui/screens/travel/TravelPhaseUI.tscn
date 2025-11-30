@@ -1,7 +1,84 @@
-[gd_scene load_steps=3 format=3 uid="uid://bjdo0o2bet0av"]
+[gd_scene load_steps=8 format=3 uid="uid://bjdo0o2bet0av"]
 
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_nq7n0"]
 [ext_resource type="Script" path="res://src/ui/screens/travel/TravelPhaseUI.gd" id="2_travel_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_main_panel"]
+bg_color = Color(0.067, 0.094, 0.153, 0.85)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.216, 0.255, 0.318, 0.5)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+content_margin_left = 24.0
+content_margin_top = 24.0
+content_margin_right = 24.0
+content_margin_bottom = 24.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_primary"]
+bg_color = Color(0.231, 0.51, 0.965, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_primary_hover"]
+bg_color = Color(0.376, 0.647, 0.98, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_secondary"]
+bg_color = Color(0.122, 0.137, 0.216, 0.8)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.216, 0.255, 0.318, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_progress_fill"]
+bg_color = Color(0.231, 0.51, 0.965, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_status_card"]
+bg_color = Color(0.08, 0.11, 0.18, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.216, 0.255, 0.318, 0.7)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
 
 [node name="TravelPhaseUI" type="Control"]
 layout_mode = 3
@@ -13,121 +90,340 @@ grow_vertical = 2
 theme = ExtResource("1_nq7n0")
 script = ExtResource("2_travel_script")
 
-[node name="Background" type="TextureRect" parent="."]
+[node name="Background" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+color = Color(0.039, 0.051, 0.078, 1)
 
-[node name="CenterContainer" type="CenterContainer" parent="."]
+[node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 1
-anchors_preset = -1
-anchor_right = 1.0
-anchor_bottom = 0.7
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="PanelContainer" type="PanelContainer" parent="CenterContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/PanelContainer"]
-layout_mode = 2
-
-[node name="StepLabel" type="Label" parent="CenterContainer/PanelContainer/VBoxContainer"]
-layout_mode = 2
-text = "Step 1: Upkeep"
-horizontal_alignment = 1
-
-[node name="HSeparator" type="HSeparator" parent="CenterContainer/PanelContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="TabContainer" type="TabContainer" parent="CenterContainer/PanelContainer/VBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 3
-current_tab = 0
-
-[node name="Upkeep" type="VBoxContainer" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer"]
-layout_mode = 2
-metadata/_tab_index = 0
-
-[node name="UpkeepLabel" type="Label" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Upkeep"]
-layout_mode = 2
-text = "Upkeep Phase"
-
-[node name="UpkeepDetails" type="VBoxContainer" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Upkeep"]
-layout_mode = 2
-
-[node name="UpkeepButton" type="Button" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Upkeep"]
-custom_minimum_size = Vector2(0, 56)
-layout_mode = 2
-text = "Perform Upkeep"
-
-[node name="Travel" type="VBoxContainer" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer"]
-visible = false
-layout_mode = 2
-metadata/_tab_index = 1
-
-[node name="TravelLabel" type="Label" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Travel"]
-layout_mode = 2
-text = "Travel Phase"
-
-[node name="TravelOptions" type="VBoxContainer" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Travel"]
-layout_mode = 2
-
-[node name="StayButton" type="Button" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Travel/TravelOptions"]
-custom_minimum_size = Vector2(0, 56)
-layout_mode = 2
-text = "Stay in Current Location"
-
-[node name="TravelButton" type="Button" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Travel/TravelOptions"]
-custom_minimum_size = Vector2(0, 56)
-layout_mode = 2
-text = "Travel to New Location"
-
-[node name="TravelEventDetails" type="VBoxContainer" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Travel"]
-layout_mode = 2
-
-[node name="NextEventButton" type="Button" parent="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Travel"]
-custom_minimum_size = Vector2(0, 56)
-layout_mode = 2
-text = "Generate Next Event"
-
-[node name="StepContainer" type="VBoxContainer" parent="CenterContainer/PanelContainer/VBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="ButtonContainer" type="HBoxContainer" parent="CenterContainer/PanelContainer/VBoxContainer"]
-layout_mode = 2
-alignment = 1
-
-[node name="BackButton" type="Button" parent="CenterContainer/PanelContainer/VBoxContainer/ButtonContainer"]
-custom_minimum_size = Vector2(120, 56)
-layout_mode = 2
-text = "Back"
-
-[node name="NextButton" type="Button" parent="CenterContainer/PanelContainer/VBoxContainer/ButtonContainer"]
-custom_minimum_size = Vector2(120, 56)
-layout_mode = 2
-text = "Next"
-
-[node name="LogBook" type="RichTextLabel" parent="."]
-layout_mode = 1
-anchors_preset = -1
-anchor_top = 0.7
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
-grow_vertical = 0
+grow_vertical = 2
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 32
+
+[node name="MainVBox" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Header" type="VBoxContainer" parent="MarginContainer/MainVBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TitleRow" type="HBoxContainer" parent="MarginContainer/MainVBox/Header"]
+layout_mode = 2
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/MainVBox/Header/TitleRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Step 1: Travel Phase"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 28
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+
+[node name="HelpButton" type="Button" parent="MarginContainer/MainVBox/Header/TitleRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+tooltip_text = "Show rules help for Travel Phase (p.69)"
+text = "?"
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
+
+[node name="StepLabel" type="Label" parent="MarginContainer/MainVBox/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Decide whether to stay or travel to a new world"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
+
+[node name="PhaseProgressBar" type="ProgressBar" parent="MarginContainer/MainVBox/Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+max_value = 4.0
+step = 1.0
+show_percentage = false
+theme_override_styles/fill = SubResource("StyleBoxFlat_progress_fill")
+
+[node name="HSeparator" type="HSeparator" parent="MarginContainer/MainVBox"]
+modulate = Color(0.216, 0.255, 0.318, 1)
+layout_mode = 2
+
+[node name="ContentArea" type="HBoxContainer" parent="MarginContainer/MainVBox"]
+layout_mode = 2
 size_flags_vertical = 3
+theme_override_constants/separation = 24
+
+[node name="LeftPanel" type="VBoxContainer" parent="MarginContainer/MainVBox/ContentArea"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.35
+theme_override_constants/separation = 16
+
+[node name="StatusCard" type="PanelContainer" parent="MarginContainer/MainVBox/ContentArea/LeftPanel"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="StatusVBox" type="VBoxContainer" parent="MarginContainer/MainVBox/ContentArea/LeftPanel/StatusCard"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="StatusHeader" type="Label" parent="MarginContainer/MainVBox/ContentArea/LeftPanel/StatusCard/StatusVBox"]
+layout_mode = 2
+text = "Current Status"
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+
+[node name="CreditsRow" type="HBoxContainer" parent="MarginContainer/MainVBox/ContentArea/LeftPanel/StatusCard/StatusVBox"]
+layout_mode = 2
+
+[node name="CreditsLabel" type="Label" parent="MarginContainer/MainVBox/ContentArea/LeftPanel/StatusCard/StatusVBox/CreditsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Available Credits:"
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
+
+[node name="CreditsValue" type="Label" parent="MarginContainer/MainVBox/ContentArea/LeftPanel/StatusCard/StatusVBox/CreditsRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0 cr"
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.063, 0.725, 0.506, 1)
+
+[node name="CrewRow" type="HBoxContainer" parent="MarginContainer/MainVBox/ContentArea/LeftPanel/StatusCard/StatusVBox"]
+layout_mode = 2
+
+[node name="CrewLabel" type="Label" parent="MarginContainer/MainVBox/ContentArea/LeftPanel/StatusCard/StatusVBox/CrewRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Crew Size:"
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
+
+[node name="CrewValue" type="Label" parent="MarginContainer/MainVBox/ContentArea/LeftPanel/StatusCard/StatusVBox/CrewRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0"
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+
+[node name="ShipRow" type="HBoxContainer" parent="MarginContainer/MainVBox/ContentArea/LeftPanel/StatusCard/StatusVBox"]
+layout_mode = 2
+
+[node name="ShipLabel" type="Label" parent="MarginContainer/MainVBox/ContentArea/LeftPanel/StatusCard/StatusVBox/ShipRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Ship Status:"
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
+
+[node name="ShipValue" type="Label" parent="MarginContainer/MainVBox/ContentArea/LeftPanel/StatusCard/StatusVBox/ShipRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "No Ship"
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+
+[node name="WorldRow" type="HBoxContainer" parent="MarginContainer/MainVBox/ContentArea/LeftPanel/StatusCard/StatusVBox"]
+layout_mode = 2
+
+[node name="WorldLabel" type="Label" parent="MarginContainer/MainVBox/ContentArea/LeftPanel/StatusCard/StatusVBox/WorldRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Current World:"
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
+
+[node name="WorldValue" type="Label" parent="MarginContainer/MainVBox/ContentArea/LeftPanel/StatusCard/StatusVBox/WorldRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Unknown"
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+
+[node name="TravelCostCard" type="PanelContainer" parent="MarginContainer/MainVBox/ContentArea/LeftPanel"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_status_card")
+
+[node name="CostVBox" type="VBoxContainer" parent="MarginContainer/MainVBox/ContentArea/LeftPanel/TravelCostCard"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="CostHeader" type="Label" parent="MarginContainer/MainVBox/ContentArea/LeftPanel/TravelCostCard/CostVBox"]
+layout_mode = 2
+text = "Travel Costs (p.69)"
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+
+[node name="ShipCostRow" type="HBoxContainer" parent="MarginContainer/MainVBox/ContentArea/LeftPanel/TravelCostCard/CostVBox"]
+layout_mode = 2
+
+[node name="ShipCostLabel" type="Label" parent="MarginContainer/MainVBox/ContentArea/LeftPanel/TravelCostCard/CostVBox/ShipCostRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Ship Travel:"
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
+
+[node name="ShipCostValue" type="Label" parent="MarginContainer/MainVBox/ContentArea/LeftPanel/TravelCostCard/CostVBox/ShipCostRow"]
+layout_mode = 2
+text = "5 credits"
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.961, 0.62, 0.043, 1)
+
+[node name="CommercialCostRow" type="HBoxContainer" parent="MarginContainer/MainVBox/ContentArea/LeftPanel/TravelCostCard/CostVBox"]
+layout_mode = 2
+
+[node name="CommercialCostLabel" type="Label" parent="MarginContainer/MainVBox/ContentArea/LeftPanel/TravelCostCard/CostVBox/CommercialCostRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Commercial Passage:"
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
+
+[node name="CommercialCostValue" type="Label" parent="MarginContainer/MainVBox/ContentArea/LeftPanel/TravelCostCard/CostVBox/CommercialCostRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "1 cr/crew"
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
+
+[node name="CenterContainer" type="CenterContainer" parent="MarginContainer/MainVBox/ContentArea"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="PanelContainer" type="PanelContainer" parent="MarginContainer/MainVBox/ContentArea/CenterContainer"]
+custom_minimum_size = Vector2(500, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_main_panel")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/MainVBox/ContentArea/CenterContainer/PanelContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="TravelHeader" type="HBoxContainer" parent="MarginContainer/MainVBox/ContentArea/CenterContainer/PanelContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="TravelLabel" type="Label" parent="MarginContainer/MainVBox/ContentArea/CenterContainer/PanelContainer/VBoxContainer/TravelHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Travel Decision"
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+
+[node name="TravelHelpButton" type="Button" parent="MarginContainer/MainVBox/ContentArea/CenterContainer/PanelContainer/VBoxContainer/TravelHeader"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+tooltip_text = "Ship travel: 5 credits | Commercial: 1 credit/crew (Rules p.69)"
+text = "?"
+theme_override_font_sizes/font_size = 14
+
+[node name="TravelDescription" type="Label" parent="MarginContainer/MainVBox/ContentArea/CenterContainer/PanelContainer/VBoxContainer"]
+layout_mode = 2
+text = "Each campaign turn begins with a travel decision. You may stay on your current world or travel to a new location."
+autowrap_mode = 2
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
+
+[node name="TravelOptions" type="VBoxContainer" parent="MarginContainer/MainVBox/ContentArea/CenterContainer/PanelContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="StayButton" type="Button" parent="MarginContainer/MainVBox/ContentArea/CenterContainer/PanelContainer/VBoxContainer/TravelOptions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+tooltip_text = "Remain on the current world - no travel costs. Proceed to World Phase."
+text = "Stay in Current Location (Free)"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_secondary")
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+
+[node name="TravelButton" type="Button" parent="MarginContainer/MainVBox/ContentArea/CenterContainer/PanelContainer/VBoxContainer/TravelOptions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+tooltip_text = "Travel to a new world - costs 5 credits (ship) or 1 credit/crew (commercial)"
+text = "Travel to New World (5 credits)"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_primary")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_primary_hover")
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+
+[node name="TravelEventDetails" type="VBoxContainer" parent="MarginContainer/MainVBox/ContentArea/CenterContainer/PanelContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="ButtonContainer" type="HBoxContainer" parent="MarginContainer/MainVBox/ContentArea/CenterContainer/PanelContainer/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 16
+
+[node name="BackButton" type="Button" parent="MarginContainer/MainVBox/ContentArea/CenterContainer/PanelContainer/VBoxContainer/ButtonContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 48)
+layout_mode = 2
+text = "← Dashboard"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_secondary")
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+
+[node name="NextButton" type="Button" parent="MarginContainer/MainVBox/ContentArea/CenterContainer/PanelContainer/VBoxContainer/ButtonContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(180, 48)
+layout_mode = 2
+disabled = true
+text = "Continue to World Phase →"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_primary")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_primary_hover")
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+
+[node name="LogBookPanel" type="PanelContainer" parent="MarginContainer/MainVBox"]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_main_panel")
+
+[node name="LogBookVBox" type="VBoxContainer" parent="MarginContainer/MainVBox/LogBookPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LogBookHeader" type="Label" parent="MarginContainer/MainVBox/LogBookPanel/LogBookVBox"]
+layout_mode = 2
+text = "Activity Log"
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
+
+[node name="LogBook" type="RichTextLabel" parent="MarginContainer/MainVBox/LogBookPanel/LogBookVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+scroll_following = true
+theme_override_font_sizes/normal_font_size = 13
+theme_override_colors/default_color = Color(0.624, 0.639, 0.686, 1)
 
 [node name="StarshipTravelEvents" type="Node" parent="."]
 
-[connection signal="pressed" from="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Upkeep/UpkeepButton" to="." method="_on_upkeep_button_pressed"]
-[connection signal="pressed" from="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Travel/TravelOptions/StayButton" to="." method="_on_stay_button_pressed"]
-[connection signal="pressed" from="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Travel/TravelOptions/TravelButton" to="." method="_on_travel_button_pressed"]
-[connection signal="pressed" from="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Travel/NextEventButton" to="." method="_on_next_event_button_pressed"]
-[connection signal="pressed" from="CenterContainer/PanelContainer/VBoxContainer/ButtonContainer/BackButton" to="." method="_on_back_button_pressed"]
-[connection signal="pressed" from="CenterContainer/PanelContainer/VBoxContainer/ButtonContainer/NextButton" to="." method="_on_next_button_pressed"]
+[connection signal="pressed" from="MarginContainer/MainVBox/Header/TitleRow/HelpButton" to="." method="_on_help_button_pressed"]
+[connection signal="pressed" from="MarginContainer/MainVBox/ContentArea/CenterContainer/PanelContainer/VBoxContainer/TravelHeader/TravelHelpButton" to="." method="_on_travel_help_pressed"]
+[connection signal="pressed" from="MarginContainer/MainVBox/ContentArea/CenterContainer/PanelContainer/VBoxContainer/TravelOptions/StayButton" to="." method="_on_stay_button_pressed"]
+[connection signal="pressed" from="MarginContainer/MainVBox/ContentArea/CenterContainer/PanelContainer/VBoxContainer/TravelOptions/TravelButton" to="." method="_on_travel_button_pressed"]
+[connection signal="pressed" from="MarginContainer/MainVBox/ContentArea/CenterContainer/PanelContainer/VBoxContainer/ButtonContainer/BackButton" to="." method="_on_back_button_pressed"]
+[connection signal="pressed" from="MarginContainer/MainVBox/ContentArea/CenterContainer/PanelContainer/VBoxContainer/ButtonContainer/NextButton" to="." method="_on_next_button_pressed"]

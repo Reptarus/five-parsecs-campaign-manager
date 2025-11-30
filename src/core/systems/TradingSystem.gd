@@ -5,8 +5,6 @@ extends Resource
 ## Enhanced with JSON data integration for comprehensive equipment trading
 ## Uses data/equipment_database.json and other data files for trading
 
-const DataManager = preload("res://src/core/data/DataManager.gd")
-
 signal market_generated(items: Array[Resource])
 signal trade_completed(item: Resource, transaction_type: String, credits: int)
 signal trade_failed(reason: String)
@@ -21,7 +19,6 @@ var weapons_data: Dictionary = {}
 var armor_data: Dictionary = {}
 var gear_data: Dictionary = {}
 var loot_tables: Dictionary = {}
-var data_manager: DataManager = null
 
 # Legacy compatibility - fallback data
 var equipment_categories = {}
@@ -35,11 +32,9 @@ func _init() -> void:
 	_load_trading_data()
 
 func _load_trading_data() -> void:
-	"""Load trading data from JSON files"""
-	data_manager = DataManager.new()
-	
-	# Load equipment database
-	equipment_data = data_manager.load_json_file("res://data/equipment_database.json")
+	"""Load trading data from JSON files using static method"""
+	# Load equipment database directly using file loading
+	equipment_data = _load_json_safe("res://data/equipment_database.json")
 	if equipment_data.is_empty():
 		push_warning("Equipment database not found, trying individual files")
 		_load_individual_equipment_files()
@@ -49,18 +44,45 @@ func _load_trading_data() -> void:
 		equipment_data_loaded.emit(_count_total_items())
 	
 	# Load loot tables if available
-	loot_tables = data_manager.load_json_file("res://data/loot_tables.json")
+	loot_tables = _load_json_safe("res://data/loot_tables.json")
 	if loot_tables.is_empty():
 		print("TradingSystem: No loot tables found, using defaults")
 	
 	# Build legacy compatibility
 	_build_legacy_compatibility()
 
+## Local JSON loading helper (safe for use during _init when autoloads may not be ready)
+func _load_json_safe(file_path: String) -> Dictionary:
+	"""Load JSON file safely without relying on autoloads"""
+	if not FileAccess.file_exists(file_path):
+		return {}
+	
+	var file: FileAccess = FileAccess.open(file_path, FileAccess.READ)
+	if not file:
+		return {}
+	
+	var text: String = file.get_as_text()
+	file.close()
+	
+	if text.is_empty():
+		return {}
+	
+	var json: JSON = JSON.new()
+	var parse_result: Error = json.parse(text)
+	if parse_result != OK:
+		push_warning("TradingSystem: JSON parse error in %s: %s" % [file_path, json.get_error_message()])
+		return {}
+	
+	var data = json.get_data()
+	if typeof(data) == TYPE_DICTIONARY:
+		return data as Dictionary
+	return {}
+
 func _load_individual_equipment_files() -> void:
 	"""Load equipment from individual JSON files as fallback"""
-	weapons_data = data_manager.load_json_file("res://data/weapons.json")
-	armor_data = data_manager.load_json_file("res://data/armor.json")
-	gear_data = data_manager.load_json_file("res://data/gear_database.json")
+	weapons_data = _load_json_safe("res://data/weapons.json")
+	armor_data = _load_json_safe("res://data/armor.json")
+	gear_data = _load_json_safe("res://data/gear_database.json")
 	
 	# Combine into equipment_data structure
 	equipment_data = {

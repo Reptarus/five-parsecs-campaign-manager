@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://d2k8v5n7x3pqr"]
+
+[ext_resource type="Script" path="res://src/ui/components/campaign/StarsOfTheStoryPanel.gd" id="1_stars"]
+
+[node name="StarsOfTheStoryPanel" type="PanelContainer"]
+custom_minimum_size = Vector2(400, 0)
+script = ExtResource("1_stars")

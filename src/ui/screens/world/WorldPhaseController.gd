@@ -446,8 +446,16 @@ func _can_advance_to_next_step() -> bool:
 
 ## UI Event Handlers - orchestrator navigation
 func _on_back_button_pressed() -> void:
-	"""Handle back button navigation"""
-	if current_step > WorldPhaseStep.UPKEEP:
+	"""Handle back button navigation - returns to dashboard from Step 0"""
+	if current_step == WorldPhaseStep.UPKEEP:
+		# At first step, navigate back to campaign dashboard
+		print("WorldPhaseController: Returning to Campaign Dashboard")
+		if GameStateManager:
+			GameStateManager.navigate_to_screen("campaign_dashboard")
+		else:
+			# Fallback to direct scene change
+			get_tree().change_scene_to_file("res://src/ui/screens/campaign/CampaignDashboard.tscn")
+	elif current_step > WorldPhaseStep.UPKEEP:
 		current_step = current_step - 1
 		_show_current_step()
 		print("WorldPhaseController: Navigated back to %s" % step_names[current_step])

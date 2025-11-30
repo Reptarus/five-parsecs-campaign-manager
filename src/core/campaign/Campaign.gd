@@ -69,6 +69,8 @@ var story_track: Dictionary = {}
 var rivals: Array = []
 var patrons: Array = []
 var quest_rumors: int = 0
+var quests: Array = []  # Active and completed quests
+var battle_history: Array = []  # History of all battles fought
 
 # Deferred Events System - events that trigger on future conditions
 # Each event: {id, trigger_type, event_name, crew_id, effect, turn_created, expires_turn, consumed}
@@ -154,7 +156,12 @@ func serialize() -> Dictionary:
 		"use_story_track": use_story_track,
 		"current_world": current_world,
 		"galactic_war_progress": galactic_war_progress,
-		"story_track": story_track
+		"story_track": story_track,
+		"quests": quests.duplicate(),
+		"battle_history": battle_history.duplicate(),
+		"rivals": rivals.duplicate(),
+		"patrons": patrons.duplicate(),
+		"quest_rumors": quest_rumors
 	}
 
 func deserialize(data: Dictionary) -> void:
@@ -168,6 +175,11 @@ func deserialize(data: Dictionary) -> void:
 	current_world = data.get("current_world", "New Hope")
 	galactic_war_progress = data.get("galactic_war_progress", 0)
 	story_track = data.get("story_track", {})
+	quests = data.get("quests", [])
+	battle_history = data.get("battle_history", [])
+	rivals = data.get("rivals", [])
+	patrons = data.get("patrons", [])
+	quest_rumors = data.get("quest_rumors", 0)
 
 func add_mission(mission: Dictionary) -> void:
 	available_missions.append(mission)

@@ -258,6 +258,58 @@ func start_story_track() -> void:
 	# Trigger first event
 	trigger_next_event()
 
+## Advance the story track at end of campaign turn (Core Rules p.153 Appendix V)
+## Roll 1D6: On 3+, advance clock by 1 tick
+## Modifiers: +1 if 10+ turns, +1 per Quest Rumor, +1 per completed Quest
+func advance_turn(campaign_turn: int = 0, quest_rumors: int = 0, quests_completed: int = 0) -> Dictionary:
+	if not is_story_track_active:
+		return {"advanced": false, "reason": "Story track not active"}
+
+	turns_since_discovery += 1
+
+	# Roll 1D6 for story clock advancement
+	var roll: int = _roll_dice("Story Clock Advancement", "D6")
+
+	# Calculate modifiers (Core Rules p.153)
+	var modifier: int = 0
+	if campaign_turn >= 10:
+		modifier += 1  # +1 if 10+ turns completed
+	modifier += quest_rumors  # +1 per Quest Rumor held
+	modifier += quests_completed  # +1 per Quest completed this campaign
+
+	var total: int = roll + modifier
+	var advanced: bool = total >= 3
+
+	var result: Dictionary = {
+		"roll": roll,
+		"modifier": modifier,
+		"total": total,
+		"threshold": 3,
+		"advanced": advanced,
+		"new_ticks": story_clock_ticks
+	}
+
+	if advanced:
+		# Advance story clock by 1 tick (reduce remaining ticks)
+		story_clock_ticks = max(0, story_clock_ticks - 1)
+		result["new_ticks"] = story_clock_ticks
+		story_clock_advanced.emit(story_clock_ticks)
+
+		print("StoryTrackSystem: Clock advanced! Roll %d + %d = %d (3+ needed). Ticks remaining: %d" % [
+			roll, modifier, total, story_clock_ticks
+		])
+
+		# Check if clock reached zero - trigger story event
+		if story_clock_ticks <= 0:
+			trigger_next_event()
+			result["event_triggered"] = true
+	else:
+		print("StoryTrackSystem: Clock not advanced. Roll %d + %d = %d (3+ needed)" % [
+			roll, modifier, total
+		])
+
+	return result
+
 ## Advance the story clock (per Core Rules mechanics)
 func advance_story_clock(success: bool = true) -> void:
 	if not is_story_track_active:

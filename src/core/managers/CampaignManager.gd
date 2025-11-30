@@ -1,4 +1,4 @@
-## Manages campaign flow, missions, and game progression  
+## Manages campaign flow, missions, and game progression
 extends Node
 
 # GlobalEnums available as autoload singleton
@@ -7,6 +7,8 @@ const StoryQuestData = preload("res://src/game/story/StoryQuestData.gd")
 const FPCM_StoryTrackSystem = preload("res://src/core/story/StoryTrackSystem.gd")
 const FPCM_BattleEventsSystem = preload("res://src/core/battle/BattleEventsSystem.gd")
 const StoryEvent = preload("res://src/core/story/StoryEvent.gd")
+const VictoryConditionTracker = preload("res://src/core/campaign/VictoryConditionTracker.gd")
+const PlayerProfile = preload("res://src/core/player/PlayerProfile.gd")
 
 # Security validation
 const SecurityValidator = preload("res://src/core/validation/SecurityValidator.gd")
@@ -35,6 +37,11 @@ signal campaign_loaded(save_data: Dictionary)
 signal save_failed(error: String)
 signal load_failed(error: String)
 
+# Victory signals
+signal victory_achieved(victory_type: int, details: Dictionary)
+signal elite_rank_awarded(old_rank: int, new_rank: int)
+signal campaign_completed(victory: bool)
+
 var game_state: GameState
 var available_missions: Array[StoryQuestData]
 var active_missions: Array[StoryQuestData]
@@ -46,6 +53,11 @@ var story_track_system: FPCM_StoryTrackSystem
 
 # Battle Events System
 var battle_events_system: FPCM_BattleEventsSystem
+
+# Victory Condition Tracking
+var victory_tracker: VictoryConditionTracker
+var _campaign_has_started: bool = false
+var _victory_conditions_locked: bool = false
 
 # Dice System (autoload reference)
 var dice_manager: DiceManager
@@ -94,6 +106,10 @@ func _initialize_systems() -> void:
 	battle_events_system = FPCM_BattleEventsSystem.new()
 	_connect_battle_events_signals()
 
+	# Initialize Victory Condition Tracker
+	victory_tracker = VictoryConditionTracker.new()
+	_connect_victory_tracker_signals()
+
 ## Connect story track system signals
 func _connect_story_track_signals() -> void:
 	if story_track_system:
@@ -117,6 +133,80 @@ func _connect_battle_events_signals() -> void:
 		if error != OK: push_error("Failed to connect environmental_hazard_activated")
 		error = battle_events_system.event_resolved.connect(_on_battle_event_resolved)
 		if error != OK: push_error("Failed to connect event_resolved")
+
+## Connect victory tracker signals
+func _connect_victory_tracker_signals() -> void:
+	if victory_tracker:
+		var error: Error
+		error = victory_tracker.victory_condition_reached.connect(_on_victory_condition_reached)
+		if error != OK: push_error("Failed to connect victory_condition_reached")
+		error = victory_tracker.victory_progress_updated.connect(_on_victory_progress_updated)
+		if error != OK: push_error("Failed to connect victory_progress_updated")
+
+## Handle victory condition reached
+func _on_victory_condition_reached(condition_type: int, details: Dictionary) -> void:
+	print("CampaignManager: Victory condition reached! Type: %s" % GlobalEnums.FiveParsecsCampaignVictoryType.keys()[condition_type])
+
+	# Award Elite Rank via PlayerProfile singleton
+	var profile := PlayerProfile.get_instance()
+	var old_rank := profile.elite_ranks
+	var awarded := profile.award_elite_rank(condition_type)
+
+	if awarded:
+		print("CampaignManager: Elite Rank awarded! %d → %d" % [old_rank, profile.elite_ranks])
+		elite_rank_awarded.emit(old_rank, profile.elite_ranks)
+
+	# Emit victory signals
+	victory_achieved.emit(condition_type, details)
+	campaign_completed.emit(true)
+
+	# End the campaign with victory
+	if game_state and game_state.has_method("end_campaign"):
+		game_state.end_campaign()
+
+## Handle victory progress updates
+func _on_victory_progress_updated(condition_type: int, current: int, required: int) -> void:
+	var percentage := float(current) / float(required) * 100.0
+	print("CampaignManager: Victory progress - %s: %d/%d (%.1f%%)" % [
+		GlobalEnums.FiveParsecsCampaignVictoryType.keys()[condition_type],
+		current,
+		required,
+		percentage
+	])
+
+## Check all victory conditions during turn advancement
+func check_victory_conditions() -> bool:
+	if not victory_tracker:
+		return false
+
+	# Update victory tracker with current game state
+	if game_state:
+		victory_tracker.update_credits(game_state.credits if "credits" in game_state else 0)
+		victory_tracker.update_reputation(game_state.reputation if "reputation" in game_state else 0)
+		victory_tracker.update_crew_size(game_state.get_crew_size() if game_state.has_method("get_crew_size") else 0)
+
+	return victory_tracker.check_victory()
+
+## Setup victory conditions for a new campaign (call during campaign creation)
+func setup_campaign_victory(campaign_type: int, custom_conditions: Array = []) -> void:
+	if victory_tracker:
+		victory_tracker.setup_victory_conditions(campaign_type, custom_conditions)
+		_victory_conditions_locked = true
+		print("CampaignManager: Victory conditions locked for this campaign")
+
+## Lock victory conditions after campaign starts (Core Rules: cannot be changed)
+func lock_victory_conditions() -> void:
+	_victory_conditions_locked = true
+	_campaign_has_started = true
+	print("CampaignManager: Victory conditions are now locked")
+
+## Check if victory conditions can be modified
+func can_modify_victory_conditions() -> bool:
+	return not _victory_conditions_locked and not _campaign_has_started
+
+## Get victory tracker for UI access
+func get_victory_tracker() -> VictoryConditionTracker:
+	return victory_tracker
 
 ## Handle story events from the story track system
 func _on_story_event_triggered(event: StoryEvent) -> void:
@@ -923,7 +1013,15 @@ func _exit_tree() -> void:
 			battle_events_system.event_resolved.disconnect(_on_battle_event_resolved)
 		# Removed queue_free() call on RefCounted object
 		battle_events_system = null
-	
+
+	# Disconnect victory tracker signals
+	if victory_tracker and is_instance_valid(victory_tracker):
+		if victory_tracker.victory_condition_reached.is_connected(_on_victory_condition_reached):
+			victory_tracker.victory_condition_reached.disconnect(_on_victory_condition_reached)
+		if victory_tracker.victory_progress_updated.is_connected(_on_victory_progress_updated):
+			victory_tracker.victory_progress_updated.disconnect(_on_victory_progress_updated)
+		victory_tracker = null
+
 	# Clear mission arrays
 	available_missions.clear()
 	active_missions.clear()
@@ -1033,21 +1131,45 @@ func _create_special_mission(mission_type: String, description: String, difficul
 func advance_campaign_turn() -> void:
 	"""Advance the campaign by one turn"""
 	print("CampaignManager: Advancing campaign turn")
-	
+
+	# Lock victory conditions on first turn advancement
+	if not _campaign_has_started:
+		lock_victory_conditions()
+
 	# Process turn-based events
 	_process_turn_events()
-	
+
 	# Update mission availability
 	_refresh_available_missions()
-	
-	# Process story track progression
-	if story_track_system and story_track_system.has_method("advance_turn"):
-		story_track_system.advance_turn()
-	
+
+	# Process story track progression with Core Rules modifiers
+	if story_track_system and story_track_system.is_story_track_active:
+		var campaign_turn: int = 0
+		var quest_rumors: int = 0
+		var quests_completed: int = 0
+
+		if game_state:
+			campaign_turn = game_state.campaign_turn if "campaign_turn" in game_state else 0
+			quest_rumors = game_state.quest_rumors if "quest_rumors" in game_state else 0
+			quests_completed = completed_missions.size()
+
+		var story_result := story_track_system.advance_turn(campaign_turn, quest_rumors, quests_completed)
+		if story_result.get("event_triggered", false):
+			print("CampaignManager: Story event triggered during turn advancement!")
+
 	# Update game state
 	if game_state and game_state.has_method("advance_turn"):
 		game_state.advance_turn()
-	
+
+	# Record turn advancement for victory tracking
+	if victory_tracker:
+		victory_tracker.record_campaign_turn()
+
+	# Check victory conditions after turn processing
+	if check_victory_conditions():
+		print("CampaignManager: Victory condition met!")
+		# Victory handling happens in _on_victory_condition_reached via signal
+
 	print("CampaignManager: Campaign turn advanced")
 
 func _process_turn_events() -> void:
@@ -1177,6 +1299,184 @@ func _serialize_character(character: Character) -> Dictionary:
 		"object_type": "Character"
 	}
 
+## ===== CREW TASK MANAGEMENT (Merged from CrewTaskManager) =====
+
+signal task_assigned(character: Character, task: int)
+signal task_completed(character: Character, task: int, success: bool)
+signal task_failed(character: Character, task: int, reason: String)
+
+var active_tasks: Dictionary = {} # Character: int (task)
+
+func assign_task(crew_member: Character, task: int) -> bool:
+	if not crew_member:
+		push_error("CrewMember is required for task assignment")
+		return false
+
+	var validation_result = validate_task_assignment(crew_member, task)
+	if not validation_result.valid:
+		push_error("Task assignment validation failed: %s" % validation_result.reason)
+		task_failed.emit(crew_member, task, validation_result.reason)
+		return false
+
+	active_tasks[crew_member] = task
+	task_assigned.emit(crew_member, task)
+	return true
+
+func complete_task(crew_member: Character) -> void:
+	if not active_tasks.has(crew_member):
+		push_error("CrewMember has no active task")
+		return
+
+	var completed_task = active_tasks[crew_member]
+	active_tasks.erase(crew_member)
+	task_completed.emit(crew_member, completed_task, true)
+
+func validate_task_assignment(crew_member: Character, task: int) -> Dictionary:
+	var result = {"valid": true, "reason": ""}
+	
+	if crew_member.is_busy():
+		result.valid = false
+		result.reason = "Crew member is already assigned to a task"
+		return result
+	
+	if crew_member.is_wounded and _task_restricted_for_wounded(task):
+		result.valid = false
+		result.reason = "Wounded crew members cannot perform this task"
+		return result
+	
+	if crew_member.is_stunned and _task_restricted_for_stunned(task):
+		result.valid = false
+		result.reason = "Stunned crew members cannot perform this task"
+		return result
+	
+	if get_active_task_count() >= get_max_tasks_per_turn():
+		result.valid = false
+		result.reason = "Maximum crew tasks per turn already assigned"
+		return result
+	
+	var task_validation = _validate_specific_task_requirements(crew_member, task)
+	if not task_validation.valid:
+		return task_validation
+	
+	return result
+
+func _task_restricted_for_wounded(task: int) -> bool:
+	var restricted_tasks = [
+		GlobalEnums.CrewTaskType.TRAIN,
+		GlobalEnums.CrewTaskType.EXPLORE
+	]
+	return task in restricted_tasks
+
+func _task_restricted_for_stunned(task: int) -> bool:
+	var restricted_tasks = [
+		GlobalEnums.CrewTaskType.TRAIN,
+		GlobalEnums.CrewTaskType.FIND_PATRON,
+		GlobalEnums.CrewTaskType.TRADE
+	]
+	return task in restricted_tasks
+
+func _validate_specific_task_requirements(crew_member: Character, task: int) -> Dictionary:
+	var result = {"valid": true, "reason": ""}
+	
+	match task:
+		GlobalEnums.CrewTaskType.REPAIR_KIT:
+			if not _has_repair_equipment():
+				result.valid = false
+				result.reason = "Repair Kit task requires repair parts and tools"
+		GlobalEnums.CrewTaskType.RECRUIT:
+			if _get_crew_size() >= 6:
+				result.valid = false
+				result.reason = "Crew is already at maximum size (6 members)"
+		GlobalEnums.CrewTaskType.TRADE:
+			if not _has_trade_goods():
+				pass
+	
+	return result
+
+func get_active_task_count() -> int:
+	return active_tasks.size()
+
+func get_max_tasks_per_turn() -> int:
+	return min(6, _get_crew_size())
+
+func _get_crew_size() -> int:
+	if game_state and game_state.has_method("get_crew_size"):
+		return game_state.get_crew_size()
+	return 4
+
+func _has_repair_equipment() -> bool:
+	if game_state and game_state.has_method("has_item"):
+		return game_state.has_item("repair_parts") and game_state.has_item("tools")
+	return true
+
+func _has_trade_goods() -> bool:
+	if game_state and game_state.has_method("has_item"):
+		return game_state.has_item("trade_goods") or game_state.has_item("luxury_items")
+	return false
+
+func get_available_tasks_for_crew_member(crew_member: Character) -> Array[int]:
+	var available_tasks: Array[int] = []
+	
+	var all_tasks = [
+		GlobalEnums.CrewTaskType.FIND_PATRON,
+		GlobalEnums.CrewTaskType.TRAIN,
+		GlobalEnums.CrewTaskType.TRADE,
+		GlobalEnums.CrewTaskType.RECRUIT,
+		GlobalEnums.CrewTaskType.EXPLORE,
+		GlobalEnums.CrewTaskType.TRACK,
+		GlobalEnums.CrewTaskType.REPAIR_KIT,
+		GlobalEnums.CrewTaskType.DECOY
+	]
+	
+	for task in all_tasks:
+		var validation = validate_task_assignment(crew_member, task)
+		if validation.valid:
+			available_tasks.append(task)
+	
+	return available_tasks
+
+func get_optimal_task_assignments() -> Dictionary:
+	var assignments = {}
+	
+	if not game_state or not game_state.has_method("get_crew_members"):
+		return assignments
+	
+	var crew_members = game_state.get_crew_members()
+	var priority_tasks = [
+		GlobalEnums.CrewTaskType.TRAIN,
+		GlobalEnums.CrewTaskType.FIND_PATRON,
+		GlobalEnums.CrewTaskType.TRADE,
+		GlobalEnums.CrewTaskType.EXPLORE,
+		GlobalEnums.CrewTaskType.RECRUIT,
+		GlobalEnums.CrewTaskType.TRACK,
+		GlobalEnums.CrewTaskType.REPAIR_KIT,
+		GlobalEnums.CrewTaskType.DECOY
+	]
+	
+	var task_index = 0
+	for crew_member in crew_members:
+		if task_index >= priority_tasks.size():
+			break
+		
+		var task = priority_tasks[task_index]
+		var validation = validate_task_assignment(crew_member, task)
+		
+		if validation.valid:
+			assignments[crew_member] = task
+			task_index += 1
+	
+	return assignments
+
+func clear_all_tasks() -> void:
+	active_tasks.clear()
+
+func get_task_summary() -> Dictionary:
+	return {
+		"active_tasks": active_tasks.size(),
+		"max_tasks": get_max_tasks_per_turn(),
+		"assignments": active_tasks.duplicate()
+	}
+
 ## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
 ## Based on Godot 4.4 best practices for safe property access
 func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
@@ -1188,6 +1488,7 @@ func safe_get_property(obj: Variant, property: String, default_value: Variant = 
 	elif obj is Dictionary:
 		return obj.get(property, default_value)
 	return default_value
+
 ## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
 func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
 	if obj == null:
