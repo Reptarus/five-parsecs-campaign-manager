@@ -551,6 +551,13 @@ func _gather_save_data() -> Dictionary:
 	# Add ship data if available
 	if player_ship:
 		save_data["ship"] = player_ship.serialize() if player_ship and player_ship.has_method("serialize") else {}
+	
+	# Add ship stash from EquipmentManager
+	var equipment_manager = get_node_or_null("/root/EquipmentManager")
+	if equipment_manager and equipment_manager.has_method("serialize_ship_stash"):
+		save_data["ship_stash"] = equipment_manager.serialize_ship_stash()
+	else:
+		save_data["ship_stash"] = []
 
 	return save_data
 
@@ -816,6 +823,13 @@ func serialize() -> Dictionary:
 			data["campaign"] = _current_campaign.serialize()
 		else:
 			data["campaign"] = {}
+	
+	# Serialize ship stash from EquipmentManager
+	var equipment_manager = get_node_or_null("/root/EquipmentManager")
+	if equipment_manager and equipment_manager.has_method("serialize_ship_stash"):
+		data["ship_stash"] = equipment_manager.serialize_ship_stash()
+	else:
+		data["ship_stash"] = []
 
 	return data
 
@@ -877,6 +891,19 @@ func deserialize(data: Dictionary) -> void:
 				push_warning("FiveParsecsCampaign class not loaded - cannot deserialize campaign data")
 		else:
 			push_warning("Invalid campaign data format in save file")
+	
+	# Deserialize ship stash into EquipmentManager
+	if data.has("ship_stash"):
+		var equipment_manager = get_node_or_null("/root/EquipmentManager")
+		if equipment_manager and equipment_manager.has_method("deserialize_ship_stash"):
+			var ship_stash_data = data.get("ship_stash", [])
+			if ship_stash_data is Array:
+				equipment_manager.deserialize_ship_stash(ship_stash_data)
+				print("GameState: Loaded %d items into ship stash" % ship_stash_data.size())
+			else:
+				push_warning("Invalid ship stash data format in save file")
+		else:
+			push_warning("EquipmentManager not available - ship stash not loaded")
 
 static func deserialize_new(data: Dictionary) -> CoreGameState:
 	var state := CoreGameState.new()
@@ -1066,6 +1093,61 @@ func get_crew_members() -> Array:
 	return _get_safe_crew_members()
 	return []
 
+## Injury Management (Five Parsecs p.94-95)
+func apply_crew_injury(character_id: String, injury: Dictionary) -> void:
+	"""Apply injury to crew member via Campaign system
+
+	Args:
+		character_id: Unique identifier of character
+		injury: Dictionary with {type, severity, recovery_turns, turn_sustained}
+	"""
+	if not _current_campaign:
+		push_error("GameState.apply_crew_injury: No active campaign")
+		return
+
+	if not _current_campaign.has_method("get_crew_member_by_id"):
+		push_error("GameState.apply_crew_injury: Campaign missing get_crew_member_by_id method")
+		return
+
+	var character = _current_campaign.get_crew_member_by_id(character_id)
+	if not character:
+		push_error("GameState.apply_crew_injury: Character not found: %s" % character_id)
+		return
+
+	if not character.has_method("add_injury"):
+		push_error("GameState.apply_crew_injury: Character missing add_injury method")
+		return
+
+	# Add injury to character
+	character.add_injury(injury)
+	print("GameState: Applied injury to %s - %s (%d turns)" % [character.name, injury.get("type", "UNKNOWN"), injury.get("recovery_turns", 0)])
+
+	_emit_state_changed()
+
+func process_crew_recovery() -> void:
+	"""Process injury recovery for all crew members (called each turn)"""
+	if not _current_campaign:
+		return
+
+	var crew_members = get_crew_members()
+	for character in crew_members:
+		if character and character.has_method("process_recovery_turn"):
+			character.process_recovery_turn()
+
+	print("GameState: Processed recovery for %d crew members" % crew_members.size())
+	_emit_state_changed()
+
+func get_wounded_crew() -> Array:
+	"""Get all crew members with active injuries"""
+	var wounded: Array = []
+	var crew_members = get_crew_members()
+
+	for character in crew_members:
+		if character and character.has("injuries") and character.injuries.size() > 0:
+			wounded.append(character)
+
+	return wounded
+
 func get_rivals() -> Array:
 	return rivals
 
@@ -1084,10 +1166,8 @@ func get_quest_rumors() -> int:
 	if not _current_campaign:
 		return 0
 	# Quest rumors stored in campaign data
-	if _current_campaign.has("quest_rumors"):
+	if "quest_rumors" in _current_campaign:
 		return _current_campaign.quest_rumors
-	elif _current_campaign.has_method("get") and "quest_rumors" in _current_campaign:
-		return _current_campaign.get("quest_rumors")
 	return 0
 
 func add_quest_rumors(count: int) -> void:
@@ -1099,10 +1179,8 @@ func add_quest_rumors(count: int) -> void:
 	var new_total = current_rumors + count
 	
 	# Update campaign data
-	if _current_campaign.has("quest_rumors"):
+	if "quest_rumors" in _current_campaign:
 		_current_campaign.quest_rumors = new_total
-	elif _current_campaign.has_method("set"):
-		_current_campaign.set("quest_rumors", new_total)
 	
 	print("GameState: Added %d quest rumors (total: %d)" % [count, new_total])
 	_emit_state_changed()
@@ -1466,14 +1544,14 @@ func clear_battle_results() -> void:
 func get_current_mission() -> Dictionary:
 	"""Get current mission data for battle system"""
 	# Return mission data from current campaign state
-	if _current_campaign and _current_campaign.has("current_mission"):
+	if _current_campaign and "current_mission" in _current_campaign:
 		return _current_campaign.current_mission
 	return {}
 
 func get_battle_crew_members() -> Array:
 	"""Get active crew members for battle system"""
 	# Return crew data from current campaign state
-	if _current_campaign and _current_campaign.has("crew"):
+	if _current_campaign and "crew" in _current_campaign:
 		return _current_campaign.crew
 	return []
 

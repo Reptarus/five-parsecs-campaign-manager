@@ -371,36 +371,64 @@ func _process_injuries() -> void:
 	_process_experience()
 
 func _process_single_injury(injury_data: Dictionary) -> Dictionary:
-	"""Process a single crew injury"""
+	"""Process a single crew injury using Five Parsecs injury table (p.94-95)"""
 	var crew_id = injury_data.get("crew_id", "")
-	var injury_type = injury_data.get("type", "minor")
 
-	# Roll on injury table to determine severity and recovery time
-	var injury_roll = randi_range(1, 6)
+	# Roll D100 for injury determination (Five Parsecs Core Rules p.94)
+	var injury_roll := randi_range(1, 100)
+	var injury_type := InjurySystemConstants.get_injury_type_from_roll(injury_roll)
+	var recovery_info := InjurySystemConstants.get_recovery_time(injury_type)
+
+	# Calculate actual recovery time based on injury type
 	var recovery_time: int = 0
-	var permanent_effect: bool = false
+	if recovery_info.has("dice"):
+		# Use min/max for recovery calculation
+		var min_time := recovery_info.get("min", 0)
+		var max_time := recovery_info.get("max", 0)
+		if max_time > 0:
+			recovery_time = randi_range(min_time, max_time)
+		else:
+			recovery_time = min_time
+	else:
+		recovery_time = recovery_info.get("max", 0)
 
-	match injury_type:
-		"minor":
-			recovery_time = injury_roll # 1-6 turns
-		"serious":
-			recovery_time = injury_roll + 3 # 4-9 turns
-			permanent_effect = injury_roll == 1 # 16% chance
-		"critical":
-			recovery_time = injury_roll + 6 # 7-12 turns
-			permanent_effect = injury_roll <= 2 # 33% chance
+	# Get injury type name and description
+	var injury_type_name := InjurySystemConstants.INJURY_TYPE_NAMES.get(injury_type, "UNKNOWN")
+	var injury_description := InjurySystemConstants.get_injury_description(injury_type)
 
-	var processed_injury = {
+	# Check for special effects
+	var is_fatal := InjurySystemConstants.is_fatal(injury_type)
+	var equipment_lost := InjurySystemConstants.causes_equipment_loss(injury_type)
+	var bonus_xp := InjurySystemConstants.get_bonus_xp(injury_type)
+
+	var processed_injury := {
 		"crew_id": crew_id,
-		"type": injury_type,
-		"recovery_time": recovery_time,
-		"permanent_effect": permanent_effect
+		"type": injury_type_name,
+		"severity": injury_type,
+		"recovery_turns": recovery_time,
+		"turn_sustained": game_state_manager.turn_number if game_state_manager else 0,
+		"description": injury_description,
+		"is_fatal": is_fatal,
+		"equipment_lost": equipment_lost,
+		"bonus_xp": bonus_xp
 	}
 
-	# Apply injury to crew member via GameStateManager
+	# Handle fatal injuries
+	if is_fatal:
+		print("PostBattlePhase: FATAL INJURY - Crew member %s has died" % crew_id)
+		# Character death should be handled by campaign manager
+		return processed_injury
+
+	# Apply injury to crew member via GameState
 	if game_state_manager and game_state_manager.has_method("apply_crew_injury"):
 		game_state_manager.apply_crew_injury(crew_id, processed_injury)
-		print("PostBattlePhase: Applied injury to crew member %s (recovery: %d turns)" % [crew_id, recovery_time])
+		print("PostBattlePhase: Applied injury to crew member %s - %s (recovery: %d turns)" % [crew_id, injury_type_name, recovery_time])
+	else:
+		push_error("PostBattlePhase: GameStateManager missing apply_crew_injury method")
+
+	# Apply bonus XP for Hard Knocks
+	if bonus_xp > 0 and game_state_manager:
+		print("PostBattlePhase: Crew member %s gained +%d XP from Hard Knocks" % [crew_id, bonus_xp])
 
 	return processed_injury
 

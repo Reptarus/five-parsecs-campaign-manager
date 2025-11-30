@@ -116,6 +116,30 @@ var character_name: String:
 @export var health: int = 5
 @export var max_health: int = 5
 
+# Injury System (Five Parsecs Core Rules p.94-95)
+@export var injuries: Array[Dictionary] = []  # Each: {type: String, severity: int, recovery_turns: int, turn_sustained: int}
+
+# Computed properties for injury status
+var is_wounded: bool:
+	get:
+		return injuries.size() > 0
+
+var current_recovery_turns: int:
+	get:
+		if injuries.is_empty():
+			return 0
+		# Return the longest recovery time remaining
+		var max_recovery := 0
+		for injury in injuries:
+			var remaining := injury.get("recovery_turns", 0)
+			max_recovery = max(max_recovery, remaining)
+		return max_recovery
+
+# Signals for injury events
+signal injury_added(injury: Dictionary)
+signal injury_removed(index: int)
+signal recovery_progressed(turns_remaining: int)
+
 # Character Generation - Direct static methods replace CharacterManager
 static func generate_character(background_type: String = "") -> Character:
 	"""Production-ready character generation with comprehensive validation"""
@@ -298,6 +322,62 @@ func get_display_name() -> String:
 func get_total_stats() -> int:
 	"""Calculate total stat value for balance checking"""
 	return combat + reactions + toughness + savvy + tech + move
+
+# ========== INJURY MANAGEMENT (Five Parsecs p.94-95) ==========
+
+func add_injury(injury: Dictionary) -> void:
+	"""Add an injury to the character
+
+	Args:
+		injury: Dictionary with keys: type (String), severity (int), recovery_turns (int), turn_sustained (int)
+	"""
+	if not injury.has("type") or not injury.has("recovery_turns"):
+		push_error("Character.add_injury: Invalid injury data - missing required fields")
+		return
+
+	injuries.append(injury)
+	status = "INJURED"
+	injury_added.emit(injury)
+	print("Character %s sustained injury: %s (recovery: %d turns)" % [name, injury.get("type", "UNKNOWN"), injury.get("recovery_turns", 0)])
+
+func remove_injury(index: int) -> void:
+	"""Remove an injury by index (when fully healed)"""
+	if index < 0 or index >= injuries.size():
+		push_error("Character.remove_injury: Invalid injury index %d" % index)
+		return
+
+	injuries.remove_at(index)
+	injury_removed.emit(index)
+
+	# Update status if no more injuries
+	if injuries.is_empty():
+		status = "ACTIVE"
+		print("Character %s fully recovered from all injuries" % name)
+
+func process_recovery_turn() -> void:
+	"""Reduce recovery_turns for all injuries, remove healed ones
+	Called each campaign turn during post-battle or upkeep phase
+	"""
+	var healed_indices: Array[int] = []
+
+	# Reduce recovery time for all injuries
+	for i in range(injuries.size()):
+		var injury := injuries[i]
+		var current_turns := injury.get("recovery_turns", 0)
+		injury["recovery_turns"] = max(0, current_turns - 1)
+
+		# Mark as healed if recovery complete
+		if injury["recovery_turns"] == 0:
+			healed_indices.append(i)
+
+	# Remove healed injuries (reverse order to maintain indices)
+	healed_indices.reverse()
+	for index in healed_indices:
+		remove_injury(index)
+
+	# Emit progress signal
+	if not injuries.is_empty():
+		recovery_progressed.emit(current_recovery_turns)
 
 # ========== COMPREHENSIVE COMPATIBILITY LAYER ==========
 # These methods provide compatibility for FiveParsecsCharacterGeneration calls
@@ -737,7 +817,10 @@ func serialize() -> Dictionary:
 		"is_captain": is_captain,
 		"created_at": created_at,
 		"status": status,
-		
+
+		# Injury system (Five Parsecs p.94-95)
+		"injuries": injuries.duplicate(),
+
 		# Serialization metadata
 		"serialization_timestamp": Time.get_ticks_msec(),
 		"serialization_version": "enhanced_v2"
@@ -775,7 +858,10 @@ func to_dictionary() -> Dictionary:
 		"equipment": equipment.duplicate(),
 		"is_captain": is_captain,
 		"health": health,
-		"max_health": max_health
+		"max_health": max_health,
+		"injuries": injuries.duplicate(),
+		"is_wounded": is_wounded,
+		"current_recovery_turns": current_recovery_turns
 	}
 
 static func deserialize(data: Dictionary) -> Character:
@@ -840,6 +926,13 @@ static func deserialize(data: Dictionary) -> Character:
 	character.is_captain = data.get("is_captain", false)
 	character.created_at = data.get("created_at", Time.get_datetime_string_from_system())
 	character.status = data.get("status", "ACTIVE")
+
+	# Injury system (Five Parsecs p.94-95)
+	var injuries_data = data.get("injuries", [])
+	character.injuries.clear()
+	for injury in injuries_data:
+		if injury is Dictionary:
+			character.injuries.append(injury)
 
 	# Performance tracking
 	var end_time = Time.get_ticks_usec()

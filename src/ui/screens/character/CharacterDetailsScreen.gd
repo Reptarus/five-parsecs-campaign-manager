@@ -3,6 +3,9 @@
 class_name CharacterDetailsScreen
 extends Control
 
+# ============ PRELOADS ============
+const CharacterCard = preload("res://src/ui/components/character/CharacterCard.gd")
+
 # ============ DESIGN SYSTEM CONSTANTS ============
 # Unified styling from BaseCampaignPanel
 
@@ -54,10 +57,15 @@ const COLOR_DANGER := Color("#DC2626")   # Red
 @onready var save_button: Button = %SaveButton
 @onready var cancel_button: Button = %CancelButton
 @onready var keyword_tooltip: KeywordTooltip = %KeywordTooltip
+@onready var advancement_section: VBoxContainer = %AdvancementSection
 
 # State
 var current_character = null
 var original_data: Dictionary = {}
+
+# Advancement UI references (created dynamically)
+var stat_advancement_buttons: Dictionary = {}
+var training_purchase_buttons: Dictionary = {}
 
 func _ready() -> void:
 	print("CharacterDetailsScreen: Initializing...")
@@ -154,6 +162,29 @@ func populate_ui() -> void:
 		separator.custom_minimum_size = Vector2(0, SPACING_MD)
 		character_info_container.add_child(separator)
 
+		# Add injury status if wounded (Five Parsecs p.94-95)
+		if "injuries" in current_character and current_character.injuries.size() > 0:
+			var injury_header = Label.new()
+			injury_header.text = "INJURIES (%d active)" % current_character.injuries.size()
+			injury_header.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+			injury_header.add_theme_color_override("font_color", COLOR_DANGER)  # Red for injuries
+			character_info_container.add_child(injury_header)
+
+			# List all injuries with recovery time
+			for injury in current_character.injuries:
+				var injury_label = Label.new()
+				var injury_type = injury.get("type", "UNKNOWN")
+				var recovery_turns = injury.get("recovery_turns", 0)
+				injury_label.text = "  • %s: %d turns remaining" % [injury_type, recovery_turns]
+				injury_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+				injury_label.add_theme_color_override("font_color", COLOR_WARNING)  # Orange for injury details
+				character_info_container.add_child(injury_label)
+
+			# Add separator after injuries
+			var injury_separator = HSeparator.new()
+			injury_separator.custom_minimum_size = Vector2(0, SPACING_MD)
+			character_info_container.add_child(injury_separator)
+
 		# Add detailed info fields
 		var info_fields = [
 			["Experience", str(current_character.experience if "experience" in current_character else 0) + " XP"],
@@ -190,6 +221,10 @@ func populate_ui() -> void:
 	# Notes (if we add a notes field to Character)
 	if notes_edit:
 		notes_edit.text = ""  # Placeholder for future notes system
+	
+	# Advancement Section (stat upgrades and training)
+	if advancement_section:
+		_populate_advancement_section()
 
 func clear_character_info_display() -> void:
 	"""Clear all character info labels"""
@@ -266,38 +301,38 @@ func _update_equipment_display() -> void:
 	equipment_rich_text.text = equipment_bbcode.strip_edges()
 
 func _format_equipment_with_keywords(item_name: String) -> String:
-	"""Format equipment name with BBCode keyword links for traits"""
-	# Common weapon traits as keywords
-	var trait_keywords := ["Assault", "Bulky", "Heavy", "Pistol", "Melee", "Single-Use", 
-	                       "Snap Shot", "Stun", "Piercing", "Area", "Critical"]
+	"""Format equipment name with BBCode keyword links for weapon keywords"""
+	# Common weapon keywords (Five Parsecs equipment modifiers)
+	var equipment_keywords := ["Assault", "Bulky", "Heavy", "Pistol", "Melee", "Single-Use", 
+							   "Snap Shot", "Stun", "Piercing", "Area", "Critical"]
 	
 	var formatted := item_name
 	
-	# Detect traits in parentheses: "Infantry Laser (Assault, Bulky)"
-	var trait_start := formatted.find("(")
-	var trait_end := formatted.find(")")
+	# Detect keywords in parentheses: "Infantry Laser (Assault, Bulky)"
+	var paren_start := formatted.find("(")
+	var paren_end := formatted.find(")")
 	
-	if trait_start != -1 and trait_end != -1:
-		var traits_section := formatted.substr(trait_start + 1, trait_end - trait_start - 1)
-		var formatted_traits := ""
+	if paren_start != -1 and paren_end != -1:
+		var keywords_section := formatted.substr(paren_start + 1, paren_end - paren_start - 1)
+		var formatted_keywords := ""
 		
-		# Split by comma and format each trait
-		var traits := traits_section.split(",")
-		for i in range(traits.size()):
-			var trait := traits[i].strip_edges()
+		# Split by comma and format each keyword
+		var keyword_list := keywords_section.split(",")
+		for i in range(keyword_list.size()):
+			var keyword_name := keyword_list[i].strip_edges()
 			
-			# Check if trait is a known keyword
-			if trait in trait_keywords:
-				formatted_traits += "[url=keyword:%s][color=#4FC3F7]%s[/color][/url]" % [trait, trait]
+			# Check if this is a known equipment keyword
+			if keyword_name in equipment_keywords:
+				formatted_keywords += "[url=keyword:%s][color=#4FC3F7]%s[/color][/url]" % [keyword_name, keyword_name]
 			else:
-				formatted_traits += trait
+				formatted_keywords += keyword_name
 			
-			if i < traits.size() - 1:
-				formatted_traits += ", "
+			if i < keyword_list.size() - 1:
+				formatted_keywords += ", "
 		
-		# Reconstruct item name with formatted traits
-		var base_name := formatted.substr(0, trait_start)
-		formatted = "%s(%s)" % [base_name, formatted_traits]
+		# Reconstruct item name with formatted keywords
+		var base_name := formatted.substr(0, paren_start)
+		formatted = "%s(%s)" % [base_name, formatted_keywords]
 	
 	return formatted
 
@@ -311,15 +346,11 @@ func _on_equipment_keyword_clicked(meta: Variant) -> void:
 		# Get click position for tooltip placement
 		var click_position := equipment_rich_text.global_position
 		
-		# Show tooltip
+		# Show tooltip at the RichTextLabel position
 		keyword_tooltip.show_for_keyword(keyword, click_position)
 
-func _on_save_pressed() -> void:
-	"""Save character changes"""
-	print("CharacterDetailsScreen: Saving changes...")
-
-	if not current_character:
-		return
+		if not current_character:
+			return
 
 	# Equipment changes are now read-only (managed through dedicated UI)
 	# Notes can still be edited
@@ -330,6 +361,25 @@ func _on_save_pressed() -> void:
 
 	print("CharacterDetailsScreen: Changes saved to character")
 
+	# Return to crew management
+	return_to_crew_management()
+
+func _on_save_pressed() -> void:
+	"""Save character changes and return"""
+	print("CharacterDetailsScreen: Saving changes...")
+	
+	if not current_character:
+		return
+	
+	# Equipment changes are now read-only (managed through dedicated UI)
+	# Notes can still be edited
+	
+	# Mark campaign as modified (needs save)
+	if GameStateManager:
+		GameStateManager.mark_campaign_modified()
+	
+	print("CharacterDetailsScreen: Changes saved to character")
+	
 	# Return to crew management
 	return_to_crew_management()
 
@@ -364,3 +414,358 @@ func _on_remove_equipment_pressed() -> void:
 	"""Remove equipment item (future feature)"""
 	print("CharacterDetailsScreen: Equipment management through dedicated UI")
 	# TODO: Navigate to equipment management screen
+
+# ============ ADVANCEMENT SECTION ============
+
+func _populate_advancement_section() -> void:
+	"""Populate the advancement section with stat upgrades and training options"""
+	if not current_character or not advancement_section:
+		return
+	
+	# Clear existing advancement UI
+	for child in advancement_section.get_children():
+		child.queue_free()
+	
+	stat_advancement_buttons.clear()
+	training_purchase_buttons.clear()
+	
+	# Get character data as dictionary for CharacterAdvancementService
+	var character_dict := _character_to_dict(current_character)
+	
+	# Create XP display header
+	var xp_header := _create_advancement_header(character_dict)
+	advancement_section.add_child(xp_header)
+	
+	# Add separator
+	var separator1 := HSeparator.new()
+	separator1.custom_minimum_size = Vector2(0, SPACING_MD)
+	advancement_section.add_child(separator1)
+	
+	# Create stat advancement grid
+	var stat_section := _create_stat_advancement_section(character_dict)
+	advancement_section.add_child(stat_section)
+	
+	# Add separator
+	var separator2 := HSeparator.new()
+	separator2.custom_minimum_size = Vector2(0, SPACING_LG)
+	advancement_section.add_child(separator2)
+	
+	# Create training options
+	var training_section := _create_training_section(character_dict)
+	advancement_section.add_child(training_section)
+
+func _create_advancement_header(character_dict: Dictionary) -> VBoxContainer:
+	"""Create XP display header for advancement section"""
+	var header := VBoxContainer.new()
+	header.add_theme_constant_override("separation", SPACING_SM)
+	
+	# Title
+	var title := Label.new()
+	title.text = "CHARACTER ADVANCEMENT"
+	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	header.add_child(title)
+	
+	# Current XP display (large and prominent)
+	var xp_display := HBoxContainer.new()
+	xp_display.add_theme_constant_override("separation", SPACING_SM)
+	
+	var xp_label_text := Label.new()
+	xp_label_text.text = "Available XP:"
+	xp_label_text.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	xp_label_text.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	xp_display.add_child(xp_label_text)
+	
+	var xp_value := Label.new()
+	xp_value.text = str(character_dict.get("experience", 0))
+	xp_value.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	xp_value.add_theme_color_override("font_color", COLOR_ACCENT)
+	xp_value.name = "AvailableXPValue"
+	xp_display.add_child(xp_value)
+	
+	header.add_child(xp_display)
+	
+	return header
+
+func _create_stat_advancement_section(character_dict: Dictionary) -> VBoxContainer:
+	"""Create stat advancement grid with buttons"""
+	var section := VBoxContainer.new()
+	section.add_theme_constant_override("separation", SPACING_MD)
+	
+	# Section title
+	var title := Label.new()
+	title.text = "STAT ADVANCEMENT"
+	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	section.add_child(title)
+	
+	# Grid of stats (2 columns for mobile-friendly layout)
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", SPACING_SM)
+	grid.add_theme_constant_override("v_separation", SPACING_SM)
+	
+	# Stats to display (in priority order)
+	var stats := ["reactions", "combat_skill", "toughness", "savvy", "speed", "luck"]
+	
+	for stat in stats:
+		var stat_card := _create_stat_advancement_card(character_dict, stat)
+		grid.add_child(stat_card)
+	
+	section.add_child(grid)
+	
+	return section
+
+func _create_stat_advancement_card(character_dict: Dictionary, stat_name: String) -> PanelContainer:
+	"""Create a card for a single stat advancement option"""
+	var panel := PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	
+	# Style the card
+	var style := StyleBoxFlat.new()
+	style.bg_color = COLOR_ELEVATED
+	style.border_color = COLOR_BORDER
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(8)
+	style.set_content_margin_all(SPACING_MD)
+	panel.add_theme_stylebox_override("panel", style)
+	
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", SPACING_SM)
+	
+	# Stat name
+	var stat_label := Label.new()
+	stat_label.text = stat_name.capitalize().replace("_", " ")
+	stat_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	stat_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	vbox.add_child(stat_label)
+	
+	# Current value / Max
+	var current_value: int = character_dict.get(stat_name, 0)
+	var max_value: int = CharacterAdvancementConstants.get_stat_maximum(stat_name, character_dict)
+	
+	var value_label := Label.new()
+	value_label.text = "%d / %d" % [current_value, max_value]
+	value_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	value_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	vbox.add_child(value_label)
+	
+	# Advance button
+	var can_advance_result := CharacterAdvancementService.can_advance_stat(character_dict, stat_name)
+	
+	var button := Button.new()
+	button.custom_minimum_size.y = TOUCH_TARGET_MIN
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	
+	if can_advance_result.can_advance:
+		button.text = "Advance (%d XP)" % can_advance_result.xp_cost
+		button.disabled = false
+		button.pressed.connect(_on_stat_advance_pressed.bind(stat_name))
+		stat_advancement_buttons[stat_name] = button
+	else:
+		button.text = can_advance_result.reason.split(":")[0]  # Just the first part
+		button.disabled = true
+	
+	vbox.add_child(button)
+	
+	panel.add_child(vbox)
+	return panel
+
+func _create_training_section(character_dict: Dictionary) -> VBoxContainer:
+	"""Create training options section"""
+	var section := VBoxContainer.new()
+	section.add_theme_constant_override("separation", SPACING_MD)
+	
+	# Section title
+	var title := Label.new()
+	title.text = "TRAINING"
+	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	section.add_child(title)
+	
+	# Training list (from AdvancementSystem)
+	var training_types := ["pilot", "medical", "mechanic", "broker", "security", "merchant", "bot_tech", "engineer"]
+	var training_costs := {
+		"pilot": 20, "medical": 20, "mechanic": 15, "broker": 15,
+		"security": 10, "merchant": 10, "bot_tech": 10, "engineer": 15
+	}
+	
+	var current_training: Array = character_dict.get("training", [])
+	var current_xp: int = character_dict.get("experience", 0)
+	
+	# Create grid for training (2 columns)
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", SPACING_SM)
+	grid.add_theme_constant_override("v_separation", SPACING_SM)
+	
+	for training_type in training_types:
+		var training_card := _create_training_card(training_type, training_costs[training_type], current_training, current_xp)
+		grid.add_child(training_card)
+	
+	section.add_child(grid)
+	
+	return section
+
+func _create_training_card(training_type: String, cost: int, current_training: Array, current_xp: int) -> PanelContainer:
+	"""Create a card for a single training option"""
+	var panel := PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	
+	# Style the card
+	var style := StyleBoxFlat.new()
+	style.bg_color = COLOR_ELEVATED
+	style.border_color = COLOR_BORDER
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(8)
+	style.set_content_margin_all(SPACING_MD)
+	panel.add_theme_stylebox_override("panel", style)
+	
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", SPACING_SM)
+	
+	# Training name
+	var name_label := Label.new()
+	name_label.text = training_type.capitalize().replace("_", " ")
+	name_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	vbox.add_child(name_label)
+	
+	# Purchase button
+	var button := Button.new()
+	button.custom_minimum_size.y = TOUCH_TARGET_MIN
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	
+	var already_has := training_type in current_training
+	var can_afford := current_xp >= cost
+	
+	if already_has:
+		button.text = "Already Trained"
+		button.disabled = true
+	elif can_afford:
+		button.text = "Purchase (%d XP)" % cost
+		button.disabled = false
+		button.pressed.connect(_on_training_pressed.bind(training_type))
+		training_purchase_buttons[training_type] = button
+	else:
+		button.text = "Need %d XP" % cost
+		button.disabled = true
+	
+	vbox.add_child(button)
+	
+	panel.add_child(vbox)
+	return panel
+
+func _on_stat_advance_pressed(stat_name: String) -> void:
+	"""Handle stat advancement button press"""
+	if not current_character:
+		return
+	
+	print("CharacterDetailsScreen: Advancing stat - ", stat_name)
+	
+	# Convert character to dictionary
+	var character_dict := _character_to_dict(current_character)
+	
+	# Attempt advancement
+	var result := CharacterAdvancementService.advance_stat(character_dict, stat_name)
+	
+	if result.success:
+		# Update character resource with new values
+		_update_character_from_dict(current_character, character_dict)
+		
+		# Mark campaign as modified
+		if GameStateManager:
+			GameStateManager.mark_campaign_modified()
+		
+		# Refresh all UI
+		populate_ui()
+		
+		print("CharacterDetailsScreen: %s" % result.message)
+	else:
+		print("CharacterDetailsScreen: Advancement failed - %s" % result.message)
+
+func _on_training_pressed(training_type: String) -> void:
+	"""Handle training purchase button press"""
+	if not current_character:
+		return
+	
+	print("CharacterDetailsScreen: Purchasing training - ", training_type)
+	
+	# Get training cost
+	var training_costs := {
+		"pilot": 20, "medical": 20, "mechanic": 15, "broker": 15,
+		"security": 10, "merchant": 10, "bot_tech": 10, "engineer": 15
+	}
+	
+	var cost: int = training_costs.get(training_type, 0)
+	var current_xp: int = current_character.experience if "experience" in current_character else 0
+	var current_training: Array = current_character.training if "training" in current_character else []
+	
+	# Validate
+	if training_type in current_training:
+		print("CharacterDetailsScreen: Already has this training")
+		return
+	
+	if current_xp < cost:
+		print("CharacterDetailsScreen: Insufficient XP - need %d, have %d" % [cost, current_xp])
+		return
+	
+	# Apply training
+	current_training.append(training_type)
+	current_character.training = current_training
+	current_character.experience = current_xp - cost
+	
+	# Mark campaign as modified
+	if GameStateManager:
+		GameStateManager.mark_campaign_modified()
+	
+	# Refresh all UI
+	populate_ui()
+	
+	print("CharacterDetailsScreen: Purchased %s training for %d XP" % [training_type, cost])
+
+func _character_to_dict(character: Resource) -> Dictionary:
+	"""Convert Character resource to dictionary for advancement service"""
+	var dict := {}
+	
+	# Core stats
+	dict["reactions"] = character.reactions if "reactions" in character else 1
+	dict["combat_skill"] = character.combat if "combat" in character else 0
+	dict["speed"] = character.speed if "speed" in character else 4
+	dict["savvy"] = character.savvy if "savvy" in character else 1
+	dict["toughness"] = character.toughness if "toughness" in character else 3
+	dict["luck"] = character.luck if "luck" in character else 0
+	
+	# Experience and training
+	dict["experience"] = character.experience if "experience" in character else 0
+	dict["training"] = character.training if "training" in character else []
+	
+	# Background and species for maximums
+	dict["background"] = character.background if "background" in character else ""
+	dict["species"] = character.origin if "origin" in character else "Human"
+	
+	return dict
+
+func _update_character_from_dict(character: Resource, dict: Dictionary) -> void:
+	"""Update Character resource from dictionary after advancement"""
+	# Update stats
+	if "reactions" in dict:
+		character.reactions = dict.reactions
+	if "combat_skill" in dict:
+		character.combat = dict.combat_skill
+	if "speed" in dict:
+		character.speed = dict.speed
+	if "savvy" in dict:
+		character.savvy = dict.savvy
+	if "toughness" in dict:
+		character.toughness = dict.toughness
+	if "luck" in dict:
+		character.luck = dict.luck
+	
+	# Update experience
+	if "experience" in dict:
+		character.experience = dict.experience
+	
+	# Update training
+	if "training" in dict:
+		character.training = dict.training
