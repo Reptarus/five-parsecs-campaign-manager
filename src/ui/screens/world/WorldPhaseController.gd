@@ -7,6 +7,8 @@ class_name WorldPhaseController
 
 # Signals for phase transition integration
 signal phase_completed(results: Dictionary)
+signal return_to_dashboard
+signal proceed_to_battle
 
 # Event bus integration - single source of truth for events
 const CampaignTurnEventBus = preload("res://src/core/events/CampaignTurnEventBus.gd")
@@ -37,6 +39,8 @@ const FPCM_DataManager = preload("res://src/core/data/DataManager.gd")
 @onready var back_button: Button = %BackButton
 @onready var next_button: Button = %NextButton
 @onready var automation_toggle: CheckBox = %AutomationToggle
+@onready var back_to_dashboard_button: Button = %BackToDashboardButton
+@onready var proceed_to_battle_button: Button = %ProceedToBattleButton
 
 # Component containers - properly structured scene hierarchy
 @onready var upkeep_container: Control = %UpkeepContainer
@@ -156,6 +160,10 @@ func _connect_ui_signals() -> void:
 		next_button.pressed.connect(_on_next_button_pressed)
 	if automation_toggle:
 		automation_toggle.toggled.connect(_on_automation_toggled)
+	if back_to_dashboard_button:
+		back_to_dashboard_button.pressed.connect(_on_back_to_dashboard_pressed)
+	if proceed_to_battle_button:
+		proceed_to_battle_button.pressed.connect(_on_proceed_to_battle_pressed)
 
 func _setup_initial_state() -> void:
 	"""Setup initial UI state and fetch campaign data from GameStateManager"""
@@ -467,6 +475,8 @@ func _on_next_button_pressed() -> void:
 			current_step = current_step + 1
 			_show_current_step()
 			print("WorldPhaseController: Advanced to %s" % step_names[current_step])
+			# Checkpoint save after each step advance
+			_save_world_phase_checkpoint()
 		else:
 			# Complete world phase
 			_complete_world_phase()
@@ -477,12 +487,37 @@ func _on_automation_toggled(enabled: bool) -> void:
 	"""Handle automation toggle"""
 	automation_enabled = enabled
 	print("WorldPhaseController: Automation %s" % ("enabled" if enabled else "disabled"))
-	
+
 	# Publish automation event for components
 	if event_bus:
 		event_bus.publish_event(CampaignTurnEventBus.TurnEvent.AUTOMATION_TOGGLED, {
 			"enabled": enabled
 		})
+
+## Navigation Button Handlers - Clear user actions
+func _on_proceed_to_battle_pressed() -> void:
+	"""Handle Proceed to Battle button - primary action"""
+	print("WorldPhaseController: User requested proceed to battle")
+
+	# Complete world phase and transition to battle
+	_complete_world_phase()
+
+	# Emit signal for external listeners
+	proceed_to_battle.emit()
+
+func _on_back_to_dashboard_pressed() -> void:
+	"""Handle Back to Dashboard button - return navigation"""
+	print("WorldPhaseController: User requested return to dashboard")
+
+	# Emit signal for external listeners
+	return_to_dashboard.emit()
+
+	# Navigate back to dashboard
+	if GameStateManager:
+		GameStateManager.navigate_to_screen("campaign_dashboard")
+	else:
+		# Fallback to direct scene change
+		get_tree().change_scene_to_file("res://src/ui/screens/campaign/CampaignDashboard.tscn")
 
 ## Component Event Handlers - centralized coordination
 func _on_crew_task_resolved(data: Dictionary) -> void:
@@ -549,6 +584,9 @@ func _on_phase_completed(data: Dictionary) -> void:
 func _complete_world_phase() -> void:
 	"""Complete the entire world phase and transition to battle"""
 	print("WorldPhaseController: Completing world phase")
+
+	# Final checkpoint save before battle transition
+	_save_world_phase_checkpoint()
 
 	# Gather results from all 9 components
 	var upkeep_results = {}
@@ -644,10 +682,9 @@ func _complete_world_phase() -> void:
 	# Emit signal for CampaignTurnController integration
 	phase_completed.emit(world_phase_results)
 
-	# TRANSITION TO WORLD PHASE SUMMARY
-	# Note: CampaignTurnController should handle phase transition, but keeping this as fallback
-	# print("WorldPhaseController: Transitioning to WorldPhaseSummary scene")
-	# get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/world/WorldPhaseSummary.tscn")
+	# TRANSITION TO BATTLE PHASE
+	# Use SceneRouter for consistent navigation with fallbacks
+	_navigate_to_battle_phase(world_phase_results)
 
 ## Public API for external integration
 func get_current_step() -> WorldPhaseStep:
@@ -1073,3 +1110,78 @@ func _debug_complete_current_step() -> void:
 	# Auto-advance if enabled
 	if automation_enabled:
 		_on_next_button_pressed()
+
+# =====================================================
+# CHECKPOINT SAVES
+# =====================================================
+
+func _save_world_phase_checkpoint() -> void:
+	"""Save checkpoint during world phase for crash recovery"""
+	var game_state = get_node_or_null("/root/GameState")
+	if not game_state or not game_state.current_campaign:
+		print("WorldPhaseController: Cannot save checkpoint - no GameState")
+		return
+
+	# Store current world phase progress in campaign
+	var campaign = game_state.current_campaign
+	var checkpoint_data := {
+		"current_step": current_step,
+		"step_completed": step_completed.duplicate(),
+		"timestamp": Time.get_datetime_string_from_system()
+	}
+
+	if campaign is Dictionary:
+		campaign["world_phase_checkpoint"] = checkpoint_data
+	elif campaign is Resource and campaign.has_method("set_meta"):
+		campaign.set_meta("world_phase_checkpoint", checkpoint_data)
+
+	# Try to trigger a game save through GameStateManager
+	if GameStateManager and GameStateManager.has_method("quick_save"):
+		GameStateManager.quick_save()
+		print("WorldPhaseController: Checkpoint saved at step %s" % step_names[current_step])
+	elif GameStateManager and GameStateManager.has_method("save_game"):
+		GameStateManager.save_game()
+		print("WorldPhaseController: Checkpoint saved at step %s" % step_names[current_step])
+	else:
+		print("WorldPhaseController: Checkpoint stored (no save method available)")
+
+# =====================================================
+# BATTLE PHASE TRANSITION
+# =====================================================
+
+func _navigate_to_battle_phase(world_phase_results: Dictionary) -> void:
+	"""Navigate to battle phase using SceneRouter with fallbacks"""
+	print("WorldPhaseController: Navigating to battle phase...")
+
+	# Store results in GameStateManager temp data for battle phase access
+	if GameStateManager:
+		GameStateManager.set_temp_data("world_phase_results", world_phase_results)
+		GameStateManager.set_temp_data("return_screen", "campaign_dashboard")
+
+	# Try SceneRouter first (preferred method)
+	if SceneRouter and SceneRouter.has_method("navigate_to"):
+		SceneRouter.navigate_to("pre_battle")
+		print("WorldPhaseController: Navigated to pre_battle via SceneRouter")
+		return
+
+	# Fallback to GameStateManager navigation
+	if GameStateManager and GameStateManager.has_method("navigate_to_screen"):
+		GameStateManager.navigate_to_screen("pre_battle")
+		print("WorldPhaseController: Navigated to pre_battle via GameStateManager")
+		return
+
+	# Final fallback: direct scene change
+	var pre_battle_path := "res://src/ui/screens/battle/PreBattleUI.tscn"
+	var summary_path := "res://src/ui/screens/world/WorldPhaseSummary.tscn"
+
+	if FileAccess.file_exists(pre_battle_path):
+		print("WorldPhaseController: Direct navigation to PreBattleUI.tscn")
+		get_tree().call_deferred("change_scene_to_file", pre_battle_path)
+	elif FileAccess.file_exists(summary_path):
+		print("WorldPhaseController: Direct navigation to WorldPhaseSummary.tscn")
+		get_tree().call_deferred("change_scene_to_file", summary_path)
+	else:
+		push_error("WorldPhaseController: No battle phase screen found!")
+		# Return to dashboard as last resort
+		if GameStateManager:
+			GameStateManager.navigate_to_screen("campaign_dashboard")
