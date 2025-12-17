@@ -148,20 +148,20 @@ func _update_display() -> void:
 			# Color code based on dice type for visual interest
 			match last_roll.dice_type.to_upper():
 				"D3":
-					last_roll_label.modulate = Color.LIGHT_BLUE
+					last_roll_label.modulate = Color("#87CEEB")  # Light Blue
 				"D6":
-					last_roll_label.modulate = Color.WHITE
+					last_roll_label.modulate = Color("#FFFFFF")  # White
 				"2D6":
-					last_roll_label.modulate = Color.LIGHT_GREEN
+					last_roll_label.modulate = Color("#90EE90")  # Light Green
 				"D66":
-					last_roll_label.modulate = Color.YELLOW
+					last_roll_label.modulate = Color("#FFFF00")  # Yellow
 				"D100":
-					last_roll_label.modulate = Color.ORANGE
+					last_roll_label.modulate = Color("#FFA500")  # Orange
 				_:
-					last_roll_label.modulate = Color.WHITE
+					last_roll_label.modulate = Color("#FFFFFF")  # White
 		else:
 			last_roll_label.text = "No rolls yet"
-			last_roll_label.modulate = Color.GRAY
+			last_roll_label.modulate = Color("#808080")  # Gray
 
 	# Update roll history display
 	if roll_history:

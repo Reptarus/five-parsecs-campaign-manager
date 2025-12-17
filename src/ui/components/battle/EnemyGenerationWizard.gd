@@ -214,7 +214,7 @@ func _build_category_step() -> void:
 	var or_label := Label.new()
 	or_label.text = "— or select manually —"
 	or_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	or_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+	or_label.add_theme_color_override("font_color", Color("#808080"))  # Gray - secondary text
 	step_container.add_child(or_label)
 
 	category_option = OptionButton.new()
