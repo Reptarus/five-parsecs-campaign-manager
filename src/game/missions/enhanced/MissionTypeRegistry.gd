@@ -8,7 +8,7 @@ extends RefCounted
 ## Built on existing Mission base class and leverages current JSON data structure.
 
 # GlobalEnums available as autoload singleton
-const Mission = preload("res://src/core/systems/Mission.gd")
+const Mission = preload("res://src/core/campaign/Mission.gd")
 
 # Static typing for performance
 static var _mission_type_cache: Dictionary = {}
@@ -349,7 +349,7 @@ static func _calculate_mission_weight(mission_type: int, context: Dictionary) ->
 	
 	return base_weight
 
-static func _weighted_random_selection(options: Array[int], weights: Array[float]) -> int:
+static func _weighted_random_selection(options: Array, weights: Array) -> int:
 	var total_weight: float = 0.0
 	for weight in weights:
 		total_weight += weight

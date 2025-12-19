@@ -32,8 +32,8 @@ func before_test():
 	economy_system = auto_free(EconomySystemClass.new())
 	phase_manager = auto_free(CampaignPhaseManagerClass.new())
 
-	# Initialize basic state
-	character_manager.crew_roster = []
+	# Initialize basic state - use clear() since crew_roster is typed as Array[Character]
+	character_manager.crew_roster.clear()
 	character_manager.max_crew_size = 8
 
 	economy_system.resources = {
@@ -67,17 +67,19 @@ func test_null_character_reference_handling():
 	# EXPECTED: Should validate character exists before operations
 	# ACTUAL: May crash with null reference error
 
-	# Try to remove null character
+	# Try to remove empty string character - should fail gracefully
 	var result = character_manager.remove_character_from_roster("")
 
 	# Should return false (not crash)
 	assert_that(result).is_false()
 
-	# Try with completely invalid ID
-	result = character_manager.remove_character_from_roster(null)
+	# Try with completely invalid ID (non-existent)
+	# Note: GDScript typed functions don't accept null for String parameters,
+	# so we test with an obviously invalid ID instead
+	result = character_manager.remove_character_from_roster("__invalid_nonexistent_id__")
 
-	# Should handle null gracefully (may crash if no null check)
-	# This test may FAIL if null checking is missing
+	# Should handle missing character gracefully (return false, not crash)
+	assert_that(result).is_false()
 
 func test_null_equipment_item_rejection():
 	"""🐛 BUG DISCOVERY: Adding null items should be rejected"""

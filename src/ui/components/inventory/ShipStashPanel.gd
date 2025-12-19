@@ -97,7 +97,7 @@ func _setup_ui() -> void:
 	
 	transfer_button = Button.new()
 	transfer_button.text = "Transfer"
-	transfer_button.custom_minimum_size = Vector2(100, 36)
+	transfer_button.custom_minimum_size = Vector2(100, 48)  # 48px touch target minimum
 	transfer_button.disabled = true
 	transfer_button.pressed.connect(_on_transfer_pressed)
 	transfer_controls.add_child(transfer_button)
@@ -321,8 +321,12 @@ func _on_transfer_pressed() -> void:
 			selected_item_index = -1
 			_refresh_display()
 			stash_updated.emit()
+			_show_transfer_feedback(true, item.get("name", "item"), character_id)
 		else:
 			push_warning("ShipStashPanel: Failed to transfer item")
+			_show_transfer_feedback(false, item.get("name", "item"), character_id)
+	else:
+		_show_transfer_feedback(false, item.get("name", "item"), character_id)
 
 func _on_equipment_list_updated() -> void:
 	"""Handle equipment list update from EquipmentManager"""
@@ -369,6 +373,79 @@ func add_item_to_stash(item: Dictionary) -> bool:
 			stash_updated.emit()
 		return result
 	return false
+
+
+## Transfer Feedback
+
+var _feedback_label: Label = null
+
+func _show_transfer_feedback(success: bool, item_name: String, character_id: String) -> void:
+	"""Show transfer success/failure feedback to user"""
+	# Remove existing feedback
+	if _feedback_label and is_instance_valid(_feedback_label):
+		_feedback_label.queue_free()
+		_feedback_label = null
+
+	_feedback_label = Label.new()
+	_feedback_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+
+	if success:
+		_feedback_label.text = "✅ Transferred %s to %s" % [item_name, character_id]
+		_feedback_label.add_theme_color_override("font_color", Color("#10B981"))  # Green
+	else:
+		_feedback_label.text = "❌ Failed to transfer %s" % item_name
+		_feedback_label.add_theme_color_override("font_color", Color("#DC2626"))  # Red
+
+	_feedback_label.add_theme_font_size_override("font_size", 12)
+
+	# Add after stash list
+	if stash_list and stash_list.get_parent():
+		var parent = stash_list.get_parent().get_parent()  # Get main_vbox
+		if parent:
+			parent.add_child(_feedback_label)
+			parent.move_child(_feedback_label, parent.get_child_count() - 2)  # Before transfer controls
+
+	# Auto-remove after 3 seconds
+	var timer = get_tree().create_timer(3.0)
+	timer.timeout.connect(_clear_feedback)
+
+
+func _clear_feedback() -> void:
+	"""Clear the feedback label"""
+	if _feedback_label and is_instance_valid(_feedback_label):
+		_feedback_label.queue_free()
+		_feedback_label = null
+
+
+## Serialization for persistence
+
+func serialize() -> Dictionary:
+	"""Serialize panel state for save/load"""
+	var stash_items: Array = []
+	if equipment_manager and equipment_manager.has_method("get_ship_stash"):
+		stash_items = equipment_manager.get_ship_stash()
+
+	return {
+		"stash_items": stash_items.duplicate(true),
+		"selected_index": selected_item_index,
+		"max_capacity": MAX_STASH_SIZE
+	}
+
+
+func deserialize(data: Dictionary) -> void:
+	"""Restore panel state from saved data"""
+	if not data:
+		return
+
+	# Restore stash items if equipment manager supports it
+	var saved_items: Array = data.get("stash_items", [])
+	if equipment_manager and equipment_manager.has_method("set_ship_stash"):
+		equipment_manager.set_ship_stash(saved_items)
+
+	selected_item_index = data.get("selected_index", -1)
+
+	# Refresh display
+	call_deferred("_refresh_display")
 
 
 

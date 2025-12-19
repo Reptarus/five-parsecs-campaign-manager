@@ -1,0 +1,115 @@
+[gd_scene load_steps=2 format=3 uid="uid://post_battle_summary_01"]
+
+[ext_resource type="Script" path="res://src/ui/components/postbattle/PostBattleSummarySheet.gd" id="1_summary_sheet"]
+
+[node name="PostBattleSummarySheet" type="PanelContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 600.0
+offset_bottom = 800.0
+script = ExtResource("1_summary_sheet")
+
+[node name="ScrollContainer" type="ScrollContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="MainVBox" type="VBoxContainer" parent="ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="HeaderSection" type="VBoxContainer" parent="ScrollContainer/MainVBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="MissionTitle" type="Label" parent="ScrollContainer/MainVBox/HeaderSection"]
+layout_mode = 2
+text = "Mission Complete"
+horizontal_alignment = 1
+
+[node name="OutcomeLabel" type="Label" parent="ScrollContainer/MainVBox/HeaderSection"]
+layout_mode = 2
+text = "VICTORY!"
+horizontal_alignment = 1
+
+[node name="StatsSection" type="GridContainer" parent="ScrollContainer/MainVBox"]
+layout_mode = 2
+columns = 2
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 8
+
+[node name="RoundsLabel" type="Label" parent="ScrollContainer/MainVBox/StatsSection"]
+layout_mode = 2
+text = "Rounds: 0"
+
+[node name="EnemiesDefeatedLabel" type="Label" parent="ScrollContainer/MainVBox/StatsSection"]
+layout_mode = 2
+text = "Enemies Defeated: 0"
+
+[node name="CasualtiesLabel" type="Label" parent="ScrollContainer/MainVBox/StatsSection"]
+layout_mode = 2
+text = "Casualties: 0"
+
+[node name="CreditsEarnedLabel" type="Label" parent="ScrollContainer/MainVBox/StatsSection"]
+layout_mode = 2
+text = "Credits Earned: 0"
+
+[node name="CrewChangesSection" type="VBoxContainer" parent="ScrollContainer/MainVBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SectionHeader" type="Label" parent="ScrollContainer/MainVBox/CrewChangesSection"]
+layout_mode = 2
+text = "Crew Changes"
+
+[node name="InjuriesContainer" type="VBoxContainer" parent="ScrollContainer/MainVBox/CrewChangesSection"]
+layout_mode = 2
+
+[node name="XPGainsContainer" type="VBoxContainer" parent="ScrollContainer/MainVBox/CrewChangesSection"]
+layout_mode = 2
+
+[node name="DeathsContainer" type="VBoxContainer" parent="ScrollContainer/MainVBox/CrewChangesSection"]
+layout_mode = 2
+
+[node name="LootSection" type="VBoxContainer" parent="ScrollContainer/MainVBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SectionHeader" type="Label" parent="ScrollContainer/MainVBox/LootSection"]
+layout_mode = 2
+text = "Loot Collected"
+
+[node name="LootContainer" type="VBoxContainer" parent="ScrollContainer/MainVBox/LootSection"]
+layout_mode = 2
+
+[node name="CampaignChangesSection" type="VBoxContainer" parent="ScrollContainer/MainVBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SectionHeader" type="Label" parent="ScrollContainer/MainVBox/CampaignChangesSection"]
+layout_mode = 2
+text = "Campaign Changes"
+
+[node name="RivalsLabel" type="Label" parent="ScrollContainer/MainVBox/CampaignChangesSection"]
+layout_mode = 2
+text = "Rivals: No change"
+
+[node name="PatronsLabel" type="Label" parent="ScrollContainer/MainVBox/CampaignChangesSection"]
+layout_mode = 2
+text = "Patrons: No change"
+
+[node name="QuestLabel" type="Label" parent="ScrollContainer/MainVBox/CampaignChangesSection"]
+layout_mode = 2
+text = "Quest: No active quest"
+
+[node name="InvasionWarning" type="Label" parent="ScrollContainer/MainVBox/CampaignChangesSection"]
+visible = false
+layout_mode = 2
+text = "WARNING: INVASION IMMINENT"
+
+[node name="ContinueButton" type="Button" parent="ScrollContainer/MainVBox"]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+text = "Continue to Campaign"

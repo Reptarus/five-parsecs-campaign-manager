@@ -26,6 +26,7 @@ extends GdUnitAssert
 ## Appends a custom message to the failure message.
 @abstract func append_failure_message(message: String) -> GdUnitIntAssert
 
+
 ## Verifies that the current value is less than the given one.
 @abstract func is_less(expected: int) -> GdUnitIntAssert
 

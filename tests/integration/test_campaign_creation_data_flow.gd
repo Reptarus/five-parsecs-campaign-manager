@@ -38,10 +38,12 @@ func test_captain_name_extraction_from_flat_structure() -> void:
 	
 	coordinator.update_captain_state(captain_data)
 	var state = coordinator.get_unified_campaign_state()
-	
-	assert_str(state.captain.name).is_equal("Captain Kirk")
-	assert_str(state.captain.background).is_equal("Military")
-	assert_str(state.captain.motivation).is_equal("Wealth")
+
+	# Use safe Dictionary access pattern
+	var captain = state.get("captain", {})
+	assert_str(captain.get("name", "")).is_equal("Captain Kirk")
+	assert_str(captain.get("background", "")).is_equal("Military")
+	assert_str(captain.get("motivation", "")).is_equal("Wealth")
 
 
 func test_captain_name_extraction_from_nested_structure() -> void:
@@ -56,10 +58,12 @@ func test_captain_name_extraction_from_nested_structure() -> void:
 	
 	coordinator.update_captain_state(captain_data)
 	var state = coordinator.get_unified_campaign_state()
-	
-	assert_str(state.captain.name).is_equal("Captain Picard")
-	assert_str(state.captain.background).is_equal("Explorer")
-	assert_str(state.captain.motivation).is_equal("Discovery")
+
+	# Use safe Dictionary access pattern
+	var captain = state.get("captain", {})
+	assert_str(captain.get("name", "")).is_equal("Captain Picard")
+	assert_str(captain.get("background", "")).is_equal("Explorer")
+	assert_str(captain.get("motivation", "")).is_equal("Discovery")
 
 
 func test_captain_name_extraction_with_character_name_key() -> void:
@@ -72,8 +76,10 @@ func test_captain_name_extraction_with_character_name_key() -> void:
 	
 	coordinator.update_captain_state(captain_data)
 	var state = coordinator.get_unified_campaign_state()
-	
-	assert_str(state.captain.name).is_equal("Captain Janeway")
+
+	# Use safe Dictionary access pattern
+	var captain = state.get("captain", {})
+	assert_str(captain.get("name", "")).is_equal("Captain Janeway")
 
 
 ## TEST SUITE 2: Character to Dictionary Conversion
@@ -224,15 +230,19 @@ func test_complete_campaign_creation_flow() -> void:
 	# Step 4: Get unified state and pass to FinalPanel
 	var unified_state = coordinator.get_unified_campaign_state()
 	final_panel.update_campaign_data(unified_state)
-	
-	# Validate data integrity
-	assert_str(unified_state.config.campaign_name).is_equal("Integration Test Campaign")
-	assert_str(unified_state.captain.name).is_equal("Captain Integration")
-	assert_int(unified_state.crew.members.size()).is_equal(2)
-	
+
+	# Validate data integrity (use safe Dictionary access pattern)
+	var config = unified_state.get("config", {})
+	var captain = unified_state.get("captain", {})
+	var crew = unified_state.get("crew", {})
+	var members = crew.get("members", [])
+	assert_str(config.get("campaign_name", "")).is_equal("Integration Test Campaign")
+	assert_str(captain.get("name", "")).is_equal("Captain Integration")
+	assert_int(members.size()).is_equal(2)
+
 	# All crew members should be Dictionaries (not Character objects)
-	for member in unified_state.crew.members:
-		assert_object(member).is_instance_of(Dictionary)
+	for member in members:
+		assert_that(member is Dictionary).is_true()
 
 
 func test_campaign_data_survives_round_trip() -> void:
@@ -262,10 +272,11 @@ func test_campaign_data_survives_round_trip() -> void:
 	
 	# Pass to FinalPanel
 	final_panel.update_campaign_data(state)
-	
-	# Validate captain data survived
-	assert_str(state.captain.name).is_equal("Round Trip Captain")
-	assert_str(state.captain.background).is_equal("Explorer")
-	
+
+	# Validate captain data survived (use safe Dictionary access pattern)
+	var captain = state.get("captain", {})
+	assert_str(captain.get("name", "")).is_equal("Round Trip Captain")
+	assert_str(captain.get("background", "")).is_equal("Explorer")
+
 	# Note: Stats might not be in captain state depending on implementation
 	# This test validates the name and background flow which are critical

@@ -104,7 +104,7 @@ func validate_captain() -> bool:
 	
 	return _transition_to_state(State.VALIDATING, Event.VALIDATE_DATA)
 
-func set_validation_result(is_valid: bool, errors: Array[String] = []) -> bool:
+func set_validation_result(is_valid: bool, errors: Array = []) -> bool:
 	"""Set the result of captain validation"""
 	if current_state != State.VALIDATING:
 		push_warning("CaptainConfirmationStateMachine: Cannot set validation result from state %s" % get_state_name(current_state))
@@ -149,7 +149,7 @@ func set_confirmation_result(success: bool, result_data: Dictionary = {}) -> boo
 		_handle_error("Confirmation failed: " + error_msg, ["Retry confirmation", "Edit captain", "Reset"])
 		return _transition_to_state(State.ERROR, Event.CONFIRMATION_FAILED)
 
-func handle_error(error_message: String, recovery_options: Array[String] = []) -> bool:
+func handle_error(error_message: String, recovery_options: Array = []) -> bool:
 	"""Handle an error condition"""
 	_handle_error(error_message, recovery_options)
 	return _transition_to_state(State.ERROR, Event.ERROR_OCCURRED)
@@ -283,7 +283,7 @@ func _on_recovery_entered() -> void:
 	"""Actions when entering RECOVERY state"""
 	operation_progress.emit("recovery", 0.1, "Attempting recovery...")
 
-func _handle_error(error_message: String, recovery_options: Array[String]) -> void:
+func _handle_error(error_message: String, recovery_options: Array) -> void:
 	"""Handle error with context and recovery options"""
 	error_context = {
 		"message": error_message,

@@ -726,13 +726,13 @@ func _resolve_special_ability(attacker: Character, target: Character) -> void:
 	var _signal_result: Variant = emit_signal(&"special_ability_activated", attacker, ability)
 	log_combat_event("Special ability %s activated by %s" % [ability, _get_character_name(attacker)])
 
-func _wait_for_player_target_selection(valid_targets: Array[Character]) -> Character:
+func _wait_for_player_target_selection(valid_targets: Array) -> Character:
 	# This will be implemented by the UI system
 	# For now, return the first valid target
 	if not (safe_call_method(valid_targets, "is_empty") == true):
 		return valid_targets[0]
 	return null
-func _select_ai_target(attacker: Character, valid_targets: Array[Character]) -> Character:
+func _select_ai_target(attacker: Character, valid_targets: Array) -> Character:
 	# Simple AI - select closest valid target
 	var closest_target: Character = null
 	var closest_distance: float = INF

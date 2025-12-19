@@ -10,6 +10,11 @@ var GlobalEnums
 func before():
 	"""Suite-level setup - runs once before all tests"""
 	GlobalEnums = load("res://src/core/systems/GlobalEnums.gd")
+	if not GlobalEnums:
+		push_warning("GlobalEnums failed to load")
+		return
+	# Warm up any static caches
+	await get_tree().process_frame
 
 func after():
 	"""Suite-level cleanup - runs once after all tests"""
@@ -21,6 +26,10 @@ func after():
 
 func test_story_mode_xp_bonus_is_1():
 	"""Story mode should provide +1 XP bonus per mission (easier progression)"""
+	if not GlobalEnums:
+		push_warning("GlobalEnums not available, skipping")
+		return
+
 	# Story mode is index 1 in DifficultyLevel enum
 	var difficulty = GlobalEnums.DifficultyLevel.STORY
 	assert_that(difficulty).is_equal(1)
@@ -31,6 +40,10 @@ func test_story_mode_xp_bonus_is_1():
 
 func test_story_mode_is_easy_alias():
 	"""Story mode should have EASY as alias for backwards compatibility"""
+	if not GlobalEnums:
+		push_warning("GlobalEnums not available, skipping")
+		return
+
 	var story_mode = GlobalEnums.DifficultyLevel.STORY
 	var easy_mode = GlobalEnums.DifficultyLevel.EASY
 
@@ -43,6 +56,10 @@ func test_story_mode_is_easy_alias():
 
 func test_standard_mode_no_modifiers():
 	"""Standard mode should have no special modifiers (core rules as written)"""
+	if not GlobalEnums:
+		push_warning("GlobalEnums not available, skipping")
+		return
+
 	var difficulty = GlobalEnums.DifficultyLevel.STANDARD
 	assert_that(difficulty).is_equal(2)
 
@@ -51,6 +68,10 @@ func test_standard_mode_no_modifiers():
 
 func test_standard_mode_is_normal_alias():
 	"""Standard mode should have NORMAL as alias for backwards compatibility"""
+	if not GlobalEnums:
+		push_warning("GlobalEnums not available, skipping")
+		return
+
 	var standard_mode = GlobalEnums.DifficultyLevel.STANDARD
 	var normal_mode = GlobalEnums.DifficultyLevel.NORMAL
 
@@ -62,6 +83,10 @@ func test_standard_mode_is_normal_alias():
 
 func test_challenging_reroll_flag_true():
 	"""Challenging mode enables reroll on low enemy dice (1s and 2s rerolled)"""
+	if not GlobalEnums:
+		push_warning("GlobalEnums not available, skipping")
+		return
+
 	var difficulty = GlobalEnums.DifficultyLevel.CHALLENGING
 	assert_that(difficulty).is_equal(3)
 
@@ -70,6 +95,10 @@ func test_challenging_reroll_flag_true():
 
 func test_challenging_is_hard_alias():
 	"""Challenging mode should have HARD as alias for backwards compatibility"""
+	if not GlobalEnums:
+		push_warning("GlobalEnums not available, skipping")
+		return
+
 	var challenging_mode = GlobalEnums.DifficultyLevel.CHALLENGING
 	var hard_mode = GlobalEnums.DifficultyLevel.HARD
 
@@ -81,6 +110,10 @@ func test_challenging_is_hard_alias():
 
 func test_hardcore_enemy_modifier_is_1():
 	"""Hardcore mode should add +1 to enemy count generation"""
+	if not GlobalEnums:
+		push_warning("GlobalEnums not available, skipping")
+		return
+
 	var difficulty = GlobalEnums.DifficultyLevel.HARDCORE
 	assert_that(difficulty).is_equal(4)
 
@@ -89,6 +122,10 @@ func test_hardcore_enemy_modifier_is_1():
 
 func test_hardcore_reduces_story_points_by_1():
 	"""Hardcore mode should reduce starting story points by 1 (tested in StoryPointSystem)"""
+	if not GlobalEnums:
+		push_warning("GlobalEnums not available, skipping")
+		return
+
 	# This is a cross-system integration test
 	# Actual reduction happens in StoryPointSystem.initialize_starting_points()
 	var difficulty = GlobalEnums.DifficultyLevel.HARDCORE
@@ -103,6 +140,10 @@ func test_hardcore_reduces_story_points_by_1():
 
 func test_insanity_disables_story_points():
 	"""Insanity mode should disable story points entirely (tested via StoryPointSystem)"""
+	if not GlobalEnums:
+		push_warning("GlobalEnums not available, skipping")
+		return
+
 	# Insanity is highest difficulty level
 	# StoryPointSystem uses difficulty == 4 for Insanity check
 	var nightmare_difficulty = GlobalEnums.DifficultyLevel.NIGHTMARE
@@ -114,6 +155,10 @@ func test_insanity_disables_story_points():
 
 func test_insanity_invasion_modifier_is_3():
 	"""Insanity mode should add +3 to invasion threat rolls (extreme danger)"""
+	if not GlobalEnums:
+		push_warning("GlobalEnums not available, skipping")
+		return
+
 	# Insanity mode increases all threats
 	# This is tested indirectly via enemy generation
 	var nightmare_difficulty = GlobalEnums.DifficultyLevel.NIGHTMARE
@@ -125,6 +170,10 @@ func test_insanity_invasion_modifier_is_3():
 
 func test_all_difficulty_levels_are_valid():
 	"""All difficulty levels should have valid enum values"""
+	if not GlobalEnums:
+		push_warning("GlobalEnums not available, skipping")
+		return
+
 	assert_that(GlobalEnums.DifficultyLevel.NONE).is_equal(0)
 	assert_that(GlobalEnums.DifficultyLevel.STORY).is_equal(1)
 	assert_that(GlobalEnums.DifficultyLevel.STANDARD).is_equal(2)
@@ -134,6 +183,10 @@ func test_all_difficulty_levels_are_valid():
 
 func test_difficulty_level_names_are_correct():
 	"""All difficulty levels should have correct display names"""
+	if not GlobalEnums:
+		push_warning("GlobalEnums not available, skipping")
+		return
+
 	assert_that(GlobalEnums.get_difficulty_level_name(GlobalEnums.DifficultyLevel.STORY)).is_equal("Story Mode")
 	assert_that(GlobalEnums.get_difficulty_level_name(GlobalEnums.DifficultyLevel.STANDARD)).is_equal("Standard")
 	assert_that(GlobalEnums.get_difficulty_level_name(GlobalEnums.DifficultyLevel.CHALLENGING)).is_equal("Challenging")

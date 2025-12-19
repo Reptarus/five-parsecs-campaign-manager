@@ -21,18 +21,24 @@ func _ready() -> void:
 
 ## Shows success message
 func show_success(message: String, details: String = "") -> void:
-	message_label.text = message
-	details_label.text = details
-	icon_texture.texture = success_icon
+	if message_label:
+		message_label.text = message
+	if details_label:
+		details_label.text = details
+	if icon_texture:
+		icon_texture.texture = success_icon
 
 	_show_message()
 	validation_completed.emit({}, "", true)
 
 ## Shows error message
 func show_error(message: String, details: String = "") -> void:
-	message_label.text = message
-	details_label.text = details
-	icon_texture.texture = error_icon
+	if message_label:
+		message_label.text = message
+	if details_label:
+		details_label.text = details
+	if icon_texture:
+		icon_texture.texture = error_icon
 
 	_show_message()
 	validation_completed.emit({}, "", false) # warning: return value discarded (intentional)

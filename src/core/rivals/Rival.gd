@@ -9,6 +9,11 @@ extends Resource
 @export var active: bool = true
 @export var last_encounter_turn: int = -1
 
+# Planet binding - tracks which planets this rival is associated with
+@export var origin_planet_id: String = ""  # Planet where rival was first encountered
+@export var current_planet_id: String = ""  # Planet where rival is currently located
+@export var can_follow: bool = true  # Whether rival can follow crew to other planets
+
 var special_traits: Array[String] = []
 var resources: Dictionary = {}
 var encounter_history: Array[Dictionary] = []
@@ -53,7 +58,10 @@ func serialize() -> Dictionary:
 		"last_encounter_turn": last_encounter_turn,
 		"special_traits": special_traits,
 		"resources": resources,
-		"encounter_history": encounter_history
+		"encounter_history": encounter_history,
+		"origin_planet_id": origin_planet_id,
+		"current_planet_id": current_planet_id,
+		"can_follow": can_follow
 	}
 
 func deserialize(data: Dictionary) -> void:
@@ -69,11 +77,19 @@ func deserialize(data: Dictionary) -> void:
 
 	last_encounter_turn = data.get("last_encounter_turn", -1)
 
-	special_traits = data.get("special_traits", [])
+	# Type conversion: JSON returns untyped Array, we need Array[String]
+	var raw_traits = data.get("special_traits", [])
+	special_traits = []
+	for trait in raw_traits:
+		special_traits.append(str(trait))
 
 	resources = data.get("resources", {})
 
 	encounter_history = data.get("encounter_history", [])
+
+	origin_planet_id = data.get("origin_planet_id", "")
+	current_planet_id = data.get("current_planet_id", "")
+	can_follow = data.get("can_follow", true)
 
 ## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
 ## Based on Godot 4.4 best practices for safe property access

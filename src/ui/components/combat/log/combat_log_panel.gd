@@ -44,17 +44,25 @@ var filter_types := {
 ## Called when the node enters the scene tree
 func _ready() -> void:
 	if not Engine.is_editor_hint():
-		clear_button.pressed.connect(_on_clear_pressed)
-		filter_options.item_selected.connect(_on_filter_changed)
-		auto_scroll_check.toggled.connect(_on_auto_scroll_toggled)
-		log_list.item_selected.connect(_on_entry_selected)
+		# Only connect signals if nodes exist (for testing without full scene)
+		if clear_button:
+			clear_button.pressed.connect(_on_clear_pressed)
+		if filter_options:
+			filter_options.item_selected.connect(_on_filter_changed)
+		if auto_scroll_check:
+			auto_scroll_check.toggled.connect(_on_auto_scroll_toggled)
+		if log_list:
+			log_list.item_selected.connect(_on_entry_selected)
 
-		_setup_filter_options()
+		if filter_options:
+			_setup_filter_options()
 		clear_log()
 
 ## Sets up the filter dropdown options
 
 func _setup_filter_options() -> void:
+	if not filter_options:
+		return
 	filter_options.clear()
 	for key in FILTER_OPTIONS:
 		filter_options.add_item(FILTER_OPTIONS[key], filter_options.item_count)
@@ -77,12 +85,16 @@ func add_log_entry(entry_type: String, message: String, details: Dictionary = {}
 	if _should_show_entry(entry):
 		_add_entry_to_list(entry)
 
-	if auto_scroll:
+	if auto_scroll and log_list:
 		log_list.ensure_current_is_visible()
 
 ## Adds an entry to the visible list if it matches the current filter
 func _add_entry_to_list(entry: Dictionary) -> void:
-	var icon := _get_entry_icon(entry.type)
+	if not log_list:
+		return  # Skip UI update if log_list not available (testing mode)
+	
+	var entry_type = entry.get("_type", entry.get("type", ""))
+	var icon := _get_entry_icon(entry_type)
 	var text := "[%s] %s" % [entry.timestamp.split(" ")[1], entry.message]
 
 	log_list.add_item(text, icon)
@@ -103,7 +115,8 @@ func _should_show_entry(entry: Dictionary) -> bool:
 ## Clears the combat log
 func clear_log() -> void:
 	log_entries.clear()
-	log_list.clear()
+	if log_list:
+		log_list.clear()
 	log_cleared.emit()
 
 ## Called when the clear button is pressed
@@ -113,7 +126,8 @@ func _on_clear_pressed() -> void:
 ## Called when the filter option changes
 
 func _on_filter_changed(index: int) -> void:
-	current_filter = filter_options.get_item_metadata(index)
+	if filter_options:
+		current_filter = filter_options.get_item_metadata(index)
 	_refresh_log_display()
 
 ## Called when auto-scroll is toggled
@@ -124,11 +138,15 @@ func _on_auto_scroll_toggled(enabled: bool) -> void:
 ## Called when a log entry is selected
 
 func _on_entry_selected(index: int) -> void:
+	if not log_list:
+		return
 	var entry = log_list.get_item_metadata(index)
 	log_entry_selected.emit(entry) # warning: return value discarded (intentional)
 
 ## Refreshes the log display with current filter
 func _refresh_log_display() -> void:
+	if not log_list:
+		return
 	log_list.clear()
 	for entry in log_entries:
 		if _should_show_entry(entry):
@@ -228,18 +246,188 @@ func log_area_effect(effect: String, center: Vector2, radius: float, affected: A
 	}
 	add_log_entry("area", msg, details)
 
-## Adds an enhanced combat result entry
+## Adds an enhanced combat result entry with full BBCode formatting
 
 func log_combat_result(attacker: String, target: String, result: Dictionary) -> void:
-	var msg := "Combat Result: %s vs %s" % [attacker, target]
-	if result.has("hit"):
-		msg += " - " + ("Hit!" if result.hit else "Miss!")
-	if result.has("damage"):
-		msg += " (%d damage)" % result.damage
-	if result.has("effects"):
-		msg += " Effects: " + ", ".join(result.effects)
-
+	var msg := _format_combat_result(attacker, target, result)
 	add_log_entry("result", msg, result)
+
+## Formats combat result with complete breakdown
+func _format_combat_result(attacker: String, target: String, result: Dictionary) -> String:
+	var lines: PackedStringArray = []
+
+	# Header
+	lines.append("%s attacks %s" % [attacker, target])
+
+	# Hit/Miss determination with roll breakdown
+	if result.has("hit"):
+		var hit_line := _format_hit_miss(result)
+		lines.append(hit_line)
+
+	# Modifier breakdown (if any modifiers present)
+	var modifier_line := _format_modifiers(result)
+	if not modifier_line.is_empty():
+		lines.append(modifier_line)
+
+	# Damage breakdown (only if hit)
+	if result.get("hit", false):
+		var damage_line := _format_damage(result)
+		if not damage_line.is_empty():
+			lines.append(damage_line)
+
+		# Armor/Screen/Shield saves
+		var save_line := _format_saves(result)
+		if not save_line.is_empty():
+			lines.append(save_line)
+
+		# Wounds and elimination
+		var wound_line := _format_wounds(result)
+		if not wound_line.is_empty():
+			lines.append(wound_line)
+
+	# Special effects
+	var effects_line := _format_effects(result)
+	if not effects_line.is_empty():
+		lines.append(effects_line)
+
+	return " | ".join(lines)
+
+## Formats hit/miss with roll vs threshold
+func _format_hit_miss(result: Dictionary) -> String:
+	var hit := result.get("hit", false)
+	var hit_roll := result.get("hit_roll", 0)
+	var modified_roll := result.get("modified_hit_roll", hit_roll)
+	var threshold := result.get("hit_threshold", 5)
+
+	if hit:
+		if modified_roll == hit_roll:
+			return "[color=#10B981]HIT![/color] Rolled %d vs %d+" % [hit_roll, threshold]
+		else:
+			return "[color=#10B981]HIT![/color] Rolled %d = %d vs %d+" % [hit_roll, modified_roll, threshold]
+	else:
+		return "[color=#DC2626]MISS![/color] Rolled %d, needed %d+" % [hit_roll, threshold]
+
+## Formats modifier breakdown
+func _format_modifiers(result: Dictionary) -> String:
+	var mods: PackedStringArray = []
+
+	# Range bonus
+	if result.has("mod_range_bonus"):
+		var range_band := result.get("range_band", "")
+		var bonus := result.get("mod_range_bonus", 0)
+		if bonus != 0:
+			mods.append("+%d range (%s)" % [bonus, range_band])
+
+	# Targeting bonus (armor_hit_bonus)
+	if result.has("armor_hit_bonus"):
+		var bonus := result.get("armor_hit_bonus", 0)
+		if bonus != 0:
+			mods.append("+%d targeting" % bonus)
+
+	# Camouflage penalty
+	if result.has("camouflage_penalty"):
+		var penalty := result.get("camouflage_penalty", 0)
+		if penalty != 0:
+			mods.append("-%d camouflage" % penalty)
+
+	# Battle visor reroll
+	if result.get("battle_visor_used", false):
+		var reroll := result.get("battle_visor_reroll", 0)
+		mods.append("Battle Visor rerolled 1 → %d" % reroll)
+
+	if mods.is_empty():
+		return ""
+	return "Modifiers: " + ", ".join(mods)
+
+## Formats damage breakdown
+func _format_damage(result: Dictionary) -> String:
+	var damage_roll := result.get("damage_roll", 0)
+	if damage_roll == 0:
+		return ""
+
+	var parts: PackedStringArray = []
+	parts.append("Damage: Rolled %d" % damage_roll)
+
+	# Weapon modification damage bonus
+	if result.has("weapon_mod_damage_bonus"):
+		var bonus := result.get("weapon_mod_damage_bonus", 0)
+		if bonus != 0:
+			var total := damage_roll + bonus
+			parts.append("+ %d weapon = %d" % [bonus, total])
+
+	return " ".join(parts)
+
+## Formats save results (armor/screen/shield)
+func _format_saves(result: Dictionary) -> String:
+	# Shield block check
+	if result.get("shield_blocked", false):
+		return "[color=#4FC3F7]Shield blocked![/color]"
+
+	# Check for piercing bypassing armor
+	var effects := result.get("effects", [])
+	if "armor_pierced" in effects:
+		return "[color=#D97706]Piercing weapon bypassed armor[/color]"
+
+	# Screen save
+	if result.get("screen_saved", false):
+		return "[color=#4FC3F7]Screen Save![/color]"
+
+	# Armor save
+	if result.get("armor_saved", false):
+		var armor_roll := result.get("armor_roll", 0)
+		return "[color=#4FC3F7]Armor Save![/color] Rolled %d" % armor_roll
+
+	return ""
+
+## Formats wound/elimination results
+func _format_wounds(result: Dictionary) -> String:
+	var effects := result.get("effects", [])
+
+	# Auto-medicator negation
+	if "auto_medicator_negated_wound" in effects:
+		return "[color=#10B981]Auto-Medicator negated wound![/color]"
+
+	# Target eliminated
+	if result.get("target_eliminated", false):
+		return "[color=#DC2626]TARGET ELIMINATED![/color]"
+
+	# Wounds inflicted
+	var wounds := result.get("wounds_inflicted", 0)
+	if wounds > 0:
+		return "[color=#D97706]%d wound inflicted[/color]" % wounds
+
+	return ""
+
+## Formats special effects
+func _format_effects(result: Dictionary) -> String:
+	var effects := result.get("effects", [])
+	if effects.is_empty():
+		return ""
+
+	var formatted: PackedStringArray = []
+
+	for effect in effects:
+		match effect:
+			"stunned":
+				formatted.append("Stunned")
+			"push_back":
+				formatted.append("Pushed 1\"")
+			"suppressed":
+				formatted.append("Suppressed")
+			"critical_extra_hit":
+				var wounds := result.get("wounds_inflicted", 2)
+				return "Critical: %d Hits" % wounds
+			"eliminated", "armor_pierced", "shield_blocked", "screen_deflected", "auto_medicator_negated_wound":
+				# These are handled elsewhere, skip
+				pass
+			_:
+				# Unknown effect, format it nicely
+				formatted.append(effect.replace("_", " ").capitalize())
+
+	if formatted.is_empty():
+		return ""
+
+	return "Effects: " + ", ".join(formatted)
 
 ## Updates the display with performance optimizations
 

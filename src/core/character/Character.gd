@@ -109,6 +109,9 @@ var character_name: String:
 @export var credits: int = 0
 @export var equipment: Array[String] = []
 @export var is_captain: bool = false
+@export var is_human: bool = false
+@export var is_bot: bool = false
+@export var is_soulless: bool = false
 @export var created_at: String = ""
 @export var status: String = "ACTIVE"  # ACTIVE, INJURED, RECOVERING, DEAD, MISSING, RETIRED
 
@@ -122,6 +125,11 @@ var character_name: String:
 # Bot Upgrade System (Five Parsecs Core Rules p.98)
 # Bots don't gain XP - they purchase upgrades with credits instead
 @export var bot_upgrades: Array[String] = []  # IDs of installed bot upgrades
+
+# Reaction Economy System (Five Parsecs Core Rules)
+# Swift species limited to 1 reaction per round, others default to 3
+@export var max_reactions_per_round: int = 3
+var reactions_used_this_round: int = 0  # Reset at start of each battle round
 
 # Implant System (Five Parsecs odds-and-ends loot table)
 # Maximum 3 implants per character (rulebook limit)
@@ -151,6 +159,222 @@ signal recovery_progressed(turns_remaining: int)
 # Signals for implant events
 signal implant_added(implant: Dictionary)
 signal implant_removed(index: int)
+
+#region Combat Modifier System - Equipment and Species Bonuses for Battle
+
+## Get all active combat modifiers for battle calculations
+## Returns Dictionary with all stat modifiers from equipment, implants, species, status effects
+func get_combat_modifiers() -> Dictionary:
+	var modifiers := {
+		"combat_skill": 0,
+		"reactions": 0,
+		"toughness": 0,
+		"savvy": 0,
+		"speed": 0,
+		"luck": 0,
+		"hit_bonus": 0,
+		"damage_bonus": 0,
+		"armor_save_bonus": 0,
+		"sources": []  # Track where bonuses come from for UI display
+	}
+
+	# Apply implant bonuses
+	_apply_implant_bonuses(modifiers)
+
+	# Apply bot upgrade bonuses (if applicable)
+	_apply_bot_upgrade_bonuses(modifiers)
+
+	# Apply species bonuses
+	_apply_species_bonuses(modifiers)
+
+	# Apply injury penalties
+	_apply_injury_penalties(modifiers)
+
+	return modifiers
+
+## Apply bonuses from installed implants
+func _apply_implant_bonuses(modifiers: Dictionary) -> void:
+	for implant in implants:
+		var stat_bonus: Dictionary = implant.get("stat_bonus", {})
+		for stat_name: String in stat_bonus.keys():
+			var bonus: int = stat_bonus[stat_name]
+			if modifiers.has(stat_name):
+				modifiers[stat_name] += bonus
+				modifiers["sources"].append({
+					"type": "implant",
+					"name": implant.get("name", "Unknown Implant"),
+					"stat": stat_name,
+					"value": bonus
+				})
+
+## Apply bonuses from bot upgrades (Bots only)
+func _apply_bot_upgrade_bonuses(modifiers: Dictionary) -> void:
+	if origin.to_lower() != "bot" and origin.to_lower() != "soulless":
+		return
+
+	for upgrade_id: String in bot_upgrades:
+		var bonus := _get_bot_upgrade_bonus(upgrade_id)
+		if bonus.is_empty():
+			continue
+
+		for stat_name: String in bonus.keys():
+			if modifiers.has(stat_name):
+				modifiers[stat_name] += bonus[stat_name]
+				modifiers["sources"].append({
+					"type": "bot_upgrade",
+					"name": upgrade_id,
+					"stat": stat_name,
+					"value": bonus[stat_name]
+				})
+
+## Get stat bonuses for a specific bot upgrade
+func _get_bot_upgrade_bonus(upgrade_id: String) -> Dictionary:
+	match upgrade_id.to_lower():
+		"combat_protocols":
+			return {"combat_skill": 1}
+		"enhanced_sensors":
+			return {"reactions": 1, "hit_bonus": 1}
+		"reinforced_frame":
+			return {"toughness": 1}
+		"speed_boost":
+			return {"speed": 1}
+		"tactical_module":
+			return {"savvy": 1}
+		_:
+			return {}
+
+## Apply species-specific combat bonuses
+func _apply_species_bonuses(modifiers: Dictionary) -> void:
+	match origin.to_lower():
+		"swift":
+			# Swift: -1 to ranged attacks against them (enemy hit penalty)
+			modifiers["sources"].append({
+				"type": "species",
+				"name": "Swift",
+				"stat": "defense_vs_ranged",
+				"value": 1
+			})
+		"stalker":
+			# Stalker: +2 hit from ambush positions
+			modifiers["sources"].append({
+				"type": "species",
+				"name": "Stalker",
+				"stat": "ambush_hit_bonus",
+				"value": 2
+			})
+		"kerin", "k'erin":
+			# K'Erin: +1 brawl, handled in BattleCalculations
+			modifiers["sources"].append({
+				"type": "species",
+				"name": "K'Erin",
+				"stat": "brawl_bonus",
+				"value": 1
+			})
+		"hulker":
+			# Hulker: +2 melee damage, handled in BattleCalculations
+			modifiers["sources"].append({
+				"type": "species",
+				"name": "Hulker",
+				"stat": "melee_damage_bonus",
+				"value": 2
+			})
+		"felinoid":
+			# Felinoid: Lightning reflexes
+			modifiers["reactions"] += 1
+			modifiers["sources"].append({
+				"type": "species",
+				"name": "Felinoid",
+				"stat": "reactions",
+				"value": 1
+			})
+		"bot", "soulless":
+			# Bot/Soulless: 5+ natural armor
+			modifiers["sources"].append({
+				"type": "species",
+				"name": "Bot/Soulless",
+				"stat": "natural_armor",
+				"value": 5
+			})
+		"reptilian":
+			# Reptilian: 6+ natural armor
+			modifiers["sources"].append({
+				"type": "species",
+				"name": "Reptilian",
+				"stat": "natural_armor",
+				"value": 6
+			})
+		"insectoid":
+			# Insectoid: 5+ natural armor
+			modifiers["sources"].append({
+				"type": "species",
+				"name": "Insectoid",
+				"stat": "natural_armor",
+				"value": 5
+			})
+
+## Apply penalties from active injuries
+func _apply_injury_penalties(modifiers: Dictionary) -> void:
+	for injury in injuries:
+		var injury_type: String = injury.get("type", "")
+		var severity: int = injury.get("severity", 1)
+
+		match injury_type.to_lower():
+			"wounded":
+				modifiers["combat_skill"] -= severity
+				modifiers["sources"].append({
+					"type": "injury",
+					"name": "Wounded",
+					"stat": "combat_skill",
+					"value": -severity
+				})
+			"leg_wound":
+				modifiers["speed"] -= severity
+				modifiers["sources"].append({
+					"type": "injury",
+					"name": "Leg Wound",
+					"stat": "speed",
+					"value": -severity
+				})
+			"concussion":
+				modifiers["reactions"] -= severity
+				modifiers["savvy"] -= severity
+				modifiers["sources"].append({
+					"type": "injury",
+					"name": "Concussion",
+					"stat": "reactions/savvy",
+					"value": -severity
+				})
+
+## Get effective combat skill including all modifiers
+func get_effective_combat_skill() -> int:
+	var modifiers := get_combat_modifiers()
+	return combat + modifiers.get("combat_skill", 0)
+
+## Get effective toughness including all modifiers
+func get_effective_toughness() -> int:
+	var modifiers := get_combat_modifiers()
+	return toughness + modifiers.get("toughness", 0)
+
+## Get effective reactions including all modifiers
+func get_effective_reactions() -> int:
+	var modifiers := get_combat_modifiers()
+	return reactions + modifiers.get("reactions", 0)
+
+## Get natural armor save (for species with natural armor)
+func get_natural_armor_save() -> int:
+	match origin.to_lower():
+		"bot", "soulless", "insectoid":
+			return 5  # 5+ save
+		"reptilian":
+			return 6  # 6+ save
+		_:
+			return 7  # No natural armor (7+ means impossible)
+
+## Check if character has natural armor
+func has_natural_armor() -> bool:
+	return get_natural_armor_save() < 7
+
+#endregion
 
 # Character Generation - Direct static methods replace CharacterManager
 static func generate_character(background_type: String = "") -> Character:
@@ -337,7 +561,7 @@ func get_total_stats() -> int:
 
 # ========== BOT UPGRADE SYSTEM (Five Parsecs p.98) ==========
 
-func is_bot() -> bool:
+func _is_bot() -> bool:
 	"""Check if this character is a bot (Origin.BOT)"""
 	return origin == "BOT"
 
@@ -350,6 +574,53 @@ func add_bot_upgrade(upgrade_id: String) -> void:
 	if upgrade_id not in bot_upgrades:
 		bot_upgrades.append(upgrade_id)
 		print("Character %s installed bot upgrade: %s" % [name, upgrade_id])
+
+
+# ========== REACTION ECONOMY SYSTEM (Five Parsecs Core Rules) ==========
+
+func get_max_reactions() -> int:
+	"""Get max reactions per round, accounting for species restrictions (Swift = 1)"""
+	# Check if Swift species via origin (origin stores species/race info)
+	if _origin == "SWIFT" or _origin == "Swift" or _origin.to_lower() == "swift":
+		return 1  # Swift aliens limited to 1 reaction per round
+
+	return max_reactions_per_round
+
+
+func get_reactions_remaining() -> int:
+	"""Get number of reactions remaining this round"""
+	return maxi(0, get_max_reactions() - reactions_used_this_round)
+
+
+func can_use_reaction() -> bool:
+	"""Check if character has reactions remaining"""
+	return get_reactions_remaining() > 0
+
+
+func spend_reaction() -> bool:
+	"""Spend a reaction if available. Returns true if successful."""
+	if not can_use_reaction():
+		print("Character %s has no reactions remaining (used %d/%d)" % [
+			character_name, reactions_used_this_round, get_max_reactions()
+		])
+		return false
+
+	reactions_used_this_round += 1
+	print("Character %s used reaction (%d/%d remaining)" % [
+		character_name, get_reactions_remaining(), get_max_reactions()
+	])
+	return true
+
+
+func reset_reactions() -> void:
+	"""Reset reactions for a new battle round"""
+	reactions_used_this_round = 0
+
+
+func is_swift() -> bool:
+	"""Check if this character is a Swift species"""
+	return _origin == "SWIFT" or _origin == "Swift" or _origin.to_lower() == "swift"
+
 
 # ========== INJURY MANAGEMENT (Five Parsecs p.94-95) ==========
 
@@ -946,6 +1217,10 @@ func serialize() -> Dictionary:
 		# Bot upgrade system (Five Parsecs p.98)
 		"bot_upgrades": bot_upgrades.duplicate(),
 
+		# Reaction economy system (Five Parsecs Core Rules)
+		"max_reactions_per_round": max_reactions_per_round,
+		"is_swift": is_swift(),
+
 		# Serialization metadata
 		"serialization_timestamp": Time.get_ticks_msec(),
 		"serialization_version": "enhanced_v2"
@@ -989,7 +1264,7 @@ func to_dictionary() -> Dictionary:
 		"current_recovery_turns": current_recovery_turns,
 		"implants": implants.duplicate(),
 		"bot_upgrades": bot_upgrades.duplicate(),
-		"is_bot": is_bot()
+		"is_bot": _is_bot()
 	}
 
 static func deserialize(data: Dictionary) -> Character:
@@ -1075,6 +1350,11 @@ static func deserialize(data: Dictionary) -> Character:
 	for upgrade_id in bot_upgrades_data:
 		if upgrade_id is String:
 			character.bot_upgrades.append(upgrade_id)
+
+	# Reaction economy system (Five Parsecs Core Rules)
+	# Swift species auto-detected by origin, but max_reactions can be overridden
+	character.max_reactions_per_round = data.get("max_reactions_per_round", 3)
+	# Note: reactions_used_this_round is NOT persisted - resets each battle
 
 	# Performance tracking
 	var end_time = Time.get_ticks_usec()

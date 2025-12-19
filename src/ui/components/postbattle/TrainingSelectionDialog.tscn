@@ -1,0 +1,122 @@
+[gd_scene load_steps=2 format=3 uid="uid://cw3vxy0123456"]
+
+[ext_resource type="Script" path="res://src/ui/components/postbattle/TrainingSelectionDialog.gd" id="1_training_dialog"]
+
+[node name="TrainingSelectionDialog" type="PanelContainer"]
+custom_minimum_size = Vector2(600, 700)
+offset_right = 600.0
+offset_bottom = 700.0
+script = ExtResource("1_training_dialog")
+
+[node name="MainContainer" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="Header" type="VBoxContainer" parent="MainContainer"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="MainContainer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Advanced Training"
+horizontal_alignment = 1
+
+[node name="Spacer1" type="Control" parent="MainContainer"]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+
+[node name="CharacterSection" type="VBoxContainer" parent="MainContainer"]
+layout_mode = 2
+
+[node name="CharacterLabel" type="Label" parent="MainContainer/CharacterSection"]
+layout_mode = 2
+text = "Select Character:"
+
+[node name="CharacterSelector" type="OptionButton" parent="MainContainer/CharacterSection"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Spacer2" type="Control" parent="MainContainer"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+
+[node name="TrainingSection" type="VBoxContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TrainingLabel" type="Label" parent="MainContainer/TrainingSection"]
+layout_mode = 2
+text = "Select Training Type:"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainContainer/TrainingSection"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TrainingList" type="VBoxContainer" parent="MainContainer/TrainingSection/ScrollContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="Spacer3" type="Control" parent="MainContainer"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+
+[node name="CostSection" type="VBoxContainer" parent="MainContainer"]
+layout_mode = 2
+
+[node name="CostLabel" type="Label" parent="MainContainer/CostSection"]
+layout_mode = 2
+text = "Training Costs:"
+
+[node name="CostDisplay" type="HBoxContainer" parent="MainContainer/CostSection"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="XPCostLabel" type="Label" parent="MainContainer/CostSection/CostDisplay"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "XP Cost: -"
+
+[node name="CreditsCostLabel" type="Label" parent="MainContainer/CostSection/CostDisplay"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Enrollment: -"
+
+[node name="Spacer4" type="Control" parent="MainContainer"]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+
+[node name="RollSection" type="VBoxContainer" parent="MainContainer"]
+layout_mode = 2
+
+[node name="RollButton" type="Button" parent="MainContainer/RollSection"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Roll for Approval (6+ on D6)"
+
+[node name="ResultDisplay" type="Label" parent="MainContainer/RollSection"]
+unique_name_in_owner = true
+layout_mode = 2
+text = ""
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Spacer5" type="Control" parent="MainContainer"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+
+[node name="Footer" type="HBoxContainer" parent="MainContainer"]
+layout_mode = 2
+
+[node name="Spacer" type="Control" parent="MainContainer/Footer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CloseButton" type="Button" parent="MainContainer/Footer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Close"

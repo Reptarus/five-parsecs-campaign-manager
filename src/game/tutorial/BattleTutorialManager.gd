@@ -13,7 +13,7 @@ extends Node  # Required for Node features (_ready, signals, etc.)
 # GlobalEnums available as autoload singleton
 const Character = preload("res://src/core/character/Character.gd")
 const GameState = preload("res://src/core/state/GameState.gd")
-const Mission = preload("res://src/core/systems/Mission.gd")
+const Mission = preload("res://src/core/campaign/Mission.gd")
 const UnifiedTerrainSystem = preload("res://src/core/terrain/UnifiedTerrainSystem.gd")
 const SaveManager = preload("res://src/core/state/SaveManager.gd")
 const FiveParsecsCombatSystem = preload("res://src/core/combat/FiveParsecsCombatSystem.gd")

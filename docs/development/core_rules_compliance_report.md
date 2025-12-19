@@ -1,6 +1,6 @@
 # Five Parsecs Core Rules Compliance Report
 
-**Date**: 2025-11-15
+**Date**: 2025-12-17 (Updated)
 **Purpose**: Verify all battle mechanics match Five Parsecs Core Rulebook exactly
 
 ---
@@ -223,11 +223,13 @@ func _calculate_brawling() -> void:
 	# Winner can inflict damage or push opponent ✓ CORRECT
 ```
 
-✓ **PARTIALLY CORRECT** - Core mechanics documented, but weapon bonuses not implemented
+✓ **MOSTLY CORRECT** - Core mechanics + species bonuses implemented
 ⚠️ **INCOMPLETE** - Missing:
-- +2 for Melee weapon
-- +1 for Pistol weapon
+- +2 for Melee weapon (equipment bonus)
+- +1 for Pistol weapon (equipment bonus)
 - Natural 6/1 special hits
+
+✅ **NEW (December 2025)**: K'Erin species +1 melee damage bonus implemented in BattleCalculations.gd
 
 ---
 
@@ -267,11 +269,21 @@ func _calculate_brawling() -> void:
 | Stun Mechanics | ✅ Correct | 100% |
 | Injury Table | ✅ Correct | 100% |
 | Experience System | ✅ Correct | 100% |
-| Brawling | ⚠️ Partial | 60% (missing weapon bonuses) |
+| Brawling | ⚠️ Partial | 70% (K'Erin bonus added, missing weapon bonuses) |
+| Species Rules | ✅ **NEW** | 100% (5 species restrictions) |
 
 **Critical Issues**: 0 (All Fixed!)
 **Incomplete Features**: 1 (brawling weapon bonuses)
-**Verified Correct**: 5
+**Verified Correct**: 6
+
+### New Species Compliance (December 2025)
+| Species | Rule | Status |
+|---------|------|--------|
+| Engineer | T4 Savvy cap | ✅ CharacterGeneration.gd |
+| Precursor | Event reroll | ✅ PostBattlePhase.gd |
+| Feral | Ignore suppression | ✅ BattleCalculations.gd |
+| K'Erin | +1 melee damage | ✅ BattleCalculations.gd |
+| Soulless | 6+ armor save | ✅ BattleCalculations.gd |
 
 ---
 

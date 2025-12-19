@@ -6,6 +6,7 @@ extends Node
 
 # GlobalEnums available as autoload singleton
 const DataManager = preload("res://src/core/data/DataManager.gd")
+const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 # Note: DataManager is accessed via DataManagerAutoload autoload singleton
 
 # Signal declarations
@@ -163,6 +164,10 @@ func _calculate_danger_level(campaign_turn: int, planet_type: Dictionary) -> int
 	# Apply global modifier
 	var danger_level = base_danger + turn_modifier + _danger_level_modifier
 
+	# HOUSE RULE: dangerous_fringe - All worlds have +1 danger level
+	if HouseRulesHelper.is_enabled("dangerous_fringe"):
+		danger_level += 1
+
 	# Clamp between 1 and 6 (as per rulebook)
 	return clamp(danger_level, 1, 6)
 
@@ -180,13 +185,13 @@ func _generate_planetary_traits(planet_type: Dictionary) -> Array:
 	else:
 		push_warning("WorldGenerator: No trait found for D100 roll %d" % d100_roll)
 
-	# Wild Galaxy optional rule: Roll twice for more chaotic worlds
-	# TODO: Add setting to enable Wild Galaxy rule
-	# if use_wild_galaxy_rule:
-	#     var second_roll = (randi() % 100) + 1
-	#     var second_trait = _find_trait_by_roll(second_roll)
-	#     if second_trait and second_trait.get("id") != selected_trait.get("id"):
-	#         traits.append(second_trait)
+	# HOUSE RULE: wild_galaxy - Roll twice for world traits, use both results
+	if HouseRulesHelper.is_enabled("wild_galaxy"):
+		var second_roll = (randi() % 100) + 1
+		var second_trait = _find_trait_by_roll(second_roll)
+		# Only add if different from first trait
+		if second_trait and second_trait.get("id", "") != selected_trait.get("id", ""):
+			traits.append(second_trait)
 
 	return traits
 

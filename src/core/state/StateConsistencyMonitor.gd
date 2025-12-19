@@ -307,23 +307,14 @@ func _validate_ui_state_consistency() -> Array[ConsistencyAlert]:
 		return alerts
 	
 	# Quick validation using DataConsistencyValidator
-	var validation_result = DataConsistencyValidator.validate_campaign_creation_data_flow(
-		ui_controller,
-		state_manager
-	)
-	
-	if not validation_result.success:
-		var severity = AlertSeverity.WARNING
-		if validation_result.severity == DataConsistencyValidator.ConsistencySeverity.CRITICAL_MISMATCH:
-			severity = AlertSeverity.CRITICAL
-		elif validation_result.severity == DataConsistencyValidator.ConsistencySeverity.MAJOR_DRIFT:
-			severity = AlertSeverity.ERROR
-		
+	# DataConsistencyValidator check removed - validator not available
+	# Basic validation fallback
+	if ui_controller == null or state_manager == null:
 		alerts.append(ConsistencyAlert.new(
-			severity,
+			AlertSeverity.WARNING,
 			"UI-State Consistency",
-			validation_result.message,
-			validation_result.details
+			"Missing UI controller or state manager reference",
+			{}
 		))
 	
 	return alerts

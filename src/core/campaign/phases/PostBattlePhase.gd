@@ -11,6 +11,7 @@ class_name PostBattlePhase
 # GlobalEnums available as autoload singleton
 # InjurySystemConstants needed for injury processing (line 379+)
 const InjuryConstants = preload("res://src/core/systems/InjurySystemConstants.gd")
+const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 var dice_manager: Variant = null
 var game_state_manager: Variant = null
 
@@ -144,6 +145,11 @@ func _process_patron_status() -> void:
 			GameState.add_patron_contact(patron_id)
 			patrons_added.append(patron_id)
 			print("PostBattlePhase: Patron %s added to contacts" % patron_id)
+
+		# HOUSE RULE: expanded_rumors - +1 quest rumor on patron mission completion
+		if HouseRulesHelper.is_enabled("expanded_rumors"):
+			_add_quest_rumor()
+			print("PostBattlePhase: Expanded Rumors house rule - added +1 quest rumor")
 
 	# Handle persistent patrons
 	_handle_persistent_patrons()
@@ -526,6 +532,15 @@ func _process_campaign_event() -> void:
 	# Roll for campaign event
 	var event_roll = randi_range(1, 100)
 	var campaign_event = _get_campaign_event(event_roll)
+	
+	# Precursors roll twice and pick better event (Five Parsecs p.19-20)
+	if _has_precursor_crew():
+		var second_roll = randi_range(1, 100)
+		var second_event = _get_campaign_event(second_roll)
+		print("PostBattlePhase: Precursor crew - rolled twice: %d and %d" % [event_roll, second_roll])
+		# Pick randomly between the two (in full implementation, player would choose)
+		if randi() % 2 == 0:
+			campaign_event = second_event
 
 	if campaign_event.has("type") and campaign_event.type != "none":
 		print("PostBattlePhase: Campaign event: %s" % campaign_event.name)
@@ -549,17 +564,30 @@ func _get_campaign_event(roll: int) -> Dictionary:
 		return {"type": "none", "name": "No Event", "description": "Nothing significant occurs"}
 
 func _apply_campaign_event(event: Dictionary) -> void:
-	"""Apply campaign event effects"""
-	match event.type:
-		"market_crash":
-			# Affect market prices
-			pass
-		"tech_breakthrough":
-			# Make new tech available
-			pass
-		"civil_unrest":
-			# Increase danger levels
-			pass
+	"""Apply campaign event effects by calling the public working method"""
+	var event_name: String = event.get("name", event.get("title", "Unknown"))
+	apply_campaign_event_effect(event_name)
+
+func _has_precursor_crew() -> bool:
+	"""Check if crew has any Precursor species members (Five Parsecs p.19-20)"""
+	if not game_state_manager:
+		return false
+	if not game_state_manager.has_method("get_crew_members"):
+		push_warning("PostBattlePhase: game_state_manager does not have get_crew_members() method")
+		return false
+	var crew: Array = game_state_manager.get_crew_members()
+	for member in crew:
+		# Check both origin (Character Resource) and species (Dictionary) properties
+		var origin: String = ""
+		if member is Resource and "origin" in member:
+			origin = str(member.origin).to_lower()
+		elif member is Resource and "_origin" in member:
+			origin = str(member._origin).to_lower()
+		elif member is Dictionary:
+			origin = member.get("origin", member.get("species", "")).to_lower()
+		if origin == "precursor":
+			return true
+	return false
 
 func _process_character_event() -> void:
 	"""Step 13: Roll for a Character Event"""
@@ -600,18 +628,11 @@ func _get_character_event() -> Dictionary:
 		return {"type": "none", "name": "No Event"}
 
 func _apply_character_event(event: Dictionary) -> void:
-	"""Apply character event effects"""
-	var crew_id = event.get("crew_id", "")
-
-	match event.type:
-		"personal_growth":
-			# Award bonus XP or skill
-			if GameState and GameState and GameState.has_method("add_crew_experience"):
-				GameState.add_crew_experience(crew_id, 1)
-		"contact_made":
-			# Add new contact for crew member
-			if GameState and GameState and GameState.has_method("add_crew_contact"):
-				GameState.add_crew_contact(crew_id, "random_contact")
+	"""Apply character event effects by calling the public working method"""
+	var crew: Variant = _get_random_crew_member()
+	var event_name: String = event.get("name", event.get("title", "Unknown"))
+	if crew:
+		apply_character_event_effect(event_name, crew)
 
 func _process_galactic_war() -> void:
 	"""Step 14: Check for Galactic War Progress"""
@@ -926,6 +947,14 @@ func _has_crew_with_class(character_class: String) -> bool:
 					return true
 	return false
 
+func _get_random_crew_member() -> Variant:
+	"""Get random crew member from current crew participants"""
+	if crew_participants.is_empty():
+		return null
+
+	var random_index: int = randi() % crew_participants.size()
+	return crew_participants[random_index]
+
 func _add_quest_rumor() -> void:
 	"""Add a quest rumor to campaign"""
 	var game_state = get_node_or_null("/root/GameState")
@@ -1104,9 +1133,12 @@ func add_injury(crew_id: String, injury_type: String) -> void:
 	"""Add injury for processing"""
 	injuries_sustained.append({"crew_id": crew_id, "type": injury_type})
 
-func set_crew_participants(participants: Array[String]) -> void:
+func set_crew_participants(participants: Array) -> void:
 	"""Set crew members who participated in battle"""
-	crew_participants = participants.duplicate()
+	crew_participants.clear()
+	for p in participants:
+		if p is String:
+			crew_participants.append(p)
 
 func is_post_battle_phase_active() -> bool:
 	"""Check if post-battle phase is currently active"""

@@ -106,7 +106,7 @@ func _initialize_systems() -> void:
 		battle_state = FPCM_BattleState.new()
 
 ## Start a new battle with mission data
-func initialize_battle(mission_data: Resource, crew_members: Array[Resource], enemy_forces: Array[Resource]) -> bool:
+func initialize_battle(mission_data: Resource, crew_members: Array, enemy_forces: Array) -> bool:
 	if is_active:
 		battle_error.emit("BATTLE_ALREADY_ACTIVE", {"current_phase": current_phase})
 		return false

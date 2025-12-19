@@ -203,7 +203,7 @@ static func create_starting_equipment(background: String = "MILITARY") -> Array[
 	return equipment
 
 ## Equip character with items
-static func equip_character(char_data: Dictionary, items: Array[String]) -> Dictionary:
+static func equip_character(char_data: Dictionary, items: Array) -> Dictionary:
 	char_data["equipment"] = items.duplicate()
 	return char_data
 

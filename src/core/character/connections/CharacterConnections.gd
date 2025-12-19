@@ -131,7 +131,7 @@ static func _extract_rival_name_from_attribute(attribute_text: String) -> String
 		return "Unknown Rival"
 
 ## Apply connections to character
-static func apply_connections_to_character(character: Character, connections: Array[Dictionary]) -> void:
+static func apply_connections_to_character(character: Character, connections: Array) -> void:
 	# Store connections as character traits
 	for connection: Dictionary in connections:
 		var connection_trait: String = _format_connection_as_trait(connection)

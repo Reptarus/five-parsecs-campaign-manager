@@ -1,0 +1,125 @@
+{
+  "$schema": "Story Track Mission Schema v1.0",
+  "mission_id": "story_mission_06",
+  "story_event_id": "final_confrontation",
+  "title": "We're Coming!",
+  "mission_number": 6,
+
+  "narrative": {
+    "intro": "You've tracked down where they're holding the mastermind of Project Silence - Director Chen, the architect of all the suffering. This is their private research bunker, hidden beneath an abandoned processing plant. Time for diplomacy, Fringe-style!",
+    "briefing": "This is it - the final confrontation. Director Chen is holed up in their fortified bunker with their most loyal guards. Your mission is to capture or eliminate the Director and retrieve all remaining Project Silence data. Expect maximum resistance.",
+    "completion_success": "Director Chen is in custody, and Project Silence data has been secured. The conspiracy that cost so many lives is finally exposed. Your crew has become legends in the Fringe - the ones who brought down Nexus's darkest secret. The Story Track is complete.",
+    "completion_failure": "Director Chen escaped through a hidden tunnel, but they won't get far. You've secured enough evidence to bring down Nexus Industries, and the galaxy will know what they did. Sometimes justice is a marathon, not a sprint."
+  },
+
+  "battlefield": {
+    "size": {"x": 24, "y": 20},
+    "theme": "underground_bunker",
+    "terrain_features": [
+      {"type": "full_cover", "position": {"x": 6, "y": 10}, "description": "Security checkpoint"},
+      {"type": "full_cover", "position": {"x": 12, "y": 6}, "description": "Server room"},
+      {"type": "full_cover", "position": {"x": 12, "y": 14}, "description": "Armory"},
+      {"type": "full_cover", "position": {"x": 18, "y": 10}, "description": "Director's command center"},
+      {"type": "half_cover", "position": {"x": 9, "y": 7}, "description": "Lab equipment"},
+      {"type": "half_cover", "position": {"x": 9, "y": 13}, "description": "Lab equipment"},
+      {"type": "half_cover", "position": {"x": 15, "y": 7}, "description": "Medical pods"},
+      {"type": "half_cover", "position": {"x": 15, "y": 13}, "description": "Medical pods"},
+      {"type": "elevated", "position": {"x": 12, "y": 10}, "description": "Central platform"},
+      {"type": "linear_obstacle", "positions": [{"x": 4, "y": 8}, {"x": 4, "y": 9}, {"x": 4, "y": 10}, {"x": 4, "y": 11}, {"x": 4, "y": 12}], "description": "Blast door frame"},
+      {"type": "hazard", "position": {"x": 10, "y": 10}, "description": "Exposed power conduit", "damage": 1}
+    ],
+    "deployment_zones": {
+      "crew": {"x_min": 0, "x_max": 3, "y_min": 8, "y_max": 12},
+      "enemy": {"x_min": 8, "x_max": 22, "y_min": 5, "y_max": 15}
+    },
+    "special_features": {
+      "boss_location": {"x": 18, "y": 10},
+      "data_terminal": {"x": 20, "y": 10},
+      "escape_route": {"x": 22, "y": 10}
+    }
+  },
+
+  "enemies": {
+    "category": "boss_encounter",
+    "category_name": "Director's Guard",
+    "fixed_count": 10,
+    "composition": [
+      {"type": "elite_guard", "count": 4, "stats": {"combat": 1, "toughness": 4, "speed": 5}, "equipment": ["Combat Rifle", "Combat Armor"]},
+      {"type": "elite_heavy", "count": 2, "stats": {"combat": 1, "toughness": 6, "speed": 3}, "equipment": ["Fury Rifle", "Heavy Armor"]},
+      {"type": "elite_specialist", "count": 2, "stats": {"combat": 2, "toughness": 4, "speed": 5}, "equipment": ["Hand Laser", "Combat Armor", "Frag Grenades"]},
+      {"type": "bodyguard", "count": 1, "stats": {"combat": 2, "toughness": 6, "speed": 4}, "equipment": ["Plasma Rifle", "Heavy Armor", "Personal Shield"]},
+      {"type": "director_chen", "count": 1, "stats": {"combat": 1, "toughness": 4, "speed": 4}, "equipment": ["Plasma Pistol", "Deflector Shield"], "is_boss": true, "special_ability": "command_aura"}
+    ],
+    "ai_behavior": "boss_defensive",
+    "special_rules": ["last_stand", "command_aura", "escape_attempt"],
+    "command_aura": {
+      "description": "Director Chen grants +1 to hit for all guards within 8 inches",
+      "range": 8,
+      "bonus": "+1 combat"
+    },
+    "escape_attempt": {
+      "description": "If reduced to 1 wound, Director attempts to flee via escape route",
+      "trigger": "boss_wounded",
+      "escape_route": {"x": 22, "y": 10}
+    }
+  },
+
+  "objectives": {
+    "primary": {
+      "type": "boss_elimination_or_capture",
+      "description": "Capture or eliminate Director Chen",
+      "boss_id": "director_chen",
+      "completion_requirement": "Director Chen neutralized (killed or captured)"
+    },
+    "secondary": {
+      "type": "data_retrieval",
+      "description": "Download all Project Silence data from the main terminal",
+      "target_position": {"x": 20, "y": 10},
+      "completion_requirement": "Two full activations at terminal"
+    },
+    "bonus": {
+      "type": "prevent_escape",
+      "description": "Prevent Director Chen from escaping",
+      "condition": "boss_does_not_reach_escape_route",
+      "reward": "full_justice"
+    }
+  },
+
+  "rewards": {
+    "credits_base": 10,
+    "evidence_base": 3,
+    "evidence_bonus": 2,
+    "loot_opportunities": 6,
+    "special_items": [
+      {
+        "name": "Project Silence Master Archive",
+        "type": "quest_item",
+        "description": "Complete records of Project Silence, enough to bring down Nexus Industries"
+      },
+      {
+        "name": "Director's Personal Effects",
+        "type": "valuable",
+        "description": "High-value items from the Director's office",
+        "value": 15
+      }
+    ],
+    "story_track_completion_bonus": {
+      "reputation_gain": "legendary",
+      "credits_bonus": 20,
+      "special_unlock": "sandbox_mode_with_story_rewards"
+    }
+  },
+
+  "tutorial_hints": ["BattleJournal", "ObjectiveDisplay", "DiceDashboard"],
+  "tutorial_context": "This is the final Story Track mission. Everything you've learned comes together here. Document your victory in the Battle Journal!",
+
+  "difficulty_rating": 5,
+  "recommended_crew_size": 6,
+  "estimated_duration_rounds": 8,
+
+  "story_track_completion": {
+    "triggers_completion": true,
+    "unlocks_sandbox_mode": true,
+    "completion_message": "Congratulations, Captain! You've completed the Story Track and exposed Project Silence. Your crew's legend will spread across the Fringe. Sandbox mode is now unlocked - continue your adventures with the skills and rewards you've earned!"
+  }
+}

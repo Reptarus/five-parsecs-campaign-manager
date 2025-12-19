@@ -94,9 +94,8 @@ func _emit_equipment_list_updated() -> void:
 	"""Type-safe signal emission"""
 	if equipment_list_updated.get_connections().size() > 0:
 		equipment_list_updated.emit()
-@warning_ignore("return_value_discarded")
 func _add_equipment_to_storage(equipment_data: Dictionary) -> void:
-	safe_call_method(_equipment_storage, "append", [equipment_data])
+	_equipment_storage.append(equipment_data)
 
 @warning_ignore("return_value_discarded")
 func _add_to_filtered_equipment(filtered_equipment: Array, item: Dictionary) -> void:
@@ -221,7 +220,8 @@ func get_equipment(equipment_id: String) -> Dictionary:
 
 ## Remove equipment from storage
 func remove_equipment(equipment_id: String) -> bool:
-	for i: int in range((safe_call_method(_equipment_storage, "size") as int) - 1, -1, -1):
+	var storage_size: int = _equipment_storage.size() if _equipment_storage != null else 0
+	for i: int in range(storage_size - 1, -1, -1):
 		@warning_ignore("unsafe_method_access")
 		if (_equipment_storage[i].get("id") as String if _equipment_storage[i].has("id") else "") == equipment_id:
 			_equipment_storage.remove_at(i)
@@ -229,7 +229,8 @@ func remove_equipment(equipment_id: String) -> bool:
 			# Remove from any characters who might have it
 			for character_id: String in _character_equipment:
 				var equipment_list: Array = _character_equipment[character_id]
-				for j: int in range((safe_call_method(equipment_list, "size") as int) - 1, -1, -1):
+				var list_size: int = equipment_list.size() if equipment_list != null else 0
+				for j: int in range(list_size - 1, -1, -1):
 					if equipment_list[j] == equipment_id:
 						equipment_list.remove_at(j)
 						_emit_equipment_removed(character_id, equipment_id)

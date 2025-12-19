@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites id="2025-12-19" name="report_133" tests="11" failures="3" skipped="0" flaky="0" time="0.000">
+	<testsuite id="0" name="test_final_panel_ui_improvements" package="tests/integration" timestamp="2025-12-19T20:36:09" hostname="localhost" tests="11" failures="3" errors="0" skipped="0" flaky="0" time="1.228">
+		<testcase name="test_campaign_name_uses_large_font_and_accent_color" classname="test_final_panel_ui_improvements" time="0.117">
+			<failure message="FAILED: res://tests/integration/test_final_panel_ui_improvements.gd:78" type="FAILURE">
+<![CDATA[
+Expecting:
+ 'Color(0.1765, 0.3529, 0.4824, 1.0)'
+ but was
+ 'Color(0.2314, 0.5098, 0.9647, 1.0)'
+]]>
+			</failure>
+		</testcase>
+		<testcase name="test_ship_name_uses_large_font" classname="test_final_panel_ui_improvements" time="0.120">
+		</testcase>
+		<testcase name="test_captain_name_uses_accent_color" classname="test_final_panel_ui_improvements" time="0.087">
+			<failure message="FAILED: res://tests/integration/test_final_panel_ui_improvements.gd:146" type="FAILURE">
+<![CDATA[
+Expecting:
+ 'Color(0.1765, 0.3529, 0.4824, 1.0)'
+ but was
+ 'Color(0.2314, 0.5098, 0.9647, 1.0)'
+]]>
+			</failure>
+		</testcase>
+		<testcase name="test_secondary_text_uses_small_font_and_secondary_color" classname="test_final_panel_ui_improvements" time="0.114">
+			<failure message="FAILED: res://tests/integration/test_final_panel_ui_improvements.gd:181" type="FAILURE">
+<![CDATA[
+Expecting:
+ 'Color(0.502, 0.502, 0.502, 1.0)'
+ but was
+ 'Color(0.6118, 0.6392, 0.6863, 1.0)'
+]]>
+			</failure>
+		</testcase>
+		<testcase name="test_all_summary_cards_have_section_icons" classname="test_final_panel_ui_improvements" time="0.087">
+		</testcase>
+		<testcase name="test_valid_campaign_shows_no_errors" classname="test_final_panel_ui_improvements" time="0.064">
+		</testcase>
+		<testcase name="test_missing_campaign_name_shows_error" classname="test_final_panel_ui_improvements" time="0.071">
+		</testcase>
+		<testcase name="test_missing_captain_shows_error" classname="test_final_panel_ui_improvements" time="0.073">
+		</testcase>
+		<testcase name="test_empty_crew_shows_error" classname="test_final_panel_ui_improvements" time="0.075">
+		</testcase>
+		<testcase name="test_stat_badges_render_in_crew_summary" classname="test_final_panel_ui_improvements" time="0.078">
+		</testcase>
+		<testcase name="test_stat_values_are_correct" classname="test_final_panel_ui_improvements" time="0.076">
+		</testcase>
+	</testsuite>
+</testsuites>

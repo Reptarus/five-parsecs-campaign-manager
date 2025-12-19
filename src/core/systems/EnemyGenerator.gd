@@ -6,6 +6,7 @@ extends Resource
 ## Uses data/enemy_types.json for detailed enemy configurations
 
 const DataManager = preload("res://src/core/data/DataManager.gd")
+const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 
 signal enemies_generated(enemies: Array[Resource])
 signal enemy_data_loaded(categories_count: int)
@@ -156,7 +157,7 @@ func _determine_enemy_category(mission_type: String) -> String:
 		_:
 			return "criminal"
 
-func _select_from_categories(preferred_categories: Array[String]) -> String:
+func _select_from_categories(preferred_categories: Array) -> String:
 	"""Select enemy category from preferred list, fallback to available categories"""
 	var available_categories = []
 	
@@ -213,11 +214,13 @@ func _calculate_enemy_count(difficulty: int, crew_size: int) -> int:
 	
 	# Step 2: Apply difficulty-based modifiers
 	match difficulty:
-		1: # Easy - reduce count slightly
+		1: # Easy (STORY) - reduce count slightly
 			base_count = max(1, base_count - 1)
-		3: # Hard - increase count
+		3: # Challenging - increase count
 			base_count += 1
-		4, 5: # Veteran/Elite - significantly increase count
+		4: # Hardcore - increase count
+			base_count += 1
+		5: # Nightmare - significantly increase count
 			base_count += 2
 	
 	# Ensure minimum of 1 enemy
@@ -243,13 +246,18 @@ func _create_enemy(category: String, difficulty: int) -> Resource:
 	# Apply difficulty modifiers
 	var modified_stats = _apply_difficulty_modifiers(base_stats, difficulty)
 
+	# HOUSE RULE: varied_armaments - Each enemy gets individually rolled weapons
+	var weapons = modified_stats.weapons
+	if HouseRulesHelper.is_enabled("varied_armaments"):
+		weapons = _roll_varied_weapons(weapons)
+
 	# Set enemy properties
 	enemy.set_meta("name", enemy_type)
 	enemy.set_meta("category", category)
 	enemy.set_meta("combat_skill", modified_stats.combat_skill)
 	enemy.set_meta("toughness", modified_stats.toughness)
 	enemy.set_meta("speed", modified_stats.speed)
-	enemy.set_meta("weapons", modified_stats.weapons)
+	enemy.set_meta("weapons", weapons)
 	enemy.set_meta("difficulty", difficulty)
 
 	return enemy
@@ -305,7 +313,13 @@ func _create_enemy_from_template(template: Dictionary, difficulty: int) -> Resou
 	
 	# Equipment
 	var equipment = template.get("equipment", {})
-	enemy.set_meta("weapons", equipment.get("weapons", ["Basic Weapon"]))
+	var weapons = equipment.get("weapons", ["Basic Weapon"])
+
+	# HOUSE RULE: varied_armaments - Each enemy gets individually rolled weapons
+	if HouseRulesHelper.is_enabled("varied_armaments"):
+		weapons = _roll_varied_weapons(weapons)
+
+	enemy.set_meta("weapons", weapons)
 	enemy.set_meta("armor", equipment.get("armor", "No Armor"))
 	enemy.set_meta("gear", equipment.get("gear", []))
 	
@@ -373,6 +387,35 @@ func _apply_difficulty_modifiers(base_stats: Dictionary, difficulty: int) -> Dic
 
 	return modified
 
+func _roll_varied_weapons(base_weapons: Array) -> Array:
+	"""Roll varied weapons for an enemy (House Rule: varied_armaments)
+	Instead of all enemies having the same weapons, each gets a randomly selected subset
+	"""
+	if base_weapons.is_empty():
+		return ["Basic Weapon"]
+
+	# Pool of common weapon variants to add variety
+	var weapon_variants = [
+		"Handgun", "Auto Pistol", "Shotgun", "Military Rifle", "Colony Rifle",
+		"Blade", "Club", "Hand Cannon", "Scrap Pistol", "Infantry Laser"
+	]
+
+	var varied_weapons = []
+
+	# 70% chance to keep a base weapon, 30% chance to swap for a variant
+	for weapon in base_weapons:
+		if randf() < 0.7:
+			varied_weapons.append(weapon)
+		else:
+			# Swap for a random variant
+			varied_weapons.append(weapon_variants.pick_random())
+
+	# Ensure at least one weapon
+	if varied_weapons.is_empty():
+		varied_weapons.append(base_weapons[0] if not base_weapons.is_empty() else "Handgun")
+
+	return varied_weapons
+
 func generate_random_encounter() -> Array[Resource]:
 	"""Generate a random encounter for unexpected battles"""
 	var encounter_types = ["criminal", "wildlife", "hostile"]
@@ -399,7 +442,7 @@ func get_enemy_description(enemy: Resource) -> String:
 
 	return "%s (Combat: %d, Toughness: %d) - Armed with %s" % [name, combat, toughness, weapon_text]
 
-func get_enemy_threat_level(enemies: Array[Resource]) -> String:
+func get_enemy_threat_level(enemies: Array) -> String:
 	"""Calculate overall threat level of enemy group"""
 	var total_threat: int = 0
 

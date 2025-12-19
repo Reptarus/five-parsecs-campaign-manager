@@ -405,7 +405,7 @@ func deserialize(data: Dictionary) -> void:
 	active_hazards = _deserialize_hazards(data.get("active_hazards", []))
 	battle_in_progress = data.get("battle_in_progress", false)
 
-func _serialize_events(events: Array[BattleEvent]) -> Array:
+func _serialize_events(events: Array) -> Array:
 	var serialized: Array = []
 	for event in events:
 		var typed_event: Variant = event
@@ -428,7 +428,7 @@ func _deserialize_events(data: Array) -> Array[BattleEvent]:
 			safe_call_method(events, "append", [event])
 	return events
 
-func _serialize_hazards(hazards: Array[EnvironmentalHazard]) -> Array:
+func _serialize_hazards(hazards: Array) -> Array:
 	var serialized: Array = []
 	for hazard in hazards:
 		var typed_hazard: Variant = hazard
@@ -532,11 +532,16 @@ func _initialize_event_registry() -> void:
 	}
 
 ## Helper to create battle events
-func _create_event(id: String, title: String, roll_range: Array[int], description: String, effects: Dictionary) -> BattleEvent:
+func _create_event(id: String, title: String, roll_range: Array, description: String, effects: Dictionary) -> BattleEvent:
 	var event := BattleEvent.new()
 	event.event_id = id
 	event.title = title
-	event.roll_range = roll_range
+	# Convert Array to Array[int] explicitly
+	var typed_range: Array[int] = []
+	for value in roll_range:
+		if value is int:
+			typed_range.append(value)
+	event.roll_range = typed_range
 	event.description = description
 	event.effects = effects
 	event.target_type = effects.get("target_type", "battlefield")

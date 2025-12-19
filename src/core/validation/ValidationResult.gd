@@ -44,7 +44,7 @@ static func failure(error_message: String) -> ValidationResult:
 	"""Create a failed validation result with error message"""
 	return ValidationResult.new(false, error_message)
 
-static func with_warnings(is_valid: bool, main_error: String = "", warning_list: Array[String] = []) -> ValidationResult:
+static func with_warnings(is_valid: bool, main_error: String = "", warning_list: Array = []) -> ValidationResult:
 	"""Create a validation result with multiple warnings"""
 	var result = ValidationResult.new(is_valid, main_error)
 	for warning in warning_list:

@@ -29,6 +29,9 @@ const ValidationResult = preload("res://src/core/validation/ValidationResult.gd"
 @export var battle_difficulty_modifier: float = 1.0
 @export var economic_modifier: float = 1.0
 
+# House Rules configuration (array of enabled rule IDs)
+@export var house_rules: Array[String] = []
+
 # Metadata and tracking
 @export var creation_date: String = ""
 @export var last_modified: String = ""
@@ -113,6 +116,7 @@ func to_dictionary() -> Dictionary:
 		"story_track_enabled": story_track_enabled,
 		"battle_difficulty_modifier": battle_difficulty_modifier,
 		"economic_modifier": economic_modifier,
+		"house_rules": house_rules.duplicate(),
 		"creation_date": creation_date,
 		"last_modified": last_modified,
 		"version": version
@@ -141,6 +145,15 @@ static func from_dictionary(data: Dictionary) -> CampaignConfig:
 	config.story_track_enabled = data.get("story_track_enabled", true)
 	config.battle_difficulty_modifier = data.get("battle_difficulty_modifier", 1.0)
 	config.economic_modifier = data.get("economic_modifier", 1.0)
+
+	# House rules with type safety
+	var hr = data.get("house_rules", [])
+	if hr is Array:
+		config.house_rules.clear()
+		for rule_id in hr:
+			if rule_id is String:
+				config.house_rules.append(rule_id)
+
 	config.creation_date = data.get("creation_date", "")
 	config.last_modified = data.get("last_modified", "")
 	config.version = data.get("version", "1.0.0")

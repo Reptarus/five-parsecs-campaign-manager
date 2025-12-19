@@ -146,8 +146,8 @@ func test_injured_unit_receives_injury_type():
 
 	# Not a casualty but downed = should have injury
 	var has_injury = not injured_unit["alive"] and \
-	                 not injured_unit["is_casualty"] and \
-	                 injured_unit.has("injury_type")
+					 not injured_unit["is_casualty"] and \
+					 injured_unit.has("injury_type")
 
 	assert_that(has_injury).is_true()
 
@@ -166,7 +166,9 @@ func test_injury_types_match_rulebook():
 	]
 
 	# Processor should define these injury types
-	var has_injury_enum = PostBattleProcessorClass.has("InjuryType")
+	# Check if InjuryType enum exists via script constants
+	var script_constants = PostBattleProcessorClass.get_script_constant_map()
+	var has_injury_enum = script_constants.has("InjuryType")
 
 	assert_that(has_injury_enum).is_true()
 
@@ -268,7 +270,7 @@ func test_loot_opportunities_tracked():
 	}
 
 	var has_loot_tracking = mock_results.has("loot_opportunities") and \
-	                        mock_results["loot_opportunities"] is Array
+							mock_results["loot_opportunities"] is Array
 
 	assert_that(has_loot_tracking).is_true()
 

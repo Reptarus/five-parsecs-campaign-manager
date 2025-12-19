@@ -77,7 +77,7 @@ func _setup_initial_state() -> void:
 	_update_ui_display()
 
 ## Public API: Initialize mission prep phase with campaign data
-func initialize_mission_prep(mission: Dictionary, crew: Array[Dictionary], equipment: Array[Dictionary]) -> void:
+func initialize_mission_prep(mission: Dictionary, crew: Array, equipment: Array) -> void:
 	"""Initialize mission prep with mission and crew data"""
 	mission_data = mission.duplicate()
 	crew_data = crew.duplicate()

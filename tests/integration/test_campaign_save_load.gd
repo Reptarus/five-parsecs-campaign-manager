@@ -27,11 +27,10 @@ func after_test():
 	if FileAccess.file_exists(test_campaign_file):
 		DirAccess.remove_absolute(test_campaign_file)
 	
-	# Free resources
-	if state_manager:
-		state_manager.free()
-	if finalization_service:
-		finalization_service.free()
+	# Note: state_manager and finalization_service are RefCounted objects
+	# They auto-free when references drop to 0 - no manual .free() needed
+	state_manager = null
+	finalization_service = null
 
 ## Create minimal valid campaign data for testing
 func _create_minimal_campaign_data():
@@ -342,4 +341,3 @@ func test_metadata_preserved_after_roundtrip():
 		
 		assert_that(loaded_data.has("metadata")).is_true()
 		assert_that(loaded_data["metadata"].has("created_at")).is_true()
-

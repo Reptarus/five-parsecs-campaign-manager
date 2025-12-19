@@ -73,7 +73,7 @@ static func migrate_save_data(data: Dictionary, from_version: int, to_version: i
 	return migrated_data
 
 ## Apply a single migration step
-static func _apply_migration_step(data: Dictionary, target_version: int, log: Array[String]) -> Dictionary:
+static func _apply_migration_step(data: Dictionary, target_version: int, log: Array) -> Dictionary:
 	var step_data = data.duplicate(true)
 	var error_msg = ""
 	
@@ -154,7 +154,7 @@ static func _validate_migrated_data(data: Dictionary, expected_version: int) -> 
 	return {"valid": true}
 
 ## Create error result Dictionary
-static func _create_error_result(error_type: MigrationError, message: String, log: Array[String] = []) -> Dictionary:
+static func _create_error_result(error_type: MigrationError, message: String, log: Array = []) -> Dictionary:
 	return {
 		"_migration_errors": [
 			{

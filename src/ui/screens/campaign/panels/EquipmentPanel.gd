@@ -644,7 +644,7 @@ func _connect_signals() -> void:
 		auto_assign_button.pressed.connect(_on_auto_assign_pressed)
 		print("EquipmentPanel: ✅ Connected Auto-Assign button from scene")
 
-func set_crew_data(crew: Array[CharacterClass]) -> void:
+func set_crew_data(crew: Array) -> void:
 	"""Set crew data and generate equipment"""
 	# This is the intended entry point from the campaign wizard
 	crew_size = crew.size()
@@ -748,19 +748,19 @@ func _create_equipment_item(item, item_type: String, owner_name: String) -> Dict
 	
 	return equipment_item
 
-func _generate_starting_equipment(crew: Array[CharacterClass] = []) -> void:
+func _generate_starting_equipment(crew: Array = []) -> void:
 	"""Generate starting equipment using StartingEquipmentGenerator (LEGACY FALLBACK)"""
 	print("EquipmentPanel: Using legacy equipment generation (fallback)")
 	generated_equipment.clear()
 	starting_credits = 0
 
-	var current_crew: Array[CharacterClass] = crew
+	var current_crew: Array = crew
 	if current_crew.is_empty():
 		# If no crew is passed, create a mock crew for demonstration
 		current_crew = _create_mock_crew()
 
 	# Generate equipment for each character
-	for character: CharacterClass in current_crew:
+	for character in current_crew:
 		var char_equipment: Dictionary = StartingEquipmentGenerator.generate_starting_equipment(character, dice_manager)
 		StartingEquipmentGenerator.apply_equipment_condition(char_equipment, dice_manager)
 		
@@ -1230,7 +1230,7 @@ func _get_crew_assignment_options() -> Array[String]:
 	
 	return options
 
-func _get_owner_dropdown_index(owner: String, crew_options: Array[String]) -> int:
+func _get_owner_dropdown_index(owner: String, crew_options: Array) -> int:
 	"""Get dropdown index for given owner name"""
 	if owner == "Unassigned" or owner.is_empty():
 		return 0

@@ -811,7 +811,7 @@ func _populate_bot_upgrade_section() -> void:
 		child.queue_free()
 	
 	# Get game state for credits
-	var game_state := GameStateManager.get_game_state()
+	var game_state: Variant = GameStateManager.get_game_state()
 	if not game_state:
 		push_error("CharacterDetailsScreen: GameStateManager not available for bot upgrades")
 		return
@@ -1003,7 +1003,7 @@ func _on_bot_upgrade_pressed(upgrade_id: String, advancement_system: FPCM_Advanc
 	print("CharacterDetailsScreen: Installing bot upgrade - ", upgrade_id)
 	
 	# Get game state
-	var game_state := GameStateManager.get_game_state()
+	var game_state: Variant = GameStateManager.get_game_state()
 	if not game_state:
 		push_error("CharacterDetailsScreen: GameStateManager not available")
 		return

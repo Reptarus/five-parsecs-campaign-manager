@@ -18,35 +18,9 @@ func before():
 
 	# Create mock campaign data class
 	MockCampaignData = GDScript.new()
-	MockCampaignData.source_code = """
-		extends Resource
-
-		var crew_members: Array[Resource] = []
-		var ship_data: Resource = null
-		var living_standard: String = "normal"
-		var credits: int = 100
-		var ship_debt: int = 0
-
-		func get_meta(key: String) -> Variant:
-			match key:
-				"crew_members": return crew_members
-				"ship_data": return ship_data
-				"living_standard": return living_standard
-				"credits": return credits
-				"ship_debt": return ship_debt
-			return null
-
-		func set_meta(key: String, value: Variant) -> void:
-			match key:
-				"crew_members": crew_members = value
-				"ship_data": ship_data = value
-				"living_standard": living_standard = value
-				"credits": credits = value
-				"ship_debt": ship_debt = value
-
-		func has_method(method_name: String) -> bool:
-			return method_name in ["get_meta", "set_meta"]
-	"""
+	# Script source must not have leading indentation - use single line with \n
+	MockCampaignData.source_code = "extends Resource\n\nvar crew_members: Array[Resource] = []\nvar ship_data: Resource = null\nvar living_standard: String = \"normal\"\nvar credits: int = 100\nvar ship_debt: int = 0\n\nfunc get_meta_value(key: String) -> Variant:\n\tmatch key:\n\t\t\"crew_members\": return crew_members\n\t\t\"ship_data\": return ship_data\n\t\t\"living_standard\": return living_standard\n\t\t\"credits\": return credits\n\t\t\"ship_debt\": return ship_debt\n\treturn null\n\nfunc set_meta_value(key: String, value: Variant) -> void:\n\tmatch key:\n\t\t\"crew_members\":\n\t\t\tcrew_members.clear()\n\t\t\tif value is Array:\n\t\t\t\tfor item in value:\n\t\t\t\t\tif item is Resource:\n\t\t\t\t\t\tcrew_members.append(item)\n\t\t\"ship_data\": ship_data = value as Resource if value is Resource else null\n\t\t\"living_standard\": living_standard = str(value) if value != null else \"normal\"\n\t\t\"credits\": credits = int(value) if value != null else 0\n\t\t\"ship_debt\": ship_debt = int(value) if value != null else 0\n"
+	@warning_ignore("return_value_discarded")
 	MockCampaignData.reload()
 
 func before_test():
@@ -158,7 +132,7 @@ func test_upkeep_failure_consequences():
 	var consequences = upkeep_system.handle_upkeep_failure(mock_campaign)
 
 	# Verify consequences structure
-	assert_that(consequences).contains_keys([
+	assert_dict(consequences).contains_keys([
 		"crew_morale_penalty",
 		"ship_degradation",
 		"crew_departure",
@@ -167,10 +141,11 @@ func test_upkeep_failure_consequences():
 
 func test_injured_crew_increase_upkeep_costs():
 	"""Injured crew members increase upkeep costs"""
-	# Create crew with injured member
-	var healthy_crew = _create_mock_crew(3)
-	var injured_crew = _create_mock_crew_member("Injured", true)
-	mock_campaign.crew_members = healthy_crew + [injured_crew]
+	# Create crew with injured member (maintain Array[Resource] type)
+	var all_crew: Array[Resource] = []
+	all_crew.append_array(_create_mock_crew(3))
+	all_crew.append(_create_mock_crew_member("Injured", true))
+	mock_campaign.crew_members = all_crew
 
 	# Calculate upkeep with injured crew
 	var upkeep_costs = upkeep_system.calculate_upkeep_costs(mock_campaign)

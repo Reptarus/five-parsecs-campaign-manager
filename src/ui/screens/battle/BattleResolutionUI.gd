@@ -105,7 +105,7 @@ func _setup_ui() -> void:
 	continue_button.disabled = true
 	_log_battle_message("Preparing for battle...", Color.YELLOW)
 
-func setup_battle(mission: Resource, crew: Array[Resource], enemies: Array[Resource] = []) -> void:
+func setup_battle(mission: Resource, crew: Array, enemies: Array = []) -> void:
 	"""Setup battle with mission data, crew, and enemies"""
 	current_mission = mission
 	crew_members = crew.duplicate()

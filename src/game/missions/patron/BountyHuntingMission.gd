@@ -8,7 +8,7 @@ extends Mission
 ## capture vs elimination choices, and bounty-specific complications.
 
 # GlobalEnums available as autoload singleton
-const MissionTypeRegistry = preload("res://src/game/missions/enhanced/MissionTypeRegistry.gd")
+const FPCM_MissionTypeRegistry = preload("res://src/game/missions/enhanced/MissionTypeRegistry.gd")
 
 # Bounty target data
 @export var target_name: String = ""
@@ -44,9 +44,13 @@ signal investigation_clue_found(clue_data: Dictionary)
 signal target_awareness_increased(new_level: int)
 signal bounty_complications(complication_type: String)
 
+# Reference the parent class for proper inheritance
+const MissionClass = preload("res://src/core/campaign/Mission.gd")
+
 func _init() -> void:
 	super._init()
-	mission_type = MissionTypeRegistry.EnhancedMissionType.BOUNTY_HUNTING
+	# Use base MissionType for patron missions
+	mission_type = MissionClass.MissionType.PATRON_JOB
 	_setup_bounty_mission()
 
 ## Initialize bounty mission with target data
@@ -238,10 +242,10 @@ func get_enemy_deployment_context() -> Dictionary:
 ## Private Methods
 
 func _setup_bounty_mission() -> void:
-	mission_title = "Bounty Contract"
-	mission_description = "Track down and capture a wanted target"
-	minimum_crew_size = 2
-	required_skills = ["combat", "savvy"]
+	# Using properties from parent Mission class
+	set("mission_name", "Bounty Contract")
+	set("description", "Track down and capture a wanted target")
+	set("required_crew_size", 2)
 
 func _generate_target_behavior() -> void:
 	# Target behavior based on type and danger level
@@ -296,14 +300,14 @@ func _calculate_bounty_rewards() -> void:
 	reward_credits = bounty_value
 	
 	# Advanced rules for bonus calculations
-	advanced_rules["capture_alive_bonus"] = capture_bonus
-	advanced_rules["target_danger_multiplier"] = 1.0 + (target_danger_level * 0.2)
+	objective_parameters["capture_alive_bonus"] = capture_bonus
+	objective_parameters["target_danger_multiplier"] = 1.0 + (target_danger_level * 0.2)
 	
 	# License bonus/penalty
 	if bounty_hunter_license:
-		advanced_rules["license_bonus"] = 1.1
+		objective_parameters["license_bonus"] = 1.1
 	else:
-		advanced_rules["legal_risk_penalty"] = 0.9
+		objective_parameters["legal_risk_penalty"] = 0.9
 
 func _generate_investigation_clue() -> Dictionary:
 	var clue_types: Array[Dictionary] = [

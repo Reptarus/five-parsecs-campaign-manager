@@ -24,7 +24,7 @@ class TypeValidationResult extends RefCounted:
 		result.sanitized_value = value
 		return result
 		
-	static func failure(error_messages: Array[String]) -> TypeValidationResult:
+	static func failure(error_messages: Array) -> TypeValidationResult:
 		var result := TypeValidationResult.new()
 		result.is_valid = false
 		result.errors = error_messages

@@ -1,0 +1,232 @@
+{
+  "Implants": {
+    "description": "Cybernetic and biological implants from Five Parsecs From Home (Odds & Ends Loot)",
+    "max_per_character": 2,
+    "types": [
+      {
+        "id": "neural_enhancer",
+        "name": "Neural Enhancer",
+        "type": "cybernetic",
+        "rarity": "uncommon",
+        "cost": 5000,
+        "stat_bonus": {
+          "savvy": 1
+        },
+        "description": "Cognitive enhancement implant that boosts analytical capabilities and problem-solving speed.",
+        "side_effects": []
+      },
+      {
+        "id": "reflex_booster",
+        "name": "Reflex Booster",
+        "type": "cybernetic",
+        "rarity": "uncommon",
+        "cost": 6000,
+        "stat_bonus": {
+          "reactions": 1
+        },
+        "description": "Spinal interface that accelerates neural signals to muscles, improving reaction time.",
+        "side_effects": []
+      },
+      {
+        "id": "combat_processor",
+        "name": "Combat Processor",
+        "type": "cybernetic",
+        "rarity": "rare",
+        "cost": 8000,
+        "stat_bonus": {
+          "combat": 1
+        },
+        "description": "Military-grade targeting assist system integrated into the visual cortex.",
+        "side_effects": []
+      },
+      {
+        "id": "muscle_weave",
+        "name": "Muscle Weave",
+        "type": "biological",
+        "rarity": "uncommon",
+        "cost": 5500,
+        "stat_bonus": {
+          "toughness": 1
+        },
+        "description": "Bio-engineered muscle fiber reinforcement throughout the body.",
+        "side_effects": []
+      },
+      {
+        "id": "speed_enhancer",
+        "name": "Leg Actuators",
+        "type": "cybernetic",
+        "rarity": "uncommon",
+        "cost": 4500,
+        "stat_bonus": {
+          "speed": 1
+        },
+        "description": "Hydraulic assist systems integrated into leg joints for enhanced mobility.",
+        "side_effects": []
+      },
+      {
+        "id": "luck_modifier",
+        "name": "Probability Engine",
+        "type": "cybernetic",
+        "rarity": "rare",
+        "cost": 10000,
+        "stat_bonus": {
+          "luck": 1
+        },
+        "description": "Quantum computing implant that subtly influences probabilistic outcomes. How it works is anyone's guess.",
+        "side_effects": []
+      },
+      {
+        "id": "tech_interface",
+        "name": "Tech Interface Jack",
+        "type": "cybernetic",
+        "rarity": "common",
+        "cost": 3000,
+        "stat_bonus": {
+          "tech": 1
+        },
+        "description": "Direct neural link for interfacing with electronic systems and computers.",
+        "side_effects": []
+      },
+      {
+        "id": "dermal_armor",
+        "name": "Subdermal Plating",
+        "type": "cybernetic",
+        "rarity": "rare",
+        "cost": 7500,
+        "stat_bonus": {
+          "toughness": 2
+        },
+        "description": "Ceramic-titanium plates implanted beneath the skin provide significant protection.",
+        "side_effects": ["Movement slightly reduced"]
+      },
+      {
+        "id": "adrenal_surge",
+        "name": "Adrenal Booster",
+        "type": "biological",
+        "rarity": "uncommon",
+        "cost": 5000,
+        "stat_bonus": {
+          "combat": 1,
+          "speed": 1
+        },
+        "description": "Synthetic adrenal gland that releases combat stimulants on demand.",
+        "side_effects": ["May cause jitteriness"]
+      },
+      {
+        "id": "targeting_eye",
+        "name": "Targeting Optics",
+        "type": "cybernetic",
+        "rarity": "uncommon",
+        "cost": 6500,
+        "stat_bonus": {
+          "combat": 1,
+          "savvy": 1
+        },
+        "description": "Replacement eye with built-in targeting computer and threat assessment systems.",
+        "side_effects": ["Visible cybernetic eye"]
+      },
+      {
+        "id": "bone_lacing",
+        "name": "Bone Reinforcement",
+        "type": "biological",
+        "rarity": "rare",
+        "cost": 9000,
+        "stat_bonus": {
+          "toughness": 1,
+          "combat": 1
+        },
+        "description": "Metal-ceramic composite woven into bones for increased durability and striking power.",
+        "side_effects": ["Triggers metal detectors"]
+      },
+      {
+        "id": "neural_dampener",
+        "name": "Pain Suppressor",
+        "type": "cybernetic",
+        "rarity": "common",
+        "cost": 3500,
+        "stat_bonus": {
+          "toughness": 1
+        },
+        "description": "Neural implant that blocks pain signals, allowing continued operation despite injuries.",
+        "side_effects": ["May not notice injuries"]
+      },
+      {
+        "id": "synaptic_accelerator",
+        "name": "Synaptic Accelerator",
+        "type": "biological",
+        "rarity": "rare",
+        "cost": 12000,
+        "stat_bonus": {
+          "reactions": 2
+        },
+        "description": "Experimental treatment that permanently enhances neural transmission speeds.",
+        "side_effects": ["Occasional headaches"]
+      },
+      {
+        "id": "enhanced_lungs",
+        "name": "Respiratory Enhancement",
+        "type": "biological",
+        "rarity": "uncommon",
+        "cost": 4000,
+        "stat_bonus": {
+          "speed": 1,
+          "toughness": 1
+        },
+        "description": "Bio-engineered lungs with increased capacity and filtration capabilities.",
+        "side_effects": []
+      },
+      {
+        "id": "tactical_hud",
+        "name": "Tactical Display",
+        "type": "cybernetic",
+        "rarity": "uncommon",
+        "cost": 5500,
+        "stat_bonus": {
+          "savvy": 1,
+          "reactions": 1
+        },
+        "description": "Heads-up display overlay providing real-time tactical information and threat analysis.",
+        "side_effects": []
+      },
+      {
+        "id": "hand_razors",
+        "name": "Retractable Blades",
+        "type": "cybernetic",
+        "rarity": "uncommon",
+        "cost": 4000,
+        "stat_bonus": {
+          "combat": 1
+        },
+        "description": "Mono-molecular blades concealed in the forearms that extend from the knuckles.",
+        "special_ability": "Can make unarmed melee attacks at +1 damage",
+        "side_effects": []
+      },
+      {
+        "id": "body_plating",
+        "name": "Full Body Conversion",
+        "type": "cybernetic",
+        "rarity": "legendary",
+        "cost": 25000,
+        "stat_bonus": {
+          "toughness": 2,
+          "combat": 1,
+          "speed": -1
+        },
+        "description": "Major cybernetic overhaul replacing significant portions of the body with machinery.",
+        "side_effects": ["Obvious cyborg appearance", "Reduced agility"]
+      }
+    ],
+    "rarity_weights": {
+      "common": 40,
+      "uncommon": 35,
+      "rare": 20,
+      "legendary": 5
+    },
+    "implant_rules": {
+      "max_per_character": 3,
+      "installation_risk": "On a roll of 1 during installation, suffer a minor complication",
+      "removal_difficulty": "Implants can be removed at a medical facility for 50% of their value",
+      "compatibility_note": "Some implants may conflict - GM discretion applies"
+    }
+  }
+}

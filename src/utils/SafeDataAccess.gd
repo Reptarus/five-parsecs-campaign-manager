@@ -62,7 +62,7 @@ static func safe_bool_access(obj: Variant, default_value: bool = false, operatio
 	return default_value
 
 ## Validate data structure and log detailed information
-static func validate_data_structure(data: Variant, expected_keys: Array[String], context: String = "") -> Dictionary:
+static func validate_data_structure(data: Variant, expected_keys: Array, context: String = "") -> Dictionary:
 	var result = {
 		"valid": false,
 		"missing_keys": [],
@@ -133,7 +133,7 @@ static func batch_safe_get(obj: Variant, keys: Dictionary, context: String = "")
 	return result
 
 ## Deep safe get for nested dictionary access
-static func deep_safe_get(obj: Variant, key_path: Array[String], default_value: Variant = null, context: String = "") -> Variant:
+static func deep_safe_get(obj: Variant, key_path: Array, default_value: Variant = null, context: String = "") -> Variant:
 	var current_obj = obj
 	
 	for i in range(key_path.size()):

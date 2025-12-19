@@ -610,7 +610,7 @@ func _get_possible_missions() -> Array[int]:
 
 	return missions
 
-func _generate_mission(possible_missions: Array[int]) -> StoryQuestData:
+func _generate_mission(possible_missions: Array) -> StoryQuestData:
 	if possible_missions.is_empty():
 		return null
 	var mission_type: GlobalEnums.MissionType = possible_missions[randi() % (possible_missions.size())]
@@ -878,7 +878,7 @@ func load_campaign_secure(file_path: String) -> bool:
 	campaign_loaded.emit(campaign_data)
 	return true
 
-func _serialize_missions(missions: Array[StoryQuestData]) -> Array:
+func _serialize_missions(missions: Array) -> Array:
 	var serialized: Array = []
 	for mission: StoryQuestData in missions:
 		serialized.append(mission.serialize())

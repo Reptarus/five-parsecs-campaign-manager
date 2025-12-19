@@ -259,7 +259,7 @@ func _get_patron_contact_skill_modifiers(contact_table: Dictionary) -> int:
 	var total_bonus: int = 0
 	
 	# Access crew data from GameStateManager
-	var crew_list: Array = GameStateManager.get_crew_list()
+	var crew_list: Array = GameStateManager.get_crew_members()
 	if crew_list.is_empty():
 		return 0
 	
@@ -297,7 +297,7 @@ func _get_world_trait_modifiers(contact_table: Dictionary) -> int:
 		return 0
 	
 	# Access current world traits from GameStateManager
-	var current_world: Dictionary = GameStateManager.get_current_world()
+	var current_world: Dictionary = GameStateManager.get_current_world_data()
 	var world_traits: Array = current_world.get("traits", [])
 	
 	if world_traits.is_empty():

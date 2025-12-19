@@ -245,7 +245,7 @@ func get_trade_good_by_name(good_name: String) -> Dictionary:
 			return good
 	return {}
 
-func get_current_market_price(good_name: String, world_conditions: Array[String] = []) -> int:
+func get_current_market_price(good_name: String, world_conditions: Array = []) -> int:
 	"""Calculate current market price for trade good"""
 	var good = get_trade_good_by_name(good_name)
 	if not good:

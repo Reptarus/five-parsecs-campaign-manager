@@ -8,7 +8,7 @@ extends Mission
 ## protection protocols, and dynamic threat escalation.
 
 # GlobalEnums available as autoload singleton
-const MissionTypeRegistry = preload("res://src/game/missions/enhanced/MissionTypeRegistry.gd")
+const FPCM_MissionTypeRegistry = preload("res://src/game/missions/enhanced/MissionTypeRegistry.gd")
 
 # VIP and escort data
 @export var vip_name: String = ""
@@ -49,9 +49,13 @@ var minimum_crew_size: int = 3
 var required_skills: Array[String] = ["combat"]
 var objectives: Array[Dictionary] = []
 
+# Reference the parent class for proper inheritance
+const MissionClass = preload("res://src/core/campaign/Mission.gd")
+
 func _init() -> void:
 	super._init()
-	mission_type = MissionTypeRegistry.EnhancedMissionType.ESCORT
+	# Use base MissionType for patron missions
+	mission_type = MissionClass.MissionType.PATRON_JOB
 	_setup_escort_mission()
 
 ## Initialize escort mission with VIP and route data
@@ -60,10 +64,10 @@ func initialize_escort(escort_data: Dictionary) -> void:
 	vip_name = escort_data.get("vip_name", "Important Person")
 
 func _setup_escort_mission() -> void:
-	mission_title = "VIP Escort"
-	mission_description = "Safely escort a VIP to their destination"
-	minimum_crew_size = 3 # Need dedicated protection team
-	required_skills = ["combat"]
+	# Using properties from parent Mission class
+	set("mission_name", "VIP Escort")
+	set("description", "Safely escort a VIP to their destination")
+	set("required_crew_size", 3) # Need dedicated protection team
 
 ## Process escort movement to next location
 func process_escort_movement(movement_data: Dictionary) -> Dictionary:
@@ -373,20 +377,20 @@ func _calculate_escort_rewards() -> void:
 	reward_credits = base_credits
 	
 	# Advanced rules for performance bonuses
-	advanced_rules["health_bonus"] = {
+	objective_parameters["health_bonus"] = {
 		100: 1.2, # Perfect health
 		75: 1.0, # Good health
 		50: 0.8, # Poor health
 		25: 0.6 # Critical health
 	}
 	
-	advanced_rules["stress_bonus"] = {
+	objective_parameters["stress_bonus"] = {
 		"low": 1.1, # 0-30 stress
 		"medium": 1.0, # 31-60 stress
 		"high": 0.9 # 61+ stress
 	}
 	
-	advanced_rules["incident_penalty"] = 0.1 # -10% per incident
+	objective_parameters["incident_penalty"] = 0.1 # -10% per incident
 
 func _check_location_threats(location: int, movement_data: Dictionary) -> Array:
 	var encountered_threats: Array = []
@@ -463,7 +467,7 @@ func _complete_escort() -> void:
 	# Calculate final rewards based on performance
 	var health_multiplier: float = float(vip_health) / 100.0
 	var stress_multiplier: float = 1.0 - (vip_stress_level * 0.1)
-	var incident_penalty: float = 1.0 - (protection_incidents * advanced_rules.incident_penalty)
+	var incident_penalty: float = 1.0 - (protection_incidents * objective_parameters.incident_penalty)
 	
 	var final_reward: int = roundi(reward_credits * health_multiplier * stress_multiplier * incident_penalty)
 	reward_credits = maxi(final_reward, reward_credits / 2) # Minimum 50% payment
@@ -474,21 +478,21 @@ func _complete_escort() -> void:
 func _fail_escort_vip_killed() -> void:
 	if has_method("_fail_mission"):
 		_fail_mission()
-	advanced_rules["failure_reason"] = "vip_killed"
+	objective_parameters["failure_reason"] = "vip_killed"
 
 func _get_health_bonus_multiplier() -> float:
-	for health_threshold in advanced_rules.health_bonus.keys():
+	for health_threshold in objective_parameters.health_bonus.keys():
 		if vip_health >= health_threshold:
-			return advanced_rules.health_bonus[health_threshold]
+			return objective_parameters.health_bonus[health_threshold]
 	return 0.5 # Severely injured
 
 func _get_stress_bonus_multiplier() -> float:
 	if vip_stress_level <= 30:
-		return advanced_rules.stress_bonus.low
+		return objective_parameters.stress_bonus.low
 	elif vip_stress_level <= 60:
-		return advanced_rules.stress_bonus.medium
+		return objective_parameters.stress_bonus.medium
 	else:
-		return advanced_rules.stress_bonus.high
+		return objective_parameters.stress_bonus.high
 
 func _complete_mission() -> void:
 	# Mark mission as completed

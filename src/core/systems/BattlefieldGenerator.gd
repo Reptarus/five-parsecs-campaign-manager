@@ -5,7 +5,7 @@ extends Node
 const TableProcessor := preload("res://src/core/systems/TableProcessor.gd")
 const TableLoader := preload("res://src/core/systems/TableLoader.gd")
 const PositionValidator := preload("res://src/core/systems/PositionValidator.gd")
-const Mission := preload("res://src/core/systems/Mission.gd")
+const Mission := preload("res://src/core/campaign/Mission.gd")
 const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
 ## Signals

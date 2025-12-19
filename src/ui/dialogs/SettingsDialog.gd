@@ -123,8 +123,8 @@ func _on_apply_pressed() -> void:
 
 ## Handle reset button press
 func _on_reset_pressed() -> void:
-	# Reset to defaults
-	theme_option.selected = ThemeManager.ThemeVariant.DEFAULT
+	# Reset to defaults (DARK is the default theme)
+	theme_option.selected = ThemeManager.ThemeVariant.DARK
 	scale_slider.value = ThemeManager.DEFAULT_SCALE_FACTOR
 	update_scale_label(ThemeManager.DEFAULT_SCALE_FACTOR)
 	high_contrast_check.button_pressed = false
@@ -132,7 +132,7 @@ func _on_reset_pressed() -> void:
 
 	# Apply immediately for feedback
 	if theme_manager:
-		theme_manager.set_theme_variant(ThemeManager.ThemeVariant.DEFAULT)
+		theme_manager.set_theme_variant(ThemeManager.ThemeVariant.DARK)
 		theme_manager.set_scale_factor(ThemeManager.DEFAULT_SCALE_FACTOR)
 		theme_manager.set_high_contrast(false)
 		theme_manager.set_reduced_animation(false)

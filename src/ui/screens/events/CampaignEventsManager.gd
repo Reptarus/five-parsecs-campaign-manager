@@ -138,7 +138,7 @@ func _get_event_table(event_type: String) -> Array[Dictionary]:
 		_:
 			return campaign_events
 
-func _roll_on_table(table: Array[Dictionary]) -> Dictionary:
+func _roll_on_table(table: Array) -> Dictionary:
 	"""Roll on an event table"""
 	var roll = randi_range(1, 6) # D6 roll for simplified tables
 

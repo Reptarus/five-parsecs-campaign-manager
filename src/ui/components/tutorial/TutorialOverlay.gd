@@ -63,7 +63,7 @@ func _connect_signals() -> void:
 	next_button.pressed.connect(_on_next_pressed)
 	skip_button.pressed.connect(_on_skip_pressed)
 
-func start_tutorial(steps: Array[Dictionary]) -> void:
+func start_tutorial(steps: Array) -> void:
 	tutorial_steps = steps
 	current_step = 0
 	set_process_input(true)  # Enable input processing when tutorial starts

@@ -18,6 +18,7 @@ signal character_advanced(character: Resource, advancement_type: String, new_val
 signal experience_gained(character: Resource, amount: int, source: String)
 signal training_completed(character: Resource, training_type: String)
 signal advancement_roll_made(character: Resource, stat: String, roll_result: int, success: bool)
+signal bot_upgrade_installed(bot: Resource, upgrade_id: String, upgrade_data: Dictionary)
 
 # Manager references
 var dice_manager: Node = null
@@ -372,7 +373,7 @@ func calculate_battle_experience(character: Resource, battle_result: Dictionary)
 	return xp_gained
 
 ## Award post-battle experience to all crew
-func award_post_battle_experience(crew_members: Array[Resource], battle_result: Dictionary) -> void:
+func award_post_battle_experience(crew_members: Array, battle_result: Dictionary) -> void:
 	"""Award experience to all crew members after battle"""
 	for crew_member in crew_members:
 		var xp_amount = calculate_battle_experience(crew_member, battle_result)
@@ -452,4 +453,154 @@ func can_install_bot_upgrade(bot: Resource, upgrade_id: String, campaign_credits
 	return campaign_credits >= cost
 
 func install_bot_upgrade(bot: Resource, upgrade_id: String, game_state: Resource) -> bool:
-	"""Install bot upgra
+	"""Install a bot upgrade by spending credits (Five Parsecs Core Rules p.98)
+
+	Bots don't gain XP like regular characters - they purchase upgrades with credits.
+
+	Args:
+		bot: The bot character Resource to upgrade
+		upgrade_id: The ID of the upgrade from bot_upgrades dictionary
+		game_state: GameState Resource to deduct credits from
+
+	Returns:
+		bool: True if upgrade was successfully installed, False otherwise
+	"""
+	if not bot or not game_state:
+		push_error("AdvancementSystem: Cannot install bot upgrade - missing bot or game_state")
+		return false
+
+	if not _is_bot(bot):
+		push_error("AdvancementSystem: Cannot install bot upgrade - character is not a bot")
+		return false
+
+	if not bot_upgrades.has(upgrade_id):
+		push_error("AdvancementSystem: Unknown bot upgrade ID: %s" % upgrade_id)
+		return false
+
+	# Check if bot already has this upgrade
+	var installed_upgrades: Array = safe_get_property(bot, "bot_upgrades", [])
+	if upgrade_id in installed_upgrades:
+		push_warning("AdvancementSystem: Bot already has upgrade: %s" % upgrade_id)
+		return false
+
+	# Get upgrade data and cost
+	var upgrade_data: Dictionary = bot_upgrades[upgrade_id]
+	var cost: int = upgrade_data.get("cost", 0)
+
+	# Check if campaign can afford upgrade
+	var current_credits: int = 0
+	if game_state.has_method("get_credits"):
+		current_credits = game_state.get_credits()
+	else:
+		current_credits = safe_get_property(game_state, "credits", 0)
+
+	if current_credits < cost:
+		push_warning("AdvancementSystem: Cannot afford bot upgrade. Cost: %d, Available: %d" % [cost, current_credits])
+		return false
+
+	# Deduct credits from campaign
+	if game_state.has_method("remove_credits"):
+		if not game_state.remove_credits(cost):
+			push_error("AdvancementSystem: Failed to deduct credits for bot upgrade")
+			return false
+	else:
+		# Fallback: direct property set
+		if game_state.has_method("set"):
+			game_state.set("credits", current_credits - cost)
+
+	# Install the upgrade on the bot
+	if bot.has_method("add_bot_upgrade"):
+		bot.add_bot_upgrade(upgrade_id)
+	else:
+		# Fallback: direct array modification
+		installed_upgrades.append(upgrade_id)
+		if bot.has_method("set"):
+			bot.set("bot_upgrades", installed_upgrades)
+
+	# Apply stat effects immediately
+	_apply_bot_upgrade_effects(bot, upgrade_data)
+
+	# Emit signal for UI/logging
+	bot_upgrade_installed.emit(bot, upgrade_id, upgrade_data)
+
+	print("Bot %s installed upgrade: %s (Cost: %d credits)" % [
+		safe_get_property(bot, "character_name", safe_get_property(bot, "name", "Unknown")),
+		upgrade_data.get("name", upgrade_id),
+		cost
+	])
+
+	return true
+
+
+func _apply_bot_upgrade_effects(bot: Resource, upgrade_data: Dictionary) -> void:
+	"""Apply the stat effects from a bot upgrade"""
+	var effects: Dictionary = upgrade_data.get("effects", {})
+
+	for stat_name in effects.keys():
+		var bonus: Variant = effects[stat_name]
+
+		if stat_name == "special":
+			# Handle special abilities
+			_apply_special_bot_ability(bot, bonus)
+		else:
+			# Apply stat bonuses
+			var current_value: int = safe_get_property(bot, stat_name, 0)
+			var new_value: int = current_value + int(bonus)
+
+			# Respect stat maximums
+			var max_value: int = stat_max_values.get(stat_name, 10)
+			new_value = mini(new_value, max_value)
+
+			if bot.has_method("set"):
+				bot.set(stat_name, new_value)
+
+			print("Bot %s: %s increased from %d to %d" % [
+				safe_get_property(bot, "character_name", "Unknown"),
+				stat_name,
+				current_value,
+				new_value
+			])
+
+
+func _apply_special_bot_ability(bot: Resource, ability_id: String) -> void:
+	"""Apply special bot abilities that aren't simple stat bonuses"""
+	match ability_id:
+		"self_repair":
+			# Self-repair reduces recovery time by 1 turn
+			if bot.has_method("set"):
+				bot.set("has_self_repair", true)
+			print("Bot %s gained self-repair ability" % safe_get_property(bot, "character_name", "Unknown"))
+		_:
+			push_warning("Unknown special bot ability: %s" % ability_id)
+
+
+func _is_bot(character: Resource) -> bool:
+	"""Check if character is a bot"""
+	if not character:
+		return false
+
+	# First try is_bot() method
+	if character.has_method("is_bot"):
+		return character.is_bot()
+
+	# Fallback: Check origin property
+	var origin = safe_get_property(character, "origin", "")
+	return origin == "BOT" or origin == "Bot"
+
+
+## Safe property access helper
+func safe_get_property(resource: Resource, property_name: String, default_value: Variant) -> Variant:
+	"""Safely get a property from a Resource with fallback default"""
+	if not resource:
+		return default_value
+
+	if resource.has_method("get"):
+		var value = resource.get(property_name)
+		if value != null:
+			return value
+
+	# Try direct property access via get() method
+	if property_name in resource:
+		return resource.get(property_name)
+
+	return default_value

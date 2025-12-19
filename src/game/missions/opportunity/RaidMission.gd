@@ -8,7 +8,7 @@ extends Mission
 ## and aggressive tactical requirements.
 
 # GlobalEnums available as autoload singleton
-const MissionTypeRegistry = preload("res://src/game/missions/enhanced/MissionTypeRegistry.gd")
+const FPCM_MissionTypeRegistry = preload("res://src/game/missions/enhanced/MissionTypeRegistry.gd")
 
 # Raid target parameters
 @export var target_type: String = "outpost" # outpost, warehouse, convoy, settlement, facility
@@ -48,9 +48,13 @@ signal target_alarm_triggered(response_time: int)
 signal assault_phase_changed(new_phase: String)
 signal defensive_position_cleared(position_id: int)
 
+# Reference the parent class for proper inheritance
+const MissionClass = preload("res://src/core/campaign/Mission.gd")
+
 func _init() -> void:
 	super._init()
-	mission_type = MissionTypeRegistry.EnhancedMissionType.RAID
+	# Use base MissionType for raid missions
+	mission_type = MissionClass.MissionType.OPPORTUNITY
 	_setup_raid_mission()
 
 ## Initialize raid mission with target data
@@ -234,10 +238,10 @@ func get_enemy_deployment_context() -> Dictionary:
 ## Private Methods
 
 func _setup_raid_mission() -> void:
-	mission_title = "Raid Operation"
-	mission_description = "Assault target location for loot and resources"
-	minimum_crew_size = 3 # Raids need firepower
-	required_skills = ["combat"]
+	# Using properties from parent Mission class
+	set("mission_name", "Raid Operation")
+	set("description", "Assault target location for loot and resources")
+	set("required_crew_size", 3) # Raids need firepower
 
 func _generate_raid_parameters() -> void:
 	# Generate loot types based on target
@@ -365,7 +369,7 @@ func _calculate_raid_rewards() -> void:
 	reward_credits = base_credits
 	
 	# Advanced rules for loot-based rewards
-	advanced_rules["loot_multiplier"] = {
+	objective_parameters["loot_multiplier"] = {
 		"poor": 0.7,
 		"mixed": 1.0,
 		"good": 1.3,
@@ -373,8 +377,8 @@ func _calculate_raid_rewards() -> void:
 		"legendary": 2.0
 	}
 	
-	advanced_rules["destruction_bonus_multiplier"] = 1.25
-	advanced_rules["speed_bonus"] = {
+	objective_parameters["destruction_bonus_multiplier"] = 1.25
+	objective_parameters["speed_bonus"] = {
 		"lightning": 1.3, # Completed in minimal time
 		"fast": 1.1, # Completed quickly
 		"standard": 1.0, # Normal completion time
@@ -407,7 +411,7 @@ func _process_approach_phase(phase_data: Dictionary) -> Dictionary:
 		result.phase_success = true
 		if approach_route == "stealth":
 			# Stealth approach grants surprise bonus
-			advanced_rules["surprise_assault"] = true
+			objective_parameters["surprise_assault"] = true
 	else:
 		# Approach failed - alarm raised
 		_trigger_alarm()
@@ -571,7 +575,7 @@ func _generate_loot_item(loot_type: String, amount: int) -> Dictionary:
 		"credits": base_value = 50
 	
 	# Quality modifier
-	var quality_multiplier: float = advanced_rules.loot_multiplier.get(loot_quality, 1.0)
+	var quality_multiplier: float = objective_parameters.loot_multiplier.get(loot_quality, 1.0)
 	var final_value: int = roundi(base_value * amount * quality_multiplier)
 	
 	return {
@@ -609,14 +613,14 @@ func _complete_raid() -> void:
 	
 	# Speed bonus calculation
 	var speed_rating: String = _calculate_speed_rating()
-	var speed_multiplier: float = advanced_rules.speed_bonus.get(speed_rating, 1.0)
+	var speed_multiplier: float = objective_parameters.speed_bonus.get(speed_rating, 1.0)
 	
 	var total_credits: int = roundi((reward_credits + destruction_bonus_value) * speed_multiplier)
 	reward_credits = total_credits
 	
 	# Store loot value for external systems
-	advanced_rules["total_loot_value"] = loot_value
-	advanced_rules["loot_items"] = loot_secured.values()
+	objective_parameters["total_loot_value"] = loot_value
+	objective_parameters["loot_items"] = loot_secured.values()
 	
 	complete_mission()
 
@@ -632,21 +636,29 @@ func _calculate_speed_rating() -> String:
 	else:
 		return "slow"
 
-func complete_mission() -> void:
+func complete_mission() -> Dictionary:
 	# Calculate final rewards
 	var final_reward: int = reward_credits
 	
 	# Apply speed bonus
 	var speed_rating: String = _calculate_speed_rating()
-	var speed_multiplier: float = advanced_rules.speed_bonus.get(speed_rating, 1.0)
+	var speed_bonus_dict: Dictionary = objective_parameters.get("speed_bonus", {"lightning": 1.3, "fast": 1.1, "standard": 1.0, "slow": 0.9})
+	var speed_multiplier: float = speed_bonus_dict.get(speed_rating, 1.0)
 	final_reward = roundi(final_reward * speed_multiplier)
 	
 	# Apply destruction bonus
+	var destruction_multiplier: float = objective_parameters.get("destruction_bonus_multiplier", 1.25)
 	if destruction_bonus and target_destruction_level >= 75:
-		final_reward = roundi(final_reward * advanced_rules.destruction_bonus_multiplier)
+		final_reward = roundi(final_reward * destruction_multiplier)
 	
 	reward_credits = final_reward
-	advanced_rules["loot_items"] = loot_secured.values()
+	
+	# Store loot data for external systems
+	objective_parameters["total_loot_value"] = _calculate_total_loot_value()
+	objective_parameters["loot_items"] = loot_secured.values()
 	
 	# Mark as completed
 	print("Raid mission completed with reward: %d credits" % reward_credits)
+	
+	# Call parent and return rewards
+	return super.complete_mission()

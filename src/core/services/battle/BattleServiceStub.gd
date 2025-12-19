@@ -99,13 +99,13 @@ func get_battle_status(session_id: String) -> IBattleService.BattleStatus:
 	else:
 		return IBattleService.BattleStatus.ERROR
 
-func get_battle_results(session_id: String) -> IBattleService.BattleResults:
+func get_battle_results(session_id: String) -> BattleResults:
 	"""Get battle results if completed"""
 	if completed_sessions.has(session_id):
 		return completed_sessions[session_id].results
 	elif active_sessions.has(session_id):
 		var session = active_sessions[session_id]
-		if session.status == IBattleService.BattleStatus.COMPLETED:
+		if session.status == BattleStatus.COMPLETED:
 			return session.get("results", null)
 	
 	print("BattleServiceStub: No results available for session %s" % session_id)

@@ -63,6 +63,28 @@ var use_story_track: bool = true
 var auto_save_enabled: bool = true
 var auto_save_frequency: int = 15
 
+## House Rules Support
+var _enabled_house_rules: Array[String] = []
+
+## Get enabled house rules for current campaign
+func get_house_rules() -> Array[String]:
+	if _current_campaign and _current_campaign.has_method("get") and _current_campaign.get("config"):
+		var config = _current_campaign.get("config")
+		if config and "house_rules" in config:
+			return config.house_rules
+	return _enabled_house_rules
+
+## Check if a specific house rule is enabled
+func is_house_rule_enabled(rule_id: String) -> bool:
+	return rule_id in get_house_rules()
+
+## Set house rules (for campaign creation)
+func set_house_rules(rules: Array) -> void:
+	_enabled_house_rules.clear()
+	for rule in rules:
+		if rule is String:
+			_enabled_house_rules.append(rule)
+
 ## Campaign state with property accessor
 var _current_campaign: Variant = null # Will be typed after FiveParsecsCampaign is loaded
 var current_campaign:
@@ -298,7 +320,13 @@ func save_game(save_name: String, create_backup: bool = true) -> bool:
 			push_warning("Failed to create _backup before saving")
 
 	# Validate equipment integrity before save (defensive programming)
-	var equipment_manager = get_node_or_null("/root/EquipmentManager")
+	var equipment_manager = null
+	if is_inside_tree():
+		equipment_manager = get_node_or_null("/root/EquipmentManager")
+	else:
+		# Try to get autoload singleton when not in scene tree (e.g., during tests)
+		equipment_manager = Engine.get_singleton("EquipmentManager")
+	
 	if equipment_manager and equipment_manager.has_method("validate_equipment_integrity"):
 		var integrity_report = equipment_manager.validate_equipment_integrity()
 		if not integrity_report.valid:
@@ -553,7 +581,13 @@ func _gather_save_data() -> Dictionary:
 		save_data["ship"] = player_ship.serialize() if player_ship and player_ship.has_method("serialize") else {}
 	
 	# Add ship stash from EquipmentManager
-	var equipment_manager = get_node_or_null("/root/EquipmentManager")
+	var equipment_manager = null
+	if is_inside_tree():
+		equipment_manager = get_node_or_null("/root/EquipmentManager")
+	else:
+		# Try to get autoload singleton when not in scene tree (e.g., during tests)
+		equipment_manager = Engine.get_singleton("EquipmentManager")
+	
 	if equipment_manager and equipment_manager.has_method("serialize_ship_stash"):
 		save_data["ship_stash"] = equipment_manager.serialize_ship_stash()
 	else:
@@ -802,7 +836,8 @@ func serialize() -> Dictionary:
 		"use_story_track": use_story_track,
 		"auto_save_enabled": auto_save_enabled,
 		"auto_save_frequency": auto_save_frequency,
-		"battle_results": battle_results.duplicate(true) if battle_results else {}
+		"battle_results": battle_results.duplicate(true) if battle_results else {},
+		"enabled_house_rules": _enabled_house_rules.duplicate()
 	}
 
 	if current_location:
@@ -825,7 +860,13 @@ func serialize() -> Dictionary:
 			data["campaign"] = {}
 	
 	# Serialize ship stash from EquipmentManager
-	var equipment_manager = get_node_or_null("/root/EquipmentManager")
+	var equipment_manager = null
+	if is_inside_tree():
+		equipment_manager = get_node_or_null("/root/EquipmentManager")
+	else:
+		# Try to get autoload singleton when not in scene tree (e.g., during tests)
+		equipment_manager = Engine.get_singleton("EquipmentManager")
+	
 	if equipment_manager and equipment_manager.has_method("serialize_ship_stash"):
 		data["ship_stash"] = equipment_manager.serialize_ship_stash()
 	else:
@@ -865,6 +906,13 @@ func deserialize(data: Dictionary) -> void:
 	enable_permadeath = migrated_data.get("enable_permadeath", true)
 	use_story_track = migrated_data.get("use_story_track", true)
 	auto_save_enabled = migrated_data.get("auto_save_enabled", true)
+
+	# House rules
+	var hr = migrated_data.get("enabled_house_rules", [])
+	_enabled_house_rules.clear()
+	for rule_id in hr:
+		if rule_id is String:
+			_enabled_house_rules.append(rule_id)
 	auto_save_frequency = migrated_data.get("auto_save_frequency", 15)
 
 	if data.has("current_location"):
@@ -894,7 +942,13 @@ func deserialize(data: Dictionary) -> void:
 	
 	# Deserialize ship stash into EquipmentManager
 	if data.has("ship_stash"):
-		var equipment_manager = get_node_or_null("/root/EquipmentManager")
+		var equipment_manager = null
+		if is_inside_tree():
+			equipment_manager = get_node_or_null("/root/EquipmentManager")
+		else:
+			# Try to get autoload singleton when not in scene tree (e.g., during tests)
+			equipment_manager = Engine.get_singleton("EquipmentManager")
+		
 		if equipment_manager and equipment_manager.has_method("deserialize_ship_stash"):
 			var ship_stash_data = data.get("ship_stash", [])
 			if ship_stash_data is Array:
@@ -903,7 +957,13 @@ func deserialize(data: Dictionary) -> void:
 			else:
 				push_warning("Invalid ship stash data format in save file")
 		else:
-			push_warning("EquipmentManager not available - ship stash not loaded")
+			# Only warn if not in test/headless environment (tests may not have autoloads available)
+			var is_test_environment = DisplayServer.get_name() == "headless" or \
+									  (Engine.get_main_loop() and Engine.get_main_loop() is SceneTree and \
+									   Engine.get_main_loop().get_root() and \
+									   Engine.get_main_loop().get_root().name.begins_with("test_"))
+			if not is_test_environment:
+				push_warning("EquipmentManager not available - ship stash not loaded")
 
 static func deserialize_new(data: Dictionary) -> CoreGameState:
 	var state := CoreGameState.new()
@@ -928,7 +988,12 @@ func _ready() -> void:
 
 func _connect_save_manager() -> void:
 	# Try to connect to SaveManager after autoloads are fully initialized
-	save_manager = get_node(NodePath("/root/SaveManager")) as SaveManagerClass
+	if is_inside_tree():
+		save_manager = get_node(NodePath("/root/SaveManager")) as SaveManagerClass
+	else:
+		# Try to get autoload singleton when not in scene tree (e.g., during tests)
+		save_manager = Engine.get_singleton("SaveManager") as SaveManagerClass
+	
 	if save_manager:
 		if not save_manager.save_completed.is_connected(_on_save_manager_save_completed):
 			save_manager.save_completed.connect(_on_save_manager_save_completed)

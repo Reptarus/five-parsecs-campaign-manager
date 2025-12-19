@@ -104,7 +104,7 @@ func process_post_battle(battle_result: Dictionary, mission_context: Dictionary 
 	return processing_result
 
 ## Generate loot with tactical performance bonuses
-func generate_enhanced_loot(defeated_enemies: Array[Enemy], tactical_performance: Dictionary) -> Dictionary:
+func generate_enhanced_loot(defeated_enemies: Array, tactical_performance: Dictionary) -> Dictionary:
 	var enhanced_context: Dictionary = {
 		"tactical_bonuses": _calculate_tactical_bonuses(tactical_performance),
 		"crew_skill_bonuses": tactical_performance.get("crew_skills", {}),
@@ -166,7 +166,7 @@ func process_combat_experience(battle_result: Dictionary, crew_data: Dictionary)
 	return experience_result
 
 ## Calculate mission completion rewards
-func calculate_mission_rewards(mission_data: Dictionary, battle_results: Array[Dictionary]) -> Dictionary:
+func calculate_mission_rewards(mission_data: Dictionary, battle_results: Array) -> Dictionary:
 	var mission_rewards: Dictionary = {
 		"base_payment": 0,
 		"performance_bonuses": {},
@@ -287,7 +287,7 @@ func _generate_battle_summary(battle_result: Dictionary, mission_context: Dictio
 	
 	return summary
 
-func _process_battle_loot_generation(enemies: Array[Enemy], conditions: Dictionary, context: Dictionary) -> Dictionary:
+func _process_battle_loot_generation(enemies: Array, conditions: Dictionary, context: Dictionary) -> Dictionary:
 	# Enhance context with battle conditions
 	var enhanced_context: Dictionary = context.duplicate()
 	enhanced_context.merge(conditions)
@@ -465,7 +465,7 @@ func _assess_tactical_performance(battle_result: Dictionary) -> String:
 	else:
 		return "poor"
 
-func _calculate_base_experience(enemies: Array[Enemy], battle_duration: int) -> int:
+func _calculate_base_experience(enemies: Array, battle_duration: int) -> int:
 	var base_exp: int = 0
 	
 	for enemy in enemies:
@@ -501,7 +501,7 @@ func _calculate_member_experience(member: Dictionary, battle_result: Dictionary,
 	
 	return member_exp
 
-func _distribute_equal_shares(credits: int, items: Array[GameItem], crew_size: int) -> Dictionary:
+func _distribute_equal_shares(credits: int, items: Array, crew_size: int) -> Dictionary:
 	var result: Dictionary = {
 		"individual_shares": {},
 		"crew_fund_contribution": 0,
@@ -521,7 +521,7 @@ func _distribute_equal_shares(credits: int, items: Array[GameItem], crew_size: i
 	return result
 
 # Signal handlers
-func _on_loot_generated(loot_items: Array[GameItem], total_value: int) -> void:
+func _on_loot_generated(loot_items: Array, total_value: int) -> void:
 	if track_combat_statistics:
 		battle_tracker.record_loot_generation(loot_items, total_value)
 
@@ -529,7 +529,7 @@ func _on_rare_loot_found(item: GameItem, enemy_type: String) -> void:
 	# Handle rare loot discovery
 	pass
 
-func _on_loot_processed(processed_items: Array[GameItem], market_value: int) -> void:
+func _on_loot_processed(processed_items: Array, market_value: int) -> void:
 	# Handle economic processing completion
 	pass
 
@@ -545,11 +545,11 @@ func _check_skill_advancements(individual_experience: Dictionary) -> Array[Dicti
 	# Stub implementation
 	return []
 
-func _calculate_reputation_changes(battle_result: Dictionary, enemies_defeated: Array[Enemy]) -> Dictionary:
+func _calculate_reputation_changes(battle_result: Dictionary, enemies_defeated: Array) -> Dictionary:
 	# Stub implementation
 	return {}
 
-func _evaluate_mission_performance(battle_results: Array[Dictionary], mission_data: Dictionary) -> float:
+func _evaluate_mission_performance(battle_results: Array, mission_data: Dictionary) -> float:
 	# Stub implementation
 	return 0.5
 

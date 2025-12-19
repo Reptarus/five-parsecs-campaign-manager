@@ -210,7 +210,7 @@ func cleanup() -> void:
 	
 	print("CoreSystemSetup: ✅ Cleanup complete")
 
-func _on_systems_initialized(success: bool, errors: Array[String]) -> void:
+func _on_systems_initialized(success: bool, errors: Array) -> void:
 	# Handle system initialization completion
 	if not success:
 		self.initialization_failed.emit(errors)

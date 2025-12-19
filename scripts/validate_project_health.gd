@@ -128,7 +128,7 @@ func check_autoload_consistency():
 	
 	var missing_autoloads = []
 	for autoload_name in expected_autoloads:
-		var autoload_node = get_node_or_null("/root/" + autoload_name)
+		var autoload_node = get_root().get_node_or_null(autoload_name)
 		if not autoload_node:
 			missing_autoloads.append(autoload_name)
 	
@@ -270,9 +270,9 @@ func check_scene_loading_performance():
 		health_report.passed_checks.append("✅ Scene loading performance good: %d ms" % load_time)
 
 func generate_report():
-	print("\n" + "="*60)
+	print("\n" + "=".repeat(60))
 	print("🏥 PROJECT HEALTH REPORT")
-	print("="*60)
+	print("=".repeat(60))
 	
 	# Determine overall status
 	if health_report.critical_issues.size() > 0:
@@ -323,4 +323,4 @@ func generate_report():
 	print("  3. Run integration tests: godot --headless --script test_final_campaign_creation.gd")
 	print("  4. Update documentation if needed")
 	
-	print("\n" + "="*60)
+	print("\n" + "=".repeat(60))

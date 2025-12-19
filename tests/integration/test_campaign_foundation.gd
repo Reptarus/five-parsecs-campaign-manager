@@ -48,62 +48,56 @@ func test_all_controllers_exist():
 		assert_that(script).is_not_null()
 
 ## Phase 2: State Management System Tests
+## Note: CampaignCreationStateManager extends RefCounted - no .free() needed (auto-managed)
 func test_state_manager_instantiation():
 	var state_mgr_script = load("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
 	assert_that(state_mgr_script).is_not_null()
 	
 	var state_mgr = state_mgr_script.new()
 	assert_that(state_mgr).is_not_null()
-	state_mgr.free()
+	# RefCounted objects auto-free when reference count drops to 0
 
 func test_state_manager_has_set_phase_data_method():
 	var state_mgr_script = load("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
 	var state_mgr = state_mgr_script.new()
 	
 	assert_that(state_mgr.has_method("set_phase_data")).is_true()
-	state_mgr.free()
 
 func test_state_manager_has_get_phase_data_method():
 	var state_mgr_script = load("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
 	var state_mgr = state_mgr_script.new()
 	
 	assert_that(state_mgr.has_method("get_phase_data")).is_true()
-	state_mgr.free()
 
 func test_state_manager_has_advance_to_next_phase_method():
 	var state_mgr_script = load("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
 	var state_mgr = state_mgr_script.new()
 	
 	assert_that(state_mgr.has_method("advance_to_next_phase")).is_true()
-	state_mgr.free()
 
 func test_campaign_data_is_dictionary():
 	var state_mgr_script = load("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
 	var state_mgr = state_mgr_script.new()
 
 	assert_that(state_mgr.campaign_data is Dictionary).is_true()
-	state_mgr.free()
 
 func test_campaign_data_has_captain_key():
 	var state_mgr_script = load("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
 	var state_mgr = state_mgr_script.new()
 	
 	assert_that(state_mgr.campaign_data.has("captain")).is_true()
-	state_mgr.free()
 
 func test_campaign_data_has_crew_key():
 	var state_mgr_script = load("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
 	var state_mgr = state_mgr_script.new()
 	
 	assert_that(state_mgr.campaign_data.has("crew")).is_true()
-	state_mgr.free()
 
 func test_campaign_data_has_ship_key():
 	var state_mgr_script = load("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
 	var state_mgr = state_mgr_script.new()
 	
 	assert_that(state_mgr.campaign_data.has("ship")).is_true()
-	state_mgr.free()
 
 ## Phase 3: Panel Workflow Integration Tests
 func test_config_panel_instantiation():
@@ -150,20 +144,19 @@ func test_security_validator_exists():
 	var script = load("res://src/core/validation/SecurityValidator.gd")
 	assert_that(script).is_not_null()
 
+## Note: CampaignFinalizationService extends RefCounted - no .free() needed (auto-managed)
 func test_finalization_service_instantiation():
 	var service_script = load("res://src/core/campaign/creation/CampaignFinalizationService.gd")
 	assert_that(service_script).is_not_null()
 	
 	var service = service_script.new()
 	assert_that(service).is_not_null()
-	service.free()
 
 func test_finalization_service_has_finalize_method():
 	var service_script = load("res://src/core/campaign/creation/CampaignFinalizationService.gd")
 	var service = service_script.new()
 	
 	assert_that(service.has_method("finalize_campaign")).is_true()
-	service.free()
 
 ## Phase 5: Data Persistence Foundation Tests
 func test_game_state_manager_autoload_check():
@@ -181,8 +174,9 @@ func test_data_manager_autoload_check():
 			assert_that(dm).is_not_null()
 
 func test_save_system_script_exists():
-	var script = load("res://src/core/data/SaveSystem.gd")
-	# Soft test - may not be implemented yet, so we just check without failing
-	if script:
+	# Soft test - SaveSystem may not be implemented yet
+	if FileAccess.file_exists("res://src/core/data/SaveSystem.gd"):
+		var script = load("res://src/core/data/SaveSystem.gd")
 		assert_that(script).is_not_null()
-
+	else:
+		push_warning("SaveSystem.gd not found - skipping test")

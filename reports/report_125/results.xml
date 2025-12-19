@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites id="2025-12-19" name="report_125" tests="11" failures="15" skipped="0" flaky="0" time="0.000">
+	<testsuite id="0" name="test_final_panel_ui_improvements" package="tests/integration" timestamp="2025-12-19T20:31:58" hostname="localhost" tests="11" failures="15" errors="0" skipped="0" flaky="0" time="0.973">
+		<testcase name="test_campaign_name_uses_large_font_and_accent_color" classname="test_final_panel_ui_improvements" time="0.109">
+			<failure message="FAILED: res://tests/integration/test_final_panel_ui_improvements.gd:68" type="FAILURE">
+<![CDATA[
+Expecting: not to be '<null>'
+]]>
+			</failure>
+			<failure message="FAILED: res://tests/integration/test_final_panel_ui_improvements.gd:72" type="FAILURE">
+<![CDATA[
+Expecting: not to be '<null>'
+]]>
+			</failure>
+		</testcase>
+		<testcase name="test_ship_name_uses_large_font" classname="test_final_panel_ui_improvements" time="0.072">
+			<failure message="FAILED: res://tests/integration/test_final_panel_ui_improvements.gd:103" type="FAILURE">
+<![CDATA[
+Expecting: not to be '<null>'
+]]>
+			</failure>
+			<failure message="FAILED: res://tests/integration/test_final_panel_ui_improvements.gd:106" type="FAILURE">
+<![CDATA[
+Expecting: not to be '<null>'
+]]>
+			</failure>
+		</testcase>
+		<testcase name="test_captain_name_uses_accent_color" classname="test_final_panel_ui_improvements" time="0.071">
+			<failure message="FAILED: res://tests/integration/test_final_panel_ui_improvements.gd:133" type="FAILURE">
+<![CDATA[
+Expecting: not to be '<null>'
+]]>
+			</failure>
+			<failure message="FAILED: res://tests/integration/test_final_panel_ui_improvements.gd:136" type="FAILURE">
+<![CDATA[
+Expecting: not to be '<null>'
+]]>
+			</failure>
+		</testcase>
+		<testcase name="test_secondary_text_uses_small_font_and_secondary_color" classname="test_final_panel_ui_improvements" time="0.069">
+			<failure message="FAILED: res://tests/integration/test_final_panel_ui_improvements.gd:168" type="FAILURE">
+<![CDATA[
+Expecting: not to be '<null>'
+]]>
+			</failure>
+		</testcase>
+		<testcase name="test_all_summary_cards_have_section_icons" classname="test_final_panel_ui_improvements" time="0.070">
+			<failure message="FAILED: res://tests/integration/test_final_panel_ui_improvements.gd:211" type="FAILURE">
+<![CDATA[
+Expecting: not to be '<null>'
+]]>
+			</failure>
+			<failure message="FAILED: res://tests/integration/test_final_panel_ui_improvements.gd:211" type="FAILURE">
+<![CDATA[
+Expecting: not to be '<null>'
+]]>
+			</failure>
+			<failure message="FAILED: res://tests/integration/test_final_panel_ui_improvements.gd:211" type="FAILURE">
+<![CDATA[
+Expecting: not to be '<null>'
+]]>
+			</failure>
+			<failure message="FAILED: res://tests/integration/test_final_panel_ui_improvements.gd:211" type="FAILURE">
+<![CDATA[
+Expecting: not to be '<null>'
+]]>
+			</failure>
+			<failure message="FAILED: res://tests/integration/test_final_panel_ui_improvements.gd:211" type="FAILURE">
+<![CDATA[
+Expecting: not to be '<null>'
+]]>
+			</failure>
+		</testcase>
+		<testcase name="test_valid_campaign_shows_no_errors" classname="test_final_panel_ui_improvements" time="0.056">
+		</testcase>
+		<testcase name="test_missing_campaign_name_shows_error" classname="test_final_panel_ui_improvements" time="0.057">
+		</testcase>
+		<testcase name="test_missing_captain_shows_error" classname="test_final_panel_ui_improvements" time="0.059">
+		</testcase>
+		<testcase name="test_empty_crew_shows_error" classname="test_final_panel_ui_improvements" time="0.060">
+		</testcase>
+		<testcase name="test_stat_badges_render_in_crew_summary" classname="test_final_panel_ui_improvements" time="0.073">
+			<failure message="FAILED: res://tests/integration/test_final_panel_ui_improvements.gd:338" type="FAILURE">
+<![CDATA[
+Expecting: not to be '<null>'
+]]>
+			</failure>
+			<failure message="FAILED: res://tests/integration/test_final_panel_ui_improvements.gd:342" type="FAILURE">
+<![CDATA[
+Expecting: not to be '<null>'
+]]>
+			</failure>
+			<failure message="FAILED: res://tests/integration/test_final_panel_ui_improvements.gd:346" type="FAILURE">
+<![CDATA[
+Expecting: 'true' but is 'false'
+]]>
+			</failure>
+		</testcase>
+		<testcase name="test_stat_values_are_correct" classname="test_final_panel_ui_improvements" time="0.072">
+		</testcase>
+	</testsuite>
+</testsuites>

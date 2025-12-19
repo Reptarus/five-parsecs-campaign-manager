@@ -15,6 +15,121 @@ extends Resource
 @export var weapon_tags: Array[String] = []
 @export var weapon_ammo: Dictionary = {}
 
+# Weapon Modifications - installed upgrades that affect combat stats
+@export var weapon_modifications: Array[String] = []
+
+#region Weapon Modification System - Damage and stat bonuses for battle
+
+## Get total damage including all modification bonuses
+## This should be used by BattleCalculations instead of base weapon_damage
+func get_total_damage() -> int:
+	var base_damage: int = weapon_damage.get("bonus", 0)
+	var mod_bonus := _get_modification_damage_bonus()
+	return base_damage + mod_bonus
+
+## Get total damage dice including modification effects
+func get_total_damage_dice() -> Dictionary:
+	var result := weapon_damage.duplicate()
+	var mod_bonus := _get_modification_damage_bonus()
+	result["bonus"] = result.get("bonus", 0) + mod_bonus
+	return result
+
+## Get damage bonus from all installed modifications
+func _get_modification_damage_bonus() -> int:
+	var bonus := 0
+	for mod_id: String in weapon_modifications:
+		bonus += _get_mod_damage_effect(mod_id)
+	return bonus
+
+## Get damage effect for a specific modification
+func _get_mod_damage_effect(mod_id: String) -> int:
+	match mod_id.to_lower():
+		"heavy_barrel":
+			return 1  # +1 damage
+		"mono_molecular_edge":
+			return 1  # +1 damage + piercing (piercing handled separately)
+		"overcharged_cells":
+			return 1  # +1 damage for energy weapons
+		_:
+			return 0
+
+## Get range bonus from all installed modifications
+func get_modification_range_bonus() -> int:
+	var bonus := 0
+	for mod_id: String in weapon_modifications:
+		bonus += _get_mod_range_effect(mod_id)
+	return bonus
+
+## Get range effect for a specific modification
+func _get_mod_range_effect(mod_id: String) -> int:
+	match mod_id.to_lower():
+		"extended_barrel":
+			return 6  # +6" range
+		"advanced_scope":
+			return 4  # +4" effective range
+		"marksman_stock":
+			return 2  # +2" range
+		_:
+			return 0
+
+## Get hit bonus from all installed modifications
+func get_modification_hit_bonus() -> int:
+	var bonus := 0
+	for mod_id: String in weapon_modifications:
+		bonus += _get_mod_hit_effect(mod_id)
+	return bonus
+
+## Get hit effect for a specific modification
+func _get_mod_hit_effect(mod_id: String) -> int:
+	match mod_id.to_lower():
+		"targeting_system":
+			return 1  # +1 to hit
+		"advanced_scope":
+			return 1  # +1 to hit at long range
+		"stabilizer":
+			return 1  # +1 to hit when aiming
+		_:
+			return 0
+
+## Check if modifications add piercing trait
+func has_modification_piercing() -> bool:
+	return "mono_molecular_edge" in weapon_modifications
+
+## Get all modification effects as Dictionary for battle calculations
+func get_all_modification_effects() -> Dictionary:
+	return {
+		"damage_bonus": _get_modification_damage_bonus(),
+		"range_bonus": get_modification_range_bonus(),
+		"hit_bonus": get_modification_hit_bonus(),
+		"adds_piercing": has_modification_piercing(),
+		"modifications": weapon_modifications.duplicate()
+	}
+
+## Get effective range including modifications
+func get_effective_max_range() -> int:
+	return get_max_range() + get_modification_range_bonus()
+
+## Check if weapon has a specific modification
+func has_modification(mod_id: String) -> bool:
+	return mod_id.to_lower() in weapon_modifications
+
+## Add a modification to the weapon
+func add_modification(mod_id: String) -> bool:
+	if has_modification(mod_id):
+		return false  # Already installed
+	weapon_modifications.append(mod_id.to_lower())
+	return true
+
+## Remove a modification from the weapon
+func remove_modification(mod_id: String) -> bool:
+	var lower_id := mod_id.to_lower()
+	if lower_id in weapon_modifications:
+		weapon_modifications.erase(lower_id)
+		return true
+	return false
+
+#endregion
+
 func initialize(name: String, damage: Dictionary, range: Dictionary) -> void:
 	weapon_name = name
 	weapon_damage = damage

@@ -176,7 +176,8 @@ func test_it_wasnt_that_bad_removes_injury():
 	var result = stars_system.use_ability(StarsOfTheStorySystem.StarAbility.IT_WASNT_THAT_BAD, context)
 
 	assert_that(result.success).is_true()
-	assert_that(test_character.injuries).does_not_contain("Broken Arm")
+	# Use assert_that with not_contains for array assertions (not_contains is the correct method, not does_not_contain)
+	assert_that(test_character.injuries).not_contains("Broken Arm")
 	assert_that(test_character.injuries).contains("Concussion")
 
 func test_dramatic_escape_sets_hp_to_1():

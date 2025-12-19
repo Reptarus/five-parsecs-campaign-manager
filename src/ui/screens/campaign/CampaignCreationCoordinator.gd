@@ -458,6 +458,10 @@ func _character_to_dict(character) -> Dictionary:
 	# Extract from Character object
 	var result = {}
 
+	# Null check before accessing properties
+	if character == null:
+		return {}
+
 	# Try multiple property access patterns
 	if character.has("character_name"):
 		result["character_name"] = character.character_name
@@ -601,6 +605,29 @@ func load_campaign_data_from_save(save_data: Dictionary) -> void:
 
 ## Public API - Navigation Control
 
+# API Aliases for test compatibility
+var current_panel_index: int:
+	get:
+		return current_step
+	set(value):
+		current_step = value
+
+func get_current_panel() -> Control:
+	"""Get the current panel - requires CampaignCreationUI parent reference"""
+	# Look for parent CampaignCreationUI that has panels
+	var parent = get_parent()
+	if parent and parent.has_method("get_current_panel"):
+		return parent.get_current_panel()
+	return null
+
+func next_panel() -> bool:
+	"""Alias for advance_to_next_phase - provides API compatibility"""
+	return advance_to_next_phase()
+
+func previous_panel() -> bool:
+	"""Alias for go_back_to_previous_phase - provides API compatibility"""
+	return go_back_to_previous_phase()
+
 func can_advance_to_next_phase() -> bool:
 	"""Check if we can advance to the next phase"""
 	var current_phase = state_manager.current_phase
@@ -712,7 +739,7 @@ func _on_phase_completed(phase: CampaignCreationStateManager.Phase) -> void:
 	"""Handle phase completion from state manager"""
 	mark_phase_complete(phase, true)
 
-func _on_validation_changed(is_valid: bool, errors: Array[String]) -> void:
+func _on_validation_changed(is_valid: bool, errors: Array) -> void:
 	"""Handle validation changes from state manager"""
 	# Update navigation based on current phase validation
 	_update_navigation_state()

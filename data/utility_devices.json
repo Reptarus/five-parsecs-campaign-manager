@@ -1,0 +1,39 @@
+{
+  "utility_devices": [
+    {
+      "id": "jump_belt",
+      "name": "Jump Belt",
+      "effect_type": "movement",
+      "jump_distance": 9,
+      "description": "Can jump up to 9\" ignoring terrain"
+    },
+    {
+      "id": "grapple_launcher",
+      "name": "Grapple Launcher",
+      "effect_type": "movement",
+      "climb_distance": 12,
+      "description": "Can climb up to 12\" vertically"
+    },
+    {
+      "id": "motion_tracker",
+      "name": "Motion Tracker",
+      "effect_type": "detection",
+      "detection_range": 12,
+      "description": "Detect hidden enemies within 12\""
+    },
+    {
+      "id": "battle_visor",
+      "name": "Battle Visor",
+      "effect_type": "accuracy",
+      "reroll_ones": true,
+      "description": "Reroll 1s on attack rolls"
+    },
+    {
+      "id": "communicator",
+      "name": "Communicator",
+      "effect_type": "coordination",
+      "reaction_dice_bonus": 1,
+      "description": "+1 Reaction die for the crew"
+    }
+  ]
+}

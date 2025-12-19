@@ -216,7 +216,7 @@ func _get_all_buttons() -> Array[Button]:
 	_collect_buttons_recursive(self, buttons)
 	return buttons
 
-func _collect_buttons_recursive(node: Node, buttons: Array[Button]) -> void:
+func _collect_buttons_recursive(node: Node, buttons: Array) -> void:
 	"""Recursively collect all buttons in the UI tree"""
 	if node is Button:
 		buttons.append(node)
@@ -981,7 +981,7 @@ func _get_focusable_nodes() -> Array[Control]:
 	_collect_focusable_recursive(self, focusable)
 	return focusable
 
-func _collect_focusable_recursive(node: Node, focusable: Array[Control]) -> void:
+func _collect_focusable_recursive(node: Node, focusable: Array) -> void:
 	"""Recursively collect focusable controls"""
 	if node is Control and node.visible and node.focus_mode != Control.FOCUS_NONE:
 		focusable.append(node)
@@ -1116,7 +1116,7 @@ func _on_battle_manager_error(error_code: String, context: Dictionary) -> void:
 	else:
 		print("ERROR: %s - %s" % [error_code, str(context)])
 
-func setup_battle(mission_data: Resource, crew_members: Array[Resource], enemy_forces: Array[Resource]) -> bool:
+func setup_battle(mission_data: Resource, crew_members: Array, enemy_forces: Array) -> bool:
 	"""Setup companion UI for a new battle using modern battle manager"""
 	if not battle_manager:
 		ui_error_occurred.emit("BATTLE_MANAGER_MISSING", {})

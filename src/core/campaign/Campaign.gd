@@ -72,6 +72,10 @@ var quest_rumors: int = 0
 var quests: Array = []  # Active and completed quests
 var battle_history: Array = []  # History of all battles fought
 
+# Planet persistence - stores data for visited planets
+var visited_planets: Dictionary = {}  # planet_id -> planet_data Dictionary
+var current_planet_id: String = ""
+
 # Deferred Events System - events that trigger on future conditions
 # Each event: {id, trigger_type, event_name, crew_id, effect, turn_created, expires_turn, consumed}
 var pending_events: Array = []
@@ -161,7 +165,9 @@ func serialize() -> Dictionary:
 		"battle_history": battle_history.duplicate(),
 		"rivals": rivals.duplicate(),
 		"patrons": patrons.duplicate(),
-		"quest_rumors": quest_rumors
+		"quest_rumors": quest_rumors,
+		"visited_planets": visited_planets.duplicate(true),
+		"current_planet_id": current_planet_id
 	}
 
 func deserialize(data: Dictionary) -> void:
@@ -180,6 +186,8 @@ func deserialize(data: Dictionary) -> void:
 	rivals = data.get("rivals", [])
 	patrons = data.get("patrons", [])
 	quest_rumors = data.get("quest_rumors", 0)
+	visited_planets = data.get("visited_planets", {}).duplicate(true)
+	current_planet_id = data.get("current_planet_id", "")
 
 func add_mission(mission: Dictionary) -> void:
 	available_missions.append(mission)
@@ -428,3 +436,48 @@ func get_creation_summary() -> Dictionary:
 		"current_world": current_world,
 		"victory_condition": victory_condition
 	}
+
+## Planet Persistence Methods
+
+## Record a visit to a planet with associated data
+func visit_planet(planet_id: String, planet_data: Dictionary) -> void:
+	if planet_id.is_empty():
+		push_error("Campaign.visit_planet: planet_id cannot be empty")
+		return
+	
+	# Store or update planet data
+	if not visited_planets.has(planet_id):
+		visited_planets[planet_id] = {}
+	
+	# Merge new data with existing data
+	visited_planets[planet_id].merge(planet_data)
+	
+	# Update current planet if not set
+	if current_planet_id.is_empty():
+		current_planet_id = planet_id
+	
+	print("Campaign: Visited planet %s" % planet_id)
+
+## Check if a planet has been visited
+func has_visited_planet(planet_id: String) -> bool:
+	return visited_planets.has(planet_id)
+
+## Get data for a visited planet
+func get_visited_planet(planet_id: String) -> Dictionary:
+	if not visited_planets.has(planet_id):
+		return {}
+	return visited_planets[planet_id].duplicate(true)
+
+## Update planet state by merging new data with existing data
+func update_planet_state(planet_id: String, new_data: Dictionary) -> void:
+	if not visited_planets.has(planet_id):
+		push_warning("Campaign.update_planet_state: Planet %s not yet visited, creating entry" % planet_id)
+		visited_planets[planet_id] = {}
+	
+	# Merge new data into existing data
+	visited_planets[planet_id].merge(new_data)
+	print("Campaign: Updated planet %s state" % planet_id)
+
+## Get list of all visited planet IDs
+func get_all_visited_planets() -> Array:
+	return visited_planets.keys()

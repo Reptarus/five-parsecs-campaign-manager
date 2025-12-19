@@ -33,7 +33,7 @@ func calculate_upkeep_costs(campaign_data: Resource) -> Dictionary:
 	var living_standard = _get_living_standard(campaign_data)
 
 	# Calculate crew upkeep
-	breakdown.crew_upkeep = (safe_call_method(crew_members, "size") as int) * BASE_CREW_UPKEEP
+	breakdown.crew_upkeep = crew_members.size() * BASE_CREW_UPKEEP
 
 	# Calculate ship maintenance
 	if ship_data:
@@ -55,7 +55,7 @@ func calculate_upkeep_costs(campaign_data: Resource) -> Dictionary:
 func pay_upkeep(campaign_data: Resource, upkeep_costs: Dictionary) -> bool:
 	"""Attempt to pay upkeep _costs"""
 	var current_credits = _get_credits(campaign_data)
-	var total_cost = upkeep_costs.total
+	var total_cost = upkeep_costs.get("total", 0)
 
 	if current_credits >= total_cost:
 		# Pay upkeep
@@ -82,11 +82,12 @@ func _calculate_ship_maintenance(ship_data: Resource) -> int:
 
 	# Add costs for ship modifications
 	var modifications = ship_data.get_meta("modifications") if ship_data and ship_data.has_method("get_meta") else []
-	var modification_maintenance = (safe_call_method(modifications, "size") as int) # 1 credit per modification
+	var size_result = safe_call_method(modifications, "size")
+	var modification_maintenance: int = size_result if size_result is int else 0  # 1 credit per modification
 
 	return base_cost + hull_repair_cost + modification_maintenance
 
-func _calculate_injury_costs(crew_members: Array[Resource]) -> int:
+func _calculate_injury_costs(crew_members: Array) -> int:
 	"""Calculate costs for treating injured crew _members"""
 	var injury_cost: int = 0
 
@@ -149,28 +150,78 @@ func calculate_optional_expenses(campaign_data: Resource) -> Dictionary:
 
 	return options
 
-func _get_crew_members(campaign_data: Resource) -> Array[Resource]:
+func _get_crew_members(campaign_data: Resource) -> Array:
 	"""Get crew members from campaign data"""
-	if campaign_data and campaign_data and campaign_data.has_method("get_meta"):
-		return campaign_data.get_meta("crew_members")
+	if not campaign_data:
+		return []
+	
+	# Try get_crew_members() method first (standard API)
+	if campaign_data.has_method("get_crew_members"):
+		var crew = campaign_data.get_crew_members()
+		return crew if crew is Array else []
+	
+	# Try direct property access
+	if "crew_members" in campaign_data:
+		var crew = campaign_data.get("crew_members")
+		return crew if crew is Array else []
+	
 	return []
 
 func _get_ship_data(campaign_data: Resource) -> Resource:
 	"""Get ship _data from campaign"""
-	if campaign_data and campaign_data and campaign_data.has_method("get_meta"):
-		return campaign_data.get_meta("ship_data")
+	if not campaign_data:
+		return null
+
+	# Try get_meta method first (standard Godot API)
+	if campaign_data.has_method("get_meta"):
+		var value = campaign_data.get_meta("ship_data")
+		if value != null and value is Resource:
+			return value
+
+	# Try direct property access
+	if "ship_data" in campaign_data:
+		var value = campaign_data.get("ship_data")
+		if value is Resource:
+			return value
+
 	return null
 
 func _get_living_standard(campaign_data: Resource) -> String:
 	"""Get current living standard"""
-	if campaign_data and campaign_data and campaign_data.has_method("get_meta"):
-		return campaign_data.get_meta("living_standard")
+	if not campaign_data:
+		return "normal"
+
+	# Try get_meta method first (standard Godot API)
+	if campaign_data.has_method("get_meta"):
+		var value = campaign_data.get_meta("living_standard")
+		if value != null:
+			return value
+
+	# Try direct property access
+	if "living_standard" in campaign_data:
+		var value = campaign_data.get("living_standard")
+		if value is String:
+			return value
+
 	return "normal"
 
 func _get_credits(campaign_data: Resource) -> int:
 	"""Get current credits"""
-	if campaign_data and campaign_data and campaign_data.has_method("get_meta"):
-		return campaign_data.get_meta("credits")
+	if not campaign_data:
+		return 0
+
+	# Try get_meta method first (standard Godot API)
+	if campaign_data.has_method("get_meta"):
+		var value = campaign_data.get_meta("credits")
+		if value != null and value is int:
+			return value
+
+	# Try direct property access
+	if "credits" in campaign_data:
+		var value = campaign_data.get("credits")
+		if value is int:
+			return value
+
 	return 0
 
 func _set_credits(campaign_data: Resource, credits: int) -> void:
@@ -210,8 +261,9 @@ func _check_crew_departure(campaign_data: Resource) -> void:
 		var departure_chance = randi_range(1, 6)
 		if departure_chance <= 2: # 33% chance
 			var leaving_member = crew_members.pick_random()
-			crew_members.erase(leaving_member)
-			campaign_data.set_meta("crew_members", crew_members)
+			if leaving_member != null:
+				crew_members.erase(leaving_member)
+				campaign_data.set_meta("crew_members", crew_members)
 
 func _apply_medical_complications(campaign_data: Resource) -> void:
 	"""Apply medical complications to injured crew"""

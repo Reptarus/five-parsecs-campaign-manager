@@ -485,14 +485,14 @@ static func create_job_opportunity(job_id: String, job_title: String, job_type: 
 	return JobOpportunity.new(job_id, job_title, job_type)
 
 ## Utility methods for batch operations
-static func serialize_crew_task_results(results: Array[CrewTaskResult]) -> Array[Dictionary]:
+static func serialize_crew_task_results(results: Array) -> Array[Dictionary]:
 	var serialized: Array[Dictionary] = []
 	for result in results:
 		if result and result.validate():
 			serialized.append(result.serialize())
 	return serialized
 
-static func deserialize_crew_task_results(data: Array[Dictionary]) -> Array[CrewTaskResult]:
+static func deserialize_crew_task_results(data: Array) -> Array[CrewTaskResult]:
 	var results: Array[CrewTaskResult] = []
 	for result_data in data:
 		var result = CrewTaskResult.new()

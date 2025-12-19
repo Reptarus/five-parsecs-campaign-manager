@@ -135,7 +135,7 @@ func test_process_advancements_captain_only():
 	var results = helper._process_character_advancements([], test_captain)
 
 	assert_that(results).is_not_null()
-	assert_that(results).contains_keys(["captain_advancements", "crew_advancements"])
+	assert_dict(results).contains_keys(["captain_advancements", "crew_advancements"])
 	assert_that(results.captain_advancements).is_not_empty()
 
 func test_process_advancements_crew_only():
@@ -157,7 +157,7 @@ func test_process_advancements_crew_only():
 	var results = helper._process_character_advancements(test_crew, test_captain)
 
 	assert_that(results.crew_advancements).is_not_empty()
-	assert_that(results.crew_advancements).contains_keys(["Test Crew"])
+	assert_dict(results.crew_advancements).contains_keys(["Test Crew"])
 
 func test_process_advancements_priority_order():
 	"""Advancements follow priority: combat_skill > reactions > toughness > speed > savvy > luck"""

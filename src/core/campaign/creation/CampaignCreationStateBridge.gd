@@ -54,6 +54,8 @@ func _init() -> void:
 func _ready() -> void:
 	print("CampaignCreationStateBridge: Initializing scene coordination system...")
 	_initialize_systems()
+	# Initialize auto-save timer
+	_setup_auto_save_timer()
 
 func _initialize_systems() -> void:
 	"""Initialize state manager and scene router connections"""
@@ -304,7 +306,7 @@ func _on_state_manager_updated(phase: CampaignCreationStateManager.Phase, data: 
 	"""Handle state manager updates"""
 	print("CampaignCreationStateBridge: State manager updated for phase: %s" % phase)
 
-func _on_state_validation_changed(is_valid: bool, errors: Array[String]) -> void:
+func _on_state_validation_changed(is_valid: bool, errors: Array) -> void:
 	"""Handle state validation changes"""
 	if not current_scene.is_empty():
 		scene_validation_states[current_scene] = is_valid
@@ -379,11 +381,9 @@ static func safe_transition_to_scene(scene_name: String, context: Dictionary = {
 
 var auto_save_enabled: bool = true
 var recovery_save_path: String = "user://campaign_creation_recovery.dat"
+var auto_save_interval: float = 30.0  # Seconds between auto-saves
+var last_auto_save: float = 0.0  # Time since last auto-save
 var _auto_save_timer: Timer
-
-func _ready() -> void:
-	"""Initialize auto-save timer"""
-	_setup_auto_save_timer()
 
 func _exit_tree() -> void:
 	"""Cleanup when bridge is removed from scene tree"""

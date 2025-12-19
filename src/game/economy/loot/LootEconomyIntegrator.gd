@@ -128,7 +128,7 @@ func calculate_market_value(item: GameItem, market_context: Dictionary = {}) -> 
 	return roundi(base_value * market_modifier)
 
 ## Process contraband trade with risk/reward mechanics
-func process_contraband_trade(contraband_items: Array[GameItem], trade_context: Dictionary) -> Dictionary:
+func process_contraband_trade(contraband_items: Array, trade_context: Dictionary) -> Dictionary:
 	var trade_result: Dictionary = {
 		"total_value": 0,
 		"risk_level": 0,
@@ -160,7 +160,7 @@ func process_contraband_trade(contraband_items: Array[GameItem], trade_context: 
 	return trade_result
 
 ## Update market demand based on recent activities
-func update_market_demand(items_traded: Array[GameItem], location: String) -> void:
+func update_market_demand(items_traded: Array, location: String) -> void:
 	if not market_fluctuation_enabled:
 		return
 	
@@ -395,7 +395,7 @@ func _attempt_contraband_trade(item: GameItem, total_risk: int, context: Diction
 	
 	return trade_result
 
-func _generate_market_report(items: Array[GameItem], context: Dictionary) -> Dictionary:
+func _generate_market_report(items: Array, context: Dictionary) -> Dictionary:
 	var report: Dictionary = {
 		"total_items_processed": items.size(),
 		"item_type_breakdown": {},
@@ -441,7 +441,7 @@ func _generate_market_report(items: Array[GameItem], context: Dictionary) -> Dic
 	
 	return report
 
-func _calculate_economic_impact(items: Array[GameItem], total_value: int, context: Dictionary) -> Dictionary:
+func _calculate_economic_impact(items: Array, total_value: int, context: Dictionary) -> Dictionary:
 	var impact: Dictionary = {
 		"crew_wealth_increase": total_value,
 		"market_disruption": 0,

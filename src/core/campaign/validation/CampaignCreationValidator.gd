@@ -673,7 +673,7 @@ static func _calculate_character_completeness(character: Variant) -> float:
 
 ## Validation result aggregation
 
-static func aggregate_validation_results(results: Array[ValidationResult]) -> ValidationResult:
+static func aggregate_validation_results(results: Array) -> ValidationResult:
 	"""Aggregate multiple validation results into one"""
 	var all_valid = true
 	var all_errors: Array[String] = []

@@ -67,11 +67,11 @@ var _credits_spent_this_turn: bool = false
 var _xp_spent_this_turn: bool = false
 var _action_spent_this_turn: bool = false
 
-## Campaign reference for difficulty settings
-var _campaign: Campaign = null
+## Campaign reference for difficulty settings (Variant to avoid type conflicts)
+var _campaign: Variant = null
 
 ## Constructor
-func _init(campaign: Campaign = null) -> void:
+func _init(campaign: Variant = null) -> void:
 	_campaign = campaign
 
 ## Initialize starting story points based on difficulty
@@ -83,12 +83,12 @@ func initialize_starting_points(difficulty: int) -> int:
 		story_points_changed.emit(0, 0)
 		return 0
 
-	# Roll 1D6+1 for base starting points
-	var base_roll := DiceSystem.roll("1d6") + 1
-	var starting_points := base_roll
+	# Roll 1D6+1 for base starting points (using randi for simple d6)
+	var base_roll: int = (randi() % 6) + 1 + 1  # d6 + 1
+	var starting_points: int = base_roll
 
 	# Apply Hardcore penalty
-	if difficulty == DifficultyModifiers.Difficulty.HARDCORE:
+	if difficulty == GlobalEnums.DifficultyLevel.HARDCORE:
 		starting_points += HARDCORE_PENALTY
 
 	# Ensure minimum of 0 (in case hardcore reduces below 0)
@@ -100,13 +100,21 @@ func initialize_starting_points(difficulty: int) -> int:
 
 	return starting_points
 
-## Check if story points system is disabled (Insanity mode)
+## Check if story points system is disabled (Nightmare mode only)
 func _is_story_points_disabled() -> bool:
 	if _campaign == null:
 		return false
 
-	# Insanity mode disables story points entirely
-	return _campaign.config.difficulty == DifficultyModifiers.Difficulty.INSANITY
+	# Nightmare mode disables story points entirely
+	# Hardcore mode reduces starting points but does NOT disable the system
+	if _campaign is Object and "config" in _campaign:
+		var config = _campaign.config
+		# Handle both Object and Dictionary config types
+		if config is Dictionary and "difficulty" in config:
+			return config["difficulty"] == GlobalEnums.DifficultyLevel.NIGHTMARE
+		elif config is Object and "difficulty" in config:
+			return config.difficulty == GlobalEnums.DifficultyLevel.NIGHTMARE
+	return false
 
 ## Get current story point balance
 func get_current_points() -> int:
@@ -255,7 +263,7 @@ func remove_points(amount: int) -> void:
 	story_points_changed.emit(old_value, _current_points)
 
 ## Set campaign reference (if not provided in constructor)
-func set_campaign(campaign: Campaign) -> void:
+func set_campaign(campaign: Variant) -> void:
 	_campaign = campaign
 
 ## Serialize for save/load

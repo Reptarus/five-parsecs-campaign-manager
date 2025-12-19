@@ -40,6 +40,7 @@ CampaignTurnEventBus="*res://src/core/events/CampaignTurnEventBus.gd"
 ResponsiveManager="*res://src/autoload/ResponsiveManager.gd"
 FPCM_AlphaGameManager="*res://src/core/managers/AlphaGameManager.gd"
 ThemeManager="*res://src/ui/themes/ThemeManager.gd"
+Systems="*res://src/autoload/SystemsAutoload.gd"
 
 [debug]
 

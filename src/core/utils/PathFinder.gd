@@ -174,7 +174,7 @@ func _retrace_path(start_node: Variant, end_node: Variant) -> Array[Vector2]:
 	path.reverse()
 	return path
 
-func _calculate_path_cost(path: Array[Vector2]) -> float:
+func _calculate_path_cost(path: Array) -> float:
 	var total_cost := 0.0
 
 	for i: int in range(1, (safe_call_method(path, "size") as int)):

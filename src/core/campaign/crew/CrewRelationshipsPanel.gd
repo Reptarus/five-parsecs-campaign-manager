@@ -27,7 +27,7 @@ func _ready() -> void:
 
 	# Hide add relationship panel initially
 	$VBoxContainer/AddRelationshipPanel.hide()
-func initialize(members: Array[Character]) -> void:
+func initialize(members: Array) -> void:
 	crew_members = members
 	relationship_manager.generate_initial_relationships(members)
 	_update_display()

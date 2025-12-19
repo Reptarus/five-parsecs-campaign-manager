@@ -661,7 +661,7 @@ func automate_crew_task_resolution(crew_assignments: Dictionary) -> void:
 	])
 
 ## PERFORMANCE OPTIMIZED: Process crew task batch with concurrent execution
-func _process_crew_task_batch_optimized(batch_tasks: Array[Dictionary], completed_offset: int, total_tasks: int) -> Array[Dictionary]:
+func _process_crew_task_batch_optimized(batch_tasks: Array, completed_offset: int, total_tasks: int) -> Array[Dictionary]:
 	var batch_results: Array[Dictionary] = []
 	var active_tasks: Array[Dictionary] = []
 	
@@ -1902,7 +1902,7 @@ func set_performance_monitoring(enabled: bool, target_ms: float = 16.67) -> void
 ## ENHANCED BATCH AUTOMATION METHODS
 
 ## Batch automation for multiple crew tasks with performance optimization
-func automate_batch_crew_tasks(crew_task_batch: Array[Dictionary]) -> Array[Dictionary]:
+func automate_batch_crew_tasks(crew_task_batch: Array) -> Array[Dictionary]:
 	"""Automate multiple crew tasks efficiently with dice animation batching"""
 	var start_time := Time.get_ticks_msec()
 	var batch_results: Array[Dictionary] = []

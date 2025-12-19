@@ -1,11 +1,19 @@
 class_name PostBattleSequenceUI
 extends Control
 
-# Backend Service Integrations
-const InjurySystemService = preload("res://src/core/services/InjurySystemService.gd")
-const CharacterAdvancementService = preload("res://src/core/services/CharacterAdvancementService.gd")
-const EnemyLootGenerator = preload("res://src/game/economy/loot/EnemyLootGenerator.gd")
-const GameDataLoader = preload("res://src/utils/GameDataLoader.gd")
+# Backend Service Integrations - using explicit preloads to fix linter issues
+const FPCM_InjuryService = preload("res://src/core/services/InjurySystemService.gd")
+const FPCM_HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
+const AdvancementService = preload("res://src/core/services/CharacterAdvancementService.gd")
+const LootGenerator = preload("res://src/game/economy/loot/EnemyLootGenerator.gd")
+const DataLoader = preload("res://src/utils/GameDataLoader.gd")
+const WarPanel = preload("res://src/ui/components/postbattle/GalacticWarPanel.tscn")
+const TrainingDialog = preload("res://src/ui/components/postbattle/TrainingSelectionDialog.tscn")
+const AdvancementSystemClass = preload("res://src/core/character/advancement/AdvancementSystem.gd")
+const NarrativeInjuryDialog = preload("res://src/ui/components/postbattle/NarrativeInjuryDialog.gd")
+
+# Bot upgrade system instance
+var _advancement_system: RefCounted = null
 
 signal post_battle_completed(results: Dictionary)
 signal step_completed(step_index: int, results: Dictionary)
@@ -24,6 +32,11 @@ var current_step: int = 0
 var max_steps: int = 14
 var battle_results: Dictionary = {}
 var step_results: Array[Dictionary] = []
+
+## Helper to work around static function linter issues with InjurySystemService
+func _is_narrative_injuries_mode() -> bool:
+	# Use preloaded HouseRulesHelper (same logic as InjurySystemService.is_narrative_injuries_enabled)
+	return FPCM_HouseRulesHelper.is_enabled("narrative_injuries")
 
 var post_battle_steps: Array[Dictionary] = [
 	{"name": "1. Resolve Rival Status", "description": "Check if rivals follow you", "requires_roll": true},
@@ -44,10 +57,16 @@ var post_battle_steps: Array[Dictionary] = [
 
 func _ready() -> void:
 	print("PostBattleSequence: Initializing...")
+	_initialize_advancement_system()
 	_initialize_steps()
 	_load_battle_results()
 	_show_current_step()
 	_setup_postbattle_icons()
+
+
+func _initialize_advancement_system() -> void:
+	"""Initialize the advancement system for bot upgrades"""
+	_advancement_system = AdvancementSystemClass.new()
 
 func _initialize_steps() -> void:
 	"""Initialize the post-battle sequence"""
@@ -337,44 +356,82 @@ func _add_injury_content() -> void:
 func _create_injury_panel(type: String, num: int, is_casualty: bool) -> Control:
 	"""Create a panel for injury resolution"""
 	var panel = HBoxContainer.new()
-	
+
 	var label = Label.new()
 	label.text = "%s %d:" % [type, num]
 	label.custom_minimum_size.x = 100
 	panel.add_child(label)
-	
+
 	var roll_button = Button.new()
-	roll_button.text = "Roll Injury" if not is_casualty else "Roll Severity"
+	# Check if narrative_injuries house rule is enabled
+	if _is_narrative_injuries_mode():
+		roll_button.text = "Choose Injury" if not is_casualty else "Choose Severity"
+		roll_button.tooltip_text = "Narrative Injuries: You decide the outcome!"
+	else:
+		roll_button.text = "Roll Injury" if not is_casualty else "Roll Severity"
 	roll_button.pressed.connect(_on_injury_roll.bind(type, num, is_casualty))
 	panel.add_child(roll_button)
-	
+
 	var result_label = Label.new()
 	result_label.name = "injury_result_%s_%d" % [type.to_lower(), num]
-	result_label.text = "Not rolled"
+	result_label.text = "Not rolled" if not _is_narrative_injuries_mode() else "Not selected"
 	panel.add_child(result_label)
-	
+
 	return panel
 
 func _add_experience_content() -> void:
-	"""Add experience content with Five Parsecs advancement"""
+	"""Add experience content with Five Parsecs advancement
+
+	Per Core Rules p.98: Bots don't gain XP - they purchase upgrades with credits instead.
+	"""
 	var label: Label = Label.new()
 	label.text = "Crew members gain experience from battle. Roll for advancement!"
 	step_content.add_child(label)
-	
+
 	# Get crew from campaign
 	var campaign_manager = get_node_or_null("/root/CampaignManager")
 	if campaign_manager and campaign_manager.has_method("get_crew_members"):
 		var crew = campaign_manager.get_crew_members()
-		var exp_container = VBoxContainer.new()
-		
+
+		# Separate bots from regular crew
+		var regular_crew_container = VBoxContainer.new()
+		var bot_crew_container = VBoxContainer.new()
+		var has_bots: bool = false
+		var has_regular_crew: bool = false
+
 		for crew_member in crew:
 			# Skip if crew member was a casualty
 			if not _was_crew_casualty(crew_member):
-				var exp_panel = _create_experience_panel(crew_member)
-				exp_container.add_child(exp_panel)
-		
-		step_content.add_child(exp_container)
-	
+				if _is_crew_member_bot(crew_member):
+					# Bot: Show upgrade panel instead of XP roll
+					var bot_panel = _create_bot_upgrade_panel(crew_member)
+					bot_crew_container.add_child(bot_panel)
+					has_bots = true
+				else:
+					# Regular crew: XP advancement roll
+					var exp_panel = _create_experience_panel(crew_member)
+					regular_crew_container.add_child(exp_panel)
+					has_regular_crew = true
+
+		# Add regular crew section
+		if has_regular_crew:
+			step_content.add_child(regular_crew_container)
+
+		# Add bot section with header if there are bots
+		if has_bots:
+			var bot_header = Label.new()
+			bot_header.text = "\n🤖 Bot Upgrades (Credits-Based)"
+			bot_header.modulate = Color("#4FC3F7")  # Cyan accent
+			step_content.add_child(bot_header)
+
+			var bot_info = Label.new()
+			bot_info.text = "Bots don't gain XP - purchase upgrades with credits instead."
+			bot_info.modulate = Color("#808080")  # Dimmed
+			bot_info.add_theme_font_size_override("font_size", 12)
+			step_content.add_child(bot_info)
+
+			step_content.add_child(bot_crew_container)
+
 	var story_points = battle_results.get("story_points_earned", 1)
 	var story_label = Label.new()
 	story_label.text = "Story Points earned this battle: %d" % story_points
@@ -402,11 +459,169 @@ func _create_experience_panel(crew_member: Dictionary) -> Control:
 	
 	return panel
 
+
+func _is_crew_member_bot(crew_member: Dictionary) -> bool:
+	"""Check if crew member is a bot (Five Parsecs p.98)"""
+	# Check is_bot field from serialized character
+	if crew_member.get("is_bot", false):
+		return true
+
+	# Fallback: check origin field
+	var origin = crew_member.get("origin", "")
+	return origin == "BOT" or origin == "Bot"
+
+
+func _create_bot_upgrade_panel(crew_member: Dictionary) -> Control:
+	"""Create bot upgrade panel showing available credit-based upgrades"""
+	var panel = VBoxContainer.new()
+	panel.add_theme_constant_override("separation", 8)
+
+	# Bot name header
+	var header = HBoxContainer.new()
+	var name_label = Label.new()
+	name_label.text = "🤖 %s" % crew_member.get("name", "Unknown Bot")
+	name_label.custom_minimum_size.x = 150
+	header.add_child(name_label)
+
+	# Current credits display
+	var game_state = get_node_or_null("/root/GameStateManager")
+	var current_credits: int = 0
+	if game_state and game_state.has_method("get_credits"):
+		current_credits = game_state.get_credits()
+
+	var credits_label = Label.new()
+	credits_label.text = "Credits: %d" % current_credits
+	credits_label.modulate = Color("#10B981")  # Green
+	header.add_child(credits_label)
+	panel.add_child(header)
+
+	# Get available upgrades for this bot
+	if _advancement_system:
+		var installed_upgrades: Array = crew_member.get("bot_upgrades", [])
+		var available_upgrades = _advancement_system.get_available_bot_upgrades(null)
+
+		# Create upgrade options
+		var upgrade_container = HBoxContainer.new()
+		upgrade_container.add_theme_constant_override("separation", 12)
+
+		for upgrade_data in available_upgrades:
+			var upgrade_id: String = upgrade_data.get("id", "")
+
+			# Skip if already installed
+			if upgrade_id in installed_upgrades:
+				continue
+
+			var upgrade_button = Button.new()
+			var cost: int = upgrade_data.get("cost", 0)
+			var can_afford: bool = current_credits >= cost
+
+			upgrade_button.text = "%s (%d cr)" % [upgrade_data.get("name", upgrade_id), cost]
+			upgrade_button.tooltip_text = upgrade_data.get("description", "")
+			upgrade_button.custom_minimum_size = Vector2(0, 40)
+			upgrade_button.disabled = not can_afford
+
+			if can_afford:
+				upgrade_button.pressed.connect(_on_bot_upgrade_selected.bind(crew_member, upgrade_id, upgrade_button))
+			else:
+				upgrade_button.modulate = Color("#808080")  # Dimmed if can't afford
+
+			upgrade_container.add_child(upgrade_button)
+
+		# Check if all upgrades are installed
+		if upgrade_container.get_child_count() == 0:
+			var all_done_label = Label.new()
+			all_done_label.text = "All upgrades installed!"
+			all_done_label.modulate = Color("#10B981")
+			upgrade_container.add_child(all_done_label)
+
+		panel.add_child(upgrade_container)
+
+		# Show installed upgrades count
+		var installed_label = Label.new()
+		installed_label.text = "Installed: %d upgrades" % installed_upgrades.size()
+		installed_label.modulate = Color("#808080")
+		installed_label.add_theme_font_size_override("font_size", 11)
+		panel.add_child(installed_label)
+
+	return panel
+
+
+func _on_bot_upgrade_selected(crew_member: Dictionary, upgrade_id: String, button: Button) -> void:
+	"""Handle bot upgrade purchase"""
+	print("PostBattleSequence: Bot upgrade selected - %s for %s" % [upgrade_id, crew_member.get("name", "Unknown")])
+
+	# Get game state for credit deduction
+	var game_state = get_node_or_null("/root/GameStateManager")
+	if not game_state:
+		push_error("PostBattleSequence: Cannot find GameStateManager for bot upgrade")
+		return
+
+	# Get the actual character Resource from campaign
+	var campaign_manager = get_node_or_null("/root/CampaignManager")
+	var bot_resource: Resource = null
+	if campaign_manager and campaign_manager.has_method("get_crew_member_by_id"):
+		bot_resource = campaign_manager.get_crew_member_by_id(crew_member.get("id", -1))
+	elif campaign_manager and campaign_manager.has_method("get_crew_member_by_name"):
+		bot_resource = campaign_manager.get_crew_member_by_name(crew_member.get("name", ""))
+
+	if not bot_resource:
+		push_error("PostBattleSequence: Could not find bot Resource for upgrade")
+		return
+
+	# Install the upgrade via AdvancementSystem
+	if _advancement_system:
+		var success = _advancement_system.install_bot_upgrade(bot_resource, upgrade_id, game_state)
+		if success:
+			# Update button to show installed
+			button.text = "✅ Installed!"
+			button.disabled = true
+			button.modulate = Color("#10B981")
+
+			# Record in step results
+			if step_results.size() > current_step:
+				var current_results = step_results[current_step]
+				if not current_results.has("bot_upgrades"):
+					current_results["bot_upgrades"] = []
+				current_results["bot_upgrades"].append({
+					"bot_name": crew_member.get("name", "Unknown"),
+					"upgrade_id": upgrade_id
+				})
+
+			print("PostBattleSequence: Bot upgrade installed successfully")
+		else:
+			# Show error feedback
+			button.text = "❌ Failed"
+			button.modulate = Color("#DC2626")
+			print("PostBattleSequence: Bot upgrade installation failed")
+
+
 func _add_training_content() -> void:
-	"""Add training content"""
-	var label: Label = Label.new()
-	label.text = "Invest credits in advanced training for crew members."
-	step_content.add_child(label)
+	"""Add training content with TrainingSelectionDialog integration"""
+	if not step_content:
+		return
+
+	# Clear existing content
+	for child in step_content.get_children():
+		child.queue_free()
+
+	# Instantiate training dialog
+	var dialog = TrainingDialog.instantiate()
+	if dialog:
+		# Get current crew and credits
+		var crew = _get_current_crew()
+		var credits = _get_current_credits()
+
+		# Setup with current crew data
+		if dialog.has_method("setup"):
+			dialog.setup(crew, credits)
+
+		# Connect signals
+		if dialog.has_signal("training_completed"):
+			dialog.training_completed.connect(_on_training_completed)
+		if dialog.has_signal("dialog_closed"):
+			dialog.dialog_closed.connect(_on_training_closed)
+
+		step_content.add_child(dialog)
 
 func _add_purchase_content() -> void:
 	"""Add purchase content"""
@@ -530,10 +745,27 @@ func _on_character_event_roll(crew_member: Dictionary) -> void:
 	_add_result_to_log("%s Character Event: %s" % [crew_member.get("name", "Crew"), result_text])
 
 func _add_galactic_war_content() -> void:
-	"""Add galactic war content"""
-	var label: Label = Label.new()
-	label.text = "Check Galactic War progression and effects."
-	step_content.add_child(label)
+	"""Add galactic war content using GalacticWarPanel"""
+	if not step_content:
+		return
+
+	# Clear existing content
+	for child in step_content.get_children():
+		child.queue_free()
+
+	# Instantiate war panel
+	var panel = WarPanel.instantiate()
+	if panel:
+		# Setup with current war events/state
+		if panel.has_method("setup"):
+			var war_events = _get_war_events()
+			panel.setup(war_events)
+
+		# Connect signals
+		if panel.has_signal("war_panel_closed"):
+			panel.war_panel_closed.connect(_on_war_panel_closed)
+
+		step_content.add_child(panel)
 
 func _add_result_to_log(result: String) -> void:
 	"""Add a result to the results log"""
@@ -765,18 +997,18 @@ func _on_apply_payment(amount: int) -> void:
 func _on_battlefield_find_roll(enemy_num: int) -> void:
 	"""Handle battlefield find roll using JSON data table"""
 	# Load battlefield finds table
-	var finds_table = GameDataLoader.get_battlefield_finds_table()
+	var finds_table = DataLoader.get_battlefield_finds_table()
 	
 	if finds_table.is_empty():
 		push_error("PostBattleSequence: Failed to load battlefield_finds.json")
 		_add_result_to_log("Enemy %d search: ERROR - Could not load loot table" % enemy_num)
 		return
 	
-	# Roll d6 using GameDataLoader helper
-	var roll = GameDataLoader.roll_d6()
+	# Roll d6 using DataLoader helper
+	var roll = DataLoader.roll_d6()
 	
 	# Look up result in table
-	var result_data = GameDataLoader.roll_on_table(finds_table, roll)
+	var result_data = DataLoader.roll_on_table(finds_table, roll)
 	
 	if result_data.is_empty():
 		push_error("PostBattleSequence: No result for battlefield find roll %d" % roll)
@@ -839,7 +1071,13 @@ func _on_battlefield_find_roll(enemy_num: int) -> void:
 	print("PostBattleSequence: Battlefield find - roll=%d, outcome=%s, credits=%d" % [roll, outcome, credits])
 
 func _on_injury_roll(type: String, num: int, is_casualty: bool) -> void:
-	"""Handle injury severity roll using InjurySystemService"""
+	"""Handle injury severity roll or narrative selection using FPCM_InjuryService"""
+	# HOUSE RULE: narrative_injuries - Player chooses injury instead of rolling
+	if _is_narrative_injuries_mode():
+		_show_narrative_injury_dialog(type, num, is_casualty)
+		return
+
+	# Standard roll-based injury determination
 	var dice_manager = get_node_or_null("/root/DiceManager")
 	var roll = 0
 
@@ -848,14 +1086,60 @@ func _on_injury_roll(type: String, num: int, is_casualty: bool) -> void:
 	else:
 		roll = randi_range(1, 100)
 
-	# Use InjurySystemService for proper injury determination
-	var injury_data = InjurySystemService.determine_injury(roll)
+	# Use FPCM_InjuryService for proper injury determination
+	var injury_data = FPCM_InjuryService.determine_injury(roll)
+	_apply_injury_result(type, num, injury_data, roll)
+
+func _show_narrative_injury_dialog(type: String, num: int, _is_casualty: bool) -> void:
+	"""Show narrative injury selection dialog"""
+	var dialog = NarrativeInjuryDialog.new()
+	dialog.setup("Crew Member %s %d" % [type, num])
+
+	# Connect signals
+	dialog.injury_selected.connect(_on_narrative_injury_selected.bind(type, num))
+	dialog.dialog_closed.connect(_on_narrative_injury_cancelled.bind(type, num))
+
+	# Add as popup in center of screen
+	add_child(dialog)
+	dialog.anchor_left = 0.5
+	dialog.anchor_top = 0.5
+	dialog.anchor_right = 0.5
+	dialog.anchor_bottom = 0.5
+	dialog.position = -dialog.size / 2
+
+func _on_narrative_injury_selected(injury_data: Dictionary, type: String, num: int) -> void:
+	"""Handle narrative injury selection from dialog"""
+	print("PostBattleSequence: Narrative injury selected - %s" % injury_data.get("type_name", "Unknown"))
+	_apply_injury_result(type, num, injury_data, -1)  # -1 indicates narrative selection
+
+func _on_narrative_injury_cancelled(type: String, num: int) -> void:
+	"""Handle narrative injury dialog cancelled - fall back to rolling"""
+	print("PostBattleSequence: Narrative injury cancelled, falling back to roll")
+	# Roll instead
+	var dice_manager = get_node_or_null("/root/DiceManager")
+	var roll = 0
+
+	if dice_manager:
+		roll = dice_manager.roll_dice("%s %d Injury (cancelled narrative)" % [type, num], "D100")
+	else:
+		roll = randi_range(1, 100)
+
+	var injury_data = FPCM_InjuryService.determine_injury(roll)
+	_apply_injury_result(type, num, injury_data, roll)
+
+func _apply_injury_result(type: String, num: int, injury_data: Dictionary, roll: int) -> void:
+	"""Apply injury result to UI and step results"""
 	var severity = injury_data.get("type_name", "Unknown")
-	var description = injury_data.get("description", "")
 	var recovery_turns = injury_data.get("recovery_turns", 0)
 	var is_fatal = injury_data.get("is_fatal", false)
+	var is_narrative = injury_data.get("narrative_choice", false)
 
-	var result_text = "Rolled %d - %s" % [roll, severity]
+	var result_text: String
+	if is_narrative:
+		result_text = "Selected: %s" % severity
+	else:
+		result_text = "Rolled %d - %s" % [roll, severity]
+
 	if is_fatal:
 		result_text += " (FATAL)"
 	elif recovery_turns > 0:
@@ -1046,3 +1330,63 @@ func _was_crew_casualty(crew_member: Dictionary) -> bool:
 	"""Check if crew member was a casualty in battle"""
 	# This would need to check against actual battle results
 	return false # Placeholder implementation
+
+func _get_war_events() -> Array:
+	"""Return war events from battle results or state manager"""
+	if battle_results and battle_results.has("war_events"):
+		return battle_results.get("war_events", [])
+	return []
+
+func _on_war_panel_closed() -> void:
+	"""Handle war panel closed signal"""
+	print("PostBattleSequence: War panel closed")
+	_advance_to_next_step()
+
+func _advance_to_next_step() -> void:
+	"""Advance to next step (used by war panel and other components)"""
+	_on_next_pressed()
+
+func _get_current_crew() -> Array[Resource]:
+	"""Get current crew members as Resource array for training dialog"""
+	var crew_array: Array[Resource] = []
+	var campaign_manager = get_node_or_null("/root/CampaignManager")
+
+	if campaign_manager and campaign_manager.has_method("get_crew_members"):
+		var crew = campaign_manager.get_crew_members()
+		# Convert to Resource array if needed
+		for crew_member in crew:
+			if crew_member is Resource:
+				crew_array.append(crew_member)
+
+	return crew_array
+
+func _get_current_credits() -> int:
+	"""Get current campaign credits from GameStateManager"""
+	var game_state = get_node_or_null("/root/GameStateManager")
+	if game_state and game_state.has_method("get_credits"):
+		return game_state.get_credits()
+	return 0
+
+func _on_training_completed(character: Resource, training_type: String) -> void:
+	"""Handle training completion from TrainingSelectionDialog"""
+	print("PostBattleSequence: Training completed - Character: ", character.get("character_name") if character else "Unknown", " Type: ", training_type)
+
+	# Store training result
+	if not step_results[current_step].has("training_completed"):
+		step_results[current_step]["training_completed"] = []
+
+	step_results[current_step]["training_completed"].append({
+		"character": character,
+		"training_type": training_type,
+		"timestamp": Time.get_unix_time_from_system()
+	})
+
+	# Add to results log
+	var char_name = character.get("character_name") if character else "Unknown"
+	_add_result_to_log("%s completed %s training" % [char_name, training_type])
+
+func _on_training_closed() -> void:
+	"""Handle training dialog closed signal"""
+	print("PostBattleSequence: Training dialog closed")
+	# Note: Do NOT auto-advance - user may want to train multiple characters
+	# They will manually click Next when done

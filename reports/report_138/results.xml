@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites id="2025-12-19" name="report_138" tests="4" failures="0" skipped="0" flaky="0" time="0.000">
+	<testsuite id="0" name="test_story_mission_loader_part2" package="tests/unit" timestamp="2025-12-19T20:39:45" hostname="localhost" tests="4" failures="0" errors="0" skipped="0" flaky="0" time="0.218">
+		<testcase name="test_get_battlefield_data_returns_structure" classname="test_story_mission_loader_part2" time="0.048">
+		</testcase>
+		<testcase name="test_get_enemy_composition_returns_curated_data" classname="test_story_mission_loader_part2" time="0.038">
+		</testcase>
+		<testcase name="test_is_final_mission_detects_completion_trigger" classname="test_story_mission_loader_part2" time="0.038">
+		</testcase>
+		<testcase name="test_load_story_mission_by_number" classname="test_story_mission_loader_part2" time="0.039">
+		</testcase>
+	</testsuite>
+</testsuites>

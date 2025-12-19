@@ -27,13 +27,13 @@ func _init() -> void:
 	generation_seed = RandomNumberGenerator.new().randi()
 
 ## Initialize with terrain suggestions
-func setup_terrain_suggestions(features: Array[FPCM_BattlefieldTypes.TerrainFeature]) -> void:
+func setup_terrain_suggestions(features: Array) -> void:
 	terrain_features = features
 	terrain_count = features.size()
 	_generate_setup_summary()
 
 ## Add deployment zone information
-func set_deployment_zones(crew_zone: Array[Vector2i], enemy_zone: Array[Vector2i]) -> void:
+func set_deployment_zones(crew_zone: Array, enemy_zone: Array) -> void:
 	deployment_zones = {
 		"crew": crew_zone,
 		"enemy": enemy_zone,

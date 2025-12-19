@@ -12,6 +12,7 @@ signal scale_changed(scale_factor: float)
 signal accessibility_changed(settings: Dictionary)
 
 enum ThemeVariant {
+	DEFAULT,        # Alias for DARK (for compatibility)
 	DARK,           # Default deep space theme
 	LIGHT,          # Light mode variant
 	HIGH_CONTRAST,  # Accessibility high contrast

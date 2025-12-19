@@ -26,6 +26,8 @@ signal round_ended(round_number: int, summary: RoundSummary)
 signal battle_event_occurred(event: BattleEvent)
 signal victory_condition_met(team: String, condition: String)
 signal tracking_error(error_code: String, details: Dictionary)
+signal unit_reaction_spent(unit_id: String, reactions_remaining: int, max_reactions: int)
+signal unit_reactions_reset(unit_id: String, max_reactions: int)
 
 # Battle event types for real-time generation
 enum EventType {
@@ -104,8 +106,16 @@ func _initialize_dependencies() -> void:
 	
 	if not dice_manager:
 		push_warning("BattleTracker: DiceManager unavailable, using fallback")
+	# BattleEventsSystem is not an autoload - it's created as a Resource instance
+	# This warning is expected and indicates fallback behavior will be used
 	if not battle_events_system:
-		push_warning("BattleTracker: BattleEventsSystem unavailable, using simple events")
+		# Only warn in non-test environments to reduce log noise
+		var is_test_env = DisplayServer.get_name() == "headless" or \
+						 (Engine.get_main_loop() and Engine.get_main_loop() is SceneTree and \
+						  Engine.get_main_loop().get_root() and \
+						  Engine.get_main_loop().get_root().name.begins_with("test_"))
+		if not is_test_env:
+			push_warning("BattleTracker: BattleEventsSystem unavailable, using simple events")
 
 func _get_singleton_or_node(name: String) -> Node:
 	"""Safe singleton/node retrieval with fallback"""
@@ -301,13 +311,154 @@ func toggle_unit_activation(unit_id: String) -> bool:
 	var unit := tracked_units.get(unit_id) as BattlefieldTypes.UnitData
 	if not unit:
 		return false
-	
+
 	unit.activated_this_round = !unit.activated_this_round
 	if unit.activated_this_round:
 		unit_activated.emit(unit_id, current_round)
 	return true
 
-func batch_update_health(updates: Array[Dictionary]) -> Dictionary:
+# =====================================================
+# REACTION ECONOMY SYSTEM (Five Parsecs Core Rules)
+# =====================================================
+
+func can_unit_react(unit_id: String) -> bool:
+	"""
+	Check if unit can take a reaction action
+	Uses Character.can_use_reaction() for full validation including Swift species cap
+	@param unit_id: Unit identifier
+	@return: True if unit has reactions remaining
+	"""
+	var unit := tracked_units.get(unit_id) as BattlefieldTypes.UnitData
+	if not unit:
+		return false
+
+	# Get the source character if available
+	var source_character = unit.source_character if unit.has_method("get") else null
+	if source_character and source_character.has_method("can_use_reaction"):
+		return source_character.can_use_reaction()
+
+	# Fallback: Check unit data directly
+	var reactions_remaining := get_unit_reactions_remaining(unit_id)
+	return reactions_remaining > 0
+
+func spend_unit_reaction(unit_id: String) -> bool:
+	"""
+	Spend one reaction for unit action
+	Respects Swift species 1-reaction limit and other species caps
+	@param unit_id: Unit identifier
+	@return: True if reaction was successfully spent
+	"""
+	var unit := tracked_units.get(unit_id) as BattlefieldTypes.UnitData
+	if not unit:
+		tracking_error.emit("UNIT_NOT_FOUND", {"unit_id": unit_id, "operation": "spend_reaction"})
+		return false
+
+	# Get the source character if available
+	var source_character = unit.source_character if unit.has_method("get") else null
+	if source_character and source_character.has_method("spend_reaction"):
+		var success: bool = source_character.spend_reaction()
+		if success:
+			var remaining := get_unit_reactions_remaining(unit_id)
+			var max_reactions := get_unit_max_reactions(unit_id)
+			unit_reaction_spent.emit(unit_id, remaining, max_reactions)
+		return success
+
+	# Fallback: Use unit data tracking
+	if not can_unit_react(unit_id):
+		return false
+
+	# Increment internal tracking (if no Character available)
+	if not unit.has_method("get") or not "reactions_used_this_round" in unit:
+		unit.activated_this_round = true  # Legacy fallback
+
+	var remaining := get_unit_reactions_remaining(unit_id)
+	var max_reactions := get_unit_max_reactions(unit_id)
+	unit_reaction_spent.emit(unit_id, remaining, max_reactions)
+	return true
+
+func get_unit_reactions_remaining(unit_id: String) -> int:
+	"""
+	Get remaining reactions for unit this round
+	@param unit_id: Unit identifier
+	@return: Number of reactions remaining
+	"""
+	var unit := tracked_units.get(unit_id) as BattlefieldTypes.UnitData
+	if not unit:
+		return 0
+
+	# Get from source character if available
+	var source_character = unit.source_character if unit.has_method("get") else null
+	if source_character and source_character.has_method("get_reactions_remaining"):
+		return source_character.get_reactions_remaining()
+
+	# Fallback: Binary activated state (0 or max)
+	if unit.activated_this_round:
+		return 0
+	return get_unit_max_reactions(unit_id)
+
+func get_unit_max_reactions(unit_id: String) -> int:
+	"""
+	Get maximum reactions for unit per round
+	Accounts for Swift species (1 reaction) and other species modifiers
+	@param unit_id: Unit identifier
+	@return: Maximum reactions per round
+	"""
+	var unit := tracked_units.get(unit_id) as BattlefieldTypes.UnitData
+	if not unit:
+		return 0
+
+	# Get from source character if available
+	var source_character = unit.source_character if unit.has_method("get") else null
+	if source_character and source_character.has_method("get_max_reactions"):
+		return source_character.get_max_reactions()
+
+	# Default: 3 reactions per round (Five Parsecs standard)
+	return 3
+
+func reset_unit_reactions(unit_id: String) -> void:
+	"""
+	Reset reactions for a single unit at round start
+	@param unit_id: Unit identifier
+	"""
+	var unit := tracked_units.get(unit_id) as BattlefieldTypes.UnitData
+	if not unit:
+		return
+
+	# Reset on source character if available
+	var source_character = unit.source_character if unit.has_method("get") else null
+	if source_character and source_character.has_method("reset_reactions"):
+		source_character.reset_reactions()
+
+	# Reset legacy tracking
+	unit.activated_this_round = false
+
+	var max_reactions := get_unit_max_reactions(unit_id)
+	unit_reactions_reset.emit(unit_id, max_reactions)
+
+func get_units_with_reactions() -> Array[String]:
+	"""
+	Get list of unit IDs that still have reactions available this round
+	Useful for filtering action UI and AI decision making
+	@return: Array of unit IDs with remaining reactions
+	"""
+	var units_with_reactions: Array[String] = []
+	for unit_id in tracked_units.keys():
+		if can_unit_react(unit_id):
+			units_with_reactions.append(unit_id)
+	return units_with_reactions
+
+func get_units_exhausted() -> Array[String]:
+	"""
+	Get list of unit IDs that have exhausted their reactions this round
+	@return: Array of unit IDs with no remaining reactions
+	"""
+	var exhausted_units: Array[String] = []
+	for unit_id in tracked_units.keys():
+		if not can_unit_react(unit_id):
+			exhausted_units.append(unit_id)
+	return exhausted_units
+
+func batch_update_health(updates: Array) -> Dictionary:
 	"""
 	Batch health updates for performance optimization
 	@param updates: Array of {unit_id: String, health: int, source: String}
@@ -564,9 +715,9 @@ func _add_units_batch(units: Array, team: String) -> int:
 	return added_count
 
 func _reset_unit_activations() -> void:
-	"""Reset all unit activations efficiently"""
-	for unit in tracked_units.values():
-		unit.activated_this_round = false
+	"""Reset all unit activations and reactions at round start"""
+	for unit_id in tracked_units.keys():
+		reset_unit_reactions(unit_id)
 
 func _generate_activation_order() -> void:
 	"""Generate unit activation order (for initiative tracking)"""

@@ -181,7 +181,7 @@ func test_challenging_rerolls_low_dice():
 	# With rerolls, low results should be rare (less than 33% of rolls)
 	# Normal probability of 1-2 on 1D6 is 33%, rerolling reduces this significantly
 	var low_roll_percentage := float(low_roll_count) / float(total_tests)
-	assert_that(low_roll_percentage).is_less_than(0.35)
+	assert_that(low_roll_percentage).is_less(0.35)
 
 func test_challenging_applies_to_crew_6():
 	"""Challenging reroll should work with crew size 6 (max of two dice)"""

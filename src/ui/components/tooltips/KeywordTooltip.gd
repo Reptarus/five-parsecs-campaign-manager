@@ -57,7 +57,7 @@ func _ready() -> void:
 ## 
 ## Returns:
 ##   BBCode string with clickable keywords (e.g., "Infantry Laser ([url=keyword:Assault]Assault[/url], [url=keyword:Bulky]Bulky[/url])")
-static func format_equipment_with_keywords(equipment_name: String, traits: Array[String]) -> String:
+static func format_equipment_with_keywords(equipment_name: String, traits: Array) -> String:
 	if traits.is_empty():
 		return equipment_name
 	

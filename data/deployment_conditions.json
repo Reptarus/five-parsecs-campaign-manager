@@ -1,0 +1,168 @@
+{
+  "version": "1.0",
+  "description": "Five Parsecs From Home Deployment Conditions - Core Rules p.94",
+  "conditions": [
+    {
+      "id": "NO_CONDITION",
+      "name": "No Condition",
+      "description": "Normal deployment with no special conditions.",
+      "effects": {},
+      "roll_ranges": {
+        "opportunity": [1, 40],
+        "patron": [1, 40],
+        "rival": [1, 10],
+        "quest": [1, 5]
+      }
+    },
+    {
+      "id": "SMALL_ENCOUNTER",
+      "name": "Small Encounter",
+      "description": "A random crew member must sit out this fight. Reduce enemy numbers by -1 (-2 if they initially outnumber you).",
+      "effects": {
+        "crew_sits_out": 1,
+        "enemy_reduction": -1,
+        "enemy_reduction_if_outnumbered": -2
+      },
+      "roll_ranges": {
+        "opportunity": [41, 45],
+        "patron": [41, 45],
+        "rival": [11, 15],
+        "quest": [6, 10]
+      }
+    },
+    {
+      "id": "POOR_VISIBILITY",
+      "name": "Poor Visibility",
+      "description": "Maximum visibility is 1D6+8\". Reroll at the start of each round.",
+      "effects": {
+        "visibility_formula": "1d6+8",
+        "reroll_each_round": true
+      },
+      "roll_ranges": {
+        "opportunity": [46, 50],
+        "patron": [46, 50],
+        "rival": [16, 20],
+        "quest": [11, 25]
+      }
+    },
+    {
+      "id": "BRIEF_ENGAGEMENT",
+      "name": "Brief Engagement",
+      "description": "At the end of each round, roll 2D6. If the roll is equal or below the round number, the game ends inconclusively.",
+      "effects": {
+        "end_check": "2d6_vs_round",
+        "inconclusive_end": true
+      },
+      "roll_ranges": {
+        "opportunity": [51, 55],
+        "patron": [51, 55],
+        "rival": [21, 25],
+        "quest": [26, 30]
+      }
+    },
+    {
+      "id": "TOXIC_ENVIRONMENT",
+      "name": "Toxic Environment",
+      "description": "Whenever a combatant is Stunned, roll 1D6+Savvy skill (0 for enemies). Failure to roll a 4+ becomes a casualty.",
+      "effects": {
+        "stun_save": "1d6+savvy",
+        "save_target": 4,
+        "failure_result": "casualty"
+      },
+      "roll_ranges": {
+        "opportunity": [56, 60],
+        "patron": [56, 60],
+        "rival": [26, 30],
+        "quest": [31, 40]
+      }
+    },
+    {
+      "id": "SURPRISE_ENCOUNTER",
+      "name": "Surprise Encounter",
+      "description": "The enemy can't act in the first round.",
+      "effects": {
+        "enemy_skip_round": 1
+      },
+      "roll_ranges": {
+        "opportunity": [61, 65],
+        "patron": [61, 65],
+        "rival": [31, 45],
+        "quest": [41, 50]
+      }
+    },
+    {
+      "id": "DELAYED",
+      "name": "Delayed",
+      "description": "2 random crew members won't start on the table. At the end of each round, roll 1D6: If the roll is equal or below the round number, they may be placed at any point of your own battlefield edge.",
+      "effects": {
+        "delayed_crew": 2,
+        "arrival_check": "1d6_vs_round",
+        "arrival_location": "own_edge"
+      },
+      "roll_ranges": {
+        "opportunity": [66, 75],
+        "patron": [66, 75],
+        "rival": [46, 50],
+        "quest": [51, 60]
+      }
+    },
+    {
+      "id": "SLIPPERY_GROUND",
+      "name": "Slippery Ground",
+      "description": "All movement at ground level is -1 Speed.",
+      "effects": {
+        "speed_modifier": -1,
+        "affects": "ground_level"
+      },
+      "roll_ranges": {
+        "opportunity": [76, 80],
+        "patron": [76, 80],
+        "rival": [51, 60],
+        "quest": [61, 65]
+      }
+    },
+    {
+      "id": "BITTER_STRUGGLE",
+      "name": "Bitter Struggle",
+      "description": "Enemy Morale is +1.",
+      "effects": {
+        "enemy_morale_modifier": 1
+      },
+      "roll_ranges": {
+        "opportunity": [81, 85],
+        "patron": [81, 85],
+        "rival": [61, 75],
+        "quest": [66, 80]
+      }
+    },
+    {
+      "id": "CAUGHT_OFF_GUARD",
+      "name": "Caught Off Guard",
+      "description": "Your squad all act in the Slow Actions phase in Round 1.",
+      "effects": {
+        "crew_phase_round_1": "slow"
+      },
+      "roll_ranges": {
+        "opportunity": [86, 90],
+        "patron": [86, 90],
+        "rival": [76, 90],
+        "quest": [81, 90]
+      }
+    },
+    {
+      "id": "GLOOMY",
+      "name": "Gloomy",
+      "description": "Maximum visibility is 9\". Characters that fire can be fired upon at any range, however.",
+      "effects": {
+        "visibility_limit": 9,
+        "firers_targetable_any_range": true
+      },
+      "roll_ranges": {
+        "opportunity": [91, 100],
+        "patron": [91, 100],
+        "rival": [91, 100],
+        "quest": [91, 100]
+      }
+    }
+  ]
+}

@@ -62,7 +62,7 @@ func test_generated_job_has_required_fields():
 	component.initialize_job_phase(patron_data, location)
 
 	var jobs = component.get("available_jobs")
-	assert_that(jobs.size()).is_greater_than(0)
+	assert_that(jobs.size()).is_greater(0)
 
 	var job = jobs[0]
 	# Validate job structure using helper
@@ -78,7 +78,7 @@ func test_job_pay_calculation():
 	component.initialize_job_phase(patron_data, "Test Location")
 
 	var jobs = component.get("available_jobs")
-	assert_that(jobs.size()).is_greater_than(0)
+	assert_that(jobs.size()).is_greater(0)
 
 	var job = jobs[0]
 	var pay = job.get("pay", 0)

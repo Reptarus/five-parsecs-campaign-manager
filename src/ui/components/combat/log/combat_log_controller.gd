@@ -282,7 +282,7 @@ func _on_verification_failed(verification_type: int, error: String) -> void:
 	})
 
 ## Signal handlers for new combat events
-func _on_special_ability_activated(character: Character, ability: String, targets: Array[Character], cooldown: int) -> void:
+func _on_special_ability_activated(character: Character, ability: String, targets: Array, cooldown: int) -> void:
 	var target_names := targets.map(func(t): return t.get_display_name())
 	combat_log_panel.log_special_ability(
 		character.get_display_name(),
@@ -298,7 +298,7 @@ func _on_reaction_triggered(character: Character, reaction: String, trigger: Str
 		trigger
 	)
 
-func _on_area_effect_applied(effect: String, center: Vector2, radius: float, affected: Array[Character]) -> void:
+func _on_area_effect_applied(effect: String, center: Vector2, radius: float, affected: Array) -> void:
 	var affected_names := affected.map(func(c): return c.get_display_name())
 	combat_log_panel.log_area_effect(
 		effect,

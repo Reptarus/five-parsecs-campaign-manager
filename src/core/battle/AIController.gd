@@ -23,6 +23,7 @@ signal ai_action_performed(unit: CharacterUnit, action_type: int, target_positio
 
 ## Properties
 var battlefield_manager: Variant = null
+var battle_tracker: Variant = null  # Reference to BattleTracker for reaction economy
 var current_unit: CharacterUnit = null
 var enemy_units: Array[CharacterUnit] = []
 var player_units: Array[CharacterUnit] = []
@@ -50,15 +51,27 @@ func set_battlefield_manager(manager: Variant) -> void:
 		return
 	battlefield_manager = manager
 
+## Set the battle tracker reference for reaction economy
+func set_battle_tracker(tracker: Variant) -> void:
+	if not is_instance_valid(self):
+		return
+	battle_tracker = tracker
+
 ## Set the AI difficulty level
 func set_difficulty(level: int) -> void:
 	difficulty_level = clamp(level, 1, 5)
 	_adjust_weights_for_difficulty()
 
 ## Register units with the AI controller
-func register_units(ai_units: Array[CharacterUnit], friendly_units: Array[CharacterUnit]) -> void:
-	enemy_units = ai_units
-	player_units = friendly_units
+func register_units(ai_units: Array, friendly_units: Array) -> void:
+	enemy_units.clear()
+	for u in ai_units:
+		if u is CharacterUnit:
+			enemy_units.append(u)
+	player_units.clear()
+	for u in friendly_units:
+		if u is CharacterUnit:
+			player_units.append(u)
 
 ## Start AI turn
 func start_ai_turn() -> void:
@@ -79,6 +92,10 @@ func process_unit_turn(unit: CharacterUnit) -> void:
 	if not unit or unit.check_if_defeated() or not unit.is_active():
 		return
 
+	# Check if unit has reactions remaining (reaction economy system)
+	if not _unit_can_act(unit):
+		return
+
 	# Get possible actions
 	var possible_actions = _get_possible_actions(unit)
 
@@ -89,8 +106,62 @@ func process_unit_turn(unit: CharacterUnit) -> void:
 	# Select best action based on AI analysis
 	var selected_action = _select_best_action(unit, possible_actions)
 
-	# Execute the selected action
+	# Execute the selected action (will consume a reaction)
 	_execute_action(unit, selected_action)
+
+## Check if unit has reactions remaining to act
+func _unit_can_act(unit: CharacterUnit) -> bool:
+	"""
+	Check if unit can take action based on reaction economy
+	Uses BattleTracker.can_unit_react() if available, falls back to unit state
+	"""
+	if not unit:
+		return false
+
+	# Check battle tracker if available
+	if battle_tracker and battle_tracker.has_method("can_unit_react"):
+		var unit_id := _get_unit_id(unit)
+		if unit_id != "":
+			return battle_tracker.can_unit_react(unit_id)
+
+	# Fallback: Check character's reaction methods directly
+	if unit.has_method("can_use_reaction"):
+		return unit.can_use_reaction()
+
+	# Legacy fallback: Allow action if unit is active
+	return unit.is_active()
+
+## Get unit ID for battle tracker lookup
+func _get_unit_id(unit: CharacterUnit) -> String:
+	"""Get the unit ID used by BattleTracker"""
+	if unit.has_method("get_unit_id"):
+		return unit.get_unit_id()
+	if "unit_id" in unit:
+		return unit.unit_id
+	# Generate from name as fallback
+	return unit.name if unit else ""
+
+## Spend a reaction for unit action
+func _spend_unit_reaction(unit: CharacterUnit) -> bool:
+	"""
+	Spend one reaction when unit performs an action
+	@return: True if reaction was spent, false if failed
+	"""
+	if not unit:
+		return false
+
+	# Try battle tracker first
+	if battle_tracker and battle_tracker.has_method("spend_unit_reaction"):
+		var unit_id := _get_unit_id(unit)
+		if unit_id != "":
+			return battle_tracker.spend_unit_reaction(unit_id)
+
+	# Fallback: Spend directly on character
+	if unit.has_method("spend_reaction"):
+		return unit.spend_reaction()
+
+	# Legacy: No reaction economy, action always succeeds
+	return true
 
 ## Get all possible actions for a unit
 func _get_possible_actions(unit: CharacterUnit) -> Array:
@@ -359,6 +430,11 @@ func _select_best_action(unit: CharacterUnit, actions: Array) -> Dictionary:
 ## Execute the selected action
 func _execute_action(unit: CharacterUnit, action: Dictionary) -> void:
 	if not action or (safe_call_method(action, "is_empty") == true):
+		return
+
+	# Spend a reaction for this action (reaction economy system)
+	if not _spend_unit_reaction(unit):
+		# If we couldn't spend a reaction, unit has exhausted actions
 		return
 
 	match action.type:

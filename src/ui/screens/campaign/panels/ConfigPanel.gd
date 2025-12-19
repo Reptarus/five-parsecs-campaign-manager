@@ -365,7 +365,7 @@ func _on_house_rule_toggled(enabled: bool, rule_id: String) -> void:
 
 	current_config.house_rules = enabled_rules
 	house_rules_changed.emit(enabled_rules)
-	_emit_config_update()
+	_handle_config_change()
 	print("ConfigPanel: House rules updated - %d rules enabled" % enabled_rules.size())
 
 

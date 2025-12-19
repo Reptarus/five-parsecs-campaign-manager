@@ -89,7 +89,7 @@ func _setup_ui_state() -> void:
 # BATTLE MANAGEMENT
 # =====================================================
 
-func start_battle(crew_data: Array[Dictionary], enemy_data: Array[Dictionary]) -> void:
+func start_battle(crew_data: Array, enemy_data: Array) -> void:
 	"""Initialize battle with crew and enemy data"""
 	active_characters = crew_data.duplicate()
 	enemy_units = enemy_data.duplicate()

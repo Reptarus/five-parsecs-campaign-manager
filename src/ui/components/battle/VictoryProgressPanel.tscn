@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://d2j6g8iak0l1m"]
+
+[ext_resource type="Script" path="res://src/ui/components/battle/VictoryProgressPanel.gd" id="1_script"]
+
+[node name="VictoryProgressPanel" type="PanelContainer"]
+custom_minimum_size = Vector2(300, 200)
+script = ExtResource("1_script")

@@ -54,7 +54,7 @@ func _setup_accessibility_signals():
 
 ## Public API - Focus Management
 
-func set_focus_group(group_name: String, elements: Array[Control]) -> void:
+func set_focus_group(group_name: String, elements: Array) -> void:
 	"""Register a group of focusable elements"""
 	focus_groups[group_name] = elements
 	for element in elements:
@@ -172,7 +172,7 @@ func announce_panel_change(panel_name: String, completion_percentage: float = -1
 		announcement += ", %.0f percent complete" % completion_percentage
 	announce_to_screen_reader(announcement)
 
-func announce_validation_error(errors: Array[String]) -> void:
+func announce_validation_error(errors: Array) -> void:
 	"""Announce validation errors accessibly"""
 	if errors.is_empty():
 		return

@@ -586,6 +586,11 @@ func _on_post_battle_phase_completed() -> void:
 	# Complete the campaign turn
 	self.campaign_turn_completed.emit(turn_number)
 
+	# Check for story point earning every 3rd turn (Core Rules p.53-54)
+	var story_point_system = get_node_or_null("/root/StoryPointSystem")
+	if story_point_system and story_point_system.has_method("check_turn_earning"):
+		story_point_system.check_turn_earning(turn_number)
+
 	# Start next turn
 	start_new_campaign_turn()
 

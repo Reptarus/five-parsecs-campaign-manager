@@ -2,7 +2,7 @@ extends Resource
 class_name FPCM_Patron
 
 # GlobalEnums available as autoload singleton
-const Mission = preload("res://src/core/systems/Mission.gd")
+const Mission = preload("res://src/core/campaign/Mission.gd")
 const Character = preload("res://src/core/character/Character.gd")
 
 signal relationship_changed(new_value: int)
@@ -65,6 +65,10 @@ var _last_mission_turn: int = 0
 var characteristics: Array[String] = []
 var reputation_bonus: int = 0
 var mission_bonus: int = 0
+
+# Planet binding - tracks which planet this patron is associated with
+@export var planet_id: String = ""  # Empty string = universal patron (available everywhere)
+@export var met_on_turn: int = -1  # Turn when patron was first met
 
 func _init(p_name: String = "",
 		  p_location: Resource = null,
@@ -200,7 +204,9 @@ func serialize() -> Dictionary:
 		"last_mission_turn": _last_mission_turn,
 		"characteristics": characteristics.duplicate(),
 		"reputation_bonus": reputation_bonus,
-		"mission_bonus": mission_bonus
+		"mission_bonus": mission_bonus,
+		"planet_id": planet_id,
+		"met_on_turn": met_on_turn
 	}
 
 static func deserialize(data: Dictionary) -> Resource:
@@ -226,11 +232,18 @@ static func deserialize(data: Dictionary) -> Resource:
 
 	patron._last_mission_turn = data.get("last_mission_turn", 0)
 
-	patron.characteristics = data.get("characteristics", []).duplicate()
+	# Type conversion: JSON returns untyped Array, we need Array[String]
+	var raw_characteristics = data.get("characteristics", [])
+	patron.characteristics = []
+	for char_trait in raw_characteristics:
+		patron.characteristics.append(str(char_trait))
 
 	patron.reputation_bonus = data.get("reputation_bonus", 0)
 
 	patron.mission_bonus = data.get("mission_bonus", 0)
+
+	patron.planet_id = data.get("planet_id", "")
+	patron.met_on_turn = data.get("met_on_turn", -1)
 
 	for mission_data in data.get("missions", []):
 		if mission_data is Dictionary:

@@ -409,10 +409,11 @@ func _update_display() -> void:
 		# Add injury indicator if wounded
 		if character_data.is_wounded:
 			var recovery_turns := character_data.current_recovery_turns
-			subtitle += " • [color=#ef4444]Wounded (%d turns)[/color]" % recovery_turns
+			# Label type doesn't support BBCode, use plain text
+			subtitle += " • Wounded (%d turns)" % recovery_turns
 
+		# Set subtitle text (Label doesn't support BBCode)
 		_subtitle_label.text = subtitle
-		_subtitle_label.bbcode_enabled = true
 
 	# Update status badge (if exists)
 	if _card_container:
@@ -500,7 +501,7 @@ func _create_stats_grid_5col() -> GridContainer:
 	var stats := [
 		{"label": "REA", "value": character_data.reactions if character_data.reactions else 1, "color": Color("#10b981")},
 		{"label": "SPD", "value": str(character_data.speed if character_data.speed else 4) + '"', "color": Color("#3b82f6")},
-		{"label": "CBT", "value": _format_modifier(character_data.combat_skill if character_data.combat_skill else 0), "color": Color("#f59e0b")},
+		{"label": "CBT", "value": _format_modifier(character_data.combat if character_data.combat else 0), "color": Color("#f59e0b")},
 		{"label": "TGH", "value": character_data.toughness if character_data.toughness else 3, "color": Color("#ef4444")},
 		{"label": "SAV", "value": _format_modifier(character_data.savvy if character_data.savvy else 0), "color": Color("#8b5cf6")}
 	]
@@ -640,12 +641,12 @@ func _create_xp_progress_bar() -> VBoxContainer:
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label_row.add_child(spacer)
 
-	# Get XP values
+	# Get XP values (use "property" in object syntax for Resource property checks)
 	var current_xp := 0
 	var max_xp := 10
 	if character_data:
-		current_xp = character_data.experience if character_data.has("experience") else 0
-		max_xp = character_data.xp_to_next_level if character_data.has("xp_to_next_level") else 10
+		current_xp = character_data.experience if "experience" in character_data else 0
+		max_xp = character_data.xp_to_next_level if "xp_to_next_level" in character_data else 10
 
 	var value := Label.new()
 	value.text = "%d/%d" % [current_xp, max_xp]

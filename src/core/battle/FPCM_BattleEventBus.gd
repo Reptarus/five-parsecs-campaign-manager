@@ -103,6 +103,10 @@ var registered_components: Dictionary = {}
 var active_battle_manager: FPCM_BattleManager = null
 var dice_system_instance: FPCM_DiceSystem = null
 
+# Bound callable registry for proper signal disconnection
+# Maps component_name -> {"signal_name": bound_callable, ...}
+var _bound_callables: Dictionary = {}
+
 # Performance tracking
 var signal_count: int = 0
 var _performance_timer: Timer
@@ -137,8 +141,14 @@ func register_ui_component(component_name: String, component: Control) -> void:
 
 ## Unregister UI component from the event bus
 func unregister_ui_component(component_name: String) -> void:
+	if not registered_components.has(component_name):
+		return
+	var component = registered_components.get(component_name)
+	if not is_instance_valid(component):
+		registered_components.erase(component_name)
+		return
+
 	if component_name in registered_components:
-		var component: Control = registered_components[component_name]
 		_auto_disconnect_component_signals(component_name, component)
 		registered_components.erase(component_name)
 		ui_component_removed.emit(component_name)
@@ -146,28 +156,64 @@ func unregister_ui_component(component_name: String) -> void:
 
 ## Auto-connect common component signals
 func _auto_connect_component_signals(component_name: String, component: Control) -> void:
+	if not is_instance_valid(component):
+		return
+
+	# Initialize bound callable storage for this component
+	var callables: Dictionary = {}
+
 	# Connect phase_completed signal if it exists
 	if component.has_signal("phase_completed"):
-		component.phase_completed.connect(_on_component_phase_completed.bind(component_name))
-	
+		var bound_callable = _on_component_phase_completed.bind(component_name)
+		component.connect("phase_completed", bound_callable)
+		callables["phase_completed"] = bound_callable
+
 	# Connect dice_roll_requested signal if it exists
 	if component.has_signal("dice_roll_requested"):
-		component.dice_roll_requested.connect(_on_component_dice_request.bind(component_name))
-	
+		var bound_callable = _on_component_dice_request.bind(component_name)
+		component.connect("dice_roll_requested", bound_callable)
+		callables["dice_roll_requested"] = bound_callable
+
 	# Connect ui_error_occurred signal if it exists
 	if component.has_signal("ui_error_occurred"):
-		component.ui_error_occurred.connect(_on_component_error.bind(component_name))
+		var bound_callable = _on_component_error.bind(component_name)
+		component.connect("ui_error_occurred", bound_callable)
+		callables["ui_error_occurred"] = bound_callable
 
-## Auto-disconnect component signals
+	# Store the bound callables for later disconnection
+	_bound_callables[component_name] = callables
+
+## Auto-disconnect component signals using stored bound callables
 func _auto_disconnect_component_signals(component_name: String, component: Control) -> void:
-	if component.has_signal("phase_completed") and component.phase_completed.is_connected(_on_component_phase_completed):
-		component.phase_completed.disconnect(_on_component_phase_completed)
-	
-	if component.has_signal("dice_roll_requested") and component.dice_roll_requested.is_connected(_on_component_dice_request):
-		component.dice_roll_requested.disconnect(_on_component_dice_request)
-	
-	if component.has_signal("ui_error_occurred") and component.ui_error_occurred.is_connected(_on_component_error):
-		component.ui_error_occurred.disconnect(_on_component_error)
+	if not is_instance_valid(component):
+		return
+
+	# Get stored bound callables for this component
+	if not _bound_callables.has(component_name):
+		return
+
+	var callables: Dictionary = _bound_callables[component_name]
+
+	# Disconnect phase_completed using the stored bound callable
+	if component.has_signal("phase_completed") and callables.has("phase_completed"):
+		var bound_callable = callables["phase_completed"]
+		if component.is_connected("phase_completed", bound_callable):
+			component.disconnect("phase_completed", bound_callable)
+
+	# Disconnect dice_roll_requested using the stored bound callable
+	if component.has_signal("dice_roll_requested") and callables.has("dice_roll_requested"):
+		var bound_callable = callables["dice_roll_requested"]
+		if component.is_connected("dice_roll_requested", bound_callable):
+			component.disconnect("dice_roll_requested", bound_callable)
+
+	# Disconnect ui_error_occurred using the stored bound callable
+	if component.has_signal("ui_error_occurred") and callables.has("ui_error_occurred"):
+		var bound_callable = callables["ui_error_occurred"]
+		if component.is_connected("ui_error_occurred", bound_callable):
+			component.disconnect("ui_error_occurred", bound_callable)
+
+	# Clean up the stored callables
+	_bound_callables.erase(component_name)
 
 ## Set the active battle manager
 func set_battle_manager(battle_manager: FPCM_BattleManager) -> void:
@@ -225,14 +271,18 @@ func _handle_ui_lock_request(locked: bool, reason: String) -> void:
 	# Send lock request to all registered components
 	for component_name: String in registered_components:
 		var component: Control = registered_components[component_name]
+		if not is_instance_valid(component):
+			continue
 		if component.has_method("set_ui_locked"):
 			component.set_ui_locked(locked, reason)
 
-## Handle UI refresh requests  
-func _handle_ui_refresh_request(components: Array[String]) -> void:
+## Handle UI refresh requests
+func _handle_ui_refresh_request(components: Array) -> void:
 	for component_name: String in components:
 		if component_name in registered_components:
 			var component: Control = registered_components[component_name]
+			if not is_instance_valid(component):
+				continue
 			if component.has_method("refresh_ui"):
 				component.refresh_ui()
 
@@ -319,8 +369,9 @@ func _exit_tree() -> void:
 ## Emergency cleanup for scene transitions
 func cleanup_for_scene_change() -> void:
 	"""Clean up all connections for scene transitions"""
-	# Unregister all components
-	for component_name: String in registered_components.keys():
+	# Unregister all components - iterate over a COPY to avoid modification during iteration
+	var component_names: Array = registered_components.keys().duplicate()
+	for component_name: String in component_names:
 		unregister_ui_component(component_name)
 	
 	# Disconnect battle manager

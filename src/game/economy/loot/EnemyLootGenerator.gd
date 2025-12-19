@@ -91,7 +91,7 @@ func generate_enemy_loot(enemy: Enemy, context: Dictionary = {}) -> Array[GameIt
 	return generated_loot
 
 ## Generate loot for multiple enemies (battle aftermath)
-func generate_battle_loot(defeated_enemies: Array[Enemy], battle_context: Dictionary = {}) -> Dictionary:
+func generate_battle_loot(defeated_enemies: Array, battle_context: Dictionary = {}) -> Dictionary:
 	var battle_loot: Dictionary = {
 		"individual_loot": {},
 		"combined_items": [],
@@ -318,9 +318,9 @@ func _set_specialized_properties(item: GameItem, loot_data: Dictionary, category
 	if loot_data.has("source"):
 		item.tags.append("source_" + loot_data.source)
 
-func _calculate_battle_bonus(defeated_enemies: Array[Enemy], context: Dictionary) -> Dictionary:
+func _calculate_battle_bonus(defeated_enemies: Array, context: Dictionary) -> Dictionary:
 	var bonus: Dictionary = {}
-	
+
 	var enemy_count: int = defeated_enemies.size()
 	var enemy_types: Array[String] = []
 	
@@ -344,7 +344,7 @@ func _calculate_battle_bonus(defeated_enemies: Array[Enemy], context: Dictionary
 	
 	return {}
 
-func _consolidate_loot_items(loot_items: Array[GameItem]) -> Array[GameItem]:
+func _consolidate_loot_items(loot_items: Array) -> Array[GameItem]:
 	var consolidated: Dictionary = {}
 	
 	for item in loot_items:
@@ -362,7 +362,7 @@ func _consolidate_loot_items(loot_items: Array[GameItem]) -> Array[GameItem]:
 	
 	return consolidated.values()
 
-func _extract_rare_items(loot_items: Array[GameItem]) -> Array[GameItem]:
+func _extract_rare_items(loot_items: Array) -> Array[GameItem]:
 	var rare_items: Array[GameItem] = []
 	
 	for item in loot_items:
@@ -371,7 +371,7 @@ func _extract_rare_items(loot_items: Array[GameItem]) -> Array[GameItem]:
 	
 	return rare_items
 
-func _calculate_total_loot_value(loot_items: Array[GameItem]) -> int:
+func _calculate_total_loot_value(loot_items: Array) -> int:
 	var total: int = 0
 	
 	for item in loot_items:

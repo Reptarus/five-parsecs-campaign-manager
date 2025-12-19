@@ -236,7 +236,7 @@ func validate_turn_state_structure(turn_state: Dictionary) -> Dictionary:
 
 ## Resource tracking
 func track_resource_changes(before_credits: int, after_credits: int,
-                            operation: String) -> Dictionary:
+							operation: String) -> Dictionary:
 	"""Track and validate resource changes"""
 	return {
 		"operation": operation,

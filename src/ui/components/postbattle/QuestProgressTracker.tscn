@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://quest_progress_tracker_01"]
+
+[ext_resource type="Script" path="res://src/ui/components/postbattle/QuestProgressTracker.gd" id="1_quest_tracker"]
+
+[node name="QuestProgressTracker" type="PanelContainer"]
+custom_minimum_size = Vector2(0, 120)
+offset_right = 400.0
+offset_bottom = 120.0
+script = ExtResource("1_quest_tracker")

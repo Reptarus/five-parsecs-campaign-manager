@@ -72,7 +72,7 @@ func _connect_signals() -> void:
 # =====================================================
 
 ## Start a new battle
-func start_battle(mission_data: Resource, crew_members: Array[Resource], enemy_forces: Array[Resource]) -> bool:
+func start_battle(mission_data: Resource, crew_members: Array, enemy_forces: Array) -> bool:
 	"""Initialize and start battle - called from campaign phase"""
 	
 	# Create battle state

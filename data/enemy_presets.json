@@ -1,0 +1,63 @@
+{
+    "presets": [
+        {
+            "id": "standard",
+            "name": "Standard Five Parsecs",
+            "description": "Default enemy mix from all factions. Encounters may include raiders, corporate security, aliens, cultists, or military forces based on mission context.",
+            "is_default": true,
+            "category_weights": {},
+            "required_tags": [],
+            "excluded_tags": [],
+            "excluded_categories": [],
+            "dlc_required": null
+        },
+        {
+            "id": "pirate_campaign",
+            "name": "Pirate Hunting",
+            "description": "Focus on raiders, smugglers, and space pirates. Ideal for campaigns centered on hunting down criminal elements in the Fringe.",
+            "is_default": false,
+            "category_weights": {"raiders": 2.0, "corporate_security": 0.5},
+            "required_tags": ["human", "criminal"],
+            "excluded_tags": ["alien", "creature"],
+            "excluded_categories": [],
+            "dlc_required": null
+        },
+        {
+            "id": "xenos_hunt",
+            "name": "Xenos Extermination",
+            "description": "Alien creatures dominate encounters. Perfect for exploration campaigns on frontier worlds teeming with hostile wildlife.",
+            "is_default": false,
+            "category_weights": {"alien_creatures": 3.0},
+            "required_tags": ["alien", "creature", "beast"],
+            "excluded_tags": [],
+            "excluded_categories": ["corporate_security"],
+            "dlc_required": null
+        },
+        {
+            "id": "corporate_war",
+            "name": "Corporate Conflict",
+            "description": "Corporate security and military forces dominate. Suited for campaigns involving mega-corp disputes and military contracts.",
+            "is_default": false,
+            "category_weights": {"corporate_security": 2.0, "military_forces": 2.0},
+            "required_tags": [],
+            "excluded_tags": [],
+            "excluded_categories": ["alien_creatures", "raiders"],
+            "dlc_required": null
+        },
+        {
+            "id": "bug_hunt",
+            "name": "Bug Hunt",
+            "description": "Alien bug swarms with no morale and swarm mechanics. A desperate fight for survival against overwhelming insectoid horrors.",
+            "is_default": false,
+            "category_weights": {"bug_hunt_creatures": 1.0},
+            "required_tags": ["bug", "swarm", "alien"],
+            "excluded_tags": ["human", "robot"],
+            "excluded_categories": ["raiders", "corporate_security", "cultists", "military_forces"],
+            "dlc_required": "bug_hunt",
+            "special_rules": {
+                "no_morale": true,
+                "swarm_mechanics": true
+            }
+        }
+    ]
+}

@@ -1,4 +1,3 @@
-@tool
 extends FiveParsecsCampaignPanel
 
 const CampaignStateManager = preload("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
@@ -227,6 +226,10 @@ func _initialize_security_validator() -> void:
 func set_campaign_data(data: Dictionary) -> void:
 	campaign_data = data
 	_update_display()
+
+func update_campaign_data(data: Dictionary) -> void:
+	"""Alias for set_campaign_data - provides API compatibility"""
+	set_campaign_data(data)
 
 func _handle_campaign_state_update(state_data: Dictionary) -> void:
 	"""Override from base class - auto-aggregate campaign data on state changes"""
@@ -486,11 +489,11 @@ func _create_crew_summary_card() -> PanelContainer:
 		elif member != null:
 			# Fallback: Extract properties manually from Character object
 			var member_dict = {}
-			if member.has("character_name"):
+			if "character_name" in member:
 				member_dict["character_name"] = member.character_name
-			if member.has("combat"):
+			if "combat" in member:
 				member_dict["combat"] = member.combat
-			if member.has("reactions"):
+			if "reactions" in member:
 				member_dict["reactions"] = member.reactions
 			crew_members.append(member_dict)
 
@@ -540,11 +543,17 @@ func _create_equipment_summary_card() -> PanelContainer:
 	content.add_theme_constant_override("separation", SPACING_SM)
 	
 	var equipment_data = campaign_data.get("equipment", {})
-	var equipment_list = equipment_data.get("items", equipment_data.get("equipment", []))
-	
+	var equipment_list: Array = []
+	var credits_value: int = 0
+	if equipment_data is Array:
+		equipment_list = equipment_data
+	elif equipment_data is Dictionary:
+		equipment_list = equipment_data.get("items", equipment_data.get("equipment", []))
+		credits_value = equipment_data.get("starting_credits", equipment_data.get("credits", 0))
+
 	# Credits
 	var credits_label := Label.new()
-	credits_label.text = "Starting Credits: %d cr" % equipment_data.get("starting_credits", equipment_data.get("credits", 0))
+	credits_label.text = "Starting Credits: %d cr" % credits_value
 	credits_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
 	credits_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	content.add_child(credits_label)
@@ -648,7 +657,8 @@ func _create_elite_bonuses_card() -> PanelContainer:
 
 	# Create a preview StarsOfTheStorySystem with current elite ranks and difficulty
 	var config_data = campaign_data.get("campaign_config", campaign_data.get("config", {}))
-	var difficulty: int = config_data.get("difficulty_level", config_data.get("difficulty", 2))
+	var difficulty_raw = config_data.get("difficulty_level", config_data.get("difficulty", 2))
+	var difficulty: int = difficulty_raw if difficulty_raw is int else 2  # Convert string to default 2
 
 	var preview_stars_system = StarsOfTheStorySystem.new()
 	preview_stars_system.initialize(elite_ranks, difficulty)
@@ -668,7 +678,11 @@ func _update_crew_preview() -> void:
 	"""Update crew preview with CharacterCard COMPACT"""
 	if not crew_preview_container:
 		return
-	
+
+	# Guard against calls during scene exit
+	if not is_inside_tree():
+		return
+
 	var crew_hbox = crew_preview_container.get_node_or_null("ScrollContainer/CrewCardsContainer")
 	if not crew_hbox:
 		return
@@ -725,7 +739,7 @@ func _update_validation_feedback() -> void:
 	var feedback_panel := _create_validation_feedback_panel(errors)
 	validation_feedback_container.add_child(feedback_panel)
 
-func _create_validation_feedback_panel(errors: Array[String]) -> PanelContainer:
+func _create_validation_feedback_panel(errors: Array) -> PanelContainer:
 	"""Create validation feedback panel with success/error messages"""
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1140,7 +1154,11 @@ func _log_mathematical_validation() -> void:
 	
 	# Calculate equipment value
 	var equipment_data = campaign_data.get("equipment", {})
-	var equipment_items = equipment_data.get("items", equipment_data.get("equipment", []))
+	var equipment_items: Array = []
+	if equipment_data is Array:
+		equipment_items = equipment_data
+	elif equipment_data is Dictionary:
+		equipment_items = equipment_data.get("items", equipment_data.get("equipment", []))
 	var equipment_value = 0
 	for item in equipment_items:
 		if item is Dictionary and item.has("value"):

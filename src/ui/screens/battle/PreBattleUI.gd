@@ -264,13 +264,15 @@ func _setup_battlefield_preview(data: Dictionary) -> void:
 	generate_terrain_suggestions(layout_type)
 
 ## Setup crew selection
-func setup_crew_selection(available_crew: Array[Character]) -> void:
+func setup_crew_selection(available_crew: Array) -> void:
 	if not crew_selection_panel:
 		return
 
 	var crew_list := VBoxContainer.new()
 
 	for character in available_crew:
+		if not character is Character:
+			continue
 		var char_button := Button.new()
 		char_button.text = character.character_name
 		char_button.toggle_mode = true
@@ -629,4 +631,38 @@ func _on_terrain_suggestion_modified(suggestion_id: String, modifications: Dicti
 	# Find and update the suggestion
 	for i in range(terrain_suggestions.size()):
 		if terrain_suggestions[i].suggestion_id == suggestion_id:
-			t
+			terrain_suggestions[i].merge(modifications, true)
+			break
+
+## Handle terrain suggestion rejection
+func _on_terrain_suggestion_rejected(suggestion_id: String) -> void:
+	print("PreBattleUI: Terrain suggestion rejected - %s" % suggestion_id)
+	# Remove from confirmed if it was there
+	confirmed_suggestions.erase(suggestion_id)
+
+## Clear all terrain suggestions
+func _clear_terrain_suggestions() -> void:
+	# Free existing suggestion items
+	for item in terrain_suggestion_items:
+		if is_instance_valid(item):
+			item.queue_free()
+	terrain_suggestion_items.clear()
+	terrain_suggestions.clear()
+	confirmed_suggestions.clear()
+
+## Check if all required terrain is confirmed
+func _check_all_terrain_confirmed() -> void:
+	# Count required suggestions (priority 1)
+	var required_count := 0
+	var confirmed_required := 0
+	
+	for suggestion in terrain_suggestions:
+		if suggestion.get("priority", 1) == 1:
+			required_count += 1
+			if suggestion.get("suggestion_id", "") in confirmed_suggestions:
+				confirmed_required += 1
+	
+	# Emit signal if all required are confirmed
+	if required_count > 0 and confirmed_required >= required_count:
+		all_terrain_confirmed.emit()
+		print("PreBattleUI: All required terrain confirmed (%d/%d)" % [confirmed_required, required_count])

@@ -2,7 +2,7 @@ extends GdUnitTestSuite
 ## Dashboard Component Integration Tests
 ## Tests modernized dashboard components (MissionStatusCard, WorldStatusCard, StoryTrackSection, QuickActionsFooter)
 ## Validates component rendering, signal emission, and glass morphism styling
-## gdUnit4 v6.0.1 compatible
+## gdUnit4 v6.0.3 compatible
 ## 13 tests total (at 13-test limit)
 
 # Systems under test
@@ -15,6 +15,10 @@ var quick_actions: Node
 var test_container: Control
 var test_mission_data: Dictionary
 var test_world_data: Dictionary
+
+# Helper to skip tests (GdUnit4 doesn't have built-in skip)
+func skip_test(reason: String) -> void:
+	push_warning("TEST SKIPPED: " + reason)
 
 func before():
 	"""Suite-level setup - runs once before all tests"""
@@ -57,6 +61,9 @@ func before_test():
 
 	# Wait for _ready() to complete
 	await get_tree().process_frame
+
+	# Guard against freed instances after await
+	# Test fixtures are optional so just continue if freed
 
 func after_test():
 	"""Test-level cleanup - runs after EACH test"""
@@ -107,7 +114,7 @@ func _load_quick_actions():
 
 func test_mission_status_card_displays_name():
 	"""MissionStatusCard displays mission name from data"""
-	if mission_card == null:
+	if mission_card == null or not is_instance_valid(mission_card):
 		skip_test("MissionStatusCard not yet implemented")
 		return
 
@@ -122,14 +129,14 @@ func test_mission_status_card_displays_name():
 	var displayed_name = ""
 	if mission_card.has_method("get_displayed_name"):
 		displayed_name = mission_card.get_displayed_name()
-	elif "name_label" in mission_card and mission_card.name_label != null:
+	elif "name_label" in mission_card and mission_card.name_label != null and is_instance_valid(mission_card.name_label):
 		displayed_name = mission_card.name_label.text
 
 	assert_that(displayed_name).is_equal("Rescue Operation")
 
 func test_mission_status_card_shows_progress():
 	"""MissionStatusCard displays progress bar with correct percentage"""
-	if mission_card == null:
+	if mission_card == null or not is_instance_valid(mission_card):
 		skip_test("MissionStatusCard not yet implemented")
 		return
 
@@ -142,7 +149,7 @@ func test_mission_status_card_shows_progress():
 
 	# Get progress bar value (assuming progress_bar property)
 	var progress_value = 0.0
-	if "progress_bar" in mission_card and mission_card.progress_bar != null:
+	if "progress_bar" in mission_card and mission_card.progress_bar != null and is_instance_valid(mission_card.progress_bar):
 		progress_value = mission_card.progress_bar.value
 	elif mission_card.has_method("get_progress"):
 		progress_value = mission_card.get_progress()
@@ -152,7 +159,7 @@ func test_mission_status_card_shows_progress():
 
 func test_mission_status_card_emits_signal():
 	"""MissionStatusCard emits details_requested signal when clicked"""
-	if mission_card == null:
+	if mission_card == null or not is_instance_valid(mission_card):
 		skip_test("MissionStatusCard not yet implemented")
 		return
 
@@ -165,7 +172,7 @@ func test_mission_status_card_emits_signal():
 	if mission_card.has_method("set_mission_data"):
 		mission_card.set_mission_data(test_mission_data)
 
-	# Create signal monitor
+	# Create signal monitor BEFORE triggering action
 	var signal_monitor = monitor_signals(mission_card)
 
 	# Simulate card click
@@ -184,7 +191,7 @@ func test_mission_status_card_emits_signal():
 
 func test_world_status_card_displays_planet():
 	"""WorldStatusCard displays planet name from data"""
-	if world_card == null:
+	if world_card == null or not is_instance_valid(world_card):
 		skip_test("WorldStatusCard not yet implemented")
 		return
 
@@ -199,14 +206,14 @@ func test_world_status_card_displays_planet():
 	var displayed_planet = ""
 	if world_card.has_method("get_displayed_planet"):
 		displayed_planet = world_card.get_displayed_planet()
-	elif "planet_label" in world_card and world_card.planet_label != null:
+	elif "planet_label" in world_card and world_card.planet_label != null and is_instance_valid(world_card.planet_label):
 		displayed_planet = world_card.planet_label.text
 
 	assert_that(displayed_planet).contains("Frontier VII")
 
 func test_world_status_card_shows_threat():
 	"""WorldStatusCard displays threat level indicators correctly"""
-	if world_card == null:
+	if world_card == null or not is_instance_valid(world_card):
 		skip_test("WorldStatusCard not yet implemented")
 		return
 
@@ -221,7 +228,7 @@ func test_world_status_card_shows_threat():
 	var threat_level = 0
 	if world_card.has_method("get_threat_level"):
 		threat_level = world_card.get_threat_level()
-	elif "threat_indicator" in world_card:
+	elif "threat_indicator" in world_card and world_card.threat_indicator != null and is_instance_valid(world_card.threat_indicator):
 		threat_level = world_card.threat_indicator.value
 
 	assert_that(threat_level).is_equal(4)
@@ -287,7 +294,7 @@ func test_story_track_displays_milestones():
 	var milestone_count = 0
 	if story_track.has_method("get_milestone_count"):
 		milestone_count = story_track.get_milestone_count()
-	elif "milestone_markers" in story_track:
+	elif "milestone_markers" in story_track and story_track.milestone_markers != null:
 		milestone_count = story_track.milestone_markers.size()
 
 	assert_that(milestone_count).is_equal(4)
@@ -306,7 +313,7 @@ func test_quick_actions_has_6_buttons():
 	var button_count = 0
 	if quick_actions.has_method("get_button_count"):
 		button_count = quick_actions.get_button_count()
-	elif "action_buttons" in quick_actions:
+	elif "action_buttons" in quick_actions and quick_actions.action_buttons != null:
 		button_count = quick_actions.action_buttons.size()
 
 	assert_that(button_count).is_equal(6)
@@ -321,7 +328,7 @@ func test_quick_actions_touch_targets():
 	var buttons = []
 	if quick_actions.has_method("get_action_buttons"):
 		buttons = quick_actions.get_action_buttons()
-	elif "action_buttons" in quick_actions:
+	elif "action_buttons" in quick_actions and quick_actions.action_buttons != null:
 		buttons = quick_actions.action_buttons
 
 	if buttons.is_empty():

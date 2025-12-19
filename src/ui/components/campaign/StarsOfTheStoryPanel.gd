@@ -79,13 +79,14 @@ func refresh_display() -> void:
 		if _ability_cards.has(ability):
 			_update_ability_card(ability)
 	
-	# Update info label
-	if not _stars_system.is_active():
-		_info_label.text = "⚠ Stars of the Story NOT AVAILABLE (Insanity difficulty)"
-		_info_label.add_theme_color_override("font_color", COLOR_DANGER)
-	else:
-		_info_label.text = "Emergency abilities - use wisely!"
-		_info_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	# Update info label (null check since refresh_display can be called before _setup_ui)
+	if _info_label:
+		if not _stars_system.is_active():
+			_info_label.text = "⚠ Stars of the Story NOT AVAILABLE (Insanity difficulty)"
+			_info_label.add_theme_color_override("font_color", COLOR_DANGER)
+		else:
+			_info_label.text = "Emergency abilities - use wisely!"
+			_info_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 
 
 ## Update display for a single ability

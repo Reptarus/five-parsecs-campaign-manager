@@ -8,8 +8,8 @@ extends Mission
 ## time pressure, and route-based complications.
 
 # GlobalEnums is inherited from Mission parent class
-const MissionTypeRegistry = preload("res://src/game/missions/enhanced/MissionTypeRegistry.gd")
-const MissionDifficultyScaler = preload("res://src/game/missions/enhanced/MissionDifficultyScaler.gd")
+const FPCM_MissionTypeRegistry = preload("res://src/game/missions/enhanced/MissionTypeRegistry.gd")
+const FPCM_MissionDifficultyScaler = preload("res://src/game/missions/enhanced/MissionDifficultyScaler.gd")
 
 # Delivery-specific data
 @export var cargo_type: String = ""
@@ -35,20 +35,24 @@ signal cargo_damaged(damage_type: String, severity: int)
 signal route_complication_encountered(complication: Dictionary)
 signal delivery_progress_updated(current_progress: int, total_distance: int)
 
+# Reference the parent class for proper inheritance
+const MissionClass = preload("res://src/core/campaign/Mission.gd")
+
 func _init() -> void:
 	super._init()
-	mission_type = MissionTypeRegistry.EnhancedMissionType.DELIVERY
+	# Use base MissionType for patron missions
+	mission_type = MissionClass.MissionType.PATRON_JOB
 	_setup_delivery_mission()
 
 ## Initialize delivery mission with specific parameters
 func initialize_delivery(delivery_data: Dictionary) -> void:
-	# Set basic mission data from dictionary
-	mission_id = delivery_data.get("mission_id", "")
-	mission_title = delivery_data.get("mission_title", "Delivery Contract")
-	mission_description = delivery_data.get("mission_description", "Transport cargo safely to destination")
-	mission_difficulty = delivery_data.get("mission_difficulty", 1)
-	reward_credits = delivery_data.get("reward_credits", 200)
-	turn_offered = delivery_data.get("turn_offered", 0)
+	# Set basic mission data from dictionary using set() for parent properties
+	set("mission_id", delivery_data.get("mission_id", ""))
+	set("mission_name", delivery_data.get("mission_title", "Delivery Contract"))
+	set("description", delivery_data.get("mission_description", "Transport cargo safely to destination"))
+	set("danger_level", delivery_data.get("mission_difficulty", 1))
+	set("reward_credits", delivery_data.get("reward_credits", 200))
+	set("turns_accepted", delivery_data.get("turn_offered", 0))
 	
 	# Set delivery-specific data
 	cargo_type = delivery_data.get("cargo_type", "Standard Goods")
@@ -93,7 +97,7 @@ func process_delivery_turn(turn_context: Dictionary) -> Dictionary:
 	
 	# Check time limit
 	var current_turn: int = turn_context.get("current_turn", 0)
-	var start_turn: int = turn_offered
+	var start_turn: int = turns_accepted
 	if current_turn - start_turn >= time_limit:
 		_fail_delivery_time_limit()
 		turn_result.mission_status = "failed_time"
@@ -111,7 +115,7 @@ func get_delivery_status() -> Dictionary:
 		"cargo_condition": cargo_condition,
 		"delivery_progress": delivery_progress,
 		"total_distance": delivery_distance,
-		"time_remaining": maxi(time_limit - (Time.get_unix_time_from_system() - turn_offered), 0),
+		"time_remaining": maxi(time_limit - (Time.get_unix_time_from_system() - turns_accepted), 0),
 		"complications_remaining": route_complications.size(),
 		"is_fragile": fragile_cargo,
 		"is_dangerous": dangerous_cargo,
@@ -182,16 +186,16 @@ func get_enemy_deployment_context() -> Dictionary:
 ## Private Methods
 
 func _setup_delivery_mission() -> void:
-	mission_title = "Delivery Contract"
-	mission_description = "Transport cargo safely to the destination within the time limit"
-	minimum_crew_size = 2 # Need pilot + escort minimum
-	required_skills = ["pilot"] # Essential for delivery missions
+	# Using properties from parent Mission class
+	set("mission_name", "Delivery Contract")
+	set("description", "Transport cargo safely to the destination within the time limit")
+	set("required_crew_size", 2) # Need pilot + escort minimum
 
 func _generate_route_complications() -> void:
 	route_complications.clear()
 	
 	# Number of complications based on distance and difficulty
-	var complication_count: int = delivery_distance + (mission_difficulty - 1)
+	var complication_count: int = delivery_distance + (danger_level - 1)
 	complication_count = clampi(complication_count, 1, 5)
 	
 	var possible_complications: Array[Dictionary] = [
@@ -306,14 +310,14 @@ func _calculate_delivery_rewards() -> void:
 	reward_credits = base_credits
 	
 	# Advanced rules for bonus calculations
-	advanced_rules["cargo_condition_bonus"] = {
+	objective_parameters["cargo_condition_bonus"] = {
 		"intact": 1.0,
 		"minor_damage": 0.9,
 		"major_damage": 0.7,
 		"lost": 0.0
 	}
 	
-	advanced_rules["time_bonus"] = {
+	objective_parameters["time_bonus"] = {
 		"early": 1.2,
 		"on_time": 1.0,
 		"late": 0.8
@@ -355,18 +359,19 @@ func _calculate_turn_progress(turn_context: Dictionary) -> int:
 
 func _complete_delivery() -> void:
 	# Check cargo condition for final rewards
-	var condition_multiplier: float = advanced_rules.cargo_condition_bonus.get(cargo_condition, 1.0)
+	var condition_bonus: Dictionary = objective_parameters.get("cargo_condition_bonus", {"intact": 1.0, "minor_damage": 0.9, "major_damage": 0.7, "lost": 0.0})
+	var condition_multiplier: float = condition_bonus.get(cargo_condition, 1.0)
 	reward_credits = roundi(reward_credits * condition_multiplier)
 	
-	complete(true)
+	var _result: Dictionary = super.complete_mission()
 
 func _fail_delivery_time_limit() -> void:
-	fail(true)
-	advanced_rules["failure_reason"] = "time_limit_exceeded"
+	fail_mission("time_limit_exceeded")
+	objective_parameters["failure_reason"] = "time_limit_exceeded"
 
 func _fail_delivery_cargo_lost() -> void:
-	fail(true)
-	advanced_rules["failure_reason"] = "cargo_lost"
+	fail_mission("cargo_lost")
+	objective_parameters["failure_reason"] = "cargo_lost"
 
 func _get_route_enemy_types() -> Array[String]:
 	var enemy_types: Array[String] = ["Pirates"] # Default threat

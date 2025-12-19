@@ -251,7 +251,11 @@ func load_from_disk() -> void:
 	
 	# Load data
 	elite_ranks = data.get("elite_ranks", 0)
-	completed_victory_conditions = data.get("completed_victory_conditions", [])
+	# Type conversion: JSON returns untyped Array, we need Array[int]
+	var raw_conditions = data.get("completed_victory_conditions", [])
+	completed_victory_conditions = []
+	for condition in raw_conditions:
+		completed_victory_conditions.append(int(condition))
 	total_campaigns_completed = data.get("total_campaigns_completed", 0)
 	total_campaigns_started = data.get("total_campaigns_started", 0)
 	created_at = data.get("created_at", "")
@@ -323,11 +327,15 @@ func import_from_json(json_string: String) -> bool:
 	var old_rank := elite_ranks
 	
 	elite_ranks = data.get("elite_ranks", 0)
-	completed_victory_conditions = data.get("completed_victory_conditions", [])
+	# Type conversion: JSON returns untyped Array, we need Array[int]
+	var raw_import_conditions = data.get("completed_victory_conditions", [])
+	completed_victory_conditions = []
+	for condition in raw_import_conditions:
+		completed_victory_conditions.append(int(condition))
 	total_campaigns_completed = data.get("total_campaigns_completed", 0)
 	total_campaigns_started = data.get("total_campaigns_started", 0)
 	created_at = data.get("created_at", Time.get_datetime_string_from_system(true))
-	
+
 	save_to_disk()
 	elite_ranks_changed.emit(old_rank, elite_ranks)
 	

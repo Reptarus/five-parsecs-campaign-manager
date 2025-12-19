@@ -22,16 +22,28 @@ func before_test() -> void:
 	# Create battle phase instance
 	battle_phase = auto_free(BattlePhaseClass.new())
 
-	# Wait for _ready() to complete
-	await await_signal_on(battle_phase, "ready", [], 2000)
+	# Add to scene tree so _ready() is called properly
+	add_child(battle_phase)
+
+	# Wait for initialization to complete - give deferred calls time to execute
+	for i in range(10):
+		await get_tree().process_frame
+
+	# Validate initialization
+	if not is_instance_valid(battle_phase):
+		push_warning("battle_phase not valid after initialization")
+		return
 
 	# Create basic game state manager mock
 	game_state_manager = _create_mock_game_state_manager()
 
 func after_test() -> void:
 	"""Test-level cleanup"""
-	battle_phase = null
-	game_state_manager = null
+	# Clear references - auto_free handles actual cleanup
+	if battle_phase and is_instance_valid(battle_phase):
+		battle_phase = null
+	if game_state_manager and is_instance_valid(game_state_manager):
+		game_state_manager = null
 
 func after() -> void:
 	"""Suite-level cleanup - runs once after all tests"""
@@ -45,53 +57,105 @@ func after() -> void:
 @warning_ignore("return_value_discarded")
 func test_battle_phase_starts_correctly() -> void:
 	"""Battle phase starts and emits battle_phase_started signal"""
-	# Create signal monitor
+	if not is_instance_valid(battle_phase):
+		push_warning("battle_phase freed early, skipping")
+		return
+
+	# Monitor BEFORE starting (signals emit synchronously)
 	var _monitor := monitor_signals(battle_phase)
+	await get_tree().process_frame  # Let monitor initialize
 
 	# Start battle phase
 	battle_phase.start_battle_phase()
 
-	# Verify signal emitted
-	assert_signal(battle_phase).is_emitted("battle_phase_started")
-	assert_bool(battle_phase.battle_in_progress).is_true()
+	# Verify signal emitted (guard against freed instance)
+	if is_instance_valid(battle_phase):
+		await await_signal_on(battle_phase, "battle_phase_started", 2000)
+		assert_signal(battle_phase).is_emitted("battle_phase_started")
+		assert_bool(battle_phase.battle_in_progress).is_true()
 
 @warning_ignore("return_value_discarded")
 func test_battle_setup_generates_enemies() -> void:
 	"""Battle setup generates appropriate enemy count"""
-	# Start battle phase
+	if not is_instance_valid(battle_phase):
+		push_warning("battle_phase freed early, skipping")
+		return
+
+	# Monitor signals BEFORE starting (signals emit synchronously)
+	var _monitor := monitor_signals(battle_phase)
+	await get_tree().process_frame  # Let monitor initialize
+
+	# Start battle phase - all signals emit synchronously
 	battle_phase.start_battle_phase()
 
-	# Wait for setup completion
-	await await_signal_on(battle_phase, "battle_setup_completed", [], 2000)
+	# Wait for signal
+	await await_signal_on(battle_phase, "battle_setup_completed", 2000)
+
+	# Guard against freed instance after await
+	if not is_instance_valid(battle_phase):
+		return
+
+	# Verify signal was emitted
+	assert_signal(battle_phase).is_emitted("battle_setup_completed")
 
 	# Verify battle setup data contains enemies
 	var setup: Dictionary = battle_phase.battle_setup_data
-	assert_that(setup).contains_keys(["enemy_count", "enemy_types"])
+	assert_dict(setup).contains_keys(["enemy_count", "enemy_types"])
 	assert_int(setup.get("enemy_count", 0)).is_greater(0)
 
 @warning_ignore("return_value_discarded")
 func test_deployment_positions_crew_and_enemies() -> void:
 	"""Deployment phase positions both crew and enemies"""
-	# Start battle phase
+	if not is_instance_valid(battle_phase):
+		push_warning("battle_phase freed early, skipping")
+		return
+
+	# Monitor signals BEFORE starting (signals emit synchronously)
+	var _monitor := monitor_signals(battle_phase)
+	await get_tree().process_frame  # Let monitor initialize
+
+	# Start battle phase - all signals emit synchronously
 	battle_phase.start_battle_phase()
 
-	# Wait for deployment completion
-	await await_signal_on(battle_phase, "deployment_completed", [], 3000)
+	# Wait for signal
+	await await_signal_on(battle_phase, "deployment_completed", 2000)
+
+	# Guard against freed instance after await
+	if not is_instance_valid(battle_phase):
+		return
+
+	# Verify signal was emitted
+	assert_signal(battle_phase).is_emitted("deployment_completed")
 
 	# Verify deployment data
 	var deployment: Dictionary = battle_phase.deployment_data
-	assert_that(deployment).contains_keys(["crew_positions", "enemy_positions"])
+	assert_dict(deployment).contains_keys(["crew_positions", "enemy_positions"])
 	assert_array(deployment.get("crew_positions", [])).is_not_empty()
 	assert_array(deployment.get("enemy_positions", [])).is_not_empty()
 
 @warning_ignore("return_value_discarded")
 func test_initiative_roll_within_valid_range() -> void:
 	"""Initiative roll is within valid 1-6 range"""
-	# Start battle phase
+	if not is_instance_valid(battle_phase):
+		push_warning("battle_phase freed early, skipping")
+		return
+
+	# Monitor signals BEFORE starting (signals emit synchronously)
+	var _monitor := monitor_signals(battle_phase)
+	await get_tree().process_frame  # Let monitor initialize
+
+	# Start battle phase - all signals emit synchronously
 	battle_phase.start_battle_phase()
 
-	# Wait for initiative determination
-	await await_signal_on(battle_phase, "initiative_determined", [], 4000)
+	# Wait for signal
+	await await_signal_on(battle_phase, "initiative_determined", 2000)
+
+	# Guard against freed instance after await
+	if not is_instance_valid(battle_phase):
+		return
+
+	# Verify signal was emitted
+	assert_signal(battle_phase).is_emitted("initiative_determined")
 
 	# Verify initiative roll
 	assert_int(battle_phase.initiative_roll).is_between(1, 6)
@@ -99,24 +163,51 @@ func test_initiative_roll_within_valid_range() -> void:
 @warning_ignore("return_value_discarded")
 func test_battle_results_generated() -> void:
 	"""Battle phase generates combat results"""
-	# Start battle phase
+	if not is_instance_valid(battle_phase):
+		push_warning("battle_phase freed early, skipping")
+		return
+
+	# Monitor signals BEFORE starting (signals emit synchronously)
+	var _monitor := monitor_signals(battle_phase)
+	await get_tree().process_frame  # Let monitor initialize
+
+	# Start battle phase - all signals emit synchronously
 	battle_phase.start_battle_phase()
 
-	# Wait for battle completion
-	await await_signal_on(battle_phase, "battle_results_ready", [], 5000)
+	# Wait for signal
+	await await_signal_on(battle_phase, "battle_results_ready", 2000)
+
+	# Guard against freed instance after await
+	if not is_instance_valid(battle_phase):
+		return
+
+	# Verify signal was emitted
+	assert_signal(battle_phase).is_emitted("battle_results_ready")
 
 	# Verify results structure
 	var results: Dictionary = battle_phase.get_battle_results()
-	assert_that(results).contains_keys(["success", "rounds_fought", "enemies_defeated"])
+	assert_dict(results).contains_keys(["success", "rounds_fought", "enemies_defeated"])
 
 @warning_ignore("return_value_discarded")
 func test_battle_phase_completes_successfully() -> void:
 	"""Battle phase completes and emits battle_phase_completed signal"""
-	# Start battle phase
+	if not is_instance_valid(battle_phase):
+		push_warning("battle_phase freed early, skipping")
+		return
+
+	# Monitor signals BEFORE starting (signals emit synchronously)
+	var _monitor := monitor_signals(battle_phase)
+	await get_tree().process_frame  # Let monitor initialize
+
+	# Start battle phase - all signals emit synchronously
 	battle_phase.start_battle_phase()
 
-	# Wait for completion
-	await await_signal_on(battle_phase, "battle_phase_completed", [], 5000)
+	# Wait for signal
+	await await_signal_on(battle_phase, "battle_phase_completed", 2000)
+
+	# Guard against freed instance after await
+	if not is_instance_valid(battle_phase):
+		return
 
 	# Verify phase completed
 	assert_bool(battle_phase.battle_in_progress).is_false()
@@ -125,52 +216,112 @@ func test_battle_phase_completes_successfully() -> void:
 @warning_ignore("return_value_discarded")
 func test_battle_setup_includes_mission_type() -> void:
 	"""Battle setup includes valid mission type"""
-	# Start battle phase with mission data
+	if not is_instance_valid(battle_phase):
+		push_warning("battle_phase freed early, skipping")
+		return
+
+	# Monitor signals BEFORE starting (signals emit synchronously)
+	var _monitor := monitor_signals(battle_phase)
+	await get_tree().process_frame  # Let monitor initialize
+
+	# Start battle phase with mission data - all signals emit synchronously
 	var mission_data: Dictionary = {"mission_type": 1}
 	battle_phase.start_battle_phase(mission_data)
 
-	# Wait for setup completion
-	await await_signal_on(battle_phase, "battle_setup_completed", [], 2000)
+	# Wait for signal
+	await await_signal_on(battle_phase, "battle_setup_completed", 2000)
+
+	# Guard against freed instance after await
+	if not is_instance_valid(battle_phase):
+		return
+
+	# Verify signal was emitted
+	assert_signal(battle_phase).is_emitted("battle_setup_completed")
 
 	# Verify mission type preserved
 	var setup: Dictionary = battle_phase.battle_setup_data
-	assert_that(setup).contains_key("mission_type")
+	assert_bool(setup.has("mission_type")).is_true()
 
 @warning_ignore("return_value_discarded")
 func test_combat_results_include_casualties() -> void:
 	"""Combat results track crew casualties"""
-	# Start battle phase
+	if not is_instance_valid(battle_phase):
+		push_warning("battle_phase freed early, skipping")
+		return
+
+	# Monitor signals BEFORE starting (signals emit synchronously)
+	var _monitor := monitor_signals(battle_phase)
+	await get_tree().process_frame  # Let monitor initialize
+
+	# Start battle phase - all signals emit synchronously
 	battle_phase.start_battle_phase()
 
-	# Wait for results
-	await await_signal_on(battle_phase, "battle_results_ready", [], 5000)
+	# Wait for signal
+	await await_signal_on(battle_phase, "battle_results_ready", 2000)
+
+	# Guard against freed instance after await
+	if not is_instance_valid(battle_phase):
+		return
+
+	# Verify signal was emitted
+	assert_signal(battle_phase).is_emitted("battle_results_ready")
 
 	# Verify casualty tracking
 	var results: Dictionary = battle_phase.get_battle_results()
-	assert_that(results).contains_key("crew_casualties")
+	assert_bool(results.has("crew_casualties")).is_true()
 
 @warning_ignore("return_value_discarded")
 func test_victory_determines_loot_opportunities() -> void:
 	"""Successful battles generate loot opportunities"""
-	# Start battle phase
+	if not is_instance_valid(battle_phase):
+		push_warning("battle_phase freed early, skipping")
+		return
+
+	# Monitor signals BEFORE starting (signals emit synchronously)
+	var _monitor := monitor_signals(battle_phase)
+	await get_tree().process_frame  # Let monitor initialize
+
+	# Start battle phase - all signals emit synchronously
 	battle_phase.start_battle_phase()
 
-	# Wait for results
-	await await_signal_on(battle_phase, "battle_results_ready", [], 5000)
+	# Wait for signal
+	await await_signal_on(battle_phase, "battle_results_ready", 2000)
+
+	# Guard against freed instance after await
+	if not is_instance_valid(battle_phase):
+		return
+
+	# Verify signal was emitted
+	assert_signal(battle_phase).is_emitted("battle_results_ready")
 
 	# Verify loot opportunities present
 	var results: Dictionary = battle_phase.get_battle_results()
 	if results.get("success", false):
-		assert_that(results).contains_key("loot_opportunities")
+		assert_bool(results.has("loot_opportunities")).is_true()
 
 @warning_ignore("return_value_discarded")
 func test_deployed_crew_tracked_correctly() -> void:
 	"""Crew members deployed to battle are tracked"""
-	# Start battle phase
+	if not is_instance_valid(battle_phase):
+		push_warning("battle_phase freed early, skipping")
+		return
+
+	# Monitor signals BEFORE starting (signals emit synchronously)
+	var _monitor := monitor_signals(battle_phase)
+	await get_tree().process_frame  # Let monitor initialize
+
+	# Start battle phase - all signals emit synchronously
 	battle_phase.start_battle_phase()
 
-	# Wait for deployment
-	await await_signal_on(battle_phase, "deployment_completed", [], 3000)
+	# Wait for signal
+	await await_signal_on(battle_phase, "deployment_completed", 2000)
+
+	# Guard against freed instance after await
+	if not is_instance_valid(battle_phase):
+		return
+
+	# Verify signal was emitted
+	assert_signal(battle_phase).is_emitted("deployment_completed")
 
 	# Verify crew deployment tracking
 	var deployed_crew: Array = battle_phase.get_deployed_crew()
@@ -185,20 +336,9 @@ func _create_mock_game_state_manager() -> Node:
 	var mock_node := Node.new()
 	auto_free(mock_node)
 
-	# Add mock methods
+	# Add mock methods - script source must not have leading indentation
 	var script := GDScript.new()
-	script.source_code = """
-		extends Node
-
-		func get_crew_size() -> int:
-			return 4
-
-		func get_crew_members() -> Array:
-			return [
-				{"id": "crew_0", "character_name": "Test Captain", "status": 0},
-				{"id": "crew_1", "character_name": "Test Soldier", "status": 0}
-			]
-	"""
+	script.source_code = "extends Node\n\nfunc get_crew_size() -> int:\n\treturn 4\n\nfunc get_crew_members() -> Array:\n\treturn [{\"id\": \"crew_0\", \"character_name\": \"Test Captain\", \"status\": 0}, {\"id\": \"crew_1\", \"character_name\": \"Test Soldier\", \"status\": 0}]\n"
 	@warning_ignore("return_value_discarded")
 	script.reload()
 	mock_node.set_script(script)

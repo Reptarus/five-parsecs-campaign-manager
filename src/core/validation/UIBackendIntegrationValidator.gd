@@ -412,7 +412,7 @@ static func validate_complete_integration(ui_controller: Node, turn_controller: 
 	return all_results
 
 ## Generate validation report
-static func generate_integration_report(results: Array[IntegrationValidationResult]) -> String:
+static func generate_integration_report(results: Array) -> String:
 	var report = "# UI-Backend Integration Validation Report\n\n"
 	
 	# Summary

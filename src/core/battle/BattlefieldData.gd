@@ -40,10 +40,11 @@ func _init() -> void:
 
 func _initialize_managers() -> void:
 	"""Initialize manager references with error handling"""
-	# Get dice manager reference
+	# Get dice manager reference - Resources cannot use scene tree methods
+	# Use Engine singleton or wait for explicit injection
 	if Engine.has_singleton("DiceManager"):
 		dice_manager = Engine.get_singleton("DiceManager")
-	else:
+	if not dice_manager:
 		push_warning("BattlefieldData: DiceManager not found, using fallback")
 
 	# Get campaign manager reference

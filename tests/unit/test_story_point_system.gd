@@ -20,8 +20,13 @@ func after():
 func before_test():
 	"""Test-level setup - runs before EACH test"""
 	# Create mock campaign for difficulty checks
-	mock_campaign = auto_free(GDScript.new())
-	mock_campaign.set_script(load("res://src/core/campaign/Campaign.gd"))
+	# StoryPointSystem expects an object with a 'config' property
+	var MockCampaign = GDScript.new()
+	MockCampaign.source_code = "extends RefCounted\n\nvar config: Dictionary = {}\n"
+	@warning_ignore("return_value_discarded")
+	MockCampaign.reload()
+	mock_campaign = auto_free(MockCampaign.new())
+	mock_campaign.config = {"difficulty": 2}  # Default to standard difficulty
 
 	# Initialize story system with mock campaign
 	story_system = auto_free(StoryPointSystem.new(mock_campaign))
@@ -62,14 +67,14 @@ func test_hardcore_reduces_starting_by_1():
 	# Result should be (1D6+1)-1 = range 1-6
 	assert_that(points).is_between(1, 6)
 
-func test_insanity_returns_zero_points():
-	"""Insanity mode should disable story points entirely (0 starting points)"""
-	# StoryPointSystem uses difficulty == 4 as Insanity check
-	mock_campaign.config = {"difficulty": 4}
+func test_nightmare_returns_zero_points():
+	"""Nightmare mode should disable story points entirely (0 starting points)"""
+	# StoryPointSystem uses difficulty == NIGHTMARE (5) to disable story points
+	mock_campaign.config = {"difficulty": 5}  # GlobalEnums.DifficultyLevel.NIGHTMARE
 
-	# Create system with insanity config
+	# Create system with nightmare config
 	story_system = StoryPointSystem.new(mock_campaign)
-	var points = story_system.initialize_starting_points(4)
+	var points = story_system.initialize_starting_points(5)
 
 	assert_that(points).is_equal(0)
 	assert_that(story_system.get_current_points()).is_equal(0)
@@ -228,14 +233,46 @@ func test_reset_turn_limits():
 	assert_that(story_system.can_spend(StoryPointSystem.SpendType.EXTRA_ACTION)).is_true()
 
 # ============================================================================
-# Insanity Mode Tests
+# Hardcore Mode Tests (Reduced Points, Still Functional)
 # ============================================================================
 
-func test_insanity_cannot_spend_points():
-	"""In Insanity mode, all spending should be blocked"""
-	mock_campaign.config = {"difficulty": 4}  # Insanity
+func test_hardcore_allows_spending():
+	"""In Hardcore mode, story points should still work (just reduced starting amount)"""
+	mock_campaign.config = {"difficulty": 4}  # HARDCORE
 	story_system = StoryPointSystem.new(mock_campaign)
 	story_system.initialize_starting_points(4)
+
+	# Add points to ensure we have enough
+	story_system.add_points(5, "test")
+
+	# Spending should work normally
+	assert_that(story_system.can_spend(StoryPointSystem.SpendType.ROLL_TWICE_PICK_ONE)).is_true()
+	assert_that(story_system.can_spend(StoryPointSystem.SpendType.GET_CREDITS)).is_true()
+	assert_that(story_system.spend_point(StoryPointSystem.SpendType.GET_CREDITS)).is_true()
+
+func test_hardcore_allows_earning():
+	"""In Hardcore mode, earning story points should still work"""
+	mock_campaign.config = {"difficulty": 4}  # HARDCORE
+	story_system = StoryPointSystem.new(mock_campaign)
+	story_system.initialize_starting_points(4)
+
+	# Turn earning should work
+	var turn_earned = story_system.check_turn_earning(3)
+	assert_that(turn_earned).is_equal(1)
+
+	# Battle earning should work
+	var battle_earned = story_system.check_battle_earning(true, true)
+	assert_that(battle_earned).is_equal(1)
+
+# ============================================================================
+# Nightmare Mode Tests (Story Points Disabled)
+# ============================================================================
+
+func test_nightmare_cannot_spend_points():
+	"""In Nightmare mode, all spending should be blocked"""
+	mock_campaign.config = {"difficulty": 5}  # NIGHTMARE
+	story_system = StoryPointSystem.new(mock_campaign)
+	story_system.initialize_starting_points(5)
 
 	# Try to add points manually (should be ignored)
 	story_system.add_points(10, "test")
@@ -245,11 +282,11 @@ func test_insanity_cannot_spend_points():
 	assert_that(story_system.can_spend(StoryPointSystem.SpendType.GET_CREDITS)).is_false()
 	assert_that(story_system.can_spend(StoryPointSystem.SpendType.GET_XP)).is_false()
 
-func test_insanity_cannot_earn_points():
-	"""In Insanity mode, turn and battle earning should return 0"""
-	mock_campaign.config = {"difficulty": 4}
+func test_nightmare_cannot_earn_points():
+	"""In Nightmare mode, turn and battle earning should return 0"""
+	mock_campaign.config = {"difficulty": 5}  # NIGHTMARE
 	story_system = StoryPointSystem.new(mock_campaign)
-	story_system.initialize_starting_points(4)
+	story_system.initialize_starting_points(5)
 
 	# Turn earning should return 0
 	var turn_earned = story_system.check_turn_earning(3)

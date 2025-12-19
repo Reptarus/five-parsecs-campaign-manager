@@ -107,9 +107,11 @@ func test_base_weapon_damage() -> void:
 	var damage := BattleCalculations.calculate_weapon_damage(2, false)
 	assert_int(damage).is_equal(2)
 
-func test_critical_doubles_damage() -> void:
+func test_critical_instant_kill_by_default() -> void:
+	# Per Five Parsecs rules: Critical = instant kill (999 damage)
+	# House rule "brutal_combat" would change this to double damage
 	var damage := BattleCalculations.calculate_weapon_damage(2, true)
-	assert_int(damage).is_equal(4)  # 2 * 2 = 4
+	assert_int(damage).is_equal(999)  # Instant kill by default
 
 func test_minimum_damage_is_one() -> void:
 	var damage := BattleCalculations.calculate_weapon_damage(0, false)

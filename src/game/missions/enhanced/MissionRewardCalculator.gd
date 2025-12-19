@@ -10,6 +10,7 @@ extends RefCounted
 # GlobalEnums available as autoload singleton
 const MissionTypeRegistry = preload("res://src/game/missions/enhanced/MissionTypeRegistry.gd")
 const MissionDifficultyScaler = preload("res://src/game/missions/enhanced/MissionDifficultyScaler.gd")
+const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 
 # Reward data paths - loaded at runtime
 const REWARDS_DATA_PATH: String = "res://data/mission_tables/mission_rewards.json"
@@ -200,7 +201,11 @@ static func _calculate_base_credits(mission_context: Dictionary, performance_con
 			difficulty
 		)
 		total_credits += patron_bonus.credits
-	
+
+		# HOUSE RULE: wealthy_patrons - Patron missions pay 50% more credits
+		if HouseRulesHelper.is_enabled("wealthy_patrons"):
+			total_credits = roundi(total_credits * 1.5)
+
 	return maxi(total_credits, 50) # Minimum payment
 
 static func _calculate_reputation_gain(mission_context: Dictionary, performance_context: Dictionary) -> int:

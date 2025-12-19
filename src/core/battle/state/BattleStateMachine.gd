@@ -168,7 +168,7 @@ func safe_get_property(obj: Variant, property: String, default_value: Variant = 
 		return obj.get(property, default_value)
 	return default_value
 
-func safe_call_method(obj: Variant, method_name: String, args: Array[Variant] = []) -> Variant:
+func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
 	if obj == null:
 		return null
 	if obj is Object and obj.has_method(method_name):

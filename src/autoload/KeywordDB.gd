@@ -21,10 +21,14 @@ class KeywordData:
 	var rule_page: int = 0
 	var category: String = ""  # "weapon_trait", "rule", "equipment", etc.
 	
-	func _init(p_term: String, p_definition: String, p_related: Array[String] = [], p_rule_page: int = 0, p_category: String = "") -> void:
+	func _init(p_term: String, p_definition: String, p_related: Array = [], p_rule_page: int = 0, p_category: String = "") -> void:
 		term = p_term
 		definition = p_definition
-		related = p_related
+		# Convert Array to Array[String] explicitly
+		related.clear()
+		for value in p_related:
+			if value is String:
+				related.append(value)
 		rule_page = p_rule_page
 		category = p_category
 	
@@ -179,7 +183,7 @@ func _initialize_default_keywords() -> void:
 	
 	print("KeywordDB: Initialized %d default keywords" % _keywords.size())
 
-func _add_keyword(term: String, definition: String, related: Array[String], rule_page: int, category: String) -> void:
+func _add_keyword(term: String, definition: String, related: Array, rule_page: int, category: String) -> void:
 	"""Add keyword to database"""
 	var normalized = term.strip_edges().to_lower()
 	_keywords[normalized] = KeywordData.new(term, definition, related, rule_page, category)

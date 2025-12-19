@@ -151,7 +151,7 @@ static func _validate_smoke_tests() -> CategoryResult:
 	print("  Result: %s (%.1f%% score)" % [status_text, result.score * 100])
 	return result
 
-static func _validate_data_consistency(ui_controller: Node, state_manager, campaign_sequence: Array[Dictionary]) -> CategoryResult:
+static func _validate_data_consistency(ui_controller: Node, state_manager, campaign_sequence: Array) -> CategoryResult:
 	"""Validate data consistency across all systems"""
 	print("\n📊 VALIDATING: Data Consistency")
 	var category_start = Time.get_ticks_msec()

@@ -254,7 +254,8 @@ func _distribute_bonus_uses(bonus_uses: int) -> void:
 
 	# If no abilities need recharging, increase max uses evenly
 	if abilities_to_recharge.is_empty():
-		abilities_to_recharge = StarAbility.values()
+		for ability in StarAbility.values():
+			abilities_to_recharge.append(ability)
 
 	# Distribute bonus uses
 	var uses_distributed: int = 0
@@ -352,13 +353,18 @@ func _use_its_time_to_go(context: Dictionary) -> Dictionary:
 
 ## "Rainy Day Fund" - Gain 1D6+5 credits
 ##
-## @param context: Optional "dice_system" for injection (testing), otherwise uses DiceSystem autoload
+## @param context: Optional "dice_system" for injection (testing)
 ## @return: Result dictionary
 func _use_rainy_day_fund(context: Dictionary) -> Dictionary:
-	var dice_system = context.get("dice_system", DiceSystem)
+	var dice_system = context.get("dice_system", null)
 
-	# Roll 1D6+5
-	var roll: int = dice_system.roll(1, 6) + 5
+	# Roll 1D6+5 - use injected dice system if available, otherwise use randi
+	var roll: int
+	if dice_system != null and dice_system.has_method("roll"):
+		roll = dice_system.roll(1, 6) + 5
+	else:
+		# Fallback to basic random roll
+		roll = (randi() % 6) + 1 + 5
 
 	return {
 		"success": true,

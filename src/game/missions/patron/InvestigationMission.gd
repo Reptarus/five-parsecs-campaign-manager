@@ -8,7 +8,7 @@ extends Mission
 ## stealth requirements, and information-based rewards.
 
 # GlobalEnums available as autoload singleton
-const MissionTypeRegistry = preload("res://src/game/missions/enhanced/MissionTypeRegistry.gd")
+const FPCM_MissionTypeRegistry = preload("res://src/game/missions/enhanced/MissionTypeRegistry.gd")
 
 # Investigation parameters
 @export var investigation_type: String = "corporate" # corporate, criminal, scientific, personal, political
@@ -47,9 +47,13 @@ var minimum_crew_size: int = 2
 var required_skills: Array[String] = ["savvy", "tech"]
 var objectives: Array[Dictionary] = []
 
+# Reference the parent class for proper inheritance
+const MissionClass = preload("res://src/core/campaign/Mission.gd")
+
 func _init() -> void:
 	super._init()
-	mission_type = MissionTypeRegistry.EnhancedMissionType.INVESTIGATION
+	# Use base MissionType for patron missions
+	mission_type = MissionClass.MissionType.PATRON_JOB
 	_setup_investigation_mission()
 
 ## Initialize investigation mission with specific parameters
@@ -258,10 +262,10 @@ func get_enemy_deployment_context() -> Dictionary:
 ## Private Methods
 
 func _setup_investigation_mission() -> void:
-	mission_title = "Investigation Contract"
-	mission_description = "Gather intelligence and evidence on the target"
-	minimum_crew_size = 2
-	required_skills = ["savvy", "tech"]
+	# Using properties from parent Mission class
+	set("mission_name", "Investigation Contract")
+	set("description", "Gather intelligence and evidence on the target")
+	set("required_crew_size", 2)
 
 func _generate_evidence_requirements() -> void:
 	required_evidence_types.clear()
@@ -397,14 +401,14 @@ func _calculate_investigation_rewards() -> void:
 	reward_credits = base_credits
 	
 	# Advanced rules for performance bonuses
-	advanced_rules["stealth_bonus"] = 1.3
-	advanced_rules["evidence_quality_bonus"] = {
+	objective_parameters["stealth_bonus"] = 1.3
+	objective_parameters["evidence_quality_bonus"] = {
 		"excellent": 1.4,
 		"good": 1.2,
 		"adequate": 1.0,
 		"poor": 0.8
 	}
-	advanced_rules["time_bonus"] = {
+	objective_parameters["time_bonus"] = {
 		"early": 1.2,
 		"on_time": 1.0,
 		"late": 0.8
@@ -630,22 +634,21 @@ func _complete_investigation() -> void:
 	var quality_bonus: float = _calculate_evidence_quality_bonus()
 	var stealth_bonus: float = 1.0
 	if stealth_maintained:
-		stealth_bonus = advanced_rules.stealth_bonus
+		stealth_bonus = objective_parameters.get("stealth_bonus", 1.3)
 	
 	var final_reward: int = roundi(reward_credits * quality_bonus * stealth_bonus)
 	reward_credits = final_reward
 	
-	complete_mission()
+	var _result: Dictionary = super.complete_mission()
 
 func _complete_investigation_success() -> void:
 	var evidence_quality_bonus: float = _calculate_evidence_quality_bonus()
-	var stealth_bonus: float = 1.0 if not security_alert_raised else 0.8
+	var stealth_bonus: float = 1.0 if security_alertness == 0 else 0.8
 	var final_reward: int = roundi(reward_credits * evidence_quality_bonus * stealth_bonus)
 	
 	reward_credits = final_reward
 	
-	if has_method("_complete_mission"):
-		_complete_mission()
+	var _result: Dictionary = super.complete_mission()
 
 func _calculate_evidence_quality_bonus() -> float:
 	if evidence_collected.is_empty():
@@ -662,11 +665,12 @@ func _calculate_evidence_quality_bonus() -> float:
 	var average_quality: float = total_quality / evidence_collected.size()
 	return clampf(average_quality, 0.8, 1.4)
 
-func complete_mission() -> void:
+func complete_mission() -> Dictionary:
 	# Mark mission as completed
 	print("Investigation mission completed for: %s" % target_organization)
+	return super.complete_mission()
 
-func _complete_mission() -> void:
+func _complete_mission_internal() -> void:
 	# Mark mission as completed
 	print("Investigation mission completed for: %s" % target_organization)
 

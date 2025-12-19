@@ -75,7 +75,7 @@ func _init() -> void:
 	_update_timestamp()
 
 ## Initialize battle state with mission data
-func initialize_with_mission(p_mission_data: Resource, p_crew: Array[Resource], p_enemies: Array[Resource]) -> bool:
+func initialize_with_mission(p_mission_data: Resource, p_crew: Array, p_enemies: Array) -> bool:
 	if not p_mission_data:
 		_add_validation_error("Mission data is required")
 		return false
@@ -337,7 +337,7 @@ func get_battlefield_status() -> Dictionary:
 	}
 
 ## Complete battle with final results
-func complete_battle(outcome: String, final_credits: int = 0, final_loot: Array[Resource] = []) -> void:
+func complete_battle(outcome: String, final_credits: int = 0, final_loot: Array = []) -> void:
 	battle_outcome = outcome
 	credits_earned = final_credits
 	loot_found = final_loot.duplicate()

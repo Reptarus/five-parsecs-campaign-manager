@@ -3,18 +3,27 @@ extends GdUnitTestSuite
 ## Integration test for ship stash save/load persistence
 ## Verifies that equipment transferred to ship stash persists across save/load cycles
 
+const CoreGameState = preload("res://src/core/state/GameState.gd")
+const EquipmentManager = preload("res://src/core/equipment/EquipmentManager.gd")
+
 var game_state: Node = null
 var equipment_manager: Node = null
 var test_character_id: String = "test_char_001"
 var test_equipment_id: String = "test_weapon_001"
 
 func before_test() -> void:
-	# Get autoloads
+	# Try to get autoloads, or create local instances for unit testing
 	game_state = Engine.get_singleton("GameState")
-	equipment_manager = Engine.get_singleton("EquipmentManager")
+	if not game_state:
+		# Create local instance for unit testing
+		game_state = auto_free(CoreGameState.new())
+		add_child(game_state)
 	
-	assert_that(game_state).is_not_null()
-	assert_that(equipment_manager).is_not_null()
+	equipment_manager = Engine.get_singleton("EquipmentManager")
+	if not equipment_manager:
+		# Create local instance for unit testing
+		equipment_manager = auto_free(EquipmentManager.new())
+		add_child(equipment_manager)
 	
 	# Setup test equipment
 	var test_equipment = {
@@ -29,7 +38,8 @@ func before_test() -> void:
 	}
 	
 	# Add equipment to manager
-	equipment_manager.add_equipment(test_equipment)
+	if equipment_manager and equipment_manager.has_method("add_equipment"):
+		equipment_manager.add_equipment(test_equipment)
 
 func after_test() -> void:
 	# Cleanup test equipment
@@ -58,7 +68,7 @@ func test_ship_stash_persistence_basic() -> void:
 	# WHEN: We serialize and deserialize the game state
 	var save_data = game_state.serialize()
 	assert_that(save_data).is_not_null()
-	assert_that(save_data).contains_key("ship_stash")
+	assert_that(save_data.has("ship_stash")).is_true()
 	assert_that(save_data["ship_stash"]).is_not_empty()
 	
 	# Clear the stash

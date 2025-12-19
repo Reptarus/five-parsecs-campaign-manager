@@ -6,7 +6,7 @@ extends Node
 const CoreGameState = preload("res://src/core/state/GameState.gd")
 # Character/CharacterDataManager reference removed - file does not exist
 const FPCMCharacter = preload("res://src/core/character/Character.gd")
-const MissionSystem = preload("res://src/core/systems/Mission.gd")
+const MissionSystem = preload("res://src/core/campaign/Mission.gd")
 const FPCMTerrainSystem = preload("res://src/core/terrain/UnifiedTerrainSystem.gd")
 const BattleUI = preload("res://src/ui/screens/battle/PreBattleUI.gd")
 
@@ -184,8 +184,11 @@ func _setup_crew_selection() -> void:
 		ui.setup_crew_selection(available_crew)
 
 ## Handle crew selection
-func _on_crew_selected(crew: Array[Character]) -> void:
-	selected_crew = crew
+func _on_crew_selected(crew: Array) -> void:
+	selected_crew.clear()
+	for c in crew:
+		if c is Character:
+			selected_crew.append(c)
 	crew_selection_changed.emit(crew)
 	_validate_battle_readiness()
 
@@ -343,8 +346,11 @@ func get_initiative_result() -> Dictionary:
 	}
 
 ## Update deployment zones
-func update_deployment_zones(zones: Array[Dictionary]) -> void:
-	deployment_zones = zones
+func update_deployment_zones(zones: Array) -> void:
+	deployment_zones.clear()
+	for z in zones:
+		if z is Dictionary:
+			deployment_zones.append(z)
 	deployment_updated.emit(zones)
 
 ## Get current mission

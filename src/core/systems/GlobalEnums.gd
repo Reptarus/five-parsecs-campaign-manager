@@ -368,7 +368,8 @@ enum MissionType {
 	ASSASSINATION,
 	PATRON,
 	RAID,
-	DEFENSE
+	DEFENSE,
+	QUEST
 }
 
 ## Mission Objective System (Five Parsecs Core Rules)
@@ -897,7 +898,15 @@ enum FiveParsecsCampaignVictoryType {
 	REPUTATION_20, # Achieve reputation level 20
 	CHARACTER_SURVIVAL, # Specific character survives campaign
 	CREW_SIZE_10, # Reach crew size of 10 members
-	STORY_COMPLETE # Complete the story track
+	STORY_COMPLETE, # Complete the story track
+	# Character upgrade victory conditions
+	UPGRADE_1_CHARACTER_10_TIMES, # Upgrade 1 character 10 times
+	UPGRADE_3_CHARACTERS_10_TIMES, # Upgrade 3 characters 10 times each
+	UPGRADE_5_CHARACTERS_10_TIMES, # Upgrade 5 characters 10 times each
+	# Difficulty-based turn conditions
+	TURNS_50_CHALLENGING, # 50 turns on Challenging difficulty
+	TURNS_50_HARDCORE, # 50 turns on Hardcore difficulty
+	TURNS_50_INSANITY # 50 turns on Insanity difficulty
 }
 
 ## Planet Type System (Enhanced - Missing TEMPERATE and ROCKY)

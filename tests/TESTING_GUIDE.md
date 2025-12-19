@@ -15,9 +15,24 @@ Run tests using Godot UI mode for reliable execution:
   --quit-after 60
 ```
 
-### ⚠️ Headless Mode (Known Issues)
+### ✅ Headless Mode (Now Stable with v6.0.3)
 
-**Do NOT use `--headless` flag** - it causes inconsistent crashes (signal 11) after 8-18 tests due to gdUnit4 v6.0.1 memory management issues.
+**Headless mode is now WORKING** with GDUnit4 v6.0.3. The signal 11 crashes from v6.0.1 have been fixed.
+
+```powershell
+# Run tests in headless mode (CI/CD compatible)
+& 'C:\Users\elija\Desktop\GoDot\Godot_v4.5.1-stable_win64.exe\Godot_v4.5.1-stable_win64_console.exe' `
+  --headless `
+  --path 'c:\Users\elija\SynologyDrive\Godot\five-parsecs-campaign-manager' `
+  --script addons/gdUnit4/bin/GdUnitCmdTool.gd `
+  -a tests/unit/test_battle_calculations.gd `
+  --ignoreHeadlessMode `
+  -c
+```
+
+**Verified on 2025-12-17**: 69+ tests run successfully without crashes (vs 8-18 test threshold on v6.0.1).
+
+**Note**: Tests using UI interaction (InputEvents) don't work in headless mode - Godot limitation.
 
 ## Test Structure
 
@@ -123,27 +138,33 @@ Located in `tests/helpers/EconomyTestHelper.gd` (267 lines)
 
 ## Known Issues
 
-### gdUnit4 Headless Mode Crash
+### ✅ RESOLVED: gdUnit4 Headless Mode Crash (v6.0.1 → v6.0.3)
 
-**Symptoms:**
-- Engine crashes with `signal 11` (segmentation fault)
-- Crash occurs inconsistently after 8-18 tests
-- All tests that run before crash pass successfully (100% pass rate)
+**Status: FIXED in GDUnit4 v6.0.3** (verified 2025-12-17)
 
-**Root Cause:**
-- gdUnit4 v6.0.1 memory management issue in headless mode
-- Not related to test code quality or helper class structure
+**Previous Symptoms (v6.0.1):**
+- Engine crashed with `signal 11` (segmentation fault) after 8-18 tests
+- Root cause: gdUnit4 v6.0.1 memory management issue in headless mode
 
-**Solution:**
-- Use Godot UI mode (without `--headless` flag)
-- Tests run reliably and all pass
+**Resolution:**
+- Updated to GDUnit4 v6.0.3
+- Headless mode now works reliably
+- Verified: 69+ tests run successfully without crashes
 
-**Investigation History:**
+**Verification Results:**
+| Test File | Tests | Status |
+|-----------|-------|--------|
+| test_state_victory.gd | 7 | ✅ ALL PASSED |
+| test_character_advancement_costs.gd | 13 | ✅ No crash (11 pass, 2 content fail) |
+| test_battle_calculations.gd | 49 | ✅ No crash (47 pass, 2 content fail) |
+| **TOTAL** | **69** | **✅ No signal 11 crashes** |
+
+**Historical Investigation (for reference):**
 - Attempt 1: Removed `.free()` calls (5→9 tests before crash)
 - Attempt 2: Single helper instance per suite (9→13 tests)
 - Attempt 3: Plain class instead of extends Node (13→18 tests)
 - Attempt 4: Split into smaller test files (still crashed)
-- **Solution:** UI mode instead of headless (36/36 tests PASSED)
+- **Final Fix:** Update to GDUnit4 v6.0.3
 
 ## Best Practices
 

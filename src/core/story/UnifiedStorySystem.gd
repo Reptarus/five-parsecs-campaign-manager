@@ -3,7 +3,7 @@
 extends Node
 
 ## Dependencies
-const Mission = preload("res://src/core/systems/Mission.gd")
+const Mission = preload("res://src/core/campaign/Mission.gd")
 # GlobalEnums available as autoload singleton
 const Character = preload("res://src/core/character/Character.gd")
 const SaveManager = preload("res://src/core/state/SaveManager.gd")

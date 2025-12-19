@@ -8,6 +8,7 @@ class_name InjurySystemService
 
 ## Dependencies
 const InjurySystemConstants = preload("res://src/core/systems/InjurySystemConstants.gd")
+const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 
 ## Signals for injury events
 signal injury_determined(character_id: String, injury_type: int, injury_details: Dictionary)
@@ -87,6 +88,76 @@ static func roll_injury() -> Dictionary:
 	var roll := randi() % 100 + 1  # D100: 1-100
 	var result := determine_injury(roll)
 	result["roll"] = roll
+	return result
+
+## ==========================================
+## HOUSE RULE: NARRATIVE INJURIES
+## ==========================================
+
+## Check if narrative injuries house rule is enabled
+static func is_narrative_injuries_enabled() -> bool:
+	"""Check if players can choose injuries narratively instead of rolling
+	Returns: True if narrative_injuries house rule is active"""
+	return HouseRulesHelper.is_enabled("narrative_injuries")
+
+## Get available injuries for narrative selection
+## Excludes fatal injuries (player can't choose to kill their own character)
+static func get_narrative_injury_options() -> Array[Dictionary]:
+	"""Get list of injuries available for narrative selection
+
+	Returns:
+		Array of injury dictionaries suitable for UI selection
+		Each contains: injury_type, name, description, recovery_turns
+	"""
+	var options: Array[Dictionary] = []
+
+	# Add non-fatal injury options
+	# Note: FATAL is excluded - players shouldn't be able to kill their own characters
+	var narrative_types = [
+		InjurySystemConstants.InjuryType.MIRACULOUS_ESCAPE,
+		InjurySystemConstants.InjuryType.EQUIPMENT_LOSS,
+		InjurySystemConstants.InjuryType.CRIPPLING_WOUND,
+		InjurySystemConstants.InjuryType.SERIOUS_INJURY,
+		InjurySystemConstants.InjuryType.MINOR_INJURY,
+		InjurySystemConstants.InjuryType.KNOCKED_OUT,
+		InjurySystemConstants.InjuryType.HARD_KNOCKS
+	]
+
+	for injury_type in narrative_types:
+		var option = {
+			"injury_type": injury_type,
+			"name": InjurySystemConstants.INJURY_TYPE_NAMES[injury_type],
+			"description": InjurySystemConstants.INJURY_DESCRIPTIONS[injury_type],
+			"recovery_turns": InjurySystemConstants.get_base_recovery_turns(injury_type),
+			"is_fatal": false,
+			"requires_surgery": InjurySystemConstants.requires_surgery(injury_type),
+			"special_effect": InjurySystemConstants.get_injury_special_effect(injury_type)
+		}
+		options.append(option)
+
+	return options
+
+## Create injury result from narrative selection
+static func create_narrative_injury(selected_injury_type: int) -> Dictionary:
+	"""Create injury result from player's narrative selection
+
+	Args:
+		selected_injury_type: InjurySystemConstants.InjuryType value chosen by player
+
+	Returns:
+		Dictionary matching roll_injury() format but marked as narrative choice
+	"""
+	var result := {
+		"injury_type": selected_injury_type,
+		"type_name": InjurySystemConstants.INJURY_TYPE_NAMES.get(selected_injury_type, "UNKNOWN"),
+		"description": InjurySystemConstants.INJURY_DESCRIPTIONS.get(selected_injury_type, ""),
+		"is_fatal": InjurySystemConstants.is_fatal(selected_injury_type),
+		"requires_surgery": InjurySystemConstants.requires_surgery(selected_injury_type),
+		"recovery_turns": InjurySystemConstants.get_base_recovery_turns(selected_injury_type),
+		"special_effect": InjurySystemConstants.get_injury_special_effect(selected_injury_type),
+		"roll": -1,  # -1 indicates narrative selection, not rolled
+		"narrative_choice": true
+	}
 	return result
 
 ## ==========================================

@@ -1596,7 +1596,7 @@ func _safe_auto_advance() -> void:
 	print("CampaignCreationUI: Executing safe auto-advance")
 	_on_next_pressed()
 
-func _on_panel_validation_failed(errors: Array[String]) -> void:
+func _on_panel_validation_failed(errors: Array) -> void:
 	"""Handle validation failures"""
 	print("CampaignCreationUI: Panel validation failed: ", errors)
 	# Update validation status bar with errors
@@ -1676,7 +1676,7 @@ func _on_victory_conditions_changed(conditions: Dictionary) -> void:
 	coordinator.unified_campaign_state["campaign_config"]["victory_conditions"] = conditions
 	print("Victory conditions updated: ", conditions)
 
-func _show_validation_errors(errors: Array[String]) -> void:
+func _show_validation_errors(errors: Array) -> void:
 	"""Show validation errors to the user"""
 	var error_text = "Please fix the following issues:\n"
 	for error in errors:
@@ -2120,7 +2120,7 @@ func _on_crew_member_added(member_data: Dictionary) -> void:
 	if coordinator:
 		coordinator.add_crew_member(member_data)
 
-func _on_equipment_generated(equipment: Array[Dictionary]) -> void:
+func _on_equipment_generated(equipment: Array) -> void:
 	"""Handle equipment generation"""
 	print("CampaignCreationUI: Equipment generated")
 	if coordinator:

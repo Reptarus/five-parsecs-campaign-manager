@@ -17,7 +17,7 @@ extends Node  # Required for _ready, signals, and Node features
 
 # DISABLED - BaseMissionGenerationSystem removed - file does not exist
 # GlobalEnums available as autoload singleton
-const Mission = preload("res://src/core/systems/Mission.gd")
+const Mission = preload("res://src/core/campaign/Mission.gd")
 
 signal mission_generated(mission_data: Dictionary)
 signal generation_failed(error: String)
@@ -125,7 +125,7 @@ func _on_system_mission_generated(mission: Mission) -> void:
 	var mission_data = mission.serialize()
 	mission_generated.emit(mission_data)
 
-func _on_system_mission_batch_generated(missions: Array[Mission]) -> void:
+func _on_system_mission_batch_generated(missions: Array) -> void:
 	"""Handle mission batch generated from generation system"""
 	# Could emit individual signals or batch signal
 	for mission in missions:

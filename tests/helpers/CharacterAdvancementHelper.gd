@@ -11,7 +11,7 @@ func _get_character_advancement_cost(stat: String) -> int:
 	"""Get XP cost for increasing a stat (Five Parsecs rulebook p.6753-6760)"""
 	var costs = {
 		"reactions": 7,
-		"combat": 7,        # CORRECT: matches Character.gd (NOT combat_skill)
+		"combat_skill": 7,
 		"speed": 5,
 		"savvy": 5,
 		"toughness": 6,
@@ -41,7 +41,7 @@ func _get_stat_maximum(stat: String, character: Dictionary) -> int:
 	# Standard maximums - using CORRECT stat names matching Character.gd
 	var maximums = {
 		"reactions": 6,
-		"combat": 5,        # CORRECT: matches Character.gd (NOT combat_skill)
+		"combat_skill": 5,
 		"speed": 8,
 		"savvy": 5,
 		"tech": 5,          # ADDED: missing stat
@@ -55,7 +55,7 @@ func _can_character_advance(character: Dictionary) -> Array:
 	var current_xp = character.get("experience", 0)
 
 	# CORRECT stat names matching Character.gd
-	var stats_to_check = ["reactions", "combat", "speed", "savvy", "toughness", "luck", "tech", "move"]
+	var stats_to_check = ["reactions", "combat_skill", "speed", "savvy", "toughness", "luck", "tech", "move"]
 
 	for stat in stats_to_check:
 		var cost = _get_character_advancement_cost(stat)
@@ -96,7 +96,7 @@ func _process_character_advancements(crew: Array, captain: Dictionary) -> Dictio
 
 	# Priority order for stat advancement (most important first)
 	# CORRECT stat names matching Character.gd
-	var advancement_priority = ["combat", "reactions", "toughness", "speed", "savvy", "tech", "move", "luck"]
+	var advancement_priority = ["combat_skill", "reactions", "toughness", "speed", "savvy", "tech", "move", "luck"]
 
 	# Process captain advancements
 	for stat in advancement_priority:

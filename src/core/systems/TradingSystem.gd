@@ -606,7 +606,7 @@ func _remove_item_from_inventory(campaign_data: Resource, item: Resource) -> boo
 			return true
 	return false
 
-func get_market_summary(items: Array[Resource]) -> Dictionary:
+func get_market_summary(items: Array) -> Dictionary:
 	"""Get summary of market for UI display"""
 	var summary = {
 		"total_items": items.size(),
@@ -775,7 +775,7 @@ func _generate_advanced_trade_opportunities(world_type: String) -> Array[Diction
 
 	return opportunities
 
-func _update_supply_demand_tracking(market_items: Array[Resource]) -> void:
+func _update_supply_demand_tracking(market_items: Array) -> void:
 	"""Update supply and demand tracking for market analysis"""
 	for item in market_items:
 

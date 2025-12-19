@@ -492,9 +492,12 @@ func _return_to_previous_campaign_step() -> void:
 
 ## Public API
 
-func set_crew_members(new_crew: Array[Character]) -> void:
+func set_crew_members(new_crew: Array) -> void:
 	"""Set crew members for equipment generation"""
-	crew_members = new_crew.filter(func(char): return _validate_character_for_equipment(char))
+	crew_members.clear()
+	for c in new_crew:
+		if c is Character and _validate_character_for_equipment(c):
+			crew_members.append(c)
 	_update_crew_display()
 	_update_generation_buttons()
 	print("EquipmentGenerationScene: Set %d valid crew members" % crew_members.size())

@@ -1,4 +1,3 @@
-@tool
 extends Node
 class_name BattlePhase
 
@@ -13,6 +12,7 @@ var dice_manager: Variant = null
 var game_state_manager: Variant = null
 
 ## Battle Phase Signals
+signal ready_for_battle()  # Emitted when initialization is complete
 signal battle_phase_started()
 signal battle_phase_completed()
 signal battle_substep_changed(substep: int)
@@ -80,6 +80,9 @@ func _initialize_autoloads() -> void:
 				print("BattlePhase: ✅ Found GameStateManager via AlphaGameManager")
 		else:
 			print("BattlePhase: ❌ No valid GameStateManager fallback available")
+
+	# Emit ready signal after initialization completes (success or failure)
+	ready_for_battle.emit()
 
 ## Main Battle Phase Processing
 func start_battle_phase(mission_data: Dictionary = {}) -> void:

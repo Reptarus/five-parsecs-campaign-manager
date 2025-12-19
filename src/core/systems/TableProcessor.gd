@@ -24,7 +24,7 @@ class TableEntry:
 	var tags: Array[String] = [] # For filtering and special handling
 	var metadata: Dictionary = {} # Additional data for complex results
 
-	func _init(min_roll: int, max_roll: int, res: Variant, w: float = 1.0, t: Array[String] = [], meta: Dictionary = {}) -> void:
+	func _init(min_roll: int, max_roll: int, res: Variant, w: float = 1.0, t: Array = [], meta: Dictionary = {}) -> void:
 		# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
 		if not is_instance_valid(self) or not is_instance_valid(min_roll) or not is_instance_valid(max_roll) or not is_instance_valid(res) or not is_instance_valid(w) or not is_instance_valid(t) or not is_instance_valid(meta):
 			return

@@ -365,7 +365,7 @@ func validate_character_data(character: Character) -> bool:
 	
 	return true
 
-func validate_combat_state(combat_characters: Array[CombatCharacter]) -> Array[String]:
+func validate_combat_state(combat_characters: Array) -> Array[String]:
 	"""Validate combat state and return any errors"""
 	var errors: Array[String] = []
 	

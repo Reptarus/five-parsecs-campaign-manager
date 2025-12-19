@@ -222,7 +222,7 @@ static func format_implant(implant: Dictionary) -> String:
 	Returns:
 		Formatted string like "Neural Link (+1 Savvy)"
 	"""
-	var implant_name := implant.get("name", "Unknown Implant")
+	var implant_name: String = implant.get("name", "Unknown Implant")
 	var stat_bonus: Dictionary = implant.get("stat_bonus", {})
 
 	if stat_bonus.is_empty():
@@ -232,7 +232,7 @@ static func format_implant(implant: Dictionary) -> String:
 	var bonus_text: Array[String] = []
 	for stat_name in stat_bonus:
 		var bonus_value: int = stat_bonus[stat_name]
-		var formatted_stat := stat_name.capitalize()
+		var formatted_stat: String = stat_name.capitalize()
 		bonus_text.append("+%d %s" % [bonus_value, formatted_stat])
 
 	return "%s (%s)" % [implant_name, ", ".join(bonus_text)]

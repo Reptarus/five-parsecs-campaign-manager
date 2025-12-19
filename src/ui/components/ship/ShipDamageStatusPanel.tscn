@@ -1,0 +1,63 @@
+[gd_scene load_steps=2 format=3 uid="uid://bbsj2y3wm4vru"]
+
+[ext_resource type="Script" path="res://src/ui/components/ship/ShipDamageStatusPanel.gd" id="1"]
+
+[node name="ShipDamageStatusPanel" type="PanelContainer"]
+custom_minimum_size = Vector2(300, 0)
+offset_right = 300.0
+offset_bottom = 150.0
+script = ExtResource("1")
+
+[node name="VBox" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="Header" type="HBoxContainer" parent="VBox"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="VBox/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.611765, 0.639216, 0.686275, 1)
+theme_override_font_sizes/font_size = 18
+text = "SHIP STATUS"
+
+[node name="StateLabel" type="Label" parent="VBox/Header"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "OPERATIONAL"
+horizontal_alignment = 2
+
+[node name="HullBar" type="ProgressBar" parent="VBox"]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="Stats" type="HBoxContainer" parent="VBox"]
+layout_mode = 2
+
+[node name="HullLabel" type="Label" parent="VBox/Stats"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.952941, 0.956863, 0.964706, 1)
+theme_override_font_sizes/font_size = 16
+text = "Hull: 100/100"
+
+[node name="RepairLabel" type="Label" parent="VBox/Stats"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.611765, 0.639216, 0.686275, 1)
+theme_override_font_sizes/font_size = 16
+text = "Repair Cost: 0 credits"
+horizontal_alignment = 2
+
+[node name="CriticalWarning" type="PanelContainer" parent="VBox"]
+visible = false
+layout_mode = 2
+
+[node name="WarningLabel" type="Label" parent="VBox/CriticalWarning"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.937255, 0.270588, 0.270588, 1)
+theme_override_font_sizes/font_size = 14
+text = "⚠️ CRITICAL DAMAGE - Ship may be lost!"
+horizontal_alignment = 1

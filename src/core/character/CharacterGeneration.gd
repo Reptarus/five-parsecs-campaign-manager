@@ -16,6 +16,7 @@ const Character = preload("res://src/core/character/Character.gd")
 const UniversalResourceLoader = preload("res://src/core/systems/UniversalResourceLoader.gd")
 const DataManager = preload("res://src/core/data/DataManager.gd")
 const SafeDataAccess = preload("res://src/utils/SafeDataAccess.gd")
+const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 
 # Data-driven character creation tables
 static var _character_data: Dictionary = {}
@@ -254,10 +255,14 @@ static func apply_table_results_to_character(character: Character, table_results
 				"class_result":
 					character.add_trait("Class: " + result_name)
 
-	# Apply XP bonus
+	# Apply XP bonus (unless rookie_crew house rule is enabled)
 	var resources = table_results.get("resources", {})
 	var xp_bonus = resources.get("xp", 0)
-	if xp_bonus > 0:
+
+	# HOUSE RULE: rookie_crew - Starting crew begins with 0 XP
+	if HouseRulesHelper.is_enabled("rookie_crew"):
+		character.experience_points = 0
+	elif xp_bonus > 0:
 		character.experience_points += xp_bonus
 
 	# Apply bonus credits
@@ -667,7 +672,9 @@ static func apply_class_bonuses(character: Character) -> void:
 			character.savvy = clampi(character.savvy + 1, 0, 5)
 			character.add_trait("Medical Training")
 		"ENGINEER":
-			character.savvy = clampi(character.savvy + 1, 0, 5)
+			# Engineers can't exceed T4 in Savvy (Five Parsecs p.18)
+			var engineer_max_savvy = 4 if character.species.to_lower() == "engineer" else 5
+			character.savvy = clampi(character.savvy + 1, 0, engineer_max_savvy)
 			character.add_trait("Engineering Training")
 		"PILOT":
 			character.reactions = clampi(character.reactions + 1, 1, 6)
@@ -846,28 +853,41 @@ static func _apply_basic_equipment(character: Character) -> void:
 	}
 	character.credits_earned = 1000
 
-## Set character flags based on origin
+## Set character flags based on origin (Five Parsecs p.18-20)
+## Note: Origin-based properties like is_bot(), is_human() are derived from origin string
+## so we only need to apply the stat modifiers and traits here
 static func set_character_flags(character: Character) -> void:
 	match character.origin:
 		"HUMAN":
-			character.is_human = true
+			# Human: +1 luck (Five Parsecs p.18)
 			character.luck = clampi(character.luck + 1, 0, 3)
 		"BOT":
-			character.is_bot = true
+			# Bot: 6+ Armor save (Five Parsecs p.18) - origin already set
 			character.add_trait("Bot: 6+ Armor Save")
 		"SOULLESS":
-			character.is_soulless = true
+			# Soulless: 6+ Armor save (Five Parsecs p.19) - origin already set
 			character.add_trait("Soulless: 6+ Armor Save")
 		"ENGINEER":
-			character.add_trait("Engineer: +1 to repair rolls")
+			# Engineer: +1 Savvy, -1 Reaction, can't exceed T4 in Savvy (Five Parsecs p.18)
+			character.savvy = clampi(character.savvy + 1, 0, 4)  # T4 cap
+			character.reactions = clampi(character.reactions - 1, 1, 6)
+			character.add_trait("Engineer: +1 to repair rolls, T4 Savvy cap")
 		"KERIN":
+			# K'Erin: Toughness 4, +1 melee damage (Five Parsecs p.19)
+			character.toughness = 4  # Force T4
 			character.add_trait("K'Erin: +1 damage with melee weapons")
 		"PRECURSOR":
-			character.add_trait("Precursor: Ancient Knowledge +2")
+			# Precursor: +2 Savvy, roll twice on events (Five Parsecs p.19)
+			character.savvy = clampi(character.savvy + 2, 0, 5)
+			character.add_trait("Precursor: Roll twice on events, keep preferred")
 		"FERAL":
-			character.add_trait("Feral: Predator Instinct")
+			# Feral: Ignore enemy penalties (Five Parsecs p.20)
+			character.add_trait("Feral: Ignore suppression and enemy penalties")
 		"SWIFT":
-			character.add_trait("Swift: Glide and Leap abilities")
+			# Swift: +2 Speed, limited to 1 Reaction per round (Five Parsecs p.20)
+			character.speed = clampi(character.speed + 2, 4, 8)
+			character.max_reactions_per_round = 1  # Hard cap for Swift
+			character.add_trait("Swift: Glide abilities, 1 Reaction per round")
 
 ## Validate character meets Five Parsecs constraints
 static func validate_character(character: Character) -> Dictionary:

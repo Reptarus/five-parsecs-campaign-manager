@@ -84,13 +84,19 @@ func _setup_combat_systems() -> void:
 
 ## Main Combat Flow - Simple state machine
 
-func start_combat(crew: Array[Character], enemies: Array[Character], mission_data: Dictionary = {}) -> void:
+func start_combat(crew: Array, enemies: Array, mission_data: Dictionary = {}) -> void:
 	"""Start a Five Parsecs combat encounter"""
 	print("FiveParsecsCombatSystem: Starting combat encounter")
-	
-	# Initialize combat data
-	crew_characters = crew.duplicate()
-	enemy_characters = enemies.duplicate()
+
+	# Initialize combat data - accept untyped arrays for compatibility
+	crew_characters.clear()
+	for c in crew:
+		if c is Character:
+			crew_characters.append(c)
+	enemy_characters.clear()
+	for e in enemies:
+		if e is Character:
+			enemy_characters.append(e)
 	all_characters = crew_characters + enemy_characters
 	
 	# Reset combat state
@@ -300,7 +306,7 @@ func _perform_default_action(character: Character) -> Dictionary:
 	# Simple default: hunker down
 	return {"action": "hunker_down", "character": character.character_name}
 
-func _find_nearest_target(character: Character, targets: Array[Character]) -> Character:
+func _find_nearest_target(character: Character, targets: Array) -> Character:
 	"""Find nearest living target"""
 	var nearest: Character = null
 	var min_distance = INF
@@ -513,7 +519,7 @@ func get_combat_data() -> FiveParsecsCombatData:
 
 ## Legacy compatibility methods for migration
 
-func initialize_battle(crew: Array[Character], enemies: Array[Character]) -> void:
+func initialize_battle(crew: Array, enemies: Array) -> void:
 	"""Legacy method for BaseBattleController compatibility"""
 	start_combat(crew, enemies)
 

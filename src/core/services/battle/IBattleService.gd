@@ -52,8 +52,8 @@ class BattleSession:
 		context = battle_context
 		start_time = Time.get_datetime_string_from_system()
 
-class BattleResults:
-	"""Complete battle outcome data"""
+class IBattleResults:
+	"""Complete battle outcome data (prefixed to avoid conflict with global BattleResults)"""
 	var session_id: String = ""
 	var victory: bool = false
 	var mission_completed: bool = false
@@ -123,7 +123,7 @@ func get_battle_status(session_id: String) -> BattleStatus:
 	push_error("IBattleService.get_battle_status() must be implemented")
 	return BattleStatus.ERROR
 
-func get_battle_results(session_id: String) -> BattleResults:
+func get_battle_results(session_id: String) -> IBattleResults:
 	"""Get battle results - override in implementation"""
 	push_error("IBattleService.get_battle_results() must be implemented")
 	return null
@@ -203,9 +203,9 @@ func validate_mission_data(mission_data: Dictionary) -> Dictionary:
 	
 	return {"valid": true}
 
-func create_error_result(error_message: String, session_id: String = "") -> BattleResults:
+func create_error_result(error_message: String, session_id: String = "") -> IBattleResults:
 	"""Create error result for failed battles"""
-	var error_result = BattleResults.new()
+	var error_result = IBattleResults.new()
 	error_result.session_id = session_id
 	error_result.victory = false
 	error_result.mission_completed = false
@@ -218,6 +218,6 @@ func create_error_result(error_message: String, session_id: String = "") -> Batt
 # Override in implementations and emit these signals as appropriate:
 # signal battle_initialized(session_id: String)
 # signal battle_started(session_id: String) 
-# signal battle_completed(session_id: String, results: BattleResults)
+# signal battle_completed(session_id: String, results: IBattleResults)
 # signal battle_cancelled(session_id: String)
 # signal battle_error(session_id: String, error: String)

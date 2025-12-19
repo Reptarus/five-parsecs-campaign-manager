@@ -851,7 +851,7 @@ static func get_crew_task_modifiers(task_type: String) -> Dictionary:
 	push_warning("DataManager: No modifiers found for task type: %s" % task_type)
 	return {}
 
-static func filter_by_tags(items: Array, required_tags: Array[String], excluded_tags: Array[String] = []) -> Array[Dictionary]:
+static func filter_by_tags(items: Array, required_tags: Array, excluded_tags: Array = []) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 
 	if items.is_empty():

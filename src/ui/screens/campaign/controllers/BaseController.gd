@@ -180,7 +180,7 @@ func debug_print(message: String) -> void:
 
 ## Enhanced validation helpers
 
-func _validate_required_fields(data: Dictionary, required_fields: Array[String]) -> ValidationResult:
+func _validate_required_fields(data: Dictionary, required_fields: Array) -> ValidationResult:
 	"""Validate that required fields are present and not empty"""
 	return validate_required_dictionary_fields(data, required_fields, panel_name)
 
@@ -275,14 +275,14 @@ func create_validation_success(sanitized_value: Variant = null) -> ValidationRes
 		result.sanitized_value = sanitized_value
 	return result
 
-func create_validation_failure(error_message: String, warnings: Array[String] = []) -> ValidationResult:
+func create_validation_failure(error_message: String, warnings: Array = []) -> ValidationResult:
 	"""Create a failed validation result with error and optional warnings"""
 	var result = ValidationResult.new(false, error_message)
 	for warning in warnings:
 		result.add_warning(warning)
 	return result
 
-func validate_required_dictionary_fields(data: Dictionary, required_fields: Array[String], context: String = "") -> ValidationResult:
+func validate_required_dictionary_fields(data: Dictionary, required_fields: Array, context: String = "") -> ValidationResult:
 	"""Validate that required fields are present in a dictionary"""
 	var missing_fields: Array[String] = []
 

@@ -26,8 +26,12 @@ func _initialize_manager() -> void:
 
 func _register_with_game_state() -> void:
 	"""Register this manager with GameStateManager for cross-system communication"""
+	# Guard against calling get_node when not in scene tree
+	if not is_inside_tree():
+		push_warning("CharacterManager: Not in scene tree, skipping GameStateManager registration")
+		return
 	var game_state = get_node_or_null("/root/GameStateManagerAutoload") as Node
-	if game_state and game_state and game_state.has_method("register_manager"):
+	if game_state and game_state.has_method("register_manager"):
 		game_state.register_manager("CharacterManager", self)
 		print("CharacterManager: Registered with GameStateManager")
 	else:
@@ -38,7 +42,13 @@ func create_character(character_data: Dictionary = {}) -> Character:
 
 	# Apply provided data or use defaults
 	character.character_name = character_data.get("name", "New Character")
-	character.character_class = character_data.get("class", GlobalEnums.CharacterClass.NONE)
+	# character_class expects a String, not int enum - convert if needed
+	var class_value: Variant = character_data.get("class", "NONE")
+	if class_value is int:
+		# Convert enum int to string name
+		character.character_class = GlobalEnums.CharacterClass.keys()[class_value] if class_value < GlobalEnums.CharacterClass.size() else "NONE"
+	else:
+		character.character_class = str(class_value)
 
 	# Add to roster (may fail if roster full or duplicate ID)
 	var added = add_character_to_roster(character)
@@ -51,12 +61,18 @@ func create_character(character_data: Dictionary = {}) -> Character:
 	return character
 
 func add_character_to_roster(character: Character) -> bool:
+	# Guard against null character
+	if character == null:
+		push_error("Cannot add null character to roster")
+		return false
+	
 	if crew_roster.size() >= max_crew_size:
 		return false
 
 	# Prevent duplicate character IDs
-	if get_character_by_id(character.character_id) != null:
-		push_error("Character with ID %s already exists in crew roster" % character.character_id)
+	var char_id: String = character.character_id if character.character_id != null else ""
+	if not char_id.is_empty() and get_character_by_id(char_id) != null:
+		push_error("Character with ID %s already exists in crew roster" % char_id)
 		return false
 
 	crew_roster.append(character)
@@ -104,8 +120,11 @@ func get_active_crew() -> Array[Character]:
 		active_crew = []
 	return active_crew.duplicate()
 
-func set_active_crew(characters: Array[Character]) -> void:
-	active_crew = characters.duplicate()
+func set_active_crew(characters: Array) -> void:
+	active_crew.clear()
+	for char in characters:
+		if char is Character:
+			active_crew.append(char)
 
 func get_crew_size() -> int:
 	return crew_roster.size()

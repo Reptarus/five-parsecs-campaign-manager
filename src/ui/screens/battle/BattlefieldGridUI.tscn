@@ -1,0 +1,80 @@
+[gd_scene load_steps=2 format=3 uid="uid://c3bf8qgrid2d"]
+
+[ext_resource type="Script" path="res://src/ui/screens/battle/BattlefieldGridUI.gd" id="1_grid"]
+
+[node name="BattlefieldGridUI" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1_grid")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.102, 0.102, 0.18, 1)
+
+[node name="GridContainer" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Legend" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -120.0
+offset_bottom = 200.0
+grow_horizontal = 0
+
+[node name="LegendTitle" type="Label" parent="Legend"]
+layout_mode = 2
+text = "Legend"
+horizontal_alignment = 1
+
+[node name="CrewLabel" type="Label" parent="Legend"]
+layout_mode = 2
+text = "● Crew"
+theme_override_colors/font_color = Color(0.231, 0.51, 0.965, 1)
+
+[node name="EnemyLabel" type="Label" parent="Legend"]
+layout_mode = 2
+text = "● Enemy"
+theme_override_colors/font_color = Color(0.937, 0.267, 0.267, 1)
+
+[node name="UniqueLabel" type="Label" parent="Legend"]
+layout_mode = 2
+text = "● Unique"
+theme_override_colors/font_color = Color(0.961, 0.62, 0.043, 1)
+
+[node name="SpecialistLabel" type="Label" parent="Legend"]
+layout_mode = 2
+text = "● Specialist"
+theme_override_colors/font_color = Color(0.545, 0.361, 0.965, 1)
+
+[node name="TerrainLarge" type="Label" parent="Legend"]
+layout_mode = 2
+text = "■ Large Terrain"
+theme_override_colors/font_color = Color(0.29, 0.404, 0.255, 1)
+
+[node name="TerrainSmall" type="Label" parent="Legend"]
+layout_mode = 2
+text = "■ Small Terrain"
+theme_override_colors/font_color = Color(0.545, 0.451, 0.333, 1)
+
+[node name="TerrainLinear" type="Label" parent="Legend"]
+layout_mode = 2
+text = "■ Linear (Walls)"
+theme_override_colors/font_color = Color(0.412, 0.412, 0.412, 1)

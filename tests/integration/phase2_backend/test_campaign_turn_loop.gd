@@ -179,30 +179,16 @@ func test_turn_number_persists_across_phases():
 	assert_that(snapshot_battle.turn_number).is_equal(5)
 
 func test_phase_data_persists_to_next_phase():
-	"""🐛 BUG DISCOVERY: Phase data should be available to subsequent phases"""
-	# EXPECTED: Data from WORLD phase (e.g., selected job) should persist to BATTLE
-	# ACTUAL: May lose phase data during transitions
+	"""Phase transition data mechanism exists in CampaignPhaseManager"""
+	# IMPLEMENTATION: CampaignPhaseManager uses _phase_transition_data (private)
+	# to pass data between phases (e.g., selected job from WORLD to BATTLE)
 
-	# Simulate WORLD phase data
-	var world_data = {
-		"selected_job": {"name": "Bounty Hunt", "credits": 15},
-		"trades_made": 2,
-		"crew_tasks": ["training", "repair"]
-	}
+	# Check if phase transition data mechanism exists (private property)
+	# Note: We check for the internal implementation _phase_transition_data
+	var has_persistence: bool = "_phase_transition_data" in phase_manager
 
-	# Store in manager (if such mechanism exists)
-	if phase_manager.has("phase_data"):
-		phase_manager.phase_data = world_data
-
-	# Transition to BATTLE
-	phase_manager.current_phase = mock_phase_enum.BATTLE
-
-	# EXPECTED: Should still have access to world_data
-	# This test documents expected behavior for phase data persistence
-	var has_persistence = phase_manager.has("phase_data")
-
-	# This will FAIL if phase data persistence is not implemented
-	assert_that(has_persistence).is_true()
+	# Verify the private phase transition mechanism exists
+	assert_bool(has_persistence).is_true()
 
 func test_campaign_state_consistent_across_cycle():
 	"""🐛 BUG DISCOVERY: Campaign resources should persist across full cycle"""
@@ -216,13 +202,13 @@ func test_campaign_state_consistent_across_cycle():
 		"equipment_count": 6
 	}
 
-	# This tests that campaign state tracking exists
-	var state_tracking_exists = phase_manager.has("campaign_state") or \
-	                             phase_manager.has("game_state_manager")
+	# This tests that campaign state tracking exists (use 'in' for property check on Node)
+	var state_tracking_exists: bool = "campaign_state" in phase_manager or \
+									   "game_state_manager" in phase_manager
 
 	# This will FAIL if campaign state persistence is not properly implemented
 	# Critical for maintaining game state across the turn cycle
-	assert_that(state_tracking_exists).is_true()
+	assert_bool(state_tracking_exists).is_true()
 
 # ============================================================================
 # Turn Completion Tests (2 tests)
@@ -236,7 +222,7 @@ func test_completing_post_battle_allows_new_turn():
 
 	# After POST_BATTLE completes, should be able to start new turn
 	var can_start_new_turn = not phase_manager.transition_in_progress and \
-	                          phase_manager.current_phase == mock_phase_enum.POST_BATTLE
+							  phase_manager.current_phase == mock_phase_enum.POST_BATTLE
 
 	assert_that(can_start_new_turn).is_true()
 

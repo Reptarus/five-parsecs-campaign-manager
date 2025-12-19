@@ -37,6 +37,7 @@ const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
 var battlefield_manager: BattlefieldManager
 var dice_manager: Node = null
 var alpha_manager: Node = null
+var battle_tracker: Node = null  # For reaction economy tracking
 
 # Battle State
 var crew_units: Array[TacticalUnit] = []
@@ -73,6 +74,7 @@ func _initialize_managers() -> void:
 	"""Initialize manager references"""
 	alpha_manager = get_node("/root/FPCM_AlphaGameManager") if has_node("/root/FPCM_AlphaGameManager") else null
 	dice_manager = get_node("/root/DiceManager") if has_node("/root/DiceManager") else null
+	battle_tracker = get_node("/root/BattleTracker") if has_node("/root/BattleTracker") else null
 
 	# Create battlefield systems
 	battlefield_manager = BattlefieldManager.new()
@@ -210,7 +212,7 @@ func _setup_ui() -> void:
 
 ## Initialize tactical battle with crew and enemies
 
-func initialize_battle(crew_members: Array[Resource], enemies: Array[Resource], mission_data: Resource = null) -> void:
+func initialize_battle(crew_members: Array, enemies: Array, mission_data: Resource = null) -> void:
 	"""Initialize the tactical battle"""
 	_log_message("Initializing tactical battle...", Color.CYAN)
 
@@ -309,32 +311,48 @@ func _update_action_buttons_for_combat() -> void:
 	if not selected_unit or selected_unit.team != "crew":
 		return # Only show actions for crew units
 
-	# Movement
+	# Check reaction availability (reaction economy system)
+	var has_reactions := selected_unit.can_use_reaction()
+
+	# Movement - requires reaction
 	if selected_unit.movement_remaining > 0:
 		var move_button := Button.new()
 		move_button.text = "Move (%d left)" % selected_unit.movement_remaining
 		move_button.pressed.connect(_on_move_clicked)
+		if not has_reactions:
+			move_button.disabled = true
+			move_button.tooltip_text = "No reactions remaining"
 		action_buttons.add_child(move_button)
 
-	# Shooting
+	# Shooting - requires reaction
 	if selected_unit.actions_remaining > 0:
 		var shoot_button := Button.new()
 		shoot_button.text = "Shoot"
 		shoot_button.pressed.connect(_on_shoot_clicked)
+		if not has_reactions:
+			shoot_button.disabled = true
+			shoot_button.tooltip_text = "No reactions remaining"
 		action_buttons.add_child(shoot_button)
 
-	# Dash (extra movement)
+	# Dash (extra movement) - requires reaction
 	if selected_unit.actions_remaining > 0:
 		var dash_button := Button.new()
 		dash_button.text = "Dash"
 		dash_button.pressed.connect(_on_dash_clicked)
+		if not has_reactions:
+			dash_button.disabled = true
+			dash_button.tooltip_text = "No reactions remaining"
 		action_buttons.add_child(dash_button)
 
-	# Skip turn
+	# Skip turn - always available
 	var skip_button := Button.new()
 	skip_button.text = "End Turn"
 	skip_button.pressed.connect(_on_skip_turn_clicked)
 	action_buttons.add_child(skip_button)
+
+	# Show exhaustion warning
+	if not has_reactions:
+		_log_message("⚠ %s has no reactions remaining this round!" % selected_unit.node_name, Color.ORANGE)
 
 func _clear_action_buttons() -> void:
 	"""Clear all action buttons"""
@@ -347,8 +365,20 @@ func _update_unit_info_display() -> void:
 		return
 
 	# Update unit info panel
-	# This would show stats, health, equipment, etc.
-	_log_message("Selected: %s (Team: %s)" % [selected_unit.name, selected_unit.team], Color.YELLOW)
+	# Show stats, health, reactions, equipment
+	var reactions_remaining := selected_unit.get_reactions_remaining()
+	var max_reactions := selected_unit.max_reactions_per_round
+	var reaction_color := Color.GREEN if reactions_remaining > 0 else Color.RED
+
+	_log_message("Selected: %s (Team: %s)" % [selected_unit.node_name, selected_unit.team], Color.YELLOW)
+	_log_message("  HP: %d/%d | Actions: %d | Movement: %d" % [
+		selected_unit.health, selected_unit.max_health,
+		selected_unit.actions_remaining, selected_unit.movement_remaining
+	], Color.WHITE)
+	_log_message("  Reactions: %d/%d %s" % [
+		reactions_remaining, max_reactions,
+		"(EXHAUSTED)" if reactions_remaining == 0 else ""
+	], reaction_color)
 
 # Action handlers
 func _on_move_clicked() -> void:
@@ -356,8 +386,17 @@ func _on_move_clicked() -> void:
 	if not selected_unit or not selected_unit.can_move():
 		_log_message("Cannot move - no movement remaining!", Color.RED)
 		return
-	
-	_log_message("%s is moving... (Movement: %d remaining)" % [selected_unit.node_name, selected_unit.movement_remaining], Color.CYAN)
+
+	# Check and spend reaction (reaction economy system)
+	if not selected_unit.can_use_reaction():
+		_log_message("Cannot move - no reactions remaining!", Color.RED)
+		return
+	selected_unit.spend_reaction()
+
+	_log_message("%s is moving... (Movement: %d remaining, Reactions: %d/%d)" % [
+		selected_unit.node_name, selected_unit.movement_remaining,
+		selected_unit.get_reactions_remaining(), selected_unit.max_reactions_per_round
+	], Color.CYAN)
 	
 	# For now, auto-move toward nearest enemy (will be replaced with UI selection)
 	var nearest_enemy = _find_nearest_enemy(selected_unit)
@@ -379,7 +418,13 @@ func _on_shoot_clicked() -> void:
 	if not selected_unit or not selected_unit.can_act():
 		_log_message("Cannot shoot - no actions remaining!", Color.RED)
 		return
-	
+
+	# Check and spend reaction (reaction economy system)
+	if not selected_unit.can_use_reaction():
+		_log_message("Cannot shoot - no reactions remaining!", Color.RED)
+		return
+	selected_unit.spend_reaction()
+
 	# Find nearest enemy to shoot (will be replaced with UI targeting)
 	var target = _find_nearest_enemy(selected_unit)
 	if not target:
@@ -425,9 +470,18 @@ func _on_shoot_clicked() -> void:
 
 func _on_dash_clicked() -> void:
 	"""Handle dash action (extra movement)"""
+	# Check and spend reaction (reaction economy system)
+	if not selected_unit.can_use_reaction():
+		_log_message("Cannot dash - no reactions remaining!", Color.RED)
+		return
+	selected_unit.spend_reaction()
+
 	selected_unit.movement_remaining += selected_unit.movement_points
 	selected_unit.actions_remaining -= 1
-	_log_message("%s dashes forward!" % selected_unit.name, Color.YELLOW)
+	_log_message("%s dashes forward! (Reactions: %d/%d)" % [
+		selected_unit.node_name,
+		selected_unit.get_reactions_remaining(), selected_unit.max_reactions_per_round
+	], Color.YELLOW)
 	_update_action_buttons_for_combat()
 
 func _on_skip_turn_clicked() -> void:
@@ -477,11 +531,21 @@ func _end_combat_round() -> void:
 
 	_log_message("Round %d complete" % (current_turn - 1), Color.YELLOW)
 
+	# Reset reactions for all units at start of new round (reaction economy system)
+	_reset_all_unit_reactions()
+
 	# Check victory conditions
 	if _check_victory_conditions():
 		_resolve_battle()
 	else:
 		_start_unit_turn()
+
+func _reset_all_unit_reactions() -> void:
+	"""Reset reactions for all units at the start of a new round"""
+	for unit in all_units:
+		if unit.health > 0:
+			unit.reset_reactions()
+	_log_message("All units' reactions reset for Round %d" % current_turn, Color.CYAN)
 
 func _check_victory_conditions() -> bool:
 	"""Check if battle should end"""
@@ -755,6 +819,10 @@ class TacticalUnit:
 	var savvy: int = 0
 	var reactions: int = 0
 
+	# Reaction economy (Five Parsecs Swift species = 1 max, others = 3)
+	var max_reactions_per_round: int = 3
+	var reactions_used_this_round: int = 0
+
 	# Equipment
 	var _weapon_range: int = 12
 	var _weapon_shots: int = 1
@@ -776,6 +844,9 @@ class TacticalUnit:
 		max_health = max(1, toughness)
 		health = max_health
 
+		# Initialize reaction economy from character (Swift = 1 max)
+		initialize_reactions_from_character()
+
 	func initialize_from_enemy(enemy: Resource) -> void:
 		"""Initialize unit from enemy data"""
 		original_character = enemy
@@ -788,6 +859,9 @@ class TacticalUnit:
 
 		max_health = max(1, toughness)
 		health = max_health
+
+		# Initialize reaction economy from enemy character
+		initialize_reactions_from_character()
 
 	func get_initiative_bonus() -> int:
 		"""Get initiative bonus based on reactions"""
@@ -806,6 +880,38 @@ class TacticalUnit:
 	func can_move() -> bool:
 		"""Check if unit can move"""
 		return health > 0 and movement_remaining > 0
+
+	func get_reactions_remaining() -> int:
+		"""Get remaining reactions this round"""
+		return max(0, max_reactions_per_round - reactions_used_this_round)
+
+	func can_use_reaction() -> bool:
+		"""Check if unit has reactions available"""
+		return health > 0 and get_reactions_remaining() > 0
+
+	func spend_reaction() -> bool:
+		"""Spend one reaction. Returns true if successful."""
+		if not can_use_reaction():
+			return false
+		reactions_used_this_round += 1
+		return true
+
+	func reset_reactions() -> void:
+		"""Reset reactions at start of new round"""
+		reactions_used_this_round = 0
+
+	func initialize_reactions_from_character() -> void:
+		"""Initialize reaction cap from original character (Swift = 1)"""
+		if original_character and original_character.has_method("get_max_reactions"):
+			max_reactions_per_round = original_character.get_max_reactions()
+		elif original_character and "max_reactions_per_round" in original_character:
+			max_reactions_per_round = original_character.max_reactions_per_round
+		# Check for Swift species via _origin field
+		elif original_character and "_origin" in original_character:
+			var origin: String = str(original_character._origin).to_lower()
+			if "swift" in origin:
+				max_reactions_per_round = 1  # Swift limited to 1 reaction
+
 ## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
 func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
 	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings

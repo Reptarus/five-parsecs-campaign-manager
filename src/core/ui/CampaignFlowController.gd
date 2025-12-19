@@ -468,7 +468,7 @@ func _on_panel_completed(phase: CampaignPhase, panel_data: Dictionary) -> void:
 		# Campaign completion
 		_complete_campaign_flow()
 
-func _on_panel_validation_failed(phase: CampaignPhase, errors: Array[String]) -> void:
+func _on_panel_validation_failed(phase: CampaignPhase, errors: Array) -> void:
 	"""Handle panel validation failure"""
 	var error_message = "Panel validation failed for " + _phase_to_string(phase) + ": " + str(errors)
 	_log_error(error_message)

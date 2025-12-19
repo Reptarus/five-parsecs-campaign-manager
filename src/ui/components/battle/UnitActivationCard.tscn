@@ -1,0 +1,84 @@
+[gd_scene load_steps=2 format=3 uid="uid://card_unit_activation_001"]
+
+[ext_resource type="Script" path="res://src/ui/components/battle/UnitActivationCard.gd" id="1_activation"]
+
+[node name="UnitActivationCard" type="Control"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_activation")
+
+[node name="Background" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MainContent" type="VBoxContainer" parent="Background"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="TopRow" type="HBoxContainer" parent="Background/MainContent"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ActivationDot" type="ColorRect" parent="Background/MainContent/TopRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(12, 12)
+layout_mode = 2
+size_flags_vertical = 4
+color = Color(0.501961, 0.501961, 0.501961, 1)
+
+[node name="NameLabel" type="Label" parent="Background/MainContent/TopRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Unit Name"
+text_overrun_behavior = 3
+
+[node name="HealthBarContainer" type="HBoxContainer" parent="Background/MainContent/TopRow"]
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="HealthBar" type="ProgressBar" parent="Background/MainContent/TopRow/HealthBarContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(80, 12)
+layout_mode = 2
+max_value = 100.0
+value = 80.0
+show_percentage = false
+
+[node name="HealthText" type="Label" parent="Background/MainContent/TopRow/HealthBarContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "8/10"
+
+[node name="BottomRow" type="HBoxContainer" parent="Background/MainContent"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Spacer" type="Control" parent="Background/MainContent/BottomRow"]
+custom_minimum_size = Vector2(20, 0)
+layout_mode = 2
+
+[node name="StatsLabel" type="Label" parent="Background/MainContent/BottomRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.611765, 0.639216, 0.690196, 1)
+theme_override_font_sizes/font_size = 12
+text = "Combat +1 | Tough 4"
+
+[node name="StatusContainer" type="HBoxContainer" parent="Background/MainContent/BottomRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
