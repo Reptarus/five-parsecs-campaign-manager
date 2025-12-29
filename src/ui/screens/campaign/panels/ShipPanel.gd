@@ -4,7 +4,7 @@ extends FiveParsecsCampaignPanel
 ## Production-ready implementation with comprehensive ship generation
 
 # Progress tracking
-const STEP_NUMBER := 4  # Step 4 of 7 in campaign wizard
+const STEP_NUMBER := 5  # Step 5 of 7 in campaign wizard (Core Rules: Ship after Equipment)
 
 # GlobalEnums available as autoload singleton
 
@@ -85,8 +85,10 @@ func _ready() -> void:
 	# Call parent _ready() to initialize BaseCampaignPanel structure
 	super._ready()
 
-	# Add progress indicator
-	call_deferred("_add_progress_indicator")
+	# Apply design system styling to scene-defined inputs
+	call_deferred("_apply_input_styling")
+
+	# NOTE: Progress indicator removed - CampaignCreationUI handles progress display
 
 	# COMPREHENSIVE DEBUG OUTPUT - Panel Initialization
 	call_deferred("_log_panel_initialization_debug")
@@ -96,18 +98,163 @@ func _ready() -> void:
 	# Initialize components immediately after base structure is ready
 	_initialize_components()
 
-func _add_progress_indicator() -> void:
-	"""Add progress indicator to panel after structure is ready"""
-	var main_content = get_node_or_null("ContentMargin/MainContent")
-	if not main_content:
-		push_warning("ShipPanel: MainContent node not found for progress indicator")
+# NOTE: _add_progress_indicator() removed - CampaignCreationUI handles progress display centrally
+
+func _apply_input_styling() -> void:
+	"""Apply design system styling to scene-defined inputs (eliminates stretched teal bars)"""
+	# Style OptionButton
+	if ship_type_option:
+		_style_option_button(ship_type_option)
+
+	# Style LineEdit
+	if ship_name_input:
+		_style_line_edit(ship_name_input)
+
+	# Style SpinBoxes with touch-friendly sizing
+	if hull_points_spinbox:
+		hull_points_spinbox.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if debt_spinbox:
+		debt_spinbox.custom_minimum_size.y = TOUCH_TARGET_MIN
+
+	# Style Buttons
+	if generate_button:
+		_style_button(generate_button)
+	if reroll_button:
+		_style_button(reroll_button)
+	if select_button:
+		_style_button(select_button)
+
+	print("ShipPanel: Design system styling applied to inputs")
+
+# NOTE: _style_button() now inherited from BaseCampaignPanel - removed duplicate
+
+func _wrap_form_in_cards() -> void:
+	"""Wrap form sections in glass morphism cards for visual consistency"""
+	var content_node = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content")
+	if not content_node:
+		print("ShipPanel: Content node not found for card wrapping")
 		return
 
-	var progress = _create_progress_indicator(STEP_NUMBER, 7)
-	main_content.add_child(progress)
-	main_content.move_child(progress, 0)  # Put at top of panel
+	# Create a new container to hold the cards
+	var cards_container := VBoxContainer.new()
+	cards_container.name = "CardsContainer"
+	cards_container.add_theme_constant_override("separation", SPACING_LG)
 
-	print("ShipPanel: Progress indicator added (Step %d of 7)" % STEP_NUMBER)
+	# === SHIP IDENTITY CARD (Name + Type) ===
+	var identity_card := _create_form_section_card("SHIP IDENTITY", "Name your vessel and select its class.")
+	var identity_content := identity_card.get_node("CardMargin/CardContent")
+
+	# Move ship name section into card
+	var ship_name_section = content_node.get_node_or_null("ShipName")
+	if ship_name_section:
+		content_node.remove_child(ship_name_section)
+		identity_content.add_child(ship_name_section)
+
+	# Move ship type section into card
+	var ship_type_section = content_node.get_node_or_null("ShipType")
+	if ship_type_section:
+		content_node.remove_child(ship_type_section)
+		identity_content.add_child(ship_type_section)
+
+	cards_container.add_child(identity_card)
+
+	# === SHIP SPECS CARD (Hull + Debt) ===
+	var specs_card := _create_form_section_card("SHIP SPECIFICATIONS", "Hull integrity and financial obligations.")
+	var specs_content := specs_card.get_node("CardMargin/CardContent")
+
+	# Move hull points section into card
+	var hull_section = content_node.get_node_or_null("HullPoints")
+	if hull_section:
+		content_node.remove_child(hull_section)
+		specs_content.add_child(hull_section)
+
+	# Move debt section into card
+	var debt_section = content_node.get_node_or_null("Debt")
+	if debt_section:
+		content_node.remove_child(debt_section)
+		specs_content.add_child(debt_section)
+
+	# Move ship stats if present
+	var stats_section = content_node.get_node_or_null("ShipStats")
+	if stats_section:
+		content_node.remove_child(stats_section)
+		specs_content.add_child(stats_section)
+
+	cards_container.add_child(specs_card)
+
+	# === SHIP TRAITS CARD ===
+	var traits_section = content_node.get_node_or_null("Traits")
+	if traits_section:
+		var traits_card := _create_form_section_card("SHIP TRAITS", "Special capabilities and modifications.")
+		var traits_content := traits_card.get_node("CardMargin/CardContent")
+		content_node.remove_child(traits_section)
+		traits_content.add_child(traits_section)
+		cards_container.add_child(traits_card)
+
+	# === ACTION BUTTONS (no card, centered) ===
+	var controls_section = content_node.get_node_or_null("Controls")
+	if controls_section:
+		content_node.remove_child(controls_section)
+		controls_section.alignment = BoxContainer.ALIGNMENT_CENTER
+		cards_container.add_child(controls_section)
+
+	# Add cards container to content
+	content_node.add_child(cards_container)
+	content_node.move_child(cards_container, 0)
+
+	print("ShipPanel: Form sections wrapped in glass morphism cards")
+
+func _create_form_section_card(title: String, description: String = "") -> PanelContainer:
+	"""Create a glass morphism card for form sections"""
+	var card := PanelContainer.new()
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.add_theme_stylebox_override("panel", _create_form_card_style())
+
+	var margin := MarginContainer.new()
+	margin.name = "CardMargin"
+	margin.add_theme_constant_override("margin_left", SPACING_MD)
+	margin.add_theme_constant_override("margin_right", SPACING_MD)
+	margin.add_theme_constant_override("margin_top", SPACING_MD)
+	margin.add_theme_constant_override("margin_bottom", SPACING_MD)
+	card.add_child(margin)
+
+	var content := VBoxContainer.new()
+	content.name = "CardContent"
+	content.add_theme_constant_override("separation", SPACING_SM)
+	margin.add_child(content)
+
+	# Card header
+	var header := Label.new()
+	header.text = title
+	header.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	header.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	content.add_child(header)
+
+	# Separator
+	var sep := HSeparator.new()
+	sep.modulate = COLOR_BORDER
+	content.add_child(sep)
+
+	# Description (if provided)
+	if not description.is_empty():
+		var desc := Label.new()
+		desc.text = description
+		desc.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+		desc.add_theme_color_override("font_color", Color(COLOR_TEXT_SECONDARY, 0.7))
+		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		content.add_child(desc)
+
+	return card
+
+func _create_form_card_style() -> StyleBoxFlat:
+	"""Create glass morphism style for form cards"""
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(COLOR_ELEVATED.r, COLOR_ELEVATED.g, COLOR_ELEVATED.b, 0.8)
+	style.border_color = COLOR_BORDER
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(8)
+	style.set_content_margin_all(0)  # Margin handled by MarginContainer
+	return style
 
 func _setup_panel_content() -> void:
 	"""Override from BaseCampaignPanel - setup ship-specific content"""
@@ -167,7 +314,11 @@ func _initialize_components() -> void:
 			ship_type_option = _create_ship_type_section(content_node)
 	else:
 		print("ShipPanel: DEBUG - ship_type_option FOUND via unique name")
-	
+
+	# Ensure ship types are populated (scene OptionButton may be empty)
+	if ship_type_option and ship_type_option.get_item_count() == 0:
+		_populate_ship_types()
+
 	if not hull_points_spinbox:
 		hull_points_spinbox = content_node.get_node_or_null("HullPoints/HullPointsSpinBox")
 		if hull_points_spinbox:
@@ -246,6 +397,8 @@ func _initialize_components() -> void:
 	_connect_signals()
 	_initialize_ship_data()
 	_generate_ship()
+	# Wrap form sections in glass morphism cards
+	call_deferred("_wrap_form_in_cards")
 	# Ensure UI is updated with ship data after components are ready
 	call_deferred("_update_ship_display")
 	call_deferred("emit_panel_ready")
@@ -284,9 +437,9 @@ func _connect_existing_controls() -> void:
 	# Just ensure they're connected properly
 	if generate_button and not generate_button.pressed.is_connected(_on_generate_pressed):
 		generate_button.pressed.connect(_on_generate_pressed)
-	if reroll_button and not reroll_button.pressed.is_connected(_on_generate_pressed):
-		reroll_button.pressed.connect(_on_generate_pressed)
-	
+	if reroll_button and not reroll_button.pressed.is_connected(_on_reroll_pressed):
+		reroll_button.pressed.connect(_on_reroll_pressed)
+
 	# No ShipManager integration - handle everything directly
 	print("ShipPanel: Controls connected for direct ship management")
 
@@ -434,6 +587,14 @@ func _connect_signals() -> void:
 	if ship_name_input and not ship_name_input.text_changed.is_connected(_on_ship_name_changed):
 		ship_name_input.text_changed.connect(_on_ship_name_changed)
 
+	# Connect input field signals for real-time updates
+	if ship_type_option and not ship_type_option.item_selected.is_connected(_on_ship_type_changed):
+		ship_type_option.item_selected.connect(_on_ship_type_changed)
+	if hull_points_spinbox and not hull_points_spinbox.value_changed.is_connected(_on_hull_points_changed):
+		hull_points_spinbox.value_changed.connect(_on_hull_points_changed)
+	if debt_spinbox and not debt_spinbox.value_changed.is_connected(_on_debt_changed):
+		debt_spinbox.value_changed.connect(_on_debt_changed)
+
 func _initialize_ship_data() -> void:
 	"""Initialize ship data structure"""
 	# Reset to default values
@@ -455,6 +616,22 @@ func _generate_ship_name() -> String:
 	var suffixes = ["Runner", "Wanderer", "Seeker", "Hunter", "Trader", "Explorer", "Voyager", "Nomad", "Spirit", "Quest"]
 	return "%s %s" % [prefixes[randi() % prefixes.size()], suffixes[randi() % suffixes.size()]]
 
+func _populate_ship_types() -> void:
+	"""Populate ship type dropdown with all Five Parsecs ship types"""
+	if not ship_type_option:
+		return
+	ship_type_option.clear()
+	ship_type_option.add_item("Worn Freighter")
+	ship_type_option.add_item("Patrol Boat")
+	ship_type_option.add_item("Converted Transport")
+	ship_type_option.add_item("Scout Ship")
+	ship_type_option.add_item("Armed Trader")
+	ship_type_option.add_item("Light Freighter")
+	ship_type_option.add_item("Modified Corvette")
+	ship_type_option.add_item("Salvage Hauler")
+	ship_type_option.add_item("Deep Space Explorer")
+	print("ShipPanel: Populated ship types dropdown with 9 options")
+
 func _calculate_starting_hull(ship_type: String) -> int:
 	"""Calculate starting hull points based on ship type"""
 	match ship_type:
@@ -474,6 +651,20 @@ func _calculate_starting_debt(ship_type: String) -> int:
 		"Scout Ship": return randi_range(2, 12) + 10 # 2D6+10 credits debt
 		"Armed Trader": return randi_range(3, 18) + 20 # 3D6+20 credits debt
 		_: return randi_range(2, 12) + randi_range(1, 20) # Variable debt
+
+func _calculate_cargo_capacity(ship_type: String) -> int:
+	"""Calculate cargo capacity based on ship type (FinalPanel compatibility)"""
+	match ship_type:
+		"Worn Freighter": return 20  # Freighters are cargo specialists
+		"Patrol Boat": return 8      # Combat vessel, minimal cargo
+		"Converted Transport": return 30  # Transport = big cargo
+		"Scout Ship": return 6       # Fast and light
+		"Armed Trader": return 15    # Balanced trade vessel
+		"Modified Corvette": return 10  # Military retrofit
+		"Salvage Hauler": return 25   # Cargo for salvage
+		"Deep Space Explorer": return 12  # Long-range supplies
+		"Racing Ship": return 4       # Speed over cargo
+		_: return 10  # Default moderate capacity
 
 func _update_ship_display() -> void:
 	"""Update UI to reflect current ship data with glass morphism styling"""
@@ -659,11 +850,14 @@ func _on_select_specific_pressed() -> void:
 
 
 func get_ship_data() -> Dictionary:
-	"""Return ship data for campaign creation with standardized metadata"""
+	"""DEPRECATED: Use get_panel_data() instead. Will be removed in future version."""
+	push_warning("ShipPanel.get_ship_data() is deprecated - use get_panel_data() instead")
 	var data = ship_data.duplicate()
 	data["is_complete"] = local_ship_data.is_complete
 	data["validation_errors"] = last_validation_errors.duplicate()
 	data["completion_level"] = _calculate_completion_level()
+	# CRITICAL FIX: Add cargo_capacity for FinalPanel compatibility
+	data["cargo_capacity"] = _calculate_cargo_capacity(data.get("type", "Worn Freighter"))
 	data["metadata"] = {
 		"last_modified": Time.get_unix_time_from_system(),
 		"version": "1.0",
@@ -849,9 +1043,35 @@ func _on_ship_name_changed(new_name: String) -> void:
 	ship_data.name = new_name
 	_validate_and_complete()
 	ship_updated.emit(ship_data)
-	
+
 	# Emit granular signal for real-time integration
 	ship_data_changed.emit(get_ship_data())
+
+func _on_ship_type_changed(index: int) -> void:
+	"""Handle ship type selection change"""
+	if ship_type_option:
+		ship_data.type = ship_type_option.get_item_text(index)
+		_validate_and_complete()
+		ship_updated.emit(ship_data)
+		ship_data_changed.emit(get_ship_data())
+		print("ShipPanel: Ship type changed to %s" % ship_data.type)
+
+func _on_hull_points_changed(value: float) -> void:
+	"""Handle hull points spinbox change"""
+	ship_data.hull_points = int(value)
+	ship_data.max_hull = int(value)  # Update max hull as well
+	_validate_and_complete()
+	ship_updated.emit(ship_data)
+	ship_data_changed.emit(get_ship_data())
+	print("ShipPanel: Hull points changed to %d" % ship_data.hull_points)
+
+func _on_debt_changed(value: float) -> void:
+	"""Handle debt spinbox change"""
+	ship_data.debt = int(value)
+	_validate_and_complete()
+	ship_updated.emit(ship_data)
+	ship_data_changed.emit(get_ship_data())
+	print("ShipPanel: Debt changed to %d" % ship_data.debt)
 
 func _validate_and_complete() -> void:
 	"""Enhanced validation with coordinator pattern and security integration"""
@@ -868,8 +1088,8 @@ func _validate_and_complete() -> void:
 		local_ship_data.is_complete = is_ship_complete
 		local_ship_data.ship = ship_data
 		
-		# Emit panel data update for signal-based architecture (no arguments needed)
-		panel_data_changed.emit()
+		# Emit panel data update for signal-based architecture
+		panel_data_changed.emit(local_ship_data)
 		
 		# Emit granular data change signal for real-time integration
 		ship_data_changed.emit(get_ship_data())
@@ -962,10 +1182,9 @@ func _validate_ship_data() -> Array[String]:
 	return errors
 
 func get_data() -> Dictionary:
-	"""Get panel data - generic interface method"""
-	var data = get_ship_data()
-	data["is_complete"] = local_ship_data.is_complete
-	return data
+	"""DEPRECATED: Use get_panel_data() instead. Will be removed in future version."""
+	push_warning("ShipPanel.get_data() is deprecated - use get_panel_data() instead")
+	return get_panel_data()
 
 ## Required Interface Methods from ICampaignCreationPanel
 
@@ -977,6 +1196,49 @@ func validate_panel() -> bool:
 func get_panel_data() -> Dictionary:
 	"""Get panel data - interface implementation"""
 	return get_ship_data()
+
+func set_panel_data(data: Dictionary) -> void:
+	"""Set panel data - interface implementation for state restoration"""
+	if data.is_empty():
+		print("ShipPanel: No data to restore in set_panel_data")
+		return
+
+	# Handle both direct ship data and nested ship data
+	if data.has("ship") and data["ship"] is Dictionary:
+		ship_data = data["ship"].duplicate()
+	else:
+		# Data might be the ship data itself
+		ship_data = data.duplicate()
+
+	local_ship_data["ship"] = ship_data
+	local_ship_data["is_complete"] = data.get("is_complete", false)
+	is_ship_complete = local_ship_data["is_complete"]
+
+	print("ShipPanel: set_panel_data restored ship: %s" % ship_data.get("name", "Unknown"))
+
+	# Update UI with restored data
+	call_deferred("_update_ship_display")
+
+	# Emit signals
+	ship_updated.emit(ship_data)
+
+func _on_coordinator_set() -> void:
+	"""Called when coordinator is assigned - sync initial state"""
+	print("ShipPanel: Coordinator set, syncing initial state")
+
+	var coordinator = get_coordinator_reference()
+	if coordinator and coordinator.has_method("get_unified_campaign_state"):
+		var state = coordinator.get_unified_campaign_state()
+		if state.has("ship") and state.ship is Dictionary and not state.ship.is_empty():
+			print("ShipPanel: Restoring ship state from coordinator")
+			ship_data = state.ship.duplicate()
+			local_ship_data["ship"] = ship_data
+			local_ship_data["is_complete"] = state.ship.get("is_complete", false)
+			call_deferred("_update_ship_display")
+		else:
+			print("ShipPanel: No existing ship state in coordinator")
+	else:
+		print("ShipPanel: Coordinator not available or missing get_unified_campaign_state")
 
 func reset_panel() -> void:
 	"""Reset panel to default state"""
@@ -1012,9 +1274,9 @@ func restore_panel_data(data: Dictionary) -> void:
 	print("ShipPanel: Restoring panel data: ", data.keys())
 	
 	# Restore ship data
-	if data.has("ship") and data.ship is Dictionary:
-		ship_data = data.ship.duplicate()
-		local_ship_data.ship = ship_data
+	if data.has("ship") and data["ship"] is Dictionary:
+		ship_data = data["ship"].duplicate()
+		local_ship_data["ship"] = ship_data
 		local_ship_data.is_complete = data.get("is_complete", false)
 		is_ship_complete = local_ship_data.is_complete
 		
@@ -1170,10 +1432,16 @@ func _create_ship_type_section(parent: Node) -> OptionButton:
 
 	var option = OptionButton.new()
 	option.name = "Value"
-	option.add_item("Light Freighter")
-	option.add_item("Scout Ship")
-	option.add_item("Transport")
+	# Add all Five Parsecs ship types from Ship Table
+	option.add_item("Worn Freighter")
 	option.add_item("Patrol Boat")
+	option.add_item("Converted Transport")
+	option.add_item("Scout Ship")
+	option.add_item("Armed Trader")
+	option.add_item("Light Freighter")
+	option.add_item("Modified Corvette")
+	option.add_item("Salvage Hauler")
+	option.add_item("Deep Space Explorer")
 	option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_style_option_button(option)
 	container.add_child(option)

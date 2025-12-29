@@ -24,6 +24,9 @@ var turn_number: int = 1
 ## Phase transition data storage - passes data between phases
 var _phase_transition_data: Dictionary = {}
 
+## World data from Travel Phase (T-5 fix)
+var _travel_world_data: Dictionary = {}
+
 ## Phase handlers
 var travel_phase_handler: Node = null
 var world_phase_handler: Node = null
@@ -75,6 +78,14 @@ func _initialize_phase_handlers() -> void:
 		if travel_phase_handler.has_signal("travel_substep_changed"):
 			var result2: Error = travel_phase_handler.travel_substep_changed.connect(_on_travel_substep_changed)
 			assert(result2 == OK, "Failed to connect travel_substep_changed signal")
+		# T-5 fix: Connect world_arrival_completed to receive world data from Travel Phase
+		if travel_phase_handler.has_signal("world_arrival_completed"):
+			var result_wac: Error = travel_phase_handler.world_arrival_completed.connect(_on_world_arrival_completed)
+			assert(result_wac == OK, "Failed to connect world_arrival_completed signal")
+		# T-1 fix: Connect invasion_battle_required for failed escape battles
+		if travel_phase_handler.has_signal("invasion_battle_required"):
+			var result_ibr: Error = travel_phase_handler.invasion_battle_required.connect(_on_invasion_battle_required)
+			assert(result_ibr == OK, "Failed to connect invasion_battle_required signal")
 
 	if WorldPhase:
 		world_phase_handler = WorldPhase.new()
@@ -163,6 +174,15 @@ func start_new_campaign_turn() -> bool:
 
 	turn_number += 1
 	print("CampaignPhaseManager: Starting Campaign Turn %d" % turn_number)
+
+	# Sync turn number to GameState for persistence and cross-system access
+	if game_state_manager:
+		if game_state_manager.has_method("get_game_state"):
+			var gs = game_state_manager.get_game_state()
+			if gs and gs.has_method("set_turn_number"):
+				gs.set_turn_number(turn_number)
+				print("CampaignPhaseManager: Synced turn %d to GameState" % turn_number)
+
 	self.campaign_turn_started.emit(turn_number)
 
 	# Phase 1: Travel Phase
@@ -219,7 +239,15 @@ func _start_phase_handler(phase: int) -> void:
 
 		GlobalEnums.FiveParsecsCampaignPhase.WORLD:
 			if world_phase_handler and world_phase_handler and world_phase_handler.has_method("start_world_phase"):
-				world_phase_handler.start_world_phase()
+				# T-5 fix: Pass world data from Travel Phase to World Phase
+				if not _travel_world_data.is_empty():
+					print("CampaignPhaseManager: Passing world data to World Phase - %s" % _travel_world_data.get("name", "Unknown"))
+					world_phase_handler.start_world_phase(_travel_world_data)
+					# Clear after use to prevent stale data on next turn
+					_travel_world_data = {}
+				else:
+					print("CampaignPhaseManager: ⚠️ No world data from Travel Phase, starting World Phase with defaults")
+					world_phase_handler.start_world_phase({})
 
 		GlobalEnums.FiveParsecsCampaignPhase.BATTLE:
 			# Battle phase - use BattlePhase handler with World Phase transition data
@@ -437,6 +465,10 @@ func _update_campaign_statistics(results: Dictionary) -> void:
 # Store battle results for post-battle phase
 var _last_battle_results: Dictionary = {}
 
+func get_last_battle_results() -> Dictionary:
+	"""Get the last battle results - for API access"""
+	return _last_battle_results
+
 func _complete_battle_phase() -> void:
 	"""Complete battle phase (fallback placeholder for when battle system fails)"""
 	print("CampaignPhaseManager: Battle phase completed (fallback mode)")
@@ -537,6 +569,32 @@ func _on_travel_phase_completed() -> void:
 	self.phase_completed.emit(current_phase)
 	start_phase(GlobalEnums.FiveParsecsCampaignPhase.WORLD)
 
+func _on_world_arrival_completed(world_data: Dictionary) -> void:
+	"""Handle world arrival data from Travel Phase (T-5 fix)
+
+	This receives the world data generated during travel and stores it
+	for the World Phase to use when it starts.
+	"""
+	print("CampaignPhaseManager: Received world arrival data - %s" % world_data.get("name", "Unknown World"))
+	_travel_world_data = world_data.duplicate()
+
+func _on_invasion_battle_required(battle_data: Dictionary) -> void:
+	"""Handle forced invasion battle from Travel Phase (T-1 fix)
+
+	When player fails to escape invasion, this triggers an immediate battle.
+	"""
+	print("CampaignPhaseManager: Invasion battle triggered from Travel Phase")
+
+	# Store battle data for the battle phase
+	_phase_transition_data = battle_data.duplicate()
+	_phase_transition_data["source"] = "invasion_escape_failed"
+
+	# Skip World phase and go directly to Battle
+	self.phase_completed.emit(current_phase)
+	current_phase = GlobalEnums.FiveParsecsCampaignPhase.WORLD
+	self.phase_completed.emit(current_phase)
+	start_phase(GlobalEnums.FiveParsecsCampaignPhase.BATTLE)
+
 func _on_world_phase_completed() -> void:
 	"""Handle World Phase completion"""
 	print("CampaignPhaseManager: World Phase completed")
@@ -591,7 +649,7 @@ func _on_post_battle_phase_completed() -> void:
 	if story_point_system and story_point_system.has_method("check_turn_earning"):
 		story_point_system.check_turn_earning(turn_number)
 
-	# Start next turn
+	# Start next turn (this handles turn increment and syncs to GameState)
 	start_new_campaign_turn()
 
 func _on_travel_substep_changed(substep: int) -> void:
@@ -617,6 +675,11 @@ func complete_current_phase() -> bool:
 
 	print("CampaignPhaseManager: Completing phase %s" % get_phase_name(current_phase))
 	self.phase_completed.emit(current_phase)
+
+	# Special case: POST_BATTLE completion starts a new turn (not just a phase transition)
+	if current_phase == GlobalEnums.FiveParsecsCampaignPhase.POST_BATTLE:
+		self.campaign_turn_completed.emit(turn_number)
+		return start_new_campaign_turn()
 
 	# Determine next phase
 	var next_phase = _get_next_phase(current_phase)

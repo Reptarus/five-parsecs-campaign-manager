@@ -68,8 +68,10 @@ func _ready() -> void:
 	# Call parent _ready() to initialize BaseCampaignPanel structure
 	super._ready()
 
-	# Add progress indicator
-	call_deferred("_add_progress_indicator")
+	# Apply design system styling to scene-defined inputs
+	call_deferred("_apply_input_styling")
+
+	# NOTE: Progress indicator removed - CampaignCreationUI handles progress display
 
 	# COMPREHENSIVE DEBUG OUTPUT - Panel Initialization
 	call_deferred("_log_panel_initialization_debug")
@@ -79,19 +81,7 @@ func _ready() -> void:
 
 	print("CaptainPanel: Enhanced captain creation ready")
 
-# PHASE 4 FIX: Override coordinator set callback to check access after coordinator is available
-func _add_progress_indicator() -> void:
-	"""Add progress indicator to panel after structure is ready"""
-	var main_content = get_node_or_null("ContentMargin/MainContent")
-	if not main_content:
-		push_warning("CaptainPanel: MainContent node not found for progress indicator")
-		return
-
-	var progress = _create_progress_indicator(STEP_NUMBER, 7)
-	main_content.add_child(progress)
-	main_content.move_child(progress, 0)  # Put at top of panel
-
-	print("CaptainPanel: Progress indicator added (Step %d of 7)" % STEP_NUMBER)
+# NOTE: _add_progress_indicator() removed - CampaignCreationUI handles progress display centrally
 
 func _on_coordinator_set() -> void:
 	"""Called when coordinator is set - now we can safely check coordinator access"""
@@ -121,6 +111,30 @@ func _validate_node_references() -> void:
 			push_warning("CaptainPanel: character_creator not found - advanced creation disabled")
 		print("CaptainPanel: Node references validated")
 
+func _apply_input_styling() -> void:
+	"""Apply design system styling to scene-defined inputs (eliminates stretched teal bars)"""
+	# Style OptionButtons
+	if background_option:
+		_style_option_button(background_option)
+	if motivation_option:
+		_style_option_button(motivation_option)
+
+	# Style LineEdit
+	if captain_name_input:
+		_style_line_edit(captain_name_input)
+
+	# Style Buttons with touch-friendly sizing
+	if advanced_creation_button:
+		_style_button(advanced_creation_button)
+	if continue_button:
+		_style_button(continue_button)
+		# Make continue button more prominent
+		continue_button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+
+	print("CaptainPanel: Design system styling applied to inputs")
+
+# NOTE: _style_button() now inherited from BaseCampaignPanel - removed duplicate
+
 func _setup_panel_content() -> void:
 	"""Override from BaseCampaignPanel - setup captain-specific content"""
 	_create_captain_interface()
@@ -133,17 +147,17 @@ func _create_captain_interface() -> void:
 	if not content_container:
 		push_error("CaptainPanel: FormContainer not found in base panel")
 		return
-	
+
 	var main_container = VBoxContainer.new()
 	main_container.name = "CaptainCreationContainer"
 	content_container.add_child(main_container)
-	
-	# Creation method selection
-	_add_creation_methods(main_container)
-	
+
+	# REMOVED: 4-button grid was confusing users - using scene's simple form instead
+	# _add_creation_methods(main_container)
+
 	# Captain preview area
 	_add_captain_preview(main_container)
-	
+
 	# Advanced options
 	_add_advanced_options(main_container)
 
@@ -317,12 +331,142 @@ func _clear_roll_log() -> void:
 	if roll_log_display:
 		roll_log_display.text = ""
 
+func _wrap_form_in_cards() -> void:
+	"""Wrap form elements in glass morphism cards for visual consistency"""
+	if not main_form_container:
+		return
+
+	# Create a new container to hold the cards
+	var cards_container := VBoxContainer.new()
+	cards_container.name = "CardsContainer"
+	cards_container.add_theme_constant_override("separation", SPACING_LG)
+
+	# === CAPTAIN NAME CARD ===
+	var name_card := _create_form_section_card("CAPTAIN NAME", "Your captain's identity in the Fringe.")
+	var name_content := name_card.get_node("CardMargin/CardContent")
+
+	# Move captain name input into card (if exists)
+	if captain_name_input and captain_name_input.get_parent():
+		var old_parent = captain_name_input.get_parent()
+		old_parent.remove_child(captain_name_input)
+		name_content.add_child(captain_name_input)
+
+	cards_container.add_child(name_card)
+
+	# === BACKGROUND & MOTIVATION CARD ===
+	var bg_mot_card := _create_form_section_card("BACKGROUND & MOTIVATION", "These shape your captain's history and drive.")
+	var bg_mot_content := bg_mot_card.get_node("CardMargin/CardContent")
+
+	# Move background elements into card
+	if background_label and background_label.get_parent():
+		background_label.get_parent().remove_child(background_label)
+		bg_mot_content.add_child(background_label)
+	if background_option and background_option.get_parent():
+		background_option.get_parent().remove_child(background_option)
+		bg_mot_content.add_child(background_option)
+	if background_description and background_description.get_parent():
+		background_description.get_parent().remove_child(background_description)
+		bg_mot_content.add_child(background_description)
+
+	# Add spacer between background and motivation
+	var spacer := Control.new()
+	spacer.custom_minimum_size.y = SPACING_MD
+	bg_mot_content.add_child(spacer)
+
+	# Move motivation elements into card
+	if motivation_label and motivation_label.get_parent():
+		motivation_label.get_parent().remove_child(motivation_label)
+		bg_mot_content.add_child(motivation_label)
+	if motivation_option and motivation_option.get_parent():
+		motivation_option.get_parent().remove_child(motivation_option)
+		bg_mot_content.add_child(motivation_option)
+	if motivation_description and motivation_description.get_parent():
+		motivation_description.get_parent().remove_child(motivation_description)
+		bg_mot_content.add_child(motivation_description)
+
+	cards_container.add_child(bg_mot_card)
+
+	# === ACTION BUTTONS (no card, just styled) ===
+	var button_container := HBoxContainer.new()
+	button_container.name = "ActionButtons"
+	button_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	button_container.add_theme_constant_override("separation", SPACING_MD)
+
+	if advanced_creation_button and advanced_creation_button.get_parent():
+		advanced_creation_button.get_parent().remove_child(advanced_creation_button)
+		button_container.add_child(advanced_creation_button)
+	if continue_button and continue_button.get_parent():
+		continue_button.get_parent().remove_child(continue_button)
+		button_container.add_child(continue_button)
+
+	cards_container.add_child(button_container)
+
+	# Add cards container to form
+	main_form_container.add_child(cards_container)
+	main_form_container.move_child(cards_container, 0)
+
+	print("CaptainPanel: Form elements wrapped in glass morphism cards")
+
+func _create_form_section_card(title: String, description: String = "") -> PanelContainer:
+	"""Create a glass morphism card for form sections"""
+	var card := PanelContainer.new()
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.add_theme_stylebox_override("panel", _create_glass_card_style())
+
+	var margin := MarginContainer.new()
+	margin.name = "CardMargin"
+	margin.add_theme_constant_override("margin_left", SPACING_MD)
+	margin.add_theme_constant_override("margin_right", SPACING_MD)
+	margin.add_theme_constant_override("margin_top", SPACING_MD)
+	margin.add_theme_constant_override("margin_bottom", SPACING_MD)
+	card.add_child(margin)
+
+	var content := VBoxContainer.new()
+	content.name = "CardContent"
+	content.add_theme_constant_override("separation", SPACING_SM)
+	margin.add_child(content)
+
+	# Card header
+	var header := Label.new()
+	header.text = title
+	header.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	header.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	content.add_child(header)
+
+	# Separator
+	var sep := HSeparator.new()
+	sep.modulate = COLOR_BORDER
+	content.add_child(sep)
+
+	# Description (if provided)
+	if not description.is_empty():
+		var desc := Label.new()
+		desc.text = description
+		desc.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+		desc.add_theme_color_override("font_color", Color(COLOR_TEXT_SECONDARY, 0.7))
+		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		content.add_child(desc)
+
+	return card
+
+func _create_glass_card_style(alpha: float = 0.8) -> StyleBoxFlat:
+	"""Create glass morphism style for cards"""
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(COLOR_ELEVATED.r, COLOR_ELEVATED.g, COLOR_ELEVATED.b, alpha)
+	style.border_color = COLOR_BORDER
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(8)
+	style.set_content_margin_all(0)  # Margin handled by MarginContainer
+	return style
+
 func _setup_ui() -> void:
 	# Original setup preserved for compatibility
 	_setup_background_options()
 	_setup_motivation_options()
 	_create_option_labels()
 	_update_all_option_descriptions()
+	# Wrap form elements in glass morphism cards
+	call_deferred("_wrap_form_in_cards")
 
 func _create_option_labels() -> void:
 	"""Create labels above and descriptions below the OptionButtons"""
@@ -824,18 +968,22 @@ func _on_character_created(character: Character) -> void:
 	"""Handle character creation completion"""
 	print("CaptainPanel: Character created: %s" % character.character_name)
 	current_captain = character
-	
+
 	# Update panel data with character info
 	panel_data["captain_character"] = character
 	panel_data["captain_name"] = character.character_name
-	
+
+	# Extract captain stats for data handoff to coordinator/FinalPanel
+	panel_data["captain_stats"] = _extract_character_stats(character)
+	print("CaptainPanel: Extracted stats: %s" % str(panel_data["captain_stats"]))
+
 	# Hide character creator and show simple form
 	character_creator.visible = false
 	main_form_container.visible = true
-	
+
 	# Update UI with character data
 	_update_ui_from_character()
-	
+
 	# Emit data change
 	panel_data_changed.emit(get_panel_data())
 
@@ -843,28 +991,47 @@ func _on_character_edited(character: Character) -> void:
 	"""Handle character editing completion"""
 	print("CaptainPanel: Character edited: %s" % character.character_name)
 	current_captain = character
-	
+
 	# Update panel data
 	panel_data["captain_character"] = character
 	panel_data["captain_name"] = character.character_name
-	
+
+	# Extract captain stats for data handoff to coordinator/FinalPanel
+	panel_data["captain_stats"] = _extract_character_stats(character)
+	print("CaptainPanel: Extracted stats after edit: %s" % str(panel_data["captain_stats"]))
+
 	# Hide character creator and show simple form
 	character_creator.visible = false
 	main_form_container.visible = true
-	
+
 	# Update UI with character data
 	_update_ui_from_character()
-	
+
 	# Emit data change
 	panel_data_changed.emit(get_panel_data())
 
 func _on_character_creation_cancelled() -> void:
 	"""Handle character creation cancellation"""
 	print("CaptainPanel: Character creation cancelled")
-	
+
 	# Hide character creator and show simple form
 	character_creator.visible = false
 	main_form_container.visible = true
+
+func _extract_character_stats(character: Character) -> Dictionary:
+	"""Extract stats from Character object for data handoff to coordinator/FinalPanel"""
+	if not character:
+		return {}
+
+	return {
+		"combat": character.combat if "combat" in character else 0,
+		"reactions": character.reactions if "reactions" in character else 0,
+		"toughness": character.toughness if "toughness" in character else 0,
+		"savvy": character.savvy if "savvy" in character else 0,
+		"speed": character.speed if "speed" in character else 0,
+		"luck": character.luck if "luck" in character else 0,
+		"xp": character.xp if "xp" in character else 0
+	}
 
 func _update_ui_from_character() -> void:
 	"""Update UI elements with character data"""
@@ -1172,9 +1339,10 @@ func _use_veteran_template() -> void:
 	print("CaptainPanel: Veteran captain created - %s" % captain.character_name)
 
 func _create_custom_captain() -> void:
-	"""Open custom captain builder interface"""
+	"""Open custom captain builder interface - delegates to advanced creation flow"""
 	creation_method = "custom"
-	push_warning("CaptainPanel: Custom captain builder will be implemented in next phase")
+	# Use the same flow as the Advanced Creation button
+	_on_advanced_creation_pressed()
 
 func _import_character() -> void:
 	"""Import existing character as captain"""
@@ -1385,14 +1553,17 @@ func validate_panel() -> bool:
 func get_panel_data() -> Dictionary:
 	"""Get captain data for campaign (overrides base class)"""
 	if not current_captain:
+		var input_name = captain_name_input.text if captain_name_input else ""
 		return {
 			"is_complete": false,
-			"character_name": captain_name_input.text if captain_name_input else "",
+			"name": input_name,  # COMPATIBILITY: FinalPanel looks for 'name' first
+			"character_name": input_name,
 			"captain_character": null
 		}
-	
+
 	return {
 		"captain": {
+			"name": current_captain.character_name,  # COMPATIBILITY: Both keys for different consumers
 			"character_name": current_captain.character_name,
 			"combat": current_captain.combat,
 			"reactions": current_captain.reactions,
@@ -1407,6 +1578,7 @@ func get_panel_data() -> Dictionary:
 			"creation_method": creation_method if creation_method else "manual",
 			"bonuses": captain_bonuses
 		},
+		"name": current_captain.character_name,  # COMPATIBILITY: Some consumers expect 'name'
 		"character_name": current_captain.character_name,
 		"captain_character": current_captain,
 		"is_complete": validate_panel()

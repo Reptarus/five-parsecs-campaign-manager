@@ -641,6 +641,14 @@ func advance_turn() -> void:
 		if auto_save_enabled:
 			_auto_save()
 
+func set_turn_number(value: int) -> void:
+	"""Set turn number directly (for syncing from CampaignPhaseManager)"""
+	if value > 0 and value != turn_number:
+		turn_number = value
+		_emit_turn_advanced()
+		_emit_state_changed()
+		print("GameState: Turn number set to %d" % turn_number)
+
 func get_turn_events() -> Array:
 	# Generate events based on current state
 	var events: Array = []
@@ -865,8 +873,10 @@ func serialize() -> Dictionary:
 		equipment_manager = get_node_or_null("/root/EquipmentManager")
 	else:
 		# Try to get autoload singleton when not in scene tree (e.g., during tests)
-		equipment_manager = Engine.get_singleton("EquipmentManager")
-	
+		# SPRINT 5 FIX: Check if singleton exists before trying to get it to avoid errors in tests
+		if Engine.has_singleton("EquipmentManager"):
+			equipment_manager = Engine.get_singleton("EquipmentManager")
+
 	if equipment_manager and equipment_manager.has_method("serialize_ship_stash"):
 		data["ship_stash"] = equipment_manager.serialize_ship_stash()
 	else:
@@ -947,7 +957,9 @@ func deserialize(data: Dictionary) -> void:
 			equipment_manager = get_node_or_null("/root/EquipmentManager")
 		else:
 			# Try to get autoload singleton when not in scene tree (e.g., during tests)
-			equipment_manager = Engine.get_singleton("EquipmentManager")
+			# SPRINT 5 FIX: Check if singleton exists before trying to get it to avoid errors in tests
+			if Engine.has_singleton("EquipmentManager"):
+				equipment_manager = Engine.get_singleton("EquipmentManager")
 		
 		if equipment_manager and equipment_manager.has_method("deserialize_ship_stash"):
 			var ship_stash_data = data.get("ship_stash", [])
@@ -1156,7 +1168,71 @@ func get_crew_members() -> Array:
 	if not _current_campaign:
 		return []
 	return _get_safe_crew_members()
-	return []
+
+## Crew Experience Management (Five Parsecs p.88-89)
+func add_crew_experience(character_id: String, xp: int) -> bool:
+	"""Add experience points to a specific crew member
+
+	Args:
+		character_id: Unique identifier of the character
+		xp: Amount of XP to award (must be positive)
+
+	Returns:
+		true if XP was successfully added, false otherwise
+	"""
+	if xp <= 0:
+		push_warning("GameState.add_crew_experience: XP must be positive (got %d)" % xp)
+		return false
+
+	if not _current_campaign:
+		push_error("GameState.add_crew_experience: No active campaign")
+		return false
+
+	if not _current_campaign.has_method("get_crew_member_by_id"):
+		push_error("GameState.add_crew_experience: Campaign missing get_crew_member_by_id method")
+		return false
+
+	var character = _current_campaign.get_crew_member_by_id(character_id)
+	if not character:
+		push_error("GameState.add_crew_experience: Character not found: %s" % character_id)
+		return false
+
+	# Try to add experience via method or property
+	if character.has_method("add_experience"):
+		character.add_experience(xp)
+		print("GameState: Awarded %d XP to %s (via method)" % [xp, character_id])
+	elif character is Dictionary and "xp" in character:
+		character["xp"] = character.get("xp", 0) + xp
+		print("GameState: Awarded %d XP to %s (via dict)" % [xp, character_id])
+	elif character is Object and "xp" in character:
+		character.xp = character.xp + xp
+		print("GameState: Awarded %d XP to %s (via property)" % [xp, character_id])
+	else:
+		push_error("GameState.add_crew_experience: Character has no XP tracking")
+		return false
+
+	_emit_state_changed()
+	return true
+
+func add_crew_experience_bulk(xp_awards: Dictionary) -> int:
+	"""Add experience to multiple crew members at once
+
+	Args:
+		xp_awards: Dictionary mapping character_id -> xp amount
+
+	Returns:
+		Number of successful XP awards
+	"""
+	var success_count: int = 0
+	for character_id in xp_awards.keys():
+		var xp: int = xp_awards[character_id]
+		if add_crew_experience(character_id, xp):
+			success_count += 1
+
+	if success_count > 0:
+		print("GameState: Bulk XP award - %d/%d successful" % [success_count, xp_awards.size()])
+
+	return success_count
 
 ## Injury Management (Five Parsecs p.94-95)
 func apply_crew_injury(character_id: String, injury: Dictionary) -> void:
@@ -1208,7 +1284,13 @@ func get_wounded_crew() -> Array:
 	var crew_members = get_crew_members()
 
 	for character in crew_members:
-		if character and character.has("injuries") and character.injuries.size() > 0:
+		# Handle both Dictionary and Resource types
+		var has_injuries: bool = false
+		if character is Dictionary:
+			has_injuries = character.has("injuries") and character.injuries.size() > 0
+		elif character and "injuries" in character:
+			has_injuries = character.injuries.size() > 0
+		if has_injuries:
 			wounded.append(character)
 
 	return wounded

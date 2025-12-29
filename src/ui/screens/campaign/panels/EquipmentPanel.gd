@@ -4,7 +4,7 @@ extends FiveParsecsCampaignPanel
 ## Production-ready implementation with comprehensive equipment systems
 
 # Progress tracking
-const STEP_NUMBER := 5  # Step 5 of 7 in campaign wizard
+const STEP_NUMBER := 4  # Step 4 of 7 in campaign wizard (Core Rules: Equipment before Ship)
 
 const StartingEquipmentGenerator = preload("res://src/core/character/Equipment/StartingEquipmentGenerator.gd")
 const CharacterClass = preload("res://src/core/character/Character.gd")
@@ -354,8 +354,7 @@ func _ready() -> void:
 	# Call parent _ready() to initialize BaseCampaignPanel structure
 	super._ready()
 
-	# Add progress indicator
-	call_deferred("_add_progress_indicator")
+	# NOTE: Progress indicator removed - CampaignCreationUI handles progress display
 
 	# Load equipment tables from JSON
 	_load_equipment_tables()
@@ -389,18 +388,7 @@ func _load_equipment_tables() -> void:
 	equipment_tables = json.get_data()
 	print("EquipmentPanel: Loaded equipment tables with keys: %s" % str(equipment_tables.keys()))
 
-func _add_progress_indicator() -> void:
-	"""Add progress indicator to panel after structure is ready"""
-	var main_content = get_node_or_null("ContentMargin/MainContent")
-	if not main_content:
-		push_warning("EquipmentPanel: MainContent node not found for progress indicator")
-		return
-
-	var progress = _create_progress_indicator(STEP_NUMBER, 7)
-	main_content.add_child(progress)
-	main_content.move_child(progress, 0)  # Put at top of panel
-
-	print("EquipmentPanel: Progress indicator added (Step %d of 7)" % STEP_NUMBER)
+# NOTE: _add_progress_indicator() removed - CampaignCreationUI handles progress display centrally
 
 func _setup_panel_content() -> void:
 	"""Override from BaseCampaignPanel - setup equipment-specific content"""
@@ -411,7 +399,7 @@ func set_coordinator(coord: Node) -> void:
 	"""Store coordinator reference properly for equipment panel"""
 	coordinator = coord
 	print("EquipmentPanel: Coordinator stored successfully")
-	
+
 	# TYPE-SAFE: Get state manager if available
 	if coord and is_instance_valid(coord):
 		if coord.has_method("get_state_manager"):
@@ -419,16 +407,42 @@ func set_coordinator(coord: Node) -> void:
 			if manager and is_instance_valid(manager):
 				state_manager = manager
 				print("EquipmentPanel: State manager reference stored")
-	
-	# Signal connection now handled centrally by CampaignCreationUI
-	# No need for manual connection here
+
+	# CRITICAL FIX: Call _on_coordinator_set to connect signal
+	call_deferred("_on_coordinator_set")
+
+func _on_coordinator_set() -> void:
+	"""Called when coordinator is set - connect to campaign state updates"""
+	print("EquipmentPanel: _on_coordinator_set called")
+
+	if coordinator and is_instance_valid(coordinator):
+		# Connect to campaign_state_updated signal for cross-panel communication
+		if coordinator.has_signal("campaign_state_updated"):
+			if not coordinator.campaign_state_updated.is_connected(_on_campaign_state_updated):
+				coordinator.campaign_state_updated.connect(_on_campaign_state_updated)
+				print("EquipmentPanel: ✅ Connected to campaign_state_updated signal")
+			else:
+				print("EquipmentPanel: Already connected to campaign_state_updated signal")
+		else:
+			print("EquipmentPanel: ⚠️ Coordinator missing campaign_state_updated signal")
+
+		# Also try to get current campaign state immediately
+		if coordinator.has_method("get_unified_campaign_state"):
+			var state = coordinator.get_unified_campaign_state()
+			if state:
+				print("EquipmentPanel: Fetching initial campaign state")
+				_handle_campaign_state_update(state)
+	else:
+		print("EquipmentPanel: ⚠️ Coordinator not valid in _on_coordinator_set")
 
 func _initialize_components() -> void:
 	"""Initialize equipment panel by connecting to actual scene nodes"""
 	print("========== EquipmentPanel: FINDING ACTUAL SCENE NODES ==========")
 	
-	# Use unique name access (marked with unique_name_in_owner = true)
+	# Use unique name access (marked with unique_name_in_owner = true) with fallback paths
 	equipment_list = get_node_or_null("%Container")
+	if not equipment_list:
+		equipment_list = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/EquipmentSection/EquipmentScroll/Container")
 	print("EquipmentPanel: equipment_list: %s" % ("FOUND" if equipment_list else "NOT FOUND"))
 	
 	generate_button = get_node_or_null("%GenerateButton")
@@ -447,19 +461,29 @@ func _initialize_components() -> void:
 	print("EquipmentPanel: manual_button: %s" % ("FOUND" if manual_button else "NOT FOUND"))
 	
 	summary_label = get_node_or_null("%Label")
+	if not summary_label:
+		summary_label = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/SummarySection/Summary/Label")
 	print("EquipmentPanel: summary_label: %s" % ("FOUND" if summary_label else "NOT FOUND"))
-	
+
 	credits_label = get_node_or_null("%Value")
+	if not credits_label:
+		credits_label = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/SummarySection/Credits/Value")
 	print("EquipmentPanel: credits_label: %s" % ("FOUND" if credits_label else "NOT FOUND"))
 	
-	# PHASE 1: New assignment UI components
+	# PHASE 1: New assignment UI components with fallback paths
 	auto_assign_button = get_node_or_null("%AutoAssignButton")
+	if not auto_assign_button:
+		auto_assign_button = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/EquipmentSection/EquipmentHeader/AutoAssignButton")
 	print("EquipmentPanel: auto_assign_button: %s" % ("FOUND" if auto_assign_button else "NOT FOUND"))
-	
+
 	crew_loadout_container = get_node_or_null("%CrewLoadoutContainer")
+	if not crew_loadout_container:
+		crew_loadout_container = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/CrewSection/CrewScroll/CrewLoadoutContainer")
 	print("EquipmentPanel: crew_loadout_container: %s" % ("FOUND" if crew_loadout_container else "NOT FOUND"))
-	
+
 	assigned_count_label = get_node_or_null("%AssignedCount")
+	if not assigned_count_label:
+		assigned_count_label = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/SummarySection/Summary/AssignedCount")
 	print("EquipmentPanel: assigned_count_label: %s" % ("FOUND" if assigned_count_label else "NOT FOUND"))
 
 	# Get DiceManager from autoload with safe access and fallback creation
@@ -484,7 +508,7 @@ func _initialize_components() -> void:
 	_connect_signals()
 	# CRITICAL FIX: Don't generate equipment before crew data arrives!
 	# _generate_starting_equipment()  # REMOVED - was causing premature generation with mock crew
-	
+
 	# IMMEDIATE FIX: Display any equipment that was already generated
 	call_deferred("_force_display_update")
 	call_deferred("emit_panel_ready")
@@ -810,20 +834,21 @@ func _on_generate_pressed() -> void:
 	"""Generate starting equipment and update navigation state"""
 	print("========== EquipmentPanel: GENERATE BUTTON PRESSED ==========")
 	print("EquipmentPanel: Coordinator available: %s" % (coordinator != null))
-	
+	print("EquipmentPanel: Class crew_members has %d members" % crew_members.size())
+
 	# If equipment already generated and working, refresh display and validate
 	if generated_equipment.size() > 0:
 		print("EquipmentPanel: Equipment already generated (%d items), refreshing display..." % generated_equipment.size())
 		_update_display()
 		_validate_and_complete()  # CRITICAL FIX: Call validation instead of early return
 		return
-	
+
 	# Clear existing equipment for regeneration
 	generated_equipment.clear()
 	starting_credits = 0
-	
-	# TYPE-SAFE: Try to get crew from coordinator
-	var crew_members = []
+
+	# TYPE-SAFE: Try to get crew from coordinator first
+	var local_crew_members: Array = []
 	if coordinator and is_instance_valid(coordinator):
 		print("EquipmentPanel: Coordinator is valid, checking for get_unified_campaign_state method")
 		if coordinator.has_method("get_unified_campaign_state"):
@@ -831,18 +856,23 @@ func _on_generate_pressed() -> void:
 			print("EquipmentPanel: Got state from coordinator: %s" % (state != null))
 			if state is Dictionary:
 				print("EquipmentPanel: State received, extracting crew...")
-				crew_members = _extract_crew_members(state)
+				local_crew_members = _extract_crew_members(state)
 		else:
 			print("EquipmentPanel: Coordinator doesn't have get_unified_campaign_state method")
 	else:
 		print("EquipmentPanel: Coordinator is null or invalid")
-	
-	if crew_members.size() > 0:
-		print("EquipmentPanel: Generating for %d crew members" % crew_members.size())
-		_generate_five_parsecs_equipment(crew_members)
+
+	# CRITICAL FIX: Fall back to class variable if coordinator lookup failed
+	if local_crew_members.is_empty() and crew_members.size() > 0:
+		print("EquipmentPanel: Using class crew_members (%d members) as fallback" % crew_members.size())
+		local_crew_members = crew_members
+
+	if local_crew_members.size() > 0:
+		print("EquipmentPanel: Generating for %d crew members" % local_crew_members.size())
+		_generate_five_parsecs_equipment(local_crew_members)
 
 		# CRITICAL FIX: Persist equipment to EquipmentManager
-		_persist_equipment_to_manager(crew_members)
+		_persist_equipment_to_manager(local_crew_members)
 
 		# TYPE-SAFE: Notify coordinator to update navigation state (enable Next button)
 		if coordinator and is_instance_valid(coordinator):
@@ -969,17 +999,16 @@ func _on_manual_select_pressed() -> void:
 
 func _generate_default_equipment() -> void:
 	"""Generate default equipment for testing when no crew data is available"""
-	print("EquipmentPanel: Generating default equipment for 4 crew members")
-	
+	# Use class variable crew_size if set, otherwise fallback to 4
+	var effective_crew_size = crew_size if crew_size > 0 else 4
+	print("EquipmentPanel: Generating default equipment for %d crew members" % effective_crew_size)
+
 	generated_equipment.clear()
-	
+
 	# Generate default equipment following Five Parsecs rules
-	# Default crew size of 4
-	var default_crew_size = 4
-	
 	# Generate starting credits: (1D6+1) × 100
 	var dice_roll = randi_range(1, 6)
-	starting_credits = (dice_roll + 1) * 100 + default_crew_size
+	starting_credits = (dice_roll + 1) * 100 + effective_crew_size
 	print("EquipmentPanel: Starting credits: %d (rolled %d)" % [starting_credits, dice_roll])
 	
 	# Generate default weapons
@@ -1001,7 +1030,7 @@ func _generate_default_equipment() -> void:
 			"name": low_tech_weapons[i % low_tech_weapons.size()],
 			"type": "Weapon",
 			"condition": "worn",
-			"owner": "Crew Member %d" % ((i % default_crew_size) + 1)
+			"owner": "Crew Member %d" % ((i % effective_crew_size) + 1)
 		})
 	
 	# Add basic gear
@@ -1057,9 +1086,15 @@ func _update_equipment_display() -> void:
 	# Clear existing children
 	for child in equipment_list.get_children():
 		child.queue_free()
-	
-	# Wait one frame for old children to be removed
+
+	# Wait one frame for old children to be removed (with null safety)
+	if not is_inside_tree():
+		return
 	await get_tree().process_frame
+
+	# Double-check we're still in tree after await
+	if not is_inside_tree():
+		return
 	
 	# Build crew options for dropdown
 	var crew_options = _get_crew_assignment_options()
@@ -1565,8 +1600,14 @@ func safe_call_method(obj: Node, method_name: String, args: Array = []):
 
 func _force_display_update() -> void:
 	"""Force display update after scene is fully loaded"""
+	if not is_inside_tree():
+		return
 	await get_tree().process_frame
-	
+
+	# Safety check after await
+	if not is_inside_tree():
+		return
+
 	# Display any equipment that was already generated
 	if generated_equipment.size() > 0:
 		print("EquipmentPanel: Forcing display update with %d existing items" % generated_equipment.size())
@@ -1633,10 +1674,9 @@ func _validate_and_complete() -> void:
 		equipment_validation_failed.emit(["Generate equipment first before proceeding"])
 
 func get_data() -> Dictionary:
-	"""Get panel data - generic interface method"""
-	var data = get_equipment_data()
-	data["is_complete"] = local_equipment_data.is_complete
-	return data
+	"""DEPRECATED: Use get_panel_data() instead. Will be removed in future version."""
+	push_warning("EquipmentPanel.get_data() is deprecated - use get_panel_data() instead")
+	return get_panel_data()
 
 ## Required Interface Methods from ICampaignCreationPanel
 
@@ -1716,7 +1756,8 @@ func _validate_equipment_data() -> Array[String]:
 	return errors
 
 func get_equipment_data() -> Dictionary:
-	"""Get equipment data in standardized format"""
+	"""DEPRECATED: Use get_panel_data() instead. Will be removed in future version."""
+	push_warning("EquipmentPanel.get_equipment_data() is deprecated - use get_panel_data() instead")
 	return {
 		"equipment": generated_equipment.duplicate(),
 		"credits": starting_credits,
@@ -2054,19 +2095,77 @@ func _apply_mobile_layout() -> void:
 	"""Mobile: Single column, 56dp targets, compact equipment list"""
 	super._apply_mobile_layout()
 
-	# Mobile layouts for equipment panels will have larger touch targets
-	# Touch targets automatically adjusted via design system inheritance
+	# Get main split container and convert to vertical layout for mobile
+	var main_split := get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit")
+	if main_split and main_split is HSplitContainer:
+		main_split.vertical = true  # Stack equipment and crew sections vertically
+
+	# Increase touch targets for mobile
+	var controls := get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/Controls")
+	if controls:
+		for child in controls.get_children():
+			if child is Button:
+				child.custom_minimum_size.y = TOUCH_TARGET_COMFORT  # 56dp
+
+	# Make summary section vertical for mobile
+	var summary_section := get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/SummarySection")
+	if summary_section and summary_section is HBoxContainer:
+		# Cannot change container type at runtime, but we can adjust alignment
+		summary_section.alignment = BoxContainer.ALIGNMENT_CENTER
+
+	# Adjust auto-assign button for mobile
+	var auto_assign := get_node_or_null("%AutoAssignButton")
+	if auto_assign:
+		auto_assign.custom_minimum_size = Vector2(100, TOUCH_TARGET_COMFORT)
 
 func _apply_tablet_layout() -> void:
 	"""Tablet: Two columns, 48dp targets, detailed equipment list"""
 	super._apply_tablet_layout()
 
-	# Tablet layouts optimized for two-column equipment display
-	# Touch targets at standard 48dp via design system
+	# Restore horizontal split for tablet
+	var main_split := get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit")
+	if main_split and main_split is HSplitContainer:
+		main_split.vertical = false  # Side-by-side layout
+
+	# Standard touch targets for tablet
+	var controls := get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/Controls")
+	if controls:
+		for child in controls.get_children():
+			if child is Button:
+				child.custom_minimum_size.y = TOUCH_TARGET_MIN  # 48dp
+
+	# Restore horizontal summary
+	var summary_section := get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/SummarySection")
+	if summary_section and summary_section is HBoxContainer:
+		summary_section.alignment = BoxContainer.ALIGNMENT_BEGIN
+
+	# Standard auto-assign button
+	var auto_assign := get_node_or_null("%AutoAssignButton")
+	if auto_assign:
+		auto_assign.custom_minimum_size = Vector2(120, TOUCH_TARGET_MIN)
 
 func _apply_desktop_layout() -> void:
 	"""Desktop: Multi-column, 48dp targets, full equipment details"""
 	super._apply_desktop_layout()
 
-	# Desktop layouts with maximum information density
-	# Standard touch targets via design system
+	# Full horizontal layout for desktop
+	var main_split := get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit")
+	if main_split and main_split is HSplitContainer:
+		main_split.vertical = false  # Side-by-side layout
+
+	# Standard touch targets for desktop (mouse precision)
+	var controls := get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/Controls")
+	if controls:
+		for child in controls.get_children():
+			if child is Button:
+				child.custom_minimum_size.y = TOUCH_TARGET_MIN  # 48dp
+
+	# Full horizontal summary
+	var summary_section := get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/SummarySection")
+	if summary_section and summary_section is HBoxContainer:
+		summary_section.alignment = BoxContainer.ALIGNMENT_BEGIN
+
+	# Standard auto-assign button with more width for desktop
+	var auto_assign := get_node_or_null("%AutoAssignButton")
+	if auto_assign:
+		auto_assign.custom_minimum_size = Vector2(140, TOUCH_TARGET_MIN)
