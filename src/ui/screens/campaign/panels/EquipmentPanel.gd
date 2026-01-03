@@ -114,14 +114,16 @@ func _handle_campaign_state_update(state_data: Dictionary) -> void:
 		print("EquipmentPanel: Captain data found: %s" % captain_data.get("character_name", "Unknown"))
 		
 		# Add captain to crew members if not already present
-		var captain_name = captain_data.get("character_name", captain_data.get("name", ""))
+		# Sprint 26.3: Character-Everywhere - captain_data may be Character or Dictionary during transition
+		var captain_name: String = ""
+		if captain_data is Character:
+			captain_name = captain_data.character_name if captain_data.character_name else captain_data.name
+		else:
+			captain_name = captain_data.get("character_name", captain_data.get("name", ""))
 		var captain_exists = false
 		for member in crew_members:
-			var member_name = ""
-			if member is Dictionary:
-				member_name = member.get("character_name", member.get("name", ""))
-			elif member is Character:
-				member_name = member.character_name if member.character_name else member.name
+			# Sprint 26.3: Character-Everywhere - crew members are always Character objects
+			var member_name: String = member.character_name if "character_name" in member else (member.name if "name" in member else "")
 			if member_name == captain_name:
 				captain_exists = true
 				break
@@ -252,19 +254,11 @@ func _generate_five_parsecs_equipment(crew_members: Array) -> void:
 		var background = ""
 
 		# CRITICAL FIX: Handle both Character objects and Dictionary data
-		if crew_member is Character:
-			# Direct Character object from Five Parsecs generation
-			member_name = crew_member.character_name if crew_member.character_name else crew_member.name
-			background = crew_member.background.to_lower() if crew_member.background else ""
-			print("  Processing Character object: %s (background: %s)" % [member_name, background])
-		elif crew_member is Dictionary:
-			# Legacy Dictionary format
-			member_name = crew_member.get("character_name", crew_member.get("name", "Unknown"))
-			background = crew_member.get("background", "").to_lower()
-			print("  Processing Dictionary: %s (background: %s)" % [member_name, background])
-		else:
-			print("  Warning: Unknown crew member type: %s" % type_string(typeof(crew_member)))
-			continue
+		# Sprint 26.3: Character-Everywhere - crew members are always Character objects
+		member_name = crew_member.character_name if "character_name" in crew_member else (crew_member.name if "name" in crew_member else "Unknown")
+		var bg_raw = crew_member.background if "background" in crew_member else ""
+		background = bg_raw.to_lower() if bg_raw else ""
+		print("  Processing crew member: %s (background: %s)" % [member_name, background])
 
 		# Use JSON background equipment if available
 		if background_equipment.has(background):
@@ -700,25 +694,31 @@ func _generate_equipment_for_actual_crew(crew_members: Array) -> void:
 	starting_credits = 0
 	
 	for crew_member in crew_members:
-		if crew_member is Dictionary:
-			# Convert dictionary crew member to Character object
-			var character = Character.new()
-			character.character_name = crew_member.get("character_name", "Unknown Crew")
-			character.character_class = crew_member.get("character_class", "soldier").to_lower()
-			character.background = crew_member.get("background", "military").to_lower()
-			
-			print("EquipmentPanel: Generating equipment for %s (%s, %s)" % [
-				character.character_name, character.character_class, character.background
-			])
-			
-			var char_equipment: Dictionary = StartingEquipmentGenerator.generate_starting_equipment(character, dice_manager)
-			StartingEquipmentGenerator.apply_equipment_condition(char_equipment, dice_manager)
-			
-			# Merge equipment into a single list with proper attribution
-			_merge_character_equipment(char_equipment, character.character_name)
-			starting_credits += char_equipment.get("credits", 0)
+		# Sprint 26.3: Character-Everywhere - crew members are always Character objects
+		var character: Character = null
+		if crew_member is Character:
+			character = crew_member
 		else:
+			# Legacy fallback - convert Dictionary to Character
+			character = Character.new()
+			character.character_name = crew_member.get("character_name", "Unknown Crew") if crew_member is Dictionary else "Unknown"
+			character.character_class = crew_member.get("character_class", "soldier").to_lower() if crew_member is Dictionary else "soldier"
+			character.background = crew_member.get("background", "military").to_lower() if crew_member is Dictionary else "military"
+
+		if not character:
 			push_warning("EquipmentPanel: Invalid crew member data type: %s" % typeof(crew_member))
+			continue
+
+		print("EquipmentPanel: Generating equipment for %s (%s, %s)" % [
+			character.character_name, character.character_class, character.background
+		])
+
+		var char_equipment: Dictionary = StartingEquipmentGenerator.generate_starting_equipment(character, dice_manager)
+		StartingEquipmentGenerator.apply_equipment_condition(char_equipment, dice_manager)
+
+		# Merge equipment into a single list with proper attribution
+		_merge_character_equipment(char_equipment, character.character_name)
+		starting_credits += char_equipment.get("credits", 0)
 	
 	print("EquipmentPanel: Generated %d equipment items, %d credits for actual crew" % [generated_equipment.size(), starting_credits])
 	
@@ -946,15 +946,9 @@ func _persist_equipment_to_manager(crew_members: Array) -> void:
 func _get_character_id_from_name(crew_members: Array, character_name: String) -> String:
 	"""Get character ID from crew member name"""
 	for member in crew_members:
-		var name: String = ""
-		var id: String = ""
-
-		if member is Dictionary:
-			name = member.get("character_name", member.get("name", ""))
-			id = member.get("id", member.get("character_id", ""))
-		elif member is Character:
-			name = member.character_name if member.character_name else member.name
-			id = member.character_id
+		# Sprint 26.3: Character-Everywhere - crew members are always Character objects
+		var name: String = member.character_name if "character_name" in member else (member.name if "name" in member else "")
+		var id: String = member.character_id if "character_id" in member else ""
 
 		if name == character_name:
 			return id
@@ -1250,19 +1244,14 @@ func _get_condition_color(condition: String) -> Color:
 func _get_crew_assignment_options() -> Array[String]:
 	"""Get list of crew member names for assignment dropdown"""
 	var options: Array[String] = []
-	
+
 	for member in crew_members:
-		var name: String = ""
-		if member is Dictionary:
-			name = member.get("character_name", member.get("name", "Unknown"))
-		elif member is Character:
-			name = member.character_name if member.character_name else member.name
-		else:
-			name = str(member)
-		
+		# Sprint 26.3: Character-Everywhere - crew members are always Character objects
+		var name: String = member.character_name if "character_name" in member else (member.name if "name" in member else str(member))
+
 		if not name.is_empty():
 			options.append(name)
-	
+
 	return options
 
 func _get_owner_dropdown_index(owner: String, crew_options: Array) -> int:
@@ -1358,18 +1347,15 @@ func _update_crew_loadout_display() -> void:
 	
 	# Build loadout per character
 	var loadouts: Dictionary = {"Ship Stash": []}
-	
+
 	# Initialize loadouts for all crew members
+	# Sprint 26.3: Character-Everywhere - crew members are always Character objects
 	for member in crew_members:
-		var name: String = ""
-		if member is Dictionary:
-			name = member.get("character_name", member.get("name", ""))
-		elif member is Character:
-			name = member.character_name if member.character_name else member.name
-		
+		var name: String = member.character_name if "character_name" in member else (member.name if "name" in member else "")
+
 		if not name.is_empty():
 			loadouts[name] = []
-	
+
 	# Populate loadouts from equipment
 	for item in generated_equipment:
 		var owner: String = item.get("owner", "Unassigned")
@@ -1377,22 +1363,16 @@ func _update_crew_loadout_display() -> void:
 			if not loadouts.has(owner):
 				loadouts[owner] = []
 			loadouts[owner].append(item)
-	
+
 	# Create UI for each character
+	# Sprint 26.3: Character-Everywhere - crew members are always Character objects
 	for member in crew_members:
-		var name: String = ""
-		var background: String = ""
-		
-		if member is Dictionary:
-			name = member.get("character_name", member.get("name", ""))
-			background = member.get("background", "")
-		elif member is Character:
-			name = member.character_name if member.character_name else member.name
-			background = member.background if member.background else ""
-		
+		var name: String = member.character_name if "character_name" in member else (member.name if "name" in member else "")
+		var background: String = member.background if "background" in member else ""
+
 		if name.is_empty():
 			continue
-		
+
 		var char_panel = _create_character_loadout_panel(name, background, loadouts.get(name, []))
 		crew_loadout_container.add_child(char_panel)
 	
@@ -1473,18 +1453,13 @@ func _on_auto_assign_pressed() -> void:
 		return
 	
 	# Build preference map based on backgrounds
+	# Sprint 26.3: Character-Everywhere - crew members are always Character objects
 	var preferences: Dictionary = {}
 	for member in crew_members:
-		var name: String = ""
-		var background: String = ""
-		
-		if member is Dictionary:
-			name = member.get("character_name", member.get("name", ""))
-			background = member.get("background", "").to_lower()
-		elif member is Character:
-			name = member.character_name if member.character_name else member.name
-			background = member.background.to_lower() if member.background else ""
-		
+		var name: String = member.character_name if "character_name" in member else (member.name if "name" in member else "")
+		var bg_raw = member.background if "background" in member else ""
+		var background: String = bg_raw.to_lower() if bg_raw else ""
+
 		if not name.is_empty():
 			preferences[name] = {
 				"background": background,
@@ -1688,6 +1663,14 @@ func validate_panel() -> bool:
 func get_panel_data() -> Dictionary:
 	"""Get panel data - interface implementation"""
 	return get_equipment_data()
+
+func set_panel_data(data: Dictionary) -> void:
+	"""Set panel data - interface implementation. Delegates to restore_panel_data."""
+	restore_panel_data(data)
+
+func _on_campaign_state_updated(state_data: Dictionary) -> void:
+	"""Handle campaign state updates - interface implementation for cross-panel communication."""
+	_handle_campaign_state_update(state_data)
 
 func reset_panel() -> void:
 	"""Reset panel to default state"""

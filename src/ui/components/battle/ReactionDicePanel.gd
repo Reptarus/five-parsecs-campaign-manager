@@ -52,11 +52,15 @@ func set_crew(crew: Array) -> void:
 		var reactions: int = 1
 
 		# Get name and reaction stat
-		if member is Resource:
+		# Sprint 26.3: Character-Everywhere - crew members are always Character objects
+		if member is Character:
+			name = member.character_name if "character_name" in member else (member.name if "name" in member else "Unknown")
+			reactions = member.reactions if "reactions" in member else 1
+		elif member is Resource:
 			name = member.get_meta("name") if member.has_meta("name") else "Unknown"
 			reactions = member.get_meta("reactions") if member.has_meta("reactions") else 1
 		elif member is Dictionary:
-			name = member.get("name", "Unknown")
+			name = member.get("name", member.get("character_name", "Unknown"))
 			reactions = member.get("reactions", 1)
 		else:
 			continue

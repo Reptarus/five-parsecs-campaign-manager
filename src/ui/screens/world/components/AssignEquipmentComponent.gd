@@ -87,16 +87,10 @@ func _populate_crew_list() -> void:
 		return
 
 	crew_list.clear()
+	# Sprint 26.3: Character-Everywhere - crew members are always Character objects
 	for i in range(crew_data.size()):
 		var member = crew_data[i]
-		var member_name = ""
-		if member is Dictionary:
-			member_name = member.get("name", "Crew %d" % (i + 1))
-		elif member is Resource and member.has_method("get_character_name"):
-			member_name = member.get_character_name()
-		else:
-			member_name = "Crew %d" % (i + 1)
-
+		var member_name: String = member.character_name if "character_name" in member else "Crew %d" % (i + 1)
 		var equipment_count = _get_equipment_count(member)
 		crew_list.add_item("%s (%d items)" % [member_name, equipment_count])
 
@@ -130,25 +124,25 @@ func _populate_crew_equipment() -> void:
 		crew_equipment_list.add_item(item_name)
 
 func _get_member_equipment(member) -> Array:
-	"""Get equipment array from crew member"""
-	if member is Dictionary:
-		return member.get("equipment", [])
-	elif member is Resource:
-		if member.has_method("get_equipment"):
-			return member.get_equipment()
-		elif "equipment" in member:
-			return member.equipment
+	"""Get equipment array from crew member (Sprint 26.3: Character-Everywhere)"""
+	if not member:
+		return []
+	# Character objects may store equipment directly or via EquipmentManager
+	if member.has_method("get_equipment"):
+		return member.get_equipment()
+	elif "equipment" in member:
+		return member.equipment
 	return []
 
 func _set_member_equipment(member, equipment: Array) -> void:
-	"""Set equipment array for crew member"""
-	if member is Dictionary:
-		member["equipment"] = equipment
-	elif member is Resource:
-		if member.has_method("set_equipment"):
-			member.set_equipment(equipment)
-		elif "equipment" in member:
-			member.equipment = equipment
+	"""Set equipment array for crew member (Sprint 26.3: Character-Everywhere)"""
+	if not member:
+		return
+	# Character objects may have set_equipment method or direct property
+	if member.has_method("set_equipment"):
+		member.set_equipment(equipment)
+	elif "equipment" in member:
+		member.equipment = equipment
 
 func _get_equipment_count(member) -> int:
 	"""Get count of equipment for crew member"""
@@ -161,10 +155,11 @@ func _on_crew_selected(index: int) -> void:
 	_populate_crew_equipment()
 	_update_ui_display()
 
+	# Sprint 26.3: Character-Everywhere - crew members are always Character objects
 	if selected_crew_label and index >= 0 and index < crew_data.size():
 		var member = crew_data[index]
-		var name = member.get("name", "Crew %d" % (index + 1)) if member is Dictionary else "Crew %d" % (index + 1)
-		selected_crew_label.text = "Selected: %s" % name
+		var crew_name: String = member.character_name if "character_name" in member else "Crew %d" % (index + 1)
+		selected_crew_label.text = "Selected: %s" % crew_name
 
 func _on_transfer_to_stash_pressed() -> void:
 	"""Transfer selected item from crew to stash"""
@@ -181,10 +176,10 @@ func _on_transfer_to_stash_pressed() -> void:
 
 	if item_index >= 0 and item_index < equipment.size():
 		var item = equipment[item_index]
-		
-		# Get character and equipment IDs
-		var character_id = member.get("id", member.get("character_id", "")) if member is Dictionary else ""
-		var equipment_id = item.get("id", "") if item is Dictionary else ""
+
+		# Get character and equipment IDs (Sprint 26.3: Character-Everywhere)
+		var character_id: String = member.character_id if "character_id" in member else ""
+		var equipment_id: String = item.get("id", "") if item is Dictionary else ""
 		
 		# Try EquipmentManager first for proper state management
 		var equipment_manager = get_node_or_null("/root/EquipmentManager")
@@ -223,10 +218,10 @@ func _on_transfer_to_crew_pressed() -> void:
 	if item_index >= 0 and item_index < stash_items.size():
 		var item = stash_items[item_index]
 		var member = crew_data[selected_crew_index]
-		
-		# Get character and equipment IDs
-		var character_id = member.get("id", member.get("character_id", "")) if member is Dictionary else ""
-		var equipment_id = item.get("id", "") if item is Dictionary else ""
+
+		# Get character and equipment IDs (Sprint 26.3: Character-Everywhere)
+		var character_id: String = member.character_id if "character_id" in member else ""
+		var equipment_id: String = item.get("id", "") if item is Dictionary else ""
 		
 		# Try EquipmentManager first for proper state management
 		var equipment_manager = get_node_or_null("/root/EquipmentManager")
@@ -264,21 +259,26 @@ func _on_confirm_pressed() -> void:
 	"""Confirm equipment assignments"""
 	assignment_completed = true
 
-	# Persist equipment assignments to campaign
+	# Persist equipment assignments to campaign (Sprint 26.3: Character-Everywhere)
 	var game_state = get_node_or_null("/root/GameState")
 	if game_state and game_state.current_campaign:
 		var campaign = game_state.current_campaign
-		if campaign and campaign is Dictionary:
-			# Update crew equipment
-			var campaign_crew = campaign.get("crew", [])
+		# Campaign is a Resource, get crew members directly
+		if campaign and campaign.has_method("get_crew_members"):
+			var campaign_crew = campaign.get_crew_members()
 			for i in range(mini(crew_data.size(), campaign_crew.size())):
 				var local_member = crew_data[i]
 				var campaign_member = campaign_crew[i]
-				if campaign_member is Dictionary and local_member is Dictionary:
-					campaign_member["equipment"] = local_member.get("equipment", [])
+				# Both are Character objects - copy equipment directly
+				if "equipment" in local_member and "equipment" in campaign_member:
+					campaign_member.equipment = _get_member_equipment(local_member).duplicate()
 
-			# Update stash
-			campaign["stash"] = stash_items.duplicate()
+			# Update stash via campaign method if available
+			if campaign.has_method("set_ship_stash"):
+				campaign.set_ship_stash(stash_items.duplicate())
+			elif "ship_stash" in campaign:
+				campaign.ship_stash = stash_items.duplicate()
+
 			print("AssignEquipmentComponent: Persisted equipment for %d crew and %d stash items" % [
 				crew_data.size(), stash_items.size()
 			])
@@ -326,6 +326,16 @@ func get_crew_data() -> Array:
 func get_stash_data() -> Array:
 	"""Get updated stash data"""
 	return stash_items.duplicate(true)
+
+## Sprint 12.2: Standardized step results for WorldPhaseController integration
+func get_step_results() -> Dictionary:
+	"""Get step results for phase completion (standardized interface)"""
+	return {
+		"assignment_completed": assignment_completed,
+		"crew_data": crew_data.duplicate(true),
+		"stash_data": stash_items.duplicate(true),
+		"selected_crew_index": selected_crew_index
+	}
 
 func reset_equipment_phase() -> void:
 	"""Reset for new turn"""

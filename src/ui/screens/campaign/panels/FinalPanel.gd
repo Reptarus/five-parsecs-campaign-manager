@@ -1,5 +1,7 @@
 extends FiveParsecsCampaignPanel
 
+const STEP_NUMBER := 7  # Step 7 of 7 in campaign wizard (Final Review)
+
 const CampaignStateManager = preload("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
 const SecurityValidator = preload("res://src/core/validation/SecurityValidator.gd")
 const ValidationResult = preload("res://src/core/validation/ValidationResult.gd")
@@ -19,7 +21,6 @@ signal campaign_finalization_complete(data: Dictionary)
 signal campaign_confirmed()  # New signal for Create Campaign button
 
 # UI References - rebuilt programmatically
-var progress_container: VBoxContainer = null
 var summary_cards_container: VBoxContainer = null
 var validation_feedback_container: Control = null  # Validation feedback panel
 var validation_panel: ValidationPanel = null
@@ -41,7 +42,8 @@ func set_coordinator(coord: Node) -> void:
 	if coordinator and coordinator.has_signal("campaign_state_updated"):
 		if not coordinator.campaign_state_updated.is_connected(_on_campaign_state_updated):
 			coordinator.campaign_state_updated.connect(_on_campaign_state_updated)
-	sync_with_coordinator()
+	# Defer sync to ensure coordinator is fully initialized
+	call_deferred("sync_with_coordinator")
 
 func sync_with_coordinator() -> void:
 	"""Sync panel with coordinator state"""
@@ -63,23 +65,46 @@ func _on_campaign_state_updated(state_data: Dictionary) -> void:
 
 
 func _ready() -> void:
-	# Set panel info before base initialization with more informative description  
+	# Set panel info before base initialization with more informative description
 	set_panel_info("Campaign Review", "Review your campaign setup and create your adventure.")
-	
+
 	# Call parent _ready() to initialize BaseCampaignPanel structure
 	super._ready()
-	
+
 	# Build final panel UI
 	call_deferred("_build_final_panel_ui")
-	
+
 	# COMPREHENSIVE DEBUG OUTPUT - Panel Initialization
 	call_deferred("_log_panel_initialization_debug")
-	
+
 	# Initialize final panel-specific functionality
 	_initialize_security_validator()
-	
+
 	# CRITICAL FIX: Aggregate campaign data when panel becomes ready
-	call_deferred("_aggregate_campaign_data")
+	# Delayed further to ensure coordinator is set by CampaignCreationUI
+	call_deferred("_delayed_aggregate_campaign_data")
+
+	# Connect visibility changed to refresh data when panel becomes visible
+	visibility_changed.connect(_on_visibility_changed)
+
+	# SPRINT 5.1: Emit panel_ready after initialization complete
+	call_deferred("emit_panel_ready")
+
+func _on_visibility_changed() -> void:
+	"""Refresh data when panel becomes visible"""
+	if visible and is_inside_tree():
+		print("FinalPanel: Visibility changed to visible - refreshing data")
+		call_deferred("_aggregate_campaign_data")
+
+func _delayed_aggregate_campaign_data() -> void:
+	"""Delayed aggregation to ensure coordinator is set"""
+	# Wait an extra frame for coordinator setup
+	if not is_inside_tree():
+		return
+	await get_tree().process_frame
+	if not is_inside_tree():
+		return
+	_aggregate_campaign_data()
 
 func _setup_panel_content() -> void:
 	"""Override from BaseCampaignPanel - setup final panel-specific content"""
@@ -105,12 +130,10 @@ func _build_final_panel_ui() -> void:
 	main_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	main_vbox.add_theme_constant_override("separation", SPACING_LG)
 	main_scroll.add_child(main_vbox)
-	
-	# 1. Progress Indicator
-	progress_container = _create_progress_indicator()
-	main_vbox.add_child(progress_container)
-	
-	# 2. Summary Cards Container
+
+	# NOTE: Progress indicator removed - CampaignCreationUI handles progress display centrally
+
+	# 1. Summary Cards Container
 	summary_cards_container = VBoxContainer.new()
 	summary_cards_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	summary_cards_container.add_theme_constant_override("separation", SPACING_MD)
@@ -123,6 +146,7 @@ func _build_final_panel_ui() -> void:
 	# 3.5. Validation Feedback Panel (NEW)
 	validation_panel = ValidationPanel.new()
 	validation_panel.name = "ValidationPanel"
+	validation_feedback_container = validation_panel  # FIX: was never assigned, causing blank display
 	main_vbox.add_child(validation_panel)
 	
 	# 4. Create Campaign Button
@@ -131,36 +155,7 @@ func _build_final_panel_ui() -> void:
 	
 	print("FinalPanel: UI built successfully")
 
-func _create_progress_indicator(current_step: int = 7, total_steps: int = 7, step_title: String = "Review & Create") -> Control:
-	"""Create Step 7/7 progress indicator with 100% bar"""
-	var container := VBoxContainer.new()
-	container.add_theme_constant_override("separation", SPACING_SM)
-	
-	var label := Label.new()
-	label.text = "Step 7 of 7 - Review & Create"
-	label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
-	container.add_child(label)
-	
-	# Progress bar
-	var progress := ProgressBar.new()
-	progress.value = 100.0
-	progress.custom_minimum_size.y = 8
-	
-	# Style progress bar
-	var style_bg := StyleBoxFlat.new()
-	style_bg.bg_color = COLOR_INPUT
-	style_bg.set_corner_radius_all(4)
-	progress.add_theme_stylebox_override("background", style_bg)
-	
-	var style_fill := StyleBoxFlat.new()
-	style_fill.bg_color = COLOR_SUCCESS
-	style_fill.set_corner_radius_all(4)
-	progress.add_theme_stylebox_override("fill", style_fill)
-	
-	container.add_child(progress)
-	
-	return container
+# NOTE: _create_progress_indicator() removed - CampaignCreationUI handles progress display centrally
 
 func _create_crew_preview_section() -> VBoxContainer:
 	"""Create crew preview section with CharacterCard COMPACT"""
@@ -242,25 +237,30 @@ func _aggregate_campaign_data() -> void:
 	"""Aggregate campaign data from coordinator - enhanced for proper data access"""
 	print("FinalPanel: Aggregating campaign data from coordinator")
 
-	# Use base class method to get coordinator reference
+	# Use base class method to get coordinator reference if needed
 	if not coordinator:
 		coordinator = get_coordinator_reference()
-	
+		print("FinalPanel: Got coordinator from base class: %s" % (coordinator != null))
+
+	# Also sync with base class _coordinator for consistency
+	if coordinator and not _coordinator:
+		_coordinator = coordinator
+
 	if coordinator and coordinator.has_method("get_unified_campaign_state"):
-			var unified_state = coordinator.get_unified_campaign_state()
-			print("FinalPanel: Retrieved unified campaign state with keys: %s" % str(unified_state.keys()))
-			
-			# Update campaign data
-			campaign_data = unified_state.duplicate()
-			campaign_state = unified_state.duplicate()
-			
-			# Update display with aggregated data
-			_update_display()
-			_validate_and_complete()
-			
-			print("FinalPanel: Campaign data aggregation complete")
-			return
-	
+		var unified_state = coordinator.get_unified_campaign_state()
+		print("FinalPanel: Retrieved unified campaign state with keys: %s" % str(unified_state.keys()))
+
+		# Update campaign data
+		campaign_data = unified_state.duplicate()
+		campaign_state = unified_state.duplicate()
+
+		# Update display with aggregated data
+		_update_display()
+		_validate_and_complete()
+
+		print("FinalPanel: Campaign data aggregation complete")
+		return
+
 	# Fallback: Use signal-based data if coordinator not available
 	if not campaign_state.is_empty():
 		campaign_data = campaign_state.duplicate()
@@ -268,7 +268,10 @@ func _aggregate_campaign_data() -> void:
 		_validate_and_complete()
 		print("FinalPanel: Used signal-based campaign data")
 	else:
-		print("FinalPanel: ⚠️ No campaign data available from coordinator or signals")
+		print("FinalPanel: ⚠️ No campaign data available - showing placeholder UI")
+		# Still update display to show placeholder/empty state
+		_update_display()
+		_validate_and_complete()
 
 func _update_display() -> void:
 	"""Update comprehensive campaign summary display with styled cards"""
@@ -328,21 +331,29 @@ func _create_config_summary_card() -> PanelContainer:
 	name_label.add_theme_color_override("font_color", COLOR_ACCENT)      # Accent color for emphasis
 	content.add_child(name_label)
 	
-	# Difficulty & Mode
+	# Difficulty & Mode - check both key names and convert integer to name
+	var difficulty_value = config_data.get("difficulty", config_data.get("difficulty_level", 2))
+	var difficulty_name = _get_difficulty_name(difficulty_value)
 	var difficulty_label := Label.new()
 	difficulty_label.text = "Difficulty: %s | Mode: %s" % [
-		config_data.get("difficulty", "Normal"),
+		difficulty_name,
 		config_data.get("game_mode", "Standard")
 	]
 	difficulty_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
 	difficulty_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	content.add_child(difficulty_label)
 	
-	# Victory Conditions
+	# Victory Conditions - Handle both dictionary and boolean formats
 	var victory_conditions = config_data.get("victory_conditions", {})
 	var selected_conditions = []
 	for key in victory_conditions.keys():
-		if victory_conditions[key] == true:
+		var value = victory_conditions[key]
+		# Handle dictionary format from ExpandedConfigPanel: {"wealth": {name: "Wealth Victory", ...}}
+		if value is Dictionary:
+			var display_name = value.get("name", _get_victory_condition_display_name(key))
+			selected_conditions.append(display_name)
+		# Handle legacy boolean format: {"wealth": true}
+		elif value == true:
 			selected_conditions.append(_get_victory_condition_display_name(key))
 	
 	var victory_label := Label.new()
@@ -476,26 +487,9 @@ func _create_crew_summary_card() -> PanelContainer:
 	var content := VBoxContainer.new()
 	content.add_theme_constant_override("separation", SPACING_SM)
 
-	# TYPE CONVERSION FIX: Handle mixed Array (Character objects + Dictionaries)
+	# Sprint 26.3: Character-Everywhere - crew members are always Character objects
 	var crew_members_raw: Array = campaign_data.get("crew", {}).get("members", [])
-	var crew_members: Array[Dictionary] = []
-
-	# Convert Character objects to Dictionaries
-	for member in crew_members_raw:
-		if member is Dictionary:
-			crew_members.append(member)
-		elif member != null and member.has_method("to_dict"):
-			crew_members.append(member.to_dict())
-		elif member != null:
-			# Fallback: Extract properties manually from Character object
-			var member_dict = {}
-			if "character_name" in member:
-				member_dict["character_name"] = member.character_name
-			if "combat" in member:
-				member_dict["combat"] = member.combat
-			if "reactions" in member:
-				member_dict["reactions"] = member.reactions
-			crew_members.append(member_dict)
+	var crew_members: Array = crew_members_raw  # Keep as Character objects
 
 	# Crew Count (Emphasis on number)
 	var count_label := Label.new()
@@ -504,15 +498,14 @@ func _create_crew_summary_card() -> PanelContainer:
 	count_label.add_theme_color_override("font_color", COLOR_ACCENT)  # Accent color!
 	content.add_child(count_label)
 
-	# Calculate and display average stats using stat badges
+	# Calculate and display average stats using stat badges (Sprint 26.3: Character-Everywhere)
 	if crew_members.size() > 0:
 		var total_combat := 0
 		var total_reactions := 0
 		for member in crew_members:
-			if member is Dictionary:
-				# Check multiple possible key names
-				total_combat += int(member.get("combat", member.get("combat_skill", 0)))
-				total_reactions += int(member.get("reactions", member.get("reaction", 0)))
+			# Character objects have direct properties
+			total_combat += member.combat if "combat" in member else 0
+			total_reactions += member.reactions if "reactions" in member else 0
 
 		var avg_combat: int = total_combat / crew_members.size()
 		var avg_reactions: int = total_reactions / crew_members.size()
@@ -567,7 +560,9 @@ func _create_equipment_summary_card() -> PanelContainer:
 	content.add_child(eq_label)
 	
 	# Resources
-	var resources_data = campaign_data.get("resources", equipment_data.get("resources", {}))
+	var resources_data = campaign_data.get("resources", {})
+	if resources_data.is_empty() and equipment_data is Dictionary:
+		resources_data = equipment_data.get("resources", {})
 	if not resources_data.is_empty():
 		var story_points: int = resources_data.get("story_points", 0)
 		var patrons: Array = resources_data.get("patrons", [])
@@ -703,38 +698,36 @@ func _update_crew_preview() -> void:
 		return
 	
 	# Create CharacterCard COMPACT for each crew member
+	# Sprint 26.3: Character-Everywhere - crew members are always Character objects
 	for member in crew_members:
 		var card = CharacterCardScene.instantiate()
 		card.current_variant = 0  # COMPACT = 80px
 		card.custom_minimum_size = Vector2(200, 80)
-		
-		# Set character data
+
+		# Set character data directly
 		if member is Character:
 			card.set_character(member)
-		elif member is Dictionary:
-			# Create temporary Character from dict
-			var temp_char = Character.new()
-			temp_char.character_name = member.get("name", member.get("character_name", "Unknown"))
-			temp_char.background = member.get("background", "")
-			temp_char.char_class = member.get("class", "")
-			temp_char.combat_skill = member.get("combat_skill", 0)
-			temp_char.reactions = member.get("reactions", 0)
-			card.set_character(temp_char)
-		
+		else:
+			push_warning("FinalPanel: Expected Character object, got %s" % type_string(typeof(member)))
+
 		crew_hbox.add_child(card)
 
 func _update_validation_feedback() -> void:
 	"""Update validation feedback panel based on campaign data validation"""
-	if not validation_feedback_container:
+	# Guard against freed instance
+	if not is_instance_valid(validation_panel):
 		return
-	
+
+	if not is_instance_valid(validation_feedback_container):
+		return
+
 	# Clear existing feedback
 	for child in validation_feedback_container.get_children():
 		child.queue_free()
-	
+
 	# Validate campaign data
 	var errors := _validate_campaign_data()
-	
+
 	# Create feedback panel
 	var feedback_panel := _create_validation_feedback_panel(errors)
 	validation_feedback_container.add_child(feedback_panel)
@@ -795,7 +788,7 @@ func _update_create_button_state() -> void:
 	create_button.disabled = not errors.is_empty()
 	
 	# Update validation panel
-	if validation_panel:
+	if is_instance_valid(validation_panel):
 		if errors.is_empty():
 			validation_panel.show_feedback(
 				ValidationPanel.FeedbackType.SUCCESS,
@@ -806,6 +799,26 @@ func _update_create_button_state() -> void:
 				ValidationPanel.FeedbackType.ERROR,
 				PackedStringArray(errors)
 			)
+
+func _get_difficulty_name(difficulty_value: Variant) -> String:
+	"""Convert difficulty value (integer or string) to display name"""
+	if difficulty_value is String:
+		return difficulty_value
+	if difficulty_value is int:
+		match difficulty_value:
+			1:
+				return "Story"
+			2:
+				return "Standard"
+			3:
+				return "Challenging"
+			4:
+				return "Hardcore"
+			5:
+				return "Nightmare"
+			_:
+				return "Standard"
+	return "Standard"
 
 func _get_victory_condition_display_name(condition_key: String) -> String:
 	"""Get display name for victory condition key"""
@@ -961,28 +974,38 @@ func _check_completion_requirements() -> bool:
 	return completion_pct >= 80.0
 
 func _validate_campaign_data() -> Array[String]:
-	"""Performs validation on the complete campaign data"""
+	"""Performs validation with warnings-only approach for optional fields.
+	Only truly blocking errors prevent campaign creation.
+	Missing optional data gets sensible defaults applied."""
 	var errors: Array[String] = []
-	
-	# Validate campaign has basic structure
+
+	# BLOCKING ERROR: Campaign data must exist
 	if campaign_data.is_empty():
 		errors.append("Campaign data is empty.")
 		return errors
-	
-	# Validate config phase - check both "config" and "campaign_config" keys
+
+	# Validate config phase - apply defaults for missing optional data
 	var config_data = campaign_data.get("campaign_config", campaign_data.get("config", {}))
 	if config_data.is_empty():
-		errors.append("Campaign configuration is missing.")
-	elif config_data.get("campaign_name", "").strip_edges().is_empty():
-		errors.append("Campaign name is required.")
-	
-	# Validate crew phase
+		# Apply default config instead of blocking
+		config_data = {"campaign_name": "New Campaign", "difficulty_level": 2}
+		campaign_data["campaign_config"] = config_data
+		print("FinalPanel: Applied default campaign config")
+
+	# Apply default campaign name if missing (instead of blocking)
+	if config_data.get("campaign_name", "").strip_edges().is_empty():
+		var default_name = "Campaign_%s" % Time.get_datetime_string_from_system().replace(":", "-")
+		config_data["campaign_name"] = default_name
+		print("FinalPanel: Applied default campaign name: %s" % default_name)
+
+	# BLOCKING ERROR: Must have crew members
 	var crew_data = campaign_data.get("crew", {})
 	var crew_members = crew_data.get("members", [])
 	if crew_members.is_empty():
 		errors.append("Campaign must have crew members.")
-	
+
 	# Validate captain phase - check multiple ways captain data can be stored
+	# (Not blocking - first crew member can be promoted to captain)
 	var captain_data = campaign_data.get("captain", {})
 	var has_captain = false
 	if captain_data.get("captain"):
@@ -992,42 +1015,68 @@ func _validate_campaign_data() -> Array[String]:
 	elif captain_data.get("character_name", "") != "":
 		has_captain = true
 	elif captain_data.size() > 0:
-		# Captain data exists with some content
 		has_captain = true
+
+	if not has_captain and crew_members.size() > 0:
+		# Promote first crew member to captain instead of blocking
+		# Sprint 26.3: Character-Everywhere - crew members are always Character objects
+		var first_crew = crew_members[0]
+		if first_crew and "character_name" in first_crew:
+			campaign_data["captain"] = first_crew  # Store Character directly
+			print("FinalPanel: Promoted first crew member to captain: %s" % first_crew.character_name)
 	
-	if not has_captain:
-		errors.append("Campaign must have a captain.")
-	
-	# Calculate completion based on actual data (same logic as _check_completion_requirements)
+	# Apply default ship name if missing (instead of blocking)
+	var ship_data = campaign_data.get("ship", {})
+	if ship_data.get("name", "").strip_edges().is_empty():
+		if ship_data.is_empty():
+			ship_data = {"name": "Wandering Star", "hull_points": 30}
+			campaign_data["ship"] = ship_data
+		else:
+			ship_data["name"] = "Wandering Star"
+		print("FinalPanel: Applied default ship name: Wandering Star")
+
+	# Calculate completion for informational purposes
 	var completed_phases := 0
 	var total_required := 5
-	
-	# CONFIG
+
+	# CONFIG (now always true after defaults)
 	if config_data.get("campaign_name", "").strip_edges() != "":
 		completed_phases += 1
-	# CAPTAIN  
+	# CAPTAIN (might have been promoted from crew)
+	captain_data = campaign_data.get("captain", {})
+	has_captain = captain_data.size() > 0
 	if has_captain:
 		completed_phases += 1
 	# CREW
 	if crew_members.size() >= 4:
 		completed_phases += 1
-	# SHIP
-	var ship_data = campaign_data.get("ship", {})
+	elif crew_members.size() > 0:
+		# At least some crew, still counts as partial progress
+		completed_phases += 1
+	# SHIP (now always has name after defaults)
 	if ship_data.get("name", "") != "":
 		completed_phases += 1
-	# EQUIPMENT
+	# EQUIPMENT (optional - don't count towards blocking)
 	var equipment_data = campaign_data.get("equipment", {})
 	if equipment_data.size() > 0:
 		completed_phases += 1
-	
+
+	# Log completion status but don't block on low percentage
 	var completion_pct: float = (float(completed_phases) / float(total_required)) * 100.0
-	if completion_pct < 80.0:
-		errors.append("Campaign setup is only %.1f%% complete. Must be at least 80%% to create." % completion_pct)
-	
+	print("FinalPanel: Campaign completion: %.1f%% (%d/%d phases)" % [completion_pct, completed_phases, total_required])
+
+	# With warnings-only approach, only block if truly critical data is missing
+	# The only blocking error at this point is "no crew members"
+
 	return errors
 
 func get_data() -> Dictionary:
-	"""Get panel data with standardized metadata"""
+	"""DEPRECATED: Use get_panel_data() instead. Will be removed in future version."""
+	push_warning("FinalPanel.get_data() is deprecated - use get_panel_data() instead")
+	return get_panel_data()
+
+func get_panel_data() -> Dictionary:
+	"""Get panel data with standardized metadata (BaseCampaignPanel compliance)"""
 	var data = campaign_data.duplicate()
 	data["is_complete"] = is_campaign_complete
 	data["validation_errors"] = last_validation_errors.duplicate()
@@ -1037,10 +1086,6 @@ func get_data() -> Dictionary:
 		"panel_type": "campaign_finalization"
 	}
 	return data
-
-func get_panel_data() -> Dictionary:
-	"""Get panel data - interface implementation (BaseCampaignPanel compliance)"""
-	return get_data()
 
 func is_valid() -> bool:
 	return is_campaign_complete and last_validation_errors.is_empty()
@@ -1119,13 +1164,13 @@ func _log_panel_initialization_debug() -> void:
 	if campaign_data.size() > 0:
 		print("  === CAMPAIGN DATA SUMMARY ===")
 		if campaign_data.has("config"):
-			print("    Config: Campaign '%s'" % campaign_data.config.get("campaign_name", "Unknown"))
+			print("    Config: Campaign '%s'" % campaign_data["config"].get("campaign_name", "Unknown"))
 		if campaign_data.has("captain"):
-			print("    Captain: '%s'" % campaign_data.captain.get("name", "Unknown"))
+			print("    Captain: '%s'" % campaign_data["captain"].get("name", "Unknown"))
 		if campaign_data.has("crew"):
-			print("    Crew: %d members" % campaign_data.crew.get("members", []).size())
+			print("    Crew: %d members" % campaign_data["crew"].get("members", []).size())
 		if campaign_data.has("ship"):
-			print("    Ship: '%s'" % campaign_data.ship.get("name", "Unknown"))
+			print("    Ship: '%s'" % campaign_data["ship"].get("name", "Unknown"))
 		
 		# Add mathematical validation from test file
 		print("  === MATHEMATICAL VALIDATION ===")
@@ -1167,7 +1212,9 @@ func _log_mathematical_validation() -> void:
 	# Calculate net worth
 	var ship_data = campaign_data.get("ship", {})
 	var debt = ship_data.get("debt", 0)
-	var credits = equipment_data.get("starting_credits", equipment_data.get("credits", 0))
+	var credits = 0
+	if equipment_data is Dictionary:
+		credits = equipment_data.get("starting_credits", equipment_data.get("credits", 0))
 	var net_worth = credits - debt + equipment_value
 	
 	# Crew size validation

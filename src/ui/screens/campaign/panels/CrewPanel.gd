@@ -5,11 +5,12 @@ extends FiveParsecsCampaignPanel
 # Implements autonomous operation with self-management capabilities
 
 # Progress tracking
-const STEP_NUMBER := 4  # Step 4 of 7 in campaign wizard (Config → Ship → Captain → Crew)
+const STEP_NUMBER := 3  # Step 3 of 7 in campaign wizard (Core Rules: Config → Captain → Crew)
 
 # Import character functionality
 const CharacterClass = preload("res://src/core/character/Character.gd")
-const CharacterCard = preload("res://src/ui/components/character/CharacterCard.tscn")
+const CharacterCardScene = preload("res://src/ui/components/character/CharacterCard.tscn")
+const CharacterCardScript = preload("res://src/ui/components/character/CharacterCard.gd")
 
 # Security validation integration
 const CampaignStateManager = preload("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
@@ -24,14 +25,18 @@ const PatronSystem = preload("res://src/core/systems/PatronSystem.gd")
 const RivalSystem = preload("res://src/core/rivals/RivalSystem.gd")
 const CharacterGeneration = preload("res://src/core/character/CharacterGeneration.gd")
 
+# Crew Flavor Details - Core Rules p.30 (We Met Through + Characterized As)
+const CrewRelationshipManager = preload("res://src/core/campaign/crew/CrewRelationshipManager.gd")
+
 # Existing signals for backward compatibility
-signal crew_setup_complete(crew_data: Dictionary)
+# Sprint 26.3: Removed Dictionary type hints - actual types are Character or nested structures
+signal crew_setup_complete(crew_data)
 signal crew_generation_requested(crew_size: int)
-signal character_customization_needed(character_index: int, character: Dictionary)
+signal character_customization_needed(character_index: int, character)
 signal crew_valid(is_valid: bool)  # Wizard validation signal
 
 # New autonomous signals for coordinator pattern
-signal crew_data_complete(data: Dictionary)
+signal crew_data_complete(data)
 signal crew_validation_failed(errors: Array[String])
 
 # Additional crew-specific signals
@@ -39,7 +44,8 @@ signal crew_updated(crew: Array)
 signal crew_member_selected(member)  # CharacterClass reference removed
 
 # Granular signals for real-time integration
-signal crew_member_added(member_data: Dictionary)
+# Sprint 26.3: member_data may be Character object or Dictionary
+signal crew_member_added(member_data)
 signal crew_composition_changed(composition: Array)
 
 # Enhanced state management and validation logic
@@ -51,8 +57,17 @@ var local_crew_data: Dictionary = {
 	"patrons": [],
 	"rivals": [],
 	"starting_equipment": [],
-	"is_complete": false
+	"is_complete": false,
+	# Core Rules p.30 - Crew Flavor Details
+	"crew_flavor": {
+		"meeting_story": "",
+		"characteristic": "",
+		"relationships": {}
+	}
 }
+
+# Crew flavor manager instance - Core Rules p.30 (We Met Through + Characterized As)
+var crew_relationship_manager: CrewRelationshipManager = null
 
 # Base crew component properties - UNIFIED DATA: crew_members is now a getter
 var crew_members: Array:
@@ -92,16 +107,26 @@ var crew_creation_instance: Control = null
 # Safe crew member management with runtime type checking
 
 func add_crew_member(member) -> bool:
-	"""Add crew member with runtime type validation - writes to unified local_crew_data"""
-	if member is Character or member is Dictionary:
-		# UNIFIED: Append directly to local_crew_data.members (crew_members getter will reflect this)
-		local_crew_data["members"].append(member)
-		_validate_crew_setup()
-		print("CrewPanel: Added crew member (type: %s), total: %d" % [type_string(typeof(member)), local_crew_data.members.size()])
-		return true
+	"""Add crew member - converts Dictionary to Character (Sprint 26.3: Character-Everywhere)"""
+	var character_to_add: Character = null
+
+	if member is Character:
+		character_to_add = member
+	elif member is Dictionary:
+		# Convert Dictionary to Character object (Sprint 26.3: Character-Everywhere)
+		character_to_add = _reconstruct_character_from_dict(member)
+		if not character_to_add:
+			push_error("CrewPanel: Failed to convert Dictionary to Character")
+			return false
 	else:
 		push_error("CrewPanel: Invalid crew member type: %s" % type_string(typeof(member)))
 		return false
+
+	# UNIFIED: Append Character object to local_crew_data.members
+	local_crew_data["members"].append(character_to_add)
+	_validate_crew_setup()
+	print("CrewPanel: Added crew member '%s', total: %d" % [character_to_add.character_name, local_crew_data.members.size()])
+	return true
 
 func safe_get_crew_member(index: int):
 	"""Safely get crew member by index"""
@@ -122,31 +147,36 @@ var edit_button: Button
 var remove_button: Button
 var randomize_button: Button
 
-# UI component references for new standardized structure - using safe node access
-@onready var content_area: VBoxContainer = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content")
-@onready var crew_container: VBoxContainer = get_node_or_null("CrewContainer")
-# UI References - using % syntax for unique nodes
-@onready var crew_size_input: SpinBox = %CrewSizeInput
-@onready var crew_size_option_node: OptionButton = get_node_or_null("%CrewSizeOption")
-@onready var crew_list_node: VBoxContainer = %CrewList
-@onready var crew_summary: Label = get_node_or_null("%CrewSummary")
-@onready var add_button_node: Button = %AddCrewButton
-@onready var edit_button_node: Button = %EditButton
-@onready var remove_button_node: Button = %RemoveButton
-@onready var randomize_button_node: Button = %RandomizeButton
-@onready var validation_panel: PanelContainer = %CrewValidationPanel
-@onready var validation_icon: Label = %ValidationIcon
-@onready var validation_text: Label = %ValidationText
+# UI component references - all UI now provided by InitialCrewCreation
+# These are set dynamically when InitialCrewCreation loads
+var content_area: VBoxContainer = null
+var crew_container: VBoxContainer = null
+var crew_size_input: SpinBox = null
+var crew_size_option_node: OptionButton = null
+var crew_list_node: VBoxContainer = null
+var crew_summary: Label = null
+var add_button_node: Button = null
+var edit_button_node: Button = null
+var remove_button_node: Button = null
+var randomize_button_node: Button = null
+var validation_panel: PanelContainer = null
+var validation_icon: Label = null
+var validation_text: Label = null
 
-# Five Parsecs UI component references for patron/rival/equipment display
-@onready var patron_list: VBoxContainer = %PatronList
-@onready var rival_list: VBoxContainer = %RivalList
-@onready var equipment_list: VBoxContainer = %EquipmentList
+# Five Parsecs UI component references - set from InitialCrewCreation
+var patron_list: VBoxContainer = null
+var rival_list: VBoxContainer = null
+var equipment_list: VBoxContainer = null
+
+# Core Rules p.30 - Crew Flavor UI container (created dynamically)
+var crew_flavor_container: VBoxContainer = null
+var crew_flavor_meeting_label: Label = null
+var crew_flavor_char_label: Label = null
 
 # Character creator integration
 var character_creator: SimpleCharacterCreator
 
-var selected_size: int = 4  # Default Five Parsecs crew size
+var selected_size: int = 6  # Default Five Parsecs crew size (6 including captain)
 
 func _on_campaign_state_updated(state_data: Dictionary) -> void:
 	"""Override from interface - handle campaign state updates"""
@@ -160,13 +190,12 @@ func _on_campaign_state_updated(state_data: Dictionary) -> void:
 
 func _ready() -> void:
 	# Set panel info before base initialization with more informative description
-	set_panel_info("Crew Generation", "Generate 4 crew members. Each character has unique stats and backgrounds that affect equipment.")
+	set_panel_info("Crew Generation", "Generate 6 crew members (including captain). Each character has unique stats and backgrounds that affect equipment.")
 
 	# Call parent _ready() to initialize BaseCampaignPanel structure
 	super._ready()
 
-	# Add progress indicator
-	call_deferred("_add_progress_indicator")
+	# NOTE: Progress indicator removed - CampaignCreationUI handles progress display
 
 	# CRITICAL FIX: Remove BaseCampaignPanel's placeholder label
 	var form_container = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer")
@@ -184,18 +213,10 @@ func _ready() -> void:
 	_initialize_five_parsecs_systems()
 	call_deferred("_initialize_components")
 
-func _add_progress_indicator() -> void:
-	"""Add progress indicator to panel after structure is ready"""
-	var main_content = get_node_or_null("ContentMargin/MainContent")
-	if not main_content:
-		push_warning("CrewPanel: MainContent node not found for progress indicator")
-		return
+	# SPRINT 5.1: Emit panel_ready after initialization complete
+	call_deferred("emit_panel_ready")
 
-	var progress = _create_progress_indicator(STEP_NUMBER - 1, 7, "Crew Generation")  # -1 for 0-indexed
-	main_content.add_child(progress)
-	main_content.move_child(progress, 0)  # Put at top of panel
-
-	print("CrewPanel: Progress indicator added (Step %d of 7 - 57%% complete)" % STEP_NUMBER)
+# NOTE: _add_progress_indicator() removed - CampaignCreationUI handles progress display centrally
 
 func _setup_panel_content() -> void:
 	"""Override from BaseCampaignPanel - setup crew-specific content"""
@@ -207,9 +228,9 @@ func _initialize_security_validator() -> void:
 	security_validator = SecurityValidator.new()
 
 func _initialize_five_parsecs_systems() -> void:
-	"""Initialize the Five Parsecs patron and rival systems"""
-	print("CrewPanel: Initializing Five Parsecs patron and rival systems...")
-	
+	"""Initialize the Five Parsecs patron, rival, and crew flavor systems"""
+	print("CrewPanel: Initializing Five Parsecs systems...")
+
 	# Initialize patron system
 	patron_system = PatronSystem.new()
 	if patron_system and patron_system.has_method("initialize"):
@@ -221,13 +242,18 @@ func _initialize_five_parsecs_systems() -> void:
 	else:
 		print("CrewPanel: PatronSystem not available, creating basic instance")
 		patron_system = PatronSystem.new()
-	
+
 	# Initialize rival system
 	rival_system = RivalSystem.new()
 	if rival_system:
 		print("CrewPanel: Rival system initialized successfully")
 	else:
 		push_warning("CrewPanel: Rival system initialization failed")
+
+	# Initialize crew relationship/flavor manager (Core Rules p.30)
+	crew_relationship_manager = CrewRelationshipManager.new()
+	add_child(crew_relationship_manager)
+	print("CrewPanel: Crew relationship manager initialized (Core Rules flavor tables)")
 
 func _initialize_components() -> void:
 	"""Initialize crew panel with safe component access"""
@@ -245,83 +271,416 @@ func _initialize_components() -> void:
 	_validate_crew_setup()
 	# Don't auto-validate during setup - let user control validation
 
-# PHASE 1 INTEGRATION: Connect to existing InitialCrewCreation with enhanced error handling
+# Modern Crew UI - Design System Compliant
 func _connect_to_crew_creation() -> void:
-	"""Connect to the existing InitialCrewCreation system with production-ready error handling"""
-	print("CrewPanel: Connecting to InitialCrewCreation...")
-	
-	# Safe initialization with comprehensive error handling
-	var init_result = _safe_initialize_crew_creation()
-	if not init_result.success:
-		push_warning("CrewPanel: Falling back to manual crew creation - %s" % init_result.error)
-		_create_fallback_crew_interface()
-		return
-	
-	print("CrewPanel: InitialCrewCreation connected successfully")
+	"""Build modern crew generation UI using design system - NO InitialCrewCreation dependency"""
+	print("CrewPanel: Building modern crew generation UI...")
 
-func _safe_initialize_crew_creation() -> Dictionary:
-	"""Safely initialize crew creation with comprehensive error handling"""
-	var result = {"success": false, "error": ""}
+	# Build modern UI instead of loading old InitialCrewCreation scene
+	_create_modern_crew_ui()
 
-	# Verify base panel structure exists
+	print("CrewPanel: Modern crew UI created successfully")
+
+func _create_modern_crew_ui() -> void:
+	"""Create modern crew generation UI using design system constants"""
 	var form_container = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer")
 	if not form_container:
-		result.error = "Base panel FormContainer not found"
-		return result
+		push_error("CrewPanel: FormContainer not found - cannot create UI")
+		return
 
-	# CRITICAL FIX: Remove conflicting .tscn UI before loading InitialCrewCreation
-	var existing_scroll = form_container.get_node_or_null("ScrollContainer")
-	if existing_scroll:
-		existing_scroll.queue_free()
-		print("CrewPanel: Removed conflicting ScrollContainer from .tscn")
+	# Main container for the crew generation UI
+	var main_vbox = VBoxContainer.new()
+	main_vbox.name = "ModernCrewUI"
+	main_vbox.add_theme_constant_override("separation", SPACING_LG)
+	main_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	main_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	form_container.add_child(main_vbox)
 
-	# Verify scene exists before attempting load
-	var scene_path = "res://src/ui/screens/crew/InitialCrewCreation.tscn"
-	if not ResourceLoader.exists(scene_path):
-		result.error = "InitialCrewCreation.tscn not found at expected path"
-		return result
+	# === SECTION 1: Crew Configuration Card ===
+	var config_card = _create_crew_config_section()
+	main_vbox.add_child(config_card)
 
-	# Attempt to load with error protection
-	var crew_scene = load(scene_path)
-	if not crew_scene:
-		result.error = "Failed to load crew creation scene resource"
-		return result
+	# === SECTION 2: Generation Controls ===
+	var gen_controls = _create_generation_controls()
+	main_vbox.add_child(gen_controls)
 
-	# Safe instantiation with error boundary
-	var crew_instance = crew_scene.instantiate()
-	if not crew_instance:
-		result.error = "Failed to instantiate crew creation scene"
-		return result
+	# === SECTION 3: Crew List (CharacterCards) ===
+	var crew_section = _create_crew_list_section()
+	main_vbox.add_child(crew_section)
 
-	# Setup container with proper scene structure
-	crew_creation_container = Control.new()
-	crew_creation_container.name = "CrewCreationContainer"
-	crew_creation_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	crew_creation_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	form_container.add_child(crew_creation_container)
+	# === SECTION 4: Validation Panel ===
+	var val_panel = _create_validation_section()
+	main_vbox.add_child(val_panel)
 
-	# Add crew instance with proper layout
-	crew_instance.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	crew_instance.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	crew_creation_container.add_child(crew_instance)
-	crew_creation_instance = crew_instance
+	# Store reference for display updates
+	crew_creation_container = main_vbox
 
-	print("CrewPanel: InitialCrewCreation loaded and added to FormContainer")
-	
-	# PHASE 5: Pass coordinator to InitialCrewCreation for workflow integration
-	var coord = get_coordinator()
-	if coord and crew_creation_instance.has_method("set_coordinator"):
-		crew_creation_instance.set_coordinator(coord)
-		print("CrewPanel: Coordinator passed to InitialCrewCreation successfully")
+	print("CrewPanel: Modern UI created with 4 sections")
+
+func _create_crew_config_section() -> PanelContainer:
+	"""Create crew configuration card with size selection"""
+	var card = PanelContainer.new()
+	card.name = "ConfigCard"
+	card.add_theme_stylebox_override("panel", _create_glass_card_style())
+
+	var card_content = VBoxContainer.new()
+	card_content.add_theme_constant_override("separation", SPACING_MD)
+	card.add_child(card_content)
+
+	# Card title
+	var title = Label.new()
+	title.text = "Crew Configuration"
+	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	card_content.add_child(title)
+
+	var sep = HSeparator.new()
+	sep.add_theme_color_override("separator_color", COLOR_BORDER)
+	card_content.add_child(sep)
+
+	# Crew size row
+	var size_row = HBoxContainer.new()
+	size_row.add_theme_constant_override("separation", SPACING_MD)
+	card_content.add_child(size_row)
+
+	var size_label = Label.new()
+	size_label.text = "Crew Size:"
+	size_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	size_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	size_row.add_child(size_label)
+
+	var size_option = OptionButton.new()
+	size_option.name = "CrewSizeOption"
+	size_option.add_item("4 Members", 4)
+	size_option.add_item("5 Members", 5)
+	size_option.add_item("6 Members (Standard)", 6)
+	size_option.add_item("7 Members", 7)
+	size_option.add_item("8 Members (Max)", 8)
+	size_option.select(2)  # Default to 6
+	size_option.custom_minimum_size = Vector2(200, TOUCH_TARGET_MIN)
+	size_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_option_button(size_option)
+	size_option.item_selected.connect(_on_modern_crew_size_changed)
+	size_row.add_child(size_option)
+	crew_size_option_node = size_option
+
+	return card
+
+func _create_generation_controls() -> PanelContainer:
+	"""Create character generation controls (mode, species, generate button)"""
+	var card = PanelContainer.new()
+	card.name = "GenerationControls"
+	card.add_theme_stylebox_override("panel", _create_glass_card_style())
+
+	var card_content = VBoxContainer.new()
+	card_content.add_theme_constant_override("separation", SPACING_MD)
+	card.add_child(card_content)
+
+	# Mode toggle (Random / Bespoke)
+	var mode_row = HBoxContainer.new()
+	mode_row.add_theme_constant_override("separation", SPACING_SM)
+	card_content.add_child(mode_row)
+
+	var mode_label = Label.new()
+	mode_label.text = "Creation Mode:"
+	mode_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	mode_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	mode_row.add_child(mode_label)
+
+	var random_btn = Button.new()
+	random_btn.name = "RandomModeButton"
+	random_btn.text = "Random"
+	random_btn.toggle_mode = true
+	random_btn.button_pressed = true
+	random_btn.custom_minimum_size = Vector2(100, TOUCH_TARGET_MIN)
+	random_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	random_btn.toggled.connect(_on_random_mode_toggled)
+	_style_toggle_button(random_btn, true)
+	mode_row.add_child(random_btn)
+
+	var bespoke_btn = Button.new()
+	bespoke_btn.name = "BespokeModeButton"
+	bespoke_btn.text = "Bespoke"
+	bespoke_btn.toggle_mode = true
+	bespoke_btn.button_pressed = false
+	bespoke_btn.custom_minimum_size = Vector2(100, TOUCH_TARGET_MIN)
+	bespoke_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bespoke_btn.toggled.connect(_on_bespoke_mode_toggled)
+	_style_toggle_button(bespoke_btn, false)
+	mode_row.add_child(bespoke_btn)
+
+	# Species row
+	var species_row = HBoxContainer.new()
+	species_row.add_theme_constant_override("separation", SPACING_SM)
+	card_content.add_child(species_row)
+
+	var species_label = Label.new()
+	species_label.text = "Species:"
+	species_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	species_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	species_row.add_child(species_label)
+
+	var species_option = OptionButton.new()
+	species_option.name = "SpeciesOption"
+	species_option.add_item("Human", 0)
+	species_option.add_item("Bot", 1)
+	species_option.add_item("Engineer", 2)
+	species_option.add_item("K'Erin", 3)
+	species_option.add_item("Soulless", 4)
+	species_option.add_item("Swift", 5)
+	species_option.add_item("Precursor", 6)
+	species_option.add_item("Feral", 7)
+	species_option.custom_minimum_size = Vector2(150, TOUCH_TARGET_MIN)
+	species_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_option_button(species_option)
+	species_row.add_child(species_option)
+
+	var random_species = CheckBox.new()
+	random_species.name = "RandomSpeciesCheck"
+	random_species.text = "Random"
+	random_species.button_pressed = true
+	random_species.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	random_species.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	random_species.toggled.connect(_on_random_species_toggled)
+	species_row.add_child(random_species)
+
+	# Generate button
+	var gen_btn = Button.new()
+	gen_btn.name = "GenerateButton"
+	gen_btn.text = "Generate Character (0/%d)" % selected_size
+	gen_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
+	gen_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	gen_btn.pressed.connect(_on_generate_character_pressed)
+	_style_primary_button(gen_btn)
+	card_content.add_child(gen_btn)
+	add_button_node = gen_btn
+
+	return card
+
+func _create_crew_list_section() -> PanelContainer:
+	"""Create scrollable crew list section for CharacterCards"""
+	var card = PanelContainer.new()
+	card.name = "CrewListSection"
+	card.add_theme_stylebox_override("panel", _create_glass_card_style())
+	card.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+	var card_content = VBoxContainer.new()
+	card_content.add_theme_constant_override("separation", SPACING_SM)
+	card_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	card.add_child(card_content)
+
+	# Section header with count
+	var header_row = HBoxContainer.new()
+	header_row.add_theme_constant_override("separation", SPACING_SM)
+	card_content.add_child(header_row)
+
+	var title = Label.new()
+	title.name = "CrewListTitle"
+	title.text = "Your Crew (0/%d)" % selected_size
+	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header_row.add_child(title)
+	crew_summary = title
+
+	var clear_btn = Button.new()
+	clear_btn.text = "Clear All"
+	clear_btn.custom_minimum_size = Vector2(100, TOUCH_TARGET_MIN)
+	clear_btn.pressed.connect(_on_clear_crew_pressed)
+	_style_danger_button(clear_btn)
+	header_row.add_child(clear_btn)
+
+	var sep = HSeparator.new()
+	sep.add_theme_color_override("separator_color", COLOR_BORDER)
+	card_content.add_child(sep)
+
+	# Scrollable crew list container
+	var scroll = ScrollContainer.new()
+	scroll.name = "CrewScroll"
+	scroll.custom_minimum_size = Vector2(0, 250)
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	card_content.add_child(scroll)
+
+	var crew_vbox = VBoxContainer.new()
+	crew_vbox.name = "CrewList"
+	crew_vbox.add_theme_constant_override("separation", SPACING_SM)
+	crew_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	crew_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.add_child(crew_vbox)
+	crew_list_node = crew_vbox
+	crew_list = crew_vbox
+
+	return card
+
+func _create_validation_section() -> PanelContainer:
+	"""Create validation status panel"""
+	var panel = PanelContainer.new()
+	panel.name = "ValidationPanel"
+
+	var content = HBoxContainer.new()
+	content.add_theme_constant_override("separation", SPACING_MD)
+	panel.add_child(content)
+
+	var icon = Label.new()
+	icon.name = "ValidationIcon"
+	icon.text = "⚠️"
+	icon.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	content.add_child(icon)
+	validation_icon = icon
+
+	var text = Label.new()
+	text.name = "ValidationText"
+	text.text = "Need at least 4 crew members"
+	text.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	text.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.add_child(text)
+	validation_text = text
+
+	validation_panel = panel
+	_update_validation_panel()
+
+	return panel
+
+# === MODERN UI STYLING HELPERS ===
+
+func _style_toggle_button(btn: Button, is_active: bool) -> void:
+	"""Style toggle button with design system colors"""
+	var style = StyleBoxFlat.new()
+	if is_active:
+		style.bg_color = COLOR_ACCENT
 	else:
-		print("CrewPanel: Running without coordinator integration")
-	
-	# Connect signals and initialize data
-	_connect_crew_creation_signals()
-	_initialize_crew_creation_data()
-	
-	result.success = true
-	return result
+		style.bg_color = COLOR_INPUT
+	style.border_color = COLOR_BORDER
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(6)
+	style.set_content_margin_all(SPACING_SM)
+	btn.add_theme_stylebox_override("normal", style)
+	btn.add_theme_stylebox_override("pressed", style)
+	btn.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	btn.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+
+func _style_primary_button(btn: Button) -> void:
+	"""Style primary action button"""
+	var style = StyleBoxFlat.new()
+	style.bg_color = COLOR_ACCENT
+	style.border_color = COLOR_ACCENT_HOVER
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(8)
+	style.set_content_margin_all(SPACING_MD)
+	btn.add_theme_stylebox_override("normal", style)
+
+	var hover_style = style.duplicate()
+	hover_style.bg_color = COLOR_ACCENT_HOVER
+	btn.add_theme_stylebox_override("hover", hover_style)
+
+	btn.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	btn.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+
+func _style_danger_button(btn: Button) -> void:
+	"""Style danger/destructive action button"""
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(COLOR_DANGER, 0.2)
+	style.border_color = COLOR_DANGER
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(6)
+	style.set_content_margin_all(SPACING_SM)
+	btn.add_theme_stylebox_override("normal", style)
+
+	var hover_style = style.duplicate()
+	hover_style.bg_color = Color(COLOR_DANGER, 0.4)
+	btn.add_theme_stylebox_override("hover", hover_style)
+
+	btn.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	btn.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+
+# === MODERN UI EVENT HANDLERS ===
+
+func _on_modern_crew_size_changed(index: int) -> void:
+	"""Handle crew size selection from modern UI"""
+	var option = crew_size_option_node as OptionButton
+	if option:
+		selected_size = option.get_item_id(index)
+		print("CrewPanel: Crew size changed to %d" % selected_size)
+		_update_generate_button_text()
+		_update_crew_list_header()
+		_update_validation_panel()
+		_notify_coordinator_of_crew_update()
+
+func _on_random_mode_toggled(pressed: bool) -> void:
+	"""Handle Random mode toggle"""
+	if pressed:
+		var bespoke = crew_creation_container.get_node_or_null("GenerationControls/VBoxContainer/HBoxContainer/BespokeModeButton") as Button
+		if bespoke:
+			bespoke.button_pressed = false
+			_style_toggle_button(bespoke, false)
+		var random_btn = crew_creation_container.get_node_or_null("GenerationControls/VBoxContainer/HBoxContainer/RandomModeButton") as Button
+		if random_btn:
+			_style_toggle_button(random_btn, true)
+		print("CrewPanel: Random mode enabled")
+
+func _on_bespoke_mode_toggled(pressed: bool) -> void:
+	"""Handle Bespoke mode toggle"""
+	if pressed:
+		var random_btn = crew_creation_container.get_node_or_null("GenerationControls/VBoxContainer/HBoxContainer/RandomModeButton") as Button
+		if random_btn:
+			random_btn.button_pressed = false
+			_style_toggle_button(random_btn, false)
+		var bespoke = crew_creation_container.get_node_or_null("GenerationControls/VBoxContainer/HBoxContainer/BespokeModeButton") as Button
+		if bespoke:
+			_style_toggle_button(bespoke, true)
+		print("CrewPanel: Bespoke mode enabled")
+
+func _on_random_species_toggled(pressed: bool) -> void:
+	"""Handle random species checkbox toggle"""
+	var species_option = crew_creation_container.get_node_or_null("GenerationControls/VBoxContainer/HBoxContainer2/SpeciesOption") as OptionButton
+	if species_option:
+		species_option.disabled = pressed
+	print("CrewPanel: Random species = %s" % pressed)
+
+func _on_generate_character_pressed() -> void:
+	"""Handle generate character button press"""
+	if crew_members.size() >= selected_size:
+		print("CrewPanel: Crew already at target size (%d)" % selected_size)
+		return
+
+	print("CrewPanel: Generating new character...")
+	var character = generate_random_character()
+	if character:
+		add_crew_member(character)
+		_update_crew_display()
+		_update_generate_button_text()
+		_update_crew_list_header()
+		_update_validation_panel()
+		crew_updated.emit(crew_members)
+		print("CrewPanel: Character added - %s" % character.character_name)
+
+func _on_clear_crew_pressed() -> void:
+	"""Handle clear all crew button press"""
+	clear_crew()
+	_update_crew_display()
+	_update_generate_button_text()
+	_update_crew_list_header()
+	_update_validation_panel()
+	print("CrewPanel: Crew cleared")
+
+func _update_generate_button_text() -> void:
+	"""Update generate button text with current count"""
+	if add_button_node:
+		var remaining = selected_size - crew_members.size()
+		if remaining > 0:
+			add_button_node.text = "Generate Character (%d/%d)" % [crew_members.size(), selected_size]
+			add_button_node.disabled = false
+		else:
+			add_button_node.text = "Crew Complete (%d/%d)" % [crew_members.size(), selected_size]
+			add_button_node.disabled = true
+
+func _update_crew_list_header() -> void:
+	"""Update crew list header with current count"""
+	if crew_summary:
+		crew_summary.text = "Your Crew (%d/%d)" % [crew_members.size(), selected_size]
 
 func _create_fallback_crew_interface() -> void:
 	"""Create fallback crew interface when InitialCrewCreation unavailable"""
@@ -410,35 +769,8 @@ func _generate_fallback_crew() -> void:
 	crew_setup_complete.emit(get_panel_data())
 	print("========== CrewPanel: FALLBACK CREW GENERATION COMPLETE ==========")
 
-func _connect_crew_creation_signals() -> void:
-	"""Connect signals from InitialCrewCreation to panel - ENHANCED"""
-	if not crew_creation_instance:
-		push_warning("CrewPanel: Cannot connect signals - InitialCrewCreation not available")
-		return
-	
-	# Use enhanced connection method
-	_connect_to_initial_crew_creation()
-	
-	# Pass coordinator if available 
-	var coord = get_coordinator()
-	if coord and crew_creation_instance.has_method("set_workflow_system"):
-		crew_creation_instance.set_workflow_system(coord)
-		print("CrewPanel: Workflow system connected to InitialCrewCreation")
-	
-	# Connect any other relevant signals
-	if crew_creation_instance.has_method("get_crew_state"):
-		print("CrewPanel: InitialCrewCreation has get_crew_state method")
-
-func _initialize_crew_creation_data() -> void:
-	"""Initialize InitialCrewCreation with current campaign data"""
-	if not crew_creation_instance:
-		return
-	
-	# Set crew data if available
-	if crew_creation_instance.has_method("set_crew_data"):
-		var current_crew_data = _get_current_crew_data()
-		crew_creation_instance.set_crew_data(current_crew_data)
-		print("CrewPanel: Set crew data in InitialCrewCreation")
+# NOTE: _connect_crew_creation_signals() and _initialize_crew_creation_data() removed
+# Modern UI is built programmatically - no InitialCrewCreation dependency
 
 func _get_current_crew_data() -> Dictionary:
 	"""Get current crew data from local state"""
@@ -446,7 +778,91 @@ func _get_current_crew_data() -> Dictionary:
 
 func get_panel_data() -> Dictionary:
 	"""Get panel data - interface implementation (BaseCampaignPanel compliance)"""
+	# Ensure selected_size is included in the data
+	local_crew_data["selected_size"] = selected_size
 	return _get_current_crew_data()
+
+func set_panel_data(data: Dictionary) -> void:
+	"""Set panel data - interface implementation for state restoration"""
+	if data.is_empty():
+		print("CrewPanel: No data to restore in set_panel_data")
+		return
+
+	print("CrewPanel: Restoring panel data with keys: %s" % str(data.keys()))
+
+	# Restore members (Sprint 26.3: Character-Everywhere - convert any Dictionary to Character)
+	if data.has("members") and data["members"] is Array:
+		local_crew_data["members"] = []
+		for member in data["members"]:
+			if member is Character:
+				local_crew_data["members"].append(member)
+			elif member is Dictionary:
+				var character = _reconstruct_character_from_dict(member)
+				if character:
+					local_crew_data["members"].append(character)
+				else:
+					push_warning("CrewPanel: Failed to restore member from Dictionary")
+			else:
+				push_warning("CrewPanel: Skipping unknown member type: %s" % type_string(typeof(member)))
+		print("CrewPanel: Restored %d crew members as Character objects" % local_crew_data["members"].size())
+
+	# Restore selected size (target size for crew)
+	if data.has("selected_size"):
+		selected_size = data["selected_size"]
+		print("CrewPanel: Restored selected_size: %d" % selected_size)
+	elif data.has("size"):
+		selected_size = data["size"]
+		print("CrewPanel: Restored size as selected_size: %d" % selected_size)
+
+	# Restore captain
+	if data.has("captain"):
+		current_captain = data["captain"]
+		local_crew_data["captain"] = current_captain
+		local_crew_data["has_captain"] = current_captain != null
+		print("CrewPanel: Restored captain")
+
+	# Restore patrons and rivals
+	if data.has("patrons") and data["patrons"] is Array:
+		local_crew_data["patrons"] = data["patrons"].duplicate()
+		generated_patrons = []
+		for p in data["patrons"]:
+			generated_patrons.append(p)
+
+	if data.has("rivals") and data["rivals"] is Array:
+		local_crew_data["rivals"] = data["rivals"].duplicate()
+		generated_rivals = []
+		for r in data["rivals"]:
+			generated_rivals.append(r)
+
+	# Restore starting equipment
+	if data.has("starting_equipment") and data["starting_equipment"] is Array:
+		local_crew_data["starting_equipment"] = data["starting_equipment"].duplicate()
+
+	# Restore crew flavor (Core Rules p.30 - We Met Through + Characterized As)
+	if data.has("crew_flavor") and data["crew_flavor"] is Dictionary:
+		local_crew_data["crew_flavor"] = data["crew_flavor"].duplicate()
+		# Also restore to manager if available
+		if crew_relationship_manager:
+			crew_relationship_manager.deserialize(data["crew_flavor"])
+		print("CrewPanel: Restored crew flavor - '%s'" % data["crew_flavor"].get("characteristic", ""))
+
+	# Restore completion status
+	local_crew_data["is_complete"] = data.get("is_complete", false)
+	is_crew_complete = local_crew_data["is_complete"]
+
+	# Rebuild tracking for duplicates (Sprint 26.3: All members are Character objects)
+	_added_character_ids.clear()
+	for member in local_crew_data["members"]:
+		if member is Character and member.character_name:
+			_added_character_ids[member.character_name] = true
+
+	# Update UI
+	call_deferred("_update_crew_display")
+	call_deferred("refresh_all_displays")
+
+	# Emit signals
+	crew_updated.emit(crew_members)
+	print("CrewPanel: Panel data restoration complete")
 
 # InitialCrewCreation signal handlers
 # REMOVED: Duplicate _on_crew_created function - using Phase 2 implementation at line 1227
@@ -459,45 +875,50 @@ func _notify_coordinator_of_crew_update() -> void:
 	# Try to find the coordinator through the scene tree
 	var coordinator = _find_coordinator()
 	if coordinator:
-		coordinator.update_crew_state(local_crew_data)
-		print("CrewPanel: Notified coordinator of crew update")
+		# KEY NORMALIZATION: Ensure consistent keys for coordinator
+		var normalized_crew_data = local_crew_data.duplicate()
+
+		# Equipment: Convert "starting_equipment" to "items" key
+		if normalized_crew_data.has("starting_equipment"):
+			normalized_crew_data["items"] = normalized_crew_data.get("starting_equipment", [])
+
+		# Size: Ensure both "selected_size" and "size" keys are present
+		normalized_crew_data["selected_size"] = selected_size
+		if not normalized_crew_data.has("size"):
+			normalized_crew_data["size"] = selected_size
+
+		coordinator.update_crew_state(normalized_crew_data)
+		print("CrewPanel: Notified coordinator of crew update (size: %d)" % selected_size)
 	else:
 		print("CrewPanel: Warning - coordinator not found")
 
 func _find_coordinator() -> Variant:
-	"""Find the campaign coordinator in the scene tree"""
-	# Look for coordinator in parent scenes
+	"""Find the campaign coordinator - prefer base class reference"""
+	# CRITICAL FIX: Use base class _coordinator first (set via set_coordinator())
+	var coord = get_coordinator()
+	if coord and coord.has_method("update_crew_state"):
+		return coord
+
+	# Fallback: Look for coordinator in parent scenes
 	var current = get_parent()
 	while current:
 		if current.has_method("update_crew_state"):
 			return current
 		current = current.get_parent()
-	
-	# CampaignCreationCoordinator is not an autoload - should be accessed through parent UI
-	# This reference is invalid and should be removed
-	
+
 	return null
 
-# REMOVED: Duplicate _on_character_generated function - using Phase 2 implementation at line 1228
-
-func _update_crew_data_from_creation() -> void:
-	"""Update local crew data from InitialCrewCreation"""
-	if not crew_creation_instance:
-		return
-	
-	# Get crew state from creation if available
-	if crew_creation_instance.has_method("get_crew_state"):
-		var creation_state = crew_creation_instance.get_crew_state()
-		if creation_state:
-			local_crew_data = creation_state
-			_update_crew_display()
-			print("CrewPanel: Updated crew data from creation")
+# NOTE: _update_crew_data_from_creation() removed - modern UI manages crew data directly
 
 func _initialize_existing_components() -> void:
 	"""Initialize existing crew panel components"""
-	# Initialize existing component references
-	crew_size_option = crew_size_option_node
+	# Initialize existing component references with fallback paths
 	crew_list = crew_list_node
+	if not crew_list:
+		crew_list = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/ScrollContainer/VBoxContainer/CrewList")
+	if not crew_list:
+		push_error("CrewPanel: Could not find CrewList node!")
+
 	add_button = add_button_node
 	edit_button = edit_button_node
 	remove_button = remove_button_node
@@ -505,21 +926,23 @@ func _initialize_existing_components() -> void:
 
 func _connect_signals() -> void:
 	"""Connect UI signals with safety checks"""
-	if crew_size_option and not crew_size_option.item_selected.is_connected(_on_crew_size_selected):
-		crew_size_option.item_selected.connect(_on_crew_size_selected)
-	
-	if add_button and not add_button.pressed.is_connected(_on_add_member_pressed):
-		add_button.pressed.connect(_on_add_member_pressed)
-	
+	# Wire SpinBox for crew size (scene has SpinBox, not OptionButton)
+	if crew_size_input and not crew_size_input.value_changed.is_connected(_on_crew_size_value_changed):
+		crew_size_input.value_changed.connect(_on_crew_size_value_changed)
+
+	# NOTE: add_button (gen_btn) is already connected to _on_generate_character_pressed
+	# during creation in _create_generation_controls(). Do NOT connect again here
+	# to avoid double character generation.
+
 	if edit_button and not edit_button.pressed.is_connected(_on_edit_member_pressed):
 		edit_button.pressed.connect(_on_edit_member_pressed)
-	
+
 	if remove_button and not remove_button.pressed.is_connected(_on_remove_member_pressed):
 		remove_button.pressed.connect(_on_remove_member_pressed)
-	
+
 	if randomize_button and not randomize_button.pressed.is_connected(_on_randomize_pressed):
 		randomize_button.pressed.connect(_on_randomize_pressed)
-	
+
 	# Only connect item_selected if crew_list is an ItemList (not VBoxContainer)
 	if crew_list and crew_list is ItemList and not crew_list.item_selected.is_connected(_on_crew_member_selected):
 		crew_list.item_selected.connect(_on_crew_member_selected)
@@ -544,10 +967,21 @@ func _validate_crew_setup() -> void:
 		print("CrewPanel: DEBUG - Crew validation PASSED - marking complete")
 		is_crew_complete = true
 		local_crew_data.is_complete = true
-		
+
+		# Generate crew flavor details (Core Rules p.30)
+		_generate_crew_flavor()
+
+		# CRITICAL FIX: Update coordinator IMMEDIATELY with crew data (don't wait for timer)
+		var coord = get_coordinator()
+		if coord and coord.has_method("update_crew_state"):
+			coord.update_crew_state(local_crew_data)
+			print("CrewPanel: ✅ IMMEDIATE coordinator update with %d crew members" % crew_members.size())
+		else:
+			print("CrewPanel: ⚠️ No coordinator for immediate update")
+
 		print("CrewPanel: DEBUG - Emitting crew_data_complete signal...")
 		crew_data_complete.emit(local_crew_data)
-		
+
 		print("CrewPanel: DEBUG - Emitting panel_completed signal...")
 		panel_completed.emit(local_crew_data)
 		print("CrewPanel: DEBUG - panel_completed signal emitted successfully")
@@ -582,9 +1016,19 @@ func _update_local_crew_data() -> void:
 
 func _update_crew_display() -> void:
 	"""Update the crew list display using CharacterCard COMPACT variant"""
+	print("CrewPanel: _update_crew_display called, crew_members count: %d" % crew_members.size())
+
+	# Ensure crew_list is available with fallback
 	if not crew_list:
+		crew_list = crew_list_node
+	if not crew_list:
+		crew_list = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/ScrollContainer/VBoxContainer/CrewList")
+	if not crew_list:
+		push_error("CrewPanel: crew_list is null, cannot display crew!")
 		return
-	
+
+	print("CrewPanel: crew_list found, clearing and rebuilding display")
+
 	# Clear existing children
 	for child in crew_list.get_children():
 		child.queue_free()
@@ -594,12 +1038,30 @@ func _update_crew_display() -> void:
 	crew_list.add_child(crew_cards_container)
 	
 	# Add CharacterCard for each crew member
+	var cards_built := 0
 	for member in crew_members:
-		var card_instance = CharacterCard.instantiate()
-		card_instance.set_variant(CharacterCard.CardVariant.COMPACT)
-		card_instance.set_character(member)
+		# Extract Character object from Dictionary if needed
+		var character_obj: Character = null
+		if member is Character:
+			character_obj = member
+		elif member is Dictionary:
+			# First try to get preserved character_object
+			if member.has("character_object"):
+				character_obj = member.get("character_object")
+			else:
+				# FALLBACK: Reconstruct Character from dictionary data
+				character_obj = _reconstruct_character_from_dict(member)
 
-		# Connect card signals
+		if not character_obj:
+			push_warning("CrewPanel: Skipping member without valid Character object: %s" % str(member))
+			continue
+
+		cards_built += 1
+		var card_instance = CharacterCardScene.instantiate()
+		card_instance.set_variant(CharacterCardScript.CardVariant.COMPACT)
+		card_instance.set_character(character_obj)
+
+		# Connect card signals (bind original member for data consistency)
 		card_instance.card_tapped.connect(_on_crew_card_tapped.bind(member))
 		card_instance.view_details_pressed.connect(_on_crew_card_view.bind(member))
 		card_instance.edit_pressed.connect(_on_crew_card_edit.bind(member))
@@ -610,7 +1072,9 @@ func _update_crew_display() -> void:
 		card_instance.mouse_exited.connect(_on_crew_card_hover_end.bind(card_instance))
 
 		crew_cards_container.add_child(card_instance)
-	
+
+	print("CrewPanel: Built %d CharacterCards from %d crew members" % [cards_built, crew_members.size()])
+
 	# Add "Create Character" button for empty slots
 	var empty_slots := maxi(0, selected_size - crew_members.size())
 	for i in range(empty_slots):
@@ -655,11 +1119,19 @@ func _update_button_states() -> void:
 		add_button.disabled = crew_members.size() >= MAX_CREW_SIZE
 
 # UI Event Handlers
+func _on_crew_size_value_changed(value: float) -> void:
+	"""Handle crew size SpinBox value change"""
+	selected_size = int(value)
+	print("CrewPanel: Crew size changed to %d" % selected_size)
+	_adjust_crew_size()
+	_update_crew_display()
+	_notify_coordinator_of_crew_update()
+
 func _on_crew_size_selected(index: int) -> void:
-	"""Handle crew size selection"""
+	"""Handle crew size selection (legacy OptionButton handler)"""
 	if not crew_size_option:
 		return
-	
+
 	selected_size = crew_size_option.get_item_id(index)
 	_adjust_crew_size()
 
@@ -991,10 +1463,10 @@ func generate_random_character():
 	"""Generate a complete Five Parsecs character with backgrounds, motivations, and relationships"""
 	print("CrewPanel: Generating complete Five Parsecs character...")
 	
-	# Collect existing crew names to prevent duplicates
+	# Collect existing crew names to prevent duplicates (Sprint 26.3: All members are Character)
 	var existing_names: Array[String] = []
 	for member in local_crew_data.members:
-		if member and member.has("character_name"):
+		if member is Character and member.character_name:
 			existing_names.append(member.character_name)
 	
 	print("CrewPanel: Avoiding duplicate names: %s" % str(existing_names))
@@ -1016,6 +1488,58 @@ func generate_random_character():
 		# Generate patrons and rivals for this character
 		_generate_character_relationships(character)
 	
+	return character
+
+func _reconstruct_character_from_dict(data: Dictionary) -> Character:
+	"""Reconstruct a Character object from dictionary data (for display after serialization)"""
+	if data.is_empty():
+		return null
+
+	var character = Character.new()
+
+	# Set name
+	character.character_name = data.get("character_name", data.get("name", "Unknown"))
+
+	# Set background/motivation/origin
+	if data.has("background"):
+		character.background = data.background
+	if data.has("motivation"):
+		character.motivation = data.motivation
+	if data.has("origin"):
+		character.origin = data.origin
+	elif data.has("species"):
+		character.origin = data.species
+
+	# Set character class
+	if data.has("character_class"):
+		character.character_class = data.character_class
+
+	# Set stats
+	if data.has("combat"):
+		character.combat = data.combat
+	if data.has("reactions"):
+		character.reactions = data.reactions
+	if data.has("toughness"):
+		character.toughness = data.toughness
+	if data.has("savvy"):
+		character.savvy = data.savvy
+	if data.has("tech"):
+		character.tech = data.tech
+	if data.has("speed"):
+		character.speed = data.speed
+	if data.has("luck"):
+		character.luck = data.luck
+
+	# Set XP
+	if data.has("xp"):
+		character.xp = data.xp
+	elif data.has("experience"):
+		character.xp = data.experience
+
+	# Set captain flag
+	if data.has("is_captain"):
+		character.is_captain = data.is_captain
+
 	return character
 
 func _generate_fallback_character(existing_names: Array = []):
@@ -1091,9 +1615,169 @@ func _generate_character_relationships(character) -> void:
 	# Update local crew data with new relationships
 	local_crew_data["patrons"] = generated_patrons
 	local_crew_data["rivals"] = generated_rivals
-	
+
 	# Update UI displays
 	call_deferred("refresh_all_displays")
+
+func _generate_crew_flavor() -> void:
+	"""Generate crew flavor details per Core Rules p.30 (Flavor Details section)
+	Rolls on 'We Met Through' and 'Characterized As' tables"""
+	if not crew_relationship_manager:
+		push_warning("CrewPanel: CrewRelationshipManager not initialized")
+		return
+
+	# Only generate if not already generated (prevents re-rolling on re-validation)
+	var existing_flavor = local_crew_data.get("crew_flavor", {})
+	if existing_flavor.get("meeting_story", "") != "" and existing_flavor.get("characteristic", "") != "":
+		print("CrewPanel: Crew flavor already generated, skipping")
+		return
+
+	print("CrewPanel: Generating crew flavor details (Core Rules p.30)...")
+
+	# Generate the crew flavor using relationship manager
+	crew_relationship_manager.generate_initial_relationships(crew_members)
+
+	# Store in local crew data
+	local_crew_data["crew_flavor"] = {
+		"meeting_story": crew_relationship_manager.crew_meeting_story,
+		"characteristic": crew_relationship_manager.crew_characteristic,
+		"relationships": crew_relationship_manager.serialize().get("relationships", {})
+	}
+
+	print("CrewPanel: Crew Flavor - 'We Met Through': %s" % crew_relationship_manager.crew_meeting_story)
+	print("CrewPanel: Crew Flavor - 'Characterized As': %s" % crew_relationship_manager.crew_characteristic)
+
+	# Update the flavor display
+	call_deferred("update_crew_flavor_display")
+
+func _create_crew_flavor_section() -> void:
+	"""Create the Crew Flavor UI section per Core Rules p.30"""
+	if crew_flavor_container:
+		return  # Already created
+
+	# Find the form container to add the section
+	var form_container = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer")
+	if not form_container:
+		push_warning("CrewPanel: FormContainer not found for crew flavor section")
+		return
+
+	# Create the flavor section card
+	crew_flavor_container = VBoxContainer.new()
+	crew_flavor_container.name = "CrewFlavorSection"
+	crew_flavor_container.add_theme_constant_override("separation", SPACING_SM)
+
+	# Section title
+	var title_label = Label.new()
+	title_label.text = "Crew Flavor (Core Rules p.30)"
+	title_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title_label.add_theme_color_override("font_color", COLOR_ACCENT)
+	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	crew_flavor_container.add_child(title_label)
+
+	# "We Met Through" display
+	crew_flavor_meeting_label = Label.new()
+	crew_flavor_meeting_label.text = "We Met Through: (not generated yet)"
+	crew_flavor_meeting_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	crew_flavor_meeting_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	crew_flavor_meeting_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	crew_flavor_container.add_child(crew_flavor_meeting_label)
+
+	# "Characterized As" display
+	crew_flavor_char_label = Label.new()
+	crew_flavor_char_label.text = "Characterized As: (not generated yet)"
+	crew_flavor_char_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	crew_flavor_char_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	crew_flavor_container.add_child(crew_flavor_char_label)
+
+	# Reroll button
+	var reroll_button = Button.new()
+	reroll_button.text = "Reroll Crew Flavor"
+	reroll_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	reroll_button.pressed.connect(_on_reroll_flavor_pressed)
+
+	# Style the button
+	var btn_style = StyleBoxFlat.new()
+	btn_style.bg_color = COLOR_INPUT
+	btn_style.border_color = COLOR_BORDER
+	btn_style.set_border_width_all(1)
+	btn_style.set_corner_radius_all(6)
+	btn_style.set_content_margin_all(SPACING_SM)
+	reroll_button.add_theme_stylebox_override("normal", btn_style)
+
+	var hover_style = StyleBoxFlat.new()
+	hover_style.bg_color = Color(COLOR_INPUT.r + 0.05, COLOR_INPUT.g + 0.05, COLOR_INPUT.b + 0.05)
+	hover_style.border_color = COLOR_ACCENT
+	hover_style.set_border_width_all(1)
+	hover_style.set_corner_radius_all(6)
+	hover_style.set_content_margin_all(SPACING_SM)
+	reroll_button.add_theme_stylebox_override("hover", hover_style)
+
+	crew_flavor_container.add_child(reroll_button)
+
+	# Add separator for visual clarity
+	var separator = HSeparator.new()
+	crew_flavor_container.add_child(separator)
+
+	# Insert at a good position (after crew list, before validation)
+	form_container.add_child(crew_flavor_container)
+	print("CrewPanel: Crew Flavor section created")
+
+func update_crew_flavor_display() -> void:
+	"""Update the Crew Flavor display with current values"""
+	# Ensure the section exists
+	if not crew_flavor_container:
+		_create_crew_flavor_section()
+
+	if not crew_flavor_meeting_label or not crew_flavor_char_label:
+		return
+
+	var flavor = local_crew_data.get("crew_flavor", {})
+	var meeting_story = flavor.get("meeting_story", "")
+	var characteristic = flavor.get("characteristic", "")
+
+	if meeting_story.is_empty():
+		crew_flavor_meeting_label.text = "We Met Through: (generate crew first)"
+	else:
+		crew_flavor_meeting_label.text = "We Met Through: %s" % meeting_story
+
+	if characteristic.is_empty():
+		crew_flavor_char_label.text = "Characterized As: (generate crew first)"
+	else:
+		crew_flavor_char_label.text = "Characterized As: %s" % characteristic
+
+func _on_reroll_flavor_pressed() -> void:
+	"""Handle reroll flavor button press - regenerate crew flavor"""
+	if not crew_relationship_manager:
+		push_warning("CrewPanel: Cannot reroll - CrewRelationshipManager not available")
+		return
+
+	print("CrewPanel: Rerolling crew flavor...")
+
+	# Clear existing flavor to allow regeneration
+	local_crew_data["crew_flavor"] = {
+		"meeting_story": "",
+		"characteristic": "",
+		"relationships": {}
+	}
+
+	# Generate new flavor
+	crew_relationship_manager.generate_crew_flavor()
+
+	# Update local data
+	local_crew_data["crew_flavor"] = {
+		"meeting_story": crew_relationship_manager.crew_meeting_story,
+		"characteristic": crew_relationship_manager.crew_characteristic,
+		"relationships": crew_relationship_manager.serialize().get("relationships", {})
+	}
+
+	print("CrewPanel: New Flavor - 'We Met Through': %s" % crew_relationship_manager.crew_meeting_story)
+	print("CrewPanel: New Flavor - 'Characterized As': %s" % crew_relationship_manager.crew_characteristic)
+
+	# Update display
+	update_crew_flavor_display()
+
+	# Notify of data change
+	emit_data_changed()
 
 func _calculate_starting_patrons(character) -> int:
 	"""Calculate number of starting patrons based on background and motivation"""
@@ -1331,18 +2015,14 @@ func validate_panel() -> bool:
 func cleanup_panel() -> void:
 	"""Clean up panel state when navigating away"""
 	print("CrewPanel: Cleaning up panel state")
-	
-	# Clear crew creation instance
-	if crew_creation_instance:
-		if crew_creation_instance.has_method("cleanup"):
-			crew_creation_instance.cleanup()
-		crew_creation_instance.queue_free()
-		crew_creation_instance = null
-	
-	# Clear crew creation container
+
+	# Clear modern crew UI container
 	if crew_creation_container:
 		crew_creation_container.queue_free()
 		crew_creation_container = null
+
+	# Legacy variable (kept for compatibility - same as crew_creation_container)
+	crew_creation_instance = null
 	
 	# Reset local crew data (UNIFIED: crew_members getter will reflect this)
 	local_crew_data = {
@@ -1480,6 +2160,7 @@ func refresh_all_displays() -> void:
 	update_patron_display()
 	update_rival_display()
 	update_equipment_display()
+	update_crew_flavor_display()  # Core Rules p.30 - We Met Through + Characterized As
 
 ## Debug Helper Methods
 
@@ -1528,26 +2209,20 @@ func _log_panel_initialization_debug() -> void:
 	print("    Rival System: %s" % (rival_system != null))
 	print("    Security Validator: %s" % (security_validator != null))
 	
-	# Check UI component availability
-	print("  === UI COMPONENTS ===")
-	print("    Crew Creation Instance: %s" % (crew_creation_instance != null))
-	print("    Crew Creation Container: %s" % (crew_creation_container != null))
-	print("    Crew Size Option: %s" % (crew_size_option != null))
+	# Check UI component availability (Modern UI)
+	print("  === UI COMPONENTS (Modern Design System) ===")
+	print("    Modern UI Container: %s" % (crew_creation_container != null))
+	print("    Crew Size Option: %s" % (crew_size_option_node != null))
 	print("    Crew List: %s" % (crew_list != null))
+	print("    Generate Button: %s" % (add_button_node != null))
+	print("    Validation Panel: %s" % (validation_panel != null))
 	
 	print("==== [PANEL: CrewPanel] INIT COMPLETE ====\n")
 
-## PHASE 2: Enhanced Coordinator Integration
+## Coordinator Integration (Modern UI)
 func _on_coordinator_set() -> void:
-	"""Pass coordinator to child components"""
-	print("CrewPanel: Coordinator received, propagating to children")
-	
-	# Pass to InitialCrewCreation if available
-	if crew_creation_instance and crew_creation_instance.has_method("set_workflow_system"):
-		var coord = get_coordinator()
-		if coord:
-			crew_creation_instance.set_workflow_system(coord)
-			print("CrewPanel: Workflow system connected to InitialCrewCreation")
+	"""Handle coordinator assignment - modern UI doesn't need InitialCrewCreation"""
+	print("CrewPanel: Coordinator received - modern UI uses direct integration")
 
 # Completion logic with debouncing
 var completion_check_timer: SceneTreeTimer = null
@@ -1579,12 +2254,14 @@ func _perform_completion_check() -> void:
 			print("CrewPanel: ✅ Updated coordinator with %d crew members" % member_count)
 
 		# Finalize crew resources from table rolling (patrons, rivals, rumors, story points)
+		# Sprint 26.3: Character-Everywhere - members should be Character objects
 		var crew_members: Array = []
 		for member in local_crew_data.members:
-			if member is Dictionary and member.has("character_object"):
-				crew_members.append(member.character_object)
-			elif member is Character:
+			if member is Character:
 				crew_members.append(member)
+			elif member is Dictionary and member.has("character_object"):
+				# Legacy fallback for Dictionary-wrapped Character objects
+				crew_members.append(member.character_object)
 
 		if crew_members.size() > 0:
 			var campaign = coord.get_campaign() if coord and coord.has_method("get_campaign") else null
@@ -1602,103 +2279,53 @@ func _perform_completion_check() -> void:
 		
 		print("CrewPanel: ✅ Crew generation complete with %d/%d members" % [member_count, required_size])
 
-func _connect_to_initial_crew_creation() -> void:
-	"""Connect to InitialCrewCreation signals"""
-	if crew_creation_instance:
-		var signals_to_connect = {
-			"character_generated": _on_character_generated,
-			"crew_created": _on_crew_created,
-		}
-		
-		for sig_name in signals_to_connect:
-			if crew_creation_instance.has_signal(sig_name):
-				if not crew_creation_instance.is_connected(sig_name, signals_to_connect[sig_name]):
-					crew_creation_instance.connect(sig_name, signals_to_connect[sig_name])
-					print("CrewPanel: Connected to InitialCrewCreation signal: %s" % sig_name)
+# NOTE: _connect_to_initial_crew_creation() removed - modern UI handles character generation directly
 
-func _on_character_generated(character) -> void:  # Remove type hint to accept any type
-	"""Handle character generation - accepts both Character objects and Dictionaries"""
+func _on_character_generated(character) -> void:
+	"""Handle character generation - Sprint 26.3: Character-Everywhere (always stores Character objects)"""
 	print("CrewPanel: Character generated - processing type: %s" % type_string(typeof(character)))
-	
-	var character_data: Dictionary = {}
-	var character_object = null  # Character object
-	
-	# Type conversion logic with proper object tracking
+
+	var character_object: Character = null
+
+	# Convert to Character object if needed (Sprint 26.3: Character-Everywhere)
 	if character is Character:
-		character_object = character  # Keep the actual Character object
-		# Convert Character object to Dictionary for local_crew_data
-		character_data = {
-			"character_name": character.character_name,
-			"background": character.background,
-			"motivation": character.motivation,
-			"origin": character.origin if "origin" in character else character.species,
-			"character_class": character.character_class,
-			"combat": character.combat,
-			"reactions": character.reactions if "reactions" in character else character.reaction,
-			"toughness": character.toughness,
-			"savvy": character.savvy,
-			"tech": character.tech if "tech" in character else 0,
-			"speed": character.speed if "speed" in character else 4,
-			"luck": character.luck if "luck" in character else 0,
-			"xp": character.xp if "xp" in character else 0,
-			"character_object": character  # Keep reference to actual object
-		}
-		print("CrewPanel: Converted Character object to Dictionary")
+		character_object = character
 	elif character is Dictionary:
-		character_data = character
-		# Try to extract the character object if it exists in the dictionary
-		if character_data.has("character_object"):
-			character_object = character_data.get("character_object")
-		else:
-			# Create a new Character object from the dictionary
-			var CharacterResource = load("res://src/core/character/Character.gd")
-			if CharacterResource:
-				character_object = CharacterResource.new()
-				# Set basic properties
-				if character_object.has_method("set"):
-					for key in character_data:
-						if key != "character_object":
-							character_object.set(key, character_data[key])
-		print("CrewPanel: Received Dictionary directly")
+		# Convert Dictionary to Character object
+		character_object = _reconstruct_character_from_dict(character)
+		if not character_object:
+			push_error("CrewPanel: Failed to convert Dictionary to Character")
+			return
+		print("CrewPanel: Converted Dictionary to Character object")
 	else:
 		push_error("CrewPanel: Unknown character type received: %s" % type_string(typeof(character)))
 		return
-	
-	# Prevent duplicates using both dictionary and tracking system
-	var char_name = character_data.get("character_name", "")
-	
-	# Check if already added using new tracking system
+
+	var char_name: String = character_object.character_name
+
+	# Check for duplicates using tracking system
 	if _added_character_ids.has(char_name):
-		print("CrewPanel: Duplicate character %s ignored (tracking system)" % char_name)
+		print("CrewPanel: Duplicate character '%s' ignored (tracking system)" % char_name)
 		return
-		
-	# Double-check against existing members
+
+	# Double-check against existing members (Sprint 26.3: All members are Character)
 	for member in local_crew_data.members:
-		var member_name = ""
-		if member is Dictionary:
-			member_name = member.get("character_name", "")
-		elif member is Character:
-			member_name = member.character_name
-		if member_name == char_name:
-			print("CrewPanel: Duplicate character %s ignored (existing check)" % char_name)
+		if member is Character and member.character_name == char_name:
+			print("CrewPanel: Duplicate character '%s' ignored (existing check)" % char_name)
 			return
-	
+
 	# Mark as added to prevent future duplicates
 	_added_character_ids[char_name] = true
 
-	# UNIFIED: Single append to local_crew_data.members (crew_members getter reflects this)
-	# Prefer Character object if available, otherwise use dictionary
-	if character_object and is_instance_valid(character_object):
-		local_crew_data["members"].append(character_object)
-		# Auto-assign first member as captain if none assigned
-		if not current_captain and crew_members.size() == 1:
-			set_captain(character_object)
-			print("CrewPanel: Auto-assigned %s as captain" % char_name)
-	else:
-		# Fallback: use dictionary data
-		local_crew_data["members"].append(character_data)
+	# Sprint 26.3: Always append Character object to local_crew_data.members
+	local_crew_data["members"].append(character_object)
 
-	print("CrewPanel: Added %s - Total crew: %d" % [char_name, crew_members.size()])
+	# Auto-assign first member as captain if none assigned
+	if not current_captain and crew_members.size() == 1:
+		set_captain(character_object)
+		print("CrewPanel: Auto-assigned '%s' as captain" % char_name)
+
+	print("CrewPanel: Added '%s' - Total crew: %d" % [char_name, crew_members.size()])
 	
 	# Update coordinator if available
 	if get_coordinator():

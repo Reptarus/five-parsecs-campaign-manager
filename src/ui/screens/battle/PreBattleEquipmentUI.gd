@@ -219,21 +219,14 @@ func _create_crew_loadout_card(member: Variant) -> PanelContainer:
 	var vbox = VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 6)
 	
-	# Get member info
-	var char_name: String = ""
-	var char_id: String = ""
+	# Get member info (Sprint 26.3: Character-Everywhere - crew members are always Character objects)
+	var char_name: String = member.character_name if "character_name" in member else "Unknown"
+	var char_id: String = member.character_id if "character_id" in member else char_name
 	var equipment: Array = []
-	
-	if member is Dictionary:
-		char_name = member.get("character_name", member.get("name", "Unknown"))
-		char_id = member.get("id", char_name)
-		equipment = member.get("equipment", [])
-	elif member is Character:
-		char_name = member.character_name if member.character_name else member.name
-		char_id = member.id if member.id else char_name
-		# Get equipment from equipment manager
-		if equipment_manager and equipment_manager.has_method("get_character_equipment"):
-			equipment = equipment_manager.get_character_equipment(char_id)
+
+	# Get equipment from equipment manager
+	if equipment_manager and equipment_manager.has_method("get_character_equipment"):
+		equipment = equipment_manager.get_character_equipment(char_id)
 	
 	# Header
 	var header = HBoxContainer.new()
@@ -423,14 +416,11 @@ func _on_request_assign_to_crew(equipment_id: String) -> void:
 	var popup = PopupMenu.new()
 	popup.name = "CrewSelectionPopup"
 	
+	# Sprint 26.3: Character-Everywhere - crew members are always Character objects
 	for i in range(selected_crew.size()):
 		var member = selected_crew[i]
-		var name: String = ""
-		if member is Dictionary:
-			name = member.get("character_name", member.get("name", "Unknown"))
-		elif member is Character:
-			name = member.character_name if member.character_name else member.name
-		popup.add_item(name, i)
+		var crew_name: String = member.character_name if "character_name" in member else "Unknown"
+		popup.add_item(crew_name, i)
 	
 	popup.id_pressed.connect(_on_crew_selected_for_transfer.bind(equipment_id))
 	
@@ -441,14 +431,10 @@ func _on_crew_selected_for_transfer(crew_index: int, equipment_id: String) -> vo
 	"""Handle crew selection for equipment transfer"""
 	if crew_index < 0 or crew_index >= selected_crew.size():
 		return
-	
+
+	# Sprint 26.3: Character-Everywhere - crew members are always Character objects
 	var member = selected_crew[crew_index]
-	var character_id: String = ""
-	
-	if member is Dictionary:
-		character_id = member.get("id", member.get("character_name", str(crew_index)))
-	elif member is Character:
-		character_id = member.id if member.id else member.character_name
+	var character_id: String = member.character_id if "character_id" in member else str(crew_index)
 	
 	if equipment_manager and equipment_manager.has_method("transfer_from_ship_stash"):
 		if equipment_manager.transfer_from_ship_stash(equipment_id, character_id):

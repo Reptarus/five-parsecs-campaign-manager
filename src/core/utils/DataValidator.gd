@@ -125,9 +125,13 @@ static func safe_get_dict(data: Dictionary, key: String, default: Dictionary = {
 
 static func normalize_crew_array(crew_array: Array) -> Array:
 	"""Normalize an array of crew members"""
+	# Sprint 26.3: Character-Everywhere - handle Character objects first
 	var normalized = []
 	for member in crew_array:
-		if member is Dictionary:
+		if member is Object and member.has_method("to_dictionary"):
+			# Character or similar Resource - convert to dictionary for validation
+			normalized.append(validate_crew_member(member.to_dictionary()))
+		elif member is Dictionary:
 			normalized.append(validate_crew_member(member))
 		else:
 			push_warning("DataValidator: Invalid crew member type: %s" % typeof(member))

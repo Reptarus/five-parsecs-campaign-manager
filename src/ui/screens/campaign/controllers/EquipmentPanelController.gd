@@ -499,15 +499,18 @@ func _calculate_total_equipment_value() -> int:
 
 func _safe_get_character_property(character: Variant, property: String, default_value: Variant = null) -> Variant:
 	"""Safely get a property from a character object"""
+	# Sprint 26.3: Character-Everywhere - check Object/Character first
 	if character == null:
 		return default_value
-	
-	if character is Dictionary:
-		return character.get(property, default_value)
+
+	if character is Object and property in character:
+		return character.get(property)
 	elif character is Object and character.has_method("get"):
 		var value = character.get(property)
 		return value if value != null else default_value
-	
+	elif character is Dictionary:
+		return character.get(property, default_value)
+
 	return default_value
 
 func _is_panel_complete() -> bool:

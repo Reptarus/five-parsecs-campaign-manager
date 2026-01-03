@@ -145,15 +145,9 @@ func _update_crew_dropdown() -> void:
 	
 	for i in range(current_crew.size()):
 		var member = current_crew[i]
-		var name: String = ""
-		
-		if member is Dictionary:
-			name = member.get("character_name", member.get("name", "Unknown"))
-		elif member is Character:
-			name = member.character_name if member.character_name else member.name
-		else:
-			name = str(member)
-		
+		# Sprint 26.3: Character-Everywhere - crew members are always Character objects
+		var name: String = member.character_name if "character_name" in member else (member.name if "name" in member else str(member))
+
 		crew_dropdown.add_item(name, i)
 	
 	crew_dropdown.select(0)
@@ -303,13 +297,15 @@ func _on_transfer_pressed() -> void:
 	var equipment_id = item.get("id", "")
 	
 	# Get character ID
+	# Sprint 26.3: Character-Everywhere - crew members are always Character objects
 	var character = current_crew[crew_index]
 	var character_id: String = ""
-	
-	if character is Dictionary:
-		character_id = character.get("id", character.get("character_name", str(crew_index)))
-	elif character is Character:
-		character_id = character.id if character.id else character.character_name
+	if "character_id" in character:
+		character_id = character.character_id
+	elif "id" in character:
+		character_id = character.id
+	elif "character_name" in character:
+		character_id = character.character_name
 	else:
 		character_id = str(crew_index)
 	
@@ -446,6 +442,3 @@ func deserialize(data: Dictionary) -> void:
 
 	# Refresh display
 	call_deferred("_refresh_display")
-
-
-

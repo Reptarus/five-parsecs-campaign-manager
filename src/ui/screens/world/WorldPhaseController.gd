@@ -8,6 +8,7 @@ class_name WorldPhaseController
 # Signals for phase transition integration
 signal phase_completed(results: Dictionary)
 signal return_to_dashboard
+signal return_to_travel  # Sprint 10.2: Signal for bidirectional navigation
 signal proceed_to_battle
 
 # Event bus integration - single source of truth for events
@@ -22,9 +23,7 @@ const MissionPrepComponent = preload("res://src/ui/screens/world/components/Miss
 const MissionSelectionUI = preload("res://src/ui/screens/world/MissionSelectionUI.gd")
 const AssignEquipmentComponent = preload("res://src/ui/screens/world/components/AssignEquipmentComponent.gd")
 const ResolveRumorsComponent = preload("res://src/ui/screens/world/components/ResolveRumorsComponent.gd")
-const PurchaseItemsComponent = preload("res://src/ui/screens/world/components/PurchaseItemsComponent.gd")
-const CampaignEventComponent = preload("res://src/ui/screens/world/components/CampaignEventComponent.gd")
-const CharacterEventComponent = preload("res://src/ui/screens/world/components/CharacterEventComponent.gd")
+# Note: PurchaseItems, CampaignEvent, CharacterEvent components moved to PostBattleSequence
 
 # Five Parsecs dependencies
 const WorldPhase = preload("res://src/core/campaign/phases/WorldPhase.gd")
@@ -49,28 +48,23 @@ const FPCM_DataManager = preload("res://src/core/data/DataManager.gd")
 @onready var assign_equipment_container: Control = %AssignEquipmentContainer
 @onready var resolve_rumors_container: Control = %ResolveRumorsContainer
 @onready var mission_prep_container: Control = %MissionPrepContainer
-@onready var purchase_items_container: Control = %PurchaseItemsContainer
-@onready var campaign_event_container: Control = %CampaignEventContainer
-@onready var character_event_container: Control = %CharacterEventContainer
+# Note: Post-battle containers (PurchaseItems, CampaignEvent, CharacterEvent) moved to PostBattleSequence
 
-# Phase management - Core Rules STEP 2 (World) + STEP 4 (Post-Battle)
+# Phase management - Core Rules STEP 2 (World Phase)
+# Note: Purchase Items, Campaign Event, Character Event are in Post-Battle (STEP 4)
 enum WorldPhaseStep {
 	UPKEEP = 0,
 	CREW_TASKS = 1,
 	JOB_OFFERS = 2,
 	ASSIGN_EQUIPMENT = 3,
 	RESOLVE_RUMORS = 4,
-	MISSION_PREP = 5,
-	PURCHASE_ITEMS = 6,      # Post-battle
-	CAMPAIGN_EVENT = 7,      # Post-battle
-	CHARACTER_EVENT = 8      # Post-battle
+	MISSION_PREP = 5  # Final step - Choose Your Battle
 }
 
 var current_step: WorldPhaseStep = WorldPhaseStep.UPKEEP
 var step_names: Array[String] = [
 	"Upkeep", "Crew Tasks", "Job Offers", "Assign Equipment",
-	"Resolve Rumors", "Mission Prep", "Purchase Items",
-	"Campaign Event", "Character Event"
+	"Resolve Rumors", "Mission Prep"
 ]
 var step_completed: Dictionary = {} # WorldPhaseStep -> bool
 var automation_enabled: bool = false
@@ -82,9 +76,7 @@ var automation_enabled: bool = false
 @onready var assign_equipment_component = %AssignEquipmentContainer/AssignEquipmentComponent
 @onready var resolve_rumors_component = %ResolveRumorsContainer/ResolveRumorsComponent
 @onready var mission_prep_component = %MissionPrepContainer/MissionPrepComponent
-@onready var purchase_items_component = %PurchaseItemsContainer/PurchaseItemsComponent
-@onready var campaign_event_component = %CampaignEventContainer/CampaignEventComponent
-@onready var character_event_component = %CharacterEventContainer/CharacterEventComponent
+# Note: Post-battle component refs removed - now in PostBattleSequence
 var mission_selection_ui: MissionSelectionUI = null
 
 # Campaign data
@@ -140,12 +132,7 @@ func _initialize_components() -> void:
 		print("WorldPhaseController: ResolveRumorsComponent ready")
 	if mission_prep_component:
 		print("WorldPhaseController: MissionPrepComponent ready")
-	if purchase_items_component:
-		print("WorldPhaseController: PurchaseItemsComponent ready")
-	if campaign_event_component:
-		print("WorldPhaseController: CampaignEventComponent ready")
-	if character_event_component:
-		print("WorldPhaseController: CharacterEventComponent ready")
+	# Note: Post-battle components (PurchaseItems, CampaignEvent, CharacterEvent) now in PostBattleSequence
 
 	# Initialize mission selection UI for Job Offers/Mission Prep phases
 	_initialize_mission_selection()
@@ -174,10 +161,7 @@ func _setup_initial_state() -> void:
 		WorldPhaseStep.JOB_OFFERS: false,
 		WorldPhaseStep.ASSIGN_EQUIPMENT: false,
 		WorldPhaseStep.RESOLVE_RUMORS: false,
-		WorldPhaseStep.MISSION_PREP: false,
-		WorldPhaseStep.PURCHASE_ITEMS: false,
-		WorldPhaseStep.CAMPAIGN_EVENT: false,
-		WorldPhaseStep.CHARACTER_EVENT: false
+		WorldPhaseStep.MISSION_PREP: false
 	}
 
 	# Auto-fetch campaign data from GameStateManager
@@ -304,10 +288,13 @@ func _initialize_components_with_data() -> void:
 	if mission_prep_component and mission_prep_component.has_method("initialize_mission_prep"):
 		var mission = world_phase_data.get("mission", {})
 		var equipment = world_phase_data.get("stash", [])
-		# Convert to typed arrays for MissionPrepComponent
+		# Sprint 26.3: Character-Everywhere - convert Character objects to Dictionary for component
 		var typed_crew: Array[Dictionary] = []
 		for member in crew_data:
-			if member is Dictionary:
+			if member is Character:
+				# Serialize Character to Dictionary for component compatibility
+				typed_crew.append(member.to_dictionary() if member.has_method("to_dictionary") else {"character_name": member.character_name if "character_name" in member else "", "character_id": member.character_id if "character_id" in member else ""})
+			elif member is Dictionary:
 				typed_crew.append(member)
 		var typed_equipment: Array[Dictionary] = []
 		for item in equipment:
@@ -315,26 +302,14 @@ func _initialize_components_with_data() -> void:
 				typed_equipment.append(item)
 		mission_prep_component.initialize_mission_prep(mission, typed_crew, typed_equipment)
 
-	# Initialize purchase items component (post-battle)
-	if purchase_items_component and purchase_items_component.has_method("initialize_purchase_phase"):
-		var credits = world_phase_data.get("credits", 0)
-		var available_items = world_phase_data.get("available_items", [])
-		purchase_items_component.initialize_purchase_phase(credits, available_items)
-
-	# Initialize campaign event component (post-battle)
-	if campaign_event_component and campaign_event_component.has_method("initialize_event_phase"):
-		campaign_event_component.initialize_event_phase()
-
-	# Initialize character event component (post-battle)
-	if character_event_component and character_event_component.has_method("initialize_event_phase"):
-		character_event_component.initialize_event_phase(crew_data)
+	# Note: Post-battle components (PurchaseItems, CampaignEvent, CharacterEvent) now initialized in PostBattleSequence
 
 ## Step Navigation - coordinated component management
 func _show_current_step() -> void:
 	"""Show current step component and hide others"""
 	print("WorldPhaseController: Showing step %d - %s" % [current_step, step_names[current_step]])
 
-	# Show/hide all 9 containers based on current step
+	# Show/hide all 6 World Phase containers based on current step
 	if upkeep_container:
 		upkeep_container.visible = (current_step == WorldPhaseStep.UPKEEP)
 	if crew_task_container:
@@ -347,12 +322,6 @@ func _show_current_step() -> void:
 		resolve_rumors_container.visible = (current_step == WorldPhaseStep.RESOLVE_RUMORS)
 	if mission_prep_container:
 		mission_prep_container.visible = (current_step == WorldPhaseStep.MISSION_PREP)
-	if purchase_items_container:
-		purchase_items_container.visible = (current_step == WorldPhaseStep.PURCHASE_ITEMS)
-	if campaign_event_container:
-		campaign_event_container.visible = (current_step == WorldPhaseStep.CAMPAIGN_EVENT)
-	if character_event_container:
-		character_event_container.visible = (current_step == WorldPhaseStep.CHARACTER_EVENT)
 
 	# Update UI
 	_update_ui_display()
@@ -392,8 +361,8 @@ func _update_ui_display() -> void:
 		next_button.disabled = not can_advance
 		print("WorldPhaseController: Next button disabled=%s (can_advance=%s) for step %s" % [next_button.disabled, can_advance, step_names[current_step]])
 
-		if current_step == WorldPhaseStep.CHARACTER_EVENT:
-			next_button.text = "Complete World Phase"
+		if current_step == WorldPhaseStep.MISSION_PREP:
+			next_button.text = "Proceed to Battle"
 		else:
 			next_button.text = "Next Step"
 
@@ -431,21 +400,6 @@ func _can_advance_to_next_step() -> bool:
 				result = mission_prep_component.is_mission_prepared()
 			else:
 				result = step_completed.get(WorldPhaseStep.MISSION_PREP, false)
-		WorldPhaseStep.PURCHASE_ITEMS:
-			if purchase_items_component and purchase_items_component.has_method("is_purchase_completed"):
-				result = purchase_items_component.is_purchase_completed()
-			else:
-				result = step_completed.get(WorldPhaseStep.PURCHASE_ITEMS, false)
-		WorldPhaseStep.CAMPAIGN_EVENT:
-			if campaign_event_component and campaign_event_component.has_method("is_event_resolved"):
-				result = campaign_event_component.is_event_resolved()
-			else:
-				result = step_completed.get(WorldPhaseStep.CAMPAIGN_EVENT, false)
-		WorldPhaseStep.CHARACTER_EVENT:
-			if character_event_component and character_event_component.has_method("is_event_resolved"):
-				result = character_event_component.is_event_resolved()
-			else:
-				result = step_completed.get(WorldPhaseStep.CHARACTER_EVENT, false)
 		_:
 			result = false
 
@@ -454,10 +408,21 @@ func _can_advance_to_next_step() -> bool:
 
 ## UI Event Handlers - orchestrator navigation
 func _on_back_button_pressed() -> void:
-	"""Handle back button navigation - returns to dashboard from Step 0"""
+	"""Handle back button navigation - Sprint 10.2: Uses phase rollback for bidirectional navigation"""
 	if current_step == WorldPhaseStep.UPKEEP:
-		# At first step, navigate back to campaign dashboard
-		print("WorldPhaseController: Returning to Campaign Dashboard")
+		# At first step, try to rollback to Travel phase
+		var cpm = get_node_or_null("/root/CampaignPhaseManager")
+		if cpm and cpm.has_method("rollback_to_phase"):
+			# Try to rollback to Travel phase (assumes GlobalEnums.FiveParsecsCampaignPhase.TRAVEL = 0)
+			var GlobalEnums = load("res://src/core/systems/GlobalEnums.gd")
+			if GlobalEnums and cpm.rollback_to_phase(GlobalEnums.FiveParsecsCampaignPhase.TRAVEL):
+				print("WorldPhaseController: Rolled back to Travel phase")
+				return_to_travel.emit()
+				return
+
+		# Fallback: Navigate back to campaign dashboard
+		print("WorldPhaseController: Returning to Campaign Dashboard (rollback not available)")
+		return_to_dashboard.emit()
 		if GameStateManager:
 			GameStateManager.navigate_to_screen("campaign_dashboard")
 		else:
@@ -471,14 +436,14 @@ func _on_back_button_pressed() -> void:
 func _on_next_button_pressed() -> void:
 	"""Handle next button navigation"""
 	if _can_advance_to_next_step():
-		if current_step < WorldPhaseStep.CHARACTER_EVENT:
+		if current_step < WorldPhaseStep.MISSION_PREP:
 			current_step = current_step + 1
 			_show_current_step()
 			print("WorldPhaseController: Advanced to %s" % step_names[current_step])
 			# Checkpoint save after each step advance
 			_save_world_phase_checkpoint()
 		else:
-			# Complete world phase
+			# Complete world phase - proceed to battle
 			_complete_world_phase()
 	else:
 		print("WorldPhaseController: Cannot advance - current step not completed")
@@ -567,12 +532,9 @@ func _on_phase_completed(data: Dictionary) -> void:
 			step_completed[WorldPhaseStep.ASSIGN_EQUIPMENT] = true
 		"resolve_rumors":
 			step_completed[WorldPhaseStep.RESOLVE_RUMORS] = true
-		"purchase_items":
-			step_completed[WorldPhaseStep.PURCHASE_ITEMS] = true
-		"campaign_event":
-			step_completed[WorldPhaseStep.CAMPAIGN_EVENT] = true
-		"character_event":
-			step_completed[WorldPhaseStep.CHARACTER_EVENT] = true
+		"mission_prep":
+			step_completed[WorldPhaseStep.MISSION_PREP] = true
+		# Note: purchase_items, campaign_event, character_event are now in PostBattleSequence
 
 	_update_ui_display()
 
@@ -613,17 +575,7 @@ func _complete_world_phase() -> void:
 	if mission_prep_component and mission_prep_component.has_method("get_mission_data"):
 		mission_data = mission_prep_component.get_mission_data()
 
-	var purchase_results = {}
-	if purchase_items_component and purchase_items_component.has_method("get_purchased_items"):
-		purchase_results = purchase_items_component.get_purchased_items()
-
-	var campaign_event_results = {}
-	if campaign_event_component and campaign_event_component.has_method("get_current_event"):
-		campaign_event_results = campaign_event_component.get_current_event()
-
-	var character_event_results = {}
-	if character_event_component and character_event_component.has_method("get_current_event"):
-		character_event_results = character_event_component.get_current_event()
+	# Note: purchase_results, campaign_event_results, character_event_results now gathered in PostBattleSequence
 
 	var world_phase_results = {
 		"upkeep_results": upkeep_results,
@@ -631,10 +583,7 @@ func _complete_world_phase() -> void:
 		"job_results": job_results,
 		"equipment_results": equipment_results,
 		"rumors_results": rumors_results,
-		"mission_data": mission_data,
-		"purchase_results": purchase_results,
-		"campaign_event_results": campaign_event_results,
-		"character_event_results": character_event_results
+		"mission_data": mission_data
 	}
 
 	# PERSIST DATA TO GAMESTATE for battle phase
@@ -715,10 +664,7 @@ func reset_world_phase() -> void:
 		WorldPhaseStep.JOB_OFFERS: false,
 		WorldPhaseStep.ASSIGN_EQUIPMENT: false,
 		WorldPhaseStep.RESOLVE_RUMORS: false,
-		WorldPhaseStep.MISSION_PREP: false,
-		WorldPhaseStep.PURCHASE_ITEMS: false,
-		WorldPhaseStep.CAMPAIGN_EVENT: false,
-		WorldPhaseStep.CHARACTER_EVENT: false
+		WorldPhaseStep.MISSION_PREP: false
 	}
 
 	# Reset all components
@@ -734,12 +680,7 @@ func reset_world_phase() -> void:
 		resolve_rumors_component.reset_rumors_phase()
 	if mission_prep_component and mission_prep_component.has_method("reset_mission_prep"):
 		mission_prep_component.reset_mission_prep()
-	if purchase_items_component and purchase_items_component.has_method("reset_purchase_phase"):
-		purchase_items_component.reset_purchase_phase()
-	if campaign_event_component and campaign_event_component.has_method("reset_event_phase"):
-		campaign_event_component.reset_event_phase()
-	if character_event_component and character_event_component.has_method("reset_event_phase"):
-		character_event_component.reset_event_phase()
+	# Note: Post-battle components (PurchaseItems, CampaignEvent, CharacterEvent) reset in PostBattleSequence
 
 	_update_ui_display()
 
@@ -1036,7 +977,7 @@ func _advance_to_next_step() -> void:
 	"""Advance to the next step in the world phase workflow"""
 	print("WorldPhaseController: Advancing to next step from: ", step_names[current_step])
 
-	if current_step < WorldPhaseStep.CHARACTER_EVENT:
+	if current_step < WorldPhaseStep.MISSION_PREP:
 		current_step = current_step + 1
 		_show_current_step()
 	else:

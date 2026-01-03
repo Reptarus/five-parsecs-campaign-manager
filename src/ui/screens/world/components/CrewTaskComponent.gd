@@ -1219,20 +1219,27 @@ func _apply_xp_to_character(crew_member: Dictionary, amount: int, source: String
 		crew = campaign.get("crew") if campaign.get("crew") else []
 
 	for character in crew:
+		# Sprint 26.3: Character-Everywhere - check Object/Character first
 		var char_id = ""
-		if character is Dictionary:
+		if character is Object and "character_id" in character:
+			char_id = character.character_id
+		elif character is Object and "id" in character:
+			char_id = character.id
+		elif character is Dictionary:
 			char_id = character.get("id", character.get("character_id", ""))
-		elif character.has_method("get"):
-			char_id = character.get("id") if character.get("id") else ""
 
 		if char_id == character_id:
+			# Sprint 26.3: Character-Everywhere - handle Character objects first
 			var current_xp = 0
-			if character is Dictionary:
+			if character is Object and "xp" in character:
+				current_xp = character.xp if character.xp else 0
+				character.xp = current_xp + amount
+			elif character is Object and "experience" in character:
+				current_xp = character.experience if character.experience else 0
+				character.experience = current_xp + amount
+			elif character is Dictionary:
 				current_xp = character.get("experience", 0)
 				character["experience"] = current_xp + amount
-			elif character.has_method("set"):
-				current_xp = character.get("experience") if character.get("experience") else 0
-				character.set("experience", current_xp + amount)
 
 			print("CrewTaskComponent: Applied %d XP to character %s from %s (total: %d)" % [
 				amount, character_id, source, current_xp + amount

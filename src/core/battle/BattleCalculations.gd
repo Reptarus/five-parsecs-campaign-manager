@@ -949,14 +949,48 @@ static func resolve_area_attack(
 		result["primary_result"] = resolve_ranged_attack(attacker, primary_target, weapon, dice_roller)
 		return result
 
-	# Resolve primary target hit first
-	var primary_result := resolve_ranged_attack(attacker, primary_target, weapon, dice_roller)
+	# AREA WEAPON SPECIAL RESOLUTION:
+	# For area weapons, we roll to hit once, then use a SHARED damage roll for all targets
+	# Each target rolls saves individually
+
+	# Extract stats for hit calculation
+	var combat_skill: int = attacker.get("combat_skill", 0)
+	var range_inches: float = attacker.get("range_to_target", 12.0)
+	var weapon_range: int = weapon.get("range", RIFLE_RANGE)
+	var target_in_cover: bool = primary_target.get("in_cover", false)
+	var attacker_elevated: bool = attacker.get("elevated", false)
+	var target_elevated: bool = primary_target.get("elevated", false)
+
+	# Calculate hit threshold for primary target
+	var hit_threshold := calculate_hit_threshold(
+		combat_skill,
+		target_in_cover,
+		attacker_elevated,
+		target_elevated,
+		range_inches,
+		weapon_range
+	)
+
+	# Roll to hit primary target
+	var hit_roll: int = dice_roller.call()
+
+	var primary_result := {
+		"hit": false,
+		"hit_roll": hit_roll,
+		"hit_threshold": hit_threshold,
+		"damage": 0,
+		"armor_saved": false,
+		"target_eliminated": false,
+		"effects": []
+	}
+
 	result["primary_result"] = primary_result
 
-	if not primary_result.get("hit", false):
+	if not check_hit(hit_roll, hit_threshold):
 		# Miss - no area effect
 		return result
 
+	primary_result["hit"] = true
 	result["total_hits"] = 1
 
 	# Get attacker and target positions
@@ -970,10 +1004,30 @@ static func resolve_area_attack(
 
 	# Check for elimination (natural 6 on damage)
 	var eliminates_on_6 := shared_damage_roll == 6
-	if primary_result.get("damage", 0) > 0:
-		result["total_damage"] += primary_result["damage"]
-		if eliminates_on_6:
-			result["primary_result"]["target_eliminated"] = true
+
+	# Apply shared damage to primary target
+	var primary_toughness: int = primary_target.get("toughness", 3)
+	var penetration: int = weapon.get("penetration", 0)
+	var weapon_damage: int = weapon.get("damage", 1)
+
+	# Primary target rolls armor save
+	var primary_save_roll: int = dice_roller.call()
+	# NOTE: Armor save penalty is based on weapon damage stat, not dice roll
+	var primary_save_result := resolve_saves(primary_save_roll, primary_target, weapon_traits, weapon_damage)
+
+	if primary_save_result.get("armor_pierced", false):
+		primary_result["effects"].append("armor_pierced")
+
+	if primary_save_result.get("saved", false):
+		primary_result["armor_saved"] = true
+	else:
+		# Calculate damage after armor
+		var primary_damage := calculate_damage_after_armor(shared_damage_roll, primary_toughness, penetration)
+		primary_result["damage"] = primary_damage
+		result["total_damage"] += primary_damage
+
+		if eliminates_on_6 and primary_damage > 0:
+			primary_result["target_eliminated"] = true
 			result["total_eliminations"] += 1
 
 	# Find secondary targets based on template type
@@ -1008,7 +1062,8 @@ static func resolve_area_attack(
 
 		# Check saves for secondary target
 		var save_roll: int = dice_roller.call()
-		var save_result := resolve_saves(save_roll, secondary_target, weapon_traits, shared_damage_roll)
+		# NOTE: Armor save penalty is based on weapon damage stat, not dice roll
+		var save_result := resolve_saves(save_roll, secondary_target, weapon_traits, weapon_damage)
 
 		if save_result.get("armor_pierced", false):
 			secondary_result["effects"].append("armor_pierced")
@@ -1018,7 +1073,6 @@ static func resolve_area_attack(
 		else:
 			# Apply damage
 			var target_toughness: int = secondary_target.get("toughness", 3)
-			var penetration: int = weapon.get("penetration", 0)
 			var final_damage := calculate_damage_after_armor(shared_damage_roll, target_toughness, penetration)
 			secondary_result["damage"] = final_damage
 			result["total_damage"] += final_damage
@@ -1128,13 +1182,24 @@ static func get_climb_distance(character: Dictionary) -> int:
 	var device_effects := check_utility_devices(character)
 	return device_effects.get("climb_distance", 0)
 
-## Get total reaction dice bonus from all crew communicators
+## Get total reaction dice bonus from all crew communicators (Sprint 26.3: Character-Everywhere)
 static func get_crew_reaction_bonus(crew: Array) -> int:
 	var total_bonus := 0
 	for member: Variant in crew:
-		if member is Dictionary:
-			var device_effects := check_utility_devices(member)
-			total_bonus += device_effects.get("reaction_dice_bonus", 0)
+		if not member:
+			continue
+
+		# Sprint 26.3: Character-Everywhere - check Object first
+		var member_dict: Dictionary
+		if member.has_method("to_dictionary"):
+			member_dict = member.to_dictionary()
+		elif member is Dictionary:
+			member_dict = member
+		else:
+			continue
+
+		var device_effects := check_utility_devices(member_dict)
+		total_bonus += device_effects.get("reaction_dice_bonus", 0)
 	return total_bonus
 
 #endregion

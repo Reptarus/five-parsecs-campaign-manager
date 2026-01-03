@@ -9,12 +9,13 @@ const SecurityValidator := preload("res://src/core/validation/SecurityValidator.
 const FiveParsecsValidationResult := preload("res://src/core/validation/ValidationResult.gd")
 
 # GDScript 2.0: Remove VICTORY_CONDITIONS from enum (merge into CONFIG)
+# Core Rules SOP: Equipment before Ship (p.30)
 enum Phase {
 	CONFIG,                    # Now includes victory conditions
 	CAPTAIN_CREATION,
 	CREW_SETUP,
-	SHIP_ASSIGNMENT,
-	EQUIPMENT_GENERATION,
+	EQUIPMENT_GENERATION,      # Core Rules: Equipment comes before Ship
+	SHIP_ASSIGNMENT,           # Core Rules: Ship is final step (determines debt)
 	WORLD_GENERATION,
 	FINAL_REVIEW
 }
@@ -67,7 +68,7 @@ func initialize() -> void:
 
 func _initialize_state() -> void:
 	"""Initialize campaign data with default values"""
-	campaign_data.metadata.created_at = Time.get_datetime_string_from_system()
+	campaign_data["metadata"]["created_at"] = Time.get_datetime_string_from_system()
 	_validate_current_phase()
 
 # Phase Management
@@ -148,17 +149,17 @@ func set_phase_data(phase: Phase, data: Dictionary) -> void:
 	"""Update data for specific phase with validation"""
 	match phase:
 		Phase.CONFIG:
-			campaign_data.config = data.duplicate()
+			campaign_data["config"] = data.duplicate()
 		Phase.CREW_SETUP:
-			campaign_data.crew = data.duplicate()
+			campaign_data["crew"] = data.duplicate()
 		Phase.CAPTAIN_CREATION:
-			campaign_data.captain = data.duplicate()
+			campaign_data["captain"] = data.duplicate()
 		Phase.SHIP_ASSIGNMENT:
-			campaign_data.ship = data.duplicate()
+			campaign_data["ship"] = data.duplicate()
 		Phase.EQUIPMENT_GENERATION:
-			campaign_data.equipment = data.duplicate()
+			campaign_data["equipment"] = data.duplicate()
 		Phase.WORLD_GENERATION:
-			campaign_data.world = data.duplicate()
+			campaign_data["world"] = data.duplicate()
 
 	_validate_current_phase()
 	state_updated.emit(phase, data)
@@ -167,17 +168,17 @@ func get_phase_data(phase: Phase) -> Dictionary:
 	"""Retrieve data for specific phase"""
 	match phase:
 		Phase.CONFIG:
-			return campaign_data.config
+			return campaign_data["config"]
 		Phase.CREW_SETUP:
-			return campaign_data.crew
+			return campaign_data["crew"]
 		Phase.CAPTAIN_CREATION:
-			return campaign_data.captain
+			return campaign_data["captain"]
 		Phase.SHIP_ASSIGNMENT:
-			return campaign_data.ship
+			return campaign_data["ship"]
 		Phase.EQUIPMENT_GENERATION:
-			return campaign_data.equipment
+			return campaign_data["equipment"]
 		Phase.WORLD_GENERATION:
-			return campaign_data.world
+			return campaign_data["world"]
 		_:
 			return {}
 
@@ -210,21 +211,21 @@ func _is_phase_valid(phase: Phase) -> bool:
 
 func _validate_config_phase() -> bool:
 	"""GDScript 2.0: Validate campaign configuration including victory conditions"""
-	var config: Dictionary = campaign_data.config as Dictionary
+	var config: Dictionary = campaign_data["config"] as Dictionary
 
-	if not config.has("campaign_name") or str(config.campaign_name).is_empty():
+	if not config.has("campaign_name") or str(config.get("campaign_name", "")).is_empty():
 		validation_errors.append("Campaign name is required")
 		return false
 
 	# GDScript 2.0: Victory conditions validation (NEW)
 	var has_victory := false
 	if config.has("victory_conditions"):
-		var conditions: Dictionary = config.victory_conditions
+		var conditions: Dictionary = config["victory_conditions"]
 		for key: String in conditions:
 			if conditions.get(key, false) == true:
 				has_victory = true
 				break
-	
+
 	if not has_victory:
 		validation_errors.append("At least one victory condition must be selected")
 		return false
@@ -233,7 +234,7 @@ func _validate_config_phase() -> bool:
 
 func _validate_crew_phase() -> bool:
 	"""Enhanced crew setup validation with character completeness checking"""
-	var crew: Dictionary = campaign_data.crew as Dictionary
+	var crew: Dictionary = campaign_data["crew"] as Dictionary
 
 	# Allow empty crew data initially - panels will populate it
 	if crew.is_empty():
@@ -246,7 +247,7 @@ func _validate_crew_phase() -> bool:
 		return true
 
 	# If members array exists but is empty, that's an error
-	var members_array: Array = crew.members as Array
+	var members_array: Array = crew["members"] as Array
 	if members_array.is_empty():
 		validation_errors.append("At least one crew member is required")
 		return false
@@ -305,44 +306,44 @@ func _validate_crew_phase() -> bool:
 
 func _validate_captain_phase() -> bool:
 	"""Enhanced captain phase validation with flexible requirements"""
-	var captain: Dictionary = campaign_data.captain as Dictionary
-	
+	var captain: Dictionary = campaign_data["captain"] as Dictionary
+
 	# Allow initial empty state for captain creation UI
 	if captain.is_empty():
 		print("CampaignCreationStateManager: Captain data empty - allowing initial creation")
 		return true
-	
+
 	# Basic captain validation
-	if not captain.has("character_name") or str(captain.character_name).is_empty():
+	if not captain.has("character_name") or str(captain.get("character_name", "")).is_empty():
 		validation_errors.append("Captain must have a name")
 		return false
-	
-	if not captain.has("combat") or int(captain.combat) < 1:
+
+	if not captain.has("combat") or int(captain.get("combat", 0)) < 1:
 		validation_errors.append("Captain needs valid combat attribute")
 		return false
-	
-	if not captain.has("toughness") or int(captain.toughness) < 1:
+
+	if not captain.has("toughness") or int(captain.get("toughness", 0)) < 1:
 		validation_errors.append("Captain needs valid toughness attribute")
 		return false
-	
+
 	# Optional: Check for captain customization completeness
 	var completeness: float = float(captain.get("customization_completeness", 1.0))
 	if completeness < 0.6: # Require 60% completion minimum
 		validation_errors.append("Captain needs more customization")
 		return false
-	
-	print("CampaignCreationStateManager: Captain validation passed - %s" % str(captain.character_name))
+
+	print("CampaignCreationStateManager: Captain validation passed - %s" % str(captain.get("character_name", "")))
 	return true
 
 func _validate_ship_phase() -> bool:
 	"""Validate ship assignment"""
-	var ship: Dictionary = campaign_data.ship as Dictionary
+	var ship: Dictionary = campaign_data["ship"] as Dictionary
 
-	if not ship.has("name") or str(ship.name).is_empty():
+	if not ship.has("name") or str(ship.get("name", "")).is_empty():
 		validation_errors.append("Ship name is required")
 		return false
 
-	if not ship.has("type") or str(ship.type).is_empty():
+	if not ship.has("type") or str(ship.get("type", "")).is_empty():
 		validation_errors.append("Ship type must be selected")
 		return false
 
@@ -354,7 +355,7 @@ func _validate_ship_phase() -> bool:
 
 func _validate_equipment_phase() -> bool:
 	"""Validate equipment generation with backend integration check"""
-	var equipment: Dictionary = campaign_data.equipment as Dictionary
+	var equipment: Dictionary = campaign_data["equipment"] as Dictionary
 
 	# FIX: Use Dictionary access (equipment is stored as Dictionary, not Resource)
 	if not equipment.has("equipment") or (equipment["equipment"] as Array).is_empty():
@@ -364,7 +365,7 @@ func _validate_equipment_phase() -> bool:
 	if not bool(equipment.get("is_complete", false)):
 		validation_errors.append("Equipment setup incomplete")
 		return false
-	
+
 	# SPRINT ENHANCEMENT: Validate backend integration for equipment generation
 	# Note: Backend generation is optional - warnings don't block completion
 	# if not equipment.get("backend_generated", false):
@@ -374,7 +375,7 @@ func _validate_equipment_phase() -> bool:
 
 func _validate_world_phase() -> bool:
 	"""Validate world generation - very permissive as world can use defaults"""
-	var _world: Dictionary = campaign_data.world as Dictionary
+	var _world: Dictionary = campaign_data["world"] as Dictionary
 	
 	# World generation is optional - empty world data will use defaults
 	# This is intentionally permissive to allow campaign creation to complete
@@ -395,7 +396,7 @@ func _validate_final_phase() -> bool:
 			all_phases_valid = false
 
 	if all_phases_valid:
-		campaign_data.metadata.is_complete = true
+		campaign_data["metadata"]["is_complete"] = true
 	else:
 		print("DEBUG: Final validation failed. Total errors: %d" % validation_errors.size())
 
@@ -445,27 +446,27 @@ func _validate_config_with_warnings() -> Dictionary:
 		"warnings": []
 	}
 	
-	var config: Dictionary = campaign_data.config as Dictionary
-	
+	var config: Dictionary = campaign_data["config"] as Dictionary
+
 	# Allow progression even with empty config initially
 	if config.is_empty():
 		(result.warnings as Array).append("Configuration not set - will use defaults")
 		result.has_warnings = true
 		return result
-	
+
 	# Warnings that don't block progression
-	if not config.has("campaign_name") or str(config.campaign_name).is_empty():
+	if not config.has("campaign_name") or str(config.get("campaign_name", "")).is_empty():
 		(result.warnings as Array).append("Campaign name not set - will use default")
 		result.has_warnings = true
-	
-	if not config.has("difficulty_level") or int(config.difficulty_level) == 0:
+
+	if not config.has("difficulty_level") or int(config.get("difficulty_level", 0)) == 0:
 		(result.warnings as Array).append("Difficulty level not set - will use default")
 		result.has_warnings = true
-	
-	if not config.has("crew_size") or int(config.crew_size) == 0:
+
+	if not config.has("crew_size") or int(config.get("crew_size", 0)) == 0:
 		(result.warnings as Array).append("Crew size not set - will use default of 4")
 		result.has_warnings = true
-	
+
 	return result
 
 func _validate_crew_with_warnings() -> Dictionary:
@@ -478,28 +479,28 @@ func _validate_crew_with_warnings() -> Dictionary:
 		"warnings": []
 	}
 	
-	var crew: Dictionary = campaign_data.crew as Dictionary
-	
+	var crew: Dictionary = campaign_data["crew"] as Dictionary
+
 	# Allow empty crew data initially
 	if crew.is_empty():
 		(result.warnings as Array).append("Crew data empty - will be populated during setup")
 		result.has_warnings = true
 		return result
-	
+
 	# Warnings for incomplete setup
-	if not crew.has("members") or (crew.members as Array).is_empty():
+	if not crew.has("members") or (crew["members"] as Array).is_empty():
 		(result.warnings as Array).append("No crew members defined - using default setup")
 		result.has_warnings = true
-	
+
 	if not bool(crew.get("has_captain", false)):
 		(result.warnings as Array).append("No captain assigned - will be set during captain creation")
 		result.has_warnings = true
-	
+
 	# Check backend integration (warning only)
 	if not bool(crew.get("backend_generated", false)):
 		(result.warnings as Array).append("Crew not generated via backend system (using fallback)")
 		result.has_warnings = true
-	
+
 	return result
 
 func _validate_captain_with_warnings() -> Dictionary:
@@ -512,33 +513,33 @@ func _validate_captain_with_warnings() -> Dictionary:
 		"warnings": []
 	}
 	
-	var captain: Dictionary = campaign_data.captain as Dictionary
-	
+	var captain: Dictionary = campaign_data["captain"] as Dictionary
+
 	# Allow initial empty state
 	if captain.is_empty():
 		(result.warnings as Array).append("Captain not created yet - will be handled in captain panel")
 		result.has_warnings = true
 		return result
-	
+
 	# Warnings only - allow incomplete captains
-	if not captain.has("character_name") or str(captain.character_name).is_empty():
+	if not captain.has("character_name") or str(captain.get("character_name", "")).is_empty():
 		(result.warnings as Array).append("Captain name not set - will use default")
 		result.has_warnings = true
-	
-	if not captain.has("combat") or int(captain.combat) < 1:
+
+	if not captain.has("combat") or int(captain.get("combat", 0)) < 1:
 		(result.warnings as Array).append("Captain combat stats need setting")
 		result.has_warnings = true
-	
-	if not captain.has("toughness") or int(captain.toughness) < 1:
+
+	if not captain.has("toughness") or int(captain.get("toughness", 0)) < 1:
 		(result.warnings as Array).append("Captain toughness stats need setting")
 		result.has_warnings = true
-	
+
 	# Customization completeness warning
 	var completeness: float = float(captain.get("customization_completeness", 1.0))
 	if completeness < 0.8:
 		(result.warnings as Array).append("Captain customization could be more complete (%.0f%%)" % (completeness * 100))
 		result.has_warnings = true
-	
+
 	return result
 
 func _validate_ship_with_warnings() -> Dictionary:
@@ -551,27 +552,27 @@ func _validate_ship_with_warnings() -> Dictionary:
 		"warnings": []
 	}
 	
-	var ship: Dictionary = campaign_data.ship as Dictionary
-	
+	var ship: Dictionary = campaign_data["ship"] as Dictionary
+
 	# Allow empty ship data initially
 	if ship.is_empty():
 		(result.warnings as Array).append("Ship not assigned yet - will use default")
 		result.has_warnings = true
 		return result
-	
+
 	# Warnings only
-	if not ship.has("name") or str(ship.name).is_empty():
+	if not ship.has("name") or str(ship.get("name", "")).is_empty():
 		(result.warnings as Array).append("Ship name not set - will use default")
 		result.has_warnings = true
-	
-	if not ship.has("type") or str(ship.type).is_empty():
+
+	if not ship.has("type") or str(ship.get("type", "")).is_empty():
 		(result.warnings as Array).append("Ship type not specified - will use default")
 		result.has_warnings = true
-	
+
 	if not bool(ship.get("is_configured", false)):
 		(result.warnings as Array).append("Ship configuration incomplete - using default setup")
 		result.has_warnings = true
-	
+
 	return result
 
 func _validate_equipment_with_warnings() -> Dictionary:
@@ -584,28 +585,28 @@ func _validate_equipment_with_warnings() -> Dictionary:
 		"warnings": []
 	}
 	
-	var equipment: Dictionary = campaign_data.equipment as Dictionary
-	
+	var equipment: Dictionary = campaign_data["equipment"] as Dictionary
+
 	# Allow empty equipment initially
 	if equipment.is_empty():
 		(result.warnings as Array).append("Equipment not generated yet - will use default starting equipment")
 		result.has_warnings = true
 		return result
-	
+
 	# Warnings only - equipment generation is flexible (FIX: use Dictionary access)
 	if not equipment.has("equipment") or (equipment["equipment"] as Array).is_empty():
 		(result.warnings as Array).append("Starting equipment list empty - will generate defaults")
 		result.has_warnings = true
-	
+
 	if not bool(equipment.get("is_complete", false)):
 		(result.warnings as Array).append("Equipment setup marked as incomplete")
 		result.has_warnings = true
-	
+
 	# Backend integration warning
 	if not bool(equipment.get("backend_generated", false)):
 		(result.warnings as Array).append("Equipment not generated via backend system (using fallback)")
 		result.has_warnings = true
-	
+
 	return result
 
 func _validate_world_with_warnings() -> Dictionary:
@@ -617,8 +618,8 @@ func _validate_world_with_warnings() -> Dictionary:
 		"blocking_errors": [],
 		"warnings": []
 	}
-	
-	var world: Dictionary = campaign_data.world as Dictionary
+
+	var world: Dictionary = campaign_data["world"] as Dictionary
 	
 	# World generation is optional in early phases
 	if world.is_empty():
@@ -703,11 +704,14 @@ func _serialize_crew_data(crew_data: Dictionary) -> Dictionary:
 
 func _fallback_character_serialization(character: Variant) -> Dictionary:
 	"""Fallback character serialization for compatibility"""
+	# Sprint 26.3: Character-Everywhere - check Character/Object first
 	var char_dict: Dictionary = {}
-	if character is Dictionary:
+	if character is Object and character.has_method("to_dictionary"):
+		char_dict = character.to_dictionary()
+	elif character is Dictionary:
 		char_dict = character as Dictionary
 	elif character is Object:
-		# Convert object properties to dictionary
+		# Convert object properties to dictionary manually
 		char_dict = {}
 	
 	return {
@@ -866,17 +870,17 @@ func _validate_imported_data(save_data: Dictionary) -> FiveParsecsValidationResu
 			return result
 	
 	# Validate campaign name if present
-	if save_data.config.has("campaign_name"):
-		var name_validation = SecurityValidator.validate_string_input(save_data.config.campaign_name, 50)
+	if save_data["config"].has("campaign_name"):
+		var name_validation = SecurityValidator.validate_string_input(save_data["config"]["campaign_name"], 50)
 		if not name_validation.valid:
 			result.valid = false
 			result.error = "Invalid campaign name: " + name_validation.error
 			return result
-		save_data.config.campaign_name = name_validation.sanitized_value
-	
+		save_data["config"]["campaign_name"] = name_validation.sanitized_value
+
 	# Validate character names
-	if save_data.crew.has("members"):
-		for member in save_data.crew.members:
+	if save_data["crew"].has("members"):
+		for member in save_data["crew"]["members"]:
 			if member.has("name"):
 				var name_validation = SecurityValidator.validate_string_input(member.name, 50)
 				if not name_validation.valid:
@@ -930,7 +934,7 @@ func update_campaign_config_secure(config_data: Dictionary) -> bool:
 		print("CampaignCreationStateManager: CONFIG_VALIDATION_FAILED - Errors: ", local_validation_errors)
 		return false
 	
-	campaign_data.config.merge(config_data)
+	campaign_data["config"].merge(config_data)
 	print("CampaignCreationStateManager: CONFIG_UPDATED - Campaign config validated and updated")
 	return true
 
@@ -973,11 +977,11 @@ func update_character_secure(character_data: Dictionary, character_type: String 
 	# Update appropriate data structure
 	match character_type:
 		"captain":
-			(campaign_data.captain as Dictionary).merge(character_data)
+			(campaign_data["captain"] as Dictionary).merge(character_data)
 		"crew":
-			if not (campaign_data.crew as Dictionary).has("members"):
-				campaign_data.crew.members = []
-			(campaign_data.crew.members as Array).append(character_data)
+			if not (campaign_data["crew"] as Dictionary).has("members"):
+				campaign_data["crew"]["members"] = []
+			(campaign_data["crew"]["members"] as Array).append(character_data)
 	
 	print("CampaignCreationStateManager: CHARACTER_UPDATED - Character validated: ", character_data.get("name", "Unknown"))
 	return true
@@ -1002,11 +1006,11 @@ func update_config_data(config_data: Dictionary) -> bool:
 	"""Update configuration data - wrapper for UI integration"""
 	if config_data.is_empty():
 		return false
-	
+
 	# Merge with existing config data
 	for key in config_data:
-		campaign_data.config[key] = config_data[key]
-	
+		campaign_data["config"][key] = config_data[key]
+
 	_validate_current_phase()
 	state_updated.emit(current_phase, get_phase_data(current_phase))
 	return true
@@ -1015,11 +1019,11 @@ func update_crew_data(crew_data: Dictionary) -> bool:
 	"""Update crew data - wrapper for UI integration"""
 	if crew_data.is_empty():
 		return false
-	
+
 	# Merge with existing crew data
 	for key in crew_data:
-		campaign_data.crew[key] = crew_data[key]
-	
+		campaign_data["crew"][key] = crew_data[key]
+
 	_validate_current_phase()
 	state_updated.emit(current_phase, get_phase_data(current_phase))
 	return true
@@ -1028,11 +1032,11 @@ func update_captain_data(captain_data: Dictionary) -> bool:
 	"""Update captain data - wrapper for UI integration"""
 	if captain_data.is_empty():
 		return false
-	
+
 	# Merge with existing captain data
 	for key in captain_data:
-		campaign_data.captain[key] = captain_data[key]
-	
+		campaign_data["captain"][key] = captain_data[key]
+
 	_validate_current_phase()
 	state_updated.emit(current_phase, get_phase_data(current_phase))
 	return true
@@ -1056,38 +1060,38 @@ func confirm_captain_creation(captain_data: Dictionary) -> Dictionary:
 	_operation_lock.unlock()
 	
 	# Validate captain data before confirmation
-	if not captain_data.has("character_name") or captain_data.character_name.is_empty():
+	if not captain_data.has("character_name") or str(captain_data.get("character_name", "")).is_empty():
 		result.error = "Captain must have a name before confirmation"
 		_is_processing_confirmation = false
 		return result
-	
+
 	# Store original state for rollback if needed
-	var original_captain_data = campaign_data.captain.duplicate(true)
-	
+	var original_captain_data = campaign_data["captain"].duplicate(true)
+
 	# Update captain data
 	if not update_captain_data(captain_data):
 		result.error = "Failed to update captain data"
 		_is_processing_confirmation = false
 		return result
-	
+
 	# Mark captain as confirmed
-	campaign_data.captain["confirmed"] = true
-	campaign_data.captain["created_at"] = Time.get_datetime_string_from_system()
-	
+	campaign_data["captain"]["confirmed"] = true
+	campaign_data["captain"]["created_at"] = Time.get_datetime_string_from_system()
+
 	# Validate captain phase after confirmation
 	validation_errors.clear()
 	if not _validate_captain_phase():
 		# Rollback on validation failure
-		campaign_data.captain = original_captain_data
+		campaign_data["captain"] = original_captain_data
 		result.error = "Captain validation failed after confirmation: " + str(validation_errors)
 		_is_processing_confirmation = false
 		return result
 	
 	# Mark captain creation as complete in metadata
-	if not campaign_data.metadata.has("phase_completion"):
-		campaign_data.metadata.phase_completion = {}
-	
-	campaign_data.metadata.phase_completion[Phase.CAPTAIN_CREATION] = {
+	if not campaign_data["metadata"].has("phase_completion"):
+		campaign_data["metadata"]["phase_completion"] = {}
+
+	campaign_data["metadata"]["phase_completion"][Phase.CAPTAIN_CREATION] = {
 		"completed": true,
 		"completed_at": Time.get_datetime_string_from_system(),
 		"captain_name": captain_data.get("character_name", "Unknown")
@@ -1219,11 +1223,11 @@ func update_ship_data(ship_data: Dictionary) -> bool:
 	"""Update ship data - wrapper for UI integration"""
 	if ship_data.is_empty():
 		return false
-	
+
 	# Merge with existing ship data
 	for key in ship_data:
-		campaign_data.ship[key] = ship_data[key]
-	
+		campaign_data["ship"][key] = ship_data[key]
+
 	_validate_current_phase()
 	state_updated.emit(current_phase, get_phase_data(current_phase))
 	return true
@@ -1232,11 +1236,11 @@ func update_equipment_data(equipment_data: Dictionary) -> bool:
 	"""Update equipment data - wrapper for UI integration"""
 	if equipment_data.is_empty():
 		return false
-	
+
 	# Merge with existing equipment data
 	for key in equipment_data:
-		campaign_data.equipment[key] = equipment_data[key]
-	
+		campaign_data["equipment"][key] = equipment_data[key]
+
 	_validate_current_phase()
 	state_updated.emit(current_phase, get_phase_data(current_phase))
 	return true
@@ -1245,11 +1249,11 @@ func update_world_data(world_data: Dictionary) -> bool:
 	"""Update world data - wrapper for UI integration"""
 	if world_data.is_empty():
 		return false
-	
+
 	# Merge with existing world data
 	for key in world_data:
-		campaign_data.world[key] = world_data[key]
-	
+		campaign_data["world"][key] = world_data[key]
+
 	_validate_current_phase()
 	state_updated.emit(current_phase, get_phase_data(current_phase))
 	return true
@@ -1340,47 +1344,47 @@ func update_campaign_data(update_data: Dictionary) -> bool:
 	
 	# Update each section of campaign data
 	var sections_updated = []
-	
+
 	# Update config section
 	if update_data.has("config"):
-		for key in update_data.config:
-			campaign_data.config[key] = update_data.config[key]
+		for key in update_data["config"]:
+			campaign_data["config"][key] = update_data["config"][key]
 		sections_updated.append("config")
-	
+
 	# Update captain section
 	if update_data.has("captain"):
-		for key in update_data.captain:
-			campaign_data.captain[key] = update_data.captain[key]
+		for key in update_data["captain"]:
+			campaign_data["captain"][key] = update_data["captain"][key]
 		sections_updated.append("captain")
-	
+
 	# Update crew section
 	if update_data.has("crew"):
-		for key in update_data.crew:
-			campaign_data.crew[key] = update_data.crew[key]
+		for key in update_data["crew"]:
+			campaign_data["crew"][key] = update_data["crew"][key]
 		sections_updated.append("crew")
-	
+
 	# Update ship section
 	if update_data.has("ship"):
-		for key in update_data.ship:
-			campaign_data.ship[key] = update_data.ship[key]
+		for key in update_data["ship"]:
+			campaign_data["ship"][key] = update_data["ship"][key]
 		sections_updated.append("ship")
-	
+
 	# Update equipment section
 	if update_data.has("equipment"):
-		for key in update_data.equipment:
-			campaign_data.equipment[key] = update_data.equipment[key]
+		for key in update_data["equipment"]:
+			campaign_data["equipment"][key] = update_data["equipment"][key]
 		sections_updated.append("equipment")
-	
+
 	# Update world section
 	if update_data.has("world"):
-		for key in update_data.world:
-			campaign_data.world[key] = update_data.world[key]
+		for key in update_data["world"]:
+			campaign_data["world"][key] = update_data["world"][key]
 		sections_updated.append("world")
-	
+
 	# Update metadata section
 	if update_data.has("metadata"):
-		for key in update_data.metadata:
-			campaign_data.metadata[key] = update_data.metadata[key]
+		for key in update_data["metadata"]:
+			campaign_data["metadata"][key] = update_data["metadata"][key]
 		sections_updated.append("metadata")
 	
 	# Validate current phase after updates

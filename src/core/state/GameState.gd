@@ -256,21 +256,14 @@ func _get_campaign_dictionary() -> Dictionary:
 		return {}
 
 func _get_safe_crew_members() -> Array:
-	print("GameState._get_safe_crew_members() called")
-	print("  _current_campaign is null: %s" % str(_current_campaign == null))
-
+	"""Get crew members from campaign (Sprint 26.3: Returns Character objects)"""
 	if not _current_campaign:
-		print("  Returning empty array - no campaign")
 		return []
 
-	print("  Campaign exists, checking for get_crew_members method")
 	if _current_campaign and _current_campaign.has_method("get_crew_members"):
-		print("  Calling _current_campaign.get_crew_members()")
-		var crew = _current_campaign.get_crew_members()
-		print("  Received %d crew members from campaign" % crew.size())
-		return crew
+		# Sprint 26.3: Campaign.get_crew_members() now returns Array[Character]
+		return _current_campaign.get_crew_members()
 	else:
-		print("  Campaign doesn't have get_crew_members method!")
 		return []
 
 
@@ -1289,6 +1282,7 @@ func has_crew() -> bool:
 	return get_crew_size() > 0
 
 func get_crew_members() -> Array:
+	"""Get crew members (Sprint 26.3: Returns Character objects, not Dictionaries)"""
 	if not _current_campaign:
 		return []
 	return _get_safe_crew_members()
@@ -1322,15 +1316,19 @@ func add_crew_experience(character_id: String, xp: int) -> bool:
 		return false
 
 	# Try to add experience via method or property
+	# Sprint 26.3: Character-Everywhere - crew members are always Character objects
 	if character.has_method("add_experience"):
 		character.add_experience(xp)
 		print("GameState: Awarded %d XP to %s (via method)" % [xp, character_id])
+	elif "xp" in character:
+		character.xp = character.xp + xp
+		print("GameState: Awarded %d XP to %s (via property)" % [xp, character_id])
+	elif "experience" in character:
+		character.experience = character.experience + xp
+		print("GameState: Awarded %d XP to %s (via experience property)" % [xp, character_id])
 	elif character is Dictionary and "xp" in character:
 		character["xp"] = character.get("xp", 0) + xp
 		print("GameState: Awarded %d XP to %s (via dict)" % [xp, character_id])
-	elif character is Object and "xp" in character:
-		character.xp = character.xp + xp
-		print("GameState: Awarded %d XP to %s (via property)" % [xp, character_id])
 	else:
 		push_error("GameState.add_crew_experience: Character has no XP tracking")
 		return false
@@ -1408,12 +1406,12 @@ func get_wounded_crew() -> Array:
 	var crew_members = get_crew_members()
 
 	for character in crew_members:
-		# Handle both Dictionary and Resource types
+		# Sprint 26.3: Character-Everywhere - crew members are always Character objects
 		var has_injuries: bool = false
-		if character is Dictionary:
+		if character and "injuries" in character:
+			has_injuries = character.injuries.size() > 0 if character.injuries else false
+		elif character is Dictionary:
 			has_injuries = character.has("injuries") and character.injuries.size() > 0
-		elif character and "injuries" in character:
-			has_injuries = character.injuries.size() > 0
 		if has_injuries:
 			wounded.append(character)
 
@@ -1831,3 +1829,105 @@ func get_campaign_turn() -> int:
 	if _current_campaign:
 		return _current_campaign.current_turn
 	return 0
+
+## ==========================================
+## Economy Bridge (Sprint 29.1a)
+## Provides access to EconomySystem history and analytics
+## EconomySystem remains the authoritative source for transaction history
+## ==========================================
+
+## Get resource transaction history from EconomySystem
+func get_resource_history(resource_type: int = -1) -> Array:
+	"""Get resource transaction history.
+
+	Args:
+		resource_type: Specific resource type, or -1 for all history
+
+	Returns:
+		Array of transaction dictionaries from EconomySystem
+
+	See: EconomySystem.ResourceTransaction for entry structure
+	"""
+	var economy_system = get_node_or_null("/root/EconomySystem")
+	if not economy_system:
+		return []
+
+	if resource_type >= 0:
+		# Get history for specific resource type
+		if economy_system.resource_history.has(resource_type):
+			var history: Array = []
+			for entry in economy_system.resource_history[resource_type]:
+				history.append(economy_system._create_history_entry_dict(entry))
+			return history
+		return []
+	else:
+		# Get all history combined
+		var all_history: Array = []
+		for type_key in economy_system.resource_history.keys():
+			for entry in economy_system.resource_history[type_key]:
+				all_history.append(economy_system._create_history_entry_dict(entry))
+		# Sort by timestamp (newest first)
+		all_history.sort_custom(func(a, b): return a.timestamp > b.timestamp)
+		return all_history
+
+## Get resource analytics from EconomySystem
+func get_resource_analytics(resource_type: int) -> Dictionary:
+	"""Get detailed resource analytics.
+
+	Args:
+		resource_type: Resource type to analyze
+
+	Returns:
+		Dictionary with analytics (total_changes, positive_changes, etc.)
+
+	See: EconomySystem.get_resource_analytics()
+	"""
+	var economy_system = get_node_or_null("/root/EconomySystem")
+	if not economy_system or not economy_system.has_method("get_resource_analytics"):
+		return {}
+
+	return economy_system.get_resource_analytics(resource_type)
+
+## Record a resource change with full history tracking
+func record_resource_change(resource_type: int, old_value: int, new_value: int, source: String) -> void:
+	"""Record resource change in EconomySystem history.
+
+	Call this when modifying resources to maintain audit trail.
+
+	Args:
+		resource_type: Type of resource changed
+		old_value: Previous value
+		new_value: New value
+		source: Description of change source (e.g., "upkeep", "trade_sale")
+	"""
+	var economy_system = get_node_or_null("/root/EconomySystem")
+	if not economy_system or not economy_system.has_method("_add_history_entry"):
+		return
+
+	economy_system._add_history_entry(resource_type, old_value, new_value, source)
+
+## Get economy system status
+func get_economy_status() -> Dictionary:
+	"""Get overall economy system status.
+
+	Returns:
+		Dictionary with market state, planetary economies, etc.
+	"""
+	var economy_system = get_node_or_null("/root/EconomySystem")
+	if not economy_system or not economy_system.has_method("get_status"):
+		return {}
+
+	return economy_system.get_status()
+
+## Get serializable economy data for save/load
+func get_economy_data() -> Dictionary:
+	"""Get all economy data for saving.
+
+	Returns:
+		Complete serializable economy state
+	"""
+	var economy_system = get_node_or_null("/root/EconomySystem")
+	if not economy_system or not economy_system.has_method("get_data"):
+		return {}
+
+	return economy_system.get_data()

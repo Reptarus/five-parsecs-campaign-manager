@@ -416,19 +416,20 @@ func _on_job_accepted(data: Dictionary) -> void:
 			if campaign.has_method("get_crew_members"):
 				crew = campaign.get_crew_members()
 			elif campaign.crew_members.size() > 0:
+				# Sprint 26.3: Character-Everywhere - crew_members are always Character objects
 				for member in campaign.crew_members:
-					if member is Dictionary:
-						crew.append(member)
-					elif member != null and member.has_method("to_dictionary"):
+					if member != null and member.has_method("to_dictionary"):
 						crew.append(member.to_dictionary())
+					elif member is Dictionary:
+						crew.append(member)
 
 		# Get equipment from stash (stored in campaign settings or resources)
 		var equipment: Array[Dictionary] = []
 		if game_state and game_state.current_campaign:
 			var campaign = game_state.current_campaign
 			# Check for ship stash in settings
-			if campaign.settings.has("ship") and campaign.settings.ship.has("stash"):
-				var stash = campaign.settings.ship.stash
+			if campaign.settings.has("ship") and campaign.settings["ship"].has("stash"):
+				var stash = campaign.settings["ship"]["stash"]
 				for item in stash:
 					if item is Dictionary:
 						equipment.append(item)
@@ -452,6 +453,11 @@ func is_prep_completed() -> bool:
 	"""Check if mission prep is completed"""
 	return prep_completed
 
+## Sprint 22.1: Alias for WorldPhaseController compatibility
+func is_mission_prepared() -> bool:
+	"""Alias for is_prep_completed() - used by WorldPhaseController"""
+	return is_prep_completed()
+
 func get_crew_assignments() -> Dictionary:
 	"""Get crew equipment assignments"""
 	return crew_equipment_assignments.duplicate()
@@ -459,6 +465,17 @@ func get_crew_assignments() -> Dictionary:
 func get_mission_data() -> Dictionary:
 	"""Get mission data"""
 	return mission_data.duplicate()
+
+## Sprint 12.2: Standardized step results for WorldPhaseController integration
+func get_step_results() -> Dictionary:
+	"""Get step results for phase completion (standardized interface)"""
+	return {
+		"prep_completed": prep_completed,
+		"mission_data": mission_data.duplicate(),
+		"crew_assignments": crew_equipment_assignments.duplicate(),
+		"crew_data": crew_data.duplicate(),
+		"available_equipment": available_equipment.duplicate()
+	}
 
 func reset_mission_prep() -> void:
 	"""Reset mission prep for new mission"""

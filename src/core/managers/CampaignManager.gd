@@ -845,34 +845,34 @@ func load_campaign_secure(file_path: String) -> bool:
 		return false
 	
 	# Extract mission data from metadata if available
-	var mission_data = campaign_data.metadata.get("missions", {})
+	var mission_data = campaign_data["metadata"].get("missions", {})
 	var legacy_save_data = {
-		"version": campaign_data.metadata.get("version", "1.0"),
+		"version": campaign_data["metadata"].get("version", "1.0"),
 		"timestamp": Time.get_unix_time_from_system(),
 		"available_missions": mission_data.get("available", []),
 		"active_missions": mission_data.get("active", []),
 		"completed_missions": mission_data.get("completed", []),
 		"mission_history": mission_data.get("history", [])
 	}
-	
+
 	# Use existing load method for mission data
 	var mission_load_success = load_campaign_state(legacy_save_data)
 	if not mission_load_success:
 		SecurityValidator.log_security_event("MISSION_LOAD_FAILED", "Failed to load mission data from secure save")
 		return false
-	
+
 	# Update game state with loaded campaign data
 	if game_state:
-		game_state.campaign_name = campaign_data.config.get("campaign_name", "Unnamed Campaign")
-		game_state.difficulty = campaign_data.config.get("difficulty", 3)
-		game_state.crew_size = campaign_data.config.get("crew_size", 4)
-		game_state.crew_members = campaign_data.crew.get("members", [])
-		game_state.captain_name = campaign_data.captain.get("name", "Captain")
-		game_state.captain_stats = campaign_data.captain.get("stats", {})
-		game_state.ship_name = campaign_data.ship.get("name", "Ship")
-		game_state.ship_stats = campaign_data.ship.get("stats", {})
-		game_state.weapons = campaign_data.equipment.get("weapons", [])
-		game_state.armor = campaign_data.equipment.get("armor", [])
+		game_state.campaign_name = campaign_data["config"].get("campaign_name", "Unnamed Campaign")
+		game_state.difficulty = campaign_data["config"].get("difficulty", 3)
+		game_state.crew_size = campaign_data["config"].get("crew_size", 4)
+		game_state.crew_members = campaign_data["crew"].get("members", [])
+		game_state.captain_name = campaign_data["captain"].get("name", "Captain")
+		game_state.captain_stats = campaign_data["captain"].get("stats", {})
+		game_state.ship_name = campaign_data["ship"].get("name", "Ship")
+		game_state.ship_stats = campaign_data["ship"].get("stats", {})
+		game_state.weapons = campaign_data["equipment"].get("weapons", [])
+		game_state.armor = campaign_data["equipment"].get("armor", [])
 
 	SecurityValidator.log_security_event("CAMPAIGN_LOADED", "Campaign loaded successfully: " + file_path)
 	campaign_loaded.emit(campaign_data)
@@ -1249,17 +1249,21 @@ func _generate_random_mission() -> StoryQuestData:
 ## Character serialization for Five Parsecs campaign save
 func _serialize_crew_members(crew_members: Array) -> Array:
 	"""Serialize crew members with all Five Parsecs attributes"""
+	# Sprint 26.3: Character-Everywhere - crew members are always Character objects
 	var serialized_crew = []
-	
+
 	for member in crew_members:
 		if member is Character:
 			serialized_crew.append(_serialize_character(member))
+		elif member != null and member.has_method("to_dictionary"):
+			# Character object with serialization method
+			serialized_crew.append(member.to_dictionary())
 		elif member is Dictionary:
 			# Already serialized or legacy format
 			serialized_crew.append(member)
 		else:
 			push_warning("CampaignManager: Unknown crew member type during save: %s" % type_string(typeof(member)))
-	
+
 	return serialized_crew
 
 func _serialize_character(character: Character) -> Dictionary:
@@ -1286,13 +1290,13 @@ func _serialize_character(character: Character) -> Dictionary:
 		"move": character.move,
 		"luck": character.luck,
 		
-		# Additional data
-		"health": character.health if character.has("health") else character.toughness,
-		"max_health": character.max_health if character.has("max_health") else character.toughness,
-		"experience": character.experience if character.has("experience") else 0,
-		"credits": character.credits if character.has("credits") else 0,
-		"is_captain": character.is_captain if character.has("is_captain") else false,
-		"created_at": character.created_at if character.has("created_at") else Time.get_datetime_string_from_system(),
+		# Additional data - use "in" for Resource property checks
+		"health": character.health if "health" in character else character.toughness,
+		"max_health": character.max_health if "max_health" in character else character.toughness,
+		"experience": character.experience if "experience" in character else 0,
+		"credits": character.credits if "credits" in character else 0,
+		"is_captain": character.is_captain if "is_captain" in character else false,
+		"created_at": character.created_at if "created_at" in character else Time.get_datetime_string_from_system(),
 		
 		# Serialization metadata
 		"serialization_version": "1.0",

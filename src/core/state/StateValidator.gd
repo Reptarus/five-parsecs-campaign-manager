@@ -281,21 +281,27 @@ func run_validation(game_state: GameState, validation_type: ValidationType, scop
 			if game_state.has_crew():
 				var crew_members: Array = game_state.get_crew_members()
 				for character in crew_members:
-					if character is Dictionary:
-						var character_dict: Dictionary = character as Dictionary
-						var character_errors: Array[String] = validate_character(character_dict)
-						# Convert string errors to StateValidationResult objects
-						for error_msg in character_errors:
-							results.append(create_result(
-								1, # VerificationType.STATE
-								1, # VerificationResult.ERROR
-								error_msg
-							))
+					# Sprint 26.3: Character-Everywhere - handle Character objects first
+					var character_dict: Dictionary = {}
+					if character is Object and character.has_method("to_dictionary"):
+						character_dict = character.to_dictionary()
+					elif character is Dictionary:
+						character_dict = character as Dictionary
 					else:
 						results.append(create_result(
 							1, # VerificationType.STATE
 							1, # VerificationResult.ERROR
-							"Invalid character data type"
+							"Invalid character data type: %s" % typeof(character)
+						))
+						continue
+
+					var character_errors: Array[String] = validate_character(character_dict)
+					# Convert string errors to StateValidationResult objects
+					for error_msg in character_errors:
+						results.append(create_result(
+							1, # VerificationType.STATE
+							1, # VerificationResult.ERROR
+							error_msg
 						))
 			else:
 				results.append(create_result(

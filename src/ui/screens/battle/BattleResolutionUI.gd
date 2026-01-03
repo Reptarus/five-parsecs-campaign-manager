@@ -63,6 +63,10 @@ var battle_manager: FPCM_BattleManager = null
 var dice_system: FPCM_DiceSystem = null
 var battle_state: FPCM_BattleState = null
 
+## Sprint 11.5: BattlePhase integration for campaign turn system
+var battle_phase_handler: Node = null  # Reference to BattlePhase for campaign turn integration
+var _awaiting_mode_selection: bool = false  # True when BattlePhase is waiting for mode choice
+
 # Battle data - modernized with strict typing
 var current_mission: Resource = null
 var crew_members: Array[Resource] = []
@@ -94,10 +98,90 @@ func _connect_signals() -> void:
 	flee_button.pressed.connect(_on_attempt_flee)
 	back_button.pressed.connect(_on_back_pressed)
 	continue_button.pressed.connect(_on_continue_pressed)
-	
+
 	# Connect battle results panel signals
 	close_results_button.pressed.connect(_on_close_results_pressed)
 	continue_from_results_button.pressed.connect(_on_continue_from_results_pressed)
+
+	# Sprint 11.5: Try to connect to BattlePhase for campaign turn integration
+	call_deferred("_try_connect_battle_phase")
+
+## Sprint 11.5: BattlePhase Integration Methods
+
+func _try_connect_battle_phase() -> void:
+	"""Try to find and connect to BattlePhase handler for campaign turn integration"""
+	# Check if CampaignPhaseManager exists and has battle phase handler
+	var cpm = get_node_or_null("/root/CampaignPhaseManager")
+	if cpm and cpm.has_method("get_current_phase_handler"):
+		var handler = cpm.get_current_phase_handler()
+		if handler and handler.get_class() == "BattlePhase":
+			set_battle_phase_handler(handler)
+			return
+
+	# Alternative: Search for BattlePhase in tree
+	var battle_phase = _find_node_by_script_class("BattlePhase")
+	if battle_phase:
+		set_battle_phase_handler(battle_phase)
+
+func set_battle_phase_handler(handler: Node) -> void:
+	"""Connect to BattlePhase handler for campaign turn battle mode selection"""
+	if battle_phase_handler and battle_phase_handler.has_signal("battle_mode_selection_requested"):
+		if battle_phase_handler.battle_mode_selection_requested.is_connected(_on_battle_mode_selection_requested):
+			battle_phase_handler.battle_mode_selection_requested.disconnect(_on_battle_mode_selection_requested)
+
+	battle_phase_handler = handler
+
+	if battle_phase_handler and battle_phase_handler.has_signal("battle_mode_selection_requested"):
+		battle_phase_handler.battle_mode_selection_requested.connect(_on_battle_mode_selection_requested)
+		print("BattleResolutionUI: Connected to BattlePhase for battle mode selection")
+
+func _on_battle_mode_selection_requested(crew_count: int, enemy_count: int) -> void:
+	"""Handle battle mode selection request from BattlePhase (campaign turn system)"""
+	_awaiting_mode_selection = true
+	_log_battle_message("Choose your battle approach:", Color.YELLOW)
+	_log_battle_message("  [Resolve Battle] - Auto-resolve using Five Parsecs rules", Color.CYAN)
+	_log_battle_message("  [Play Tactically] - Turn-by-turn tactical combat", Color.CYAN)
+	_log_battle_message("  Crew: %d vs Enemies: %d" % [crew_count, enemy_count], Color.WHITE)
+
+	# Enable battle action buttons
+	resolve_button.disabled = false
+	tactical_button.disabled = false
+
+func _notify_battle_phase_mode_selected(tactical: bool) -> void:
+	"""Notify BattlePhase of user's battle mode selection"""
+	if _awaiting_mode_selection and battle_phase_handler:
+		if battle_phase_handler.has_method("set_battle_mode"):
+			battle_phase_handler.set_battle_mode(tactical)
+			_awaiting_mode_selection = false
+			print("BattleResolutionUI: Notified BattlePhase of mode selection: %s" % ("Tactical" if tactical else "Auto-Resolve"))
+
+func _find_node_by_script_class(script_class_name: String) -> Node:
+	"""Find a node by its script class_name"""
+	if not is_inside_tree():
+		return null
+
+	var root = get_tree().root
+	return _recursive_find_by_script_class(root, script_class_name)
+
+func _recursive_find_by_script_class(node: Node, target_class: String) -> Node:
+	"""Recursively search for node with matching script class"""
+	var script = node.get_script()
+	if script:
+		# Check global name if available
+		if script.has_method("get_global_name"):
+			if script.get_global_name() == target_class:
+				return node
+		# Check class name from resource path
+		var path = script.resource_path
+		if path.ends_with("/" + target_class + ".gd"):
+			return node
+
+	for child in node.get_children():
+		var found = _recursive_find_by_script_class(child, target_class)
+		if found:
+			return found
+
+	return null
 
 func _setup_ui() -> void:
 	"""Initialize UI state"""
@@ -112,7 +196,8 @@ func setup_battle(mission: Resource, crew: Array, enemies: Array = []) -> void:
 
 	# Generate enemies if not provided
 	if enemies.is_empty() and alpha_manager:
-		enemy_forces = alpha_manager.generate_enemies_for_mission(mission)
+		# Pass crew size for proper enemy scaling (Core Rules p.63)
+		enemy_forces = alpha_manager.generate_enemies_for_mission(mission, crew.size())
 	else:
 		enemy_forces = enemies.duplicate()
 
@@ -234,6 +319,14 @@ func _on_resolve_battle_automatically() -> void:
 	if battle_in_progress:
 		return
 
+	# Sprint 11.5: Notify BattlePhase if awaiting mode selection (campaign turn flow)
+	if _awaiting_mode_selection:
+		_notify_battle_phase_mode_selected(false)  # Auto-resolve mode
+		_log_battle_message("Selected: Auto-Resolve Mode", Color.CYAN)
+		# BattlePhase will handle the actual battle - we just provide the UI choice
+		return
+
+	# Standalone battle flow (not part of campaign turn)
 	battle_in_progress = true
 	_disable_battle_actions()
 	_log_battle_message("Resolving battle automatically...", Color.CYAN)
@@ -248,6 +341,16 @@ func _on_play_tactical_battle() -> void:
 	"""Switch to tactical battle mode"""
 	_log_battle_message("Switching to tactical battle mode...", Color.CYAN)
 
+	# Sprint 11.5: Notify BattlePhase if awaiting mode selection (campaign turn flow)
+	if _awaiting_mode_selection:
+		_notify_battle_phase_mode_selected(true)  # Tactical mode
+		_log_battle_message("Selected: Tactical Combat Mode", Color.CYAN)
+		# BattlePhase will handle the tactical battle setup via TacticalBattleUI
+		# We can still show local tactical UI as well
+		visible = false
+		return
+
+	# Standalone battle flow (not part of campaign turn)
 	# Load tactical battle scene
 	var tactical_scene = preload("res://src/ui/screens/battle/TacticalBattleUI.tscn")
 	var tactical_battle: Node = tactical_scene.instantiate()
@@ -328,7 +431,7 @@ func _calculate_crew_combat_power() -> int:
 	"""Calculate total crew combat effectiveness"""
 	var total_power: int = 0
 	for crew_member in crew_members:
-		var combat_skill: int = crew_member.combat_skill if crew_member.has("combat_skill") else 1
+		var combat_skill: int = crew_member.combat_skill if "combat_skill" in crew_member else 1
 		var equipment_bonus: int = _calculate_equipment_bonus(crew_member)
 		total_power += combat_skill + equipment_bonus
 
@@ -340,7 +443,10 @@ func _calculate_equipment_bonus(crew_member) -> int:
 	var equipment = []
 
 	# Get equipment from character
-	if crew_member is Dictionary:
+	# Sprint 26.3: Character-Everywhere - crew members are always Character objects
+	if "equipment" in crew_member:
+		equipment = crew_member.equipment if crew_member.equipment else []
+	elif crew_member is Dictionary:
 		equipment = crew_member.get("equipment", [])
 	elif crew_member.has_method("get"):
 		equipment = crew_member.get("equipment")

@@ -156,12 +156,15 @@ static func validate_state_transitions(state_history: Array) -> Dictionary:
 		"FINALIZE": ["COMPLETE", "EQUIPMENT"],
 		"COMPLETE": [],
 		"CANCELLED": [],
-		# Campaign turn states
-		"UPKEEP": ["TRAVEL", "WORLD"],
-		"TRAVEL": ["WORLD", "UPKEEP"],
-		"WORLD": ["BATTLE", "UPKEEP"],
+		# Campaign turn states (Five Parsecs Four-Phase structure)
+		# NOTE: UPKEEP is a sub-step of WORLD phase, not a top-level phase
+		# See CampaignPhaseConstants for authoritative phase transition logic
+		"NONE": ["SETUP", "TRAVEL"],
+		"SETUP": ["TRAVEL"],
+		"TRAVEL": ["WORLD"],
+		"WORLD": ["BATTLE", "TRAVEL"],  # Can skip battle or fight
 		"BATTLE": ["POST_BATTLE"],
-		"POST_BATTLE": ["UPKEEP"]
+		"POST_BATTLE": ["TRAVEL"]  # Returns to travel for next turn
 	}
 
 	for i in range(state_history.size() - 1):
@@ -209,26 +212,33 @@ static func validate_crew_data(crew: Array) -> Dictionary:
 		var character = crew[i]
 		var char_name = "Character %d" % i
 
-		if character is Dictionary:
+		# Sprint 26.3: Character-Everywhere - handle Character objects first
+		var char_dict: Dictionary = {}
+		if character is Object and character.has_method("to_dictionary"):
+			char_dict = character.to_dictionary()
+			char_name = character.character_name if "character_name" in character else char_name
+		elif character is Dictionary:
+			char_dict = character
 			char_name = character.get("name", character.get("character_name", char_name))
-
-			# Check required fields
-			for field in required_fields:
-				if not character.has(field):
-					result.issues.append("%s missing required field: %s" % [char_name, field])
-					result.success = false
-
-			# Validate stat ranges
-			for stat in stat_ranges.keys():
-				if character.has(stat):
-					var value = character[stat]
-					var range_data = stat_ranges[stat]
-					if value < range_data.min or value > range_data.max:
-						result.issues.append("%s has invalid %s: %d (expected %d-%d)" % [char_name, stat, value, range_data.min, range_data.max])
-						result.success = false
 		else:
-			result.issues.append("Character %d is not a Dictionary" % i)
+			result.issues.append("%s has invalid type: %s" % [char_name, typeof(character)])
 			result.success = false
+			continue
+
+		# Check required fields
+		for field in required_fields:
+			if not char_dict.has(field):
+				result.issues.append("%s missing required field: %s" % [char_name, field])
+				result.success = false
+
+		# Validate stat ranges
+		for stat in stat_ranges.keys():
+			if char_dict.has(stat):
+				var value = char_dict[stat]
+				var range_data = stat_ranges[stat]
+				if value < range_data.min or value > range_data.max:
+					result.issues.append("%s has invalid %s: %d (expected %d-%d)" % [char_name, stat, value, range_data.min, range_data.max])
+					result.success = false
 
 	result.message = "Validated %d crew members, found %d issues" % [crew.size(), result.issues.size()]
 	return result

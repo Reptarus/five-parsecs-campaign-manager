@@ -894,18 +894,21 @@ func _is_crew_member_bot(crew_id: String) -> bool:
 	if GameState and GameState.has_method("get_crew_member"):
 		var crew_member = GameState.get_crew_member(crew_id)
 		if crew_member:
-			# Check various bot indicators
-			if crew_member is Dictionary:
+			# Sprint 26.3: Character-Everywhere - check Character properties first
+			if crew_member.has_method("is_bot"):
+				return crew_member.is_bot()
+			elif "is_bot" in crew_member:
+				return crew_member.is_bot
+			elif "species" in crew_member:
+				if crew_member.species in ["Bot", "Robot", "Drone", "Android"]:
+					return true
+			elif crew_member is Dictionary:
 				if crew_member.get("is_bot", false):
 					return true
 				if crew_member.get("character_type", "") == "bot":
 					return true
 				if crew_member.get("species", "") in ["Bot", "Robot", "Drone", "Android"]:
 					return true
-			elif crew_member.has_method("is_bot"):
-				return crew_member.is_bot()
-			elif "is_bot" in crew_member:
-				return crew_member.is_bot
 
 	# Check via GameStateManager
 	if game_state_manager and game_state_manager.has_method("get_crew_member"):
@@ -1289,14 +1292,10 @@ func _has_precursor_crew() -> bool:
 		return false
 	var crew: Array = game_state_manager.get_crew_members()
 	for member in crew:
-		# Check both origin (Character Resource) and species (Dictionary) properties
-		var origin: String = ""
-		if member is Resource and "origin" in member:
-			origin = str(member.origin).to_lower()
-		elif member is Resource and "_origin" in member:
-			origin = str(member._origin).to_lower()
-		elif member is Dictionary:
-			origin = member.get("origin", member.get("species", "")).to_lower()
+		# Sprint 26.3: Crew members are now always Character objects
+		if not member:
+			continue
+		var origin: String = member.origin.to_lower() if "origin" in member else ""
 		if origin == "precursor":
 			return true
 	return false
@@ -1590,26 +1589,20 @@ func _tick_injury_recovery() -> void:
 	var healing_count: int = 0
 
 	for member in crew:
-		if member is Dictionary:
-			var recovery_turns: int = member.get("injury_recovery_turns", 0)
+		# Sprint 26.3: Crew members are now always Character objects
+		if not member:
+			continue
+		if "injury_recovery_turns" in member:
+			var recovery_turns: int = member.injury_recovery_turns
 			if recovery_turns > 0:
-				member["injury_recovery_turns"] = recovery_turns - 1
+				member.injury_recovery_turns = recovery_turns - 1
 				healing_count += 1
-				if member["injury_recovery_turns"] == 0:
+				if member.injury_recovery_turns == 0:
 					recovered_count += 1
-					print("PostBattlePhase: F-4 - %s has fully recovered from injuries!" % member.get("name", "Crew member"))
+					var name_val: String = member.character_name if "character_name" in member else "Crew member"
+					print("PostBattlePhase: F-4 - %s has fully recovered from injuries!" % name_val)
 				else:
-					print("PostBattlePhase: F-4 - %s recovery progress: %d turns remaining" % [member.get("name", "Crew member"), member["injury_recovery_turns"]])
-		elif member is Resource:
-			if "injury_recovery_turns" in member:
-				var recovery_turns: int = member.injury_recovery_turns
-				if recovery_turns > 0:
-					member.injury_recovery_turns = recovery_turns - 1
-					healing_count += 1
-					if member.injury_recovery_turns == 0:
-						recovered_count += 1
-						var name_val: String = member.character_name if "character_name" in member else member.name if "name" in member else "Crew member"
-						print("PostBattlePhase: F-4 - %s has fully recovered from injuries!" % name_val)
+					print("PostBattlePhase: F-4 - %s recovery progress: %d turns remaining" % [member.character_name if "character_name" in member else "Crew member", member.injury_recovery_turns])
 
 	if healing_count > 0:
 		print("PostBattlePhase: F-4 - Processed injury recovery for %d crew (%d fully recovered)" % [healing_count, recovered_count])
@@ -1966,11 +1959,14 @@ func apply_campaign_event_effect(event_title: String) -> String:
 
 func apply_character_event_effect(event_title: String, character: Variant) -> String:
 	"""Apply character event effects based on event title"""
+	# Sprint 26.3: Character-Everywhere - crew members are always Character objects
 	var char_name: String = ""
-	if character is Dictionary:
-		char_name = character.get("name", "Unknown")
-	elif character is Resource and "name" in character:
+	if "character_name" in character:
+		char_name = character.character_name
+	elif "name" in character:
 		char_name = character.name
+	elif character is Dictionary:
+		char_name = character.get("name", "Unknown")
 	else:
 		char_name = "Unknown"
 	
@@ -2280,11 +2276,23 @@ func _has_crew_with_class(character_class: String) -> bool:
 	var game_state = _game_state  # Sprint 28.2: Use cached reference
 	if game_state and game_state.current_campaign:
 		var campaign = game_state.current_campaign
-		if campaign is Dictionary:
-			var crew = campaign.get("crew", [])
-			for member in crew:
-				if member is Dictionary and member.get("class", "") == character_class:
-					return true
+		# Sprint 26.3: Character-Everywhere - handle both Campaign Resource and Dictionary
+		var crew: Array = []
+		if campaign.has_method("get_crew_members"):
+			crew = campaign.get_crew_members()
+		elif campaign is Dictionary:
+			crew = campaign.get("crew", [])
+		elif "crew_members" in campaign:
+			crew = campaign.crew_members
+		for member in crew:
+			# Sprint 26.3: crew members are always Character objects
+			var member_class: String = ""
+			if "character_class" in member:
+				member_class = member.character_class
+			elif member is Dictionary:
+				member_class = member.get("class", member.get("character_class", ""))
+			if member_class == character_class:
+				return true
 	return false
 
 func _get_random_crew_member() -> Variant:
@@ -2455,95 +2463,136 @@ func _reduce_recovery_time(max_crew: int) -> void:
 	var game_state = _game_state  # Sprint 28.2: Use cached reference
 	if game_state and game_state.current_campaign:
 		var campaign = game_state.current_campaign
-		if campaign is Dictionary:
-			var crew = campaign.get("crew", [])
-			var healed_count: int = 0
-			for member in crew:
-				if member is Dictionary and healed_count < max_crew:
-					if member.has("injury_recovery_turns") and member.injury_recovery_turns > 0:
-						member.injury_recovery_turns = max(0, member.injury_recovery_turns - 1)
-						healed_count += 1
-						print("PostBattlePhase: Reduced recovery time for %s" % member.get("name", "crew"))
+		# Sprint 26.3: Character-Everywhere - handle both Campaign Resource and Dictionary
+		var crew: Array = []
+		if campaign.has_method("get_crew_members"):
+			crew = campaign.get_crew_members()
+		elif campaign is Dictionary:
+			crew = campaign.get("crew", [])
+		elif "crew_members" in campaign:
+			crew = campaign.crew_members
+		var healed_count: int = 0
+		for member in crew:
+			if healed_count >= max_crew:
+				break
+			# Sprint 26.3: crew members are always Character objects
+			var recovery_turns: int = member.injury_recovery_turns if "injury_recovery_turns" in member else 0
+			if recovery_turns > 0:
+				if "injury_recovery_turns" in member:
+					member.injury_recovery_turns = max(0, recovery_turns - 1)
+				healed_count += 1
+				var member_name: String = member.character_name if "character_name" in member else (member.name if "name" in member else "crew")
+				print("PostBattlePhase: Reduced recovery time for %s" % member_name)
 
 func _heal_crew_in_sickbay() -> void:
 	"""Immediately heal one crew member in sick bay"""
 	var game_state = _game_state  # Sprint 28.2: Use cached reference
 	if game_state and game_state.current_campaign:
 		var campaign = game_state.current_campaign
-		if campaign is Dictionary:
-			var crew = campaign.get("crew", [])
-			for member in crew:
-				if member is Dictionary:
-					if member.has("injury_recovery_turns") and member.injury_recovery_turns > 0:
-						member.injury_recovery_turns = 0
-						print("PostBattlePhase: %s recovered from sick bay" % member.get("name", "crew"))
-						return
+		# Sprint 26.3: Character-Everywhere - handle both Campaign Resource and Dictionary
+		var crew: Array = []
+		if campaign.has_method("get_crew_members"):
+			crew = campaign.get_crew_members()
+		elif campaign is Dictionary:
+			crew = campaign.get("crew", [])
+		elif "crew_members" in campaign:
+			crew = campaign.crew_members
+		for member in crew:
+			# Sprint 26.3: crew members are always Character objects
+			var recovery_turns: int = member.injury_recovery_turns if "injury_recovery_turns" in member else 0
+			if recovery_turns > 0:
+				if "injury_recovery_turns" in member:
+					member.injury_recovery_turns = 0
+				var member_name: String = member.character_name if "character_name" in member else (member.name if "name" in member else "crew")
+				print("PostBattlePhase: %s recovered from sick bay" % member_name)
+				return
 
 func _award_xp_to_random_crew(xp_amount: int) -> void:
 	"""Award XP to random crew member"""
 	var game_state = _game_state  # Sprint 28.2: Use cached reference
 	if game_state and game_state.current_campaign:
 		var campaign = game_state.current_campaign
-		if campaign is Dictionary:
-			var crew = campaign.get("crew", [])
-			if crew.size() > 0:
-				var random_index = randi() % crew.size()
-				var member = crew[random_index]
-				if member is Dictionary:
-					member["experience"] = member.get("experience", 0) + xp_amount
-					print("PostBattlePhase: %s gained +%d XP" % [member.get("name", "crew"), xp_amount])
+		# Sprint 26.3: Character-Everywhere - handle both Campaign Resource and Dictionary
+		var crew: Array = []
+		if campaign.has_method("get_crew_members"):
+			crew = campaign.get_crew_members()
+		elif campaign is Dictionary:
+			crew = campaign.get("crew", [])
+		elif "crew_members" in campaign:
+			crew = campaign.crew_members
+		if crew.size() > 0:
+			var random_index = randi() % crew.size()
+			var member = crew[random_index]
+			# Sprint 26.3: crew members are always Character objects
+			_add_character_xp(member, xp_amount)
 
 func _award_xp_to_all_crew(xp_amount: int) -> void:
 	"""Award XP to all crew members"""
 	var game_state = _game_state  # Sprint 28.2: Use cached reference
 	if game_state and game_state.current_campaign:
 		var campaign = game_state.current_campaign
-		if campaign is Dictionary:
-			var crew = campaign.get("crew", [])
-			for member in crew:
-				if member is Dictionary:
-					member["experience"] = member.get("experience", 0) + xp_amount
-					print("PostBattlePhase: %s gained +%d XP" % [member.get("name", "crew"), xp_amount])
+		# Sprint 26.3: Character-Everywhere - handle both Campaign Resource and Dictionary
+		var crew: Array = []
+		if campaign.has_method("get_crew_members"):
+			crew = campaign.get_crew_members()
+		elif campaign is Dictionary:
+			crew = campaign.get("crew", [])
+		elif "crew_members" in campaign:
+			crew = campaign.crew_members
+		for member in crew:
+			# Sprint 26.3: crew members are always Character objects
+			_add_character_xp(member, xp_amount)
 
 func _injure_random_crew(recovery_turns: int) -> void:
 	"""Injure random crew member"""
 	var game_state = _game_state  # Sprint 28.2: Use cached reference
 	if game_state and game_state.current_campaign:
 		var campaign = game_state.current_campaign
-		if campaign is Dictionary:
-			var crew = campaign.get("crew", [])
-			if crew.size() > 0:
-				var random_index = randi() % crew.size()
-				var member = crew[random_index]
-				if member is Dictionary:
-					member["injury_recovery_turns"] = recovery_turns
-					print("PostBattlePhase: %s injured (%d turn recovery)" % [member.get("name", "crew"), recovery_turns])
+		# Sprint 26.3: Character-Everywhere - handle both Campaign Resource and Dictionary
+		var crew: Array = []
+		if campaign.has_method("get_crew_members"):
+			crew = campaign.get_crew_members()
+		elif campaign is Dictionary:
+			crew = campaign.get("crew", [])
+		elif "crew_members" in campaign:
+			crew = campaign.crew_members
+		if crew.size() > 0:
+			var random_index = randi() % crew.size()
+			var member = crew[random_index]
+			# Sprint 26.3: crew members are always Character objects
+			if "injury_recovery_turns" in member:
+				member.injury_recovery_turns = recovery_turns
+			var member_name: String = member.character_name if "character_name" in member else (member.name if "name" in member else "crew")
+			print("PostBattlePhase: %s injured (%d turn recovery)" % [member_name, recovery_turns])
 
 func _add_character_xp(character: Variant, xp_amount: int) -> void:
-	"""Add XP to specific character"""
-	if character is Dictionary:
-		character["experience"] = character.get("experience", 0) + xp_amount
-		print("PostBattlePhase: %s gained +%d XP" % [character.get("name", "Unknown"), xp_amount])
-	elif character is Resource and "experience" in character:
+	"""Add XP to specific character (Sprint 26.3: Character-Everywhere)"""
+	if not character:
+		return
+	# Sprint 26.3: Characters are now always Character objects
+	if "xp" in character:
+		character.xp += xp_amount
+	elif "experience" in character:
 		character.experience += xp_amount
-		var char_name = character.name if "name" in character else "Unknown"
-		print("PostBattlePhase: %s gained +%d XP" % [char_name, xp_amount])
+	var char_name: String = character.character_name if "character_name" in character else character.name if "name" in character else "Unknown"
+	print("PostBattlePhase: %s gained +%d XP" % [char_name, xp_amount])
 
 func _reduce_character_recovery(character: Variant, turns: int) -> void:
-	"""Reduce recovery time for specific character"""
-	if character is Dictionary:
-		if character.has("injury_recovery_turns"):
-			character.injury_recovery_turns = max(0, character.injury_recovery_turns - turns)
-			print("PostBattlePhase: %s recovery reduced by %d turns" % [character.get("name", "Unknown"), turns])
+	"""Reduce recovery time for specific character (Sprint 26.3: Character-Everywhere)"""
+	if not character:
+		return
+	if "injury_recovery_turns" in character:
+		character.injury_recovery_turns = max(0, character.injury_recovery_turns - turns)
+		var char_name: String = character.character_name if "character_name" in character else "Unknown"
+		print("PostBattlePhase: %s recovery reduced by %d turns" % [char_name, turns])
 
 func _injure_specific_crew(character: Variant, recovery_turns: int) -> void:
-	"""Injure specific crew member"""
-	if character is Dictionary:
-		character["injury_recovery_turns"] = recovery_turns
-		print("PostBattlePhase: %s injured (%d turn recovery)" % [character.get("name", "Unknown"), recovery_turns])
-	elif character is Resource and "injury_recovery_turns" in character:
+	"""Injure specific crew member (Sprint 26.3: Character-Everywhere)"""
+	if not character:
+		return
+	if "injury_recovery_turns" in character:
 		character.injury_recovery_turns = recovery_turns
-		var char_name = character.name if "name" in character else "Unknown"
+		var char_name: String = character.character_name if "character_name" in character else "Unknown"
 		print("PostBattlePhase: %s injured (%d turn recovery)" % [char_name, recovery_turns])
 
 func _add_random_equipment_to_stash() -> void:

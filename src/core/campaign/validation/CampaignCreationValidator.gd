@@ -630,29 +630,31 @@ static func _validate_cross_phase_dependencies(campaign_data: Dictionary) -> Val
 
 static func _has_character_property(character: Variant, property: String) -> bool:
 	"""Check if character has a property"""
+	# Sprint 26.3: Character-Everywhere - check Object/Character first
 	if character == null:
 		return false
-	
-	if character is Dictionary:
-		return character.has(property)
-	elif character is Object:
+
+	if character is Object:
 		return property in character
-	
+	elif character is Dictionary:
+		return character.has(property)
+
 	return false
 
 static func _get_character_property(character: Variant, property: String, default_value: Variant = null) -> Variant:
 	"""Get character property safely"""
+	# Sprint 26.3: Character-Everywhere - check Object/Character first
 	if character == null:
 		return default_value
-	
-	if character is Dictionary:
-		return character.get(property, default_value)
+
+	if character is Object and property in character:
+		return character.get(property)
 	elif character is Object and character.has_method("get"):
 		var value = character.get(property)
 		return value if value != null else default_value
-	elif character is Object and property in character:
-		return character.get(property)
-	
+	elif character is Dictionary:
+		return character.get(property, default_value)
+
 	return default_value
 
 static func _calculate_character_completeness(character: Variant) -> float:

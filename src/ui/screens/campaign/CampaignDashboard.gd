@@ -374,26 +374,12 @@ func _update_crew_list() -> void:
 	var card_variant: int = 80 if viewport_width < 768 else 180
 
 	# Create/reuse CharacterCard for each crew member
+	# Sprint 26.3: Character-Everywhere - crew members are always Character objects
 	for i in range(crew_members.size()):
-		var member = crew_members[i]
-		
-		# Convert member data to Character if needed
-		var character: Character = null
-		if member is Character:
-			character = member
-		elif member is Dictionary:
-			character = Character.new()
-			character.character_name = member.get("character_name", "Unknown")
-			character.reactions = member.get("reactions", 1)
-			character.speed = member.get("speed", 4)
-			character.combat = member.get("combat", 0)
-			character.toughness = member.get("toughness", 3)
-			character.savvy = member.get("savvy", 0)
-			character.luck = member.get("luck", 0)
-			character.health = member.get("health", 3)
-			character.max_health = member.get("max_health", 3)
-			character.character_class = member.get("character_class", "")
-			character.background = member.get("background", "")
+		var character: Character = crew_members[i] as Character
+		if not character:
+			push_warning("CampaignDashboard: Invalid crew member at index %d" % i)
+			continue
 
 		# Get card from pool or create new
 		var character_card: Control = null

@@ -371,8 +371,12 @@ func set_difficulty(new_difficulty: int) -> void:
 			print("GameStateManager: Difficulty changed from %d to %d" % [old_difficulty, difficulty_level])
 
 ## Stage 5: Enhanced Resource Management with Comprehensive Validation
+## Sprint 29.1b: GameState is the authoritative source for credits
+## GameStateManager delegates credit operations to GameState when available
+## Local 'credits' variable maintained for backwards compatibility during transition
 
 ## Set credits with enhanced validation and bounds checking
+## Delegates to GameState as the authoritative source
 func set_credits(new_amount: int) -> void:
 	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
 	if not is_instance_valid(self):
@@ -388,17 +392,29 @@ func set_credits(new_amount: int) -> void:
 		push_warning("GameStateManager: Cannot set negative credits: " + str(new_amount))
 		new_amount = 0
 
-	if credits != new_amount:
-		var old_credits: int = credits
+	var old_credits: int = credits
+
+	# Sprint 29.1b: Delegate to GameState as authoritative source
+	var game_state = get_node_or_null("/root/GameState")
+	if game_state and game_state.has_method("set_resource"):
+		var global_enums = get_node_or_null("/root/GlobalEnums")
+		if global_enums and "ResourceType" in global_enums and "CREDITS" in global_enums.ResourceType:
+			game_state.set_resource(global_enums.ResourceType.CREDITS, new_amount)
+			# Read back from authoritative source to ensure sync
+			credits = game_state.get_resource(global_enums.ResourceType.CREDITS)
+		else:
+			# Fallback: modify local and sync
+			credits = new_amount
+			_sync_credits_to_game_state()
+	else:
+		# GameState not available - use local variable
 		credits = new_amount
 
+	if old_credits != credits:
 		self.credits_changed.emit(credits)
 
-		# Sync to game state if available
-		_sync_credits_to_game_state()
-
 		if enable_debug_logging:
-			print("GameStateManager: Credits changed from %d to %d" % [old_credits, credits])
+			print("GameStateManager: Credits changed from %d to %d (via GameState)" % [old_credits, credits])
 
 func _set_credits_after_init(amount: int) -> void:
 	"""Set credits after initialization is complete"""
@@ -511,7 +527,19 @@ func set_victory_conditions(conditions: Dictionary) -> void:
 		print("GameStateManager: Set victory_conditions with %d conditions" % conditions.size())
 
 ## Get victory conditions for campaign
+## SPRINT 6.3: Prefer campaign source of truth when available
 func get_victory_conditions() -> Dictionary:
+	# First check if campaign has victory conditions (source of truth)
+	if current_campaign:
+		if current_campaign.has_method("get_victory_conditions"):
+			var campaign_conditions = current_campaign.get_victory_conditions()
+			if not campaign_conditions.is_empty():
+				return campaign_conditions
+		elif "victory_conditions" in current_campaign:
+			var campaign_conditions = current_campaign.victory_conditions
+			if not campaign_conditions.is_empty():
+				return campaign_conditions.duplicate() if campaign_conditions is Dictionary else {}
+	# Fallback to local copy
 	return victory_conditions.duplicate()
 
 ## Set ship debt (updates ship resource and emits state_changed)
@@ -536,10 +564,32 @@ func set_story_track_enabled(enabled: bool) -> void:
 		print("GameStateManager: Story track %s" % ("enabled" if enabled else "disabled"))
 
 ## Get story track enabled setting
+## SPRINT 6.3: Prefer campaign property, then meta, then default
 func get_story_track_enabled() -> bool:
-	if current_campaign and current_campaign.has_meta("story_track_enabled"):
-		return current_campaign.get_meta("story_track_enabled")
+	if current_campaign:
+		# First check if campaign has the method (FiveParsecsCampaignCore)
+		if current_campaign.has_method("get_story_track_enabled"):
+			return current_campaign.get_story_track_enabled()
+		# Then check for property
+		elif "story_track_enabled" in current_campaign:
+			return current_campaign.story_track_enabled
+		# Finally check meta (legacy support)
+		elif current_campaign.has_meta("story_track_enabled"):
+			return current_campaign.get_meta("story_track_enabled")
 	return true  # Default enabled
+
+## Get house rules configuration
+## SPRINT 6.3: Read from campaign source of truth
+func get_house_rules() -> Array:
+	if current_campaign:
+		# Check if campaign has the method (FiveParsecsCampaignCore)
+		if current_campaign.has_method("get_house_rules"):
+			return current_campaign.get_house_rules()
+		# Then check for property
+		elif "house_rules" in current_campaign:
+			var rules = current_campaign.house_rules
+			return rules.duplicate() if rules is Array else []
+	return []  # Default empty
 
 ## Set custom victory targets (stores in victory_conditions dict)
 func set_custom_victory_targets(targets: Dictionary) -> void:
@@ -742,7 +792,20 @@ func get_campaign_phase() -> int:
 func get_difficulty() -> int:
 	return difficulty_level
 
+## Sprint 29.1b: GameState is the authoritative source for credits
+## GameStateManager provides read access only; modifications go through GameState
 func get_credits() -> int:
+	# Read from GameState as authoritative source when available
+	var game_state_node = get_node_or_null("/root/GameState")
+	if game_state_node and game_state_node.has_method("get_resource"):
+		var global_enums = get_node_or_null("/root/GlobalEnums")
+		if global_enums and "ResourceType" in global_enums and "CREDITS" in global_enums.ResourceType:
+			var authoritative_credits = game_state_node.get_resource(global_enums.ResourceType.CREDITS)
+			# Sync local cache if different (keeps UI consistent)
+			if credits != authoritative_credits:
+				credits = authoritative_credits
+			return authoritative_credits
+	# Fallback to local cache if GameState unavailable
 	return credits
 
 func get_supplies() -> int:
@@ -1047,7 +1110,7 @@ func _trigger_ship_seizure() -> void:
 	# Campaign effectively ends when ship is seized
 	# This would typically trigger a game over or forced debt payment scenario
 
-## Get array of crew members
+## Get array of crew members (Sprint 26.3: Returns Character objects, not Dictionaries)
 func get_crew_members() -> Array:
 	if game_state and game_state and game_state.has_method("get_crew_members"):
 		return game_state.get_crew_members()
@@ -2276,8 +2339,12 @@ func _apply_test_equipment_level(level: String) -> void:
 
 	for i in range(crew_members.size()):
 		var crew_member = crew_members[i]
-		if crew_member is Dictionary:
-			# Clear existing equipment and add tier-appropriate items
+		# Sprint 26.3: Character-Everywhere - crew members are always Character objects
+		if "equipment" in crew_member:
+			crew_member.equipment = tier_items.duplicate()
+			print("GameStateManager: Applied %s equipment to crew member %d" % [level, i])
+		elif crew_member is Dictionary:
+			# Fallback for Dictionary format
 			crew_member["equipment"] = tier_items.duplicate()
 			print("GameStateManager: Applied %s equipment to crew member %d" % [level, i])
 

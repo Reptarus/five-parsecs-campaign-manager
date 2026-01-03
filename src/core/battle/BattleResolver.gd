@@ -123,8 +123,16 @@ static func initialize_battle(
 	}
 	
 	# Copy crew units and apply deployment effects
+	# Sprint 26.3: Character-Everywhere - check Object first
 	for crew in crew_deployed:
-		var unit: Dictionary = crew.duplicate(true) if crew is Dictionary else {}
+		var unit: Dictionary = {}
+		if crew != null and crew.has_method("to_dictionary"):
+			unit = crew.to_dictionary()
+		elif crew is Dictionary:
+			unit = crew.duplicate(true)
+		else:
+			# Fallback for objects without to_dictionary
+			unit = {"character_name": crew.character_name if "character_name" in crew else "", "toughness": crew.toughness if "toughness" in crew else 3}
 		unit["hp_current"] = unit.get("toughness", 3)
 		unit["is_stunned"] = false
 		unit["is_suppressed"] = false

@@ -19,7 +19,7 @@ const PostBattlePhase = preload("res://src/core/campaign/phases/PostBattlePhase.
 var current_phase: int = 0
 var current_substep: int = 0
 var transition_in_progress: bool = false
-var turn_number: int = 1
+var turn_number: int = 0  # Start at 0 so first increment gives Turn 1
 
 ## Phase transition data storage - passes data between phases
 var _phase_transition_data: Dictionary = {}
@@ -27,16 +27,29 @@ var _phase_transition_data: Dictionary = {}
 ## World data from Travel Phase (T-5 fix)
 var _travel_world_data: Dictionary = {}
 
+## Phase checkpoints for rollback (Sprint 10 - bidirectional navigation)
+var _phase_checkpoints: Dictionary = {}
+
 ## Phase handlers
 var travel_phase_handler: Node = null
 var world_phase_handler: Node = null
 var battle_phase_handler: Node = null
 var post_battle_phase_handler: Node = null
 
+## Current campaign reference - set by MainCampaignScene after wizard completion
+var current_campaign: Variant = null
+
 ## Campaign Phase Manager Signals
+## Sprint 25.1: Documentation for signal semantics
+## phase_started: Signals phase processing is beginning (for UI state reset)
+## phase_changed: Signals phase state has updated (for state watchers)
+## Note: Both phase_started and phase_changed emit together for backwards compatibility
 signal phase_changed(new_phase: int)
 signal phase_completed(phase: int)
 signal phase_started(phase: int)
+## substep_changed: Generic substep signal for phase tracking UI
+## Phase handlers also emit phase-specific signals (e.g., battle_substep_changed)
+## for components that only care about a specific phase
 signal substep_changed(phase: int, substep: int)
 signal campaign_turn_started(turn: int)
 signal campaign_turn_completed(turn: int)
@@ -165,11 +178,181 @@ func _register_with_game_state() -> void:
 	if GameState and GameState and GameState.has_method("register_manager"):
 		GameState.register_manager("CampaignPhaseManager", self)
 
+## Campaign Reference Management
+## Set the current campaign reference and propagate to all phase handlers
+func set_campaign(campaign: Variant) -> void:
+	"""Set the campaign reference for this manager and all phase handlers.
+	Called by MainCampaignScene after campaign creation wizard completes."""
+	current_campaign = campaign
+
+	# Pass campaign reference to all phase handlers
+	if travel_phase_handler and travel_phase_handler.has_method("set_campaign"):
+		travel_phase_handler.set_campaign(campaign)
+		print("CampaignPhaseManager: Travel phase handler received campaign reference")
+
+	if world_phase_handler and world_phase_handler.has_method("set_campaign"):
+		world_phase_handler.set_campaign(campaign)
+		print("CampaignPhaseManager: World phase handler received campaign reference")
+
+	if battle_phase_handler and battle_phase_handler.has_method("set_campaign"):
+		battle_phase_handler.set_campaign(campaign)
+		print("CampaignPhaseManager: Battle phase handler received campaign reference")
+
+	if post_battle_phase_handler and post_battle_phase_handler.has_method("set_campaign"):
+		post_battle_phase_handler.set_campaign(campaign)
+		print("CampaignPhaseManager: Post-battle phase handler received campaign reference")
+
+	print("CampaignPhaseManager: Campaign reference set - %s" % (campaign.campaign_name if campaign and "campaign_name" in campaign else "unnamed"))
+
+## Get the current campaign reference
+func get_campaign() -> Variant:
+	"""Get the current campaign resource reference."""
+	return current_campaign
+
+## SPRINT 8.1: Verify all campaign data is ready before starting turn
+func _verify_campaign_data_ready() -> Dictionary:
+	"""
+	Verify that all required campaign data is accessible for Turn 1+.
+	Returns a dictionary with 'is_valid' bool and 'warnings' array.
+	"""
+	var result = {"is_valid": true, "warnings": []}
+
+	# Check campaign reference
+	if not current_campaign:
+		result.warnings.append("No campaign reference set - using GameStateManager fallback")
+		# Try to get from GameStateManager
+		if game_state_manager and game_state_manager.has_method("get_current_campaign"):
+			current_campaign = game_state_manager.get_current_campaign()
+			if current_campaign:
+				result.warnings.append("Campaign recovered from GameStateManager")
+
+	# Verify crew data
+	var has_crew = false
+	if current_campaign:
+		if current_campaign.has_method("get_crew_members"):
+			has_crew = not current_campaign.get_crew_members().is_empty()
+		elif "crew_data" in current_campaign:
+			has_crew = not current_campaign.crew_data.is_empty()
+	if not has_crew:
+		result.warnings.append("CRITICAL: No crew data found in campaign")
+		result.is_valid = false
+
+	# Verify captain data
+	var has_captain = false
+	if current_campaign:
+		if current_campaign.has_method("get_captain"):
+			has_captain = not current_campaign.get_captain().is_empty()
+		elif "captain_data" in current_campaign:
+			has_captain = not current_campaign.captain_data.is_empty()
+	if not has_captain:
+		result.warnings.append("WARNING: No captain data found in campaign")
+
+	# Verify ship data
+	var has_ship = false
+	if current_campaign:
+		if current_campaign.has_method("get_ship"):
+			has_ship = not current_campaign.get_ship().is_empty()
+		elif "ship_data" in current_campaign:
+			has_ship = not current_campaign.ship_data.is_empty()
+	if not has_ship:
+		result.warnings.append("WARNING: No ship data found in campaign")
+
+	# Verify credits initialized
+	var credits = 0
+	if game_state_manager and game_state_manager.has_method("get_credits"):
+		credits = game_state_manager.get_credits()
+	if credits <= 0:
+		result.warnings.append("WARNING: Credits not initialized (found: %d)" % credits)
+
+	# Verify house rules accessible
+	if current_campaign:
+		var house_rules = []
+		if current_campaign.has_method("get_house_rules"):
+			house_rules = current_campaign.get_house_rules()
+		elif "house_rules" in current_campaign:
+			house_rules = current_campaign.house_rules
+		print("CampaignPhaseManager: House rules accessible - %d rules enabled" % house_rules.size())
+
+	# Verify victory conditions accessible
+	var victory_conditions = {}
+	if current_campaign:
+		if current_campaign.has_method("get_victory_conditions"):
+			victory_conditions = current_campaign.get_victory_conditions()
+		elif "victory_conditions" in current_campaign:
+			victory_conditions = current_campaign.victory_conditions
+	if victory_conditions.is_empty():
+		result.warnings.append("INFO: No victory conditions configured")
+
+	# Log warnings
+	if not result.warnings.is_empty():
+		print("CampaignPhaseManager: Campaign data verification results:")
+		for warning in result.warnings:
+			print("  - %s" % warning)
+	else:
+		print("CampaignPhaseManager: All campaign data verified successfully")
+
+	return result
+
+## Task 14.4: Turn state reset before new turn starts
+func _reset_turn_state() -> void:
+	"""Reset phase-specific state for a new campaign turn"""
+	# Clear phase-specific data from previous turn
+	_phase_transition_data.clear()
+	_travel_world_data.clear()
+	current_substep = 0
+
+	# Dismiss non-persistent patrons (Core Rules: patrons may not stick around)
+	if game_state_manager and game_state_manager.has_method("dismiss_non_persistent_patrons"):
+		game_state_manager.dismiss_non_persistent_patrons()
+	else:
+		# Alternative: Check GameState directly
+		var gs = game_state_manager.get_game_state() if game_state_manager and game_state_manager.has_method("get_game_state") else null
+		if gs and gs.has_method("dismiss_non_persistent_patrons"):
+			gs.dismiss_non_persistent_patrons()
+
+	# Tick injury recovery for all crew (Core Rules: recovery time decreases each turn)
+	_tick_crew_injury_recovery()
+
+	print("CampaignPhaseManager: Turn state reset for new campaign turn")
+
+func _tick_crew_injury_recovery() -> void:
+	"""Decrement recovery turns for injured crew members"""
+	var gs = game_state_manager.get_game_state() if game_state_manager and game_state_manager.has_method("get_game_state") else null
+	if not gs:
+		return
+
+	# Get campaign to access crew
+	var campaign = gs.current_campaign if gs.has_method("get") or "current_campaign" in gs else null
+	if not campaign:
+		return
+
+	# Tick recovery for each crew member
+	var crew_members = campaign.crew_members if "crew_members" in campaign else []
+	for crew_member in crew_members:
+		if crew_member == null:
+			continue
+		# Check for recovery_turns property
+		if "recovery_turns" in crew_member and crew_member.recovery_turns > 0:
+			crew_member.recovery_turns -= 1
+			if crew_member.recovery_turns == 0:
+				print("CampaignPhaseManager: %s has recovered from injury" % crew_member.get("character_name", "Crew member"))
+		elif crew_member.has_method("tick_recovery"):
+			crew_member.tick_recovery()
+
 ## Main Campaign Turn Management
 func start_new_campaign_turn() -> bool:
 	"""Start a new campaign turn with the official Four-Phase structure"""
 	if transition_in_progress:
 		print("CampaignPhaseManager: Turn transition already in progress")
+		return false
+
+	# Task 14.4: Reset state from previous turn before starting new turn
+	_reset_turn_state()
+
+	# SPRINT 8.1: Verify campaign data before starting turn
+	var verification = _verify_campaign_data_ready()
+	if not verification.is_valid:
+		push_error("CampaignPhaseManager: Campaign data verification failed - cannot start turn")
 		return false
 
 	turn_number += 1
@@ -378,18 +561,27 @@ func _add_equipment_to_crew_data(crew_data: Array) -> void:
 		return
 
 	for crew_member in crew_data:
-		if not crew_member is Dictionary:
+		# Sprint 26.3: Character-Everywhere - crew members may be Character objects or Dictionary
+		var crew_id: String = ""
+		if crew_member is Character or "character_id" in crew_member:
+			crew_id = crew_member.character_id if "character_id" in crew_member else ""
+			if crew_id.is_empty() and "id" in crew_member:
+				crew_id = crew_member.id
+		elif crew_member is Dictionary:
+			crew_id = crew_member.get("id", crew_member.get("character_id", ""))
+		else:
 			continue
-
-		# Get crew member ID
-		var crew_id = crew_member.get("id", crew_member.get("character_id", ""))
 		if crew_id.is_empty():
 			continue
 
 		# Get equipment from EquipmentManager
 		if equipment_manager.has_method("get_character_equipment"):
 			var equipment_list = equipment_manager.get_character_equipment(crew_id)
-			crew_member["equipment"] = equipment_list
+			# Sprint 26.3: Character-Everywhere - handle both Character and Dictionary
+			if "equipment" in crew_member:
+				crew_member.equipment = equipment_list
+			elif crew_member is Dictionary:
+				crew_member["equipment"] = equipment_list
 
 			# Get full equipment data for each item
 			var equipment_details: Array[Dictionary] = []
@@ -399,7 +591,11 @@ func _add_equipment_to_crew_data(crew_data: Array) -> void:
 					if not equipment_data.is_empty():
 						equipment_details.append(equipment_data)
 
-			crew_member["equipment_details"] = equipment_details
+			# Sprint 26.3: Character-Everywhere - handle both Character and Dictionary
+			if "equipment_details" in crew_member:
+				crew_member.equipment_details = equipment_details
+			elif crew_member is Dictionary:
+				crew_member["equipment_details"] = equipment_details
 			print("CampaignPhaseManager: Added %d equipment items to crew member %s" % [equipment_details.size(), crew_id])
 
 func _create_placeholder_mission() -> Dictionary:
@@ -515,12 +711,19 @@ func _get_battle_results() -> Dictionary:
 	}
 
 ## Official Phase Transition Logic
+## Sprint 28.1: Implements same rules as CampaignPhaseConstants
+## Uses GlobalEnums.FiveParsecsCampaignPhase (different ordinals from CampaignPhaseConstants.CampaignPhase)
+## but represents identical transition rules from Five Parsecs Core Rules
 func _can_transition_to_phase(phase: int) -> bool:
-	"""Check if transition to target phase is valid (Official Rules)"""
+	"""Check if transition to target phase is valid (Official Rules)
+
+	Mirrors CampaignPhaseConstants.is_valid_transition() but uses
+	GlobalEnums.FiveParsecsCampaignPhase enum values.
+	"""
 	if not GlobalEnums:
 		return false
 
-	# Official Four-Phase Campaign Turn Structure
+	# Official Four-Phase Campaign Turn Structure (matches CampaignPhaseConstants.VALID_TRANSITIONS)
 	match current_phase:
 		GlobalEnums.FiveParsecsCampaignPhase.NONE:
 			return phase in [GlobalEnums.FiveParsecsCampaignPhase.SETUP, GlobalEnums.FiveParsecsCampaignPhase.TRAVEL]
@@ -541,6 +744,125 @@ func _can_transition_to_phase(phase: int) -> bool:
 			return phase == GlobalEnums.FiveParsecsCampaignPhase.TRAVEL # Start new turn
 
 	return false
+
+## =============================================================================
+## Phase Rollback System (Sprint 10 - Bidirectional Navigation)
+## =============================================================================
+
+func _can_rollback_to_phase(target_phase: int) -> bool:
+	"""Check if backward transition to target phase is allowed.
+
+	Rules:
+	- WORLD can rollback to TRAVEL (user wants to reconsider travel decision)
+	- BATTLE can rollback to WORLD (before combat starts, user wants to change loadout)
+	- POST_BATTLE cannot rollback (results are committed to campaign state)
+	- TRAVEL cannot rollback (it's the first phase of a turn)
+	"""
+	if not GlobalEnums:
+		return false
+
+	match current_phase:
+		GlobalEnums.FiveParsecsCampaignPhase.WORLD:
+			return target_phase == GlobalEnums.FiveParsecsCampaignPhase.TRAVEL
+		GlobalEnums.FiveParsecsCampaignPhase.BATTLE:
+			# Can only go back if combat hasn't started
+			if battle_phase_handler and battle_phase_handler.has_method("is_combat_started"):
+				if battle_phase_handler.is_combat_started():
+					return false  # Combat started - no going back
+			return target_phase == GlobalEnums.FiveParsecsCampaignPhase.WORLD
+		GlobalEnums.FiveParsecsCampaignPhase.POST_BATTLE:
+			return false  # Cannot rollback - results are committed
+		GlobalEnums.FiveParsecsCampaignPhase.TRAVEL:
+			return false  # Cannot rollback - first phase of turn
+
+	return false
+
+func _store_phase_checkpoint(phase: int) -> void:
+	"""Store current phase state for potential rollback.
+
+	Saves substep progress and transition data so phase can be restored.
+	"""
+	_phase_checkpoints[phase] = {
+		"substep": current_substep,
+		"transition_data": _phase_transition_data.duplicate(true),
+		"travel_world_data": _travel_world_data.duplicate(true),
+		"timestamp": Time.get_unix_time_from_system()
+	}
+	print("CampaignPhaseManager: Stored checkpoint for phase %d" % phase)
+
+func _restore_phase_checkpoint(phase: int) -> bool:
+	"""Restore phase state from checkpoint.
+
+	Returns true if checkpoint existed and was restored.
+	"""
+	if not _phase_checkpoints.has(phase):
+		print("CampaignPhaseManager: No checkpoint for phase %d" % phase)
+		return false
+
+	var checkpoint = _phase_checkpoints[phase]
+	current_substep = checkpoint.get("substep", 0)
+	_phase_transition_data = checkpoint.get("transition_data", {}).duplicate(true)
+	_travel_world_data = checkpoint.get("travel_world_data", {}).duplicate(true)
+	print("CampaignPhaseManager: Restored checkpoint for phase %d" % phase)
+	return true
+
+func rollback_to_phase(target_phase: int) -> bool:
+	"""Public API: Rollback to a previous phase, preserving state.
+
+	Use this when user presses back button to return to previous phase.
+	Returns true if rollback was successful.
+	"""
+	if not _can_rollback_to_phase(target_phase):
+		push_warning("CampaignPhaseManager: Cannot rollback from phase %d to phase %d" % [current_phase, target_phase])
+		return false
+
+	# Store current phase state before leaving
+	_store_phase_checkpoint(current_phase)
+
+	# Restore target phase state if we have a checkpoint
+	_restore_phase_checkpoint(target_phase)
+
+	# Update current phase
+	var old_phase = current_phase
+	current_phase = target_phase
+	transition_in_progress = false
+
+	# Emit signals
+	phase_changed.emit(current_phase)
+
+	print("CampaignPhaseManager: Rolled back from phase %d to phase %d" % [old_phase, current_phase])
+	return true
+
+func can_rollback() -> bool:
+	"""Check if current phase allows any rollback."""
+	if not GlobalEnums:
+		return false
+
+	match current_phase:
+		GlobalEnums.FiveParsecsCampaignPhase.WORLD:
+			return true
+		GlobalEnums.FiveParsecsCampaignPhase.BATTLE:
+			# Check if combat started
+			if battle_phase_handler and battle_phase_handler.has_method("is_combat_started"):
+				return not battle_phase_handler.is_combat_started()
+			return true
+	return false
+
+func get_rollback_target_phase() -> int:
+	"""Get the phase we would rollback to from current phase."""
+	if not GlobalEnums:
+		return -1
+
+	match current_phase:
+		GlobalEnums.FiveParsecsCampaignPhase.WORLD:
+			return GlobalEnums.FiveParsecsCampaignPhase.TRAVEL
+		GlobalEnums.FiveParsecsCampaignPhase.BATTLE:
+			return GlobalEnums.FiveParsecsCampaignPhase.WORLD
+	return -1
+
+## =============================================================================
+## End Phase Rollback System
+## =============================================================================
 
 func _get_next_phase(phase: int) -> int:
 	"""Get the next phase in the official sequence"""
@@ -563,11 +885,74 @@ func _get_next_phase(phase: int) -> int:
 	return phase
 
 ## Phase Handler Signal Handlers
+## Sprint 27.2: Consolidated phase completion handler
+## All four phase handlers now route through this unified method
+func _on_phase_completed(phase: int, _data: Dictionary = {}) -> void:
+	"""Unified handler for all phase completions (Sprint 27.2).
+
+	Consolidates _on_travel_phase_completed, _on_world_phase_completed,
+	_on_battle_phase_completed, and _on_post_battle_phase_completed into
+	a single handler with match-based routing for phase-specific logic.
+
+	Args:
+		phase: The FiveParsecsCampaignPhase that completed
+		_data: Optional completion data (unused, kept for signal compatibility)
+	"""
+	if not GlobalEnums:
+		push_error("CampaignPhaseManager: GlobalEnums not available in phase completion")
+		return
+
+	var phase_name = get_phase_name(phase)
+	print("CampaignPhaseManager: %s Phase completed" % phase_name)
+
+	# Emit completion signal for the phase
+	self.phase_completed.emit(phase)
+
+	# Phase-specific logic and transition
+	match phase:
+		GlobalEnums.FiveParsecsCampaignPhase.TRAVEL:
+			# Travel → World: Simple transition
+			start_phase(GlobalEnums.FiveParsecsCampaignPhase.WORLD)
+
+		GlobalEnums.FiveParsecsCampaignPhase.WORLD:
+			# World → Battle: Collect completion data for Battle Phase
+			if world_phase_handler and world_phase_handler.has_method("get_completion_data"):
+				_phase_transition_data = world_phase_handler.get_completion_data()
+				print("CampaignPhaseManager: Collected World Phase data - mission: %s, crew assignments: %d" % [
+					_phase_transition_data.get("selected_mission", "none"),
+					_phase_transition_data.get("crew_assignments", []).size()
+				])
+			else:
+				print("CampaignPhaseManager: ⚠️ No completion data available from World Phase")
+				_phase_transition_data = {}
+			start_phase(GlobalEnums.FiveParsecsCampaignPhase.BATTLE)
+
+		GlobalEnums.FiveParsecsCampaignPhase.BATTLE:
+			# Battle → Post-Battle: Get battle results
+			if battle_phase_handler and battle_phase_handler.has_method("get_battle_results"):
+				_last_battle_results = battle_phase_handler.get_battle_results()
+			start_phase(GlobalEnums.FiveParsecsCampaignPhase.POST_BATTLE)
+
+		GlobalEnums.FiveParsecsCampaignPhase.POST_BATTLE:
+			# Post-Battle → New Turn: Complete turn, check story points, start new turn
+			self.campaign_turn_completed.emit(turn_number)
+
+			# Check for story point earning every 3rd turn (Core Rules p.53-54)
+			var story_point_system = get_node_or_null("/root/StoryPointSystem")
+			if story_point_system and story_point_system.has_method("check_turn_earning"):
+				story_point_system.check_turn_earning(turn_number)
+
+			# Start next turn
+			start_new_campaign_turn()
+
+		_:
+			push_warning("CampaignPhaseManager: Unknown phase completed: %d" % phase)
+
+## Legacy individual handlers - kept for backwards compatibility if signals connected externally
+## These now delegate to the unified _on_phase_completed handler
 func _on_travel_phase_completed() -> void:
-	"""Handle Travel Phase completion"""
-	print("CampaignPhaseManager: Travel Phase completed")
-	self.phase_completed.emit(current_phase)
-	start_phase(GlobalEnums.FiveParsecsCampaignPhase.WORLD)
+	"""Handle Travel Phase completion (legacy - delegates to unified handler)"""
+	_on_phase_completed(GlobalEnums.FiveParsecsCampaignPhase.TRAVEL)
 
 func _on_world_arrival_completed(world_data: Dictionary) -> void:
 	"""Handle world arrival data from Travel Phase (T-5 fix)
@@ -596,30 +981,12 @@ func _on_invasion_battle_required(battle_data: Dictionary) -> void:
 	start_phase(GlobalEnums.FiveParsecsCampaignPhase.BATTLE)
 
 func _on_world_phase_completed() -> void:
-	"""Handle World Phase completion"""
-	print("CampaignPhaseManager: World Phase completed")
-	
-	# Collect World Phase completion data for Battle Phase
-	if world_phase_handler and world_phase_handler.has_method("get_completion_data"):
-		_phase_transition_data = world_phase_handler.get_completion_data()
-		print("CampaignPhaseManager: Collected World Phase data - mission: ", _phase_transition_data.get("selected_mission", "none"), ", crew assignments: ", _phase_transition_data.get("crew_assignments", []).size())
-	else:
-		print("CampaignPhaseManager: ⚠️ No completion data available from World Phase")
-		_phase_transition_data = {}
-	
-	self.phase_completed.emit(current_phase)
-	start_phase(GlobalEnums.FiveParsecsCampaignPhase.BATTLE)
+	"""Handle World Phase completion (legacy - delegates to unified handler)"""
+	_on_phase_completed(GlobalEnums.FiveParsecsCampaignPhase.WORLD)
 
 func _on_battle_phase_completed() -> void:
-	"""Handle Battle Phase completion"""
-	print("CampaignPhaseManager: Battle Phase completed via BattlePhase handler")
-	self.phase_completed.emit(current_phase)
-
-	# Get results from battle phase handler and transition to post-battle
-	if battle_phase_handler and battle_phase_handler.has_method("get_battle_results"):
-		_last_battle_results = battle_phase_handler.get_battle_results()
-
-	start_phase(GlobalEnums.FiveParsecsCampaignPhase.POST_BATTLE)
+	"""Handle Battle Phase completion (legacy - delegates to unified handler)"""
+	_on_phase_completed(GlobalEnums.FiveParsecsCampaignPhase.BATTLE)
 
 func _on_battle_substep_changed(substep: int) -> void:
 	"""Handle Battle Phase substep change"""
@@ -637,20 +1004,8 @@ func _on_battle_results_ready(results: Dictionary) -> void:
 			game_state.set_battle_results(results)
 
 func _on_post_battle_phase_completed() -> void:
-	"""Handle Post-Battle Phase completion"""
-	print("CampaignPhaseManager: Post-Battle Phase completed")
-	self.phase_completed.emit(current_phase)
-
-	# Complete the campaign turn
-	self.campaign_turn_completed.emit(turn_number)
-
-	# Check for story point earning every 3rd turn (Core Rules p.53-54)
-	var story_point_system = get_node_or_null("/root/StoryPointSystem")
-	if story_point_system and story_point_system.has_method("check_turn_earning"):
-		story_point_system.check_turn_earning(turn_number)
-
-	# Start next turn (this handles turn increment and syncs to GameState)
-	start_new_campaign_turn()
+	"""Handle Post-Battle Phase completion (legacy - delegates to unified handler)"""
+	_on_phase_completed(GlobalEnums.FiveParsecsCampaignPhase.POST_BATTLE)
 
 func _on_travel_substep_changed(substep: int) -> void:
 	"""Handle Travel Phase sub-step changes"""
@@ -721,6 +1076,10 @@ func get_substep_name(phase: int, substep: int) -> String:
 		GlobalEnums.FiveParsecsCampaignPhase.WORLD:
 			if "WORLD_SUBSTEP_NAMES" in GlobalEnums:
 				return GlobalEnums.WORLD_SUBSTEP_NAMES.get(substep, "Unknown World Step")
+		GlobalEnums.FiveParsecsCampaignPhase.BATTLE:
+			# Sprint 24.3: Added BATTLE case for campaign turn substep names
+			if "BATTLE_SUBSTEP_NAMES" in GlobalEnums:
+				return GlobalEnums.BATTLE_SUBSTEP_NAMES.get(substep, "Unknown Battle Step")
 		GlobalEnums.FiveParsecsCampaignPhase.POST_BATTLE:
 			if "POST_BATTLE_SUBSTEP_NAMES" in GlobalEnums:
 				return GlobalEnums.POST_BATTLE_SUBSTEP_NAMES.get(substep, "Unknown Post-Battle Step")
