@@ -150,32 +150,32 @@ func get_resource(resource_type: int) -> int:
 	return resources.get(resource_type, 0)
 
 func serialize() -> Dictionary:
-	return {
-		"name": campaign_name,
-		"difficulty": difficulty,
-		"victory_condition": victory_condition,
-		"current_phase": current_phase,
-		"resources": resources.duplicate(),
-		"crew_size": crew_size,
-		"use_story_track": use_story_track,
-		"current_world": current_world,
-		"galactic_war_progress": galactic_war_progress,
-		"story_track": story_track,
-		"quests": quests.duplicate(),
-		"battle_history": battle_history.duplicate(),
-		"rivals": rivals.duplicate(),
-		"patrons": patrons.duplicate(),
-		"quest_rumors": quest_rumors,
-		"visited_planets": visited_planets.duplicate(true),
-		"current_planet_id": current_planet_id
-	}
+	# Sprint 26.2: Build on to_dictionary() for key consistency, then add extra fields
+	var base = to_dictionary()
+
+	# Add additional fields not in to_dictionary()
+	base["victory_condition"] = victory_condition
+	base["crew_size"] = crew_size
+	base["use_story_track"] = use_story_track
+	base["current_world"] = current_world
+	base["galactic_war_progress"] = galactic_war_progress
+	base["story_track"] = story_track
+	base["quests"] = quests.duplicate()
+	base["battle_history"] = battle_history.duplicate()
+	base["rivals"] = rivals.duplicate()
+	base["patrons"] = patrons.duplicate()
+	base["quest_rumors"] = quest_rumors
+	base["visited_planets"] = visited_planets.duplicate(true)
+	base["current_planet_id"] = current_planet_id
+
+	return base
 
 func deserialize(data: Dictionary) -> void:
-	campaign_name = data.get("name", campaign_name)
-	difficulty = data.get("difficulty", difficulty)
+	# Sprint 26.2: Call from_dictionary() first for core fields, then handle extras
+	from_dictionary(data)
+
+	# Handle additional fields not in from_dictionary()
 	victory_condition = data.get("victory_condition", victory_condition)
-	current_phase = data.get("current_phase", current_phase)
-	resources = data.get("resources", {}).duplicate()
 	crew_size = data.get("crew_size", crew_size)
 	use_story_track = data.get("use_story_track", use_story_track)
 	current_world = data.get("current_world", "New Hope")
@@ -203,7 +203,15 @@ func set_faction_standing(faction: String, _value: float) -> void:
 func get_faction_standing(faction: String) -> float:
 	return faction_standings.get(faction, 0.0)
 
+## Returns the user-selected crew size (affects enemy scaling, patron jobs, etc.)
+## Use get_active_crew_count() if you need the actual number of crew members
 func get_crew_size() -> int:
+	# Return stored crew_size if set, otherwise fall back to actual member count
+	return crew_size if crew_size > 0 else crew_members.size()
+
+## Returns the actual number of crew members currently in the roster
+## Use this for upkeep calculations, display, etc.
+func get_active_crew_count() -> int:
 	return crew_members.size()
 
 func get_crew_members() -> Array:
@@ -223,6 +231,16 @@ func get_crew_members() -> Array:
 
 	print("Campaign.get_crew_members() returning %d crew members" % crew_data.size())
 	return crew_data
+
+## Get a specific crew member by their character_id
+## Required by GameState.add_crew_experience() for XP distribution
+func get_crew_member_by_id(character_id: String) -> Character:
+	for member in crew_members:
+		if member.character_id == character_id:
+			return member
+
+	push_warning("Campaign.get_crew_member_by_id: Character not found: %s" % character_id)
+	return null
 
 func has_equipment(equipment_id: int) -> bool:
 	for member in crew_members:
@@ -259,16 +277,42 @@ func from_dictionary(data: Dictionary) -> void:
 
 	# Load crew data
 	crew_members.clear()
+	captain = null  # Reset captain to avoid duplication
+
 	for member_data in data.get("crew_members", []):
 		var member := Character.new()
 		member.from_dictionary(member_data)
 		crew_members.append(member)
 
-	# Load captain data
+		# FIX: Check if this member is the captain - avoid duplication
+		if member.is_captain:
+			captain = member
+
+	# Load captain data ONLY if not found in crew_members
+	# This prevents captain duplication
 	var captain_data = data.get("captain", null)
-	if captain_data:
-		captain = Character.new()
-		captain.from_dictionary(captain_data)
+	if captain_data and captain == null:
+		# Check if captain is already in crew_members by ID or name
+		var captain_id = captain_data.get("character_id", "")
+		var captain_name = captain_data.get("name", captain_data.get("character_name", ""))
+		var found_in_crew = false
+
+		for member in crew_members:
+			if (captain_id and member.character_id == captain_id) or \
+			   (captain_name and member.name == captain_name):
+				captain = member
+				captain.is_captain = true
+				found_in_crew = true
+				break
+
+		# Only create new captain if not found in crew
+		if not found_in_crew:
+			captain = Character.new()
+			captain.from_dictionary(captain_data)
+			captain.is_captain = true
+			# Add to crew_members if not already there
+			if captain not in crew_members:
+				crew_members.append(captain)
 
 	resources = data.get("resources", {}).duplicate()
 	story_points = data.get("story_points", 0)
@@ -285,6 +329,111 @@ func configure(config: Dictionary) -> void:
 
 func set_crew(crew: Array) -> void:
 	crew_data = crew.duplicate(true)
+
+## Initialize crew from creation data - called by CampaignFinalizationService
+func initialize_crew(data: Dictionary) -> void:
+	"""Initialize crew_members from creation data dictionary."""
+	crew_members.clear()
+	crew_data = []
+
+	var members = data.get("members", data.get("crew_data", []))
+	if members.is_empty() and data.size() > 0 and not data.has("members"):
+		# Data might be the members array directly
+		members = data.values() if data is Dictionary else []
+
+	for member_data in members:
+		if member_data is Dictionary:
+			var character = Character.new()
+			if character.has_method("initialize_from_creation_data"):
+				character.initialize_from_creation_data(member_data)
+			elif character.has_method("from_dictionary"):
+				character.from_dictionary(member_data)
+			crew_members.append(character)
+			crew_data.append(member_data)
+
+	crew_size = crew_members.size()
+	print("Campaign.initialize_crew(): Initialized %d crew members" % crew_size)
+
+## Set captain from creation data - called by CampaignFinalizationService
+func set_captain(captain_data: Dictionary) -> void:
+	"""Set captain from dictionary data."""
+	if captain_data.is_empty():
+		return
+
+	# Check if captain_data has nested character_data
+	var char_data = captain_data.get("character_data", captain_data)
+
+	captain = Character.new()
+	if captain.has_method("initialize_from_creation_data"):
+		captain.initialize_from_creation_data(char_data)
+	elif captain.has_method("from_dictionary"):
+		captain.from_dictionary(char_data)
+
+	captain.is_captain = true
+	print("Campaign.set_captain(): Set captain - %s" % captain.character_name)
+
+	# Ensure captain is in crew_members
+	var captain_in_crew = false
+	for member in crew_members:
+		if member.character_id == captain.character_id:
+			captain_in_crew = true
+			break
+
+	if not captain_in_crew:
+		crew_members.append(captain)
+		crew_size = crew_members.size()
+
+## Initialize ship from creation data - called by CampaignFinalizationService
+func initialize_ship(ship_data: Dictionary) -> void:
+	"""Store ship data from creation."""
+	if ship_data.is_empty():
+		return
+
+	settings["ship"] = ship_data.duplicate(true)
+	print("Campaign.initialize_ship(): Ship data stored - %s" % ship_data.get("name", "Unnamed Ship"))
+
+## Set starting equipment from creation data - called by CampaignFinalizationService
+func set_starting_equipment(equipment_data: Dictionary) -> void:
+	"""Set starting equipment and credits."""
+	if equipment_data.is_empty():
+		return
+
+	# Extract credits
+	var starting_credits = equipment_data.get("starting_credits", equipment_data.get("credits", 1000))
+	credits = starting_credits
+	resources["credits"] = starting_credits
+
+	# Store equipment list
+	var equipment_list = equipment_data.get("equipment", equipment_data.get("items", []))
+	settings["starting_equipment"] = equipment_list
+	print("Campaign.set_starting_equipment(): Set %d credits, %d items" % [starting_credits, equipment_list.size()])
+
+## Initialize world from creation data - called by CampaignFinalizationService
+func initialize_world(world_data: Dictionary) -> void:
+	"""Set starting world information."""
+	if world_data.is_empty():
+		return
+
+	current_world = world_data.get("name", world_data.get("world_name", "New Hope"))
+	settings["starting_world"] = world_data.duplicate(true)
+	print("Campaign.initialize_world(): Starting world - %s" % current_world)
+
+## Set house rules from creation config - called by CampaignFinalizationService
+func set_house_rules(enabled_rules: Array) -> void:
+	"""Store enabled house rule IDs from campaign creation."""
+	settings["house_rules"] = enabled_rules.duplicate()
+	print("Campaign.set_house_rules(): %d house rules enabled" % enabled_rules.size())
+
+## Get enabled house rules for gameplay systems
+func get_house_rules() -> Array:
+	"""Get the array of enabled house rule IDs."""
+	return settings.get("house_rules", [])
+
+## Check if a specific house rule is enabled
+func is_house_rule_enabled(rule_id: String) -> bool:
+	"""Check if a specific house rule is enabled."""
+	var enabled_rules = get_house_rules()
+	return rule_id in enabled_rules
 
 func set_resources(new_resources: Dictionary) -> void:
 	resources = new_resources.duplicate(true)
@@ -474,8 +623,8 @@ func update_planet_state(planet_id: String, new_data: Dictionary) -> void:
 		push_warning("Campaign.update_planet_state: Planet %s not yet visited, creating entry" % planet_id)
 		visited_planets[planet_id] = {}
 	
-	# Merge new data into existing data
-	visited_planets[planet_id].merge(new_data)
+	# Merge new data into existing data (overwrite=true to update existing keys)
+	visited_planets[planet_id].merge(new_data, true)
 	print("Campaign: Updated planet %s state" % planet_id)
 
 ## Get list of all visited planet IDs

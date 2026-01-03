@@ -113,7 +113,8 @@ func _validate_game_rules(data: Dictionary) -> Dictionary:
 	var warnings = []
 	
 	# Crew size validation (Core Rules p.12)
-	var crew_size = data.get("crew", {}).get("size", 0)
+	# Sprint 26.1: Canonical key: "crew_size" (fallback: "size" for legacy)
+	var crew_size = data.get("crew", {}).get("crew_size", data.get("crew", {}).get("size", 0))
 	if crew_size < 3 or crew_size > 8:
 		errors.append("Crew size must be between 3-8 members (Five Parsecs rules)")
 	
@@ -146,13 +147,20 @@ func _validate_data_integrity(data: Dictionary) -> Dictionary:
 	# Validate cross-references
 	var crew_members = data.get("crew", {}).get("members", [])
 	var captain_id = data.get("captain", {}).get("id", "")
-	
+
+	# SPRINT 5.4: Validate actual crew count matches configured crew size
+	var configured_crew_size = data.get("config", {}).get("crew_size", data.get("crew", {}).get("size", 0))
+	var actual_crew_count = crew_members.size()
+	if configured_crew_size > 0 and actual_crew_count != configured_crew_size:
+		errors.append("Crew member count (%d) doesn't match configured size (%d)" % [actual_crew_count, configured_crew_size])
+		print("CampaignFinalizationService: VALIDATION WARNING - Crew size mismatch: %d members vs %d configured" % [actual_crew_count, configured_crew_size])
+
 	var captain_found = false
 	for member in crew_members:
 		if member.get("id", "") == captain_id:
 			captain_found = true
 			break
-	
+
 	if not captain_found and not captain_id.is_empty():
 		errors.append("Captain not found in crew members")
 	
@@ -164,12 +172,24 @@ func _validate_data_integrity(data: Dictionary) -> Dictionary:
 func _create_campaign_resource(data: Dictionary) -> Resource:
 	"""Create campaign resource with proper initialization and data transformation"""
 	var campaign = FiveParsecsCampaignCore.new()
-	
+
 	# Initialize campaign with validated data
 	var config = data.get("config", {})
-	campaign.campaign_name = config.get("name", "Unnamed Campaign")
-	campaign.difficulty = config.get("difficulty", GlobalEnums.DifficultyLevel.STANDARD)
-	campaign.ironman_mode = config.get("ironman_mode", false)
+	# Also check campaign_config as fallback (coordinator uses this structure)
+	var campaign_config = data.get("campaign_config", {})
+
+	# Sprint 26.1: Standardized key access with single fallback for backwards compatibility
+	# Canonical key: "campaign_name" (fallback: "name" for legacy saves)
+	var campaign_name = config.get("campaign_name", config.get("name", ""))
+	if campaign_name.is_empty():
+		campaign_name = campaign_config.get("campaign_name", campaign_config.get("name", "Unnamed Campaign"))
+	campaign.campaign_name = campaign_name
+
+	# Sprint 26.1: Canonical key: "difficulty" (consistent, no "difficulty_level" variant)
+	var difficulty = config.get("difficulty", campaign_config.get("difficulty", GlobalEnums.DifficultyLevel.STANDARD))
+	campaign.difficulty = difficulty
+
+	campaign.ironman_mode = config.get("ironman_mode", campaign_config.get("ironman_mode", false))
 	campaign.created_at = Time.get_datetime_string_from_system()
 	campaign.version = "1.0.0"
 	
@@ -233,27 +253,35 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 		else:
 			print("CampaignFinalizationService: Warning - GameStateManager missing set_custom_victory_targets method")
 
-	# Transfer accumulated resources from character creation
-	var resources = data.get("resources", {})
-	if not resources.is_empty():
-		# Combine credits from character creation + equipment
-		var equipment_credits = equipment_data.get("starting_credits", equipment_data.get("credits", 0))
-		var creation_credits = resources.get("credits", 0)
-		var total_credits = creation_credits + equipment_credits
+	# SPRINT 2.5: Transfer house rules from config to campaign
+	var house_rules = config.get("house_rules", campaign_config.get("house_rules", []))
+	if not house_rules.is_empty() and campaign.has_method("set_house_rules"):
+		campaign.set_house_rules(house_rules)
+		print("CampaignFinalizationService: Transferred %d house rules to campaign" % house_rules.size())
 
-		campaign.initialize_resources({
-			"credits": total_credits,
-			"story_points": resources.get("story_points", 0),
-			"patrons": resources.get("patrons", []),
-			"rivals": resources.get("rivals", []),
-			"quest_rumors": resources.get("quest_rumors", [])
-		})
-		print("CampaignFinalizationService: Transferred accumulated resources - Credits: %d, Story Points: %d, Patrons: %d, Rivals: %d" % [
-			total_credits,
-			resources.get("story_points", 0),
-			resources.get("patrons", []).size(),
-			resources.get("rivals", []).size()
-		])
+	# SPRINT 5.3: Transfer resources with unified credits source of truth
+	# Equipment credits + creation credits are combined into single total
+	var resources = data.get("resources", {})
+	var equipment_credits = equipment_data.get("starting_credits", equipment_data.get("credits", 0))
+	var creation_credits = resources.get("credits", 0)
+	var total_credits = creation_credits + equipment_credits
+
+	# Always initialize resources, even if empty dict - equipment credits must be included
+	campaign.initialize_resources({
+		"credits": total_credits,
+		"story_points": resources.get("story_points", 0),
+		"patrons": resources.get("patrons", []),
+		"rivals": resources.get("rivals", []),
+		"quest_rumors": resources.get("quest_rumors", [])
+	})
+	print("CampaignFinalizationService: Transferred resources - Credits: %d (equipment: %d + creation: %d), Story Points: %d, Patrons: %d, Rivals: %d" % [
+		total_credits,
+		equipment_credits,
+		creation_credits,
+		resources.get("story_points", 0),
+		resources.get("patrons", []).size(),
+		resources.get("rivals", []).size()
+	])
 	
 	# CRITICAL FIX: Mark campaign as ready for turn system
 	campaign.game_phase = "ready_for_turn_system"

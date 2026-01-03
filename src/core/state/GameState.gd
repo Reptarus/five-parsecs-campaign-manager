@@ -39,7 +39,12 @@ const MAX_SAVE_ATTEMPTS: int = 3
 const SAVE_RETRY_DELAY: float = 0.5
 
 ## Core state properties
+## Sprint 27.1: current_phase is kept for serialization but delegates to CampaignPhaseManager at runtime
+## CampaignPhaseManager is the authority - this variable mirrors its state for save/load compatibility
 var current_phase: int = 0 # Will be set to NONE enum value in _ready()
+
+## Sprint 27.1: Cached reference to CampaignPhaseManager (the phase state authority)
+var _campaign_phase_manager: Node = null
 var turn_number: int = 0
 var story_points: int = 0
 var reputation: int = 0
@@ -113,6 +118,20 @@ func _emit_state_changed() -> void:
 
 func _emit_resources_changed() -> void:
 	resources_changed.emit()
+	# Bi-directional sync: Ensure GameStateManager stays in sync when GameState changes
+	_sync_credits_to_game_state_manager()
+
+## Sync credits from GameState to GameStateManager (bidirectional sync)
+func _sync_credits_to_game_state_manager() -> void:
+	# GameStateManager is an autoload, accessed via global namespace
+	if GameStateManager and GameStateManager.has_method("set_credits"):
+		var our_credits = get_resource(GlobalEnums.ResourceType.CREDITS)
+		# Only sync if different (prevents infinite loop)
+		if GameStateManager.has_method("get_credits"):
+			var gsm_credits = GameStateManager.get_credits()
+			if gsm_credits != our_credits:
+				GameStateManager.set_credits(our_credits)
+				print("GameState: Synced credits to GameStateManager: %d" % our_credits)
 
 func _emit_campaign_loaded(campaign: Variant) -> void:
 	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
@@ -599,10 +618,25 @@ func _init() -> void:
 	pass
 
 func set_phase(phase: GlobalEnums.FiveParsecsCampaignPhase) -> void:
-	current_phase = phase
-	_emit_state_changed()
+	## Sprint 27.1: Delegate to CampaignPhaseManager when available (it's the authority)
+	if _campaign_phase_manager and _campaign_phase_manager.has_method("start_phase"):
+		# Let CampaignPhaseManager handle the transition - it will emit phase_changed
+		# which triggers _on_campaign_phase_changed to sync our local current_phase
+		_campaign_phase_manager.start_phase(phase)
+	else:
+		# Fallback for tests or when CampaignPhaseManager not available
+		current_phase = phase
+		_emit_state_changed()
+
+## Sprint 27.1: Get current phase from the authority (CampaignPhaseManager)
+func get_current_phase() -> int:
+	if _campaign_phase_manager and _campaign_phase_manager.has_method("get_current_phase"):
+		return _campaign_phase_manager.get_current_phase()
+	return current_phase
 
 func can_transition_to(phase: GlobalEnums.FiveParsecsCampaignPhase) -> bool:
+	## Sprint 27.1: Use local validation - CampaignPhaseManager._can_transition_to_phase() is private
+	## Validation logic duplicated here for consistency (both sources should agree)
 	match current_phase:
 		GlobalEnums.FiveParsecsCampaignPhase.NONE:
 			return phase == GlobalEnums.FiveParsecsCampaignPhase.SETUP
@@ -620,6 +654,11 @@ func can_transition_to(phase: GlobalEnums.FiveParsecsCampaignPhase) -> bool:
 			return false
 
 func complete_phase() -> void:
+	## Sprint 27.1: Delegate to CampaignPhaseManager when available
+	if _campaign_phase_manager and _campaign_phase_manager.has_method("complete_current_phase"):
+		_campaign_phase_manager.complete_current_phase()
+		return
+	# Fallback for tests
 	match current_phase:
 		GlobalEnums.FiveParsecsCampaignPhase.SETUP:
 			set_phase(GlobalEnums.FiveParsecsCampaignPhase.TRAVEL)
@@ -996,7 +1035,31 @@ func _ready() -> void:
 	# Connect to save manager safely - use deferred call to ensure autoloads are ready
 	call_deferred("_connect_save_manager")
 
+	# Sprint 27.1: Connect to CampaignPhaseManager for phase state authority
+	call_deferred("_connect_campaign_phase_manager")
+
 	print("GameState: Initialized successfully")
+
+## Sprint 27.1: Connect to CampaignPhaseManager (the phase state authority)
+func _connect_campaign_phase_manager() -> void:
+	_campaign_phase_manager = get_node_or_null("/root/CampaignPhaseManager")
+	if _campaign_phase_manager:
+		if _campaign_phase_manager.has_signal("phase_changed"):
+			if not _campaign_phase_manager.phase_changed.is_connected(_on_campaign_phase_changed):
+				_campaign_phase_manager.phase_changed.connect(_on_campaign_phase_changed)
+		# Sync initial phase from CampaignPhaseManager
+		if _campaign_phase_manager.has_method("get_current_phase"):
+			current_phase = _campaign_phase_manager.get_current_phase()
+		print("GameState: Connected to CampaignPhaseManager for phase synchronization")
+	else:
+		push_warning("GameState: CampaignPhaseManager not available - phase state will be local only")
+
+## Sprint 27.1: Handler for phase changes from CampaignPhaseManager (the authority)
+func _on_campaign_phase_changed(phase: int) -> void:
+	# Synchronize local current_phase with the authority
+	if current_phase != phase:
+		current_phase = phase
+		_emit_state_changed()
 
 func _connect_save_manager() -> void:
 	# Try to connect to SaveManager after autoloads are fully initialized
@@ -1029,6 +1092,13 @@ func _exit_tree() -> void:
 		# Now safe to nullify the reference
 		save_manager = null
 
+	# Sprint 27.1: Cleanup CampaignPhaseManager connection
+	if _campaign_phase_manager and is_instance_valid(_campaign_phase_manager):
+		if _campaign_phase_manager.has_signal("phase_changed"):
+			if _campaign_phase_manager.phase_changed.is_connected(_on_campaign_phase_changed):
+				_campaign_phase_manager.phase_changed.disconnect(_on_campaign_phase_changed)
+		_campaign_phase_manager = null
+
 
 	# Clear all arrays and dictionaries
 	active_quests.clear()
@@ -1059,6 +1129,60 @@ func start_new_campaign(campaign: Variant) -> void:
 
 	if auto_save_enabled:
 		_auto_save()
+
+## Initialize a new campaign from wizard data dictionary
+## Called by MainCampaignScene after campaign creation wizard completes
+func initialize_new_campaign(campaign_data: Dictionary) -> bool:
+	print("GameState: Initializing new campaign from wizard data...")
+
+	# Create campaign resource
+	if FiveParsecsCampaign:
+		_current_campaign = FiveParsecsCampaign.new()
+	else:
+		push_error("GameState: FiveParsecsCampaign class not available")
+		return false
+
+	# Initialize campaign from dictionary data
+	if _current_campaign.has_method("initialize_from_dict"):
+		_current_campaign.initialize_from_dict(campaign_data)
+	elif _current_campaign.has_method("from_dictionary"):
+		_current_campaign.from_dictionary(campaign_data)
+	else:
+		# Manual initialization fallback
+		_load_campaign_from_dictionary(campaign_data)
+
+	# Initialize turn state
+	turn_number = 1
+
+	# Extract config settings (handle both key naming conventions)
+	var config = campaign_data.get("campaign_config", campaign_data.get("config", {}))
+
+	# Set difficulty (handle both key names)
+	var diff = config.get("difficulty", config.get("difficulty_level", GlobalEnums.DifficultyLevel.STANDARD))
+	if diff is int:
+		difficulty_level = diff
+
+	# Set game mode flags
+	enable_permadeath = config.get("enable_permadeath", config.get("ironman_mode", true))
+	use_story_track = config.get("use_story_track", config.get("story_track_enabled", true))
+
+	# Set starting reputation
+	reputation = config.get("starting_reputation", 0)
+
+	# Initialize starting credits
+	var starting_credits = config.get("starting_credits", 1000)
+	set_resource(GlobalEnums.ResourceType.CREDITS, starting_credits)
+
+	# Emit signals
+	_emit_campaign_loaded(_current_campaign)
+	_emit_state_changed()
+
+	print("GameState: New campaign initialized - Turn %d, Difficulty %d, Credits %d" % [turn_number, difficulty_level, starting_credits])
+	return true
+
+## Get the current campaign resource
+func get_current_campaign() -> Variant:
+	return _current_campaign
 
 func load_campaign(save_data: Dictionary) -> void:
 	_emit_load_started()
