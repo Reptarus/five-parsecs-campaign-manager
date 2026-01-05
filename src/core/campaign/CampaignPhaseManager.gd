@@ -62,6 +62,10 @@ func _ready() -> void:
 	game_state_manager = get_node_or_null("/root/GameStateManager")
 	if game_state_manager:
 		print("CampaignPhaseManager: ✅ GameStateManager connected successfully")
+		# Sprint 26.9 GAP-D5: Subscribe to phase changes (e.g., after load)
+		if game_state_manager.has_signal("campaign_phase_changed"):
+			game_state_manager.campaign_phase_changed.connect(_on_game_state_phase_changed)
+			print("CampaignPhaseManager: Subscribed to GameStateManager.campaign_phase_changed")
 	else:
 		# Try alternative access methods
 		var alpha_manager = get_node_or_null("/root/FPCM_AlphaGameManager")
@@ -86,7 +90,7 @@ func _initialize_phase_handlers() -> void:
 		add_child(travel_phase_handler)
 		# Connect signals
 		if travel_phase_handler.has_signal("travel_phase_completed"):
-			var result1: Error = (safe_get_property(travel_phase_handler, "travel_phase_completed")).connect(_on_travel_phase_completed)
+			var result1: Error = travel_phase_handler.travel_phase_completed.connect(_on_travel_phase_completed)
 			assert(result1 == OK, "Failed to connect travel_phase_completed signal")
 		if travel_phase_handler.has_signal("travel_substep_changed"):
 			var result2: Error = travel_phase_handler.travel_substep_changed.connect(_on_travel_substep_changed)
@@ -105,7 +109,7 @@ func _initialize_phase_handlers() -> void:
 		add_child(world_phase_handler)
 		# Connect signals
 		if world_phase_handler.has_signal("world_phase_completed"):
-			var result3: Error = (safe_get_property(world_phase_handler, "world_phase_completed")).connect(_on_world_phase_completed)
+			var result3: Error = world_phase_handler.world_phase_completed.connect(_on_world_phase_completed)
 			assert(result3 == OK, "Failed to connect world_phase_completed signal")
 		if world_phase_handler.has_signal("world_substep_changed"):
 			var result4: Error = world_phase_handler.world_substep_changed.connect(_on_world_substep_changed)
@@ -231,8 +235,8 @@ func _verify_campaign_data_ready() -> Dictionary:
 	if current_campaign:
 		if current_campaign.has_method("get_crew_members"):
 			has_crew = not current_campaign.get_crew_members().is_empty()
-		elif "crew_data" in current_campaign:
-			has_crew = not current_campaign.crew_data.is_empty()
+		elif "crew_members" in current_campaign:
+			has_crew = not current_campaign.crew_members.is_empty()
 	if not has_crew:
 		result.warnings.append("CRITICAL: No crew data found in campaign")
 		result.is_valid = false
@@ -358,6 +362,9 @@ func start_new_campaign_turn() -> bool:
 	turn_number += 1
 	print("CampaignPhaseManager: Starting Campaign Turn %d" % turn_number)
 
+	# Sprint 26.4: Debug output for data handoff verification
+	_debug_log_turn_start_data()
+
 	# Sync turn number to GameState for persistence and cross-system access
 	if game_state_manager:
 		if game_state_manager.has_method("get_game_state"):
@@ -414,6 +421,9 @@ func _start_phase_handler(phase: int) -> void:
 	"""Start the appropriate phase handler"""
 	if not GlobalEnums:
 		return
+
+	# Sprint 26.4: Debug output for phase transitions
+	_debug_log_phase_transition(phase, _phase_transition_data)
 
 	match phase:
 		GlobalEnums.FiveParsecsCampaignPhase.TRAVEL:
@@ -484,8 +494,8 @@ func _launch_battle_system() -> void:
 		return
 
 	# Connect to battle completion signal if not already connected
-	if not safe_get_property(battlefield_manager, "battle_completed").is_connected(_on_battle_completed):
-		var result7: Error = safe_get_property(battlefield_manager, "battle_completed").connect(_on_battle_completed)
+	if not Godot4Utils.safe_get_property(battlefield_manager, "battle_completed").is_connected(_on_battle_completed):
+		var result7: Error = Godot4Utils.safe_get_property(battlefield_manager, "battle_completed").connect(_on_battle_completed)
 		assert(result7 == OK, "Failed to connect battle_completed signal")
 
 	# Launch battle assistance
@@ -508,7 +518,7 @@ func _get_current_mission_data() -> Variant:
 
 	if mission_integrator and mission_integrator and mission_integrator.has_method("get_current_mission"):
 		var mission_dict = mission_integrator.get_current_mission()
-		if mission_dict and not (safe_call_method(mission_dict, "is_empty") == true):
+		if mission_dict and not mission_dict.is_empty():
 			return mission_dict
 
 	# Fallback: try to get from game state
@@ -692,10 +702,12 @@ func _complete_battle_phase() -> void:
 func _get_battle_results() -> Dictionary:
 	"""Get battle results from combat system"""
 	# Return stored results from the last battle
-	if not (safe_call_method(_last_battle_results, "is_empty") == true):
+	# Results are populated via _on_battle_results_ready() signal OR _on_phase_completed(BATTLE)
+	if _last_battle_results and not _last_battle_results.is_empty():
 		return _last_battle_results
 
-	# Fallback to placeholder results
+	# Fallback to placeholder results (used if battle was skipped or signal missed)
+	push_warning("CampaignPhaseManager: No battle results available, using placeholder data")
 	return {
 		"success": true,
 		"enemies_defeated": 3,
@@ -954,6 +966,15 @@ func _on_travel_phase_completed() -> void:
 	"""Handle Travel Phase completion (legacy - delegates to unified handler)"""
 	_on_phase_completed(GlobalEnums.FiveParsecsCampaignPhase.TRAVEL)
 
+## Sprint 26.9 GAP-D5: Handle phase sync from GameStateManager (e.g., after save/load)
+func _on_game_state_phase_changed(new_phase: int) -> void:
+	"""Sync CampaignPhaseManager with GameStateManager phase (e.g., after load)"""
+	if current_phase != new_phase:
+		print("CampaignPhaseManager: Phase sync from GameStateManager: %d -> %d" % [current_phase, new_phase])
+		current_phase = new_phase
+		# Emit signal so UI components can update
+		self.phase_started.emit(new_phase)
+
 func _on_world_arrival_completed(world_data: Dictionary) -> void:
 	"""Handle world arrival data from Travel Phase (T-5 fix)
 
@@ -1101,6 +1122,22 @@ func get_phase_progress() -> Dictionary:
 	}
 
 ## Phase Handler Access
+## BP-2: Generic accessor for any phase handler by name
+func get_phase_handler(phase_name: String) -> Node:
+	"""Get phase handler by name for generic access"""
+	match phase_name.to_lower():
+		"travel":
+			return travel_phase_handler
+		"world":
+			return world_phase_handler
+		"battle":
+			return battle_phase_handler
+		"post_battle", "postbattle":
+			return post_battle_phase_handler
+		_:
+			push_warning("CampaignPhaseManager: Unknown phase handler requested: %s" % phase_name)
+			return null
+
 func get_travel_phase_handler() -> Node:
 	"""Get Travel Phase handler for direct access"""
 	return travel_phase_handler
@@ -1108,6 +1145,11 @@ func get_travel_phase_handler() -> Node:
 func get_world_phase_handler() -> Node:
 	"""Get World Phase handler for direct access"""
 	return world_phase_handler
+
+## BP-2: Added missing battle phase handler accessor
+func get_battle_phase_handler() -> Node:
+	"""Get Battle Phase handler for direct access"""
+	return battle_phase_handler
 
 func get_post_battle_phase_handler() -> Node:
 	"""Get Post-Battle Phase handler for direct access"""
@@ -1139,18 +1181,18 @@ func test_campaign_battle_integration() -> void:
 	# Test 3: Check crew data access
 	print("Test 3: Crew data access")
 	var crew_data = _get_current_crew_data()
-	print("  - Crew data available: ", not (safe_call_method(crew_data, "is_empty") == true))
-	print("  - Crew count: ", (safe_call_method(crew_data, "size") as int))
-	if (safe_call_method(crew_data, "size") as int) > 0:
+	print("  - Crew data available: ", not crew_data.is_empty())
+	print("  - Crew count: ", crew_data.size())
+	if crew_data.size() > 0:
 		print("  - First crew member: ", crew_data[0])
 
 	# Test 4: Simulate battle phase transition
 	print("Test 4: Battle phase simulation")
-	if battlefield_manager and not (safe_call_method(mission_data, "is_empty") == true) and not (safe_call_method(crew_data, "is_empty") == true):
+	if battlefield_manager and not mission_data.is_empty() and not crew_data.is_empty():
 		print("  - All prerequisites met - simulating battle launch")
 		# Connect to completion signal for testing
-		if not safe_get_property(battlefield_manager, "battle_completed").is_connected(_on_test_battle_completed):
-			var result8: Error = safe_get_property(battlefield_manager, "battle_completed").connect(_on_test_battle_completed)
+		if not Godot4Utils.safe_get_property(battlefield_manager, "battle_completed").is_connected(_on_test_battle_completed):
+			var result8: Error = Godot4Utils.safe_get_property(battlefield_manager, "battle_completed").connect(_on_test_battle_completed)
 			assert(result8 == OK, "Failed to connect test battle_completed signal")
 
 		# Test battle launch
@@ -1189,6 +1231,108 @@ func demo_complete_campaign_turn() -> void:
 	# Demo will continue through signals as phases complete
 	print("=== CAMPAIGN TURN DEMO STARTED ===")
 
+## =============================================================================
+## Debug Logging (Sprint 26.4)
+## =============================================================================
+
+func _debug_log_turn_start_data() -> void:
+	"""Log all critical campaign data at turn start for handoff verification"""
+	print("\n" + "=".repeat(70))
+	print("[CAMPAIGN TURN DEBUG] Turn %d Starting" % turn_number)
+	print("=".repeat(70))
+
+	if current_campaign:
+		# Crew data
+		var crew: Array = []
+		if current_campaign.has_method("get_crew_members"):
+			crew = current_campaign.get_crew_members()
+		elif "crew_members" in current_campaign:
+			crew = current_campaign.crew_members
+
+		print("  CREW:")
+		print("    Count: %d" % crew.size())
+		for i in range(min(3, crew.size())):
+			var member = crew[i]
+			var name_str: String = "Unknown"
+			if member is Dictionary:
+				name_str = member.get("character_name", member.get("name", "Unknown"))
+			elif member != null and "character_name" in member:
+				name_str = member.character_name
+			elif member != null and "name" in member:
+				name_str = member.name
+			print("    [%d] %s" % [i, name_str])
+		if crew.size() > 3:
+			print("    ... and %d more" % (crew.size() - 3))
+
+		# Captain data
+		var captain: Dictionary = {}
+		if current_campaign.has_method("get_captain"):
+			captain = current_campaign.get_captain()
+		elif "captain_data" in current_campaign:
+			captain = current_campaign.captain_data if current_campaign.captain_data is Dictionary else {}
+
+		print("  CAPTAIN:")
+		print("    Name: %s" % captain.get("name", captain.get("character_name", "MISSING")))
+		print("    Combat: %s" % str(captain.get("combat", "MISSING")))
+		print("    Background: %s" % captain.get("background", "MISSING"))
+
+		# Ship data
+		var ship: Dictionary = {}
+		if current_campaign.has_method("get_ship"):
+			ship = current_campaign.get_ship()
+		elif "ship_data" in current_campaign:
+			ship = current_campaign.ship_data if current_campaign.ship_data is Dictionary else {}
+
+		print("  SHIP:")
+		print("    Name: %s" % ship.get("name", "MISSING"))
+		print("    Hull: %s/%s" % [str(ship.get("hull_points", "?")), str(ship.get("max_hull", "?"))])
+
+		# Resources
+		var credits: int = 0
+		if game_state_manager and game_state_manager.has_method("get_credits"):
+			credits = game_state_manager.get_credits()
+		print("  RESOURCES:")
+		print("    Credits: %d" % credits)
+
+		# Victory conditions
+		var victory_conditions: Dictionary = {}
+		if current_campaign.has_method("get_victory_conditions"):
+			victory_conditions = current_campaign.get_victory_conditions()
+		elif "victory_conditions" in current_campaign:
+			victory_conditions = current_campaign.victory_conditions if current_campaign.victory_conditions is Dictionary else {}
+		print("  VICTORY CONDITIONS:")
+		if victory_conditions.is_empty():
+			print("    None configured")
+		else:
+			print("    Active: %s" % str(victory_conditions.keys()))
+	else:
+		print("  ⚠️  NO CAMPAIGN REFERENCE - Data handoff may have failed!")
+		print("  Attempting recovery from GameStateManager...")
+		if game_state_manager and game_state_manager.has_method("get_current_campaign"):
+			var recovered = game_state_manager.get_current_campaign()
+			if recovered:
+				print("  ✅ Recovered campaign reference from GameStateManager")
+			else:
+				print("  ❌ GameStateManager also has no campaign")
+
+	print("=".repeat(70) + "\n")
+
+
+func _debug_log_phase_transition(phase: int, transition_data: Dictionary) -> void:
+	"""Log phase transition data for debugging handoff between phases"""
+	print("\n[PHASE TRANSITION] %s" % get_phase_name(phase))
+	print("  Transition data keys: %s" % str(transition_data.keys()))
+	if not transition_data.is_empty():
+		for key in transition_data.keys():
+			var value = transition_data[key]
+			if value is Array:
+				print("    %s: [%d items]" % [key, value.size()])
+			elif value is Dictionary:
+				print("    %s: {%d keys}" % [key, value.keys().size()])
+			else:
+				print("    %s: %s" % [key, str(value).substr(0, 50)])
+
+
 ## Debug utility methods
 func get_debug_info() -> Dictionary:
 	"""Get comprehensive debug information about the campaign-battle integration"""
@@ -1207,7 +1351,7 @@ func get_debug_info() -> Dictionary:
 		"battle_system": {
 			"battlefield_manager_available": get_node_or_null("/root/BattlefieldCompanionManager") != null,
 			"last_battle_results": _last_battle_results,
-			"battle_results_available": not (safe_call_method(_last_battle_results, "is_empty") == true)
+			"battle_results_available": not _last_battle_results.is_empty()
 		},
 		"data_access": {
 			"mission_data_available": _get_current_mission_data() != null,
@@ -1222,20 +1366,3 @@ func get_debug_info() -> Dictionary:
 			"PostBattlePhase": PostBattlePhase != null
 		}
 	}
-
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String):
-	if obj == null:
-		return null
-	if typeof(obj) == TYPE_OBJECT and obj.has_signal(property):
-		return obj.get(property)
-	return null
-
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method: String, args: Array = []):
-	if obj == null:
-		return null
-	if typeof(obj) == TYPE_OBJECT and obj.has_method(method):
-		return obj.callv(method, args)
-	return null

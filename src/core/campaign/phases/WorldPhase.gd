@@ -10,6 +10,7 @@ class_name WorldPhase
 # Consistent compile-time dependencies
 # GlobalEnums available as autoload singleton
 const DataManager = preload("res://src/core/data/DataManager.gd")
+const Godot4Utils = preload("res://src/utils/Godot4Utils.gd")
 
 # Runtime-loaded optional dependencies (loaded conditionally in _ready)
 var EnhancedCampaignSignals = null
@@ -47,6 +48,79 @@ var upkeep_costs: Dictionary = {
 	"sick_bay_per_patient": 1 # 1 credit per crew in sick bay
 }
 
+## Campaign reference - set by CampaignPhaseManager
+var _campaign: Variant = null
+
+## Set the campaign reference for this phase handler
+func set_campaign(campaign: Variant) -> void:
+	"""Receive campaign reference from CampaignPhaseManager."""
+	_campaign = campaign
+	print("WorldPhase: Campaign reference set")
+
+## SPRINT 7.1: Consistent access pattern for campaign configuration
+## Source of truth: Campaign resource (difficulty, house_rules, victory_conditions, story_track)
+func _get_campaign_config(key: String, default_value: Variant = null) -> Variant:
+	if _campaign:
+		match key:
+			"difficulty":
+				if _campaign.has_method("get") and _campaign.get("difficulty") != null:
+					return _campaign.difficulty
+				elif "difficulty" in _campaign:
+					return _campaign.difficulty
+			"house_rules":
+				if _campaign.has_method("get_house_rules"):
+					return _campaign.get_house_rules()
+				elif "house_rules" in _campaign:
+					return _campaign.house_rules
+			"victory_conditions":
+				if _campaign.has_method("get_victory_conditions"):
+					return _campaign.get_victory_conditions()
+				elif "victory_conditions" in _campaign:
+					return _campaign.victory_conditions
+			"story_track_enabled":
+				if _campaign.has_method("get_story_track_enabled"):
+					return _campaign.get_story_track_enabled()
+				elif "story_track_enabled" in _campaign:
+					return _campaign.story_track_enabled
+	# Fallback to GameStateManager
+	if game_state_manager:
+		match key:
+			"difficulty":
+				if game_state_manager.has_method("get_difficulty_level"):
+					return game_state_manager.get_difficulty_level()
+			"house_rules":
+				if game_state_manager.has_method("get_house_rules"):
+					return game_state_manager.get_house_rules()
+			"victory_conditions":
+				if game_state_manager.has_method("get_victory_conditions"):
+					return game_state_manager.get_victory_conditions()
+			"story_track_enabled":
+				if game_state_manager.has_method("get_story_track_enabled"):
+					return game_state_manager.get_story_track_enabled()
+	return default_value
+
+## SPRINT 7.1: Consistent access pattern for runtime state
+## Source of truth: GameStateManager (credits, turn_number, current_location, etc.)
+func _get_runtime_state(key: String, default_value: Variant = null) -> Variant:
+	if game_state_manager:
+		match key:
+			"credits":
+				if game_state_manager.has_method("get_credits"):
+					return game_state_manager.get_credits()
+			"turn_number":
+				if "turn_number" in game_state_manager:
+					return game_state_manager.turn_number
+			"current_location":
+				if game_state_manager.has_method("get_current_location"):
+					return game_state_manager.get_current_location()
+			"story_points":
+				if game_state_manager.has_method("get_story_points"):
+					return game_state_manager.get_story_points()
+			"crew_size":
+				if game_state_manager.has_method("get_crew_size"):
+					return game_state_manager.get_crew_size()
+	return default_value
+
 func _ready() -> void:
 	# Get autoload references safely
 	dice_manager = get_node_or_null("/root/DiceManager")
@@ -77,22 +151,39 @@ func _ready() -> void:
 
 	print("WorldPhase: Initialized successfully with enhanced integration")
 
+## World data received from Travel Phase (T-5 fix)
+var _current_world_data: Dictionary = {}
+
 ## Main World Phase Processing
-func start_world_phase() -> void:
-	"""Begin the World Phase sequence - Feature 5 enhanced"""
+func start_world_phase(world_data: Dictionary = {}) -> void:
+	"""Begin the World Phase sequence - Feature 5 enhanced
+
+	Args:
+		world_data: World data from TravelPhase.world_arrival_completed signal (T-5 fix)
+	"""
 	print("WorldPhase: Starting World Phase")
-	
+
+	# T-5 fix: Store world data from Travel Phase
+	if not world_data.is_empty():
+		_current_world_data = world_data
+		print("WorldPhase: Received world data from Travel Phase - %s" % world_data.get("name", "Unknown"))
+	else:
+		print("WorldPhase: ⚠️ No world data received from Travel Phase, using defaults")
+
 	# Initialize world phase state
 	if world_phase_state:
 		world_phase_state.start_phase()
-	
+		# T-5 fix: Apply travel world data to state
+		if not _current_world_data.is_empty() and world_phase_state.has_method("set_world_data"):
+			world_phase_state.set_world_data(_current_world_data)
+
 	# Emit enhanced signals
 	self.world_phase_started.emit()
 	if enhanced_signals:
 		var phase_data = {
 			"phase_name": "World Phase",
 			"turn": world_phase_state.current_turn if world_phase_state else 0,
-			"world_name": world_phase_state.world_name if world_phase_state else "Unknown"
+			"world_name": _current_world_data.get("name", world_phase_state.world_name if world_phase_state else "Unknown")
 		}
 		enhanced_signals.world_phase_started.emit(phase_data)
 
@@ -105,21 +196,33 @@ func _process_upkeep() -> void:
 		current_substep = GlobalEnums.WorldSubPhase.UPKEEP
 		self.world_substep_changed.emit(current_substep)
 
+	# Gather data for debug logging
+	var crew_size: int = 4
+	if game_state_manager and game_state_manager.has_method("get_crew_size"):
+		crew_size = game_state_manager.get_crew_size()
+
+	var sick_crew = _get_sick_crew_count()
+	var debt_interest = _get_ship_debt_interest()
+	var base_cost = upkeep_costs.base_crew_4_to_6 if crew_size <= 6 else upkeep_costs.base_crew_4_to_6 + (crew_size - 6)
+	var sick_cost = sick_crew * upkeep_costs.sick_bay_per_patient
 	var total_upkeep_cost = _calculate_upkeep_cost()
 
 	# Pay upkeep costs
+	var paid: bool = false
+	var credits_available: int = 0
 	if game_state_manager and game_state_manager.has_method("remove_credits"):
-		var credits_available: int = 0
 		if game_state_manager.has_method("get_credits"):
 			credits_available = game_state_manager.get_credits()
 
 		if credits_available >= total_upkeep_cost:
 			game_state_manager.remove_credits(total_upkeep_cost)
-			print("WorldPhase: Paid %d credits for upkeep" % total_upkeep_cost)
+			paid = true
 		else:
-			print("WorldPhase: Insufficient credits for upkeep (need %d, have %d)" % [total_upkeep_cost, credits_available])
 			# Handle consequences of unpaid upkeep
 			_handle_unpaid_upkeep(total_upkeep_cost - credits_available)
+
+	# Debug log upkeep details
+	_debug_log_upkeep(crew_size, base_cost, sick_crew, sick_cost, debt_interest, total_upkeep_cost, credits_available, paid)
 
 	# Handle ship repairs (if applicable)
 	_handle_ship_repairs()
@@ -210,11 +313,44 @@ func _process_crew_tasks() -> void:
 	# For now, we'll auto-assign tasks or use defaults
 	_auto_assign_crew_tasks()
 
-	# Resolve each crew task
-	_resolve_crew_tasks()
+	# Resolve each crew task and collect results for debug
+	var task_results: Dictionary = {}
+	_resolve_crew_tasks_with_debug(task_results)
+
+	# Debug log crew tasks summary
+	_debug_log_crew_tasks_summary(crew_task_assignments.size(), task_results)
 
 	# Continue to job offers
 	_process_job_offers()
+
+func _resolve_crew_tasks_with_debug(task_results: Dictionary) -> void:
+	"""Resolve all assigned crew tasks with debug logging"""
+	for crew_id in crew_task_assignments:
+		var task = crew_task_assignments[crew_id]
+		var task_name = _get_task_name(task)
+		var result: Variant = _resolve_single_crew_task(crew_id, task)
+
+		# Store result summary for debug
+		var success = result.get("success", false) if result is Dictionary else false
+		var details = result.get("details", "") if result is Dictionary else ""
+		task_results[crew_id + " (" + task_name + ")"] = "SUCCESS" if success else "FAILED"
+
+		self.crew_task_completed.emit(crew_id, task, result)
+
+func _get_task_name(task: int) -> String:
+	"""Get human-readable task name"""
+	if not GlobalEnums:
+		return "Task_%d" % task
+	match task:
+		GlobalEnums.CrewTaskType.FIND_PATRON: return "FIND_PATRON"
+		GlobalEnums.CrewTaskType.TRAIN: return "TRAIN"
+		GlobalEnums.CrewTaskType.TRADE: return "TRADE"
+		GlobalEnums.CrewTaskType.RECRUIT: return "RECRUIT"
+		GlobalEnums.CrewTaskType.EXPLORE: return "EXPLORE"
+		GlobalEnums.CrewTaskType.TRACK: return "TRACK"
+		GlobalEnums.CrewTaskType.REPAIR_KIT: return "REPAIR_KIT"
+		GlobalEnums.CrewTaskType.DECOY: return "DECOY"
+		_: return "UNKNOWN"
 
 func _auto_assign_crew_tasks() -> void:
 	"""Auto-assign crew tasks for demonstration"""
@@ -232,15 +368,13 @@ func _auto_assign_crew_tasks() -> void:
 		GlobalEnums.CrewTaskType.REPAIR_KIT
 	] if GlobalEnums else [0, 1, 2, 3, 4]
 
-	# Safe Variant handling - validate crew size before loop
-	var crew_size_result: Variant = safe_call_method(crew_members, "size")
-	var crew_size: int = crew_size_result if crew_size_result is int else 0
+	# Validate crew size before loop
+	var crew_size: int = crew_members.size()
 
 	if crew_size == 0:
 		return
 
-	var tasks_count_result: Variant = safe_call_method(available_tasks, "size")
-	var tasks_count: int = tasks_count_result if tasks_count_result is int else 0
+	var tasks_count: int = available_tasks.size()
 
 	if tasks_count == 0:
 		return
@@ -459,16 +593,51 @@ func _resolve_trade_task(crew_id: String) -> Dictionary:
 	return task_result.serialize()
 
 func _resolve_recruit_task(crew_id: String) -> Dictionary:
-	"""Resolve Recruit task - attempt to expand crew"""
+	"""Resolve Recruit task - attempt to expand crew (W-2 fix: actually adds to crew)"""
 	var recruit_roll = randi_range(1, 6)
 	var recruit_found = recruit_roll >= 5 # 33% chance of finding recruit
+	var recruit_data: Variant = null
+	var recruit_hired: bool = false
+	var hire_details: String = ""
+
+	if recruit_found:
+		recruit_data = _generate_recruit_data()
+		var hire_cost: int = recruit_data.get("cost", 1)
+
+		# W-2 fix: Attempt to hire the recruit if we can afford them
+		if game_state_manager:
+			var can_afford: bool = false
+			if game_state_manager.has_method("get_credits"):
+				var current_credits: int = game_state_manager.get_credits()
+				can_afford = current_credits >= hire_cost
+
+			if can_afford:
+				# Pay hiring cost
+				if game_state_manager.has_method("remove_credits"):
+					game_state_manager.remove_credits(hire_cost)
+
+				# Add recruit to crew
+				if game_state_manager.has_method("add_crew_member"):
+					game_state_manager.add_crew_member(recruit_data)
+					recruit_hired = true
+					hire_details = "Hired %s for %d credits" % [recruit_data.get("name", "Unknown"), hire_cost]
+					print("WorldPhase: W-2 fix - Recruited new crew member: %s" % recruit_data.get("name", "Unknown"))
+				else:
+					hire_details = "Found recruit but crew roster unavailable"
+					print("WorldPhase: ⚠️ GameStateManager missing add_crew_member method")
+			else:
+				hire_details = "Found %s but cannot afford hire cost (%d credits)" % [recruit_data.get("name", "Unknown"), hire_cost]
+				print("WorldPhase: Cannot afford recruit hire cost")
+		else:
+			hire_details = "Found potential recruit but no game state available"
 
 	return {
 		"crew_id": crew_id,
 		"task": GlobalEnums.CrewTaskType.RECRUIT,
 		"success": recruit_found,
-		"details": "Found potential recruit" if recruit_found else "No suitable recruits found",
-		"recruit_data": _generate_recruit_data() if recruit_found else null
+		"hired": recruit_hired,
+		"details": hire_details if recruit_found else "No suitable recruits found",
+		"recruit_data": recruit_data
 	}
 
 func _resolve_explore_task(crew_id: String) -> Dictionary:
@@ -610,8 +779,17 @@ func _process_job_offers() -> void:
 		current_substep = GlobalEnums.WorldSubPhase.JOB_OFFERS
 		self.world_substep_changed.emit(current_substep)
 
+	# Count patron contacts from crew tasks
+	var patron_contacts: int = 0
+	for crew_id in crew_task_assignments:
+		if crew_task_assignments[crew_id] == GlobalEnums.CrewTaskType.FIND_PATRON:
+			patron_contacts += 1
+
 	# Generate job offers based on patrons found
 	available_job_offers = _generate_job_offers()
+
+	# Debug log job offers
+	_debug_log_job_offers(available_job_offers, patron_contacts)
 
 	self.job_offers_generated.emit(available_job_offers)
 
@@ -666,15 +844,50 @@ func _process_equipment() -> void:
 	# Handle equipment redistribution and stash management
 	_handle_equipment_assignment()
 
+	# Get stash item count for debug logging
+	var stash_items: int = 0
+	var equipment_manager = get_node_or_null("/root/EquipmentManager")
+	if equipment_manager and equipment_manager.has_method("get_ship_stash_count"):
+		stash_items = equipment_manager.get_ship_stash_count()
+
+	# Debug log equipment phase
+	_debug_log_equipment(equipment_loadout.size(), stash_items)
+
 	self.equipment_assigned.emit()
 
 	# Continue to rumors
 	_process_rumors()
 
 func _handle_equipment_assignment() -> void:
-	"""Handle equipment redistribution among crew"""
-	# In a full implementation, this would present equipment management UI
-	print("WorldPhase: Equipment assignment phase - redistribute gear among crew")
+	"""Handle equipment redistribution among crew (Core Rules p.85)
+	UI interaction handled by AssignEquipmentComponent via WorldPhaseController.
+	This backend method syncs the equipment_loadout from EquipmentManager."""
+	print("WorldPhase: Equipment assignment phase - syncing crew equipment state")
+
+	# Sync equipment loadout from EquipmentManager (set by AssignEquipmentComponent)
+	var equipment_manager = get_node_or_null("/root/EquipmentManager")
+	if equipment_manager:
+		# Get updated crew equipment assignments
+		if equipment_manager.has_method("get_all_character_equipment"):
+			var all_equipment = equipment_manager.get_all_character_equipment()
+			equipment_loadout = all_equipment.duplicate(true)
+			print("WorldPhase: Synced equipment for %d crew members" % equipment_loadout.size())
+		elif equipment_manager.has_method("get_character_equipment") and game_state_manager:
+			# Fallback: build loadout from individual crew queries
+			equipment_loadout.clear()
+			var crew = game_state_manager.get_crew_members() if game_state_manager.has_method("get_crew_members") else []
+			for member in crew:
+				var char_id: String = ""
+				if member is Object and member.has_method("get_character_id"):
+					char_id = member.get_character_id()
+				elif member is Dictionary:
+					char_id = member.get("character_id", member.get("id", ""))
+				elif "character_id" in member:
+					char_id = member.character_id
+				if not char_id.is_empty():
+					var equipment = equipment_manager.get_character_equipment(char_id)
+					equipment_loadout[char_id] = equipment.duplicate() if equipment else []
+			print("WorldPhase: Built equipment loadout for %d crew" % equipment_loadout.size())
 
 func _process_rumors() -> void:
 	"""Step 5: Resolve any Rumors"""
@@ -682,7 +895,16 @@ func _process_rumors() -> void:
 		current_substep = GlobalEnums.WorldSubPhase.RUMORS
 		self.world_substep_changed.emit(current_substep)
 
-	var quest_triggered = _check_quest_trigger()
+	# Track quest roll for debug logging
+	var quest_roll: int = 0
+	var quest_triggered: bool = false
+
+	if current_rumors > 0:
+		quest_roll = randi_range(1, 6)
+		quest_triggered = quest_roll <= current_rumors
+
+	# Debug log rumors resolution
+	_debug_log_rumors(current_rumors, quest_roll, quest_triggered)
 
 	self.rumors_resolved.emit(quest_triggered)
 
@@ -704,16 +926,34 @@ func _process_battle_choice() -> void:
 		current_substep = GlobalEnums.WorldSubPhase.BATTLE_CHOICE
 		self.world_substep_changed.emit(current_substep)
 
+	# Get rival count and roll for debug logging
+	var rival_count: int = 0
+	var rival_attack_roll: int = 0
+	if GameState and GameState.has_method("get_rival_count"):
+		rival_count = GameState.get_rival_count()
+
 	# Check for rival attacks first
-	var rival_attack = _check_rival_attack()
+	var rival_attack: bool = false
+	if rival_count > 0:
+		rival_attack_roll = randi_range(1, 6)
+		rival_attack = rival_attack_roll <= rival_count
 
 	var battle_choice: Dictionary
 	if rival_attack:
-		battle_choice = {"type": "rival_attack", "forced": true}
-		print("WorldPhase: Rivals attack - forced battle!")
+		battle_choice = {"type": "rival_attack", "forced": true, "name": "Rival Attack"}
 	else:
 		# Present battle options
 		battle_choice = _present_battle_options()
+
+	# Get crew deployed count for debug
+	var crew_deployed: int = 0
+	if game_state_manager and game_state_manager.has_method("get_active_crew_count"):
+		crew_deployed = game_state_manager.get_active_crew_count()
+	elif game_state_manager and game_state_manager.has_method("get_crew_size"):
+		crew_deployed = game_state_manager.get_crew_size()
+
+	# Debug log battle choice
+	_debug_log_battle_choice(rival_count, rival_attack_roll, rival_attack, battle_choice, crew_deployed)
 
 	self.battle_choice_made.emit(battle_choice)
 	_complete_world_phase()
@@ -785,6 +1025,10 @@ func force_battle_choice(choice: Dictionary) -> void:
 func is_world_phase_active() -> bool:
 	"""Check if world phase is currently active"""
 	return current_substep != GlobalEnums.WorldSubPhase.NONE if GlobalEnums else false
+
+func get_current_world_data() -> Dictionary:
+	"""Get the current world data received from Travel Phase (T-5 fix)"""
+	return _current_world_data.duplicate()
 
 func get_completion_data() -> Dictionary:
 	"""Get World Phase completion data for Battle Phase transition
@@ -1155,22 +1399,87 @@ func _calculate_crew_size_bonus() -> int:
 		return 1
 	else:
 		return 0
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return obj.get(property, default_value)
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null
+
+## ═══════════════════════════════════════════════════════════════════════════════
+## DEBUG LOGGING - Sprint 26.5: Substep-Level Debug Output
+## ═══════════════════════════════════════════════════════════════════════════════
+
+func _debug_log_upkeep(crew_size: int, base_cost: int, sick_crew: int, sick_cost: int, debt_interest: int, total_cost: int, credits_available: int, paid: bool) -> void:
+	"""Debug log UPKEEP substep details"""
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ WORLD SUBSTEP: UPKEEP                                       │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ Crew Size: %d" % crew_size)
+	print("│ Base Upkeep Cost: %d credits (4-6 crew = 1)" % base_cost)
+	print("│ Sick Bay Cost: %d credits (%d crew × 1)" % [sick_cost, sick_crew])
+	print("│ Ship Debt Interest: %d credits" % debt_interest)
+	print("│ ─────────────────────────────────────")
+	print("│ Total Upkeep: %d credits" % total_cost)
+	print("│ Credits Available: %d" % credits_available)
+	print("│ Status: %s" % ("PAID" if paid else "UNPAID - Debt incurred"))
+	print("└─────────────────────────────────────────────────────────────┘")
+
+func _debug_log_crew_task(crew_id: String, task_name: String, roll: int, modifiers: int, final_roll: int, threshold: int, success: bool, effects: String) -> void:
+	"""Debug log individual crew task resolution"""
+	print("│   ├─ Crew: %s → Task: %s" % [crew_id, task_name])
+	print("│   │    Roll: %d + %d modifiers = %d vs %d" % [roll, modifiers, final_roll, threshold])
+	print("│   │    Result: %s → %s" % ["SUCCESS" if success else "FAILED", effects])
+
+func _debug_log_crew_tasks_summary(total_tasks: int, task_results: Dictionary) -> void:
+	"""Debug log CREW_TASKS substep summary"""
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ WORLD SUBSTEP: CREW_TASKS                                   │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ Total Tasks Assigned: %d" % total_tasks)
+	for task_name in task_results.keys():
+		var result = task_results[task_name]
+		print("│   %s: %s" % [task_name, result])
+	print("└─────────────────────────────────────────────────────────────┘")
+
+func _debug_log_job_offers(offers: Array, patron_contacts: int) -> void:
+	"""Debug log JOB_OFFERS substep details"""
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ WORLD SUBSTEP: JOB_OFFERS                                   │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ New Patron Contacts: %d" % patron_contacts)
+	print("│ Total Job Offers Available: %d" % offers.size())
+	for i in range(offers.size()):
+		var offer = offers[i]
+		print("│   [%d] %s - Pay: %d, Danger: %d" % [i+1, offer.get("name", "Unknown"), offer.get("payment", 0), offer.get("danger_level", 0)])
+	print("└─────────────────────────────────────────────────────────────┘")
+
+func _debug_log_equipment(redistribution_count: int, stash_items: int) -> void:
+	"""Debug log EQUIPMENT substep details"""
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ WORLD SUBSTEP: EQUIPMENT                                    │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ Equipment Redistributions: %d" % redistribution_count)
+	print("│ Ship Stash Items: %d" % stash_items)
+	print("└─────────────────────────────────────────────────────────────┘")
+
+func _debug_log_rumors(rumors_count: int, quest_roll: int, quest_triggered: bool) -> void:
+	"""Debug log RUMORS substep details"""
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ WORLD SUBSTEP: RUMORS                                       │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ Current Rumors: %d" % rumors_count)
+	if rumors_count > 0:
+		print("│ Quest Trigger Roll (D6): %d vs %d rumors" % [quest_roll, rumors_count])
+		print("│ Quest Triggered: %s" % str(quest_triggered))
+	else:
+		print("│ No rumors to resolve")
+	print("└─────────────────────────────────────────────────────────────┘")
+
+func _debug_log_battle_choice(rival_count: int, rival_attack_roll: int, rival_attacks: bool, selected_mission: Dictionary, crew_deployed: int) -> void:
+	"""Debug log BATTLE_CHOICE substep details"""
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ WORLD SUBSTEP: BATTLE_CHOICE                                │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ Active Rivals: %d" % rival_count)
+	if rival_count > 0:
+		print("│ Rival Attack Roll (D6): %d vs %d rivals" % [rival_attack_roll, rival_count])
+		print("│ Rival Attacks: %s" % ("YES - Forced battle!" if rival_attacks else "No"))
+	print("│ Selected Mission: %s" % selected_mission.get("name", "None"))
+	print("│ Crew Deployed: %d members" % crew_deployed)
+	print("└─────────────────────────────────────────────────────────────┘")
  

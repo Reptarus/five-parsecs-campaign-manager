@@ -9,6 +9,7 @@ extends Node
 # GlobalEnums available as autoload singleton
 # Note: CharacterManager is an autoload - access via get_node("/root/CharacterManager")
 # Note: GameState will be injected via setup() to avoid circular dependencies
+const Godot4Utils = preload("res://src/utils/Godot4Utils.gd")
 
 signal battle_results_recorded(results: Dictionary)
 signal casualties_processed(casualties: Array)
@@ -71,7 +72,7 @@ func start_battle(mission_data: Dictionary) -> void:
 	_current_battle.objective = mission_data.get("objective", GlobalEnums.MissionObjective.NONE)
 
 	_current_battle.planet = mission_data.get("planet", "")
-	_current_battle.turn = safe_get_property(game_state, "turn_number")
+	_current_battle.turn = Godot4Utils.safe_get_property(game_state, "turn_number")
 	_current_battle.timestamp = Time.get_unix_time_from_system()
 
 	log_battle_event({
@@ -169,6 +170,20 @@ func complete_battle(outcome: String) -> Dictionary:
 	# Emit signal
 	battle_results_recorded.emit(_current_battle)
 
+	# Sprint 26.4: Also emit campaign integration signal for post-battle flow
+	var comprehensive_results = {
+		"outcome": outcome,
+		"casualties": _current_battle.player_casualties,
+		"rewards": _current_battle.rewards,
+		"timestamp": Time.get_unix_time_from_system(),
+		"mission_id": _current_battle.get("mission_id", ""),
+		"battle_id": _current_battle.get("id", ""),
+		"player_casualties": _current_battle.player_casualties,
+		"enemy_casualties": _current_battle.enemy_casualties,
+		"turn": _current_battle.get("turn", 0)
+	}
+	battle_completed_for_campaign.emit(comprehensive_results)
+
 	log_battle_event({
 		"type": "battle_completed",
 		"outcome": outcome,
@@ -183,11 +198,11 @@ func process_casualties() -> Array:
 	var casualties: Array = []
 
 	for casualty in _current_battle.player_casualties:
-		var character_id: Character = casualty.get("character_id", "")
-		if (safe_call_method(character_id, "is_empty") == true):
+		var character_id_str: String = casualty.get("character_id", "")
+		if character_id_str.is_empty():
 			continue
 
-		var character: Character = character_manager.get_character(character_id)
+		var character: Character = character_manager.get_character(character_id_str)
 		if not character:
 			continue
 
@@ -310,11 +325,11 @@ func calculate_experience() -> Dictionary:
 	var experience_data: Dictionary = {}
 
 	# Get all active characters
-	var characters: Character = character_manager.get_active_characters()
+	var characters: Array = character_manager.get_active_characters()
 	for character in characters:
 		var typed_character: Character = character as Character
-		var char_id = character.get("id", "")
-		if (safe_call_method(char_id, "is_empty") == true):
+		var char_id: String = character.get("id", "")
+		if char_id.is_empty():
 			continue
 
 		# 1. Base XP for participating in battle (rulebook: each character gets XP for participating)
@@ -541,21 +556,3 @@ func _get_crew_updates() -> Array:
 	
 	return updates
 
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return obj.get(property, default_value)
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null                                                                       
