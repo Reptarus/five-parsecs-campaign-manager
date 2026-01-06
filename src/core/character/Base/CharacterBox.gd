@@ -7,7 +7,7 @@ class_name BaseCharacterBox
 ## Provides basic functionality for character display UI components
 
 # Dependencies
-const Godot4Utils = preload("res://src/core/utils/Godot4Utils.gd")
+const Godot4Utils = preload("res://src/utils/Godot4Utils.gd")
 
 # Base UI references
 @onready var character_name_label: Label

@@ -36,6 +36,7 @@ static func safe_get_property(obj: Variant, property_name: String, default_value
 	return default_value
 
 ## Check if an object has a property (replacement for .has() on Resources)
+## Also aliased as safe_has_property() for consistency with safe_get_property()
 static func has_property(obj: Variant, property_name: String) -> bool:
 	if obj == null:
 		return false
@@ -52,6 +53,10 @@ static func has_property(obj: Variant, property_name: String) -> bool:
 				return true
 			
 	return false
+
+## Alias for has_property() for consistency with safe_get_property()
+static func safe_has_property(obj: Variant, property_name: String) -> bool:
+	return has_property(obj, property_name)
 
 ## Safe dictionary access using 'in' operator (Godot 4 best practice)
 static func dict_has_key(dict: Dictionary, key: String) -> bool:

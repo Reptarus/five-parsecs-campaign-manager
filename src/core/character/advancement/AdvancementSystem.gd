@@ -12,7 +12,7 @@ extends RefCounted
 
 # Dependencies
 # GlobalEnums available as autoload singleton
-const Godot4Utils = preload("res://src/core/utils/Godot4Utils.gd")
+const Godot4Utils = preload("res://src/utils/Godot4Utils.gd")
 
 # Signals
 signal character_advanced(character: Resource, advancement_type: String, new_value: int)
