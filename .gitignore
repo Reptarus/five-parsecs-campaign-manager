@@ -39,3 +39,10 @@ override.cfg
 # Node.js
 node_modules/
 .venv/
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# MCP servers (local development)
+mcp-servers/
+godot-mcp/
