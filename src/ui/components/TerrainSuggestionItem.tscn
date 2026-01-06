@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3 uid="uid://cj8h2rq5x7mp4"]
+[gd_scene load_steps=2 format=3 uid="uid://cj8h2rq5x7mp4"]
 
 [ext_resource type="Script" path="res://src/ui/components/TerrainSuggestionItem.gd" id="1_m9k6v"]
 

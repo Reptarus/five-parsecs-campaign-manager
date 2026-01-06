@@ -51,26 +51,39 @@ func _connect_button_signals() -> void:
 # CHARACTER DATA SETUP
 # =====================================================
 
-func set_character_data(character: Dictionary) -> void:
-	"""Initialize card with character data"""
-	character_data = character.duplicate()
+func set_character_data(character) -> void:
+	"""Initialize card with character data
+	Sprint 26.3: Character-Everywhere - accepts Character first, Dictionary as fallback
+	"""
+	# Convert input to Dictionary for internal state tracking
+	if character != null and character.has_method("to_dictionary"):
+		# Character object - convert to dictionary for state tracking
+		character_data = character.to_dictionary()
+	elif character is Dictionary:
+		# Legacy Dictionary input
+		character_data = character.duplicate()
+	else:
+		push_warning("CharacterStatusCard: Invalid character data type")
+		character_data = {}
+		_update_display()
+		return
 
-	# Extract character stats
-	var char_name: String = character.get("character_name", "Unknown")
-	var combat: int = character.get("combat", 0)
-	var toughness: int = character.get("toughness", 4)
-	var speed: int = character.get("speed", 4)
-	var savvy: int = character.get("savvy", 0)
-	var reactions: int = character.get("reactions", 1)
+	# Extract character stats using safe access
+	var char_name: String = character_data.get("character_name", "Unknown")
+	var combat: int = character_data.get("combat", 0)
+	var toughness: int = character_data.get("toughness", 4)
+	var speed: int = character_data.get("speed", 4)
+	var savvy: int = character_data.get("savvy", 0)
+	var reactions: int = character_data.get("reactions", 1)
 
 	# Initialize health tracking
-	max_health = character.get("max_health", 10)
-	current_health = character.get("health", max_health)
+	max_health = character_data.get("max_health", 10)
+	current_health = character_data.get("health", max_health)
 
 	# Initialize action tracking
-	actions_remaining = character.get("actions_remaining", 2)
-	movement_remaining = character.get("movement_remaining", 6)
-	stun_markers = character.get("stun_markers", 0)
+	actions_remaining = character_data.get("actions_remaining", 2)
+	movement_remaining = character_data.get("movement_remaining", 6)
+	stun_markers = character_data.get("stun_markers", 0)
 
 	# Update display
 	_update_display()

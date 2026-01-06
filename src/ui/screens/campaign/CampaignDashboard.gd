@@ -86,6 +86,17 @@ var story_point_dialog: Window = null
 func _ready() -> void:
 	print("CampaignDashboard: Initializing (simplified - reads from GameStateManager directly)")
 
+	# Sprint 26.9 Phase 8.1: Clear placeholder text immediately to prevent showing stale data
+	_clear_placeholder_text()
+
+	# Sprint 26.9: Validate GameStateManager autoload exists before any operations
+	if not _validate_game_state_manager():
+		push_error("CampaignDashboard: CRITICAL - GameStateManager autoload not available. Dashboard cannot function.")
+		# Display error to user
+		if phase_label:
+			phase_label.text = "ERROR: Game State Manager not loaded"
+		return
+
 	# Load official Five Parsecs phase panel scenes
 	TravelPhasePanel = load("res://src/ui/screens/travel/TravelPhaseUI.tscn")
 	WorldPhasePanel = load("res://src/ui/screens/world/WorldPhaseController.tscn")
@@ -115,7 +126,61 @@ func _ready() -> void:
 	# Track viewport size for responsive updates (legacy support)
 	get_viewport().size_changed.connect(_on_viewport_resized)
 
+	# Sprint 26.4: Validate phase synchronization on load to prevent stale state
+	_validate_phase_sync()
+
 	print("CampaignDashboard: Ready - displaying campaign from GameStateManager")
+
+## Sprint 26.9: GameStateManager validation to prevent crashes if autoload fails
+func _validate_game_state_manager() -> bool:
+	"""Validate GameStateManager autoload exists and is functional"""
+	# Check if GameStateManager exists in autoload
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if gsm == null:
+		return false
+
+	# Verify it has essential methods
+	var required_methods := ["get_credits", "get_campaign_phase", "get_crew_members"]
+	for method_name in required_methods:
+		if not gsm.has_method(method_name):
+			push_error("CampaignDashboard: GameStateManager missing required method: " + method_name)
+			return false
+
+	return true
+
+## Sprint 26.9 Phase 8.1: Clear placeholder text to prevent showing stale scene defaults
+func _clear_placeholder_text() -> void:
+	"""Clear placeholder text from scene labels - shows loading state until real data arrives"""
+	# Clear ship info placeholder
+	if ship_info and ship_info is Label:
+		ship_info.text = "Loading ship data..."
+		ship_info.modulate = Color(0.6, 0.6, 0.6)  # Gray for loading state
+
+	# Clear quest info placeholder
+	if quest_info_label:
+		quest_info_label.text = "Loading quest data..."
+		quest_info_label.modulate = Color(0.6, 0.6, 0.6)
+
+	# Clear world info placeholder
+	if world_info_label:
+		world_info_label.text = "Loading world data..."
+		world_info_label.modulate = Color(0.6, 0.6, 0.6)
+
+	# Clear resource labels with loading indicators
+	if credits_label:
+		credits_label.text = "..."
+	if story_points_label:
+		story_points_label.text = "..."
+	if patrons_label:
+		patrons_label.text = "..."
+	if rivals_label:
+		rivals_label.text = "..."
+	if rumors_label:
+		rumors_label.text = "..."
+	if pending_events_label:
+		pending_events_label.text = "..."
+
+	print("CampaignDashboard: Placeholder text cleared, awaiting real data")
 
 func _connect_dashboard_buttons() -> void:
 	"""Connect dashboard button signals with validation"""
@@ -169,15 +234,23 @@ func _connect_component_signals() -> void:
 		print("CampaignDashboard: VictoryProgressPanel signal connected")
 
 func _hide_legacy_buttons() -> void:
-	"""Hide old header buttons - replaced by QuickActionsFooter (kept for rollback)"""
+	"""Hide old header buttons and disconnect signals - replaced by QuickActionsFooter"""
 	if save_button:
 		save_button.visible = false
+		if save_button.pressed.is_connected(_on_save_pressed):
+			save_button.pressed.disconnect(_on_save_pressed)
 	if manage_crew_button:
 		manage_crew_button.visible = false
+		if manage_crew_button.pressed.is_connected(_on_manage_crew_pressed):
+			manage_crew_button.pressed.disconnect(_on_manage_crew_pressed)
 	if load_button:
 		load_button.visible = false
+		if load_button.pressed.is_connected(_on_load_pressed):
+			load_button.pressed.disconnect(_on_load_pressed)
 	if quit_button:
 		quit_button.visible = false
+		if quit_button.pressed.is_connected(_on_quit_pressed):
+			quit_button.pressed.disconnect(_on_quit_pressed)
 
 func _apply_glass_style_to_panels() -> void:
 	"""Apply glass morphism style to legacy PanelContainers"""
@@ -199,6 +272,34 @@ func _apply_glass_style_to_panels() -> void:
 			style.set_border_width_all(1)
 			style.set_corner_radius_all(12)
 			panel.add_theme_stylebox_override("panel", style)
+
+func _validate_phase_sync() -> void:
+	"""Sprint 26.4: Validate phase synchronization between GameStateManager and CampaignPhaseManager.
+	Detects stale state that could cause navigation issues."""
+	if not GameStateManager:
+		push_warning("CampaignDashboard: Cannot validate phase sync - GameStateManager not available")
+		return
+
+	var gsm_phase: int = GameStateManager.get_campaign_phase()
+
+	# Check if CampaignPhaseManager is available and compare
+	var campaign_phase_manager = get_node_or_null("/root/CampaignPhaseManager")
+	if campaign_phase_manager and campaign_phase_manager.has_method("get_current_phase"):
+		var cpm_phase = campaign_phase_manager.get_current_phase()
+		if gsm_phase != cpm_phase:
+			push_warning("CampaignDashboard: Phase mismatch detected! GSM=%d, CPM=%d - syncing to GSM" % [gsm_phase, cpm_phase])
+			if campaign_phase_manager.has_method("set_current_phase"):
+				campaign_phase_manager.set_current_phase(gsm_phase)
+			print("CampaignDashboard: Phase sync corrected to %s" % _get_phase_name(gsm_phase))
+
+	# Validate phase is within valid range (0-4: Travel, World, Battle, PostBattle, EndTurn)
+	if gsm_phase < 0 or gsm_phase > 4:
+		push_warning("CampaignDashboard: Invalid phase value %d - resetting to Travel (0)" % gsm_phase)
+		if GameStateManager.has_method("set_campaign_phase"):
+			GameStateManager.set_campaign_phase(0)
+		gsm_phase = 0
+
+	print("CampaignDashboard: Phase sync validated - current phase: %s" % _get_phase_name(gsm_phase))
 
 ## SIMPLIFIED UI UPDATE - Reads directly from GameStateManager
 
@@ -747,20 +848,20 @@ func _update_action_button() -> void:
 				next_phase_button.text = "Begin Turn %d → Travel Phase" % turn_number
 				next_phase_button.tooltip_text = "Start campaign turn with Travel Phase"
 		1:  # Travel Phase
-			next_phase_button.text = "Continue Travel Phase"
-			next_phase_button.tooltip_text = "Step 1: Decide whether to travel (p.69)"
+			next_phase_button.text = "Open Travel Phase"
+			next_phase_button.tooltip_text = "Step 1: Decide whether to travel (p.69) - opens phase UI"
 		2:  # World Phase
-			next_phase_button.text = "Continue World Phase"
-			next_phase_button.tooltip_text = "Step 2: Upkeep, tasks, jobs, battle prep (p.76)"
+			next_phase_button.text = "Open World Phase"
+			next_phase_button.tooltip_text = "Step 2: Upkeep, tasks, jobs, battle prep (p.76) - opens phase UI"
 		3:  # Battle Phase
 			next_phase_button.text = "Enter Battle"
 			next_phase_button.tooltip_text = "Step 3: Tabletop Battle (p.87)"
 		4:  # Post-Battle Phase
-			next_phase_button.text = "Post-Battle Sequence"
-			next_phase_button.tooltip_text = "Step 4: Resolve aftermath, loot, XP (p.119)"
+			next_phase_button.text = "Open Post-Battle"
+			next_phase_button.tooltip_text = "Step 4: Resolve aftermath, loot, XP (p.119) - opens phase UI"
 		_:
-			next_phase_button.text = "Next Phase"
-			next_phase_button.tooltip_text = "Advance to next campaign phase"
+			next_phase_button.text = "Open Phase UI"
+			next_phase_button.tooltip_text = "Open the current campaign phase interface"
 
 ## Helper methods
 
@@ -777,7 +878,9 @@ func _get_phase_name(phase: int) -> String:
 ## Button Event Handlers
 
 func _on_next_phase_pressed() -> void:
-	"""Advance to next campaign phase - phase-aware navigation"""
+	"""Advance to next campaign phase - routes through CampaignTurnController
+	Sprint 26.4: Fixed to route through MainCampaignScene orchestrator instead of direct scene navigation.
+	This prevents orphaned scenes and ensures proper phase state management."""
 	if not next_phase_button:
 		return
 
@@ -786,42 +889,21 @@ func _on_next_phase_pressed() -> void:
 		push_error("CampaignDashboard: Scene tree not available")
 		return
 
-	# Get current phase and navigate to appropriate screen
-	var current_phase: int = 2  # Default to World
+	# Get current phase for logging
+	var current_phase: int = 0
 	if GameStateManager:
 		current_phase = GameStateManager.get_campaign_phase()
 
-	var target_scene: String = ""
-	var phase_name: String = ""
+	var phase_name: String = _get_phase_name(current_phase)
+	print("CampaignDashboard: Navigating to MainCampaignScene (current phase: %s)..." % phase_name)
 
-	match current_phase:
-		0:  # Setup -> Travel
-			target_scene = "res://src/ui/screens/travel/TravelPhaseUI.tscn"
-			phase_name = "Travel Phase"
-		1:  # Travel -> World
-			target_scene = "res://src/ui/screens/world/WorldPhaseController.tscn"
-			phase_name = "World Phase"
-		2:  # World -> Battle (or stay in World for actions)
-			target_scene = "res://src/ui/screens/world/WorldPhaseController.tscn"
-			phase_name = "World Phase"
-		3:  # Battle
-			target_scene = "res://src/ui/screens/battle/PreBattle.tscn"
-			phase_name = "Battle Phase"
-		4:  # Post-Battle
-			target_scene = "res://src/ui/screens/postbattle/PostBattleSequence.tscn"
-			phase_name = "Post-Battle Phase"
-		_:
-			target_scene = "res://src/ui/screens/world/WorldPhaseController.tscn"
-			phase_name = "World Phase"
-
-	print("CampaignDashboard: Navigating to %s..." % phase_name)
-
+	# Sprint 26.4: Route through MainCampaignScene orchestrator
+	# CampaignTurnController will show correct phase UI based on GameStateManager's current phase
 	if SceneRouter and SceneRouter.has_method("navigate_to"):
-		var route_name: String = phase_name.to_lower().replace(" ", "_").replace("-", "_")
-		SceneRouter.navigate_to(route_name)
+		SceneRouter.navigate_to("main_campaign")
 	else:
-		# Fallback: direct scene navigation
-		get_tree().call_deferred("change_scene_to_file", target_scene)
+		# Fallback: direct scene navigation to orchestrator
+		get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/campaign/MainCampaignScene.tscn")
 
 func _on_manage_crew_pressed() -> void:
 	# Verify scene tree exists
@@ -869,23 +951,55 @@ func _on_quit_pressed() -> void:
 
 func _on_ship_info_pressed() -> void:
 	"""Navigate to Ship Management screen"""
-	print("CampaignDashboard: Navigating to Ship Management...")
-	get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/ships/ShipManager.tscn")
+	var scene_path := "res://src/ui/screens/ships/ShipManager.tscn"
+	if _validate_and_navigate(scene_path, "Ship Management"):
+		print("CampaignDashboard: Navigating to Ship Management...")
 
 func _on_trading_pressed() -> void:
 	"""Navigate to Trading screen"""
-	print("CampaignDashboard: Navigating to Trading...")
-	get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/campaign/TradingScreen.tscn")
+	var scene_path := "res://src/ui/screens/campaign/TradingScreen.tscn"
+	if _validate_and_navigate(scene_path, "Trading"):
+		print("CampaignDashboard: Navigating to Trading...")
 
 func _on_world_pressed() -> void:
 	"""Navigate to World Phase screen"""
-	print("CampaignDashboard: Navigating to World Phase...")
-	get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/world/WorldPhaseController.tscn")
+	var scene_path := "res://src/ui/screens/world/WorldPhaseController.tscn"
+	if _validate_and_navigate(scene_path, "World Phase"):
+		print("CampaignDashboard: Navigating to World Phase...")
 
 func _on_settings_pressed() -> void:
 	"""Navigate to Settings screen"""
-	print("CampaignDashboard: Navigating to Settings...")
-	get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/settings/SettingsScreen.tscn")
+	var scene_path := "res://src/ui/screens/settings/SettingsScreen.tscn"
+	if _validate_and_navigate(scene_path, "Settings"):
+		print("CampaignDashboard: Navigating to Settings...")
+
+func _validate_and_navigate(scene_path: String, screen_name: String) -> bool:
+	"""Validate scene exists before navigation, show error if missing"""
+	if not FileAccess.file_exists(scene_path):
+		push_error("CampaignDashboard: %s screen not found: %s" % [screen_name, scene_path])
+		_show_screen_not_found_error(screen_name)
+		return false
+	get_tree().call_deferred("change_scene_to_file", scene_path)
+	return true
+
+func _show_screen_not_found_error(screen_name: String) -> void:
+	"""Show user-friendly error when a screen is not available"""
+	# Use NotificationManager if available
+	if has_node("/root/NotificationManager"):
+		var notif_manager = get_node("/root/NotificationManager")
+		if notif_manager.has_method("show_error"):
+			notif_manager.show_error(
+				"Screen Not Available",
+				"The %s screen could not be found. This feature may not be implemented yet." % screen_name
+			)
+			return
+	# Fallback: simple dialog
+	var error_dialog = AcceptDialog.new()
+	error_dialog.title = "Screen Not Available"
+	error_dialog.dialog_text = "The %s screen could not be loaded.\n\nThis feature may still be in development." % screen_name
+	add_child(error_dialog)
+	error_dialog.popup_centered()
+	error_dialog.confirmed.connect(error_dialog.queue_free)
 
 ## COMPONENT CARD SIGNAL HANDLERS - Navigation from card clicks
 
@@ -1143,15 +1257,68 @@ func _on_responsive_breakpoint_changed(new_breakpoint: int) -> void:
 	_update_crew_list()  # Refresh cards with appropriate variant
 	print("CampaignDashboard: Layout updated via ResponsiveManager - Breakpoint: %s" % _responsive_manager.get_breakpoint_name())
 
+## Sprint 26.9 Phase 8.2: Responsive container heights to prevent nested scrollbars on mobile
+func _apply_responsive_container_heights(viewport_width: int) -> void:
+	"""Adjust container minimum heights based on viewport size to prevent nested scrollbars"""
+	# Height ratios for different screen sizes
+	# Mobile: Much smaller heights to fit content on screen without nested scroll
+	# Tablet: Moderate heights
+	# Desktop: Original larger heights
+
+	var crew_height: int
+	var battle_history_height: int
+	var patron_list_height: int
+	var rival_list_height: int
+
+	if viewport_width < 768:
+		# Mobile: Compact heights - prevent nested scrollbars
+		crew_height = 120  # Was 280px - now compact for horizontal scroll
+		battle_history_height = 60  # Was 120px - compact
+		patron_list_height = 48  # Was 60px - single row visible
+		rival_list_height = 48  # Was 60px - single row visible
+	elif viewport_width < 1024:
+		# Tablet: Medium heights
+		crew_height = 200  # Moderate
+		battle_history_height = 100  # Moderate
+		patron_list_height = 60  # Standard
+		rival_list_height = 60  # Standard
+	else:
+		# Desktop: Full heights
+		crew_height = 280  # Original
+		battle_history_height = 120  # Original
+		patron_list_height = 80  # Slightly larger for desktop
+		rival_list_height = 80  # Slightly larger for desktop
+
+	# Apply heights to crew scroll container
+	if crew_scroll_container:
+		crew_scroll_container.custom_minimum_size.y = crew_height
+
+	# Apply heights to battle history scroll container
+	var battle_history_scroll := get_node_or_null("MarginContainer/VBoxContainer/MainContent/LeftPanel/BattleHistoryPanel/VBoxContainer/ScrollContainer")
+	if battle_history_scroll:
+		battle_history_scroll.custom_minimum_size.y = battle_history_height
+
+	# Apply heights to patron and rival lists
+	if patron_list:
+		patron_list.custom_minimum_size.y = patron_list_height
+
+	if rival_list:
+		rival_list.custom_minimum_size.y = rival_list_height
+
+	print("CampaignDashboard: Container heights adjusted for %dpx viewport (crew=%d, battle=%d)" % [viewport_width, crew_height, battle_history_height])
+
 func _apply_responsive_layout(bp: int) -> void:
 	"""Apply responsive layout based on ResponsiveManager breakpoint"""
 	# Note: parameter named 'bp' because 'breakpoint' is a reserved keyword
 	if not crew_card_container:
 		return
-	
+
 	# Get viewport width for additional breakpoint logic
 	var viewport_width := get_viewport().get_visible_rect().size.x
-	
+
+	# Sprint 26.9 Phase 8.2: Adjust container heights responsively to prevent nested scrollbars
+	_apply_responsive_container_heights(viewport_width)
+
 	# Use ResponsiveManager helpers for consistent behavior
 	if _responsive_manager.should_use_horizontal_scroll():
 		# Mobile (<768px): Horizontal scroll with 8px gap

@@ -278,6 +278,8 @@ Before committing test fixes, verify:
 - [ ] All return values null-checked before use
 - [ ] All tests start with dependency null guards
 - [ ] All loops with awaits have validation per iteration
+- [ ] All `is_emitted()` calls have argument matchers (`any()`, `any_string()`, etc.) **[Pattern 9]**
+- [ ] All `assert_signal().is_emitted()` calls use `await` keyword **[Pattern 9]**
 
 ---
 
@@ -346,6 +348,105 @@ button.click()
 - ✅ Tests pass OR skip gracefully with warnings
 - ✅ Clear warning messages explaining why tests skip
 - ✅ No null reference errors in console
+
+---
+
+## Pattern 9: Signal Argument Matching (CRITICAL)
+
+### Problem
+```gdscript
+# TIMES OUT - waits 2 seconds then fails
+var monitor = monitor_signals(character_manager)
+character_manager.remove_character_from_roster(char_id)
+await assert_signal(monitor).is_emitted("character_removed")  # TIMEOUT!
+```
+
+### Root Cause
+gdUnit4's `is_emitted()` does **STRICT EQUALITY matching** on signal arguments:
+- Signal emits: `character_removed.emit("char_123")`
+- Test expects: `is_emitted("character_removed")` → matches `emit()` with NO args
+- `["char_123"] != []` → **NO MATCH** → timeout after 2 seconds
+
+### Solution
+Use `any()`, `any_string()`, `any_int()` matchers to match signals with arguments:
+```gdscript
+# Match signal with any String argument
+var monitor = monitor_signals(character_manager)
+character_manager.remove_character_from_roster(char_id)
+await assert_signal(monitor).is_emitted("character_removed", [any_string()])  # PASSES!
+
+# Match signal with any int argument
+await assert_signal(monitor).is_emitted("crew_size_changed", [any_int()])
+
+# Match signal with multiple arguments (e.g., battle_phase_changed(old, new))
+await assert_signal(event_bus).is_emitted("battle_phase_changed", [any(), any()])
+
+# Match signal with specific expected value
+await assert_signal(monitor).is_emitted("step_clicked", [2])
+```
+
+### Available Matchers (from GdUnitTestSuite)
+| Matcher | Matches | Example |
+|---------|---------|---------|
+| `any()` | Any value of any type | `[any()]` |
+| `any_string()` | Any String value | `[any_string()]` |
+| `any_int()` | Any integer value | `[any_int()]` |
+| `any_bool()` | Any boolean value | `[any_bool()]` |
+| `any_float()` | Any float value | `[any_float()]` |
+
+### When to Apply
+- Signal has typed arguments (most signals do)
+- You see `timed out after 2s 0ms` in test output
+- Signal IS being emitted but assertion still fails
+
+### Rule
+**ALWAYS** provide argument matchers when testing signals that have parameters.
+
+### Complete Example
+```gdscript
+# Signal declarations in your code:
+signal character_removed(character_id: String)
+signal crew_size_changed(new_size: int)
+signal battle_phase_changed(old_phase: int, new_phase: int)
+
+# Test assertions:
+func test_character_removal_emits_signal():
+    var monitor = monitor_signals(character_manager)
+    character_manager.remove_character_from_roster(char_id)
+
+    # Must match the String argument
+    await assert_signal(monitor).is_emitted("character_removed", [any_string()])
+
+    # Must match the int argument
+    await assert_signal(monitor).is_emitted("crew_size_changed", [any_int()])
+
+func test_battle_phase_transition():
+    var monitor = monitor_signals(event_bus)
+    battle_manager.phase_changed.emit(0, 1)
+
+    # Must match BOTH int arguments
+    await get_tree().process_frame  # Wait for Resource→Node propagation
+    await assert_signal(event_bus).is_emitted("battle_phase_changed", [any(), any()])
+```
+
+### Common Mistakes
+```gdscript
+# ❌ WRONG - No args means "match signal emitted with NO arguments"
+await assert_signal(monitor).is_emitted("character_removed")
+
+# ❌ WRONG - Forgot await (returns immediately, then times out)
+assert_signal(monitor).is_emitted("character_removed", [any_string()])
+
+# ✅ CORRECT - Await + arg matcher
+await assert_signal(monitor).is_emitted("character_removed", [any_string()])
+```
+
+### Debugging Tips
+If signals still timeout after adding matchers:
+1. **Check signal declaration**: Does it have the expected parameter types?
+2. **Check emission**: Is the signal actually being emitted? Add `print()` before `.emit()`
+3. **Check timing**: For Resource→Node chains, add `await get_tree().process_frame` before assertion
+4. **Check instance validity**: Node might be freed before signal propagates
 
 ---
 

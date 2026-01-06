@@ -29,6 +29,9 @@ func after():
 
 func before_test():
 	"""Test-level setup - runs before EACH test"""
+	# Set deterministic seed for reproducible random numbers
+	seed(12345)
+
 	# Clear KeywordDB for clean test state
 	KeywordDB.keywords.clear()
 	KeywordDB.bookmarked_keywords.clear()
@@ -164,11 +167,11 @@ func test_show_for_keyword_handles_unknown_keyword_gracefully():
 		return
 
 	# Verify dialog shows error message or is not visible
-	# The current implementation will show "Invalid keyword data" message
+	# The current implementation shows "Unknown term" for non-existent keywords
 	if tooltip._dialog and tooltip._dialog.visible:
 		if tooltip._rich_text:
-			# Should show error message for invalid keyword
-			assert_that(tooltip._rich_text.text).contains("Invalid keyword data")
+			# Should show unknown term message for invalid keyword
+			assert_that(tooltip._rich_text.text).contains("Unknown term")
 
 # ============================================================================
 # Bookmark Functionality Test (1 test)

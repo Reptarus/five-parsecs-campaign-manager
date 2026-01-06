@@ -48,32 +48,72 @@ var highest_savvy: int = 0
 var has_feral: bool = false
 var difficulty_mode: DifficultyMode = DifficultyMode.NORMAL
 
+# Sprint 26.5: Debug logging for initiative rolls
+var DEBUG_INITIATIVE := false
+
+## Enable debug logging for initiative rolls
+func enable_debug_logging() -> void:
+	DEBUG_INITIATIVE = true
+	print("SeizeInitiativeSystem: Initiative debug logging ENABLED")
+
+## Disable debug logging for initiative rolls
+func disable_debug_logging() -> void:
+	DEBUG_INITIATIVE = false
+	print("SeizeInitiativeSystem: Initiative debug logging DISABLED")
+
+## Debug log for initiative roll - shows complete calculation breakdown
+func _debug_log_initiative_roll(result: InitiativeResult) -> void:
+	if not DEBUG_INITIATIVE:
+		return
+
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ SEIZE THE INITIATIVE ROLL                                  │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ 2D6 ROLL: [%d] + [%d] = %d" % [result.dice_values[0], result.dice_values[1], result.base_roll])
+	print("│ SAVVY BONUS: +%d (highest in crew)" % result.savvy_bonus)
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ MODIFIERS:")
+	if result.modifiers_breakdown.is_empty():
+		print("│   (none)")
+	else:
+		for mod in result.modifiers_breakdown:
+			var sign_str := "+" if mod.value > 0 else ""
+			var applied_str := "" if mod.applied else " [NOT APPLIED]"
+			print("│   %s: %s%d%s" % [mod.name, sign_str, mod.value, applied_str])
+		print("│   ─────────────────")
+		print("│   Total Modifiers: %+d" % result.total_modifiers)
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ CALCULATION: %d (roll) + %d (savvy) + %d (mods) = %d" % [
+		result.base_roll, result.savvy_bonus, result.total_modifiers, result.roll_total])
+	print("│ TARGET: %d" % result.target_number)
+	print("│")
+	if result.success:
+		print("│ ★★★ INITIATIVE SEIZED! ★★★")
+		print("│ Crew may move OR fire (hits on natural 6 only)")
+	else:
+		print("│ Initiative NOT seized - enemy acts first")
+	print("└─────────────────────────────────────────────────────────────┘")
+
 func _init() -> void:
 	_reset_modifiers()
 
-## Set crew data for savvy bonus and Feral detection
+## Set crew data for savvy bonus and Feral detection (Sprint 26.3: Character-Everywhere)
 func set_crew_data(crew: Array) -> void:
 	highest_savvy = 0
 	has_feral = false
 
 	for member in crew:
-		# Get savvy - support both Resource and Dictionary
-		var savvy: int = 0
-		if member is Resource and member.has_method("get"):
-			savvy = member.get("savvy") if member.get("savvy") != null else 0
-		elif member is Dictionary:
-			savvy = member.get("savvy", 0)
+		# Sprint 26.3: Crew members are now always Character objects
+		if not member:
+			continue
 
+		# Get savvy from Character property
+		var savvy: int = member.savvy if "savvy" in member else 0
 		if savvy > highest_savvy:
 			highest_savvy = savvy
 
-		# Check for Feral
-		var species: String = ""
-		if member is Resource and member.has_method("get"):
-			species = member.get("species") if member.get("species") != null else ""
-		elif member is Dictionary:
-			species = member.get("species", "")
-
+		# Check for Feral species (origin property on Character)
+		var species: String = member.origin if "origin" in member else ""
 		if species.to_lower() == "feral":
 			has_feral = true
 
@@ -145,6 +185,9 @@ func roll_initiative() -> InitiativeResult:
 	result.roll_total = result.base_roll + result.savvy_bonus + result.total_modifiers
 	result.target_number = 10
 	result.success = result.roll_total >= result.target_number
+
+	# Sprint 26.5: Debug log the initiative roll
+	_debug_log_initiative_roll(result)
 
 	initiative_rolled.emit(result)
 	return result

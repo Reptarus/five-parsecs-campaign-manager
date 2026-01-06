@@ -15,7 +15,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 16
 
 [node name="TitleLabel" type="Label" parent="VBoxContainer"]
 layout_mode = 2
@@ -25,13 +25,14 @@ horizontal_alignment = 1
 
 [node name="CrewCharacteristicLabel" type="Label" parent="VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 16
 text = "Crew Characteristic: "
 
 [node name="MeetingStoryLabel" type="Label" parent="VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 16
 text = "Meeting Story: "
+autowrap_mode = 2
 
 [node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
 layout_mode = 2
@@ -39,10 +40,11 @@ layout_mode = 2
 [node name="RelationshipsContainer" type="VBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 5
+theme_override_constants/separation = 8
 
 [node name="AddRelationshipButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
+custom_minimum_size = Vector2(0, 48)
 text = "Add New Relationship"
 
 [node name="AddRelationshipPanel" type="PanelContainer" parent="VBoxContainer"]
@@ -51,31 +53,38 @@ layout_mode = 2
 
 [node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/AddRelationshipPanel"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 12
 
 [node name="Character1Label" type="Label" parent="VBoxContainer/AddRelationshipPanel/VBoxContainer"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 14
 text = "Character 1:"
 
 [node name="Character1Dropdown" type="OptionButton" parent="VBoxContainer/AddRelationshipPanel/VBoxContainer"]
 layout_mode = 2
+custom_minimum_size = Vector2(0, 48)
 
 [node name="Character2Label" type="Label" parent="VBoxContainer/AddRelationshipPanel/VBoxContainer"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 14
 text = "Character 2:"
 
 [node name="Character2Dropdown" type="OptionButton" parent="VBoxContainer/AddRelationshipPanel/VBoxContainer"]
 layout_mode = 2
+custom_minimum_size = Vector2(0, 48)
 
 [node name="RelationshipTypeLabel" type="Label" parent="VBoxContainer/AddRelationshipPanel/VBoxContainer"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 14
 text = "Relationship Type:"
 
 [node name="RelationshipTypeDropdown" type="OptionButton" parent="VBoxContainer/AddRelationshipPanel/VBoxContainer"]
 layout_mode = 2
+custom_minimum_size = Vector2(0, 48)
 
 [node name="ConfirmButton" type="Button" parent="VBoxContainer/AddRelationshipPanel/VBoxContainer"]
 layout_mode = 2
+custom_minimum_size = Vector2(0, 48)
 text = "Confirm Relationship"
 
 [connection signal="pressed" from="VBoxContainer/AddRelationshipPanel/VBoxContainer/ConfirmButton" to="." method="_on_confirm_relationship_pressed"]

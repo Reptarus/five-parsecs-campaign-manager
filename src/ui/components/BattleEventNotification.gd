@@ -699,14 +699,6 @@ func cleanup() -> void:
 
 	hide_notification(false)
 
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null
-
 ## Event handlers
 func _on_combat_event(event_data: Dictionary) -> void:
 	show_event(Resource.new(), event_data.get("round", 0))

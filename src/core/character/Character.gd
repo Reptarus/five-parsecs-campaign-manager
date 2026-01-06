@@ -135,6 +135,15 @@ var reactions_used_this_round: int = 0  # Reset at start of each battle round
 # Maximum 3 implants per character (rulebook limit)
 @export var implants: Array[Dictionary] = []  # Each: {type: String, name: String, stat_bonus: Dictionary}
 
+# Lifetime Statistics (Five Parsecs Campaign Tracking)
+@export var lifetime_kills: int = 0              # Final blow kills
+@export var lifetime_damage_dealt: int = 0       # Total damage inflicted
+@export var lifetime_damage_taken: int = 0       # Total damage received
+@export var battles_participated: int = 0        # Total battles fought
+@export var battles_survived: int = 0            # Battles not KO'd
+@export var critical_hits_landed: int = 0        # Critical successes
+@export var advancement_history: Array[Dictionary] = []  # {turn, stat, old_value, new_value}
+
 # Computed properties for injury status
 var is_wounded: bool:
 	get:
@@ -159,6 +168,69 @@ signal recovery_progressed(turns_remaining: int)
 # Signals for implant events
 signal implant_added(implant: Dictionary)
 signal implant_removed(index: int)
+
+# Signals for experience/advancement events
+signal experience_changed(new_amount: int)
+signal advancement_available(character: Resource)
+
+## Add experience points to this character (called by GameState.add_crew_experience)
+func add_experience(amount: int) -> void:
+	experience += amount
+	experience_changed.emit(experience)
+	# Check if character can advance (1 XP = 1 advancement in Core Rules)
+	if experience > 0:
+		advancement_available.emit(self)
+	print("Character %s gained %d XP (Total: %d)" % [character_name, amount, experience])
+
+## Check if this character can spend XP to advance a stat
+func can_advance() -> bool:
+	return experience >= 1 and not is_bot  # Bots use credits for upgrades, not XP
+
+## Spend 1 XP to advance a stat (returns true if successful)
+func spend_xp_on_stat(stat_name: String) -> bool:
+	if experience < 1:
+		push_warning("Character %s has no XP to spend" % character_name)
+		return false
+	if is_bot:
+		push_warning("Bots cannot use XP - use credits for bot upgrades instead")
+		return false
+
+	experience -= 1
+	match stat_name.to_lower():
+		"reactions":
+			reactions += 1
+		"speed":
+			speed += 1
+		"combat":
+			combat += 1
+		"toughness":
+			toughness += 1
+		"savvy":
+			savvy += 1
+		"tech":
+			tech += 1
+		"luck":
+			luck += 1
+		_:
+			experience += 1  # Refund if invalid stat
+			push_error("Invalid stat name for advancement: %s" % stat_name)
+			return false
+
+	# Track advancement history
+	var current_turn: int = 0
+	if Engine.has_singleton("GameStateManager"):
+		var gsm = Engine.get_singleton("GameStateManager")
+		if gsm and gsm.has_method("get_current_turn"):
+			current_turn = gsm.get_current_turn()
+	advancement_history.append({
+		"turn": current_turn,
+		"stat": stat_name,
+		"new_value": get(stat_name.to_lower())
+	})
+
+	experience_changed.emit(experience)
+	print("Character %s advanced %s (XP remaining: %d)" % [character_name, stat_name, experience])
+	return true
 
 #region Combat Modifier System - Equipment and Species Bonuses for Battle
 
@@ -589,7 +661,8 @@ func get_max_reactions() -> int:
 
 func get_reactions_remaining() -> int:
 	"""Get number of reactions remaining this round"""
-	return maxi(0, get_max_reactions() - reactions_used_this_round)
+	# Note: Using int(max()) for Godot 4.5 compatibility (maxi() added in 4.6)
+	return int(max(0, get_max_reactions() - reactions_used_this_round))
 
 
 func can_use_reaction() -> bool:
@@ -1221,6 +1294,15 @@ func serialize() -> Dictionary:
 		"max_reactions_per_round": max_reactions_per_round,
 		"is_swift": is_swift(),
 
+		# Lifetime Statistics (Five Parsecs Campaign Tracking)
+		"lifetime_kills": lifetime_kills,
+		"lifetime_damage_dealt": lifetime_damage_dealt,
+		"lifetime_damage_taken": lifetime_damage_taken,
+		"battles_participated": battles_participated,
+		"battles_survived": battles_survived,
+		"critical_hits_landed": critical_hits_landed,
+		"advancement_history": advancement_history.duplicate(),
+
 		# Serialization metadata
 		"serialization_timestamp": Time.get_ticks_msec(),
 		"serialization_version": "enhanced_v2"
@@ -1264,7 +1346,15 @@ func to_dictionary() -> Dictionary:
 		"current_recovery_turns": current_recovery_turns,
 		"implants": implants.duplicate(),
 		"bot_upgrades": bot_upgrades.duplicate(),
-		"is_bot": _is_bot()
+		"is_bot": _is_bot(),
+		# Lifetime Statistics
+		"lifetime_kills": lifetime_kills,
+		"lifetime_damage_dealt": lifetime_damage_dealt,
+		"lifetime_damage_taken": lifetime_damage_taken,
+		"battles_participated": battles_participated,
+		"battles_survived": battles_survived,
+		"critical_hits_landed": critical_hits_landed,
+		"advancement_history": advancement_history.duplicate()
 	}
 
 static func deserialize(data: Dictionary) -> Character:
@@ -1356,6 +1446,19 @@ static func deserialize(data: Dictionary) -> Character:
 	character.max_reactions_per_round = data.get("max_reactions_per_round", 3)
 	# Note: reactions_used_this_round is NOT persisted - resets each battle
 
+	# Lifetime Statistics (Five Parsecs Campaign Tracking)
+	character.lifetime_kills = data.get("lifetime_kills", 0)
+	character.lifetime_damage_dealt = data.get("lifetime_damage_dealt", 0)
+	character.lifetime_damage_taken = data.get("lifetime_damage_taken", 0)
+	character.battles_participated = data.get("battles_participated", 0)
+	character.battles_survived = data.get("battles_survived", 0)
+	character.critical_hits_landed = data.get("critical_hits_landed", 0)
+	var advancement_history_data = data.get("advancement_history", [])
+	character.advancement_history.clear()
+	for entry in advancement_history_data:
+		if entry is Dictionary:
+			character.advancement_history.append(entry)
+
 	# Performance tracking
 	var end_time = Time.get_ticks_usec()
 	var duration = end_time - start_time
@@ -1444,12 +1547,154 @@ static func _deserialize_enhanced_property(property_name: String, serialized_dat
 func initialize_from_creation_data(creation_data: Dictionary) -> void:
 	"""Initialize character from campaign creation data structure"""
 	print("Character: Initializing from creation data...")
-	
+
 	# Basic character info
-	name = creation_data.get("character_name", "Unknown")
-	
+	name = creation_data.get("character_name", creation_data.get("name", "Unknown"))
+
 	# Character properties using the validated enum system
 	background = creation_data.get("background", "COLONIST")
-	motivation = creation_data.get("motivation", "SURVIVAL") 
+	motivation = creation_data.get("motivation", "SURVIVAL")
 	origin = creation_data.get("origin", "HUMAN")
-	character_class = creation_data.get
+	character_class = creation_data.get("character_class", creation_data.get("class", "BASELINE"))
+
+	# Stats - handle both nested and top-level formats
+	var stats = creation_data.get("stats", {})
+	if not stats.is_empty():
+		combat = stats.get("combat", 1)
+		reactions = stats.get("reactions", stats.get("reaction", 1))
+		toughness = stats.get("toughness", 3)
+		savvy = stats.get("savvy", 1)
+		tech = stats.get("tech", 1)
+		move = stats.get("move", stats.get("speed", 4))
+		speed = stats.get("speed", stats.get("move", 4))
+		luck = stats.get("luck", 0)
+	else:
+		# Top-level stats format
+		combat = creation_data.get("combat", 1)
+		reactions = creation_data.get("reactions", creation_data.get("reaction", 1))
+		toughness = creation_data.get("toughness", 3)
+		savvy = creation_data.get("savvy", 1)
+		tech = creation_data.get("tech", 1)
+		move = creation_data.get("move", creation_data.get("speed", 4))
+		speed = creation_data.get("speed", creation_data.get("move", 4))
+		luck = creation_data.get("luck", 0)
+
+	# Equipment
+	var equipment_data = creation_data.get("equipment", [])
+	equipment.clear()
+	for item in equipment_data:
+		if item is String:
+			equipment.append(item)
+
+	# Captain status
+	is_captain = creation_data.get("is_captain", false)
+
+	# Status field - handle both numeric and string formats
+	var status_value = creation_data.get("status", "ACTIVE")
+	if status_value is int:
+		status = "ACTIVE" if status_value == 0 else "INJURED"
+	else:
+		status = status_value
+
+	print("Character: Initialized '%s' (class: %s, background: %s)" % [name, character_class, background])
+
+
+func from_dictionary(data: Dictionary) -> void:
+	"""Instance method to load character data from dictionary
+	This is called by Campaign.gd and other systems to restore character state
+	"""
+	if data.is_empty():
+		push_error("[CHARACTER] Cannot initialize from empty dictionary")
+		return
+
+	# Basic properties
+	name = data.get("name", data.get("character_name", "Unknown Character"))
+	character_id = data.get("character_id", character_id)  # Keep existing if not provided
+
+	# Character properties with enum validation
+	_character_class = _deserialize_enhanced_property("character_class", data.get("character_class", data.get("class", "BASELINE")))
+	_background = _deserialize_enhanced_property("background", data.get("background", "COLONIST"))
+	_origin = _deserialize_enhanced_property("origin", data.get("origin", "HUMAN"))
+	_motivation = _deserialize_enhanced_property("motivation", data.get("motivation", "SURVIVAL"))
+
+	# Stats - handle both nested and top-level formats
+	var stats = data.get("stats", {})
+	if not stats.is_empty():
+		combat = stats.get("combat", 1)
+		reactions = stats.get("reactions", stats.get("reaction", 1))
+		toughness = stats.get("toughness", 3)
+		savvy = stats.get("savvy", 1)
+		tech = stats.get("tech", 1)
+		move = stats.get("move", stats.get("speed", 4))
+		speed = stats.get("speed", stats.get("move", 4))
+		luck = stats.get("luck", 0)
+	else:
+		# Top-level format (GameStateManager uses this)
+		combat = data.get("combat", 1)
+		reactions = data.get("reactions", data.get("reaction", 1))
+		toughness = data.get("toughness", 3)
+		savvy = data.get("savvy", 1)
+		tech = data.get("tech", 1)
+		move = data.get("move", data.get("speed", 4))
+		speed = data.get("speed", data.get("move", 4))
+		luck = data.get("luck", 0)
+
+	# Character state
+	experience = data.get("experience", 0)
+	credits = data.get("credits", 0)
+
+	# Equipment (typed array)
+	var equipment_data = data.get("equipment", [])
+	equipment.clear()
+	for item in equipment_data:
+		if item is String:
+			equipment.append(item)
+
+	is_captain = data.get("is_captain", false)
+	created_at = data.get("created_at", Time.get_datetime_string_from_system())
+
+	# Status - handle both numeric and string formats
+	var status_value = data.get("status", "ACTIVE")
+	if status_value is int:
+		status = "ACTIVE" if status_value == 0 else "INJURED"
+	else:
+		status = status_value
+
+	# Injuries (Five Parsecs p.94-95)
+	var injuries_data = data.get("injuries", [])
+	injuries.clear()
+	for injury in injuries_data:
+		if injury is Dictionary:
+			injuries.append(injury)
+
+	# Implants
+	var implants_data = data.get("implants", [])
+	implants.clear()
+	for implant in implants_data:
+		if implant is Dictionary:
+			implants.append(implant)
+
+	# Bot upgrades (Five Parsecs p.98)
+	var bot_upgrades_data = data.get("bot_upgrades", [])
+	bot_upgrades.clear()
+	for upgrade in bot_upgrades_data:
+		if upgrade is Dictionary:
+			# Extract string ID from Dictionary (bot_upgrades is Array[String])
+			var upgrade_id = upgrade.get("id", upgrade.get("name", ""))
+			if upgrade_id is String and not upgrade_id.is_empty():
+				bot_upgrades.append(upgrade_id)
+		elif upgrade is String:
+			bot_upgrades.append(upgrade)
+
+	# Lifetime Statistics (Five Parsecs Campaign Tracking)
+	lifetime_kills = data.get("lifetime_kills", 0)
+	lifetime_damage_dealt = data.get("lifetime_damage_dealt", 0)
+	lifetime_damage_taken = data.get("lifetime_damage_taken", 0)
+	battles_participated = data.get("battles_participated", 0)
+	battles_survived = data.get("battles_survived", 0)
+	critical_hits_landed = data.get("critical_hits_landed", 0)
+	var advancement_history_data = data.get("advancement_history", [])
+	advancement_history.clear()
+	for entry in advancement_history_data:
+		if entry is Dictionary:
+			advancement_history.append(entry)

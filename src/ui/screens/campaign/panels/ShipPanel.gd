@@ -365,8 +365,13 @@ func _initialize_components() -> void:
 		"FOUND" if reroll_button else "MISSING",
 		"FOUND" if select_button else "MISSING"
 	])
-	
-	if not generate_button or not reroll_button or not select_button:
+
+	# Sprint 26.6: Hide unimplemented Select button
+	if select_button:
+		select_button.visible = false
+		select_button.tooltip_text = "Ship presets coming in a future update"
+
+	if not generate_button or not reroll_button:
 		print("ShipPanel: DEBUG - Creating control buttons fallback")
 		_create_control_buttons(content_node)
 	
@@ -1029,13 +1034,6 @@ func _update_ship_ui() -> void:
 	"""Update ship UI components to reflect current ship_data - alias for _update_ship_display"""
 	_update_ship_display()
 
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Node, method_name: String, args: Array = []):
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null
 
 # --- Additions to ShipPanel.gd ---
 
@@ -1544,14 +1542,17 @@ func _create_control_buttons(parent: Node) -> void:
 	reroll_button.pressed.connect(_on_reroll_pressed)
 	container.add_child(reroll_button)
 
+	# Sprint 26.6: Select button created but hidden (not yet implemented)
 	select_button = Button.new()
 	select_button.name = "SelectButton"
 	select_button.text = "Select Ship"
 	select_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	select_button.visible = false
+	select_button.tooltip_text = "Ship presets coming in a future update"
 	select_button.pressed.connect(_on_select_pressed)
 	container.add_child(select_button)
 
-	print("ShipPanel: Created control buttons")
+	print("ShipPanel: Created control buttons (Select button hidden)")
 
 func _on_select_pressed() -> void:
 	"""Handle ship selection button press"""

@@ -28,7 +28,7 @@ const ROLLBACK_CONFIGURATION = {
 			"src/ui/screens/campaign/panels/BaseCampaignPanel.gd",
 			"src/ui/screens/campaign/panels/CaptainPanel.gd",
 			"src/ui/screens/campaign/panels/CrewPanel.gd",
-			"src/ui/screens/campaign/panels/ConfigPanel.gd"
+			"src/ui/screens/campaign/panels/ExpandedConfigPanel.gd"
 		],
 		"backup_suffix": "_v1_panel_validation",
 		"description": "Panel validation system rollback"

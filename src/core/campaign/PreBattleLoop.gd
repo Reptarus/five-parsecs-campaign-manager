@@ -201,7 +201,7 @@ func _on_deployment_confirmed() -> void:
 
 ## Validate if battle can begin
 func _validate_battle_readiness() -> bool:
-	if safe_call_method(selected_crew, "is_empty") == true:
+	if selected_crew.is_empty():
 		error_occurred.emit("No crew selected")
 		return false
 
@@ -390,10 +390,3 @@ func _validate_mission(mission: Variant) -> bool:
 		return false
 
 	return true
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

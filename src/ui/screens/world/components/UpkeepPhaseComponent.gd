@@ -70,6 +70,12 @@ func _initialize_event_bus() -> void:
 
 	print("UpkeepPhaseComponent: Connected to event bus")
 
+func _exit_tree() -> void:
+	"""Cleanup event bus subscriptions to prevent memory leaks"""
+	if event_bus:
+		event_bus.unsubscribe_from_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
+		event_bus.unsubscribe_from_event(CampaignTurnEventBus.TurnEvent.AUTOMATION_TOGGLED, _on_automation_toggled)
+
 func _connect_ui_signals() -> void:
 	"""Connect UI button signals"""
 	if auto_calculate_button:

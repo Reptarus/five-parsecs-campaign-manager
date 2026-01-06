@@ -74,6 +74,10 @@ var has_ship: bool = true  # Default to having a ship
 # Tooltip reference
 var _help_dialog: AcceptDialog = null
 
+# Sprint 10.4: Checkpoint data for bidirectional navigation
+var _checkpoint_data: Dictionary = {}
+var _log_entries: Array[String] = []
+
 # ============================================================================
 # INITIALIZATION
 # ============================================================================
@@ -330,7 +334,10 @@ func _add_log_entry(text: String) -> void:
 		return
 	var time_dict := Time.get_time_dict_from_system()
 	var timestamp := "%02d:%02d" % [time_dict.hour, time_dict.minute]
-	log_book.append_text("[color=#6b7280][%s][/color] %s\n" % [timestamp, text])
+	var entry := "[color=#6b7280][%s][/color] %s\n" % [timestamp, text]
+	log_book.append_text(entry)
+	# Sprint 10.4: Track entries for checkpoint restoration
+	_log_entries.append(entry)
 
 # ============================================================================
 # BUTTON HANDLERS
@@ -410,10 +417,13 @@ func _on_next_button_pressed() -> void:
 	if not travel_decision_made:
 		_add_log_entry("[color=#ef4444]Please make a travel decision first[/color]")
 		return
-	
+
+	# Sprint 10.4: Save checkpoint before leaving Travel Phase
+	save_checkpoint()
+
 	phase_completed.emit()
 	_add_log_entry("[color=#10b981]Advancing to World Phase (Step 2)[/color]")
-	
+
 	# Navigate to World Phase
 	if SceneRouter and SceneRouter.has_method("navigate_to"):
 		SceneRouter.navigate_to("world_phase")
@@ -701,3 +711,76 @@ func _on_hostile_encounter_choice(action: String) -> void:
 			else:
 				_schedule_combat_encounter()
 				_add_log_entry("[color=#ef4444]Negotiation failed (Rolled %d) - combat scheduled[/color]" % roll)
+
+# ============================================================================
+# SPRINT 10.4: CHECKPOINT STORAGE FOR BIDIRECTIONAL NAVIGATION
+# ============================================================================
+
+func save_checkpoint() -> void:
+	"""Save current Travel Phase state for potential rollback from World Phase"""
+	_checkpoint_data = {
+		"travel_decision_made": travel_decision_made,
+		"chose_to_travel": chose_to_travel,
+		"has_ship": has_ship,
+		"log_entries": _log_entries.duplicate(),
+		"timestamp": Time.get_unix_time_from_system()
+	}
+	print("TravelPhaseUI: Checkpoint saved - decision_made=%s, chose_travel=%s" % [
+		travel_decision_made, chose_to_travel
+	])
+
+func restore_from_checkpoint() -> void:
+	"""Restore Travel Phase state from checkpoint (called when rolling back from World Phase)"""
+	if _checkpoint_data.is_empty():
+		print("TravelPhaseUI: No checkpoint data to restore")
+		return
+
+	# Restore state
+	travel_decision_made = _checkpoint_data.get("travel_decision_made", false)
+	chose_to_travel = _checkpoint_data.get("chose_to_travel", false)
+	has_ship = _checkpoint_data.get("has_ship", true)
+
+	# Restore log entries
+	_log_entries = _checkpoint_data.get("log_entries", [])
+	if log_book:
+		log_book.clear()
+		for entry in _log_entries:
+			log_book.append_text(entry)
+
+	# Update UI state
+	_update_ui_after_restore()
+
+	print("TravelPhaseUI: Restored from checkpoint - decision_made=%s, chose_travel=%s" % [
+		travel_decision_made, chose_to_travel
+	])
+
+func _update_ui_after_restore() -> void:
+	"""Update UI elements after restoring from checkpoint"""
+	# Update button states based on restored state
+	if travel_decision_made:
+		if stay_button:
+			stay_button.disabled = true
+			if not chose_to_travel:
+				stay_button.text = "✓ Staying in Current Location"
+		if travel_button:
+			travel_button.disabled = true
+			if chose_to_travel:
+				travel_button.text = "✓ Traveling to New World"
+		if next_button:
+			next_button.disabled = false
+	else:
+		# Reset to decision-pending state
+		_update_status_from_game_state()
+		if next_button:
+			next_button.disabled = true
+
+	_update_progress_bar()
+
+func has_checkpoint() -> bool:
+	"""Check if a checkpoint exists"""
+	return not _checkpoint_data.is_empty()
+
+func clear_checkpoint() -> void:
+	"""Clear saved checkpoint data"""
+	_checkpoint_data = {}
+	print("TravelPhaseUI: Checkpoint cleared")

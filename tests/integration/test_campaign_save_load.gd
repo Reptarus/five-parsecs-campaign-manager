@@ -8,6 +8,9 @@ var finalization_service
 var test_campaign_file = "user://test_campaign_gdunit4.save"
 
 func before_test():
+	# Set deterministic seed for reproducible random numbers
+	seed(12345)
+
 	# Load StateManager
 	var state_mgr_script = load("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
 	if state_mgr_script:
@@ -93,7 +96,7 @@ func test_finalization_service_has_finalize_campaign_method():
 
 func test_state_manager_has_campaign_data():
 	assert_that(state_manager).is_not_null()
-	assert_that(state_manager.campaign_data is Dictionary).is_true()
+	assert_bool(state_manager.campaign_data is Dictionary).is_true()
 
 func test_campaign_data_has_all_required_sections():
 	var data = state_manager.campaign_data
@@ -108,7 +111,7 @@ func test_campaign_data_has_all_required_sections():
 ## Phase 2: Campaign Serialization Tests
 func test_campaign_data_can_be_duplicated():
 	var duplicate = state_manager.campaign_data.duplicate(true)
-	assert_that(duplicate is Dictionary).is_true()
+	assert_bool(duplicate is Dictionary).is_true()
 	assert_that(duplicate.has("config")).is_true()
 
 func test_serialized_data_preserves_campaign_name():
@@ -199,7 +202,7 @@ func test_can_load_campaign_from_file():
 		var parse_result = json.parse(loaded_string)
 
 		assert_that(parse_result).is_equal(OK)
-		assert_that(json.data is Dictionary).is_true()
+		assert_bool(json.data is Dictionary).is_true()
 
 func test_loaded_data_has_config_section():
 	# Save and load
@@ -299,7 +302,8 @@ func test_equipment_credits_match_after_roundtrip():
 		json.parse(loaded_string)
 		var loaded_data = json.data
 		
-		assert_that(loaded_data["equipment"]["credits"]).is_equal(1000)
+		# JSON deserializes numbers as floats, so cast to int for comparison
+		assert_that(int(loaded_data["equipment"]["credits"])).is_equal(1000)
 
 func test_world_name_matches_after_roundtrip():
 	# Save and load

@@ -24,7 +24,7 @@ theme_override_constants/margin_bottom = 20
 
 [node name="MainContent" type="VBoxContainer" parent="ContentMargin"]
 layout_mode = 2
-theme_override_constants/separation = 20
+theme_override_constants/separation = 24
 
 [node name="Header" type="VBoxContainer" parent="ContentMargin/MainContent"]
 layout_mode = 2
@@ -38,7 +38,6 @@ horizontal_alignment = 1
 
 [node name="Description" type="Label" parent="ContentMargin/MainContent/Header"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
 text = "Panel description will appear here. This provides context about what the user needs to do in this step."
 horizontal_alignment = 1
 autowrap_mode = 2
@@ -54,26 +53,19 @@ horizontal_scroll_mode = 0
 [node name="FormContainer" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 15
-
-[node name="PlaceholderLabel" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer"]
-layout_mode = 2
-text = "Panel-specific content will be added here by derived classes"
-horizontal_alignment = 1
-vertical_alignment = 1
+theme_override_constants/separation = 24
 
 [node name="FooterSeparator" type="HSeparator" parent="ContentMargin/MainContent"]
 layout_mode = 2
 
 [node name="Footer" type="HBoxContainer" parent="ContentMargin/MainContent"]
 layout_mode = 2
-theme_override_constants/separation = 20
+theme_override_constants/separation = 24
 alignment = 1
 
 [node name="StatusLabel" type="Label" parent="ContentMargin/MainContent/Footer"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
 text = "Ready"
 horizontal_alignment = 2
 
@@ -124,7 +116,6 @@ horizontal_alignment = 1
 [node name="LoadingLabel" type="Label" parent="LoadingOverlay/LoadingCenter/LoadingContent"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-theme_override_colors/font_color = Color(1, 1, 1, 1)
 text = "Loading..."
 horizontal_alignment = 1
 

@@ -35,12 +35,5 @@ func _update_game_over_display() -> void:
 		defeat_label.show()
 
 func _on_return_button_pressed() -> void:
-	get_tree().call_deferred("change_scene_to_file", "res://ui/mainmenu/MainMenu.tscn")
+	get_tree().call_deferred("change_scene_to_file", "res://src/ui/screens/mainmenu/MainMenu.tscn")
 
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

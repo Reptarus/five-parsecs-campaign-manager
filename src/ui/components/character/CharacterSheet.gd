@@ -161,12 +161,12 @@ func _update_equipment(character: Character) -> void:
 	# Add equipment from character
 	if character and character.has_method("get_equipment"):
 		var equipment: Array = character.get_equipment()
-		if (safe_call_method(equipment, "size") as int) > 0:
+		if equipment.size() > 0:
 			for item: Dictionary in equipment:
 				var item_name: String = item.get("name", "Unknown Item")
 				var condition: String = item.get("condition", "")
 				var display_text: String = item_name
-				if not (safe_call_method(condition, "is_empty") == true) and condition != "standard":
+				if not condition.is_empty() and condition != "standard":
 					display_text += " (" + condition + ")"
 				equipment_list.add_item(display_text)
 		else:
@@ -175,14 +175,14 @@ func _update_equipment(character: Character) -> void:
 		# Fallback: check for basic equipment properties
 		var equipment_items: Array[String] = []
 
-		if character and character.has("starting_equipment") and character.starting_equipment:
+		if character and "starting_equipment" in character and character.starting_equipment:
 			for item: Variant in character.starting_equipment:
 				if item is String:
-					safe_call_method(equipment_items, "append", [item])
+					equipment_items.append(item)
 				elif item is Dictionary:
-					safe_call_method(equipment_items, "append", [item.get("name", "Unknown Item")])
+					equipment_items.append(item.get("name", "Unknown Item"))
 
-		if (safe_call_method(equipment_items, "size") as int) > 0:
+		if equipment_items.size() > 0:
 			for item: String in equipment_items:
 				equipment_list.add_item(item)
 		else:
@@ -237,21 +237,3 @@ func refresh_display() -> void:
 	"""Refresh the current character display"""
 	if current_character:
 		display_character(current_character)
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return obj.get(property, default_value)
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

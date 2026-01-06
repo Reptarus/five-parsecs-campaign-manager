@@ -13,13 +13,14 @@ var test_equipment_id: String = "test_weapon_001"
 
 func before_test() -> void:
 	# Try to get autoloads, or create local instances for unit testing
-	game_state = Engine.get_singleton("GameState")
+	# Use get_node_or_null to avoid "non-existent singleton" errors
+	game_state = get_node_or_null("/root/GameState")
 	if not game_state:
 		# Create local instance for unit testing
 		game_state = auto_free(CoreGameState.new())
 		add_child(game_state)
-	
-	equipment_manager = Engine.get_singleton("EquipmentManager")
+
+	equipment_manager = get_node_or_null("/root/EquipmentManager")
 	if not equipment_manager:
 		# Create local instance for unit testing
 		equipment_manager = auto_free(EquipmentManager.new())

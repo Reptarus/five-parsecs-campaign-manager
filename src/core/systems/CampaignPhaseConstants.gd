@@ -3,8 +3,17 @@ class_name CampaignPhaseConstants
 ## Transferred from test helpers to production code
 ## Based on Five Parsecs Core Rulebook campaign turn structure
 ##
+## Sprint 28.1: AUTHORITATIVE SOURCE for phase transition rules
+## All phase transition validation should reference these constants.
+## Other validators (CampaignPhaseManager, DataConsistencyValidator) should
+## either delegate to this class or mirror its rules exactly.
+##
 ## Usage: Reference these constants for campaign phase transitions and validation
 ## Architecture: Pure constants class - no state, no dependencies
+##
+## NOTE: This class uses its own CampaignPhase enum. CampaignPhaseManager uses
+## GlobalEnums.FiveParsecsCampaignPhase which has different ordinal values
+## but represents the same phases. When validating, use the appropriate enum.
 
 ## Campaign phase enumeration
 enum CampaignPhase {

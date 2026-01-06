@@ -20,6 +20,9 @@ func before():
 
 func before_test():
 	"""Test-level setup - create fresh manager instance for each test"""
+	# Set deterministic seed for reproducible random numbers
+	seed(12345)
+
 	character_manager = auto_free(CharacterManagerClass.new())
 
 	# Initialize manager (simulates _ready() without scene tree)
@@ -144,19 +147,22 @@ func test_character_creation_assigns_unique_ids():
 
 func test_character_removal_emits_signal():
 	"""Removing character should emit character_removed signal"""
-	# Create and add character
-	var character_data = {"name": "Test Character", "class": 0}
-	var character = character_manager.create_character(character_data)
-	var character_id = character.character_id
+	# Create 5 characters first (minimum crew size is 4, need more than that to remove one)
+	var character_ids = []
+	for i in range(5):
+		var character_data = {"name": "Crew %d" % i, "class": 0}
+		var character = character_manager.create_character(character_data)
+		character_ids.append(character.character_id)
 
 	# Setup signal monitor
 	var signal_monitor = monitor_signals(character_manager)
 
-	# Remove character
-	character_manager.remove_character_from_roster(character_id)
+	# Remove one character (now valid since 5 > 4 minimum)
+	character_manager.remove_character_from_roster(character_ids[0])
 
 	# Verify signal emitted with correct ID
-	assert_signal(signal_monitor).is_emitted("character_removed")
+	# NOTE: assert_signal().is_emitted() requires matching args - use any_string() for String arg
+	await assert_signal(signal_monitor).is_emitted("character_removed", [any_string()])
 
 func test_character_removal_updates_crew_size():
 	"""Removing character should update crew size and emit signal"""
@@ -177,31 +183,32 @@ func test_character_removal_updates_crew_size():
 
 	# Verify size updated
 	assert_that(character_manager.get_crew_size()).is_equal(4)
-	assert_signal(signal_monitor).is_emitted("crew_size_changed")
+	# NOTE: assert_signal().is_emitted() requires matching args - use any_int() for int arg
+	await assert_signal(signal_monitor).is_emitted("crew_size_changed", [any_int()])
 
 func test_active_crew_consistency_after_removal():
 	"""🐛 BUG DISCOVERY: Removing character from roster should also remove from active crew"""
 	# EXPECTED: Removing character should update both roster and active_crew
 	# ACTUAL: May only update roster (CharacterManager.gd line 57-64)
 
-	# Create 4 crew members
+	# Create 5 crew members (above minimum so removal can succeed)
 	var characters = []
-	for i in range(4):
+	for i in range(5):
 		var character_data = {"name": "Crew %d" % i, "class": 0}
 		var character = character_manager.create_character(character_data)
 		characters.append(character)
 
 	# Set all as active crew
 	character_manager.set_active_crew(characters)
-	assert_that(character_manager.get_active_crew().size()).is_equal(4)
+	assert_that(character_manager.get_active_crew().size()).is_equal(5)
 
 	# Remove one character from roster
 	character_manager.remove_character_from_roster(characters[1].character_id)
 
-	# EXPECTED: Active crew should also be updated (size = 3)
-	# ACTUAL: May still show size = 4 (BUG - stale active crew)
+	# EXPECTED: Active crew should also be updated (size = 4)
+	# ACTUAL: May still show size = 5 (BUG - stale active crew)
 	# This test will FAIL if active crew is not synchronized
-	assert_that(character_manager.get_active_crew().size()).is_equal(3)
+	assert_that(character_manager.get_active_crew().size()).is_equal(4)
 
 	# Verify removed character is not in active crew
 	var active_ids = []

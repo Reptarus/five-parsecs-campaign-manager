@@ -166,7 +166,7 @@ func _get_selected_context() -> String:
 
 	var selected_index := context_selection.selected
 
-	if selected_index >= 0 and selected_index < (safe_call_method(BATTLE_CONTEXTS, "size") as int):
+	if selected_index >= 0 and selected_index < BATTLE_CONTEXTS.size():
 		return BATTLE_CONTEXTS[selected_index]
 
 	return "Custom Roll"
@@ -210,7 +210,7 @@ func _display_result(pattern: String, result: int, context: String) -> void:
 
 func _update_result_display() -> void:
 	"""Update result display elements"""
-	if not (safe_call_method(current_result, "is_empty") == true):
+	if not current_result.is_empty():
 		# Main result
 		if result_label:
 			result_label.text = str(current_result.result)
@@ -364,7 +364,7 @@ func _add_to_history(pattern: String, result: int, context: String) -> void:
 	roll_history.append(history_entry)
 
 	# Limit history size
-	if (safe_call_method(roll_history, "size") as int) > 10:
+	if roll_history.size() > 10:
 		roll_history.pop_front()
 
 	_update_history_display()
@@ -543,10 +543,3 @@ func setup_for_context(context: String, pattern: String = "d6") -> void:
 	if roll_button:
 		roll_button.grab_focus()
 
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

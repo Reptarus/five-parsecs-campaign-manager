@@ -241,7 +241,7 @@ func add_roll(dice_roll: FPCM_DiceSystem.DiceRoll) -> void:
 	_animate_entries_slide_down()
 
 	# Remove excess entries with animation
-	while (safe_call_method(roll_entries, "size") as int) > max_visible_rolls:
+	while roll_entries.size() > max_visible_rolls:
 		var old_entry = roll_entries.pop_back()
 		if is_instance_valid(old_entry):
 			if old_entry and old_entry.has_method("animate_removal"):
@@ -256,7 +256,7 @@ func add_roll(dice_roll: FPCM_DiceSystem.DiceRoll) -> void:
 
 func _animate_entries_slide_down() -> void:
 	"""Animate existing entries sliding down to make room"""
-	for i: int in range(1, (safe_call_method(roll_entries, "size") as int)): # Skip the new entry at index 0
+	for i: int in range(1, roll_entries.size()): # Skip the new entry at index 0
 		var entry = roll_entries[i]
 		if is_instance_valid(entry):
 			var slide_tween = create_tween()
@@ -375,21 +375,3 @@ func apply_feed_settings(settings: Dictionary) -> void:
 		panel.visible = false
 		toggle_button.text = "▶"
 
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return obj.get(property, default_value)
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

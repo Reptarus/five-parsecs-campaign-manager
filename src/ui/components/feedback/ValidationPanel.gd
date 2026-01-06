@@ -54,7 +54,9 @@ func _ready() -> void:
 func show_feedback(type: FeedbackType, msgs: PackedStringArray) -> void:
 	feedback_type = type
 	messages = msgs
-	_update_display()
+	# Only update display if we're in the scene tree and UI is ready
+	if is_inside_tree():
+		_update_display()
 
 # UI CONSTRUCTION
 func _setup_ui() -> void:
@@ -88,6 +90,10 @@ func _setup_ui() -> void:
 # UI UPDATES
 ## Refreshes all UI elements based on current feedback_type and messages
 func _update_display() -> void:
+	# Ensure UI is set up before updating (can be called before _ready)
+	if not is_instance_valid(_icon_label) or not is_instance_valid(_title_label) or not is_instance_valid(_message_container):
+		return
+
 	# Update panel styling
 	add_theme_stylebox_override("panel", _get_style_for_type(feedback_type))
 

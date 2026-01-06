@@ -23,11 +23,13 @@ func _init():
 	_initialize_state_manager()
 
 	# Test workflow phases
+	# Phase order matches CampaignCreationStateManager.Phase enum:
+	# CONFIG(0) → CAPTAIN(1) → CREW(2) → EQUIPMENT(3) → SHIP(4) → WORLD(5) → FINAL(6)
 	_test_phase_1_config()
 	_test_phase_2_captain()
 	_test_phase_3_crew()
-	_test_phase_4_ship()
-	_test_phase_5_equipment()
+	_test_phase_4_equipment()  # Equipment comes BEFORE Ship per Core Rules
+	_test_phase_5_ship()       # Ship is final step (determines debt)
 	_test_phase_6_world()
 	_test_phase_7_final_review()
 
@@ -182,22 +184,22 @@ func _test_phase_3_crew():
 		return crew.has("size") and crew.size == 2
 	)
 
-	# Test 3.3: Advance to Ship Assignment
-	_run_test("Advance to Ship Assignment phase", func():
+	# Test 3.3: Advance to Equipment Generation (Equipment comes before Ship per Core Rules)
+	_run_test("Advance to Equipment Generation phase", func():
 		var success = state_manager.advance_to_next_phase()
 		if success:
 			print("  → Phase advanced to: %s" % _get_phase_name(state_manager.current_phase))
-		return success and state_manager.current_phase == state_manager.Phase.SHIP_ASSIGNMENT
+		return success and state_manager.current_phase == state_manager.Phase.EQUIPMENT_GENERATION
 	)
 
 	print("")
 
-## Phase 4: Ship Assignment
-func _test_phase_4_ship():
-	print("[PHASE 4] Ship Assignment Phase")
+## Phase 5: Ship Assignment (comes AFTER Equipment, final step per Core Rules)
+func _test_phase_5_ship():
+	print("[PHASE 5] Ship Assignment Phase")
 	print("-".repeat(70))
 
-	# Test 4.1: Assign ship
+	# Test 5.1: Assign ship
 	_run_test("Assign starting ship", func():
 		var ship_data = {
 			"name": "Test Starship",
@@ -214,28 +216,28 @@ func _test_phase_4_ship():
 		return retrieved.has("name") and retrieved.name == "Test Starship"
 	)
 
-	# Test 4.2: Verify ship hull points
+	# Test 5.2: Verify ship hull points
 	_run_test("Ship has valid hull points", func():
 		var ship = state_manager.campaign_data["ship"]
 		return ship.has("hull_points") and ship.hull_points == 6
 	)
 
-	# Test 4.3: Advance to Equipment Generation
-	_run_test("Advance to Equipment Generation phase", func():
+	# Test 5.3: Advance to World Generation
+	_run_test("Advance to World Generation phase", func():
 		var success = state_manager.advance_to_next_phase()
 		if success:
 			print("  → Phase advanced to: %s" % _get_phase_name(state_manager.current_phase))
-		return success and state_manager.current_phase == state_manager.Phase.EQUIPMENT_GENERATION
+		return success and state_manager.current_phase == state_manager.Phase.WORLD_GENERATION
 	)
 
 	print("")
 
-## Phase 5: Equipment Generation
-func _test_phase_5_equipment():
-	print("[PHASE 5] Equipment Generation Phase")
+## Phase 4: Equipment Generation (comes BEFORE Ship per Core Rules)
+func _test_phase_4_equipment():
+	print("[PHASE 4] Equipment Generation Phase")
 	print("-".repeat(70))
 
-	# Test 5.1: Generate starting equipment
+	# Test 4.1: Generate starting equipment
 	_run_test("Generate starting equipment", func():
 		var equipment_data = {
 			"equipment": ["Scrap Pistol", "Hand Weapon", "Medkit"],
@@ -248,18 +250,18 @@ func _test_phase_5_equipment():
 		return retrieved.has("equipment") and not retrieved["equipment"].is_empty()
 	)
 
-	# Test 5.2: Verify equipment structure
+	# Test 4.2: Verify equipment structure
 	_run_test("Equipment has equipment array", func():
 		var equipment = state_manager.campaign_data["equipment"]
 		return equipment.has("equipment") and equipment["equipment"] is Array
 	)
 
-	# Test 5.3: Advance to World Generation
-	_run_test("Advance to World Generation phase", func():
+	# Test 4.3: Advance to Ship Assignment
+	_run_test("Advance to Ship Assignment phase", func():
 		var success = state_manager.advance_to_next_phase()
 		if success:
 			print("  → Phase advanced to: %s" % _get_phase_name(state_manager.current_phase))
-		return success and state_manager.current_phase == state_manager.Phase.WORLD_GENERATION
+		return success and state_manager.current_phase == state_manager.Phase.SHIP_ASSIGNMENT
 	)
 
 	print("")

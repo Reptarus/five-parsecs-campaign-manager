@@ -131,7 +131,7 @@ func validate_game_state(game_state: GameState) -> Array:
 
 	# Check if there's a current location
 	var current_location = game_state.get_current_location()
-	if (safe_call_method(current_location, "is_empty") == true):
+	if current_location.is_empty():
 		results.append(create_result(
 			1, # VerificationType.STATE
 			3, # VerificationResult.WARNING
@@ -322,11 +322,3 @@ func run_validation(game_state: GameState, validation_type: ValidationType, scop
 		validation_success.emit() # warning: return value discarded (intentional)
 
 	validation_complete.emit(results) # warning: return value discarded (intentional)
-
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

@@ -13,11 +13,12 @@ var HelperClass
 var helper = null
 
 # Mock GlobalEnums for resource types
+# Must match actual GlobalEnums.ResourceType values (NONE=0, CREDITS=1, SUPPLIES=2, TECH_PARTS=3, PATRON=4, FUEL=5)
 var mock_resource_enum = {
-	"CREDITS": 0,
-	"SHIP_PARTS": 1,
-	"FUEL": 2,
-	"SUPPLIES": 3
+	"CREDITS": 1,
+	"SUPPLIES": 2,
+	"TECH_PARTS": 3,
+	"FUEL": 5
 }
 
 var mock_market_state = {
@@ -34,12 +35,15 @@ func before():
 
 func before_test():
 	"""Test-level setup - create fresh economy instance for each test"""
+	# Set deterministic seed for reproducible random numbers
+	seed(12345)
+
 	economy_system = auto_free(EconomySystemClass.new())
 
 	# Mock GlobalEnums for testing without autoload
 	economy_system.resources = {
 		mock_resource_enum.CREDITS: 100,
-		mock_resource_enum.SHIP_PARTS: 5,
+		mock_resource_enum.TECH_PARTS: 5,
 		mock_resource_enum.FUEL: 10
 	}
 	economy_system._initialized = true
@@ -110,6 +114,9 @@ func test_resource_history_bounded():
 			i
 		)
 		economy_system.resource_history[mock_resource_enum.CREDITS].append(transaction)
+
+	# Trigger pruning check (normally called by _add_history_entry)
+	economy_system._prune_history_if_needed(mock_resource_enum.CREDITS)
 
 	# After pruning, should not exceed HISTORY_PRUNE_THRESHOLD
 	var history_size = economy_system.resource_history[mock_resource_enum.CREDITS].size()

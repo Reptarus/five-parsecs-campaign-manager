@@ -1289,30 +1289,10 @@ func create_campaign() -> Dictionary:
 	"""Create final campaign - public wrapper for UI integration"""
 	return complete_campaign_creation()
 
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return obj.get(property, default_value)
-	return default_value
-
 ## Public API method for UI integration - returns complete campaign data
 func get_campaign_data() -> Dictionary:
 	"""Get complete campaign data - public API method for UI integration"""
 	return campaign_data.duplicate()
-
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null
 
 func get_completion_status() -> Dictionary:
 	"""Get completion status for all phases"""

@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3 uid="uid://cnxl7j2y8qr8r"]
+[gd_scene load_steps=2 format=3 uid="uid://cnxl7j2y8qr8r"]
 
 [ext_resource type="Script" path="res://src/ui/components/combat/SimpleUnitCard.gd" id="1_h4f9s"]
 

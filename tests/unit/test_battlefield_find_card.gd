@@ -9,6 +9,9 @@ const LootSystemConstants = preload("res://src/core/systems/LootSystemConstants.
 var _card: BattlefieldFindCard
 
 func before_test() -> void:
+	# Set deterministic seed for reproducible random numbers
+	seed(12345)
+
 	_card = auto_free(BattlefieldFindCardScene.instantiate())
 	add_child(_card)
 	# _ready() runs synchronously on add_child(), no await needed
@@ -86,20 +89,22 @@ func test_add_to_stash_signal_emission() -> void:
 	}
 	_card.setup(find_data)
 
-	var signal_emitted := false
-	var emitted_data: Dictionary = {}
+	var signal_emitted := [false]  # Use array for reference semantics in lambda
+	var emitted_data := [{}]  # Use array for reference semantics - lambda assignment shadows outer vars
 
 	_card.add_to_stash_requested.connect(func(data: Dictionary):
-		signal_emitted = true
-		emitted_data = data
+		signal_emitted[0] = true
+		emitted_data[0] = data  # Modify array element to capture data from lambda
 	)
 
-	# Act
+	# Act - Wait for signal connection and UI update
+	await get_tree().process_frame
 	_card._add_to_stash_button.pressed.emit()
+	await get_tree().process_frame
 
 	# Assert
-	assert_that(signal_emitted).is_true()
-	assert_that(emitted_data.get("item")).is_equal("Test Item")
+	assert_that(signal_emitted[0]).is_true()
+	assert_that(emitted_data[0].get("item")).is_equal("Test Item")
 
 func test_stashable_type_detection() -> void:
 	# Arrange & Assert
@@ -122,8 +127,8 @@ func test_touch_target_compliance() -> void:
 	}
 	_card.setup(find_data)
 
-	# Assert - Button should meet 48dp minimum touch target
-	assert_that(_card._add_to_stash_button.custom_minimum_size.y).is_equal(48)
+	# Assert - Button should meet 48dp minimum touch target (use int comparison)
+	assert_that(int(_card._add_to_stash_button.custom_minimum_size.y)).is_equal(48)
 
 func test_bbcode_coloring() -> void:
 	# Arrange & Act

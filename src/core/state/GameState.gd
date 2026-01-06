@@ -1776,23 +1776,6 @@ func sell_resources(resource_type: GlobalEnums.ResourceType, amount: int) -> boo
 
 	return false
 
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
-	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
-	if not is_instance_valid(self):
-		return null
-	if obj and obj.has_method("get"):
-		var value = obj.get(property)
-		return value if value != null else default_value
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null
-
 ## Battle Results Management for Campaign Integration
 
 func set_battle_results(results: Dictionary) -> void:

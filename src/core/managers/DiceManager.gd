@@ -11,6 +11,10 @@ var dice_system: Resource = null
 var dice_feed: Control # Reference to UI dice feed
 var auto_mode: bool = true # Whether to auto-roll or request manual input
 
+# Roll history tracking
+var _roll_history: Array[Dictionary] = []
+const MAX_HISTORY_SIZE: int = 100  # Keep last 100 rolls
+
 ## Initialize the dice manager
 func _ready() -> void:
 	_initialize_dice_system()
@@ -61,13 +65,15 @@ func set_auto_mode(enabled: bool) -> void:
 ## Replace: randi() % 6 + 1
 func roll_d6(context: String = "D6 Roll") -> int:
 	var result: int = randi_range(1, 6)
+	_record_roll(result, context, "D6")
 	dice_roll_requested.emit(context, "D6")
 	dice_result_ready.emit(result, context)
 	return result
 
-## Replace: randi() % 10 + 1  
+## Replace: randi() % 10 + 1
 func roll_d10(context: String = "D10 Roll") -> int:
 	var result: int = randi_range(1, 10)
+	_record_roll(result, context, "D10")
 	dice_roll_requested.emit(context, "D10")
 	dice_result_ready.emit(result, context)
 	return result
@@ -75,6 +81,7 @@ func roll_d10(context: String = "D10 Roll") -> int:
 ## Replace: randi() % 100 + 1
 func roll_d100(context: String = "D100 Roll") -> int:
 	var result: int = randi_range(1, 100)
+	_record_roll(result, context, "D100")
 	dice_roll_requested.emit(context, "D100")
 	dice_result_ready.emit(result, context)
 	return result
@@ -84,6 +91,7 @@ func roll_d66(context: String = "D66 Roll") -> int:
 	var tens: int = randi_range(1, 6)
 	var ones: int = randi_range(1, 6)
 	var result: int = tens * 10 + ones
+	_record_roll(result, context, "D66")
 	dice_roll_requested.emit(context, "D66")
 	dice_result_ready.emit(result, context)
 	return result
@@ -91,6 +99,7 @@ func roll_d66(context: String = "D66 Roll") -> int:
 ## Replace: 2d6 rolls
 func roll_2d6(context: String = "2D6 Roll") -> int:
 	var result: int = randi_range(1, 6) + randi_range(1, 6)
+	_record_roll(result, context, "2D6")
 	dice_roll_requested.emit(context, "2D6")
 	dice_result_ready.emit(result, context)
 	return result
@@ -99,6 +108,7 @@ func roll_2d6(context: String = "2D6 Roll") -> int:
 func roll_attribute(context: String = "Attribute Generation") -> int:
 	var roll_2d6: int = randi_range(1, 6) + randi_range(1, 6)
 	var result: int = int(ceil(roll_2d6 / 3.0))
+	_record_roll(result, context, "2D6/3")
 	dice_roll_requested.emit(context, "2D6/3")
 	dice_result_ready.emit(result, context)
 	return result
@@ -107,13 +117,16 @@ func roll_attribute(context: String = "Attribute Generation") -> int:
 func roll_combat_check(modifier: int = 0, context: String = "Combat Check") -> int:
 	var base_roll: int = randi_range(1, 10)
 	var result: int = base_roll + modifier
-	dice_roll_requested.emit(context, "D10+%d" % modifier)
+	var dice_type: String = "D10+%d" % modifier if modifier != 0 else "D10"
+	_record_roll(result, context, dice_type)
+	dice_roll_requested.emit(context, dice_type)
 	dice_result_ready.emit(result, context)
 	return result
 
 ## Replace: injury table rolls
 func roll_injury_table(context: String = "Injury Roll") -> int:
 	var result: int = randi_range(1, 6)
+	_record_roll(result, context, "D6")
 	dice_roll_requested.emit(context, "D6")
 	dice_result_ready.emit(result, context)
 	return result
@@ -121,6 +134,7 @@ func roll_injury_table(context: String = "Injury Roll") -> int:
 ## Replace: reaction tests
 func roll_reaction_test(context: String = "Reaction Test") -> int:
 	var result: int = randi_range(1, 6) + randi_range(1, 6)
+	_record_roll(result, context, "2D6")
 	dice_roll_requested.emit(context, "2D6")
 	dice_result_ready.emit(result, context)
 	return result
@@ -128,6 +142,7 @@ func roll_reaction_test(context: String = "Reaction Test") -> int:
 ## Replace: morale checks
 func roll_morale_check(context: String = "Morale Check") -> int:
 	var result: int = randi_range(1, 6)
+	_record_roll(result, context, "D6")
 	dice_roll_requested.emit(context, "D6")
 	dice_result_ready.emit(result, context)
 	return result
@@ -137,7 +152,11 @@ func roll_custom(dice_count: int, dice_sides: int, modifier: int = 0, context: S
 	var result: int = modifier
 	for i in range(dice_count):
 		result += randi_range(1, dice_sides)
-	dice_roll_requested.emit(context, "%dD%d+%d" % [dice_count, dice_sides, modifier])
+	var dice_type: String = "%dD%d" % [dice_count, dice_sides]
+	if modifier != 0:
+		dice_type += "+%d" % modifier
+	_record_roll(result, context, dice_type)
+	dice_roll_requested.emit(context, dice_type)
 	dice_result_ready.emit(result, context)
 	return result
 
@@ -241,19 +260,66 @@ func legacy_randi_range_min_max(min_val: int, max_val: int, context: String = "L
 
 ## Get rolling statistics for debugging/balancing
 func get_roll_statistics() -> Dictionary:
+	var total_rolls: int = _roll_history.size()
+	var average_result: float = 0.0
+	if total_rolls > 0:
+		var sum: int = 0
+		for entry in _roll_history:
+			sum += entry.get("result", 0)
+		average_result = float(sum) / float(total_rolls)
 	return {
-		"total_rolls": 0,
-		"average_result": 0.0,
+		"total_rolls": total_rolls,
+		"average_result": average_result,
 		"auto_mode": auto_mode
 	}
 
-## Get recent roll history
+## Record a roll in history
+func _record_roll(result: int, context: String, dice_type: String) -> void:
+	var entry: Dictionary = {
+		"result": result,
+		"context": context,
+		"dice_type": dice_type,
+		"timestamp": Time.get_unix_time_from_system()
+	}
+	_roll_history.push_front(entry)
+
+	# Trim history if too large
+	while _roll_history.size() > MAX_HISTORY_SIZE:
+		_roll_history.pop_back()
+
+## Get recent roll history as formatted string
 func get_roll_history(count: int = 10) -> String:
-	return "Roll history not implemented yet"
+	if _roll_history.is_empty():
+		return "No rolls recorded yet"
+
+	var lines: PackedStringArray = []
+	var entries_to_show: int = mini(count, _roll_history.size())
+
+	lines.append("=== Recent Dice Rolls (%d) ===" % entries_to_show)
+
+	for i in range(entries_to_show):
+		var entry: Dictionary = _roll_history[i]
+		var result: int = entry.get("result", 0)
+		var context: String = entry.get("context", "Unknown")
+		var dice_type: String = entry.get("dice_type", "?")
+		lines.append("  [%s] %d - %s" % [dice_type, result, context])
+
+	return "\n".join(lines)
+
+## Get roll history as array of dictionaries
+func get_roll_history_data(count: int = 10) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	var entries_to_show: int = mini(count, _roll_history.size())
+
+	for i in range(entries_to_show):
+		result.append(_roll_history[i])
+
+	return result
 
 ## Clear roll history
 func clear_roll_history() -> void:
-	print("Roll history cleared")
+	_roll_history.clear()
+	print("DiceManager: Roll history cleared")
 
 ## SIGNAL HANDLERS
 func _on_dice_rolled(result: int, context: String) -> void:
@@ -289,22 +355,3 @@ func request_manual_roll(dice_count: int, dice_sides: int, context: String = "Ma
 	auto_mode = false
 	var _result: int = roll_custom(dice_count, dice_sides, 0, context)
 	auto_mode = old_auto_mode
-
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return obj.get(property, default_value)
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

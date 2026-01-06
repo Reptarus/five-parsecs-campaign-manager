@@ -243,16 +243,16 @@ func serialize() -> Dictionary:
 		var serialized_trait = {}
 		if t and t.has_method("serialize"):
 			serialized_trait = t.serialize()
-		safe_call_method(trait_data, "append", [serialized_trait]) # warning: return value discarded (intentional)
+		trait_data.append(serialized_trait)
 
 	var threat_keys: Array[String] = []
 	for t in threats:
 		var typed_t: Variant = t
 		# Handle both EnemyType and StrifeType.INVASION threats
 		if t == GlobalEnums.StrifeType.INVASION:
-			safe_call_method(threat_keys, "append", ["INVASION"]) # warning: return value discarded (intentional)
+			threat_keys.append("INVASION")
 		elif t in range(GlobalEnums.EnemyType.size()):
-			safe_call_method(threat_keys, "append", [GlobalEnums.EnemyType.keys()[t]]) # warning: return value discarded (intentional)
+			threat_keys.append(GlobalEnums.EnemyType.keys()[t])
 
 	var location_data: Array = []
 	for location in locations:
@@ -260,7 +260,7 @@ func serialize() -> Dictionary:
 		var serialized_location = {}
 		if location and location.has_method("serialize"):
 			serialized_location = location.serialize()
-		safe_call_method(location_data, "append", [serialized_location]) # warning: return value discarded (intentional)
+		location_data.append(serialized_location)
 
 	return {
 		"planet_id": planet_id,
@@ -323,9 +323,9 @@ static func deserialize(data: Dictionary) -> GamePlanet:
 		var typed_threat: Variant = threat
 		# Handle both EnemyType and StrifeType.INVASION threats
 		if threat == "INVASION":
-			planet.safe_call_method(planet.threats, "append", [GlobalEnums.StrifeType.INVASION])
+			planet.threats.append(GlobalEnums.StrifeType.INVASION)
 		elif threat in GlobalEnums.EnemyType.keys():
-			planet.safe_call_method(planet.threats, "append", [GlobalEnums.EnemyType[threat]])
+			planet.threats.append(GlobalEnums.EnemyType[threat])
 
 	var strife_level_str: String = data.get("strife_level", "NONE")
 	if strife_level_str in GlobalEnums.StrifeType.keys():
@@ -352,22 +352,3 @@ static func deserialize(data: Dictionary) -> GamePlanet:
 	planet.discovered = data.get("discovered", false)
 
 	return planet
-
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return obj.get(property, default_value)
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

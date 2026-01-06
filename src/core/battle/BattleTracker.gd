@@ -89,6 +89,12 @@ var _performance_metrics: Dictionary = {}
 var _undo_stack: Array[Dictionary] = []
 const MAX_UNDO_DEPTH: int = 10
 
+# Kill Attribution System (Five Parsecs Campaign Tracking)
+# Tracks final blow kills for character lifetime statistics
+var kills_by_character: Dictionary = {}  # character_id -> Array[enemy_ids killed]
+var kill_details: Array[Dictionary] = []  # Full kill records with metadata
+var last_damage_dealer: Dictionary = {}  # unit_id -> {attacker_id, damage, timestamp}
+
 # Manager dependencies
 var dice_manager: Node = null
 var battle_events_system: Node = null
@@ -264,43 +270,54 @@ func add_unit(unit_data: Resource, team: String) -> String:
 	unit_added.emit(tracked_unit)
 	return tracked_unit.unit_id
 
-func update_unit_health(unit_id: String, new_health: int, damage_source: String = "") -> bool:
+func update_unit_health(unit_id: String, new_health: int, damage_source: String = "", attacker_id: String = "") -> bool:
 	"""
 	High-performance health update with comprehensive tracking
 	@param unit_id: Unit identifier
 	@param new_health: New health value
 	@param damage_source: Optional damage source for logging
+	@param attacker_id: Optional attacker ID for kill attribution
 	@return: Success status
 	"""
 	var start_time := Time.get_ticks_usec()
-	
+
 	# Fast lookup with null check
 	var unit := tracked_units.get(unit_id) as BattlefieldTypes.UnitData
 	if not unit:
 		tracking_error.emit("UNIT_NOT_FOUND", {"unit_id": unit_id})
 		return false
-	
+
 	var old_health := unit.current_health
 	var clamped_health := clampi(new_health, 0, unit.max_health)
-	
+
 	# Only update if health actually changed
 	if old_health == clamped_health:
 		return true
-	
+
+	var damage_dealt := old_health - clamped_health
+
 	# Update health efficiently
 	unit.current_health = clamped_health
-	
+
+	# Track last damage dealer for kill attribution (final blow)
+	if attacker_id != "" and damage_dealt > 0:
+		last_damage_dealer[unit_id] = {
+			"attacker_id": attacker_id,
+			"damage": damage_dealt,
+			"timestamp": Time.get_unix_time_from_system()
+		}
+
 	# Track detailed statistics if enabled
 	if track_detailed_stats:
-		_record_damage_statistics(unit_id, old_health - clamped_health, damage_source)
-	
+		_record_damage_statistics(unit_id, damage_dealt, damage_source)
+
 	# Emit appropriate signals
 	unit_health_changed.emit(unit_id, old_health, clamped_health)
-	
+
 	# Check for defeat condition
 	if clamped_health <= 0 and old_health > 0:
 		_handle_unit_defeat(unit_id, unit)
-	
+
 	# Record performance metrics
 	var end_time := Time.get_ticks_usec()
 	_record_operation_performance("health_update", end_time - start_time)
@@ -726,9 +743,9 @@ func _generate_activation_order() -> void:
 	activation_order.shuffle() # Simple random order, can be enhanced with initiative
 
 func _handle_unit_defeat(unit_id: String, unit: BattlefieldTypes.UnitData) -> void:
-	"""Handle unit defeat with appropriate effects"""
+	"""Handle unit defeat with appropriate effects and kill attribution"""
 	var defeat_type := "unconscious" # Five Parsecs uses unconscious vs. killed
-	
+
 	# Roll for casualty vs unconscious (Five Parsecs rule)
 	if dice_manager and dice_manager.has_method("roll_dice"):
 		var casualty_roll: int = dice_manager.roll_dice("BattleTracker", "d6")
@@ -737,8 +754,45 @@ func _handle_unit_defeat(unit_id: String, unit: BattlefieldTypes.UnitData) -> vo
 	else:
 		if randi_range(1, 6) <= 2:
 			defeat_type = "casualty"
-	
+
+	# Record kill attribution (final blow tracking)
+	if last_damage_dealer.has(unit_id):
+		var attacker_info: Dictionary = last_damage_dealer[unit_id]
+		var attacker_id: String = attacker_info.get("attacker_id", "")
+		if attacker_id != "":
+			record_kill(attacker_id, unit_id)
+
 	unit_defeated.emit(unit_id, defeat_type)
+
+func record_kill(attacker_id: String, target_id: String) -> void:
+	"""
+	Record a kill for character lifetime statistics
+	@param attacker_id: ID of the character who got the final blow
+	@param target_id: ID of the defeated unit
+	"""
+	# Add to kills_by_character dictionary
+	if not kills_by_character.has(attacker_id):
+		kills_by_character[attacker_id] = []
+	kills_by_character[attacker_id].append(target_id)
+
+	# Record detailed kill information
+	kill_details.append({
+		"attacker_id": attacker_id,
+		"target_id": target_id,
+		"battle_round": current_round,
+		"timestamp": Time.get_unix_time_from_system()
+	})
+
+	if OS.is_debug_build():
+		print("[BattleTracker] Kill recorded: %s killed %s (round %d)" % [attacker_id, target_id, current_round])
+
+func get_kills_for_character(character_id: String) -> Array:
+	"""Get list of targets killed by a character in this battle"""
+	return kills_by_character.get(character_id, [])
+
+func get_kill_count_for_character(character_id: String) -> int:
+	"""Get number of kills for a character in this battle"""
+	return get_kills_for_character(character_id).size()
 
 func _count_alive_units(team: String) -> int:
 	"""Count alive units for specified team"""
@@ -825,22 +879,8 @@ func reset_battle_state() -> void:
 	_undo_stack.clear()
 	_performance_metrics.total_operations = 0
 	_performance_metrics.error_count = 0
+	# Reset kill attribution tracking
+	kills_by_character.clear()
+	kill_details.clear()
+	last_damage_dealer.clear()
 
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
-	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
-	if not is_instance_valid(self):
-		return default_value
-	
-	if obj and obj.has_method("get"):
-		var value = obj.get(property)
-		return value if value != null else default_value
-	return default_value
-
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

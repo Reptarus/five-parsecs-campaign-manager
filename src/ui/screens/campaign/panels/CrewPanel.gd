@@ -753,7 +753,7 @@ func _generate_fallback_crew() -> void:
 		print("CrewPanel: DEBUG - Generating character %d/%d..." % [i+1, selected_size])
 		var character = generate_random_character()
 		if character:
-			print("CrewPanel: DEBUG - Character %d created successfully: %s" % [i+1, character.name if character.has_method("get", "name") else "Unknown"])
+			print("CrewPanel: DEBUG - Character %d created successfully: %s" % [i+1, character.name if "name" in character else "Unknown"])
 			var added = add_crew_member(character)
 			print("CrewPanel: DEBUG - Character %d added to crew: %s" % [i+1, "SUCCESS" if added else "FAILED"])
 		else:
@@ -778,8 +778,8 @@ func _get_current_crew_data() -> Dictionary:
 
 func get_panel_data() -> Dictionary:
 	"""Get panel data - interface implementation (BaseCampaignPanel compliance)"""
-	# Ensure selected_size is included in the data
-	local_crew_data["selected_size"] = selected_size
+	# Ensure crew_size is included in the data (Sprint 26.7: Standardized key)
+	local_crew_data["crew_size"] = selected_size
 	return _get_current_crew_data()
 
 func set_panel_data(data: Dictionary) -> void:
@@ -807,12 +807,16 @@ func set_panel_data(data: Dictionary) -> void:
 		print("CrewPanel: Restored %d crew members as Character objects" % local_crew_data["members"].size())
 
 	# Restore selected size (target size for crew)
-	if data.has("selected_size"):
+	# Sprint 26.7: Standardized to crew_size key (check legacy keys for backwards compat)
+	if data.has("crew_size"):
+		selected_size = data["crew_size"]
+		print("CrewPanel: Restored crew_size: %d" % selected_size)
+	elif data.has("selected_size"):
 		selected_size = data["selected_size"]
-		print("CrewPanel: Restored selected_size: %d" % selected_size)
+		print("CrewPanel: Restored selected_size (legacy): %d" % selected_size)
 	elif data.has("size"):
 		selected_size = data["size"]
-		print("CrewPanel: Restored size as selected_size: %d" % selected_size)
+		print("CrewPanel: Restored size (legacy): %d" % selected_size)
 
 	# Restore captain
 	if data.has("captain"):
@@ -882,10 +886,10 @@ func _notify_coordinator_of_crew_update() -> void:
 		if normalized_crew_data.has("starting_equipment"):
 			normalized_crew_data["items"] = normalized_crew_data.get("starting_equipment", [])
 
-		# Size: Ensure both "selected_size" and "size" keys are present
-		normalized_crew_data["selected_size"] = selected_size
-		if not normalized_crew_data.has("size"):
-			normalized_crew_data["size"] = selected_size
+		# Sprint 26.7: Standardized to crew_size key (set legacy keys for backwards compat)
+		normalized_crew_data["crew_size"] = selected_size
+		normalized_crew_data["selected_size"] = selected_size  # Legacy compat
+		normalized_crew_data["size"] = selected_size  # Legacy compat
 
 		coordinator.update_crew_state(normalized_crew_data)
 		print("CrewPanel: Notified coordinator of crew update (size: %d)" % selected_size)
@@ -1381,15 +1385,44 @@ func _on_crew_card_edit(member: Character) -> void:
 		GameStateManager.navigate_to_screen("character_details")
 
 func _on_crew_card_remove(member: Character) -> void:
-	"""Handle 'Remove' button on character card"""
+	"""Handle 'Remove' button on character card - Sprint D: with confirmation"""
 	if crew_members.size() <= 1:
 		push_warning("CrewPanel: Cannot remove last crew member")
 		return
-	
+
+	# Sprint D: Show confirmation dialog before removing
+	var display_name = member.get_display_name() if member.has_method("get_display_name") else member.character_name
+	var confirmed = await _show_confirmation_dialog(
+		"Remove Crew Member",
+		"Are you sure you want to remove %s from your crew?\n\nThis action cannot be undone." % display_name,
+		"Remove",
+		true  # destructive
+	)
+
+	if not confirmed:
+		print("CrewPanel: Crew removal cancelled for: %s" % display_name)
+		return
+
 	remove_crew_member(member)
 	_update_crew_display()
 	crew_updated.emit(crew_members)
-	print("CrewPanel: Removed crew member: %s" % member.get_display_name())
+	print("CrewPanel: Removed crew member: %s" % display_name)
+
+## Sprint D: Show confirmation dialog and await response
+func _show_confirmation_dialog(dialog_title: String, message: String, confirm_text: String = "Confirm", destructive: bool = false) -> bool:
+	"""Show confirmation dialog and return true if confirmed"""
+	var ConfirmationDialogScene = load("res://src/ui/components/common/ConfirmationDialog.tscn")
+	if not ConfirmationDialogScene:
+		push_warning("CrewPanel: ConfirmationDialog scene not found - proceeding without confirmation")
+		return true
+
+	var dialog = ConfirmationDialogScene.instantiate()
+	add_child(dialog)
+
+	var result = await dialog.await_confirmation(dialog_title, message, confirm_text, destructive)
+	dialog.queue_free()
+
+	return result
 
 func _on_create_character_slot_pressed(slot_index: int) -> void:
 	"""Handle 'Create Character' slot button - add new crew member"""

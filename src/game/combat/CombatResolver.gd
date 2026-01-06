@@ -306,7 +306,7 @@ func _has_valid_line_of_sight(attacker: Character, target: Character) -> bool:
 
 func _validate_special_ability_requirements(attacker: Character, target: Character) -> bool:
 	var ability: String = attacker.get_active_ability()
-	if (safe_call_method(ability, "is_empty") == true):
+	if ability.is_empty():
 		push_warning("No active ability")
 		return false
 
@@ -319,7 +319,7 @@ func _validate_special_ability_requirements(attacker: Character, target: Charact
 		"LEADERSHIP", "TACTICAL_GENIUS":
 			# Requires allies within range
 			var nearby_allies: Array[Character] = _get_nearby_allies(attacker)
-			if (safe_call_method(nearby_allies, "is_empty") == true):
+			if nearby_allies.is_empty():
 				push_warning("No allies in range for leadership/tactical ability")
 				return false
 
@@ -380,7 +380,7 @@ func _get_closest_enemy(character: Character) -> Character:
 		return null
 
 	var enemies: Array[Character] = combat_manager.get_valid_targets(character)
-	if (safe_call_method(enemies, "is_empty") == true):
+	if enemies.is_empty():
 		return
 	var closest_enemy: Character = null
 	var closest_distance: float = INF
@@ -519,7 +519,7 @@ func _get_valid_target(attacker: Character, action: GlobalEnumsScript.UnitAction
 		return null
 
 	var valid_targets: Array[Character] = combat_manager.get_valid_targets(attacker)
-	if (safe_call_method(valid_targets, "is_empty") == true):
+	if valid_targets.is_empty():
 		return null
 	if _is_character_player_controlled(attacker):
 		return await _wait_for_player_target_selection(valid_targets)
@@ -729,7 +729,7 @@ func _resolve_special_ability(attacker: Character, target: Character) -> void:
 func _wait_for_player_target_selection(valid_targets: Array) -> Character:
 	# This will be implemented by the UI system
 	# For now, return the first valid target
-	if not (safe_call_method(valid_targets, "is_empty") == true):
+	if not valid_targets.is_empty():
 		return valid_targets[0]
 	return null
 func _select_ai_target(attacker: Character, valid_targets: Array) -> Character:
@@ -818,11 +818,3 @@ func _check_reaction_opportunities(attacker: Character, target: Character, actio
 		# Check for suppressing fire reactions
 		if action == GlobalEnumsScript.UnitAction.ATTACK and unit.can_suppress():
 			emit_signal(&"reaction_triggered", unit, "suppressing_fire", attacker)
-
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

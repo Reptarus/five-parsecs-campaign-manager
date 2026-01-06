@@ -22,7 +22,7 @@ func _connect_signals() -> void:
 	delete_button.pressed.connect(_on_delete_pressed)
 
 func _update_ui_state() -> void:
-	var has_selection = not (safe_call_method(selected_campaign, "is_empty") == true)
+	var has_selection = not selected_campaign.is_empty()
 	load_button.disabled = not has_selection
 	delete_button.disabled = not has_selection
 
@@ -53,14 +53,43 @@ func _on_campaign_selected(index: int) -> void:
 	_update_ui_state()
 
 func _on_load_pressed() -> void:
-	if not (safe_call_method(selected_campaign, "is_empty") == true):
+	if not selected_campaign.is_empty():
 		campaign_selected.emit(selected_campaign)
 
 func _on_delete_pressed() -> void:
-	if not (safe_call_method(selected_campaign, "is_empty") == true):
+	if not selected_campaign.is_empty():
+		# Sprint D: Show confirmation dialog before deleting
+		var campaign_name = selected_campaign.get("name", "Unknown Campaign")
+		var confirmed = await _show_confirmation_dialog(
+			"Delete Campaign",
+			"Are you sure you want to delete '%s'?\n\nAll progress will be permanently lost. This action cannot be undone." % campaign_name,
+			"Delete",
+			true  # destructive
+		)
+
+		if not confirmed:
+			print("CampaignLoadDialog: Campaign deletion cancelled for: %s" % campaign_name)
+			return
+
 		campaign_deleted.emit(selected_campaign.name)
 		selected_campaign = {}
 		_update_ui_state()
+
+## Sprint D: Show confirmation dialog and await response
+func _show_confirmation_dialog(dialog_title: String, message: String, confirm_text: String = "Confirm", destructive: bool = false) -> bool:
+	"""Show confirmation dialog and return true if confirmed"""
+	var ConfirmationDialogScene = load("res://src/ui/components/common/ConfirmationDialog.tscn")
+	if not ConfirmationDialogScene:
+		push_warning("CampaignLoadDialog: ConfirmationDialog scene not found - proceeding without confirmation")
+		return true
+
+	var dialog = ConfirmationDialogScene.instantiate()
+	add_child(dialog)
+
+	var result = await dialog.await_confirmation(dialog_title, message, confirm_text, destructive)
+	dialog.queue_free()
+
+	return result
 
 func _get_campaign_data(index: int) -> Dictionary:
 	# This would be replaced with actual campaign data retrieval
@@ -72,10 +101,3 @@ func _get_campaign_data(index: int) -> Dictionary:
 		"missions_completed": 5,
 		"credits": 1000
 	}
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

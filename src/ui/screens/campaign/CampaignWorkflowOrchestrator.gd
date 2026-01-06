@@ -43,8 +43,8 @@ enum WorkflowError {
 
 # Workflow configuration - makes system behavior predictable
 var workflow_scenes: Dictionary = {
-	WorkflowState.CONFIG_PHASE: "res://src/ui/screens/campaign/panels/ConfigPanel.tscn",
-	WorkflowState.CREW_PHASE: "res://src/ui/screens/crew/InitialCrewCreation.tscn",
+	WorkflowState.CONFIG_PHASE: "res://src/ui/screens/campaign/panels/ExpandedConfigPanel.tscn",
+	# WorkflowState.CREW_PHASE: DEPRECATED - CrewPanel (Step 3) handles crew creation in CampaignCreationUI wizard
 	WorkflowState.CHARACTER_PHASE: "res://src/ui/screens/character/SimpleCharacterCreator.tscn",
 	WorkflowState.SHIP_PHASE: "res://src/ui/screens/ships/ShipManager.tscn"
 }
@@ -213,25 +213,25 @@ func _create_error_callback(step: WorkflowState) -> Callable:
 # Step completion handlers
 func _on_config_step_completed(config_data: Dictionary) -> void:
 	"""Handle configuration step completion"""
-	campaign_data.config = config_data
+	campaign_data["config"] = config_data
 	_complete_workflow_step(WorkflowState.CONFIG_PHASE, config_data)
 	_start_workflow_step(WorkflowState.CREW_PHASE)
 
 func _on_crew_step_completed(crew_data: Dictionary) -> void:
 	"""Handle crew creation step completion"""
-	campaign_data.crew = crew_data
+	campaign_data["crew"] = crew_data
 	_complete_workflow_step(WorkflowState.CREW_PHASE, crew_data)
 	_start_workflow_step(WorkflowState.CHARACTER_PHASE)
 
 func _on_character_step_completed(character_data: Dictionary) -> void:
 	"""Handle character customization step completion"""
-	campaign_data.characters = character_data
+	campaign_data["characters"] = character_data
 	_complete_workflow_step(WorkflowState.CHARACTER_PHASE, character_data)
 	_start_workflow_step(WorkflowState.SHIP_PHASE)
 
 func _on_ship_step_completed(ship_data: Dictionary) -> void:
 	"""Handle ship assignment step completion"""
-	campaign_data.ship = ship_data
+	campaign_data["ship"] = ship_data
 	_complete_workflow_step(WorkflowState.SHIP_PHASE, ship_data)
 	_finalize_campaign()
 
@@ -282,13 +282,13 @@ func _finalize_campaign() -> void:
 func _validate_complete_campaign() -> Dictionary:
 	"""Validate that all required campaign data is present"""
 	var errors: Array[String] = []
-	
+
 	# Validate config
-	if not campaign_data.has("config") or campaign_data.config.is_empty():
+	if not campaign_data.has("config") or campaign_data["config"].is_empty():
 		errors.append("Campaign configuration is missing")
-	
+
 	# Validate crew
-	if not campaign_data.has("crew") or campaign_data.crew.is_empty():
+	if not campaign_data.has("crew") or campaign_data["crew"].is_empty():
 		errors.append("Crew data is missing")
 	
 	# Validate characters (optional but recommended)

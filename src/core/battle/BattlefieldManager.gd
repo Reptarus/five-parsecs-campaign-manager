@@ -38,11 +38,9 @@ func _setup_battlefield() -> void:
 	elevation_map = []
 
 	for x: int in range(battlefield_width):
-		safe_call_method(terrain_map, "append", [[]]) # warning: return value discarded (intentional)
-
-		safe_call_method(cover_map, "append", [[]]) # warning: return value discarded (intentional)
-
-		safe_call_method(elevation_map, "append", [[]]) # warning: return value discarded (intentional)
+		terrain_map.append([])
+		cover_map.append([])
+		elevation_map.append([])
 
 		for y: int in range(battlefield_height):
 			terrain_map[x].append(TerrainTypes.Type.OPEN)
@@ -120,32 +118,28 @@ func generate_deployment_zones(num_teams: int = 2) -> void:
 			var positions_per_quadrant: Array = []
 
 			# Top-left
-
-			safe_call_method(positions_per_quadrant, "append", [_generate_deployment_area( # warning: return value discarded (intentional)
+			positions_per_quadrant.append(_generate_deployment_area(
 				Vector2i(battlefield_width / 6.0, battlefield_height / 6.0),
 				battlefield_width / 6.0,
 				battlefield_height / 6.0
-			)])
+			))
 
 			# Top-right
-
-			safe_call_method(positions_per_quadrant, "append", [_generate_deployment_area( # warning: return value discarded (intentional)
+			positions_per_quadrant.append(_generate_deployment_area(
 				Vector2i(5 * battlefield_width / 6.0, battlefield_height / 6.0),
 				battlefield_width / 6.0,
 				battlefield_height / 6.0
-			)])
+			))
 
 			# Bottom-left
-
-			safe_call_method(positions_per_quadrant, "append" , _generate_deployment_area( # warning: return value discarded (intentional)
+			positions_per_quadrant.append(_generate_deployment_area(
 				Vector2i(battlefield_width / 6.0, 5 * battlefield_height / 6.0),
 				battlefield_width / 6.0,
 				battlefield_height / 6.0
 			))
 
 			# Bottom-right
-
-			safe_call_method(positions_per_quadrant, "append" , _generate_deployment_area( # warning: return value discarded (intentional)
+			positions_per_quadrant.append(_generate_deployment_area(
 				Vector2i(5 * battlefield_width / 6.0, 5 * battlefield_height / 6.0),
 				battlefield_width / 6.0,
 				battlefield_height / 6.0
@@ -343,7 +337,7 @@ func _generate_space_station_terrain(density: float) -> void:
 	# Create rooms and corridors
 	var visited: Array = []
 	for i: int in range(battlefield_width):
-		safe_call_method(visited, "append", []) # warning: return value discarded (intentional)
+		visited.append([])
 		for j: int in range(battlefield_height):
 			visited[i].append(false)
 
@@ -364,7 +358,7 @@ func _generate_space_station_terrain(density: float) -> void:
 	var rooms = [[center_x, center_y, room_size_x, room_size_y]]
 
 	for i: int in range(num_rooms):
-		var parent_room = rooms[randi() % (safe_call_method(rooms, "size") as int)]
+		var parent_room = rooms[randi() % rooms.size()]
 		var connection_point_x
 		var connection_point_y
 
@@ -437,8 +431,7 @@ func _generate_space_station_terrain(density: float) -> void:
 						terrain_map[x][corridor_y] = TerrainTypes.Type.OPEN
 
 		# Add to list of rooms
-
-		safe_call_method(rooms, "append", [new_room_x, new_room_y, new_room_size_x, new_room_size_y]) # warning: return value discarded (intentional)
+		rooms.append([new_room_x, new_room_y, new_room_size_x, new_room_size_y])
 
 	# Add obstacles and cover
 	for x: int in range(battlefield_width):
@@ -459,18 +452,10 @@ func _generate_deployment_area(center: Vector2i, width: int, height: int) -> Arr
 			if _is_valid_grid_position(Vector2i(x, y)):
 				var terrain_type = terrain_map[x][y]
 				if not TerrainTypes.blocks_movement(terrain_type):
-					safe_call_method(positions, "append", [_grid_to_world(Vector2i(x, y))]) # warning: return value discarded (intentional)
+					positions.append(_grid_to_world(Vector2i(x, y)))
 
 	return positions
 
 ## Clear all deployment zones
 func _clear_deployment_zones() -> void:
 	deployment_zones.clear()
-
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

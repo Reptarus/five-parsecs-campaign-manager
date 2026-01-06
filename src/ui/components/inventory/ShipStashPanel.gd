@@ -297,14 +297,13 @@ func _on_transfer_pressed() -> void:
 	var equipment_id = item.get("id", "")
 	
 	# Get character ID
-	# Sprint 26.3: Character-Everywhere - crew members are always Character objects
+	# Sprint 26.3: Character-Everywhere - crew members are Character objects
 	var character = current_crew[crew_index]
 	var character_id: String = ""
 	if "character_id" in character:
 		character_id = character.character_id
-	elif "id" in character:
-		character_id = character.id
 	elif "character_name" in character:
+		# Fallback to character_name as identifier
 		character_id = character.character_name
 	else:
 		character_id = str(crew_index)

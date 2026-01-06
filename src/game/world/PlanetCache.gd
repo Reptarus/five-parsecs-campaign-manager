@@ -46,12 +46,12 @@ func _generate_id(sector: String, coordinates: Vector2) -> String:
 	return "%s_%d_%d" % [sector, coordinates.x, coordinates.y]
 
 func _cleanup_old_cache() -> void:
-	if (safe_call_method(cached_planets, "size") as int) <= MAX_CACHED_PLANETS:
+	if cached_planets.size() <= MAX_CACHED_PLANETS:
 		return
 
 	var timestamps = cache_timestamps.values()
 	timestamps.sort()
-	var cutoff_time = timestamps[(safe_call_method(timestamps, "size") as int) - MAX_CACHED_PLANETS]
+	var cutoff_time = timestamps[timestamps.size() - MAX_CACHED_PLANETS]
 
 	var to_remove: Array = []
 	for planet_id in cache_timestamps:
@@ -96,10 +96,3 @@ func load_cache() -> void:
 		for planet_id in cache_data.planets:
 			cached_planets[planet_id] = GamePlanet.deserialize(cache_data.planets[planet_id]) if GamePlanet else null
 
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

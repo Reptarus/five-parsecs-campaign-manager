@@ -145,11 +145,3 @@ static func validate_dict_structure(dict: Dictionary, required_keys: Array, cont
 		return false
 
 	return true
-
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-static func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

@@ -11,6 +11,9 @@ var post_battle_phase: Variant
 var mock_story_track_system: RefCounted
 
 func before_test() -> void:
+	# Set deterministic seed for reproducible random numbers
+	seed(12345)
+
 	# Create phase instances
 	world_phase = preload("res://src/core/campaign/phases/WorldPhase.gd").new()
 	battle_phase = preload("res://src/core/campaign/phases/BattlePhase.gd").new()
@@ -37,7 +40,7 @@ func test_world_phase_checks_for_story_mission() -> void:
 	var result = world_phase.call("_check_for_story_mission") if world_phase.has_method("_check_for_story_mission") else {}
 
 	# Should return Dictionary (empty if no story track active)
-	assert_that(result is Dictionary).is_true()
+	assert_bool(result is Dictionary).is_true()
 
 ## Test 2: WorldPhase loads story mission offer correctly
 func test_world_phase_loads_story_mission_offer() -> void:

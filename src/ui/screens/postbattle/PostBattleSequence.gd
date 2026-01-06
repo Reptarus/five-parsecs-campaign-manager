@@ -11,6 +11,7 @@ const WarPanel = preload("res://src/ui/components/postbattle/GalacticWarPanel.ts
 const TrainingDialog = preload("res://src/ui/components/postbattle/TrainingSelectionDialog.tscn")
 const AdvancementSystemClass = preload("res://src/core/character/advancement/AdvancementSystem.gd")
 const NarrativeInjuryDialog = preload("res://src/ui/components/postbattle/NarrativeInjuryDialog.gd")
+const PurchaseItemsComponent = preload("res://src/ui/screens/world/components/PurchaseItemsComponent.tscn")
 
 # Bot upgrade system instance
 var _advancement_system: RefCounted = null
@@ -60,6 +61,7 @@ func _ready() -> void:
 	_initialize_advancement_system()
 	_initialize_steps()
 	_load_battle_results()
+	_connect_backend_signals()  # Sprint 20.1: Connect to PostBattlePhase backend signals
 	_show_current_step()
 	_setup_postbattle_icons()
 
@@ -97,6 +99,290 @@ func _load_battle_results() -> void:
 			"story_points_earned": 1,
 			"loot_found": []
 		}
+
+## Sprint 20.1: Connect backend signals from PostBattlePhase
+## This wires UI to all backend signals for real-time updates
+func _connect_backend_signals() -> void:
+	"""Connect to PostBattlePhase backend signals for UI updates"""
+	# Try to get PostBattlePhase from CampaignPhaseManager
+	var phase_manager = get_node_or_null("/root/CampaignPhaseManager")
+	var post_battle_phase: Node = null
+
+	if phase_manager and phase_manager.has_method("get_phase_handler"):
+		post_battle_phase = phase_manager.get_phase_handler("post_battle")
+
+	# Alternative: check for direct autoload
+	if not post_battle_phase:
+		post_battle_phase = get_node_or_null("/root/PostBattlePhase")
+
+	if not post_battle_phase:
+		push_warning("PostBattleSequence: Could not find PostBattlePhase backend - signals not connected")
+		# BP-6: Show error dialog instead of silent return
+		_show_error_dialog(
+			"Post-Battle System Error",
+			"Could not connect to post-battle backend. Some features may not work correctly.\n\nYou can still proceed manually, but results may not be saved properly."
+		)
+		return
+
+	print("PostBattleSequence: Connecting to PostBattlePhase backend signals...")
+
+	# Connect all backend signals to UI handlers
+	if post_battle_phase.has_signal("payment_received"):
+		post_battle_phase.payment_received.connect(_on_backend_payment_received)
+
+	if post_battle_phase.has_signal("quest_progress_updated"):
+		post_battle_phase.quest_progress_updated.connect(_on_backend_quest_progress)
+
+	if post_battle_phase.has_signal("invasion_checked"):
+		post_battle_phase.invasion_checked.connect(_on_backend_invasion_checked)
+
+	if post_battle_phase.has_signal("experience_awarded"):
+		post_battle_phase.experience_awarded.connect(_on_backend_experience_awarded)
+
+	if post_battle_phase.has_signal("campaign_event_occurred"):
+		post_battle_phase.campaign_event_occurred.connect(_on_backend_campaign_event)
+
+	if post_battle_phase.has_signal("character_event_occurred"):
+		post_battle_phase.character_event_occurred.connect(_on_backend_character_event)
+
+	if post_battle_phase.has_signal("galactic_war_updated"):
+		post_battle_phase.galactic_war_updated.connect(_on_backend_galactic_war_updated)
+
+	if post_battle_phase.has_signal("training_completed"):
+		post_battle_phase.training_completed.connect(_on_backend_training_result)
+
+	if post_battle_phase.has_signal("precursor_event_choice_available"):
+		post_battle_phase.precursor_event_choice_available.connect(_on_backend_precursor_event_choice)
+
+	if post_battle_phase.has_signal("loot_gathered"):
+		post_battle_phase.loot_gathered.connect(_on_backend_loot_generated)
+
+	if post_battle_phase.has_signal("injuries_resolved"):
+		post_battle_phase.injuries_resolved.connect(_on_backend_injury_result)
+
+	if post_battle_phase.has_signal("battlefield_finds_completed"):
+		post_battle_phase.battlefield_finds_completed.connect(_on_backend_battlefield_finds)
+
+	if post_battle_phase.has_signal("rival_status_resolved"):
+		post_battle_phase.rival_status_resolved.connect(_on_backend_rival_status)
+
+	if post_battle_phase.has_signal("patron_status_resolved"):
+		post_battle_phase.patron_status_resolved.connect(_on_backend_patron_status)
+
+	if post_battle_phase.has_signal("purchases_made"):
+		post_battle_phase.purchases_made.connect(_on_backend_purchases_made)
+
+	if post_battle_phase.has_signal("post_battle_substep_changed"):
+		post_battle_phase.post_battle_substep_changed.connect(_on_backend_substep_changed)
+
+	print("PostBattleSequence: Backend signals connected successfully")
+
+## Backend Signal Handlers - Sprint 20.1
+## These receive data from PostBattlePhase and update UI accordingly
+
+func _on_backend_payment_received(amount: int) -> void:
+	"""Handle payment received from backend"""
+	print("PostBattleSequence: Backend payment received - %d credits" % amount)
+	_add_result_to_log("Payment received: %d credits" % amount)
+
+func _on_backend_quest_progress(progress: int) -> void:
+	"""Handle quest progress update from backend"""
+	print("PostBattleSequence: Backend quest progress - %d" % progress)
+	var outcome_text: String
+	if progress <= 0:
+		outcome_text = "Quest Dead End - No progress this mission"
+	elif progress == 1:
+		outcome_text = "Quest Progress - +1 Rumor gained!"
+	else:
+		outcome_text = "Quest Finale Available! Prepare for final confrontation."
+	_add_result_to_log(outcome_text)
+
+func _on_backend_invasion_checked(invasion_pending: bool) -> void:
+	"""Handle invasion check result from backend"""
+	print("PostBattleSequence: Backend invasion check - %s" % ("TRIGGERED" if invasion_pending else "clear"))
+	if invasion_pending:
+		_add_result_to_log("[color=#DC2626]INVASION IMMINENT![/color] Unity forces detected!")
+	else:
+		_add_result_to_log("Sector Clear - No invasion threat detected")
+
+func _on_backend_experience_awarded(xp_awards: Array) -> void:
+	"""Handle XP awards from backend"""
+	print("PostBattleSequence: Backend XP awarded - %d crew members" % xp_awards.size())
+	for award in xp_awards:
+		if award is Dictionary:
+			var crew_name = award.get("crew_name", "Unknown")
+			var xp_amount = award.get("xp", 0)
+			_add_result_to_log("%s gained %d XP" % [crew_name, xp_amount])
+
+func _on_backend_campaign_event(event: Dictionary) -> void:
+	"""Handle campaign event from backend - apply effect!"""
+	print("PostBattleSequence: Backend campaign event - %s" % event.get("name", "Unknown"))
+	var event_name = event.get("name", "Unknown Event")
+	var event_desc = event.get("description", "")
+	_add_result_to_log("Campaign Event: %s - %s" % [event_name, event_desc])
+
+	# CRITICAL: Apply the event effect via backend
+	var phase_manager = get_node_or_null("/root/CampaignPhaseManager")
+	if phase_manager and phase_manager.has_method("get_phase_handler"):
+		var post_battle_phase = phase_manager.get_phase_handler("post_battle")
+		if post_battle_phase and post_battle_phase.has_method("apply_campaign_event_effect"):
+			post_battle_phase.apply_campaign_event_effect(event)
+			print("PostBattleSequence: Campaign event effect applied")
+
+func _on_backend_character_event(event: Dictionary) -> void:
+	"""Handle character event from backend - apply effect!"""
+	var char_name = event.get("character_name", "Unknown")
+	var event_name = event.get("name", "Unknown Event")
+	print("PostBattleSequence: Backend character event - %s for %s" % [event_name, char_name])
+	_add_result_to_log("%s: %s" % [char_name, event_name])
+
+	# Apply the event effect
+	var phase_manager = get_node_or_null("/root/CampaignPhaseManager")
+	if phase_manager and phase_manager.has_method("get_phase_handler"):
+		var post_battle_phase = phase_manager.get_phase_handler("post_battle")
+		if post_battle_phase and post_battle_phase.has_method("apply_character_event_effect"):
+			post_battle_phase.apply_character_event_effect(event)
+
+func _on_backend_galactic_war_updated(progress: Dictionary) -> void:
+	"""Handle Galactic War update from backend"""
+	print("PostBattleSequence: Backend Galactic War updated")
+	var planet_results = progress.get("planet_results", [])
+	for result in planet_results:
+		var planet_name = result.get("planet", "Unknown")
+		var outcome = result.get("result", "unknown")
+		_add_result_to_log("Galactic War - %s: %s" % [planet_name, outcome])
+
+	# Update GalacticWarPanel if visible
+	var war_panel = step_content.find_child("GalacticWarPanel") if step_content else null
+	if war_panel and war_panel.has_method("update_war_status"):
+		war_panel.update_war_status(progress)
+
+func _on_backend_training_result(training: Array) -> void:
+	"""Handle training enrollment result from backend"""
+	print("PostBattleSequence: Backend training result - %d enrollments" % training.size())
+	for result in training:
+		if result is Dictionary:
+			var crew_name = result.get("crew_name", "Unknown")
+			var course = result.get("course", "Unknown")
+			var success = result.get("success", false)
+			if success:
+				_add_result_to_log("%s enrolled in %s training!" % [crew_name, course])
+			else:
+				var reason = result.get("reason", "unknown")
+				_add_result_to_log("%s training application denied: %s" % [crew_name, reason])
+
+func _on_backend_precursor_event_choice(event1: Dictionary, event2: Dictionary) -> void:
+	"""Handle Precursor event choice available - show dialog for player to choose
+	Sprint 21.1: Now shows PrecursorEventChoiceDialog for player selection"""
+	print("PostBattleSequence: Backend Precursor event choice available")
+	print("  Event 1: %s" % event1.get("name", "Unknown"))
+	print("  Event 2: %s" % event2.get("name", "Unknown"))
+
+	# Create and show the choice dialog
+	var dialog_scene := preload("res://src/ui/components/postbattle/PrecursorEventChoiceDialog.tscn")
+	var dialog: PrecursorEventChoiceDialog = dialog_scene.instantiate()
+
+	# Add to UI layer
+	add_child(dialog)
+
+	# Setup with event data
+	dialog.setup(event1, event2)
+
+	# Store events for callback
+	var stored_event1 := event1
+	var stored_event2 := event2
+
+	# Connect to handle player choice
+	dialog.event_selected.connect(func(choice: int):
+		_handle_precursor_choice(choice, stored_event1, stored_event2)
+	)
+
+func _handle_precursor_choice(choice: int, event1: Dictionary, event2: Dictionary) -> void:
+	"""Handle player's precursor event choice and notify backend"""
+	print("PostBattleSequence: Player selected Precursor event %d" % choice)
+
+	var phase_manager = get_node_or_null("/root/CampaignPhaseManager")
+	if phase_manager and phase_manager.has_method("get_phase_handler"):
+		var post_battle_phase = phase_manager.get_phase_handler("post_battle")
+		if post_battle_phase and post_battle_phase.has_method("select_precursor_event"):
+			post_battle_phase.select_precursor_event(choice)
+		else:
+			push_warning("PostBattleSequence: PostBattlePhase missing select_precursor_event method")
+	else:
+		# Fallback: emit the chosen event directly
+		var chosen_event: Dictionary = event1 if choice == 1 else event2
+		_add_result_to_log("Precursor Vision: %s" % chosen_event.get("name", "Unknown Event"))
+
+func _on_backend_loot_generated(loot: Array) -> void:
+	"""Handle loot generated from backend"""
+	print("PostBattleSequence: Backend loot generated - %d items" % loot.size())
+	for item in loot:
+		if item is Dictionary:
+			var item_name = item.get("name", "Unknown Item")
+			_add_result_to_log("Loot found: %s" % item_name)
+
+func _on_backend_injury_result(injuries: Array) -> void:
+	"""Handle injury results from backend"""
+	print("PostBattleSequence: Backend injuries resolved - %d injuries" % injuries.size())
+	for injury in injuries:
+		if injury is Dictionary:
+			var crew_name = injury.get("crew_name", "Unknown")
+			var severity = injury.get("severity", "Unknown")
+			var recovery = injury.get("recovery_turns", 0)
+			if injury.get("is_fatal", false):
+				_add_result_to_log("[color=#DC2626]%s: FATAL - %s[/color]" % [crew_name, severity])
+			elif recovery > 0:
+				_add_result_to_log("%s: %s (%d turns recovery)" % [crew_name, severity, recovery])
+			else:
+				_add_result_to_log("%s: %s" % [crew_name, severity])
+
+func _on_backend_battlefield_finds(finds: Array) -> void:
+	"""Handle battlefield finds from backend"""
+	print("PostBattleSequence: Backend battlefield finds - %d finds" % finds.size())
+	for find in finds:
+		if find is Dictionary:
+			var description = find.get("description", "Unknown find")
+			var credits = find.get("credits", 0)
+			if credits > 0:
+				_add_result_to_log("Battlefield: %s (+%d credits)" % [description, credits])
+			else:
+				_add_result_to_log("Battlefield: %s" % description)
+
+func _on_backend_rival_status(rivals_removed: Array) -> void:
+	"""Handle rival status resolution from backend"""
+	print("PostBattleSequence: Backend rival status - %d rivals resolved" % rivals_removed.size())
+	for rival in rivals_removed:
+		if rival is Dictionary:
+			var rival_name = rival.get("name", "Unknown Rival")
+			var follows = rival.get("follows", false)
+			if follows:
+				_add_result_to_log("Rival %s follows you to the next world" % rival_name)
+			else:
+				_add_result_to_log("Rival %s stays behind" % rival_name)
+
+func _on_backend_patron_status(patrons_added: Array) -> void:
+	"""Handle patron status resolution from backend"""
+	print("PostBattleSequence: Backend patron status - %d patrons updated" % patrons_added.size())
+	for patron in patrons_added:
+		if patron is Dictionary:
+			var patron_name = patron.get("name", "Unknown Patron")
+			_add_result_to_log("Patron update: %s" % patron_name)
+
+func _on_backend_purchases_made(purchases: Array) -> void:
+	"""Handle purchases made from backend"""
+	print("PostBattleSequence: Backend purchases - %d items" % purchases.size())
+	for purchase in purchases:
+		if purchase is Dictionary:
+			var item_name = purchase.get("name", "Unknown Item")
+			var cost = purchase.get("cost", 0)
+			_add_result_to_log("Purchased: %s (-%d credits)" % [item_name, cost])
+
+func _on_backend_substep_changed(substep: int) -> void:
+	"""Handle substep change from backend - sync UI"""
+	print("PostBattleSequence: Backend substep changed to %d" % substep)
+	if substep != current_step and substep < max_steps:
+		current_step = substep
+		_show_current_step()
 
 func _refresh_steps_list() -> void:
 	"""Refresh the steps list display"""
@@ -624,10 +910,40 @@ func _add_training_content() -> void:
 		step_content.add_child(dialog)
 
 func _add_purchase_content() -> void:
-	"""Add purchase content"""
-	var label: Label = Label.new()
-	label.text = "Purchase new equipment and supplies."
-	step_content.add_child(label)
+	"""Add purchase content using PurchaseItemsComponent (Core Rules p.123)"""
+	if not step_content:
+		return
+
+	# Clear existing content
+	for child in step_content.get_children():
+		child.queue_free()
+
+	# Instantiate purchase items component
+	var purchase_component = PurchaseItemsComponent.instantiate()
+	if purchase_component:
+		# Get current credits and stash from campaign
+		var credits = _get_current_credits()
+		var stash = _get_ship_stash()
+
+		# Initialize component with campaign data
+		if purchase_component.has_method("initialize_purchase_phase"):
+			purchase_component.initialize_purchase_phase(credits, stash)
+
+		step_content.add_child(purchase_component)
+		print("PostBattleSequence: PurchaseItemsComponent instantiated with %d credits" % credits)
+	else:
+		# Fallback to simple label if component fails to load
+		var label: Label = Label.new()
+		label.text = "Purchase new equipment and supplies.\n(Component failed to load)"
+		step_content.add_child(label)
+		push_warning("PostBattleSequence: Failed to instantiate PurchaseItemsComponent")
+
+func _get_ship_stash() -> Array:
+	"""Get ship stash items from EquipmentManager"""
+	var equipment_manager = get_node_or_null("/root/EquipmentManager")
+	if equipment_manager and equipment_manager.has_method("get_ship_stash"):
+		return equipment_manager.get_ship_stash()
+	return []
 
 func _add_campaign_events_content() -> void:
 	"""Add campaign events content with Five Parsecs event tables"""
@@ -783,8 +1099,12 @@ func _on_next_pressed() -> void:
 	"""Handle next button press"""
 	# Store current step result
 	var result: Variant = _get_current_step_result()
-	step_results[current_step] = result
-	step_completed.emit(current_step, result)
+	# Sprint 26.9 ERR-1: Bounds check before array access
+	if current_step >= 0 and current_step < step_results.size():
+		step_results[current_step] = result
+		step_completed.emit(current_step, result)
+	else:
+		push_warning("PostBattleSequence: current_step %d out of bounds (size: %d)" % [current_step, step_results.size()])
 
 	# Move to next step
 	current_step += 1
@@ -850,16 +1170,22 @@ func _finish_post_battle() -> void:
 	post_battle_completed.emit(final_results)
 	print("PostBattleSequence: Completed all steps")
 
-	# Bridge UI to backend: Notify CampaignPhaseManager to complete post-battle phase
+	# Task 14.5: Use public API instead of private method (call-down-signal-up pattern)
+	# The post_battle_completed signal was already emitted above for listeners
+	# Now trigger phase completion through the proper public API
 	var phase_manager = get_node_or_null("/root/CampaignPhaseManager")
-	if phase_manager and phase_manager.has_method("_on_post_battle_phase_completed"):
-		print("PostBattleSequence: Triggering CampaignPhaseManager post-battle completion")
-		phase_manager._on_post_battle_phase_completed()
+	if phase_manager and phase_manager.has_method("complete_current_phase"):
+		print("PostBattleSequence: Triggering phase completion via public API")
+		phase_manager.complete_current_phase()
 	else:
 		push_warning("PostBattleSequence: CampaignPhaseManager not found - turn will not advance")
 
 	# Navigate to Campaign Dashboard to show new turn
-	await get_tree().create_timer(0.5).timeout  # Brief delay for user to see completion
+	# Sprint 26.9 ERR-10: Guard await with tree check to prevent crash if freed
+	if is_inside_tree():
+		await get_tree().create_timer(0.5).timeout  # Brief delay for user to see completion
+	if not is_inside_tree():
+		return  # Node was freed during await, abort navigation
 	if has_node("/root/SceneRouter"):
 		var scene_router = get_node("/root/SceneRouter")
 		scene_router.navigate_to("campaign_dashboard")
@@ -874,24 +1200,6 @@ func _on_back_pressed() -> void:
 		scene_router.navigate_to("campaign_dashboard")
 	else:
 		get_tree().change_scene_to_file("res://src/ui/screens/campaign/CampaignDashboard.tscn")
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return obj.get(property, default_value)
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null
 
 ## Setup post-battle phase icons for enhanced visual navigation
 func _setup_postbattle_icons() -> void:
@@ -1049,18 +1357,18 @@ func _on_battlefield_find_roll(enemy_num: int) -> void:
 			campaign_manager.add_credits(credits)
 	
 	# Store result for later item table rolls if needed
-	if not step_results[current_step].has("battlefield_finds"):
-		step_results[current_step]["battlefield_finds"] = []
-	
-	step_results[current_step]["battlefield_finds"].append({
-		"enemy_num": enemy_num,
-		"roll": roll,
-		"outcome": outcome,
-		"credits": credits,
-		"needs_item_roll": needs_item_roll,
-		"item_table": item_table,
-		"narrative": narrative
-	})
+	if current_step >= 0 and current_step < step_results.size():
+		if not step_results[current_step].has("battlefield_finds"):
+			step_results[current_step]["battlefield_finds"] = []
+		step_results[current_step]["battlefield_finds"].append({
+			"enemy_num": enemy_num,
+			"roll": roll,
+			"outcome": outcome,
+			"credits": credits,
+			"needs_item_roll": needs_item_roll,
+			"item_table": item_table,
+			"narrative": narrative
+		})
 	
 	# Log with narrative
 	var log_message = "Enemy %d: %s" % [enemy_num, narrative if not narrative.is_empty() else description]
@@ -1328,8 +1636,35 @@ func _get_injury_color(severity: String) -> Color:
 
 func _was_crew_casualty(crew_member: Dictionary) -> bool:
 	"""Check if crew member was a casualty in battle"""
-	# This would need to check against actual battle results
-	return false # Placeholder implementation
+	# Get crew member ID
+	var crew_id = crew_member.get("id", "")
+	if crew_id == "" or crew_id == 0:
+		crew_id = str(crew_member.get("character_id", ""))
+	if crew_id == "":
+		return false
+
+	# Check casualties array from battle results
+	# BattleResults structure: casualties = [{crew_id, type, round, cause}]
+	if battle_results and battle_results.has("casualties"):
+		var casualties_array = battle_results.get("casualties", [])
+		for casualty in casualties_array:
+			if casualty is Dictionary:
+				var casualty_id = str(casualty.get("crew_id", ""))
+				if casualty_id == str(crew_id):
+					# Check if it's a fatal casualty type
+					var casualty_type = casualty.get("type", "")
+					if casualty_type in ["killed", "critically_wounded", "missing", "fatal"]:
+						return true
+
+	# Also check legacy format: injuries_sustained with is_fatal flag
+	if battle_results and battle_results.has("injuries_sustained"):
+		for injury in battle_results.get("injuries_sustained", []):
+			if injury is Dictionary:
+				var injury_crew_id = str(injury.get("crew_id", ""))
+				if injury_crew_id == str(crew_id) and injury.get("is_fatal", false):
+					return true
+
+	return false
 
 func _get_war_events() -> Array:
 	"""Return war events from battle results or state manager"""
@@ -1372,14 +1707,14 @@ func _on_training_completed(character: Resource, training_type: String) -> void:
 	print("PostBattleSequence: Training completed - Character: ", character.get("character_name") if character else "Unknown", " Type: ", training_type)
 
 	# Store training result
-	if not step_results[current_step].has("training_completed"):
-		step_results[current_step]["training_completed"] = []
-
-	step_results[current_step]["training_completed"].append({
-		"character": character,
-		"training_type": training_type,
-		"timestamp": Time.get_unix_time_from_system()
-	})
+	if current_step >= 0 and current_step < step_results.size():
+		if not step_results[current_step].has("training_completed"):
+			step_results[current_step]["training_completed"] = []
+		step_results[current_step]["training_completed"].append({
+			"character": character,
+			"training_type": training_type,
+			"timestamp": Time.get_unix_time_from_system()
+		})
 
 	# Add to results log
 	var char_name = character.get("character_name") if character else "Unknown"
@@ -1390,3 +1725,32 @@ func _on_training_closed() -> void:
 	print("PostBattleSequence: Training dialog closed")
 	# Note: Do NOT auto-advance - user may want to train multiple characters
 	# They will manually click Next when done
+
+## BP-6: Show error dialog instead of silent failure
+func _show_error_dialog(title: String, message: String) -> void:
+	"""Display a user-visible error dialog for critical failures"""
+	# Try to use the project's ConfirmationDialog component
+	var dialog_scene = load("res://src/ui/components/common/ConfirmationDialog.tscn")
+	if dialog_scene:
+		var dialog = dialog_scene.instantiate()
+		add_child(dialog)
+		if dialog.has_method("show_error"):
+			dialog.show_error(title, message)
+		elif dialog.has_method("popup_centered"):
+			# Fallback to basic popup
+			dialog.title = title
+			if dialog.has_node("Label"):
+				dialog.get_node("Label").text = message
+			dialog.popup_centered()
+		return
+
+	# Fallback: Use built-in AcceptDialog
+	var fallback_dialog := AcceptDialog.new()
+	fallback_dialog.title = title
+	fallback_dialog.dialog_text = message
+	fallback_dialog.ok_button_text = "OK"
+	add_child(fallback_dialog)
+	fallback_dialog.popup_centered()
+	# Clean up when closed
+	fallback_dialog.confirmed.connect(fallback_dialog.queue_free)
+	fallback_dialog.canceled.connect(fallback_dialog.queue_free)

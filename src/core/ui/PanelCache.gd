@@ -125,7 +125,7 @@ func _init() -> void:
 
 func _setup_default_panels() -> void:
 	"""Setup default panel registry for Five Parsecs campaign panels"""
-	register_panel("config", "res://src/ui/screens/campaign/panels/ConfigPanel.tscn", 1)
+	register_panel("config", "res://src/ui/screens/campaign/panels/ExpandedConfigPanel.tscn", 1)
 	register_panel("crew", "res://src/ui/screens/campaign/panels/CrewPanel.tscn", 2)
 	register_panel("captain", "res://src/ui/screens/campaign/panels/CaptainPanel.tscn", 3)
 	register_panel("ship", "res://src/ui/screens/campaign/panels/ShipPanel.tscn", 4)

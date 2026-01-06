@@ -12,9 +12,6 @@ extends Node
 ##
 ## Implements IGameSystem interface for standardized integration
 
-# Safe imports
-const IGameSystem = preload("res://src/core/systems/IGameSystem.gd")
-
 # Proper dependency imports - compile-time validation
 # GlobalEnums available as autoload singleton
 const Character = preload("res://src/core/character/Character.gd")
@@ -245,10 +242,10 @@ func get_status() -> Dictionary:
 		"active": _initialized,
 		"errors": _errors.duplicate(),
 		"last_update": _last_update,
-		"resource_count": (safe_call_method(resources, "size") as int),
+		"resource_count": resources.size(),
 		"market_state": current_market_state,
-		"planet_count": (safe_call_method(planetary_economies, "size") as int),
-		"trade_route_count": (safe_call_method(trade_routes, "size") as int),
+		"planet_count": planetary_economies.size(),
+		"trade_route_count": trade_routes.size(),
 		"global_economic_modifier": global_economic_modifier
 	}
 
@@ -424,8 +421,8 @@ func calculate_item_price(item: Resource, is_buying: bool, planet_name: String =
 		push_error("Item is required for price calculation")
 		return 1  # MINIMUM 1 CREDIT (enforce minimum even for invalid items)
 
-	var base_price: int = safe_get_property(item, "value") if safe_has_property(item, "value") else 100
-	var item_type = safe_get_property(item, "type") if safe_has_property(item, "type") else 0
+	var base_price: int = Godot4Utils.safe_get_property(item, "value") if Godot4Utils.safe_has_property(item, "value") else 100
+	var item_type = Godot4Utils.safe_get_property(item, "type") if Godot4Utils.safe_has_property(item, "type") else 0
 
 	# Apply market modifier
 	var market_modifier: float = market_prices.get(item_type) if market_prices.has(item_type) else 1.0
@@ -452,11 +449,11 @@ func can_trade_item(item: Resource) -> bool:
 	if not item:
 		return false
 
-	var item_name = safe_get_property(item, "name") if safe_has_property(item, "name") else ""
+	var item_name = Godot4Utils.safe_get_property(item, "name") if Godot4Utils.safe_has_property(item, "name") else ""
 	if item_name in trade_restricted_items:
 		return false
 
-	var item_type = safe_get_property(item, "type") if safe_has_property(item, "type") else 0
+	var item_type = Godot4Utils.safe_get_property(item, "type") if Godot4Utils.safe_has_property(item, "type") else 0
 	if item_type in scarce_resources and current_market_state == GlobalEnums.MarketState.CRISIS:
 		return false
 
@@ -474,8 +471,8 @@ func process_transaction(item: Resource, is_buying: bool, quantity: int = 1, pla
 		return false
 
 	var price := calculate_item_price(item, is_buying, planet_name) * quantity
-	var item_type = safe_get_property(item, "type") if safe_has_property(item, "type") else 0
-	var item_name = safe_get_property(item, "name") if safe_has_property(item, "name") else "Unknown Item"
+	var item_type = Godot4Utils.safe_get_property(item, "type") if Godot4Utils.safe_has_property(item, "type") else 0
+	var item_name = Godot4Utils.safe_get_property(item, "name") if Godot4Utils.safe_has_property(item, "name") else "Unknown Item"
 
 	# CRITICAL: Check sufficient credits before buying
 	if is_buying:
@@ -622,9 +619,12 @@ func _prune_history_if_needed(resource_type: int) -> void:
 	"""Prune resource history if too large"""
 	if resource_type in resource_history:
 		var history = resource_history[resource_type]
-		# AGGRESSIVE PRUNING: Keep history at MAX_HISTORY_ENTRIES to stay under HISTORY_PRUNE_THRESHOLD
-		if history.size() > MAX_HISTORY_ENTRIES:
-			resource_history[resource_type] = history.slice(-MAX_HISTORY_ENTRIES)
+		# Prune when exceeding threshold to keep at MAX_HISTORY_ENTRIES
+		if history.size() > HISTORY_PRUNE_THRESHOLD:
+			var excess = history.size() - MAX_HISTORY_ENTRIES
+			for i in range(excess):
+				history.remove_at(0)
+			resource_history[resource_type] = history
 
 func _check_thresholds(resource_type: int, value: int) -> void:
 	"""Check resource thresholds and emit signals"""
@@ -644,7 +644,7 @@ func _create_history_entry_dict(entry: ResourceTransaction) -> Dictionary:
 		"change_amount": entry.change_amount,
 		"source": entry.source,
 		"timestamp": entry.timestamp,
-		"turn_number": safe_get_property(entry, "turn_number")
+		"turn_number": Godot4Utils.safe_get_property(entry, "turn_number")
 	}
 
 func _serialize_resource_history() -> Dictionary:
@@ -843,30 +843,3 @@ func get_trade_routes_for_planet(planet_name: String) -> Array[Dictionary]:
 		if route.from == planet_name or route.to == planet_name:
 			routes.append(route)
 	return routes
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
-	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
-	if not is_instance_valid(self):
-		return
-	if obj and obj.has_method("get"):
-		var value = obj.get(property)
-		return value if value != null else default_value
-	return default_value
-
-## Safe property check helper - works with both Dictionary and Resource
-func safe_has_property(obj: Variant, property: String) -> bool:
-	"""Check if object has property (works with Dictionary and Resource)"""
-	if obj == null:
-		return false
-	if obj is Dictionary:
-		return obj.has(property)
-	elif obj is Object:
-		return obj.has_method("get") and obj.get(property) != null
-	return false
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

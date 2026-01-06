@@ -184,7 +184,7 @@ func _retrace_path(start_node: Variant, end_node: Variant) -> Array[Vector2]:
 func _calculate_path_cost(path: Array) -> float:
 	var total_cost := 0.0
 
-	for i: int in range(1, (safe_call_method(path, "size") as int)):
+	for i: int in range(1, path.size()):
 		var from_grid = battlefield_manager._world_to_grid(path[i - 1]) if battlefield_manager and battlefield_manager.has_method("_world_to_grid") else Vector2i.ZERO
 		var to_grid = battlefield_manager._world_to_grid(path[i]) if battlefield_manager and battlefield_manager.has_method("_world_to_grid") else Vector2i.ZERO
 		var terrain_type = battlefield_manager.terrain_map[to_grid.x][to_grid.y]
@@ -212,10 +212,3 @@ func _is_in_closed_set(node: Variant) -> bool:
 			return true
 	return false
 
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

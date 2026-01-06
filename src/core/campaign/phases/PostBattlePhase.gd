@@ -173,6 +173,9 @@ func start_post_battle_phase(battle_data: Dictionary = {}) -> void:
 	"""Begin the Post-Battle Phase sequence"""
 	print("PostBattlePhase: Starting Post-Battle Phase")
 
+	# Sprint 26.4: Debug logging for data handoff verification
+	_debug_log_post_battle_input(battle_data)
+
 	# Store battle result data
 	battle_result = battle_data.duplicate()
 	mission_successful = battle_data.get("success", false)
@@ -438,6 +441,10 @@ func _process_payment() -> void:
 		])
 		total_payment = adjusted_payment
 
+	# Sprint 26.5: Debug log payment breakdown
+	var difficulty_bonus_amount: int = int(total_payment - (raw_payment * payment_multiplier)) if difficulty > 0 else 0
+	_debug_log_payment(base_payment, danger_pay, 0, 0, total_payment)
+
 	# Award payment
 	if total_payment > 0 and GameState.has_method("add_credits"):
 		GameState.add_credits(total_payment)
@@ -694,6 +701,15 @@ func _process_single_injury(injury_data: Dictionary) -> Dictionary:
 		"bonus_xp": bonus_xp
 	}
 
+	# Sprint 26.5: Debug log injury processing with modifiers
+	var modifiers_dict := {}
+	if equipment_lost:
+		modifiers_dict["Equipment Lost"] = 1
+	if bonus_xp > 0:
+		modifiers_dict["Hard Knocks XP"] = bonus_xp
+	var crew_name: String = injury_data.get("crew_name", crew_id)
+	_debug_log_injury(crew_name, injury_roll, modifiers_dict, injury_type_name, recovery_time)
+
 	# Handle fatal injuries
 	if is_fatal:
 		print("PostBattlePhase: FATAL INJURY - Crew member %s has died" % crew_id)
@@ -757,10 +773,17 @@ func _process_experience() -> void:
 			if GameState and GameState.has_method("add_crew_experience"):
 				GameState.add_crew_experience(crew_id, xp_earned)
 
-	# Safe Variant handling for print statement
-	var xp_awards_count_result: Variant = safe_call_method(xp_awards, "size")
-	var xp_awards_count: int = xp_awards_count_result if xp_awards_count_result is int else 0
+	# Print XP awards summary
+	var xp_awards_count: int = xp_awards.size()
 	print("PostBattlePhase: Awarded XP to %d crew members (%d bots skipped)" % [xp_awards_count, bots_skipped])
+
+	# Sprint 26.5: Debug log experience awards
+	var total_xp: int = 0
+	var formatted_awards: Array = []
+	for award in xp_awards:
+		total_xp += award.get("xp", 0)
+		formatted_awards.append({"name": award.get("crew_id", "Unknown"), "xp": award.get("xp", 0)})
+	_debug_log_experience(formatted_awards, total_xp, [])
 
 	self.experience_awarded.emit(xp_awards)
 
@@ -1320,9 +1343,7 @@ func _process_character_event() -> void:
 
 func _get_character_event() -> Dictionary:
 	"""Get character event for random crew member"""
-	# Safe Variant handling
-	var crew_size_result: Variant = safe_call_method(crew_participants, "size")
-	var crew_size: int = crew_size_result if crew_size_result is int else 0
+	var crew_size: int = crew_participants.size()
 
 	if crew_size == 0:
 		return {"type": "none", "name": "No Event"}
@@ -1554,11 +1575,143 @@ func _complete_post_battle_phase() -> void:
 	if GlobalEnums:
 		current_substep = GlobalEnums.PostBattleSubPhase.NONE
 
+	# Update character lifetime statistics from battle results
+	_update_character_lifetime_statistics()
+
+	# Create journal entry for this battle
+	_create_battle_journal_entry()
+
 	# F-4 fix: Tick injury recovery for all crew members each turn
 	_tick_injury_recovery()
 
 	print("PostBattlePhase: Post-Battle Phase completed")
 	self.post_battle_phase_completed.emit()
+
+func _update_character_lifetime_statistics() -> void:
+	"""Update character lifetime statistics from battle results (kills, damage, participation)"""
+	var crew: Array = _get_participating_crew()
+	if crew.is_empty():
+		return
+
+	# Get kill attribution data from battle_result (passed from BattleTracker)
+	var kills_by_character: Dictionary = battle_result.get("kills_by_character", {})
+	var damage_dealt_per_unit: Dictionary = battle_result.get("damage_dealt_per_unit", {})
+	var damage_taken_per_unit: Dictionary = battle_result.get("damage_taken_per_unit", {})
+	var units_downed: Array = battle_result.get("units_downed", [])
+
+	for member in crew:
+		if not member:
+			continue
+
+		var char_id: String = ""
+		if member is Object and member.has_method("get"):
+			char_id = member.get("character_id") if member.get("character_id") else ""
+		elif member is Dictionary:
+			char_id = member.get("character_id", "")
+
+		if char_id.is_empty():
+			continue
+
+		# Update battles_participated
+		if member is Object and "battles_participated" in member:
+			member.battles_participated += 1
+
+			# Update battles_survived (not knocked out/downed)
+			if char_id not in units_downed:
+				member.battles_survived += 1
+
+			# Update lifetime kills from kill attribution
+			var kills: Array = kills_by_character.get(char_id, [])
+			member.lifetime_kills += kills.size()
+
+			# Update lifetime damage dealt/taken
+			member.lifetime_damage_dealt += damage_dealt_per_unit.get(char_id, 0)
+			member.lifetime_damage_taken += damage_taken_per_unit.get(char_id, 0)
+
+			# Create character event in journal
+			_create_character_battle_journal_event(member, char_id, kills.size())
+
+		print("[PostBattlePhase] Updated stats for %s: +%d kills, +1 battle" % [
+			member.get("character_name") if member is Object and member.has_method("get") else char_id,
+			kills_by_character.get(char_id, []).size()
+		])
+
+func _get_participating_crew() -> Array:
+	"""Get crew members who participated in the battle"""
+	var crew: Array = []
+
+	# First try to get from stored participants
+	if not crew_participants.is_empty():
+		# Resolve participant IDs to actual Character objects
+		var gsm = game_state_manager
+		if gsm and gsm.has_method("get_crew_member"):
+			for participant_id in crew_participants:
+				var member = gsm.get_crew_member(participant_id)
+				if member:
+					crew.append(member)
+		return crew
+
+	# Fallback: Get all crew from GameStateManager or GameState
+	if game_state_manager and game_state_manager.has_method("get_crew_members"):
+		crew = game_state_manager.get_crew_members()
+	elif game_state_manager and game_state_manager.has_method("get_game_state"):
+		var gs = game_state_manager.get_game_state()
+		if gs and gs.has_method("get_crew"):
+			crew = gs.get_crew()
+		elif gs and gs.current_campaign and gs.current_campaign is Dictionary:
+			crew = gs.current_campaign.get("crew", [])
+	else:
+		var game_state = _game_state
+		if game_state and game_state.current_campaign:
+			if game_state.current_campaign is Dictionary:
+				crew = game_state.current_campaign.get("crew", [])
+
+	return crew
+
+func _create_character_battle_journal_event(member: Variant, char_id: String, kills: int) -> void:
+	"""Create a journal event for a character's battle participation"""
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if not journal or not journal.has_method("auto_create_character_event"):
+		return
+
+	var outcome: String = "survived"
+	if member is Object and member.has_method("get"):
+		var status: String = member.get("status") if member.get("status") else "ACTIVE"
+		if status == "DEAD":
+			outcome = "killed"
+		elif status == "INJURED" or status == "RECOVERING":
+			outcome = "injured"
+		elif status == "MISSING":
+			outcome = "missing"
+
+	journal.auto_create_character_event(char_id, "battle", {
+		"kills": kills,
+		"outcome": outcome,
+		"mission_success": mission_successful,
+		"turn": battle_result.get("turn", 0)
+	})
+
+func _create_battle_journal_entry() -> void:
+	"""Create a journal entry for the completed battle"""
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if not journal or not journal.has_method("auto_create_battle_entry"):
+		return
+
+	var crew_ids: Array = []
+	for participant in crew_participants:
+		if participant is String:
+			crew_ids.append(participant)
+
+	journal.auto_create_battle_entry({
+		"turn": battle_result.get("turn", 0),
+		"location": battle_result.get("location", "Unknown"),
+		"outcome": "victory" if mission_successful else "defeat",
+		"casualties": injuries_sustained.size(),
+		"loot": loot_earned.size(),
+		"xp": battle_result.get("xp_earned", 0),
+		"crew_ids": crew_ids,
+		"enemy_type": battle_result.get("enemy_type", "Unknown")
+	})
 
 
 func _tick_injury_recovery() -> void:
@@ -2645,21 +2798,283 @@ func get_battle_result() -> Dictionary:
 	"""Get stored battle result data"""
 	return battle_result.duplicate()
 
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return obj.get(property, default_value)
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null
+## =============================================================================
+## ═══════════════════════════════════════════════════════════════════════════════
+## DEBUG LOGGING - Sprint 26.5: Substep-Level Debug Output
+## ═══════════════════════════════════════════════════════════════════════════════
+
+func _debug_log_post_battle_input(battle_data: Dictionary) -> void:
+	"""Log post-battle input data for debugging handoff from Battle Phase"""
+	print("\n" + "=".repeat(70))
+	print("[POST-BATTLE DEBUG] Processing Results")
+	print("=".repeat(70))
+
+	# Battle outcome
+	print("  BATTLE OUTCOME:")
+	print("    Victory: %s" % str(battle_data.get("success", battle_data.get("victory", "MISSING"))))
+	print("    Rounds Fought: %s" % str(battle_data.get("rounds_fought", "MISSING")))
+	print("    Combat Mode: %s" % str(battle_data.get("combat_mode", "auto-resolve")))
+
+	# Enemy results
+	print("  ENEMY RESULTS:")
+	print("    Enemies Defeated: %s" % str(battle_data.get("enemies_defeated", "MISSING")))
+	var defeated_list = battle_data.get("defeated_enemy_list", [])
+	print("    Defeated List Size: %d" % defeated_list.size())
+	if not defeated_list.is_empty():
+		var rival_count: int = 0
+		for enemy in defeated_list:
+			if enemy is Dictionary and enemy.get("is_rival", false):
+				rival_count += 1
+		if rival_count > 0:
+			print("    Rivals Defeated: %d" % rival_count)
+
+	# Crew results
+	print("  CREW RESULTS:")
+	var participants = battle_data.get("crew_participants", [])
+	print("    Participants: %d" % participants.size())
+	var casualties = battle_data.get("casualties", battle_data.get("injured_crew", []))
+	print("    Casualties: %s" % str(casualties.size() if casualties is Array else casualties))
+	var injuries = battle_data.get("injuries_sustained", [])
+	print("    Injuries Sustained: %d" % injuries.size())
+
+	# Show first few participants
+	if not participants.is_empty():
+		print("    Crew Names:")
+		for i in range(min(3, participants.size())):
+			var member = participants[i]
+			var name_str: String = "Unknown"
+			var survived: bool = true
+			if member is Dictionary:
+				name_str = member.get("character_name", member.get("name", "Unknown"))
+				survived = member.get("survived", true)
+			print("      [%d] %s - %s" % [i, name_str, "Survived" if survived else "CASUALTY"])
+		if participants.size() > 3:
+			print("      ... and %d more" % (participants.size() - 3))
+
+	# Rewards
+	print("  REWARDS:")
+	print("    Payment: %s credits" % str(battle_data.get("payment", battle_data.get("credits_earned", "MISSING"))))
+	print("    XP per Participant: %s" % str(battle_data.get("xp_per_participant", "MISSING")))
+	print("    XP Victory Bonus: %s" % str(battle_data.get("xp_victory_bonus", "0")))
+	print("    Loot Opportunities: %s" % str(battle_data.get("loot_opportunities", "MISSING")))
+	print("    Battlefield Finds: %s" % str(battle_data.get("battlefield_finds", "MISSING")))
+
+	# Mission reference
+	print("  MISSION REFERENCE:")
+	print("    Mission Type: %s" % str(battle_data.get("mission_type", "MISSING")))
+	print("    Mission ID: %s" % str(battle_data.get("mission_id", "MISSING")))
+
+	# Data completeness check
+	var required_keys = ["success", "enemies_defeated", "crew_participants", "payment"]
+	var missing_keys: Array = []
+	for key in required_keys:
+		if not battle_data.has(key):
+			missing_keys.append(key)
+	if not missing_keys.is_empty():
+		print("  ⚠️ MISSING REQUIRED KEYS: %s" % str(missing_keys))
+
+	print("└─────────────────────────────────────────────────────────────┘")
+
+
+func _debug_log_rival_status(rivals_defeated: Array, removal_rolls: Array, rivals_removed: Array) -> void:
+	"""Log rival status resolution"""
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ POST-BATTLE SUBSTEP: RIVAL_STATUS                          │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ Rivals Defeated in Battle: %d" % rivals_defeated.size())
+	for i in range(rivals_defeated.size()):
+		var rival = rivals_defeated[i]
+		var roll = removal_rolls[i] if i < removal_rolls.size() else 0
+		var removed = i < rivals_removed.size()
+		print("│   - %s: Roll %d → %s" % [str(rival.get("name", "Unknown")), roll, "REMOVED" if removed else "Survives"])
+	if rivals_defeated.is_empty():
+		print("│   No rivals defeated this battle")
+	print("└─────────────────────────────────────────────────────────────┘")
+
+
+func _debug_log_patron_status(mission_patron: Dictionary, contact_added: bool, house_rule_active: bool) -> void:
+	"""Log patron status resolution"""
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ POST-BATTLE SUBSTEP: PATRON_STATUS                         │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	if not mission_patron.is_empty():
+		print("│ Mission Patron: %s" % str(mission_patron.get("name", "Unknown")))
+		print("│ Contact Added: %s" % ("Yes" if contact_added else "No"))
+		if house_rule_active:
+			print("│ House Rule: Patron contact auto-added")
+	else:
+		print("│ No patron mission - skipping")
+	print("└─────────────────────────────────────────────────────────────┘")
+
+
+func _debug_log_quest_progress(rumors_count: int, quest_roll: int, progress_stage: int, finale_ready: bool) -> void:
+	"""Log quest progress update"""
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ POST-BATTLE SUBSTEP: QUEST_PROGRESS                        │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ Current Rumors: %d" % rumors_count)
+	print("│ Quest Roll: D6=%d + rumors → %d" % [quest_roll, quest_roll + rumors_count])
+	print("│ Progress Stage: %d" % progress_stage)
+	print("│ Finale Ready: %s" % ("YES!" if finale_ready else "No"))
+	print("└─────────────────────────────────────────────────────────────┘")
+
+
+func _debug_log_payment(base_pay: int, difficulty_bonus: int, objective_bonus: int, bounties: int, total: int) -> void:
+	"""Log payment calculation"""
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ POST-BATTLE SUBSTEP: GET_PAID                              │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ PAYMENT BREAKDOWN:")
+	print("│   Base Pay: %d credits" % base_pay)
+	print("│   Difficulty Bonus: %d credits" % difficulty_bonus)
+	print("│   Objective Bonus: %d credits" % objective_bonus)
+	print("│   Enemy Bounties: %d credits" % bounties)
+	print("│   ─────────────────────")
+	print("│   TOTAL: %d credits" % total)
+	print("└─────────────────────────────────────────────────────────────┘")
+
+
+func _debug_log_battlefield_finds(find_rolls: Array, items_found: Array) -> void:
+	"""Log battlefield finds"""
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ POST-BATTLE SUBSTEP: BATTLEFIELD_FINDS                     │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ Find Rolls (D100): %s" % str(find_rolls))
+	print("│ Items Found: %d" % items_found.size())
+	for item in items_found:
+		print("│   - %s" % str(item.get("name", item)))
+	if items_found.is_empty():
+		print("│   (No finds this battle)")
+	print("└─────────────────────────────────────────────────────────────┘")
+
+
+func _debug_log_invasion_check(roll: int, invasion_pending: bool) -> void:
+	"""Log invasion check"""
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ POST-BATTLE SUBSTEP: CHECK_INVASION                        │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ Invasion Roll: D6=%d" % roll)
+	print("│ Invasion Pending: %s" % ("YES - Must flee next turn!" if invasion_pending else "No"))
+	print("└─────────────────────────────────────────────────────────────┘")
+
+
+func _debug_log_loot_gathering(loot_rolls: int, items: Array, credits_from_loot: int) -> void:
+	"""Log loot gathering"""
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ POST-BATTLE SUBSTEP: GATHER_LOOT                           │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ Loot Opportunities: %d rolls" % loot_rolls)
+	print("│ Items Looted: %d" % items.size())
+	for i in range(min(items.size(), 5)):
+		print("│   - %s" % str(items[i].get("name", items[i])))
+	if items.size() > 5:
+		print("│   ... and %d more" % (items.size() - 5))
+	print("│ Credits from Loot: %d" % credits_from_loot)
+	print("└─────────────────────────────────────────────────────────────┘")
+
+
+func _debug_log_injury(crew_name: String, casualty_roll: int, modifiers: Dictionary, final_result: String, recovery_turns: int) -> void:
+	"""Log individual injury processing - CRITICAL for debugging"""
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ POST-BATTLE SUBSTEP: INJURIES                              │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ Crew Member: %s" % crew_name)
+	print("│ Casualty Roll: D6=%d" % casualty_roll)
+	print("│ MODIFIERS:")
+	for mod_name in modifiers:
+		print("│   %s: %+d" % [mod_name, modifiers[mod_name]])
+	print("│ FINAL RESULT: %s" % final_result)
+	if recovery_turns > 0:
+		print("│ Recovery Time: %d turns" % recovery_turns)
+	print("└─────────────────────────────────────────────────────────────┘")
+
+
+func _debug_log_experience(xp_awards: Array, total_xp: int, advancements: Array) -> void:
+	"""Log experience awards"""
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ POST-BATTLE SUBSTEP: EXPERIENCE                            │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ XP AWARDS:")
+	for award in xp_awards:
+		print("│   %s: +%d XP" % [str(award.get("name", "Unknown")), award.get("xp", 0)])
+	print("│ Total XP Awarded: %d" % total_xp)
+	if not advancements.is_empty():
+		print("│ ADVANCEMENTS EARNED:")
+		for adv in advancements:
+			print("│   → %s advanced!" % str(adv.get("name", "Unknown")))
+	print("└─────────────────────────────────────────────────────────────┘")
+
+
+func _debug_log_training(training_purchased: Array, xp_spent: int) -> void:
+	"""Log training purchases"""
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ POST-BATTLE SUBSTEP: TRAINING                              │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	if not training_purchased.is_empty():
+		for training in training_purchased:
+			print("│ %s trained: %s (Cost: %d XP)" % [
+				str(training.get("character", "Unknown")),
+				str(training.get("skill", "Unknown")),
+				training.get("cost", 0)
+			])
+		print("│ Total XP Spent: %d" % xp_spent)
+	else:
+		print("│ No training purchased")
+	print("└─────────────────────────────────────────────────────────────┘")
+
+
+func _debug_log_purchases(items_bought: Array, credits_spent: int, credits_remaining: int) -> void:
+	"""Log equipment purchases"""
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ POST-BATTLE SUBSTEP: PURCHASES                             │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	if not items_bought.is_empty():
+		for item in items_bought:
+			print("│ Bought: %s (%d credits)" % [str(item.get("name", "Unknown")), item.get("cost", 0)])
+		print("│ Total Spent: %d credits" % credits_spent)
+	else:
+		print("│ No purchases made")
+	print("│ Credits Remaining: %d" % credits_remaining)
+	print("└─────────────────────────────────────────────────────────────┘")
+
+
+func _debug_log_campaign_event(event_roll: int, event: Dictionary) -> void:
+	"""Log campaign event"""
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ POST-BATTLE SUBSTEP: CAMPAIGN_EVENT                        │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ Event Roll: D100=%d" % event_roll)
+	if not event.is_empty():
+		print("│ Event: %s" % str(event.get("name", "Unknown")))
+		print("│ Effects: %s" % str(event.get("effects", {})))
+	else:
+		print("│ No event this turn")
+	print("└─────────────────────────────────────────────────────────────┘")
+
+
+func _debug_log_character_event(character: String, event_roll: int, event: Dictionary) -> void:
+	"""Log character event"""
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ POST-BATTLE SUBSTEP: CHARACTER_EVENT                       │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ Character: %s" % character)
+	print("│ Event Roll: D100=%d" % event_roll)
+	if not event.is_empty():
+		print("│ Event: %s" % str(event.get("name", "Unknown")))
+		print("│ Effects: %s" % str(event.get("effects", {})))
+	else:
+		print("│ No character event")
+	print("└─────────────────────────────────────────────────────────────┘")
+
+
+func _debug_log_galactic_war(progress: Dictionary) -> void:
+	"""Log galactic war progress"""
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ POST-BATTLE SUBSTEP: GALACTIC_WAR                          │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ War Progress: %s" % str(progress.get("progress", 0)))
+	print("│ Current Stage: %s" % str(progress.get("stage", "Unknown")))
+	print("│ Effects: %s" % str(progress.get("effects", "None")))
+	print("└─────────────────────────────────────────────────────────────┘")
+
+

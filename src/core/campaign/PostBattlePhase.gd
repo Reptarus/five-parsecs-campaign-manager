@@ -110,7 +110,7 @@ func _determine_injury_type(severity: int) -> String:
 		3: ["Broken", "Traumatized", "Critical"]
 	}
 	var possible_types = injury_types[severity]
-	return possible_types[randi() % safe_call_method(possible_types, "size") as int]
+	return possible_types[randi() % possible_types.size()]
 
 func _calculate_experience_gain(character: Character) -> int:
 	var base_xp: int = 10
@@ -197,11 +197,3 @@ func _process_mission_completion() -> void:
 func _process_mission_failure() -> void:
 	# Implementation
 	pass
-
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

@@ -34,7 +34,7 @@ func initialize_new_campaign(config: Dictionary) -> void:
 
 func load_campaign(campaign_name: String) -> void:
 	var campaign_data = _load_campaign_data(campaign_name)
-	if not (safe_call_method(campaign_data, "is_empty") == true):
+	if not campaign_data.is_empty():
 		active_campaign = campaign_data
 		campaign_loaded.emit(campaign_data) # warning: return value discarded (intentional)
 
@@ -106,7 +106,7 @@ func _get_difficulty_description(difficulty: int) -> String:
 			return "Unknown difficulty level"
 
 func _find_campaign_index(campaign_name: String) -> int:
-	for i: int in range((safe_call_method(saved_campaigns, "size") as int)):
+	for i: int in range(saved_campaigns.size()):
 		if saved_campaigns[i]._name == campaign_name:
 			return i
 	return -1
@@ -124,7 +124,7 @@ func _save_campaign(campaign_data: Dictionary) -> void:
 	if index != -1:
 		saved_campaigns[index] = campaign_data
 	else:
-		safe_call_method(saved_campaigns, "append", [campaign_data]) # warning: return value discarded (intentional)
+		saved_campaigns.append(campaign_data)
 	_save_campaigns()
 
 func _load_campaign_data(campaign_name: String) -> Dictionary:
@@ -133,10 +133,3 @@ func _load_campaign_data(campaign_name: String) -> Dictionary:
 		return saved_campaigns[index]
 	return {}
 
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

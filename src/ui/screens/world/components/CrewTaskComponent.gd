@@ -15,6 +15,9 @@ var event_bus: CampaignTurnEventBus = null
 const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
 const DiceManager = preload("res://src/core/managers/DiceManager.gd")
 
+# Design system constants
+const TOUCH_TARGET_MIN := 48  # Minimum touch target height for mobile (Sprint 26.4)
+
 # UI Components
 @onready var crew_task_container: VBoxContainer = %CrewTaskContainer
 @onready var crew_member_list: ItemList = %CrewMemberList
@@ -155,6 +158,12 @@ func _initialize_event_bus() -> void:
 	
 	print("CrewTaskComponent: Connected to event bus")
 
+func _exit_tree() -> void:
+	"""Cleanup event bus subscriptions to prevent memory leaks"""
+	if event_bus:
+		event_bus.unsubscribe_from_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
+		event_bus.unsubscribe_from_event(CampaignTurnEventBus.TurnEvent.AUTOMATION_TOGGLED, _on_automation_toggled)
+
 func _connect_ui_signals() -> void:
 	"""Connect UI signals"""
 	if assign_task_button:
@@ -163,8 +172,12 @@ func _connect_ui_signals() -> void:
 		resolve_all_button.pressed.connect(_on_resolve_all_pressed)
 	if crew_member_list:
 		crew_member_list.item_selected.connect(_on_crew_member_selected)
+		# Sprint 26.4: Ensure 48px minimum touch target for mobile
+		crew_member_list.add_theme_constant_override("item_height", TOUCH_TARGET_MIN)
 	if available_tasks_list:
 		available_tasks_list.item_selected.connect(_on_task_selected)
+		# Sprint 26.4: Ensure 48px minimum touch target for mobile
+		available_tasks_list.add_theme_constant_override("item_height", TOUCH_TARGET_MIN)
 	if help_button:
 		help_button.pressed.connect(_on_help_button_pressed)
 

@@ -205,9 +205,6 @@ func update_continue_button_visibility() -> void:
 	if not is_instance_valid(game_state_manager):
 		return
 
-	if not game_state_manager and game_state_manager and game_state_manager.has_method("has_method"):
-		return
-
 	@warning_ignore("unsafe_method_access")
 	continue_button.visible = game_state_manager and game_state_manager.has_method("has_active_campaign") and game_state_manager.has_active_campaign()
 
@@ -217,7 +214,7 @@ func _on_continue_pressed() -> void:
 		return
 
 	@warning_ignore("unsafe_method_access")
-	if game_state_manager and game_state_manager.has_method("has_method") and game_state_manager.has_method("has_active_campaign") and game_state_manager.has_active_campaign():
+	if game_state_manager and game_state_manager.has_method("has_active_campaign") and game_state_manager.has_active_campaign():
 		# Navigate to main campaign scene for existing campaigns
 		@warning_ignore("untyped_declaration")
 		var scene_router = get_node_or_null("/root/SceneRouter") as Node
@@ -366,7 +363,7 @@ func _start_new_campaign() -> void:
 		push_error("MainMenu: Game state manager is invalid")
 		return
 
-	if game_state_manager and game_state_manager.has_method("has_method") and game_state_manager.has_method("start_new_campaign"):
+	if game_state_manager and game_state_manager.has_method("start_new_campaign"):
 		@warning_ignore("unsafe_method_access")
 		game_state_manager.start_new_campaign()
 		request_scene_change("campaign_setup")
@@ -381,7 +378,7 @@ func _handle_tutorial_choice(choice: String) -> void:
 		push_error("MainMenu: Game state manager is invalid")
 		return
 
-	if not game_state_manager and game_state_manager and game_state_manager.has_method("has_method"):
+	if not game_state_manager.has_method("set_tutorial_state"):
 		push_error("MainMenu: Game state manager missing set_tutorial_state method")
 		return
 
@@ -518,7 +515,7 @@ func _test_workflow_system() -> void:
 	
 	# Test individual modular scenes
 	var modular_scenes = {
-		"InitialCrewCreation": "res://src/ui/screens/crew/InitialCrewCreation.tscn",
+		# "InitialCrewCreation": DEPRECATED - CrewPanel handles crew creation in CampaignCreationUI wizard
 		"CharacterCreator": "res://src/ui/screens/character/SimpleCharacterCreator.tscn",
 		"CampaignDashboard": "res://src/ui/screens/campaign/CampaignDashboard.tscn"
 	}
@@ -666,7 +663,7 @@ func _on_test_campaign_requested(campaign_data: Dictionary) -> void:
 	print("MainMenu: Test campaign requested - ", campaign_data.get("name", "Unknown"))
 
 	# Create the test campaign via GameStateManager if available
-	if game_state_manager and game_state_manager.has_method("has_method") and game_state_manager.has_method("create_test_campaign"):
+	if game_state_manager and game_state_manager.has_method("create_test_campaign"):
 		@warning_ignore("unsafe_method_access")
 		game_state_manager.create_test_campaign(campaign_data)
 
@@ -708,7 +705,7 @@ func _on_test_scenario_requested(scenario_name: String) -> void:
 	print("MainMenu: Test scenario requested - ", scenario_name)
 
 	# Apply scenario setup via GameStateManager if available
-	if game_state_manager and game_state_manager.has_method("has_method") and game_state_manager.has_method("apply_test_scenario"):
+	if game_state_manager and game_state_manager.has_method("apply_test_scenario"):
 		@warning_ignore("unsafe_method_access")
 		game_state_manager.apply_test_scenario(scenario_name)
 
@@ -814,30 +811,6 @@ func _setup_production_security() -> void:
 		developer_panel.queue_free()
 		developer_panel = null
 		print("MainMenu: Developer panel removed for production build")
-
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	@warning_ignore("unsafe_method_access")
-	if obj is Object and obj.has_method("get"):
-		@warning_ignore("unsafe_method_access")
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		@warning_ignore("unsafe_method_access")
-		return obj.get(property, default_value)
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	@warning_ignore("unsafe_method_access")
-	if obj is Object and obj.has_method(method_name):
-		@warning_ignore("unsafe_method_access")
-		return obj.callv(method_name, args)
-	return null
 
 func _show_error_dialog(title: String, message: String) -> void:
 	"""Show error dialog to the user"""

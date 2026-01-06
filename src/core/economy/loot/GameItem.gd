@@ -194,7 +194,7 @@ func serialize() -> Dictionary:
 func deserialize(data: Dictionary) -> void:
 	initialize_from_data(data)
 func apply_effect(character, effect_index: int = 0) -> bool:
-	if effect_index < 0 or effect_index >= (safe_call_method(item_effects, "size") as int):
+	if effect_index < 0 or effect_index >= item_effects.size():
 		return false
 
 	var effect = item_effects[effect_index]
@@ -268,7 +268,7 @@ func get_value() -> int:
 			_value += 200
 
 	# Add _value for effects
-	_value += (safe_call_method(item_effects, "size") as int) * 15
+	_value += item_effects.size() * 15
 
 	# Add _value for uses if consumable
 	if is_consumable():
@@ -276,21 +276,3 @@ func get_value() -> int:
 
 	return _value
 
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return obj.get(property, default_value)
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

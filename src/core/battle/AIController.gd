@@ -411,7 +411,7 @@ func _calculate_move_score(unit: CharacterUnit, option: Dictionary) -> float:
 
 ## Select the best action from possible actions
 func _select_best_action(unit: CharacterUnit, actions: Array) -> Dictionary:
-	if (safe_call_method(actions, "is_empty") == true):
+	if actions.is_empty():
 		return {}
 
 	# Sort actions by score, highest first
@@ -422,14 +422,14 @@ func _select_best_action(unit: CharacterUnit, actions: Array) -> Dictionary:
 	var randomness_factor = (6 - difficulty_level) * 0.1 # 0.1 to 0.5
 
 	# Sometimes select a sub-optimal action
-	if randf() < randomness_factor and (safe_call_method(actions, "size") as int) > 1:
+	if randf() < randomness_factor and actions.size() > 1:
 		return actions[1] # Second best action
 
 	return actions[0] # Best action
 
 ## Execute the selected action
 func _execute_action(unit: CharacterUnit, action: Dictionary) -> void:
-	if not action or (safe_call_method(action, "is_empty") == true):
+	if not action or action.is_empty():
 		return
 
 	# Spend a reaction for this action (reaction economy system)
@@ -488,10 +488,3 @@ func _adjust_weights_for_difficulty() -> void:
 			weights["group_up"] = 0.5
 			weights["retreat"] = 0.2 # Less likely to retreat
 
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

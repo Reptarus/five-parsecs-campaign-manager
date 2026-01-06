@@ -118,21 +118,24 @@ static func validate_crew_composition(crew: Array) -> CampaignValidationResult:
 	if crew.size() > max_crew:
 		result.add_error("Crew size (%d) exceeds maximum (%d)" % [crew.size(), max_crew])
 
-	# Validate each crew member
+	# Validate each crew member (Sprint 26.3: Character-Everywhere)
 	for i in range(crew.size()):
 		var member = crew[i]
-		if member == null or not member is Dictionary:
-			result.add_error("Crew member %d is null or invalid" % i)
+		if member == null:
+			result.add_error("Crew member %d is null" % i)
 			continue
 
-		# Check required fields
-		if not member.has("character_id") or member.character_id == "":
+		# Sprint 26.3: Crew members are now always Character objects
+		# Check required fields using Character properties
+		var char_id: String = member.character_id if "character_id" in member else ""
+		if char_id.is_empty():
 			result.add_error("Crew member %d missing character_id" % i)
 
 		# Check for duplicate IDs
 		for j in range(i + 1, crew.size()):
-			if crew[j] is Dictionary and crew[j].get("character_id", "") == member.get("character_id", ""):
-				result.add_error("Duplicate character_id: %s" % member.character_id)
+			var other_id: String = crew[j].character_id if crew[j] and "character_id" in crew[j] else ""
+			if not other_id.is_empty() and other_id == char_id:
+				result.add_error("Duplicate character_id: %s" % char_id)
 				break
 
 	return result
@@ -204,7 +207,7 @@ static func _validate_crew(campaign_data: Dictionary, result: CampaignValidation
 	if not campaign_data.has("crew"):
 		return  # Already flagged by required fields check
 
-	var crew: Array = campaign_data.crew if campaign_data.crew is Array else []
+	var crew: Array = campaign_data["crew"] if campaign_data["crew"] is Array else []
 	var crew_validation := validate_crew_composition(crew)
 
 	# Merge validation results
@@ -220,23 +223,26 @@ static func _validate_crew(campaign_data: Dictionary, result: CampaignValidation
 	var current_turn: int = campaign_data.get("current_turn", 0)
 
 	for member in crew:
-		if member is Dictionary:
-			var status: String = member.get("status", "ACTIVE")
-			match status:
-				"ACTIVE":
-					active_count += 1
-				"INJURED":
-					injured_count += 1
-					# Check if injury should be recovered
-					var available_turn: int = member.get("available_turn", 0)
-					if available_turn > 0 and current_turn >= available_turn:
-						result.add_warning("Crew member %s should be recovered (turn %d >= %d)" % [
-							member.get("character_id", "unknown"),
-							current_turn,
-							available_turn
-						])
-				"DEAD":
-					dead_count += 1
+		# Sprint 26.3: Crew members are now always Character objects
+		if not member:
+			continue
+		var status: String = member.status if "status" in member else "ACTIVE"
+		match status:
+			"ACTIVE":
+				active_count += 1
+			"INJURED":
+				injured_count += 1
+				# Check if injury should be recovered
+				var available_turn: int = member.available_turn if "available_turn" in member else 0
+				if available_turn > 0 and current_turn >= available_turn:
+					var char_id: String = member.character_id if "character_id" in member else "unknown"
+					result.add_warning("Crew member %s should be recovered (turn %d >= %d)" % [
+						char_id,
+						current_turn,
+						available_turn
+					])
+			"DEAD":
+				dead_count += 1
 
 	result.add_info("Crew status: %d active, %d injured, %d dead" % [active_count, injured_count, dead_count])
 
@@ -256,7 +262,7 @@ static func _validate_economy(campaign_data: Dictionary, result: CampaignValidat
 
 	# Check equipment stash size if available
 	if campaign_data.has("equipment"):
-		var equipment: Array = campaign_data.equipment if campaign_data.equipment is Array else []
+		var equipment: Array = campaign_data["equipment"] if campaign_data["equipment"] is Array else []
 		const MAX_STASH := 10
 
 		if equipment.size() > MAX_STASH:

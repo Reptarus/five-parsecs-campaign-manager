@@ -321,14 +321,6 @@ func _on_dice_animation_started(dice_count: int, dice_type: String) -> void:
 	# Prepare for animation
 	pass
 
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null
-
 ## Framework Bible Compliant - immediate result display
 func _show_dice_result_immediately() -> void:
 	"""Show dice results immediately without animation"""

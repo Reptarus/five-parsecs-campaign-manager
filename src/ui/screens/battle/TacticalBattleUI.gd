@@ -39,6 +39,10 @@ var dice_manager: Node = null
 var alpha_manager: Node = null
 var battle_tracker: Node = null  # For reaction economy tracking
 
+## Sprint 11.4: BattleRoundTracker integration for phase-based combat
+var round_tracker: Node = null  # BattleRoundTracker instance for Five Parsecs combat rounds
+var _round_tracker_connected: bool = false
+
 # Battle State
 var crew_units: Array[TacticalUnit] = []
 var enemy_units: Array[TacticalUnit] = []
@@ -59,9 +63,6 @@ class BattleResult:
 	var victory: bool = false
 	var crew_casualties: Array[Resource] = []
 	var crew_injuries: Array[Resource] = []
-	var _loot_found: Array[Resource] = []
-	var _credits_earned: int = 0
-	var _experience_gained: Array[Dictionary] = []
 	var rounds_fought: int = 0
 
 func _ready() -> void:
@@ -186,10 +187,11 @@ func _connect_signals() -> void:
 	return_button.pressed.connect(_on_return_to_battle_resolution)
 	auto_resolve_button.pressed.connect(_on_auto_resolve_battle)
 
-	# Battlefield signals
-	if battlefield_manager:
-		battlefield_manager.terrain_updated.connect(_on_terrain_updated)
-		battlefield_manager.cover_updated.connect(_on_cover_updated)
+	# Battlefield signals (handlers removed as dead code in Sprint 26.16)
+	# TODO: Implement terrain/cover UI updates when needed
+	# if battlefield_manager:
+	# 	battlefield_manager.terrain_updated.connect(_on_terrain_updated)
+	# 	battlefield_manager.cover_updated.connect(_on_cover_updated)
 
 	# Reaction Dice signals
 	if confirm_assignments_button:
@@ -209,6 +211,207 @@ func _setup_ui() -> void:
 	battle_log.clear()
 	_log_message("Tactical battle mode activated", Color.GREEN)
 	_log_message("Deploy your crew in the western deployment zone", Color.CYAN)
+
+## Sprint 11.4: BattleRoundTracker Integration Methods
+
+func set_round_tracker(tracker: Node) -> void:
+	"""Set the BattleRoundTracker and connect to its signals for phase-based combat"""
+	if round_tracker and _round_tracker_connected:
+		_disconnect_round_tracker_signals()
+
+	round_tracker = tracker
+
+	if round_tracker:
+		_connect_round_tracker_signals()
+		_round_tracker_connected = true
+		_log_message("Round tracker connected - Five Parsecs combat phases active", Color.CYAN)
+
+func _connect_round_tracker_signals() -> void:
+	"""Connect to BattleRoundTracker signals for phase and round updates"""
+	if not round_tracker:
+		return
+
+	# Phase changes within a round
+	if round_tracker.has_signal("phase_changed") and not round_tracker.phase_changed.is_connected(_on_round_phase_changed):
+		round_tracker.phase_changed.connect(_on_round_phase_changed)
+
+	# Round start/end
+	if round_tracker.has_signal("round_started") and not round_tracker.round_started.is_connected(_on_round_started):
+		round_tracker.round_started.connect(_on_round_started)
+
+	if round_tracker.has_signal("round_ended") and not round_tracker.round_ended.is_connected(_on_round_ended):
+		round_tracker.round_ended.connect(_on_round_ended)
+
+	# Battle events (rounds 2 and 4)
+	if round_tracker.has_signal("battle_event_triggered") and not round_tracker.battle_event_triggered.is_connected(_on_battle_event_triggered):
+		round_tracker.battle_event_triggered.connect(_on_battle_event_triggered)
+
+	# Battle start/end
+	if round_tracker.has_signal("battle_started") and not round_tracker.battle_started.is_connected(_on_tracker_battle_started):
+		round_tracker.battle_started.connect(_on_tracker_battle_started)
+
+	if round_tracker.has_signal("battle_ended") and not round_tracker.battle_ended.is_connected(_on_tracker_battle_ended):
+		round_tracker.battle_ended.connect(_on_tracker_battle_ended)
+
+func _disconnect_round_tracker_signals() -> void:
+	"""Disconnect from BattleRoundTracker signals"""
+	if not round_tracker:
+		return
+
+	if round_tracker.has_signal("phase_changed") and round_tracker.phase_changed.is_connected(_on_round_phase_changed):
+		round_tracker.phase_changed.disconnect(_on_round_phase_changed)
+
+	if round_tracker.has_signal("round_started") and round_tracker.round_started.is_connected(_on_round_started):
+		round_tracker.round_started.disconnect(_on_round_started)
+
+	if round_tracker.has_signal("round_ended") and round_tracker.round_ended.is_connected(_on_round_ended):
+		round_tracker.round_ended.disconnect(_on_round_ended)
+
+	if round_tracker.has_signal("battle_event_triggered") and round_tracker.battle_event_triggered.is_connected(_on_battle_event_triggered):
+		round_tracker.battle_event_triggered.disconnect(_on_battle_event_triggered)
+
+	if round_tracker.has_signal("battle_started") and round_tracker.battle_started.is_connected(_on_tracker_battle_started):
+		round_tracker.battle_started.disconnect(_on_tracker_battle_started)
+
+	if round_tracker.has_signal("battle_ended") and round_tracker.battle_ended.is_connected(_on_tracker_battle_ended):
+		round_tracker.battle_ended.disconnect(_on_tracker_battle_ended)
+
+	_round_tracker_connected = false
+
+## BattleRoundTracker Signal Handlers
+
+func _on_round_phase_changed(phase: int, phase_name: String) -> void:
+	"""Handle phase change from round tracker - update UI to show current phase"""
+	turn_indicator.text = "Round %d - %s" % [round_tracker.get_current_round() if round_tracker else current_turn, phase_name]
+	_log_message("Phase: %s" % phase_name, Color.YELLOW)
+	_update_action_buttons_for_phase(phase)
+
+func _on_round_started(round_number: int) -> void:
+	"""Handle round start - reset reactions and update UI"""
+	current_turn = round_number
+	_log_message("=== ROUND %d BEGINS ===" % round_number, Color.CYAN)
+	_reset_all_unit_reactions()
+
+func _on_round_ended(round_number: int) -> void:
+	"""Handle round end"""
+	_log_message("=== ROUND %d COMPLETE ===" % round_number, Color.YELLOW)
+
+func _on_battle_event_triggered(round_num: int, event_type: String) -> void:
+	"""Handle battle event trigger (rounds 2 and 4 per Five Parsecs p.118)"""
+	_log_message("⚡ BATTLE EVENT! (Round %d) - Rolling on event table..." % round_num, Color.ORANGE)
+	# Actual event resolution would be handled by battle system
+	# This is just the UI notification
+
+func _on_tracker_battle_started() -> void:
+	"""Handle battle start from tracker"""
+	_log_message("Tactical combat initiated via round tracker", Color.GREEN)
+	battle_phase = "combat"
+
+func _on_tracker_battle_ended() -> void:
+	"""Handle battle end from tracker"""
+	_log_message("Battle concluded via round tracker", Color.YELLOW)
+	battle_phase = "resolution"
+
+func _update_action_buttons_for_phase(phase: int) -> void:
+	"""Update action buttons based on current combat phase from round tracker"""
+	# Map BattleRoundTracker phases to appropriate UI states
+	# 0: REACTION_ROLL, 1: QUICK_ACTIONS, 2: ENEMY_ACTIONS, 3: SLOW_ACTIONS, 4: END_PHASE
+	match phase:
+		0:  # REACTION_ROLL
+			_show_reaction_roll_ui()
+		1:  # QUICK_ACTIONS
+			_show_quick_actions_ui()
+		2:  # ENEMY_ACTIONS
+			_show_enemy_actions_ui()
+		3:  # SLOW_ACTIONS
+			_show_slow_actions_ui()
+		4:  # END_PHASE
+			_show_end_phase_ui()
+
+func _show_reaction_roll_ui() -> void:
+	"""Show UI for reaction roll phase"""
+	_clear_action_buttons()
+	var roll_button := Button.new()
+	roll_button.text = "Roll Reactions"
+	roll_button.pressed.connect(_on_roll_reactions_pressed)
+	action_buttons.add_child(roll_button)
+
+func _show_quick_actions_ui() -> void:
+	"""Show UI for quick actions phase - crew with successful reactions act first"""
+	_log_message("Quick Actions - Crew with reactions act first", Color.CYAN)
+	_update_action_buttons_for_combat()
+
+func _show_enemy_actions_ui() -> void:
+	"""Show UI for enemy actions phase"""
+	_clear_action_buttons()
+	_log_message("Enemy Actions - AI controlling enemy units", Color.RED)
+	var skip_button := Button.new()
+	skip_button.text = "Process Enemy Actions"
+	skip_button.pressed.connect(_on_process_enemy_actions_pressed)
+	action_buttons.add_child(skip_button)
+
+func _show_slow_actions_ui() -> void:
+	"""Show UI for slow actions phase - remaining crew act"""
+	_log_message("Slow Actions - Remaining crew members act", Color.CYAN)
+	_update_action_buttons_for_combat()
+
+func _show_end_phase_ui() -> void:
+	"""Show UI for end phase"""
+	_clear_action_buttons()
+	var advance_button := Button.new()
+	advance_button.text = "End Round / Morale Check"
+	advance_button.pressed.connect(_on_advance_phase_pressed)
+	action_buttons.add_child(advance_button)
+
+func _on_roll_reactions_pressed() -> void:
+	"""Handle reaction roll button press"""
+	_log_message("Rolling reactions for crew...", Color.CYAN)
+	# Roll for each crew member
+	for unit in crew_units:
+		if unit.health > 0:
+			var roll = _roll_dice("Reaction: " + unit.node_name, "D6")
+			unit.initiative_roll = roll
+			var success = roll <= unit.reactions
+			_log_message("  %s: Rolled %d vs Reactions %d - %s" % [
+				unit.node_name, roll, unit.reactions,
+				"QUICK" if success else "SLOW"
+			], Color.GREEN if success else Color.GRAY)
+
+	# Advance phase via round tracker
+	if round_tracker and round_tracker.has_method("advance_phase"):
+		round_tracker.advance_phase()
+
+func _on_process_enemy_actions_pressed() -> void:
+	"""Process AI enemy actions"""
+	_log_message("Processing enemy actions...", Color.RED)
+	for unit in enemy_units:
+		if unit.health > 0:
+			# Simple AI: Move toward nearest crew and shoot if in range
+			var target = _find_nearest_enemy(unit)
+			if target:
+				var distance = unit.node_position.distance_to(target.node_position)
+				if distance <= 12:  # In shooting range
+					_log_message("  %s shoots at %s" % [unit.node_name, target.node_name], Color.RED)
+					# Simplified shot resolution
+					var hit_roll = _roll_dice("Enemy Shot", "D6")
+					if hit_roll <= 4:
+						var damage = _roll_dice("Damage", "D6")
+						target.take_damage(damage)
+						_log_message("    HIT! %d damage to %s" % [damage, target.node_name], Color.ORANGE)
+				else:
+					_log_message("  %s moves toward crew" % unit.node_name, Color.RED)
+
+	# Advance phase via round tracker
+	if round_tracker and round_tracker.has_method("advance_phase"):
+		round_tracker.advance_phase()
+
+func _on_advance_phase_pressed() -> void:
+	"""Advance to next phase via round tracker"""
+	if round_tracker and round_tracker.has_method("advance_phase"):
+		round_tracker.advance_phase()
+	else:
+		# Fallback if no round tracker
+		_end_combat_round()
 
 ## Initialize tactical battle with crew and enemies
 
@@ -512,7 +715,7 @@ func _on_auto_deploy_clicked() -> void:
 
 func _auto_deploy_enemies() -> void:
 	"""Auto-deploy enemy units"""
-	var enemy_positions: Array[Character] = deployment_zones["enemies"].duplicate()
+	var enemy_positions: Array[Vector2] = deployment_zones["enemies"].duplicate()
 	enemy_positions.shuffle()
 
 	for i: int in range(min(enemy_units.size(), enemy_positions.size())):
@@ -644,16 +847,6 @@ func _on_auto_resolve_battle() -> void:
 	
 	_log_message("Battle %s!" % ("WON" if result.victory else "LOST"), Color.GREEN if result.victory else Color.RED)
 	tactical_battle_completed.emit(result)
-
-func _on_terrain_updated(position: Vector2, terrain_type: int) -> void:
-	"""Handle terrain updates"""
-	# Update visual display
-	pass
-
-func _on_cover_updated(position: Vector2, cover_value: int) -> void:
-	"""Handle cover updates"""
-	# Update visual display
-	pass
 
 ## Utility functions
 
@@ -912,19 +1105,3 @@ class TacticalUnit:
 			if "swift" in origin:
 				max_reactions_per_round = 1  # Swift limited to 1 reaction
 
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
-	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
-	if not is_instance_valid(self):
-		return
-	if obj and obj.has_method("get"):
-		var value = obj.get(property)
-		return value if value != null else default_value
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

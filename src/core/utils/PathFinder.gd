@@ -90,9 +90,9 @@ func find_path(start_pos: Vector2, end_pos: Vector2, max_movement: float) -> Arr
 
 	# Add start node to open set
 
-	safe_call_method(_open_set, "append", [start_node]) # warning: return value discarded (intentional)
+	_open_set.append(start_node)
 
-	while not (safe_call_method(_open_set, "is_empty") == true):
+	while not _open_set.is_empty():
 		var current_node: Node = _get_lowest_f_cost_node()
 
 		if current_node.position == end_node.position:
@@ -177,7 +177,7 @@ func _retrace_path(start_node: Variant, end_node: Variant) -> Array[Vector2]:
 func _calculate_path_cost(path: Array) -> float:
 	var total_cost := 0.0
 
-	for i: int in range(1, (safe_call_method(path, "size") as int)):
+	for i: int in range(1, path.size()):
 		var from_grid = battlefield_manager._world_to_grid(path[i - 1])
 		var to_grid = battlefield_manager._world_to_grid(path[i])
 		var terrain_type = battlefield_manager.terrain_map[to_grid.x][to_grid.y]
@@ -204,11 +204,3 @@ func _is_in_closed_set(node: Variant) -> bool:
 		if closed_node.equals(node):
 			return true
 	return false
-
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

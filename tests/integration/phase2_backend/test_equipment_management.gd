@@ -14,6 +14,9 @@ func before():
 
 func before_test():
 	"""Test-level setup - create fresh manager instance for each test"""
+	# Set deterministic seed for reproducible random numbers
+	seed(12345)
+
 	# Create equipment manager instance without adding to tree
 	# (avoids dependency issues with CharacterManager/GameState)
 	equipment_manager = auto_free(EquipmentManagerClass.new())

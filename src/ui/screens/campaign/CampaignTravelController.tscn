@@ -18,7 +18,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color("#0f172a")
+color = Color(0.059, 0.090, 0.165, 1)
 
 [node name="MainContainer" type="VBoxContainer" parent="."]
 layout_mode = 1
@@ -138,7 +138,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color("#111827")
+color = Color(0.067, 0.094, 0.153, 1)
 
 [node name="MapGrid" type="Control" parent="MainContainer/ContentArea/CenterPanel/MapPanel/MapContent/MapDisplay"]
 unique_name_in_owner = true

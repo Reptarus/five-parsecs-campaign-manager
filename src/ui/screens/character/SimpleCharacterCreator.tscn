@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3 uid="uid://bq8x7y203w4v5"]
+[gd_scene load_steps=2 format=3 uid="uid://bq8x7y203w4v5"]
 
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_theme"]
 [ext_resource type="Script" uid="uid://c43ci0ivrpk6f" path="res://src/core/character/Generation/SimpleCharacterCreator.gd" id="2_script"]
@@ -150,6 +150,29 @@ text = "▲"
 flat = true
 
 [node name="CombatDown" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/CombatButtons"]
+layout_mode = 2
+text = "▼"
+flat = true
+
+[node name="ReactionsLabel" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+text = "Reactions:"
+
+[node name="ReactionsValue" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "1"
+
+[node name="ReactionsButtons" type="HBoxContainer" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="ReactionsUp" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/ReactionsButtons"]
+layout_mode = 2
+text = "▲"
+flat = true
+
+[node name="ReactionsDown" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/ReactionsButtons"]
 layout_mode = 2
 text = "▼"
 flat = true

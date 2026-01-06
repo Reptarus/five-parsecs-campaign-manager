@@ -55,8 +55,8 @@ func _connect_signals() -> void:
 
 func _update_ui() -> void:
 	# Update turn and credits display
-	turn_label.text = "Turn: " + str(campaign.campaign_data.turn)
-	credits_label.text = "Credits: " + str(campaign.campaign_data.credits)
+	turn_label.text = "Turn: " + str(campaign.campaign_data["turn"])
+	credits_label.text = "Credits: " + str(campaign.campaign_data["credits"])
 	
 	# Update phase tabs
 	phase_tabs.current_tab = current_phase
@@ -77,20 +77,20 @@ func _update_ui() -> void:
 ## Execute Upkeep Phase
 func execute_upkeep_phase() -> void:
 	print("CampaignTurnUI: Executing Upkeep Phase")
-	
+
 	# Simple Five Parsecs upkeep mechanics
-	var crew_upkeep = campaign.campaign_data.crew.size() * 1  # 1 credit per crew member
+	var crew_upkeep = campaign.campaign_data["crew"].size() * 1  # 1 credit per crew member
 	var ship_upkeep = 1  # Basic ship upkeep
 	var total_upkeep = crew_upkeep + ship_upkeep
-	
+
 	# Deduct upkeep costs
-	var new_credits = max(0, campaign.campaign_data.credits - total_upkeep)
-	campaign.update_credits(new_credits, campaign.campaign_data.debt)
-	
+	var new_credits = max(0, campaign.campaign_data["credits"] - total_upkeep)
+	campaign.update_credits(new_credits, campaign.campaign_data["debt"])
+
 	# Story point progression
-	if campaign.campaign_data.turn % 5 == 0:
-		campaign.campaign_data.story_points += 1
-	
+	if campaign.campaign_data["turn"] % 5 == 0:
+		campaign.campaign_data["story_points"] += 1
+
 	print("Upkeep Phase: Paid %d credits upkeep" % total_upkeep)
 
 ## Execute World Phase  
@@ -116,8 +116,8 @@ func execute_travel_phase() -> void:
 	# - Random encounters
 	
 	var travel_cost = 1  # Simple fuel cost
-	var new_credits = max(0, campaign.campaign_data.credits - travel_cost)
-	campaign.update_credits(new_credits, campaign.campaign_data.debt)
+	var new_credits = max(0, campaign.campaign_data["credits"] - travel_cost)
+	campaign.update_credits(new_credits, campaign.campaign_data["debt"])
 	
 	print("Travel Phase: Paid %d credits for fuel" % travel_cost)
 
@@ -144,8 +144,8 @@ func execute_post_battle_phase() -> void:
 	# Generate battle reward using Five Parsecs dice system
 	var reward_roll = dice_system.roll_dice(FPCM_DiceSystem.DicePattern.D6, "Battle Reward")
 	var battle_reward = reward_roll.total * 2  # Double the roll for reward
-	var new_credits = campaign.campaign_data.credits + battle_reward
-	campaign.update_credits(new_credits, campaign.campaign_data.debt)
+	var new_credits = campaign.campaign_data["credits"] + battle_reward
+	campaign.update_credits(new_credits, campaign.campaign_data["debt"])
 	
 	print("Post-Battle Phase: Earned %d credits reward" % battle_reward)
 
@@ -170,7 +170,7 @@ func _on_next_phase_pressed() -> void:
 		campaign.advance_turn()
 		current_phase = Phase.UPKEEP
 		turn_completed.emit()
-		print("Turn completed! Starting Turn %d" % campaign.campaign_data.turn)
+		print("Turn completed! Starting Turn %d" % campaign.campaign_data["turn"])
 	else:
 		# Advance to next phase - type-safe enum access
 		current_phase = current_phase + 1

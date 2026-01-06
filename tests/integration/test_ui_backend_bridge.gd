@@ -33,14 +33,14 @@ func test_post_battle_completion_triggers_new_turn() -> void:
 	# Setup: Get initial turn number
 	var initial_turn = phase_manager.turn_number
 
-	# Connect to signal to verify it fires
-	var turn_completed_fired = false
-	var new_turn_started_fired = false
+	# Connect to signal to verify it fires - use arrays for reference semantics in lambda
+	var turn_completed_fired = [false]
+	var new_turn_started_fired = [false]
 
 	if phase_manager.has_signal("campaign_turn_completed"):
-		phase_manager.campaign_turn_completed.connect(func(_turn): turn_completed_fired = true)
+		phase_manager.campaign_turn_completed.connect(func(_turn): turn_completed_fired[0] = true)
 	if phase_manager.has_signal("campaign_turn_started"):
-		phase_manager.campaign_turn_started.connect(func(_turn): new_turn_started_fired = true)
+		phase_manager.campaign_turn_started.connect(func(_turn): new_turn_started_fired[0] = true)
 
 	# Act: Simulate PostBattleSequence calling the completion handler
 	if phase_manager.has_method("_on_post_battle_phase_completed"):
@@ -55,8 +55,8 @@ func test_post_battle_completion_triggers_new_turn() -> void:
 			return
 
 		# Assert: Verify signals fired
-		assert_bool(turn_completed_fired).is_true()
-		assert_bool(new_turn_started_fired).is_true()
+		assert_bool(turn_completed_fired[0]).is_true()
+		assert_bool(new_turn_started_fired[0]).is_true()
 
 		# Assert: Turn number incremented
 		assert_int(phase_manager.turn_number).is_equal(initial_turn + 1)
@@ -219,6 +219,11 @@ func test_phase_signals_emit_correctly() -> void:
 	if not is_instance_valid(phase_manager):
 		push_warning("phase_manager not valid - skipping test")
 		return
+
+	# Reset state - shared instance from before() may have state from previous tests
+	phase_manager.turn_number = 0
+	phase_manager.current_phase = GlobalEnums.FiveParsecsCampaignPhase.NONE
+	phase_manager.transition_in_progress = false
 
 	var signals_received: Array[String] = []
 

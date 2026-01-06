@@ -30,6 +30,8 @@ extends Resource
 @export var enemy_forces: Array[Resource] = []
 @export var crew_deployment: Dictionary = {} # positions, equipment, etc.
 @export var enemy_deployment: Dictionary = {}
+@export var equipment_in_battle: Array[Dictionary] = [] # Tracks all equipment in this battle
+@export var crew_equipment: Dictionary = {} # Maps crew_id to their equipped items
 
 # Battlefield configuration
 @export var battlefield_setup: Dictionary = {}
@@ -75,7 +77,8 @@ func _init() -> void:
 	_update_timestamp()
 
 ## Initialize battle state with mission data
-func initialize_with_mission(p_mission_data: Resource, p_crew: Array, p_enemies: Array) -> bool:
+## p_mission_data can be Resource or Dictionary (for testing)
+func initialize_with_mission(p_mission_data: Variant, p_crew: Array, p_enemies: Array) -> bool:
 	if not p_mission_data:
 		_add_validation_error("Mission data is required")
 		return false

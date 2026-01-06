@@ -17,31 +17,31 @@ func validate_campaign_data(data: Dictionary) -> Dictionary:
 			errors.append("Missing %s data - please complete the %s phase" % [section, section.capitalize()])
 	
 	# Validate config section
-	if data.has("config") and not data.config.is_empty():
-		var config = data.config
-		if not config.has("name") or config.name.is_empty():
+	if data.has("config") and not data["config"].is_empty():
+		var config = data["config"]
+		if not config.has("name") or config["name"].is_empty():
 			errors.append("Campaign must have a name")
 		if not config.has("difficulty"):
 			warnings.append("No difficulty selected, using default")
-	
+
 	# Validate crew section
-	if data.has("crew") and not data.crew.is_empty():
-		var crew = data.crew
-		if not crew.has("members") or crew.members.size() == 0:
+	if data.has("crew") and not data["crew"].is_empty():
+		var crew = data["crew"]
+		if not crew.has("members") or crew["members"].size() == 0:
 			errors.append("Campaign must have at least one crew member")
-		elif crew.members.size() > 8:
+		elif crew["members"].size() > 8:
 			warnings.append("Large crew size may affect game balance")
-	
+
 	# Validate captain section
-	if data.has("captain") and not data.captain.is_empty():
-		var captain = data.captain
-		if not captain.has("name") or captain.name.is_empty():
+	if data.has("captain") and not data["captain"].is_empty():
+		var captain = data["captain"]
+		if not captain.has("name") or captain["name"].is_empty():
 			errors.append("Captain must have a name")
-	
+
 	# Validate ship section
-	if data.has("ship") and not data.ship.is_empty():
-		var ship = data.ship
-		if not ship.has("name") or ship.name.is_empty():
+	if data.has("ship") and not data["ship"].is_empty():
+		var ship = data["ship"]
+		if not ship.has("name") or ship["name"].is_empty():
 			warnings.append("Ship should have a name")
 	
 	return {

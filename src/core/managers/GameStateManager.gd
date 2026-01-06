@@ -266,16 +266,27 @@ func _setup_auto_save_timer() -> void:
 
 ## Auto-save timer callback
 func _on_auto_save_timer_timeout() -> void:
-	"""Handle auto-save timer timeout"""
+	"""Handle auto-save timer timeout with user notification (Sprint B3)"""
 
 	if enable_debug_logging:
 		print("GameStateManager: Auto-save timer triggered")
 
+	# Get NotificationManager autoload safely
+	var notification_mgr = get_node_or_null("/root/NotificationManager")
+
+	# Notify user that auto-save is starting
+	if notification_mgr and notification_mgr.has_method("notify_auto_save"):
+		notification_mgr.notify_auto_save()
+
 	var save_success: bool = save_current_state()
 	if save_success:
 		print("GameStateManager: Auto-save completed successfully")
+		if notification_mgr and notification_mgr.has_method("show_success"):
+			notification_mgr.show_success("Auto-saved", 2.0)
 	else:
 		push_warning("GameStateManager: Auto-save failed")
+		if notification_mgr and notification_mgr.has_method("show_warning"):
+			notification_mgr.show_warning("Auto-save failed")
 
 ## Sync current state values to game state
 func _sync_state_to_game_state() -> void:
@@ -438,17 +449,29 @@ func set_supplies(new_amount: int) -> void:
 		push_warning("GameStateManager: Cannot set negative supplies: " + str(new_amount))
 		new_amount = 0
 
-	if supplies != new_amount:
-		var old_supplies: int = supplies
+	var old_supplies: int = supplies
+
+	# Sprint 26.9: Bidirectional sync - GameState is authoritative source
+	var game_state_node = get_node_or_null("/root/GameState")
+	if game_state_node and game_state_node.has_method("set_resource"):
+		var global_enums = get_node_or_null("/root/GlobalEnums")
+		if global_enums and "ResourceType" in global_enums and "SUPPLIES" in global_enums.ResourceType:
+			game_state_node.set_resource(global_enums.ResourceType.SUPPLIES, new_amount)
+			# Read back from authoritative source to ensure sync
+			supplies = game_state_node.get_resource(global_enums.ResourceType.SUPPLIES)
+		else:
+			# Fallback: modify local and sync
+			supplies = new_amount
+			_sync_supplies_to_game_state()
+	else:
+		# GameState not available - use local variable
 		supplies = new_amount
 
+	if old_supplies != supplies:
 		self.supplies_changed.emit(supplies)
 
-		# Sync to game state if available
-		_sync_supplies_to_game_state()
-
 		if enable_debug_logging:
-			print("GameStateManager: Supplies changed from %d to %d" % [old_supplies, supplies])
+			print("GameStateManager: Supplies changed from %d to %d (via GameState)" % [old_supplies, supplies])
 
 ## Set reputation with enhanced validation
 func set_reputation(new_amount: int) -> void:
@@ -463,15 +486,38 @@ func set_reputation(new_amount: int) -> void:
 	if new_amount < -100 or new_amount > 100:
 		push_warning("GameStateManager: Reputation value outside expected range [-100, 100]: " + str(new_amount))
 
-	if reputation != new_amount:
-		var old_reputation = reputation
+	var old_reputation = reputation
+
+	# Sprint 26.9: Bidirectional sync - GameState is authoritative source
+	var game_state_node = get_node_or_null("/root/GameState")
+	if game_state_node:
+		if game_state_node.has_method("set_resource"):
+			var global_enums = get_node_or_null("/root/GlobalEnums")
+			if global_enums and "ResourceType" in global_enums and "REPUTATION" in global_enums.ResourceType:
+				game_state_node.set_resource(global_enums.ResourceType.REPUTATION, new_amount)
+				# Read back from authoritative source to ensure sync
+				reputation = game_state_node.get_resource(global_enums.ResourceType.REPUTATION)
+			elif "reputation" in game_state_node:
+				# Direct property fallback
+				game_state_node.reputation = new_amount
+				reputation = game_state_node.reputation
+			else:
+				reputation = new_amount
+				_sync_reputation_to_game_state()
+		elif "reputation" in game_state_node:
+			# Direct property access
+			game_state_node.reputation = new_amount
+			reputation = game_state_node.reputation
+		else:
+			reputation = new_amount
+	else:
 		reputation = new_amount
 
-		# Sync to game state if available
-		_sync_reputation_to_game_state()
+	if old_reputation != reputation:
+		self.reputation_changed.emit(reputation)
 
 		if enable_debug_logging:
-			print("GameStateManager: Reputation changed from %d to %d" % [old_reputation, reputation])
+			print("GameStateManager: Reputation changed from %d to %d (via GameState)" % [old_reputation, reputation])
 
 ## Add to reputation (convenience function)
 func add_reputation(amount: int) -> void:
@@ -808,10 +854,41 @@ func get_credits() -> int:
 	# Fallback to local cache if GameState unavailable
 	return credits
 
+## Sprint 26.9: GameState is the authoritative source for supplies
 func get_supplies() -> int:
+	# Read from GameState as authoritative source when available
+	var game_state_node = get_node_or_null("/root/GameState")
+	if game_state_node and game_state_node.has_method("get_resource"):
+		var global_enums = get_node_or_null("/root/GlobalEnums")
+		if global_enums and "ResourceType" in global_enums and "SUPPLIES" in global_enums.ResourceType:
+			var authoritative_supplies = game_state_node.get_resource(global_enums.ResourceType.SUPPLIES)
+			# Sync local cache if different (keeps UI consistent)
+			if supplies != authoritative_supplies:
+				supplies = authoritative_supplies
+			return authoritative_supplies
+	# Fallback to local cache if GameState unavailable
 	return supplies
 
+## Sprint 26.9: GameState is the authoritative source for reputation
 func get_reputation() -> int:
+	# Read from GameState as authoritative source when available
+	var game_state_node = get_node_or_null("/root/GameState")
+	if game_state_node:
+		if game_state_node.has_method("get_resource"):
+			var global_enums = get_node_or_null("/root/GlobalEnums")
+			if global_enums and "ResourceType" in global_enums and "REPUTATION" in global_enums.ResourceType:
+				var authoritative_reputation = game_state_node.get_resource(global_enums.ResourceType.REPUTATION)
+				# Sync local cache if different (keeps UI consistent)
+				if reputation != authoritative_reputation:
+					reputation = authoritative_reputation
+				return authoritative_reputation
+		# Fallback to direct property
+		if "reputation" in game_state_node:
+			var authoritative_reputation = game_state_node.reputation
+			if reputation != authoritative_reputation:
+				reputation = authoritative_reputation
+			return authoritative_reputation
+	# Fallback to local cache if GameState unavailable
 	return reputation
 
 func get_story_progress() -> int:
@@ -2641,25 +2718,6 @@ func _setup_combat_ready_scenario() -> void:
 	# Create varied enemy types
 	if game_state and game_state and game_state.has_method("setup_varied_enemies"):
 		game_state.setup_varied_enemies()
-
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return obj.get(property, default_value)
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null
 
 # ============================================================================
 # TEMPORARY DATA MANAGEMENT

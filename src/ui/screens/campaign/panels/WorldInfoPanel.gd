@@ -107,8 +107,7 @@ func _ready() -> void:
 	# Call parent _ready() to initialize BaseCampaignPanel structure
 	super._ready()
 
-	# Add progress indicator
-	call_deferred("_add_progress_indicator")
+	# NOTE: Progress indicator removed - CampaignCreationUI handles progress display
 
 	# COMPREHENSIVE DEBUG OUTPUT - Panel Initialization
 	call_deferred("_log_panel_initialization_debug")
@@ -122,6 +121,12 @@ func _ready() -> void:
 	# Defer button setup to ensure scene is fully loaded
 	call_deferred("_setup_control_buttons")
 
+	# Apply design system styling after buttons are created
+	call_deferred("_apply_input_styling")
+
+	# SPRINT 5.1: Emit panel_ready after initialization complete
+	call_deferred("emit_panel_ready")
+
 	# Debug verification of button creation
 	call_deferred("_verify_button_creation")
 	
@@ -134,24 +139,29 @@ func _verify_button_creation() -> void:
 	print("Generate Button Exists: %s" % (generate_button != null))
 	print("Reroll Button Exists: %s" % (reroll_button != null))
 	print("Confirm Button Exists: %s" % (confirm_button != null))
-	
+
 	if generate_button and generate_button.is_inside_tree():
 		print("✅ Buttons successfully added to scene tree")
 	else:
 		print("❌ Buttons NOT in scene tree - check Content container path")
 	print("")
 
-func _add_progress_indicator() -> void:
-	"""Add progress indicator to panel after structure is ready"""
-	var main_content = get_node_or_null("ContentMargin/MainContent")
-	if not main_content:
-		push_warning("WorldInfoPanel: MainContent node not found for progress indicator")
-		return
+func _apply_input_styling() -> void:
+	"""Apply design system styling to programmatically-created buttons (eliminates stretched teal bars)"""
+	# Style Buttons with touch-friendly sizing and consistent appearance
+	if generate_button:
+		_style_button(generate_button)
+	if reroll_button:
+		_style_button(reroll_button)
+	if confirm_button:
+		_style_button(confirm_button)
+		confirm_button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 
-	var progress = _create_progress_indicator(STEP_NUMBER, 7)
-	main_content.add_child(progress)
-	main_content.move_child(progress, 0)  # Put at top of panel
-	print("WorldInfoPanel: Progress indicator added (Step %d of 7)" % STEP_NUMBER)
+	print("WorldInfoPanel: Design system styling applied to buttons")
+
+# NOTE: _style_button() now inherited from BaseCampaignPanel - removed duplicate
+
+# NOTE: _add_progress_indicator() removed - CampaignCreationUI handles progress display centrally
 
 func _initialize_world_generator() -> void:
 	"""Initialize WorldGenerator with defensive error handling"""
@@ -476,7 +486,7 @@ func _select_appropriate_template() -> String:
 			if coordinator and coordinator.has_method("get_unified_campaign_state"):
 				var state = coordinator.get_unified_campaign_state()
 				if state and state.has("crew"):
-					var crew_size = state.crew.get("members", []).size()
+					var crew_size = state["crew"].get("members", []).size()
 					
 					# Scale template based on crew size
 					if crew_size >= 6:
@@ -492,13 +502,18 @@ func _select_appropriate_template() -> String:
 func _display_world_data(world_data: Dictionary) -> void:
 	"""Display world data in UI components with DataValidator safety"""
 	# Use DataValidator for safe access to world data
+	var safe_name = DataValidator.safe_get_string(world_data, "name", "Unknown World")
 	var safe_traits = DataValidator.safe_get_array(world_data, "traits", [])
 	var safe_government = DataValidator.safe_get_string(world_data, "government_type", "Independent Colony")
 	var safe_tech_level = DataValidator.safe_get_int(world_data, "tech_level", 3)
 	var safe_patrons = DataValidator.safe_get_array(world_data, "known_patrons", [])
 	var safe_market_prices = DataValidator.safe_get_dict(world_data, "market_prices", {})
 	var safe_threats = DataValidator.safe_get_array(world_data, "rival_threats", [])
-	
+
+	# Display world name (FIX: was never being updated)
+	if world_name_label:
+		world_name_label.text = "Current World: " + safe_name
+
 	_display_world_traits(safe_traits)
 	_display_government_info(safe_government, safe_tech_level)
 	_display_opportunities(safe_patrons, safe_market_prices)
@@ -900,7 +915,10 @@ func _on_world_generated_from_generator(world_data: Dictionary) -> void:
 	print("WorldInfoPanel: World generated: %s" % world_data.get("name", "Unknown"))
 	current_world_data = world_data
 	_display_world_data(world_data)
-	
+
+	# Populate world_opportunities and world_threats arrays from generated data
+	_populate_opportunities_and_threats_from_world_data(world_data)
+
 	# Mark world as generated
 	is_world_generated = true
 	
@@ -1018,6 +1036,43 @@ func add_threat(threat_data: Dictionary) -> void:
 	world_threats.append(threat_data)
 	_display_threats(current_world_data.get("rival_threats", []))
 
+func _populate_opportunities_and_threats_from_world_data(world_data: Dictionary) -> void:
+	"""Populate world_opportunities and world_threats arrays from generated world data.
+	This ensures get_panel_data() returns the correct opportunities/threats for FinalPanel."""
+	# Clear existing arrays
+	world_opportunities.clear()
+	world_threats.clear()
+
+	# Populate opportunities from known_patrons
+	var known_patrons = world_data.get("known_patrons", [])
+	for patron in known_patrons:
+		if patron is Dictionary:
+			world_opportunities.append(patron)
+		elif patron is String:
+			# Legacy string format - wrap in dictionary
+			world_opportunities.append({"name": patron, "type": "patron"})
+
+	# Add market opportunities if present
+	var market_prices = world_data.get("market_prices", {})
+	if not market_prices.is_empty():
+		world_opportunities.append({
+			"name": "Local Market",
+			"type": "trade",
+			"description": "Trading opportunities available at local market",
+			"market_data": market_prices
+		})
+
+	# Populate threats from rival_threats
+	var rival_threats = world_data.get("rival_threats", [])
+	for threat in rival_threats:
+		if threat is Dictionary:
+			world_threats.append(threat)
+		elif threat is String:
+			# Legacy string format - wrap in dictionary
+			world_threats.append({"name": threat, "type": "rival"})
+
+	print("WorldInfoPanel: Populated %d opportunities and %d threats from world data" % [world_opportunities.size(), world_threats.size()])
+
 ## Helper functions
 func _generate_compact_world_summary() -> String:
 	var world_name = current_world_data.get("planet_name", "Unknown")
@@ -1118,29 +1173,51 @@ func restore_panel_data(data: Dictionary) -> void:
 	if data.is_empty():
 		print("WorldInfoPanel: No data to restore")
 		return
-	
+
 	print("WorldInfoPanel: Restoring panel data: ", data.keys())
-	
-	# Restore world data
+
+	# Restore world data - handle both "current_world" and "world" keys
 	if data.has("current_world") and data.current_world is Dictionary:
 		current_world_data = data.current_world.duplicate()
 		print("WorldInfoPanel: Restored world: ", current_world_data.get("name", "Unknown World"))
-	
+	elif data.has("world") and data.world is Dictionary:
+		current_world_data = data.world.duplicate()
+		print("WorldInfoPanel: Restored world from 'world' key: ", current_world_data.get("name", "Unknown World"))
+
 	# Restore opportunities
 	if data.has("opportunities") and data.opportunities is Array:
 		world_opportunities = data.opportunities.duplicate()
 		print("WorldInfoPanel: Restored %d opportunities" % world_opportunities.size())
-	
+
 	# Restore threats
 	if data.has("threats") and data.threats is Array:
 		world_threats = data.threats.duplicate()
 		print("WorldInfoPanel: Restored %d threats" % world_threats.size())
-	
+
+	# Restore state flags
+	if data.has("is_complete"):
+		is_world_confirmed = data.is_complete
+		is_world_generated = not current_world_data.is_empty()
+
 	# Update display with restored data
 	if current_world_data.has("name"):
 		update_world_display(current_world_data.get("name", "Unknown World"))
-	
+
 	print("WorldInfoPanel: Panel data restoration complete")
+
+func set_panel_data(data: Dictionary) -> void:
+	"""Required panel contract method - delegates to restore_panel_data"""
+	restore_panel_data(data)
+
+func _on_coordinator_set() -> void:
+	"""Called when coordinator is assigned - sync initial world state"""
+	print("WorldInfoPanel: Coordinator set, syncing initial state")
+	var coord = get_coordinator_reference()
+	if coord and coord.has_method("get_unified_campaign_state"):
+		var state = coord.get_unified_campaign_state()
+		if state.has("world") and state.world is Dictionary and not state.world.is_empty():
+			print("WorldInfoPanel: Found existing world data in coordinator")
+			restore_panel_data({"world": state.world})
 
 func _on_campaign_state_updated(state_data: Dictionary) -> void:
 	"""React to campaign state updates - setup initial world display"""
@@ -1229,10 +1306,14 @@ func _generate_world_from_campaign_data(campaign_data: Dictionary) -> void:
 	# Apply generated world
 	current_world_data = world_data
 	_display_world_data(world_data)
-	
+
+	# Populate world_opportunities and world_threats arrays from generated data
+	# This ensures get_panel_data() returns the generated patrons/threats
+	_populate_opportunities_and_threats_from_world_data(world_data)
+
 	# Send to coordinator
 	_send_world_data_to_coordinator(world_data)
-	
+
 	print("WorldInfoPanel: World generation complete: %s" % world_name)
 
 func _adjust_world_generation_parameters(campaign_data: Dictionary) -> void:
@@ -1551,7 +1632,8 @@ func _log_panel_initialization_debug() -> void:
 	
 	# Check for coordinator access
 	# Fixed: Check owner (CampaignCreationUI) instead of direct parent (content_container)
-	var campaign_ui = owner if owner != null else get_parent().get_parent()
+	var parent_node = get_parent()
+	var campaign_ui = owner if owner != null else (parent_node.get_parent() if parent_node else null)
 	var has_coordinator = campaign_ui != null and campaign_ui.has_method("get_coordinator")
 	print("  Has Coordinator Access: %s" % has_coordinator)
 	if has_coordinator:

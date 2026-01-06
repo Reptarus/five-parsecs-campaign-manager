@@ -125,7 +125,7 @@ func _on_notification_clicked() -> void:
 
 	# Also try to directly trigger story phase if MainGameScene is available
 	var main_scene = get_tree().get_nodes_in_group("main_game_scene")
-	if (safe_call_method(main_scene, "size") as int) > 0:
+	if main_scene.size() > 0:
 		var main_game = main_scene[0]
 		if main_game and main_game.has_method("show_story_phase_manually"):
 			main_game.show_story_phase_manually()
@@ -141,21 +141,3 @@ func is_story_available() -> bool:
 	"""Check if story events are currently available"""
 	return story_available
 
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return obj.get(property, default_value)
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

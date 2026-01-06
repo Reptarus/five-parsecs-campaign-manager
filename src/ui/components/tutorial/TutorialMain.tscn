@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3 uid="uid://bixg32pweu5eu"]
+[gd_scene load_steps=2 format=3 uid="uid://bixg32pweu5eu"]
 
 [ext_resource type="PackedScene" uid="uid://cixg32pwel5eu" path="res://src/ui/components/tutorial/TutorialContent.tscn" id="1_content"]
 [ext_resource type="PackedScene" uid="uid://dixg32pwem5eu" path="res://src/ui/components/tutorial/TutorialUI.tscn" id="2_ui"]

@@ -74,11 +74,11 @@ func get_reputation() -> int:
 
 ## Get number of active crew members
 func get_active_crew_count() -> int:
-	return safe_call_method(active_crew, "size") as int
+	return active_crew.size()
 
 ## Get number of active rivals
 func get_active_rivals_count() -> int:
-	return safe_call_method(active_rivals, "size") as int
+	return active_rivals.size()
 
 ## Check if crew has exploration capability
 func has_exploration_capability() -> bool:
@@ -115,15 +115,15 @@ func complete_mission() -> void:
 
 ## Add crew member
 func add_crew_member(member: Dictionary) -> void:
-	safe_call_method(active_crew, "append", [member]) # warning: return value discarded (intentional)
+	active_crew.append(member)
 
 ## Add rival
 func add_rival(rival: Dictionary) -> void:
-	safe_call_method(active_rivals, "append", [rival]) # warning: return value discarded (intentional)
+	active_rivals.append(rival)
 
 ## Add equipment
 func add_equipment(item: Dictionary) -> void:
-	safe_call_method(equipment, "append", [item]) # warning: return value discarded (intentional)
+	equipment.append(item)
 
 ## Advance story progress
 func advance_story() -> void:
@@ -235,22 +235,3 @@ func is_mission_in_progress() -> bool:
 ## Get current mission
 func get_current_mission() -> Node:
 	return current_mission
-
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return obj.get(property, default_value)
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

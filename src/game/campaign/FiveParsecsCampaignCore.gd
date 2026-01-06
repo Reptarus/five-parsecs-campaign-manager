@@ -32,6 +32,12 @@ var rivals: Array = []
 var quest_rumors: int = 0
 var victory_conditions: Dictionary = {}  # Victory condition configuration
 
+# SPRINT 6.1: House rules configuration (persisted from wizard)
+var house_rules: Array = []
+
+# SPRINT 6.2: Story track setting (persisted from wizard)
+var story_track_enabled: bool = false
+
 func _init() -> void:
 	created_at = Time.get_datetime_string_from_system()
 	last_modified = created_at
@@ -101,6 +107,42 @@ func get_resources() -> Dictionary:
 		"quest_rumors": quest_rumors
 	}
 
+## SPRINT 6.1: House Rules Methods
+
+func set_house_rules(rules: Array) -> void:
+	"""Set house rules configuration from wizard"""
+	house_rules = rules.duplicate()
+	_update_modified_time()
+	print("FiveParsecsCampaignCore: House rules set - %d rules" % house_rules.size())
+
+func get_house_rules() -> Array:
+	"""Get house rules configuration"""
+	return house_rules.duplicate()
+
+## SPRINT 6.2: Story Track Methods
+
+func set_story_track_enabled(enabled: bool) -> void:
+	"""Set story track enabled setting"""
+	story_track_enabled = enabled
+	_update_modified_time()
+	print("FiveParsecsCampaignCore: Story track enabled = %s" % str(story_track_enabled))
+
+func get_story_track_enabled() -> bool:
+	"""Get story track enabled setting"""
+	return story_track_enabled
+
+## Victory Conditions Methods
+
+func set_victory_conditions(conditions: Dictionary) -> void:
+	"""Set victory conditions configuration"""
+	victory_conditions = conditions.duplicate(true)
+	_update_modified_time()
+	print("FiveParsecsCampaignCore: Victory conditions set")
+
+func get_victory_conditions() -> Dictionary:
+	"""Get victory conditions configuration"""
+	return victory_conditions.duplicate(true)
+
 ## Validation Methods
 
 func validate() -> bool:
@@ -149,7 +191,10 @@ func to_dictionary() -> Dictionary:
 		"config": {
 			"name": campaign_name,
 			"difficulty": difficulty,
-			"ironman_mode": ironman_mode
+			"ironman_mode": ironman_mode,
+			# SPRINT 6.1/6.2: Include house rules and story track in config
+			"house_rules": house_rules.duplicate(),
+			"story_track_enabled": story_track_enabled
 		},
 		"crew": crew_data,
 		"captain": captain_data,
@@ -163,7 +208,11 @@ func to_dictionary() -> Dictionary:
 			"patrons": patrons.duplicate(),
 			"rivals": rivals.duplicate(),
 			"quest_rumors": quest_rumors
-		}
+		},
+		# SPRINT 6.1/6.2: Top-level for easy access
+		"house_rules": house_rules.duplicate(),
+		"story_track_enabled": story_track_enabled,
+		"victory_conditions": victory_conditions.duplicate(true)
 	}
 
 func from_dictionary(data: Dictionary) -> void:
@@ -194,6 +243,21 @@ func from_dictionary(data: Dictionary) -> void:
 		patrons = res.get("patrons", []).duplicate()
 		rivals = res.get("rivals", []).duplicate()
 		quest_rumors = res.get("quest_rumors", 0)
+
+	# SPRINT 6.1/6.2: Load house rules, story track, and victory conditions
+	# Check top-level first, then config for backwards compatibility
+	if data.has("house_rules"):
+		house_rules = data.get("house_rules", []).duplicate()
+	elif data.has("config") and data.config.has("house_rules"):
+		house_rules = data.config.get("house_rules", []).duplicate()
+
+	if data.has("story_track_enabled"):
+		story_track_enabled = data.get("story_track_enabled", false)
+	elif data.has("config") and data.config.has("story_track_enabled"):
+		story_track_enabled = data.config.get("story_track_enabled", false)
+
+	if data.has("victory_conditions"):
+		victory_conditions = data.get("victory_conditions", {}).duplicate(true)
 
 ## Campaign Management Methods
 

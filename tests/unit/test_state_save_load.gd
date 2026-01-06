@@ -180,7 +180,7 @@ func test_save_increments_turn():
 	json.parse(json_string)
 	var data = json.data
 
-	assert_that(int(data.campaign_state.campaign_turn)).is_equal(4)  # 3 + 1
+	assert_that(int(data["campaign_state"]["campaign_turn"])).is_equal(4)  # 3 + 1
 
 func test_save_nests_turn_state():
 	"""Save nests turn_state inside campaign_data"""
@@ -192,10 +192,10 @@ func test_save_nests_turn_state():
 	var json = JSON.new()
 	json.parse(json_string)
 	var data = json.data
-	var campaign_data = data.campaign_state.campaign_data
+	var campaign_data = data["campaign_state"]["campaign_data"]
 
-	assert_that(campaign_data.turn_state).is_not_empty()
-	assert_that(int(campaign_data.turn_state.rumors_accumulated)).is_equal(5)
+	assert_that(campaign_data["turn_state"]).is_not_empty()
+	assert_that(int(campaign_data["turn_state"]["rumors_accumulated"])).is_equal(5)
 
 func test_save_preserves_campaign_data():
 	"""Save preserves all campaign_data fields"""
@@ -207,11 +207,11 @@ func test_save_preserves_campaign_data():
 	var json = JSON.new()
 	json.parse(json_string)
 	var data = json.data
-	var campaign_data = data.campaign_state.campaign_data
+	var campaign_data = data["campaign_state"]["campaign_data"]
 
-	assert_that(campaign_data.captain.character_name).is_equal("FullCaptain")
-	assert_that(campaign_data.crew.members).has_size(1)
-	assert_that(int(campaign_data.equipment.starting_credits)).is_equal(100)
+	assert_that(campaign_data["captain"]["character_name"]).is_equal("FullCaptain")
+	assert_that(campaign_data["crew"]["members"]).has_size(1)
+	assert_that(int(campaign_data["equipment"]["starting_credits"])).is_equal(100)
 
 func test_save_includes_timestamp():
 	"""Save includes timestamp field"""

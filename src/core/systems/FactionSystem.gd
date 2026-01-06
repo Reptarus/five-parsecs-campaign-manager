@@ -12,9 +12,6 @@ extends Node
 ##
 ## Implements IGameSystem interface for standardized integration
 
-# Safe imports
-const IGameSystem = preload("res://src/core/systems/IGameSystem.gd")
-
 # Proper dependency imports - compile-time validation
 # GlobalEnums available as autoload singleton
 const Character = preload("res://src/core/character/Character.gd")
@@ -208,8 +205,8 @@ func get_status() -> Dictionary:
 		"active": _initialized,
 		"errors": _errors.duplicate(),
 		"last_update": _last_update,
-		"rival_count": (safe_call_method(active_rivals, "size") as int),
-		"faction_count": (safe_call_method(active_factions, "size") as int),
+		"rival_count": active_rivals.size(),
+		"faction_count": active_factions.size(),
 		"total_category_factions": _get_total_category_factions()
 	}
 
@@ -264,7 +261,7 @@ func generate_rival() -> Dictionary:
 	}
 
 	# Add to system if not at capacity
-	if (safe_call_method(active_rivals, "size") as int) < max_active_rivals:
+	if active_rivals.size() < max_active_rivals:
 		active_rivals.append(rival)
 		rival_reputations[rival.id] = 0
 		rival_statuses[rival.id] = RIVAL_STATUS_NEUTRAL
@@ -855,21 +852,3 @@ func get_faction_mission_opportunities() -> Array[Dictionary]:
 				opportunities.append(mission)
 
 	return opportunities
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return obj.get(property, default_value)
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

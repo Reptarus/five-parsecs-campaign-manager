@@ -47,9 +47,12 @@ func test_crew_6_minimum_is_1():
 	"""Crew size 6 minimum enemy count should be 1 (if both dice roll 1)"""
 	var standard_difficulty = 2
 
-	# Test multiple times to potentially hit minimum
+	# SPRINT 5 FIX: Increased iterations from 50 to 500
+	# For max(2D6)=1, P(both dice=1) = 1/36 ≈ 2.8%
+	# With 50 iterations: 24% chance of flaky failure
+	# With 500 iterations: <0.00001% chance of flaky failure
 	var found_minimum := false
-	for i in range(50):
+	for i in range(500):
 		var enemy_count = enemy_generator._calculate_enemy_count(standard_difficulty, 6)
 		if enemy_count == 1:
 			found_minimum = true
@@ -151,8 +154,12 @@ func test_crew_4_maximum_is_6():
 	"""Crew size 4 maximum should be 6 (if both dice roll 6)"""
 	var standard_difficulty = 2
 
+	# SPRINT 5 FIX: Increased iterations from 50 to 500
+	# For min(2D6)=6, P(both dice=6) = 1/36 ≈ 2.8%
+	# With 50 iterations: 24% chance of flaky failure
+	# With 500 iterations: <0.00001% chance of flaky failure
 	var found_maximum := false
-	for i in range(50):
+	for i in range(500):
 		var enemy_count = enemy_generator._calculate_enemy_count(standard_difficulty, 4)
 		if enemy_count == 6:
 			found_maximum = true

@@ -308,10 +308,3 @@ func highlight_character(highlight: bool) -> void:
 		tween.tween_property(self, "modulate", normal_color, 0.3)
 	else:
 		modulate = normal_color if not is_selected else selected_color
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

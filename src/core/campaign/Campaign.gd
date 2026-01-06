@@ -62,7 +62,7 @@ var faction_standings: Dictionary = {}
 var turns_completed: int = 0
 var crew_data: Array = []
 var settings: Dictionary = {}
-var campaign_crew: Array[Character] = []
+# Note: campaign_crew removed in Sprint 26.12 (orphaned, never used)
 var current_world: String = "New Hope"
 var galactic_war_progress: int = 0
 var story_track: Dictionary = {}
@@ -83,7 +83,6 @@ var pending_events: Array = []
 func _init() -> void:
 	if not Engine.is_editor_hint():
 		_initialize_campaign()
-	campaign_crew = []
 
 func _initialize_campaign() -> void:
 	resources = {
@@ -214,23 +213,13 @@ func get_crew_size() -> int:
 func get_active_crew_count() -> int:
 	return crew_members.size()
 
-func get_crew_members() -> Array:
-	"""Get crew members array for external access"""
-	print("Campaign.get_crew_members() called - crew_members.size(): %d" % crew_members.size())
-
-	var crew_data: Array = []
-	for member in crew_members:
-		print("  Processing crew member: %s (type: %s)" % [member.name if member.has_method("get") else "unknown", member.get_class() if member.has_method("get_class") else "unknown"])
-		if member.has_method("to_dictionary"):
-			var dict = member.to_dictionary()
-			print("    Converted to dictionary with name: %s" % dict.get("character_name", "MISSING"))
-			crew_data.append(dict)
-		else:
-			print("    Already dictionary")
-			crew_data.append(member)  # Already dictionary
-
-	print("Campaign.get_crew_members() returning %d crew members" % crew_data.size())
-	return crew_data
+func get_crew_members() -> Array[Character]:
+	"""Get crew members array for external access (Sprint 26.3: Character-Everywhere)"""
+	# Sprint 26.3: Return Character objects directly instead of converting to Dictionary
+	# Callers should use Character properties directly (e.g., member.character_name, member.combat)
+	# For serialization, use to_dictionary() or serialize() on individual characters
+	print("Campaign.get_crew_members() returning %d Character objects" % crew_members.size())
+	return crew_members
 
 ## Get a specific crew member by their character_id
 ## Required by GameState.add_crew_experience() for XP distribution
@@ -266,7 +255,9 @@ func to_dictionary() -> Dictionary:
 		"completed_missions": completed_missions.duplicate(),
 		"available_missions": available_missions.duplicate(),
 		"faction_standings": faction_standings.duplicate(),
-		"pending_events": pending_events.duplicate(true)
+		"pending_events": pending_events.duplicate(true),
+		# NEW-1: Serialize equipment data with campaign (ship stash + character equipment)
+		"equipment_data": EquipmentManager.save_data() if EquipmentManager else {}
 	}
 
 func from_dictionary(data: Dictionary) -> void:
@@ -321,6 +312,11 @@ func from_dictionary(data: Dictionary) -> void:
 	faction_standings = data.get("faction_standings", {}).duplicate()
 	pending_events = data.get("pending_events", []).duplicate(true)
 
+	# NEW-1: Restore equipment data (ship stash + character equipment)
+	var equipment_data = data.get("equipment_data", {})
+	if equipment_data.size() > 0 and EquipmentManager:
+		EquipmentManager.load_data(equipment_data)
+
 func configure(config: Dictionary) -> void:
 	if config.has("name"):
 		campaign_name = config.name
@@ -328,11 +324,25 @@ func configure(config: Dictionary) -> void:
 		difficulty = config.difficulty
 
 func set_crew(crew: Array) -> void:
+	"""Set crew from array data - updates both crew_members and crew_data (Sprint 26.12)"""
 	crew_data = crew.duplicate(true)
+	crew_members.clear()
+
+	for member in crew:
+		# Sprint 26.3: Handle both Character objects and Dictionary data
+		if member is Character:
+			crew_members.append(member)
+		elif member is Dictionary:
+			var character = Character.new()
+			if character.has_method("from_dictionary"):
+				character.from_dictionary(member)
+			crew_members.append(character)
+
+	crew_size = crew_members.size()
 
 ## Initialize crew from creation data - called by CampaignFinalizationService
 func initialize_crew(data: Dictionary) -> void:
-	"""Initialize crew_members from creation data dictionary."""
+	"""Initialize crew_members from creation data (Sprint 26.3: Character-Everywhere)"""
 	crew_members.clear()
 	crew_data = []
 
@@ -342,7 +352,11 @@ func initialize_crew(data: Dictionary) -> void:
 		members = data.values() if data is Dictionary else []
 
 	for member_data in members:
-		if member_data is Dictionary:
+		# Sprint 26.3: Handle both Character objects and Dictionary data
+		if member_data is Character:
+			crew_members.append(member_data)
+			crew_data.append(member_data.to_dictionary())
+		elif member_data is Dictionary:
 			var character = Character.new()
 			if character.has_method("initialize_from_creation_data"):
 				character.initialize_from_creation_data(member_data)
@@ -398,10 +412,10 @@ func set_starting_equipment(equipment_data: Dictionary) -> void:
 	if equipment_data.is_empty():
 		return
 
-	# Extract credits
+	# Extract credits - use enum key for consistency with GameState
 	var starting_credits = equipment_data.get("starting_credits", equipment_data.get("credits", 1000))
 	credits = starting_credits
-	resources["credits"] = starting_credits
+	resources[GlobalEnums.ResourceType.CREDITS] = starting_credits
 
 	# Store equipment list
 	var equipment_list = equipment_data.get("equipment", equipment_data.get("items", []))
@@ -487,22 +501,6 @@ func get_current_world() -> String:
 
 func set_current_world(world_name: String) -> void:
 	current_world = world_name
-
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
-	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
-	if not is_instance_valid(self):
-		return
-		var value = obj.get(property)
-		return value if value != null else default_value
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null
 
 ## SPRINT 6.2: Campaign Creation Data Initialization
 

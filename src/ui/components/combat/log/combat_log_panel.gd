@@ -5,11 +5,11 @@ extends PanelContainer
 signal log_entry_selected(entry: Dictionary)
 signal log_cleared
 
-## Node references
-@onready var log_list: ItemList = %LogList
-@onready var clear_button: Button = %ClearButton
-@onready var filter_options: OptionButton = %FilterOptions
-@onready var auto_scroll_check: CheckBox = %AutoScrollCheck
+## Node references - SPRINT 5 FIX: Use get_node_or_null to avoid errors in tests
+@onready var log_list: ItemList = get_node_or_null("%LogList")
+@onready var clear_button: Button = get_node_or_null("%ClearButton")
+@onready var filter_options: OptionButton = get_node_or_null("%FilterOptions")
+@onready var auto_scroll_check: CheckBox = get_node_or_null("%AutoScrollCheck")
 
 ## Properties
 var max_entries: int = 100
@@ -294,10 +294,10 @@ func _format_combat_result(attacker: String, target: String, result: Dictionary)
 
 ## Formats hit/miss with roll vs threshold
 func _format_hit_miss(result: Dictionary) -> String:
-	var hit := result.get("hit", false)
-	var hit_roll := result.get("hit_roll", 0)
-	var modified_roll := result.get("modified_hit_roll", hit_roll)
-	var threshold := result.get("hit_threshold", 5)
+	var hit: bool = result.get("hit", false)
+	var hit_roll: int = result.get("hit_roll", 0)
+	var modified_roll: int = result.get("modified_hit_roll", hit_roll)
+	var threshold: int = result.get("hit_threshold", 5)
 
 	if hit:
 		if modified_roll == hit_roll:
@@ -313,27 +313,27 @@ func _format_modifiers(result: Dictionary) -> String:
 
 	# Range bonus
 	if result.has("mod_range_bonus"):
-		var range_band := result.get("range_band", "")
-		var bonus := result.get("mod_range_bonus", 0)
+		var range_band: String = result.get("range_band", "")
+		var bonus: int = result.get("mod_range_bonus", 0)
 		if bonus != 0:
 			mods.append("+%d range (%s)" % [bonus, range_band])
 
 	# Targeting bonus (armor_hit_bonus)
 	if result.has("armor_hit_bonus"):
-		var bonus := result.get("armor_hit_bonus", 0)
+		var bonus: int = result.get("armor_hit_bonus", 0)
 		if bonus != 0:
 			mods.append("+%d targeting" % bonus)
 
 	# Camouflage penalty
 	if result.has("camouflage_penalty"):
-		var penalty := result.get("camouflage_penalty", 0)
+		var penalty: int = result.get("camouflage_penalty", 0)
 		if penalty != 0:
 			mods.append("-%d camouflage" % penalty)
 
 	# Battle visor reroll
 	if result.get("battle_visor_used", false):
-		var reroll := result.get("battle_visor_reroll", 0)
-		mods.append("Battle Visor rerolled 1 → %d" % reroll)
+		var reroll: int = result.get("battle_visor_reroll", 0)
+		mods.append("Battle Visor reroll: 1 → %d" % reroll)
 
 	if mods.is_empty():
 		return ""
@@ -341,7 +341,7 @@ func _format_modifiers(result: Dictionary) -> String:
 
 ## Formats damage breakdown
 func _format_damage(result: Dictionary) -> String:
-	var damage_roll := result.get("damage_roll", 0)
+	var damage_roll: int = result.get("damage_roll", 0)
 	if damage_roll == 0:
 		return ""
 
@@ -350,9 +350,9 @@ func _format_damage(result: Dictionary) -> String:
 
 	# Weapon modification damage bonus
 	if result.has("weapon_mod_damage_bonus"):
-		var bonus := result.get("weapon_mod_damage_bonus", 0)
+		var bonus: int = result.get("weapon_mod_damage_bonus", 0)
 		if bonus != 0:
-			var total := damage_roll + bonus
+			var total: int = damage_roll + bonus
 			parts.append("+ %d weapon = %d" % [bonus, total])
 
 	return " ".join(parts)
@@ -364,7 +364,7 @@ func _format_saves(result: Dictionary) -> String:
 		return "[color=#4FC3F7]Shield blocked![/color]"
 
 	# Check for piercing bypassing armor
-	var effects := result.get("effects", [])
+	var effects: Array = result.get("effects", [])
 	if "armor_pierced" in effects:
 		return "[color=#D97706]Piercing weapon bypassed armor[/color]"
 
@@ -374,14 +374,14 @@ func _format_saves(result: Dictionary) -> String:
 
 	# Armor save
 	if result.get("armor_saved", false):
-		var armor_roll := result.get("armor_roll", 0)
+		var armor_roll: int = result.get("armor_roll", 0)
 		return "[color=#4FC3F7]Armor Save![/color] Rolled %d" % armor_roll
 
 	return ""
 
 ## Formats wound/elimination results
 func _format_wounds(result: Dictionary) -> String:
-	var effects := result.get("effects", [])
+	var effects: Array = result.get("effects", [])
 
 	# Auto-medicator negation
 	if "auto_medicator_negated_wound" in effects:
@@ -392,7 +392,7 @@ func _format_wounds(result: Dictionary) -> String:
 		return "[color=#DC2626]TARGET ELIMINATED![/color]"
 
 	# Wounds inflicted
-	var wounds := result.get("wounds_inflicted", 0)
+	var wounds: int = result.get("wounds_inflicted", 0)
 	if wounds > 0:
 		return "[color=#D97706]%d wound inflicted[/color]" % wounds
 
@@ -400,7 +400,7 @@ func _format_wounds(result: Dictionary) -> String:
 
 ## Formats special effects
 func _format_effects(result: Dictionary) -> String:
-	var effects := result.get("effects", [])
+	var effects: Array = result.get("effects", [])
 	if effects.is_empty():
 		return ""
 
@@ -415,7 +415,7 @@ func _format_effects(result: Dictionary) -> String:
 			"suppressed":
 				formatted.append("Suppressed")
 			"critical_extra_hit":
-				var wounds := result.get("wounds_inflicted", 2)
+				var wounds: int = result.get("wounds_inflicted", 2)
 				return "Critical: %d Hits" % wounds
 			"eliminated", "armor_pierced", "shield_blocked", "screen_deflected", "auto_medicator_negated_wound":
 				# These are handled elsewhere, skip
@@ -456,21 +456,3 @@ func _should_display_entry(entry: Dictionary) -> bool:
 		return true
 	return filter_types.get(entry.get("type", ""), true)
 
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return obj.get(property, default_value)
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

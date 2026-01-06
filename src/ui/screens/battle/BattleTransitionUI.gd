@@ -167,8 +167,48 @@ func _on_launch_battle_pressed() -> void:
 	if current_mission_data.is_empty():
 		_update_status("Error: No mission data available")
 		return
-	
+
 	battle_ready_to_launch.emit(_create_battle_context())
+
+## Sprint 26.4: Battle Mode Selection and Auto-Resolve
+
+signal auto_resolve_completed(result: Dictionary)
+
+func show_mode_selection(crew_count: int, enemy_count: int) -> void:
+	"""Show battle mode selection screen with crew/enemy info"""
+	_update_title("Battle Mode Selection")
+	_update_status("Crew: %d vs Enemies: %d - Select battle mode" % [crew_count, enemy_count])
+	_update_progress(0)
+	show()
+
+func show_auto_resolve_progress() -> void:
+	"""Show auto-resolve battle simulation with progress feedback
+	Sprint 26.4: Fixes dead end when auto-resolve selected"""
+	show()
+	_update_title("Auto-Resolving Battle...")
+	_update_progress(0)
+
+	# Simulate battle resolution phases with progress
+	var phases = [
+		{"progress": 10, "status": "Initializing combat simulation...", "delay": 0.3},
+		{"progress": 25, "status": "Calculating opening moves...", "delay": 0.4},
+		{"progress": 40, "status": "Resolving firefight rounds...", "delay": 0.5},
+		{"progress": 55, "status": "Processing casualties...", "delay": 0.4},
+		{"progress": 70, "status": "Evaluating tactical outcomes...", "delay": 0.4},
+		{"progress": 85, "status": "Determining battle result...", "delay": 0.3},
+		{"progress": 100, "status": "Battle Complete!", "delay": 0.2}
+	]
+
+	for phase in phases:
+		await get_tree().create_timer(phase.delay).timeout
+		_update_progress(phase.progress)
+		_update_status(phase.status)
+
+	# Brief pause to show completion
+	await get_tree().create_timer(0.5).timeout
+
+	# Emit completion - BattlePhase will handle actual results
+	auto_resolve_completed.emit({"auto_resolved": true, "timestamp": Time.get_unix_time_from_system()})
 
 ## Debug and Testing
 

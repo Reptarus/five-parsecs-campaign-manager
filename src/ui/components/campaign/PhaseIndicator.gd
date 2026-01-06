@@ -87,7 +87,7 @@ func _update_display() -> void:
 func _get_next_phase() -> String:
 	var phases = PHASE_COLORS.keys()
 	var current_index = phases.find(current_phase)
-	if current_index == -1 or current_index == (safe_call_method(phases, "size") as int) - 1:
+	if current_index == -1 or current_index == phases.size() - 1:
 		return phases[0]
 	return phases[current_index + 1]
 
@@ -120,10 +120,3 @@ func set_phase_data(phase_name: String, progress: float = 0.0, description: Stri
 	phase_description_text = description
 
 
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

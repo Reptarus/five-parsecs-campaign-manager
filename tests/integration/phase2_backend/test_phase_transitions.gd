@@ -22,6 +22,9 @@ func before():
 
 func before_test():
 	"""Test-level setup - create fresh manager instance for each test"""
+	# Set deterministic seed for reproducible random numbers
+	seed(12345)
+
 	# Create manager instance
 	phase_manager = auto_free(PhaseManagerClass.new())
 

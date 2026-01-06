@@ -59,7 +59,7 @@ func _test_phase_1_architecture():
 	# Test 1.2: All panels exist
 	var panels = [
 		"BaseCampaignPanel.gd",
-		"ConfigPanel.gd",
+		"ExpandedConfigPanel.gd",
 		"CaptainPanel.gd",
 		"CrewPanel.gd",
 		"EquipmentPanel.gd",
@@ -158,9 +158,9 @@ func _test_phase_3_panel_workflow():
 	print("[PHASE 3] Panel Workflow Integration")
 	print("-".repeat(60))
 
-	# Test 3.1: ConfigPanel can be instantiated
-	_run_test("ConfigPanel instantiation", func():
-		var panel_script = load("res://src/ui/screens/campaign/panels/ConfigPanel.gd")
+	# Test 3.1: ExpandedConfigPanel can be instantiated
+	_run_test("ExpandedConfigPanel instantiation", func():
+		var panel_script = load("res://src/ui/screens/campaign/panels/ExpandedConfigPanel.gd")
 		if not panel_script:
 			return false
 		var panel = panel_script.new()
@@ -186,11 +186,11 @@ func _test_phase_3_panel_workflow():
 	)
 
 	# Test 3.4: Panel signals exist
-	_run_test("ConfigPanel has 'panel_completed' signal", func():
-		var panel_script = load("res://src/ui/screens/campaign/panels/ConfigPanel.gd")
+	_run_test("ExpandedConfigPanel has 'panel_completed' signal", func():
+		var panel_script = load("res://src/ui/screens/campaign/panels/ExpandedConfigPanel.gd")
 		var panel = panel_script.new()
 		return panel.has_signal("panel_completed")
-	, "ConfigPanel")
+	, "ExpandedConfigPanel")
 
 	print("")
 

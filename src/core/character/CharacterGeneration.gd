@@ -338,17 +338,32 @@ static func finalize_crew_resources(characters: Array, campaign) -> Dictionary:
 	elif campaign is Dictionary:
 		campaign["quest_rumors"] = campaign.get("quest_rumors", 0) + total_resources.rumors
 
-	# Add story points
-	if campaign is Resource and "story_points" in campaign:
-		campaign.story_points += total_resources.story_points
-	elif campaign is Dictionary:
-		campaign["story_points"] = campaign.get("story_points", 0) + total_resources.story_points
+	# Add story points and credits via GameStateManager (SSOT pattern)
+	var gsm = Engine.get_main_loop().root.get_node_or_null("/root/GameStateManager") if Engine.get_main_loop() else null
+	if gsm:
+		# Use GameStateManager for credits (single source of truth)
+		if gsm.has_method("add_credits") and total_resources.credits > 0:
+			gsm.add_credits(total_resources.credits)
+		elif gsm.has_method("set_credits") and total_resources.credits > 0:
+			gsm.set_credits(gsm.get_credits() + total_resources.credits)
 
-	# Add credits to campaign pool
-	if campaign is Resource and "credits" in campaign:
-		campaign.credits += total_resources.credits
-	elif campaign is Dictionary:
-		campaign["credits"] = campaign.get("credits", 0) + total_resources.credits
+		# Use GameStateManager for story points if available
+		if gsm.has_method("add_story_points") and total_resources.story_points > 0:
+			gsm.add_story_points(total_resources.story_points)
+		elif gsm.has_method("set_story_progress") and total_resources.story_points > 0:
+			var current = gsm.get_story_progress() if gsm.has_method("get_story_progress") else 0
+			gsm.set_story_progress(current + total_resources.story_points)
+	else:
+		# Fallback: Direct campaign modification (legacy support)
+		if campaign is Resource and "story_points" in campaign:
+			campaign.story_points += total_resources.story_points
+		elif campaign is Dictionary:
+			campaign["story_points"] = campaign.get("story_points", 0) + total_resources.story_points
+
+		if campaign is Resource and "credits" in campaign:
+			campaign.credits += total_resources.credits
+		elif campaign is Dictionary:
+			campaign["credits"] = campaign.get("credits", 0) + total_resources.credits
 
 	print("CharacterGeneration: Finalized crew resources - Patrons: %d, Rivals: %d, Rumors: %d, Story Points: %d, Credits: %d" % [
 		total_resources.patrons, total_resources.rivals, total_resources.rumors,
@@ -673,7 +688,7 @@ static func apply_class_bonuses(character: Character) -> void:
 			character.add_trait("Medical Training")
 		"ENGINEER":
 			# Engineers can't exceed T4 in Savvy (Five Parsecs p.18)
-			var engineer_max_savvy = 4 if character.species.to_lower() == "engineer" else 5
+			var engineer_max_savvy = 4 if character.character_class.to_lower() == "engineer" else 5
 			character.savvy = clampi(character.savvy + 1, 0, engineer_max_savvy)
 			character.add_trait("Engineering Training")
 		"PILOT":
@@ -1496,26 +1511,6 @@ static func _generate_connections(character: Character, connections_manager: Obj
 ## Create basic character without external dependencies (safe fallback)
 static func create_basic_character(config: Dictionary = {}) -> Character:
 	return create_character(config)
-
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return obj.get(property, default_value)
-	return default_value
-
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null
 
 static func _ensure_character_equipment_static(character: Character) -> void:
 	"""Ensure character has proper starting equipment"""

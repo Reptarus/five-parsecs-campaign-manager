@@ -180,7 +180,7 @@ func on_terrain_changed(position: Vector2i, new_state: Dictionary) -> void:
 func _check_terrain_rules(position: Vector2i) -> void:
 
 	var current_state = _terrain_states.get(position, {})
-	if safe_call_method(current_state, "is_empty") == true:
+	if current_state.is_empty():
 		return
 
 	# Example rule: Fire spreads to adjacent flammable terrain
@@ -204,7 +204,7 @@ func _check_fire_spread_rule(position: Vector2i) -> void:
 
 	for adj_pos in adjacent_positions:
 		var adj_state = _terrain_states.get(adj_pos, {})
-		if safe_call_method(adj_state, "is_empty") == true:
+		if adj_state.is_empty():
 			continue
 
 		# Check if adjacent terrain can catch fire
@@ -228,7 +228,7 @@ func _check_extinguish_rule(position: Vector2i) -> void:
 
 	for adj_pos in adjacent_positions:
 		var adj_state = _terrain_states.get(adj_pos, {})
-		if safe_call_method(adj_state, "is_empty") == true:
+		if adj_state.is_empty():
 			continue
 
 		# Check if adjacent terrain has fire
@@ -241,20 +241,3 @@ func _check_extinguish_rule(position: Vector2i) -> void:
 			}
 			terrain_rule_triggered.emit(adj_pos, "extinguish_fire", data)  # warning: return value discarded (intentional)
 
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
-
-	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
-	if not is_instance_valid(self):
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value = obj.get(property)
-		return value if value != null else default_value
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

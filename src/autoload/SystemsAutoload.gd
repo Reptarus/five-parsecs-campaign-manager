@@ -121,17 +121,17 @@ func _initialize_systems() -> void:
 
 	if not economy_success:
 		var error: String = "Failed to initialize EconomySystem"
-		safe_call_method(initialization_errors, "append", [error])
+		initialization_errors.append(error)
 		system_error.emit("EconomySystem", error)
 
 	if not patron_success:
 		var error: String = "Failed to initialize PatronSystem"
-		safe_call_method(initialization_errors, "append", [error])
+		initialization_errors.append(error)
 		system_error.emit("PatronSystem", error)
 
 	if not faction_success:
 		var error: String = "Failed to initialize FactionSystem"
-		safe_call_method(initialization_errors, "append", [error])
+		initialization_errors.append(error)
 		system_error.emit("FactionSystem", error)
 
 	systems_initialized = economy_success and patron_success and faction_success
@@ -375,11 +375,3 @@ func _exit_tree() -> void:
 	print("SystemsAutoload: Shutting down and cleaning up all systems...")
 	cleanup_all_systems()
 	print("SystemsAutoload: Shutdown complete")
-
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

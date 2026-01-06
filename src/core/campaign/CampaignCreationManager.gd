@@ -115,34 +115,34 @@ func _validate_current_step() -> bool:
 			return false
 
 func _validate_config() -> bool:
-	if not campaign_data.config.has("name"):
+	if not campaign_data["config"].has("name"):
 		creation_errors.append("Campaign name is required")
 		return false
-	if not campaign_data.config.has("difficulty"):
+	if not campaign_data["config"].has("difficulty"):
 		creation_errors.append("Difficulty level is required")
 		return false
 	return true
 
 func _validate_crew() -> bool:
-	if campaign_data.crew.size() < 4:
+	if campaign_data["crew"].size() < 4:
 		creation_errors.append("Minimum 4 crew members required")
 		return false
-	if campaign_data.crew.size() > 6:
+	if campaign_data["crew"].size() > 6:
 		creation_errors.append("Maximum 6 crew members allowed")
 		return false
 	return true
 
 func _validate_captain() -> bool:
-	if campaign_data.captain.is_empty():
+	if campaign_data["captain"].is_empty():
 		creation_errors.append("Captain data is required")
 		return false
-	if not campaign_data.captain.has("name"):
+	if not campaign_data["captain"].has("name"):
 		creation_errors.append("Captain must have a name")
 		return false
 	return true
 
 func _validate_resources() -> bool:
-	if campaign_data.resources.is_empty():
+	if campaign_data["resources"].is_empty():
 		creation_errors.append("Resource data is required")
 		return false
 	return true
@@ -157,21 +157,21 @@ func _validate_final() -> bool:
 	return config_valid and crew_valid and captain_valid and resources_valid
 
 func set_config_data(config: Dictionary) -> void:
-	campaign_data.config = config.duplicate(true)
-	campaign_config_completed.emit(campaign_data.config)
+	campaign_data["config"] = config.duplicate(true)
+	campaign_config_completed.emit(campaign_data["config"])
 
 func set_crew_data(crew: Array) -> void:
-	campaign_data.crew = crew.duplicate(true)
-	crew_creation_completed.emit(campaign_data.crew)
+	campaign_data["crew"] = crew.duplicate(true)
+	crew_creation_completed.emit(campaign_data["crew"])
 
 func set_captain_data(captain: Dictionary) -> void:
-	campaign_data.captain = captain.duplicate(true)
-	if captain.has("character_object") and captain.character_object is Character:
-		character_creation_completed.emit(captain.character_object)
+	campaign_data["captain"] = captain.duplicate(true)
+	if captain.has("character_object") and captain["character_object"] is Character:
+		character_creation_completed.emit(captain["character_object"])
 
 func set_resource_data(resources: Dictionary) -> void:
-	campaign_data.resources = resources.duplicate(true)
-	resources_initialized.emit(campaign_data.resources)
+	campaign_data["resources"] = resources.duplicate(true)
+	resources_initialized.emit(campaign_data["resources"])
 
 func finalize_campaign_creation():
 	"""Create and return the final campaign object"""
@@ -187,21 +187,21 @@ func finalize_campaign_creation():
 
 	# Configure the campaign with our data
 	if campaign and campaign.has_method("configure"):
-		campaign.configure(campaign_data.config)
+		campaign.configure(campaign_data["config"])
 	elif campaign and campaign.has_method("set_config"):
-		campaign.set_config(campaign_data.config)
+		campaign.set_config(campaign_data["config"])
 	else:
 		push_warning("CampaignCreationManager: Campaign doesn't support configuration")
 
 	# Set additional data if methods exist
-	if campaign.has_method("set_crew") and not campaign_data.crew.is_empty():
-		campaign.set_crew(campaign_data.crew)
+	if campaign.has_method("set_crew") and not campaign_data["crew"].is_empty():
+		campaign.set_crew(campaign_data["crew"])
 
-	if campaign.has_method("set_captain") and not campaign_data.captain.is_empty():
-		campaign.set_captain(campaign_data.captain)
+	if campaign.has_method("set_captain") and not campaign_data["captain"].is_empty():
+		campaign.set_captain(campaign_data["captain"])
 
-	if campaign.has_method("set_resources") and not campaign_data.resources.is_empty():
-		campaign.set_resources(campaign_data.resources)
+	if campaign.has_method("set_resources") and not campaign_data["resources"].is_empty():
+		campaign.set_resources(campaign_data["resources"])
 
 	print("CampaignCreationManager: Campaign creation finalized")
 	return campaign
@@ -240,15 +240,15 @@ func reset_creation() -> void:
 	print("CampaignCreationManager: Creation reset")
 
 func set_campaign_config(config: Dictionary) -> void:
-	campaign_data.config = config.duplicate()
-	campaign_config_completed.emit(campaign_data.config)
+	campaign_data["config"] = config.duplicate()
+	campaign_config_completed.emit(campaign_data["config"])
 
 func set_initial_resources(resources: Dictionary) -> void:
-	campaign_data.resources = resources.duplicate()
-	resources_initialized.emit(campaign_data.resources)
+	campaign_data["resources"] = resources.duplicate()
+	resources_initialized.emit(campaign_data["resources"])
 
 func submit_captain_data(captain: Character) -> void:
-	campaign_data.captain = {
+	campaign_data["captain"] = {
 		"character_object": captain,
 		"name": captain.character_name if captain.has("character_name") else "Captain"
 	}
@@ -256,8 +256,8 @@ func submit_captain_data(captain: Character) -> void:
 	advance_step()
 
 func initialize_resources(difficulty: int) -> void:
-	campaign_data.resources = _calculate_initial_resources(difficulty)
-	resources_initialized.emit(campaign_data.resources)
+	campaign_data["resources"] = _calculate_initial_resources(difficulty)
+	resources_initialized.emit(campaign_data["resources"])
 	advance_step()
 
 func _calculate_initial_resources(difficulty: int) -> Dictionary:
@@ -284,10 +284,3 @@ func _calculate_initial_resources(difficulty: int) -> Dictionary:
 			resources[GlobalEnums.ResourceType.SUPPLIES] = 1
 
 	return resources
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

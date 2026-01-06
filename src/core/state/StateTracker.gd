@@ -127,7 +127,7 @@ func _validate_state_types(state: Dictionary) -> Dictionary:
 		var state_value: Variant = state.get(key)
 		if not _is_valid_type(state_value):
 			issues.append({"type": "type_mismatch", "key": key, "value": state_value})
-	return {"valid": (safe_call_method(issues, "is_empty") == true), "issues": issues}
+	return {"valid": issues.is_empty(), "issues": issues}
 
 func _validate_required_fields(state: Dictionary) -> Dictionary:
 	var required_fields: Array[String] = ["credits", "resources", "campaign_turns"]
@@ -138,7 +138,7 @@ func _validate_required_fields(state: Dictionary) -> Dictionary:
 		if not state.has(field):
 			issues.append({"type": "missing_field", "field": field})
 
-	return {"valid": (safe_call_method(issues, "is_empty") == true), "issues": issues}
+	return {"valid": issues.is_empty(), "issues": issues}
 
 func _validate_value_ranges(state: Dictionary) -> Dictionary:
 	var issues: Array = []
@@ -157,7 +157,7 @@ func _validate_value_ranges(state: Dictionary) -> Dictionary:
 			if turns < 0:
 				issues.append({"type": "invalid_range", "field": "campaign_turns", "value": turns})
 
-	return {"valid": (safe_call_method(issues, "is_empty") == true), "issues": issues}
+	return {"valid": issues.is_empty(), "issues": issues}
 
 # State recovery
 func _attempt_recovery(issues: Array) -> Dictionary:
@@ -285,7 +285,7 @@ func _create_checkpoint(label: String = "") -> String:
 	state_checkpoints[checkpoint_id] = current_state.duplicate(true)
 
 	# Maintain checkpoint limit
-	while (safe_call_method(state_checkpoints, "size") as int) > MAX_CHECKPOINTS:
+	while state_checkpoints.size() > MAX_CHECKPOINTS:
 		var keys: Array = state_checkpoints.keys()
 		if not keys.is_empty():
 			var oldest: Variant = keys[0]
@@ -375,19 +375,3 @@ func undo() -> bool:
 
 	return false
 
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
-	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
-	if not is_instance_valid(self):
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value = obj.get(property)
-		return value if value != null else default_value
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

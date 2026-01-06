@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3 uid="uid://dpw4k3j8vn2rh"]
+[gd_scene load_steps=5 format=3 uid="uid://dpw4k3j8vn2rh"]
 
 [ext_resource type="Script" path="res://src/ui/components/battle/CharacterStatusCard.gd" id="1_character_card"]
 

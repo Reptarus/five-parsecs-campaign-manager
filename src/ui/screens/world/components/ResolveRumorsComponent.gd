@@ -32,6 +32,14 @@ func _ready() -> void:
 	_initialize_event_bus()
 	_connect_ui_signals()
 	_setup_initial_state()
+	_apply_touch_target_sizing()
+
+## Sprint C: Apply 48px minimum touch targets for mobile UX
+func _apply_touch_target_sizing() -> void:
+	"""Apply 48px minimum item height to ItemLists for touch compliance"""
+	const TOUCH_TARGET_MIN := 48
+	if rumors_list:
+		rumors_list.add_theme_constant_override("item_height", TOUCH_TARGET_MIN)
 
 func _initialize_event_bus() -> void:
 	"""Connect to the centralized event bus"""
@@ -39,6 +47,11 @@ func _initialize_event_bus() -> void:
 	if event_bus:
 		event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
 		print("ResolveRumorsComponent: Connected to event bus")
+
+func _exit_tree() -> void:
+	"""Cleanup event bus subscriptions to prevent memory leaks"""
+	if event_bus:
+		event_bus.unsubscribe_from_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
 
 func _connect_ui_signals() -> void:
 	"""Connect UI button signals"""
@@ -266,6 +279,18 @@ func get_current_quest() -> Dictionary:
 func get_remaining_rumors() -> Array:
 	"""Get remaining rumors"""
 	return rumors.duplicate(true)
+
+## Sprint 12.2: Standardized step results for WorldPhaseController integration
+func get_step_results() -> Dictionary:
+	"""Get step results for phase completion (standardized interface)"""
+	return {
+		"rumors_resolved": rumors_resolved,
+		"current_quest": current_quest.duplicate(true),
+		"remaining_rumors": rumors.duplicate(true),
+		"quest_rumors": quest_rumors.duplicate(true),
+		"has_active_quest": has_active_quest,
+		"last_roll": last_roll
+	}
 
 func add_rumor(rumor: Variant) -> void:
 	"""Add a new rumor (or quest rumor if quest active)"""

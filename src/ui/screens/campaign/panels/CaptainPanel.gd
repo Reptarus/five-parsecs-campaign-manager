@@ -13,6 +13,8 @@ const Character = preload("res://src/core/character/Character.gd")
 const SimpleCharacterCreator = preload("res://src/core/character/Generation/SimpleCharacterCreator.gd")
 
 # Captain-specific signals
+# Sprint 26.3: These signals emit panel state as Dictionary (from get_panel_data())
+# The Dictionary contains captain data serialized for state management
 signal captain_created(captain_data: Dictionary)
 signal captain_customization_requested(captain: Character)
 signal captain_data_updated(captain_data: Dictionary)
@@ -58,6 +60,11 @@ var roll_log_display: RichTextLabel
 var _verbose_mode: bool = false
 var _roll_log: Array[String] = []
 
+# Sprint 26.7: Collapsible advanced options
+var advanced_options_container: VBoxContainer
+var advanced_options_toggle: Button
+var advanced_options_visible: bool = false
+
 func _ready() -> void:
 	# Set panel info before base initialization with more informative description
 	set_panel_info(
@@ -80,6 +87,9 @@ func _ready() -> void:
 	_validate_node_references()
 
 	print("CaptainPanel: Enhanced captain creation ready")
+
+	# SPRINT 5.1: Emit panel_ready after initialization complete
+	call_deferred("emit_panel_ready")
 
 # NOTE: _add_progress_indicator() removed - CampaignCreationUI handles progress display centrally
 
@@ -161,55 +171,8 @@ func _create_captain_interface() -> void:
 	# Advanced options
 	_add_advanced_options(main_container)
 
-func _add_creation_methods(container: VBoxContainer) -> void:
-	"""Add captain creation method buttons"""
-	var methods_label = Label.new()
-	methods_label.text = "Choose Captain Creation Method:"
-	methods_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
-	methods_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	container.add_child(methods_label)
-
-	var button_container = GridContainer.new()
-	button_container.columns = 2
-	button_container.add_theme_constant_override("h_separation", SPACING_SM)
-	button_container.add_theme_constant_override("v_separation", SPACING_SM)
-	container.add_child(button_container)
-
-	var methods = [
-		{
-			"id": "random",
-			"text": "Random Captain",
-			"tooltip": "Generate a captain with random stats and background",
-			"method": "_generate_random_captain"
-		},
-		{
-			"id": "custom",
-			"text": "Custom Build",
-			"tooltip": "Manually allocate stats and choose background",
-			"method": "_create_custom_captain"
-		},
-		{
-			"id": "veteran",
-			"text": "Veteran Template",
-			"tooltip": "Start with an experienced captain template",
-			"method": "_use_veteran_template"
-		},
-		{
-			"id": "import",
-			"text": "Import Character",
-			"tooltip": "Import an existing character as captain",
-			"method": "_import_character"
-		}
-	]
-
-	for method_data in methods:
-		var btn = Button.new()
-		btn.text = method_data.text
-		btn.tooltip_text = method_data.tooltip
-		btn.custom_minimum_size = Vector2(150, TOUCH_TARGET_MIN)
-		btn.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-		btn.pressed.connect(Callable(self, method_data.method))
-		button_container.add_child(btn)
+# NOTE: _add_creation_methods() removed in Sprint 26.7 - was already not called (line 161 comment)
+# The 4-button grid was confusing users; using simple form instead
 
 func _add_captain_preview(container: VBoxContainer) -> void:
 	"""Add captain preview display area"""
@@ -232,16 +195,26 @@ func _add_captain_preview(container: VBoxContainer) -> void:
 	captain_display_container.add_child(empty_label)
 
 func _add_advanced_options(container: VBoxContainer) -> void:
-	"""Add advanced captain options"""
-	var advanced_label = Label.new()
-	advanced_label.text = "Advanced Options:"
-	advanced_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
-	advanced_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	container.add_child(advanced_label)
+	"""Add advanced captain options in a collapsible section (Sprint 26.7)"""
+	# Create toggle button for collapsible section
+	advanced_options_toggle = Button.new()
+	advanced_options_toggle.text = "▶ Advanced Options (Optional)"
+	advanced_options_toggle.flat = true
+	advanced_options_toggle.custom_minimum_size.y = TOUCH_TARGET_MIN
+	advanced_options_toggle.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	advanced_options_toggle.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	advanced_options_toggle.pressed.connect(_on_advanced_options_toggled)
+	container.add_child(advanced_options_toggle)
+
+	# Create container for advanced options (hidden by default)
+	advanced_options_container = VBoxContainer.new()
+	advanced_options_container.visible = false
+	advanced_options_container.add_theme_constant_override("separation", SPACING_SM)
+	container.add_child(advanced_options_container)
 
 	var options_container = HBoxContainer.new()
 	options_container.add_theme_constant_override("separation", SPACING_MD)
-	container.add_child(options_container)
+	advanced_options_container.add_child(options_container)
 
 	# Leadership bonus
 	var leadership_check = CheckBox.new()
@@ -275,7 +248,7 @@ func _add_advanced_options(container: VBoxContainer) -> void:
 	# Verbose mode toggle for dice roll transparency
 	var verbose_container = VBoxContainer.new()
 	verbose_container.name = "VerboseModeContainer"
-	container.add_child(verbose_container)
+	advanced_options_container.add_child(verbose_container)
 
 	var separator = HSeparator.new()
 	verbose_container.add_child(separator)
@@ -307,6 +280,14 @@ func _on_verbose_mode_toggled(pressed: bool) -> void:
 			_update_roll_log_display()
 		elif not pressed:
 			roll_log_display.text = ""
+
+func _on_advanced_options_toggled() -> void:
+	"""Toggle visibility of advanced options section (Sprint 26.7)"""
+	advanced_options_visible = not advanced_options_visible
+	if advanced_options_container:
+		advanced_options_container.visible = advanced_options_visible
+	if advanced_options_toggle:
+		advanced_options_toggle.text = ("▼ " if advanced_options_visible else "▶ ") + "Advanced Options (Optional)"
 
 func _log_dice_roll(context: String, roll_value: int, result: int) -> void:
 	"""Log a dice roll for verbose mode display"""
@@ -1344,10 +1325,7 @@ func _create_custom_captain() -> void:
 	# Use the same flow as the Advanced Creation button
 	_on_advanced_creation_pressed()
 
-func _import_character() -> void:
-	"""Import existing character as captain"""
-	creation_method = "import"
-	push_warning("CaptainPanel: Character import will be implemented in next phase")
+# NOTE: _import_character() removed in Sprint 26.7 - was dead-end (never implemented)
 
 func _roll_captain_stat() -> int:
 	"""Roll captain stat using Five Parsecs rules (2d6/3)"""
@@ -1563,6 +1541,8 @@ func get_panel_data() -> Dictionary:
 
 	return {
 		"captain": {
+			"id": current_captain.character_id,  # SPRINT 5.2: Include captain ID for crew matching
+			"character_id": current_captain.character_id,  # COMPATIBILITY: Both id forms
 			"name": current_captain.character_name,  # COMPATIBILITY: Both keys for different consumers
 			"character_name": current_captain.character_name,
 			"combat": current_captain.combat,

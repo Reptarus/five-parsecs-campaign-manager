@@ -79,22 +79,26 @@ func _ready() -> void:
 		add_equipment_button.pressed.connect(_on_add_equipment_pressed)
 	if remove_equipment_button:
 		remove_equipment_button.pressed.connect(_on_remove_equipment_pressed)
-	
+
 	# Connect keyword tooltip
 	if equipment_rich_text and keyword_tooltip:
 		equipment_rich_text.meta_clicked.connect(_on_equipment_keyword_clicked)
-	
+
 	# Style XP progress bar
 	if xp_progress_bar:
 		var style := StyleBoxFlat.new()
 		style.bg_color = COLOR_INPUT
 		style.set_corner_radius_all(4)
 		xp_progress_bar.add_theme_stylebox_override("background", style)
-		
+
 		var fill_style := StyleBoxFlat.new()
 		fill_style.bg_color = COLOR_SUCCESS  # Green for XP progress
 		fill_style.set_corner_radius_all(4)
 		xp_progress_bar.add_theme_stylebox_override("fill", fill_style)
+
+	# Sprint 26.9 Phase 8.3: Connect viewport resize for responsive stats grid
+	get_viewport().size_changed.connect(_on_viewport_resized)
+	_apply_responsive_stats_grid()
 
 	# Load character data
 	load_character_data()
@@ -286,6 +290,53 @@ func _update_stats_grid() -> void:
 		savvy_cell.text = str(current_character.savvy if "savvy" in current_character else 0)
 	if speed_cell:
 		speed_cell.text = str(current_character.speed if "speed" in current_character else 4)
+
+## Sprint 26.9 Phase 8.3: Responsive stats grid to prevent horizontal scroll on mobile
+func _on_viewport_resized() -> void:
+	"""Handle viewport resize - adjust stats grid columns"""
+	_apply_responsive_stats_grid()
+
+func _apply_responsive_stats_grid() -> void:
+	"""Adjust stats grid columns based on viewport width to prevent horizontal scroll on mobile"""
+	if not stats_grid:
+		return
+
+	var viewport := get_viewport()
+	if not viewport:
+		return
+
+	var viewport_width := viewport.get_visible_rect().size.x
+
+	# Determine column count based on screen size
+	# Mobile (<768px): 2 columns - fits well on small screens
+	# Tablet (768-1024px): 3 columns - balanced layout
+	# Desktop (>1024px): 5 columns - original layout, all stats visible
+	var columns: int
+	var h_spacing: int
+	var v_spacing: int
+
+	if viewport_width < 768:
+		# Mobile: 2 columns, compact spacing
+		columns = 2
+		h_spacing = 8
+		v_spacing = 8
+	elif viewport_width < 1024:
+		# Tablet: 3 columns, moderate spacing
+		columns = 3
+		h_spacing = 12
+		v_spacing = 8
+	else:
+		# Desktop: 5 columns (all stats in one row), full spacing
+		columns = 5
+		h_spacing = 16
+		v_spacing = 8
+
+	# Apply columns and spacing
+	stats_grid.columns = columns
+	stats_grid.add_theme_constant_override("h_separation", h_spacing)
+	stats_grid.add_theme_constant_override("v_separation", v_spacing)
+
+	print("CharacterDetailsScreen: Stats grid adjusted to %d columns for %dpx viewport" % [columns, viewport_width])
 
 func _update_equipment_display() -> void:
 	"""Update equipment list with BBCode keyword links"""

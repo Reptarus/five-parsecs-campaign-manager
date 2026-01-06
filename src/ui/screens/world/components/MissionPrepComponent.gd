@@ -24,7 +24,8 @@ const FPCM_DataManager = preload("res://src/core/data/DataManager.gd")
 
 # Mission prep state
 var mission_data: Dictionary = {}
-var crew_data: Array[Dictionary] = []
+# Sprint 26.3: Crew members are Character objects (Array type removed for flexibility)
+var crew_data: Array = []
 var available_equipment: Array[Dictionary] = []
 var crew_equipment_assignments: Dictionary = {}  # crew_id -> [equipment_ids]
 var selected_crew_index: int = -1
@@ -57,6 +58,13 @@ func _initialize_event_bus() -> void:
 
 	print("MissionPrepComponent: Connected to event bus")
 
+func _exit_tree() -> void:
+	"""Cleanup event bus subscriptions to prevent memory leaks"""
+	if event_bus:
+		event_bus.unsubscribe_from_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
+		event_bus.unsubscribe_from_event(CampaignTurnEventBus.TurnEvent.AUTOMATION_TOGGLED, _on_automation_toggled)
+		event_bus.unsubscribe_from_event(CampaignTurnEventBus.TurnEvent.JOB_ACCEPTED, _on_job_accepted)
+
 func _connect_ui_signals() -> void:
 	"""Connect UI button and list signals"""
 	if crew_list:
@@ -74,7 +82,16 @@ func _setup_initial_state() -> void:
 	selected_crew_index = -1
 	selected_equipment_index = -1
 	crew_equipment_assignments.clear()
+	_add_required_indicator()
 	_update_ui_display()
+
+func _add_required_indicator() -> void:
+	"""Add 'Required' indicator to the component title for UX clarity"""
+	var title_label = get_node_or_null("MissionPrepContainer/HeaderPanel/HeaderContent/TitleRow/Title")
+	if title_label and title_label is Label:
+		# Add required badge if not already present
+		if not title_label.text.contains("Required"):
+			title_label.text = "Mission Preparation  •  REQUIRED"
 
 ## Public API: Initialize mission prep phase with campaign data
 func initialize_mission_prep(mission: Dictionary, crew: Array, equipment: Array) -> void:

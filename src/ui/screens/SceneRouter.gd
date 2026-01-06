@@ -6,6 +6,10 @@ extends Node
 signal scene_changed(new_scene: String, previous_scene: String)
 signal navigation_error(scene_name: String, error: String)
 
+## Sprint B1: Transition settings
+var use_transitions: bool = true  # Enable/disable fade transitions
+var transition_duration: float = 0.2  # Default 200ms
+
 # Scene paths organized by category
 const SCENE_PATHS = {
 	# Main screens
@@ -26,7 +30,7 @@ const SCENE_PATHS = {
 	"character_details": "res://src/ui/screens/character/CharacterDetailsScreen.tscn",
 	"character_progression": "res://src/ui/screens/character/CharacterProgression.tscn",
 	"advancement_manager": "res://src/ui/screens/character/AdvancementManager.tscn",
-	"crew_creation": "res://src/ui/screens/crew/InitialCrewCreation.tscn",
+	# "crew_creation": DEPRECATED - CrewPanel handles crew creation in CampaignCreationUI wizard
 	"crew_management": "res://src/ui/screens/crew/CrewManagementScreen.tscn",
 
 	# Equipment and ship management
@@ -86,7 +90,6 @@ var max_cache_size: int = 10
 # Campaign creation specific scenes for preloading
 const CAMPAIGN_CREATION_SCENES = [
 	"campaign_setup",
-	"crew_creation",
 	"character_creator",
 	"equipment_generation",
 	"campaign_dashboard"
@@ -212,7 +215,7 @@ func get_scenes_by_category(category: String) -> Array[String]:
 		"campaign":
 			scenes = ["campaign_creation", "campaign_dashboard", "campaign_setup", "victory_progress"]
 		"character":
-			scenes = ["character_creator", "character_sheet", "character_progression", "advancement_manager", "crew_creation"]
+			scenes = ["character_creator", "character_details", "character_progression", "advancement_manager", "crew_management"]
 		"equipment":
 			scenes = ["equipment_manager", "ship_manager", "ship_inventory"]
 		"world":
@@ -399,11 +402,11 @@ func _preload_campaign_flow_scenes(current_scene_name: String) -> void:
 	
 	match current_scene_name:
 		"campaign_setup":
-			scenes_to_preload = ["crew_creation"]
-		"crew_creation":
-			scenes_to_preload = ["character_creator", "equipment_generation"]
+			scenes_to_preload = ["campaign_creation"]
+		"campaign_creation":
+			scenes_to_preload = ["character_creator", "campaign_dashboard"]
 		"character_creator":
-			scenes_to_preload = ["crew_creation", "equipment_generation"]
+			scenes_to_preload = ["campaign_creation", "campaign_dashboard"]
 		"equipment_generation":
 			scenes_to_preload = ["campaign_dashboard"]
 	
@@ -431,7 +434,6 @@ func _validate_critical_scenes() -> void:
 	var critical_scenes: Array[String] = [
 		"main_menu",
 		"campaign_creation",
-		"crew_creation",
 		"main_game"
 	]
 	
@@ -493,12 +495,64 @@ func get_scene_info() -> Dictionary:
 		"history_size": navigation_history.size(),
 		"missing_scene_list": results.missing
 	}
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	@warning_ignore("unsafe_method_access")
-	if obj is Object and obj.has_method(method_name):
-		@warning_ignore("unsafe_method_access")
-		return obj.callv(method_name, args)
-	return null
+
+## Sprint B1: Transition-enabled navigation methods
+
+func navigate_to_with_transition(scene_name: String, context: Dictionary = {}, add_to_history: bool = true) -> void:
+	"""Navigate to a scene with smooth fade transition (Sprint B1)"""
+	if not SCENE_PATHS.has(scene_name):
+		var error_msg: String = "Scene not found: " + str(scene_name)
+		push_error("SceneRouter: " + error_msg)
+		navigation_error.emit(scene_name, error_msg)
+		return
+
+	# Store context for the target scene
+	if not context.is_empty():
+		scene_contexts[scene_name] = context.duplicate()
+
+	# Add current scene to history if requested
+	if add_to_history and not current_scene.is_empty():
+		_add_to_history(current_scene)
+
+	var previous_scene = current_scene
+	current_scene = scene_name
+
+	# Get TransitionManager autoload safely
+	var transition_mgr = get_node_or_null("/root/TransitionManager")
+
+	# Use TransitionManager if available
+	if transition_mgr and use_transitions and transition_mgr.has_method("fade_to_scene_name"):
+		print("SceneRouter: Navigating to ", scene_name, " with transition")
+		await transition_mgr.fade_to_scene_name(scene_name, transition_duration)
+		scene_changed.emit(scene_name, previous_scene)
+		_preload_campaign_flow_scenes(scene_name)
+	else:
+		# Fallback to direct navigation
+		var scene_path = SCENE_PATHS[scene_name]
+		var error: int = get_tree().change_scene_to_file(scene_path)
+		if error != OK:
+			push_error("SceneRouter: Failed to load scene: " + scene_path)
+			current_scene = previous_scene
+			return
+		scene_changed.emit(scene_name, previous_scene)
+		_preload_campaign_flow_scenes(scene_name)
+
+func navigate_back_with_transition() -> void:
+	"""Navigate back to the previous scene with smooth fade transition (Sprint B1)"""
+	if navigation_history.is_empty():
+		push_warning("SceneRouter: No navigation history to go back to")
+		return
+
+	var previous_scene = navigation_history.pop_back()
+	print("SceneRouter: Navigating back to ", previous_scene, " with transition")
+	await navigate_to_with_transition(previous_scene, {}, false)
+
+func set_transitions_enabled(enabled: bool) -> void:
+	"""Enable or disable scene transitions"""
+	use_transitions = enabled
+	print("SceneRouter: Transitions ", "enabled" if enabled else "disabled")
+
+func set_transition_duration(duration: float) -> void:
+	"""Set the default transition duration (seconds)"""
+	transition_duration = clampf(duration, 0.05, 2.0)
+	print("SceneRouter: Transition duration set to ", transition_duration, "s")

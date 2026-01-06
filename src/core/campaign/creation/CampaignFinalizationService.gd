@@ -84,7 +84,7 @@ func _validate_campaign_data(data: Dictionary, state_manager: RefCounted) -> Dic
 	if state_manager and state_manager.has_method("validate_complete_state"):
 		var state_validation = state_manager.validate_complete_state()
 		if not state_validation.valid:
-			if state_validation.has("errors"):
+			if state_validation.has("errors") and state_validation.errors is Dictionary:
 				for phase in state_validation.errors:
 					var phase_errors = state_validation.errors[phase]
 					if phase_errors is Array:
@@ -220,7 +220,24 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	var equipment_data = data.get("equipment", {})
 	var transformed_equipment = _transform_equipment_data_for_turn_system(equipment_data)
 	campaign.set_starting_equipment(transformed_equipment)
-	
+
+	# Sprint 26.9 GAP-D4: Also push starting equipment to EquipmentManager ship stash
+	# Note: RefCounted can't use get_node_or_null() - access autoload via SceneTree
+	var equipment_manager: Node = null
+	var tree = Engine.get_main_loop() as SceneTree
+	if tree:
+		equipment_manager = tree.root.get_node_or_null("EquipmentManager")
+	if equipment_manager and equipment_manager.has_method("add_to_ship_stash"):
+		var equipment_list = transformed_equipment.get("equipment", [])
+		var items_added = 0
+		for item in equipment_list:
+			if item is Dictionary:
+				if equipment_manager.add_to_ship_stash(item):
+					items_added += 1
+		print("CampaignFinalizationService: Added %d starting equipment items to ship stash" % items_added)
+	else:
+		print("CampaignFinalizationService: Warning - EquipmentManager not available for starting equipment sync")
+
 	# Initialize world (format is compatible)
 	var world_data = data.get("world", {})
 	campaign.initialize_world(world_data)
@@ -457,19 +474,24 @@ func _log_success_metrics(campaign: Resource, path: String) -> void:
 ## Data Transformation Methods for Turn System Compatibility
 
 func _transform_crew_data_for_turn_system(crew_data: Dictionary) -> Dictionary:
-	"""Transform crew data from creation format to turn system format"""
-	var transformed = crew_data.duplicate(true)
-	
-	# Ensure crew members are in the expected format for turn system
+	"""Transform crew data for turn system (Sprint 26.3: Character-Everywhere)"""
+	var transformed = {}
+
+	# Sprint 26.3: Pass through crew members directly (now Character objects from CrewPanel)
 	if crew_data.has("members"):
 		var members = crew_data.get("members", [])
 		var transformed_members = []
-		
+
 		for member in members:
-			if member is Dictionary:
-				# Transform dictionary to Character object format
+			if member is Character:
+				# Sprint 26.3: Character objects pass through directly
+				# Ensure required turn system fields exist on Character
+				if member.xp == 0 and not member.has_meta("xp_initialized"):
+					member.set_meta("xp_initialized", true)
+				transformed_members.append(member)
+			elif member is Dictionary:
+				# Legacy: Convert Dictionary to Character if needed
 				var character_data = member.duplicate(true)
-				# Add any missing required fields for turn system
 				if not character_data.has("id"):
 					character_data["id"] = str(randi())
 				if not character_data.has("experience"):
@@ -478,11 +500,15 @@ func _transform_crew_data_for_turn_system(crew_data: Dictionary) -> Dictionary:
 					character_data["injuries"] = []
 				transformed_members.append(character_data)
 			else:
-				# Already in correct format
 				transformed_members.append(member)
-		
+
 		transformed["members"] = transformed_members
-	
+
+	# Copy other crew data fields
+	for key in crew_data.keys():
+		if key != "members":
+			transformed[key] = crew_data[key]
+
 	return transformed
 
 func _transform_captain_data_for_turn_system(captain_data: Dictionary) -> Dictionary:

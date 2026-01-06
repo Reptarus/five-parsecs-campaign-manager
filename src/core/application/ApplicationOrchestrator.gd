@@ -23,7 +23,7 @@ const SCENES: Dictionary = {
 	"battle": "res://src/core/battle/Battle.tscn",
 	"post_battle": "res://src/ui/screens/postbattle/PostBattleSequence.tscn",
 	"crew_management": "res://src/ui/screens/management/CrewManagement.tscn",
-	"tutorial_setup": "res://src/ui/screens/tutorial/InitialCrewCreation.tscn",
+	# "tutorial_setup": DEPRECATED - InitialCrewCreation replaced by CrewPanel in campaign wizard
 	"options": "res://src/ui/screens/options/video_options_menu.tscn",
 	"library": "res://src/ui/screens/reference/RulesReference.tscn"
 }
@@ -100,11 +100,3 @@ func _change_scene_content(scene_name: String) -> void:
 func preload_scene(scene_name: String) -> void:
 	if SCENES.has(scene_name) and ResourceLoader.exists(SCENES[scene_name]):
 		ResourceLoader.load_threaded_request(SCENES[scene_name])
-
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

@@ -84,6 +84,12 @@ func _initialize_event_bus() -> void:
 	else:
 		print("JobOfferComponent: WARNING - Could not connect to event bus")
 
+func _exit_tree() -> void:
+	"""Cleanup event bus subscriptions to prevent memory leaks"""
+	if event_bus:
+		event_bus.unsubscribe_from_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
+		event_bus.unsubscribe_from_event(CampaignTurnEventBus.TurnEvent.AUTOMATION_TOGGLED, _on_automation_toggled)
+
 func _connect_ui_signals() -> void:
 	"""Connect UI button and list signals"""
 	# Debug: Log UI node status
@@ -97,6 +103,8 @@ func _connect_ui_signals() -> void:
 
 	if job_list:
 		job_list.item_selected.connect(_on_job_selected)
+		# Sprint 26.4: Ensure 48px minimum touch target for mobile
+		job_list.add_theme_constant_override("item_height", TOUCH_TARGET_MIN)
 	else:
 		print("JobOfferComponent: WARNING - job_list (AvailableJobsList) not found!")
 	if accept_button:
@@ -111,6 +119,21 @@ func _setup_initial_state() -> void:
 	job_accepted = false
 	selected_job_index = -1
 	available_jobs.clear()
+	_add_required_indicator()
+
+func _add_required_indicator() -> void:
+	"""Add 'Required' indicator to the component title for UX clarity"""
+	var title_label = get_node_or_null("JobOfferContainer/HeaderPanel/HeaderContent/TitleRow/Title")
+	if title_label and title_label is Label:
+		# Add required badge if not already present
+		if not title_label.text.contains("Required"):
+			title_label.text = "Job Offers [color=#D97706](Required)[/color]"
+			# If using RichTextLabel, enable BBCode
+			if title_label is RichTextLabel:
+				title_label.bbcode_enabled = true
+			else:
+				# For regular Label, use simpler indicator
+				title_label.text = "Job Offers  •  REQUIRED"
 	_update_ui_display()
 
 ## Public API: Initialize job offers from WorldPhaseController
@@ -923,6 +946,16 @@ func get_accepted_job() -> Dictionary:
 func get_available_jobs() -> Array[Dictionary]:
 	"""Get all available jobs"""
 	return available_jobs.duplicate()
+
+## Sprint 12.2: Standardized step results for WorldPhaseController integration
+func get_step_results() -> Dictionary:
+	"""Get step results for phase completion (standardized interface)"""
+	return {
+		"job_accepted": job_accepted,
+		"accepted_job": get_accepted_job(),
+		"available_jobs": available_jobs.duplicate(),
+		"selected_job_index": selected_job_index
+	}
 
 func reset_job_phase() -> void:
 	"""Reset job phase for new turn"""

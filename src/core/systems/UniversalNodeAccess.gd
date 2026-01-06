@@ -100,11 +100,3 @@ static func remove_and_free_child_safe(parent: Node, child: Node, context: Strin
 	parent.remove_child(child)
 	child.queue_free()  # Properly free memory
 	return true
-
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

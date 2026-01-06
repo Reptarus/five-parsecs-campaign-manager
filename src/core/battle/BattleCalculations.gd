@@ -300,6 +300,17 @@ static func resolve_saves(
 				result["saved"] = true
 				result["save_type_used"] = SaveType.ARMOR
 
+	# Sprint 26.5: Debug log save resolution
+	var armor_threshold: int = get_armor_save_threshold(target.get("armor", "none"))
+	var screen_threshold: int = get_screen_save_threshold(target.get("screen", "none"))
+	var save_type_str: String = "None"
+	match result["save_type_used"]:
+		SaveType.ARMOR:
+			save_type_str = "Armor"
+		SaveType.SCREEN:
+			save_type_str = "Screen"
+	_debug_log_save(roll, armor_threshold, screen_threshold, has_piercing, result["saved"], save_type_str)
+
 	return result
 
 #endregion
@@ -402,6 +413,14 @@ static func resolve_ranged_attack(
 		result["effects"].append("stun")
 	if "knockback" in weapon_traits and final_damage > 0:
 		result["effects"].append("knockback")
+
+	# Sprint 26.5: Debug log the attack resolution
+	var attacker_name: String = attacker.get("character_name", attacker.get("name", "Unknown"))
+	var target_name: String = target.get("character_name", target.get("name", "Unknown"))
+	var weapon_name: String = weapon.get("name", "Unknown Weapon")
+	var saved: bool = result.get("armor_saved", false) or result.get("screen_saved", false)
+	var save_type: String = "Armor" if result.get("armor_saved", false) else ("Screen" if result.get("screen_saved", false) else "None")
+	_debug_log_ranged_attack(attacker_name, target_name, weapon_name, hit_roll, hit_threshold, result["hit"], result["damage"], saved, save_type)
 
 	return result
 
@@ -555,6 +574,15 @@ static func resolve_brawl(
 	if result["damage_to_attacker"] > 0 and _is_kerin(defender_species):
 		result["damage_to_attacker"] += 1
 		result["effects"].append("kerin_melee_bonus_defense")
+
+	# Sprint 26.5: Debug log brawl resolution
+	var attacker_name: String = attacker.get("character_name", attacker.get("name", "Unknown"))
+	var defender_name: String = defender.get("character_name", defender.get("name", "Unknown"))
+	var attacker_bonus: int = attacker_skill + attacker_weapon_bonus + attacker_species_bonus
+	var defender_bonus: int = defender_skill + defender_weapon_bonus + defender_species_bonus
+	var winner_name: String = attacker_name if result["winner"] == "attacker" else (defender_name if result["winner"] == "defender" else "DRAW")
+	var damage: int = result["damage_to_defender"] if result["winner"] == "attacker" else result["damage_to_attacker"]
+	_debug_log_brawl(attacker_name, defender_name, attacker_natural, defender_natural, attacker_bonus, defender_bonus, winner_name, damage)
 
 	return result
 
@@ -1698,5 +1726,102 @@ static func check_weapon_overheat(weapon: Dictionary, dice_roller: Callable) -> 
 static func is_non_lethal_weapon(weapon: Dictionary) -> bool:
 	var traits: Array = weapon.get("traits", [])
 	return _has_trait(traits, "non_lethal")
+
+#endregion
+
+#region Debug Logging (Sprint 26.5)
+## ═══════════════════════════════════════════════════════════════════════════════
+## DEBUG LOGGING - Combat Calculation Tracing
+## ═══════════════════════════════════════════════════════════════════════════════
+
+## Debug flag - set to true to enable combat calculation logging
+static var DEBUG_COMBAT_CALCS := false
+
+static func _debug_log_ranged_attack(attacker_name: String, target_name: String, weapon_name: String, hit_roll: int, hit_threshold: int, hit: bool, damage: int, saved: bool, save_type: String) -> void:
+	"""Log ranged attack resolution"""
+	if not DEBUG_COMBAT_CALCS:
+		return
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ COMBAT: RANGED ATTACK                                      │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ %s → %s" % [attacker_name, target_name])
+	print("│ Weapon: %s" % weapon_name)
+	print("│ Hit Roll: D6=%d vs threshold %d+ → %s" % [hit_roll, hit_threshold, "HIT!" if hit else "MISS"])
+	if hit:
+		print("│ Damage: %d" % damage)
+		print("│ Save: %s (%s)" % ["SAVED" if saved else "FAILED", save_type])
+	print("└─────────────────────────────────────────────────────────────┘")
+
+
+static func _debug_log_brawl(combatant1: String, combatant2: String, roll1: int, roll2: int, bonus1: int, bonus2: int, winner: String, damage: int) -> void:
+	"""Log brawl combat resolution"""
+	if not DEBUG_COMBAT_CALCS:
+		return
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ COMBAT: BRAWL (MELEE)                                      │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ %s vs %s" % [combatant1, combatant2])
+	print("│ Rolls: %d+%d=%d vs %d+%d=%d" % [roll1, bonus1, roll1+bonus1, roll2, bonus2, roll2+bonus2])
+	print("│ Winner: %s" % winner)
+	print("│ Damage Inflicted: %d" % damage)
+	print("└─────────────────────────────────────────────────────────────┘")
+
+
+static func _debug_log_save(save_roll: int, armor_threshold: int, screen_threshold: int, is_piercing: bool, saved: bool, save_type: String) -> void:
+	"""Log save resolution"""
+	if not DEBUG_COMBAT_CALCS:
+		return
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ COMBAT: SAVE ROLL                                          │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ Save Roll: D6=%d" % save_roll)
+	print("│ Armor Save: %d+ %s" % [armor_threshold, "(PIERCED - ignored)" if is_piercing else ""])
+	print("│ Screen Save: %d+" % screen_threshold)
+	print("│ Result: %s via %s" % ["SAVED" if saved else "FAILED", save_type])
+	print("└─────────────────────────────────────────────────────────────┘")
+
+
+static func _debug_log_area_attack(origin: Vector2, radius: float, targets_hit: int, damage_roll: int, total_damage: int) -> void:
+	"""Log area attack resolution"""
+	if not DEBUG_COMBAT_CALCS:
+		return
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ COMBAT: AREA ATTACK                                        │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ Origin: (%.1f, %.1f)" % [origin.x, origin.y])
+	print("│ Radius: %.1f\"" % radius)
+	print("│ Targets Hit: %d" % targets_hit)
+	print("│ Damage Roll: %d" % damage_roll)
+	print("│ Total Damage (shared): %d per target" % total_damage)
+	print("└─────────────────────────────────────────────────────────────┘")
+
+
+static func _debug_log_hit_modifiers(base_skill: int, cover_mod: int, elevation_mod: int, range_mod: int, status_mod: int, total: int) -> void:
+	"""Log hit modifier breakdown"""
+	if not DEBUG_COMBAT_CALCS:
+		return
+	print("│ HIT MODIFIERS:")
+	print("│   Combat Skill: +%d" % base_skill)
+	if cover_mod != 0:
+		print("│   Cover: %+d" % cover_mod)
+	if elevation_mod != 0:
+		print("│   Elevation: %+d" % elevation_mod)
+	if range_mod != 0:
+		print("│   Range: %+d" % range_mod)
+	if status_mod != 0:
+		print("│   Status: %+d" % status_mod)
+	print("│   TOTAL MODIFIER: %+d" % total)
+
+
+static func enable_debug_logging() -> void:
+	"""Enable combat calculation debug logging"""
+	DEBUG_COMBAT_CALCS = true
+	print("BattleCalculations: Combat debug logging ENABLED")
+
+
+static func disable_debug_logging() -> void:
+	"""Disable combat calculation debug logging"""
+	DEBUG_COMBAT_CALCS = false
+	print("BattleCalculations: Combat debug logging DISABLED")
 
 #endregion

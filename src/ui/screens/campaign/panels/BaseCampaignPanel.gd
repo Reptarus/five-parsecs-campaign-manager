@@ -26,8 +26,8 @@ var _is_updating_from_coordinator: bool = false
 # UI Structure - provide expected content_container
 @onready var content_container: Control = null
 
-# Autoload reference (helps static analyzer)
-@onready var _responsive_manager: Node = get_node("/root/ResponsiveManager")
+# Autoload reference (helps static analyzer) - may be null if autoload disabled
+@onready var _responsive_manager: Node = get_node_or_null("/root/ResponsiveManager")
 
 # ResponsiveManager breakpoint constants (matches ResponsiveManager.Breakpoint enum)
 const RM_MOBILE := 0
@@ -42,10 +42,13 @@ func _ready() -> void:
 	# Setup responsive layout system
 	_setup_responsive_layout()
 
-	# Connect to ResponsiveManager for centralized breakpoint management
-	_responsive_manager.breakpoint_changed.connect(_on_responsive_breakpoint_changed)
-	# Initialize with current breakpoint
-	_sync_with_responsive_manager()
+	# Connect to ResponsiveManager for centralized breakpoint management (if enabled)
+	if _responsive_manager:
+		_responsive_manager.breakpoint_changed.connect(_on_responsive_breakpoint_changed)
+		# Initialize with current breakpoint
+		_sync_with_responsive_manager()
+	else:
+		push_warning("ResponsiveManager autoload disabled - using viewport fallback")
 
 	# Connect viewport resize signal for responsive updates (legacy support)
 	get_viewport().size_changed.connect(_on_viewport_resized)
@@ -113,6 +116,32 @@ func get_panel_data() -> Dictionary:
 func set_panel_data(data: Dictionary) -> void:
 	"""Set panel data from campaign state"""
 	pass
+
+# SPRINT 5.5: Helper for safe UI updates
+var _pending_panel_data: Dictionary = {}
+
+func _can_update_ui() -> bool:
+	"""Check if it's safe to update UI elements (node is in tree and ready)"""
+	return is_inside_tree() and is_node_ready()
+
+func _safe_set_panel_data(data: Dictionary) -> void:
+	"""Safe wrapper for set_panel_data that handles race conditions.
+	Subclasses should call this instead of directly updating UI in set_panel_data()
+	if there's a risk the panel isn't fully initialized."""
+	if _can_update_ui():
+		set_panel_data(data)
+	else:
+		# Queue the data for when panel becomes ready
+		_pending_panel_data = data
+		if not is_inside_tree():
+			# Wait for tree entry, then apply
+			tree_entered.connect(_on_tree_entered_apply_pending_data, CONNECT_ONE_SHOT)
+
+func _on_tree_entered_apply_pending_data() -> void:
+	"""Apply pending panel data after tree entry"""
+	if not _pending_panel_data.is_empty():
+		call_deferred("set_panel_data", _pending_panel_data)
+		_pending_panel_data = {}
 
 ## Panel Information
 func get_panel_title() -> String:
@@ -187,7 +216,14 @@ func _on_viewport_resized() -> void:
 
 func _apply_responsive_layout() -> void:
 	"""Apply responsive layout based on current viewport width"""
-	var viewport_width = get_viewport().get_visible_rect().size.x
+	# SPRINT 26 FIX: Guard against null viewport during scene transitions
+	var viewport = get_viewport()
+	if not viewport:
+		# Panel not in tree yet, defer layout until ready
+		call_deferred("_apply_responsive_layout")
+		return
+
+	var viewport_width = viewport.get_visible_rect().size.x
 	var new_mode: LayoutMode
 
 	# Determine layout mode from viewport width
@@ -952,6 +988,59 @@ func _style_option_button(option_btn: OptionButton) -> void:
 	style.set_corner_radius_all(6)
 	style.set_content_margin_all(SPACING_SM)
 	option_btn.add_theme_stylebox_override("normal", style)
+
+
+func _style_button(button: Button, is_primary: bool = false) -> void:
+	"""Apply consistent button styling. Use is_primary=true for action buttons."""
+	var style := StyleBoxFlat.new()
+	style.bg_color = COLOR_BLUE if is_primary else COLOR_TERTIARY
+	style.corner_radius_top_left = 8
+	style.corner_radius_top_right = 8
+	style.corner_radius_bottom_left = 8
+	style.corner_radius_bottom_right = 8
+	style.content_margin_left = SPACING_MD
+	style.content_margin_right = SPACING_MD
+	style.content_margin_top = SPACING_SM
+	style.content_margin_bottom = SPACING_SM
+
+	button.add_theme_stylebox_override("normal", style)
+	button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+
+	# Hover state
+	var hover_style := style.duplicate()
+	hover_style.bg_color = COLOR_ACCENT_HOVER if is_primary else Color(COLOR_TERTIARY.r + 0.1, COLOR_TERTIARY.g + 0.1, COLOR_TERTIARY.b + 0.1)
+	button.add_theme_stylebox_override("hover", hover_style)
+
+	# Pressed state
+	var pressed_style := style.duplicate()
+	pressed_style.bg_color = Color(style.bg_color.r - 0.1, style.bg_color.g - 0.1, style.bg_color.b - 0.1)
+	button.add_theme_stylebox_override("pressed", pressed_style)
+
+
+func _style_danger_button(button: Button) -> void:
+	"""Apply danger/destructive button styling (red)."""
+	var style := StyleBoxFlat.new()
+	style.bg_color = COLOR_RED
+	style.corner_radius_top_left = 8
+	style.corner_radius_top_right = 8
+	style.corner_radius_bottom_left = 8
+	style.corner_radius_bottom_right = 8
+	style.content_margin_left = SPACING_MD
+	style.content_margin_right = SPACING_MD
+	style.content_margin_top = SPACING_SM
+	style.content_margin_bottom = SPACING_SM
+
+	button.add_theme_stylebox_override("normal", style)
+	button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+
+	# Hover state (lighter red)
+	var hover_style := style.duplicate()
+	hover_style.bg_color = Color(COLOR_RED.r + 0.1, COLOR_RED.g, COLOR_RED.b)
+	button.add_theme_stylebox_override("hover", hover_style)
 
 
 # ============ GLASS MORPHISM STYLING ============

@@ -170,7 +170,7 @@ func _calculate_enemy_distribution(danger_level: int, mission_type: int) -> Dict
 ## Determine enemy faction based on React tables (rulebook p.125)
 func _determine_enemy_faction(location_type: String, mission_type: int) -> String:
 	var possible_factions = ["raiders", "military", "criminals", "aliens"]
-	var faction = possible_factions[randi() % (safe_call_method(possible_factions, "size") as int)]
+	var faction = possible_factions[randi() % possible_factions.size()]
 
 	# Adjust faction probability based on mission _type
 	match mission_type:
@@ -222,28 +222,28 @@ func _add_special_abilities(enemies: Array, danger_level: int) -> void:
 	var num_abilities = danger_level - 2
 
 	# Limit to one ability per every 3 enemies
-	num_abilities = min(num_abilities, floor((safe_call_method(enemies, "size") as int) / 3.0) + 1)
+	num_abilities = min(num_abilities, floor(enemies.size() / 3.0) + 1)
 
 	# Distribute abilities
 	for i: int in range(num_abilities):
-		if (safe_call_method(enemies, "is_empty") == true):
+		if enemies.is_empty():
 			break
 
 		# Select random enemy (prefer elites and leaders)
 		var elite_indices: Array = []
 		var other_indices: Array = []
 
-		for j: int in range((safe_call_method(enemies, "size") as int)):
+		for j: int in range(enemies.size()):
 			if enemies[j].get("type", "") == "elite" or enemies[j].get("type", "") == "leader":
 				elite_indices.append(j)
 			else:
 				other_indices.append(j)
 
 		var target_index = -1
-		if not (safe_call_method(elite_indices, "is_empty") == true):
-			target_index = elite_indices[randi() % (safe_call_method(elite_indices, "size") as int)]
-		elif not (safe_call_method(other_indices, "is_empty") == true):
-			target_index = other_indices[randi() % (safe_call_method(other_indices, "size") as int)]
+		if not elite_indices.is_empty():
+			target_index = elite_indices[randi() % elite_indices.size()]
+		elif not other_indices.is_empty():
+			target_index = other_indices[randi() % other_indices.size()]
 		else:
 			break
 
@@ -367,19 +367,3 @@ func _create_enemy(enemy_type: String, faction: String) -> Dictionary:
 	_adjust_enemy_stats(enemy_template)
 	return enemy_template
 
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
-	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
-	if not is_instance_valid(self):
-		return null
-	if obj and obj.has_method("get"):
-		var value = obj.get(property)
-		return value if value != null else default_value
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

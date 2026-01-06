@@ -92,26 +92,26 @@ static func _validate_workflow_data(workflow_data: Dictionary) -> CampaignValida
 	var result = CampaignValidationResult.new()
 	
 	# Check for required workflow sections
-	if not workflow_data.has("config") or workflow_data.config.is_empty():
+	if not workflow_data.has("config") or workflow_data["config"].is_empty():
 		result.add_error("Campaign configuration is missing")
-	
-	if not workflow_data.has("crew") or workflow_data.crew.is_empty():
+
+	if not workflow_data.has("crew") or workflow_data["crew"].is_empty():
 		result.add_error("Crew data is missing")
-	
+
 	# Validate config section
 	if workflow_data.has("config"):
-		_validate_config_data(workflow_data.config, result)
+		_validate_config_data(workflow_data["config"], result)
 	
 	# Validate crew section
 	if workflow_data.has("crew"):
-		_validate_crew_data(workflow_data.crew, result)
-	
+		_validate_crew_data(workflow_data["crew"], result)
+
 	# Validate optional sections
 	if workflow_data.has("characters"):
-		_validate_character_data(workflow_data.characters, result)
-	
+		_validate_character_data(workflow_data["characters"], result)
+
 	if workflow_data.has("ship"):
-		_validate_ship_data(workflow_data.ship, result)
+		_validate_ship_data(workflow_data["ship"], result)
 	
 	# Set result data if no critical errors
 	if result.errors.is_empty():
@@ -264,7 +264,7 @@ static func _create_initial_statistics() -> Dictionary:
 
 static func _generate_campaign_id(campaign: Dictionary) -> String:
 	"""Generate a unique campaign ID"""
-	var campaign_name = campaign.config.get("campaign_name", "Unknown")
+	var campaign_name = campaign["config"].get("campaign_name", "Unknown")
 	var timestamp = Time.get_ticks_msec()
 	var random_suffix = randi() % 10000
 	
@@ -291,8 +291,8 @@ static func _validate_final_campaign(campaign: Dictionary) -> CampaignValidation
 				result.add_error("Metadata missing required field: " + field)
 	
 	# Verify campaign ID uniqueness (basic check)
-	if campaign.has("metadata") and campaign.metadata.has("campaign_id"):
-		var campaign_id = campaign.metadata.campaign_id
+	if campaign.has("metadata") and campaign["metadata"].has("campaign_id"):
+		var campaign_id = campaign["metadata"]["campaign_id"]
 		if campaign_id.is_empty() or campaign_id.length() < 10:
 			result.add_error("Campaign ID is invalid or too short")
 	

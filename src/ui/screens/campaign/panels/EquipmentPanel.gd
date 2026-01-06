@@ -15,7 +15,8 @@ signal equipment_generated(equipment: Array[Dictionary])
 @warning_ignore("unused_signal")
 signal equipment_setup_complete(equipment_data: Dictionary)
 # SPRINT ENHANCEMENT: Backend integration signal
-signal equipment_requested(crew_data: Array)
+# Sprint 26.3: Crew data contains Character objects
+signal equipment_requested(crew_data: Array[Character])
 
 # Autonomous signals for coordinator pattern
 signal equipment_data_complete(data: Dictionary)
@@ -1565,13 +1566,6 @@ func set_data(data: Dictionary) -> void:
 		crew_size = data.crew_size
 		_generate_starting_equipment()
 
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Node, method_name: String, args: Array = []):
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null
 
 func _force_display_update() -> void:
 	"""Force display update after scene is fully loaded"""
@@ -1813,9 +1807,9 @@ func cleanup_panel() -> void:
 		equipment_container.queue_free()
 		equipment_container = null
 	
-	# Reset local equipment data
+	# Reset local equipment data (Sprint 26.7: Standardized to equipment key)
 	local_equipment_data = {
-		"items": [],
+		"equipment": [],
 		"credits": 0,
 		"is_complete": false
 	}

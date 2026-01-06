@@ -248,8 +248,8 @@ func _calculate_progress_for_type(vtype: int) -> float:
 		GlobalEnums.FiveParsecsCampaignVictoryType.CHARACTER_SURVIVAL:
 			return float(game_state.character_survival_progress) if "character_survival_progress" in game_state else 0.0
 		GlobalEnums.FiveParsecsCampaignVictoryType.CREW_SIZE_10:
-			if "crew" in game_state and game_state.crew is Array:
-				return float(game_state.crew.size())
+			if "crew" in game_state and game_state["crew"] is Array:
+				return float(game_state["crew"].size())
 			return 0.0
 	return 0.0
 
@@ -272,7 +272,7 @@ func _calculate_current_progress() -> float:
 func _update_milestone_display() -> void:
 	for i: int in range(3):
 		var milestone_icon = milestone_container.get_child(i)
-		if milestone_icon and i < (safe_call_method(milestones, "size") as int):
+		if milestone_icon and i < milestones.size():
 			if current_progress >= milestones[i]:
 				milestone_icon.modulate = Color(1, 1, 1) # Full brightness for achieved
 			else:
@@ -284,10 +284,3 @@ func _on_turn_completed() -> void:
 func _on_progress_updated(progress: float) -> void:
 	current_progress = progress
 	update_display()
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

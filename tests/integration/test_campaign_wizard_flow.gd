@@ -6,7 +6,7 @@ extends GdUnitTestSuite
 
 const CampaignCreationUI = preload("res://src/ui/screens/campaign/CampaignCreationUI.gd")
 const CampaignCreationCoordinator = preload("res://src/ui/screens/campaign/CampaignCreationCoordinator.gd")
-const ConfigPanel = preload("res://src/ui/screens/campaign/panels/ConfigPanel.gd")
+const ConfigPanel = preload("res://src/ui/screens/campaign/panels/ExpandedConfigPanel.gd")
 const CaptainPanel = preload("res://src/ui/screens/campaign/panels/CaptainPanel.gd")
 const CrewPanel = preload("res://src/ui/screens/campaign/panels/CrewPanel.gd")
 const FinalPanel = preload("res://src/ui/screens/campaign/panels/FinalPanel.gd")
@@ -60,6 +60,12 @@ func test_wizard_panel_navigation() -> void:
 	if not is_instance_valid(coordinator):
 		return
 	assert_int(coordinator.current_panel_index).is_equal(1)  # CaptainPanel
+
+	# Mark CAPTAIN_CREATION phase as complete before advancing to CrewPanel
+	# (Navigation requires phases to be complete before advancing)
+	var StateManager = load("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
+	if StateManager and coordinator.has_method("set_phase_completion_status"):
+		coordinator.set_phase_completion_status(StateManager.Phase.CAPTAIN_CREATION, true)
 
 	coordinator.next_panel()
 	await get_tree().process_frame
@@ -383,9 +389,9 @@ func test_complete_wizard_creates_campaign() -> void:
 	assert_int(members.size()).is_equal(2)
 
 	# Validate data types (critical for save/load)
-	assert_that(config is Dictionary).is_true()
-	assert_that(captain is Dictionary).is_true()
-	assert_that(members is Array).is_true()
+	assert_bool(config is Dictionary).is_true()
+	assert_bool(captain is Dictionary).is_true()
+	assert_bool(members is Array).is_true()
 
 
 func test_campaign_data_validation_before_creation() -> void:
@@ -437,7 +443,7 @@ func test_character_dictionary_conversion() -> void:
 		return
 
 	# Should have standardized keys
-	assert_that(result is Dictionary).is_true()
+	assert_bool(result is Dictionary).is_true()
 	assert_str(result.get("character_name", "")).is_equal("Type Test Character")
 	assert_int(result.get("combat", 0)).is_equal(7)  # Mapped from combat_skill
 	assert_int(result.get("reactions", 0)).is_equal(5)  # Mapped from reaction
@@ -464,7 +470,7 @@ func test_mixed_array_type_handling() -> void:
 	var crew = state.get("crew", {})
 	var members = crew.get("members", [])
 	for member in members:
-		assert_that(member is Dictionary).is_true()
+		assert_bool(member is Dictionary).is_true()
 		assert_bool(member.has("character_name")).is_true()
 
 
@@ -497,3 +503,167 @@ func test_panel_sync_with_coordinator_state() -> void:
 	# Use .get() for Dictionary access to avoid errors if key doesn't exist
 	var config = final_state.get("config", {})
 	assert_str(config.get("campaign_name", "")).is_equal("Sync Test")
+
+
+## TEST SUITE 9: Sprint 26 - Captain Stats and has_captain Flag
+
+func test_captain_stats_extraction_in_wizard_flow() -> void:
+	"""Sprint 26: Test captain stats are extracted during wizard flow"""
+	if not coordinator or not is_instance_valid(coordinator):
+		push_warning("coordinator not available, skipping")
+		return
+
+	# Create captain with Character-like object containing stats
+	coordinator.update_captain_state({
+		"name": "Stats Wizard Captain",
+		"captain_character": {
+			"character_name": "Stats Wizard Captain",
+			"combat": 6,
+			"toughness": 5,
+			"reactions": 4,
+			"savvy": 3,
+			"speed": 5
+		},
+		"is_complete": true
+	})
+
+	var state = coordinator.get_unified_campaign_state()
+	var captain = state.get("captain", {})
+
+	# Verify stats were extracted
+	assert_int(captain.get("combat", 0)).is_equal(6)
+	assert_int(captain.get("toughness", 0)).is_equal(5)
+	assert_int(captain.get("reactions", 0)).is_equal(4)
+
+
+func test_has_captain_flag_in_wizard_flow() -> void:
+	"""Sprint 26: Test has_captain flag is set during wizard flow"""
+	if not coordinator or not is_instance_valid(coordinator):
+		push_warning("coordinator not available, skipping")
+		return
+
+	# Create captain
+	coordinator.update_captain_state({
+		"name": "Flag Wizard Captain",
+		"background": "Military",
+		"is_complete": true
+	})
+
+	var state = coordinator.get_unified_campaign_state()
+	var crew = state.get("crew", {})
+
+	# Verify has_captain flag was set
+	assert_bool(crew.get("has_captain", false)).is_true()
+
+
+func test_state_manager_sync_in_wizard_flow() -> void:
+	"""Sprint 26: Test StateManager receives data during wizard flow"""
+	if not coordinator or not is_instance_valid(coordinator):
+		push_warning("coordinator not available, skipping")
+		return
+
+	# Create complete captain data
+	coordinator.update_captain_state({
+		"name": "Sync Wizard Captain",
+		"background": "Explorer",
+		"captain_character": {
+			"character_name": "Sync Wizard Captain",
+			"combat": 5
+		},
+		"is_complete": true
+	})
+
+	# Verify StateManager has the data
+	if coordinator.state_manager:
+		var sm = coordinator.state_manager
+		if sm.has_method("get_phase_data"):
+			var captain_data = sm.get_phase_data(sm.Phase.CAPTAIN_CREATION)
+			assert_str(captain_data.get("name", "")).is_equal("Sync Wizard Captain")
+
+
+func test_complete_wizard_with_sprint26_fixes() -> void:
+	"""Sprint 26: End-to-end test with all fixes applied"""
+	if not coordinator or not is_instance_valid(coordinator):
+		push_warning("coordinator not available, skipping")
+		return
+
+	# Step 1: Config with victory conditions
+	coordinator.update_campaign_config_state({
+		"campaign_name": "Sprint 26 Test Campaign",
+		"difficulty": 2,
+		"victory_conditions": {"20_battles": true},
+		"is_complete": true
+	})
+
+	# Step 2: Captain with Character object containing stats
+	coordinator.update_captain_state({
+		"name": "Sprint 26 Captain",
+		"background": "Military",
+		"captain_character": {
+			"character_name": "Sprint 26 Captain",
+			"combat": 5,
+			"toughness": 4,
+			"reactions": 3,
+			"savvy": 2,
+			"speed": 4
+		},
+		"is_complete": true
+	})
+
+	# Step 3: Crew
+	coordinator.update_crew_state({
+		"members": [
+			{"character_name": "Crew 1", "combat": 4},
+			{"character_name": "Crew 2", "combat": 3},
+			{"character_name": "Crew 3", "combat": 5},
+			{"character_name": "Crew 4", "combat": 4}
+		],
+		"size": 4,
+		"is_complete": true
+	})
+
+	# Step 4: Ship
+	coordinator.update_ship_state({
+		"name": "Sprint 26 Ship",
+		"type": "Frigate",
+		"hull_points": 25,
+		"is_complete": true
+	})
+
+	# Step 5: Equipment
+	coordinator.update_equipment_state({
+		"items": [{"name": "Laser Rifle"}],
+		"credits": 1000,
+		"is_complete": true
+	})
+
+	# Get final state
+	var state = coordinator.get_unified_campaign_state()
+
+	# Verify all Sprint 26 fixes are working
+	var captain = state.get("captain", {})
+	var crew = state.get("crew", {})
+	var config = state.get("config", state.get("campaign_config", {}))
+
+	# Captain stats extracted
+	assert_int(captain.get("combat", 0)).is_greater(0)
+	assert_int(captain.get("toughness", 0)).is_greater(0)
+
+	# has_captain flag set
+	assert_bool(crew.get("has_captain", false)).is_true()
+
+	# Campaign name present
+	assert_str(config.get("campaign_name", "")).is_not_empty()
+
+	# StateManager should have data if available
+	if coordinator.state_manager:
+		var sm = coordinator.state_manager
+		if sm.has_method("get_phase_data"):
+			var captain_phase = sm.get_phase_data(sm.Phase.CAPTAIN_CREATION)
+			var crew_phase = sm.get_phase_data(sm.Phase.CREW_SETUP)
+			var config_phase = sm.get_phase_data(sm.Phase.CONFIG)
+
+			# All phases should have data
+			assert_bool(not captain_phase.is_empty()).is_true()
+			assert_bool(not crew_phase.is_empty()).is_true()
+			assert_bool(not config_phase.is_empty()).is_true()

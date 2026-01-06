@@ -544,12 +544,17 @@ func _save_crew_to_game_state() -> void:
 		var serialized = character.serialize()
 		game_state.current_campaign.crew_members.append(serialized)
 
-	# Save accumulated resources to campaign
+	# Save accumulated resources via GameStateManager (SSOT pattern for credits/story_points)
+	# Use GameStateManager for credits and story points (single source of truth)
+	if GameStateManager.has_method("set_credits"):
+		GameStateManager.set_credits(accumulated_resources.credits)
+	if GameStateManager.has_method("set_story_progress"):
+		GameStateManager.set_story_progress(accumulated_resources.story_points)
+
+	# Store other resources in campaign.resources Dictionary (patrons, rivals, rumors)
 	if not "resources" in game_state.current_campaign:
 		game_state.current_campaign.resources = {}
 
-	game_state.current_campaign.resources.credits = accumulated_resources.credits
-	game_state.current_campaign.resources.story_points = accumulated_resources.story_points
 	game_state.current_campaign.resources.patrons = accumulated_resources.patrons.duplicate()
 	game_state.current_campaign.resources.rivals = accumulated_resources.rivals.duplicate()
 	game_state.current_campaign.resources.quest_rumors = accumulated_resources.quest_rumors.duplicate()

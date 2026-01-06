@@ -17,7 +17,7 @@ var loot_generation_enabled: bool = true
 # Signals
 signal battle_initialized(session_id: String)
 signal battle_started(session_id: String)
-signal battle_completed(session_id: String, results: IBattleService.BattleResults)
+signal battle_completed(session_id: String, results: IBattleService.IBattleResults)
 signal battle_cancelled(session_id: String)
 signal battle_error(session_id: String, error: String)
 
@@ -99,7 +99,7 @@ func get_battle_status(session_id: String) -> IBattleService.BattleStatus:
 	else:
 		return IBattleService.BattleStatus.ERROR
 
-func get_battle_results(session_id: String) -> BattleResults:
+func get_battle_results(session_id: String) -> IBattleService.IBattleResults:
 	"""Get battle results if completed"""
 	if completed_sessions.has(session_id):
 		return completed_sessions[session_id].results
@@ -159,9 +159,9 @@ func _simulate_battle_async(session: IBattleService.BattleSession) -> void:
 	print("BattleServiceStub: Battle simulation completed - %s (Victory: %s)" % [session.session_id, results.victory])
 	battle_completed.emit(session.session_id, results)
 
-func _generate_battle_results(session: IBattleService.BattleSession) -> IBattleService.BattleResults:
+func _generate_battle_results(session: IBattleService.BattleSession) -> IBattleService.IBattleResults:
 	"""Generate realistic battle results based on context"""
-	var results = IBattleService.BattleResults.new()
+	var results = IBattleService.IBattleResults.new()
 	results.session_id = session.session_id
 	
 	# Determine victory based on probability and crew strength
@@ -334,7 +334,7 @@ func _generate_story_developments(context: IBattleService.BattleContext, victory
 	
 	return developments
 
-func _generate_tactical_summary(session: IBattleService.BattleSession, results: IBattleService.BattleResults) -> Dictionary:
+func _generate_tactical_summary(session: IBattleService.BattleSession, results: IBattleService.IBattleResults) -> Dictionary:
 	"""Generate tactical battle summary"""
 	return {
 		"battle_type": session.context.mission_data.get("type", "unknown"),

@@ -6,7 +6,8 @@ class_name TrainingSelectionDialog
 ## Reference: Core Rules - Advanced Training section
 
 # Signals
-signal training_completed(character: Resource, training_type: String)
+# Sprint 26.3: Character-Everywhere - use Character type instead of Resource
+signal training_completed(character: Character, training_type: String)
 signal dialog_closed()
 
 # Design System Constants (from BaseCampaelPanel)
@@ -81,8 +82,10 @@ const TRAINING_TYPES := {
 	}
 }
 
-const ENROLLMENT_FEE := 3  # Credits required per Core Rules
-const APPROVAL_TARGET := 6  # D6 roll of 6+ required
+## Sprint 20.2: Fixed constants to match backend (Core Rules p.123)
+const ENROLLMENT_FEE := 1    # 1 credit application fee per Core Rules
+const APPROVAL_THRESHOLD := 4  # 2D6 roll, 4+ required for approval
+const APPROVAL_DICE := "2D6"   # Dice type for approval roll display
 
 # State
 var available_crew: Array[Resource] = []
@@ -175,8 +178,10 @@ func _populate_character_list() -> void:
 	character_selector.clear()
 	
 	for character in available_crew:
-		var char_name: String = character.get("character_name") if character.has("character_name") else "Unknown"
-		var current_xp: int = character.get("experience_points") if character.has("experience_points") else 0
+		# Sprint 26.3: Character-Everywhere - use Character properties with fallback
+		var char_name: String = character.character_name if "character_name" in character else "Unknown"
+		# Note: Character class uses "experience" property, not "experience_points"
+		var current_xp: int = character.experience if "experience" in character else 0
 		var display_text := "%s (%d XP)" % [char_name, current_xp]
 		character_selector.add_item(display_text)
 	
@@ -266,7 +271,8 @@ func _update_cost_display() -> void:
 	
 	# Color code based on affordability
 	if selected_character:
-		var current_xp: int = selected_character.get("experience_points") if selected_character.has("experience_points") else 0
+		# Sprint 26.3: Use "experience" property (not "experience_points")
+		var current_xp: int = selected_character.experience if "experience" in selected_character else 0
 		var can_afford_xp := current_xp >= xp_cost
 		
 		xp_cost_label.add_theme_color_override("font_color", COLOR_SUCCESS if can_afford_xp else COLOR_DANGER)
@@ -278,13 +284,14 @@ func _update_ui_state() -> void:
 	var can_afford_xp := false
 	
 	if has_selection and selected_character:
-		var current_xp: int = selected_character.get("experience_points") if selected_character.has("experience_points") else 0
+		# Sprint 26.3: Use "experience" property (not "experience_points")
+		var current_xp: int = selected_character.experience if "experience" in selected_character else 0
 		var training_data: Dictionary = TRAINING_TYPES[selected_training_type]
 		var xp_cost: int = training_data["cost"]
 		can_afford_xp = current_xp >= xp_cost
-		
+
 		# Check if character already has this training
-		var current_training: Array = selected_character.get("training") if selected_character.has("training") else []
+		var current_training: Array = selected_character.training if "training" in selected_character else []
 		var already_has_training := selected_training_type in current_training
 		
 		if already_has_training:
@@ -304,25 +311,31 @@ func _update_ui_state() -> void:
 		result_display.add_theme_color_override("font_color", COLOR_DANGER)
 
 func _on_roll_pressed() -> void:
-	"""Handle approval roll button press"""
+	"""Handle approval roll button press - Sprint 20.2 fixed to use 2D6, 4+"""
 	if not selected_character or selected_training_type.is_empty():
 		return
-	
-	# Roll D6 for approval
-	var roll_result: int = DiceManager.roll_dice(1, 6)
-	var approved := roll_result >= APPROVAL_TARGET
-	
+
+	# Roll 2D6 for approval (Core Rules: 4+ required)
+	var dice_manager = get_node_or_null("/root/DiceManager")
+	var roll_result: int = 0
+	if dice_manager and dice_manager.has_method("roll_d6"):
+		roll_result = dice_manager.roll_d6("Training Approval (die 1)") + dice_manager.roll_d6("Training Approval (die 2)")
+	else:
+		roll_result = randi_range(1, 6) + randi_range(1, 6)
+
+	var approved := roll_result >= APPROVAL_THRESHOLD
+
 	if approved:
-		result_display.text = "Roll: %d - Training APPROVED!" % roll_result
+		result_display.text = "%s Roll: %d - Training APPROVED!" % [APPROVAL_DICE, roll_result]
 		result_display.add_theme_color_override("font_color", COLOR_SUCCESS)
-		
+
 		# Emit signal for backend processing
 		training_completed.emit(selected_character, selected_training_type)
-		
+
 		# Disable roll button to prevent double-training
 		roll_button.disabled = true
 	else:
-		result_display.text = "Roll: %d - Training DENIED (need 6+)" % roll_result
+		result_display.text = "%s Roll: %d - Training DENIED (need %d+)" % [APPROVAL_DICE, roll_result, APPROVAL_THRESHOLD]
 		result_display.add_theme_color_override("font_color", COLOR_DANGER)
 
 func _on_close_pressed() -> void:
@@ -330,12 +343,3 @@ func _on_close_pressed() -> void:
 	dialog_closed.emit()
 	queue_free()
 
-# Static helper for safe property access
-static func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	"""Safe property access helper"""
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	return default_value

@@ -184,11 +184,11 @@ func _update_event_list() -> void:
 	# Apply filters
 	filtered_events = events.filter(func(event: Dictionary) -> bool:
 		# Category filter
-		if not (safe_call_method(active_filters, "is_empty") == true) and not event.category in active_filters:
+		if not active_filters.is_empty() and not event.category in active_filters:
 			return false
 
 		# Search filter
-		if not (safe_call_method(search_query, "is_empty") == true):
+		if not search_query.is_empty():
 			var search_text = search_query.to_lower()
 			var event_text = (event.title + " " + event.description).to_lower()
 			if not search_text in event_text:
@@ -274,7 +274,7 @@ func add_event(_event: EventData) -> void:
 	events.append(event_dict)
 
 	# Maintain maximum event count
-	while (safe_call_method(events, "size") as int) > max_events:
+	while events.size() > max_events:
 		events.pop_front()
 
 	_update_event_list()
@@ -296,10 +296,10 @@ func clear_events() -> void:
 	_update_event_list()
 
 func get_event_count() -> int:
-	return (safe_call_method(events, "size") as int)
+	return events.size()
 
 func get_filtered_event_count() -> int:
-	return (safe_call_method(filtered_events, "size") as int)
+	return filtered_events.size()
 
 func get_phase_events(phase: String) -> Array[Dictionary]:
 	return events.filter(func(e): return e.phase == phase)
@@ -309,26 +309,19 @@ func get_category_events(category: String) -> Array[Dictionary]:
 
 func set_max_events(count: int) -> void:
 	max_events = count
-	while (safe_call_method(events, "size") as int) > max_events:
+	while events.size() > max_events:
 		events.pop_front()
 	_update_event_list()
 
 func get_event_by_id(event_id: String) -> Dictionary:
 	var matching_events = events.filter(func(e): return e._id == event_id)
-	return matching_events[0] if not (safe_call_method(matching_events, "is_empty") == true) else {}
+	return matching_events[0] if not matching_events.is_empty() else {}
 
 func update_event(event_id: String, updates: Dictionary) -> bool:
-	for i: int in range((safe_call_method(events, "size") as int)):
+	for i: int in range(events.size()):
 		if events[i].id == event_id:
 			events[i].merge(updates)
 			_update_event_list()
 			return true
 	return false
 
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

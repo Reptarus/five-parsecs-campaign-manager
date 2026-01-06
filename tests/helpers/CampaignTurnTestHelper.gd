@@ -88,7 +88,7 @@ func create_full_campaign() -> Dictionary:
 	var campaign = create_minimal_campaign()
 
 	# Add more crew - using CORRECT stat names matching Character.gd
-	campaign.crew.members.append({
+	campaign["crew"]["members"].append({
 		"name": "Crew Member 2",
 		"character_name": "Crew Member 2",
 		"origin": "ALIEN_SWIFT",       # CORRECT: NOT species
@@ -107,7 +107,7 @@ func create_full_campaign() -> Dictionary:
 		"is_captain": false,
 		"status": "ACTIVE"
 	})
-	campaign.crew.members.append({
+	campaign["crew"]["members"].append({
 		"name": "Crew Member 3",
 		"character_name": "Crew Member 3",
 		"origin": "ALIEN_FERAL",       # CORRECT: NOT species
@@ -128,13 +128,13 @@ func create_full_campaign() -> Dictionary:
 	})
 
 	# Add more equipment
-	campaign.equipment.starting_credits = 150
-	campaign.equipment.equipment.append({"id": "gun_2", "type": "COLONY_RIFLE", "equipped_by": ""})
-	campaign.equipment.equipment.append({"id": "gun_3", "type": "HANDGUN", "equipped_by": ""})
-	campaign.equipment.equipment.append({"id": "armor_1", "type": "FLAK_SCREEN", "equipped_by": ""})
+	campaign["equipment"]["starting_credits"] = 150
+	campaign["equipment"]["equipment"].append({"id": "gun_2", "type": "COLONY_RIFLE", "equipped_by": ""})
+	campaign["equipment"]["equipment"].append({"id": "gun_3", "type": "HANDGUN", "equipped_by": ""})
+	campaign["equipment"]["equipment"].append({"id": "armor_1", "type": "FLAK_SCREEN", "equipped_by": ""})
 
 	# Add ship fuel
-	campaign.ship.fuel = 6
+	campaign["ship"]["fuel"] = 6
 
 	return campaign
 
@@ -176,12 +176,12 @@ func is_valid_transition(from_phase: String, to_phase: String) -> bool:
 func create_state_snapshot(game_state) -> Dictionary:
 	"""Create snapshot of current game state for comparison"""
 	return {
-		"turn_number": game_state.turn_number if game_state.has("turn_number") else 0,
-		"current_phase": game_state.current_phase if game_state.has("current_phase") else "NONE",
-		"credits": game_state.resources.credits if game_state.has("resources") else 0,
-		"crew_count": game_state.crew.size() if game_state.has("crew") else 0,
-		"equipment_count": game_state.equipment.size() if game_state.has("equipment") else 0,
-		"injured_count": game_state.injured_characters.size() if game_state.has("injured_characters") else 0,
+		"turn_number": game_state.get("turn_number", 0),
+		"current_phase": game_state.get("current_phase", "NONE"),
+		"credits": game_state["resources"]["credits"] if game_state.has("resources") else 0,
+		"crew_count": game_state["crew"].size() if game_state.has("crew") else 0,
+		"equipment_count": game_state["equipment"].size() if game_state.has("equipment") else 0,
+		"injured_count": game_state["injured_characters"].size() if game_state.has("injured_characters") else 0,
 		"timestamp": Time.get_ticks_msec()
 	}
 
@@ -288,13 +288,13 @@ func validate_travel_phase_requirements(campaign: Dictionary) -> Dictionary:
 
 	# Need credits for travel (5 for starship, or 1 per crew for commercial)
 	var min_credits_needed = 5  # Starship travel
-	if campaign.equipment.starting_credits < min_credits_needed:
+	if campaign["equipment"]["starting_credits"] < min_credits_needed:
 		result.valid = false
 		result.errors.append("Insufficient credits for travel (need %d, have %d)" %
-			[min_credits_needed, campaign.equipment.starting_credits])
+			[min_credits_needed, campaign["equipment"]["starting_credits"]])
 
 	# Need ship
-	if not campaign.has("ship") or campaign.ship.is_empty():
+	if not campaign.has("ship") or campaign["ship"].is_empty():
 		result.valid = false
 		result.errors.append("No ship available")
 
@@ -305,12 +305,12 @@ func validate_battle_phase_requirements(campaign: Dictionary) -> Dictionary:
 	var result = {"valid": true, "errors": []}
 
 	# Need at least one crew member
-	if not campaign.has("crew") or campaign.crew.members.is_empty():
+	if not campaign.has("crew") or campaign["crew"]["members"].is_empty():
 		result.valid = false
 		result.errors.append("No crew available for battle")
 
 	# Need at least one weapon
-	if not campaign.has("equipment") or campaign.equipment.equipment.is_empty():
+	if not campaign.has("equipment") or campaign["equipment"]["equipment"].is_empty():
 		result.valid = false
 		result.errors.append("No equipment available for battle")
 

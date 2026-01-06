@@ -18,6 +18,7 @@ signal tactical_battle_requested(tactical_scene: Node) # Request parent to add t
 # Dependencies - following modernized pattern
 const FPCM_BattleManager = preload("res://src/core/battle/FPCM_BattleManager.gd")
 const FPCM_BattleState = preload("res://src/core/battle/FPCM_BattleState.gd")
+const Godot4Utils = preload("res://src/utils/Godot4Utils.gd")
 const FPCM_DiceSystem = preload("res://src/core/systems/DiceSystem.gd")
 
 # Type alias for easier usage
@@ -209,8 +210,8 @@ func setup_battle(mission: Resource, crew: Array, enemies: Array = []) -> void:
 func _update_battle_info() -> void:
 	"""Update mission and difficulty display"""
 	if current_mission:
-		var mission_type = safe_get_property(current_mission, "mission_type", "Unknown")
-		var difficulty = safe_get_property(current_mission, "difficulty", 1)
+		var mission_type = Godot4Utils.safe_get_property(current_mission, "mission_type", "Unknown")
+		var difficulty = Godot4Utils.safe_get_property(current_mission, "difficulty", 1)
 		mission_type_label.text = "Mission: " + str(mission_type)
 		difficulty_label.text = "Difficulty: " + str(difficulty)
 		battle_title.text = str(mission_type) + " Battle"
@@ -242,12 +243,12 @@ func _create_crew_card(crew_member: Resource) -> Control:
 	# Create a simple card for now - TODO: Create proper CharacterBattleCard
 	var card := VBoxContainer.new()
 	var name_label := Label.new()
-	var character_name: Character = safe_get_property(crew_member, "character_name", "Unknown")
+	var character_name: Character = Godot4Utils.safe_get_property(crew_member, "character_name", "Unknown")
 	name_label.text = str(character_name)
 	card.add_child(name_label)
 	var stats_label := Label.new()
-	var combat_skill: Node = safe_get_property(crew_member, "combat_skill", 1)
-	var toughness = safe_get_property(crew_member, "toughness", 3)
+	var combat_skill: Node = Godot4Utils.safe_get_property(crew_member, "combat_skill", 1)
+	var toughness = Godot4Utils.safe_get_property(crew_member, "toughness", 3)
 	stats_label.text = "Combat: %d, Toughness: %d" % [combat_skill, toughness]
 	stats_label.add_theme_font_size_override("font_size", 10)
 	card.add_child(stats_label)
@@ -258,12 +259,12 @@ func _create_enemy_card(enemy: Resource) -> Control:
 	"""Create an enemy display card"""
 	var card := VBoxContainer.new()
 	var name_label := Label.new()
-	var enemy_name: String = safe_get_property(enemy, "name", "Unknown Enemy")
+	var enemy_name: String = Godot4Utils.safe_get_property(enemy, "name", "Unknown Enemy")
 	name_label.text = str(enemy_name)
 	card.add_child(name_label)
 	var stats_label := Label.new()
-	var combat_skill: Node = safe_get_property(enemy, "combat_skill", 1)
-	var toughness = safe_get_property(enemy, "toughness", 3)
+	var combat_skill: Node = Godot4Utils.safe_get_property(enemy, "combat_skill", 1)
+	var toughness = Godot4Utils.safe_get_property(enemy, "toughness", 3)
 	stats_label.text = "Combat: %d, Toughness: %d" % [combat_skill, toughness]
 	stats_label.add_theme_font_size_override("font_size", 10)
 	card.add_child(stats_label)
@@ -304,12 +305,12 @@ func _process_post_battle_procedures() -> void:
 	# Experience gain for crew
 	for crew_member in crew_members:
 		if not battle_result.crew_casualties.has(crew_member):
-			var character_name: String = safe_get_property(crew_member, "character_name", "Crew member")
+			var character_name: String = Godot4Utils.safe_get_property(crew_member, "character_name", "Crew member")
 			_log_battle_message("%s gained combat experience!" % character_name, Color.BLUE)
 	
 	# Mission completion bonuses
 	if current_mission:
-		var mission_bonus = safe_get_property(current_mission, "completion_bonus", 0)
+		var mission_bonus = Godot4Utils.safe_get_property(current_mission, "completion_bonus", 0)
 		if mission_bonus > 0:
 			battle_result.credits_earned += mission_bonus
 			_log_battle_message("Mission completion bonus: %d credits" % mission_bonus, Color.GREEN)
@@ -404,7 +405,7 @@ func _calculate_automatic_battle_result() -> BattleResult:
 		_log_battle_message("Victory! Battle won!", Color.GREEN)
 
 		# Calculate rewards for victory
-		var reward_credits = safe_get_property(current_mission, "reward_credits", 500)
+		var reward_credits = Godot4Utils.safe_get_property(current_mission, "reward_credits", 500)
 		result.credits_earned = reward_credits
 
 		# Generate loot opportunities (Five Parsecs p.96)
@@ -475,7 +476,7 @@ func _calculate_enemy_combat_power() -> int:
 	var total_power: int = 0
 
 	for enemy in enemy_forces:
-		var combat_skill: int = safe_get_property(enemy, "combat_skill", 1)
+		var combat_skill: int = Godot4Utils.safe_get_property(enemy, "combat_skill", 1)
 		total_power += combat_skill
 
 	return total_power
@@ -485,7 +486,7 @@ func _process_crew_casualties_and_injuries(result: BattleResult) -> void:
 	_log_battle_message("=== Processing Crew Casualties ===", Color.CYAN)
 
 	for crew_member in crew_members:
-		var character_name: String = safe_get_property(crew_member, "character_name", "Crew member")
+		var character_name: String = Godot4Utils.safe_get_property(crew_member, "character_name", "Crew member")
 
 		# Step 1: Determine if casualty or injury (D6, 1-2 = casualty)
 		var fate_data = _determine_casualty_fate(crew_member, character_name)
@@ -520,7 +521,7 @@ func _determine_casualty_fate(crew_member: Resource, character_name: String) -> 
 	var casualty_threshold := 2 # Base: 1-2 = casualty (simplified for auto-resolve)
 
 	# Apply character modifiers
-	var toughness: int = safe_get_property(crew_member, "toughness", 0)
+	var toughness: int = Godot4Utils.safe_get_property(crew_member, "toughness", 0)
 	if toughness >= 5:
 		casualty_threshold -= 1 # Toughness makes casualties less likely
 		_log_battle_message("  → Toughness bonus applied", Color.GRAY)
@@ -618,11 +619,11 @@ func _calculate_experience_gains(result: BattleResult, victory: bool) -> void:
 	var first_casualty_awarded = false
 
 	for crew_member in crew_members:
-		var character_name: String = safe_get_property(crew_member, "character_name", "Crew member")
+		var character_name: String = Godot4Utils.safe_get_property(crew_member, "character_name", "Crew member")
 		var crew_exp := 0
 
 		# Check if crew member became a casualty
-		var is_casualty := result.crew_casualties.any(func(c): return safe_get_property(c, "character_name", "") == character_name)
+		var is_casualty := result.crew_casualties.any(func(c): return Godot4Utils.safe_get_property(c, "character_name", "") == character_name)
 
 		# Core Rules XP Table (exact implementation)
 		if is_casualty:
@@ -671,7 +672,7 @@ func _generate_loot_opportunities(result: BattleResult, battle_roll: int) -> voi
 		_log_battle_message("  +1 loot roll (no casualties)", Color.GRAY)
 
 	# Mission type bonuses
-	var mission_type: String = safe_get_property(current_mission, "type", "patrol")
+	var mission_type: String = Godot4Utils.safe_get_property(current_mission, "type", "patrol")
 	if mission_type in ["assault", "investigation"]:
 		loot_rolls += 1
 		_log_battle_message("  +1 loot roll (%s mission)" % mission_type, Color.GRAY)
@@ -782,23 +783,6 @@ func _on_return_from_tactical() -> void:
 	"""Handle return from tactical battle without completion"""
 	_log_battle_message("Returned from tactical mode", Color.YELLOW)
 	visible = true
-
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
-	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
-	if not is_instance_valid(self):
-		return
-	if obj and obj.has_method("get"):
-		var value = obj.get(property)
-		return value if value != null else default_value
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null
 
 # =====================================================
 # ENHANCED BATTLE SYSTEM INTEGRATION
@@ -919,7 +903,7 @@ func _get_crew_name(crew_member: Resource) -> String:
 	
 	var name_candidates: Array[String] = ["name", "character_name", "id"]
 	for field: String in name_candidates:
-		var name: Variant = safe_get_property(crew_member, field, "")
+		var name: Variant = Godot4Utils.safe_get_property(crew_member, field, "")
 		if name != "" and name is String:
 			return name as String
 	
@@ -1046,7 +1030,7 @@ func _get_loot_name(loot_item: Resource) -> String:
 	
 	var name_candidates: Array[String] = ["name", "item_name", "title", "id"]
 	for field: String in name_candidates:
-		var name: Variant = safe_get_property(loot_item, field, "")
+		var name: Variant = Godot4Utils.safe_get_property(loot_item, field, "")
 		if name != "" and name is String:
 			return name as String
 	

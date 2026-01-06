@@ -590,6 +590,7 @@ func _on_buy_pressed() -> void:
 	
 	trade_completed.emit(item.get("name", "item"), "purchase", price)
 	credits_changed.emit(current_credits)
+	_sync_credits_to_game_state_manager()  # EQ-3: Persist credits
 	print("TradingScreen: Purchased %s for %d credits" % [item.get("name", "item"), price])
 
 func _on_sell_pressed() -> void:
@@ -618,6 +619,7 @@ func _on_sell_pressed() -> void:
 	
 	trade_completed.emit(item_name, "sale", sell_price)
 	credits_changed.emit(current_credits)
+	_sync_credits_to_game_state_manager()  # EQ-3: Persist credits
 	print("TradingScreen: Sold %s for %d credits" % [item_name, sell_price])
 
 func _on_refresh_pressed() -> void:
@@ -631,6 +633,7 @@ func _on_refresh_pressed() -> void:
 	_update_credits_display()
 	_generate_market()
 	credits_changed.emit(current_credits)
+	_sync_credits_to_game_state_manager()  # EQ-3: Persist credits
 	print("TradingScreen: Market refreshed (cost: 1 credit)")
 
 func _on_close_pressed() -> void:
@@ -682,4 +685,11 @@ func _get_condition_color(condition: String) -> Color:
 		_:
 			return Color(0.7, 0.7, 0.7)
 
-
+## EQ-3: Sync credits to GameStateManager for persistence
+func _sync_credits_to_game_state_manager() -> void:
+	"""Sync current_credits to GameStateManager so they persist across scenes and saves."""
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("set_credits"):
+		gsm.set_credits(current_credits)
+	else:
+		push_warning("TradingScreen: GameStateManager not available - credits may not persist")

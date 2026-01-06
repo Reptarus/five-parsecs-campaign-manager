@@ -70,7 +70,7 @@ func start_tutorial(steps: Array) -> void:
 	show_current_step()
 
 func show_current_step() -> void:
-	if current_step >= (safe_call_method(tutorial_steps, "size") as int):
+	if current_step >= tutorial_steps.size():
 		complete_tutorial()
 		return
 
@@ -179,10 +179,3 @@ func show_story_hint(tool_names: Array, story_context: String, hint_text: String
 	if tooltip_panel.visible:
 		hide_overlay()
 
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

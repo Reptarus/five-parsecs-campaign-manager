@@ -82,8 +82,7 @@ func test_visited_planets_deserializes_correctly() -> void:
 	assert_str(_campaign.current_planet_id).is_equal("planet_y")
 
 # === Patron Planet Binding Tests ===
-# NOTE: Patron uses 'location' Resource property, not 'planet_id' String
-# These tests need to be updated to use the correct API
+# Patron has planet_id (String) and met_on_turn (int) for planet binding
 
 func test_patron_has_planet_id_field() -> void:
 	var patron := Patron.new("Test Patron", null, GlobalEnums.FactionType.NEUTRAL)
@@ -110,14 +109,14 @@ func test_patron_deserializes_planet_binding() -> void:
 		"relationship": 50,
 		"faction_type": "NEUTRAL"
 	}
-	var patron := Patron.deserialize(data) as Patron
-	
+	var patron = Patron.deserialize(data)
+
+	assert_that(patron).is_not_null()
 	assert_str(patron.planet_id).is_equal("distant_colony")
 	assert_int(patron.met_on_turn).is_equal(7)
 
 # === Rival Planet Binding Tests ===
-# NOTE: Rival doesn't have origin_planet_id, current_planet_id, or can_follow properties
-# These tests need to be updated to use the correct API
+# Rival has origin_planet_id, current_planet_id, and can_follow properties
 
 func test_rival_has_planet_binding_fields() -> void:
 	var rival := Rival.new()

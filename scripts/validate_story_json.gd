@@ -30,7 +30,7 @@ func _run() -> void:
 			for error in result:
 				print("  - %s" % error)
 			failed += 1
-			errors.append({&quot;file&quot;: path, &quot;errors&quot;: result})
+			errors.append({"file": path, "errors": result})
 
 	print("\n=== Results ===")
 	print("Passed: %d/%d" % [passed, mission_files.size()])
@@ -39,8 +39,8 @@ func _run() -> void:
 	if not errors.is_empty():
 		print("\n=== Failed Missions Details ===")
 		for error_info in errors:
-			print("\nFile: %s" % error_info[&quot;file&quot;])
-			for error in error_info[&quot;errors&quot;]:
+			print("\nFile: %s" % error_info["file"])
+			for error in error_info["errors"]:
 				print("  - %s" % error)
 
 func validate_mission_file(file_path: String) -> Array[String]:

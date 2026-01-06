@@ -95,7 +95,7 @@ func test_battle_requirements_validation():
 func test_battle_requirements_fail_without_crew():
 	"""Battle phase validation fails without crew"""
 	var campaign = helper.create_minimal_campaign()
-	campaign.crew.members = []  # Remove all crew
+	campaign["crew"]["members"] = []  # Remove all crew
 
 	# Validate battle requirements
 	var result = helper.validate_battle_phase_requirements(campaign)
@@ -112,21 +112,21 @@ func test_crew_data_passes_to_battle():
 	var campaign = helper.create_full_campaign()
 
 	# Verify crew data structure
-	assert_that(campaign.crew.members.size()).is_greater(0)
+	assert_that(campaign["crew"]["members"].size()).is_greater(0)
 
-	var first_crew = campaign.crew.members[0]
+	var first_crew = campaign["crew"]["members"][0]
 	assert_that(first_crew.has("character_name")).is_true()
 	assert_that(first_crew.has("reactions")).is_true()
-	assert_that(first_crew.has("combat_skill")).is_true()
+	assert_that(first_crew.has("combat")).is_true()
 
 func test_equipment_data_passes_to_battle():
 	"""Equipment data from campaign is available for battle"""
 	var campaign = helper.create_full_campaign()
 
 	# Verify equipment data structure
-	assert_that(campaign.equipment.equipment.size()).is_greater(0)
+	assert_that(campaign["equipment"]["equipment"].size()).is_greater(0)
 
-	var first_item = campaign.equipment.equipment[0]
+	var first_item = campaign["equipment"]["equipment"][0]
 	assert_that(first_item.has("id")).is_true()
 	assert_that(first_item.has("type")).is_true()
 

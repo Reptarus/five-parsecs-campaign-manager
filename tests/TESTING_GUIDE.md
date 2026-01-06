@@ -54,8 +54,14 @@ Tests split into 3 files to avoid potential issues:
 
 ## Test Results Summary
 
-**Overall Status: 164 tests (162 passing, 2 failing)**
-**Last Updated**: 2025-11-27
+**Overall Status: 868 tests (868 passing, 0 failing)**
+**Last Updated**: 2025-12-28
+
+### Latest Test Run (2025-12-28)
+- **Total Tests**: 868
+- **Passed**: 868 (100%)
+- **Failed**: 0
+- **Orphans**: 312 (signal/resource cleanup warnings - non-blocking)
 
 ### Week 3 - Unit Testing Sprint (138 tests)
 
@@ -188,6 +194,39 @@ Located in `tests/helpers/EconomyTestHelper.gd` (267 lines)
    - Reset dictionaries in `before_test()` to ensure test isolation
    - Use realistic Five Parsecs rulebook values
    - Document rulebook page references in comments
+
+5. **Signal Assertions (CRITICAL - Pattern 9)**
+   - **ALWAYS use `await`** with `assert_signal().is_emitted()`
+   - **ALWAYS provide argument matchers** when signal has parameters
+   - gdUnit4 does **STRICT EQUALITY** on signal args - no args means "match signal with zero arguments"
+
+   ```gdscript
+   # ❌ WRONG - Will timeout if signal has any arguments
+   assert_signal(monitor).is_emitted("character_removed")
+
+   # ❌ WRONG - Missing await (non-blocking, may race)
+   assert_signal(monitor).is_emitted("character_removed", [any_string()])
+
+   # ✅ CORRECT - Await + argument matcher
+   await assert_signal(monitor).is_emitted("character_removed", [any_string()])
+   ```
+
+   **Available Matchers (from GdUnitTestSuite):**
+   | Matcher | Matches |
+   |---------|---------|
+   | `any()` | Any value of any type |
+   | `any_string()` | Any String value |
+   | `any_int()` | Any integer value |
+   | `any_bool()` | Any boolean value |
+   | `any_float()` | Any float value |
+
+   **For Resource→Node signal chains**, add frame wait before assertion:
+   ```gdscript
+   await get_tree().process_frame  # Wait for Resource→Node propagation
+   await assert_signal(event_bus).is_emitted("battle_phase_changed", [any(), any()])
+   ```
+
+   **See**: `tests/INTEGRATION_TEST_FIX_PATTERNS.md` for complete Pattern 9 documentation
 
 ## Running Full Test Suite
 

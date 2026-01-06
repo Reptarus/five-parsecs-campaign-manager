@@ -21,10 +21,10 @@ var main_dashboard_scene: String = "res://src/ui/screens/campaign/CampaignDashbo
 var workflow_orchestrator_scene: String = "res://src/ui/screens/campaign/CampaignWorkflowOrchestrator.tscn"
 
 var modular_scenes: Dictionary = {
-	"InitialCrewCreation": "res://src/ui/screens/crew/InitialCrewCreation.tscn",
+	# "InitialCrewCreation": DEPRECATED - CrewPanel handles crew creation in CampaignCreationUI wizard
 	"CharacterCreator": "res://src/ui/screens/character/SimpleCharacterCreator.tscn",
 	"CampaignDashboard": "res://src/ui/screens/campaign/CampaignDashboard.tscn",
-	"ConfigPanel": "res://src/ui/screens/campaign/panels/ConfigPanel.tscn",
+	"ConfigPanel": "res://src/ui/screens/campaign/panels/ExpandedConfigPanel.tscn",
 	"ShipPanel": "res://src/ui/screens/campaign/panels/ShipPanel.tscn",
 	"EquipmentPanel": "res://src/ui/screens/campaign/panels/EquipmentPanel.tscn"
 }

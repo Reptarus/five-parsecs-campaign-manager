@@ -540,22 +540,3 @@ func deserialize(data: Dictionary) -> void:
 	medical_facilities = data.get("medical_facilities", [])
 	if medical_facilities.is_empty():
 		_initialize_medical_facilities()
-
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
-
-	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
-	if not is_instance_valid(obj):
-		return default_value
-	if obj and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	return default_value
-
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

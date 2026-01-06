@@ -43,6 +43,10 @@ class TestCampaignHelper:
 			"equipment": []
 		}
 
+func before_test() -> void:
+	"""Test-level setup - set deterministic random seed"""
+	seed(12345)
+
 # ============================================================================
 # XP Tests
 # ============================================================================
@@ -106,10 +110,10 @@ func test_rumor_added_to_pool() -> void:
 		"source": "test"
 	}
 
-	campaign.rumors.append(new_rumor)
+	campaign["rumors"].append(new_rumor)
 
-	assert_int(campaign.rumors.size()).is_equal(1)
-	assert_str(campaign.rumors[0].description).is_equal("Notebook with secret information")
+	assert_int(campaign["rumors"].size()).is_equal(1)
+	assert_str(campaign["rumors"][0]["description"]).is_equal("Notebook with secret information")
 
 func test_rumor_type_range_valid() -> void:
 	# Per Core Rules: D10 roll determines type (1-10)
@@ -122,9 +126,9 @@ func test_rumors_cleared_on_quest_generation() -> void:
 	var campaign = TestCampaignHelper.create_test_campaign()
 
 	# Add rumors
-	campaign.rumors.append({"id": "r1", "type": 1})
-	campaign.rumors.append({"id": "r2", "type": 5})
-	campaign.rumors.append({"id": "r3", "type": 9})
+	campaign["rumors"].append({"id": "r1", "type": 1})
+	campaign["rumors"].append({"id": "r2", "type": 5})
+	campaign["rumors"].append({"id": "r3", "type": 9})
 
 	# Simulate quest generation
 	var quest = {
@@ -134,8 +138,8 @@ func test_rumors_cleared_on_quest_generation() -> void:
 	campaign["active_quest"] = quest
 	campaign["rumors"] = []  # Clear rumors
 
-	assert_int(campaign.rumors.size()).is_equal(0)
-	assert_that(campaign.active_quest).is_not_null()
+	assert_int(campaign["rumors"].size()).is_equal(0)
+	assert_that(campaign["active_quest"]).is_not_null()
 
 func test_quest_roll_mechanic() -> void:
 	# Per Core Rules: "Roll D6. If equal or below number of Rumors, receive Quest"
@@ -164,10 +168,10 @@ func test_rival_added_to_campaign() -> void:
 		"resources": 2
 	}
 
-	campaign.rivals.append(new_rival)
+	campaign["rivals"].append(new_rival)
 
-	assert_int(campaign.rivals.size()).is_equal(1)
-	assert_str(campaign.rivals[0].name).is_equal("Test Rival")
+	assert_int(campaign["rivals"].size()).is_equal(1)
+	assert_str(campaign["rivals"][0]["name"]).is_equal("Test Rival")
 
 func test_rival_has_required_fields() -> void:
 	var rival = {
@@ -198,19 +202,19 @@ func test_items_added_to_stash() -> void:
 	]
 
 	for item in items:
-		campaign.stash.append(item)
+		campaign["stash"].append(item)
 
-	assert_int(campaign.stash.size()).is_equal(2)
+	assert_int(campaign["stash"].size()).is_equal(2)
 
 func test_stash_persists_between_operations() -> void:
 	var campaign = TestCampaignHelper.create_test_campaign()
 
 	# Add item
-	campaign.stash.append({"name": "Test Item"})
-	var stash_copy = campaign.stash.duplicate()
+	campaign["stash"].append({"name": "Test Item"})
+	var stash_copy = campaign["stash"].duplicate()
 
 	# Simulate "next turn"
-	var retrieved_stash = campaign.stash
+	var retrieved_stash = campaign["stash"]
 
 	assert_int(retrieved_stash.size()).is_equal(stash_copy.size())
 
@@ -229,22 +233,22 @@ func test_equipment_assignment_persists() -> void:
 
 	character["equipment"] = new_equipment
 
-	assert_int(character.equipment.size()).is_equal(2)
-	assert_str(character.equipment[0].name).is_equal("Blade")
+	assert_int(character["equipment"].size()).is_equal(2)
+	assert_str(character["equipment"][0]["name"]).is_equal("Blade")
 
 func test_stash_updated_after_transfer() -> void:
 	var campaign = TestCampaignHelper.create_test_campaign()
 
 	# Start with item in stash
-	campaign.stash.append({"name": "Auto Rifle"})
-	assert_int(campaign.stash.size()).is_equal(1)
+	campaign["stash"].append({"name": "Auto Rifle"})
+	assert_int(campaign["stash"].size()).is_equal(1)
 
 	# Transfer to character
-	var item = campaign.stash.pop_back()
-	campaign.crew[0].equipment.append(item)
+	var item = campaign["stash"].pop_back()
+	campaign["crew"][0]["equipment"].append(item)
 
-	assert_int(campaign.stash.size()).is_equal(0)
-	assert_int(campaign.crew[0].equipment.size()).is_equal(1)
+	assert_int(campaign["stash"].size()).is_equal(0)
+	assert_int(campaign["crew"][0]["equipment"].size()).is_equal(1)
 
 # ============================================================================
 # Integration Tests
@@ -255,34 +259,34 @@ func test_full_world_phase_flow() -> void:
 	var campaign = TestCampaignHelper.create_test_campaign()
 
 	# 1. Apply XP from train task
-	campaign.crew[0]["experience"] = campaign.crew[0].experience + 1
+	campaign["crew"][0]["experience"] = campaign["crew"][0]["experience"] + 1
 
 	# 2. Spend credits on task
-	campaign["credits"] = campaign.credits - 5
+	campaign["credits"] = campaign["credits"] - 5
 
 	# 3. Add rumor
-	campaign.rumors.append({
+	campaign["rumors"].append({
 		"id": "rumor_001",
 		"type": 7,
 		"description": "A tip from a contact"
 	})
 
 	# 4. Add rival from event
-	campaign.rivals.append({
+	campaign["rivals"].append({
 		"id": "rival_001",
 		"name": "New Rival",
 		"type": "Pirate"
 	})
 
 	# 5. Add item to stash
-	campaign.stash.append({"name": "Beam Pistol"})
+	campaign["stash"].append({"name": "Beam Pistol"})
 
 	# Verify all changes persisted
-	assert_int(campaign.crew[0].experience).is_equal(1)
-	assert_int(campaign.credits).is_equal(95)
-	assert_int(campaign.rumors.size()).is_equal(1)
-	assert_int(campaign.rivals.size()).is_equal(1)
-	assert_int(campaign.stash.size()).is_equal(1)
+	assert_int(campaign["crew"][0]["experience"]).is_equal(1)
+	assert_int(campaign["credits"]).is_equal(95)
+	assert_int(campaign["rumors"].size()).is_equal(1)
+	assert_int(campaign["rivals"].size()).is_equal(1)
+	assert_int(campaign["stash"].size()).is_equal(1)
 
 func test_xp_source_tracking() -> void:
 	# Optional: Track where XP came from for statistics

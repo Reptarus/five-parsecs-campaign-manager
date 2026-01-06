@@ -25,6 +25,7 @@ var background_options: OptionButton
 var motivation_options: OptionButton
 
 var combat_value: Label
+var reactions_value: Label
 var toughness_value: Label
 var savvy_value: Label
 var tech_value: Label
@@ -89,6 +90,7 @@ func _initialize_ui_components() -> void:
 	
 	# Stat displays - using unique names
 	combat_value = get_node_or_null("%CombatValue")
+	reactions_value = get_node_or_null("%ReactionsValue")
 	toughness_value = get_node_or_null("%ToughnessValue")
 	savvy_value = get_node_or_null("%SavvyValue")
 	tech_value = get_node_or_null("%TechValue")
@@ -110,6 +112,7 @@ func _initialize_ui_components() -> void:
 	print("  BackgroundOptions: ", background_options != null)
 	print("  MotivationOptions: ", motivation_options != null)
 	print("  CombatValue: ", combat_value != null)
+	print("  ReactionsValue: ", reactions_value != null)
 	print("  ToughnessValue: ", toughness_value != null)
 	print("  SavvyValue: ", savvy_value != null)
 	print("  TechValue: ", tech_value != null)
@@ -138,6 +141,7 @@ func _initialize_ui_components() -> void:
 	if not background_options: missing_components.append("BackgroundOptions")
 	if not motivation_options: missing_components.append("MotivationOptions")
 	if not combat_value: missing_components.append("CombatValue")
+	if not reactions_value: missing_components.append("ReactionsValue")
 	if not toughness_value: missing_components.append("ToughnessValue")
 	if not savvy_value: missing_components.append("SavvyValue")
 	if not tech_value: missing_components.append("TechValue")
@@ -187,7 +191,12 @@ func _try_alternative_node_paths() -> void:
 	if full_combat_value and not combat_value:
 		combat_value = full_combat_value
 		print("  Found CombatValue via full path")
-	
+
+	var full_reactions_value = get_node_or_null("Dialog/VBoxContainer/StatsContainer/StatsDisplay/ReactionsValue")
+	if full_reactions_value and not reactions_value:
+		reactions_value = full_reactions_value
+		print("  Found ReactionsValue via full path")
+
 	var full_toughness_value = get_node_or_null("Dialog/VBoxContainer/StatsContainer/StatsDisplay/ToughnessValue")
 	if full_toughness_value and not toughness_value:
 		toughness_value = full_toughness_value
@@ -303,7 +312,15 @@ func _connect_stat_buttons() -> void:
 		combat_up.pressed.connect(_on_combat_up)
 	if combat_down and not combat_down.pressed.is_connected(_on_combat_down):
 		combat_down.pressed.connect(_on_combat_down)
-	
+
+	# Reactions buttons
+	var reactions_up = get_node_or_null("Dialog/VBoxContainer/StatsContainer/StatsDisplay/ReactionsButtons/ReactionsUp")
+	var reactions_down = get_node_or_null("Dialog/VBoxContainer/StatsContainer/StatsDisplay/ReactionsButtons/ReactionsDown")
+	if reactions_up and not reactions_up.pressed.is_connected(_on_reactions_up):
+		reactions_up.pressed.connect(_on_reactions_up)
+	if reactions_down and not reactions_down.pressed.is_connected(_on_reactions_down):
+		reactions_down.pressed.connect(_on_reactions_down)
+
 	# Toughness buttons
 	var toughness_up = get_node_or_null("Dialog/VBoxContainer/StatsContainer/StatsDisplay/ToughnessButtons/ToughnessUp")
 	var toughness_down = get_node_or_null("Dialog/VBoxContainer/StatsContainer/StatsDisplay/ToughnessButtons/ToughnessDown")
@@ -388,9 +405,9 @@ func _populate_form(character: Character) -> void:
 		name_input.text = character.character_name
 	
 	# Set origin (species)
-	if origin_options and character.origin_name:
+	if origin_options and character.origin:
 		for i in range(origin_options.get_item_count()):
-			if origin_options.get_item_text(i) == character.origin_name:
+			if origin_options.get_item_text(i) == character.origin:
 				origin_options.selected = i
 				break
 	
@@ -418,15 +435,17 @@ func _generate_random_stats() -> void:
 	
 	# Generate base stats using Five Parsecs rules (2d6 for each stat)
 	current_character.combat = _roll_2d6()
+	current_character.reactions = _roll_2d6()
 	current_character.toughness = _roll_2d6()
 	current_character.savvy = _roll_2d6()
 	current_character.tech = _roll_2d6()
 	current_character.speed = _roll_2d6()
 	current_character.luck = 1 # Starting luck
-	
+
 	# Captains get better stats
 	if current_mode == CreatorMode.CAPTAIN:
 		current_character.combat = max(current_character.combat, 3)
+		current_character.reactions = max(current_character.reactions, 2)
 		current_character.toughness = max(current_character.toughness, 3)
 		current_character.savvy = max(current_character.savvy, 3)
 		current_character.luck = 2
@@ -456,6 +475,8 @@ func _update_stats_display() -> void:
 		
 	if combat_value:
 		combat_value.text = str(current_character.combat)
+	if reactions_value:
+		reactions_value.text = str(current_character.reactions)
 	if toughness_value:
 		toughness_value.text = str(current_character.toughness)
 	if savvy_value:
@@ -466,9 +487,9 @@ func _update_stats_display() -> void:
 		speed_value.text = str(current_character.speed)
 	if luck_value:
 		luck_value.text = str(current_character.luck)
-	
-	print("SimpleCharacterCreator: Stats updated - Combat:%d Tough:%d Savvy:%d Tech:%d Speed:%d Luck:%d" % [
-		current_character.combat, current_character.toughness, current_character.savvy,
+
+	print("SimpleCharacterCreator: Stats updated - Combat:%d React:%d Tough:%d Savvy:%d Tech:%d Speed:%d Luck:%d" % [
+		current_character.combat, current_character.reactions, current_character.toughness, current_character.savvy,
 		current_character.tech, current_character.speed, current_character.luck
 	])
 
@@ -513,6 +534,7 @@ func _update_description() -> void:
 	# Add stats
 	description_text += "[color=lime]Stats:[/color]\n"
 	description_text += "[color=yellow]Combat:[/color] %d\n" % current_character.combat
+	description_text += "[color=yellow]Reactions:[/color] %d\n" % current_character.reactions
 	description_text += "[color=yellow]Toughness:[/color] %d\n" % current_character.toughness
 	description_text += "[color=yellow]Savvy:[/color] %d\n" % current_character.savvy
 	description_text += "[color=yellow]Tech:[/color] %d\n" % current_character.tech
@@ -550,8 +572,8 @@ func _on_origin_changed(index: int) -> void:
 	"""Handle origin (species) selection change"""
 	if index > 0 and current_character:
 		var selected_origin = origin_options.get_item_text(index)
-		# Store the origin name as a string for display purposes
-		current_character.origin_name = selected_origin
+		# Store the origin as a string for display purposes
+		current_character.origin = selected_origin
 		
 		# Apply species stat modifiers
 		var species_data = _get_species_data(selected_origin)
@@ -574,14 +596,14 @@ func _on_background_changed(index: int) -> void:
 	"""Handle background selection change"""
 	if index > 0 and current_character:
 		var selected_background = background_options.get_item_text(index)
-		current_character.background_name = selected_background
+		current_character.background = selected_background
 		_update_description()
 
 func _on_motivation_changed(index: int) -> void:
 	"""Handle motivation selection change"""
 	if index > 0 and current_character:
 		var selected_motivation = motivation_options.get_item_text(index)
-		current_character.motivation_name = selected_motivation
+		current_character.motivation = selected_motivation
 		_update_description()
 
 func _on_randomize_pressed() -> void:
@@ -636,6 +658,16 @@ func _on_combat_up() -> void:
 func _on_combat_down() -> void:
 	if current_character and current_character.combat > 1:
 		current_character.combat -= 1
+		_update_stats_display()
+
+func _on_reactions_up() -> void:
+	if current_character and current_character.reactions < 6:
+		current_character.reactions += 1
+		_update_stats_display()
+
+func _on_reactions_down() -> void:
+	if current_character and current_character.reactions > 1:
+		current_character.reactions -= 1
 		_update_stats_display()
 
 func _on_toughness_up() -> void:

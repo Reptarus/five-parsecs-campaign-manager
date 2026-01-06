@@ -216,6 +216,9 @@ func start_battle_phase(mission_data: Dictionary = {}) -> void:
 	battle_in_progress = true
 	current_round = 0
 
+	# Sprint 26.4: Debug logging for data handoff verification
+	_debug_log_battle_setup(mission_data)
+
 	battle_phase_started.emit()
 
 	# Allow signal to be processed before continuing
@@ -373,6 +376,15 @@ func _process_deployment() -> void:
 		"deployment_type": "standard"
 	}
 
+	# Sprint 26.5: Gather debug data before emitting signals
+	var crew_names: Array = []
+	for member in crew_deployed:
+		crew_names.append(member.get("character_name", member.get("name", "Unknown")))
+	var enemy_type_names: Array = []
+	for enemy in enemies_deployed:
+		enemy_type_names.append(enemy.get("type", "Unknown"))
+	_debug_log_deployment(crew_deployed.size(), enemies_deployed.size(), "standard", crew_names, enemy_type_names)
+
 	print("BattlePhase: Deployment completed - Crew: %d, Enemies: %d" % [crew_deployed.size(), enemies_deployed.size()])
 	deployment_completed.emit(deployment_data)
 
@@ -529,8 +541,19 @@ func _process_combat_rounds() -> void:
 	# Sprint 11.2: Request battle mode selection from user
 	request_battle_mode_selection()
 
-	# Wait for user choice
-	await battle_mode_selected
+	# BP-1: Wait for user choice with timeout fallback to auto-resolve
+	var timeout_seconds: float = 30.0
+	var mode_selected: bool = false
+
+	# Create a timeout timer
+	var timeout_timer := get_tree().create_timer(timeout_seconds)
+
+	# Wait for either signal or timeout
+	var result = await _await_battle_mode_with_timeout(timeout_timer)
+	if result == "timeout":
+		push_warning("BattlePhase: Battle mode selection timed out after %d seconds - defaulting to auto-resolve" % int(timeout_seconds))
+		use_tactical_combat = false
+	# else: signal received, use_tactical_combat was set by set_battle_mode()
 
 	if use_tactical_combat:
 		# Sprint 11.3: Execute turn-by-turn tactical combat using BattleRoundTracker
@@ -554,6 +577,12 @@ func _execute_tactical_combat() -> void:
 
 	# Start the battle in round tracker
 	round_tracker.start_battle()
+
+	# Sprint 26.5: Debug log tactical combat mode
+	var crew_strength = crew_deployed.size() * 5
+	var enemy_strength = enemies_deployed.size() * 4
+	var crew_first = initiative_roll >= 4
+	_debug_log_combat_mode(true, max_rounds, initiative_roll, crew_first, crew_strength, enemy_strength)
 
 	# Combat continues until victory/defeat or max rounds
 	var battle_active := true
@@ -687,6 +716,10 @@ func _simulate_battle_outcome() -> void:
 	var crew_strength = crew_deployed.size() * 5 # Simplified
 	var enemy_strength = enemies_deployed.size() * 4 # Simplified
 
+	# Sprint 26.5: Debug log combat mode BEFORE resolution
+	var crew_first = initiative_roll >= 4
+	_debug_log_combat_mode(false, max_rounds, initiative_roll, crew_first, crew_strength, enemy_strength)
+
 	var victory_roll = randi_range(1, 6)
 	var success = (crew_strength + victory_roll) > enemy_strength
 
@@ -793,6 +826,9 @@ func _complete_battle_phase() -> void:
 
 	battle_in_progress = false
 
+	# Sprint 26.5: Debug log battle resolution with all results
+	_debug_log_battle_resolution(combat_results)
+
 	print("BattlePhase: Battle Phase completed")
 	battle_results_ready.emit(combat_results)
 
@@ -883,6 +919,30 @@ func set_battle_mode(tactical: bool) -> void:
 	print("BattlePhase: Battle mode set to %s" % ("Tactical" if tactical else "Auto-Resolve"))
 	battle_mode_selected.emit(tactical)
 
+## BP-1: Helper to await battle mode with timeout fallback
+func _await_battle_mode_with_timeout(timeout_timer: SceneTreeTimer) -> String:
+	"""Wait for battle_mode_selected signal OR timeout, whichever comes first.
+	Returns 'signal' if mode was selected, 'timeout' if timed out."""
+	var signal_received: bool = false
+	var timed_out: bool = false
+
+	# Connect to both possible events
+	var mode_callback := func(_tactical: bool): signal_received = true
+	battle_mode_selected.connect(mode_callback, CONNECT_ONE_SHOT)
+
+	var timeout_callback := func(): timed_out = true
+	timeout_timer.timeout.connect(timeout_callback, CONNECT_ONE_SHOT)
+
+	# Poll until one of them fires
+	while not signal_received and not timed_out:
+		await get_tree().process_frame
+
+	# Disconnect any remaining connection
+	if battle_mode_selected.is_connected(mode_callback):
+		battle_mode_selected.disconnect(mode_callback)
+
+	return "signal" if signal_received else "timeout"
+
 ## Sprint 11.4: Wire TacticalBattleUI to round tracker
 func _wire_tactical_battle_ui() -> void:
 	"""Find and configure TacticalBattleUI with round tracker for phase-based combat"""
@@ -963,6 +1023,150 @@ func get_deployed_enemies() -> Array[Dictionary]:
 	"""Get enemies currently deployed"""
 	return enemies_deployed.duplicate()
 
+## ═══════════════════════════════════════════════════════════════════════════════
+## DEBUG LOGGING - Sprint 26.5: Substep-Level Debug Output
+## ═══════════════════════════════════════════════════════════════════════════════
+
+func _debug_log_battle_setup(mission_data: Dictionary) -> void:
+	"""Log battle setup data for debugging handoff from World Phase"""
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ BATTLE SUBSTEP: SETUP                                       │")
+	print("├─────────────────────────────────────────────────────────────┤")
+
+	# Mission data
+	print("  MISSION DATA:")
+	print("    Keys: %s" % str(mission_data.keys()))
+	print("    Mission Type: %s" % str(mission_data.get("mission_type", mission_data.get("type", "MISSING"))))
+	print("    Mission ID: %s" % str(mission_data.get("mission_id", mission_data.get("id", "MISSING"))))
+	print("    Difficulty: %s" % str(mission_data.get("difficulty", "MISSING")))
+
+	# Enemy data from mission
+	print("  ENEMY DATA (from mission):")
+	print("    Enemy Count: %s" % str(mission_data.get("enemy_count", "MISSING")))
+	print("    Enemy Type: %s" % str(mission_data.get("enemy_type", mission_data.get("enemy_faction", "MISSING"))))
+	print("    Deployment: %s" % str(mission_data.get("deployment", "MISSING")))
+
+	# Check crew availability
+	print("  CREW AVAILABILITY:")
+	if _campaign:
+		var crew: Array = []
+		if _campaign.has_method("get_crew_members"):
+			crew = _campaign.get_crew_members()
+		elif "crew_members" in _campaign:
+			crew = _campaign.crew_members
+
+		print("    Total Crew: %d members" % crew.size())
+
+		# Count healthy crew (available for battle)
+		var healthy_count: int = 0
+		var injured_names: Array = []
+		for member in crew:
+			var recovery_turns: int = 0
+			var member_name: String = "Unknown"
+
+			if member is Dictionary:
+				recovery_turns = member.get("recovery_turns", 0)
+				member_name = member.get("character_name", member.get("name", "Unknown"))
+			elif member != null:
+				if "recovery_turns" in member:
+					recovery_turns = member.recovery_turns
+				if "character_name" in member:
+					member_name = member.character_name
+				elif "name" in member:
+					member_name = member.name
+
+			if recovery_turns == 0:
+				healthy_count += 1
+			else:
+				injured_names.append("%s (%d turns)" % [member_name, recovery_turns])
+
+		print("    Healthy (deployable): %d members" % healthy_count)
+		if not injured_names.is_empty():
+			print("    Injured: %s" % str(injured_names))
+	elif game_state_manager and game_state_manager.has_method("get_crew_members"):
+		var crew = game_state_manager.get_crew_members()
+		print("    Total Crew: %d members (from GameStateManager)" % crew.size())
+	else:
+		print("    ⚠️  NO CAMPAIGN OR GAME STATE - Cannot verify crew!")
+
+	# Check battle configuration
+	print("  BATTLE CONFIG:")
+	print("    Max Rounds: %d" % max_rounds)
+	print("    Tactical Mode: %s" % ("Yes" if use_tactical_combat else "No"))
+	print("    Round Tracker: %s" % ("Available" if round_tracker else "MISSING"))
+
+	print("└─────────────────────────────────────────────────────────────┘")
+
+
+func _debug_log_deployment(crew_count: int, enemy_count: int, deployment_type: String, crew_names: Array, enemy_types: Array) -> void:
+	"""Log deployment data for debugging"""
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ BATTLE SUBSTEP: DEPLOYMENT                                  │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ FORCES DEPLOYED:")
+	print("│   Crew Members: %d" % crew_count)
+	for i in range(min(crew_names.size(), 6)):  # Max 6 to avoid spam
+		print("│     - %s" % str(crew_names[i]))
+	if crew_names.size() > 6:
+		print("│     ... and %d more" % (crew_names.size() - 6))
+	print("│   Enemy Forces: %d" % enemy_count)
+	for i in range(min(enemy_types.size(), 4)):  # Max 4 to avoid spam
+		print("│     - %s" % str(enemy_types[i]))
+	if enemy_types.size() > 4:
+		print("│     ... and %d more" % (enemy_types.size() - 4))
+	print("│ DEPLOYMENT TYPE: %s" % deployment_type)
+	print("│ POSITIONS:")
+	print("│   Crew Zone: Standard deployment (rows 0-2)")
+	print("│   Enemy Zone: Standard deployment (rows 18-20)")
+	print("└─────────────────────────────────────────────────────────────┘")
+
+
+func _debug_log_combat_mode(is_tactical: bool, max_rounds_cfg: int, initiative_roll: int, crew_first: bool, crew_strength: int, enemy_strength: int) -> void:
+	"""Log combat mode selection and initial state"""
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ BATTLE SUBSTEP: COMBAT                                      │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ COMBAT MODE: %s" % ("TACTICAL (Turn-by-Turn)" if is_tactical else "AUTO-RESOLVE (Quick)"))
+	print("│ MAX ROUNDS: %d" % max_rounds_cfg)
+	print("│ INITIATIVE:")
+	print("│   Roll: %d" % initiative_roll)
+	print("│   First Turn: %s" % ("CREW" if crew_first else "ENEMY"))
+	print("│ FORCE STRENGTH (Simplified Calculation):")
+	print("│   Crew Strength: %d (members × 5)" % crew_strength)
+	print("│   Enemy Strength: %d (enemies × 4)" % enemy_strength)
+	print("│   Advantage: %s" % ("CREW" if crew_strength > enemy_strength else ("ENEMY" if enemy_strength > crew_strength else "EVEN")))
+	print("└─────────────────────────────────────────────────────────────┘")
+
+
+func _debug_log_battle_resolution(results: Dictionary) -> void:
+	"""Log battle resolution summary"""
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ BATTLE SUBSTEP: RESOLUTION                                  │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ OUTCOME: %s" % ("VICTORY!" if results.get("success", false) else "DEFEAT"))
+	print("│ BATTLE STATISTICS:")
+	print("│   Rounds Fought: %d" % results.get("rounds_fought", 0))
+	print("│   Enemies Defeated: %d" % results.get("enemies_defeated", 0))
+	print("│   Crew Casualties: %d" % results.get("crew_casualties", 0))
+	print("│ REWARDS:")
+	print("│   Payment: %d credits" % results.get("payment", 0))
+	print("│   Loot Opportunities: %d rolls" % results.get("loot_opportunities", 0))
+	print("│   Battlefield Finds: %d" % results.get("battlefield_finds", 0))
+	print("│ XP AWARDS:")
+	print("│   Base XP Per Participant: %d" % results.get("xp_per_participant", 1))
+	print("│   Victory Bonus: %d" % results.get("xp_victory_bonus", 0))
+	# List injured crew if any
+	var injuries = results.get("injuries_sustained", [])
+	if not injuries.is_empty():
+		print("│ INJURIES TO PROCESS (PostBattle):")
+		for injury in injuries:
+			print("│   - Crew ID: %s, Type: %s" % [str(injury.get("crew_id", "?")), str(injury.get("type", "unknown"))])
+	else:
+		print("│ INJURIES: None (all crew healthy)")
+	print("│ → Data passed to PostBattlePhase for processing")
+	print("└─────────────────────────────────────────────────────────────┘")
+
+
 ## Safe await helper - handles case when node isn't in scene tree (testing)
 ## SPRINT 5 FIX: Return early if no tree to avoid null reference in await
 func _safe_await_frame() -> void:
@@ -973,10 +1177,27 @@ func _safe_await_frame() -> void:
 		return
 	await tree.process_frame
 
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null
+## Sprint 26.12: Consistent phase handoff interface
+func get_completion_data() -> Dictionary:
+	"""Get Battle Phase completion data for PostBattle Phase transition.
+
+	Returns Dictionary with:
+	- combat_results: Dictionary - Full combat results including victory, casualties, loot
+	- victory: bool - Whether battle was won
+	- crew_deployed: Array - Crew members that participated
+	- enemies_deployed: Array - Enemies that were in battle
+	- rounds_fought: int - Number of rounds the battle lasted
+	"""
+	var data = combat_results.duplicate(true) if combat_results else {}
+
+	# Ensure essential fields are present
+	if not data.has("victory"):
+		data["victory"] = false
+	if not data.has("rounds_fought"):
+		data["rounds_fought"] = current_round
+	if not data.has("crew_deployed"):
+		data["crew_deployed"] = crew_deployed.duplicate()
+	if not data.has("enemies_deployed"):
+		data["enemies_deployed"] = enemies_deployed.duplicate()
+
+	return data

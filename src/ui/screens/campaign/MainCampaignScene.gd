@@ -52,7 +52,7 @@ func _initialize_autoloads() -> void:
 		GameState = get_node_or_null("/root/GameState")
 		CampaignManager = get_node_or_null("/root/CampaignManager")
 		CharacterManagerAutoload = get_node_or_null("/root/CharacterManagerAutoload")
-		SaveManager = SaveManager
+		SaveManager = get_node_or_null("/root/SaveManager")
 
 func _setup_ui_components() -> void:
 	"""Configure main UI components"""
@@ -259,17 +259,43 @@ func _restore_campaign_from_save(save_data: Dictionary) -> Resource:
 
 func _initialize_campaign_systems(campaign_data: Dictionary) -> void:
 	"""Initialize all campaign-related systems"""
-	# Initialize game state
-	if GameState:
+	# Initialize game state with campaign data
+	if GameState and GameState.has_method("initialize_new_campaign"):
 		GameState.initialize_new_campaign(campaign_data)
-	
+		print("MainCampaignScene: GameState initialized with campaign data")
+	else:
+		push_warning("MainCampaignScene: GameState.initialize_new_campaign() not available")
+
+	# Pass campaign reference to CampaignPhaseManager for phase handlers
+	var cpm = get_node_or_null("/root/CampaignPhaseManager")
+	if cpm and cpm.has_method("set_campaign"):
+		# Get the campaign resource from GameState (created by initialize_new_campaign)
+		var campaign = null
+		if GameState and GameState.has_method("get_current_campaign"):
+			campaign = GameState.get_current_campaign()
+
+		if campaign:
+			cpm.set_campaign(campaign)
+			print("MainCampaignScene: CampaignPhaseManager received campaign reference")
+		else:
+			# Fallback: Use our local current_campaign resource
+			if current_campaign:
+				cpm.set_campaign(current_campaign)
+				print("MainCampaignScene: CampaignPhaseManager received local campaign reference")
+			else:
+				push_warning("MainCampaignScene: No campaign resource available for CampaignPhaseManager")
+	else:
+		push_warning("MainCampaignScene: CampaignPhaseManager.set_campaign() not available")
+
 	# Initialize campaign manager
-	if CampaignManager:
+	if CampaignManager and CampaignManager.has_method("start_new_campaign"):
 		CampaignManager.start_new_campaign(campaign_data)
-	
+		print("MainCampaignScene: CampaignManager started new campaign")
+
 	# Initialize character system
-	if CharacterManagerAutoload:
+	if CharacterManagerAutoload and CharacterManagerAutoload.has_method("initialize_for_campaign"):
 		CharacterManagerAutoload.initialize_for_campaign(campaign_data)
+		print("MainCampaignScene: Character system initialized")
 
 func _restore_campaign_state(save_data: Dictionary) -> void:
 	"""Restore campaign state from save data"""

@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3 uid="uid://b8yxm2vq3wv6j"]
+[gd_scene load_steps=2 format=3 uid="uid://b8yxm2vq3wv6j"]
 
 [ext_resource type="Script" uid="uid://5sao7y23nf52" path="res://src/ui/screens/battle/BattleCompanionUI.gd" id="1_p8h2q"]
 

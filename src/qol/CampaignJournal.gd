@@ -268,6 +268,71 @@ func get_character_entries(character_id: String) -> Array[Dictionary]:
 	"""Get all journal entries involving a character"""
 	return filter_entries({"character_id": character_id})
 
+func get_character_statistics(character_id: String) -> Dictionary:
+	"""Get aggregated statistics for character from journal"""
+	if not character_histories.has(character_id):
+		return {}
+
+	return character_histories[character_id].get("statistics", {})
+
+func get_top_performers(stat: String = "kills", limit: int = 5) -> Array:
+	"""
+	Get top N characters by statistic
+	@param stat: Statistic to sort by (kills, battles_participated, injuries_sustained, advancements)
+	@param limit: Maximum number of results to return
+	@return: Array of {character_id, value} sorted descending
+	"""
+	var performers: Array = []
+	for char_id in character_histories.keys():
+		var stats: Dictionary = character_histories[char_id].get("statistics", {})
+		performers.append({
+			"character_id": char_id,
+			"value": stats.get(stat, 0)
+		})
+
+	performers.sort_custom(func(a, b): return a.value > b.value)
+	return performers.slice(0, limit)
+
+func filter_entries_by_character(character_id: String) -> Array[Dictionary]:
+	"""Get all journal entries involving a specific character"""
+	var filtered: Array[Dictionary] = []
+	for entry in entries:
+		if character_id in entry.get("characters_involved", []):
+			filtered.append(entry)
+	return filtered
+
+func get_all_character_ids() -> Array[String]:
+	"""Get list of all character IDs with history"""
+	var ids: Array[String] = []
+	for char_id in character_histories.keys():
+		ids.append(char_id)
+	return ids
+
+func get_crew_stats_summary() -> Dictionary:
+	"""Get aggregate statistics for all crew members"""
+	var total_kills: int = 0
+	var total_battles: int = 0
+	var total_injuries: int = 0
+	var total_advancements: int = 0
+	var character_count: int = character_histories.size()
+
+	for char_id in character_histories.keys():
+		var stats: Dictionary = character_histories[char_id].get("statistics", {})
+		total_kills += stats.get("kills", 0)
+		total_battles += stats.get("battles_participated", 0)
+		total_injuries += stats.get("injuries_sustained", 0)
+		total_advancements += stats.get("advancements", 0)
+
+	return {
+		"total_characters": character_count,
+		"total_kills": total_kills,
+		"total_battles": total_battles,
+		"total_injuries": total_injuries,
+		"total_advancements": total_advancements,
+		"average_kills_per_character": float(total_kills) / float(max(character_count, 1)),
+		"average_battles_per_character": float(total_battles) / float(max(character_count, 1))
+	}
+
 ## ===== PHOTO MANAGEMENT =====
 
 func attach_photo_to_entry(entry_id: String, image_data: Image, caption: String = "") -> bool:

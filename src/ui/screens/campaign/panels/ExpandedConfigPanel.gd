@@ -4,6 +4,8 @@ extends FiveParsecsCampaignPanel
 ## Production-ready implementation with comprehensive campaign setup options
 ## NOW INCLUDES VICTORY CONDITIONS (removes need for separate VictoryConditionsPanel)
 
+const STEP_NUMBER := 1  # Step 1 of 7 in campaign wizard (Configuration)
+
 # GlobalEnums available as autoload singleton
 const FPCM_VictoryDescriptions = preload("res://src/game/victory/VictoryDescriptions.gd")
 const CustomVictoryDialog = preload("res://src/ui/components/victory/CustomVictoryDialog.gd")
@@ -26,6 +28,7 @@ signal tutorial_mode_selected(tutorial: String)
 var local_campaign_config: Dictionary = {
 	"campaign_name": "",
 	"campaign_type": "standard",
+	"difficulty_level": 2,  # Default: STANDARD
 	"victory_conditions": {},
 	"story_track": "",
 	"tutorial_mode": "",
@@ -35,6 +38,7 @@ var local_campaign_config: Dictionary = {
 # UI Components with safe access
 var campaign_name_input: LineEdit
 var campaign_type_option: OptionButton
+var difficulty_option: OptionButton  # Difficulty selector
 var victory_conditions_list: VBoxContainer
 var story_track_option: OptionButton
 var tutorial_mode_option: OptionButton
@@ -44,6 +48,7 @@ var summary_label: Label
 
 # Description labels for displaying option details
 var campaign_type_description: Label
+var difficulty_description: Label  # Difficulty level description
 var victory_condition_description: RichTextLabel  # Rich text for full narrative + strategy
 var story_track_description: Label
 var tutorial_mode_description: Label
@@ -139,6 +144,30 @@ var tutorial_modes: Dictionary = {
 	}
 }
 
+# Difficulty levels matching GlobalEnums.DifficultyLevel
+var difficulty_levels: Dictionary = {
+	1: {
+		"name": "Story",
+		"description": "Relaxed difficulty for narrative focus. Enemies are weaker, resources more abundant, and crew survives longer."
+	},
+	2: {
+		"name": "Standard",
+		"description": "The core Five Parsecs experience. Balanced challenge that rewards tactical play while remaining fair."
+	},
+	3: {
+		"name": "Challenging",
+		"description": "Increased danger for experienced players. Tougher enemies, scarcer resources, and higher stakes."
+	},
+	4: {
+		"name": "Hardcore",
+		"description": "Brutal difficulty for veterans. Every decision matters, losses are punishing, survival is the goal."
+	},
+	5: {
+		"name": "Nightmare",
+		"description": "Near-impossible difficulty. Only the most skilled and lucky crews will survive the Fringe."
+	}
+}
+
 var selected_victory_conditions: Dictionary = {}
 var selected_story_track: String = ""
 var selected_tutorial_mode: String = ""
@@ -184,19 +213,14 @@ func _initialize_components() -> void:
 	
 	# Apply proper spacing between section cards
 	main_container.add_theme_constant_override("separation", SPACING_LG)
-	
-	# Add progress indicator at the top
-	var progress = _create_progress_indicator(1, 7)  # Step 2 of 7
-	main_container.add_child(progress)
-	
-	# Add visual separator after progress indicator
-	var separator_space = Control.new()
-	separator_space.custom_minimum_size.y = SPACING_LG
-	main_container.add_child(separator_space)
-	
+
+	# NOTE: Progress indicator removed - CampaignCreationUI handles progress display centrally
+
 	# Build card-based UI sections
 	_build_campaign_identity_section(main_container)
 	_build_campaign_type_section(main_container)
+	_build_difficulty_section(main_container)
+	# NOTE: Crew size moved to CrewPanel (Step 3) - Sprint 26.7
 	_build_victory_conditions_section(main_container)
 	_build_story_track_section(main_container)
 	_build_tutorial_section(main_container)
@@ -227,24 +251,48 @@ func _build_campaign_type_section(parent: Control) -> void:
 	"""Build campaign type selector with card design"""
 	campaign_type_option = OptionButton.new()
 	_style_option_button(campaign_type_option)
-	
+
 	# Create description label
 	campaign_type_description = Label.new()
 	campaign_type_description.add_theme_font_size_override("font_size", FONT_SIZE_SM)
 	campaign_type_description.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	campaign_type_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	
+
 	var content = VBoxContainer.new()
 	content.add_theme_constant_override("separation", SPACING_SM)
 	content.add_child(_create_labeled_input("Campaign Type", campaign_type_option))
 	content.add_child(campaign_type_description)
-	
+
 	var card = _create_section_card(
 		"CAMPAIGN STYLE",
 		content,
 		""
 	)
 	parent.add_child(card)
+
+func _build_difficulty_section(parent: Control) -> void:
+	"""Build difficulty selector with card design and description"""
+	difficulty_option = OptionButton.new()
+	_style_option_button(difficulty_option)
+
+	# Create description label for difficulty details
+	difficulty_description = Label.new()
+	difficulty_description.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	difficulty_description.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	difficulty_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
+	var content = VBoxContainer.new()
+	content.add_theme_constant_override("separation", SPACING_SM)
+	content.add_child(_create_labeled_input("Difficulty Level", difficulty_option))
+	content.add_child(difficulty_description)
+
+	var card = _create_section_card(
+		"DIFFICULTY LEVEL",
+		content,
+		"Affects enemy strength, resource availability, and overall survival odds"
+	)
+	parent.add_child(card)
+
 
 func _build_victory_conditions_section(parent: Control) -> void:
 	"""Build victory conditions section with card selectors"""
@@ -328,7 +376,7 @@ func _build_controls_section(parent: Control) -> void:
 	button_row.add_child(reset_button)
 	
 	apply_button = Button.new()
-	apply_button.text = "Apply Configuration"
+	apply_button.text = "Continue to Captain Creation"
 	apply_button.custom_minimum_size.y = TOUCH_TARGET_MIN
 	
 	# Style apply button as primary action
@@ -355,6 +403,7 @@ func _create_description_labels() -> void:
 func _update_all_descriptions() -> void:
 	"""Update all description labels with current selection info"""
 	_update_campaign_type_description()
+	_update_difficulty_description()
 	_update_victory_condition_description()
 	_update_story_track_description()
 	_update_tutorial_mode_description()
@@ -375,6 +424,21 @@ func _update_campaign_type_description() -> void:
 			return
 
 	campaign_type_description.text = ""
+
+func _update_difficulty_description() -> void:
+	"""Update difficulty description based on current selection"""
+	if not difficulty_description or not difficulty_option:
+		return
+
+	var index = difficulty_option.selected
+	if index < 0:
+		return
+
+	var difficulty_id = difficulty_option.get_item_id(index)
+	if difficulty_levels.has(difficulty_id):
+		difficulty_description.text = "→ " + difficulty_levels[difficulty_id].description
+	else:
+		difficulty_description.text = ""
 
 func _update_victory_condition_description() -> void:
 	"""Update victory condition description summary (descriptions now shown inline in cards)"""
@@ -438,6 +502,8 @@ func _connect_signals() -> void:
 		campaign_name_input.text_changed.connect(_on_campaign_name_changed)
 	if campaign_type_option:
 		campaign_type_option.item_selected.connect(_on_campaign_type_changed)
+	if difficulty_option:
+		difficulty_option.item_selected.connect(_on_difficulty_changed)
 	if story_track_option:
 		story_track_option.item_selected.connect(_on_story_track_changed)
 	if tutorial_mode_option:
@@ -450,6 +516,7 @@ func _connect_signals() -> void:
 func _setup_campaign_options() -> void:
 	"""Setup campaign configuration options"""
 	_setup_campaign_type_options()
+	_setup_difficulty_options()
 	_setup_victory_conditions()
 	_setup_story_track_options()
 	_setup_tutorial_mode_options()
@@ -458,14 +525,32 @@ func _setup_campaign_type_options() -> void:
 	"""Setup campaign type options"""
 	if not campaign_type_option:
 		return
-	
+
 	campaign_type_option.clear()
 	for key in campaign_types.keys():
 		var campaign_type = campaign_types[key]
 		campaign_type_option.add_item(campaign_type.name)
-	
+
 	# Set default selection
 	campaign_type_option.select(0)
+
+func _setup_difficulty_options() -> void:
+	"""Setup difficulty options matching GlobalEnums.DifficultyLevel"""
+	if not difficulty_option:
+		return
+
+	difficulty_option.clear()
+
+	# Add difficulty levels with their enum values as IDs
+	difficulty_option.add_item("Story", 1)       # GlobalEnums.DifficultyLevel.STORY
+	difficulty_option.add_item("Standard", 2)    # GlobalEnums.DifficultyLevel.STANDARD
+	difficulty_option.add_item("Challenging", 3) # GlobalEnums.DifficultyLevel.CHALLENGING
+	difficulty_option.add_item("Hardcore", 4)    # GlobalEnums.DifficultyLevel.HARDCORE
+	difficulty_option.add_item("Nightmare", 5)   # GlobalEnums.DifficultyLevel.NIGHTMARE
+
+	# Default to Standard (index 1, which is ID 2)
+	difficulty_option.select(1)
+	local_campaign_config.difficulty_level = 2
 
 func _setup_victory_conditions() -> void:
 	"""Setup victory conditions as interactive card selectors"""
@@ -540,6 +625,21 @@ func _on_campaign_type_changed(index: int) -> void:
 	_update_campaign_type_description()
 	_update_display()
 	_validate_and_complete()
+
+func _on_difficulty_changed(index: int) -> void:
+	"""Handle difficulty level change"""
+	if not difficulty_option:
+		return
+
+	# Get the difficulty level ID from the selected item
+	var difficulty_id = difficulty_option.get_item_id(index)
+	local_campaign_config.difficulty_level = difficulty_id
+
+	_update_difficulty_description()
+	_update_display()
+	_validate_and_complete()
+
+	print("ExpandedConfigPanel: Difficulty changed to %d (%s)" % [difficulty_id, difficulty_levels.get(difficulty_id, {}).get("name", "Unknown")])
 
 func _create_victory_condition_card(key: String, condition: Dictionary) -> PanelContainer:
 	"""Create an interactive card selector for a victory condition"""
@@ -767,11 +867,12 @@ func _on_apply_pressed() -> void:
 func _on_reset_pressed() -> void:
 	"""Reset campaign configuration to defaults"""
 	print("ExpandedConfigPanel: Resetting campaign configuration")
-	
+
 	# Reset to default values
 	local_campaign_config = {
 		"campaign_name": "",
 		"campaign_type": "standard",
+		"difficulty_level": 2,  # Default: STANDARD
 		"victory_conditions": {},
 		"story_track": "",
 		"tutorial_mode": "",
@@ -780,29 +881,32 @@ func _on_reset_pressed() -> void:
 	selected_victory_conditions = {}
 	selected_story_track = ""
 	selected_tutorial_mode = ""
-	
+
 	# Reset UI components
 	_reset_ui_components()
-	
+
 	# Update display
 	_update_display()
-	
+
 	print("ExpandedConfigPanel: Campaign configuration reset to defaults")
 
 func _reset_ui_components() -> void:
 	"""Reset UI components to default values"""
 	if campaign_name_input:
 		campaign_name_input.text = ""
-	
+
 	if campaign_type_option:
 		campaign_type_option.select(0)
-	
+
+	if difficulty_option:
+		difficulty_option.select(1)  # Default to Standard (index 1)
+
 	if story_track_option:
 		story_track_option.select(0)
-	
+
 	if tutorial_mode_option:
 		tutorial_mode_option.select(0)
-	
+
 	# Reset victory condition checkboxes
 	if victory_conditions_list:
 		for child in victory_conditions_list.get_children():
@@ -875,34 +979,32 @@ func _validate_campaign_config() -> Array[String]:
 # PHASE 6 INTEGRATION: Coordinator communication
 func _notify_coordinator_of_campaign_config_update() -> void:
 	"""Notify the campaign coordinator of campaign config state changes"""
-	# Try to find the coordinator through the scene tree
-	var coordinator = _find_coordinator()
-	if coordinator:
+	# Use inherited coordinator reference from BaseCampaignPanel
+	var coordinator = get_coordinator_reference()
+	if coordinator and coordinator.has_method("update_campaign_config_state"):
 		coordinator.update_campaign_config_state(local_campaign_config)
 		print("ExpandedConfigPanel: Notified coordinator of campaign config update")
 	else:
-		print("ExpandedConfigPanel: Warning - coordinator not found")
+		print("ExpandedConfigPanel: Warning - coordinator not found or missing update method")
 
-func _find_coordinator() -> Variant:
-	"""Find the campaign coordinator in the scene tree"""
-	# Fixed: Check owner first (CampaignCreationUI), then parent chain
-	var campaign_ui = owner if owner != null else get_parent().get_parent()
-	if campaign_ui and campaign_ui.has_method("get_coordinator"):
-		var coordinator = campaign_ui.get_coordinator()
-		if coordinator and coordinator.has_method("update_campaign_config_state"):
-			return coordinator
-	
-	# Look for coordinator in parent scenes (fallback)
-	var current = get_parent()
-	while current:
-		if current.has_method("update_campaign_config_state"):
-			return current
-		current = current.get_parent()
-	
-	# CampaignCreationCoordinator is not an autoload - should be accessed through parent UI
-	# This reference is invalid and should be removed
-	
-	return null
+func _on_coordinator_set() -> void:
+	"""Called when coordinator is assigned - sync initial state from coordinator"""
+	print("ExpandedConfigPanel: Coordinator set, syncing initial state")
+
+	var coordinator = get_coordinator_reference()
+	if coordinator and coordinator.has_method("get_unified_campaign_state"):
+		var state = coordinator.get_unified_campaign_state()
+		if state.has("campaign_config") and state.campaign_config is Dictionary:
+			var config_data = state.campaign_config
+			if not config_data.is_empty():
+				print("ExpandedConfigPanel: Restoring campaign config from coordinator")
+				restore_panel_data(config_data)
+			else:
+				print("ExpandedConfigPanel: No existing campaign config in coordinator")
+		else:
+			print("ExpandedConfigPanel: No campaign_config key in coordinator state")
+	else:
+		print("ExpandedConfigPanel: Coordinator not available or missing get_unified_campaign_state")
 
 # Public API methods
 func get_campaign_config() -> Dictionary:
@@ -941,6 +1043,10 @@ func get_panel_data() -> Dictionary:
 	"""Get panel data - interface implementation"""
 	return get_campaign_config_data()
 
+func set_panel_data(data: Dictionary) -> void:
+	"""Set panel data - interface implementation for state restoration (BaseCampaignPanel contract)"""
+	restore_panel_data(data)
+
 func reset_panel() -> void:
 	"""Reset panel to default state"""
 	_on_reset_pressed()
@@ -950,6 +1056,7 @@ func get_campaign_config_data() -> Dictionary:
 	return {
 		"campaign_name": local_campaign_config.campaign_name,
 		"campaign_type": local_campaign_config.campaign_type,
+		"difficulty_level": local_campaign_config.difficulty_level,
 		"victory_conditions": selected_victory_conditions.duplicate(),
 		"story_track": selected_story_track,
 		"tutorial_mode": selected_tutorial_mode,
@@ -977,7 +1084,17 @@ func restore_panel_data(data: Dictionary) -> void:
 	# Restore campaign type
 	if data.has("campaign_type"):
 		local_campaign_config.campaign_type = data.campaign_type
-	
+
+	# Restore difficulty level
+	if data.has("difficulty_level"):
+		local_campaign_config.difficulty_level = data.difficulty_level
+		# Update UI dropdown to match
+		if difficulty_option:
+			for i in range(difficulty_option.get_item_count()):
+				if difficulty_option.get_item_id(i) == data.difficulty_level:
+					difficulty_option.select(i)
+					break
+
 	# Restore victory conditions
 	if data.has("victory_conditions"):
 		selected_victory_conditions = data.victory_conditions.duplicate()
@@ -1009,22 +1126,25 @@ func cleanup_panel() -> void:
 	local_campaign_config = {
 		"campaign_name": "",
 		"campaign_type": "standard",
+		"difficulty_level": 2,  # Default: STANDARD
 		"victory_conditions": {},
 		"story_track": "",
 		"tutorial_mode": "",
 		"is_complete": false
 	}
-	
+
 	# Clear selected options
 	selected_victory_conditions.clear()
 	selected_story_track = ""
 	selected_tutorial_mode = ""
-	
+
 	# Reset UI components if available
 	if campaign_name_input:
 		campaign_name_input.text = ""
 	if campaign_type_option:
 		campaign_type_option.select(0)
+	if difficulty_option:
+		difficulty_option.select(1)  # Default to Standard (index 1)
 	if story_track_option:
 		story_track_option.select(0)
 	if tutorial_mode_option:

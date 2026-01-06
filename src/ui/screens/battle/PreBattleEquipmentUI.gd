@@ -237,11 +237,11 @@ func _create_crew_loadout_card(member: Variant) -> PanelContainer:
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(name_label)
 	
-	# Transfer from stash button
+	# Transfer from stash button (TSCN-1: 48dp touch target)
 	if not is_locked:
 		var add_btn = Button.new()
 		add_btn.text = "+ From Stash"
-		add_btn.custom_minimum_size.y = 24
+		add_btn.custom_minimum_size = Vector2(100, 48)  # Touch target compliance
 		add_btn.pressed.connect(_on_transfer_from_stash.bind(char_id))
 		header.add_child(add_btn)
 	
@@ -304,22 +304,22 @@ func _create_equipment_row(item: Variant, owner_id: String, is_on_character: boo
 	
 	row.add_child(name_label)
 	
-	# Action buttons (only if not locked)
+	# Action buttons (only if not locked) - TSCN-1: 48dp touch targets
 	if not is_locked:
 		if is_on_character:
 			# Transfer to stash button
 			var to_stash_btn = Button.new()
 			to_stash_btn.text = "→ Stash"
-			to_stash_btn.custom_minimum_size = Vector2(60, 22)
-			to_stash_btn.add_theme_font_size_override("font_size", 10)
+			to_stash_btn.custom_minimum_size = Vector2(80, 48)  # Touch target compliance
+			to_stash_btn.add_theme_font_size_override("font_size", 14)
 			to_stash_btn.pressed.connect(_on_transfer_to_stash.bind(owner_id, item_id))
 			row.add_child(to_stash_btn)
 		else:
 			# Transfer to crew button
 			var to_crew_btn = Button.new()
 			to_crew_btn.text = "→ Crew"
-			to_crew_btn.custom_minimum_size = Vector2(60, 22)
-			to_crew_btn.add_theme_font_size_override("font_size", 10)
+			to_crew_btn.custom_minimum_size = Vector2(80, 48)  # Touch target compliance
+			to_crew_btn.add_theme_font_size_override("font_size", 14)
 			to_crew_btn.pressed.connect(_on_request_assign_to_crew.bind(item_id))
 			row.add_child(to_crew_btn)
 	

@@ -22,6 +22,9 @@ var dice_system: FPCM_DiceSystem = null
 
 func before_test() -> void:
 	"""Test-level setup"""
+	# Set deterministic seed for reproducible random numbers
+	seed(12345)
+
 	# Try to get autoload, or create local instance for unit testing
 	event_bus = get_node_or_null("/root/FPCM_BattleEventBus")
 	if not event_bus:
@@ -54,7 +57,7 @@ func after_test() -> void:
 	# Signal chains: UI → EventBus → BattleManager → State → broadcast can be 5-6 levels deep
 	for i in range(6):
 		await get_tree().process_frame
-	await get_tree().process_frame  # Extra frame for monitor_signals() overhead
+	await get_tree().process_frame  # Extra frame for signal processing
 
 	# Explicit cleanup BEFORE auto_free takes effect
 	if event_bus and is_instance_valid(event_bus):
@@ -76,14 +79,13 @@ func test_ui_dice_roll_request_routed_to_dice_system() -> void:
 		push_warning("Test instances freed early, skipping")
 		return
 
-	# Monitor dice system
-	var dice_monitor := monitor_signals(dice_system)
+	# Setup signal connection flag - use array for reference semantics in lambda
+	var signal_fired := [false]
+	dice_system.dice_rolled.connect(func(_roll): signal_fired[0] = true)
 
-	# Create dice roll
-	var dice_roll: FPCM_DiceSystem.DiceRoll = FPCM_DiceSystem.DiceRoll.new(2, "d6", 1, "test_combat_check")
-
-	# Request dice roll through EventBus
-	event_bus.dice_roll_requested.emit(dice_roll, "test_combat_check")
+	# Request dice roll through EventBus using DicePattern enum
+	# Signal expects (pattern: DicePattern, context: String)
+	event_bus.dice_roll_requested.emit(FPCM_DiceSystem.DicePattern.COMBAT, "test_combat_check")
 
 	# Wait for processing (2 frames for signal chain completion)
 	for i in range(2):
@@ -91,37 +93,46 @@ func test_ui_dice_roll_request_routed_to_dice_system() -> void:
 
 	# Verify dice system processed roll (guard against freed instance)
 	if is_instance_valid(dice_system):
-		assert_signal(dice_system).is_emitted("dice_rolled")
+		assert_that(signal_fired[0]).is_true()
 
 func test_dice_roll_result_returns_through_event_bus() -> void:
 	"""Dice roll results emit back through EventBus"""
-	# Monitor event bus
-	var bus_monitor := monitor_signals(event_bus)
-	
+	# Setup signal connection flag - use array for reference semantics in lambda
+	var signal_fired := [false]
+	var received_result: Array = [null]
+	event_bus.dice_roll_completed.connect(func(result):
+		signal_fired[0] = true
+		received_result[0] = result
+	)
+
 	# Create and execute dice roll directly using DicePattern enum
 	var result: FPCM_DiceSystem.DiceRoll = dice_system.roll_dice(FPCM_DiceSystem.DicePattern.D6, "direct_test")
-	
+
 	# Manually emit through event bus (simulating system integration)
 	event_bus.dice_roll_completed.emit(result)
-	
+
 	# Verify signal emitted
-	assert_signal(event_bus).is_emitted("dice_roll_completed")
+	assert_that(signal_fired[0]).is_true()
 
 func test_combat_resolution_uses_dice_system() -> void:
 	"""Combat resolution requests dice rolls through proper channels"""
-	if not is_instance_valid(event_bus):
-		push_warning("event_bus freed early, skipping")
+	if not is_instance_valid(event_bus) or not is_instance_valid(dice_system):
+		push_warning("event_bus or dice_system freed early, skipping")
 		return
 
 	# Create attacker and target
 	var attacker := BattleTestFactory.create_attacker(2, 12.0, false)
 	var target := BattleTestFactory.create_target(3, "none", true, false)
 
-	# Monitor dice requests
-	var bus_monitor := monitor_signals(event_bus)
+	# Setup signal connection flag - use array for reference semantics in lambda
+	var signal_fired := [false]
+	event_bus.dice_roll_requested.connect(func(_pattern, _context): signal_fired[0] = true)
 
 	# Simulate combat resolution requesting dice roll using dice_system
-	var dice_roll: FPCM_DiceSystem.DiceRoll = dice_system.roll_custom(1, 6, attacker["combat_skill"], "combat_to_hit", false)
+	# Use roll_custom with correct parameters: (dice_count, dice_sides, modifier, context, allow_manual)
+	# Note: BattleTestFactory uses "combat" key (matches Character.gd), not "combat_skill"
+	var combat_modifier: int = attacker.get("combat", 0)
+	var dice_roll: FPCM_DiceSystem.DiceRoll = dice_system.roll_custom(1, 6, combat_modifier, "combat_to_hit", false)
 
 	event_bus.dice_roll_requested.emit(dice_roll, "combat_to_hit")
 
@@ -131,7 +142,7 @@ func test_combat_resolution_uses_dice_system() -> void:
 
 	# Verify dice roll requested through event bus (guard against freed instance)
 	if is_instance_valid(event_bus):
-		assert_signal(event_bus).is_emitted("dice_roll_requested")
+		assert_that(signal_fired[0]).is_true()
 
 func test_multiple_dice_rolls_tracked_independently() -> void:
 	"""Multiple concurrent dice rolls tracked independently"""
@@ -153,17 +164,24 @@ func test_multiple_dice_rolls_tracked_independently() -> void:
 
 func test_phase_transition_emits_old_and_new_phase() -> void:
 	"""Phase transitions emit both old and new phase values"""
-	# Monitor event bus
-	var monitor := monitor_signals(event_bus)
-	
+	# Setup signal connection flag - use arrays for reference semantics in lambda
+	var signal_fired := [false]
+	var received_old_phase := [-1]
+	var received_new_phase := [-1]
+	event_bus.battle_phase_changed.connect(func(old, new):
+		signal_fired[0] = true
+		received_old_phase[0] = old
+		received_new_phase[0] = new
+	)
+
 	# Trigger phase change
 	var old_phase := FPCM_BattleManager.BattleManagerPhase.NONE
 	var new_phase := FPCM_BattleManager.BattleManagerPhase.PRE_BATTLE
-	
+
 	battle_manager.phase_changed.emit(old_phase, new_phase)
-	
+
 	# Verify signal with correct parameters
-	assert_signal(event_bus).is_emitted("battle_phase_changed")
+	assert_that(signal_fired[0]).is_true()
 
 func test_ui_components_notified_of_phase_changes() -> void:
 	"""All UI components receive phase change notifications"""
@@ -222,8 +240,9 @@ func test_phase_completion_advances_battle_manager() -> void:
 	# Register with EventBus
 	event_bus.register_ui_component("TestUI", mock_ui)
 
-	# Monitor battle manager phase changes
-	var manager_monitor := monitor_signals(battle_manager)
+	# Setup signal connection flag for battle manager phase changes - use array for reference semantics
+	var signal_fired := [false]
+	battle_manager.phase_changed.connect(func(_old, _new): signal_fired[0] = true)
 
 	# Set battle manager to active state
 	battle_manager.is_active = true
@@ -242,20 +261,25 @@ func test_phase_completion_advances_battle_manager() -> void:
 
 func test_battle_initialization_sets_correct_phase() -> void:
 	"""Battle initialization sets phase to PRE_BATTLE"""
-	# Monitor event bus
-	var monitor := monitor_signals(event_bus)
-	
+	# Setup signal connection flag - use arrays for reference semantics in lambda
+	var signal_fired := [false]
+	var received_data := [{}]
+	event_bus.battle_initialized.connect(func(data):
+		signal_fired[0] = true
+		received_data[0] = data
+	)
+
 	# Initialize battle through event bus
 	var battle_data := {
 		"mission": BattleTestFactory.create_mission(),
 		"crew": BattleTestFactory.create_test_crew(4),
 		"enemies": BattleTestFactory.create_test_enemies(3)
 	}
-	
+
 	event_bus.battle_initialized.emit(battle_data)
-	
+
 	# Verify initialization signal emitted
-	assert_signal(event_bus).is_emitted("battle_initialized")
+	assert_that(signal_fired[0]).is_true()
 
 # ============================================================================
 # Error Handling and Edge Cases (3 tests)
@@ -277,8 +301,10 @@ func test_ui_error_propagates_through_event_bus() -> void:
 	# Register component
 	event_bus.register_ui_component("ErrorTestUI", mock_ui)
 
-	# Monitor event bus
-	var monitor := monitor_signals(event_bus)
+	# Setup signal connection flag (if event_bus has battle_error signal) - use array for reference semantics
+	var signal_fired := [false]
+	if event_bus.has_signal("battle_error"):
+		event_bus.battle_error.connect(func(_error, _context): signal_fired[0] = true)
 
 	# Emit error from UI (guard against freed instance)
 	if is_instance_valid(mock_ui):

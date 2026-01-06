@@ -62,3 +62,11 @@ static func dict_get_safe(dict: Dictionary, key: String, default_value = null):
 	if key in dict:
 		return dict[key]
 	return default_value
+
+## Safe method calling for objects that may not have the method
+static func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
+	if obj == null:
+		return null
+	if obj is Object and obj.has_method(method_name):
+		return obj.callv(method_name, args)
+	return null

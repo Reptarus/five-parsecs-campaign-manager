@@ -18,6 +18,9 @@ func before():
 
 func before_test():
 	"""Test-level setup - reset data before each test"""
+	# Set deterministic seed for reproducible random numbers
+	seed(12345)
+
 	valid_campaign = {
 		"captain": {
 			"character_name": "ValidCaptain",
@@ -62,7 +65,7 @@ func test_validation_all_fields_valid():
 func test_validation_crew_missing_name_error():
 	"""Crew member missing character_name triggers error"""
 	var invalid_crew = valid_campaign.duplicate(true)
-	invalid_crew.crew.members = [{"experience": 10}]  # Missing character_name
+	invalid_crew["crew"]["members"] = [{"experience": 10}]  # Missing character_name
 
 	var result = helper._validate_campaign_state(invalid_crew, [], 0, 0)
 
@@ -73,7 +76,7 @@ func test_validation_crew_missing_name_error():
 func test_validation_crew_missing_experience_warning():
 	"""Crew member missing experience triggers warning"""
 	var no_exp_crew = valid_campaign.duplicate(true)
-	no_exp_crew.crew.members = [{"character_name": "TestCrew"}]  # Missing experience
+	no_exp_crew["crew"]["members"] = [{"character_name": "TestCrew"}]  # Missing experience
 
 	var result = helper._validate_campaign_state(no_exp_crew, [], 0, 0)
 
@@ -136,7 +139,7 @@ func test_validation_injury_missing_turns_error():
 func test_validation_negative_credits_warning():
 	"""Negative credits triggers warning"""
 	var negative_credits = valid_campaign.duplicate(true)
-	negative_credits.equipment.starting_credits = -50
+	negative_credits["equipment"]["starting_credits"] = -50
 
 	var result = helper._validate_campaign_state(negative_credits, [], 0, 0)
 

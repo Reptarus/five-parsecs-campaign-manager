@@ -56,7 +56,7 @@ func _update_current_event_display() -> void:
 	for child in event_content.get_children():
 		child.queue_free()
 
-	if (safe_call_method(current_event, "is_empty") == true):
+	if current_event.is_empty():
 		var no_event_label: Label = Label.new()
 		no_event_label.text = "No current event"
 		no_event_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -191,7 +191,7 @@ func _on_choice_selected(choice_id: String) -> void:
 
 func _on_resolve_event_pressed() -> void:
 	"""Handle resolve event button press"""
-	if (safe_call_method(current_event, "is_empty") == true):
+	if current_event.is_empty():
 		return
 
 	# Add result to event
@@ -215,7 +215,7 @@ func _on_resolve_event_pressed() -> void:
 
 func _on_skip_event_pressed() -> void:
 	"""Handle skip event button press"""
-	if (safe_call_method(current_event, "is_empty") == true):
+	if current_event.is_empty():
 		return
 
 	# Add to history as skipped
@@ -247,22 +247,4 @@ func _on_back_pressed() -> void:
 		var scene_router = get_node("/root/SceneRouter")
 		scene_router.navigate_back()
 	else:
-		get_tree().change_scene_to_file("res://src/ui/screens/main/MainMenu.tscn")
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return obj.get(property, default_value)
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null
+		get_tree().change_scene_to_file("res://src/ui/screens/mainmenu/MainMenu.tscn")

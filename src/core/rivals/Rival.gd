@@ -43,7 +43,7 @@ func get_threat_modifier() -> float:
 func add_encounter(encounter_data: Dictionary) -> void:
 	encounter_data["turn"] = last_encounter_turn
 
-	safe_call_method(encounter_history, "append", [encounter_data])
+	encounter_history.append(encounter_data)
 
 func get_encounter_history() -> Array[Dictionary]:
 	return encounter_history
@@ -80,32 +80,18 @@ func deserialize(data: Dictionary) -> void:
 	# Type conversion: JSON returns untyped Array, we need Array[String]
 	var raw_traits = data.get("special_traits", [])
 	special_traits = []
-	for trait in raw_traits:
-		special_traits.append(str(trait))
+	for trait_entry in raw_traits:
+		special_traits.append(str(trait_entry))
 
 	resources = data.get("resources", {})
 
-	encounter_history = data.get("encounter_history", [])
+	# Type conversion: JSON returns untyped Array, we need Array[Dictionary]
+	encounter_history.clear()
+	for entry in data.get("encounter_history", []):
+		if entry is Dictionary:
+			encounter_history.append(entry)
 
 	origin_planet_id = data.get("origin_planet_id", "")
 	current_planet_id = data.get("current_planet_id", "")
 	can_follow = data.get("can_follow", true)
 
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return obj.get(property, default_value)
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

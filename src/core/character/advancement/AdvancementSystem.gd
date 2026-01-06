@@ -12,6 +12,7 @@ extends RefCounted
 
 # Dependencies
 # GlobalEnums available as autoload singleton
+const Godot4Utils = preload("res://src/core/utils/Godot4Utils.gd")
 
 # Signals
 signal character_advanced(character: Resource, advancement_type: String, new_value: int)
@@ -122,13 +123,13 @@ func award_experience(character: Resource, amount: int, source: String) -> void:
 	if not character:
 		return
 
-	var current_xp = safe_get_property(character, "experience_points", 0)
+	var current_xp = Godot4Utils.safe_get_property(character, "experience_points", 0)
 	var new_xp = current_xp + amount
 
 	if character and character.has_method("set"): character.set("experience_points", new_xp)
 
 	# Track experience sources for stats
-	var xp_sources = safe_get_property(character, "experience_sources", {})
+	var xp_sources = Godot4Utils.safe_get_property(character, "experience_sources", {})
 
 	xp_sources[source] = xp_sources.get(source, 0) + amount
 	if character and character.has_method("set"): character.set("experience_sources", xp_sources)
@@ -136,7 +137,7 @@ func award_experience(character: Resource, amount: int, source: String) -> void:
 	experience_gained.emit(character, amount, source)
 
 	print("Character %s gained %d XP from %s (Total: %d)" % [
-		safe_get_property(character, "character_name", "Unknown"),
+		Godot4Utils.safe_get_property(character, "character_name", "Unknown"),
 		amount,
 		source,
 		new_xp
@@ -146,7 +147,7 @@ func award_experience(character: Resource, amount: int, source: String) -> void:
 func can_afford_advancement(character: Resource, advancement_type: String, advancement_target: String = "") -> bool:
 	"""Check if character has enough XP for advancement"""
 
-	var current_xp = safe_get_property(character, "experience_points", 0)
+	var current_xp = Godot4Utils.safe_get_property(character, "experience_points", 0)
 	var cost = _get_advancement_cost(advancement_type, advancement_target)
 
 	return current_xp >= cost
@@ -173,8 +174,8 @@ func advance_stat(character: Resource, stat_name: String) -> bool:
 		return false
 
 	var cost = stat_advancement_costs.get(stat_name, 0)
-	var current_xp = safe_get_property(character, "experience_points", 0)
-	var current_stat = safe_get_property(character, stat_name, 0)
+	var current_xp = Godot4Utils.safe_get_property(character, "experience_points", 0)
+	var current_stat = Godot4Utils.safe_get_property(character, stat_name, 0)
 	var max_stat = stat_max_values.get(stat_name, 5)
 
 	# Check if advancement is possible
@@ -202,7 +203,7 @@ func advance_stat(character: Resource, stat_name: String) -> bool:
 		character_advanced.emit(character, "stat_" + str(stat_name), new_stat_value)
 
 		print("Character %s advanced %s from %d to %d (Roll: %d+%d=%d)" % [
-			safe_get_property(character, "character_name", "Unknown"),
+			Godot4Utils.safe_get_property(character, "character_name", "Unknown"),
 			stat_name,
 			current_stat,
 			new_stat_value,
@@ -218,7 +219,7 @@ func advance_stat(character: Resource, stat_name: String) -> bool:
 		if character and character.has_method("set"): character.set("experience_points", current_xp - xp_lost)
 
 		print("Character %s failed to advance %s (Roll: %d+%d=%d, lost %d XP)" % [
-			safe_get_property(character, "character_name", "Unknown"),
+			Godot4Utils.safe_get_property(character, "character_name", "Unknown"),
 			stat_name,
 			advancement_roll,
 			current_stat,
@@ -235,14 +236,14 @@ func purchase_training(character: Resource, training_type: String) -> bool:
 		return false
 
 	var cost = training_costs.get(training_type, 0)
-	var current_xp = safe_get_property(character, "experience_points", 0)
+	var current_xp = Godot4Utils.safe_get_property(character, "experience_points", 0)
 
 	if current_xp < cost:
 		print("Not enough XP for training: Need %d, have %d" % [cost, current_xp])
 		return false
 
 	# Check if character already has this training
-	var current_training = safe_get_property(character, "training", [])
+	var current_training = Godot4Utils.safe_get_property(character, "training", [])
 	if training_type in current_training:
 		print("Character already has %s training" % training_type)
 		return false
@@ -255,7 +256,7 @@ func purchase_training(character: Resource, training_type: String) -> bool:
 	training_completed.emit(character, training_type)
 
 	print("Character %s completed %s training for %d XP" % [
-		safe_get_property(character, "character_name", "Unknown"),
+		Godot4Utils.safe_get_property(character, "character_name", "Unknown"),
 		training_type,
 		cost
 	])
@@ -271,45 +272,45 @@ func _apply_training_benefits(character: Resource, training_type: String) -> voi
 	match training_type:
 		"pilot":
 			# Pilot training provides bonuses to ship operations
-			var pilot_bonus = safe_get_property(character, "pilot_bonus", 0) + 1
+			var pilot_bonus = Godot4Utils.safe_get_property(character, "pilot_bonus", 0) + 1
 			if character and character.has_method("set"): character.set("pilot_bonus", pilot_bonus)
 
 		"medical":
 			# Medical training allows healing actions
 			if character and character.has_method("set"): character.set("can_heal", true)
-			var medical_skill = safe_get_property(character, "medical_skill", 0) + 2
+			var medical_skill = Godot4Utils.safe_get_property(character, "medical_skill", 0) + 2
 			if character and character.has_method("set"): character.set("medical_skill", medical_skill)
 
 		"mechanic":
 			# Mechanic training allows equipment repair
 			if character and character.has_method("set"): character.set("can_repair", true)
-			var repair_skill = safe_get_property(character, "repair_skill", 0) + 2
+			var repair_skill = Godot4Utils.safe_get_property(character, "repair_skill", 0) + 2
 			if character and character.has_method("set"): character.set("repair_skill", repair_skill)
 
 		"broker":
 			# Broker training provides trade bonuses
-			var trade_bonus = safe_get_property(character, "trade_bonus", 0) + 1
+			var trade_bonus = Godot4Utils.safe_get_property(character, "trade_bonus", 0) + 1
 			if character and character.has_method("set"): character.set("trade_bonus", trade_bonus)
 
 		"security":
 			# Security training provides combat bonuses
-			var security_bonus = safe_get_property(character, "security_bonus", 0) + 1
+			var security_bonus = Godot4Utils.safe_get_property(character, "security_bonus", 0) + 1
 			if character and character.has_method("set"): character.set("security_bonus", security_bonus)
 
 		"merchant":
 			# Merchant training provides market bonuses
-			var market_bonus = safe_get_property(character, "market_bonus", 0) + 1
+			var market_bonus = Godot4Utils.safe_get_property(character, "market_bonus", 0) + 1
 			if character and character.has_method("set"): character.set("market_bonus", market_bonus)
 
 		"bot_tech":
 			# Bot tech training allows bot management
 			if character and character.has_method("set"): character.set("can_manage_bots", true)
-			var bot_skill = safe_get_property(character, "bot_skill", 0) + 2
+			var bot_skill = Godot4Utils.safe_get_property(character, "bot_skill", 0) + 2
 			if character and character.has_method("set"): character.set("bot_skill", bot_skill)
 
 		"engineer":
 			# Engineer training provides ship upgrade bonuses
-			var engineering_bonus = safe_get_property(character, "engineering_bonus", 0) + 1
+			var engineering_bonus = Godot4Utils.safe_get_property(character, "engineering_bonus", 0) + 1
 			if character and character.has_method("set"): character.set("engineering_bonus", engineering_bonus)
 
 ## Get available advancements for a character
@@ -317,11 +318,11 @@ func _apply_training_benefits(character: Resource, training_type: String) -> voi
 func get_available_advancements(character: Resource) -> Array[Dictionary]:
 	"""Get list of available advancements for a character"""
 	var advancements: Array = []
-	var current_xp = safe_get_property(character, "experience_points", 0)
+	var current_xp = Godot4Utils.safe_get_property(character, "experience_points", 0)
 
 	# Stat advancements
 	for stat_name in stat_advancement_costs.keys():
-		var current_stat = safe_get_property(character, stat_name, 0)
+		var current_stat = Godot4Utils.safe_get_property(character, stat_name, 0)
 		var max_stat = stat_max_values.get(stat_name, 5)
 		var cost = stat_advancement_costs[stat_name]
 
@@ -336,7 +337,7 @@ func get_available_advancements(character: Resource) -> Array[Dictionary]:
 			})
 
 	# Training advancements
-	var current_training = safe_get_property(character, "training", [])
+	var current_training = Godot4Utils.safe_get_property(character, "training", [])
 	for training_type in training_costs.keys():
 		var cost = training_costs[training_type]
 
@@ -362,12 +363,12 @@ func calculate_battle_experience(character: Resource, battle_result: Dictionary)
 		xp_gained += experience_sources["mission_failure"]
 
 	# Experience for injuries survived
-	if safe_get_property(character, "character_name", "") in battle_result.get("crew_injuries", []):
+	if Godot4Utils.safe_get_property(character, "character_name", "") in battle_result.get("crew_injuries", []):
 		xp_gained += experience_sources["injury_survival"]
 
 	# Experience for enemies defeated (if tracked)
 	var enemies_defeated = battle_result.get("enemies_defeated_by_character", {})
-	var personal_kills = enemies_defeated.get(safe_get_property(character, "character_name", ""), 0)
+	var personal_kills = enemies_defeated.get(Godot4Utils.safe_get_property(character, "character_name", ""), 0)
 	xp_gained += personal_kills * experience_sources["combat_kill"]
 
 	return xp_gained
@@ -386,11 +387,11 @@ func award_post_battle_experience(crew_members: Array, battle_result: Dictionary
 func get_advancement_stats(character: Resource) -> Dictionary:
 	"""Get advancement statistics for a character"""
 	return {
-		"experience_points": safe_get_property(character, "experience_points", 0),
+		"experience_points": Godot4Utils.safe_get_property(character, "experience_points", 0),
 		"total_stat_improvements": _count_stat_improvements(character),
-		"training_completed": safe_get_property(character, "training", []).size(),
-		"advancement_attempts": safe_get_property(character, "advancement_attempts", 0),
-		"advancement_successes": safe_get_property(character, "advancement_successes", 0)
+		"training_completed": Godot4Utils.safe_get_property(character, "training", []).size(),
+		"advancement_attempts": Godot4Utils.safe_get_property(character, "advancement_attempts", 0),
+		"advancement_successes": Godot4Utils.safe_get_property(character, "advancement_successes", 0)
 	}
 
 func _count_stat_improvements(character: Resource) -> int:
@@ -399,7 +400,7 @@ func _count_stat_improvements(character: Resource) -> int:
 	var base_stats = {"reactions": 1, "combat_skill": 0, "toughness": 3, "savvy": 1, "speed": 4, "luck": 0}
 
 	for stat_name in base_stats.keys():
-		var current = safe_get_property(character, stat_name, base_stats[stat_name])
+		var current = Godot4Utils.safe_get_property(character, stat_name, base_stats[stat_name])
 		var base = base_stats[stat_name]
 		improvements += max(0, current - base)
 
@@ -426,7 +427,7 @@ func get_available_bot_upgrades(bot: Resource) -> Array[Dictionary]:
 	if not bot or not _is_bot(bot):
 		return available
 	
-	var installed_upgrades: Array = safe_get_property(bot, "bot_upgrades", [])
+	var installed_upgrades: Array = Godot4Utils.safe_get_property(bot, "bot_upgrades", [])
 	
 	# Return upgrades not yet installed
 	for upgrade_id in bot_upgrades.keys():
@@ -445,7 +446,7 @@ func can_install_bot_upgrade(bot: Resource, upgrade_id: String, campaign_credits
 	if not bot_upgrades.has(upgrade_id):
 		return false
 	
-	var installed_upgrades: Array = safe_get_property(bot, "bot_upgrades", [])
+	var installed_upgrades: Array = Godot4Utils.safe_get_property(bot, "bot_upgrades", [])
 	if upgrade_id in installed_upgrades:
 		return false
 	
@@ -478,7 +479,7 @@ func install_bot_upgrade(bot: Resource, upgrade_id: String, game_state: Resource
 		return false
 
 	# Check if bot already has this upgrade
-	var installed_upgrades: Array = safe_get_property(bot, "bot_upgrades", [])
+	var installed_upgrades: Array = Godot4Utils.safe_get_property(bot, "bot_upgrades", [])
 	if upgrade_id in installed_upgrades:
 		push_warning("AdvancementSystem: Bot already has upgrade: %s" % upgrade_id)
 		return false
@@ -492,7 +493,7 @@ func install_bot_upgrade(bot: Resource, upgrade_id: String, game_state: Resource
 	if game_state.has_method("get_credits"):
 		current_credits = game_state.get_credits()
 	else:
-		current_credits = safe_get_property(game_state, "credits", 0)
+		current_credits = Godot4Utils.safe_get_property(game_state, "credits", 0)
 
 	if current_credits < cost:
 		push_warning("AdvancementSystem: Cannot afford bot upgrade. Cost: %d, Available: %d" % [cost, current_credits])
@@ -524,7 +525,7 @@ func install_bot_upgrade(bot: Resource, upgrade_id: String, game_state: Resource
 	bot_upgrade_installed.emit(bot, upgrade_id, upgrade_data)
 
 	print("Bot %s installed upgrade: %s (Cost: %d credits)" % [
-		safe_get_property(bot, "character_name", safe_get_property(bot, "name", "Unknown")),
+		Godot4Utils.safe_get_property(bot, "character_name", Godot4Utils.safe_get_property(bot, "name", "Unknown")),
 		upgrade_data.get("name", upgrade_id),
 		cost
 	])
@@ -544,7 +545,7 @@ func _apply_bot_upgrade_effects(bot: Resource, upgrade_data: Dictionary) -> void
 			_apply_special_bot_ability(bot, bonus)
 		else:
 			# Apply stat bonuses
-			var current_value: int = safe_get_property(bot, stat_name, 0)
+			var current_value: int = Godot4Utils.safe_get_property(bot, stat_name, 0)
 			var new_value: int = current_value + int(bonus)
 
 			# Respect stat maximums
@@ -555,7 +556,7 @@ func _apply_bot_upgrade_effects(bot: Resource, upgrade_data: Dictionary) -> void
 				bot.set(stat_name, new_value)
 
 			print("Bot %s: %s increased from %d to %d" % [
-				safe_get_property(bot, "character_name", "Unknown"),
+				Godot4Utils.safe_get_property(bot, "character_name", "Unknown"),
 				stat_name,
 				current_value,
 				new_value
@@ -569,7 +570,7 @@ func _apply_special_bot_ability(bot: Resource, ability_id: String) -> void:
 			# Self-repair reduces recovery time by 1 turn
 			if bot.has_method("set"):
 				bot.set("has_self_repair", true)
-			print("Bot %s gained self-repair ability" % safe_get_property(bot, "character_name", "Unknown"))
+			print("Bot %s gained self-repair ability" % Godot4Utils.safe_get_property(bot, "character_name", "Unknown"))
 		_:
 			push_warning("Unknown special bot ability: %s" % ability_id)
 
@@ -584,23 +585,7 @@ func _is_bot(character: Resource) -> bool:
 		return character.is_bot()
 
 	# Fallback: Check origin property
-	var origin = safe_get_property(character, "origin", "")
+	var origin = Godot4Utils.safe_get_property(character, "origin", "")
 	return origin == "BOT" or origin == "Bot"
 
 
-## Safe property access helper
-func safe_get_property(resource: Resource, property_name: String, default_value: Variant) -> Variant:
-	"""Safely get a property from a Resource with fallback default"""
-	if not resource:
-		return default_value
-
-	if resource.has_method("get"):
-		var value = resource.get(property_name)
-		if value != null:
-			return value
-
-	# Try direct property access via get() method
-	if property_name in resource:
-		return resource.get(property_name)
-
-	return default_value

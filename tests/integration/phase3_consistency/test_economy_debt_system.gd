@@ -8,27 +8,23 @@ extends GdUnitTestSuite
 var UpkeepSystemClass
 var upkeep_system = null
 
-# Supporting classes
-var MockCampaignData
+# Supporting classes - use static helper class (GDScript 2.0 compatible)
+const MockCampaignDataClass = preload("res://tests/helpers/MockCampaignData.gd")
 var mock_campaign = null
 
 func before():
 	"""Suite-level setup - runs once before all tests"""
 	UpkeepSystemClass = load("res://src/core/systems/UpkeepSystem.gd")
 
-	# Create mock campaign data class
-	MockCampaignData = GDScript.new()
-	# Script source must not have leading indentation - use single line with \n
-	MockCampaignData.source_code = "extends Resource\n\nvar crew_members: Array[Resource] = []\nvar ship_data: Resource = null\nvar living_standard: String = \"normal\"\nvar credits: int = 100\nvar ship_debt: int = 0\n\nfunc get_meta_value(key: String) -> Variant:\n\tmatch key:\n\t\t\"crew_members\": return crew_members\n\t\t\"ship_data\": return ship_data\n\t\t\"living_standard\": return living_standard\n\t\t\"credits\": return credits\n\t\t\"ship_debt\": return ship_debt\n\treturn null\n\nfunc set_meta_value(key: String, value: Variant) -> void:\n\tmatch key:\n\t\t\"crew_members\":\n\t\t\tcrew_members.clear()\n\t\t\tif value is Array:\n\t\t\t\tfor item in value:\n\t\t\t\t\tif item is Resource:\n\t\t\t\t\t\tcrew_members.append(item)\n\t\t\"ship_data\": ship_data = value as Resource if value is Resource else null\n\t\t\"living_standard\": living_standard = str(value) if value != null else \"normal\"\n\t\t\"credits\": credits = int(value) if value != null else 0\n\t\t\"ship_debt\": ship_debt = int(value) if value != null else 0\n"
-	@warning_ignore("return_value_discarded")
-	MockCampaignData.reload()
-
 func before_test():
 	"""Test-level setup - create fresh instances for each test"""
+	# Set deterministic seed for reproducible random numbers
+	seed(12345)
+
 	upkeep_system = auto_free(UpkeepSystemClass.new())
 
-	# Create mock campaign with standard crew
-	mock_campaign = auto_free(MockCampaignData.new())
+	# Create mock campaign with standard crew - using static helper class
+	mock_campaign = MockCampaignDataClass.new()
 	mock_campaign.crew_members = _create_mock_crew(4)
 	mock_campaign.ship_data = _create_mock_ship()
 	mock_campaign.credits = 100
@@ -42,7 +38,7 @@ func after_test():
 func after():
 	"""Suite-level cleanup - runs once after all tests"""
 	UpkeepSystemClass = null
-	MockCampaignData = null
+	# MockCampaignDataClass is a const preload, no cleanup needed
 
 # ============================================================================
 # Debt System Tests (7 tests)

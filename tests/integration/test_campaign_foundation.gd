@@ -19,7 +19,7 @@ func test_campaign_creation_state_manager_exists():
 func test_all_panels_exist():
 	var panels = [
 		"BaseCampaignPanel.gd",
-		"ConfigPanel.gd",
+		"ExpandedConfigPanel.gd",
 		"CaptainPanel.gd",
 		"CrewPanel.gd",
 		"EquipmentPanel.gd",
@@ -79,7 +79,7 @@ func test_campaign_data_is_dictionary():
 	var state_mgr_script = load("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
 	var state_mgr = state_mgr_script.new()
 
-	assert_that(state_mgr.campaign_data is Dictionary).is_true()
+	assert_bool(state_mgr.campaign_data is Dictionary).is_true()
 
 func test_campaign_data_has_captain_key():
 	var state_mgr_script = load("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
@@ -101,7 +101,7 @@ func test_campaign_data_has_ship_key():
 
 ## Phase 3: Panel Workflow Integration Tests
 func test_config_panel_instantiation():
-	var panel_script = load("res://src/ui/screens/campaign/panels/ConfigPanel.gd")
+	var panel_script = load("res://src/ui/screens/campaign/panels/ExpandedConfigPanel.gd")
 	assert_that(panel_script).is_not_null()
 	
 	var panel = panel_script.new()
@@ -125,7 +125,7 @@ func test_crew_panel_instantiation():
 	panel.free()
 
 func test_config_panel_has_panel_completed_signal():
-	var panel_script = load("res://src/ui/screens/campaign/panels/ConfigPanel.gd")
+	var panel_script = load("res://src/ui/screens/campaign/panels/ExpandedConfigPanel.gd")
 	var panel = panel_script.new()
 	
 	assert_that(panel.has_signal("panel_completed")).is_true()

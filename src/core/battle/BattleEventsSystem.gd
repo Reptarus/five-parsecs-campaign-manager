@@ -98,7 +98,7 @@ func trigger_battle_event() -> void:
 			print("Event conflict detected - discarding: " + event.title)
 			return
 
-		safe_call_method(events_triggered, "append", [event])
+		events_triggered.append(event)
 		battle_event_triggered.emit(event)
 		_apply_event_effects(event)
 
@@ -277,7 +277,7 @@ func _apply_environmental_event(_event: BattleEvent) -> void:
 	hazard.affects_radius = _event.effects.get("radius", 1)
 	hazard.is_permanent = _event.effects.get("permanent", false)
 
-	safe_call_method(active_hazards, "append", [hazard])
+	active_hazards.append(hazard)
 	environmental_hazard_activated.emit(hazard)
 
 ## Handle universal events that affect everything
@@ -320,7 +320,7 @@ func _process_active_events() -> void:
 		if event.duration > 0:
 			event.duration -= 1
 			if event.duration <= 0:
-				safe_call_method(completed_events, "append", [event])
+				completed_events.append(event)
 
 	# Remove completed events
 	for event in completed_events:
@@ -364,7 +364,7 @@ func _cleanup_temporary_effects() -> void:
 	for event in events_triggered:
 		var typed_event: Variant = event
 		if event.is_persistent:
-			safe_call_method(persistent_events, "append", [event])
+			persistent_events.append(event)
 	events_triggered = persistent_events
 
 	# Remove non-permanent hazards
@@ -372,7 +372,7 @@ func _cleanup_temporary_effects() -> void:
 	for hazard in active_hazards:
 		var typed_hazard: Variant = hazard
 		if hazard.is_permanent:
-			safe_call_method(permanent_hazards, "append", [hazard])
+			permanent_hazards.append(hazard)
 	active_hazards = permanent_hazards
 
 ## System status checking
@@ -410,11 +410,11 @@ func _serialize_events(events: Array) -> Array:
 	for event in events:
 		var typed_event: Variant = event
 		if event != null:
-			safe_call_method(serialized, "append" , [ {
+			serialized.append({
 				"event_id": event.event_id,
 				"title": event.title,
 				"duration": event.duration
-			}])
+			})
 	return serialized
 
 func _deserialize_events(data: Array) -> Array[BattleEvent]:
@@ -425,7 +425,7 @@ func _deserialize_events(data: Array) -> Array[BattleEvent]:
 		if item is Dictionary and event_registry.has(item.get("event_id", "")):
 			var event: Variant = event_registry[item.event_id]
 			event.duration = item.get("duration", 0)
-			safe_call_method(events, "append", [event])
+			events.append(event)
 	return events
 
 func _serialize_hazards(hazards: Array) -> Array:
@@ -433,11 +433,11 @@ func _serialize_hazards(hazards: Array) -> Array:
 	for hazard in hazards:
 		var typed_hazard: Variant = hazard
 		if hazard != null:
-			safe_call_method(serialized, "append", [ {
+			serialized.append({
 				"hazard_id": hazard.hazard_id,
 				"hazard_name": hazard.hazard_name,
 				"effect_type": hazard.effect_type
-			}])
+			})
 	return serialized
 
 func _deserialize_hazards(data: Array) -> Array[EnvironmentalHazard]:
@@ -450,7 +450,7 @@ func _deserialize_hazards(data: Array) -> Array[EnvironmentalHazard]:
 			hazard.hazard_id = item.get("hazard_id", "")
 			hazard.hazard_name = item.get("hazard_name", "")
 			hazard.effect_type = item.get("effect_type", "")
-			safe_call_method(hazards, "append", [hazard])
+			hazards.append(hazard)
 	return hazards
 
 ## Initialize the complete Core Rules event registry (p.116-117)
@@ -548,23 +548,3 @@ func _create_event(id: String, title: String, roll_range: Array, description: St
 	event.duration = effects.get("duration", 0)
 	event.is_persistent = effects.get("persistent", false)
 	return event
-
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return obj.get(property, default_value)
-	return default_value
-
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

@@ -245,7 +245,12 @@ static func execute_combat_round(
 	# Step 5: Clear temporary status effects at end of round
 	_clear_round_status(crew_units)
 	_clear_round_status(enemy_units)
-	
+
+	# Sprint 26.5: Debug log combat round summary
+	var crew_alive := _count_alive_units(crew_units)
+	var enemy_alive := _count_alive_units(enemy_units)
+	_debug_log_combat_round(round_number, crew_alive, enemy_alive, round_result["crew_casualties"], round_result["enemy_casualties"], crew_has_initiative)
+
 	return round_result
 
 ## Execute attacks for one side's units against the other side
@@ -370,7 +375,10 @@ static func calculate_battle_outcome(
 		held_field = success or enemy_casualties >= HOLD_FIELD_ENEMY_THRESHOLD
 	
 	var margin := enemy_casualties - crew_casualties
-	
+
+	# Sprint 26.5: Debug log battle outcome
+	_debug_log_battle_outcome(success, crew_alive, enemies_alive, crew_casualties, enemy_casualties, held_field)
+
 	return {
 		"success": success,
 		"held_field": held_field,
@@ -386,7 +394,7 @@ static func _check_initiative(crew_units: Array, dice_roller: Callable) -> bool:
 	var highest_savvy := 0
 	for unit in crew_units:
 		if unit.get("is_alive", false):
-			highest_savvy = maxi(highest_savvy, unit.get("savvy", 0))
+			highest_savvy = int(max(highest_savvy, unit.get("savvy", 0)))
 	
 	var die1: int = dice_roller.call()
 	var die2: int = dice_roller.call()
@@ -437,5 +445,67 @@ static func _clear_round_status(units: Array) -> void:
 		# Suppression clears at end of round if not renewed
 		if unit.get("is_suppressed", false):
 			unit["is_suppressed"] = false
+
+#endregion
+
+#region Debug Logging (Sprint 26.5)
+## ═══════════════════════════════════════════════════════════════════════════════
+## DEBUG LOGGING - Combat Flow Tracing
+## ═══════════════════════════════════════════════════════════════════════════════
+
+## Debug flag - set to true to enable combat flow logging
+static var DEBUG_COMBAT_FLOW := false
+
+static func _debug_log_combat_round(round_num: int, crew_alive: int, enemy_alive: int, crew_casualties: int, enemy_casualties: int, crew_has_initiative: bool) -> void:
+	"""Log combat round summary"""
+	if not DEBUG_COMBAT_FLOW:
+		return
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ COMBAT ROUND %d                                            │" % round_num)
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ Initiative: %s" % ("CREW" if crew_has_initiative else "ENEMY"))
+	print("│ Force Status:")
+	print("│   Crew: %d alive" % crew_alive)
+	print("│   Enemy: %d alive" % enemy_alive)
+	print("│ Round Results:")
+	print("│   Crew Casualties: %d" % crew_casualties)
+	print("│   Enemy Casualties: %d" % enemy_casualties)
+	print("└─────────────────────────────────────────────────────────────┘")
+
+
+static func _debug_log_battle_outcome(success: bool, crew_alive: int, enemies_alive: int, crew_casualties: int, enemies_defeated: int, held_field: bool) -> void:
+	"""Log final battle outcome"""
+	if not DEBUG_COMBAT_FLOW:
+		return
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ BATTLE OUTCOME: %s                                     │" % ("VICTORY" if success else "DEFEAT "))
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ FINAL STATUS:")
+	print("│   Crew Survivors: %d" % crew_alive)
+	print("│   Enemies Remaining: %d" % enemies_alive)
+	print("│ BATTLE TOTALS:")
+	print("│   Crew Casualties: %d" % crew_casualties)
+	print("│   Enemies Defeated: %d" % enemies_defeated)
+	print("│ Held Field: %s" % ("Yes" if held_field else "No"))
+	print("└─────────────────────────────────────────────────────────────┘")
+
+
+static func _debug_log_unit_attack(attacker_name: String, target_name: String, hit: bool, damage: int, target_status: String) -> void:
+	"""Log individual unit attack"""
+	if not DEBUG_COMBAT_FLOW:
+		return
+	print("│ %s → %s: %s, %d dmg → %s" % [attacker_name, target_name, "HIT" if hit else "MISS", damage, target_status])
+
+
+static func enable_debug_logging() -> void:
+	"""Enable combat flow debug logging"""
+	DEBUG_COMBAT_FLOW = true
+	print("BattleResolver: Combat flow debug logging ENABLED")
+
+
+static func disable_debug_logging() -> void:
+	"""Disable combat flow debug logging"""
+	DEBUG_COMBAT_FLOW = false
+	print("BattleResolver: Combat flow debug logging DISABLED")
 
 #endregion

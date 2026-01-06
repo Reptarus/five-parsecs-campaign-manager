@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://cerfs74ne77rd"]
+[gd_scene load_steps=3 format=3 uid="uid://cerfs74ne77rd"]
 
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_unuw3"]
 [ext_resource type="Texture2D" uid="uid://bqw88gvv0saii" path="res://assets/Basic assets/5PFHUIAssets/Sci-Fi-Infoboxes_0000s_0005s_0033_11.png" id="3_pr5ho"]

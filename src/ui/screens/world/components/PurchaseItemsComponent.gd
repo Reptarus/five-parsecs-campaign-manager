@@ -65,12 +65,17 @@ func _initialize_event_bus() -> void:
 	if event_bus:
 		event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
 		print("PurchaseItemsComponent: Connected to event bus")
-	
+
 	# Initialize market systems
 	equipment_manager = get_node_or_null("/root/EquipmentManager")
 	trading_system = TradingSystem.new()
 	if equipment_manager:
 		print("PurchaseItemsComponent: Connected to EquipmentManager")
+
+func _exit_tree() -> void:
+	"""Cleanup event bus subscriptions to prevent memory leaks"""
+	if event_bus:
+		event_bus.unsubscribe_from_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
 
 func _connect_ui_signals() -> void:
 	"""Connect UI button signals"""

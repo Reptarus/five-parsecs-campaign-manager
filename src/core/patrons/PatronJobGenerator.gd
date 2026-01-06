@@ -464,10 +464,3 @@ func get_relationship_description(relationship_level: int) -> String:
 	var relationship_info = relationship_benefits.get(relationship_level, relationship_benefits[0])
 	return relationship_info.description
 
-## Safe method call helper
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

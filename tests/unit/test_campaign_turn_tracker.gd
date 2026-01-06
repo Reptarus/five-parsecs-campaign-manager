@@ -63,10 +63,14 @@ func test_tracker_initializes_with_7_steps():
 	assert_that(tracker).is_not_null()
 
 	# Get step count (expected: 7 steps for Travel/World/Battle/Post-Battle/Upkeep/Travel/World)
-	# Assuming tracker has get_step_count() method or steps property
+	# CampaignTurnProgressTracker uses TURN_STEPS const and _step_indicators array
 	var step_count = 0
 	if tracker.has_method("get_step_count"):
 		step_count = tracker.get_step_count()
+	elif "TURN_STEPS" in tracker:
+		step_count = tracker.TURN_STEPS.size()
+	elif "_step_indicators" in tracker:
+		step_count = tracker._step_indicators.size()
 	elif "steps" in tracker:
 		step_count = tracker.steps.size()
 

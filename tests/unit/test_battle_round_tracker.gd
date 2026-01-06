@@ -9,6 +9,9 @@ extends GdUnitTestSuite
 var tracker: BattleRoundTracker
 
 func before_test() -> void:
+	# Set deterministic seed for reproducible random numbers
+	seed(12345)
+
 	tracker = BattleRoundTracker.new()
 	add_child(tracker)
 	# Wait for node to be ready in tree
@@ -84,7 +87,10 @@ func test_phase_changed_signal_emitted() -> void:
 		push_warning("tracker not available, skipping")
 		return
 
-	var _monitor = monitor_signals(tracker)
+	# Setup signal connection flag - use array for reference semantics in lambda
+	# phase_changed signal has 2 params: (new_phase: int, phase_name: String)
+	var signal_fired := [false]
+	tracker.phase_changed.connect(func(_phase, _name): signal_fired[0] = true)
 
 	# Signal emits synchronously during advance_phase()
 	tracker.advance_phase()
@@ -93,7 +99,7 @@ func test_phase_changed_signal_emitted() -> void:
 	# Guard against freed instance after await
 	if not is_instance_valid(tracker):
 		return
-	assert_signal(tracker).is_emitted("phase_changed")
+	assert_that(signal_fired[0]).is_true()
 
 # =====================================================
 # ROUND COUNTER TESTS
@@ -129,7 +135,9 @@ func test_round_changed_signal_emitted() -> void:
 		push_warning("tracker not available, skipping")
 		return
 
-	var _monitor = monitor_signals(tracker)
+	# Setup signal connection flag - use array for reference semantics in lambda
+	var signal_fired := [false]
+	tracker.round_changed.connect(func(_round): signal_fired[0] = true)
 
 	# Advance to END_PHASE (4 advances)
 	for i in range(4):
@@ -142,7 +150,7 @@ func test_round_changed_signal_emitted() -> void:
 	# Guard against freed instance after await
 	if not is_instance_valid(tracker):
 		return
-	assert_signal(tracker).is_emitted("round_changed")
+	assert_that(signal_fired[0]).is_true()
 
 # =====================================================
 # BATTLE EVENT TESTS (Five Parsecs p.118)
@@ -154,7 +162,9 @@ func test_battle_event_triggers_on_round_2() -> void:
 		push_warning("tracker not available, skipping")
 		return
 
-	var _monitor = monitor_signals(tracker)
+	# Setup signal connection flag - use array for reference semantics in lambda
+	var signal_fired := [false]
+	tracker.battle_event_triggered.connect(func(_round: int, _event: String): signal_fired[0] = true)
 
 	# Complete round 1 (5 advances to wrap to round 2)
 	for i in range(5):
@@ -164,7 +174,7 @@ func test_battle_event_triggers_on_round_2() -> void:
 	# Guard against freed instance after await
 	if not is_instance_valid(tracker):
 		return
-	assert_signal(tracker).is_emitted("battle_event_triggered")
+	assert_that(signal_fired[0]).is_true()
 
 func test_battle_event_triggers_on_round_4() -> void:
 	"""Battle event should trigger when entering round 4"""
@@ -172,7 +182,9 @@ func test_battle_event_triggers_on_round_4() -> void:
 		push_warning("tracker not available, skipping")
 		return
 
-	var _monitor = monitor_signals(tracker)
+	# Setup signal connection flag - use array for reference semantics in lambda
+	var signal_fired := [false]
+	tracker.battle_event_triggered.connect(func(_round: int, _event: String): signal_fired[0] = true)
 
 	# Complete rounds 1-3 to reach round 4 (3 complete rounds × 5 advances each = 15)
 	for i in range(3 * 5):
@@ -183,7 +195,7 @@ func test_battle_event_triggers_on_round_4() -> void:
 	if not is_instance_valid(tracker):
 		return
 	# Should have emitted for round 2 and round 4
-	assert_signal(tracker).is_emitted("battle_event_triggered")
+	assert_that(signal_fired[0]).is_true()
 
 func test_no_battle_event_on_other_rounds() -> void:
 	"""Battle events should NOT trigger on rounds 1, 3, 5, etc."""
@@ -193,7 +205,9 @@ func test_no_battle_event_on_other_rounds() -> void:
 
 	# Note: This test has been simplified to check signal emission pattern
 	# The complex emit counting is not reliable in GdUnit4's signal monitoring
-	var _monitor = monitor_signals(tracker)
+	# Setup signal connection flag (counts emissions) - use array for reference semantics
+	var signal_count := [0]
+	tracker.battle_event_triggered.connect(func(_round: int, _event: String): signal_count[0] += 1)
 
 	# Round 1 -> Round 2 (1 complete cycle = 5 advances)
 	for i in range(5):
@@ -204,7 +218,7 @@ func test_no_battle_event_on_other_rounds() -> void:
 	if not is_instance_valid(tracker):
 		return
 	# One event emitted (round 2)
-	assert_signal(tracker).is_emitted("battle_event_triggered")
+	assert_that(signal_count[0]).is_equal(1)
 
 	# Round 2 -> Round 3 (5 advances, no event expected for round 3)
 	for i in range(5):
@@ -214,6 +228,8 @@ func test_no_battle_event_on_other_rounds() -> void:
 	# Guard after advancing
 	if not is_instance_valid(tracker):
 		return
+	# Still only 1 event (no event on round 3)
+	assert_that(signal_count[0]).is_equal(1)
 
 	# Round 3 -> Round 4 (5 advances, event expected for round 4)
 	for i in range(5):
@@ -223,8 +239,8 @@ func test_no_battle_event_on_other_rounds() -> void:
 	# Guard against freed instance after await
 	if not is_instance_valid(tracker):
 		return
-	# Should have emitted again for round 4
-	assert_signal(tracker).is_emitted("battle_event_triggered")
+	# Should have emitted again for round 4 (now 2 total)
+	assert_that(signal_count[0]).is_equal(2)
 
 # =====================================================
 # EDGE CASE TESTS

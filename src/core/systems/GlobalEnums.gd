@@ -62,6 +62,18 @@ enum PostBattleSubPhase {
 	GALACTIC_WAR # Step 14: Check for galactic war progress
 }
 
+## Battle Phase Sub-Steps (Campaign Turn - NOT combat phases)
+## These track the campaign turn's battle phase progression
+## Note: GlobalEnums.BattlePhase is for COMBAT mechanics (SETUP, DEPLOYMENT, INITIATIVE, etc.)
+## This enum is for CAMPAIGN TURN tracking within the Battle phase
+enum BattleCampaignSubStep {
+	NONE,
+	SETUP,          # Step 1: Battle setup (terrain, mission, enemies)
+	DEPLOYMENT,     # Step 2: Deploy forces
+	COMBAT,         # Step 3: Resolve combat (tactical or auto-resolve)
+	RESOLUTION      # Step 4: Determine outcome and prepare results
+}
+
 ## Crew Task Types (World Phase Step 2)
 enum CrewTaskType {
 	NONE,
@@ -593,16 +605,16 @@ enum WorldTrait {
 
 ## Difficulty Levels (Campaign Scaling)
 enum DifficultyLevel {
-	NONE,
-	STORY, # Casual play, reduced difficulty
-	STANDARD, # Core rules as written
-	CHALLENGING, # Increased enemy strength
-	HARDCORE, # Maximum difficulty
-	NIGHTMARE, # Custom ultra-hard mode
-	# Legacy compatibility aliases
-	EASY, # Alias for STORY mode
-	NORMAL, # Alias for STANDARD mode
-	HARD # Alias for CHALLENGING mode
+	NONE = 0,
+	STORY = 1, # Casual play, reduced difficulty
+	STANDARD = 2, # Core rules as written
+	CHALLENGING = 3, # Increased enemy strength
+	HARDCORE = 4, # Maximum difficulty
+	NIGHTMARE = 5, # Custom ultra-hard mode
+	# Legacy compatibility aliases - SPRINT 5 FIX: Explicit values for true aliasing
+	EASY = 1, # Alias for STORY mode (same value)
+	NORMAL = 2, # Alias for STANDARD mode (same value)
+	HARD = 3 # Alias for CHALLENGING mode (same value)
 }
 
 ## Market Economic States (Economy System)
@@ -1708,6 +1720,14 @@ const POST_BATTLE_SUBSTEP_NAMES = {
 	PostBattleSubPhase.CAMPAIGN_EVENT: "Campaign Event",
 	PostBattleSubPhase.CHARACTER_EVENT: "Character Event",
 	PostBattleSubPhase.GALACTIC_WAR: "Galactic War Progress"
+}
+
+const BATTLE_SUBSTEP_NAMES = {
+	BattleCampaignSubStep.NONE: "None",
+	BattleCampaignSubStep.SETUP: "Battle Setup",
+	BattleCampaignSubStep.DEPLOYMENT: "Force Deployment",
+	BattleCampaignSubStep.COMBAT: "Combat Resolution",
+	BattleCampaignSubStep.RESOLUTION: "Battle Resolution"
 }
 
 # ====================== CHARACTER PROPERTY MIGRATION SYSTEM ======================

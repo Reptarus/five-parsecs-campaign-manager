@@ -75,6 +75,20 @@ func _connect_core_signals() -> void:
 			post_battle_handler.patron_status_resolved.connect(_on_post_battle_patron_resolved)
 		if post_battle_handler.has_signal("experience_awarded"):
 			post_battle_handler.experience_awarded.connect(_on_post_battle_experience_awarded)
+	else:
+		push_warning("CampaignTurnController: post_battle_phase_handler is null - post-battle events (rival/patron resolution, XP) may not update correctly")
+		# Note: Post-battle will still function via UI signals from PostBattleSequence
+
+	# Sprint 13.3: Connect BattlePhase handler signals for battle mode selection
+	# Sprint 26.4: Added null guard with fallback warning for dead end prevention
+	var battle_phase_handler = campaign_phase_manager.battle_phase_handler
+	if battle_phase_handler:
+		if battle_phase_handler.has_signal("battle_mode_selection_requested"):
+			battle_phase_handler.battle_mode_selection_requested.connect(_on_battle_mode_selection_requested)
+		if battle_phase_handler.has_signal("battle_mode_selected"):
+			battle_phase_handler.battle_mode_selected.connect(_on_battle_mode_selected)
+	else:
+		push_warning("CampaignTurnController: battle_phase_handler is null - battle mode selection will use fallback direct navigation")
 
 	# Connect UI phase completion signals for phase transitions
 	if travel_phase_ui and travel_phase_ui.has_signal("phase_completed"):
@@ -83,9 +97,16 @@ func _connect_core_signals() -> void:
 	if world_phase_controller and world_phase_controller.has_signal("phase_completed"):
 		world_phase_controller.phase_completed.connect(_on_world_phase_completed)
 
+	# Sprint 10.3: Connect bidirectional navigation signal for World → Travel rollback
+	if world_phase_controller and world_phase_controller.has_signal("return_to_travel"):
+		world_phase_controller.return_to_travel.connect(_on_return_to_travel)
+
 	# Connect battle flow signals (BattleTransition → PreBattle → TacticalBattle → PostBattle)
 	if battle_transition_ui and battle_transition_ui.has_signal("battle_ready_to_launch"):
 		battle_transition_ui.battle_ready_to_launch.connect(_on_battle_ready_to_launch)
+	# Sprint 26.4: Connect auto-resolve completion signal
+	if battle_transition_ui and battle_transition_ui.has_signal("auto_resolve_completed"):
+		battle_transition_ui.auto_resolve_completed.connect(_on_auto_resolve_completed)
 
 	if pre_battle_ui:
 		if pre_battle_ui.has_signal("deployment_confirmed"):
@@ -106,6 +127,81 @@ func _initialize_ui_state() -> void:
 	
 	_update_turn_display(turn_number)
 	_show_phase_ui(current_phase)
+
+func _exit_tree() -> void:
+	"""Cleanup all signal connections to prevent memory leaks"""
+	# Disconnect CampaignPhaseManager signals
+	if campaign_phase_manager:
+		if campaign_phase_manager.phase_started.is_connected(_on_phase_started):
+			campaign_phase_manager.phase_started.disconnect(_on_phase_started)
+		if campaign_phase_manager.phase_completed.is_connected(_on_phase_completed):
+			campaign_phase_manager.phase_completed.disconnect(_on_phase_completed)
+		if campaign_phase_manager.campaign_turn_started.is_connected(_on_campaign_turn_started):
+			campaign_phase_manager.campaign_turn_started.disconnect(_on_campaign_turn_started)
+		if campaign_phase_manager.campaign_turn_completed.is_connected(_on_campaign_turn_completed):
+			campaign_phase_manager.campaign_turn_completed.disconnect(_on_campaign_turn_completed)
+
+	# Disconnect BattleManager signals
+	var battle_manager = get_node_or_null("/root/BattlefieldCompanionManager")
+	if battle_manager and battle_manager.has_signal("battle_completed"):
+		if battle_manager.battle_completed.is_connected(_on_battle_completed):
+			battle_manager.battle_completed.disconnect(_on_battle_completed)
+
+	# Disconnect PostBattlePhase handler signals
+	if campaign_phase_manager:
+		var post_battle_handler = campaign_phase_manager.post_battle_phase_handler
+		if post_battle_handler:
+			if post_battle_handler.has_signal("rival_status_resolved") and post_battle_handler.rival_status_resolved.is_connected(_on_post_battle_rival_resolved):
+				post_battle_handler.rival_status_resolved.disconnect(_on_post_battle_rival_resolved)
+			if post_battle_handler.has_signal("patron_status_resolved") and post_battle_handler.patron_status_resolved.is_connected(_on_post_battle_patron_resolved):
+				post_battle_handler.patron_status_resolved.disconnect(_on_post_battle_patron_resolved)
+			if post_battle_handler.has_signal("experience_awarded") and post_battle_handler.experience_awarded.is_connected(_on_post_battle_experience_awarded):
+				post_battle_handler.experience_awarded.disconnect(_on_post_battle_experience_awarded)
+
+		# Disconnect BattlePhase handler signals
+		var battle_phase_handler = campaign_phase_manager.battle_phase_handler
+		if battle_phase_handler:
+			if battle_phase_handler.has_signal("battle_mode_selection_requested") and battle_phase_handler.battle_mode_selection_requested.is_connected(_on_battle_mode_selection_requested):
+				battle_phase_handler.battle_mode_selection_requested.disconnect(_on_battle_mode_selection_requested)
+			if battle_phase_handler.has_signal("battle_mode_selected") and battle_phase_handler.battle_mode_selected.is_connected(_on_battle_mode_selected):
+				battle_phase_handler.battle_mode_selected.disconnect(_on_battle_mode_selected)
+
+	# Disconnect UI phase signals
+	if post_battle_ui and post_battle_ui.has_signal("post_battle_completed"):
+		if post_battle_ui.post_battle_completed.is_connected(_on_post_battle_completed):
+			post_battle_ui.post_battle_completed.disconnect(_on_post_battle_completed)
+
+	if travel_phase_ui and travel_phase_ui.has_signal("phase_completed"):
+		if travel_phase_ui.phase_completed.is_connected(_on_travel_phase_completed):
+			travel_phase_ui.phase_completed.disconnect(_on_travel_phase_completed)
+
+	if world_phase_controller:
+		if world_phase_controller.has_signal("phase_completed") and world_phase_controller.phase_completed.is_connected(_on_world_phase_completed):
+			world_phase_controller.phase_completed.disconnect(_on_world_phase_completed)
+		if world_phase_controller.has_signal("return_to_travel") and world_phase_controller.return_to_travel.is_connected(_on_return_to_travel):
+			world_phase_controller.return_to_travel.disconnect(_on_return_to_travel)
+
+	# Disconnect battle flow UI signals
+	if battle_transition_ui:
+		if battle_transition_ui.has_signal("battle_ready_to_launch") and battle_transition_ui.battle_ready_to_launch.is_connected(_on_battle_ready_to_launch):
+			battle_transition_ui.battle_ready_to_launch.disconnect(_on_battle_ready_to_launch)
+		if battle_transition_ui.has_signal("auto_resolve_completed") and battle_transition_ui.auto_resolve_completed.is_connected(_on_auto_resolve_completed):
+			battle_transition_ui.auto_resolve_completed.disconnect(_on_auto_resolve_completed)
+
+	if pre_battle_ui:
+		if pre_battle_ui.has_signal("deployment_confirmed") and pre_battle_ui.deployment_confirmed.is_connected(_on_deployment_confirmed):
+			pre_battle_ui.deployment_confirmed.disconnect(_on_deployment_confirmed)
+		if pre_battle_ui.has_signal("back_pressed") and pre_battle_ui.back_pressed.is_connected(_on_prebattle_back):
+			pre_battle_ui.back_pressed.disconnect(_on_prebattle_back)
+
+	if tactical_battle_ui:
+		if tactical_battle_ui.has_signal("tactical_battle_completed") and tactical_battle_ui.tactical_battle_completed.is_connected(_on_tactical_battle_completed):
+			tactical_battle_ui.tactical_battle_completed.disconnect(_on_tactical_battle_completed)
+		if tactical_battle_ui.has_signal("return_to_battle_resolution") and tactical_battle_ui.return_to_battle_resolution.is_connected(_on_return_to_battle_resolution):
+			tactical_battle_ui.return_to_battle_resolution.disconnect(_on_return_to_battle_resolution)
+
+	# Note: Backend system signals (PlanetDataManager, ContactManager, RivalBattleGenerator)
+	# are automatically cleaned up when their child nodes are freed
 
 ## SPRINT ENHANCEMENT: Backend Integration Systems
 
@@ -394,6 +490,29 @@ func _on_battle_completed(results: Dictionary) -> void:
 	# Trigger post-battle phase
 	campaign_phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.POST_BATTLE)
 
+func _on_auto_resolve_completed(result: Dictionary) -> void:
+	"""Sprint 26.4: Handle auto-resolve battle completion - transitions to post-battle"""
+	print("CampaignTurnController: Auto-resolve completed")
+
+	# Request actual battle resolution from BattlePhase handler
+	var battle_phase_handler = campaign_phase_manager.battle_phase_handler
+	if battle_phase_handler and battle_phase_handler.has_method("resolve_auto_battle"):
+		var battle_results = battle_phase_handler.resolve_auto_battle()
+		_on_battle_completed(battle_results)
+	else:
+		# Fallback: Generate basic auto-resolve results
+		push_warning("CampaignTurnController: No battle_phase_handler, using fallback auto-resolve")
+		var fallback_results = {
+			"victory": true,
+			"auto_resolved": true,
+			"casualties": 0,
+			"injuries": [],
+			"loot": [],
+			"credits_earned": 100,
+			"xp_earned": 10
+		}
+		_on_battle_completed(fallback_results)
+
 func _on_post_battle_completed(results: Dictionary) -> void:
 	"""Handle post-battle sequence completion - advance to next turn"""
 	print("CampaignTurnController: Post-battle completed with results: %s" % str(results))
@@ -401,11 +520,77 @@ func _on_post_battle_completed(results: Dictionary) -> void:
 	# Store final post-battle results
 	game_state.set_battle_results(results)
 
+	# Sprint D: Validate crew status before next turn
+	_validate_crew_status_post_battle()
+
 	# Clear battle results after processing
 	game_state.clear_battle_results()
 
 	# Trigger next campaign turn
 	campaign_phase_manager.start_new_campaign_turn()
+
+## Sprint D: Post-battle crew status validation
+func _validate_crew_status_post_battle() -> void:
+	"""Validate crew status after battle and notify about losses"""
+	var crew = _get_active_crew()
+	if crew.is_empty():
+		return
+
+	var notification_mgr = get_node_or_null("/root/NotificationManager")
+	var dead_count := 0
+	var missing_count := 0
+	var injured_count := 0
+
+	for member in crew:
+		var status = ""
+		# Sprint 26.3: Character-Everywhere - members are Character objects
+		if member.has_method("get") and member.get("status"):
+			status = member.get("status")
+		elif "status" in member:
+			status = member.status
+
+		var display_name = member.character_name if "character_name" in member else "Crew Member"
+
+		match status:
+			"DEAD":
+				dead_count += 1
+				if notification_mgr and notification_mgr.has_method("show_error"):
+					notification_mgr.show_error("%s was killed in battle" % display_name)
+			"MISSING":
+				missing_count += 1
+				if notification_mgr and notification_mgr.has_method("show_warning"):
+					notification_mgr.show_warning("%s went missing" % display_name)
+			"INJURED", "RECOVERING":
+				injured_count += 1
+				if notification_mgr and notification_mgr.has_method("show_warning"):
+					notification_mgr.show_warning("%s was injured in battle" % display_name)
+
+	# Check if crew size is still viable
+	var active_crew_count = crew.filter(func(c):
+		var s = c.status if "status" in c else "ACTIVE"
+		return s == "ACTIVE"
+	).size()
+
+	if active_crew_count < 1:
+		push_warning("CampaignTurnController: No active crew remaining after battle!")
+		if notification_mgr and notification_mgr.has_method("show_error"):
+			notification_mgr.show_error("All crew members lost! Campaign may need to end.")
+
+	print("CampaignTurnController: Post-battle crew status - Dead: %d, Missing: %d, Injured: %d, Active: %d" % [
+		dead_count, missing_count, injured_count, active_crew_count
+	])
+
+func _get_active_crew() -> Array:
+	"""Get current crew members from game state"""
+	if not game_state or not game_state.current_campaign:
+		return []
+
+	var campaign = game_state.current_campaign
+	if campaign.has_method("get_crew_members"):
+		return campaign.get_crew_members()
+	elif "crew" in campaign:
+		return campaign.crew
+	return []
 
 ## Phase Completion Handlers
 func _on_travel_phase_completed() -> void:
@@ -414,6 +599,26 @@ func _on_travel_phase_completed() -> void:
 
 	# Transition to world phase
 	campaign_phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.WORLD)
+
+## Sprint 10.3: Bidirectional Navigation Handler
+func _on_return_to_travel() -> void:
+	"""Handle return to travel phase from world phase (rollback navigation)"""
+	print("CampaignTurnController: Returning to Travel phase from World phase")
+
+	_hide_all_phase_uis()
+
+	if travel_phase_ui:
+		travel_phase_ui.show()
+		current_ui_phase = travel_phase_ui
+
+		# Restore Travel Phase UI from checkpoint if available
+		if travel_phase_ui.has_method("restore_from_checkpoint"):
+			travel_phase_ui.restore_from_checkpoint()
+		else:
+			print("CampaignTurnController: TravelPhaseUI doesn't have restore_from_checkpoint method")
+
+	# Update phase display
+	_update_phase_display("Travel")
 
 func _on_world_phase_completed(results: Dictionary) -> void:
 	"""Handle world phase completion - transition to battle phase"""
@@ -503,6 +708,40 @@ func _on_return_to_battle_resolution() -> void:
 	if pre_battle_ui:
 		pre_battle_ui.show()
 		current_ui_phase = pre_battle_ui
+
+## Sprint 13.3: Battle Mode Selection Handlers
+
+func _on_battle_mode_selection_requested(crew_count: int, enemy_count: int) -> void:
+	"""Handle battle mode selection request from BattlePhase"""
+	print("CampaignTurnController: Battle mode selection requested (Crew: %d, Enemies: %d)" % [crew_count, enemy_count])
+
+	# Show battle resolution UI for mode selection
+	_hide_all_phase_uis()
+	if battle_transition_ui:
+		battle_transition_ui.show()
+		current_ui_phase = battle_transition_ui
+
+		# Initialize with crew/enemy counts if method exists
+		if battle_transition_ui.has_method("show_mode_selection"):
+			battle_transition_ui.show_mode_selection(crew_count, enemy_count)
+
+func _on_battle_mode_selected(use_tactical: bool) -> void:
+	"""Handle battle mode selection from BattlePhase"""
+	print("CampaignTurnController: Battle mode selected - %s" % ("Tactical" if use_tactical else "Auto-Resolve"))
+
+	if use_tactical:
+		# Transition to tactical battle UI
+		_hide_all_phase_uis()
+		if tactical_battle_ui:
+			tactical_battle_ui.show()
+			current_ui_phase = tactical_battle_ui
+	else:
+		# Sprint 26.4: Auto-resolve now shows progress feedback (was dead end)
+		# TODO: Replace with dedicated BattleAutoResolveUI scene (task A2)
+		print("CampaignTurnController: Auto-resolve mode - battle simulation in progress...")
+		if battle_transition_ui and battle_transition_ui.has_method("show_auto_resolve_progress"):
+			battle_transition_ui.show_auto_resolve_progress()
+		# BattlePhase handles the actual simulation and will emit battle_completed when done
 
 ## UI Updates
 func _update_turn_display(turn_number: int) -> void:

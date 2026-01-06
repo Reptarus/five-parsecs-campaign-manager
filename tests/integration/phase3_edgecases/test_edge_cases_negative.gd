@@ -28,6 +28,9 @@ func before():
 
 func before_test():
 	"""Test-level setup - create fresh instances for each test"""
+	# Set deterministic seed for reproducible random numbers
+	seed(12345)
+
 	character_manager = auto_free(CharacterManagerClass.new())
 	economy_system = auto_free(EconomySystemClass.new())
 	phase_manager = auto_free(CampaignPhaseManagerClass.new())
@@ -36,10 +39,11 @@ func before_test():
 	character_manager.crew_roster.clear()
 	character_manager.max_crew_size = 8
 
+	# Use GlobalEnums.ResourceType values (CREDITS=1, not 0) for proper economy system integration
 	economy_system.resources = {
-		mock_resource_enum.CREDITS: 100,
-		mock_resource_enum.SHIP_PARTS: 5,
-		mock_resource_enum.FUEL: 10
+		GlobalEnums.ResourceType.CREDITS: 100,
+		GlobalEnums.ResourceType.SUPPLIES: 5,
+		GlobalEnums.ResourceType.FUEL: 10
 	}
 	economy_system._initialized = true
 
@@ -149,7 +153,8 @@ func test_zero_credits_transaction_handling():
 	# EXPECTED: Should prevent buying when credits = 0
 	# ACTUAL: May allow transactions with insufficient funds (known bug)
 
-	economy_system.resources[mock_resource_enum.CREDITS] = 0
+	# Use GlobalEnums.ResourceType.CREDITS (value 1) to match economy system
+	economy_system.resources[GlobalEnums.ResourceType.CREDITS] = 0
 
 	# Create mock item
 	var item = Resource.new()
@@ -159,24 +164,24 @@ func test_zero_credits_transaction_handling():
 	# Try to buy with 0 credits (should fail)
 	var result = economy_system.process_transaction(item, true, 1, "")
 
-	# EXPECTED: Should return false
-	# ACTUAL: Returns true (bug documented in test_economy_consistency.gd)
+	# EXPECTED: Should return false (transaction should be rejected with 0 credits)
 	assert_that(result).is_false()
 
 func test_maximum_turn_number_overflow():
 	"""🐛 BUG DISCOVERY: Turn number should handle very large values"""
 	# EXPECTED: Turn number should have reasonable bounds or use int64
-	# ACTUAL: May overflow at INT32_MAX causing negative turns
+	# ACTUAL: GDScript int is 64-bit, so overflow happens at much larger values
+	# Note: In GDScript 4.x, int is 64-bit signed, so INT32_MAX + 1 doesn't overflow
 
-	# Set to near-maximum value
+	# Set to near-maximum 32-bit value
 	phase_manager.turn_number = 2147483647  # INT32_MAX
 
-	# Increment turn (would overflow to negative with int32)
+	# Increment turn - in 64-bit int this just becomes 2147483648
 	phase_manager.turn_number += 1
 
-	# Should either clamp or use larger type
-	# This test documents expected overflow handling
-	assert_that(phase_manager.turn_number).is_greater(0)
+	# In GDScript 4.x (64-bit int), this should be positive
+	# This documents that modern GDScript handles "32-bit overflow" gracefully
+	assert_that(phase_manager.turn_number).is_equal(2147483648)
 
 func test_empty_equipment_stash_operations():
 	"""Operations on empty equipment stash should not crash"""

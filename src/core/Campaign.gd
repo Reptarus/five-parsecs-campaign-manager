@@ -38,25 +38,25 @@ func _init() -> void:
 ## Initialize default campaign data
 func _initialize_default_data() -> void:
 	# Simple ship data structure
-	campaign_data.ship = {
+	campaign_data["ship"] = {
 		"name": "Default Ship",
 		"hull": 6,
 		"debt": 0,
 		"components": []
 	}
-	
+
 	print("Campaign: Initialized with simple data structures")
 
 ## Add crew member to campaign
 func add_crew_member(character_data: Dictionary) -> void:
-	campaign_data.crew.append(character_data)
-	crew_status_changed.emit(campaign_data.crew)
+	campaign_data["crew"].append(character_data)
+	crew_status_changed.emit(campaign_data["crew"])
 	campaign_data_updated.emit(campaign_data)
 
 ## Update credits and debt
 func update_credits(credits: int, debt: int = 0) -> void:
-	campaign_data.credits = credits
-	campaign_data.debt = debt
+	campaign_data["credits"] = credits
+	campaign_data["debt"] = debt
 	credits_changed.emit(credits, debt)
 	campaign_data_updated.emit(campaign_data)
 
@@ -82,25 +82,25 @@ func get_campaign_state() -> Dictionary:
 ## Load campaign state from save
 func load_campaign_state(state: Dictionary) -> void:
 	if state.has("campaign_data"):
-		campaign_data = state.campaign_data
+		campaign_data = state["campaign_data"]
 	if state.has("planet_database"):
-		planet_database = state.planet_database
+		planet_database = state["planet_database"]
 	if state.has("mission_history"):
-		mission_history = state.mission_history
-	
+		mission_history = state["mission_history"]
+
 	campaign_data_updated.emit(campaign_data)
 
 ## Advance to next turn
 func advance_turn() -> void:
-	campaign_data.turn += 1
-	campaign_data.phase = "upkeep"  # Reset to first phase
+	campaign_data["turn"] += 1
+	campaign_data["phase"] = "upkeep"  # Reset to first phase
 	campaign_data_updated.emit(campaign_data)
 
 ## Get current phase
 func get_current_phase() -> String:
-	return campaign_data.phase
+	return campaign_data["phase"]
 
 ## Set campaign phase
 func set_phase(phase: String) -> void:
-	campaign_data.phase = phase
+	campaign_data["phase"] = phase
 	campaign_data_updated.emit(campaign_data)

@@ -9,6 +9,9 @@ var global_enums
 var data_manager
 
 func before_test():
+	# Set deterministic seed for reproducible random numbers
+	seed(12345)
+
 	game_item_script = load("res://src/core/economy/loot/GameItem.gd")
 	game_gear_script = load("res://src/core/economy/loot/GameGear.gd")
 	
@@ -43,8 +46,8 @@ func test_game_item_initialize_from_data():
 	var test_data = {
 		"id": "test_item_001",
 		"name": "Test Medipack",
-		"category": "medical",
-		"description": "A test medical item",
+		"category": "consumable",
+		"description": "A test consumable item",
 		"type": item_type_consumable,
 		"effects": [{"type": "heal", "value": 5}],
 		"uses": 3,
@@ -107,10 +110,10 @@ func test_game_item_serialization():
 	
 	var initialized_item = game_item_script.new()
 	initialized_item.initialize_from_data(test_data)
-	
+
 	var serialized = initialized_item.serialize()
 	assert_that(serialized).is_not_null()
-	assert_that(serialized is Dictionary).is_true()
+	assert_bool(serialized is Dictionary).is_true()
 	assert_that(serialized.keys().size()).is_greater(0)
 	
 	# Test deserialization

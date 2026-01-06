@@ -38,6 +38,27 @@ var content_area: HSplitContainer
 var navigation_footer: HBoxContainer
 var status_panel: PanelContainer
 
+# Cached dialog to prevent multiple exclusive window conflicts
+var _validation_error_dialog: AcceptDialog = null
+
+# Mapping of validation error messages to their corresponding phases for navigation
+const VALIDATION_ERROR_PHASES: Dictionary = {
+	"Captain creation is not complete": CampaignStateManager.Phase.CAPTAIN_CREATION,
+	"Victory conditions are not set": CampaignStateManager.Phase.CONFIG,
+	"Ship assignment is not complete": CampaignStateManager.Phase.SHIP_ASSIGNMENT,
+}
+
+# Human-readable panel names for error messages
+const PHASE_DISPLAY_NAMES: Dictionary = {
+	CampaignStateManager.Phase.CONFIG: "Configuration",
+	CampaignStateManager.Phase.CAPTAIN_CREATION: "Captain Creation",
+	CampaignStateManager.Phase.CREW_SETUP: "Crew Setup",
+	CampaignStateManager.Phase.SHIP_ASSIGNMENT: "Ship Assignment",
+	CampaignStateManager.Phase.EQUIPMENT_GENERATION: "Equipment",
+	CampaignStateManager.Phase.WORLD_GENERATION: "World Info",
+	CampaignStateManager.Phase.FINAL_REVIEW: "Final Review",
+}
+
 # Scene node references (from .tscn file)
 @onready var responsive_margin: MarginContainer = $ResponsiveMargin
 @onready var main_container: VBoxContainer = $ResponsiveMargin/MainContainer
@@ -121,6 +142,8 @@ var panel_scenes: Dictionary = {
 # CRITICAL: Panel loading state management to prevent overlap
 var _is_panel_loading: bool = false
 var _panel_load_queue: Array[CampaignStateManager.Phase] = []
+var _transition_start_time: int = 0
+const TRANSITION_TIMEOUT_MS: int = 10000  # 10 second timeout for transitions
 var _pending_phase_transition: CampaignStateManager.Phase
 var _is_transitioning: bool = false
 
@@ -430,32 +453,55 @@ func _apply_desktop_layout() -> void:
 func _switch_to_phase(phase: CampaignStateManager.Phase) -> void:
 	"""Enhanced panel switching with smooth fade transitions"""
 	print("CampaignCreationUI: Switching to phase: %s" % phase)
-	
+
+	# Check for stuck transition state and recover if needed
+	if _is_transitioning:
+		var current_time = Time.get_ticks_msec()
+		if _transition_start_time > 0 and (current_time - _transition_start_time) > TRANSITION_TIMEOUT_MS:
+			push_warning("CampaignCreationUI: Transition timeout detected, recovering from stuck state")
+			_is_transitioning = false
+			is_panel_fading = false
+			_transition_start_time = 0
+
 	if _is_transitioning or is_panel_fading:
 		print("CampaignCreationUI: Already transitioning, queuing phase switch")
 		_panel_load_queue.append(phase)
 		return
-	
+
 	_is_transitioning = true
-	
+	_transition_start_time = Time.get_ticks_msec()
+
 	# Update progress indicator
 	_update_progress_for_phase(phase)
-	
+
 	# Fade out current panel, then load new panel
 	if current_panel and is_instance_valid(current_panel):
 		await _fade_out_panel(current_panel)
-	
+		# Safety check after await
+		if not is_inside_tree():
+			_is_transitioning = false
+			return
+
 	# Load and display panel
 	await _load_and_display_panel(phase)
-	
+	# Safety check after await
+	if not is_inside_tree():
+		_is_transitioning = false
+		return
+
 	# Fade in new panel
 	if current_panel and is_instance_valid(current_panel):
 		await _fade_in_panel(current_panel)
-	
+		# Safety check after await
+		if not is_inside_tree():
+			_is_transitioning = false
+			return
+
 	# Update navigation state
 	_update_navigation_state()
-	
+
 	_is_transitioning = false
+	_transition_start_time = 0
 
 func _load_and_display_panel(phase: CampaignStateManager.Phase) -> void:
 	"""Load and display panel with enhanced error handling and fallback"""
@@ -483,9 +529,14 @@ func _load_and_display_panel(phase: CampaignStateManager.Phase) -> void:
 			_is_transitioning = false
 			return
 	
-	# Clear current panel
-	_clear_current_panel()
-	
+	# Clear current panel (await to ensure cleanup completes before loading new panel)
+	await _clear_current_panel()
+
+	# Safety check after await
+	if not is_inside_tree():
+		_is_transitioning = false
+		return
+
 	# Load the scene
 	print("CampaignCreationUI: Loading panel scene: %s" % scene_path)
 	var scene = load(scene_path)
@@ -517,7 +568,18 @@ func _load_and_display_panel(phase: CampaignStateManager.Phase) -> void:
 	
 	content_container.add_child(panel_instance)
 	current_panel = panel_instance
-	
+
+	# CRITICAL: Ensure panel fills the content container properly
+	# Set anchors to fill parent (PRESET_FULL_RECT)
+	panel_instance.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# Godot 4.x: Set offsets individually (set_offsets_all doesn't exist)
+	panel_instance.offset_left = 0
+	panel_instance.offset_top = 0
+	panel_instance.offset_right = 0
+	panel_instance.offset_bottom = 0
+	panel_instance.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel_instance.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
 	# ENHANCED: Use robust panel setup with proper coordinator integration
 	await _setup_panel_references(panel_instance, phase)
 	
@@ -543,7 +605,10 @@ func _fade_out_panel(panel: Control) -> void:
 	"""Smoothly fade out a panel over panel_transition_duration seconds"""
 	if not panel or not is_instance_valid(panel):
 		return
-	
+
+	if not is_inside_tree():
+		return
+
 	is_panel_fading = true
 	var tween = create_tween()
 	tween.set_ease(Tween.EASE_IN_OUT)
@@ -556,10 +621,13 @@ func _fade_in_panel(panel: Control) -> void:
 	"""Smoothly fade in a panel over panel_transition_duration seconds"""
 	if not panel or not is_instance_valid(panel):
 		return
-	
+
+	if not is_inside_tree():
+		return
+
 	# Start invisible
 	panel.modulate.a = 0.0
-	
+
 	is_panel_fading = true
 	var tween = create_tween()
 	tween.set_ease(Tween.EASE_IN_OUT)
@@ -583,14 +651,21 @@ func _clear_current_panel() -> void:
 		# Remove from parent BEFORE queue_free to prevent stacking
 		if current_panel.get_parent():
 			current_panel.get_parent().remove_child(current_panel)
-		
+
 		# Queue for deletion
 		current_panel.queue_free()
 		current_panel = null
-		
-		# CRITICAL: Wait one frame to ensure cleanup completes
+
+		# CRITICAL: Wait one frame to ensure cleanup completes (with null safety)
+		if not is_inside_tree():
+			print("CampaignCreationUI: Panel cleared (no frame delay - not in tree)")
+			return
 		await get_tree().process_frame
-		
+
+		# Safety check after await
+		if not is_inside_tree():
+			return
+
 		print("CampaignCreationUI: Panel cleared successfully with frame delay")
 	else:
 		print("CampaignCreationUI: No current panel to clear")
@@ -703,10 +778,33 @@ func _setup_panel_references(panel_instance: Control, phase: CampaignStateManage
 			panel_instance.set_coordinator(coordinator)
 			panel_instance.set_state_manager(state_manager)
 			print("CampaignCreationUI: ⚠️ Used legacy coordinator integration")
-		
-		# Critical: Let panel initialize with coordinator
-		await get_tree().process_frame
-		
+
+		# SPRINT 3.2: Wait for panel_ready signal if available, otherwise fall back to process frame
+		# This ensures the panel is fully initialized before we connect signals
+		if panel_instance.has_signal("panel_ready"):
+			# Create a timeout to avoid waiting forever
+			var timeout_timer = get_tree().create_timer(2.0)
+			var panel_ready_received = false
+
+			# One-shot connection for panel_ready
+			var ready_callback = func():
+				panel_ready_received = true
+
+			if not panel_instance.is_connected("panel_ready", ready_callback):
+				panel_instance.panel_ready.connect(ready_callback, CONNECT_ONE_SHOT)
+
+			# Wait for either panel_ready or timeout
+			while not panel_ready_received and timeout_timer.time_left > 0:
+				await get_tree().process_frame
+
+			if panel_ready_received:
+				print("CampaignCreationUI: ✅ Panel ready signal received")
+			else:
+				print("CampaignCreationUI: ⚠️ Panel ready timeout - proceeding anyway")
+		else:
+			# Fallback: wait one frame for panels without panel_ready signal
+			await get_tree().process_frame
+
 		# NOW configure and connect signals
 		_configure_panel_for_phase(panel_instance, phase)
 		_connect_panel_signals(panel_instance)
@@ -901,30 +999,48 @@ func _display_fallback_panel(phase: CampaignStateManager.Phase, error_message: S
 	"""Display fallback panel when loading fails"""
 	var fallback_panel = _create_fallback_panel(phase, error_message)
 	content_container.add_child(fallback_panel)
+
+	# Ensure fallback panel fills the content container properly
+	fallback_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	fallback_panel.offset_left = 0
+	fallback_panel.offset_top = 0
+	fallback_panel.offset_right = 0
+	fallback_panel.offset_bottom = 0
+	fallback_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	fallback_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
 	current_panel = fallback_panel
 	print("CampaignCreationUI: Fallback panel displayed for phase: %s" % phase)
 
 # PHASE 4: Enhanced Signal Management with Memory Safety
 func _safe_connect_signal(panel: Control, signal_name: String, callback: Callable) -> void:
-	"""Safely connect signals with duplicate prevention and cleanup tracking"""
+	"""Safely connect signals with duplicate prevention, handler validation, and cleanup tracking"""
 	if not panel or not panel.has_signal(signal_name):
 		return
-	
+
+	# SPRINT 3.3: Validate callback is valid before attempting connection
+	if not callback.is_valid():
+		push_warning("CampaignCreationUI: Callback for signal '%s' is not valid" % signal_name)
+		return
+
 	# Check if already connected
 	if panel.is_connected(signal_name, callback):
 		print("CampaignCreationUI: Signal '%s' already connected, skipping" % signal_name)
 		return
-	
-	# Connect signal
-	panel.connect(signal_name, callback)
-	
-	# Track connection for cleanup
+
+	# Connect signal with error handling
+	var error = panel.connect(signal_name, callback)
+	if error != OK:
+		push_warning("CampaignCreationUI: Failed to connect signal '%s': error code %d" % [signal_name, error])
+		return
+
+	# Track connection for cleanup (only if connection succeeded)
 	_panel_signal_connections.append({
 		"panel": panel,
 		"signal_name": signal_name,
 		"callback": callback
 	})
-	
+
 	print("CampaignCreationUI: ✅ Connected signal: %s" % signal_name)
 
 func _cleanup_panel_signals() -> void:
@@ -1174,9 +1290,13 @@ func _connect_final_panel_signals(panel: Control) -> void:
 	# NEW: Connect actual FinalPanel signals to bridge
 	if panel.has_signal("campaign_creation_requested"):
 		panel.campaign_creation_requested.connect(_on_campaign_creation_requested_from_panel)
-	
+
 	if panel.has_signal("campaign_finalization_complete"):
 		panel.campaign_finalization_complete.connect(_on_campaign_finalization_complete_from_panel)
+
+	# Sprint 20.3: Connect campaign_confirmed signal for Create Campaign button
+	if panel.has_signal("campaign_confirmed"):
+		panel.campaign_confirmed.connect(_on_campaign_confirmed_from_panel)
 
 func _disconnect_panel_signals(panel: Control) -> void:
 	"""Disconnect all signals from panel with comprehensive coverage"""
@@ -1240,19 +1360,19 @@ func _disconnect_panel_signals(panel: Control) -> void:
 
 func _update_progress_for_phase(phase: CampaignStateManager.Phase) -> void:
 	"""Update progress indicator for current phase with step name"""
-	# Map phase enum to step number (1-7)
+	# Map phase enum to step number (1-7) - Core Rules SOP order
 	var step_number := 1
 	match phase:
 		CampaignStateManager.Phase.CONFIG:
 			step_number = 1
-		CampaignStateManager.Phase.SHIP_ASSIGNMENT:
-			step_number = 2
 		CampaignStateManager.Phase.CAPTAIN_CREATION:
-			step_number = 3
+			step_number = 2
 		CampaignStateManager.Phase.CREW_SETUP:
-			step_number = 4
+			step_number = 3
 		CampaignStateManager.Phase.EQUIPMENT_GENERATION:
-			step_number = 5
+			step_number = 4  # Core Rules: Equipment before Ship
+		CampaignStateManager.Phase.SHIP_ASSIGNMENT:
+			step_number = 5  # Core Rules: Ship is final step (determines debt)
 		CampaignStateManager.Phase.WORLD_GENERATION:
 			step_number = 6
 		CampaignStateManager.Phase.FINAL_REVIEW:
@@ -1327,59 +1447,147 @@ func _save_current_panel_state() -> void:
 		return
 
 	if not current_panel.has_method("get_panel_data"):
+		push_warning("CampaignCreationUI: Panel does not have get_panel_data() - data may not be saved")
 		return
 
 	var data = current_panel.get_panel_data()
+	if data == null:
+		push_warning("CampaignCreationUI: get_panel_data() returned null - panel state not saved")
+		_show_panel_data_sync_warning("Unable to retrieve panel data. Your changes may not be saved.")
+		return
+
 	if data.is_empty():
+		# Empty data is valid for some panels (e.g., no changes made yet)
 		return
 
 	print("CampaignCreationUI: Saving panel state before navigation")
+	var sync_failed := false
 
 	# Route data to coordinator based on current phase
 	if coordinator:
-		_route_data_to_coordinator(data)
+		var data_routed = _route_data_to_coordinator_with_validation(data)
+		if not data_routed:
+			sync_failed = true
+			push_warning("CampaignCreationUI: Failed to route panel data to coordinator")
+	else:
+		sync_failed = true
+		push_warning("CampaignCreationUI: Coordinator not available - panel data not synchronized")
 
 	# Also update state manager
 	if state_manager:
 		var current_phase = state_manager.get_current_phase()
 		_update_state_manager_data(current_phase, data)
+	else:
+		sync_failed = true
+		push_warning("CampaignCreationUI: State manager not available - panel data not persisted")
 
-	print("CampaignCreationUI: Panel state saved successfully")
+	if sync_failed:
+		_show_panel_data_sync_warning("Some data may not have been saved. Please review before continuing.")
+	else:
+		print("CampaignCreationUI: Panel state saved successfully")
+
+func _show_panel_data_sync_warning(message: String) -> void:
+	"""Show a non-blocking warning about panel data sync issues"""
+	# Use NotificationManager if available, otherwise use print
+	if has_node("/root/NotificationManager"):
+		var notif_manager = get_node("/root/NotificationManager")
+		if notif_manager.has_method("show_warning"):
+			notif_manager.show_warning("Data Sync Warning", message)
+			return
+	# Fallback: Log the warning
+	push_warning("CampaignCreationUI: " + message)
+
+func _route_data_to_coordinator_with_validation(data: Dictionary) -> bool:
+	"""Route panel data to coordinator with validation - returns true if data was routed"""
+	if not coordinator:
+		return false
+
+	var current_phase = state_manager.get_current_phase() if state_manager else CampaignStateManager.Phase.CONFIG
+	var data_routed := false
+
+	# Route data based on current phase and data content
+	match current_phase:
+		CampaignStateManager.Phase.CONFIG:
+			if data.has("campaign_config") or data.has("campaign_name") or data.has("victory_conditions"):
+				coordinator.update_campaign_config_state(data)
+				data_routed = true
+
+		CampaignStateManager.Phase.CAPTAIN_CREATION:
+			if data.has("captain"):
+				coordinator.update_captain_state(data.captain)
+				data_routed = true
+			elif data.has("captain_name") or data.has("captain_background") or data.has("name") or data.has("background"):
+				coordinator.update_captain_state(data)
+				data_routed = true
+
+		CampaignStateManager.Phase.CREW_SETUP:
+			if data.has("crew") or data.has("crew_members") or data.has("members"):
+				coordinator.update_crew_state(data)
+				data_routed = true
+
+		CampaignStateManager.Phase.SHIP_ASSIGNMENT:
+			if data.has("ship"):
+				coordinator.update_ship_state(data)
+				data_routed = true
+
+		CampaignStateManager.Phase.EQUIPMENT_GENERATION:
+			if data.has("equipment") or data.has("items"):
+				coordinator.update_equipment_state(data)
+				data_routed = true
+
+		CampaignStateManager.Phase.WORLD_GENERATION:
+			if data.has("world") or data.has("location"):
+				coordinator.update_world_state(data)
+				data_routed = true
+
+		CampaignStateManager.Phase.FINAL_REVIEW:
+			# Final review doesn't generate new data, it just confirms
+			data_routed = true
+
+	return data_routed
 
 # Navigation button handlers
 func _on_back_pressed() -> void:
 	"""Handle back button press with enhanced safety"""
 	print("CampaignCreationUI: Back button pressed")
-	
+
 	if not coordinator:
 		push_warning("CampaignCreationUI: Coordinator not available for back navigation")
 		return
-	
+
 	if not coordinator.can_go_back_to_previous_phase():
 		print("CampaignCreationUI: Cannot go back - at first phase")
+		return
+
+	# Prevent multiple simultaneous back presses
+	if _is_transitioning:
+		print("CampaignCreationUI: Back press ignored - transition in progress")
 		return
 
 	# CRITICAL: Save panel state BEFORE clearing to prevent data loss
 	_save_current_panel_state()
 
-	# Clear current panel before navigation to prevent state conflicts
-	_clear_current_panel()
-	
-	# Perform navigation
+	# Perform navigation FIRST (updates state_manager.current_phase)
 	var navigation_success = coordinator.go_back_to_previous_phase()
 	if navigation_success:
 		var previous_phase = state_manager.current_phase
 		print("CampaignCreationUI: Navigating back to phase: %s" % previous_phase)
-		_switch_to_phase(previous_phase)
+		# _switch_to_phase handles panel clearing internally with proper sequencing
+		await _switch_to_phase(previous_phase)
 	else:
 		push_error("CampaignCreationUI: Failed to navigate back")
 
 func _on_next_pressed() -> void:
 	"""Handle next button press"""
+	# Prevent multiple simultaneous next presses
+	if _is_transitioning:
+		print("CampaignCreationUI: Next press ignored - transition in progress")
+		return
+
 	if coordinator and coordinator.can_advance_to_next_phase():
 		coordinator.advance_to_next_phase()
 		var next_phase = state_manager.current_phase
-		_switch_to_phase(next_phase)
+		await _switch_to_phase(next_phase)
 
 # Signal handlers for panel data changes
 func _on_panel_data_changed(data: Dictionary) -> void:
@@ -1553,23 +1761,15 @@ func _on_panel_completed(data: Dictionary) -> void:
 	print("  Updating navigation state...")
 	_update_navigation_state()
 	
-	# Check if we should auto-advance
+	# Check if validation passes (enables Next button)
 	var can_advance = state_manager.validate_current_step()
 	print("  Can advance: %s" % str(can_advance))
 
-	# Safe auto-advance with race condition protection
-	if can_advance and not _auto_advance_pending and not _is_transitioning:
-		print("  Scheduling safe auto-advance...")
-		_auto_advance_pending = true
-		# Use call_deferred to let current panel cleanup finish first
-		call_deferred("_safe_auto_advance")
-	else:
-		if _auto_advance_pending:
-			print("  Auto-advance already pending")
-		elif _is_transitioning:
-			print("  Panel transition in progress, skipping auto-advance")
-		else:
-			print("  Not advancing - validation failed or on final panel")
+	# AUTO-ADVANCE DISABLED: Users should explicitly click "Next" to proceed
+	# This gives users time to review their choices before advancing
+	# The panel_completed signal now only updates navigation state (enables Next button)
+	# rather than automatically advancing to the next panel
+	print("  Auto-advance disabled - user must click Next to proceed")
 
 	print("CampaignCreationUI: Panel completion processing finished")
 	print("=====================================")
@@ -1579,8 +1779,16 @@ func _safe_auto_advance() -> void:
 	if not _auto_advance_pending:
 		return
 
-	# Wait one frame to ensure previous panel is fully cleaned up
+	# Wait one frame to ensure previous panel is fully cleaned up (with null safety)
+	if not is_inside_tree():
+		_auto_advance_pending = false
+		return
 	await get_tree().process_frame
+
+	# Safety check after await - node may have been removed from tree
+	if not is_inside_tree():
+		_auto_advance_pending = false
+		return
 
 	_auto_advance_pending = false
 
@@ -1677,18 +1885,89 @@ func _on_victory_conditions_changed(conditions: Dictionary) -> void:
 	print("Victory conditions updated: ", conditions)
 
 func _show_validation_errors(errors: Array) -> void:
-	"""Show validation errors to the user"""
-	var error_text = "Please fix the following issues:\n"
+	"""Show validation errors to the user with navigation hints"""
+	if errors.is_empty():
+		return
+
+	# Build error content with panel hints
+	var has_navigable_errors = false
 	for error in errors:
-		error_text += "• " + error + "\n"
-	
-	# Create or update error dialog
-	var dialog = AcceptDialog.new()
-	dialog.title = "Validation Errors"
-	dialog.dialog_text = error_text
-	add_child(dialog)
-	dialog.popup_centered()
-	dialog.confirmed.connect(func(): dialog.queue_free())
+		if VALIDATION_ERROR_PHASES.has(error):
+			has_navigable_errors = true
+			break
+
+	# Create dialog on first use, reuse thereafter to prevent exclusive window conflicts
+	if _validation_error_dialog == null:
+		_validation_error_dialog = AcceptDialog.new()
+		_validation_error_dialog.title = "Validation Errors"
+		add_child(_validation_error_dialog)
+
+	# Clear any previous custom content
+	for child in _validation_error_dialog.get_children():
+		if child is VBoxContainer:
+			child.queue_free()
+
+	if has_navigable_errors:
+		# Create custom content with navigation buttons
+		var content = VBoxContainer.new()
+		content.add_theme_constant_override("separation", 12)
+
+		var header_label = Label.new()
+		header_label.text = "Please fix the following issues:"
+		header_label.add_theme_font_size_override("font_size", 14)
+		content.add_child(header_label)
+
+		for error in errors:
+			var error_row = HBoxContainer.new()
+			error_row.add_theme_constant_override("separation", 8)
+
+			var error_label = Label.new()
+			error_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+			# Check if this error has a navigable panel
+			if VALIDATION_ERROR_PHASES.has(error):
+				var target_phase = VALIDATION_ERROR_PHASES[error]
+				var panel_name = PHASE_DISPLAY_NAMES.get(target_phase, "Unknown")
+				error_label.text = "• " + error + " (" + panel_name + " panel)"
+
+				var go_button = Button.new()
+				go_button.text = "Go to Panel"
+				go_button.custom_minimum_size = Vector2(100, 32)
+				go_button.pressed.connect(_navigate_to_validation_error_panel.bind(target_phase))
+				error_row.add_child(error_label)
+				error_row.add_child(go_button)
+			else:
+				error_label.text = "• " + error
+				error_row.add_child(error_label)
+
+			content.add_child(error_row)
+
+		_validation_error_dialog.add_child(content)
+		_validation_error_dialog.dialog_text = ""
+		_validation_error_dialog.min_size = Vector2(450, 0)
+	else:
+		# Simple text display for non-navigable errors
+		var error_text = "Please fix the following issues:\n"
+		for error in errors:
+			error_text += "• " + error + "\n"
+		_validation_error_dialog.dialog_text = error_text.strip_edges()
+
+	_validation_error_dialog.popup_centered()
+
+func _navigate_to_validation_error_panel(target_phase: CampaignStateManager.Phase) -> void:
+	"""Navigate to the panel that needs fixing and close the error dialog"""
+	print("CampaignCreationUI: Navigating to panel for validation fix: %s" % target_phase)
+
+	# Close the validation dialog
+	if _validation_error_dialog:
+		_validation_error_dialog.hide()
+
+	# Update state manager to allow navigation to the target phase
+	if state_manager:
+		state_manager.current_phase = target_phase
+
+	# Navigate to the target panel
+	await _switch_to_phase(target_phase)
 
 func _on_finish_pressed() -> void:
 	"""Handle finish button press - Complete campaign creation"""
@@ -1812,8 +2091,8 @@ func _create_and_save_campaign(campaign_data: Dictionary) -> bool:
 
 func _initialize_victory_condition_tracker(campaign_data: Dictionary) -> void:
 	"""Initialize VictoryConditionTracker with selected victory conditions"""
-	# Get victory conditions from config (plural key - multi-select support)
-	var config = campaign_data.get("config", {})
+	# Get victory conditions from config - support both "campaign_config" (coordinator) and "config" (state_manager) keys
+	var config = campaign_data.get("campaign_config", campaign_data.get("config", {}))
 	var victory_conditions = config.get("victory_conditions", {})
 	var story_track_enabled = campaign_data.get("story_track_enabled", false)
 
@@ -1896,7 +2175,7 @@ func _transition_to_campaign_scene(campaign_data: Dictionary) -> void:
 		"res://src/scenes/campaign/CampaignMainScreen.tscn",
 		"res://src/ui/screens/campaign/MainCampaignScene.tscn",
 		"res://src/scenes/campaign/MainCampaignScene.tscn",
-		"res://src/scenes/MainMenu.tscn"
+		"res://src/ui/screens/mainmenu/MainMenu.tscn"
 	]
 
 	# Try each scene candidate
@@ -1993,7 +2272,7 @@ func _show_campaign_options_dialog(campaign_data: Dictionary) -> void:
 				_restart_campaign_creation()
 			"main_menu":
 				print("CampaignCreationUI: Going to main menu")
-				get_tree().change_scene_to_file("res://src/scenes/MainMenu.tscn")
+				get_tree().change_scene_to_file("res://src/ui/screens/mainmenu/MainMenu.tscn")
 	)
 	
 	# Show dialog
@@ -2202,19 +2481,26 @@ func _on_campaign_creation_requested_from_panel(campaign_data: Dictionary) -> vo
 func _on_campaign_finalization_complete_from_panel(data: Dictionary) -> void:
 	"""Handle campaign finalization completion from FinalPanel via bridge"""
 	print("CampaignCreationUI: Campaign finalization completed from FinalPanel")
-	
+
 	# SPRINT 6.3: Store campaign data in GameState for MainCampaignScene
 	if AutoloadManager:
 		var game_state = AutoloadManager.get_autoload_safe("GameState")
 		if game_state:
 			game_state.set_meta("pending_campaign_data", data)
 			print("CampaignCreationUI: Stored campaign data for MainCampaignScene transition")
-	
+
 	# Emit completion signal (for any listening MainCampaignScene instances)
 	campaign_completion_ready.emit(data)
 
 	# FIX: Always transition after successful finalization (removed broken auto_transition check)
 	_transition_to_campaign_scene(data)
+
+## Sprint 20.3: Handler for Create Campaign button confirmation
+func _on_campaign_confirmed_from_panel() -> void:
+	"""Handle campaign confirmation from FinalPanel Create Campaign button"""
+	print("CampaignCreationUI: Campaign confirmed from FinalPanel - triggering finalization")
+	# Trigger the same flow as pressing finish
+	_on_finish_pressed()
 
 # Coordinator signal handlers
 func _on_coordinator_equipment_updated(data: Dictionary) -> void:

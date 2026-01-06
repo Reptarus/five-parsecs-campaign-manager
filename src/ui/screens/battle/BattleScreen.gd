@@ -320,7 +320,7 @@ func _get_character_name(character: Resource) -> String:
 	
 	# Try different property names
 	for prop in ["character_name", "name", "crew_name"]:
-		if "property" in character:
+		if prop in character:
 			var value: Variant = character.get(prop)
 			if value and value is String:
 				return value

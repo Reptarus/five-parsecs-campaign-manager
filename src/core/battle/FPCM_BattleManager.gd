@@ -13,6 +13,7 @@ extends Resource
 const BattleTypes = preload("res://src/core/battle/BattlefieldTypes.gd")
 const DiceSystem = preload("res://src/core/systems/DiceSystem.gd")
 const BattleEventsSystem = preload("res://src/core/battle/BattleEventsSystem.gd")
+const Godot4Utils = preload("res://src/utils/Godot4Utils.gd")
 
 # FSM States - explicit battle flow control
 enum BattleManagerPhase {
@@ -139,7 +140,7 @@ func initialize_battle(mission_data: Resource, crew_members: Array, enemy_forces
 	for crew in crew_members:
 		if crew != null:
 			# Check for equipment property (Character resources should have this)
-			var crew_equipment: Variant = safe_get_property(crew, "equipment", [])
+			var crew_equipment: Variant = Godot4Utils.safe_get_property(crew, "equipment", [])
 
 			if crew_equipment is Array:
 				total_equipment += (crew_equipment as Array).size()
@@ -186,7 +187,7 @@ func initialize_battle(mission_data: Resource, crew_members: Array, enemy_forces
 	
 	if debug_mode:
 		print("Battle initialized: Mission=%s, Crew=%d, Enemies=%d" % [
-			safe_get_property(mission_data, "name", "Unknown") if mission_data else "None",
+			Godot4Utils.safe_get_property(mission_data, "name", "Unknown") if mission_data else "None",
 			crew_members.size(),
 			enemy_forces.size()
 		])
@@ -582,14 +583,3 @@ func get_memory_usage() -> int:
 	# This would integrate with Godot's profiling in a real implementation
 	return 0
 
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return obj.get(property, default_value)
-	return default_value

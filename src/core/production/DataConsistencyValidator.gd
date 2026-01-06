@@ -159,8 +159,8 @@ static func validate_state_transitions(state_history: Array) -> Dictionary:
 		# Campaign turn states (Five Parsecs Four-Phase structure)
 		# NOTE: UPKEEP is a sub-step of WORLD phase, not a top-level phase
 		# See CampaignPhaseConstants for authoritative phase transition logic
-		"NONE": ["SETUP", "TRAVEL"],
-		"SETUP": ["TRAVEL"],
+		"NONE": ["TURN_START", "TRAVEL"],
+		"TURN_START": ["TRAVEL"],
 		"TRAVEL": ["WORLD"],
 		"WORLD": ["BATTLE", "TRAVEL"],  # Can skip battle or fight
 		"BATTLE": ["POST_BATTLE"],

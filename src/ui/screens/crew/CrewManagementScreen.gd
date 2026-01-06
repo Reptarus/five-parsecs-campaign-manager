@@ -289,8 +289,8 @@ func _on_add_member_pressed() -> void:
 		GameStateManager.set_temp_data(GameStateManager.TEMP_KEY_CREW_ADD_MODE, true)
 		GameStateManager.set_temp_data(GameStateManager.TEMP_KEY_RETURN_SCREEN, "crew_management")
 
-	# Navigate to character creation
-	GameStateManager.navigate_to_scene_path("res://src/ui/screens/crew/InitialCrewCreation.tscn")
+	# Navigate to character creation (SimpleCharacterCreator replaces deprecated InitialCrewCreation)
+	GameStateManager.navigate_to_scene_path("res://src/ui/screens/character/SimpleCharacterCreator.tscn")
 
 func _on_save_pressed() -> void:
 	"""Save campaign changes"""

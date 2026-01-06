@@ -8,6 +8,9 @@ signal upkeep_calculated(cost: int, breakdown: Dictionary)
 signal upkeep_paid(remaining_credits: int)
 signal insufficient_funds(required: int, available: int)
 
+# Economy system reference for credit management
+var economy_system: Node = null
+
 # Upkeep costs from Five Parsecs rules
 const BASE_CREW_UPKEEP = 1 # 1 credit per crew member
 const SHIP_MAINTENANCE_BASE = 1 # Base ship maintenance cost
@@ -82,8 +85,7 @@ func _calculate_ship_maintenance(ship_data: Resource) -> int:
 
 	# Add costs for ship modifications
 	var modifications = ship_data.get_meta("modifications") if ship_data and ship_data.has_method("get_meta") else []
-	var size_result = safe_call_method(modifications, "size")
-	var modification_maintenance: int = size_result if size_result is int else 0  # 1 credit per modification
+	var modification_maintenance: int = modifications.size()  # 1 credit per modification
 
 	return base_cost + hull_repair_cost + modification_maintenance
 
@@ -173,7 +175,7 @@ func _get_ship_data(campaign_data: Resource) -> Resource:
 		return null
 
 	# Try get_meta method first (standard Godot API)
-	if campaign_data.has_method("get_meta"):
+	if campaign_data.has_method("has_meta") and campaign_data.has_meta("ship_data"):
 		var value = campaign_data.get_meta("ship_data")
 		if value != null and value is Resource:
 			return value
@@ -192,7 +194,7 @@ func _get_living_standard(campaign_data: Resource) -> String:
 		return "normal"
 
 	# Try get_meta method first (standard Godot API)
-	if campaign_data.has_method("get_meta"):
+	if campaign_data.has_method("has_meta") and campaign_data.has_meta("living_standard"):
 		var value = campaign_data.get_meta("living_standard")
 		if value != null:
 			return value
@@ -206,12 +208,18 @@ func _get_living_standard(campaign_data: Resource) -> String:
 	return "normal"
 
 func _get_credits(campaign_data: Resource) -> int:
-	"""Get current credits"""
+	"""Get current credits from EconomySystem or campaign data"""
+	# PRIORITY 1: Use EconomySystem if available (proper integration)
+	if economy_system and economy_system.has_method("get_resource"):
+		if GlobalEnums and "ResourceType" in GlobalEnums:
+			return economy_system.get_resource(GlobalEnums.ResourceType.CREDITS)
+
+	# FALLBACK: Try campaign_data for backwards compatibility
 	if not campaign_data:
 		return 0
 
 	# Try get_meta method first (standard Godot API)
-	if campaign_data.has_method("get_meta"):
+	if campaign_data.has_method("has_meta") and campaign_data.has_meta("credits"):
 		var value = campaign_data.get_meta("credits")
 		if value != null and value is int:
 			return value
@@ -225,8 +233,21 @@ func _get_credits(campaign_data: Resource) -> int:
 	return 0
 
 func _set_credits(campaign_data: Resource, credits: int) -> void:
-	"""Set current credits"""
-	if campaign_data and campaign_data and campaign_data.has_method("set_meta"):
+	"""Set current credits via EconomySystem or campaign data"""
+	# PRIORITY 1: Use EconomySystem if available (proper integration)
+	if economy_system and economy_system.has_method("set_resource"):
+		if GlobalEnums and "ResourceType" in GlobalEnums:
+			economy_system.set_resource(GlobalEnums.ResourceType.CREDITS, credits, "upkeep_payment")
+			return
+
+	# FALLBACK: Update campaign_data directly for backwards compatibility
+	# Try direct property access first (works with MockCampaignData and similar)
+	if campaign_data and "credits" in campaign_data:
+		campaign_data.set("credits", credits)
+		return
+
+	# Then try set_meta as last resort
+	if campaign_data and campaign_data.has_method("set_meta"):
 		campaign_data.set_meta("credits", credits)
 
 func _apply_upkeep_effects(campaign_data: Resource, upkeep_costs: Dictionary) -> void:
@@ -257,7 +278,7 @@ func _apply_ship_degradation(campaign_data: Resource) -> void:
 func _check_crew_departure(campaign_data: Resource) -> void:
 	"""Check if crew member leaves due to poor treatment"""
 	var crew_members = _get_crew_members(campaign_data)
-	if (safe_call_method(crew_members, "size") as int) > 1: # Don't let the last crew member leave
+	if crew_members.size() > 1: # Don't let the last crew member leave
 		var departure_chance = randi_range(1, 6)
 		if departure_chance <= 2: # 33% chance
 			var leaving_member = crew_members.pick_random()
@@ -293,10 +314,3 @@ func _apply_luxury_lifestyle_bonus(campaign_data: Resource) -> void:
 	"""Apply luxury lifestyle bonus to campaign"""
 	if campaign_data and campaign_data.has_method("set_meta"):
 		campaign_data.set_meta("luxury_bonus", true) # +1 to next event roll
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

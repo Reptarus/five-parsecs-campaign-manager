@@ -179,52 +179,84 @@ func _select_from_categories(preferred_categories: Array) -> String:
 
 func _calculate_enemy_count(difficulty: int, crew_size: int) -> int:
 	"""Calculate enemy count based on crew size and difficulty (Core Rules p.63)
-	
+
 	Crew Size Rules:
 	- Size 6: Roll 2D6, pick HIGHER result
 	- Size 5: Roll 1D6
 	- Size 4: Roll 2D6, pick LOWER result
-	
+
 	Difficulty Modifiers:
-	- Challenging: Reroll 1s and 2s before picking
+	- Challenging: Reroll 1s and 2s before picking (more enemies, still 1-6 range)
 	- Hardcore/Insanity: Add +1 to final count
 	"""
 	var base_count: int = 0
-	
+	var is_challenging := (difficulty == 3)  # CHALLENGING difficulty rerolls low dice
+
+	# Helper function to roll a die, rerolling 1s and 2s for CHALLENGING
+	var _roll_die := func() -> int:
+		var result := randi() % 6 + 1
+		if is_challenging:
+			# Reroll 1s and 2s once (Core Rules: reroll before picking)
+			if result <= 2:
+				result = randi() % 6 + 1
+		return result
+
+	# Sprint 26.5: Track rolls for debug logging
+	var rolls: Array = []
+	var roll_method: String = ""
+
 	# Step 1: Calculate base enemy count using crew-size-based dice rolling
 	match crew_size:
 		6:
 			# Roll 2D6, pick higher
-			var roll1 := randi() % 6 + 1
-			var roll2 := randi() % 6 + 1
+			var roll1: int = _roll_die.call()
+			var roll2: int = _roll_die.call()
+			rolls = [roll1, roll2]
+			roll_method = "2D6 pick HIGHER"
 			base_count = max(roll1, roll2)
 		5:
 			# Roll 1D6
-			base_count = randi() % 6 + 1
+			var roll1: int = _roll_die.call()
+			rolls = [roll1]
+			roll_method = "1D6"
+			base_count = roll1
 		4:
 			# Roll 2D6, pick lower
-			var roll1 := randi() % 6 + 1
-			var roll2 := randi() % 6 + 1
+			var roll1: int = _roll_die.call()
+			var roll2: int = _roll_die.call()
+			rolls = [roll1, roll2]
+			roll_method = "2D6 pick LOWER"
 			base_count = min(roll1, roll2)
 		_:
 			# Default to crew size 6 behavior for other sizes
-			var roll1 := randi() % 6 + 1
-			var roll2 := randi() % 6 + 1
+			var roll1: int = _roll_die.call()
+			var roll2: int = _roll_die.call()
+			rolls = [roll1, roll2]
+			roll_method = "2D6 pick HIGHER (default)"
 			base_count = max(roll1, roll2)
-	
-	# Step 2: Apply difficulty-based modifiers
+
+	var pre_modifier_count: int = base_count
+	var modifier: int = 0
+
+	# Step 2: Apply difficulty-based modifiers (for non-CHALLENGING difficulties)
 	match difficulty:
 		1: # Easy (STORY) - reduce count slightly
+			modifier = -1
 			base_count = max(1, base_count - 1)
-		3: # Challenging - increase count
-			base_count += 1
-		4: # Hardcore - increase count
+		4: # Hardcore - add +1 to count
+			modifier = 1
 			base_count += 1
 		5: # Nightmare - significantly increase count
+			modifier = 2
 			base_count += 2
-	
+
 	# Ensure minimum of 1 enemy
-	return max(1, base_count)
+	var final_count: int = max(1, base_count)
+
+	# Sprint 26.5: Debug log the calculation
+	_debug_log_enemy_count(crew_size, difficulty, roll_method, rolls, pre_modifier_count, modifier, final_count)
+
+	return final_count
 
 func _create_enemy(category: String, difficulty: int) -> Resource:
 	"""Create a single enemy of specified category and difficulty using JSON data"""
@@ -458,10 +490,39 @@ func get_enemy_threat_level(enemies: Array) -> String:
 	else:
 		return "High"
 
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null
+
+## ═══════════════════════════════════════════════════════════════════════════════
+## DEBUG LOGGING - Sprint 26.5: Enemy Count Calculation Tracing
+## ═══════════════════════════════════════════════════════════════════════════════
+
+## Debug flag - set to true to enable enemy count debug logging
+var DEBUG_ENEMY_COUNT := false
+
+func _debug_log_enemy_count(crew_size: int, difficulty: int, roll_method: String, rolls: Array, base_count: int, modifier: int, final_count: int) -> void:
+	"""Log enemy count calculation for debugging"""
+	if not DEBUG_ENEMY_COUNT:
+		return
+	print("┌─────────────────────────────────────────────────────────────┐")
+	print("│ ENEMY COUNT CALCULATION                                     │")
+	print("├─────────────────────────────────────────────────────────────┤")
+	print("│ Crew Size: %d" % crew_size)
+	print("│ Difficulty: %d" % difficulty)
+	print("│ Roll Method: %s" % roll_method)
+	print("│ Dice Rolls: %s" % str(rolls))
+	print("│ Base Count: %d" % base_count)
+	if modifier != 0:
+		print("│ Difficulty Modifier: %+d" % modifier)
+	print("│ FINAL ENEMY COUNT: %d" % final_count)
+	print("└─────────────────────────────────────────────────────────────┘")
+
+
+func enable_debug_logging() -> void:
+	"""Enable enemy count debug logging"""
+	DEBUG_ENEMY_COUNT = true
+	print("EnemyGenerator: Enemy count debug logging ENABLED")
+
+
+func disable_debug_logging() -> void:
+	"""Disable enemy count debug logging"""
+	DEBUG_ENEMY_COUNT = false
+	print("EnemyGenerator: Enemy count debug logging DISABLED")

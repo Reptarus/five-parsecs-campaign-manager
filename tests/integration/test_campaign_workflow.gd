@@ -6,6 +6,9 @@ extends GdUnitTestSuite
 var state_manager
 
 func before_test():
+	# Set deterministic seed for reproducible random numbers
+	seed(12345)
+
 	var state_mgr_script = load("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
 	if state_mgr_script:
 		state_manager = state_mgr_script.new()
@@ -199,7 +202,7 @@ func test_advance_to_ship_assignment_phase():
 	state_manager.advance_to_next_phase()
 	state_manager.set_phase_data(state_manager.Phase.CAPTAIN_CREATION, {"character_name": "Test", "is_complete": true})
 	state_manager.advance_to_next_phase()
-	state_manager.set_phase_data(state_manager.Phase.CREW_SETUP, {"members": [], "size": 0, "is_complete": true})
+	state_manager.set_phase_data(state_manager.Phase.CREW_SETUP, {"is_complete": true})
 	
 	var success = state_manager.advance_to_next_phase()
 	assert_that(success).is_true()
@@ -212,7 +215,7 @@ func test_assign_starting_ship():
 	state_manager.advance_to_next_phase()
 	state_manager.set_phase_data(state_manager.Phase.CAPTAIN_CREATION, {"character_name": "Test", "is_complete": true})
 	state_manager.advance_to_next_phase()
-	state_manager.set_phase_data(state_manager.Phase.CREW_SETUP, {"members": [], "size": 0, "is_complete": true})
+	state_manager.set_phase_data(state_manager.Phase.CREW_SETUP, {"is_complete": true})
 	state_manager.advance_to_next_phase()
 	
 	var ship_data = {
@@ -235,7 +238,7 @@ func test_ship_has_valid_hull_points():
 	state_manager.advance_to_next_phase()
 	state_manager.set_phase_data(state_manager.Phase.CAPTAIN_CREATION, {"character_name": "Test", "is_complete": true})
 	state_manager.advance_to_next_phase()
-	state_manager.set_phase_data(state_manager.Phase.CREW_SETUP, {"members": [], "size": 0, "is_complete": true})
+	state_manager.set_phase_data(state_manager.Phase.CREW_SETUP, {"is_complete": true})
 	state_manager.advance_to_next_phase()
 	state_manager.set_phase_data(state_manager.Phase.SHIP_ASSIGNMENT, {
 		"name": "Test Ship",
@@ -254,7 +257,7 @@ func test_generate_starting_equipment():
 	state_manager.advance_to_next_phase()
 	state_manager.set_phase_data(state_manager.Phase.CAPTAIN_CREATION, {"character_name": "Test", "is_complete": true})
 	state_manager.advance_to_next_phase()
-	state_manager.set_phase_data(state_manager.Phase.CREW_SETUP, {"members": [], "size": 0, "is_complete": true})
+	state_manager.set_phase_data(state_manager.Phase.CREW_SETUP, {"is_complete": true})
 	state_manager.advance_to_next_phase()
 	state_manager.set_phase_data(state_manager.Phase.SHIP_ASSIGNMENT, {"name": "Test", "is_complete": true})
 	state_manager.advance_to_next_phase()
@@ -267,16 +270,16 @@ func test_generate_starting_equipment():
 	}
 	state_manager.set_phase_data(state_manager.Phase.EQUIPMENT_GENERATION, equipment_data)
 	var retrieved = state_manager.get_phase_data(state_manager.Phase.EQUIPMENT_GENERATION)
-	
+
 	assert_that(retrieved.has("equipment")).is_true()
-	assert_that(retrieved.equipment.is_empty()).is_false()
+	assert_that(retrieved["equipment"].is_empty()).is_false()
 
 func test_equipment_has_equipment_array():
 	state_manager.set_phase_data(state_manager.Phase.CONFIG, {"is_complete": true})
 	state_manager.advance_to_next_phase()
 	state_manager.set_phase_data(state_manager.Phase.CAPTAIN_CREATION, {"character_name": "Test", "is_complete": true})
 	state_manager.advance_to_next_phase()
-	state_manager.set_phase_data(state_manager.Phase.CREW_SETUP, {"members": [], "size": 0, "is_complete": true})
+	state_manager.set_phase_data(state_manager.Phase.CREW_SETUP, {"is_complete": true})
 	state_manager.advance_to_next_phase()
 	state_manager.set_phase_data(state_manager.Phase.SHIP_ASSIGNMENT, {"name": "Test", "is_complete": true})
 	state_manager.advance_to_next_phase()
@@ -285,10 +288,10 @@ func test_equipment_has_equipment_array():
 		"credits": 1000,
 		"is_complete": true
 	})
-	
+
 	var equipment = state_manager.campaign_data["equipment"]
 	assert_that(equipment.has("equipment")).is_true()
-	assert_that(equipment.equipment is Array).is_true()
+	assert_bool(equipment.equipment is Array).is_true()
 
 ## Phase 6: World Generation Tests
 func test_generate_starting_world():
@@ -297,11 +300,11 @@ func test_generate_starting_world():
 	state_manager.advance_to_next_phase()
 	state_manager.set_phase_data(state_manager.Phase.CAPTAIN_CREATION, {"character_name": "Test", "is_complete": true})
 	state_manager.advance_to_next_phase()
-	state_manager.set_phase_data(state_manager.Phase.CREW_SETUP, {"members": [], "size": 0, "is_complete": true})
+	state_manager.set_phase_data(state_manager.Phase.CREW_SETUP, {"is_complete": true})
 	state_manager.advance_to_next_phase()
 	state_manager.set_phase_data(state_manager.Phase.SHIP_ASSIGNMENT, {"name": "Test", "is_complete": true})
 	state_manager.advance_to_next_phase()
-	state_manager.set_phase_data(state_manager.Phase.EQUIPMENT_GENERATION, {"equipment": [], "credits": 1000, "is_complete": true})
+	state_manager.set_phase_data(state_manager.Phase.EQUIPMENT_GENERATION, {"equipment": [{"name": "Starter Kit", "type": "gear"}], "credits": 1000, "is_complete": true})
 	state_manager.advance_to_next_phase()
 	
 	var world_data = {
@@ -321,34 +324,34 @@ func test_world_has_traits():
 	state_manager.advance_to_next_phase()
 	state_manager.set_phase_data(state_manager.Phase.CAPTAIN_CREATION, {"character_name": "Test", "is_complete": true})
 	state_manager.advance_to_next_phase()
-	state_manager.set_phase_data(state_manager.Phase.CREW_SETUP, {"members": [], "size": 0, "is_complete": true})
+	state_manager.set_phase_data(state_manager.Phase.CREW_SETUP, {"is_complete": true})
 	state_manager.advance_to_next_phase()
 	state_manager.set_phase_data(state_manager.Phase.SHIP_ASSIGNMENT, {"name": "Test", "is_complete": true})
 	state_manager.advance_to_next_phase()
-	state_manager.set_phase_data(state_manager.Phase.EQUIPMENT_GENERATION, {"equipment": [], "credits": 1000, "is_complete": true})
+	state_manager.set_phase_data(state_manager.Phase.EQUIPMENT_GENERATION, {"equipment": [{"name": "Starter Kit", "type": "gear"}], "credits": 1000, "is_complete": true})
 	state_manager.advance_to_next_phase()
 	state_manager.set_phase_data(state_manager.Phase.WORLD_GENERATION, {
 		"current_world": "Test",
 		"traits": ["Trait1"],
 		"is_complete": true
 	})
-	
+
 	var world = state_manager.campaign_data["world"]
 	assert_that(world.has("traits")).is_true()
-	assert_that(world.traits is Array).is_true()
+	assert_bool(world.traits is Array).is_true()
 
 ## Phase 7: Final Review Tests
 func test_all_phases_populated_with_data():
-	# Setup all phases
-	state_manager.set_phase_data(state_manager.Phase.CONFIG, {"campaign_name": "Test", "is_complete": true})
+	# Setup all phases with complete data for validation
+	state_manager.set_phase_data(state_manager.Phase.CONFIG, {"campaign_name": "Test", "victory_conditions": {"story_points": true}, "is_complete": true})
 	state_manager.advance_to_next_phase()
-	state_manager.set_phase_data(state_manager.Phase.CAPTAIN_CREATION, {"character_name": "Captain", "is_complete": true})
+	state_manager.set_phase_data(state_manager.Phase.CAPTAIN_CREATION, {"character_name": "Captain", "combat": 1, "toughness": 3, "is_complete": true})
 	state_manager.advance_to_next_phase()
-	state_manager.set_phase_data(state_manager.Phase.CREW_SETUP, {"members": [], "size": 0, "is_complete": true})
+	state_manager.set_phase_data(state_manager.Phase.CREW_SETUP, {"members": [{"character_name": "Crew1"}], "size": 1, "has_captain": true, "is_complete": true})
 	state_manager.advance_to_next_phase()
-	state_manager.set_phase_data(state_manager.Phase.SHIP_ASSIGNMENT, {"name": "Ship", "is_complete": true})
+	state_manager.set_phase_data(state_manager.Phase.SHIP_ASSIGNMENT, {"name": "Ship", "type": "Corvette", "is_configured": true, "is_complete": true})
 	state_manager.advance_to_next_phase()
-	state_manager.set_phase_data(state_manager.Phase.EQUIPMENT_GENERATION, {"equipment": [], "credits": 1000, "is_complete": true})
+	state_manager.set_phase_data(state_manager.Phase.EQUIPMENT_GENERATION, {"equipment": [{"name": "Starter Kit", "type": "gear"}], "credits": 1000, "is_complete": true})
 	state_manager.advance_to_next_phase()
 	state_manager.set_phase_data(state_manager.Phase.WORLD_GENERATION, {"current_world": "World", "is_complete": true})
 	state_manager.advance_to_next_phase()
@@ -362,16 +365,20 @@ func test_all_phases_populated_with_data():
 	assert_that(data["world"].has("current_world")).is_true()
 
 func test_complete_campaign_creation():
-	# Setup all phases completely
-	state_manager.set_phase_data(state_manager.Phase.CONFIG, {"campaign_name": "Test", "is_complete": true})
+	# Setup all phases completely (including required victory_conditions)
+	state_manager.set_phase_data(state_manager.Phase.CONFIG, {
+		"campaign_name": "Test",
+		"victory_conditions": {"story_points": true},  # At least one victory condition required
+		"is_complete": true
+	})
 	state_manager.advance_to_next_phase()
-	state_manager.set_phase_data(state_manager.Phase.CAPTAIN_CREATION, {"character_name": "Captain", "is_complete": true})
+	state_manager.set_phase_data(state_manager.Phase.CAPTAIN_CREATION, {"character_name": "Captain", "combat": 1, "toughness": 3, "is_complete": true})
 	state_manager.advance_to_next_phase()
-	state_manager.set_phase_data(state_manager.Phase.CREW_SETUP, {"members": [], "size": 0, "has_captain": true, "is_complete": true})
+	state_manager.set_phase_data(state_manager.Phase.CREW_SETUP, {"has_captain": true, "is_complete": true})
 	state_manager.advance_to_next_phase()
-	state_manager.set_phase_data(state_manager.Phase.SHIP_ASSIGNMENT, {"name": "Ship", "hull_points": 6, "is_complete": true})
+	state_manager.set_phase_data(state_manager.Phase.SHIP_ASSIGNMENT, {"name": "Ship", "type": "Corvette", "hull_points": 6, "is_configured": true, "is_complete": true})
 	state_manager.advance_to_next_phase()
-	state_manager.set_phase_data(state_manager.Phase.EQUIPMENT_GENERATION, {"equipment": [], "credits": 1000, "is_complete": true})
+	state_manager.set_phase_data(state_manager.Phase.EQUIPMENT_GENERATION, {"equipment": [{"name": "Starter Kit", "type": "gear"}], "credits": 1000, "is_complete": true})
 	state_manager.advance_to_next_phase()
 	state_manager.set_phase_data(state_manager.Phase.WORLD_GENERATION, {"current_world": "World", "is_complete": true})
 	state_manager.advance_to_next_phase()
@@ -383,15 +390,19 @@ func test_complete_campaign_creation():
 	assert_that(result.has("metadata")).is_true()
 
 func test_metadata_includes_creation_timestamp():
-	state_manager.set_phase_data(state_manager.Phase.CONFIG, {"campaign_name": "Test", "is_complete": true})
+	state_manager.set_phase_data(state_manager.Phase.CONFIG, {
+		"campaign_name": "Test",
+		"victory_conditions": {"story_points": true},  # Required for validation
+		"is_complete": true
+	})
 	state_manager.advance_to_next_phase()
-	state_manager.set_phase_data(state_manager.Phase.CAPTAIN_CREATION, {"character_name": "Captain", "is_complete": true})
+	state_manager.set_phase_data(state_manager.Phase.CAPTAIN_CREATION, {"character_name": "Captain", "combat": 1, "toughness": 3, "is_complete": true})
 	state_manager.advance_to_next_phase()
-	state_manager.set_phase_data(state_manager.Phase.CREW_SETUP, {"members": [], "size": 0, "has_captain": true, "is_complete": true})
+	state_manager.set_phase_data(state_manager.Phase.CREW_SETUP, {"has_captain": true, "is_complete": true})
 	state_manager.advance_to_next_phase()
-	state_manager.set_phase_data(state_manager.Phase.SHIP_ASSIGNMENT, {"name": "Ship", "hull_points": 6, "is_complete": true})
+	state_manager.set_phase_data(state_manager.Phase.SHIP_ASSIGNMENT, {"name": "Ship", "type": "Corvette", "hull_points": 6, "is_configured": true, "is_complete": true})
 	state_manager.advance_to_next_phase()
-	state_manager.set_phase_data(state_manager.Phase.EQUIPMENT_GENERATION, {"equipment": [], "credits": 1000, "is_complete": true})
+	state_manager.set_phase_data(state_manager.Phase.EQUIPMENT_GENERATION, {"equipment": [{"name": "Starter Kit", "type": "gear"}], "credits": 1000, "is_complete": true})
 	state_manager.advance_to_next_phase()
 	state_manager.set_phase_data(state_manager.Phase.WORLD_GENERATION, {"current_world": "World", "is_complete": true})
 	state_manager.advance_to_next_phase()

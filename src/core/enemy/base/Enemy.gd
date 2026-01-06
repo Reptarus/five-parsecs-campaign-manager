@@ -153,11 +153,3 @@ func get_combat_rating() -> float:
 	var health_ratio = float(_current_health) / float(_max_health)
 
 	return weapon_rating * health_ratio
-
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

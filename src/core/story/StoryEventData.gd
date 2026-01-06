@@ -42,11 +42,11 @@ func add_choice(choice_data: Dictionary) -> void:
 	choices.append(choice_data)
 
 func select_choice(choice_index: int) -> void:
-	if choice_index >= 0 and choice_index < (safe_call_method(choices, "size") as int):
+	if choice_index >= 0 and choice_index < choices.size():
 		selected_choice = choice_index
 		is_resolved = true
 func get_choice(index: int) -> Dictionary:
-	if index >= 0 and index < (safe_call_method(choices, "size") as int):
+	if index >= 0 and index < choices.size():
 		return choices[index]
 	return {}
 
@@ -61,11 +61,3 @@ func get_event_outcome() -> Dictionary:
 		"rewards": rewards,
 		"consequences": consequences
 	}
-
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

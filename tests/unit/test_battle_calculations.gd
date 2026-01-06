@@ -263,8 +263,9 @@ func test_resolve_brawl_draw() -> void:
 	var result := BattleCalculations.resolve_brawl(attacker, defender, roller)
 
 	assert_str(result["winner"]).is_equal("draw")
-	assert_int(result["damage_to_attacker"]).is_equal(0)
-	assert_int(result["damage_to_defender"]).is_equal(0)
+	# Five Parsecs rule: Draw = both combatants take 1 hit
+	assert_int(result["damage_to_attacker"]).is_equal(1)
+	assert_int(result["damage_to_defender"]).is_equal(1)
 
 #endregion
 

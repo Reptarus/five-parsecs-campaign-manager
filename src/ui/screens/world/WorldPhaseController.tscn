@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3 uid="uid://c8vx1lawp7fqj"]
+[gd_scene load_steps=14 format=3 uid="uid://c8vx1lawp7fqj"]
 
 [ext_resource type="Script" uid="uid://nbyp2k0dvldt" path="res://src/ui/screens/world/WorldPhaseController.gd" id="1_controller"]
 [ext_resource type="PackedScene" uid="uid://bkw8n7qx3m5jr" path="res://src/ui/screens/world/components/UpkeepPhaseComponent.tscn" id="2_upkeep"]
@@ -7,9 +7,6 @@
 [ext_resource type="PackedScene" uid="uid://d2yk7n5vs3pl" path="res://src/ui/screens/world/components/MissionPrepComponent.tscn" id="5_mission_prep"]
 [ext_resource type="PackedScene" path="res://src/ui/screens/world/components/AssignEquipmentComponent.tscn" id="6_assign_equipment"]
 [ext_resource type="PackedScene" path="res://src/ui/screens/world/components/ResolveRumorsComponent.tscn" id="7_resolve_rumors"]
-[ext_resource type="PackedScene" path="res://src/ui/screens/world/components/PurchaseItemsComponent.tscn" id="8_purchase_items"]
-[ext_resource type="PackedScene" path="res://src/ui/screens/world/components/CampaignEventComponent.tscn" id="9_campaign_event"]
-[ext_resource type="PackedScene" path="res://src/ui/screens/world/components/CharacterEventComponent.tscn" id="10_character_event"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1"]
 bg_color = Color(0.176, 0.353, 0.482, 1)
@@ -127,7 +124,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.502, 0.502, 0.502, 1)
 theme_override_font_sizes/font_size = 18
-text = "Step 1 of 9: Upkeep"
+text = "Step 1 of 6: Upkeep"
 horizontal_alignment = 1
 
 [node name="PhaseProgressBar" type="ProgressBar" parent="MarginContainer/VBoxContainer/Header"]
@@ -193,36 +190,6 @@ visible = false
 layout_mode = 2
 
 [node name="ResolveRumorsComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/ResolveRumorsContainer" instance=ExtResource("7_resolve_rumors")]
-layout_mode = 1
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="PurchaseItemsContainer" type="Control" parent="MarginContainer/VBoxContainer/PhaseContainer"]
-unique_name_in_owner = true
-visible = false
-layout_mode = 2
-
-[node name="PurchaseItemsComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/PurchaseItemsContainer" instance=ExtResource("8_purchase_items")]
-layout_mode = 1
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="CampaignEventContainer" type="Control" parent="MarginContainer/VBoxContainer/PhaseContainer"]
-unique_name_in_owner = true
-visible = false
-layout_mode = 2
-
-[node name="CampaignEventComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/CampaignEventContainer" instance=ExtResource("9_campaign_event")]
-layout_mode = 1
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="CharacterEventContainer" type="Control" parent="MarginContainer/VBoxContainer/PhaseContainer"]
-unique_name_in_owner = true
-visible = false
-layout_mode = 2
-
-[node name="CharacterEventComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/CharacterEventContainer" instance=ExtResource("10_character_event")]
 layout_mode = 1
 grow_horizontal = 2
 grow_vertical = 2

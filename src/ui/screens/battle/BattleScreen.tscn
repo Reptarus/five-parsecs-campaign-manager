@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3 uid="uid://battle_screen"]
+[gd_scene load_steps=2 format=3 uid="uid://battle_screen"]
 
 [ext_resource type="Script" uid="uid://bdmr73anneysa" path="res://src/ui/screens/battle/BattleScreen.gd" id="1"]
 [ext_resource type="PackedScene" uid="uid://battle_hud_coordinator" path="res://src/ui/screens/battle/BattleHUDCoordinator.tscn" id="2"]

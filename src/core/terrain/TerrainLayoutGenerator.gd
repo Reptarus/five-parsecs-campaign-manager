@@ -139,7 +139,7 @@ func _get_random_feature_type() -> int:
 		GlobalEnums.TerrainFeatureType.OBSTACLE,
 		GlobalEnums.TerrainFeatureType.WALL
 	]
-	return types[randi() % (safe_call_method(types, "size") as int)]
+	return types[randi() % types.size()]
 
 func _get_adjacent_positions(pos: Vector2) -> Array:
 	var adjacent := []
@@ -151,7 +151,7 @@ func _get_adjacent_positions(pos: Vector2) -> Array:
 	for offset in offsets:
 		var adjacent_pos := Vector2(pos.x + offset.x, pos.y + offset.y)
 		if _is_valid_position(adjacent_pos):
-			safe_call_method(adjacent, "append", [adjacent_pos]) # warning: return value discarded (intentional)
+			adjacent.append(adjacent_pos)
 
 	return adjacent
 
@@ -161,11 +161,3 @@ func _is_valid_position(pos: Vector2) -> bool:
 
 func _set_terrain_feature(pos: Vector2, feature_type: int) -> void:
 	_terrain_system.set_terrain_feature(pos, feature_type)
-
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

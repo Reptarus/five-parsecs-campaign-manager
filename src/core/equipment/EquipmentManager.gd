@@ -99,39 +99,39 @@ func _add_equipment_to_storage(equipment_data: Dictionary) -> void:
 
 @warning_ignore("return_value_discarded")
 func _add_to_filtered_equipment(filtered_equipment: Array, item: Dictionary) -> void:
-	safe_call_method(filtered_equipment, "append", [item])
+	filtered_equipment.append(item)
 
 @warning_ignore("return_value_discarded")
 func _add_loot_item(loot_items: Array, item: Dictionary) -> void:
-	safe_call_method(loot_items, "append", [item])
+	loot_items.append(item)
 
 @warning_ignore("return_value_discarded")
 func _add_weapon_to_character(weapons: Array, equipment: Dictionary) -> void:
-	safe_call_method(weapons, "append", [equipment])
+	weapons.append(equipment)
 
 @warning_ignore("return_value_discarded")
 func _add_gear_to_character(gear: Array, equipment: Dictionary) -> void:
-	safe_call_method(gear, "append", [equipment])
+	gear.append(equipment)
 
 @warning_ignore("return_value_discarded")
 func _add_weapon_type(weapon_types: Array, weapon_type: int) -> void:
-	safe_call_method(weapon_types, "append", [weapon_type])
+	weapon_types.append(weapon_type)
 
 @warning_ignore("return_value_discarded")
 func _add_armor_type(armor_types: Array, armor_type: int) -> void:
-	safe_call_method(armor_types, "append", [armor_type])
+	armor_types.append(armor_type)
 
 @warning_ignore("return_value_discarded")
 func _add_valid_trait(valid_traits: Array, trait_id: String) -> void:
-	safe_call_method(valid_traits, "append", [trait_id])
+	valid_traits.append(trait_id)
 
 @warning_ignore("return_value_discarded")
 func _add_trait_to_equipment(current_traits: Array, selected_trait: String) -> void:
-	safe_call_method(current_traits, "append", [selected_trait])
+	current_traits.append(selected_trait)
 
 @warning_ignore("return_value_discarded")
 func _add_market_item(market_items: Array, item: Dictionary) -> void:
-	safe_call_method(market_items, "append", [item])
+	market_items.append(item)
 
 ## SAFE ACCESSOR METHODS - Type-safe external dependency access
 @warning_ignore("unsafe_method_access")
@@ -164,7 +164,29 @@ func _init() -> void:
 	pass
 
 func _ready() -> void:
-	pass
+	_register_with_game_state_manager()
+
+func _exit_tree() -> void:
+	_unregister_from_game_state_manager()
+
+## Register with GameStateManager for save/load inclusion
+func _register_with_game_state_manager() -> void:
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("register_manager"):
+		gsm.register_manager("EquipmentManager", self)
+		print("EquipmentManager: Registered with GameStateManager for save/load")
+	else:
+		# Fallback to GameState autoload
+		var gs = get_node_or_null("/root/GameState")
+		if gs and gs.has_method("register_manager"):
+			gs.register_manager("EquipmentManager", self)
+			print("EquipmentManager: Registered with GameState")
+
+func _unregister_from_game_state_manager() -> void:
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("unregister_manager"):
+		gsm.unregister_manager("EquipmentManager")
+
 func setup(state: Node, char_manager: Node, battle_results_mgr: BattleResultsManager) -> void: # char_manager is CharacterManagerAutoload
 	game_state = state
 	character_manager = char_manager
@@ -413,21 +435,105 @@ func transfer_from_ship_stash(equipment_id: String, character_id: String) -> boo
 	
 	# Remove from ship stash
 	_ship_stash.remove_at(stash_index)
-	
+
 	# Add to character equipment
 	equipment_data["location"] = "character"
 	equipment_data["owner"] = character_id
 	equipment_data.erase("previous_owner")
-	
+
 	if not character_id in _character_equipment:
 		_character_equipment[character_id] = []
 	_character_equipment[character_id].append(equipment_id)
-	
+
+	# Note: equipment_data is a reference to the item in _equipment_storage (via ship_stash)
+	# The item was never removed from _equipment_storage during transfer_to_ship_stash()
+	# So we don't need to append - just update the location metadata (done above at lines 440-442)
+	# The modifications to equipment_data propagate to _equipment_storage automatically
+
 	_update_character_with_equipment(character_id)
 	_emit_equipment_assigned(character_id, equipment_id)
 	_emit_equipment_list_updated()
 	
 	print("EquipmentManager: Transferred %s from ship stash to %s" % [equipment_data.get("name", equipment_id), character_id])
+	return true
+
+## Transfer equipment between two crew members (EQ-1 fix)
+func transfer_equipment(from_character_id: String, to_character_id: String, equipment_id: String) -> bool:
+	"""Transfer equipment from one crew member to another.
+
+	Args:
+		from_character_id: Source character ID
+		to_character_id: Target character ID
+		equipment_id: Equipment ID to transfer
+
+	Returns:
+		bool: True if transfer succeeded
+	"""
+	# Validate source character exists
+	@warning_ignore("unsafe_method_access")
+	if character_manager and not character_manager.has_character(from_character_id):
+		push_error("EquipmentManager.transfer_equipment: Source character not found: %s" % from_character_id)
+		return false
+
+	# Validate target character exists
+	@warning_ignore("unsafe_method_access")
+	if character_manager and not character_manager.has_character(to_character_id):
+		push_error("EquipmentManager.transfer_equipment: Target character not found: %s" % to_character_id)
+		return false
+
+	# Check source character has the equipment
+	if not from_character_id in _character_equipment:
+		push_error("EquipmentManager.transfer_equipment: Source character has no equipment: %s" % from_character_id)
+		return false
+
+	var source_equipment: Array = _character_equipment[from_character_id]
+	if not equipment_id in source_equipment:
+		push_error("EquipmentManager.transfer_equipment: Equipment not found on source character: %s" % equipment_id)
+		return false
+
+	# Get equipment data to validate target can use it
+	var equipment_data: Dictionary = get_equipment(equipment_id)
+	if equipment_data.is_empty():
+		push_error("EquipmentManager.transfer_equipment: Equipment data not found: %s" % equipment_id)
+		return false
+
+	# Validate target can use this equipment
+	@warning_ignore("unsafe_method_access")
+	var target_character: Variant = character_manager.get_character(to_character_id) if character_manager else null
+	if target_character and not _can_character_use_equipment(target_character, equipment_data):
+		push_warning("EquipmentManager.transfer_equipment: Target character cannot use this equipment")
+		return false
+
+	# Remove from source character
+	source_equipment.erase(equipment_id)
+	_update_character_with_equipment(from_character_id)
+	_emit_equipment_removed(from_character_id, equipment_id)
+
+	# Initialize target equipment list if needed
+	if not to_character_id in _character_equipment:
+		_character_equipment[to_character_id] = []
+
+	# Handle armor replacement (only one armor at a time)
+	if equipment_data.get("category", null) == EquipmentCategory.ARMOR:
+		for eq_id: String in _character_equipment[to_character_id]:
+			var eq: Dictionary = get_equipment(eq_id)
+			if eq.get("category", null) == EquipmentCategory.ARMOR:
+				# Transfer existing armor to ship stash instead of losing it
+				transfer_to_ship_stash(to_character_id, eq_id)
+				break
+
+	# Add to target character
+	_character_equipment[to_character_id].append(equipment_id)
+	_update_character_with_equipment(to_character_id)
+
+	_emit_equipment_assigned(to_character_id, equipment_id)
+	_emit_equipment_list_updated()
+
+	print("EquipmentManager: Transferred %s from %s to %s" % [
+		equipment_data.get("name", equipment_id),
+		from_character_id,
+		to_character_id
+	])
 	return true
 
 ## Add equipment directly to ship stash
@@ -472,6 +578,32 @@ func deserialize_ship_stash(data: Array) -> void:
 	for item in data:
 		if item is Dictionary:
 			_ship_stash.append(item)
+
+## Sprint 26.9 GAP-D2: Standard save/load interface for GameStateManager integration
+func save_data() -> Dictionary:
+	"""Return all equipment data for save system (called by GameStateManager._collect_all_manager_data)"""
+	return {
+		"ship_stash": serialize_ship_stash(),
+		"equipment_storage": _equipment_storage.duplicate(true),
+		"character_equipment": _character_equipment.duplicate(true),
+		"max_ship_stash_items": _max_ship_stash_items
+	}
+
+func load_data(data: Dictionary) -> void:
+	"""Restore equipment data from save file (called by GameStateManager on load)"""
+	if data.has("ship_stash"):
+		deserialize_ship_stash(data.get("ship_stash", []))
+
+	if data.has("equipment_storage"):
+		_equipment_storage = data.get("equipment_storage", [])
+
+	if data.has("character_equipment"):
+		_character_equipment = data.get("character_equipment", {})
+
+	if data.has("max_ship_stash_items"):
+		_max_ship_stash_items = data.get("max_ship_stash_items", 10)
+
+	print("EquipmentManager: Loaded %d ship stash items, %d equipment pieces" % [_ship_stash.size(), _equipment_storage.size()])
 
 ## Validate equipment integrity across all storage locations
 ## Returns detailed report of any data inconsistencies
@@ -914,7 +1046,7 @@ func _generate_unique_item() -> Dictionary:
 		}
 	]
 
-	var selected_item: Dictionary = unique_items[randi() % (safe_call_method(unique_items, "size") as int)]
+	var selected_item: Dictionary = unique_items[randi() % unique_items.size()]
 
 	match selected_item.type:
 		"weapon":
@@ -996,13 +1128,13 @@ func create_gear_item(gear_name: String, gear_type: String, effect: Dictionary) 
 		"effect": effect,
 		"condition": 100,
 		"traits": [],
-		"_value": 50 + ((safe_call_method(effect, "size") as int) * 25)
+		"_value": 50 + (effect.size() * 25)
 	}
 
 ## Repair equipment
 func repair_equipment(equipment_id: String, repair_amount: int = 100) -> bool:
 	var equipment_data: Dictionary = get_equipment(equipment_id)
-	if (safe_call_method(equipment_data, "is_empty") == true):
+	if equipment_data.is_empty():
 		return false
 
 	var current_condition: int = equipment_data.get("condition", 100)
@@ -1010,7 +1142,7 @@ func repair_equipment(equipment_id: String, repair_amount: int = 100) -> bool:
 
 	equipment_data["condition"] = new_condition
 
-	for i: int in range((safe_call_method(_equipment_storage, "size") as int)):
+	for i: int in range(_equipment_storage.size()):
 		@warning_ignore("unsafe_method_access")
 		if (_equipment_storage[i].get("id") as String if _equipment_storage[i].has("id") else "") == equipment_id:
 			_equipment_storage[i] = equipment_data
@@ -1237,25 +1369,37 @@ func _on_character_added(character: Variant) -> void:
 		_character_equipment[char_id] = []
 
 func _on_character_removed(character_id: String) -> void:
-	"""Handle character removal - unequip all items and return to stash"""
+	"""Handle character removal - unequip all items and return to storage"""
 	if not character_id in _character_equipment:
 		return
 
 	# Get character's equipped items (duplicate to avoid modification during iteration)
 	var equipped_ids: Array = _character_equipment[character_id].duplicate()
 
-	# Unequip each item properly (emits signals, updates state)
+	# Return each equipped item to storage
 	for equipment_id in equipped_ids:
-		# Verify equipment exists in storage
-		var equipment: Dictionary = get_equipment(equipment_id)
-		if not equipment.is_empty():
-			# Call remove_equipment_from_character to properly unequip
-			# This emits equipment_removed signal and updates equipment list
-			remove_equipment_from_character(character_id, equipment_id)
+		# Check if equipment already exists in storage (get_equipment checks _equipment_storage)
+		var existing_equipment: Dictionary = get_equipment(equipment_id)
 
-	# Clean up character entry (may already be empty after removals above)
+		if existing_equipment.is_empty():
+			# Equipment was removed from storage (assigned to character) - add it back
+			# Create minimal equipment data to return to storage
+			var returned_equipment: Dictionary = {
+				"id": equipment_id,
+				"name": "Recovered Equipment",
+				"category": EquipmentCategory.GEAR,
+				"returned_from": character_id
+			}
+			_equipment_storage.append(returned_equipment)
+
+		# Emit signal that equipment was removed from character
+		_emit_equipment_removed(character_id, equipment_id)
+
+	# Clean up character entry
 	if character_id in _character_equipment:
 		_character_equipment.erase(character_id)
+
+	_emit_equipment_list_updated()
 
 ## Equipment Upgrading System (Five Parsecs rulebook p.56-74)
 
@@ -1631,7 +1775,7 @@ func _generate_market_weapon(market_quality: int) -> Dictionary:
 	if market_quality >= 4 and randf() < 0.3:
 		# 30% chance for a special trait in high quality markets
 		var available_traits: Array[String] = ["Reliable", "Rapid", "Penetrating", "Shred"]
-		var selected_trait: String = available_traits[randi() % (safe_call_method(available_traits, "size") as int)]
+		var selected_trait: String = available_traits[randi() % available_traits.size()]
 
 		var current_traits: Array = weapon.get("traits", [])
 
@@ -1831,21 +1975,6 @@ func _apply_market_markup(base_value: int, market_quality: int, location_type: i
 	# Ensure minimum value
 	return max(10, final_value)
 
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
-	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
-	if not is_instance_valid(self):
-		return default_value
-		var value = obj.get(property)
-		return value if value != null else default_value
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null
 
 # ========== IMPLANT SYSTEM (Five Parsecs Odds & Ends Loot) ==========
 

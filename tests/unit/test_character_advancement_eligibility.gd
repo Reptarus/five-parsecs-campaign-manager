@@ -163,5 +163,5 @@ func test_can_character_advance_multiple_stats_available():
 
 	var available = helper._can_character_advance(test_character)
 
-	# Should have 6 stats available
-	assert_that(available).has_size(6)
+	# Should have 8 stats available (reactions, combat_skill, speed, savvy, toughness, luck, tech, move)
+	assert_that(available).has_size(8)

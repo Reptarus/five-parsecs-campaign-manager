@@ -115,7 +115,7 @@ func show_tooltip(text: String, target: Control, position: Position = Position.A
 	target_control = target
 	preferred_position = position
 
-	if (safe_call_method(text, "is_empty") == true):
+	if text.is_empty():
 		hide_tooltip()
 		return
 
@@ -155,7 +155,7 @@ func set_delays(show_delay_time: float, hide_delay_time: float) -> void:
 
 func _show_tooltip() -> void:
 	"""Internal method to show the tooltip"""
-	if (safe_call_method(tooltip_content, "is_empty") == true) or not target_control:
+	if tooltip_content.is_empty() or not target_control:
 		return
 
 	_update_tooltip_content()
@@ -335,10 +335,3 @@ static func add_tooltip_to_control(control: Control, text: String, position: Pos
 	control.set_meta("tooltip", tooltip)
 	return tooltip
 
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

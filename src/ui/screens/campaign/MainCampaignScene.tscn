@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3 uid="uid://b8x4j7y2n8q4y"]
+[gd_scene load_steps=2 format=3 uid="uid://b8x4j7y2n8q4y"]
 
 [ext_resource type="Script" path="res://src/ui/screens/campaign/MainCampaignScene.gd" id="1_main_campaign"]
 [ext_resource type="PackedScene" uid="uid://bbdf8j6xqaohc" path="res://src/ui/screens/campaign/CampaignTurnController.tscn" id="2_campaign_turn"]
@@ -19,7 +19,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color("#0f172a")
+color = Color(0.059, 0.090, 0.165, 1)
 
 [node name="MainContainer" type="VBoxContainer" parent="."]
 layout_mode = 1

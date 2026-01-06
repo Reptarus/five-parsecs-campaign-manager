@@ -226,7 +226,10 @@ func _load_bookmarks() -> void:
 	
 	var data = json.get_data()
 	if data is Array:
-		_bookmarks = data
+		# Convert untyped Array to Array[String]
+		_bookmarks.clear()
+		for item in data:
+			_bookmarks.append(str(item))
 		print("KeywordDB: Loaded %d bookmarks" % _bookmarks.size())
 
 func _save_bookmarks() -> void:

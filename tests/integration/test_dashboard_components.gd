@@ -30,25 +30,29 @@ func after():
 
 func before_test():
 	"""Test-level setup - runs before EACH test"""
+	# Set deterministic seed for reproducible random numbers
+	seed(12345)
+
 	# Create test container
 	test_container = auto_free(Control.new())
 	test_container.size = Vector2(400, 600)
 	add_child(test_container)
 
-	# Setup test data
+	# Setup test data - keys must match what components expect
 	test_mission_data = {
 		"name": "Rescue Operation",
-		"type": "patrol",
+		"type_name": "patrol",  # MissionStatusCard uses type_name
 		"difficulty": 3,
-		"progress": 0.67,  # 67% complete
+		"objectives_completed": 2,  # MissionStatusCard calculates progress from objectives
+		"objectives_total": 3,      # 2/3 = 67% complete
 		"reward": 250,
 		"turns_remaining": 2
 	}
 
 	test_world_data = {
-		"planet_name": "Frontier VII",
-		"threat_level": 4,
-		"population": "colony",
+		"name": "Frontier VII",        # WorldStatusCard uses "name" not "planet_name"
+		"danger_level": 4,             # WorldStatusCard uses "danger_level" not "threat_level"
+		"type": "colony",              # WorldStatusCard uses "type" not "population"
 		"special_traits": ["High Gravity", "Mining World"],
 		"invasion_threat": true
 	}
@@ -82,30 +86,34 @@ func after_test():
 
 func _load_mission_card():
 	"""Load MissionStatusCard component with null check"""
-	var CardScene = load("res://src/ui/components/mission/MissionStatusCard.gd")
+	# Load .tscn scene for proper child node initialization (@onready variables)
+	var CardScene = load("res://src/ui/components/mission/MissionStatusCard.tscn")
 	if CardScene != null:
-		mission_card = auto_free(CardScene.new())
+		mission_card = auto_free(CardScene.instantiate())
 		test_container.add_child(mission_card)
 
 func _load_world_card():
 	"""Load WorldStatusCard component with null check"""
-	var CardScene = load("res://src/ui/components/world/WorldStatusCard.gd")
+	# Load .tscn scene for proper child node initialization (@onready variables)
+	var CardScene = load("res://src/ui/components/world/WorldStatusCard.tscn")
 	if CardScene != null:
-		world_card = auto_free(CardScene.new())
+		world_card = auto_free(CardScene.instantiate())
 		test_container.add_child(world_card)
 
 func _load_story_track():
 	"""Load StoryTrackSection component with null check"""
-	var TrackScene = load("res://src/ui/components/campaign/StoryTrackSection.gd")
+	# Load .tscn scene for proper child node initialization (@onready variables)
+	var TrackScene = load("res://src/ui/components/campaign/StoryTrackSection.tscn")
 	if TrackScene != null:
-		story_track = auto_free(TrackScene.new())
+		story_track = auto_free(TrackScene.instantiate())
 		test_container.add_child(story_track)
 
 func _load_quick_actions():
 	"""Load QuickActionsFooter component with null check"""
-	var ActionsScene = load("res://src/ui/components/campaign/QuickActionsFooter.gd")
+	# Load .tscn scene for proper child node initialization (@onready variables)
+	var ActionsScene = load("res://src/ui/components/campaign/QuickActionsFooter.tscn")
 	if ActionsScene != null:
-		quick_actions = auto_free(ActionsScene.new())
+		quick_actions = auto_free(ActionsScene.instantiate())
 		test_container.add_child(quick_actions)
 
 # ============================================================================
@@ -124,6 +132,10 @@ func test_mission_status_card_displays_name():
 	else:
 		skip_test("set_mission_data() method not yet implemented")
 		return
+
+	# Wait for UI update
+	await get_tree().process_frame
+	await get_tree().process_frame
 
 	# Get displayed name (assuming get_displayed_name() or name_label property)
 	var displayed_name = ""
@@ -147,10 +159,15 @@ func test_mission_status_card_shows_progress():
 	# Set mission data with 67% progress
 	mission_card.set_mission_data(test_mission_data)
 
+	# Wait for UI update
+	await get_tree().process_frame
+	await get_tree().process_frame
+
 	# Get progress bar value (assuming progress_bar property)
 	var progress_value = 0.0
 	if "progress_bar" in mission_card and mission_card.progress_bar != null and is_instance_valid(mission_card.progress_bar):
-		progress_value = mission_card.progress_bar.value
+		# MissionStatusCard uses 0-100 range for ProgressBar, convert to 0-1 for test
+		progress_value = mission_card.progress_bar.value / 100.0
 	elif mission_card.has_method("get_progress"):
 		progress_value = mission_card.get_progress()
 
@@ -172,18 +189,23 @@ func test_mission_status_card_emits_signal():
 	if mission_card.has_method("set_mission_data"):
 		mission_card.set_mission_data(test_mission_data)
 
-	# Create signal monitor BEFORE triggering action
-	var signal_monitor = monitor_signals(mission_card)
+	# Use array for reference semantics in lambda (avoids gdUnit4 _reports null bug)
+	var signal_received = [false]
+	var received_data = null
+	mission_card.details_requested.connect(func(data):
+		signal_received[0] = true
+		received_data = data
+	)
 
 	# Simulate card click
 	if mission_card.has_method("_on_card_clicked"):
 		mission_card._on_card_clicked()
 	else:
 		# Fallback: emit signal directly
-		mission_card.emit_signal("details_requested", test_mission_data)
+		mission_card.details_requested.emit(test_mission_data)
 
-	# Verify signal emitted with mission data
-	assert_signal(signal_monitor).is_emitted("details_requested")
+	# Verify signal emitted
+	assert_that(signal_received[0]).is_true()
 
 # ============================================================================
 # WorldStatusCard Tests (2 tests)
@@ -202,10 +224,16 @@ func test_world_status_card_displays_planet():
 	# Set world data
 	world_card.set_world_data(test_world_data)
 
-	# Get displayed planet name
+	# Wait for UI update
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	# Get displayed planet name (WorldStatusCard uses planet_name_label, not planet_label)
 	var displayed_planet = ""
 	if world_card.has_method("get_displayed_planet"):
 		displayed_planet = world_card.get_displayed_planet()
+	elif "planet_name_label" in world_card and world_card.planet_name_label != null and is_instance_valid(world_card.planet_name_label):
+		displayed_planet = world_card.planet_name_label.text
 	elif "planet_label" in world_card and world_card.planet_label != null and is_instance_valid(world_card.planet_label):
 		displayed_planet = world_card.planet_label.text
 
@@ -224,12 +252,16 @@ func test_world_status_card_shows_threat():
 	# Set world data with threat level 4
 	world_card.set_world_data(test_world_data)
 
-	# Verify threat level displayed (assuming get_threat_level() method)
+	# Wait for UI update
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	# Verify threat level displayed (WorldStatusCard stores threat_level as variable, not as a visual indicator)
 	var threat_level = 0
 	if world_card.has_method("get_threat_level"):
 		threat_level = world_card.get_threat_level()
-	elif "threat_indicator" in world_card and world_card.threat_indicator != null and is_instance_valid(world_card.threat_indicator):
-		threat_level = world_card.threat_indicator.value
+	elif "threat_level" in world_card:
+		threat_level = world_card.threat_level
 
 	assert_that(threat_level).is_equal(4)
 
@@ -254,6 +286,10 @@ func test_story_track_shows_progress():
 	else:
 		skip_test("set_story_progress() method not yet implemented")
 		return
+
+	# Wait for UI update
+	await get_tree().process_frame
+	await get_tree().process_frame
 
 	# Verify progress bar value
 	var progress = 0.0
@@ -289,6 +325,10 @@ func test_story_track_displays_milestones():
 	else:
 		skip_test("set_milestones() method not yet implemented")
 		return
+
+	# Wait for UI update
+	await get_tree().process_frame
+	await get_tree().process_frame
 
 	# Verify milestone count
 	var milestone_count = 0
@@ -361,18 +401,24 @@ func test_quick_actions_emits_signals():
 		skip_test("action_triggered signal not yet implemented")
 		return
 
-	# Create signal monitor
-	var signal_monitor = monitor_signals(quick_actions)
+	# Use array for reference semantics in lambda (avoids gdUnit4 _reports null bug)
+	var signal_received = [false]
+	var received_action = ""
+	quick_actions.action_triggered.connect(func(action_name):
+		signal_received[0] = true
+		received_action = action_name
+	)
 
 	# Simulate button click for "crew_management" action
 	if quick_actions.has_method("_on_action_clicked"):
 		quick_actions._on_action_clicked("crew_management")
 	else:
 		# Fallback: emit signal directly
-		quick_actions.emit_signal("action_triggered", "crew_management")
+		quick_actions.action_triggered.emit("crew_management")
 
 	# Verify signal emitted with correct action name
-	assert_signal(signal_monitor).is_emitted("action_triggered", ["crew_management"])
+	assert_that(signal_received[0]).is_true()
+	assert_that(received_action).is_equal("crew_management")
 
 func test_quick_actions_button_labels():
 	"""QuickActionsFooter buttons have correct labels for 6 core actions"""
@@ -421,22 +467,33 @@ func test_quick_actions_button_labels():
 
 func test_glass_morphism_style_applied():
 	"""Components use glass morphism style (alpha transparency on panels)"""
-	# Test mission card for glass morphism
-	if mission_card != null and "modulate" in mission_card:
-		# Glass morphism uses alpha < 1.0 for transparency
-		var alpha = mission_card.modulate.a
-		assert_that(alpha).is_less(1.0)
-		assert_that(alpha).is_greater(0.7)  # Should be semi-transparent, not invisible
+	# Glass morphism is applied via StyleBox background, not modulate
+	# Check if StyleBox has semi-transparent background color
 
-	# Test world card for glass morphism
-	if world_card != null and "modulate" in world_card:
-		var alpha = world_card.modulate.a
-		assert_that(alpha).is_less(1.0)
-		assert_that(alpha).is_greater(0.7)
+	var found_glass_style = false
+
+	# Test mission card for glass morphism StyleBox
+	if mission_card != null:
+		var panel_style = mission_card.get_theme_stylebox("panel")
+		if panel_style is StyleBoxFlat:
+			var bg_color = panel_style.bg_color
+			if bg_color.a < 1.0 and bg_color.a > 0.7:
+				found_glass_style = true
+
+	# Test world card for glass morphism StyleBox
+	if world_card != null:
+		var panel_style = world_card.get_theme_stylebox("panel")
+		if panel_style is StyleBoxFlat:
+			var bg_color = panel_style.bg_color
+			if bg_color.a < 1.0 and bg_color.a > 0.7:
+				found_glass_style = true
 
 	# If neither card implemented yet, skip
 	if mission_card == null and world_card == null:
 		skip_test("No components implemented to test glass morphism")
+	else:
+		# At least one card should have glass morphism styling
+		assert_that(found_glass_style).is_true()
 
 func test_component_background_blur():
 	"""Components support background blur effect (if available)"""

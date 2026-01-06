@@ -73,9 +73,11 @@ var mission_bonus: int = 0
 func _init(p_name: String = "",
 		  p_location: Resource = null,
 		  p_faction: GlobalEnums.FactionType = GlobalEnums.FactionType.NEUTRAL) -> void:
-	patron_name = p_name
-	location = p_location
-	faction_type = p_faction
+	# Set backing field directly to avoid validation during construction
+	# (deserialize() sets name after construction via backing field)
+	_patron_name = p_name
+	_location = p_location
+	_faction_type = p_faction
 	economic_influence = randf_range(0.8, 1.2)
 	_setup_patron_characteristics()
 
@@ -234,7 +236,7 @@ static func deserialize(data: Dictionary) -> Resource:
 
 	# Type conversion: JSON returns untyped Array, we need Array[String]
 	var raw_characteristics = data.get("characteristics", [])
-	patron.characteristics = []
+	patron.characteristics.clear()  # Use clear() for typed arrays instead of assignment
 	for char_trait in raw_characteristics:
 		patron.characteristics.append(str(char_trait))
 
@@ -252,21 +254,3 @@ static func deserialize(data: Dictionary) -> Resource:
 
 	return patron
 
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return obj.get(property, default_value)
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

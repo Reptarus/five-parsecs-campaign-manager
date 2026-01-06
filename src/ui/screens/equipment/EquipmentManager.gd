@@ -303,12 +303,12 @@ func _on_crew_selected(crew_member: Dictionary) -> void:
 	"""Handle crew _member selection for equipment assignment"""
 	selected_crew_member = crew_member
 
-	if not (safe_call_method(selected_equipment, "is_empty") == true):
+	if not selected_equipment.is_empty():
 		_assign_equipment_to_crew()
 
 func _assign_equipment_to_crew() -> void:
 	"""Assign selected equipment to selected crew member"""
-	if (safe_call_method(selected_equipment, "is_empty") == true) or (safe_call_method(selected_crew_member, "is_empty") == true):
+	if selected_equipment.is_empty() or selected_crew_member.is_empty():
 		return
 
 	# Add equipment to crew member
@@ -337,7 +337,7 @@ func _on_back_pressed() -> void:
 		var scene_router = get_node("/root/SceneRouter")
 		scene_router.navigate_back()
 	else:
-		get_tree().change_scene_to_file("res://src/ui/screens/main/MainMenu.tscn")
+		get_tree().change_scene_to_file("res://src/ui/screens/mainmenu/MainMenu.tscn")
 
 func _on_generate_equipment_pressed() -> void:
 	"""Generate new equipment using tables"""
@@ -895,21 +895,3 @@ func _show_trade_error(message: String) -> void:
 	# Auto-remove after user closes
 	error_dialog.confirmed.connect(error_dialog.queue_free)
 	error_dialog.canceled.connect(error_dialog.queue_free)
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return obj.get(property, default_value)
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

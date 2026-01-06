@@ -14,6 +14,7 @@ extends Resource
 
 # Dependencies
 const BattlefieldTypes = preload("res://src/core/battle/BattlefieldTypes.gd")
+const Godot4Utils = preload("res://src/utils/Godot4Utils.gd")
 # GlobalEnums available as autoload singleton
 
 # Signals for system communication
@@ -227,7 +228,7 @@ func _generate_mission_objectives(mission_data: Resource, rng: RandomNumberGener
 
 	var mission_type: String = "patrol"
 	if mission_data and mission_data.has_method("get"):
-		var type_value = safe_get_property(mission_data, "mission_type")
+		var type_value = Godot4Utils.safe_get_property(mission_data, "mission_type")
 		if type_value != null:
 			mission_type = str(type_value)
 	var num_objectives := _get_objective_count_for_mission(mission_type)
@@ -527,21 +528,3 @@ func cleanup() -> void:
 	tracked_units.clear()
 	battle_state.clear()
 
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
-
-	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
-	if not is_instance_valid(self):
-		return default_value
-
-	if obj and obj.has_method("get"):
-		var value = obj.get(property)
-		return value if value != null else default_value
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

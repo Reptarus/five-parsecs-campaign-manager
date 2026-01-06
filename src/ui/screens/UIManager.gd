@@ -51,7 +51,7 @@ func _register_screens() -> void:
 
 ## Show a specific screen
 func show_screen(screen_name: String) -> void:
-	if (safe_call_method(screen_name, "is_empty") == true):
+	if screen_name.is_empty():
 		push_error("CRASH PREVENTION: Empty screen name provided to show_screen")
 		return
 
@@ -117,10 +117,3 @@ func hide_all_screens() -> void:
 		if is_instance_valid(screen):
 			screen.hide()
 	current_screen = ""
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3 uid="uid://bvq3i5n3rl4x4"]
+[gd_scene load_steps=2 format=3 uid="uid://bvq3i5n3rl4x4"]
 
 [ext_resource type="PackedScene" uid="uid://bxkj8l2nan6r5" path="res://src/ui/screens/campaign/panels/BaseCampaignPanel.tscn" id="1_base"]
 [ext_resource type="Script" path="res://src/ui/screens/campaign/panels/WorldInfoPanel.gd" id="2_xyz"]
@@ -8,13 +8,12 @@ script = ExtResource("2_xyz")
 
 [node name="Content" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer"]
 layout_mode = 2
-theme_override_constants/separation = 20
+theme_override_constants/separation = 24
 
 [node name="WorldNameLabel" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-theme_override_colors/font_color = Color("#f59e0b")
 text = "Current World: Unknown"
 horizontal_alignment = 1
 
@@ -24,7 +23,7 @@ layout_mode = 2
 [node name="WorldTraitsContainer" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 8
 
 [node name="TraitsLabel" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/WorldTraitsContainer"]
 layout_mode = 2
@@ -37,13 +36,11 @@ layout_mode = 2
 [node name="GovernmentInfo" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color("#3b82f6")
 text = "Government: Unknown"
 
 [node name="TechLevelDisplay" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color("#10b981")
 text = "Tech Level: Unknown"
 
 [node name="HSeparator3" type="HSeparator" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
@@ -52,7 +49,7 @@ layout_mode = 2
 [node name="MarketPricesContainer" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 5
+theme_override_constants/separation = 4
 
 [node name="MarketLabel" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MarketPricesContainer"]
 layout_mode = 2
@@ -65,12 +62,11 @@ layout_mode = 2
 [node name="OpportunitiesContainer" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 5
+theme_override_constants/separation = 4
 
 [node name="OpportunitiesLabel" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/OpportunitiesContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
-theme_override_colors/font_color = Color("#10b981")
 text = "Opportunities:"
 
 [node name="HSeparator5" type="HSeparator" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
@@ -79,12 +75,11 @@ layout_mode = 2
 [node name="ThreatsContainer" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 5
+theme_override_constants/separation = 4
 
 [node name="ThreatsLabel" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/ThreatsContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
-theme_override_colors/font_color = Color("#f59e0b")
 text = "Threats:"
 
 [node name="HSeparator6" type="HSeparator" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
@@ -94,7 +89,6 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_colors/font_color = Color("#9ca3af")
 autowrap_mode = 2
 text = "World summary will appear here once world generation is implemented..."
 vertical_alignment = 1

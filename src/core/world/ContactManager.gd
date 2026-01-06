@@ -359,10 +359,3 @@ func get_debug_info() -> Dictionary:
 		"contacts_on_current_planet": get_contacts_on_planet(current_planet_id).size()
 	}
 
-## Safe method call helper
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

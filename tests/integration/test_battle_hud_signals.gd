@@ -23,6 +23,9 @@ var resolution_ui: Control = null
 
 func before_test() -> void:
 	"""Test-level setup - create fresh instances for each test"""
+	# Set deterministic seed for reproducible random numbers
+	seed(12345)
+
 	# Try to get autoload, or create a local instance for testing
 	event_bus = get_node_or_null("/root/FPCM_BattleEventBus")
 	if not event_bus:
@@ -187,9 +190,13 @@ func test_battle_manager_connects_to_event_bus() -> void:
 		FPCM_BattleManager.BattleManagerPhase.PRE_BATTLE
 	)
 
+	# Wait for Resource→Node signal propagation (1-frame latency)
+	await get_tree().process_frame
+
 	# Verify EventBus received and forwarded signal (guard against freed instance)
+	# NOTE: battle_phase_changed has 2 args (old_phase, new_phase) - use any() matchers
 	if is_instance_valid(event_bus):
-		assert_signal(event_bus).is_emitted("battle_phase_changed")
+		await assert_signal(event_bus).is_emitted("battle_phase_changed", [any(), any()])
 
 func test_battle_state_updates_propagate_through_event_bus() -> void:
 	"""Battle state updates emit through EventBus to all listeners"""
@@ -203,9 +210,13 @@ func test_battle_state_updates_propagate_through_event_bus() -> void:
 	# Update battle state via battle manager
 	battle_manager.battle_state_updated.emit(battle_state)
 
+	# Wait for Resource→Node signal propagation (1-frame latency)
+	await get_tree().process_frame
+
 	# Verify EventBus forwarded state update (guard against freed instance)
+	# NOTE: battle_state_updated has 1 arg (state) - use any() matcher
 	if is_instance_valid(event_bus):
-		assert_signal(event_bus).is_emitted("battle_state_updated")
+		await assert_signal(event_bus).is_emitted("battle_state_updated", [any()])
 
 func test_battle_completion_triggers_event_bus_signal() -> void:
 	"""Battle completion emits through EventBus"""
@@ -224,9 +235,13 @@ func test_battle_completion_triggers_event_bus_signal() -> void:
 	# Emit completion from battle manager
 	battle_manager.battle_completed.emit(result)
 
+	# Wait for Resource→Node signal propagation (1-frame latency)
+	await get_tree().process_frame
+
 	# Verify EventBus forwarded completion (guard against freed instance)
+	# NOTE: battle_completed has 1 arg (results) - use any() matcher
 	if is_instance_valid(event_bus):
-		assert_signal(event_bus).is_emitted("battle_completed")
+		await assert_signal(event_bus).is_emitted("battle_completed", [any()])
 
 func test_ui_lock_request_broadcasts_to_components() -> void:
 	"""UI lock requests broadcast to all registered components"""

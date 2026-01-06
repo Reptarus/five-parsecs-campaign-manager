@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3 uid="uid://c7y9k0t3l4e5g"]
+[gd_scene load_steps=2 format=3 uid="uid://c7y9k0t3l4e5g"]
 
 [ext_resource type="PackedScene" uid="uid://bxkj8l2nan6r5" path="res://src/ui/screens/campaign/panels/BaseCampaignPanel.tscn" id="1_base"]
 [ext_resource type="Script" path="res://src/ui/screens/campaign/panels/EquipmentPanel.gd" id="2_equipment"]
@@ -8,15 +8,17 @@ script = ExtResource("2_equipment")
 
 [node name="Content" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer"]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 24
 
 [node name="MainSplit" type="HSplitContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 layout_mode = 2
+custom_minimum_size = Vector2(0, 300)
 size_flags_vertical = 3
-split_offset = 400
+split_offset = 0
 
 [node name="EquipmentSection" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit"]
 layout_mode = 2
+custom_minimum_size = Vector2(400, 0)
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
@@ -34,7 +36,7 @@ size_flags_horizontal = 3
 
 [node name="AutoAssignButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/EquipmentSection/EquipmentHeader"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 32)
+custom_minimum_size = Vector2(120, 48)
 layout_mode = 2
 text = "Auto-Assign"
 tooltip_text = "Automatically distribute equipment to crew based on their backgrounds"
@@ -53,6 +55,7 @@ theme_override_constants/separation = 4
 
 [node name="CrewSection" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit"]
 layout_mode = 2
+custom_minimum_size = Vector2(350, 0)
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
@@ -75,7 +78,7 @@ theme_override_constants/separation = 8
 
 [node name="SummarySection" type="HBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 layout_mode = 2
-theme_override_constants/separation = 40
+theme_override_constants/separation = 24
 
 [node name="Summary" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/SummarySection"]
 layout_mode = 2
@@ -92,7 +95,6 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Assigned: 0 / 0"
 horizontal_alignment = 1
-theme_override_colors/font_color = Color("#10b981")
 
 [node name="Credits" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/SummarySection"]
 layout_mode = 2
@@ -108,27 +110,26 @@ layout_mode = 2
 text = "0"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 18
-theme_override_colors/font_color = Color("#f59e0b")
 
 [node name="Controls" type="HBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
 layout_mode = 2
-theme_override_constants/separation = 20
+theme_override_constants/separation = 24
 alignment = 1
 
 [node name="GenerateButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Controls"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(150, 40)
+custom_minimum_size = Vector2(150, 48)
 layout_mode = 2
 text = "Generate Equipment"
 
 [node name="RerollButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Controls"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(150, 40)
+custom_minimum_size = Vector2(150, 48)
 layout_mode = 2
 text = "Reroll Equipment"
 
 [node name="ManualButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Controls"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(150, 40)
+custom_minimum_size = Vector2(150, 48)
 layout_mode = 2
 text = "Manual Selection"

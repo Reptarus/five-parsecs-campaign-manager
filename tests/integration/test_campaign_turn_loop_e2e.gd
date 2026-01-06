@@ -61,23 +61,23 @@ func test_phase_handlers_execute_during_turn_loop() -> void:
 
 	campaign_phase_manager.force_phase_transition(GlobalEnums.FiveParsecsCampaignPhase.NONE)
 
-	# Track handler execution via signal monitoring
-	var travel_phase_entered = false
-	var world_phase_entered = false
-	var battle_phase_entered = false
-	var post_battle_phase_entered = false
+	# Track handler execution via signal monitoring - use arrays for reference semantics in lambda
+	var travel_phase_entered = [false]
+	var world_phase_entered = [false]
+	var battle_phase_entered = [false]
+	var post_battle_phase_entered = [false]
 
 	# Connect to phase_changed signal
 	campaign_phase_manager.phase_changed.connect(func(new_phase):
 		match new_phase:
 			GlobalEnums.FiveParsecsCampaignPhase.TRAVEL:
-				travel_phase_entered = true
+				travel_phase_entered[0] = true
 			GlobalEnums.FiveParsecsCampaignPhase.WORLD:
-				world_phase_entered = true
+				world_phase_entered[0] = true
 			GlobalEnums.FiveParsecsCampaignPhase.BATTLE:
-				battle_phase_entered = true
+				battle_phase_entered[0] = true
 			GlobalEnums.FiveParsecsCampaignPhase.POST_BATTLE:
-				post_battle_phase_entered = true
+				post_battle_phase_entered[0] = true
 	)
 
 	# Execute half turn cycle
@@ -87,7 +87,7 @@ func test_phase_handlers_execute_during_turn_loop() -> void:
 	campaign_phase_manager.complete_current_phase()  # Battle → Post-Battle
 
 	# Verify all phases were entered
-	assert_that(travel_phase_entered).is_true()
-	assert_that(world_phase_entered).is_true()
-	assert_that(battle_phase_entered).is_true()
-	assert_that(post_battle_phase_entered).is_true()
+	assert_that(travel_phase_entered[0]).is_true()
+	assert_that(world_phase_entered[0]).is_true()
+	assert_that(battle_phase_entered[0]).is_true()
+	assert_that(post_battle_phase_entered[0]).is_true()

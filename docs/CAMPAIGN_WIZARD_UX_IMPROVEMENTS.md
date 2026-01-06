@@ -1,8 +1,15 @@
 # Campaign Creation Wizard - UI/UX Improvement Plan
 
 **Date Created**: 2025-11-28
-**Status**: Data handoff COMPLETE - Ready for UI/UX Polish
+**Last Updated**: 2025-12-28
+**Status**: Core Rules Alignment COMPLETE - UI/UX Polish In Progress
 **Priority**: HIGH (User-requested post-fix polish phase)
+
+### ✅ Recently Completed (2025-12-28)
+- **Panel order aligned with Core Rules SOP**: Equipment now comes before Ship (per Core Rules p.30)
+- **Crew Flavor UI section added**: "We Met Through" and "Characterized As" now visible with Reroll button
+- **InitialCrewCreation loading fixed**: Crew panel now properly loads character generation UI
+- **Godot 4 compatibility fixes**: `set_offsets_all()` and enum issues resolved
 
 ---
 

@@ -299,8 +299,3 @@ func _ready() -> void:
 	movement_system = MovementSystem.new()
 	movement_system.terrain_system = terrain_system
 	movement_system.parent_core_systems = self
-
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
-	var value = obj.get(property)
-	return value if value != null else default_value

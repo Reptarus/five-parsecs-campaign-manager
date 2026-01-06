@@ -157,24 +157,6 @@ func _get_safe_enum_value(enum_script: Object, enum_name: String, value_name: St
 	
 	return fallback
 
-## SAFE METHOD ACCESS - Eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return obj.get(property, default_value)
-	return default_value
-
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null
-
 ## ARRAY OPERATION HELPERS - Safe collection management
 func _add_combatant_safe(character: Node) -> void:
 	if character and not character in active_combatants:
@@ -462,7 +444,7 @@ func _handle_cleanup_state() -> void:
 func _handle_initiative_phase() -> void:
 	for character in active_combatants:
 		if is_instance_valid(character) and character.has_method("initialize_for_battle"):
-			var result = safe_call_method(character, "initialize_for_battle")
+			var result = Godot4Utils.safe_call_method(character, "initialize_for_battle")
 			if result == null:
 				_log_warning("Failed to initialize character for battle")
 

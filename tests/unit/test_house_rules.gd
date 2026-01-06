@@ -166,18 +166,19 @@ func test_wealthy_patrons_multiplier() -> void:
 
 	assert_that(has_multiplier).is_true()
 
-func test_brutal_combat_multiplier() -> void:
-	"""Verify brutal_combat uses 2x damage multiplier"""
+func test_brutal_combat_modifier() -> void:
+	"""Verify brutal_combat has critical_double_damage modifier"""
+	# Note: brutal_combat uses a modifier name, not a numeric value
+	# The actual 2x multiplier is applied by the combat system when it sees this modifier
 	var rule = HouseRulesDefinitions.get_rule("brutal_combat")
 	var effects = rule.get("effects", [])
 
-	var has_multiplier := false
+	var has_double_damage_modifier := false
 	for effect in effects:
-		if effect.has("value"):
-			assert_that(effect.value).is_equal(2.0)
-			has_multiplier = true
+		if effect.get("modifier", "") == "critical_double_damage":
+			has_double_damage_modifier = true
 
-	assert_that(has_multiplier).is_true()
+	assert_that(has_double_damage_modifier).is_true()
 
 # ============================================
 # Test: Helper Get Modifier

@@ -82,7 +82,7 @@ signal phase_transition_completed(old_phase: int, new_phase: int)
 ## Panel PackedScene resources - lazy loaded for memory efficiency
 var panel_scenes: Dictionary = {
 	CampaignPhase.CONFIG: {
-		"path": "res://src/ui/screens/campaign/panels/ConfigPanel.tscn",
+		"path": "res://src/ui/screens/campaign/panels/ExpandedConfigPanel.tscn",
 		"scene": null,
 		"instance": null,
 		"state": PanelState.UNLOADED

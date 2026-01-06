@@ -15,7 +15,6 @@ extends Node
 
 # Safe imports
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const IGameSystem = preload("res://src/core/systems/IGameSystem.gd")
 const DataManager = preload("res://src/core/data/DataManager.gd")
 const SafeDataAccess = preload("res://src/utils/SafeDataAccess.gd")
 
@@ -268,13 +267,13 @@ func get_status() -> Dictionary:
 	"""Get system status information"""
 	return {
 		"initialized": _initialized,
-		"active": _initialized and (safe_call_method(active_patrons, "size") as int) > 0,
+		"active": _initialized and active_patrons.size() > 0,
 		"errors": _errors.duplicate(),
 		"last_update": _last_update,
-		"patron_count": (safe_call_method(active_patrons, "size") as int),
-		"active_quest_count": (safe_call_method(active_quests, "size") as int),
-		"connection_count": (safe_call_method(active_connections, "size") as int),
-		"has_current_job": not (safe_call_method(current_job, "is_empty") == true)
+		"patron_count": active_patrons.size(),
+		"active_quest_count": active_quests.size(),
+		"connection_count": active_connections.size(),
+		"has_current_job": not current_job.is_empty()
 	}
 
 func validate_state() -> Dictionary:
@@ -304,7 +303,7 @@ func validate_state() -> Dictionary:
 			result.warnings.append("Quest '" + quest_id + "' references non-existent patron")
 
 	# Validate current job
-	if not (safe_call_method(current_job, "is_empty") == true):
+	if not current_job.is_empty():
 		if not current_job.has("id"):
 			result.errors.append("Current job missing required 'id' field")
 			result.valid = false
@@ -384,7 +383,7 @@ func get_available_quests(patron_id: String) -> Array[Dictionary]:
 
 func accept_job(job_data: Dictionary) -> bool:
 	"""Accept a patron job with validation"""
-	if not (safe_call_method(current_job, "is_empty") == true):
+	if not current_job.is_empty():
 		_errors.append("Cannot accept job - already have active job")
 		return false
 
@@ -410,7 +409,7 @@ func accept_job(job_data: Dictionary) -> bool:
 
 func complete_job(success: bool, results: Dictionary = {}) -> void:
 	"""Complete current job with success/failure handling"""
-	if (safe_call_method(current_job, "is_empty") == true):
+	if current_job.is_empty():
 		_errors.append("No active job to complete")
 		return
 
@@ -464,7 +463,7 @@ func establish_connection(faction_id: String, connection_type: String) -> bool:
 		return false
 
 	var connection = _create_connection(faction_id, connection_type)
-	if (safe_call_method(connection, "is_empty") == true):
+	if connection.is_empty():
 		return false
 
 	active_connections[faction_id] = connection
@@ -527,7 +526,7 @@ func _initialize_default_connections_data() -> void:
 
 func _initialize_default_data() -> void:
 	"""Initialize system with default empty state"""
-	if (safe_call_method(active_patrons, "is_empty") == true):
+	if active_patrons.is_empty():
 		print("PatronSystem: No existing patrons, system ready for new generation")
 
 func _validate_data_structure(data: Dictionary) -> Dictionary:
@@ -899,7 +898,7 @@ func get_active_patrons() -> Array[Dictionary]:
 
 func get_active_quest_count() -> int:
 	"""Get number of active quests"""
-	return (safe_call_method(active_quests, "size") as int)
+	return active_quests.size()
 
 func can_accept_more_quests() -> bool:
 	"""Check if more quests can be accepted"""
@@ -911,26 +910,8 @@ func get_current_job() -> Dictionary:
 
 func has_active_job() -> bool:
 	"""Check if there's an active job"""
-	return not (safe_call_method(current_job, "is_empty") == true)
+	return not current_job.is_empty()
 
 func get_active_connections() -> Dictionary:
 	"""Get all active faction connections"""
 	return active_connections.duplicate()
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return SafeDataAccess.safe_get(obj, property, default_value, "safe property access")
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

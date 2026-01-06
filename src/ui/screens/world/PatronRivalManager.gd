@@ -525,7 +525,7 @@ func _on_back_pressed() -> void:
 		var scene_router = get_node("/root/SceneRouter")
 		scene_router.navigate_back()
 	else:
-		get_tree().change_scene_to_file("res://src/ui/screens/main/MainMenu.tscn")
+		get_tree().change_scene_to_file("res://src/ui/screens/mainmenu/MainMenu.tscn")
 
 func _on_add_patron_pressed() -> void:
 	"""Handle add patron button press"""
@@ -773,10 +773,3 @@ func _show_assignment_error(message: String) -> void:
 	# Auto-remove after user closes
 	error_dialog.confirmed.connect(error_dialog.queue_free)
 	error_dialog.canceled.connect(error_dialog.queue_free)
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

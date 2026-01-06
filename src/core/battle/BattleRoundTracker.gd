@@ -167,10 +167,8 @@ func _set_phase(new_phase: int) -> void:
 	"""Internal: Set new phase and emit signals"""
 	_current_phase = new_phase
 	phase_changed.emit(_current_phase, get_phase_name(_current_phase))
-
-	# Check for battle events at end phase
-	if _current_phase == int(BattlePhase.END_PHASE):
-		_check_and_trigger_battle_event()
+	# Note: Battle events fire at round START (in _start_next_round), not at END_PHASE
+	# This prevents double-firing and matches Five Parsecs rules for rounds 2 and 4
 
 func _complete_round() -> void:
 	"""Internal: Complete current round"""

@@ -164,10 +164,3 @@ func _on_campaign_victory_achieved(victory_type: int) -> void:
 			victory_message = "You've completed your epic journey!"
 
 	victory_achieved.emit(true, victory_message)
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

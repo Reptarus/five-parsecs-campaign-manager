@@ -68,6 +68,7 @@ var unified_campaign_state: Dictionary = {
 	},
 	"captain": {
 		"name": "",
+		"character_name": "",  # SPRINT 5 FIX: Provide both keys for compatibility
 		"background": "",
 		"motivation": "",
 		"is_complete": false
@@ -141,8 +142,9 @@ func _initialize_unified_state() -> void:
 	# Initialize default values
 	unified_campaign_state.crew.members = []
 	unified_campaign_state.crew.captain = null
+	unified_campaign_state.crew.size = 6  # Default crew size per core rules (4, 5, or 6)
 	unified_campaign_state.crew.is_complete = false
-	
+
 	unified_campaign_state.equipment.items = []
 	unified_campaign_state.equipment.credits = 1000 # Default starting credits
 	unified_campaign_state.equipment.is_complete = false
@@ -155,6 +157,7 @@ func _initialize_unified_state() -> void:
 	unified_campaign_state.ship.is_complete = false
 	
 	unified_campaign_state.captain.name = ""
+	unified_campaign_state.captain.character_name = ""  # SPRINT 5 FIX: Provide both keys
 	unified_campaign_state.captain.background = ""
 	unified_campaign_state.captain.motivation = ""
 	unified_campaign_state.captain.is_complete = false
@@ -187,11 +190,13 @@ func update_equipment_state(equipment_data: Dictionary) -> void:
 	"""Update equipment state and emit signal"""
 	print("CampaignCreationCoordinator: Updating equipment state")
 	
-	# Update equipment data - handle both "items" and "equipment" keys
-	if equipment_data.has("items"):
-		unified_campaign_state.equipment.items = equipment_data.items
-	elif equipment_data.has("equipment"):
+	# Sprint 26.7: Standardized to equipment key (check legacy items key for backwards compat)
+	if equipment_data.has("equipment"):
 		unified_campaign_state.equipment.items = equipment_data.equipment
+		print("CampaignCreationCoordinator: Equipment set from equipment key (%d items)" % equipment_data.equipment.size())
+	elif equipment_data.has("items"):
+		unified_campaign_state.equipment.items = equipment_data.items
+		print("CampaignCreationCoordinator: Equipment set from items key (legacy, %d items)" % equipment_data.items.size())
 	
 	if equipment_data.has("credits"):
 		unified_campaign_state.equipment.credits = equipment_data.credits
@@ -202,7 +207,7 @@ func update_equipment_state(equipment_data: Dictionary) -> void:
 	
 	# Emit signals - both specific and campaign-wide
 	equipment_state_updated.emit(unified_campaign_state.equipment)
-	
+
 	# CRITICAL FIX: Emit campaign_state_updated so all panels receive equipment data
 	campaign_state_updated.emit({
 		"equipment": unified_campaign_state.equipment,
@@ -211,7 +216,15 @@ func update_equipment_state(equipment_data: Dictionary) -> void:
 		"phase": "equipment_update",
 		"source": "equipment_panel"
 	})
-	
+
+	# CORE FIX: Sync to StateManager for validation
+	if state_manager:
+		state_manager.set_phase_data(
+			CampaignCreationStateManager.Phase.EQUIPMENT_GENERATION,
+			unified_campaign_state.equipment.duplicate()
+		)
+		print("CampaignCreationCoordinator: Synced equipment to StateManager")
+
 	# Update overall completion status
 	_update_campaign_completion_status()
 
@@ -235,7 +248,7 @@ func update_ship_state(ship_data: Dictionary) -> void:
 	
 	# Emit signals - both specific and campaign-wide
 	ship_state_updated.emit(unified_campaign_state.ship)
-	
+
 	# CRITICAL FIX: Emit campaign_state_updated so all panels receive ship data
 	campaign_state_updated.emit({
 		"ship": unified_campaign_state.ship,
@@ -244,32 +257,72 @@ func update_ship_state(ship_data: Dictionary) -> void:
 		"phase": "ship_update",
 		"source": "ship_panel"
 	})
-	
+
+	# CORE FIX: Sync to StateManager for validation
+	if state_manager:
+		state_manager.set_phase_data(
+			CampaignCreationStateManager.Phase.SHIP_ASSIGNMENT,
+			unified_campaign_state.ship.duplicate()
+		)
+		print("CampaignCreationCoordinator: Synced ship to StateManager")
+
 	# Update overall completion status
 	_update_campaign_completion_status()
 
 func update_crew_state(crew_data: Dictionary) -> void:
 	"""Update crew state and emit signal"""
 	print("CampaignCreationCoordinator: Updating crew state")
-	
-	# Update crew data
+
+	# Update crew data - SPRINT 5 FIX: Normalize members through _character_to_dict
 	if crew_data.has("members"):
-		unified_campaign_state.crew.members = crew_data.members
+		var normalized_members = []
+		for member in crew_data.members:
+			normalized_members.append(_character_to_dict(member))
+		unified_campaign_state.crew.members = normalized_members
+	# Store crew size (4/5/6) for EnemyGenerator and FinalPanel
+	# Sprint 26.7: Standardized to crew_size key (check legacy keys for backwards compat)
+	if crew_data.has("crew_size"):
+		unified_campaign_state.crew.size = crew_data.crew_size
+		print("CampaignCreationCoordinator: Crew size set to %d (from crew_size)" % crew_data.crew_size)
+	elif crew_data.has("selected_size"):
+		unified_campaign_state.crew.size = crew_data.selected_size
+		print("CampaignCreationCoordinator: Crew size set to %d (from selected_size - legacy)" % crew_data.selected_size)
+	elif crew_data.has("size") and crew_data.size > 0:
+		unified_campaign_state.crew.size = crew_data.size
+		print("CampaignCreationCoordinator: Crew size set to %d (from size - legacy)" % crew_data.size)
 	if crew_data.has("captain"):
-		unified_campaign_state.crew.captain = crew_data.captain
-		
-		# CROSS-PANEL DEPENDENCY FIX: Synchronize captain with captain state
-		if crew_data.captain != null:
+		# CROSS-PANEL DEPENDENCY FIX: Normalize captain to dictionary and sync
+		var captain = crew_data.captain
+		if captain != null:
 			var captain_name = ""
-			if crew_data.captain is Dictionary or (is_instance_valid(crew_data.captain) and crew_data.captain.has_method("get")):
-				captain_name = crew_data.captain.get("character_name", crew_data.captain.get("name", ""))
-			elif crew_data.captain.has("character_name"):
-				captain_name = crew_data.captain.character_name
-			
+			var captain_dict = {}
+
+			# Handle Character object (Resource)
+			if captain is Resource and "name" in captain:
+				captain_name = captain.character_name if captain.get("character_name") else captain.name
+				captain_dict = {
+					"name": captain_name,
+					"character_name": captain_name,
+					"character": captain  # Keep reference to original object
+				}
+			# Handle Dictionary
+			elif captain is Dictionary:
+				captain_name = captain.get("character_name", captain.get("name", ""))
+				captain_dict = captain.duplicate()
+				if not captain_dict.has("name"):
+					captain_dict["name"] = captain_name
+				if not captain_dict.has("character_name"):
+					captain_dict["character_name"] = captain_name
+
+			# Store normalized dictionary
+			unified_campaign_state.crew.captain = captain_dict
+
 			if not captain_name.is_empty():
 				unified_campaign_state.captain.name = captain_name
 				unified_campaign_state.captain.is_complete = true
-				print("CampaignCreationCoordinator: Synchronized crew captain with captain state")
+				print("CampaignCreationCoordinator: Synchronized crew captain '%s' with captain state" % captain_name)
+		else:
+			unified_campaign_state.crew.captain = crew_data.captain
 		
 	if crew_data.has("patrons"):
 		unified_campaign_state.crew.patrons = crew_data.patrons
@@ -280,9 +333,15 @@ func update_crew_state(crew_data: Dictionary) -> void:
 	if crew_data.has("is_complete"):
 		unified_campaign_state.crew.is_complete = crew_data.is_complete
 	
+	# SPRINT 26 FIX: Set has_captain flag if captain exists in crew data
+	if crew_data.has("has_captain"):
+		unified_campaign_state.crew.has_captain = crew_data.has_captain
+	elif unified_campaign_state.crew.captain != null:
+		unified_campaign_state.crew.has_captain = true
+
 	# Emit signals - both specific and campaign-wide
 	crew_state_updated.emit(unified_campaign_state.crew)
-	
+
 	# CRITICAL FIX: Emit campaign_state_updated so EquipmentPanel receives crew data
 	campaign_state_updated.emit({
 		"crew": unified_campaign_state.crew,
@@ -291,7 +350,15 @@ func update_crew_state(crew_data: Dictionary) -> void:
 		"phase": "crew_update",
 		"source": "crew_panel"
 	})
-	
+
+	# CORE FIX: Sync to StateManager for validation
+	if state_manager:
+		state_manager.set_phase_data(
+			CampaignCreationStateManager.Phase.CREW_SETUP,
+			unified_campaign_state.crew.duplicate()
+		)
+		print("CampaignCreationCoordinator: Synced crew to StateManager")
+
 	# Update overall completion status
 	_update_campaign_completion_status()
 
@@ -308,9 +375,10 @@ func update_captain_state(captain_data: Dictionary) -> void:
 	elif captain_data.has("captain") and captain_data.captain is Dictionary:
 		captain_name = captain_data.captain.get("character_name", captain_data.captain.get("name", ""))
 
-	# Update captain data
+	# Update captain data - SPRINT 5 FIX: Provide BOTH keys for compatibility
 	if not captain_name.is_empty():
 		unified_campaign_state.captain.name = captain_name
+		unified_campaign_state.captain.character_name = captain_name  # Normalize both keys
 		print("CampaignCreationCoordinator: Set captain name to: %s" % captain_name)
 
 	# Extract background from nested or top-level
@@ -327,14 +395,45 @@ func update_captain_state(captain_data: Dictionary) -> void:
 
 	if captain_data.has("is_complete"):
 		unified_campaign_state.captain.is_complete = captain_data.is_complete
-	
+
 	# CROSS-PANEL DEPENDENCY FIX: Synchronize captain with crew state
+	# PHASE 10 FIX: Normalize Character objects to consistent dictionary format
 	if captain_data.has("captain_character") and captain_data.captain_character != null:
-		unified_campaign_state.crew.captain = captain_data.captain_character
-		print("CampaignCreationCoordinator: Synchronized captain with crew state")
+		var captain_char = captain_data.captain_character
+		# Normalize Character object to dictionary
+		if captain_char is Resource or (captain_char is Object and captain_char.has_method("get")):
+			var char_name = ""
+			if captain_char.get("character_name"):
+				char_name = captain_char.character_name
+			elif captain_char.get("name"):
+				char_name = captain_char.name
+			unified_campaign_state.crew.captain = {
+				"name": char_name,
+				"character_name": char_name,
+				"character": captain_char  # Keep reference
+			}
+			print("CampaignCreationCoordinator: Normalized captain_character to dictionary with name '%s'" % char_name)
+		else:
+			unified_campaign_state.crew.captain = captain_char
+			print("CampaignCreationCoordinator: Synchronized captain_character with crew state")
 	elif captain_data.has("captain") and captain_data.captain != null:
-		unified_campaign_state.crew.captain = captain_data.captain
-		print("CampaignCreationCoordinator: Synchronized captain with crew state")
+		var captain = captain_data.captain
+		# Normalize Character object to dictionary
+		if captain is Resource or (captain is Object and captain.has_method("get")):
+			var char_name = ""
+			if captain.get("character_name"):
+				char_name = captain.character_name
+			elif captain.get("name"):
+				char_name = captain.name
+			unified_campaign_state.crew.captain = {
+				"name": char_name,
+				"character_name": char_name,
+				"character": captain  # Keep reference
+			}
+			print("CampaignCreationCoordinator: Normalized captain to dictionary with name '%s'" % char_name)
+		else:
+			unified_campaign_state.crew.captain = captain
+			print("CampaignCreationCoordinator: Synchronized captain with crew state")
 	
 	# NEW: Mark phase complete if captain is valid
 	var captain_complete = false
@@ -351,7 +450,56 @@ func update_captain_state(captain_data: Dictionary) -> void:
 		phase_completion_status[CampaignCreationStateManager.Phase.CAPTAIN_CREATION] = true
 		print("CampaignCreationCoordinator: Captain phase marked complete")
 		_update_navigation_state()
-	
+
+	# SPRINT 26 FIX: Extract combat stats from Character for StateManager validation
+	var captain_char = captain_data.get("captain_character", captain_data.get("captain", null))
+	if captain_char != null and (captain_char is Dictionary or captain_char is Resource or (captain_char is Object and captain_char.has_method("get"))):
+		# Extract stats that StateManager validation expects
+		if "combat" in captain_char:
+			unified_campaign_state.captain.combat = captain_char.combat if captain_char.combat else 1
+		elif captain_char.get("combat"):
+			unified_campaign_state.captain.combat = captain_char.get("combat")
+		else:
+			unified_campaign_state.captain.combat = 1  # Default
+
+		if "toughness" in captain_char:
+			unified_campaign_state.captain.toughness = captain_char.toughness if captain_char.toughness else 3
+		elif captain_char.get("toughness"):
+			unified_campaign_state.captain.toughness = captain_char.get("toughness")
+		else:
+			unified_campaign_state.captain.toughness = 3  # Default
+
+		if "reactions" in captain_char:
+			unified_campaign_state.captain.reactions = captain_char.reactions if captain_char.reactions else 1
+		elif captain_char.get("reactions"):
+			unified_campaign_state.captain.reactions = captain_char.get("reactions")
+		else:
+			unified_campaign_state.captain.reactions = 1
+
+		if "savvy" in captain_char:
+			unified_campaign_state.captain.savvy = captain_char.savvy if captain_char.savvy else 0
+		elif captain_char.get("savvy"):
+			unified_campaign_state.captain.savvy = captain_char.get("savvy")
+		else:
+			unified_campaign_state.captain.savvy = 0
+
+		if "speed" in captain_char:
+			unified_campaign_state.captain.speed = captain_char.speed if captain_char.speed else 4
+		elif captain_char.get("speed"):
+			unified_campaign_state.captain.speed = captain_char.get("speed")
+		else:
+			unified_campaign_state.captain.speed = 4
+
+		print("CampaignCreationCoordinator: Extracted captain stats - Combat:%d Toughness:%d Reactions:%d" % [
+			unified_campaign_state.captain.combat,
+			unified_campaign_state.captain.toughness,
+			unified_campaign_state.captain.reactions])
+
+	# SPRINT 26 FIX: Set has_captain flag for StateManager validation
+	if unified_campaign_state.crew.captain != null or captain_complete:
+		unified_campaign_state.crew.has_captain = true
+		print("CampaignCreationCoordinator: Set has_captain flag = true")
+
 	# CRITICAL FIX: Emit campaign_state_updated so all panels receive captain data
 	campaign_state_updated.emit({
 		"captain": unified_campaign_state.captain,
@@ -360,7 +508,15 @@ func update_captain_state(captain_data: Dictionary) -> void:
 		"phase": "captain_update",
 		"source": "captain_panel"
 	})
-	
+
+	# CORE FIX: Sync to StateManager for validation
+	if state_manager:
+		state_manager.set_phase_data(
+			CampaignCreationStateManager.Phase.CAPTAIN_CREATION,
+			unified_campaign_state.captain.duplicate()
+		)
+		print("CampaignCreationCoordinator: Synced captain to StateManager")
+
 	# Update overall completion status
 	_update_campaign_completion_status()
 
@@ -380,7 +536,7 @@ func update_difficulty_state(difficulty_data: Dictionary) -> void:
 func update_campaign_config_state(campaign_config_data: Dictionary) -> void:
 	"""Update campaign config state and emit signal"""
 	print("CampaignCreationCoordinator: Updating campaign config state")
-	
+
 	# Update campaign config data
 	if campaign_config_data.has("campaign_name"):
 		unified_campaign_state.campaign_config.campaign_name = campaign_config_data.campaign_name
@@ -394,7 +550,26 @@ func update_campaign_config_state(campaign_config_data: Dictionary) -> void:
 		unified_campaign_state.campaign_config.tutorial_mode = campaign_config_data.tutorial_mode
 	if campaign_config_data.has("is_complete"):
 		unified_campaign_state.campaign_config.is_complete = campaign_config_data.is_complete
-	
+
+	# SPRINT 5 FIX: Handle alternative key names for test compatibility
+	if campaign_config_data.has("difficulty"):
+		unified_campaign_state.campaign_config.difficulty = campaign_config_data.difficulty
+	elif campaign_config_data.has("difficulty_level"):  # From ExpandedConfigPanel
+		unified_campaign_state.campaign_config.difficulty = campaign_config_data.difficulty_level
+		unified_campaign_state.campaign_config.difficulty_level = campaign_config_data.difficulty_level
+	if campaign_config_data.has("victory_condition"):  # Singular form alias
+		unified_campaign_state.campaign_config.victory_condition = campaign_config_data.victory_condition
+	if campaign_config_data.has("story_track_enabled"):  # Alternative key name
+		unified_campaign_state.campaign_config.story_track_enabled = campaign_config_data.story_track_enabled
+
+	# CORE FIX: Sync to StateManager for validation
+	if state_manager:
+		state_manager.set_phase_data(
+			CampaignCreationStateManager.Phase.CONFIG,
+			unified_campaign_state.campaign_config.duplicate()
+		)
+		print("CampaignCreationCoordinator: Synced config to StateManager")
+
 	# Update overall completion status
 	_update_campaign_completion_status()
 
@@ -451,75 +626,99 @@ func _character_to_dict(character) -> Dictionary:
 	if character == null:
 		return {}
 
-	# If already a flat Dictionary, return as-is
-	if character is Dictionary and character.has("character_name"):
+	# If already a flat Dictionary with all expected keys, return with normalized name keys
+	if character is Dictionary and character.has("character_name") and character.has("background"):
+		# NORMALIZATION FIX: Ensure both "name" and "character_name" keys exist
+		if not character.has("name"):
+			character["name"] = character.get("character_name", "")
 		return character
 
-	# Extract from Character object
+	# Extract from Character object or Dictionary
 	var result = {}
 
-	# Null check before accessing properties
-	if character == null:
-		return {}
+	# Helper to safely get property from Resource or Dictionary
+	# Resource.get() takes 1 arg, Dictionary.get() takes 2
+	var is_dict = character is Dictionary
 
-	# Try multiple property access patterns
-	if character.has("character_name"):
-		result["character_name"] = character.character_name
-		result["name"] = character.character_name
-	elif character.has("name"):
-		result["name"] = character.name
-		result["character_name"] = character.name
+	# Name handling - support both character_name and name
+	var char_name = ""
+	if is_dict:
+		char_name = character.get("character_name", character.get("name", ""))
+	else:
+		# Resource - use property access with null check
+		if "character_name" in character and character.character_name:
+			char_name = character.character_name
+		elif "name" in character and character.name:
+			char_name = character.name
+	if not char_name.is_empty():
+		result["character_name"] = char_name
+		result["name"] = char_name
 
-	# Extract stats with fallback names
-	if character.has("background"):
-		result["background"] = character.background
-	if character.has("motivation"):
-		result["motivation"] = character.motivation
-	if character.has("origin"):
-		result["origin"] = character.origin
-	elif character.has("species"):
-		result["origin"] = character.species
+	# Extract character properties with fallback names
+	if "background" in character:
+		result["background"] = character.background if not is_dict else character.get("background")
+	if "motivation" in character:
+		result["motivation"] = character.motivation if not is_dict else character.get("motivation")
 
-	if character.has("character_class"):
-		result["character_class"] = character.character_class
-	elif character.has("class"):
-		result["character_class"] = character["class"]
+	# Origin (with species fallback)
+	if "origin" in character:
+		result["origin"] = character.origin if not is_dict else character.get("origin")
+	elif "species" in character:
+		result["origin"] = character.species if not is_dict else character.get("species")
 
-	# Stats
-	if character.has("combat"):
-		result["combat"] = character.combat
-	elif character.has("combat_skill"):
-		result["combat"] = character.combat_skill
+	# Character class (with class fallback)
+	if "character_class" in character:
+		result["character_class"] = character.character_class if not is_dict else character.get("character_class")
+	elif "class" in character:
+		result["character_class"] = character.get("class") if is_dict else null
 
-	if character.has("reactions"):
-		result["reactions"] = character.reactions
-	elif character.has("reaction"):
-		result["reactions"] = character.reaction
+	# Stats - use property access for Resource, .get() for Dictionary
+	if "combat" in character:
+		result["combat"] = character.combat if not is_dict else character.get("combat")
+	elif "combat_skill" in character:
+		result["combat"] = character.combat_skill if not is_dict else character.get("combat_skill")
 
-	if character.has("toughness"):
-		result["toughness"] = character.toughness
-	if character.has("savvy"):
-		result["savvy"] = character.savvy
-	if character.has("tech"):
-		result["tech"] = character.tech
-	if character.has("speed"):
-		result["speed"] = character.speed
-	if character.has("luck"):
-		result["luck"] = character.luck
+	if "reactions" in character:
+		result["reactions"] = character.reactions if not is_dict else character.get("reactions")
+	elif "reaction" in character:
+		result["reactions"] = character.reaction if not is_dict else character.get("reaction")
 
-	if character.has("xp"):
-		result["xp"] = character.xp
-	elif character.has("experience"):
-		result["xp"] = character.experience
+	if "toughness" in character:
+		result["toughness"] = character.toughness if not is_dict else character.get("toughness")
+	if "savvy" in character:
+		result["savvy"] = character.savvy if not is_dict else character.get("savvy")
+	if "tech" in character:
+		result["tech"] = character.tech if not is_dict else character.get("tech")
+	if "speed" in character:
+		result["speed"] = character.speed if not is_dict else character.get("speed")
+	if "luck" in character:
+		result["luck"] = character.luck if not is_dict else character.get("luck")
 
-	if character.has("is_captain"):
-		result["is_captain"] = character.is_captain
+	# XP/Experience (with fallback)
+	if "xp" in character:
+		result["xp"] = character.xp if not is_dict else character.get("xp")
+	elif "experience" in character:
+		result["xp"] = character.experience if not is_dict else character.get("experience")
+
+	if "is_captain" in character:
+		result["is_captain"] = character.is_captain if not is_dict else character.get("is_captain")
+
+	# DISPLAY FIX: Preserve original Character object reference for CharacterCard display
+	# CharacterCard.set_character() requires a Character object, not a Dictionary
+	if not is_dict and character is Resource:
+		result["character_object"] = character
+	elif is_dict and character.has("character_object"):
+		result["character_object"] = character.get("character_object")
 
 	return result
 
 func get_unified_campaign_state() -> Dictionary:
 	"""Get the complete unified campaign state with Character objects converted to Dictionaries"""
 	var state = unified_campaign_state.duplicate(true)
+
+	# COMPATIBILITY FIX: Provide both "config" and "campaign_config" keys for test compatibility
+	if state.has("campaign_config") and not state.has("config"):
+		state["config"] = state["campaign_config"]
 
 	# Convert crew members Array[Character] → Array[Dictionary]
 	if state.crew.has("members") and state.crew.members is Array:
@@ -536,10 +735,18 @@ func get_unified_campaign_state() -> Dictionary:
 
 	return state
 
+func update_config_state(data: Dictionary) -> void:
+	"""Alias to update_campaign_config_state() for API compatibility"""
+	update_campaign_config_state(data)
+
 func get_complete_campaign_state_for_panel(panel_name: String = "") -> Dictionary:
 	"""Get complete campaign state with all data for panel consumption"""
 	var complete_state = unified_campaign_state.duplicate(true)
-	
+
+	# COMPATIBILITY FIX: Provide both "config" and "campaign_config" keys for test compatibility
+	if complete_state.has("campaign_config") and not complete_state.has("config"):
+		complete_state["config"] = complete_state["campaign_config"]
+
 	# Add completion status
 	complete_state["completion_status"] = phase_completion_status.duplicate()
 	
@@ -580,6 +787,11 @@ func provide_initial_state_to_panel(panel: Control) -> void:
 func get_campaign_data_for_save() -> Dictionary:
 	"""Get campaign data formatted for saving"""
 	var save_data = unified_campaign_state.duplicate(true)
+
+	# COMPATIBILITY FIX: Provide both "config" and "campaign_config" keys
+	if save_data.has("campaign_config") and not save_data.has("config"):
+		save_data["config"] = save_data["campaign_config"]
+
 	save_data["version"] = "1.0"
 	save_data["created_date"] = Time.get_datetime_string_from_system()
 	return save_data
@@ -684,6 +896,11 @@ func go_back_to_previous_phase() -> bool:
 		return true
 	
 	return false
+
+func set_phase_completion_status(phase: int, is_complete: bool) -> void:
+	"""Set completion status for a phase - used by tests and UI validation"""
+	if phase in phase_completion_status:
+		phase_completion_status[phase] = is_complete
 
 func can_finish_campaign_creation() -> bool:
 	"""Check if all phases are complete and we can finish"""
@@ -936,14 +1153,6 @@ func get_phase_name(phase: CampaignCreationStateManager.Phase) -> String:
 			return "Unknown Phase"
 
 # Additional state update methods for UI integration
-func update_config_state(config_data: Dictionary) -> void:
-	"""Update configuration state"""
-	print("CampaignCreationCoordinator: Updating config state")
-	unified_campaign_state["campaign_config"] = config_data
-	unified_campaign_state["campaign_config"]["is_complete"] = true
-	phase_completion_status[CampaignCreationStateManager.Phase.CONFIG] = true
-	campaign_data_updated.emit(unified_campaign_state)
-
 func update_campaign_name(name: String) -> void:
 	"""Update campaign name"""
 	print("CampaignCreationCoordinator: Updating campaign name: %s" % name)
@@ -1056,10 +1265,10 @@ func pass_coordinator_to_panel(panel: Control) -> void:
 		print("  ✓ Set state manager reference")
 	
 	# Method 3: Set phase key for state synchronization
-	var phase_key = _get_phase_key_for_panel(panel)
+	var phase_key: String = _get_phase_key_for_panel(panel)
 	if phase_key != "":
 		if panel.has_method("set_panel_phase_key"):
-			panel.set_panel_phase_key(phase_key)
+			panel.call("set_panel_phase_key", phase_key)  # Use call() to avoid type warning
 			print("  ✓ Set phase key: %s" % phase_key)
 		elif "panel_phase_key" in panel:
 			panel.panel_phase_key = phase_key
@@ -1076,9 +1285,9 @@ func _get_phase_key_for_panel(panel: Control) -> String:
 	"""Get the appropriate phase key for a panel based on its type"""
 	if not panel:
 		return ""
-	
-	var panel_name = panel.name.to_lower()
-	var panel_class = panel.get_class()
+
+	var panel_name: String = panel.name.to_lower()
+	var panel_class: String = panel.get_class()
 	
 	# Map panel names/types to unified state keys
 	if "config" in panel_name or "setup" in panel_name:
@@ -1119,10 +1328,10 @@ func connect_all_panels_to_coordinator(panels: Array) -> void:
 	"""Connect multiple panels to coordinator in batch - Sprint 5.1.2 mass integration"""
 	print("CampaignCreationCoordinator: Connecting %d panels to coordinator" % panels.size())
 	
-	var success_count = 0
-	for panel in panels:
+	var success_count: int = 0
+	for panel: Variant in panels:
 		if panel is Control:
-			pass_coordinator_to_panel(panel)
+			pass_coordinator_to_panel(panel as Control)  # Cast to Control for type safety
 			success_count += 1
 		else:
 			push_warning("CampaignCreationCoordinator: Invalid panel type: %s" % typeof(panel))
@@ -1133,9 +1342,9 @@ func refresh_panel_state_sync(panel: Control) -> void:
 	"""Refresh state synchronization for a specific panel - useful for debugging"""
 	if not panel:
 		return
-	
+
 	print("CampaignCreationCoordinator: Refreshing state sync for panel: %s" % panel.name)
-	
+
 	# Get current state for panel's phase
 	var phase_key = _get_phase_key_for_panel(panel)
 	if phase_key != "" and unified_campaign_state.has(phase_key):
@@ -1147,3 +1356,34 @@ func refresh_panel_state_sync(panel: Control) -> void:
 			print("  ⚠️ Panel does not support _on_campaign_state_updated")
 	else:
 		print("  ⚠️ No state data available for phase key: %s" % phase_key)
+
+func reset_to_beginning() -> void:
+	"""Reset coordinator to initial state for restart"""
+	print("CampaignCreationCoordinator: Resetting to beginning")
+
+	# Reset current step
+	current_step = 0
+
+	# Reset phase completion status
+	for phase in phase_completion_status.keys():
+		phase_completion_status[phase] = false
+
+	# Reset state manager to first phase
+	if state_manager:
+		state_manager.current_phase = CampaignCreationStateManager.Phase.CONFIG
+
+	# Reset unified campaign state to defaults
+	unified_campaign_state = {
+		"campaign_config": {},
+		"captain": {},
+		"crew": {"members": [], "captain": null},
+		"equipment": {"items": [], "credits": 0},
+		"ship": {},
+		"difficulty": {},
+		"victory_conditions": {},
+		"is_complete": false
+	}
+
+	# Emit reset signal
+	campaign_data_updated.emit(unified_campaign_state)
+	print("CampaignCreationCoordinator: Reset complete")

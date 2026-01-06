@@ -1918,7 +1918,7 @@ func automate_batch_crew_tasks(crew_task_batch: Array) -> Array[Dictionary]:
 	
 	# Process each task with optimized dice handling
 	for i in range(crew_task_batch.size()):
-		var task := crew_task_batch[i]
+		var task: Dictionary = crew_task_batch[i]
 		var crew_member: String = task.crew_member
 		var task_type: int = task.task_type
 		

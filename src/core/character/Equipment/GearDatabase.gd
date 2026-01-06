@@ -162,7 +162,7 @@ func _generate_weapon_description(weapon: Dictionary) -> String:
 	]
 
 	var traits = weapon.get("traits", [])
-	if not (safe_call_method(traits, "is_empty") == true):
+	if not traits.is_empty():
 		desc += ". Traits: " + ", ".join(traits)
 
 	return desc
@@ -292,7 +292,7 @@ func get_gear_names() -> Array[String]:
 	return gears.keys()
 
 func get_gear_count() -> int:
-	return (safe_call_method(gears, "size") as int)
+	return gears.size()
 
 func has_gear(gear_name: String) -> bool:
 	return gears.has(gear_name)
@@ -380,11 +380,11 @@ func damage_gear(gear_name: String) -> bool:
 func roll_random_gear() -> Resource:
 	var roll = randi() % 100 + 1
 	var gear_names = get_gear_names()
-	if (safe_call_method(gear_names, "is_empty") == true):
+	if gear_names.is_empty():
 		push_error("No gear available to roll")
 		return null
 
-	var selected_gear = gear_names[randi() % (safe_call_method(gear_names, "size") as int)]
+	var selected_gear = gear_names[randi() % gear_names.size()]
 	var gear = get_gear(selected_gear)
 	if gear:
 		gear.roll_result = roll
@@ -393,11 +393,11 @@ func roll_random_gear() -> Resource:
 func roll_random_gadget() -> Resource:
 	var roll = randi() % 100 + 1
 	var gadget_gears = get_gears_by_type(GlobalEnums.ItemType.MISC)
-	if (safe_call_method(gadget_gears, "is_empty") == true):
+	if gadget_gears.is_empty():
 		push_error("No gadgets available to roll")
 		return null
 
-	var selected_gear = gadget_gears[randi() % (safe_call_method(gadget_gears, "size") as int)]
+	var selected_gear = gadget_gears[randi() % gadget_gears.size()]
 	if selected_gear:
 		selected_gear.roll_result = roll
 	return selected_gear
@@ -441,21 +441,3 @@ func get_gear_type_description(gear_type: String) -> String:
 		"TOOL": return "Utility item"
 		_: return "Unknown equipment type"
 
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-## Based on Godot 4.4 best practices for safe property access
-func safe_get_property(obj: Variant, property: String, default_value: Variant = null) -> Variant:
-	if obj == null:
-		return default_value
-	if obj is Object and obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	elif obj is Dictionary:
-		return obj.get(property, default_value)
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

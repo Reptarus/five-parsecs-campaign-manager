@@ -1,90 +1,94 @@
 [gd_scene load_steps=3 format=3 uid="uid://bfmey6px3ytex"]
 
 [ext_resource type="PackedScene" uid="uid://bxkj8l2nan6r5" path="res://src/ui/screens/campaign/panels/BaseCampaignPanel.tscn" id="1_base"]
-[ext_resource type="Script" path="res://src/ui/screens/campaign/panels/ExpandedConfigPanel.gd" id="2_expanded_config"]
+[ext_resource type="Script" uid="uid://dm1uy7ygeu84p" path="res://src/ui/screens/campaign/panels/ExpandedConfigPanel.gd" id="2_expanded_config"]
 
 [node name="ExpandedConfigPanel" instance=ExtResource("1_base")]
 script = ExtResource("2_expanded_config")
 
-[node name="Content" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer"]
+[node name="Content" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer" index="0"]
 layout_mode = 2
-theme_override_constants/separation = 20
+theme_override_constants/separation = 24
 
-[node name="CampaignName" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+[node name="CampaignName" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content" index="0"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/CampaignName"]
+[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/CampaignName" index="0"]
 layout_mode = 2
 text = "Campaign Name:"
 horizontal_alignment = 1
 
-[node name="Value" type="LineEdit" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/CampaignName"]
+[node name="Value" type="LineEdit" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/CampaignName" index="1"]
 layout_mode = 2
 placeholder_text = "Enter Campaign Name"
 
-[node name="CampaignType" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+[node name="CampaignType" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content" index="1"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/CampaignType"]
+[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/CampaignType" index="0"]
 layout_mode = 2
 text = "Campaign Type:"
 horizontal_alignment = 1
 
-[node name="Value" type="OptionButton" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/CampaignType"]
+[node name="Value" type="OptionButton" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/CampaignType" index="1"]
 layout_mode = 2
 
-[node name="VictoryConditions" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+[node name="VictoryConditions" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content" index="2"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/VictoryConditions"]
+[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/VictoryConditions" index="0"]
 layout_mode = 2
 text = "Victory Conditions:"
 horizontal_alignment = 1
 
-[node name="Container" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/VictoryConditions"]
+[node name="Container" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/VictoryConditions" index="1"]
 layout_mode = 2
 
-[node name="StoryTrack" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+[node name="StoryTrack" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content" index="3"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/StoryTrack"]
+[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/StoryTrack" index="0"]
 layout_mode = 2
 text = "Story Track:"
 horizontal_alignment = 1
 
-[node name="Value" type="OptionButton" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/StoryTrack"]
+[node name="Value" type="OptionButton" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/StoryTrack" index="1"]
 layout_mode = 2
 
-[node name="TutorialMode" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+[node name="TutorialMode" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content" index="4"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/TutorialMode"]
+[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/TutorialMode" index="0"]
 layout_mode = 2
 text = "Tutorial Mode:"
 horizontal_alignment = 1
 
-[node name="Value" type="OptionButton" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/TutorialMode"]
+[node name="Value" type="OptionButton" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/TutorialMode" index="1"]
 layout_mode = 2
 
-[node name="Summary" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+[node name="Summary" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content" index="5"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Summary"]
+[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Summary" index="0"]
 layout_mode = 2
 text = "Configuration Summary:"
 horizontal_alignment = 1
 
-[node name="Controls" type="HBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+[node name="Controls" type="HBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content" index="6"]
 layout_mode = 2
-theme_override_constants/separation = 20
+visible = false
+theme_override_constants/separation = 24
 alignment = 1
 
-[node name="ApplyButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Controls"]
-custom_minimum_size = Vector2(150, 40)
+[node name="ApplyButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Controls" index="0"]
+custom_minimum_size = Vector2(150, 48)
 layout_mode = 2
 text = "Apply Configuration"
 
-[node name="ResetButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Controls"]
-custom_minimum_size = Vector2(150, 40)
+[node name="ResetButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Controls" index="1"]
+custom_minimum_size = Vector2(150, 48)
 layout_mode = 2
 text = "Reset to Defaults"
+
+[node name="LoadingOverlay" parent="." index="2"]
+layout_mode = 2

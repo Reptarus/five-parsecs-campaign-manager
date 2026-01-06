@@ -6,9 +6,11 @@ extends GdUnitTestSuite
 
 # Must use scene to get @onready nodes initialized properly
 const FinalPanelScene = preload("res://src/ui/screens/campaign/panels/FinalPanel.tscn")
+const FinalPanelScript = preload("res://src/ui/screens/campaign/panels/FinalPanel.gd")
 const Character = preload("res://src/core/character/Character.gd")
 
-var panel: Control  # Type as Control since scene instantiation returns base type
+# GDScript 2.0: Use actual script type to access FinalPanel properties
+var panel: PanelContainer = null  # Will be cast after instantiation
 var mock_campaign_data: Dictionary
 
 ## Setup & Teardown
@@ -47,18 +49,18 @@ func test_campaign_name_uses_large_font_and_accent_color():
 		push_warning("panel not available, skipping test")
 		return
 
-	if panel.summary_cards_container == null:
+	if panel.get("summary_cards_container") == null:
 		push_warning("summary_cards_container not created")
 		return
 
 	# Arrange: Set valid campaign data
-	panel.set_campaign_data(mock_campaign_data)
+	panel.call("set_campaign_data",mock_campaign_data)
 	# Wait for queue_free() to complete and new UI to build
 	for i in range(6):  # Increased wait frames
 		await get_tree().process_frame
 
 	# Act: Find campaign name label in config card (actual UI shows name directly)
-	var config_card = _find_card_by_title(panel.summary_cards_container, "Campaign Configuration")
+	var config_card = _find_card_by_title(panel.get("summary_cards_container"), "Campaign Configuration")
 	assert_that(config_card).is_not_null()
 
 	# UI displays campaign name directly, not "Campaign:" prefix
@@ -82,18 +84,18 @@ func test_ship_name_uses_large_font():
 		push_warning("panel not available, skipping test")
 		return
 
-	if panel.summary_cards_container == null:
+	if panel.get("summary_cards_container") == null:
 		push_warning("summary_cards_container not created")
 		return
 
 	# Arrange: Set valid campaign data
-	panel.set_campaign_data(mock_campaign_data)
+	panel.call("set_campaign_data",mock_campaign_data)
 	# Wait for queue_free() to complete and new UI to build
 	for i in range(4):
 		await get_tree().process_frame
 
 	# Act: Find ship name label
-	var ship_card = _find_card_by_title(panel.summary_cards_container, "Ship Details")
+	var ship_card = _find_card_by_title(panel.get("summary_cards_container"), "Ship Details")
 	assert_that(ship_card).is_not_null()
 
 	var ship_label = _find_label_with_text(ship_card, "Starfury")
@@ -112,18 +114,18 @@ func test_captain_name_uses_accent_color():
 		push_warning("panel not available, skipping test")
 		return
 
-	if panel.summary_cards_container == null:
+	if panel.get("summary_cards_container") == null:
 		push_warning("summary_cards_container not created")
 		return
 
 	# Arrange: Set valid campaign data
-	panel.set_campaign_data(mock_campaign_data)
+	panel.call("set_campaign_data",mock_campaign_data)
 	# Wait for queue_free() to complete and new UI to build
 	for i in range(4):
 		await get_tree().process_frame
 
 	# Act: Find captain name label
-	var captain_card = _find_card_by_title(panel.summary_cards_container, "Captain")
+	var captain_card = _find_card_by_title(panel.get("summary_cards_container"), "Captain")
 	assert_that(captain_card).is_not_null()
 
 	var captain_label = _find_label_with_text(captain_card, "Commander Vale")
@@ -145,18 +147,18 @@ func test_secondary_text_uses_small_font_and_secondary_color():
 		push_warning("panel not available, skipping test")
 		return
 
-	if panel.summary_cards_container == null:
+	if panel.get("summary_cards_container") == null:
 		push_warning("summary_cards_container not created")
 		return
 
 	# Arrange: Set valid campaign data
-	panel.set_campaign_data(mock_campaign_data)
+	panel.call("set_campaign_data",mock_campaign_data)
 	# Wait for queue_free() to complete and new UI to build
 	for i in range(4):
 		await get_tree().process_frame
 
 	# Act: Find difficulty label (format: "Difficulty: Normal | Mode: Standard")
-	var config_card = _find_card_by_title(panel.summary_cards_container, "Campaign Configuration")
+	var config_card = _find_card_by_title(panel.get("summary_cards_container"), "Campaign Configuration")
 	var difficulty_label = _find_label_with_text(config_card, "Difficulty:")
 	assert_that(difficulty_label).is_not_null()
 	if not difficulty_label:
@@ -178,12 +180,12 @@ func test_all_summary_cards_have_section_icons():
 		push_warning("panel not available, skipping test")
 		return
 
-	if panel.summary_cards_container == null:
+	if panel.get("summary_cards_container") == null:
 		push_warning("summary_cards_container not created")
 		return
 
 	# Arrange: Set valid campaign data
-	panel.set_campaign_data(mock_campaign_data)
+	panel.call("set_campaign_data",mock_campaign_data)
 	# Wait for queue_free() to complete and new UI to build
 	for i in range(4):
 		await get_tree().process_frame
@@ -199,7 +201,7 @@ func test_all_summary_cards_have_section_icons():
 
 	# Assert: All 5 cards exist
 	for card_title in expected_cards:
-		var card = _find_card_by_title(panel.summary_cards_container, card_title)
+		var card = _find_card_by_title(panel.get("summary_cards_container"), card_title)
 		assert_that(card).is_not_null()
 
 ## Validation Feedback Tests
@@ -212,7 +214,7 @@ func test_valid_campaign_shows_no_errors():
 		return
 
 	# Arrange: Set valid campaign data
-	panel.set_campaign_data(mock_campaign_data)
+	panel.call("set_campaign_data",mock_campaign_data)
 	await get_tree().process_frame
 	await get_tree().process_frame  # Extra frame for UI update
 
@@ -235,7 +237,7 @@ func test_missing_campaign_name_shows_error():
 	if "campaign_config" in invalid_data:
 		invalid_data["campaign_config"] = invalid_data["campaign_config"].duplicate()
 		invalid_data["campaign_config"]["campaign_name"] = ""
-	panel.set_campaign_data(invalid_data)
+	panel.call("set_campaign_data",invalid_data)
 	await get_tree().process_frame
 	await get_tree().process_frame  # Extra frame for UI update
 
@@ -262,7 +264,7 @@ func test_missing_captain_shows_error():
 	# Arrange: Create campaign data with no captain
 	var invalid_data = mock_campaign_data.duplicate(true)
 	invalid_data["captain"] = {}
-	panel.set_campaign_data(invalid_data)
+	panel.call("set_campaign_data",invalid_data)
 	await get_tree().process_frame
 	await get_tree().process_frame  # Extra frame for UI update
 
@@ -290,7 +292,7 @@ func test_empty_crew_shows_error():
 	if "crew" in invalid_data:
 		invalid_data["crew"] = invalid_data["crew"].duplicate()
 		invalid_data["crew"]["members"] = []
-	panel.set_campaign_data(invalid_data)
+	panel.call("set_campaign_data",invalid_data)
 	await get_tree().process_frame
 	await get_tree().process_frame  # Extra frame for UI update
 
@@ -315,18 +317,18 @@ func test_stat_badges_render_in_crew_summary():
 		push_warning("panel not available, skipping test")
 		return
 
-	if panel.summary_cards_container == null:
+	if panel.get("summary_cards_container") == null:
 		push_warning("summary_cards_container not created")
 		return
 
 	# Arrange: Set valid campaign data
-	panel.set_campaign_data(mock_campaign_data)
+	panel.call("set_campaign_data",mock_campaign_data)
 	# Wait for queue_free() to complete and new UI to build
 	for i in range(4):
 		await get_tree().process_frame
 
 	# Act: Find crew summary card
-	var crew_card = _find_card_by_title(panel.summary_cards_container, "Crew Summary")
+	var crew_card = _find_card_by_title(panel.get("summary_cards_container"), "Crew Summary")
 	assert_that(crew_card).is_not_null()
 
 	# Assert: Crew count label exists (format: "4 Crew Members")
@@ -344,12 +346,12 @@ func test_stat_values_are_correct():
 		push_warning("panel not available, skipping test")
 		return
 
-	if panel.summary_cards_container == null:
+	if panel.get("summary_cards_container") == null:
 		push_warning("summary_cards_container not created")
 		return
 
 	# Arrange: Set valid campaign data (4 crew with known stats)
-	panel.set_campaign_data(mock_campaign_data)
+	panel.call("set_campaign_data",mock_campaign_data)
 	# Wait for queue_free() to complete and new UI to build
 	for i in range(4):
 		await get_tree().process_frame
@@ -360,7 +362,7 @@ func test_stat_values_are_correct():
 	var expected_crew_count = 4
 
 	# Assert: Crew summary shows correct crew count
-	var crew_card = _find_card_by_title(panel.summary_cards_container, "Crew Summary")
+	var crew_card = _find_card_by_title(panel.get("summary_cards_container"), "Crew Summary")
 	if not crew_card:
 		return  # Skip if card not found
 

@@ -29,6 +29,9 @@ func before():
 
 func before_test():
 	"""Test-level setup - create fresh manager instance for each test"""
+	# Set deterministic seed for reproducible random numbers
+	seed(12345)
+
 	# Create campaign phase manager without adding to tree
 	# (avoids autoload dependencies like GameStateManager)
 	phase_manager = auto_free(CampaignPhaseManagerClass.new())
@@ -149,106 +152,6 @@ func test_invalid_skip_post_battle():
 	assert_that(valid).is_false()
 
 # ============================================================================
-# State Persistence Tests (3 tests)
+# State Persistence & Turn Completion Tests
+# Moved to test_campaign_turn_loop_part2.gd to stay under 13 test limit
 # ============================================================================
-
-func test_turn_number_persists_across_phases():
-	"""Turn number remains constant throughout phase cycle"""
-	phase_manager.turn_number = 5
-	var snapshot_travel = helper.create_state_snapshot({
-		"turn_number": phase_manager.turn_number,
-		"current_phase": mock_phase_enum.TRAVEL
-	})
-
-	# Simulate phase transitions
-	phase_manager.current_phase = mock_phase_enum.WORLD
-	var snapshot_world = helper.create_state_snapshot({
-		"turn_number": phase_manager.turn_number,
-		"current_phase": mock_phase_enum.WORLD
-	})
-
-	phase_manager.current_phase = mock_phase_enum.BATTLE
-	var snapshot_battle = helper.create_state_snapshot({
-		"turn_number": phase_manager.turn_number,
-		"current_phase": mock_phase_enum.BATTLE
-	})
-
-	# Turn number should remain 5 throughout
-	assert_that(snapshot_travel.turn_number).is_equal(5)
-	assert_that(snapshot_world.turn_number).is_equal(5)
-	assert_that(snapshot_battle.turn_number).is_equal(5)
-
-func test_phase_data_persists_to_next_phase():
-	"""Phase transition data mechanism exists in CampaignPhaseManager"""
-	# IMPLEMENTATION: CampaignPhaseManager uses _phase_transition_data (private)
-	# to pass data between phases (e.g., selected job from WORLD to BATTLE)
-
-	# Check if phase transition data mechanism exists (private property)
-	# Note: We check for the internal implementation _phase_transition_data
-	var has_persistence: bool = "_phase_transition_data" in phase_manager
-
-	# Verify the private phase transition mechanism exists
-	assert_bool(has_persistence).is_true()
-
-func test_campaign_state_consistent_across_cycle():
-	"""🐛 BUG DISCOVERY: Campaign resources should persist across full cycle"""
-	# EXPECTED: Credits, equipment, crew should persist through all phases
-	# ACTUAL: May lose campaign state during phase transitions
-
-	# Simulate campaign state
-	var initial_state = {
-		"credits": 50,
-		"crew_count": 4,
-		"equipment_count": 6
-	}
-
-	# This tests that campaign state tracking exists (use 'in' for property check on Node)
-	var state_tracking_exists: bool = "campaign_state" in phase_manager or \
-									   "game_state_manager" in phase_manager
-
-	# This will FAIL if campaign state persistence is not properly implemented
-	# Critical for maintaining game state across the turn cycle
-	assert_bool(state_tracking_exists).is_true()
-
-# ============================================================================
-# Turn Completion Tests (2 tests)
-# ============================================================================
-
-func test_completing_post_battle_allows_new_turn():
-	"""Completing POST_BATTLE phase allows starting new turn"""
-	phase_manager.current_phase = mock_phase_enum.POST_BATTLE
-	phase_manager.transition_in_progress = false
-	phase_manager.turn_number = 5
-
-	# After POST_BATTLE completes, should be able to start new turn
-	var can_start_new_turn = not phase_manager.transition_in_progress and \
-							  phase_manager.current_phase == mock_phase_enum.POST_BATTLE
-
-	assert_that(can_start_new_turn).is_true()
-
-	# Simulate new turn start
-	phase_manager.turn_number += 1
-	phase_manager.current_phase = mock_phase_enum.TRAVEL
-
-	assert_that(phase_manager.turn_number).is_equal(6)
-	assert_that(phase_manager.current_phase).is_equal(mock_phase_enum.TRAVEL)
-
-func test_multi_turn_progression():
-	"""🐛 BUG DISCOVERY: Multiple turns should progress correctly"""
-	phase_manager.turn_number = 1
-
-	# Simulate 3 complete turn cycles
-	for i in range(3):
-		# Complete one full cycle
-		phase_manager.current_phase = mock_phase_enum.TRAVEL
-		phase_manager.current_phase = mock_phase_enum.WORLD
-		phase_manager.current_phase = mock_phase_enum.BATTLE
-		phase_manager.current_phase = mock_phase_enum.POST_BATTLE
-
-		# Start new turn
-		phase_manager.turn_number += 1
-		phase_manager.current_phase = mock_phase_enum.TRAVEL
-
-	# Should now be on turn 4 (started at 1, completed 3 cycles)
-	assert_that(phase_manager.turn_number).is_equal(4)
-	assert_that(phase_manager.current_phase).is_equal(mock_phase_enum.TRAVEL)

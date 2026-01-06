@@ -23,6 +23,9 @@ func before():
 
 func before_test():
 	"""Test-level setup - create fresh component for each test"""
+	# Set deterministic seed for reproducible random numbers
+	seed(12345)
+
 	component = auto_free(JobOfferComponentScene.instantiate())
 	# Component needs to be in tree for event bus access and @onready variables
 	add_child(component)

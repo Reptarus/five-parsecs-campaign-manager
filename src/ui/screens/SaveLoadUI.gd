@@ -810,22 +810,3 @@ func _on_delete_pressed() -> void:
 	add_child(_current_dialog)
 	_current_dialog.popup_centered()
 
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
-	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
-	if not obj or not is_instance_valid(obj):
-		return default_value
-	
-	if obj.has_method("get"):
-		var value: Variant = obj.get(property)
-		return value if value != null else default_value
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	@warning_ignore("unsafe_method_access")
-	if obj is Object and obj.has_method(method_name):
-		@warning_ignore("unsafe_method_access")
-		return obj.callv(method_name, args)
-	return null

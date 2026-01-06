@@ -84,6 +84,18 @@ var world_phase_data: Dictionary = {}
 var ship_data: Dictionary = {}
 var crew_data: Array = []
 
+# Sprint 26.4: Checkpoint system for World Phase state persistence
+var _checkpoint_data: Dictionary = {}
+
+# Sprint C: Step completion indicators
+var step_indicators: Array = []
+
+# Design System Constants (matching BaseCampaignPanel)
+const COLOR_SUCCESS := Color("#10B981")
+const COLOR_ACCENT := Color("#4FC3F7")
+const COLOR_TEXT_SECONDARY := Color("#808080")
+const COLOR_ELEVATED := Color("#252542")
+
 func _ready() -> void:
 	name = "WorldPhaseController"
 	print("WorldPhaseController: Initializing orchestrator - replacing 3,910 line monolith")
@@ -163,6 +175,9 @@ func _setup_initial_state() -> void:
 		WorldPhaseStep.RESOLVE_RUMORS: false,
 		WorldPhaseStep.MISSION_PREP: false
 	}
+
+	# Sprint C: Create step indicators
+	_create_step_indicators()
 
 	# Auto-fetch campaign data from GameStateManager
 	_fetch_campaign_data()
@@ -293,7 +308,10 @@ func _initialize_components_with_data() -> void:
 		for member in crew_data:
 			if member is Character:
 				# Serialize Character to Dictionary for component compatibility
-				typed_crew.append(member.to_dictionary() if member.has_method("to_dictionary") else {"character_name": member.character_name if "character_name" in member else "", "character_id": member.character_id if "character_id" in member else ""})
+				if member.has_method("to_dictionary"):
+					typed_crew.append(member.to_dictionary())
+				else:
+					typed_crew.append({"character_name": member.get("character_name") if member.get("character_name") else "", "character_id": member.get("character_id") if member.get("character_id") else ""})
 			elif member is Dictionary:
 				typed_crew.append(member)
 		var typed_equipment: Array[Dictionary] = []
@@ -340,6 +358,94 @@ func _show_current_step() -> void:
 		# Use call_deferred to avoid recursion issues
 		call_deferred("_on_next_button_pressed")
 
+## Sprint C: Create step completion indicators
+func _create_step_indicators() -> void:
+	"""Create visual step indicators showing completion status"""
+	if not step_navigation:
+		push_warning("WorldPhaseController: step_navigation not found - skipping indicators")
+		return
+
+	# Clear existing indicators
+	for indicator in step_indicators:
+		if is_instance_valid(indicator):
+			indicator.queue_free()
+	step_indicators.clear()
+
+	# Create indicator container
+	var indicator_container := HBoxContainer.new()
+	indicator_container.name = "StepIndicators"
+	indicator_container.add_theme_constant_override("separation", 8)
+	indicator_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	# Create an indicator for each step
+	for i in range(step_names.size()):
+		var indicator := _create_step_indicator_badge(i)
+		step_indicators.append(indicator)
+		indicator_container.add_child(indicator)
+
+	# Insert at beginning of step_navigation (before Back/Next buttons)
+	step_navigation.add_child(indicator_container)
+	step_navigation.move_child(indicator_container, 0)
+
+	print("WorldPhaseController: Created %d step indicators" % step_indicators.size())
+
+func _create_step_indicator_badge(step_index: int) -> PanelContainer:
+	"""Create a single step indicator badge"""
+	var badge := PanelContainer.new()
+	badge.name = "StepIndicator_%d" % step_index
+	badge.custom_minimum_size = Vector2(32, 32)
+
+	# Style the badge
+	var style := StyleBoxFlat.new()
+	style.bg_color = COLOR_ELEVATED
+	style.set_corner_radius_all(16)  # Circular
+	style.set_content_margin_all(4)
+	badge.add_theme_stylebox_override("panel", style)
+
+	# Create centered label
+	var label := Label.new()
+	label.name = "StepLabel"
+	label.text = str(step_index + 1)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 12)
+	label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	badge.add_child(label)
+
+	# Add tooltip
+	badge.tooltip_text = step_names[step_index]
+
+	return badge
+
+func _update_step_indicators() -> void:
+	"""Update step indicator visuals based on completion status"""
+	for i in range(step_indicators.size()):
+		if i >= step_indicators.size():
+			break
+
+		var indicator = step_indicators[i]
+		if not is_instance_valid(indicator):
+			continue
+
+		var label = indicator.get_node_or_null("StepLabel")
+		if not label:
+			continue
+
+		var step_key = i as WorldPhaseStep
+		var is_completed = step_completed.get(step_key, false)
+		var is_current = (i == current_step)
+
+		# Update label and color based on state
+		if is_completed:
+			label.text = "✓"
+			label.add_theme_color_override("font_color", COLOR_SUCCESS)
+		elif is_current:
+			label.text = str(i + 1)
+			label.add_theme_color_override("font_color", COLOR_ACCENT)
+		else:
+			label.text = str(i + 1)
+			label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+
 func _update_ui_display() -> void:
 	"""Update navigation UI display"""
 	if current_step_label:
@@ -348,14 +454,14 @@ func _update_ui_display() -> void:
 			step_names.size(),
 			step_names[current_step]
 		]
-	
+
 	if progress_bar:
 		var progress = float(current_step) / float(step_names.size() - 1)
 		progress_bar.value = progress * 100.0
-	
+
 	if back_button:
 		back_button.disabled = (current_step == WorldPhaseStep.UPKEEP)
-	
+
 	if next_button:
 		var can_advance = _can_advance_to_next_step()
 		next_button.disabled = not can_advance
@@ -365,6 +471,9 @@ func _update_ui_display() -> void:
 			next_button.text = "Proceed to Battle"
 		else:
 			next_button.text = "Next Step"
+
+	# Sprint C: Update step indicators
+	_update_step_indicators()
 
 func _can_advance_to_next_step() -> bool:
 	"""Check if current step is completed and can advance"""
@@ -463,6 +572,9 @@ func _on_automation_toggled(enabled: bool) -> void:
 func _on_proceed_to_battle_pressed() -> void:
 	"""Handle Proceed to Battle button - primary action"""
 	print("WorldPhaseController: User requested proceed to battle")
+
+	# Sprint 26.4: Save checkpoint before transitioning to battle
+	save_checkpoint()
 
 	# Complete world phase and transition to battle
 	_complete_world_phase()
@@ -1053,38 +1165,69 @@ func _debug_complete_current_step() -> void:
 		_on_next_button_pressed()
 
 # =====================================================
-# CHECKPOINT SAVES
+# CHECKPOINT SAVES (Sprint 26.4: Enhanced for World Phase state persistence)
 # =====================================================
 
-func _save_world_phase_checkpoint() -> void:
-	"""Save checkpoint during world phase for crash recovery"""
-	var game_state = get_node_or_null("/root/GameState")
-	if not game_state or not game_state.current_campaign:
-		print("WorldPhaseController: Cannot save checkpoint - no GameState")
-		return
-
-	# Store current world phase progress in campaign
-	var campaign = game_state.current_campaign
-	var checkpoint_data := {
+func save_checkpoint() -> void:
+	"""Sprint 26.4: Save World Phase checkpoint before transitioning away.
+	Saves to local _checkpoint_data for quick restore and to campaign for persistence."""
+	_checkpoint_data = {
 		"current_step": current_step,
 		"step_completed": step_completed.duplicate(),
+		"world_phase_data": world_phase_data.duplicate(),
+		"automation_enabled": automation_enabled,
 		"timestamp": Time.get_datetime_string_from_system()
 	}
 
-	if campaign is Dictionary:
-		campaign["world_phase_checkpoint"] = checkpoint_data
-	elif campaign is Resource and campaign.has_method("set_meta"):
-		campaign.set_meta("world_phase_checkpoint", checkpoint_data)
+	# Also save to campaign for crash recovery
+	var game_state = get_node_or_null("/root/GameState")
+	if game_state and game_state.current_campaign:
+		var campaign = game_state.current_campaign
+		if campaign is Dictionary:
+			campaign["world_phase_checkpoint"] = _checkpoint_data.duplicate()
+		elif campaign is Resource and campaign.has_method("set_meta"):
+			campaign.set_meta("world_phase_checkpoint", _checkpoint_data.duplicate())
 
 	# Try to trigger a game save through GameStateManager
 	if GameStateManager and GameStateManager.has_method("quick_save"):
 		GameStateManager.quick_save()
-		print("WorldPhaseController: Checkpoint saved at step %s" % step_names[current_step])
 	elif GameStateManager and GameStateManager.has_method("save_game"):
 		GameStateManager.save_game()
-		print("WorldPhaseController: Checkpoint saved at step %s" % step_names[current_step])
-	else:
-		print("WorldPhaseController: Checkpoint stored (no save method available)")
+
+	print("WorldPhaseController: Checkpoint saved at step %s" % step_names[current_step])
+
+func restore_from_checkpoint() -> void:
+	"""Sprint 26.4: Restore World Phase state from checkpoint (called when rolling back from Battle)"""
+	if _checkpoint_data.is_empty():
+		print("WorldPhaseController: No checkpoint data to restore")
+		return
+
+	current_step = _checkpoint_data.get("current_step", WorldPhaseStep.UPKEEP)
+	step_completed = _checkpoint_data.get("step_completed", {}).duplicate()
+	world_phase_data = _checkpoint_data.get("world_phase_data", {}).duplicate()
+	automation_enabled = _checkpoint_data.get("automation_enabled", false)
+
+	# Restore UI state
+	_show_current_step()
+	_update_ui_display()
+
+	if automation_toggle:
+		automation_toggle.button_pressed = automation_enabled
+
+	print("WorldPhaseController: Restored from checkpoint - step=%s" % step_names[current_step])
+
+func has_checkpoint() -> bool:
+	"""Sprint 26.4: Check if a checkpoint exists"""
+	return not _checkpoint_data.is_empty()
+
+func clear_checkpoint() -> void:
+	"""Sprint 26.4: Clear saved checkpoint data"""
+	_checkpoint_data = {}
+	print("WorldPhaseController: Checkpoint cleared")
+
+func _save_world_phase_checkpoint() -> void:
+	"""Deprecated: Use save_checkpoint() instead. Kept for backward compatibility."""
+	save_checkpoint()
 
 # =====================================================
 # BATTLE PHASE TRANSITION
@@ -1112,17 +1255,41 @@ func _navigate_to_battle_phase(world_phase_results: Dictionary) -> void:
 		return
 
 	# Final fallback: direct scene change
-	var pre_battle_path := "res://src/ui/screens/battle/PreBattleUI.tscn"
+	var pre_battle_path := "res://src/ui/screens/battle/PreBattle.tscn"
 	var summary_path := "res://src/ui/screens/world/WorldPhaseSummary.tscn"
 
 	if FileAccess.file_exists(pre_battle_path):
-		print("WorldPhaseController: Direct navigation to PreBattleUI.tscn")
+		print("WorldPhaseController: Direct navigation to PreBattle.tscn")
 		get_tree().call_deferred("change_scene_to_file", pre_battle_path)
 	elif FileAccess.file_exists(summary_path):
 		print("WorldPhaseController: Direct navigation to WorldPhaseSummary.tscn")
 		get_tree().call_deferred("change_scene_to_file", summary_path)
 	else:
 		push_error("WorldPhaseController: No battle phase screen found!")
+		# Show user-visible error before returning to dashboard
+		_show_battle_scene_missing_error()
 		# Return to dashboard as last resort
 		if GameStateManager:
 			GameStateManager.navigate_to_screen("campaign_dashboard")
+
+func _show_battle_scene_missing_error() -> void:
+	"""Show error dialog when battle scene is missing"""
+	# Use NotificationManager if available
+	if has_node("/root/NotificationManager"):
+		var notif_manager = get_node("/root/NotificationManager")
+		if notif_manager.has_method("show_error"):
+			notif_manager.show_error(
+				"Battle Screen Not Found",
+				"The battle interface could not be loaded. Returning to Campaign Dashboard.\n\nPlease report this issue if it persists."
+			)
+			return
+
+	# Fallback: Create a simple error dialog
+	var error_dialog = AcceptDialog.new()
+	error_dialog.title = "Battle Screen Error"
+	error_dialog.dialog_text = "The battle interface could not be loaded.\n\nReturning to Campaign Dashboard."
+	error_dialog.get_ok_button().text = "Continue"
+	add_child(error_dialog)
+	error_dialog.popup_centered()
+	# Dialog will be freed when user acknowledges it
+	error_dialog.confirmed.connect(error_dialog.queue_free)

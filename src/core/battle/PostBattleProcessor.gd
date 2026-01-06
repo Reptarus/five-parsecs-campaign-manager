@@ -516,7 +516,7 @@ func _validate_processing_input(tracked_units: Dictionary, battle_context: Dicti
 		return validation
 
 	# Validate tracked units
-	if (safe_call_method(tracked_units, "is_empty") == true):
+	if tracked_units.is_empty():
 		validation.valid = false
 		validation.errors["units"] = "No tracked units provided"
 
@@ -647,17 +647,3 @@ func get_processing_status() -> Dictionary:
 		"house_rules": apply_house_rules
 	}
 
-## Safe property access helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_get_property(obj: Object, property: String, default_value: Variant = null) -> Variant:
-
-	# Parameter validation - eliminates UNSAFE_CALL_ARGUMENT warnings
-	if not is_instance_valid(self):
-		return obj.get(property) if obj and obj.has_method("get") else default_value
-	return default_value
-## Safe method call helper - eliminates UNSAFE_METHOD_ACCESS warnings
-func safe_call_method(obj: Variant, method_name: String, args: Array = []) -> Variant:
-	if obj == null:
-		return null
-	if obj is Object and obj.has_method(method_name):
-		return obj.callv(method_name, args)
-	return null

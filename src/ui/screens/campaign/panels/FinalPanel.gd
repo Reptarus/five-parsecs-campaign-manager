@@ -112,20 +112,21 @@ func _setup_panel_content() -> void:
 	pass
 
 func _build_final_panel_ui() -> void:
-	"""Build the complete final panel UI with styled cards"""
+	"""Build the complete final panel UI with styled cards and sticky footer"""
 	if not content_container:
 		push_error("FinalPanel: No content_container available")
 		return
-	
+
 	# Clear existing content
 	for child in content_container.get_children():
 		child.queue_free()
-	
+
+	# === SCROLLABLE CONTENT AREA ===
 	var main_scroll := ScrollContainer.new()
 	main_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	main_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content_container.add_child(main_scroll)
-	
+
 	var main_vbox := VBoxContainer.new()
 	main_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	main_vbox.add_theme_constant_override("separation", SPACING_LG)
@@ -138,22 +139,28 @@ func _build_final_panel_ui() -> void:
 	summary_cards_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	summary_cards_container.add_theme_constant_override("separation", SPACING_MD)
 	main_vbox.add_child(summary_cards_container)
-	
-	# 3. Crew Preview Section
+
+	# 2. Crew Preview Section
 	crew_preview_container = _create_crew_preview_section()
 	main_vbox.add_child(crew_preview_container)
-	
-	# 3.5. Validation Feedback Panel (NEW)
+
+	# 3. Validation Feedback Panel
 	validation_panel = ValidationPanel.new()
 	validation_panel.name = "ValidationPanel"
-	validation_feedback_container = validation_panel  # FIX: was never assigned, causing blank display
+	validation_feedback_container = validation_panel
 	main_vbox.add_child(validation_panel)
-	
-	# 4. Create Campaign Button
+
+	# === STICKY FOOTER (Outside scroll - always visible) ===
+	var footer := MarginContainer.new()
+	footer.add_theme_constant_override("margin_top", SPACING_MD)
+	footer.add_theme_constant_override("margin_bottom", SPACING_SM)
+	content_container.add_child(footer)
+
+	# 4. Create Campaign Button (in sticky footer)
 	create_button = _create_create_campaign_button()
-	main_vbox.add_child(create_button)
-	
-	print("FinalPanel: UI built successfully")
+	footer.add_child(create_button)
+
+	print("FinalPanel: UI built successfully with sticky footer")
 
 # NOTE: _create_progress_indicator() removed - CampaignCreationUI handles progress display centrally
 
@@ -434,7 +441,7 @@ func _create_captain_summary_card() -> PanelContainer:
 		if captain:
 			if captain is Dictionary:
 				captain_name = captain.get("character_name", captain.get("name", "Unknown Captain"))
-			elif captain.has("character_name"):
+			elif "character_name" in captain:
 				captain_name = captain.character_name
 	
 	# Captain Name (Enhanced: XL size, accent color)
@@ -463,22 +470,32 @@ func _create_captain_summary_card() -> PanelContainer:
 		class_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		content.add_child(class_label)
 	
-	# Captain Stats (using stat badges)
-	var captain_stats_hbox := HBoxContainer.new()
-	captain_stats_hbox.add_theme_constant_override("separation", SPACING_SM)
-	
+	# Captain Stats Grid (2 rows x 3 cols - all 6 stats)
+	var stats_grid := GridContainer.new()
+	stats_grid.columns = 3
+	stats_grid.add_theme_constant_override("h_separation", SPACING_SM)
+	stats_grid.add_theme_constant_override("v_separation", SPACING_XS)
+
 	# Extract captain stats safely
 	var captain: Variant = captain_data.get("captain", captain_data)
 	if captain is Dictionary:
 		var combat: int = captain.get("combat_skill", captain.get("combat", 0))
 		var reactions: int = captain.get("reactions", 0)
+		var toughness: int = captain.get("toughness", 0)
+		var savvy: int = captain.get("savvy", 0)
+		var speed: int = captain.get("speed", 0)
 		var xp: int = captain.get("xp", 0)
-		
-		captain_stats_hbox.add_child(_create_stat_badge("Combat", combat, true))  # Show +
-		captain_stats_hbox.add_child(_create_stat_badge("Reactions", reactions))
-		captain_stats_hbox.add_child(_create_stat_badge("XP", xp))
-	
-	content.add_child(captain_stats_hbox)
+
+		# Row 1: Combat, Reactions, Toughness
+		stats_grid.add_child(_create_stat_badge("Combat", combat, true))
+		stats_grid.add_child(_create_stat_badge("Reactions", reactions))
+		stats_grid.add_child(_create_stat_badge("Toughness", toughness))
+		# Row 2: Savvy, Speed, XP
+		stats_grid.add_child(_create_stat_badge("Savvy", savvy))
+		stats_grid.add_child(_create_stat_badge("Speed", speed))
+		stats_grid.add_child(_create_stat_badge("XP", xp))
+
+	content.add_child(stats_grid)
 	
 	return _create_section_card("Captain", content, "", "👤")
 

@@ -20,6 +20,9 @@ func before():
 
 func before_test():
 	"""Test-level setup - reset data before each test"""
+	# Set deterministic seed for reproducible random numbers
+	seed(12345)
+
 	basic_campaign = {
 		"captain": {"character_name": "TestCaptain", "experience": 20},
 		"crew": {"members": [{"character_name": "Crew1"}]},
@@ -27,10 +30,10 @@ func before_test():
 	}
 
 	wealthy_campaign = basic_campaign.duplicate(true)
-	wealthy_campaign.equipment.starting_credits = 150
+	wealthy_campaign["equipment"]["starting_credits"] = 150
 
 	large_crew_campaign = basic_campaign.duplicate(true)
-	large_crew_campaign.crew.members = [
+	large_crew_campaign["crew"]["members"] = [
 		{"character_name": "Crew1"},
 		{"character_name": "Crew2"},
 		{"character_name": "Crew3"},
@@ -39,7 +42,7 @@ func before_test():
 	]
 
 	veteran_campaign = basic_campaign.duplicate(true)
-	veteran_campaign.captain.experience = 60
+	veteran_campaign["captain"]["experience"] = 60
 
 func after():
 	"""Suite-level cleanup - runs once after all tests"""
