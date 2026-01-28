@@ -100,8 +100,8 @@ var character_name: String:
 @export var toughness: int = 0
 @export var savvy: int = 0
 @export var tech: int = 0
-@export var move: int = 0
-@export var speed: int = 4  # Movement speed in grid units
+@export var speed: int = 4  # Movement stat - canonical per Five Parsecs rules ("Speed" in core rules)
+@export var move: int = 4  # DEPRECATED: Use 'speed' instead. Alias kept for backwards compatibility.
 @export var luck: int = 0    # Luck modifier for rolls
 
 # Character State
@@ -465,8 +465,8 @@ static func generate_character(background_type: String = "") -> Character:
 	character.toughness = SafeTypeConverter.safe_int(_roll_dice_safe(1, 6), 1)
 	character.savvy = SafeTypeConverter.safe_int(_roll_dice_safe(1, 6), 1)
 	character.tech = SafeTypeConverter.safe_int(_roll_dice_safe(1, 6), 1)
-	character.move = SafeTypeConverter.safe_int(_roll_dice_safe(1, 6), 1)
 	character.speed = SafeTypeConverter.safe_int(_roll_dice_safe(1, 6), 4)
+	character.move = character.speed  # Keep move and speed in sync (speed is canonical)
 	character.luck = SafeTypeConverter.safe_int(_roll_dice_safe(1, 6), 0)
 	
 	# Initial equipment and state
@@ -868,8 +868,8 @@ static func generate_character_enhanced(config: Dictionary = {}) -> Character:
 	character.toughness = ceili(randf_range(2, 12) / 3.0)
 	character.savvy = ceili(randf_range(2, 12) / 3.0)
 	character.tech = ceili(randf_range(2, 12) / 3.0)
-	character.move = ceili(randf_range(2, 12) / 3.0)
 	character.speed = ceili(randf_range(2, 12) / 3.0)
+	character.move = character.speed  # Keep move and speed in sync (speed is canonical)
 	character.luck = randi_range(0, 2)  # Five Parsecs starting luck: 0-2
 	
 	# Apply mode-specific bonuses
@@ -915,8 +915,8 @@ static func generate_character_attributes(character: Character) -> void:
 		character.toughness = ceili(randf_range(2, 12) / 3.0)
 		character.savvy = ceili(randf_range(2, 12) / 3.0)
 		character.tech = ceili(randf_range(2, 12) / 3.0)
-		character.move = ceili(randf_range(2, 12) / 3.0)
 		character.speed = ceili(randf_range(2, 12) / 3.0)
+		character.move = character.speed  # Keep move and speed in sync (speed is canonical)
 		character.luck = randi_range(0, 2)
 
 static func apply_background_bonuses(character: Character) -> void:
@@ -938,7 +938,8 @@ static func apply_background_bonuses(character: Character) -> void:
 			character.toughness += 1
 		"PILOT":
 			character.reactions += 1
-			character.move += 1
+			character.speed += 1
+			character.move = character.speed  # Keep in sync
 		"SCHOLAR":
 			character.savvy += 2
 		"CRIMINAL":
@@ -1270,7 +1271,7 @@ func serialize() -> Dictionary:
 			"toughness": toughness,
 			"savvy": savvy,
 			"tech": tech,
-			"move": move
+			"speed": speed
 		},
 		
 		# Character state and progression
@@ -1332,7 +1333,6 @@ func to_dictionary() -> Dictionary:
 		"toughness": toughness,
 		"savvy": savvy,
 		"tech": tech,
-		"move": move,
 		"speed": speed,
 		"luck": luck,
 		"experience": experience,
@@ -1391,8 +1391,8 @@ static func deserialize(data: Dictionary) -> Character:
 		character.toughness = data.get("toughness", 3)
 		character.savvy = data.get("savvy", 1)
 		character.tech = data.get("tech", 1)
-		character.move = data.get("move", data.get("speed", 4))
 		character.speed = data.get("speed", data.get("move", 4))
+		character.move = character.speed  # Keep move and speed in sync (speed is canonical)
 		character.luck = data.get("luck", 0)
 	else:
 		# Nested format (legacy compatibility)
@@ -1401,8 +1401,8 @@ static func deserialize(data: Dictionary) -> Character:
 		character.toughness = stats.get("toughness", 3)
 		character.savvy = stats.get("savvy", 1)
 		character.tech = stats.get("tech", 1)
-		character.move = stats.get("move", stats.get("speed", 4))
 		character.speed = stats.get("speed", stats.get("move", 4))
+		character.move = character.speed  # Keep move and speed in sync (speed is canonical)
 		character.luck = stats.get("luck", 0)
 	
 	# Character state

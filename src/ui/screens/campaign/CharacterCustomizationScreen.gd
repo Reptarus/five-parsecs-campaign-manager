@@ -806,7 +806,7 @@ func _serialize_character(character: Character) -> Dictionary:
 		"background": character.background,
 		"motivation": character.motivation,
 		"combat": character.combat,
-		"reaction": character.reactions,
+		"reactions": character.reactions,
 		"toughness": character.toughness,
 		"savvy": character.savvy,
 		"speed": character.speed,

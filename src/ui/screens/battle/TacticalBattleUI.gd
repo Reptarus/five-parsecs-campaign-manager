@@ -1104,4 +1104,3 @@ class TacticalUnit:
 			var origin: String = str(original_character._origin).to_lower()
 			if "swift" in origin:
 				max_reactions_per_round = 1  # Swift limited to 1 reaction
-

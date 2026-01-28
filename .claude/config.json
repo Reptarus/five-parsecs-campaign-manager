@@ -8,7 +8,9 @@
           "@modelcontextprotocol/server-filesystem@latest",
           "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager"
         ],
-        "env": {},
+        "env": {
+          "NODE_ENV": "production"
+        },
         "restart_policy": "always"
       },
       "memory": {
@@ -20,30 +22,28 @@
         "env": {},
         "restart_policy": "always"
       },
+      "desktop-commander": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@wonderwhy-er/desktop-commander@latest"
+        ],
+        "env": {
+          "NODE_ENV": "production"
+        },
+        "restart_policy": "on-failure"
+      },
       "gemini-ai-orchestrator": {
         "command": "python3",
         "args": [
-          "/mnt/c/Users/elija/SynologyDrive/Creative-Tools-MCP/community-mcp-servers/claude-gemini-mcp-slim-main/gemini_mcp_server.py"
+          "/mnt/c/Users/elija/Creative-Tools-MCP/community-mcp-servers/claude-gemini-mcp-slim-main/gemini_mcp_server.py"
         ],
         "env": {
           "GOOGLE_API_KEY": "${GOOGLE_API_KEY}",
-          "GEMINI_FLASH_MODEL": "gemini-2.0-flash-exp",
+          "GEMINI_FLASH_MODEL": "gemini-2.5-flash",
           "GEMINI_PRO_MODEL": "gemini-2.0-flash-thinking-exp",
-          "PYTHONPATH": "/mnt/c/Users/elija/SynologyDrive/Creative-Tools-MCP"
+          "PYTHONPATH": "/mnt/c/Users/elija/Creative-Tools-MCP:/mnt/c/Users/elija/Creative-Tools-MCP/community-mcp-servers/claude-gemini-mcp-slim-main"
         },
-        "working_directory": "/mnt/c/Users/elija/SynologyDrive/Creative-Tools-MCP/community-mcp-servers/claude-gemini-mcp-slim-main",
-        "restart_policy": "on-failure"
-      },
-      "desktop-commander": {
-        "command": "python3",
-        "args": [
-          "-m",
-          "desktop_commander.server"
-        ],
-        "env": {
-          "PYTHONPATH": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager"
-        },
-        "working_directory": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager",
         "restart_policy": "on-failure"
       },
       "context7": {
@@ -52,16 +52,28 @@
           "-y",
           "@upstash/context7-mcp"
         ]
+      },
+      "godot": {
+        "command": "node",
+        "args": [
+          "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/godot-mcp/build/index.js"
+        ],
+        "env": {
+          "GODOT_PATH": "C:/Users/elija/Desktop/GoDot/Godot_v4.5.1-stable_win64.exe/Godot_v4.5.1-stable_win64_console.exe",
+          "DEBUG": "false",
+          "NODE_ENV": "production"
+        },
+        "restart_policy": "on-failure"
       }
     }
   },
   "environment": {
     "variables": {
       "GOOGLE_API_KEY": "${GOOGLE_API_KEY}",
-      "GEMINI_FLASH_MODEL": "gemini-2.0-flash-exp",
+      "GEMINI_FLASH_MODEL": "gemini-2.5-flash",
       "GEMINI_PRO_MODEL": "gemini-2.0-flash-thinking-exp",
       "MCP_ENVIRONMENT": "production",
-      "PYTHONPATH": "/mnt/c/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager:/mnt/c/Users/elija/SynologyDrive/Creative-Tools-MCP"
+      "PYTHONPATH": "/mnt/c/Users/elija/Creative-Tools-MCP"
     }
   },
   "logging": {
@@ -75,13 +87,8 @@
     "timeout_seconds": 10,
     "retry_attempts": 3
   },
-  "bridge": {
-    "requests_dir": "mcp_bridge/requests",
-    "responses_dir": "mcp_bridge/responses",
-    "cleanup_interval_hours": 24
-  },
-  "version": "1.0.0",
-  "created": "2025-08-12T20:34:00Z",
+  "version": "1.1.0",
+  "updated": "2026-01-25",
   "platform": "linux-wsl",
   "architecture": "cross-platform-mcp-ecosystem"
 }

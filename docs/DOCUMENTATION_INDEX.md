@@ -4,7 +4,7 @@
 
 ### 🚀 Getting Started
 - **[Quick Start Guide](QUICK_START.md)** - 5-minute setup for developers
-- **[Project Status](project_status.md)** - Current state: BETA_READY (94/100)
+- **[Project Status](project_status.md)** - Current state: BETA_READY (97/100)
 - **[README](README.md)** - Main documentation hub
 
 ### 🏗️ Technical Documentation
@@ -45,8 +45,9 @@
 Located in `docs/archive/`:
 - **[Refactoring Plan](archive/refactoring_plan.md)** - ✅ Completed
 - **[Alpha Release Summary](archive/ALPHA_RELEASE_SUMMARY.md)** - Historical
-- **[Campaign Implementation Analysis](archive/CAMPAIGN_TURN_IMPLEMENTATION_ANALYSIS_superseded.md)** - Superseded
-- [48 other archived documents] - Historical reference
+- **[Sprint 26 Retrospective](archive/SPRINT_26_RETROSPECTIVE.md)** - Sprint 26.8-26.12 completion
+- **[Signal Timeout Debug Plan](archive/SIGNAL_TIMEOUT_DEBUG_PLAN.md)** - ✅ Resolved
+- [98 other archived documents] - Historical reference
 
 ## 🔍 Quick Reference by Topic
 
@@ -78,16 +79,17 @@ Located in `docs/archive/`:
 - **Architecture**: Comprehensive guide available
 - **Deployment**: Full production guide created
 
-### Recent Updates (November 2025)
-- ✅ **BETA_READY achieved (94/100)** - Test-driven development complete
-- ✅ **76/79 tests passing (96.2%)** - Save/Load: 100%, E2E: 96.2%
-- ✅ **Data persistence validated** - Backend → UI data flow working
-- ✅ **8 critical bugs fixed** - Zero regressions via systematic testing
-- ✅ **2,800+ lines technical docs** - Week 3 retrospective, daily reports
-- ✅ Created Testing Guide in tests/TESTING_GUIDE.md
-- ✅ Updated Project Status to BETA_READY (94/100)
-- ✅ World phase architecture cleanup
-- ✅ File consolidation in progress (441 → target 150-250)
+### Recent Updates (January 2026)
+- ✅ **Campaign Transition Fix (Jan 17)**: 4 fixes to wizard→game handoff (dialog cleanup, API compatibility)
+- ✅ **BETA_READY achieved (97/100)** - Core rules implementation complete
+- ✅ **Sprint 26.18**: Safe data access consolidation (17 files, ~300 lines removed)
+- ✅ **Sprint 26.19+**: Character stat naming consistency audit (7 fixes across 5 files)
+- ✅ **Reaction economy system**: Full Five Parsecs reaction tracking
+- ✅ **BattleResolver integration**: Real combat calculations
+- ✅ **Bot upgrade system**: Credit-based advancement per Core Rules
+- ✅ **Event effects wiring**: 37+ campaign/character events functional
+- ✅ **Design system expansion**: 43 hardcoded colors standardized
+- ✅ **102 docs archived** - Historical documentation preserved
 
 ### Documentation Quality Metrics
 - **Player Documentation**: 100% complete (4,469 lines)

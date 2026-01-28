@@ -226,8 +226,10 @@ func _initialize_components() -> void:
 	_build_tutorial_section(main_container)
 	_build_controls_section(main_container)
 	
-	_connect_signals()
+	# SPRINT 27 FIX: Setup options BEFORE connecting signals to prevent double-loading
+	# (selecting default values triggers signal handlers, causing duplicate _update_display calls)
 	_setup_campaign_options()
+	_connect_signals()
 	_update_display()
 	_update_all_descriptions()
 	call_deferred("emit_panel_ready")

@@ -1243,10 +1243,11 @@ func _apply_xp_to_character(crew_member: Dictionary, amount: int, source: String
 
 		if char_id == character_id:
 			# Sprint 26.3: Character-Everywhere - handle Character objects first
+			# Sprint 27.4: Cleaned up dead xp code path - canonical property is 'experience'
 			var current_xp = 0
-			if character is Object and "xp" in character:
-				current_xp = character.xp if character.xp else 0
-				character.xp = current_xp + amount
+			if character is Object and character.has_method("add_experience"):
+				current_xp = character.experience if "experience" in character else 0
+				character.add_experience(amount)
 			elif character is Object and "experience" in character:
 				current_xp = character.experience if character.experience else 0
 				character.experience = current_xp + amount

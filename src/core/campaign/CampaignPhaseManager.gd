@@ -39,6 +39,11 @@ var post_battle_phase_handler: Node = null
 ## Current campaign reference - set by MainCampaignScene after wizard completion
 var current_campaign: Variant = null
 
+## Signal connection degraded state tracking
+## If true, some phase handlers may not receive signals properly
+var _signal_connections_degraded: bool = false
+var _failed_signal_connections: Array[String] = []
+
 ## Campaign Phase Manager Signals
 ## Sprint 25.1: Documentation for signal semantics
 ## phase_started: Signals phase processing is beginning (for UI state reset)
@@ -83,62 +88,63 @@ func _ready() -> void:
 
 
 
+## Helper function for safe signal connections - replaces assert with proper error handling
+func _safe_connect_signal(source: Object, signal_name: String, target_method: Callable) -> bool:
+	"""Safely connect a signal with error tracking instead of assertion crashes"""
+	if not source.has_signal(signal_name):
+		return false  # Signal doesn't exist, not an error
+
+	var result: Error = source.connect(signal_name, target_method)
+	if result != OK:
+		var error_desc = "%s.%s -> %s (error: %d)" % [source.get_class(), signal_name, target_method.get_method(), result]
+		push_error("CampaignPhaseManager: Failed to connect signal: " + error_desc)
+		_signal_connections_degraded = true
+		_failed_signal_connections.append(error_desc)
+		return false
+	return true
+
 func _initialize_phase_handlers() -> void:
 	"""Initialize the phase handler instances"""
 	if TravelPhase:
 		travel_phase_handler = TravelPhase.new()
 		add_child(travel_phase_handler)
-		# Connect signals
-		if travel_phase_handler.has_signal("travel_phase_completed"):
-			var result1: Error = travel_phase_handler.travel_phase_completed.connect(_on_travel_phase_completed)
-			assert(result1 == OK, "Failed to connect travel_phase_completed signal")
-		if travel_phase_handler.has_signal("travel_substep_changed"):
-			var result2: Error = travel_phase_handler.travel_substep_changed.connect(_on_travel_substep_changed)
-			assert(result2 == OK, "Failed to connect travel_substep_changed signal")
+		# Connect signals with safe error handling
+		_safe_connect_signal(travel_phase_handler, "travel_phase_completed", _on_travel_phase_completed)
+		_safe_connect_signal(travel_phase_handler, "travel_substep_changed", _on_travel_substep_changed)
 		# T-5 fix: Connect world_arrival_completed to receive world data from Travel Phase
-		if travel_phase_handler.has_signal("world_arrival_completed"):
-			var result_wac: Error = travel_phase_handler.world_arrival_completed.connect(_on_world_arrival_completed)
-			assert(result_wac == OK, "Failed to connect world_arrival_completed signal")
+		_safe_connect_signal(travel_phase_handler, "world_arrival_completed", _on_world_arrival_completed)
 		# T-1 fix: Connect invasion_battle_required for failed escape battles
-		if travel_phase_handler.has_signal("invasion_battle_required"):
-			var result_ibr: Error = travel_phase_handler.invasion_battle_required.connect(_on_invasion_battle_required)
-			assert(result_ibr == OK, "Failed to connect invasion_battle_required signal")
+		_safe_connect_signal(travel_phase_handler, "invasion_battle_required", _on_invasion_battle_required)
 
 	if WorldPhase:
 		world_phase_handler = WorldPhase.new()
 		add_child(world_phase_handler)
-		# Connect signals
-		if world_phase_handler.has_signal("world_phase_completed"):
-			var result3: Error = world_phase_handler.world_phase_completed.connect(_on_world_phase_completed)
-			assert(result3 == OK, "Failed to connect world_phase_completed signal")
-		if world_phase_handler.has_signal("world_substep_changed"):
-			var result4: Error = world_phase_handler.world_substep_changed.connect(_on_world_substep_changed)
-			assert(result4 == OK, "Failed to connect world_substep_changed signal")
+		# Connect signals with safe error handling
+		_safe_connect_signal(world_phase_handler, "world_phase_completed", _on_world_phase_completed)
+		_safe_connect_signal(world_phase_handler, "world_substep_changed", _on_world_substep_changed)
 
 	if BattlePhase:
 		battle_phase_handler = BattlePhase.new()
 		add_child(battle_phase_handler)
-		# Connect signals
-		if battle_phase_handler.has_signal("battle_phase_completed"):
-			var result_bp1: Error = battle_phase_handler.battle_phase_completed.connect(_on_battle_phase_completed)
-			assert(result_bp1 == OK, "Failed to connect battle_phase_completed signal")
-		if battle_phase_handler.has_signal("battle_substep_changed"):
-			var result_bp2: Error = battle_phase_handler.battle_substep_changed.connect(_on_battle_substep_changed)
-			assert(result_bp2 == OK, "Failed to connect battle_substep_changed signal")
-		if battle_phase_handler.has_signal("battle_results_ready"):
-			var result_bp3: Error = battle_phase_handler.battle_results_ready.connect(_on_battle_results_ready)
-			assert(result_bp3 == OK, "Failed to connect battle_results_ready signal")
+		# Connect signals with safe error handling
+		_safe_connect_signal(battle_phase_handler, "battle_phase_completed", _on_battle_phase_completed)
+		_safe_connect_signal(battle_phase_handler, "battle_substep_changed", _on_battle_substep_changed)
+		_safe_connect_signal(battle_phase_handler, "battle_results_ready", _on_battle_results_ready)
 
 	if PostBattlePhase:
 		post_battle_phase_handler = PostBattlePhase.new()
 		add_child(post_battle_phase_handler)
-		# Connect signals
-		if post_battle_phase_handler.has_signal("post_battle_phase_completed"):
-			var result5: Error = post_battle_phase_handler.post_battle_phase_completed.connect(_on_post_battle_phase_completed)
-			assert(result5 == OK, "Failed to connect post_battle_phase_completed signal")
-		if post_battle_phase_handler.has_signal("post_battle_substep_changed"):
-			var result6: Error = post_battle_phase_handler.post_battle_substep_changed.connect(_on_post_battle_substep_changed)
-			assert(result6 == OK, "Failed to connect post_battle_substep_changed signal")
+		# Connect signals with safe error handling
+		_safe_connect_signal(post_battle_phase_handler, "post_battle_phase_completed", _on_post_battle_phase_completed)
+		_safe_connect_signal(post_battle_phase_handler, "post_battle_substep_changed", _on_post_battle_substep_changed)
+
+	# Log summary of signal connection status
+	if _signal_connections_degraded:
+		push_warning("CampaignPhaseManager: Running in degraded mode - %d signal connections failed" % _failed_signal_connections.size())
+		for failed in _failed_signal_connections:
+			print("  - " + failed)
+	else:
+		print("CampaignPhaseManager: All phase handler signals connected successfully")
 
 func _connect_battle_results_manager() -> void:
 	"""Connect to BattleResultsManager for campaign integration"""
@@ -186,7 +192,19 @@ func _register_with_game_state() -> void:
 ## Set the current campaign reference and propagate to all phase handlers
 func set_campaign(campaign: Variant) -> void:
 	"""Set the campaign reference for this manager and all phase handlers.
-	Called by MainCampaignScene after campaign creation wizard completes."""
+	Called by MainCampaignScene after campaign creation wizard completes.
+	SPRINT 26.23: Added null/type validation"""
+
+	# SPRINT 26.23: Validate campaign is not null
+	if campaign == null:
+		push_error("CampaignPhaseManager: Received null campaign!")
+		return
+
+	# SPRINT 26.23: Check for expected type (FiveParsecsCampaignCore)
+	const FiveParsecsCampaignCore = preload("res://src/game/campaign/FiveParsecsCampaignCore.gd")
+	if not campaign is FiveParsecsCampaignCore:
+		push_warning("CampaignPhaseManager: Expected FiveParsecsCampaignCore, got %s - proceeding anyway" % campaign.get_class())
+
 	current_campaign = campaign
 
 	# Pass campaign reference to all phase handlers
@@ -206,12 +224,73 @@ func set_campaign(campaign: Variant) -> void:
 		post_battle_phase_handler.set_campaign(campaign)
 		print("CampaignPhaseManager: Post-battle phase handler received campaign reference")
 
-	print("CampaignPhaseManager: Campaign reference set - %s" % (campaign.campaign_name if campaign and "campaign_name" in campaign else "unnamed"))
+	print("CampaignPhaseManager: Campaign set - %s (type: %s)" % [
+		campaign.campaign_name if campaign and "campaign_name" in campaign else "unnamed",
+		campaign.get_class() if campaign else "null"
+	])
 
 ## Get the current campaign reference
 func get_campaign() -> Variant:
 	"""Get the current campaign resource reference."""
 	return current_campaign
+
+## Verify campaign handoff from creation wizard was successful
+func verify_campaign_handoff() -> Dictionary:
+	"""Verify campaign data was properly handed off from creation wizard.
+	Call this after campaign creation completes to ensure data integrity."""
+	var result = {
+		"valid": true,
+		"errors": [],
+		"warnings": [],
+		"data_summary": {}
+	}
+
+	# Check campaign reference
+	if not current_campaign:
+		result.errors.append("No campaign reference - handoff failed")
+		result.valid = false
+		print("CampaignPhaseManager: ❌ Campaign handoff FAILED - no campaign reference")
+	else:
+		result.data_summary["campaign_name"] = current_campaign.campaign_name if "campaign_name" in current_campaign else "MISSING"
+
+		# Check crew data
+		var crew: Array = []
+		if current_campaign.has_method("get_crew_members"):
+			crew = current_campaign.get_crew_members()
+		elif "crew_members" in current_campaign:
+			crew = current_campaign.crew_members
+		result.data_summary["crew_count"] = crew.size()
+		if crew.is_empty():
+			result.errors.append("No crew data in campaign")
+			result.valid = false
+
+		# Check captain data
+		var captain = {}
+		if current_campaign.has_method("get_captain"):
+			captain = current_campaign.get_captain()
+		elif "captain_data" in current_campaign:
+			captain = current_campaign.captain_data
+		result.data_summary["captain_present"] = not captain.is_empty() if captain is Dictionary else captain != null
+		if not result.data_summary["captain_present"]:
+			result.warnings.append("No captain data in campaign - may affect gameplay")
+
+		# Check ship data
+		var ship = {}
+		if current_campaign.has_method("get_ship"):
+			ship = current_campaign.get_ship()
+		elif "ship_data" in current_campaign:
+			ship = current_campaign.ship_data
+		result.data_summary["ship_present"] = not ship.is_empty() if ship is Dictionary else ship != null
+
+	# Log summary
+	if result.valid:
+		print("CampaignPhaseManager: ✅ Campaign handoff verified - %s" % str(result.data_summary))
+	else:
+		push_error("CampaignPhaseManager: Campaign handoff verification FAILED")
+		for error in result.errors:
+			push_error("  - " + error)
+
+	return result
 
 ## SPRINT 8.1: Verify all campaign data is ready before starting turn
 func _verify_campaign_data_ready() -> Dictionary:
@@ -229,6 +308,13 @@ func _verify_campaign_data_ready() -> Dictionary:
 			current_campaign = game_state_manager.get_current_campaign()
 			if current_campaign:
 				result.warnings.append("Campaign recovered from GameStateManager")
+
+	# CRITICAL: If campaign is still null after fallback, fail validation
+	if not current_campaign:
+		result.warnings.append("CRITICAL: No campaign reference available from any source - cannot proceed")
+		result.is_valid = false
+		push_error("CampaignPhaseManager: Campaign is null and GameStateManager fallback failed")
+		return result
 
 	# Verify crew data
 	var has_crew = false
@@ -286,6 +372,25 @@ func _verify_campaign_data_ready() -> Dictionary:
 			victory_conditions = current_campaign.victory_conditions
 	if victory_conditions.is_empty():
 		result.warnings.append("INFO: No victory conditions configured")
+
+	# Sprint 27.4: Turn 1 specific validation - verify wizard finalization completed
+	if turn_number == 0:  # About to start Turn 1
+		# Check that campaign has been properly initialized (game_phase set by finalization)
+		if current_campaign:
+			var game_phase = ""
+			if "game_phase" in current_campaign:
+				game_phase = current_campaign.game_phase
+			if game_phase != "ready_for_turn_system" and game_phase != "active":
+				result.warnings.append("CRITICAL: Campaign not properly finalized (game_phase: '%s')" % game_phase)
+				result.is_valid = false
+
+		# Verify starting location for Turn 1
+		var has_location = false
+		if game_state_manager and game_state_manager.has_method("get_current_location"):
+			var location = game_state_manager.get_current_location()
+			has_location = location != null and not location.is_empty() if location is Dictionary else location != null
+		if not has_location:
+			result.warnings.append("WARNING: No starting location set for Turn 1")
 
 	# Log warnings
 	if not result.warnings.is_empty():
@@ -527,6 +632,53 @@ func _get_current_mission_data() -> Variant:
 
 	# Last fallback: create placeholder mission
 	return _create_placeholder_mission()
+
+## Type conversion helpers for crew data (Sprint 26.3: Character-Everywhere)
+func _get_current_crew_data_as_dicts() -> Array[Dictionary]:
+	"""Get crew data as Array[Dictionary] for components expecting dicts"""
+	var crew_data = _get_current_crew_data()
+	var result: Array[Dictionary] = []
+	for member in crew_data:
+		if member is Dictionary:
+			result.append(member)
+		elif member is Character:
+			if member.has_method("to_dictionary"):
+				result.append(member.to_dictionary())
+			else:
+				# Manual conversion fallback
+				result.append({
+					"character_id": member.character_id if "character_id" in member else "",
+					"character_name": member.character_name if "character_name" in member else "",
+					"combat": member.combat if "combat" in member else 0,
+					"reactions": member.reactions if "reactions" in member else 0,
+					"toughness": member.toughness if "toughness" in member else 0,
+					"savvy": member.savvy if "savvy" in member else 0,
+					"speed": member.speed if "speed" in member else 4,
+					"is_captain": member.is_captain if "is_captain" in member else false
+				})
+		elif member is Object and member.has_method("to_dictionary"):
+			result.append(member.to_dictionary())
+	return result
+
+func _get_current_crew_data_as_characters() -> Array[Character]:
+	"""Get crew data as Array[Character] for components expecting Character objects"""
+	var crew_data = _get_current_crew_data()
+	var result: Array[Character] = []
+	for member in crew_data:
+		if member is Character:
+			result.append(member)
+		elif member is Dictionary:
+			var character = Character.new()
+			character.character_id = member.get("character_id", "")
+			character.character_name = member.get("character_name", member.get("name", ""))
+			character.combat = member.get("combat", 0)
+			character.reactions = member.get("reactions", 0)
+			character.toughness = member.get("toughness", 0)
+			character.savvy = member.get("savvy", 0)
+			character.speed = member.get("speed", member.get("move", 4))
+			character.is_captain = member.get("is_captain", false)
+			result.append(character)
+	return result
 
 func _get_current_crew_data() -> Array:
 	"""Get current crew data from GameState or CampaignManager with equipment"""
@@ -940,9 +1092,26 @@ func _on_phase_completed(phase: int, _data: Dictionary = {}) -> void:
 			start_phase(GlobalEnums.FiveParsecsCampaignPhase.BATTLE)
 
 		GlobalEnums.FiveParsecsCampaignPhase.BATTLE:
-			# Battle → Post-Battle: Get battle results
-			if battle_phase_handler and battle_phase_handler.has_method("get_battle_results"):
-				_last_battle_results = battle_phase_handler.get_battle_results()
+			# Battle → Post-Battle: Get battle results (Sprint 28 BUG-2 fix)
+			# Priority: 1) Signal-provided results, 2) Handler query, 3) Fallback placeholder
+			if _last_battle_results.is_empty():
+				# Results not yet received via signal - try to query handler directly
+				if battle_phase_handler and battle_phase_handler.has_method("get_battle_results"):
+					var handler_results = battle_phase_handler.get_battle_results()
+					if handler_results and not handler_results.is_empty():
+						_last_battle_results = handler_results
+						print("CampaignPhaseManager: Battle results obtained from handler")
+					else:
+						push_warning("CampaignPhaseManager: Battle handler returned empty results")
+			else:
+				print("CampaignPhaseManager: Using battle results from signal (already populated)")
+
+			# Validate we have results before proceeding
+			if _last_battle_results.is_empty():
+				push_warning("CampaignPhaseManager: ⚠️ No battle results available - PostBattle will use fallback data")
+			else:
+				print("CampaignPhaseManager: Battle → PostBattle with %d crew participants" % _last_battle_results.get("crew_participants", []).size())
+
 			start_phase(GlobalEnums.FiveParsecsCampaignPhase.POST_BATTLE)
 
 		GlobalEnums.FiveParsecsCampaignPhase.POST_BATTLE:

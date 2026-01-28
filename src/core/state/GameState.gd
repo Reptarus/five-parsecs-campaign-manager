@@ -1276,7 +1276,15 @@ func modify_resource(resource_type: int, amount: int) -> void:
 func get_crew_size() -> int:
 	if not _current_campaign:
 		return 0
-	return _current_campaign.get_crew_size()
+	# CRASH FIX: Safe method check before calling (FiveParsecsCampaignCore vs FiveParsecsCampaign)
+	if _current_campaign.has_method("get_crew_size"):
+		return _current_campaign.get_crew_size()
+	# Fallback: Try to get crew from dictionary-style access
+	if _current_campaign.has_method("get_crew_members"):
+		var crew = _current_campaign.get_crew_members()
+		if crew is Array:
+			return crew.size()
+	return 0
 
 func has_crew() -> bool:
 	return get_crew_size() > 0
@@ -1317,17 +1325,16 @@ func add_crew_experience(character_id: String, xp: int) -> bool:
 
 	# Try to add experience via method or property
 	# Sprint 26.3: Character-Everywhere - crew members are always Character objects
+	# Sprint 27.4: Cleaned up dead "xp" code paths - canonical property is "experience"
 	if character.has_method("add_experience"):
 		character.add_experience(xp)
 		print("GameState: Awarded %d XP to %s (via method)" % [xp, character_id])
-	elif "xp" in character:
-		character.xp = character.xp + xp
-		print("GameState: Awarded %d XP to %s (via property)" % [xp, character_id])
 	elif "experience" in character:
 		character.experience = character.experience + xp
 		print("GameState: Awarded %d XP to %s (via experience property)" % [xp, character_id])
-	elif character is Dictionary and "xp" in character:
-		character["xp"] = character.get("xp", 0) + xp
+	elif character is Dictionary:
+		# Legacy Dictionary support - use experience key
+		character["experience"] = character.get("experience", 0) + xp
 		print("GameState: Awarded %d XP to %s (via dict)" % [xp, character_id])
 	else:
 		push_error("GameState.add_crew_experience: Character has no XP tracking")

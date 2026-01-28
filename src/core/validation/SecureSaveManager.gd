@@ -1,12 +1,14 @@
-extends Node
+extends RefCounted
 class_name SecureSaveManager
 
 ## Secure Save Manager
 ## Handles validated and encrypted campaign saves
 ## Delegates to SaveManager autoload for actual file I/O
+## SPRINT 26.22: Changed from Node to RefCounted (not added to scene tree)
 
 const SaveManager = preload("res://src/core/state/SaveManager.gd")
 const SecurityValidator = preload("res://src/core/validation/SecurityValidator.gd")
+const FiveParsecsCampaignCore = preload("res://src/game/campaign/FiveParsecsCampaignCore.gd")
 
 var security_validator: FiveParsecsSecurityValidator
 
@@ -18,7 +20,14 @@ func save_campaign(campaign_data: Variant, file_path: String) -> Dictionary:
 	# Convert Resource to Dictionary if needed
 	var data_dict: Dictionary = {}
 	if campaign_data is Resource:
-		# Serialize Resource to Dictionary
+		# SPRINT 26.22: Use JSON save for FiveParsecsCampaignCore (consistent with load_from_file)
+		if campaign_data is FiveParsecsCampaignCore:
+			var result = campaign_data.save_to_file(file_path)
+			return {
+				"success": result == OK,
+				"error": "" if result == OK else "JSON save failed with code: %d" % result
+			}
+		# Fallback for other Resource types (use ResourceSaver)
 		var resource = campaign_data as Resource
 		var save_result = ResourceSaver.save(resource, file_path)
 		return {
@@ -42,13 +51,8 @@ func save_campaign(campaign_data: Variant, file_path: String) -> Dictionary:
 			"error": "Validation failed: %s" % str(validation.errors)
 		}
 
-	# Get SaveManager autoload
-	var save_manager = null
-	if has_node("/root/SaveManager"):
-		save_manager = get_node("/root/SaveManager")
-	else:
-		push_warning("SecureSaveManager: SaveManager autoload not found, creating fallback")
-		save_manager = SaveManager.new()
+	# Get SaveManager autoload (RefCounted can't use has_node/get_node)
+	var save_manager = _get_save_manager()
 
 	# Delegate to SaveManager
 	var success = save_manager.save_game(file_path, data_dict)
@@ -59,13 +63,8 @@ func save_campaign(campaign_data: Variant, file_path: String) -> Dictionary:
 
 func load_campaign(file_path: String) -> Dictionary:
 	"""Load campaign data with security validation"""
-	# Get SaveManager autoload
-	var save_manager = null
-	if has_node("/root/SaveManager"):
-		save_manager = get_node("/root/SaveManager")
-	else:
-		push_warning("SecureSaveManager: SaveManager autoload not found, creating fallback")
-		save_manager = SaveManager.new()
+	# Get SaveManager autoload (RefCounted can't use has_node/get_node)
+	var save_manager = _get_save_manager()
 
 	# Load data
 	var campaign_data = save_manager.load_game(file_path)
@@ -87,3 +86,16 @@ func verify_save_integrity(file_path: String) -> bool:
 
 	var campaign_data = load_campaign(file_path)
 	return not campaign_data.is_empty()
+
+## SPRINT 26.22: Helper to get SaveManager autoload from RefCounted context
+
+func _get_save_manager():
+	"""Get SaveManager autoload without requiring Node inheritance"""
+	var tree = Engine.get_main_loop() as SceneTree
+	if tree:
+		var save_manager = tree.root.get_node_or_null("/root/SaveManager")
+		if save_manager:
+			return save_manager
+	# Fallback: create new SaveManager instance
+	push_warning("SecureSaveManager: SaveManager autoload not found, creating fallback")
+	return SaveManager.new()

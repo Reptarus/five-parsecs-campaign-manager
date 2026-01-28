@@ -592,10 +592,10 @@ func _load_and_display_panel(phase: CampaignStateManager.Phase) -> void:
 		panel_instance.initialize()
 	else:
 		push_warning("Panel has no initialization method: %s" % scene_path)
-	
-	# Connect signals
-	_connect_panel_signals(panel_instance)
-	
+
+	# NOTE: Signal connection removed here - already done in _setup_panel_references()
+	# which handles coordinator integration properly (Sprint 26.20)
+
 	_is_transitioning = false
 	print("Panel loaded successfully: %s" % scene_path)
 
@@ -769,7 +769,18 @@ func _setup_panel_references(panel_instance: Control, phase: CampaignStateManage
 			print("CampaignCreationUI: Panel detected via duck typing")
 	
 	if is_campaign_panel:
-		# SPRINT 5.1.3 FIX: Use enhanced coordinator integration
+		# SPRINT 26.20 FIX: Use Dictionary container for closure capture
+		# GDScript closures capture by reference, but assignment creates shadow variables
+		# Using a Dictionary allows the lambda to modify the outer state
+		var panel_state = {"ready_received": false}
+		var ready_callback = func():
+			panel_state.ready_received = true
+
+		if panel_instance.has_signal("panel_ready"):
+			if not panel_instance.is_connected("panel_ready", ready_callback):
+				panel_instance.panel_ready.connect(ready_callback, CONNECT_ONE_SHOT)
+
+		# NOW pass coordinator (which triggers panel initialization and may emit panel_ready)
 		if coordinator and coordinator.has_method("pass_coordinator_to_panel"):
 			coordinator.pass_coordinator_to_panel(panel_instance)
 			print("CampaignCreationUI: ✅ Used enhanced coordinator integration")
@@ -779,43 +790,31 @@ func _setup_panel_references(panel_instance: Control, phase: CampaignStateManage
 			panel_instance.set_state_manager(state_manager)
 			print("CampaignCreationUI: ⚠️ Used legacy coordinator integration")
 
-		# SPRINT 3.2: Wait for panel_ready signal if available, otherwise fall back to process frame
-		# This ensures the panel is fully initialized before we connect signals
-		if panel_instance.has_signal("panel_ready"):
+		# Wait for panel_ready if we haven't received it yet
+		if panel_instance.has_signal("panel_ready") and not panel_state.ready_received:
 			# Create a timeout to avoid waiting forever
 			var timeout_timer = get_tree().create_timer(2.0)
-			var panel_ready_received = false
-
-			# One-shot connection for panel_ready
-			var ready_callback = func():
-				panel_ready_received = true
-
-			if not panel_instance.is_connected("panel_ready", ready_callback):
-				panel_instance.panel_ready.connect(ready_callback, CONNECT_ONE_SHOT)
 
 			# Wait for either panel_ready or timeout
-			while not panel_ready_received and timeout_timer.time_left > 0:
+			while not panel_state.ready_received and timeout_timer.time_left > 0:
 				await get_tree().process_frame
 
-			if panel_ready_received:
+			if panel_state.ready_received:
 				print("CampaignCreationUI: ✅ Panel ready signal received")
 			else:
 				print("CampaignCreationUI: ⚠️ Panel ready timeout - proceeding anyway")
+		elif panel_state.ready_received:
+			print("CampaignCreationUI: ✅ Panel ready signal already received (fast init)")
 		else:
 			# Fallback: wait one frame for panels without panel_ready signal
 			await get_tree().process_frame
 
-		# NOW configure and connect signals
+		# Configure panel title/description for this phase
 		_configure_panel_for_phase(panel_instance, phase)
+
+		# Connect panel signals (cleanup any existing first)
 		_connect_panel_signals(panel_instance)
-		
-		# CRITICAL FIX: Provide initial campaign state to panel
-		if coordinator and coordinator.has_method("provide_initial_state_to_panel"):
-			coordinator.provide_initial_state_to_panel(panel_instance)
-			print("CampaignCreationUI: ✅ Initial state provided to panel")
-		else:
-			print("CampaignCreationUI: ⚠️ Coordinator missing provide_initial_state_to_panel method")
-		
+
 		print("CampaignCreationUI: Panel setup complete with coordinator")
 	else:
 		push_warning("CampaignCreationUI: Panel is not a campaign panel type")
@@ -1099,12 +1098,25 @@ func _periodic_memory_cleanup() -> void:
 	if invalid_connections > 0:
 		print("CampaignCreationUI: ✅ Cleaned up %d invalid signal connections" % invalid_connections)
 
+func _get_panel_script_name(panel: Control) -> String:
+	"""Extract the panel script name for signal connection routing.
+	SPRINT 26.24: get_class() returns 'PanelContainer' for all panels since they
+	extend PanelContainer via BaseCampaignPanel. We need the actual script name."""
+	if panel and panel.get_script():
+		var script_path: String = panel.get_script().resource_path
+		# Extract filename without extension: ".../FinalPanel.gd" -> "FinalPanel"
+		var filename = script_path.get_file().get_basename()
+		return filename
+	return panel.get_class() if panel else ""
+
 func _connect_panel_signals(panel: Control) -> void:
 	"""Connect signals from panel to coordinator and state management with comprehensive coverage"""
 	if not panel:
 		return
-	
-	print("CampaignCreationUI: Connecting signals for panel: %s" % panel.get_class())
+
+	# SPRINT 26.24: Use script name instead of get_class() which returns "PanelContainer" for all panels
+	var panel_name = _get_panel_script_name(panel)
+	print("CampaignCreationUI: Connecting signals for panel: %s" % panel_name)
 	
 	# PHASE 4: Clean up previous connections before connecting new ones
 	_cleanup_panel_signals()
@@ -1122,14 +1134,14 @@ func _connect_panel_signals(panel: Control) -> void:
 				"callback": panel._on_campaign_state_updated
 			})
 
-			print("CampaignCreationUI: ✅ Connected coordinator.campaign_state_updated -> %s._on_campaign_state_updated" % panel.get_class())
+			print("CampaignCreationUI: ✅ Connected coordinator.campaign_state_updated -> %s._on_campaign_state_updated" % panel_name)
 		else:
-			print("CampaignCreationUI: ⚠️ coordinator.campaign_state_updated already connected to %s" % panel.get_class())
+			print("CampaignCreationUI: ⚠️ coordinator.campaign_state_updated already connected to %s" % panel_name)
 	else:
 		if not coordinator:
 			print("CampaignCreationUI: ⚠️ Coordinator not initialized")
 		elif not panel.has_method("_on_campaign_state_updated"):
-			print("CampaignCreationUI: ⚠️ Panel %s missing _on_campaign_state_updated method" % panel.get_class())
+			print("CampaignCreationUI: ⚠️ Panel %s missing _on_campaign_state_updated method" % panel_name)
 	
 	# Connect BaseCampaignPanel signals (standard interface) with safe connections
 	_safe_connect_signal(panel, "panel_data_changed", _on_panel_data_changed)
@@ -1139,32 +1151,32 @@ func _connect_panel_signals(panel: Control) -> void:
 	_safe_connect_signal(panel, "panel_ready", _on_panel_ready)
 	
 	# Connect specific panel signals based on panel type
-	var panel_class = panel.get_class()
-	match panel_class:
+	# SPRINT 26.24: Use panel_name (from script) instead of get_class() which returns "PanelContainer"
+	match panel_name:
 		"ConfigPanel", "ExpandedConfigPanel":
 			_connect_config_panel_signals(panel)
-		
+
 		"CaptainPanel":
 			_connect_captain_panel_signals(panel)
-		
+
 		"CrewPanel":
 			_connect_crew_panel_signals(panel)
-		
+
 		# REMOVED: "VictoryConditionsPanel" (merged into ExpandedConfigPanel)
-		
+
 		"EquipmentPanel":
 			_connect_equipment_panel_signals(panel)
-		
+
 		"ShipPanel":
 			_connect_ship_panel_signals(panel)
-		
+
 		"WorldInfoPanel":
 			_connect_world_panel_signals(panel)
-		
+
 		"FinalPanel":
 			_connect_final_panel_signals(panel)
-	
-	print("CampaignCreationUI: Signal connections completed for %s" % panel_class)
+
+	print("CampaignCreationUI: Signal connections completed for %s" % panel_name)
 
 func _connect_config_panel_signals(panel: Control) -> void:
 	"""GDScript 2.0: Connect ConfigPanel specific signals with victory conditions support and deduplication"""
@@ -1302,14 +1314,16 @@ func _disconnect_panel_signals(panel: Control) -> void:
 	"""Disconnect all signals from panel with comprehensive coverage"""
 	if not panel:
 		return
-	
-	print("CampaignCreationUI: Disconnecting signals for panel: %s" % panel.get_class())
-	
+
+	# SPRINT 26.24: Use script name for consistent logging
+	var panel_name = _get_panel_script_name(panel)
+	print("CampaignCreationUI: Disconnecting signals for panel: %s" % panel_name)
+
 	# CRITICAL FIX: Disconnect campaign data updates FROM the panel
 	if panel.has_method("_on_campaign_state_updated"):
 		if campaign_data_updated.is_connected(panel._on_campaign_state_updated):
 			campaign_data_updated.disconnect(panel._on_campaign_state_updated)
-			print("CampaignCreationUI: ✅ Disconnected campaign_data_updated from %s._on_campaign_state_updated" % panel.get_class())
+			print("CampaignCreationUI: ✅ Disconnected campaign_data_updated from %s._on_campaign_state_updated" % panel_name)
 	
 	# Disconnect common BaseCampaignPanel signals
 	if panel.has_signal("panel_data_changed") and panel.panel_data_changed.is_connected(_on_panel_data_changed):
@@ -1355,8 +1369,8 @@ func _disconnect_panel_signals(panel: Control) -> void:
 	# Disconnect ShipPanel specific signals
 	if panel.has_signal("ship_data_changed") and panel.ship_data_changed.is_connected(_on_ship_data_changed):
 		panel.ship_data_changed.disconnect(_on_ship_data_changed)
-	
-	print("CampaignCreationUI: Signal disconnections completed for %s" % panel.get_class())
+
+	print("CampaignCreationUI: Signal disconnections completed for %s" % panel_name)
 
 func _update_progress_for_phase(phase: CampaignStateManager.Phase) -> void:
 	"""Update progress indicator for current phase with step name"""
@@ -1452,9 +1466,17 @@ func _save_current_panel_state() -> void:
 
 	var data = current_panel.get_panel_data()
 	if data == null:
-		push_warning("CampaignCreationUI: get_panel_data() returned null - panel state not saved")
-		_show_panel_data_sync_warning("Unable to retrieve panel data. Your changes may not be saved.")
-		return
+		push_warning("CampaignCreationUI: get_panel_data() returned null - attempting recovery")
+		# Retry once after frame delay (panel may still be initializing)
+		if is_inside_tree():
+			await get_tree().process_frame
+			if is_inside_tree() and is_instance_valid(current_panel):
+				data = current_panel.get_panel_data()
+
+		if data == null:
+			push_error("CampaignCreationUI: CRITICAL - Panel data permanently unavailable after retry")
+			_show_panel_data_sync_warning("Unable to retrieve panel data. Your changes may not be saved.")
+			data = {}  # Use empty dict to continue instead of silent exit
 
 	if data.is_empty():
 		# Empty data is valid for some panels (e.g., no changes made yet)
@@ -1513,8 +1535,9 @@ func _route_data_to_coordinator_with_validation(data: Dictionary) -> bool:
 				data_routed = true
 
 		CampaignStateManager.Phase.CAPTAIN_CREATION:
-			if data.has("captain"):
-				coordinator.update_captain_state(data.captain)
+			# CRITICAL FIX: Pass FULL data object so coordinator can access captain_character for stats
+			if data.has("captain") or data.has("captain_character"):
+				coordinator.update_captain_state(data)
 				data_routed = true
 			elif data.has("captain_name") or data.has("captain_background") or data.has("name") or data.has("background"):
 				coordinator.update_captain_state(data)
@@ -1651,9 +1674,10 @@ func _route_data_to_coordinator(data: Dictionary) -> void:
 		
 		CampaignStateManager.Phase.CAPTAIN_CREATION:
 			# Captain data can come in various formats - check all possibilities
-			if data.has("captain"):
-				# Extract captain data from nested structure
-				coordinator.update_captain_state(data.captain)
+			# CRITICAL FIX: Pass FULL data object so coordinator can access captain_character for stats
+			if data.has("captain") or data.has("captain_character"):
+				# Pass full data - coordinator needs both nested captain dict AND captain_character
+				coordinator.update_captain_state(data)
 			elif data.has("captain_name") or data.has("captain_background") or data.has("name") or data.has("background"):
 				# Pass individual captain properties directly
 				coordinator.update_captain_state(data)
@@ -1736,16 +1760,27 @@ func _on_panel_completed(data: Dictionary) -> void:
 	print("  Data size: %d items" % data.size())
 	print("  Current panel: %s" % (current_panel.get_class() if current_panel else "None"))
 	
-	# Validate state manager and coordinator
-	if not state_manager:
-		push_error("CampaignCreationUI: CRITICAL - state_manager is null during panel completion!")
-		print("=====================================")
-		return
-	
+	# Validate state manager and coordinator with recovery attempts
 	if not coordinator:
 		push_error("CampaignCreationUI: CRITICAL - coordinator is null during panel completion!")
 		print("=====================================")
 		return
+
+	if not state_manager:
+		push_warning("CampaignCreationUI: state_manager is null - attempting recovery from coordinator")
+		# Try to recover state_manager from coordinator
+		if coordinator and "state_manager" in coordinator:
+			state_manager = coordinator.state_manager
+			if state_manager:
+				push_warning("CampaignCreationUI: Recovered state_manager from coordinator")
+			else:
+				push_error("CampaignCreationUI: CRITICAL - coordinator.state_manager is also null!")
+				print("=====================================")
+				return
+		else:
+			push_error("CampaignCreationUI: CRITICAL - Cannot recover state_manager, coordinator lacks state_manager property")
+			print("=====================================")
+			return
 	
 	# Get current phase info
 	var current_phase = state_manager.get_current_phase()
@@ -2013,8 +2048,15 @@ func _validate_campaign_completion() -> bool:
 		print("CampaignCreationUI: Warning - No crew members created")
 	
 	# Validate victory conditions (now in campaign_config)
-	var victory_conditions_complete = campaign_state.get("campaign_config", {}).get("victory_conditions", {}).get("is_complete", false)
-	if not victory_conditions_complete:
+	# Victory conditions are stored as nested dictionaries - check if any condition is selected
+	var victory_conditions = campaign_state.get("campaign_config", {}).get("victory_conditions", {})
+	var has_victory_condition := false
+	for key in victory_conditions:
+		var condition_data = victory_conditions.get(key, {})
+		if condition_data is Dictionary and not condition_data.is_empty():
+			has_victory_condition = true
+			break
+	if not has_victory_condition:
 		errors.append("Victory conditions are not set")
 	
 	# Validate ship
@@ -2115,44 +2157,62 @@ func _initialize_victory_condition_tracker(campaign_data: Dictionary) -> void:
 	else:
 		print("CampaignCreationUI: Warning - AutoloadManager not available for victory condition storage")
 
-func _transition_to_campaign_scene(campaign_data: Dictionary) -> void:
-	"""Transition to the main campaign management screen with enhanced safety"""
+func _transition_to_campaign_scene(data: Dictionary) -> void:
+	"""Transition to the main campaign management screen with enhanced safety
+	SPRINT 26.23: Handles both new result format (with 'campaign' Resource) and legacy Dictionary format"""
+
+	# SPRINT 26.23: Detect format - new has "campaign" key with Resource, legacy is raw dict
+	var campaign_resource = data.get("campaign") if data.has("campaign") else null
+	var save_path = data.get("save_path", "")
+	var raw_data = data.get("raw_data", data) if data.has("campaign") else data
+
 	# PHASE 3 FIX: Enhanced structured logging for debugging
 	print("=== CAMPAIGN TRANSITION DEBUG ===")
-	print("Campaign name: %s" % campaign_data.get("campaign_name", "Unknown"))
-	print("Crew size: %d" % campaign_data.get("crew", []).size())
-	print("Ship configured: %s" % str(campaign_data.has("ship")))
-	print("World generated: %s" % str(campaign_data.has("world")))
-	print("Equipment count: %d" % campaign_data.get("equipment", {}).get("items", []).size())
-	print("Victory conditions set: %s" % str(campaign_data.get("campaign_config", {}).has("victory_conditions")))
+	if campaign_resource:
+		print("Campaign resource type: %s" % campaign_resource.get_class())
+		print("Campaign name: %s" % (campaign_resource.campaign_name if "campaign_name" in campaign_resource else "Unknown"))
+		print("Save path: %s" % save_path)
+	else:
+		# Legacy mode - no resource, using raw dictionary
+		print("Legacy mode: No campaign resource, using raw dictionary")
+		print("Campaign name: %s" % raw_data.get("campaign_name", raw_data.get("name", "Unknown")))
+	print("Raw data keys: %s" % str(raw_data.keys()))
 	print("================================")
 
-	# PHASE 1 FIX: Validate campaign data integrity before transition
-	if campaign_data.is_empty():
+	# SPRINT 26.23: For new format, validate campaign resource; for legacy, validate raw_data
+	if data.has("campaign") and not campaign_resource:
+		push_error("CampaignCreationUI: No campaign resource - cannot transition")
+		_show_transition_error("Campaign resource is missing. Please try creating the campaign again.")
+		return
+
+	if raw_data.is_empty():
 		push_error("CampaignCreationUI: Empty campaign data - cannot transition")
 		_show_transition_error("Campaign data is missing. Please try creating the campaign again.")
 		return
 
-	if not campaign_data.has("campaign_config") or not campaign_data.has("crew"):
-		push_error("CampaignCreationUI: Invalid campaign data structure - missing required sections")
-		_show_transition_error("Campaign data is incomplete. Please verify all wizard steps are complete.")
-		return
-
 	# PHASE 3 FIX: Log validation success
-	print("✅ Campaign data validation successful - all required sections present")
+	print("✅ Campaign data validation successful")
 
 	# Validate AutoloadManager availability
 	if not AutoloadManager:
 		push_warning("CampaignCreationUI: AutoloadManager not available, proceeding without state storage")
 	else:
-		# Store campaign data in global state if available
+		# SPRINT 26.23: Store campaign RESOURCE if available, otherwise store dictionary (legacy)
 		var game_state = AutoloadManager.get_autoload_safe("GameState")
 		if game_state:
-			# SPRINT 6.3: Store data in the format MainCampaignScene expects
-			game_state.set_meta("pending_campaign_data", campaign_data)
-			game_state.current_campaign = campaign_data
-			game_state.campaign_loaded = true
-			print("CampaignCreationUI: Campaign data stored in GameState meta and current_campaign")
+			if campaign_resource:
+				# New path: Store the finalized resource for MainCampaignScene
+				game_state.set_meta("pending_campaign_resource", campaign_resource)
+				game_state.set_meta("pending_campaign_save_path", save_path)
+				game_state.current_campaign = campaign_resource
+				# Note: campaign_loaded signal emitted automatically by current_campaign setter
+				print("CampaignCreationUI: Campaign resource stored in GameState meta and current_campaign")
+			else:
+				# Legacy path: Store raw dictionary
+				game_state.set_meta("pending_campaign_data", raw_data)
+				game_state.current_campaign = raw_data
+				# Note: campaign_loaded signal emitted automatically by current_campaign setter
+				print("CampaignCreationUI: Legacy - Campaign data stored in GameState meta")
 
 			# PHASE 3 FIX: Auto-save the newly created campaign
 			var game_state_manager = AutoloadManager.get_autoload_safe("GameStateManager")
@@ -2188,7 +2248,7 @@ func _transition_to_campaign_scene(campaign_data: Dictionary) -> void:
 
 			# Show success dialog before transitioning if not going to main menu
 			if not scene_path.ends_with("MainMenu.tscn"):
-				_show_campaign_success_dialog(campaign_data, scene_path)
+				_show_campaign_success_dialog(raw_data, scene_path)
 			else:
 				# Direct transition to main menu as fallback
 				print("⚠️ Fallback: Transitioning to main menu")
@@ -2205,8 +2265,14 @@ func _transition_to_campaign_scene(campaign_data: Dictionary) -> void:
 
 func _show_campaign_success_dialog(campaign_data: Dictionary, target_scene: String) -> void:
 	"""Show success dialog before transitioning to campaign scene"""
+	# CRASH FIX: Ensure any existing dialogs are closed first to prevent exclusive window conflict
+	if _validation_error_dialog and is_instance_valid(_validation_error_dialog):
+		_validation_error_dialog.hide()
+		_validation_error_dialog.queue_free()
+		_validation_error_dialog = null
+
 	var campaign_name = campaign_data.get("campaign_name", "Unnamed Campaign")
-	
+
 	# Create success dialog
 	var success_dialog = AcceptDialog.new()
 	success_dialog.title = "Campaign Created Successfully!"
@@ -2478,22 +2544,32 @@ func _on_campaign_creation_requested_from_panel(campaign_data: Dictionary) -> vo
 	# This is the actual FinalPanel button press - trigger full finalization
 	_on_finish_pressed()
 
-func _on_campaign_finalization_complete_from_panel(data: Dictionary) -> void:
-	"""Handle campaign finalization completion from FinalPanel via bridge"""
+func _on_campaign_finalization_complete_from_panel(result: Dictionary) -> void:
+	"""Handle campaign finalization completion from FinalPanel via bridge
+	SPRINT 26.23: Now receives result with Campaign resource, not just raw dictionary"""
 	print("CampaignCreationUI: Campaign finalization completed from FinalPanel")
 
-	# SPRINT 6.3: Store campaign data in GameState for MainCampaignScene
+	# SPRINT 26.23: Extract the finalized Campaign resource
+	var campaign_resource = result.get("campaign")
+	var save_path = result.get("save_path", "")
+
+	if not campaign_resource:
+		push_error("CampaignCreationUI: No campaign resource in finalization result!")
+		return
+
+	# SPRINT 26.23: Store the RESOURCE (not dictionary) for MainCampaignScene
 	if AutoloadManager:
 		var game_state = AutoloadManager.get_autoload_safe("GameState")
 		if game_state:
-			game_state.set_meta("pending_campaign_data", data)
-			print("CampaignCreationUI: Stored campaign data for MainCampaignScene transition")
+			game_state.set_meta("pending_campaign_resource", campaign_resource)
+			game_state.set_meta("pending_campaign_save_path", save_path)
+			print("CampaignCreationUI: Stored campaign resource for MainCampaignScene transition")
 
 	# Emit completion signal (for any listening MainCampaignScene instances)
-	campaign_completion_ready.emit(data)
+	campaign_completion_ready.emit(result)
 
 	# FIX: Always transition after successful finalization (removed broken auto_transition check)
-	_transition_to_campaign_scene(data)
+	_transition_to_campaign_scene(result)
 
 ## Sprint 20.3: Handler for Create Campaign button confirmation
 func _on_campaign_confirmed_from_panel() -> void:

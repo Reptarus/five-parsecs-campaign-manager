@@ -38,6 +38,7 @@ var coordinator: Node = null
 func set_coordinator(coord: Node) -> void:
 	"""Set coordinator reference for consistent access"""
 	coordinator = coord
+	_coordinator = coord  # BUGFIX: Also set base class variable for consistency
 	print("FinalPanel: Coordinator set")
 	if coordinator and coordinator.has_signal("campaign_state_updated"):
 		if not coordinator.campaign_state_updated.is_connected(_on_campaign_state_updated):
@@ -62,6 +63,8 @@ func _on_campaign_state_updated(state_data: Dictionary) -> void:
 	# Update final panel with complete campaign state
 	campaign_data = state_data.duplicate()
 	_update_display()
+	# Sprint 26.20: Emit standard panel signal for BaseCampaignPanel contract
+	panel_data_changed.emit(get_panel_data())
 
 
 func _ready() -> void:
@@ -112,7 +115,15 @@ func _setup_panel_content() -> void:
 	pass
 
 func _build_final_panel_ui() -> void:
-	"""Build the complete final panel UI with styled cards and sticky footer"""
+	"""Build the complete final panel UI - use parent's scroll, don't nest
+
+	SPRINT 27.2 FIX: BaseCampaignPanel.tscn already has FormContent (ScrollContainer)
+	containing FormContainer (content_container). Creating another ScrollContainer
+	inside causes layout issues - the inner scroll has undefined height and collapses.
+
+	Solution: Add content directly to content_container (the VBoxContainer inside the
+	existing ScrollContainer from the base class).
+	"""
 	if not content_container:
 		push_error("FinalPanel: No content_container available")
 		return
@@ -121,46 +132,38 @@ func _build_final_panel_ui() -> void:
 	for child in content_container.get_children():
 		child.queue_free()
 
-	# === SCROLLABLE CONTENT AREA ===
-	var main_scroll := ScrollContainer.new()
-	main_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	main_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content_container.add_child(main_scroll)
-
-	var main_vbox := VBoxContainer.new()
-	main_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	main_vbox.add_theme_constant_override("separation", SPACING_LG)
-	main_scroll.add_child(main_vbox)
+	# DON'T create ScrollContainer - FormContent already scrolls!
+	# Add directly to content_container (FormContainer inside FormContent)
 
 	# NOTE: Progress indicator removed - CampaignCreationUI handles progress display centrally
 
 	# 1. Summary Cards Container
 	summary_cards_container = VBoxContainer.new()
+	summary_cards_container.name = "SummaryCards"
 	summary_cards_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	summary_cards_container.add_theme_constant_override("separation", SPACING_MD)
-	main_vbox.add_child(summary_cards_container)
+	content_container.add_child(summary_cards_container)
 
 	# 2. Crew Preview Section
 	crew_preview_container = _create_crew_preview_section()
-	main_vbox.add_child(crew_preview_container)
+	content_container.add_child(crew_preview_container)
 
 	# 3. Validation Feedback Panel
 	validation_panel = ValidationPanel.new()
 	validation_panel.name = "ValidationPanel"
 	validation_feedback_container = validation_panel
-	main_vbox.add_child(validation_panel)
+	content_container.add_child(validation_panel)
 
-	# === STICKY FOOTER (Outside scroll - always visible) ===
+	# 4. Create Campaign Button (at bottom of scroll content)
 	var footer := MarginContainer.new()
 	footer.add_theme_constant_override("margin_top", SPACING_MD)
 	footer.add_theme_constant_override("margin_bottom", SPACING_SM)
 	content_container.add_child(footer)
 
-	# 4. Create Campaign Button (in sticky footer)
 	create_button = _create_create_campaign_button()
 	footer.add_child(create_button)
 
-	print("FinalPanel: UI built successfully with sticky footer")
+	print("FinalPanel: UI built successfully (no nested scroll)")
 
 # NOTE: _create_progress_indicator() removed - CampaignCreationUI handles progress display centrally
 
@@ -429,20 +432,52 @@ func _create_ship_summary_card() -> PanelContainer:
 	
 	return _create_section_card("Ship Details", content, "", "🚀")
 
+## Data Contract Helpers - Standardized captain data access
+func _get_captain_name_from_data(captain_data: Dictionary) -> String:
+	"""Get captain name using standardized data contract.
+	Priority: character_name (canonical) > name (legacy) > nested captain object"""
+	# Try canonical key first
+	if captain_data.has("character_name") and not captain_data.get("character_name", "").is_empty():
+		return captain_data["character_name"]
+	# Try legacy key
+	if captain_data.has("name") and not captain_data.get("name", "").is_empty():
+		return captain_data["name"]
+	# Try nested captain object
+	var nested_captain = captain_data.get("captain", {})
+	if nested_captain is Dictionary:
+		if nested_captain.has("character_name"):
+			return nested_captain.get("character_name", "Unknown Captain")
+		return nested_captain.get("name", "Unknown Captain")
+	elif nested_captain is Object and "character_name" in nested_captain:
+		return nested_captain.character_name
+	# Fallback
+	return "Unknown Captain"
+
+func _get_captain_stats_from_data(captain_data: Dictionary) -> Dictionary:
+	"""Get captain stats from data with standardized key handling"""
+	var captain = captain_data.get("captain", captain_data)
+	if not captain is Dictionary:
+		if captain is Object and captain.has_method("to_dictionary"):
+			captain = captain.to_dictionary()
+		else:
+			return {}
+	return {
+		"combat": captain.get("combat_skill", captain.get("combat", 0)),
+		"reactions": captain.get("reactions", 0),
+		"toughness": captain.get("toughness", 0),
+		"savvy": captain.get("savvy", 0),
+		"tech": captain.get("tech", 0),
+		"speed": captain.get("speed", captain.get("move", 4)),
+		"xp": captain.get("xp", captain.get("experience", 0))
+	}
+
 func _create_captain_summary_card() -> PanelContainer:
 	"""Create Card 3: Captain Info"""
 	var content := VBoxContainer.new()
 	content.add_theme_constant_override("separation", SPACING_SM)
-	
+
 	var captain_data = campaign_data.get("captain", {})
-	var captain_name = captain_data.get("name", "")
-	if captain_name.is_empty():
-		var captain = captain_data.get("captain")
-		if captain:
-			if captain is Dictionary:
-				captain_name = captain.get("character_name", captain.get("name", "Unknown Captain"))
-			elif "character_name" in captain:
-				captain_name = captain.character_name
+	var captain_name = _get_captain_name_from_data(captain_data)
 	
 	# Captain Name (Enhanced: XL size, accent color)
 	var name_label := Label.new()
@@ -476,24 +511,19 @@ func _create_captain_summary_card() -> PanelContainer:
 	stats_grid.add_theme_constant_override("h_separation", SPACING_SM)
 	stats_grid.add_theme_constant_override("v_separation", SPACING_XS)
 
-	# Extract captain stats safely
-	var captain: Variant = captain_data.get("captain", captain_data)
-	if captain is Dictionary:
-		var combat: int = captain.get("combat_skill", captain.get("combat", 0))
-		var reactions: int = captain.get("reactions", 0)
-		var toughness: int = captain.get("toughness", 0)
-		var savvy: int = captain.get("savvy", 0)
-		var speed: int = captain.get("speed", 0)
-		var xp: int = captain.get("xp", 0)
-
+	# Extract captain stats using helper (standardized key handling)
+	var stats = _get_captain_stats_from_data(captain_data)
+	if not stats.is_empty():
 		# Row 1: Combat, Reactions, Toughness
-		stats_grid.add_child(_create_stat_badge("Combat", combat, true))
-		stats_grid.add_child(_create_stat_badge("Reactions", reactions))
-		stats_grid.add_child(_create_stat_badge("Toughness", toughness))
-		# Row 2: Savvy, Speed, XP
-		stats_grid.add_child(_create_stat_badge("Savvy", savvy))
-		stats_grid.add_child(_create_stat_badge("Speed", speed))
-		stats_grid.add_child(_create_stat_badge("XP", xp))
+		stats_grid.add_child(_create_stat_badge("Combat", stats.get("combat", 0), true))
+		stats_grid.add_child(_create_stat_badge("Reactions", stats.get("reactions", 0)))
+		stats_grid.add_child(_create_stat_badge("Toughness", stats.get("toughness", 0)))
+		# Row 2: Savvy, Tech, Speed
+		stats_grid.add_child(_create_stat_badge("Savvy", stats.get("savvy", 0)))
+		stats_grid.add_child(_create_stat_badge("Tech", stats.get("tech", 0)))
+		stats_grid.add_child(_create_stat_badge("Speed", stats.get("speed", 4)))
+		# Row 3: XP (standalone - important stat)
+		stats_grid.add_child(_create_stat_badge("XP", stats.get("xp", 0)))
 
 	content.add_child(stats_grid)
 	
@@ -899,14 +929,22 @@ func _on_create_campaign_pressed() -> void:
 		# Load and use CampaignFinalizationService
 		const CampaignFinalizationService = preload("res://src/core/campaign/creation/CampaignFinalizationService.gd")
 		var service = CampaignFinalizationService.new()
-		var state_manager = coordinator.state_manager if coordinator and coordinator.has("state_manager") else null
+		var state_manager = coordinator.state_manager if coordinator and "state_manager" in coordinator else null
 		
 		var result = await service.finalize_campaign(campaign_data, state_manager)
-		
+
 		if result.success:
-			print("FinalPanel: Campaign finalized successfully")
+			# SPRINT 26.23: Extract the finalized Campaign resource from result
+			var finalized_campaign = result.get("campaign")
+			var save_path = result.get("save_path", "")
+			print("FinalPanel: Campaign finalized successfully - saved to: %s" % save_path)
 			campaign_creation_requested.emit(campaign_data)
-			campaign_finalization_complete.emit(campaign_data)
+			# SPRINT 26.23: Emit result with Campaign resource, not just raw dictionary
+			campaign_finalization_complete.emit({
+				"campaign": finalized_campaign,
+				"save_path": save_path,
+				"raw_data": campaign_data
+			})
 			# Note: CampaignCreationUI handles transition via _on_campaign_finalization_complete_from_panel
 		else:
 			print("FinalPanel: Finalization failed: ", result.error)
@@ -919,14 +957,18 @@ func _on_create_campaign_pressed() -> void:
 func _validate_and_complete() -> void:
 	"""Enhanced validation with coordinator pattern integration"""
 	last_validation_errors = _validate_campaign_data()
-	
+
 	if not last_validation_errors.is_empty():
 		is_campaign_complete = false
 		validation_failed.emit(last_validation_errors)
+		# Sprint 26.20: Emit standard panel signal for BaseCampaignPanel contract
+		panel_validation_changed.emit(false)
 		print("FinalPanel: Campaign validation failed: ", last_validation_errors)
 	else:
 		is_campaign_complete = _check_completion_requirements()
-		
+		# Sprint 26.20: Emit standard panel signal for BaseCampaignPanel contract
+		panel_validation_changed.emit(is_campaign_complete)
+
 		if is_campaign_complete:
 			print("FinalPanel: Campaign finalization validation passed")
 		else:
@@ -958,14 +1000,18 @@ func _check_completion_requirements() -> bool:
 	else:
 		print("FinalPanel: ❌ CAPTAIN phase incomplete")
 	
-	# Check CREW phase - at least 4 crew members
+	# Check CREW phase - must meet user's selected crew size (or minimum 4)
 	var crew_data = campaign_data.get("crew", {})
 	var crew_members = crew_data.get("members", [])
-	if crew_members.size() >= 4:
+	# CRITICAL FIX: Use crew_size from data if available, otherwise default to game minimum (4)
+	var required_crew_size = crew_data.get("crew_size", crew_data.get("selected_size", crew_data.get("size", 4)))
+	if required_crew_size < 4:
+		required_crew_size = 4  # Enforce game minimum
+	if crew_members.size() >= required_crew_size:
 		completed_phases += 1
-		print("FinalPanel: ✅ CREW phase complete (%d members)" % crew_members.size())
+		print("FinalPanel: ✅ CREW phase complete (%d/%d members)" % [crew_members.size(), required_crew_size])
 	else:
-		print("FinalPanel: ❌ CREW phase incomplete (%d/4 members)" % crew_members.size())
+		print("FinalPanel: ❌ CREW phase incomplete (%d/%d members)" % [crew_members.size(), required_crew_size])
 	
 	# Check SHIP phase - ship with name
 	var ship_data = campaign_data.get("ship", {})
@@ -1064,8 +1110,11 @@ func _validate_campaign_data() -> Array[String]:
 	has_captain = captain_data.size() > 0
 	if has_captain:
 		completed_phases += 1
-	# CREW
-	if crew_members.size() >= 4:
+	# CREW - use crew_size from data if available
+	var validation_crew_size = crew_data.get("crew_size", crew_data.get("selected_size", crew_data.get("size", 4)))
+	if validation_crew_size < 4:
+		validation_crew_size = 4  # Enforce game minimum
+	if crew_members.size() >= validation_crew_size:
 		completed_phases += 1
 	elif crew_members.size() > 0:
 		# At least some crew, still counts as partial progress
@@ -1237,14 +1286,17 @@ func _log_mathematical_validation() -> void:
 	# Crew size validation
 	var crew_data = campaign_data.get("crew", {})
 	var crew_size = crew_data.get("members", []).size()
-	
+	var debug_required_crew = crew_data.get("crew_size", crew_data.get("selected_size", crew_data.get("size", 4)))
+	if debug_required_crew < 4:
+		debug_required_crew = 4
+
 	# Output mathematical validation
 	print("    Captain Total Skills: %d" % captain_total)
 	print("    Equipment Value: %d credits" % equipment_value)
 	print("    Net Worth: %d credits (Credits: %d - Debt: %d + Equipment: %d)" % [
 		net_worth, credits, debt, equipment_value
 	])
-	print("    Crew Size: %d/4 minimum (%s)" % [crew_size, "VALID" if crew_size >= 4 else "INVALID"])
+	print("    Crew Size: %d/%d required (%s)" % [crew_size, debug_required_crew, "VALID" if crew_size >= debug_required_crew else "INVALID"])
 	print("    Campaign Ready: %s" % ("YES" if is_campaign_complete else "NO"))
 
 ## Responsive Layout Overrides

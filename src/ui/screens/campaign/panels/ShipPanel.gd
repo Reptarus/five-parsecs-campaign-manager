@@ -61,6 +61,17 @@ var _completion_emitted: bool = false
 
 func _on_campaign_state_updated(state_data: Dictionary) -> void:
 	"""Override from interface - handle campaign state updates"""
+	# CRITICAL FIX: Ignore updates that originated from this panel to prevent double-loading
+	var source = state_data.get("source", "")
+	if source == "ship_panel":
+		print("ShipPanel: Ignoring update from self (source: ship_panel)")
+		return
+
+	var phase = state_data.get("phase", "")
+	if phase == "ship_update":
+		print("ShipPanel: Ignoring ship_update phase (self-update)")
+		return
+
 	# Update panel state based on campaign state if needed
 	if state_data.has("ship") and state_data.ship is Dictionary:
 		var ship_state_data = state_data.ship

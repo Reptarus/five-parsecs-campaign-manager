@@ -120,7 +120,7 @@ func _validate_game_rules(data: Dictionary) -> Dictionary:
 	
 	# Captain attributes validation (Core Rules p.13)
 	var captain = data.get("captain", {})
-	var required_attributes = ["combat", "reaction", "toughness", "savvy", "tech", "move"]
+	var required_attributes = ["combat", "reactions", "toughness", "savvy", "tech", "speed"]
 	for attr in required_attributes:
 		var value = captain.get(attr, 0)
 		if value < 1 or value > 6:
@@ -302,13 +302,71 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	
 	# CRITICAL FIX: Mark campaign as ready for turn system
 	campaign.game_phase = "ready_for_turn_system"
-	
+
+	# Verify GameStateManager integration
+	var gsm_verification = _verify_game_state_manager_integration()
+	if not gsm_verification.get("success", false):
+		push_warning("CampaignFinalizationService: GameStateManager integration incomplete")
+		for warning in gsm_verification.get("warnings", []):
+			push_warning("  - " + warning)
+
 	# Validate campaign resource
 	if not campaign.validate():
 		push_error("Campaign resource validation failed")
 		return null
-	
+
 	return campaign
+
+func _verify_game_state_manager_integration() -> Dictionary:
+	"""Verify all required data was transferred to GameStateManager"""
+	var result = {"success": true, "transferred": [], "warnings": []}
+
+	if not GameStateManager:
+		result.success = false
+		result.warnings.append("GameStateManager not available - all transfers failed")
+		return result
+
+	# Check credits
+	if GameStateManager.has_method("get_credits"):
+		var credits = GameStateManager.get_credits()
+		if credits > 0:
+			result.transferred.append("credits: %d" % credits)
+		else:
+			result.warnings.append("Credits not set or zero")
+
+	# Check ship debt
+	if GameStateManager.has_method("get_ship_debt"):
+		var debt = GameStateManager.get_ship_debt()
+		result.transferred.append("ship_debt: %d" % debt)
+
+	# Check story track
+	if GameStateManager.has_method("is_story_track_enabled"):
+		var story_enabled = GameStateManager.is_story_track_enabled()
+		result.transferred.append("story_track: %s" % ("enabled" if story_enabled else "disabled"))
+
+	# Check location
+	if GameStateManager.has_method("get_location"):
+		var location = GameStateManager.get_location()
+		if location and not location.is_empty():
+			result.transferred.append("location: set")
+		else:
+			result.warnings.append("Location not set")
+
+	# Check victory conditions
+	if GameStateManager.has_method("get_victory_conditions"):
+		var victory = GameStateManager.get_victory_conditions()
+		if victory and not victory.is_empty():
+			result.transferred.append("victory_conditions: %d" % victory.size())
+
+	# Summary log
+	print("CampaignFinalizationService: GameStateManager integration - %d transfers, %d warnings" % [
+		result.transferred.size(), result.warnings.size()
+	])
+
+	if result.warnings.size() > 0:
+		result.success = false
+
+	return result
 
 func _save_campaign_with_retry(campaign: Resource, data: Dictionary) -> Dictionary:
 	"""Save campaign with retry logic and backup creation"""
@@ -322,7 +380,7 @@ func _save_campaign_with_retry(campaign: Resource, data: Dictionary) -> Dictiona
 	# Attempt save with retries
 	for attempt in range(MAX_RETRY_ATTEMPTS):
 		var result = await _attempt_save(campaign, save_path)
-		
+
 		if result.success:
 			# Create backup on successful save
 			_create_backup(save_path)
@@ -331,10 +389,13 @@ func _save_campaign_with_retry(campaign: Resource, data: Dictionary) -> Dictiona
 				"path": save_path,
 				"attempts": attempt + 1
 			}
-		
+
+		# SPRINT 26.22: Log actual error for debugging
+		print("CampaignFinalizationService: Save attempt %d/%d failed: %s" % [attempt + 1, MAX_RETRY_ATTEMPTS, result.get("error", "Unknown error")])
+
 		# Wait before retry with exponential backoff
 		await Engine.get_main_loop().create_timer(pow(2, attempt)).timeout
-		
+
 		# Try alternative save location on final attempt
 		if attempt == MAX_RETRY_ATTEMPTS - 1:
 			save_path = _get_fallback_save_path(save_name)
@@ -486,7 +547,7 @@ func _transform_crew_data_for_turn_system(crew_data: Dictionary) -> Dictionary:
 			if member is Character:
 				# Sprint 26.3: Character objects pass through directly
 				# Ensure required turn system fields exist on Character
-				if member.xp == 0 and not member.has_meta("xp_initialized"):
+				if member.experience == 0 and not member.has_meta("xp_initialized"):
 					member.set_meta("xp_initialized", true)
 				transformed_members.append(member)
 			elif member is Dictionary:
@@ -551,18 +612,36 @@ func _transform_equipment_data_for_turn_system(equipment_data: Dictionary) -> Di
 	return transformed
 
 func _prepare_campaign_for_turn_system(campaign: Resource) -> void:
-	"""Prepare campaign for turn system consumption"""
+	"""Prepare campaign for turn system consumption and hand off to CampaignPhaseManager"""
 	if not campaign or not campaign.has_method("start_campaign"):
 		push_error("Campaign does not support turn system preparation")
 		return
-	
+
 	# Mark campaign as active for turn system
 	campaign.start_campaign()
-	
+
 	# Ensure campaign has required turn system fields
 	if campaign.has_method("set_meta"):
 		campaign.set_meta("turn_system_ready", true)
 		campaign.set_meta("turn_number", 1)
 		campaign.set_meta("current_phase", "TRAVEL")
-	
+
+	# CRITICAL: Hand off campaign to CampaignPhaseManager
+	var tree = Engine.get_main_loop() as SceneTree
+	if tree:
+		var phase_manager = tree.root.get_node_or_null("CampaignPhaseManager")
+		if not phase_manager:
+			# Try alternative paths
+			phase_manager = tree.root.get_node_or_null("/root/CampaignPhaseManager")
+		if phase_manager and phase_manager.has_method("set_campaign"):
+			phase_manager.set_campaign(campaign)
+			print("CampaignFinalizationService: ✅ Campaign handed off to CampaignPhaseManager")
+			# Verify handoff was successful
+			if phase_manager.has_method("verify_campaign_handoff"):
+				var verification = phase_manager.verify_campaign_handoff()
+				if not verification.get("valid", false):
+					push_warning("CampaignFinalizationService: Campaign handoff verification had issues")
+		else:
+			push_warning("CampaignFinalizationService: ⚠️ CampaignPhaseManager not found - campaign may not be available for turn system")
+
 	print("CampaignFinalizationService: Campaign prepared for turn system - %s" % campaign.campaign_name)

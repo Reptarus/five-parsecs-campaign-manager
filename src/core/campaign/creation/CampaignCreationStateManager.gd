@@ -218,11 +218,15 @@ func _validate_config_phase() -> bool:
 		return false
 
 	# GDScript 2.0: Victory conditions validation (NEW)
+	# Victory conditions are stored as nested dictionaries (not bools)
+	# Presence of a key with valid data means that condition is selected
 	var has_victory := false
 	if config.has("victory_conditions"):
 		var conditions: Dictionary = config["victory_conditions"]
+		# If any condition exists with valid data, victory is set
 		for key: String in conditions:
-			if conditions.get(key, false) == true:
+			var condition_data = conditions.get(key, {})
+			if condition_data is Dictionary and not condition_data.is_empty():
 				has_victory = true
 				break
 
@@ -262,46 +266,36 @@ func _validate_crew_phase() -> bool:
 		validation_errors.append("Crew requires %d members, currently has %d" % [required_size, members_array.size()])
 		return false
 
-	# Check for captain assignment
-	if not bool(crew.get("has_captain", false)):
+	# SPRINT 26.21 FIX: Check for captain assignment - accept either has_captain flag OR captain object
+	var has_captain: bool = bool(crew.get("has_captain", false))
+	if not has_captain:
+		# Also check if captain object exists
+		var captain = crew.get("captain", null)
+		if captain != null:
+			has_captain = true
+		else:
+			# Check if any member is marked as captain
+			for member in members_array:
+				if member is Dictionary and member.get("is_captain", false):
+					has_captain = true
+					break
+				elif member is Object and "is_captain" in member and member.is_captain:
+					has_captain = true
+					break
+
+	if not has_captain:
 		validation_errors.append("Crew must have an assigned captain")
 		return false
 
-	# Check character customization completeness
-	var incomplete_characters: Array[String] = []
-	for member: Variant in members_array:
-		# Handle both Resource and Dictionary members
-		if typeof(member) == TYPE_DICTIONARY:
-			# Dictionary-based members (from tests or simple data) - skip customization check
-			continue
-		elif member is Object and (member as Object).has_method("get_customization_completeness"):
-			var completeness: float = (member as Object).call("get_customization_completeness")
-			if completeness < 0.8: # Require 80% completion
-				# Use safe property access for Resource objects
-				var char_name: String = ""
-				if (member as Object).has_method("get"):
-					char_name = str((member as Object).call("get", "character_name"))
-				elif "character_name" in member:
-					char_name = str(member.character_name)
-				else:
-					char_name = "Unnamed Character"
-				incomplete_characters.append(char_name)
-	
-	if incomplete_characters.size() > 0:
-		validation_errors.append("Characters need more customization: " + ", ".join(PackedStringArray(incomplete_characters)))
-		return false
+	# SPRINT 26.21 FIX: Relaxed validation - customization completeness is optional
+	# Character customization is handled at generation time, not required for validation
+	# The crew is valid if we have the right number of members with a captain
 
-	# Check crew composition quality
-	var completion_level: float = float(crew.get("completion_level", 0.0))
-	if completion_level < 0.75: # Require 75% overall completion
-		validation_errors.append("Crew setup needs more completion (currently %.0f%%)" % (completion_level * 100))
-		return false
-	
-	# SPRINT ENHANCEMENT: Validate backend integration for crew generation
-	# Note: Backend generation is optional - warnings don't block completion
-	# if not crew.get("backend_generated", false):
-	#     print("Warning: Crew not generated via backend system (mock data in use)")
+	# SPRINT 26.21 FIX: Removed completion_level requirement
+	# If we have enough members and a captain, crew setup is complete
+	# The completion_level check was designed for manual character editing which isn't required
 
+	print("CampaignCreationStateManager: Crew validation passed - %d members with captain" % members_array.size())
 	return true
 
 func _validate_captain_phase() -> bool:
@@ -347,7 +341,8 @@ func _validate_ship_phase() -> bool:
 		validation_errors.append("Ship type must be selected")
 		return false
 
-	if not bool(ship.get("is_configured", false)):
+	# SPRINT 26.21 FIX: Check both is_configured and is_complete (they are semantically equivalent)
+	if not bool(ship.get("is_configured", ship.get("is_complete", false))):
 		validation_errors.append("Ship configuration incomplete")
 		return false
 
@@ -569,7 +564,8 @@ func _validate_ship_with_warnings() -> Dictionary:
 		(result.warnings as Array).append("Ship type not specified - will use default")
 		result.has_warnings = true
 
-	if not bool(ship.get("is_configured", false)):
+	# SPRINT 26.21 FIX: Check both is_configured and is_complete (they are semantically equivalent)
+	if not bool(ship.get("is_configured", ship.get("is_complete", false))):
 		(result.warnings as Array).append("Ship configuration incomplete - using default setup")
 		result.has_warnings = true
 
@@ -719,7 +715,7 @@ func _fallback_character_serialization(character: Variant) -> Dictionary:
 		"background": char_dict.get("background", 0),
 		"motivation": char_dict.get("motivation", 0),
 		"combat": char_dict.get("combat", 0),
-		"reaction": char_dict.get("reaction", 0),
+		"reactions": char_dict.get("reactions", char_dict.get("reaction", 0)),
 		"toughness": char_dict.get("toughness", 3),
 		"savvy": char_dict.get("savvy", 0),
 		"speed": char_dict.get("speed", 4),
@@ -961,7 +957,7 @@ func update_character_secure(character_data: Dictionary, character_type: String 
 			character_data.background_text = text_validation.sanitized_value
 	
 	# Validate numeric attributes
-	var numeric_attrs: Array[String] = ["combat", "reaction", "toughness", "savvy", "tech", "move"]
+	var numeric_attrs: Array[String] = ["combat", "reactions", "toughness", "savvy", "tech", "speed"]
 	for attr: String in numeric_attrs:
 		if character_data.has(attr):
 			var attr_validation: FiveParsecsValidationResult = SecurityValidator.validate_numeric_input(

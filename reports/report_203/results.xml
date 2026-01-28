@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites id="2025-12-30" name="report_203" tests="8" failures="0" skipped="0" flaky="0" time="0.000">
+	<testsuite id="0" name="test_phase_transitions" package="tests/integration/phase2_backend" timestamp="2025-12-30T19:46:14" hostname="localhost" tests="8" failures="0" errors="3" skipped="0" flaky="0" time="0.502">
+		<testcase name="test_valid_transition_travel_to_world" classname="test_phase_transitions" time="0.047">
+		</testcase>
+		<testcase name="test_valid_transition_world_to_battle" classname="test_phase_transitions" time="0.044">
+			<error message="ERROR: res://tests/integration/phase2_backend/test_phase_transitions.gd:335" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: PostBattlePhase._roll_enemy_loot (res://src/core/campaign/phases/PostBattlePhase.gd:335)'
+Error: 'Trying to assign value of type 'int' to a variable of type 'String'.'
+]]>
+			</error>
+			<error message="ERROR: res://tests/integration/phase2_backend/test_phase_transitions.gd:335" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: PostBattlePhase._roll_enemy_loot (res://src/core/campaign/phases/PostBattlePhase.gd:335)'
+Error: 'Trying to assign value of type 'int' to a variable of type 'String'.'
+]]>
+			</error>
+			<error message="ERROR: res://tests/integration/phase2_backend/test_phase_transitions.gd:335" type="ABORT">
+<![CDATA[
+Godot Runtime Error !
+	'at: PostBattlePhase._roll_enemy_loot (res://src/core/campaign/phases/PostBattlePhase.gd:335)'
+Error: 'Trying to assign value of type 'int' to a variable of type 'String'.'
+]]>
+			</error>
+		</testcase>
+		<testcase name="test_valid_transition_battle_to_post_battle" classname="test_phase_transitions" time="0.062">
+		</testcase>
+		<testcase name="test_valid_transition_post_battle_to_travel" classname="test_phase_transitions" time="0.068">
+		</testcase>
+		<testcase name="test_invalid_transition_travel_to_battle" classname="test_phase_transitions" time="0.038">
+		</testcase>
+		<testcase name="test_invalid_transition_world_to_post_battle" classname="test_phase_transitions" time="0.032">
+		</testcase>
+		<testcase name="test_invalid_transition_battle_to_travel" classname="test_phase_transitions" time="0.032">
+		</testcase>
+		<testcase name="test_transition_blocked_when_in_progress" classname="test_phase_transitions" time="0.038">
+		</testcase>
+	</testsuite>
+</testsuites>

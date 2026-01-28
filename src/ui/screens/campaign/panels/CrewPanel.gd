@@ -180,13 +180,103 @@ var selected_size: int = 6  # Default Five Parsecs crew size (6 including captai
 
 func _on_campaign_state_updated(state_data: Dictionary) -> void:
 	"""Override from interface - handle campaign state updates"""
+	# CRITICAL FIX: Ignore updates that originated from this panel to prevent double-loading
+	var source = state_data.get("source", "")
+	if source == "crew_panel":
+		print("CrewPanel: Ignoring update from self (source: crew_panel)")
+		return
+
+	var phase = state_data.get("phase", "")
+	if phase == "crew_update":
+		print("CrewPanel: Ignoring crew_update phase (self-update)")
+		return
+
+	# SPRINT 27 FIX: Read captain data from coordinator state
+	# Captain is stored at state_data["captain"] (primary) or state_data.crew.captain (fallback)
+	var captain_loaded := false
+
+	# Primary: Check top-level captain data
+	if state_data.has("captain") and state_data.captain is Dictionary:
+		var captain_data: Dictionary = state_data.captain
+		var captain_name: String = captain_data.get("name", captain_data.get("character_name", ""))
+		if not captain_name.is_empty():
+			current_captain = captain_data
+			local_crew_data["captain"] = captain_data
+			local_crew_data["has_captain"] = true
+			captain_loaded = true
+			print("CrewPanel: Loaded captain from coordinator state: %s" % captain_name)
+
+	# Fallback: Check crew.captain
+	if not captain_loaded and state_data.has("crew") and state_data.crew is Dictionary:
+		if state_data.crew.has("captain") and state_data.crew.captain != null:
+			var captain_data = state_data.crew.captain
+			if captain_data is Dictionary:
+				var captain_name: String = captain_data.get("name", captain_data.get("character_name", ""))
+				if not captain_name.is_empty():
+					current_captain = captain_data
+					local_crew_data["captain"] = captain_data
+					local_crew_data["has_captain"] = true
+					captain_loaded = true
+					print("CrewPanel: Loaded captain from crew.captain fallback: %s" % captain_name)
+
+	# Ensure captain is first in members array (after loading captain)
+	if captain_loaded:
+		_ensure_captain_in_members()
+		# SPRINT 27.2 FIX: Update display immediately after captain load (timing fix)
+		_update_crew_display()
+
 	# Update panel state based on campaign state if needed
 	if state_data.has("crew") and state_data.crew is Dictionary:
 		var crew_data = state_data.crew
 		if crew_data.has("members"):
-			# Update local crew state from external changes
-			local_crew_data.members = crew_data.get("members", [])
+			# SPRINT 26.20 FIX: Don't blindly copy typed array - reconstruct as untyped
+			# This prevents "TypedArray of Dictionary" errors when adding Character objects
+			var source_members = crew_data.get("members", [])
+			var untyped_members: Array = []
+			for member in source_members:
+				untyped_members.append(member)
+			local_crew_data["members"] = untyped_members
+			# Re-ensure captain is first after loading members
+			if captain_loaded:
+				_ensure_captain_in_members()
 			_update_crew_display()
+
+func _ensure_captain_in_members() -> void:
+	"""SPRINT 27 FIX: Ensure captain is first entry in crew_members array (avoids duplicates)"""
+	if current_captain == null:
+		return
+
+	# Get captain name (try both key formats)
+	var captain_name: String = ""
+	if current_captain is Dictionary:
+		captain_name = current_captain.get("name", current_captain.get("character_name", ""))
+	elif current_captain is Resource and "character_name" in current_captain:
+		captain_name = current_captain.character_name
+	elif current_captain is Resource and "name" in current_captain:
+		captain_name = current_captain.name
+
+	if captain_name.is_empty():
+		print("CrewPanel: WARNING - Captain has no name, cannot add to members")
+		return
+
+	# Check if captain already exists in members array
+	var members_array: Array = local_crew_data.get("members", [])
+	for member in members_array:
+		var member_name: String = ""
+		if member is Dictionary:
+			member_name = member.get("name", member.get("character_name", ""))
+		elif member is Resource and "character_name" in member:
+			member_name = member.character_name
+		elif member is Resource and "name" in member:
+			member_name = member.name
+		if member_name == captain_name:
+			print("CrewPanel: Captain '%s' already in members array" % captain_name)
+			return  # Already present, don't duplicate
+
+	# Insert captain as first member
+	members_array.insert(0, current_captain)
+	local_crew_data["members"] = members_array
+	print("CrewPanel: Added captain '%s' as first crew member (total: %d)" % [captain_name, members_array.size()])
 
 func _ready() -> void:
 	# Set panel info before base initialization with more informative description
@@ -1323,23 +1413,27 @@ func _update_validation_panel() -> void:
 	var status_icon: String
 	var status_message: String
 
-	# Validation logic (4-8 crew optimal)
-	if crew_count < 4:
+	# CRITICAL FIX: Use selected_size instead of hardcoded values to respect dropdown selection
+	var required_size = selected_size if selected_size > 0 else 6
+	var max_crew_size = 8  # Five Parsecs hard maximum
+
+	# Validation logic based on user's selected crew size
+	if crew_count < required_size:
 		status_color = COLOR_DANGER
 		status_icon = "❌"
-		status_message = "Need at least 4 crew members (%d/4)" % crew_count
-	elif crew_count < 6:
-		status_color = COLOR_WARNING
-		status_icon = "⚠️"
-		status_message = "4-6 crew (recommended) - %d members" % crew_count
-	elif crew_count <= 8:
+		status_message = "Need %d crew members (%d/%d)" % [required_size, crew_count, required_size]
+	elif crew_count == required_size:
 		status_color = COLOR_SUCCESS
 		status_icon = "✅"
-		status_message = "6-8 crew (optimal) - %d members" % crew_count
+		status_message = "Crew complete - %d/%d members" % [crew_count, required_size]
+	elif crew_count <= max_crew_size:
+		status_color = COLOR_SUCCESS
+		status_icon = "✅"
+		status_message = "Crew ready - %d members (target: %d)" % [crew_count, required_size]
 	else:
 		status_color = COLOR_WARNING
 		status_icon = "⚠️"
-		status_message = "Over maximum (8) - %d members" % crew_count
+		status_message = "Over maximum (%d) - %d members" % [max_crew_size, crew_count]
 
 	# Apply glass morphism with status color tint
 	var style := _create_accent_card_style(status_color)
@@ -1355,11 +1449,11 @@ func _update_validation_panel() -> void:
 	validation_text.add_theme_font_size_override("font_size", FONT_SIZE_MD)
 	validation_text.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 
-	# Emit validation signal for wizard navigation
-	var is_valid := crew_count >= 4 and crew_count <= 8
+	# Emit validation signal for wizard navigation - CRITICAL FIX: Use selected_size
+	var is_valid := crew_count >= required_size and crew_count <= max_crew_size
 	emit_signal("panel_validation_changed", is_valid)
 
-	print("CrewPanel: Validation updated - %d crew (%s)" % [crew_count, "VALID" if is_valid else "INVALID"])
+	print("CrewPanel: Validation updated - %d/%d crew (%s)" % [crew_count, required_size, "VALID" if is_valid else "INVALID"])
 
 # ============ CHARACTERCARD SIGNAL HANDLERS ============
 
@@ -1563,11 +1657,11 @@ func _reconstruct_character_from_dict(data: Dictionary) -> Character:
 	if data.has("luck"):
 		character.luck = data.luck
 
-	# Set XP
+	# Set experience
 	if data.has("xp"):
-		character.xp = data.xp
+		character.experience = data.xp
 	elif data.has("experience"):
-		character.xp = data.experience
+		character.experience = data.experience
 
 	# Set captain flag
 	if data.has("is_captain"):
@@ -1924,22 +2018,42 @@ func _generate_crew_starting_equipment() -> Array[Dictionary]:
 	
 	# Generate equipment for each crew member using the enhanced system
 	for member in crew_members:
-		if member and member.has_method("get_meta"):
-			# Check if character already has equipment from generation
-			var character_equipment = member.get_meta("personal_equipment", {})
-			if not character_equipment.is_empty():
+		if not member:
+			continue
+
+		# Handle Dictionary members (serialized character data)
+		if member is Dictionary:
+			var char_name: String = member.get("name", member.get("character_name", "Unknown"))
+			# Dictionary members may already have equipment data
+			var existing_equipment = member.get("equipment", member.get("personal_equipment", {}))
+			if not existing_equipment.is_empty() if existing_equipment is Dictionary else existing_equipment.size() > 0:
 				crew_equipment.append({
-					"character_name": member.character_name,
-					"equipment": character_equipment
+					"character_name": char_name,
+					"equipment": existing_equipment
 				})
-				continue
-		
-		# Use Character to generate equipment for this character
-		var equipment = Character.generate_starting_equipment_enhanced(member)
-		crew_equipment.append({
-			"character_name": member.character_name,
-			"equipment": equipment
-		})
+			# Skip equipment generation for Dictionary members - they're serialized data
+			continue
+
+		# Handle Object members (Character instances)
+		if member is Object:
+			var char_name: String = member.character_name if "character_name" in member else "Unknown"
+
+			# Check if character already has equipment from generation
+			if member.has_method("get_meta"):
+				var character_equipment = member.get_meta("personal_equipment", {})
+				if not character_equipment.is_empty():
+					crew_equipment.append({
+						"character_name": char_name,
+						"equipment": character_equipment
+					})
+					continue
+
+			# Generate equipment for Character objects only
+			var equipment = Character.generate_starting_equipment_enhanced(member)
+			crew_equipment.append({
+				"character_name": char_name,
+				"equipment": equipment
+			})
 	
 	# Add crew-level starting equipment per Five Parsecs rules
 	var crew_level_equipment = _generate_crew_level_equipment()
@@ -2254,8 +2368,22 @@ func _log_panel_initialization_debug() -> void:
 
 ## Coordinator Integration (Modern UI)
 func _on_coordinator_set() -> void:
-	"""Handle coordinator assignment - modern UI doesn't need InitialCrewCreation"""
-	print("CrewPanel: Coordinator received - modern UI uses direct integration")
+	"""Called when coordinator is set - sync initial state from coordinator (Sprint 26.20)"""
+	print("CrewPanel: Coordinator set, syncing initial state")
+
+	var coordinator = get_coordinator_reference()
+	if coordinator and coordinator.has_method("get_unified_campaign_state"):
+		var state = coordinator.get_unified_campaign_state()
+		if not state.is_empty():
+			print("CrewPanel: Restoring crew/captain data from coordinator state")
+			# Use existing state handler to restore data (handles captain, crew, etc.)
+			_on_campaign_state_updated(state)
+			# SPRINT 26.20 FIX: Deferred display update ensures UI is ready
+			call_deferred("_update_crew_display")
+		else:
+			print("CrewPanel: No existing data in coordinator state")
+	else:
+		print("CrewPanel: Coordinator not available or missing get_unified_campaign_state")
 
 # Completion logic with debouncing
 var completion_check_timer: SceneTreeTimer = null
@@ -2367,10 +2495,12 @@ func _on_character_generated(character) -> void:
 	
 	# Emit crew updated signal
 	_emit_crew_updated()
-	
+
 	# Check if we have enough crew to enable progression
-	if crew_members.size() >= 4:
-		print("CrewPanel: Crew complete with %d members - enabling progression" % crew_members.size())
+	# CRITICAL FIX: Use selected_size instead of hardcoded 4 to respect dropdown selection
+	var required_crew_size = selected_size if selected_size > 0 else 4
+	if crew_members.size() >= required_crew_size:
+		print("CrewPanel: Crew complete with %d/%d members - enabling progression" % [crew_members.size(), required_crew_size])
 		local_crew_data["is_complete"] = true
 		is_crew_complete = true
 		emit_signal("panel_validation_changed", true)
@@ -2378,7 +2508,7 @@ func _on_character_generated(character) -> void:
 		print("CrewPanel: DEBUG - Emitting panel_completed with data keys: %s" % str(current_panel_data.keys()))
 		print("CrewPanel: DEBUG - Crew count in data: %d" % current_panel_data.get("members", []).size())
 		emit_signal("panel_completed", current_panel_data)
-	
+
 	# Check completion
 	call_deferred("_check_and_emit_completion")
 

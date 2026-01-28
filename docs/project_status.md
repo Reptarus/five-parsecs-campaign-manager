@@ -1,13 +1,19 @@
 # 🚀 **Five Parsecs Campaign Manager - Current Status**
-**Last Updated**: January 5, 2026
+**Last Updated**: January 17, 2026
 **Project Status**: BETA_READY (97/100)
-**Current Phase**: Week 8 - Sprint 26.18 Safe Data Access Consolidation Complete (17 files consolidated)
+**Current Phase**: Week 9 - Sprint 26.19+ Character Stat Consistency Audit Complete
 
 ## 🎯 **CURRENT MILESTONE: BETA_READY ACHIEVED**
 
 **Major Achievement**: ✅ **Core Rules Implementation Complete** - Reaction economy, species restrictions, bot upgrades, and combat system wiring all completed
 
 **Current Focus**: 🐛 **Bug Fixes & Code Quality** - Comprehensive codebase scan found and fixed critical bugs across Battle, Campaign, and Save systems
+
+### ✅ Campaign Transition Fix (January 17, 2026)
+Fixed critical crash when transitioning from campaign creation wizard to main game:
+- **Exclusive Window Fix**: Close validation dialog before showing success dialog
+- **API Compatibility**: Added `get_crew_size()` and `get_crew_member_by_id()` to FiveParsecsCampaignCore
+- **Defensive Coding**: Added `has_method()` fallback in GameState.get_crew_size()
 
 ---
 
@@ -412,6 +418,69 @@ Godot4Utils.safe_get_property(obj, property, default_value)
 - **~300 lines of duplicate code eliminated**
 - **1 critical semantic bug fixed** (has_signal vs has_method)
 - **Single source of truth established** (`Godot4Utils.gd`)
+
+---
+
+## 📋 **JANUARY 17, 2026 - SPRINT 26.19+ CHARACTER STAT CONSISTENCY AUDIT**
+
+### **✅ Sprint 26.19+: Character Stat Naming Standardization (7 fixes across 5 files)**
+
+Following the `speed`/`move` standardization, comprehensive audit addressed remaining stat naming inconsistencies.
+
+### **Issue 1: `reactions` vs `reaction` - FIXED (5 changes)**
+
+| File | Line | Change |
+|------|------|--------|
+| `EquipmentManager.gd` | 1007 | `"reaction"` → `"reactions"` (combat stims effect) |
+| `EquipmentManager.gd` | 1009 | `"reaction"` → `"reactions"` (bionic enhancement attribute_type) |
+| `EquipmentManager.gd` | 1045 | `"reaction"` → `"reactions"` (Neural Interface effect) |
+| `InjuryRecoverySystem.gd` | 75 | `"reaction"` → `"reactions"` (stat_penalties dict) |
+| `CharacterCustomizationScreen.gd` | 809 | `"reaction"` → `"reactions"` (serialize backup key) |
+
+### **Issue 2: `move` in Validation Arrays - FIXED (2 changes)**
+
+| File | Line | Change |
+|------|------|--------|
+| `CampaignCreationStateManager.gd` | 968 | `"move"` → `"speed"` in numeric_attrs array |
+| `CampaignFinalizationService.gd` | 123 | `"move"` → `"speed"` in required_attributes array |
+
+### **Issue 3: `combat` vs `combat_skill` - NO ACTION (Intentional)**
+
+The dual naming is **architectural design**, not a bug:
+- **Character domain**: Uses `combat` (shorter property name)
+- **Battle domain**: Uses `combat_skill` (matches Core Rules "Combat Skill")
+- **Bridging code exists**: `CharacterDetailsScreen.gd:813`, `CampaignCreationCoordinator.gd:712-713`
+
+### **Backwards Compatibility**
+- Character.gd fallback preserved: `get("reactions", data.get("reaction", 1))`
+- Old save files continue to load correctly
+
+### **Final Stat Consistency Matrix**
+
+| Stat | Property | Dict Key | Status |
+|------|----------|----------|--------|
+| Combat | `combat` | `"combat"` or `"combat_skill"` | ✅ Intentional dual naming |
+| Reactions | `reactions` | `"reactions"` | ✅ Fixed |
+| Toughness | `toughness` | `"toughness"` | ✅ Consistent |
+| Savvy | `savvy` | `"savvy"` | ✅ Consistent |
+| Tech | `tech` | `"tech"` | ✅ Consistent |
+| Speed | `speed` | `"speed"` | ✅ Fixed |
+| Luck | `luck` | `"luck"` | ✅ Consistent |
+
+### **✅ Campaign Panel Race Condition Fix**
+
+Fixed panel initialization race condition in `CampaignCreationUI.gd`:
+
+**Problem**: `panel_ready` signal was emitted before the one-shot listener was connected, causing:
+- 2-second timeout on every panel load
+- Duplicate panel configuration (signals connected twice, state restored twice)
+
+**Solution**: Connect the `panel_ready` listener **before** calling `pass_coordinator_to_panel()`:
+1. Set up one-shot listener first
+2. Then trigger panel initialization (which may emit `panel_ready`)
+3. Check if signal already received before starting wait loop
+
+**File Modified**: `src/ui/screens/campaign/CampaignCreationUI.gd` (lines 771-817)
 
 ---
 

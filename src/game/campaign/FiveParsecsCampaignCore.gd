@@ -288,6 +288,23 @@ func get_crew_members() -> Array:
 	"""Get crew members array"""
 	return crew_data.get("members", [])
 
+## Returns the crew size for travel cost calculations (GameState compatibility)
+func get_crew_size() -> int:
+	var members = crew_data.get("members", [])
+	if members is Array:
+		return members.size()
+	return 0
+
+## Returns a crew member by their ID (GameState compatibility for injury/XP systems)
+func get_crew_member_by_id(character_id: String) -> Variant:
+	var members = crew_data.get("members", [])
+	for member in members:
+		if member is Dictionary and member.get("id", "") == character_id:
+			return member
+		elif member is Object and member.get("id") == character_id:
+			return member
+	return null
+
 func get_captain() -> Dictionary:
 	"""Get captain data"""
 	return captain_data
@@ -315,20 +332,63 @@ static func load_from_file(path: String) -> FiveParsecsCampaignCore:
 	"""Load campaign from save file"""
 	if not FileAccess.file_exists(path):
 		return null
-	
+
 	var file = FileAccess.open(path, FileAccess.READ)
 	if not file:
 		return null
-	
+
 	var json_string = file.get_as_text()
 	file.close()
-	
+
 	var json = JSON.new()
 	var parse_result = json.parse(json_string)
-	
+
 	if parse_result != OK:
 		return null
-	
+
 	var campaign = FiveParsecsCampaignCore.new()
 	campaign.from_dictionary(json.data)
 	return campaign
+
+## SPRINT 26.22: JSON-based save (consistent with load_from_file)
+
+func save_to_file(path: String) -> Error:
+	"""Save campaign to JSON file (consistent with load_from_file).
+	Uses JSON instead of ResourceSaver to ensure all data (including non-@export vars) is saved."""
+	var data = to_dictionary()
+
+	# Serialize crew members - convert Character objects to dictionaries
+	if data.has("crew") and data["crew"].has("members"):
+		var serialized_members = []
+		for member in data["crew"]["members"]:
+			if member is Resource and member.has_method("to_dictionary"):
+				serialized_members.append(member.to_dictionary())
+			elif member is Resource:
+				# Fallback: serialize Resource properties manually
+				var member_dict = {}
+				for prop in member.get_property_list():
+					var prop_name = prop.name
+					if prop_name != "" and not prop_name.begins_with("_"):
+						var val = member.get(prop_name)
+						# Skip non-serializable types
+						if val is Object and not val is Resource:
+							continue
+						member_dict[prop_name] = val
+				serialized_members.append(member_dict)
+			else:
+				serialized_members.append(member)
+		data["crew"]["members"] = serialized_members
+
+	var json_string = JSON.stringify(data, "\t")  # Pretty print for debugging
+
+	var file = FileAccess.open(path, FileAccess.WRITE)
+	if not file:
+		var error = FileAccess.get_open_error()
+		push_error("FiveParsecsCampaignCore: Failed to open file for writing: %s (error: %d)" % [path, error])
+		return error
+
+	file.store_string(json_string)
+	file.close()
+
+	print("FiveParsecsCampaignCore: Campaign saved to JSON: %s" % path)
+	return OK

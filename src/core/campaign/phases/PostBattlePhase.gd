@@ -2719,14 +2719,19 @@ func _injure_random_crew(recovery_turns: int) -> void:
 			print("PostBattlePhase: %s injured (%d turn recovery)" % [member_name, recovery_turns])
 
 func _add_character_xp(character: Variant, xp_amount: int) -> void:
-	"""Add XP to specific character (Sprint 26.3: Character-Everywhere)"""
+	"""Add XP to specific character (Sprint 26.3: Character-Everywhere)
+	Sprint 27.4: Cleaned up dead xp code path - canonical property is 'experience'
+	"""
 	if not character:
 		return
 	# Sprint 26.3: Characters are now always Character objects
-	if "xp" in character:
-		character.xp += xp_amount
+	# Use add_experience() method if available (preferred), otherwise direct property access
+	if character.has_method("add_experience"):
+		character.add_experience(xp_amount)
 	elif "experience" in character:
 		character.experience += xp_amount
+	elif character is Dictionary:
+		character["experience"] = character.get("experience", 0) + xp_amount
 	var char_name: String = character.character_name if "character_name" in character else character.name if "name" in character else "Unknown"
 	print("PostBattlePhase: %s gained +%d XP" % [char_name, xp_amount])
 

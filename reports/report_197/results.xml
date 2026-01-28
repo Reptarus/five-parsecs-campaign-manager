@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites id="2025-12-20" name="report_197" tests="18" failures="0" skipped="0" flaky="0" time="0.000">
+	<testsuite id="0" name="test_campaign_workflow" package="tests/integration" timestamp="2025-12-20T21:10:17" hostname="localhost" tests="18" failures="0" errors="0" skipped="0" flaky="0" time="0.712">
+		<testcase name="test_set_campaign_configuration" classname="test_campaign_workflow" time="0.104">
+		</testcase>
+		<testcase name="test_config_stored_in_campaign_data" classname="test_campaign_workflow" time="0.009">
+		</testcase>
+		<testcase name="test_advance_to_captain_creation_phase" classname="test_campaign_workflow" time="0.018">
+		</testcase>
+		<testcase name="test_create_captain_character" classname="test_campaign_workflow" time="0.024">
+		</testcase>
+		<testcase name="test_captain_stats_properly_structured" classname="test_campaign_workflow" time="0.017">
+		</testcase>
+		<testcase name="test_advance_to_crew_setup_phase" classname="test_campaign_workflow" time="0.016">
+		</testcase>
+		<testcase name="test_add_crew_members" classname="test_campaign_workflow" time="0.017">
+		</testcase>
+		<testcase name="test_crew_size_matches_expected" classname="test_campaign_workflow" time="0.016">
+		</testcase>
+		<testcase name="test_advance_to_ship_assignment_phase" classname="test_campaign_workflow" time="0.017">
+		</testcase>
+		<testcase name="test_assign_starting_ship" classname="test_campaign_workflow" time="0.016">
+		</testcase>
+		<testcase name="test_ship_has_valid_hull_points" classname="test_campaign_workflow" time="0.016">
+		</testcase>
+		<testcase name="test_generate_starting_equipment" classname="test_campaign_workflow" time="0.018">
+		</testcase>
+		<testcase name="test_equipment_has_equipment_array" classname="test_campaign_workflow" time="0.017">
+		</testcase>
+		<testcase name="test_generate_starting_world" classname="test_campaign_workflow" time="0.017">
+		</testcase>
+		<testcase name="test_world_has_traits" classname="test_campaign_workflow" time="0.017">
+		</testcase>
+		<testcase name="test_all_phases_populated_with_data" classname="test_campaign_workflow" time="0.017">
+		</testcase>
+		<testcase name="test_complete_campaign_creation" classname="test_campaign_workflow" time="0.018">
+		</testcase>
+		<testcase name="test_metadata_includes_creation_timestamp" classname="test_campaign_workflow" time="0.023">
+		</testcase>
+	</testsuite>
+</testsuites>

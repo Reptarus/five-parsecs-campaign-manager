@@ -85,10 +85,30 @@ func generate_initial_relationships(members: Array) -> void:
 		# Create one random relationship to add flavor
 		var char1 = members[randi() % members.size()]
 		var char2 = members[randi() % members.size()]
-		if char1 != char2:
+		# SPRINT 26.21 FIX: Compare by ID to handle mixed Object/Dictionary types
+		var id1 = _get_character_id(char1)
+		var id2 = _get_character_id(char2)
+		if id1 != id2 and not id1.is_empty() and not id2.is_empty():
 			var types_array = RELATIONSHIP_TYPES.values()
 			var random_type = types_array[randi() % types_array.size()]
 			add_relationship(char1, char2, random_type)
+
+## SPRINT 26.21: Extract character ID from Object or Dictionary safely
+func _get_character_id(char_data) -> String:
+	"""Extract character ID from Object or Dictionary safely to avoid type comparison errors"""
+	if char_data == null:
+		return ""
+	if char_data is Dictionary:
+		return str(char_data.get("character_id", char_data.get("character_name", char_data.get("name", ""))))
+	elif char_data is Object:
+		# For Resource/Object types, use property access
+		if "character_id" in char_data and char_data.character_id:
+			return str(char_data.character_id)
+		elif "character_name" in char_data and char_data.character_name:
+			return str(char_data.character_name)
+		elif "name" in char_data and char_data.name:
+			return str(char_data.name)
+	return ""
 
 ## Roll on the "We Met Through" table (d100)
 func _roll_meeting_story() -> String:

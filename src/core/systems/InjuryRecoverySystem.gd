@@ -72,7 +72,7 @@ var injury_catalog = {
 	InjuryType.CRITICAL_INJURY: {
 		"types": ["Crippled", "Unconscious", "Severe Trauma", "Internal Bleeding", "Fractured"],
 		"recovery_time": [6, 10],
-		"stat_penalties": {"combat": - 2, "speed": - 2, "reaction": - 1},
+		"stat_penalties": {"combat": - 2, "speed": - 2, "reactions": - 1},
 		"description_templates": [
 			"%s is critically injured and may not survive without treatment.",
 			"%s sustained life-threatening injuries.",

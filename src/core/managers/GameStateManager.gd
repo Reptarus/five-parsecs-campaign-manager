@@ -1530,6 +1530,18 @@ func get_current_mission_data() -> Dictionary:
 	
 	return {"name": "No Active Mission", "type": "", "objectives_completed": 0, "objectives_total": 0, "difficulty": 1}
 
+## Set current mission data (Sprint 28: BUG-1 fix)
+## Called when player selects a mission in World Phase
+func set_current_mission(mission_data: Dictionary) -> void:
+	"""Store the selected mission for Battle Phase transition"""
+	set_temp_data("current_mission", mission_data)
+	print("GameStateManager: Current mission set - %s" % mission_data.get("name", "Unknown"))
+
+## Alias for get_current_mission_data - matches WorldPhase.get_completion_data() call
+func get_current_mission() -> Dictionary:
+	"""Get current mission (alias for get_current_mission_data)"""
+	return get_current_mission_data()
+
 ## Get current turn number
 func get_current_turn() -> int:
 	return current_turn

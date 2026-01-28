@@ -105,9 +105,9 @@ func calculate_crew_statistics() -> Dictionary:
 		total_combat += member.combat
 		total_toughness += member.toughness
 		total_savvy += member.savvy
-		total_reaction += member.reaction
+		total_reaction += member.reactions
 		total_speed += member.speed
-		total_xp += member.xp if "xp" in member else 0
+		total_xp += member.experience if "experience" in member else 0
 	
 	var member_count := float(crew_members.size())
 	stats.average_combat = total_combat / member_count
@@ -134,7 +134,7 @@ func export_crew_data() -> Dictionary:
 			"class": member.character_class,
 			"background": member.background,
 			"origin": member.origin,
-			"reaction": member.reaction,
+			"reactions": member.reactions,
 			"speed": member.speed,
 			"combat": member.combat,
 			"toughness": member.toughness,
@@ -159,7 +159,7 @@ func import_crew_data(data: Dictionary) -> void:
 		member.character_class = member_data.get("class", 0)
 		member.background = member_data.get("background", 0)
 		member.origin = member_data.get("origin", 0)
-		member.reaction = member_data.get("reaction", 1)
+		member.reactions = member_data.get("reactions", member_data.get("reaction", 1))
 		member.speed = member_data.get("speed", 4)
 		member.combat = member_data.get("combat", 0)
 		member.toughness = member_data.get("toughness", 3)

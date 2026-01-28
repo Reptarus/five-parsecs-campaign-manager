@@ -145,7 +145,9 @@ func _initialize_unified_state() -> void:
 	unified_campaign_state.crew.size = 6  # Default crew size per core rules (4, 5, or 6)
 	unified_campaign_state.crew.is_complete = false
 
-	unified_campaign_state.equipment.items = []
+	# Canonical key is 'equipment', 'items' is legacy alias
+	unified_campaign_state.equipment.equipment = []  # Canonical
+	unified_campaign_state.equipment.items = []  # Legacy alias for backwards compat
 	unified_campaign_state.equipment.credits = 1000 # Default starting credits
 	unified_campaign_state.equipment.is_complete = false
 	
@@ -190,13 +192,19 @@ func update_equipment_state(equipment_data: Dictionary) -> void:
 	"""Update equipment state and emit signal"""
 	print("CampaignCreationCoordinator: Updating equipment state")
 	
-	# Sprint 26.7: Standardized to equipment key (check legacy items key for backwards compat)
+	# Sprint 26.7: Standardized to equipment key (canonical)
+	# CRITICAL FIX: Store as .equipment (canonical) AND .items (legacy) for backward compatibility
+	var equipment_list: Array = []
 	if equipment_data.has("equipment"):
-		unified_campaign_state.equipment.items = equipment_data.equipment
-		print("CampaignCreationCoordinator: Equipment set from equipment key (%d items)" % equipment_data.equipment.size())
+		equipment_list = equipment_data.equipment
+		print("CampaignCreationCoordinator: Equipment set from equipment key (%d items)" % equipment_list.size())
 	elif equipment_data.has("items"):
-		unified_campaign_state.equipment.items = equipment_data.items
-		print("CampaignCreationCoordinator: Equipment set from items key (legacy, %d items)" % equipment_data.items.size())
+		equipment_list = equipment_data.items
+		print("CampaignCreationCoordinator: Equipment set from items key (legacy, %d items)" % equipment_list.size())
+
+	# Store in both keys for maximum compatibility
+	unified_campaign_state.equipment.equipment = equipment_list  # Canonical
+	unified_campaign_state.equipment.items = equipment_list  # Legacy alias
 	
 	if equipment_data.has("credits"):
 		unified_campaign_state.equipment.credits = equipment_data.credits
@@ -231,20 +239,44 @@ func update_equipment_state(equipment_data: Dictionary) -> void:
 func update_ship_state(ship_data: Dictionary) -> void:
 	"""Update ship state and emit signal"""
 	print("CampaignCreationCoordinator: Updating ship state")
-	
-	# Update ship data
-	if ship_data.has("name"):
-		unified_campaign_state.ship.name = ship_data.name
-	if ship_data.has("type"):
-		unified_campaign_state.ship.type = ship_data.type
-	if ship_data.has("hull_points"):
-		unified_campaign_state.ship.hull_points = ship_data.hull_points
-	if ship_data.has("max_hull"):
-		unified_campaign_state.ship.max_hull = ship_data.max_hull
-	if ship_data.has("debt"):
-		unified_campaign_state.ship.debt = ship_data.debt
+
+	# SPRINT 26.21 FIX: Handle nested ship data structure from ShipPanel
+	# ShipPanel sends {"ship": {...actual data...}, "is_complete": true}
+	# Extract the actual ship data if nested
+	var actual_ship_data: Dictionary = ship_data
+	if ship_data.has("ship") and ship_data["ship"] is Dictionary:
+		actual_ship_data = ship_data["ship"]
+		print("CampaignCreationCoordinator: Extracted nested ship data with keys: %s" % str(actual_ship_data.keys()))
+
+	# Update ship data from the extracted (or flat) data
+	if actual_ship_data.has("name"):
+		unified_campaign_state.ship.name = actual_ship_data.name
+	if actual_ship_data.has("type"):
+		unified_campaign_state.ship.type = actual_ship_data.type
+	if actual_ship_data.has("hull_points"):
+		unified_campaign_state.ship.hull_points = actual_ship_data.hull_points
+	if actual_ship_data.has("max_hull"):
+		unified_campaign_state.ship.max_hull = actual_ship_data.max_hull
+	if actual_ship_data.has("debt"):
+		unified_campaign_state.ship.debt = actual_ship_data.debt
+
+	# Handle is_complete from both top-level (wrapper) and nested (actual ship data)
 	if ship_data.has("is_complete"):
 		unified_campaign_state.ship.is_complete = ship_data.is_complete
+	elif actual_ship_data.has("is_complete"):
+		unified_campaign_state.ship.is_complete = actual_ship_data.is_complete
+
+	# SPRINT 26.21 FIX: Sync is_configured flag for StateManager validation
+	# Check both wrapper and actual data for is_configured
+	if actual_ship_data.has("is_configured"):
+		unified_campaign_state.ship.is_configured = actual_ship_data.is_configured
+	elif ship_data.has("is_configured"):
+		unified_campaign_state.ship.is_configured = ship_data.is_configured
+
+	# Also set is_configured when is_complete is true (they are semantically equivalent)
+	if ship_data.get("is_complete", actual_ship_data.get("is_complete", false)):
+		unified_campaign_state.ship.is_configured = true
+		print("CampaignCreationCoordinator: Set is_configured=true from is_complete flag")
 	
 	# Emit signals - both specific and campaign-wide
 	ship_state_updated.emit(unified_campaign_state.ship)
@@ -476,12 +508,13 @@ func update_captain_state(captain_data: Dictionary) -> void:
 		else:
 			unified_campaign_state.captain.reactions = 1
 
+		# SPRINT 26.20 FIX: Default savvy to 1 (minimum valid Five Parsecs stat value), not 0
 		if "savvy" in captain_char:
-			unified_campaign_state.captain.savvy = captain_char.savvy if captain_char.savvy else 0
+			unified_campaign_state.captain.savvy = captain_char.savvy if captain_char.savvy else 1
 		elif captain_char.get("savvy"):
 			unified_campaign_state.captain.savvy = captain_char.get("savvy")
 		else:
-			unified_campaign_state.captain.savvy = 0
+			unified_campaign_state.captain.savvy = 1
 
 		if "speed" in captain_char:
 			unified_campaign_state.captain.speed = captain_char.speed if captain_char.speed else 4
@@ -490,10 +523,31 @@ func update_captain_state(captain_data: Dictionary) -> void:
 		else:
 			unified_campaign_state.captain.speed = 4
 
-		print("CampaignCreationCoordinator: Extracted captain stats - Combat:%d Toughness:%d Reactions:%d" % [
+		# SPRINT 27 FIX: Extract tech stat (required by CampaignFinalizationService validation)
+		if "tech" in captain_char:
+			unified_campaign_state.captain.tech = captain_char.tech if captain_char.tech else 3
+		elif captain_char.get("tech"):
+			unified_campaign_state.captain.tech = captain_char.get("tech")
+		else:
+			unified_campaign_state.captain.tech = 3  # Default
+
+		# SPRINT 27 FIX: Extract speed stat (canonical per Five Parsecs rules)
+		if "speed" in captain_char:
+			unified_campaign_state.captain.speed = captain_char.speed if captain_char.speed else 4
+		elif captain_char.get("speed"):
+			unified_campaign_state.captain.speed = captain_char.get("speed")
+		elif captain_char.get("move"):  # Fallback for backwards compatibility
+			unified_campaign_state.captain.speed = captain_char.get("move")
+		else:
+			unified_campaign_state.captain.speed = 4  # Default
+
+		print("CampaignCreationCoordinator: Extracted captain stats - Combat:%d Toughness:%d Reactions:%d Savvy:%d Tech:%d Speed:%d" % [
 			unified_campaign_state.captain.combat,
 			unified_campaign_state.captain.toughness,
-			unified_campaign_state.captain.reactions])
+			unified_campaign_state.captain.reactions,
+			unified_campaign_state.captain.get("savvy", 0),
+			unified_campaign_state.captain.get("tech", 0),
+			unified_campaign_state.captain.get("speed", 0)])
 
 	# SPRINT 26 FIX: Set has_captain flag for StateManager validation
 	if unified_campaign_state.crew.captain != null or captain_complete:
@@ -626,11 +680,16 @@ func _character_to_dict(character) -> Dictionary:
 	if character == null:
 		return {}
 
-	# If already a flat Dictionary with all expected keys, return with normalized name keys
-	if character is Dictionary and character.has("character_name") and character.has("background"):
+	# SPRINT 27 FIX: Relax validation - accept Dictionaries with either "character_name" OR "name"
+	# Previous code required BOTH "character_name" AND "background", which was too strict
+	if character is Dictionary and (character.has("character_name") or character.has("name")):
 		# NORMALIZATION FIX: Ensure both "name" and "character_name" keys exist
-		if not character.has("name"):
+		if not character.has("name") and character.has("character_name"):
 			character["name"] = character.get("character_name", "")
+		elif not character.has("character_name") and character.has("name"):
+			character["character_name"] = character.get("name", "")
+		# If we have a name, this is a valid character dict - return it
+		# Don't require "background" - captain/crew may not have all fields yet
 		return character
 
 	# Extract from Character object or Dictionary
@@ -694,11 +753,12 @@ func _character_to_dict(character) -> Dictionary:
 	if "luck" in character:
 		result["luck"] = character.luck if not is_dict else character.get("luck")
 
-	# XP/Experience (with fallback)
-	if "xp" in character:
-		result["xp"] = character.xp if not is_dict else character.get("xp")
-	elif "experience" in character:
-		result["xp"] = character.experience if not is_dict else character.get("experience")
+	# XP/Experience (Sprint 27.4: canonical property is 'experience')
+	if "experience" in character:
+		result["experience"] = character.experience if not is_dict else character.get("experience")
+	elif "xp" in character:
+		# Legacy fallback for old data
+		result["experience"] = character.xp if not is_dict else character.get("xp")
 
 	if "is_captain" in character:
 		result["is_captain"] = character.is_captain if not is_dict else character.get("is_captain")
@@ -1201,9 +1261,11 @@ func update_validation_state(validation_data: Dictionary) -> void:
 
 # GDScript 2.0: Typed function for victory condition validation
 func _has_victory_condition_selected(conditions: Dictionary) -> bool:
-	"""Check if at least one victory condition is selected"""
+	"""Check if at least one victory condition is selected.
+	Victory conditions are stored as nested dictionaries (not bools)."""
 	for key: String in conditions:
-		if conditions.get(key, false) == true:
+		var condition_data = conditions.get(key, {})
+		if condition_data is Dictionary and not condition_data.is_empty():
 			return true
 	return false
 

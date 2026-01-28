@@ -1004,9 +1004,9 @@ func _generate_rare_equipment() -> Dictionary:
 		"stealth field":
 			effect = {"stealth": 2 + (randi() % 2)}
 		"combat stims":
-			effect = {"reaction": 2 + (randi() % 2)}
+			effect = {"reactions": 2 + (randi() % 2)}
 		"bionic enhancement":
-			effect = {"attribute": 1, "attribute_type": ["strength", "speed", "reaction"][randi() % 3]}
+			effect = {"attribute": 1, "attribute_type": ["strength", "speed", "reactions"][randi() % 3]}
 		"rare weapon mod":
 			effect = {"damage": 1, "accuracy": 1}
 
@@ -1042,7 +1042,7 @@ func _generate_unique_item() -> Dictionary:
 			"name": "Neural Interface",
 			"type": "gear",
 			"gear_type": "augment",
-			"effect": {"skills": 2, "reaction": 2}
+			"effect": {"skills": 2, "reactions": 2}
 		}
 	]
 

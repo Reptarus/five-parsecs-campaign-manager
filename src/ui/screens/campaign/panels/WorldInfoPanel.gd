@@ -1674,8 +1674,9 @@ func set_coordinator(coord: Node) -> void:
 	if not coord:
 		push_error("WorldInfoPanel: Attempted to set null coordinator")
 		return
-		
+
 	coordinator = coord
+	_coordinator = coord  # BUGFIX: Also set base class variable for get_coordinator_reference()
 	print("WorldInfoPanel: Coordinator set")
 	
 	# Connect to coordinator's campaign state updates with safety checks

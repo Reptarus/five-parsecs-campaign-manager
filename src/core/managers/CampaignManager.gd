@@ -1287,7 +1287,6 @@ func _serialize_character(character: Character) -> Dictionary:
 		"toughness": character.toughness,
 		"savvy": character.savvy,
 		"tech": character.tech,
-		"move": character.move,
 		"luck": character.luck,
 		
 		# Additional data - use "in" for Resource property checks

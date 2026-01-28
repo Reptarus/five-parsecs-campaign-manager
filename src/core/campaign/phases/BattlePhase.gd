@@ -370,6 +370,10 @@ func _process_deployment() -> void:
 	crew_deployed = _get_deployed_crew()
 	enemies_deployed = battle_setup_data.get("enemy_types", [])
 
+	# SPRINT 26.23: Validate crew deployed before proceeding
+	if crew_deployed.is_empty():
+		push_warning("BattlePhase: No crew members available for deployment!")
+
 	deployment_data = {
 		"crew_positions": _generate_deployment_positions(crew_deployed.size(), "crew"),
 		"enemy_positions": _generate_deployment_positions(enemies_deployed.size(), "enemy"),
@@ -395,11 +399,16 @@ func _process_deployment() -> void:
 	await _process_initiative()
 
 func _get_deployed_crew() -> Array[Dictionary]:
-	"""Get crew members deployed to battle (B-3 fix: normalized to Dictionary format)"""
+	"""Get crew members deployed to battle (B-3 fix: normalized to Dictionary format)
+	SPRINT 26.23: Added null safety for get_crew_members() return"""
 	var crew: Array[Dictionary] = []
 
 	if game_state_manager and game_state_manager.has_method("get_crew_members"):
 		var all_crew = game_state_manager.get_crew_members()
+		# SPRINT 26.23: Null check for get_crew_members() return
+		if all_crew == null:
+			push_warning("BattlePhase: get_crew_members() returned null")
+			all_crew = []
 		# Filter to only healthy crew members and normalize to Dictionary
 		for member in all_crew:
 			var member_dict: Dictionary = _normalize_crew_member_to_dict(member)
@@ -424,9 +433,27 @@ func _normalize_crew_member_to_dict(member: Variant) -> Dictionary:
 	"""
 	# Try Character-first (Sprint 26.3 standard)
 	if member is Character and member.has_method("to_dictionary"):
-		return member.to_dictionary()
+		var char_dict = member.to_dictionary()
+		# Sprint 27.4: Enrich with EquipmentManager equipment (source of truth)
+		var char_id = char_dict.get("character_id", char_dict.get("id", ""))
+		var equipment_manager_node = get_node_or_null("/root/EquipmentManager")
+		if equipment_manager_node and equipment_manager_node.has_method("get_character_equipment") and not char_id.is_empty():
+			var equipment_from_manager = equipment_manager_node.get_character_equipment(char_id)
+			if not equipment_from_manager.is_empty():
+				char_dict["equipment"] = equipment_from_manager
+		return char_dict
 
 	if member is Dictionary:
+		# Sprint 27.4: Also enrich Dictionary members with EquipmentManager equipment
+		var char_id = member.get("character_id", member.get("id", ""))
+		if not char_id.is_empty():
+			var equipment_manager_node = get_node_or_null("/root/EquipmentManager")
+			if equipment_manager_node and equipment_manager_node.has_method("get_character_equipment"):
+				var equipment_from_manager = equipment_manager_node.get_character_equipment(char_id)
+				if not equipment_from_manager.is_empty():
+					var result = member.duplicate()
+					result["equipment"] = equipment_from_manager
+					return result
 		return member
 
 	# Handle Resource types (Character, etc.)
@@ -463,8 +490,25 @@ func _normalize_crew_member_to_dict(member: Variant) -> Dictionary:
 			dict["luck"] = member.luck
 
 		# Equipment data (critical for combat calculations)
-		if "equipment" in member:
+		# Sprint 27.4: Query EquipmentManager for assigned equipment (source of truth)
+		var char_id = dict.get("character_id", dict.get("id", ""))
+		if char_id.is_empty() and "character_id" in member:
+			char_id = member.character_id
+		elif char_id.is_empty() and "id" in member:
+			char_id = member.id
+
+		# Try EquipmentManager first (authoritative for equipment assignments)
+		var equipment_from_manager: Array = []
+		var equipment_manager_node = get_node_or_null("/root/EquipmentManager")
+		if equipment_manager_node and equipment_manager_node.has_method("get_character_equipment") and not char_id.is_empty():
+			equipment_from_manager = equipment_manager_node.get_character_equipment(char_id)
+
+		# Use EquipmentManager data if available, otherwise fall back to character property
+		if not equipment_from_manager.is_empty():
+			dict["equipment"] = equipment_from_manager
+		elif "equipment" in member:
 			dict["equipment"] = member.equipment
+
 		if "weapons" in member:
 			dict["weapons"] = member.weapons
 		if "armor" in member:

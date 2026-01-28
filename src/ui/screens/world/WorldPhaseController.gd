@@ -311,9 +311,22 @@ func _initialize_components_with_data() -> void:
 				if member.has_method("to_dictionary"):
 					typed_crew.append(member.to_dictionary())
 				else:
-					typed_crew.append({"character_name": member.get("character_name") if member.get("character_name") else "", "character_id": member.get("character_id") if member.get("character_id") else ""})
+					# Manual conversion with proper property access (not .get() which doesn't work on Resources)
+					typed_crew.append({
+						"character_id": member.character_id if "character_id" in member else "",
+						"character_name": member.character_name if "character_name" in member else "",
+						"combat": member.combat if "combat" in member else 0,
+						"reactions": member.reactions if "reactions" in member else 0,
+						"toughness": member.toughness if "toughness" in member else 0,
+						"savvy": member.savvy if "savvy" in member else 0,
+						"speed": member.speed if "speed" in member else 4,
+						"is_captain": member.is_captain if "is_captain" in member else false
+					})
+					push_warning("WorldPhaseController: Character missing to_dictionary() - using manual conversion")
 			elif member is Dictionary:
 				typed_crew.append(member)
+			else:
+				push_warning("WorldPhaseController: Unexpected crew member type: %s" % typeof(member))
 		var typed_equipment: Array[Dictionary] = []
 		for item in equipment:
 			if item is Dictionary:
@@ -1069,11 +1082,30 @@ func _initialize_mission_selection() -> void:
 func _on_mission_selected(mission: Resource) -> void:
 	"""Handle mission selection from MissionSelectionUI"""
 	print("WorldPhaseController: Mission selected: %s" % mission)
-	
+
+	# Sprint 28 BUG-1 Fix: Persist mission to GameStateManager for Battle Phase
+	if mission and GameStateManager:
+		var mission_dict: Dictionary = {}
+		if mission.has_method("to_dictionary"):
+			mission_dict = mission.to_dictionary()
+		else:
+			# Extract mission data from Resource metadata
+			mission_dict = {
+				"name": mission.get_meta("name", "Unknown Mission"),
+				"type": mission.get_meta("mission_type", "Standard"),
+				"difficulty": mission.get_meta("difficulty", 1),
+				"reward": mission.get_meta("reward", 0),
+				"description": mission.get_meta("description", ""),
+				"enemy_count": mission.get_meta("enemy_count", 0),
+				"patron": mission.get_meta("patron", ""),
+				"special_conditions": mission.get_meta("special_conditions", [])
+			}
+		GameStateManager.set_current_mission(mission_dict)
+
 	# Mark mission step as completed
 	step_completed[WorldPhaseStep.JOB_OFFERS] = true
 	step_completed[WorldPhaseStep.MISSION_PREP] = true
-	
+
 	# Auto-advance to next step or complete phase
 	if current_step == WorldPhaseStep.JOB_OFFERS:
 		_advance_to_next_step()

@@ -72,6 +72,17 @@ var _last_crew_size: int = 0
 
 func _handle_campaign_state_update(state_data: Dictionary) -> void:
 	"""Override from base class - handle campaign state updates"""
+	# CRITICAL FIX: Ignore updates that originated from this panel to prevent double-loading
+	var source = state_data.get("source", "")
+	if source == "equipment_panel":
+		print("EquipmentPanel: Ignoring update from self (source: equipment_panel)")
+		return
+
+	var phase = state_data.get("phase", "")
+	if phase == "equipment_update":
+		print("EquipmentPanel: Ignoring equipment_update phase (self-update)")
+		return
+
 	print("EquipmentPanel: Campaign state updated with keys: %s" % str(state_data.keys()))
 
 	# Update panel state based on campaign state if needed
@@ -392,7 +403,9 @@ func _setup_panel_content() -> void:
 
 func set_coordinator(coord: Node) -> void:
 	"""Store coordinator reference properly for equipment panel"""
+	# Set both local and base class coordinator references
 	coordinator = coord
+	_coordinator = coord  # BUGFIX: Also set base class variable so get_coordinator() works
 	print("EquipmentPanel: Coordinator stored successfully")
 
 	# TYPE-SAFE: Get state manager if available
@@ -401,9 +414,10 @@ func set_coordinator(coord: Node) -> void:
 			var manager = coord.call("get_state_manager")
 			if manager and is_instance_valid(manager):
 				state_manager = manager
+				_state_manager = manager  # Also set base class variable
 				print("EquipmentPanel: State manager reference stored")
 
-	# CRITICAL FIX: Call _on_coordinator_set to connect signal
+	# Defer _on_coordinator_set to ensure panel is ready
 	call_deferred("_on_coordinator_set")
 
 func _on_coordinator_set() -> void:

@@ -11,6 +11,7 @@ const STEP_NUMBER := 2  # Step 2 of 7 in campaign wizard
 # Captain-specific imports
 const Character = preload("res://src/core/character/Character.gd")
 const SimpleCharacterCreator = preload("res://src/core/character/Generation/SimpleCharacterCreator.gd")
+const Godot4Utils = preload("res://src/utils/Godot4Utils.gd")
 
 # Captain-specific signals
 # Sprint 26.3: These signals emit panel state as Dictionary (from get_panel_data())
@@ -94,24 +95,26 @@ func _ready() -> void:
 # NOTE: _add_progress_indicator() removed - CampaignCreationUI handles progress display centrally
 
 func _on_coordinator_set() -> void:
-	"""Called when coordinator is set - now we can safely check coordinator access"""
-	print("\n==== [PANEL: CaptainPanel] COORDINATOR ACCESS CHECK ====")
-	
-	var coordinator = get_coordinator()
-	if coordinator:
-		print("  ✅ Coordinator Access: true")
-		print("    Coordinator Type: %s" % coordinator.get_class())
-		print("    Has get_current_panel: %s" % coordinator.has_method("get_current_panel"))
-		print("    Has set_current_panel: %s" % coordinator.has_method("set_current_panel"))
+	"""Called when coordinator is set - sync initial state from coordinator (Sprint 26.20)"""
+	print("CaptainPanel: Coordinator set, syncing initial state")
+
+	var coordinator = get_coordinator_reference()
+	if coordinator and coordinator.has_method("get_unified_campaign_state"):
+		var state = coordinator.get_unified_campaign_state()
+		# Check for captain data in state - try multiple key locations
+		var captain_data: Dictionary = {}
+		if state.has("captain") and state.captain is Dictionary:
+			captain_data = state.captain
+		elif state.has("captain") and state.captain is Object and state.captain.has_method("to_dictionary"):
+			captain_data = state.captain.to_dictionary()
+
+		if not captain_data.is_empty():
+			print("CaptainPanel: Restoring captain data from coordinator state")
+			set_panel_data({"captain": captain_data})
+		else:
+			print("CaptainPanel: No existing captain data in coordinator state")
 	else:
-		# Try alternative methods to find coordinator
-		var campaign_ui = owner if owner != null else get_parent().get_parent()
-		var has_coordinator = campaign_ui != null and campaign_ui.has_method("get_coordinator")
-		print("  ⚠️  Coordinator Access: false")
-		print("    Fallback check via owner: %s" % has_coordinator)
-		if has_coordinator:
-			var fallback_coord = campaign_ui.get_coordinator()
-			print("    Fallback coordinator available: %s" % (fallback_coord != null))
+		print("CaptainPanel: Coordinator not available or missing get_unified_campaign_state")
 
 func _validate_node_references() -> void:
 	"""Validate all critical node references are available"""
@@ -713,13 +716,23 @@ func _initialize_character_creator() -> void:
 
 func _on_captain_name_changed(new_text: String) -> void:
 	panel_data["captain_name"] = new_text
-	
+
 	# Create captain object if it doesn't exist to enable validation
 	if not current_captain:
 		current_captain = Character.new()
 		current_captain.is_captain = true
+		# SPRINT 26.20 FIX: Initialize stats to valid Five Parsecs defaults (1-6 range)
+		# Without this, stats default to 0 which fails validation
+		current_captain.combat = 1
+		current_captain.reactions = 1
+		current_captain.savvy = 1
+		current_captain.toughness = 3
+		current_captain.tech = 1
+		current_captain.speed = 4
+		current_captain.is_human = true
+		print("CaptainPanel: Created new captain with default stats")
 	current_captain.character_name = new_text
-	
+
 	panel_data_changed.emit(get_panel_data())
 
 func _on_background_changed(index: int) -> void:
@@ -1000,18 +1013,20 @@ func _on_character_creation_cancelled() -> void:
 	main_form_container.visible = true
 
 func _extract_character_stats(character: Character) -> Dictionary:
-	"""Extract stats from Character object for data handoff to coordinator/FinalPanel"""
+	"""Extract stats from Character object for data handoff to coordinator/FinalPanel.
+	Uses Godot4Utils.safe_get_property for consistent null-safe property access."""
 	if not character:
 		return {}
 
+	# Use Godot4Utils.safe_get_property for consistent, null-safe property access
 	return {
-		"combat": character.combat if "combat" in character else 0,
-		"reactions": character.reactions if "reactions" in character else 0,
-		"toughness": character.toughness if "toughness" in character else 0,
-		"savvy": character.savvy if "savvy" in character else 0,
-		"speed": character.speed if "speed" in character else 0,
-		"luck": character.luck if "luck" in character else 0,
-		"xp": character.xp if "xp" in character else 0
+		"combat": Godot4Utils.safe_get_property(character, "combat", 0),
+		"reactions": Godot4Utils.safe_get_property(character, "reactions", 0),
+		"toughness": Godot4Utils.safe_get_property(character, "toughness", 0),
+		"savvy": Godot4Utils.safe_get_property(character, "savvy", 0),
+		"speed": Godot4Utils.safe_get_property(character, "speed", 0),
+		"luck": Godot4Utils.safe_get_property(character, "luck", 0),
+		"experience": Godot4Utils.safe_get_property(character, "experience", 0)
 	}
 
 func _update_ui_from_character() -> void:
@@ -1261,8 +1276,8 @@ func _generate_random_captain() -> void:
 	print("  Creation Method: %s" % creation_method)
 	print("  === CAPTAIN DATA BEING SAVED ===")
 	print("    Captain Name: '%s'" % captain.character_name)
-	print("    Stats: Combat:%d Reactions:%d Toughness:%d Savvy:%d Tech:%d Move:%d" % [
-		captain.combat, captain.reactions, captain.toughness, captain.savvy, captain.tech, captain.move
+	print("    Stats: Combat:%d Reactions:%d Toughness:%d Savvy:%d Tech:%d Speed:%d" % [
+		captain.combat, captain.reactions, captain.toughness, captain.savvy, captain.tech, captain.speed
 	])
 	print("    Experience: %d XP" % captain.experience)
 	print("    Background: '%s'" % captain.background)
@@ -1550,7 +1565,7 @@ func get_panel_data() -> Dictionary:
 			"toughness": current_captain.toughness,
 			"savvy": current_captain.savvy,
 			"tech": current_captain.tech,
-			"move": current_captain.move,
+			"speed": current_captain.speed,
 			"experience": current_captain.experience,
 			"background": current_captain.background,
 			"motivation": current_captain.motivation,
@@ -1618,9 +1633,9 @@ func _log_panel_initialization_debug() -> void:
 	print("    Current Captain: %s" % (current_captain != null))
 	if current_captain:
 		print("      Captain Name: '%s'" % current_captain.character_name)
-		print("      Captain Stats: C:%d R:%d T:%d S:%d T:%d M:%d" % [
+		print("      Captain Stats: C:%d R:%d T:%d S:%d T:%d Spd:%d" % [
 			current_captain.combat, current_captain.reactions, current_captain.toughness,
-			current_captain.savvy, current_captain.tech, current_captain.move
+			current_captain.savvy, current_captain.tech, current_captain.speed
 		])
 	print("    Panel Data Keys: %s" % str(panel_data.keys()))
 	print("    Creation Method: '%s'" % creation_method)
@@ -1643,21 +1658,36 @@ func _log_panel_initialization_debug() -> void:
 func _on_campaign_state_updated(state_data: Dictionary) -> void:
 	"""Handle campaign state updates from coordinator - CRITICAL for signal bridge"""
 	print("CaptainPanel: Received campaign state update with keys: %s" % str(state_data.keys()))
-	
-	# Handle captain phase specific data if available
+
+	# CRITICAL FIX: Ignore updates that originated from this panel to prevent double-loading
+	# This prevents the panel from overwriting user input with its own data
+	var source = state_data.get("source", "")
+	if source == "captain_panel":
+		print("CaptainPanel: Ignoring update from self (source: captain_panel)")
+		return
+
+	# Also ignore if this is a captain_update phase - we're the source
+	var phase = state_data.get("phase", "")
+	if phase == "captain_update":
+		print("CaptainPanel: Ignoring captain_update phase (self-update)")
+		return
+
+	# Handle captain phase specific data if available - but only if we don't have data yet
 	var captain_data = state_data.get("captain", {})
 	if captain_data.has("character_name") or captain_data.has("name"):
-		print("CaptainPanel: Captain data found in state - syncing...")
-		_sync_with_state_data(captain_data)
-	
+		# Only sync if we don't already have captain data (initial load)
+		var current_name = captain_name_input.text if captain_name_input else ""
+		if current_name.is_empty():
+			print("CaptainPanel: Captain data found in state - syncing (no existing data)...")
+			_sync_with_state_data(captain_data)
+		else:
+			print("CaptainPanel: Skipping sync - user has already entered data")
+
 	# Handle config data that might affect captain creation
 	var config_data = state_data.get("config", {})
 	if config_data.size() > 0:
 		print("CaptainPanel: Config data found - checking for captain-relevant settings...")
 		# Could be used for difficulty settings, custom rules, etc.
-	
-	# Refresh panel if needed
-	call_deferred("_refresh_panel_state")
 
 func _sync_with_state_data(captain_data: Dictionary) -> void:
 	"""Sync captain panel with campaign state data"""

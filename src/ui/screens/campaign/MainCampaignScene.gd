@@ -114,15 +114,90 @@ func _validate_dependencies() -> void:
 		campaign_error.emit(error_msg)
 
 func _check_for_pending_campaign_data() -> void:
-	"""Check for campaign data passed from creation scene"""
+	"""Check for campaign data passed from creation scene
+	SPRINT 26.23: Check for finalized Resource first, then fall back to dictionary"""
+
+	# SPRINT 26.23: Check for finalized Campaign resource first (preferred path)
+	if GameState and GameState.has_meta("pending_campaign_resource"):
+		var campaign_resource = GameState.get_meta("pending_campaign_resource")
+		var save_path = GameState.get_meta("pending_campaign_save_path", "")
+		GameState.set_meta("pending_campaign_resource", null)
+		GameState.set_meta("pending_campaign_save_path", null)
+
+		if campaign_resource and campaign_resource is Resource:
+			print("MainCampaignScene: Received finalized campaign resource")
+			_start_with_campaign_resource(campaign_resource, save_path)
+			return
+
+	# Legacy fallback: Dictionary-based handoff
 	if GameState and GameState.has_meta("pending_campaign_data"):
 		var campaign_data = GameState.get_meta("pending_campaign_data")
 		GameState.set_meta("pending_campaign_data", null) # Clear after use
-		
+
+		push_warning("MainCampaignScene: Using legacy dictionary handoff - prefer resource")
 		print("MainCampaignScene: Found pending campaign data, starting new campaign")
 		start_new_campaign(campaign_data)
 	else:
 		print("MainCampaignScene: No pending campaign data, ready for manual campaign load")
+
+func _start_with_campaign_resource(campaign: Resource, save_path: String) -> void:
+	"""Start campaign with properly finalized FiveParsecsCampaignCore resource
+	SPRINT 26.23: New method for resource-based handoff"""
+	print("MainCampaignScene: Starting campaign from resource - %s" % (campaign.campaign_name if "campaign_name" in campaign else "Unnamed"))
+
+	current_campaign = campaign
+	campaign_active = true
+
+	# Initialize systems with the resource directly
+	_initialize_campaign_systems_from_resource(campaign)
+
+	# Show campaign interface
+	_show_campaign_interface()
+
+	# Hand off to CampaignPhaseManager
+	var cpm = get_node_or_null("/root/CampaignPhaseManager")
+	if cpm and cpm.has_method("set_campaign"):
+		cpm.set_campaign(campaign)
+		print("MainCampaignScene: Campaign resource handed to CampaignPhaseManager")
+
+	# Start first campaign turn
+	if campaign_turn_controller:
+		campaign_turn_controller.start_new_campaign_turn()
+
+	# Emit signal with dictionary for compatibility
+	campaign_started.emit(campaign.to_dictionary() if campaign.has_method("to_dictionary") else {})
+
+func _initialize_campaign_systems_from_resource(campaign: Resource) -> void:
+	"""Initialize systems using the finalized campaign resource
+	SPRINT 26.23: New method for resource-based initialization"""
+
+	# Set current campaign in GameState
+	if GameState and GameState.has_method("set_current_campaign"):
+		GameState.set_current_campaign(campaign)
+		print("MainCampaignScene: GameState.set_current_campaign() called")
+	elif GameState:
+		GameState.current_campaign = campaign
+		print("MainCampaignScene: GameState.current_campaign set directly")
+
+	# Sync to GameStateManager
+	if GameStateManager:
+		# Sync crew members
+		if campaign.has_method("get_crew_members"):
+			var crew = campaign.get_crew_members()
+			if GameStateManager.has_method("set_crew"):
+				GameStateManager.set_crew(crew)
+				print("MainCampaignScene: Crew synced to GameStateManager (%d members)" % crew.size())
+
+		# Sync resources/credits
+		if campaign.has_method("get_resources"):
+			var resources = campaign.get_resources()
+			GameStateManager.set_credits(resources.get("credits", 0))
+			print("MainCampaignScene: Credits synced to GameStateManager: %d" % resources.get("credits", 0))
+
+	# Initialize CampaignManager if available
+	if CampaignManager and CampaignManager.has_method("set_campaign"):
+		CampaignManager.set_campaign(campaign)
+		print("MainCampaignScene: CampaignManager received campaign")
 
 ## SPRINT 6.1: Campaign Creation Signal Integration
 

@@ -92,7 +92,7 @@ static func deserialize_character(data: Dictionary) -> Character:
 	character.toughness = stats.get("toughness", 3)
 	character.savvy = stats.get("savvy", 0)
 	character.tech = stats.get("tech", 0)
-	character.speed = stats.get("speed", 4)
+	character.speed = stats.get("speed", stats.get("move", 4))  # Fallback to "move" for old saves
 	character.luck = stats.get("luck", 0)
 	
 	# Restore equipment
