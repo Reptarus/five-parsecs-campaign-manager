@@ -464,7 +464,10 @@
       "Bash(then echo \"ERROR: $file still exists!\")",
       "Bash(else echo \"OK: $file deleted/archived\")",
       "Bash(tree:*)",
-      "WebFetch(domain:forum.godotengine.org)"
+      "WebFetch(domain:forum.godotengine.org)",
+      "Bash(git push:*)",
+      "Bash(git config:*)",
+      "Bash(gh auth status:*)"
     ],
     "deny": [],
     "ask": [],
