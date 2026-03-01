@@ -22,7 +22,8 @@ enum AIPersonality {
 	CAUTIOUS,
 	TACTICAL,
 	PROTECTIVE,
-	UNPREDICTABLE
+	UNPREDICTABLE,
+	DEFENSIVE
 }
 
 ## Group tactics

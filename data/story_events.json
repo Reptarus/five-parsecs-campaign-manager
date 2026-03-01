@@ -1,0 +1,291 @@
+{
+	"_comment": "Five Parsecs From Home - Story Phase Events (per-turn world step events)",
+	"events": [
+		{
+			"id": "mysterious_signal",
+			"title": "Mysterious Signal",
+			"description": "Your crew picks up an unusual signal from a nearby system. It could be a distress call or a trap.",
+			"choices": [
+				{
+					"text": "Investigate the signal",
+					"effects": {
+						"story_points": 2,
+						"risk_level": "high",
+						"potential_reward": "technology"
+					}
+				},
+				{
+					"text": "Ignore it and continue",
+					"effects": {
+						"story_points": 0,
+						"risk_level": "none",
+						"potential_reward": "none"
+					}
+				}
+			]
+		},
+		{
+			"id": "local_conflict",
+			"title": "Local Conflict",
+			"description": "A local settlement is caught in a dispute between rival factions.",
+			"choices": [
+				{
+					"text": "Support the settlers",
+					"effects": {
+						"story_points": 3,
+						"risk_level": "medium",
+						"potential_reward": "allies"
+					}
+				},
+				{
+					"text": "Stay neutral",
+					"effects": {
+						"story_points": 0,
+						"risk_level": "low",
+						"potential_reward": "none"
+					}
+				}
+			]
+		},
+		{
+			"id": "patron_rumor",
+			"title": "Patron Rumor",
+			"description": "Word reaches you of a wealthy patron looking for a reliable crew to handle a sensitive job.",
+			"choices": [
+				{
+					"text": "Seek out the patron",
+					"effects": {
+						"story_points": 1,
+						"risk_level": "low",
+						"potential_reward": "allies"
+					}
+				},
+				{
+					"text": "Not worth the trouble",
+					"effects": {
+						"story_points": 0,
+						"risk_level": "none",
+						"potential_reward": "none"
+					}
+				}
+			]
+		},
+		{
+			"id": "derelict_ship",
+			"title": "Derelict Ship",
+			"description": "Sensors detect a derelict vessel drifting in the outer system. Salvage could be profitable — or dangerous.",
+			"choices": [
+				{
+					"text": "Board and salvage",
+					"effects": {
+						"story_points": 2,
+						"risk_level": "high",
+						"potential_reward": "technology"
+					}
+				},
+				{
+					"text": "Mark coordinates and move on",
+					"effects": {
+						"story_points": 1,
+						"risk_level": "none",
+						"potential_reward": "none"
+					}
+				}
+			]
+		},
+		{
+			"id": "rival_sighting",
+			"title": "Rival Sighting",
+			"description": "Intelligence suggests one of your rivals is operating nearby. This could be a chance to settle old scores.",
+			"choices": [
+				{
+					"text": "Track them down",
+					"effects": {
+						"story_points": 2,
+						"risk_level": "high",
+						"potential_reward": "allies"
+					}
+				},
+				{
+					"text": "Avoid confrontation",
+					"effects": {
+						"story_points": 0,
+						"risk_level": "none",
+						"potential_reward": "none"
+					}
+				}
+			]
+		},
+		{
+			"id": "market_opportunity",
+			"title": "Market Opportunity",
+			"description": "A trader offers your crew first pick of a newly arrived shipment at a discount.",
+			"choices": [
+				{
+					"text": "Browse the goods",
+					"effects": {
+						"story_points": 1,
+						"risk_level": "low",
+						"potential_reward": "technology"
+					}
+				},
+				{
+					"text": "No time for shopping",
+					"effects": {
+						"story_points": 0,
+						"risk_level": "none",
+						"potential_reward": "none"
+					}
+				}
+			]
+		},
+		{
+			"id": "fringe_broadcast",
+			"title": "Fringe Space Broadcast",
+			"description": "A coded broadcast mentions coordinates to an old Unity-era cache. Others will have heard it too.",
+			"choices": [
+				{
+					"text": "Race to the coordinates",
+					"effects": {
+						"story_points": 3,
+						"risk_level": "high",
+						"potential_reward": "technology"
+					}
+				},
+				{
+					"text": "Too risky, pass",
+					"effects": {
+						"story_points": 0,
+						"risk_level": "none",
+						"potential_reward": "none"
+					}
+				}
+			]
+		},
+		{
+			"id": "crew_downtime",
+			"title": "Crew Downtime",
+			"description": "Between jobs, the crew has time to train, repair gear, or just relax.",
+			"choices": [
+				{
+					"text": "Focused training",
+					"effects": {
+						"story_points": 1,
+						"risk_level": "none",
+						"potential_reward": "allies"
+					}
+				},
+				{
+					"text": "Rest and recuperate",
+					"effects": {
+						"story_points": 0,
+						"risk_level": "none",
+						"potential_reward": "none"
+					}
+				}
+			]
+		},
+		{
+			"id": "abandoned_outpost",
+			"title": "Abandoned Outpost",
+			"description": "An old frontier outpost sits quiet on the edge of settled space. Scavengers haven't found it yet.",
+			"choices": [
+				{
+					"text": "Explore the outpost",
+					"effects": {
+						"story_points": 2,
+						"risk_level": "medium",
+						"potential_reward": "technology"
+					}
+				},
+				{
+					"text": "Leave it for someone else",
+					"effects": {
+						"story_points": 0,
+						"risk_level": "none",
+						"potential_reward": "none"
+					}
+				}
+			]
+		},
+		{
+			"id": "smuggler_contact",
+			"title": "Smuggler Contact",
+			"description": "A known smuggler approaches your crew with an offer: move a package, no questions asked.",
+			"choices": [
+				{
+					"text": "Accept the job",
+					"effects": {
+						"story_points": 1,
+						"risk_level": "medium",
+						"potential_reward": "technology"
+					}
+				},
+				{
+					"text": "Decline politely",
+					"effects": {
+						"story_points": 0,
+						"risk_level": "low",
+						"potential_reward": "none"
+					}
+				}
+			]
+		},
+		{
+			"id": "faction_envoy",
+			"title": "Faction Envoy",
+			"description": "An envoy from a local faction requests an audience. They seem to have a proposition.",
+			"choices": [
+				{
+					"text": "Hear them out",
+					"effects": {
+						"story_points": 2,
+						"risk_level": "low",
+						"potential_reward": "allies"
+					}
+				},
+				{
+					"text": "We work alone",
+					"effects": {
+						"story_points": 0,
+						"risk_level": "none",
+						"potential_reward": "none"
+					}
+				}
+			]
+		},
+		{
+			"id": "medical_emergency",
+			"title": "Medical Emergency",
+			"description": "A nearby settlement sends out a desperate plea for medical supplies. Your ship has what they need.",
+			"choices": [
+				{
+					"text": "Deliver the supplies",
+					"effects": {
+						"story_points": 2,
+						"risk_level": "low",
+						"potential_reward": "allies"
+					}
+				},
+				{
+					"text": "Supplies are too valuable",
+					"effects": {
+						"story_points": 0,
+						"risk_level": "none",
+						"potential_reward": "none"
+					}
+				}
+			]
+		}
+	],
+	"reward_values": {
+		"technology_credits": 50,
+		"allies_reputation": 5
+	},
+	"outcome_chances": {
+		"high": 0.5,
+		"medium": 0.6,
+		"low": 0.8,
+		"none": 1.0
+	}
+}

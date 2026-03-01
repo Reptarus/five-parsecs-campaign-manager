@@ -1,0 +1,73 @@
+[gd_scene load_steps=2 format=3 uid="uid://bt5nx8q7m2wkp"]
+
+[ext_resource type="Script" path="res://src/ui/screens/battle/BattleTransitionUI.gd" id="1_battle_transition"]
+
+[node name="BattleTransitionUI" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_battle_transition")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.1, 0.1, 0.1, 0.8)
+
+[node name="BattleTransitionPanel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -150.0
+offset_right = 300.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BattleTransitionContent" type="VBoxContainer" parent="BattleTransitionPanel"]
+layout_mode = 2
+
+[node name="BattleTitle" type="Label" parent="BattleTransitionPanel/BattleTransitionContent"]
+layout_mode = 2
+text = "Battle Phase"
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="BattleTransitionPanel/BattleTransitionContent"]
+layout_mode = 2
+
+[node name="BattleStatus" type="Label" parent="BattleTransitionPanel/BattleTransitionContent"]
+layout_mode = 2
+text = "Launching Battle Companion..."
+theme_override_font_sizes/font_size = 16
+horizontal_alignment = 1
+
+[node name="BattleProgress" type="ProgressBar" parent="BattleTransitionPanel/BattleTransitionContent"]
+layout_mode = 2
+value = 50.0
+show_percentage = false
+
+[node name="ButtonContainer" type="HBoxContainer" parent="BattleTransitionPanel/BattleTransitionContent"]
+layout_mode = 2
+alignment = 1
+
+[node name="CancelButton" type="Button" parent="BattleTransitionPanel/BattleTransitionContent/ButtonContainer"]
+layout_mode = 2
+text = "Cancel"
+
+[node name="LaunchButton" type="Button" parent="BattleTransitionPanel/BattleTransitionContent/ButtonContainer"]
+layout_mode = 2
+text = "Launch Battle"
+
+[connection signal="pressed" from="BattleTransitionPanel/BattleTransitionContent/ButtonContainer/CancelButton" to="." method="_on_cancel_button_pressed"]
+[connection signal="pressed" from="BattleTransitionPanel/BattleTransitionContent/ButtonContainer/LaunchButton" to="." method="_on_launch_battle_pressed"]

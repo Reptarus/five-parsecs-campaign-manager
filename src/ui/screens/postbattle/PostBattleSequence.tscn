@@ -1,0 +1,157 @@
+[gd_scene load_steps=2 format=3 uid="uid://e9x6y3w8v4n5m"]
+
+[ext_resource type="Script" path="res://src/ui/screens/postbattle/PostBattleSequence.gd" id="1_postbattle"]
+[ext_resource type="Script" path="res://src/ui/components/ResponsiveContainer.gd" id="2_responsive"]
+
+[node name="PostBattleSequence" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_postbattle")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Header" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 32
+text = "Post-Battle Sequence"
+
+[node name="StepCounter" type="Label" parent="MarginContainer/VBoxContainer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Step 1 of 14"
+
+[node name="MainContent" type="Container" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("2_responsive")
+responsive_mode = 0
+horizontal_spacing = 20
+vertical_spacing = 15
+
+[node name="StepsList" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
+layout_mode = 2
+size_flags_horizontal = 2
+custom_minimum_size = Vector2(300, 0)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/StepsList"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/MainContent/StepsList/VBoxContainer"]
+layout_mode = 2
+text = "Post-Battle Steps"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 18
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/MainContent/StepsList/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="StepsContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/StepsList/VBoxContainer/ScrollContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="CurrentStep" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/CurrentStep"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="StepTitle" type="Label" parent="MarginContainer/VBoxContainer/MainContent/CurrentStep/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Current Step"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 20
+
+[node name="StepContent" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/CurrentStep/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Results" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
+layout_mode = 2
+size_flags_horizontal = 2
+custom_minimum_size = Vector2(250, 0)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/Results"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/MainContent/Results/VBoxContainer"]
+layout_mode = 2
+text = "Battle Results"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 18
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/MainContent/Results/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ResultsContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/Results/VBoxContainer/ScrollContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Controls" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="PreviousButton" type="Button" parent="MarginContainer/VBoxContainer/Controls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 56)
+layout_mode = 2
+text = "Previous"
+disabled = true
+
+[node name="NextButton" type="Button" parent="MarginContainer/VBoxContainer/Controls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 56)
+layout_mode = 2
+text = "Next"
+
+[node name="RollButton" type="Button" parent="MarginContainer/VBoxContainer/Controls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 56)
+layout_mode = 2
+text = "Roll Dice"
+
+[node name="FinishButton" type="Button" parent="MarginContainer/VBoxContainer/Controls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(180, 56)
+layout_mode = 2
+text = "Finish Post-Battle"
+visible = false
+
+[connection signal="pressed" from="MarginContainer/VBoxContainer/Controls/PreviousButton" to="." method="_on_previous_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/Controls/NextButton" to="." method="_on_next_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/Controls/RollButton" to="." method="_on_roll_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/Controls/FinishButton" to="." method="_on_finish_pressed"]

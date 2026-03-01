@@ -1,11 +1,14 @@
-[gd_scene load_steps=7 format=3 uid="uid://b4jy1ry6g1x8n"]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" uid="uid://8iweqgi3k6et" path="res://src/ui/screens/campaign/CampaignCreationUI.gd" id="1_8ykjc"]
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="2_rnx4k"]
-[ext_resource type="PackedScene" uid="uid://c1ipgkdm40l6c" path="res://src/ui/screens/campaign/panels/ConfigPanel.tscn" id="3_mupwv"]
-[ext_resource type="PackedScene" uid="uid://ddmexnm0dog68" path="res://src/ui/screens/campaign/panels/CrewPanel.tscn" id="4_lrtqq"]
-[ext_resource type="PackedScene" uid="uid://swd7rhnhcr41" path="res://src/ui/screens/campaign/panels/CaptainPanel.tscn" id="5_l4k6d"]
-[ext_resource type="PackedScene" uid="uid://b3wc2cq0m72j" path="res://src/ui/screens/campaign/panels/ResourcePanel.tscn" id="6_2yj0n"]
+[ext_resource type="PackedScene" uid="uid://bfmey6px3ytex" path="res://src/ui/screens/campaign/panels/ExpandedConfigPanel.tscn" id="3_config"]
+[ext_resource type="PackedScene" path="res://src/ui/screens/campaign/panels/CaptainPanel.tscn" id="4_captain"]
+[ext_resource type="PackedScene" path="res://src/ui/screens/campaign/panels/CrewPanel.tscn" id="5_crew"]
+[ext_resource type="PackedScene" uid="uid://c7y9k0t3l4e5g" path="res://src/ui/screens/campaign/panels/EquipmentPanel.tscn" id="6_equip"]
+[ext_resource type="PackedScene" uid="uid://b6x8kas2k3e4f" path="res://src/ui/screens/campaign/panels/ShipPanel.tscn" id="7_ship"]
+[ext_resource type="PackedScene" uid="uid://bvq3i5n3rl4x4" path="res://src/ui/screens/campaign/panels/WorldInfoPanel.tscn" id="8_world"]
+[ext_resource type="PackedScene" uid="uid://b2y8k8g7q3yk4" path="res://src/ui/screens/campaign/panels/FinalPanel.tscn" id="9_final"]
 
 [node name="CampaignCreationUI" type="Control"]
 layout_mode = 3
@@ -54,50 +57,38 @@ text = "Create New Campaign"
 [node name="StepLabel" type="Label" parent="MarginContainer/VBoxContainer/Header"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
-text = "Step 1: Campaign Configuration"
+text = "Step 1 of 7: Configuration"
 
 [node name="StepPanels" type="Control" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="ConfigPanel" parent="MarginContainer/VBoxContainer/StepPanels" instance=ExtResource("3_mupwv")]
+[node name="ExpandedConfigPanel" parent="MarginContainer/VBoxContainer/StepPanels" instance=ExtResource("3_config")]
 layout_mode = 1
 
-[node name="CrewPanel" parent="MarginContainer/VBoxContainer/StepPanels" instance=ExtResource("4_lrtqq")]
+[node name="CaptainPanel" parent="MarginContainer/VBoxContainer/StepPanels" instance=ExtResource("4_captain")]
 visible = false
 layout_mode = 1
 
-[node name="CaptainPanel" parent="MarginContainer/VBoxContainer/StepPanels" instance=ExtResource("5_l4k6d")]
+[node name="CrewPanel" parent="MarginContainer/VBoxContainer/StepPanels" instance=ExtResource("5_crew")]
 visible = false
 layout_mode = 1
 
-[node name="ResourcePanel" parent="MarginContainer/VBoxContainer/StepPanels" instance=ExtResource("6_2yj0n")]
+[node name="EquipmentPanel" parent="MarginContainer/VBoxContainer/StepPanels" instance=ExtResource("6_equip")]
 visible = false
 layout_mode = 1
 
-[node name="FinalPanel" type="VBoxContainer" parent="MarginContainer/VBoxContainer/StepPanels"]
+[node name="ShipPanel" parent="MarginContainer/VBoxContainer/StepPanels" instance=ExtResource("7_ship")]
 visible = false
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 
-[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/StepPanels/FinalPanel"]
-layout_mode = 2
-text = "Campaign Summary"
-horizontal_alignment = 1
+[node name="WorldInfoPanel" parent="MarginContainer/VBoxContainer/StepPanels" instance=ExtResource("8_world")]
+visible = false
+layout_mode = 1
 
-[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/StepPanels/FinalPanel"]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="SummaryContent" type="VBoxContainer" parent="MarginContainer/VBoxContainer/StepPanels/FinalPanel/ScrollContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_constants/separation = 10
+[node name="FinalPanel" parent="MarginContainer/VBoxContainer/StepPanels" instance=ExtResource("9_final")]
+visible = false
+layout_mode = 1
 
 [node name="Navigation" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2

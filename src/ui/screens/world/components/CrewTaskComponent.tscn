@@ -1,0 +1,203 @@
+[gd_scene load_steps=6 format=3 uid="uid://bfj8x2n4k9mrl"]
+
+[ext_resource type="Script" path="res://src/ui/screens/world/components/CrewTaskComponent.gd" id="1_crew_task"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.067, 0.094, 0.153, 0.85)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.216, 0.255, 0.318, 0.5)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_list"]
+bg_color = Color(0.122, 0.137, 0.216, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.216, 0.255, 0.318, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_primary"]
+bg_color = Color(0.231, 0.51, 0.965, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_secondary"]
+bg_color = Color(0.122, 0.137, 0.216, 0.8)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.216, 0.255, 0.318, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+[node name="CrewTaskComponent" type="MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1_crew_task")
+
+[node name="CrewTaskContainer" type="VBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="HeaderPanel" type="PanelContainer" parent="CrewTaskContainer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="HeaderContent" type="VBoxContainer" parent="CrewTaskContainer/HeaderPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TitleRow" type="HBoxContainer" parent="CrewTaskContainer/HeaderPanel/HeaderContent"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="CrewTaskContainer/HeaderPanel/HeaderContent/TitleRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Crew Tasks"
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+
+[node name="HelpButton" type="Button" parent="CrewTaskContainer/HeaderPanel/HeaderContent/TitleRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+tooltip_text = "Assign crew to tasks: Find Patron, Train, Trade, Recruit, Explore, Track, Repair, Decoy (Rules p.77)"
+text = "?"
+theme_override_font_sizes/font_size = 14
+
+[node name="Description" type="Label" parent="CrewTaskContainer/HeaderPanel/HeaderContent"]
+layout_mode = 2
+text = "Assign crew members to tasks. Each crew member can perform one task per turn."
+autowrap_mode = 2
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
+
+[node name="HSeparator" type="HSeparator" parent="CrewTaskContainer"]
+modulate = Color(0.216, 0.255, 0.318, 1)
+layout_mode = 2
+
+[node name="AssignmentContainer" type="HBoxContainer" parent="CrewTaskContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="CrewSection" type="VBoxContainer" parent="CrewTaskContainer/AssignmentContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="CrewLabel" type="Label" parent="CrewTaskContainer/AssignmentContainer/CrewSection"]
+layout_mode = 2
+text = "CREW MEMBERS"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
+
+[node name="CrewMemberList" type="ItemList" parent="CrewTaskContainer/AssignmentContainer/CrewSection"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_list")
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+theme_override_colors/font_selected_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hovered_color = Color(0.376, 0.647, 0.98, 1)
+
+[node name="TaskSection" type="VBoxContainer" parent="CrewTaskContainer/AssignmentContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="TaskLabel" type="Label" parent="CrewTaskContainer/AssignmentContainer/TaskSection"]
+layout_mode = 2
+text = "AVAILABLE TASKS"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
+
+[node name="AvailableTasksList" type="ItemList" parent="CrewTaskContainer/AssignmentContainer/TaskSection"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_list")
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+theme_override_colors/font_selected_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hovered_color = Color(0.376, 0.647, 0.98, 1)
+
+[node name="ButtonContainer" type="HBoxContainer" parent="CrewTaskContainer"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 16
+
+[node name="AssignTaskButton" type="Button" parent="CrewTaskContainer/ButtonContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 48)
+layout_mode = 2
+tooltip_text = "Assign selected crew member to selected task"
+text = "Assign Task"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_secondary")
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+
+[node name="ResolveAllButton" type="Button" parent="CrewTaskContainer/ButtonContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 48)
+layout_mode = 2
+tooltip_text = "Resolve all assigned tasks and apply results"
+text = "Resolve All Tasks"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_primary")
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+
+[node name="HSeparator2" type="HSeparator" parent="CrewTaskContainer"]
+modulate = Color(0.216, 0.255, 0.318, 1)
+layout_mode = 2
+
+[node name="ProgressSection" type="VBoxContainer" parent="CrewTaskContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="ProgressLabel" type="Label" parent="CrewTaskContainer/ProgressSection"]
+layout_mode = 2
+text = "TASK RESULTS"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
+
+[node name="ProgressScroll" type="ScrollContainer" parent="CrewTaskContainer/ProgressSection"]
+layout_mode = 2
+size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 120)
+
+[node name="ProgressContainer" type="VBoxContainer" parent="CrewTaskContainer/ProgressSection/ProgressScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8

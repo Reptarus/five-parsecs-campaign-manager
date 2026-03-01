@@ -1,1 +1,100 @@
-{}
+{
+  "world_traits": [
+    {
+      "id": "haze",
+      "name": "Haze",
+      "trait_type": 3,
+      "description": "Visibility reduced. All shooting beyond 12\" is at -1 to Hit."
+    },
+    {
+      "id": "overgrown",
+      "name": "Overgrown",
+      "trait_type": 2,
+      "description": "Vegetation provides +1 Cover bonus."
+    },
+    {
+      "id": "industrial_world",
+      "name": "Industrial World",
+      "trait_type": 3,
+      "description": "Buildings and structures provide Hard Cover."
+    },
+    {
+      "id": "hot_climate",
+      "name": "Hot Climate",
+      "trait_type": 1,
+      "description": "Characters carrying 3+ items lose 1\" of movement per round."
+    },
+    {
+      "id": "cold_climate",
+      "name": "Cold Climate",
+      "trait_type": 1,
+      "description": "At the start of each round, roll 1D6. On a 1, one random crew member is Stunned."
+    },
+    {
+      "id": "toxic_atmosphere",
+      "name": "Toxic Atmosphere",
+      "trait_type": 1,
+      "description": "Any character knocked out of action must roll an additional injury check."
+    },
+    {
+      "id": "low_gravity",
+      "name": "Low Gravity",
+      "trait_type": 2,
+      "description": "All movement increased by 1\". Grenades scatter an additional 1\"."
+    },
+    {
+      "id": "high_gravity",
+      "name": "High Gravity",
+      "trait_type": 1,
+      "description": "All movement reduced by 1\" (minimum 3\"). Jump moves are not possible."
+    },
+    {
+      "id": "war_torn",
+      "name": "War-torn",
+      "trait_type": 1,
+      "description": "Roll 1D6 at start of battle. On 1-2, a random piece of terrain is destroyed."
+    },
+    {
+      "id": "heavily_policed",
+      "name": "Heavily Policed",
+      "trait_type": 2,
+      "description": "Criminal enemy types are -1 to Combat Skill. Illegal items cost +50% more."
+    },
+    {
+      "id": "lawless",
+      "name": "Lawless",
+      "trait_type": 1,
+      "description": "Enemy reinforcements arrive 1 round earlier. +1 rival per campaign turn."
+    },
+    {
+      "id": "trade_hub",
+      "name": "Trade Hub",
+      "trait_type": 2,
+      "description": "Trading actions give +1 bonus item. Equipment costs are -10%."
+    },
+    {
+      "id": "frontier_world",
+      "name": "Frontier World",
+      "trait_type": 3,
+      "description": "Limited gear selection but lower prices. Only basic weapons and gear available."
+    },
+    {
+      "id": "tech_advanced",
+      "name": "Tech Advanced",
+      "trait_type": 2,
+      "description": "Advanced weapons and gear available. Medical treatment +1 bonus."
+    },
+    {
+      "id": "pirate_haven",
+      "name": "Pirate Haven",
+      "trait_type": 1,
+      "description": "Increased risk of rival encounters. Stolen goods available for trade."
+    },
+    {
+      "id": "unity_presence",
+      "name": "Unity Presence",
+      "trait_type": 2,
+      "description": "Unity patrols provide safety. Reduced chance of ambush events."
+    }
+  ]
+}

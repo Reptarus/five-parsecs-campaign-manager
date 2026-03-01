@@ -1,9 +1,6 @@
-[gd_scene load_steps=3 format=3 uid="uid://bs1iq1g2qhnvk"]
+[gd_scene load_steps=2 format=3 uid="uid://bs1iq1g2qhnvk"]
 
 [ext_resource type="Theme" uid="uid://ccpt5srj6tnbv" path="res://src/ui/themes/sci_fi_theme.tres" id="2_rfjcy"]
-
-[sub_resource type="Resource" id="Resource_ktrid"]
-metadata/__load_path__ = "res://src/ui/components/base/CampaignResponsiveLayoutTest.gd"
 
 [node name="CampaignResponsiveLayoutTest" type="Control"]
 layout_mode = 3
@@ -12,7 +9,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = SubResource("Resource_ktrid")
 
 [node name="ColorRect" type="ColorRect" parent="."]
 layout_mode = 1

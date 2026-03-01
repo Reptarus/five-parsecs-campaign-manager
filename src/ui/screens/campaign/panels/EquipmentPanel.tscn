@@ -1,0 +1,135 @@
+[gd_scene load_steps=2 format=3 uid="uid://c7y9k0t3l4e5g"]
+
+[ext_resource type="PackedScene" uid="uid://bxkj8l2nan6r5" path="res://src/ui/screens/campaign/panels/BaseCampaignPanel.tscn" id="1_base"]
+[ext_resource type="Script" path="res://src/ui/screens/campaign/panels/EquipmentPanel.gd" id="2_equipment"]
+
+[node name="EquipmentPanel" instance=ExtResource("1_base")]
+script = ExtResource("2_equipment")
+
+[node name="Content" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer"]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="MainSplit" type="HSplitContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 300)
+size_flags_vertical = 3
+split_offset = 0
+
+[node name="EquipmentSection" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit"]
+layout_mode = 2
+custom_minimum_size = Vector2(400, 0)
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="EquipmentHeader" type="HBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/EquipmentSection"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/EquipmentSection/EquipmentHeader"]
+layout_mode = 2
+text = "Available Equipment"
+theme_override_font_sizes/font_size = 16
+
+[node name="Spacer" type="Control" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/EquipmentSection/EquipmentHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="AutoAssignButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/EquipmentSection/EquipmentHeader"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 48)
+layout_mode = 2
+text = "Auto-Assign"
+tooltip_text = "Automatically distribute equipment to crew based on their backgrounds"
+
+[node name="EquipmentScroll" type="ScrollContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/EquipmentSection"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Container" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/EquipmentSection/EquipmentScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 4
+
+[node name="CrewSection" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit"]
+layout_mode = 2
+custom_minimum_size = Vector2(350, 0)
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="CrewHeader" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/CrewSection"]
+layout_mode = 2
+text = "Crew Loadouts"
+theme_override_font_sizes/font_size = 16
+
+[node name="CrewScroll" type="ScrollContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/CrewSection"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="CrewLoadoutContainer" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/CrewSection/CrewScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="SummarySection" type="HBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="Summary" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/SummarySection"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/SummarySection/Summary"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Equipment generated: 0 items"
+horizontal_alignment = 1
+
+[node name="AssignedCount" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/SummarySection/Summary"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Assigned: 0 / 0"
+horizontal_alignment = 1
+
+[node name="Credits" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/SummarySection"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/SummarySection/Credits"]
+layout_mode = 2
+text = "Starting Credits:"
+horizontal_alignment = 1
+
+[node name="Value" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/SummarySection/Credits"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 18
+
+[node name="Controls" type="HBoxContainer" parent="ContentMargin/MainContent/FormContent/FormContainer/Content"]
+layout_mode = 2
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="GenerateButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Controls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 48)
+layout_mode = 2
+text = "Generate Equipment"
+
+[node name="RerollButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Controls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 48)
+layout_mode = 2
+text = "Reroll Equipment"
+
+[node name="ManualButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/Controls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 48)
+layout_mode = 2
+text = "Manual Selection"

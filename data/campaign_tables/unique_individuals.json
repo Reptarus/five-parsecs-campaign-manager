@@ -1,0 +1,311 @@
+{
+  "name": "Unique Individuals Table",
+  "version": "1.0",
+  "source": "Five Parsecs from Home Core Rules",
+  "description": "Table for generating unique NPCs with traits and backgrounds for random encounters",
+  "dice_type": "d100",
+  "results": {
+    "1-3": {
+      "individual_type": "veteran_soldier",
+      "name_template": "Veteran {rank} {surname}",
+      "traits": ["combat_savvy", "disciplined", "scarred"],
+      "description": "Grizzled veteran with military bearing and old war stories",
+      "potential_roles": ["bodyguard", "mercenary", "trainer"],
+      "stats_modifier": {"reactions": 1, "combat_skill": 1}
+    },
+    "4-6": {
+      "individual_type": "tech_specialist",
+      "name_template": "{title} {surname}",
+      "traits": ["analytical", "precise", "gadget_obsessed"],
+      "description": "Tech expert with cybernetic enhancements and tool harness",
+      "potential_roles": ["mechanic", "hacker", "engineer"],
+      "stats_modifier": {"savvy": 2}
+    },
+    "7-9": {
+      "individual_type": "smuggler",
+      "name_template": "{alias} {surname}",
+      "traits": ["cunning", "greedy", "street_smart"],
+      "description": "Shady trader with hidden compartments and false credentials",
+      "potential_roles": ["fence", "information_broker", "transport"],
+      "stats_modifier": {"savvy": 1, "luck": 1}
+    },
+    "10-12": {
+      "individual_type": "medic",
+      "name_template": "Dr. {surname}",
+      "traits": ["compassionate", "steady_hands", "haunted"],
+      "description": "Field surgeon with portable med-kit and weary eyes",
+      "potential_roles": ["healer", "researcher", "field_medic"],
+      "stats_modifier": {"savvy": 1}
+    },
+    "13-15": {
+      "individual_type": "deserter",
+      "name_template": "{rank} {surname}",
+      "traits": ["paranoid", "skilled", "wanted"],
+      "description": "Former military with outstanding warrants and combat gear",
+      "potential_roles": ["mercenary", "rebel", "fugitive"],
+      "stats_modifier": {"combat_skill": 1, "reactions": -1}
+    },
+    "16-18": {
+      "individual_type": "pilot",
+      "name_template": "Captain {surname}",
+      "traits": ["reckless", "skilled", "adrenaline_junkie"],
+      "description": "Hotshot pilot with flight jacket and stories of daring escapes",
+      "potential_roles": ["transport", "scout", "racer"],
+      "stats_modifier": {"reactions": 2}
+    },
+    "19-21": {
+      "individual_type": "hacker",
+      "name_template": "{alias}",
+      "traits": ["paranoid", "brilliant", "antisocial"],
+      "description": "Digital ghost with neural implants and encrypted data devices",
+      "potential_roles": ["information_broker", "cyber_warrior", "infiltrator"],
+      "stats_modifier": {"savvy": 2}
+    },
+    "22-24": {
+      "individual_type": "bounty_hunter",
+      "name_template": "{surname} the Hunter",
+      "traits": ["relentless", "professional", "cold"],
+      "description": "Licensed tracker with combat armor and tracking equipment",
+      "potential_roles": ["enforcer", "investigator", "assassin"],
+      "stats_modifier": {"combat_skill": 1, "savvy": 1}
+    },
+    "25-27": {
+      "individual_type": "corporate_agent",
+      "name_template": "Agent {surname}",
+      "traits": ["calculating", "well_equipped", "ruthless"],
+      "description": "Corporate operative in expensive suit with concealed weapons",
+      "potential_roles": ["spy", "negotiator", "fixer"],
+      "stats_modifier": {"savvy": 1, "luck": 1}
+    },
+    "28-30": {
+      "individual_type": "criminal_enforcer",
+      "name_template": "{alias} {surname}",
+      "traits": ["brutal", "loyal", "feared"],
+      "description": "Syndicate muscle with gang tattoos and heavy weaponry",
+      "potential_roles": ["bodyguard", "intimidator", "collector"],
+      "stats_modifier": {"toughness": 1, "combat_skill": 1}
+    },
+    "31-33": {
+      "individual_type": "scientist",
+      "name_template": "Professor {surname}",
+      "traits": ["brilliant", "obsessive", "ethical_grey_area"],
+      "description": "Research specialist with portable lab and strange theories",
+      "potential_roles": ["researcher", "inventor", "consultant"],
+      "stats_modifier": {"savvy": 2}
+    },
+    "34-36": {
+      "individual_type": "explorer",
+      "name_template": "{surname} the Explorer",
+      "traits": ["curious", "hardy", "treasure_hunter"],
+      "description": "Frontier scout with survey equipment and alien artifacts",
+      "potential_roles": ["guide", "prospector", "archaeologist"],
+      "stats_modifier": {"luck": 1, "toughness": 1}
+    },
+    "37-39": {
+      "individual_type": "trader",
+      "name_template": "Merchant {surname}",
+      "traits": ["shrewd", "well_connected", "opportunistic"],
+      "description": "Independent merchant with trade goods and market knowledge",
+      "potential_roles": ["supplier", "information_broker", "fence"],
+      "stats_modifier": {"savvy": 1}
+    },
+    "40-42": {
+      "individual_type": "rebel_fighter",
+      "name_template": "Commander {surname}",
+      "traits": ["idealistic", "determined", "resourceful"],
+      "description": "Resistance leader with makeshift weapons and burning conviction",
+      "potential_roles": ["ally", "mission_giver", "insurgent"],
+      "stats_modifier": {"combat_skill": 1}
+    },
+    "43-45": {
+      "individual_type": "psyker",
+      "name_template": "{surname} the Gifted",
+      "traits": ["psychic", "unstable", "mysterious"],
+      "description": "Psionic individual with mental disciplines and haunted demeanor",
+      "potential_roles": ["advisor", "investigator", "wild_card"],
+      "stats_modifier": {"savvy": 2, "luck": -1}
+    },
+    "46-48": {
+      "individual_type": "salvager",
+      "name_template": "{surname}",
+      "traits": ["scrappy", "resourceful", "scavenger"],
+      "description": "Wreck picker with cutting tools and eye for valuable salvage",
+      "potential_roles": ["supplier", "guide", "technician"],
+      "stats_modifier": {"luck": 1}
+    },
+    "49-51": {
+      "individual_type": "arms_dealer",
+      "name_template": "{alias}",
+      "traits": ["amoral", "well_stocked", "dangerous"],
+      "description": "Weapon merchant with illegal goods and no questions asked",
+      "potential_roles": ["supplier", "contact", "quest_giver"],
+      "stats_modifier": {"savvy": 1}
+    },
+    "52-54": {
+      "individual_type": "colonial_official",
+      "name_template": "Administrator {surname}",
+      "traits": ["bureaucratic", "corrupt", "connected"],
+      "description": "Government official with stamps, forms, and palms to grease",
+      "potential_roles": ["quest_giver", "obstacle", "patron"],
+      "stats_modifier": {"savvy": 1}
+    },
+    "55-57": {
+      "individual_type": "miner",
+      "name_template": "{surname}",
+      "traits": ["tough", "hard_working", "explosives_expert"],
+      "description": "Asteroid miner with heavy equipment and explosive knowledge",
+      "potential_roles": ["demolitions", "laborer", "prospector"],
+      "stats_modifier": {"toughness": 2}
+    },
+    "58-60": {
+      "individual_type": "entertainer",
+      "name_template": "{stage_name}",
+      "traits": ["charismatic", "well_traveled", "rumor_collector"],
+      "description": "Performer with flashy clothes and connections across systems",
+      "potential_roles": ["information_broker", "distraction", "contact"],
+      "stats_modifier": {"savvy": 1, "luck": 1}
+    },
+    "61-63": {
+      "individual_type": "security_contractor",
+      "name_template": "{surname}",
+      "traits": ["professional", "equipped", "experienced"],
+      "description": "Private security with combat armor and corporate backing",
+      "potential_roles": ["bodyguard", "trainer", "ally"],
+      "stats_modifier": {"combat_skill": 1, "reactions": 1}
+    },
+    "64-66": {
+      "individual_type": "journalist",
+      "name_template": "{surname}",
+      "traits": ["inquisitive", "reckless", "well_informed"],
+      "description": "Reporter with recording equipment and dangerous questions",
+      "potential_roles": ["information_broker", "quest_giver", "complication"],
+      "stats_modifier": {"savvy": 2}
+    },
+    "67-69": {
+      "individual_type": "alien_trader",
+      "name_template": "{alien_name}",
+      "traits": ["exotic", "strange_customs", "rare_goods"],
+      "description": "Non-human merchant with alien technology and odd mannerisms",
+      "potential_roles": ["supplier", "contact", "cultural_exchange"],
+      "stats_modifier": {"savvy": 1, "luck": 1}
+    },
+    "70-72": {
+      "individual_type": "refugee",
+      "name_template": "{surname}",
+      "traits": ["desperate", "grateful", "survivor"],
+      "description": "Displaced person with few possessions and nowhere to go",
+      "potential_roles": ["mission_giver", "crew_candidate", "complication"],
+      "stats_modifier": {"luck": -1}
+    },
+    "75-77": {
+      "individual_type": "cult_member",
+      "name_template": "Brother/Sister {surname}",
+      "traits": ["fanatical", "devoted", "suspicious"],
+      "description": "Religious zealot with holy symbols and unwavering belief",
+      "potential_roles": ["quest_giver", "obstacle", "ally"],
+      "stats_modifier": {"toughness": 1}
+    },
+    "78-80": {
+      "individual_type": "ai_construct",
+      "name_template": "Unit {designation}",
+      "traits": ["logical", "restricted", "unusual_perspective"],
+      "description": "Artificial intelligence in synthetic body with unique insights",
+      "potential_roles": ["information_broker", "technician", "wild_card"],
+      "stats_modifier": {"savvy": 2, "reactions": -1}
+    },
+    "81-83": {
+      "individual_type": "mutant",
+      "name_template": "{surname}",
+      "traits": ["enhanced", "outcast", "unpredictable"],
+      "description": "Genetically altered individual with visible mutations",
+      "potential_roles": ["crew_candidate", "contact", "complication"],
+      "stats_modifier": {"toughness": 1, "luck": -1}
+    },
+    "84-86": {
+      "individual_type": "retired_officer",
+      "name_template": "Colonel {surname}",
+      "traits": ["experienced", "well_connected", "nostalgic"],
+      "description": "Former high-ranking officer with medals and old contacts",
+      "potential_roles": ["patron", "quest_giver", "advisor"],
+      "stats_modifier": {"savvy": 1, "combat_skill": 1}
+    },
+    "87-89": {
+      "individual_type": "information_broker",
+      "name_template": "{alias}",
+      "traits": ["secretive", "well_informed", "expensive"],
+      "description": "Data dealer with network access and price for everything",
+      "potential_roles": ["contact", "quest_giver", "supplier"],
+      "stats_modifier": {"savvy": 2}
+    },
+    "90-92": {
+      "individual_type": "gang_leader",
+      "name_template": "{alias} {surname}",
+      "traits": ["charismatic", "ruthless", "territorial"],
+      "description": "Criminal boss with loyal followers and violent reputation",
+      "potential_roles": ["patron", "rival", "quest_giver"],
+      "stats_modifier": {"combat_skill": 1, "savvy": 1}
+    },
+    "93-95": {
+      "individual_type": "mysterious_stranger",
+      "name_template": "The Stranger",
+      "traits": ["enigmatic", "skilled", "hidden_agenda"],
+      "description": "Unknown individual with concealed features and cryptic advice",
+      "potential_roles": ["quest_giver", "wild_card", "plot_device"],
+      "stats_modifier": {"luck": 2}
+    },
+    "96-98": {
+      "individual_type": "precursor_scholar",
+      "name_template": "Archaeologist {surname}",
+      "traits": ["obsessed", "knowledgeable", "reckless"],
+      "description": "Ancient alien civilization expert with fragmentary knowledge",
+      "potential_roles": ["quest_giver", "employer", "researcher"],
+      "stats_modifier": {"savvy": 2}
+    },
+    "99-100": {
+      "individual_type": "legendary_figure",
+      "name_template": "{famous_name}",
+      "traits": ["renowned", "powerful", "influential"],
+      "description": "Famous individual whose reputation precedes them",
+      "potential_roles": ["patron", "rival", "game_changer"],
+      "stats_modifier": {"combat_skill": 2, "savvy": 1, "luck": 1}
+    }
+  },
+  "name_tables": {
+    "surnames": [
+      "Chen", "Rodriguez", "O'Brien", "Nakamura", "Volkov", "Singh", 
+      "Santos", "Kim", "Mueller", "Hassan", "Okafor", "Ivanova",
+      "Tanaka", "Silva", "Anderson", "Zhao", "Kowalski", "Ahmed",
+      "Martinez", "Dubois", "Petrov", "Yamamoto", "Costa", "Khan"
+    ],
+    "ranks": [
+      "Sergeant", "Lieutenant", "Captain", "Major", "Commander",
+      "Colonel", "Corporal", "Specialist", "Officer", "Chief"
+    ],
+    "titles": [
+      "Engineer", "Technician", "Specialist", "Chief", "Master"
+    ],
+    "aliases": [
+      "Razor", "Ghost", "Sparks", "Brick", "Wire", "Shadow",
+      "Blaze", "Frost", "Viper", "Ace", "Clutch", "Gears",
+      "Spike", "Nova", "Echo", "Dash", "Jinx", "Crash"
+    ],
+    "stage_names": [
+      "Starlight Nova", "The Magnificent Zara", "Captain Cosmic",
+      "Luna Harmony", "Vortex", "The Amazing Krell", "Celestia"
+    ],
+    "alien_names": [
+      "Xth'arak", "Vee'lon", "K'thar", "Zyx", "Qor'neth",
+      "M'bara", "Th'enn", "Lix'tor", "Vaal", "Kree'sa"
+    ],
+    "famous_names": [
+      "The Black Star Corsair", "Marshal Kaine", "Doctor Exodus",
+      "The Liberator", "Admiral Ghost", "The Phantom of Cygnus"
+    ]
+  },
+  "ui_hints": {
+    "display_mode": "npc_card",
+    "show_portrait_placeholder": true,
+    "color_scheme": "character",
+    "generate_full_profile": true
+  }
+}

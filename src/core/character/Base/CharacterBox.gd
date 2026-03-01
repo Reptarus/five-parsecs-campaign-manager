@@ -3,11 +3,11 @@ extends Node
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsCharacter = preload("res://src/core/character/Base/Character.gd")
 
-@export var character_data: FiveParsecsCharacter
+@export var character_data: BaseCharacterResource
 
 func _ready() -> void:
     if not character_data:
-        character_data = FiveParsecsCharacter.new()
+        character_data = FiveParsecsCharacter.new() as BaseCharacterResource
 
 @onready var portrait = $MarginContainer/HBoxContainer/PortraitContainer/Portrait
 @onready var name_label = $MarginContainer/HBoxContainer/InfoContainer/NameLabel
@@ -44,7 +44,7 @@ func update_display(data: Resource) -> void:
         push_error("CharacterBox: Received null CharacterData")
         return
         
-    character_data = data
+    character_data = data as BaseCharacterResource
     
     name_label.text = _get_character_property(data, "character_name", "Unknown")
     var origin = _get_character_property(data, "origin", 0)

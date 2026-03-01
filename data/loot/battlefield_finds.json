@@ -1,0 +1,53 @@
+{
+  "name": "Battlefield Finds Table",
+  "version": "3.0",
+  "source": "Five Parsecs from Home Core Rules p.66",
+  "dice_type": "d100",
+  "description": "Roll D100 per battlefield find opportunity. Held field = extra finds.",
+  "results": [
+    {
+      "roll_range": [1, 15],
+      "category": "WEAPON",
+      "description": "Random weapon from slain enemy",
+      "subtable": "weapon_subtable"
+    },
+    {
+      "roll_range": [16, 25],
+      "category": "CONSUMABLE",
+      "description": "Usable goods (consumable item)"
+    },
+    {
+      "roll_range": [26, 35],
+      "category": "QUEST_RUMOR",
+      "description": "Curious data stick",
+      "quest_rumor": true
+    },
+    {
+      "roll_range": [36, 45],
+      "category": "SHIP_PART",
+      "description": "Starship part",
+      "credits": 2
+    },
+    {
+      "roll_range": [46, 60],
+      "category": "TRINKET",
+      "description": "Personal trinket (possible future loot roll)"
+    },
+    {
+      "roll_range": [61, 75],
+      "category": "DEBRIS",
+      "description": "Debris (1D3 credits)",
+      "credits_dice": "1d3"
+    },
+    {
+      "roll_range": [76, 90],
+      "category": "VITAL_INFO",
+      "description": "Vital info (Corporate Patron opportunity)"
+    },
+    {
+      "roll_range": [91, 100],
+      "category": "NOTHING",
+      "description": "Nothing of value"
+    }
+  ]
+}

@@ -1,7 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://b6x8j7y2n8q4v"]
+[gd_scene load_steps=2 format=3]
 
-[sub_resource type="Resource" id="Resource_30puq"]
-metadata/__load_path__ = "res://src/data/resources/CampaignManagement/CampaignSetupDialog.gd"
+[ext_resource type="Script" path="res://src/ui/screens/campaign/CampaignSetupDialog.gd" id="1_script"]
 
 [node name="CampaignSetupDialog" type="Control"]
 layout_mode = 3
@@ -10,7 +9,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = SubResource("Resource_30puq")
+script = ExtResource("1_script")
 
 [node name="Panel" type="Panel" parent="."]
 layout_mode = 1

@@ -1,0 +1,129 @@
+{
+  "name": "Five Parsecs Crew Task Resolution",
+  "version": "2.0",
+  "source": "Five Parsecs from Home Core Rules pp.76-82",
+  "description": "Resolution mechanics for all 8 crew tasks per Core Rules.",
+  "tasks": {
+    "FIND_PATRON": {
+      "name": "Find a Patron",
+      "description": "Search for a patron willing to offer work. Roll 1D6, 5+ = one patron, 6+ = two patrons.",
+      "dice_type": "1d6",
+      "base_difficulty": 5,
+      "two_patron_threshold": 6,
+      "modifiers": {
+        "crew_looking": "+N crew members looking",
+        "existing_patrons": "+1 per existing patron",
+        "credits": "spend credits for bonus (see crew_task_modifiers)"
+      },
+      "results": {
+        "success_one": {
+          "threshold": 5,
+          "patron_gained": 1,
+          "description": "You find a patron willing to offer work"
+        },
+        "success_two": {
+          "threshold": 6,
+          "patron_gained": 2,
+          "description": "You find two patrons willing to offer work"
+        },
+        "failure": {
+          "patron_gained": 0,
+          "description": "No suitable patrons are found this turn"
+        }
+      }
+    },
+    "TRAIN": {
+      "name": "Train",
+      "description": "Character trains and automatically earns 1 XP. Check for Character Upgrade (p.123).",
+      "automatic_success": true,
+      "xp_award": 1,
+      "advancement_check": true,
+      "advancement_reference": "Character Upgrade table (p.123)"
+    },
+    "TRADE": {
+      "name": "Trade",
+      "description": "Roll D100 on the Trade Table (p.79). Each crew member trading rolls once. Extra rolls cost 3 credits each.",
+      "table_reference": "trade_results",
+      "dice_type": "d100",
+      "extra_roll_cost": 3,
+      "notes": "No skill or world modifiers. Pure D100 roll on Trade Table."
+    },
+    "RECRUIT": {
+      "name": "Recruit",
+      "description": "If crew < 6: automatic recruit. If crew >= 6: roll 1D6 + number of crew recruiting, 6+ = new recruit.",
+      "table_reference": "recruitment_opportunities",
+      "dice_type": "1d6",
+      "auto_recruit_threshold": 6,
+      "roll_success_target": 6,
+      "modifier": "number_of_crew_recruiting",
+      "recruit_profile": "Random character creation (p.14), basic profile, Handgun"
+    },
+    "EXPLORE": {
+      "name": "Explore",
+      "description": "Roll D100 on the Exploration Table (p.80). Each crew member exploring rolls once.",
+      "table_reference": "exploration_events",
+      "dice_type": "d100",
+      "notes": "No skill or world modifiers. Pure D100 roll on Exploration Table."
+    },
+    "TRACK": {
+      "name": "Track",
+      "description": "Track down a Rival. Roll 1D6, modified by crew count and credits spent.",
+      "dice_type": "1d6",
+      "base_difficulty": 5,
+      "modifiers": {
+        "crew_tracking": "+N crew members tracking",
+        "credits": "spend credits for bonus (see crew_task_modifiers)"
+      },
+      "results": {
+        "success": {
+          "rival_located": true,
+          "description": "You successfully track down the Rival and may fight them this turn"
+        },
+        "failure": {
+          "rival_located": false,
+          "description": "The Rival eludes your search"
+        }
+      }
+    },
+    "REPAIR_KIT": {
+      "name": "Repair",
+      "description": "Attempt to repair a damaged item. Roll 1D6+Savvy, 6+ = success. Engineer: +1. Natural 1 = item destroyed. Can spend credits.",
+      "automatic_success": false,
+      "dice_type": "1d6",
+      "base_difficulty": 6,
+      "savvy_bonus": true,
+      "engineer_bonus": 1,
+      "credit_bonus": true,
+      "natural_1_fail": true,
+      "natural_1_effect": "Item is destroyed and must be removed from inventory",
+      "results": {
+        "success": {
+          "equipment_repaired": true,
+          "description": "The damaged item is successfully repaired"
+        },
+        "failure": {
+          "equipment_repaired": false,
+          "description": "Repair attempt fails. Item remains damaged."
+        },
+        "critical_failure": {
+          "natural_1": true,
+          "equipment_destroyed": true,
+          "description": "The item is destroyed beyond repair"
+        }
+      }
+    },
+    "DECOY": {
+      "name": "Decoy",
+      "description": "Passive: each crew member assigned as Decoy adds +1 to Rival avoidance roll. No dice roll needed.",
+      "passive": true,
+      "bonus_per_crew": 1,
+      "applies_to": "Rival avoidance roll",
+      "notes": "No dice roll. Decoy is a passive modifier, not an active task resolution."
+    }
+  },
+  "task_assignment_rules": {
+    "one_task_per_crew": "Each crew member can perform one task per campaign turn",
+    "required_crew_status": "AVAILABLE",
+    "sick_bay_restriction": "Crew members in Sick Bay cannot be assigned tasks"
+  }
+}

@@ -35,6 +35,9 @@ enum ThemeVariant {
 	DARK,
 	LIGHT,
 	HIGH_CONTRAST,
+	COLORBLIND_DEUTERANOPIA,
+	COLORBLIND_PROTANOPIA,
+	COLORBLIND_TRITANOPIA,
 	CUSTOM
 }
 
@@ -223,7 +226,11 @@ func _apply_theme_variant() -> void:
 		ThemeVariant.HIGH_CONTRAST:
 			_current_theme = _base_theme.duplicate()
 			_apply_high_contrast_variant()
-		
+
+		ThemeVariant.COLORBLIND_DEUTERANOPIA, ThemeVariant.COLORBLIND_PROTANOPIA, ThemeVariant.COLORBLIND_TRITANOPIA:
+			_current_theme = _base_theme.duplicate()
+			_apply_colorblind_variant(_theme_variant)
+
 		ThemeVariant.CUSTOM:
 			_current_theme = _base_theme.duplicate()
 			# Custom will be handled by the overrides
@@ -324,6 +331,28 @@ func _apply_high_contrast_variant() -> void:
 	# Set text colors
 	_current_theme.set_color("font_color", "Label", Color(1, 1, 0, 1))
 	_current_theme.set_color("font_color", "Button", Color(1, 1, 0, 1))
+
+## Apply colorblind variant using AccessibilityThemes palette
+func _apply_colorblind_variant(variant: ThemeVariant) -> void:
+	const AccessibilityThemes = preload("res://src/ui/themes/AccessibilityThemes.gd")
+	var colors: Dictionary
+	match variant:
+		ThemeVariant.COLORBLIND_DEUTERANOPIA:
+			colors = AccessibilityThemes.get_deuteranopia()
+		ThemeVariant.COLORBLIND_PROTANOPIA:
+			colors = AccessibilityThemes.get_protanopia()
+		ThemeVariant.COLORBLIND_TRITANOPIA:
+			colors = AccessibilityThemes.get_tritanopia()
+		_:
+			return
+
+	# Apply palette colors to theme
+	if colors.has("success"):
+		_current_theme.set_color("font_color", "Label", colors.get("text", Color.WHITE))
+	if colors.has("background"):
+		var panel_style = _current_theme.get_stylebox("panel", "Panel") as StyleBoxFlat
+		if panel_style:
+			panel_style.bg_color = colors.get("background", Color.BLACK)
 
 ## Apply current scale factor to fonts
 func _apply_scale_factor() -> void:

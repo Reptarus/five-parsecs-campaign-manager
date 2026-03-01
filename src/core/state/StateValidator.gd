@@ -31,7 +31,7 @@ enum ValidationScope {
 }
 
 ## Validation results
-class ValidationResult:
+class StateValidationResult:
 	var type: int = GameEnums.VerificationType.NONE
 	var scope: int = 0
 	var result: int = 0
@@ -64,8 +64,8 @@ func create_result(
 	p_result: int = 0,
 	p_message: String = "",
 	p_context: Dictionary = {}
-) -> ValidationResult:
-	var result = ValidationResult.new(p_type, p_result, p_message, p_context)
+) -> StateValidationResult:
+	var result = StateValidationResult.new(p_type, p_result, p_message, p_context)
 	return result
 
 ## Validate the current game state

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Wrench -->
+  <path d="M25 35 Q30 30 35 35 L55 55 Q60 60 55 65 Q50 70 45 65 L25 45 Q20 40 25 35" 
+        stroke="#FFFFFF" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+  
+  <!-- Wrench jaw opening -->
+  <path d="M25 35 L30 40 L35 35" 
+        stroke="#FFFFFF" stroke-width="2" fill="none" stroke-linejoin="round"/>
+  
+  <!-- Wrench adjustment notches -->
+  <line x1="35" y1="40" x2="37" y2="42" 
+        stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="40" y1="45" x2="42" y2="47" 
+        stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round"/>
+  
+  <!-- Screwdriver -->
+  <line x1="45" y1="25" x2="75" y2="55" 
+        stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round"/>
+  
+  <!-- Screwdriver handle -->
+  <ellipse cx="42" cy="28" rx="3" ry="8" 
+           transform="rotate(45 42 28)" 
+           stroke="#FFFFFF" stroke-width="2" fill="none"/>
+  
+  <!-- Screwdriver grip ridges -->
+  <line x1="38" y1="24" x2="46" y2="32" 
+        stroke="#FFFFFF" stroke-width="1" stroke-linecap="round"/>
+  <line x1="36" y1="26" x2="44" y2="34" 
+        stroke="#FFFFFF" stroke-width="1" stroke-linecap="round"/>
+  
+  <!-- Screwdriver tip detail -->
+  <path d="M72 52 L75 55 L72 58" 
+        stroke="#FFFFFF" stroke-width="2" fill="none" stroke-linejoin="round"/>
+  
+  <!-- Crossing intersection highlight -->
+  <circle cx="50" cy="50" r="4" 
+          stroke="#FFFFFF" stroke-width="1.5" fill="none"/>
+</svg>

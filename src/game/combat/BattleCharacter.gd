@@ -11,10 +11,10 @@ const FiveParsecsCharacter = preload("res://src/game/character/Character.gd")
 # Override the character_data with the specific type
 # We can't use property overrides with getters/setters in GDScript 2.0
 # so we'll use a different approach
-var _character_data: FiveParsecsCharacter
+var _character_data
 
 # Override the get_character_data method
-func get_character_data() -> FiveParsecsCharacter:
+func get_character_data() -> Resource:
 	return _character_data
 
 func _init(data: FiveParsecsCharacter = null) -> void:

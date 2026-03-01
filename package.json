@@ -1,0 +1,30 @@
+{
+  "name": "mcp-maintainer",
+  "version": "1.0.0",
+  "description": "MCP Maintainer - Unified MCP ecosystem for cross-platform development",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "setup": "node setup-claude-code-mcp.js",
+    "validate": "node setup-claude-code-mcp.js --validate",
+    "sync": "node setup-claude-code-mcp.js --sync-from-desktop",
+    "install-deps": "node setup-claude-code-mcp.js --install-deps",
+    "test-mcp": "node test-mcp-connectivity.js",
+    "start-bridge": "python mcp_bridge_monitor.py"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "latest",
+    "@modelcontextprotocol/server-filesystem": "latest",
+    "@modelcontextprotocol/server-memory": "latest"
+  },
+  "devDependencies": {},
+  "keywords": [
+    "mcp",
+    "claude",
+    "gemini",
+    "godot",
+    "automation"
+  ],
+  "author": "Elijah",
+  "license": "MIT"
+}

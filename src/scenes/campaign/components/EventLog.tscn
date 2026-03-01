@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://ixgs0tktqvoe"]
+[gd_scene load_steps=2 format=3]
 
 [ext_resource type="Script" uid="uid://ccyhutr86fgpr" path="res://src/scenes/campaign/components/EventLog.gd" id="1_l5m3r"]
 

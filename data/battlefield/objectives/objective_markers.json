@@ -1,0 +1,69 @@
+{
+  "source": "Five Parsecs from Home Core Rules - Mission Objectives",
+  "objectives": [
+    {
+      "id": "obj_fight_off",
+      "name": "Fight Off Opposition",
+      "tags": ["combat", "standard"],
+      "description": "Defeat the enemy force. Hold the field when they break.",
+      "victory_condition": "Enemy fails Morale or all eliminated",
+      "placement_hint": "none"
+    },
+    {
+      "id": "obj_deliver_item",
+      "name": "Deliver Package",
+      "tags": ["delivery", "patron"],
+      "description": "Carry an item to the marked objective point.",
+      "victory_condition": "Crew member reaches objective with item",
+      "placement_hint": "enemy_half"
+    },
+    {
+      "id": "obj_access_terminal",
+      "name": "Access Terminal",
+      "tags": ["tech", "patron"],
+      "description": "Reach and interact with the terminal to retrieve data.",
+      "victory_condition": "Crew member spends 1 action at terminal",
+      "placement_hint": "center_or_enemy_half"
+    },
+    {
+      "id": "obj_defend_position",
+      "name": "Defend Position",
+      "tags": ["defense", "quest"],
+      "description": "Hold the marked position for the battle duration.",
+      "victory_condition": "Crew controls position when enemy breaks",
+      "placement_hint": "center"
+    },
+    {
+      "id": "obj_search_area",
+      "name": "Search the Area",
+      "tags": ["search", "quest"],
+      "description": "Search 3 marked points for the quest item.",
+      "victory_condition": "Search all 3 points (1 action each)",
+      "placement_hint": "scattered"
+    },
+    {
+      "id": "obj_eliminate_target",
+      "name": "Eliminate Target",
+      "tags": ["assassination", "quest"],
+      "description": "Eliminate the Unique Individual leading the enemy force.",
+      "victory_condition": "Unique Individual is a casualty",
+      "placement_hint": "with_enemy"
+    },
+    {
+      "id": "obj_secure_supplies",
+      "name": "Secure Supplies",
+      "tags": ["salvage", "opportunity"],
+      "description": "Reach and secure the supply cache before the enemy.",
+      "victory_condition": "Crew member reaches cache marker",
+      "placement_hint": "center"
+    },
+    {
+      "id": "obj_escort_npc",
+      "name": "Escort VIP",
+      "tags": ["escort", "patron"],
+      "description": "Escort the VIP safely across the battlefield.",
+      "victory_condition": "VIP reaches crew deployment edge alive",
+      "placement_hint": "enemy_half"
+    }
+  ]
+}

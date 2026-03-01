@@ -6,8 +6,6 @@ const Self = preload("res://src/core/utils/PathFinder.gd")
 const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
 const BattlefieldManagerClass = preload("res://src/core/battle/BattlefieldManager.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-# Compatibility layer to handle GDScript creation
-var Compatibility = load("res://addons/gut/compatibility.gd").new()
 
 signal path_found(path: Array[Vector2])
 signal path_not_found
@@ -58,7 +56,7 @@ func _create_path_node_script():
 	if _path_node_script != null:
 		return
 		
-	_path_node_script = Compatibility.create_gdscript()
+	_path_node_script = GDScript.new()
 	
 	_path_node_script.source_code = """
 extends RefCounted

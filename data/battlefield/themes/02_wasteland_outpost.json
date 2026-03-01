@@ -1,0 +1,26 @@
+{
+  "name": "Wasteland Outpost",
+  "description": "A desolate outpost surrounded by dangerous, open terrain.",
+  "generation_pipeline": [
+    {
+      "action": "fill_background",
+      "params": { "feature_tag": "sand" }
+    },
+    {
+      "action": "place_large_features",
+      "params": { "feature_tag": "outpost_building", "count": "1d2+1", "min_distance": 5 }
+    },
+    {
+      "action": "add_scatter",
+      "params": { "feature_tag": "wasteland_scatter", "density": 0.15 }
+    },
+    {
+      "action": "place_objectives",
+      "params": { "objective_tag": "salvage", "count": 3, "placement_rule": "in_open" }
+    },
+    {
+      "action": "run_validation",
+      "params": { "rulesets": ["standard_tactical", "wasteland_specific"] }
+    }
+  ]
+}

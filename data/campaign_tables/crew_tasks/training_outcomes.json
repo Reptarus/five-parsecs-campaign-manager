@@ -1,0 +1,13 @@
+{
+  "name": "Training Rules",
+  "version": "2.0",
+  "source": "Five Parsecs from Home Core Rules p.76",
+  "description": "Train task mechanics. Automatic: the crew member earns 1 XP. If XP reaches Character Upgrade threshold, resolve immediately (p.123).",
+  "rules": {
+    "automatic_success": true,
+    "xp_award": 1,
+    "advancement_check": true,
+    "advancement_reference": "Character Upgrade table (p.123)",
+    "notes": "No training types, no costs, no facility bonuses, no world modifiers. Training is always automatic 1 XP."
+  }
+}

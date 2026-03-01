@@ -1,0 +1,413 @@
+{
+  "mission_generation_parameters": {
+    "global_settings": {
+      "mission_frequency": {
+        "patron_missions": 0.6,
+        "opportunity_missions": 0.4
+      },
+      "difficulty_distribution": {
+        "easy": 0.3,
+        "moderate": 0.4,
+        "hard": 0.2,
+        "extreme": 0.1
+      },
+      "payment_variance": {
+        "minimum_modifier": 0.8,
+        "maximum_modifier": 1.3,
+        "reputation_bonus_cap": 0.5
+      }
+    },
+    
+    "campaign_progression": {
+      "early_campaign": {
+        "turns": [1, 10],
+        "difficulty_modifier": -1,
+        "mission_types": ["delivery", "escort", "defending"],
+        "enemy_restriction": ["raiders", "wildlife"],
+        "payment_modifier": 0.9
+      },
+      "mid_campaign": {
+        "turns": [11, 25],
+        "difficulty_modifier": 0,
+        "mission_types": ["delivery", "bounty_hunting", "escort", "investigation", "raid", "pursuit"],
+        "enemy_restriction": [],
+        "payment_modifier": 1.0
+      },
+      "late_campaign": {
+        "turns": [26, 50],
+        "difficulty_modifier": 1,
+        "mission_types": ["all"],
+        "enemy_restriction": [],
+        "payment_modifier": 1.2,
+        "special_missions": true
+      },
+      "endgame": {
+        "turns": [51, 100],
+        "difficulty_modifier": 2,
+        "mission_types": ["all"],
+        "enemy_restriction": [],
+        "payment_modifier": 1.5,
+        "epic_missions": true
+      }
+    },
+    
+    "patron_relationships": {
+      "reputation_levels": {
+        "hostile": {
+          "range": [-10, -6],
+          "mission_availability": 0.1,
+          "payment_modifier": 0.6,
+          "difficulty_increase": 2,
+          "special_conditions": ["betrayal_risk", "setup_missions"]
+        },
+        "suspicious": {
+          "range": [-5, -1],
+          "mission_availability": 0.3,
+          "payment_modifier": 0.8,
+          "difficulty_increase": 1,
+          "special_conditions": ["payment_upfront", "limited_support"]
+        },
+        "neutral": {
+          "range": [0, 2],
+          "mission_availability": 0.6,
+          "payment_modifier": 1.0,
+          "difficulty_increase": 0,
+          "special_conditions": []
+        },
+        "friendly": {
+          "range": [3, 6],
+          "mission_availability": 0.8,
+          "payment_modifier": 1.1,
+          "difficulty_increase": 0,
+          "special_conditions": ["equipment_loan", "intelligence_sharing"]
+        },
+        "trusted": {
+          "range": [7, 12],
+          "mission_availability": 1.0,
+          "payment_modifier": 1.3,
+          "difficulty_increase": -1,
+          "special_conditions": ["exclusive_missions", "backup_support", "equipment_discount"]
+        },
+        "allied": {
+          "range": [13, 20],
+          "mission_availability": 1.2,
+          "payment_modifier": 1.5,
+          "difficulty_increase": -2,
+          "special_conditions": ["loyalty_missions", "faction_protection", "rare_equipment_access"]
+        }
+      },
+      
+      "reputation_changes": {
+        "mission_success": {
+          "flawless": 3,
+          "successful": 2,
+          "marginal": 1
+        },
+        "mission_failure": {
+          "minor_failure": -1,
+          "major_failure": -2,
+          "catastrophic_failure": -4
+        },
+        "special_actions": {
+          "exceeds_expectations": 2,
+          "saves_patron_assets": 3,
+          "betrays_patron": -8,
+          "causes_collateral_damage": -2
+        }
+      }
+    },
+    
+    "world_generation": {
+      "location_types": {
+        "core_world": {
+          "law_level": 5,
+          "technology_level": 5,
+          "population_density": 5,
+          "corruption_level": 2,
+          "available_missions": ["delivery", "escort", "investigation"],
+          "restricted_missions": ["raid"],
+          "enemy_types": ["corporate_security", "enforcers"],
+          "equipment_availability": "full"
+        },
+        "colony_world": {
+          "law_level": 3,
+          "technology_level": 3,
+          "population_density": 3,
+          "corruption_level": 3,
+          "available_missions": ["delivery", "bounty_hunting", "escort", "defending"],
+          "restricted_missions": [],
+          "enemy_types": ["enforcers", "rival_gang", "raiders"],
+          "equipment_availability": "limited"
+        },
+        "frontier_world": {
+          "law_level": 2,
+          "technology_level": 2,
+          "population_density": 2,
+          "corruption_level": 4,
+          "available_missions": ["bounty_hunting", "raid", "pursuit", "defending"],
+          "restricted_missions": [],
+          "enemy_types": ["raiders", "pirates", "wildlife"],
+          "equipment_availability": "basic"
+        },
+        "fringe_world": {
+          "law_level": 1,
+          "technology_level": 1,
+          "population_density": 1,
+          "corruption_level": 5,
+          "available_missions": ["raid", "pursuit", "defending"],
+          "restricted_missions": ["investigation"],
+          "enemy_types": ["pirates", "raiders", "wildlife", "cultists"],
+          "equipment_availability": "scavenged"
+        }
+      },
+      
+      "sector_traits": {
+        "trade_hub": {
+          "mission_modifier": {
+            "delivery": 1.5,
+            "escort": 1.2
+          },
+          "enemy_likelihood": {
+            "pirates": 1.3,
+            "corporate_security": 1.2
+          },
+          "equipment_costs": 0.9
+        },
+        "military_zone": {
+          "mission_modifier": {
+            "escort": 1.3,
+            "defending": 1.4
+          },
+          "enemy_likelihood": {
+            "enforcers": 1.5,
+            "mercenaries": 1.2
+          },
+          "equipment_costs": 1.2
+        },
+        "lawless_sector": {
+          "mission_modifier": {
+            "raid": 1.4,
+            "pursuit": 1.2
+          },
+          "enemy_likelihood": {
+            "raiders": 1.5,
+            "pirates": 1.3,
+            "rival_gang": 1.2
+          },
+          "equipment_costs": 1.3
+        },
+        "research_zone": {
+          "mission_modifier": {
+            "investigation": 1.4,
+            "raid": 1.2
+          },
+          "enemy_likelihood": {
+            "corporate_security": 1.4,
+            "cultists": 1.2
+          },
+          "equipment_costs": 0.8
+        }
+      }
+    },
+    
+    "mission_modifiers": {
+      "seasonal_events": {
+        "trade_season": {
+          "duration": 5,
+          "mission_effects": {
+            "delivery": {"frequency": 1.5, "payment": 1.2},
+            "escort": {"frequency": 1.3, "payment": 1.1}
+          }
+        },
+        "conflict_escalation": {
+          "duration": 8,
+          "mission_effects": {
+            "raid": {"frequency": 1.4, "difficulty": 1},
+            "defending": {"frequency": 1.6, "payment": 1.3}
+          }
+        },
+        "law_enforcement_crackdown": {
+          "duration": 6,
+          "mission_effects": {
+            "bounty_hunting": {"frequency": 1.5, "payment": 1.2},
+            "investigation": {"frequency": 1.3, "difficulty": -1}
+          }
+        }
+      },
+      
+      "crew_experience": {
+        "rookie": {
+          "mission_count": [0, 5],
+          "difficulty_penalty": 1,
+          "payment_penalty": 0.9,
+          "available_missions": ["delivery", "escort", "defending"]
+        },
+        "experienced": {
+          "mission_count": [6, 15],
+          "difficulty_penalty": 0,
+          "payment_penalty": 1.0,
+          "available_missions": ["all_basic"]
+        },
+        "veteran": {
+          "mission_count": [16, 30],
+          "difficulty_bonus": -1,
+          "payment_bonus": 1.1,
+          "available_missions": ["all"]
+        },
+        "elite": {
+          "mission_count": [31, 100],
+          "difficulty_bonus": -2,
+          "payment_bonus": 1.3,
+          "available_missions": ["all_including_special"]
+        }
+      },
+      
+      "equipment_influence": {
+        "military_grade": {
+          "mission_difficulty": -1,
+          "enemy_response": 1,
+          "authority_attention": 1
+        },
+        "stealth_specialized": {
+          "investigation_bonus": 2,
+          "raid_bonus": 1,
+          "detection_penalty": -2
+        },
+        "heavy_combat": {
+          "raid_bonus": 2,
+          "defending_bonus": 1,
+          "stealth_penalty": 2
+        }
+      }
+    },
+    
+    "random_events": {
+      "mission_complications": {
+        "double_cross": {
+          "probability": 0.05,
+          "applicable_missions": ["delivery", "escort", "bounty_hunting"],
+          "effects": ["enemy_becomes_ally", "patron_becomes_enemy", "payment_disputed"]
+        },
+        "rival_crew": {
+          "probability": 0.1,
+          "applicable_missions": ["all"],
+          "effects": ["competition", "sabotage", "territorial_dispute"]
+        },
+        "authority_interference": {
+          "probability": 0.08,
+          "applicable_missions": ["raid", "pursuit", "bounty_hunting"],
+          "effects": ["jurisdiction_conflict", "legal_complications", "enforcement_response"]
+        },
+        "equipment_malfunction": {
+          "probability": 0.06,
+          "applicable_missions": ["all"],
+          "effects": ["reduced_capability", "improvisation_required", "mission_delay"]
+        },
+        "intelligence_leak": {
+          "probability": 0.04,
+          "applicable_missions": ["raid", "investigation"],
+          "effects": ["enemy_preparation", "security_increase", "ambush_risk"]
+        }
+      },
+      
+      "beneficial_events": {
+        "local_contact": {
+          "probability": 0.08,
+          "applicable_missions": ["investigation", "pursuit"],
+          "effects": ["information_bonus", "local_support", "equipment_access"]
+        },
+        "enemy_distraction": {
+          "probability": 0.06,
+          "applicable_missions": ["raid", "defending"],
+          "effects": ["reduced_opposition", "tactical_advantage", "timing_bonus"]
+        },
+        "equipment_upgrade": {
+          "probability": 0.05,
+          "applicable_missions": ["all"],
+          "effects": ["temporary_enhancement", "performance_boost", "capability_expansion"]
+        },
+        "reputation_boost": {
+          "probability": 0.04,
+          "applicable_missions": ["escort", "defending"],
+          "effects": ["public_recognition", "patron_bonus", "future_opportunities"]
+        }
+      }
+    },
+    
+    "success_metrics": {
+      "completion_thresholds": {
+        "minimal_success": {
+          "primary_objectives": 1,
+          "payment_percentage": 60,
+          "reputation_gain": 1
+        },
+        "standard_success": {
+          "primary_objectives": "all",
+          "payment_percentage": 100,
+          "reputation_gain": 2
+        },
+        "exceptional_success": {
+          "primary_objectives": "all",
+          "optional_objectives": 2,
+          "payment_percentage": 130,
+          "reputation_gain": 3
+        },
+        "legendary_success": {
+          "primary_objectives": "all",
+          "optional_objectives": "all",
+          "special_conditions": true,
+          "payment_percentage": 200,
+          "reputation_gain": 5
+        }
+      },
+      
+      "failure_consequences": {
+        "mission_abandoned": {
+          "reputation_loss": -2,
+          "payment_percentage": 0,
+          "patron_relationship": -1
+        },
+        "objective_failed": {
+          "reputation_loss": -1,
+          "payment_percentage": 20,
+          "patron_relationship": 0
+        },
+        "catastrophic_failure": {
+          "reputation_loss": -4,
+          "payment_percentage": 0,
+          "patron_relationship": -3,
+          "additional_consequences": ["equipment_loss", "crew_injury", "legal_trouble"]
+        }
+      }
+    },
+    
+    "balancing_parameters": {
+      "difficulty_scaling": {
+        "base_enemy_strength": 100,
+        "per_turn_increase": 2,
+        "crew_skill_offset": -5,
+        "equipment_quality_offset": -3
+      },
+      
+      "economy_balance": {
+        "base_mission_payment": 500,
+        "difficulty_multiplier": 150,
+        "risk_bonus_cap": 1000,
+        "reputation_bonus_multiplier": 50
+      },
+      
+      "progression_gates": {
+        "advanced_missions": {
+          "crew_experience": 10,
+          "reputation_threshold": 5,
+          "equipment_requirements": ["military_grade"]
+        },
+        "elite_missions": {
+          "crew_experience": 25,
+          "reputation_threshold": 10,
+          "equipment_requirements": ["military_grade", "specialized"]
+        }
+      }
+    }
+  }
+}

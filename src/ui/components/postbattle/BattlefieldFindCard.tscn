@@ -1,0 +1,44 @@
+[gd_scene load_steps=2 format=3 uid="uid://battlefield_find_card_01"]
+
+[ext_resource type="Script" path="res://src/ui/components/postbattle/BattlefieldFindCard.gd" id="1_find_card"]
+
+[node name="BattlefieldFindCard" type="PanelContainer"]
+custom_minimum_size = Vector2(0, 80)
+offset_right = 400.0
+offset_bottom = 80.0
+script = ExtResource("1_find_card")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="HeaderRow" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="FindIcon" type="ColorRect" parent="VBoxContainer/HeaderRow"]
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+color = Color(0.156863, 0.254902, 0.34902, 1)
+
+[node name="FindTitle" type="Label" parent="VBoxContainer/HeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Find Title"
+vertical_alignment = 1
+
+[node name="DescriptionLabel" type="RichTextLabel" parent="VBoxContainer"]
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+bbcode_enabled = true
+text = "[color=#9ca3af]Find description appears here with BBCode coloring.[/color]"
+fit_content = true
+scroll_active = false
+
+[node name="ValueRow" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="AddToStashButton" type="Button" parent="VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "Add to Stash"

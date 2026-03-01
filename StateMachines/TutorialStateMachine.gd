@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 # This file should be referenced via preload
 # Use explicit preloads instead of global class names
 extends Node
@@ -125,7 +125,7 @@ func _advance_to_next_step() -> void:
 func _setup_step(step: int) -> void:
 	match step:
 		1: # Introduction
-			game_state.set_victory_type(GameEnums.FiveParcsecsCampaignVictoryType.STANDARD)
+			game_state.set_victory_type(GameEnums.FiveParsecsCampaignVictoryType.STANDARD)
 		2: # Basic Movement
 			_setup_movement_tutorial()
 		3: # Combat
@@ -188,7 +188,7 @@ func _start_campaign_tutorial() -> void:
 	game_state.is_tutorial_active = true
 	var campaign_setup := {
 		"difficulty": GameEnums.DifficultyLevel.NORMAL,
-		"victory_type": GameEnums.FiveParcsecsCampaignVictoryType.STANDARD,
+		"victory_type": GameEnums.FiveParsecsCampaignVictoryType.STANDARD,
 		"crew_size": GameEnums.CrewSize.FOUR,
 		"use_story_track": false
 	}
@@ -207,7 +207,7 @@ func _setup_tutorial_mission(track: int) -> void:
 	var mission = {
 		"type": GameEnums.MissionType.PATROL, # Using PATROL as a basic mission type for tutorials
 		"difficulty": GameEnums.DifficultyLevel.EASY,
-		"victory_type": GameEnums.FiveParcsecsCampaignVictoryType.STANDARD,
+		"victory_type": GameEnums.FiveParsecsCampaignVictoryType.STANDARD,
 		"track": track
 	}
 	

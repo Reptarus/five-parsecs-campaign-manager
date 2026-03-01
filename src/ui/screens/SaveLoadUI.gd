@@ -21,7 +21,7 @@ signal ui_closed
 @onready var import_button: Button = $Panel/VBoxContainer/ButtonContainer/ImportButton
 @onready var backup_list_button: Button = $Panel/VBoxContainer/ButtonContainer/BackupListButton
 @onready var quick_save_button: Button = $Panel/VBoxContainer/ButtonContainer/QuickSaveButton
-@onready var auto_save_toggle: CheckButton = $Panel/VBoxContainer/AutoSaveToggle
+@onready var auto_save_toggle: CheckButton = $Panel/VBoxContainer/AutoSaveContainer/AutoSaveToggle
 
 # Manager instances
 var save_manager: Node
@@ -57,16 +57,25 @@ func _ready() -> void:
 	auto_save_toggle.button_pressed = game_state.auto_save_enabled
 
 func _connect_signals() -> void:
-	save_manager.save_completed.connect(_on_save_manager_save_completed)
-	save_manager.load_completed.connect(_on_save_manager_load_completed)
-	save_manager.backup_created.connect(_on_save_manager_backup_created)
-	save_manager.validation_failed.connect(_on_save_manager_validation_failed)
-	save_manager.recovery_attempted.connect(_on_save_manager_recovery_attempted)
-	
-	game_state.save_started.connect(_on_save_started)
-	game_state.save_completed.connect(_on_save_completed)
-	game_state.load_started.connect(_on_load_started)
-	game_state.load_completed.connect(_on_load_completed)
+	if save_manager.has_signal("save_completed"):
+		save_manager.save_completed.connect(_on_save_manager_save_completed)
+	if save_manager.has_signal("load_completed"):
+		save_manager.load_completed.connect(_on_save_manager_load_completed)
+	if save_manager.has_signal("backup_created"):
+		save_manager.backup_created.connect(_on_save_manager_backup_created)
+	if save_manager.has_signal("validation_failed"):
+		save_manager.validation_failed.connect(_on_save_manager_validation_failed)
+	if save_manager.has_signal("recovery_attempted"):
+		save_manager.recovery_attempted.connect(_on_save_manager_recovery_attempted)
+
+	if game_state and game_state.has_signal("save_started"):
+		game_state.save_started.connect(_on_save_started)
+	if game_state and game_state.has_signal("save_completed"):
+		game_state.save_completed.connect(_on_save_completed)
+	if game_state and game_state.has_signal("load_started"):
+		game_state.load_started.connect(_on_load_started)
+	if game_state and game_state.has_signal("load_completed"):
+		game_state.load_completed.connect(_on_load_completed)
 	
 	save_name_input.text_changed.connect(_on_save_name_changed)
 	save_list.item_selected.connect(_on_save_selected)

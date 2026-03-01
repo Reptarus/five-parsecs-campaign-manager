@@ -1,0 +1,356 @@
+{
+  "enemy_type": "wildlife",
+  "display_name": "Alien Wildlife",
+  "description": "Dangerous alien creatures with varied behavioral patterns",
+  
+  "base_stats": {
+    "health": 50,
+    "movement": 4,
+    "weapon_range": 1,
+    "ai_behavior": "aggressive"
+  },
+  
+  "creature_types": {
+    "predator": {
+      "description": "Aggressive hunting creatures",
+      "ai_behavior": "aggressive",
+      "aggression_level": 4,
+      "intelligence_level": 2,
+      "pack_behavior": "pack_hunter",
+      "stats_modifier": {
+        "health": 20,
+        "movement": 1,
+        "weapon_range": 0
+      }
+    },
+    
+    "herbivore": {
+      "description": "Large defensive creatures",
+      "ai_behavior": "defensive",
+      "aggression_level": 1,
+      "intelligence_level": 2,
+      "pack_behavior": "herd_animal",
+      "stats_modifier": {
+        "health": 40,
+        "movement": -1,
+        "weapon_range": 1
+      }
+    },
+    
+    "scavenger": {
+      "description": "Opportunistic carrion feeders",
+      "ai_behavior": "cautious",
+      "aggression_level": 2,
+      "intelligence_level": 3,
+      "pack_behavior": "small_groups",
+      "stats_modifier": {
+        "health": -10,
+        "movement": 2,
+        "weapon_range": 0
+      }
+    },
+    
+    "apex_predator": {
+      "description": "Dominant territorial hunters",
+      "ai_behavior": "aggressive",
+      "aggression_level": 5,
+      "intelligence_level": 4,
+      "pack_behavior": "solitary",
+      "stats_modifier": {
+        "health": 80,
+        "movement": 0,
+        "weapon_range": 2
+      },
+      "special_abilities": ["fear_inducing", "enhanced_senses", "territorial"]
+    },
+    
+    "hive_mind": {
+      "description": "Collectively intelligent swarm creatures",
+      "ai_behavior": "tactical",
+      "aggression_level": 3,
+      "intelligence_level": 5,
+      "pack_behavior": "swarm",
+      "stats_modifier": {
+        "health": -20,
+        "movement": 1,
+        "weapon_range": 0
+      },
+      "special_abilities": ["perfect_coordination", "shared_consciousness"]
+    }
+  },
+  
+  "size_categories": {
+    "tiny": {
+      "health_modifier": -40,
+      "movement_modifier": 2,
+      "swarm_tactics": true,
+      "hard_to_hit": 2
+    },
+    
+    "small": {
+      "health_modifier": -25,
+      "movement_modifier": 1,
+      "agile": true
+    },
+    
+    "medium": {
+      "health_modifier": 0,
+      "movement_modifier": 0
+    },
+    
+    "large": {
+      "health_modifier": 50,
+      "movement_modifier": -1,
+      "weapon_range_modifier": 1,
+      "intimidating": true
+    },
+    
+    "huge": {
+      "health_modifier": 150,
+      "movement_modifier": -2,
+      "weapon_range_modifier": 2,
+      "area_attacks": true
+    },
+    
+    "colossal": {
+      "health_modifier": 350,
+      "movement_modifier": -3,
+      "weapon_range_modifier": 3,
+      "terrain_shaping": true,
+      "devastating_attacks": true
+    }
+  },
+  
+  "environmental_adaptations": {
+    "arctic": {
+      "climate_bonus": "cold_immunity",
+      "movement_bonus": "ice_terrain",
+      "special_traits": ["thick_hide", "energy_conservation"]
+    },
+    
+    "desert": {
+      "climate_bonus": "heat_immunity", 
+      "movement_bonus": "sand_movement",
+      "special_traits": ["water_efficiency", "camouflage"]
+    },
+    
+    "jungle": {
+      "climate_bonus": "humidity_adapted",
+      "movement_bonus": "dense_vegetation",
+      "special_traits": ["toxin_resistance", "arboreal"]
+    },
+    
+    "volcanic": {
+      "climate_bonus": "extreme_heat_immunity",
+      "movement_bonus": "lava_resistance",
+      "special_traits": ["mineral_absorption", "thermal_vision"]
+    },
+    
+    "void": {
+      "climate_bonus": "vacuum_survival",
+      "movement_bonus": "zero_g_adapted",
+      "special_traits": ["radiation_immunity", "magnetic_navigation"]
+    }
+  },
+  
+  "natural_weapons": {
+    "claws": {
+      "damage_type": "slashing",
+      "reach": "melee",
+      "special": "bleeding"
+    },
+    
+    "fangs": {
+      "damage_type": "piercing",
+      "reach": "melee",
+      "special": "venom_possible"
+    },
+    
+    "stinger": {
+      "damage_type": "piercing",
+      "reach": "melee",
+      "special": "paralysis"
+    },
+    
+    "spines": {
+      "damage_type": "piercing",
+      "reach": "ranged",
+      "special": "projectile"
+    },
+    
+    "breath_weapon": {
+      "damage_type": "energy",
+      "reach": "ranged",
+      "special": "area_effect"
+    }
+  },
+  
+  "special_abilities": {
+    "venom": {
+      "effect": "poison_damage",
+      "duration": "persistent",
+      "loot_value": 500
+    },
+    
+    "camouflage": {
+      "effect": "stealth_bonus",
+      "tactical_advantage": "ambush",
+      "loot_value": 300
+    },
+    
+    "regeneration": {
+      "effect": "health_recovery",
+      "combat_advantage": "endurance",
+      "loot_value": 800
+    },
+    
+    "pounce": {
+      "effect": "charge_attack",
+      "movement_bonus": 2,
+      "loot_value": 200
+    },
+    
+    "charge": {
+      "effect": "knockdown_attack",
+      "size_requirement": "large",
+      "loot_value": 250
+    }
+  },
+  
+  "loot_tables": {
+    "biological_materials": [
+      {
+        "name": "Creature Hide",
+        "type": "biological",
+        "base_value": 100,
+        "chance": 0.8,
+        "size_scaling": true
+      },
+      {
+        "name": "Natural Weapons",
+        "type": "biological",
+        "base_value": 150,
+        "chance": 0.6,
+        "depends_on": "natural_weapons"
+      },
+      {
+        "name": "Exotic Glands",
+        "type": "biological",
+        "base_value": 300,
+        "chance": 0.3,
+        "requires_special_ability": true
+      }
+    ],
+    
+    "genetic_samples": [
+      {
+        "name": "DNA Sample",
+        "type": "genetic",
+        "base_value": 200,
+        "chance": 0.4
+      },
+      {
+        "name": "Adaptation Genes",
+        "type": "genetic",
+        "base_value": 500,
+        "chance": 0.2,
+        "requires_environmental_adaptation": true
+      },
+      {
+        "name": "Apex Genome",
+        "type": "genetic", 
+        "base_value": 1500,
+        "chance": 0.05,
+        "requires_creature_type": "apex_predator"
+      }
+    ],
+    
+    "natural_resources": [
+      {
+        "name": "Specialized Organs",
+        "type": "resource",
+        "base_value": 250,
+        "chance": 0.3,
+        "environment_dependent": true
+      },
+      {
+        "name": "Bio-luminescent Tissue",
+        "type": "resource",
+        "base_value": 400,
+        "chance": 0.1,
+        "special_environments": ["deep_ocean", "cave"]
+      }
+    ],
+    
+    "exotic_compounds": [
+      {
+        "name": "Bioactive Compounds",
+        "type": "compound",
+        "base_value": 600,
+        "chance": 0.2,
+        "requires_size": "large"
+      },
+      {
+        "name": "Psionic Crystals",
+        "type": "compound",
+        "base_value": 1200,
+        "chance": 0.05,
+        "requires_creature_type": "hive_mind"
+      }
+    ]
+  },
+  
+  "behavioral_patterns": {
+    "territorial": {
+      "territory_radius": 10,
+      "defense_bonus": 2,
+      "warning_displays": true
+    },
+    
+    "pack_hunting": {
+      "coordination_bonus": 1,
+      "flanking_tactics": true,
+      "pack_size": [3, 8]
+    },
+    
+    "migration": {
+      "seasonal_movement": true,
+      "group_behavior": "herd",
+      "environmental_triggers": ["weather", "food_scarcity"]
+    },
+    
+    "nocturnal": {
+      "time_preference": "night",
+      "enhanced_senses": ["hearing", "smell"],
+      "stealth_bonus": 1
+    }
+  },
+  
+  "instinctual_reactions": {
+    "threat_response": {
+      "fight_threshold": 3,
+      "flight_threshold": 7,
+      "defensive_posture": true
+    },
+    
+    "feeding_behavior": {
+      "food_aggression": "moderate",
+      "scavenging": "opportunistic",
+      "hunting_patterns": "ambush"
+    },
+    
+    "mating_season": {
+      "aggression_increase": 2,
+      "territorial_expansion": true,
+      "protective_behavior": "extreme"
+    }
+  },
+  
+  "threat_assessment": {
+    "danger_level": "variable",
+    "predictability": "low",
+    "equipment_quality": "none",
+    "group_coordination": "instinctual",
+    "environmental_advantage": "high"
+  }
+}

@@ -1,9 +1,9 @@
-@tool
+﻿@tool
 extends RefCounted
 
 const GameEnumsScript: GDScript = preload("res://src/core/systems/GlobalEnums.gd")
 const CharacterScript: GDScript = preload("res://src/core/character/Base/Character.gd")
-const FiveParcsecsCampaignScript: GDScript = preload("res://src/core/campaign/Campaign.gd")
+const FiveParsecsCampaignScript: GDScript = preload("res://src/core/campaign/Campaign.gd")
 
 # Default test data
 const DEFAULT_GAME_STATE: Dictionary = {
@@ -16,7 +16,7 @@ const DEFAULT_GAME_STATE: Dictionary = {
 
 const DEFAULT_CHARACTER: Dictionary = {
 	"name": "Test Character",
-	"background": GameEnumsScript.Background.MILITARY,
+	"background": GameEnumsScript.Background.MILITARY_BRAT,
 	"motivation": GameEnumsScript.Motivation.REVENGE,
 	"level": 1,
 	"experience": 0,
@@ -27,10 +27,10 @@ const DEFAULT_CHARACTER: Dictionary = {
 const DEFAULT_CAMPAIGN: Dictionary = {
 	"name": "Test Campaign",
 	"difficulty": GameEnumsScript.DifficultyLevel.NORMAL,
-	"victory_type": GameEnumsScript.FiveParcsecsCampaignVictoryType.STANDARD,
+	"victory_type": GameEnumsScript.FiveParsecsCampaignVictoryType.STANDARD,
 	"crew_size": GameEnumsScript.CrewSize.FOUR,
 	"use_story_track": true,
-	"current_phase": GameEnumsScript.FiveParcsecsCampaignPhase.SETUP,
+	"current_phase": GameEnumsScript.FiveParsecsCampaignPhase.SETUP,
 	"turn": 1,
 	"credits": 1000
 }
@@ -87,7 +87,7 @@ static func create_test_character(config: Dictionary = {}) -> Resource:
 # Create actual campaign instance
 static func create_test_campaign(config: Dictionary = {}) -> Resource:
 	var data: Dictionary = setup_test_campaign(config)
-	var campaign: Resource = FiveParcsecsCampaignScript.new()
+	var campaign: Resource = FiveParsecsCampaignScript.new()
 	if not campaign:
 		push_error("Failed to create campaign instance")
 		return null

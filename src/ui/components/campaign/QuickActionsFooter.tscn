@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://c5cc57vwb12a6"]
+
+[ext_resource type="Script" path="res://src/ui/components/campaign/QuickActionsFooter.gd" id="1_e6f7g"]
+
+[node name="QuickActionsFooter" type="PanelContainer"]
+script = ExtResource("1_e6f7g")

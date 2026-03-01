@@ -15,9 +15,6 @@ const BattlefieldManager = preload("res://src/core/battle/BattlefieldManager.gd"
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const AuthPathFinder = preload("res://src/core/utils/PathFinder.gd")
 
-# Updated compatibility helper
-const GutCompatibility = preload("res://tests/fixtures/helpers/gut_compatibility.gd")
-var compatibility = GutCompatibility.new()
 
 signal path_found(path: Array[Vector2])
 signal path_not_found
@@ -70,7 +67,7 @@ func _create_path_node_script():
 	if _path_node_script != null:
 		return
 		
-	_path_node_script = compatibility.create_script()
+	_path_node_script = GDScript.new()
 	
 	_path_node_script.source_code = """
 extends RefCounted

@@ -272,7 +272,16 @@ enum WorldTrait {
 	FREE_PORT, # Unrestricted trading
 	CORPORATE_CONTROLLED, # Corporate governance
 	MINING_COLONY, # Resource extraction
-	AGRICULTURAL_WORLD # Food production
+	AGRICULTURAL_WORLD, # Food production
+	FRONTIER, # Frontier territory (travel table)
+	TRADE_HUB, # Trade hub (travel table)
+	INDUSTRIAL, # Industrial world (travel table)
+	RESEARCH, # Research world (travel table)
+	CRIMINAL, # Criminal world (travel table)
+	AFFLUENT, # Affluent world (travel table)
+	DANGEROUS, # Dangerous world (travel table)
+	CORPORATE, # Corporate world (travel table)
+	MILITARY # Military world (travel table)
 }
 
 ## Item Rarities

@@ -1,0 +1,1245 @@
+extends FiveParsecsCampaignPanel
+
+## GDScript 2.0: Five Parsecs Expanded Campaign Configuration Panel
+## Production-ready implementation with comprehensive campaign setup options
+## NOW INCLUDES VICTORY CONDITIONS (removes need for separate VictoryConditionsPanel)
+
+const STEP_NUMBER := 1  # Step 1 of 7 in campaign wizard (Configuration)
+
+# GlobalEnums available as autoload singleton
+const FPCM_VictoryDescriptions = preload("res://src/game/victory/VictoryDescriptions.gd")
+const CustomVictoryDialog = preload("res://src/ui/components/victory/CustomVictoryDialog.gd")
+const CompendiumMissionsExpandedRef = preload("res://src/data/compendium_missions_expanded.gd")
+
+# GDScript 2.0: Typed signals
+signal campaign_config_updated(config: Dictionary)
+signal campaign_setup_complete(config: Dictionary)
+
+# Autonomous signals for coordinator pattern
+signal campaign_config_data_complete(data: Dictionary)
+signal campaign_config_validation_failed(errors: Array[String])
+
+# Granular signals for real-time integration
+signal campaign_config_data_changed(data: Dictionary)
+signal victory_conditions_set(conditions: Dictionary)
+signal victory_conditions_changed(conditions: Dictionary)  # NEW for real-time updates
+signal story_track_selected(track: String)
+signal tutorial_mode_selected(tutorial: String)
+
+var local_campaign_config: Dictionary = {
+	"campaign_name": "",
+	"campaign_type": "standard",
+	"difficulty_level": 2,  # Default: STANDARD
+	"victory_conditions": {},
+	"story_track": "",
+	"tutorial_mode": "",
+	"is_complete": false
+}
+
+# UI Components with safe access
+var campaign_name_input: LineEdit
+var campaign_type_option: OptionButton
+var difficulty_option: OptionButton  # Difficulty selector
+var victory_conditions_list: VBoxContainer
+var story_track_option: OptionButton
+var tutorial_mode_option: OptionButton
+var summary_label: Label
+
+# Description labels for displaying option details
+var campaign_type_description: Label
+var difficulty_description: Label  # Difficulty level description
+var victory_condition_description: RichTextLabel  # Rich text for full narrative + strategy
+var story_track_description: Label
+var tutorial_mode_description: Label
+var introductory_campaign_checkbox: CheckBox  # DLC: Introductory Campaign
+
+# Campaign configuration options
+var campaign_types: Dictionary = {
+	"standard": {
+		"name": "Standard Campaign",
+		"description": "A full campaign with all systems enabled"
+	},
+	"story_focused": {
+		"name": "Story-Focused Campaign",
+		"description": "Emphasis on narrative and story track progression"
+	},
+	"combat_focused": {
+		"name": "Combat-Focused Campaign",
+		"description": "Emphasis on tactical combat and missions"
+	},
+	"exploration_focused": {
+		"name": "Exploration-Focused Campaign",
+		"description": "Emphasis on exploration and discovery"
+	}
+}
+
+var victory_conditions: Dictionary = {
+	"wealth": {
+		"name": "Wealth Victory",
+		"description": "Accumulate 10,000 credits",
+		"target": 10000,
+		"type": "credits"
+	},
+	"reputation": {
+		"name": "Reputation Victory",
+		"description": "Achieve maximum reputation with 3 factions",
+		"target": 3,
+		"type": "factions"
+	},
+	"exploration": {
+		"name": "Exploration Victory",
+		"description": "Visit 20 different worlds",
+		"target": 20,
+		"type": "worlds"
+	},
+	"combat": {
+		"name": "Combat Victory",
+		"description": "Defeat 50 enemies in total",
+		"target": 50,
+		"type": "enemies"
+	},
+	"story": {
+		"name": "Story Victory",
+		"description": "Complete 5 story missions",
+		"target": 5,
+		"type": "missions"
+	}
+}
+
+var story_tracks: Dictionary = {
+	"none": {
+		"name": "No Story Track",
+		"description": "Standard campaign without story progression"
+	},
+	"mystery_signal": {
+		"name": "Mystery Signal",
+		"description": "Your crew discovers a mysterious signal that leads to a greater conspiracy"
+	},
+	"faction_conflict": {
+		"name": "Faction Conflict",
+		"description": "Navigate the complex politics between warring factions"
+	},
+	"ancient_ruins": {
+		"name": "Ancient Ruins",
+		"description": "Explore ancient alien ruins and uncover their secrets"
+	},
+	"smuggler_network": {
+		"name": "Smuggler Network",
+		"description": "Build a criminal empire in the shadows"
+	}
+}
+
+var tutorial_modes: Dictionary = {
+	"none": {
+		"name": "No Tutorial",
+		"description": "Standard campaign without tutorial guidance"
+	},
+	"quick_start": {
+		"name": "Quick Start Tutorial",
+		"description": "Learn basic mechanics with guided steps"
+	},
+	"advanced": {
+		"name": "Advanced Tutorial",
+		"description": "Master all systems with comprehensive guidance"
+	}
+}
+
+# Difficulty levels matching GlobalEnums.DifficultyLevel
+var difficulty_levels: Dictionary = {
+	1: {
+		"name": "Story",
+		"description": "Relaxed difficulty for narrative focus. Enemies are weaker, resources more abundant, and crew survives longer."
+	},
+	2: {
+		"name": "Standard",
+		"description": "The core Five Parsecs experience. Balanced challenge that rewards tactical play while remaining fair."
+	},
+	3: {
+		"name": "Challenging",
+		"description": "Increased danger for experienced players. Tougher enemies, scarcer resources, and higher stakes."
+	},
+	4: {
+		"name": "Hardcore",
+		"description": "Brutal difficulty for veterans. Every decision matters, losses are punishing, survival is the goal."
+	},
+	5: {
+		"name": "Nightmare",
+		"description": "Near-impossible difficulty. Only the most skilled and lucky crews will survive the Fringe."
+	}
+}
+
+var selected_victory_conditions: Dictionary = {}
+var selected_story_track: String = ""
+var selected_tutorial_mode: String = ""
+
+# Custom victory dialog
+var custom_victory_button: Button
+var custom_victory_dialog: Window
+
+func _on_campaign_state_updated(state_data: Dictionary) -> void:
+	## Override from interface - handle campaign state updates
+	# Update panel state based on campaign state if needed
+	if state_data.has("campaign_config") and state_data.campaign_config is Dictionary:
+		var config_state_data = state_data.campaign_config
+		if config_state_data.has("campaign_name"):
+			# Update local campaign config state from external changes
+			local_campaign_config = config_state_data.duplicate()
+			_update_display()
+
+func _ready() -> void:
+	# GDScript 2.0: Set panel info before base initialization - updated to emphasize victory conditions
+	set_panel_info("Campaign Setup", "Configure campaign name, victory conditions, and options. Victory conditions define how you'll achieve victory in your Five Parsecs campaign.")
+	
+	# GDScript 2.0: Use super() keyword
+	super()
+	
+	# Initialize campaign config-specific functionality
+	call_deferred("_initialize_components")
+
+func _setup_panel_content() -> void:
+	## Override from BaseCampaignPanel - setup campaign config-specific content
+	# This will be called after BaseCampaignPanel structure is ready
+	pass
+
+func _initialize_components() -> void:
+	## Initialize campaign config panel with card-based design system
+	# Get or create main container
+	var main_container = safe_get_node("ContentMargin/MainContent/FormContent/FormContainer", 
+		func(): return create_basic_container("VBox"))
+	
+	# Clear existing content to rebuild with design system
+	for child in main_container.get_children():
+		child.queue_free()
+	
+	# Apply proper spacing between section cards
+	main_container.add_theme_constant_override("separation", SPACING_LG)
+
+	# NOTE: Progress indicator removed - CampaignCreationUI handles progress display centrally
+
+	# Build card-based UI sections
+	_build_campaign_identity_section(main_container)
+	_build_campaign_type_section(main_container)
+	_build_difficulty_section(main_container)
+	# NOTE: Crew size moved to CrewPanel (Step 3) - Sprint 26.7
+	_build_victory_conditions_section(main_container)
+	_build_story_track_section(main_container)
+	_build_tutorial_section(main_container)
+	_build_compendium_options_section(main_container)
+
+	# SPRINT 27 FIX: Setup options BEFORE connecting signals to prevent double-loading
+	# (selecting default values triggers signal handlers, causing duplicate _update_display calls)
+	_setup_campaign_options()
+	_connect_signals()
+	_update_display()
+	_update_all_descriptions()
+	call_deferred("emit_panel_ready")
+
+func _build_campaign_identity_section(parent: Control) -> void:
+	## Build campaign name input section with card design
+	campaign_name_input = LineEdit.new()
+	campaign_name_input.placeholder_text = "Enter a memorable campaign name..."
+	_style_line_edit(campaign_name_input)
+	
+	var input_wrapper = _create_labeled_input("Campaign Name", campaign_name_input)
+	
+	var card = _create_section_card(
+		"CAMPAIGN IDENTITY",
+		input_wrapper,
+		"Choose a memorable name for your crew's journey across the Fringe"
+	)
+	parent.add_child(card)
+
+func _build_campaign_type_section(parent: Control) -> void:
+	## Build campaign type selector with card design
+	campaign_type_option = OptionButton.new()
+	_style_option_button(campaign_type_option)
+
+	# Create description label
+	campaign_type_description = Label.new()
+	campaign_type_description.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	campaign_type_description.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	campaign_type_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
+	var content = VBoxContainer.new()
+	content.add_theme_constant_override("separation", SPACING_SM)
+	content.add_child(_create_labeled_input("Campaign Type", campaign_type_option))
+	content.add_child(campaign_type_description)
+
+	var card = _create_section_card(
+		"CAMPAIGN STYLE",
+		content,
+		""
+	)
+	parent.add_child(card)
+
+func _build_difficulty_section(parent: Control) -> void:
+	## Build difficulty selector with card design and description
+	difficulty_option = OptionButton.new()
+	_style_option_button(difficulty_option)
+
+	# Create description label for difficulty details
+	difficulty_description = Label.new()
+	difficulty_description.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	difficulty_description.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	difficulty_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
+	var content = VBoxContainer.new()
+	content.add_theme_constant_override("separation", SPACING_SM)
+	content.add_child(_create_labeled_input("Difficulty Level", difficulty_option))
+	content.add_child(difficulty_description)
+
+	var card = _create_section_card(
+		"DIFFICULTY LEVEL",
+		content,
+		"Affects enemy strength, resource availability, and overall survival odds"
+	)
+	parent.add_child(card)
+
+
+func _build_victory_conditions_section(parent: Control) -> void:
+	## Build victory conditions section with card selectors
+	victory_conditions_list = VBoxContainer.new()
+	victory_conditions_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	
+	# Create description label for selection summary
+	victory_condition_description = RichTextLabel.new()
+	victory_condition_description.bbcode_enabled = true
+	victory_condition_description.fit_content = true
+	victory_condition_description.custom_minimum_size = Vector2(0, 60)
+	victory_condition_description.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
+	victory_condition_description.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	
+	var content = VBoxContainer.new()
+	content.add_theme_constant_override("separation", SPACING_MD)
+	content.add_child(victory_conditions_list)
+	content.add_child(victory_condition_description)
+	
+	var card = _create_section_card(
+		"VICTORY CONDITIONS",
+		content,
+		"Select one or more conditions - achieve ANY to win your campaign"
+	)
+	parent.add_child(card)
+
+func _build_story_track_section(parent: Control) -> void:
+	## Build story track selector with card design
+	story_track_option = OptionButton.new()
+	_style_option_button(story_track_option)
+	
+	# Create description label
+	story_track_description = Label.new()
+	story_track_description.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	story_track_description.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	story_track_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	
+	var content = VBoxContainer.new()
+	content.add_theme_constant_override("separation", SPACING_SM)
+	content.add_child(_create_labeled_input("Story Track (Optional)", story_track_option))
+	content.add_child(story_track_description)
+	
+	var card = _create_section_card(
+		"NARRATIVE OPTIONS",
+		content,
+		""
+	)
+	parent.add_child(card)
+
+func _build_tutorial_section(parent: Control) -> void:
+	## Build tutorial mode selector with card design
+	tutorial_mode_option = OptionButton.new()
+	_style_option_button(tutorial_mode_option)
+	
+	# Create description label
+	tutorial_mode_description = Label.new()
+	tutorial_mode_description.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	tutorial_mode_description.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	tutorial_mode_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	
+	var content = VBoxContainer.new()
+	content.add_theme_constant_override("separation", SPACING_SM)
+	content.add_child(_create_labeled_input("Tutorial Mode (Optional)", tutorial_mode_option))
+	content.add_child(tutorial_mode_description)
+	
+	var card = _create_section_card(
+		"LEARNING SUPPORT",
+		content,
+		""
+	)
+	parent.add_child(card)
+
+func _build_compendium_options_section(parent: Control) -> void:
+	## DLC: Introductory Campaign option (Compendium)
+	var dlc_mgr = get_node_or_null("/root/DLCManager")
+	if not dlc_mgr:
+		return
+
+	var has_intro: bool = CompendiumMissionsExpandedRef.get_all_introductory_missions().size() > 0
+	if not has_intro:
+		return
+
+	var content = VBoxContainer.new()
+	content.add_theme_constant_override("separation", SPACING_SM)
+
+	introductory_campaign_checkbox = CheckBox.new()
+	introductory_campaign_checkbox.text = "Start Introductory Campaign"
+	introductory_campaign_checkbox.custom_minimum_size = Vector2(0, 44)
+	introductory_campaign_checkbox.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	introductory_campaign_checkbox.toggled.connect(
+		_on_introductory_campaign_toggled)
+	content.add_child(introductory_campaign_checkbox)
+
+	var desc_label := Label.new()
+	desc_label.text = (
+		"5 guided missions with escalating complexity. "
+		+ "Teaches core mechanics step by step.")
+	desc_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	desc_label.add_theme_color_override(
+		"font_color", COLOR_TEXT_SECONDARY)
+	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	content.add_child(desc_label)
+
+	var card = _create_section_card(
+		"COMPENDIUM OPTIONS",
+		content,
+		""
+	)
+	parent.add_child(card)
+
+func _on_introductory_campaign_toggled(enabled: bool) -> void:
+	local_campaign_config["introductory_campaign"] = enabled
+	campaign_config_data_changed.emit(local_campaign_config)
+
+func _create_description_labels() -> void:
+	## DEPRECATED: Description labels now created inline during section building
+	# This method is kept for compatibility but does nothing
+	# Description labels are now created in _build_*_section methods
+	pass
+
+func _update_all_descriptions() -> void:
+	## Update all description labels with current selection info
+	_update_campaign_type_description()
+	_update_difficulty_description()
+	_update_victory_condition_description()
+	_update_story_track_description()
+	_update_tutorial_mode_description()
+
+func _update_campaign_type_description() -> void:
+	## Update campaign type description based on current selection
+	if not campaign_type_description or not campaign_type_option:
+		return
+
+	var index = campaign_type_option.selected
+	if index < 0:
+		return
+
+	var selected_text = campaign_type_option.get_item_text(index)
+	for key in campaign_types.keys():
+		if campaign_types[key].name == selected_text:
+			campaign_type_description.text = "→ " + campaign_types[key].description
+			return
+
+	campaign_type_description.text = ""
+
+func _update_difficulty_description() -> void:
+	## Update difficulty description based on current selection
+	if not difficulty_description or not difficulty_option:
+		return
+
+	var index = difficulty_option.selected
+	if index < 0:
+		return
+
+	var difficulty_id = difficulty_option.get_item_id(index)
+	if difficulty_levels.has(difficulty_id):
+		difficulty_description.text = "→ " + difficulty_levels[difficulty_id].description
+	else:
+		difficulty_description.text = ""
+
+func _update_victory_condition_description() -> void:
+	## Update victory condition description summary (descriptions now shown inline in cards)
+	if not victory_condition_description:
+		return
+
+	if selected_victory_conditions.is_empty():
+		victory_condition_description.text = "[i]Click cards above to select victory conditions. Descriptions are shown on each card.[/i]"
+		return
+
+	# Build summary for selected conditions (full descriptions are on the cards)
+	var condition_count = selected_victory_conditions.size()
+	var summary_text = ""
+	
+	if condition_count == 1:
+		summary_text = "[b]1 Victory Condition Selected[/b]\n"
+		summary_text += "[color=#88aa88]Achieve this condition to win your campaign![/color]"
+	else:
+		summary_text = "[b]%d Victory Conditions Selected[/b]\n" % condition_count
+		summary_text += "[color=#ffcc88]You can achieve ANY of these conditions to win![/color]"
+	
+	victory_condition_description.text = summary_text
+
+func _update_story_track_description() -> void:
+	## Update story track description based on current selection
+	if not story_track_description or not story_track_option:
+		return
+
+	var index = story_track_option.selected
+	if index < 0:
+		return
+
+	var selected_text = story_track_option.get_item_text(index)
+	for key in story_tracks.keys():
+		if story_tracks[key].name == selected_text:
+			story_track_description.text = "→ " + story_tracks[key].description
+			return
+
+	story_track_description.text = ""
+
+func _update_tutorial_mode_description() -> void:
+	## Update tutorial mode description based on current selection
+	if not tutorial_mode_description or not tutorial_mode_option:
+		return
+
+	var index = tutorial_mode_option.selected
+	if index < 0:
+		return
+
+	var selected_text = tutorial_mode_option.get_item_text(index)
+	for key in tutorial_modes.keys():
+		if tutorial_modes[key].name == selected_text:
+			tutorial_mode_description.text = "→ " + tutorial_modes[key].description
+			return
+
+	tutorial_mode_description.text = ""
+
+func _connect_signals() -> void:
+	## Establish signal connections with error handling
+	if campaign_name_input:
+		campaign_name_input.text_changed.connect(_on_campaign_name_changed)
+	if campaign_type_option:
+		campaign_type_option.item_selected.connect(_on_campaign_type_changed)
+	if difficulty_option:
+		difficulty_option.item_selected.connect(_on_difficulty_changed)
+	if story_track_option:
+		story_track_option.item_selected.connect(_on_story_track_changed)
+	if tutorial_mode_option:
+		tutorial_mode_option.item_selected.connect(_on_tutorial_mode_changed)
+
+func _setup_campaign_options() -> void:
+	## Setup campaign configuration options
+	_setup_campaign_type_options()
+	_setup_difficulty_options()
+	_setup_victory_conditions()
+	_setup_story_track_options()
+	_setup_tutorial_mode_options()
+
+func _setup_campaign_type_options() -> void:
+	## Setup campaign type options
+	if not campaign_type_option:
+		return
+
+	campaign_type_option.clear()
+	for key in campaign_types.keys():
+		var campaign_type = campaign_types[key]
+		campaign_type_option.add_item(campaign_type.name)
+
+	# Set default selection
+	campaign_type_option.select(0)
+
+func _setup_difficulty_options() -> void:
+	## Setup difficulty options matching GlobalEnums.DifficultyLevel
+	if not difficulty_option:
+		return
+
+	difficulty_option.clear()
+
+	# Add difficulty levels with their enum values as IDs
+	difficulty_option.add_item("Story", 1)       # GlobalEnums.DifficultyLevel.EASY
+	difficulty_option.add_item("Standard", 2)    # GlobalEnums.DifficultyLevel.NORMAL
+	difficulty_option.add_item("Challenging", 3) # GlobalEnums.DifficultyLevel.CHALLENGING
+	difficulty_option.add_item("Hardcore", 4)    # GlobalEnums.DifficultyLevel.HARDCORE
+	difficulty_option.add_item("Nightmare", 5)   # GlobalEnums.DifficultyLevel.INSANITY
+
+	# Default to Standard (index 1, which is ID 2)
+	difficulty_option.select(1)
+	local_campaign_config.difficulty_level = 2
+
+func _setup_victory_conditions() -> void:
+	## Setup victory conditions as interactive card selectors
+	if not victory_conditions_list:
+		return
+
+	# Clear existing conditions
+	for child in victory_conditions_list.get_children():
+		child.queue_free()
+
+	# Apply spacing between cards
+	victory_conditions_list.add_theme_constant_override("separation", SPACING_SM)
+
+	# Create card selectors for each victory condition
+	for key in victory_conditions.keys():
+		var condition = victory_conditions[key]
+		var card = _create_victory_condition_card(key, condition)
+		victory_conditions_list.add_child(card)
+
+		print("ExpandedConfigPanel: Creating card - key: %s, name: %s" % [key, condition.name])
+
+	# Add Custom button for creating custom victory conditions
+	custom_victory_button = _create_add_button("+ Custom Victory Condition")
+	custom_victory_button.tooltip_text = "Create a custom victory condition with adjusted targets"
+	custom_victory_button.pressed.connect(_on_custom_victory_pressed)
+	victory_conditions_list.add_child(custom_victory_button)
+
+func _setup_story_track_options() -> void:
+	## Setup story track options
+	if not story_track_option:
+		return
+	
+	story_track_option.clear()
+	for key in story_tracks.keys():
+		var story_track = story_tracks[key]
+		story_track_option.add_item(story_track.name)
+	
+	# Set default selection
+	story_track_option.select(0)
+
+func _setup_tutorial_mode_options() -> void:
+	## Setup tutorial mode options
+	if not tutorial_mode_option:
+		return
+	
+	tutorial_mode_option.clear()
+	for key in tutorial_modes.keys():
+		var tutorial_mode = tutorial_modes[key]
+		tutorial_mode_option.add_item(tutorial_mode.name)
+	
+	# Set default selection
+	tutorial_mode_option.select(0)
+
+# Signal handlers
+func _on_campaign_name_changed(new_text: String) -> void:
+	## Handle campaign name change
+	local_campaign_config.campaign_name = new_text
+	_update_display()
+	_validate_and_complete()
+
+func _on_campaign_type_changed(index: int) -> void:
+	## Handle campaign type change
+	if not campaign_type_option:
+		return
+
+	var selected_text = campaign_type_option.get_item_text(index)
+	for key in campaign_types.keys():
+		if campaign_types[key].name == selected_text:
+			local_campaign_config.campaign_type = key
+			break
+
+	_update_campaign_type_description()
+	_update_display()
+	_validate_and_complete()
+
+func _on_difficulty_changed(index: int) -> void:
+	## Handle difficulty level change
+	if not difficulty_option:
+		return
+
+	# Get the difficulty level ID from the selected item
+	var difficulty_id = difficulty_option.get_item_id(index)
+	local_campaign_config.difficulty_level = difficulty_id
+
+	_update_difficulty_description()
+	_update_display()
+	_validate_and_complete()
+
+	print("ExpandedConfigPanel: Difficulty changed to %d (%s)" % [difficulty_id, difficulty_levels.get(difficulty_id, {}).get("name", "Unknown")])
+
+func _create_victory_condition_card(key: String, condition: Dictionary) -> PanelContainer:
+	## Create an interactive card selector for a victory condition
+	var card = PanelContainer.new()
+	card.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN * 2)  # 96dp tall
+	card.name = "VictoryCard_%s" % key
+	card.set_meta("victory_key", key)
+	
+	# Apply card styling (unselected state)
+	var style = StyleBoxFlat.new()
+	style.bg_color = COLOR_ELEVATED
+	style.border_color = COLOR_BORDER
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(8)
+	style.set_content_margin_all(SPACING_MD)
+	card.add_theme_stylebox_override("panel", style)
+	
+	# Content layout
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", SPACING_XS)
+	
+	# Title row (name + checkmark indicator)
+	var title_row = HBoxContainer.new()
+	title_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	
+	var title = Label.new()
+	title.text = condition.name
+	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_row.add_child(title)
+	
+	var checkmark = Label.new()
+	checkmark.text = "✓"
+	checkmark.name = "Checkmark"
+	checkmark.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	checkmark.add_theme_color_override("font_color", COLOR_SUCCESS)
+	checkmark.visible = false  # Hidden until selected
+	title_row.add_child(checkmark)
+	
+	vbox.add_child(title_row)
+	
+	# Description (always visible inline)
+	var desc = Label.new()
+	desc.text = condition.description
+	desc.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.add_child(desc)
+	
+	# Target badge
+	var target = Label.new()
+	target.text = "Target: %s %s" % [condition.target, condition.type]
+	target.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	target.add_theme_color_override("font_color", COLOR_ACCENT)
+	vbox.add_child(target)
+	
+	card.add_child(vbox)
+	
+	# Make clickable
+	card.gui_input.connect(_on_victory_card_clicked.bind(key, card))
+	card.mouse_entered.connect(_on_victory_card_hover.bind(card))
+	card.mouse_exited.connect(_on_victory_card_unhover.bind(card))
+	
+	return card
+
+func _on_victory_card_clicked(event: InputEvent, key: String, card: PanelContainer) -> void:
+	## Handle click on victory condition card
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		# Toggle selection
+		var is_selected = selected_victory_conditions.has(key)
+		if is_selected:
+			selected_victory_conditions.erase(key)
+			_set_card_selected_state(card, false)
+		else:
+			selected_victory_conditions[key] = victory_conditions[key].duplicate()
+			_set_card_selected_state(card, true)
+		
+		# Emit real-time update signals
+		victory_conditions_changed.emit(selected_victory_conditions)
+		_update_victory_condition_description()
+		_update_display()
+		_validate_and_complete()
+
+func _on_victory_card_hover(card: PanelContainer) -> void:
+	## Handle mouse hover on victory card
+	var is_selected = selected_victory_conditions.has(card.get_meta("victory_key"))
+	if not is_selected:
+		var style = card.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+		style.border_color = COLOR_ACCENT
+		style.set_border_width_all(3)
+		card.add_theme_stylebox_override("panel", style)
+
+func _on_victory_card_unhover(card: PanelContainer) -> void:
+	## Handle mouse exit from victory card
+	var is_selected = selected_victory_conditions.has(card.get_meta("victory_key"))
+	if not is_selected:
+		var style = card.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+		style.border_color = COLOR_BORDER
+		style.set_border_width_all(2)
+		card.add_theme_stylebox_override("panel", style)
+
+func _set_card_selected_state(card: PanelContainer, selected: bool) -> void:
+	## Update visual state of victory condition card
+	var style = card.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+	var checkmark = card.get_node_or_null("VBoxContainer/HBoxContainer/Checkmark")
+	
+	if selected:
+		# Selected state: focus border, subtle tint, visible checkmark
+		style.border_color = COLOR_FOCUS
+		style.set_border_width_all(3)
+		style.bg_color = COLOR_FOCUS.lightened(0.85)
+		if checkmark:
+			checkmark.visible = true
+	else:
+		# Unselected state: normal border, default background
+		style.border_color = COLOR_BORDER
+		style.set_border_width_all(2)
+		style.bg_color = COLOR_ELEVATED
+		if checkmark:
+			checkmark.visible = false
+	
+	card.add_theme_stylebox_override("panel", style)
+
+func _on_victory_condition_toggled(condition_key: String, is_checked: bool) -> void:
+	## DEPRECATED: Legacy checkbox handler - kept for compatibility
+	if is_checked:
+		selected_victory_conditions[condition_key] = victory_conditions[condition_key].duplicate()
+	else:
+		selected_victory_conditions.erase(condition_key)
+
+	victory_conditions_changed.emit(selected_victory_conditions)
+	_update_victory_condition_description()
+	_update_display()
+	_validate_and_complete()
+
+func _on_story_track_changed(index: int) -> void:
+	## Handle story track change
+	if not story_track_option:
+		return
+
+	var selected_text = story_track_option.get_item_text(index)
+	for key in story_tracks.keys():
+		if story_tracks[key].name == selected_text:
+			selected_story_track = key
+			break
+
+	_update_story_track_description()
+	_update_display()
+	_validate_and_complete()
+
+func _on_tutorial_mode_changed(index: int) -> void:
+	## Handle tutorial mode change
+	if not tutorial_mode_option:
+		return
+
+	var selected_text = tutorial_mode_option.get_item_text(index)
+	for key in tutorial_modes.keys():
+		if tutorial_modes[key].name == selected_text:
+			selected_tutorial_mode = key
+			break
+
+	_update_tutorial_mode_description()
+	_update_display()
+	_validate_and_complete()
+
+func _on_custom_victory_pressed() -> void:
+	## Open custom victory condition dialog
+	if not custom_victory_dialog:
+		custom_victory_dialog = CustomVictoryDialog.new()
+		custom_victory_dialog.custom_condition_created.connect(_on_custom_condition_created)
+		add_child(custom_victory_dialog)
+
+	custom_victory_dialog.show_dialog()
+
+func _on_custom_condition_created(condition_type: int, target_value: int) -> void:
+	## Handle custom victory condition creation
+	var data = FPCM_VictoryDescriptions.get_victory_data(condition_type)
+	var name = data.get("name", "Custom")
+
+	# Create unique key for this custom condition
+	var custom_key = "custom_%d_%d" % [condition_type, target_value]
+
+	# Add to selected conditions
+	selected_victory_conditions[custom_key] = {
+		"name": "%s (Custom: %d)" % [name, target_value],
+		"description": data.get("short_desc", "Custom victory condition"),
+		"target": target_value,
+		"type": condition_type,
+		"is_custom": true
+	}
+
+	# Emit signals for real-time updates
+	victory_conditions_changed.emit(selected_victory_conditions)
+	_update_victory_condition_description()
+	_update_display()
+	_validate_and_complete()
+
+	print("ExpandedConfigPanel: Created custom condition - %s with target %d" % [name, target_value])
+
+func _reset_to_defaults() -> void:
+	## Reset campaign configuration to defaults
+	print("ExpandedConfigPanel: Resetting campaign configuration")
+
+	# Reset to default values
+	local_campaign_config = {
+		"campaign_name": "",
+		"campaign_type": "standard",
+		"difficulty_level": 2,  # Default: STANDARD
+		"victory_conditions": {},
+		"story_track": "",
+		"tutorial_mode": "",
+		"is_complete": false
+	}
+	selected_victory_conditions = {}
+	selected_story_track = ""
+	selected_tutorial_mode = ""
+
+	# Reset UI components
+	_reset_ui_components()
+
+	# Update display
+	_update_display()
+
+	print("ExpandedConfigPanel: Campaign configuration reset to defaults")
+
+func _reset_ui_components() -> void:
+	## Reset UI components to default values
+	if campaign_name_input:
+		campaign_name_input.text = ""
+
+	if campaign_type_option:
+		campaign_type_option.select(0)
+
+	if difficulty_option:
+		difficulty_option.select(1)  # Default to Standard (index 1)
+
+	if story_track_option:
+		story_track_option.select(0)
+
+	if tutorial_mode_option:
+		tutorial_mode_option.select(0)
+
+	# Reset victory condition checkboxes
+	if victory_conditions_list:
+		for child in victory_conditions_list.get_children():
+			if child is CheckBox:
+				child.button_pressed = false
+
+func _update_display() -> void:
+	## Update the campaign configuration display
+	_update_summary()
+
+func _update_summary() -> void:
+	## Update summary display with current configuration
+	if not summary_label:
+		return
+	
+	var summary_text = "Campaign Configuration:\n"
+	summary_text += "• Name: %s\n" % (local_campaign_config.campaign_name if local_campaign_config.campaign_name else "Unnamed")
+	summary_text += "• Type: %s\n" % campaign_types.get(local_campaign_config.campaign_type, {}).get("name", "Standard")
+	summary_text += "• Victory Conditions: %d selected\n" % selected_victory_conditions.size()
+	summary_text += "• Story Track: %s\n" % (story_tracks.get(selected_story_track, {}).get("name", "None") if selected_story_track else "None")
+	summary_text += "• Tutorial Mode: %s" % (tutorial_modes.get(selected_tutorial_mode, {}).get("name", "None") if selected_tutorial_mode else "None")
+	
+	summary_label.text = summary_text
+
+func _validate_and_complete() -> void:
+	## Validate campaign configuration and update completion status
+	var errors = _validate_campaign_config()
+	
+	if not errors.is_empty():
+		local_campaign_config.is_complete = false
+		campaign_config_validation_failed.emit(errors)
+		return
+	
+	local_campaign_config.is_complete = true
+	local_campaign_config.victory_conditions = selected_victory_conditions.duplicate()
+	local_campaign_config.story_track = selected_story_track
+	local_campaign_config.tutorial_mode = selected_tutorial_mode
+	
+	# Emit data change signal and notify coordinator
+	campaign_config_data_changed.emit(local_campaign_config)
+	_notify_coordinator_of_campaign_config_update()
+
+func _validate_campaign_config() -> Array[String]:
+	## Validate campaign configuration and return error messages
+	var errors: Array[String] = []
+	
+	# Validate campaign name
+	if local_campaign_config.campaign_name.strip_edges().is_empty():
+		errors.append("Campaign name cannot be empty")
+	elif local_campaign_config.campaign_name.length() > 50:
+		errors.append("Campaign name cannot exceed 50 characters")
+	
+	# Validate campaign type
+	if not campaign_types.has(local_campaign_config.campaign_type):
+		errors.append("Invalid campaign type selection")
+	
+	# Validate victory conditions (at least one required)
+	if selected_victory_conditions.is_empty():
+		errors.append("At least one victory condition must be selected")
+	
+	# Validate story track (optional)
+	if not selected_story_track.is_empty() and not story_tracks.has(selected_story_track):
+		errors.append("Invalid story track selection")
+	
+	# Validate tutorial mode (optional)
+	if not selected_tutorial_mode.is_empty() and not tutorial_modes.has(selected_tutorial_mode):
+		errors.append("Invalid tutorial mode selection")
+	
+	return errors
+
+# PHASE 6 INTEGRATION: Coordinator communication
+func _notify_coordinator_of_campaign_config_update() -> void:
+	## Notify the campaign coordinator of campaign config state changes
+	# Use inherited coordinator reference from BaseCampaignPanel
+	var coordinator = get_coordinator_reference()
+	if coordinator and coordinator.has_method("update_campaign_config_state"):
+		coordinator.update_campaign_config_state(local_campaign_config)
+		print("ExpandedConfigPanel: Notified coordinator of campaign config update")
+	else:
+		print("ExpandedConfigPanel: Warning - coordinator not found or missing update method")
+
+func _on_coordinator_set() -> void:
+	## Called when coordinator is assigned - sync initial state from coordinator
+	print("ExpandedConfigPanel: Coordinator set, syncing initial state")
+
+	var coordinator = get_coordinator_reference()
+	if coordinator and coordinator.has_method("get_unified_campaign_state"):
+		var state = coordinator.get_unified_campaign_state()
+		if state.has("campaign_config") and state.campaign_config is Dictionary:
+			var config_data = state.campaign_config
+			if not config_data.is_empty():
+				print("ExpandedConfigPanel: Restoring campaign config from coordinator")
+				restore_panel_data(config_data)
+			else:
+				print("ExpandedConfigPanel: No existing campaign config in coordinator")
+		else:
+			print("ExpandedConfigPanel: No campaign_config key in coordinator state")
+	else:
+		print("ExpandedConfigPanel: Coordinator not available or missing get_unified_campaign_state")
+
+# Public API methods
+func get_campaign_config() -> Dictionary:
+	## Get current campaign configuration
+	return local_campaign_config.duplicate()
+
+func set_campaign_config(config: Dictionary) -> void:
+	## Set campaign configuration from external source
+	local_campaign_config = config.duplicate()
+	selected_victory_conditions = config.get("victory_conditions", {}).duplicate()
+	selected_story_track = config.get("story_track", "")
+	selected_tutorial_mode = config.get("tutorial_mode", "")
+	
+	_update_display()
+	_validate_and_complete()
+
+func get_victory_conditions() -> Dictionary:
+	## Get selected victory conditions
+	return selected_victory_conditions.duplicate()
+
+func get_story_track() -> String:
+	## Get selected story track
+	return selected_story_track
+
+func get_tutorial_mode() -> String:
+	## Get selected tutorial mode
+	return selected_tutorial_mode
+
+# Required interface methods
+func validate_panel() -> bool:
+	## Validate panel data and return simple boolean result
+	var errors = _validate_campaign_config()
+	return errors.is_empty()
+
+func get_panel_data() -> Dictionary:
+	## Get panel data - interface implementation
+	return get_campaign_config_data()
+
+func set_panel_data(data: Dictionary) -> void:
+	## Set panel data - interface implementation for state restoration (BaseCampaignPanel contract)
+	restore_panel_data(data)
+
+func reset_panel() -> void:
+	## Reset panel to default state
+	_reset_to_defaults()
+
+func get_campaign_config_data() -> Dictionary:
+	## Get campaign config data in standardized format
+	return {
+		"campaign_name": local_campaign_config.campaign_name,
+		"campaign_type": local_campaign_config.campaign_type,
+		"difficulty_level": local_campaign_config.difficulty_level,
+		"victory_conditions": selected_victory_conditions.duplicate(),
+		"story_track": selected_story_track,
+		"tutorial_mode": selected_tutorial_mode,
+		"is_complete": local_campaign_config.is_complete,
+		"metadata": {
+			"last_modified": Time.get_unix_time_from_system(),
+			"version": "1.0",
+			"panel_type": "expanded_campaign_config"
+		}
+	}
+
+# Panel data persistence implementation
+func restore_panel_data(data: Dictionary) -> void:
+	## Restore panel data from persistence system
+	if data.is_empty():
+		print("ExpandedConfigPanel: No data to restore")
+		return
+	
+	print("ExpandedConfigPanel: Restoring panel data: ", data.keys())
+	
+	# Restore campaign name
+	if data.has("campaign_name"):
+		local_campaign_config.campaign_name = data.campaign_name
+	
+	# Restore campaign type
+	if data.has("campaign_type"):
+		local_campaign_config.campaign_type = data.campaign_type
+
+	# Restore difficulty level
+	if data.has("difficulty_level"):
+		local_campaign_config.difficulty_level = data.difficulty_level
+		# Update UI dropdown to match
+		if difficulty_option:
+			for i in range(difficulty_option.get_item_count()):
+				if difficulty_option.get_item_id(i) == data.difficulty_level:
+					difficulty_option.select(i)
+					break
+
+	# Restore victory conditions
+	if data.has("victory_conditions"):
+		selected_victory_conditions = data.victory_conditions.duplicate()
+	
+	# Restore story track
+	if data.has("story_track"):
+		selected_story_track = data.story_track
+	
+	# Restore tutorial mode
+	if data.has("tutorial_mode"):
+		selected_tutorial_mode = data.tutorial_mode
+	
+	# Restore completion status
+	if data.has("is_complete"):
+		local_campaign_config.is_complete = data.is_complete
+	
+	print("ExpandedConfigPanel: Restored campaign configuration")
+	
+	# Update UI with restored data
+	_update_display()
+	
+	print("ExpandedConfigPanel: Panel data restoration complete")
+
+func cleanup_panel() -> void:
+	## Clean up panel state when navigating away
+	print("ExpandedConfigPanel: Cleaning up panel state")
+	
+	# Reset local campaign config
+	local_campaign_config = {
+		"campaign_name": "",
+		"campaign_type": "standard",
+		"difficulty_level": 2,  # Default: STANDARD
+		"victory_conditions": {},
+		"story_track": "",
+		"tutorial_mode": "",
+		"is_complete": false
+	}
+
+	# Clear selected options
+	selected_victory_conditions.clear()
+	selected_story_track = ""
+	selected_tutorial_mode = ""
+
+	# Reset UI components if available
+	if campaign_name_input:
+		campaign_name_input.text = ""
+	if campaign_type_option:
+		campaign_type_option.select(0)
+	if difficulty_option:
+		difficulty_option.select(1)  # Default to Standard (index 1)
+	if story_track_option:
+		story_track_option.select(0)
+	if tutorial_mode_option:
+		tutorial_mode_option.select(0)
+	
+	# Clear victory conditions checkboxes
+	if victory_conditions_list:
+		for child in victory_conditions_list.get_children():
+			if child is CheckBox:
+				child.button_pressed = false
+	
+	print("ExpandedConfigPanel: Panel cleanup completed")
+
+## ============ FALLBACK UI CREATION METHODS ============
+
+func _create_line_edit(name: String) -> LineEdit:
+	## Create fallback LineEdit
+	var line_edit = LineEdit.new()
+	line_edit.name = name
+	line_edit.placeholder_text = "Enter value..."
+	print("ExpandedConfigPanel: Created fallback LineEdit: ", name)
+	return line_edit
+
+func _create_option_button(name: String) -> OptionButton:
+	## Create fallback OptionButton
+	var option_button = OptionButton.new()
+	option_button.name = name
+	option_button.add_item("Default Option")
+	print("ExpandedConfigPanel: Created fallback OptionButton: ", name)
+	return option_button
+
+func _create_container(name: String) -> VBoxContainer:
+	## Create fallback container
+	var container = VBoxContainer.new()
+	container.name = name
+	print("ExpandedConfigPanel: Created fallback VBoxContainer: ", name)
+	return container
+
+func _create_button(name: String, text: String) -> Button:
+	## Create fallback Button
+	var button = Button.new()
+	button.name = name
+	button.text = text
+	print("ExpandedConfigPanel: Created fallback Button: ", name)
+	return button
+
+func _create_label(name: String, text: String) -> Label:
+	## Create fallback Label
+	var label = Label.new()
+	label.name = name
+	label.text = text
+	print("ExpandedConfigPanel: Created fallback Label: ", name)
+	return label
+
+## Responsive Layout Overrides
+
+func _apply_mobile_layout() -> void:
+	## Mobile: Single column, 56dp targets, compact victory descriptions
+	super._apply_mobile_layout()
+
+	# Increase touch targets to TOUCH_TARGET_COMFORT (56dp)
+	if campaign_type_option:
+		campaign_type_option.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+	if story_track_option:
+		story_track_option.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+	if tutorial_mode_option:
+		tutorial_mode_option.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+	if campaign_name_input:
+		campaign_name_input.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+
+	# Compact victory condition description for mobile
+	if victory_condition_description:
+		victory_condition_description.custom_minimum_size.y = 40
+
+func _apply_tablet_layout() -> void:
+	## Tablet: Two columns, 48dp targets, detailed victory descriptions
+	super._apply_tablet_layout()
+
+	# Standard touch targets at TOUCH_TARGET_MIN (48dp)
+	if campaign_type_option:
+		campaign_type_option.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if story_track_option:
+		story_track_option.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if tutorial_mode_option:
+		tutorial_mode_option.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if campaign_name_input:
+		campaign_name_input.custom_minimum_size.y = TOUCH_TARGET_MIN
+
+	# Detailed victory condition description for tablet
+	if victory_condition_description:
+		victory_condition_description.custom_minimum_size.y = 60
+
+func _apply_desktop_layout() -> void:
+	## Desktop: Multi-column, 48dp targets, full victory descriptions
+	super._apply_desktop_layout()
+
+	# Standard touch targets at TOUCH_TARGET_MIN (48dp)
+	if campaign_type_option:
+		campaign_type_option.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if story_track_option:
+		story_track_option.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if tutorial_mode_option:
+		tutorial_mode_option.custom_minimum_size.y = TOUCH_TARGET_MIN
+	if campaign_name_input:
+		campaign_name_input.custom_minimum_size.y = TOUCH_TARGET_MIN
+
+	# Full victory condition description for desktop
+	if victory_condition_description:
+		victory_condition_description.custom_minimum_size.y = 80

@@ -1,0 +1,461 @@
+{
+  "version": "1.0",
+  "description": "Five Parsecs From Home - Game Keyword Definitions",
+  "keywords": {
+    "reactions": {
+      "term": "Reactions",
+      "definition": "Determines activation order and how quickly a character responds in combat. Characters activate from highest to lowest Reactions. Used for initiative rolls.",
+      "related": ["speed", "activation", "combat_skill"],
+      "rule_page": 41,
+      "category": "stat"
+    },
+    "combat_skill": {
+      "term": "Combat Skill",
+      "definition": "Modifier added to hit rolls in both ranged and brawling combat. Higher values improve accuracy. Standard human baseline is 0.",
+      "related": ["brawling", "shooting", "reactions"],
+      "rule_page": 42,
+      "category": "stat"
+    },
+    "toughness": {
+      "term": "Toughness",
+      "definition": "Resistance to damage. When hit, roll 1d6 + weapon damage vs Toughness. If roll exceeds Toughness, target becomes a casualty.",
+      "related": ["armor", "damage", "casualty"],
+      "rule_page": 43,
+      "category": "stat"
+    },
+    "savvy": {
+      "term": "Savvy",
+      "definition": "Mental acuity and awareness. Used for tests involving perception, technology, negotiation, and recovering from being pinned.",
+      "related": ["pinned", "stunned", "tests"],
+      "rule_page": 44,
+      "category": "stat"
+    },
+    "speed": {
+      "term": "Speed",
+      "definition": "Base movement distance in inches. Standard movement is Speed value. Dash allows double movement but prevents shooting.",
+      "related": ["reactions", "dash", "movement"],
+      "rule_page": 45,
+      "category": "stat"
+    },
+    "luck": {
+      "term": "Luck",
+      "definition": "Resource spent to reroll dice or avoid death. Each point allows one reroll per battle. Regenerates at the start of each campaign turn.",
+      "related": ["story_points", "reroll"],
+      "rule_page": 46,
+      "category": "stat"
+    },
+    "assault": {
+      "term": "Assault",
+      "definition": "Can be fired without penalty while moving at combat speed. Ideal for aggressive tactics and mobile firefights.",
+      "related": ["auto", "heavy", "pistol"],
+      "rule_page": 58,
+      "category": "weapon_trait"
+    },
+    "auto": {
+      "term": "Auto",
+      "definition": "Fires multiple shots per action. +1 shot per activation, increasing hit chances but consuming more ammunition.",
+      "related": ["assault", "rapid_fire", "ammo"],
+      "rule_page": 58,
+      "category": "weapon_trait"
+    },
+    "heavy": {
+      "term": "Heavy",
+      "definition": "Cannot be used after moving at combat speed. Requires setup, but typically offers increased damage or range.",
+      "related": ["bulky", "cumbersome", "setup"],
+      "rule_page": 59,
+      "category": "weapon_trait"
+    },
+    "bulky": {
+      "term": "Bulky",
+      "definition": "Cannot be carried by Soulless. Takes up 2 equipment slots instead of 1. Typically heavy or awkward weapons.",
+      "related": ["heavy", "cumbersome", "soulless"],
+      "rule_page": 59,
+      "category": "weapon_trait"
+    },
+    "pistol": {
+      "term": "Pistol",
+      "definition": "Can be fired while engaged in brawling without penalty. Easy to conceal and quick to draw.",
+      "related": ["assault", "melee", "brawling"],
+      "rule_page": 60,
+      "category": "weapon_trait"
+    },
+    "melee": {
+      "term": "Melee",
+      "definition": "Close combat weapon. Used in brawling attacks. Cannot be used for ranged attacks.",
+      "related": ["pistol", "brawling", "blade"],
+      "rule_page": 60,
+      "category": "weapon_trait"
+    },
+    "snap_shot": {
+      "term": "Snap Shot",
+      "definition": "Can fire as a reaction during enemy movement within line of sight. Useful for area denial.",
+      "related": ["assault", "overwatch", "reactions"],
+      "rule_page": 61,
+      "category": "weapon_trait"
+    },
+    "area": {
+      "term": "Area",
+      "definition": "Affects all figures within the blast radius. Roll to hit for each target in the area. Ignores cover.",
+      "related": ["blast", "explosive", "grenade"],
+      "rule_page": 61,
+      "category": "weapon_trait"
+    },
+    "clumsy": {
+      "term": "Clumsy",
+      "definition": "Awkward to use. -1 to hit rolls with this weapon.",
+      "related": ["bulky", "heavy"],
+      "rule_page": 62,
+      "category": "weapon_trait"
+    },
+    "critical": {
+      "term": "Critical",
+      "definition": "On a natural 6 to hit, add +1 damage. Devastating against high-Toughness targets.",
+      "related": ["damage", "piercing"],
+      "rule_page": 62,
+      "category": "weapon_trait"
+    },
+    "elegant": {
+      "term": "Elegant",
+      "definition": "Precision weapon. +1 to hit rolls. Often associated with refined or ancient weapons.",
+      "related": ["critical", "blade"],
+      "rule_page": 62,
+      "category": "weapon_trait"
+    },
+    "focused": {
+      "term": "Focused",
+      "definition": "If the shooter does not move, gains +1 to hit. Rewards careful aim over mobility.",
+      "related": ["heavy", "snap_shot"],
+      "rule_page": 63,
+      "category": "weapon_trait"
+    },
+    "impact": {
+      "term": "Impact",
+      "definition": "+1 damage at point blank range. Devastating in close quarters.",
+      "related": ["critical", "piercing", "damage"],
+      "rule_page": 63,
+      "category": "weapon_trait"
+    },
+    "piercing": {
+      "term": "Piercing",
+      "definition": "Ignores armor saves. Effective against heavily armored targets.",
+      "related": ["damage", "armor", "critical"],
+      "rule_page": 64,
+      "category": "weapon_trait"
+    },
+    "stun": {
+      "term": "Stun",
+      "definition": "On hit, target must pass Savvy test or become Stunned. Does not deal damage.",
+      "related": ["stunned", "savvy", "status_effect"],
+      "rule_page": 64,
+      "category": "weapon_trait"
+    },
+    "terrifying": {
+      "term": "Terrifying",
+      "definition": "Enemies within sight must pass morale test or become Pinned. Powerful psychological effect.",
+      "related": ["pinned", "morale", "fear"],
+      "rule_page": 65,
+      "category": "weapon_trait"
+    },
+    "single_use": {
+      "term": "Single Use",
+      "definition": "Can only be used once per battle. After firing, the item is expended.",
+      "related": ["grenade", "consumable"],
+      "rule_page": 65,
+      "category": "weapon_trait"
+    },
+    "stunned": {
+      "term": "Stunned",
+      "definition": "Cannot activate this round. If already activated, ends turn immediately. Can still defend in brawling. Clears at end of round.",
+      "related": ["pinned", "suppressed", "status"],
+      "rule_page": 68,
+      "category": "status_effect"
+    },
+    "pinned": {
+      "term": "Pinned",
+      "definition": "Cannot move or shoot. Must pass Savvy test at start of activation to recover. Can still defend in brawling.",
+      "related": ["stunned", "suppressed", "morale"],
+      "rule_page": 69,
+      "category": "status_effect"
+    },
+    "out_of_action": {
+      "term": "Out of Action",
+      "definition": "Removed from battle. Roll on post-battle casualty table to determine if permanently killed, injured, or recovered.",
+      "related": ["casualty", "injury", "death"],
+      "rule_page": 70,
+      "category": "status_effect"
+    },
+    "brawling": {
+      "term": "Brawling",
+      "definition": "Close combat between adjacent figures. Both sides roll 1d6 + Combat Skill. Highest roll wins. Loser becomes casualty or stunned.",
+      "related": ["melee", "combat_skill", "stunned"],
+      "rule_page": 70,
+      "category": "combat_rule"
+    },
+    "cover": {
+      "term": "Cover",
+      "definition": "Partial obstruction between shooter and target. Provides +1 to target's Toughness against ranged attacks. Does not help in brawling.",
+      "related": ["heavy_cover", "line_of_sight", "terrain"],
+      "rule_page": 55,
+      "category": "terrain"
+    },
+    "heavy_cover": {
+      "term": "Heavy Cover",
+      "definition": "Substantial protection like walls or thick barriers. +2 to target's Toughness against ranged attacks.",
+      "related": ["cover", "line_of_sight", "terrain"],
+      "rule_page": 55,
+      "category": "terrain"
+    },
+    "difficult_ground": {
+      "term": "Difficult Ground",
+      "definition": "Rough terrain that slows movement. Costs double movement to traverse. Examples: rubble, mud, dense vegetation.",
+      "related": ["movement", "speed", "terrain"],
+      "rule_page": 56,
+      "category": "terrain"
+    },
+    "impassable": {
+      "term": "Impassable",
+      "definition": "Cannot be moved through. Must go around. Examples: solid walls, deep water, lava.",
+      "related": ["terrain", "movement", "obstacle"],
+      "rule_page": 56,
+      "category": "terrain"
+    },
+    "elevated": {
+      "term": "Elevated",
+      "definition": "Higher ground position. Provides +1 to ranged attacks and improved line of sight. Examples: rooftops, hills.",
+      "related": ["cover", "line_of_sight", "terrain"],
+      "rule_page": 57,
+      "category": "terrain"
+    },
+    "linear_obstacle": {
+      "term": "Linear Obstacle",
+      "definition": "Low barrier like walls or fences. Provides cover when behind. Costs 2 inches of movement to cross.",
+      "related": ["cover", "movement", "terrain"],
+      "rule_page": 57,
+      "category": "terrain"
+    },
+    "screen": {
+      "term": "Screen",
+      "definition": "Personal energy shield. Provides 5+ armor save. Can be worn with other armor.",
+      "related": ["armor", "deflector_field", "protection"],
+      "rule_page": 72,
+      "category": "armor"
+    },
+    "combat_armor": {
+      "term": "Combat Armor",
+      "definition": "Military-grade protection. Provides 5+ armor save. Standard issue for professional soldiers.",
+      "related": ["armor", "screen", "protection"],
+      "rule_page": 73,
+      "category": "armor"
+    },
+    "deflector_field": {
+      "term": "Deflector Field",
+      "definition": "Advanced energy barrier. Provides 4+ armor save. Rare and expensive.",
+      "related": ["screen", "armor", "protection"],
+      "rule_page": 73,
+      "category": "armor"
+    },
+    "kerin": {
+      "term": "K'Erin",
+      "definition": "Fierce warrior species. +1 to brawling rolls. Natural aggression makes them excellent melee combatants.",
+      "related": ["species", "brawling", "combat"],
+      "rule_page": 25,
+      "category": "species"
+    },
+    "soulless": {
+      "term": "Soulless",
+      "definition": "Synthetic beings. Cannot use implants. Immune to morale effects. Cannot carry Bulky weapons.",
+      "related": ["species", "bot", "implant"],
+      "rule_page": 26,
+      "category": "species"
+    },
+    "swift": {
+      "term": "Swift",
+      "definition": "Agile species. +1 Speed. -1 to be hit by ranged attacks due to quick movement.",
+      "related": ["species", "speed", "movement"],
+      "rule_page": 27,
+      "category": "species"
+    },
+    "engineer": {
+      "term": "Engineer",
+      "definition": "Technically gifted species. +1 Savvy. Can attempt repairs and technical tasks at +1.",
+      "related": ["species", "savvy", "repair"],
+      "rule_page": 28,
+      "category": "species"
+    },
+    "hulker": {
+      "term": "Hulker",
+      "definition": "Massive brute species. +2 Toughness. +1 damage in brawling. Cannot fit in standard vehicles.",
+      "related": ["species", "toughness", "brawling"],
+      "rule_page": 29,
+      "category": "species"
+    },
+    "precursor": {
+      "term": "Precursor",
+      "definition": "Ancient species. +1 to Luck. May reroll one die per battle without spending Luck.",
+      "related": ["species", "luck", "reroll"],
+      "rule_page": 30,
+      "category": "species"
+    },
+    "story_points": {
+      "term": "Story Points",
+      "definition": "Narrative currency earned through gameplay. Spent to unlock story events, recruit special characters, or influence outcomes.",
+      "related": ["luck", "campaign", "narrative"],
+      "rule_page": 82,
+      "category": "campaign"
+    },
+    "upkeep": {
+      "term": "Upkeep",
+      "definition": "Credits paid each campaign turn to maintain the crew. Includes food, repairs, and ship maintenance. Unpaid upkeep causes morale problems.",
+      "related": ["credits", "campaign", "ship"],
+      "rule_page": 83,
+      "category": "campaign"
+    },
+    "patron": {
+      "term": "Patron",
+      "definition": "Employers who offer jobs. Patrons provide missions with credits and reputation rewards. Building patron relationships unlocks better jobs.",
+      "related": ["mission", "credits", "reputation"],
+      "rule_page": 84,
+      "category": "campaign"
+    },
+    "rival": {
+      "term": "Rival",
+      "definition": "Hostile faction tracking the crew. Rivals may attack during travel or interfere with missions. Can be removed through combat or negotiation.",
+      "related": ["patron", "campaign", "enemy"],
+      "rule_page": 85,
+      "category": "campaign"
+    },
+    "quest_rumor": {
+      "term": "Quest Rumor",
+      "definition": "Lead to special story missions. Following rumors reveals quest locations. Completing quests provides unique rewards.",
+      "related": ["mission", "story_points", "narrative"],
+      "rule_page": 86,
+      "category": "campaign"
+    },
+    "opportunity_mission": {
+      "term": "Opportunity Mission",
+      "definition": "Random jobs found while exploring. Lower pay but readily available. Good for crews low on credits.",
+      "related": ["patron", "mission", "credits"],
+      "rule_page": 87,
+      "category": "mission"
+    },
+    "patron_mission": {
+      "term": "Patron Mission",
+      "definition": "Jobs assigned by established contacts. Better rewards and reputation gains. May have specific requirements.",
+      "related": ["patron", "mission", "reputation"],
+      "rule_page": 88,
+      "category": "mission"
+    },
+    "quest_mission": {
+      "term": "Quest Mission",
+      "definition": "Story-driven objectives revealed through Quest Rumors. Unique challenges with narrative significance and special rewards.",
+      "related": ["quest_rumor", "story_points", "narrative"],
+      "rule_page": 89,
+      "category": "mission"
+    },
+    "rival_attack": {
+      "term": "Rival Attack",
+      "definition": "Hostile encounter initiated by rivals. Must be resolved before continuing campaign activities. Can occur during travel.",
+      "related": ["rival", "combat", "campaign"],
+      "rule_page": 90,
+      "category": "mission"
+    },
+    "seize_initiative": {
+      "term": "Seize the Initiative",
+      "definition": "Deployment condition. Player may attempt to act before normal turn order. Roll Savvy test to seize.",
+      "related": ["deployment", "reactions", "initiative"],
+      "rule_page": 95,
+      "category": "deployment"
+    },
+    "ambush": {
+      "term": "Ambush",
+      "definition": "Deployment condition. Enemy has prepared positions. Player deploys first, enemy gets free actions before battle starts.",
+      "related": ["deployment", "surprise", "combat"],
+      "rule_page": 96,
+      "category": "deployment"
+    },
+    "delayed_arrival": {
+      "term": "Delayed Arrival",
+      "definition": "Deployment condition. Some crew members arrive late. Roll each turn for delayed characters to enter.",
+      "related": ["deployment", "reinforcement", "reserve"],
+      "rule_page": 97,
+      "category": "deployment"
+    },
+    "implant": {
+      "term": "Implant",
+      "definition": "Cybernetic enhancement installed in a character. Maximum 2 implants per character. Soulless cannot use implants.",
+      "related": ["enhancement", "character", "soulless"],
+      "rule_page": 75,
+      "category": "equipment"
+    },
+    "consumable": {
+      "term": "Consumable",
+      "definition": "Single-use item. Expended when used. Includes grenades, stim-packs, and similar items.",
+      "related": ["equipment", "single_use", "grenade"],
+      "rule_page": 76,
+      "category": "equipment"
+    },
+    "credits": {
+      "term": "Credits",
+      "definition": "Universal currency. Used for purchases, repairs, upkeep, and hiring. Earned through missions and loot.",
+      "related": ["upkeep", "campaign", "loot"],
+      "rule_page": 80,
+      "category": "campaign"
+    },
+    "loot": {
+      "term": "Loot",
+      "definition": "Items found after battle. Roll on loot tables based on enemy type defeated. Can be equipment, credits, or special items.",
+      "related": ["credits", "equipment", "post_battle"],
+      "rule_page": 92,
+      "category": "campaign"
+    },
+    "casualty": {
+      "term": "Casualty",
+      "definition": "Character removed from battle due to damage exceeding Toughness. Roll on post-battle table to determine fate.",
+      "related": ["toughness", "out_of_action", "injury"],
+      "rule_page": 71,
+      "category": "combat_rule"
+    },
+    "morale": {
+      "term": "Morale",
+      "definition": "Willingness to continue fighting. When half the force is casualties, test morale. Failure causes retreat.",
+      "related": ["pinned", "terrifying", "casualty"],
+      "rule_page": 72,
+      "category": "combat_rule"
+    },
+    "activation": {
+      "term": "Activation",
+      "definition": "When a character takes their turn. Characters activate in Reactions order. Each activation allows movement and action.",
+      "related": ["reactions", "movement", "action"],
+      "rule_page": 50,
+      "category": "combat_rule"
+    },
+    "line_of_sight": {
+      "term": "Line of Sight",
+      "definition": "Clear path from shooter to target. If any part of target is visible, can be targeted. Blocked by impassable terrain.",
+      "related": ["cover", "terrain", "shooting"],
+      "rule_page": 52,
+      "category": "combat_rule"
+    },
+    "range": {
+      "term": "Range",
+      "definition": "Maximum distance a weapon can shoot effectively. Beyond range, cannot target. Measured in inches.",
+      "related": ["shooting", "weapon", "distance"],
+      "rule_page": 53,
+      "category": "combat_rule"
+    },
+    "damage": {
+      "term": "Damage",
+      "definition": "Weapon's wounding power. Added to hit roll when determining if target becomes casualty. Higher damage defeats tougher targets.",
+      "related": ["toughness", "casualty", "weapon"],
+      "rule_page": 54,
+      "category": "combat_rule"
+    },
+    "armor_save": {
+      "term": "Armor Save",
+      "definition": "Roll to negate damage. If roll meets or exceeds armor value, damage is ignored. Made after successful hit.",
+      "related": ["armor", "damage", "protection"],
+      "rule_page": 74,
+      "category": "combat_rule"
+    }
+  }
+}

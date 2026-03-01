@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://bjk40de8mhmif"]
+
+[ext_resource type="Script" path="res://src/ui/components/battle/DualInputRoll.gd" id="1_script"]
+
+[node name="DualInputRoll" type="HBoxContainer"]
+script = ExtResource("1_script")
+dice_type = "d6"
+context_label = ""
+show_result = true

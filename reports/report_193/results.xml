@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites id="2025-12-20" name="report_193" tests="13" failures="1" skipped="0" flaky="0" time="0.000">
+	<testsuite id="0" name="test_story_track_e2e" package="tests/integration" timestamp="2025-12-20T20:38:48" hostname="localhost" tests="13" failures="1" errors="0" skipped="0" flaky="0" time="0.621">
+		<testcase name="test_story_track_activation_on_campaign_creation" classname="test_story_track_e2e" time="0.056">
+		</testcase>
+		<testcase name="test_story_mission_appears_in_world_phase" classname="test_story_track_e2e" time="0.018">
+		</testcase>
+		<testcase name="test_story_battle_uses_curated_content" classname="test_story_track_e2e" time="0.017">
+		</testcase>
+		<testcase name="test_post_battle_updates_story_evidence" classname="test_story_track_e2e" time="0.009">
+			<failure message="FAILED: res://tests/integration/test_story_track_e2e.gd:125" type="FAILURE">
+<![CDATA[
+Expecting:
+ '2'
+ but was
+ '3'
+]]>
+			</failure>
+		</testcase>
+		<testcase name="test_evidence_calculation_follows_rules" classname="test_story_track_e2e" time="0.023">
+		</testcase>
+		<testcase name="test_story_progression_through_all_events" classname="test_story_track_e2e" time="0.040">
+		</testcase>
+		<testcase name="test_tutorial_hints_for_story_events" classname="test_story_track_e2e" time="0.034">
+		</testcase>
+		<testcase name="test_save_load_preserves_story_progress" classname="test_story_track_e2e" time="0.038">
+		</testcase>
+		<testcase name="test_sandbox_mode_unlocks_after_completion" classname="test_story_track_e2e" time="0.032">
+		</testcase>
+		<testcase name="test_difficulty_progression_across_story_track" classname="test_story_track_e2e" time="0.037">
+		</testcase>
+		<testcase name="test_story_clock_mechanics" classname="test_story_track_e2e" time="0.031">
+		</testcase>
+		<testcase name="test_missions_have_required_phase_integration_fields" classname="test_story_track_e2e" time="0.035">
+		</testcase>
+		<testcase name="test_enemy_composition_sums_to_fixed_count" classname="test_story_track_e2e" time="0.021">
+		</testcase>
+	</testsuite>
+</testsuites>

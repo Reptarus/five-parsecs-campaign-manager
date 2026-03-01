@@ -1,0 +1,17 @@
+{
+  "name": "Recruitment Rules",
+  "version": "2.0",
+  "source": "Five Parsecs from Home Core Rules p.78",
+  "description": "Recruit task mechanics. Crew <6: automatic recruit per crew member sent. Crew >=6: Roll D6 + number of crew recruiting, 6+ = new recruit.",
+  "rules": {
+    "auto_recruit_threshold": 6,
+    "auto_recruit_rule": "If crew size is below 6, each crew member sent to Recruit automatically gains one new crew member (until crew reaches 6).",
+    "roll_recruit_rule": "If crew size is 6 or more, roll 1D6 + number of crew members recruiting. On a 6+, gain one new recruit.",
+    "dice_type": "1d6",
+    "success_target": 6,
+    "modifier": "number_of_crew_recruiting",
+    "recruit_profile": "Use random character creation method (p.14). New recruit has basic profile and a Handgun.",
+    "equipment": ["Handgun"],
+    "notes": "No recruit types, tiers, costs, or quality levels. All recruits are created using the standard character creation tables."
+  }
+}

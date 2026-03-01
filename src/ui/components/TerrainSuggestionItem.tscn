@@ -1,0 +1,122 @@
+[gd_scene load_steps=2 format=3 uid="uid://cj8h2rq5x7mp4"]
+
+[ext_resource type="Script" path="res://src/ui/components/TerrainSuggestionItem.gd" id="1_m9k6v"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1"]
+bg_color = Color(0.15, 0.15, 0.2, 0.95)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_left = 8
+corner_radius_bottom_right = 8
+border_width_left = 3
+border_color = Color(0, 1, 1, 1)
+
+[node name="TerrainSuggestionItem" type="Control"]
+custom_minimum_size = Vector2(300, 100)
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_m9k6v")
+
+[node name="MainContainer" type="Panel" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_1")
+
+[node name="ContentLayout" type="HBoxContainer" parent="MainContainer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -8.0
+
+[node name="LeftSection" type="VBoxContainer" parent="MainContainer/ContentLayout"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HeaderSection" type="HBoxContainer" parent="MainContainer/ContentLayout/LeftSection"]
+layout_mode = 2
+
+[node name="TypeIcon" type="Label" parent="MainContainer/ContentLayout/LeftSection/HeaderSection"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+text = "🛡️"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TitleLabel" type="Label" parent="MainContainer/ContentLayout/LeftSection/HeaderSection"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Stone wall or metal barrier"
+
+[node name="PriorityIndicator" type="Label" parent="MainContainer/ContentLayout/LeftSection/HeaderSection"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "Required"
+horizontal_alignment = 2
+
+[node name="DescriptionLabel" type="Label" parent="MainContainer/ContentLayout/LeftSection"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "3-inch straight line providing full cover"
+autowrap_mode = 3
+
+[node name="PlacementLabel" type="Label" parent="MainContainer/ContentLayout/LeftSection"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Suggested placement: Center of battlefield"
+modulate = Color(0.8, 0.8, 0.8, 1)
+autowrap_mode = 3
+
+[node name="EffectsContainer" type="VBoxContainer" parent="MainContainer/ContentLayout/LeftSection"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ModelsLabel" type="Label" parent="MainContainer/ContentLayout/LeftSection"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Suggested models: Walls, Barriers, Rubble"
+modulate = Color(1, 1, 0.6, 1)
+autowrap_mode = 3
+
+[node name="RightSection" type="VBoxContainer" parent="MainContainer/ContentLayout"]
+layout_mode = 2
+size_flags_horizontal = 0
+
+[node name="ActionButtons" type="VBoxContainer" parent="MainContainer/ContentLayout/RightSection"]
+unique_name_in_owner = true
+layout_mode = 2
+alignment = 1
+
+[node name="ConfirmButton" type="Button" parent="MainContainer/ContentLayout/RightSection/ActionButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(80, 32)
+layout_mode = 2
+text = "Confirm"
+
+[node name="ModifyButton" type="Button" parent="MainContainer/ContentLayout/RightSection/ActionButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(80, 32)
+layout_mode = 2
+text = "Modify"
+
+[node name="SkipButton" type="Button" parent="MainContainer/ContentLayout/RightSection/ActionButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(80, 32)
+layout_mode = 2
+text = "Skip"
+
+[node name="HelpButton" type="Button" parent="MainContainer/ContentLayout/RightSection/ActionButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(80, 32)
+layout_mode = 2
+text = "Help"

@@ -138,27 +138,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="DeploymentPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent/RightPanel"]
-layout_mode = 2
-size_flags_vertical = 3
-theme_type_variation = &"DarkPanel"
-
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/DeploymentPanel"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/DeploymentPanel/VBoxContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text = "Deployment"
-horizontal_alignment = 1
-
-[node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/DeploymentPanel/VBoxContainer"]
-layout_mode = 2
-
-[node name="Content" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/RightPanel/DeploymentPanel/VBoxContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-
 [node name="FooterPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_type_variation = &"DarkPanel"

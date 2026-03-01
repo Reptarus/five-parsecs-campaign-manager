@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Left hand/arm -->
+  <path d="M25 55 Q30 50 35 52 L45 55" 
+        stroke="#FFFFFF" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  
+  <!-- Right hand/arm -->
+  <path d="M75 55 Q70 50 65 52 L55 55" 
+        stroke="#FFFFFF" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  
+  <!-- Handshake grip area -->
+  <rect x="45" y="52" width="10" height="8" 
+        stroke="#FFFFFF" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+  
+  <!-- Left thumb -->
+  <path d="M42 54 Q40 52 42 50" 
+        stroke="#FFFFFF" stroke-width="2" fill="none" stroke-linecap="round"/>
+  
+  <!-- Right thumb -->
+  <path d="M58 54 Q60 52 58 50" 
+        stroke="#FFFFFF" stroke-width="2" fill="none" stroke-linecap="round"/>
+  
+  <!-- Left sleeve cuff -->
+  <rect x="23" y="53" width="5" height="4" 
+        stroke="#FFFFFF" stroke-width="1.5" fill="none"/>
+  
+  <!-- Right sleeve cuff -->
+  <rect x="72" y="53" width="5" height="4" 
+        stroke="#FFFFFF" stroke-width="1.5" fill="none"/>
+  
+  <!-- Agreement/contract symbol (small lines around handshake) -->
+  <path d="M40 40 L45 43" 
+        stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M55 43 L60 40" 
+        stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M40 70 L45 67" 
+        stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M55 67 L60 70" 
+        stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round"/>
+</svg>

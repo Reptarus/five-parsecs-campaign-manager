@@ -1,0 +1,111 @@
+{
+  "name": "Crew Task Modifiers",
+  "version": "2.0",
+  "source": "Five Parsecs from Home Core Rules pp.76-82",
+  "description": "Core rules modifiers for crew tasks. Only includes modifiers explicitly stated in the rules.",
+  "task_modifiers": {
+    "FIND_PATRON": {
+      "description": "1D6, 5+ = one patron, 6+ = two patrons",
+      "modifiers": {
+        "crew_looking": {
+          "type": "additive",
+          "value": 1,
+          "per": "crew member looking",
+          "description": "+1 per crew member assigned to Find Patron"
+        },
+        "existing_patrons": {
+          "type": "additive",
+          "value": 1,
+          "per": "existing patron",
+          "description": "+1 per patron you already have"
+        },
+        "credits_spent": {
+          "type": "additive",
+          "value": 1,
+          "cost": "credits",
+          "description": "Spend credits for additional bonus"
+        }
+      }
+    },
+    "TRADE": {
+      "description": "D100 on Trade Table per crew member. No roll modifiers.",
+      "modifiers": {
+        "extra_rolls": {
+          "type": "extra_roll",
+          "cost": 3,
+          "description": "Pay 3 credits for each additional Trade Table roll"
+        }
+      }
+    },
+    "RECRUIT": {
+      "description": "Auto if crew <6. If crew >=6: 1D6 + crew recruiting, 6+ = success.",
+      "modifiers": {
+        "crew_recruiting": {
+          "type": "additive",
+          "value": 1,
+          "per": "crew member recruiting",
+          "description": "+1 per crew member assigned to Recruit (added to D6)"
+        }
+      }
+    },
+    "EXPLORE": {
+      "description": "D100 on Exploration Table per crew member. No roll modifiers.",
+      "modifiers": {}
+    },
+    "TRACK": {
+      "description": "1D6, modified by crew count and credits.",
+      "modifiers": {
+        "crew_tracking": {
+          "type": "additive",
+          "value": 1,
+          "per": "crew member tracking",
+          "description": "+1 per crew member assigned to Track"
+        },
+        "credits_spent": {
+          "type": "additive",
+          "value": 1,
+          "cost": "credits",
+          "description": "Spend credits for additional bonus"
+        }
+      }
+    },
+    "REPAIR_KIT": {
+      "description": "1D6 + Savvy, 6+ = success. Engineer: +1. Natural 1 = item destroyed.",
+      "modifiers": {
+        "savvy": {
+          "type": "additive",
+          "value": "character_savvy",
+          "description": "Add crew member's Savvy stat to repair roll"
+        },
+        "engineer": {
+          "type": "additive",
+          "value": 1,
+          "condition": "crew member is Engineer",
+          "description": "+1 if the repairing crew member is an Engineer"
+        },
+        "credits_spent": {
+          "type": "additive",
+          "value": 1,
+          "cost": "credits",
+          "description": "Spend credits for additional bonus (spare parts)"
+        }
+      }
+    },
+    "TRAIN": {
+      "description": "Automatic 1 XP. No modifiers.",
+      "modifiers": {}
+    },
+    "DECOY": {
+      "description": "Passive: +1 per crew member to Rival avoidance roll. No dice roll.",
+      "modifiers": {
+        "crew_assigned": {
+          "type": "passive",
+          "value": 1,
+          "per": "crew member assigned as Decoy",
+          "applies_to": "Rival avoidance roll",
+          "description": "+1 per crew member assigned as Decoy (applied to Rival avoidance)"
+        }
+      }
+    }
+  }
+}

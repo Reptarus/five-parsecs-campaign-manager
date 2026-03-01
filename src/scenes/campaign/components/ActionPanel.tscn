@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://cedce2qtexrf5"]
+[gd_scene load_steps=2 format=3]
 
 [ext_resource type="Script" uid="uid://b6qknf0scw6or" path="res://src/scenes/campaign/components/ActionPanel.gd" id="1_p5m3r"]
 

@@ -1,0 +1,229 @@
+[gd_scene load_steps=6 format=3 uid="uid://bkw8n7qx3m5jr"]
+
+[ext_resource type="Script" path="res://src/ui/screens/world/components/UpkeepPhaseComponent.gd" id="1_upkeep"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.067, 0.094, 0.153, 0.85)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.216, 0.255, 0.318, 0.5)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+content_margin_left = 20.0
+content_margin_top = 20.0
+content_margin_right = 20.0
+content_margin_bottom = 20.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cost_card"]
+bg_color = Color(0.122, 0.137, 0.216, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.216, 0.255, 0.318, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_primary"]
+bg_color = Color(0.231, 0.51, 0.965, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_secondary"]
+bg_color = Color(0.122, 0.137, 0.216, 0.8)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.216, 0.255, 0.318, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+[node name="UpkeepPhaseComponent" type="MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1_upkeep")
+
+[node name="UpkeepContainer" type="VBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="HeaderPanel" type="PanelContainer" parent="UpkeepContainer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="HeaderContent" type="VBoxContainer" parent="UpkeepContainer/HeaderPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TitleRow" type="HBoxContainer" parent="UpkeepContainer/HeaderPanel/HeaderContent"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="UpkeepContainer/HeaderPanel/HeaderContent/TitleRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Upkeep Phase"
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+
+[node name="HelpButton" type="Button" parent="UpkeepContainer/HeaderPanel/HeaderContent/TitleRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+tooltip_text = "Pay crew wages and ship maintenance (Rules p.76)"
+text = "?"
+theme_override_font_sizes/font_size = 14
+
+[node name="Description" type="Label" parent="UpkeepContainer/HeaderPanel/HeaderContent"]
+layout_mode = 2
+text = "Pay maintenance costs for your crew and ship each campaign turn."
+autowrap_mode = 2
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
+
+[node name="CreditsDisplay" type="Label" parent="UpkeepContainer/HeaderPanel/HeaderContent"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Available Credits: 0"
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.961, 0.62, 0.043, 1)
+
+[node name="CostBreakdownPanel" type="PanelContainer" parent="UpkeepContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_cost_card")
+
+[node name="CostBreakdown" type="VBoxContainer" parent="UpkeepContainer/CostBreakdownPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="CostHeader" type="Label" parent="UpkeepContainer/CostBreakdownPanel/CostBreakdown"]
+layout_mode = 2
+text = "COST BREAKDOWN"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
+
+[node name="CrewCostRow" type="HBoxContainer" parent="UpkeepContainer/CostBreakdownPanel/CostBreakdown"]
+layout_mode = 2
+
+[node name="CrewLabel" type="Label" parent="UpkeepContainer/CostBreakdownPanel/CostBreakdown/CrewCostRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Crew Upkeep"
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+
+[node name="CrewUpkeepLabel" type="Label" parent="UpkeepContainer/CostBreakdownPanel/CostBreakdown/CrewCostRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0 credits"
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
+
+[node name="CrewHint" type="Label" parent="UpkeepContainer/CostBreakdownPanel/CostBreakdown"]
+layout_mode = 2
+text = "1 credit per crew member (4-6 crew = 1 credit base)"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.42, 0.451, 0.502, 1)
+
+[node name="ShipCostRow" type="HBoxContainer" parent="UpkeepContainer/CostBreakdownPanel/CostBreakdown"]
+layout_mode = 2
+
+[node name="ShipLabel" type="Label" parent="UpkeepContainer/CostBreakdownPanel/CostBreakdown/ShipCostRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Ship Maintenance"
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+
+[node name="MaintenanceCostLabel" type="Label" parent="UpkeepContainer/CostBreakdownPanel/CostBreakdown/ShipCostRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0 credits"
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
+
+[node name="ShipHint" type="Label" parent="UpkeepContainer/CostBreakdownPanel/CostBreakdown"]
+layout_mode = 2
+text = "1 Hull Point repaired free. Damaged ships cost double."
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.42, 0.451, 0.502, 1)
+
+[node name="Divider" type="HSeparator" parent="UpkeepContainer/CostBreakdownPanel/CostBreakdown"]
+modulate = Color(0.216, 0.255, 0.318, 1)
+layout_mode = 2
+
+[node name="TotalRow" type="HBoxContainer" parent="UpkeepContainer/CostBreakdownPanel/CostBreakdown"]
+layout_mode = 2
+
+[node name="TotalLabel" type="Label" parent="UpkeepContainer/CostBreakdownPanel/CostBreakdown/TotalRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Total Cost"
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+
+[node name="TotalCostLabel" type="Label" parent="UpkeepContainer/CostBreakdownPanel/CostBreakdown/TotalRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0 credits"
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.961, 0.62, 0.043, 1)
+
+[node name="UpkeepProgressBar" type="ProgressBar" parent="UpkeepContainer"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+max_value = 100.0
+show_percentage = false
+
+[node name="ButtonContainer" type="HBoxContainer" parent="UpkeepContainer"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 16
+
+[node name="ManualCalculateButton" type="Button" parent="UpkeepContainer/ButtonContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 48)
+layout_mode = 2
+tooltip_text = "Calculate upkeep costs without paying"
+text = "Calculate Costs"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_secondary")
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+
+[node name="AutoCalculateButton" type="Button" parent="UpkeepContainer/ButtonContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 48)
+layout_mode = 2
+tooltip_text = "Calculate and automatically pay upkeep costs"
+text = "Pay Upkeep"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_primary")
+theme_override_colors/font_color = Color(1, 1, 1, 1)

@@ -35,12 +35,12 @@ func _patch_enum_in_operator() -> void:
 
 # Directly patch the MissionGenerator
 func _patch_mission_generator() -> void:
-	if "res://src/campaign/mission/MissionGenerator.gd" in _patched_scripts:
+	if "res://src/core/mission/generator/MissionGenerator.gd" in _patched_scripts:
 		return
-		
-	_patched_scripts.append("res://src/campaign/mission/MissionGenerator.gd")
-	
-	var script = load("res://src/campaign/mission/MissionGenerator.gd")
+
+	_patched_scripts.append("res://src/core/mission/generator/MissionGenerator.gd")
+
+	var script = load("res://src/core/mission/generator/MissionGenerator.gd")
 	if script == null:
 		return
 		
@@ -57,12 +57,12 @@ func _patch_mission_generator() -> void:
 
 # Directly patch the Mission base script
 func _patch_mission_base() -> void:
-	if "res://src/campaign/mission/mission.gd" in _patched_scripts:
+	if "res://src/core/mission/base/mission.gd" in _patched_scripts:
 		return
-		
-	_patched_scripts.append("res://src/campaign/mission/mission.gd")
-	
-	var script = load("res://src/campaign/mission/mission.gd")
+
+	_patched_scripts.append("res://src/core/mission/base/mission.gd")
+
+	var script = load("res://src/core/mission/base/mission.gd")
 	if script == null:
 		return
 		
@@ -88,12 +88,12 @@ func _patch_mission_base() -> void:
 
 # Directly patch the BattlefieldGenerator
 func _patch_battlefield_generator() -> void:
-	if "res://src/battlefield/BattlefieldGenerator.gd" in _patched_scripts:
+	if "res://src/core/systems/BattlefieldGenerator.gd" in _patched_scripts:
 		return
-		
-	_patched_scripts.append("res://src/battlefield/BattlefieldGenerator.gd")
-	
-	var script = load("res://src/battlefield/BattlefieldGenerator.gd")
+
+	_patched_scripts.append("res://src/core/systems/BattlefieldGenerator.gd")
+
+	var script = load("res://src/core/systems/BattlefieldGenerator.gd")
 	if script == null:
 		return
 		

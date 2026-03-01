@@ -1,0 +1,63 @@
+[gd_scene load_steps=2 format=3 uid="uid://cwq8h3r5ytkm2"]
+
+[ext_resource type="Script" path="res://src/ui/components/battle/EnemyGenerationWizard.gd" id="1_script"]
+
+[node name="EnemyGenerationWizard" type="PanelContainer"]
+custom_minimum_size = Vector2(400, 500)
+offset_right = 400.0
+offset_bottom = 500.0
+script = ExtResource("1_script")
+
+[node name="VBox" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Enemy Generation"
+horizontal_alignment = 1
+
+[node name="StepIndicator" type="Label" parent="VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+theme_override_font_sizes/font_size = 11
+text = "Step 1 of 4"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="VBox"]
+layout_mode = 2
+
+[node name="StepContainer" type="VBoxContainer" parent="VBox"]
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="HSeparator2" type="HSeparator" parent="VBox"]
+layout_mode = 2
+
+[node name="EnemyListScroll" type="ScrollContainer" parent="VBox"]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="EnemyListContainer" type="VBoxContainer" parent="VBox/EnemyListScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NavContainer" type="HBoxContainer" parent="VBox"]
+layout_mode = 2
+alignment = 1
+
+[node name="BackButton" type="Button" parent="VBox/NavContainer"]
+custom_minimum_size = Vector2(80, 35)
+layout_mode = 2
+text = "Back"
+
+[node name="Spacer" type="Control" parent="VBox/NavContainer"]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+
+[node name="NextButton" type="Button" parent="VBox/NavContainer"]
+custom_minimum_size = Vector2(80, 35)
+layout_mode = 2
+text = "Next"

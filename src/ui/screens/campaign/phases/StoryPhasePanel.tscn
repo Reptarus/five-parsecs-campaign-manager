@@ -1,5 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://c8x7y0q5n3j4w"]
+[gd_scene load_steps=3 format=3 uid="uid://c8x7y0q5n3j4w"]
 
+[ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_theme"]
 [ext_resource type="Script" uid="uid://cbshc3l6hhfii" path="res://src/ui/screens/campaign/phases/StoryPhasePanel.gd" id="1_y4r2p"]
 
 [node name="StoryPhasePanel" type="PanelContainer"]
@@ -8,11 +9,16 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("1_theme")
 script = ExtResource("1_y4r2p")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
 layout_mode = 2
-theme_override_constants/separation = 20
+theme_override_constants/separation = 16
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
 
 [node name="TitleLabel" type="Label" parent="VBoxContainer"]
 layout_mode = 2

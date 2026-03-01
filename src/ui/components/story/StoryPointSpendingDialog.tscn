@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3 uid="uid://story_point_spending_dialog"]
+
+[ext_resource type="Script" path="res://src/ui/components/story/StoryPointSpendingDialog.gd" id="1_script"]
+
+[node name="StoryPointSpendingDialog" type="Window"]
+title = "Spend Story Point"
+initial_position = 2
+size = Vector2i(550, 700)
+transient = true
+exclusive = true
+script = ExtResource("1_script")

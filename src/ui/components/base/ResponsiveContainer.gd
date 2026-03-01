@@ -1,6 +1,5 @@
-# This file should be referenced via preload
-# Use explicit preloads instead of global class names
 @tool
+class_name ResponsiveContainer
 extends Container
 
 ## A unified responsive container that adapts to screen size and orientation

@@ -1,0 +1,354 @@
+[gd_scene load_steps=2 format=3 uid="uid://bq8x7y203w4v5"]
+
+[ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_theme"]
+[ext_resource type="Script" path="res://src/core/character/Generation/SimpleCharacterCreator.gd" id="2_script"]
+
+[node name="SimpleCharacterCreator" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_theme")
+script = ExtResource("2_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0784314, 0.0784314, 0.0784314, 0.95)
+
+[node name="Dialog" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -400.0
+offset_top = -300.0
+offset_right = 400.0
+offset_bottom = 300.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Dialog"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="TitleLabel" type="Label" parent="Dialog/VBoxContainer"]
+layout_mode = 2
+text = "Create Your Captain"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="Dialog/VBoxContainer"]
+layout_mode = 2
+
+[node name="NameContainer" type="HBoxContainer" parent="Dialog/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="NameLabel" type="Label" parent="Dialog/VBoxContainer/NameContainer"]
+layout_mode = 2
+text = "Captain Name:"
+size_flags_horizontal = 3
+
+[node name="NameInput" type="LineEdit" parent="Dialog/VBoxContainer/NameContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Enter captain name..."
+
+[node name="HSeparator2" type="HSeparator" parent="Dialog/VBoxContainer"]
+layout_mode = 2
+
+[node name="OriginContainer" type="HBoxContainer" parent="Dialog/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="OriginLabel" type="Label" parent="Dialog/VBoxContainer/OriginContainer"]
+layout_mode = 2
+text = "Origin:"
+size_flags_horizontal = 3
+
+[node name="OriginOptions" type="OptionButton" parent="Dialog/VBoxContainer/OriginContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HSeparator3" type="HSeparator" parent="Dialog/VBoxContainer"]
+layout_mode = 2
+
+[node name="BackgroundContainer" type="HBoxContainer" parent="Dialog/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="BackgroundLabel" type="Label" parent="Dialog/VBoxContainer/BackgroundContainer"]
+layout_mode = 2
+text = "Background:"
+size_flags_horizontal = 3
+
+[node name="BackgroundOptions" type="OptionButton" parent="Dialog/VBoxContainer/BackgroundContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HSeparator4" type="HSeparator" parent="Dialog/VBoxContainer"]
+layout_mode = 2
+
+[node name="MotivationContainer" type="HBoxContainer" parent="Dialog/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="MotivationLabel" type="Label" parent="Dialog/VBoxContainer/MotivationContainer"]
+layout_mode = 2
+text = "Motivation:"
+size_flags_horizontal = 3
+
+[node name="MotivationOptions" type="OptionButton" parent="Dialog/VBoxContainer/MotivationContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HSeparator5" type="HSeparator" parent="Dialog/VBoxContainer"]
+layout_mode = 2
+
+[node name="StatsContainer" type="VBoxContainer" parent="Dialog/VBoxContainer"]
+layout_mode = 2
+
+[node name="StatsLabel" type="Label" parent="Dialog/VBoxContainer/StatsContainer"]
+layout_mode = 2
+text = "Five Parsecs Stats:"
+horizontal_alignment = 1
+
+[node name="StatsDisplay" type="GridContainer" parent="Dialog/VBoxContainer/StatsContainer"]
+layout_mode = 2
+columns = 3
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 5
+
+[node name="CombatLabel" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+text = "Combat:"
+
+[node name="CombatValue" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "1"
+
+[node name="CombatButtons" type="HBoxContainer" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="CombatUp" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/CombatButtons"]
+layout_mode = 2
+text = "▲"
+flat = true
+
+[node name="CombatDown" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/CombatButtons"]
+layout_mode = 2
+text = "▼"
+flat = true
+
+[node name="ReactionsLabel" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+text = "Reactions:"
+
+[node name="ReactionsValue" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "1"
+
+[node name="ReactionsButtons" type="HBoxContainer" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="ReactionsUp" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/ReactionsButtons"]
+layout_mode = 2
+text = "▲"
+flat = true
+
+[node name="ReactionsDown" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/ReactionsButtons"]
+layout_mode = 2
+text = "▼"
+flat = true
+
+[node name="ToughnessLabel" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+text = "Toughness:"
+
+[node name="ToughnessValue" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "1"
+
+[node name="ToughnessButtons" type="HBoxContainer" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="ToughnessUp" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/ToughnessButtons"]
+layout_mode = 2
+text = "▲"
+flat = true
+
+[node name="ToughnessDown" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/ToughnessButtons"]
+layout_mode = 2
+text = "▼"
+flat = true
+
+[node name="SavvyLabel" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+text = "Savvy:"
+
+[node name="SavvyValue" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "1"
+
+[node name="SavvyButtons" type="HBoxContainer" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="SavvyUp" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/SavvyButtons"]
+layout_mode = 2
+text = "▲"
+flat = true
+
+[node name="SavvyDown" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/SavvyButtons"]
+layout_mode = 2
+text = "▼"
+flat = true
+
+[node name="TechLabel" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+text = "Tech:"
+
+[node name="TechValue" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "1"
+
+[node name="TechButtons" type="HBoxContainer" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="TechUp" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/TechButtons"]
+layout_mode = 2
+text = "▲"
+flat = true
+
+[node name="TechDown" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/TechButtons"]
+layout_mode = 2
+text = "▼"
+flat = true
+
+[node name="SpeedLabel" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+text = "Speed:"
+
+[node name="SpeedValue" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "1"
+
+[node name="SpeedButtons" type="HBoxContainer" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="SpeedUp" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/SpeedButtons"]
+layout_mode = 2
+text = "▲"
+flat = true
+
+[node name="SpeedDown" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/SpeedButtons"]
+layout_mode = 2
+text = "▼"
+flat = true
+
+[node name="LuckLabel" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+text = "Luck:"
+
+[node name="LuckValue" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "1"
+
+[node name="LuckButtons" type="HBoxContainer" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="LuckUp" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/LuckButtons"]
+layout_mode = 2
+text = "▲"
+flat = true
+
+[node name="LuckDown" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/LuckButtons"]
+layout_mode = 2
+text = "▼"
+flat = true
+
+[node name="HSeparator6" type="HSeparator" parent="Dialog/VBoxContainer"]
+layout_mode = 2
+
+[node name="ButtonContainer" type="HBoxContainer" parent="Dialog/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="RandomizeButton" type="Button" parent="Dialog/VBoxContainer/ButtonContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Randomize Stats"
+
+[node name="CreateButton" type="Button" parent="Dialog/VBoxContainer/ButtonContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Create Captain"
+
+[node name="CancelButton" type="Button" parent="Dialog/VBoxContainer/ButtonContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Cancel"
+
+[node name="HSeparator7" type="HSeparator" parent="Dialog/VBoxContainer"]
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="Dialog/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Back"
+
+[node name="HSeparator8" type="HSeparator" parent="Dialog/VBoxContainer"]
+layout_mode = 2
+
+[node name="DescriptionContainer" type="VBoxContainer" parent="Dialog/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="DescriptionLabel" type="RichTextLabel" parent="Dialog/VBoxContainer/DescriptionContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "[color=lime]Name:[/color] Unnamed
+
+[color=lime]Origin:[/color] 
+
+[color=lime]Background:[/color] 
+
+[color=lime]Motivation:[/color] 
+
+[color=lime]Stats:[/color]
+[color=yellow]Combat:[/color] 1
+[color=yellow]Toughness:[/color] 1
+[color=yellow]Savvy:[/color] 1
+[color=yellow]Tech:[/color] 1
+[color=yellow]Speed:[/color] 1
+[color=yellow]Luck:[/color] 1" 

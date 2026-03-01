@@ -1,0 +1,20 @@
+{
+  "features": [
+    {
+      "id": "natural_rock_formation",
+      "name": "Rock Formation",
+      "tags": ["wasteland_scatter", "natural_cover"],
+      "size": [3, 3],
+      "gameplay": { "type": "cover", "height": 2, "cover_value": 2, "blocks_los": true },
+      "asset": { "type": "primitive", "shape": "cylinder", "size_3d": [1.5, 2.0], "color": "#8b7d6b" }
+    },
+    {
+      "id": "natural_difficult_terrain",
+      "name": "Rubble Field",
+      "tags": ["wasteland_scatter"],
+      "size": [4, 4],
+      "gameplay": { "type": "difficult_terrain", "movement_cost": 2 },
+      "asset": { "type": "scatter_plane", "color": "#a0937d" }
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://injury_result_card_component"]
+
+[ext_resource type="Script" path="res://src/ui/components/postbattle/InjuryResultCard.gd" id="1_injury_card"]
+
+[node name="InjuryResultCard" type="PanelContainer"]
+custom_minimum_size = Vector2(0, 48)
+script = ExtResource("1_injury_card")

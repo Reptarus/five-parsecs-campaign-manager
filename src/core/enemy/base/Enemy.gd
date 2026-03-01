@@ -17,6 +17,9 @@ var navigation_agent: NavigationAgent2D = null
 # Stats
 var health: float = 100.0
 var max_health: float = 100.0
+var _current_health: float = 100.0
+var _max_health: float = 100.0
+var enemy_name: String = ""
 var damage: float = 10.0
 var armor: float = 5.0
 var abilities: Array = []
@@ -38,17 +41,17 @@ var movement_range: float = 4.0
 var weapon_range: float = 1.0
 
 # Signals
-signal enemy_initialized(node: EnemyNode) # Pass self
+signal enemy_initialized(node: Node) # Pass self
 signal health_changed(old_value, new_value)
 signal died
-signal turn_started(node: EnemyNode)
-signal turn_ended(node: EnemyNode)
-signal attack_executed(node: EnemyNode, target_node: Node) # Specify target type later if possible
-signal attack_completed(node: EnemyNode)
-signal touch_handled(node: EnemyNode, position: Vector2)
-signal drag_handled(node: EnemyNode, start_position: Vector2, end_position: Vector2)
-signal selected(node: EnemyNode)
-signal position_changed(node: EnemyNode, old_position: Vector2, new_position: Vector2) # Emit Node position
+signal turn_started(node: Node)
+signal turn_ended(node: Node)
+signal attack_executed(node: Node, target_node: Node)
+signal attack_completed(node: Node)
+signal touch_handled(node: Node, position: Vector2)
+signal drag_handled(node: Node, start_position: Vector2, end_position: Vector2)
+signal selected(node: Node)
+signal position_changed(node: Node, old_position: Vector2, new_position: Vector2)
 
 # Static helper method to determine type compatibility
 static func is_node_script() -> bool:

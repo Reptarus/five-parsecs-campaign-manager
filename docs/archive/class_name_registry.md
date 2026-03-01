@@ -1,0 +1,51 @@
+# Five Parsecs Class Name Registry
+
+This document serves as a central registry for all `class_name` declarations in the Five Parsecs Campaign Manager project. It helps resolve conflicts and ensure proper script references.
+
+## Class Name Organization Rules
+
+1. **Authoritative Location**: Each class name should only be declared in ONE script file, considered the "authoritative" version.
+2. **References**: All other scripts should reference the class via explicit preloading with absolute paths.
+3. **Documentation**: When a `class_name` declaration is removed, add a comment explaining it was removed and where the authoritative version is located.
+
+## Core Classes
+
+| Class Name | Authoritative Location | Description |
+|------------|------------------------|-------------|
+| `GameState` | `res://src/core/state/GameState.gd` | Manages the overall game state |
+| `GameEnums` | `res://src/core/systems/GlobalEnums.gd` | Global enumeration definitions |
+| `ValidationManager` | `res://src/core/systems/ValidationManager.gd` | Validates game state data |
+| `PathFinder` | `res://src/core/utils/PathFinder.gd` | Pathfinding implementation |
+| `StoryQuestData` | `res://src/core/mission/StoryQuestData.gd` | Quest/mission data container |
+| `GamePlanet` | `res://src/game/world/GamePlanet.gd` | Planet object definition |
+| `Ship` | `res://src/core/ships/Ship.gd` | Ship object definition |
+| `CharacterStats` | `res://src/core/character/Base/CharacterStats.gd` | Base character statistics |
+
+## Game-Specific Classes
+
+| Class Name | Authoritative Location | Description |
+|------------|------------------------|-------------|
+| `FiveParsecsPathFinder` | `res://src/core/utils/PathFinder.gd` | Five Parsecs implementation of pathfinding |
+| `FiveParsecsGameState` | `res://src/core/state/GameState.gd` | Five Parsecs implementation of game state |
+| `FiveParsecsCharacterStats` | `res://src/core/character/FiveParsecsCharacterStats.gd` | Five Parsecs character statistics |
+| `FiveParsecsStrangeCharacters` | `res://src/core/character/FiveParsecsStrangeCharacters.gd` | Five Parsecs unique character types |
+| `FiveParsecsPostBattlePhase` | `res://src/core/campaign/FiveParsecsPostBattlePhase.gd` | Five Parsecs post-battle phase |
+| `CampaignSetupScreen` | `res://src/ui/core/CampaignSetupScreen.gd` | Campaign setup UI screen |
+| `BasePostBattlePhase` | `res://src/core/campaign/BasePostBattlePhase.gd` | Base implementation for post-battle phase |
+| `BaseStrangeCharacters` | `res://src/core/character/BaseStrangeCharacters.gd` | Base implementation for strange characters |
+
+## Test Classes
+
+| Class Name | Authoritative Location | Description |
+|------------|------------------------|-------------|
+| `GameTest` | `res://tests/fixtures/base/game_test.gd` | Base test class |
+| `CampaignTest` | `res://tests/fixtures/base/campaign_test.gd` | Campaign test suite base |
+| `TestGameStateAdapter` | `res://tests/fixtures/helpers/test_game_state_adapter.gd` | Game state test adapter |
+| `GameStateTestAdapter` | `res://tests/fixtures/helpers/game_state_test_adapter.gd` | Adapter for game state tests |
+
+## Deprecated or Removed Class Names
+
+| Original Class Name | Was Located In | Replacement Approach |
+|---------------------|----------------|----------------------|
+| `ValidationResult` | `res://src/core/state/StateValidator.gd` | Now an inner class, use factory method `create_result()` |
+| `PathNode` | `res://src/utils/helpers/PathFinder.gd` | Now an inner class, use factory method `create_path_node()` | 

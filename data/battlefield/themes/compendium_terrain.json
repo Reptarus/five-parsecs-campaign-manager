@@ -1,0 +1,125 @@
+{
+	"description": "Compendium-style terrain suggestion themes for tabletop setup. Each theme provides text descriptions telling the player what to physically place on the table.",
+	"sector_grid": {
+		"columns": 4,
+		"rows": 4,
+		"labels": ["A1","A2","A3","A4","B1","B2","B3","B4","C1","C2","C3","C4","D1","D2","D3","D4"]
+	},
+	"themes": {
+		"industrial_zone": {
+			"name": "Industrial Zone",
+			"description": "Factories, warehouses, and cargo yards. Dense cover with narrow corridors.",
+			"notable_features": [
+				"Large factory building (full cover, blocks LOS, can enter for elevated position)",
+				"Fuel storage tanks (full cover, dangerous - explodes on hit roll of 1)",
+				"Cargo crane (elevated platform, partial cover, +1 to hit from height)",
+				"Control tower (full cover, 2 levels, overlooks entire battlefield)",
+				"Pipeline junction (partial cover, creates chokepoint between sectors)",
+				"Loading dock with parked hauler (full cover, can shelter behind)"
+			],
+			"regular_features": [
+				"Stack of cargo containers (full cover, can climb on top)",
+				"Heavy machinery (partial cover, difficult terrain around base)",
+				"Metal barricade (partial cover, low wall)",
+				"Scrap pile (partial cover, difficult terrain)",
+				"Conveyor belt structure (partial cover, elevated walkway)",
+				"Chemical drum cluster (partial cover, treat as dangerous terrain)"
+			],
+			"scatter_terrain": [
+				"Small crate",
+				"Barrel",
+				"Metal debris",
+				"Tool rack",
+				"Pipe section",
+				"Cable spool"
+			]
+		},
+		"wilderness": {
+			"name": "Wilderness",
+			"description": "Natural terrain with rocks, vegetation, and uneven ground.",
+			"notable_features": [
+				"Large rock formation (full cover, can climb for elevated position)",
+				"Dense tree cluster (full cover, blocks LOS, difficult terrain inside)",
+				"Creek or shallow pond (open terrain, -1\" movement to cross)",
+				"Hilltop (elevated, open, +1 to hit from height but exposed)",
+				"Ruined cabin (full cover, single room, can enter)",
+				"Fallen tree trunk (partial cover, can climb over)"
+			],
+			"regular_features": [
+				"Boulder (full cover for crouching, partial for standing)",
+				"Dense bushes (partial cover, difficult terrain)",
+				"Rocky outcrop (partial cover, uneven ground)",
+				"Tall grass patch (concealment only, no cover bonus)",
+				"Small hill (slight elevation, partial cover at crest)",
+				"Dead tree (no cover, LOS marker)"
+			],
+			"scatter_terrain": [
+				"Small rock",
+				"Bush",
+				"Log section",
+				"Mushroom cluster",
+				"Animal bones",
+				"Flower patch"
+			]
+		},
+		"alien_ruin": {
+			"name": "Alien Ruin",
+			"description": "Ancient alien structures, strange formations, and otherworldly terrain.",
+			"notable_features": [
+				"Crystalline pillar (full cover, reflects shots - reroll 1s against targets adjacent)",
+				"Collapsed alien wall section (full cover on one side, partial on other)",
+				"Energy field generator (partial cover, glowing - blocks LOS to anything directly behind)",
+				"Strange growth mound (full cover, organic, difficult terrain around base)",
+				"Sunken chamber entrance (full cover, drop-down access, hard to assault)",
+				"Monolith (full cover, tall, creates shadow zone behind)"
+			],
+			"regular_features": [
+				"Alien rubble pile (partial cover, difficult terrain)",
+				"Glowing crystal cluster (partial cover, illuminates area - no darkness penalties)",
+				"Cracked floor plate (open, treat as dangerous terrain - may collapse)",
+				"Vine-covered column (partial cover, climbable)",
+				"Ancient console (partial cover, low wall equivalent)",
+				"Spore pod cluster (partial cover, release spores when hit - concealment in 3\")"
+			],
+			"scatter_terrain": [
+				"Crystal shard",
+				"Alien debris",
+				"Fungal growth",
+				"Strange artifact",
+				"Bone fragment",
+				"Energy residue pool"
+			]
+		},
+		"crash_site": {
+			"name": "Crash Site",
+			"description": "Downed spacecraft wreckage scattered across the area.",
+			"notable_features": [
+				"Main hull section (full cover, can enter, 2 access points)",
+				"Engine nacelle (full cover, dangerous terrain - radiation leak)",
+				"Cockpit wreckage (full cover, elevated on impact crater rim)",
+				"Cargo bay section (full cover, large open interior, multiple entries)",
+				"Fuel tank (full cover, VERY dangerous - explodes on any hit, 3\" blast)",
+				"Wing section (partial cover, angled surface, can climb on top)"
+			],
+			"regular_features": [
+				"Hull plate debris (partial cover, scattered across sector)",
+				"Seat cluster (partial cover, low obstacle)",
+				"Landing gear strut (partial cover, tall, blocks LOS at ground level)",
+				"Impact crater (below ground level, full cover when inside, open from above)",
+				"Scattered cargo (partial cover, creates uneven terrain)",
+				"Electrical hazard zone (open, dangerous terrain - stun on contact)"
+			],
+			"scatter_terrain": [
+				"Metal fragment",
+				"Wire bundle",
+				"Broken panel",
+				"Personal effects",
+				"Insulation chunk",
+				"Cracked viewport glass"
+			]
+		}
+	},
+	"scatter_per_sector": "1d6+2",
+	"notable_feature_count": "1d3",
+	"regular_feature_per_sector_chance": 0.6
+}

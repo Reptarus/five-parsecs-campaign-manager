@@ -1,12 +1,7 @@
-[gd_scene load_steps=4 format=3 uid="uid://bjdo0o2bet0av"]
+[gd_scene load_steps=3 format=3 uid="uid://bjdo0o2bet0av"]
 
 [ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="1_nq7n0"]
-
-[sub_resource type="Resource" id="Resource_st0pu"]
-metadata/__load_path__ = "res://Resources/CampaignManagement/TravelPhase.gd"
-
-[sub_resource type="Resource" id="Resource_8gh5s"]
-metadata/__load_path__ = "res://Resources/GameData/StarshipTravelEvents.gd"
+[ext_resource type="Script" path="res://src/ui/screens/campaign/TravelPhase.gd" id="2_script"]
 
 [node name="TravelPhaseUI" type="Control"]
 layout_mode = 3
@@ -16,7 +11,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("1_nq7n0")
-script = SubResource("Resource_st0pu")
+script = ExtResource("2_script")
 
 [node name="Background" type="TextureRect" parent="."]
 layout_mode = 1
@@ -123,7 +118,6 @@ grow_vertical = 0
 size_flags_vertical = 3
 
 [node name="StarshipTravelEvents" type="Node" parent="."]
-script = SubResource("Resource_8gh5s")
 
 [connection signal="pressed" from="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Upkeep/UpkeepButton" to="." method="_on_upkeep_button_pressed"]
 [connection signal="pressed" from="CenterContainer/PanelContainer/VBoxContainer/TabContainer/Travel/TravelOptions/StayButton" to="." method="_on_stay_button_pressed"]

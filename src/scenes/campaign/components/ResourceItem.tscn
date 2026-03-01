@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://b8q6y4n2x5m6w"]
+[gd_scene load_steps=2 format=3]
 
 [ext_resource type="Script" uid="uid://cqfpq27q7dtmf" path="res://src/scenes/campaign/components/ResourceItem.gd" id="1_r5m3r"]
 

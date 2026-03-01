@@ -1,0 +1,54 @@
+[gd_scene load_steps=2 format=3 uid="uid://c8qnv5dkfm2gy"]
+
+[ext_resource type="Script" path="res://src/ui/components/battle/DeploymentConditionsPanel.gd" id="1_script"]
+
+[node name="DeploymentConditionsPanel" type="PanelContainer"]
+custom_minimum_size = Vector2(350, 200)
+offset_right = 350.0
+offset_bottom = 200.0
+script = ExtResource("1_script")
+
+[node name="VBox" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="MissionTypeLabel" type="Label" parent="VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 12
+text = "Mission: Opportunity"
+
+[node name="TitleLabel" type="Label" parent="VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Deployment Condition"
+
+[node name="RollDisplay" type="Label" parent="VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+theme_override_font_sizes/font_size = 11
+text = "Rolled: 50"
+
+[node name="HSeparator" type="HSeparator" parent="VBox"]
+layout_mode = 2
+
+[node name="DescriptionLabel" type="RichTextLabel" parent="VBox"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+bbcode_enabled = true
+text = "Condition description appears here."
+fit_content = true
+
+[node name="EffectsLabel" type="Label" parent="VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.8, 0.4, 1)
+theme_override_font_sizes/font_size = 12
+text = "• Effect 1
+• Effect 2"
+autowrap_mode = 3
+
+[node name="HSeparator2" type="HSeparator" parent="VBox"]
+layout_mode = 2
+
+[node name="ButtonContainer" type="HBoxContainer" parent="VBox"]
+layout_mode = 2
+alignment = 1

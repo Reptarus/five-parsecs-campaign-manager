@@ -1,18 +1,18 @@
-# This file should be referenced via preload
+﻿# This file should be referenced via preload
 # Use explicit preloads instead of global class names
 extends Node
 
 const Self = preload("res://StateMachines/CampaignStateMachine.gd")
-const FiveParsecsGameEnums = preload("res://src/core/systems/GlobalEnums.gd")
+const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const GameCampaignManager = preload("res://src/core/campaign/GameCampaignManager.gd")
 
 # Import the enums directly for cleaner code
-const FiveParcsecsCampaignPhase = FiveParsecsGameEnums.FiveParcsecsCampaignPhase
+const FiveParsecsCampaignPhase = GameEnums.FiveParsecsCampaignPhase
 
 signal state_changed(new_state: int)
 
-var current_state: int = FiveParsecsGameEnums.GameState.SETUP
+var current_state: int = GameEnums.GameState.SETUP
 var game_state: FiveParsecsGameState
 var campaign_manager: GameCampaignManager
 
@@ -36,24 +36,24 @@ func change_state(new_state: int) -> void:
 
 func _enter_state(state: int) -> void:
 	match state:
-		FiveParsecsGameEnums.GameState.SETUP:
+		GameEnums.GameState.SETUP:
 			_handle_setup()
-		FiveParsecsGameEnums.GameState.CAMPAIGN:
+		GameEnums.GameState.CAMPAIGN:
 			_handle_campaign_phase()
-		FiveParsecsGameEnums.GameState.BATTLE:
+		GameEnums.GameState.BATTLE:
 			_handle_battle_phase()
-		FiveParsecsGameEnums.GameState.GAME_OVER:
+		GameEnums.GameState.GAME_OVER:
 			_handle_game_over()
 
 func _exit_state(state: int) -> void:
 	match state:
-		FiveParsecsGameEnums.GameState.SETUP:
+		GameEnums.GameState.SETUP:
 			game_state.save_setup_data()
-		FiveParsecsGameEnums.GameState.CAMPAIGN:
+		GameEnums.GameState.CAMPAIGN:
 			game_state.save_campaign_state()
-		FiveParsecsGameEnums.GameState.BATTLE:
+		GameEnums.GameState.BATTLE:
 			game_state.save_battle_state()
-		FiveParsecsGameEnums.GameState.GAME_OVER:
+		GameEnums.GameState.GAME_OVER:
 			game_state.save_final_state()
 
 func _handle_setup() -> void:
@@ -72,20 +72,20 @@ func _handle_game_over() -> void:
 	game_state.finalize_campaign()
 
 # Signal handlers
-func _on_phase_changed(new_phase: FiveParcsecsCampaignPhase) -> void:
+func _on_phase_changed(new_phase: FiveParsecsCampaignPhase) -> void:
 	match new_phase:
-		FiveParcsecsCampaignPhase.SETUP:
-			change_state(FiveParsecsGameEnums.GameState.SETUP)
-		FiveParcsecsCampaignPhase.UPKEEP, \
-		FiveParcsecsCampaignPhase.STORY, \
-		FiveParcsecsCampaignPhase.CAMPAIGN, \
-		FiveParcsecsCampaignPhase.ADVANCEMENT, \
-		FiveParcsecsCampaignPhase.TRADE:
-			change_state(FiveParsecsGameEnums.GameState.CAMPAIGN)
-		FiveParcsecsCampaignPhase.BATTLE_SETUP, \
-		FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
-			change_state(FiveParsecsGameEnums.GameState.BATTLE)
+		FiveParsecsCampaignPhase.SETUP:
+			change_state(GameEnums.GameState.SETUP)
+		FiveParsecsCampaignPhase.UPKEEP, \
+		FiveParsecsCampaignPhase.STORY, \
+		FiveParsecsCampaignPhase.MISSION, \
+		FiveParsecsCampaignPhase.ADVANCEMENT, \
+		FiveParsecsCampaignPhase.TRADING:
+			change_state(GameEnums.GameState.CAMPAIGN)
+		FiveParsecsCampaignPhase.BATTLE_SETUP, \
+		FiveParsecsCampaignPhase.BATTLE_RESOLUTION:
+			change_state(GameEnums.GameState.BATTLE)
 
 func _on_turn_completed() -> void:
-	if current_state != FiveParsecsGameEnums.GameState.GAME_OVER:
-		change_state(FiveParsecsGameEnums.GameState.CAMPAIGN)
+	if current_state != GameEnums.GameState.GAME_OVER:
+		change_state(GameEnums.GameState.CAMPAIGN)

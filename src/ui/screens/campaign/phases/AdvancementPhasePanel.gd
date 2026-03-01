@@ -3,14 +3,19 @@ extends "res://src/ui/screens/campaign/phases/BasePhasePanel.gd"
 # Use explicit preloads instead of global class names
 
 const ThisClass = preload("res://src/ui/screens/campaign/phases/AdvancementPhasePanel.gd")
-const Character = preload("res://src/core/character/Base/Character.gd")
+const CompendiumEquipmentRef = preload("res://src/data/compendium_equipment.gd")
 
-@onready var crew_list = $VBoxContainer/CrewList
-@onready var advancement_options = $VBoxContainer/AdvancementOptions
-@onready var character_info = $VBoxContainer/CharacterInfo
-@onready var apply_button = $VBoxContainer/ApplyButton
+@onready var title_label: Label = $VBoxContainer/TitleLabel
+@onready var crew_section_label: Label = $VBoxContainer/CrewLabel
+@onready var crew_list: ItemList = $VBoxContainer/CrewList
+@onready var character_info: RichTextLabel = $VBoxContainer/CharacterInfo
+@onready var advancement_label: Label = $VBoxContainer/AdvancementLabel
+@onready var advancement_options: ItemList = $VBoxContainer/AdvancementOptions
+@onready var apply_button: Button = $VBoxContainer/ApplyButton
+@onready var done_button: Button = $VBoxContainer/DoneButton
 
-var selected_crew_member: Character
+var selected_crew_member = null # Character instance or Dictionary
+var selected_crew_index: int = -1
 var available_advancements: Array = []
 var selected_advancement: Dictionary = {}
 
@@ -45,12 +50,60 @@ var max_stats: Dictionary = {
 
 func _ready() -> void:
 	super._ready()
+	_style_phase_title(title_label)
+	_style_section_label(crew_section_label)
+	_style_item_list(crew_list)
+	_style_rich_text(character_info)
+	_style_section_label(advancement_label)
+	_style_item_list(advancement_options)
+	_style_phase_button(apply_button)
+	_style_phase_button(done_button, true)
 	_connect_signals()
 
 func _connect_signals() -> void:
-	crew_list.item_selected.connect(_on_crew_selected)
-	advancement_options.item_selected.connect(_on_advancement_selected)
-	apply_button.pressed.connect(_on_apply_pressed)
+	if crew_list:
+		crew_list.item_selected.connect(_on_crew_selected)
+	if advancement_options:
+		advancement_options.item_selected.connect(_on_advancement_selected)
+	if apply_button:
+		apply_button.pressed.connect(_on_apply_pressed)
+	if done_button:
+		done_button.pressed.connect(_on_done_pressed)
+
+func _get_campaign_safe():
+	return game_state.campaign if game_state else null
+
+func _get_crew_members() -> Array:
+	var campaign = _get_campaign_safe()
+	if not campaign:
+		return []
+	if campaign.has_method("get_active_crew_members"):
+		return campaign.get_active_crew_members()
+	if campaign.has_method("get_crew_members"):
+		return campaign.get_crew_members()
+	if "crew_data" in campaign:
+		return campaign.crew_data.get("members", [])
+	return []
+
+func _get_credits() -> int:
+	var campaign = _get_campaign_safe()
+	if not campaign:
+		return 0
+	if "credits" in campaign:
+		return campaign.credits
+	return 0
+
+func _member_get(member, prop: String, default_val = null):
+	if member is Dictionary:
+		return member.get(prop, default_val)
+	elif prop in member:
+		return member.get(prop) if member.has_method("get") else member[prop]
+	return default_val
+
+func _member_has_method(member, method_name: String) -> bool:
+	if member is Dictionary:
+		return false
+	return member.has_method(method_name) if member else false
 
 func setup_phase() -> void:
 	super.setup_phase()
@@ -58,86 +111,83 @@ func setup_phase() -> void:
 	_update_ui()
 
 func _load_crew() -> void:
+	if not crew_list:
+		return
 	crew_list.clear()
-	for member in game_state.campaign.crew_members:
+	var members = _get_crew_members()
+	if members.is_empty():
+		crew_list.add_item("No Crew Members")
+		return
+	for member in members:
 		# Bots don't get XP
-		if member.is_bot:
+		if _member_get(member, "is_bot", false):
 			continue
-			
-		var text = "%s (Level %d)" % [member.character_name, member.level]
-		if member.experience >= member.get_experience_for_next_level():
+
+		var name_str: String = _member_get(member, "character_name", "Unknown")
+		var level: int = _member_get(member, "level", 1)
+		var text = "%s (Level %d)" % [name_str, level]
+
+		var experience: int = _member_get(member, "experience", 0)
+		var next_level_xp: int = 100
+		if _member_has_method(member, "get_experience_for_next_level"):
+			next_level_xp = member.get_experience_for_next_level()
+		if experience >= next_level_xp:
 			text += " - LEVEL UP AVAILABLE"
 		crew_list.add_item(text)
 
 func _update_ui() -> void:
 	if not selected_crew_member:
-		character_info.text = "Select a crew member"
-		advancement_options.clear()
-		apply_button.disabled = true
+		if character_info:
+			character_info.text = "Select a crew member"
+		if advancement_options:
+			advancement_options.clear()
+		if apply_button:
+			apply_button.disabled = true
 		return
-	
+
 	_update_character_info()
 	_update_advancement_options()
 
 func _update_character_info() -> void:
-	var info := "[b]%s[/b]\n" % selected_crew_member.character_name
-	info += "Class: %s\n" % GameEnums.get_character_class_name(selected_crew_member.character_class)
-	info += "Level: %d\n" % selected_crew_member.level
-	info += "Experience: %d/%d\n" % [
-		selected_crew_member.experience,
-		selected_crew_member.get_experience_for_next_level()
-	]
-	
+	if not character_info:
+		return
+	var name_str: String = _member_get(selected_crew_member, "character_name", "Unknown")
+	var level: int = _member_get(selected_crew_member, "level", 1)
+	var experience: int = _member_get(selected_crew_member, "experience", 0)
+	var next_level_xp: int = 100
+	if _member_has_method(selected_crew_member, "get_experience_for_next_level"):
+		next_level_xp = selected_crew_member.get_experience_for_next_level()
+
+	var info := "[b]%s[/b]\n" % name_str
+	info += "Level: %d\n" % level
+	info += "Experience: %d/%d\n" % [experience, next_level_xp]
+
 	info += "\n[b]Stats:[/b]\n"
-	info += "Health: %d/%d\n" % [selected_crew_member.health, selected_crew_member.max_health]
-	info += "Reaction: %d/%d\n" % [selected_crew_member.reaction, max_stats.REACTION]
-	info += "Combat: %d/%d\n" % [selected_crew_member.combat, max_stats.COMBAT]
-	info += "Speed: %d/%d\n" % [selected_crew_member.speed, max_stats.SPEED]
-	info += "Savvy: %d/%d\n" % [selected_crew_member.savvy, max_stats.SAVVY]
-	info += "Toughness: %d/%d\n" % [selected_crew_member.toughness, max_stats.TOUGHNESS]
-	info += "Luck: %d/%d\n" % [selected_crew_member.luck, max_stats.LUCK]
-	
-	info += "\n[b]Training:[/b]\n"
-	if selected_crew_member.training == GameEnums.Training.NONE:
-		info += "None\n"
-	else:
-		info += "• %s\n" % GameEnums.get_training_name(selected_crew_member.training)
-	
-	info += "\n[b]Skills:[/b]\n"
-	if selected_crew_member.skills.is_empty():
-		info += "None\n"
-	else:
-		for skill_name in selected_crew_member.skills:
-			info += "• %s\n" % skill_name
-	
-	info += "\n[b]Abilities:[/b]\n"
-	if selected_crew_member.abilities.is_empty():
-		info += "None\n"
-	else:
-		for ability_name in selected_crew_member.abilities:
-			info += "• %s\n" % ability_name
-	
-	info += "\n[b]Traits:[/b]\n"
-	if selected_crew_member.traits.is_empty():
-		info += "None\n"
-	else:
-		for trait_name in selected_crew_member.traits:
-			info += "• %s\n" % trait_name
-	
+	info += "Reaction: %d/%d\n" % [_member_get(selected_crew_member, "reaction", 1), max_stats.REACTION]
+	info += "Combat: %d/%d\n" % [_member_get(selected_crew_member, "combat", 0), max_stats.COMBAT]
+	info += "Speed: %d/%d\n" % [_member_get(selected_crew_member, "speed", 4), max_stats.SPEED]
+	info += "Savvy: %d/%d\n" % [_member_get(selected_crew_member, "savvy", 0), max_stats.SAVVY]
+	info += "Toughness: %d/%d\n" % [_member_get(selected_crew_member, "toughness", 3), max_stats.TOUGHNESS]
+	info += "Luck: %d/%d\n" % [_member_get(selected_crew_member, "luck", 0), max_stats.LUCK]
+
 	character_info.text = info
 
 func _update_advancement_options() -> void:
+	if not advancement_options:
+		return
 	advancement_options.clear()
 	available_advancements = _get_available_advancements()
-	
+
 	for advancement in available_advancements:
 		var text = advancement.name
-		if selected_crew_member.is_bot:
+		if advancement.get("type") == "COMPENDIUM" or advancement.get("currency") == "credits":
+			text += " (%d credits)" % advancement.cost
+		elif _member_get(selected_crew_member, "is_bot", false):
 			text += " (%d credits)" % advancement.cost
 		else:
 			text += " (%d XP)" % advancement.cost
 		advancement_options.add_item(text)
-		
+
 		if not _can_apply_advancement(advancement):
 			var idx = advancement_options.item_count - 1
 			advancement_options.set_item_disabled(idx, true)
@@ -146,7 +196,9 @@ func _update_advancement_options() -> void:
 
 func _get_available_advancements() -> Array:
 	var advancements = []
-	
+	if not selected_crew_member:
+		return advancements
+
 	# Add stat improvements
 	advancements.append_array([
 		{
@@ -187,7 +239,7 @@ func _get_available_advancements() -> Array:
 			"stat": "toughness",
 			"amount": 1,
 			"cost": advancement_costs.TOUGHNESS,
-			"max": max_stats.TOUGHNESS if selected_crew_member.character_class != GameEnums.CharacterClass.ENGINEER else 4
+			"max": max_stats.TOUGHNESS
 		},
 		{
 			"name": "Increase Luck",
@@ -195,135 +247,123 @@ func _get_available_advancements() -> Array:
 			"stat": "luck",
 			"amount": 1,
 			"cost": advancement_costs.LUCK,
-			"max": 3 if selected_crew_member.is_human else max_stats.LUCK
+			"max": max_stats.LUCK
 		}
 	])
-	
-	# Add training options if character doesn't have any yet
-	if selected_crew_member.training == GameEnums.Training.NONE:
-		advancements.append_array([
-			{
-				"name": "Pilot Training",
-				"type": "TRAINING",
-				"training": GameEnums.Training.PILOT,
-				"cost": advancement_costs.TRAINING.PILOT
-			},
-			{
-				"name": "Mechanic Training",
-				"type": "TRAINING",
-				"training": GameEnums.Training.MECHANIC,
-				"cost": advancement_costs.TRAINING.MECHANIC
-			},
-			{
-				"name": "Medical Training",
-				"type": "TRAINING",
-				"training": GameEnums.Training.MEDICAL,
-				"cost": advancement_costs.TRAINING.MEDICAL
-			},
-			{
-				"name": "Merchant Training",
-				"type": "TRAINING",
-				"training": GameEnums.Training.MERCHANT,
-				"cost": advancement_costs.TRAINING.MERCHANT
-			},
-			{
-				"name": "Security Training",
-				"type": "TRAINING",
-				"training": GameEnums.Training.SECURITY,
-				"cost": advancement_costs.TRAINING.SECURITY
-			},
-			{
-				"name": "Broker Training",
-				"type": "TRAINING",
-				"training": GameEnums.Training.BROKER,
-				"cost": advancement_costs.TRAINING.BROKER
-			},
-			{
-				"name": "Bot Tech Training",
-				"type": "TRAINING",
-				"training": GameEnums.Training.BOT_TECH,
-				"cost": advancement_costs.TRAINING.BOT_TECH
-			}
-		])
-	
+
+	# Compendium DLC: Advanced training + bot upgrades (cost in credits, not XP)
+	var compendium_items: Array[Dictionary] = CompendiumEquipmentRef.get_advancement_phase_items()
+	for item in compendium_items:
+		advancements.append({
+			"name": item.get("name", "Unknown"),
+			"type": "COMPENDIUM",
+			"compendium_id": item.get("id", ""),
+			"cost": item.get("cost", 0),
+			"currency": item.get("currency", "credits"),
+			"instruction": item.get("instruction", ""),
+			"description": item.get("description", ""),
+		})
+
 	return advancements
 
 func _can_apply_advancement(advancement: Dictionary) -> bool:
-	# Check if bot or soulless for training restrictions
-	if advancement.type == "TRAINING":
-		if selected_crew_member.is_soulless:
-			return false
-		if selected_crew_member.is_bot and not game_state.campaign.credits >= advancement.cost:
-			return false
-	
+	if not selected_crew_member:
+		return false
+	var is_bot: bool = _member_get(selected_crew_member, "is_bot", false)
+	var experience: int = _member_get(selected_crew_member, "experience", 0)
+	var credits: int = _get_credits()
+
+	# Compendium items always cost credits
+	if advancement.type == "COMPENDIUM":
+		return credits >= advancement.cost
+
 	# Check XP cost for non-bots
-	if not selected_crew_member.is_bot and selected_crew_member.experience < advancement.cost:
+	if not is_bot and experience < advancement.cost:
 		return false
-		
+
 	# Check credit cost for bots
-	if selected_crew_member.is_bot and game_state.campaign.credits < advancement.cost:
+	if is_bot and credits < advancement.cost:
 		return false
-	
+
 	# Check stat maximums
 	if advancement.type == "STAT":
-		var current_value = selected_crew_member.get(advancement.stat)
+		var current_value: int = _member_get(selected_crew_member, advancement.stat, 0)
 		if current_value >= advancement.max:
 			return false
-			
-		# Special case for engineer toughness limit
-		if advancement.stat == "toughness" and selected_crew_member.character_class == GameEnums.CharacterClass.ENGINEER and current_value >= 4:
-			return false
-	
+
 	return true
 
 func _get_requirement_tooltip(advancement: Dictionary) -> String:
 	var tooltip = ""
-	
-	if advancement.type == "TRAINING":
-		if selected_crew_member.is_soulless:
-			tooltip = "Soulless characters cannot receive training"
-		elif selected_crew_member.is_bot and game_state.campaign.credits < advancement.cost:
-			tooltip = "Not enough credits (need %d)" % advancement.cost
-	
-	if not selected_crew_member.is_bot and selected_crew_member.experience < advancement.cost:
+	var is_bot: bool = _member_get(selected_crew_member, "is_bot", false)
+	var experience: int = _member_get(selected_crew_member, "experience", 0)
+	var credits: int = _get_credits()
+
+	if not is_bot and experience < advancement.cost:
 		tooltip = "Not enough XP (need %d)" % advancement.cost
-		
-	if selected_crew_member.is_bot and game_state.campaign.credits < advancement.cost:
+
+	if is_bot and credits < advancement.cost:
 		tooltip = "Not enough credits (need %d)" % advancement.cost
-	
+
 	if advancement.type == "STAT":
-		var current_value = selected_crew_member.get(advancement.stat)
+		var current_value: int = _member_get(selected_crew_member, advancement.stat, 0)
 		if current_value >= advancement.max:
 			tooltip = "Maximum value reached"
-			
-		if advancement.stat == "toughness" and selected_crew_member.character_class == GameEnums.CharacterClass.ENGINEER and current_value >= 4:
-			tooltip = "Engineers cannot raise Toughness above 4"
-	
+
 	return tooltip
 
 func _on_crew_selected(index: int) -> void:
-	selected_crew_member = game_state.campaign.crew_members[index]
+	var members = _get_crew_members()
+	# Filter out bots for indexing
+	var non_bot_members: Array = []
+	for m in members:
+		if not _member_get(m, "is_bot", false):
+			non_bot_members.append(m)
+	if index >= 0 and index < non_bot_members.size():
+		selected_crew_member = non_bot_members[index]
+		selected_crew_index = index
 	_update_ui()
 
 func _on_advancement_selected(index: int) -> void:
-	selected_advancement = available_advancements[index]
-	apply_button.disabled = not _can_apply_advancement(selected_advancement)
+	if index >= 0 and index < available_advancements.size():
+		selected_advancement = available_advancements[index]
+		if apply_button:
+			apply_button.disabled = not _can_apply_advancement(selected_advancement)
 
 func _on_apply_pressed() -> void:
-	if not _can_apply_advancement(selected_advancement):
+	if not selected_crew_member or not _can_apply_advancement(selected_advancement):
 		return
-		
+
+	var is_bot: bool = _member_get(selected_crew_member, "is_bot", false)
+
 	match selected_advancement.type:
 		"STAT":
-			selected_crew_member.set(selected_advancement.stat, selected_crew_member.get(selected_advancement.stat) + selected_advancement.amount)
-		"TRAINING":
-			selected_crew_member.training = selected_advancement.training
-	
+			var current_val: int = _member_get(selected_crew_member, selected_advancement.stat, 0)
+			if selected_crew_member is Dictionary:
+				selected_crew_member[selected_advancement.stat] = current_val + selected_advancement.amount
+			else:
+				selected_crew_member.set(selected_advancement.stat, current_val + selected_advancement.amount)
+
 	# Deduct cost
-	if selected_crew_member.is_bot:
-		game_state.campaign.credits -= selected_advancement.cost
+	if is_bot:
+		var campaign = _get_campaign_safe()
+		if campaign and "credits" in campaign:
+			campaign.credits -= selected_advancement.cost
 	else:
-		selected_crew_member.experience -= selected_advancement.cost
-	
+		if selected_crew_member is Dictionary:
+			selected_crew_member["experience"] = _member_get(selected_crew_member, "experience", 0) - selected_advancement.cost
+		else:
+			selected_crew_member.experience -= selected_advancement.cost
+
 	_update_ui()
 
+func _on_done_pressed() -> void:
+	complete_phase()
+
+func validate_phase_requirements() -> bool:
+	return game_state != null
+
+func get_phase_data() -> Dictionary:
+	return {
+		"crew_count": _get_crew_members().size(),
+	}

@@ -1,0 +1,270 @@
+{
+  "enemy_type": "pirates",
+  "display_name": "Pirates",
+  "description": "Opportunistic raiders and ship-based criminals seeking profit",
+  
+  "base_stats": {
+    "health": 65,
+    "movement": 5,
+    "weapon_range": 4,
+    "ai_behavior": "aggressive"
+  },
+  
+  "variants": {
+    "rookie_raider": {
+      "experience_level": "green",
+      "equipment_condition": "poor",
+      "crew_loyalty": 2,
+      "greed_factor": 4,
+      "stats_modifier": {
+        "health": -10,
+        "movement": 0,
+        "weapon_range": -1
+      }
+    },
+    
+    "veteran_pirate": {
+      "experience_level": "seasoned",
+      "equipment_condition": "standard",
+      "crew_loyalty": 3,
+      "greed_factor": 3,
+      "stats_modifier": {
+        "health": 0,
+        "movement": 0,
+        "weapon_range": 0
+      }
+    },
+    
+    "pirate_captain": {
+      "experience_level": "veteran",
+      "equipment_condition": "good",
+      "crew_loyalty": 4,
+      "greed_factor": 2,
+      "stats_modifier": {
+        "health": 20,
+        "movement": 1,
+        "weapon_range": 1
+      },
+      "special_abilities": ["crew_inspiration", "tactical_cunning"]
+    },
+    
+    "legendary_corsair": {
+      "experience_level": "legendary",
+      "equipment_condition": "excellent",
+      "crew_loyalty": 5,
+      "greed_factor": 1,
+      "stats_modifier": {
+        "health": 40,
+        "movement": 2,
+        "weapon_range": 2
+      },
+      "special_abilities": ["legendary_reputation", "perfect_timing", "crew_inspiration"]
+    }
+  },
+  
+  "clan_affiliations": {
+    "free_company": {
+      "description": "Independent pirate crew",
+      "crew_size": "small",
+      "ship_quality": "mixed",
+      "territory": "none",
+      "reputation": 2
+    },
+    
+    "raider_clan": {
+      "description": "Organized pirate clan with territory",
+      "crew_size": "medium",
+      "ship_quality": "standardized",
+      "territory": "asteroid_field",
+      "reputation": 3
+    },
+    
+    "corsair_fleet": {
+      "description": "Large pirate organization",
+      "crew_size": "large",
+      "ship_quality": "military_grade",
+      "territory": "system_wide",
+      "reputation": 4
+    }
+  },
+  
+  "deployment_patterns": {
+    "boarding_party": {
+      "formation": "assault_wave",
+      "group_size": [3, 6],
+      "equipment_focus": "close_combat",
+      "tactics": ["rapid_assault", "intimidation"]
+    },
+    
+    "ship_raiders": {
+      "formation": "mobile_strike",
+      "group_size": [4, 8],
+      "equipment_focus": "mobility",
+      "tactics": ["hit_and_run", "prize_capture"]
+    },
+    
+    "treasure_hunters": {
+      "formation": "search_and_destroy",
+      "group_size": [2, 5],
+      "equipment_focus": "detection",
+      "tactics": ["methodical_search", "valuable_targets"]
+    }
+  },
+  
+  "loot_tables": {
+    "credits": {
+      "base_amount": 200,
+      "variance": 100,
+      "chance": 0.9
+    },
+    
+    "pirate_weapons": [
+      {
+        "name": "Boarding Cutlass",
+        "type": "weapon",
+        "value": 300,
+        "chance": 0.6,
+        "condition": "battle_worn"
+      },
+      {
+        "name": "Raider Pistol",
+        "type": "weapon",
+        "value": 400,
+        "chance": 0.5,
+        "condition": "functional"
+      },
+      {
+        "name": "Captain's Blade",
+        "type": "weapon",
+        "value": 1200,
+        "chance": 0.1,
+        "rarity": "rare",
+        "requires_variant": "pirate_captain"
+      }
+    ],
+    
+    "stolen_goods": [
+      {
+        "name": "Looted Credits",
+        "type": "credits",
+        "value": 150,
+        "chance": 0.7
+      },
+      {
+        "name": "Stolen Equipment",
+        "type": "equipment",
+        "value": 500,
+        "chance": 0.4,
+        "quality": "random"
+      },
+      {
+        "name": "Contraband Cache",
+        "type": "contraband",
+        "value": 800,
+        "chance": 0.2,
+        "danger_level": 2
+      },
+      {
+        "name": "Treasure Map Fragment",
+        "type": "data",
+        "value": 1000,
+        "chance": 0.05,
+        "rarity": "epic"
+      }
+    ],
+    
+    "ship_components": [
+      {
+        "name": "Salvaged Ship Parts",
+        "type": "ship_component",
+        "value": 300,
+        "chance": 0.3
+      },
+      {
+        "name": "Navigation Data",
+        "type": "data",
+        "value": 400,
+        "chance": 0.2
+      },
+      {
+        "name": "Ship Weapon System",
+        "type": "ship_weapon",
+        "value": 2000,
+        "chance": 0.05,
+        "requires_clan": "corsair_fleet"
+      }
+    ],
+    
+    "intelligence": [
+      {
+        "name": "Trade Route Information",
+        "type": "intelligence",
+        "value": 350,
+        "chance": 0.3
+      },
+      {
+        "name": "Rival Crew Location",
+        "type": "intelligence",
+        "value": 500,
+        "chance": 0.2
+      },
+      {
+        "name": "Hidden Base Coordinates",
+        "type": "intelligence",
+        "value": 1500,
+        "chance": 0.05
+      }
+    ]
+  },
+  
+  "behavioral_traits": {
+    "opportunistic_nature": {
+      "target_preference": "weakest_first",
+      "retreat_when_outmatched": true,
+      "loot_priority": "high"
+    },
+    
+    "crew_dynamics": {
+      "loyalty_to_profit": "high",
+      "intimidation_tactics": "moderate",
+      "ship_loyalty": "variable"
+    },
+    
+    "combat_style": {
+      "preferred_range": "close",
+      "boarding_specialists": true,
+      "ship_combat_capable": true
+    }
+  },
+  
+  "morale_factors": {
+    "loot_available": {
+      "modifier": 2,
+      "description": "Pirates fight harder when treasure is at stake"
+    },
+    "captain_present": {
+      "modifier": 1,
+      "description": "Leadership improves crew performance"
+    },
+    "ship_threatened": {
+      "modifier": 1,
+      "description": "Pirates defend their ship fiercely"
+    },
+    "easy_targets": {
+      "modifier": 1,
+      "description": "Confidence boost against weak opposition"
+    },
+    "heavy_losses": {
+      "modifier": -2,
+      "description": "Pirates become demoralized by casualties"
+    }
+  },
+  
+  "threat_assessment": {
+    "danger_level": 3,
+    "predictability": "moderate",
+    "equipment_quality": "variable",
+    "group_coordination": "moderate",
+    "backup_likelihood": "low"
+  }
+}

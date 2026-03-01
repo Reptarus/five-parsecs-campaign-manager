@@ -1,0 +1,264 @@
+[gd_scene load_steps=14 format=3 uid="uid://c8vx1lawp7fqj"]
+
+[ext_resource type="Script" uid="uid://nbyp2k0dvldt" path="res://src/ui/screens/world/WorldPhaseController.gd" id="1_controller"]
+[ext_resource type="PackedScene" uid="uid://bkw8n7qx3m5jr" path="res://src/ui/screens/world/components/UpkeepPhaseComponent.tscn" id="2_upkeep"]
+[ext_resource type="PackedScene" uid="uid://bfj8x2n4k9mrl" path="res://src/ui/screens/world/components/CrewTaskComponent.tscn" id="3_crew_task"]
+[ext_resource type="PackedScene" uid="uid://c3xk8nawr1qj" path="res://src/ui/screens/world/components/JobOfferComponent.tscn" id="4_job_offer"]
+[ext_resource type="PackedScene" uid="uid://d2yk7n5vs3pl" path="res://src/ui/screens/world/components/MissionPrepComponent.tscn" id="5_mission_prep"]
+[ext_resource type="PackedScene" path="res://src/ui/screens/world/components/AssignEquipmentComponent.tscn" id="6_assign_equipment"]
+[ext_resource type="PackedScene" path="res://src/ui/screens/world/components/ResolveRumorsComponent.tscn" id="7_resolve_rumors"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1"]
+bg_color = Color(0.176, 0.353, 0.482, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_content_panel"]
+bg_color = Color(0.145, 0.145, 0.259, 0.85)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.227, 0.227, 0.361, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_normal"]
+bg_color = Color(0.176, 0.353, 0.482, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.227, 0.227, 0.361, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
+bg_color = Color(0.227, 0.443, 0.6, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.31, 0.78, 0.97, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_battle_button_normal"]
+bg_color = Color(0.065, 0.725, 0.506, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.227, 0.227, 0.361, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_battle_button_hover"]
+bg_color = Color(0.08, 0.85, 0.6, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.065, 0.725, 0.506, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="WorldPhaseController" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_controller")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.102, 0.102, 0.18, 1)
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 32
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="Header" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_font_sizes/font_size = 24
+text = "World Phase - Campaign Turn Management"
+horizontal_alignment = 1
+
+[node name="CurrentStepLabel" type="Label" parent="MarginContainer/VBoxContainer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.502, 0.502, 0.502, 1)
+theme_override_font_sizes/font_size = 18
+text = "Step 1 of 6: Upkeep"
+horizontal_alignment = 1
+
+[node name="PhaseProgressBar" type="ProgressBar" parent="MarginContainer/VBoxContainer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/fill = SubResource("StyleBoxFlat_1")
+value = 25.0
+show_percentage = false
+
+[node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="PhaseContainer" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_content_panel")
+
+[node name="UpkeepContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PhaseContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="UpkeepPhaseComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/UpkeepContainer" instance=ExtResource("2_upkeep")]
+
+[node name="CrewTaskContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PhaseContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="CrewTaskComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/CrewTaskContainer" instance=ExtResource("3_crew_task")]
+
+[node name="JobOfferContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PhaseContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="JobOfferComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/JobOfferContainer" instance=ExtResource("4_job_offer")]
+
+[node name="MissionPrepContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PhaseContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="MissionPrepComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/MissionPrepContainer" instance=ExtResource("5_mission_prep")]
+
+[node name="AssignEquipmentContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PhaseContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="AssignEquipmentComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/AssignEquipmentContainer" instance=ExtResource("6_assign_equipment")]
+
+[node name="ResolveRumorsContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/PhaseContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="ResolveRumorsComponent" parent="MarginContainer/VBoxContainer/PhaseContainer/ResolveRumorsContainer" instance=ExtResource("7_resolve_rumors")]
+
+[node name="Controls" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AutomationContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/Controls"]
+layout_mode = 2
+alignment = 1
+
+[node name="AutomationLabel" type="Label" parent="MarginContainer/VBoxContainer/Controls/AutomationContainer"]
+layout_mode = 2
+text = "Automation:"
+
+[node name="AutomationToggle" type="CheckBox" parent="MarginContainer/VBoxContainer/Controls/AutomationContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Enable Auto-Processing"
+
+[node name="StepNavigation" type="HBoxContainer" parent="MarginContainer/VBoxContainer/Controls"]
+unique_name_in_owner = true
+layout_mode = 2
+alignment = 1
+
+[node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/Controls/StepNavigation"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 56)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+text = "← Back"
+
+[node name="Spacer" type="Control" parent="MarginContainer/VBoxContainer/Controls/StepNavigation"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NextButton" type="Button" parent="MarginContainer/VBoxContainer/Controls/StepNavigation"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 56)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_colors/font_pressed_color = Color(0.31, 0.78, 0.97, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+text = "Next →"
+
+[node name="HSeparator2" type="HSeparator" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Footer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="BackToDashboardButton" type="Button" parent="MarginContainer/VBoxContainer/Footer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+text = "← Back to Dashboard"
+
+[node name="FooterSpacer" type="Control" parent="MarginContainer/VBoxContainer/Footer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ProceedToBattleButton" type="Button" parent="MarginContainer/VBoxContainer/Footer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_battle_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_battle_button_hover")
+text = "⚔ Proceed to Battle"

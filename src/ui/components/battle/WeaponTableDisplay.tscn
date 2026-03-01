@@ -1,0 +1,99 @@
+[gd_scene load_steps=2 format=3 uid="uid://bk3r2navfqt5y"]
+
+[ext_resource type="Script" path="res://src/ui/components/battle/WeaponTableDisplay.gd" id="1_script"]
+
+[node name="WeaponTableDisplay" type="PanelContainer"]
+custom_minimum_size = Vector2(420, 500)
+offset_right = 420.0
+offset_bottom = 500.0
+script = ExtResource("1_script")
+
+[node name="VBox" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Weapon Reference"
+horizontal_alignment = 1
+
+[node name="SearchBox" type="LineEdit" parent="VBox"]
+layout_mode = 2
+placeholder_text = "Search weapons..."
+
+[node name="CategoryTabs" type="TabBar" parent="VBox"]
+layout_mode = 2
+tab_count = 6
+tab_0/title = "All"
+tab_1/title = "Pistols"
+tab_2/title = "Rifles"
+tab_3/title = "Heavy"
+tab_4/title = "Melee"
+tab_5/title = "Special"
+
+[node name="HeaderRow" type="HBoxContainer" parent="VBox"]
+layout_mode = 2
+
+[node name="NameHeader" type="Label" parent="VBox/HeaderRow"]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+theme_override_font_sizes/font_size = 11
+text = "Name"
+
+[node name="RangeHeader" type="Label" parent="VBox/HeaderRow"]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+theme_override_font_sizes/font_size = 11
+text = "Rng"
+horizontal_alignment = 1
+
+[node name="ShotsHeader" type="Label" parent="VBox/HeaderRow"]
+custom_minimum_size = Vector2(30, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+theme_override_font_sizes/font_size = 11
+text = "Sh"
+horizontal_alignment = 1
+
+[node name="DmgHeader" type="Label" parent="VBox/HeaderRow"]
+custom_minimum_size = Vector2(30, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+theme_override_font_sizes/font_size = 11
+text = "Dmg"
+horizontal_alignment = 1
+
+[node name="TraitsHeader" type="Label" parent="VBox/HeaderRow"]
+custom_minimum_size = Vector2(20, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+theme_override_font_sizes/font_size = 11
+text = "*"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="VBox"]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="VBox"]
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="WeaponList" type="VBoxContainer" parent="VBox/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HSeparator2" type="HSeparator" parent="VBox"]
+layout_mode = 2
+
+[node name="DetailsPanel" type="PanelContainer" parent="VBox"]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+
+[node name="DetailsLabel" type="RichTextLabel" parent="VBox/DetailsPanel"]
+layout_mode = 2
+bbcode_enabled = true
+text = "Select a weapon to view details."
+fit_content = true

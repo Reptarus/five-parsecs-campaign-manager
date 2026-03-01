@@ -1,165 +1,84 @@
 {
     "name": "terrain_types",
+    "source": "Five Parsecs from Home Core Rules - Battlefield Environments",
     "entries": [
         {
-            "roll_range": [
-                1,
-                20
-            ],
-            "result": {
-                "type": "OPEN_GROUND",
-                "name": "Open Terrain",
-                "movement_modifier": 1.0,
-                "cover_density": 0.2,
-                "features": [
-                    "scattered_rocks",
-                    "small_hills"
-                ],
-                "description": "Open ground with minimal natural cover."
-            },
-            "weight": 1.0,
-            "tags": [
-                "basic",
-                "open"
-            ]
-        },
-        {
-            "roll_range": [
-                21,
-                40
-            ],
+            "roll_range": [1, 25],
             "result": {
                 "type": "URBAN",
-                "name": "Urban Ruins",
+                "name": "Urban Settlement",
                 "movement_modifier": 0.8,
                 "cover_density": 0.7,
-                "features": [
-                    "buildings",
-                    "rubble",
-                    "streets"
-                ],
-                "description": "Ruined urban environment with abundant cover."
+                "features": ["buildings", "rubble", "containers", "streets"],
+                "description": "Colony settlement or outpost with buildings and urban debris."
             },
-            "weight": 0.8,
-            "tags": [
-                "urban",
-                "dense"
-            ]
+            "weight": 1.0,
+            "tags": ["urban", "dense"]
         },
         {
-            "roll_range": [
-                41,
-                60
-            ],
-            "result": {
-                "type": "FOREST",
-                "name": "Dense Forest",
-                "movement_modifier": 0.6,
-                "cover_density": 0.8,
-                "features": [
-                    "trees",
-                    "undergrowth",
-                    "clearings"
-                ],
-                "description": "Thick forest with natural cover and limited visibility."
-            },
-            "weight": 0.7,
-            "tags": [
-                "forest",
-                "dense"
-            ]
-        },
-        {
-            "roll_range": [
-                61,
-                75
-            ],
+            "roll_range": [26, 45],
             "result": {
                 "type": "INDUSTRIAL",
-                "name": "Industrial Complex",
+                "name": "Industrial Zone",
                 "movement_modifier": 0.7,
                 "cover_density": 0.6,
-                "features": [
-                    "containers",
-                    "machinery",
-                    "pipelines"
-                ],
-                "description": "Industrial area with mixed cover and hazards."
+                "features": ["machinery", "containers", "pipelines", "storage"],
+                "description": "Industrial area with heavy machinery and cargo containers."
             },
-            "weight": 0.6,
-            "tags": [
-                "urban",
-                "industrial"
-            ]
+            "weight": 0.8,
+            "tags": ["industrial", "dense"]
         },
         {
-            "roll_range": [
-                76,
-                85
-            ],
+            "roll_range": [46, 65],
             "result": {
-                "type": "WASTELAND",
-                "name": "Toxic Wasteland",
+                "type": "WILDERNESS",
+                "name": "Wilderness",
                 "movement_modifier": 0.9,
                 "cover_density": 0.4,
-                "features": [
-                    "toxic_pools",
-                    "wreckage",
-                    "craters"
-                ],
-                "description": "Dangerous wasteland with hazardous terrain features."
+                "features": ["rock_formations", "vegetation", "hills", "craters"],
+                "description": "Open wilderness with natural terrain features."
+            },
+            "weight": 0.9,
+            "tags": ["natural", "open"]
+        },
+        {
+            "roll_range": [66, 80],
+            "result": {
+                "type": "WASTELAND",
+                "name": "Wasteland",
+                "movement_modifier": 0.9,
+                "cover_density": 0.3,
+                "features": ["wreckage", "craters", "debris_piles"],
+                "description": "Barren wasteland with scattered wreckage and craters."
+            },
+            "weight": 0.7,
+            "tags": ["wasteland", "open"]
+        },
+        {
+            "roll_range": [81, 92],
+            "result": {
+                "type": "SHIP_INTERIOR",
+                "name": "Ship Interior / Space Station",
+                "movement_modifier": 0.6,
+                "cover_density": 0.8,
+                "features": ["corridors", "bulkheads", "machinery", "airlocks"],
+                "description": "Interior of a starship or space station with tight corridors."
             },
             "weight": 0.5,
-            "tags": [
-                "hazardous",
-                "open"
-            ]
+            "tags": ["indoor", "dense"]
         },
         {
-            "roll_range": [
-                86,
-                95
-            ],
+            "roll_range": [93, 100],
             "result": {
-                "type": "UNDERGROUND",
-                "name": "Underground Complex",
-                "movement_modifier": 0.5,
-                "cover_density": 0.9,
-                "features": [
-                    "corridors",
-                    "chambers",
-                    "support_structures"
-                ],
-                "description": "Confined underground spaces with limited movement."
+                "type": "ALIEN_RUINS",
+                "name": "Alien Ruins",
+                "movement_modifier": 0.8,
+                "cover_density": 0.5,
+                "features": ["alien_structures", "pillars", "platforms", "debris"],
+                "description": "Ancient alien ruins with unusual terrain features."
             },
             "weight": 0.4,
-            "tags": [
-                "indoor",
-                "dense"
-            ]
-        },
-        {
-            "roll_range": [
-                96,
-                100
-            ],
-            "result": {
-                "type": "SPACE_HULK",
-                "name": "Derelict Vessel",
-                "movement_modifier": 0.4,
-                "cover_density": 1.0,
-                "features": [
-                    "airlocks",
-                    "machinery",
-                    "zero_g_zones"
-                ],
-                "description": "Abandoned spacecraft with unique environmental challenges."
-            },
-            "weight": 0.3,
-            "tags": [
-                "special",
-                "indoor"
-            ]
+            "tags": ["special", "mixed"]
         }
     ],
     "validation_rules": [
@@ -167,40 +86,16 @@
             "type": "mission_type_check",
             "params": {
                 "RED_ZONE": {
-                    "allowed_types": [
-                        "OPEN_GROUND",
-                        "URBAN",
-                        "INDUSTRIAL",
-                        "WASTELAND"
-                    ],
-                    "weight_modifiers": {
-                        "URBAN": 1.5,
-                        "INDUSTRIAL": 1.3
-                    }
+                    "allowed_types": ["URBAN", "INDUSTRIAL", "WASTELAND"],
+                    "weight_modifiers": { "URBAN": 1.5, "INDUSTRIAL": 1.3 }
                 },
                 "BLACK_ZONE": {
-                    "allowed_types": [
-                        "URBAN",
-                        "INDUSTRIAL",
-                        "UNDERGROUND",
-                        "SPACE_HULK"
-                    ],
-                    "weight_modifiers": {
-                        "UNDERGROUND": 1.5,
-                        "SPACE_HULK": 1.3
-                    }
+                    "allowed_types": ["SHIP_INTERIOR", "ALIEN_RUINS", "INDUSTRIAL"],
+                    "weight_modifiers": { "SHIP_INTERIOR": 1.5, "ALIEN_RUINS": 1.3 }
                 },
                 "PATRON": {
-                    "allowed_types": [
-                        "OPEN_GROUND",
-                        "URBAN",
-                        "FOREST",
-                        "INDUSTRIAL"
-                    ],
-                    "weight_modifiers": {
-                        "URBAN": 1.2,
-                        "INDUSTRIAL": 1.2
-                    }
+                    "allowed_types": ["URBAN", "INDUSTRIAL", "WILDERNESS", "WASTELAND"],
+                    "weight_modifiers": { "URBAN": 1.2, "INDUSTRIAL": 1.2 }
                 }
             }
         }
@@ -209,37 +104,20 @@
         {
             "type": "mission_difficulty_modifier",
             "params": {
-                "EASY": {
-                    "movement_modifier": 1.2,
-                    "cover_density": 1.1
-                },
-                "NORMAL": {
-                    "movement_modifier": 1.0,
-                    "cover_density": 1.0
-                },
-                "HARD": {
-                    "movement_modifier": 0.9,
-                    "cover_density": 0.9
-                },
-                "VETERAN": {
-                    "movement_modifier": 0.8,
-                    "cover_density": 0.8
-                },
-                "ELITE": {
-                    "movement_modifier": 0.7,
-                    "cover_density": 0.7
-                }
+                "EASY": { "movement_modifier": 1.1, "cover_density": 1.1 },
+                "NORMAL": { "movement_modifier": 1.0, "cover_density": 1.0 },
+                "HARD": { "movement_modifier": 0.9, "cover_density": 0.9 },
+                "HARDCORE": { "movement_modifier": 0.8, "cover_density": 0.8 },
+                "INSANITY": { "movement_modifier": 0.7, "cover_density": 0.7 }
             }
         }
     ],
     "default_result": {
-        "type": "OPEN_GROUND",
+        "type": "WILDERNESS",
         "name": "Basic Terrain",
         "movement_modifier": 1.0,
         "cover_density": 0.5,
-        "features": [
-            "basic_cover"
-        ],
+        "features": ["basic_cover"],
         "description": "Standard battlefield terrain."
     }
 }

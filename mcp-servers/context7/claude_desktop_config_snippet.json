@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "context7": {
+      "command": "node",
+      "args": [
+        "C:/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager/mcp-servers/context7/index.js"
+      ],
+      "env": {
+        "UPSTASH_REDIS_REST_URL": "${UPSTASH_REDIS_REST_URL}",
+        "UPSTASH_REDIS_REST_TOKEN": "${UPSTASH_REDIS_REST_TOKEN}",
+        "CONTEXT7_NAMESPACE": "godot-five-parsecs",
+        "GODOT_PROJECT_PATH": "C:/Users/elija/SynologyDrive/Godot/five-parsecs-campaign-manager"
+      }
+    }
+  }
+}

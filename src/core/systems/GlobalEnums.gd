@@ -9,18 +9,62 @@ enum EditMode {
 	VIEW
 }
 
-## Phase Names and Descriptions
+## Phase Names and Descriptions — ordinals MUST match GameEnums.FiveParcsecsCampaignPhase
 enum FiveParcsecsCampaignPhase {
 	NONE,
 	SETUP,
-	UPKEEP,
 	STORY,
-	CAMPAIGN,
+	TRAVEL,
+	PRE_MISSION,
+	MISSION,
 	BATTLE_SETUP,
 	BATTLE_RESOLUTION,
+	POST_MISSION,
+	UPKEEP,
 	ADVANCEMENT,
+	TRADING,
+	CHARACTER,
+	RETIREMENT
+}
+
+## Correctly-spelled alias — ordinals MUST match GameEnums.FiveParcsecsCampaignPhase
+enum FiveParsecsCampaignPhase {
+	NONE,
+	SETUP,
+	STORY,
+	TRAVEL,
+	PRE_MISSION,
+	MISSION,
+	BATTLE_SETUP,
+	BATTLE_RESOLUTION,
+	POST_MISSION,
+	UPKEEP,
+	ADVANCEMENT,
+	TRADING,
+	CHARACTER,
+	RETIREMENT
+}
+
+## Alias for CrewTask (some files reference CrewTaskType)
+enum CrewTaskType {
+	NONE,
+	FIND_PATRON,
+	RECRUIT,
+	EXPLORE,
+	TRACK,
+	DECOY,
+	GUARD,
+	SCOUT,
+	SABOTAGE,
+	GATHER_INFO,
+	REPAIR,
+	HEAL,
+	TRAIN,
 	TRADE,
-	END
+	RESEARCH,
+	MAINTENANCE,
+	REST,
+	SPECIAL
 }
 
 ## Campaign Sub-Phases for more granular campaign flow management
@@ -36,27 +80,35 @@ enum CampaignSubPhase {
 const PHASE_NAMES = {
 	FiveParcsecsCampaignPhase.NONE: "None",
 	FiveParcsecsCampaignPhase.SETUP: "Setup",
-	FiveParcsecsCampaignPhase.UPKEEP: "Upkeep",
 	FiveParcsecsCampaignPhase.STORY: "Story",
-	FiveParcsecsCampaignPhase.CAMPAIGN: "Campaign",
+	FiveParcsecsCampaignPhase.TRAVEL: "Travel",
+	FiveParcsecsCampaignPhase.PRE_MISSION: "Pre-Mission",
+	FiveParcsecsCampaignPhase.MISSION: "Mission",
 	FiveParcsecsCampaignPhase.BATTLE_SETUP: "Battle Setup",
 	FiveParcsecsCampaignPhase.BATTLE_RESOLUTION: "Battle Resolution",
+	FiveParcsecsCampaignPhase.POST_MISSION: "Post-Mission",
+	FiveParcsecsCampaignPhase.UPKEEP: "Upkeep",
 	FiveParcsecsCampaignPhase.ADVANCEMENT: "Advancement",
-	FiveParcsecsCampaignPhase.TRADE: "Trade",
-	FiveParcsecsCampaignPhase.END: "End"
+	FiveParcsecsCampaignPhase.TRADING: "Trading",
+	FiveParcsecsCampaignPhase.CHARACTER: "Character",
+	FiveParcsecsCampaignPhase.RETIREMENT: "Retirement"
 }
 
 const PHASE_DESCRIPTIONS = {
 	FiveParcsecsCampaignPhase.NONE: "No active phase",
 	FiveParcsecsCampaignPhase.SETUP: "Create your crew and prepare for adventure",
-	FiveParcsecsCampaignPhase.UPKEEP: "Maintain your crew and resources",
 	FiveParcsecsCampaignPhase.STORY: "Progress through story events",
-	FiveParcsecsCampaignPhase.CAMPAIGN: "Engage in campaign activities",
+	FiveParcsecsCampaignPhase.TRAVEL: "Travel between worlds",
+	FiveParcsecsCampaignPhase.PRE_MISSION: "Prepare for your upcoming mission",
+	FiveParcsecsCampaignPhase.MISSION: "Complete your mission",
 	FiveParcsecsCampaignPhase.BATTLE_SETUP: "Prepare for combat",
 	FiveParcsecsCampaignPhase.BATTLE_RESOLUTION: "Handle battle aftermath",
+	FiveParcsecsCampaignPhase.POST_MISSION: "Handle post-mission activities",
+	FiveParcsecsCampaignPhase.UPKEEP: "Maintain your crew and resources",
 	FiveParcsecsCampaignPhase.ADVANCEMENT: "Improve your crew",
-	FiveParcsecsCampaignPhase.TRADE: "Buy and sell equipment",
-	FiveParcsecsCampaignPhase.END: "Campaign phase complete"
+	FiveParcsecsCampaignPhase.TRADING: "Buy and sell equipment",
+	FiveParcsecsCampaignPhase.CHARACTER: "Resolve character events",
+	FiveParcsecsCampaignPhase.RETIREMENT: "Campaign phase complete"
 }
 
 ## Difficulty Levels
@@ -65,9 +117,11 @@ enum DifficultyLevel {
 	EASY,
 	NORMAL,
 	HARD,
+	CHALLENGING,
 	NIGHTMARE,
 	HARDCORE,
-	ELITE
+	ELITE,
+	INSANITY
 }
 
 ## Character System
@@ -92,7 +146,29 @@ enum CharacterClass {
 	MERCHANT,
 	SECURITY,
 	BROKER,
-	BOT_TECH
+	BOT_TECH,
+	WORKING_CLASS,
+	TECHNICIAN,
+	SCIENTIST,
+	HACKER,
+	MERCENARY,
+	AGITATOR,
+	PRIMITIVE,
+	ARTIST,
+	NEGOTIATOR,
+	TRADER,
+	STARSHIP_CREW,
+	PETTY_CRIMINAL,
+	GANGER,
+	SCOUNDREL,
+	ENFORCER,
+	SPECIAL_AGENT,
+	TROUBLESHOOTER,
+	BOUNTY_HUNTER,
+	NOMAD,
+	EXPLORER,
+	PUNK,
+	SCAVENGER
 }
 
 ## Training Levels
@@ -157,7 +233,32 @@ enum Background {
 	NOBLE,
 	OUTCAST,
 	SOLDIER,
-	MERCHANT
+	MERCHANT,
+	PEACEFUL_HIGH_TECH_COLONY,
+	GIANT_OVERCROWDED_CITY,
+	LOW_TECH_COLONY,
+	MINING_COLONY,
+	MILITARY_BRAT,
+	SPACE_STATION,
+	MILITARY_OUTPOST,
+	DRIFTER,
+	LOWER_MEGACITY_CLASS,
+	WEALTHY_MERCHANT_FAMILY,
+	FRONTIER_GANG,
+	RELIGIOUS_CULT,
+	WAR_TORN_HELLHOLE,
+	TECH_GUILD,
+	SUBJUGATED_COLONY,
+	LONG_TERM_SPACE_MISSION,
+	RESEARCH_OUTPOST,
+	PRIMITIVE_WORLD,
+	ORPHAN_UTILITY_PROGRAM,
+	ISOLATIONIST_ENCLAVE,
+	COMFORTABLE_MEGACITY,
+	INDUSTRIAL_WORLD,
+	BUREAUCRAT,
+	WASTELAND_NOMADS,
+	ALIEN_CULTURE
 }
 
 ## Character Motivation
@@ -174,7 +275,16 @@ enum Motivation {
 	FREEDOM,
 	DISCOVERY,
 	REDEMPTION,
-	DUTY
+	DUTY,
+	FAME,
+	ESCAPE,
+	ADVENTURE,
+	TRUTH,
+	TECHNOLOGY,
+	ROMANCE,
+	FAITH,
+	POLITICAL,
+	ORDER
 }
 
 ## Resource System
@@ -216,7 +326,38 @@ enum FiveParcsecsCampaignVictoryType {
 	TURNS_100,
 	QUESTS_3,
 	QUESTS_5,
-	QUESTS_10
+	QUESTS_10,
+	BATTLES_20,
+	BATTLES_50,
+	BATTLES_100
+}
+
+## Correctly-spelled alias for FiveParcsecsCampaignVictoryType
+enum FiveParsecsCampaignVictoryType {
+	NONE,
+	STANDARD,
+	TURNS_20,
+	TURNS_50,
+	TURNS_100,
+	CREDITS_THRESHOLD,
+	CREDITS_50K,
+	CREDITS_100K,
+	REPUTATION_THRESHOLD,
+	REPUTATION_10,
+	REPUTATION_20,
+	QUESTS_3,
+	QUESTS_5,
+	QUESTS_10,
+	BATTLES_20,
+	BATTLES_50,
+	BATTLES_100,
+	STORY_COMPLETE,
+	STORY_POINTS_10,
+	STORY_POINTS_20,
+	WEALTH_GOAL,
+	REPUTATION_GOAL,
+	FACTION_DOMINANCE,
+	MISSION_COUNT
 }
 
 ## Market System
@@ -239,7 +380,8 @@ enum MissionObjective {
 	SEEK_AND_DESTROY,
 	DEFEND,
 	CAPTURE_POINT,
-	TUTORIAL
+	TUTORIAL,
+	DEFENSE
 }
 
 ## Weather System
@@ -521,7 +663,16 @@ enum WorldTrait {
 	CORPORATE_CONTROLLED,
 	TECH_CENTER,
 	MINING_COLONY,
-	AGRICULTURAL_WORLD
+	AGRICULTURAL_WORLD,
+	FRONTIER,
+	TRADE_HUB,
+	INDUSTRIAL,
+	RESEARCH,
+	CRIMINAL,
+	AFFLUENT,
+	DANGEROUS,
+	CORPORATE,
+	MILITARY
 }
 
 enum PlanetEnvironment {
@@ -1020,3 +1171,53 @@ const VICTORY_CONDITION_NAMES = {
 	VictoryConditionType.SURVIVAL: "Survival",
 	VictoryConditionType.EXTRACTION: "Extraction"
 }
+
+## Helper: convert enum value to display string
+static func to_string_value(enum_name: String, value: int) -> String:
+	match enum_name:
+		"character_class":
+			var keys = CharacterClass.keys()
+			return keys[value] if value >= 0 and value < keys.size() else "UNKNOWN"
+		"background":
+			var keys = Background.keys()
+			return keys[value] if value >= 0 and value < keys.size() else "UNKNOWN"
+		"origin":
+			var keys = Origin.keys()
+			return keys[value] if value >= 0 and value < keys.size() else "UNKNOWN"
+		"motivation":
+			var keys = Motivation.keys()
+			return keys[value] if value >= 0 and value < keys.size() else "UNKNOWN"
+		_:
+			return "UNKNOWN"
+
+static func get_class_display_name(char_class) -> String:
+	if char_class is int:
+		var keys = CharacterClass.keys()
+		if char_class >= 0 and char_class < keys.size():
+			return keys[char_class].capitalize().replace("_", " ")
+	elif char_class is String:
+		return char_class.capitalize().replace("_", " ")
+	return "Unknown"
+
+static func get_background_display_name(bg) -> String:
+	if bg is int:
+		var keys = Background.keys()
+		if bg >= 0 and bg < keys.size():
+			return keys[bg].capitalize().replace("_", " ")
+	elif bg is String:
+		return bg.capitalize().replace("_", " ")
+	return "Unknown"
+
+static func get_origin_display_name(origin) -> String:
+	if origin is int:
+		var keys = Origin.keys()
+		if origin >= 0 and origin < keys.size():
+			return keys[origin].capitalize().replace("_", " ")
+	elif origin is String:
+		return origin.capitalize().replace("_", " ")
+	return "Unknown"
+
+static func get_background_name(bg: Background) -> String:
+	var keys = Background.keys()
+	var idx = int(bg)
+	return keys[idx] if idx >= 0 and idx < keys.size() else "Unknown"

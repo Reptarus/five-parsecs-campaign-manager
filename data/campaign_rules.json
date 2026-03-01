@@ -1,0 +1,120 @@
+{
+	"_comment": "Five Parsecs From Home - Campaign Rules Data (Core Rulebook)",
+	"upkeep": {
+		"base_cost_per_member": 6,
+		"minimum_cost_per_member": 1,
+		"trait_discounts": {
+			"TACTICAL_MIND": 1,
+			"STREET_SMART": 2
+		},
+		"tactical_mind_refund_rate": 0.1
+	},
+	"advancement": {
+		"stat_costs": {
+			"REACTION": 7,
+			"COMBAT": 7,
+			"SPEED": 5,
+			"SAVVY": 5,
+			"TOUGHNESS": 6,
+			"LUCK": 10
+		},
+		"training_costs": {
+			"PILOT": 20,
+			"MECHANIC": 15,
+			"MEDICAL": 20,
+			"MERCHANT": 10,
+			"SECURITY": 10,
+			"BROKER": 15,
+			"BOT_TECH": 10
+		},
+		"max_stats": {
+			"default": {
+				"REACTION": 6,
+				"COMBAT": 5,
+				"SPEED": 8,
+				"SAVVY": 5,
+				"TOUGHNESS": 6,
+				"LUCK": 1
+			},
+			"human": {
+				"LUCK": 3
+			},
+			"bot": {
+				"REACTION": 4,
+				"COMBAT": 4,
+				"SPEED": 6,
+				"SAVVY": 3,
+				"TOUGHNESS": 8,
+				"LUCK": 0
+			},
+			"technician_overrides": {
+				"TOUGHNESS": 4
+			}
+		},
+		"bot_upgrades": {
+			"combat_module": {
+				"name": "Combat Module",
+				"cost": 15,
+				"stat": "COMBAT",
+				"bonus": 1
+			},
+			"reflex_enhancer": {
+				"name": "Reflex Enhancer",
+				"cost": 12,
+				"stat": "REACTION",
+				"bonus": 1
+			},
+			"armor_plating": {
+				"name": "Armor Plating",
+				"cost": 18,
+				"stat": "TOUGHNESS",
+				"bonus": 1
+			},
+			"speed_actuator": {
+				"name": "Speed Actuator",
+				"cost": 10,
+				"stat": "SPEED",
+				"bonus": 1
+			},
+			"sensor_array": {
+				"name": "Sensor Array",
+				"cost": 14,
+				"stat": "SAVVY",
+				"bonus": 1
+			},
+			"repair_module": {
+				"name": "Self-Repair Module",
+				"cost": 20,
+				"effect": "reduce_recovery",
+				"bonus": 1
+			}
+		},
+		"restrictions": {
+			"soulless_cannot_train": true
+		}
+	},
+	"battle": {
+		"max_combat_rounds_min": 3,
+		"max_combat_rounds_max": 6,
+		"base_hit_threshold": 4,
+		"cover_modifier": -1,
+		"elevation_bonus": 1,
+		"point_blank_bonus": 1,
+		"long_range_penalty": -1,
+		"xp_awards": {
+			"participation": 1,
+			"victory_bonus": 2,
+			"defeat_bonus": 1,
+			"first_kill": 1,
+			"survival_injury": 1
+		}
+	},
+	"campaign": {
+		"starting_credits": 100,
+		"starting_supplies": 50,
+		"starting_fuel": 20,
+		"starting_reputation": 0,
+		"max_crew_size": 8,
+		"min_crew_size": 1
+	}
+}

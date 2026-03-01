@@ -3,10 +3,10 @@ extends Resource
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 @export_group("Mission Details")
-@export var type: GameEnums.MissionType
+@export var type: int # MissionType enum
 @export var title_templates: Array[String] = []
 @export var description_templates: Array[String] = []
-@export var objective: GameEnums.MissionObjective
+@export var objective: int # MissionObjective enum
 @export var objective_description: String = ""
 
 @export_group("Requirements")

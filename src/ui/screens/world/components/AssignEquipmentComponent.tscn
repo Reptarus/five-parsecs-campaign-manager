@@ -1,0 +1,214 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://src/ui/screens/world/components/AssignEquipmentComponent.gd" id="1_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.067, 0.094, 0.153, 0.85)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.216, 0.255, 0.318, 0.5)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_list"]
+bg_color = Color(0.122, 0.137, 0.216, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.216, 0.255, 0.318, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_primary"]
+bg_color = Color(0.231, 0.51, 0.965, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_secondary"]
+bg_color = Color(0.122, 0.137, 0.216, 0.8)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.216, 0.255, 0.318, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
+[node name="AssignEquipmentComponent" type="MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1_script")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="HeaderPanel" type="PanelContainer" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="HeaderContent" type="VBoxContainer" parent="VBoxContainer/HeaderPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TitleRow" type="HBoxContainer" parent="VBoxContainer/HeaderPanel/HeaderContent"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="VBoxContainer/HeaderPanel/HeaderContent/TitleRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Assign Equipment"
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+
+[node name="HelpButton" type="Button" parent="VBoxContainer/HeaderPanel/HeaderContent/TitleRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+tooltip_text = "Each character may carry 2 weapons plus a pistol or blade (Rules p.85)"
+text = "?"
+theme_override_font_sizes/font_size = 14
+
+[node name="SelectedCrewLabel" type="Label" parent="VBoxContainer/HeaderPanel/HeaderContent"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Select a crew member to manage their equipment"
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
+
+[node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
+modulate = Color(0.216, 0.255, 0.318, 1)
+layout_mode = 2
+
+[node name="MainContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="CrewPanel" type="VBoxContainer" parent="VBoxContainer/MainContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="CrewLabel" type="Label" parent="VBoxContainer/MainContainer/CrewPanel"]
+layout_mode = 2
+text = "CREW MEMBERS"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
+
+[node name="CrewList" type="ItemList" parent="VBoxContainer/MainContainer/CrewPanel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_list")
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+theme_override_colors/font_selected_color = Color(1, 1, 1, 1)
+
+[node name="EquipmentPanel" type="VBoxContainer" parent="VBoxContainer/MainContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="EquipmentLabel" type="Label" parent="VBoxContainer/MainContainer/EquipmentPanel"]
+layout_mode = 2
+text = "CREW EQUIPMENT"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
+
+[node name="CrewEquipmentList" type="ItemList" parent="VBoxContainer/MainContainer/EquipmentPanel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_list")
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+theme_override_colors/font_selected_color = Color(1, 1, 1, 1)
+
+[node name="TransferButtons" type="HBoxContainer" parent="VBoxContainer/MainContainer/EquipmentPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TransferToStashButton" type="Button" parent="VBoxContainer/MainContainer/EquipmentPanel/TransferButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Move selected item to ship stash"
+text = "→ Stash"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_secondary")
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+
+[node name="TransferBetweenCrewButton" type="Button" parent="VBoxContainer/MainContainer/EquipmentPanel/TransferButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Trade item with another crew member"
+text = "Trade"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_secondary")
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+
+[node name="StashPanel" type="VBoxContainer" parent="VBoxContainer/MainContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="StashLabel" type="Label" parent="VBoxContainer/MainContainer/StashPanel"]
+layout_mode = 2
+text = "SHIP STASH"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
+
+[node name="StashList" type="ItemList" parent="VBoxContainer/MainContainer/StashPanel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_list")
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+theme_override_colors/font_selected_color = Color(1, 1, 1, 1)
+
+[node name="TransferToCrewButton" type="Button" parent="VBoxContainer/MainContainer/StashPanel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+tooltip_text = "Give selected item to crew member"
+text = "← Give to Crew"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_secondary")
+theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
+
+[node name="ConfirmButton" type="Button" parent="VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+tooltip_text = "Confirm equipment assignments and proceed"
+text = "Confirm Equipment Assignments"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_primary")
+theme_override_colors/font_color = Color(1, 1, 1, 1)

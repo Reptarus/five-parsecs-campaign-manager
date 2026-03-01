@@ -1,0 +1,226 @@
+{
+  "campaign_creation": {
+    "config_panel": {
+      "campaign_name": {
+        "title": "Campaign Name",
+        "tooltip": "Choose a name for your campaign. This will be used to identify saved games.",
+        "help": "Your campaign name should be memorable and help you identify this playthrough among multiple saves."
+      },
+      "campaign_type": {
+        "title": "Campaign Type",
+        "tooltip": "Select the overall structure of your campaign experience.",
+        "help": "Campaign type determines the pacing, difficulty scaling, and win conditions for your campaign.",
+        "options": {
+          "standard": "Follow the complete Five Parsecs experience with all phases and progression.",
+          "quick_start": "Jump into action with simplified setup and faster progression.",
+          "story_driven": "Focus on narrative elements with enhanced story events.",
+          "sandbox": "Open-ended play without specific victory conditions."
+        }
+      },
+      "victory_condition": {
+        "title": "Victory Condition",
+        "tooltip": "Define how you win the campaign.",
+        "help": "Victory conditions give your campaign direction and a satisfying conclusion when achieved."
+      },
+      "story_track": {
+        "title": "Story Track",
+        "tooltip": "Select a narrative arc to follow throughout your campaign.",
+        "help": "Story tracks provide themed missions, unique encounters, and narrative progression.",
+        "options": {
+          "none": "No specific narrative - pure sandbox experience.",
+          "rags_to_riches": "Start with nothing, build an empire.",
+          "revenge": "Hunt down those who wronged you.",
+          "discovery": "Uncover ancient secrets of the galaxy."
+        }
+      },
+      "tutorial_mode": {
+        "title": "Tutorial Mode",
+        "tooltip": "Enable guidance for new players.",
+        "help": "Tutorial mode provides helpful hints and explanations as you play.",
+        "options": {
+          "off": "No tutorial assistance - for experienced players.",
+          "basic": "Essential guidance for new players.",
+          "advanced": "Detailed explanations of all mechanics."
+        }
+      }
+    },
+    "captain_panel": {
+      "creation_method": {
+        "title": "Creation Method",
+        "tooltip": "Choose how to generate your captain.",
+        "help": "Different methods offer varying levels of customization and randomness.",
+        "options": {
+          "random": "Roll stats randomly using 2D6÷3 formula. Quick and unpredictable.",
+          "custom": "Manually allocate points to stats. Full control over character build.",
+          "veteran": "Start with higher stats and experience. For experienced players.",
+          "import": "Import a character from another campaign or save."
+        }
+      },
+      "stats": {
+        "combat": {
+          "title": "Combat",
+          "tooltip": "Offensive capability in ranged and melee combat.",
+          "help": "Higher Combat improves hit chance. Captains get +1 bonus."
+        },
+        "reactions": {
+          "title": "Reactions",
+          "tooltip": "Speed and initiative in combat.",
+          "help": "Determines action order and reaction shots. Captains get +1 bonus."
+        },
+        "toughness": {
+          "title": "Toughness",
+          "tooltip": "Resistance to damage and injuries.",
+          "help": "Higher Toughness reduces severity of wounds taken."
+        },
+        "savvy": {
+          "title": "Savvy",
+          "tooltip": "Technical skill and problem-solving ability.",
+          "help": "Used for hacking, repairs, and finding loot. Captains get +1 bonus."
+        },
+        "tech": {
+          "title": "Tech",
+          "tooltip": "Understanding of advanced technology.",
+          "help": "Affects use of high-tech equipment and gadgets."
+        },
+        "speed": {
+          "title": "Speed",
+          "tooltip": "Movement distance per action.",
+          "help": "Standard is 4 inches. Modified by gear and species."
+        },
+        "luck": {
+          "title": "Luck",
+          "tooltip": "Fortune points for rerolls and saves.",
+          "help": "Captains start with 2 Luck. Can be spent to avoid death or reroll dice."
+        }
+      },
+      "background": {
+        "title": "Captain Background",
+        "tooltip": "Your captain's origin and upbringing.",
+        "help": "Background determines starting stat bonuses, credits, and sometimes gear or contacts."
+      },
+      "motivation": {
+        "title": "Captain Motivation",
+        "tooltip": "What drives your captain to adventure.",
+        "help": "Motivation provides additional bonuses and may affect story events."
+      },
+      "verbose_mode": {
+        "title": "Verbose Mode",
+        "tooltip": "Show the actual dice rolls during character generation.",
+        "help": "Enable this to see exactly what was rolled for each stat, useful for verification or learning the system."
+      }
+    },
+    "crew_panel": {
+      "crew_size": {
+        "title": "Starting Crew Size",
+        "tooltip": "Number of crew members to start with.",
+        "help": "Standard is 4-6 crew. More crew = more firepower but higher upkeep."
+      },
+      "crew_member": {
+        "title": "Crew Member",
+        "tooltip": "One of your hired hands.",
+        "help": "Crew members have their own stats, backgrounds, and can advance through experience."
+      }
+    },
+    "ship_panel": {
+      "ship_type": {
+        "title": "Ship Type",
+        "tooltip": "Your starship class and capabilities.",
+        "help": "Ships determine travel speed, cargo capacity, and available upgrades."
+      },
+      "ship_name": {
+        "title": "Ship Name",
+        "tooltip": "Name your vessel.",
+        "help": "Give your ship a name that reflects its personality or your crew's reputation."
+      }
+    },
+    "equipment_panel": {
+      "starting_gear": {
+        "title": "Starting Equipment",
+        "tooltip": "Weapons and gear for your crew.",
+        "help": "Equipment is automatically generated based on backgrounds. You can trade or purchase more later."
+      },
+      "credits": {
+        "title": "Starting Credits",
+        "tooltip": "Your initial funds.",
+        "help": "Credits are used for repairs, purchases, fuel, and crew upkeep."
+      }
+    },
+    "world_panel": {
+      "world_name": {
+        "title": "Starting World",
+        "tooltip": "Your initial location in the galaxy.",
+        "help": "Your starting world determines available jobs, threats, and initial opportunities."
+      },
+      "tech_level": {
+        "title": "Tech Level",
+        "tooltip": "Technological advancement of the world.",
+        "help": "1-2: Primitive, 3-4: Standard, 5-6: Advanced. Affects available equipment and prices."
+      },
+      "danger_level": {
+        "title": "Danger Level",
+        "tooltip": "Overall threat level of the world.",
+        "help": "Higher danger means tougher enemies but better rewards."
+      },
+      "government": {
+        "title": "Government Type",
+        "tooltip": "Who controls this world.",
+        "help": "Government affects law enforcement, black market access, and patron availability."
+      },
+      "opportunities": {
+        "title": "Opportunities",
+        "tooltip": "Available jobs and contacts.",
+        "help": "Patrons offer missions. Trade opportunities let you buy/sell goods."
+      },
+      "threats": {
+        "title": "Known Threats",
+        "tooltip": "Dangers present on this world.",
+        "help": "Rivals, environmental hazards, and criminal elements that may affect your missions."
+      }
+    },
+    "final_panel": {
+      "review": {
+        "title": "Campaign Review",
+        "tooltip": "Review all your choices before starting.",
+        "help": "This is your last chance to go back and make changes before beginning your campaign."
+      }
+    }
+  },
+  "game_concepts": {
+    "turn_structure": {
+      "title": "Campaign Turn",
+      "help": "Each turn consists of: Travel → World Phase → Battle → Post-Battle. Complete all phases to advance to the next turn."
+    },
+    "phases": {
+      "travel": {
+        "title": "Travel Phase",
+        "help": "Move between worlds, pay fuel costs, handle ship events."
+      },
+      "world": {
+        "title": "World Phase",
+        "help": "Recruit, trade, find jobs, assign crew tasks, and prepare for battle."
+      },
+      "battle": {
+        "title": "Battle Phase",
+        "help": "Resolve the mission with tactical combat."
+      },
+      "post_battle": {
+        "title": "Post-Battle Phase",
+        "help": "Collect loot, treat injuries, gain experience, advance the story."
+      }
+    },
+    "dice_system": {
+      "stat_roll": {
+        "title": "Stat Generation (2D6÷3)",
+        "help": "Roll 2D6, divide by 3 (round up). Results range from 1-4."
+      },
+      "combat_roll": {
+        "title": "Combat Roll",
+        "help": "Roll 1D6 + Combat stat. Hit on 5+ (modified by range and cover)."
+      },
+      "injury_roll": {
+        "title": "Injury Roll",
+        "help": "When hit, roll 1D6 on injury table. Toughness reduces severity."
+      }
+    }
+  }
+}

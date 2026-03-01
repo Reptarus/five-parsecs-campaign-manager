@@ -205,24 +205,32 @@ func _get_next_campaign_phase() -> int:
 	var current = campaign_phase_manager.current_phase
 	
 	match current:
-		GlobalEnums.FiveParcsecsCampaignPhase.NONE, GlobalEnums.FiveParcsecsCampaignPhase.END:
+		GlobalEnums.FiveParcsecsCampaignPhase.NONE, GlobalEnums.FiveParcsecsCampaignPhase.RETIREMENT:
 			return GlobalEnums.FiveParcsecsCampaignPhase.UPKEEP
 		GlobalEnums.FiveParcsecsCampaignPhase.SETUP:
 			return GlobalEnums.FiveParcsecsCampaignPhase.UPKEEP
 		GlobalEnums.FiveParcsecsCampaignPhase.UPKEEP:
 			return GlobalEnums.FiveParcsecsCampaignPhase.STORY
 		GlobalEnums.FiveParcsecsCampaignPhase.STORY:
-			return GlobalEnums.FiveParcsecsCampaignPhase.CAMPAIGN
-		GlobalEnums.FiveParcsecsCampaignPhase.CAMPAIGN:
+			return GlobalEnums.FiveParcsecsCampaignPhase.TRAVEL
+		GlobalEnums.FiveParcsecsCampaignPhase.TRAVEL:
+			return GlobalEnums.FiveParcsecsCampaignPhase.PRE_MISSION
+		GlobalEnums.FiveParcsecsCampaignPhase.PRE_MISSION:
+			return GlobalEnums.FiveParcsecsCampaignPhase.MISSION
+		GlobalEnums.FiveParcsecsCampaignPhase.MISSION:
 			return GlobalEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP
 		GlobalEnums.FiveParcsecsCampaignPhase.BATTLE_SETUP:
 			return GlobalEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION
 		GlobalEnums.FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
+			return GlobalEnums.FiveParcsecsCampaignPhase.POST_MISSION
+		GlobalEnums.FiveParcsecsCampaignPhase.POST_MISSION:
 			return GlobalEnums.FiveParcsecsCampaignPhase.ADVANCEMENT
 		GlobalEnums.FiveParcsecsCampaignPhase.ADVANCEMENT:
-			return GlobalEnums.FiveParcsecsCampaignPhase.TRADE
-		GlobalEnums.FiveParcsecsCampaignPhase.TRADE:
-			return GlobalEnums.FiveParcsecsCampaignPhase.END
+			return GlobalEnums.FiveParcsecsCampaignPhase.TRADING
+		GlobalEnums.FiveParcsecsCampaignPhase.TRADING:
+			return GlobalEnums.FiveParcsecsCampaignPhase.CHARACTER
+		GlobalEnums.FiveParcsecsCampaignPhase.CHARACTER:
+			return GlobalEnums.FiveParcsecsCampaignPhase.RETIREMENT
 		_:
 			return GlobalEnums.FiveParcsecsCampaignPhase.NONE
 
@@ -323,7 +331,7 @@ func _on_mission_preparation_complete(_mission: Dictionary) -> void:
 	game_state_changed.emit()
 	
 	# If current phase is campaign, complete the mission preparation action
-	if campaign_phase_manager.current_phase == GlobalEnums.FiveParcsecsCampaignPhase.CAMPAIGN:
+	if campaign_phase_manager.current_phase == GlobalEnums.FiveParcsecsCampaignPhase.PRE_MISSION:
 		campaign_phase_manager.complete_phase_action("mission_prepared")
 
 func _on_equipment_acquired(_equipment_data: Dictionary) -> void:

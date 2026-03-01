@@ -1,0 +1,201 @@
+{
+  "enemy_type": "corporate_security",
+  "display_name": "Corporate Security",
+  "description": "Professional security forces employed by powerful corporations",
+  
+  "base_stats": {
+    "health": 75,
+    "movement": 4,
+    "weapon_range": 5,
+    "ai_behavior": "tactical"
+  },
+  
+  "variants": {
+    "basic_guard": {
+      "security_clearance": 2,
+      "corporate_affiliation": "standard_corp",
+      "equipment_tier": "standard",
+      "training_level": "basic",
+      "authority_level": 1,
+      "stats_modifier": {
+        "health": 0,
+        "movement": 0,
+        "weapon_range": 0
+      }
+    },
+    
+    "senior_security": {
+      "security_clearance": 3,
+      "corporate_affiliation": "major_corp",
+      "equipment_tier": "enhanced",
+      "training_level": "professional",
+      "authority_level": 2,
+      "stats_modifier": {
+        "health": 10,
+        "movement": 0,
+        "weapon_range": 1
+      }
+    },
+    
+    "elite_operative": {
+      "security_clearance": 4,
+      "corporate_affiliation": "mega_corp",
+      "equipment_tier": "military",
+      "training_level": "elite",
+      "authority_level": 3,
+      "stats_modifier": {
+        "health": 25,
+        "movement": 1,
+        "weapon_range": 2
+      }
+    },
+    
+    "executive_protection": {
+      "security_clearance": 5,
+      "corporate_affiliation": "mega_corp",
+      "equipment_tier": "prototype",
+      "training_level": "specialist",
+      "authority_level": 4,
+      "stats_modifier": {
+        "health": 35,
+        "movement": 1,
+        "weapon_range": 2
+      },
+      "special_abilities": ["executive_protocols", "threat_assessment"]
+    }
+  },
+  
+  "deployment_patterns": {
+    "facility_security": {
+      "formation": "checkpoint_patrol",
+      "group_size": [2, 4],
+      "equipment_focus": "defensive",
+      "tactics": ["area_control", "communication_protocols"]
+    },
+    
+    "executive_protection": {
+      "formation": "protective_detail",
+      "group_size": [3, 6],
+      "equipment_focus": "mobility",
+      "tactics": ["close_protection", "threat_elimination"]
+    },
+    
+    "data_security": {
+      "formation": "rapid_response",
+      "group_size": [4, 8],
+      "equipment_focus": "technology",
+      "tactics": ["perimeter_control", "data_protection"]
+    }
+  },
+  
+  "loot_tables": {
+    "credits": {
+      "base_amount": 150,
+      "variance": 50,
+      "chance": 0.8
+    },
+    
+    "corporate_equipment": [
+      {
+        "name": "Corporate ID Badge",
+        "type": "access_device",
+        "value": 200,
+        "chance": 0.7,
+        "security_clearance_required": 1
+      },
+      {
+        "name": "Encrypted Communication Device",
+        "type": "technology",
+        "value": 500,
+        "chance": 0.4,
+        "security_clearance_required": 2
+      },
+      {
+        "name": "Corporate Data Pad",
+        "type": "data_device",
+        "value": 800,
+        "chance": 0.3,
+        "security_clearance_required": 3
+      },
+      {
+        "name": "Executive Access Codes",
+        "type": "data",
+        "value": 1500,
+        "chance": 0.1,
+        "security_clearance_required": 4
+      }
+    ],
+    
+    "professional_gear": [
+      {
+        "name": "Security Armor",
+        "type": "armor",
+        "value": 600,
+        "chance": 0.5,
+        "quality_tiers": ["standard", "enhanced", "military"]
+      },
+      {
+        "name": "Corporate Weapon",
+        "type": "weapon",
+        "value": 800,
+        "chance": 0.4,
+        "quality_tiers": ["standard", "enhanced", "prototype"]
+      },
+      {
+        "name": "Surveillance Equipment",
+        "type": "equipment",
+        "value": 400,
+        "chance": 0.3
+      }
+    ],
+    
+    "corporate_intelligence": [
+      {
+        "name": "Security Protocols",
+        "type": "intelligence",
+        "value": 300,
+        "chance": 0.3
+      },
+      {
+        "name": "Corporate Structure Data",
+        "type": "intelligence",
+        "value": 500,
+        "chance": 0.2
+      },
+      {
+        "name": "Executive Schedule",
+        "type": "intelligence",
+        "value": 800,
+        "chance": 0.1
+      }
+    ]
+  },
+  
+  "behavioral_traits": {
+    "professional_conduct": {
+      "coordination_bonus": 2,
+      "communication_priority": "high",
+      "retreat_threshold": 0.3
+    },
+    
+    "corporate_loyalty": {
+      "mission_dedication": "high",
+      "authority_respect": "absolute",
+      "bribery_resistance": "high"
+    },
+    
+    "tactical_training": {
+      "formation_discipline": "excellent",
+      "equipment_proficiency": "high",
+      "adaptability": "moderate"
+    }
+  },
+  
+  "threat_assessment": {
+    "danger_level": 3,
+    "predictability": "high",
+    "equipment_quality": "excellent",
+    "group_coordination": "high",
+    "backup_likelihood": "moderate"
+  }
+}

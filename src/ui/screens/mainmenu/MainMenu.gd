@@ -5,6 +5,7 @@ const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 @onready var continue_button = %Continue as Button
+@onready var load_campaign_button = %LoadCampaign as Button
 @onready var new_campaign_button = %NewCampaign as Button
 @onready var coop_campaign_button = %CoopCampaign as Button
 @onready var battle_simulator_button = %BattleSimulator as Button
@@ -33,15 +34,21 @@ func _ready() -> void:
 	if not _validate_required_nodes():
 		push_error("MainMenu: Required nodes are missing")
 		return
-	
+
+	# Auto-initialize game_state_manager from autoload if not set via setup()
+	if not game_state_manager:
+		game_state_manager = get_node_or_null("/root/GameStateManager")
+
 	setup_ui()
 	if tutorial_popup:
 		tutorial_popup.hide()
 		_connect_tutorial_signals()
+	update_continue_button_visibility()
 
 func _validate_required_nodes() -> bool:
 	var required_nodes := [
 		continue_button,
+		load_campaign_button,
 		new_campaign_button,
 		coop_campaign_button,
 		battle_simulator_button,
@@ -83,6 +90,8 @@ func setup_ui() -> void:
 func _connect_buttons() -> void:
 	if continue_button:
 		_safe_connect(continue_button, "pressed", _on_continue_pressed)
+	if load_campaign_button:
+		_safe_connect(load_campaign_button, "pressed", _on_load_campaign_pressed)
 	if new_campaign_button:
 		_safe_connect(new_campaign_button, "pressed", _on_new_campaign_pressed)
 	if coop_campaign_button:
@@ -110,16 +119,18 @@ func add_fade_in_animation() -> void:
 func update_continue_button_visibility() -> void:
 	if not continue_button:
 		return
-	
+
 	continue_button.visible = false
-	
-	if not is_instance_valid(game_state_manager):
+
+	# Try GameStateManager first
+	if is_instance_valid(game_state_manager) and game_state_manager.has_method("has_active_campaign"):
+		continue_button.visible = game_state_manager.has_active_campaign()
 		return
-	
-	if not game_state_manager.has_method("has_active_campaign"):
-		return
-	
-	continue_button.visible = game_state_manager.has_active_campaign()
+
+	# Fallback: check GameState autoload directly
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.has_method("has_active_campaign"):
+		continue_button.visible = gs.has_active_campaign()
 
 func _on_continue_pressed() -> void:
 	if not is_instance_valid(game_state_manager):
@@ -127,7 +138,7 @@ func _on_continue_pressed() -> void:
 		return
 	
 	if game_state_manager.has_method("has_active_campaign") and game_state_manager.has_active_campaign():
-		request_scene_change("crew_management")
+		request_scene_change("campaign_turn_controller")
 	else:
 		show_message("No active campaign to continue")
 
@@ -135,11 +146,7 @@ func _on_new_campaign_pressed() -> void:
 	if not is_instance_valid(game_state_manager):
 		push_error("MainMenu: Game state manager is invalid")
 		return
-	
-	if game_state_manager.settings.get("disable_tutorial_popup", false):
-		_start_new_campaign()
-	else:
-		_show_tutorial_popup()
+	_start_new_campaign()
 
 func _show_tutorial_popup() -> void:
 	if not tutorial_popup:
@@ -191,11 +198,91 @@ func _on_disable_tutorial_toggled(button_pressed: bool) -> void:
 	if game_state_manager.has_method("save_settings"):
 		game_state_manager.save_settings()
 
+func _on_load_campaign_pressed() -> void:
+	var gs = get_node_or_null("/root/GameState")
+	if not gs:
+		show_message("Game state not available.")
+		return
+	# Show dialog with saved campaigns + import from file option
+	var campaigns: Array = gs.get_available_campaigns()
+	var dialog := AcceptDialog.new()
+	dialog.title = "Load Campaign"
+	dialog.ok_button_text = "Cancel"
+	var vbox := VBoxContainer.new()
+	vbox.custom_minimum_size = Vector2(400, 0)
+	for info in campaigns:
+		var btn := Button.new()
+		btn.text = "%s  (%s)" % [info.get("name", "Unnamed"), info.get("date_string", "")]
+		var p: String = info.get("path", "")
+		btn.pressed.connect(_load_and_go_to_dashboard.bind(p, dialog))
+		vbox.add_child(btn)
+	var sep := HSeparator.new()
+	vbox.add_child(sep)
+	var import_btn := Button.new()
+	import_btn.text = "Import from File..."
+	import_btn.pressed.connect(_on_import_from_file.bind(dialog))
+	vbox.add_child(import_btn)
+	dialog.add_child(vbox)
+	add_child(dialog)
+	_active_dialogs.append(dialog)
+	dialog.popup_centered()
+
+func _load_and_go_to_dashboard(path: String, dialog: Node) -> void:
+	if is_instance_valid(dialog):
+		dialog.queue_free()
+		_active_dialogs.erase(dialog)
+	var gs = get_node_or_null("/root/GameState")
+	if not gs or not gs.has_method("load_campaign"):
+		show_message("Load system not available.")
+		return
+	var result: Dictionary = gs.load_campaign(path)
+	if result.get("success", false):
+		request_scene_change("campaign_turn_controller")
+	else:
+		show_message("Load failed: %s" % result.get("message", "Unknown error"))
+
+func _on_import_from_file(load_dialog: Node) -> void:
+	if is_instance_valid(load_dialog):
+		load_dialog.hide()
+		load_dialog.queue_free()
+		_active_dialogs.erase(load_dialog)
+	var file_dialog := FileDialog.new()
+	file_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+	file_dialog.access = FileDialog.ACCESS_FILESYSTEM
+	file_dialog.filters = PackedStringArray(["*.save ; Campaign Save Files", "*.json ; JSON Files"])
+	file_dialog.title = "Import Campaign File"
+	file_dialog.size = Vector2i(800, 500)
+	file_dialog.file_selected.connect(_on_import_file_selected.bind(file_dialog))
+	file_dialog.canceled.connect(func():
+		file_dialog.queue_free()
+		_active_dialogs.erase(file_dialog)
+	)
+	add_child(file_dialog)
+	_active_dialogs.append(file_dialog)
+	file_dialog.popup_centered()
+
+func _on_import_file_selected(path: String, file_dialog: Node) -> void:
+	if is_instance_valid(file_dialog):
+		file_dialog.queue_free()
+		_active_dialogs.erase(file_dialog)
+	var gs = get_node_or_null("/root/GameState")
+	if not gs:
+		show_message("Game state not available.")
+		return
+	if gs.has_method("import_campaign"):
+		var result: Dictionary = gs.import_campaign(path)
+		if result.get("success", false):
+			request_scene_change("campaign_turn_controller")
+		else:
+			show_message("Import failed: %s" % result.get("message", "Unknown error"))
+	else:
+		show_message("Import not supported.")
+
 func _on_coop_campaign_pressed() -> void:
 	show_message("Co-op Campaign feature is coming soon!")
 
 func _on_battle_simulator_pressed() -> void:
-	request_scene_change("battle_simulator")
+	show_message("Battle Simulator feature is coming soon!")
 
 func _on_bug_hunt_pressed() -> void:
 	show_message("Bug Hunt feature is coming soon!")
@@ -204,7 +291,7 @@ func _on_options_pressed() -> void:
 	request_scene_change("options")
 
 func _on_library_pressed() -> void:
-	request_scene_change("library")
+	show_message("Library feature is coming soon!")
 
 func _cleanup_dialogs() -> void:
 	for dialog in _active_dialogs:
@@ -224,17 +311,24 @@ func show_message(text: String) -> void:
 	_active_dialogs.erase(dialog)
 
 func request_scene_change(scene_name: String) -> void:
-	var parent := get_parent()
-	if not parent:
-		push_error("MainMenu: Parent node not found")
+	var router = get_node_or_null("/root/SceneRouter")
+	if not router:
+		push_error("MainMenu: SceneRouter not found")
 		return
-	
-	var game_scene := parent.get_parent()
-	if not game_scene:
-		push_error("MainMenu: Game scene node not found")
+
+	# Map MainMenu scene names to SceneRouter keys
+	var scene_map := {
+		"crew_management": "crew_management",
+		"campaign_setup": "campaign_creation",
+		"tutorial_setup": "tutorial_selection",
+		"options": "settings",
+		"campaign_dashboard": "campaign_turn_controller",
+		"campaign_turn_controller": "campaign_turn_controller",
+	}
+
+	var router_key: String = scene_map.get(scene_name, "")
+	if router_key.is_empty():
+		show_message("%s feature is coming soon!" % scene_name.replace("_", " ").capitalize())
 		return
-	
-	if game_scene.has_method("change_scene"):
-		game_scene.change_scene(scene_name)
-	else:
-		push_error("MainMenu: Game scene missing change_scene method")
+
+	router.navigate_to(router_key)

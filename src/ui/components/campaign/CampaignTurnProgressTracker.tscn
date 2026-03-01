@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://c8j3lam2n4p6q"]
+
+[ext_resource type="Script" path="res://src/ui/components/campaign/CampaignTurnProgressTracker.gd" id="1_a2b3c"]
+
+[node name="CampaignTurnProgressTracker" type="HBoxContainer"]
+script = ExtResource("1_a2b3c")

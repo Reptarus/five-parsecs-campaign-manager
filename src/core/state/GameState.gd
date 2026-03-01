@@ -8,6 +8,7 @@ const Self = preload("res://src/core/state/GameState.gd")
 ## Dependencies - explicit loading to avoid circular references
 const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsCampaign = preload("res://src/game/campaign/FiveParsecsCampaign.gd")
+const FiveParsecsCampaignCore = preload("res://src/game/campaign/FiveParsecsCampaignCore.gd")
 const Ship = preload("res://src/core/ships/Ship.gd")
 const ErrorLogger = preload("res://src/core/systems/ErrorLogger.gd")
 
@@ -22,6 +23,12 @@ signal load_completed(success: bool, message: String)
 
 # Campaign state
 var current_campaign = null
+# Alias so phase panels using game_state.campaign still work
+var campaign:
+	get:
+		return current_campaign
+	set(value):
+		current_campaign = value
 var game_settings: Dictionary = {}
 var game_options: Dictionary = {}
 
@@ -36,6 +43,12 @@ var _resources: Dictionary = {
 }
 var _current_phase: int = 0
 var is_tutorial_active: bool = false
+
+# Battle results (stored between battle completion and post-battle processing)
+var _battle_results: Dictionary = {}
+
+# Battlefield data (terrain, deployment conditions, generated layout)
+var _battlefield_data: Dictionary = {}
 
 # File paths
 const SAVE_DIRECTORY := "user://saves/"
@@ -89,6 +102,29 @@ func _init() -> void:
 	# Load settings and options
 	load_settings()
 	load_options()
+
+	# Auto-load last campaign if available
+	_try_auto_load_last_campaign()
+
+func _try_auto_load_last_campaign() -> void:
+	var last_id: String = game_settings.get("last_campaign", "")
+	if last_id.is_empty():
+		return
+	var path = SAVE_DIRECTORY + last_id + ".save"
+	if not FileAccess.file_exists(path):
+		return
+	print("GameState: Auto-loading last campaign: %s" % last_id)
+	var loaded = FiveParsecsCampaignCore.load_from_file(path)
+	if loaded:
+		current_campaign = loaded
+		print("GameState: Auto-loaded campaign: %s" % loaded.campaign_name)
+	else:
+		push_warning("GameState: Failed to auto-load from: %s" % path)
+
+func _ready() -> void:
+	# Apply deferred QoL data now that scene tree is ready
+	if current_campaign and current_campaign.has_method("apply_pending_qol_data"):
+		current_campaign.apply_pending_qol_data()
 
 ## Save the current settings to disk
 ## @return Whether the save operation was successful
@@ -290,68 +326,172 @@ func update_recent_campaigns(campaign_id: String) -> void:
 ## @return Result dictionary with success status and message
 func save_campaign(campaign = null, path: String = "") -> Dictionary:
 	save_started.emit()
-	
+
 	if campaign == null:
 		campaign = current_campaign
-	
+
 	if campaign == null:
 		var error_msg = "No campaign to save"
 		_log_error(error_msg)
 		save_completed.emit(false, error_msg)
 		return {"success": false, "message": error_msg}
-	
+
 	if not is_instance_valid(campaign):
 		var error_msg = "Invalid campaign instance"
 		_log_error(error_msg)
 		save_completed.emit(false, error_msg)
 		return {"success": false, "message": error_msg}
-	
-	# Determine path if not provided
+
+	# Determine save path
 	if path.is_empty():
+		var cid: String = ""
 		if campaign.has_method("get_campaign_id"):
-			path = SAVE_DIRECTORY + campaign.get_campaign_id() + ".save"
+			cid = campaign.get_campaign_id()
 		elif "campaign_id" in campaign:
-			path = SAVE_DIRECTORY + campaign.campaign_id + ".save"
-		else:
+			cid = campaign.campaign_id
+		if cid.is_empty():
 			var error_msg = "Campaign has no ID for save path"
 			_log_error(error_msg)
 			save_completed.emit(false, error_msg)
 			return {"success": false, "message": error_msg}
-	
-	# Create campaign save data
-	var save_data = campaign.serialize()
-	if not save_data:
-		var error_msg = "Failed to serialize campaign"
-		_log_error(error_msg)
-		save_completed.emit(false, error_msg)
-		return {"success": false, "message": error_msg}
-	
-	# Add metadata
-	save_data["_meta"] = {
-		"version": "1.0",
-		"timestamp": Time.get_unix_time_from_system(),
-		"game_version": "1.0.0"
-	}
-	
-	# Save file
-	var file = FileAccess.open(path, FileAccess.WRITE)
-	if not file:
-		var error = FileAccess.get_open_error()
-		var error_msg = "Failed to open save file: " + str(error)
-		_log_error(error_msg, error)
-		save_completed.emit(false, error_msg)
-		return {"success": false, "message": error_msg}
-	
-	# Convert to JSON and save
-	var json = JSON.new()
-	var json_string = json.stringify(save_data)
-	file.store_string(json_string)
-	
+		path = SAVE_DIRECTORY + cid + ".save"
+
+	# Delegate to campaign's own save method if available
+	if campaign.has_method("save_to_file"):
+		var err = campaign.save_to_file(path)
+		if err != OK:
+			var error_msg = "Failed to save campaign (error %d)" % err
+			_log_error(error_msg, err)
+			save_completed.emit(false, error_msg)
+			return {"success": false, "message": error_msg}
+	else:
+		# Fallback for legacy campaign types
+		var save_data: Dictionary = {}
+		if campaign.has_method("serialize"):
+			save_data = campaign.serialize()
+		elif campaign.has_method("to_dictionary"):
+			save_data = campaign.to_dictionary()
+		else:
+			var error_msg = "Campaign has no serialization method"
+			_log_error(error_msg)
+			save_completed.emit(false, error_msg)
+			return {"success": false, "message": error_msg}
+
+		save_data["_meta"] = {
+			"version": "1.0",
+			"timestamp": Time.get_unix_time_from_system(),
+			"game_version": "1.0.0"
+		}
+
+		var file = FileAccess.open(path, FileAccess.WRITE)
+		if not file:
+			var error = FileAccess.get_open_error()
+			var error_msg = "Failed to open save file: %d" % error
+			_log_error(error_msg, error)
+			save_completed.emit(false, error_msg)
+			return {"success": false, "message": error_msg}
+
+		var json_string = JSON.stringify(save_data, "\t")
+		file.store_string(json_string)
+		file.close()
+
+	# Update settings with last saved campaign
+	var saved_id: String = ""
+	if campaign.has_method("get_campaign_id"):
+		saved_id = campaign.get_campaign_id()
+	elif "campaign_id" in campaign:
+		saved_id = campaign.campaign_id
+	if not saved_id.is_empty():
+		game_settings["last_campaign"] = saved_id
+		save_settings()
+
 	var success_msg = "Campaign saved successfully"
+	print("GameState: %s → %s" % [success_msg, path])
 	save_completed.emit(true, success_msg)
 	campaign_saved.emit()
-	
+
 	return {"success": true, "message": success_msg, "path": path}
+
+## Load a campaign from a save file on disk
+func load_campaign(path: String) -> Dictionary:
+	load_started.emit()
+
+	if not FileAccess.file_exists(path):
+		var error_msg = "Save file not found: " + path
+		_log_error(error_msg)
+		load_completed.emit(false, error_msg)
+		return {"success": false, "message": error_msg}
+
+	var loaded = FiveParsecsCampaignCore.load_from_file(path)
+	if not loaded:
+		var error_msg = "Failed to parse campaign save file"
+		_log_error(error_msg)
+		load_completed.emit(false, error_msg)
+		return {"success": false, "message": error_msg}
+
+	set_current_campaign(loaded)
+
+	# Update settings with loaded campaign ID
+	var loaded_id: String = ""
+	if loaded.has_method("get_campaign_id"):
+		loaded_id = loaded.get_campaign_id()
+	elif "campaign_id" in loaded:
+		loaded_id = loaded.campaign_id
+	if not loaded_id.is_empty():
+		game_settings["last_campaign"] = loaded_id
+		save_settings()
+
+	var success_msg = "Campaign loaded: " + loaded.campaign_name
+	print("GameState: %s" % success_msg)
+	load_completed.emit(true, success_msg)
+	campaign_loaded.emit(loaded)
+
+	return {"success": true, "message": success_msg, "campaign": loaded}
+
+## Import a campaign from an external file (e.g. shared save, different device)
+## Copies the file into user://saves/ then loads it
+func import_campaign(external_path: String) -> Dictionary:
+	if not FileAccess.file_exists(external_path):
+		var error_msg = "Import file not found: " + external_path
+		_log_error(error_msg)
+		return {"success": false, "message": error_msg}
+
+	# Read and validate the file first
+	var file = FileAccess.open(external_path, FileAccess.READ)
+	if not file:
+		var error_msg = "Cannot open import file"
+		_log_error(error_msg)
+		return {"success": false, "message": error_msg}
+
+	var content = file.get_as_text()
+	file.close()
+
+	var json_result = JSON.parse_string(content)
+	if json_result == null or not json_result is Dictionary:
+		return {"success": false, "message": "Invalid campaign file (not valid JSON)"}
+
+	# Determine campaign ID for the local save path
+	var meta: Dictionary = json_result.get("meta", {})
+	var cid: String = meta.get("campaign_id", json_result.get("campaign_id", ""))
+	if cid.is_empty():
+		# Generate an ID from the filename
+		cid = external_path.get_file().get_basename()
+
+	var local_path = SAVE_DIRECTORY + cid + ".save"
+
+	# Copy to saves directory
+	var out_file = FileAccess.open(local_path, FileAccess.WRITE)
+	if not out_file:
+		var error_msg = "Failed to write to saves directory"
+		_log_error(error_msg)
+		return {"success": false, "message": error_msg}
+
+	out_file.store_string(content)
+	out_file.close()
+	print("GameState: Imported campaign file to %s" % local_path)
+
+	# Now load it normally
+	return load_campaign(local_path)
 
 ## Helper method to log errors
 ## @param message The error message
@@ -402,22 +542,31 @@ func get_campaign_info(path: String) -> Dictionary:
 	if json_result == null:
 		return {"valid": false, "reason": "Invalid JSON"}
 	
+	# Read from meta section (FiveParsecsCampaignCore) with top-level fallback
+	var meta: Dictionary = json_result.get("meta", {})
 	var info = {
 		"valid": true,
 		"path": path,
-		"id": json_result.get("campaign_id", "unknown"),
-		"name": json_result.get("campaign_name", "Unnamed Campaign"),
+		"id": meta.get("campaign_id",
+			json_result.get("campaign_id", "unknown")),
+		"name": meta.get("campaign_name",
+			json_result.get("campaign_name", "Unnamed Campaign")),
 		"file_name": path.get_file(),
 		"last_modified": FileAccess.get_modified_time(path),
-		"date_string": get_date_string(FileAccess.get_modified_time(path))
+		"date_string": get_date_string(FileAccess.get_modified_time(path)),
+		"game_phase": meta.get("game_phase",
+			json_result.get("game_phase", "unknown")),
+		"difficulty": meta.get("difficulty",
+			json_result.get("difficulty", 0))
 	}
-	
-	# Add metadata if available
-	if json_result.has("_meta"):
-		info["version"] = json_result._meta.get("version", "unknown")
-		info["save_date"] = json_result._meta.get("save_date", "unknown")
-		info["game_version"] = json_result._meta.get("game_version", "unknown")
-	
+
+	# Add save metadata if available
+	var save_meta: Dictionary = json_result.get("_meta", {})
+	if not save_meta.is_empty():
+		info["version"] = save_meta.get("version", "unknown")
+		info["save_date"] = save_meta.get("save_date", "unknown")
+		info["game_version"] = save_meta.get("game_version", "unknown")
+
 	return info
 
 func get_date_string(unix_time: int) -> String:
@@ -792,3 +941,71 @@ func set_current_phase(value: int) -> bool:
 	_current_phase = value
 	state_changed.emit()
 	return true
+
+## Gets the current campaign turn number from CampaignPhaseManager
+func get_campaign_turn() -> int:
+	var phase_manager = get_node_or_null("/root/CampaignPhaseManager")
+	if phase_manager and "turn_number" in phase_manager:
+		return phase_manager.turn_number
+	return 0
+
+## Gets the current mission data from the active campaign
+func get_current_mission() -> Dictionary:
+	if current_campaign and current_campaign.has_method("get_current_mission"):
+		return current_campaign.get_current_mission()
+	return {}
+
+## Gets the active crew members from the current campaign
+func get_active_crew() -> Array:
+	if current_campaign and current_campaign.has_method("get_crew_members"):
+		var members = current_campaign.get_crew_members()
+		print("GameState.get_active_crew: Via get_crew_members() → %d members" % members.size())
+		if members.size() > 0:
+			var first = members[0]
+			print("  First member type: %s" % (first.get_class() if first is Object else typeof(first)))
+		return members
+	if current_campaign and "crew_data" in current_campaign:
+		var members = current_campaign.crew_data.get("members", [])
+		print("GameState.get_active_crew: Via crew_data['members'] → %d members" % members.size())
+		return members
+	print("GameState.get_active_crew: No campaign or no crew method → returning []")
+	return []
+
+## Current Enemies Management
+var _current_enemies: Array = []
+
+func get_current_enemies() -> Array:
+	return _current_enemies
+
+func set_current_enemies(enemies: Array) -> void:
+	_current_enemies = enemies
+
+## Battle Results Management
+
+## Store battle results for post-battle processing
+func set_battle_results(results: Dictionary) -> void:
+	_battle_results = results.duplicate(true)
+	state_changed.emit()
+
+## Retrieve stored battle results
+func get_battle_results() -> Dictionary:
+	return _battle_results
+
+## Clear battle results after post-battle processing is complete
+func clear_battle_results() -> void:
+	_battle_results = {}
+	state_changed.emit()
+
+## Battlefield Data Management
+
+## Store generated battlefield data (terrain + deployment conditions)
+func set_battlefield_data(data: Dictionary) -> void:
+	_battlefield_data = data.duplicate(true)
+
+## Retrieve stored battlefield data
+func get_battlefield_data() -> Dictionary:
+	return _battlefield_data
+
+## Clear battlefield data
+func clear_battlefield_data() -> void:
+	_battlefield_data = {}

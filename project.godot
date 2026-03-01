@@ -13,27 +13,46 @@ gut={
 &"include_subdirectories": true
 }
 
+[animation]
+
+compatibility/default_parent_skeleton_in_mesh_instance_3d=true
+
 [application]
 
 config/name="Five Parsecs Campaign Manager"
 config/version="0.1.0"
 run/main_scene="res://src/ui/screens/mainmenu/MainMenu.tscn"
-config/features=PackedStringArray("4.4", "Forward Plus")
+config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
 
-GutSafety="res://autoloads/gut_safety.gd"
-GutTestRegistry="res://tests/autoloads/gut_test_registry.gd"
 GlobalEnums="*res://src/core/systems/GlobalEnums.gd"
 GameDataManager="*res://src/core/managers/GameDataManager.gd"
+DataManager="*res://src/core/data/DataManager.gd"
+DLCManager="*res://src/core/systems/DLCManager.gd"
 GameStateManager="*res://src/core/managers/GameStateManager.gd"
+GameState="*res://src/core/state/GameState.gd"
+DiceManager="*res://src/core/managers/DiceManager.gd"
+SceneRouter="*res://src/ui/screens/SceneRouter.gd"
 PlanetCache="*res://src/core/world/PlanetCache.gd"
 WorldEconomyManager="*res://src/core/world/WorldEconomyManager.gd"
 ResourceSystem="*res://src/core/systems/ResourceSystem.gd"
-TestOverrides="*res://tests/fixtures/overrides/test_overrides.gd"
 zzzCharacterManager="*res://src/core/character/Management/CharacterManager.gd"
 zzzBattleStateMachine="*res://src/core/battle/state/BattleStateMachine.gd"
+KeywordDB="*res://src/autoload/KeywordDB.gd"
+TurnPhaseChecklist="*res://src/qol/TurnPhaseChecklist.gd"
+CampaignJournal="*res://src/core/campaign/CampaignJournal.gd"
+LegacySystem="*res://src/core/campaign/LegacySystem.gd"
+NPCTracker="*res://src/core/campaign/NPCTracker.gd"
+CampaignPhaseManager="*res://src/core/campaign/CampaignPhaseManager.gd"
+CampaignTurnEventBus="*res://src/core/events/CampaignTurnEventBus.gd"
+EquipmentManager="*res://src/core/equipment/EquipmentManager.gd"
+PlanetDataManager="*res://src/core/world/PlanetDataManager.gd"
+ResponsiveManager="*res://src/autoload/ResponsiveManager.gd"
+ThemeManager="*res://src/ui/themes/ThemeManager.gd"
+TransitionManager="res://src/autoload/TransitionManager.gd"
+NotificationManager="res://src/autoload/NotificationManager.gd"
 
 [debug]
 
@@ -56,6 +75,8 @@ settings/run_on_load/test_scene="res://tests/GutTestScene.tscn"
 
 window/size/viewport_width=1920
 window/size/viewport_height=1080
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
 
 [dotnet]
 
@@ -63,15 +84,7 @@ project/assembly_name="Five Parsecs Campaign Manager"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/gut/plugin.cfg")
-
-[gut]
-
-directory=PackedStringArray("res://tests/unit", "res://tests/integration", "res://tests/battle", "res://tests/performance", "res://tests/mobile", "res://tests/diagnostic")
-include_subdirectories=true
-log_level=3
-should_print_to_console=true
-double_strategy=1
+enabled=PackedStringArray("res://addons/gdUnit4/plugin.cfg")
 
 [rendering]
 

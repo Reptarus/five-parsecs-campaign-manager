@@ -5,6 +5,7 @@ const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const FiveParsecsCampaign = preload("res://src/game/campaign/FiveParsecsCampaign.gd")
 const ValidationManager = preload("res://src/core/systems/ValidationManager.gd")
+const PostBattlePhaseClass = preload("res://src/core/campaign/PostBattlePhase.gd")
 
 # Import the enums directly for cleaner code
 const FiveParcsecsCampaignPhase = GameEnums.FiveParcsecsCampaignPhase
@@ -17,12 +18,19 @@ signal phase_started(phase: FiveParcsecsCampaignPhase)
 signal phase_action_completed(action: String)
 signal phase_event_triggered(event: Dictionary)
 signal phase_error(error_message: String, is_critical: bool)
+signal campaign_turn_started(turn_number: int)
+signal campaign_turn_completed(turn_number: int)
 
 var game_state: FiveParsecsGameState
 var current_phase: FiveParcsecsCampaignPhase = FiveParcsecsCampaignPhase.NONE
 var previous_phase: FiveParcsecsCampaignPhase = FiveParcsecsCampaignPhase.NONE
 var current_sub_phase: CampaignSubPhase = CampaignSubPhase.NONE
 var previous_sub_phase: CampaignSubPhase = CampaignSubPhase.NONE
+
+# Turn tracking
+var turn_number: int = 0
+var post_battle_phase_handler = null  # Placeholder for future post-battle handler
+var battle_phase_handler = null  # Placeholder for future battle handler
 
 # Phase tracking
 var phase_actions_completed: Dictionary = {}
@@ -39,28 +47,93 @@ func setup(state: FiveParsecsGameState) -> void:
 	game_state = state
 	validator = ValidationManager.new(game_state)
 	reset_phase_tracking()
-	
+
+	# Initialize PostBattlePhase handler
+	if game_state and not post_battle_phase_handler:
+		post_battle_phase_handler = PostBattlePhaseClass.new(game_state)
+		post_battle_phase_handler.name = "PostBattlePhaseHandler"
+		add_child(post_battle_phase_handler)
+		post_battle_phase_handler.phase_completed.connect(_on_post_battle_phase_completed)
+
 	# Connect to campaign signals if available
 	if game_state and game_state.current_campaign:
 		_connect_to_campaign(game_state.current_campaign)
 
+func get_current_phase() -> FiveParcsecsCampaignPhase:
+	return current_phase
+
+func get_turn_number() -> int:
+	return turn_number
+
+func set_campaign(campaign: Resource) -> void:
+	# Connect phase manager to campaign
+	if game_state:
+		game_state.current_campaign = campaign
+	if campaign:
+		_connect_to_campaign(campaign)
+	print("CampaignPhaseManager: Campaign set - %s" % (campaign.campaign_name if campaign and "campaign_name" in campaign else "null"))
+
+func start_new_turn() -> void:
+	turn_number += 1
+	campaign_turn_started.emit(turn_number)
+	# Reset to first turn phase (UPKEEP)
+	start_phase(FiveParcsecsCampaignPhase.UPKEEP)
+
+func start_new_campaign_turn() -> void:
+	start_new_turn()
+
+func complete_current_turn() -> void:
+	campaign_turn_completed.emit(turn_number)
+
+func complete_current_phase() -> void:
+	## Complete the current phase and advance to the next one
+	var completed_phase = current_phase
+	phase_completed.emit()
+
+	var next = _get_next_phase(completed_phase)
+	if next != FiveParcsecsCampaignPhase.NONE:
+		start_phase(next)
+	else:
+		complete_current_turn()
+
+func _get_next_phase(phase: FiveParcsecsCampaignPhase) -> FiveParcsecsCampaignPhase:
+	## Canonical phase sequence for campaign turns
+	match phase:
+		FiveParcsecsCampaignPhase.UPKEEP: return FiveParcsecsCampaignPhase.STORY
+		FiveParcsecsCampaignPhase.STORY: return FiveParcsecsCampaignPhase.TRAVEL
+		FiveParcsecsCampaignPhase.TRAVEL: return FiveParcsecsCampaignPhase.PRE_MISSION
+		FiveParcsecsCampaignPhase.PRE_MISSION: return FiveParcsecsCampaignPhase.MISSION
+		FiveParcsecsCampaignPhase.MISSION: return FiveParcsecsCampaignPhase.BATTLE_SETUP
+		FiveParcsecsCampaignPhase.BATTLE_SETUP: return FiveParcsecsCampaignPhase.BATTLE_RESOLUTION
+		FiveParcsecsCampaignPhase.BATTLE_RESOLUTION: return FiveParcsecsCampaignPhase.POST_MISSION
+		FiveParcsecsCampaignPhase.POST_MISSION: return FiveParcsecsCampaignPhase.ADVANCEMENT
+		FiveParcsecsCampaignPhase.ADVANCEMENT: return FiveParcsecsCampaignPhase.TRADING
+		FiveParcsecsCampaignPhase.TRADING: return FiveParcsecsCampaignPhase.CHARACTER
+		FiveParcsecsCampaignPhase.CHARACTER: return FiveParcsecsCampaignPhase.RETIREMENT
+		FiveParcsecsCampaignPhase.RETIREMENT: return FiveParcsecsCampaignPhase.NONE
+		_: return FiveParcsecsCampaignPhase.NONE
+
 func _connect_to_campaign(campaign) -> void:
 	# Connect relevant campaign signals for tracking state changes
-	# First check if the campaign has the required signals
 	if not (campaign is Resource):
 		push_error("Campaign must be a Resource")
 		return
-		
-	if not campaign.has_signal("campaign_state_changed") or not campaign.has_signal("resource_changed") or not campaign.has_signal("world_changed"):
-		push_error("Campaign does not have required signals")
-		return
-		
-	if campaign.is_connected("campaign_state_changed", Callable(self, "_on_campaign_state_changed")):
-		campaign.disconnect("campaign_state_changed", Callable(self, "_on_campaign_state_changed"))
-	
-	campaign.connect("campaign_state_changed", Callable(self, "_on_campaign_state_changed"))
-	campaign.connect("resource_changed", Callable(self, "_on_campaign_resource_changed"))
-	campaign.connect("world_changed", Callable(self, "_on_campaign_world_changed"))
+
+	# Connect signals that exist — FiveParsecsCampaignCore may not have all of them
+	var signal_map = [
+		["campaign_state_changed", "_on_campaign_state_changed"],
+		["resource_changed", "_on_campaign_resource_changed"],
+		["world_changed", "_on_campaign_world_changed"],
+	]
+	for sig_info in signal_map:
+		var sig_name: String = sig_info[0]
+		var handler: String = sig_info[1]
+		if campaign.has_signal(sig_name):
+			if campaign.is_connected(sig_name, Callable(self, handler)):
+				campaign.disconnect(sig_name, Callable(self, handler))
+			campaign.connect(sig_name, Callable(self, handler))
+		else:
+			print("CampaignPhaseManager: Campaign missing signal '%s' — skipping" % sig_name)
 
 func _on_campaign_state_changed(_property: String) -> void:
 	# Validate current state after a change
@@ -210,21 +283,30 @@ func _can_transition_to_phase(new_phase: FiveParcsecsCampaignPhase) -> bool:
 		FiveParcsecsCampaignPhase.SETUP:
 			return current_phase == FiveParcsecsCampaignPhase.NONE
 		FiveParcsecsCampaignPhase.UPKEEP:
-			return current_phase in [FiveParcsecsCampaignPhase.SETUP, FiveParcsecsCampaignPhase.RETIREMENT]
+			return current_phase in [FiveParcsecsCampaignPhase.SETUP, FiveParcsecsCampaignPhase.RETIREMENT, FiveParcsecsCampaignPhase.NONE]
 		FiveParcsecsCampaignPhase.STORY:
 			return current_phase == FiveParcsecsCampaignPhase.UPKEEP
-		FiveParcsecsCampaignPhase.PRE_MISSION:
+		FiveParcsecsCampaignPhase.TRAVEL:
 			return current_phase == FiveParcsecsCampaignPhase.STORY
+		FiveParcsecsCampaignPhase.PRE_MISSION:
+			return current_phase in [FiveParcsecsCampaignPhase.STORY, FiveParcsecsCampaignPhase.TRAVEL]
+		FiveParcsecsCampaignPhase.MISSION:
+			# Allow from UPKEEP — world phase UI covers STORY/TRAVEL/PRE_MISSION steps
+			return current_phase in [FiveParcsecsCampaignPhase.PRE_MISSION, FiveParcsecsCampaignPhase.UPKEEP]
 		FiveParcsecsCampaignPhase.BATTLE_SETUP:
-			return current_phase == FiveParcsecsCampaignPhase.PRE_MISSION
+			return current_phase in [FiveParcsecsCampaignPhase.PRE_MISSION, FiveParcsecsCampaignPhase.MISSION]
 		FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
 			return current_phase == FiveParcsecsCampaignPhase.BATTLE_SETUP
-		FiveParcsecsCampaignPhase.ADVANCEMENT:
+		FiveParcsecsCampaignPhase.POST_MISSION:
 			return current_phase == FiveParcsecsCampaignPhase.BATTLE_RESOLUTION
+		FiveParcsecsCampaignPhase.ADVANCEMENT:
+			return current_phase in [FiveParcsecsCampaignPhase.BATTLE_RESOLUTION, FiveParcsecsCampaignPhase.POST_MISSION]
 		FiveParcsecsCampaignPhase.TRADING:
 			return current_phase == FiveParcsecsCampaignPhase.ADVANCEMENT
-		FiveParcsecsCampaignPhase.RETIREMENT:
+		FiveParcsecsCampaignPhase.CHARACTER:
 			return current_phase == FiveParcsecsCampaignPhase.TRADING
+		FiveParcsecsCampaignPhase.RETIREMENT:
+			return current_phase in [FiveParcsecsCampaignPhase.TRADING, FiveParcsecsCampaignPhase.CHARACTER]
 		_:
 			return false
 
@@ -256,16 +338,24 @@ func _execute_phase_start() -> void:
 			_execute_upkeep_phase_start()
 		FiveParcsecsCampaignPhase.STORY:
 			_execute_story_phase_start()
+		FiveParcsecsCampaignPhase.TRAVEL:
+			_execute_travel_phase_start()
 		FiveParcsecsCampaignPhase.PRE_MISSION:
 			_execute_campaign_phase_start()
+		FiveParcsecsCampaignPhase.MISSION:
+			_execute_mission_phase_start()
 		FiveParcsecsCampaignPhase.BATTLE_SETUP:
 			_execute_battle_setup_phase_start()
 		FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
 			_execute_battle_resolution_phase_start()
+		FiveParcsecsCampaignPhase.POST_MISSION:
+			_execute_post_mission_phase_start()
 		FiveParcsecsCampaignPhase.ADVANCEMENT:
 			_execute_advancement_phase_start()
 		FiveParcsecsCampaignPhase.TRADING:
 			_execute_trade_phase_start()
+		FiveParcsecsCampaignPhase.CHARACTER:
+			_execute_character_phase_start()
 		FiveParcsecsCampaignPhase.RETIREMENT:
 			_execute_end_phase_start()
 
@@ -336,13 +426,38 @@ func _execute_story_phase_start() -> void:
 	})
 	phase_event_triggered.emit(phase_events[-1])
 
+func _execute_travel_phase_start() -> void:
+	phase_events.append({"type": "travel_started"})
+	phase_event_triggered.emit(phase_events[-1])
+
+func _execute_mission_phase_start() -> void:
+	phase_events.append({"type": "mission_started"})
+	phase_event_triggered.emit(phase_events[-1])
+
+func _execute_post_mission_phase_start() -> void:
+	phase_events.append({"type": "post_mission_started"})
+	phase_event_triggered.emit(phase_events[-1])
+
+	# Run PostBattlePhase backend if available
+	if post_battle_phase_handler and post_battle_phase_handler.has_method("process_post_battle"):
+		post_battle_phase_handler.process_post_battle()
+
+func _on_post_battle_phase_completed() -> void:
+	## PostBattlePhase backend finished processing
+	phase_events.append({"type": "post_battle_backend_completed"})
+	phase_event_triggered.emit(phase_events[-1])
+
+func _execute_character_phase_start() -> void:
+	phase_events.append({"type": "character_phase_started"})
+	phase_event_triggered.emit(phase_events[-1])
+
 func _execute_campaign_phase_start() -> void:
 	# Start with Travel sub-phase
 	start_sub_phase(CampaignSubPhase.TRAVEL)
 
 func _execute_battle_setup_phase_start() -> void:
 	# Generate battlefield
-	var battlefield = _generate_battlefield()
+	var battlefield = generate_battlefield()
 	phase_events.append({
 		"type": "battlefield_generated",
 		"battlefield": battlefield
@@ -528,9 +643,31 @@ func _generate_story_events() -> Array:
 	# Stub: Generate story events
 	return []
 
-func _generate_battlefield() -> Dictionary:
-	# Stub: Generate battlefield details
-	return {}
+func generate_battlefield() -> Dictionary:
+	# Use BattlefieldGenerator to produce terrain suggestions
+	var BattlefieldGeneratorClass = load(
+		"res://src/core/battle/BattlefieldGenerator.gd")
+	if not BattlefieldGeneratorClass:
+		push_warning("CampaignPhaseManager: BattlefieldGenerator not found")
+		return {}
+
+	var gen = BattlefieldGeneratorClass.new()
+
+	# Pick theme from mission/world context
+	var theme := "wilderness"
+	var gs = get_node_or_null("/root/GameState")
+	if gs:
+		var mission = gs.get_current_mission() if gs.has_method(
+			"get_current_mission") else {}
+		var env = mission.get("environment", "")
+		if env != "":
+			theme = env
+
+	var available: Array[String] = gen.get_terrain_themes()
+	if available.size() > 0 and theme not in available:
+		theme = available[0]
+
+	return gen.generate_terrain_suggestions(theme)
 
 func _generate_enemy_forces() -> Array:
 	# Stub: Generate enemy forces

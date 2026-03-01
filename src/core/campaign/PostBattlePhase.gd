@@ -8,9 +8,9 @@ const Character = preload("res://src/core/character/Base/Character.gd")
 signal phase_completed
 signal level_up_triggered(character: Character)
 
-@onready var step_label := $VBoxContainer/StepLabel
-@onready var step_description := $VBoxContainer/StepDescription
-@onready var step_content := $VBoxContainer/ScrollContainer/StepContent
+var step_label: Label = null
+var step_description: Label = null
+var step_content: Control = null
 
 const TOUCH_BUTTON_HEIGHT := 60
 const PORTRAIT_CONTENT_RATIO := 0.7
@@ -34,8 +34,13 @@ func _init(_game_state: FiveParsecsGameState) -> void:
 	game_state = _game_state
 
 func _ready() -> void:
-	_setup_post_battle_ui()
-	_show_current_step()
+	# Only set up UI if we have child nodes (scene-instanced, not .new())
+	step_label = get_node_or_null("VBoxContainer/StepLabel")
+	step_description = get_node_or_null("VBoxContainer/StepDescription")
+	step_content = get_node_or_null("VBoxContainer/ScrollContainer/StepContent")
+	if step_label:
+		_setup_post_battle_ui()
+		_show_current_step()
 
 func process_post_battle() -> void:
 	_resolve_combat_results()
@@ -43,7 +48,61 @@ func process_post_battle() -> void:
 	_collect_loot()
 	_update_mission_status()
 	_record_experience()
+	_persist_battle_journal()
+	_advance_story_track()
 	phase_completed.emit()
+
+func _persist_battle_journal() -> void:
+	## Log battle results to CampaignJournal for persistence
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if not journal or not journal.has_method("auto_create_battle_entry"):
+		return
+	var battle_results = game_state.current_battle_results if game_state else null
+	if not battle_results:
+		return
+	var victory: bool = battle_results.victory if "victory" in battle_results else false
+	var battle_entry: Dictionary = {
+		"turn": game_state.current_turn if "current_turn" in game_state else 0,
+		"outcome": "victory" if victory else "defeat",
+		"casualties": 0,
+		"location": "Unknown",
+		"loot": 0,
+		"xp": 0,
+		"crew_ids": []
+	}
+	journal.auto_create_battle_entry(battle_entry)
+
+func _advance_story_track() -> void:
+	## Advance story track if enabled (Core Rules Appendix V)
+	if not game_state:
+		return
+	var campaign = game_state.campaign if "campaign" in game_state else null
+	if not campaign:
+		return
+	# Check if story track is enabled for this campaign
+	var story_enabled: bool = campaign.story_track_enabled if "story_track_enabled" in campaign else false
+	if not story_enabled:
+		return
+	# Instantiate story track system and load existing state
+	var story_track := FPCM_StoryTrackSystem.new()
+	var progress: Dictionary = campaign.progress_data if "progress_data" in campaign else {}
+	var story_state: Dictionary = progress.get("story_track", {})
+	if not story_state.is_empty():
+		story_track.deserialize(story_state)
+	elif not story_track.is_story_track_active:
+		story_track.start_story_track()
+	# Advance turn with current campaign data
+	var current_turn: int = game_state.current_turn if "current_turn" in game_state else 0
+	var quest_rumors: int = campaign.quest_rumors if "quest_rumors" in campaign else 0
+	var result: Dictionary = story_track.advance_turn(current_turn, quest_rumors)
+	# Persist updated state back to campaign progress_data
+	campaign.progress_data["story_track"] = story_track.serialize()
+	# Log milestone to journal if event was triggered
+	if result.get("event_triggered", false):
+		var journal = get_node_or_null("/root/CampaignJournal")
+		if journal and journal.has_method("add_entry"):
+			journal.add_entry("Story Track: Event triggered (clock advanced)")
+	print("PostBattlePhase: Story track advanced — %s" % str(result))
 
 func _resolve_combat_results() -> void:
 	var battle_results = game_state.current_battle_results

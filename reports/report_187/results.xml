@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites id="2025-12-20" name="report_187" tests="10" failures="0" skipped="0" flaky="0" time="0.000">
+	<testsuite id="0" name="test_signal_integration" package="tests/integration/phase3_stability" timestamp="2025-12-20T19:24:16" hostname="localhost" tests="10" failures="0" errors="0" skipped="0" flaky="0" time="0.524">
+		<testcase name="test_signal_connection_prevents_duplicates" classname="test_signal_integration" time="0.041">
+		</testcase>
+		<testcase name="test_signal_disconnection_cleanup" classname="test_signal_integration" time="0.029">
+		</testcase>
+		<testcase name="test_signal_connection_with_deferred_flag" classname="test_signal_integration" time="0.030">
+		</testcase>
+		<testcase name="test_multiple_signals_propagate_correctly" classname="test_signal_integration" time="0.029">
+		</testcase>
+		<testcase name="test_multiple_handlers_receive_signal" classname="test_signal_integration" time="0.029">
+		</testcase>
+		<testcase name="test_signal_disconnection_only_affects_target" classname="test_signal_integration" time="0.030">
+		</testcase>
+		<testcase name="test_orphaned_connections_after_panel_free" classname="test_signal_integration" time="0.030">
+		</testcase>
+		<testcase name="test_signal_cleanup_during_panel_swap" classname="test_signal_integration" time="0.030">
+		</testcase>
+		<testcase name="test_has_signal_validation_before_connection" classname="test_signal_integration" time="0.028">
+		</testcase>
+		<testcase name="test_is_connected_check_before_disconnect" classname="test_signal_integration" time="0.022">
+		</testcase>
+	</testsuite>
+</testsuites>

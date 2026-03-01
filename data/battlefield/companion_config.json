@@ -1,0 +1,43 @@
+{
+  "battlefield_companion": {
+    "integration": {
+      "enabled": true,
+      "auto_sync": true,
+      "sync_interval_ms": 1000
+    },
+    "features": {
+      "terrain_generation": {
+        "enabled": true,
+        "auto_generate": false,
+        "default_size": "medium"
+      },
+      "objective_placement": {
+        "enabled": true,
+        "auto_place": true,
+        "validation": true
+      },
+      "deployment_zones": {
+        "enabled": true,
+        "auto_calculate": true,
+        "symmetric": true
+      }
+    },
+    "companion_app": {
+      "connection_type": "local",
+      "port": 8080,
+      "timeout_ms": 5000,
+      "retry_attempts": 3
+    },
+    "data_export": {
+      "format": "json",
+      "include_metadata": true,
+      "compress": false
+    },
+    "validation": {
+      "validate_terrain": true,
+      "validate_objectives": true,
+      "validate_deployment": true,
+      "strict_rules": false
+    }
+  }
+}

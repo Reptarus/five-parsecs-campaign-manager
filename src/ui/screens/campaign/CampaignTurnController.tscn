@@ -1,0 +1,117 @@
+[gd_scene load_steps=13 format=3 uid="uid://bbdf8j6xqaohc"]
+
+[ext_resource type="Script" uid="uid://sukbnoomk4wu" path="res://src/ui/screens/campaign/CampaignTurnController.gd" id="1_2xv8n"]
+[ext_resource type="PackedScene" uid="uid://bjdo0o2bet0av" path="res://src/ui/screens/travel/TravelPhaseUI.tscn" id="2_4k3m1"]
+[ext_resource type="PackedScene" uid="uid://c8vx1lawp7fqj" path="res://src/ui/screens/world/WorldPhaseController.tscn" id="3_7n2p5"]
+[ext_resource type="PackedScene" uid="uid://bt5nx8q7m2wkp" path="res://src/ui/screens/battle/BattleTransitionUI.tscn" id="4_battle"]
+[ext_resource type="PackedScene" uid="uid://e9x6y3w8v4n5m" path="res://src/ui/screens/postbattle/PostBattleSequence.tscn" id="5_m8k2r"]
+[ext_resource type="PackedScene" uid="uid://cedco4m5xy05m" path="res://src/ui/screens/battle/PreBattle.tscn" id="6_prebattle"]
+[ext_resource type="PackedScene" uid="uid://b8x70aq2n1j4w" path="res://src/ui/screens/battle/TacticalBattleUI.tscn" id="7_tactical"]
+[ext_resource type="PackedScene" uid="uid://dekdextv3vod5" path="res://src/ui/screens/campaign/phases/AdvancementPhasePanel.tscn" id="8_advancement"]
+[ext_resource type="PackedScene" uid="uid://i5hsvwnjosme" path="res://src/ui/screens/campaign/phases/TradePhasePanel.tscn" id="9_trade"]
+[ext_resource type="PackedScene" uid="uid://c4h8r2qat1e6x" path="res://src/ui/screens/campaign/phases/CharacterPhasePanel.tscn" id="10_character"]
+[ext_resource type="PackedScene" uid="uid://b8k7x0q5n3j4w" path="res://src/ui/screens/campaign/phases/EndPhasePanel.tscn" id="11_end"]
+[ext_resource type="PackedScene" uid="uid://c8x7y0q5n3j4w" path="res://src/ui/screens/campaign/phases/StoryPhasePanel.tscn" id="12_story"]
+
+[node name="CampaignTurnController" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_2xv8n")
+
+[node name="MainContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HeaderPanel" type="PanelContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HeaderContent" type="HBoxContainer" parent="MainContainer/HeaderPanel"]
+layout_mode = 2
+
+[node name="CurrentTurnLabel" type="Label" parent="MainContainer/HeaderPanel/HeaderContent"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Turn -"
+horizontal_alignment = 1
+
+[node name="CurrentPhaseLabel" type="Label" parent="MainContainer/HeaderPanel/HeaderContent"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Phase: Starting..."
+horizontal_alignment = 1
+
+[node name="PhaseProgressBar" type="ProgressBar" parent="MainContainer/HeaderPanel/HeaderContent"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+value = 0.0
+
+[node name="PhaseContainer" type="Control" parent="MainContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TravelPhaseUI" parent="MainContainer/PhaseContainer" instance=ExtResource("2_4k3m1")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+
+[node name="WorldPhaseController" parent="MainContainer/PhaseContainer" instance=ExtResource("3_7n2p5")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+
+[node name="BattleTransitionUI" parent="MainContainer/PhaseContainer" instance=ExtResource("4_battle")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+
+[node name="PostBattleUI" parent="MainContainer/PhaseContainer" instance=ExtResource("5_m8k2r")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+
+[node name="PreBattleUI" parent="MainContainer/PhaseContainer" instance=ExtResource("6_prebattle")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+
+[node name="TacticalBattleUI" parent="MainContainer/PhaseContainer" instance=ExtResource("7_tactical")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+
+[node name="AdvancementPhasePanel" parent="MainContainer/PhaseContainer" instance=ExtResource("8_advancement")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+
+[node name="TradePhasePanel" parent="MainContainer/PhaseContainer" instance=ExtResource("9_trade")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+
+[node name="CharacterPhasePanel" parent="MainContainer/PhaseContainer" instance=ExtResource("10_character")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+
+[node name="EndPhasePanel" parent="MainContainer/PhaseContainer" instance=ExtResource("11_end")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+
+[node name="StoryPhasePanel" parent="MainContainer/PhaseContainer" instance=ExtResource("12_story")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1

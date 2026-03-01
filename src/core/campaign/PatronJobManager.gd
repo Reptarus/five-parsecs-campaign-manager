@@ -14,10 +14,86 @@ signal patron_relationship_changed(patron_id: String, new_relationship: int)
 var patrons: Dictionary = {} # Patron ID to patron data
 var active_jobs: Dictionary = {} # Job ID to job data
 var game_state: FiveParsecsGameState
+var _patron_tables: Dictionary = {}
+var _job_type_table: Dictionary = {}
+var _payment_modifiers: Dictionary = {}
 
 ## Initialize the patron job manager
 func _init() -> void:
-	pass
+	_load_patron_tables()
+
+func _load_patron_tables() -> void:
+	var path := "res://data/campaign_tables/world_phase/patron_jobs.json"
+	if not FileAccess.file_exists(path):
+		return
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		return
+	var data: Dictionary = json.data if json.data is Dictionary else {}
+	_patron_tables = data.get("patron_contact_table", {})
+	_job_type_table = data.get("job_type_table", {})
+	_payment_modifiers = data.get("job_payment_modifiers", {})
+
+## Roll patron contact using JSON tables (Core Rules p.75-77)
+## Returns a dictionary with patron data if contact made, or empty dict
+func roll_patron_contact(modifiers: Dictionary = {}) -> Dictionary:
+	var roll: int = (randi() % 6 + 1) + (randi() % 6 + 1)  # 2d6
+	var modified_roll: int = roll + modifiers.get("bonus", 0)
+
+	# Look up result from table
+	var results: Dictionary = _patron_tables.get("results", {})
+	var outcome: Dictionary = {}
+	if modified_roll <= 6:
+		outcome = results.get("2-6", {})
+	elif modified_roll <= 8:
+		outcome = results.get("7-8", {})
+	elif modified_roll <= 10:
+		outcome = results.get("9-10", {})
+	elif modified_roll == 11:
+		outcome = results.get("11", {})
+	else:
+		outcome = results.get("12", {})
+
+	if outcome.get("outcome", "") == "no_contact":
+		return {"success": false, "roll": roll, "modified_roll": modified_roll, "narrative": outcome.get("narrative", "")}
+
+	# Generate patron with tier from table
+	var patron_tier: String = outcome.get("patron_tier", "minor")
+	var patron_id: String = "patron_" + str(randi() % 100000)
+	var patron_name: String = _generate_patron_name()
+
+	# Roll job type from d10 table
+	var job_roll: int = randi() % 10 + 1
+	var job_results: Dictionary = _job_type_table.get("results", {})
+	var job_entry: Dictionary = job_results.get(str(job_roll), {})
+	var job_type: String = job_entry.get("job_type", "DELIVERY")
+	var base_pay: int = job_entry.get("base_pay", 4)
+	var danger_level: int = job_entry.get("danger_level", 1)
+
+	# Apply payment modifiers
+	var tier_multipliers: Dictionary = _payment_modifiers.get("patron_tier_multipliers", {})
+	var tier_mult: float = tier_multipliers.get(patron_tier, 1.0)
+	var danger_bonuses: Dictionary = _payment_modifiers.get("danger_level_bonuses", {})
+	var danger_bonus: int = danger_bonuses.get(str(danger_level), 0)
+	var final_pay: int = int((base_pay + danger_bonus) * tier_mult)
+
+	var patron_data: Dictionary = {
+		"id": patron_id,
+		"name": patron_name,
+		"tier": patron_tier,
+		"relationship": 0,
+		"job": {
+			"type": job_type,
+			"description": job_entry.get("description", ""),
+			"pay": final_pay,
+			"danger_level": danger_level,
+		},
+		"narrative": outcome.get("narrative", ""),
+	}
+	return {"success": true, "roll": roll, "modified_roll": modified_roll, "patron": patron_data}
 
 ## Setup with game state
 func setup(state: FiveParsecsGameState) -> void:

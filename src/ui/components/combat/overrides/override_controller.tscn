@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3 uid="uid://c8r6x2j4y0m5q"]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" uid="uid://kvx8vbnoixev" path="res://src/ui/components/combat/overrides/override_controller.gd" id="1_v4r3n"]
 [ext_resource type="PackedScene" uid="uid://b8r6x2j4y0m5q" path="res://src/ui/components/combat/overrides/manual_override_panel.tscn" id="2_w4r3p"]

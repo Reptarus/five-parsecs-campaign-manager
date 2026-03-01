@@ -1086,8 +1086,12 @@ func generate_market_items(location_type: int, item_count: int = 5) -> Array:
 				item = _generate_market_gear(market_quality)
 			"medical":
 				item = create_gear_item("Medical Kit", "medkit", {"healing": 1 + (randi() % market_quality)})
+				item["remaining_uses"] = 2
+				item["category"] = EquipmentCategory.CONSUMABLE
 			"ammo":
 				item = create_gear_item("Ammunition", "ammo", {"quantity": 2 + (randi() % 3)})
+				item["remaining_uses"] = 3
+				item["category"] = EquipmentCategory.CONSUMABLE
 		
 		# Apply market markup
 		item["value"] = _apply_market_markup(item.get("value", 50), market_quality, location_type)
@@ -1408,3 +1412,21 @@ func _apply_market_markup(base_value: int, market_quality: int, location_type: i
 	
 	# Ensure minimum value
 	return max(10, final_value)
+
+## Use a consumable item, decrementing its remaining uses.
+## Returns a result dictionary with {success, remaining, depleted}.
+## If depleted, the caller should remove the item from the owner.
+func use_consumable(item_data: Dictionary) -> Dictionary:
+	var uses: int = item_data.get("remaining_uses", -1)
+	if uses < 0:
+		# Not a consumable — check legacy "uses" key
+		uses = item_data.get("uses", -1)
+		if uses >= 0:
+			item_data["remaining_uses"] = uses
+		else:
+			return {"success": false, "remaining": -1, "depleted": false, "reason": "not_consumable"}
+	if uses <= 0:
+		return {"success": false, "remaining": 0, "depleted": true, "reason": "already_depleted"}
+	item_data["remaining_uses"] = uses - 1
+	var depleted: bool = item_data["remaining_uses"] <= 0
+	return {"success": true, "remaining": item_data["remaining_uses"], "depleted": depleted, "reason": ""}

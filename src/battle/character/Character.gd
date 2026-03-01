@@ -1,6 +1,7 @@
 @tool
 extends Node2D
-class_name Character
+## Removed: class_name Character — conflicts with canonical src/core/character/Character.gd
+## This file is always preloaded explicitly, never referenced by global class_name
 
 const BaseCharacter = preload("res://src/core/character/Base/Character.gd")
 const GameEnums = preload("res://src/core/enums/GameEnums.gd")

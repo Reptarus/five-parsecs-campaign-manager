@@ -3,86 +3,145 @@ extends "res://src/ui/screens/campaign/phases/BasePhasePanel.gd"
 # Use explicit preloads instead of global class names
 
 const ThisClass = preload("res://src/ui/screens/campaign/phases/UpkeepPhasePanel.gd")
-const Character = preload("res://src/core/character/Base/Character.gd")
 
-@onready var upkeep_cost_label = $VBoxContainer/UpkeepCostLabel
-@onready var crew_list = $VBoxContainer/CrewList
-@onready var resources_list = $VBoxContainer/ResourcesList
-@onready var pay_upkeep_button = $VBoxContainer/PayUpkeepButton
+@onready var title_label: Label = $VBoxContainer/TitleLabel
+@onready var upkeep_cost_label: Label = $VBoxContainer/UpkeepCostLabel
+@onready var crew_costs_panel: PanelContainer = $VBoxContainer/CrewCostsPanel
+@onready var crew_costs_label: Label = $VBoxContainer/CrewCostsPanel/VBoxContainer/Label
+@onready var crew_list: ItemList = $VBoxContainer/CrewCostsPanel/VBoxContainer/CrewList
+@onready var resources_panel: PanelContainer = $VBoxContainer/ResourcesPanel
+@onready var resources_label: Label = $VBoxContainer/ResourcesPanel/VBoxContainer/Label
+@onready var resources_list: ItemList = $VBoxContainer/ResourcesPanel/VBoxContainer/ResourcesList
+@onready var pay_upkeep_button: Button = $VBoxContainer/PayUpkeepButton
 
 var total_upkeep_cost: int = 0
-var crew_members: Array[Character] = []
 
 func _ready() -> void:
 	super._ready()
-	pay_upkeep_button.pressed.connect(_on_pay_upkeep_pressed)
-	
+	_style_phase_title(title_label)
+	_style_section_label(upkeep_cost_label)
+	_style_sub_panel(crew_costs_panel)
+	_style_section_label(crew_costs_label)
+	_style_item_list(crew_list)
+	_style_sub_panel(resources_panel)
+	_style_section_label(resources_label)
+	_style_item_list(resources_list)
+	_style_phase_button(pay_upkeep_button, true)
+	if pay_upkeep_button:
+		pay_upkeep_button.pressed.connect(_on_pay_upkeep_pressed)
+
 func setup_phase() -> void:
 	super.setup_phase()
+	_process_injury_recovery()
 	_update_crew_list()
 	_calculate_upkeep()
 	_update_resources_list()
 
+func _get_crew_members() -> Array:
+	var campaign = game_state.campaign if game_state else null
+	if not campaign:
+		return []
+	if campaign.has_method("get_active_crew_members"):
+		return campaign.get_active_crew_members()
+	elif "crew_data" in campaign:
+		return campaign.crew_data.get("members", [])
+	return []
+
+func _process_injury_recovery() -> void:
+	## Decrement recovery_turns for injured crew. Transition to ACTIVE when healed.
+	var members = _get_crew_members()
+	for member in members:
+		if not member is Dictionary:
+			continue
+		var status: String = member.get("status", "ACTIVE")
+		if status not in ["INJURED", "RECOVERING"]:
+			continue
+		var injuries_arr: Array = member.get("injuries", [])
+		# Decrement recovery counters, remove healed injuries
+		for i in range(injuries_arr.size() - 1, -1, -1):
+			var injury: Dictionary = injuries_arr[i]
+			var turns_left: int = injury.get("recovery_turns", 0)
+			if turns_left > 0:
+				injury["recovery_turns"] = turns_left - 1
+			if injury.get("recovery_turns", 0) <= 0:
+				injury["healed"] = true
+				injuries_arr.remove_at(i)
+		# Update status if all injuries resolved
+		if injuries_arr.is_empty():
+			member["status"] = "ACTIVE"
+			member["in_sick_bay"] = false
+		else:
+			member["status"] = "RECOVERING"
+
 func _update_crew_list() -> void:
+	if not crew_list:
+		return
 	crew_list.clear()
-	crew_members = game_state.campaign.get_active_crew_members()
-	
-	for crew_member in crew_members:
-		var crew_item = crew_list.add_item(crew_member.character_name)
-		if crew_member.is_wounded:
-			crew_item.modulate = Color.RED
+	var members = _get_crew_members()
+	if members.is_empty():
+		crew_list.add_item("No Crew Members")
+		return
+	for member in members:
+		var name_str: String = ""
+		if member is Dictionary:
+			name_str = member.get("character_name", member.get("name", "Unknown"))
+			var member_status: String = member.get("status", "ACTIVE")
+			if member_status in ["INJURED", "RECOVERING"]:
+				var injuries_arr: Array = member.get("injuries", [])
+				var injury_text: String = ""
+				for inj in injuries_arr:
+					var t: String = inj.get("type", "Wound")
+					var r: int = inj.get("recovery_turns", 0)
+					injury_text += "%s (%d turns) " % [t, r]
+				name_str += " [RECOVERING: %s]" % injury_text.strip_edges()
+		elif "character_name" in member:
+			name_str = member.character_name
+		else:
+			name_str = str(member)
+		crew_list.add_item(name_str)
 
 func _calculate_upkeep() -> void:
 	total_upkeep_cost = 0
-	
-	for crew_member in crew_members:
-		var member_cost = 6 # Base upkeep cost
-		
-		# Apply modifiers based on traits - convert enum to string
-		if crew_member.has_trait("TACTICAL_MIND"): # Using string value instead of enum
-			member_cost -= 1 # Tactical minds are more efficient with resources
-		if crew_member.has_trait("STREET_SMART"): # Using string value instead of enum
-			member_cost -= 2 # Street smart characters know how to live cheaply
-			
+	var members = _get_crew_members()
+	for member in members:
+		var member_cost: int = 6
+		if member is Dictionary:
+			pass
+		elif member.has_method("has_trait"):
+			if member.has_trait("TACTICAL_MIND"):
+				member_cost -= 1
+			if member.has_trait("STREET_SMART"):
+				member_cost -= 2
 		total_upkeep_cost += member_cost
-	
-	upkeep_cost_label.text = "Total Upkeep Cost: " + str(total_upkeep_cost) + " credits"
+	if upkeep_cost_label:
+		upkeep_cost_label.text = "Total Upkeep Cost: %d credits" % total_upkeep_cost
 
 func _update_resources_list() -> void:
+	if not resources_list:
+		return
 	resources_list.clear()
-	var credits = game_state.campaign.credits
+	var campaign = game_state.campaign if game_state else null
+	var credits: int = campaign.credits if campaign else 0
 	resources_list.add_item("Credits: " + str(credits))
-	
-	pay_upkeep_button.disabled = credits < total_upkeep_cost
+	if pay_upkeep_button:
+		pay_upkeep_button.disabled = credits < total_upkeep_cost
 
 func _on_pay_upkeep_pressed() -> void:
-	game_state.campaign.credits -= total_upkeep_cost
+	var campaign = game_state.campaign if game_state else null
+	if campaign and "credits" in campaign:
+		campaign.credits -= total_upkeep_cost
 	_update_resources_list()
 	complete_phase()
 
 func validate_phase_requirements() -> bool:
-	return game_state.campaign.credits >= total_upkeep_cost
+	var campaign = game_state.campaign if game_state else null
+	if not campaign:
+		return false
+	return campaign.credits >= total_upkeep_cost
 
 func get_phase_data() -> Dictionary:
 	return {
 		"total_upkeep_cost": total_upkeep_cost,
-		"crew_count": crew_members.size(),
+		"crew_count": _get_crew_members().size(),
 		"can_pay": validate_phase_requirements()
 	}
-
-func _handle_upkeep_effects() -> void:
-	# Apply any special effects from traits
-	for crew_member in crew_members:
-		if crew_member.has_trait("TACTICAL_MIND"): # Using string value instead of enum
-			# Tactical minds can sometimes find ways to save money
-			var refund = total_upkeep_cost * 0.1
-			game_state.campaign.credits += int(refund)
-
-func _on_phase_failed(error_message: String) -> void:
-	push_error("Upkeep phase failed: " + error_message)
-	var dialog = AcceptDialog.new()
-	dialog.title = "Upkeep Failed"
-	dialog.dialog_text = error_message
-	add_child(dialog)
-	dialog.popup_centered()
-

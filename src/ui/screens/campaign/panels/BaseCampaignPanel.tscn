@@ -1,0 +1,125 @@
+[gd_scene load_steps=2 format=3 uid="uid://bxkj8l2nan6r5"]
+
+[ext_resource type="Script" path="res://src/ui/screens/campaign/panels/BaseCampaignPanel.gd" id="1_base"]
+[ext_resource type="Theme" uid="uid://ddjoduj1ya6tp" path="res://assets/5PFH.tres" id="2_theme"]
+
+
+[node name="BaseCampaignPanel" type="PanelContainer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+theme_type_variation = &"CampaignPanel"
+script = ExtResource("1_base")
+
+[node name="ContentMargin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="MainContent" type="VBoxContainer" parent="ContentMargin"]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="Header" type="VBoxContainer" parent="ContentMargin/MainContent"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="ContentMargin/MainContent/Header"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Panel Title"
+horizontal_alignment = 1
+
+[node name="Description" type="Label" parent="ContentMargin/MainContent/Header"]
+layout_mode = 2
+text = "Panel description will appear here. This provides context about what the user needs to do in this step."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HeaderSeparator" type="HSeparator" parent="ContentMargin/MainContent"]
+layout_mode = 2
+
+[node name="FormContent" type="ScrollContainer" parent="ContentMargin/MainContent"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="FormContainer" type="VBoxContainer" parent="ContentMargin/MainContent/FormContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 24
+
+[node name="FooterSeparator" type="HSeparator" parent="ContentMargin/MainContent"]
+layout_mode = 2
+
+[node name="Footer" type="HBoxContainer" parent="ContentMargin/MainContent"]
+layout_mode = 2
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="StatusLabel" type="Label" parent="ContentMargin/MainContent/Footer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Ready"
+horizontal_alignment = 2
+
+[node name="ValidationFeedback" type="AcceptDialog" parent="."]
+title = "Validation Error"
+initial_position = 2
+size = Vector2i(400, 200)
+dialog_text = "Please fix the validation errors shown above."
+
+[node name="LoadingOverlay" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="LoadingBackground" type="ColorRect" parent="LoadingOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.5)
+
+[node name="LoadingCenter" type="CenterContainer" parent="LoadingOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="LoadingContent" type="VBoxContainer" parent="LoadingOverlay/LoadingCenter"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="LoadingIcon" type="Label" parent="LoadingOverlay/LoadingCenter/LoadingContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "⏳"
+horizontal_alignment = 1
+
+[node name="LoadingLabel" type="Label" parent="LoadingOverlay/LoadingCenter/LoadingContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Loading..."
+horizontal_alignment = 1
+
+
+
+
+

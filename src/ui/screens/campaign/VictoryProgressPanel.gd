@@ -8,33 +8,28 @@ const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 @onready var milestone_container := $MarginContainer/VBoxContainer/MilestoneContainer
 
 var game_state: FiveParsecsGameState
-var campaign_manager # Type will be inferred from CampaignManager singleton
 var victory_type: GameEnums.FiveParcsecsCampaignVictoryType
 var current_progress: float = 0.0
 var target_progress: float = 20.0 # Default for TURNS_20
 var milestones: Array[float] = []
 
 func _ready() -> void:
-	campaign_manager = get_node("/root/CampaignManager")
-	if not campaign_manager:
-		push_error("CampaignManager not found")
-		queue_free()
-		return
-		
-	game_state = campaign_manager.game_state
+	game_state = get_node_or_null("/root/GameState")
 	if not game_state:
-		push_error("GameState not found")
+		push_warning("VictoryProgressPanel: GameState not found")
 		queue_free()
 		return
-	
+
 	_initialize_victory_tracking()
 	_connect_signals()
 	update_display()
 
 func _connect_signals() -> void:
-	if campaign_manager:
-		campaign_manager.campaign_system.campaign_turn_completed.connect(_on_turn_completed)
-		campaign_manager.campaign_system.campaign_progress_updated.connect(_on_progress_updated)
+	var phase_manager = get_node_or_null("/root/CampaignPhaseManager")
+	if phase_manager and phase_manager.has_signal("turn_completed"):
+		phase_manager.turn_completed.connect(_on_turn_completed)
+	if phase_manager and phase_manager.has_signal("phase_completed"):
+		phase_manager.phase_completed.connect(_on_progress_updated)
 
 func _initialize_victory_tracking() -> void:
 	victory_type = game_state.campaign_victory_condition

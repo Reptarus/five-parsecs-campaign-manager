@@ -1,0 +1,301 @@
+{
+  "name": "Exploration Table",
+  "version": "2.0",
+  "source": "Five Parsecs from Home Core Rules p.80",
+  "description": "D100 Exploration Table. Roll once per crew member Exploring.",
+  "dice_type": "d100",
+  "results": [
+    {
+      "roll_min": 1, "roll_max": 3,
+      "name": "I know a good deal",
+      "effect": "Roll on the Trade Table instead.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
+      "single_use": false, "requires_roll": false, "deferred_trigger": ""
+    },
+    {
+      "roll_min": 4, "roll_max": 6,
+      "name": "Meet a Patron",
+      "effect": "You are offered a Patron job. You may accept or decline.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": true,
+      "single_use": false, "requires_roll": false, "deferred_trigger": ""
+    },
+    {
+      "roll_min": 7, "roll_max": 8,
+      "name": "Bad food",
+      "effect": "Spend 1 campaign turn in Sick Bay. Soulless and K'Erin ignore this result.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 1, "rumor": false, "rival": false, "patron": false,
+      "single_use": false, "requires_roll": false, "deferred_trigger": "",
+      "immune_species": ["Soulless", "K'Erin"]
+    },
+    {
+      "roll_min": 9, "roll_max": 11,
+      "name": "Meet someone interesting",
+      "effect": "Gain a Quest Rumor. If you are a Precursor, roll 1D6: on a 5+, gain a second Rumor.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 0, "rumor": true, "rival": false, "patron": false,
+      "single_use": false, "requires_roll": false, "deferred_trigger": "",
+      "precursor_bonus": "1D6, on 5+: second Rumor"
+    },
+    {
+      "roll_min": 12, "roll_max": 15,
+      "name": "Had a nice chat",
+      "effect": "Roll 1D6+Savvy. On a 5+, earn +1 story point.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
+      "single_use": false, "requires_roll": true,
+      "roll_info": "1D6+Savvy, on 5+: +1 story point",
+      "deferred_trigger": ""
+    },
+    {
+      "roll_min": 16, "roll_max": 18,
+      "name": "See the sights",
+      "effect": "No effect.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
+      "single_use": false, "requires_roll": false, "deferred_trigger": ""
+    },
+    {
+      "roll_min": 19, "roll_max": 21,
+      "name": "Make a new friend",
+      "effect": "Add a new crew member to the group.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
+      "single_use": false, "requires_roll": false, "deferred_trigger": "",
+      "recruit": true
+    },
+    {
+      "roll_min": 22, "roll_max": 24,
+      "name": "Time to relax",
+      "effect": "No effect.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
+      "single_use": false, "requires_roll": false, "deferred_trigger": ""
+    },
+    {
+      "roll_min": 25, "roll_max": 28,
+      "name": "Possible bargain",
+      "effect": "You may trade any one weapon. Roll 1D6: On a 6, receive a roll on the Loot Table. On any other result, receive 1 credit.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
+      "single_use": false, "requires_roll": true,
+      "roll_info": "Trade weapon, 1D6: on 6 Loot Table, else 1 credit",
+      "deferred_trigger": ""
+    },
+    {
+      "roll_min": 29, "roll_max": 31,
+      "name": "Alien merchant",
+      "effect": "You may give the merchant any one item. In exchange, roll on the Loot Table.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
+      "single_use": false, "requires_roll": false, "deferred_trigger": ""
+    },
+    {
+      "roll_min": 32, "roll_max": 34,
+      "name": "Got yourself noticed",
+      "effect": "You must fight a random Rival this campaign turn.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 0, "rumor": false, "rival": true, "patron": false,
+      "single_use": false, "requires_roll": false, "deferred_trigger": ""
+    },
+    {
+      "roll_min": 35, "roll_max": 37,
+      "name": "You hear a tip",
+      "effect": "You may track down a Rival and fight them this campaign turn.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
+      "single_use": false, "requires_roll": false, "deferred_trigger": "",
+      "track_rival": true
+    },
+    {
+      "roll_min": 38, "roll_max": 40,
+      "name": "Completely lost",
+      "effect": "Roll 1D6+Savvy. On a 4+, you find your way back. Otherwise, miss the battle this turn. Re-roll if you have no battles.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
+      "single_use": false, "requires_roll": true,
+      "roll_info": "1D6+Savvy, 4+: return, else miss battle",
+      "deferred_trigger": ""
+    },
+    {
+      "roll_min": 41, "roll_max": 44,
+      "name": "Package delivered",
+      "effect": "Earn 3 credits upon arriving on a new world. Roll 1D6: On a 1-2, also gain a Rival and +1 story point.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
+      "single_use": true, "requires_roll": true,
+      "roll_info": "3 credits on new world; 1D6: 1-2 also +Rival +1 SP",
+      "deferred_trigger": "NEW_PLANET"
+    },
+    {
+      "roll_min": 45, "roll_max": 47,
+      "name": "Tech fanatic",
+      "effect": "A random item you carry is damaged. Roll 1D6: On a 5-6, it is repaired for free. If the crew member is an Engineer, earn +2 XP instead.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
+      "single_use": false, "requires_roll": true,
+      "roll_info": "Random item damaged; 1D6: 5-6 free repair; Engineer: +2 XP",
+      "deferred_trigger": ""
+    },
+    {
+      "roll_min": 48, "roll_max": 50,
+      "name": "Got a few drinks",
+      "effect": "No effect.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
+      "single_use": false, "requires_roll": false, "deferred_trigger": ""
+    },
+    {
+      "roll_min": 51, "roll_max": 53,
+      "name": "Gambling problem",
+      "effect": "You must discard 1 item carried by the crew member. Soulless ignore this result.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
+      "single_use": false, "requires_roll": false, "deferred_trigger": "",
+      "immune_species": ["Soulless"]
+    },
+    {
+      "roll_min": 54, "roll_max": 57,
+      "name": "Overheard some talk",
+      "effect": "Gain a Quest Rumor.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 0, "rumor": true, "rival": false, "patron": false,
+      "single_use": false, "requires_roll": false, "deferred_trigger": ""
+    },
+    {
+      "roll_min": 58, "roll_max": 60,
+      "name": "Pick a fight",
+      "effect": "Gain a Rival. If the crew member is K'Erin, the first battle against this Rival has 1 fewer enemy.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 0, "rumor": false, "rival": true, "patron": false,
+      "single_use": false, "requires_roll": false, "deferred_trigger": "",
+      "kerin_bonus": "First battle vs this Rival: -1 enemy"
+    },
+    {
+      "roll_min": 61, "roll_max": 64,
+      "name": "Found a trainer",
+      "effect": "The crew member earns +2 XP.",
+      "credits": 0, "xp": 2, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
+      "single_use": false, "requires_roll": false, "deferred_trigger": ""
+    },
+    {
+      "roll_min": 65, "roll_max": 68,
+      "name": "Information broker",
+      "effect": "You may buy up to 3 Quest Rumors at 2 credits each.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
+      "single_use": false, "requires_roll": false, "deferred_trigger": "",
+      "buy_rumors": { "max": 3, "cost_each": 2 }
+    },
+    {
+      "roll_min": 69, "roll_max": 71,
+      "name": "Arms dealer",
+      "effect": "You may make up to 3 rolls on the Military Weapons Table at 3 credits each.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
+      "single_use": false, "requires_roll": false, "deferred_trigger": "",
+      "buy_weapons": { "max_rolls": 3, "cost_each": 3, "table": "Military Weapons" }
+    },
+    {
+      "roll_min": 72, "roll_max": 75,
+      "name": "Promising lead",
+      "effect": "Earn +3 credits if you fight an Opportunity mission this campaign turn.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
+      "single_use": true, "requires_roll": false, "deferred_trigger": "ON_OPPORTUNITY_MISSION"
+    },
+    {
+      "roll_min": 76, "roll_max": 79,
+      "name": "Just needs a little love",
+      "effect": "Roll on the Gadget Table. The item is damaged. If the crew member is an Engineer, the item works immediately.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": ["Gadget (random, damaged)"],
+      "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
+      "single_use": false, "requires_roll": false, "deferred_trigger": "",
+      "engineer_bonus": "Item works immediately"
+    },
+    {
+      "roll_min": 80, "roll_max": 82,
+      "name": "Get in a bad fight",
+      "effect": "Spend 1D3 campaign turns in Sick Bay and lose 1 item carried.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
+      "single_use": false, "requires_roll": true,
+      "roll_info": "1D3 turns Sick Bay + lose 1 item",
+      "deferred_trigger": ""
+    },
+    {
+      "roll_min": 83, "roll_max": 86,
+      "name": "Offered a small job",
+      "effect": "If you kill a random enemy during a battle this turn, earn 2 credits.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
+      "single_use": true, "requires_roll": false, "deferred_trigger": "ON_BATTLE"
+    },
+    {
+      "roll_min": 87, "roll_max": 90,
+      "name": "Offered a reward",
+      "effect": "If you reach a specific terrain feature during a battle this turn, earn 2 credits.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
+      "single_use": true, "requires_roll": false, "deferred_trigger": "ON_BATTLE"
+    },
+    {
+      "roll_min": 91, "roll_max": 94,
+      "name": "You make a useful contact",
+      "effect": "Add +1 to any Recruit, Find Patron, or Track roll next campaign turn.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
+      "single_use": true, "requires_roll": false, "deferred_trigger": "NEXT_TURN"
+    },
+    {
+      "roll_min": 95, "roll_max": 96,
+      "name": "Who left this lying around?",
+      "effect": "Receive your choice of a Handgun, Blade, Colony Rifle, or Shotgun.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": ["Handgun OR Blade OR Colony Rifle OR Shotgun"],
+      "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
+      "single_use": false, "requires_roll": false, "deferred_trigger": ""
+    },
+    {
+      "roll_min": 97, "roll_max": 100,
+      "name": "This place is rather nice, really",
+      "effect": "Pay 1 story point or the crew member decides to stay behind and leaves the crew.",
+      "credits": 0, "xp": 0, "story_points": 0,
+      "items": [],
+      "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
+      "single_use": false, "requires_roll": false, "deferred_trigger": "",
+      "pay_or_lose": { "cost": "1 story point", "penalty": "crew member leaves" }
+    }
+  ]
+}

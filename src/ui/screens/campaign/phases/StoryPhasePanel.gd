@@ -8,6 +8,7 @@ const EventManager = preload("res://src/core/managers/EventManager.gd")
 signal story_event_selected(event_data: Dictionary)
 signal story_event_resolved(event_data: Dictionary)
 
+@onready var title_label: Label = $VBoxContainer/TitleLabel
 @onready var event_list: ItemList = $VBoxContainer/EventList
 @onready var event_details: RichTextLabel = $VBoxContainer/EventDetails
 @onready var choice_container: VBoxContainer = $VBoxContainer/ChoiceContainer
@@ -21,24 +22,27 @@ var event_history: Array[Dictionary] = []
 
 func _ready() -> void:
 	super._ready()
-	
-	# Try to get manager from autoload first
+	_style_phase_title(title_label)
+	_style_item_list(event_list)
+	_style_rich_text(event_details)
+	_style_phase_button(resolve_button, true)
+
 	event_manager = get_node_or_null("/root/EventManager")
-	if not event_manager:
-		# Try fallback path
-		event_manager = get_node_or_null("/root/Game/Managers/EventManager")
-		
-	if not event_manager:
-		push_error("Failed to get EventManager node")
-		return
-	
-	event_manager.event_triggered.connect(_on_event_triggered)
-	event_manager.event_resolved.connect(_on_event_resolved)
-	event_manager.event_effects_applied.connect(_on_event_effects_applied)
-	
-	event_list.item_selected.connect(_on_event_selected)
-	resolve_button.pressed.connect(_on_resolve_pressed)
-	resolve_button.disabled = true
+	if event_manager:
+		if event_manager.has_signal("event_triggered"):
+			event_manager.event_triggered.connect(_on_event_triggered)
+		if event_manager.has_signal("event_resolved"):
+			event_manager.event_resolved.connect(_on_event_resolved)
+		if event_manager.has_signal("event_effects_applied"):
+			event_manager.event_effects_applied.connect(_on_event_effects_applied)
+	else:
+		print("StoryPhasePanel: EventManager not found (panel has fallback event generation)")
+
+	if event_list:
+		event_list.item_selected.connect(_on_event_selected)
+	if resolve_button:
+		resolve_button.pressed.connect(_on_resolve_pressed)
+		resolve_button.disabled = true
 
 func setup_phase() -> void:
 	super.setup_phase()
@@ -144,6 +148,7 @@ func _update_choices() -> void:
 	for choice in selected_event.choices:
 		var button = Button.new()
 		button.text = choice.text
+		_style_phase_button(button)
 		button.pressed.connect(_on_choice_selected.bind(choice))
 		choice_container.add_child(button)
 
@@ -202,20 +207,17 @@ func _on_resolve_pressed() -> void:
 func _apply_choice_effects(effects: Dictionary) -> void:
 	if not effects:
 		return
-	
-	# Apply story points
-	if effects.has("story_points"):
+	if effects.has("story_points") and game_state and game_state.has_method("add_story_points"):
 		game_state.add_story_points(effects.story_points)
-	
-	# Apply other effects based on the choice
-	match effects.potential_reward:
-		"technology":
-			game_state.add_tech_level(1)
-		"allies":
-			game_state.add_reputation(5)
-	
-	# Trigger any related campaign events
-	if effects.has("trigger_event"):
+	if effects.has("potential_reward"):
+		match effects.potential_reward:
+			"technology":
+				if game_state and game_state.has_method("add_tech_level"):
+					game_state.add_tech_level(1)
+			"allies":
+				if game_state and game_state.has_method("add_reputation"):
+					game_state.add_reputation(5)
+	if effects.has("trigger_event") and event_manager and event_manager.has_method("trigger_campaign_event"):
 		event_manager.trigger_campaign_event(effects.trigger_event)
 
 func _generate_outcome() -> Dictionary:
@@ -249,20 +251,21 @@ func validate_phase_requirements() -> bool:
 	return true # No specific requirements for story phase
 
 func get_phase_data() -> Dictionary:
+	var sp: int = 0
+	if game_state and game_state.has_method("get_story_points"):
+		sp = game_state.get_story_points()
 	return {
 		"available_events": available_events,
 		"resolved_events": event_history,
-		"current_story_points": game_state.get_story_points()
+		"current_story_points": sp
 	}
 
 # Event Manager Signal Handlers
-func _on_event_triggered(event_type: int) -> void:
-	if event_type == GameEnums.GlobalEvent.NONE:
-		_update_ui()
+func _on_event_triggered(_event_type: int) -> void:
+	_update_ui()
 
-func _on_event_resolved(event_type: int) -> void:
-	if event_type == GameEnums.GlobalEvent.NONE:
-		_update_ui()
+func _on_event_resolved(_event_type: int) -> void:
+	_update_ui()
 
-func _on_event_effects_applied(effects: Dictionary) -> void:
+func _on_event_effects_applied(_effects: Dictionary) -> void:
 	_update_ui()

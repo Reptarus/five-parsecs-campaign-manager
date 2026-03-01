@@ -1,0 +1,119 @@
+[gd_scene load_steps=2 format=3 uid="uid://c7mq8r5n4lawp"]
+
+[ext_resource type="Script" path="res://src/ui/components/battle/CombatCalculator.gd" id="1_combat_calculator"]
+
+[node name="CombatCalculator" type="Control"]
+layout_mode = 2
+size_flags_horizontal = 3
+script = ExtResource("1_combat_calculator")
+
+[node name="CalculatorLayout" type="VBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TitleLabel" type="Label" parent="CalculatorLayout"]
+layout_mode = 2
+text = "Combat Calculator"
+horizontal_alignment = 1
+
+[node name="HSeparator1" type="HSeparator" parent="CalculatorLayout"]
+layout_mode = 2
+
+[node name="ModeSection" type="VBoxContainer" parent="CalculatorLayout"]
+layout_mode = 2
+
+[node name="ModeLabel" type="Label" parent="CalculatorLayout/ModeSection"]
+layout_mode = 2
+text = "Calculation Type"
+horizontal_alignment = 1
+
+[node name="CalculationMode" type="OptionButton" parent="CalculatorLayout/ModeSection"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="HSeparator2" type="HSeparator" parent="CalculatorLayout"]
+layout_mode = 2
+
+[node name="InputSection" type="VBoxContainer" parent="CalculatorLayout"]
+layout_mode = 2
+
+[node name="InputsLabel" type="Label" parent="CalculatorLayout/InputSection"]
+layout_mode = 2
+text = "Modifiers"
+horizontal_alignment = 1
+
+[node name="CombatRow" type="HBoxContainer" parent="CalculatorLayout/InputSection"]
+layout_mode = 2
+
+[node name="CombatLabel" type="Label" parent="CalculatorLayout/InputSection/CombatRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "Combat Skill:"
+
+[node name="AttackerCombat" type="SpinBox" parent="CalculatorLayout/InputSection/CombatRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -3.0
+max_value = 6.0
+value = 1.0
+
+[node name="CoverRow" type="HBoxContainer" parent="CalculatorLayout/InputSection"]
+layout_mode = 2
+
+[node name="CoverLabel" type="Label" parent="CalculatorLayout/InputSection/CoverRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "Target Cover:"
+
+[node name="TargetCover" type="SpinBox" parent="CalculatorLayout/InputSection/CoverRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 4.0
+
+[node name="RangeRow" type="HBoxContainer" parent="CalculatorLayout/InputSection"]
+layout_mode = 2
+
+[node name="RangeLabel" type="Label" parent="CalculatorLayout/InputSection/RangeRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "Range Modifier:"
+
+[node name="RangeModifier" type="SpinBox" parent="CalculatorLayout/InputSection/RangeRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -2.0
+max_value = 2.0
+
+[node name="HSeparator3" type="HSeparator" parent="CalculatorLayout"]
+layout_mode = 2
+
+[node name="ButtonSection" type="VBoxContainer" parent="CalculatorLayout"]
+layout_mode = 2
+
+[node name="CalculateButton" type="Button" parent="CalculatorLayout/ButtonSection"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Calculate"
+
+[node name="HSeparator4" type="HSeparator" parent="CalculatorLayout"]
+layout_mode = 2
+
+[node name="ResultSection" type="VBoxContainer" parent="CalculatorLayout"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ResultTitleLabel" type="Label" parent="CalculatorLayout/ResultSection"]
+layout_mode = 2
+text = "Result"
+horizontal_alignment = 1
+
+[node name="ResultLabel" type="RichTextLabel" parent="CalculatorLayout/ResultSection"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "Enter values and click Calculate"
+fit_content = true

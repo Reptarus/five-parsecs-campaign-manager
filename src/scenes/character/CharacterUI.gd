@@ -29,7 +29,7 @@ const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 @onready var inventory_list = $Panel/HSplitContainer/CharacterDetails/TabContainer/Equipment/VBoxContainer/InventorySection/InventoryList
 
 var character_creator: CharacterCreator
-var selected_character: Character
+var selected_character # Character instance (untyped to avoid class_name resolution mismatch)
 
 func _ready() -> void:
 	character_creator = CharacterCreator.new()
@@ -79,7 +79,7 @@ func _clear_character_details() -> void:
 	gear_list.clear()
 	inventory_list.clear()
 
-func _update_character_details(character: Character) -> void:
+func _update_character_details(character) -> void:
 	if not character:
 		_clear_character_details()
 		return
@@ -134,11 +134,11 @@ func _on_remove_pressed() -> void:
 		var character_id = character_manager._generate_character_id(selected_character)
 		character_manager.remove_character(character_id)
 
-func _on_character_created(character: Character) -> void:
+func _on_character_created(character) -> void:
 	var character_manager = get_node("/root/CharacterManager")
 	character_manager.add_character(character)
 
-func _on_character_edited(character: Character) -> void:
+func _on_character_edited(character) -> void:
 	if selected_character:
 		var character_manager = get_node("/root/CharacterManager")
 		character_manager.update_character(character)
@@ -146,13 +146,13 @@ func _on_character_edited(character: Character) -> void:
 func _on_creation_cancelled() -> void:
 	print("Character creation cancelled")
 
-func _on_character_added(_character: Character) -> void:
+func _on_character_added(_character) -> void:
 	_refresh_character_list()
 
-func _on_character_removed(_character: Character) -> void:
+func _on_character_removed(_character) -> void:
 	_refresh_character_list()
 
-func _on_character_updated(_character: Character) -> void:
+func _on_character_updated(_character) -> void:
 	_refresh_character_list()
 	if selected_character and selected_character == _character:
 		_update_character_details(_character)

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Spaceship body -->
+  <path d="M50 20 L65 45 L60 50 L40 50 L35 45 Z" 
+        stroke="#FFFFFF" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+  
+  <!-- Spaceship nose/cockpit -->
+  <path d="M50 20 L55 30 L45 30 Z" 
+        stroke="#FFFFFF" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+  
+  <!-- Engine thruster -->
+  <rect x="47" y="50" width="6" height="8" 
+        stroke="#FFFFFF" stroke-width="2.5" fill="none"/>
+  
+  <!-- Wing details -->
+  <path d="M35 45 L25 40 L25 50 L35 45" 
+        stroke="#FFFFFF" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+  <path d="M65 45 L75 40 L75 50 L65 45" 
+        stroke="#FFFFFF" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+  
+  <!-- Motion trails (curved lines behind) -->
+  <path d="M30 65 Q40 60 35 75" 
+        stroke="#FFFFFF" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M50 68 Q60 63 55 78" 
+        stroke="#FFFFFF" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M70 65 Q80 60 75 75" 
+        stroke="#FFFFFF" stroke-width="2" fill="none" stroke-linecap="round"/>
+</svg>

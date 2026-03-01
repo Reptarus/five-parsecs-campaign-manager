@@ -1,4 +1,4 @@
-@tool
+﻿@tool
 extends RefCounted
 # REMOVED: class_name GameStateTestAdapter
 # Using explicit file reference instead to avoid class name conflicts
@@ -58,9 +58,9 @@ static func create_default_test_state() -> Node:
 	
 	# Initialize with sensible defaults using proper setter methods
 	if state.has_method("set_current_phase"):
-		state.set_current_phase(GameEnumsScript.FiveParcsecsCampaignPhase.CAMPAIGN)
+		state.set_current_phase(GameEnumsScript.FiveParsecsCampaignPhase.MISSION)
 	elif TypeSafeMixin:
-		TypeSafeMixin._call_node_method_bool(state, "set_current_phase", [GameEnumsScript.FiveParcsecsCampaignPhase.CAMPAIGN])
+		TypeSafeMixin._call_node_method_bool(state, "set_current_phase", [GameEnumsScript.FiveParsecsCampaignPhase.MISSION])
 	
 	if state.has_method("set_turn_number"):
 		state.set_turn_number(1)
@@ -170,7 +170,7 @@ static func deserialize_from_dict(data: Dictionary) -> Node:
 # Helper to create a serialized state for testing
 static func create_test_serialized_state() -> Dictionary:
 	return {
-		"current_phase": GameEnumsScript.FiveParcsecsCampaignPhase.CAMPAIGN,
+		"current_phase": GameEnumsScript.FiveParsecsCampaignPhase.MISSION,
 		"turn_number": 1,
 		"story_points": 3,
 		"reputation": 50,

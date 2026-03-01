@@ -1,0 +1,395 @@
+{
+  "WeaponModifications": {
+    "description": "Weapon modifications from Five Parsecs From Home (Core Rules p.53, Gear p.77-79)",
+    "max_per_weapon": 3,
+    "modification_slots": {
+      "optics": 1,
+      "barrel": 1,
+      "grip": 1,
+      "magazine": 1,
+      "underbarrel": 1,
+      "stock": 1
+    },
+    "types": [
+      {
+        "id": "combat_sight",
+        "name": "Combat Sight",
+        "slot": "optics",
+        "rarity": "common",
+        "cost": 100,
+        "compatible_categories": ["pistols", "rifles", "heavy_weapons"],
+        "effects": {
+          "range_bonus": {
+            "short": 1,
+            "medium": 0,
+            "long": 0
+          }
+        },
+        "description": "Basic holographic sight for faster target acquisition at close range.",
+        "installation_difficulty": 1
+      },
+      {
+        "id": "precision_scope",
+        "name": "Precision Scope",
+        "slot": "optics",
+        "rarity": "uncommon",
+        "cost": 250,
+        "compatible_categories": ["rifles", "heavy_weapons"],
+        "effects": {
+          "range_bonus": {
+            "short": -1,
+            "medium": 1,
+            "long": 2
+          }
+        },
+        "description": "Magnified optic for improved long-range accuracy. Reduces close quarters effectiveness.",
+        "installation_difficulty": 2
+      },
+      {
+        "id": "thermal_scope",
+        "name": "Thermal Imaging Scope",
+        "slot": "optics",
+        "rarity": "rare",
+        "cost": 500,
+        "compatible_categories": ["rifles", "heavy_weapons"],
+        "effects": {
+          "range_bonus": {
+            "short": 0,
+            "medium": 1,
+            "long": 1
+          },
+          "special_abilities": ["ignore_smoke", "ignore_darkness"]
+        },
+        "description": "Advanced thermal optic that reveals heat signatures through obstacles.",
+        "installation_difficulty": 3
+      },
+      {
+        "id": "extended_magazine",
+        "name": "Extended Magazine",
+        "slot": "magazine",
+        "rarity": "common",
+        "cost": 75,
+        "compatible_categories": ["pistols", "rifles", "heavy_weapons"],
+        "effects": {
+          "ammo_capacity_bonus": 6,
+          "reload_penalty": 0
+        },
+        "description": "High-capacity magazine that holds additional rounds.",
+        "installation_difficulty": 1
+      },
+      {
+        "id": "quick_release_mag",
+        "name": "Quick Release Magazine",
+        "slot": "magazine",
+        "rarity": "uncommon",
+        "cost": 150,
+        "compatible_categories": ["pistols", "rifles"],
+        "effects": {
+          "ammo_capacity_bonus": 0,
+          "special_abilities": ["fast_reload"]
+        },
+        "description": "Magazine with quick-release mechanism for rapid reloading.",
+        "installation_difficulty": 2
+      },
+      {
+        "id": "drum_magazine",
+        "name": "Drum Magazine",
+        "slot": "magazine",
+        "rarity": "uncommon",
+        "cost": 200,
+        "compatible_categories": ["rifles"],
+        "effects": {
+          "ammo_capacity_bonus": 20,
+          "reload_penalty": 1,
+          "speed_penalty": -1
+        },
+        "description": "Large drum magazine for sustained fire. Bulky and slow to reload.",
+        "installation_difficulty": 2
+      },
+      {
+        "id": "stabilizer",
+        "name": "Recoil Stabilizer",
+        "slot": "barrel",
+        "rarity": "common",
+        "cost": 125,
+        "compatible_categories": ["pistols", "rifles", "heavy_weapons"],
+        "effects": {
+          "range_bonus": {
+            "short": 0,
+            "medium": 1,
+            "long": 0
+          }
+        },
+        "description": "Compensator that reduces muzzle climb for improved follow-up shots.",
+        "installation_difficulty": 2
+      },
+      {
+        "id": "suppressor",
+        "name": "Suppressor",
+        "slot": "barrel",
+        "rarity": "uncommon",
+        "cost": 200,
+        "compatible_categories": ["pistols", "rifles"],
+        "incompatible_traits": ["Heavy", "Area"],
+        "effects": {
+          "add_traits": ["Silent"],
+          "damage_penalty": 0
+        },
+        "description": "Sound suppressor for covert operations. Ideal for stealthy approaches.",
+        "installation_difficulty": 2
+      },
+      {
+        "id": "heavy_barrel",
+        "name": "Heavy Barrel",
+        "slot": "barrel",
+        "rarity": "rare",
+        "cost": 350,
+        "compatible_categories": ["rifles", "heavy_weapons"],
+        "effects": {
+          "damage_bonus": 1,
+          "range_bonus": {
+            "short": 0,
+            "medium": 0,
+            "long": 1
+          },
+          "speed_penalty": -1
+        },
+        "description": "Reinforced barrel for increased damage and range at the cost of weight.",
+        "installation_difficulty": 3
+      },
+      {
+        "id": "hotshot_pack",
+        "name": "Hot-Shot Power Pack",
+        "slot": "magazine",
+        "rarity": "rare",
+        "cost": 400,
+        "compatible_categories": ["pistols", "rifles"],
+        "required_tags": ["energy"],
+        "effects": {
+          "damage_bonus": 1,
+          "ammo_capacity_penalty": -4,
+          "special_abilities": ["overcharge"]
+        },
+        "description": "Overcharged power cell that boosts energy weapon output at the cost of capacity.",
+        "installation_difficulty": 3
+      },
+      {
+        "id": "ergonomic_grip",
+        "name": "Ergonomic Grip",
+        "slot": "grip",
+        "rarity": "common",
+        "cost": 50,
+        "compatible_categories": ["pistols", "rifles", "heavy_weapons", "melee_weapons"],
+        "effects": {
+          "handling_bonus": 1
+        },
+        "description": "Custom-fitted grip for improved weapon handling and control.",
+        "installation_difficulty": 1
+      },
+      {
+        "id": "shock_grip",
+        "name": "Shock-Absorbing Grip",
+        "slot": "grip",
+        "rarity": "uncommon",
+        "cost": 175,
+        "compatible_categories": ["rifles", "heavy_weapons"],
+        "effects": {
+          "range_bonus": {
+            "short": 1,
+            "medium": 0,
+            "long": 0
+          },
+          "handling_bonus": 1
+        },
+        "description": "Dampening grip that absorbs recoil for better rapid-fire control.",
+        "installation_difficulty": 2
+      },
+      {
+        "id": "tactical_stock",
+        "name": "Tactical Stock",
+        "slot": "stock",
+        "rarity": "common",
+        "cost": 100,
+        "compatible_categories": ["rifles", "heavy_weapons"],
+        "effects": {
+          "range_bonus": {
+            "short": 0,
+            "medium": 0,
+            "long": 1
+          }
+        },
+        "description": "Adjustable stock for improved stability during aimed shots.",
+        "installation_difficulty": 1
+      },
+      {
+        "id": "folding_stock",
+        "name": "Folding Stock",
+        "slot": "stock",
+        "rarity": "uncommon",
+        "cost": 125,
+        "compatible_categories": ["rifles"],
+        "effects": {
+          "concealment_bonus": 1,
+          "range_bonus": {
+            "short": 0,
+            "medium": -1,
+            "long": -1
+          },
+          "special_abilities": ["compact"]
+        },
+        "description": "Collapsible stock for easier concealment and transport. Less stable when extended.",
+        "installation_difficulty": 2
+      },
+      {
+        "id": "bipod",
+        "name": "Bipod",
+        "slot": "underbarrel",
+        "rarity": "common",
+        "cost": 75,
+        "compatible_categories": ["rifles", "heavy_weapons"],
+        "effects": {
+          "special_abilities": ["braced_bonus"],
+          "prone_range_bonus": {
+            "short": 0,
+            "medium": 1,
+            "long": 2
+          }
+        },
+        "description": "Deployable bipod for stable shooting from prone or braced positions.",
+        "installation_difficulty": 1
+      },
+      {
+        "id": "flashlight",
+        "name": "Tactical Flashlight",
+        "slot": "underbarrel",
+        "rarity": "common",
+        "cost": 25,
+        "compatible_categories": ["pistols", "rifles"],
+        "effects": {
+          "special_abilities": ["illumination", "blind_melee"]
+        },
+        "description": "High-powered flashlight for low-light operations. Can disorient enemies in close combat.",
+        "installation_difficulty": 1
+      },
+      {
+        "id": "laser_sight",
+        "name": "Laser Sight",
+        "slot": "underbarrel",
+        "rarity": "uncommon",
+        "cost": 150,
+        "compatible_categories": ["pistols", "rifles"],
+        "effects": {
+          "range_bonus": {
+            "short": 1,
+            "medium": 0,
+            "long": 0
+          }
+        },
+        "description": "Visible laser for rapid target acquisition at close range.",
+        "installation_difficulty": 1
+      },
+      {
+        "id": "grenade_launcher",
+        "name": "Underbarrel Grenade Launcher",
+        "slot": "underbarrel",
+        "rarity": "rare",
+        "cost": 600,
+        "compatible_categories": ["rifles"],
+        "effects": {
+          "special_abilities": ["secondary_weapon"],
+          "secondary_weapon": {
+            "name": "Grenade Launcher",
+            "damage": "2D6",
+            "range": "6-24",
+            "traits": ["Area", "Explosive"],
+            "ammo": 1
+          }
+        },
+        "description": "Single-shot grenade launcher mounted under the barrel.",
+        "installation_difficulty": 3
+      },
+      {
+        "id": "bayonet",
+        "name": "Bayonet",
+        "slot": "underbarrel",
+        "rarity": "common",
+        "cost": 50,
+        "compatible_categories": ["rifles"],
+        "effects": {
+          "special_abilities": ["melee_capable"],
+          "melee_damage_bonus": 1
+        },
+        "description": "Fixed blade for emergency melee combat.",
+        "installation_difficulty": 1
+      },
+      {
+        "id": "mono_edge",
+        "name": "Mono-Molecular Edge",
+        "slot": "blade",
+        "rarity": "rare",
+        "cost": 300,
+        "compatible_categories": ["melee_weapons"],
+        "effects": {
+          "damage_bonus": 1,
+          "add_traits": ["Piercing"]
+        },
+        "description": "Molecule-thin cutting edge that slices through armor.",
+        "installation_difficulty": 3
+      },
+      {
+        "id": "powered_cell",
+        "name": "Power Cell",
+        "slot": "grip",
+        "rarity": "uncommon",
+        "cost": 250,
+        "compatible_categories": ["melee_weapons"],
+        "effects": {
+          "damage_bonus": 1,
+          "add_traits": ["Shock"]
+        },
+        "description": "Electrical charge generator for enhanced melee damage.",
+        "installation_difficulty": 2
+      },
+      {
+        "id": "weight_balance",
+        "name": "Weight Balancing",
+        "slot": "grip",
+        "rarity": "uncommon",
+        "cost": 175,
+        "compatible_categories": ["melee_weapons"],
+        "effects": {
+          "attack_bonus": 1
+        },
+        "description": "Precise counterweighting for faster, more accurate swings.",
+        "installation_difficulty": 2
+      },
+      {
+        "id": "reinforced_housing",
+        "name": "Reinforced Housing",
+        "slot": "barrel",
+        "rarity": "uncommon",
+        "cost": 100,
+        "compatible_categories": ["pistols", "rifles", "heavy_weapons"],
+        "effects": {
+          "add_traits": ["Reliable"],
+          "durability_bonus": 2
+        },
+        "description": "Hardened weapon components that resist damage and malfunction.",
+        "installation_difficulty": 2
+      }
+    ],
+    "rarity_weights": {
+      "common": 45,
+      "uncommon": 35,
+      "rare": 20
+    },
+    "modification_rules": {
+      "max_per_weapon": 3,
+      "slot_unique": true,
+      "installation_cost_multiplier": 0.1,
+      "removal_cost_multiplier": 0.05,
+      "failure_on_install": "On a natural 1 during installation, the modification is damaged and must be repaired",
+      "compatibility_note": "Some modifications are only compatible with specific weapon types or require specific traits"
+    }
+  }
+}
