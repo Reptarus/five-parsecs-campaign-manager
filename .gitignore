@@ -36,3 +36,18 @@ override.cfg
 *.save
 *.bak
 node_modules
+
+# Dev artifacts - prevent root clutter
+/reports/
+/scripts/
+/tools/
+/mcp-servers/
+/screenshot/
+package-lock.json
+*.mdc
+
+# Test output dumps
+test_*_output.txt
+test_results.txt
+test_e2e_*.txt
+test_full_run.txt
