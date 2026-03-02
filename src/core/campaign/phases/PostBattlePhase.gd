@@ -214,6 +214,7 @@ func _process_rival_status() -> void:
 
 	# Check if any rivals were defeated in battle
 	var faction_sys = Engine.get_main_loop().root.get_node_or_null("/root/FactionSystem") if Engine.get_main_loop() else null
+	var npc_tracker = get_node_or_null("/root/NPCTracker")
 	for enemy in defeated_enemies:
 		if enemy.get("is_rival", false):
 			var rival_id = enemy.get("rival_id", "")
@@ -228,6 +229,10 @@ func _process_rival_status() -> void:
 				if faction_sys and faction_sys.has_method("update_rival_reputation"):
 					var rep_change = 2 if removal_roll >= 6 else -1
 					faction_sys.update_rival_reputation(rival_id, rep_change)
+				# Track rival encounter in NPCTracker
+				if npc_tracker and npc_tracker.has_method("track_rival_encounter"):
+					var result_str: String = "victory" if mission_successful else "defeat"
+					npc_tracker.track_rival_encounter(rival_id, result_str, battle_result.get("turn", 0))
 
 	# Update faction standings based on battle outcome
 	if faction_sys and faction_sys.has_method("modify_faction_standing"):
@@ -303,6 +308,13 @@ func _process_patron_status() -> void:
 			patron_sys.complete_job(true, battle_result)
 			print("PostBattlePhase: PatronSystem.complete_job() called for patron %s" % patron_id)
 
+		# Track patron job completion in NPCTracker
+		var npc_tracker = get_node_or_null("/root/NPCTracker")
+		if npc_tracker and npc_tracker.has_method("track_patron_interaction"):
+			npc_tracker.track_patron_interaction(patron_id, "job_completed", {
+				"turn": battle_result.get("turn", 0)
+			})
+
 		# HOUSE RULE: expanded_rumors - +1 quest rumor on patron mission completion
 		if HouseRulesHelper.is_enabled("expanded_rumors"):
 			_add_quest_rumor()
@@ -313,6 +325,13 @@ func _process_patron_status() -> void:
 		if patron_sys and patron_sys.has_method("complete_job"):
 			patron_sys.complete_job(false, battle_result)
 			print("PostBattlePhase: PatronSystem.complete_job(false) for failed patron mission")
+
+		# Track patron job failure in NPCTracker
+		var npc_tracker_fail = get_node_or_null("/root/NPCTracker")
+		if npc_tracker_fail and npc_tracker_fail.has_method("track_patron_interaction"):
+			npc_tracker_fail.track_patron_interaction(battle_result.patron_id, "job_failed", {
+				"turn": battle_result.get("turn", 0)
+			})
 
 	# Handle persistent patrons
 	_handle_persistent_patrons()

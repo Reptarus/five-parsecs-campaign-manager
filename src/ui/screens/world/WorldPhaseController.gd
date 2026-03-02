@@ -278,6 +278,17 @@ func _fetch_campaign_data() -> void:
 
 	print("WorldPhaseController: Fetched %d patrons, location: %s" % [world_phase_data["patrons"].size(), world_phase_data["location"]])
 
+	# Track location visit in NPCTracker
+	var npc_tracker = get_node_or_null("/root/NPCTracker")
+	if npc_tracker and npc_tracker.has_method("visit_location"):
+		var location_name: String = world_phase_data.get("location", "")
+		if not location_name.is_empty() and location_name != "Unknown Location":
+			var turn: int = 0
+			var gs = get_node_or_null("/root/GameState")
+			if gs and gs.current_campaign and "progress_data" in gs.current_campaign:
+				turn = gs.current_campaign.progress_data.get("turns_played", 0)
+			npc_tracker.visit_location(location_name, turn)
+
 	# Initialize components with fetched data
 	_initialize_components_with_data()
 
@@ -723,6 +734,18 @@ func _on_job_accepted(data: Dictionary) -> void:
 	## Handle job acceptance from JobOfferComponent
 	print("WorldPhaseController: Job accepted: %s" % data)
 	step_completed[WorldPhaseStep.JOB_OFFERS] = true
+
+	# Track patron interaction in NPCTracker
+	var npc_tracker = get_node_or_null("/root/NPCTracker")
+	if npc_tracker and npc_tracker.has_method("track_patron_interaction"):
+		var patron_id: String = data.get("patron_id", data.get("patron", ""))
+		if not patron_id.is_empty():
+			var turn: int = 0
+			var gs = get_node_or_null("/root/GameState")
+			if gs and gs.current_campaign and "progress_data" in gs.current_campaign:
+				turn = gs.current_campaign.progress_data.get("turns_played", 0)
+			npc_tracker.track_patron_interaction(patron_id, "job_offered", {"turn": turn})
+
 	_update_ui_display()
 
 	if automation_enabled:

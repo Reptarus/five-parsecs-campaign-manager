@@ -1,8 +1,8 @@
 ﻿# Five Parsecs Campaign Manager - Complete Data Flow & Implementation Map
 
 **Created**: 2025-11-29
-**Last Updated**: 2026-02-20
-**Source**: Parallel agent analysis of core_rules.md vs codebase, Sprint 1-10 completions, Battle Phase Manager sprints, Tech Debt + Feature Gaps 12 sprints, Phase 5 Script Consolidation
+**Last Updated**: 2026-03-01
+**Source**: Parallel agent analysis of core_rules.md vs codebase, Sprint 1-10 completions, Battle Phase Manager sprints, Tech Debt + Feature Gaps 12 sprints, Phase 5 Script Consolidation, Phase 16-22J Battle+UI sprints
 **Purpose**: Map every functional mechanic to implementation status
 
 ---
@@ -25,6 +25,37 @@
 **Including Compendium DLC: 100% Complete (170/170)**
 
 ### Recent Updates (February 2026)
+
+**Feature Integration — Parts A/B/C (Mar 1, 3 parts)**:
+
+- README rewrite with 4 screenshots (main-menu, battle-companion, companion-levels, world-phase)
+- Historical log recall: CampaignTimelinePanel, CharacterHistoryPanel, NPCTracker inline display, LegacySystem inline display wired into CampaignDashboard (3 buttons in Intel column) and CharacterDetailsScreen (View History button)
+- TacticalBattleUI auto-resolve rewired from simplified power math to BattleResolver.resolve_battle() (rules-accurate multi-round combat with hit rolls, armor saves, deployment conditions)
+- EndPhasePanel cycle summary reads real campaign data (progress_data, credits, story_points, crew size, victory conditions) instead of hardcoded placeholders
+
+**Battle System Audit — Phases 16-18 (Feb 27-28, 30 sprints)**:
+
+- Phase 16: 14 sprints — battle flow works end-to-end (CampaignTurnController → BattleTransitionUI → PreBattleUI → TacticalBattleUI → PostBattleSequence)
+- Phase 17: 9 sprints — wired 26 battle companion panels into TacticalBattleUI with 3-zone tabbed layout
+- Phase 18: 7 sprints — integration audit, deleted BattleResolutionUI (1,055 lines) + FPCM_BattleEventBus (388 lines), wired 10 orphaned component signals
+
+**Battle Companion UI — Phase 22I-J (Feb 28)**:
+
+- BattlefieldGridPanel.gd (~380 lines): 4x4 sector grid with terrain from compendium_terrain.json themes
+- Visual canvas-drawn terrain shapes via `_draw()` API (11 shape types with keyword classification)
+- Fixed right sidebar overlap (CombatSituationPanel offsets, DiceDashboard/CombatCalculator EXPAND_FILL flags)
+
+**World→Battle Data Flow — Phase 21 (Feb 28, 3 sub-phases)**:
+
+- Fixed 11+ files treating FiveParsecsCampaignCore as Dictionary (is Resource — use `"key" in campaign` not `.has()`)
+- Crew task propagation, mission prep refresh, job offer → battle data handoff
+
+**Equipment Pipeline — Phase 22 (Feb 28, 4 sprints)**:
+
+- Fixed equipment_data key mismatch: 5 files read `"pool"` but FiveParsecsCampaignCore stores under `"equipment"`
+- Uncommented Character.to_dictionary() with dual key aliases (`"id"`/`"character_id"`, `"name"`/`"character_name"`)
+- Fixed PreBattleUI method mismatch: CampaignTurnController called non-existent `initialize_battle()` → fixed to `setup_preview()`
+- Added terrain setup guide for tabletop text-based terrain suggestions
 
 **Script Consolidation — Phase 5 (Feb 20, 9 sprints)**:
 - Deleted 4 dead code files (~545 lines)
@@ -550,11 +581,16 @@ Zero impact on core gameplay when disabled. All output follows tabletop companio
 No remaining high-priority gaps.
 
 ### MEDIUM PRIORITY
+
 | Gap | Impact | Location |
 |-----|--------|----------|
-| Tactical Combat UI | Auto-resolve only, no turn-by-turn | BattlePhase |
+| BattleJournal logging | Battles produce blank journal — logging methods never called | TacticalBattleUI |
+| NPCTracker integration | Patron/rival/location tracking API exists but 0% gameplay calls | WorldPhaseController, PostBattlePhase |
+| LegacySystem lifecycle | No campaign archival on end, no legacy bonus on new campaign | EndPhasePanel, CampaignCreationCoordinator |
+| CampaignJournal character events | Only PostBattlePhase generates entries; advancement/injuries unlogged | AdvancementPhasePanel, CharacterPhasePanel |
 
 ### LOW PRIORITY
+
 No remaining low-priority gaps.
 
 ### RESOLVED (Previously listed as gaps)
@@ -611,7 +647,11 @@ No remaining low-priority gaps.
 - AccessibilityManager → focus indicator StyleBoxFlat (Feb 9)
 
 ### Needs Wiring
-- None identified (all critical paths verified Feb 9, 2026)
+
+- BattleJournal logging calls from TacticalBattleUI battle event handlers
+- NPCTracker.track_patron_interaction() / track_rival_encounter() / visit_location() from gameplay phases
+- LegacySystem.archive_campaign() from campaign end, get_legacy_bonus() from new campaign start
+- CampaignJournal.auto_create_character_event() from advancement and character phases
 
 ---
 
@@ -627,6 +667,6 @@ No remaining low-priority gaps.
 ---
 
 **Document Status**: COMPREHENSIVE UPDATE COMPLETE
-**Last Updated**: 2026-02-09
+**Last Updated**: 2026-03-01
 **Engine Version**: Godot 4.6-stable
-**Test Framework**: GUT (Godot Unit Test)
+**Test Framework**: gdUnit4 v6.0.3

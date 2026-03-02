@@ -1234,6 +1234,15 @@ func finalize_campaign() -> Dictionary:
 	# Aggregate all phase data
 	var finalized_campaign_data = _aggregate_all_phase_data()
 	
+	# Apply legacy bonus from previous campaigns (Core Rules: 0-3 bonus story points)
+	var legacy_sys = Engine.get_main_loop().root.get_node_or_null("/root/LegacySystem") if Engine.get_main_loop() else null
+	if legacy_sys and legacy_sys.has_method("get_legacy_bonus"):
+		var legacy_bonus: int = legacy_sys.get_legacy_bonus()
+		if legacy_bonus > 0:
+			var current_sp: int = finalized_campaign_data.get("story_points", 0)
+			finalized_campaign_data["story_points"] = current_sp + legacy_bonus
+			print("CampaignCreationCoordinator: Applied legacy bonus +%d story points" % legacy_bonus)
+
 	# Add finalization metadata
 	finalized_campaign_data["finalization"] = {
 		"finalized_at": Time.get_datetime_string_from_system(),

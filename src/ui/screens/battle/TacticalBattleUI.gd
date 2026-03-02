@@ -47,6 +47,7 @@ const EscalatingBattlesManagerRef = preload("res://src/core/managers/EscalatingB
 const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 const NoMinisCombatPanelClass = preload("res://src/ui/components/battle/NoMinisCombatPanel.gd")
 const StealthMissionPanelClass = preload("res://src/ui/components/battle/StealthMissionPanel.gd")
+const BattleResolverClass = preload("res://src/core/battle/BattleResolver.gd")
 # GlobalEnums available as autoload singleton
 
 # UI Nodes — three-zone tabbed companion layout
@@ -833,6 +834,8 @@ func _on_round_started(round_number: int) -> void:
 	## Handle round start - reset reactions and update UI
 	current_turn = round_number
 	_log_message("=== ROUND %d BEGINS ===" % round_number, UIColors.COLOR_CYAN)
+	if battle_journal:
+		battle_journal.new_round()
 	_reset_all_unit_reactions()
 
 func _on_round_ended(round_number: int) -> void:
@@ -1097,6 +1100,12 @@ func _determine_initiative_order() -> void:
 	# Sort by initiative (highest first)
 	all_units.sort_custom(func(a, b): return a.initiative_roll > b.initiative_roll)
 
+	# Log initiative results to BattleJournal
+	if battle_journal and not all_units.is_empty():
+		var first: TacticalUnit = all_units[0]
+		var crew_first: bool = first.team == "crew"
+		battle_journal.log_initiative(crew_first, first.initiative_roll)
+
 func _start_unit_turn() -> void:
 	## Start a unit's turn
 	if current_unit_index >= all_units.size():
@@ -1293,6 +1302,11 @@ func _on_shoot_clicked() -> void:
 		
 		if target.is_dead:
 			_log_message("%s is DOWN!" % target.node_name, UIColors.COLOR_RED)
+			if battle_journal:
+				if target.team == "crew":
+					battle_journal.log_crew_casualty(target.node_name, "Combat damage")
+				else:
+					battle_journal.log_enemy_casualty(target.node_name, selected_unit.node_name)
 	else:
 		_log_message("MISS! Rolled %d (needed <=%d)" % [hit_roll, hit_threshold], UIColors.COLOR_TEXT_SECONDARY)
 	
@@ -1399,13 +1413,22 @@ func _resolve_battle() -> void:
 	if crew_alive > 0 and enemies_alive == 0:
 		result.victory = true
 		_log_message("Victory! All enemies defeated!", UIColors.COLOR_EMERALD)
+		if battle_journal:
+			battle_journal.log_victory("All enemies defeated")
 	elif crew_alive == 0:
 		result.victory = false
 		_log_message("Defeat! All crew members down!", UIColors.COLOR_RED)
+		if battle_journal:
+			battle_journal.log_defeat("All crew members down")
 	else:
 		# Stalemate or time limit
 		result.victory = crew_alive > enemies_alive
 		_log_message("Battle concluded after %d rounds" % result.rounds_fought, UIColors.COLOR_AMBER)
+		if battle_journal:
+			if result.victory:
+				battle_journal.log_victory("Outnumbered enemies %d to %d" % [crew_alive, enemies_alive])
+			else:
+				battle_journal.log_defeat("Outnumbered by enemies %d to %d" % [enemies_alive, crew_alive])
 
 	# Calculate casualties and injuries
 	for unit in crew_units:
@@ -1427,64 +1450,118 @@ func _on_return_to_battle_resolution() -> void:
 	return_to_battle_resolution.emit() # warning: return value discarded (intentional)
 
 func _on_auto_resolve_battle() -> void:
-	## Auto-resolve the remaining battle using Five Parsecs combat system
-	_log_message("Auto-resolving battle...", UIColors.COLOR_AMBER)
-	
-	# Calculate crew power
-	var crew_power = 0
+	## Auto-resolve the remaining battle using BattleResolver for rules-accurate combat
+	_log_message("Auto-resolving battle with Five Parsecs combat rules...", UIColors.COLOR_AMBER)
+
+	# Convert TacticalUnits to dictionaries for BattleResolver
+	var crew_deployed: Array = []
 	for unit in crew_units:
 		if unit.health > 0:
-			crew_power += unit.combat_skill + unit.toughness
-	
-	# Calculate enemy power  
-	var enemy_power = 0
+			var unit_dict: Dictionary = {
+				"name": unit.node_name,
+				"character_name": unit.node_name,
+				"combat_skill": unit.combat_skill,
+				"combat": unit.combat_skill,
+				"toughness": unit.toughness,
+				"savvy": unit.savvy,
+				"reactions": unit.reactions,
+				"health": unit.health,
+				"is_alive": true
+			}
+			if unit.original_character:
+				if unit.original_character is Dictionary:
+					unit_dict.merge(unit.original_character, false)
+				elif unit.original_character.has_method("to_dictionary"):
+					unit_dict.merge(unit.original_character.to_dictionary(), false)
+			crew_deployed.append(unit_dict)
+
+	var enemies_deployed: Array = []
 	for unit in enemy_units:
 		if unit.health > 0:
-			enemy_power += unit.combat_skill + unit.toughness
-	
-	# Roll 2D6 for each side
-	var crew_roll = _roll_dice("Crew Combat", "D6") + _roll_dice("Crew Combat 2", "D6")
-	var enemy_roll = _roll_dice("Enemy Combat", "D6") + _roll_dice("Enemy Combat 2", "D6")
-	
-	var crew_total = crew_power + crew_roll
-	var enemy_total = enemy_power + enemy_roll
-	
-	_log_message("Crew: %d power + %d roll = %d" % [crew_power, crew_roll, crew_total], UIColors.COLOR_CYAN)
-	_log_message("Enemy: %d power + %d roll = %d" % [enemy_power, enemy_roll, enemy_total], UIColors.COLOR_RED)
-	
+			enemies_deployed.append({
+				"name": unit.node_name,
+				"combat_skill": unit.combat_skill,
+				"combat": unit.combat_skill,
+				"toughness": unit.toughness,
+				"savvy": unit.savvy,
+				"reactions": unit.reactions,
+				"health": unit.health,
+				"is_alive": true
+			})
+
+	_log_message("Crew strength: %d units | Enemy strength: %d units" % [
+		crew_deployed.size(), enemies_deployed.size()
+	], UIColors.COLOR_CYAN)
+
+	# Use BattleResolver for rules-accurate combat resolution
+	var battlefield_data: Dictionary = {}
+	var deployment_condition: Dictionary = {}
+	var dice_roller: Callable = func(): return randi_range(1, 6)
+
+	var resolver_result: Dictionary = BattleResolverClass.resolve_battle(
+		crew_deployed, enemies_deployed, battlefield_data,
+		deployment_condition, dice_roller
+	)
+
+	# Map resolver results to BattleResult
 	var result := BattleResult.new()
-	result.rounds_fought = current_turn
-	result.victory = crew_total > enemy_total
-	
-	# Calculate casualties — use Compendium tables when DLC enabled, else simplified
-	for unit in crew_units:
-		if unit.health <= 0:
-			# Try Compendium casualty table first (D6, Compendium p.86)
-			var casualty_result: Dictionary = _roll_compendium_casualty()
-			if not casualty_result.is_empty():
-				var cas_instruction: String = casualty_result.get("instruction", "")
-				var cas_id: String = casualty_result.get("id", "")
-				_log_message(cas_instruction, Color("#DC2626"))
+	result.victory = resolver_result.get("success", false)
+	result.rounds_fought = resolver_result.get("rounds_fought", current_turn)
+
+	var crew_casualties_count: int = resolver_result.get("crew_casualties", 0)
+	var enemies_defeated_count: int = resolver_result.get("enemies_defeated", 0)
+
+	_log_message("Combat resolved: %d rounds fought" % result.rounds_fought, UIColors.COLOR_CYAN)
+	_log_message("Enemies defeated: %d / %d" % [enemies_defeated_count, enemies_deployed.size()], UIColors.COLOR_CYAN)
+
+	# Determine crew casualties from resolver's final state
+	var crew_units_final: Array = resolver_result.get("crew_units_final", [])
+	for i in range(crew_units.size()):
+		var unit: TacticalUnit = crew_units[i]
+		var is_alive: bool = true
+		if i < crew_units_final.size():
+			is_alive = crew_units_final[i].get("is_alive", true)
+		elif unit.health <= 0:
+			is_alive = false
+
+		if not is_alive and unit.original_character:
+			# Use Compendium casualty table if available, else core rules
+			var casualty_check: Dictionary = _roll_compendium_casualty()
+			if not casualty_check.is_empty():
+				var cas_id: String = casualty_check.get("id", "")
+				_log_message(casualty_check.get("instruction", ""), Color("#DC2626"))
 				if cas_id == "instant_kill" or cas_id == "dead":
 					result.crew_casualties.append(unit.original_character)
 				else:
 					result.crew_injuries.append(unit.original_character)
-					# Try detailed injury table (2D6, Compendium p.87)
-					var injury_result: Dictionary = _roll_compendium_injury()
-					if not injury_result.is_empty():
-						_log_message(injury_result.get("instruction", ""), Color("#D97706"))
+					var injury_check: Dictionary = _roll_compendium_injury()
+					if not injury_check.is_empty():
+						_log_message(injury_check.get("instruction", ""), Color("#D97706"))
 			else:
-				# Fallback: simplified casualty (core rules)
-				if not result.victory:
-					var casualty_roll: int = _roll_dice("Casualty", "D6")
-					if casualty_roll <= 3:
-						result.crew_casualties.append(unit.original_character)
+				var death_roll: int = _roll_dice("Death Check", "D6")
+				if death_roll <= 2:
+					result.crew_casualties.append(unit.original_character)
 				else:
-					var death_roll: int = _roll_dice("Death Check", "D6")
-					if death_roll <= 2:
-						result.crew_casualties.append(unit.original_character)
-					else:
-						result.crew_injuries.append(unit.original_character)
+					result.crew_injuries.append(unit.original_character)
+
+	if crew_casualties_count > 0:
+		_log_message("Crew casualties: %d" % crew_casualties_count, UIColors.COLOR_RED)
+
+	var held_field: bool = resolver_result.get("held_field", result.victory)
+	if held_field:
+		_log_message("Crew holds the field — battlefield salvage available", UIColors.COLOR_EMERALD)
+
+	# Log auto-resolve summary to BattleJournal
+	if battle_journal:
+		battle_journal.add_entry("event", "Auto-resolved: %d rounds of combat" % result.rounds_fought)
+		if crew_casualties_count > 0:
+			battle_journal.add_entry("casualty_crew", "%d crew members went down" % crew_casualties_count)
+		if enemies_defeated_count > 0:
+			battle_journal.add_entry("casualty_enemy", "%d enemies eliminated" % enemies_defeated_count)
+		if result.victory:
+			battle_journal.log_victory("Auto-resolve: Crew victorious")
+		else:
+			battle_journal.log_defeat("Auto-resolve: Crew defeated")
 
 	_log_message("Battle %s!" % ("WON" if result.victory else "LOST"), UIColors.COLOR_EMERALD if result.victory else UIColors.COLOR_RED)
 	tactical_battle_completed.emit(result)

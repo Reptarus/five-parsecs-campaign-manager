@@ -33,14 +33,38 @@ func setup_phase() -> void:
 		save_button.disabled = false
 
 func generate_cycle_summary() -> void:
-	# TODO: Get actual data from campaign state
-	cycle_summary = {
-		"missions_completed": 2,
-		"credits_earned": 500,
-		"items_acquired": 3,
-		"casualties": 0,
-		"experience_gained": 150
-	}
+	cycle_summary = {}
+	if not game_state or not "campaign" in game_state or not game_state.campaign:
+		cycle_summary = {
+			"turns_played": 0, "missions_completed": 0,
+			"credits": 0, "crew_size": 0
+		}
+		return
+	var campaign = game_state.campaign
+	var pd: Dictionary = campaign.progress_data \
+		if "progress_data" in campaign else {}
+	cycle_summary["turns_played"] = pd.get("turns_played", 0)
+	cycle_summary["missions_completed"] = pd.get("missions_completed", 0)
+	cycle_summary["battles_won"] = pd.get("battles_won", 0)
+	cycle_summary["battles_lost"] = pd.get("battles_lost", 0)
+	cycle_summary["credits"] = campaign.credits \
+		if "credits" in campaign else 0
+	cycle_summary["story_points"] = campaign.story_points \
+		if "story_points" in campaign else 0
+	var members: Array = []
+	if campaign.has_method("get_crew_members"):
+		members = campaign.get_crew_members()
+	elif "crew_data" in campaign:
+		members = campaign.crew_data.get("members", [])
+	cycle_summary["crew_size"] = members.size()
+	var vc: Dictionary = campaign.victory_conditions \
+		if "victory_conditions" in campaign else {}
+	if not vc.is_empty():
+		cycle_summary["victory_progress"] = "%d / %d (%s)" % [
+			vc.get("progress", pd.get("turns_played", 0)),
+			vc.get("target", 0),
+			vc.get("type", "")
+		]
 
 func update_summary_display() -> void:
 	if summary_label:
@@ -61,11 +85,61 @@ func update_summary_display() -> void:
 func _on_save_button_pressed() -> void:
 	if game_state and game_state.has_method("save_campaign"):
 		game_state.save_campaign()
+
+	# Archive campaign to LegacySystem if victory achieved or significant play
+	_try_archive_campaign()
+
 	campaign_saved.emit()
 	if save_button:
 		save_button.disabled = true
 	if continue_button:
 		continue_button.disabled = false
+
+func _try_archive_campaign() -> void:
+	if not game_state or not game_state.campaign:
+		return
+	var campaign = game_state.campaign
+	var vc: Dictionary = campaign.victory_conditions \
+		if "victory_conditions" in campaign else {}
+	var is_victory: bool = false
+	if not vc.is_empty():
+		var progress: int = vc.get("progress", 0)
+		var target: int = vc.get("target", 0)
+		is_victory = target > 0 and progress >= target
+
+	var pd: Dictionary = campaign.progress_data \
+		if "progress_data" in campaign else {}
+	var turns: int = pd.get("turns_played", 0)
+
+	# Archive on victory or after 20+ turns
+	if not is_victory and turns < 20:
+		return
+
+	var legacy_sys = get_node_or_null("/root/LegacySystem")
+	if not legacy_sys or not legacy_sys.has_method("archive_campaign"):
+		return
+
+	var campaign_id: String = ""
+	if "campaign_id" in campaign:
+		campaign_id = campaign.campaign_id
+	elif "name" in campaign:
+		campaign_id = campaign.name
+
+	var crew_dicts: Array = []
+	if campaign.has_method("get_crew_members"):
+		for m in campaign.get_crew_members():
+			if m is Dictionary:
+				crew_dicts.append(m)
+			elif m != null and m.has_method("to_dictionary"):
+				crew_dicts.append(m.to_dictionary())
+
+	legacy_sys.archive_campaign(campaign_id, {
+		"crew": crew_dicts,
+		"story_points": campaign.story_points if "story_points" in campaign else 0,
+		"turns_survived": turns,
+		"victory": is_victory,
+		"credits_earned": campaign.credits if "credits" in campaign else 0,
+	})
 
 func _on_continue_button_pressed() -> void:
 	cycle_completed.emit()

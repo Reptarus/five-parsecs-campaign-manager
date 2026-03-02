@@ -355,6 +355,23 @@ func _on_apply_pressed() -> void:
 		else:
 			selected_crew_member.experience -= selected_advancement.cost
 
+	# Log advancement to CampaignJournal
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("auto_create_character_event"):
+		var char_id: String = _member_get(selected_crew_member, "character_id",
+			_member_get(selected_crew_member, "id", ""))
+		var char_name: String = _member_get(selected_crew_member, "character_name",
+			_member_get(selected_crew_member, "name", "Unknown"))
+		var adv_desc: String = ""
+		if selected_advancement.type == "STAT":
+			adv_desc = "%s +%d" % [selected_advancement.stat.capitalize(), selected_advancement.amount]
+		journal.auto_create_character_event(char_id, "advancement", {
+			"character_name": char_name,
+			"advancement": adv_desc,
+			"cost": selected_advancement.cost,
+			"is_bot": is_bot
+		})
+
 	_update_ui()
 
 func _on_done_pressed() -> void:

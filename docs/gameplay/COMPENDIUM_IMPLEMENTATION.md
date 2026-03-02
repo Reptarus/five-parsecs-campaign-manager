@@ -540,13 +540,11 @@ Two player campaigns can fight each other
 - Can gain Rival status against opponent
 
 **Digital Implementation**:
-- Multiplayer lobby system
-- Turn-based online or hot-seat local
+- Hot-seat local play (same device, alternating turns)
+- Tabletop companion guides battle resolution
 - AI can substitute for missing player
-- Replay system for battles
-- Rankings/leaderboards (optional)
 
-**Status**: ✅ Functional for local play, 🟡 Online features in beta
+**Status**: ✅ Fully implemented (tabletop companion mode)
 
 ### Expanded Co-op Battles ✅ **FULLY IMPLEMENTED**
 
@@ -569,14 +567,11 @@ Two crews team up against tougher opposition
 
 **Digital Implementation**:
 - Co-op mission selection
-- Synchronized turn system
-- Shared tactical map
-- Communication tools (markers, pings)
-- Reward distribution system
+- Shared tactical map and turn tracking
+- Tabletop companion guides both crews through battle
 
 **Modes**:
 - Local co-op (same device, hot-seat)
-- Online co-op (join friend's campaign)
 - AI partner (single player with AI ally crew)
 
 ### AI Variations ✅ **FULLY IMPLEMENTED**
@@ -1361,7 +1356,7 @@ A military-focused campaign variant where you command a squad fighting an alien 
 **Game Options**:
 - ✅ Progressive difficulty
 - ✅ All difficulty toggles
-- ✅ PvP battles (local)
+- ✅ PvP battles (hot-seat)
 - ✅ Co-op battles
 - ✅ AI variations
 - ✅ Enemy deployment variables
@@ -1395,7 +1390,6 @@ A military-focused campaign variant where you command a squad fighting an alien 
 - 🟡 Advanced psionic schools (base psionics complete, advanced schools pending)
 - 🟡 Some ship parts/upgrades
 - 🟡 Critical hit system (base rules present, advanced effects pending)
-- 🟡 PvP online features (local functional, online in beta)
 
 ### Not Implemented 🔴 (Planned for Future)
 

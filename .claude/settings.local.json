@@ -90,5 +90,6 @@
       "Bash(/tmp/check_remaining.ps1:*)",
       "Bash(powershell.exe -ExecutionPolicy Bypass -File /tmp/check_remaining.ps1)"
     ]
-  }
+  },
+  "outputStyle": "Explanatory"
 }

@@ -3,6 +3,8 @@
 extends CampaignScreenBase
 
 const GameEnums = preload("res://src/core/enums/GameEnums.gd")
+const CampaignTimelinePanelClass = preload("res://src/ui/components/history/CampaignTimelinePanel.gd")
+const CharacterHistoryPanelClass = preload("res://src/ui/components/history/CharacterHistoryPanel.gd")
 
 # ── Node References (unique names from .tscn) ─────────────────────
 # Header
@@ -36,6 +38,8 @@ const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 
 var phase_manager: Node
 var _active_dialogs: Array[Node] = []
+var _history_overlay: Control = null
+var _active_history_panel: Control = null
 
 # ── Lifecycle ──────────────────────────────────────────────────────
 
@@ -46,6 +50,7 @@ func _setup_screen() -> void:
 		_setup_phase_manager()
 	_apply_dashboard_styles()
 	_update_all()
+	_create_history_overlay()
 
 func _exit_tree() -> void:
 	_cleanup_dialogs()
@@ -493,6 +498,8 @@ func _update_intel_overview(campaign) -> void:
 	_build_patrons_section(campaign)
 	_build_rivals_section(campaign)
 	_build_rumors_section(campaign)
+	_build_phase_checklist()
+	_build_history_buttons()
 
 func _build_world_section(campaign) -> void:
 	var header := _create_section_header("CURRENT WORLD")
@@ -981,6 +988,399 @@ func _cleanup_dialogs() -> void:
 		if is_instance_valid(dialog):
 			dialog.queue_free()
 	_active_dialogs.clear()
+
+# ── History Overlay System ────────────────────────────────────────
+
+func _create_history_overlay() -> void:
+	_history_overlay = Control.new()
+	_history_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_history_overlay.visible = false
+	_history_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(_history_overlay)
+	# Dark background
+	var bg := ColorRect.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(COLOR_PRIMARY.r, COLOR_PRIMARY.g, COLOR_PRIMARY.b, 0.95)
+	_history_overlay.add_child(bg)
+
+func _show_history_panel(panel: Control) -> void:
+	if _active_history_panel and is_instance_valid(_active_history_panel):
+		_active_history_panel.queue_free()
+	_active_history_panel = panel
+	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_history_overlay.add_child(panel)
+	_history_overlay.visible = true
+
+func _hide_history_overlay() -> void:
+	_history_overlay.visible = false
+	if _active_history_panel and is_instance_valid(_active_history_panel):
+		_active_history_panel.queue_free()
+		_active_history_panel = null
+
+func _build_phase_checklist() -> void:
+	if not right_vbox:
+		return
+	var checklist = get_node_or_null("/root/TurnPhaseChecklist")
+	if not checklist:
+		return
+	var status: Dictionary = checklist.get_completion_status() \
+		if checklist.has_method("get_completion_status") else {}
+	if status.is_empty():
+		return
+
+	var req_total: int = status.get("required_total", 0)
+	var req_done: int = status.get("required_complete", 0)
+	if req_total == 0:
+		return
+
+	var sep := HSeparator.new()
+	sep.modulate = COLOR_BORDER
+	right_vbox.add_child(sep)
+
+	var header := _create_section_header("PHASE CHECKLIST")
+	right_vbox.add_child(header)
+
+	var progress := ProgressBar.new()
+	progress.min_value = 0
+	progress.max_value = req_total
+	progress.value = req_done
+	progress.custom_minimum_size.y = 8
+	progress.show_percentage = false
+	right_vbox.add_child(progress)
+
+	var pct_label := Label.new()
+	pct_label.text = "%d / %d required actions complete" % [req_done, req_total]
+	pct_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	pct_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	right_vbox.add_child(pct_label)
+
+	var incomplete: Array = checklist.get_incomplete_required_actions() \
+		if checklist.has_method("get_incomplete_required_actions") else []
+	for action_id in incomplete:
+		var desc: String = checklist.get_action_description(action_id) \
+			if checklist.has_method("get_action_description") else action_id
+		var item := Label.new()
+		item.text = "  - %s" % desc
+		item.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		item.add_theme_color_override("font_color", COLOR_AMBER)
+		right_vbox.add_child(item)
+
+func _build_history_buttons() -> void:
+	if not right_vbox:
+		return
+	var h_sep := HSeparator.new()
+	h_sep.modulate = COLOR_BORDER
+	right_vbox.add_child(h_sep)
+	var header := _create_section_header("CAMPAIGN HISTORY")
+	right_vbox.add_child(header)
+	var sep := HSeparator.new()
+	sep.modulate = COLOR_BORDER
+	right_vbox.add_child(sep)
+	# Journal button
+	var journal_btn := Button.new()
+	journal_btn.text = "Campaign Journal"
+	journal_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	journal_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+	journal_btn.pressed.connect(_on_journal_pressed)
+	right_vbox.add_child(journal_btn)
+	_style_button(journal_btn, true)
+	# Contacts button
+	var contacts_btn := Button.new()
+	contacts_btn.text = "Contacts & Rivals"
+	contacts_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	contacts_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+	contacts_btn.pressed.connect(_on_contacts_pressed)
+	right_vbox.add_child(contacts_btn)
+	_style_button(contacts_btn)
+	# Hall of Fame button
+	var hof_btn := Button.new()
+	hof_btn.text = "Hall of Fame"
+	hof_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hof_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+	hof_btn.pressed.connect(_on_hof_pressed)
+	right_vbox.add_child(hof_btn)
+	_style_button(hof_btn)
+
+func _on_journal_pressed() -> void:
+	var panel := CampaignTimelinePanelClass.new()
+	panel.back_pressed.connect(_hide_history_overlay)
+	panel.character_selected.connect(_on_timeline_character_selected)
+	_show_history_panel(panel)
+
+func _on_contacts_pressed() -> void:
+	var panel := _build_contacts_panel()
+	_show_history_panel(panel)
+
+func _on_hof_pressed() -> void:
+	var panel := _build_hof_panel()
+	_show_history_panel(panel)
+
+func _on_timeline_character_selected(character_id: String) -> void:
+	var campaign = _get_campaign()
+	if not campaign:
+		return
+	var members: Array = _get_crew_members(campaign)
+	for member in members:
+		var mid: String = ""
+		if member is Dictionary:
+			mid = member.get("character_id", member.get("id", ""))
+		elif "character_id" in member:
+			mid = member.character_id
+		if mid == character_id:
+			_hide_history_overlay()
+			var history_panel := CharacterHistoryPanelClass.new()
+			history_panel.setup(member, character_id)
+			history_panel.back_pressed.connect(_hide_history_overlay)
+			_show_history_panel(history_panel)
+			return
+
+func _build_contacts_panel() -> PanelContainer:
+	var panel := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = COLOR_PRIMARY
+	style.border_color = COLOR_BORDER
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(4)
+	style.set_content_margin_all(SPACING_XL)
+	panel.add_theme_stylebox_override("panel", style)
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	panel.add_child(scroll)
+	var vbox := VBoxContainer.new()
+	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.add_theme_constant_override("separation", SPACING_MD)
+	scroll.add_child(vbox)
+	# Header with back button
+	var header_hbox := HBoxContainer.new()
+	header_hbox.add_theme_constant_override("separation", SPACING_SM)
+	vbox.add_child(header_hbox)
+	var back_btn := Button.new()
+	back_btn.text = "< Back"
+	back_btn.custom_minimum_size = Vector2(80, 36)
+	back_btn.pressed.connect(_hide_history_overlay)
+	header_hbox.add_child(back_btn)
+	var title := Label.new()
+	title.text = "Contacts & Rivals"
+	title.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header_hbox.add_child(title)
+	# Load NPC data
+	var npc_tracker := get_node_or_null("/root/NPCTracker")
+	if not npc_tracker:
+		var empty := Label.new()
+		empty.text = "NPC Tracker not available"
+		empty.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
+		vbox.add_child(empty)
+		return panel
+	# Patrons section
+	vbox.add_child(_create_section_header("PATRONS"))
+	var p_sep := HSeparator.new()
+	p_sep.modulate = COLOR_BORDER
+	vbox.add_child(p_sep)
+	var patrons: Array = npc_tracker.get_all_patrons()
+	if patrons.is_empty():
+		var empty := Label.new()
+		empty.text = "No patrons yet"
+		empty.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
+		vbox.add_child(empty)
+	else:
+		for patron in patrons:
+			vbox.add_child(_create_npc_contact_card(patron, "patron"))
+	# Rivals section
+	var r_sep := HSeparator.new()
+	r_sep.modulate = COLOR_BORDER
+	vbox.add_child(r_sep)
+	vbox.add_child(_create_section_header("RIVALS"))
+	var r_sep2 := HSeparator.new()
+	r_sep2.modulate = COLOR_BORDER
+	vbox.add_child(r_sep2)
+	var rivals: Array = npc_tracker.get_all_rivals()
+	if rivals.is_empty():
+		var empty := Label.new()
+		empty.text = "No rivals yet"
+		empty.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
+		vbox.add_child(empty)
+	else:
+		for rival in rivals:
+			vbox.add_child(_create_npc_contact_card(rival, "rival"))
+	# Locations section
+	var l_sep := HSeparator.new()
+	l_sep.modulate = COLOR_BORDER
+	vbox.add_child(l_sep)
+	vbox.add_child(_create_section_header("LOCATIONS VISITED"))
+	var l_sep2 := HSeparator.new()
+	l_sep2.modulate = COLOR_BORDER
+	vbox.add_child(l_sep2)
+	var locations: Array = npc_tracker.get_all_locations()
+	if locations.is_empty():
+		var empty := Label.new()
+		empty.text = "No locations visited yet"
+		empty.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
+		vbox.add_child(empty)
+	else:
+		for location in locations:
+			vbox.add_child(_create_location_contact_card(location))
+	return panel
+
+func _create_npc_contact_card(npc: Dictionary, npc_type: String) -> PanelContainer:
+	var card := PanelContainer.new()
+	var card_style: String = "elevated" if npc_type == "patron" else "accent_red"
+	_apply_panel_style(card, card_style)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", SPACING_XS)
+	card.add_child(vbox)
+	var name_lbl := Label.new()
+	name_lbl.text = npc.get("name", "Unknown")
+	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	var name_color: Color = COLOR_EMERALD if npc_type == "patron" else COLOR_RED
+	name_lbl.add_theme_color_override("font_color", name_color)
+	vbox.add_child(name_lbl)
+	if npc_type == "patron":
+		var info := Label.new()
+		info.text = "Relationship: %d/5 | Jobs: %d completed, %d failed" % [
+			npc.get("relationship", 0),
+			npc.get("jobs_completed", 0),
+			npc.get("jobs_failed", 0)
+		]
+		info.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		info.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		vbox.add_child(info)
+	else:
+		var info := Label.new()
+		info.text = "Encounters: %d (W:%d L:%d)" % [
+			npc.get("encounters", 0),
+			npc.get("victories", 0),
+			npc.get("defeats", 0)
+		]
+		info.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		info.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		vbox.add_child(info)
+	var history: Array = npc.get("history", [])
+	if not history.is_empty():
+		for entry in history:
+			var entry_lbl := Label.new()
+			var turn_str: String = str(entry.get("turn", "?"))
+			var event_str: String = str(entry.get("event", entry.get("result", "")))
+			entry_lbl.text = "  Turn %s: %s" % [turn_str, event_str]
+			entry_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			entry_lbl.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
+			vbox.add_child(entry_lbl)
+	return card
+
+func _create_location_contact_card(location: Dictionary) -> PanelContainer:
+	var card := PanelContainer.new()
+	_apply_panel_style(card, "elevated")
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", SPACING_XS)
+	card.add_child(vbox)
+	var name_lbl := Label.new()
+	name_lbl.text = location.get("name", "Unknown Location")
+	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_lbl.add_theme_color_override("font_color", COLOR_PURPLE)
+	vbox.add_child(name_lbl)
+	var info := Label.new()
+	info.text = "Visits: %d | Reputation: %d" % [
+		location.get("visits", 0),
+		location.get("reputation", 0)
+	]
+	info.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	info.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	vbox.add_child(info)
+	var npcs_met: Array = location.get("npcs_met", [])
+	if not npcs_met.is_empty():
+		var npcs_lbl := Label.new()
+		npcs_lbl.text = "Contacts: " + ", ".join(npcs_met)
+		npcs_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+		npcs_lbl.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
+		vbox.add_child(npcs_lbl)
+	return card
+
+func _build_hof_panel() -> PanelContainer:
+	var panel := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = COLOR_PRIMARY
+	style.border_color = COLOR_BORDER
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(4)
+	style.set_content_margin_all(SPACING_XL)
+	panel.add_theme_stylebox_override("panel", style)
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	panel.add_child(scroll)
+	var vbox := VBoxContainer.new()
+	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.add_theme_constant_override("separation", SPACING_MD)
+	scroll.add_child(vbox)
+	# Header with back button
+	var header_hbox := HBoxContainer.new()
+	header_hbox.add_theme_constant_override("separation", SPACING_SM)
+	vbox.add_child(header_hbox)
+	var back_btn := Button.new()
+	back_btn.text = "< Back"
+	back_btn.custom_minimum_size = Vector2(80, 36)
+	back_btn.pressed.connect(_hide_history_overlay)
+	header_hbox.add_child(back_btn)
+	var title := Label.new()
+	title.text = "Hall of Fame"
+	title.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header_hbox.add_child(title)
+	# Load archived campaigns
+	var legacy := get_node_or_null("/root/LegacySystem")
+	if not legacy:
+		var empty := Label.new()
+		empty.text = "Legacy System not available"
+		empty.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
+		vbox.add_child(empty)
+		return panel
+	var archives: Array = []
+	if legacy.has_method("get_hall_of_fame"):
+		archives = legacy.get_hall_of_fame()
+	if archives.is_empty():
+		var empty := Label.new()
+		empty.text = "No completed campaigns yet.\nComplete a campaign to see it immortalized here!"
+		empty.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		vbox.add_child(empty)
+	else:
+		for archive in archives:
+			var card := PanelContainer.new()
+			_apply_panel_style(card, "accent_amber")
+			card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			var card_vbox := VBoxContainer.new()
+			card_vbox.add_theme_constant_override("separation", SPACING_XS)
+			card.add_child(card_vbox)
+			var name_lbl := Label.new()
+			name_lbl.text = archive.get("campaign_id", "Unknown Campaign")
+			name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+			name_lbl.add_theme_color_override("font_color", COLOR_AMBER)
+			card_vbox.add_child(name_lbl)
+			var victory: bool = archive.get("victory", false)
+			var status_lbl := Label.new()
+			if victory:
+				status_lbl.text = "VICTORY — %d Story Points" % archive.get("story_points", 0)
+				status_lbl.add_theme_color_override("font_color", COLOR_EMERALD)
+			else:
+				status_lbl.text = "Ended — Turn %d" % archive.get("turns_survived", 0)
+				status_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+			status_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+			card_vbox.add_child(status_lbl)
+			var crew_count: int = archive.get("crew", []).size()
+			var crew_lbl := Label.new()
+			crew_lbl.text = "Crew: %d members" % crew_count
+			crew_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+			crew_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+			card_vbox.add_child(crew_lbl)
+			vbox.add_child(card)
+	return panel
 
 # ── Responsive overrides ──────────────────────────────────────────
 

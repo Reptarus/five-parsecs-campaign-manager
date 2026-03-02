@@ -5,6 +5,7 @@ extends Control
 
 # ============ PRELOADS ============
 const CharacterCard = preload("res://src/ui/components/character/CharacterCard.gd")
+const CharacterHistoryPanelClass = preload("res://src/ui/components/history/CharacterHistoryPanel.gd")
 
 # ============ DESIGN SYSTEM CONSTANTS ============
 # Unified styling from BaseCampaignPanel
@@ -62,6 +63,7 @@ const COLOR_DANGER := Color("#DC2626")   # Red
 # State
 var current_character = null
 var original_data: Dictionary = {}
+var _history_overlay: Control = null
 
 # Advancement UI references (created dynamically)
 var stat_advancement_buttons: Dictionary = {}
@@ -213,6 +215,29 @@ func populate_ui() -> void:
 			info_row.add_child(field_value)
 
 			character_info_container.add_child(info_row)
+
+		# View History button
+		var history_sep := HSeparator.new()
+		history_sep.custom_minimum_size = Vector2(0, SPACING_SM)
+		character_info_container.add_child(history_sep)
+		var history_btn := Button.new()
+		history_btn.text = "View Character History"
+		history_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+		history_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		history_btn.pressed.connect(_on_view_history_pressed)
+		# Style the button with accent color
+		var btn_style := StyleBoxFlat.new()
+		btn_style.bg_color = COLOR_ACCENT
+		btn_style.set_corner_radius_all(8)
+		btn_style.set_content_margin_all(SPACING_SM)
+		history_btn.add_theme_stylebox_override("normal", btn_style)
+		var btn_hover := StyleBoxFlat.new()
+		btn_hover.bg_color = COLOR_ACCENT_HOVER
+		btn_hover.set_corner_radius_all(8)
+		btn_hover.set_content_margin_all(SPACING_SM)
+		history_btn.add_theme_stylebox_override("hover", btn_hover)
+		history_btn.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+		character_info_container.add_child(history_btn)
 
 	# Stats (5-column grid with centered values)
 	if stats_grid:
@@ -1133,3 +1158,41 @@ func _on_bot_upgrade_pressed(upgrade_id: String, advancement_system: FPCM_Advanc
 		print("CharacterDetailsScreen: Bot upgrade installed successfully")
 	else:
 		print("CharacterDetailsScreen: Bot upgrade installation failed")
+
+# ============ CHARACTER HISTORY ============
+
+func _on_view_history_pressed() -> void:
+	if not current_character:
+		return
+	# Get character ID
+	var char_id: String = ""
+	if "character_id" in current_character:
+		char_id = current_character.character_id
+	elif "id" in current_character:
+		char_id = current_character.id
+	elif current_character is Dictionary:
+		char_id = current_character.get("character_id", current_character.get("id", ""))
+	# Create overlay
+	if _history_overlay and is_instance_valid(_history_overlay):
+		_history_overlay.queue_free()
+	_history_overlay = Control.new()
+	_history_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(_history_overlay)
+	# Dark background
+	var bg := ColorRect.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(COLOR_BASE.r, COLOR_BASE.g, COLOR_BASE.b, 0.95)
+	_history_overlay.add_child(bg)
+	# History panel
+	var panel := CharacterHistoryPanelClass.new()
+	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_history_overlay.add_child(panel)
+	panel.setup(current_character, char_id)
+	panel.back_pressed.connect(_on_history_back)
+
+func _on_history_back() -> void:
+	if _history_overlay and is_instance_valid(_history_overlay):
+		_history_overlay.queue_free()
+		_history_overlay = null

@@ -1,7 +1,7 @@
 ﻿# Five Parsecs Campaign Manager - Quick Start Guide
 
-**Last Updated**: 2026-02-09
-**Project Status**: PRODUCTION_CANDIDATE (98.2% mechanics compliance)
+**Last Updated**: 2026-03-01
+**Project Status**: COMPLETE (100% mechanics compliance — 170/170)
 **Godot Version**: 4.6-stable (non-mono, GDScript only)
 
 ## 🚀 Quick Start for Developers
@@ -16,7 +16,7 @@ Get up and running with the Five Parsecs Campaign Manager development environmen
 - **Git** for version control
 - **PowerShell** (Windows) for running tests
 - **Visual Studio Code** (recommended) with Godot extensions
-- **GUT (Godot Unit Test)** (included in `addons/GUT/`)
+- **gdUnit4** v6.0.3 (included in `addons/gdUnit4/`)
 
 ### Install Godot 4.6
 
@@ -51,13 +51,15 @@ cd five-parsecs-campaign-manager
 
 ## 🏗️ Project Architecture Overview
 
-### Current Stats (2026-02-09)
-- **Total GDScript Files**: ~441
-- **Total Scene Files**: ~196 .tscn files
+### Current Stats (2026-03-01)
+- **Total GDScript Files**: ~870 (excl. addons)
+- **Total Scene Files**: ~200+ .tscn files
 - **Data Files**: ~104 JSON files
-- **Test Framework**: GUT (Godot Unit Test)
-- **Game Mechanics Compliance**: 98.2% (167/170)
+- **Test Framework**: gdUnit4 v6.0.3 (GUT removed Feb 2026)
+- **Game Mechanics Compliance**: 100% (170/170 incl. Compendium DLC)
 - **Campaign Turn Phases**: 9/9 fully wired
+- **Campaign Creation Phases**: 7/7 coordinator system
+- **Battle System**: Full end-to-end flow (26 companion components)
 - **Compile Errors**: 0
 
 ### Directory Structure
@@ -104,7 +106,7 @@ five-parsecs-campaign-manager/
 │   ├── testing/              # Testing guides
 │   └── ...
 └── addons/
-    └── GUT/              # Testing framework
+    └── gdUnit4/          # Testing framework (v6.0.3)
 ```
 
 ### Signal Architecture ("Call Down, Signal Up")
@@ -167,14 +169,14 @@ func _on_input_changed():
 # Run specific test file
 & 'C:\Users\admin\Desktop\GoDot\Godot_v4.6-stable_win64.exe\Godot_v4.6-stable_win64_console.exe' `
   --path 'C:\Users\admin\SynologyDrive\Godot\five-parsecs-campaign-manager' `
-  --script addons/GUT/bin/GdUnitCmdTool.gd `
+  --script addons/gdUnit4/bin/GdUnitCmdTool.gd `
   -a tests/unit/test_character_advancement_costs.gd `
   --quit-after 60
 
 # Run all tests in a directory
 & 'C:\Users\admin\Desktop\GoDot\Godot_v4.6-stable_win64.exe\Godot_v4.6-stable_win64_console.exe' `
   --path 'C:\Users\admin\SynologyDrive\Godot\five-parsecs-campaign-manager' `
-  --script addons/GUT/bin/GdUnitCmdTool.gd `
+  --script addons/gdUnit4/bin/GdUnitCmdTool.gd `
   -a tests/unit `
   --quit-after 60
 ```
@@ -184,7 +186,7 @@ func _on_input_changed():
 ### Running Tests in Godot Editor (UI Mode)
 
 1. Open project in Godot
-2. Click **Project → Tools → GUT → Run Tests**
+2. Click **Project → Tools → gdUnit4 → Run Tests**
 3. Select test file or directory
 4. View results in bottom panel
 
@@ -488,7 +490,7 @@ git push origin feature/panel-improvement
 1. **Run all tests** (138 tests must pass):
    ```powershell
    & 'path/to/Godot_v4.6-stable_win64_console.exe' `
-     --path '.' --script addons/GUT/bin/GdUnitCmdTool.gd `
+     --path '.' --script addons/gdUnit4/bin/GdUnitCmdTool.gd `
      -a tests --quit-after 60
    ```
 
@@ -593,4 +595,4 @@ Brief description of changes (1-2 sentences)
 - Read [WEEK_4_RETROSPECTIVE.md](../WEEK_4_RETROSPECTIVE.md) for project status
 - Open an issue on GitHub for bugs or feature requests
 
-**Project Status**: PRODUCTION_CANDIDATE (98.2% mechanics compliance) — All major systems wired and verified.
+**Project Status**: COMPLETE (100% mechanics compliance — 170/170) — All systems wired and verified.
