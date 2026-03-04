@@ -1,0 +1,43 @@
+{
+	"description": "Bug Hunt pack leader types - Compendium p.197. Rolled on D6 when pack leader is present. Max 3 pack leaders per mission.",
+	"detection_rule": "Roll three D12. If any die rolls equal to or below the number of enemies revealed by the marker, a pack leader is present. Discard one D12 from the pool going forward (max 3 leaders per mission).",
+	"availability": "Not available in the first two missions of the campaign.",
+	"leaders": [
+		{
+			"id": "leader",
+			"name": "Leader",
+			"d6_value": 1,
+			"effect": "When moving a Contact marker within 9\", a Chance die is not rolled, only an Aggression die. The leader acts as a focus ensuring the foe targets your positions."
+		},
+		{
+			"id": "lancer",
+			"name": "Lancer",
+			"d6_value": 2,
+			"effect": "At the end of each move, if a trooper is in Line of Sight, the Lancer fires a dart at the nearest visible trooper. Hits on D6 roll of 5+ (regardless of Combat Skill or cover), Damage 1, ignores armor. Lancers always move to Cover with trooper visibility and will not enter close combat."
+		},
+		{
+			"id": "caller",
+			"name": "Caller",
+			"d6_value": 3,
+			"effect": "Each time the Caller is activated, roll 1D6. If the roll is higher than the number of Contacts on the table, place a Contact adjacent to the Caller. The Caller will attempt to move to the center of the table and hide there."
+		},
+		{
+			"id": "assassin",
+			"name": "Assassin",
+			"d6_value": 4,
+			"effect": "Increase Damage and Combat Skill by 1. All attacks from the Assassin ignore armor."
+		},
+		{
+			"id": "bruiser",
+			"name": "Bruiser",
+			"d6_value": 5,
+			"effect": "Increase Toughness by 1. The enemy receives a 4+ saving throw against all Hits, replacing its normal save (if any)."
+		},
+		{
+			"id": "driver",
+			"name": "Driver",
+			"d6_value": 6,
+			"effect": "All enemies that begin their activation within 6\" of the Driver increase their movement by +1\" for the round."
+		}
+	]
+}

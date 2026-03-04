@@ -1,0 +1,212 @@
+{
+	"description": "Bug Hunt military weapons - Compendium p.179",
+	"weapons": [
+		{
+			"id": "service_pistol",
+			"name": "Service Pistol",
+			"category": "sidearm",
+			"range": 14,
+			"shots": 1,
+			"damage": 0,
+			"traits": ["pistol"],
+			"is_standard_issue": true,
+			"description": "Standard-issue sidearm carried by all troopers."
+		},
+		{
+			"id": "hand_cannon",
+			"name": "Hand Cannon",
+			"category": "sidearm",
+			"range": 8,
+			"shots": 1,
+			"damage": 1,
+			"traits": ["pistol"],
+			"is_standard_issue": false,
+			"description": "Heavy pistol with devastating stopping power at close range."
+		},
+		{
+			"id": "carbine",
+			"name": "Carbine",
+			"category": "rifle",
+			"range": 18,
+			"shots": 1,
+			"damage": 0,
+			"traits": [],
+			"is_standard_issue": false,
+			"description": "Compact rifle favored by scouts and support teams."
+		},
+		{
+			"id": "combat_rifle",
+			"name": "Combat Rifle",
+			"category": "rifle",
+			"range": 26,
+			"shots": 1,
+			"damage": 0,
+			"traits": [],
+			"is_standard_issue": false,
+			"description": "Standard military-issue assault rifle."
+		},
+		{
+			"id": "shotgun",
+			"name": "Shotgun",
+			"category": "rifle",
+			"range": 12,
+			"shots": 2,
+			"damage": 1,
+			"traits": ["focused"],
+			"is_standard_issue": false,
+			"description": "Devastating at close quarters. All shots must target the same figure."
+		},
+		{
+			"id": "sniper_rifle",
+			"name": "Sniper Rifle",
+			"category": "rifle",
+			"range": 40,
+			"shots": 1,
+			"damage": 1,
+			"traits": ["aimed"],
+			"is_standard_issue": false,
+			"description": "Precision weapon granting +1 to hit if the firer does not move."
+		},
+		{
+			"id": "light_machine_gun",
+			"name": "Light Machine Gun",
+			"category": "heavy",
+			"range": 36,
+			"shots": 3,
+			"damage": 1,
+			"traits": ["heavy"],
+			"is_standard_issue": false,
+			"description": "Squad support weapon. Suffers -1 to hit when moving."
+		},
+		{
+			"id": "incinerator",
+			"name": "Incinerator",
+			"category": "heavy",
+			"range": 8,
+			"shots": 3,
+			"damage": 1,
+			"traits": ["focused", "area"],
+			"is_standard_issue": false,
+			"description": "Fires a gout of flame. Area weapon, not subject to Rapid Fire or Malfunction."
+		},
+		{
+			"id": "hyper_blaster",
+			"name": "Hyper Blaster",
+			"category": "heavy",
+			"range": 24,
+			"shots": 3,
+			"damage": 1,
+			"traits": ["overheat"],
+			"is_standard_issue": false,
+			"description": "Energy weapon that malfunctions if all three firing dice show the same number."
+		},
+		{
+			"id": "plasma_rifle",
+			"name": "Plasma Rifle",
+			"category": "rifle",
+			"range": 20,
+			"shots": 2,
+			"damage": 1,
+			"traits": ["focused", "piercing"],
+			"is_standard_issue": false,
+			"description": "Superheated plasma bolts that ignore saving throws."
+		},
+		{
+			"id": "boarding_sword",
+			"name": "Boarding Sword",
+			"category": "melee",
+			"range": 0,
+			"shots": 0,
+			"damage": 0,
+			"traits": ["melee"],
+			"is_standard_issue": false,
+			"description": "Close-quarters blade granting +2 to Brawling rolls."
+		},
+		{
+			"id": "power_claw",
+			"name": "Power Claw",
+			"category": "melee",
+			"range": 0,
+			"shots": 0,
+			"damage": 1,
+			"traits": ["melee"],
+			"is_standard_issue": false,
+			"description": "Powered gauntlet granting +2 to Brawling rolls with increased damage."
+		},
+		{
+			"id": "flash_grenade",
+			"name": "Flash Grenade",
+			"category": "grenade",
+			"range": 6,
+			"shots": 0,
+			"damage": 0,
+			"traits": ["stun"],
+			"is_standard_issue": false,
+			"description": "Stuns any target within 2\" of the target point on a 3+ roll."
+		},
+		{
+			"id": "frag_grenade",
+			"name": "Frag Grenade",
+			"category": "grenade",
+			"range": 6,
+			"shots": 2,
+			"damage": 0,
+			"traits": ["area"],
+			"is_standard_issue": false,
+			"description": "Explosive fragmentation grenade. Area weapon."
+		},
+		{
+			"id": "mounted_launcher",
+			"name": "Mounted Launcher",
+			"category": "heavy",
+			"range": 18,
+			"shots": 0,
+			"damage": 0,
+			"traits": ["launcher"],
+			"is_standard_issue": false,
+			"description": "May fire any grenade type carried up to its range."
+		}
+	],
+	"weapon_traits": {
+		"pistol": {
+			"name": "Pistol",
+			"description": "Grants +1 to Brawling rolls."
+		},
+		"focused": {
+			"name": "Focused",
+			"description": "All shots must be directed against a single target."
+		},
+		"aimed": {
+			"name": "Aimed",
+			"description": "Grants +1 Hit bonus if the firer does not move."
+		},
+		"heavy": {
+			"name": "Heavy",
+			"description": "Suffers -1 to hit when moving."
+		},
+		"area": {
+			"name": "Area",
+			"description": "Resolve Shots against the target, then roll 1D6 for every figure within 2\". On a 4+, they are hit. Not subject to Rapid Fire or Malfunction. Instead, a separate D6 scores 1 = out of ammo."
+		},
+		"melee": {
+			"name": "Melee",
+			"description": "Grants +2 to Brawling rolls."
+		},
+		"stun": {
+			"name": "Stun",
+			"description": "Stuns any target within 2\" of the target point on a 3+ roll."
+		},
+		"launcher": {
+			"name": "Launcher",
+			"description": "May fire any grenade type carried up to the range indicated."
+		},
+		"piercing": {
+			"name": "Piercing",
+			"description": "Ignores saving throws."
+		},
+		"overheat": {
+			"name": "Overheat",
+			"description": "Malfunctions if all three firing dice score the same number. If fewer than three dice are rolled, no malfunction chance."
+		}
+	}
+}

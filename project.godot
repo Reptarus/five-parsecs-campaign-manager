@@ -8,11 +8,6 @@
 
 config_version=5
 
-gut={
-&"directory": PackedStringArray("res://tests/unit", "res://tests/integration", "res://tests/battle", "res://tests/performance", "res://tests/mobile", "res://tests/diagnostic"),
-&"include_subdirectories": true
-}
-
 [animation]
 
 compatibility/default_parent_skeleton_in_mesh_instance_3d=true
@@ -53,6 +48,9 @@ ResponsiveManager="*res://src/autoload/ResponsiveManager.gd"
 ThemeManager="*res://src/ui/themes/ThemeManager.gd"
 TransitionManager="res://src/autoload/TransitionManager.gd"
 NotificationManager="res://src/autoload/NotificationManager.gd"
+StoreManager="*res://src/core/store/StoreManager.gd"
+ReviewManager="*res://src/core/store/ReviewManager.gd"
+TweenFX="*uid://d2n10rw2dnx8o"
 
 [debug]
 
@@ -69,7 +67,6 @@ gdscript/warnings/unsafe_call_argument=true
 gdscript/warnings/return_value_discarded=true
 gdscript/warnings/treat_warnings_as_errors=false
 gdscript/completion/autocomplete_setters_and_getters=true
-settings/run_on_load/test_scene="res://tests/GutTestScene.tscn"
 
 [display]
 
@@ -84,8 +81,15 @@ project/assembly_name="Five Parsecs Campaign Manager"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/gdUnit4/plugin.cfg")
+enabled=PackedStringArray("res://addons/AndroidIAPP/plugin.cfg", "res://addons/InappReviewPlugin/plugin.cfg", "res://addons/TweenFX/plugin.cfg", "res://addons/gdUnit4/plugin.cfg")
 
 [rendering]
 
 textures/vram_compression/import_etc2_astc=true
+
+[steam]
+
+initialization/app_id=0
+initialization/initialize_on_startup=false
+initialization/embed_callbacks=false
+multiplayer_peer/max_channels=4

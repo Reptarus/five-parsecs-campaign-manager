@@ -1,0 +1,223 @@
+{
+	"description": "Bug Hunt enemy types - Compendium pp.194-195. 16 alien species rolled on D100.",
+	"enemy_table": [
+		{
+			"id": "vent_crawlers",
+			"name": "Vent-crawlers",
+			"d100_range": [1, 8],
+			"numbers": "1D3+2",
+			"speed": 6,
+			"combat_skill": 1,
+			"toughness": 4,
+			"damage": 2,
+			"special_rule": "When firing at Vent-crawlers within or directly behind cover, do not add Combat Skill.",
+			"tags": ["bug", "alien", "fast"]
+		},
+		{
+			"id": "acid_blobs",
+			"name": "Acid Blobs",
+			"d100_range": [9, 13],
+			"numbers": "1D6",
+			"speed": 3,
+			"combat_skill": 0,
+			"toughness": 5,
+			"damage": 3,
+			"special_rule": "When an Acid Blob is killed, roll 1D6. On a 1 or 2, place new Blobs equal to the die roll randomly 2\" from the slain Blob.",
+			"tags": ["bug", "alien", "splitting"]
+		},
+		{
+			"id": "face_rippers",
+			"name": "Face-rippers",
+			"d100_range": [14, 19],
+			"numbers": "1D3+2",
+			"speed": 5,
+			"combat_skill": 1,
+			"toughness": 5,
+			"damage": 2,
+			"special_rule": "Trooper armor only saves on a roll of a 6.",
+			"tags": ["bug", "alien", "armor_piercing"]
+		},
+		{
+			"id": "slithering_horrors",
+			"name": "Slithering Horrors",
+			"d100_range": [20, 26],
+			"numbers": "1D6+1",
+			"speed": 4,
+			"combat_skill": 1,
+			"toughness": 4,
+			"damage": 2,
+			"special_rule": "Troopers with melee weapons can only claim a +1 bonus to Brawling rolls (instead of +2).",
+			"tags": ["bug", "alien"]
+		},
+		{
+			"id": "tentacle_creepers",
+			"name": "Tentacle Creepers",
+			"d100_range": [27, 33],
+			"numbers": "1D3+1",
+			"speed": 3,
+			"combat_skill": 3,
+			"toughness": 4,
+			"damage": 1,
+			"special_rule": "Creepers receive a 5+ saving throw, except when struck by an Area weapon.",
+			"save_value": 5,
+			"tags": ["bug", "alien", "tough"]
+		},
+		{
+			"id": "shambling_reanimations",
+			"name": "Shambling Reanimations",
+			"d100_range": [34, 41],
+			"numbers": "1D6+2",
+			"speed": 3,
+			"combat_skill": 0,
+			"toughness": 4,
+			"damage": 1,
+			"special_rule": "Any grunt defeated is immediately replaced by another Reanimation figure.",
+			"tags": ["converted", "undead", "swarm"]
+		},
+		{
+			"id": "razor_lizards",
+			"name": "Razor Lizards",
+			"d100_range": [42, 47],
+			"numbers": "1D6+1",
+			"speed": 6,
+			"combat_skill": 1,
+			"toughness": 3,
+			"damage": 2,
+			"special_rule": "Defeated troopers who roll for post-battle injuries must add 1 campaign turn to all recovery times. Does not apply to Lost Marine rolls.",
+			"tags": ["bug", "alien", "fast"]
+		},
+		{
+			"id": "berserk_robots",
+			"name": "Berserk Robots",
+			"d100_range": [48, 51],
+			"numbers": "1D3+1",
+			"speed": 4,
+			"combat_skill": 2,
+			"toughness": 5,
+			"damage": 2,
+			"special_rule": "5+ saving throw against all sources of damage.",
+			"save_value": 5,
+			"tags": ["robot", "tough"]
+		},
+		{
+			"id": "converted_assault_team",
+			"name": "Converted Assault Team",
+			"d100_range": [52, 56],
+			"numbers": "1D6+1",
+			"speed": 4,
+			"combat_skill": 1,
+			"toughness": 4,
+			"damage": 2,
+			"special_rule": "5+ saving throw against ranged attacks.",
+			"save_value": 5,
+			"save_condition": "ranged_only",
+			"tags": ["converted", "cybernetic"]
+		},
+		{
+			"id": "dimensional_distorts",
+			"name": "Dimensional Distorts",
+			"d100_range": [57, 62],
+			"numbers": "1D6+1",
+			"speed": 5,
+			"combat_skill": 2,
+			"toughness": 5,
+			"damage": 2,
+			"special_rule": "At the end of each round, select a random Distort figure on the battlefield and move it to the center of the battlefield.",
+			"tags": ["alien", "teleporting"]
+		},
+		{
+			"id": "the_swarm",
+			"name": "The Swarm",
+			"d100_range": [63, 69],
+			"numbers": "1D3+1",
+			"speed": 6,
+			"combat_skill": 2,
+			"toughness": 4,
+			"damage": 3,
+			"special_rule": "Attacks ignore trooper saving throws.",
+			"tags": ["swarm", "alien", "fast", "armor_piercing"]
+		},
+		{
+			"id": "horde_invasion_force",
+			"name": "Horde Invasion Force",
+			"d100_range": [70, 77],
+			"numbers": "2D3+1",
+			"speed": 4,
+			"combat_skill": 1,
+			"toughness": 3,
+			"damage": 1,
+			"special_rule": "At the end of each round, if any Horde figures are on the table, 1 additional figure is placed at the center of a random battlefield edge.",
+			"tags": ["horde", "alien", "swarm"]
+		},
+		{
+			"id": "converted_infiltration_team",
+			"name": "Converted Infiltration Team",
+			"d100_range": [78, 82],
+			"numbers": "1D6+1",
+			"speed": 5,
+			"combat_skill": 1,
+			"toughness": 4,
+			"damage": 2,
+			"special_rule": "Each time a group is revealed, one of the figures is instead set up on the closest Objective.",
+			"tags": ["converted", "cybernetic", "stealth"]
+		},
+		{
+			"id": "shatter_forms",
+			"name": "Shatter-forms",
+			"d100_range": [83, 87],
+			"numbers": "1D6+1",
+			"speed": 4,
+			"combat_skill": 1,
+			"toughness": 4,
+			"damage": 3,
+			"special_rule": "When killed, all figures within 2\" take a Damage 0 hit (including other Shatter-forms).",
+			"tags": ["alien", "explosive"]
+		},
+		{
+			"id": "strangle_worms",
+			"name": "Strangle Worms",
+			"d100_range": [88, 94],
+			"numbers": "1D6+4",
+			"speed": 4,
+			"combat_skill": 0,
+			"toughness": 3,
+			"damage": 1,
+			"special_rule": "At the end of each round, roll 1D6 for every Worm on the table. On a 6, another Worm is placed adjacent to it.",
+			"tags": ["bug", "alien", "swarm", "spawning"]
+		},
+		{
+			"id": "gripper_weeds",
+			"name": "Gripper Weeds",
+			"d100_range": [95, 100],
+			"numbers": "1D6+1",
+			"speed": 4,
+			"combat_skill": 1,
+			"toughness": 4,
+			"damage": 1,
+			"special_rule": "Troopers within 2\" of a Gripper Weed cannot move, but may fire normally.",
+			"tags": ["alien", "plant", "immobilizing"]
+		}
+	],
+	"difficulty_modifiers": {
+		"im_too_pretty_to_die": {
+			"name": "I'm Too Pretty to Die",
+			"numbers_modifier": -1,
+			"description": "Enemy numbers reduced by 1 per Contact reveal."
+		},
+		"standard": {
+			"name": "Standard",
+			"numbers_modifier": 0,
+			"description": "Normal enemy numbers."
+		},
+		"mega_violence": {
+			"name": "Mega-violence",
+			"numbers_modifier": 1,
+			"description": "Enemy numbers increased by 1 per Contact reveal."
+		},
+		"living_nightmare": {
+			"name": "Living Nightmare",
+			"numbers_modifier": 1,
+			"description": "Enemy numbers increased by 1 per Contact reveal. Additional Contact markers spawn on each 6 rolled for Priority."
+		}
+	}
+}

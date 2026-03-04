@@ -1,0 +1,52 @@
+{
+	"description": "Bug Hunt spawn point mechanics - Compendium pp.199-200",
+	"spawn_points": {
+		"description": "Spawn Points represent locations that the enemy is using to converge on you (vents, tunnels, ducts, etc.).",
+		"spawn_rating_description": "Mission creation dictates a Spawn Rating determining how many Spawn Points will be revealed. If 0, spawn points are not used.",
+		"phases": {
+			"step_1_reveal": "If unrevealed Spawn Points remain, one is revealed at end of each round. Make a random direction roll from center of battlefield; place Spawn Point at the indicated battlefield edge.",
+			"step_2_increment": "Every Spawn Point with a Countdown marker lowers its countdown by 1. If countdown reaches 0, remove marker and place a Contact marker on the Spawn Point.",
+			"step_3_place_countdown": "Roll D6 for every Spawn Point without a Countdown marker. On 1-4, place a die showing that number. On 5-6, no die placed (check again next round)."
+		},
+		"closing_down": {
+			"description": "A trooper within 3\" of a Spawn Point (not firing) may attempt to close it down.",
+			"roll": "1D6+Savvy, 6+ to succeed. Remove Spawn Point and any Countdown marker.",
+			"assist": "A single friendly trooper within 1\" of the worker may help, adding +1 to the roll (but also cannot fire)."
+		}
+	},
+	"contact_markers": {
+		"movement": {
+			"description": "Contact markers move during the Enemy Action phase, after all enemy figures have moved.",
+			"aggression_die": "If the Aggression (darker) die is higher, move that many inches towards nearest player figure.",
+			"chance_die": "If the Chance (lighter) die is higher, move that many inches in a random direction.",
+			"equal": "If dice are equal, marker stays in place and a new Contact marker is placed on top of it."
+		},
+		"detection": {
+			"in_sight_no_cover": "Detected within 6\".",
+			"in_cover_or_no_sight": "Detected within 3\".",
+			"note": "Line of Sight is NOT required to Detect (troops carry close range detection devices)."
+		},
+		"contact_table": [
+			{
+				"d6_value": 1,
+				"name": "Stay frosty",
+				"effect": "Remove the marker. If this leaves fewer than 3 markers on the table, put a new marker on the battlefield edge point furthest from the spotter."
+			},
+			{
+				"d6_value": 2,
+				"name": "We got movement all over the place",
+				"effect": "Move the marker 1D6\" directly away from the spotter, then place a new Contact marker on the nearest battlefield edge point to the spotter."
+			},
+			{
+				"d6_range": [3, 6],
+				"name": "CONTACT!",
+				"effect": "The marker is replaced with enemy figures. Roll on the enemy table to determine type and numbers. Place all enemy figures within 1\" of the marker. They do not act this round."
+			}
+		],
+		"priority_spawning": {
+			"description": "From Round 2 onwards, roll D6s equal to the mission Priority (1-6, typically 2-3). If any die rolls a 6, place one new Contact marker at a random battlefield edge.",
+			"living_nightmare": "On Living Nightmare difficulty, place a Contact marker for EACH 6 rolled.",
+			"bonus_fire": "If the marker is immediately Detected, all figures within 12\" may fire upon revealed enemies as a bonus action (does not prevent normal actions)."
+		}
+	}
+}

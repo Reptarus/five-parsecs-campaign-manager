@@ -1,0 +1,146 @@
+{
+	"main_menu": {
+		"chapter": "01",
+		"section": "the_main_menu"
+	},
+	"campaign_creation": {
+		"chapter": "02",
+		"section": "overview"
+	},
+	"campaign_creation_step_0": {
+		"chapter": "02",
+		"section": "step_1_campaign_configuration"
+	},
+	"campaign_creation_step_1": {
+		"chapter": "02",
+		"section": "step_2_captain_creation"
+	},
+	"campaign_creation_step_2": {
+		"chapter": "02",
+		"section": "step_3_crew_setup"
+	},
+	"campaign_creation_step_3": {
+		"chapter": "02",
+		"section": "step_4_starting_equipment"
+	},
+	"campaign_creation_step_4": {
+		"chapter": "02",
+		"section": "step_5_ship_assignment"
+	},
+	"campaign_creation_step_5": {
+		"chapter": "02",
+		"section": "step_6_world_generation"
+	},
+	"campaign_creation_step_6": {
+		"chapter": "02",
+		"section": "step_7_final_review"
+	},
+	"campaign_dashboard": {
+		"chapter": "03",
+		"section": "overview"
+	},
+	"campaign_turn_controller": {
+		"chapter": "04",
+		"section": "the_nine_phases"
+	},
+	"phase_STORY": {
+		"chapter": "04",
+		"section": "story_phase"
+	},
+	"phase_TRAVEL": {
+		"chapter": "05",
+		"section": "the_travel_phase"
+	},
+	"phase_UPKEEP": {
+		"chapter": "05",
+		"section": "the_world_phase"
+	},
+	"phase_WORLD": {
+		"chapter": "05",
+		"section": "the_world_phase"
+	},
+	"phase_MISSION": {
+		"chapter": "06",
+		"section": "overview"
+	},
+	"phase_BATTLE": {
+		"chapter": "06",
+		"section": "the_three_tracking_tiers"
+	},
+	"phase_POST_MISSION": {
+		"chapter": "07",
+		"section": "overview"
+	},
+	"phase_ADVANCEMENT": {
+		"chapter": "08",
+		"section": "the_advancement_phase"
+	},
+	"phase_TRADING": {
+		"chapter": "08",
+		"section": "the_trading_phase"
+	},
+	"phase_CHARACTER": {
+		"chapter": "09",
+		"section": "character_events"
+	},
+	"phase_RETIREMENT": {
+		"chapter": "11",
+		"section": "overview"
+	},
+	"pre_battle": {
+		"chapter": "06",
+		"section": "pre-battle_setup"
+	},
+	"tactical_battle": {
+		"chapter": "06",
+		"section": "the_battle_interface"
+	},
+	"post_battle": {
+		"chapter": "07",
+		"section": "the_14_steps"
+	},
+	"save_load": {
+		"chapter": "14",
+		"section": "overview"
+	},
+	"settings": {
+		"chapter": "15",
+		"section": "overview"
+	},
+	"store": {
+		"chapter": "13",
+		"section": "the_dlc_store"
+	},
+	"bug_hunt_creation": {
+		"chapter": "12",
+		"section": "creating_a_bug_hunt_campaign"
+	},
+	"bug_hunt_dashboard": {
+		"chapter": "12",
+		"section": "the_bug_hunt_dashboard"
+	},
+	"bug_hunt_turn_controller": {
+		"chapter": "12",
+		"section": "the_3-stage_turn"
+	},
+	"crew_management": {
+		"chapter": "09",
+		"section": "managing_your_crew"
+	},
+	"equipment_manager": {
+		"chapter": "10",
+		"section": "managing_equipment"
+	},
+	"ship_manager": {
+		"chapter": "02",
+		"section": "step_5_ship_assignment"
+	},
+	"character_details": {
+		"chapter": "09",
+		"section": "character_stats"
+	},
+	"victory_progress": {
+		"chapter": "11",
+		"section": "tracking_progress"
+	}
+}

@@ -1,0 +1,40 @@
+{
+	"description": "Bug Hunt regiment flavor tables - Compendium p.175. D100 tables for regiment name generation. Pure flavor, no gameplay effect.",
+	"generation_rule": "If [number] is rolled for Part 1, roll a D6 for the number. If [color] is rolled, use the Uniform Color result.",
+	"title_part_1": [
+		{"d100_range": [1, 10], "name": "Flying"},
+		{"d100_range": [11, 20], "name": "Rolling"},
+		{"d100_range": [21, 30], "name": "Space"},
+		{"d100_range": [31, 40], "name": "Striking"},
+		{"d100_range": [41, 50], "name": "Renegade"},
+		{"d100_range": [51, 60], "name": "Big"},
+		{"d100_range": [61, 70], "name": "[color]"},
+		{"d100_range": [71, 80], "name": "[number]"},
+		{"d100_range": [81, 90], "name": "Solar"},
+		{"d100_range": [91, 100], "name": "Star"}
+	],
+	"title_part_2": [
+		{"d100_range": [1, 10], "name": "Crows"},
+		{"d100_range": [11, 20], "name": "Wolves"},
+		{"d100_range": [21, 30], "name": "Cats"},
+		{"d100_range": [31, 40], "name": "Sharks"},
+		{"d100_range": [41, 50], "name": "Bears"},
+		{"d100_range": [51, 60], "name": "Bulls"},
+		{"d100_range": [61, 70], "name": "Tigers"},
+		{"d100_range": [71, 80], "name": "Snakes"},
+		{"d100_range": [81, 90], "name": "Rats"},
+		{"d100_range": [91, 100], "name": "Coyotes"}
+	],
+	"uniform_color": [
+		{"d100_range": [1, 10], "name": "Black"},
+		{"d100_range": [11, 20], "name": "Dark grey"},
+		{"d100_range": [21, 30], "name": "Pale grey"},
+		{"d100_range": [31, 40], "name": "Green"},
+		{"d100_range": [41, 50], "name": "Khaki"},
+		{"d100_range": [51, 60], "name": "Red"},
+		{"d100_range": [61, 70], "name": "Urban camo"},
+		{"d100_range": [71, 80], "name": "Wilderness camo"},
+		{"d100_range": [81, 90], "name": "Brown"},
+		{"d100_range": [91, 100], "name": "Metallic"}
+	]
+}

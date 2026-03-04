@@ -1,0 +1,26 @@
+{
+	"description": "Bug Hunt armor types - Compendium p.178",
+	"armor": [
+		{
+			"id": "trooper_armor",
+			"name": "Trooper Armor",
+			"save_value": 5,
+			"description": "Standard military-issue armor. Saving throw on 5-6.",
+			"is_standard_issue": true
+		},
+		{
+			"id": "combat_armor",
+			"name": "Combat Armor",
+			"save_value": 4,
+			"description": "Heavier protective gear. Saving throw on 4-6.",
+			"is_standard_issue": false
+		},
+		{
+			"id": "scout_suit",
+			"name": "Scout Suit",
+			"save_value": 6,
+			"description": "Lightweight protection for mobile operatives. Saving throw on 6 only.",
+			"is_standard_issue": false
+		}
+	]
+}

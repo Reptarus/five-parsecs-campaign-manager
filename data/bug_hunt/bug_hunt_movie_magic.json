@@ -1,0 +1,67 @@
+{
+	"description": "Bug Hunt Movie Magic abilities - Compendium pp.182-183. Each can be used ONCE per campaign. Cinematic one-time-use abilities.",
+	"usage_rule": "Each ability can be employed once in your campaign. Write them on index cards and tear them up as you use them.",
+	"abilities": [
+		{
+			"id": "barricade",
+			"name": "Barricade",
+			"timing": "Use at the beginning or end of any round.",
+			"effect": "Place a barricade anywhere on the table. It must be a straight line and no wider than 3\". The barricade becomes impassable to all movement (troopers, enemies, and Contact markers) for the rest of the battle.",
+			"narration_examples": "Raising an interior blast door, rigging up a laser fence."
+		},
+		{
+			"id": "double_up",
+			"name": "Double-Up",
+			"timing": "Use when selecting a character to act.",
+			"effect": "The character receives an Incinerator and may fire either that or their regular weapon during any given battle round. The Incinerator is immune to malfunction."
+		},
+		{
+			"id": "escape",
+			"name": "Escape",
+			"timing": "Use after a battle.",
+			"effect": "Any characters that moved across a battlefield edge do not have to roll on the Lost Marine table."
+		},
+		{
+			"id": "evac",
+			"name": "Evac",
+			"timing": "Use after failing a roll for evac during a mission.",
+			"effect": "Evac automatically arrives next round with no roll required."
+		},
+		{
+			"id": "extra_support",
+			"name": "Extra Support",
+			"timing": "Use when rolling up Support for the mission.",
+			"effect": "The first Support option you request does not require a die roll."
+		},
+		{
+			"id": "lucky_find",
+			"name": "Lucky Find",
+			"timing": "Use when selecting a character to act.",
+			"effect": "Select any weapon from the Weapons table and give it to the active character or an ally within 4\". The new weapon is not subject to malfunctions, but cannot be retained after the mission."
+		},
+		{
+			"id": "reinforcements",
+			"name": "Reinforcements",
+			"timing": "Use at the beginning or end of any round.",
+			"effect": "Select any one option from the mission support list. The indicated troops are placed at the center of any battlefield edge of your choice, and will participate in the battle normally. No die roll is required for their arrival."
+		},
+		{
+			"id": "remove_contact",
+			"name": "Remove Contact",
+			"timing": "Use at the beginning or end of any round.",
+			"effect": "Select a Contact marker anywhere on the table and remove it from play."
+		},
+		{
+			"id": "survived",
+			"name": "Survived",
+			"timing": "Use after rolling for character injuries.",
+			"effect": "A character of your choice may ignore the effects of an injury roll."
+		},
+		{
+			"id": "you_want_some_too",
+			"name": "You want some too?",
+			"timing": "Use when selecting a character to act.",
+			"effect": "The selected trooper may move normally, and then fire three times, with no chance of weapon malfunction."
+		}
+	]
+}

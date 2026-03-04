@@ -1,0 +1,327 @@
+{
+	"description": "Bug Hunt Post-Battle Sequence - Compendium pp.202-206. 9-step post-battle procedure.",
+	"steps": [
+		"Determine Casualties and Lost Marines",
+		"Update Completed Missions",
+		"Check for Mustering Out",
+		"Determine Reputation",
+		"Experience and Leveling",
+		"Roll for Operational Progress",
+		"Roll for Military Life",
+		"Check Entitlement to R&R",
+		"Ready for Another Campaign Turn"
+	],
+	"casualty_table": {
+		"description": "D100 table for characters who became casualties during the mission. Lost Marines use the Lost Marine column instead.",
+		"entries": [
+			{
+				"casualty_d100_range": [1, 5],
+				"lost_marine_d100_range": [1, 30],
+				"name": "Gruesome fate",
+				"effect": "Dead, and all carried equipment is lost.",
+				"sick_bay_turns": null,
+				"is_dead": true
+			},
+			{
+				"casualty_d100_range": [6, 15],
+				"lost_marine_d100_range": null,
+				"name": "Death or crippling injury",
+				"effect": "Dead or removed from campaign.",
+				"sick_bay_turns": null,
+				"is_dead": true
+			},
+			{
+				"casualty_d100_range": [16, 24],
+				"lost_marine_d100_range": null,
+				"name": "Leg wound",
+				"effect": "Injured, sent to Sick Bay.",
+				"sick_bay_turns": "1D3",
+				"is_dead": false
+			},
+			{
+				"casualty_d100_range": [25, 32],
+				"lost_marine_d100_range": null,
+				"name": "Arm wound",
+				"effect": "Injured, sent to Sick Bay.",
+				"sick_bay_turns": "1D3",
+				"is_dead": false
+			},
+			{
+				"casualty_d100_range": [33, 40],
+				"lost_marine_d100_range": null,
+				"name": "Head wound",
+				"effect": "Injured, sent to Sick Bay.",
+				"sick_bay_turns": "1D3+1",
+				"is_dead": false
+			},
+			{
+				"casualty_d100_range": [41, 48],
+				"lost_marine_d100_range": null,
+				"name": "Torso wound",
+				"effect": "Injured, sent to Sick Bay.",
+				"sick_bay_turns": "1D3+1",
+				"is_dead": false
+			},
+			{
+				"casualty_d100_range": [49, 80],
+				"lost_marine_d100_range": null,
+				"name": "Minor injuries",
+				"effect": "Light injury, brief recovery.",
+				"sick_bay_turns": 1,
+				"is_dead": false
+			},
+			{
+				"casualty_d100_range": [81, 95],
+				"lost_marine_d100_range": [31, 90],
+				"name": "Knocked out",
+				"effect": "No lasting effect.",
+				"sick_bay_turns": 0,
+				"is_dead": false
+			},
+			{
+				"casualty_d100_range": [96, 100],
+				"lost_marine_d100_range": [91, 100],
+				"name": "School of hard knocks",
+				"effect": "Earn 1 Experience Point.",
+				"sick_bay_turns": 0,
+				"is_dead": false,
+				"bonus_xp": 1
+			}
+		],
+		"advanced_care": "Spend 1 Reputation to reduce Sick Bay time by 1 campaign turn. Once per character per turn."
+	},
+	"completed_missions": {
+		"description": "Update Completed Missions tally by 1 for each character that took the field. Characters in Sick Bay do not update."
+	},
+	"mustering_out": {
+		"description": "For characters that increased their Completed Missions, check if they muster out. Roll 2D6 >= Muster number to leave.",
+		"table": [
+			{"completed_missions_range": [1, 4], "muster_target": null, "note": "No chance"},
+			{"completed_missions_range": [5, 7], "muster_target": 9, "note": "Only if the character was a casualty or lost marine. No chance otherwise."},
+			{"completed_missions_range": [8, 9], "muster_target": 9, "note": null},
+			{"completed_missions_range": [10, 11], "muster_target": 8, "note": null},
+			{"completed_missions": 12, "muster_target": 7, "note": null},
+			{"completed_missions": 13, "muster_target": 6, "note": null},
+			{"completed_missions": 14, "muster_target": 5, "note": null},
+			{"completed_missions": 15, "muster_target": null, "note": "Automatic - character leaves."}
+		],
+		"replacement": "If a main character leaves for any reason, a new character is rolled up as a replacement."
+	},
+	"reputation": {
+		"description": "If you completed at least 2 Objectives, receive 1 Reputation automatically. Additionally, roll 1D6 for every Objective completed; each 5-6 grants +1 Reputation.",
+		"auto_award_threshold": 2,
+		"auto_award_amount": 1,
+		"per_objective_roll": {
+			"dice": "1D6",
+			"success_range": [5, 6],
+			"award": 1
+		}
+	},
+	"experience": {
+		"description": "XP awarded based on participation and mission success.",
+		"awards": [
+			{
+				"condition": "Became a casualty or lost marine",
+				"xp": 1,
+				"note": "Character was removed from play by a method other than Evac."
+			},
+			{
+				"condition": "Not a casualty, 0-1 Objectives",
+				"xp": 2,
+				"note": "Character Evac'ed and the team completed 0 or 1 Objectives."
+			},
+			{
+				"condition": "Not a casualty, 2+ Objectives",
+				"xp": 3,
+				"note": "Character Evac'ed and the team completed 2 or more Objectives."
+			},
+			{
+				"condition": "Mission Priority was 4+",
+				"xp": 1,
+				"note": "Additional reward to all characters."
+			},
+			{
+				"condition": "MVP",
+				"xp": 1,
+				"note": "Awarded to one character of choice."
+			}
+		],
+		"advancement_costs": [
+			{"stat": "reactions", "xp_cost": 8, "max_value": 4},
+			{"stat": "speed", "xp_cost": 6, "max_value": 8},
+			{"stat": "combat_skill", "xp_cost": 8, "max_value": 3},
+			{"stat": "toughness", "xp_cost": 8, "max_value": 5},
+			{"stat": "savvy", "xp_cost": 6, "max_value": 4}
+		]
+	},
+	"operational_progress": {
+		"description": "D100 table rolled once after each mission. Results are cumulative until the operation ends.",
+		"entries": [
+			{
+				"d100_range": "below_1",
+				"name": "Operation is a disaster",
+				"effect": "Undertake one last mission with 2 extra Contact markers, then reset all results from this table."
+			},
+			{
+				"d100_range": [1, 10],
+				"name": "Enemy counter-attacks",
+				"effect": "Adjust future rolls on this table by -5."
+			},
+			{
+				"d100_range": [11, 20],
+				"name": "Enemy is well entrenched",
+				"effect": "For all future missions, the enemy gets an extra Contact marker."
+			},
+			{
+				"d100_range": [21, 40],
+				"name": "Heavy pressure",
+				"effect": "If you failed to achieve at least two Objectives last mission, adjust future rolls by -5."
+			},
+			{
+				"d100_range": [41, 55],
+				"name": "Stalemate",
+				"effect": "The front line isn't moving. No effect."
+			},
+			{
+				"d100_range": [56, 75],
+				"name": "Gaining ground",
+				"effect": "If you achieved at least 2 Objectives last mission, adjust future rolls by +5."
+			},
+			{
+				"d100_range": [76, 80],
+				"name": "Vital operation",
+				"effect": "Pick a random main character that participated. Award +1 XP for each Objective completed."
+			},
+			{
+				"d100_range": [81, 90],
+				"name": "Break through",
+				"effect": "Pushed the enemy back. Adjust future rolls by +5."
+			},
+			{
+				"d100_range": [91, 100],
+				"name": "Crippling blow",
+				"effect": "Decisive strike. +1 Support roll in future missions. Adjust future rolls by +5."
+			},
+			{
+				"d100_range": "above_100",
+				"name": "Time to hold a parade!",
+				"effect": "You've won! Planet is secure. Gain +1 Reputation and take R&R. Reset all modifiers."
+			}
+		]
+	},
+	"military_life": {
+		"description": "D100 table rolled once per campaign turn for a random main character. Represents barracks life events.",
+		"entries": [
+			{
+				"d100_range": [1, 5],
+				"name": "Got in a fight",
+				"effect": "Roll 1D6+Combat Skill. Below 5, spend next campaign turn in Sick Bay."
+			},
+			{
+				"d100_range": [6, 10],
+				"name": "Did a task for an officer",
+				"effect": "Adjust Reputation by +1."
+			},
+			{
+				"d100_range": [11, 15],
+				"name": "Friend in the Intel Corps",
+				"effect": "Modify Priority of next mission by +/- 1."
+			},
+			{
+				"d100_range": [16, 20],
+				"name": "Time in the Brig",
+				"effect": "Adjust Reputation by -1 and miss the next mission."
+			},
+			{
+				"d100_range": [21, 25],
+				"name": "Feeling unmotivated",
+				"effect": "Lose 2 unspent XP."
+			},
+			{
+				"d100_range": [26, 30],
+				"name": "Time tinkering",
+				"effect": "Select a personal weapon and increase range by +1\"."
+			},
+			{
+				"d100_range": [31, 35],
+				"name": "Time flies",
+				"effect": "Just playing cards in barracks. No effect."
+			},
+			{
+				"d100_range": [36, 40],
+				"name": "Received a recommendation",
+				"effect": "Next Special Assignments roll is at +2."
+			},
+			{
+				"d100_range": [41, 45],
+				"name": "Received a reprimand",
+				"effect": "Cannot take a Special Assignment next campaign turn."
+			},
+			{
+				"d100_range": [46, 50],
+				"name": "Feeling pretty fit",
+				"effect": "Reduce Sick Bay time by 1 campaign turn. If not in Sick Bay, add +1 XP."
+			},
+			{
+				"d100_range": [51, 55],
+				"name": "Evening classes",
+				"effect": "Earn +1 XP."
+			},
+			{
+				"d100_range": [56, 60],
+				"name": "Got sick",
+				"effect": "Spend next campaign turn in Sick Bay."
+			},
+			{
+				"d100_range": [61, 65],
+				"name": "Detached on special duties",
+				"effect": "Cannot participate in the next mission, but receive a bonus roll on the Special Assignments table."
+			},
+			{
+				"d100_range": [66, 70],
+				"name": "Getting in shape",
+				"effect": "May immediately raise Speed by +1 for a cost of 5 XP."
+			},
+			{
+				"d100_range": [71, 75],
+				"name": "Time on the range",
+				"effect": "May immediately raise Combat Skill by +1 for a cost of 5 XP."
+			},
+			{
+				"d100_range": [76, 80],
+				"name": "Made a friend",
+				"effect": "Hurray! No game effect."
+			},
+			{
+				"d100_range": [81, 85],
+				"name": "A Dear John letter",
+				"effect": "Ouch! No game effect."
+			},
+			{
+				"d100_range": [86, 90],
+				"name": "Cash in a favor",
+				"effect": "Spend 0-2 Reputation; for each point earn 2 XP or a +1 bonus when rolling for a Special Assignment."
+			},
+			{
+				"d100_range": [91, 95],
+				"name": "Did something stupid",
+				"effect": "Lose 1 Reputation."
+			},
+			{
+				"d100_range": [96, 100],
+				"name": "Noticed by the brass",
+				"effect": "Gain 1 Reputation."
+			}
+		]
+	},
+	"r_and_r": {
+		"description": "Entitled to R&R after every 4 missions in current operation.",
+		"missions_required": 4,
+		"effects": [
+			"Cross off one extra campaign turn in Sick Bay for all characters",
+			"Make an additional roll on the Military Life table"
+		],
+		"reputation_cost_for_early": 1,
+		"early_description": "Pay 1 Reputation to take R&R at any time (assigned to light duties at HQ)."
+	}
+}

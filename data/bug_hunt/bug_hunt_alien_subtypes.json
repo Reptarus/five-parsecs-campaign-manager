@@ -1,0 +1,41 @@
+{
+	"description": "Bug Hunt enemy variant subtypes - Compendium p.196. Rolled on D6 when encountering a previously-seen enemy type.",
+	"subtypes": [
+		{
+			"id": "spitters",
+			"name": "Spitters",
+			"d6_value": 1,
+			"effect": "Any enemy that ends a move within 6\" and sight of a trooper will make a ranged attack against the closest trooper. Roll 1D6 per attack; any 6 hits (regardless of Combat Skill, Cover, or other factors). Hits are resolved with Damage 1. Armor applies normally."
+		},
+		{
+			"id": "ambushers",
+			"name": "Ambushers",
+			"d6_value": 2,
+			"effect": "When a Contact marker is revealed, the figures are placed within or behind the closest terrain feature within 4\" of the marker (cannot be placed in base contact with a trooper). If no location is possible, deploy as normal."
+		},
+		{
+			"id": "toughs",
+			"name": "Toughs",
+			"d6_value": 3,
+			"effect": "Enemies receive a 5+ saving throw against Area weapons. If they already have an existing save, it is combined into a single 4+ saving throw."
+		},
+		{
+			"id": "swarmers",
+			"name": "Swarmers",
+			"d6_value": 4,
+			"effect": "When each Contact is revealed, one additional enemy is placed on the table."
+		},
+		{
+			"id": "runners",
+			"name": "Runners",
+			"d6_value": 5,
+			"effect": "Increase movement speed by +1\"."
+		},
+		{
+			"id": "screamers",
+			"name": "Screamers",
+			"d6_value": 6,
+			"effect": "At the end of each Enemy Action phase, roll D10. If it is equal to or below the number of enemies currently on the table, one additional enemy is placed in the exact center of the battlefield. It cannot act in the round it was placed."
+		}
+	]
+}

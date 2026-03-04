@@ -1,0 +1,72 @@
+{
+	"description": "Bug Hunt Tactical Locations and Signals - Compendium pp.191, 208-209.",
+	"tactical_locations": {
+		"description": "Represent sites of potential value: computer consoles, sealable pathways, useful infrastructure. Marked with 0.5\"x0.5\" square markers.",
+		"placement": "6 Tactical Locations on the battlefield (reduced by Signal count if using Signals rule). Spread evenly, at least 2\" from Objective markers.",
+		"investigation": "A figure must finish a move within 3\" without firing or engaging in a Brawl to investigate.",
+		"activation": "Roll 1D6+Savvy, score 5+ to activate. A second failure means the location is permanently compromised.",
+		"max_failures": 2,
+		"enemy_interaction": "Enemies ignore Tactical Locations until activated. Once activated, normal effects apply.",
+		"types": [
+			{
+				"d6_value": 1,
+				"name": "Distract",
+				"effect": "When activated, all enemies within 18\" are Distracted and cannot act during the next Enemy Action phase. Contact markers unaffected, but newly revealed enemies within range are affected immediately."
+			},
+			{
+				"d6_range": [2, 3],
+				"name": "Block",
+				"effect": "The area within 2\" of the marker becomes Impassable to Enemies or Contact markers, but passable by player figures. At end of each round (including current), roll D6: On a 6, the area becomes passable again at end of following round."
+			},
+			{
+				"d6_range": [4, 5],
+				"name": "Neutralize",
+				"effect": "Remove any one Contact marker of your choice."
+			},
+			{
+				"d6_value": 6,
+				"name": "Delay",
+				"effect": "For the rest of the current round and the following two rounds, no new Contact markers can be added to the battlefield. Ignore any rule that would require such placement."
+			}
+		]
+	},
+	"signals": {
+		"description": "Optional rule - Compendium p.208. Signals represent areas of enemy activity, potential survivors or ambushes.",
+		"placement": "Place 1D6 Signals, then fill remaining slots (up to total of 6) with Tactical Locations. Place in or adjacent to terrain features.",
+		"increased_alertness": "At end of each round, roll 1D6 for every Signal within 9\" of a trooper. For every 1, place a Contact marker on top of the Signal.",
+		"investigation": "Same conditions as Tactical Locations: finish move within 3\" without firing or Brawling.",
+		"hq_requirement": "If 4-6 Signals present, must investigate at least 2 or reduce Objectives completed by 1.",
+		"signal_table": [
+			{
+				"d6_value": 1,
+				"name": "Civilians",
+				"effect": "Find 1D3 civilians with normal trooper profile but no weapons. Cannot act this round. Earn 1 Reputation for each civilian successfully evacuated."
+			},
+			{
+				"d6_value": 2,
+				"name": "Evidence",
+				"effect": "Data pointing to the origin of the attack. Counts as 1 additional Objective completed."
+			},
+			{
+				"d6_value": 3,
+				"name": "Danger",
+				"effect": "Beacon warning of enemy entry point. Randomly select a battlefield edge point and mark as a Spawn Point."
+			},
+			{
+				"d6_value": 4,
+				"name": "Ambush",
+				"effect": "Treat the Signal as a Contact marker that rolled 3-6 (CONTACT!). Place enemies normally per Contact rules."
+			},
+			{
+				"d6_value": 5,
+				"name": "Trooper",
+				"effect": "SOS from a captured trooper. Place a trooper with basic profile and Service Pistol. They fight with you for the rest of the mission. Earn 1 Reputation for rescuing them."
+			},
+			{
+				"d6_value": 6,
+				"name": "Supplies",
+				"effect": "Supply cache left by a recon squad. Receive 2 additional Support points for your campaign."
+			}
+		]
+	}
+}

@@ -1,0 +1,211 @@
+{
+	"description": "Bug Hunt mission support options - Compendium pp.188-189. Roll 2D6 against target number to request support. Each option can only be requested once per mission.",
+	"support_points_rule": "Support points equal to the mission Priority. Add +2 for 'I'm Too Pretty to Die' difficulty. Spend 1 Reputation for +1 Support.",
+	"free_fire_team": "You always receive one Fire Team of grunts in addition to your main characters.",
+	"support_options": [
+		{
+			"id": "fire_team",
+			"name": "Fire Team",
+			"target_2d6": 7,
+			"contents": "4-figure team with Combat Rifles",
+			"team_size": 4,
+			"weapons": ["combat_rifle"],
+			"stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 4,
+				"savvy": 0
+			},
+			"armor": "trooper_armor",
+			"notes": "A standard trooper fire team.",
+			"is_elite_solo": false
+		},
+		{
+			"id": "sarge",
+			"name": "Sarge",
+			"target_2d6": 5,
+			"contents": "1 figure with Shotgun and Boarding Sword OR Service Pistol and Power Claw",
+			"team_size": 1,
+			"weapons_options": [
+				["shotgun", "boarding_sword"],
+				["service_pistol", "power_claw"]
+			],
+			"stats": {
+				"reactions": 2,
+				"speed": 4,
+				"combat_skill": 1,
+				"toughness": 5,
+				"savvy": 0
+			},
+			"armor": "trooper_armor",
+			"notes": "A battle-hardened veteran who has seen it all and only wants to know how to find more bugs to kill.",
+			"is_elite_solo": true
+		},
+		{
+			"id": "sharp_shooter",
+			"name": "Sharp Shooter",
+			"target_2d6": 6,
+			"contents": "1 figure with Sniper Rifle",
+			"team_size": 1,
+			"weapons": ["sniper_rifle"],
+			"stats": {
+				"reactions": 2,
+				"speed": 4,
+				"combat_skill": 1,
+				"toughness": 4,
+				"savvy": 0
+			},
+			"armor": "trooper_armor",
+			"notes": "A lone operative with a high-powered sniper rifle.",
+			"is_elite_solo": true
+		},
+		{
+			"id": "recon_patrol",
+			"name": "Recon Patrol",
+			"target_2d6": 6,
+			"contents": "2-figure team with Carbines",
+			"team_size": 2,
+			"weapons": ["carbine"],
+			"stats": {
+				"reactions": 3,
+				"speed": 6,
+				"combat_skill": 0,
+				"toughness": 4,
+				"savvy": 0
+			},
+			"armor": null,
+			"notes": "Recon troopers are outfitted to move quickly and quietly.",
+			"is_elite_solo": false
+		},
+		{
+			"id": "colonial_militia",
+			"name": "Colonial Militia",
+			"target_2d6": 5,
+			"contents": "5-figure team with Carbines",
+			"team_size": 5,
+			"weapons": ["carbine"],
+			"stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 3,
+				"savvy": 0
+			},
+			"armor": null,
+			"notes": "Enthusiastic members of the nearest colony defense forces.",
+			"is_elite_solo": false
+		},
+		{
+			"id": "scientific_survey_team",
+			"name": "Scientific Survey Team",
+			"target_2d6": 6,
+			"contents": "4-figure team with no weapons",
+			"team_size": 4,
+			"weapons": [],
+			"stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 3,
+				"savvy": 3
+			},
+			"armor": null,
+			"notes": "If a scientist reaches the center of the table and spends one entire round there, count as completing one Objective. Achievable once per mission.",
+			"special_rule": "objective_completion_at_center",
+			"is_elite_solo": false
+		},
+		{
+			"id": "weapons_support",
+			"name": "Weapons Support",
+			"target_2d6": 4,
+			"contents": "Outfit any one figure with choice of LMG, Incinerator, Power Claw, Hyper Blaster, or Plasma Rifle",
+			"team_size": 0,
+			"is_equipment_only": true,
+			"weapon_choices": ["light_machine_gun", "incinerator", "power_claw", "hyper_blaster", "plasma_rifle"],
+			"notes": "Additional armaments have been approved for allocation.",
+			"is_elite_solo": false
+		},
+		{
+			"id": "grenades",
+			"name": "Grenades",
+			"target_2d6": 4,
+			"contents": "Outfit 4 figures with Frag or Flash grenades OR 1 figure with Mounted Launcher and grenades",
+			"team_size": 0,
+			"is_equipment_only": true,
+			"options": [
+				{"figures": 4, "weapons": ["frag_grenade", "flash_grenade"]},
+				{"figures": 1, "weapons": ["mounted_launcher"], "grenade_types": ["frag_grenade", "flash_grenade"]}
+			],
+			"notes": "Grenades make bugs explode. More grenades makes more bugs explode.",
+			"is_elite_solo": false
+		},
+		{
+			"id": "intel_report",
+			"name": "Intel Report",
+			"target_2d6": 7,
+			"contents": "+1 bonus to activate Tactical Locations for entire mission",
+			"team_size": 0,
+			"is_equipment_only": true,
+			"tactical_location_bonus": 1,
+			"notes": "While the intel nerds don't always get it right, it can't hurt to read their reports.",
+			"is_elite_solo": false
+		},
+		{
+			"id": "soulless_recon_team",
+			"name": "Soulless Recon Team",
+			"target_2d6": 8,
+			"contents": "2-figure team. 1 Carbine and 1 Sniper Rifle.",
+			"team_size": 2,
+			"weapons": ["carbine", "sniper_rifle"],
+			"stats": {
+				"reactions": 3,
+				"speed": 6,
+				"combat_skill": 1,
+				"toughness": 5,
+				"savvy": 1
+			},
+			"armor": "trooper_armor",
+			"notes": "Robotic entities linked into a species-wide network. Somewhat unsettling but dedicated allies.",
+			"is_elite_solo": false
+		},
+		{
+			"id": "kerin_assault_marine_team",
+			"name": "K'Erin Assault Marine Team",
+			"target_2d6": 8,
+			"contents": "4-figure team with Carbines and Boarding Swords",
+			"team_size": 4,
+			"weapons": ["carbine", "boarding_sword"],
+			"stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 4,
+				"savvy": 0
+			},
+			"armor": "trooper_armor",
+			"special_rule": "Roll twice and pick the best die when Brawling.",
+			"notes": "War-like humanoids eager for an honorable fight. Being knee-deep in alien gore seems to make them oddly content with life.",
+			"is_elite_solo": false
+		},
+		{
+			"id": "precursor_explorer",
+			"name": "Precursor Explorer",
+			"target_2d6": 8,
+			"contents": "1 figure with Service Pistol and Boarding Sword",
+			"team_size": 1,
+			"weapons": ["service_pistol", "boarding_sword"],
+			"stats": {
+				"reactions": 3,
+				"speed": 6,
+				"combat_skill": 0,
+				"toughness": 3,
+				"savvy": 0
+			},
+			"armor": null,
+			"special_rule": "You may re-roll one initiative die each round.",
+			"notes": "Refined travelers with a mystical outlook on the galaxy. They are often pursuing an abstract higher purpose but tend to be allies of Unity more often than not.",
+			"is_elite_solo": true
+		}
+	]
+}

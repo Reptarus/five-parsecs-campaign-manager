@@ -1,0 +1,236 @@
+{
+	"description": "Bug Hunt character creation tables - Compendium pp.170-173. Main characters are rolled using D100 tables for Origin, Basic Training, and Service History.",
+	"standard_equipment": {
+		"description": "All characters receive standard equipment: Service Pistol + Trooper Armor (5+ save). Additional weaponry is issued per mission.",
+		"items": ["service_pistol", "trooper_armor"]
+	},
+	"base_stats": {
+		"description": "Starting profile for all main characters before table modifiers.",
+		"reactions": 1,
+		"speed": 4,
+		"combat_skill": 0,
+		"toughness": 3,
+		"savvy": 0,
+		"luck": 0,
+		"note": "Bug Hunt characters do NOT use the Luck stat."
+	},
+	"grunt_stats": {
+		"description": "Standard grunt profile. Grunts are expendable support troops organized into Combat Teams.",
+		"reactions": 1,
+		"speed": 4,
+		"combat_skill": 0,
+		"toughness": 4,
+		"savvy": 0
+	},
+	"origin_table": [
+		{
+			"d100_range": [1, 9],
+			"name": "Core systems world",
+			"stat_bonuses": {},
+			"advantages": {"reputation": 1}
+		},
+		{
+			"d100_range": [10, 15],
+			"name": "Frontier colony",
+			"stat_bonuses": {"combat_skill": 1},
+			"advantages": {}
+		},
+		{
+			"d100_range": [16, 25],
+			"name": "Mid-tech world",
+			"stat_bonuses": {},
+			"advantages": {"xp": 2}
+		},
+		{
+			"d100_range": [26, 33],
+			"name": "High-tech world",
+			"stat_bonuses": {"savvy": 1},
+			"advantages": {}
+		},
+		{
+			"d100_range": [34, 42],
+			"name": "Trade hub",
+			"stat_bonuses": {},
+			"advantages": {"xp": 2}
+		},
+		{
+			"d100_range": [43, 48],
+			"name": "Struggling colony",
+			"stat_bonuses": {"toughness": 1},
+			"advantages": {}
+		},
+		{
+			"d100_range": [49, 56],
+			"name": "Mega-city",
+			"stat_bonuses": {"reactions": 1},
+			"advantages": {}
+		},
+		{
+			"d100_range": [57, 61],
+			"name": "Prison planet",
+			"stat_bonuses": {"toughness": 1, "combat_skill": 1},
+			"advantages": {}
+		},
+		{
+			"d100_range": [62, 66],
+			"name": "Hostile environment colony",
+			"stat_bonuses": {"toughness": 1},
+			"advantages": {}
+		},
+		{
+			"d100_range": [67, 75],
+			"name": "Deep space fleet",
+			"stat_bonuses": {"savvy": 1},
+			"advantages": {"completed_missions": 1}
+		},
+		{
+			"d100_range": [76, 83],
+			"name": "Military outpost",
+			"stat_bonuses": {"combat_skill": 1},
+			"advantages": {"reputation": 1}
+		},
+		{
+			"d100_range": [84, 91],
+			"name": "Scientific outpost",
+			"stat_bonuses": {"savvy": 1},
+			"advantages": {}
+		},
+		{
+			"d100_range": [92, 100],
+			"name": "Resource extraction colony",
+			"stat_bonuses": {"toughness": 1},
+			"advantages": {}
+		}
+	],
+	"basic_training_table": [
+		{
+			"d100_range": [1, 15],
+			"name": "Ground forces (Infantry)",
+			"stat_bonuses": {"combat_skill": 1, "toughness": 1},
+			"advantages": {}
+		},
+		{
+			"d100_range": [16, 30],
+			"name": "Ground forces (Scouts)",
+			"stat_bonuses": {"reactions": 1, "speed": 1},
+			"advantages": {}
+		},
+		{
+			"d100_range": [31, 35],
+			"name": "Ground forces (Cavalry)",
+			"stat_bonuses": {"combat_skill": 1, "savvy": 1},
+			"advantages": {"xp": 1}
+		},
+		{
+			"d100_range": [36, 45],
+			"name": "Planetary militia",
+			"stat_bonuses": {"speed": 1},
+			"advantages": {"xp": 2}
+		},
+		{
+			"d100_range": [46, 50],
+			"name": "Unity Special Project",
+			"stat_bonuses": {"reactions": 1},
+			"advantages": {"reputation": 1, "completed_missions": 1}
+		},
+		{
+			"d100_range": [51, 65],
+			"name": "Naval forces (Marines)",
+			"stat_bonuses": {"combat_skill": 1, "reactions": 1},
+			"advantages": {}
+		},
+		{
+			"d100_range": [66, 80],
+			"name": "Naval forces (Security)",
+			"stat_bonuses": {"combat_skill": 1, "savvy": 1},
+			"advantages": {}
+		},
+		{
+			"d100_range": [81, 90],
+			"name": "Naval forces (Ship's crew)",
+			"stat_bonuses": {"savvy": 1},
+			"advantages": {}
+		},
+		{
+			"d100_range": [91, 100],
+			"name": "Non-combatant branch",
+			"stat_bonuses": {"savvy": 1},
+			"advantages": {}
+		}
+	],
+	"service_history_table": [
+		{
+			"d100_range": [1, 10],
+			"name": "Garrison or patrol duties",
+			"stat_bonuses": {},
+			"advantages": {"xp": 1},
+			"is_combat_operation": false
+		},
+		{
+			"d100_range": [11, 25],
+			"name": "Patrol in low-intensity region",
+			"stat_bonuses": {},
+			"advantages": {"xp": 1},
+			"is_combat_operation": false
+		},
+		{
+			"d100_range": [26, 40],
+			"name": "Patrol in fringe-space",
+			"stat_bonuses": {},
+			"advantages": {"xp": 1},
+			"is_combat_operation": true
+		},
+		{
+			"d100_range": [41, 50],
+			"name": "Police action",
+			"stat_bonuses": {},
+			"advantages": {"completed_missions": 1},
+			"is_combat_operation": true
+		},
+		{
+			"d100_range": [51, 60],
+			"name": "Internal security operation",
+			"stat_bonuses": {},
+			"advantages": {"completed_missions": 1},
+			"is_combat_operation": false
+		},
+		{
+			"d100_range": [61, 75],
+			"name": "Anti-pirate operation",
+			"stat_bonuses": {},
+			"advantages": {"completed_missions": 1, "xp": 1},
+			"is_combat_operation": true
+		},
+		{
+			"d100_range": [76, 90],
+			"name": "Military action",
+			"stat_bonuses": {"reactions": 1},
+			"advantages": {"completed_missions": 1, "reputation": 1},
+			"is_combat_operation": true
+		},
+		{
+			"d100_range": [91, 100],
+			"name": "Extended campaign",
+			"stat_bonuses": {},
+			"advantages": {"completed_missions": 2, "reputation": 1, "xp": 2},
+			"is_combat_operation": true
+		}
+	],
+	"combat_operation_commendation": {
+		"description": "For entries marked as Combat Operations, roll 2D6. For each 6 rolled, the character received a commendation: +1 XP and +1 Reputation.",
+		"dice": "2D6",
+		"trigger_value": 6,
+		"awards_per_trigger": {"xp": 1, "reputation": 1}
+	},
+	"combat_teams": {
+		"description": "Grunts are organized into Combat Teams of 2-4 troopers. Main characters always act individually.",
+		"team_size": {"min": 2, "max": 4},
+		"formation_bonus": {
+			"description": "If all members within 2\" of a selected figure, team is in formation and receives +1 Reactions.",
+			"range_inches": 2,
+			"bonus": {"reactions": 1}
+		},
+		"reactions_rule": "Each combat team rolls a single die for Reactions. All figures in a team act in the same phase.",
+		"elite_solo_teams": "Some support troops (e.g. sniper) form one-figure combat teams. They do NOT receive the team formation bonus."
+	}
+}

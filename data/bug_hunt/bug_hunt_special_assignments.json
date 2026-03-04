@@ -1,0 +1,129 @@
+{
+	"description": "Bug Hunt Special Assignments - Compendium pp.181-182. Roll 2D6 to see if approved. Each character can only complete a given assignment once in their career.",
+	"eligibility": "Any character not in Sick Bay may be nominated. Failure means no assignment this turn (may retry next turn).",
+	"assignments": [
+		{
+			"id": "marksman_training",
+			"name": "Marksman Training",
+			"target_2d6": 9,
+			"requirements": [],
+			"training_award": "Combat Skill +1 if currently lower than 2",
+			"stat_cap": {"stat": "combat_skill", "max_before_bonus": 1, "bonus": 1},
+			"bonus_xp": 1,
+			"bonus_reputation": 0
+		},
+		{
+			"id": "leadership_training",
+			"name": "Leadership Training",
+			"target_2d6": 9,
+			"requirements": [],
+			"training_award": "May take Officer Training Course during a later turn",
+			"unlocks": "officer_training_course",
+			"bonus_xp": 2,
+			"bonus_reputation": 0
+		},
+		{
+			"id": "physical_training",
+			"name": "Physical Training",
+			"target_2d6": 8,
+			"requirements": [],
+			"training_award": "Speed +1 if currently lower than 6",
+			"stat_cap": {"stat": "speed", "max_before_bonus": 5, "bonus": 1},
+			"bonus_xp": 1,
+			"bonus_reputation": 0
+		},
+		{
+			"id": "commando_course",
+			"name": "Commando Course",
+			"target_2d6": 10,
+			"requirements": [{"type": "stat_min", "stat": "reactions", "value": 2, "or_stat": "combat_skill", "or_value": 2}],
+			"training_award": "Reactions +1 if currently lower than 3, Combat Skill +1 if currently lower than 2",
+			"stat_caps": [
+				{"stat": "reactions", "max_before_bonus": 2, "bonus": 1},
+				{"stat": "combat_skill", "max_before_bonus": 1, "bonus": 1}
+			],
+			"bonus_xp": 2,
+			"bonus_reputation": 0
+		},
+		{
+			"id": "technical_training",
+			"name": "Technical Training",
+			"target_2d6": 9,
+			"requirements": [],
+			"training_award": "Savvy +1 if currently lower than 2",
+			"stat_cap": {"stat": "savvy", "max_before_bonus": 1, "bonus": 1},
+			"bonus_xp": 1,
+			"bonus_reputation": 0
+		},
+		{
+			"id": "public_relations_duties",
+			"name": "Public Relations Duties",
+			"target_2d6": 9,
+			"requirements": [{"type": "completed_missions_min", "value": 4}],
+			"training_award": "None",
+			"bonus_xp": 1,
+			"bonus_reputation": 1
+		},
+		{
+			"id": "instructor",
+			"name": "Instructor",
+			"target_2d6": 10,
+			"requirements": [{"type": "completed_missions_min", "value": 4}],
+			"training_award": "None",
+			"bonus_xp": 2,
+			"bonus_reputation": 1
+		},
+		{
+			"id": "cross_training",
+			"name": "Cross-training",
+			"target_2d6": 8,
+			"requirements": [],
+			"training_award": "None",
+			"bonus_xp": 3,
+			"bonus_reputation": 0
+		},
+		{
+			"id": "special_assault_course",
+			"name": "Special Assault Course",
+			"target_2d6": 10,
+			"requirements": [],
+			"training_award": "Combat Skill +1 if currently lower than 2",
+			"stat_cap": {"stat": "combat_skill", "max_before_bonus": 1, "bonus": 1},
+			"bonus_xp": 1,
+			"bonus_reputation": 0
+		},
+		{
+			"id": "survival_course",
+			"name": "Survival Course",
+			"target_2d6": 8,
+			"requirements": [],
+			"training_award": "Toughness +1 if currently lower than 4, Speed +1 if currently lower than 5",
+			"stat_caps": [
+				{"stat": "toughness", "max_before_bonus": 3, "bonus": 1},
+				{"stat": "speed", "max_before_bonus": 4, "bonus": 1}
+			],
+			"bonus_xp": 1,
+			"bonus_reputation": 0
+		},
+		{
+			"id": "harsh_environment_course",
+			"name": "Harsh Environment Course",
+			"target_2d6": 8,
+			"requirements": [],
+			"training_award": "Savvy +1 if currently lower than 2",
+			"stat_cap": {"stat": "savvy", "max_before_bonus": 1, "bonus": 1},
+			"bonus_xp": 1,
+			"bonus_reputation": 0
+		},
+		{
+			"id": "officer_training_course",
+			"name": "Officer Training Course",
+			"target_2d6": 11,
+			"requirements": [{"type": "assignment_completed", "assignment_id": "leadership_training"}],
+			"training_award": "Reactions +1 if currently lower than 2",
+			"stat_cap": {"stat": "reactions", "max_before_bonus": 1, "bonus": 1},
+			"bonus_xp": 1,
+			"bonus_reputation": 0
+		}
+	]
+}

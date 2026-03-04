@@ -1,0 +1,35 @@
+{
+	"description": "Bug Hunt military gear items",
+	"gear": [
+		{
+			"id": "medkit",
+			"name": "Medkit",
+			"description": "Remove 1 Stun marker from an adjacent trooper as a Combat Action.",
+			"one_use": false
+		},
+		{
+			"id": "scanner",
+			"name": "Motion Scanner",
+			"description": "Increase Contact detection range by 2\" for this trooper.",
+			"one_use": false
+		},
+		{
+			"id": "beacon",
+			"name": "Evac Beacon",
+			"description": "All troopers carry beacons for extraction. Used to request Evac from Round 5 onwards.",
+			"one_use": false
+		},
+		{
+			"id": "demo_charge",
+			"name": "Demolition Charge",
+			"description": "Place on any terrain feature. At the end of the round, the feature is destroyed. Area 3\", Damage 2.",
+			"one_use": true
+		},
+		{
+			"id": "flare",
+			"name": "Signal Flare",
+			"description": "All Contact markers within 6\" are immediately checked for Detection.",
+			"one_use": true
+		}
+	]
+}
