@@ -99,7 +99,7 @@ func _handle_error(error_message: String, should_hide: bool = false) -> void:
 
 func _log_info(message: String) -> void:
 	## Standard logging for component operations
-	print("%s: %s" % [component_name, message])
+	pass
 
 # Signal forwarding utilities
 func _forward_signal(signal_name: String, args: Array = []) -> void:

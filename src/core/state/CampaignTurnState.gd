@@ -1,4 +1,4 @@
-﻿extends Resource
+extends Resource
 class_name CampaignTurnState
 
 ## Unified Campaign Turn State Management
@@ -78,7 +78,6 @@ func initialize_new_turn(new_turn_number: int) -> void:
 	step_progress.clear()
 	validation_errors.clear()
 	
-	print("CampaignTurnState: Initialized turn %d" % turn_number)
 
 ## Phase Management
 func set_current_phase(phase: GlobalEnums.FiveParsecsCampaignPhase) -> bool:
@@ -101,7 +100,6 @@ func set_current_phase(phase: GlobalEnums.FiveParsecsCampaignPhase) -> bool:
 	if phase == GlobalEnums.FiveParsecsCampaignPhase.UPKEEP:
 		current_world_step = 0
 	
-	print("CampaignTurnState: Advanced to phase %s" % GlobalEnums.FiveParsecsCampaignPhase.keys()[phase])
 	return true
 
 func can_advance_to_phase(target_phase: GlobalEnums.FiveParsecsCampaignPhase) -> bool:
@@ -134,7 +132,6 @@ func set_world_step(step: int) -> bool:
 		return false
 	
 	current_world_step = step
-	print("CampaignTurnState: Advanced to world step %d (%s)" % [step, world_step_names[step]])
 	return true
 
 func can_advance_to_world_step(target_step: int) -> bool:
@@ -159,7 +156,6 @@ func complete_upkeep(upkeep_results: Dictionary) -> void:
 	upkeep_completed = true
 	upkeep_data = upkeep_results.duplicate()
 	_update_progress("upkeep", 1.0)
-	print("CampaignTurnState: Upkeep completed")
 
 func complete_crew_tasks(crew_results: Dictionary) -> void:
 	## Mark crew tasks as completed with results
@@ -167,21 +163,18 @@ func complete_crew_tasks(crew_results: Dictionary) -> void:
 	crew_tasks_resolved = true
 	crew_task_data = crew_results.duplicate()
 	_update_progress("crew_tasks", 1.0)
-	print("CampaignTurnState: Crew tasks completed")
 
 func select_job(job_results: Dictionary) -> void:
 	## Mark job as selected with results
 	job_selected = true
 	job_offer_data = job_results.duplicate()
 	_update_progress("job_selection", 1.0)
-	print("CampaignTurnState: Job selected")
 
 func complete_mission_prep(mission_results: Dictionary) -> void:
 	## Mark mission preparation as completed
 	mission_prepared = true
 	mission_data = mission_results.duplicate()
 	_update_progress("mission_prep", 1.0)
-	print("CampaignTurnState: Mission preparation completed")
 
 ## World Phase Completion Check
 func is_world_phase_complete() -> bool:
@@ -225,7 +218,6 @@ func enable_automation(feature: String, enabled: bool) -> void:
 		automation_settings[feature] = enabled
 		if enabled:
 			automation_usage[feature] = automation_usage.get(feature, 0) + 1
-		print("CampaignTurnState: Automation %s %s" % [feature, "enabled" if enabled else "disabled"])
 
 func is_automation_enabled(feature: String) -> bool:
 	## Check if specific automation feature is enabled
@@ -237,7 +229,6 @@ func _add_validation_error(error: String) -> void:
 	validation_errors.append(error)
 	last_error = error
 	error_timestamp = Time.get_unix_time_from_system()
-	print("CampaignTurnState: Validation error - %s" % error)
 
 func clear_validation_errors() -> void:
 	## Clear all validation errors
@@ -376,5 +367,4 @@ func deserialize_state(data: Dictionary) -> bool:
 	phase_durations = metrics.get("phase_durations", {})
 	automation_usage = metrics.get("automation_usage", {})
 	
-	print("CampaignTurnState: State deserialized for turn %d" % turn_number)
 	return validate_state_consistency()

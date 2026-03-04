@@ -6,8 +6,6 @@ extends Node
 
 signal mission_generated(mission)
 signal mission_generation_failed(reason)
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Mission = preload("res://src/core/mission/base/mission.gd")
 const MissionReward = preload("res://src/core/mission/base/MissionReward.gd")
 
@@ -17,9 +15,9 @@ enum MissionType {BATTLE = 0, RECON = 1, SALVAGE = 2}
 
 # Map of test enum values to global enum values 
 const MISSION_TYPE_MAP = {
-	MissionType.BATTLE: GameEnums.MissionType.BLACK_ZONE, # Using BLACK_ZONE as BATTLE
-	MissionType.RECON: GameEnums.MissionType.PATROL, # Using PATROL as RECON
-	MissionType.SALVAGE: GameEnums.MissionType.RAID # Using RAID as SALVAGE
+	MissionType.BATTLE: GlobalEnums.MissionType.BLACK_ZONE, # Using BLACK_ZONE as BATTLE
+	MissionType.RECON: GlobalEnums.MissionType.PATROL, # Using PATROL as RECON
+	MissionType.SALVAGE: GlobalEnums.MissionType.RAID # Using RAID as SALVAGE
 }
 
 # Fix unsafe enum usages

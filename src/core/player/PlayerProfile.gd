@@ -125,12 +125,6 @@ func award_elite_rank(victory_condition: int) -> bool:
 	# Auto-save
 	save_to_disk()
 
-	print("PlayerProfile: Elite Rank awarded! %d → %d (Victory: %s)" % [
-		old_rank,
-		elite_ranks,
-		GlobalEnums.FiveParsecsCampaignVictoryType.keys()[victory_condition]
-	])
-
 	return true
 
 
@@ -215,13 +209,12 @@ func save_to_disk() -> void:
 	file.close()
 	
 	profile_saved.emit()
-	print("PlayerProfile: Saved to %s (Elite Ranks: %d)" % [SAVE_PATH, elite_ranks])
+	pass
 
 
 ## Loads the profile from disk (or creates default if not exists)
 func load_from_disk() -> void:
 	if not FileAccess.file_exists(SAVE_PATH):
-		print("PlayerProfile: No existing profile found - creating new")
 		save_to_disk()
 		profile_loaded.emit()
 		return
@@ -262,10 +255,7 @@ func load_from_disk() -> void:
 	last_saved_at = data.get("last_saved_at", "")
 	
 	profile_loaded.emit()
-	print("PlayerProfile: Loaded successfully (Elite Ranks: %d, Completed Victories: %d)" % [
-		elite_ranks,
-		completed_victory_conditions.size()
-	])
+	pass
 
 
 ## Resets the profile to default state (DESTRUCTIVE - use with caution)
@@ -339,7 +329,6 @@ func import_from_json(json_string: String) -> bool:
 	save_to_disk()
 	elite_ranks_changed.emit(old_rank, elite_ranks)
 	
-	print("PlayerProfile: Imported successfully (Elite Ranks: %d)" % elite_ranks)
 	return true
 
 

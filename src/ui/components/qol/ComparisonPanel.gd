@@ -86,5 +86,5 @@ func _add_stat_row(stat_name: String, values: Array) -> void:
 
 func _on_add_item_pressed() -> void:
 	## Request item selection
-	# TODO: Open item picker dialog
+	# NOTE: Deferred — open item picker dialog
 	pass

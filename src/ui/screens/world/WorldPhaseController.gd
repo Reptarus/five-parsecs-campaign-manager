@@ -98,7 +98,6 @@ const COLOR_ELEVATED := Color("#252542")
 
 func _ready() -> void:
 	name = "WorldPhaseController"
-	print("WorldPhaseController: Initializing orchestrator - replacing 3,910 line monolith")
 	
 	_initialize_event_bus()
 	_initialize_components()
@@ -126,30 +125,28 @@ func _initialize_event_bus() -> void:
 	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.PHASE_TRANSITION_REQUESTED, _on_phase_transition_requested)
 	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.PHASE_COMPLETED, _on_phase_completed)
 
-	print("WorldPhaseController: Event bus initialized with centralized handling")
 
 func _initialize_components() -> void:
 	## Verify scene-instanced components are available
 	# Components are instanced in .tscn and referenced via @onready
 	# Just verify they exist and log status
 	if upkeep_component:
-		print("WorldPhaseController: UpkeepPhaseComponent ready")
+		pass
 	if crew_task_component:
-		print("WorldPhaseController: CrewTaskComponent ready")
+		pass
 	if job_offer_component:
-		print("WorldPhaseController: JobOfferComponent ready")
+		pass
 	if assign_equipment_component:
-		print("WorldPhaseController: AssignEquipmentComponent ready")
+		pass
 	if resolve_rumors_component:
-		print("WorldPhaseController: ResolveRumorsComponent ready")
+		pass
 	if mission_prep_component:
-		print("WorldPhaseController: MissionPrepComponent ready")
+		pass
 	# Note: Post-battle components (PurchaseItems, CampaignEvent, CharacterEvent) now in PostBattleSequence
 
 	# Initialize mission selection UI for Job Offers/Mission Prep phases
 	_initialize_mission_selection()
 
-	print("WorldPhaseController: Component initialization complete")
 
 func _connect_ui_signals() -> void:
 	## Connect UI navigation signals
@@ -196,32 +193,16 @@ func _fetch_campaign_data() -> void:
 	## Fetch crew and ship data from GameState autoload for self-initialization
 	var game_state_node = get_node_or_null("/root/GameState")
 	if not game_state_node:
-		print("WorldPhaseController: WARNING - GameState autoload not found, using empty data")
 		return
 
 	# Get crew data via GameState.get_active_crew()
 	crew_data = game_state_node.get_active_crew() if game_state_node.has_method("get_active_crew") else []
-	print("WorldPhaseController: Fetched %d crew members" % crew_data.size())
-	if crew_data.size() > 0:
-		var first_member = crew_data[0]
-		print("WorldPhaseController: First crew member type: %s" % (first_member.get_class() if first_member is Object else typeof(first_member)))
-		if first_member is Dictionary:
-			print("WorldPhaseController: First crew member keys: %s" % [first_member.keys()])
 
 	# Log equipment data availability and populate initial stash
 	if game_state_node.current_campaign:
 		var _camp = game_state_node.current_campaign
 		if "equipment_data" in _camp:
-			var eq_data = _camp.equipment_data
-			print("WorldPhaseController: equipment_data keys: %s" % [eq_data.keys()])
-			var eq_items: Array = []
-			if _camp.has_method("get_all_equipment"):
-				eq_items = _camp.get_all_equipment()
-			else:
-				eq_items = eq_data.get("equipment", [])
-			print("WorldPhaseController: get_all_equipment() has %d items" % eq_items.size())
-		else:
-			print("WorldPhaseController: WARNING - no equipment_data property")
+			pass
 
 	# Get ship data from campaign
 	ship_data = {"name": "Unknown Ship", "condition": "good"}
@@ -274,9 +255,7 @@ func _fetch_campaign_data() -> void:
 				world_phase_data["location"] = campaign.world_data.get(
 					"name", "Unknown Location")
 	else:
-		print("WorldPhaseController: WARNING - current_campaign not found")
-
-	print("WorldPhaseController: Fetched %d patrons, location: %s" % [world_phase_data["patrons"].size(), world_phase_data["location"]])
+		pass
 
 	# Track location visit in NPCTracker
 	var npc_tracker = get_node_or_null("/root/NPCTracker")
@@ -299,10 +278,6 @@ func initialize_world_phase(ship: Dictionary, crew: Array, world_data: Dictionar
 	crew_data = crew.duplicate()
 	world_phase_data = world_data.duplicate()
 	
-	print("WorldPhaseController: Initialized world phase - Ship: %s, Crew: %d" % [
-		ship_data.get("name", "Unknown"), crew_data.size()
-	])
-
 	# Generate world event for current planet
 	_generate_turn_world_event()
 
@@ -339,7 +314,7 @@ func _generate_turn_world_event() -> void:
 		return
 	var event: Dictionary = pdm.generate_world_event(planet_id)
 	if not event.is_empty():
-		print("WorldPhaseController: World event this turn — %s: %s" % [event.get("name", "?"), event.get("description", "")])
+		pass
 
 func _check_compendium_world_strife() -> void:
 	## DLC: Check Fringe World Strife at world arrival (Compendium pp.110-114)
@@ -351,8 +326,6 @@ func _check_compendium_world_strife() -> void:
 		return
 	var instruction: String = strife_event.get("instruction", "")
 	var instability_mod: int = strife_event.get("instability_mod", 0)
-	print("WorldPhaseController: Strife event — %s (instability %+d)" % [
-		strife_event.get("name", "?"), instability_mod])
 	# Store strife event in world phase data for UI display
 	world_phase_data["strife_event"] = strife_event
 	# Log to campaign journal
@@ -375,9 +348,6 @@ func _initialize_components_with_data() -> void:
 		job_offer_component.initialize_job_offers(world_phase_data)
 
 	# Initialize assign equipment component
-	print("WorldPhaseController: Init assign_equipment: component=%s, crew=%d, stash=%d" % [
-		"valid" if assign_equipment_component else "NULL",
-		crew_data.size(), world_phase_data.get("stash", []).size()])
 	if assign_equipment_component and assign_equipment_component.has_method("initialize_equipment_phase"):
 		var stash = world_phase_data.get("stash", [])
 		assign_equipment_component.initialize_equipment_phase(crew_data, stash)
@@ -389,8 +359,6 @@ func _initialize_components_with_data() -> void:
 		resolve_rumors_component.initialize_rumors_phase(rumors, quest)
 
 	# Initialize mission prep component
-	print("WorldPhaseController: Init mission_prep: component=%s, crew=%d" % [
-		"valid" if mission_prep_component else "NULL", crew_data.size()])
 	if mission_prep_component and mission_prep_component.has_method("initialize_mission_prep"):
 		var mission = world_phase_data.get("mission", {})
 		var equipment = world_phase_data.get("stash", [])
@@ -427,10 +395,6 @@ func _initialize_components_with_data() -> void:
 		for item in equipment:
 			if item is Dictionary:
 				typed_equipment.append(item)
-		print("WorldPhaseController: Mission prep conversion: crew %d→typed %d, equip %d→typed %d" % [
-			crew_data.size(), typed_crew.size(), equipment.size(), typed_equipment.size()])
-		if typed_crew.size() > 0:
-			print("WorldPhaseController: First typed crew keys: %s" % [typed_crew[0].keys()])
 		mission_prep_component.initialize_mission_prep(mission, typed_crew, typed_equipment)
 
 	# Note: Post-battle components (PurchaseItems, CampaignEvent, CharacterEvent) now initialized in PostBattleSequence
@@ -438,7 +402,6 @@ func _initialize_components_with_data() -> void:
 ## Step Navigation - coordinated component management
 func _show_current_step() -> void:
 	## Show current step component and hide others
-	print("WorldPhaseController: Showing step %d - %s" % [current_step, step_names[current_step]])
 
 	# Show/hide all 6 World Phase containers based on current step
 	if upkeep_container:
@@ -475,7 +438,6 @@ func _show_current_step() -> void:
 
 	# AUTO-ADVANCE: If automation enabled and step already complete, advance
 	if automation_enabled and _can_advance_to_next_step():
-		print("WorldPhaseController: >>> Step %s already complete with automation - auto-advancing" % step_names[current_step])
 		# Use call_deferred to avoid recursion issues
 		call_deferred("_on_next_button_pressed")
 
@@ -508,7 +470,6 @@ func _create_step_indicators() -> void:
 	step_navigation.add_child(indicator_container)
 	step_navigation.move_child(indicator_container, 0)
 
-	print("WorldPhaseController: Created %d step indicators" % step_indicators.size())
 
 func _create_step_indicator_badge(step_index: int) -> PanelContainer:
 	## Create a single step indicator badge
@@ -592,7 +553,6 @@ func _update_ui_display() -> void:
 			var can_advance = _can_advance_to_next_step()
 			next_button.disabled = not can_advance
 			next_button.text = "Next Step"
-			print("WorldPhaseController: Next button disabled=%s (can_advance=%s) for step %s" % [next_button.disabled, can_advance, step_names[current_step]])
 
 	# Sprint C: Update step indicators
 	_update_step_indicators()
@@ -643,7 +603,6 @@ func _can_advance_to_next_step() -> bool:
 		_:
 			result = false
 
-	print("WorldPhaseController: _can_advance_to_next_step() for %s = %s" % [step_names[current_step], result])
 	return result
 
 ## UI Event Handlers - orchestrator navigation
@@ -656,18 +615,15 @@ func _on_back_button_pressed() -> void:
 			# Try to rollback to Travel phase (assumes GlobalEnums.FiveParsecsCampaignPhase.TRAVEL = 0)
 			var GlobalEnums = load("res://src/core/systems/GlobalEnums.gd")
 			if GlobalEnums and cpm.rollback_to_phase(GlobalEnums.FiveParsecsCampaignPhase.TRAVEL):
-				print("WorldPhaseController: Rolled back to Travel phase")
 				return_to_travel.emit()
 				return
 
 		# Fallback: Navigate back to campaign dashboard
-		print("WorldPhaseController: Returning to Campaign Dashboard (rollback not available)")
 		return_to_dashboard.emit()
 		SceneRouter.navigate_to("campaign_turn_controller")
 	elif current_step > WorldPhaseStep.UPKEEP:
 		current_step = current_step - 1
 		_show_current_step()
-		print("WorldPhaseController: Navigated back to %s" % step_names[current_step])
 
 func _on_next_button_pressed() -> void:
 	## Handle next button navigation
@@ -675,19 +631,17 @@ func _on_next_button_pressed() -> void:
 		if current_step < WorldPhaseStep.MISSION_PREP:
 			current_step = current_step + 1
 			_show_current_step()
-			print("WorldPhaseController: Advanced to %s" % step_names[current_step])
 			# Checkpoint save after each step advance
 			_save_world_phase_checkpoint()
 		else:
 			# Complete world phase - proceed to battle
 			_complete_world_phase()
 	else:
-		print("WorldPhaseController: Cannot advance - current step not completed")
+		pass
 
 func _on_automation_toggled(enabled: bool) -> void:
 	## Handle automation toggle
 	automation_enabled = enabled
-	print("WorldPhaseController: Automation %s" % ("enabled" if enabled else "disabled"))
 
 	# Publish automation event for components
 	if event_bus:
@@ -698,7 +652,6 @@ func _on_automation_toggled(enabled: bool) -> void:
 ## Navigation Button Handlers - Clear user actions
 func _on_proceed_to_battle_pressed() -> void:
 	## Handle Proceed to Battle button - primary action
-	print("WorldPhaseController: User requested proceed to battle")
 
 	# Sprint 26.4: Save checkpoint before transitioning to battle
 	save_checkpoint()
@@ -711,7 +664,6 @@ func _on_proceed_to_battle_pressed() -> void:
 
 func _on_back_to_dashboard_pressed() -> void:
 	## Handle Back to Dashboard button - return navigation
-	print("WorldPhaseController: User requested return to dashboard")
 
 	# Emit signal for external listeners
 	return_to_dashboard.emit()
@@ -722,7 +674,6 @@ func _on_back_to_dashboard_pressed() -> void:
 ## Component Event Handlers - centralized coordination
 func _on_crew_task_resolved(data: Dictionary) -> void:
 	## Handle crew task resolution from CrewTaskComponent
-	print("WorldPhaseController: Crew task resolved: %s" % data)
 	step_completed[WorldPhaseStep.CREW_TASKS] = true
 	_update_ui_display()
 
@@ -732,7 +683,6 @@ func _on_crew_task_resolved(data: Dictionary) -> void:
 
 func _on_job_accepted(data: Dictionary) -> void:
 	## Handle job acceptance from JobOfferComponent
-	print("WorldPhaseController: Job accepted: %s" % data)
 	step_completed[WorldPhaseStep.JOB_OFFERS] = true
 
 	# Track patron interaction in NPCTracker
@@ -754,7 +704,6 @@ func _on_job_accepted(data: Dictionary) -> void:
 
 func _on_mission_prepared(data: Dictionary) -> void:
 	## Handle mission preparation from MissionPrepComponent
-	print("WorldPhaseController: Mission prepared: %s" % data)
 	step_completed[WorldPhaseStep.MISSION_PREP] = true
 	_update_ui_display()
 
@@ -764,12 +713,11 @@ func _on_mission_prepared(data: Dictionary) -> void:
 
 func _on_phase_transition_requested(data: Dictionary) -> void:
 	## Handle phase transition requests from components
-	print("WorldPhaseController: Phase transition requested: %s" % data)
+	pass
 
 func _on_phase_completed(data: Dictionary) -> void:
 	## Handle phase completion events from all components via PHASE_COMPLETED
 	var phase_name = data.get("phase_name", "")
-	print("WorldPhaseController: Phase completed: %s" % phase_name)
 
 	# Route completion to correct step based on phase_name
 	match phase_name:
@@ -792,7 +740,6 @@ func _on_phase_completed(data: Dictionary) -> void:
 ## World Phase Completion
 func _complete_world_phase() -> void:
 	## Complete the entire world phase and transition to battle
-	print("WorldPhaseController: Completing world phase")
 
 	# Final checkpoint save before battle transition
 	_save_world_phase_checkpoint()
@@ -862,7 +809,6 @@ func _complete_world_phase() -> void:
 					"battle_type": _get_battle_type_for_objective(job_results.get("objective", "patrol")),
 				}
 				campaign.progress_data["current_mission"] = mission_dict
-				print("WorldPhaseController: Saved current_mission to progress_data (battle_type=%d)" % mission_dict.get("battle_type", 0))
 
 			# Save equipment assignments
 			if not equipment_results.is_empty():
@@ -870,7 +816,6 @@ func _complete_world_phase() -> void:
 
 			# Store full world phase results for summary display
 			campaign.progress_data["world_phase_results"] = world_phase_results
-			print("WorldPhaseController: Saved world_phase_results to progress_data")
 
 	# Publish completion event
 	if event_bus:
@@ -880,7 +825,6 @@ func _complete_world_phase() -> void:
 			"next_phase": "battle_phase"
 		})
 
-	print("WorldPhaseController: World phase completed successfully")
 
 	# Emit signal for CampaignTurnController integration.
 	# CampaignTurnController handles the phase transition to MISSION internally —
@@ -900,7 +844,6 @@ func _refresh_job_offers() -> void:
 			world_phase_data["patrons"] = campaign.get("patrons", [])
 	if job_offer_component and job_offer_component.has_method("initialize_job_offers"):
 		job_offer_component.initialize_job_offers(world_phase_data)
-		print("WorldPhaseController: Refreshed job offers with %d patrons" % world_phase_data.get("patrons", []).size())
 
 func _refresh_mission_prep() -> void:
 	## Re-initialize mission prep with accepted job data and current crew/equipment
@@ -943,7 +886,6 @@ func _refresh_mission_prep() -> void:
 					elif item is Object and item.has_method("to_dictionary"):
 						typed_equipment.append(item.to_dictionary())
 				use_step4_data = true
-				print("WorldPhaseController: Using equipment data from Step 4 assignments")
 
 		# Fallback to campaign data if Step 4 results not available
 		if not use_step4_data:
@@ -968,22 +910,18 @@ func _refresh_mission_prep() -> void:
 					typed_equipment.append(item)
 
 		mission_prep_component.initialize_mission_prep(accepted_job, typed_crew, typed_equipment)
-		print("WorldPhaseController: Refreshed mission prep with job '%s', %d crew, %d equipment" % [
-			accepted_job.get("objective", "none"), typed_crew.size(), typed_equipment.size()])
 
 func _refresh_assign_equipment() -> void:
 	## Re-initialize assign equipment with current crew and equipment data
 	## Called when advancing to ASSIGN_EQUIPMENT step
 	var gs = get_node_or_null("/root/GameState")
 	if not gs or not gs.current_campaign:
-		print("WorldPhaseController: _refresh_assign_equipment - No campaign available")
 		return
 
 	var campaign = gs.current_campaign
 
 	# Refresh crew data from campaign
 	crew_data = gs.get_active_crew() if gs.has_method("get_active_crew") else []
-	print("WorldPhaseController: _refresh_assign_equipment - crew_data.size() = %d" % crew_data.size())
 
 	# Refresh equipment data from campaign
 	var stash: Array = []
@@ -991,15 +929,12 @@ func _refresh_assign_equipment() -> void:
 		stash = campaign.get_all_equipment()
 	elif "equipment_data" in campaign:
 		stash = campaign.equipment_data.get("equipment", [])
-	print("WorldPhaseController: _refresh_assign_equipment - stash.size() = %d" % stash.size())
 
 	# Also update world_phase_data for consistency
 	world_phase_data["stash"] = stash
 
 	if assign_equipment_component and assign_equipment_component.has_method("initialize_equipment_phase"):
 		assign_equipment_component.initialize_equipment_phase(crew_data, stash)
-		print("WorldPhaseController: Refreshed assign equipment with %d crew, %d stash items" % [
-			crew_data.size(), stash.size()])
 
 ## Public API for external integration
 func get_current_step() -> WorldPhaseStep:
@@ -1113,8 +1048,6 @@ func check_deferred_events(trigger_type: String) -> void:
 	if pending_deferred_events.is_empty():
 		return
 
-	print("WorldPhaseController: Found %d deferred events for trigger: %s" % [pending_deferred_events.size(), trigger_type])
-
 	# Show first event
 	current_deferred_event_index = 0
 	_show_deferred_event_popup()
@@ -1184,8 +1117,6 @@ func _on_deferred_event_confirmed() -> void:
 	if effect is Dictionary and effect.get("single_use", false):
 		_remove_consumed_event(event)
 
-	print("WorldPhaseController: Resolved deferred event: %s" % event.get("event_name", ""))
-
 	# Move to next event
 	current_deferred_event_index += 1
 	_show_deferred_event_popup()
@@ -1204,7 +1135,6 @@ func _apply_deferred_event_effects(event: Dictionary) -> void:
 	var credits = effect.get("credits", 0)
 	if credits != 0 and GameStateManager:
 		GameStateManager.add_credits(credits)
-		print("WorldPhaseController: Applied %d credits from deferred event" % credits)
 
 	# Apply story points
 	var story_points = effect.get("story_points", 0)
@@ -1214,7 +1144,6 @@ func _apply_deferred_event_effects(event: Dictionary) -> void:
 			campaign.story_points += story_points
 		elif campaign is Dictionary:
 			campaign["story_points"] = campaign.get("story_points", 0) + story_points
-		print("WorldPhaseController: Applied %d story points from deferred event" % story_points)
 
 	# Apply XP to crew member
 	var xp = effect.get("xp", 0)
@@ -1228,7 +1157,6 @@ func _apply_deferred_event_effects(event: Dictionary) -> void:
 				if char_id == crew_id:
 					if character is Dictionary:
 						character["experience"] = character.get("experience", 0) + xp
-					print("WorldPhaseController: Applied %d XP to crew %s" % [xp, crew_id])
 					break
 
 	# Handle rival generation
@@ -1249,7 +1177,6 @@ func _apply_deferred_event_effects(event: Dictionary) -> void:
 			rivals.append(new_rival)
 			if campaign is Dictionary:
 				campaign["rivals"] = rivals
-			print("WorldPhaseController: Generated rival '%s' from deferred event" % new_rival.name)
 
 	# Handle rumor generation
 	if effect.get("rumor", false):
@@ -1280,7 +1207,6 @@ func _apply_deferred_event_effects(event: Dictionary) -> void:
 			rumors.append(new_rumor)
 			if campaign is Dictionary:
 				campaign["rumors"] = rumors
-			print("WorldPhaseController: Added rumor '%s' from deferred event" % new_rumor.description)
 
 func _remove_consumed_event(event: Dictionary) -> void:
 	## Remove consumed single-use event from campaign pending events
@@ -1301,7 +1227,6 @@ func _remove_consumed_event(event: Dictionary) -> void:
 	elif campaign is Dictionary and campaign.has("pending_events"):
 		campaign["pending_events"] = campaign.get("pending_events", []).filter(func(e): return e.get("id", "") != event_id)
 
-	print("WorldPhaseController: Removed consumed event: %s" % event_id)
 
 ## Backend System Integration Methods
 
@@ -1310,22 +1235,20 @@ func update_planet_data_backend(planet_id: String, campaign_turn: int = 0) -> vo
 	var planet_manager = get_node_or_null("BackendPlanetManager")
 	if planet_manager and planet_manager.has_method("get_or_generate_planet"):
 		var planet_data = planet_manager.get_or_generate_planet(planet_id, campaign_turn)
-		print("WorldPhaseController: Planet data updated through backend - %s" % planet_data.name)
 		
 		# Update current world display if we have that functionality
 		if planet_data:
-			print("WorldPhaseController: Planet data received - %s" % planet_data.name)
+			pass
 	else:
-		print("WorldPhaseController: BackendPlanetManager not available")
+		pass
 
 func generate_random_contact_backend(planet_id: String, turn_number: int = 0) -> void:
 	## Generate a random contact using the backend ContactManager
 	var contact_manager = get_node_or_null("BackendContactManager")
 	if contact_manager and contact_manager.has_method("generate_random_contact"):
 		var contact = contact_manager.generate_random_contact(planet_id, turn_number)
-		print("WorldPhaseController: Generated random contact through backend - %s" % contact.name)
 	else:
-		print("WorldPhaseController: ContactManager not available for random contact generation")
+		pass
 
 ## Mission Selection Integration per Five Parsecs Rules
 func _initialize_mission_selection() -> void:
@@ -1336,7 +1259,6 @@ func _initialize_mission_selection() -> void:
 
 func _on_mission_selected(mission: Resource) -> void:
 	## Handle mission selection from MissionSelectionUI
-	print("WorldPhaseController: Mission selected: %s" % mission)
 
 	# Sprint 28 BUG-1 Fix: Persist mission to GameStateManager for Battle Phase
 	if mission and GameStateManager:
@@ -1369,12 +1291,11 @@ func _on_mission_selected(mission: Resource) -> void:
 
 func _on_mission_selection_cancelled() -> void:
 	## Handle mission selection cancellation
-	print("WorldPhaseController: Mission selection cancelled")
 	# User can stay in current step to try again
+	pass
 
 func _advance_to_next_step() -> void:
 	## Advance to the next step in the world phase workflow
-	print("WorldPhaseController: Advancing to next step from: ", step_names[current_step])
 
 	if current_step < WorldPhaseStep.MISSION_PREP:
 		current_step = current_step + 1
@@ -1403,7 +1324,6 @@ func _input(event: InputEvent) -> void:
 
 func _debug_skip_to_battle() -> void:
 	## [DEBUG] Skip directly to battle phase with generated test data
-	print("WorldPhaseController: [DEBUG] Skipping to battle phase with test data")
 
 	# Load test helper for mock data
 	var HelperClass = load("res://tests/helpers/CampaignTurnTestHelper.gd")
@@ -1437,13 +1357,9 @@ func _debug_skip_to_battle() -> void:
 			"mission_context": mission_context
 		})
 
-	print("WorldPhaseController: [DEBUG] Battle transition triggered - Mission: %s, Enemies: %d" % [
-		mission_context.mission_type, mission_context.enemy_count
-	])
 
 func _debug_complete_current_step() -> void:
 	## [DEBUG] Auto-complete current step for testing
-	print("WorldPhaseController: [DEBUG] Auto-completing step: %s" % step_names[current_step])
 	step_completed[current_step] = true
 	_update_ui_display()
 
@@ -1457,35 +1373,33 @@ func _debug_complete_current_step() -> void:
 
 func save_checkpoint() -> void:
 	## Sprint 26.4: Save World Phase checkpoint before transitioning away.
-	## Saves to local _checkpoint_data for quick restore and to campaign for persistence."""
-	## _checkpoint_data = {
-	## "current_step": current_step,
-	## "step_completed": step_completed.duplicate(),
-	## "world_phase_data": world_phase_data.duplicate(),
-	## "automation_enabled": automation_enabled,
-	## "timestamp": Time.get_datetime_string_from_system()
-	## }
-	##
-	## # Also save to campaign for crash recovery
-	## var game_state = get_node_or_null("/root/GameState")
-	## if game_state and game_state.current_campaign:
-	## var campaign = game_state.current_campaign
-	## if campaign is Dictionary:
-	## campaign["world_phase_checkpoint"] = _checkpoint_data.duplicate()
-	## elif campaign is Resource and campaign.has_method("set_meta"):
-	## campaign.set_meta("world_phase_checkpoint", _checkpoint_data.duplicate())
-	##
-	## # Try to trigger a game save through GameStateManager
-	## if GameStateManager and GameStateManager.has_method("quick_save"):
-	## GameStateManager.quick_save()
-	## elif GameStateManager and GameStateManager.has_method("save_game"):
-	## GameStateManager.save_game()
-	##
-	## print("WorldPhaseController: Checkpoint saved at step %s" % step_names[current_step])
-	##
-	## func restore_from_checkpoint() -> void:
+	## Saves to local _checkpoint_data for quick restore and to campaign for persistence.
+	_checkpoint_data = {
+		"current_step": current_step,
+		"step_completed": step_completed.duplicate(),
+		"world_phase_data": world_phase_data.duplicate(),
+		"automation_enabled": automation_enabled,
+		"timestamp": Time.get_datetime_string_from_system()
+	}
+
+	# Also save to campaign for crash recovery
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.current_campaign:
+		var campaign = gs.current_campaign
+		if campaign is Dictionary:
+			campaign["world_phase_checkpoint"] = _checkpoint_data.duplicate()
+		elif campaign is Resource and campaign.has_method("set_meta"):
+			campaign.set_meta("world_phase_checkpoint", _checkpoint_data.duplicate())
+
+	# Try to trigger a game save through GameStateManager
+	if GameStateManager and GameStateManager.has_method("quick_save"):
+		GameStateManager.quick_save()
+	elif GameStateManager and GameStateManager.has_method("save_game"):
+		GameStateManager.save_game()
+
+
+func restore_from_checkpoint() -> void:
 	if _checkpoint_data.is_empty():
-		print("WorldPhaseController: No checkpoint data to restore")
 		return
 
 	current_step = _checkpoint_data.get("current_step", WorldPhaseStep.UPKEEP)
@@ -1500,7 +1414,6 @@ func save_checkpoint() -> void:
 	if automation_toggle:
 		automation_toggle.button_pressed = automation_enabled
 
-	print("WorldPhaseController: Restored from checkpoint - step=%s" % step_names[current_step])
 
 func has_checkpoint() -> bool:
 	## Sprint 26.4: Check if a checkpoint exists
@@ -1509,7 +1422,6 @@ func has_checkpoint() -> bool:
 func clear_checkpoint() -> void:
 	## Sprint 26.4: Clear saved checkpoint data
 	_checkpoint_data = {}
-	print("WorldPhaseController: Checkpoint cleared")
 
 func _save_world_phase_checkpoint() -> void:
 	## Deprecated: Use save_checkpoint() instead. Kept for backward compatibility.
@@ -1521,7 +1433,6 @@ func _save_world_phase_checkpoint() -> void:
 
 func _navigate_to_battle_phase(world_phase_results: Dictionary) -> void:
 	## Navigate to battle phase using SceneRouter with fallbacks
-	print("WorldPhaseController: Navigating to battle phase...")
 
 	# Store results in GameStateManager temp data for battle phase access
 	if GameStateManager:
@@ -1531,17 +1442,14 @@ func _navigate_to_battle_phase(world_phase_results: Dictionary) -> void:
 	# Try SceneRouter first (preferred method)
 	if SceneRouter and SceneRouter.has_method("navigate_to"):
 		SceneRouter.navigate_to("pre_battle")
-		print("WorldPhaseController: Navigated to pre_battle via SceneRouter")
 		return
 
 	# Fallback to GameStateManager navigation
 	if GameStateManager and GameStateManager.has_method("navigate_to_screen"):
 		GameStateManager.navigate_to_screen("pre_battle")
-		print("WorldPhaseController: Navigated to pre_battle via GameStateManager")
 		return
 
 	# Final fallback: navigate via SceneRouter
-	print("WorldPhaseController: Direct navigation to PreBattle via SceneRouter")
 	SceneRouter.call_deferred("navigate_to", "pre_battle")
 
 func _show_battle_scene_missing_error() -> void:

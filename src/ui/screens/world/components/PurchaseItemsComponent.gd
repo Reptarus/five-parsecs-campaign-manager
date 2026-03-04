@@ -53,7 +53,6 @@ var basic_items: Array[Dictionary] = [
 
 func _ready() -> void:
 	name = "PurchaseItemsComponent"
-	print("PurchaseItemsComponent: Initialized - Five Parsecs shopping system")
 
 	_initialize_event_bus()
 	_connect_ui_signals()
@@ -64,13 +63,12 @@ func _initialize_event_bus() -> void:
 	event_bus = get_node_or_null("/root/CampaignTurnEventBus")
 	if event_bus:
 		event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
-		print("PurchaseItemsComponent: Connected to event bus")
 
 	# Initialize market systems
 	equipment_manager = get_node_or_null("/root/EquipmentManager")
 	trading_system = TradingSystem.new()
 	if equipment_manager:
-		print("PurchaseItemsComponent: Connected to EquipmentManager")
+		pass
 
 func _exit_tree() -> void:
 	## Cleanup event bus subscriptions to prevent memory leaks
@@ -114,8 +112,6 @@ func initialize_purchase_phase(credits: int, stash: Array) -> void:
 	_populate_sell_items()
 	_update_ui_display()
 
-	print("PurchaseItemsComponent: Initialized with %d credits, %d stash items" % [credits, stash.size()])
-
 	if event_bus:
 		event_bus.publish_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, {
 			"phase_name": "purchase_items",
@@ -155,7 +151,6 @@ func _on_basic_item_selected(index: int) -> void:
 func _on_roll_military_pressed() -> void:
 	## Roll on Military Weapons Table (3 credits)
 	if current_credits - cart_total < TABLE_ROLL_COST:
-		print("PurchaseItemsComponent: Not enough credits for table roll")
 		return
 
 	var result = _roll_on_military_table()
@@ -164,7 +159,6 @@ func _on_roll_military_pressed() -> void:
 func _on_roll_gear_pressed() -> void:
 	## Roll on Gear Table (3 credits)
 	if current_credits - cart_total < TABLE_ROLL_COST:
-		print("PurchaseItemsComponent: Not enough credits for table roll")
 		return
 
 	var result = _roll_on_gear_table()
@@ -173,7 +167,6 @@ func _on_roll_gear_pressed() -> void:
 func _on_roll_gadget_pressed() -> void:
 	## Roll on Gadget Table (3 credits)
 	if current_credits - cart_total < TABLE_ROLL_COST:
-		print("PurchaseItemsComponent: Not enough credits for table roll")
 		return
 
 	var result = _roll_on_gadget_table()
@@ -185,7 +178,6 @@ func _add_to_cart(item: Dictionary) -> void:
 	cart_total += item.get("cost", 0)
 	_update_cart_display()
 	_update_ui_display()
-	print("PurchaseItemsComponent: Added %s to cart (total: %d)" % [item.name, cart_total])
 
 func _on_sell_pressed() -> void:
 	## Sell selected item
@@ -193,7 +185,6 @@ func _on_sell_pressed() -> void:
 		return
 
 	if items_sold_this_turn >= MAX_ITEMS_SOLD_PER_TURN:
-		print("PurchaseItemsComponent: Maximum items sold this turn (%d)" % MAX_ITEMS_SOLD_PER_TURN)
 		return
 
 	var selected = sell_items_list.get_selected_items()[0]
@@ -208,7 +199,6 @@ func _on_sell_pressed() -> void:
 		_populate_sell_items()
 		_update_ui_display()
 
-		print("PurchaseItemsComponent: Sold %s for %d credit" % [item_name, SELL_PRICE_PER_ITEM])
 
 func _on_sell_item_selected(index: int) -> void:
 	## Quick-sell on double-click
@@ -219,7 +209,6 @@ func _on_sell_item_selected(index: int) -> void:
 func _on_confirm_purchase_pressed() -> void:
 	## Confirm and complete purchase
 	if cart_total > current_credits:
-		print("PurchaseItemsComponent: Not enough credits!")
 		return
 
 	# Update GameStateManager credits first
@@ -262,16 +251,11 @@ func _on_confirm_purchase_pressed() -> void:
 		current_credits += refund_amount
 		if GameStateManager:
 			GameStateManager.add_credits(refund_amount)
-		print("PurchaseItemsComponent: Refunded %d credits for %d failed items" % [refund_amount, items_failed])
 
 	# Update local state with actual items added
 	current_credits -= (cart_total - refund_amount)
 
-	print("PurchaseItemsComponent: Added %d/%d items to ship stash" % [items_added, cart_items.size()])
-
 	purchase_completed = true
-
-	print("PurchaseItemsComponent: Purchase complete - spent %d credits on %d items" % [cart_total, cart_items.size()])
 
 	# Publish completion event
 	if event_bus:
@@ -311,7 +295,6 @@ func _roll_on_military_table() -> Dictionary:
 	else:
 		result["name"] = "Shatter Axe"
 
-	print("PurchaseItemsComponent: Rolled %d on Military Table - %s" % [roll, result.name])
 	return result
 
 func _roll_on_gear_table() -> Dictionary:
@@ -339,7 +322,6 @@ func _roll_on_gear_table() -> Dictionary:
 	else:
 		result["name"] = "Scanner Bot"
 
-	print("PurchaseItemsComponent: Rolled %d on Gear Table - %s" % [roll, result.name])
 	return result
 
 func _roll_on_gadget_table() -> Dictionary:
@@ -367,7 +349,6 @@ func _roll_on_gadget_table() -> Dictionary:
 	else:
 		result["name"] = "Stim-pack"
 
-	print("PurchaseItemsComponent: Rolled %d on Gadget Table - %s" % [roll, result.name])
 	return result
 
 ## UI Updates
@@ -406,7 +387,7 @@ func _on_phase_started(data: Dictionary) -> void:
 	## Handle phase started events
 	var phase_name = data.get("phase_name", "")
 	if phase_name == "purchase_items":
-		print("PurchaseItemsComponent: Purchase phase started")
+		pass
 
 ## Public API
 func is_purchase_completed() -> bool:
@@ -428,4 +409,3 @@ func reset_purchase_phase() -> void:
 	items_sold_this_turn = 0
 	purchase_completed = false
 	_update_ui_display()
-	print("PurchaseItemsComponent: Reset for new turn")

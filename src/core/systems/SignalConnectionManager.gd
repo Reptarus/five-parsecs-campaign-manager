@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 class_name SignalConnectionManager
 extends RefCounted
 
@@ -13,7 +13,6 @@ static func connect_panel_signals_safely(panel: Control, coordinator) -> bool:
 		return false
 	
 	var panel_class = panel.get_class()
-	print("SignalConnectionManager: Connecting signals for %s" % panel_class)
 	
 	var success_count = 0
 	var total_attempts = 0
@@ -34,7 +33,7 @@ static func connect_panel_signals_safely(panel: Control, coordinator) -> bool:
 			success_count += 1
 	
 	var success_rate = (float(success_count) / float(total_attempts)) * 100.0 if total_attempts > 0 else 0.0
-	print("SignalConnectionManager: Connected %d/%d signals (%.1f%%) for %s" % [success_count, total_attempts, success_rate, panel_class])
+	pass # Signals connected
 	
 	return success_count > 0
 
@@ -55,14 +54,11 @@ static func _connect_single_signal(panel: Control, coordinator, mapping: Diction
 			var callable_method = Callable(coordinator, method_name)
 			if not panel.is_connected(signal_name, callable_method):
 				panel.connect(signal_name, callable_method)
-				print("  ✅ Connected: %s -> %s" % [signal_name, method_name])
 				return true
 			else:
-				print("  ⚠️  Already connected: %s -> %s" % [signal_name, method_name])
 				return true
 	
 	# Log missing signals for debugging
-	print("  ❌ No matching signal found for variants: %s" % signal_variants)
 	return false
 
 static func _get_signal_mappings(panel_class: String) -> Array[Dictionary]:
@@ -180,15 +176,15 @@ static func connect_state_update_methods(panel: Control, coordinator) -> bool:
 				var callable_method = Callable(panel, method)
 				if not coordinator.is_connected("campaign_data_updated", callable_method):
 					coordinator.connect("campaign_data_updated", callable_method)
-					print("  ✅ Connected state updates: coordinator.campaign_data_updated -> %s.%s" % [panel.get_class(), method])
+					pass # State updates connected
 					connected = true
 				else:
-					print("  ⚠️  Already connected state updates for %s" % panel.get_class())
+					pass # Already connected
 					connected = true
 				break
 	
 	if not connected:
-		print("  ❌ No state update method found for %s" % panel.get_class())
+		pass # No state update method found
 	
 	return connected
 
@@ -198,7 +194,7 @@ static func disconnect_panel_signals_safely(panel: Control, coordinator) -> void
 	if not panel or not coordinator or not is_instance_valid(panel) or not is_instance_valid(coordinator):
 		return
 	
-	print("SignalConnectionManager: Disconnecting signals for %s" % panel.get_class())
+	pass # Disconnecting signals
 	
 	# Get all potential signal connections
 	var all_mappings = _get_signal_mappings(panel.get_class())
@@ -212,7 +208,6 @@ static func disconnect_panel_signals_safely(panel: Control, coordinator) -> void
 			for signal_name in mapping.get("signal_variants", []):
 				if panel.has_signal(signal_name) and panel.is_connected(signal_name, callable_method):
 					panel.disconnect(signal_name, callable_method)
-					print("  ✅ Disconnected: %s -> %s" % [signal_name, method_name])
 
 ## Debug: List all signals available on a panel
 static func debug_list_panel_signals(panel: Control) -> Array[String]:
@@ -226,7 +221,7 @@ static func debug_list_panel_signals(panel: Control) -> Array[String]:
 	for signal_info in signal_list:
 		signals.append(signal_info.name)
 	
-	print("SignalConnectionManager: %s has signals: %s" % [panel.get_class(), signals])
+	pass # Panel signals listed
 	return signals
 
 ## Debug: List all methods available on coordinator
@@ -242,5 +237,5 @@ static func debug_list_coordinator_methods(coordinator) -> Array[String]:
 		if method_info.name.begins_with("update_") or method_info.name.begins_with("on_"):
 			methods.append(method_info.name)
 	
-	print("SignalConnectionManager: %s has relevant methods: %s" % [coordinator.get_class(), methods])
+	pass # Coordinator methods listed
 	return methods

@@ -57,7 +57,6 @@ var post_battle_steps: Array[Dictionary] = [
 ]
 
 func _ready() -> void:
-	print("PostBattleSequence: Initializing...")
 	_initialize_advancement_system()
 	_initialize_steps()
 	_load_battle_results()
@@ -90,7 +89,6 @@ func _load_battle_results() -> void:
 			return
 
 	# Fallback for testing when no battle was run
-	print("PostBattleSequence: No battle results in GameState (normal at startup)")
 	battle_results = {
 		"victory": true,
 		"mission_type": "Opportunist",
@@ -119,12 +117,10 @@ func _connect_backend_signals() -> void:
 		post_battle_phase = get_node_or_null("/root/PostBattlePhase")
 
 	if not post_battle_phase:
-		print("PostBattleSequence: Could not find PostBattlePhase backend - signals not connected")
 		# Backend is optional during _ready() — panel may be hidden and not in use yet.
 		# Error dialog is deferred to when the panel is actually shown via setup_post_battle().
 		return
 
-	print("PostBattleSequence: Connecting to PostBattlePhase backend signals...")
 
 	# Connect all backend signals to UI handlers
 	if post_battle_phase.has_signal("payment_received"):
@@ -175,19 +171,16 @@ func _connect_backend_signals() -> void:
 	if post_battle_phase.has_signal("post_battle_substep_changed"):
 		post_battle_phase.post_battle_substep_changed.connect(_on_backend_substep_changed)
 
-	print("PostBattleSequence: Backend signals connected successfully")
 
 ## Backend Signal Handlers - Sprint 20.1
 ## These receive data from PostBattlePhase and update UI accordingly
 
 func _on_backend_payment_received(amount: int) -> void:
 	## Handle payment received from backend
-	print("PostBattleSequence: Backend payment received - %d credits" % amount)
 	_add_result_to_log("Payment received: %d credits" % amount)
 
 func _on_backend_quest_progress(progress: int) -> void:
 	## Handle quest progress update from backend
-	print("PostBattleSequence: Backend quest progress - %d" % progress)
 	var outcome_text: String
 	if progress <= 0:
 		outcome_text = "Quest Dead End - No progress this mission"
@@ -199,7 +192,6 @@ func _on_backend_quest_progress(progress: int) -> void:
 
 func _on_backend_invasion_checked(invasion_pending: bool) -> void:
 	## Handle invasion check result from backend
-	print("PostBattleSequence: Backend invasion check - %s" % ("TRIGGERED" if invasion_pending else "clear"))
 	if invasion_pending:
 		_add_result_to_log("[color=#DC2626]INVASION IMMINENT![/color] Unity forces detected!")
 	else:
@@ -207,7 +199,6 @@ func _on_backend_invasion_checked(invasion_pending: bool) -> void:
 
 func _on_backend_experience_awarded(xp_awards: Array) -> void:
 	## Handle XP awards from backend
-	print("PostBattleSequence: Backend XP awarded - %d crew members" % xp_awards.size())
 	for award in xp_awards:
 		if award is Dictionary:
 			var crew_name = award.get("crew_name", "Unknown")
@@ -216,7 +207,6 @@ func _on_backend_experience_awarded(xp_awards: Array) -> void:
 
 func _on_backend_campaign_event(event: Dictionary) -> void:
 	## Handle campaign event from backend - apply effect!
-	print("PostBattleSequence: Backend campaign event - %s" % event.get("name", "Unknown"))
 	var event_name = event.get("name", "Unknown Event")
 	var event_desc = event.get("description", "")
 	_add_result_to_log("Campaign Event: %s - %s" % [event_name, event_desc])
@@ -227,13 +217,11 @@ func _on_backend_campaign_event(event: Dictionary) -> void:
 		var post_battle_phase = phase_manager.get_phase_handler("post_battle")
 		if post_battle_phase and post_battle_phase.has_method("apply_campaign_event_effect"):
 			post_battle_phase.apply_campaign_event_effect(event)
-			print("PostBattleSequence: Campaign event effect applied")
 
 func _on_backend_character_event(event: Dictionary) -> void:
 	## Handle character event from backend - apply effect!
 	var char_name = event.get("character_name", "Unknown")
 	var event_name = event.get("name", "Unknown Event")
-	print("PostBattleSequence: Backend character event - %s for %s" % [event_name, char_name])
 	_add_result_to_log("%s: %s" % [char_name, event_name])
 
 	# Apply the event effect
@@ -245,7 +233,6 @@ func _on_backend_character_event(event: Dictionary) -> void:
 
 func _on_backend_galactic_war_updated(progress: Dictionary) -> void:
 	## Handle Galactic War update from backend
-	print("PostBattleSequence: Backend Galactic War updated")
 	var planet_results = progress.get("planet_results", [])
 	for result in planet_results:
 		var planet_name = result.get("planet", "Unknown")
@@ -259,7 +246,6 @@ func _on_backend_galactic_war_updated(progress: Dictionary) -> void:
 
 func _on_backend_training_result(training: Array) -> void:
 	## Handle training enrollment result from backend
-	print("PostBattleSequence: Backend training result - %d enrollments" % training.size())
 	for result in training:
 		if result is Dictionary:
 			var crew_name = result.get("crew_name", "Unknown")
@@ -273,14 +259,10 @@ func _on_backend_training_result(training: Array) -> void:
 
 func _on_backend_precursor_event_choice(event1: Dictionary, event2: Dictionary) -> void:
 	## Handle Precursor event choice available - auto-select first event for now
-	print("PostBattleSequence: Backend Precursor event choice available")
-	print("  Event 1: %s" % event1.get("name", "Unknown"))
-	print("  Event 2: %s" % event2.get("name", "Unknown"))
-	# Auto-select first event (TODO: show PrecursorEventChoiceDialog for player selection)
+	# NOTE: Deferred — show PrecursorEventChoiceDialog for player selection instead of auto-selecting
 	_handle_precursor_choice(1, event1, event2)
 
 func _handle_precursor_choice(choice: int, event1: Dictionary, event2: Dictionary) -> void:
-	print("PostBattleSequence: Player selected Precursor event %d" % choice)
 
 	var phase_manager = get_node_or_null("/root/CampaignPhaseManager")
 	if phase_manager and phase_manager.has_method("get_phase_handler"):
@@ -296,7 +278,6 @@ func _handle_precursor_choice(choice: int, event1: Dictionary, event2: Dictionar
 
 func _on_backend_loot_generated(loot: Array) -> void:
 	## Handle loot generated from backend
-	print("PostBattleSequence: Backend loot generated - %d items" % loot.size())
 	for item in loot:
 		if item is Dictionary:
 			var item_name = item.get("name", "Unknown Item")
@@ -304,7 +285,6 @@ func _on_backend_loot_generated(loot: Array) -> void:
 
 func _on_backend_injury_result(injuries: Array) -> void:
 	## Handle injury results from backend
-	print("PostBattleSequence: Backend injuries resolved - %d injuries" % injuries.size())
 	for injury in injuries:
 		if injury is Dictionary:
 			var crew_name = injury.get("crew_name", "Unknown")
@@ -319,7 +299,6 @@ func _on_backend_injury_result(injuries: Array) -> void:
 
 func _on_backend_battlefield_finds(finds: Array) -> void:
 	## Handle battlefield finds from backend
-	print("PostBattleSequence: Backend battlefield finds - %d finds" % finds.size())
 	for find in finds:
 		if find is Dictionary:
 			var description = find.get("description", "Unknown find")
@@ -331,7 +310,6 @@ func _on_backend_battlefield_finds(finds: Array) -> void:
 
 func _on_backend_rival_status(rivals_removed: Array) -> void:
 	## Handle rival status resolution from backend
-	print("PostBattleSequence: Backend rival status - %d rivals resolved" % rivals_removed.size())
 	for rival in rivals_removed:
 		if rival is Dictionary:
 			var rival_name = rival.get("name", "Unknown Rival")
@@ -343,7 +321,6 @@ func _on_backend_rival_status(rivals_removed: Array) -> void:
 
 func _on_backend_patron_status(patrons_added: Array) -> void:
 	## Handle patron status resolution from backend
-	print("PostBattleSequence: Backend patron status - %d patrons updated" % patrons_added.size())
 	for patron in patrons_added:
 		if patron is Dictionary:
 			var patron_name = patron.get("name", "Unknown Patron")
@@ -351,7 +328,6 @@ func _on_backend_patron_status(patrons_added: Array) -> void:
 
 func _on_backend_purchases_made(purchases: Array) -> void:
 	## Handle purchases made from backend
-	print("PostBattleSequence: Backend purchases - %d items" % purchases.size())
 	for purchase in purchases:
 		if purchase is Dictionary:
 			var item_name = purchase.get("name", "Unknown Item")
@@ -360,7 +336,6 @@ func _on_backend_purchases_made(purchases: Array) -> void:
 
 func _on_backend_substep_changed(substep: int) -> void:
 	## Handle substep change from backend - sync UI
-	print("PostBattleSequence: Backend substep changed to %d" % substep)
 	if substep != current_step and substep < max_steps:
 		current_step = substep
 		_show_current_step()
@@ -814,8 +789,6 @@ func _create_bot_upgrade_panel(crew_member: Dictionary) -> Control:
 
 func _on_bot_upgrade_selected(crew_member: Dictionary, upgrade_id: String, button: Button) -> void:
 	## Handle bot upgrade purchase
-	print("PostBattleSequence: Bot upgrade selected - %s for %s" % [upgrade_id, crew_member.get("name", "Unknown")])
-
 	# Get game state for credit deduction
 	var game_state = get_node_or_null("/root/GameStateManager")
 	if not game_state:
@@ -853,12 +826,10 @@ func _on_bot_upgrade_selected(crew_member: Dictionary, upgrade_id: String, butto
 					"upgrade_id": upgrade_id
 				})
 
-			print("PostBattleSequence: Bot upgrade installed successfully")
 		else:
 			# Show error feedback
 			button.text = "❌ Failed"
 			button.modulate = Color("#DC2626")
-			print("PostBattleSequence: Bot upgrade installation failed")
 
 
 func _add_training_content() -> void:
@@ -910,7 +881,6 @@ func _add_purchase_content() -> void:
 			purchase_component.initialize_purchase_phase(credits, stash)
 
 		step_content.add_child(purchase_component)
-		print("PostBattleSequence: PurchaseItemsComponent instantiated with %d credits" % credits)
 	else:
 		# Fallback to simple label if component fails to load
 		var label: Label = Label.new()
@@ -1124,7 +1094,6 @@ func _on_roll_pressed() -> void:
 			result_text += " - " + _interpret_character_event(roll_result)
 
 	_add_result_to_log(result_text)
-	print("PostBattleSequence: Rolled ", roll_result, " for step ", current_step + 1)
 
 func _on_finish_pressed() -> void:
 	## Handle finish button press
@@ -1148,7 +1117,6 @@ func _finish_post_battle() -> void:
 	}
 
 	post_battle_completed.emit(final_results)
-	print("PostBattleSequence: Completed all steps")
 
 	# Phase advancement is handled by CampaignTurnController via post_battle_completed signal.
 	# Do NOT call complete_current_phase() here — it would cause double phase advance.
@@ -1163,7 +1131,6 @@ func _finish_post_battle() -> void:
 
 func _on_back_pressed() -> void:
 	## Handle back button press - return to Campaign Dashboard
-	print("PostBattleSequence: Back pressed - returning to Campaign Dashboard")
 	SceneRouter.navigate_to("campaign_turn_controller")
 
 ## Setup post-battle phase icons for enhanced visual navigation
@@ -1171,23 +1138,15 @@ func _setup_postbattle_icons() -> void:
 	## Setup icons for post-battle phase buttons to improve visual clarity
 	# Phase 2: Post-Battle Phase Icons Integration
 	
-	# Next Button (primary post-battle action) - icon_campaign_post_battle.svg
+	# Next Button (primary post-battle action)
 	if next_button:
-		next_button.icon = preload("res://assets/basic icons/icon_campaign_post_battle.svg")
 		next_button.expand_icon = true
 		next_button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
-		print("PostBattleSequence: Post-battle phase icon applied to next button successfully")
-	else:
-		push_warning("PostBattleSequence: Next button not found for icon assignment")
-	
-	# Finish Button (completion action) - also use post-battle icon
+
+	# Finish Button (completion action)
 	if finish_button:
-		finish_button.icon = preload("res://assets/basic icons/icon_campaign_post_battle.svg")
 		finish_button.expand_icon = true
 		finish_button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
-		print("PostBattleSequence: Post-battle phase icon applied to finish button successfully")
-	else:
-		push_warning("PostBattleSequence: Finish button not found for icon assignment")
 
 # Enhanced roll interpretation functions using Five Parsecs tables
 
@@ -1341,7 +1300,6 @@ func _on_battlefield_find_roll(enemy_num: int) -> void:
 		log_message += " (+%d credits)" % credits
 	_add_result_to_log(log_message)
 	
-	print("PostBattleSequence: Battlefield find - roll=%d, outcome=%s, credits=%d" % [roll, outcome, credits])
 
 func _on_injury_roll(type: String, num: int, is_casualty: bool) -> void:
 	## Handle injury severity roll or narrative selection using FPCM_InjuryService
@@ -1382,12 +1340,10 @@ func _show_narrative_injury_dialog(type: String, num: int, _is_casualty: bool) -
 
 func _on_narrative_injury_selected(injury_data: Dictionary, type: String, num: int) -> void:
 	## Handle narrative injury selection from dialog
-	print("PostBattleSequence: Narrative injury selected - %s" % injury_data.get("type_name", "Unknown"))
 	_apply_injury_result(type, num, injury_data, -1)  # -1 indicates narrative selection
 
 func _on_narrative_injury_cancelled(type: String, num: int) -> void:
 	## Handle narrative injury dialog cancelled - fall back to rolling
-	print("PostBattleSequence: Narrative injury cancelled, falling back to roll")
 	# Roll instead
 	var dice_manager = get_node_or_null("/root/DiceManager")
 	var roll = 0
@@ -1526,7 +1482,6 @@ func _add_loot_to_inventory(loot_items: Array) -> void:
 						pool = gs_ref.campaign.equipment_data.get("equipment", [])
 					pool.append(equipment_data.duplicate())
 					gs_ref.campaign.equipment_data["equipment"] = pool
-				print("PostBattle: Added %s to ship stash" % equipment_data.get("name", "item"))
 			else:
 				items_lost += 1
 				push_warning("PostBattle: Ship stash full - lost %s" % equipment_data.get("name", "item"))
@@ -1540,7 +1495,6 @@ func _add_loot_to_inventory(loot_items: Array) -> void:
 	if items_lost > 0:
 		summary += " (%d items lost - stash full)" % items_lost
 	
-	print("PostBattle Loot: +%d credits, +%d items, %d lost (stash full)" % [credits_gained, items_added, items_lost])
 	_add_result_to_log(summary)
 
 func _generate_loot_item_name(loot_type: String) -> String:
@@ -1654,7 +1608,6 @@ func _get_war_events() -> Array:
 
 func _on_war_panel_closed() -> void:
 	## Handle war panel closed signal
-	print("PostBattleSequence: War panel closed")
 	_advance_to_next_step()
 
 func _advance_to_next_step() -> void:
@@ -1684,8 +1637,6 @@ func _get_current_credits() -> int:
 
 func _on_training_completed(character: Resource, training_type: String) -> void:
 	## Handle training completion from TrainingSelectionDialog
-	print("PostBattleSequence: Training completed - Character: ", character.get("character_name") if character else "Unknown", " Type: ", training_type)
-
 	# Store training result
 	if current_step >= 0 and current_step < step_results.size():
 		if not step_results[current_step].has("training_completed"):
@@ -1702,9 +1653,9 @@ func _on_training_completed(character: Resource, training_type: String) -> void:
 
 func _on_training_closed() -> void:
 	## Handle training dialog closed signal
-	print("PostBattleSequence: Training dialog closed")
 	# Note: Do NOT auto-advance - user may want to train multiple characters
 	# They will manually click Next when done
+	pass
 
 ## BP-6: Show error dialog instead of silent failure
 func _show_error_dialog(title: String, message: String) -> void:

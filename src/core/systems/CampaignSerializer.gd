@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 class_name CampaignSerializer
 extends RefCounted
 
@@ -24,7 +24,6 @@ static func serialize_character(character: Character) -> Dictionary:
 	if not character:
 		return {}
 	
-	print("CampaignSerializer: Serializing character %s" % character.character_name)
 	
 	return {
 		"type": SerializationType.CHARACTER,
@@ -72,7 +71,6 @@ static func deserialize_character(data: Dictionary) -> Character:
 		push_error("CampaignSerializer: Invalid character data for deserialization")
 		return null
 	
-	print("CampaignSerializer: Deserializing character %s" % data.get("name", "Unknown"))
 	
 	var character = Character.new()
 	
@@ -195,7 +193,6 @@ static func deserialize_rival(data: Dictionary) -> Dictionary:
 
 ## Serialize complete campaign state
 static func serialize_campaign_state(campaign_state: Dictionary) -> Dictionary:
-	print("CampaignSerializer: Serializing complete campaign state")
 	
 	var serialized = {
 		"type": SerializationType.CAMPAIGN_STATE,
@@ -211,7 +208,6 @@ static func serialize_campaign_state(campaign_state: Dictionary) -> Dictionary:
 		"is_complete": campaign_state.get("is_complete", false)
 	}
 	
-	print("CampaignSerializer: Campaign state serialization complete")
 	return serialized
 
 ## Deserialize complete campaign state
@@ -220,7 +216,6 @@ static func deserialize_campaign_state(data: Dictionary) -> Dictionary:
 		push_error("CampaignSerializer: Invalid campaign state data")
 		return {}
 	
-	print("CampaignSerializer: Deserializing campaign state version %s" % data.get("version", "unknown"))
 	
 	var campaign_state = {
 		"crew": _deserialize_crew_data(data.get("crew", {})),
@@ -397,7 +392,7 @@ static func _serialize_character_property(property_name: String, value: Variant)
 	
 	# Log performance for monitoring
 	if OS.is_debug_build() and global_enums.MIGRATION_FLAGS.get("log_performance", false):
-		print("[SERIALIZER] %s serialization: %d μs" % [property_name, duration])
+		pass
 	
 	# Return future-proof format with dual values for maximum compatibility
 	return {
@@ -487,9 +482,9 @@ static func _deserialize_character_property(property_name: String, serialized_da
 	# Log performance and migration events
 	if OS.is_debug_build():
 		if global_enums.MIGRATION_FLAGS.get("log_performance", false):
-			print("[SERIALIZER] %s deserialization: %d μs" % [property_name, duration])
+			pass
 		if migration_occurred and global_enums.MIGRATION_FLAGS.get("log_migrations", false):
-			print("[SERIALIZER] Migrated %s: %s -> %s" % [property_name, serialized_data, result])
+			pass
 	
 	return result
 
@@ -532,7 +527,6 @@ static func needs_migration(data: Dictionary) -> bool:
 static func migrate_data(data: Dictionary) -> Dictionary:
 	var data_version = data.get("version", "0.0.0")
 	
-	print("CampaignSerializer: Migrating data from version %s to %s" % [data_version, CURRENT_VERSION])
 	
 	var migrated_data = data.duplicate(true)
 	

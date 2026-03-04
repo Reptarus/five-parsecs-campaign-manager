@@ -4,7 +4,6 @@ extends Node
 class_name PreBattleLoop
 
 ## Dependencies
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
@@ -156,7 +155,7 @@ func _get_mission_description(mission: Dictionary) -> String:
 	return _get_mission_property(mission, "description", "No description available")
 
 func _get_mission_battle_type(mission: Dictionary) -> int:
-	return _get_mission_property(mission, "battle_type", GameEnums.BattleType.NONE)
+	return _get_mission_property(mission, "battle_type", GlobalEnums.BattleType.NONE)
 
 func _get_mission_enemy_force(mission: Dictionary) -> Array:
 	return _get_mission_property(mission, "enemy_force", [])
@@ -171,7 +170,7 @@ func _get_mission_special_conditions(mission: Dictionary) -> Array:
 	return _get_mission_property(mission, "special_conditions", [])
 
 func _get_mission_difficulty(mission: Dictionary) -> int:
-	return _get_mission_property(mission, "difficulty", GameEnums.DifficultyLevel.NORMAL)
+	return _get_mission_property(mission, "difficulty", GlobalEnums.DifficultyLevel.NORMAL)
 
 ## Setup the battle preview
 func _setup_battle_preview() -> void:
@@ -235,11 +234,11 @@ func _validate_battle_readiness() -> bool:
 func _prepare_battle_data() -> Dictionary:
 	var battle_data := {
 		"mission_id": current_mission.get("id", ""),
-		"mission_type": current_mission.get("battle_type", GameEnums.BattleType.NONE),
-		"difficulty": current_mission.get("difficulty", GameEnums.DifficultyLevel.NORMAL),
+		"mission_type": current_mission.get("battle_type", GlobalEnums.BattleType.NONE),
+		"difficulty": current_mission.get("difficulty", GlobalEnums.DifficultyLevel.NORMAL),
 		"battlefield_config": {
 			"size": Vector2i(24, 24), # Default size
-			"environment": GameEnums.PlanetEnvironment.URBAN, # Default environment
+			"environment": GlobalEnums.PlanetEnvironment.URBAN, # Default environment
 			"cover_density": 0.2
 		},
 		"player_units": _prepare_player_units_data(),
@@ -375,7 +374,7 @@ func _validate_mission(mission: Dictionary) -> bool:
 	if mission.is_empty():
 		return false
 		
-	if _get_mission_battle_type(mission) == GameEnums.BattleType.NONE:
+	if _get_mission_battle_type(mission) == GlobalEnums.BattleType.NONE:
 		return false
 		
 	if _get_mission_enemy_force(mission).is_empty():

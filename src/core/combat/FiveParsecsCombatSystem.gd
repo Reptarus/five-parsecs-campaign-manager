@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 class_name FiveParsecsCombatSystem
 
 ## Five Parsecs Combat System - Consolidated Implementation
@@ -70,7 +70,6 @@ const COVER_MODIFIER = -1  # -1 to hit when in cover
 const HEIGHT_ADVANTAGE = 1  # +1 to hit from higher ground
 
 func _ready() -> void:
-	print("FiveParsecsCombatSystem: Initialized consolidated combat system")
 	_setup_combat_systems()
 
 func _setup_combat_systems() -> void:
@@ -86,7 +85,6 @@ func _setup_combat_systems() -> void:
 
 func start_combat(crew: Array, enemies: Array, mission_data: Dictionary = {}) -> void:
 	## Start a Five Parsecs combat encounter
-	print("FiveParsecsCombatSystem: Starting combat encounter")
 
 	# Initialize combat data - accept untyped arrays for compatibility
 	crew_characters.clear()
@@ -120,7 +118,6 @@ func start_combat(crew: Array, enemies: Array, mission_data: Dictionary = {}) ->
 func _advance_to_deployment() -> void:
 	## Handle deployment phase
 	current_phase = CombatPhase.DEPLOYMENT
-	print("FiveParsecsCombatSystem: Deployment phase")
 	
 	# Deploy characters (simplified Five Parsecs deployment)
 	_deploy_characters()
@@ -153,12 +150,10 @@ func _advance_to_battle() -> void:
 	current_turn = 1
 	active_faction = "crew"  # Crew always goes first in Five Parsecs
 	
-	print("FiveParsecsCombatSystem: Battle phase started")
 	_start_turn()
 
 func _start_turn() -> void:
 	## Start a new turn for the active faction
-	print("FiveParsecsCombatSystem: Turn %d - %s faction" % [current_turn, active_faction])
 	turn_started.emit(current_turn, active_faction)
 
 	# Roll reaction dice at start of crew's turn (Five Parsecs rules)
@@ -197,7 +192,6 @@ func roll_reaction_dice() -> void:
 	unassigned_dice.sort()
 	unassigned_dice.reverse()
 
-	print("FiveParsecsCombatSystem: Rolled %d reaction dice: %s" % [crew_size, str(reaction_dice_pool)])
 	reaction_dice_rolled.emit(reaction_dice_pool, crew_size)
 
 func assign_reaction_die(character: Character, die_index: int) -> bool:
@@ -215,11 +209,6 @@ func assign_reaction_die(character: Character, die_index: int) -> bool:
 	# Determine if Quick Action (die <= Reactions stat) or Slow Action (die > Reactions)
 	var reactions_stat = _get_character_reactions(character)
 	var is_quick = die_value <= reactions_stat
-
-	print("FiveParsecsCombatSystem: %s assigned die %d (Reactions: %d) - %s Action" % [
-		character.character_name, die_value, reactions_stat,
-		"Quick" if is_quick else "Slow"
-	])
 
 	reaction_dice_assigned.emit(character.character_name, die_value, is_quick)
 	return true
@@ -261,7 +250,6 @@ func _activate_character(character: Character) -> void:
 	active_character = character
 	character_activated.emit(character)
 	
-	print("FiveParsecsCombatSystem: Activating %s" % character.character_name)
 	
 	# AI or player decision making would happen here
 	# For now, perform a basic action
@@ -372,9 +360,8 @@ func _perform_ranged_attack(attacker: Character, target: Character) -> Dictionar
 		result["damage"] = damage
 		result["target_health"] = target.health
 		
-		print("FiveParsecsCombatSystem: %s hits %s for %d damage" % [attacker.character_name, target.character_name, damage])
 	else:
-		print("FiveParsecsCombatSystem: %s misses %s" % [attacker.character_name, target.character_name])
+		pass
 	
 	combat_result_calculated.emit(attacker, target, result)
 	return result
@@ -467,7 +454,6 @@ func _end_combat() -> void:
 	elif living_enemies > 0 and living_crew == 0:
 		result.victory = "enemy"
 	
-	print("FiveParsecsCombatSystem: Combat ended - %s victory" % result.victory)
 	combat_ended.emit(result)
 	
 	# Cleanup
@@ -489,7 +475,6 @@ func _cleanup_combat() -> void:
 	reaction_dice_assignments.clear()
 	unassigned_dice.clear()
 
-	print("FiveParsecsCombatSystem: Combat cleanup completed")
 
 ## Utility Methods
 

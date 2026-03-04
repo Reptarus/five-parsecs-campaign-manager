@@ -73,37 +73,26 @@ static func run_diagnostics(campaign_ui: Node) -> Dictionary:
 
 static func print_diagnostic_report(results: Dictionary) -> void:
 	## Print formatted diagnostic report
-	print("\n========== PANEL SYSTEM DIAGNOSTICS ==========")
 	
-	print("\n[COORDINATOR STATUS]")
-	print("  Type: %s" % results.coordinator_type)
 	if results.coordinator_type == "Node":
-		print("  ✓ Coordinator type is correct")
+		pass
 	else:
-		print("  ✗ CRITICAL: Coordinator should extend Node!")
+		pass
 	
-	print("\n[PANEL CLEARING]")
 	for item in results.panel_clearing:
-		print("  %s" % item)
+		pass
 	
-	print("\n[SIGNAL CONNECTIONS]")
 	for item in results.signal_connections:
-		print("  %s" % item)
+		pass
 	
-	print("\n[CONTENT CONTAINER]")
-	print("  %s" % results.content_container)
 	
 	if results.overlay_detection.size() > 0:
-		print("\n[OVERLAY DETECTION]")
 		for item in results.overlay_detection:
-			print("  %s" % item)
+			pass
 	
 	if results.errors.size() > 0:
-		print("\n[ERRORS FOUND]")
 		for error in results.errors:
-			print("  ✗ %s" % error)
+			pass
 	else:
-		print("\n[STATUS]")
-		print("  ✓ No critical errors detected")
+		pass
 	
-	print("\n==============================================\n")

@@ -4,8 +4,6 @@ extends BaseMissionGenerator
 
 const Self = preload("res://src/game/campaign/FiveParsecsMissionGenerator.gd")
 const BaseMissionGenerator = preload("res://src/base/campaign/BaseMissionGenerator.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 # Five Parsecs specific mission types
 enum FiveParsecsMissionType {
 	BATTLE = 0,

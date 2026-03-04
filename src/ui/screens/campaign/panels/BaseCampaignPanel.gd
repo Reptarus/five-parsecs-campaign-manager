@@ -60,13 +60,11 @@ func _exit_tree() -> void:
 	if coordinator and coordinator.has_signal("campaign_state_updated"):
 		if coordinator.is_connected("campaign_state_updated", _on_campaign_state_updated):
 			coordinator.disconnect("campaign_state_updated", _on_campaign_state_updated)
-			print("%s: ✅ Disconnected from coordinator.campaign_state_updated" % name)
 
 	# Disconnect from ResponsiveManager
 	if _responsive_manager and _responsive_manager.breakpoint_changed.is_connected(_on_responsive_breakpoint_changed):
 		_responsive_manager.breakpoint_changed.disconnect(_on_responsive_breakpoint_changed)
 
-	print("%s: Panel cleanup completed" % name)
 
 func _ensure_panel_structure() -> void:
 	## Ensure the expected node structure exists for panels
@@ -93,7 +91,7 @@ func _ensure_panel_structure() -> void:
 	form_content.add_child(form_container)
 	
 	content_container = form_container
-	print("BaseCampaignPanel: Created panel structure for %s" % get_class())
+	pass # Panel structure created
 
 ## Core Interface - Override in derived classes
 # Validation state
@@ -160,20 +158,17 @@ func _update_panel_display() -> void:
 	if has_node("ContentMargin/MainContent/Header/Title"):
 		var title_label = $ContentMargin/MainContent/Header/Title
 		title_label.text = panel_title
-		print("BaseCampaignPanel: Updated title to '%s'" % panel_title)
 	
 	# Update header description if it exists
 	if has_node("ContentMargin/MainContent/Header/Description"):
 		var desc_label = $ContentMargin/MainContent/Header/Description
 		desc_label.text = panel_description
-		print("BaseCampaignPanel: Updated description to '%s'" % panel_description)
 
 ## Simple validation and completion
 func _validate_and_emit_completion() -> void:
 	## Validate panel and emit appropriate signals - safe for all panels
 	# Ensure panel is fully initialized before validation
 	if not is_inside_tree():
-		print("BaseCampaignPanel: Skipping validation - panel not in tree yet")
 		return
 		
 	var is_valid = validate_panel()
@@ -182,11 +177,9 @@ func _validate_and_emit_completion() -> void:
 	if is_valid:
 		var data = get_panel_data()
 		panel_completed.emit(data)
-		print("BaseCampaignPanel: Panel validation passed, emitted completion")
 	else:
 		var errors: Array[String] = ["Panel validation failed"]
 		validation_failed.emit(errors)
-		print("BaseCampaignPanel: Panel validation failed")
 
 ## Override in derived classes
 func _setup_panel_content() -> void:
@@ -199,7 +192,7 @@ func _setup_panel_content() -> void:
 func _setup_responsive_layout() -> void:
 	## Initialize responsive layout system on panel load
 	_apply_responsive_layout()
-	print("BaseCampaignPanel: Responsive layout initialized - Mode: %s" % _get_layout_mode_name())
+	pass # Responsive layout initialized
 
 func _on_viewport_resized() -> void:
 	## Handle viewport resize events to update layout
@@ -208,10 +201,7 @@ func _on_viewport_resized() -> void:
 
 	# Only log if layout mode changed
 	if current_layout_mode != previous_mode:
-		print("BaseCampaignPanel: Layout mode changed: %s → %s" % [
-			_get_layout_mode_name(previous_mode),
-			_get_layout_mode_name()
-		])
+		pass # Layout mode changed
 
 func _apply_responsive_layout() -> void:
 	## Apply responsive layout based on current viewport width
@@ -326,11 +316,7 @@ func _on_responsive_breakpoint_changed(new_breakpoint: int) -> void:
 	# Only update if mode actually changed
 	if current_layout_mode != previous_mode:
 		_update_layout_for_mode()
-		print("%s: Layout updated via ResponsiveManager: %s → %s" % [
-			name,
-			_get_layout_mode_name(previous_mode),
-			_get_layout_mode_name()
-		])
+		pass # Layout updated via ResponsiveManager
 
 # ============ RESPONSIVE HELPER METHODS ============
 
@@ -412,7 +398,6 @@ func emit_data_changed() -> void:
 func safe_validate_and_complete() -> void:
 	## Safe wrapper for validation that checks panel state first
 	if not is_inside_tree():
-		print("BaseCampaignPanel: Cannot validate - panel not ready")
 		return
 	_validate_and_emit_completion()
 
@@ -420,19 +405,17 @@ func safe_validate_and_complete() -> void:
 func emit_panel_ready() -> void:
 	## Emit panel ready signal for coordinator communication
 	panel_ready.emit()
-	print("%s: Panel ready signal emitted" % get_class())
+	pass # Panel ready signal emitted
 
 ## Coordinator Integration Methods (Phase 0: Foundation)
 func set_coordinator(coord) -> void:
 	## Set coordinator reference for panel integration
 	_coordinator = coord
-	print("%s: Coordinator set" % panel_title)
 	call_deferred("_on_coordinator_set") # Defer to ensure panel is ready
 
 func set_state_manager(manager) -> void:
 	## Set state manager reference for panel integration
 	_state_manager = manager
-	print("%s: State manager set" % panel_title)
 
 func get_coordinator():
 	## Get coordinator with fallback to owner
@@ -463,7 +446,6 @@ func safe_get_node(path: String, fallback_creation_func: Callable = Callable()) 
 			if parent:
 				parent.add_child(node)
 				node.name = path.rsplit("/", true, 1)[1] if "/" in path else path
-				print("BaseCampaignPanel: Created fallback node: %s" % path)
 	return node
 
 func safe_get_child_node(parent: Node, child_name: String, fallback_creation_func: Callable = Callable()) -> Node:
@@ -478,7 +460,6 @@ func safe_get_child_node(parent: Node, child_name: String, fallback_creation_fun
 		if node:
 			parent.add_child(node)
 			node.name = child_name
-			print("BaseCampaignPanel: Created fallback child: %s" % child_name)
 	return node
 
 func create_basic_container(container_type: String = "VBox") -> Control:
@@ -518,11 +499,10 @@ func sync_with_coordinator() -> void:
 		var state = coordinator.get_unified_campaign_state()
 		if state.has(panel_phase_key) and state[panel_phase_key] != null:
 			_on_campaign_state_updated(state)
-			print("%s: Synced with coordinator - phase key: %s" % [name, panel_phase_key])
 		else:
-			print("%s: No data for phase key: %s" % [name, panel_phase_key])
+			pass
 	else:
-		print("%s: Coordinator has no get_unified_campaign_state method" % name)
+		pass
 
 func get_coordinator_reference():
 	## Try multiple methods to find coordinator - defensive search
@@ -559,7 +539,6 @@ func get_coordinator_reference():
 func set_panel_phase_key(key: String) -> void:
 	## Set the phase key for state synchronization
 	panel_phase_key = key
-	print("%s: Set phase key to '%s'" % [name, key])
 
 # Virtual method for panels to override when receiving state updates
 func _on_campaign_state_updated(state_data: Dictionary) -> void:
@@ -576,7 +555,7 @@ func _on_campaign_state_updated(state_data: Dictionary) -> void:
 
 func _handle_campaign_state_update(state_data: Dictionary) -> void:
 	## Override this method in derived panels instead of _on_campaign_state_updated
-	print("%s: Received state update with keys: %s" % [name, str(state_data.keys())])
+	pass # State update received
 	pass
 
 ## Helper method for safe signal emission (prevents update loops)
@@ -584,10 +563,9 @@ func _emit_panel_data_changed(data: Dictionary) -> void:
 	## Safely emit panel_data_changed only when not processing coordinator updates.
 	## Use this instead of emitting panel_data_changed directly.
 	if _is_updating_from_coordinator:
-		print("%s: ⏭️ Skipping panel_data_changed emission (coordinator update in progress)" % name)
+		pass # Skipping emission during coordinator update
 		return
 
-	print("%s: ✅ Emitting panel_data_changed" % name)
 	panel_data_changed.emit(data)
 
 

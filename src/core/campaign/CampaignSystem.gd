@@ -1,7 +1,5 @@
 @tool
 extends Node
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsCampaign = preload("res://src/game/campaign/FiveParsecsCampaign.gd")
 const Campaign = preload("res://src/core/campaign/Campaign.gd")
 const GameState = preload("res://src/core/state/GameState.gd")
@@ -23,7 +21,7 @@ signal mission_setup_complete() # No arguments
 signal mission_completed(success: bool)
 
 ## Variables
-var campaign_type: int = GameEnums.FiveParcsecsCampaignType.STANDARD
+var campaign_type: int = GlobalEnums.FiveParcsecsCampaignType.STANDARD
 var total_resources: int = 0
 var reputation: int = 0
 var completed_missions: int = 0
@@ -170,14 +168,14 @@ func create_campaign(config: Dictionary) -> Object:
 		return null
 		
 	campaign.campaign_name = config.get("name", "New Campaign")
-	campaign.campaign_difficulty = config.get("difficulty", GameEnums.DifficultyLevel.NORMAL)
+	campaign.campaign_difficulty = config.get("difficulty", GlobalEnums.DifficultyLevel.NORMAL)
 	
 	# Use type-safe property assignment with fallback to dictionary
 	_set_campaign_property(campaign, "victory_condition",
-		config.get("victory_condition", GameEnums.FiveParcsecsCampaignVictoryType.STANDARD))
+		config.get("victory_condition", GlobalEnums.FiveParcsecsCampaignVictoryType.STANDARD))
 	
 	_set_campaign_property(campaign, "crew_size",
-		config.get("crew_size", GameEnums.CrewSize.FOUR))
+		config.get("crew_size", GlobalEnums.CrewSize.FOUR))
 	
 	_set_campaign_property(campaign, "use_story_track",
 		config.get("use_story_track", true))
@@ -338,8 +336,8 @@ func end_mission(success: bool = true) -> void:
 ## Get current mission phase
 func get_mission_phase() -> int:
 	if not current_mission:
-		return GameEnums.BattlePhase.NONE
-	return current_mission.get_meta("phase", GameEnums.BattlePhase.NONE)
+		return GlobalEnums.BattlePhase.NONE
+	return current_mission.get_meta("phase", GlobalEnums.BattlePhase.NONE)
 
 ## Set mission phase
 func set_mission_phase(phase: int) -> void:

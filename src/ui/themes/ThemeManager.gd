@@ -3,7 +3,6 @@
 # Use explicit preloads instead of global class names
 extends Node
 
-const Self = preload("res://src/ui/themes/ThemeManager.gd")
 
 ## A centralized manager for handling application themes with Godot 4.4 features
 ##
@@ -12,8 +11,6 @@ const Self = preload("res://src/ui/themes/ThemeManager.gd")
 ## and improves UI rendering performance through caching and batched updates.
 
 # Dependencies
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 ## Emitted when the active theme changes
 signal theme_changed(theme_name: String)
 ## Emitted when the UI scale is changed

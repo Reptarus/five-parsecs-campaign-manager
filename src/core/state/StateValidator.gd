@@ -5,8 +5,6 @@
 # This class is now implemented as StateValidationManager (without class_name)
 # Use explicit preloads to reference this class: preload("res://src/core/state/StateValidator.gd")
 extends Node
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 
 signal validation_complete(results: Array)
@@ -32,7 +30,7 @@ enum ValidationScope {
 
 ## Validation results
 class StateValidationResult:
-	var type: int = GameEnums.VerificationType.NONE
+	var type: int = GlobalEnums.VerificationType.NONE
 	var scope: int = 0
 	var result: int = 0
 	var message: String = ""
@@ -50,13 +48,13 @@ class StateValidationResult:
 		context = p_context
 	
 	func is_error() -> bool:
-		return result == GameEnums.VerificationResult.ERROR or result == GameEnums.VerificationResult.CRITICAL
+		return result == GlobalEnums.VerificationResult.ERROR or result == GlobalEnums.VerificationResult.CRITICAL
 	
 	func is_warning() -> bool:
-		return result == GameEnums.VerificationResult.WARNING
+		return result == GlobalEnums.VerificationResult.WARNING
 	
 	func is_success() -> bool:
-		return result == GameEnums.VerificationResult.SUCCESS
+		return result == GlobalEnums.VerificationResult.SUCCESS
 
 # Factory method to create ValidationResult objects
 func create_result(
@@ -75,8 +73,8 @@ func validate_game_state(game_state: FiveParsecsGameState) -> Array:
 	# Validate basic state integrity
 	if not game_state:
 		results.append(create_result(
-			GameEnums.VerificationType.STATE,
-			GameEnums.VerificationResult.ERROR,
+			GlobalEnums.VerificationType.STATE,
+			GlobalEnums.VerificationResult.ERROR,
 			"Game state is null or invalid"
 		))
 		return results
@@ -84,54 +82,54 @@ func validate_game_state(game_state: FiveParsecsGameState) -> Array:
 	# Check if the campaign is valid
 	if not game_state.has_active_campaign():
 		results.append(create_result(
-			GameEnums.VerificationType.STATE,
-			GameEnums.VerificationResult.WARNING,
+			GlobalEnums.VerificationType.STATE,
+			GlobalEnums.VerificationResult.WARNING,
 			"No active campaign"
 		))
 	
 	# Check if the crew is valid
 	if not game_state.has_crew():
 		results.append(create_result(
-			GameEnums.VerificationType.STATE,
-			GameEnums.VerificationResult.WARNING,
+			GlobalEnums.VerificationType.STATE,
+			GlobalEnums.VerificationResult.WARNING,
 			"No active crew"
 		))
 	else:
 		var crew_size = game_state.get_crew_size()
 		if crew_size < 1:
 			results.append(create_result(
-				GameEnums.VerificationType.STATE,
-				GameEnums.VerificationResult.ERROR,
+				GlobalEnums.VerificationType.STATE,
+				GlobalEnums.VerificationResult.ERROR,
 				"Crew size is invalid: " + str(crew_size)
 			))
 	
 	# Check resources
 	if not game_state.has_method("has_resource"):
 		results.append(create_result(
-			GameEnums.VerificationType.STATE,
-			GameEnums.VerificationResult.WARNING,
+			GlobalEnums.VerificationType.STATE,
+			GlobalEnums.VerificationResult.WARNING,
 			"GameState missing has_resource method"
 		))
 	else:
-		if not game_state.has_resource(GameEnums.ResourceType.CREDITS):
+		if not game_state.has_resource(GlobalEnums.ResourceType.CREDITS):
 			results.append(create_result(
-				GameEnums.VerificationType.STATE,
-				GameEnums.VerificationResult.WARNING,
+				GlobalEnums.VerificationType.STATE,
+				GlobalEnums.VerificationResult.WARNING,
 				"No credits resource found"
 			))
 		
-		if not game_state.has_resource(GameEnums.ResourceType.FUEL):
+		if not game_state.has_resource(GlobalEnums.ResourceType.FUEL):
 			results.append(create_result(
-				GameEnums.VerificationType.STATE,
-				GameEnums.VerificationResult.WARNING,
+				GlobalEnums.VerificationType.STATE,
+				GlobalEnums.VerificationResult.WARNING,
 				"No fuel resource found"
 			))
 	
 	# Check if there's a current location
 	if not game_state.get_current_location():
 		results.append(create_result(
-			GameEnums.VerificationType.STATE,
-			GameEnums.VerificationResult.WARNING,
+			GlobalEnums.VerificationType.STATE,
+			GlobalEnums.VerificationResult.WARNING,
 			"No current location set"
 		))
 	
@@ -262,8 +260,8 @@ func run_validation(game_state: FiveParsecsGameState, validation_type: Validatio
 				results = validate_campaign_state(game_state.get_active_campaign_data())
 			else:
 				results.append(create_result(
-					GameEnums.VerificationType.STATE,
-					GameEnums.VerificationResult.ERROR,
+					GlobalEnums.VerificationType.STATE,
+					GlobalEnums.VerificationResult.ERROR,
 					"No active campaign to validate"
 				))
 		ValidationType.CHARACTER_STATE:
@@ -272,8 +270,8 @@ func run_validation(game_state: FiveParsecsGameState, validation_type: Validatio
 					results.append_array(validate_character(character))
 			else:
 				results.append(create_result(
-					GameEnums.VerificationType.STATE,
-					GameEnums.VerificationResult.ERROR,
+					GlobalEnums.VerificationType.STATE,
+					GlobalEnums.VerificationResult.ERROR,
 					"No crew to validate characters"
 				))
 	

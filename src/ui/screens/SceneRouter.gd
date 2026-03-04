@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 
 ## Central router for managing scene transitions in Five Parsecs Campaign Manager
 ## Handles navigation between all game screens and maintains navigation history
@@ -73,7 +73,10 @@ const SCENE_PATHS = {
 
 	# Tutorial
 	"tutorial_selection": "res://src/ui/screens/tutorial/TutorialSelection.tscn",
-	"new_campaign_tutorial": "res://src/ui/screens/tutorial/NewCampaignTutorial.tscn"
+	"new_campaign_tutorial": "res://src/ui/screens/tutorial/NewCampaignTutorial.tscn",
+
+	# Help / Library
+	"help": "res://src/ui/help/HelpScreen.tscn"
 }
 
 # Navigation history for back button functionality
@@ -99,7 +102,6 @@ const CAMPAIGN_CREATION_SCENES = [
 var scene_contexts: Dictionary = {} # String -> Dictionary
 
 func _ready() -> void:
-	print("SceneRouter: Initialized with ", SCENE_PATHS.size(), " registered scenes")
 	# Validate critical scenes on startup
 	_validate_critical_scenes()
 	
@@ -110,7 +112,6 @@ func _ready() -> void:
 ## Navigate to a specific scene
 
 func navigate_to(scene_name: String, context: Dictionary = {}, add_to_history: bool = true, with_transition: bool = true) -> void:
-	print("SceneRouter: Navigating to ", scene_name)
 
 	if not SCENE_PATHS.has(scene_name):
 		var error_msg: String = "Scene not found: " + str(scene_name)
@@ -124,7 +125,6 @@ func navigate_to(scene_name: String, context: Dictionary = {}, add_to_history: b
 
 	# Try to use cached scene first for better performance
 	if preload_enabled and scene_cache.has(scene_name):
-		print("SceneRouter: Using cached scene for ", scene_name)
 		var cached_scene = scene_cache[scene_name]
 		if cached_scene and is_instance_valid(cached_scene):
 			_transition_to_cached_scene(scene_name, cached_scene, add_to_history)
@@ -182,7 +182,6 @@ func navigate_back() -> void:
 		return
 	
 	var previous_scene = navigation_history.pop_back()
-	print("SceneRouter: Navigating back to ", previous_scene)
 	@warning_ignore("unsafe_call_argument")
 	navigate_to(previous_scene, {}, false) # Don't add to history when going back
 
@@ -197,7 +196,6 @@ func get_navigation_history() -> Array[String]:
 ## Clear navigation history
 func clear_history() -> void:
 	navigation_history.clear()
-	print("SceneRouter: Navigation history cleared")
 
 ## Check if a scene exists in the router
 
@@ -262,7 +260,7 @@ func navigate_to_campaign_phase(phase: String) -> void:
 		@warning_ignore("unsafe_call_argument")
 		navigate_to(scene_name)
 	else:
-		print("SceneRouter: Unknown campaign phase: ", phase)
+		pass
 
 ## Quick navigation methods for common flows
 
@@ -286,7 +284,6 @@ func navigate_to_main_game() -> void:
 
 func change_scene(scene_path: String) -> void:
 	# Direct scene change using file path - for compatibility
-	print("SceneRouter: Direct scene change to ", scene_path)
 	get_tree().call_deferred("change_scene_to_file", scene_path)
 
 func open_character_management() -> void:
@@ -323,7 +320,6 @@ func preload_scene(scene_name: String) -> void:
 	if loading_scenes.get(scene_name, false):
 		return # Already loading
 	
-	print("SceneRouter: Preloading scene: ", scene_name)
 	loading_scenes[scene_name] = true
 	
 	var scene_path = SCENE_PATHS[scene_name]
@@ -331,7 +327,6 @@ func preload_scene(scene_name: String) -> void:
 	
 	if packed_scene:
 		_add_to_cache(scene_name, packed_scene)
-		print("SceneRouter: Successfully preloaded: ", scene_name)
 	else:
 		push_error("SceneRouter: Failed to preload scene: " + scene_path)
 	
@@ -339,7 +334,6 @@ func preload_scene(scene_name: String) -> void:
 
 func preload_campaign_scenes() -> void:
 	## Preload all campaign creation flow scenes
-	print("SceneRouter: Preloading campaign creation scenes...")
 	for scene_name in CAMPAIGN_CREATION_SCENES:
 		preload_scene(scene_name)
 
@@ -356,7 +350,6 @@ func clear_scene_cache() -> void:
 	## Clear all cached scenes
 	scene_cache.clear()
 	loading_scenes.clear()
-	print("SceneRouter: Scene cache cleared")
 
 func get_cache_info() -> Dictionary:
 	## Get cache information for debugging
@@ -388,7 +381,6 @@ func _transition_to_cached_scene(scene_name: String, packed_scene: PackedScene, 
 
 		scene_changed.emit(scene_name, previous_scene)
 		_preload_campaign_flow_scenes(scene_name)
-		print("SceneRouter: Successfully transitioned to cached scene: ", scene_name)
 	else:
 		push_error("SceneRouter: Failed to instantiate cached scene: " + scene_name)
 
@@ -398,7 +390,6 @@ func _add_to_cache(scene_name: String, packed_scene: PackedScene) -> void:
 	if scene_cache.size() >= max_cache_size:
 		var oldest_key = scene_cache.keys()[0]
 		scene_cache.erase(oldest_key)
-		print("SceneRouter: Removed oldest cached scene: ", oldest_key)
 	
 	scene_cache[scene_name] = packed_scene
 
@@ -459,9 +450,8 @@ func _validate_critical_scenes() -> void:
 	
 	if not missing_critical.is_empty():
 		push_error("SceneRouter: CRITICAL - Missing essential scenes: " + str(missing_critical))
-		print("SceneRouter: These scenes are required for basic functionality")
 	else:
-		print("SceneRouter: All critical scenes validated successfully")
+		pass
 
 func validate_all_scenes() -> bool:
 	# Validate that all registered scene files exist
@@ -487,15 +477,11 @@ func print_validation_results() -> void:
 	# Print validation results for all scenes
 	@warning_ignore("untyped_declaration")
 	var results = validate_all_scenes()
-	print("SceneRouter Validation Results:")
-	@warning_ignore("unsafe_method_access")
-	print("Valid scenes (", results.valid.size(), "): ", results.valid)
 	@warning_ignore("unsafe_method_access")
 	if results.missing.size() > 0:
 		@warning_ignore("unsafe_method_access")
-		print("Missing scenes (", results.missing.size(), "): ", results.missing)
-	else:
-		print("All scenes validated successfully!")
+		push_warning("SceneRouter: Missing scenes (%d): %s" % [results.missing.size(), str(results.missing)])
+
 
 func get_scene_info() -> Dictionary:
 	# Get comprehensive scene information
@@ -523,9 +509,7 @@ func navigate_back_with_transition() -> void:
 func set_transitions_enabled(enabled: bool) -> void:
 	## Enable or disable scene transitions
 	use_transitions = enabled
-	print("SceneRouter: Transitions ", "enabled" if enabled else "disabled")
 
 func set_transition_duration(duration: float) -> void:
 	## Set the default transition duration (seconds)
 	transition_duration = clampf(duration, 0.05, 2.0)
-	print("SceneRouter: Transition duration set to ", transition_duration, "s")

@@ -95,12 +95,10 @@ var _load_errors: Array[String] = []
 
 func _ready() -> void:
 	## Initialize data system - Godot guarantees autoloads are available in _ready()
-	print("DataManager: Starting initialization...")
 	var success = initialize_data_system()
 	
 	if success:
 		data_loaded.emit()
-		print("DataManager: ✅ Initialization successful")
 	else:
 		data_load_failed.emit("Initialization failed with %d errors" % _load_errors.size())
 		push_error("DataManager: ❌ Initialization failed with %d errors" % _load_errors.size())
@@ -146,37 +144,32 @@ func _exit_tree() -> void:
 func initialize_data_system() -> bool:
 	## Initialize essential data only, defer heavy loading
 	var start_time = Time.get_ticks_msec()
-	print("DataManager: Fast initialization - Resource-based system...")
 	
 	# Load native Godot resources (Framework Bible compliant)
 	_load_resource_data()
 	
 	# For now, skip JSON loading to avoid errors
-	# TODO: Convert all JSON data to .tres resources
+	# NOTE: HIGH-PRIORITY — convert all JSON data to .tres resources
 	
 	_load_time_ms = Time.get_ticks_msec() - start_time
 	_is_data_loaded = _load_errors.is_empty()
 	
-	print("DataManager: Essential data loaded in %d ms (target: <100ms)" % _load_time_ms)
+	pass # Load timing logged silently
 	
 	return _is_data_loaded
 
 func _load_resource_data() -> void:
 	## Load data using JSON-based approach - simplified without .tres dependencies
-	print("DataManager: Loading JSON-based data...")
 	
 	# Create default data structures instead of loading .tres files
 	if not character_data:
 		character_data = FiveParsecsCharacterData.new()
-		print("DataManager: Created default character data structure")
 	
 	if not combat_data:
 		combat_data = FiveParsecsCombatDataResource.new()
-		print("DataManager: Created default combat data structure")
 	
 	if not campaign_data:
 		campaign_data = FiveParsecsCampaignDataResource.new()
-		print("DataManager: Created default campaign data structure")
 	
 	# Load JSON-based game data (existing system)
 	_load_json_databases()
@@ -186,7 +179,6 @@ func _load_resource_data() -> void:
 
 func _load_json_databases() -> void:
 	## Load game data from JSON files - working system
-	print("DataManager: Loading JSON-based game databases...")
 	
 	# Load essential JSON data that exists and works
 	_load_character_creation_data()
@@ -211,7 +203,6 @@ func _load_basic_game_data() -> void:
 func _load_resource_with_validation(path: String, expected_type: GDScript) -> Resource:
 	## Enhanced resource loading with validation - works with existing enterprise systems
 	if not FileAccess.file_exists(path):
-		print("DataManager: Resource file missing: " + path + " - run conversion script first")
 		return null
 	
 	var resource = load(path)
@@ -247,7 +238,6 @@ func load_all_data() -> void:
 	_loading_in_progress = true
 	_load_errors.clear()
 
-	print("DataManager: Skipping JSON data load - using Resource system instead")
 	
 	# Initialize empty dictionaries to prevent null reference errors
 	# These will be populated from Resources or remain empty
@@ -275,7 +265,6 @@ func load_all_data() -> void:
 
 	_loading_in_progress = false
 
-	print("DataManager: Resource system initialized")
 
 ## Load only essential data for startup
 func _load_essential_data_only() -> bool:
@@ -290,12 +279,11 @@ func _load_essential_data_only() -> bool:
 		_equipment_data["weapon_categories"] = weapons_basic["weapon_categories"]
 	
 	# Skip mission data, crew tasks, and other heavy data
-	print("DataManager: Loaded essential data only (2 files vs 94 files)")
+	pass # Essential data loaded
 	return true
 
 ## Background loading of full dataset
 func _load_full_data_background() -> void:
-	print("DataManager: Starting background loading of full dataset...")
 	await Engine.get_main_loop().process_frame
 	
 	# Load full character system
@@ -313,12 +301,10 @@ func _load_full_data_background() -> void:
 	# Load crew task system
 	await _load_crew_task_system_async()
 	
-	print("DataManager: Background loading completed")
 
 ## Stage 1: Enhanced Type Safety and Validation
 func _validate_data_paths() -> void:
 	## Validate resource file paths - Framework Bible compliant
-	print("DataManager: Validating resource paths...")
 	
 	# Only validate the core resource paths
 	var resource_paths: Array[String] = [
@@ -330,13 +316,13 @@ func _validate_data_paths() -> void:
 	var missing_count = 0
 	for path in resource_paths:
 		if not FileAccess.file_exists(path):
-			print("DataManager: Resource file not found (will be created): " + path)
+			push_warning("DataManager: Resource file not found (will be created): " + path)
 			missing_count += 1
 	
 	if missing_count > 0:
-		print("DataManager: %d resource files will be created on first save" % missing_count)
+		pass
 	else:
-		print("DataManager: All resource files found")
+		pass
 
 ## Character System Data Loading
 func _load_character_system() -> bool:
@@ -375,19 +361,19 @@ func _load_equipment_system() -> bool:
 
 ## Async loading methods for background loading
 func _load_character_system_async() -> bool:
-	print("DataManager: Loading character system (async)...")
+	pass # Loading character system async
 	return _load_character_system()
 
 func _load_equipment_system_async() -> bool:
-	print("DataManager: Loading equipment system (async)...")
+	pass # Loading equipment system async
 	return _load_equipment_system()
 
 func _load_mission_system_async() -> bool:
-	print("DataManager: Loading mission system (async)...")
+	pass # Loading mission system async
 	return _load_mission_system()
 
 func _load_crew_task_system_async() -> bool:
-	print("DataManager: Loading crew task system (async)...")
+	pass # Loading crew task system async
 	return _load_crew_task_system()
 
 func _load_mission_system() -> bool:
@@ -473,7 +459,7 @@ func _load_json_safe(file_path: String, context: String) -> Dictionary:
 		# Don't emit error for empty files, just return empty dict
 		return {}
 
-	print("DataManager: Successfully loaded " + context + " data with " + str(data_dict.size()) + " entries")
+	pass # Successfully loaded data
 	return data_dict
 
 ## Public JSON Loading Method

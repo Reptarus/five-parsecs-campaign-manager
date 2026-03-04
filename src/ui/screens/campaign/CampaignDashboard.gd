@@ -117,15 +117,6 @@ func _update_all() -> void:
 		_show_empty_state()
 		return
 
-	# DEBUG: Log data availability for diagnosing empty columns
-	print("CampaignDashboard: Campaign=%s, crew_data=%s, ship_data=%s, equip=%s, world=%s" % [
-		campaign.campaign_name,
-		str(campaign.crew_data.keys()) if campaign.crew_data else "EMPTY",
-		str(campaign.ship_data.keys()) if campaign.ship_data else "EMPTY",
-		str(campaign.equipment_data.keys()) if campaign.equipment_data else "EMPTY",
-		str(campaign.world_data.keys()) if campaign.world_data else "EMPTY"
-	])
-
 	_update_header(campaign)
 	_update_crew_manifest(campaign)
 	_update_ship_and_equipment(campaign)

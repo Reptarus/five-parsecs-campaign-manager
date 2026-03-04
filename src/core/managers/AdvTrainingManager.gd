@@ -179,13 +179,11 @@ func can_take_course(character: Character, course: String) -> bool:
 func attempt_training(character: Character, course: String) -> void:
 	if apply_for_training(character, course):
 		if enroll_in_course(character, course):
-			print("Training successful: %s completed %s" % [character.name, course])
+			pass
 		else:
 			training_failed.emit(character, course)
-			print("Training failed: %s could not enroll in %s" % [character.name, course])
 	else:
 		training_failed.emit(character, course)
-		print("Application failed: %s was not accepted for %s" % [character.name, course])
 
 ## Applies the training effect to a character
 ## Parameters:

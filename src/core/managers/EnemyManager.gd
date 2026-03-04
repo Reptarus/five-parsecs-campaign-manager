@@ -1,17 +1,14 @@
 extends Node
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 ## Core Rules enemy group sizes - maps EnemyType to base group size
 const GROUP_SIZES := {
-	GameEnums.EnemyType.GANGERS: 4,
-	GameEnums.EnemyType.ELITE: 2,
-	GameEnums.EnemyType.BOSS: 1,
-	GameEnums.EnemyType.MINION: 6,
-	GameEnums.EnemyType.ENFORCERS: 3,
-	GameEnums.EnemyType.WAR_BOTS: 2,
-	GameEnums.EnemyType.ASSASSINS: 2,
-	GameEnums.EnemyType.BLACK_OPS_TEAM: 1
+	GlobalEnums.EnemyType.GANGERS: 4,
+	GlobalEnums.EnemyType.ELITE: 2,
+	GlobalEnums.EnemyType.BOSS: 1,
+	GlobalEnums.EnemyType.MINION: 6,
+	GlobalEnums.EnemyType.ENFORCERS: 3,
+	GlobalEnums.EnemyType.WAR_BOTS: 2,
+	GlobalEnums.EnemyType.ASSASSINS: 2,
+	GlobalEnums.EnemyType.BLACK_OPS_TEAM: 1
 }
 
 ## Current enemy force configuration
@@ -49,7 +46,7 @@ func get_enemy_data() -> Dictionary:
 func _validate_enemy_force(force: Dictionary) -> bool:
 	if not force.has("type") or not force.has("groups"):
 		return false
-	if not force.type in GameEnums.EnemyType.values():
+	if not force.type in GlobalEnums.EnemyType.values():
 		return false
 	return true
 
@@ -68,7 +65,7 @@ func _generate_enemy_groups() -> Array[Dictionary]:
 	
 	if current_enemy_force.get("reinforcements", false):
 		groups.append({
-			"type": GameEnums.EnemyType.GANGERS,
+			"type": GlobalEnums.EnemyType.GANGERS,
 			"count": base_count / 2,
 			"equipment_level": maxi(1, current_enemy_force.get("equipment_level", 1) - 1)
 		})

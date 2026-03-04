@@ -6,9 +6,6 @@ extends Resource
 const Self = preload("res://src/core/systems/items/GameArmor.gd")
 
 const GameDataManager = preload("res://src/core/managers/GameDataManager.gd")
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 @export var armor_id: String = ""
 @export var armor_name: String = ""
 @export var armor_category: String = ""

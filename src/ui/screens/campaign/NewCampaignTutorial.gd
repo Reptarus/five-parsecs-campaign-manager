@@ -61,6 +61,7 @@ func _show_welcome_step() -> void:
 		content_label.text = """Welcome to Five Parsecs Campaign Manager!
 
 This tutorial will guide you through:
+	pass
 1. Creating your crew
 2. Setting up your campaign
 3. Basic combat mechanics
@@ -79,6 +80,7 @@ func _show_crew_creation_step() -> void:
 		title_label.text = "Crew Creation"
 	if content_label:
 		content_label.text = """Your crew is the heart of your campaign:
+			pass
 - Choose crew size (4-6 members)
 - Select backgrounds and skills
 - Equip starting gear
@@ -97,6 +99,7 @@ func _show_campaign_setup_step() -> void:
 		title_label.text = "Campaign Setup"
 	if content_label:
 		content_label.text = """Important campaign settings:
+			pass
 - Difficulty level affects rewards and challenges
 - Victory conditions determine campaign goals
 - Story tracks add narrative elements
@@ -115,6 +118,7 @@ func _show_basic_combat_step() -> void:
 		title_label.text = "Basic Combat"
 	if content_label:
 		content_label.text = """Combat follows these steps:
+			pass
 1. Setup battlefield
 2. Deploy forces
 3. Initiative and activation
@@ -134,6 +138,7 @@ func _show_campaign_turn_step() -> void:
 		title_label.text = "Campaign Turn Structure"
 	if content_label:
 		content_label.text = """Each turn consists of:
+			pass
 1. Travel Phase
 2. World Phase
 3. Battle Phase
@@ -152,6 +157,7 @@ func _show_story_introduction() -> void:
 		title_label.text = "Story Tracks"
 	if content_label:
 		content_label.text = """Story tracks add narrative depth:
+			pass
 - Choose from multiple story paths
 - Complete story-specific missions
 - Earn unique rewards
@@ -170,6 +176,7 @@ func _show_compendium_overview() -> void:
 		title_label.text = "Game Compendium"
 	if content_label:
 		content_label.text = """The compendium contains:
+			pass
 - Core game rules
 - Random tables
 - Equipment lists

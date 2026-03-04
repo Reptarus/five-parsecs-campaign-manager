@@ -3,9 +3,6 @@ extends Node
 
 # This file should be referenced via preload
 # Use explicit preloads instead of global class names
-const Self = preload("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 ## Five Parsecs Character Classes
 enum CharacterClass {
 	NONE,

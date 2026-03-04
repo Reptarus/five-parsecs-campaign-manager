@@ -3,7 +3,6 @@ extends "res://src/base/items/equipment.gd"
 # This file should be referenced via preload
 # Use explicit preloads instead of global class names
 
-const Self = preload("res://src/core/character/Equipment/base/equipment.gd")
 const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 
 ## Core implementation of base equipment

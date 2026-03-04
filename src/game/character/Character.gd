@@ -6,9 +6,6 @@ extends Resource # Changed from "res://src/base/character/character_base.gd" to 
 
 # Import the actual base character to use its functionality
 const BaseCharacter = preload("res://src/base/character/character_base.gd")
-const Self = preload("res://src/core/character/Base/Character.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 ## Game implementation of the Five Parsecs character
 ##
 ## Extends the core character with game-specific functionality
@@ -118,7 +115,7 @@ func get_faction_relation(faction_id: String) -> int:
 func get_portrait() -> String:
 	if portrait_path.is_empty():
 		# Return default portrait based on character class
-		return "res://assets/portraits/default_%s.png" % GameEnums.CharacterClass.keys()[character_class].to_lower()
+		return "res://assets/portraits/default_%s.png" % GlobalEnums.CharacterClass.keys()[character_class].to_lower()
 	return portrait_path
 
 ## Set character portrait

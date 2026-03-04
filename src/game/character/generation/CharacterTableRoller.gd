@@ -2,7 +2,6 @@
 # Use explicit preloads instead of global class names
 extends RefCounted
 
-const Self = preload("res://src/game/character/generation/CharacterTableRoller.gd")
 
 const FIRST_NAMES: Array[String] = [
 	"Alex", "Blake", "Casey", "Drew", "Ellis",

@@ -51,7 +51,6 @@ const EVENT_TYPE_CONFIG = {
 }
 
 func _ready() -> void:
-	print("SmartLogbook: Initializing...")
 
 	# Hide elements not needed for read-only history view
 	if new_entry_button:
@@ -76,7 +75,6 @@ func _ready() -> void:
 	# Load campaign data
 	_load_campaign_history()
 
-	print("SmartLogbook: Ready")
 
 func _setup_filter_panel() -> void:
 	## Create filter buttons for event types
@@ -142,8 +140,6 @@ func _load_campaign_history() -> void:
 		turn_history = current_campaign.turn_history
 	else:
 		turn_history = []
-
-	print("SmartLogbook: Loaded %d turns of history" % turn_history.size())
 
 	# Populate UI
 	_populate_turn_list()
@@ -329,7 +325,6 @@ func _on_filter_pressed(filter_type: String) -> void:
 	if selected_turn >= 0:
 		_display_turn_details(selected_turn)
 
-	print("SmartLogbook: Filter changed to '%s'" % filter_type)
 
 func _on_search_text_changed(new_text: String) -> void:
 	## Handle search input
@@ -453,7 +448,6 @@ func _on_delete_entry_pressed() -> void:
 
 func _on_export_pressed() -> void:
 	## Export logbook to text file
-	print("SmartLogbook: Export requested")
 
 	# Generate export text
 	var export_text: String = _generate_export_text()
@@ -501,7 +495,6 @@ func _on_save_notes_pressed() -> void:
 
 func _on_back_pressed() -> void:
 	## Return to previous screen
-	print("SmartLogbook: Back pressed")
 
 	# Try SceneRouter navigation
 	if SceneRouter and SceneRouter.has_method("navigate_back"):

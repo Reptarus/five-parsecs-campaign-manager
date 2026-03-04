@@ -3,7 +3,6 @@
 # Use explicit preloads instead of global class names
 extends Node
 
-const Self = preload("res://src/game/combat/EnemyTacticalAI.gd")
 
 ## Signals
 signal decision_made(enemy: Object, action: Dictionary)

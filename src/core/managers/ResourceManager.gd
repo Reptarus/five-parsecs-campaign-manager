@@ -3,7 +3,6 @@ extends Resource
 class_name ResourceManager
 
 # Use absolute paths to ensure correct resolution
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const ResourceManagerTransactionClass = preload("res://src/core/managers/ResourceTransaction.gd")
 
 signal resource_changed(resource_type: int, old_value: int, new_value: int, source: String)
@@ -23,12 +22,12 @@ func _init() -> void:
 	_initialize_history()
 
 func _initialize_resources() -> void:
-	for resource_type in GameEnums.ResourceType.values():
+	for resource_type in GlobalEnums.ResourceType.values():
 		resources[resource_type] = 0
 		resource_thresholds[resource_type] = {}
 
 func _initialize_history() -> void:
-	for resource_type in GameEnums.ResourceType.values():
+	for resource_type in GlobalEnums.ResourceType.values():
 		resource_history[resource_type] = []
 
 func set_resource(resource_type: int, value: int, source: String = "system") -> void:

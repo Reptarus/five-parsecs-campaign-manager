@@ -2,7 +2,6 @@
 # Use explicit preloads instead of global class names
 extends Control
 
-const Self = preload("res://src/ui/screens/campaign/TravelPhase.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
 const PatronJobManager = preload("res://src/core/campaign/PatronJobManager.gd")

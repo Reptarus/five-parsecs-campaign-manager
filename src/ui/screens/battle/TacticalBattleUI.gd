@@ -293,7 +293,7 @@ func _connect_signals() -> void:
 		auto_resolve_button.pressed.connect(_on_auto_resolve_battle)
 
 	# Battlefield signals (handlers removed as dead code in Sprint 26.16)
-	# TODO: Implement terrain/cover UI updates when needed
+	# NOTE: Deferred — terrain/cover UI signal handlers removed as dead code in Sprint 26.16
 	# if battlefield_manager:
 	# 	battlefield_manager.terrain_updated.connect(_on_terrain_updated)
 	# 	battlefield_manager.cover_updated.connect(_on_cover_updated)

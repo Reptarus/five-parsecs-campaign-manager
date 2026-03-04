@@ -84,7 +84,6 @@ func initialize(battle_tracker: Node) -> void:
 	if _battle_tracker.has_signal("battle_ended"):
 		_battle_tracker.battle_ended.connect(_on_tracker_battle_ended)
 
-	print("ActivationTrackerPanel: Initialized with BattleRoundTracker")
 
 func cleanup() -> void:
 	## Disconnect from tracker (cleanup)
@@ -129,7 +128,6 @@ func add_unit(unit_data: Dictionary, is_crew: bool) -> void:
 	# Store reference
 	_unit_cards[unit_id] = card
 
-	print("ActivationTrackerPanel: Added %s unit %s" % ["crew" if is_crew else "enemy", unit_data.get("name", "Unknown")])
 
 func remove_unit(unit_id: String) -> void:
 	## Remove unit card
@@ -151,7 +149,6 @@ func remove_unit(unit_id: String) -> void:
 	# Remove from tracking
 	_unit_cards.erase(unit_id)
 
-	print("ActivationTrackerPanel: Removed unit %s" % unit_id)
 
 func update_round(round_number: int) -> void:
 	## Update round display (called from parent)
@@ -165,7 +162,6 @@ func reset_all_activations() -> void:
 		if card.has_method("set_activated"):
 			card.set_activated(false)
 
-	print("ActivationTrackerPanel: Reset all unit activations")
 
 func set_unit_activated(unit_id: String, activated: bool) -> void:
 	## Set specific unit activation state (called from parent)
@@ -205,7 +201,6 @@ func clear_all_units() -> void:
 		remove_unit(unit_id)
 
 	_unit_cards.clear()
-	print("ActivationTrackerPanel: Cleared all units")
 
 # =====================================================
 # DISPLAY UPDATES
@@ -238,22 +233,20 @@ func _on_tracker_round_started(round_number: int) -> void:
 	_current_round = round_number
 	_update_round_display()
 	reset_all_activations()
-	print("ActivationTrackerPanel: Round %d started - reset all activations" % round_number)
 
 func _on_tracker_round_ended(round_number: int) -> void:
 	## Handle round end from tracker
-	print("ActivationTrackerPanel: Round %d ended" % round_number)
+	pass
 
 func _on_tracker_battle_started() -> void:
 	## Handle battle start from tracker
 	_current_round = 1
 	_update_round_display()
 	clear_all_units()
-	print("ActivationTrackerPanel: Battle started - cleared all units")
 
 func _on_tracker_battle_ended() -> void:
 	## Handle battle end from tracker
-	print("ActivationTrackerPanel: Battle ended")
+	pass
 
 # =====================================================
 # SIGNAL HANDLERS - UNIT CARDS (SIGNAL-UP)
@@ -262,12 +255,11 @@ func _on_tracker_battle_ended() -> void:
 func _on_unit_card_activation_toggled(unit_id: String) -> void:
 	## Handle card activation toggle - signal up to parent
 	unit_activation_requested.emit(unit_id)
-	print("ActivationTrackerPanel: Unit activation requested - %s" % unit_id)
 
 func _on_unit_card_selected(unit_id: String) -> void:
 	## Handle card selection (dead units)
-	print("ActivationTrackerPanel: Unit selected - %s" % unit_id)
 	# Could emit selection signal if needed
+	pass
 
 # =====================================================
 # INPUT HANDLERS
@@ -276,4 +268,3 @@ func _on_unit_card_selected(unit_id: String) -> void:
 func _on_reset_button_pressed() -> void:
 	## Handle Reset All button press - signal up to parent
 	reset_all_requested.emit()
-	print("ActivationTrackerPanel: Reset all requested")

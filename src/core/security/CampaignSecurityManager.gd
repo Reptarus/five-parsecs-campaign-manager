@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 class_name CampaignSecurityManager
 extends RefCounted
 
@@ -61,7 +61,6 @@ static func _initialize_security() -> void:
 	if _is_initialized:
 		return
 	
-	print("CampaignSecurityManager: Initializing security subsystem")
 	
 	# Generate session ID
 	_session_id = _generate_session_id()
@@ -86,7 +85,7 @@ static func _initialize_security() -> void:
 	})
 	
 	_is_initialized = true
-	print("CampaignSecurityManager: Security initialization complete - Level: %s" % str(_security_level))
+	pass
 
 static func _parse_security_level(level_string: String) -> SecurityLevel:
 	## Parse security level from string
@@ -293,14 +292,13 @@ static func _calculate_violation_severity(violation_type: String) -> String:
 
 static func _handle_critical_violation(violation_data: Dictionary) -> void:
 	## Handle critical security violations
-	print("CampaignSecurityManager: CRITICAL SECURITY VIOLATION DETECTED")
-	print("Violation: %s" % violation_data)
 	
 	# In production, this could trigger:
 	# - Immediate session termination
 	# - Alert to security team
 	# - Lockdown of affected systems
 	# - Automated incident response
+	pass
 
 ## Session Management
 
@@ -414,4 +412,3 @@ static func cleanup_security() -> void:
 	_security_violations = 0
 	_is_initialized = false
 	
-	print("CampaignSecurityManager: Security cleanup complete")

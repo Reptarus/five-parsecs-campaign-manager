@@ -3,10 +3,8 @@ extends Node
 # This file should be referenced via preload
 # Use explicit preloads instead of global class names
 
-const Self = preload("res://src/core/state/GameState.gd")
 
 ## Dependencies - explicit loading to avoid circular references
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsCampaign = preload("res://src/game/campaign/FiveParsecsCampaign.gd")
 const FiveParsecsCampaignCore = preload("res://src/game/campaign/FiveParsecsCampaignCore.gd")
 const Ship = preload("res://src/core/ships/Ship.gd")
@@ -37,9 +35,9 @@ var _turn_number: int = 1
 var _story_points: int = 3
 var _reputation: int = 50
 var _resources: Dictionary = {
-	GameEnums.ResourceType.CREDITS: 1000,
-	GameEnums.ResourceType.FUEL: 10,
-	GameEnums.ResourceType.TECH_PARTS: 5
+	GlobalEnums.ResourceType.CREDITS: 1000,
+	GlobalEnums.ResourceType.FUEL: 10,
+	GlobalEnums.ResourceType.TECH_PARTS: 5
 }
 var _current_phase: int = 0
 var is_tutorial_active: bool = false
@@ -113,11 +111,9 @@ func _try_auto_load_last_campaign() -> void:
 	var path = SAVE_DIRECTORY + last_id + ".save"
 	if not FileAccess.file_exists(path):
 		return
-	print("GameState: Auto-loading last campaign: %s" % last_id)
 	var loaded = FiveParsecsCampaignCore.load_from_file(path)
 	if loaded:
 		current_campaign = loaded
-		print("GameState: Auto-loaded campaign: %s" % loaded.campaign_name)
 	else:
 		push_warning("GameState: Failed to auto-load from: %s" % path)
 
@@ -406,7 +402,6 @@ func save_campaign(campaign = null, path: String = "") -> Dictionary:
 		save_settings()
 
 	var success_msg = "Campaign saved successfully"
-	print("GameState: %s → %s" % [success_msg, path])
 	save_completed.emit(true, success_msg)
 	campaign_saved.emit()
 
@@ -442,7 +437,6 @@ func load_campaign(path: String) -> Dictionary:
 		save_settings()
 
 	var success_msg = "Campaign loaded: " + loaded.campaign_name
-	print("GameState: %s" % success_msg)
 	load_completed.emit(true, success_msg)
 	campaign_loaded.emit(loaded)
 
@@ -488,7 +482,6 @@ func import_campaign(external_path: String) -> Dictionary:
 
 	out_file.store_string(content)
 	out_file.close()
-	print("GameState: Imported campaign file to %s" % local_path)
 
 	# Now load it normally
 	return load_campaign(local_path)
@@ -653,10 +646,10 @@ func set_last_save_time(time: int) -> bool:
 
 # Add these methods to get test values
 func get_campaign_phase() -> int:
-	return GameEnums.FiveParcsecsCampaignPhase.NONE
+	return GlobalEnums.FiveParcsecsCampaignPhase.NONE
 	
 func get_difficulty_level() -> int:
-	return game_settings.get("difficulty_level", GameEnums.DifficultyLevel.NORMAL)
+	return game_settings.get("difficulty_level", GlobalEnums.DifficultyLevel.NORMAL)
 	
 func is_permadeath_enabled() -> bool:
 	return game_settings.get("enable_permadeath", true)
@@ -780,12 +773,12 @@ func set_resources(resources: Dictionary) -> bool:
 	_resources = resources.duplicate()
 	
 	# Ensure critical resources are present with default values if not provided
-	if not _resources.has(GameEnums.ResourceType.CREDITS):
-		_resources[GameEnums.ResourceType.CREDITS] = 1000
-	if not _resources.has(GameEnums.ResourceType.FUEL):
-		_resources[GameEnums.ResourceType.FUEL] = 10
-	if not _resources.has(GameEnums.ResourceType.TECH_PARTS):
-		_resources[GameEnums.ResourceType.TECH_PARTS] = 5
+	if not _resources.has(GlobalEnums.ResourceType.CREDITS):
+		_resources[GlobalEnums.ResourceType.CREDITS] = 1000
+	if not _resources.has(GlobalEnums.ResourceType.FUEL):
+		_resources[GlobalEnums.ResourceType.FUEL] = 10
+	if not _resources.has(GlobalEnums.ResourceType.TECH_PARTS):
+		_resources[GlobalEnums.ResourceType.TECH_PARTS] = 5
 	
 	# Also set campaign resources if available
 	if current_campaign and current_campaign.has_method("set_resources"):
@@ -816,12 +809,12 @@ func deserialize(data: Dictionary) -> Dictionary:
 	if data.has("resources"):
 		_resources = data.get("resources", {}).duplicate()
 		# Ensure critical resources have default values if not present
-		if not _resources.has(GameEnums.ResourceType.CREDITS):
-			_resources[GameEnums.ResourceType.CREDITS] = 1000
-		if not _resources.has(GameEnums.ResourceType.FUEL):
-			_resources[GameEnums.ResourceType.FUEL] = 10
-		if not _resources.has(GameEnums.ResourceType.TECH_PARTS):
-			_resources[GameEnums.ResourceType.TECH_PARTS] = 5
+		if not _resources.has(GlobalEnums.ResourceType.CREDITS):
+			_resources[GlobalEnums.ResourceType.CREDITS] = 1000
+		if not _resources.has(GlobalEnums.ResourceType.FUEL):
+			_resources[GlobalEnums.ResourceType.FUEL] = 10
+		if not _resources.has(GlobalEnums.ResourceType.TECH_PARTS):
+			_resources[GlobalEnums.ResourceType.TECH_PARTS] = 5
 	
 	# Handle campaign deserialization if needed
 	if data.has("campaign") and current_campaign:
@@ -959,16 +952,10 @@ func get_current_mission() -> Dictionary:
 func get_active_crew() -> Array:
 	if current_campaign and current_campaign.has_method("get_crew_members"):
 		var members = current_campaign.get_crew_members()
-		print("GameState.get_active_crew: Via get_crew_members() → %d members" % members.size())
-		if members.size() > 0:
-			var first = members[0]
-			print("  First member type: %s" % (first.get_class() if first is Object else typeof(first)))
 		return members
 	if current_campaign and "crew_data" in current_campaign:
 		var members = current_campaign.crew_data.get("members", [])
-		print("GameState.get_active_crew: Via crew_data['members'] → %d members" % members.size())
 		return members
-	print("GameState.get_active_crew: No campaign or no crew method → returning []")
 	return []
 
 ## Current Enemies Management

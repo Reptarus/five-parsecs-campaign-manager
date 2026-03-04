@@ -175,7 +175,7 @@ func _update_display() -> void:
 		_value_label.visible = false
 
 	# Icon placeholder (using emoji for now - replace with TextureRect later)
-	# TODO: Replace with actual item type icons when asset system is ready
+	# NOTE: Deferred — replace with actual item type icons when asset system is ready
 	var item_type: String = item_data.get("type", "gear").to_lower()
 	_set_icon_placeholder(item_type)
 

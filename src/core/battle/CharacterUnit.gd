@@ -1,9 +1,6 @@
 @tool
 class_name CharacterUnit
 extends Node2D
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 ## Character Properties
 var character_id: String = ""
 var character_name: String = ""

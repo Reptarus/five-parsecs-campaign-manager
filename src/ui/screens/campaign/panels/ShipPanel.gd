@@ -64,18 +64,15 @@ func _on_campaign_state_updated(state_data: Dictionary) -> void:
 	# CRITICAL FIX: Ignore updates that originated from this panel to prevent double-loading
 	var source = state_data.get("source", "")
 	if source == "ship_panel":
-		print("ShipPanel: Ignoring update from self (source: ship_panel)")
 		return
 
 	var phase = state_data.get("phase", "")
 	if phase == "ship_update":
-		print("ShipPanel: Ignoring ship_update phase (self-update)")
 		return
 
 	# Update panel state based on campaign state if needed
 	if state_data.has("ship") and state_data.ship is Dictionary:
 		var ship_state_data = state_data.ship
-		print("ShipPanel: Received ship state update with keys: %s" % str(ship_state_data.keys()))
 		
 		# Update local ship state from external changes - merge instead of replace
 		if ship_state_data.has("name") or ship_state_data.has("type") or ship_state_data.has("hull_points"):
@@ -83,11 +80,10 @@ func _on_campaign_state_updated(state_data: Dictionary) -> void:
 			for key in ship_state_data.keys():
 				ship_data[key] = ship_state_data[key]
 			_update_ship_display()
-			print("ShipPanel: Updated ship data from coordinator state")
 		else:
-			print("ShipPanel: Received ship state but no valid ship data found")
+			pass
 	else:
-		print("ShipPanel: No ship data in state update")
+		pass
 
 func _ready() -> void:
 	# Set panel info before base initialization with more informative description
@@ -135,7 +131,6 @@ func _apply_input_styling() -> void:
 	if select_button:
 		_style_button(select_button)
 
-	print("ShipPanel: Design system styling applied to inputs")
 
 # NOTE: _style_button() now inherited from BaseCampaignPanel - removed duplicate
 
@@ -143,7 +138,6 @@ func _wrap_form_in_cards() -> void:
 	## Wrap form sections in glass morphism cards for visual consistency
 	var content_node = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content")
 	if not content_node:
-		print("ShipPanel: Content node not found for card wrapping")
 		return
 
 	# Create a new container to hold the cards
@@ -213,7 +207,6 @@ func _wrap_form_in_cards() -> void:
 	content_node.add_child(cards_container)
 	content_node.move_child(cards_container, 0)
 
-	print("ShipPanel: Form sections wrapped in glass morphism cards")
 
 func _create_form_section_card(title: String, description: String = "") -> PanelContainer:
 	## Create a glass morphism card for form sections
@@ -279,27 +272,21 @@ func _initialize_security_validator() -> void:
 
 func _initialize_components() -> void:
 	## Initialize ship panel with defensive null checks and programmatic fallbacks
-	print("========== ShipPanel: COMPONENT INITIALIZATION START ==========")
-	print("ShipPanel: DEBUG - Checking for Content node...")
 	
 	# NOTE: ShipPanelTransitionFix.gd file not found - using inline fixes
 	# Apply basic transition fixes directly
-	print("ShipPanel: Applying inline transition fixes...")
 	
 	# Store Content node reference once with fallback creation
 	# Content node is nested in BaseCampaignPanel structure
 	var content_node = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content")
 	if not content_node:
-		print("ShipPanel: DEBUG - Content node NOT FOUND at expected path - creating fallback UI")
 		push_warning("ShipPanel: Content node missing - creating programmatically")
 		content_node = _create_fallback_ui()
 		add_child(content_node)
-		print("ShipPanel: DEBUG - Fallback UI created and added")
 	else:
-		print("ShipPanel: DEBUG - Content node FOUND at correct path - using existing structure")
+		pass
 	
 	# METHOD 1: Try unique names first (most reliable if set in scene)
-	print("ShipPanel: DEBUG - Retrieving components via unique names...")
 	ship_name_input = get_node_or_null("%ShipNameInput")
 	ship_type_option = get_node_or_null("%ShipTypeOption") 
 	hull_points_spinbox = get_node_or_null("%HullPointsSpinBox")
@@ -309,22 +296,20 @@ func _initialize_components() -> void:
 	if not ship_name_input:
 		ship_name_input = content_node.get_node_or_null("ShipName/ShipNameInput")
 		if ship_name_input:
-			print("ShipPanel: Found ShipNameInput via full path")
+			pass
 		else:
-			print("ShipPanel: DEBUG - ship_name_input NOT FOUND - creating fallback")
 			ship_name_input = _create_ship_name_section(content_node)
 	else:
-		print("ShipPanel: DEBUG - ship_name_input FOUND via unique name")
+		pass
 	
 	if not ship_type_option:
 		ship_type_option = content_node.get_node_or_null("ShipType/ShipTypeOption")
 		if ship_type_option:
-			print("ShipPanel: Found ShipTypeOption via full path")
+			pass
 		else:
-			print("ShipPanel: DEBUG - ship_type_option NOT FOUND - creating fallback")
 			ship_type_option = _create_ship_type_section(content_node)
 	else:
-		print("ShipPanel: DEBUG - ship_type_option FOUND via unique name")
+		pass
 
 	# Ensure ship types are populated (scene OptionButton may be empty)
 	if ship_type_option and ship_type_option.get_item_count() == 0:
@@ -333,12 +318,11 @@ func _initialize_components() -> void:
 	if not hull_points_spinbox:
 		hull_points_spinbox = content_node.get_node_or_null("HullPoints/HullPointsSpinBox")
 		if hull_points_spinbox:
-			print("ShipPanel: Found HullPointsSpinBox via full path")
+			pass
 		else:
-			print("ShipPanel: DEBUG - hull_points_spinbox NOT FOUND - creating fallback")
 			hull_points_spinbox = _create_hull_points_section(content_node)
 	else:
-		print("ShipPanel: DEBUG - hull_points_spinbox FOUND via unique name")
+		pass
 	
 	if not debt_spinbox:
 		# Note: Scene might have DebtSpinBox not just SpinBox
@@ -346,53 +330,35 @@ func _initialize_components() -> void:
 		if not debt_spinbox:
 			debt_spinbox = content_node.get_node_or_null("Debt/SpinBox")
 		if debt_spinbox:
-			print("ShipPanel: Found debt spinbox via full path")
+			pass
 		else:
-			print("ShipPanel: DEBUG - debt_spinbox NOT FOUND - creating fallback")
 			debt_spinbox = _create_debt_section(content_node)
 	else:
-		print("ShipPanel: DEBUG - debt_spinbox FOUND via unique name")
+		pass
 	
 	# Traits might be at different location
 	traits_container = content_node.get_node_or_null("Traits/Container")
 	if not traits_container:
 		traits_container = content_node.get_node_or_null("Traits")
 		if traits_container:
-			print("ShipPanel: Found traits container via fallback path")
+			pass
 		else:
-			print("ShipPanel: DEBUG - traits_container NOT FOUND - creating fallback")
 			traits_container = _create_traits_section(content_node)
 	else:
-		print("ShipPanel: DEBUG - traits_container FOUND")
+		pass
 	
 	# Control buttons with fallbacks
-	print("ShipPanel: DEBUG - Retrieving control buttons...")
 	generate_button = content_node.get_node_or_null("Controls/GenerateButton")
 	reroll_button = content_node.get_node_or_null("Controls/RerollButton")
 	select_button = content_node.get_node_or_null("Controls/SelectButton")
 	
-	print("ShipPanel: DEBUG - Button status: generate=%s, reroll=%s, select=%s" % [
-		"FOUND" if generate_button else "MISSING",
-		"FOUND" if reroll_button else "MISSING",
-		"FOUND" if select_button else "MISSING"
-	])
-
 	# Sprint 26.6: Hide unimplemented Select button
 	if select_button:
 		select_button.visible = false
 		select_button.tooltip_text = "Ship presets coming in a future update"
 
 	if not generate_button or not reroll_button:
-		print("ShipPanel: DEBUG - Creating control buttons fallback")
 		_create_control_buttons(content_node)
-	
-	# Log what we found
-	print("ShipPanel: Component status:")
-	print("  - ship_name_input: %s" % ("FOUND" if ship_name_input else "MISSING"))
-	print("  - ship_type_option: %s" % ("FOUND" if ship_type_option else "MISSING"))
-	print("  - hull_points_spinbox: %s" % ("FOUND" if hull_points_spinbox else "MISSING"))
-	print("  - debt_spinbox: %s" % ("FOUND" if debt_spinbox else "MISSING"))
-	print("  - traits_container: %s" % ("FOUND" if traits_container else "MISSING"))
 	
 	# Only create fallback if critical components are missing
 	var critical_missing = not ship_name_input or not ship_type_option
@@ -400,15 +366,13 @@ func _initialize_components() -> void:
 		push_warning("ShipPanel: Critical UI components missing - creating fallback")
 		_create_fallback_ui()
 	else:
-		print("ShipPanel: All critical components found - using scene UI")
+		pass
 	
 	# Validate no duplication with improved logic
 	call_deferred("_validate_no_ui_duplication")
 	
-	print("========== ShipPanel: COMPONENT INITIALIZATION COMPLETE ==========")
 	
 	# Skip ShipManager integration - handle directly in panel
-	print("ShipPanel: Using direct ship management without ShipManager overlay")
 
 	_connect_signals()
 	_initialize_ship_data()
@@ -422,7 +386,6 @@ func _initialize_components() -> void:
 # Remove ShipManager integration to prevent overlay issues
 func _setup_ship_management_ui() -> void:
 	## Setup ship management UI directly in the panel
-	print("ShipPanel: Setting up integrated ship management...")
 	
 	# Use existing Content node from scene
 	var content_node = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content")
@@ -437,15 +400,14 @@ func _setup_ship_management_ui() -> void:
 	# Just connect the existing controls
 	_connect_existing_controls()
 	
-	print("ShipPanel: Ship management UI setup complete")
 
 func _connect_ship_manager_signals() -> void:
 	## Stub function - no ShipManager to connect
-	print("ShipPanel: Ship management handled directly in panel")
+	pass
 
 func _initialize_ship_manager_data() -> void:
 	## Stub function - no ShipManager to initialize
-	print("ShipPanel: Ship data managed internally")
+	pass
 
 func _connect_existing_controls() -> void:
 	## Connect the existing UI controls from the scene
@@ -457,7 +419,6 @@ func _connect_existing_controls() -> void:
 		reroll_button.pressed.connect(_on_reroll_pressed)
 
 	# No ShipManager integration - handle everything directly
-	print("ShipPanel: Controls connected for direct ship management")
 
 func _get_current_ship_data() -> Dictionary:
 	## Get current ship data from local state
@@ -466,7 +427,6 @@ func _get_current_ship_data() -> Dictionary:
 # ShipManager signal handlers
 func _on_ship_repaired(hull_points: int) -> void:
 	## Handle ship repair from ShipManager
-	print("ShipPanel: Ship repaired - hull points: %d" % hull_points)
 	
 	# Update local ship data
 	_update_ship_data_from_manager()
@@ -486,7 +446,7 @@ func _validate_no_ui_duplication() -> void:
 	_find_containers_recursive(self, content_containers, form_containers)
 	
 	if content_containers.size() > 1:
-		print("ShipPanel: ⚠️ DUPLICATION DETECTED! Found %d Content containers" % content_containers.size())
+		push_warning("ShipPanel: Duplication detected - found %d Content containers" % content_containers.size())
 		
 		# Only remove duplicates that are at the same hierarchy level with same parent
 		var parent_paths = {}
@@ -502,7 +462,6 @@ func _validate_no_ui_duplication() -> void:
 				if parent_paths.has(key):
 					# This is a true duplicate - same parent, same name
 					containers_to_remove.append(container_path)
-					print("ShipPanel: Marking true duplicate for removal: %s" % container_path)
 				else:
 					parent_paths[key] = container_path
 		
@@ -510,15 +469,13 @@ func _validate_no_ui_duplication() -> void:
 		for container_path in containers_to_remove:
 			var node = get_node_or_null(container_path)
 			if node:
-				print("ShipPanel: Removing duplicate Content container at: %s" % container_path)
 				node.queue_free()
 		
 		if containers_to_remove.size() > 0:
-			print("ShipPanel: ✅ Duplicate containers cleaned up")
+			pass
 		else:
-			print("ShipPanel: No true duplicates found - keeping all containers")
+			pass
 	
-	print("ShipPanel: UI validation - %d content containers found" % content_containers.size())
 
 func _find_containers_recursive(node: Node, content_list: Array, form_list: Array) -> void:
 	## Recursively find all Content and FormContainer nodes
@@ -536,13 +493,11 @@ func _notify_coordinator_of_ship_update() -> void:
 	var coordinator = get_coordinator_reference()
 	if coordinator and coordinator.has_method("update_ship_state"):
 		coordinator.update_ship_state(ship_data)
-		print("ShipPanel: Notified coordinator of ship update")
 	else:
-		print("ShipPanel: Warning - coordinator not found or missing update_ship_state method")
+		pass
 
 func _on_debt_paid(amount: int) -> void:
 	## Handle debt payment from ShipManager
-	print("ShipPanel: Debt paid - amount: %d" % amount)
 	
 	# Update local ship data
 	_update_ship_data_from_manager()
@@ -555,8 +510,6 @@ func _on_debt_paid(amount: int) -> void:
 
 func _on_upgrade_purchased(upgrade: Dictionary) -> void:
 	## Handle upgrade purchase from ShipManager
-	print("ShipPanel: Upgrade purchased - %s" % upgrade.get("name", "Unknown"))
-	
 	# Update local ship data
 	_update_ship_data_from_manager()
 	
@@ -568,7 +521,6 @@ func _on_upgrade_purchased(upgrade: Dictionary) -> void:
 
 func _on_travel_initiated() -> void:
 	## Handle travel initiation from ShipManager
-	print("ShipPanel: Travel initiated")
 	
 	# Update local ship data
 	_update_ship_data_from_manager()
@@ -590,7 +542,6 @@ func _update_ship_data_from_manager() -> void:
 		if manager_state:
 			ship_data = manager_state
 			_update_ship_display()
-			print("ShipPanel: Updated ship data from manager")
 
 func _connect_signals() -> void:
 	## Establish signal connections with error handling
@@ -646,7 +597,6 @@ func _populate_ship_types() -> void:
 	ship_type_option.add_item("Modified Corvette")
 	ship_type_option.add_item("Salvage Hauler")
 	ship_type_option.add_item("Deep Space Explorer")
-	print("ShipPanel: Populated ship types dropdown with 9 options")
 
 func _calculate_starting_hull(ship_type: String) -> int:
 	## Calculate starting hull points based on ship type
@@ -760,7 +710,6 @@ func _update_traits_display() -> void:
 		# Initialize traits array if missing
 		if not ship_data.has("traits"):
 			ship_data["traits"] = []
-		print("ShipPanel: Traits array missing or invalid, initialized empty array")
 
 func _update_ship_stats_display() -> void:
 	## Create glass morphism stat containers for ship stats
@@ -832,7 +781,6 @@ func _create_ship_stat_card(stat_name: String, current_value: int, max_value: in
 # Signal handlers
 func _on_generate_pressed() -> void:
 	## Generate ship and mark panel as complete
-	print("ShipPanel: Generating ship...")
 	_generate_ship()
 	
 	# Mark panel as complete after successful generation
@@ -855,14 +803,12 @@ func _on_generate_pressed() -> void:
 	panel_validation_changed.emit(true)
 	# Removed redundant panel_completed.emit() - completion handled by _validate_and_complete()
 	
-	print("ShipPanel: Ship generated successfully - %s" % ship_data.get("name", "Unknown"))
-
 func _on_reroll_pressed() -> void:
 	_generate_ship()
 
 func _on_select_specific_pressed() -> void:
 	## Show ship selection dialog - implement based on your UI architecture
-	print("Ship selection dialog not yet implemented")
+	pass
 
 
 func _build_ship_data() -> Dictionary:
@@ -925,9 +871,9 @@ func _update_validation_status() -> void:
 	
 	# Update completion status
 	if is_valid:
-		print("ShipPanel: Validation passed")
+		pass
 	else:
-		print("ShipPanel: Validation failed - %s" % ", ".join(validation_errors))
+		push_warning("ShipPanel: Validation failed - %s" % ", ".join(validation_errors))
 
 func validate() -> Array[String]:
 	## Validate ship data and return error messages
@@ -1073,7 +1019,6 @@ func _on_ship_type_changed(index: int) -> void:
 		_validate_and_complete()
 		ship_updated.emit(ship_data)
 		ship_data_changed.emit(_build_ship_data())
-		print("ShipPanel: Ship type changed to %s" % ship_data.type)
 
 func _on_hull_points_changed(value: float) -> void:
 	## Handle hull points spinbox change
@@ -1082,7 +1027,6 @@ func _on_hull_points_changed(value: float) -> void:
 	_validate_and_complete()
 	ship_updated.emit(ship_data)
 	ship_data_changed.emit(_build_ship_data())
-	print("ShipPanel: Hull points changed to %d" % ship_data.hull_points)
 
 func _on_debt_changed(value: float) -> void:
 	## Handle debt spinbox change
@@ -1090,7 +1034,6 @@ func _on_debt_changed(value: float) -> void:
 	_validate_and_complete()
 	ship_updated.emit(ship_data)
 	ship_data_changed.emit(_build_ship_data())
-	print("ShipPanel: Debt changed to %d" % ship_data.debt)
 
 func _validate_and_complete() -> void:
 	## Enhanced validation with coordinator pattern and security integration
@@ -1100,7 +1043,6 @@ func _validate_and_complete() -> void:
 		is_ship_complete = false
 		local_ship_data.is_complete = false
 		ship_validation_failed.emit(last_validation_errors)
-		print("ShipPanel: Validation failed: ", last_validation_errors)
 	else:
 		var was_complete = is_ship_complete
 		is_ship_complete = _check_completion_requirements()
@@ -1120,9 +1062,8 @@ func _validate_and_complete() -> void:
 			ship_configuration_complete.emit(ship_data_result) # Granular completion signal - FIXED: was using undefined ship_data
 			panel_completed.emit(ship_data_result) # Maintain backward compatibility
 			_completion_emitted = true  # Prevent duplicate emissions
-			print("ShipPanel: Ship setup completed autonomously: ", ship_data_result.keys())
 		elif is_ship_complete:
-			print("ShipPanel: Ship setup validation passed, already complete")
+			pass
 
 func _check_completion_requirements() -> bool:
 	## Check if all requirements for ship completion are met
@@ -1146,7 +1087,6 @@ func _check_completion_requirements() -> bool:
 
 func cleanup_panel() -> void:
 	## Clean up panel state when navigating away
-	print("ShipPanel: Cleaning up panel state")
 	
 	# Clear ship manager instance
 	if ship_manager_instance:
@@ -1174,7 +1114,6 @@ func cleanup_panel() -> void:
 	ship_data.clear()
 	available_ships.clear()
 	
-	print("ShipPanel: Panel cleanup completed")
 
 func _validate_ship_data() -> Array[String]:
 	## Performs validation on the ship data
@@ -1219,7 +1158,6 @@ func get_panel_data() -> Dictionary:
 func set_panel_data(data: Dictionary) -> void:
 	## Set panel data - interface implementation for state restoration
 	if data.is_empty():
-		print("ShipPanel: No data to restore in set_panel_data")
 		return
 
 	# Handle both direct ship data and nested ship data
@@ -1233,8 +1171,6 @@ func set_panel_data(data: Dictionary) -> void:
 	local_ship_data["is_complete"] = data.get("is_complete", false)
 	is_ship_complete = local_ship_data["is_complete"]
 
-	print("ShipPanel: set_panel_data restored ship: %s" % ship_data.get("name", "Unknown"))
-
 	# Update UI with restored data
 	call_deferred("_update_ship_display")
 
@@ -1243,21 +1179,19 @@ func set_panel_data(data: Dictionary) -> void:
 
 func _on_coordinator_set() -> void:
 	## Called when coordinator is assigned - sync initial state
-	print("ShipPanel: Coordinator set, syncing initial state")
 
 	var coordinator = get_coordinator_reference()
 	if coordinator and coordinator.has_method("get_unified_campaign_state"):
 		var state = coordinator.get_unified_campaign_state()
 		if state.has("ship") and state.ship is Dictionary and not state.ship.is_empty():
-			print("ShipPanel: Restoring ship state from coordinator")
 			ship_data = state.ship.duplicate()
 			local_ship_data["ship"] = ship_data
 			local_ship_data["is_complete"] = state.ship.get("is_complete", false)
 			call_deferred("_update_ship_display")
 		else:
-			print("ShipPanel: No existing ship state in coordinator")
+			pass
 	else:
-		print("ShipPanel: Coordinator not available or missing get_unified_campaign_state")
+		pass
 
 func reset_panel() -> void:
 	## Reset panel to default state
@@ -1287,10 +1221,7 @@ func reset_panel() -> void:
 func restore_panel_data(data: Dictionary) -> void:
 	## Restore panel data from persistence system
 	if data.is_empty():
-		print("ShipPanel: No data to restore")
 		return
-	
-	print("ShipPanel: Restoring panel data: ", data.keys())
 	
 	# Restore ship data
 	if data.has("ship") and data["ship"] is Dictionary:
@@ -1299,8 +1230,6 @@ func restore_panel_data(data: Dictionary) -> void:
 		local_ship_data.is_complete = data.get("is_complete", false)
 		is_ship_complete = local_ship_data.is_complete
 		
-		print("ShipPanel: Restored ship: ", ship_data.get("name", "Unknown Ship"))
-		
 		# Update UI with restored data
 		_restore_ui_from_ship_data(ship_data)
 		_update_ship_display()
@@ -1308,7 +1237,6 @@ func restore_panel_data(data: Dictionary) -> void:
 		# Emit signals
 		ship_updated.emit(ship_data)
 	
-	print("ShipPanel: Panel data restoration complete")
 
 func _restore_ui_from_ship_data(ship_data: Dictionary) -> void:
 	## Restore UI elements from ship data
@@ -1344,50 +1272,9 @@ func _select_ship_type_option(ship_type: String) -> void:
 ## Debug Helper Methods
 
 func _log_panel_initialization_debug() -> void:
-	## Comprehensive debug output for panel initialization
-	print("\n==== [PANEL: ShipPanel] INITIALIZATION ====")
-	print("  Phase: 4 of 7 (Ship Selection)")
-	print("  Panel Title: %s" % panel_title)
-	print("  Panel Description: %s" % panel_description)
+	## Debug output for panel initialization (no-op in release)
+	pass
 	
-	# Check for coordinator access
-	# Fixed: Check owner (CampaignCreationUI) instead of direct parent (content_container)
-	var campaign_ui = owner if owner != null else get_parent().get_parent()
-	var has_coordinator = campaign_ui != null and campaign_ui.has_method("get_coordinator")
-	print("  Has Coordinator Access: %s" % has_coordinator)
-	if has_coordinator:
-		var coordinator = campaign_ui.get_coordinator() if campaign_ui.has_method("get_coordinator") else null
-		print("    Coordinator Available: %s" % (coordinator != null))
-	
-	# Check autoloaded managers availability
-	print("  === AUTOLOAD MANAGER CHECK ===")
-	var campaign_manager = get_node_or_null("/root/CampaignManager")
-	var game_state_manager = get_node_or_null("/root/GameStateManager")
-	var scene_router = get_node_or_null("/root/SceneRouter")
-	var campaign_phase_manager = get_node_or_null("/root/CampaignPhaseManager")
-
-	print("    CampaignManager: %s" % (campaign_manager != null))
-	print("    GameStateManager: %s" % (game_state_manager != null))
-	print("    SceneRouter: %s" % (scene_router != null))
-	print("    CampaignPhaseManager: %s" % (campaign_phase_manager != null))
-	
-	# Check current ship data
-	print("  === INITIAL SHIP DATA ===")
-	print("    Local Ship Data Keys: %s" % str(local_ship_data.keys()))
-	print("    Ship Data Keys: %s" % str(ship_data.keys()))
-	print("    Available Ships: %d" % available_ships.size())
-	print("    Is Complete: %s" % local_ship_data.get("is_complete", false))
-	
-	# Check UI component availability
-	print("  === UI COMPONENTS ===")
-	print("    Ship Name Input: %s" % (ship_name_input != null))
-	print("    Ship Type Option: %s" % (ship_type_option != null))
-	print("    Hull Points Spinbox: %s" % (hull_points_spinbox != null))
-	print("    Debt Spinbox: %s" % (debt_spinbox != null))
-	print("    Generate Button: %s" % (generate_button != null))
-	print("    Ship Manager Instance: %s" % (ship_manager_instance != null))
-	
-	print("==== [PANEL: ShipPanel] INIT COMPLETE ====\n")
 
 # ============ DEFENSIVE UI CREATION METHODS ============
 # These methods create UI components programmatically when scene structure is missing
@@ -1406,7 +1293,6 @@ func _create_fallback_ui() -> Control:
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	container.add_child(title)
 
-	print("ShipPanel: Created fallback Content container")
 	return container
 
 func _create_ship_name_section(parent: Node) -> LineEdit:
@@ -1430,7 +1316,6 @@ func _create_ship_name_section(parent: Node) -> LineEdit:
 	_style_line_edit(input)
 	container.add_child(input)
 
-	print("ShipPanel: Created ship name section")
 	return input
 
 func _create_ship_type_section(parent: Node) -> OptionButton:
@@ -1463,7 +1348,6 @@ func _create_ship_type_section(parent: Node) -> OptionButton:
 	_style_option_button(option)
 	container.add_child(option)
 
-	print("ShipPanel: Created ship type section")
 	return option
 
 func _create_hull_points_section(parent: Node) -> SpinBox:
@@ -1489,7 +1373,6 @@ func _create_hull_points_section(parent: Node) -> SpinBox:
 	spinbox.custom_minimum_size.y = TOUCH_TARGET_MIN
 	container.add_child(spinbox)
 
-	print("ShipPanel: Created hull points section")
 	return spinbox
 
 func _create_debt_section(parent: Node) -> SpinBox:
@@ -1516,7 +1399,6 @@ func _create_debt_section(parent: Node) -> SpinBox:
 	spinbox.custom_minimum_size.y = TOUCH_TARGET_MIN
 	container.add_child(spinbox)
 
-	print("ShipPanel: Created debt section")
 	return spinbox
 
 func _create_traits_section(parent: Node) -> VBoxContainer:
@@ -1537,7 +1419,6 @@ func _create_traits_section(parent: Node) -> VBoxContainer:
 	traits_list.add_theme_constant_override("separation", SPACING_XS)
 	container.add_child(traits_list)
 
-	print("ShipPanel: Created traits section")
 	return traits_list
 
 func _create_control_buttons(parent: Node) -> void:
@@ -1571,11 +1452,8 @@ func _create_control_buttons(parent: Node) -> void:
 	select_button.pressed.connect(_on_select_pressed)
 	container.add_child(select_button)
 
-	print("ShipPanel: Created control buttons (Select button hidden)")
-
 func _on_select_pressed() -> void:
 	## Handle ship selection button press
-	print("ShipPanel: Ship selection pressed")
 	# Signal selection made - completion handled by _validate_and_complete()
 	var selection_data = {
 		"ship_name": "Default Ship", # Safe default

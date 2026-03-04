@@ -80,6 +80,7 @@ func _create_accessibility_section(parent: Node) -> void:
 	# Description
 	accessibility_desc_label = Label.new()
 	accessibility_desc_label.text = """Enhanced features for users with disabilities:
+		pass
 	• Slower animations and clearer visual feedback
 • Always show calculation breakdowns
 • Larger text and high contrast options

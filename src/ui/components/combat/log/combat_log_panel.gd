@@ -89,7 +89,7 @@ func _add_entry_to_list(entry: Dictionary) -> void:
 
 ## Returns the appropriate icon for the entry type
 func _get_entry_icon(entry_type: String) -> Texture2D:
-	# TODO: Return appropriate icons based on entry type
+	# NOTE: Deferred — return icons based on entry type when combat icon assets are ready
 	return null
 
 ## Checks if an entry should be shown based on current filter

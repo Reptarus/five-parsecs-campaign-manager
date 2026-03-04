@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 extends RefCounted
 
 ## Production Performance Monitor - Enhanced Performance Management
@@ -56,7 +56,6 @@ var _last_monitoring_time: int = 0
 
 ## Initialize the production performance monitor
 func initialize() -> bool:
-	print("[ProductionPerformanceMonitor] Initializing production performance monitoring...")
 	
 	# Create performance optimizer instance
 	_performance_optimizer = PerformanceOptimizer.new()
@@ -64,13 +63,11 @@ func initialize() -> bool:
 	# Try to connect to error boundary system
 	# Note: UniversalErrorBoundary reference removed due to parser error
 	# _error_boundary = UniversalErrorBoundary
-	print("[ProductionPerformanceMonitor] Error boundary system not available")
 	
 	# Initialize memory leak prevention integration
 	_memory_leak_prevention = load("res://src/core/memory/MemoryLeakPrevention.gd")
 	if _memory_leak_prevention:
 		_memory_leak_prevention.initialize()
-		print("[ProductionPerformanceMonitor] Connected to memory leak prevention system")
 	else:
 		push_warning("ProductionPerformanceMonitor: Memory leak prevention not available")
 	
@@ -80,20 +77,17 @@ func initialize() -> bool:
 	_monitoring_active = true
 	_last_monitoring_time = Time.get_ticks_msec()
 	
-	print("[ProductionPerformanceMonitor] ✅ Production performance monitoring initialized")
 	return true
 
 ## Start comprehensive performance monitoring
 func start_monitoring() -> void:
 	if not _monitoring_active:
-		print("[ProductionPerformanceMonitor] Starting performance monitoring...")
 		_monitoring_active = true
 	
 	_collect_performance_metrics()
 
 ## Stop performance monitoring
 func stop_monitoring() -> void:
-	print("[ProductionPerformanceMonitor] Stopping performance monitoring...")
 	_monitoring_active = false
 
 ## Collect current performance metrics
@@ -201,9 +195,6 @@ func _detect_performance_regressions() -> Array[Dictionary]:
 		_regression_alerts.append(regression)
 		
 		# Emit alert
-		print("[ProductionPerformanceMonitor] 🚨 PERFORMANCE REGRESSION DETECTED:")
-		print("  %s" % regression.description)
-		print("  Recommendation: %s" % regression.recommendation)
 	
 	# Trim old alerts
 	_trim_regression_alerts()
@@ -317,7 +308,6 @@ func execute_auto_optimizations() -> Dictionary:
 	var optimizations_executed = []
 	var total_savings = {"memory_mb": 0.0, "fps_improvement": 0.0, "node_reduction": 0}
 	
-	print("[ProductionPerformanceMonitor] Executing automatic performance optimizations...")
 	
 	# Execute safe, automatic optimizations
 	for recommendation in _optimization_recommendations:
@@ -359,9 +349,7 @@ func execute_auto_optimizations() -> Dictionary:
 	}
 	
 	if result.executed:
-		print("[ProductionPerformanceMonitor] ✅ Auto-optimizations completed:")
-		print("  - Memory saved: %.1fMB" % total_savings.memory_mb)
-		print("  - Nodes reduced: %d" % total_savings.node_reduction)
+		pass
 	
 	return result
 

@@ -2,7 +2,6 @@
 # Use explicit preloads instead of global class names
 extends Control
 
-const Self = preload("res://src/ui/screens/SaveLoadUI.gd")
 const GameState = preload("res://src/core/state/GameState.gd")
 const SaveManager = preload("res://src/core/state/SaveManager.gd")
 
@@ -266,6 +265,7 @@ func _show_manual_recovery_dialog() -> void:
 	var explanation = Label.new()
 	explanation.text = """
 	Manual recovery allows you to:
+		pass
 	1. View the raw save data
 	2. Edit specific fields
 	3. Attempt to repair the save

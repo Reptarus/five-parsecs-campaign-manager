@@ -5,4 +5,4 @@ extends Control
 const Self := "res://src/ui/components/character/CharacterSheet.gd" # Use string path instead of preload
 
 func _ready() -> void:
-    pass
+	pass

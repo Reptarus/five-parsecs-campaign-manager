@@ -26,7 +26,6 @@ func _ready() -> void:
 	_initialize_state_validator()
 	_connect_to_phase_manager()
 
-	print("CampaignStateService: Initialized successfully")
 
 func _connect_to_phase_manager() -> void:
 	## Connect to CampaignPhaseManager signals for reactive state sync
@@ -36,7 +35,6 @@ func _connect_to_phase_manager() -> void:
 func _deferred_connect_cpm() -> void:
 	var cpm = get_node_or_null("/root/CampaignPhaseManager")
 	if not cpm:
-		print("CampaignStateService: CampaignPhaseManager not found, running standalone")
 		return
 
 	if cpm.has_signal("phase_started"):
@@ -54,7 +52,6 @@ func _deferred_connect_cpm() -> void:
 	if cpm.has_method("get_turn_number"):
 		campaign_turn = cpm.get_turn_number()
 
-	print("CampaignStateService: Connected to CampaignPhaseManager signals")
 
 func _on_cpm_phase_started(phase: int) -> void:
 	## Sync phase from CampaignPhaseManager (canonical source)
@@ -105,7 +102,7 @@ func _initialize_transition_rules() -> void:
 func _initialize_state_validator() -> void:
 	## Initialize state validation system
 	# Future: Load from proper validator class
-	print("CampaignStateService: State validator initialized")
+	pass
 
 ## Public Interface
 
@@ -133,7 +130,6 @@ func initialize_new_campaign(campaign_data: Dictionary) -> bool:
 	_save_state_snapshot("campaign_initialized")
 	_emit_state_changed()
 	
-	print("CampaignStateService: New campaign initialized - %s" % current_campaign.name)
 	return true
 
 func restore_campaign(save_data: Dictionary) -> bool:
@@ -152,7 +148,6 @@ func restore_campaign(save_data: Dictionary) -> bool:
 	
 	_emit_state_changed()
 	
-	print("CampaignStateService: Campaign restored - %s" % current_campaign.get("name", "Unknown"))
 	return true
 
 func transition_to_phase(new_phase: GlobalEnums.FiveParsecsCampaignPhase) -> bool:
@@ -199,11 +194,9 @@ func _validate_save_data(save_data: Dictionary) -> bool:
 	var required_keys = ["campaign_data", "current_phase", "campaign_turn"]
 	for key in required_keys:
 		if not save_data.has(key):
-			print("CampaignStateService: Missing required save data key: %s" % key)
 			return false
 	var phase_value = save_data.get("current_phase")
 	if not phase_value in GlobalEnums.FiveParsecsCampaignPhase.values():
-		print("CampaignStateService: Invalid phase value in save data: %s" % phase_value)
 		return false
 	return true
 

@@ -1,4 +1,4 @@
-﻿class_name FPCM_StoryTrackSystem
+class_name FPCM_StoryTrackSystem
 extends Resource
 
 ## Story Track System implementing Five Parsecs Core Rules Appendix V
@@ -186,7 +186,6 @@ func _load_tutorial_config() -> void:
 	var config_path := "res://data/tutorial/story_companion_tutorials.json"
 
 	if not FileAccess.file_exists(config_path):
-		print("StoryTrackSystem: Tutorial config not found at %s" % config_path)
 		return
 
 	var file := FileAccess.open(config_path, FileAccess.READ)
@@ -205,15 +204,15 @@ func _load_tutorial_config() -> void:
 		return
 
 	tutorial_config = json.data as Dictionary
-	print("StoryTrackSystem: Loaded tutorial config with %d entries" % tutorial_config.get("tutorials", {}).size())
+	pass
 
 ## Enable or disable guided campaign mode
 func set_guided_mode(enabled: bool) -> void:
 	guided_mode_enabled = enabled
 	if enabled:
-		print("StoryTrackSystem: Guided campaign mode enabled")
+		pass
 	else:
-		print("StoryTrackSystem: Guided campaign mode disabled")
+		pass
 
 ## Emit tutorial request for a story event (helper)
 func _emit_tutorial_request_for_event(event: StoryEvent) -> void:
@@ -242,7 +241,7 @@ func _emit_tutorial_request_for_event(event: StoryEvent) -> void:
 	# Emit tutorial request signal
 	if not companion_tools.is_empty():
 		tutorial_requested.emit(event.event_id, companion_tools, story_context)
-		print("StoryTrackSystem: Tutorial requested for event '%s' with %d tools" % [event.event_id, companion_tools.size()])
+		pass
 
 ## Start the story track
 func start_story_track() -> void:
@@ -295,18 +294,12 @@ func advance_turn(campaign_turn: int = 0, quest_rumors: int = 0, quests_complete
 		result["new_ticks"] = story_clock_ticks
 		story_clock_advanced.emit(story_clock_ticks)
 
-		print("StoryTrackSystem: Clock advanced! Roll %d + %d = %d (3+ needed). Ticks remaining: %d" % [
-			roll, modifier, total, story_clock_ticks
-		])
-
 		# Check if clock reached zero - trigger story event
 		if story_clock_ticks <= 0:
 			trigger_next_event()
 			result["event_triggered"] = true
 	else:
-		print("StoryTrackSystem: Clock not advanced. Roll %d + %d = %d (3+ needed)" % [
-			roll, modifier, total
-		])
+		pass
 
 	return result
 

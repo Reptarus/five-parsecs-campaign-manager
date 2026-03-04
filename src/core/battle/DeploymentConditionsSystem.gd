@@ -166,7 +166,6 @@ func _initialize_condition_registry() -> void:
 			condition.effects = cond_data.get("effects", {})
 			condition.roll_ranges = cond_data.get("roll_ranges", {})
 			condition_registry.append(condition)
-		print("DeploymentConditionsSystem: Loaded %d conditions from JSON" % condition_registry.size())
 		return
 
 	# Fallback to hardcoded data

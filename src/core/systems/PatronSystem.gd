@@ -1,4 +1,4 @@
-﻿@warning_ignore("return_value_discarded")
+@warning_ignore("return_value_discarded")
 @warning_ignore("unsafe_method_access")
 @warning_ignore("untyped_declaration")
 class_name PatronSystem
@@ -84,7 +84,7 @@ func _load_dependencies() -> void:
 	if not patron_data_file.is_empty():
 		patron_types_data = patron_data_file
 		var patron_types_array = SafeDataAccess.safe_get(patron_types_data, "patron_types", [], "patron types loading")
-		print("PatronSystem: Loaded %d patron types from DataManager" % patron_types_array.size())
+		pass
 	else:
 		push_warning("Patron types data not found in DataManager, using fallback")
 		_load_fallback_patron_data()
@@ -93,7 +93,6 @@ func _load_dependencies() -> void:
 	var mission_data_file = DataManager._load_json_safe("res://data/mission_tables/mission_types.json", "mission_types")
 	if not mission_data_file.is_empty():
 		mission_data = mission_data_file
-		print("PatronSystem: Loaded mission types from DataManager")
 	else:
 		push_warning("Mission types data not found in DataManager, using fallback")
 		_load_fallback_mission_data()
@@ -102,7 +101,6 @@ func _load_dependencies() -> void:
 	var connections_data_file = DataManager._load_json_safe("res://data/expanded_connections.json", "expanded_connections")
 	if not connections_data_file.is_empty():
 		connections_data = connections_data_file
-		print("PatronSystem: Loaded connections data from DataManager")
 	else:
 		push_warning("Connections data not found in DataManager, using fallback")
 		_load_fallback_connections_data()
@@ -174,8 +172,8 @@ func initialize() -> bool:
 	
 	if not _game_state:
 		# Use fallback approach - this is not critical for patron generation
-		print("PatronSystem: Game state not available - using fallback mode")
 		# Don't add to errors since PatronSystem can work without GameState
+		pass
 
 	# Load connections data
 	_load_connections_data()
@@ -187,7 +185,7 @@ func initialize() -> bool:
 	_last_update = Time.get_unix_time_from_system()
 
 	if _initialized:
-		print("PatronSystem: Successfully initialized")
+		pass
 	else:
 		push_error("PatronSystem: Failed to initialize - errors: " + str(_errors))
 
@@ -337,9 +335,8 @@ func generate_patron() -> Dictionary:
 		patron_reputations[patron_id] = 0
 		patron_encountered.emit(patron)
 		var patron_name = SafeDataAccess.safe_get(patron, "name", "Unknown", "patron name lookup")
-		print("PatronSystem: Generated new patron: " + patron_name)
 	else:
-		print("PatronSystem: Patron capacity reached, patron not added")
+		pass
 
 	return patron
 
@@ -504,7 +501,6 @@ func _load_connections_data() -> void:
 			_errors.append("Failed to parse connections data")
 		if file: file.close()
 	else:
-		print("PatronSystem: Connections data file not found, using defaults")
 		_initialize_default_connections_data()
 
 func _initialize_default_connections_data() -> void:
@@ -527,7 +523,7 @@ func _initialize_default_connections_data() -> void:
 func _initialize_default_data() -> void:
 	## Initialize system with default empty state
 	if active_patrons.is_empty():
-		print("PatronSystem: No existing patrons, system ready for new generation")
+		pass
 
 func _validate_data_structure(data: Dictionary) -> Dictionary:
 	## Validate incoming data structure
@@ -799,11 +795,11 @@ func _apply_hazard_consequence(hazard: String) -> void:
 	## Apply specific hazard consequence
 	match hazard:
 		"Dangerous Job":
-			print("PatronSystem: Dangerous job hazard applied - increased injury risk")
+			pass
 		"Hot Job":
-			print("PatronSystem: Hot job hazard applied - increased heat")
+			pass
 		_:
-			print("PatronSystem: Unknown hazard consequence: " + hazard)
+			pass
 
 func _should_generate_benefit(patron: Dictionary) -> bool:
 	## Check if patron should provide job benefits
@@ -889,7 +885,7 @@ func _apply_connection_effect(effect: Dictionary) -> void:
 			if _game_state and _game_state and _game_state.has_method("apply_military_bonus"):
 				_game_state.apply_military_bonus(SafeDataAccess.safe_get(effect_dict, "value", 0, "military effect value lookup"))
 		_:
-			print("PatronSystem: Unknown connection effect: " + effect_type)
+			pass
 
 # Public API methods for backward compatibility
 func get_active_patrons() -> Array[Dictionary]:

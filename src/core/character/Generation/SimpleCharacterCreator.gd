@@ -1,4 +1,4 @@
-﻿extends Control
+extends Control
 class_name SimpleCharacterCreator
 
 ## Enhanced Character Creator for Five Parsecs
@@ -49,22 +49,20 @@ var backgrounds_data: Dictionary = {}
 var motivations_data: Dictionary = {}
 
 func _ready() -> void:
-	print("SimpleCharacterCreator: _ready() called")
+	pass # _ready() called
 	name = "SimpleCharacterCreator"
 	visible = false
 	
 	_load_character_data()
-	print("SimpleCharacterCreator: Character data loaded successfully")
 	
 	# Wait for the scene tree to be fully ready before initializing UI
 	await get_tree().process_frame
 	await get_tree().process_frame # Double frame wait for complex UI
-	print("SimpleCharacterCreator: Scene tree ready, initializing UI")
 	
 	_initialize_ui_components()
 	_connect_signals()
 	
-	print("SimpleCharacterCreator: _ready() completed successfully")
+	pass # _ready() completed
 
 func _load_character_data() -> void:
 	## Load character creation data from JSON files
@@ -72,15 +70,10 @@ func _load_character_data() -> void:
 	backgrounds_data = UniversalResourceLoader.load_json_safe("res://data/character_backgrounds.json", "Character Backgrounds")
 	motivations_data = UniversalResourceLoader.load_json_safe("res://data/character_creation_tables/motivation_table.json", "Character Motivations")
 	
-	print("SimpleCharacterCreator: Loaded character data - %d species, %d backgrounds, %d motivations" % [
-		species_data.get("species", []).size(),
-		backgrounds_data.get("backgrounds", []).size(),
-		motivations_data.keys().size() - 2 # Subtract metadata keys
-	])
+	pass # Character data loaded
 
 func _initialize_ui_components() -> void:
 	## Initialize UI components with safe node access
-	print("SimpleCharacterCreator: Starting UI component initialization")
 	
 	# Input fields - using unique names
 	name_input = get_node_or_null("%NameInput")
@@ -106,33 +99,8 @@ func _initialize_ui_components() -> void:
 	# Description - using unique names
 	description_label = get_node_or_null("%DescriptionLabel")
 	
-	print("SimpleCharacterCreator: UI components found:")
-	print("  NameInput: ", name_input != null)
-	print("  OriginOptions: ", origin_options != null)
-	print("  BackgroundOptions: ", background_options != null)
-	print("  MotivationOptions: ", motivation_options != null)
-	print("  CombatValue: ", combat_value != null)
-	print("  ReactionsValue: ", reactions_value != null)
-	print("  ToughnessValue: ", toughness_value != null)
-	print("  SavvyValue: ", savvy_value != null)
-	print("  TechValue: ", tech_value != null)
-	print("  SpeedValue: ", speed_value != null)
-	print("  LuckValue: ", luck_value != null)
-	print("  RandomizeButton: ", randomize_button != null)
-	print("  CreateButton: ", create_button != null)
-	print("  CancelButton: ", cancel_button != null)
-	print("  BackButton: ", back_button != null)
-	print("  DescriptionLabel: ", description_label != null)
 	
-	# Debug: Print the scene tree to help identify issues
-	print("SimpleCharacterCreator: Scene tree debug:")
-	print("  Root node: ", get_name())
-	print("  Dialog node: ", get_node_or_null("Dialog"))
-	print("  VBoxContainer node: ", get_node_or_null("Dialog/VBoxContainer"))
-	print("  NameInput node: ", name_input)
-	print("  OriginOptions node: ", origin_options)
-	print("  BackgroundOptions node: ", background_options)
-	print("  MotivationOptions node: ", motivation_options)
+	# Scene tree debug removed
 	
 	# Log any missing components
 	var missing_components = []
@@ -158,99 +126,80 @@ func _initialize_ui_components() -> void:
 		# Try to find nodes with different paths
 		_try_alternative_node_paths()
 	else:
-		print("SimpleCharacterCreator: All UI components initialized successfully")
 		_populate_options()
 
 func _try_alternative_node_paths() -> void:
 	## Try alternative node paths in case the scene structure is different
-	print("SimpleCharacterCreator: Trying alternative node paths...")
 	
 	# Try full scene tree paths based on the .tscn file structure
 	var full_name_input = get_node_or_null("Dialog/VBoxContainer/NameContainer/NameInput")
 	if full_name_input and not name_input:
 		name_input = full_name_input
-		print("  Found NameInput via full path")
 	
 	var full_origin_options = get_node_or_null("Dialog/VBoxContainer/OriginContainer/OriginOptions")
 	if full_origin_options and not origin_options:
 		origin_options = full_origin_options
-		print("  Found OriginOptions via full path")
 	
 	var full_background_options = get_node_or_null("Dialog/VBoxContainer/BackgroundContainer/BackgroundOptions")
 	if full_background_options and not background_options:
 		background_options = full_background_options
-		print("  Found BackgroundOptions via full path")
 	
 	var full_motivation_options = get_node_or_null("Dialog/VBoxContainer/MotivationContainer/MotivationOptions")
 	if full_motivation_options and not motivation_options:
 		motivation_options = full_motivation_options
-		print("  Found MotivationOptions via full path")
 	
 	# Try stat value labels
 	var full_combat_value = get_node_or_null("Dialog/VBoxContainer/StatsContainer/StatsDisplay/CombatValue")
 	if full_combat_value and not combat_value:
 		combat_value = full_combat_value
-		print("  Found CombatValue via full path")
 
 	var full_reactions_value = get_node_or_null("Dialog/VBoxContainer/StatsContainer/StatsDisplay/ReactionsValue")
 	if full_reactions_value and not reactions_value:
 		reactions_value = full_reactions_value
-		print("  Found ReactionsValue via full path")
 
 	var full_toughness_value = get_node_or_null("Dialog/VBoxContainer/StatsContainer/StatsDisplay/ToughnessValue")
 	if full_toughness_value and not toughness_value:
 		toughness_value = full_toughness_value
-		print("  Found ToughnessValue via full path")
 	
 	var full_savvy_value = get_node_or_null("Dialog/VBoxContainer/StatsContainer/StatsDisplay/SavvyValue")
 	if full_savvy_value and not savvy_value:
 		savvy_value = full_savvy_value
-		print("  Found SavvyValue via full path")
 	
 	var full_tech_value = get_node_or_null("Dialog/VBoxContainer/StatsContainer/StatsDisplay/TechValue")
 	if full_tech_value and not tech_value:
 		tech_value = full_tech_value
-		print("  Found TechValue via full path")
 	
 	var full_speed_value = get_node_or_null("Dialog/VBoxContainer/StatsContainer/StatsDisplay/SpeedValue")
 	if full_speed_value and not speed_value:
 		speed_value = full_speed_value
-		print("  Found SpeedValue via full path")
 	
 	var full_luck_value = get_node_or_null("Dialog/VBoxContainer/StatsContainer/StatsDisplay/LuckValue")
 	if full_luck_value and not luck_value:
 		luck_value = full_luck_value
-		print("  Found LuckValue via full path")
 	
 	# Try buttons
 	var full_randomize_button = get_node_or_null("Dialog/VBoxContainer/ButtonContainer/RandomizeButton")
 	if full_randomize_button and not randomize_button:
 		randomize_button = full_randomize_button
-		print("  Found RandomizeButton via full path")
 	
 	var full_create_button = get_node_or_null("Dialog/VBoxContainer/ButtonContainer/CreateButton")
 	if full_create_button and not create_button:
 		create_button = full_create_button
-		print("  Found CreateButton via full path")
 	
 	var full_cancel_button = get_node_or_null("Dialog/VBoxContainer/ButtonContainer/CancelButton")
 	if full_cancel_button and not cancel_button:
 		cancel_button = full_cancel_button
-		print("  Found CancelButton via full path")
 	
 	var full_back_button = get_node_or_null("Dialog/VBoxContainer/BackButton")
 	if full_back_button and not back_button:
 		back_button = full_back_button
-		print("  Found BackButton via full path")
 	
 	var full_description_label = get_node_or_null("Dialog/VBoxContainer/DescriptionContainer/DescriptionLabel")
 	if full_description_label and not description_label:
 		description_label = full_description_label
-		print("  Found DescriptionLabel via full path")
 	
 	# If we found some components, try to populate
 	if name_input or origin_options or background_options or motivation_options:
-		print("SimpleCharacterCreator: Found some components via alternative paths")
 		_populate_options()
 
 func _populate_options() -> void:
@@ -301,7 +250,6 @@ func _connect_signals() -> void:
 	# Connect stat adjustment buttons
 	_connect_stat_buttons()
 	
-	print("SimpleCharacterCreator: Signal connections completed")
 
 func _connect_stat_buttons() -> void:
 	## Connect stat adjustment buttons
@@ -367,7 +315,6 @@ func start_creation(mode: CreatorMode = CreatorMode.CREW_MEMBER) -> void:
 	_reset_form()
 	_generate_random_stats()
 	show()
-	print("SimpleCharacterCreator: Started creation in mode: %s" % mode)
 
 func edit_character(character: Character) -> void:
 	if not character:
@@ -378,7 +325,6 @@ func edit_character(character: Character) -> void:
 	current_character = character.duplicate()
 	_populate_form(character)
 	show()
-	print("SimpleCharacterCreator: Started editing character: %s" % character.character_name)
 
 func _reset_form() -> void:
 	## Reset the form to default values
@@ -462,7 +408,6 @@ func _generate_random_stats() -> void:
 	
 	_update_stats_display()
 	_update_description()
-	print("SimpleCharacterCreator: Generated random stats for mode: %s" % current_mode)
 
 func _roll_2d6() -> int:
 	## Roll 2d6 for Five Parsecs stat generation
@@ -488,10 +433,7 @@ func _update_stats_display() -> void:
 	if luck_value:
 		luck_value.text = str(current_character.luck)
 
-	print("SimpleCharacterCreator: Stats updated - Combat:%d React:%d Tough:%d Savvy:%d Tech:%d Speed:%d Luck:%d" % [
-		current_character.combat, current_character.reactions, current_character.toughness, current_character.savvy,
-		current_character.tech, current_character.speed, current_character.luck
-	])
+	pass # Stats display updated
 
 func _update_description() -> void:
 	## Update the description panel with current selections
@@ -641,7 +583,6 @@ func _on_cancel_pressed() -> void:
 
 func _on_back_pressed() -> void:
 	## Handle back button press - return to previous step in campaign creation
-	print("SimpleCharacterCreator: Back button pressed - returning to previous step")
 	hide()
 	# The parent campaign creation flow will handle the navigation
 

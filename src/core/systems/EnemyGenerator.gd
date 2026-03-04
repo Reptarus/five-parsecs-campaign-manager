@@ -36,7 +36,6 @@ func _load_enemy_data() -> void:
 		push_error("Failed to load enemy data from res://data/enemy_types.json")
 		_load_fallback_enemy_data()
 	else:
-		print("EnemyGenerator: Loaded %d enemy categories from JSON" % enemy_data.get("enemy_categories", []).size())
 		
 		# Extract loot tables and spawn rules
 		loot_tables = enemy_data.get("enemy_loot_tables", {})
@@ -498,8 +497,6 @@ func generate_enemies_as_dicts(mission_data: Dictionary, crew_size: int = 4) -> 
 				"xp_value": 2 if is_leader else 1
 			})
 
-	print("EnemyGenerator: Generated %d enemies (category '%s', danger %d, crew %d)" % [
-		enemies.size(), category, danger_level, crew_size])
 	return enemies
 
 func generate_random_encounter() -> Array[Resource]:
@@ -556,27 +553,16 @@ func _debug_log_enemy_count(crew_size: int, difficulty: int, roll_method: String
 	## Log enemy count calculation for debugging
 	if not DEBUG_ENEMY_COUNT:
 		return
-	print("┌─────────────────────────────────────────────────────────────┐")
-	print("│ ENEMY COUNT CALCULATION                                     │")
-	print("├─────────────────────────────────────────────────────────────┤")
-	print("│ Crew Size: %d" % crew_size)
-	print("│ Difficulty: %d" % difficulty)
-	print("│ Roll Method: %s" % roll_method)
 	print("│ Dice Rolls: %s" % str(rolls))
-	print("│ Base Count: %d" % base_count)
 	if modifier != 0:
-		print("│ Difficulty Modifier: %+d" % modifier)
-	print("│ FINAL ENEMY COUNT: %d" % final_count)
-	print("└─────────────────────────────────────────────────────────────┘")
+		pass
 
 
 func enable_debug_logging() -> void:
 	## Enable enemy count debug logging
 	DEBUG_ENEMY_COUNT = true
-	print("EnemyGenerator: Enemy count debug logging ENABLED")
 
 
 func disable_debug_logging() -> void:
 	## Disable enemy count debug logging
 	DEBUG_ENEMY_COUNT = false
-	print("EnemyGenerator: Enemy count debug logging DISABLED")

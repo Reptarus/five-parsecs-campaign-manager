@@ -120,7 +120,6 @@ func _connect_to_war_manager() -> void:
 	if war_manager.has_signal("war_track_activated"):
 		war_manager.war_track_activated.connect(_on_war_track_activated)
 	
-	print("GalacticWarProgressPanel: Connected to GalacticWarManager")
 
 ## Public API
 
@@ -353,12 +352,10 @@ func _on_war_threshold_reached(track_id: String, threshold: int, event_data: Dic
 	refresh_display()
 	
 	# Could show notification popup here
-	print("GalacticWarProgressPanel: Threshold reached - %s at %d" % [track_id, threshold])
 
 func _on_war_track_activated(track_id: String) -> void:
 	## Handle new war track activation
 	refresh_display()
-	print("GalacticWarProgressPanel: New war track activated - %s" % track_id)
 
 func _on_help_pressed() -> void:
 	## Handle help button press

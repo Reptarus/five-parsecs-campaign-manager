@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 
 ## Dice Manager for Five Parsecs Campaign Manager
 ## Integrates the dice system with existing game systems
@@ -26,10 +26,9 @@ func _initialize_dice_system() -> void:
 	if dice_system_script:
 		dice_system = dice_system_script.new()
 		_setup_dice_system()
-		print("DiceManager: ✅ DiceSystem loaded successfully")
 	else:
-		print("DiceManager: ❌ Failed to load DiceSystem - using basic random fallback")
 		# Continue without dice_system - methods will use fallback
+		pass
 
 func _setup_dice_system() -> void:
 	## Configure dice system if loaded successfully
@@ -319,7 +318,6 @@ func get_roll_history_data(count: int = 10) -> Array[Dictionary]:
 ## Clear roll history
 func clear_roll_history() -> void:
 	_roll_history.clear()
-	print("DiceManager: Roll history cleared")
 
 ## SIGNAL HANDLERS
 func _on_dice_rolled(result: int, context: String) -> void:
@@ -327,7 +325,7 @@ func _on_dice_rolled(result: int, context: String) -> void:
 
 func _on_manual_input_requested(context: String) -> void:
 	# Handle manual input request - could show UI prompt
-	print("Manual dice input requested for: " + context)
+	pass
 
 ## SETTINGS MANAGEMENT
 func save_dice_settings() -> Dictionary:

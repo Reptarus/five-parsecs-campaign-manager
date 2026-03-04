@@ -34,7 +34,6 @@ var automation_enabled: bool = false
 
 func _ready() -> void:
 	name = "MissionPrepComponent"
-	print("MissionPrepComponent: Initialized - handling Five Parsecs mission preparation")
 
 	_initialize_event_bus()
 	_connect_ui_signals()
@@ -55,7 +54,6 @@ func _initialize_event_bus() -> void:
 	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.AUTOMATION_TOGGLED, _on_automation_toggled)
 	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.JOB_ACCEPTED, _on_job_accepted)
 
-	print("MissionPrepComponent: Connected to event bus")
 
 func _exit_tree() -> void:
 	## Cleanup event bus subscriptions to prevent memory leaks
@@ -99,11 +97,7 @@ func initialize_mission_prep(mission: Dictionary, crew: Array, equipment: Array)
 	crew_data = crew.duplicate()
 	available_equipment = equipment.duplicate()
 
-	print("MissionPrepComponent: Initialized prep for mission: %s with %d crew, %d equipment" % [
-		mission_data.get("objective", "Unknown"),
-		crew_data.size(),
-		available_equipment.size()
-	])
+	pass # Mission prep initialized
 
 	# Initialize assignments from crew member's existing equipment
 	crew_equipment_assignments.clear()
@@ -139,13 +133,11 @@ func assign_equipment_to_crew(crew_id: String, equipment_id: String) -> bool:
 			break
 
 	if not equipment_item:
-		print("MissionPrepComponent: Equipment %s not found" % equipment_id)
 		return false
 
 	# Check if equipment is already assigned
 	for assignments in crew_equipment_assignments.values():
 		if equipment_id in assignments:
-			print("MissionPrepComponent: Equipment %s already assigned" % equipment_id)
 			return false
 
 	# Add to crew's equipment
@@ -154,10 +146,7 @@ func assign_equipment_to_crew(crew_id: String, equipment_id: String) -> bool:
 
 	crew_equipment_assignments[crew_id].append(equipment_id)
 
-	print("MissionPrepComponent: Assigned %s to crew %s" % [
-		equipment_item.get("name", "Unknown"),
-		crew_id
-	])
+	pass # Equipment assigned to crew
 
 	_update_ui_display()
 	return true
@@ -171,7 +160,6 @@ func unassign_equipment_from_crew(crew_id: String, equipment_id: String) -> bool
 	var index = assignments.find(equipment_id)
 	if index >= 0:
 		assignments.remove_at(index)
-		print("MissionPrepComponent: Unassigned equipment %s from crew %s" % [equipment_id, crew_id])
 		_update_ui_display()
 		return true
 
@@ -211,18 +199,13 @@ func check_crew_readiness() -> Dictionary:
 		readiness.is_ready = false
 		readiness.warnings.append("Error: Mission requires at least %d crew members" % required_crew)
 
-	print("MissionPrepComponent: Readiness check - %d/%d crew equipped, Ready: %s" % [
-		readiness.equipped_crew,
-		readiness.crew_count,
-		readiness.is_ready
-	])
+	pass # Readiness check complete
 
 	return readiness
 
 ## Auto-equip crew with best available gear
 func auto_equip_crew() -> void:
 	## Automatically assign equipment to crew based on roles
-	print("MissionPrepComponent: Auto-equipping crew...")
 
 	# Sort equipment by effectiveness (weapons first, then gear)
 	var weapons = []
@@ -252,7 +235,6 @@ func auto_equip_crew() -> void:
 		assign_equipment_to_crew(crew_id, item.get("id", ""))
 		crew_index += 1
 
-	print("MissionPrepComponent: Auto-equip complete")
 
 ## UI Event Handlers
 func _on_crew_selected(index: int) -> void:
@@ -282,12 +264,10 @@ func _on_ready_for_battle_pressed() -> void:
 	var readiness = check_crew_readiness()
 
 	if not readiness.is_ready:
-		print("MissionPrepComponent: Crew not ready - showing warnings")
 		_show_readiness_warnings(readiness.warnings)
 		return
 
 	prep_completed = true
-	print("MissionPrepComponent: Mission prep complete - ready for battle")
 
 	# Publish mission prep completed event
 	if event_bus:
@@ -314,6 +294,7 @@ func _update_mission_briefing() -> void:
 		return
 
 	var briefing = """Mission Briefing:
+		pass
 
 Objective: %s
 Enemy: %s
@@ -333,7 +314,7 @@ Prepare your crew and assign equipment for battle.""" % [
 
 func _update_crew_list() -> void:
 	## Update crew list display
-	print("MissionPrepComponent._update_crew_list: crew_list_node=%s, crew_data.size=%d" % [crew_list != null, crew_data.size()])
+	pass # Updating crew list
 	if not crew_list:
 		return
 
@@ -352,11 +333,10 @@ func _update_crew_list() -> void:
 
 		var crew_text = "%s (%d equipment)" % [member_name, equipment_count]
 		crew_list.add_item(crew_text)
-	print("MissionPrepComponent._update_crew_list: ItemList now has %d items" % crew_list.item_count)
 
 func _update_equipment_list() -> void:
 	## Update equipment list display
-	print("MissionPrepComponent._update_equipment_list: equipment_list_node=%s, available_equipment.size=%d" % [equipment_list != null, available_equipment.size()])
+	pass # Updating equipment list
 	if not equipment_list:
 		return
 
@@ -381,7 +361,6 @@ func _update_equipment_list() -> void:
 		# Disable if assigned
 		if is_assigned:
 			equipment_list.set_item_disabled(equipment_list.item_count - 1, true)
-	print("MissionPrepComponent._update_equipment_list: ItemList now has %d items" % equipment_list.item_count)
 
 func _update_readiness_status() -> void:
 	## Update readiness status display
@@ -416,29 +395,27 @@ func _update_button_states() -> void:
 
 func _show_readiness_warnings(warnings: Array) -> void:
 	## Display readiness warnings to player
-	print("MissionPrepComponent: Readiness warnings:")
 	for warning in warnings:
-		print("  - %s" % warning)
+		pass
 
 ## Event Bus Handlers
 func _on_phase_started(data: Dictionary) -> void:
 	## Handle phase started events
 	var phase_name = data.get("phase_name", "")
 	if phase_name == "mission_prep":
-		print("MissionPrepComponent: Mission prep phase started")
+		pass
 
 func _on_automation_toggled(data: Dictionary) -> void:
 	## Handle automation toggle events
 	automation_enabled = data.get("enabled", false)
 	if automation_enabled:
 		auto_equip_crew()
-	print("MissionPrepComponent: Automation %s" % ("enabled" if automation_enabled else "disabled"))
+	pass # Automation toggled
 
 func _on_job_accepted(data: Dictionary) -> void:
 	## Handle job accepted events - auto-initialize prep phase
 	var job_data = data.get("job_data", {})
 	if not job_data.is_empty():
-		print("MissionPrepComponent: Job accepted - preparing for mission")
 
 		# Get crew from GameState
 		var crew: Array = []
@@ -486,7 +463,7 @@ func _on_job_accepted(data: Dictionary) -> void:
 						if item is Dictionary:
 							equipment.append(item)
 
-		print("MissionPrepComponent: Initializing with %d crew, %d equipment" % [crew.size(), equipment.size()])
+		pass # Initializing with crew and equipment
 
 		# Initialize with actual data
 		initialize_mission_prep(job_data, crew, equipment)
@@ -530,4 +507,3 @@ func reset_mission_prep() -> void:
 	crew_data.clear()
 	available_equipment.clear()
 	_update_ui_display()
-	print("MissionPrepComponent: Reset for new mission")

@@ -17,8 +17,6 @@ var current_sector: String = ""
 # Planet name generation
 const PlanetNameGenerator = preload("res://src/game/world/PlanetNameGenerator.gd")
 var name_generator: PlanetNameGenerator
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
 const WorldManager = preload("res://src/game/world/GameWorldManager.gd")
@@ -76,22 +74,22 @@ func _generate_planet(sector_name: String, coordinates: Vector2) -> GamePlanet:
 	planet.coordinates = coordinates
 	
 	# Randomly assign planet type and properties
-	planet.planet_type = randi() % GameEnums.PlanetType.size()
-	planet.faction_type = randi() % GameEnums.FactionType.size()
-	planet.environment_type = randi() % GameEnums.PlanetEnvironment.size()
+	planet.planet_type = randi() % GlobalEnums.PlanetType.size()
+	planet.faction_type = randi() % GlobalEnums.FactionType.size()
+	planet.environment_type = randi() % GlobalEnums.PlanetEnvironment.size()
 	
 	# Generate world traits
-	var world_trait_enum = randi() % GameEnums.WorldTrait.size()
+	var world_trait_enum = randi() % GlobalEnums.WorldTrait.size()
 	var trait_id = migration.convert_world_trait_to_id(world_trait_enum)
 	if trait_id:
 		planet.add_world_trait_by_id(trait_id)
 	
 	# Generate threats
-	var threat = randi() % GameEnums.ThreatType.size()
+	var threat = randi() % GlobalEnums.ThreatType.size()
 	planet.add_threat(threat)
 	
-	planet.strife_level = randi() % GameEnums.StrifeType.size()
-	planet.instability = randi() % GameEnums.StrifeType.size()
+	planet.strife_level = randi() % GlobalEnums.StrifeType.size()
+	planet.instability = randi() % GlobalEnums.StrifeType.size()
 	
 	planet_discovered.emit(planet)
 	return planet

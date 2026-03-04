@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 class_name AuditLogger
 extends RefCounted
 
@@ -289,4 +289,3 @@ func cleanup() -> void:
 	_is_initialized = false
 	_entries_count = 0
 	
-	print("AuditLogger: Cleanup complete")

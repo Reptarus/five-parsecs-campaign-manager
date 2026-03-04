@@ -69,7 +69,6 @@ func _init() -> void:
 
 ## Initialize the performance optimization system
 func _initialize_performance_system() -> void:
-	print("[PerformanceOptimizer] Initializing performance optimization system...")
 	
 	# Initialize performance metrics
 	_performance_metrics = {
@@ -102,7 +101,6 @@ func _initialize_performance_system() -> void:
 	# Initialize timers
 	_setup_performance_timers()
 	
-	print("[PerformanceOptimizer] ✅ Performance optimization system initialized")
 
 ## Start continuous performance monitoring
 func start_monitoring() -> void:
@@ -192,7 +190,6 @@ func execute_comprehensive_optimization() -> Dictionary:
 	var end_time: int = Time.get_ticks_msec()
 	optimization_result.optimization_time = end_time - start_time
 	
-	print("[PerformanceOptimizer] Comprehensive optimization completed in ", optimization_result.optimization_time, "ms")
 	
 	return optimization_result
 
@@ -530,11 +527,11 @@ func _execute_cache_cleanup() -> void:
 
 func _execute_garbage_collection() -> void:
 	# This would trigger manual garbage collection if supported
-	print("[PerformanceOptimizer] Executing garbage collection...")
+	pass
 
 func _execute_memory_defragmentation() -> void:
 	# This would trigger memory defragmentation if supported
-	print("[PerformanceOptimizer] Executing memory defragmentation...")
+	pass
 
 func _optimize_all_caches() -> void:
 	for cache in _cache_systems.values():
@@ -684,7 +681,7 @@ func _record_optimization(optimization_result: Dictionary) -> void:
 func _record_operation_performance(operation_name: String, duration: int) -> void:
 	# This could be used for detailed operation profiling
 	if duration > 100: # Log operations taking more than 100ms
-		print("[PerformanceOptimizer] Slow operation detected: ", operation_name, " (", duration, "ms)")
+		push_warning("[PerformanceOptimizer] Slow operation detected: %s (%dms)" % [operation_name, duration])
 
 ## Resource Pool Helper Class
 class ResourcePoolHelper:

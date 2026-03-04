@@ -1,4 +1,4 @@
-﻿class_name IntegrationSmokeRunner
+class_name IntegrationSmokeRunner
 extends RefCounted
 
 ## Integration Smoke Test Runner - Phase 3C.1
@@ -75,10 +75,6 @@ func _init(p_mode: SmokeTestMode = SmokeTestMode.COMPREHENSIVE) -> void:
 ## Execute smoke test suite
 func execute_smoke_tests() -> SmokeTestResult:
 	## Execute complete smoke test suite with real-time feedback
-	print("=== Integration Smoke Test Suite Execution ===")
-	print("Mode: %s" % SmokeTestMode.keys()[smoke_test_mode])
-	print("Max execution time: %dms" % max_execution_time_ms)
-	
 	var suite_start_time = Time.get_ticks_msec()
 	test_results.clear()
 	
@@ -95,7 +91,6 @@ func execute_smoke_tests() -> SmokeTestResult:
 		var test_method = test_info.method
 		
 		smoke_test_started.emit(test_name)
-		print("\n🔥 Starting smoke test: %s" % test_name)
 		
 		var test_execution = SmokeTestExecution.new(test_name)
 		var test_result = test_method.call()
@@ -118,12 +113,8 @@ func execute_smoke_tests() -> SmokeTestResult:
 		
 		smoke_test_completed.emit(test_name, test_result.result, test_execution.duration_ms)
 		
-		print("  Result: %s (%dms)" % [SmokeTestResult.keys()[test_result.result], test_execution.duration_ms])
-		print("  %s" % test_result.message)
-		
 		# Break early on critical failures in fast mode
 		if smoke_test_mode == SmokeTestMode.FAST and test_result.result == SmokeTestResult.CRITICAL:
-			print("⚠️ Critical failure detected, stopping smoke tests early")
 			break
 	
 	var total_duration = Time.get_ticks_msec() - suite_start_time
@@ -398,13 +389,7 @@ func _generate_smoke_test_summary(overall_result: SmokeTestResult, total_duratio
 	var separator = ""
 	for i in range(60):
 		separator += "="
-	print("\n" + separator)
-	print("INTEGRATION SMOKE TEST SUITE SUMMARY")
-	print(separator)
 	
-	print("Overall Result: %s" % SmokeTestResult.keys()[overall_result])
-	print("Total Duration: %dms" % total_duration_ms)
-	print("Tests Executed: %d" % test_results.size())
 	
 	# Results breakdown
 	var passed_count = 0
@@ -423,45 +408,28 @@ func _generate_smoke_test_summary(overall_result: SmokeTestResult, total_duratio
 			SmokeTestResult.CRITICAL:
 				critical_count += 1
 	
-	print("\nResults Breakdown:")
-	print("  ✅ Passed: %d" % passed_count)
-	print("  ⚠️ Warnings: %d" % warning_count)
-	print("  ❌ Failed: %d" % failed_count)
-	print("  🚨 Critical: %d" % critical_count)
 	
 	# Individual test results
-	print("\nIndividual Test Results:")
 	for test_result in test_results:
 		var status_icon = "✅" if test_result.result == SmokeTestResult.PASSED else "❌"
-		print("  %s %s (%dms) - %s" % [
-			status_icon,
-			test_result.test_name,
-			test_result.duration_ms,
-			test_result.message
-		])
+		pass
 	
 	# Performance analysis
 	var avg_duration = total_duration_ms / max(1, test_results.size())
-	print("\nPerformance Analysis:")
-	print("  Average test duration: %dms" % avg_duration)
-	print("  Max allowed duration: %dms" % max_execution_time_ms)
 	var performance_status = "GOOD" if total_duration_ms <= max_execution_time_ms else "SLOW"
-	print("  Performance status: %s" % performance_status)
 	
-	print("\n" + separator)
 	
 	# Final recommendation
 	match overall_result:
 		SmokeTestResult.PASSED:
-			print("🎯 RECOMMENDATION: System is ready for production use")
+			pass
 		SmokeTestResult.WARNING:
-			print("⚠️ RECOMMENDATION: System has minor issues but is usable")
+			pass
 		SmokeTestResult.FAILED:
-			print("❌ RECOMMENDATION: System has significant issues, investigate before use")
+			pass
 		SmokeTestResult.CRITICAL:
-			print("🚨 RECOMMENDATION: System has critical failures, immediate attention required")
+			pass
 	
-	print(separator)
 
 ## Get smoke test report
 func get_smoke_test_report() -> Dictionary:

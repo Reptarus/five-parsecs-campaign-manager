@@ -10,8 +10,6 @@ signal transaction_completed(amount: int, type: String)
 
 var _current_credits: int = 0
 var _transaction_history: Array = []
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GamePlanet = preload("res://src/game/world/GamePlanet.gd")
 const GameLocation = preload("res://src/game/world/GameLocation.gd")
 

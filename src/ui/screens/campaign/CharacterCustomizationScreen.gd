@@ -46,7 +46,6 @@ var attributes_panel: Control
 var review_panel: Control
 
 func _ready() -> void:
-	print("CharacterCustomizationScreen: Initializing...")
 	call_deferred("_initialize_ui")
 
 func _initialize_ui() -> void:
@@ -54,7 +53,6 @@ func _initialize_ui() -> void:
 	_create_ui_structure()
 	_connect_signals()
 	is_initialized = true
-	print("CharacterCustomizationScreen: UI initialized")
 
 func _create_ui_structure() -> void:
 	## Create the main UI structure
@@ -148,7 +146,6 @@ func start_customization(character: Character) -> void:
 	# Show as popup window
 	popup_centered_clamped(Vector2i(800, 600), 0.8)
 	
-	print("CharacterCustomizationScreen: Started customization for: ", character.character_name)
 
 ## Step Management
 
@@ -174,7 +171,6 @@ func _update_ui_for_step(step: CustomizationStep) -> void:
 	if progress_bar:
 		progress_bar.value = step
 	
-	print("CharacterCustomizationScreen: Showing step: ", CustomizationStep.keys()[step])
 
 func _clear_step_content() -> void:
 	## Clear the current step content
@@ -840,6 +836,5 @@ func _restore_character_from_backup(character: Character, backup: Dictionary) ->
 
 func _finalize_customization() -> void:
 	## Finalize the customization process
-	print("CharacterCustomizationScreen: Finalizing customization for: ", editing_character.character_name)
 	character_customization_complete.emit(editing_character)
 	queue_free()

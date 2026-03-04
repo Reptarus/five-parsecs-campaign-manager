@@ -28,7 +28,6 @@ static func load_json(json_path: String) -> Dictionary:
 	var data = json.get_data()
 	
 	if data is Dictionary:
-		print("GameDataLoader: Successfully loaded %s (%d keys)" % [json_path, data.keys().size()])
 		return data
 	else:
 		push_error("GameDataLoader: JSON root is not a Dictionary in %s" % full_path)
@@ -158,4 +157,3 @@ static func clear_caches() -> void:
 	_battlefield_finds_cache.clear()
 	_patron_jobs_cache.clear()
 	_ship_components_cache.clear()
-	print("GameDataLoader: All caches cleared")

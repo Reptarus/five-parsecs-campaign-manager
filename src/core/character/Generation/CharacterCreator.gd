@@ -8,8 +8,6 @@ signal creation_cancelled
 const FiveParsecsCharacter = preload("res://src/core/character/Base/Character.gd")
 const FiveParsecsCharacterStats = preload("res://src/core/character/Base/CharacterStats.gd")
 const FiveParsecsCharacterTableRoller = preload("res://src/core/character/Generation/CharacterTableRoller.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 enum CreatorMode {
 	CHARACTER,
 	CAPTAIN,
@@ -29,14 +27,14 @@ const STAT_PROPERTY_MAP := {
 # Rulebook-order dropdown items: [display_name, enum_value]
 # These match the Five Parsecs character creation tables
 const ORIGIN_ITEMS: Array = [
-	["Human", 1],       # GameEnums.Origin.HUMAN
-	["Engineer", 2],    # GameEnums.Origin.ENGINEER
-	["Kerin", 4],       # GameEnums.Origin.KERIN
-	["Soulless", 6],    # GameEnums.Origin.SOULLESS
-	["Precursor", 5],   # GameEnums.Origin.PRECURSOR
-	["Feral", 3],       # GameEnums.Origin.FERAL
-	["Swift", 7],       # GameEnums.Origin.SWIFT
-	["Bot", 8],         # GameEnums.Origin.BOT
+	["Human", 1],       # GlobalEnums.Origin.HUMAN
+	["Engineer", 2],    # GlobalEnums.Origin.ENGINEER
+	["Kerin", 4],       # GlobalEnums.Origin.KERIN
+	["Soulless", 6],    # GlobalEnums.Origin.SOULLESS
+	["Precursor", 5],   # GlobalEnums.Origin.PRECURSOR
+	["Feral", 3],       # GlobalEnums.Origin.FERAL
+	["Swift", 7],       # GlobalEnums.Origin.SWIFT
+	["Bot", 8],         # GlobalEnums.Origin.BOT
 ]
 
 const BACKGROUND_ITEMS: Array = [
@@ -287,21 +285,21 @@ func _apply_origin_bonuses(origin_id: int) -> void:
 
 	# Five Parsecs species/origin stat bonuses
 	match origin_id:
-		GameEnums.Origin.ENGINEER:
+		GlobalEnums.Origin.ENGINEER:
 			current_bonuses.origin["SAVVY"] = 1
-		GameEnums.Origin.KERIN:
+		GlobalEnums.Origin.KERIN:
 			current_bonuses.origin["COMBAT_SKILL"] = 1
-		GameEnums.Origin.SOULLESS:
+		GlobalEnums.Origin.SOULLESS:
 			current_bonuses.origin["REACTIONS"] = 1
 			current_bonuses.origin["TOUGHNESS"] = 1
-		GameEnums.Origin.PRECURSOR:
+		GlobalEnums.Origin.PRECURSOR:
 			current_bonuses.origin["SAVVY"] = 1
-		GameEnums.Origin.FERAL:
+		GlobalEnums.Origin.FERAL:
 			current_bonuses.origin["SPEED"] = 1
-		GameEnums.Origin.SWIFT:
+		GlobalEnums.Origin.SWIFT:
 			current_bonuses.origin["SPEED"] = 1
 			current_bonuses.origin["REACTIONS"] = 1
-		GameEnums.Origin.BOT:
+		GlobalEnums.Origin.BOT:
 			current_bonuses.origin["TOUGHNESS"] = 1
 		# HUMAN: no stat bonuses
 
@@ -315,29 +313,29 @@ func _apply_background_bonuses(bg_id: int) -> void:
 
 	# Five Parsecs background stat bonuses (pp.24-25)
 	match bg_id:
-		GameEnums.Background.PEACEFUL_HIGH_TECH_COLONY:
+		GlobalEnums.Background.PEACEFUL_HIGH_TECH_COLONY:
 			current_bonuses.background["SAVVY"] = 1
-		GameEnums.Background.GIANT_OVERCROWDED_CITY:
+		GlobalEnums.Background.GIANT_OVERCROWDED_CITY:
 			current_bonuses.background["SPEED"] = 1
-		GameEnums.Background.MINING_COLONY:
+		GlobalEnums.Background.MINING_COLONY:
 			current_bonuses.background["TOUGHNESS"] = 1
-		GameEnums.Background.MILITARY_BRAT:
+		GlobalEnums.Background.MILITARY_BRAT:
 			current_bonuses.background["COMBAT_SKILL"] = 1
-		GameEnums.Background.MILITARY_OUTPOST:
+		GlobalEnums.Background.MILITARY_OUTPOST:
 			current_bonuses.background["REACTIONS"] = 1
-		GameEnums.Background.FRONTIER_GANG:
+		GlobalEnums.Background.FRONTIER_GANG:
 			current_bonuses.background["COMBAT_SKILL"] = 1
-		GameEnums.Background.WAR_TORN_HELLHOLE:
+		GlobalEnums.Background.WAR_TORN_HELLHOLE:
 			current_bonuses.background["REACTIONS"] = 1
-		GameEnums.Background.TECH_GUILD:
+		GlobalEnums.Background.TECH_GUILD:
 			current_bonuses.background["SAVVY"] = 1
-		GameEnums.Background.LONG_TERM_SPACE_MISSION:
+		GlobalEnums.Background.LONG_TERM_SPACE_MISSION:
 			current_bonuses.background["SAVVY"] = 1
-		GameEnums.Background.RESEARCH_OUTPOST:
+		GlobalEnums.Background.RESEARCH_OUTPOST:
 			current_bonuses.background["SAVVY"] = 1
-		GameEnums.Background.PRIMITIVE_WORLD:
+		GlobalEnums.Background.PRIMITIVE_WORLD:
 			current_bonuses.background["TOUGHNESS"] = 1
-		GameEnums.Background.WASTELAND_NOMADS:
+		GlobalEnums.Background.WASTELAND_NOMADS:
 			current_bonuses.background["REACTIONS"] = 1
 		# LOW_TECH_COLONY, SPACE_STATION, DRIFTER,
 		# LOWER_MEGACITY_CLASS, WEALTHY_MERCHANT_FAMILY,
@@ -356,36 +354,36 @@ func _apply_class_bonuses(class_id: int) -> void:
 
 	# Five Parsecs class stat bonuses (pp.26-27)
 	match class_id:
-		GameEnums.CharacterClass.WORKING_CLASS:
+		GlobalEnums.CharacterClass.WORKING_CLASS:
 			current_bonuses["class"]["SAVVY"] = 1
 			current_bonuses["class"]["LUCK"] = 1
-		GameEnums.CharacterClass.TECHNICIAN:
+		GlobalEnums.CharacterClass.TECHNICIAN:
 			current_bonuses["class"]["SAVVY"] = 1
-		GameEnums.CharacterClass.SCIENTIST:
+		GlobalEnums.CharacterClass.SCIENTIST:
 			current_bonuses["class"]["SAVVY"] = 1
-		GameEnums.CharacterClass.HACKER:
+		GlobalEnums.CharacterClass.HACKER:
 			current_bonuses["class"]["SAVVY"] = 1
-		GameEnums.CharacterClass.SOLDIER:
+		GlobalEnums.CharacterClass.SOLDIER:
 			current_bonuses["class"]["COMBAT_SKILL"] = 1
-		GameEnums.CharacterClass.MERCENARY:
+		GlobalEnums.CharacterClass.MERCENARY:
 			current_bonuses["class"]["COMBAT_SKILL"] = 1
-		GameEnums.CharacterClass.PRIMITIVE:
+		GlobalEnums.CharacterClass.PRIMITIVE:
 			current_bonuses["class"]["SPEED"] = 1
-		GameEnums.CharacterClass.STARSHIP_CREW:
+		GlobalEnums.CharacterClass.STARSHIP_CREW:
 			current_bonuses["class"]["SAVVY"] = 1
-		GameEnums.CharacterClass.PETTY_CRIMINAL:
+		GlobalEnums.CharacterClass.PETTY_CRIMINAL:
 			current_bonuses["class"]["SPEED"] = 1
-		GameEnums.CharacterClass.GANGER:
+		GlobalEnums.CharacterClass.GANGER:
 			current_bonuses["class"]["REACTIONS"] = 1
-		GameEnums.CharacterClass.SCOUNDREL:
+		GlobalEnums.CharacterClass.SCOUNDREL:
 			current_bonuses["class"]["SPEED"] = 1
-		GameEnums.CharacterClass.ENFORCER:
+		GlobalEnums.CharacterClass.ENFORCER:
 			current_bonuses["class"]["COMBAT_SKILL"] = 1
-		GameEnums.CharacterClass.SPECIAL_AGENT:
+		GlobalEnums.CharacterClass.SPECIAL_AGENT:
 			current_bonuses["class"]["REACTIONS"] = 1
-		GameEnums.CharacterClass.TROUBLESHOOTER:
+		GlobalEnums.CharacterClass.TROUBLESHOOTER:
 			current_bonuses["class"]["REACTIONS"] = 1
-		GameEnums.CharacterClass.BOUNTY_HUNTER:
+		GlobalEnums.CharacterClass.BOUNTY_HUNTER:
 			current_bonuses["class"]["SPEED"] = 1
 		# AGITATOR, ARTIST, NEGOTIATOR, TRADER,
 		# NOMAD, EXPLORER, PUNK, SCAVENGER: no stat bonuses
@@ -401,11 +399,11 @@ func _apply_motivation_bonuses(motivation_id: int) -> void:
 	# Motivations give narrative effects, not stat bonuses
 	# These few are simplified stat approximations
 	match motivation_id:
-		GameEnums.Motivation.GLORY:
+		GlobalEnums.Motivation.GLORY:
 			current_bonuses.motivation["COMBAT_SKILL"] = 1
-		GameEnums.Motivation.WEALTH:
+		GlobalEnums.Motivation.WEALTH:
 			current_bonuses.motivation["SAVVY"] = 1
-		GameEnums.Motivation.SURVIVAL:
+		GlobalEnums.Motivation.SURVIVAL:
 			current_bonuses.motivation["REACTIONS"] = 1
 
 	_apply_bonuses(current_bonuses.motivation)
@@ -574,10 +572,10 @@ func _update_preview() -> void:
 	var cls_idx: int = _get_character_property(current_character, "character_class", 0)
 	var mot_idx: int = _get_character_property(current_character, "motivation", 0)
 
-	var origin_name: String = _safe_enum_name(GameEnums.Origin, origin_idx)
-	var bg_name: String = _safe_enum_name(GameEnums.Background, bg_idx)
-	var cls_name: String = _safe_enum_name(GameEnums.CharacterClass, cls_idx)
-	var mot_name: String = _safe_enum_name(GameEnums.Motivation, mot_idx)
+	var origin_name: String = _safe_enum_name(GlobalEnums.Origin, origin_idx)
+	var bg_name: String = _safe_enum_name(GlobalEnums.Background, bg_idx)
+	var cls_name: String = _safe_enum_name(GlobalEnums.CharacterClass, cls_idx)
+	var mot_name: String = _safe_enum_name(GlobalEnums.Motivation, mot_idx)
 
 	var portrait_path: String = _get_character_property(
 		current_character, "portrait_path", "")

@@ -2,8 +2,6 @@ extends Control
 
 const Character = preload("res://src/core/character/Base/Character.gd")
 const CharacterCreator = preload("res://src/core/character/Generation/CharacterCreator.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 signal crew_updated(crew: Array)
 
 @onready var content = $Content
@@ -120,8 +118,8 @@ func _update_crew_list() -> void:
 	for character in crew_members:
 		var text = "%s - %s (%s)" % [
 			character.character_name,
-			_enum_value_name(GameEnums.CharacterClass, int(character.character_class)),
-			_enum_value_name(GameEnums.Origin, int(character.origin))
+			_enum_value_name(GlobalEnums.CharacterClass, int(character.character_class)),
+			_enum_value_name(GlobalEnums.Origin, int(character.origin))
 		]
 		crew_list.add_item(text)
 	

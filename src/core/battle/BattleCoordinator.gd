@@ -3,7 +3,6 @@ extends Node
 class_name BattleCoordinator
 
 # Dependencies
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const CharacterUnit = preload("res://src/core/battle/CharacterUnit.gd")
 const BattleStateMachine = preload("res://src/core/battle/state/BattleStateMachine.gd")
 const AIController = preload("res://src/core/battle/AIController.gd")
@@ -293,7 +292,7 @@ func _initialize_enemy_data(enemy_unit, unit_data):
 	if unit_data.has("enemy_type"):
 		enemy_data.type = unit_data.enemy_type
 	else:
-		enemy_data.type = GameEnums.EnemyType.NONE
+		enemy_data.type = GlobalEnums.EnemyType.NONE
 	
 	# Initialize enemy data and AI
 	if enemy_unit.has_method("set_enemy_data"):

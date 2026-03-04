@@ -1,4 +1,4 @@
-﻿class_name GalacticWarManager
+class_name GalacticWarManager
 extends Node
 
 ## Galactic War Progress Tracking System
@@ -36,7 +36,7 @@ var dice_system: Node = null
 func _ready() -> void:
 	dice_system = get_node_or_null("/root/DiceSystem")
 	load_war_tracks()
-	print("GalacticWarManager: Initialized with %d war tracks" % war_tracks.size())
+	pass
 
 func load_war_tracks() -> void:
 	## Load war track definitions from JSON
@@ -73,7 +73,7 @@ func load_war_tracks() -> void:
 		if track_data.get("active", false):
 			active_track_ids.append(track_id)
 	
-	print("GalacticWarManager: Loaded %d war tracks, %d active" % [war_tracks.size(), active_track_ids.size()])
+	pass
 
 ## Campaign Turn Processing
 
@@ -104,7 +104,6 @@ func _roll_for_advancement(track_id: String) -> Array[Dictionary]:
 	var track = war_tracks[track_id]
 	var roll = _roll_d6()
 	
-	print("GalacticWarManager: %s advancement roll: %d" % [track.name, roll])
 	
 	if roll >= ADVANCEMENT_THRESHOLD:
 		var advancement_events = advance_war_track(track_id, 1)
@@ -168,7 +167,6 @@ func advance_war_track(track_id: String, amount: int = 1) -> Array[Dictionary]:
 	track.current_progress = new_progress
 	war_track_advanced.emit(track_id, new_progress, old_progress)
 	
-	print("GalacticWarManager: %s advanced %d → %d" % [track.name, old_progress, new_progress])
 	
 	# Check for threshold crossings
 	if "thresholds" in track:
@@ -197,7 +195,6 @@ func reduce_war_track(track_id: String, amount: int = 1) -> void:
 	track.current_progress = new_progress
 	war_track_advanced.emit(track_id, new_progress, old_progress)
 	
-	print("GalacticWarManager: %s reduced %d → %d" % [track.name, old_progress, new_progress])
 
 func _trigger_threshold(track_id: String, threshold: int) -> Array[Dictionary]:
 	## Trigger threshold event and apply effects
@@ -214,7 +211,6 @@ func _trigger_threshold(track_id: String, threshold: int) -> Array[Dictionary]:
 	
 	war_threshold_reached.emit(track_id, threshold, threshold_data)
 	
-	print("GalacticWarManager: Threshold reached - %s: %s" % [track.name, threshold_data.name])
 	
 	# Apply effects
 	if "effects" in threshold_data:
@@ -259,7 +255,6 @@ func _check_campaign_ending(track_id: String) -> void:
 			if threshold_data.effects.campaign_ending:
 				var ending_type = track_id + "_victory"
 				campaign_ending_triggered.emit(track_id, ending_type)
-				print("GalacticWarManager: CAMPAIGN ENDING TRIGGERED - %s" % track.name)
 
 ## Track Activation/Deactivation
 
@@ -276,7 +271,6 @@ func activate_war_track(track_id: String) -> void:
 	war_tracks[track_id].active = true
 	war_track_activated.emit(track_id)
 	
-	print("GalacticWarManager: Activated war track: %s" % war_tracks[track_id].name)
 
 func deactivate_war_track(track_id: String) -> void:
 	## Deactivate an active war track
@@ -288,7 +282,6 @@ func deactivate_war_track(track_id: String) -> void:
 	war_tracks[track_id].active = false
 	war_track_deactivated.emit(track_id)
 	
-	print("GalacticWarManager: Deactivated war track: %s" % war_tracks[track_id].name)
 
 ## Query Methods
 
@@ -337,17 +330,14 @@ func get_effect_modifier(effect_id: String, default_value: float = 0.0) -> float
 
 func player_mission_success(track_id: String, mission_type: String = "defense") -> void:
 	## Called when player completes mission opposing a faction
-	print("GalacticWarManager: Player mission success - reducing %s" % track_id)
 	reduce_war_track(track_id, 1)
 
 func player_mission_failure(track_id: String) -> void:
 	## Called when player fails mission opposing a faction
-	print("GalacticWarManager: Player mission failure - advancing %s" % track_id)
 	advance_war_track(track_id, 1)
 
 func player_sabotage_success(track_id: String) -> void:
 	## Called when player completes special sabotage mission
-	print("GalacticWarManager: Player sabotage success - major reduction to %s" % track_id)
 	reduce_war_track(track_id, 2)
 
 ## Save/Load Support
@@ -371,7 +361,7 @@ func load_save_data(data: Dictionary) -> void:
 	if "current_effects" in data:
 		current_effects = data.current_effects.duplicate(true)
 	
-	print("GalacticWarManager: Loaded save data - %d tracks, %d active" % [war_tracks.size(), active_track_ids.size()])
+	pass
 
 ## Utilities
 
@@ -390,4 +380,3 @@ func reset_all_tracks() -> void:
 		track.highest_threshold_reached = 0
 	
 	current_effects.clear()
-	print("GalacticWarManager: All tracks reset to starting state")

@@ -4,8 +4,6 @@
 # This file should be considered deprecated and will be removed in future updates
 # Use the core version directly: preload("res://src/core/utils/stat_distribution.gd")
 extends Resource
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsCharacter = preload("res://src/core/character/Base/Character.gd")
 const StatusEffect = preload("res://src/ui/screens/campaign/StatusEffects.gd")
 const CoreStatDistribution = preload("res://src/core/utils/stat_distribution.gd")
@@ -38,7 +36,6 @@ func _initialize_stats() -> void:
 func update_stat(stat: String, new_value: int) -> void:
 	if stat in base_stats:
 		base_stats[stat] = new_value
-		print("%s's %s changed to %d" % [character.character_name, stat, new_value])
 		
 		# Update the corresponding stat in CharacterStats
 		match stat:

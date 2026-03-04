@@ -1,7 +1,5 @@
 @tool
 extends Node
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GameState = preload("res://src/core/state/GameState.gd")
 const FiveParsecsCampaign = preload("res://src/game/campaign/FiveParsecsCampaign.gd")
 const BaseCampaignManager = preload("res://src/base/campaign/BaseCampaignManager.gd")
@@ -20,7 +18,7 @@ signal battle_completed(battle_results: Dictionary)
 signal resources_updated(resources: Dictionary)
 
 var gamestate: GameState = null
-var current_phase: int = GameEnums.CampaignPhase.SETUP
+var current_phase: int = GlobalEnums.CampaignPhase.SETUP
 var current_campaign = null
 var battle_coordinator = null
 
@@ -105,7 +103,7 @@ func start_campaign(config) -> void:
 		return
 	
 	current_campaign = config
-	current_phase = GameEnums.CampaignPhase.SETUP
+	current_phase = GlobalEnums.CampaignPhase.SETUP
 	gamestate.start_new_campaign(config)
 	
 	# Generate initial patrons, rivals, and missions
@@ -119,7 +117,7 @@ func end_campaign(victory: bool = false) -> void:
 	if current_campaign:
 		current_campaign.end_campaign(victory)
 		campaign_ended.emit(victory)
-	current_phase = GameEnums.CampaignPhase.END
+	current_phase = GlobalEnums.CampaignPhase.END
 
 func save_campaign() -> Dictionary:
 	return gamestate.save_campaign()
@@ -138,7 +136,7 @@ func load_campaign(save_data: Dictionary) -> void:
 	
 	# Set as current campaign in gamestate
 	gamestate.set_current_campaign(campaign)
-	current_phase = save_data.get("current_phase", GameEnums.CampaignPhase.SETUP)
+	current_phase = save_data.get("current_phase", GlobalEnums.CampaignPhase.SETUP)
 
 func update_resource(resource_type: int, amount: int) -> void:
 	gamestate.update_resource(resource_type, amount)
@@ -156,7 +154,7 @@ func start_new_campaign(config) -> bool:
 		return false
 	
 	current_campaign = config
-	current_phase = GameEnums.CampaignPhase.SETUP
+	current_phase = GlobalEnums.CampaignPhase.SETUP
 	
 	if gamestate:
 		gamestate.set_current_campaign(config)
@@ -243,7 +241,7 @@ func generate_missions() -> void:
 			"id": str(randi()),
 			"title": _generate_mission_title(),
 			"description": _generate_mission_description(),
-			"type": randi() % GameEnums.MissionType.size(),
+			"type": randi() % GlobalEnums.MissionType.size(),
 			"difficulty": randi() % 5 + 1,
 			"reward": (randi() % 15 + 10) * 100,
 			"location": galaxy_systems[randi() % galaxy_systems.size()],
@@ -512,14 +510,14 @@ func _process_special_mission_effects(mission: Dictionary, battle_data: Dictiona
 	# Handle specific mission types or special conditions
 	if mission.has("type"):
 		match mission.type:
-			GameEnums.MissionType.RESCUE:
+			GlobalEnums.MissionType.RESCUE:
 				# Handle rescue mission success - might add new crew members
 				if battle_data.has("rescued_characters"):
 					for character_data in battle_data.rescued_characters:
 						if gamestate.has_method("add_character"):
 							gamestate.add_character(character_data)
 			
-			GameEnums.MissionType.SABOTAGE:
+			GlobalEnums.MissionType.SABOTAGE:
 				# Sabotage might affect rival threat level
 				if mission.has("rival_id") and mission.rival_id:
 					_update_rival_threat_level(mission.rival_id, -2)
@@ -551,7 +549,7 @@ func process_mission_results(mission_id: String, success: bool, battle_data: Dic
 	if success:
 		# Award credits and resources
 		if mission.has("reward"):
-			update_resource(GameEnums.ResourceType.CREDITS, mission.reward)
+			update_resource(GlobalEnums.ResourceType.CREDITS, mission.reward)
 		
 		# Update patron reputation if applicable
 		if mission.has("patron_id") and mission.patron_id:

@@ -68,11 +68,11 @@ static func get_log_level() -> int:
 ## Production-safe logging
 static func log_debug(message: String, category: String = "General") -> void:
 	if ENABLE_DEBUG_LOGGING:
-		print("[DEBUG][%s] %s" % [category, message])
+		pass
 
 static func log_info(message: String, category: String = "General") -> void:
 	if get_log_level() <= 1:
-		print("[INFO][%s] %s" % [category, message])
+		pass
 
 static func log_warning(message: String, category: String = "General") -> void:
 	if get_log_level() <= 2:

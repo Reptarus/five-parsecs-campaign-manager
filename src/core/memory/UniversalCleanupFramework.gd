@@ -44,7 +44,6 @@ static var _pattern_handlers: Dictionary = {}
 
 ## Initialize Universal Cleanup Framework
 static func initialize() -> bool:
-	print("[UniversalCleanupFramework] Initializing universal cleanup system...")
 	
 	# Initialize pattern handlers
 	_register_cleanup_patterns()
@@ -67,7 +66,6 @@ static func initialize() -> bool:
 	# Register with MemoryLeakPrevention
 	MemoryLeakPrevention.add_leak_detection_callback(_on_memory_leak_detected)
 	
-	print("[UniversalCleanupFramework] ✅ Universal cleanup framework initialized")
 	return true
 
 ## Register cleanup patterns
@@ -85,12 +83,10 @@ static func _register_cleanup_patterns() -> void:
 static func _setup_cleanup_timer() -> void:
 	var main_loop = Engine.get_main_loop()
 	if not main_loop:
-		print("[UniversalCleanupFramework] Warning: No main loop available")
 		return
 	
 	var scene_tree = main_loop as SceneTree
 	if not scene_tree:
-		print("[UniversalCleanupFramework] Warning: Main loop is not a SceneTree")
 		return
 	
 	if not _cleanup_timer:
@@ -99,7 +95,6 @@ static func _setup_cleanup_timer() -> void:
 		_cleanup_timer.timeout.connect(_process_cleanup_queue)
 		_cleanup_timer.autostart = true
 		scene_tree.get_root().add_child(_cleanup_timer)
-		print("[UniversalCleanupFramework] Created cleanup processing timer")
 
 ## CLEANUP REGISTRATION METHODS
 
@@ -120,7 +115,6 @@ static func register_for_scene_cleanup(node: Node, parent: Node = null, context:
 	var cleanup_id = "scene_%d_%s" % [node.get_instance_id(), context]
 	_cleanup_registry[cleanup_id] = cleanup_data
 	
-	print("[UniversalCleanupFramework] Registered node for scene cleanup: %s" % context)
 
 ## Register signal for cleanup
 static func register_signal_cleanup(source: Object, signal_name: String, target: Object, method_name: String) -> void:
@@ -140,7 +134,6 @@ static func register_signal_cleanup(source: Object, signal_name: String, target:
 	var cleanup_id = "signal_%d_%s_%d" % [source.get_instance_id(), signal_name, target.get_instance_id()]
 	_cleanup_registry[cleanup_id] = cleanup_data
 	
-	print("[UniversalCleanupFramework] Registered signal for cleanup: %s" % signal_name)
 
 ## Register file handle for cleanup
 static func register_file_cleanup(file: FileAccess, context: String = "") -> void:
@@ -158,7 +151,6 @@ static func register_file_cleanup(file: FileAccess, context: String = "") -> voi
 	var cleanup_id = "file_%d_%s" % [file.get_instance_id(), context]
 	_cleanup_registry[cleanup_id] = cleanup_data
 	
-	print("[UniversalCleanupFramework] Registered file for cleanup: %s" % context)
 
 ## Register resource for cleanup
 static func register_resource_cleanup(resource: Resource, context: String = "") -> void:
@@ -176,7 +168,6 @@ static func register_resource_cleanup(resource: Resource, context: String = "") 
 	var cleanup_id = "resource_%d_%s" % [resource.get_instance_id(), context]
 	_cleanup_registry[cleanup_id] = cleanup_data
 	
-	print("[UniversalCleanupFramework] Registered resource for cleanup: %s" % context)
 
 ## Register timer for cleanup
 static func register_timer_cleanup(timer: Timer, context: String = "") -> void:
@@ -194,7 +185,6 @@ static func register_timer_cleanup(timer: Timer, context: String = "") -> void:
 	var cleanup_id = "timer_%d_%s" % [timer.get_instance_id(), context]
 	_cleanup_registry[cleanup_id] = cleanup_data
 	
-	print("[UniversalCleanupFramework] Registered timer for cleanup: %s" % context)
 
 ## Register custom cleanup callback
 static func register_cleanup_callback(callback: Callable, priority: CleanupPriority = CleanupPriority.NORMAL, context: String = "") -> void:
@@ -212,7 +202,6 @@ static func register_cleanup_callback(callback: Callable, priority: CleanupPrior
 	var cleanup_id = "callback_%d_%s" % [Time.get_ticks_msec(), context]
 	_cleanup_registry[cleanup_id] = cleanup_data
 	
-	print("[UniversalCleanupFramework] Registered custom cleanup callback: %s" % context)
 
 ## CLEANUP PROCESSING
 
@@ -259,7 +248,6 @@ static func _process_cleanup_queue() -> void:
 	
 	if processed_count > 0:
 		var cycle_duration = _last_cleanup_cycle - cleanup_start
-		print("[UniversalCleanupFramework] Processed %d cleanup items in %dms" % [processed_count, cycle_duration])
 
 ## Execute individual cleanup
 static func _execute_cleanup(cleanup_id: String, cleanup_data: Dictionary) -> void:
@@ -305,7 +293,6 @@ static func _handle_scene_cleanup(cleanup_data: Dictionary) -> void:
 	node.queue_free()
 	
 	_cleanup_statistics.scene_cleanups += 1
-	print("[UniversalCleanupFramework] Executed scene cleanup: %s" % context)
 
 ## Handle signal cleanup
 static func _handle_signal_cleanup(cleanup_data: Dictionary) -> void:
@@ -326,7 +313,6 @@ static func _handle_signal_cleanup(cleanup_data: Dictionary) -> void:
 	if source.has_signal(signal_name) and source.is_connected(signal_name, Callable(target, method_name)):
 		source.disconnect(signal_name, Callable(target, method_name))
 		_cleanup_statistics.signal_cleanups += 1
-		print("[UniversalCleanupFramework] Disconnected signal: %s" % signal_name)
 
 ## Handle file cleanup
 static func _handle_file_cleanup(cleanup_data: Dictionary) -> void:
@@ -339,7 +325,6 @@ static func _handle_file_cleanup(cleanup_data: Dictionary) -> void:
 	if file.is_open():
 		file.close()
 		_cleanup_statistics.file_cleanups += 1
-		print("[UniversalCleanupFramework] Closed file: %s" % context)
 
 ## Handle resource cleanup
 static func _handle_resource_cleanup(cleanup_data: Dictionary) -> void:
@@ -356,13 +341,12 @@ static func _handle_resource_cleanup(cleanup_data: Dictionary) -> void:
 	# Take reference to prevent immediate deletion
 	resource.take_over_path("")
 	_cleanup_statistics.resource_cleanups += 1
-	print("[UniversalCleanupFramework] Released resource: %s" % context)
 
 ## Handle circular reference cleanup
 static func _handle_circular_ref_cleanup(cleanup_data: Dictionary) -> void:
 	# Implementation for breaking circular references
 	# This would be specific to detected circular reference patterns
-	print("[UniversalCleanupFramework] Executed circular reference cleanup")
+	pass
 
 ## Handle autoload cleanup
 static func _handle_autoload_cleanup(cleanup_data: Dictionary) -> void:
@@ -374,7 +358,6 @@ static func _handle_autoload_cleanup(cleanup_data: Dictionary) -> void:
 		var autoload = tree.get_root().get_node_or_null(autoload_name)
 		if autoload and autoload.has_method("cleanup"):
 			autoload.cleanup()
-	print("[UniversalCleanupFramework] Executed autoload cleanup: %s" % autoload_name)
 
 ## Handle timer cleanup
 static func _handle_timer_cleanup(cleanup_data: Dictionary) -> void:
@@ -393,18 +376,16 @@ static func _handle_timer_cleanup(cleanup_data: Dictionary) -> void:
 		timer.get_parent().remove_child(timer)
 	timer.queue_free()
 	
-	print("[UniversalCleanupFramework] Cleaned up timer: %s" % context)
 
 ## Handle thread cleanup
 static func _handle_thread_cleanup(cleanup_data: Dictionary) -> void:
 	# Implementation for thread and async operation cleanup
-	print("[UniversalCleanupFramework] Executed thread cleanup")
+	pass
 
 ## EMERGENCY AND UTILITIES
 
 ## Emergency cleanup - clear all registered items immediately
 static func emergency_cleanup() -> Dictionary:
-	print("[UniversalCleanupFramework] 🚨 EMERGENCY CLEANUP INITIATED")
 	
 	_emergency_cleanup_active = true
 	var cleanup_start = Time.get_ticks_msec()
@@ -429,7 +410,6 @@ static func emergency_cleanup() -> Dictionary:
 		"timestamp": Time.get_ticks_msec()
 	}
 	
-	print("[UniversalCleanupFramework] ✅ Emergency cleanup complete: %d items in %dms" % [initial_count, emergency_duration])
 	return result
 
 ## Memory leak detection callback
@@ -438,7 +418,6 @@ static func _on_memory_leak_detected(current_memory: float, peak_memory: float, 
 	var warning_threshold = 85.0  # MB
 	
 	if current_memory > warning_threshold:
-		print("[UniversalCleanupFramework] 🧹 Memory threshold exceeded, triggering preventive cleanup")
 		await _trigger_preventive_cleanup()
 
 ## Trigger preventive cleanup
@@ -460,7 +439,6 @@ static func get_registered_cleanup_count() -> int:
 
 ## Shutdown cleanup framework
 static func shutdown() -> void:
-	print("[UniversalCleanupFramework] Shutting down universal cleanup framework...")
 	
 	# Emergency cleanup all remaining items
 	await emergency_cleanup()
@@ -476,4 +454,3 @@ static func shutdown() -> void:
 	_pattern_handlers.clear()
 	_cleanup_statistics.clear()
 	
-	print("[UniversalCleanupFramework] ✅ Shutdown complete")

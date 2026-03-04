@@ -6,8 +6,6 @@ extends BasePreBattleLoop
 const Self = preload("res://src/game/campaign/FiveParsecsPreBattleLoop.gd")
 const BasePreBattleLoop = preload("res://src/base/campaign/BasePreBattleLoop.gd")
 const FiveParsecsMissionGenerator = preload("res://src/game/campaign/FiveParsecsMissionGenerator.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 var mission_generator: RefCounted = null # Changed to RefCounted
 var _mission_generator_node: Node = null # Added for Node wrapper support
 var terrain_types: Array = [

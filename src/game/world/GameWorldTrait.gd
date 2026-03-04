@@ -6,8 +6,6 @@ extends Resource
 const GameWorldTraitSelf = preload("res://src/game/world/GameWorldTrait.gd")
 
 const GameDataManager = preload("res://src/core/managers/GameDataManager.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 ## A class representing a world trait that can be applied to planets and locations
 ## These traits define special characteristics, modifiers, and effects
 

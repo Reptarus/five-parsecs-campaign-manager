@@ -63,7 +63,6 @@ var relationship_benefits: Dictionary = {}
 
 func _ready() -> void:
 	_initialize_job_data()
-	print("PatronJobGenerator: Initialized successfully")
 
 ## Initialize patron job data
 func _initialize_job_data() -> void:
@@ -93,7 +92,6 @@ func _load_job_templates() -> void:
 						"special_rules": entry.get("typical_requirements", []),
 						"success_bonus": {}
 					}
-			print("PatronJobGenerator: Loaded %d job templates from JSON" % job_templates.size())
 			return
 
 	# Fallback to hardcoded
@@ -263,7 +261,6 @@ func generate_patron_job(patron_data: Patron, crew_size: int = 4, relationship_l
 	# Add special requirements and rewards
 	_add_special_elements(job, patron_data, template)
 	
-	print("PatronJobGenerator: Generated %s job '%s' for %s" % [job.job_type, job.mission_title, job.patron_name])
 	self.patron_job_generated.emit(job)
 	
 	return job
@@ -396,7 +393,7 @@ func process_job_completion(job: PatronJob, success: bool, performance_rating: i
 		# Apply success rewards
 		result.rewards_earned = job.success_rewards.duplicate()
 		
-		print("PatronJobGenerator: Job completed successfully for %s (+%d relationship)" % [job.patron_name, result.relationship_change])
+		pass
 	else:
 		# Failure consequences
 		result.relationship_change = -1
@@ -406,8 +403,8 @@ func process_job_completion(job: PatronJob, success: bool, performance_rating: i
 		if performance_rating >= 2:
 			result.payment_received = int(job.base_payment * 0.3)
 		
-		print("PatronJobGenerator: Job failed for %s (-1 relationship)" % job.patron_name)
-	
+		pass
+
 	self.patron_mission_completed.emit(job.patron_id, success)
 	return result
 
@@ -417,7 +414,6 @@ func update_patron_relationship(patron_data: Patron, relationship_change: int) -
 	patron_data.reputation = clamp(patron_data.reputation + relationship_change, -3, 3)
 	
 	if patron_data.reputation != old_level:
-		print("PatronJobGenerator: %s relationship: %d -> %d" % [patron_data.patron_name, old_level, patron_data.reputation])
 		self.patron_relationship_updated.emit(patron_data.patron_name, patron_data.reputation)
 	
 	return patron_data.reputation

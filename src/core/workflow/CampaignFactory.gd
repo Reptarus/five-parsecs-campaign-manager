@@ -1,4 +1,4 @@
-﻿class_name CampaignFactory
+class_name CampaignFactory
 extends RefCounted
 
 ## Production-Grade Campaign Factory
@@ -53,7 +53,6 @@ const CAMPAIGN_VERSION = "1.0.0"
 
 static func create_campaign(workflow_data: Dictionary) -> CampaignCreationResult:
 	## Main factory method: Create a validated campaign from workflow data
-	print("CampaignFactory: Creating campaign from workflow data...")
 	
 	# Step 1: Validate input data
 	var validation_result = _validate_workflow_data(workflow_data)
@@ -84,7 +83,6 @@ static func create_campaign(workflow_data: Dictionary) -> CampaignCreationResult
 	var result = CampaignCreationResult.new()
 	result.set_success(campaign, campaign_id)
 	
-	print("CampaignFactory: ✅ Campaign created successfully with ID: %s" % campaign_id)
 	return result
 
 static func _validate_workflow_data(workflow_data: Dictionary) -> CampaignValidationResult:

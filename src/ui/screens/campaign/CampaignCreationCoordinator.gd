@@ -139,7 +139,6 @@ func _initialize_navigation_state() -> void:
 # PHASE 2 INTEGRATION: Initialize unified state management
 func _initialize_unified_state() -> void:
 	## Initialize unified campaign state management
-	print("CampaignCreationCoordinator: Initializing unified state management")
 	
 	# Initialize default values
 	unified_campaign_state.crew.members = []
@@ -187,22 +186,20 @@ func _initialize_unified_state() -> void:
 	
 	unified_campaign_state.is_complete = false
 	
-	print("CampaignCreationCoordinator: Unified state initialized")
 
 # PHASE 2 INTEGRATION: Unified state management methods
 func update_equipment_state(equipment_data: Dictionary) -> void:
 	## Update equipment state and emit signal
-	print("CampaignCreationCoordinator: Updating equipment state")
 	
 	# Sprint 26.7: Standardized to equipment key (canonical)
 	# CRITICAL FIX: Store as .equipment (canonical) AND .items (legacy) for backward compatibility
 	var equipment_list: Array = []
 	if equipment_data.has("equipment"):
 		equipment_list = equipment_data.equipment
-		print("CampaignCreationCoordinator: Equipment set from equipment key (%d items)" % equipment_list.size())
+		pass # Equipment set from equipment key
 	elif equipment_data.has("items"):
 		equipment_list = equipment_data.items
-		print("CampaignCreationCoordinator: Equipment set from items key (legacy, %d items)" % equipment_list.size())
+		pass # Equipment set from items key (legacy)
 
 	# Store in both keys for maximum compatibility
 	unified_campaign_state.equipment.equipment = equipment_list  # Canonical
@@ -233,7 +230,6 @@ func update_equipment_state(equipment_data: Dictionary) -> void:
 			CampaignCreationStateManager.Phase.EQUIPMENT_GENERATION,
 			unified_campaign_state.equipment.duplicate()
 		)
-		print("CampaignCreationCoordinator: Synced equipment to StateManager")
 
 	# Set phase completion: equipment is complete when is_complete flag is set
 	if unified_campaign_state.equipment.get("is_complete", false):
@@ -245,7 +241,6 @@ func update_equipment_state(equipment_data: Dictionary) -> void:
 
 func update_ship_state(ship_data: Dictionary) -> void:
 	## Update ship state and emit signal
-	print("CampaignCreationCoordinator: Updating ship state")
 
 	# SPRINT 26.21 FIX: Handle nested ship data structure from ShipPanel
 	# ShipPanel sends {"ship": {...actual data...}, "is_complete": true}
@@ -253,7 +248,7 @@ func update_ship_state(ship_data: Dictionary) -> void:
 	var actual_ship_data: Dictionary = ship_data
 	if ship_data.has("ship") and ship_data["ship"] is Dictionary:
 		actual_ship_data = ship_data["ship"]
-		print("CampaignCreationCoordinator: Extracted nested ship data with keys: %s" % str(actual_ship_data.keys()))
+		pass # Extracted nested ship data
 
 	# Update ship data from the extracted (or flat) data
 	if actual_ship_data.has("name"):
@@ -283,7 +278,6 @@ func update_ship_state(ship_data: Dictionary) -> void:
 	# Also set is_configured when is_complete is true (they are semantically equivalent)
 	if ship_data.get("is_complete", actual_ship_data.get("is_complete", false)):
 		unified_campaign_state.ship.is_configured = true
-		print("CampaignCreationCoordinator: Set is_configured=true from is_complete flag")
 	
 	# Emit signals - both specific and campaign-wide
 	ship_state_updated.emit(unified_campaign_state.ship)
@@ -303,7 +297,6 @@ func update_ship_state(ship_data: Dictionary) -> void:
 			CampaignCreationStateManager.Phase.SHIP_ASSIGNMENT,
 			unified_campaign_state.ship.duplicate()
 		)
-		print("CampaignCreationCoordinator: Synced ship to StateManager")
 
 	# Set phase completion: ship is complete when is_complete or is_configured flag is set
 	var ship_complete: bool = unified_campaign_state.ship.get("is_complete", false) or unified_campaign_state.ship.get("is_configured", false)
@@ -316,7 +309,6 @@ func update_ship_state(ship_data: Dictionary) -> void:
 
 func update_crew_state(crew_data: Dictionary) -> void:
 	## Update crew state and emit signal
-	print("CampaignCreationCoordinator: Updating crew state")
 
 	# Update crew data - SPRINT 5 FIX: Normalize members through _character_to_dict
 	if crew_data.has("members"):
@@ -328,13 +320,13 @@ func update_crew_state(crew_data: Dictionary) -> void:
 	# Sprint 26.7: Standardized to crew_size key (check legacy keys for backwards compat)
 	if crew_data.has("crew_size"):
 		unified_campaign_state.crew.size = crew_data.crew_size
-		print("CampaignCreationCoordinator: Crew size set to %d (from crew_size)" % crew_data.crew_size)
+		pass # Crew size set from crew_size
 	elif crew_data.has("selected_size"):
 		unified_campaign_state.crew.size = crew_data.selected_size
-		print("CampaignCreationCoordinator: Crew size set to %d (from selected_size - legacy)" % crew_data.selected_size)
+		pass # Crew size set from selected_size
 	elif crew_data.has("size") and crew_data.size > 0:
 		unified_campaign_state.crew.size = crew_data.size
-		print("CampaignCreationCoordinator: Crew size set to %d (from size - legacy)" % crew_data.size)
+		pass # Crew size set from size
 	if crew_data.has("captain"):
 		# CROSS-PANEL DEPENDENCY FIX: Normalize captain to dictionary and sync
 		var captain = crew_data.captain
@@ -365,7 +357,6 @@ func update_crew_state(crew_data: Dictionary) -> void:
 			if not captain_name.is_empty():
 				unified_campaign_state.captain.name = captain_name
 				unified_campaign_state.captain.is_complete = true
-				print("CampaignCreationCoordinator: Synchronized crew captain '%s' with captain state" % captain_name)
 		else:
 			unified_campaign_state.crew.captain = crew_data.captain
 		
@@ -408,7 +399,6 @@ func update_crew_state(crew_data: Dictionary) -> void:
 			CampaignCreationStateManager.Phase.CREW_SETUP,
 			unified_campaign_state.crew.duplicate()
 		)
-		print("CampaignCreationCoordinator: Synced crew to StateManager")
 
 	# Set phase completion: crew is complete when is_complete flag is set
 	if crew_data.get("is_complete", false):
@@ -477,17 +467,10 @@ func _generate_crew_extras() -> void:
 	unified_campaign_state.crew["quest_rumors"] = total_resources.get("rumors", 0)
 	unified_campaign_state.crew["bonus_credits"] = total_resources.get("credits", 0)
 
-	print("CampaignCreationCoordinator: Generated crew extras - Patrons: %d, Rivals: %d, Story Points: %d, Rumors: %d, Credits: +%d" % [
-		unified_campaign_state.crew.patrons.size(),
-		unified_campaign_state.crew.rivals.size(),
-		total_resources.get("story_points", 0),
-		total_resources.get("rumors", 0),
-		total_resources.get("credits", 0)
-	])
+	pass # Crew extras generated
 
 func update_captain_state(captain_data: Dictionary) -> void:
 	## Update captain state and emit signal
-	print("CampaignCreationCoordinator: Updating captain state")
 
 	# NORMALIZATION: Extract captain name from multiple possible locations
 	var captain_name = ""
@@ -502,7 +485,6 @@ func update_captain_state(captain_data: Dictionary) -> void:
 	if not captain_name.is_empty():
 		unified_campaign_state.captain.name = captain_name
 		unified_campaign_state.captain.character_name = captain_name  # Normalize both keys
-		print("CampaignCreationCoordinator: Set captain name to: %s" % captain_name)
 
 	# Extract background from nested or top-level
 	if captain_data.has("background"):
@@ -535,10 +517,8 @@ func update_captain_state(captain_data: Dictionary) -> void:
 				"character_name": char_name,
 				"character": captain_char  # Keep reference
 			}
-			print("CampaignCreationCoordinator: Normalized captain_character to dictionary with name '%s'" % char_name)
 		else:
 			unified_campaign_state.crew.captain = captain_char
-			print("CampaignCreationCoordinator: Synchronized captain_character with crew state")
 	elif captain_data.has("captain") and captain_data.captain != null:
 		var captain = captain_data.captain
 		# Normalize Character object to dictionary
@@ -553,10 +533,8 @@ func update_captain_state(captain_data: Dictionary) -> void:
 				"character_name": char_name,
 				"character": captain  # Keep reference
 			}
-			print("CampaignCreationCoordinator: Normalized captain to dictionary with name '%s'" % char_name)
 		else:
 			unified_campaign_state.crew.captain = captain
-			print("CampaignCreationCoordinator: Synchronized captain with crew state")
 	
 	# NEW: Mark phase complete if captain is valid
 	var captain_complete = false
@@ -571,7 +549,6 @@ func update_captain_state(captain_data: Dictionary) -> void:
 	
 	if captain_complete:
 		phase_completion_status[CampaignCreationStateManager.Phase.CAPTAIN_CREATION] = true
-		print("CampaignCreationCoordinator: Captain phase marked complete")
 		_update_navigation_state()
 
 	# Extract combat stats from Character for StateManager validation
@@ -596,18 +573,11 @@ func update_captain_state(captain_data: Dictionary) -> void:
 			speed_val = _get_stat.call("move", 4)
 		unified_campaign_state.captain.speed = speed_val
 
-		print("CampaignCreationCoordinator: Extracted captain stats - Combat:%d Toughness:%d Reactions:%d Savvy:%d Tech:%d Speed:%d" % [
-			unified_campaign_state.captain.combat,
-			unified_campaign_state.captain.toughness,
-			unified_campaign_state.captain.reactions,
-			unified_campaign_state.captain.get("savvy", 0),
-			unified_campaign_state.captain.get("tech", 0),
-			unified_campaign_state.captain.get("speed", 0)])
+		pass # Captain stats extracted
 
 	# SPRINT 26 FIX: Set has_captain flag for StateManager validation
 	if unified_campaign_state.crew.captain != null or captain_complete:
 		unified_campaign_state.crew.has_captain = true
-		print("CampaignCreationCoordinator: Set has_captain flag = true")
 
 	# RULES FIX: Merge captain into crew.members (captain is one of the 4-6 crew per Five Parsecs)
 	_merge_captain_into_crew()
@@ -632,14 +602,12 @@ func update_captain_state(captain_data: Dictionary) -> void:
 			CampaignCreationStateManager.Phase.CREW_SETUP,
 			unified_campaign_state.crew.duplicate()
 		)
-		print("CampaignCreationCoordinator: Synced captain + crew to StateManager")
 
 	# Update overall completion status
 	_update_campaign_completion_status()
 
 func update_difficulty_state(difficulty_data: Dictionary) -> void:
 	## Update difficulty state and emit signal
-	print("CampaignCreationCoordinator: Updating difficulty state")
 	
 	# Update difficulty data
 	if difficulty_data.has("modifiers"):
@@ -652,7 +620,6 @@ func update_difficulty_state(difficulty_data: Dictionary) -> void:
 
 func update_campaign_config_state(campaign_config_data: Dictionary) -> void:
 	## Update campaign config state and emit signal
-	print("CampaignCreationCoordinator: Updating campaign config state")
 
 	# Update campaign config data
 	if campaign_config_data.has("campaign_name"):
@@ -685,7 +652,6 @@ func update_campaign_config_state(campaign_config_data: Dictionary) -> void:
 			CampaignCreationStateManager.Phase.CONFIG,
 			unified_campaign_state.campaign_config.duplicate()
 		)
-		print("CampaignCreationCoordinator: Synced config to StateManager")
 
 	# Set phase completion: config is complete if campaign_name is non-empty
 	var config_name: String = unified_campaign_state.campaign_config.get("campaign_name", "")
@@ -698,7 +664,6 @@ func update_campaign_config_state(campaign_config_data: Dictionary) -> void:
 
 func update_victory_conditions_state(victory_conditions_data: Dictionary) -> void:
 	## Update victory conditions state and emit signal
-	print("CampaignCreationCoordinator: Updating victory conditions state")
 	
 	# Ensure campaign_config exists and has victory_conditions section
 	if not unified_campaign_state.has("campaign_config"):
@@ -740,9 +705,9 @@ func _update_campaign_completion_status() -> void:
 	
 	# Log completion status change
 	if unified_campaign_state.is_complete and not was_complete:
-		print("CampaignCreationCoordinator: Campaign creation completed!")
+		pass
 	elif not unified_campaign_state.is_complete and was_complete:
-		print("CampaignCreationCoordinator: Campaign creation status changed to incomplete")
+		pass
 
 func _merge_captain_into_crew() -> void:
 	## Merge captain into crew.members as first element with is_captain flag.
@@ -922,7 +887,7 @@ func get_complete_campaign_state_for_panel(panel_name: String = "") -> Dictionar
 		"current_step": current_step
 	}
 	
-	print("CampaignCreationCoordinator: Providing complete state to %s with %d sections" % [panel_name, complete_state.keys().size()])
+	pass # Providing state to panel
 	
 	return complete_state
 
@@ -932,7 +897,6 @@ func provide_initial_state_to_panel(panel: Control) -> void:
 		return
 	
 	var panel_name = panel.get_class() if panel else "unknown"
-	print("CampaignCreationCoordinator: Providing initial state to %s" % panel_name)
 	
 	# Get complete state
 	var complete_state = get_complete_campaign_state_for_panel(panel_name)
@@ -940,9 +904,8 @@ func provide_initial_state_to_panel(panel: Control) -> void:
 	# Send state to panel if it has the method
 	if panel.has_method("_on_campaign_state_updated"):
 		panel.call("_on_campaign_state_updated", complete_state)
-		print("CampaignCreationCoordinator: ✅ Initial state sent to %s" % panel_name)
 	else:
-		print("CampaignCreationCoordinator: ⚠️ Panel %s missing _on_campaign_state_updated method" % panel_name)
+		pass
 
 func get_campaign_data_for_save() -> Dictionary:
 	## Get campaign data formatted for saving
@@ -973,7 +936,6 @@ func load_campaign_data_from_save(save_data: Dictionary) -> void:
 	if save_data.has("campaign_config"):
 		update_campaign_config_state(save_data.campaign_config)
 	
-	print("CampaignCreationCoordinator: Campaign data loaded from save")
 
 ## Public API - Navigation Control
 
@@ -1158,10 +1120,7 @@ func _do_navigation_update() -> void:
 	if nav_state.current_step != _last_emitted_step:
 		_last_emitted_step = nav_state.current_step
 		step_changed.emit(nav_state.current_step, nav_state.total_steps)
-		print("CampaignCreationCoordinator: Step changed to %d/%d: %s" % [
-			nav_state.current_step, nav_state.total_steps,
-			get_current_phase_name()
-		])
+		pass # Step changed
 
 func _calculate_navigation_state() -> Dictionary:
 	## Calculate complete navigation state in one place
@@ -1218,12 +1177,10 @@ func get_debug_info() -> Dictionary:
 
 func finalize_campaign() -> Dictionary:
 	## Finalize campaign creation by aggregating all phase data
-	print("CampaignCreationCoordinator: Finalizing campaign creation...")
 	
 	# Validate all required phases are complete
 	var validation_result = _validate_campaign_completion()
 	if not validation_result.valid:
-		print("CampaignCreationCoordinator: Campaign finalization failed validation: ", validation_result.errors)
 		return {
 			"success": false,
 			"error": "Campaign validation failed",
@@ -1241,7 +1198,6 @@ func finalize_campaign() -> Dictionary:
 		if legacy_bonus > 0:
 			var current_sp: int = finalized_campaign_data.get("story_points", 0)
 			finalized_campaign_data["story_points"] = current_sp + legacy_bonus
-			print("CampaignCreationCoordinator: Applied legacy bonus +%d story points" % legacy_bonus)
 
 	# Add finalization metadata
 	finalized_campaign_data["finalization"] = {
@@ -1253,7 +1209,6 @@ func finalize_campaign() -> Dictionary:
 		"coordinator_state": get_debug_info()
 	}
 	
-	print("CampaignCreationCoordinator: ✅ Campaign finalization complete")
 	return {
 		"success": true,
 		"campaign_data": finalized_campaign_data,
@@ -1320,9 +1275,8 @@ func _aggregate_all_phase_data() -> Dictionary:
 	if not victory_conditions.is_empty():
 		campaign_data["victory_conditions"] = victory_conditions
 		campaign_data["story_track_enabled"] = config_data.get("story_track_enabled", false)
-		print("CampaignCreationCoordinator: Victory conditions included in campaign data")
 
-	print("CampaignCreationCoordinator: Aggregated campaign data from unified state (%d keys)" % campaign_data.keys().size())
+	pass # Campaign data aggregated
 	return campaign_data
 
 func get_phase_name(phase: CampaignCreationStateManager.Phase) -> String:
@@ -1348,31 +1302,26 @@ func get_phase_name(phase: CampaignCreationStateManager.Phase) -> String:
 # Additional state update methods for UI integration
 func update_campaign_name(name: String) -> void:
 	## Update campaign name
-	print("CampaignCreationCoordinator: Updating campaign name: %s" % name)
 	unified_campaign_state["campaign_config"]["campaign_name"] = name
 	campaign_data_updated.emit(unified_campaign_state)
 
 func update_difficulty(difficulty: int) -> void:
 	## Update difficulty setting
-	print("CampaignCreationCoordinator: Updating difficulty: %d" % difficulty)
 	unified_campaign_state["difficulty"]["modifiers"]["level"] = difficulty
 	campaign_data_updated.emit(unified_campaign_state)
 
 func update_ironman_mode(enabled: bool) -> void:
 	## Update ironman mode setting
-	print("CampaignCreationCoordinator: Updating ironman mode: %s" % enabled)
 	unified_campaign_state["difficulty"]["modifiers"]["ironman"] = enabled
 	campaign_data_updated.emit(unified_campaign_state)
 
 func add_crew_member(member_data: Dictionary) -> void:
 	## Add a crew member
-	print("CampaignCreationCoordinator: Adding crew member")
 	unified_campaign_state["crew"]["members"].append(member_data)
 	campaign_data_updated.emit(unified_campaign_state)
 
 func update_world_state(world_data: Dictionary) -> void:
 	## Update world state
-	print("CampaignCreationCoordinator: Updating world state")
 	unified_campaign_state["world"] = world_data
 	unified_campaign_state["world"]["is_complete"] = true
 	phase_completion_status[CampaignCreationStateManager.Phase.WORLD_GENERATION] = true
@@ -1381,7 +1330,6 @@ func update_world_state(world_data: Dictionary) -> void:
 
 func update_review_state(review_data: Dictionary) -> void:
 	## Update review state
-	print("CampaignCreationCoordinator: Updating review state")
 	unified_campaign_state["review"] = review_data
 	unified_campaign_state["review"]["is_complete"] = true
 	phase_completion_status[CampaignCreationStateManager.Phase.FINAL_REVIEW] = true
@@ -1390,7 +1338,6 @@ func update_review_state(review_data: Dictionary) -> void:
 
 func update_validation_state(validation_data: Dictionary) -> void:
 	## Update validation state
-	print("CampaignCreationCoordinator: Updating validation state")
 	unified_campaign_state["validation"] = validation_data
 	campaign_data_updated.emit(unified_campaign_state)
 
@@ -1426,12 +1373,10 @@ func _connect_to_game_state_manager() -> void:
 		push_warning("CampaignCreationCoordinator: GameStateManager not available - some features disabled")
 		return
 	
-	print("CampaignCreationCoordinator: Connected to GameStateManager")
 	
 	# Register coordinator with game state
 	if game_state_manager.has_method("register_campaign_coordinator"):
 		game_state_manager.register_campaign_coordinator(self)
-		print("CampaignCreationCoordinator: Registered with GameStateManager")
 
 # ============ SPRINT 5.1.2: PANEL INTEGRATION METHODS ============
 # Methods to connect existing panels with coordinator state management
@@ -1442,39 +1387,32 @@ func pass_coordinator_to_panel(panel: Control) -> void:
 		push_error("CampaignCreationCoordinator: Cannot pass coordinator to null panel")
 		return
 	
-	print("CampaignCreationCoordinator: Passing coordinator to panel: %s" % panel.name)
 	
 	# Method 1: Set coordinator reference directly
 	if panel.has_method("set_coordinator"):
 		panel.set_coordinator(self)
-		print("  ✓ Set coordinator reference via set_coordinator()")
+		pass # Set coordinator reference
 	else:
 		# Fallback: Set _coordinator property directly
 		if "_coordinator" in panel:
 			panel.set("_coordinator", self)
-			print("  ✓ Set _coordinator property directly")
 	
 	# Method 2: Set state manager reference if panel supports it
 	if panel.has_method("set_state_manager"):
 		panel.set_state_manager(state_manager)
-		print("  ✓ Set state manager reference")
 	
 	# Method 3: Set phase key for state synchronization
 	var phase_key: String = _get_phase_key_for_panel(panel)
 	if phase_key != "":
 		if panel.has_method("set_panel_phase_key"):
 			panel.call("set_panel_phase_key", phase_key)  # Use call() to avoid type warning
-			print("  ✓ Set phase key: %s" % phase_key)
 		elif "panel_phase_key" in panel:
 			panel.panel_phase_key = phase_key
-			print("  ✓ Set panel_phase_key property: %s" % phase_key)
 	
 	# Method 4: Trigger initial sync if panel supports it
 	if panel.has_method("sync_with_coordinator"):
 		panel.call_deferred("sync_with_coordinator")
-		print("  ✓ Triggered initial coordinator sync")
 	
-	print("CampaignCreationCoordinator: Panel integration complete for %s" % panel.name)
 
 func _get_phase_key_for_panel(panel: Control) -> String:
 	## Get the appropriate phase key for a panel based on its type
@@ -1516,12 +1454,12 @@ func _get_phase_key_for_panel(panel: Control) -> String:
 		elif panel_class == "FinalPanel":
 			return "review"
 	
-	print("CampaignCreationCoordinator: Could not determine phase key for panel: %s (%s)" % [panel_name, panel_class])
+	push_warning("CampaignCreationCoordinator: Could not determine phase key for panel: %s (%s)" % [panel_name, panel_class])
 	return ""
 
 func connect_all_panels_to_coordinator(panels: Array) -> void:
 	## Connect multiple panels to coordinator in batch - Sprint 5.1.2 mass integration
-	print("CampaignCreationCoordinator: Connecting %d panels to coordinator" % panels.size())
+	pass # Connecting panels to coordinator
 	
 	var success_count: int = 0
 	for panel: Variant in panels:
@@ -1531,14 +1469,13 @@ func connect_all_panels_to_coordinator(panels: Array) -> void:
 		else:
 			push_warning("CampaignCreationCoordinator: Invalid panel type: %s" % typeof(panel))
 	
-	print("CampaignCreationCoordinator: Successfully connected %d/%d panels" % [success_count, panels.size()])
+	pass # Panels connected
 
 func refresh_panel_state_sync(panel: Control) -> void:
 	## Refresh state synchronization for a specific panel - useful for debugging
 	if not panel:
 		return
 
-	print("CampaignCreationCoordinator: Refreshing state sync for panel: %s" % panel.name)
 
 	# Get current state for panel's phase
 	var phase_key = _get_phase_key_for_panel(panel)
@@ -1546,15 +1483,13 @@ func refresh_panel_state_sync(panel: Control) -> void:
 		var state_data = unified_campaign_state.duplicate()
 		if panel.has_method("_on_campaign_state_updated"):
 			panel.call("_on_campaign_state_updated", state_data)
-			print("  ✓ Sent state update to panel")
 		else:
-			print("  ⚠️ Panel does not support _on_campaign_state_updated")
+			pass
 	else:
-		print("  ⚠️ No state data available for phase key: %s" % phase_key)
+		pass
 
 func reset_to_beginning() -> void:
 	## Reset coordinator to initial state for restart
-	print("CampaignCreationCoordinator: Resetting to beginning")
 
 	# Reset current step
 	current_step = 0
@@ -1581,4 +1516,3 @@ func reset_to_beginning() -> void:
 
 	# Emit reset signal
 	campaign_data_updated.emit(unified_campaign_state)
-	print("CampaignCreationCoordinator: Reset complete")

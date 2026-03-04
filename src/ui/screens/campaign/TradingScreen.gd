@@ -275,7 +275,6 @@ func _initialize_trading_system() -> void:
 	if trading_system.has_signal("rare_item_available"):
 		trading_system.rare_item_available.connect(_on_rare_item_available)
 	
-	print("TradingScreen: Trading system initialized")
 
 func _connect_signals() -> void:
 	## Connect UI signals
@@ -295,7 +294,6 @@ func open_trading(credits: int, inventory: Array, world: String = "frontier", cu
 	_refresh_inventory_display()
 	
 	visible = true
-	print("TradingScreen: Opened trading in %s world, %d credits" % [world_type, current_credits])
 
 func close_trading() -> void:
 	## Close the trading screen
@@ -343,7 +341,6 @@ func _generate_market() -> void:
 			market_condition_label.text = "Market: %s" % _get_market_condition_text()
 	
 	_refresh_market_display()
-	print("TradingScreen: Generated %d market items" % current_market_items.size())
 
 func _get_market_condition_text() -> String:
 	## Get display text for current market condition
@@ -575,7 +572,6 @@ func _on_buy_pressed() -> void:
 	var price = item.get("final_price", item.get("base_price", 5))
 	
 	if price > current_credits:
-		print("TradingScreen: Cannot afford item")
 		return
 	
 	# Complete purchase
@@ -591,7 +587,6 @@ func _on_buy_pressed() -> void:
 	trade_completed.emit(item.get("name", "item"), "purchase", price)
 	credits_changed.emit(current_credits)
 	_sync_credits_to_game_state_manager()  # EQ-3: Persist credits
-	print("TradingScreen: Purchased %s for %d credits" % [item.get("name", "item"), price])
 
 func _on_sell_pressed() -> void:
 	## Handle sell button press
@@ -620,12 +615,10 @@ func _on_sell_pressed() -> void:
 	trade_completed.emit(item_name, "sale", sell_price)
 	credits_changed.emit(current_credits)
 	_sync_credits_to_game_state_manager()  # EQ-3: Persist credits
-	print("TradingScreen: Sold %s for %d credits" % [item_name, sell_price])
 
 func _on_refresh_pressed() -> void:
 	## Handle refresh market button press
 	if current_credits < 1:
-		print("TradingScreen: Cannot refresh - need at least 1 credit")
 		return
 	
 	# Refreshing market costs 1 credit
@@ -634,7 +627,6 @@ func _on_refresh_pressed() -> void:
 	_generate_market()
 	credits_changed.emit(current_credits)
 	_sync_credits_to_game_state_manager()  # EQ-3: Persist credits
-	print("TradingScreen: Market refreshed (cost: 1 credit)")
 
 func _on_close_pressed() -> void:
 	## Handle close button press
@@ -647,15 +639,15 @@ func _update_credits_display() -> void:
 
 func _on_trading_system_trade_completed(item: Resource, transaction_type: String, credits: int) -> void:
 	## Handle trade completed from TradingSystem
-	print("TradingScreen: Trade completed - %s for %d credits" % [transaction_type, credits])
+	pass
 
 func _on_trading_system_trade_failed(reason: String) -> void:
 	## Handle trade failed from TradingSystem
-	print("TradingScreen: Trade failed - %s" % reason)
+	pass
 
 func _on_rare_item_available(item: Resource) -> void:
 	## Handle rare item available from TradingSystem
-	print("TradingScreen: Rare item available!")
+	pass
 
 func _get_category_color(category: String) -> Color:
 	## Get color for item category

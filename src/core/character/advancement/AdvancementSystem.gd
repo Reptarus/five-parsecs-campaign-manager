@@ -136,12 +136,7 @@ func award_experience(character: Resource, amount: int, source: String) -> void:
 
 	experience_gained.emit(character, amount, source)
 
-	print("Character %s gained %d XP from %s (Total: %d)" % [
-		Godot4Utils.safe_get_property(character, "character_name", "Unknown"),
-		amount,
-		source,
-		new_xp
-	])
+	pass # XP awarded
 
 ## Check if character can afford an advancement
 func can_afford_advancement(character: Resource, advancement_type: String, advancement_target: String = "") -> bool:
@@ -180,11 +175,9 @@ func advance_stat(character: Resource, stat_name: String) -> bool:
 
 	# Check if advancement is possible
 	if current_xp < cost:
-		print("Not enough XP: Need %d, have %d" % [cost, current_xp])
 		return false
 
 	if current_stat >= max_stat:
-		print("Stat already at maximum: %d" % max_stat)
 		return false
 
 	# Make advancement roll (D6 + current stat vs 7+)
@@ -202,15 +195,7 @@ func advance_stat(character: Resource, stat_name: String) -> bool:
 
 		character_advanced.emit(character, "stat_" + str(stat_name), new_stat_value)
 
-		print("Character %s advanced %s from %d to %d (Roll: %d+%d=%d)" % [
-			Godot4Utils.safe_get_property(character, "character_name", "Unknown"),
-			stat_name,
-			current_stat,
-			new_stat_value,
-			advancement_roll,
-			current_stat,
-			total_roll
-		])
+		pass # Stat advanced
 
 		return true
 	else:
@@ -218,14 +203,7 @@ func advance_stat(character: Resource, stat_name: String) -> bool:
 		var xp_lost = cost / 2.0
 		if character and character.has_method("set"): character.set("experience_points", current_xp - xp_lost)
 
-		print("Character %s failed to advance %s (Roll: %d+%d=%d, lost %d XP)" % [
-			Godot4Utils.safe_get_property(character, "character_name", "Unknown"),
-			stat_name,
-			advancement_roll,
-			current_stat,
-			total_roll,
-			xp_lost
-		])
+		pass # Advancement failed
 
 		return false
 
@@ -239,13 +217,11 @@ func purchase_training(character: Resource, training_type: String) -> bool:
 	var current_xp = Godot4Utils.safe_get_property(character, "experience_points", 0)
 
 	if current_xp < cost:
-		print("Not enough XP for training: Need %d, have %d" % [cost, current_xp])
 		return false
 
 	# Check if character already has this training
 	var current_training = Godot4Utils.safe_get_property(character, "training", [])
 	if training_type in current_training:
-		print("Character already has %s training" % training_type)
 		return false
 
 	# Apply training
@@ -255,11 +231,7 @@ func purchase_training(character: Resource, training_type: String) -> bool:
 
 	training_completed.emit(character, training_type)
 
-	print("Character %s completed %s training for %d XP" % [
-		Godot4Utils.safe_get_property(character, "character_name", "Unknown"),
-		training_type,
-		cost
-	])
+	pass # Training completed
 
 	# Apply training benefits
 	_apply_training_benefits(character, training_type)
@@ -523,11 +495,7 @@ func install_bot_upgrade(bot: Resource, upgrade_id: String, game_state: Resource
 	# Emit signal for UI/logging
 	bot_upgrade_installed.emit(bot, upgrade_id, upgrade_data)
 
-	print("Bot %s installed upgrade: %s (Cost: %d credits)" % [
-		Godot4Utils.safe_get_property(bot, "character_name", Godot4Utils.safe_get_property(bot, "name", "Unknown")),
-		upgrade_data.get("name", upgrade_id),
-		cost
-	])
+	pass # Bot upgrade installed
 
 	return true
 
@@ -554,12 +522,7 @@ func _apply_bot_upgrade_effects(bot: Resource, upgrade_data: Dictionary) -> void
 			if bot.has_method("set"):
 				bot.set(stat_name, new_value)
 
-			print("Bot %s: %s increased from %d to %d" % [
-				Godot4Utils.safe_get_property(bot, "character_name", "Unknown"),
-				stat_name,
-				current_value,
-				new_value
-			])
+			pass # Bot stat increased
 
 
 func _apply_special_bot_ability(bot: Resource, ability_id: String) -> void:
@@ -569,7 +532,6 @@ func _apply_special_bot_ability(bot: Resource, ability_id: String) -> void:
 			# Self-repair reduces recovery time by 1 turn
 			if bot.has_method("set"):
 				bot.set("has_self_repair", true)
-			print("Bot %s gained self-repair ability" % Godot4Utils.safe_get_property(bot, "character_name", "Unknown"))
 		_:
 			push_warning("Unknown special bot ability: %s" % ability_id)
 

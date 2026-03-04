@@ -428,7 +428,6 @@ func _generate_new_rival(source_type: String, battle_data: Dictionary) -> void:
 		game_state.rivals = [rival_data]
 	
 	# Notify of rival generation
-	print("New rival generated: " + rival_data.name)
 
 ## Handle Patron relationships according to the rulebook
 func process_patron_relationship(patron_id: String, mission_success: bool) -> void:
@@ -462,7 +461,6 @@ func process_patron_relationship(patron_id: String, mission_success: bool) -> vo
 			if patron["relationship"] <= -3:
 				# According to rulebook, remove patron at relationship -3
 				patrons_array.remove_at(patron_index)
-				print("Patron relationship has deteriorated. Patron removed.")
 				return
 		
 		# Update patron in game state

@@ -1,8 +1,8 @@
 # Battle System Architecture
 
-**Last Updated**: 2026-02-28
+**Last Updated**: 2026-03-03
 **Engine**: Godot 4.6-stable
-**Status**: Fully wired, end-to-end battle flow working
+**Status**: Fully wired, end-to-end battle flow working (standard + Bug Hunt)
 
 ## Overview
 
@@ -129,6 +129,57 @@ All 4 are instanced in `CampaignTurnController.tscn` as children of `MainContain
 ## Key Autoloads Used by Battle
 
 DiceManager, GameState, GameStateManager, CampaignPhaseManager, GlobalEnums
+
+## Bug Hunt Mode (Mar 3, 2026)
+
+TacticalBattleUI supports a second battle mode (`battle_mode = "bug_hunt"`) for the Bug Hunt gamemode. This mode is **purely additive** — standard 5PFH battle flow is unchanged.
+
+### Bug Hunt Battle Flow
+
+```
+BugHuntMissionPanel._launch_mission()
+  → BugHuntBattleSetup.generate_battle_context()
+  → GameStateManager.set_temp_data("bug_hunt_battle_context", context)
+  → SceneRouter.navigate_to("tactical_battle")
+  → TacticalBattleUI._check_bug_hunt_launch()  [auto-detect in _ready()]
+    → Validates campaign type (must have "main_characters")
+    → setup_bug_hunt_battle(context, crew)
+      → Hides morale tracker
+      → Adds ContactMarkerPanel to Tracking tab
+      → Adds Movie Magic panel to Tools tab
+      → Hides AutoResolve button
+    → _add_bug_hunt_complete_button()  [green button in BottomBar]
+    → Rewires ReturnButton to "Abort Mission"
+  → Player uses tabletop companion
+  → _on_bug_hunt_battle_done(result)
+    → Stores result in temp_data, clears context
+    → SceneRouter.navigate_to("bug_hunt_turn_controller")
+  → BugHuntTurnController._resume_after_battle()
+    → Skips to POST_BATTLE phase
+    → PostBattlePanel.set_battle_results() with real data
+```
+
+### Cross-Mode Safety
+
+- **Campaign type validation**: `_check_bug_hunt_launch()` verifies `"main_characters" in campaign`; aborts with warning if wrong campaign type
+- **Double-call guard**: `_bug_hunt_returning` flag prevents `_on_bug_hunt_battle_done()` from firing twice
+- **Signal guards**: `is_connected()` check on return_button; ContactMarkerPanel + MovieMagicPanel freed before recreation
+- **Temp data isolation**: Bug Hunt uses `"bug_hunt_*"` prefixed keys; standard uses `"world_phase_results"`, etc.
+
+### Bug Hunt Components (added to TacticalBattleUI)
+
+| Component | Tab | Purpose |
+| --- | --- | --- |
+| ContactMarkerPanel | Tracking | 4x4 sector grid, contact reveal/movement/spawning |
+| MovieMagicPanel | Tools | 10 one-shot cinematic abilities from campaign data |
+| CompleteBugHuntBtn | BottomBar | Green button to end battle and return to turn controller |
+
+### Bug Hunt Files (read-only reference)
+
+- `src/core/battle/BugHuntBattleSetup.gd` — generates battle context (contacts, locations, spawns)
+- `src/core/systems/BugHuntEnemyGenerator.gd` — contact table, reveal, priority spawning
+- `src/ui/components/battle/ContactMarkerPanel.gd` — scanner blip tracker UI
+- `data/bug_hunt/bug_hunt_movie_magic.json` — 10 Movie Magic abilities
 
 ## Deleted Files (Phase 16-17 Cleanup)
 

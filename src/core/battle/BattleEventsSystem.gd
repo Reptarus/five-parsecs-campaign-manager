@@ -84,7 +84,6 @@ func initialize_battle() -> void:
 	pending_events.clear()
 	battle_in_progress = true
 
-	print("Battle Events System initialized")
 
 ## Advance to next round and check for events
 func advance_round() -> void:
@@ -113,14 +112,12 @@ func trigger_battle_event() -> void:
 		var conflicts = _check_event_conflicts(event)
 		if conflicts:
 			event_conflicts_detected.emit(event, conflicts)
-			print("Event conflict detected - discarding: " + event.title)
 			return
 
 		events_triggered.append(event)
 		battle_event_triggered.emit(event)
 		_apply_event_effects(event)
 
-		print("Battle Event Triggered: " + event.title)
 
 ## Apply event effects based on type
 func _apply_event_effects(_event: BattleEvent) -> void:
@@ -308,7 +305,7 @@ func _apply_universal_event(_event: BattleEvent) -> void:
 			effects["global_modifier"] = true
 		_:
 			# Default universal handling
-			print("Universal event applied: " + _event.title)
+			pass
 
 ## Check if event conflicts with active events
 func _check_event_conflicts(new_event: BattleEvent) -> BattleEvent:
@@ -373,7 +370,6 @@ func end_battle() -> void:
 	battle_in_progress = false
 	_cleanup_temporary_effects()
 
-	print("Battle Events System ended")
 
 ## Cleanup temporary effects
 func _cleanup_temporary_effects() -> void:

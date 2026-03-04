@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 class_name CampaignCreationStateMachine
 extends RefCounted
 
@@ -474,7 +474,6 @@ func _convert_enum_keys_to_strings(dict: Dictionary) -> Dictionary:
 
 func _log_state_event(event_type: String, details: String) -> void:
 	## Log state machine events with security integration
-	print("CampaignCreationStateMachine: [%s] %s" % [event_type, details])
 	
 	if security_manager:
 		security_manager.log_audit_event(

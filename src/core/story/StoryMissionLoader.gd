@@ -27,7 +27,6 @@ const EVENT_TO_FILE_MAP := {
 func load_story_mission(event_id: String) -> Dictionary:
 	# Check cache first
 	if _mission_cache.has(event_id):
-		print("StoryMissionLoader: Loaded %s from cache" % event_id)
 		return _mission_cache[event_id]
 
 	# Get file path
@@ -53,7 +52,6 @@ func load_story_mission(event_id: String) -> Dictionary:
 
 	# Cache the validated mission
 	_mission_cache[event_id] = mission_data
-	print("StoryMissionLoader: Loaded and cached mission: %s" % event_id)
 
 	return mission_data
 
@@ -76,7 +74,6 @@ func load_all_story_missions() -> Array[Dictionary]:
 		if not mission.is_empty():
 			missions.append(mission)
 
-	print("StoryMissionLoader: Loaded %d/%d story missions" % [missions.size(), EVENT_TO_FILE_MAP.size()])
 	return missions
 
 ## Get the next story mission based on current progress
@@ -271,7 +268,6 @@ func is_final_mission(mission_data: Dictionary) -> bool:
 ## Clear the mission cache (useful for testing/development)
 func clear_cache() -> void:
 	_mission_cache.clear()
-	print("StoryMissionLoader: Cache cleared")
 
 ## Get cache status for debugging
 func get_cache_status() -> Dictionary:

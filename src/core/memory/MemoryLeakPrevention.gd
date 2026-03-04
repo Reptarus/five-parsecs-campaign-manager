@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 class_name MemoryLeakPrevention
 extends RefCounted
 
@@ -43,7 +43,6 @@ static var _leak_detection_callbacks: Array[Callable] = []
 
 ## Initialize memory leak prevention system
 static func initialize() -> bool:
-	print("[MemoryLeakPrevention] Initializing memory leak prevention system...")
 	
 	_monitoring_enabled = true
 	_last_cleanup_time = Time.get_ticks_msec()
@@ -51,7 +50,6 @@ static func initialize() -> bool:
 	# Start automatic monitoring
 	_start_automatic_monitoring()
 	
-	print("[MemoryLeakPrevention] ✅ Memory leak prevention system initialized")
 	return true
 
 ## Create a monitored FileAccess that automatically tracks handles
@@ -59,7 +57,7 @@ static func create_monitored_file_access(path: String, mode: FileAccess.ModeFlag
 	var file: FileAccess = FileAccess.open(path, mode)
 	if file:
 		_tracked_file_handles.append(file)
-		print("[MemoryLeakPrevention] Tracking file handle: %s (%d total)" % [path, _tracked_file_handles.size()])
+		pass # File handle tracked
 	return file
 
 ## Close and untrack a monitored FileAccess
@@ -67,7 +65,7 @@ static func close_monitored_file_access(file: FileAccess) -> void:
 	if file:
 		file.close()
 		_tracked_file_handles.erase(file)
-		print("[MemoryLeakPrevention] Closed file handle (%d remaining)" % _tracked_file_handles.size())
+		pass # File handle closed
 
 ## Safe node creation with automatic tracking
 static func create_monitored_node(node_class: String, context: String = "") -> Node:
@@ -94,7 +92,7 @@ static func create_monitored_node(node_class: String, context: String = "") -> N
 		node.set_meta("_memory_context", context)
 		node.set_meta("_creation_time", Time.get_ticks_msec())
 		
-		print("[MemoryLeakPrevention] Created monitored %s node: %s (%d total)" % [node_class, context, _tracked_nodes.size()])
+		pass # Monitored node created
 	
 	return node
 
@@ -121,7 +119,7 @@ static func remove_and_free_monitored_node(parent: Node, child: Node, context: S
 	# Queue for deletion
 	child.queue_free()
 	
-	print("[MemoryLeakPrevention] Removed and freed node: %s (%d remaining)" % [context, _tracked_nodes.size()])
+	pass # Node removed and freed
 	return true
 
 ## Monitor signal connections to detect leaks
@@ -136,7 +134,6 @@ static func track_signal_connection(source: Object, signal_name: String, target:
 		"connection_time": Time.get_ticks_msec()
 	}
 	
-	print("[MemoryLeakPrevention] Tracking signal connection: %s" % connection_key)
 
 ## Safely disconnect and untrack signal
 static func disconnect_tracked_signal(source: Object, signal_name: String, target: Object, target_method: String) -> void:
@@ -145,7 +142,6 @@ static func disconnect_tracked_signal(source: Object, signal_name: String, targe
 	if source.has_signal(signal_name) and source.is_connected(signal_name, Callable(target, target_method)):
 		source.disconnect(signal_name, Callable(target, target_method))
 		_signal_connections.erase(connection_key)
-		print("[MemoryLeakPrevention] Disconnected tracked signal: %s" % connection_key)
 
 ## Perform comprehensive memory leak scan
 static func scan_for_memory_leaks() -> Dictionary:
@@ -158,7 +154,6 @@ static func scan_for_memory_leaks() -> Dictionary:
 		"recommendations": []
 	}
 	
-	print("[MemoryLeakPrevention] Starting comprehensive memory leak scan...")
 	
 	# Check for leaked nodes (null references)
 	for i in range(_tracked_nodes.size() - 1, -1, -1):
@@ -197,7 +192,7 @@ static func scan_for_memory_leaks() -> Dictionary:
 	if leak_report.total_memory_mb > MEMORY_WARNING_THRESHOLD / 1024 / 1024:
 		leak_report.recommendations.append("Memory usage above warning threshold: %dMB" % (leak_report.total_memory_mb))
 	
-	print("[MemoryLeakPrevention] Scan complete - Found %d potential leaks" % (leak_report.leaked_nodes + leak_report.unclosed_files + leak_report.orphaned_signals))
+	pass # Leak scan complete
 	return leak_report
 
 ## Force cleanup of tracked resources
@@ -212,7 +207,6 @@ static func force_cleanup() -> Dictionary:
 	
 	var initial_memory = _get_total_memory_usage()
 	
-	print("[MemoryLeakPrevention] Starting force cleanup...")
 	
 	# Close all tracked file handles
 	for file in _tracked_file_handles:
@@ -247,7 +241,6 @@ static func force_cleanup() -> Dictionary:
 	
 	_last_cleanup_time = Time.get_ticks_msec()
 	
-	print("[MemoryLeakPrevention] Force cleanup complete - Freed %.1fMB memory" % cleanup_result.memory_freed_mb)
 	return cleanup_result
 
 ## Get current memory usage in MB
@@ -263,12 +256,10 @@ static func _start_automatic_monitoring() -> void:
 	# Get the main loop to access SceneTree
 	var main_loop = Engine.get_main_loop()
 	if not main_loop:
-		print("[MemoryLeakPrevention] Warning: No main loop available for monitoring")
 		return
 	
 	var scene_tree = main_loop as SceneTree
 	if not scene_tree:
-		print("[MemoryLeakPrevention] Warning: Main loop is not a SceneTree")
 		return
 	
 	# Create monitoring timer if it doesn't exist
@@ -278,7 +269,7 @@ static func _start_automatic_monitoring() -> void:
 		_monitoring_timer.timeout.connect(_on_memory_monitoring_check)
 		_monitoring_timer.autostart = true
 		scene_tree.get_root().add_child(_monitoring_timer)
-		print("[MemoryLeakPrevention] Created monitoring timer (5s intervals)")
+		pass # Monitoring timer created
 	
 	# Create auto-cleanup timer if it doesn't exist
 	if not _auto_cleanup_timer:
@@ -287,13 +278,13 @@ static func _start_automatic_monitoring() -> void:
 		_auto_cleanup_timer.timeout.connect(_on_auto_cleanup_check)
 		_auto_cleanup_timer.autostart = true
 		scene_tree.get_root().add_child(_auto_cleanup_timer)
-		print("[MemoryLeakPrevention] Created auto-cleanup timer (30s intervals)")
+		pass # Auto-cleanup timer created
 	
 	# Establish baseline memory measurement
 	_baseline_memory = _get_total_memory_usage()
 	_peak_memory = _baseline_memory
 	
-	print("[MemoryLeakPrevention] ✅ Real-time monitoring started (baseline: %.1fMB)" % _baseline_memory)
+	pass # Real-time monitoring started
 
 ## Disconnect all signals from a node
 static func _disconnect_all_node_signals(node: Node) -> void:
@@ -382,7 +373,6 @@ static func _get_monitoring_health() -> Dictionary:
 static func integrate_with_production_monitor(production_monitor_callable: Callable) -> bool:
 	## Integrate with production performance monitor for advanced monitoring
 	if not production_monitor_callable.is_valid():
-		print("[MemoryLeakPrevention] Error: Invalid production monitor callable")
 		return false
 	
 	# Add production monitor as leak detection callback
@@ -392,13 +382,11 @@ static func integrate_with_production_monitor(production_monitor_callable: Calla
 	var memory_report = get_memory_report()
 	production_monitor_callable.call(memory_report)
 	
-	print("[MemoryLeakPrevention] ✅ Integrated with production performance monitor")
 	return true
 
 ## Emergency memory release for low-memory situations
 static func emergency_memory_release() -> Dictionary:
 	## Emergency memory release - use only in critical situations
-	print("[MemoryLeakPrevention] 🆘 EMERGENCY MEMORY RELEASE INITIATED")
 	
 	var release_start = Time.get_ticks_msec()
 	var initial_memory = _get_total_memory_usage()
@@ -433,10 +421,7 @@ static func emergency_memory_release() -> Dictionary:
 	release_result.memory_freed_mb = max(initial_memory - final_memory, 0.0)
 	release_result.duration_ms = Time.get_ticks_msec() - release_start
 	
-	print("[MemoryLeakPrevention] ✅ Emergency memory release complete: %.1fMB freed in %dms" % [
-		release_result.memory_freed_mb, 
-		release_result.duration_ms
-	])
+	pass # Emergency memory release complete
 	
 	return release_result
 
@@ -534,7 +519,6 @@ static func _on_memory_monitoring_check() -> void:
 			"message": "Memory usage exceeds critical threshold - immediate cleanup required"
 		}
 		_memory_alerts.append(alert)
-		print("[MemoryLeakPrevention] 🚨 CRITICAL: Memory usage %.1fMB exceeds %.1fMB threshold" % [memory_mb, critical_threshold_mb])
 		
 		# Trigger immediate cleanup
 		await _trigger_emergency_cleanup()
@@ -548,7 +532,6 @@ static func _on_memory_monitoring_check() -> void:
 			"message": "Memory usage exceeds warning threshold"
 		}
 		_memory_alerts.append(alert)
-		print("[MemoryLeakPrevention] ⚠️ WARNING: Memory usage %.1fMB exceeds %.1fMB warning threshold" % [memory_mb, warning_threshold_mb])
 	
 	# Check for memory regression (20% increase from baseline)
 	if _baseline_memory > 0.0:
@@ -563,7 +546,7 @@ static func _on_memory_monitoring_check() -> void:
 				"message": "Memory regression detected - %.1f%% increase from baseline" % (regression_ratio * 100.0)
 			}
 			_memory_alerts.append(alert)
-			print("[MemoryLeakPrevention] 📈 REGRESSION: Memory increased %.1f%% from baseline" % (regression_ratio * 100.0))
+			push_warning("[MemoryLeakPrevention] REGRESSION: Memory increased %.1f%% from baseline" % (regression_ratio * 100.0))
 	
 	# Execute leak detection callbacks
 	for callback in _leak_detection_callbacks:
@@ -584,12 +567,10 @@ static func _on_auto_cleanup_check() -> void:
 	
 	# Perform cleanup if interval has passed
 	if time_since_last_cleanup >= AUTO_CLEANUP_INTERVAL:
-		print("[MemoryLeakPrevention] 🧹 Performing scheduled auto-cleanup...")
 		await _trigger_scheduled_cleanup()
 
 ## Emergency cleanup for critical memory situations
 static func _trigger_emergency_cleanup() -> void:
-	print("[MemoryLeakPrevention] 🚨 EMERGENCY CLEANUP - Critical memory threshold exceeded")
 	
 	var emergency_start = Time.get_ticks_msec()
 	var initial_memory = _get_total_memory_usage()
@@ -609,11 +590,9 @@ static func _trigger_emergency_cleanup() -> void:
 	var memory_freed = max(initial_memory - final_memory, 0.0)
 	var emergency_duration = Time.get_ticks_msec() - emergency_start
 	
-	print("[MemoryLeakPrevention] ✅ Emergency cleanup complete: %.1fMB freed in %dms" % [memory_freed, emergency_duration])
 
 ## Scheduled cleanup for maintenance
 static func _trigger_scheduled_cleanup() -> void:
-	print("[MemoryLeakPrevention] 🧹 Scheduled maintenance cleanup")
 	
 	var cleanup_start = Time.get_ticks_msec()
 	var initial_memory = _get_total_memory_usage()
@@ -628,7 +607,6 @@ static func _trigger_scheduled_cleanup() -> void:
 	var memory_freed = max(initial_memory - final_memory, 0.0)
 	var cleanup_duration = Time.get_ticks_msec() - cleanup_start
 	
-	print("[MemoryLeakPrevention] ✅ Scheduled cleanup complete: %.1fMB freed in %dms" % [memory_freed, cleanup_duration])
 
 ## Clean up dead references without forcing resource disposal
 static func _cleanup_dead_references() -> void:
@@ -661,7 +639,7 @@ static func _cleanup_dead_references() -> void:
 			cleaned_files += 1
 	
 	if cleaned_nodes > 0 or cleaned_signals > 0 or cleaned_files > 0:
-		print("[MemoryLeakPrevention] Cleaned %d dead nodes, %d orphaned signals, %d invalid files" % [cleaned_nodes, cleaned_signals, cleaned_files])
+		pass
 
 ## Update performance metrics cache
 static func _update_performance_metrics() -> void:
@@ -688,12 +666,10 @@ static func _clear_performance_metrics_cache() -> void:
 static func add_leak_detection_callback(callback: Callable) -> void:
 	if callback.is_valid() and not _leak_detection_callbacks.has(callback):
 		_leak_detection_callbacks.append(callback)
-		print("[MemoryLeakPrevention] Added leak detection callback")
 
 ## Remove leak detection callback
 static func remove_leak_detection_callback(callback: Callable) -> void:
 	_leak_detection_callbacks.erase(callback)
-	print("[MemoryLeakPrevention] Removed leak detection callback")
 
 ## Get current memory alerts
 static func get_memory_alerts() -> Array[Dictionary]:
@@ -707,11 +683,9 @@ static func get_performance_metrics() -> Dictionary:
 static func reset_baseline_memory() -> void:
 	_baseline_memory = _get_total_memory_usage()
 	_peak_memory = _baseline_memory
-	print("[MemoryLeakPrevention] Reset baseline memory to %.1fMB" % _baseline_memory)
 
 ## Shutdown and cleanup all tracked resources
 static func shutdown() -> void:
-	print("[MemoryLeakPrevention] Shutting down memory leak prevention...")
 	
 	# Stop monitoring timers
 	if _monitoring_timer:
@@ -733,4 +707,3 @@ static func shutdown() -> void:
 	_performance_metrics.clear()
 	_leak_detection_callbacks.clear()
 	
-	print("[MemoryLeakPrevention] ✅ Shutdown complete - Cleaned up all tracked resources")

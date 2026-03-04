@@ -45,7 +45,6 @@ func _detect_system_accessibility_settings() -> void:
 	# Check for screen reader
 	screen_reader_enabled = _detect_screen_reader()
 	
-	print("AccessibilityManager: Detected settings - High Contrast: %s, Screen Reader: %s" % [high_contrast_mode, screen_reader_enabled])
 
 func _setup_accessibility_signals():
 	## Setup accessibility-related signals
@@ -309,7 +308,6 @@ func _generate_element_announcement(element: Control) -> String:
 func _perform_screen_reader_announcement(text: String) -> void:
 	## Perform actual screen reader announcement
 	accessibility_announcement.emit(text)
-	print("Screen Reader: " + text)  # Debug output
 
 func _process_announcement_queue() -> void:
 	## Process queued screen reader announcements

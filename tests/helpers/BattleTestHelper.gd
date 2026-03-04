@@ -221,7 +221,7 @@ func validate_battle_result(result) -> Dictionary:
 
 	# Check required fields
 	var required = ["victory", "crew_casualties", "crew_injuries", "loot_found",
-	                "credits_earned", "experience_gained"]
+					"credits_earned", "experience_gained"]
 
 	for field in required:
 		if not result.has(field):

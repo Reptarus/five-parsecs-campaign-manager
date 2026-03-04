@@ -1,4 +1,4 @@
-﻿extends RefCounted
+extends RefCounted
 class_name MemoryOptimizer
 
 ## Production Memory Optimizer - Phase 5.2 Implementation
@@ -20,7 +20,6 @@ static func optimize_memory_usage() -> Dictionary:
 		return {"success": true, "message": "Optimizations already applied"}
 	
 	var start_time = Time.get_ticks_msec()
-	print("MemoryOptimizer: Starting comprehensive memory optimization...")
 	
 	var optimizations_applied = []
 	var total_savings_mb = 0.0
@@ -56,10 +55,6 @@ static func optimize_memory_usage() -> Dictionary:
 	var optimization_time = Time.get_ticks_msec() - start_time
 	var target_met = _current_memory_mb <= _target_memory_mb
 	
-	print("MemoryOptimizer: Optimization complete in %d ms" % optimization_time)
-	print("  Memory reduced: %.1fMB (%.1f%%)" % [total_savings_mb, (total_savings_mb / _baseline_memory_mb) * 100.0])
-	print("  Current memory: %.1fMB (target: %.1fMB)" % [_current_memory_mb, _target_memory_mb])
-	print("  Target achieved: %s" % ("✅ YES" if target_met else "❌ NO"))
 	
 	return {
 		"success": true,
@@ -156,7 +151,6 @@ static func validate_memory_optimization() -> bool:
 		push_warning("MemoryOptimizer: Target memory usage not achieved")
 		return false
 	
-	print("MemoryOptimizer: Validation successful - target achieved")
 	return true
 
 static func get_production_recommendations() -> Array:

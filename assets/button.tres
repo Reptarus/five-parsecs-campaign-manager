@@ -1,9 +1,15 @@
-[gd_resource type="StyleBoxTexture" load_steps=2 format=3 uid="uid://dnuxlym6g1b6q"]
-
-[ext_resource type="Texture2D" uid="uid://dxnj68137vf2a" path="res://assets/Basic assets/5PFHUIAssets/Sci-Fi-Infoboxes_0001s_0001s_0001s_0005_Brush.png" id="1_ibs1r"]
+[gd_resource type="StyleBoxFlat" format=3 uid="uid://dnuxlym6g1b6q"]
 
 [resource]
+bg_color = Color(0.176471, 0.176471, 0.262745, 1)
 content_margin_top = 15.0
 content_margin_bottom = 15.0
-texture = ExtResource("1_ibs1r")
-region_rect = Rect2(-2, -1, 179, 55)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+border_width_top = 1
+border_width_bottom = 1
+border_width_left = 1
+border_width_right = 1
+border_color = Color(0.227451, 0.227451, 0.360784, 1)

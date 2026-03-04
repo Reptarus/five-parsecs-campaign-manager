@@ -65,7 +65,6 @@ class IntegrationValidationResult:
 static func validate_campaign_creation_integration(ui_controller: Node) -> Array[IntegrationValidationResult]:
 	var results: Array[IntegrationValidationResult] = []
 	
-	print("UIBackendIntegrationValidator: Starting campaign creation integration validation")
 	
 	# Check UI controller availability
 	if not ui_controller:
@@ -154,14 +153,12 @@ static func validate_campaign_creation_integration(ui_controller: Node) -> Array
 				"CampaignCreationUI"
 			))
 	
-	print("UIBackendIntegrationValidator: Campaign creation validation complete - %d results" % results.size())
 	return results
 
 ## Validate campaign turn system integration
 static func validate_turn_system_integration(turn_controller: Node) -> Array[IntegrationValidationResult]:
 	var results: Array[IntegrationValidationResult] = []
 	
-	print("UIBackendIntegrationValidator: Starting turn system integration validation")
 	
 	if not turn_controller:
 		results.append(IntegrationValidationResult.new(
@@ -244,14 +241,12 @@ static func validate_turn_system_integration(turn_controller: Node) -> Array[Int
 			"CampaignTurnController"
 		))
 	
-	print("UIBackendIntegrationValidator: Turn system validation complete - %d results" % results.size())
 	return results
 
 ## Validate backend system availability and health
 static func validate_backend_system_health() -> Array[IntegrationValidationResult]:
 	var results: Array[IntegrationValidationResult] = []
 	
-	print("UIBackendIntegrationValidator: Starting backend system health validation")
 	
 	# Check backend system class availability
 	var backend_classes = [
@@ -282,14 +277,12 @@ static func validate_backend_system_health() -> Array[IntegrationValidationResul
 				"System"
 			))
 	
-	print("UIBackendIntegrationValidator: Backend system health validation complete - %d results" % results.size())
 	return results
 
 ## Validate data flow consistency between UI and backend
 static func validate_data_flow_consistency(ui_data: Dictionary, backend_data: Dictionary) -> Array[IntegrationValidationResult]:
 	var results: Array[IntegrationValidationResult] = []
 	
-	print("UIBackendIntegrationValidator: Starting data flow consistency validation")
 	
 	# Validate crew data consistency
 	if ui_data.has("crew") and backend_data.has("crew"):
@@ -335,14 +328,12 @@ static func validate_data_flow_consistency(ui_data: Dictionary, backend_data: Di
 				"EquipmentPanel"
 			))
 	
-	print("UIBackendIntegrationValidator: Data flow consistency validation complete - %d results" % results.size())
 	return results
 
 ## Validate performance benchmarks for integration operations
 static func validate_integration_performance(performance_data: Dictionary) -> Array[IntegrationValidationResult]:
 	var results: Array[IntegrationValidationResult] = []
 	
-	print("UIBackendIntegrationValidator: Starting integration performance validation")
 	
 	# Performance thresholds (in milliseconds)
 	var thresholds = {
@@ -375,14 +366,12 @@ static func validate_integration_performance(performance_data: Dictionary) -> Ar
 					"Performance"
 				))
 	
-	print("UIBackendIntegrationValidator: Integration performance validation complete - %d results" % results.size())
 	return results
 
 ## Comprehensive integration validation
 static func validate_complete_integration(ui_controller: Node, turn_controller: Node) -> Array[IntegrationValidationResult]:
 	var all_results: Array[IntegrationValidationResult] = []
 	
-	print("UIBackendIntegrationValidator: Starting comprehensive integration validation")
 	
 	# Run all validation checks
 	all_results.append_array(validate_backend_system_health())
@@ -406,8 +395,6 @@ static func validate_complete_integration(ui_controller: Node, turn_controller: 
 			ValidationSeverity.INFO:
 				info_count += 1
 	
-	print("UIBackendIntegrationValidator: Comprehensive validation complete")
-	print("  Critical: %d, Errors: %d, Warnings: %d, Info: %d" % [critical_count, error_count, warning_count, info_count])
 	
 	return all_results
 

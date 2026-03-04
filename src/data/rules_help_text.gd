@@ -11,6 +11,7 @@ extends RefCounted
 
 const CAMPAIGN_TURN_OVERVIEW := """[b]Campaign Turn Structure[/b]
 Each campaign turn consists of:
+	pass
 [b]Step 1:[/b] Travel Steps (p.69)
 [b]Step 2:[/b] World Steps (p.76)
 [b]Step 3:[/b] Tabletop Battle (p.87)
@@ -90,6 +91,7 @@ Covers paychecks, food, booze, and routine expenses.
 
 const SHIP_DEBT := """[b]Ship Debt[/b]
 If you owe money on your ship:
+	pass
 • Debt increases by [color=#EF4444]1 credit[/color] ([color=#EF4444]2 credits[/color] if debt ≥31)
 • At [color=#EF4444]75+ credits[/color] debt, roll 2D6
 • On 2-6, your ship is seized!
@@ -103,6 +105,7 @@ const SHIP_REPAIRS := """[b]Ship Repairs[/b]
 
 const MEDICAL_CARE := """[b]Medical Care[/b]
 Speed up recovery for crew in Sick Bay:
+	pass
 • Pay [color=#F59E0B]4 credits[/color] to reduce recovery by 1 turn
 • Can be done multiple times
 • Also works for Bot repairs
@@ -114,6 +117,7 @@ Speed up recovery for crew in Sick Bay:
 
 const CREW_TASKS_OVERVIEW := """[b]Crew Tasks[/b]
 Each crew member (not in Sick Bay) can perform one task:
+	pass
 • [color=#4FC3F7]Find a Patron[/color] - Search for job offers
 • [color=#4FC3F7]Train[/color] - Earn +1 XP
 • [color=#4FC3F7]Trade[/color] - Roll on Trade Table
@@ -169,6 +173,7 @@ Roll [color=#4FC3F7]1D6[/color] + Savvy (+1 if Engineer).
 
 const TASK_DECOY := """[b]Decoy[/b]
 When rolling to avoid Rivals tracking you:
+	pass
 • [color=#10B981]+1[/color] to roll per crew member acting as Decoy
 [i](Rules p.78)[/i]"""
 
@@ -186,6 +191,7 @@ Roll for available contracts from your Patron contacts.
 
 const PATRON_BENEFITS := """[b]Patron Benefits[/b]
 Patron jobs offer additional rewards:
+	pass
 • Higher credit payouts
 • Bonus loot and items
 • Story progression opportunities
@@ -205,6 +211,7 @@ Distribute weapons and gear before battle.
 
 const WEAPON_LIMITS := """[b]Weapon Limits[/b]
 A character may carry:
+	pass
 • [color=#4FC3F7]2 weapons[/color] (any type)
 • Plus [color=#4FC3F7]1 Pistol[/color] OR [color=#4FC3F7]1 Blade[/color]
 [i](Rules p.50)[/i]"""
@@ -222,6 +229,7 @@ Quest Rumors may lead to Quests with greater rewards.
 
 const QUEST_PROGRESS := """[b]Quest Progress[/b]
 When on an active Quest:
+	pass
 • New Rumors advance Quest progress
 • Completing Quests grants major rewards
 • Victory Conditions may require Quest completions
@@ -233,6 +241,7 @@ When on an active Quest:
 
 const CHOOSE_BATTLE := """[b]Choose Your Battle[/b]
 Select from available mission types:
+	pass
 • [color=#3B82F6]Patron Jobs[/color] - Contracted missions
 • [color=#EF4444]Rival Confrontations[/color] - Settle scores
 • [color=#F59E0B]Opportunity Missions[/color] - Random encounters

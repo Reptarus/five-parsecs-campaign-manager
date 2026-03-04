@@ -155,7 +155,7 @@ static func _ensure_tables_loaded() -> void:
 	_connections_table = UniversalResourceLoader.load_json_safe(connections_path, "CharacterConnections connections table")
 	_tables_loaded = true
 
-	print("CharacterConnections: Loaded connections table with ", _connections_table.size(), " sections")
+	pass
 
 ## Validate connections tables
 static func validate_connections_tables() -> bool:
@@ -174,7 +174,7 @@ static func validate_connections_tables() -> bool:
 			is_valid = false
 
 	if is_valid:
-		print("CharacterConnections: All connections tables validated successfully")
+		pass
 
 	return is_valid
 

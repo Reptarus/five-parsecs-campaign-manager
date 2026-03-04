@@ -1,4 +1,4 @@
-﻿class_name ProductionMonitoringConfig
+class_name ProductionMonitoringConfig
 extends RefCounted
 
 ## Production Monitoring Configuration
@@ -94,7 +94,7 @@ static var _monitoring_active: bool = false
 static func initialize_production_monitoring(level: MonitoringLevel = MonitoringLevel.PRODUCTION) -> bool:
 	## Initialize production monitoring systems with appropriate configuration
 	
-	print("ProductionMonitoringConfig: Initializing production monitoring (Level: %s)" % MonitoringLevel.keys()[level])
+	pass # Initializing production monitoring
 	
 	# Create configuration instances
 	_monitoring_config = MonitoringSettings.new()
@@ -109,13 +109,12 @@ static func initialize_production_monitoring(level: MonitoringLevel = Monitoring
 	# Initialize memory management systems for monitoring
 	var memory_init_success = _initialize_memory_monitoring()
 	if not memory_init_success:
-		print("ProductionMonitoringConfig: WARNING - Memory monitoring initialization failed")
+		pass
 	
 	# Start monitoring systems
 	_start_monitoring_systems()
 	
 	_monitoring_active = true
-	print("ProductionMonitoringConfig: ✅ Production monitoring initialized successfully")
 	return true
 
 static func _configure_for_level(level: MonitoringLevel) -> void:
@@ -169,11 +168,10 @@ static func _initialize_memory_monitoring() -> bool:
 			"emergency_cleanup_threshold": _memory_thresholds.memory_usage_critical_percent / 100.0
 		}
 		# Configure production settings (placeholder for future implementation)
-		print("ProductionMonitoringConfig: MemoryLeakPrevention production configuration (placeholder)")
+		pass # MemoryLeakPrevention production config
 		success_count += 1
-		print("ProductionMonitoringConfig: ✅ MemoryLeakPrevention monitoring configured")
 	else:
-		print("ProductionMonitoringConfig: ❌ MemoryLeakPrevention monitoring failed")
+		pass
 	
 	# Initialize UniversalCleanupFramework with production settings
 	if UniversalCleanupFramework.initialize():
@@ -184,11 +182,10 @@ static func _initialize_memory_monitoring() -> bool:
 			"background_cleanup": _monitoring_config.monitoring_level == MonitoringLevel.PRODUCTION
 		}
 		# Configure production settings (placeholder for future implementation)
-		print("ProductionMonitoringConfig: UniversalCleanupFramework production configuration (placeholder)")
+		pass # UniversalCleanupFramework production config
 		success_count += 1
-		print("ProductionMonitoringConfig: ✅ UniversalCleanupFramework monitoring configured")
 	else:
-		print("ProductionMonitoringConfig: ❌ UniversalCleanupFramework monitoring failed")
+		pass
 	
 	# Initialize MemoryPerformanceOptimizer with production settings
 	if MemoryPerformanceOptimizer.initialize():
@@ -202,11 +199,10 @@ static func _initialize_memory_monitoring() -> bool:
 			"aggressive_pooling": _monitoring_config.monitoring_level == MonitoringLevel.DEVELOPMENT
 		}
 		# Configure production settings (placeholder for future implementation)
-		print("ProductionMonitoringConfig: MemoryPerformanceOptimizer production configuration (placeholder)")
+		pass # MemoryPerformanceOptimizer production config
 		success_count += 1
-		print("ProductionMonitoringConfig: ✅ MemoryPerformanceOptimizer monitoring configured")
 	else:
-		print("ProductionMonitoringConfig: ❌ MemoryPerformanceOptimizer monitoring failed")
+		pass
 	
 	var success_percentage = float(success_count) / float(total_systems)
 	return success_percentage >= 0.8 # Require 80% success rate
@@ -226,7 +222,6 @@ static func _start_monitoring_systems() -> void:
 	health_timer.timeout.connect(_perform_health_checks)
 	health_timer.autostart = true
 	
-	print("ProductionMonitoringConfig: ✅ Monitoring timers started")
 
 static func _collect_metrics() -> void:
 	## Collect and analyze system metrics
@@ -346,7 +341,6 @@ static func _trigger_alert(severity: AlertSeverity, system: String, message: Str
 			AlertSeverity.EMERGENCY:
 				color_code = "🔥 "
 		
-		print("ProductionMonitoringConfig: %s%s" % [color_code, formatted_message])
 	
 	# Email alerts (placeholder - would integrate with actual email system)
 	if _alert_config.email_alerts and severity >= AlertSeverity.CRITICAL:
@@ -354,12 +348,12 @@ static func _trigger_alert(severity: AlertSeverity, system: String, message: Str
 
 static func _send_email_alert(message: String) -> void:
 	## Send email alert (placeholder implementation)
-	print("ProductionMonitoringConfig: 📧 EMAIL ALERT: %s" % message)
-	# TODO: Integrate with actual email service
+	# NOTE: Deferred — integrate with actual email service
+	pass
 
 static func _store_metrics(metrics: Dictionary) -> void:
 	## Store metrics for historical analysis
-	# TODO: Implement metrics storage (could be file-based, database, etc.)
+	# NOTE: Deferred — implement metrics storage (file-based or database)
 	pass
 
 static func _perform_health_checks() -> void:
@@ -368,7 +362,6 @@ static func _perform_health_checks() -> void:
 	if not _monitoring_active:
 		return
 	
-	print("ProductionMonitoringConfig: 🏥 Performing health checks...")
 	
 	var health_results = {}
 	var total_checks = 0
@@ -389,7 +382,7 @@ static func _perform_health_checks() -> void:
 	elif health_percentage < 0.9: # Less than 90% health
 		_trigger_alert(AlertSeverity.WARNING, "System Health", "System health warning: %.1f%% (%d/%d checks passed)" % [health_percentage * 100.0, passed_checks, total_checks])
 	
-	print("ProductionMonitoringConfig: 🏥 Health check completed: %.1f%% (%d/%d)" % [health_percentage * 100.0, passed_checks, total_checks])
+	pass # Health check completed
 
 static func _check_system_health(system_name: String) -> Dictionary:
 	## Check health of a specific system
@@ -447,12 +440,11 @@ static func configure_alert_threshold(severity: AlertSeverity) -> void:
 	## Configure alert severity threshold
 	if _alert_config:
 		_alert_config.severity_threshold = severity
-		print("ProductionMonitoringConfig: Alert threshold set to %s" % AlertSeverity.keys()[severity])
+		pass # Alert threshold set
 
 static func stop_monitoring() -> void:
 	## Stop all monitoring systems
 	_monitoring_active = false
-	print("ProductionMonitoringConfig: Monitoring stopped")
 
 static func get_monitoring_summary() -> Dictionary:
 	## Get comprehensive monitoring summary

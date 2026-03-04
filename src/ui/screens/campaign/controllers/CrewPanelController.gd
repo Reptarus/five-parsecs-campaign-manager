@@ -575,7 +575,7 @@ func _emit_error(message: String) -> void:
 	push_error("CrewPanelController: " + message)
 
 func debug_print(message: String) -> void:
-	print("CrewPanelController: " + message)
+	pass
 
 func _safe_get_node(path: String) -> Node:
 	if not panel_node:

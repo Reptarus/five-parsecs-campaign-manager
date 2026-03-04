@@ -46,7 +46,6 @@ func _initialize_campaign_turn() -> void:
 	campaign.campaign_data_updated.connect(_on_campaign_data_updated)
 	campaign.credits_changed.connect(_on_credits_changed)
 	
-	print("CampaignTurnUI: Initialized simple turn management")
 
 func _connect_signals() -> void:
 	next_phase_button.pressed.connect(_on_next_phase_pressed)
@@ -76,7 +75,6 @@ func _update_ui() -> void:
 
 ## Execute Upkeep Phase
 func execute_upkeep_phase() -> void:
-	print("CampaignTurnUI: Executing Upkeep Phase")
 
 	# Simple Five Parsecs upkeep mechanics
 	var crew_upkeep = campaign.campaign_data["crew"].size() * 1  # 1 credit per crew member
@@ -91,11 +89,9 @@ func execute_upkeep_phase() -> void:
 	if campaign.campaign_data["turn"] % 5 == 0:
 		campaign.campaign_data["story_points"] += 1
 
-	print("Upkeep Phase: Paid %d credits upkeep" % total_upkeep)
 
 ## Execute World Phase  
 func execute_world_phase() -> void:
-	print("CampaignTurnUI: Executing World Phase")
 	
 	# Simple world phase mechanics
 	# - Check for patron jobs
@@ -104,11 +100,9 @@ func execute_world_phase() -> void:
 	
 	# Generate job opportunity using Five Parsecs dice system
 	var job_roll = dice_system.roll_custom(2, 6, 0, "Job Payment")
-	print("World Phase: Job opportunity worth %d credits available" % job_roll.total)
 
 ## Execute Travel Phase
 func execute_travel_phase() -> void:
-	print("CampaignTurnUI: Executing Travel Phase")
 	
 	# Simple travel mechanics
 	# - Hyperspace travel events
@@ -119,22 +113,17 @@ func execute_travel_phase() -> void:
 	var new_credits = max(0, campaign.campaign_data["credits"] - travel_cost)
 	campaign.update_credits(new_credits, campaign.campaign_data["debt"])
 	
-	print("Travel Phase: Paid %d credits for fuel" % travel_cost)
 
 ## Execute Battle Phase
 func execute_battle_phase() -> void:
-	print("CampaignTurnUI: Executing Battle Phase")
-	
 	# Simple battle resolution
 	# - Setup battlefield
 	# - Deploy crew
 	# - Resolve combat
-	
-	print("Battle Phase: Battle resolved (simplified)")
+	pass
 
 ## Execute Post-Battle Phase
 func execute_post_battle_phase() -> void:
-	print("CampaignTurnUI: Executing Post-Battle Phase")
 	
 	# Simple post-battle mechanics
 	# - Injury recovery
@@ -147,7 +136,6 @@ func execute_post_battle_phase() -> void:
 	var new_credits = campaign.campaign_data["credits"] + battle_reward
 	campaign.update_credits(new_credits, campaign.campaign_data["debt"])
 	
-	print("Post-Battle Phase: Earned %d credits reward" % battle_reward)
 
 ## Signal handlers
 func _on_next_phase_pressed() -> void:
@@ -170,7 +158,6 @@ func _on_next_phase_pressed() -> void:
 		campaign.advance_turn()
 		current_phase = Phase.UPKEEP
 		turn_completed.emit()
-		print("Turn completed! Starting Turn %d" % campaign.campaign_data["turn"])
 	else:
 		# Advance to next phase - type-safe enum access
 		current_phase = current_phase + 1
@@ -192,7 +179,6 @@ func _on_save_campaign_pressed() -> void:
 	if save_file:
 		save_file.store_string(JSON.stringify(save_data))
 		save_file.close()
-		print("Campaign saved to user://campaign_save.json")
 
 func _on_campaign_data_updated(data: Dictionary) -> void:
 	_update_ui()
@@ -222,6 +208,5 @@ func load_campaign() -> void:
 			var save_data = json.data
 			campaign.load_campaign_state(save_data)
 			_update_ui()
-			print("Campaign loaded from user://campaign_save.json")
 	else:
-		print("No saved campaign found")
+		pass

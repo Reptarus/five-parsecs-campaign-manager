@@ -322,7 +322,7 @@ func emit_controller_error(controller_name: String, error_message: String, error
 
 func debug_print_controller(controller_name: String, message: String) -> void:
 	## Debug print with controller name prefix
-	print("[%s] %s" % [controller_name, message])
+	pass
 
 func log_performance_metric(operation: String, start_time: float, context: String = "") -> void:
 	## Log performance metrics for operations

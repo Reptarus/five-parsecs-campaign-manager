@@ -32,7 +32,6 @@ func add_crew_member(member: Character) -> void:
 		if crew_members.size() == 1:
 			set_captain(member)
 		
-		print("BaseCrewComponent: Added crew member: ", member.character_name)
 
 ## Remove a crew member from the crew
 func remove_crew_member(member: Character) -> void:
@@ -47,7 +46,6 @@ func remove_crew_member(member: Character) -> void:
 			if crew_members.size() > 0:
 				set_captain(crew_members[0])
 		
-		print("BaseCrewComponent: Removed crew member: ", member.character_name)
 
 ## Set the crew captain
 func set_captain(member: Character) -> void:
@@ -57,7 +55,6 @@ func set_captain(member: Character) -> void:
 	
 	captain = member
 	captain_changed.emit(captain)
-	print("BaseCrewComponent: Captain set to: ", captain.character_name)
 
 ## Get the crew captain
 func get_captain() -> Character:
@@ -76,7 +73,6 @@ func clear_crew() -> void:
 	crew_members.clear()
 	captain = null
 	crew_changed.emit()
-	print("BaseCrewComponent: Crew cleared")
 
 ## Calculate crew statistics
 func calculate_crew_statistics() -> Dictionary:
@@ -170,7 +166,7 @@ func import_crew_data(data: Dictionary) -> void:
 		if member_data.get("is_captain", false):
 			set_captain(member)
 	
-	print("BaseCrewComponent: Imported crew with %d members" % crew_members.size())
+
 
 ## Validate crew completeness
 func is_crew_valid() -> bool:

@@ -2,7 +2,6 @@ extends Resource
 # This file should be referenced via preload
 # Use explicit preloads instead of global class names
 
-const Self = preload("res://src/core/rivals/Patron.gd")
 
 const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")

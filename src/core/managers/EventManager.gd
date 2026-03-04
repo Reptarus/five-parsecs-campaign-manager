@@ -3,7 +3,6 @@ extends Node
 # This file should be referenced via preload
 # Use explicit preloads instead of global class names
 
-const Self = preload("res://src/core/managers/EventManager.gd")
 
 ## Manager for game events, both scripted and dynamic
 ##
@@ -12,7 +11,6 @@ const Self = preload("res://src/core/managers/EventManager.gd")
 ## Events can have conditions, choices, and outcomes.
 
 # Dependencies (use preload to avoid circular references)
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
@@ -498,11 +496,11 @@ func _check_campaign_event_requirements(requirements: Array) -> bool:
 		match parts[0]:
 			"credits":
 				var amount = int(parts[2])
-				if not _compare_value(resource_system.get_resource_amount(GameEnums.ResourceType.CREDITS), parts[1], amount):
+				if not _compare_value(resource_system.get_resource_amount(GlobalEnums.ResourceType.CREDITS), parts[1], amount):
 					return false
 			"reputation":
 				var amount = int(parts[2])
-				if not _compare_value(resource_system.get_resource_amount(GameEnums.ResourceType.REPUTATION), parts[1], amount):
+				if not _compare_value(resource_system.get_resource_amount(GlobalEnums.ResourceType.REPUTATION), parts[1], amount):
 					return false
 			"tech_level":
 				var level = int(parts[2])
@@ -515,7 +513,7 @@ func _apply_campaign_event_effects(event_data: Dictionary) -> void:
 	var effects = event_data.effects
 	if effects.has("resources"):
 		for resource_name in effects.resources:
-			var resource_type = GameEnums.ResourceType[resource_name]
+			var resource_type = GlobalEnums.ResourceType[resource_name]
 			var effect = effects.resources[resource_name]
 			
 			match effect.type:
@@ -540,7 +538,7 @@ func _remove_campaign_event_effects(event_data: Dictionary) -> void:
 	var effects = event_data.effects
 	if effects.has("resources"):
 		for resource_name in effects.resources:
-			var resource_type = GameEnums.ResourceType[resource_name]
+			var resource_type = GlobalEnums.ResourceType[resource_name]
 			var effect = effects.resources[resource_name]
 			
 			match effect.type:
@@ -571,7 +569,7 @@ func get_campaign_event_effect(resource_type: int, effect_type: String) -> float
 	for event in campaign_events:
 		var effects = event.effects
 		if effects.has("resources"):
-			var resource_name = GameEnums.ResourceType.keys()[resource_type]
+			var resource_name = GlobalEnums.ResourceType.keys()[resource_type]
 			if effects.resources.has(resource_name):
 				var effect = effects.resources[resource_name]
 				if effect.type == effect_type:
@@ -618,7 +616,7 @@ func _process_active_events() -> void:
 		resolve_event(event_type)
 
 ## Trigger a specific event by enum type in the legacy system
-func trigger_event_by_type(event_type: GameEnums.GlobalEvent) -> void:
+func trigger_event_by_type(event_type: GlobalEnums.GlobalEvent) -> void:
 	if not _can_trigger_event(event_type):
 		return
 	
@@ -642,7 +640,7 @@ func trigger_event_by_type(event_type: GameEnums.GlobalEvent) -> void:
 	_apply_event_effects(event_data.effects, event_type)
 
 ## Resolve an active event
-func resolve_event(event_type: GameEnums.GlobalEvent) -> void:
+func resolve_event(event_type: GlobalEnums.GlobalEvent) -> void:
 	var event_index := -1
 	for i in range(active_events.size()):
 		if active_events[i].type == event_type:
@@ -656,7 +654,7 @@ func resolve_event(event_type: GameEnums.GlobalEvent) -> void:
 		event_completed.emit(event.id, _process_choice_outcome(event, event.choices[0]))
 
 ## Check if an event can be triggered
-func _can_trigger_event(event_type: GameEnums.GlobalEvent) -> bool:
+func _can_trigger_event(event_type: GlobalEnums.GlobalEvent) -> bool:
 	# Check cooldown
 	if event_cooldowns.has(event_type) and event_cooldowns[event_type] > 0:
 		return false
@@ -669,33 +667,33 @@ func _can_trigger_event(event_type: GameEnums.GlobalEvent) -> bool:
 	return true
 
 ## Get the duration for an event type
-func _get_event_duration(event_type: GameEnums.GlobalEvent) -> int:
+func _get_event_duration(event_type: GlobalEnums.GlobalEvent) -> int:
 	match event_type:
-		GameEnums.GlobalEvent.MARKET_CRASH:
+		GlobalEnums.GlobalEvent.MARKET_CRASH:
 			return 5
-		GameEnums.GlobalEvent.ALIEN_INVASION:
+		GlobalEnums.GlobalEvent.ALIEN_INVASION:
 			return 8
-		GameEnums.GlobalEvent.TECH_BREAKTHROUGH:
+		GlobalEnums.GlobalEvent.TECH_BREAKTHROUGH:
 			return 3
 		_:
 			return 4
 
 ## Generate effects for an event type
-func _generate_event_effects(event_type: GameEnums.GlobalEvent) -> Dictionary:
+func _generate_event_effects(event_type: GlobalEnums.GlobalEvent) -> Dictionary:
 	var effects := {}
 	
 	match event_type:
-		GameEnums.GlobalEvent.MARKET_CRASH:
+		GlobalEnums.GlobalEvent.MARKET_CRASH:
 			effects = {
 				"economy_modifier": - 0.25,
 				"trade_penalty": true
 			}
-		GameEnums.GlobalEvent.ALIEN_INVASION:
+		GlobalEnums.GlobalEvent.ALIEN_INVASION:
 			effects = {
 				"combat_difficulty": 1.5,
 				"spawn_rate_increase": true
 			}
-		GameEnums.GlobalEvent.TECH_BREAKTHROUGH:
+		GlobalEnums.GlobalEvent.TECH_BREAKTHROUGH:
 			effects = {
 				"research_bonus": true,
 				"tech_discount": 0.2
@@ -845,15 +843,15 @@ func _remove_mission_event_effects(event_data: Dictionary) -> void:
 func _generate_bonus_objective(mission: Mission) -> Dictionary:
 	var possible_objectives = [
 		{
-			"type": GameEnums.MissionObjective.SABOTAGE,
+			"type": GlobalEnums.MissionObjective.SABOTAGE,
 			"description": "Sabotage enemy equipment"
 		},
 		{
-			"type": GameEnums.MissionObjective.RECON,
+			"type": GlobalEnums.MissionObjective.RECON,
 			"description": "Gather additional intelligence"
 		},
 		{
-			"type": GameEnums.MissionObjective.RESCUE,
+			"type": GlobalEnums.MissionObjective.RESCUE,
 			"description": "Rescue stranded allies"
 		}
 	]
@@ -910,8 +908,8 @@ func _check_random_events() -> void:
 func _get_available_events() -> Array:
 	var available := []
 	
-	for event_type in GameEnums.GlobalEvent.values():
-		if event_type != GameEnums.GlobalEvent.NONE and _can_trigger_event(event_type):
+	for event_type in GlobalEnums.GlobalEvent.values():
+		if event_type != GlobalEnums.GlobalEvent.NONE and _can_trigger_event(event_type):
 			available.append(event_type)
 			
 	return available

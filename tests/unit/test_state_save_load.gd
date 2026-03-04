@@ -147,8 +147,8 @@ func test_load_empty_turn_state_uses_defaults():
 func test_save_creates_valid_json():
 	"""Created save JSON is valid and parseable"""
 	var turn_state = {"discovered_patrons": [], "active_rivals": [], "rumors_accumulated": 0,
-	                  "tracked_rival": {}, "decoy_planted": false, "equipment_stash_count": 0,
-	                  "injured_characters": []}
+					  "tracked_rival": {}, "decoy_planted": false, "equipment_stash_count": 0,
+					  "injured_characters": []}
 	var json_string = helper._create_save_json(minimal_campaign, 1, turn_state)
 
 	var json = JSON.new()
@@ -158,8 +158,8 @@ func test_save_creates_valid_json():
 func test_save_includes_version_fields():
 	"""Save JSON includes save_version and game_version"""
 	var turn_state = {"discovered_patrons": [], "active_rivals": [], "rumors_accumulated": 0,
-	                  "tracked_rival": {}, "decoy_planted": false, "equipment_stash_count": 0,
-	                  "injured_characters": []}
+					  "tracked_rival": {}, "decoy_planted": false, "equipment_stash_count": 0,
+					  "injured_characters": []}
 	var json_string = helper._create_save_json(minimal_campaign, 1, turn_state)
 
 	var json = JSON.new()
@@ -172,8 +172,8 @@ func test_save_includes_version_fields():
 func test_save_increments_turn():
 	"""Save increments campaign_turn by 1 (saves next turn)"""
 	var turn_state = {"discovered_patrons": [], "active_rivals": [], "rumors_accumulated": 0,
-	                  "tracked_rival": {}, "decoy_planted": false, "equipment_stash_count": 0,
-	                  "injured_characters": []}
+					  "tracked_rival": {}, "decoy_planted": false, "equipment_stash_count": 0,
+					  "injured_characters": []}
 	var json_string = helper._create_save_json(minimal_campaign, 3, turn_state)
 
 	var json = JSON.new()
@@ -185,8 +185,8 @@ func test_save_increments_turn():
 func test_save_nests_turn_state():
 	"""Save nests turn_state inside campaign_data"""
 	var turn_state = {"discovered_patrons": ["test"], "active_rivals": [], "rumors_accumulated": 5,
-	                  "tracked_rival": {}, "decoy_planted": false, "equipment_stash_count": 0,
-	                  "injured_characters": []}
+					  "tracked_rival": {}, "decoy_planted": false, "equipment_stash_count": 0,
+					  "injured_characters": []}
 	var json_string = helper._create_save_json(minimal_campaign, 1, turn_state)
 
 	var json = JSON.new()
@@ -200,8 +200,8 @@ func test_save_nests_turn_state():
 func test_save_preserves_campaign_data():
 	"""Save preserves all campaign_data fields"""
 	var turn_state = {"discovered_patrons": [], "active_rivals": [], "rumors_accumulated": 0,
-	                  "tracked_rival": {}, "decoy_planted": false, "equipment_stash_count": 0,
-	                  "injured_characters": []}
+					  "tracked_rival": {}, "decoy_planted": false, "equipment_stash_count": 0,
+					  "injured_characters": []}
 	var json_string = helper._create_save_json(full_campaign, 1, turn_state)
 
 	var json = JSON.new()
@@ -216,8 +216,8 @@ func test_save_preserves_campaign_data():
 func test_save_includes_timestamp():
 	"""Save includes timestamp field"""
 	var turn_state = {"discovered_patrons": [], "active_rivals": [], "rumors_accumulated": 0,
-	                  "tracked_rival": {}, "decoy_planted": false, "equipment_stash_count": 0,
-	                  "injured_characters": []}
+					  "tracked_rival": {}, "decoy_planted": false, "equipment_stash_count": 0,
+					  "injured_characters": []}
 	var json_string = helper._create_save_json(minimal_campaign, 1, turn_state)
 
 	var json = JSON.new()

@@ -36,7 +36,7 @@ func _ready() -> void:
 		if event_manager.has_signal("event_effects_applied"):
 			event_manager.event_effects_applied.connect(_on_event_effects_applied)
 	else:
-		print("StoryPhasePanel: EventManager not found (panel has fallback event generation)")
+		push_warning("StoryPhasePanel: EventManager not found (panel has fallback event generation)")
 
 	if event_list:
 		event_list.item_selected.connect(_on_event_selected)
@@ -68,8 +68,7 @@ func _generate_story_events() -> void:
 		event_list.add_item(event.title)
 
 func _create_story_event() -> Dictionary:
-	# TODO: Replace with actual story event generation from EventManager
-	# For now, using sample events
+	# NOTE: Deferred — wire to EventManager for real story event generation; using sample events
 	var sample_events = [
 		{
 			"title": "Mysterious Signal",

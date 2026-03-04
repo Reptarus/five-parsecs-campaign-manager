@@ -3,7 +3,6 @@
 # Use explicit preloads instead of global class names
 extends Resource
 
-const Self = preload("res://src/ui/screens/ships/ShipInventory.gd")
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 
 signal item_added(item: Resource)

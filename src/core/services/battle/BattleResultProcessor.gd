@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 
 ## Battle Result Processor - Post-Battle Campaign State Updates
 ## Processes battle results and applies them to campaign state, crew, and story progression
@@ -26,7 +26,6 @@ func _ready() -> void:
 	# Initialize game state manager reference
 	if GameStateManager:
 		game_state_manager = GameStateManager
-	print("BattleResultProcessor: Initialized successfully")
 
 ## Public Interface
 
@@ -35,8 +34,6 @@ func process_results(battle_results: Dictionary) -> Dictionary:
 	if not battle_results:
 		processing_error.emit("No battle results provided")
 		return {"success": false, "error": "No results"}
-	
-	print("BattleResultProcessor: Processing battle results for session %s" % battle_results.get("session_id", "unknown"))
 	
 	var changes_applied = {}
 	
@@ -71,7 +68,6 @@ func process_results(battle_results: Dictionary) -> Dictionary:
 			save_manager.quick_save()
 	
 	results_processed.emit(battle_results.get("session_id", "unknown"), changes_applied)
-	print("BattleResultProcessor: Successfully processed battle results")
 	
 	return {"success": true, "changes": changes_applied}
 
@@ -103,7 +99,6 @@ func _process_casualties(casualties: Array) -> Dictionary:
 		var medical_cost = _calculate_medical_cost(injury_type)
 		casualty_changes.medical_costs += medical_cost
 		
-		print("BattleResultProcessor: Applied injury to %s - %s (%d turns recovery)" % [crew_name, injury_type, recovery_time])
 		injury_sustained.emit(crew_name, casualty)
 	
 	# Deduct medical costs from campaign funds using GameState
@@ -114,7 +109,6 @@ func _process_casualties(casualties: Array) -> Dictionary:
 				var current_credits = game_state.get_campaign_credits() or 0
 				var new_credits = max(0, current_credits - casualty_changes.medical_costs)
 				game_state.update_campaign_credits(new_credits)
-				print("BattleResultProcessor: Medical costs: %d credits" % casualty_changes.medical_costs)
 	
 	return casualty_changes
 
@@ -140,7 +134,6 @@ func _process_experience(experience_data: Dictionary) -> Dictionary:
 		experience_changes.crew_xp_gained[crew_name] = xp_gained
 		experience_changes.total_xp += xp_gained
 		
-		print("BattleResultProcessor: %s gained %d experience" % [crew_name, xp_gained])
 		experience_gained.emit(crew_name, xp_gained)
 	
 	return experience_changes
@@ -161,7 +154,6 @@ func _process_loot(loot_items: Array, credits_earned: int) -> Dictionary:
 				var current_credits = game_state.get_campaign_credits() or 0
 				var new_credits = current_credits + loot_changes.credits_gained
 				game_state.update_campaign_credits(new_credits)
-				print("BattleResultProcessor: Gained %d credits" % loot_changes.credits_gained)
 	
 	# Process items
 	for item in loot_items:
@@ -214,14 +206,12 @@ func _process_relationships(patron_relationships: Dictionary, rival_encounters: 
 				var relationship_change = patron_relationships[patron_id]
 				if game_state.has_method("update_patron_relationship"):
 					game_state.update_patron_relationship(patron_id, relationship_change)
-				print("BattleResultProcessor: Patron relationship updated - %s: %s" % [patron_id, relationship_change])
 			
 			# Process rival encounters
 			for rival_id in rival_encounters:
 				var encounter_data = rival_encounters[rival_id]
 				if game_state.has_method("update_rival_status"):
 					game_state.update_rival_status(rival_id, encounter_data)
-				print("BattleResultProcessor: Rival encounter processed - %s" % rival_id)
 	
 	return relationship_changes
 
@@ -236,7 +226,6 @@ func _process_equipment_changes(equipment_lost: Array) -> Dictionary:
 	for item in equipment_lost:
 		_remove_item_from_inventory(item)
 		equipment_changes.replacement_cost += _estimate_item_value(item)
-		print("BattleResultProcessor: Lost equipment - %s" % item)
 	
 	return equipment_changes
 
@@ -332,7 +321,6 @@ func _update_campaign_state(battle_results: Dictionary, changes: Dictionary) -> 
 	if game_state.has_method("set_last_battle_date"):
 		game_state.set_last_battle_date(Time.get_datetime_string_from_system())
 	
-	print("BattleResultProcessor: Campaign state updated with battle results")
 
 ## Debug and Testing
 
@@ -358,4 +346,4 @@ func test_processing() -> void:
 	## Test battle result processing
 	var test_results = create_test_results()
 	var result = process_results(test_results)
-	print("BattleResultProcessor: Test processing result - %s" % str(result))
+	pass

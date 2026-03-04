@@ -658,7 +658,6 @@ func complete_mission() -> Dictionary:
 	objective_parameters["loot_items"] = loot_secured.values()
 	
 	# Mark as completed
-	print("Raid mission completed with reward: %d credits" % reward_credits)
 	
 	# Call parent and return rewards
 	return super.complete_mission()

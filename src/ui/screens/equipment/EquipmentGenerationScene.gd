@@ -37,7 +37,6 @@ signal equipment_generation_completed(equipment_data: Dictionary)
 signal generation_cancelled()
 
 func _ready() -> void:
-	print("EquipmentGenerationScene: Initializing isolated equipment generation...")
 	
 	_setup_ui_components()
 	_connect_signals()
@@ -106,12 +105,10 @@ func _find_equipment_generator() -> Node:
 		if system and system.has_method("get_equipment_generator"):
 			var generator = system.get_equipment_generator()
 			if generator:
-				print("EquipmentGenerationScene: Found equipment generator via ", path)
 				return generator
 		elif system and system.has_method("get_manager"):
 			var generator = system.get_manager("EquipmentGenerator")
 			if generator:
-				print("EquipmentGenerationScene: Found equipment generator via manager system")
 				return generator
 	
 	return null
@@ -120,12 +117,10 @@ func _find_equipment_generator() -> Node:
 
 func setup_for_campaign_creation() -> void:
 	## Setup EquipmentGenerationScene for campaign creation workflow
-	print("EquipmentGenerationScene: Setting up for campaign creation workflow")
 	
 	# Connect to campaign creation state bridge
 	state_bridge = get_node_or_null("/root/CampaignCreationStateBridge")
 	if state_bridge:
-		print("EquipmentGenerationScene: Connected to CampaignCreationStateBridge")
 		
 		# Load crew data from campaign state
 		_load_crew_from_campaign()
@@ -155,7 +150,7 @@ func _load_crew_from_campaign() -> void:
 	var loaded_crew = crew_data.get("crew_members", [])
 	
 	if not loaded_crew.is_empty():
-		print("EquipmentGenerationScene: Loading crew from campaign: %d members" % loaded_crew.size())
+		pass # Loading crew from campaign
 		
 		crew_members.clear()
 		for member in loaded_crew:
@@ -167,9 +162,9 @@ func _load_crew_from_campaign() -> void:
 		_update_crew_display()
 		_update_generation_buttons()
 		
-		print("EquipmentGenerationScene: Successfully loaded %d valid crew members" % crew_members.size())
+		pass # Crew members loaded
 	else:
-		print("EquipmentGenerationScene: No crew data found in campaign state")
+		pass
 
 ## Equipment Generation Core Logic
 
@@ -220,7 +215,7 @@ func generate_equipment_for_crew() -> Dictionary:
 		_show_error("No crew members available for equipment generation")
 		return {}
 	
-	print("EquipmentGenerationScene: Starting equipment generation for %d crew members" % crew_members.size())
+	pass # Starting equipment generation
 	
 	generation_in_progress = true
 	_update_generation_ui_state()
@@ -256,7 +251,7 @@ func generate_equipment_for_crew() -> Dictionary:
 	generation_in_progress = false
 	equipment_data = generated_equipment
 	
-	print("EquipmentGenerationScene: Equipment generation completed - %d/%d successful" % [successful_generations, crew_members.size()])
+	pass # Equipment generation completed
 	
 	_update_generation_ui_state()
 	_update_equipment_display()
@@ -277,13 +272,12 @@ func _generate_character_equipment_safe(character: Character) -> Dictionary:
 		# Fallback equipment generation
 		character_equipment = _generate_fallback_equipment(character)
 	
-	print("EquipmentGenerationScene: Generated equipment for %s: %d items" % [character.character_name, character_equipment.size()])
+	pass # Character equipment generated
 	
 	return character_equipment
 
 func _generate_fallback_equipment(character: Character) -> Dictionary:
 	## Generate basic fallback equipment when main generation fails
-	print("EquipmentGenerationScene: Using fallback equipment generation for %s" % character.character_name)
 	
 	var fallback_equipment = {
 		"weapons": [],
@@ -404,12 +398,10 @@ func _show_error(message: String) -> void:
 
 func _on_generate_pressed() -> void:
 	## Handle generate equipment button press
-	print("EquipmentGenerationScene: Generate equipment requested")
 	generate_equipment_for_crew()
 
 func _on_regenerate_pressed() -> void:
 	## Handle regenerate equipment button press
-	print("EquipmentGenerationScene: Regenerate equipment requested")
 	equipment_data.clear()
 	_update_equipment_display()
 	generate_equipment_for_crew()
@@ -420,25 +412,22 @@ func _on_finish_pressed() -> void:
 		_show_error("No equipment generated - cannot finish")
 		return
 	
-	print("EquipmentGenerationScene: Equipment generation completed with %d crew members" % equipment_data.size())
+	pass # Equipment generation finalized
 	equipment_generation_completed.emit(equipment_data)
 
 func _on_back_pressed() -> void:
 	## Handle back button press
-	print("EquipmentGenerationScene: Back button pressed")
 	generation_cancelled.emit()
 
 func _on_crew_member_selected(index: int) -> void:
 	## Handle crew member selection
 	if index >= 0 and index < crew_members.size():
 		var character = crew_members[index]
-		print("EquipmentGenerationScene: Selected crew member: %s" % character.character_name)
 
 ## Campaign Integration Handlers
 
 func _on_equipment_completed_for_campaign(equipment_data: Dictionary) -> void:
 	## Handle equipment completion in campaign context
-	print("EquipmentGenerationScene: Equipment completed for campaign")
 	
 	if state_bridge and state_bridge.has_method("handle_equipment_generation"):
 		state_bridge.handle_equipment_generation(equipment_data)
@@ -451,7 +440,6 @@ func _on_equipment_completed_for_campaign(equipment_data: Dictionary) -> void:
 
 func _on_generation_cancelled_for_campaign() -> void:
 	## Handle generation cancellation in campaign context
-	print("EquipmentGenerationScene: Equipment generation cancelled for campaign")
 	
 	# Navigate back to previous step
 	_return_to_previous_campaign_step()
@@ -466,7 +454,6 @@ func _proceed_to_next_campaign_step() -> void:
 		if next_scene.is_empty():
 			next_scene = "campaign_turn_controller" # Default to turn controller
 		
-		print("EquipmentGenerationScene: Proceeding to next campaign step: ", next_scene)
 		
 		if scene_router.has_method("navigate_to"):
 			scene_router.navigate_to(next_scene)
@@ -485,7 +472,6 @@ func _return_to_previous_campaign_step() -> void:
 		if previous_scene.is_empty():
 			previous_scene = "crew_creation" # Default back to crew creation
 		
-		print("EquipmentGenerationScene: Returning to previous campaign step: ", previous_scene)
 		
 		if scene_router.has_method("navigate_to"):
 			scene_router.navigate_to(previous_scene)
@@ -504,7 +490,7 @@ func set_crew_members(new_crew: Array) -> void:
 			crew_members.append(c)
 	_update_crew_display()
 	_update_generation_buttons()
-	print("EquipmentGenerationScene: Set %d valid crew members" % crew_members.size())
+	pass # Crew members set
 
 func get_equipment_data() -> Dictionary:
 	## Get generated equipment data

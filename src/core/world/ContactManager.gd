@@ -63,7 +63,7 @@ var contacts_by_id: Dictionary = {}      # contact_id -> Contact
 var current_planet_id: String = ""
 
 func _ready() -> void:
-	print("ContactManager: Initialized successfully")
+	pass
 
 ## Add a new contact to the current planet
 func add_contact(contact_name: String, contact_type: String, planet_id: String = "", discovery_turn: int = 0) -> Contact:
@@ -80,7 +80,6 @@ func add_contact(contact_name: String, contact_type: String, planet_id: String =
 	# Generate starting services based on type
 	_generate_contact_services(contact)
 	
-	print("ContactManager: Added contact %s (%s) to planet %s" % [contact.name, contact.contact_type, contact.planet_id])
 	self.contact_discovered.emit(contact)
 	
 	return contact
@@ -261,13 +260,11 @@ func modify_contact_reputation(contact_id: String, change: int) -> void:
 	contact.reputation = clamp(contact.reputation + change, -3, 3)
 	
 	if contact.reputation != old_reputation:
-		print("ContactManager: %s reputation changed from %d to %d" % [contact.name, old_reputation, contact.reputation])
 		self.contact_reputation_changed.emit(contact_id, old_reputation, contact.reputation)
 
 ## Set current planet for contact operations
 func set_current_planet(planet_id: String) -> void:
 	current_planet_id = planet_id
-	print("ContactManager: Current planet set to %s" % planet_id)
 
 ## Get contact by ID
 func get_contact(contact_id: String) -> Contact:

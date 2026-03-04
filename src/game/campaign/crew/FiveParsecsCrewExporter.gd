@@ -4,11 +4,9 @@ extends Node
 # The authoritative version should be referenced via preload. Use explicit preloads instead of global class name.
 
 # Self-reference constant for external scripts
-const Self = preload("res://src/game/campaign/crew/FiveParsecsCrewExporter.gd")
 # These files need to be created or renamed
 # const FPCM_Crew = preload("res://src/game/campaign/crew/FiveParsecsCrew.gd")
 # const FPCM_CrewMember = preload("res://src/game/campaign/crew/FiveParsecsCrewMember.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")
 const PDFGenerator = preload("res://src/core/utils/PDFGenerator.gd")
 

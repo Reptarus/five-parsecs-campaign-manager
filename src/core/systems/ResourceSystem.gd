@@ -3,7 +3,6 @@ extends Node
 # This file should be referenced via preload
 # Use explicit preloads instead of global class names
 
-const Self = preload("res://src/core/systems/ResourceSystem.gd")
 
 ## A comprehensive system for managing game resources with advanced features
 ##
@@ -13,7 +12,6 @@ const Self = preload("res://src/core/systems/ResourceSystem.gd")
 ## for save/load operations.
 
 ## Dependencies - explicit loading to avoid circular references
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const ErrorLogger = preload("res://src/core/systems/ErrorLogger.gd")
 
 ## Signals for resource operations with proper documentation

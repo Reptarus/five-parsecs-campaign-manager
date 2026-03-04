@@ -55,6 +55,7 @@
 - **[UIColors](../src/ui/components/base/UIColors.gd)** - Canonical design tokens (Deep Space theme, spacing, typography, touch targets)
 - **[IconRegistry](../src/ui/components/base/IconRegistry.gd)** - Game concept → Lorc RPG icon mapping with static cache
 - **[ResponsiveManager](../src/autoload/ResponsiveManager.gd)** - Breakpoint detection autoload (MOBILE/TABLET/DESKTOP/WIDE)
+- **[TweenFX](../addons/TweenFX/)** - Animation addon (v1.2, 70 animations), autoloaded as `TweenFX`. Used across 23 UI files for interaction feedback, transitions, and game event celebrations. Requires `pivot_offset = size / 2` before scale/rotation animations
 
 ## Systems (Implemented February 2026)
 - **[Galactic War System](features/GALACTIC_WAR_SYSTEM.md)** - 4 war tracks with faction conflicts

@@ -3,21 +3,17 @@
 extends Resource
 # This file should be referenced via preload
 # Use explicit preloads instead of global class names
-
-const Self = preload("res://src/core/victory/VictoryConditionSelection.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 signal victory_selected(type: int, data: Dictionary)
 
 # Victory types
-var selected_victory_type: int = GameEnums.FiveParcsecsCampaignVictoryType.NONE
+var selected_victory_type: int = GlobalEnums.FiveParcsecsCampaignVictoryType.NONE
 
 # Define victory categories as an array
 const VICTORY_CATEGORIES = [
-	GameEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE,
-	GameEnums.FiveParcsecsCampaignVictoryType.WEALTH_GOAL,
-	GameEnums.FiveParcsecsCampaignVictoryType.REPUTATION_GOAL,
-	GameEnums.FiveParcsecsCampaignVictoryType.FACTION_DOMINANCE
+	GlobalEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE,
+	GlobalEnums.FiveParcsecsCampaignVictoryType.WEALTH_GOAL,
+	GlobalEnums.FiveParcsecsCampaignVictoryType.REPUTATION_GOAL,
+	GlobalEnums.FiveParcsecsCampaignVictoryType.FACTION_DOMINANCE
 ]
 
 var current_condition: String = ""
@@ -35,10 +31,10 @@ func _init() -> void:
 	_setup_custom_options()
 
 func _setup_custom_options() -> void:
-	custom_type_option.add_item("Credits", GameEnums.ResourceType.CREDITS)
-	custom_type_option.add_item("Reputation", GameEnums.ResourceType.PATRON)
-	custom_type_option.add_item("Story Points", GameEnums.ResourceType.STORY_POINT)
-	custom_type_option.add_item("Supplies", GameEnums.ResourceType.SUPPLIES)
+	custom_type_option.add_item("Credits", GlobalEnums.ResourceType.CREDITS)
+	custom_type_option.add_item("Reputation", GlobalEnums.ResourceType.PATRON)
+	custom_type_option.add_item("Story Points", GlobalEnums.ResourceType.STORY_POINT)
+	custom_type_option.add_item("Supplies", GlobalEnums.ResourceType.SUPPLIES)
 
 func select_victory_condition(condition_key: int) -> void:
 	if condition_key in VICTORY_CATEGORIES:
@@ -54,13 +50,13 @@ func set_victory_type(type: int) -> void:
 
 func get_victory_description(type: int) -> String:
 	match type:
-		GameEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE:
+		GlobalEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE:
 			return "Complete the main story campaign"
-		GameEnums.FiveParcsecsCampaignVictoryType.WEALTH_GOAL:
+		GlobalEnums.FiveParcsecsCampaignVictoryType.WEALTH_GOAL:
 			return "Accumulate significant wealth"
-		GameEnums.FiveParcsecsCampaignVictoryType.REPUTATION_GOAL:
+		GlobalEnums.FiveParcsecsCampaignVictoryType.REPUTATION_GOAL:
 			return "Build your reputation in the galaxy"
-		GameEnums.FiveParcsecsCampaignVictoryType.FACTION_DOMINANCE:
+		GlobalEnums.FiveParcsecsCampaignVictoryType.FACTION_DOMINANCE:
 			return "Achieve dominance with your chosen faction"
 		_:
 			return "Unknown victory condition"

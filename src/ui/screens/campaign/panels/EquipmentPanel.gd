@@ -75,15 +75,11 @@ func _handle_campaign_state_update(state_data: Dictionary) -> void:
 	# CRITICAL FIX: Ignore updates that originated from this panel to prevent double-loading
 	var source = state_data.get("source", "")
 	if source == "equipment_panel":
-		print("EquipmentPanel: Ignoring update from self (source: equipment_panel)")
 		return
 
 	var phase = state_data.get("phase", "")
 	if phase == "equipment_update":
-		print("EquipmentPanel: Ignoring equipment_update phase (self-update)")
 		return
-
-	print("EquipmentPanel: Campaign state updated with keys: %s" % str(state_data.keys()))
 
 	# Update panel state based on campaign state if needed
 	if state_data.has("equipment") and state_data.equipment is Dictionary:
@@ -100,10 +96,8 @@ func _handle_campaign_state_update(state_data: Dictionary) -> void:
 		
 		# PHASE 1: Store crew members for assignment UI
 		crew_members = extracted_crew
-		print("EquipmentPanel: Stored %d crew members for assignment" % crew_members.size())
 
 		if crew_changed or generated_equipment.is_empty():
-			print("EquipmentPanel: Crew composition changed (%d -> %d) - regenerating equipment" % [_last_crew_size, extracted_crew.size()])
 			_last_crew_size = extracted_crew.size()
 			crew_size = extracted_crew.size()
 			_generate_equipment_for_actual_crew(extracted_crew)
@@ -115,10 +109,9 @@ func _handle_campaign_state_update(state_data: Dictionary) -> void:
 				summary_label.text = "Equipment generated for %d crew members: %d items" % [extracted_crew.size(), generated_equipment.size()]
 		else:
 			# Even if crew size hasn't changed, update the loadout display
-			print("EquipmentPanel: No crew changes detected, updating loadout display")
 			_update_crew_loadout_display()
 	else:
-		print("EquipmentPanel: Waiting for crew data...")
+		pass
 
 	# Check for captain data - only add if not already merged by coordinator
 	if state_data.has("captain") and state_data.captain is Dictionary:
@@ -144,7 +137,6 @@ func _handle_campaign_state_update(state_data: Dictionary) -> void:
 				break
 		if not captain_exists and not captain_name.is_empty():
 			crew_members.insert(0, captain_data)
-			print("EquipmentPanel: Added captain to crew members list")
 
 func _extract_crew_members(state_data) -> Array:
 	## Extract crew members from various possible data structures - more defensive
@@ -152,7 +144,7 @@ func _extract_crew_members(state_data) -> Array:
 	
 	# More defensive type checking
 	if typeof(state_data) != TYPE_DICTIONARY:
-		print("EquipmentPanel: State data is not Dictionary, type: %s" % typeof(state_data))
+		push_warning("EquipmentPanel: State data is not Dictionary, type: %s" % typeof(state_data))
 		return []
 	
 	# Try path 1: state_data.crew.members (Dictionary format)
@@ -160,28 +152,22 @@ func _extract_crew_members(state_data) -> Array:
 		var crew = state_data.get("crew")
 		if typeof(crew) == TYPE_DICTIONARY and crew.has("members"):
 			crew_members = crew.get("members", [])
-			print("EquipmentPanel: Found crew at crew.members")
 		elif typeof(crew) == TYPE_ARRAY:
 			crew_members = crew
-			print("EquipmentPanel: Found crew as array")
 	
 	# Try path 2: state_data.members (Direct array)
 	if crew_members.is_empty() and state_data.has("members"):
 		crew_members = state_data.get("members", [])
-		print("EquipmentPanel: Found crew at root members")
 	
 	# Try path 3: state_data.crew_members
 	if crew_members.is_empty() and state_data.has("crew_members"):
 		crew_members = state_data.get("crew_members", [])
-		print("EquipmentPanel: Found crew at crew_members")
 	
-	print("EquipmentPanel: Extracted %d crew members" % crew_members.size())
 	return crew_members
 
 ## New Five Parsecs compliant equipment generation
 func _generate_five_parsecs_equipment(crew_members: Array) -> void:
 	## Generate equipment according to Five Parsecs core rules
-	print("EquipmentPanel: Generating Five Parsecs compliant equipment for %d crew members" % crew_members.size())
 	generated_equipment.clear()
 	
 	# Core rules: Starting equipment
@@ -224,7 +210,6 @@ func _generate_five_parsecs_equipment(crew_members: Array) -> void:
 			"condition": "standard",
 			"quality_modifier": 0
 		})
-		print("  Generated military weapon: %s" % weapon)
 	
 	# Generate 3 low-tech weapons
 	for i in range(3):
@@ -236,7 +221,6 @@ func _generate_five_parsecs_equipment(crew_members: Array) -> void:
 			"condition": "standard",
 			"quality_modifier": 0
 		})
-		print("  Generated low-tech weapon: %s" % weapon)
 	
 	# Generate 1 gear item
 	var gear = gear_items[randi() % gear_items.size()]
@@ -247,7 +231,6 @@ func _generate_five_parsecs_equipment(crew_members: Array) -> void:
 		"condition": "standard",
 		"quality_modifier": 0
 	})
-	print("  Generated gear: %s" % gear)
 	
 	# Generate 1 gadget item
 	var gadget = gadget_items[randi() % gadget_items.size()]
@@ -258,7 +241,6 @@ func _generate_five_parsecs_equipment(crew_members: Array) -> void:
 		"condition": "standard",
 		"quality_modifier": 0
 	})
-	print("  Generated gadget: %s" % gadget)
 	
 	# Add character-specific equipment based on backgrounds using JSON data
 	var background_equipment = equipment_tables.get("background_equipment", {})
@@ -280,12 +262,9 @@ func _generate_five_parsecs_equipment(crew_members: Array) -> void:
 			background = bg_raw.to_lower() if bg_raw else ""
 		else:
 			background = ""
-		print("  Processing crew member: %s (background: %s)" % [member_name, background])
-
 		# Use JSON background equipment if available
 		if background_equipment.has(background):
 			var bg_equip = background_equipment[background]
-			print("  Found background equipment for %s: %s" % [background, bg_equip.keys()])
 
 			# Add weapons from background
 			for weapon in bg_equip.get("weapons", []):
@@ -296,7 +275,6 @@ func _generate_five_parsecs_equipment(crew_members: Array) -> void:
 					"condition": "standard",
 					"quality_modifier": 0
 				})
-				print("  Background weapon for %s: %s" % [member_name, weapon])
 
 			# Add gear from background
 			for gear_item in bg_equip.get("gear", []):
@@ -307,7 +285,6 @@ func _generate_five_parsecs_equipment(crew_members: Array) -> void:
 					"condition": "standard",
 					"quality_modifier": 0
 				})
-				print("  Background gear for %s: %s" % [member_name, gear_item])
 
 			# Add background credits to total
 			starting_credits += bg_equip.get("credits", 0)
@@ -323,7 +300,6 @@ func _generate_five_parsecs_equipment(crew_members: Array) -> void:
 					"condition": "standard",
 					"quality_modifier": 0
 				})
-				print("  Bonus military weapon for %s: %s" % [member_name, bonus_weapon])
 
 			# Tech/Engineer background gets extra gadget
 			elif background == "tech" or background == "engineer" or background == "scientist":
@@ -335,7 +311,6 @@ func _generate_five_parsecs_equipment(crew_members: Array) -> void:
 					"condition": "standard",
 					"quality_modifier": 0
 				})
-				print("  Bonus gadget for %s: %s" % [member_name, bonus_gadget])
 
 			# Explorer/Scout gets extra gear
 			elif background == "explorer" or background == "scout":
@@ -347,14 +322,11 @@ func _generate_five_parsecs_equipment(crew_members: Array) -> void:
 					"condition": "standard",
 					"quality_modifier": 0
 				})
-				print("  Bonus gear for %s: %s" % [member_name, bonus_gear])
 	
 	# Calculate starting credits: 1 credit per crew member (base)
 	# Plus 1D6+1 x 100 credits total
 	var dice_roll = (randi() % 6) + 1  # 1D6
 	starting_credits = (dice_roll + 1) * 100 + crew_members.size()
-	
-	print("EquipmentPanel: Generated %d equipment items, %d credits total" % [generated_equipment.size(), starting_credits])
 	
 	# Update display and emit signals
 	_update_equipment_display()
@@ -402,7 +374,6 @@ func _load_equipment_tables() -> void:
 		return
 
 	equipment_tables = json.get_data()
-	print("EquipmentPanel: Loaded equipment tables with keys: %s" % str(equipment_tables.keys()))
 
 # NOTE: _add_progress_indicator() removed - CampaignCreationUI handles progress display centrally
 
@@ -416,7 +387,6 @@ func set_coordinator(coord: Node) -> void:
 	# Set both local and base class coordinator references
 	coordinator = coord
 	_coordinator = coord  # BUGFIX: Also set base class variable so get_coordinator() works
-	print("EquipmentPanel: Coordinator stored successfully")
 
 	# TYPE-SAFE: Get state manager if available
 	if coord and is_instance_valid(coord):
@@ -425,101 +395,83 @@ func set_coordinator(coord: Node) -> void:
 			if manager and is_instance_valid(manager):
 				state_manager = manager
 				_state_manager = manager  # Also set base class variable
-				print("EquipmentPanel: State manager reference stored")
 
 	# Defer _on_coordinator_set to ensure panel is ready
 	call_deferred("_on_coordinator_set")
 
 func _on_coordinator_set() -> void:
 	## Called when coordinator is set - connect to campaign state updates
-	print("EquipmentPanel: _on_coordinator_set called")
 
 	if coordinator and is_instance_valid(coordinator):
 		# Connect to campaign_state_updated signal for cross-panel communication
 		if coordinator.has_signal("campaign_state_updated"):
 			if not coordinator.campaign_state_updated.is_connected(_on_campaign_state_updated):
 				coordinator.campaign_state_updated.connect(_on_campaign_state_updated)
-				print("EquipmentPanel: ✅ Connected to campaign_state_updated signal")
 			else:
-				print("EquipmentPanel: Already connected to campaign_state_updated signal")
+				pass
 		else:
-			print("EquipmentPanel: ⚠️ Coordinator missing campaign_state_updated signal")
+			pass
 
 		# Also try to get current campaign state immediately
 		if coordinator.has_method("get_unified_campaign_state"):
 			var state = coordinator.get_unified_campaign_state()
 			if state:
-				print("EquipmentPanel: Fetching initial campaign state")
 				_handle_campaign_state_update(state)
 	else:
-		print("EquipmentPanel: ⚠️ Coordinator not valid in _on_coordinator_set")
+		pass
 
 func _initialize_components() -> void:
 	## Initialize equipment panel by connecting to actual scene nodes
-	print("========== EquipmentPanel: FINDING ACTUAL SCENE NODES ==========")
 	
 	# Use unique name access (marked with unique_name_in_owner = true) with fallback paths
 	equipment_list = get_node_or_null("%Container")
 	if not equipment_list:
 		equipment_list = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/EquipmentSection/EquipmentScroll/Container")
-	print("EquipmentPanel: equipment_list: %s" % ("FOUND" if equipment_list else "NOT FOUND"))
-	
+
 	generate_button = get_node_or_null("%GenerateButton")
 	if not generate_button:
 		generate_button = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/Controls/GenerateButton")
-	print("EquipmentPanel: generate_button: %s" % ("FOUND" if generate_button else "NOT FOUND"))
-	
+
 	reroll_button = get_node_or_null("%RerollButton")
 	if not reroll_button:
 		reroll_button = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/Controls/RerollButton")
-	print("EquipmentPanel: reroll_button: %s" % ("FOUND" if reroll_button else "NOT FOUND"))
-	
+
 	manual_button = get_node_or_null("%ManualButton")
 	if not manual_button:
 		manual_button = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/Controls/ManualButton")
-	print("EquipmentPanel: manual_button: %s" % ("FOUND" if manual_button else "NOT FOUND"))
-	
+
 	summary_label = get_node_or_null("%Label")
 	if not summary_label:
 		summary_label = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/SummarySection/Summary/Label")
-	print("EquipmentPanel: summary_label: %s" % ("FOUND" if summary_label else "NOT FOUND"))
 
 	credits_label = get_node_or_null("%Value")
 	if not credits_label:
 		credits_label = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/SummarySection/Credits/Value")
-	print("EquipmentPanel: credits_label: %s" % ("FOUND" if credits_label else "NOT FOUND"))
-	
+
 	# PHASE 1: New assignment UI components with fallback paths
 	auto_assign_button = get_node_or_null("%AutoAssignButton")
 	if not auto_assign_button:
 		auto_assign_button = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/EquipmentSection/EquipmentHeader/AutoAssignButton")
-	print("EquipmentPanel: auto_assign_button: %s" % ("FOUND" if auto_assign_button else "NOT FOUND"))
 
 	crew_loadout_container = get_node_or_null("%CrewLoadoutContainer")
 	if not crew_loadout_container:
 		crew_loadout_container = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/CrewSection/CrewScroll/CrewLoadoutContainer")
-	print("EquipmentPanel: crew_loadout_container: %s" % ("FOUND" if crew_loadout_container else "NOT FOUND"))
 
 	assigned_count_label = get_node_or_null("%AssignedCount")
 	if not assigned_count_label:
 		assigned_count_label = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/SummarySection/Summary/AssignedCount")
-	print("EquipmentPanel: assigned_count_label: %s" % ("FOUND" if assigned_count_label else "NOT FOUND"))
 
 	# Get DiceManager from autoload with safe access and fallback creation
 	if has_node("/root/DiceManager"):
 		dice_manager = get_node("/root/DiceManager")
-		print("EquipmentPanel: DEBUG - DiceManager found")
 	else:
-		print("EquipmentPanel: DEBUG - DiceManager NOT FOUND - creating fallback")
 		# Create fallback dice manager
 		dice_manager = Node.new()
 		dice_manager.name = "FallbackDiceManager"
 		dice_manager.set_script(preload("res://src/core/systems/FallbackDiceManager.gd"))
 		# Don't add to tree - use as local instance
-		print("EquipmentPanel: Created fallback DiceManager for local use")
 		push_warning("EquipmentPanel: Using fallback DiceManager - autoload not available")
 	
-	print("========== EquipmentPanel: COMPONENT INITIALIZATION COMPLETE ==========")
 
 	# PHASE 1 INTEGRATION: Connect to existing EquipmentManager
 	call_deferred("_connect_to_equipment_manager")
@@ -535,7 +487,6 @@ func _initialize_components() -> void:
 # PHASE 1 INTEGRATION: Connect to existing EquipmentManager
 func _connect_to_equipment_manager() -> void:
 	## Skip EquipmentManager integration to prevent overlay issues
-	print("EquipmentPanel: Using direct equipment management without EquipmentManager overlay")
 	
 	# Equipment management is handled directly in the panel
 	# No external manager scene needed to prevent UI stacking
@@ -546,23 +497,21 @@ func _connect_to_equipment_manager() -> void:
 		content_node = get_node_or_null("Content")
 	
 	if content_node:
-		print("EquipmentPanel: Content node found for equipment display")
 		# The equipment list and controls are already in the scene
 		# Just use them directly without adding external managers
+		pass
 	else:
 		push_warning("EquipmentPanel: Content node not found for equipment display")
 
 func _connect_equipment_manager_signals() -> void:
 	## Stub function - no EquipmentManager to connect
-	print("EquipmentPanel: Equipment management handled directly in panel")
+	pass
 
 func _initialize_equipment_manager_data() -> void:
 	## Stub function - no EquipmentManager to initialize
-	print("EquipmentPanel: Equipment data managed internally")
 	
 	# Use existing crew data if available from coordinator
 	var crew_data = _get_current_crew_data()
-	print("EquipmentPanel: Working with %d crew members for equipment generation" % crew_data.size())
 
 func _get_current_crew_data() -> Array:
 	## Get current crew data from campaign state
@@ -571,7 +520,6 @@ func _get_current_crew_data() -> Array:
 	if coordinator and coordinator.has_method("get_state"):
 		var state = coordinator.get_state()
 		if state.has("crew") and state.crew.has("members"):
-			print("EquipmentPanel: Found %d crew members from coordinator" % state.crew.members.size())
 			return state.crew.members
 	
 	# This will be enhanced to get actual crew data from campaign coordinator
@@ -590,8 +538,6 @@ func _get_current_equipment_data() -> Dictionary:
 # EquipmentManager signal handlers
 func _on_equipment_assigned(equipment_item: Dictionary, crew_member: Dictionary) -> void:
 	## Handle equipment assignment from EquipmentManager
-	print("EquipmentPanel: Equipment assigned - %s to %s" % [equipment_item.get("name", "Unknown"), crew_member.get("name", "Unknown")])
-	
 	# Update local equipment data
 	_update_equipment_data_from_manager()
 	
@@ -606,16 +552,13 @@ func _notify_coordinator_of_equipment_update() -> void:
 	# Use stored coordinator instead of searching
 	if coordinator and coordinator.has_method("update_equipment_state"):
 		coordinator.update_equipment_state(local_equipment_data)
-		print("EquipmentPanel: Notified coordinator of equipment update")
 	elif coordinator:
-		print("EquipmentPanel: Coordinator found but missing update_equipment_state method")
+		pass
 	else:
-		print("EquipmentPanel: Warning - coordinator not available")
+		pass
 
 func _on_equipment_unassigned(equipment_item: Dictionary, crew_member: Dictionary) -> void:
 	## Handle equipment unassignment from EquipmentManager
-	print("EquipmentPanel: Equipment unassigned - %s from %s" % [equipment_item.get("name", "Unknown"), crew_member.get("name", "Unknown")])
-	
 	# Update local equipment data
 	_update_equipment_data_from_manager()
 	
@@ -636,11 +579,9 @@ func _update_equipment_data_from_manager() -> void:
 		if manager_state:
 			local_equipment_data = manager_state
 			_update_display()
-			print("EquipmentPanel: Updated equipment data from manager")
 
 func _connect_signals() -> void:
 	## Connect to actual scene buttons with proper validation
-	print("EquipmentPanel: Connecting to scene button signals...")
 	
 	# Verify we found all required UI elements
 	var missing_elements = []
@@ -664,28 +605,24 @@ func _connect_signals() -> void:
 	# Connect generate button
 	if not generate_button.pressed.is_connected(_on_generate_pressed):
 		generate_button.pressed.connect(_on_generate_pressed)
-		print("EquipmentPanel: ✅ Connected Generate button from scene")
 	else:
-		print("EquipmentPanel: Generate button already connected")
+		pass
 		
 	# Connect reroll button
 	if not reroll_button.pressed.is_connected(_on_reroll_equipment_pressed):
 		reroll_button.pressed.connect(_on_reroll_equipment_pressed)
-		print("EquipmentPanel: ✅ Connected Reroll button from scene")
 	else:
-		print("EquipmentPanel: Reroll button already connected")
+		pass
 		
 	# Connect manual button
 	if not manual_button.pressed.is_connected(_on_manual_select_pressed):
 		manual_button.pressed.connect(_on_manual_select_pressed)
-		print("EquipmentPanel: ✅ Connected Manual button from scene")
 	else:
-		print("EquipmentPanel: Manual button already connected")
+		pass
 	
 	# PHASE 1: Connect auto-assign button
 	if auto_assign_button and not auto_assign_button.pressed.is_connected(_on_auto_assign_pressed):
 		auto_assign_button.pressed.connect(_on_auto_assign_pressed)
-		print("EquipmentPanel: ✅ Connected Auto-Assign button from scene")
 
 func set_crew_data(crew: Array) -> void:
 	## Set crew data and generate equipment
@@ -696,12 +633,10 @@ func set_crew_data(crew: Array) -> void:
 # SPRINT ENHANCEMENT: Backend integration methods
 func request_equipment_generation(crew_data: Array) -> void:
 	## Request equipment generation through backend systems
-	print("EquipmentPanel: Requesting equipment generation for %d crew members via backend" % crew_data.size())
 	equipment_requested.emit(crew_data)
 
 func set_generated_equipment(equipment: Array, credits: int) -> void:
 	## Receive equipment generated by backend systems
-	print("EquipmentPanel: Received %d equipment items, %d credits from backend" % [equipment.size(), credits])
 	generated_equipment = equipment
 	starting_credits = credits
 	_update_equipment_display()
@@ -714,7 +649,6 @@ func set_generated_equipment(equipment: Array, credits: int) -> void:
 
 func _generate_equipment_for_actual_crew(crew_members: Array) -> void:
 	## Generate equipment for actual crew from campaign state (CRITICAL FIX)
-	print("EquipmentPanel: Generating equipment for %d actual crew members" % crew_members.size())
 	generated_equipment.clear()
 	starting_credits = 0
 	
@@ -757,18 +691,12 @@ func _generate_equipment_for_actual_crew(crew_members: Array) -> void:
 			push_warning("EquipmentPanel: Invalid crew member data type: %s" % typeof(crew_member))
 			continue
 
-		print("EquipmentPanel: Generating equipment for %s (%s, %s)" % [
-			character.character_name, character.character_class, character.background
-		])
-
 		var char_equipment: Dictionary = StartingEquipmentGenerator.generate_starting_equipment(character, dice_manager)
 		StartingEquipmentGenerator.apply_equipment_condition(char_equipment, dice_manager)
 
 		# Merge equipment into a single list with proper attribution
 		_merge_character_equipment(char_equipment, character.character_name)
 		starting_credits += char_equipment.get("credits", 0)
-	
-	print("EquipmentPanel: Generated %d equipment items, %d credits for actual crew" % [generated_equipment.size(), starting_credits])
 	
 	_update_equipment_display()
 	_update_summary()
@@ -822,7 +750,6 @@ func _create_equipment_item(item, item_type: String, owner_name: String) -> Dict
 
 func _generate_starting_equipment(crew: Array = []) -> void:
 	## Generate starting equipment using StartingEquipmentGenerator (LEGACY FALLBACK)
-	print("EquipmentPanel: Using legacy equipment generation (fallback)")
 	generated_equipment.clear()
 	starting_credits = 0
 
@@ -880,13 +807,8 @@ func _update_summary() -> void:
 # Signal handlers
 func _on_generate_pressed() -> void:
 	## Generate starting equipment and update navigation state
-	print("========== EquipmentPanel: GENERATE BUTTON PRESSED ==========")
-	print("EquipmentPanel: Coordinator available: %s" % (coordinator != null))
-	print("EquipmentPanel: Class crew_members has %d members" % crew_members.size())
-
 	# If equipment already generated and working, refresh display and validate
 	if generated_equipment.size() > 0:
-		print("EquipmentPanel: Equipment already generated (%d items), refreshing display..." % generated_equipment.size())
 		_update_display()
 		_validate_and_complete()  # CRITICAL FIX: Call validation instead of early return
 		return
@@ -898,25 +820,20 @@ func _on_generate_pressed() -> void:
 	# TYPE-SAFE: Try to get crew from coordinator first
 	var local_crew_members: Array = []
 	if coordinator and is_instance_valid(coordinator):
-		print("EquipmentPanel: Coordinator is valid, checking for get_unified_campaign_state method")
 		if coordinator.has_method("get_unified_campaign_state"):
 			var state = coordinator.call("get_unified_campaign_state")
-			print("EquipmentPanel: Got state from coordinator: %s" % (state != null))
 			if state is Dictionary:
-				print("EquipmentPanel: State received, extracting crew...")
 				local_crew_members = _extract_crew_members(state)
 		else:
-			print("EquipmentPanel: Coordinator doesn't have get_unified_campaign_state method")
+			pass
 	else:
-		print("EquipmentPanel: Coordinator is null or invalid")
+		pass
 
 	# CRITICAL FIX: Fall back to class variable if coordinator lookup failed
 	if local_crew_members.is_empty() and crew_members.size() > 0:
-		print("EquipmentPanel: Using class crew_members (%d members) as fallback" % crew_members.size())
 		local_crew_members = crew_members
 
 	if local_crew_members.size() > 0:
-		print("EquipmentPanel: Generating for %d crew members" % local_crew_members.size())
 		_generate_equipment_for_actual_crew(local_crew_members)
 
 		# CRITICAL FIX: Persist equipment to EquipmentManager
@@ -926,7 +843,6 @@ func _on_generate_pressed() -> void:
 		if coordinator and is_instance_valid(coordinator):
 			if coordinator.has_method("update_navigation_state"):
 				coordinator.call("update_navigation_state")
-				print("EquipmentPanel: Notified coordinator to update navigation")
 
 		# Also emit panel data change for real-time updates
 		panel_data_changed.emit(get_data())
@@ -939,7 +855,6 @@ func _on_generate_pressed() -> void:
 
 func _persist_equipment_to_manager(crew_members: Array) -> void:
 	## Persist generated equipment to EquipmentManager autoload for use in World/Battle phases
-	print("========== EquipmentPanel: PERSISTING EQUIPMENT TO MANAGER ==========")
 
 	var equipment_manager = get_node_or_null("/root/EquipmentManager")
 	if not equipment_manager:
@@ -961,7 +876,6 @@ func _persist_equipment_to_manager(crew_members: Array) -> void:
 			# Add to ship stash (for later assignment in World Phase)
 			if equipment_manager.add_to_ship_stash(equipment_item):
 				persisted_count += 1
-				print("  → Added to ship stash: %s" % equipment_item.get("name", "Unknown"))
 			else:
 				failed_count += 1
 				push_warning("  → Failed to add to stash: %s (stash may be full)" % equipment_item.get("name", "Unknown"))
@@ -973,7 +887,6 @@ func _persist_equipment_to_manager(crew_members: Array) -> void:
 				# Character not found, add to stash as fallback
 				if equipment_manager.add_to_ship_stash(equipment_item):
 					persisted_count += 1
-					print("  → Character '%s' not found, added to stash: %s" % [owner_name, equipment_item.get("name")])
 				else:
 					failed_count += 1
 			else:
@@ -981,7 +894,6 @@ func _persist_equipment_to_manager(crew_members: Array) -> void:
 				if equipment_manager.add_equipment(equipment_item):
 					if equipment_manager.assign_equipment_to_character(character_id, equipment_item.id):
 						persisted_count += 1
-						print("  → Assigned to %s (%s): %s" % [owner_name, character_id, equipment_item.get("name")])
 					else:
 						push_warning("  → Equipment added but assignment failed: %s" % equipment_item.get("name"))
 						failed_count += 1
@@ -989,7 +901,6 @@ func _persist_equipment_to_manager(crew_members: Array) -> void:
 					failed_count += 1
 					push_warning("  → Failed to add equipment: %s" % equipment_item.get("name"))
 
-	print("Equipment persistence complete: %d succeeded, %d failed" % [persisted_count, failed_count])
 
 func _get_character_id_from_name(crew_members: Array, character_name: String) -> String:
 	## Get character ID from crew member name
@@ -1004,20 +915,15 @@ func _get_character_id_from_name(crew_members: Array, character_name: String) ->
 	return ""
 
 func _on_reroll_equipment_pressed() -> void:
-	print("========== EquipmentPanel: REROLL BUTTON PRESSED ==========")
-	print("EquipmentPanel: Current equipment count: %d" % generated_equipment.size())
 	_generate_starting_equipment()
-	print("EquipmentPanel: After reroll - equipment count: %d" % generated_equipment.size())
 	_validate_and_complete()  # CRITICAL FIX: Maintain validation state after reroll
 
 func _on_manual_select_pressed() -> void:
 	## Show manual equipment selection dialog using EquipmentManager
-	print("========== EquipmentPanel: MANUAL SELECTION BUTTON PRESSED ==========")
 	
 	# Load and show EquipmentManager as popup dialog
 	var equipment_manager_scene = load("res://src/ui/screens/equipment/EquipmentManager.tscn")
 	if not equipment_manager_scene:
-		print("EquipmentPanel: Could not load EquipmentManager scene, falling back to default equipment")
 		_generate_default_equipment()
 		_validate_and_complete()
 		return
@@ -1037,13 +943,11 @@ func _on_manual_select_pressed() -> void:
 	# Show popup
 	get_tree().current_scene.add_child(popup_dialog)
 	popup_dialog.popup_centered_ratio(0.9)
-	print("EquipmentPanel: Manual equipment selection dialog opened")
 
 func _generate_default_equipment() -> void:
 	## Generate default equipment for testing when no crew data is available
 	# Use class variable crew_size if set, otherwise fallback to 4
 	var effective_crew_size = crew_size if crew_size > 0 else 4
-	print("EquipmentPanel: Generating default equipment for %d crew members" % effective_crew_size)
 
 	generated_equipment.clear()
 
@@ -1051,8 +955,6 @@ func _generate_default_equipment() -> void:
 	# Generate starting credits: (1D6+1) × 100
 	var dice_roll = randi_range(1, 6)
 	starting_credits = (dice_roll + 1) * 100 + effective_crew_size
-	print("EquipmentPanel: Starting credits: %d (rolled %d)" % [starting_credits, dice_roll])
-	
 	# Generate default weapons
 	var military_weapons = ["Colony Rifle", "Auto Rifle", "Military Rifle"]
 	var low_tech_weapons = ["Handgun", "Scrap Pistol", "Colony Rifle"]
@@ -1090,8 +992,6 @@ func _generate_default_equipment() -> void:
 		"owner": "Ship Inventory"
 	})
 	
-	print("EquipmentPanel: Generated %d equipment items" % generated_equipment.size())
-	
 	# Update display
 	_update_equipment_display()
 	_update_summary()
@@ -1109,7 +1009,6 @@ func _generate_default_equipment() -> void:
 	if coordinator and is_instance_valid(coordinator):
 		if coordinator.has_method("update_navigation_state"):
 			coordinator.call("update_navigation_state")
-			print("EquipmentPanel: Notified coordinator - Next button should be enabled")
 
 # get_equipment_data() function moved to line 336
 
@@ -1119,8 +1018,6 @@ func is_setup_complete() -> bool:
 
 func _update_equipment_display() -> void:
 	## Update the equipment list display with assignment dropdowns
-	print("EquipmentPanel: Updating display with %d items" % generated_equipment.size())
-	
 	if not equipment_list:
 		push_error("EquipmentPanel: No equipment_list container found!")
 		return
@@ -1218,7 +1115,6 @@ func _update_equipment_display() -> void:
 	# Update crew loadout display
 	_update_crew_loadout_display()
 	
-	print("EquipmentPanel: ✅ Display updated with %d visible items" % generated_equipment.size())
 
 func _get_type_color(item_type: String) -> Color:
 	## Get color for equipment type display using design system semantic colors
@@ -1338,12 +1234,6 @@ func _on_equipment_assignment_changed(selected_index: int, equipment_index: int)
 	# Update equipment data
 	var old_owner: String = generated_equipment[equipment_index].get("owner", "Unassigned")
 	generated_equipment[equipment_index]["owner"] = new_owner
-	
-	print("EquipmentPanel: Assigned '%s' from '%s' to '%s'" % [
-		generated_equipment[equipment_index].get("name", "Unknown"),
-		old_owner,
-		new_owner
-	])
 	
 	# Update displays
 	_update_summary_labels()
@@ -1501,7 +1391,6 @@ func _create_character_loadout_panel(char_name: String, background: String, equi
 
 func _on_auto_assign_pressed() -> void:
 	## Auto-assign equipment to crew based on backgrounds
-	print("EquipmentPanel: Auto-assigning equipment to crew...")
 	
 	if crew_members.is_empty():
 		push_warning("EquipmentPanel: No crew members available for auto-assign")
@@ -1607,7 +1496,6 @@ func _on_auto_assign_pressed() -> void:
 			# Put in ship stash if no good match
 			generated_equipment[i]["owner"] = "Ship Stash"
 	
-	print("EquipmentPanel: Auto-assignment complete")
 	
 	# Update display
 	_update_equipment_display()
@@ -1639,12 +1527,10 @@ func _force_display_update() -> void:
 
 	# Display any equipment that was already generated
 	if generated_equipment.size() > 0:
-		print("EquipmentPanel: Forcing display update with %d existing items" % generated_equipment.size())
 		_update_equipment_display()
 		_update_summary()
-		print("EquipmentPanel: ✅ Force display update completed")
 	else:
-		print("EquipmentPanel: No equipment to force-display yet")
+		pass
 
 # --- Additions to EquipmentPanel.gd ---
 
@@ -1658,14 +1544,9 @@ func _validate_and_complete() -> void:
 	var has_credits = starting_credits > 0
 	var is_valid = has_equipment or has_credits
 	
-	print("EquipmentPanel: Validation - Equipment: %d items, Credits: %d, Valid: %s" % [
-		generated_equipment.size(), starting_credits, is_valid
-	])
-	
 	# CRITICAL FIX: Emit panel_validation_changed signal to unblock navigation
 	# Use parent class signal signature (boolean only)
 	panel_validation_changed.emit(is_valid)
-	print("EquipmentPanel: Emitted panel_validation_changed(valid=%s)" % is_valid)
 	
 	# Also emit our custom signal with error details
 	if not is_valid:
@@ -1676,7 +1557,6 @@ func _validate_and_complete() -> void:
 	
 	if is_valid:
 		local_equipment_data.is_complete = true
-		print("EquipmentPanel: Panel validation passed - ready to advance")
 		
 		# Emit panel data update for signal-based architecture with proper data
 		panel_data_changed.emit(get_data())
@@ -1690,15 +1570,12 @@ func _validate_and_complete() -> void:
 			equipment_data_complete.emit(get_data())
 			equipment_generation_complete.emit(generated_equipment)
 			_completion_emitted = true  # Prevent duplicate emissions
-			print("EquipmentPanel: Panel completion signals emitted")
 		
 		# Notify coordinator for navigation update
 		if coordinator and coordinator.has_method("update_navigation_state"):
 			coordinator.update_navigation_state()
-			print("EquipmentPanel: Coordinator navigation updated")
 	else:
 		local_equipment_data.is_complete = false
-		print("EquipmentPanel: Panel validation failed - no equipment or credits")
 		validation_failed.emit(["Generate equipment first before proceeding"])
 		equipment_validation_failed.emit(["Generate equipment first before proceeding"])
 
@@ -1812,10 +1689,7 @@ func get_equipment_data() -> Dictionary:
 func restore_panel_data(data: Dictionary) -> void:
 	## Restore panel data from persistence system
 	if data.is_empty():
-		print("EquipmentPanel: No data to restore")
 		return
-	
-	print("EquipmentPanel: Restoring panel data: ", data.keys())
 	
 	# Restore equipment data
 	if data.has("equipment"):
@@ -1833,8 +1707,6 @@ func restore_panel_data(data: Dictionary) -> void:
 	if data.has("is_complete"):
 		local_equipment_data.is_complete = data.is_complete
 	
-	print("EquipmentPanel: Restored %d equipment items, %d credits" % [generated_equipment.size(), starting_credits])
-	
 	# Update UI with restored data
 	_update_display()
 	
@@ -1842,7 +1714,6 @@ func restore_panel_data(data: Dictionary) -> void:
 	if not generated_equipment.is_empty():
 		equipment_generated.emit(generated_equipment)
 	
-	print("EquipmentPanel: Panel data restoration complete")
 
 func _update_display() -> void:
 	## Update all UI displays - used by both testing and production
@@ -1853,7 +1724,6 @@ func _update_display() -> void:
 
 func cleanup_panel() -> void:
 	## Clean up panel state when navigating away
-	print("EquipmentPanel: Cleaning up panel state")
 	
 	# Clear equipment manager instance
 	if equipment_manager_instance:
@@ -1878,53 +1748,13 @@ func cleanup_panel() -> void:
 	generated_equipment.clear()
 	starting_credits = 0
 	
-	print("EquipmentPanel: Panel cleanup completed")
 
 ## Debug Helper Methods
 
 func _log_panel_initialization_debug() -> void:
-	## Comprehensive debug output for panel initialization
-	print("\n==== [PANEL: EquipmentPanel] INITIALIZATION ====")
-	print("  Phase: 5 of 7 (Equipment Assignment)")
-	print("  Panel Title: %s" % panel_title)
-	print("  Panel Description: %s" % panel_description)
+	## Debug output for panel initialization (no-op in release)
+	pass
 	
-	# Check for coordinator access
-	# Fixed: Check owner (CampaignCreationUI) instead of direct parent (content_container)
-	var campaign_ui = owner if owner != null else get_parent().get_parent()
-	var has_coordinator = campaign_ui != null and campaign_ui.has_method("get_coordinator")
-	print("  Has Coordinator Access: %s" % has_coordinator)
-	if has_coordinator:
-		var coordinator = campaign_ui.get_coordinator() if campaign_ui.has_method("get_coordinator") else null
-		print("    Coordinator Available: %s" % (coordinator != null))
-	
-	# Check autoloaded managers availability
-	print("  === AUTOLOAD MANAGER CHECK ===")
-	var campaign_manager = get_node_or_null("/root/CampaignManager")
-	var game_state_manager = get_node_or_null("/root/GameStateManager")
-	var dice_manager_autoload = get_node_or_null("/root/DiceManager")
-
-	print("    CampaignManager: %s" % (campaign_manager != null))
-	print("    GameStateManager: %s" % (game_state_manager != null))
-	print("    DiceManager: %s" % (dice_manager_autoload != null))
-	
-	# Check current equipment data
-	print("  === INITIAL EQUIPMENT DATA ===")
-	print("    Local Equipment Data Keys: %s" % str(local_equipment_data.keys()))
-	print("    Generated Equipment: %d items" % generated_equipment.size())
-	print("    Starting Credits: %d" % starting_credits)
-	print("    Crew Size: %d" % crew_size)
-	print("    Is Complete: %s" % local_equipment_data.get("is_complete", false))
-	
-	# Check UI component availability
-	print("  === UI COMPONENTS ===")
-	print("    Equipment List: %s" % (equipment_list != null))
-	print("    Generate Button: %s" % (generate_button != null))
-	print("    Reroll Button: %s" % (reroll_button != null))
-	print("    Manual Button: %s" % (manual_button != null))
-	print("    Equipment Manager Instance: %s" % (equipment_manager_instance != null))
-	
-	print("==== [PANEL: EquipmentPanel] INIT COMPLETE ====\n")
 
 # ============ FALLBACK UI CREATION METHODS ============
 
@@ -1935,7 +1765,6 @@ func _create_generate_button() -> Button:
 	button.text = "Generate Equipment"
 	button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	print("EquipmentPanel: Created generate button")
 	return button
 
 func _create_reroll_button() -> Button:
@@ -1945,7 +1774,6 @@ func _create_reroll_button() -> Button:
 	button.text = "Reroll Equipment"
 	button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	print("EquipmentPanel: Created reroll button")
 	return button
 
 func _create_manual_button() -> Button:
@@ -1955,7 +1783,6 @@ func _create_manual_button() -> Button:
 	button.text = "Manual Selection"
 	button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	print("EquipmentPanel: Created manual button")
 	return button
 
 func _create_summary_label() -> Label:
@@ -1966,7 +1793,6 @@ func _create_summary_label() -> Label:
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
 	label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	print("EquipmentPanel: Created summary label")
 	return label
 
 func _create_credits_label() -> Label:
@@ -1976,14 +1802,12 @@ func _create_credits_label() -> Label:
 	label.text = "Credits: 0"
 	label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
 	label.add_theme_color_override("font_color", COLOR_ACCENT)
-	print("EquipmentPanel: Created credits label")
 	return label
 
 ## Missing Signal Handlers - Added to prevent parse errors
 
 func _on_reroll_pressed() -> void:
 	## Handle reroll equipment button press
-	print("EquipmentPanel: Reroll equipment pressed")
 	_generate_starting_equipment()
 	_validate_equipment_selection()
 
@@ -2012,70 +1836,41 @@ func _create_equipment_selection_popup(equipment_manager: Control) -> AcceptDial
 
 func _get_crew_for_equipment_assignment() -> Array:
 	## Get crew data for equipment assignment
-	print("EquipmentPanel: ===== CREW DATA RETRIEVAL DEBUG =====")
-	print("EquipmentPanel: coordinator: %s" % str(coordinator))
-	
 	var crew_data = []
-	
+
 	# Try multiple methods to get crew data
 	if coordinator:
-		print("EquipmentPanel: Coordinator found, checking methods...")
-		print("  has get_crew_data(): %s" % coordinator.has_method("get_crew_data"))
-		print("  has get_crew_members(): %s" % coordinator.has_method("get_crew_members"))
-		print("  has crew_data property: %s" % ("crew_data" in coordinator))
-		
 		# Try coordinator.get_crew_data() first
 		if coordinator.has_method("get_crew_data"):
 			crew_data = coordinator.get_crew_data()
-			print("EquipmentPanel: get_crew_data() returned: %s (%d members)" % [typeof(crew_data), crew_data.size() if crew_data is Array else 0])
-		
+
 		# Try alternative methods if first failed
 		if crew_data.is_empty() and coordinator.has_method("get_crew_members"):
 			crew_data = coordinator.get_crew_members()
-			print("EquipmentPanel: get_crew_members() returned: %s (%d members)" % [typeof(crew_data), crew_data.size() if crew_data is Array else 0])
-		
+
 		# Try accessing crew_data property directly
 		if crew_data.is_empty() and "crew_data" in coordinator:
 			crew_data = coordinator.crew_data
-			print("EquipmentPanel: crew_data property: %s (%d members)" % [typeof(crew_data), crew_data.size() if crew_data is Array else 0])
-		
+
 		# Try getting from campaign state
 		if crew_data.is_empty() and coordinator.has_method("get_campaign_state"):
 			var state = coordinator.get_campaign_state()
 			if state and state.has("crew") and state.crew.has("members"):
 				crew_data = state.crew.members
-				print("EquipmentPanel: From campaign state: %d members" % crew_data.size())
-	else:
-		print("EquipmentPanel: ❌ No coordinator available")
-	
-	# Enhanced fallback with debug info
+
+	# Fallback crew data
 	if crew_data.is_empty():
-		print("EquipmentPanel: ⚠️ No crew data found, using fallback")
 		crew_data = [
 			{"character_name": "Captain", "background": "military", "equipment": []},
 			{"character_name": "Engineer", "background": "engineer", "equipment": []},
 			{"character_name": "Medic", "background": "medic", "equipment": []},
 			{"character_name": "Scout", "background": "colonist", "equipment": []}
 		]
-		print("EquipmentPanel: Created fallback crew (%d members)" % crew_data.size())
-	else:
-		print("EquipmentPanel: ✅ Successfully retrieved crew data:")
-		for i in range(min(crew_data.size(), 3)):  # Show first 3 members
-			var member = crew_data[i]
-			var name = member.get("character_name", member.get("name", "Unknown"))
-			var background = member.get("background", member.get("class", "unknown"))
-			print("  [%d] %s (%s)" % [i, name, background])
 	
-	print("EquipmentPanel: ===== END CREW DATA DEBUG =====")
 	return crew_data
 
 func _on_manual_equipment_assigned(equipment_item: Dictionary, crew_member: Dictionary) -> void:
 	## Handle equipment assignment from manual selection
-	print("EquipmentPanel: Equipment assigned - %s to %s" % [
-		equipment_item.get("name", "Unknown"), 
-		crew_member.get("character_name", "Unknown")
-	])
-	
 	# Add to generated equipment with owner information
 	var assigned_equipment = equipment_item.duplicate()
 	assigned_equipment["owner"] = crew_member.get("character_name", "Unknown")
@@ -2098,16 +1893,13 @@ func _on_manual_equipment_assigned(equipment_item: Dictionary, crew_member: Dict
 
 func _on_equipment_dialog_closed(popup: AcceptDialog) -> void:
 	## Handle equipment selection dialog close
-	print("EquipmentPanel: Equipment selection dialog closed")
 	
 	# Ensure we have some equipment to proceed
 	if generated_equipment.size() == 0:
-		print("EquipmentPanel: No equipment selected, generating default equipment")
 		_generate_default_equipment()
 	
 	_validate_and_complete()
 	popup.queue_free()
-	print("EquipmentPanel: Manual selection pressed")
 	# Switch to manual equipment selection mode
 	var equipment_data = get_equipment_data()
 	equipment_data["manual_mode"] = true
@@ -2115,16 +1907,14 @@ func _on_equipment_dialog_closed(popup: AcceptDialog) -> void:
 
 func _validate_equipment_selection() -> void:
 	## Validate current equipment selection
-	print("EquipmentPanel: Validating equipment selection")
 	var equipment_data = get_equipment_data()
 	var total_value = equipment_data.get("total_value", 0)
 	var is_valid = total_value > 0
 
 	if is_valid:
-		print("EquipmentPanel: Equipment selection is valid (value: %d)" % total_value)
-		# Removed redundant panel_completed.emit() - completion handled by _validate_and_complete()
+		pass  # Completion handled by _validate_and_complete()
 	else:
-		print("EquipmentPanel: Equipment selection needs review")
+		pass
 
 ## Responsive Layout Overrides
 

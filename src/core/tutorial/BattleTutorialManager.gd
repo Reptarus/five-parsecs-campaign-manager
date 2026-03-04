@@ -1,9 +1,6 @@
 @tool
 extends Node
 class_name BattleTutorialManager
-
-const Self = preload("res://src/core/tutorial/BattleTutorialManager.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")

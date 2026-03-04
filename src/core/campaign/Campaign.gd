@@ -1,7 +1,5 @@
 @tool
 extends Resource
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
 
 signal campaign_started
@@ -18,17 +16,17 @@ signal resources_changed(resources: Dictionary)
 			return
 		campaign_name = value
 
-@export var difficulty: int = GameEnums.DifficultyLevel.NORMAL:
+@export var difficulty: int = GlobalEnums.DifficultyLevel.NORMAL:
 	set(value):
-		if not value in GameEnums.DifficultyLevel.values():
+		if not value in GlobalEnums.DifficultyLevel.values():
 			push_error("Invalid difficulty level")
 			return
 		difficulty = value
 
-@export var victory_condition: int = GameEnums.FiveParcsecsCampaignVictoryType.STANDARD
-@export var current_phase: int = GameEnums.CampaignPhase.NONE
+@export var victory_condition: int = GlobalEnums.FiveParcsecsCampaignVictoryType.STANDARD
+@export var current_phase: int = GlobalEnums.CampaignPhase.NONE
 @export var resources: Dictionary = {}
-@export var crew_size: int = GameEnums.CrewSize.FOUR
+@export var crew_size: int = GlobalEnums.CrewSize.FOUR
 @export var use_story_track: bool = true
 
 var campaign_turn: int = 0:
@@ -67,7 +65,7 @@ func _initialize_campaign() -> void:
 
 func start_campaign() -> void:
 	var old_phase = current_phase
-	current_phase = GameEnums.CampaignPhase.SETUP
+	current_phase = GlobalEnums.CampaignPhase.SETUP
 	campaign_started.emit()
 	phase_changed.emit(old_phase, current_phase)
 	phase_started.emit(current_phase)
@@ -75,7 +73,7 @@ func start_campaign() -> void:
 func end_campaign(victory: bool = false) -> void:
 	var old_phase = current_phase
 	phase_completed.emit(current_phase)
-	current_phase = GameEnums.CampaignPhase.END
+	current_phase = GlobalEnums.CampaignPhase.END
 	phase_changed.emit(old_phase, current_phase)
 	campaign_ended.emit(victory)
 
@@ -83,7 +81,7 @@ func change_phase(new_phase: int) -> void:
 	if new_phase == current_phase:
 		return
 	
-	if not new_phase in GameEnums.CampaignPhase.values():
+	if not new_phase in GlobalEnums.CampaignPhase.values():
 		push_error("Invalid campaign phase: %d" % new_phase)
 		return
 	
@@ -94,7 +92,7 @@ func change_phase(new_phase: int) -> void:
 	phase_started.emit(current_phase)
 
 func add_resources(resource_type: int, amount: int) -> void:
-	if not resource_type in GameEnums.ResourceType.values():
+	if not resource_type in GlobalEnums.ResourceType.values():
 		push_error("Invalid resource type: %d" % resource_type)
 		return
 	
@@ -105,7 +103,7 @@ func add_resources(resource_type: int, amount: int) -> void:
 	resources_changed.emit(resources)
 
 func remove_resources(resource_type: int, amount: int) -> bool:
-	if not resource_type in GameEnums.ResourceType.values():
+	if not resource_type in GlobalEnums.ResourceType.values():
 		push_error("Invalid resource type: %d" % resource_type)
 		return false
 	
@@ -117,7 +115,7 @@ func remove_resources(resource_type: int, amount: int) -> bool:
 	return true
 
 func get_resource(resource_type: int) -> int:
-	if not resource_type in GameEnums.ResourceType.values():
+	if not resource_type in GlobalEnums.ResourceType.values():
 		push_error("Invalid resource type: %d" % resource_type)
 		return 0
 	
@@ -197,8 +195,8 @@ func to_dictionary() -> Dictionary:
 
 func from_dictionary(data: Dictionary) -> void:
 	campaign_name = data.get("campaign_name", "New Campaign")
-	difficulty = data.get("difficulty", GameEnums.DifficultyLevel.NORMAL)
-	current_phase = data.get("current_phase", GameEnums.CampaignPhase.SETUP)
+	difficulty = data.get("difficulty", GlobalEnums.DifficultyLevel.NORMAL)
+	current_phase = data.get("current_phase", GlobalEnums.CampaignPhase.SETUP)
 	campaign_turn = data.get("campaign_turn", 0)
 	
 	# Load crew data

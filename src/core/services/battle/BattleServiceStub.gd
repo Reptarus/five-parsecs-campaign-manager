@@ -1,4 +1,4 @@
-﻿class_name BattleServiceStub
+class_name BattleServiceStub
 extends IBattleService
 
 ## Battle Service Stub - Immediate Implementation for Campaign Integration Testing
@@ -22,13 +22,12 @@ signal battle_cancelled(session_id: String)
 signal battle_error(session_id: String, error: String)
 
 func _init():
-	print("BattleServiceStub: Initialized - providing simulation battle system")
+	pass
 
 ## IBattleService Implementation
 
 func initialize_battle_system() -> bool:
 	## Initialize stub battle system
-	print("BattleServiceStub: Battle system initialized successfully")
 	return true
 
 func validate_battle_context(context: IBattleService.BattleContext) -> Dictionary:
@@ -62,7 +61,7 @@ func create_battle_session(context: IBattleService.BattleContext) -> IBattleServ
 	var validation = validate_battle_context(context)
 	
 	if not validation.valid:
-		print("BattleServiceStub: Context validation failed - %s" % str(validation.errors))
+		push_warning("BattleServiceStub: Context validation failed - %s" % str(validation.errors))
 		return null
 	
 	var session = IBattleService.BattleSession.new(context)
@@ -70,7 +69,6 @@ func create_battle_session(context: IBattleService.BattleContext) -> IBattleServ
 	
 	active_sessions[session.session_id] = session
 	
-	print("BattleServiceStub: Created battle session - %s" % session.session_id)
 	battle_initialized.emit(session.session_id)
 	
 	return session
@@ -78,11 +76,9 @@ func create_battle_session(context: IBattleService.BattleContext) -> IBattleServ
 func start_battle(session: IBattleService.BattleSession) -> bool:
 	## Start battle simulation
 	if not session or not active_sessions.has(session.session_id):
-		print("BattleServiceStub: Invalid session for battle start")
 		return false
 	
 	session.status = IBattleService.BattleStatus.IN_PROGRESS
-	print("BattleServiceStub: Starting battle simulation - %s" % session.session_id)
 	battle_started.emit(session.session_id)
 	
 	# Start async battle simulation
@@ -108,7 +104,6 @@ func get_battle_results(session_id: String) -> IBattleService.IBattleResults:
 		if session.status == BattleStatus.COMPLETED:
 			return session.get("results", null)
 	
-	print("BattleServiceStub: No results available for session %s" % session_id)
 	return null
 
 func cancel_battle(session_id: String) -> bool:
@@ -120,7 +115,6 @@ func cancel_battle(session_id: String) -> bool:
 	session.status = IBattleService.BattleStatus.CANCELLED
 	session.end_time = Time.get_datetime_string_from_system()
 	
-	print("BattleServiceStub: Battle cancelled - %s" % session_id)
 	battle_cancelled.emit(session_id)
 	
 	# Move to completed sessions
@@ -133,7 +127,6 @@ func cleanup_battle_session(session_id: String) -> void:
 	## Clean up battle session resources
 	active_sessions.erase(session_id)
 	completed_sessions.erase(session_id)
-	print("BattleServiceStub: Cleaned up session - %s" % session_id)
 
 ## Battle Simulation
 
@@ -156,7 +149,6 @@ func _simulate_battle_async(session: IBattleService.BattleSession) -> void:
 	}
 	active_sessions.erase(session.session_id)
 	
-	print("BattleServiceStub: Battle simulation completed - %s (Victory: %s)" % [session.session_id, results.victory])
 	battle_completed.emit(session.session_id, results)
 
 func _generate_battle_results(session: IBattleService.BattleSession) -> IBattleService.IBattleResults:

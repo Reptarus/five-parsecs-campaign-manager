@@ -1,4 +1,4 @@
-﻿class_name TradingSystem
+class_name TradingSystem
 extends Resource
 
 ## Trading System for Five Parsecs Campaign Manager
@@ -39,14 +39,13 @@ func _load_trading_data() -> void:
 		push_warning("Equipment database not found, trying individual files")
 		_load_individual_equipment_files()
 	else:
-		print("TradingSystem: Loaded equipment database with %d total items" % _count_total_items())
 		_extract_equipment_categories()
 		equipment_data_loaded.emit(_count_total_items())
 	
 	# Load loot tables if available
 	loot_tables = _load_json_safe("res://data/loot_tables.json")
 	if loot_tables.is_empty():
-		print("TradingSystem: No loot tables found, using defaults")
+		pass
 	
 	# Build legacy compatibility
 	_build_legacy_compatibility()
@@ -92,7 +91,6 @@ func _load_individual_equipment_files() -> void:
 	}
 	
 	if equipment_data.get("weapons", []).size() > 0 or equipment_data.get("armor", []).size() > 0:
-		print("TradingSystem: Loaded equipment from individual files - %d total items" % _count_total_items())
 		equipment_data_loaded.emit(_count_total_items())
 	else:
 		push_error("Failed to load equipment data from any JSON files")

@@ -206,7 +206,7 @@ func _on_override_applied(value: int) -> void:
 		if combat_resolver and combat_resolver.has_method("apply_override"):
 			combat_resolver.apply_override(active_context, value)
 	else:
-		# TODO: Show validation error
+		# NOTE: Deferred — show validation error feedback to user
 		pass
 
 func _on_override_cancelled() -> void:

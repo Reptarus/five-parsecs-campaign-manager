@@ -1,6 +1,6 @@
 # Five Parsecs Campaign Manager - Development Guide
 
-**Last Updated**: 2026-02-28
+**Last Updated**: 2026-03-04
 **Engine**: Godot 4.6-stable (non-mono, pure GDScript)
 **Repository**: https://github.com/Reptarus/five-parsecs-campaign-manager
 
@@ -19,7 +19,7 @@ Note: The Godot folder IS named `*.exe` (it's a directory containing executables
 
 ---
 
-## Project Status (February 2026)
+## Project Status (March 2026)
 
 | Metric | Value |
 |--------|-------|
@@ -27,10 +27,13 @@ Note: The Godot folder IS named `*.exe` (it's a directory containing executables
 | Core Rules Systems | 11/11 verified |
 | Campaign Turn Phases | 9/9 fully wired |
 | Campaign Creation | 7-phase coordinator system |
+| Bug Hunt Gamemode | Phases 1-7 complete (38 files) |
+| Store/Paywall System (Phase 24) | Tri-platform (Steam/Android/iOS) |
 | Script Consolidation (Phase 5) | 9/9 sprints complete |
 | World→Battle Data Flow (Phase 21) | 3 sub-phases complete |
+| Functional Gaps Cleanup | 7/7 sprints (F-1 to F-7) |
 | Compile Errors | 0 |
-| GDScript Files | ~871 (excl. addons) |
+| GDScript Files | ~900 (excl. addons) |
 
 ---
 
@@ -54,6 +57,25 @@ Orchestrated by `CampaignCreationCoordinator` with `CampaignCreationStateManager
 STORY -> TRAVEL -> UPKEEP -> MISSION -> POST_MISSION -> ADVANCEMENT -> TRADING -> CHARACTER -> RETIREMENT
 ```
 Each phase has a dedicated panel wired into `CampaignPhaseManager` -> `CampaignTurnController` with completion signals and data handoff.
+
+### Bug Hunt Gamemode (Compendium)
+
+Standalone military-themed variant with 3-stage turn, separate from the 9-phase campaign.
+
+```
+MainMenu → BugHuntCreationUI (4-step wizard) → BugHuntDashboard → BugHuntTurnController
+  Stage 1: SPECIAL_ASSIGNMENTS (SpecialAssignmentsPanel)
+  Stage 2: MISSION (BugHuntMissionPanel → TacticalBattleUI in bug_hunt mode)
+  Stage 3: POST_BATTLE (BugHuntPostBattlePanel)
+```
+
+- **BugHuntCampaignCore** (Resource): Separate from FiveParsecsCampaignCore — no ship, no patrons/rivals
+- **BugHuntPhaseManager**: 3-stage turn orchestration (vs 9-phase CampaignPhaseManager)
+- **TacticalBattleUI** reused with `battle_mode: "bug_hunt"` (hides morale, adds ContactMarkerPanel)
+- **CharacterTransferService**: Bidirectional transfer (5PFH ↔ Bug Hunt) with enlistment rolls
+- **GameState.load_campaign()**: Peeks JSON via `_detect_campaign_type()` to route to correct loader
+- **SceneRouter keys**: `bug_hunt_creation`, `bug_hunt_dashboard`, `bug_hunt_turn_controller`
+- **15 JSON data files** in `data/bug_hunt/`, **23 GDScript/TSCN files** across `src/`
 
 ### Battle Phase Manager
 The battle system is a **tabletop companion assistant** (NOT a tactical simulator). All output is TEXT INSTRUCTIONS for the player to execute on the physical tabletop. Three-tier tracking: LOG_ONLY / ASSISTED / FULL_ORACLE.
@@ -89,6 +111,34 @@ if dlc and dlc.is_feature_enabled(dlc.ContentFlag.SOME_FLAG):
     # DLC-gated code
 ```
 
+### Store/Paywall System (Phase 24)
+Tri-platform DLC purchase system using adapter pattern:
+```
+StoreManager (autoload) → StoreAdapter (abstract base)
+  ├─ SteamStoreAdapter    → Engine.get_singleton("Steam") + steamInitEx()
+  ├─ AndroidStoreAdapter  → Engine.get_singleton("AndroidIAPP")
+  ├─ IOSStoreAdapter      → ClassDB.instantiate("StoreKitManager")  ← NOT a singleton!
+  └─ OfflineStoreAdapter  → Fallback for editor/dev mode
+```
+- **Product IDs**: All in `StoreManager.gd` `PRODUCT_IDS` const — placeholder, swap before release
+- **Plugins installed**: GodotSteam (addons/godotsteam/), GodotApplePlugins (addons/GodotApplePlugins/), AndroidIAPP (addons/AndroidIAPP/ + android_IAPP/)
+- **Purchase flow**: StoreManager.purchase_dlc() → Adapter.purchase() → purchase_completed signal → DLCManager.set_dlc_owned()
+- **Autoload timing**: Adapters use `load()` not `preload()`, path-based `extends` (not class_name)
+- **iOS quirk**: `purchase()` takes a `StoreProduct` object (cached from query), not a string ID
+- **Android quirk**: Product IDs passed as arrays: `purchase(["pid"], false)`, must acknowledge within 3 days
+- **Steam quirk**: Opens store overlay for purchase, ownership via `isDLCInstalled(app_id: int)`
+
+### Review System (Phase 25)
+
+Cross-platform in-app review prompts via ReviewManager autoload:
+
+- **Android/iOS**: InappReviewPlugin (`Engine.has_singleton("InappReviewPlugin")`) — 2-step flow: `generate_review_info()` → `launch_review_flow()`
+- **Steam**: Opens store page via overlay (`activateGameOverlayToWebPage()`)
+- **Offline**: No-op
+- **Timing**: MIN_TURNS_BEFORE_REVIEW=5, REVIEW_COOLDOWN_DAYS=30, persisted to `user://review_prefs.cfg`
+- **InappReviewPlugin file layout**: plugin.cfg + .gd in `addons/InappReviewPlugin/`, AARs in `InappReviewPlugin/bin/` (project root)
+- **class_name collision fix**: Root copy `InappReviewPlugin/InappReview.gd` has NO class_name; `addons/` copy retains it
+
 ---
 
 ## Key Autoloads (from project.godot)
@@ -101,6 +151,8 @@ if dlc and dlc.is_feature_enabled(dlc.ContentFlag.SOME_FLAG):
 | GameDataManager | src/core/managers/GameDataManager.gd | Data loading |
 | DataManager | src/core/data/DataManager.gd | Data persistence |
 | DLCManager | src/core/systems/DLCManager.gd | DLC feature flags |
+| StoreManager | src/core/store/StoreManager.gd | Platform store adapter bridge |
+| ReviewManager | src/core/store/ReviewManager.gd | Cross-platform in-app review prompts |
 | DiceManager | src/core/managers/DiceManager.gd | Dice rolling |
 | SceneRouter | src/ui/screens/SceneRouter.gd | Scene transitions |
 | EquipmentManager | src/core/equipment/EquipmentManager.gd | Equipment operations |
@@ -114,6 +166,7 @@ if dlc and dlc.is_feature_enabled(dlc.ContentFlag.SOME_FLAG):
 | PlanetCache | src/core/world/PlanetCache.gd | Planet data cache |
 | WorldEconomyManager | src/core/world/WorldEconomyManager.gd | World economy |
 | ResourceSystem | src/core/systems/ResourceSystem.gd | Resource management |
+| TweenFX | addons/TweenFX/TweenFX.gd | Animation addon (70 animations, auto-lifecycle) |
 
 ---
 
@@ -276,6 +329,16 @@ panel.captain_updated.connect(func(captain): coordinator.update_captain_state({"
 - **equipment_data key is `"equipment"`**: Ship stash is stored under `campaign.equipment_data["equipment"]`. Do NOT use `"pool"` — that was a systemic bug fixed in Phase 22
 - **Character.to_dictionary() dual keys**: Returns both `"id"`/`"name"` AND `"character_id"`/`"character_name"` aliases. Always include both when manually creating crew dicts
 - **PreBattleUI uses `setup_preview()`**: Not `initialize_battle()` or `set_mission_data()`. Also needs `setup_crew_selection()` for crew panel
+- **Autoload timing with `load()` vs `preload()`**: Autoloads parse before import system. StoreManager uses `load()` at runtime for adapter scripts, and adapters use path-based `extends "res://path/to/script.gd"` instead of `extends ClassName`
+- **GodotApplePlugins StoreKitManager is NOT a singleton**: Use `ClassDB.class_exists(&"StoreKitManager")` + `ClassDB.instantiate(&"StoreKitManager")`. Do NOT use `Engine.get_singleton()`
+- **AndroidIAPP file layout**: `plugin.cfg` + `.gd` in `addons/AndroidIAPP/`, AARs (`.aar` files) in `android_IAPP/` at project root
+- **Steam needs `steam_appid.txt`**: Place at project root with base game App ID. Without it, `steamInitEx()` returns status 1
+- **Bug Hunt ↔ 5PFH campaign types are incompatible**: `BugHuntCampaignCore` has `main_characters`/`grunts` (flat Arrays), `FiveParsecsCampaignCore` has `crew_data["members"]` (nested Dict). Always validate `"main_characters" in campaign` before Bug Hunt code. `GameState._detect_campaign_type()` peeks JSON to choose correct loader
+- **Bug Hunt temp_data keys use `"bug_hunt_*"` prefix**: `"bug_hunt_battle_context"`, `"bug_hunt_battle_result"`, `"bug_hunt_mission"`. Standard keys: `"world_phase_results"`, `"return_screen"`, `"selected_character"`. No collisions
+- **TacticalBattleUI shared between both modes**: Bug Hunt code is guarded by `battle_mode == "bug_hunt"` and `_check_bug_hunt_launch()` validation. Standard flow unaffected
+- **TweenFX pivot_offset**: TweenFX NEVER sets `pivot_offset`. Must call `node.pivot_offset = node.size / 2` before any scale/rotation animation (`press`, `pop_in`, `pulsate`, `punch_in`, `breathe`, `tada`, `critical_hit`, `upgrade`, `attract`, `headshake`). Safe without: `fade_in`, `fade_out`, `blink`, `spotlight`, `alarm`, `shake`
+- **TweenFX looping cleanup**: Looping animations (`alarm`, `breathe`, `attract`, `glow_pulse`) must be explicitly stopped with `TweenFX.stop(node, TweenFX.Animations.X)` or `TweenFX.stop_all(node)` in cleanup/hide code
+- **TweenFX.tada() signature**: Takes only 2 args `(node, duration)` — no scale parameter
 
 ---
 

@@ -20,7 +20,7 @@ enum MissionState {
 # Five Parsecs specific properties
 var resource_multiplier: float = 1.0
 var reputation_multiplier: float = 1.0
-var victory_condition: int = GameEnums.MissionVictoryType.OBJECTIVE
+var victory_condition: int = GlobalEnums.MissionVictoryType.OBJECTIVE
 var deployment_points: Array[Vector2] = []
 var objective_points: Array[Vector2] = []
 var mission_events: Array[Dictionary] = []

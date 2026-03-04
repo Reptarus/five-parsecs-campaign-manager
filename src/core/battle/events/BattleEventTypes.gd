@@ -1,11 +1,8 @@
 extends Resource
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 # Event definitions with their effects and requirements
 const BATTLE_EVENTS = {
 	"CRITICAL_HIT": {
-		"category": GameEnums.EventCategory.COMBAT,
+		"category": GlobalEnums.EventCategory.COMBAT,
 		"probability": 0.15,
 		"effect": {
 			"type": "damage_multiplier",
@@ -14,7 +11,7 @@ const BATTLE_EVENTS = {
 		"requirements": ["attack_roll >= 6"]
 	},
 	"WEAPON_JAM": {
-		"category": GameEnums.EventCategory.EQUIPMENT,
+		"category": GlobalEnums.EventCategory.EQUIPMENT,
 		"probability": 0.1,
 		"effect": {
 			"type": "disable_weapon",
@@ -23,7 +20,7 @@ const BATTLE_EVENTS = {
 		"requirements": ["has_ranged_weapon", "attack_roll <= 1"]
 	},
 	"TAKE_COVER": {
-		"category": GameEnums.EventCategory.TACTICAL,
+		"category": GlobalEnums.EventCategory.TACTICAL,
 		"probability": 0.2,
 		"effect": {
 			"type": "defense_bonus",

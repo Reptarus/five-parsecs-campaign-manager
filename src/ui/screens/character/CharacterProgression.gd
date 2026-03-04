@@ -66,7 +66,6 @@ signal progression_applied(character: Character)
 signal progression_cancelled()
 
 func _ready() -> void:
-	print("CharacterProgression: Initializing...")
 	_setup_ui_validation()
 	_setup_ui_components()
 
@@ -217,7 +216,7 @@ func display_character(character: Character, stat_points: int = 0, skill_points:
 	_update_display()
 
 	if character:
-		print("CharacterProgression: Displaying progression for: ", character.character_name)
+		pass
 
 func _update_display() -> void:
 	## Update all UI displays
@@ -432,7 +431,6 @@ func _on_apply_pressed() -> void:
 				current_character.add_trait(str(skill_name) + " (Level " + str(level) + ")")
 
 	progression_applied.emit(current_character)
-	print("CharacterProgression: Applied progression to: ", current_character.character_name)
 
 func _on_cancel_pressed() -> void:
 	## Cancel progression changes

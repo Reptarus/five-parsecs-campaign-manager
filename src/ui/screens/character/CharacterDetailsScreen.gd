@@ -70,7 +70,6 @@ var stat_advancement_buttons: Dictionary = {}
 var training_purchase_buttons: Dictionary = {}
 
 func _ready() -> void:
-	print("CharacterDetailsScreen: Initializing...")
 
 	# Connect button signals
 	if save_button:
@@ -105,7 +104,6 @@ func _ready() -> void:
 	# Load character data
 	load_character_data()
 
-	print("CharacterDetailsScreen: Ready")
 
 func load_character_data() -> void:
 	## Load character from GameStateManager temp storage
@@ -121,7 +119,6 @@ func load_character_data() -> void:
 		push_error("CharacterDetailsScreen: No character selected")
 		return
 
-	print("CharacterDetailsScreen: Loading character - ", current_character.name if "name" in current_character else "Unknown")
 
 	# Store original data for cancel
 	if current_character.has_method("to_dictionary"):
@@ -361,7 +358,6 @@ func _apply_responsive_stats_grid() -> void:
 	stats_grid.add_theme_constant_override("h_separation", h_spacing)
 	stats_grid.add_theme_constant_override("v_separation", v_spacing)
 
-	print("CharacterDetailsScreen: Stats grid adjusted to %d columns for %dpx viewport" % [columns, viewport_width])
 
 func _update_equipment_display() -> void:
 	## Update equipment list with BBCode keyword links
@@ -471,7 +467,6 @@ func _update_implants_display() -> void:
 
 func _on_save_pressed() -> void:
 	## Save character changes and return
-	print("CharacterDetailsScreen: Saving changes...")
 	
 	if not current_character:
 		return
@@ -483,20 +478,17 @@ func _on_save_pressed() -> void:
 	if GameStateManager:
 		GameStateManager.mark_campaign_modified()
 	
-	print("CharacterDetailsScreen: Changes saved to character")
 	
 	# Return to crew management
 	return_to_crew_management()
 
 func _on_cancel_pressed() -> void:
 	## Cancel changes and return
-	print("CharacterDetailsScreen: Canceling changes...")
 
 	# Restore original data if possible
 	if current_character and not original_data.is_empty():
 		if current_character.has_method("from_dictionary"):
 			current_character.from_dictionary(original_data)
-			print("CharacterDetailsScreen: Restored original character data")
 
 	# Return to crew management
 	return_to_crew_management()
@@ -514,7 +506,6 @@ func _on_add_equipment_pressed() -> void:
 	## Show popup listing items from campaign equipment pool (Ship Stash)
 	var gs = get_node_or_null("/root/GameState")
 	if not gs or not gs.campaign or not "equipment_data" in gs.campaign:
-		print("CharacterDetailsScreen: No campaign equipment pool available")
 		return
 	var pool: Array = []
 	if gs.campaign.has_method("get_all_equipment"):
@@ -522,7 +513,6 @@ func _on_add_equipment_pressed() -> void:
 	else:
 		pool = gs.campaign.equipment_data.get("equipment", [])
 	if pool.is_empty():
-		print("CharacterDetailsScreen: Ship stash is empty")
 		return
 	var popup := PopupMenu.new()
 	popup.name = "AddEquipPopup"
@@ -540,7 +530,6 @@ func _on_add_equipment_pressed() -> void:
 			pool.remove_at(id)
 			gs.campaign.equipment_data["equipment"] = pool
 			_update_equipment_display()
-			print("CharacterDetailsScreen: Added '%s' from ship stash" % (chosen.get("name", "item") if chosen is Dictionary else str(chosen)))
 		popup.queue_free()
 	)
 	popup.popup_centered()
@@ -551,7 +540,6 @@ func _on_remove_equipment_pressed() -> void:
 		return
 	var equipment: Array = current_character.equipment
 	if equipment.is_empty():
-		print("CharacterDetailsScreen: Character has no equipment to remove")
 		return
 	var popup := PopupMenu.new()
 	popup.name = "RemoveEquipPopup"
@@ -575,7 +563,6 @@ func _on_remove_equipment_pressed() -> void:
 				pool.append(removed)
 				gs.campaign.equipment_data["equipment"] = pool
 			_update_equipment_display()
-			print("CharacterDetailsScreen: Returned '%s' to ship stash" % (removed.get("name", "item") if removed is Dictionary else str(removed)))
 		popup.queue_free()
 	)
 	popup.popup_centered()
@@ -826,7 +813,6 @@ func _on_stat_advance_pressed(stat_name: String) -> void:
 	if not current_character:
 		return
 	
-	print("CharacterDetailsScreen: Advancing stat - ", stat_name)
 	
 	# Convert character to dictionary
 	var character_dict := _character_to_dict(current_character)
@@ -845,16 +831,14 @@ func _on_stat_advance_pressed(stat_name: String) -> void:
 		# Refresh all UI
 		populate_ui()
 		
-		print("CharacterDetailsScreen: %s" % result.message)
 	else:
-		print("CharacterDetailsScreen: Advancement failed - %s" % result.message)
+		pass
 
 func _on_training_pressed(training_type: String) -> void:
 	## Handle training purchase button press
 	if not current_character:
 		return
 	
-	print("CharacterDetailsScreen: Purchasing training - ", training_type)
 	
 	# Get training cost
 	var training_costs := {
@@ -868,11 +852,9 @@ func _on_training_pressed(training_type: String) -> void:
 	
 	# Validate
 	if training_type in current_training:
-		print("CharacterDetailsScreen: Already has this training")
 		return
 	
 	if current_xp < cost:
-		print("CharacterDetailsScreen: Insufficient XP - need %d, have %d" % [cost, current_xp])
 		return
 	
 	# Apply training
@@ -887,7 +869,6 @@ func _on_training_pressed(training_type: String) -> void:
 	# Refresh all UI
 	populate_ui()
 	
-	print("CharacterDetailsScreen: Purchased %s training for %d XP" % [training_type, cost])
 
 func _character_to_dict(character: Resource) -> Dictionary:
 	## Convert Character resource to dictionary for advancement service
@@ -1136,7 +1117,6 @@ func _on_bot_upgrade_pressed(upgrade_id: String, advancement_system: FPCM_Advanc
 	if not current_character:
 		return
 	
-	print("CharacterDetailsScreen: Installing bot upgrade - ", upgrade_id)
 	
 	# Get game state
 	var game_state: Variant = GameStateManager.get_game_state()
@@ -1155,9 +1135,8 @@ func _on_bot_upgrade_pressed(upgrade_id: String, advancement_system: FPCM_Advanc
 		# Refresh all UI
 		populate_ui()
 		
-		print("CharacterDetailsScreen: Bot upgrade installed successfully")
 	else:
-		print("CharacterDetailsScreen: Bot upgrade installation failed")
+		pass
 
 # ============ CHARACTER HISTORY ============
 

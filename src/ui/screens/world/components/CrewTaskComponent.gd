@@ -138,7 +138,6 @@ var credits_spent_on_tasks: Dictionary = {}  # task_id -> credits spent
 
 func _ready() -> void:
 	name = "CrewTaskComponent"
-	print("CrewTaskComponent: Initialized - handling Five Parsecs crew task rules")
 	
 	_initialize_event_bus()
 	_connect_ui_signals()
@@ -158,7 +157,6 @@ func _initialize_event_bus() -> void:
 	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
 	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.AUTOMATION_TOGGLED, _on_automation_toggled)
 	
-	print("CrewTaskComponent: Connected to event bus")
 
 func _exit_tree() -> void:
 	## Cleanup event bus subscriptions to prevent memory leaks
@@ -226,7 +224,7 @@ func initialize_crew_tasks(crew: Array) -> void:
 	completed_tasks.clear()
 	all_tasks_resolved = false
 	
-	print("CrewTaskComponent: Initialized with %d crew members" % crew_data.size())
+	pass # Initialized with crew members
 	
 	_populate_crew_list()
 	_populate_available_tasks()
@@ -311,14 +309,12 @@ func _on_assign_task_pressed() -> void:
 	var selected_task = available_tasks_list.get_selected_items()
 
 	if selected_crew.is_empty() or selected_task.is_empty():
-		print("CrewTaskComponent: Must select both crew member and task")
 		return
 
 	var crew_index = selected_crew[0]
 	var task_index = selected_task[0]
 
 	if crew_index >= crew_data.size() or task_index >= available_crew_tasks.size():
-		print("CrewTaskComponent: Invalid selection indices")
 		return
 
 	var crew_member = crew_data[crew_index]
@@ -329,12 +325,12 @@ func _on_assign_task_pressed() -> void:
 	# Check if crew is in Sick Bay
 	var is_in_sick_bay = crew_member.get("in_sick_bay", false) or crew_member.get("status", "") == "injured"
 	if is_in_sick_bay:
-		print("CrewTaskComponent: %s is in Sick Bay and cannot perform tasks" % crew_member.get("character_name", "Unknown"))
+		pass # Crew member in Sick Bay
 		return
 
 	# Check if crew already assigned
 	if crew_id in assigned_tasks:
-		print("CrewTaskComponent: %s already has a task assigned" % crew_member.get("character_name", "Unknown"))
+		pass # Already has task
 		return
 
 	# Check max_crew limit
@@ -342,7 +338,7 @@ func _on_assign_task_pressed() -> void:
 		task_assignments[task_id] = []
 
 	if task_assignments[task_id].size() >= task.max_crew:
-		print("CrewTaskComponent: %s already has maximum crew (%d)" % [task.name, task.max_crew])
+		pass # Task at max crew
 		return
 
 	# Assign task
@@ -357,12 +353,7 @@ func _on_assign_task_pressed() -> void:
 	# Track in task_assignments for multi-crew
 	task_assignments[task_id].append(crew_id)
 
-	print("CrewTaskComponent: Assigned %s to %s (%d/%d crew)" % [
-		task.name,
-		crew_member.get("character_name", "Unknown"),
-		task_assignments[task_id].size(),
-		task.max_crew
-	])
+	pass # Task assigned to crew member
 
 	# Update UI
 	_populate_crew_list()
@@ -383,10 +374,9 @@ func _on_assign_task_pressed() -> void:
 func _on_resolve_all_pressed() -> void:
 	## Resolve all assigned crew tasks using Five Parsecs rules
 	if assigned_tasks.is_empty():
-		print("CrewTaskComponent: No tasks assigned to resolve")
 		return
 	
-	print("CrewTaskComponent: Resolving %d crew tasks" % assigned_tasks.size())
+	pass # Resolving crew tasks
 	
 	var resolution_results: Array = []
 	
@@ -416,7 +406,7 @@ func _on_resolve_all_pressed() -> void:
 			"all_resolved": all_tasks_resolved
 		})
 	
-	print("CrewTaskComponent: All tasks resolved, success rate: %.1f%%" % _calculate_success_rate())
+	pass # All tasks resolved
 
 func _resolve_single_task(crew_id: String, task_data: Dictionary) -> Dictionary:
 	## Resolve a single crew task using Five Parsecs Core Rules
@@ -450,7 +440,7 @@ func _resolve_single_task(crew_id: String, task_data: Dictionary) -> Dictionary:
 			result = _resolve_repair_task(result, task, crew_member)
 
 	var status = "SUCCESS" if result.success else "FAILED"
-	print("CrewTaskComponent: %s - %s: %s (%s)" % [result.crew_name, result.task_name, status, result.details])
+	pass # Task resolved
 
 	return result
 
@@ -550,7 +540,7 @@ func _generate_and_add_patron(count: int) -> void:
 			var patron_data: Dictionary = contact_result.get("patron", {})
 			if not patron_data.is_empty() and campaign and "patrons" in campaign:
 				campaign.patrons.append(patron_data)
-				print("CrewTaskComponent: Added patron '%s' (%s tier)" % [patron_data.get("name", "?"), patron_data.get("tier", "?")])
+				pass # Patron added
 		else:
 			# Fallback: generate a basic patron even if roll failed (task already succeeded)
 			var fallback: Dictionary = {
@@ -562,7 +552,6 @@ func _generate_and_add_patron(count: int) -> void:
 			}
 			if campaign and "patrons" in campaign:
 				campaign.patrons.append(fallback)
-				print("CrewTaskComponent: Added fallback patron")
 	pjm.free()
 
 func _resolve_table_task(result: Dictionary, task: Dictionary, crew_member: Dictionary) -> Dictionary:
@@ -1064,14 +1053,12 @@ func _cache_deferred_event(trigger_type: String, event_name: String, crew_id: St
 		if not campaign.progress_data.has("pending_events"):
 			campaign.progress_data["pending_events"] = []
 		campaign.progress_data["pending_events"].append(event)
-		print("Cached deferred event: %s (trigger: %s) for crew %s" % [
-			event_name, trigger_type, crew_id])
+		pass # Cached deferred event
 	elif campaign is Dictionary:
 		if not campaign.has("pending_events"):
 			campaign["pending_events"] = []
 		campaign["pending_events"].append(event)
-		print("Cached deferred event (dict): %s (trigger: %s) for crew %s" % [
-			event_name, trigger_type, crew_id])
+		pass # Cached deferred event (dict)
 	else:
 		push_warning("Cannot cache deferred event - no progress_data on campaign")
 
@@ -1241,13 +1228,12 @@ func _on_phase_started(data: Dictionary) -> void:
 	## Handle phase started events
 	var phase_name = data.get("phase_name", "")
 	if phase_name == "crew_tasks":
-		print("CrewTaskComponent: Crew tasks phase started")
+		pass
 
 func _on_automation_toggled(data: Dictionary) -> void:
 	## Handle automation toggle - auto-assign and resolve tasks
 	var automation_enabled = data.get("enabled", false)
 	if automation_enabled and not assigned_tasks.is_empty():
-		print("CrewTaskComponent: Auto-resolving tasks due to automation")
 		_on_resolve_all_pressed()
 
 ## Public API for integration
@@ -1277,7 +1263,6 @@ func reset_crew_tasks() -> void:
 	_populate_crew_list()
 	_populate_available_tasks()
 	_update_ui_state()
-	print("CrewTaskComponent: Reset for new turn")
 
 func complete_crew_task_phase() -> void:
 	## Mark the crew task phase as complete and publish event
@@ -1291,7 +1276,6 @@ func complete_crew_task_phase() -> void:
 			"success_rate": _calculate_success_rate()
 		})
 
-	print("CrewTaskComponent: Crew task phase completed")
 
 func spend_credits_on_task(task_id: String, amount: int) -> bool:
 	## Spend credits on a task for bonus modifier
@@ -1307,14 +1291,12 @@ func spend_credits_on_task(task_id: String, amount: int) -> bool:
 
 	var max_bonus = task.get("credit_bonus", 0)
 	if max_bonus <= 0:
-		print("CrewTaskComponent: %s doesn't support credit bonuses" % task.name)
 		return false
 
 	var current_spent = credits_spent_on_tasks.get(task_id, 0)
 	var total = current_spent + amount
 
 	if total > max_bonus:
-		print("CrewTaskComponent: Can only spend up to %d credits on %s" % [max_bonus, task.name])
 		return false
 
 	# Check GameStateManager has enough credits and deduct
@@ -1322,14 +1304,13 @@ func spend_credits_on_task(task_id: String, amount: int) -> bool:
 	if game_state_manager:
 		var available_credits = game_state_manager.get_credits()
 		if available_credits < amount:
-			print("CrewTaskComponent: Not enough credits (%d available, need %d)" % [available_credits, amount])
+			push_warning("CrewTaskComponent: Not enough credits (%d available, need %d)" % [available_credits, amount])
 			return false
 		if not game_state_manager.remove_credits(amount):
-			print("CrewTaskComponent: Failed to deduct %d credits" % amount)
 			return false
 
 	credits_spent_on_tasks[task_id] = total
-	print("CrewTaskComponent: Spent %d credits on %s (total: %d/%d)" % [amount, task.name, total, max_bonus])
+	pass # Credits spent on task
 	return true
 
 ## Helper function to apply XP to a character
@@ -1368,9 +1349,7 @@ func _apply_xp_to_character(crew_member: Dictionary, amount: int, source: String
 			elif character is Dictionary:
 				current_xp = character.get("experience", 0)
 				character["experience"] = current_xp + amount
-			print("CrewTaskComponent: Applied %d XP to character %s from %s (total: %d)" % [
-				amount, character_id, source, current_xp + amount
-			])
+			pass # XP applied to character
 			return
 
 	# Fallback: iterate crew list
@@ -1404,9 +1383,7 @@ func _apply_xp_to_character(crew_member: Dictionary, amount: int, source: String
 				current_xp = character.get("experience", 0)
 				character["experience"] = current_xp + amount
 
-			print("CrewTaskComponent: Applied %d XP to character %s from %s (total: %d)" % [
-				amount, character_id, source, current_xp + amount
-			])
+			pass # XP applied to character
 			return
 
 	push_warning("CrewTaskComponent: Character %s not found in crew" % character_id)

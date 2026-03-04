@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 class_name CleanupHelpers
 extends RefCounted
 
@@ -85,11 +85,11 @@ class CleanupMixin:
 	## Register current object for cleanup (only for Node-based objects)
 	func register_self_cleanup() -> void:
 		# This mixin is designed for objects that inherit from Node
-		print("[CleanupMixin] Warning: register_self_cleanup called on non-Node object")
-	
+		pass
+
 	## Add child with automatic cleanup (only for Node-based objects)
 	func add_child_with_cleanup(child: Node, context: String = "") -> void:
-		print("[CleanupMixin] Warning: add_child_with_cleanup called on non-Node object")
+		pass
 	
 	## Connect signal with automatic cleanup
 	func connect_signal_with_cleanup(source: Object, signal_name: String, method_name: String) -> void:
@@ -102,7 +102,6 @@ class CleanupMixin:
 	
 	## Create timer with automatic cleanup (only for Node-based objects)
 	func create_timer_with_cleanup(wait_time: float, callback: Callable, context: String = "") -> Timer:
-		print("[CleanupMixin] Warning: create_timer_with_cleanup called on non-Node object")
 		return null
 	
 	## Load resource with automatic cleanup
@@ -112,7 +111,7 @@ class CleanupMixin:
 	## Cleanup all registered items for this object
 	func cleanup_all() -> void:
 		# This would be called automatically by UniversalCleanupFramework
-		print("[CleanupMixin] Cleaning up all items for: %s" % _cleanup_context)
+		pass
 
 ## CONVENIENCE METHODS FOR SPECIFIC SYSTEMS
 
@@ -179,7 +178,6 @@ static func integrate_with_memory_leak_prevention() -> void:
 ## Memory threshold callback
 static func _on_memory_threshold_exceeded(current_memory: float, peak_memory: float, baseline_memory: float) -> void:
 	## Triggered when memory thresholds are exceeded
-	print("[CleanupHelpers] Memory threshold exceeded - triggering preventive cleanup")
 	
 	# Trigger cleanup of low-priority items
 	await UniversalCleanupFramework._trigger_preventive_cleanup()
@@ -198,7 +196,6 @@ static func setup_autoload_cleanup(autoload_name: String, autoload_node: Node) -
 			autoload_node.cleanup()
 		elif autoload_node.has_method("shutdown"):
 			autoload_node.shutdown()
-		print("[CleanupHelpers] Cleaned up autoload: %s" % autoload_name)
 	
 	UniversalCleanupFramework.register_cleanup_callback(
 		cleanup_callback, 
@@ -230,22 +227,15 @@ static func print_cleanup_diagnostics() -> void:
 	## Print detailed cleanup diagnostics to console
 	var status = get_cleanup_status()
 	
-	print("\n[CleanupHelpers] CLEANUP DIAGNOSTICS")
-	print("=====================================")
-	print("Framework Initialized: %s" % status.framework_initialized)
-	print("Registered Cleanup Items: %d" % status.registered_cleanup_count)
-	print("Memory Integration: %s" % status.memory_integration)
 	
 	if status.has("memory_stable"):
-		print("Memory Stable: %s" % status.memory_stable)
+		pass
 	
 	var stats = status.cleanup_statistics
 	if stats.size() > 0:
-		print("\nCleanup Statistics:")
 		for key in stats.keys():
-			print("  %s: %s" % [key, stats[key]])
+			pass
 	
-	print("=====================================\n")
 
 ## EASY GLOBAL ACCESS METHODS
 
@@ -258,12 +248,10 @@ static func initialize_global_cleanup() -> void:
 	# Integrate with MemoryLeakPrevention
 	integrate_with_memory_leak_prevention()
 	
-	print("[CleanupHelpers] ✅ Global cleanup helpers initialized")
 
 ## Emergency cleanup all systems
 static func emergency_cleanup_all() -> Dictionary:
 	## Emergency cleanup of all systems - use only in critical situations
-	print("[CleanupHelpers] 🚨 EMERGENCY CLEANUP ALL SYSTEMS")
 	
 	var cleanup_result = {
 		"universal_cleanup": {},
@@ -277,5 +265,4 @@ static func emergency_cleanup_all() -> Dictionary:
 	# Memory cleanup
 	cleanup_result.memory_cleanup = await MemoryLeakPrevention.emergency_memory_release()
 	
-	print("[CleanupHelpers] ✅ Emergency cleanup complete")
 	return cleanup_result

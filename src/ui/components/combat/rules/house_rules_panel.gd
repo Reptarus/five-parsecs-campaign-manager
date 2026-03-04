@@ -85,7 +85,7 @@ func _setup_signals() -> void:
 		validation_panel.validation_completed.connect(_on_validation_completed)
 
 func _load_rule_templates() -> void:
-	# TODO: Load additional templates from config file
+	# NOTE: Deferred — load additional rule templates from config file
 	pass
 
 func _update_rules_list() -> void:

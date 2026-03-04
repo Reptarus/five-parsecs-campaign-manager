@@ -60,7 +60,6 @@ var _campaign: Variant = null
 func set_campaign(campaign: Variant) -> void:
 	## Receive campaign reference from CampaignPhaseManager.
 	_campaign = campaign
-	print("PostBattlePhase: Campaign reference set")
 
 ## SPRINT 7.1: Consistent access pattern for campaign configuration
 ## Source of truth: Campaign resource (difficulty, house_rules, victory_conditions, story_track)
@@ -168,19 +167,16 @@ func _ready() -> void:
 	if GlobalEnums:
 		current_substep = GlobalEnums.PostBattleSubPhase.NONE
 
-	print("PostBattlePhase: Initialized successfully")
 
 ## Main Post-Battle Phase Processing
 func start_post_battle_phase(battle_data: Dictionary = {}) -> void:
 	## Begin the Post-Battle Phase sequence
-	print("PostBattlePhase: Starting Post-Battle Phase")
 
 	# Sprint 26.4: Debug logging for data handoff verification
 	_debug_log_post_battle_input(battle_data)
 
 	# Handle battle-skipped path (no battle this turn, just tick recovery/events)
 	if battle_data.get("battle_skipped", false):
-		print("PostBattlePhase: No battle this turn - running recovery and events only")
 		battle_result = {"battle_skipped": true}
 		self.post_battle_phase_started.emit()
 		_complete_post_battle_phase()
@@ -195,9 +191,9 @@ func start_post_battle_phase(battle_data: Dictionary = {}) -> void:
 	# P-3 fix: Extract injuries_sustained from BattlePhase combat_results
 	injuries_sustained = battle_data.get("injuries_sustained", [])
 	if injuries_sustained.size() > 0:
-		print("PostBattlePhase: Received %d injuries from battle" % injuries_sustained.size())
+		pass
 	else:
-		print("PostBattlePhase: No injuries received from battle data")
+		pass
 
 	self.post_battle_phase_started.emit()
 
@@ -224,7 +220,6 @@ func _process_rival_status() -> void:
 				if removal_roll >= 6: # Standard threshold for rival removal
 					rivals_removed.append(rival_id)
 					_remove_rival(rival_id)
-					print("PostBattlePhase: Rival %s permanently eliminated" % rival_id)
 				# Update rival reputation in FactionSystem
 				if faction_sys and faction_sys.has_method("update_rival_reputation"):
 					var rep_change = 2 if removal_roll >= 6 else -1
@@ -240,7 +235,6 @@ func _process_rival_status() -> void:
 		if faction_id != "":
 			var standing_change = 5.0 if mission_successful else -3.0
 			faction_sys.modify_faction_standing(faction_id, standing_change)
-			print("PostBattlePhase: Faction %s standing changed by %.1f" % [faction_id, standing_change])
 
 	self.rival_status_resolved.emit(rivals_removed)
 
@@ -280,9 +274,7 @@ func _remove_rival(rival_id: String) -> void:
 			var rid = rival.get("id", rival) if rival is Dictionary else str(rival)
 			if rid == rival_id:
 				rivals.remove_at(i)
-				print("PostBattlePhase: Removed rival %s" % rival_id)
 				return
-	print("PostBattlePhase: Rival %s not found in active rivals" % rival_id)
 
 func _process_patron_status() -> void:
 	## Step 2: Resolve Patron Status
@@ -300,13 +292,11 @@ func _process_patron_status() -> void:
 		if GameState and GameState.has_method("add_patron_contact"):
 			GameState.add_patron_contact(patron_id)
 			patrons_added.append(patron_id)
-			print("PostBattlePhase: Patron %s added to contacts" % patron_id)
 
 		# Delegate job completion to PatronSystem for reputation/rewards tracking
 		var patron_sys = Engine.get_main_loop().root.get_node_or_null("/root/PatronSystem") if Engine.get_main_loop() else null
 		if patron_sys and patron_sys.has_method("complete_job"):
 			patron_sys.complete_job(true, battle_result)
-			print("PostBattlePhase: PatronSystem.complete_job() called for patron %s" % patron_id)
 
 		# Track patron job completion in NPCTracker
 		var npc_tracker = get_node_or_null("/root/NPCTracker")
@@ -318,13 +308,11 @@ func _process_patron_status() -> void:
 		# HOUSE RULE: expanded_rumors - +1 quest rumor on patron mission completion
 		if HouseRulesHelper.is_enabled("expanded_rumors"):
 			_add_quest_rumor()
-			print("PostBattlePhase: Expanded Rumors house rule - added +1 quest rumor")
 	elif not mission_successful and battle_result.has("patron_id"):
 		# Failed patron mission - still notify PatronSystem
 		var patron_sys = Engine.get_main_loop().root.get_node_or_null("/root/PatronSystem") if Engine.get_main_loop() else null
 		if patron_sys and patron_sys.has_method("complete_job"):
 			patron_sys.complete_job(false, battle_result)
-			print("PostBattlePhase: PatronSystem.complete_job(false) for failed patron mission")
 
 		# Track patron job failure in NPCTracker
 		var npc_tracker_fail = get_node_or_null("/root/NPCTracker")
@@ -439,14 +427,12 @@ func _process_payment() -> void:
 
 	# Invasion battles don't pay (Core Rules p.85)
 	if battle_result.get("is_invasion", false):
-		print("PostBattlePhase: Invasion battle - no payment received")
 		self.payment_received.emit(0)
 		_process_battlefield_finds()
 		return
 
 	# Failed missions don't pay
 	if not mission_successful:
-		print("PostBattlePhase: Mission failed - no payment received")
 		self.payment_received.emit(0)
 		_process_battlefield_finds()
 		return
@@ -457,24 +443,20 @@ func _process_payment() -> void:
 
 	# Roll base D6 for payment multiplier
 	var base_roll: int = _roll_d6("Payment base roll")
-	print("PostBattlePhase: Payment base roll: %d" % base_roll)
 
 	# Quest finale: roll twice, pick better, +1 (Core Rules p.86)
 	var is_quest_finale: bool = battle_result.get("is_quest_finale", false)
 	if is_quest_finale:
 		var second_roll: int = _roll_d6("Quest finale second roll")
 		base_roll = max(base_roll, second_roll) + 1
-		print("PostBattlePhase: Quest finale - second roll %d, using %d" % [second_roll, base_roll])
 
 	# Easy mode: +1 (Core Rules difficulty modifiers)
 	if is_easy_mode:
 		base_roll += 1
-		print("PostBattlePhase: Easy mode +1, now %d" % base_roll)
 
 	# Victory objective: treat 1-2 as 3 (except Rival missions) (Core Rules p.85)
 	var is_rival_mission: bool = battle_result.get("is_rival_mission", false)
 	if mission_successful and not is_rival_mission and base_roll < 3:
-		print("PostBattlePhase: Victory bonus - treating %d as 3" % base_roll)
 		base_roll = 3
 
 	# Calculate payment: base_payment * roll multiplier
@@ -486,19 +468,12 @@ func _process_payment() -> void:
 	var payment_multiplier: float = base_roll / 3.0 # Roll 3 = 1x, Roll 6 = 2x
 	var total_payment: int = int(raw_payment * payment_multiplier)
 
-	print("PostBattlePhase: Payment calculation: base %d + danger %d = %d × %.2f (roll %d) = %d" % [
-		base_payment, danger_pay, raw_payment, payment_multiplier, base_roll, total_payment
-	])
-
 	# F-3 fix: Apply difficulty multiplier to payment
 	# Higher difficulty = higher rewards (0.875x to 1.375x based on difficulty 1-5)
 	if total_payment > 0:
 		difficulty = clampi(difficulty, 0, 5)
 		var difficulty_multiplier: float = 0.75 + ((difficulty + 1) * 0.125) # 0.875 to 1.5
 		var adjusted_payment: int = int(total_payment * difficulty_multiplier)
-		print("PostBattlePhase: F-3 - Difficulty %d multiplier %.3f: %d → %d credits" % [
-			difficulty, difficulty_multiplier, total_payment, adjusted_payment
-		])
 		total_payment = adjusted_payment
 
 	# Sprint 26.5: Debug log payment breakdown
@@ -529,8 +504,6 @@ func _process_battlefield_finds() -> void:
 		var find = _roll_battlefield_find()
 		if find:
 			battlefield_finds.append(find)
-
-	print("PostBattlePhase: Found %d items on battlefield" % battlefield_finds.size())
 
 	self.battlefield_finds_completed.emit(battlefield_finds)
 
@@ -687,14 +660,12 @@ func _add_loot_to_inventory(loot_item: Dictionary) -> void:
 	# Try GameStateManager bridge first (delegates to GameState.add_inventory_item)
 	if game_state_manager and game_state_manager.has_method("add_to_ship_inventory"):
 		game_state_manager.add_to_ship_inventory(equipment_data)
-		print("PostBattlePhase: Added loot '%s' to ship stash" % equipment_data.get("name", "Unknown"))
 		return
 
 	# Fallback: Try GameState directly
 	var gs = get_node_or_null("/root/GameState")
 	if gs and gs.has_method("add_inventory_item"):
 		gs.add_inventory_item(equipment_data)
-		print("PostBattlePhase: Loot added to GameState inventory (fallback)")
 		return
 
 	push_warning("PostBattlePhase: Could not persist loot '%s' - no inventory bridge available" % equipment_data.get("name", "Unknown"))
@@ -854,22 +825,19 @@ func _process_single_injury(injury_data: Dictionary) -> Dictionary:
 					processed_injury["recovery_turns"] = maxi(recovery_time, 3)
 					# Persist the updated stars state back to campaign
 					_campaign.stars_of_story_data = stars.serialize()
-					print("PostBattlePhase: DRAMATIC ESCAPE! Crew member %s survived a killing blow via Stars of the Story!" % crew_id)
 		if not star_saved:
-			print("PostBattlePhase: FATAL INJURY - Crew member %s has died" % crew_id)
 			# Character death should be handled by campaign manager
 			return processed_injury
 
 	# Apply injury to crew member via GameState
 	if game_state_manager and game_state_manager.has_method("apply_crew_injury"):
 		game_state_manager.apply_crew_injury(crew_id, processed_injury)
-		print("PostBattlePhase: Applied injury to crew member %s - %s (recovery: %d turns)" % [crew_id, injury_type_name, recovery_time])
 	else:
 		push_error("PostBattlePhase: GameStateManager missing apply_crew_injury method")
 
 	# Apply bonus XP for Hard Knocks
 	if bonus_xp > 0 and game_state_manager:
-		print("PostBattlePhase: Crew member %s gained +%d XP from Hard Knocks" % [crew_id, bonus_xp])
+		pass
 
 	return processed_injury
 
@@ -915,11 +883,9 @@ func _process_bot_injury(injury_data: Dictionary, crew_id: String) -> Dictionary
 	if bot_props.get("all_equipment", false):
 		processed_injury["all_equipment_damaged"] = true
 
-	print("PostBattlePhase: [BOT INJURY] %s rolled %d → %s (repair: %d turns)" % [crew_name, injury_roll, injury_type_name, recovery_time])
-
 	if is_fatal:
-		print("PostBattlePhase: BOT DESTROYED - %s has been permanently destroyed" % crew_id)
 		# Fatal bot injuries bypass Stars of the Story (bots can't use it)
+		pass
 
 	# Apply injury to crew member via GameState
 	if game_state_manager and game_state_manager.has_method("apply_crew_injury"):
@@ -1007,7 +973,6 @@ func _calculate_crew_xp(crew_id: String) -> int:
 
 	# Check if crew fled early (rounds 1-2) - no XP at all
 	if battle_result.get("fled_early", false):
-		print("PostBattlePhase: %s fled early - no XP awarded" % crew_id)
 		return 0
 
 	# Check if crew was a casualty
@@ -1018,7 +983,6 @@ func _calculate_crew_xp(crew_id: String) -> int:
 		xp += 1
 		xp_breakdown.append("+1 casualty")
 		# Dead crew don't get survival bonus - return early
-		print("PostBattlePhase: %s was casualty - XP: %d (%s)" % [crew_id, xp, ", ".join(xp_breakdown)])
 		return _apply_xp_multiplier(xp)
 
 	# Survival bonuses (only for crew who survived)
@@ -1059,8 +1023,6 @@ func _calculate_crew_xp(crew_id: String) -> int:
 		xp += achievement_xp
 		xp_breakdown.append("+%d achievements" % achievement_xp)
 
-	print("PostBattlePhase: %s XP: %d (%s)" % [crew_id, xp, ", ".join(xp_breakdown)])
-
 	# Apply difficulty multiplier
 	return _apply_xp_multiplier(xp)
 
@@ -1074,7 +1036,7 @@ func _apply_xp_multiplier(base_xp: int) -> int:
 	var final_xp: int = maxi(1, int(base_xp * xp_multipliers[difficulty]))
 
 	if base_xp != final_xp:
-		print("PostBattlePhase: XP difficulty %d multiplier: %d → %d" % [difficulty, base_xp, final_xp])
+		pass
 
 	return final_xp
 
@@ -1213,7 +1175,6 @@ func _process_training() -> void:
 	# Process training applications for eligible crew (up to max_trainees)
 	for crew_id in training_candidates:
 		if trainees_this_turn >= max_trainees:
-			print("PostBattlePhase: Max trainees (%d) reached for this turn" % max_trainees)
 			break
 
 		# Attempt training enrollment with approval roll
@@ -1224,14 +1185,13 @@ func _process_training() -> void:
 			trainees_this_turn += 1
 			current_credits = result.get("credits_remaining", current_credits)
 		elif result.get("reason", "") == "insufficient_credits":
-			print("PostBattlePhase: Insufficient credits for training application")
 			break
 		# If not approved, continue to next candidate
 
 	if training_completed.size() > 0:
-		print("PostBattlePhase: Training completed for %d crew members" % training_completed.size())
+		pass
 	else:
-		print("PostBattlePhase: No training completed this turn")
+		pass
 
 	self.training_completed.emit(training_completed)
 
@@ -1370,9 +1330,8 @@ func _process_purchases() -> void:
 					if game_state_manager and game_state_manager.has_method("add_to_ship_inventory"):
 						game_state_manager.add_to_ship_inventory(item)
 					purchases_made.append(item)
-					print("PostBattlePhase: F-2 - Purchased %s for %d credits" % [item.get("name", "Unknown"), cost])
 				else:
-					print("PostBattlePhase: Insufficient credits for %s (need %d, have %d)" % [item.get("name", "Unknown"), cost, credits])
+					push_warning("PostBattlePhase: Insufficient credits for %s (need %d, have %d)" % [item.get("name", "Unknown"), cost, credits])
 
 			# Clear the queue
 			if gs and "purchase_queue" in gs:
@@ -1381,9 +1340,9 @@ func _process_purchases() -> void:
 				game_state_manager.clear_pending_purchases()
 
 	if purchases_made.size() > 0:
-		print("PostBattlePhase: Processed %d queued purchases" % purchases_made.size())
+		pass
 	else:
-		print("PostBattlePhase: Purchase phase - UI handles direct purchases via PurchaseItemsComponent")
+		pass
 
 	self.purchases_made.emit(purchases_made)
 
@@ -1453,10 +1412,8 @@ func select_precursor_event(choice: int) -> void:
 	var chosen_event: Dictionary
 	if choice == 2:
 		chosen_event = _pending_precursor_event2
-		print("PostBattlePhase: Player selected second Precursor event: %s" % chosen_event.get("name", "Unknown"))
 	else:
 		chosen_event = _pending_precursor_event1
-		print("PostBattlePhase: Player selected first Precursor event: %s" % chosen_event.get("name", "Unknown"))
 
 	# Clear pending events
 	_pending_precursor_event1 = {}
@@ -1471,7 +1428,6 @@ func select_precursor_event(choice: int) -> void:
 func _finalize_campaign_event(campaign_event: Dictionary) -> void:
 	## Complete campaign event processing after selection (or auto-selection).
 	if campaign_event.has("type") and campaign_event.type != "none":
-		print("PostBattlePhase: Campaign event: %s" % campaign_event.name)
 		_apply_campaign_event(campaign_event)
 
 	self.campaign_event_occurred.emit(campaign_event)
@@ -1523,7 +1479,6 @@ func _process_character_event() -> void:
 	var character_event: Dictionary = _get_character_event()
 
 	if character_event.has("type") and character_event.type != "none":
-		print("PostBattlePhase: Character event: %s" % character_event.name)
 		_apply_character_event(character_event)
 
 	self.character_event_occurred.emit(character_event)
@@ -1565,7 +1520,6 @@ func _process_galactic_war() -> void:
 	# Track large-scale conflicts and their progression
 	var war_progress = _update_galactic_war_progress()
 
-	print("PostBattlePhase: Galactic war status updated")
 
 	self.galactic_war_updated.emit(war_progress)
 
@@ -1781,7 +1735,6 @@ func _complete_post_battle_phase() -> void:
 	# Apply crew morale changes based on battle outcome
 	_apply_post_battle_morale()
 
-	print("PostBattlePhase: Post-Battle Phase completed")
 	self.post_battle_phase_completed.emit()
 
 func _update_character_lifetime_statistics() -> void:
@@ -1827,11 +1780,6 @@ func _update_character_lifetime_statistics() -> void:
 
 			# Create character event in journal
 			_create_character_battle_journal_event(member, char_id, kills.size())
-
-		print("[PostBattlePhase] Updated stats for %s: +%d kills, +1 battle" % [
-			member.get("character_name") if member is Object and member.has_method("get") else char_id,
-			kills_by_character.get(char_id, []).size()
-		])
 
 func _get_participating_crew() -> Array:
 	## Get crew members who participated in the battle
@@ -1932,12 +1880,6 @@ func _apply_post_battle_morale() -> void:
 	var morale_changes: Dictionary = MoraleSystemRef.apply_post_battle_morale(
 		campaign, mission_successful, crew_deaths, crew_injuries, held
 	)
-	print("PostBattlePhase: Morale %s%d -> %d (%s)" % [
-		"+" if morale_changes.get("total_change", 0) >= 0 else "",
-		morale_changes.get("total_change", 0),
-		morale_changes.get("new_morale", 50),
-		MoraleSystemRef.get_morale_status(morale_changes.get("new_morale", 50))
-	])
 
 func _tick_injury_recovery() -> void:
 	## Decrement injury recovery turns for all wounded crew members.
@@ -2811,7 +2753,6 @@ func _damage_random_equipment() -> void:
 					all_equipment.append({"source": "crew", "owner": member_name, "item_name": str(it)})
 
 	if all_equipment.is_empty():
-		print("PostBattlePhase: No equipment to damage")
 		return
 
 	# Pick a random item and report damage (condition tracking is informational)
@@ -2820,8 +2761,6 @@ func _damage_random_equipment() -> void:
 	var item_name: String = target.get("item_name", "Unknown Item")
 	var owner_name: String = target.get("owner", "Ship Stash")
 	var damage_amount: int = 10 + (randi() % 21) # 10-30
-
-	print("PostBattlePhase: %s's %s damaged (%d%% condition loss)" % [owner_name, item_name, damage_amount])
 
 func _reduce_recovery_time(max_crew: int) -> void:
 	## Reduce recovery time for crew in sick bay
@@ -2847,7 +2786,6 @@ func _reduce_recovery_time(max_crew: int) -> void:
 					member.injury_recovery_turns = max(0, recovery_turns - 1)
 				healed_count += 1
 				var member_name: String = member.character_name if "character_name" in member else (member.name if "name" in member else "crew")
-				print("PostBattlePhase: Reduced recovery time for %s" % member_name)
 
 func _heal_crew_in_sickbay() -> void:
 	## Immediately heal one crew member in sick bay
@@ -2869,7 +2807,6 @@ func _heal_crew_in_sickbay() -> void:
 				if "injury_recovery_turns" in member:
 					member.injury_recovery_turns = 0
 				var member_name: String = member.character_name if "character_name" in member else (member.name if "name" in member else "crew")
-				print("PostBattlePhase: %s recovered from sick bay" % member_name)
 				return
 
 func _award_xp_to_random_crew(xp_amount: int) -> void:
@@ -2928,7 +2865,6 @@ func _injure_random_crew(recovery_turns: int) -> void:
 			if "injury_recovery_turns" in member:
 				member.injury_recovery_turns = recovery_turns
 			var member_name: String = member.character_name if "character_name" in member else (member.name if "name" in member else "crew")
-			print("PostBattlePhase: %s injured (%d turn recovery)" % [member_name, recovery_turns])
 
 func _add_character_xp(character: Variant, xp_amount: int) -> void:
 	## Add XP to specific character (Sprint 26.3: Character-Everywhere)

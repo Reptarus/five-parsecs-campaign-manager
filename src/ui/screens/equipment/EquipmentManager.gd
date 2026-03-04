@@ -18,17 +18,11 @@ var initialization_attempts: int = 0
 const MAX_INITIALIZATION_ATTEMPTS: int = 3
 
 func _ready() -> void:
-	print("EquipmentManager: Initializing...")
 	
-	# Debug node structure
-	print("EquipmentManager: Checking node references...")
-	print("  equipment_grid: %s" % str(equipment_grid))
-	print("  crew_list: %s" % str(crew_list))
-	print("  details_container: %s" % str(details_container))
+	# Node structure initialized
 	
 	# Wait for scene to be fully ready if nodes are null
 	if equipment_grid == null or crew_list == null or details_container == null:
-		print("EquipmentManager: Nodes not ready, deferring initialization...")
 		call_deferred("_deferred_initialization")
 		return
 	
@@ -37,16 +31,14 @@ func _ready() -> void:
 func _deferred_initialization():
 	## Initialize after scene is fully ready
 	initialization_attempts += 1
-	print("EquipmentManager: Attempting deferred initialization (attempt %d/%d)..." % [initialization_attempts, MAX_INITIALIZATION_ATTEMPTS])
+	pass # Attempting deferred initialization
 	
 	# Try multiple node finding strategies
 	_find_nodes_with_fallbacks()
 	
 	if equipment_grid != null and crew_list != null and details_container != null:
-		print("EquipmentManager: All nodes found successfully")
 		_initialize_systems()
 	elif initialization_attempts < MAX_INITIALIZATION_ATTEMPTS:
-		print("EquipmentManager: Nodes still not ready, retrying in next frame...")
 		call_deferred("_deferred_initialization")
 	else:
 		push_error("EquipmentManager: Critical nodes still not found after %d attempts - cannot initialize" % MAX_INITIALIZATION_ATTEMPTS)
@@ -56,7 +48,6 @@ func _find_nodes_with_fallbacks():
 	
 	# Strategy 1: @onready should have worked
 	if equipment_grid != null and crew_list != null and details_container != null:
-		print("EquipmentManager: @onready nodes are working")
 		return
 	
 	# Strategy 2: Find by unique name
@@ -65,25 +56,24 @@ func _find_nodes_with_fallbacks():
 		if equipment_grid == null:
 			# Strategy 3: Find by path
 			equipment_grid = get_node_or_null("MarginContainer/VBoxContainer/MainContent/EquipmentList/VBoxContainer/ScrollContainer/EquipmentGrid")
-		print("EquipmentManager: equipment_grid lookup: %s" % str(equipment_grid))
+		pass # equipment_grid lookup complete
 	
 	if crew_list == null:
 		crew_list = find_child("CrewList", true, false)
 		if crew_list == null:
 			# Strategy 3: Find by path
 			crew_list = get_node_or_null("MarginContainer/VBoxContainer/MainContent/CrewAssignment/VBoxContainer/ScrollContainer/CrewList")
-		print("EquipmentManager: crew_list lookup: %s" % str(crew_list))
+		pass # crew_list lookup complete
 	
 	if details_container == null:
 		details_container = find_child("DetailsContainer", true, false)
 		if details_container == null:
 			# Strategy 3: Find by path
 			details_container = get_node_or_null("MarginContainer/VBoxContainer/MainContent/EquipmentDetails/VBoxContainer/DetailsContainer")
-		print("EquipmentManager: details_container lookup: %s" % str(details_container))
+		pass # details_container lookup complete
 
 func _initialize_systems():
 	## Initialize all systems once nodes are confirmed available
-	print("EquipmentManager: Initializing systems with confirmed nodes...")
 	is_initialized = true
 	_load_equipment_database()
 	_load_crew_roster()
@@ -125,44 +115,38 @@ func _load_crew_roster() -> void:
 
 func set_crew_data(crew_data: Array) -> void:
 	## Set crew data from external source (EquipmentPanel coordinator)
-	print("EquipmentManager: Receiving crew data with %d members" % crew_data.size())
+	pass # Receiving crew data
 	
 	crew_roster.clear()
 	for member in crew_data:
 		# Validate each crew member data
 		var validated_member = DataValidator.validate_crew_member(member)
 		crew_roster.append(validated_member)
-		print("EquipmentManager: Added crew member: %s (%s)" % [
-			validated_member.get("name", "Unknown"),
-			validated_member.get("class", "Unknown")
-		])
+		pass # Crew member added
 	
 	# Refresh display with new crew data
 	_refresh_crew_display()
-	print("EquipmentManager: Crew roster updated with %d members" % crew_roster.size())
+	pass # Crew roster updated
 
 func _refresh_equipment_display() -> void:
 	## Refresh the equipment grid display
-	print("EquipmentManager: Refreshing equipment display...")
 	
 	# Check if we're initialized and nodes are available
 	if not is_initialized or equipment_grid == null:
 		if equipment_grid == null:
-			print("EquipmentManager: equipment_grid is null, trying to find it...")
 			_find_nodes_with_fallbacks()
 		
 		if equipment_grid == null:
-			print("EquipmentManager: equipment_grid still null, deferring refresh")
 			return
 	
-	print("EquipmentManager: Clearing %d existing equipment items" % equipment_grid.get_child_count())
+	pass # Clearing equipment items
 	
 	# Clear existing items safely
 	for child in equipment_grid.get_children():
 		child.queue_free()
 
 	# Add equipment items
-	print("EquipmentManager: Adding %d equipment items to display" % equipment_database.size())
+	pass # Adding equipment items to display
 	for equipment in equipment_database:
 		var validated_equipment = DataValidator.validate_equipment(equipment)
 		var item_button: Button = Button.new()
@@ -170,35 +154,30 @@ func _refresh_equipment_display() -> void:
 		item_button.custom_minimum_size = Vector2(150, 60)
 		item_button.pressed.connect(_on_equipment_selected.bind(validated_equipment))
 		equipment_grid.add_child(item_button)
-		print("  Added equipment button: %s" % item_button.text)
 
 func _refresh_crew_display() -> void:
 	## Refresh the crew assignment display
-	print("EquipmentManager: Refreshing crew display...")
 	
 	# Check if we're initialized and nodes are available
 	if not is_initialized or crew_list == null:
 		if crew_list == null:
-			print("EquipmentManager: crew_list is null, trying to find it...")
 			_find_nodes_with_fallbacks()
 		
 		if crew_list == null:
-			print("EquipmentManager: crew_list still null, deferring refresh")
 			return
 	
-	print("EquipmentManager: Clearing %d existing crew items" % crew_list.get_child_count())
+	pass # Clearing crew items
 	
 	# Clear existing items safely
 	for child in crew_list.get_children():
 		child.queue_free()
 
 	# Add crew members
-	print("EquipmentManager: Adding %d crew members to display" % crew_roster.size())
+	pass # Adding crew members to display
 	for crew_member in crew_roster:
 		var crew_panel: Control = _create_crew_panel(crew_member)
 		crew_list.add_child(crew_panel)
 		var member_name = DataValidator.safe_get_name(crew_member)
-		print("  Added crew panel: %s" % member_name)
 
 func _create_crew_panel(crew_member: Dictionary) -> Control:
 	## Create a panel for crew _member equipment assignment
@@ -235,7 +214,6 @@ func _create_crew_panel(crew_member: Dictionary) -> Control:
 
 func _update_equipment_details(equipment: Dictionary) -> void:
 	## Update the equipment details panel
-	print("EquipmentManager: Updating equipment details...")
 	
 	# Safety check for details_container
 	if details_container == null:
@@ -247,12 +225,11 @@ func _update_equipment_details(equipment: Dictionary) -> void:
 		child.queue_free()
 
 	if equipment.is_empty():
-		print("EquipmentManager: No equipment selected, clearing details")
 		return
 
 	# Validate equipment data
 	var validated_equipment = DataValidator.validate_equipment(equipment)
-	print("EquipmentManager: Displaying details for: %s" % DataValidator.safe_get_name(validated_equipment))
+	pass # Displaying equipment details
 
 	# Equipment name
 	var name_label: Label = Label.new()
@@ -297,7 +274,7 @@ func _on_equipment_selected(equipment: Dictionary) -> void:
 	## Handle equipment selection
 	selected_equipment = equipment
 	_update_equipment_details(equipment)
-	print("Equipment selected: ", DataValidator.safe_get_name(equipment))
+	pass # Equipment selected
 
 func _on_crew_selected(crew_member: Dictionary) -> void:
 	## Handle crew _member selection for equipment assignment
@@ -328,22 +305,20 @@ func _assign_equipment_to_crew() -> void:
 	selected_crew_member = {}
 	_update_equipment_details({})
 
-	print("Equipment assigned: ", selected_equipment.get("name", ""), " to ", selected_crew_member.get("name", ""))
+	pass # Equipment assigned
 
 func _on_back_pressed() -> void:
 	## Handle back button press
-	print("EquipmentManager: Back pressed")
 	SceneRouter.navigate_back()
 
 func _on_generate_equipment_pressed() -> void:
 	## Generate new equipment using tables
-	print("EquipmentManager: Generate equipment pressed")
 	# Implement equipment generation tables
 	var dice_mgr = get_node_or_null("/root/DiceManager")
 	var new_equipment = _generate_random_equipment(dice_mgr)
 	equipment_database.append(new_equipment)
 	_refresh_equipment_display()
-	print("Generated new equipment: %s" % DataValidator.safe_get_name(new_equipment))
+	pass # New equipment generated
 
 func _generate_random_equipment(dice_mgr) -> Dictionary:
 	## Generate random equipment based on tables
@@ -367,12 +342,10 @@ func _generate_random_equipment(dice_mgr) -> Dictionary:
 
 func _on_trade_pressed() -> void:
 	## Open trade/market interface
-	print("EquipmentManager: Trade pressed")
 	_open_trade_interface()
 
 func _on_repair_pressed() -> void:
 	## Open equipment repair interface
-	print("EquipmentManager: Repair pressed")
 	_open_repair_interface()
 
 func _open_trade_interface() -> void:
@@ -389,7 +362,6 @@ func _open_trade_interface() -> void:
 		if not trade_dialog.equipment_traded.is_connected(_on_equipment_traded):
 			trade_dialog.equipment_traded.connect(_on_equipment_traded)
 		
-		print("EquipmentManager: Trade interface opened")
 	else:
 		push_error("EquipmentManager: Failed to create trade dialog")
 
@@ -407,7 +379,6 @@ func _open_repair_interface() -> void:
 		if not repair_dialog.equipment_repaired.is_connected(_on_equipment_repaired):
 			repair_dialog.equipment_repaired.connect(_on_equipment_repaired)
 		
-		print("EquipmentManager: Repair interface opened")
 	else:
 		push_error("EquipmentManager: Failed to create repair dialog")
 
@@ -759,7 +730,7 @@ func _on_buy_equipment_pressed(dialog: Control) -> void:
 				if credits_label:
 					credits_label.text = "Credits: %d" % (current_credits - price)
 				
-				print("EquipmentManager: Bought %s for %d credits" % [equipment.get("name", "Unknown"), price])
+				pass # Equipment bought
 			else:
 				_show_trade_error("Insufficient credits to purchase this item.")
 		else:
@@ -788,7 +759,7 @@ func _on_sell_equipment_pressed(dialog: Control) -> void:
 				var current_credits = _get_current_credits()
 				credits_label.text = "Credits: %d" % (current_credits + price)
 			
-			print("EquipmentManager: Sold %s for %d credits" % [equipment.get("name", "Unknown"), price])
+			pass # Equipment sold
 		else:
 			_show_trade_error("Please select an item to sell.")
 
@@ -804,7 +775,7 @@ func _on_refresh_market_pressed(market_list: ItemList) -> void:
 		market_list.add_item(item_text)
 		market_list.set_item_metadata(i, equipment)
 	
-	print("EquipmentManager: Market refreshed with %d items" % market_equipment.size())
+	pass # Market refreshed
 
 func _on_repair_equipment_pressed(dialog: Control) -> void:
 	## Handle repair equipment button press
@@ -838,7 +809,7 @@ func _on_repair_equipment_pressed(dialog: Control) -> void:
 				# Remove from damaged list
 				damaged_list.remove_item(selected_items[0])
 				
-				print("EquipmentManager: Repaired %s for %d credits" % [equipment.get("name", "Unknown"), repair_cost])
+				pass # Equipment repaired
 			else:
 				_show_trade_error("Insufficient credits for repair.")
 		else:
@@ -865,18 +836,17 @@ func _on_repair_all_pressed(dialog: Control) -> void:
 			damaged_list.clear()
 			damaged_list.add_item("No damaged equipment found")
 		
-		print("EquipmentManager: Repaired all equipment for %d credits" % total_cost)
 	else:
 		_show_trade_error("Insufficient credits to repair all equipment.")
 
 func _on_equipment_traded(action: String, equipment: Dictionary, credits: int) -> void:
 	## Handle equipment trade completion
-	print("EquipmentManager: Trade completed - %s %s for %d credits" % [action, equipment.get("name", "Unknown"), credits])
+	pass # Trade completed
 	_refresh_equipment_display()
 
 func _on_equipment_repaired(equipment: Dictionary, cost: int) -> void:
 	## Handle equipment repair completion
-	print("EquipmentManager: Repair completed - %s repaired for %d credits" % [equipment.get("name", "Unknown"), cost])
+	pass # Repair completed
 	_refresh_equipment_display()
 
 func _show_trade_error(message: String) -> void:

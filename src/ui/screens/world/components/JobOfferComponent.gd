@@ -58,7 +58,6 @@ var automation_enabled: bool = false
 
 func _ready() -> void:
 	name = "JobOfferComponent"
-	print("JobOfferComponent: Initialized - handling Five Parsecs job offers")
 
 	_initialize_event_bus()
 	_connect_ui_signals()
@@ -73,15 +72,13 @@ func _initialize_event_bus() -> void:
 		event_bus = CampaignTurnEventBus.new()
 		get_tree().root.add_child(event_bus)
 		event_bus.name = "CampaignTurnEventBus"
-		print("JobOfferComponent: Created new CampaignTurnEventBus")
 
 	# Subscribe to relevant events
 	if event_bus:
 		event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
 		event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.AUTOMATION_TOGGLED, _on_automation_toggled)
-		print("JobOfferComponent: Connected to event bus")
 	else:
-		print("JobOfferComponent: WARNING - Could not connect to event bus")
+		pass
 
 func _exit_tree() -> void:
 	## Cleanup event bus subscriptions to prevent memory leaks
@@ -91,21 +88,12 @@ func _exit_tree() -> void:
 
 func _connect_ui_signals() -> void:
 	## Connect UI button and list signals
-	# Debug: Log UI node status
-	print("JobOfferComponent: UI nodes - job_list: %s, accept: %s, decline: %s, reroll: %s, details: %s" % [
-		"OK" if job_list else "NULL",
-		"OK" if accept_button else "NULL",
-		"OK" if decline_button else "NULL",
-		"OK" if reroll_button else "NULL",
-		"OK" if job_details_label else "NULL"
-	])
-
 	if job_list:
 		job_list.item_selected.connect(_on_job_selected)
 		# Sprint 26.4: Ensure 48px minimum touch target for mobile
 		job_list.add_theme_constant_override("item_height", TOUCH_TARGET_MIN)
 	else:
-		print("JobOfferComponent: WARNING - job_list (AvailableJobsList) not found!")
+		push_warning("JobOfferComponent: job_list (AvailableJobsList) not found")
 	if accept_button:
 		accept_button.pressed.connect(_on_accept_job_pressed)
 	if decline_button:
@@ -138,12 +126,8 @@ func _add_required_indicator() -> void:
 ## Public API: Initialize job offers from WorldPhaseController
 func initialize_job_offers(world_phase_data: Dictionary) -> void:
 	## Initialize job offers from world phase data - wrapper for controller compatibility
-	print("JobOfferComponent: initialize_job_offers called with data keys: %s" % str(world_phase_data.keys()))
-
 	var patrons = world_phase_data.get("patrons", [])
 	var location = world_phase_data.get("location", "Unknown Location")
-
-	print("JobOfferComponent: Found %d patrons, location: %s" % [patrons.size(), location])
 
 	# Generate jobs from ALL patrons, not just the first one
 	var all_jobs: Array[Dictionary] = []
@@ -152,13 +136,11 @@ func initialize_job_offers(world_phase_data: Dictionary) -> void:
 		var p_data: Dictionary = patron if patron is Dictionary else {"patron_name": str(patron)}
 		var patron_jobs: Array[Dictionary] = _generate_job_offers(p_data, location)
 		all_jobs.append_array(patron_jobs)
-		print("JobOfferComponent: Generated %d jobs from patron '%s'" % [patron_jobs.size(), p_data.get("patron_name", p_data.get("name", "Unknown"))])
 
 	# Always generate at least 1 open market opportunity
 	if all_jobs.is_empty():
 		var market_jobs: Array[Dictionary] = _generate_job_offers({}, location)
 		all_jobs.append_array(market_jobs)
-		print("JobOfferComponent: Generated %d open market jobs" % market_jobs.size())
 
 	# Store and display
 	job_accepted = false
@@ -175,14 +157,12 @@ func initialize_job_offers(world_phase_data: Dictionary) -> void:
 
 	# Auto-process if enabled
 	if automation_enabled and available_jobs.size() > 0:
-		print("JobOfferComponent: >>> AUTO-PROCESSING - accepting first job")
 		selected_job_index = 0
 		accept_selected_job()
 
 ## Public API: Initialize job offer phase with campaign data
 func initialize_job_phase(patron_data: Dictionary, current_location: String) -> void:
 	## Generate job offers for current location
-	print("JobOfferComponent: Generating jobs for location: %s" % current_location)
 
 	# Reset state for new job offers
 	job_accepted = false
@@ -200,7 +180,6 @@ func initialize_job_phase(patron_data: Dictionary, current_location: String) -> 
 
 	# AUTO-PROCESS: If automation enabled and jobs available, auto-accept first job
 	if automation_enabled and available_jobs.size() > 0:
-		print("JobOfferComponent: >>> AUTO-PROCESSING on initialize - accepting first job")
 		selected_job_index = 0
 		accept_selected_job()
 
@@ -222,7 +201,6 @@ func _generate_job_offers(patron_data: Dictionary, location: String) -> Array[Di
 		var contact_result = _roll_patron_contact(patron_table.get("patron_contact_table", {}))
 		if contact_result.is_empty() or contact_result.get("outcome", "") == "no_contact":
 			effective_patron = {"patron_name": "Open Market", "patron_type": "generic"}
-			print("JobOfferComponent: No patron contact - using open market")
 		else:
 			var patron_tier = contact_result.get("patron_tier", "regular")
 			effective_patron = {
@@ -230,7 +208,6 @@ func _generate_job_offers(patron_data: Dictionary, location: String) -> Array[Di
 				"patron_type": patron_tier,
 				"tier": patron_tier
 			}
-			print("JobOfferComponent: Generated %s patron: %s" % [patron_tier, effective_patron.patron_name])
 
 	# Roll for number of available jobs using job_type_table
 	var job_type_table = patron_table.get("job_type_table", {})
@@ -243,8 +220,6 @@ func _generate_job_offers(patron_data: Dictionary, location: String) -> Array[Di
 	else:
 		# Fallback: roll d6/2
 		job_count = max(1, int(GameDataLoader.roll_d6() / 2))
-
-	print("JobOfferComponent: Generating %d job offers for %s" % [job_count, effective_patron.get("patron_name", "Unknown")])
 
 	for i in range(job_count):
 		var job = _create_job_offer_from_table(effective_patron, location, i, job_type_table, patron_table)
@@ -288,10 +263,6 @@ func _roll_patron_contact(contact_table: Dictionary) -> Dictionary:
 	# Lookup result in range-based table
 	var result: Dictionary = _lookup_patron_contact_result(contact_table.get("results", {}), total_roll)
 	
-	print("JobOfferComponent: Patron contact roll = %d (base) + %d (skill) + %d (world) = %d, outcome = %s" % [
-		base_roll, skill_bonus, world_bonus, total_roll, result.get("outcome", "unknown")
-	])
-	
 	return result
 
 ## Get skill bonuses for patron contact (CONNECTIONS +2, SAVVY +1)
@@ -317,7 +288,6 @@ func _get_patron_contact_skill_modifiers(contact_table: Dictionary) -> int:
 					var member_skills = member.get("skills")
 					if member_skills is Array and "CONNECTIONS" in member_skills:
 						total_bonus += skill_bonuses["CONNECTIONS"].get("bonus", 0)
-						print("JobOfferComponent: Found CONNECTIONS skill, bonus = +%d" % skill_bonuses["CONNECTIONS"].get("bonus", 0))
 						break  # Only apply once
 	
 	# Check for SAVVY skill (+1)
@@ -329,7 +299,6 @@ func _get_patron_contact_skill_modifiers(contact_table: Dictionary) -> int:
 					var member_skills = member.get("skills")
 					if member_skills is Array and "SAVVY" in member_skills:
 						total_bonus += skill_bonuses["SAVVY"].get("bonus", 0)
-						print("JobOfferComponent: Found SAVVY skill, bonus = +%d" % skill_bonuses["SAVVY"].get("bonus", 0))
 						break  # Only apply once
 	
 	return total_bonus
@@ -361,10 +330,8 @@ func _get_world_trait_modifiers(contact_table: Dictionary) -> int:
 			var modifier_data: Dictionary = world_modifiers[trait_name]
 			if modifier_data.has("bonus"):
 				total_modifier += modifier_data["bonus"]
-				print("JobOfferComponent: World trait %s, bonus = +%d" % [trait_name, modifier_data["bonus"]])
 			elif modifier_data.has("penalty"):
 				total_modifier += modifier_data["penalty"]  # Penalty is negative
-				print("JobOfferComponent: World trait %s, penalty = %d" % [trait_name, modifier_data["penalty"]])
 	
 	return total_modifier
 
@@ -485,10 +452,6 @@ func _create_job_offer_from_table(patron_data: Dictionary, location: String, job
 		"patron": patron_data.get("patron_name", "Unknown")
 	}
 	
-	print("JobOfferComponent: Created job from table - %s (%s), Pay: %d cr, Danger: %d" % [
-		job_type, job_description, final_pay, danger_level
-	])
-	
 	return job
 
 ## Original job creation method (fallback)
@@ -535,10 +498,6 @@ func _create_job_offer(patron_data: Dictionary, location: String, job_index: int
 		"danger_level": (dice_manager.roll_d6() % 3) + 1 if dice_manager else 1,
 		"patron": patron_name
 	}
-
-	print("JobOfferComponent: Created job - %s from %s, Pay: +%d credits, Time: %s" % [
-		job.objective, job.patron_type, job.danger_pay, job.time_frame
-	])
 
 	return job
 
@@ -780,17 +739,12 @@ func _determine_enemy_type() -> String:
 ## Job acceptance/rejection
 func accept_selected_job() -> bool:
 	## Accept the currently selected job
-	print("JobOfferComponent: >>> accept_selected_job() called")
-	print("JobOfferComponent: selected_job_index=%d, available_jobs.size()=%d" % [selected_job_index, available_jobs.size()])
-
 	if selected_job_index < 0 or selected_job_index >= available_jobs.size():
-		print("JobOfferComponent: FAILED - Invalid selection (index=%d, jobs=%d)" % [selected_job_index, available_jobs.size()])
+		push_warning("JobOfferComponent: Invalid job selection (index=%d, jobs=%d)" % [selected_job_index, available_jobs.size()])
 		return false
 
 	var job = available_jobs[selected_job_index]
 	job_accepted = true
-
-	print("JobOfferComponent: >>> JOB ACCEPTED - %s (Pay: %d), job_accepted now = %s" % [job.objective, job.pay, job_accepted])
 
 	# Publish job accepted event
 	if event_bus:
@@ -807,7 +761,6 @@ func decline_selected_job() -> void:
 		return
 
 	var job = available_jobs[selected_job_index]
-	print("JobOfferComponent: Job declined - %s" % job.objective)
 
 	# Remove job from available list
 	available_jobs.remove_at(selected_job_index)
@@ -818,15 +771,12 @@ func decline_selected_job() -> void:
 ## UI Event Handlers
 func _on_job_selected(index: int) -> void:
 	## Handle job selection from list
-	print("JobOfferComponent: >>> JOB SELECTED index=%d, previous=%d" % [index, selected_job_index])
 	selected_job_index = index
-	print("JobOfferComponent: selected_job_index now = %d, job_accepted = %s" % [selected_job_index, job_accepted])
 	_update_job_details()
 	_update_ui_display()
 
 func _on_accept_job_pressed() -> void:
 	## Handle accept job button press
-	print("JobOfferComponent: >>> ACCEPT BUTTON PRESSED, selected_job_index=%d" % selected_job_index)
 	accept_selected_job()
 
 func _on_decline_job_pressed() -> void:
@@ -839,20 +789,14 @@ func _on_reroll_jobs_pressed() -> void:
 		GameStateManager.remove_credits(1)
 
 		# Regenerate jobs
-		var patron_data = {}  # TODO: Get from campaign
-		var location = ""     # TODO: Get from campaign
+		var patron_data = {}  # NOTE: Needs campaign patron data integration
+		var location = ""     # NOTE: Needs campaign location integration
 		initialize_job_phase(patron_data, location)
 
-		print("JobOfferComponent: Jobs rerolled")
 
 ## UI Updates
 func _update_ui_display() -> void:
 	## Update UI display with current job offers
-	print("JobOfferComponent: _update_ui_display called with %d jobs, job_list: %s" % [
-		available_jobs.size(),
-		"OK" if job_list else "NULL"
-	])
-
 	if job_list:
 		job_list.clear()
 		for i in range(available_jobs.size()):
@@ -864,16 +808,13 @@ func _update_ui_display() -> void:
 				job.get("time_frame", "Unknown")
 			]
 			job_list.add_item(job_text)
-		print("JobOfferComponent: Added %d items to job_list" % job_list.item_count)
 	else:
-		print("JobOfferComponent: WARNING - Cannot update UI, job_list is null!")
+		pass
 
 	# Update button states
 	var has_selection = selected_job_index >= 0 and selected_job_index < available_jobs.size()
-	print("JobOfferComponent: Button states - has_selection=%s, job_accepted=%s, selected_index=%d" % [has_selection, job_accepted, selected_job_index])
 	if accept_button:
 		accept_button.disabled = not has_selection or job_accepted
-		print("JobOfferComponent: Accept button disabled=%s" % accept_button.disabled)
 	if decline_button:
 		decline_button.disabled = not has_selection or job_accepted
 
@@ -945,23 +886,20 @@ func _on_phase_started(data: Dictionary) -> void:
 	## Handle phase started events
 	var phase_name = data.get("phase_name", "")
 	if phase_name == "job_offers":
-		print("JobOfferComponent: Job offers phase started")
+		pass
 
 func _on_automation_toggled(data: Dictionary) -> void:
 	## Handle automation toggle events
 	automation_enabled = data.get("enabled", false)
-	print("JobOfferComponent: Automation %s" % ("ENABLED" if automation_enabled else "DISABLED"))
 
 	# AUTO-PROCESS: If enabled and jobs available, auto-accept first job
 	if automation_enabled and available_jobs.size() > 0 and not job_accepted:
-		print("JobOfferComponent: >>> AUTO-PROCESSING - selecting and accepting first job")
 		selected_job_index = 0
 		accept_selected_job()
 
 ## Public API for integration
 func is_job_accepted() -> bool:
 	## Check if a job has been accepted
-	print("JobOfferComponent: >>> is_job_accepted() QUERIED - returning %s" % job_accepted)
 	return job_accepted
 
 func get_accepted_job() -> Dictionary:
@@ -990,4 +928,3 @@ func reset_job_phase() -> void:
 	selected_job_index = -1
 	available_jobs.clear()
 	_update_ui_display()
-	print("JobOfferComponent: Reset for new turn")

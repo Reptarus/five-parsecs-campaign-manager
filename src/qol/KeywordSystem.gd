@@ -242,7 +242,7 @@ func _load_keyword_database() -> void:
 	if data.has("categories"):
 		categories = data.categories
 	
-	print("Loaded %d keywords in %d categories" % [keywords.size(), categories.size()])
+	pass
 
 func _create_default_database() -> void:
 	## Create minimal default keyword database

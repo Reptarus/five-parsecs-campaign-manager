@@ -54,45 +54,29 @@ var DEBUG_INITIATIVE := false
 ## Enable debug logging for initiative rolls
 func enable_debug_logging() -> void:
 	DEBUG_INITIATIVE = true
-	print("SeizeInitiativeSystem: Initiative debug logging ENABLED")
 
 ## Disable debug logging for initiative rolls
 func disable_debug_logging() -> void:
 	DEBUG_INITIATIVE = false
-	print("SeizeInitiativeSystem: Initiative debug logging DISABLED")
 
 ## Debug log for initiative roll - shows complete calculation breakdown
 func _debug_log_initiative_roll(result: InitiativeResult) -> void:
 	if not DEBUG_INITIATIVE:
 		return
 
-	print("┌─────────────────────────────────────────────────────────────┐")
-	print("│ SEIZE THE INITIATIVE ROLL                                  │")
-	print("├─────────────────────────────────────────────────────────────┤")
-	print("│ 2D6 ROLL: [%d] + [%d] = %d" % [result.dice_values[0], result.dice_values[1], result.base_roll])
 	print("│ SAVVY BONUS: +%d (highest in crew)" % result.savvy_bonus)
-	print("├─────────────────────────────────────────────────────────────┤")
-	print("│ MODIFIERS:")
 	if result.modifiers_breakdown.is_empty():
 		print("│   (none)")
 	else:
 		for mod in result.modifiers_breakdown:
 			var sign_str := "+" if mod.value > 0 else ""
 			var applied_str := "" if mod.applied else " [NOT APPLIED]"
-			print("│   %s: %s%d%s" % [mod.name, sign_str, mod.value, applied_str])
-		print("│   ─────────────────")
-		print("│   Total Modifiers: %+d" % result.total_modifiers)
-	print("├─────────────────────────────────────────────────────────────┤")
 	print("│ CALCULATION: %d (roll) + %d (savvy) + %d (mods) = %d" % [
 		result.base_roll, result.savvy_bonus, result.total_modifiers, result.roll_total])
-	print("│ TARGET: %d" % result.target_number)
-	print("│")
 	if result.success:
-		print("│ ★★★ INITIATIVE SEIZED! ★★★")
 		print("│ Crew may move OR fire (hits on natural 6 only)")
 	else:
-		print("│ Initiative NOT seized - enemy acts first")
-	print("└─────────────────────────────────────────────────────────────┘")
+		pass
 
 func _init() -> void:
 	_reset_modifiers()

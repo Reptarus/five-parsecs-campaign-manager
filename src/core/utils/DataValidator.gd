@@ -1,4 +1,4 @@
-﻿class_name DataValidator
+class_name DataValidator
 extends RefCounted
 
 ## Data Structure Validation Utility
@@ -141,7 +141,8 @@ static func normalize_crew_array(crew_array: Array) -> Array:
 
 static func debug_data_structure(data, label: String = "Data") -> void:
 	## Debug helper to print data structure safely
-	print("DataValidator: %s structure:" % label)
+	if not OS.is_debug_build():
+		return
 	if data is Dictionary:
 		print("  Dictionary with keys: %s" % str(data.keys()))
 		for key in data.keys():

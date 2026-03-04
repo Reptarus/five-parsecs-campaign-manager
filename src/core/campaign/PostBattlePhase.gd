@@ -1,7 +1,5 @@
 # PostBattle.gd
 extends Control
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
 
@@ -102,7 +100,7 @@ func _advance_story_track() -> void:
 		var journal = get_node_or_null("/root/CampaignJournal")
 		if journal and journal.has_method("add_entry"):
 			journal.add_entry("Story Track: Event triggered (clock advanced)")
-	print("PostBattlePhase: Story track advanced — %s" % str(result))
+	pass
 
 func _resolve_combat_results() -> void:
 	var battle_results = game_state.current_battle_results

@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 
 ## Battlefield Companion Autoload
 ##
@@ -58,10 +58,8 @@ func _load_companion_configuration() -> void:
 	# Load companion config data
 	companion_config_data = DataManager._load_json_safe("res://data/battlefield/companion_config.json", "BattlefieldCompanionManager")
 	if companion_config_data.is_empty():
-		print("BattlefieldCompanionManager: companion_config.json not found, using defaults")
 		_create_companion_config_fallback()
 	else:
-		print("BattlefieldCompanionManager: Loaded companion configuration from JSON")
 		_apply_companion_configuration()
 	
 	# Extract battlefield settings
@@ -120,7 +118,7 @@ func _setup_debug_configuration() -> void:
 	performance_monitoring = debug_mode
 
 	if debug_mode:
-		print("BattlefieldCompanionManager: Debug mode enabled")
+		pass
 
 func _connect_to_story_track_system() -> void:
 	## Connect to StoryTrackSystem for guided campaign mode
@@ -137,12 +135,12 @@ func _connect_to_story_track_system() -> void:
 	if story_track_system and story_track_system.has_signal("tutorial_requested"):
 		var connection_result = story_track_system.tutorial_requested.connect(_on_tutorial_requested)
 		if connection_result == OK:
-			print("BattlefieldCompanionManager: Connected to StoryTrackSystem tutorial signals")
+			pass
 		else:
 			push_warning("BattlefieldCompanionManager: Failed to connect to StoryTrackSystem tutorial signals")
 	else:
 		if debug_mode:
-			print("BattlefieldCompanionManager: StoryTrackSystem not available for guided mode")
+			pass
 
 func _on_tutorial_requested(event_id: String, companion_tools: Array, story_context: String) -> void:
 	## Handle tutorial request from StoryTrackSystem
@@ -150,9 +148,7 @@ func _on_tutorial_requested(event_id: String, companion_tools: Array, story_cont
 		return  # Silently ignore if guided mode is disabled
 
 	if debug_mode:
-		print("BattlefieldCompanionManager: Tutorial requested for event '%s' with %d tools" % [event_id, companion_tools.size()])
-		print("  Story context: %s" % story_context)
-		print("  Companion tools: %s" % str(companion_tools))
+		pass
 
 	# Route tutorial request to TutorialOverlay via TacticalBattleUI
 	# (This will be implemented in the next step when wiring TutorialOverlay)
@@ -165,14 +161,14 @@ func _route_tutorial_to_overlay(event_id: String, companion_tools: Array, story_
 
 	if not tutorial_overlay:
 		if debug_mode:
-			print("BattlefieldCompanionManager: TutorialOverlay not found in current scene")
+			pass
 		return
 
 	# Call show_story_hint on TutorialOverlay
 	if tutorial_overlay.has_method("show_story_hint"):
 		tutorial_overlay.show_story_hint(companion_tools, story_context)
 		if debug_mode:
-			print("BattlefieldCompanionManager: Story hint displayed via TutorialOverlay")
+			pass
 	else:
 		push_warning("BattlefieldCompanionManager: TutorialOverlay missing show_story_hint method")
 
@@ -212,9 +208,9 @@ func set_guided_mode(enabled: bool) -> void:
 
 	if debug_mode:
 		if enabled:
-			print("BattlefieldCompanionManager: Guided campaign mode enabled")
+			pass
 		else:
-			print("BattlefieldCompanionManager: Guided campaign mode disabled")
+			pass
 
 # =====================================================
 # SYSTEM INITIALIZATION
@@ -249,7 +245,7 @@ func initialize_system() -> bool:
 	battle_system_ready.emit()
 
 	if debug_mode:
-		print("BattlefieldCompanionManager: System initialized successfully")
+		pass
 
 	return true
 
@@ -263,7 +259,7 @@ func shutdown_system() -> void:
 	current_session_id = ""
 
 	if debug_mode:
-		print("BattlefieldCompanionManager: System shutdown complete")
+		pass
 
 func _connect_integration_signals() -> void:
 	## Connect integration system signals
@@ -376,8 +372,7 @@ func _on_battle_workflow_complete(results: Dictionary) -> void:
 	battle_completed.emit(results)
 
 	if debug_mode:
-		print("BattlefieldCompanionManager: Battle workflow completed")
-		print("Results: ", results)
+		pass
 
 func _on_integration_error(error_code: String, details: Dictionary) -> void:
 	## Handle integration system errors
@@ -437,7 +432,6 @@ func setup_test_scenario() -> bool:
 	if not debug_mode:
 		return false
 
-	print("BattlefieldCompanionManager: Setting up test scenario")
 
 	# Create test mission data
 	var test_mission = Resource.new()
@@ -473,7 +467,6 @@ func force_system_reset() -> void:
 	if not debug_mode:
 		return
 
-	print("BattlefieldCompanionManager: Forcing system reset")
 
 	if integration_system:
 		integration_system.force_system_reset()

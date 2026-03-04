@@ -60,31 +60,26 @@ func initialize_crew(data: Dictionary) -> void:
 	## Initialize crew data from campaign creation
 	crew_data = data.duplicate(true)
 	_update_modified_time()
-	print("FiveParsecsCampaignCore: Crew data initialized with %d members" % crew_data.get("members", []).size())
 
 func set_captain(data: Dictionary) -> void:
 	## Set captain data
 	captain_data = data.duplicate(true)
 	_update_modified_time()
-	print("FiveParsecsCampaignCore: Captain set - %s" % captain_data.get("name", "Unknown"))
 
 func initialize_ship(data: Dictionary) -> void:
 	## Initialize ship data
 	ship_data = data.duplicate(true)
 	_update_modified_time()
-	print("FiveParsecsCampaignCore: Ship initialized - %s" % ship_data.get("name", "Unnamed Ship"))
 
 func set_starting_equipment(data: Dictionary) -> void:
 	## Set starting equipment data
 	equipment_data = data.duplicate(true)
 	_update_modified_time()
-	print("FiveParsecsCampaignCore: Equipment initialized")
 
 func initialize_world(data: Dictionary) -> void:
 	## Initialize world generation data
 	world_data = data.duplicate(true)
 	_update_modified_time()
-	print("FiveParsecsCampaignCore: World initialized")
 
 func set_config(data: Dictionary) -> void:
 	## Set campaign configuration
@@ -105,9 +100,6 @@ func initialize_resources(data: Dictionary) -> void:
 	var rumors = data.get("quest_rumors", [])
 	quest_rumors = rumors.size() if rumors is Array else rumors
 	_update_modified_time()
-	print("FiveParsecsCampaignCore: Resources initialized - Credits: %d, SP: %d, Patrons: %d, Rivals: %d, Rumors: %d" % [
-		credits, story_points, patrons.size(), rivals.size(), quest_rumors
-	])
 
 func get_resources() -> Dictionary:
 	## Get campaign resources
@@ -125,7 +117,6 @@ func set_house_rules(rules: Array) -> void:
 	## Set house rules configuration from wizard
 	house_rules = rules.duplicate()
 	_update_modified_time()
-	print("FiveParsecsCampaignCore: House rules set - %d rules" % house_rules.size())
 
 func get_house_rules() -> Array:
 	## Get house rules configuration
@@ -137,7 +128,6 @@ func set_story_track_enabled(enabled: bool) -> void:
 	## Set story track enabled setting
 	story_track_enabled = enabled
 	_update_modified_time()
-	print("FiveParsecsCampaignCore: Story track enabled = %s" % str(story_track_enabled))
 
 func get_story_track_enabled() -> bool:
 	## Get story track enabled setting
@@ -149,7 +139,6 @@ func set_victory_conditions(conditions: Dictionary) -> void:
 	## Set victory conditions configuration
 	victory_conditions = conditions.duplicate(true)
 	_update_modified_time()
-	print("FiveParsecsCampaignCore: Victory conditions set")
 
 func get_victory_conditions() -> Dictionary:
 	## Get victory conditions configuration
@@ -331,7 +320,6 @@ func start_campaign() -> void:
 	## Mark campaign as started (move from creation to active play)
 	game_phase = "active"
 	_update_modified_time()
-	print("FiveParsecsCampaignCore: Campaign started - %s" % campaign_name)
 
 func get_campaign_summary() -> Dictionary:
 	## Get campaign summary for UI display
@@ -466,5 +454,4 @@ func save_to_file(path: String) -> Error:
 	file.store_string(json_string)
 	file.close()
 
-	print("FiveParsecsCampaignCore: Saved to %s" % path)
 	return OK

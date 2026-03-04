@@ -1,4 +1,4 @@
-﻿extends RefCounted
+extends RefCounted
 class_name FiveParsecsCharacter
 
 ## Five Parsecs Character Factory - Single Source of Truth
@@ -48,13 +48,11 @@ func _init() -> void:
 	data_manager = Engine.get_main_loop().root.get_node_or_null("/root/DataManager") if Engine.get_main_loop() else null
 	character_generation = FiveParsecsCharacterGeneration.new()
 	
-	print("FiveParsecsCharacter: Initialized consolidated character factory")
 
 ## Main Factory Method - Single entry point for all character creation
 func create_character(mode: CreationMode, context: CreationContext = CreationContext.CAMPAIGN_START, params: Dictionary = {}) -> Character:
 	## Unified character creation factory method
 	## Replaces all previous character creator implementations
-	print("FiveParsecsCharacter: Creating character with mode=%s, context=%s" % [CreationMode.keys()[mode], CreationContext.keys()[context]])
 	
 	var character: Character
 	

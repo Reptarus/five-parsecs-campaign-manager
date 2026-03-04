@@ -289,14 +289,13 @@ func _on_auto_roll_pressed() -> void:
 ## Show roll history
 func _on_history_pressed() -> void:
 	var history_text = dice_system.get_roll_history_text(20)
-	# TODO: Show in a popup dialog
-	print("Dice Roll History:\n" + history_text)
+	# NOTE: Deferred — show history in a popup dialog
 
 ## Show dice settings
 
 func _on_settings_pressed() -> void:
-	# TODO: Show settings dialog
-	print("Dice Settings - TODO: Implement settings dialog")
+	# NOTE: Deferred — dice settings dialog not yet implemented
+	pass
 
 ## Set the dice system reference
 

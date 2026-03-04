@@ -39,7 +39,6 @@ signal character_double_clicked(character: Character)
 signal character_right_clicked(character: Character)
 
 func _ready() -> void:
-	print("CharacterBox: Initializing...")
 	_setup_ui()
 	_connect_signals()
 
@@ -97,7 +96,6 @@ func display_character(character: Character) -> void:
 		return
 
 	_update_character_display(character)
-	print("CharacterBox: Displaying character: ", character.character_name)
 
 func _update_character_display(character: Character) -> void:
 	## Update all character information displays
@@ -186,7 +184,7 @@ func _update_portrait_display(character: Character) -> void:
 			portrait.modulate = Color.WHITE
 			return
 		else:
-			print("CharacterBox: Failed to load portrait from path: ", character.portrait_path)
+			pass
 	
 	# Simple fallback to default portrait - no complex portrait management
 	var default_portrait_path = "res://assets/portraits/default_character.png"

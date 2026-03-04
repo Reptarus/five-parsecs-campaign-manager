@@ -430,6 +430,7 @@ func _salvage_rules_text() -> String:
 
 [b]Tension Track:[/b] Starts at ceil(crew_size / 2). Max 12.
   Each round after Round 1, roll D6:
+	pass
   D6 > Tension = [color=#D97706]+1 Tension[/color]
   D6 ≤ Tension = [color=#DC2626]New Contact marker![/color]
 

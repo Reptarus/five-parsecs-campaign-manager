@@ -54,7 +54,6 @@ static var _optimization_statistics: Dictionary = {}
 
 ## Initialize Memory Performance Optimizer
 static func initialize(optimization_level: OptimizationLevel = OptimizationLevel.BALANCED) -> bool:
-	print("[MemoryPerformanceOptimizer] Initializing memory performance optimization...")
 	
 	_optimization_level = optimization_level
 	_optimization_enabled = true
@@ -89,7 +88,7 @@ static func initialize(optimization_level: OptimizationLevel = OptimizationLevel
 	# Integrate with MemoryLeakPrevention
 	MemoryLeakPrevention.add_leak_detection_callback(_on_memory_pressure_detected)
 	
-	print("[MemoryPerformanceOptimizer] ✅ Memory performance optimization initialized (level: %s)" % OptimizationLevel.keys()[optimization_level])
+	pass # Memory performance optimization initialized
 	return true
 
 ## OBJECT POOLING SYSTEM
@@ -107,7 +106,7 @@ static func _initialize_object_pools() -> void:
 	_create_object_pool("EquipmentItem", 5)
 	_create_object_pool("MissionData", 2)
 	
-	print("[MemoryPerformanceOptimizer] Initialized %d object pools" % _object_pools.size())
+	pass # Object pools initialized
 
 ## Create object pool for specific type
 static func _create_object_pool(type_name: String, initial_size: int) -> void:
@@ -290,7 +289,7 @@ static func _initialize_memory_profiling() -> void:
 			scene_tree.get_root().add_child(_profile_update_timer)
 	
 	_profiling_active = true
-	print("[MemoryPerformanceOptimizer] Memory profiling initialized (interval: %.1fs)" % profile_interval)
+	pass # Memory profiling initialized
 
 ## Update memory profile
 static func _update_memory_profile() -> void:
@@ -323,7 +322,7 @@ static func _update_memory_profile() -> void:
 	
 	var profile_duration = Time.get_ticks_msec() - profile_start
 	if profile_duration > 50:  # Warn if profiling takes too long
-		print("[MemoryPerformanceOptimizer] Warning: Memory profiling took %dms" % profile_duration)
+		pass
 
 ## Count scene nodes
 static func _count_scene_nodes() -> int:
@@ -375,7 +374,6 @@ static func _initialize_lazy_loading() -> void:
 	_resource_usage_patterns.clear()
 	_preload_queue.clear()
 	
-	print("[MemoryPerformanceOptimizer] Lazy loading system initialized")
 
 ## Register resource for lazy loading
 static func register_lazy_resource(resource_path: String, priority: int = 0) -> void:
@@ -405,7 +403,7 @@ static func get_lazy_resource(resource_path: String) -> Resource:
 		lazy_data.loading_time_ms = Time.get_ticks_msec() - load_start
 		
 		_optimization_statistics.resources_lazy_loaded += 1
-		print("[MemoryPerformanceOptimizer] Lazy loaded: %s (%dms)" % [resource_path.get_file(), lazy_data.loading_time_ms])
+		pass # Resource lazy loaded
 	
 	return lazy_data.resource
 
@@ -436,7 +434,7 @@ static func _check_optimization_triggers() -> void:
 
 ## Trigger memory optimization
 static func _trigger_memory_optimization(trigger_reason: String) -> void:
-	print("[MemoryPerformanceOptimizer] 🚀 Triggering optimization (reason: %s)" % trigger_reason)
+	pass # Triggering optimization
 	
 	var optimization_start = Time.get_ticks_msec()
 	var initial_memory = _memory_profile.total_memory_mb
@@ -461,7 +459,6 @@ static func _trigger_memory_optimization(trigger_reason: String) -> void:
 	_optimization_statistics.memory_saved_mb += memory_saved
 	_optimization_statistics.last_optimization_time = Time.get_ticks_msec()
 	
-	print("[MemoryPerformanceOptimizer] ✅ Optimization complete: %.1fMB saved in %dms" % [memory_saved, optimization_duration])
 
 ## Conservative optimization
 static func _conservative_optimization() -> void:
@@ -505,12 +502,12 @@ static func _cleanup_unused_pools() -> void:
 				cleaned += 1
 		
 		if cleaned > 0:
-			print("[MemoryPerformanceOptimizer] Cleaned %d dead references from %s pool" % [cleaned, type_name])
+			pass
 
 ## Compress texture memory (placeholder)
 static func _compress_texture_memory() -> void:
 	# Would implement texture compression/streaming
-	print("[MemoryPerformanceOptimizer] Texture memory optimization executed")
+	pass
 
 ## Unload unused resources
 static func _unload_unused_resources() -> void:
@@ -525,7 +522,7 @@ static func _unload_unused_resources() -> void:
 			unloaded += 1
 	
 	if unloaded > 0:
-		print("[MemoryPerformanceOptimizer] Unloaded %d unused resources" % unloaded)
+		pass
 
 ## Force garbage collection
 static func _force_garbage_collection() -> void:
@@ -533,7 +530,6 @@ static func _force_garbage_collection() -> void:
 		var main_loop = Engine.get_main_loop()
 		if main_loop:
 			await main_loop.process_frame
-	print("[MemoryPerformanceOptimizer] Forced garbage collection")
 
 ## CACHE OPTIMIZATION
 
@@ -552,7 +548,7 @@ static func _on_memory_pressure_detected(current_memory: float, peak_memory: flo
 	_memory_pressure_level = (current_memory - baseline_memory) / baseline_memory
 	
 	if _memory_pressure_level > 0.5:  # 50% increase from baseline
-		print("[MemoryPerformanceOptimizer] High memory pressure detected (%.1f%% increase)" % (_memory_pressure_level * 100))
+		push_warning("[MemoryPerformanceOptimizer] High memory pressure detected (%.1f%% increase)" % (_memory_pressure_level * 100))
 		await _trigger_memory_optimization("memory_pressure_callback")
 
 ## STATISTICS AND REPORTING
@@ -585,7 +581,6 @@ static func get_pool_statistics() -> Dictionary:
 
 ## Shutdown optimizer
 static func shutdown() -> void:
-	print("[MemoryPerformanceOptimizer] Shutting down memory performance optimizer...")
 	
 	# Stop profiling
 	_profiling_active = false
@@ -614,4 +609,3 @@ static func shutdown() -> void:
 	
 	_optimization_enabled = false
 	
-	print("[MemoryPerformanceOptimizer] ✅ Shutdown complete")

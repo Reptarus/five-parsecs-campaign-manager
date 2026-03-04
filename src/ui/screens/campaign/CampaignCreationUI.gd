@@ -185,7 +185,6 @@ func _on_campaign_finalized(data: Dictionary) -> void:
 	var gs = get_node_or_null("/root/GameState")
 	if gs and gs.has_method("set_current_campaign"):
 		gs.set_current_campaign(campaign)
-		print("CampaignCreationUI: Campaign resource set on GameState")
 
 	var router = get_node_or_null("/root/SceneRouter")
 	if router:

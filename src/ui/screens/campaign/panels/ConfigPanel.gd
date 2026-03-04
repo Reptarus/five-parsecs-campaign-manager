@@ -1,7 +1,4 @@
 extends Control
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 signal config_updated(config: Dictionary)
 
 @onready var campaign_name_input = $Content/CampaignName/LineEdit
@@ -10,7 +7,7 @@ signal config_updated(config: Dictionary)
 
 var current_config: Dictionary = {
 	"name": "",
-	"difficulty": GameEnums.DifficultyLevel.NORMAL
+	"difficulty": GlobalEnums.DifficultyLevel.NORMAL
 }
 
 func _ready() -> void:
@@ -21,10 +18,10 @@ func _ready() -> void:
 func _setup_difficulty_options() -> void:
 	difficulty_option.clear()
 	
-	difficulty_option.add_item("Easy", GameEnums.DifficultyLevel.EASY)
-	difficulty_option.add_item("Normal", GameEnums.DifficultyLevel.NORMAL)
-	difficulty_option.add_item("Hard", GameEnums.DifficultyLevel.HARD)
-	difficulty_option.add_item("Nightmare", GameEnums.DifficultyLevel.NIGHTMARE)
+	difficulty_option.add_item("Easy", GlobalEnums.DifficultyLevel.EASY)
+	difficulty_option.add_item("Normal", GlobalEnums.DifficultyLevel.NORMAL)
+	difficulty_option.add_item("Hard", GlobalEnums.DifficultyLevel.HARD)
+	difficulty_option.add_item("Nightmare", GlobalEnums.DifficultyLevel.NIGHTMARE)
 	
 	difficulty_option.select(1) # Default to Normal
 
@@ -45,33 +42,37 @@ func _update_description() -> void:
 	var description = ""
 	
 	match current_config.difficulty:
-		GameEnums.DifficultyLevel.EASY:
+		GlobalEnums.DifficultyLevel.EASY:
 			description = """
 			Easy Mode:
+				pass
 			- More starting resources
 			- Easier combat encounters
 			- More forgiving upkeep costs
 			Perfect for learning the game mechanics.
 			"""
-		GameEnums.DifficultyLevel.NORMAL:
+		GlobalEnums.DifficultyLevel.NORMAL:
 			description = """
 			Normal Mode:
+				pass
 			- Standard resource allocation
 			- Balanced combat encounters
 			- Regular upkeep costs
 			The classic Five Parsecs experience.
 			"""
-		GameEnums.DifficultyLevel.HARD:
+		GlobalEnums.DifficultyLevel.HARD:
 			description = """
 			Hard Mode:
+				pass
 			- Fewer starting resources
 			- Tougher combat encounters
 			- Higher upkeep costs
 			For experienced captains seeking a challenge.
 			"""
-		GameEnums.DifficultyLevel.NIGHTMARE:
+		GlobalEnums.DifficultyLevel.NIGHTMARE:
 			description = """
 			Nightmare Mode:
+				pass
 			- Minimal starting resources
 			- Brutal combat encounters
 			- Extreme upkeep costs

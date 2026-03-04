@@ -96,7 +96,7 @@ func _ready() -> void:
 ## @param terrain_type: Type of terrain to place
 ## @param feature_type: Optional feature to add to the terrain
 ## @return: Whether the placement was successful
-func place_terrain(position: Vector2i, terrain_type: int, feature_type: int = GameEnums.TerrainFeatureType.NONE) -> bool:
+func place_terrain(position: Vector2i, terrain_type: int, feature_type: int = GlobalEnums.TerrainFeatureType.NONE) -> bool:
 	if not _is_valid_position(position):
 		return false
 		
@@ -123,7 +123,7 @@ func place_terrain(position: Vector2i, terrain_type: int, feature_type: int = Ga
 ## @param new_type: New terrain type
 ## @param feature_type: Optional new feature type
 ## @return: Whether the modification was successful
-func modify_terrain(position: Vector2i, new_type: int, feature_type: int = GameEnums.TerrainFeatureType.NONE) -> bool:
+func modify_terrain(position: Vector2i, new_type: int, feature_type: int = GlobalEnums.TerrainFeatureType.NONE) -> bool:
 	if not terrain_map.has(position):
 		return false
 		
@@ -151,7 +151,7 @@ func remove_terrain(position: Vector2i) -> bool:
 	terrain_removed.emit(position)
 	
 	# Clear any terrain effects at this position
-	terrain_effect_system.update_terrain_state(position, TerrainTypes.Type.EMPTY, GameEnums.TerrainFeatureType.NONE)
+	terrain_effect_system.update_terrain_state(position, TerrainTypes.Type.EMPTY, GlobalEnums.TerrainFeatureType.NONE)
 	
 	return true
 
@@ -165,7 +165,7 @@ func remove_terrain(position: Vector2i) -> bool:
 func get_terrain_at(position: Vector2i) -> Dictionary:
 	return terrain_map.get(position, {
 		"type": TerrainTypes.Type.EMPTY,
-		"feature_type": GameEnums.TerrainFeatureType.NONE,
+		"feature_type": GlobalEnums.TerrainFeatureType.NONE,
 		"effects": []
 	})
 
@@ -178,7 +178,7 @@ func get_terrain_at(position: Vector2i) -> Dictionary:
 ## @param position: Position where the unit is located
 func apply_terrain_effect_to_unit(target: Node, position: Vector2i) -> void:
 	var state: Dictionary = get_terrain_at(position)
-	terrain_effect_system.apply_terrain_effect(target, state.get("type", TerrainTypes.Type.EMPTY), state.get("feature_type", GameEnums.TerrainFeatureType.NONE))
+	terrain_effect_system.apply_terrain_effect(target, state.get("type", TerrainTypes.Type.EMPTY), state.get("feature_type", GlobalEnums.TerrainFeatureType.NONE))
 
 ## Remove all terrain effects from a unit
 ## 
@@ -378,7 +378,7 @@ func deserialize(data: Dictionary) -> bool:
 			var terrain_data: Dictionary = data.terrain_map[pos_str]
 			
 			# Place terrain with its data
-			place_terrain(pos, terrain_data.get("type", TerrainTypes.Type.EMPTY), terrain_data.get("feature_type", GameEnums.TerrainFeatureType.NONE))
+			place_terrain(pos, terrain_data.get("type", TerrainTypes.Type.EMPTY), terrain_data.get("feature_type", GlobalEnums.TerrainFeatureType.NONE))
 			
 			# Handle any additional data if needed
 	

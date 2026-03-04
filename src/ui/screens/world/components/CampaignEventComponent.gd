@@ -54,7 +54,6 @@ var campaign_events: Array[Dictionary] = [
 
 func _ready() -> void:
 	name = "CampaignEventComponent"
-	print("CampaignEventComponent: Initialized - Five Parsecs campaign event system")
 
 	_initialize_event_bus()
 	_connect_ui_signals()
@@ -65,7 +64,6 @@ func _initialize_event_bus() -> void:
 	event_bus = get_node_or_null("/root/CampaignTurnEventBus")
 	if event_bus:
 		event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
-		print("CampaignEventComponent: Connected to event bus")
 
 func _connect_ui_signals() -> void:
 	## Connect UI button signals
@@ -89,7 +87,6 @@ func initialize_event_phase() -> void:
 
 	_update_ui_display()
 
-	print("CampaignEventComponent: Event phase initialized")
 
 	if event_bus:
 		event_bus.publish_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, {
@@ -103,8 +100,6 @@ func _on_roll_pressed() -> void:
 
 	# Find matching event
 	current_event = _get_event_for_roll(last_roll)
-
-	print("CampaignEventComponent: Rolled %d - %s" % [last_roll, current_event.get("title", "Unknown")])
 
 	_update_ui_display()
 
@@ -142,8 +137,6 @@ func _on_resolve_pressed() -> void:
 
 	_update_ui_display()
 
-	print("CampaignEventComponent: Event resolved - %s (%s)" % [current_event.get("title", "Unknown"), effect_text])
-
 	if event_bus:
 		event_bus.publish_event(CampaignTurnEventBus.TurnEvent.PHASE_COMPLETED, {
 			"phase_name": "campaign_event",
@@ -164,7 +157,6 @@ func _apply_event_effects() -> String:
 	
 	if post_battle_phase and post_battle_phase.has_method("apply_campaign_event_effect"):
 		var result = post_battle_phase.apply_campaign_event_effect(title)
-		print("CampaignEventComponent: %s" % result)
 		return result
 	else:
 		push_warning("CampaignEventComponent: PostBattlePhase not found - using fallback")
@@ -226,7 +218,7 @@ func _on_phase_started(data: Dictionary) -> void:
 	## Handle phase started events
 	var phase_name = data.get("phase_name", "")
 	if phase_name == "campaign_event":
-		print("CampaignEventComponent: Campaign event phase started")
+		pass
 
 ## Public API
 func is_event_resolved() -> bool:
@@ -245,4 +237,3 @@ func reset_event_phase() -> void:
 	if roll_result_label:
 		roll_result_label.text = ""
 	_update_ui_display()
-	print("CampaignEventComponent: Reset for new turn")

@@ -28,7 +28,6 @@ var assignment_completed: bool = false
 
 func _ready() -> void:
 	name = "AssignEquipmentComponent"
-	print("AssignEquipmentComponent: Initialized - Five Parsecs equipment management")
 
 	_initialize_event_bus()
 	_connect_ui_signals()
@@ -51,7 +50,6 @@ func _initialize_event_bus() -> void:
 	event_bus = get_node_or_null("/root/CampaignTurnEventBus")
 	if event_bus:
 		event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
-		print("AssignEquipmentComponent: Connected to event bus")
 
 func _exit_tree() -> void:
 	## Cleanup event bus subscriptions to prevent memory leaks
@@ -89,7 +87,7 @@ func initialize_equipment_phase(crew: Array, stash: Array) -> void:
 	_populate_stash_list()
 	_update_ui_display()
 
-	print("AssignEquipmentComponent: Initialized with %d crew, %d stash items" % [crew.size(), stash.size()])
+	pass # Equipment phase initialized
 
 	if event_bus:
 		event_bus.publish_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, {
@@ -208,7 +206,7 @@ func _on_transfer_to_stash_pressed() -> void:
 				equipment.remove_at(item_index)
 				_set_member_equipment(member, equipment)
 				stash_items.append(item)
-				print("AssignEquipmentComponent: Transferred %s to ship stash via EquipmentManager" % item.get("name", "Unknown"))
+				pass # Transferred to ship stash via EquipmentManager
 			else:
 				push_warning("AssignEquipmentComponent: EquipmentManager transfer failed - stash may be full")
 				return
@@ -217,7 +215,7 @@ func _on_transfer_to_stash_pressed() -> void:
 			equipment.remove_at(item_index)
 			_set_member_equipment(member, equipment)
 			stash_items.append(item)
-			print("AssignEquipmentComponent: Transferred %s to stash (local only)" % str(item))
+			pass # Transferred to stash (local only)
 
 		_populate_crew_equipment()
 		_populate_stash_list()
@@ -251,7 +249,7 @@ func _on_transfer_to_crew_pressed() -> void:
 				var equipment = _get_member_equipment(member)
 				equipment.append(item)
 				_set_member_equipment(member, equipment)
-				print("AssignEquipmentComponent: Transferred %s to crew member via EquipmentManager" % item.get("name", "Unknown"))
+				pass # Transferred to crew member via EquipmentManager
 			else:
 				push_warning("AssignEquipmentComponent: EquipmentManager transfer from stash failed")
 				return
@@ -261,7 +259,6 @@ func _on_transfer_to_crew_pressed() -> void:
 			var equipment = _get_member_equipment(member)
 			equipment.append(item)
 			_set_member_equipment(member, equipment)
-			print("AssignEquipmentComponent: Transferred %s to crew member (local only)" % str(item))
 
 		_populate_crew_equipment()
 		_populate_stash_list()
@@ -432,7 +429,6 @@ func _execute_crew_to_crew_transfer(target_crew_index: int) -> void:
 			var target_equipment = _get_member_equipment(target_member)
 			target_equipment.append(item)
 			_set_member_equipment(target_member, target_equipment)
-			print("AssignEquipmentComponent: Transferred %s from %s to %s via EquipmentManager" % [item_name, source_name, target_name])
 		else:
 			_show_notification("Transfer failed")
 			return
@@ -443,7 +439,6 @@ func _execute_crew_to_crew_transfer(target_crew_index: int) -> void:
 		var target_equipment = _get_member_equipment(target_member)
 		target_equipment.append(item)
 		_set_member_equipment(target_member, target_equipment)
-		print("AssignEquipmentComponent: Transferred %s from %s to %s (local only)" % [item_name, source_name, target_name])
 
 	# Refresh displays
 	_populate_crew_equipment()
@@ -459,7 +454,7 @@ func _show_notification(message: String) -> void:
 	if notification_mgr and notification_mgr.has_method("show_info"):
 		notification_mgr.show_info(message)
 	else:
-		print("AssignEquipmentComponent: %s" % message)
+		pass
 
 func _on_confirm_pressed() -> void:
 	## Confirm equipment assignments
@@ -484,12 +479,6 @@ func _on_confirm_pressed() -> void:
 				campaign.set_ship_stash(stash_items.duplicate())
 			elif "ship_stash" in campaign:
 				campaign.ship_stash = stash_items.duplicate()
-
-			print("AssignEquipmentComponent: Persisted equipment for %d crew and %d stash items" % [
-				crew_data.size(), stash_items.size()
-			])
-
-	print("AssignEquipmentComponent: Equipment assignments confirmed")
 
 	if event_bus:
 		event_bus.publish_event(CampaignTurnEventBus.TurnEvent.PHASE_COMPLETED, {
@@ -518,7 +507,7 @@ func _on_phase_started(data: Dictionary) -> void:
 	## Handle phase started events
 	var phase_name = data.get("phase_name", "")
 	if phase_name == "assign_equipment":
-		print("AssignEquipmentComponent: Equipment phase started")
+		pass
 
 ## Public API
 func is_assignment_completed() -> bool:
@@ -553,4 +542,3 @@ func reset_equipment_phase() -> void:
 	selected_crew_index = -1
 	assignment_completed = false
 	_update_ui_display()
-	print("AssignEquipmentComponent: Reset for new turn")

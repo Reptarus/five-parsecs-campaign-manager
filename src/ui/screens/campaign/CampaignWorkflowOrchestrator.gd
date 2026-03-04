@@ -90,7 +90,6 @@ func _setup_ui_components() -> void:
 
 func _initialize_workflow_system() -> void:
 	## Production initialization with validation and fallback handling
-	print("CampaignWorkflowOrchestrator: Initializing production workflow system...")
 	_update_status("Initializing workflow system...")
 	
 	# Validate required scenes exist
@@ -115,7 +114,6 @@ func _initialize_workflow_system() -> void:
 	current_state = WorkflowState.CONFIG_PHASE
 	_start_workflow_step(current_state)
 	
-	print("CampaignWorkflowOrchestrator: ✅ Production workflow system initialized successfully")
 
 func _validate_scene_availability() -> Dictionary:
 	## Validate all required scenes are available before starting workflow
@@ -138,10 +136,8 @@ func _initialize_context_manager() -> bool:
 	## Initialize workflow context for data passing between scenes
 	var context_manager = get_node_or_null("/root/WorkflowContextManager")
 	if not context_manager:
-		print("CampaignWorkflowOrchestrator: WorkflowContextManager not found in autoload")
 		return false
 	
-	print("CampaignWorkflowOrchestrator: WorkflowContextManager found and available")
 	return true
 
 func _setup_workflow_monitoring() -> void:
@@ -154,8 +150,6 @@ func _setup_workflow_monitoring() -> void:
 
 func _start_workflow_step(step: WorkflowState) -> void:
 	## Start a workflow step with comprehensive error handling
-	print("CampaignWorkflowOrchestrator: Starting workflow step: %s" % _get_state_name(step))
-	
 	step_start_time = Time.get_ticks_msec()
 	current_state = step
 	
@@ -186,7 +180,6 @@ func _transition_to_scene(scene_path: String) -> void:
 		return
 	
 	# Log transition for debugging
-	print("CampaignWorkflowOrchestrator: Transitioning to scene: %s" % scene_path)
 
 	# Perform scene transition using standardized navigation
 	GameStateManager.navigate_to_scene_path(scene_path)
@@ -236,18 +229,15 @@ func _on_ship_step_completed(ship_data: Dictionary) -> void:
 
 func _on_generic_step_completed(step_data: Dictionary) -> void:
 	## Generic step completion handler
-	print("CampaignWorkflowOrchestrator: Generic step completed with data: %s" % step_data.keys())
+	pass
 
 func _complete_workflow_step(step: WorkflowState, data: Dictionary) -> void:
 	## Mark workflow step as completed and emit monitoring signal
-	var step_duration = Time.get_ticks_msec() - step_start_time
-	print("CampaignWorkflowOrchestrator: ✅ Step %s completed in %d ms" % [_get_state_name(step), step_duration])
 	
 	workflow_step_completed.emit(step, data)
 
 func _finalize_campaign() -> void:
 	## Finalize campaign creation and transition to dashboard
-	print("CampaignWorkflowOrchestrator: Finalizing campaign creation...")
 	current_state = WorkflowState.FINALIZING
 	
 	# Validate complete campaign data
@@ -272,7 +262,6 @@ func _finalize_campaign() -> void:
 	current_state = WorkflowState.COMPLETED
 	total_workflow_time = Time.get_ticks_msec() - total_workflow_time
 	
-	print("CampaignWorkflowOrchestrator: ✅ Campaign creation completed in %d ms" % total_workflow_time)
 	workflow_completed.emit(final_campaign)
 	
 	# Transition to campaign dashboard
@@ -292,11 +281,11 @@ func _validate_complete_campaign() -> Dictionary:
 	
 	# Validate characters (optional but recommended)
 	if not campaign_data.has("characters"):
-		print("CampaignWorkflowOrchestrator: Warning - No character customizations provided")
+		pass
 	
 	# Validate ship (optional)
 	if not campaign_data.has("ship"):
-		print("CampaignWorkflowOrchestrator: Warning - No ship assignment provided")
+		pass
 	
 	if errors.is_empty():
 		return {"success": true}
@@ -308,21 +297,17 @@ func _validate_complete_campaign() -> Dictionary:
 
 func _create_final_campaign() -> Dictionary:
 	## Create final campaign using production CampaignFactory
-	print("CampaignWorkflowOrchestrator: Creating final campaign using CampaignFactory...")
 	
 	# Use production factory to create validated campaign
 	var creation_result = CampaignFactory.create_campaign(campaign_data)
 	
 	if creation_result.success:
-		print("CampaignWorkflowOrchestrator: ✅ Campaign created successfully with ID: %s" % creation_result.campaign_id)
 		return creation_result.campaign
 	else:
-		print("CampaignWorkflowOrchestrator: ❌ CampaignFactory failed: %s" % creation_result.error_message)
 		return {}
 
 func _save_campaign(campaign: Dictionary) -> Dictionary:
 	## Save campaign using SaveManager
-	print("CampaignWorkflowOrchestrator: Saving campaign using SaveManager...")
 
 	# Use save manager for secure, atomic save operations
 	var save_manager = get_node_or_null("/root/SaveManager")
@@ -335,13 +320,11 @@ func _save_campaign(campaign: Dictionary) -> Dictionary:
 
 	if save_success:
 		var file_path = "user://saves/" + save_name + ".save"
-		print("CampaignWorkflowOrchestrator: ✅ Campaign saved successfully to: %s" % file_path)
 		return {
 			"success": true,
 			"file_path": file_path
 		}
 	else:
-		print("CampaignWorkflowOrchestrator: ❌ Save failed")
 		return {
 			"success": false,
 			"error_message": "Save operation failed"
@@ -366,7 +349,6 @@ func _transition_to_dashboard(campaign: Dictionary) -> void:
 # Error handling system
 func _handle_workflow_error(error: WorkflowError, details: String) -> void:
 	## Handle workflow errors with recovery options
-	print("CampaignWorkflowOrchestrator: ❌ Workflow error: %s - %s" % [error, details])
 	
 	current_state = WorkflowState.ERROR_STATE
 	workflow_error.emit(error, details)
@@ -391,7 +373,6 @@ func _update_status(message: String) -> void:
 	## Update status display in UI
 	if status_label:
 		status_label.text = message
-	print("CampaignWorkflowOrchestrator: " + message)
 
 func _update_progress(value: float) -> void:
 	## Update progress bar
@@ -417,12 +398,10 @@ func _hide_error_ui() -> void:
 
 func _return_to_main_menu() -> void:
 	## Return to main menu
-	print("CampaignWorkflowOrchestrator: Returning to main menu")
 	GameStateManager.navigate_to_screen("main_menu")
 
 func _retry_workflow() -> void:
 	## Retry workflow initialization
-	print("CampaignWorkflowOrchestrator: Retrying workflow initialization")
 	_hide_error_ui()
 	error_recovery_attempts = 0
 	current_state = WorkflowState.UNINITIALIZED
@@ -431,7 +410,7 @@ func _retry_workflow() -> void:
 func _attempt_error_recovery(error: WorkflowError, details: String) -> void:
 	## Attempt to recover from workflow errors
 	error_recovery_attempts += 1
-	print("CampaignWorkflowOrchestrator: Attempting error recovery (attempt %d/%d)" % [error_recovery_attempts, MAX_RECOVERY_ATTEMPTS])
+	push_warning("CampaignWorkflowOrchestrator: Attempting error recovery (attempt %d/%d)" % [error_recovery_attempts, MAX_RECOVERY_ATTEMPTS])
 	
 	match error:
 		WorkflowError.SCENE_LOAD_FAILED:
@@ -457,15 +436,15 @@ func _restart_current_step() -> void:
 # Monitoring and debugging
 func _on_workflow_step_completed(step: WorkflowState, data: Dictionary) -> void:
 	## Handle workflow step completion for monitoring
-	print("CampaignWorkflowOrchestrator: 📊 Step completed - %s (Data keys: %s)" % [_get_state_name(step), data.keys()])
+	pass
 
 func _on_workflow_error(error: WorkflowError, details: String) -> void:
 	## Handle workflow errors for monitoring
-	print("CampaignWorkflowOrchestrator: 🚨 Error - %s: %s" % [error, details])
+	pass
 
 func _on_workflow_completed(campaign: Dictionary) -> void:
 	## Handle workflow completion for monitoring
-	print("CampaignWorkflowOrchestrator: 🎉 Workflow completed - Campaign: %s" % campaign.get("config", {}).get("campaign_name", "Unknown"))
+	pass
 
 func _get_state_name(state: WorkflowState) -> String:
 	## Get human-readable state name for debugging

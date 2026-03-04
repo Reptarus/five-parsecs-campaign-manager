@@ -162,7 +162,6 @@ func _on_gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			world_details_requested.emit()
-			print("WorldStatusCard: World details requested")
 
 
 ## Public API for setting world data

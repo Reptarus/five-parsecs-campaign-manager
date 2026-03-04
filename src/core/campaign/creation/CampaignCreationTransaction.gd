@@ -1,4 +1,4 @@
-﻿class_name CampaignCreationTransaction
+class_name CampaignCreationTransaction
 extends RefCounted
 
 ## Enterprise-grade Transaction Management for Campaign Creation
@@ -49,7 +49,6 @@ signal transaction_failed(transaction_id: String, error: String)
 func _init() -> void:
 	transaction_id = _generate_transaction_id()
 	created_at = Time.get_unix_time_from_system()
-	print("CampaignCreationTransaction: Created transaction %s" % transaction_id)
 
 func _generate_transaction_id() -> String:
 	## Generate unique transaction ID
@@ -84,7 +83,6 @@ func begin_transaction(initial_state: Dictionary) -> bool:
 	_operation_lock.unlock()
 	
 	transaction_started.emit(transaction_id)
-	print("CampaignCreationTransaction: Transaction %s started" % transaction_id)
 	return true
 
 func add_operation(operation_type: String, operation_data: Dictionary, rollback_data: Dictionary = {}) -> bool:
@@ -102,7 +100,6 @@ func add_operation(operation_type: String, operation_data: Dictionary, rollback_
 	}
 	
 	operations.append(operation)
-	print("CampaignCreationTransaction: Added operation %s to transaction %s" % [operation_type, transaction_id])
 	return true
 
 func execute_operations(state_manager: RefCounted) -> bool:
@@ -173,7 +170,6 @@ func commit_transaction(state_manager: RefCounted) -> Dictionary:
 	completed_at = Time.get_unix_time_from_system()
 	
 	transaction_committed.emit(transaction_id, final_state)
-	print("CampaignCreationTransaction: Transaction %s committed successfully" % transaction_id)
 	return final_state
 
 func rollback_transaction(state_manager: RefCounted, reason: String = "") -> bool:
@@ -192,7 +188,6 @@ func rollback_transaction(state_manager: RefCounted, reason: String = "") -> boo
 		transaction_state = TransactionState.ROLLED_BACK
 		completed_at = Time.get_unix_time_from_system()
 		transaction_rolled_back.emit(transaction_id, rollback_reason)
-		print("CampaignCreationTransaction: Transaction %s rolled back: %s" % [transaction_id, rollback_reason])
 	
 	return success
 
@@ -203,7 +198,6 @@ func _execute_single_operation(operation: Dictionary, state_manager: RefCounted)
 	var operation_type = operation.type
 	var operation_data = operation.data
 	
-	print("CampaignCreationTransaction: Executing operation %s" % operation_type)
 	
 	match operation_type:
 		"update_captain":
@@ -432,4 +426,3 @@ func cleanup_transaction() -> void:
 	initial_state_snapshot.clear()
 	transaction_errors.clear()
 	
-	print("CampaignCreationTransaction: Cleaned up transaction %s" % transaction_id)

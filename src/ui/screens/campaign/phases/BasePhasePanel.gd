@@ -2,7 +2,6 @@ extends Control
 # This file should be referenced via preload
 # Use explicit preloads instead of global class names
 
-const Self = preload("res://src/ui/screens/campaign/phases/BasePhasePanel.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")

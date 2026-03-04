@@ -10,9 +10,6 @@ signal transaction_completed(amount: int, type: String)
 
 var _current_credits: int = 0
 var _transaction_history: Array = []
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 func _init() -> void:
 	_current_credits = 1000 # Starting credits
 

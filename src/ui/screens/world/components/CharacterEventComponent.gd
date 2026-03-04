@@ -51,7 +51,6 @@ var character_events: Array[Dictionary] = [
 
 func _ready() -> void:
 	name = "CharacterEventComponent"
-	print("CharacterEventComponent: Initialized - Five Parsecs character event system")
 
 	_initialize_event_bus()
 	_connect_ui_signals()
@@ -62,7 +61,6 @@ func _initialize_event_bus() -> void:
 	event_bus = get_node_or_null("/root/CampaignTurnEventBus")
 	if event_bus:
 		event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
-		print("CharacterEventComponent: Connected to event bus")
 
 func _connect_ui_signals() -> void:
 	## Connect UI button signals
@@ -92,8 +90,6 @@ func initialize_event_phase(crew: Array) -> void:
 
 	_update_ui_display()
 
-	print("CharacterEventComponent: Event phase initialized with %d crew members" % crew.size())
-
 	if event_bus:
 		event_bus.publish_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, {
 			"phase_name": "character_event",
@@ -116,20 +112,17 @@ func _select_random_character() -> void:
 			eligible_characters.append(member)
 
 	if eligible_characters.is_empty():
-		print("CharacterEventComponent: No eligible characters for event")
 		return
 
 	var random_index = randi() % eligible_characters.size()
 	selected_character = eligible_characters[random_index]
 
 	var char_name = selected_character.get("name", "Unknown") if selected_character is Dictionary else "Unknown"
-	print("CharacterEventComponent: Selected %s for character event" % char_name)
 
 ## Core Mechanic - Roll Character Event
 func _on_roll_pressed() -> void:
 	## Roll D100 on Character Event Table
 	if selected_character.is_empty():
-		print("CharacterEventComponent: No character selected")
 		return
 
 	last_roll = randi() % 100 + 1
@@ -141,15 +134,11 @@ func _on_roll_pressed() -> void:
 
 	if is_precursor:
 		var second_roll = randi() % 100 + 1
-		print("CharacterEventComponent: Precursor rolls %d and %d (can choose)" % [last_roll, second_roll])
 		# For simplicity, take higher roll - full implementation would offer choice
 		last_roll = max(last_roll, second_roll)
 
 	# Find matching event
 	current_event = _get_event_for_roll(last_roll)
-
-	var char_name = selected_character.get("name", "Unknown") if selected_character is Dictionary else "Unknown"
-	print("CharacterEventComponent: %s rolled %d - %s" % [char_name, last_roll, current_event.get("title", "Unknown")])
 
 	_update_ui_display()
 
@@ -187,9 +176,6 @@ func _on_resolve_pressed() -> void:
 
 	_update_ui_display()
 
-	var char_name = selected_character.get("name", "Unknown") if selected_character is Dictionary else "Unknown"
-	print("CharacterEventComponent: Event resolved for %s - %s (%s)" % [char_name, current_event.get("title", "Unknown"), effect_text])
-
 	if event_bus:
 		event_bus.publish_event(CampaignTurnEventBus.TurnEvent.PHASE_COMPLETED, {
 			"phase_name": "character_event",
@@ -211,7 +197,6 @@ func _apply_event_effects() -> String:
 	
 	if post_battle_phase and post_battle_phase.has_method("apply_character_event_effect"):
 		var result = post_battle_phase.apply_character_event_effect(title, selected_character)
-		print("CharacterEventComponent: %s" % result)
 		return result
 	else:
 		push_warning("CharacterEventComponent: PostBattlePhase not found - using fallback")
@@ -281,7 +266,7 @@ func _on_phase_started(data: Dictionary) -> void:
 	## Handle phase started events
 	var phase_name = data.get("phase_name", "")
 	if phase_name == "character_event":
-		print("CharacterEventComponent: Character event phase started")
+		pass
 
 ## Public API
 func is_event_resolved() -> bool:
@@ -305,4 +290,3 @@ func reset_event_phase() -> void:
 	if roll_result_label:
 		roll_result_label.text = ""
 	_update_ui_display()
-	print("CharacterEventComponent: Reset for new turn")

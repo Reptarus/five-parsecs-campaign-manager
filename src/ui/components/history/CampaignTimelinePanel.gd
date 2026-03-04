@@ -385,7 +385,7 @@ func _do_export(format: String, path: String) -> void:
 		success = journal.export_to_json(path)
 
 	if success:
-		print("CampaignTimelinePanel: Exported to %s" % path)
+		pass
 	else:
 		push_error("CampaignTimelinePanel: Export failed for %s" % path)
 

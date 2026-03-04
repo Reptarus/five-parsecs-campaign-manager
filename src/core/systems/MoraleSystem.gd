@@ -65,7 +65,7 @@ static func adjust_morale(campaign, amount: int, reason: String = "") -> int:
 
 	if reason != "" and old_value != new_value:
 		var direction = "+" if amount > 0 else ""
-		print("MoraleSystem: %s (%s%d) -> %d" % [reason, direction, amount, new_value])
+		pass
 
 	return new_value
 
@@ -194,7 +194,7 @@ static func check_desertion(campaign) -> Array:
 			else:
 				name_str = "Crew Member %d" % i
 			deserted.append(name_str)
-			print("MoraleSystem: %s deserted! (morale: %d, roll: %d/%d)" % [name_str, morale, roll, chance])
+			pass
 
 	return deserted
 

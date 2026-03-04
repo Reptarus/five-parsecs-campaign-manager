@@ -136,7 +136,6 @@ enum InterfaceMode { SETUP, PLAY }
 var current_mode: InterfaceMode = InterfaceMode.SETUP
 
 func _ready() -> void:
-	print("DeveloperQuickStart: Initializing developer panel...")
 
 	# Only enable in debug builds
 	if not OS.is_debug_build():
@@ -156,7 +155,6 @@ func _ready() -> void:
 	_update_developer_info()
 	_apply_interface_mode()  # Apply initial Setup mode styling
 
-	print("DeveloperQuickStart: Ready for efficient playtesting!")
 
 func _load_dependencies() -> void:
 	## Load required game systems
@@ -166,7 +164,7 @@ func _load_dependencies() -> void:
 	# Try to get SceneRouter
 	SceneRouter = get_node_or_null("/root/SceneRouter")
 	if not SceneRouter:
-		print("DeveloperQuickStart: SceneRouter not available")
+		pass
 
 func _setup_preset_buttons() -> void:
 	## Create buttons for campaign presets
@@ -291,7 +289,6 @@ func _setup_quick_actions() -> void:
 
 func _on_preset_selected(preset_key: String) -> void:
 	## Handle campaign preset selection
-	print("DeveloperQuickStart: Creating test campaign - ", preset_key)
 
 	var preset = CAMPAIGN_PRESETS[preset_key]
 	var campaign_data = preset.duplicate()
@@ -302,7 +299,6 @@ func _on_preset_selected(preset_key: String) -> void:
 
 func _on_phase_selected(phase_key: String) -> void:
 	## Handle direct phase navigation
-	print("DeveloperQuickStart: Jumping to phase - ", phase_key)
 
 	# Emit signal for phase change
 	direct_phase_requested.emit(phase_key)
@@ -313,7 +309,6 @@ func _on_phase_selected(phase_key: String) -> void:
 
 func _on_scenario_selected(scenario_key: String) -> void:
 	## Handle test scenario setup
-	print("DeveloperQuickStart: Setting up scenario - ", scenario_key)
 
 	var scenario = TEST_SCENARIOS[scenario_key]
 	test_scenario_requested.emit(scenario_key)
@@ -323,7 +318,6 @@ func _on_scenario_selected(scenario_key: String) -> void:
 
 func _on_quick_save_pressed() -> void:
 	## Handle quick save of current test state
-	print("DeveloperQuickStart: Quick saving test state...")
 
 	var gsm = get_node_or_null("/root/GameStateManager")
 	if gsm and gsm.has_method("save_current_state"):
@@ -337,7 +331,6 @@ func _on_quick_save_pressed() -> void:
 
 func _on_quick_load_pressed() -> void:
 	## Handle quick load of test state
-	print("DeveloperQuickStart: Quick loading test state...")
 
 	var gsm = get_node_or_null("/root/GameStateManager")
 	if gsm and gsm.has_method("load_saved_state"):
@@ -351,7 +344,6 @@ func _on_quick_load_pressed() -> void:
 
 func _on_reset_pressed() -> void:
 	## Handle reset to clean state
-	print("DeveloperQuickStart: Resetting to clean state...")
 
 	# Reset to fresh campaign state
 	_create_test_campaign(CAMPAIGN_PRESETS["fresh_start"])
@@ -370,7 +362,6 @@ func _create_test_campaign(campaign_data: Dictionary) -> void:
 
 	# Use create_test_campaign() instead of start_new_campaign() to properly generate crew
 	if gsm.has_method("create_test_campaign"):
-		print("DeveloperQuickStart: Creating test campaign with crew generation")
 		gsm.create_test_campaign(campaign_data)
 	else:
 		push_error("DeveloperQuickStart: create_test_campaign() not available on GameStateManager")
@@ -389,7 +380,6 @@ func _create_test_campaign(campaign_data: Dictionary) -> void:
 
 		# Navigate directly to BattleTransition
 		if SceneRouter and SceneRouter.has_method("navigate_to"):
-			print("DeveloperQuickStart: Navigating to BattleTransition with pre-generated mission")
 			SceneRouter.navigate_to("battle_transition", {"mission_context": mission_context})
 		else:
 			push_warning("DeveloperQuickStart: SceneRouter not available - navigating to dashboard instead")
@@ -400,7 +390,6 @@ func _create_test_campaign(campaign_data: Dictionary) -> void:
 	else:
 		# Navigate to Campaign Dashboard to show generated crew and campaign state
 		if SceneRouter and SceneRouter.has_method("navigate_to"):
-			print("DeveloperQuickStart: Navigating to Campaign Dashboard to show generated campaign")
 			SceneRouter.navigate_to("campaign_turn_controller")
 		else:
 			push_warning("DeveloperQuickStart: SceneRouter not available for navigation")
@@ -447,15 +436,14 @@ func _apply_scenario_setup(setup: Dictionary) -> void:
 	# Handle special scenario flags
 	if setup.get("force_rival_attack", false):
 		# This would need integration with rival system
-		print("DeveloperQuickStart: Rival attack scenario setup requested")
+		pass
 
 	if setup.get("all_equipment", false):
 		# This would need integration with equipment system
-		print("DeveloperQuickStart: All equipment unlock requested")
+		pass
 
 func _show_notification(message: String) -> void:
 	## Show a notification message to the developer
-	print("DeveloperQuickStart: " + message)
 
 	# Create a simple notification popup (only if in scene tree)
 	if not is_inside_tree():
@@ -556,7 +544,6 @@ func _on_roll_injury_pressed() -> void:
 	if injury_result.recovery_turns > 0:
 		message += "Recovery: %d turns" % injury_result.recovery_turns
 
-	print("DeveloperQuickStart: " + message)
 	_show_notification(message)
 
 func _on_advance_stat_pressed() -> void:
@@ -582,7 +569,6 @@ func _on_advance_stat_pressed() -> void:
 		message += "• %s: %d → %d\n" % [advancement.stat, advancement.old_value, advancement.new_value]
 	message += "XP remaining: %d" % result.xp_remaining
 
-	print("DeveloperQuickStart: " + message)
 	_show_notification(message)
 
 func _on_validate_campaign_pressed() -> void:
@@ -618,7 +604,6 @@ func _on_validate_campaign_pressed() -> void:
 		for warning in validation_result.warnings:
 			message += "• " + warning + "\n"
 
-	print("DeveloperQuickStart: " + message)
 	_show_notification(message)
 
 func _on_generate_mission_pressed() -> void:
@@ -631,7 +616,6 @@ func _on_generate_mission_pressed() -> void:
 	message += "Enemy Count: %d\n" % (randi() % 6 + 3)
 	message += "Reward: %d credits" % (randi() % 500 + 100)
 
-	print("DeveloperQuickStart: " + message)
 	_show_notification(message)
 
 ## Health check implementation

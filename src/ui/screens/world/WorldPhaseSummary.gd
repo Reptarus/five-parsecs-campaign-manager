@@ -26,7 +26,6 @@ var world_phase_results: Dictionary = {}
 var current_mission: Dictionary = {}
 
 func _ready() -> void:
-	print("WorldPhaseSummary: Initialized")
 
 	_connect_signals()
 	_load_data_from_gamestate()
@@ -51,12 +50,10 @@ func _load_data_from_gamestate() -> void:
 	# Load world phase results
 	if "world_phase_results" in campaign:
 		world_phase_results = campaign.world_phase_results
-		print("WorldPhaseSummary: Loaded world_phase_results")
 
 	# Load current mission
 	if "current_mission" in campaign:
 		current_mission = campaign.current_mission
-		print("WorldPhaseSummary: Loaded current_mission: %s" % current_mission.get("objective", "unknown"))
 
 func _populate_summary() -> void:
 	## Populate all summary sections with world phase data
@@ -193,5 +190,4 @@ func _on_back_pressed() -> void:
 
 func _on_proceed_pressed() -> void:
 	## Transition to PreBattle scene
-	print("WorldPhaseSummary: Proceeding to battle")
 	SceneRouter.call_deferred("navigate_to", "pre_battle")

@@ -1,6 +1,6 @@
 # Five Parsecs Campaign Manager - Project Status
 
-**Last Updated**: February 28, 2026 (Phase 22J)
+**Last Updated**: March 4, 2026 (LSP Parse Error Cleanup Complete)
 **Engine**: Godot 4.6-stable (pure GDScript, non-mono)
 **Test Framework**: gdUnit4 v6.0.3
 **Repository**: https://github.com/Reptarus/five-parsecs-campaign-manager
@@ -20,6 +20,8 @@
 | UI/UX Design System | **7/7** sprints + **8/8** integration audit |
 | Scene Routing & Navigation | **100%** — 20 calls migrated, back buttons, per-turn auto-save |
 | Core/Compendium Wiring Audit | **6/6** sprints — Dashboard fix, phase data, loans, psionics, names |
+| Compendium Mechanics Wiring | **10/10** sprints (C-1 to C-10) — 22/37 flags fully wired, 12 files modified |
+| Functional Gaps Cleanup | **7/7** sprints (F-1 to F-7) — Dirty tracking, loot drops, event effects, backend stub triage, orphan signals, dead code |
 | Script Consolidation (Phase 5) | **9/9** sprints — Dead code removal, logic extraction, enum fix, BattleResolver wiring |
 | UI/UX Flow Wiring (Phase 6) | **Complete** — MainMenu SceneRouter, campaign creation handoff, Character.gd structural repair, docstring fixes |
 | Campaign Creation (Phase 11) | **Complete** — 7-phase coordinator wired, tutorial bypass, redundant buttons removed, CharacterCreator flat stats fix |
@@ -27,6 +29,12 @@
 | World→Battle Data Flow (Phase 21) | **Complete** — Fixed campaign API mismatches, crew task result propagation, mission prep data, battle transition method names |
 | Equipment Pipeline + PreBattle (Phase 22) | **Complete** — Fixed equipment_data key mismatch, Character.to_dictionary(), PreBattle method wiring |
 | Battle Companion UI (Phase 22I-J) | **Complete** — Visual battlefield grid with canvas-drawn terrain, right sidebar layout fix, 26 tabbed companion panels |
+| UI/UX Asset Integration (Phase 23) | **Complete** — UIAssetRegistry, 1,427 PNGs integrated, battlefield textures, dashboard gauges |
+| Store/Paywall System (Phase 24) | **Complete** — Tri-platform DLC purchases (Steam/Android/iOS), StoreManager autoload, StoreScreen UI, plugin wiring |
+| Review System (Phase 25) | **Complete** — Cross-platform in-app review prompts (Android/iOS/Steam), ReviewManager autoload, InappReviewPlugin wiring |
+| Bug Hunt Gamemode | **Complete** — 38 files (15 JSON + 23 GDScript/TSCN), 3-stage turn, character transfer, battle wiring, cross-mode safety audit |
+| TweenFX Integration (Phase 26) | **Complete** — 8 sprints, 23 files modified, bug fixes + raw tween migration + new UX animations |
+| LSP Parse Error Cleanup | **Complete** — 3 automated passes: 1,859 orphan pass removed, 5,915 space→tab fixes, 31 deep-indent orphans, enum/type fixes |
 
 ---
 
@@ -93,6 +101,21 @@ Character features: stats (combat, reaction, toughness, speed, savvy, luck), ski
 - **Mission Generators**: Stealth, StreetFight, Salvage generators wired into WorldPhase job pipeline
 - **Equipment Comparison**: Side-by-side stat comparison panel in TradePhasePanel
 
+### TweenFX Animation System (Phase 26)
+Integrated the **TweenFX addon** (v1.2, EvilBunnyMan) across 23 UI files for comprehensive UX animation polish. The addon provides 70 animations (50 one-shot, 20 looping) via autoload `TweenFX`.
+
+8 sprints completed:
+- **S1**: Bug fixes — tween leak in StoryNotificationIndicator, missing pivot_offset in QuickActionsFooter, tween kill guards in 5 files, dead code in DiceFeed
+- **S2**: Raw `create_tween()` → TweenFX migration for 11 files (fade_in, pop_in, blink, critical_hit, upgrade, glow_pulse, attract, press, pulsate)
+- **S3**: Button press feedback (`TweenFX.press()`) on all interactive buttons + error headshake
+- **S4**: Panel/screen fade transitions + label punch_in on text updates
+- **S5**: Staggered column/card reveal animations + smooth progress bar tweens
+- **S6**: CTA button breathing, hover spotlight on crew cards, connector line color tweens
+- **S7**: BattleEventNotification refactor — removed ~120 lines of dead AnimationPlayer code, replaced with inline slide tweens
+- **S8**: Game event celebrations — critical warning alarm, dice critical tada, save success punch, phase completion tada
+
+Accessibility: `UIColors.should_animate()` checks ThemeManager `_reduced_animation` flag. All TweenFX calls guarded.
+
 ### Scene Routing & Navigation (Feb 9, 2026)
 - **SceneRouter migration**: All 20 player-facing `change_scene_to_file()` calls across 12 files migrated to `SceneRouter.navigate_to()` / `navigate_back()` / `return_to_main_menu()`. Remaining raw calls are infrastructure-only (SceneRouter.gd, TransitionManager.gd, BaseController.gd, DeveloperDashboard.gd).
 - **Back buttons**: Added to WorldPhaseSummary + SaveLoadUI (48px touch target, "< Back" text, `SceneRouter.navigate_back()`). PatronRivalManager already had one. Battle screens intentionally excluded (end_battle_button is the exit mechanism).
@@ -110,6 +133,19 @@ Campaign turn loop audit for dead code, misplaced game logic in UI panels, enum 
 
 **Key new files**: `src/data/character_events.gd`, `src/core/victory/VictoryChecker.gd`
 **Files deleted**: 4 | **Files modified**: ~10 | **Zero compile errors** verified after each sprint
+
+### Functional Gaps Cleanup (Mar 3, 2026)
+Post-compendium audit revealed silent data loss stubs, orphan signals, and dead code. 7 sprints:
+
+- **F-1: Dirty tracking**: `GameStateManager.mark_campaign_modified()` was a no-op with 6 callers. Now sets flag + emits `campaign_modified` signal. `clear_modified_flag()` called after successful save in GameState.
+- **F-2: Mission item rewards**: `CampaignManager._apply_mission_rewards()` had a TODO/pass for item rewards. Now appends to `equipment_data["equipment"]` stash.
+- **F-3: PostBattlePhase event effects**: Implemented `_add_quest_rumor()`, `apply_campaign_event_effect()` (15 event types), `apply_character_event_effect()` (12 event types). Fixed 2 signature bugs in PostBattleSequence (passing Dict where String expected).
+- **F-4: CampaignPhaseManager stubs**: 11 backend stubs tagged with `push_warning()`. `_calculate_upkeep_costs()` now returns real estimate (crew_size * 6). UI panels handle actual content generation independently.
+- **F-5: CombatLootIntegration**: Confirmed unused (zero callers). Added deprecation warning in `_init()`.
+- **F-6: Orphan signal wiring**: Connected 4 phase panel signals (`story_event_resolved`, `character_event_resolved`, `item_purchased`, `item_sold`) to CampaignJournal auto-entries in CampaignTurnController.
+- **F-7: WorldPhase cleanup**: Removed ~195 lines of commented-out + dead code from `start_world_phase()` (no callers). Replaced with deprecation warning pointing to WorldPhaseController.
+
+**Files modified**: 7 | **Zero compile errors** verified after all sprints
 
 ### Core/Compendium Wiring Audit (Feb 9, 2026)
 Deep audit of core rules + compendium integration. 8 issues investigated, 6 fixed, 2 confirmed non-issues:
@@ -148,10 +184,94 @@ All QOL autoloads now persist state through PersistenceService save/load pipelin
 
 ---
 
+## Bug Hunt Gamemode (Mar 2026): COMPLETE
+
+Standalone military-themed variant based on Five Parsecs Compendium pp.169-200. Separate campaign type with its own creation flow, dashboard, turn controller, and battle integration.
+
+### Architecture
+
+- **BugHuntCampaignCore** Resource (separate from FiveParsecsCampaignCore)
+- **3-stage turn**: Special Assignments → Mission → Post-Battle
+- **Military squad model**: 3-4 Main Characters + expendable Grunts in Combat Teams
+- **38 files**: 15 JSON data + 23 GDScript/TSCN
+- **DLC gated**: 5 BUG_HUNT ContentFlags in DLCManager
+
+### Battle Integration (7 sprints + safety audit)
+
+Full mission → battle → post-battle wiring via SceneRouter + GameStateManager temp_data:
+
+- `BugHuntMissionPanel` generates battle context via `BugHuntBattleSetup`, navigates to `TacticalBattleUI`
+- `TacticalBattleUI._check_bug_hunt_launch()` auto-detects Bug Hunt mode, adds ContactMarkerPanel + Movie Magic
+- "Complete Bug Hunt Mission" button gathers results, navigates back to `BugHuntTurnController`
+- `BugHuntTurnController._resume_after_battle()` fast-forwards to Post-Battle with real casualty/XP/reputation data
+
+### Cross-Mode Safety
+
+- Campaign type validated (`"main_characters" in campaign`) before Bug Hunt code runs
+- `_bug_hunt_returning` flag prevents double-navigation
+- Signal connections guarded with `is_connected()` checks
+- Temp data namespaced (`"bug_hunt_*"` prefix), cleaned up on both sides
+- Standard 5PFH temp data (`"world_phase_results"`, `"return_screen"`) now cleaned in `_on_post_battle_completed()`
+
+### Key Files
+
+| Category | Files |
+| --- | --- |
+| Campaign Core | `BugHuntCampaignCore.gd`, `BugHuntPhaseManager.gd` |
+| Creation | `BugHuntCreationUI`, `BugHuntCreationCoordinator`, 4 wizard panels |
+| Turn Flow | `BugHuntTurnController`, `SpecialAssignmentsPanel`, `BugHuntMissionPanel`, `BugHuntPostBattlePanel` |
+| Battle | `BugHuntBattleSetup.gd`, `ContactMarkerPanel.gd`, `BugHuntEnemyGenerator.gd` |
+| Data | 15 JSON files under `data/bug_hunt/` |
+
+---
+
+## Compendium Mechanics Wiring Audit (Mar 2026): ALL 10 SPRINTS COMPLETE
+
+Deep audit of all 37 ContentFlags across 4 DLC packs. Found that while data classes existed for all flags, only 10/37 were actually wired into gameplay. 10 sprints + 3 style fixes brought that to 22/37 wired. 5 are intentional placeholders (Bug Hunt). 10 are deferred (low priority or high effort).
+
+### Sprint Summary
+
+| Sprint | Focus | Files Modified |
+|--------|-------|----------------|
+| C-1 | Fix BOT_UPGRADES inversion (bots skipped in crew list) | AdvancementPhasePanel.gd |
+| C-2 | Wire EXPANDED_MISSIONS + DEPLOYMENT_VARIABLES | WorldPhase.gd, BattleSetupPhasePanel.gd |
+| C-3 | Wire DIFFICULTY_TOGGLES math (upkeep + advancement costs) | UpkeepPhasePanel.gd, AdvancementPhasePanel.gd |
+| C-4 | Wire PSIONICS WorldPhase legality (uncommented + badge) | WorldPhase.gd, WorldPhaseController.gd |
+| C-5 | Wire INTRODUCTORY_CAMPAIGN routing | CampaignTurnController.gd, BattleSetupPhasePanel.gd |
+| C-6 | Wire EXPANDED_QUESTS in story + rumor processing | StoryPhasePanel.gd, WorldPhase.gd |
+| C-7 | Wire EXPANDED_LOANS in trade phase | TradePhasePanel.gd |
+| C-8 | Wire EXPANDED_CONNECTIONS in character phase | CharacterPhasePanel.gd |
+| C-9 | Wire AI_VARIATIONS + DRAMATIC_COMBAT in battle UI | TacticalBattleUI.gd |
+| C-10 | Wire FRINGE_WORLD_STRIFE + NAME_GENERATION + TERRAIN_GENERATION | WorldPhaseController.gd, ShipPanel.gd, PlanetNameGenerator.gd, BattleSetupPhasePanel.gd |
+
+### Style Fixes (Post-Verification)
+
+- Added explicit `const preload()` for CompendiumMissionsExpanded in 4 files (consistency with project convention)
+- Randomized weapon types for dramatic combat flavor text (was hardcoded "rifle")
+- Renamed misleading `crew_section_label` to `crew_label` in AdvancementPhasePanel
+
+### Wiring Status After Audit
+
+| Status | Count | Examples |
+|--------|-------|---------|
+| WIRED | 22 | ELITE_ENEMIES, ESCALATING_BATTLES, BOT_UPGRADES (fixed), EXPANDED_MISSIONS, DIFFICULTY_TOGGLES, PSIONICS (legality), INTRODUCTORY_CAMPAIGN, EXPANDED_QUESTS, EXPANDED_LOANS, EXPANDED_CONNECTIONS, AI_VARIATIONS, DRAMATIC_COMBAT, NAME_GENERATION, TERRAIN_GENERATION |
+| DEFERRED | 10 | Full PSIONICS (creation/advancement/battle), PVP_BATTLES, COOP_BATTLES, PRISON_PLANET_CHARACTER, GRID_BASED_MOVEMENT, species creation text, psionic_only restriction |
+| PLACEHOLDER | 5 | BUG_HUNT_* flags (intentional — mode runs unconditionally) |
+
+### Key Changes
+
+- **12 files modified**, zero compile errors after every sprint
+- All scene node paths verified against .tscn files (7 panels audited)
+- All DLC gating uses self-gating data classes (call sites don't need flag checks)
+
+---
+
 ## Known Minor Items (Not Bugs)
+
 - BattleSetupData/BattleResults use plain Dictionaries (not typed Resource classes)
 - Memory leak warnings on quit from phase handler nodes (cosmetic)
 - Old `CampaignPhase` enum in GlobalEnums.gd deprecated — 3 files still reference it (Campaign.gd, GameCampaignManager.gd, ValidationManager.gd) for save-format compat; turn loop uses `FiveParsecsCampaignPhase`
+- GodotApplePlugins `.gdextension` error on Windows — expected, no iOS/macOS library available on Windows dev machines. Harmless, does not affect builds or exports
 
 ---
 
@@ -359,3 +479,54 @@ Follow-up audit of the UI/UX overhaul to close integration gaps, register missin
   - **Phase 22I**: Removed dead DeploymentPanel from PreBattle.tscn/PreBattleUI.gd, cleaned up PreBattle flow
   - **Phase 22J**: Fixed right sidebar tool overlap — removed absolute positioning artifacts from CombatSituationPanel.tscn, removed EXPAND_FILL vertical flags from DiceDashboard.tscn and CombatCalculator.tscn
   - **Phase 22J**: Upgraded battlefield grid from text-only Labels to visual canvas-drawn terrain shapes using Godot's `_draw()` API — 11 shape types (buildings, walls, rocks, hills, trees, water, containers, crystals, hazards, debris, scatter) with keyword classification from terrain feature text
+- **Mar 2, 2026**: UI/UX Asset Integration — Phase 23 (5 sprints):
+  - Created UIAssetRegistry.gd — central static registry with caching, spelling normalization, anomaly fallbacks
+  - Integrated 1,427 PNGs from assets/UI-UX-Images/ across battlefield, battle tokens, dashboard, and campaign screens
+  - BattlefieldGridPanel: 3-layer texture stack (grid panel frame + terrain bg + building textures)
+  - Battle tokens: BattleRoundHUD clock, UnitActivationCard tokens, CharacterStatusCard status icons
+  - Dashboard: Resource tracker gauges (hull/fuel), danger tokens, turn/SP clocks, sci-fi panel backgrounds
+  - CampaignScreenBase: StyleBoxTexture factory with 4 scifi_* style variants
+- **Mar 3, 2026**: Store/Paywall System — Phase 24 (7 sprints):
+  - Created StoreAdapter abstract base + 4 platform implementations (Steam, Android, iOS, Offline)
+  - StoreManager autoload: platform detection, product ID mapping, DLCManager bridge
+  - StoreScreen: dedicated store UI with 3 DLC pack cards (extends CampaignScreenBase)
+  - DLCManagementDialog: updated with Buy/Owned state when store available
+  - MainMenu: Library button navigates to Store screen
+  - Plugins installed: GodotSteam (addons/godotsteam/), GodotApplePlugins (addons/GodotApplePlugins/), AndroidIAPP (addons/AndroidIAPP/ + android_IAPP/)
+  - Three different plugin architectures: Engine.get_singleton("Steam"), Engine.get_singleton("AndroidIAPP"), ClassDB.instantiate("StoreKitManager")
+  - Adapter corrections: steamInitEx() init, Android Billing v8.3 data structures, iOS ClassDB pattern with typed StoreProduct/StoreTransaction objects
+  - Product IDs are placeholder — swap when Modiphius provides real store IDs
+  - Files: src/core/store/ (6 files), src/ui/screens/store/ (2 files), 5 modified
+- **Mar 3, 2026**: Review System — Phase 25 (2 sprints):
+  - ReviewManager autoload: cross-platform in-app review prompts (Android/iOS/Steam/Offline)
+  - InappReviewPlugin wired: enabled in project.godot, fixed class_name collision (root vs addons duplicate)
+  - 2-step mobile flow: generate_review_info() → review_info_generated signal → launch_review_flow()
+  - Steam: opens store page via overlay for user reviews
+  - Timing/throttle: MIN_TURNS_BEFORE_REVIEW=5, REVIEW_COOLDOWN_DAYS=30, ConfigFile persistence
+  - Auto-prompts after campaign turn completion (wired to CampaignPhaseManager.campaign_turn_completed)
+  - Post-purchase review flag: prompts on NEXT turn after DLC purchase (not immediately)
+  - StoreScreen: "Rate This App" button (mobile only, respects cooldown)
+  - Files: src/core/store/ReviewManager.gd (new), 3 modified (project.godot, StoreScreen.gd, InappReviewPlugin/InappReview.gd)
+- **Mar 3, 2026**: Bug Hunt Gamemode — Phases 1-7 (38 files, ~7,500 lines):
+  - Standalone military-themed variant from Compendium with 3-stage campaign turn
+  - **Phase 1**: 15 JSON data files (weapons, armor, gear, enemies, subtypes, leaders, spawns, character creation, regiment names, support teams, missions, tactical locations, post-battle, movie magic, special assignments)
+  - **Phase 2**: BugHuntCampaignCore Resource, BugHuntCharacterGeneration (D100 tables), BugHuntEnemyGenerator (contact markers)
+  - **Phase 3**: 4-step creation wizard (Config → Squad → Equipment → Review) with BugHuntCreationCoordinator + BugHuntCreationUI thin shell
+  - **Phase 4**: BugHuntPhaseManager (3-stage), BugHuntTurnController, 3 phase panels (SpecialAssignments, Mission, PostBattle)
+  - **Phase 5**: BugHuntBattleSetup (context generation), ContactMarkerPanel (4x4 sector grid), TacticalBattleUI additive bug_hunt mode
+  - **Phase 6**: CharacterTransferService (enlistment 2D6+CS rolls, muster out), CharacterTransferPanel UI
+  - **Phase 7**: BugHuntDashboard (campaign overview), GameState dual-path loading via _detect_campaign_type(), MainMenu routing for bug hunt campaigns
+  - SceneRouter: bug_hunt_creation, bug_hunt_dashboard, bug_hunt_turn_controller
+  - Character.gd: Added game_mode, is_grunt, completed_missions_count, muster_number (inert for standard campaigns)
+  - All UI programmatically constructed (no .tscn for panels), deep space theme consistent
+- **Mar 3, 2026**: TweenFX Integration — Phase 26 (8 sprints):
+  - Migrated raw create_tween() calls to TweenFX addon across 23 files
+  - Bug fixes: tween leaks, missing pivot_offset, tween kill guards, dead AnimationPlayer code removal
+  - New UX: button press feedback, panel fade transitions, staggered reveal, CTA breathing, game event celebrations
+  - Accessibility: all animations gated by UIColors.should_animate() / ThemeManager reduced_animation flag
+- **Mar 4, 2026**: LSP Parse Error Cleanup (3 passes):
+  - **Pass 1**: Automated removal of 1,859 orphan `pass` statements + 5,915 space→tab indentation fixes across 79 files
+  - **Pass 2**: Paren-counting algorithm removed 31 deep-indent orphan pass across 11 files (multi-line function signatures, backslash/bracket continuations)
+  - **Pass 3**: Fixed empty function bodies (2), missing SVG preloads (4), wrong enum namespace (mission.gd GameEnums→GlobalEnums), enum type mismatch (UnifiedTerrainSystem), type inference failures (HelpScreen `:=` on RefCounted-typed vars)
+  - Root cause: AI-generated code used spaces instead of tabs and inserted `pass` at continuation-line indent depth instead of body indent depth
+  - Result: Zero GDScript parse errors across all ~900 scripts

@@ -24,7 +24,6 @@ func _ready() -> void:
 	_update_breakpoint()
 	if _viewport:
 		_viewport.size_changed.connect(_on_viewport_size_changed)
-	print("ResponsiveManager: Initialized")
 
 func _on_viewport_size_changed() -> void:
 	var previous_breakpoint := current_breakpoint
@@ -126,7 +125,4 @@ func get_breakpoint_name() -> String:
 	return "UNKNOWN"
 
 func debug_print_state() -> void:
-	print("ResponsiveManager State:")
-	print("  Breakpoint: %s" % get_breakpoint_name())
-	print("  Viewport Size: %dx%d" % [current_viewport_size.x, current_viewport_size.y])
-	print("  Optimal Columns: %d" % get_optimal_columns())
+	pass

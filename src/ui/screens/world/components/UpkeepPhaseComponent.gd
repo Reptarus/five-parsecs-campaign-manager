@@ -48,7 +48,6 @@ const DAMAGED_SHIP_MULTIPLIER: float = 2.0  # Double cost if ship damaged
 
 func _ready() -> void:
 	name = "UpkeepPhaseComponent"
-	print("UpkeepPhaseComponent: Initialized - handling Five Parsecs upkeep rules")
 	
 	_initialize_event_bus()
 	_connect_ui_signals()
@@ -67,7 +66,6 @@ func _initialize_event_bus() -> void:
 	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
 	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.AUTOMATION_TOGGLED, _on_automation_toggled)
 
-	print("UpkeepPhaseComponent: Connected to event bus")
 
 func _exit_tree() -> void:
 	## Cleanup event bus subscriptions to prevent memory leaks
@@ -100,8 +98,6 @@ func initialize_upkeep_phase(ship: Dictionary, crew: Array) -> void:
 	## Initialize upkeep phase with current ship and crew data
 	ship_data = ship.duplicate()
 	crew_data = crew.duplicate()
-	
-	print("UpkeepPhaseComponent: Initialized with ship: %s, crew size: %d" % [ship_data.get("name", "Unknown"), crew_data.size()])
 	
 	# Reset state for new calculation
 	upkeep_completed = false
@@ -137,7 +133,6 @@ func calculate_upkeep_costs() -> Dictionary:
 	var world_traits: Array = _get_current_world_traits()
 	if "high_cost" in world_traits:
 		effective_crew_size += 2
-		print("UpkeepPhaseComponent: High cost world - effective crew size increased by 2")
 	
 	# Base upkeep: 1 credit per crew member (scales with crew size)
 	results.crew_upkeep = effective_crew_size * BASE_CREW_UPKEEP_PER_MEMBER
@@ -151,10 +146,6 @@ func calculate_upkeep_costs() -> Dictionary:
 	# Check if can afford
 	results.can_afford = results.current_credits >= results.total_cost
 	
-	print("UpkeepPhaseComponent: Calculated upkeep - Crew: %d (effective size: %d), Ship: %d, Total: %d, Credits: %d" % [
-		results.crew_upkeep, effective_crew_size, results.ship_maintenance, results.total_cost, results.current_credits
-	])
-	
 	return results
 
 func _calculate_ship_maintenance() -> int:
@@ -165,7 +156,6 @@ func _calculate_ship_maintenance() -> int:
 	var ship_condition = ship_data.get("condition", "good")
 	if ship_condition == "damaged":
 		maintenance_cost = int(maintenance_cost * DAMAGED_SHIP_MULTIPLIER)
-		print("UpkeepPhaseComponent: Ship damaged - maintenance cost doubled")
 	
 	# Check for special ship equipment that affects maintenance
 	var ship_equipment = ship_data.get("equipment", [])
@@ -190,7 +180,6 @@ func _get_current_world_traits() -> Array:
 func apply_upkeep_costs(upkeep_results: Dictionary) -> bool:
 	## Apply calculated upkeep costs to campaign data
 	if not upkeep_results.can_afford:
-		print("UpkeepPhaseComponent: Cannot afford upkeep costs!")
 		_handle_insufficient_funds(upkeep_results)
 		return false
 	
@@ -200,7 +189,6 @@ func apply_upkeep_costs(upkeep_results: Dictionary) -> bool:
 		upkeep_completed = true
 		current_upkeep_data = upkeep_results
 
-		print("UpkeepPhaseComponent: Upkeep costs applied successfully")
 
 		# Publish completion event
 		if event_bus:
@@ -212,12 +200,10 @@ func apply_upkeep_costs(upkeep_results: Dictionary) -> bool:
 
 		return true
 	
-	print("UpkeepPhaseComponent: Failed to apply upkeep costs")
 	return false
 
 func _handle_insufficient_funds(upkeep_results: Dictionary) -> void:
 	## Handle case where crew cannot afford upkeep
-	print("UpkeepPhaseComponent: Insufficient funds for upkeep")
 	
 	# In Five Parsecs, this could trigger debt, crew leaving, etc.
 	# For now, just show error and publish event
@@ -262,7 +248,6 @@ func _show_help_dialog(title: String, content: String) -> void:
 ## UI Event Handlers
 func _on_auto_calculate_pressed() -> void:
 	## Handle auto-calculate upkeep button press
-	print("UpkeepPhaseComponent: Auto-calculating upkeep...")
 	
 	if progress_bar:
 		progress_bar.visible = true
@@ -306,14 +291,12 @@ func _on_auto_calculate_pressed() -> void:
 
 func _on_manual_calculate_pressed() -> void:
 	## Handle manual calculation for player review
-	print("UpkeepPhaseComponent: Manual upkeep calculation")
 	
 	var results = calculate_upkeep_costs()
 	current_upkeep_data = results
 	_update_ui_display()
 	
 	# Don't automatically apply - let player confirm
-	print("UpkeepPhaseComponent: Manual calculation complete - awaiting player confirmation")
 
 ## UI Updates
 func _update_ui_display() -> void:
@@ -349,15 +332,14 @@ func _on_phase_started(data: Dictionary) -> void:
 	## Handle phase started events
 	var phase_name = data.get("phase_name", "")
 	if phase_name == "upkeep":
-		print("UpkeepPhaseComponent: Upkeep phase started")
 		# Initialize if needed
+		pass
 
 func _on_automation_toggled(data: Dictionary) -> void:
 	## Handle automation toggle events
 	automation_enabled = data.get("enabled", false)
 	if auto_calculate_button:
 		auto_calculate_button.visible = automation_enabled
-	print("UpkeepPhaseComponent: Automation %s" % ("enabled" if automation_enabled else "disabled"))
 
 ## Public API for integration
 func is_upkeep_completed() -> bool:
@@ -375,4 +357,3 @@ func reset_upkeep_phase() -> void:
 	ship_data.clear()
 	crew_data.clear()
 	_update_ui_display()
-	print("UpkeepPhaseComponent: Reset for new turn")

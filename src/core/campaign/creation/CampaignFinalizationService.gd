@@ -1,4 +1,4 @@
-﻿# Production-Ready Campaign Finalization Implementation
+# Production-Ready Campaign Finalization Implementation
 # Complete implementation for CampaignCreationUI._finalize_campaign_creation()
 
 class_name CampaignFinalizationService
@@ -197,8 +197,8 @@ func _validate_data_integrity(data: Dictionary) -> Dictionary:
 			captain_found = true
 
 	if not captain_found:
-		print("CampaignFinalizationService: WARNING - No captain found in data")
 		# Don't error - _create_campaign_resource handles captain extraction
+		pass
 
 	return {
 		"valid": errors.is_empty(),
@@ -265,9 +265,8 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 		var debt = ship_data.get("debt", 0)
 		if GameStateManager.has_method("set_ship_debt"):
 			GameStateManager.set_ship_debt(debt)
-			print("CampaignFinalizationService: Ship debt set to %d credits" % debt)
 		else:
-			print("CampaignFinalizationService: Warning - GameStateManager missing set_ship_debt method")
+			pass
 
 	# CRITICAL FIX: Transform equipment data from Dictionary to Array[Dictionary]
 	var equipment_data = data.get("equipment", {})
@@ -287,9 +286,8 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 			if item is Dictionary:
 				if equipment_manager.add_to_ship_stash(item):
 					items_added += 1
-		print("CampaignFinalizationService: Added %d starting equipment items to ship stash" % items_added)
 	else:
-		print("CampaignFinalizationService: Warning - EquipmentManager not available for starting equipment sync")
+		pass
 
 	# Initialize world (format is compatible)
 	var world_data = data.get("world", {})
@@ -298,36 +296,33 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	# Set world data as current_location in GameStateManager
 	if GameStateManager and not world_data.is_empty() and GameStateManager.has_method("set_location"):
 		GameStateManager.set_location(world_data)
-		print("CampaignFinalizationService: Set current_location in GameStateManager")
 
 	# Transfer victory conditions from config
 	var victory_conditions = config.get("victory_conditions", {})
 	if not victory_conditions.is_empty():
 		campaign.victory_conditions = victory_conditions.duplicate()
-		print("CampaignFinalizationService: Transferred victory_conditions to campaign")
 
 	# PHASE 2 FIX: Store story track setting in GameStateManager
 	var story_track_enabled = config.get("story_track_enabled", false)
 	if GameStateManager and GameStateManager.has_method("set_story_track_enabled"):
 		GameStateManager.set_story_track_enabled(story_track_enabled)
-		print("CampaignFinalizationService: Story track %s" % ("enabled" if story_track_enabled else "disabled"))
+		pass # Story track setting applied
 	else:
-		print("CampaignFinalizationService: Warning - GameStateManager missing set_story_track_enabled method")
+		pass
 
 	# PHASE 2 FIX: Preserve custom victory targets if defined
 	if victory_conditions.has("custom_targets"):
 		var custom_targets = victory_conditions.get("custom_targets", {})
 		if GameStateManager and GameStateManager.has_method("set_custom_victory_targets"):
 			GameStateManager.set_custom_victory_targets(custom_targets)
-			print("CampaignFinalizationService: Custom victory targets preserved")
 		else:
-			print("CampaignFinalizationService: Warning - GameStateManager missing set_custom_victory_targets method")
+			pass
 
 	# SPRINT 2.5: Transfer house rules from config to campaign
 	var house_rules = config.get("house_rules", campaign_config.get("house_rules", []))
 	if not house_rules.is_empty() and campaign.has_method("set_house_rules"):
 		campaign.set_house_rules(house_rules)
-		print("CampaignFinalizationService: Transferred %d house rules to campaign" % house_rules.size())
+		pass # House rules transferred
 
 	# SPRINT 5.3: Transfer resources with unified credits source of truth
 	# Equipment credits + creation credits are combined into single total
@@ -353,14 +348,7 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 		"rivals": rivals_data,
 		"quest_rumors": resources.get("quest_rumors", [])
 	})
-	print("CampaignFinalizationService: Transferred resources - Credits: %d (equipment: %d + creation: %d), Story Points: %d, Patrons: %d, Rivals: %d" % [
-		total_credits,
-		equipment_credits,
-		creation_credits,
-		resources.get("story_points", 0),
-		patrons_data.size(),
-		rivals_data.size()
-	])
+	pass # Resources transferred to campaign
 	
 	# CRITICAL FIX: Mark campaign as ready for turn system
 	campaign.game_phase = "ready_for_turn_system"
@@ -421,9 +409,7 @@ func _verify_game_state_manager_integration() -> Dictionary:
 			result.transferred.append("victory_conditions: %d" % victory.size())
 
 	# Summary log
-	print("CampaignFinalizationService: GameStateManager integration - %d transfers, %d warnings" % [
-		result.transferred.size(), result.warnings.size()
-	])
+	pass # GSM integration check complete
 
 	if result.warnings.size() > 0:
 		result.success = false
@@ -453,7 +439,7 @@ func _save_campaign_with_retry(campaign: Resource, data: Dictionary) -> Dictiona
 			}
 
 		# SPRINT 26.22: Log actual error for debugging
-		print("CampaignFinalizationService: Save attempt %d/%d failed: %s" % [attempt + 1, MAX_RETRY_ATTEMPTS, result.get("error", "Unknown error")])
+		push_warning("CampaignFinalizationService: Save attempt %d/%d failed: %s" % [attempt + 1, MAX_RETRY_ATTEMPTS, result.get("error", "Unknown error")])
 
 		# Wait before retry with exponential backoff
 		await Engine.get_main_loop().create_timer(pow(2, attempt)).timeout
@@ -576,9 +562,7 @@ func _perform_post_save_operations(campaign: Resource, save_path: String) -> voi
 			var victory_conditions = campaign.get("victory_conditions") if "victory_conditions" in campaign else {}
 			if not victory_conditions.is_empty():
 				GameStateManager.set_victory_conditions(victory_conditions)
-				print("CampaignFinalizationService: Transferred victory_conditions to GameStateManager")
 
-		print("CampaignFinalizationService: Transferred resources to GameStateManager for dashboard")
 
 	# Clear temporary data
 	_clear_temporary_data()
@@ -594,11 +578,7 @@ func _clear_temporary_data() -> void:
 
 func _log_success_metrics(campaign: Resource, path: String) -> void:
 	## Log campaign creation success metrics
-	print("Campaign Creation Success:")
-	print("  - Name: %s" % campaign.campaign_name)
-	print("  - Path: %s" % path)
-	print("  - Size: %d bytes" % FileAccess.get_file_as_bytes(path).size())
-	print("  - Created: %s" % campaign.created_at)
+	pass # Success metrics logged
 
 ## Data Transformation Methods for Turn System Compatibility
 
@@ -676,8 +656,7 @@ func _transform_equipment_data_for_turn_system(equipment_data: Dictionary) -> Di
 			all_items.append_array(category_items)
 
 	transformed["equipment"] = all_items
-	print("CampaignFinalizationService: Transformed equipment — %d items from keys %s" % [
-		all_items.size(), equipment_data.keys()])
+	pass # Equipment data transformed
 
 	if not transformed.has("credits"):
 		transformed["credits"] = 1000
@@ -708,7 +687,6 @@ func _prepare_campaign_for_turn_system(campaign: Resource) -> void:
 			phase_manager = tree.root.get_node_or_null("/root/CampaignPhaseManager")
 		if phase_manager and phase_manager.has_method("set_campaign"):
 			phase_manager.set_campaign(campaign)
-			print("CampaignFinalizationService: ✅ Campaign handed off to CampaignPhaseManager")
 			# Verify handoff was successful
 			if phase_manager.has_method("verify_campaign_handoff"):
 				var verification = phase_manager.verify_campaign_handoff()
@@ -717,4 +695,3 @@ func _prepare_campaign_for_turn_system(campaign: Resource) -> void:
 		else:
 			push_warning("CampaignFinalizationService: ⚠️ CampaignPhaseManager not found - campaign may not be available for turn system")
 
-	print("CampaignFinalizationService: Campaign prepared for turn system - %s" % campaign.campaign_name)

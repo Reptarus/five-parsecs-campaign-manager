@@ -51,7 +51,6 @@ func _on_file_selected(path: String) -> void:
 			current_portrait_path = path
 			_update_preview()
 			portrait_selected.emit(path)
-			print("PortraitSelector: Portrait loaded successfully: ", path)
 		else:
 			_show_error_dialog("Invalid image file")
 	else:

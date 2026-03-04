@@ -334,8 +334,6 @@ func _on_confirm_pressed() -> void:
 	# Create injury result using service
 	var injury_result = InjurySystemService.create_narrative_injury(selected_injury_type)
 
-	print("NarrativeInjuryDialog: Selected injury - %s" % injury_result.get("type_name", "Unknown"))
-
 	# Emit signal with injury data
 	injury_selected.emit(injury_result)
 	queue_free()

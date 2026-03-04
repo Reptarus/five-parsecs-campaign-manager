@@ -1,7 +1,5 @@
 @tool
 extends Node
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParcsecsCampaign = preload("res://src/core/campaign/Campaign.gd")
 const Character = preload("res://src/core/character/Base/Character.gd")
 const GameState = preload("res://src/core/state/GameState.gd")
@@ -100,23 +98,23 @@ func initialize_resources(difficulty: int) -> void:
 
 func _calculate_initial_resources(difficulty: int) -> Dictionary:
 	var resources = {
-		GameEnums.ResourceType.CREDITS: 1000,
-		GameEnums.ResourceType.SUPPLIES: 5,
-		GameEnums.ResourceType.TECH_PARTS: 0,
-		GameEnums.ResourceType.PATRON: 0
+		GlobalEnums.ResourceType.CREDITS: 1000,
+		GlobalEnums.ResourceType.SUPPLIES: 5,
+		GlobalEnums.ResourceType.TECH_PARTS: 0,
+		GlobalEnums.ResourceType.PATRON: 0
 	}
 	
 	# Adjust based on difficulty
 	match difficulty:
-		GameEnums.DifficultyLevel.EASY:
-			resources[GameEnums.ResourceType.CREDITS] = 1200
-			resources[GameEnums.ResourceType.SUPPLIES] = 7
-		GameEnums.DifficultyLevel.HARD:
-			resources[GameEnums.ResourceType.CREDITS] = 800
-			resources[GameEnums.ResourceType.SUPPLIES] = 3
-		GameEnums.DifficultyLevel.NIGHTMARE:
-			resources[GameEnums.ResourceType.CREDITS] = 500
-			resources[GameEnums.ResourceType.SUPPLIES] = 2
+		GlobalEnums.DifficultyLevel.EASY:
+			resources[GlobalEnums.ResourceType.CREDITS] = 1200
+			resources[GlobalEnums.ResourceType.SUPPLIES] = 7
+		GlobalEnums.DifficultyLevel.HARD:
+			resources[GlobalEnums.ResourceType.CREDITS] = 800
+			resources[GlobalEnums.ResourceType.SUPPLIES] = 3
+		GlobalEnums.DifficultyLevel.NIGHTMARE:
+			resources[GlobalEnums.ResourceType.CREDITS] = 500
+			resources[GlobalEnums.ResourceType.SUPPLIES] = 2
 	
 	return resources
 

@@ -42,7 +42,6 @@ var travel_events: Array[Dictionary] = [
 ]
 
 func _ready() -> void:
-	print("CampaignEventsManager: Initializing...")
 	_refresh_display()
 
 func _refresh_display() -> void:
@@ -181,13 +180,12 @@ func _on_roll_event_pressed() -> void:
 	last_roll.text = "Rolled: " + str(rolled_event.roll_result) + " (" + event_type.capitalize() + ")"
 	_update_current_event_display()
 
-	print("Rolled event: ", rolled_event.title, " (", event_type, ")")
+
 
 func _on_choice_selected(choice_id: String) -> void:
 	## Handle event choice selection
 	current_event["selected_choice"] = choice_id
 	resolve_event_button.disabled = false
-	print("Choice selected: ", choice_id)
 
 func _on_resolve_event_pressed() -> void:
 	## Handle resolve event button press
@@ -211,7 +209,6 @@ func _on_resolve_event_pressed() -> void:
 	# Refresh display
 	_refresh_display()
 
-	print("Event resolved with choice: ", choice)
 
 func _on_skip_event_pressed() -> void:
 	## Handle skip event button press
@@ -232,15 +229,12 @@ func _on_skip_event_pressed() -> void:
 	# Refresh display
 	_refresh_display()
 
-	print("Event skipped")
 
 func _on_clear_history_pressed() -> void:
 	## Handle clear history button press
 	event_history.clear()
 	_refresh_history_display()
-	print("Event history cleared")
 
 func _on_back_pressed() -> void:
 	## Handle back button press
-	print("CampaignEventsManager: Back pressed")
 	SceneRouter.navigate_back()

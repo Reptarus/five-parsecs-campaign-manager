@@ -1,4 +1,4 @@
-﻿class_name CampaignCreationFeatureFlags
+class_name CampaignCreationFeatureFlags
 extends RefCounted
 
 ## Feature flags for Campaign Creation system
@@ -28,7 +28,6 @@ static func emergency_disable_all() -> void:
 	## Emergency disable all feature flags for safety
 	for flag in _flags:
 		_flags[flag] = false
-	print("CampaignCreationFeatureFlags: All features disabled for safety")
 
 static func is_enabled(flag: Variant) -> bool:
 	## Check if a feature flag is enabled - accepts enum or string

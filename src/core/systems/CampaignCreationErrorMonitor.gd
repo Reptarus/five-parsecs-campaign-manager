@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 extends RefCounted
 class_name CampaignCreationErrorMonitor
 
@@ -56,7 +56,6 @@ func _init():
 	current_session_start = Time.get_unix_time_from_system()
 	last_health_check = current_session_start
 	
-	print("CampaignCreationErrorMonitor: Initialized monitoring system")
 
 func record_error(message: String, category: ErrorCategory = ErrorCategory.GENERAL, severity: ErrorSeverity = ErrorSeverity.MAJOR, context: Dictionary = {}) -> void:
 	## Record an error with full context and categorization
@@ -89,7 +88,7 @@ func record_error(message: String, category: ErrorCategory = ErrorCategory.GENER
 	# Cleanup old entries
 	_cleanup_old_entries()
 	
-	print("CampaignCreationErrorMonitor: [%s] %s - %s" % [str(severity), str(category), message])
+	push_warning("CampaignCreationErrorMonitor: [%s] %s - %s" % [str(severity), str(category), message])
 
 func record_performance_alert(alert_type: String, data: Dictionary, severity: ErrorSeverity = ErrorSeverity.WARNING) -> void:
 	## Record performance-related alert
@@ -274,12 +273,10 @@ func remove_alert_callback(callback: Callable) -> void:
 func enable_monitoring() -> void:
 	## Enable error monitoring
 	monitoring_enabled = true
-	print("CampaignCreationErrorMonitor: Monitoring enabled")
 
 func disable_monitoring() -> void:
 	## Disable error monitoring
 	monitoring_enabled = false
-	print("CampaignCreationErrorMonitor: Monitoring disabled")
 
 func clear_logs() -> void:
 	## Clear all error logs (use with caution)
@@ -287,7 +284,6 @@ func clear_logs() -> void:
 	warning_log.clear()
 	performance_alerts.clear()
 	system_health_history.clear()
-	print("CampaignCreationErrorMonitor: All logs cleared")
 
 func export_error_report() -> String:
 	## Export comprehensive error report for analysis

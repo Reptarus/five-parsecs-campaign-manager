@@ -4,7 +4,6 @@
 extends Window
 class_name SettingsDialog
 
-const Self = preload("res://src/ui/dialogs/SettingsDialog.gd")
 
 ## Settings dialog for Five Parsecs Campaign Manager
 ##

@@ -6,7 +6,6 @@ class_name VictoryConditionTracker
 ## Tracks the progress of various victory conditions for campaign completion
 
 # Preload necessary enums and data managers
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GameDataManager = preload("res://src/core/managers/GameDataManager.gd")
 
 # Signals
@@ -38,18 +37,18 @@ func setup_victory_conditions(campaign_type: int, custom_conditions: Array = [])
 	
 	# Set default conditions based on campaign type
 	match campaign_type:
-		GameEnums.FiveParcsecsCampaignType.STANDARD:
-			_add_condition(GameEnums.FiveParcsecsCampaignVictoryType.CREDITS_THRESHOLD, {"threshold": 10000})
-			_add_condition(GameEnums.FiveParcsecsCampaignVictoryType.REPUTATION_THRESHOLD, {"threshold": 20})
+		GlobalEnums.FiveParcsecsCampaignType.STANDARD:
+			_add_condition(GlobalEnums.FiveParcsecsCampaignVictoryType.CREDITS_THRESHOLD, {"threshold": 10000})
+			_add_condition(GlobalEnums.FiveParcsecsCampaignVictoryType.REPUTATION_THRESHOLD, {"threshold": 20})
 			
-		GameEnums.FiveParcsecsCampaignType.STORY:
-			_add_condition(GameEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE, {})
+		GlobalEnums.FiveParcsecsCampaignType.STORY:
+			_add_condition(GlobalEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE, {})
 			
-		GameEnums.FiveParcsecsCampaignType.SANDBOX:
-			_add_condition(GameEnums.FiveParcsecsCampaignVictoryType.TURNS_100, {})
+		GlobalEnums.FiveParcsecsCampaignType.SANDBOX:
+			_add_condition(GlobalEnums.FiveParcsecsCampaignVictoryType.TURNS_100, {})
 			
-		GameEnums.FiveParcsecsCampaignType.TUTORIAL:
-			_add_condition(GameEnums.FiveParcsecsCampaignVictoryType.MISSION_COUNT, {"count": 3})
+		GlobalEnums.FiveParcsecsCampaignType.TUTORIAL:
+			_add_condition(GlobalEnums.FiveParcsecsCampaignVictoryType.MISSION_COUNT, {"count": 3})
 	
 	# Add any custom conditions
 	for condition in custom_conditions:
@@ -70,34 +69,34 @@ func _add_condition(condition_type: int, params: Dictionary) -> void:
 # Calculate the required progress for a condition type
 func _get_required_progress(condition_type: int, params: Dictionary) -> int:
 	match condition_type:
-		GameEnums.FiveParcsecsCampaignVictoryType.CREDITS_THRESHOLD:
+		GlobalEnums.FiveParcsecsCampaignVictoryType.CREDITS_THRESHOLD:
 			return params.get("threshold", 10000)
 			
-		GameEnums.FiveParcsecsCampaignVictoryType.REPUTATION_THRESHOLD:
+		GlobalEnums.FiveParcsecsCampaignVictoryType.REPUTATION_THRESHOLD:
 			return params.get("threshold", 20)
 			
-		GameEnums.FiveParcsecsCampaignVictoryType.MISSION_COUNT:
+		GlobalEnums.FiveParcsecsCampaignVictoryType.MISSION_COUNT:
 			return params.get("count", 10)
 			
-		GameEnums.FiveParcsecsCampaignVictoryType.TURNS_20:
+		GlobalEnums.FiveParcsecsCampaignVictoryType.TURNS_20:
 			return 20
 			
-		GameEnums.FiveParcsecsCampaignVictoryType.TURNS_50:
+		GlobalEnums.FiveParcsecsCampaignVictoryType.TURNS_50:
 			return 50
 			
-		GameEnums.FiveParcsecsCampaignVictoryType.TURNS_100:
+		GlobalEnums.FiveParcsecsCampaignVictoryType.TURNS_100:
 			return 100
 			
-		GameEnums.FiveParcsecsCampaignVictoryType.QUESTS_3:
+		GlobalEnums.FiveParcsecsCampaignVictoryType.QUESTS_3:
 			return 3
 			
-		GameEnums.FiveParcsecsCampaignVictoryType.QUESTS_5:
+		GlobalEnums.FiveParcsecsCampaignVictoryType.QUESTS_5:
 			return 5
 			
-		GameEnums.FiveParcsecsCampaignVictoryType.QUESTS_10:
+		GlobalEnums.FiveParcsecsCampaignVictoryType.QUESTS_10:
 			return 10
 			
-		GameEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE:
+		GlobalEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE:
 			return 1
 			
 		_:
@@ -154,43 +153,43 @@ func get_condition_progress(condition_type: int) -> Dictionary:
 # Record a completed mission
 func record_mission_complete(mission_type: int) -> void:
 	# Update mission count condition if active
-	if _active_conditions.has(GameEnums.FiveParcsecsCampaignVictoryType.MISSION_COUNT):
-		increment_progress(GameEnums.FiveParcsecsCampaignVictoryType.MISSION_COUNT)
+	if _active_conditions.has(GlobalEnums.FiveParcsecsCampaignVictoryType.MISSION_COUNT):
+		increment_progress(GlobalEnums.FiveParcsecsCampaignVictoryType.MISSION_COUNT)
 	
 	# Update story progress if it's a story mission and the condition is active
-	if mission_type == GameEnums.MissionType.PATRON and _active_conditions.has(GameEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE):
-		increment_progress(GameEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE)
+	if mission_type == GlobalEnums.MissionType.PATRON and _active_conditions.has(GlobalEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE):
+		increment_progress(GlobalEnums.FiveParcsecsCampaignVictoryType.STORY_COMPLETE)
 
 # Record a completed campaign turn
 func record_campaign_turn() -> void:
 	# Check which turn counters are active and update them
-	if _active_conditions.has(GameEnums.FiveParcsecsCampaignVictoryType.TURNS_20):
-		increment_progress(GameEnums.FiveParcsecsCampaignVictoryType.TURNS_20)
+	if _active_conditions.has(GlobalEnums.FiveParcsecsCampaignVictoryType.TURNS_20):
+		increment_progress(GlobalEnums.FiveParcsecsCampaignVictoryType.TURNS_20)
 	
-	if _active_conditions.has(GameEnums.FiveParcsecsCampaignVictoryType.TURNS_50):
-		increment_progress(GameEnums.FiveParcsecsCampaignVictoryType.TURNS_50)
+	if _active_conditions.has(GlobalEnums.FiveParcsecsCampaignVictoryType.TURNS_50):
+		increment_progress(GlobalEnums.FiveParcsecsCampaignVictoryType.TURNS_50)
 	
-	if _active_conditions.has(GameEnums.FiveParcsecsCampaignVictoryType.TURNS_100):
-		increment_progress(GameEnums.FiveParcsecsCampaignVictoryType.TURNS_100)
+	if _active_conditions.has(GlobalEnums.FiveParcsecsCampaignVictoryType.TURNS_100):
+		increment_progress(GlobalEnums.FiveParcsecsCampaignVictoryType.TURNS_100)
 
 # Update credits for credit threshold victory condition
 func update_credits(credits: int) -> void:
-	if _active_conditions.has(GameEnums.FiveParcsecsCampaignVictoryType.CREDITS_THRESHOLD):
-		update_progress(GameEnums.FiveParcsecsCampaignVictoryType.CREDITS_THRESHOLD, credits)
+	if _active_conditions.has(GlobalEnums.FiveParcsecsCampaignVictoryType.CREDITS_THRESHOLD):
+		update_progress(GlobalEnums.FiveParcsecsCampaignVictoryType.CREDITS_THRESHOLD, credits)
 
 # Update reputation for reputation threshold victory condition
 func update_reputation(reputation: int) -> void:
-	if _active_conditions.has(GameEnums.FiveParcsecsCampaignVictoryType.REPUTATION_THRESHOLD):
-		update_progress(GameEnums.FiveParcsecsCampaignVictoryType.REPUTATION_THRESHOLD, reputation)
+	if _active_conditions.has(GlobalEnums.FiveParcsecsCampaignVictoryType.REPUTATION_THRESHOLD):
+		update_progress(GlobalEnums.FiveParcsecsCampaignVictoryType.REPUTATION_THRESHOLD, reputation)
 
 # Record completion of a quest
 func record_quest_complete() -> void:
 	# Update all quest counters
-	if _active_conditions.has(GameEnums.FiveParcsecsCampaignVictoryType.QUESTS_3):
-		increment_progress(GameEnums.FiveParcsecsCampaignVictoryType.QUESTS_3)
+	if _active_conditions.has(GlobalEnums.FiveParcsecsCampaignVictoryType.QUESTS_3):
+		increment_progress(GlobalEnums.FiveParcsecsCampaignVictoryType.QUESTS_3)
 	
-	if _active_conditions.has(GameEnums.FiveParcsecsCampaignVictoryType.QUESTS_5):
-		increment_progress(GameEnums.FiveParcsecsCampaignVictoryType.QUESTS_5)
+	if _active_conditions.has(GlobalEnums.FiveParcsecsCampaignVictoryType.QUESTS_5):
+		increment_progress(GlobalEnums.FiveParcsecsCampaignVictoryType.QUESTS_5)
 	
-	if _active_conditions.has(GameEnums.FiveParcsecsCampaignVictoryType.QUESTS_10):
-		increment_progress(GameEnums.FiveParcsecsCampaignVictoryType.QUESTS_10)
+	if _active_conditions.has(GlobalEnums.FiveParcsecsCampaignVictoryType.QUESTS_10):
+		increment_progress(GlobalEnums.FiveParcsecsCampaignVictoryType.QUESTS_10)

@@ -49,7 +49,6 @@ var _campaign: Variant = null
 func set_campaign(campaign: Variant) -> void:
 	## Receive campaign reference from CampaignPhaseManager.
 	_campaign = campaign
-	print("TravelPhase: Campaign reference set")
 
 ## SPRINT 7.1: Consistent access pattern for campaign configuration
 ## Source of truth: Campaign resource (difficulty, house_rules, victory_conditions, story_track)
@@ -156,7 +155,6 @@ func _ready() -> void:
 	# Defer autoload access to avoid loading order issues
 	call_deferred("_initialize_autoloads")
 	call_deferred("_initialize_travel_tables")
-	print("TravelPhase: Initialized successfully")
 
 func _initialize_autoloads() -> void:
 	## Initialize autoloads with retry logic to handle loading order
@@ -164,22 +162,17 @@ func _initialize_autoloads() -> void:
 	for i in range(10):
 		dice_manager = get_node_or_null("/root/DiceManager")
 		if dice_manager:
-			print("TravelPhase: ✅ DiceManager found on attempt ", i + 1)
 			break
-		print("TravelPhase: ⏳ Waiting for DiceManager... attempt ", i + 1)
 		await get_tree().create_timer(0.1).timeout
 	
 	if not dice_manager:
 		push_error("TravelPhase: DiceManager autoload not found after retries")
-		print("TravelPhase: ❌ DiceManager not available - using fallback random generation")
 	
 	# Wait for GameStateManager to be ready
 	for i in range(10):
 		game_state_manager = get_node_or_null("/root/GameStateManager")
 		if game_state_manager:
-			print("TravelPhase: ✅ GameStateManager found on attempt ", i + 1)
 			break
-		print("TravelPhase: ⏳ Waiting for GameStateManager... attempt ", i + 1)
 		await get_tree().create_timer(0.1).timeout
 	
 	if not game_state_manager:
@@ -189,9 +182,9 @@ func _initialize_autoloads() -> void:
 		if alpha_manager and alpha_manager.has_method("get_game_state_manager"):
 			game_state_manager = alpha_manager.get_game_state_manager()
 			if game_state_manager:
-				print("TravelPhase: ✅ Found GameStateManager via AlphaGameManager")
+				pass
 		else:
-			print("TravelPhase: ❌ No valid GameStateManager fallback available")
+			pass
 
 func _initialize_travel_tables() -> void:
 	## Initialize the travel events and world traits tables
@@ -246,7 +239,6 @@ func _initialize_travel_tables() -> void:
 ## Main Travel Phase Processing
 func start_travel_phase() -> void:
 	## Begin the Travel Phase sequence
-	print("TravelPhase: Starting Travel Phase")
 	self.travel_phase_started.emit()
 
 	# Step 1: Check for invasion
@@ -277,7 +269,6 @@ func _process_flee_invasion() -> void:
 func _handle_invasion_escape() -> void:
 	## Handle invasion escape mechanics - 2D6, need 8+ to escape
 	if not dice_manager:
-		print("TravelPhase: No DiceManager available, auto-escaping invasion")
 		_debug_log_flee_invasion(true, 0, true) # Debug: Auto-escape
 		_invasion_escape_result(true)
 		return
@@ -306,7 +297,6 @@ func _invasion_escape_result(success: bool) -> void:
 		_process_decide_travel()
 	else:
 		# T-1 fix: Failed to escape, trigger immediate invasion battle
-		print("TravelPhase: Failed to escape invasion - triggering invasion battle")
 		invasion_pending = false
 
 		# Build invasion battle data for BattlePhase
@@ -395,7 +385,7 @@ func _charge_travel_costs() -> void:
 
 	var final_cost: int = _calculate_final_travel_cost()
 	game_state_manager.remove_credits(final_cost)
-	print("TravelPhase: Charged %d credits for starship travel (base 5 + modifiers)" % final_cost)
+	pass
 
 func _process_travel_event() -> void:
 	## Step 3: Starship Travel Event (if applicable)
@@ -650,7 +640,6 @@ func _complete_travel_phase() -> void:
 	## Complete the Travel Phase
 	if GlobalEnums:
 		current_substep = GlobalEnums.TravelSubPhase.NONE
-	print("TravelPhase: Travel Phase completed")
 	travel_phase_completed.emit()
 
 ## Public API Methods

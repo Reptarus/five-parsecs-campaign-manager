@@ -51,105 +51,105 @@ var HAZARDOUS_TERRAIN_DAMAGE: int = 1 # Damage per turn in hazardous terrain
 
 ## Base class for combat modifiers
 class BaseCombatModifiers:
-    var cover: bool = false
-    var height_advantage: bool = false
-    var flanking: bool = false
-    var suppressed: bool = false
-    var range_modifier: float = 0.0
-    var critical: bool = false
-    var armor: int = 0
+	var cover: bool = false
+	var height_advantage: bool = false
+	var flanking: bool = false
+	var suppressed: bool = false
+	var range_modifier: float = 0.0
+	var critical: bool = false
+	var armor: int = 0
     
-    # These should be overridden in game-specific implementations
-    var combat_advantage: int = 0
-    var combat_status: int = 0
-    var combat_range: int = 0
-    var combat_tactic: int = 0
+	# These should be overridden in game-specific implementations
+	var combat_advantage: int = 0
+	var combat_status: int = 0
+	var combat_range: int = 0
+	var combat_tactic: int = 0
 
 ## Check if an action can be performed with the available action points
 ## @param action: The action to check
 ## @param action_points: The available action points
 ## @return: Whether the action can be performed
 func can_perform_action(action: int, action_points: int) -> bool:
-    var cost := get_action_cost(action)
-    return action_points >= cost
+	var cost := get_action_cost(action)
+	return action_points >= cost
 
 ## Get the cost of an action
 ## @param action: The action to get the cost for
 ## @return: The cost of the action
 func get_action_cost(action: int) -> int:
-    # This should be overridden in game-specific implementations
-    # with appropriate action enums
-    return 1
+	# This should be overridden in game-specific implementations
+	# with appropriate action enums
+	return 1
 
 ## Calculate the hit chance for an attack
 ## @param base_chance: The base hit chance
 ## @param modifiers: The combat modifiers
 ## @return: The final hit chance
 func calculate_hit_chance(base_chance: float, modifiers: BaseCombatModifiers) -> float:
-    var final_chance := base_chance
+	var final_chance := base_chance
     
-    # Apply standard modifiers
-    if modifiers.cover:
-        final_chance += COVER_MODIFIER
-    if modifiers.height_advantage:
-        final_chance += HEIGHT_MODIFIER
-    if modifiers.flanking:
-        final_chance += FLANK_MODIFIER
-    if modifiers.suppressed:
-        final_chance += SUPPRESSION_MODIFIER
+	# Apply standard modifiers
+	if modifiers.cover:
+		final_chance += COVER_MODIFIER
+	if modifiers.height_advantage:
+		final_chance += HEIGHT_MODIFIER
+	if modifiers.flanking:
+		final_chance += FLANK_MODIFIER
+	if modifiers.suppressed:
+		final_chance += SUPPRESSION_MODIFIER
     
-    # Apply range modifiers - should be implemented in derived classes
+	# Apply range modifiers - should be implemented in derived classes
     
-    # Clamp final chance between minimum and maximum
-    return clampf(final_chance, MINIMUM_HIT_CHANCE, MAXIMUM_HIT_CHANCE)
+	# Clamp final chance between minimum and maximum
+	return clampf(final_chance, MINIMUM_HIT_CHANCE, MAXIMUM_HIT_CHANCE)
 
 ## Calculate the damage for an attack
 ## @param base_damage: The base damage
 ## @param modifiers: The combat modifiers
 ## @return: The final damage
 func calculate_damage(base_damage: int, modifiers: BaseCombatModifiers) -> int:
-    var final_damage := base_damage
+	var final_damage := base_damage
     
-    # Apply critical hit
-    if modifiers.critical:
-        final_damage *= 2
+	# Apply critical hit
+	if modifiers.critical:
+		final_damage *= 2
     
-    # Apply damage modifiers
-    if modifiers.flanking:
-        final_damage += 1
-    if modifiers.height_advantage:
-        final_damage += 1
+	# Apply damage modifiers
+	if modifiers.flanking:
+		final_damage += 1
+	if modifiers.height_advantage:
+		final_damage += 1
     
-    # Apply combat advantage modifiers - should be implemented in derived classes
+	# Apply combat advantage modifiers - should be implemented in derived classes
     
-    # Apply armor reduction
-    final_damage = maxi(1, final_damage - modifiers.armor) # Minimum 1 damage
+	# Apply armor reduction
+	final_damage = maxi(1, final_damage - modifiers.armor) # Minimum 1 damage
     
-    return final_damage
+	return final_damage
 
 ## Calculate the movement cost for a distance
 ## @param distance: The distance to move
 ## @param terrain_type: The type of terrain
 ## @return: The movement cost
 func calculate_movement_cost(distance: float, terrain_type: int) -> int:
-    var cost := int(distance / BASE_MOVEMENT)
+	var cost := int(distance / BASE_MOVEMENT)
     
-    # Apply terrain modifiers - should be implemented in derived classes
+	# Apply terrain modifiers - should be implemented in derived classes
     
-    return maxi(1, cost) # Minimum 1 movement point
+	return maxi(1, cost) # Minimum 1 movement point
 
 ## Get the result of a combat roll
 ## @param hit_chance: The hit chance
 ## @param modifiers: The combat modifiers
 ## @return: The combat result
 func get_combat_result(hit_chance: float, modifiers: BaseCombatModifiers) -> int:
-    var roll := randf()
+	var roll := randf()
     
-    if roll >= CRITICAL_THRESHOLD and not modifiers.suppressed:
-        return 1 # Critical hit - should use appropriate enum in derived classes
-    elif roll >= hit_chance:
-        return 0 # Miss - should use appropriate enum in derived classes
-    elif roll <= GRAZE_THRESHOLD:
-        return 2 # Graze - should use appropriate enum in derived classes
+	if roll >= CRITICAL_THRESHOLD and not modifiers.suppressed:
+		return 1 # Critical hit - should use appropriate enum in derived classes
+	elif roll >= hit_chance:
+		return 0 # Miss - should use appropriate enum in derived classes
+	elif roll <= GRAZE_THRESHOLD:
+		return 2 # Graze - should use appropriate enum in derived classes
     
-    return 3 # Hit - should use appropriate enum in derived classes
+	return 3 # Hit - should use appropriate enum in derived classes

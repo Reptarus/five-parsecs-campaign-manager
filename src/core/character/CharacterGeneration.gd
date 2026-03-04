@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 extends RefCounted
 class_name FiveParsecsCharacterGeneration
 
@@ -274,15 +274,7 @@ static func apply_table_results_to_character(character: Character, table_results
 	character.set_meta("creation_table_results", table_results)
 	character.set_meta("creation_resources", resources)
 
-	print("CharacterGeneration: Applied table results - Background: %s, Motivation: %s, Class: %s" % [
-		table_results.background_result.get("name", ""),
-		table_results.motivation_result.get("name", ""),
-		table_results.class_result.get("name", "")
-	])
-	print("CharacterGeneration: Resources generated - Patrons: %d, Rivals: %d, Rumors: %d, Story Points: %d, XP: %d, Credits: %d" % [
-		resources.patrons, resources.rivals, resources.rumors,
-		resources.story_points, resources.xp, resources.bonus_credits
-	])
+	pass # Table results and resources applied
 
 ## Aggregate resources from all crew members and apply to campaign
 static func finalize_crew_resources(characters: Array, campaign) -> Dictionary:
@@ -306,7 +298,6 @@ static func finalize_crew_resources(characters: Array, campaign) -> Dictionary:
 		total_resources.credits += char_resources.get("bonus_credits", 0)
 
 	if not campaign:
-		print("CharacterGeneration: No campaign provided, returning resources only")
 		return total_resources
 
 	# Apply to campaign
@@ -319,7 +310,7 @@ static func finalize_crew_resources(characters: Array, campaign) -> Dictionary:
 			if not campaign.has("patrons"):
 				campaign["patrons"] = []
 			campaign["patrons"].append(patron)
-		print("CharacterGeneration: Created starting patron: %s" % patron.get("name", "Unknown"))
+		pass # Starting patron created
 
 	# Generate rival entities
 	for i in total_resources.rivals:
@@ -330,7 +321,7 @@ static func finalize_crew_resources(characters: Array, campaign) -> Dictionary:
 			if not campaign.has("rivals"):
 				campaign["rivals"] = []
 			campaign["rivals"].append(rival)
-		print("CharacterGeneration: Created starting rival: %s" % rival.get("name", "Unknown"))
+		pass # Starting rival created
 
 	# Add quest rumors
 	if campaign is Resource and "quest_rumors" in campaign:
@@ -365,10 +356,7 @@ static func finalize_crew_resources(characters: Array, campaign) -> Dictionary:
 		elif campaign is Dictionary:
 			campaign["credits"] = campaign.get("credits", 0) + total_resources.credits
 
-	print("CharacterGeneration: Finalized crew resources - Patrons: %d, Rivals: %d, Rumors: %d, Story Points: %d, Credits: %d" % [
-		total_resources.patrons, total_resources.rivals, total_resources.rumors,
-		total_resources.story_points, total_resources.credits
-	])
+	pass # Crew resources finalized
 
 	return total_resources
 
@@ -410,7 +398,6 @@ static func _load_character_data() -> void:
 	if DataManager.is_system_ready():
 		_character_data = DataManager.export_character_data()
 		_is_data_loaded = true
-		print("CharacterGeneration: Loaded data via DataManager")
 		return
 
 	# Fallback to direct loading if DataManager not available
@@ -419,7 +406,6 @@ static func _load_character_data() -> void:
 	_skills_data = UniversalResourceLoader.load_json_safe("res://data/character_skills.json", "Character Skills")
 	
 	_is_data_loaded = true
-	print("CharacterGeneration: Loaded data via direct loading")
 
 ## Generate Five Parsecs attribute using official 2D6 / 3.0 formula
 static func generate_attribute() -> int:
@@ -457,7 +443,6 @@ static func create_character(config: Dictionary = {}) -> Character:
 		push_error("CharacterGeneration: Character.new() returned null")
 		return null
 	
-	print("CharacterGeneration: Successfully created character instance")
 
 	# Basic identity from config or defaults
 	var config_dict = SafeDataAccess.safe_dict_access(config, "character name configuration")
@@ -556,9 +541,7 @@ static func generate_character_attributes(character: Character) -> void:
 	character.max_health = character.toughness + 2
 	character.health = character.max_health
 
-	print("CharacterGeneration: Generated attributes - Reaction: %d, Speed: %d, Combat: %d, Toughness: %d, Savvy: %d, Health: %d" % [
-		character.reactions, character.speed, character.combat, character.toughness, character.savvy, character.max_health
-	])
+	pass # Character attributes generated
 
 ## Apply background-specific bonuses from loaded data with safe enum access
 static func apply_background_bonuses(character: Character) -> void:
@@ -608,7 +591,7 @@ static func _apply_background_data_bonuses(character: Character, background_data
 				var ability_desc = ability.get("description", "")
 				character.add_trait("Ability: %s - %s" % [ability_name, ability_desc])
 	
-	print("CharacterGeneration: Applied rich background bonuses for %s" % background_data.get("name", "Unknown"))
+	pass # Background bonuses applied
 
 ## Safe stat bonus application
 static func _apply_stat_bonus(character: Character, stat_name: String, bonus: int) -> void:
@@ -954,7 +937,6 @@ static func generate_complete_character(config: Dictionary = {}) -> Character:
 		push_error("CharacterGeneration: Failed to create character in generate_complete_character")
 		return null
 
-	print("CharacterGeneration: Character created successfully, rolling on creation tables")
 
 	# Roll on D100 tables for Background, Motivation, and Class
 	var table_results = roll_character_tables()
@@ -1091,12 +1073,7 @@ static func generate_random_character() -> Character:
 	_ensure_character_equipment_static(character)
 	_ensure_character_relationships_static(character)
 	
-	print("CharacterGeneration: Generated character '%s' - %s %s from %s" % [
-		character.character_name,
-		GlobalEnums.get_class_display_name(character.character_class),
-		GlobalEnums.get_background_display_name(character.background),
-		GlobalEnums.get_origin_display_name(character.origin)
-	])
+	pass # Character generated
 	
 	return character
 
@@ -1131,7 +1108,6 @@ static func _create_simple_character() -> Character:
 	character.max_health = character.toughness + 2
 	character.health = character.max_health
 	
-	print("CharacterGeneration: Created simple fallback character")
 	return character
 
 ## Helper methods for random generation
@@ -1199,7 +1175,6 @@ static func _roll_random_origin() -> int:
 
 ## Enhanced equipment generation with DiceManager integration
 static func _generate_starting_equipment_enhanced(character: Character) -> Dictionary:
-	print("CharacterGeneration: Generating enhanced starting equipment for %s" % character.character_name)
 	
 	# Get DiceManager through AutoloadManager for safe access
 	var dice_manager = AutoloadManager.get_autoload_safe("DiceManager")
@@ -1222,18 +1197,12 @@ static func _generate_starting_equipment_enhanced(character: Character) -> Dicti
 	# Apply equipment conditions using dice
 	equipment_generator.apply_equipment_condition(equipment, dice_manager)
 	
-	print("CharacterGeneration: Generated equipment - %d weapons, %d armor, %d gear, %d credits" % [
-		equipment.get("weapons", []).size(),
-		equipment.get("armor", []).size(),
-		equipment.get("gear", []).size(),
-		equipment.get("credits", 0)
-	])
+	pass # Equipment generated
 	
 	return equipment
 
 ## Fallback equipment generation when DiceManager/StartingEquipmentGenerator unavailable
 static func _generate_fallback_equipment(character: Character) -> Dictionary:
-	print("CharacterGeneration: Using fallback equipment generation")
 	
 	var equipment = {
 		"weapons": [],
@@ -1299,7 +1268,6 @@ static func generate_starting_equipment_enhanced(character: Character) -> Dictio
 
 ## Generate patron relationships using GameStateManager systems
 static func _generate_patrons(character: Character) -> Array:
-	print("CharacterGeneration: Generating patrons for %s" % character.character_name)
 	
 	var patrons = []
 	
@@ -1334,12 +1302,11 @@ static func _generate_patrons(character: Character) -> Array:
 			_link_patron_to_character(patron, character)
 			patrons.append(patron)
 	
-	print("CharacterGeneration: Generated %d patrons for %s" % [patrons.size(), character.character_name])
+	pass # Patrons generated
 	return patrons
 
 ## Generate rival relationships using GameStateManager systems
 static func _generate_rivals(character: Character) -> Array:
-	print("CharacterGeneration: Generating rivals for %s" % character.character_name)
 	
 	var rivals = []
 	
@@ -1372,7 +1339,7 @@ static func _generate_rivals(character: Character) -> Array:
 		if rival:
 			rivals.append(rival)
 	
-	print("CharacterGeneration: Generated %d rivals for %s" % [rivals.size(), character.character_name])
+	pass # Rivals generated
 	return rivals
 
 ## Fallback patron generation when systems unavailable

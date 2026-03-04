@@ -1,4 +1,4 @@
-﻿class_name BattleCalculations
+class_name BattleCalculations
 extends RefCounted
 
 const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
@@ -1775,87 +1775,53 @@ static func _debug_log_ranged_attack(attacker_name: String, target_name: String,
 	## Log ranged attack resolution
 	if not DEBUG_COMBAT_CALCS:
 		return
-	print("┌─────────────────────────────────────────────────────────────┐")
-	print("│ COMBAT: RANGED ATTACK                                      │")
-	print("├─────────────────────────────────────────────────────────────┤")
-	print("│ %s → %s" % [attacker_name, target_name])
-	print("│ Weapon: %s" % weapon_name)
-	print("│ Hit Roll: D6=%d vs threshold %d+ → %s" % [hit_roll, hit_threshold, "HIT!" if hit else "MISS"])
 	if hit:
-		print("│ Damage: %d" % damage)
 		print("│ Save: %s (%s)" % ["SAVED" if saved else "FAILED", save_type])
-	print("└─────────────────────────────────────────────────────────────┘")
 
 
 static func _debug_log_brawl(combatant1: String, combatant2: String, roll1: int, roll2: int, bonus1: int, bonus2: int, winner: String, damage: int) -> void:
 	## Log brawl combat resolution
 	if not DEBUG_COMBAT_CALCS:
 		return
-	print("┌─────────────────────────────────────────────────────────────┐")
 	print("│ COMBAT: BRAWL (MELEE)                                      │")
-	print("├─────────────────────────────────────────────────────────────┤")
-	print("│ %s vs %s" % [combatant1, combatant2])
-	print("│ Rolls: %d+%d=%d vs %d+%d=%d" % [roll1, bonus1, roll1+bonus1, roll2, bonus2, roll2+bonus2])
-	print("│ Winner: %s" % winner)
-	print("│ Damage Inflicted: %d" % damage)
-	print("└─────────────────────────────────────────────────────────────┘")
 
 
 static func _debug_log_save(save_roll: int, armor_threshold: int, screen_threshold: int, is_piercing: bool, saved: bool, save_type: String) -> void:
 	## Log save resolution
 	if not DEBUG_COMBAT_CALCS:
 		return
-	print("┌─────────────────────────────────────────────────────────────┐")
-	print("│ COMBAT: SAVE ROLL                                          │")
-	print("├─────────────────────────────────────────────────────────────┤")
-	print("│ Save Roll: D6=%d" % save_roll)
 	print("│ Armor Save: %d+ %s" % [armor_threshold, "(PIERCED - ignored)" if is_piercing else ""])
-	print("│ Screen Save: %d+" % screen_threshold)
-	print("│ Result: %s via %s" % ["SAVED" if saved else "FAILED", save_type])
-	print("└─────────────────────────────────────────────────────────────┘")
 
 
 static func _debug_log_area_attack(origin: Vector2, radius: float, targets_hit: int, damage_roll: int, total_damage: int) -> void:
 	## Log area attack resolution
 	if not DEBUG_COMBAT_CALCS:
 		return
-	print("┌─────────────────────────────────────────────────────────────┐")
-	print("│ COMBAT: AREA ATTACK                                        │")
-	print("├─────────────────────────────────────────────────────────────┤")
 	print("│ Origin: (%.1f, %.1f)" % [origin.x, origin.y])
-	print("│ Radius: %.1f\"" % radius)
-	print("│ Targets Hit: %d" % targets_hit)
-	print("│ Damage Roll: %d" % damage_roll)
 	print("│ Total Damage (shared): %d per target" % total_damage)
-	print("└─────────────────────────────────────────────────────────────┘")
 
 
 static func _debug_log_hit_modifiers(base_skill: int, cover_mod: int, elevation_mod: int, range_mod: int, status_mod: int, total: int) -> void:
 	## Log hit modifier breakdown
 	if not DEBUG_COMBAT_CALCS:
 		return
-	print("│ HIT MODIFIERS:")
-	print("│   Combat Skill: +%d" % base_skill)
 	if cover_mod != 0:
-		print("│   Cover: %+d" % cover_mod)
+		pass
 	if elevation_mod != 0:
-		print("│   Elevation: %+d" % elevation_mod)
+		pass
 	if range_mod != 0:
-		print("│   Range: %+d" % range_mod)
+		pass
 	if status_mod != 0:
-		print("│   Status: %+d" % status_mod)
-	print("│   TOTAL MODIFIER: %+d" % total)
+		pass
 
 
 static func enable_debug_logging() -> void:
 	## Enable combat calculation debug logging
 	DEBUG_COMBAT_CALCS = true
-	print("BattleCalculations: Combat debug logging ENABLED")
 
 
 static func disable_debug_logging() -> void:
 	## Disable combat calculation debug logging
 	DEBUG_COMBAT_CALCS = false
-	print("BattleCalculations: Combat debug logging DISABLED")
 
 #endregion

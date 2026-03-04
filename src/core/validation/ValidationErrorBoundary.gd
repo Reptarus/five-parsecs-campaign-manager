@@ -60,7 +60,7 @@ static func safe_backend_call(
 	var result = ValidationErrorResult.new(true)
 	var start_time = Time.get_ticks_msec()
 	
-	print("ValidationErrorBoundary: Executing safe backend call - %s.%s()" % [target_object.get_class() if target_object else "null", method_name])
+	pass # Safe backend call executing
 	
 	# Validate inputs
 	if not target_object:
@@ -98,7 +98,6 @@ static func safe_backend_call(
 		result.success = true
 		result.fallback_data = call_result
 		result.performance_data["duration_ms"] = duration
-		print("ValidationErrorBoundary: Backend call successful - %dms" % duration)
 	
 	if not result.success:
 		_handle_validation_error(result, error_mode)
@@ -112,7 +111,6 @@ static func safe_crew_generation(
 	error_mode: ValidationErrorMode = ValidationErrorMode.GRACEFUL
 ) -> ValidationErrorResult:
 	
-	print("ValidationErrorBoundary: Starting safe crew generation for %d members" % crew_size)
 	
 	var result = ValidationErrorResult.new(true)
 	var start_time = Time.get_ticks_msec()
@@ -164,7 +162,7 @@ static func safe_crew_generation(
 	if generated_crew.size() == crew_size:
 		result.success = true
 		result.fallback_data = generated_crew
-		print("ValidationErrorBoundary: Successfully generated %d crew members" % generated_crew.size())
+		pass # Crew generation succeeded
 	else:
 		result.success = false
 		result.error_message = "Only generated %d/%d crew members. Errors: %s" % [generated_crew.size(), crew_size, ", ".join(errors)]
@@ -182,7 +180,7 @@ static func safe_equipment_generation(
 	error_mode: ValidationErrorMode = ValidationErrorMode.GRACEFUL
 ) -> ValidationErrorResult:
 	
-	print("ValidationErrorBoundary: Starting safe equipment generation for %d crew members" % crew_data.size())
+	pass # Starting safe equipment generation
 	
 	var result = ValidationErrorResult.new(true)
 	var start_time = Time.get_ticks_msec()
@@ -258,7 +256,7 @@ static func safe_equipment_generation(
 	if errors.is_empty():
 		result.success = true
 		result.fallback_data = equipment_data
-		print("ValidationErrorBoundary: Successfully generated %d equipment items, %d credits" % [all_equipment.size(), total_credits])
+		pass # Equipment generation succeeded
 	else:
 		result.success = false
 		result.error_message = "Equipment generation completed with errors: %s" % ", ".join(errors)
@@ -273,23 +271,17 @@ static func safe_equipment_generation(
 static func _handle_validation_error(error_result: ValidationErrorResult, error_mode: ValidationErrorMode) -> void:
 	match error_mode:
 		ValidationErrorMode.SILENT:
-			print("ValidationErrorBoundary: Silent error - %s" % error_result.error_message)
+			pass
 		
 		ValidationErrorMode.GRACEFUL:
-			print("ValidationErrorBoundary: Graceful error handling - %s" % error_result.error_message)
 			push_warning("UI-Backend Integration Warning: %s" % error_result.error_message)
 		
 		ValidationErrorMode.STRICT:
-			print("ValidationErrorBoundary: Strict error mode - %s" % error_result.error_message)
 			push_error("UI-Backend Integration Error: %s" % error_result.error_message)
 			assert(false, "Strict validation mode - stopping execution")
 		
 		ValidationErrorMode.DEVELOPMENT:
-			print("ValidationErrorBoundary: Development error details:")
-			print("  Message: %s" % error_result.error_message)
-			print("  Code: %s" % error_result.error_code)
-			print("  Severity: %s" % ValidationErrorSeverity.keys()[error_result.severity])
-			print("  Context: %s" % str(error_result.context))
+			pass # Development mode error details
 			push_warning("Development Mode: %s" % error_result.error_message)
 
 ## Validate integration health across multiple backend systems
@@ -299,7 +291,7 @@ static func validate_integration_health(
 	
 	var results: Array[ValidationErrorResult] = []
 	
-	print("ValidationErrorBoundary: Validating integration health for %d systems" % systems_to_check.size())
+	pass # Validating integration health
 	
 	var system_paths = {
 		"SimpleCharacterCreator": "res://src/core/character/Generation/SimpleCharacterCreator.gd",
@@ -337,6 +329,6 @@ static func validate_integration_health(
 		results.append(result)
 	
 	var available_systems = results.filter(func(r): return r.success).size()
-	print("ValidationErrorBoundary: Integration health check complete - %d/%d systems available" % [available_systems, systems_to_check.size()])
+	pass # Integration health check complete
 	
 	return results

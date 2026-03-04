@@ -2,11 +2,6 @@
 extends Node
 # This file should be referenced via preload
 # Use explicit preloads instead of global class names
-
-const Self = preload("res://src/core/systems/PositionValidator.gd")
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 ## Variables
 var force_invalid_points: bool = false
 

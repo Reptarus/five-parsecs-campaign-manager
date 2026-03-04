@@ -111,7 +111,6 @@ func _start_battle() -> void:
 	_update_ui()
 
 	# Add log entry
-	print("Tactical battle started")
 
 func _update_ui() -> void:
 	## Update the UI elements
@@ -135,25 +134,22 @@ func _on_end_turn_pressed() -> void:
 		_end_battle()
 	else:
 		_update_ui()
-		print("Turn %d started" % current_turn)
 
 func _end_battle() -> void:
 	## End the tactical battle
 	battle_active = false
 	_update_ui()
 	battle_completed.emit()
-	print("Battle completed")
 
 func _on_turn_completed() -> void:
 	## Handle turn completion from battle manager
-	print("Turn %d completed" % current_turn)
+	pass
 
 func _on_battle_ended(result: Dictionary) -> void:
 	## Handle battle end from battle manager
 	battle_active = false
 	battle_data = result
 	_update_ui()
-	print("Battle ended with result: %s" % result)
 
 func get_battle_status() -> Dictionary:
 	## Get the current battle status

@@ -3,10 +3,8 @@ extends Node
 # This file should be referenced via preload
 # Use explicit preloads instead of global class names
 
-const Self = preload("res://src/core/systems/MissionGenerator.gd")
 
 # Import necessary classes
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
 const TableLoader = preload("res://src/core/systems/TableLoader.gd")
 const TableProcessor = preload("res://src/core/systems/TableProcessor.gd")
@@ -53,13 +51,13 @@ func set_game_state(state: FiveParsecsGameState) -> void:
 	game_state = state
 
 ## Generate a mission of a specific type
-func generate_mission(mission_type: int = GameEnums.MissionType.NONE) -> Dictionary:
+func generate_mission(mission_type: int = GlobalEnums.MissionType.NONE) -> Dictionary:
 	var valid_templates = []
 	
 	# Filter templates by mission type if specified
-	if mission_type != GameEnums.MissionType.NONE:
+	if mission_type != GlobalEnums.MissionType.NONE:
 		for template in mission_templates:
-			if template.get("type", GameEnums.MissionType.NONE) == mission_type:
+			if template.get("type", GlobalEnums.MissionType.NONE) == mission_type:
 				valid_templates.append(template)
 	else:
 		valid_templates = mission_templates.duplicate()
@@ -135,15 +133,15 @@ func _generate_enemy_composition(template: String) -> Array:
 			var enemy_count = rng.randi_range(4, 8)
 			for i in range(enemy_count):
 				var enemy = {
-					"type": GameEnums.EnemyType.GANGERS,
-					"rank": GameEnums.EnemyRank.MINION
+					"type": GlobalEnums.EnemyType.GANGERS,
+					"rank": GlobalEnums.EnemyRank.MINION
 				}
 				enemies.append(enemy)
 			
 			# Add an elite
 			enemies.append({
-				"type": GameEnums.EnemyType.GANGERS,
-				"rank": GameEnums.EnemyRank.ELITE
+				"type": GlobalEnums.EnemyType.GANGERS,
+				"rank": GlobalEnums.EnemyRank.ELITE
 			})
 		
 		"boss":
@@ -151,8 +149,8 @@ func _generate_enemy_composition(template: String) -> Array:
 			var minion_count = rng.randi_range(3, 6)
 			for i in range(minion_count):
 				var enemy = {
-					"type": GameEnums.EnemyType.GANGERS,
-					"rank": GameEnums.EnemyRank.MINION
+					"type": GlobalEnums.EnemyType.GANGERS,
+					"rank": GlobalEnums.EnemyRank.MINION
 				}
 				enemies.append(enemy)
 			
@@ -160,14 +158,14 @@ func _generate_enemy_composition(template: String) -> Array:
 			var elite_count = rng.randi_range(1, 2)
 			for i in range(elite_count):
 				enemies.append({
-					"type": GameEnums.EnemyType.GANGERS,
-					"rank": GameEnums.EnemyRank.ELITE
+					"type": GlobalEnums.EnemyType.GANGERS,
+					"rank": GlobalEnums.EnemyRank.ELITE
 				})
 			
 			# Add the boss
 			enemies.append({
-				"type": GameEnums.EnemyType.BOSS,
-				"rank": GameEnums.EnemyRank.BOSS
+				"type": GlobalEnums.EnemyType.BOSS,
+				"rank": GlobalEnums.EnemyRank.BOSS
 			})
 		
 		"patrol":
@@ -175,8 +173,8 @@ func _generate_enemy_composition(template: String) -> Array:
 			var enemy_count = rng.randi_range(3, 5)
 			for i in range(enemy_count):
 				var enemy = {
-					"type": GameEnums.EnemyType.SECURITY_BOTS,
-					"rank": GameEnums.EnemyRank.MINION
+					"type": GlobalEnums.EnemyType.SECURITY_BOTS,
+					"rank": GlobalEnums.EnemyRank.MINION
 				}
 				enemies.append(enemy)
 		
@@ -185,15 +183,15 @@ func _generate_enemy_composition(template: String) -> Array:
 			var enemy_count = rng.randi_range(5, 9)
 			for i in range(enemy_count):
 				var enemy = {
-					"type": GameEnums.EnemyType.RAIDERS,
-					"rank": GameEnums.EnemyRank.MINION
+					"type": GlobalEnums.EnemyType.RAIDERS,
+					"rank": GlobalEnums.EnemyRank.MINION
 				}
 				enemies.append(enemy)
 			
 			# Add an elite
 			enemies.append({
-				"type": GameEnums.EnemyType.RAIDERS,
-				"rank": GameEnums.EnemyRank.ELITE
+				"type": GlobalEnums.EnemyType.RAIDERS,
+				"rank": GlobalEnums.EnemyRank.ELITE
 			})
 	
 	return enemies
@@ -205,22 +203,22 @@ func _calculate_mission_difficulty(mission: Dictionary) -> int:
 	# Adjust based on enemy composition
 	if mission.has("enemy_composition"):
 		for enemy in mission["enemy_composition"]:
-			match enemy.get("rank", GameEnums.EnemyRank.MINION):
-				GameEnums.EnemyRank.MINION:
+			match enemy.get("rank", GlobalEnums.EnemyRank.MINION):
+				GlobalEnums.EnemyRank.MINION:
 					base_difficulty += 1
-				GameEnums.EnemyRank.ELITE:
+				GlobalEnums.EnemyRank.ELITE:
 					base_difficulty += 2
-				GameEnums.EnemyRank.BOSS:
+				GlobalEnums.EnemyRank.BOSS:
 					base_difficulty += 4
 	
 	# Adjust based on mission type
 	if mission.has("type"):
 		match mission["type"]:
-			GameEnums.MissionType.BLACK_ZONE:
+			GlobalEnums.MissionType.BLACK_ZONE:
 				base_difficulty += 2
-			GameEnums.MissionType.SABOTAGE:
+			GlobalEnums.MissionType.SABOTAGE:
 				base_difficulty += 1
-			GameEnums.MissionType.ASSASSINATION:
+			GlobalEnums.MissionType.ASSASSINATION:
 				base_difficulty += 3
 	
 	# Adjust based on objective count
@@ -252,33 +250,33 @@ func _generate_rewards(difficulty: int) -> Dictionary:
 func _get_rarity_for_difficulty(difficulty: int) -> int:
 	match difficulty:
 		1, 2:
-			return GameEnums.ItemRarity.COMMON if rng.randf() < 0.8 else GameEnums.ItemRarity.UNCOMMON
+			return GlobalEnums.ItemRarity.COMMON if rng.randf() < 0.8 else GlobalEnums.ItemRarity.UNCOMMON
 		3:
 			var roll = rng.randf()
 			if roll < 0.6:
-				return GameEnums.ItemRarity.COMMON
+				return GlobalEnums.ItemRarity.COMMON
 			elif roll < 0.9:
-				return GameEnums.ItemRarity.UNCOMMON
+				return GlobalEnums.ItemRarity.UNCOMMON
 			else:
-				return GameEnums.ItemRarity.RARE
+				return GlobalEnums.ItemRarity.RARE
 		4:
 			var roll = rng.randf()
 			if roll < 0.4:
-				return GameEnums.ItemRarity.UNCOMMON
+				return GlobalEnums.ItemRarity.UNCOMMON
 			elif roll < 0.8:
-				return GameEnums.ItemRarity.RARE
+				return GlobalEnums.ItemRarity.RARE
 			else:
-				return GameEnums.ItemRarity.EPIC
+				return GlobalEnums.ItemRarity.EPIC
 		5:
 			var roll = rng.randf()
 			if roll < 0.3:
-				return GameEnums.ItemRarity.RARE
+				return GlobalEnums.ItemRarity.RARE
 			elif roll < 0.7:
-				return GameEnums.ItemRarity.EPIC
+				return GlobalEnums.ItemRarity.EPIC
 			else:
-				return GameEnums.ItemRarity.LEGENDARY
+				return GlobalEnums.ItemRarity.LEGENDARY
 		_:
-			return GameEnums.ItemRarity.COMMON
+			return GlobalEnums.ItemRarity.COMMON
 
 ## Generate a random object name
 func _generate_random_object() -> String:
@@ -325,9 +323,9 @@ func get_available_missions() -> Array:
 	var mission_count = rng.randi_range(2, 4)
 	
 	for i in range(mission_count):
-		var mission_type = GameEnums.MissionType.values()[rng.randi() % GameEnums.MissionType.size()]
-		if mission_type == GameEnums.MissionType.NONE:
-			mission_type = GameEnums.MissionType.SABOTAGE
+		var mission_type = GlobalEnums.MissionType.values()[rng.randi() % GlobalEnums.MissionType.size()]
+		if mission_type == GlobalEnums.MissionType.NONE:
+			mission_type = GlobalEnums.MissionType.SABOTAGE
 		
 		var mission = generate_mission(mission_type)
 		if not mission.is_empty():

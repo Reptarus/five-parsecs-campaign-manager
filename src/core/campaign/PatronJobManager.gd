@@ -1,7 +1,5 @@
 class_name PatronJobManager
 extends Node
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 
 ## Signals
@@ -191,7 +189,7 @@ func complete_job(job_id: String, success: bool = true) -> void:
 		
 		# Award rewards if successful
 		if success and game_state:
-			game_state.add_resource(GameEnums.ResourceType.CREDITS, job_data.reward_credits)
+			game_state.add_resource(GlobalEnums.ResourceType.CREDITS, job_data.reward_credits)
 			if job_data.has("reward_items"):
 				for item in job_data.reward_items:
 					game_state.add_item(item)

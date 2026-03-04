@@ -1,4 +1,4 @@
-﻿class_name FiveParsecsSecurityValidator
+class_name FiveParsecsSecurityValidator
 extends RefCounted
 
 ## FiveParsecsSecurityValidator: Input validation and sanitization for Five Parsecs
@@ -263,7 +263,6 @@ static func log_security_event(event_type: String, message: String, severity: St
 	var log_entry = "[%s] SECURITY [%s] %s: %s" % [timestamp, severity, event_type, message]
 	
 	# Print to console for now - could be extended to write to file or send to monitoring
-	print(log_entry)
 	
 	# In debug mode, also push as warning for visibility
 	if OS.is_debug_build() and severity in ["WARNING", "ERROR"]:

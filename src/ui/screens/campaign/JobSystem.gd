@@ -3,10 +3,7 @@
 @tool
 extends Node
 
-const Self = preload("res://src/ui/screens/campaign/JobSystem.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 # Create a minimal Mission placeholder reference
 # This avoids the need for a direct preload of Mission.gd which might not exist yet
 const Mission = null

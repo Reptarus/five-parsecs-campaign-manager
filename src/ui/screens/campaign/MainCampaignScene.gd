@@ -36,7 +36,6 @@ func _ready() -> void:
 	# Check for pending campaign data from creation
 	_check_for_pending_campaign_data()
 	
-	print("MainCampaignScene: Initialized successfully")
 
 func _initialize_autoloads() -> void:
 	## FIX 1: Initialize all autoloads safely using AutoloadManager
@@ -45,7 +44,6 @@ func _initialize_autoloads() -> void:
 		CampaignManager = AutoloadManager.get_autoload_safe("CampaignManager")
 		CharacterManagerAutoload = AutoloadManager.get_autoload_safe("CharacterManagerAutoload") 
 		SaveManager = AutoloadManager.get_autoload_safe("SaveManager")
-		print("MainCampaignScene: Autoloads initialized safely")
 	else:
 		push_warning("MainCampaignScene: AutoloadManager not available, using direct references")
 		# Fallback to direct access (may fail)
@@ -144,8 +142,6 @@ func _check_for_pending_campaign_data() -> void:
 
 func _start_with_campaign_resource(campaign: Resource, save_path: String) -> void:
 	## SPRINT 26.23: New method for resource-based handoff
-	print("MainCampaignScene: Starting campaign from resource - %s" % (campaign.campaign_name if "campaign_name" in campaign else "Unnamed"))
-
 	current_campaign = campaign
 	campaign_active = true
 
@@ -159,7 +155,6 @@ func _start_with_campaign_resource(campaign: Resource, save_path: String) -> voi
 	var cpm = get_node_or_null("/root/CampaignPhaseManager")
 	if cpm and cpm.has_method("set_campaign"):
 		cpm.set_campaign(campaign)
-		print("MainCampaignScene: Campaign resource handed to CampaignPhaseManager")
 
 	# Start first campaign turn
 	if campaign_turn_controller:
@@ -204,15 +199,13 @@ func _initialize_campaign_systems_from_resource(campaign: Resource) -> void:
 ## SPRINT 6.1: Campaign Creation Signal Integration
 
 func _connect_to_campaign_creation_ui() -> void:
-	print("MainCampaignScene: Attempting to connect to CampaignCreationUI signals...")
 	
 	# Try to find CampaignCreationUI scene if it exists in scene tree
 	var creation_ui = _find_campaign_creation_ui()
 	if creation_ui and creation_ui.has_signal("campaign_completion_ready"):
 		creation_ui.campaign_completion_ready.connect(_on_campaign_creation_completed)
-		print("MainCampaignScene: Connected to campaign_completion_ready signal")
 	else:
-		print("MainCampaignScene: CampaignCreationUI not found or signal not available")
+		pass
 
 func _find_campaign_creation_ui() -> Node:
 	## Find CampaignCreationUI in scene tree
@@ -249,13 +242,9 @@ func _recursive_search(node: Node, type_name: String) -> Node:
 
 func _on_campaign_creation_completed(campaign_data: Dictionary) -> void:
 	## Handle campaign creation completion signal
-	print("MainCampaignScene: Received campaign creation completion signal")
-	print("MainCampaignScene: Campaign data keys: %s" % str(campaign_data.keys()))
-	
 	# Store campaign data for immediate transition
 	if GameState:
 		GameState.set_meta("pending_campaign_data", campaign_data)
-		print("MainCampaignScene: Stored campaign data in GameState")
 	
 	# Immediately start the new campaign
 	start_new_campaign(campaign_data)
@@ -264,8 +253,6 @@ func _on_campaign_creation_completed(campaign_data: Dictionary) -> void:
 
 func start_new_campaign(campaign_data: Dictionary) -> void:
 	## Start a new Five Parsecs campaign
-	print("MainCampaignScene: Starting new campaign - %s" % campaign_data.get("name", "Unnamed"))
-	
 	current_campaign = _create_campaign_resource(campaign_data)
 	campaign_active = true
 	
@@ -283,7 +270,6 @@ func start_new_campaign(campaign_data: Dictionary) -> void:
 
 func load_existing_campaign(save_data: Dictionary) -> void:
 	## Load an existing campaign from save data
-	print("MainCampaignScene: Loading existing campaign")
 	
 	current_campaign = _restore_campaign_from_save(save_data)
 	campaign_active = true
@@ -298,7 +284,6 @@ func load_existing_campaign(save_data: Dictionary) -> void:
 
 func end_campaign(reason: String = "completed") -> void:
 	## End the current campaign
-	print("MainCampaignScene: Ending campaign - %s" % reason)
 	
 	var final_results = _calculate_final_results()
 	campaign_active = false
@@ -338,7 +323,6 @@ func _initialize_campaign_systems(campaign_data: Dictionary) -> void:
 	# Initialize game state with campaign data
 	if GameState and GameState.has_method("initialize_new_campaign"):
 		GameState.initialize_new_campaign(campaign_data)
-		print("MainCampaignScene: GameState initialized with campaign data")
 	else:
 		push_warning("MainCampaignScene: GameState.initialize_new_campaign() not available")
 
@@ -352,12 +336,10 @@ func _initialize_campaign_systems(campaign_data: Dictionary) -> void:
 
 		if campaign:
 			cpm.set_campaign(campaign)
-			print("MainCampaignScene: CampaignPhaseManager received campaign reference")
 		else:
 			# Fallback: Use our local current_campaign resource
 			if current_campaign:
 				cpm.set_campaign(current_campaign)
-				print("MainCampaignScene: CampaignPhaseManager received local campaign reference")
 			else:
 				push_warning("MainCampaignScene: No campaign resource available for CampaignPhaseManager")
 	else:
@@ -366,12 +348,10 @@ func _initialize_campaign_systems(campaign_data: Dictionary) -> void:
 	# Initialize campaign manager
 	if CampaignManager and CampaignManager.has_method("start_new_campaign"):
 		CampaignManager.start_new_campaign(campaign_data)
-		print("MainCampaignScene: CampaignManager started new campaign")
 
 	# Initialize character system
 	if CharacterManagerAutoload and CharacterManagerAutoload.has_method("initialize_for_campaign"):
 		CharacterManagerAutoload.initialize_for_campaign(campaign_data)
-		print("MainCampaignScene: Character system initialized")
 
 func _restore_campaign_state(save_data: Dictionary) -> void:
 	## Restore campaign state from save data
@@ -397,12 +377,12 @@ func _show_campaign_interface() -> void:
 func _update_campaign_header() -> void:
 	## Update campaign header with current information
 	# Future: Update with actual campaign data
-	print("MainCampaignScene: Updated campaign header")
+	pass
 
 func _update_campaign_sidebar() -> void:
 	## Update campaign sidebar with current status
 	# Future: Update with actual campaign status
-	print("MainCampaignScene: Updated campaign sidebar")
+	pass
 
 func _calculate_final_results() -> Dictionary:
 	## Calculate final campaign results
@@ -430,11 +410,9 @@ func _cleanup_campaign_systems() -> void:
 	current_campaign = null
 	
 	# Future: Clean up other systems as needed
-	print("MainCampaignScene: Campaign systems cleaned up")
 
 func _show_error(message: String) -> void:
 	## Display error message to user
-	print("MainCampaignScene ERROR: %s" % message)
 	
 	if error_display:
 		error_display.show_error(message)
@@ -444,21 +422,18 @@ func _show_error(message: String) -> void:
 
 func _on_campaign_turn_started(turn_number: int) -> void:
 	## Handle campaign turn start
-	print("MainCampaignScene: Campaign turn %d started" % turn_number)
 	_update_campaign_header()
 
 func _on_campaign_turn_completed(turn_number: int) -> void:
 	## Handle campaign turn completion
-	print("MainCampaignScene: Campaign turn %d completed" % turn_number)
 	_update_campaign_header()
 
 func _on_phase_transition_started(from_phase: String, to_phase: String) -> void:
 	## Handle phase transition start
-	print("MainCampaignScene: Phase transition %s -> %s" % [from_phase, to_phase])
+	pass
 
 func _on_phase_transition_completed(phase: String) -> void:
 	## Handle phase transition completion
-	print("MainCampaignScene: Phase %s completed" % phase)
 	_update_campaign_sidebar()
 
 func _on_campaign_state_changed(state_data: Dictionary) -> void:
@@ -482,15 +457,14 @@ func _input(event: InputEvent) -> void:
 		match event.keycode:
 			KEY_ESCAPE:
 				# Future: Show pause/exit menu
-				print("MainCampaignScene: Escape pressed - pause menu")
+				pass
 			KEY_F1:
 				# Future: Show help
-				print("MainCampaignScene: F1 pressed - help")
+				pass
 			KEY_F5:
 				# Quick save
 				if SaveManager and campaign_active:
 					SaveManager.quick_save()
-					print("MainCampaignScene: Quick save performed")
 			KEY_PAGEUP:
 				# PHASE 7: Enhanced Debug Tools - Crew Debug Information
 				_show_crew_debug_info()
@@ -498,71 +472,5 @@ func _input(event: InputEvent) -> void:
 # PHASE 7: Enhanced Debug Tools Implementation
 func _show_crew_debug_info() -> void:
 	## Show comprehensive crew debug information (PageUp key)
-	print("\n" + "=".repeat(60))
-	print("🔧 CREW DEBUG INFORMATION (PageUp)")
-	print("=".repeat(60))
-	
-	# Check if campaign is active
-	if not campaign_active:
-		print("❌ No active campaign")
-		print("=".repeat(60))
-		return
-	
-	# Get campaign manager
-	var campaign_manager = get_node_or_null("/root/CampaignManager")
-	if not campaign_manager:
-		print("❌ CampaignManager not found")
-		print("=".repeat(60))
-		return
-	
-	# Get current campaign data
-	var campaign_data = campaign_manager.get_current_campaign()
-	if not campaign_data:
-		print("❌ No campaign data available")
-		print("=".repeat(60))
-		return
-	
-	# Display crew information
-	print("\n📋 CAMPAIGN INFO:")
-	print("  Name: %s" % campaign_data.get("name", "Unknown"))
-	print("  Phase: %s" % campaign_data.get("current_phase", "Unknown"))
-	print("  Turn: %s" % campaign_data.get("turn_number", "0"))
-	
-	# Display crew details
-	var crew = campaign_data.get("crew", [])
-	print("\n👥 CREW INFO (%d members):" % crew.size())
-	
-	if crew.size() == 0:
-		print("  No crew members found")
-	else:
-		for i in range(crew.size()):
-			var member = crew[i]
-			print("  [%d] %s" % [i + 1, member.get("character_name", "Unknown")])
-			print("      Background: %s" % member.get("background", "Unknown"))
-			print("      Class: %s" % member.get("character_class", "Unknown"))
-			print("      Motivation: %s" % member.get("motivation", "Unknown"))
-			if member.has("health"):
-				print("      Health: %s" % member.get("health", "Unknown"))
-	
-	# Display ship information if available
-	var ship = campaign_data.get("ship", {})
-	print("\n🚀 SHIP INFO:")
-	if ship.size() == 0:
-		print("  No ship data available")
-	else:
-		print("  Name: %s" % ship.get("name", "Unknown"))
-		print("  Type: %s" % ship.get("ship_type", "Unknown"))
-		print("  Hull Points: %s" % ship.get("hull_points", "Unknown"))
-	
-	# Display current resources
-	print("\n💰 RESOURCES:")
-	print("  Credits: %s" % campaign_data.get("credits", "0"))
-	print("  Story Points: %s" % campaign_data.get("story_points", "0"))
-	
-	# Display current location
-	print("\n🌍 LOCATION:")
-	print("  Current World: %s" % campaign_data.get("current_world", "Unknown"))
-	
-	print("=".repeat(60))
-	print("✅ Debug info complete - Press PageUp again to refresh")
-	print("=".repeat(60))
+	## Debug output removed for public release
+	pass

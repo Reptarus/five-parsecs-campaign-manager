@@ -2,7 +2,6 @@
 extends "res://src/base/combat/BaseBattleCharacter.gd"
 # This file should be referenced via preload
 # Use explicit preloads instead of global class names
-const Self = preload("res://src/game/combat/BattleCharacter.gd")
 
 const FiveParsecsCharacter = preload("res://src/game/character/Character.gd")
 # We'll assume GameEnums is defined elsewhere and accessible globally

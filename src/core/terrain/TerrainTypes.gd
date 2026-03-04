@@ -4,7 +4,6 @@
 @tool
 extends Resource
 # Use explicit preloads instead of global class names
-const Self = preload("res://src/core/terrain/TerrainTypes.gd")
 const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 
 ## Terrain Type Definitions

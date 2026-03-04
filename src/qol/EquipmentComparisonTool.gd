@@ -51,7 +51,7 @@ static func compare_armor(armor_pieces: Array) -> Dictionary:
 
 static func get_recommendation(items: Array, character: Variant) -> String:
 	## Get character-specific recommendation
-	# TODO: Analyze character stats and recommend best item
+	# NOTE: Deferred — analyze character stats for smarter recommendation
 	if items.is_empty():
 		return "No items to compare"
 	

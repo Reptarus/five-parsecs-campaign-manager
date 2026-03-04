@@ -4,10 +4,8 @@
 extends BaseCrew
 
 # Self-reference constant for external scripts
-const Self = preload("res://src/game/campaign/crew/FiveParsecsCrew.gd")
 const BaseCrew = preload("res://src/base/campaign/crew/BaseCrew.gd")
 const FPCM_CrewMember = preload("res://src/game/campaign/crew/FiveParsecsCrewMember.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")
 
 # Five Parsecs specific properties

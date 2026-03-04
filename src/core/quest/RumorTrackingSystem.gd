@@ -63,7 +63,7 @@ func _load_quest_progressions() -> void:
 	var parsed = JSON.parse_string(json_text)
 	if parsed is Dictionary:
 		quest_progressions = parsed
-		print("RumorTrackingSystem: Loaded quest progressions with %d stages" % quest_progressions.get("quest_stages", []).size())
+		pass
 
 # ============ RUMOR ACQUISITION ============
 
@@ -91,7 +91,6 @@ func add_rumor(source: RumorSource, description: String, metadata: Dictionary = 
 	_next_rumor_id += 1
 	rumors.append(rumor)
 
-	print("RumorTrackingSystem: Acquired rumor from %s - '%s'" % [rumor.source_name, description])
 	rumor_acquired.emit(rumor)
 
 	return rumor
@@ -165,7 +164,6 @@ func try_generate_quest() -> Dictionary:
 		return {}
 
 	var roll := randi() % 6 + 1
-	print("RumorTrackingSystem: Quest generation roll %d vs %d rumors" % [roll, rumor_count])
 
 	if roll <= rumor_count:
 		# Success! Create quest from rumors
@@ -201,7 +199,6 @@ func _create_quest_from_rumors() -> Dictionary:
 	_next_quest_id += 1
 	active_quests.append(quest)
 
-	print("RumorTrackingSystem: Created quest '%s' from %d rumors" % [quest.name, active_rumors.size()])
 	quest_progressed.emit(quest.id, quest.current_stage)
 
 	return quest
@@ -252,8 +249,6 @@ func add_quest_rumor(quest_id: String) -> bool:
 				"turn_acquired": _get_current_turn(),
 				"source": "quest_progress"
 			})
-			print("RumorTrackingSystem: Added quest rumor to '%s' (total: %d)" % [
-				quest.name, quest.quest_rumors.size()])
 			return true
 
 	push_warning("RumorTrackingSystem: Quest not found: %s" % quest_id)
@@ -288,14 +283,12 @@ func roll_quest_progress(quest_id: String, battle_won: bool = true) -> Dictionar
 		finale_ready = true
 		quest["is_finale_ready"] = true
 		quest_finale_triggered.emit(quest_id)
-		print("RumorTrackingSystem: Quest '%s' FINALE READY!" % quest.name)
 	elif total > DEAD_END_THRESHOLD:
 		outcome = "progress"
 		gained_rumor = true
 		add_quest_rumor(quest_id)
-		print("RumorTrackingSystem: Quest '%s' progressed - gained quest rumor" % quest.name)
 	else:
-		print("RumorTrackingSystem: Quest '%s' hit dead end - no progress" % quest.name)
+		pass
 
 	return {
 		"quest_id": quest_id,
@@ -318,8 +311,6 @@ func advance_quest_stage(quest_id: String) -> bool:
 			if current < QuestStage.FINAL_CONFRONTATION:
 				quest["current_stage"] = current + 1
 				quest["rewards"] = _get_stage_rewards(quest["current_stage"])
-				print("RumorTrackingSystem: Quest '%s' advanced to stage %d" % [
-					quest.name, quest["current_stage"]])
 				quest_progressed.emit(quest_id, quest["current_stage"])
 				return true
 			return false
@@ -343,7 +334,6 @@ func complete_quest(quest_id: String, success: bool = true) -> Dictionary:
 			completed_quests.append(quest)
 			active_quests.remove_at(i)
 
-			print("RumorTrackingSystem: Quest '%s' completed (success: %s)" % [quest.name, success])
 			return rewards
 
 	return {}
@@ -417,7 +407,6 @@ func link_mission_to_quest(mission_id: String, quest_id: String) -> bool:
 			if not quest.has("missions_completed"):
 				quest["missions_completed"] = []
 			quest["missions_completed"].append(mission_id)
-			print("RumorTrackingSystem: Linked mission '%s' to quest '%s'" % [mission_id, quest.name])
 			return true
 	return false
 
@@ -462,9 +451,7 @@ func deserialize(data: Dictionary) -> void:
 	_next_rumor_id = data.get("next_rumor_id", rumors.size())
 	_next_quest_id = data.get("next_quest_id", active_quests.size() + completed_quests.size())
 
-	print("RumorTrackingSystem: Restored %d rumors, %d active quests, %d completed quests" % [
-		rumors.size(), active_quests.size(), completed_quests.size()
-	])
+	pass
 
 func get_active_quest() -> Dictionary:
 	## Get the currently active quest (first one if multiple)

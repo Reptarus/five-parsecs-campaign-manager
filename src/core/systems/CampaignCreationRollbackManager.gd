@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 class_name CampaignCreationRollbackManager
 extends RefCounted
 
@@ -120,7 +120,6 @@ static func create_rollback_point(component: String = "complete_system") -> Stri
 	# Save rollback registry
 	_save_rollback_registry()
 	
-	print("CampaignCreationRollbackManager: Created rollback point '%s' with %d files" % [rollback_id, rollback_info.files_backed_up.size()])
 	return rollback_id
 
 static func initiate_rollback(rollback_id: String = "") -> bool:
@@ -140,7 +139,6 @@ static func initiate_rollback(rollback_id: String = "") -> bool:
 		push_error("Unknown component in rollback info: %s" % component)
 		return false
 	
-	print("CampaignCreationRollbackManager: Initiating rollback to %s..." % rollback_id)
 	
 	var config = ROLLBACK_CONFIGURATION[component]
 	var success = true
@@ -166,7 +164,6 @@ static func initiate_rollback(rollback_id: String = "") -> bool:
 				if target_file:
 					target_file.store_string(content)
 					target_file.close()
-					print("  ✅ Restored: %s" % file_path)
 				else:
 					push_error("Could not write restored file: %s" % target_path)
 					success = false
@@ -175,7 +172,6 @@ static func initiate_rollback(rollback_id: String = "") -> bool:
 				success = false
 	
 	if success:
-		print("CampaignCreationRollbackManager: ✅ Rollback completed successfully")
 		
 		# Disable all feature flags for safety
 		CampaignCreationFeatureFlags.emergency_disable_all()
@@ -190,7 +186,6 @@ static func emergency_rollback() -> bool:
 		push_error("No rollback point available for emergency rollback")
 		return false
 	
-	print("CampaignCreationRollbackManager: 🚨 EMERGENCY ROLLBACK INITIATED")
 	
 	# Disable all feature flags immediately
 	CampaignCreationFeatureFlags.emergency_disable_all()
@@ -199,7 +194,7 @@ static func emergency_rollback() -> bool:
 	var success = initiate_rollback(current_rollback_id)
 	
 	if success:
-		print("CampaignCreationRollbackManager: 🚨 Emergency rollback completed")
+		pass
 	else:
 		push_error("CampaignCreationRollbackManager: 🚨 Emergency rollback FAILED")
 	

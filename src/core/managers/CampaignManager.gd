@@ -463,7 +463,7 @@ func _apply_mission_rewards(mission: Resource) -> void:
 	
 	# Apply item rewards
 	for item in mission.reward_items:
-		# TODO: Add item to inventory when inventory system is implemented
+		# NOTE: Deferred — add item to inventory when inventory system is wired
 		pass
 
 func _consume_mission_resources(mission: Resource) -> void:

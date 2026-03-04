@@ -409,11 +409,6 @@ func _on_introductory_campaign_toggled(enabled: bool) -> void:
 	local_campaign_config["introductory_campaign"] = enabled
 	campaign_config_data_changed.emit(local_campaign_config)
 
-func _create_description_labels() -> void:
-	## DEPRECATED: Description labels now created inline during section building
-	# This method is kept for compatibility but does nothing
-	# Description labels are now created in _build_*_section methods
-	pass
 
 func _update_all_descriptions() -> void:
 	## Update all description labels with current selection info
@@ -581,7 +576,6 @@ func _setup_victory_conditions() -> void:
 		var card = _create_victory_condition_card(key, condition)
 		victory_conditions_list.add_child(card)
 
-		print("ExpandedConfigPanel: Creating card - key: %s, name: %s" % [key, condition.name])
 
 	# Add Custom button for creating custom victory conditions
 	custom_victory_button = _create_add_button("+ Custom Victory Condition")
@@ -650,7 +644,6 @@ func _on_difficulty_changed(index: int) -> void:
 	_update_display()
 	_validate_and_complete()
 
-	print("ExpandedConfigPanel: Difficulty changed to %d (%s)" % [difficulty_id, difficulty_levels.get(difficulty_id, {}).get("name", "Unknown")])
 
 func _create_victory_condition_card(key: String, condition: Dictionary) -> PanelContainer:
 	## Create an interactive card selector for a victory condition
@@ -776,17 +769,6 @@ func _set_card_selected_state(card: PanelContainer, selected: bool) -> void:
 	
 	card.add_theme_stylebox_override("panel", style)
 
-func _on_victory_condition_toggled(condition_key: String, is_checked: bool) -> void:
-	## DEPRECATED: Legacy checkbox handler - kept for compatibility
-	if is_checked:
-		selected_victory_conditions[condition_key] = victory_conditions[condition_key].duplicate()
-	else:
-		selected_victory_conditions.erase(condition_key)
-
-	victory_conditions_changed.emit(selected_victory_conditions)
-	_update_victory_condition_description()
-	_update_display()
-	_validate_and_complete()
 
 func _on_story_track_changed(index: int) -> void:
 	## Handle story track change
@@ -850,11 +832,9 @@ func _on_custom_condition_created(condition_type: int, target_value: int) -> voi
 	_update_display()
 	_validate_and_complete()
 
-	print("ExpandedConfigPanel: Created custom condition - %s with target %d" % [name, target_value])
 
 func _reset_to_defaults() -> void:
 	## Reset campaign configuration to defaults
-	print("ExpandedConfigPanel: Resetting campaign configuration")
 
 	# Reset to default values
 	local_campaign_config = {
@@ -876,7 +856,6 @@ func _reset_to_defaults() -> void:
 	# Update display
 	_update_display()
 
-	print("ExpandedConfigPanel: Campaign configuration reset to defaults")
 
 func _reset_ui_components() -> void:
 	## Reset UI components to default values
@@ -972,13 +951,11 @@ func _notify_coordinator_of_campaign_config_update() -> void:
 	var coordinator = get_coordinator_reference()
 	if coordinator and coordinator.has_method("update_campaign_config_state"):
 		coordinator.update_campaign_config_state(local_campaign_config)
-		print("ExpandedConfigPanel: Notified coordinator of campaign config update")
 	else:
-		print("ExpandedConfigPanel: Warning - coordinator not found or missing update method")
+		pass
 
 func _on_coordinator_set() -> void:
 	## Called when coordinator is assigned - sync initial state from coordinator
-	print("ExpandedConfigPanel: Coordinator set, syncing initial state")
 
 	var coordinator = get_coordinator_reference()
 	if coordinator and coordinator.has_method("get_unified_campaign_state"):
@@ -986,14 +963,13 @@ func _on_coordinator_set() -> void:
 		if state.has("campaign_config") and state.campaign_config is Dictionary:
 			var config_data = state.campaign_config
 			if not config_data.is_empty():
-				print("ExpandedConfigPanel: Restoring campaign config from coordinator")
 				restore_panel_data(config_data)
 			else:
-				print("ExpandedConfigPanel: No existing campaign config in coordinator")
+				pass
 		else:
-			print("ExpandedConfigPanel: No campaign_config key in coordinator state")
+			pass
 	else:
-		print("ExpandedConfigPanel: Coordinator not available or missing get_unified_campaign_state")
+		pass
 
 # Public API methods
 func get_campaign_config() -> Dictionary:
@@ -1061,10 +1037,7 @@ func get_campaign_config_data() -> Dictionary:
 func restore_panel_data(data: Dictionary) -> void:
 	## Restore panel data from persistence system
 	if data.is_empty():
-		print("ExpandedConfigPanel: No data to restore")
 		return
-	
-	print("ExpandedConfigPanel: Restoring panel data: ", data.keys())
 	
 	# Restore campaign name
 	if data.has("campaign_name"):
@@ -1100,16 +1073,13 @@ func restore_panel_data(data: Dictionary) -> void:
 	if data.has("is_complete"):
 		local_campaign_config.is_complete = data.is_complete
 	
-	print("ExpandedConfigPanel: Restored campaign configuration")
 	
 	# Update UI with restored data
 	_update_display()
 	
-	print("ExpandedConfigPanel: Panel data restoration complete")
 
 func cleanup_panel() -> void:
 	## Clean up panel state when navigating away
-	print("ExpandedConfigPanel: Cleaning up panel state")
 	
 	# Reset local campaign config
 	local_campaign_config = {
@@ -1145,7 +1115,6 @@ func cleanup_panel() -> void:
 			if child is CheckBox:
 				child.button_pressed = false
 	
-	print("ExpandedConfigPanel: Panel cleanup completed")
 
 ## ============ FALLBACK UI CREATION METHODS ============
 
@@ -1154,7 +1123,6 @@ func _create_line_edit(name: String) -> LineEdit:
 	var line_edit = LineEdit.new()
 	line_edit.name = name
 	line_edit.placeholder_text = "Enter value..."
-	print("ExpandedConfigPanel: Created fallback LineEdit: ", name)
 	return line_edit
 
 func _create_option_button(name: String) -> OptionButton:
@@ -1162,14 +1130,12 @@ func _create_option_button(name: String) -> OptionButton:
 	var option_button = OptionButton.new()
 	option_button.name = name
 	option_button.add_item("Default Option")
-	print("ExpandedConfigPanel: Created fallback OptionButton: ", name)
 	return option_button
 
 func _create_container(name: String) -> VBoxContainer:
 	## Create fallback container
 	var container = VBoxContainer.new()
 	container.name = name
-	print("ExpandedConfigPanel: Created fallback VBoxContainer: ", name)
 	return container
 
 func _create_button(name: String, text: String) -> Button:
@@ -1177,7 +1143,6 @@ func _create_button(name: String, text: String) -> Button:
 	var button = Button.new()
 	button.name = name
 	button.text = text
-	print("ExpandedConfigPanel: Created fallback Button: ", name)
 	return button
 
 func _create_label(name: String, text: String) -> Label:
@@ -1185,7 +1150,6 @@ func _create_label(name: String, text: String) -> Label:
 	var label = Label.new()
 	label.name = name
 	label.text = text
-	print("ExpandedConfigPanel: Created fallback Label: ", name)
 	return label
 
 ## Responsive Layout Overrides

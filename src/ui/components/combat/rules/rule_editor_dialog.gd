@@ -157,7 +157,7 @@ func _validate_form() -> bool:
 ## Button handlers
 func _on_save_pressed() -> void:
 	if not _validate_form():
-		# TODO: Show validation error
+		# NOTE: Deferred — show validation error feedback to user
 		return
 	
 	_update_current_effects()

@@ -207,6 +207,5 @@ func _on_apply_pressed() -> void:
 
 	if _theme_manager:
 		_theme_manager.apply_theme(theme_variant)
-		print("AccessibilitySettings: Applied theme - %s" % _theme_option_button.get_item_text(selected_index))
 
 	theme_selected.emit(theme_variant)

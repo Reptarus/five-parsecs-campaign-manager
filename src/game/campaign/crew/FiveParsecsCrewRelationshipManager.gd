@@ -3,7 +3,6 @@
 # Use explicit preloads instead of global class names
 extends "res://src/base/campaign/crew/BaseCrewRelationshipManager.gd"
 
-const Self = preload("res://src/game/campaign/crew/FiveParsecsCrewRelationshipManager.gd")
 const FPCM_CrewMember = preload("res://src/game/campaign/crew/FiveParsecsCrewMember.gd")
 
 # Five Parsecs specific relationship types

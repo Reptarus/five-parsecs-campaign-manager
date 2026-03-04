@@ -1,4 +1,4 @@
-﻿class_name PanelCache
+class_name PanelCache
 extends RefCounted
 
 ## Five Parsecs Campaign Manager - Panel Cache Manager
@@ -118,10 +118,7 @@ func _init() -> void:
 	## Initialize the panel cache manager
 	_setup_default_panels()
 	_start_memory_monitoring()
-	print("PanelCache: Initialized with policy: %s, strategy: %s" % [
-		CachePolicy.keys()[cache_policy],
-		LoadingStrategy.keys()[loading_strategy]
-	])
+	pass # Initialized
 
 func _setup_default_panels() -> void:
 	## Setup default panel registry for Five Parsecs campaign panels
@@ -132,7 +129,7 @@ func _setup_default_panels() -> void:
 	register_panel("equipment", "res://src/ui/screens/campaign/panels/EquipmentPanel.tscn", 5)
 	register_panel("final", "res://src/ui/screens/campaign/panels/FinalPanel.tscn", 6)
 	
-	print("PanelCache: Default panels registered - %d panels" % panel_registry.size())
+	pass # Default panels registered
 
 func _start_memory_monitoring() -> void:
 	## Start periodic memory monitoring
@@ -143,7 +140,6 @@ func _start_memory_monitoring() -> void:
 		timer.timeout.connect(_update_memory_usage)
 		timer.start()
 		
-		print("PanelCache: Memory monitoring started")
 
 # ============================================================================
 # PANEL REGISTRATION
@@ -171,7 +167,6 @@ func register_panel(panel_id: String, scene_path: String, priority: int = 0, sho
 	if should_preload and loading_strategy in [LoadingStrategy.PRELOAD_ALL, LoadingStrategy.SMART]:
 		_queue_for_loading(panel_id)
 	
-	print("PanelCache: Registered panel '%s' - Path: %s, Priority: %d" % [panel_id, scene_path, priority])
 
 ## Unregister a panel
 func unregister_panel(panel_id: String) -> void:
@@ -187,7 +182,6 @@ func unregister_panel(panel_id: String) -> void:
 	access_times.erase(panel_id)
 	load_times.erase(panel_id)
 	
-	print("PanelCache: Unregistered panel '%s'" % panel_id)
 
 # ============================================================================
 # PANEL LOADING
@@ -208,7 +202,6 @@ func get_panel(panel_id: String) -> Control:
 		var panel = loaded_panels[panel_id]
 		if is_instance_valid(panel):
 			cache_hits += 1
-			print("PanelCache: Cache hit for panel '%s'" % panel_id)
 			return panel
 		else:
 			# Clean up invalid reference
@@ -228,14 +221,12 @@ func _load_panel(panel_id: String) -> Control:
 	
 	# Check if already loading
 	if currently_loading.has(panel_id):
-		print("PanelCache: Panel '%s' already loading - waiting..." % panel_id)
 		return await _wait_for_loading(panel_id)
 	
 	var panel_info = panel_registry[panel_id]
 	var scene_path = panel_info.scene_path
 	var loading_start_time = Time.get_ticks_msec()
 	
-	print("PanelCache: Loading panel '%s' from %s" % [panel_id, scene_path])
 	
 	# Mark as loading
 	panel_states[panel_id] = PanelState.LOADING
@@ -302,7 +293,7 @@ func _handle_loading_success(panel_id: String, panel: Control, packed_scene: Pac
 	if loading_time_ms > TARGET_LOADING_TIME_MS:
 		push_warning("PanelCache: Panel '%s' loaded in %.1fms (target: %.1fms)" % [panel_id, loading_time_ms, TARGET_LOADING_TIME_MS])
 	else:
-		print("PanelCache: Panel '%s' loaded successfully in %.1fms" % [panel_id, loading_time_ms])
+		pass
 	
 	# Emit signals
 	panel_loaded.emit(panel_id, panel, loading_time_ms)
@@ -356,10 +347,10 @@ func _check_memory_before_loading() -> bool:
 		return true
 	
 	if current_memory_usage_mb >= memory_limit_mb:
-		print("PanelCache: Memory limit reached (%.1f/%.1f MB) - need to evict panels" % [current_memory_usage_mb, memory_limit_mb])
+		push_warning("PanelCache: Memory limit reached (%.1f/%.1f MB) - need to evict panels" % [current_memory_usage_mb, memory_limit_mb])
 		return false
 	
-	print("PanelCache: Memory usage warning (%.1f/%.1f MB)" % [current_memory_usage_mb, memory_limit_mb])
+	push_warning("PanelCache: Memory usage warning (%.1f/%.1f MB)" % [current_memory_usage_mb, memory_limit_mb])
 	return true
 
 func _evict_oldest_panels() -> void:
@@ -458,7 +449,7 @@ func _evict_panel(panel_id: String, reason: String) -> void:
 	var estimated_memory = panel_registry[panel_id].get("estimated_memory_mb", 0.0)
 	current_memory_usage_mb = max(0.0, current_memory_usage_mb - estimated_memory)
 	
-	print("PanelCache: Evicted panel '%s' (reason: %s) - Freed %.1f MB" % [panel_id, reason, estimated_memory])
+	pass # Panel evicted
 	panel_evicted.emit(panel_id, reason)
 
 # ============================================================================
@@ -489,7 +480,7 @@ func _update_memory_usage() -> void:
 	if current_memory_usage_mb > memory_limit_mb:
 		push_warning("PanelCache: Memory usage exceeded limit! %.1f/%.1f MB" % [current_memory_usage_mb, memory_limit_mb])
 	elif current_memory_usage_mb > WARNING_MEMORY_LIMIT_MB:
-		print("PanelCache: High memory usage: %.1f/%.1f MB" % [current_memory_usage_mb, memory_limit_mb])
+		pass
 
 func _estimate_panel_memory_usage(panel_id: String, panel: Control) -> void:
 	## Estimate memory usage of a loaded panel
@@ -503,9 +494,7 @@ func _estimate_panel_memory_usage(panel_id: String, panel: Control) -> void:
 	var total_estimate = base_memory + texture_memory
 	panel_registry[panel_id].estimated_memory_mb = total_estimate
 	
-	print("PanelCache: Memory estimate for '%s' - %.2f MB (%d nodes, %.2f MB textures)" % [
-		panel_id, total_estimate, node_count, texture_memory
-	])
+	pass # Memory estimate calculated
 
 func _count_nodes_recursive(node: Node) -> int:
 	## Count total nodes in a scene tree
@@ -586,17 +575,16 @@ func get_cache_statistics() -> Dictionary:
 ## Set cache policy
 func set_cache_policy(policy: CachePolicy) -> void:
 	cache_policy = policy
-	print("PanelCache: Cache policy changed to %s" % CachePolicy.keys()[policy])
+	pass # Cache policy changed
 
 ## Set loading strategy
 func set_loading_strategy(strategy: LoadingStrategy) -> void:
 	loading_strategy = strategy
-	print("PanelCache: Loading strategy changed to %s" % LoadingStrategy.keys()[strategy])
+	pass # Loading strategy changed
 
 ## Set memory limit
 func set_memory_limit(limit_mb: float) -> void:
 	memory_limit_mb = limit_mb
-	print("PanelCache: Memory limit set to %.1f MB" % limit_mb)
 
 ## Clear all cached panels
 func clear_cache() -> void:
@@ -610,7 +598,7 @@ func clear_cache() -> void:
 	total_loads = 0
 	average_loading_time_ms = 0.0
 	
-	print("PanelCache: Cache cleared - %d panels evicted" % panel_ids.size())
+	pass # Cache cleared
 
 ## Force garbage collection
 func force_cleanup() -> void:
@@ -629,7 +617,7 @@ func force_cleanup() -> void:
 	_update_memory_usage()
 	
 	if cleaned_panels.size() > 0:
-		print("PanelCache: Cleaned up %d invalid panel references" % cleaned_panels.size())
+		pass # Cleaned up invalid panel references
 
 ## Get panel state
 func get_panel_state(panel_id: String) -> PanelState:
@@ -647,7 +635,6 @@ func preload_panel(panel_id: String) -> void:
 		return
 	
 	if is_panel_loaded(panel_id):
-		print("PanelCache: Panel '%s' already loaded" % panel_id)
 		return
 	
 	_queue_for_loading(panel_id)
@@ -656,7 +643,6 @@ func _queue_for_loading(panel_id: String) -> void:
 	## Queue a panel for background loading
 	if not loading_queue.has(panel_id):
 		loading_queue.append(panel_id)
-		print("PanelCache: Queued panel '%s' for loading" % panel_id)
 		
 		# Process queue on next frame
 		call_deferred("_process_loading_queue")

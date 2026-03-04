@@ -27,7 +27,6 @@ var last_roll: int = 0
 
 func _ready() -> void:
 	name = "ResolveRumorsComponent"
-	print("ResolveRumorsComponent: Initialized - Five Parsecs rumor/quest system")
 
 	_initialize_event_bus()
 	_connect_ui_signals()
@@ -46,7 +45,6 @@ func _initialize_event_bus() -> void:
 	event_bus = get_node_or_null("/root/CampaignTurnEventBus")
 	if event_bus:
 		event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
-		print("ResolveRumorsComponent: Connected to event bus")
 
 func _exit_tree() -> void:
 	## Cleanup event bus subscriptions to prevent memory leaks
@@ -76,12 +74,9 @@ func initialize_rumors_phase(rumor_list: Array, active_quest: Dictionary) -> voi
 	_populate_rumors_list()
 	_update_ui_display()
 
-	print("ResolveRumorsComponent: Initialized with %d rumors, quest active: %s" % [rumors.size(), has_active_quest])
-
 	# AUTO-COMPLETE: If no rumors to resolve, mark as complete
 	if rumors.size() == 0:
 		rumors_resolved = true
-		print("ResolveRumorsComponent: >>> No rumors to resolve - auto-completing phase")
 		if result_label:
 			result_label.text = "No rumors to resolve"
 			result_label.modulate = Color(0.7, 0.7, 0.7)
@@ -127,14 +122,12 @@ func _populate_rumors_list() -> void:
 func _on_roll_pressed() -> void:
 	## Roll to resolve rumors
 	if has_active_quest:
-		print("ResolveRumorsComponent: Already have active quest - cannot resolve rumors")
 		if result_label:
 			result_label.text = "Cannot resolve - Quest already active"
 			result_label.modulate = Color(1.0, 0.5, 0.5)
 		return
 
 	if rumors.is_empty():
-		print("ResolveRumorsComponent: No rumors to resolve")
 		if result_label:
 			result_label.text = "No rumors to resolve"
 			result_label.modulate = Color(0.8, 0.8, 0.8)
@@ -144,7 +137,6 @@ func _on_roll_pressed() -> void:
 	last_roll = randi() % 6 + 1
 	var rumor_count = rumors.size()
 
-	print("ResolveRumorsComponent: Rolled %d vs %d rumors" % [last_roll, rumor_count])
 
 	if last_roll <= rumor_count:
 		# Success! Convert rumors to quest
@@ -196,7 +188,6 @@ func _generate_quest_from_rumors() -> void:
 		quest_description_label.text = "New Quest: %s\n%s" % [current_quest.name, current_quest.description]
 		quest_description_label.visible = true
 
-	print("ResolveRumorsComponent: Generated quest - %s" % current_quest.name)
 
 	# Save quest to campaign data
 	var game_state = get_node_or_null("/root/GameState")
@@ -208,7 +199,6 @@ func _generate_quest_from_rumors() -> void:
 				campaign["active_quest"] = current_quest
 				# Also clear the rumors since they're now a quest
 				campaign["rumors"] = []
-			print("ResolveRumorsComponent: Saved quest '%s' to campaign" % current_quest.name)
 
 func _generate_quest_name() -> String:
 	## Generate random quest name
@@ -277,7 +267,7 @@ func _on_phase_started(data: Dictionary) -> void:
 	## Handle phase started events
 	var phase_name = data.get("phase_name", "")
 	if phase_name == "resolve_rumors":
-		print("ResolveRumorsComponent: Rumors phase started")
+		pass
 
 ## Public API
 func is_rumors_resolved() -> bool:
@@ -309,12 +299,10 @@ func add_rumor(rumor: Variant) -> void:
 	if has_active_quest:
 		# During quest, rumors become quest rumors
 		quest_rumors.append(rumor)
-		print("ResolveRumorsComponent: Added quest rumor (total: %d)" % quest_rumors.size())
 	else:
 		rumors.append(rumor)
 		_populate_rumors_list()
 		_update_ui_display()
-		print("ResolveRumorsComponent: Added rumor")
 
 ## Consume quest rumors when advancing quest progress (Five Parsecs p.85)
 func consume_quest_rumor() -> bool:
@@ -329,7 +317,6 @@ func consume_quest_rumor() -> bool:
 
 	# Remove the first quest rumor (FIFO)
 	var consumed_rumor = quest_rumors.pop_front()
-	print("ResolveRumorsComponent: Consumed quest rumor (remaining: %d)" % quest_rumors.size())
 
 	# Save to campaign data
 	var game_state = get_node_or_null("/root/GameState")
@@ -338,7 +325,6 @@ func consume_quest_rumor() -> bool:
 		if campaign and "active_quest" in campaign and campaign.active_quest:
 			# Update quest_rumors in saved quest
 			campaign.active_quest["quest_rumors"] = quest_rumors.duplicate()
-			print("ResolveRumorsComponent: Updated quest rumors in campaign save")
 
 	return true
 
@@ -354,4 +340,3 @@ func reset_rumors_phase() -> void:
 	if result_label:
 		result_label.text = ""
 	_update_ui_display()
-	print("ResolveRumorsComponent: Reset for new turn")

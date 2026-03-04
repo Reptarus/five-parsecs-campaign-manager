@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 class_name SystemErrorIntegrator
 extends RefCounted
 
@@ -54,7 +54,6 @@ var _integration_stats: Dictionary = {
 
 ## Initialize the system integration process
 func initialize() -> bool:
-	print("[SystemErrorIntegrator] Initializing automated error boundary integration...")
 	
 	# Ensure UniversalErrorBoundary is initialized
 	if not UniversalErrorBoundary.initialize():
@@ -64,12 +63,10 @@ func initialize() -> bool:
 	_integration_stats.integration_start_time = Time.get_ticks_msec()
 	_integration_stats.total_systems = CRITICAL_SYSTEMS.size()
 	
-	print("[SystemErrorIntegrator] ✅ Ready to integrate %d critical systems" % CRITICAL_SYSTEMS.size())
 	return true
 
 ## Integrate error boundaries into all critical systems
 func integrate_all_critical_systems() -> Dictionary:
-	print("[SystemErrorIntegrator] Starting integration of all critical systems...")
 	
 	if not initialize():
 		return {"success": false, "error": "Failed to initialize integrator"}
@@ -87,21 +84,15 @@ func integrate_all_critical_systems() -> Dictionary:
 			_integration_stats.failed_integrations += 1
 			_integration_stats.systems_with_errors.append(system_name)
 		
-		print("[SystemErrorIntegrator] System '%s': %s" % [system_name, "✅ SUCCESS" if result.success else "❌ FAILED"])
 	
 	var final_result = _create_integration_summary()
-	print("[SystemErrorIntegrator] Integration complete: %d/%d systems successful" % [
-		_integration_stats.successful_integrations,
-		_integration_stats.total_systems
-	])
-	
+
 	return final_result
 
 ## Integrate error boundary into a specific system with Gemini analysis data
 func integrate_system_with_analysis(system_name: String, file_path: String, analysis_config: Dictionary) -> Dictionary:
 	## Enhanced integration method that uses Gemini CLI error analysis results
 	## to provide targeted error boundary integration with specific recovery strategies.
-	print("[SystemErrorIntegrator] Integrating %s with Gemini analysis data..." % system_name)
 	
 	var integration_result = {
 		"system_name": system_name,
@@ -182,7 +173,6 @@ func integrate_system_with_analysis(system_name: String, file_path: String, anal
 	})
 	
 	integration_result.success = true
-	print("[SystemErrorIntegrator] ✅ %s integration successful - %d critical errors protected" % [system_name, critical_errors])
 	
 	integration_result.integration_time_ms = Time.get_ticks_msec() - start_time
 	return integration_result
@@ -295,7 +285,6 @@ func _validate_error_handling_with_patterns(wrapper: Object, system_name: String
 
 ## Integrate error boundary into a specific system
 func integrate_system(system_name: String, system_config: Dictionary) -> Dictionary:
-	print("[SystemErrorIntegrator] Integrating system: %s" % system_name)
 	
 	var result = {
 		"system": system_name,
@@ -496,7 +485,6 @@ func _add_error_boundary_methods(system: Object, wrapper: UniversalErrorBoundary
 		return wrapper.safe_call(method_name, args)
 	)
 	
-	print("[SystemErrorIntegrator] Error boundary methods added to %s" % system_name)
 
 ## Get integration order based on priority
 func _get_integration_order() -> Array[String]:
@@ -557,7 +545,6 @@ func _create_integration_summary() -> Dictionary:
 
 ## Validate integration was successful
 func validate_integrations() -> Dictionary:
-	print("[SystemErrorIntegrator] Validating error boundary integrations...")
 	
 	var validation_result = {
 		"validation_passed": true,
@@ -595,7 +582,6 @@ func validate_integrations() -> Dictionary:
 		validation_result.system_health_score > 70.0
 	)
 	
-	print("[SystemErrorIntegrator] Validation complete: %s" % ("✅ PASSED" if validation_result.validation_passed else "❌ FAILED"))
 	return validation_result
 
 ## Validate individual system integration

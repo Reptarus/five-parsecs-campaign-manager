@@ -1,4 +1,4 @@
-﻿class_name IntegrationHealthMonitor
+class_name IntegrationHealthMonitor
 extends Node
 
 ## Real-time Integration Health Monitoring System
@@ -82,7 +82,6 @@ func _ready() -> void:
 
 func _initialize_monitoring() -> void:
 	## Initialize the monitoring system
-	print("IntegrationHealthMonitor: Initializing health monitoring system...")
 	
 	# Initialize health data for each system
 	for system_name in monitored_systems:
@@ -98,11 +97,10 @@ func _initialize_monitoring() -> void:
 	# Perform initial health check
 	call_deferred("_perform_initial_health_check")
 	
-	print("IntegrationHealthMonitor: Monitoring initialized for %d systems" % monitored_systems.size())
+	pass
 
 func _perform_initial_health_check() -> void:
 	## Perform initial health check on startup
-	print("IntegrationHealthMonitor: Performing initial health check...")
 	_perform_health_check()
 	is_monitoring = true
 
@@ -111,7 +109,6 @@ func _perform_health_check() -> void:
 	if not monitoring_enabled:
 		return
 	
-	print("IntegrationHealthMonitor: Starting health check cycle...")
 	var start_time = Time.get_ticks_msec()
 	
 	# Check backend system availability
@@ -128,7 +125,6 @@ func _perform_health_check() -> void:
 	
 	var end_time = Time.get_ticks_msec()
 	var duration = end_time - start_time
-	print("IntegrationHealthMonitor: Health check completed in %dms" % duration)
 
 func _update_system_health(system_name: String, result: ValidationErrorBoundary.ValidationErrorResult) -> void:
 	## Update health data for a specific system
@@ -159,7 +155,6 @@ func _update_system_health(system_name: String, result: ValidationErrorBoundary.
 		# Check for recovery
 		if old_status == HealthStatus.OFFLINE or old_status == HealthStatus.CRITICAL:
 			system_recovery_detected.emit(system_name)
-			print("IntegrationHealthMonitor: System recovery detected - %s" % system_name)
 	else:
 		health_data.error_count += 1
 		health_data.last_error = result.error_message
@@ -175,7 +170,6 @@ func _update_system_health(system_name: String, result: ValidationErrorBoundary.
 		# Check for degradation
 		if old_status == HealthStatus.EXCELLENT or old_status == HealthStatus.GOOD:
 			system_degradation_detected.emit(system_name, result.error_message)
-			print("IntegrationHealthMonitor: System degradation detected - %s: %s" % [system_name, result.error_message])
 	
 	# Emit status change signal if needed
 	if health_data.health_status != old_status:
@@ -223,10 +217,7 @@ func _update_overall_health() -> void:
 	# Emit overall status change if needed
 	if overall_health_status != old_overall_status:
 		overall_health_changed.emit(overall_health_status, old_overall_status)
-		print("IntegrationHealthMonitor: Overall health status changed - %s → %s" % [
-			HealthStatus.keys()[old_overall_status],
-			HealthStatus.keys()[overall_health_status]
-		])
+		pass
 
 ## Public API for health monitoring
 
@@ -287,7 +278,6 @@ func get_health_summary() -> Dictionary:
 
 func force_health_check() -> void:
 	## Force an immediate health check
-	print("IntegrationHealthMonitor: Forcing immediate health check...")
 	_perform_health_check()
 
 func set_monitoring_enabled(enabled: bool) -> void:
@@ -295,14 +285,13 @@ func set_monitoring_enabled(enabled: bool) -> void:
 	monitoring_enabled = enabled
 	if monitoring_timer:
 		monitoring_timer.paused = not enabled
-	print("IntegrationHealthMonitor: Monitoring %s" % ("enabled" if enabled else "disabled"))
+	pass
 
 func set_check_interval(interval_ms: int) -> void:
 	## Set the health check interval
 	check_interval_ms = interval_ms
 	if monitoring_timer:
 		monitoring_timer.wait_time = float(interval_ms) / 1000.0
-	print("IntegrationHealthMonitor: Check interval set to %dms" % interval_ms)
 
 func get_performance_report() -> String:
 	## Generate a detailed performance report
@@ -339,4 +328,3 @@ func _notification(what: int) -> void:
 		if monitoring_timer:
 			monitoring_timer.stop()
 		is_monitoring = false
-		print("IntegrationHealthMonitor: Monitoring system stopped")

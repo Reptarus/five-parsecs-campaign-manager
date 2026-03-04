@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 class_name FiveParsecsBattlefield
 
 ## Five Parsecs Battlefield System - Consolidated Implementation
@@ -42,7 +42,6 @@ var terrain_density: float = 0.25
 var use_random_seed: bool = true
 
 func _ready() -> void:
-	print("FiveParsecsBattlefield: Initialized consolidated battlefield system")
 	_initialize_grid()
 
 func _initialize_grid() -> void:
@@ -58,7 +57,6 @@ func _initialize_grid() -> void:
 
 func generate_battlefield(mission_data: Dictionary = {}) -> void:
 	## Generate Five Parsecs battlefield with terrain and deployment zones
-	print("FiveParsecsBattlefield: Generating battlefield")
 	
 	# Clear existing battlefield
 	_initialize_grid()
@@ -73,7 +71,6 @@ func generate_battlefield(mission_data: Dictionary = {}) -> void:
 	
 	var terrain_count = _count_terrain_pieces()
 	battlefield_generated.emit(battlefield_size, terrain_count)
-	print("FiveParsecsBattlefield: Generated %dx%d battlefield with %d terrain pieces" % [battlefield_size.x, battlefield_size.y, terrain_count])
 
 func _generate_terrain(mission_data: Dictionary) -> void:
 	## Generate terrain using Five Parsecs rules
@@ -392,7 +389,6 @@ func clear_battlefield() -> void:
 	_initialize_grid()
 	character_positions.clear()
 	deployment_zones.clear()
-	print("FiveParsecsBattlefield: Battlefield cleared")
 
 ## Legacy compatibility methods
 

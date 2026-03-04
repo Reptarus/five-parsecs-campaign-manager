@@ -183,22 +183,16 @@ func _on_action_input(event: InputEvent, signal_name: String) -> void:
 			match signal_name:
 				"save_pressed":
 					save_pressed.emit()
-					print("QuickActionsFooter: Save pressed")
 				"characters_pressed":
 					characters_pressed.emit()
-					print("QuickActionsFooter: Characters pressed")
 				"ship_pressed":
 					ship_pressed.emit()
-					print("QuickActionsFooter: Ship pressed")
 				"trading_pressed":
 					trading_pressed.emit()
-					print("QuickActionsFooter: Trading pressed")
 				"world_pressed":
 					world_pressed.emit()
-					print("QuickActionsFooter: World pressed")
 				"settings_pressed":
 					settings_pressed.emit()
-					print("QuickActionsFooter: Settings pressed")
 
 func _play_click_animation(signal_name: String) -> void:
 	## Play a quick press animation on the button
@@ -256,7 +250,6 @@ func _on_viewport_resized() -> void:
 	if new_mobile_state != is_mobile_layout:
 		is_mobile_layout = new_mobile_state
 		_create_actions_container()
-		print("QuickActionsFooter: Layout changed to %s" % ("mobile" if is_mobile_layout else "desktop"))
 
 
 ## Public API for enabling/disabling actions
@@ -285,4 +278,4 @@ func set_badge_count(action_name: String, count: int) -> void:
 	## Set a notification badge on an action button (future enhancement)
 	# Future: Add small notification badge to action buttons
 	# For now, just log
-	print("QuickActionsFooter: Badge count %d for %s" % [count, action_name])
+	pass

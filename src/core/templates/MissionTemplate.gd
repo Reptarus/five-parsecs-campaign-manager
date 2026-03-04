@@ -1,7 +1,4 @@
 extends Resource
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 @export_group("Mission Details")
 @export var type: int # MissionType enum
 @export var title_templates: Array[String] = []
@@ -21,53 +18,53 @@ const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 # Explicit setters to avoid type mismatches
 func set_title_templates(templates: Array) -> void:
-    title_templates.clear()
-    for template in templates:
-        if template is String:
-            title_templates.append(template)
+	title_templates.clear()
+	for template in templates:
+		if template is String:
+			title_templates.append(template)
 
 func set_description_templates(templates: Array) -> void:
-    description_templates.clear()
-    for template in templates:
-        if template is String:
-            description_templates.append(template)
+	description_templates.clear()
+	for template in templates:
+		if template is String:
+			description_templates.append(template)
             
 func set_required_skills(skills: Array) -> void:
-    required_skills.clear()
-    for skill in skills:
-        if skill is int:
-            required_skills.append(skill)
+	required_skills.clear()
+	for skill in skills:
+		if skill is int:
+			required_skills.append(skill)
             
 func set_enemy_types(types: Array) -> void:
-    enemy_types.clear()
-    for enemy_type in types:
-        if enemy_type is int:
-            enemy_types.append(enemy_type)
+	enemy_types.clear()
+	for enemy_type in types:
+		if enemy_type is int:
+			enemy_types.append(enemy_type)
 
 # Add getters as well for consistency
 func get_title_templates() -> Array:
-    return title_templates
+	return title_templates
     
 func get_description_templates() -> Array:
-    return description_templates
+	return description_templates
     
 func get_required_skills() -> Array:
-    return required_skills
+	return required_skills
     
 func get_enemy_types() -> Array:
-    return enemy_types
+	return enemy_types
 
 func validate() -> bool:
-    if title_templates.is_empty() or description_templates.is_empty():
-        push_error("Mission template must have at least one title and description")
-        return false
+	if title_templates.is_empty() or description_templates.is_empty():
+		push_error("Mission template must have at least one title and description")
+		return false
         
-    if reward_range.x >= reward_range.y:
-        push_error("Invalid reward range")
-        return false
+	if reward_range.x >= reward_range.y:
+		push_error("Invalid reward range")
+		return false
         
-    if difficulty_range.x >= difficulty_range.y:
-        push_error("Invalid difficulty range")
-        return false
+	if difficulty_range.x >= difficulty_range.y:
+		push_error("Invalid difficulty range")
+		return false
         
-    return true
+	return true

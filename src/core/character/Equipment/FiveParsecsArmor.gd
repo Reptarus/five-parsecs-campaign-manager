@@ -3,7 +3,6 @@ extends Resource
 # This file should be referenced via preload
 # Use explicit preloads instead of global class names
 
-const Self = preload("res://src/core/character/Equipment/FiveParsecsArmor.gd")
 
 ## Additional Five Parsecs specific armor functionality
 var durability: int = 100

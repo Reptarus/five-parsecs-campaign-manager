@@ -3,8 +3,6 @@ class_name WorldDataMigration
 extends Node
 
 ## Utility class to help migrate between old and new world data formats
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GameDataManager = preload("res://src/core/managers/GameDataManager.gd")
 const GamePlanet = preload("res://src/game/world/GamePlanet.gd")
 const GameLocation = preload("res://src/game/world/GameLocation.gd")
@@ -169,14 +167,14 @@ func migrate_world_data(old_data: Dictionary) -> Dictionary:
 			new_planet.planet_name = _get_property(old_planet_data, "planet_name", "")
 			new_planet.sector = _get_property(old_planet_data, "sector", "")
 			new_planet.coordinates = _get_property(old_planet_data, "coordinates", Vector2.ZERO)
-			new_planet.planet_type = _get_property(old_planet_data, "planet_type", GameEnums.PlanetType.NONE)
+			new_planet.planet_type = _get_property(old_planet_data, "planet_type", GlobalEnums.PlanetType.NONE)
 			new_planet.description = _get_property(old_planet_data, "description", "")
-			new_planet.faction_type = _get_property(old_planet_data, "faction_type", GameEnums.FactionType.NEUTRAL)
-			new_planet.environment_type = _get_property(old_planet_data, "environment_type", GameEnums.PlanetEnvironment.NONE)
+			new_planet.faction_type = _get_property(old_planet_data, "faction_type", GlobalEnums.FactionType.NEUTRAL)
+			new_planet.environment_type = _get_property(old_planet_data, "environment_type", GlobalEnums.PlanetEnvironment.NONE)
 			
 			# Set state tracking
-			new_planet.strife_level = _get_property(old_planet_data, "strife_level", GameEnums.StrifeType.NONE)
-			new_planet.instability = _get_property(old_planet_data, "instability", GameEnums.StrifeType.NONE)
+			new_planet.strife_level = _get_property(old_planet_data, "strife_level", GlobalEnums.StrifeType.NONE)
+			new_planet.instability = _get_property(old_planet_data, "instability", GlobalEnums.StrifeType.NONE)
 			new_planet.unity_progress = _get_property(old_planet_data, "unity_progress", 0)
 			new_planet.visited = _get_property(old_planet_data, "visited", false)
 			new_planet.discovered = _get_property(old_planet_data, "discovered", false)
@@ -209,9 +207,9 @@ func migrate_world_data(old_data: Dictionary) -> Dictionary:
 			# Set basic properties
 			new_location.location_id = location_id
 			new_location.location_name = _get_property(old_location_data, "name", "")
-			new_location.location_type = _get_property(old_location_data, "location_type", GameEnums.LocationType.FRONTIER_WORLD)
-			new_location.faction_type = _get_property(old_location_data, "faction_type", GameEnums.FactionType.NEUTRAL)
-			new_location.environment_type = _get_property(old_location_data, "environment_type", GameEnums.PlanetEnvironment.FOREST)
+			new_location.location_type = _get_property(old_location_data, "location_type", GlobalEnums.LocationType.FRONTIER_WORLD)
+			new_location.faction_type = _get_property(old_location_data, "faction_type", GlobalEnums.FactionType.NEUTRAL)
+			new_location.environment_type = _get_property(old_location_data, "environment_type", GlobalEnums.PlanetEnvironment.FOREST)
 			new_location.coordinates = _get_property(old_location_data, "coordinates", Vector2.ZERO)
 			
 			# Copy resources
@@ -297,60 +295,60 @@ func convert_resource_type_to_id(old_type: int) -> String:
 ## Convert a resource ID from the new string format to the old enum
 func convert_resource_id_to_type(resource_id: String) -> int:
 	match resource_id:
-		"credits": return GameEnums.ResourceType.CREDITS
-		"supplies": return GameEnums.ResourceType.SUPPLIES
+		"credits": return GlobalEnums.ResourceType.CREDITS
+		"supplies": return GlobalEnums.ResourceType.SUPPLIES
 		"minerals": return 10 # Use integer instead of missing enum
 		"technology": return 11 # Use integer instead of missing enum
-		"medical_supplies": return GameEnums.ResourceType.MEDICAL_SUPPLIES
-		"weapons": return GameEnums.ResourceType.WEAPONS
+		"medical_supplies": return GlobalEnums.ResourceType.MEDICAL_SUPPLIES
+		"weapons": return GlobalEnums.ResourceType.WEAPONS
 		"rare_materials": return 12 # Use integer instead of missing enum
 		"luxury_goods": return 13 # Use integer instead of missing enum
-		"fuel": return GameEnums.ResourceType.FUEL
+		"fuel": return GlobalEnums.ResourceType.FUEL
 		_: return -1
 
 ## Convert a planet type from the old enum to the new string ID
 func convert_planet_type_to_id(old_type: int) -> String:
 	match old_type:
-		GameEnums.PlanetType.TEMPERATE: return "temperate"
-		GameEnums.PlanetType.DESERT: return "desert"
-		GameEnums.PlanetType.VOLCANIC: return "volcanic"
-		GameEnums.PlanetType.JUNGLE: return "jungle"
-		GameEnums.PlanetType.OCEAN: return "ocean"
+		GlobalEnums.PlanetType.TEMPERATE: return "temperate"
+		GlobalEnums.PlanetType.DESERT: return "desert"
+		GlobalEnums.PlanetType.VOLCANIC: return "volcanic"
+		GlobalEnums.PlanetType.JUNGLE: return "jungle"
+		GlobalEnums.PlanetType.OCEAN: return "ocean"
 		# Use string literals for enum values that don't exist anymore
 		# to avoid linter errors but maintain functionality
-		1: return "gas_giant" # GameEnums.PlanetType.GAS_GIANT
-		2: return "barren" # GameEnums.PlanetType.BARREN
-		3: return "urban" # GameEnums.PlanetType.URBAN
-		4: return "asteroid_belt" # GameEnums.PlanetType.ASTEROID_BELT
+		1: return "gas_giant" # GlobalEnums.PlanetType.GAS_GIANT
+		2: return "barren" # GlobalEnums.PlanetType.BARREN
+		3: return "urban" # GlobalEnums.PlanetType.URBAN
+		4: return "asteroid_belt" # GlobalEnums.PlanetType.ASTEROID_BELT
 		_: return "temperate" # Default to temperate
 
 ## Convert a planet type ID from the new string format to the old enum
 func convert_planet_id_to_type(planet_id: String) -> int:
 	match planet_id:
-		"desert": return GameEnums.PlanetType.DESERT
-		"temperate": return GameEnums.PlanetType.TEMPERATE
-		"ice": return GameEnums.PlanetType.ICE
-		"volcanic": return GameEnums.PlanetType.VOLCANIC
-		"jungle": return GameEnums.PlanetType.JUNGLE
-		"ocean": return GameEnums.PlanetType.OCEAN
+		"desert": return GlobalEnums.PlanetType.DESERT
+		"temperate": return GlobalEnums.PlanetType.TEMPERATE
+		"ice": return GlobalEnums.PlanetType.ICE
+		"volcanic": return GlobalEnums.PlanetType.VOLCANIC
+		"jungle": return GlobalEnums.PlanetType.JUNGLE
+		"ocean": return GlobalEnums.PlanetType.OCEAN
 		"gas_giant": return 10 # Use integer instead of missing enum
 		"barren": return 11 # Use integer instead of missing enum
 		"urban": return 12 # Use integer instead of missing enum
 		"asteroid_belt": return 13 # Use integer instead of missing enum
-		_: return GameEnums.PlanetType.TEMPERATE # Default to temperate
+		_: return GlobalEnums.PlanetType.TEMPERATE # Default to temperate
 
 ## Convert a world trait from the old enum to the new string ID
 func convert_world_trait_to_id(old_trait: int) -> String:
 	match old_trait:
-		GameEnums.WorldTrait.AGRICULTURAL_WORLD: return "agricultural_world"
+		GlobalEnums.WorldTrait.AGRICULTURAL_WORLD: return "agricultural_world"
 		10: return "mining_world" # Use integer instead of missing enum
-		GameEnums.WorldTrait.INDUSTRIAL_HUB: return "industrial_hub"
+		GlobalEnums.WorldTrait.INDUSTRIAL_HUB: return "industrial_hub"
 		11: return "research_outpost" # Use integer instead of missing enum
-		GameEnums.WorldTrait.FRONTIER_WORLD: return "frontier_world"
-		GameEnums.WorldTrait.TRADE_CENTER: return "trade_center"
-		GameEnums.WorldTrait.PIRATE_HAVEN: return "pirate_haven"
-		GameEnums.WorldTrait.CORPORATE_CONTROLLED: return "corporate_controlled"
-		GameEnums.WorldTrait.FREE_PORT: return "free_port"
+		GlobalEnums.WorldTrait.FRONTIER_WORLD: return "frontier_world"
+		GlobalEnums.WorldTrait.TRADE_CENTER: return "trade_center"
+		GlobalEnums.WorldTrait.PIRATE_HAVEN: return "pirate_haven"
+		GlobalEnums.WorldTrait.CORPORATE_CONTROLLED: return "corporate_controlled"
+		GlobalEnums.WorldTrait.FREE_PORT: return "free_port"
 		12: return "high_security" # Use integer instead of missing enum
 		13: return "restricted_access" # Use integer instead of missing enum
 		14: return "dangerous_wildlife" # Use integer instead of missing enum
@@ -362,22 +360,22 @@ func convert_world_trait_to_id(old_trait: int) -> String:
 ## Convert a world trait ID from the new string format to the old enum
 func convert_world_trait_id_to_enum(trait_id: String) -> int:
 	match trait_id:
-		"agricultural_world": return GameEnums.WorldTrait.AGRICULTURAL_WORLD
+		"agricultural_world": return GlobalEnums.WorldTrait.AGRICULTURAL_WORLD
 		"mining_world": return 10 # Use integer instead of missing enum
-		"industrial_hub": return GameEnums.WorldTrait.INDUSTRIAL_HUB
+		"industrial_hub": return GlobalEnums.WorldTrait.INDUSTRIAL_HUB
 		"research_outpost": return 11 # Use integer instead of missing enum
-		"frontier_world": return GameEnums.WorldTrait.FRONTIER_WORLD
-		"trade_center": return GameEnums.WorldTrait.TRADE_CENTER
-		"pirate_haven": return GameEnums.WorldTrait.PIRATE_HAVEN
-		"corporate_controlled": return GameEnums.WorldTrait.CORPORATE_CONTROLLED
-		"free_port": return GameEnums.WorldTrait.FREE_PORT
+		"frontier_world": return GlobalEnums.WorldTrait.FRONTIER_WORLD
+		"trade_center": return GlobalEnums.WorldTrait.TRADE_CENTER
+		"pirate_haven": return GlobalEnums.WorldTrait.PIRATE_HAVEN
+		"corporate_controlled": return GlobalEnums.WorldTrait.CORPORATE_CONTROLLED
+		"free_port": return GlobalEnums.WorldTrait.FREE_PORT
 		"high_security": return 12 # Use integer instead of missing enum
 		"restricted_access": return 13 # Use integer instead of missing enum
 		"dangerous_wildlife": return 14 # Use integer instead of missing enum
 		"religious_community": return 15 # Use integer instead of missing enum
 		"refugee_center": return 16 # Use integer instead of missing enum
 		"black_market": return 17 # Use integer instead of missing enum
-		_: return GameEnums.WorldTrait.FRONTIER_WORLD # Default to frontier world
+		_: return GlobalEnums.WorldTrait.FRONTIER_WORLD # Default to frontier world
 
 ## Convert a special feature from FiveParsecsLocation to a world trait ID
 func convert_special_feature_to_trait_id(feature: int) -> String:

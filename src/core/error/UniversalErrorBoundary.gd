@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 class_name UniversalErrorBoundary
 extends RefCounted
 
@@ -36,7 +36,6 @@ static func initialize() -> bool:
 	if _initialized:
 		return true
 		
-	print("[UniversalErrorBoundary] Initializing production error integration...")
 	
 	# Create error handler instance
 	_error_handler = ProductionErrorHandler.new()
@@ -56,7 +55,6 @@ static func initialize() -> bool:
 		_error_handler.system_health_changed.connect(_on_system_health_changed)
 		
 		_initialized = true
-		print("[UniversalErrorBoundary] ✅ Production error boundary initialized")
 		return true
 	else:
 		push_error("UniversalErrorBoundary: Failed to initialize ProductionErrorHandler")
@@ -81,7 +79,6 @@ static func wrap_component(component: Object, component_name: String, component_
 		"recovery_count": 0
 	}
 	
-	print("[UniversalErrorBoundary] Component '%s' integrated with %s mode" % [component_name, IntegrationMode.keys()[mode]])
 	return wrapper
 
 ## Inject error boundary into existing systems (for legacy integration)
@@ -91,7 +88,7 @@ static func inject_into_system(system: Object, system_name: String) -> bool:
 	
 	# Add error boundary methods to existing system
 	if system.has_method("_handle_error"):
-		print("[UniversalErrorBoundary] Warning: System '%s' already has error handling" % system_name)
+		pass
 	
 	# Create injection wrapper  
 	var injection = SystemErrorInjection.new()
@@ -105,7 +102,6 @@ static func inject_into_system(system: Object, system_name: String) -> bool:
 		"recovery_count": 0
 	}
 	
-	print("[UniversalErrorBoundary] Error handling injected into system '%s'" % system_name)
 	return true
 
 ## Get system-wide error statistics
@@ -147,7 +143,6 @@ static func validate_system_integrity() -> Dictionary:
 
 ## Emergency shutdown with comprehensive error reporting
 static func emergency_shutdown(reason: String) -> void:
-	print("[UniversalErrorBoundary] 🚨 EMERGENCY SHUTDOWN INITIATED: %s" % reason)
 	
 	if _error_handler:
 		var critical_error = {
@@ -173,9 +168,9 @@ static func _on_global_recovery_completed(recovery_data: Dictionary) -> void:
 
 static func _on_system_health_changed(health_score: float) -> void:
 	if health_score < 50.0:
-		print("[UniversalErrorBoundary] ⚠️ SYSTEM HEALTH CRITICAL: %.1f%%" % health_score)
+		pass
 	elif health_score < 70.0:
-		print("[UniversalErrorBoundary] ⚠️ System health degraded: %.1f%%" % health_score)
+		pass
 
 static func _capture_emergency_state() -> Dictionary:
 	return {
@@ -194,7 +189,6 @@ static func cleanup() -> void:
 	_integration_stats.clear()
 	_initialized = false
 	
-	print("[UniversalErrorBoundary] System cleanup completed")
 
 # =====================================================================
 # COMPONENT WRAPPER CLASS
@@ -408,16 +402,14 @@ class ErrorBoundaryWrapper extends RefCounted:
 		# Try to provide safe fallback behavior based on method type
 		match method_name:
 			"_ready":
-				print("[ErrorBoundary] Component '%s' _ready() failed, using minimal initialization" % _component_name)
+				push_warning("[ErrorBoundary] Component '%s' _ready() failed, using minimal initialization" % _component_name)
 				return null
 			"_process", "_physics_process":
 				# Skip this frame
 				return null
 			"save", "save_data":
-				print("[ErrorBoundary] Save operation failed for '%s', data may be lost" % _component_name)
 				return false
 			"load", "load_data":
-				print("[ErrorBoundary] Load operation failed for '%s', using default data" % _component_name)
 				return null
 			_:
 				return null
@@ -435,7 +427,7 @@ class ErrorBoundaryWrapper extends RefCounted:
 		recovery_config.merge(config)
 		set_meta("_recovery_config", recovery_config)
 		
-		print("[ErrorBoundaryWrapper] Configured recovery strategy %s for %s" % [ErrorRecoveryStrategy.keys()[strategy], _component_name])
+		pass
 	
 	func _get_recovery_configuration() -> Dictionary:
 		## Get the current recovery configuration
@@ -487,4 +479,3 @@ static func _register_integrated_component(system_name: String, integration_data
 	_integration_stats.active_components[system_name] = integration_data
 	_integration_stats.total_integrations += 1
 	
-	print("[UniversalErrorBoundary] Registered integrated component: %s" % system_name)

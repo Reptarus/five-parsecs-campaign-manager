@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 class_name AutoloadManager
 extends RefCounted
 
@@ -77,7 +77,6 @@ static func _create_fallback_instance(name: String) -> Node:
 			return null
 	
 	if fallback:
-		print("AutoloadManager: Created fallback instance for %s" % name)
 		_fallback_instances[name] = fallback
 	
 	return fallback
@@ -94,7 +93,6 @@ static func _create_game_state_manager_fallback() -> Node:
 	if ResourceLoader.exists("res://src/core/managers/GameStateManager.gd"):
 		var game_state = preload("res://src/core/managers/GameStateManager.gd").new()
 		game_state.name = "GameStateManagerFallback"
-		print("AutoloadManager: Created GameStateManager fallback instance")
 		return game_state
 	else:
 		push_error("AutoloadManager: GameStateManager.gd not found, cannot create fallback")
@@ -153,7 +151,6 @@ static func get_available_autoloads() -> Array[String]:
 static func refresh_cache() -> void:
 	_autoload_cache.clear()
 	_initialization_attempted.clear()
-	print("AutoloadManager: Cache refreshed")
 
 ## Check if using fallback instance
 static func is_using_fallback(name: String) -> bool:
@@ -188,4 +185,3 @@ static func cleanup_fallbacks() -> void:
 		if is_instance_valid(fallback):
 			fallback.queue_free()
 	_fallback_instances.clear()
-	print("AutoloadManager: Fallback instances cleaned up")

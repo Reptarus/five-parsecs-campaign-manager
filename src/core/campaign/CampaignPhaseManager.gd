@@ -71,7 +71,7 @@ func set_campaign(campaign: Resource) -> void:
 		game_state.current_campaign = campaign
 	if campaign:
 		_connect_to_campaign(campaign)
-	print("CampaignPhaseManager: Campaign set - %s" % (campaign.campaign_name if campaign and "campaign_name" in campaign else "null"))
+	pass
 
 func start_new_turn() -> void:
 	turn_number += 1
@@ -133,7 +133,7 @@ func _connect_to_campaign(campaign) -> void:
 				campaign.disconnect(sig_name, Callable(self, handler))
 			campaign.connect(sig_name, Callable(self, handler))
 		else:
-			print("CampaignPhaseManager: Campaign missing signal '%s' — skipping" % sig_name)
+			pass
 
 func _on_campaign_state_changed(_property: String) -> void:
 	# Validate current state after a change

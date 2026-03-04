@@ -39,7 +39,6 @@ func set_coordinator(coord: Node) -> void:
 	## Set coordinator reference for consistent access
 	coordinator = coord
 	_coordinator = coord  # BUGFIX: Also set base class variable for consistency
-	print("FinalPanel: Coordinator set")
 	if coordinator and coordinator.has_signal("campaign_state_updated"):
 		if not coordinator.campaign_state_updated.is_connected(_on_campaign_state_updated):
 			coordinator.campaign_state_updated.connect(_on_campaign_state_updated)
@@ -49,9 +48,7 @@ func set_coordinator(coord: Node) -> void:
 func sync_with_coordinator() -> void:
 	## Sync panel with coordinator state
 	if not coordinator:
-		print("FinalPanel: No coordinator available for sync")
 		return
-	print("FinalPanel: Syncing with coordinator")
 	if coordinator.has_method("get_unified_campaign_state"):
 		var state = coordinator.get_unified_campaign_state()
 		campaign_data = state.duplicate()
@@ -96,7 +93,6 @@ func _ready() -> void:
 func _on_visibility_changed() -> void:
 	## Refresh data when panel becomes visible
 	if visible and is_inside_tree():
-		print("FinalPanel: Visibility changed to visible - refreshing data")
 		call_deferred("_aggregate_campaign_data")
 
 func _delayed_aggregate_campaign_data() -> void:
@@ -162,7 +158,6 @@ func _build_final_panel_ui() -> void:
 	create_button = _create_create_campaign_button()
 	footer.add_child(create_button)
 
-	print("FinalPanel: UI built successfully (no nested scroll)")
 
 # NOTE: _create_progress_indicator() removed - CampaignCreationUI handles progress display centrally
 
@@ -237,19 +232,15 @@ func update_campaign_data(data: Dictionary) -> void:
 
 func _handle_campaign_state_update(state_data: Dictionary) -> void:
 	## Override from base class - auto-aggregate campaign data on state changes
-	print("FinalPanel: Received state update with keys: %s" % str(state_data.keys()))
-
 	# Auto-aggregate data from coordinator when any panel updates
 	_aggregate_campaign_data()
 
 func _aggregate_campaign_data() -> void:
 	## Aggregate campaign data from coordinator - enhanced for proper data access
-	print("FinalPanel: Aggregating campaign data from coordinator")
 
 	# Use base class method to get coordinator reference if needed
 	if not coordinator:
 		coordinator = get_coordinator_reference()
-		print("FinalPanel: Got coordinator from base class: %s" % (coordinator != null))
 
 	# Also sync with base class _coordinator for consistency
 	if coordinator and not _coordinator:
@@ -257,7 +248,6 @@ func _aggregate_campaign_data() -> void:
 
 	if coordinator and coordinator.has_method("get_unified_campaign_state"):
 		var unified_state = coordinator.get_unified_campaign_state()
-		print("FinalPanel: Retrieved unified campaign state with keys: %s" % str(unified_state.keys()))
 
 		# Update campaign data
 		campaign_data = unified_state.duplicate()
@@ -267,7 +257,6 @@ func _aggregate_campaign_data() -> void:
 		_update_display()
 		_validate_and_complete()
 
-		print("FinalPanel: Campaign data aggregation complete")
 		return
 
 	# Fallback: Use signal-based data if coordinator not available
@@ -275,9 +264,7 @@ func _aggregate_campaign_data() -> void:
 		campaign_data = campaign_state.duplicate()
 		_update_display()
 		_validate_and_complete()
-		print("FinalPanel: Used signal-based campaign data")
 	else:
-		print("FinalPanel: ⚠️ No campaign data available - showing placeholder UI")
 		# Still update display to show placeholder/empty state
 		_update_display()
 		_validate_and_complete()
@@ -1020,7 +1007,6 @@ func _on_create_campaign_pressed() -> void:
 	
 	if is_campaign_complete:
 		create_button.disabled = true  # Prevent double-clicks
-		print("FinalPanel: Initiating campaign finalization...")
 		
 		# Emit campaign_confirmed signal
 		campaign_confirmed.emit()
@@ -1036,7 +1022,6 @@ func _on_create_campaign_pressed() -> void:
 			# SPRINT 26.23: Extract the finalized Campaign resource from result
 			var finalized_campaign = result.get("campaign")
 			var save_path = result.get("save_path", "")
-			print("FinalPanel: Campaign finalized successfully - saved to: %s" % save_path)
 			campaign_creation_requested.emit(campaign_data)
 			# SPRINT 26.23: Emit result with Campaign resource, not just raw dictionary
 			campaign_finalization_complete.emit({
@@ -1046,11 +1031,9 @@ func _on_create_campaign_pressed() -> void:
 			})
 			# Note: CampaignCreationUI handles transition via _on_campaign_finalization_complete_from_panel
 		else:
-			print("FinalPanel: Finalization failed: ", result.error)
 			create_button.disabled = false
 			validation_failed.emit([result.error])
 	else:
-		print("FinalPanel: Campaign validation failed: ", last_validation_errors)
 		validation_failed.emit(last_validation_errors)
 
 func _validate_and_complete() -> void:
@@ -1062,22 +1045,20 @@ func _validate_and_complete() -> void:
 		validation_failed.emit(last_validation_errors)
 		# Sprint 26.20: Emit standard panel signal for BaseCampaignPanel contract
 		panel_validation_changed.emit(false)
-		print("FinalPanel: Campaign validation failed: ", last_validation_errors)
 	else:
 		is_campaign_complete = _check_completion_requirements()
 		# Sprint 26.20: Emit standard panel signal for BaseCampaignPanel contract
 		panel_validation_changed.emit(is_campaign_complete)
 
 		if is_campaign_complete:
-			print("FinalPanel: Campaign finalization validation passed")
+			pass
 		else:
-			print("FinalPanel: Campaign completion requirements not met")
+			pass
 
 func _check_completion_requirements() -> bool:
 	## Check if all requirements for campaign completion are met based on actual data presence
 	# Must have campaign data
 	if campaign_data.is_empty():
-		print("FinalPanel: Completion check failed - empty campaign data")
 		return false
 	
 	var completed_phases := 0
@@ -1087,17 +1068,15 @@ func _check_completion_requirements() -> bool:
 	var config_data = campaign_data.get("campaign_config", campaign_data.get("config", {}))
 	if config_data.get("campaign_name", "").strip_edges() != "":
 		completed_phases += 1
-		print("FinalPanel: ✅ CONFIG phase complete")
 	else:
-		print("FinalPanel: ❌ CONFIG phase incomplete - no campaign name")
+		pass
 	
 	# Check CAPTAIN phase - captain with some data
 	var captain_data = campaign_data.get("captain", {})
 	if captain_data.size() > 0 and (captain_data.get("name", "") != "" or captain_data.get("character_name", "") != "" or captain_data.get("captain") != null):
 		completed_phases += 1
-		print("FinalPanel: ✅ CAPTAIN phase complete")
 	else:
-		print("FinalPanel: ❌ CAPTAIN phase incomplete")
+		pass
 	
 	# Check CREW phase - must meet user's selected crew size (or minimum 4)
 	var crew_data = campaign_data.get("crew", {})
@@ -1108,30 +1087,24 @@ func _check_completion_requirements() -> bool:
 		required_crew_size = 4  # Enforce game minimum
 	if crew_members.size() >= required_crew_size:
 		completed_phases += 1
-		print("FinalPanel: ✅ CREW phase complete (%d/%d members)" % [crew_members.size(), required_crew_size])
-	else:
-		print("FinalPanel: ❌ CREW phase incomplete (%d/%d members)" % [crew_members.size(), required_crew_size])
 	
 	# Check SHIP phase - ship with name
 	var ship_data = campaign_data.get("ship", {})
 	if ship_data.get("name", "") != "":
 		completed_phases += 1
-		print("FinalPanel: ✅ SHIP phase complete")
 	else:
-		print("FinalPanel: ❌ SHIP phase incomplete")
+		pass
 	
 	# Check EQUIPMENT phase - any equipment data
 	var equipment_data = campaign_data.get("equipment", {})
 	if equipment_data.size() > 0:
 		completed_phases += 1
-		print("FinalPanel: ✅ EQUIPMENT phase complete")
 	else:
-		print("FinalPanel: ❌ EQUIPMENT phase incomplete")
+		pass
 	
 	# Calculate completion percentage
 	var completion_pct: float = (float(completed_phases) / float(total_required)) * 100.0
-	print("FinalPanel: Completion: %.1f%% (%d/%d phases)" % [completion_pct, completed_phases, total_required])
-	
+
 	# Require at least 80% completion (4 of 5 core phases)
 	return completion_pct >= 80.0
 
@@ -1151,13 +1124,11 @@ func _validate_campaign_data() -> Array[String]:
 	if config_data.is_empty():
 		config_data = {"campaign_name": "New Campaign", "difficulty_level": 2}
 		campaign_data["campaign_config"] = config_data
-		print("FinalPanel: Applied default campaign config")
 
 	# Apply default campaign name if missing (instead of blocking)
 	if config_data.get("campaign_name", "").strip_edges().is_empty():
 		var default_name: String = "Campaign_%s" % Time.get_datetime_string_from_system().replace(":", "-")
 		config_data["campaign_name"] = default_name
-		print("FinalPanel: Applied default campaign name: %s" % default_name)
 
 	# BLOCKING ERROR: Must have crew members
 	var crew_data: Dictionary = campaign_data.get("crew", {})
@@ -1183,7 +1154,6 @@ func _validate_campaign_data() -> Array[String]:
 		var first_crew = crew_members[0]
 		if first_crew and "character_name" in first_crew:
 			campaign_data["captain"] = first_crew
-			print("FinalPanel: Promoted first crew member to captain: %s" % first_crew.character_name)
 
 	# Apply default ship name if missing (instead of blocking)
 	var ship_data: Dictionary = campaign_data.get("ship", {})
@@ -1193,7 +1163,6 @@ func _validate_campaign_data() -> Array[String]:
 			campaign_data["ship"] = ship_data
 		else:
 			ship_data["name"] = "Wandering Star"
-		print("FinalPanel: Applied default ship name: Wandering Star")
 
 	# Calculate completion for informational purposes
 	var completed_phases := 0
@@ -1212,9 +1181,6 @@ func _validate_campaign_data() -> Array[String]:
 	var equipment_data: Dictionary = campaign_data.get("equipment", {})
 	if equipment_data.size() > 0:
 		completed_phases += 1
-
-	var completion_pct: float = (float(completed_phases) / float(total_required)) * 100.0
-	print("FinalPanel: Campaign completion: %.1f%% (%d/%d phases)" % [completion_pct, completed_phases, total_required])
 
 	return errors
 
@@ -1249,136 +1215,29 @@ func validate_panel() -> bool:
 func restore_panel_data(data: Dictionary) -> void:
 	## Restore panel data from persistence system
 	if data.is_empty():
-		print("FinalPanel: No data to restore")
 		return
-	
-	print("FinalPanel: Restoring panel data: ", data.keys())
 	
 	# Restore campaign data
 	campaign_data = data.duplicate()
-	
+
 	# Update completion status
 	if data.has("is_complete"):
 		is_campaign_complete = data.is_complete
 	
-	print("FinalPanel: Restored campaign data with %d sections" % campaign_data.size())
-	
 	# Update display with restored data
 	_update_display()
 	
-	print("FinalPanel: Panel data restoration complete")
 
 ## Debug Helper Methods
 
 func _log_panel_initialization_debug() -> void:
-	## Comprehensive debug output for panel initialization
-	print("\n==== [PANEL: FinalPanel] INITIALIZATION ====")
-	print("  Phase: 7 of 7 (Campaign Review)")
-	print("  Panel Title: %s" % panel_title)
-	print("  Panel Description: %s" % panel_description)
+	## Panel initialization verification (debug output removed for release)
+	pass
 	
-	# Check for coordinator access
-	# Fixed: Check owner (CampaignCreationUI) instead of direct parent (content_container)
-	var campaign_ui = owner if owner != null else get_parent().get_parent()
-	var has_coordinator = campaign_ui != null and campaign_ui.has_method("get_coordinator")
-	print("  Has Coordinator Access: %s" % has_coordinator)
-	if has_coordinator:
-		var coordinator = campaign_ui.get_coordinator() if campaign_ui.has_method("get_coordinator") else null
-		print("    Coordinator Available: %s" % (coordinator != null))
-		if coordinator and coordinator.has_method("get_unified_campaign_state"):
-			var campaign_state = coordinator.get_unified_campaign_state()
-			print("    Campaign State Keys: %s" % str(campaign_state.keys()))
-		else:
-			print("    ⚠️  No unified campaign state available")
-	
-	# Check autoloaded managers availability
-	print("  === AUTOLOAD MANAGER CHECK ===")
-	var campaign_manager = get_node_or_null("/root/CampaignManager")
-	var game_state_manager = get_node_or_null("/root/GameStateManager")
-	var save_manager = get_node_or_null("/root/SaveManager")
-	
-	print("    CampaignManager: %s" % (campaign_manager != null))
-	print("    GameStateManager: %s" % (game_state_manager != null))
-	print("    SaveManager: %s" % (save_manager != null))
-	
-	# Check current campaign data
-	print("  === FINAL CAMPAIGN DATA ===")
-	print("    Campaign Data Keys: %s" % str(campaign_data.keys()))
-	print("    Campaign State Keys: %s" % str(campaign_state.keys()))
-	print("    Is Campaign Complete: %s" % is_campaign_complete)
-	print("    Last Validation Errors: %d" % last_validation_errors.size())
-	
-	if campaign_data.size() > 0:
-		print("  === CAMPAIGN DATA SUMMARY ===")
-		if campaign_data.has("config"):
-			print("    Config: Campaign '%s'" % campaign_data["config"].get("campaign_name", "Unknown"))
-		if campaign_data.has("captain"):
-			print("    Captain: '%s'" % campaign_data["captain"].get("name", "Unknown"))
-		if campaign_data.has("crew"):
-			print("    Crew: %d members" % campaign_data["crew"].get("members", []).size())
-		if campaign_data.has("ship"):
-			print("    Ship: '%s'" % campaign_data["ship"].get("name", "Unknown"))
-		
-		# Add mathematical validation from test file
-		print("  === MATHEMATICAL VALIDATION ===")
-		_log_mathematical_validation()
-	else:
-		print("    ⚠️  NO CAMPAIGN DATA AVAILABLE - Previous panels may not be saving correctly")
-	
-	# Check UI component availability
-	print("  === UI COMPONENTS ===")
-	print("    Create Button: %s" % (create_button != null))
-	
-	print("==== [PANEL: FinalPanel] INIT COMPLETE ====\n")
 
 func _log_mathematical_validation() -> void:
-	## Mathematical validation debug output - adapted from test file
-	if campaign_data.is_empty():
-		print("    ⚠️  No campaign data for mathematical validation")
-		return
-	
-	# Calculate captain total skills
-	var captain_data = campaign_data.get("captain", {})
-	var captain = captain_data.get("captain", captain_data)
-	var captain_total = 0
-	if captain is Dictionary:
-		captain_total = captain.get("reactions", 0) + captain.get("speed", 0) + captain.get("combat_skill", 0) + captain.get("toughness", 0) + captain.get("savvy", 0) + captain.get("luck", 0)
-	
-	# Calculate equipment value
-	var equipment_data = campaign_data.get("equipment", {})
-	var equipment_items: Array = []
-	if equipment_data is Array:
-		equipment_items = equipment_data
-	elif equipment_data is Dictionary:
-		equipment_items = equipment_data.get("items", equipment_data.get("equipment", []))
-	var equipment_value = 0
-	for item in equipment_items:
-		if item is Dictionary and item.has("value"):
-			equipment_value += item.value
-	
-	# Calculate net worth
-	var ship_data = campaign_data.get("ship", {})
-	var debt = ship_data.get("debt", 0)
-	var credits = 0
-	if equipment_data is Dictionary:
-		credits = equipment_data.get("starting_credits", equipment_data.get("credits", 0))
-	var net_worth = credits - debt + equipment_value
-	
-	# Crew size validation
-	var crew_data = campaign_data.get("crew", {})
-	var crew_size = crew_data.get("members", []).size()
-	var debug_required_crew = crew_data.get("crew_size", crew_data.get("selected_size", crew_data.get("size", 4)))
-	if debug_required_crew < 4:
-		debug_required_crew = 4
-
-	# Output mathematical validation
-	print("    Captain Total Skills: %d" % captain_total)
-	print("    Equipment Value: %d credits" % equipment_value)
-	print("    Net Worth: %d credits (Credits: %d - Debt: %d + Equipment: %d)" % [
-		net_worth, credits, debt, equipment_value
-	])
-	print("    Crew Size: %d/%d required (%s)" % [crew_size, debug_required_crew, "VALID" if crew_size >= debug_required_crew else "INVALID"])
-	print("    Campaign Ready: %s" % ("YES" if is_campaign_complete else "NO"))
+	## Mathematical validation (debug output removed for release)
+	pass
 
 ## Responsive Layout Overrides
 

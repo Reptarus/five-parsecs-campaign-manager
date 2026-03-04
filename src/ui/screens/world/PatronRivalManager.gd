@@ -22,7 +22,6 @@ var rival_templates: Dictionary = {}
 var job_templates: Dictionary = {}
 
 func _ready() -> void:
-	print("PatronRivalManager: Initializing with JSON data support...")
 	_load_json_templates()
 	_load_patrons_and_rivals()
 	_refresh_displays()
@@ -32,26 +31,23 @@ func _load_json_templates() -> void:
 	# Load patron templates
 	patron_templates = DataManager.load_json_file("res://data/patrons/patron_templates.json")
 	if patron_templates.is_empty():
-		print("PatronRivalManager: patron_templates.json not found, creating fallback data")
 		_create_patron_templates_fallback()
 	else:
-		print("PatronRivalManager: Loaded %d patron categories from JSON" % patron_templates.get("patron_categories", []).size())
+		pass # Patron categories loaded
 	
 	# Load rival templates
 	rival_templates = DataManager.load_json_file("res://data/rivals/rival_templates.json")
 	if rival_templates.is_empty():
-		print("PatronRivalManager: rival_templates.json not found, creating fallback data")
 		_create_rival_templates_fallback()
 	else:
-		print("PatronRivalManager: Loaded %d rival categories from JSON" % rival_templates.get("rival_categories", []).size())
+		pass # Rival categories loaded
 	
 	# Load job templates
 	job_templates = DataManager.load_json_file("res://data/jobs/job_templates.json")
 	if job_templates.is_empty():
-		print("PatronRivalManager: job_templates.json not found, creating fallback data")
 		_create_job_templates_fallback()
 	else:
-		print("PatronRivalManager: Loaded %d job types from JSON" % job_templates.get("job_types", []).size())
+		pass # Job types loaded
 
 func _create_patron_templates_fallback() -> void:
 	## Create fallback patron templates when JSON is not available
@@ -202,7 +198,7 @@ func _load_patrons_and_rivals() -> void:
 			if r is Dictionary:
 				rivals.append(r)
 
-		print("PatronRivalManager: Loaded %d patrons, %d rivals from GameStateManager" % [patrons.size(), rivals.size()])
+		pass # Patrons and rivals loaded
 	else:
 		push_warning("PatronRivalManager: GameStateManager not available")
 
@@ -227,7 +223,7 @@ func _save_patrons_to_gamestate() -> void:
 
 	var campaign = GameStateManager.game_state.current_campaign
 	campaign.patrons = patrons.duplicate(true)
-	print("PatronRivalManager: Saved %d patrons to GameState" % patrons.size())
+	pass # Patrons saved
 
 func _save_rivals_to_gamestate() -> void:
 	## Save current rivals to GameStateManager for persistence
@@ -239,7 +235,7 @@ func _save_rivals_to_gamestate() -> void:
 
 	var campaign = GameStateManager.game_state.current_campaign
 	campaign.rivals = rivals.duplicate(true)
-	print("PatronRivalManager: Saved %d rivals to GameState" % rivals.size())
+	pass # Rivals saved
 
 func _generate_patrons_from_templates() -> void:
 	## Generate patrons using JSON template data
@@ -482,7 +478,6 @@ func _on_request_job(patron: Dictionary) -> void:
 		patron["jobs_offered"] -= 1
 		_refresh_displays()
 		job_assigned.emit(patron, job)
-		print("Job offered by ", patron.name, ": ", job.description)
 
 func _generate_job_offer(patron: Dictionary) -> Dictionary:
 	## Generate a job offer from a patron using JSON templates
@@ -518,34 +513,30 @@ func _generate_job_offer(patron: Dictionary) -> Dictionary:
 
 func _on_back_pressed() -> void:
 	## Handle back button press
-	print("PatronRivalManager: Back pressed")
 	SceneRouter.navigate_back()
 
 func _on_add_patron_pressed() -> void:
 	## Handle add patron button press
-	print("PatronRivalManager: Add patron pressed")
+	pass
 
 func _on_add_rival_pressed() -> void:
 	## Handle add rival button press
-	print("PatronRivalManager: Add rival pressed")
+	pass
 
 func _on_generate_patron_pressed() -> void:
 	## Handle generate patron button press
 	var new_patron = _generate_patron()
 	patrons.append(new_patron)
 	_refresh_displays()
-	print("Generated new patron: ", new_patron.name)
 
 func _on_generate_rival_pressed() -> void:
 	## Handle generate rival button press
 	var new_rival = _generate_rival()
 	rivals.append(new_rival)
 	_refresh_displays()
-	print("Generated new rival: ", new_rival.name)
 
 func _on_manage_jobs_pressed() -> void:
 	## Handle manage jobs button press
-	print("PatronRivalManager: Manage jobs pressed")
 	_open_job_management_interface()
 
 func _open_job_management_interface() -> void:
@@ -562,7 +553,6 @@ func _open_job_management_interface() -> void:
 		if not job_dialog.job_assigned.is_connected(_on_job_assigned_from_dialog):
 			job_dialog.job_assigned.connect(_on_job_assigned_from_dialog)
 		
-		print("PatronRivalManager: Job management interface opened")
 	else:
 		push_error("PatronRivalManager: Failed to create job management dialog")
 
@@ -710,7 +700,7 @@ func _on_assign_job_pressed(dialog: Control) -> void:
 			# Emit job assignment signal
 			dialog.emit_signal("job_assigned", patron, job)
 			
-			print("PatronRivalManager: Assigned job '%s' to patron '%s'" % [job.get("title", "Unknown"), patron.get("name", "Unknown")])
+			pass # Job assigned to patron
 		else:
 			_show_assignment_error("Please select both a patron and a job to assign.")
 	else:
@@ -730,7 +720,7 @@ func _on_generate_job_pressed(dialog: Control) -> void:
 			var item_idx = job_list.add_item(job_text)
 			job_list.set_item_metadata(item_idx, new_job)
 			
-			print("PatronRivalManager: Generated new job: %s" % new_job.get("title", "Unknown"))
+			pass # New job generated
 		else:
 			push_error("PatronRivalManager: Failed to generate new job")
 	else:
@@ -753,7 +743,7 @@ func _on_job_assigned_from_dialog(patron: Dictionary, job: Dictionary) -> void:
 	# Refresh displays to show updated patron information
 	_refresh_displays()
 
-	print("PatronRivalManager: Job assignment completed - '%s' assigned to '%s'" % [job.get("title", "Unknown"), patron.get("name", "Unknown")])
+	pass # Job assignment completed
 
 func _show_assignment_error(message: String) -> void:
 	## Show error message for job assignment

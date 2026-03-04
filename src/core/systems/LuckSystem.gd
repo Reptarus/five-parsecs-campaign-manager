@@ -65,11 +65,6 @@ static func spend_luck_reroll(
 	result["luck_remaining"] = get_available_luck(character)
 	result["improved"] = new_roll > original_roll
 
-	print("LuckSystem: %s spent Luck - rerolled %d → %d" % [
-		_get_character_name(character),
-		original_roll,
-		new_roll
-	])
 
 	return result
 
@@ -94,7 +89,7 @@ static func get_total_luck(character: Resource) -> int:
 ## Refresh Luck for all crew at mission start (Core Rules p.91)
 static func refresh_luck_for_mission(crew: Array) -> void:
 	luck_spent_this_mission.clear()
-	print("LuckSystem: Luck refreshed for %d crew members" % crew.size())
+	pass
 
 ## Reset Luck tracking for a single character (e.g., mid-mission join)
 static func reset_character_luck(character: Resource) -> void:
@@ -144,12 +139,7 @@ static func add_luck(character: Resource, amount: int = 1) -> int:
 		character.luck = new_luck
 
 	if actual_increase > 0:
-		print("LuckSystem: %s gained %d Luck (now %d/%d)" % [
-			_get_character_name(character),
-			actual_increase,
-			new_luck,
-			cap
-		])
+		pass
 
 	return actual_increase
 
@@ -173,7 +163,6 @@ static func apply_leader_luck_bonus(character: Resource) -> bool:
 	if is_leader:
 		var added := add_luck(character, 1)
 		if added > 0:
-			print("LuckSystem: Leader %s gained +1 Luck bonus" % _get_character_name(character))
 			return true
 
 	return false
@@ -196,11 +185,7 @@ static func enforce_luck_cap(character: Resource) -> void:
 		elif "luck" in character:
 			character.luck = cap
 
-		print("LuckSystem: Capped %s Luck from %d to %d (species limit)" % [
-			_get_character_name(character),
-			current_luck,
-			cap
-		])
+		pass
 
 ## Validate all crew Luck values against species caps
 static func validate_crew_luck(crew: Array) -> Array:

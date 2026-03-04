@@ -1,4 +1,4 @@
-﻿class_name CampaignAnalytics
+class_name CampaignAnalytics
 extends RefCounted
 
 ## CampaignAnalytics - Comprehensive analytics tracking for campaign creation
@@ -18,7 +18,6 @@ var current_phase: String = ""
 
 # Analytics events
 signal analytics_event_recorded(event_type: String, data: Dictionary)
-signal session_completed(summary: Dictionary)
 
 func _init():
 	session_start_time = Time.get_time_dict_from_system().hour * 3600 + Time.get_time_dict_from_system().minute * 60 + Time.get_time_dict_from_system().second
@@ -29,7 +28,6 @@ func _init():
 		"platform": OS.get_name(),
 		"screen_size": DisplayServer.screen_get_size()
 	}
-	print("CampaignAnalytics: Session started - ID: %s" % session_data.session_id)
 
 ## Public API - Phase Tracking
 

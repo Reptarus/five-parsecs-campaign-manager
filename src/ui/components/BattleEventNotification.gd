@@ -173,7 +173,6 @@ func _setup_animations() -> void:
 	if current_scene:
 		var scene_name = current_scene.name
 		if scene_name.contains("Campaign") or scene_name.contains("Creation"):
-			print("BattleEventNotification: Skipping animation setup in campaign creation context")
 			return
 	
 	if not animation_player:

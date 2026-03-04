@@ -719,14 +719,10 @@ func save_checkpoint() -> void:
 		"log_entries": _log_entries.duplicate(),
 		"timestamp": Time.get_unix_time_from_system()
 	}
-	print("TravelPhaseUI: Checkpoint saved - decision_made=%s, chose_travel=%s" % [
-		travel_decision_made, chose_to_travel
-	])
 
 func restore_from_checkpoint() -> void:
 	## Restore Travel Phase state from checkpoint (called when rolling back from World Phase)
 	if _checkpoint_data.is_empty():
-		print("TravelPhaseUI: No checkpoint data to restore")
 		return
 
 	# Restore state
@@ -743,10 +739,6 @@ func restore_from_checkpoint() -> void:
 
 	# Update UI state
 	_update_ui_after_restore()
-
-	print("TravelPhaseUI: Restored from checkpoint - decision_made=%s, chose_travel=%s" % [
-		travel_decision_made, chose_to_travel
-	])
 
 func _update_ui_after_restore() -> void:
 	## Update UI elements after restoring from checkpoint
@@ -777,4 +769,3 @@ func has_checkpoint() -> bool:
 func clear_checkpoint() -> void:
 	## Clear saved checkpoint data
 	_checkpoint_data = {}
-	print("TravelPhaseUI: Checkpoint cleared")

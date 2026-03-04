@@ -2,9 +2,6 @@
 # This avoids the conflict with the autoload singleton of the same name
 class_name BattleStateMachineClass
 extends Node
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 enum BattleState {
 	SETUP = 0,
 	ROUND = 1,
@@ -66,7 +63,7 @@ var game_state_manager = null
 
 # Use typed variables with default values
 var current_state: int = BattleState.SETUP
-var current_phase: int = GameEnums.CombatPhase.NONE
+var current_phase: int = GlobalEnums.CombatPhase.NONE
 var current_round: int = 1
 var is_battle_active: bool = false
 var active_combatants: Array = []
@@ -94,7 +91,7 @@ func _init() -> void:
 func _reset_state() -> void:
 	# Initialize properties to prevent null references
 	current_state = BattleState.SETUP
-	current_phase = GameEnums.CombatPhase.NONE
+	current_phase = GlobalEnums.CombatPhase.NONE
 	current_round = 1
 	is_battle_active = false
 	active_combatants = []
@@ -172,7 +169,7 @@ func start_battle() -> void:
 	state_changed.emit(current_state)
 	
 	# Start with initiative phase
-	transition_to_phase(GameEnums.CombatPhase.INITIATIVE)
+	transition_to_phase(GlobalEnums.CombatPhase.INITIATIVE)
 
 func end_battle(victory_type: int) -> void:
 	is_battle_active = false
@@ -248,33 +245,33 @@ func transition_to_phase(new_phase: int) -> void:
 	_is_transitioning = true
 	
 	# Validate the phase is in allowed range
-	if new_phase < 0 or new_phase > GameEnums.CombatPhase.END:
+	if new_phase < 0 or new_phase > GlobalEnums.CombatPhase.END:
 		if _debug_mode:
 			push_warning("Attempted to transition to invalid phase index: %s" % new_phase)
 		_is_transitioning = false
 		return
 	
 	# Emit phase ended for current phase if not NONE
-	if current_phase != GameEnums.CombatPhase.NONE:
+	if current_phase != GlobalEnums.CombatPhase.NONE:
 		phase_ended.emit(current_phase)
 	
 	# Use a more robust approach for phase handling
 	var valid_phase = true
 	
 	match new_phase:
-		GameEnums.CombatPhase.SETUP:
+		GlobalEnums.CombatPhase.SETUP:
 			_handle_setup_phase()
-		GameEnums.CombatPhase.INITIATIVE:
+		GlobalEnums.CombatPhase.INITIATIVE:
 			_handle_initiative_phase()
-		GameEnums.CombatPhase.DEPLOYMENT:
+		GlobalEnums.CombatPhase.DEPLOYMENT:
 			_handle_deployment_phase()
-		GameEnums.CombatPhase.ACTION:
+		GlobalEnums.CombatPhase.ACTION:
 			_handle_action_phase()
-		GameEnums.CombatPhase.REACTION:
+		GlobalEnums.CombatPhase.REACTION:
 			_handle_reaction_phase()
-		GameEnums.CombatPhase.END:
+		GlobalEnums.CombatPhase.END:
 			_handle_end_phase()
-		GameEnums.CombatPhase.NONE:
+		GlobalEnums.CombatPhase.NONE:
 			# Special case for resetting phase
 			pass
 		_:
@@ -287,7 +284,7 @@ func transition_to_phase(new_phase: int) -> void:
 		phase_changed.emit(new_phase)
 		
 		# Emit phase started for new phase if not NONE
-		if current_phase != GameEnums.CombatPhase.NONE:
+		if current_phase != GlobalEnums.CombatPhase.NONE:
 			phase_started.emit(current_phase)
 	
 	_is_transitioning = false
@@ -329,7 +326,7 @@ func _handle_end_phase() -> void:
 	# After end phase, go back to initiative for the next round
 	if is_battle_active:
 		# Schedule the transition to happen in the next frame to avoid recursion
-		call_deferred("transition_to_phase", GameEnums.CombatPhase.INITIATIVE)
+		call_deferred("transition_to_phase", GlobalEnums.CombatPhase.INITIATIVE)
 
 # Combat Resolution
 func resolve_attack(attacker, target) -> void:
@@ -544,7 +541,7 @@ func load_state(state: Dictionary) -> void:
 		return
 		
 	current_state = state.get("current_state", BattleState.SETUP)
-	current_phase = state.get("current_phase", GameEnums.CombatPhase.NONE)
+	current_phase = state.get("current_phase", GlobalEnums.CombatPhase.NONE)
 	current_round = state.get("current_round", 1)
 	is_battle_active = state.get("is_battle_active", false)
 	
@@ -563,8 +560,8 @@ func advance_phase() -> void:
 	var next_phase = current_phase + 1
 	
 	# Wrap around to beginning when reaching the end
-	if next_phase > GameEnums.CombatPhase.END:
-		next_phase = GameEnums.CombatPhase.INITIATIVE
+	if next_phase > GlobalEnums.CombatPhase.END:
+		next_phase = GlobalEnums.CombatPhase.INITIATIVE
 		
 	transition_to_phase(next_phase)
 
@@ -576,7 +573,7 @@ func end_round() -> void:
 	round_ended.emit(current_round)
 	current_round += 1
 	if is_battle_active:
-		transition_to_phase(GameEnums.CombatPhase.END)
+		transition_to_phase(GlobalEnums.CombatPhase.END)
 
 func trigger_combat_effect(effect_name: String, source, target) -> void:
 	if effect_name.is_empty() or not is_instance_valid(source) or not is_instance_valid(target):

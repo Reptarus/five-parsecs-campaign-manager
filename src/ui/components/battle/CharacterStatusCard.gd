@@ -236,8 +236,7 @@ func _on_stun_button_pressed() -> void:
 
 func _on_damage_button_pressed() -> void:
 	## Handle Damage button press - opens damage input dialog
-	# TODO: Create DamageInputDialog for manual damage entry
-	# For now, apply 1 damage
+	# NOTE: Deferred — create DamageInputDialog for manual damage entry; defaults to 1
 	apply_damage(1)
 
 func _on_use_action_button_pressed() -> void:

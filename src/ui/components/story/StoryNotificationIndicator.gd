@@ -63,7 +63,6 @@ func _setup_check_timer() -> void:
 	_check_timer.wait_time = 2.0  # Check every 2 seconds
 	_check_timer.timeout.connect(_check_story_status)
 	_check_timer.start()
-	print("StoryNotificationIndicator: Status check timer started")
 
 func _check_story_status() -> void:
 	## Check if story events are available

@@ -73,7 +73,7 @@ func _create_campaign_card(archive: Dictionary) -> Control:
 
 func _import_campaign_crew(archive: Dictionary) -> void:
 	## Import crew from archived campaign
-	# TODO: Open character selection dialog
+	# NOTE: Deferred — open character selection dialog for crew import
 	pass
 
 func _clear_container() -> void:

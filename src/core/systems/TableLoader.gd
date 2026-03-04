@@ -3,7 +3,6 @@ extends Node
 # This file should be referenced via preload
 # Use explicit preloads instead of global class names
 
-const Self = preload("res://src/core/systems/TableLoader.gd")
 
 ## Dependencies - explicit loading to avoid circular references
 const TableProcessor = preload("res://src/core/systems/TableProcessor.gd")

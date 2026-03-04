@@ -401,7 +401,7 @@ func _on_clear_resolved_pressed() -> void:
 
 ## Handler for export_logs_pressed signal
 func _on_export_logs_pressed() -> void:
-	# TODO: Implement log export functionality
+	# NOTE: Deferred — log export functionality not yet implemented
 	pass
 
 # Public methods for test access

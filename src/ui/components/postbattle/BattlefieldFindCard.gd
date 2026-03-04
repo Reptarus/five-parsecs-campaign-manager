@@ -230,4 +230,3 @@ func _clear_value_row() -> void:
 func _on_add_to_stash_pressed() -> void:
 	## Emit signal to parent when add to stash requested (call up, signal up)
 	add_to_stash_requested.emit(_find_data)
-	print("BattlefieldFindCard: Add to stash requested for: %s" % _find_data.get("item", "Unknown"))

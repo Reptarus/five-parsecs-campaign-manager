@@ -38,7 +38,6 @@ func _ready() -> void:
 	# Create the fade overlay
 	_setup_overlay()
 
-	print("TransitionManager: Initialized with %0.1fs default transition" % DEFAULT_DURATION)
 
 func _exit_tree() -> void:
 	if _tween and _tween.is_valid():
@@ -239,10 +238,6 @@ func fade_to_post_battle(duration: float = SLOW_DURATION) -> void:
 
 func _test_transitions() -> void:
 	## Test method for verifying transitions work
-	print("TransitionManager: Testing fade out...")
 	await fade_out(0.5)
-	print("TransitionManager: Fade out complete")
 	await get_tree().create_timer(1.0).timeout
-	print("TransitionManager: Testing fade in...")
 	await fade_in(0.5)
-	print("TransitionManager: Test complete")

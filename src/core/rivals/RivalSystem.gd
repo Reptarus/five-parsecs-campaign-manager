@@ -1,7 +1,4 @@
 extends Node
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 signal rival_created(rival_data: Dictionary)
 signal rival_defeated(rival_data: Dictionary)
 signal rival_escaped(rival_data: Dictionary)
@@ -72,7 +69,7 @@ func _generate_rival_name() -> String:
 	return "Rival " + str(randi() % 1000)
 
 func _random_rival_type() -> int:
-	var types = GameEnums.EnemyType.values()
+	var types = GlobalEnums.EnemyType.values()
 	return types[randi() % types.size()]
 
 func _generate_rival_traits() -> Array:

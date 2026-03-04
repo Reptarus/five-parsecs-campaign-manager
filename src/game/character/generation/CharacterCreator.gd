@@ -8,8 +8,6 @@ signal creation_cancelled
 const FiveParsecsCharacter = preload("res://src/core/character/Character.gd")
 const FiveParsecsCharacterStats = preload("res://src/core/character/Base/CharacterStats.gd")
 const FiveParsecsCharacterTableRoller = preload("res://src/core/character/Generation/CharacterTableRoller.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 enum CreatorMode {
 	CHARACTER,
 	CAPTAIN,
@@ -156,11 +154,11 @@ func _apply_background_bonuses(background_id: int) -> void:
 
 	# Apply new background bonuses based on selection
 	match background_id:
-		GameEnums.Background.MILITARY:
+		GlobalEnums.Background.MILITARY:
 			current_bonuses.background["COMBAT_SKILL"] = 1
-		GameEnums.Background.ACADEMIC:
+		GlobalEnums.Background.ACADEMIC:
 			current_bonuses.background["SAVVY"] = 1
-		GameEnums.Background.CRIMINAL:
+		GlobalEnums.Background.CRIMINAL:
 			current_bonuses.background["REACTIONS"] = 1
 
 	# Apply new bonuses
@@ -176,19 +174,19 @@ func _apply_class_bonuses(class_id: int) -> void:
 
 	# Apply new class bonuses based on selection
 	match class_id:
-		GameEnums.CharacterClass.SOLDIER:
+		GlobalEnums.CharacterClass.SOLDIER:
 			current_bonuses["class"]["COMBAT_SKILL"] = 1
 			current_bonuses["class"]["TOUGHNESS"] = 1
-		GameEnums.CharacterClass.MEDIC:
+		GlobalEnums.CharacterClass.MEDIC:
 			current_bonuses["class"]["SAVVY"] = 1
-		GameEnums.CharacterClass.ENGINEER:
+		GlobalEnums.CharacterClass.ENGINEER:
 			current_bonuses["class"]["SAVVY"] = 1
-		GameEnums.CharacterClass.PILOT:
+		GlobalEnums.CharacterClass.PILOT:
 			current_bonuses["class"]["REACTIONS"] = 1
-		GameEnums.CharacterClass.SECURITY:
+		GlobalEnums.CharacterClass.SECURITY:
 			current_bonuses["class"]["COMBAT_SKILL"] = 1
 			current_bonuses["class"]["REACTIONS"] = 1
-		GameEnums.CharacterClass.BOT_TECH:
+		GlobalEnums.CharacterClass.BOT_TECH:
 			current_bonuses["class"]["SAVVY"] = 1
 
 	# Apply new bonuses
@@ -204,11 +202,11 @@ func _apply_motivation_bonuses(motivation_id: int) -> void:
 
 	# Apply new motivation bonuses based on selection
 	match motivation_id:
-		GameEnums.Motivation.GLORY:
+		GlobalEnums.Motivation.GLORY:
 			current_bonuses.motivation["COMBAT_SKILL"] = 1
-		GameEnums.Motivation.WEALTH:
+		GlobalEnums.Motivation.WEALTH:
 			current_bonuses.motivation["SAVVY"] = 1
-		GameEnums.Motivation.SURVIVAL:
+		GlobalEnums.Motivation.SURVIVAL:
 			current_bonuses.motivation["REACTIONS"] = 1
 
 	# Apply new bonuses
@@ -241,14 +239,14 @@ func _on_randomize_pressed() -> void:
 
 	# Generate random character data
 	_set_character_property(current_character, "character_name", FiveParsecsCharacterTableRoller.generate_random_name())
-	_set_character_property(current_character, "origin", randi() % GameEnums.Origin.size())
-	_set_character_property(current_character, "character_class", randi() % GameEnums.CharacterClass.size())
+	_set_character_property(current_character, "origin", randi() % GlobalEnums.Origin.size())
+	_set_character_property(current_character, "character_class", randi() % GlobalEnums.CharacterClass.size())
 
 	# Generate background and motivation indices
-	var background_index = randi() % GameEnums.Background.size()
+	var background_index = randi() % GlobalEnums.Background.size()
 	_set_character_property(current_character, "background", background_index)
 
-	var motivation_index = randi() % GameEnums.Motivation.size()
+	var motivation_index = randi() % GlobalEnums.Motivation.size()
 	_set_character_property(current_character, "motivation", motivation_index)
 
 	# Apply bonuses

@@ -75,8 +75,6 @@ func _connect_signals() -> void:
 	if crew_list:
 		crew_list.item_selected.connect(_on_crew_selected)
 		crew_list.item_activated.connect(_on_crew_deployed)
-	if equipment_list:
-		equipment_list.item_selected.connect(_on_equipment_selected)
 
 func setup_phase() -> void:
 	super.setup_phase()
@@ -338,8 +336,6 @@ func _on_crew_deployed(index: int) -> void:
 		_load_crew()
 		_update_ui()
 
-func _on_equipment_selected(_index: int) -> void:
-	pass
 
 func _on_zone_clicked(event: InputEvent, zone_index: int) -> void:
 	if event is InputEventMouseButton and event.pressed:

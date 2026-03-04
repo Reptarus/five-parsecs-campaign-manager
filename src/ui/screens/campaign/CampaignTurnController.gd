@@ -67,7 +67,6 @@ func _ready() -> void:
 	elif current_phase == GlobalEnums.FiveParsecsCampaignPhase.NONE:
 		# Loaded campaign — phase not saved, resume at UPKEEP without
 		# incrementing turn number (player is still on the saved turn).
-		print("CampaignTurnController: Resuming loaded campaign at turn %d" % campaign_phase_manager.turn_number)
 		campaign_phase_manager.campaign_turn_started.emit(campaign_phase_manager.turn_number)
 		campaign_phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.UPKEEP)
 
@@ -120,7 +119,7 @@ func _connect_core_signals() -> void:
 		if battle_phase_handler.has_signal("battle_mode_selected"):
 			battle_phase_handler.battle_mode_selected.connect(_on_battle_mode_selected)
 	else:
-		print("CampaignTurnController: battle_phase_handler is null - battle mode selection will use fallback direct navigation")
+		pass
 
 	# Connect UI phase completion signals for phase transitions
 	if travel_phase_ui and travel_phase_ui.has_signal("phase_completed"):
@@ -276,12 +275,10 @@ func _exit_tree() -> void:
 func _initialize_backend_systems() -> void:
 	## Initialize validated backend systems for campaign turn management.
 	## All connections are guarded so failures here never block the turn flow.
-	print("CampaignTurnController: Initializing backend integration systems...")
 
 	# Use PlanetDataManager autoload singleton for world persistence
 	var planet_manager = get_node_or_null("/root/PlanetDataManager")
 	if planet_manager:
-		print("CampaignTurnController: PlanetDataManager autoload found")
 		if planet_manager.has_signal("planet_discovered") \
 				and not planet_manager.planet_discovered.is_connected(_on_backend_planet_discovered):
 			planet_manager.planet_discovered.connect(_on_backend_planet_discovered)
@@ -300,7 +297,6 @@ func _initialize_backend_systems() -> void:
 		var contact_manager = ContactManagerScript.new()
 		add_child(contact_manager)
 		contact_manager.name = "BackendContactManager"
-		print("CampaignTurnController: ContactManager initialized")
 		if contact_manager.has_signal("contact_discovered"):
 			contact_manager.contact_discovered.connect(_on_backend_contact_discovered)
 	else:
@@ -312,7 +308,6 @@ func _initialize_backend_systems() -> void:
 		var rival_generator = RivalBattleScript.new()
 		add_child(rival_generator)
 		rival_generator.name = "BackendRivalGenerator"
-		print("CampaignTurnController: RivalBattleGenerator initialized")
 		if rival_generator.has_signal("rival_battle_generated"):
 			rival_generator.rival_battle_generated.connect(_on_backend_rival_battle_generated)
 		if rival_generator.has_signal("rival_escalated"):
@@ -322,29 +317,27 @@ func _initialize_backend_systems() -> void:
 	else:
 		push_warning("CampaignTurnController: RivalBattleGenerator not available")
 
-	print("CampaignTurnController: Backend integration systems initialization complete")
 
 ## Backend System Signal Handlers
 
-func _on_backend_planet_discovered(planet_data) -> void:
+func _on_backend_planet_discovered(_planet_data) -> void:
 	## Handle planet discovery from backend PlanetDataManager
-	print("CampaignTurnController: Backend planet discovered - %s" % planet_data.name)
+	pass
 
 func _on_backend_planet_visited(planet_id: String, visit_count: int) -> void:
 	## Handle planet visit tracking from backend
-	print("CampaignTurnController: Planet %s visited (count: %d)" % [planet_id, visit_count])
+	pass
 
 func _on_backend_planet_data_updated(planet_id: String, update_type: String) -> void:
 	## Handle planet data updates from backend
-	print("CampaignTurnController: Planet %s data updated (%s)" % [planet_id, update_type])
+	pass
 
-func _on_backend_contact_discovered(contact) -> void:
+func _on_backend_contact_discovered(_contact) -> void:
 	## Handle contact discovery from backend ContactManager
-	print("CampaignTurnController: Backend contact discovered - %s" % contact.name)
+	pass
 
 func _on_backend_rival_battle_generated(battle_data) -> void:
 	## Handle rival battle generation from backend RivalBattleGenerator
-	print("CampaignTurnController: Backend rival battle generated - %s" % battle_data.battle_type)
 	
 	# Store battle data for the battle sequence
 	battle_results["rival_battle_data"] = battle_data
@@ -353,50 +346,42 @@ func _on_backend_rival_battle_generated(battle_data) -> void:
 	if battle_transition_ui and battle_transition_ui.has_method("set_rival_battle_data"):
 		battle_transition_ui.set_rival_battle_data(battle_data)
 
-func _on_backend_rival_escalated(rival_id: String, new_threat_level: int) -> void:
+func _on_backend_rival_escalated(_rival_id: String, _new_threat_level: int) -> void:
 	## Handle rival escalation from backend
-	print("CampaignTurnController: Rival %s escalated to threat level %d" % [rival_id, new_threat_level])
+	pass
 
-func _on_backend_rival_defeated(rival_id: String) -> void:
+func _on_backend_rival_defeated(_rival_id: String) -> void:
 	## Handle rival permanent defeat from backend
-	print("CampaignTurnController: Rival %s permanently defeated" % rival_id)
+	pass
 
 ## Post-Battle Phase Signal Handlers
 
 func _on_post_battle_rival_resolved(rivals_removed: Array) -> void:
 	## Handle rival resolution from PostBattlePhase - update backend RivalBattleGenerator
-	print("CampaignTurnController: Post-battle rivals resolved - %d removed" % rivals_removed.size())
-
 	var rival_generator = get_node_or_null("BackendRivalGenerator")
 	if rival_generator:
 		for rival_id in rivals_removed:
 			if rival_generator.has_method("mark_rival_defeated"):
 				rival_generator.mark_rival_defeated(rival_id)
-				print("CampaignTurnController: Marked rival %s as defeated in backend" % rival_id)
 
 func _on_post_battle_patron_resolved(patrons_added: Array) -> void:
 	## Handle patron resolution from PostBattlePhase - update backend ContactManager
-	print("CampaignTurnController: Post-battle patrons resolved - %d added" % patrons_added.size())
-
 	var contact_manager = get_node_or_null("BackendContactManager")
 	if contact_manager:
 		for patron_id in patrons_added:
 			if contact_manager.has_method("register_patron_contact"):
 				contact_manager.register_patron_contact(patron_id)
-				print("CampaignTurnController: Registered patron %s in backend contacts" % patron_id)
 
 func _on_post_battle_experience_awarded(xp_awards: Array) -> void:
 	## Handle experience awards from PostBattlePhase
 	var total_xp := 0
 	for award in xp_awards:
 		total_xp += award.get("xp", 0)
-	print("CampaignTurnController: Post-battle XP awarded - %d total across %d crew" % [total_xp, xp_awards.size()])
 
 ## Backend System Integration Methods
 
 func _trigger_world_phase_backend_integration() -> void:
 	## Trigger backend system integration when entering world phase
-	print("CampaignTurnController: Triggering world phase backend integration")
 	
 	var current_turn = campaign_phase_manager.get_turn_number()
 	var current_planet_id = _get_current_planet_id()
@@ -405,7 +390,6 @@ func _trigger_world_phase_backend_integration() -> void:
 	var planet_manager = get_node_or_null("BackendPlanetManager")
 	if planet_manager and planet_manager.has_method("get_or_generate_planet"):
 		var planet_data = planet_manager.get_or_generate_planet(current_planet_id, current_turn)
-		print("CampaignTurnController: Planet data updated - %s" % planet_data.name)
 		
 		# Pass planet data to world phase UI if it has backend integration
 		if world_phase_controller and world_phase_controller.has_method("update_planet_data_backend"):
@@ -418,7 +402,6 @@ func _trigger_world_phase_backend_integration() -> void:
 		var contact_count = randi_range(1, 3)
 		for i in range(contact_count):
 			var contact = contact_manager.generate_random_contact(current_planet_id, current_turn)
-			print("CampaignTurnController: Generated contact %d - %s" % [i + 1, contact.name])
 		
 		# Notify world phase controller if it has backend integration
 		if world_phase_controller and world_phase_controller.has_method("generate_random_contact_backend"):
@@ -436,15 +419,11 @@ func _get_current_planet_id() -> String:
 
 func _check_rival_encounter_backend(planet_id: String, turn_number: int) -> void:
 	## Check for rival encounters using backend RivalBattleGenerator
-	print("CampaignTurnController: Checking for rival encounters on %s (turn %d)" % [planet_id, turn_number])
-	
 	var rival_generator = get_node_or_null("BackendRivalGenerator")
 	if rival_generator and rival_generator.has_method("check_rival_encounter"):
 		var encounter_data = rival_generator.check_rival_encounter(planet_id, turn_number)
 		
 		if encounter_data and encounter_data.get("has_encounter", false):
-			print("CampaignTurnController: Rival encounter detected - %s" % encounter_data.get("rival_name", "Unknown"))
-			
 			# Store encounter data for battle sequence
 			battle_results["rival_encounter"] = encounter_data
 			
@@ -452,14 +431,13 @@ func _check_rival_encounter_backend(planet_id: String, turn_number: int) -> void
 			if battle_transition_ui and battle_transition_ui.has_method("set_rival_encounter_data"):
 				battle_transition_ui.set_rival_encounter_data(encounter_data)
 		else:
-			print("CampaignTurnController: No rival encounters this turn")
+			pass
 	else:
 		push_warning("CampaignTurnController: RivalBattleGenerator not available for encounter checks")
 
 ## Campaign Turn Orchestration
 func start_new_campaign_turn() -> void:
 	## Start new campaign turn - triggers travel phase
-	print("CampaignTurnController: Starting new campaign turn")
 	campaign_phase_manager.start_new_campaign_turn()
 
 func _on_campaign_turn_started(turn_number: int) -> void:
@@ -469,7 +447,6 @@ func _on_campaign_turn_started(turn_number: int) -> void:
 
 func _on_campaign_turn_completed(turn_number: int) -> void:
 	## Handle campaign turn completion
-	print("CampaignTurnController: Campaign turn %d completed" % turn_number)
 	self.campaign_turn_completed.emit(turn_number)
 	
 	# Auto-start next turn (production behavior)
@@ -480,7 +457,6 @@ func _on_campaign_turn_completed(turn_number: int) -> void:
 func _on_phase_started(phase: int) -> void:
 	## Handle phase start - show appropriate UI
 	var phase_name = _get_phase_name(phase)
-	print("CampaignTurnController: Phase started - %s" % phase_name)
 	
 	self.phase_transition_started.emit("", phase_name)
 	_show_phase_ui(phase)
@@ -489,7 +465,6 @@ func _on_phase_started(phase: int) -> void:
 func _on_phase_completed() -> void:
 	## Handle phase completion
 	var phase_name = _get_phase_name(campaign_phase_manager.get_current_phase())
-	print("CampaignTurnController: Phase completed - %s" % phase_name)
 
 	self.phase_transition_completed.emit(phase_name)
 
@@ -611,8 +586,6 @@ func _initiate_battle_sequence() -> void:
 		"units": enemies,
 		"count": enemies.size()
 	}
-	print("CampaignTurnController: Generated %d enemies for battle" % enemies.size())
-
 	# Check for rival encounters before starting battle
 	_check_rival_encounter_backend(current_planet_id, current_turn)
 
@@ -660,8 +633,6 @@ func _initiate_battle_sequence() -> void:
 
 func _on_battle_completed(results: Dictionary) -> void:
 	## Handle battle completion - store results for post-battle phase
-	print("CampaignTurnController: Battle completed with results: %s" % str(results))
-	
 	# Store battle results in game state
 	game_state.set_battle_results(results)
 	battle_results = results
@@ -671,7 +642,6 @@ func _on_battle_completed(results: Dictionary) -> void:
 
 func _on_auto_resolve_completed(_result: Dictionary) -> void:
 	## Auto-resolve battle using BattleResolver combat math engine
-	print("CampaignTurnController: Auto-resolve completed")
 
 	var crew_data = game_state.get_active_crew()
 	var mission_data = game_state.get_current_mission()
@@ -697,7 +667,6 @@ func _on_auto_resolve_completed(_result: Dictionary) -> void:
 	_on_battle_completed(resolved)
 
 func _on_post_battle_completed(results: Dictionary) -> void:
-	print("CampaignTurnController: Post-battle completed")
 
 	# Store final post-battle results
 	game_state.set_battle_results(results)
@@ -716,25 +685,20 @@ func _on_post_battle_completed(results: Dictionary) -> void:
 ## Late-Game Phase Completion Handlers
 
 func _on_advancement_phase_completed(phase_data: Dictionary) -> void:
-	print("CampaignTurnController: Advancement phase completed")
 	campaign_phase_manager.complete_current_phase()
 
 func _on_trade_phase_completed(phase_data: Dictionary) -> void:
-	print("CampaignTurnController: Trading phase completed")
 	campaign_phase_manager.complete_current_phase()
 
 func _on_character_phase_completed(phase_data: Dictionary) -> void:
-	print("CampaignTurnController: Character phase completed")
 	campaign_phase_manager.complete_current_phase()
 
 func _on_story_phase_completed(phase_data: Dictionary) -> void:
-	print("CampaignTurnController: Story phase completed")
 	campaign_phase_manager.complete_current_phase()
 
 func _on_end_phase_completed(phase_data: Dictionary) -> void:
-	print("CampaignTurnController: Retirement phase completed")
 	if phase_data.get("victory_achieved", false):
-		print("CampaignTurnController: VICTORY! Campaign complete!")
+		pass
 	campaign_phase_manager.complete_current_phase()
 
 ## Sprint D: Post-battle crew status validation
@@ -785,9 +749,6 @@ func _validate_crew_status_post_battle() -> void:
 		if notification_mgr and notification_mgr.has_method("show_error"):
 			notification_mgr.show_error("All crew members lost! Campaign may need to end.")
 
-	print("CampaignTurnController: Post-battle crew status - Dead: %d, Missing: %d, Injured: %d, Active: %d" % [
-		dead_count, missing_count, injured_count, active_crew_count
-	])
 
 func _get_active_crew() -> Array:
 	## Get current crew members from game state
@@ -804,13 +765,11 @@ func _get_active_crew() -> Array:
 ## Phase Completion Handlers
 func _on_travel_phase_completed() -> void:
 	## Handle travel phase completion - advance to next phase via canonical sequence
-	print("CampaignTurnController: Travel phase completed")
 	campaign_phase_manager.complete_current_phase()
 
 ## Sprint 10.3: Bidirectional Navigation Handler
 func _on_return_to_travel() -> void:
 	## Handle return to travel phase from world phase (rollback navigation)
-	print("CampaignTurnController: Returning to Travel phase from World phase")
 
 	_hide_all_phase_uis()
 
@@ -822,7 +781,7 @@ func _on_return_to_travel() -> void:
 		if travel_phase_ui.has_method("restore_from_checkpoint"):
 			travel_phase_ui.restore_from_checkpoint()
 		else:
-			print("CampaignTurnController: TravelPhaseUI doesn't have restore_from_checkpoint method")
+			pass
 
 	# Update phase display
 	_update_phase_display("Travel")
@@ -832,7 +791,6 @@ func _on_world_phase_completed(results: Dictionary) -> void:
 	## The world phase covers UPKEEP through PRE_MISSION (job offers, crew tasks,
 	## equipment, etc.), so complete_current_phase() would incorrectly advance to
 	## STORY. Instead, jump straight to MISSION to show the battle sequence.
-	print("CampaignTurnController: World phase completed - transitioning to battle")
 
 	# Store world phase results for battle phase access
 	if game_state.has_method("set_temp_data"):
@@ -848,7 +806,6 @@ func _on_world_phase_completed(results: Dictionary) -> void:
 
 func _on_battle_ready_to_launch(mission_context: Dictionary) -> void:
 	## Transition from BattleTransition to PreBattle
-	print("CampaignTurnController: Battle ready -> PreBattle")
 
 	_hide_all_phase_uis()
 	if pre_battle_ui:
@@ -861,7 +818,7 @@ func _on_battle_ready_to_launch(mission_context: Dictionary) -> void:
 				"mission_data", {}).duplicate()
 			# Generate terrain setup guide for tabletop companion
 			if not preview_data.has("terrain") or preview_data.get(
-				"terrain", {}).is_empty():
+					"terrain", {}).is_empty():
 				preview_data["terrain"] = _generate_terrain_setup_guide(
 					preview_data)
 			pre_battle_ui.setup_preview(preview_data)
@@ -873,7 +830,6 @@ func _on_battle_ready_to_launch(mission_context: Dictionary) -> void:
 				var active_crew = gs_ref.get_active_crew()
 				if not active_crew.is_empty():
 					pre_battle_ui.setup_crew_selection(active_crew)
-					print("CampaignTurnController: Passed %d crew to PreBattleUI" % active_crew.size())
 
 		# Pass deployment condition to PreBattle
 		var condition = battle_results.get(
@@ -967,7 +923,6 @@ func _generate_terrain_setup_guide(mission_data: Dictionary) -> Dictionary:
 
 func _on_deployment_confirmed() -> void:
 	## Transition from PreBattle to TacticalBattle for combat
-	print("CampaignTurnController: Deployment confirmed, transitioning to TacticalBattle")
 
 	_hide_all_phase_uis()
 	if tactical_battle_ui:
@@ -979,14 +934,11 @@ func _on_deployment_confirmed() -> void:
 		var enemy_data = game_state.get_current_enemies() if game_state.has_method("get_current_enemies") else []
 		var mission_data = game_state.get_current_mission() if game_state.has_method("get_current_mission") else null
 
-		print("CampaignTurnController: initialize_battle — crew=%d, enemies=%d, mission=%s" % [
-			crew_data.size(), enemy_data.size(), "present" if mission_data else "null"])
 		if tactical_battle_ui.has_method("initialize_battle"):
 			tactical_battle_ui.initialize_battle(crew_data, enemy_data, mission_data)
 
 func _on_prebattle_back() -> void:
 	## Handle back button from PreBattle - return to BattleTransition
-	print("CampaignTurnController: PreBattle cancelled, returning to BattleTransition")
 
 	_hide_all_phase_uis()
 	if battle_transition_ui:
@@ -995,7 +947,6 @@ func _on_prebattle_back() -> void:
 
 func _on_tactical_battle_completed(battle_result) -> void:
 	## Handle tactical battle completion - transition to PostBattle
-	print("CampaignTurnController: Tactical battle completed")
 
 	# Convert battle result to dictionary if needed
 	var results_dict: Dictionary = {}
@@ -1026,7 +977,6 @@ func _on_tactical_battle_completed(battle_result) -> void:
 
 func _on_return_to_battle_resolution() -> void:
 	## Handle return from TacticalBattle to battle resolution/PreBattle
-	print("CampaignTurnController: Returning from TacticalBattle to PreBattle")
 
 	_hide_all_phase_uis()
 	if pre_battle_ui:
@@ -1037,8 +987,6 @@ func _on_return_to_battle_resolution() -> void:
 
 func _on_battle_mode_selection_requested(crew_count: int, enemy_count: int) -> void:
 	## Handle battle mode selection request from BattlePhase
-	print("CampaignTurnController: Battle mode selection requested (Crew: %d, Enemies: %d)" % [crew_count, enemy_count])
-
 	# Show battle resolution UI for mode selection
 	_hide_all_phase_uis()
 	if battle_transition_ui:
@@ -1051,8 +999,6 @@ func _on_battle_mode_selection_requested(crew_count: int, enemy_count: int) -> v
 
 func _on_battle_mode_selected(use_tactical: bool) -> void:
 	## Handle battle mode selection from BattlePhase
-	print("CampaignTurnController: Battle mode selected - %s" % ("Tactical" if use_tactical else "Auto-Resolve"))
-
 	if use_tactical:
 		# Transition to tactical battle UI
 		_hide_all_phase_uis()
@@ -1061,8 +1007,7 @@ func _on_battle_mode_selected(use_tactical: bool) -> void:
 			current_ui_phase = tactical_battle_ui
 	else:
 		# Sprint 26.4: Auto-resolve now shows progress feedback (was dead end)
-		# TODO: Replace with dedicated BattleAutoResolveUI scene (task A2)
-		print("CampaignTurnController: Auto-resolve mode - battle simulation in progress...")
+		# NOTE: Deferred — replace with dedicated BattleAutoResolveUI scene
 		if battle_transition_ui and battle_transition_ui.has_method("show_auto_resolve_progress"):
 			battle_transition_ui.show_auto_resolve_progress()
 		# BattlePhase handles the actual simulation and will emit battle_completed when done

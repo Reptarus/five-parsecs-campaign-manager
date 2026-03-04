@@ -84,8 +84,8 @@ func get_weight_capacity_remaining() -> float:
 func serialize() -> Dictionary:
 	return {
 		"weapons": weapons.map(func(w): return w.get_weapon_profile()),
-		"armor": [], # TODO: Implement armor serialization
-		"items": [], # TODO: Implement item serialization
+		"armor": [], # NOTE: HIGH-PRIORITY — armor serialization stub
+		"items": [], # NOTE: HIGH-PRIORITY — item serialization stub
 		"max_weight": max_weight,
 		"total_weight": total_weight
 	}

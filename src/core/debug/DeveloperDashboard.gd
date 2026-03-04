@@ -93,8 +93,10 @@ func _attempt_scene_fix():
 	
 	var fix_instructions = """
 PRODUCTION FIX REQUIRED:
+	pass
 1. Open CampaignCreationUI.tscn in Godot Editor
 2. Set unique names for these nodes:
+	pass
    - ConfigPanel (right-click → Access as Unique Name)
    - CrewPanel (right-click → Access as Unique Name)  
    - CaptainPanel (right-click → Access as Unique Name)
@@ -108,7 +110,6 @@ PRODUCTION FIX REQUIRED:
 """
 	
 	status_label.text += "\\n" + fix_instructions
-	print(fix_instructions)
 
 func _create_test_campaign():
 	status_label.text += "\\n\\n🧪 CREATING TEST CAMPAIGN..."

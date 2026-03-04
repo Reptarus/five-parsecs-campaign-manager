@@ -76,7 +76,7 @@ var relationship_manager: CrewRelationshipManagerClass
 
 func _ready() -> void:
 	if DEBUG:
-		print("[InitialCrewCreation] _ready called")
+		pass
 	
 	if not _initialize_systems():
 		return
@@ -100,6 +100,7 @@ func _show_initial_guidance() -> void:
 	var guidance := """Start by creating your Captain - the most important crew member!
 
 Required crew composition:
+	pass
 •%d Human crew members
 • Up to%d Primary Aliens
 • Up to%d Bot
@@ -381,7 +382,7 @@ func _show_info_dialog(message: String) -> void:
 
 func _debug_log(message: String) -> void:
 	if DEBUG:
-		print("[InitialCrewCreation] " + message)
+		pass
 
 func _on_character_slot_pressed(slot_index: int) -> void:
 	_debug_log("Character slot " + str(slot_index) + " pressed")

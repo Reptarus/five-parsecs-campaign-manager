@@ -1,4 +1,4 @@
-﻿@warning_ignore("return_value_discarded")
+@warning_ignore("return_value_discarded")
 # UNSAFE_METHOD_ACCESS and UNTYPED_DECLARATION warnings fixed with type safety patterns
 class_name FactionSystem
 extends Node
@@ -124,7 +124,7 @@ func initialize() -> bool:
 	_last_update = Time.get_unix_time_from_system()
 
 	if _initialized:
-		print("FactionSystem: Successfully initialized")
+		pass
 	else:
 		push_error("FactionSystem: Failed to initialize - errors: " + str(_errors))
 
@@ -266,9 +266,8 @@ func generate_rival() -> Dictionary:
 		rival_reputations[rival.id] = 0
 		rival_statuses[rival.id] = RIVAL_STATUS_NEUTRAL
 		rival_encountered.emit(rival)
-		print("FactionSystem: Generated new rival: " + rival.name)
 	else:
-		print("FactionSystem: Rival capacity reached, rival not added")
+		pass
 
 	return rival
 
@@ -423,7 +422,6 @@ func _load_faction_data() -> void:
 	var file_path := "res://data/RulesReference/Factions.json"
 	var file: FileAccess = FileAccess.open(file_path, FileAccess.READ)
 	if file == null:
-		print("FactionSystem: Faction data file not found, using defaults")
 		_initialize_default_faction_data()
 		return
 		

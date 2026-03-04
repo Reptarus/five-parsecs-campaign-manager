@@ -2,8 +2,6 @@
 extends Control
 
 const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 @onready var continue_button = %Continue as Button
 @onready var load_campaign_button = %LoadCampaign as Button
 @onready var new_campaign_button = %NewCampaign as Button
@@ -291,7 +289,7 @@ func _on_options_pressed() -> void:
 	request_scene_change("options")
 
 func _on_library_pressed() -> void:
-	show_message("Library feature is coming soon!")
+	request_scene_change("help")
 
 func _cleanup_dialogs() -> void:
 	for dialog in _active_dialogs:
@@ -324,6 +322,7 @@ func request_scene_change(scene_name: String) -> void:
 		"options": "settings",
 		"campaign_dashboard": "campaign_turn_controller",
 		"campaign_turn_controller": "campaign_turn_controller",
+		"help": "help",
 	}
 
 	var router_key: String = scene_map.get(scene_name, "")

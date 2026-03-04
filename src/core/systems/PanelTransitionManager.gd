@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 class_name PanelTransitionManager
 extends RefCounted
 
@@ -18,7 +18,6 @@ var _transition_history: Array[Dictionary] = []
 
 func _init():
 	_transition_mutex = Mutex.new()
-	print("PanelTransitionManager: Initialized with thread safety")
 
 ## Safely switch to a new phase with state preservation
 func safe_switch_to_phase(ui: Control, phase: int, coordinator = null) -> bool:
@@ -35,7 +34,6 @@ func safe_switch_to_phase(ui: Control, phase: int, coordinator = null) -> bool:
 	
 	if _transition_in_progress:
 		# Queue transition for later
-		print("PanelTransitionManager: Transition in progress, queuing phase %d" % phase)
 		_pending_transitions.append({
 			"phase": phase,
 			"ui": ui,
@@ -54,7 +52,6 @@ func safe_switch_to_phase(ui: Control, phase: int, coordinator = null) -> bool:
 	_current_transition_id = transition_id
 	_transition_mutex.unlock()
 	
-	print("PanelTransitionManager: Starting transition %s to phase %d" % [transition_id, phase])
 	
 	var success = false
 	
@@ -110,7 +107,6 @@ func _perform_safe_transition(ui: Control, phase: int, coordinator) -> bool:
 	# Step 7: Record transition
 	_record_transition(phase, new_panel.get_class() if new_panel else "Unknown")
 	
-	print("PanelTransitionManager: Transition to phase %d completed successfully" % phase)
 	return true
 
 func _save_panel_state(panel: Control, phase: int) -> void:
@@ -126,7 +122,6 @@ func _save_panel_state(panel: Control, phase: int) -> void:
 			"timestamp": Time.get_ticks_msec(),
 			"panel_class": panel.get_class()
 		}
-		print("PanelTransitionManager: Saved state for phase %d" % phase)
 	else:
 		push_warning("PanelTransitionManager: Failed to save state for phase %d" % phase)
 
@@ -230,7 +225,6 @@ func _restore_panel_state(panel: Control, phase: int) -> void:
 	var saved_state = _saved_panel_states[phase]
 	if saved_state and saved_state.has("data"):
 		panel.set_panel_data(saved_state.data)
-		print("PanelTransitionManager: Restored state for phase %d" % phase)
 	else:
 		push_warning("PanelTransitionManager: Failed to restore state for phase %d" % phase)
 
@@ -282,10 +276,9 @@ func _process_pending_transitions() -> void:
 	var next_transition = _pending_transitions.pop_front()
 	
 	if is_instance_valid(next_transition.ui):
-		print("PanelTransitionManager: Processing pending transition to phase %d" % next_transition.phase)
 		await safe_switch_to_phase(next_transition.ui, next_transition.phase, next_transition.coordinator)
 	else:
-		print("PanelTransitionManager: Skipping invalid pending transition")
+		pass
 
 ## Get current transition status
 func get_transition_status() -> Dictionary:
@@ -300,7 +293,6 @@ func get_transition_status() -> Dictionary:
 ## Clear all saved states (for cleanup)
 func clear_saved_states() -> void:
 	_saved_panel_states.clear()
-	print("PanelTransitionManager: Cleared all saved states")
 
 ## Get transition history for debugging
 func get_transition_history() -> Array[Dictionary]:

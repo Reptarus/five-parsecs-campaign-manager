@@ -126,7 +126,6 @@ func _connect_to_equipment_manager() -> void:
 		if equipment_manager.has_signal("equipment_list_updated"):
 			if not equipment_manager.equipment_list_updated.is_connected(_on_equipment_list_updated):
 				equipment_manager.equipment_list_updated.connect(_on_equipment_list_updated)
-		print("ShipStashPanel: Connected to EquipmentManager")
 	else:
 		push_warning("ShipStashPanel: EquipmentManager not found")
 
@@ -311,7 +310,6 @@ func _on_transfer_pressed() -> void:
 	# Transfer the item
 	if equipment_manager and equipment_manager.has_method("transfer_from_ship_stash"):
 		if equipment_manager.transfer_from_ship_stash(equipment_id, character_id):
-			print("ShipStashPanel: Transferred %s to %s" % [item.get("name", "item"), character_id])
 			item_transferred_to_crew.emit(equipment_id, character_id)
 			selected_item_index = -1
 			_refresh_display()

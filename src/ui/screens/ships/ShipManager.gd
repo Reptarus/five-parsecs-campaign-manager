@@ -19,7 +19,6 @@ signal travel_initiated()
 var ship_data: Dictionary = {}
 
 func _ready() -> void:
-	print("ShipManager: Initializing...")
 	_load_ship_data()
 	_refresh_display()
 
@@ -181,40 +180,35 @@ func _on_debt_changed(_value: float) -> void:
 
 func _on_back_pressed() -> void:
 	## Handle back button press
-	print("ShipManager: Back pressed")
 	if has_node("/root/SceneRouter"):
 		get_node("/root/SceneRouter").navigate_back()
 	else:
 		# Fallback - emit a signal or use get_tree().change_scene_to_file()
-		print("SceneRouter not found - implement fallback navigation")
+		pass
 
 func _on_travel_pressed() -> void:
 	## Handle travel button press
 	var cost = _calculate_travel_cost()
-	print("ShipManager: Travel initiated, cost: ", cost)
 	travel_initiated.emit()
 
 func _on_refuel_pressed() -> void:
 	## Handle refuel button press
 	ship_data["fuel"] = "full"
 	_refresh_display()
-	print("ShipManager: Ship refueled")
 
 func _on_repair_pressed() -> void:
 	## Handle repair button press
 	var cost = _calculate_repair_cost()
-	print("ShipManager: Repair cost: ", cost)
 
 	# Check if player has enough credits
 	var game_state = get_node_or_null("/root/GameState")
 	if game_state and game_state.has_method("get_credits"):
 		var current_credits = game_state.get_credits()
 		if current_credits < cost:
-			print("Not enough credits for repair. Need: %d, Have: %d" % [cost, current_credits])
 			return
 		game_state.remove_credits(cost)
 	else:
-		print("Warning: Cannot verify credits - proceeding with repair")
+		pass
 	
 	ship_data["hull_points"] = ship_data.get("max_hull", 30)
 	_refresh_display()
@@ -222,7 +216,7 @@ func _on_repair_pressed() -> void:
 
 func _on_upgrade_pressed() -> void:
 	## Handle upgrade button press
-	print("ShipManager: Upgrade pressed")
+	pass
 
 func _on_pay_debt_pressed() -> void:
 	## Handle pay debt button press
@@ -231,23 +225,20 @@ func _on_pay_debt_pressed() -> void:
 		ship_data["debt"] = 0
 		_refresh_display()
 		debt_paid.emit(debt)
-		print("ShipManager: Debt paid: ", debt)
 
 func _on_upgrade_purchased(upgrade_name: String) -> void:
 	## Handle upgrade purchase
 	var cost = _get_upgrade_cost(upgrade_name)
-	print("ShipManager: Purchasing upgrade: ", upgrade_name, " for ", cost, " credits")
 
 	# Check if player has enough credits
 	var game_state = get_node_or_null("/root/GameState")
 	if game_state and game_state.has_method("get_credits"):
 		var current_credits = game_state.get_credits()
 		if current_credits < cost:
-			print("Not enough credits for upgrade. Need: %d, Have: %d" % [cost, current_credits])
 			return
 		game_state.remove_credits(cost)
 	else:
-		print("Warning: Cannot verify credits - proceeding with upgrade")
+		pass
 	
 	ship_data.get("upgrades", []).append(upgrade_name)
 	_refresh_display()

@@ -13,14 +13,14 @@ const GamePlanet = preload("res://src/game/world/GamePlanet.gd")
 @export var unity_progress: float = 0.0
 
 func _init() -> void:
-    world_features = []
-    resources = {}
-    market_prices = {}
+	world_features = []
+	resources = {}
+	market_prices = {}
 
 func get_info() -> String:
-    return "World: %s\nEnvironment: %s\nFaction: %s\nStrife Level: %s" % [
-        name,
-        GameEnums.PlanetEnvironment.keys()[environment_type],
-        GameEnums.FactionType.keys()[faction_type],
-        GameEnums.ThreatType.keys()[strife_level]
-    ]
+	return "World: %s\nEnvironment: %s\nFaction: %s\nStrife Level: %s" % [
+		name,
+		GameEnums.PlanetEnvironment.keys()[environment_type],
+		GameEnums.FactionType.keys()[faction_type],
+		GameEnums.ThreatType.keys()[strife_level]
+	]

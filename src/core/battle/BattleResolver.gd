@@ -1,4 +1,4 @@
-﻿class_name BattleResolver
+class_name BattleResolver
 extends RefCounted
 
 ## Thin orchestration layer that calls BattleCalculations for real combat resolution
@@ -479,52 +479,30 @@ static func _debug_log_combat_round(round_num: int, crew_alive: int, enemy_alive
 	## Log combat round summary
 	if not DEBUG_COMBAT_FLOW:
 		return
-	print("┌─────────────────────────────────────────────────────────────┐")
-	print("│ COMBAT ROUND %d                                            │" % round_num)
-	print("├─────────────────────────────────────────────────────────────┤")
 	print("│ Initiative: %s" % ("CREW" if crew_has_initiative else "ENEMY"))
-	print("│ Force Status:")
-	print("│   Crew: %d alive" % crew_alive)
-	print("│   Enemy: %d alive" % enemy_alive)
-	print("│ Round Results:")
-	print("│   Crew Casualties: %d" % crew_casualties)
-	print("│   Enemy Casualties: %d" % enemy_casualties)
-	print("└─────────────────────────────────────────────────────────────┘")
 
 
 static func _debug_log_battle_outcome(success: bool, crew_alive: int, enemies_alive: int, crew_casualties: int, enemies_defeated: int, held_field: bool) -> void:
 	## Log final battle outcome
 	if not DEBUG_COMBAT_FLOW:
 		return
-	print("┌─────────────────────────────────────────────────────────────┐")
 	print("│ BATTLE OUTCOME: %s                                     │" % ("VICTORY" if success else "DEFEAT "))
-	print("├─────────────────────────────────────────────────────────────┤")
-	print("│ FINAL STATUS:")
-	print("│   Crew Survivors: %d" % crew_alive)
-	print("│   Enemies Remaining: %d" % enemies_alive)
-	print("│ BATTLE TOTALS:")
-	print("│   Crew Casualties: %d" % crew_casualties)
-	print("│   Enemies Defeated: %d" % enemies_defeated)
 	print("│ Held Field: %s" % ("Yes" if held_field else "No"))
-	print("└─────────────────────────────────────────────────────────────┘")
 
 
 static func _debug_log_unit_attack(attacker_name: String, target_name: String, hit: bool, damage: int, target_status: String) -> void:
 	## Log individual unit attack
 	if not DEBUG_COMBAT_FLOW:
 		return
-	print("│ %s → %s: %s, %d dmg → %s" % [attacker_name, target_name, "HIT" if hit else "MISS", damage, target_status])
 
 
 static func enable_debug_logging() -> void:
 	## Enable combat flow debug logging
 	DEBUG_COMBAT_FLOW = true
-	print("BattleResolver: Combat flow debug logging ENABLED")
 
 
 static func disable_debug_logging() -> void:
 	## Disable combat flow debug logging
 	DEBUG_COMBAT_FLOW = false
-	print("BattleResolver: Combat flow debug logging DISABLED")
 
 #endregion

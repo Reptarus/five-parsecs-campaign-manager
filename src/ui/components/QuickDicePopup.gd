@@ -77,7 +77,6 @@ func _initialize_dice_manager() -> void:
 		dice_manager = Node.new()
 		dice_manager.name = "FallbackDiceManager"
 		dice_manager.set_script(preload("res://src/core/systems/FallbackDiceManager.gd"))
-		print("QuickDicePopup: Created fallback DiceManager")
 
 func _setup_ui_elements() -> void:
 	## Setup UI elements with dice patterns and contexts

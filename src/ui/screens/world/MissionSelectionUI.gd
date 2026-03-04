@@ -35,7 +35,6 @@ var alpha_manager: Node = null
 var mission_generator: Node = null
 
 func _ready() -> void:
-	print("MissionSelectionUI: Initializing...")
 	_initialize_managers()
 	_connect_signals()
 	_setup_ui()
@@ -84,7 +83,7 @@ func popup_missions(missions: Array, type: String = "standard") -> void:
 	_update_mission_display()
 	if popup_panel:
 		popup_panel.popup_centered()
-	print("MissionSelectionUI: Displaying %d missions of type: %s" % [available_missions.size(), type])
+
 
 func _convert_mission_to_resource(mission_data: Variant) -> Resource:
 	## Convert mission data to Resource format
@@ -268,7 +267,6 @@ func _apply_difficulty_button_style(button: Button, difficulty: int) -> void:
 func _on_mission_selected(mission: Resource) -> void:
 	## Handle mission selection
 	if not mission:
-		print("MissionSelectionUI: Error - null mission selected")
 		return
 		
 	selected_mission = mission
@@ -276,7 +274,6 @@ func _on_mission_selected(mission: Resource) -> void:
 	
 	# Update UI with mission info
 	var mission_name = selected_mission.get_meta("name", "Unknown Mission")
-	print("MissionSelectionUI: Mission selected - %s" % mission_name)
 	
 	if popup_panel:
 		popup_panel.hide()
@@ -379,14 +376,13 @@ func _create_default_missions() -> void:
 		mission.set_meta("difficulty", i + 1)
 		available_missions.append(mission)
 	
-	print("MissionSelectionUI: Created %d default missions" % available_missions.size())
+
 
 func _on_cancel_pressed() -> void:
 	## Handle cancel button press
 	mission_selection_cancelled.emit()
 	if popup_panel:
 		popup_panel.hide()
-	print("MissionSelectionUI: Mission selection cancelled")
 
 # Legacy support for existing code
 func _on_close_pressed() -> void:

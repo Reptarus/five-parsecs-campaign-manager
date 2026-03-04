@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 class_name AutoloadKeywordDatabase
 
 ## KeywordDB - Game Term Dictionary & Bookmark System
@@ -44,7 +44,6 @@ class KeywordData:
 func _ready() -> void:
 	_load_keywords()
 	_load_bookmarks()
-	print("KeywordDB: Initialized with %d keywords, %d bookmarks" % [_keywords.size(), _bookmarks.size()])
 
 ## Public API
 func get_keyword(term: String) -> Dictionary:
@@ -75,11 +74,9 @@ func toggle_bookmark(term: String) -> void:
 	if _bookmarks.has(normalized):
 		_bookmarks.erase(normalized)
 		bookmark_toggled.emit(term, false)
-		print("KeywordDB: Removed bookmark for '%s'" % term)
 	else:
 		_bookmarks.append(normalized)
 		bookmark_toggled.emit(term, true)
-		print("KeywordDB: Added bookmark for '%s'" % term)
 	
 	_save_bookmarks()
 
@@ -112,8 +109,7 @@ func search_keywords(query: String) -> Array[Dictionary]:
 ## Internal methods
 func _load_keywords() -> void:
 	## Load keyword definitions from data file or initialize defaults
-	# TODO: Load from JSON file when data available
-	# For now, initialize with common equipment traits
+	# NOTE: Deferred — load keywords from JSON data file instead of hardcoded defaults
 	_initialize_default_keywords()
 	keywords_loaded.emit()
 
@@ -181,7 +177,7 @@ func _initialize_default_keywords() -> void:
 		70,
 		"combat_rule")
 	
-	print("KeywordDB: Initialized %d default keywords" % _keywords.size())
+	pass
 
 func _add_keyword(term: String, definition: String, related: Array, rule_page: int, category: String) -> void:
 	## Add keyword to database
@@ -214,7 +210,7 @@ func _load_bookmarks() -> void:
 		_bookmarks.clear()
 		for item in data:
 			_bookmarks.append(str(item))
-		print("KeywordDB: Loaded %d bookmarks" % _bookmarks.size())
+		pass
 
 ## Public property aliases for test compatibility
 var keywords: Dictionary:

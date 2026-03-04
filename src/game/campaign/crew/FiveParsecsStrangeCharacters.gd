@@ -3,9 +3,7 @@
 # Use explicit preloads instead of global class names
 extends BaseStrangeCharacters
 
-const Self = preload("res://src/game/campaign/crew/FiveParsecsStrangeCharacters.gd")
 const BaseStrangeCharacters = preload("res://src/base/campaign/crew/BaseStrangeCharacters.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
 
 enum StrangeCharacterType {

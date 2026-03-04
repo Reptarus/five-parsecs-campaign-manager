@@ -78,7 +78,7 @@ func test_odds_consumables_minimum():
 	assert_that(result).contains("2 uses")
 	# Should be one of the consumables
 	var has_consumable = result.contains("Booster Pills") or result.contains("Combat Serum") or \
-	                     result.contains("Stim-pack") or result.contains("Rage Out")
+						 result.contains("Stim-pack") or result.contains("Rage Out")
 	assert_that(has_consumable).is_true()
 
 func test_odds_consumables_maximum():

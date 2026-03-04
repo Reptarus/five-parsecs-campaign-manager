@@ -2,8 +2,6 @@ extends Control
 
 const Character = preload("res://src/core/character/Base/Character.gd")
 const CharacterCreator = preload("res://src/core/character/Generation/CharacterCreator.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 signal captain_updated(captain)
 
 @onready var content = $Content
@@ -67,16 +65,17 @@ func _on_creation_cancelled() -> void:
 func _update_ui() -> void:
 	if current_captain:
 		var info_text = """Captain Information:
+			pass
 		Name: %s
 		Class: %s
 		Origin: %s
 		Background: %s
 		Motivation: %s""" % [
 			current_captain.character_name,
-			_enum_value_name(GameEnums.CharacterClass, current_captain.character_class),
-			_enum_value_name(GameEnums.Origin, current_captain.origin),
-			_enum_value_name(GameEnums.Background, current_captain.background),
-			_enum_value_name(GameEnums.Motivation, current_captain.motivation)
+			_enum_value_name(GlobalEnums.CharacterClass, current_captain.character_class),
+			_enum_value_name(GlobalEnums.Origin, current_captain.origin),
+			_enum_value_name(GlobalEnums.Background, current_captain.background),
+			_enum_value_name(GlobalEnums.Motivation, current_captain.motivation)
 		]
 
 		captain_info.text = info_text

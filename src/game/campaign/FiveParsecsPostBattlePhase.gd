@@ -2,10 +2,8 @@
 extends BasePostBattlePhase
 # This file should be referenced via preload
 # Use explicit preloads instead of global class names
-const Self = preload("res://src/game/campaign/FiveParsecsPostBattlePhase.gd")
 
 const BasePostBattlePhase = preload("res://src/base/campaign/BasePostBattlePhase.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsCrewMember = preload("res://src/game/campaign/crew/FiveParsecsCrewMember.gd")
 const GameDataManager = preload("res://src/core/managers/GameDataManager.gd")
 

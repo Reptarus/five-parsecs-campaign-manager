@@ -116,7 +116,6 @@ func _initialize_objective_registry() -> void:
 				obj.placement_rules = result.get("placement_rules", "")
 				obj.roll_ranges = {"default": entry.get("roll_range", [1, 100])}
 				objective_registry.append(obj)
-			print("MissionObjectiveSystem: Loaded %d objectives from JSON" % objective_registry.size())
 			return
 
 	# Fallback to hardcoded data (has richer per-mission-type roll ranges)

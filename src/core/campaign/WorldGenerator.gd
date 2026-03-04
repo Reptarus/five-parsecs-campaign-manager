@@ -3,8 +3,6 @@ extends Node
 
 ## World Generator for Five Parsecs From Home
 ## Implements world generation from rulebook (p.80-86)
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GameDataManager = preload("res://src/core/managers/GameDataManager.gd")
 
 # Signal declarations

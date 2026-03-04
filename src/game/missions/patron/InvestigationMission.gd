@@ -667,12 +667,11 @@ func _calculate_evidence_quality_bonus() -> float:
 
 func complete_mission() -> Dictionary:
 	# Mark mission as completed
-	print("Investigation mission completed for: %s" % target_organization)
 	return super.complete_mission()
 
 func _complete_mission_internal() -> void:
 	# Mark mission as completed
-	print("Investigation mission completed for: %s" % target_organization)
+	pass
 
 func has(property: String) -> bool:
 	# Simple property check for objectives

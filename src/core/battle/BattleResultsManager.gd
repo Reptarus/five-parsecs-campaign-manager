@@ -1,7 +1,5 @@
 @tool
 extends Node
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const CharacterManager = preload("res://src/core/character/management/CharacterManager.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 
@@ -38,8 +36,8 @@ func reset_current_battle() -> void:
 	_current_battle = {
 		"id": "",
 		"mission_id": "",
-		"mission_type": GameEnums.MissionType.NONE,
-		"objective": GameEnums.MissionObjective.NONE,
+		"mission_type": GlobalEnums.MissionType.NONE,
+		"objective": GlobalEnums.MissionObjective.NONE,
 		"planet": "",
 		"turn": 0,
 		"outcome": "",
@@ -58,8 +56,8 @@ func start_battle(mission_data: Dictionary) -> void:
 	
 	_current_battle.id = "battle_" + str(Time.get_unix_time_from_system()) + "_" + str(randi() % 1000)
 	_current_battle.mission_id = mission_data.get("id", "")
-	_current_battle.mission_type = mission_data.get("type", GameEnums.MissionType.NONE)
-	_current_battle.objective = mission_data.get("objective", GameEnums.MissionObjective.NONE)
+	_current_battle.mission_type = mission_data.get("type", GlobalEnums.MissionType.NONE)
+	_current_battle.objective = mission_data.get("objective", GlobalEnums.MissionObjective.NONE)
 	_current_battle.planet = mission_data.get("planet", "")
 	_current_battle.turn = game_state.turn_number
 	_current_battle.timestamp = Time.get_unix_time_from_system()
@@ -293,7 +291,7 @@ func calculate_experience() -> Dictionary:
 		
 		# 3. XP for Black Zone Missions - Five Parsecs rulebook awards 1 XP for Black Zone missions
 		var black_zone_xp = 0
-		if _current_battle.mission_type == GameEnums.MissionType.BLACK_ZONE:
+		if _current_battle.mission_type == GlobalEnums.MissionType.BLACK_ZONE:
 			black_zone_xp = 1
 		
 		# 4. XP for leading combat (assuming the "Main Character" led the combat)
@@ -400,10 +398,10 @@ func _calculate_rewards() -> void:
 			
 	# Additional rewards based on mission type
 	match _current_battle.mission_type:
-		GameEnums.MissionType.BLACK_ZONE:
+		GlobalEnums.MissionType.BLACK_ZONE:
 			reward_data["credits"] += 100
 			reward_data["tech_parts"] = 1 + randi() % 3
-		GameEnums.MissionType.RESCUE:
+		GlobalEnums.MissionType.RESCUE:
 			reward_data["credits"] += 50
 			reward_data["reputation"] += 3
 			

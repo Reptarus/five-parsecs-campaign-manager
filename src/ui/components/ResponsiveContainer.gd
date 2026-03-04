@@ -16,4 +16,4 @@ func _ready() -> void:
 	
 	# Display deprecation warning in editor
 	if Engine.is_editor_hint():
-		print("[DEPRECATED] Using 'src/ui/components/ResponsiveContainer.gd' is deprecated. Please use 'src/ui/components/base/ResponsiveContainer.gd' instead.")
+		pass

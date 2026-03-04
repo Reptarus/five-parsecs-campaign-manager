@@ -103,7 +103,6 @@ var world_generator: WorldGenerator = null
 
 func _ready() -> void:
 	world_generator = WorldGenerator.new()
-	print("PlanetDataManager: Initialized successfully")
 
 ## Generate or retrieve planet data
 func get_or_generate_planet(planet_id: String = "", campaign_turn: int = 0) -> PlanetData:
@@ -142,7 +141,6 @@ func _generate_new_planet(campaign_turn: int, forced_id: String = "") -> PlanetD
 	# Store planet
 	visited_planets[planet.id] = planet
 	
-	print("PlanetDataManager: Generated new planet %s (Type: %s, Danger: %d)" % [planet.name, planet.type_name, planet.danger_level])
 	self.planet_discovered.emit(planet)
 	
 	return planet
@@ -251,13 +249,11 @@ func _update_planet_visit(planet: PlanetData, campaign_turn: int) -> void:
 	}
 	travel_history.append(travel_record)
 	
-	print("PlanetDataManager: Visited %s (Visit #%d)" % [planet.name, planet.visit_count])
 	self.planet_visited.emit(planet.id, planet.visit_count)
 
 ## Set current planet
 func set_current_planet(planet_id: String) -> void:
 	current_planet_id = planet_id
-	print("PlanetDataManager: Current planet set to %s" % planet_id)
 
 ## Get current planet data
 func get_current_planet() -> PlanetData:
@@ -281,7 +277,6 @@ func complete_mission(planet_id: String, mission_data: Dictionary) -> void:
 	var resources_gained = mission_data.get("resources_gained", 0)
 	planet.resources_extracted += resources_gained
 	
-	print("PlanetDataManager: Mission completed on %s (Total: %d)" % [planet.name, planet.missions_completed])
 	self.planet_data_updated.emit(planet_id, "mission_completed")
 	
 	if exploration_gain > 0:
@@ -296,7 +291,6 @@ func add_world_event(planet_id: String, event: Dictionary) -> void:
 	event["timestamp"] = Time.get_unix_time_from_system()
 	planet.world_events.append(event)
 	
-	print("PlanetDataManager: World event on %s: %s" % [planet.name, event.get("type", "unknown")])
 	self.world_event_occurred.emit(planet_id, event)
 
 ## Generate a random world event for a planet based on its type (D6 table)
@@ -350,8 +344,6 @@ func apply_temporary_effect(planet_id: String, effect: Dictionary, duration_turn
 	effect["duration"] = duration_turns
 	effect["applied_turn"] = planet.last_visited_turn
 	planet.temporary_effects.append(effect)
-	
-	print("PlanetDataManager: Applied temporary effect to %s: %s" % [planet.name, effect.get("type", "unknown")])
 
 ## Process turn effects on all planets
 func process_turn_effects(current_turn: int) -> void:
@@ -364,7 +356,6 @@ func process_turn_effects(current_turn: int) -> void:
 			var effect_age = current_turn - effect.get("applied_turn", 0)
 			if effect_age >= effect.get("duration", 1):
 				planet.temporary_effects.remove_at(i)
-				print("PlanetDataManager: Temporary effect expired on %s" % planet.name)
 		
 		# Update market conditions
 		_update_market_conditions(planet)
@@ -426,7 +417,6 @@ func add_contact_to_planet(planet_id: String, contact_id: String) -> void:
 	var planet = visited_planets[planet_id]
 	if contact_id not in planet.contact_ids:
 		planet.contact_ids.append(contact_id)
-		print("PlanetDataManager: Added contact to %s" % planet.name)
 
 ## Get exploration opportunities on planet
 func get_exploration_opportunities(planet_id: String) -> Array[Dictionary]:

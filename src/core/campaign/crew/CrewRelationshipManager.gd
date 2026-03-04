@@ -2,8 +2,6 @@
 extends Node
 
 const Character = preload("res://src/core/character/Base/Character.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 ## Signals
 signal relationship_added(char1: Character, char2: Character, relationship_type: String)
 signal relationship_removed(char1: Character, char2: Character)

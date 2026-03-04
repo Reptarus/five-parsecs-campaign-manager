@@ -6,8 +6,6 @@ extends Resource
 const Self = preload("res://src/core/systems/Mission.gd")
 
 # Import necessary classes
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 signal mission_completed
 signal mission_failed
 signal mission_updated
@@ -15,7 +13,7 @@ signal mission_updated
 @export var mission_id: String = ""
 @export var mission_title: String = ""
 @export var mission_description: String = ""
-@export var mission_type: int = GameEnums.MissionType.NONE
+@export var mission_type: int = GlobalEnums.MissionType.NONE
 @export var mission_difficulty: int = 1
 @export var reward_credits: int = 100
 @export var is_completed: bool = false
@@ -52,7 +50,7 @@ func deserialize(data: Dictionary) -> Resource:
 	mission_id = data.get("mission_id", "")
 	mission_title = data.get("mission_title", "")
 	mission_description = data.get("mission_description", "")
-	mission_type = data.get("mission_type", GameEnums.MissionType.NONE)
+	mission_type = data.get("mission_type", GlobalEnums.MissionType.NONE)
 	mission_difficulty = data.get("mission_difficulty", 1)
 	reward_credits = data.get("reward_credits", 100)
 	is_completed = data.get("is_completed", false)

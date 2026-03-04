@@ -28,41 +28,41 @@ var rewards: Dictionary = {}
 var consequences: Dictionary = {}
 
 func _init() -> void:
-    pass
+	pass
 
 func configure(config: Dictionary) -> void:
-    if config.has("event_id"):
-        event_id = config.event_id
-    if config.has("event_type"):
-        event_type = config.event_type
-    if config.has("title"):
-        title = config.title
-    if config.has("description"):
-        description = config.description
+	if config.has("event_id"):
+		event_id = config.event_id
+	if config.has("event_type"):
+		event_type = config.event_type
+	if config.has("title"):
+		title = config.title
+	if config.has("description"):
+		description = config.description
 
 func add_choice(choice_data: Dictionary) -> void:
-    choices.append(choice_data)
+	choices.append(choice_data)
 
 func select_choice(choice_index: int) -> void:
-    if choice_index >= 0 and choice_index < choices.size():
-        selected_choice = choice_index
-        is_resolved = true
+	if choice_index >= 0 and choice_index < choices.size():
+		selected_choice = choice_index
+		is_resolved = true
 
 func get_choice(index: int) -> Dictionary:
-    if index >= 0 and index < choices.size():
-        return choices[index]
-    return {}
+	if index >= 0 and index < choices.size():
+		return choices[index]
+	return {}
 
 func set_event_rewards(reward_data: Dictionary) -> void:
-    rewards = reward_data.duplicate()
+	rewards = reward_data.duplicate()
 
 func set_event_consequences(consequence_data: Dictionary) -> void:
-    consequences = consequence_data.duplicate()
+	consequences = consequence_data.duplicate()
 
 func get_event_outcome() -> Dictionary:
-    return {
-        "is_resolved": is_resolved,
-        "selected_choice": selected_choice,
-        "rewards": rewards,
-        "consequences": consequences
-    }
+	return {
+		"is_resolved": is_resolved,
+		"selected_choice": selected_choice,
+		"rewards": rewards,
+		"consequences": consequences
+	}

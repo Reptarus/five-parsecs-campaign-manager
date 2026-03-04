@@ -3,13 +3,10 @@ extends Node
 # This file should be referenced via preload
 # Use explicit preloads instead of global class names
 
-const Self = preload("res://src/core/systems/TableProcessor.gd")
 
 ## Forward declarations for dependencies
 ## This helps avoid circular references and clarifies dependencies
 const ErrorLogger = preload("res://src/core/systems/ErrorLogger.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 ## Signals for table operations
 ## Now documented with proper types for Godot 4.4
 signal roll_processed(table_name: String, result: Dictionary)

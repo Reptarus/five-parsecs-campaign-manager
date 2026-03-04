@@ -1,4 +1,4 @@
-﻿class_name FPCM_BattleManager
+class_name FPCM_BattleManager
 extends Resource
 
 ## Enterprise-grade Battle Manager for Five Parsecs Campaign Manager
@@ -161,7 +161,7 @@ func initialize_battle(mission_data: Resource, crew_members: Array, enemy_forces
 	# Warn if no weapons detected (not blocking, but important for gameplay)
 	if not has_weapon and total_equipment == 0:
 		if debug_mode:
-			print("WARNING: No equipment detected on crew - battle may be very difficult")
+			pass
 		battle_error.emit("NO_EQUIPMENT_WARNING", {
 			"reason": "No weapons or equipment detected on crew members",
 			"crew_count": valid_crew_count,
@@ -369,7 +369,7 @@ func _finalize_pre_battle() -> void:
 	
 	# Log phase completion
 	if debug_mode:
-		print("FPCM_BattleManager: Pre-battle phase finalized")
+		pass
 	
 	# Notify systems that setup is complete
 	ui_refresh_requested.emit(["deployment_complete", "ready_for_combat"])
@@ -389,7 +389,7 @@ func _finalize_tactical_battle() -> void:
 	
 	# Log tactical phase completion
 	if debug_mode:
-		print("FPCM_BattleManager: Tactical phase complete - %d rounds, %d damage dealt" % [rounds_fought, total_damage_dealt])
+		pass
 	
 	# Prepare for battle resolution
 	ui_transition_requested.emit("battle_resolution", {
@@ -486,13 +486,13 @@ func request_dice_roll(pattern: DiceSystem.DicePattern, context: String) -> Dice
 ## Handle dice roll results
 func _on_dice_rolled(result: DiceSystem.DiceRoll) -> void:
 	if debug_mode:
-		print("Battle dice roll: %s = %d" % [result.context, result.total])
+		pass
 
 ## Handle battle events
 func _on_battle_event_triggered(event: BattleEventsSystem.BattleEvent) -> void:
 	battle_event_activated.emit(event)
 	if debug_mode:
-		print("Battle event triggered: %s" % event.title)
+		pass
 
 ## Force advance to next phase (for UI automation)
 func advance_phase() -> bool:

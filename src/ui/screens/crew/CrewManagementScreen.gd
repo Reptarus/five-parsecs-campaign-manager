@@ -197,7 +197,7 @@ func _on_save_pressed() -> void:
 	if _game_state and _game_state.has_method("save_campaign"):
 		var result: Dictionary = _game_state.save_campaign()
 		if result.get("success", false):
-			print("CrewManagementScreen: Campaign saved successfully")
+			pass
 
 func _on_back_pressed() -> void:
 	var gsm = get_node_or_null("/root/GameStateManager")

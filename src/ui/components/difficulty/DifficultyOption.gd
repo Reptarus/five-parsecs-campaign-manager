@@ -5,7 +5,6 @@ class_name DifficultyOption
 ## A reusable component for selecting game difficulty levels
 ## Provides standardized difficulty options with proper signal handling
 
-const Self = preload("res://src/ui/components/difficulty/DifficultyOption.gd")
 const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 
 ## Emitted when the difficulty level is changed

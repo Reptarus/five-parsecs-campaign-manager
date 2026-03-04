@@ -375,7 +375,6 @@ func _setup_dice_system_integration() -> void:
 	if dice_manager.has_signal("dice_result_ready"):
 		dice_manager.dice_result_ready.connect(_on_dice_result_ready)
 	
-	print("Digital Dice System integration initialized for WorldPhaseAutomationController")
 
 ## Setup real-time feedback system with UI integration
 func _setup_feedback_system() -> void:
@@ -389,7 +388,7 @@ func _setup_feedback_system() -> void:
 	
 	# Setup performance monitoring for feedback system
 	if performance_monitoring_enabled:
-		print("Real-time feedback system initialized with %d ms UI update interval" % ui_update_interval_ms)
+		pass
 
 func _connect_ui_feedback_signals() -> void:
 	## Connect feedback signals to UI instance if available
@@ -403,7 +402,6 @@ func _connect_ui_feedback_signals() -> void:
 	notification_triggered.connect(_on_ui_notification_triggered)
 	visual_feedback_requested.connect(_on_ui_visual_feedback_requested)
 	
-	print("UI feedback signals connected to instance: %s" % connected_ui_instance.name)
 
 # ===== PERFORMANCE OPTIMIZATION SYSTEM METHODS =====
 
@@ -421,7 +419,6 @@ func _initialize_performance_systems() -> void:
 	last_frame_start_time = Time.get_ticks_msec()
 	current_frame_operation_count = 0
 	
-	print("Performance optimization systems initialized")
 
 ## Initialize object pools for memory optimization
 func _initialize_object_pools() -> void:
@@ -437,7 +434,6 @@ func _initialize_object_pools() -> void:
 	for i in range(max_pool_size):
 		notification_pool.append(NotificationData.new())
 	
-	print("Object pools initialized with %d objects each" % max_pool_size)
 
 ## Get pooled crew task result object
 func _get_pooled_task_result() -> CrewTaskResult:
@@ -497,7 +493,6 @@ func _start_performance_monitoring() -> void:
 	timer.autostart = true
 	add_child(timer)
 	
-	print("Performance monitoring started")
 
 ## Update performance monitoring (called every second)
 func _update_performance_monitoring() -> void:
@@ -590,7 +585,6 @@ func automate_crew_task_resolution(crew_assignments: Dictionary) -> void:
 	# Start performance tracking
 	var metric = performance_metrics.start_operation("crew_task_resolution_batch")
 	
-	print("🎲 Automating crew task resolution with performance optimization...")
 	
 	# Initialize batch progress tracking
 	batch_operation_data = {
@@ -1038,9 +1032,9 @@ func _display_task_result_with_feedback_optimized(crew_member: String, result: D
 	
 	# Enhanced console output with dice information (unchanged for debugging)
 	if dice_roll > 0:
-		print("• %s %s (🎲 %d): %s" % [crew_member, task_name, dice_roll, narrative])
+		pass # Crew task result logged
 	else:
-		print("• %s %s: %s" % [crew_member, task_name, narrative])
+		pass
 	
 	# Request visual feedback for dice rolls (optimized signaling)
 	if dice_roll > 0:
@@ -1099,7 +1093,6 @@ func _get_task_display_name(task_type: int) -> String:
 
 ## One-click complete world phase automation
 func automate_complete_world_phase(crew_assignments: Dictionary) -> void:
-	print("🚀 Starting automated World Phase progression...")
 	
 	# Step 1: Upkeep calculation
 	await _automate_upkeep_calculation()
@@ -1352,7 +1345,7 @@ func _perform_validated_dice_roll_async(roll_func: Callable, context: String, va
 		validation_passed = _validate_dice_result(result, validation_params, context)
 		
 		if not validation_passed and attempt < max_dice_retry_attempts:
-			print("Dice validation failed for %s (attempt %d), retrying..." % [context, attempt])
+			push_warning("Dice validation failed for %s (attempt %d), retrying..." % [context, attempt])
 			await _track_operation_and_yield_if_needed()
 	
 	if not validation_passed:
@@ -1517,7 +1510,6 @@ func _automate_decoy_action(crew_member: String) -> Dictionary:
 func _automate_upkeep_calculation() -> void:
 	## Automate upkeep calculation phase
 	var start_time := Time.get_ticks_msec()
-	print("💰 Calculating upkeep costs...")
 	
 	if world_phase_handler and world_phase_handler.has_method("_process_upkeep"):
 		world_phase_handler._process_upkeep()
@@ -1541,7 +1533,6 @@ func _automate_upkeep_calculation() -> void:
 func _automate_job_offers() -> void:
 	## Automate job offer generation
 	var start_time := Time.get_ticks_msec()
-	print("📋 Generating job offers...")
 	
 	if world_phase_handler and world_phase_handler.has_method("_process_job_offers"):
 		world_phase_handler._process_job_offers()
@@ -1578,7 +1569,6 @@ func _automate_job_offers() -> void:
 func _automate_equipment_assignment() -> void:
 	## Automate equipment assignment phase with real-time feedback
 	var start_time := Time.get_ticks_msec()
-	print("🎒 Handling equipment assignment with feedback...")
 	
 	# Emit progress updates
 	visual_feedback_requested.emit("step_start", {
@@ -1632,7 +1622,6 @@ func _automate_equipment_assignment() -> void:
 func _automate_rumor_resolution() -> void:
 	## Automate rumor resolution phase with real-time feedback
 	var start_time := Time.get_ticks_msec()
-	print("🗣️ Resolving rumors with feedback...")
 	
 	# Emit progress updates
 	visual_feedback_requested.emit("step_start", {
@@ -1763,7 +1752,7 @@ func _perform_validated_dice_roll(roll_func: Callable, context: String, validati
 		validation_passed = _validate_dice_result(result, validation_params, context)
 		
 		if not validation_passed and attempt < max_dice_retry_attempts:
-			print("Dice validation failed for %s (attempt %d), retrying..." % [context, attempt])
+			push_warning("Dice validation failed for %s (attempt %d), retrying..." % [context, attempt])
 			await get_tree().process_frame # Brief pause before retry
 	
 	if not validation_passed:
@@ -1790,13 +1779,12 @@ func _validate_dice_result(result: int, params: Dictionary, context: String) -> 
 	var max_val: int = params.get("max_value", 6)
 	
 	if result < min_val or result > max_val:
-		print("Dice validation failed for %s: result %d outside range [%d, %d]" % [context, result, min_val, max_val])
 		return false
 	
 	# Check if result is the expected type
 	var expected_type: String = params.get("expected_type", "integer")
 	if expected_type == "integer" and not (result is int):
-		print("Dice validation failed for %s: expected integer, got %s" % [context, typeof(result)])
+		push_warning("Dice validation failed for %s: expected integer, got %s" % [context, typeof(result)])
 		return false
 	
 	return true
@@ -1891,13 +1879,12 @@ func _count_performance_warnings() -> int:
 ## Enable/disable dice validation for testing
 func set_dice_validation_enabled(enabled: bool) -> void:
 	dice_validation_enabled = enabled
-	print("Dice validation %s" % ("enabled" if enabled else "disabled"))
+	pass # Dice validation toggled
 
 ## Configure performance monitoring
 func set_performance_monitoring(enabled: bool, target_ms: float = 16.67) -> void:
 	performance_monitoring_enabled = enabled
 	animation_performance_target_ms = target_ms
-	print("Performance monitoring %s with target %f ms" % ["enabled" if enabled else "disabled", target_ms])
 
 ## ENHANCED BATCH AUTOMATION METHODS
 
@@ -1908,7 +1895,7 @@ func automate_batch_crew_tasks(crew_task_batch: Array) -> Array[Dictionary]:
 	var batch_results: Array[Dictionary] = []
 	var total_dice_rolls: int = 0
 	
-	print("🎲 Starting batch automation for %d crew tasks..." % crew_task_batch.size())
+	pass # Starting batch automation
 	
 	# Pre-validate all tasks to avoid mid-batch failures
 	for task_data in crew_task_batch:
@@ -1955,7 +1942,7 @@ func automate_batch_crew_tasks(crew_task_batch: Array) -> Array[Dictionary]:
 		if total_duration > animation_performance_target_ms * crew_task_batch.size():
 			automation_performance_warning.emit("Batch Crew Tasks", total_duration)
 	
-	print("✅ Batch automation completed: %d tasks in %d ms" % [crew_task_batch.size(), total_duration])
+	pass # Batch automation completed
 	all_crew_tasks_resolved.emit(batch_results)
 	
 	return batch_results
@@ -1980,7 +1967,6 @@ func automate_quick_world_turn(crew_assignments: Dictionary, include_rumor_inves
 	var start_time := Time.get_ticks_msec()
 	var turn_results := {}
 	
-	print("🚀 Quick World Turn automation starting...")
 	
 	# Step 1: Upkeep (quick)
 	await _automate_upkeep_calculation()
@@ -2016,7 +2002,6 @@ func automate_quick_world_turn(crew_assignments: Dictionary, include_rumor_inves
 		"crew_tasks_resolved": crew_assignments.size()
 	}
 	
-	print("✅ Quick World Turn completed in %d ms" % total_duration)
 	campaign_turn_advancement_ready.emit()
 	
 	return turn_results
@@ -2046,14 +2031,12 @@ func configure_feedback_system(settings: Dictionary) -> void:
 	if settings.has("critical_event_threshold"):
 		critical_event_threshold = clamp(settings.critical_event_threshold, 0.0, 1.0)
 		
-	print("Feedback system configured: %s" % settings)
 
 ## Clear all feedback tracking data
 func clear_feedback_data() -> void:
 	active_progress_trackers.clear()
 	notification_queue.clear()
 	batch_operation_data.clear()
-	print("Feedback system data cleared")
 
 ## Get detailed progress information for UI display
 func get_detailed_progress_info() -> Dictionary:
@@ -2094,7 +2077,7 @@ func set_feedback_system_enabled(enabled: bool) -> void:
 	feedback_system_enabled = enabled
 	if not enabled:
 		clear_feedback_data()
-	print("Real-time feedback system %s" % ("enabled" if enabled else "disabled"))
+	pass # Real-time feedback toggled
 
 ## Connect to a different UI instance for feedback
 func connect_ui_instance(ui_instance: Node) -> bool:
@@ -2126,7 +2109,6 @@ func _disconnect_ui_feedback_signals() -> void:
 	if visual_feedback_requested.is_connected(_on_ui_visual_feedback_requested):
 		visual_feedback_requested.disconnect(_on_ui_visual_feedback_requested)
 	
-	print("UI feedback signals disconnected from: %s" % connected_ui_instance.name)
 
 ## ADVANCED DICE SYSTEM FEATURES
 
@@ -2237,7 +2219,6 @@ func configure_performance_optimization(settings: Dictionary) -> void:
 		var new_pool_size = clamp(settings.max_pool_size, 5, 50)
 		_resize_object_pools(new_pool_size)
 	
-	print("Performance optimization configured: %s" % settings)
 
 ## Resize object pools to new size
 func _resize_object_pools(new_size: int) -> void:
@@ -2261,7 +2242,6 @@ func _resize_object_pools(new_size: int) -> void:
 	while notification_pool.size() < new_size:
 		notification_pool.append(NotificationData.new())
 	
-	print("Object pools resized to %d objects each" % new_size)
 
 ## Get comprehensive performance metrics
 func get_performance_metrics() -> Dictionary:
@@ -2329,7 +2309,6 @@ func reset_performance_optimization() -> void:
 		memory_monitor.memory_samples.clear()
 		memory_monitor.peak_memory_mb = 0.0
 	
-	print("Performance optimization system reset")
 
 ## Enable/disable performance monitoring
 func set_performance_monitoring_enabled(enabled: bool) -> void:
@@ -2337,16 +2316,14 @@ func set_performance_monitoring_enabled(enabled: bool) -> void:
 	
 	if enabled:
 		_start_performance_monitoring()
-		print("Performance monitoring enabled")
 	else:
-		print("Performance monitoring disabled")
+		pass
 
 ## Configure memory warning thresholds
 func configure_memory_monitoring(warning_threshold_mb: float, max_samples: int = 50) -> void:
 	if memory_monitor:
 		memory_monitor.warning_threshold_mb = clamp(warning_threshold_mb, 10.0, 1000.0)
 		memory_monitor.max_samples = clamp(max_samples, 10, 200)
-		print("Memory monitoring configured: threshold=%.1f MB, samples=%d" % [warning_threshold_mb, max_samples])
 
 ## Get performance optimization status
 func get_optimization_status() -> Dictionary:
@@ -2373,7 +2350,6 @@ func get_optimization_status() -> Dictionary:
 ## Force frame yield (for testing/debugging)
 func force_frame_yield() -> void:
 	await _yield_frame()
-	print("Frame yield forced - operations reset to 0")
 
 ## Get detailed object pool status
 func get_object_pool_status() -> Dictionary:
@@ -2397,7 +2373,6 @@ func get_object_pool_status() -> Dictionary:
 
 ## Performance benchmark test
 func run_performance_benchmark(test_crew_assignments: Dictionary, iterations: int = 3) -> Dictionary:
-	print("Running performance benchmark with %d iterations..." % iterations)
 	
 	var benchmark_results = {
 		"iterations": iterations,
@@ -2407,7 +2382,6 @@ func run_performance_benchmark(test_crew_assignments: Dictionary, iterations: in
 	}
 	
 	for i in range(iterations):
-		print("Benchmark iteration %d/%d" % [i + 1, iterations])
 		
 		# Reset state for clean test
 		reset_performance_optimization()
@@ -2448,9 +2422,6 @@ func run_performance_benchmark(test_crew_assignments: Dictionary, iterations: in
 		"performance_improvement_vs_sync": "~60% faster with async processing"
 	}
 	
-	print("Performance benchmark completed: %.1f ms avg, %.2f MB avg memory" % [
-		benchmark_results["average_metrics"]["avg_total_duration_ms"],
-		benchmark_results["average_metrics"]["avg_memory_used_mb"]
-	])
+	pass # Performance benchmark completed
 	
 	return benchmark_results

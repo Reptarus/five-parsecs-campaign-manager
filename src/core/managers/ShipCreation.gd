@@ -1,6 +1,4 @@
 extends Node
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const SaveManager = preload("res://src/core/state/SaveManager.gd")
@@ -87,32 +85,32 @@ func create_component(component_data: Dictionary) -> Resource:
 			3: # ARMOR/HULL
 				_setup_hull_component(component, component_data)
 	else:
-		# Using specific GameEnums.ShipComponentType values
+		# Using specific GlobalEnums.ShipComponentType values
 		# Set type-specific properties based on component type
 		match component_type:
-			GameEnums.ShipComponentType.WEAPON_BASIC_LASER, \
-			GameEnums.ShipComponentType.WEAPON_ADVANCED_LASER, \
-			GameEnums.ShipComponentType.WEAPON_HEAVY_LASER, \
-			GameEnums.ShipComponentType.WEAPON_BASIC_KINETIC, \
-			GameEnums.ShipComponentType.WEAPON_ADVANCED_KINETIC, \
-			GameEnums.ShipComponentType.WEAPON_HEAVY_KINETIC:
+			GlobalEnums.ShipComponentType.WEAPON_BASIC_LASER, \
+			GlobalEnums.ShipComponentType.WEAPON_ADVANCED_LASER, \
+			GlobalEnums.ShipComponentType.WEAPON_HEAVY_LASER, \
+			GlobalEnums.ShipComponentType.WEAPON_BASIC_KINETIC, \
+			GlobalEnums.ShipComponentType.WEAPON_ADVANCED_KINETIC, \
+			GlobalEnums.ShipComponentType.WEAPON_HEAVY_KINETIC:
 				_set_property_safe(component, "type", 0) # Set simplified type for test compatibility
 				_setup_weapon_component(component, component_data)
 				
-			GameEnums.ShipComponentType.ENGINE_BASIC, \
-			GameEnums.ShipComponentType.ENGINE_IMPROVED, \
-			GameEnums.ShipComponentType.ENGINE_ADVANCED:
+			GlobalEnums.ShipComponentType.ENGINE_BASIC, \
+			GlobalEnums.ShipComponentType.ENGINE_IMPROVED, \
+			GlobalEnums.ShipComponentType.ENGINE_ADVANCED:
 				_set_property_safe(component, "type", 1) # Set simplified type for test compatibility
 				_setup_engine_component(component, component_data)
 				
-			GameEnums.ShipComponentType.HULL_BASIC, \
-			GameEnums.ShipComponentType.HULL_REINFORCED, \
-			GameEnums.ShipComponentType.HULL_ADVANCED:
+			GlobalEnums.ShipComponentType.HULL_BASIC, \
+			GlobalEnums.ShipComponentType.HULL_REINFORCED, \
+			GlobalEnums.ShipComponentType.HULL_ADVANCED:
 				_set_property_safe(component, "type", 3) # Set simplified type for test compatibility
 				_setup_hull_component(component, component_data)
 				
-			GameEnums.ShipComponentType.MEDICAL_BASIC, \
-			GameEnums.ShipComponentType.MEDICAL_ADVANCED:
+			GlobalEnums.ShipComponentType.MEDICAL_BASIC, \
+			GlobalEnums.ShipComponentType.MEDICAL_ADVANCED:
 				_set_property_safe(component, "type", 2) # Treating medical as SHIELD type for compatibility
 				_setup_medical_component(component, component_data)
 				
@@ -163,7 +161,7 @@ func _validate_component_data(data: Dictionary) -> bool:
 		return true
 		
 	# Check if type is valid in GameEnums
-	if not component_type in GameEnums.ShipComponentType.values():
+	if not component_type in GlobalEnums.ShipComponentType.values():
 		push_error("Invalid component type")
 		return false
 	

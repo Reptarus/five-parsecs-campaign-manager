@@ -87,7 +87,7 @@ func _ready() -> void:
 	_setup_ui()
 	_is_ready = true
 	_update_display()
-	print("StatBadge: Initialized with stat '%s' = %s (theme-aware: %s)" % [stat_name, stat_value, _theme_manager != null])
+
 
 func _find_theme_manager() -> void:
 	## Find ThemeManager in scene tree if available
@@ -190,7 +190,7 @@ func configure(stat: String, value: Variant, plus: bool = false, color: Color = 
 	stat_value = value
 	show_plus = plus
 	accent_color = color
-	print("StatBadge: Configured - %s: %s (show_plus: %s)" % [stat, value, plus])
+
 
 ## Set badge to use theme color (colorblind-safe)
 func use_theme_color(color_name: String) -> void:

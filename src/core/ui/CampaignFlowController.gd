@@ -1,4 +1,4 @@
-﻿class_name CampaignFlowController
+class_name CampaignFlowController
 extends Control
 
 ## Campaign Flow Controller - Modern Godot 4.x Signal-Based Architecture
@@ -176,7 +176,6 @@ func _setup_controller() -> void:
 		"current_phase": current_phase
 	}
 	
-	print("CampaignFlowController: Initialized successfully")
 
 func _connect_panel_signals() -> void:
 	## Connect to group-based panel signals for loose coupling
@@ -218,8 +217,6 @@ func _load_panel(phase: CampaignPhase) -> void:
 	# Begin loading process
 	currently_loading += 1
 	panel_info.state = PanelState.LOADING
-	
-	print("CampaignFlowController: Loading panel for phase ", _phase_to_string(phase))
 	
 	# Load PackedScene resource
 	if not panel_info.scene:
@@ -331,7 +328,7 @@ func _activate_panel(phase: CampaignPhase) -> void:
 	# Provide campaign state to panel
 	_provide_state_to_panel(panel_info.instance)
 	
-	print("CampaignFlowController: Activated panel for phase ", _phase_to_string(phase))
+	pass
 
 func _provide_state_to_panel(panel: Control) -> void:
 	## Provide current campaign state to a panel via signals
@@ -367,7 +364,7 @@ func _unload_panel(phase: CampaignPhase) -> void:
 	# Reset state
 	panel_info.state = PanelState.UNLOADED
 	
-	print("CampaignFlowController: Unloaded panel for phase ", _phase_to_string(phase))
+	pass
 
 func _disconnect_panel_signals(panel: Control) -> void:
 	## Disconnect all signals from a panel
@@ -415,7 +412,7 @@ func transition_to_phase(target_phase: CampaignPhase) -> void:
 	# Emit completion signal
 	phase_transition_completed.emit(old_phase, target_phase)
 	
-	print("CampaignFlowController: Transitioned from ", _phase_to_string(old_phase), " to ", _phase_to_string(target_phase))
+	pass
 
 func _can_transition_to_phase(target_phase: CampaignPhase) -> bool:
 	## Validate if transition to target phase is allowed
@@ -459,8 +456,6 @@ func _on_panel_completed(phase: CampaignPhase, panel_data: Dictionary) -> void:
 	if not campaign_state.completed_phases.has(phase):
 		campaign_state.completed_phases.append(phase)
 	
-	print("CampaignFlowController: Phase ", _phase_to_string(phase), " completed")
-	
 	# Auto-transition to next phase if not final
 	if phase != CampaignPhase.FINAL:
 		call_deferred("go_to_next_phase")
@@ -472,11 +467,10 @@ func _on_panel_validation_failed(phase: CampaignPhase, errors: Array) -> void:
 	## Handle panel validation failure
 	var error_message = "Panel validation failed for " + _phase_to_string(phase) + ": " + str(errors)
 	_log_error(error_message)
-	print("CampaignFlowController: ", error_message)
 
 func _on_panel_ready(phase: CampaignPhase) -> void:
 	## Handle panel ready signal
-	print("CampaignFlowController: Panel ready for phase ", _phase_to_string(phase))
+	pass
 
 func _on_tree_changed() -> void:
 	## Handle scene tree changes for automatic panel registration
@@ -491,7 +485,7 @@ func _on_tree_changed() -> void:
 func _register_external_panel(panel: Control) -> void:
 	## Register an external panel that joined the group
 	# Implementation for external panel registration
-	print("CampaignFlowController: Registered external panel: ", panel.name)
+	pass
 
 # ============================================================================
 # PHASE-SPECIFIC SIGNAL HANDLERS
@@ -500,27 +494,22 @@ func _register_external_panel(panel: Control) -> void:
 func _on_config_updated(config_data: Dictionary) -> void:
 	## Handle configuration updates from ConfigPanel
 	campaign_state.phases["config"] = config_data
-	print("CampaignFlowController: Configuration updated")
 
 func _on_crew_updated(crew_data: Array) -> void:
 	## Handle crew updates from CrewPanel
 	campaign_state.phases["crew"] = {"members": crew_data}
-	print("CampaignFlowController: Crew updated")
 
 func _on_captain_selected(captain_data: Dictionary) -> void:
 	## Handle captain selection from CaptainPanel
 	campaign_state.phases["captain"] = captain_data
-	print("CampaignFlowController: Captain selected")
 
 func _on_ship_configured(ship_data: Dictionary) -> void:
 	## Handle ship configuration from ShipPanel
 	campaign_state.phases["ship"] = ship_data
-	print("CampaignFlowController: Ship configured")
 
 func _on_equipment_allocated(equipment_data: Dictionary) -> void:
 	## Handle equipment allocation from EquipmentPanel
 	campaign_state.phases["equipment"] = equipment_data
-	print("CampaignFlowController: Equipment allocated")
 
 func _on_campaign_finalized(final_data: Dictionary) -> void:
 	## Handle campaign finalization from FinalPanel
@@ -539,7 +528,6 @@ func _complete_campaign_flow() -> void:
 	# Emit completion signal
 	campaign_flow_completed.emit(campaign_state)
 	
-	print("CampaignFlowController: Campaign flow completed successfully")
 
 # ============================================================================
 # ERROR HANDLING
@@ -587,7 +575,6 @@ func _notification(what: int) -> void:
 
 func _cleanup_resources() -> void:
 	## Clean up all resources and panel instances
-	print("CampaignFlowController: Cleaning up resources")
 	
 	# Unload all panels
 	for phase in panel_scenes.keys():

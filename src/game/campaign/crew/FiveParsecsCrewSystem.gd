@@ -3,11 +3,9 @@
 # Use explicit preloads instead of global class names
 extends "res://src/base/campaign/crew/BaseCrewSystem.gd"
 
-const Self = preload("res://src/game/campaign/crew/FiveParsecsCrewSystem.gd")
 const FPCM_Crew = preload("res://src/game/campaign/crew/FiveParsecsCrew.gd")
 const FPCM_CrewMember = preload("res://src/game/campaign/crew/FiveParsecsCrewMember.gd")
 const FiveParsecsStrangeCharacters = preload("res://src/game/campaign/crew/FiveParsecsStrangeCharacters.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")
 
 signal battle_completed(battle_data: Dictionary)
@@ -103,7 +101,7 @@ func add_strange_character(character_type: int = -1) -> FPCM_CrewMember:
 	var member = FPCM_CrewMember.new()
 	
 	# Randomize class
-	member.character_class = randi() % GameEnums.CharacterClass.size()
+	member.character_class = randi() % GlobalEnums.CharacterClass.size()
 	
 	# Generate random name
 	var first_names = [

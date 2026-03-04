@@ -1,4 +1,4 @@
-﻿extends CanvasLayer
+extends CanvasLayer
 class_name NotificationManagerClass
 
 ## NotificationManager - Toast/Snackbar notification system
@@ -62,7 +62,6 @@ func _ready() -> void:
 	# Create container for notifications
 	_setup_container()
 
-	print("NotificationManager: Initialized with %d max visible notifications" % MAX_VISIBLE)
 
 func _exit_tree() -> void:
 	clear_all()

@@ -3,7 +3,6 @@ extends Node
 # This file should be referenced via preload
 # Use explicit preloads instead of global class names
 
-const Self = preload("res://src/core/systems/UnifiedAISystem.gd")
 
 ## Dependencies
 const GameEnums = preload("res://src/core/enums/GameEnums.gd")

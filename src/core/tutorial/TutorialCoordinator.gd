@@ -41,13 +41,12 @@ func _ready() -> void:
 	_check_first_run()
 	_load_tutorial_config()
 	_initialize_overlay()
-	print("TutorialCoordinator: Initialized (first_run=%s)" % is_first_run)
+	pass
 
 ## Check if this is the user's first time running the app
 func _check_first_run() -> void:
 	is_first_run = not FileAccess.file_exists(PLAYER_SETTINGS_PATH)
 	if is_first_run:
-		print("TutorialCoordinator: First run detected - no player settings found")
 		first_run_detected.emit()
 
 ## Load tutorial configuration from JSON
@@ -70,14 +69,13 @@ func _load_tutorial_config() -> void:
 		return
 
 	tutorial_config = json.get_data()
-	print("TutorialCoordinator: Loaded tutorial config with %d event mappings" % tutorial_config.get("event_tool_mapping", {}).size())
+	pass
 
 ## Initialize the tutorial overlay component
 func _initialize_overlay() -> void:
 	# Check if overlay already exists in scene tree
 	tutorial_overlay = get_node_or_null("/root/TutorialOverlay")
 	if tutorial_overlay:
-		print("TutorialCoordinator: Found existing TutorialOverlay in scene tree")
 		return
 
 	# Create a new overlay instance if needed
@@ -97,7 +95,6 @@ func connect_to_story_track(story_system: Resource) -> void:
 	if story_system.has_signal("tutorial_requested"):
 		if not story_system.is_connected("tutorial_requested", _on_tutorial_requested):
 			story_system.tutorial_requested.connect(_on_tutorial_requested)
-			print("TutorialCoordinator: Connected to StoryTrackSystem.tutorial_requested")
 
 	# Sync guided mode state
 	if "guided_mode_enabled" in story_system:
@@ -142,7 +139,6 @@ func _on_guided_mode_confirmed(dialog: ConfirmationDialog) -> void:
 	if story_track_system and "guided_mode_enabled" in story_track_system:
 		story_track_system.guided_mode_enabled = true
 
-	print("TutorialCoordinator: Guided mode enabled by user")
 	guided_mode_selected.emit(true)
 	dialog.queue_free()
 
@@ -150,7 +146,6 @@ func _on_guided_mode_declined(dialog: ConfirmationDialog) -> void:
 	guided_mode_enabled = false
 	_save_guided_mode_preference(false)
 
-	print("TutorialCoordinator: User declined guided mode")
 	guided_mode_selected.emit(false)
 	dialog.queue_free()
 
@@ -177,7 +172,6 @@ func _save_guided_mode_preference(enabled: bool) -> void:
 	if file:
 		file.store_string(JSON.stringify(settings, "\t"))
 		file.close()
-		print("TutorialCoordinator: Saved player settings")
 	else:
 		push_error("TutorialCoordinator: Failed to save player settings")
 
@@ -205,7 +199,6 @@ func _on_tutorial_requested(event_id: String, companion_tools: Array, story_cont
 	if not guided_mode_enabled:
 		return
 
-	print("TutorialCoordinator: Tutorial requested for event '%s'" % event_id)
 	_current_hint_event_id = event_id
 
 	# Get additional hint text from tutorial config
@@ -330,7 +323,6 @@ func force_enable_guided_mode() -> void:
 	guided_mode_enabled = true
 	if story_track_system and "guided_mode_enabled" in story_track_system:
 		story_track_system.guided_mode_enabled = true
-	print("TutorialCoordinator: Forced guided mode enabled")
 
 ## Force disable guided mode
 func force_disable_guided_mode() -> void:
@@ -338,7 +330,6 @@ func force_disable_guided_mode() -> void:
 	if story_track_system and "guided_mode_enabled" in story_track_system:
 		story_track_system.guided_mode_enabled = false
 	dismiss_current_hint()
-	print("TutorialCoordinator: Forced guided mode disabled")
 
 ## Get current tutorial state for save/load
 func get_tutorial_state() -> Dictionary:

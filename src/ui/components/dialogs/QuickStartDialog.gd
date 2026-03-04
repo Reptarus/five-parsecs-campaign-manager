@@ -5,7 +5,6 @@ class_name QuickStartDialog
 ## A dialog for quickly starting a new campaign with templates or importing data
 ## Provides template selection, mobile-friendly UI, and gesture support
 
-const Self = preload("res://src/ui/components/dialogs/QuickStartDialog.gd")
 const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const GestureManager = preload("res://src/ui/components/gesture/GestureManager.gd")
 

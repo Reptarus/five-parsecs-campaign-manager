@@ -1,4 +1,4 @@
-﻿@warning_ignore("return_value_discarded")
+@warning_ignore("return_value_discarded")
 # UNSAFE_METHOD_ACCESS and UNTYPED_DECLARATION warnings fixed with type safety patterns
 class_name EconomySystem
 extends Node
@@ -115,7 +115,6 @@ func initialize() -> bool:
 	_errors.clear()
 
 	# Dependencies are now compile-time validated via preload
-	print("EconomySystem: Initializing with verified dependencies...")
 
 	# Try to get game state through GameStateManager
 	if GameStateManager and GameStateManager.has_method("get_game_state"):
@@ -132,7 +131,7 @@ func initialize() -> bool:
 	_last_update = Time.get_unix_time_from_system()
 
 	if _initialized:
-		print("EconomySystem: Successfully initialized")
+		pass
 	else:
 		push_error("EconomySystem: Failed to initialize - errors: " + str(_errors))
 

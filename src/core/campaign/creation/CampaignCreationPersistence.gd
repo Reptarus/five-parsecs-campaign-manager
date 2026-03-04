@@ -1,4 +1,4 @@
-﻿extends RefCounted
+extends RefCounted
 class_name CampaignCreationPersistence
 
 ## Campaign Creation Persistence Bridge
@@ -58,7 +58,7 @@ func _setup_auto_save():
 	auto_save_timer.autostart = false
 	
 	# Auto-save will be started when campaign creation begins
-	print("CampaignCreationPersistence: Auto-save configured (interval: %d seconds)" % auto_save_interval)
+	pass
 
 ## Public Interface
 
@@ -66,13 +66,11 @@ func start_persistence_monitoring():
 	## Start monitoring campaign creation for persistence
 	if auto_save_enabled and auto_save_timer:
 		auto_save_timer.start()
-		print("CampaignCreationPersistence: Started persistence monitoring")
 
 func stop_persistence_monitoring():
 	## Stop persistence monitoring
 	if auto_save_timer:
 		auto_save_timer.stop()
-		print("CampaignCreationPersistence: Stopped persistence monitoring")
 
 func save_current_state() -> bool:
 	## Save current campaign creation state
@@ -86,7 +84,6 @@ func save_current_state() -> bool:
 	if result:
 		last_save_timestamp = Time.get_datetime_string_from_system()
 		persistence_data_saved.emit(temp_save_path)
-		print("CampaignCreationPersistence: Current state saved")
 	else:
 		persistence_error.emit("Failed to save current state")
 	
@@ -95,7 +92,6 @@ func save_current_state() -> bool:
 func load_persisted_state() -> Dictionary:
 	## Load persisted campaign creation state
 	if not FileAccess.file_exists(temp_save_path):
-		print("CampaignCreationPersistence: No persisted state found")
 		return {}
 	
 	var persisted_data = _read_persistence_file(temp_save_path)
@@ -110,7 +106,6 @@ func load_persisted_state() -> Dictionary:
 		return {}
 	
 	persistence_data_loaded.emit(persisted_data)
-	print("CampaignCreationPersistence: Persisted state loaded")
 	return persisted_data
 
 func create_backup() -> String:
@@ -128,7 +123,6 @@ func create_backup() -> String:
 	if result:
 		_cleanup_old_backups()
 		auto_backup_created.emit(backup_path)
-		print("CampaignCreationPersistence: Backup created - %s" % backup_filename)
 		return backup_path
 	else:
 		persistence_error.emit("Failed to create backup")
@@ -151,7 +145,6 @@ func restore_from_backup(backup_path: String) -> Dictionary:
 		persistence_error.emit("Invalid backup data: " + validation_result.error)
 		return {}
 	
-	print("CampaignCreationPersistence: Restored from backup - %s" % backup_path.get_file())
 	return backup_data
 
 func get_available_backups() -> Array[Dictionary]:
@@ -190,7 +183,6 @@ func clear_persistence_data():
 	for backup in backups:
 		DirAccess.remove_absolute(backup.path)
 	
-	print("CampaignCreationPersistence: All persistence data cleared")
 
 ## Panel Integration Methods
 
@@ -255,7 +247,6 @@ func _write_persistence_file(file_path: String, data: Dictionary) -> bool:
 	var file = FileAccess.open(file_path, FileAccess.WRITE)
 	
 	if not file:
-		print("CampaignCreationPersistence: Failed to open file for writing - %s" % file_path)
 		return false
 	
 	var json_string = JSON.stringify(data, "\t")
@@ -264,7 +255,6 @@ func _write_persistence_file(file_path: String, data: Dictionary) -> bool:
 	
 	# Verify write success
 	if not FileAccess.file_exists(file_path):
-		print("CampaignCreationPersistence: File verification failed after write")
 		return false
 	
 	return true
@@ -274,27 +264,24 @@ func _read_persistence_file(file_path: String) -> Dictionary:
 	var file = FileAccess.open(file_path, FileAccess.READ)
 	
 	if not file:
-		print("CampaignCreationPersistence: Failed to open file for reading - %s" % file_path)
 		return {}
 	
 	var json_string = file.get_as_text()
 	file.close()
 	
 	if json_string.is_empty():
-		print("CampaignCreationPersistence: Empty file content")
 		return {}
 	
 	var json = JSON.new()
 	var parse_result = json.parse(json_string)
 	
 	if parse_result != OK:
-		print("CampaignCreationPersistence: JSON parse error - %s" % json.get_error_message())
+		push_warning("CampaignCreationPersistence: JSON parse error - %s" % json.get_error_message())
 		return {}
 	
 	var data = json.data
 	
 	if not data is Dictionary:
-		print("CampaignCreationPersistence: Invalid data format - not a dictionary")
 		return {}
 	
 	return data
@@ -310,9 +297,9 @@ func _validate_persistence_data(data: Dictionary) -> Dictionary:
 	# Version compatibility check
 	var version = data.get("version", "")
 	if version != PERSISTENCE_VERSION:
-		print("CampaignCreationPersistence: Version mismatch - file: %s, current: %s" % [version, PERSISTENCE_VERSION])
 		# Allow version mismatches but log them
-	
+		pass
+
 	# Validate phase value
 	var phase = data.get("current_phase")
 	if not phase in CampaignCreationStateManager.Phase.values():
@@ -330,7 +317,7 @@ func _cleanup_old_backups():
 		for backup in files_to_delete:
 			DirAccess.remove_absolute(backup.path)
 		
-		print("CampaignCreationPersistence: Cleaned up %d old backup files" % files_to_delete.size())
+		pass
 
 ## Signal Handlers
 
@@ -338,7 +325,6 @@ func _on_auto_save_triggered():
 	## Handle auto-save timer
 	if state_manager:
 		save_current_state()
-		print("CampaignCreationPersistence: Auto-save completed")
 
 ## Integration with PersistenceService
 
@@ -352,9 +338,8 @@ func integrate_with_persistence_service():
 	if persistence_service:
 		# Connect to persistence service signals
 		persistence_service.save_error.connect(_on_persistence_service_error)
-		print("CampaignCreationPersistence: Integrated with PersistenceService")
 	else:
-		print("CampaignCreationPersistence: PersistenceService not available")
+		pass
 
 func _on_persistence_service_error(error_message: String):
 	## Handle errors from PersistenceService
@@ -402,7 +387,6 @@ func perform_crash_recovery() -> bool:
 	
 	if import_success:
 		state_manager.current_phase = current_phase
-		print("CampaignCreationPersistence: ✅ Crash recovery completed")
 		return true
 	else:
 		persistence_error.emit("Failed to import recovered data")
@@ -416,4 +400,3 @@ func cleanup():
 		auto_save_timer.stop()
 		auto_save_timer.queue_free()
 	
-	print("CampaignCreationPersistence: Cleanup completed")

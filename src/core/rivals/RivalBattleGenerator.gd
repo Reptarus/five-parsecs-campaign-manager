@@ -49,7 +49,6 @@ var battle_type_weights: Dictionary = {}
 
 func _ready() -> void:
 	_initialize_rival_data()
-	print("RivalBattleGenerator: Initialized successfully")
 
 ## Initialize rival battle data
 func _initialize_rival_data() -> void:
@@ -165,7 +164,6 @@ func generate_rival_battle(rival_data: Rival, current_turn: int, crew_size: int 
 	# Set victory/defeat conditions
 	_set_battle_outcomes(battle, rival_data)
 	
-	print("RivalBattleGenerator: Generated %s battle for rival %s (Escalation: %d)" % [battle.battle_type, rival_data.rival_name, escalation_level])
 	self.rival_battle_generated.emit(battle)
 	
 	return battle
@@ -345,7 +343,6 @@ func process_rival_defeat(rival_data: Rival, battle_result: Dictionary) -> Dicti
 	if removal_roll >= removal_threshold:
 		result.rival_removed = true
 		rival_data.active = false
-		print("RivalBattleGenerator: Rival %s permanently defeated" % rival_data.rival_name)
 		self.rival_defeated_permanently.emit(rival_data.rival_name)
 	else:
 		# Rival survives but may escalate or de-escalate
@@ -389,7 +386,6 @@ func generate_pursuit_scenario(rival_data: Rival, destination_planet: String) ->
 		else:
 			pursuit_data.pursuit_type = "tracked"   # Arrives in 2-3 turns, but knows location
 		
-		print("RivalBattleGenerator: Rival %s pursues to %s (%s pursuit)" % [rival_data.rival_name, destination_planet, pursuit_data.pursuit_type])
 		self.rival_pursuit_triggered.emit(rival_data.rival_name, pursuit_data)
 	
 	return pursuit_data

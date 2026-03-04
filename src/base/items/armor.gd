@@ -163,8 +163,8 @@ func from_dict(data: Dictionary) -> ArmorEquipment:
 		if data["armor_type"] is String:
 			# Convert string to enum value if needed
 			var type_str = data["armor_type"].to_upper()
-			if GameEnums.ArmorType.has(type_str):
-				armor_type = GameEnums.ArmorType[type_str]
+			if GlobalEnums.ArmorType.has(type_str):
+				armor_type = GlobalEnums.ArmorType[type_str]
 			else:
 				armor_type = 0
 		else:
@@ -182,7 +182,6 @@ func from_dict(data: Dictionary) -> ArmorEquipment:
 
 # Constants should be at the top of the file
 const FiveParsecsCharacter = preload("res://src/core/character/Base/Character.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 @export var armor_save: int = 0
 @export var armor_bonus: int = 0
 
@@ -209,12 +208,12 @@ func can_be_equipped_by(character: FiveParsecsCharacter) -> bool:
 	if not character:
 		return false
 		
-	var char_class = _get_character_property(character, "character_class", GameEnums.CharacterClass.NONE)
+	var char_class = _get_character_property(character, "character_class", GlobalEnums.CharacterClass.NONE)
 	
 	# Only Engineer class can use powered armor
 	match armor_type:
-		GameEnums.ArmorType.POWERED:
-			return char_class == GameEnums.CharacterClass.ENGINEER
+		GlobalEnums.ArmorType.POWERED:
+			return char_class == GlobalEnums.CharacterClass.ENGINEER
 		_:
 			return true
 
@@ -228,12 +227,12 @@ func apply_modifiers(character: FiveParsecsCharacter) -> void:
 	
 	# Apply cover modifiers based on armor type
 	match armor_type:
-		GameEnums.ArmorType.LIGHT:
-			character.add_combat_modifier(GameEnums.CombatModifier.COVER_LIGHT)
-		GameEnums.ArmorType.MEDIUM:
-			character.add_combat_modifier(GameEnums.CombatModifier.NONE)
-		GameEnums.ArmorType.HEAVY:
-			character.add_combat_modifier(GameEnums.CombatModifier.COVER_HEAVY)
+		GlobalEnums.ArmorType.LIGHT:
+			character.add_combat_modifier(GlobalEnums.CombatModifier.COVER_LIGHT)
+		GlobalEnums.ArmorType.MEDIUM:
+			character.add_combat_modifier(GlobalEnums.CombatModifier.NONE)
+		GlobalEnums.ArmorType.HEAVY:
+			character.add_combat_modifier(GlobalEnums.CombatModifier.COVER_HEAVY)
 
 func remove_modifiers(character: FiveParsecsCharacter) -> void:
 	if not character:
@@ -245,23 +244,23 @@ func remove_modifiers(character: FiveParsecsCharacter) -> void:
 	
 	# Remove cover modifiers based on armor type
 	match armor_type:
-		GameEnums.ArmorType.LIGHT:
-			character.remove_combat_modifier(GameEnums.CombatModifier.COVER_LIGHT)
-		GameEnums.ArmorType.MEDIUM:
-			character.remove_combat_modifier(GameEnums.CombatModifier.NONE)
-		GameEnums.ArmorType.HEAVY:
-			character.remove_combat_modifier(GameEnums.CombatModifier.COVER_HEAVY)
+		GlobalEnums.ArmorType.LIGHT:
+			character.remove_combat_modifier(GlobalEnums.CombatModifier.COVER_LIGHT)
+		GlobalEnums.ArmorType.MEDIUM:
+			character.remove_combat_modifier(GlobalEnums.CombatModifier.NONE)
+		GlobalEnums.ArmorType.HEAVY:
+			character.remove_combat_modifier(GlobalEnums.CombatModifier.COVER_HEAVY)
 
 func get_display_name() -> String:
 	var armor_type_name = "Unknown"
 	
 	# Get the armor type name from the enum if possible
-	if armor_type is int and armor_type >= 0 and GameEnums.ArmorType.size() > armor_type:
-		armor_type_name = GameEnums.ArmorType.keys()[armor_type]
+	if armor_type is int and armor_type >= 0 and GlobalEnums.ArmorType.size() > armor_type:
+		armor_type_name = GlobalEnums.ArmorType.keys()[armor_type]
 	
 	var rarity_name = "Common"
-	if rarity is int and rarity >= 0 and rarity < GameEnums.ItemRarity.size():
-		rarity_name = GameEnums.ItemRarity.keys()[rarity]
+	if rarity is int and rarity >= 0 and rarity < GlobalEnums.ItemRarity.size():
+		rarity_name = GlobalEnums.ItemRarity.keys()[rarity]
 		
 	return "%s %s (%s)" % [
 		armor_type_name,
@@ -274,8 +273,8 @@ func get_description() -> String:
 	
 	var armor_type_name = "Unknown"
 	# Get the armor type name from the enum if possible
-	if armor_type is int and armor_type >= 0 and GameEnums.ArmorType.size() > armor_type:
-		armor_type_name = GameEnums.ArmorType.keys()[armor_type]
+	if armor_type is int and armor_type >= 0 and GlobalEnums.ArmorType.size() > armor_type:
+		armor_type_name = GlobalEnums.ArmorType.keys()[armor_type]
 		
 	desc += "\n\nArmor Type: %s" % armor_type_name
 	desc += "\nArmor Save: %d+" % armor_save if armor_save > 0 else ""

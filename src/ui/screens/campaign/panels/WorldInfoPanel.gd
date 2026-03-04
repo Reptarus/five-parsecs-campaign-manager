@@ -135,16 +135,8 @@ func _ready() -> void:
 
 func _verify_button_creation() -> void:
 	## Verify buttons were created and added correctly
-	print("\n🔍 BUTTON CREATION VERIFICATION")
-	print("Generate Button Exists: %s" % (generate_button != null))
-	print("Reroll Button Exists: %s" % (reroll_button != null))
-	print("Confirm Button Exists: %s" % (confirm_button != null))
-
-	if generate_button and generate_button.is_inside_tree():
-		print("✅ Buttons successfully added to scene tree")
-	else:
-		print("❌ Buttons NOT in scene tree - check Content container path")
-	print("")
+	if not generate_button or not reroll_button or not confirm_button:
+		push_warning("WorldInfoPanel: One or more control buttons failed to create")
 
 func _apply_input_styling() -> void:
 	## Apply design system styling to programmatically-created buttons (eliminates stretched teal bars)
@@ -157,7 +149,6 @@ func _apply_input_styling() -> void:
 		_style_button(confirm_button)
 		confirm_button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 
-	print("WorldInfoPanel: Design system styling applied to buttons")
 
 # NOTE: _style_button() now inherited from BaseCampaignPanel - removed duplicate
 
@@ -177,7 +168,6 @@ func _initialize_world_generator() -> void:
 	# Connect world generation signal with defensive check
 	if world_generator.has_signal("world_generated"):
 		world_generator.world_generated.connect(_on_world_generated_from_generator)
-		print("WorldInfoPanel: WorldGenerator initialized and connected")
 	else:
 		push_warning("WorldInfoPanel: WorldGenerator missing expected signal")
 
@@ -195,7 +185,6 @@ func _setup_world_panel() -> void:
 
 func _setup_control_buttons() -> void:
 	## Create and setup control buttons for world generation
-	print("WorldInfoPanel: Setting up control buttons")
 	
 	# Find the Content container where we should add buttons
 	var content_container = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content")
@@ -249,11 +238,9 @@ func _setup_control_buttons() -> void:
 	# Move to bottom of content if possible
 	content_container.move_child(button_container, content_container.get_child_count() - 1)
 	
-	print("WorldInfoPanel: Control buttons created and added to Content container")
 
 func _on_generate_button_pressed() -> void:
 	## Handle generate world button press
-	print("WorldInfoPanel: Generate button pressed")
 	
 	# Generate a new world
 	var campaign_name = _get_campaign_name_safe()
@@ -278,7 +265,6 @@ func _on_generate_button_pressed() -> void:
 
 func _on_reroll_button_pressed() -> void:
 	## Handle reroll world button press
-	print("WorldInfoPanel: Reroll button pressed")
 	
 	# Generate a new world with different seed
 	var campaign_name = _get_campaign_name_safe()
@@ -294,7 +280,6 @@ func _on_reroll_button_pressed() -> void:
 
 func _on_confirm_button_pressed() -> void:
 	## Handle confirm world button press
-	print("WorldInfoPanel: Confirm button pressed")
 	
 	# Mark world as confirmed
 	is_world_confirmed = true
@@ -314,7 +299,6 @@ func _on_confirm_button_pressed() -> void:
 	# Emit panel completed signal
 	if is_world_confirmed and not current_world_data.is_empty():
 		panel_completed.emit(get_panel_data())
-		print("WorldInfoPanel: World confirmed and panel completed")
 
 	# Emit world_created signal for CampaignCreationUI
 	world_created.emit(current_world_data)
@@ -344,7 +328,6 @@ func _update_validation_state() -> void:
 		if coordinator and coordinator.has_method("update_world_state"):
 			coordinator.update_world_state(current_world_data)
 	
-	print("WorldInfoPanel: Validation state updated - Valid: %s" % is_valid)
 
 func _connect_campaign_signals() -> void:
 	# Connect to campaign signals - Framework Bible compliant
@@ -375,7 +358,6 @@ func _apply_mobile_layout() -> void:
 	if confirm_button:
 		confirm_button.custom_minimum_size.y = TOUCH_TARGET_COMFORT
 
-	print("WorldInfoPanel: Applied MOBILE layout")
 
 func _apply_tablet_layout() -> void:
 	## Tablet-specific layout: Two-column where appropriate
@@ -395,7 +377,6 @@ func _apply_tablet_layout() -> void:
 	if confirm_button:
 		confirm_button.custom_minimum_size.y = TOUCH_TARGET_MIN
 
-	print("WorldInfoPanel: Applied TABLET layout")
 
 func _apply_desktop_layout() -> void:
 	## Desktop-specific layout: Full data visibility, multi-column
@@ -415,25 +396,20 @@ func _apply_desktop_layout() -> void:
 	if confirm_button:
 		confirm_button.custom_minimum_size.y = TOUCH_TARGET_MIN
 
-	print("WorldInfoPanel: Applied DESKTOP layout")
 
 ## Main world display update function
 func update_world_display(world_name: String) -> void:
 	## Generate and display world data using WorldGenerator with fallback templates
-	print("WorldInfoPanel: Updating world display for: %s" % world_name)
 	
 	# Generate world if not already generated
 	if current_world_data.is_empty():
-		print("WorldInfoPanel: No world data - generating new world")
 		_generate_world_with_fallback(world_name)
 	else:
-		print("WorldInfoPanel: Using existing world data")
 		_display_world_data(current_world_data)
 
 func _generate_world_with_fallback(world_name: String) -> void:
 	## Generate world using WorldGenerator with defensive fallback
 	if world_generator:
-		print("WorldInfoPanel: Generating world using WorldGenerator")
 		
 		# Get campaign turn from state if available for difficulty scaling
 		var campaign_turn = _get_campaign_turn_safe()
@@ -453,7 +429,6 @@ func _generate_world_with_fallback(world_name: String) -> void:
 			push_warning("WorldInfoPanel: WorldGenerator returned empty data - using fallback template")
 			_use_fallback_world_template(world_name)
 	else:
-		print("WorldInfoPanel: WorldGenerator not available - using fallback template")
 		_use_fallback_world_template(world_name)
 
 func _use_fallback_world_template(world_name: String) -> void:
@@ -471,7 +446,6 @@ func _use_fallback_world_template(world_name: String) -> void:
 	fallback_world["name"] = world_name if not world_name.is_empty() else original_name
 	fallback_world["id"] = "fallback_" + str(Time.get_unix_time_from_system())
 	
-	print("WorldInfoPanel: Using fallback template: %s" % template_key)
 	_on_world_generated_from_generator(fallback_world)
 
 func _select_appropriate_template() -> String:
@@ -518,7 +492,6 @@ func _display_world_data(world_data: Dictionary) -> void:
 	_display_threats(safe_threats)
 	_update_world_summary()
 	
-	print("WorldInfoPanel: World data displayed successfully with DataValidator safety")
 
 func _display_world_traits(world_features: Array) -> void:
 	if not world_traits_container:
@@ -910,7 +883,6 @@ func _determine_tech_level(world_data: Dictionary) -> int:
 
 func _on_world_generated_from_generator(world_data: Dictionary) -> void:
 	## Handle world generated from WorldGenerator or fallback template
-	print("WorldInfoPanel: World generated: %s" % world_data.get("name", "Unknown"))
 	current_world_data = world_data
 	_display_world_data(world_data)
 
@@ -955,7 +927,6 @@ func _send_world_data_to_coordinator(world_data: Dictionary) -> void:
 	# Update coordinator with world state
 	if coordinator.has_method("update_world_state"):
 		coordinator.update_world_state(world_data)
-		print("WorldInfoPanel: World data sent to coordinator")
 	else:
 		push_warning("WorldInfoPanel: Coordinator missing update_world_state method")
 
@@ -1094,22 +1065,18 @@ func validate_panel() -> bool:
 	var is_valid: bool = is_world_generated and is_world_confirmed and not current_world_data.is_empty()
 	
 	if not is_world_generated:
-		print("WorldInfoPanel: Validation failed - No world generated")
 		var errors: Array[String] = ["Please generate a world before proceeding"]
 		validation_failed.emit(errors)
 		return false
 	elif not is_world_confirmed:
-		print("WorldInfoPanel: Validation failed - World not confirmed")
 		var errors: Array[String] = ["Please confirm your world selection before proceeding"]
 		validation_failed.emit(errors)
 		return false
 	elif current_world_data.is_empty():
-		print("WorldInfoPanel: Validation failed - World data is empty")
 		var errors: Array[String] = ["World data is missing, please regenerate"]
 		validation_failed.emit(errors)
 		return false
 	
-	print("WorldInfoPanel: Validation passed - World ready")
 	return true
 
 func get_panel_data() -> Dictionary:
@@ -1130,7 +1097,6 @@ func get_panel_data() -> Dictionary:
 		"tech_level": current_world_data.get("tech_level", 0)
 	}
 	
-	print("WorldInfoPanel: Returning panel data with world: %s" % current_world_data.get("name", "Unknown"))
 	return panel_data
 
 func reset_panel() -> void:
@@ -1150,28 +1116,21 @@ func reset_panel() -> void:
 func restore_panel_data(data: Dictionary) -> void:
 	## Restore panel data from persistence system
 	if data.is_empty():
-		print("WorldInfoPanel: No data to restore")
 		return
-
-	print("WorldInfoPanel: Restoring panel data: ", data.keys())
 
 	# Restore world data - handle both "current_world" and "world" keys
 	if data.has("current_world") and data.current_world is Dictionary:
 		current_world_data = data.current_world.duplicate()
-		print("WorldInfoPanel: Restored world: ", current_world_data.get("name", "Unknown World"))
 	elif data.has("world") and data.world is Dictionary:
 		current_world_data = data.world.duplicate()
-		print("WorldInfoPanel: Restored world from 'world' key: ", current_world_data.get("name", "Unknown World"))
 
 	# Restore opportunities
 	if data.has("opportunities") and data.opportunities is Array:
 		world_opportunities = data.opportunities.duplicate()
-		print("WorldInfoPanel: Restored %d opportunities" % world_opportunities.size())
 
 	# Restore threats
 	if data.has("threats") and data.threats is Array:
 		world_threats = data.threats.duplicate()
-		print("WorldInfoPanel: Restored %d threats" % world_threats.size())
 
 	# Restore state flags
 	if data.has("is_complete"):
@@ -1182,7 +1141,6 @@ func restore_panel_data(data: Dictionary) -> void:
 	if current_world_data.has("name"):
 		update_world_display(current_world_data.get("name", "Unknown World"))
 
-	print("WorldInfoPanel: Panel data restoration complete")
 
 func set_panel_data(data: Dictionary) -> void:
 	## Required panel contract method - delegates to restore_panel_data
@@ -1190,17 +1148,14 @@ func set_panel_data(data: Dictionary) -> void:
 
 func _on_coordinator_set() -> void:
 	## Called when coordinator is assigned - sync initial world state
-	print("WorldInfoPanel: Coordinator set, syncing initial state")
 	var coord = get_coordinator_reference()
 	if coord and coord.has_method("get_unified_campaign_state"):
 		var state = coord.get_unified_campaign_state()
 		if state.has("world") and state.world is Dictionary and not state.world.is_empty():
-			print("WorldInfoPanel: Found existing world data in coordinator")
 			restore_panel_data({"world": state.world})
 
 func _on_campaign_state_updated(state_data: Dictionary) -> void:
 	## React to campaign state updates - setup initial world display
-	print("WorldInfoPanel: Campaign state updated")
 	
 	# Store campaign data for world generation
 	var campaign_data = state_data.duplicate()
@@ -1209,7 +1164,6 @@ func _on_campaign_state_updated(state_data: Dictionary) -> void:
 	if state_data.has("world") and state_data.world is Dictionary and not state_data.world.is_empty():
 		var existing_world = state_data.world
 		if existing_world.has("name") and not existing_world.name.is_empty():
-			print("WorldInfoPanel: Found existing world data: %s" % existing_world.get("name"))
 			current_world_data = existing_world
 			_display_world_data(current_world_data)
 			
@@ -1239,11 +1193,9 @@ func _on_campaign_state_updated(state_data: Dictionary) -> void:
 		var captain_background = captain_data.get("background", "")
 		
 		var danger_modifier = _calculate_danger_level(crew_size, captain_background)
-		print("WorldInfoPanel: Set danger modifier to %d based on crew size %d and captain %s" % [danger_modifier, crew_size, captain_background])
 
 func _generate_world_from_campaign_data(campaign_data: Dictionary) -> void:
 	## Generate world based on accumulated campaign data from previous panels
-	print("WorldInfoPanel: Generating world from campaign data")
 	
 	# Get campaign details
 	var campaign_config = campaign_data.get("campaign_config", {})
@@ -1293,7 +1245,6 @@ func _generate_world_from_campaign_data(campaign_data: Dictionary) -> void:
 	# Send to coordinator
 	_send_world_data_to_coordinator(world_data)
 
-	print("WorldInfoPanel: World generation complete: %s" % world_name)
 
 func _adjust_world_generation_parameters(campaign_data: Dictionary) -> void:
 	## Adjust world generator parameters based on campaign data
@@ -1317,7 +1268,6 @@ func _adjust_world_generation_parameters(campaign_data: Dictionary) -> void:
 	# Apply adjustments if world generator supports them
 	if world_generator.has_method("set_danger_level_modifier"):
 		world_generator.set_danger_level_modifier(danger_modifier)
-		print("WorldInfoPanel: Set danger modifier to %d based on crew size %d and captain %s" % [danger_modifier, crew_size, captain_background])
 
 func _determine_world_type_from_campaign(captain_background: String, ship_type: String) -> String:
 	## Determine appropriate world type based on campaign background
@@ -1603,48 +1553,9 @@ func _generate_starting_threats(danger_level: int, world_type: String) -> Array[
 ## Debug Helper Methods
 
 func _log_panel_initialization_debug() -> void:
-	## Comprehensive debug output for panel initialization
-	print("\n==== [PANEL: WorldInfoPanel] INITIALIZATION ====")
-	print("  Phase: 6 of 7 (World Generation)")
-	print("  Panel Title: %s" % panel_title)
-	print("  Panel Description: %s" % panel_description)
+	## Panel initialization verification (debug output removed for release)
+	pass
 	
-	# Check for coordinator access
-	# Fixed: Check owner (CampaignCreationUI) instead of direct parent (content_container)
-	var parent_node = get_parent()
-	var campaign_ui = owner if owner != null else (parent_node.get_parent() if parent_node else null)
-	var has_coordinator = campaign_ui != null and campaign_ui.has_method("get_coordinator")
-	print("  Has Coordinator Access: %s" % has_coordinator)
-	if has_coordinator:
-		var coordinator = campaign_ui.get_coordinator() if campaign_ui.has_method("get_coordinator") else null
-		print("    Coordinator Available: %s" % (coordinator != null))
-	
-	# Check autoloaded managers availability
-	print("  === AUTOLOAD MANAGER CHECK ===")
-	var campaign_manager = get_node_or_null("/root/CampaignManager")
-	var game_state_manager = get_node_or_null("/root/GameStateManager")
-	var sector_manager = get_node_or_null("/root/SectorManager")
-	
-	print("    CampaignManager: %s" % (campaign_manager != null))
-	print("    GameStateManager: %s" % (game_state_manager != null))
-	print("    SectorManager: %s" % (sector_manager != null))
-	
-	# Check current world data
-	print("  === INITIAL WORLD DATA ===")
-	print("    Current World Data Keys: %s" % str(current_world_data.keys()))
-	print("    World Opportunities: %d" % world_opportunities.size())
-	print("    World Threats: %d" % world_threats.size())
-	print("    Selected Opportunity: '%s'" % selected_opportunity)
-	print("    World Data Updated: %s" % is_world_data_updated)
-	
-	# Check UI component availability  
-	print("  === UI COMPONENTS ===")
-	print("    World Name Label: %s" % (world_name_label != null))
-	print("    Government Info: %s" % (government_info != null))
-	print("    Tech Level Display: %s" % (tech_level_display != null))
-	print("    Campaign Signals: %s" % (campaign_signals != null))
-	
-	print("==== [PANEL: WorldInfoPanel] INIT COMPLETE ====\n")
 
 ## Coordinator Integration Methods
 
@@ -1656,13 +1567,11 @@ func set_coordinator(coord: Node) -> void:
 
 	coordinator = coord
 	_coordinator = coord  # BUGFIX: Also set base class variable for get_coordinator_reference()
-	print("WorldInfoPanel: Coordinator set")
 	
 	# Connect to coordinator's campaign state updates with safety checks
 	if coordinator.has_signal("campaign_state_updated"):
 		if not coordinator.campaign_state_updated.is_connected(_on_campaign_state_updated):
 			coordinator.campaign_state_updated.connect(_on_campaign_state_updated)
-			print("WorldInfoPanel: Connected to coordinator campaign_state_updated signal")
 	else:
 		push_warning("WorldInfoPanel: Coordinator missing campaign_state_updated signal")
 	
@@ -1673,7 +1582,6 @@ func set_coordinator(coord: Node) -> void:
 	# Sync existing state if available
 	_sync_with_coordinator()
 	
-	print("WorldInfoPanel: Syncing with coordinator - phase key: %s" % panel_phase_key)
 
 func _sync_with_coordinator() -> void:
 	## Synchronize with coordinator's current state
@@ -1685,7 +1593,6 @@ func _sync_with_coordinator() -> void:
 		if state and state.has("world"):
 			var world_state = state.get("world", {})
 			if world_state is Dictionary and not world_state.is_empty():
-				print("WorldInfoPanel: Received world state update with keys: %s" % str(world_state.keys()))
 				current_world_data = world_state
 				_display_world_data(current_world_data)
 				
@@ -1696,7 +1603,6 @@ func _sync_with_coordinator() -> void:
 				# Update button states
 				_update_button_states()
 	
-	print("WorldInfoPanel: Synced with coordinator - phase key: %s" % panel_phase_key)
 
 func _update_button_states() -> void:
 	## Update control button states based on current world status
@@ -1716,10 +1622,8 @@ func _update_button_states() -> void:
 func sync_with_coordinator() -> void:
 	## Sync panel with coordinator state
 	if not coordinator:
-		print("WorldInfoPanel: No coordinator available for sync")
 		return
 	
-	print("WorldInfoPanel: Syncing with coordinator - phase key: %s" % panel_phase_key)
 	
 	# Get campaign state from coordinator
 	var campaign_state = {}
@@ -1730,25 +1634,20 @@ func sync_with_coordinator() -> void:
 	
 	# If we have campaign data and no world yet, generate one
 	if not campaign_state.is_empty() and current_world_data.is_empty():
-		print("WorldInfoPanel: Generating world from campaign state")
 		_generate_world_from_campaign_data(campaign_state)
 	
 	# Update display with any existing world data
 	var world_data = campaign_state.get("world", {})
 	if not world_data.is_empty():
-		print("WorldInfoPanel: Received world state update with keys: %s" % str(world_data.keys()))
 		current_world_data = world_data
 		_display_world_data(world_data)
 	elif current_world_data.is_empty():
 		# Generate a default world if nothing exists
-		print("WorldInfoPanel: No world data found - generating default world")
 		_generate_default_world()
 	
-	print("WorldInfoPanel: Synced with coordinator - phase key: %s" % panel_phase_key)
 
 func _generate_default_world() -> void:
 	## Generate a default world when no campaign data is available
-	print("WorldInfoPanel: Generating default starter world")
 	
 	# Use the starter-friendly template
 	var default_world = WORLD_TEMPLATES["starter_friendly"].duplicate(true)
@@ -1764,31 +1663,9 @@ func _generate_default_world() -> void:
 	# Update coordinator
 	if coordinator and coordinator.has_method("update_world_state"):
 		coordinator.update_world_state(default_world)
-		print("WorldInfoPanel: ✅ Updated coordinator with default world data")
 
 
 func _debug_button_state() -> void:
-	## Debug function to verify button creation and state
-	print("\n==== WORLD PANEL BUTTON DEBUG ====")
-	print("Generate Button: %s (Disabled: %s)" % [generate_button != null, 
-	generate_button.disabled if generate_button else "N/A"])
-	print("Reroll Button: %s (Disabled: %s)" % [reroll_button != null, 
-	reroll_button.disabled if reroll_button else "N/A"])
-	print("Confirm Button: %s (Disabled: %s)" % [confirm_button != null, 
-	confirm_button.disabled if confirm_button else "N/A"])
-	
-	# Check if buttons are in scene tree
-	if generate_button and generate_button.is_inside_tree():
-		print("Generate button is in scene tree at: %s" % generate_button.get_path())                                                                                                 
-	
-	# Check Content container
-	var content = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content")        
-	if content:
-		print("Content container has %d children" % content.get_child_count())     
-		for i in range(content.get_child_count()):
-			var child = content.get_child(i)
-			print("  Child %d: %s (%s)" % [i, child.name, child.get_class()])
-	else:
-		print("Content container not found!")
+	## Debug function to verify button creation and state (output removed for release)
+	pass
 
-	print("World Generated: %s, World Confirmed: %s" % [is_world_generated, is_world_confirmed])

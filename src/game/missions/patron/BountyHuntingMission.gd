@@ -437,14 +437,13 @@ func _handle_capture_failure() -> void:
 
 func _trigger_high_alert_response() -> void:
 	# Target becomes fully alert and takes defensive measures
-	print("BountyHuntingMission: Target %s is now on high alert" % target_name)
 	backup_called = true
 	if randf() < 0.4:
 		law_enforcement_involved = true
 
 func _complete_mission() -> void:
 	# Mark mission as completed
-	print("Bounty mission completed: %s" % target_name)
+	pass
 
 func has(property: String) -> bool:
 	# Simple property check for objectives

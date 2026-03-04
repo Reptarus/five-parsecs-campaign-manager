@@ -295,7 +295,6 @@ func _initialize_managers() -> void:
 		dice_manager = Node.new()
 		dice_manager.name = "FallbackDiceManager"
 		dice_manager.set_script(preload("res://src/core/systems/FallbackDiceManager.gd"))
-		print("StoryTrackPanel: Created fallback DiceManager")
 
 	# Get story track system from alpha manager if available
 	if alpha_manager and alpha_manager.has_method("get_story_track_system"):
@@ -316,7 +315,7 @@ func connect_to_story_system() -> void:
 	if story_track_system:
 		setup(story_track_system, campaign_manager)
 	else:
-		print("Warning: Story track system not available in StoryTrackPanel")
+		pass
 
 ## Get dice system for external use
 func get_dice_manager() -> Node:

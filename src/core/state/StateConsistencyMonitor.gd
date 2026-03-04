@@ -1,4 +1,4 @@
-﻿class_name StateConsistencyMonitor
+class_name StateConsistencyMonitor
 extends Node
 
 ## Real-time State Consistency Monitor - Phase 3C.2
@@ -71,7 +71,6 @@ func _ready() -> void:
 
 func _initialize_consistency_monitoring() -> void:
 	## Initialize real-time consistency monitoring
-	print("StateConsistencyMonitor: Initializing real-time consistency monitoring...")
 	
 	# Setup monitoring timer
 	consistency_timer = Timer.new()
@@ -91,7 +90,6 @@ func _initialize_consistency_monitoring() -> void:
 	# Initialize recovery attempts tracking
 	recovery_attempts = {}
 	
-	print("StateConsistencyMonitor: Monitoring system initialized")
 
 ## PUBLIC API
 
@@ -101,7 +99,6 @@ func start_monitoring(
 	p_health_monitor: IntegrationHealthMonitor = null
 ) -> void:
 	## Start real-time consistency monitoring
-	print("StateConsistencyMonitor: Starting consistency monitoring...")
 	
 	# Set system references
 	ui_controller = p_ui_controller
@@ -120,17 +117,15 @@ func start_monitoring(
 	# Perform initial consistency check
 	call_deferred("_perform_initial_consistency_check")
 	
-	print("StateConsistencyMonitor: Monitoring started (level: %s)" % MonitoringLevel.keys()[monitoring_level])
+	pass
 
 func stop_monitoring() -> void:
 	## Stop real-time consistency monitoring
-	print("StateConsistencyMonitor: Stopping consistency monitoring...")
 	
 	is_monitoring_active = false
 	if consistency_timer:
 		consistency_timer.stop()
 	
-	print("StateConsistencyMonitor: Monitoring stopped")
 
 func set_monitoring_level(new_level: MonitoringLevel) -> void:
 	## Set consistency monitoring level
@@ -153,11 +148,9 @@ func set_monitoring_level(new_level: MonitoringLevel) -> void:
 		consistency_timer.wait_time = float(check_interval_ms) / 1000.0
 	
 	monitoring_level_changed.emit(old_level, new_level)
-	print("StateConsistencyMonitor: Monitoring level changed to %s" % MonitoringLevel.keys()[new_level])
 
 func force_consistency_check() -> Array[ConsistencyAlert]:
 	## Force immediate consistency check
-	print("StateConsistencyMonitor: Forcing immediate consistency check...")
 	return _perform_consistency_check()
 
 func get_consistency_status() -> Dictionary:
@@ -196,13 +189,11 @@ func get_recent_alerts(count: int = 10) -> Array[ConsistencyAlert]:
 func clear_alert_history() -> void:
 	## Clear consistency alert history
 	alert_history.clear()
-	print("StateConsistencyMonitor: Alert history cleared")
 
 ## CONSISTENCY CHECKING
 
 func _perform_initial_consistency_check() -> void:
 	## Perform initial consistency check on startup
-	print("StateConsistencyMonitor: Performing initial consistency check...")
 	
 	var initial_alerts = _perform_consistency_check()
 	
@@ -401,7 +392,6 @@ func _process_consistency_alert(alert: ConsistencyAlert) -> void:
 	
 	# Log alert
 	var severity_text = AlertSeverity.keys()[alert.severity]
-	print("StateConsistencyMonitor: [%s] %s - %s" % [severity_text, alert.system_name, alert.message])
 	
 	# Attempt auto-recovery if enabled and appropriate
 	if auto_recovery_enabled and _should_attempt_recovery(alert):
@@ -419,7 +409,6 @@ func _should_attempt_recovery(alert: ConsistencyAlert) -> bool:
 
 func _attempt_auto_recovery(alert: ConsistencyAlert) -> void:
 	## Attempt automatic recovery from consistency issue
-	print("StateConsistencyMonitor: Attempting auto-recovery for %s..." % alert.system_name)
 	
 	# Track recovery attempt
 	recovery_attempts[alert.system_name] = recovery_attempts.get(alert.system_name, 0) + 1
@@ -444,10 +433,9 @@ func _attempt_auto_recovery(alert: ConsistencyAlert) -> void:
 	alert.recovery_successful = recovery_successful
 	
 	if recovery_successful:
-		print("StateConsistencyMonitor: Auto-recovery successful for %s" % alert.system_name)
 		consistency_restored.emit(alert.system_name, Time.get_ticks_msec() - alert.timestamp)
 	else:
-		print("StateConsistencyMonitor: Auto-recovery failed for %s" % alert.system_name)
+		pass
 
 ## RECOVERY METHODS
 
@@ -537,4 +525,3 @@ func _notification(what: int) -> void:
 		stop_monitoring()
 		if consistency_timer:
 			consistency_timer.stop()
-		print("StateConsistencyMonitor: Monitoring system stopped")

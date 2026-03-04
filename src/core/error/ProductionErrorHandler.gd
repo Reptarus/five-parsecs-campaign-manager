@@ -77,7 +77,6 @@ func _init() -> void:
 
 ## Initialize the production error handling system
 func _initialize_error_system() -> void:
-	print("[ProductionErrorHandler] Initializing production error handling system...")
 	
 	# Initialize error statistics
 	_error_statistics = {
@@ -108,7 +107,6 @@ func _initialize_error_system() -> void:
 	# Open error log file
 	_open_error_log()
 	
-	print("[ProductionErrorHandler] ✅ Error handling system initialized")
 
 ## Handle error with comprehensive analysis and recovery
 func handle_error(error_data: Dictionary) -> Dictionary:
@@ -164,7 +162,6 @@ func handle_error(error_data: Dictionary) -> Dictionary:
 
 ## Handle critical system failure
 func handle_critical_failure(failure_data: Dictionary) -> Dictionary:
-	print("[ProductionErrorHandler] ⚠️ CRITICAL FAILURE DETECTED")
 	
 	var critical_error: Dictionary = {
 		"type": "critical_failure",
@@ -494,7 +491,6 @@ func _execute_emergency_save(error_data: Dictionary) -> Dictionary:
 	}
 
 func _execute_immediate_shutdown(error_data: Dictionary) -> Dictionary:
-	print("[ProductionErrorHandler] 🚨 IMMEDIATE SHUTDOWN INITIATED")
 	
 	# Perform final emergency save
 	_perform_emergency_save()
@@ -509,7 +505,6 @@ func _execute_immediate_shutdown(error_data: Dictionary) -> Dictionary:
 	}
 
 func _execute_emergency_procedures(critical_error: Dictionary) -> Dictionary:
-	print("[ProductionErrorHandler] Executing emergency procedures...")
 	
 	var procedures_result: Dictionary = {
 		"emergency_save": false,
@@ -607,7 +602,7 @@ func _save_system_state_dump(state: Dictionary) -> void:
 
 func _send_emergency_notifications(error_data: Dictionary) -> bool:
 	# This would integrate with notification systems
-	print("[EMERGENCY NOTIFICATION] Critical error: ", error_data.get("message", "Unknown"))
+	push_error("[EMERGENCY NOTIFICATION] Critical error: %s" % error_data.get("message", "Unknown"))
 	return true
 
 func _log_error(error_data: Dictionary) -> void:
@@ -618,7 +613,6 @@ func _log_error(error_data: Dictionary) -> void:
 		error_data.get("message", "No message")
 	]
 	
-	print(log_entry)
 	
 	if _error_log_file:
 		_error_log_file.store_line(log_entry)
@@ -627,7 +621,7 @@ func _log_error(error_data: Dictionary) -> void:
 func _open_error_log() -> void:
 	_error_log_file = FileAccess.open(_error_log_path, FileAccess.WRITE)
 	if not _error_log_file:
-		print("[ProductionErrorHandler] Warning: Could not open error log file")
+		pass
 
 func _generate_error_id() -> String:
 	return "ERR_" + str(Time.get_ticks_msec()) + "_" + str(randi())

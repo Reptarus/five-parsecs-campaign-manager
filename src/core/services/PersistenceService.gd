@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 
 ## Persistence Service - Robust Save/Load System for Five Parsecs Campaign Manager
 ## Handles campaign saves, quick saves, auto-saves, and error recovery
@@ -60,13 +60,11 @@ func _ready() -> void:
 	_ensure_save_directory()
 	_setup_auto_save()
 	
-	print("PersistenceService: Initialized successfully")
 
 func _ensure_save_directory() -> void:
 	## Ensure save directory exists
 	if not DirAccess.dir_exists_absolute(SAVE_DIRECTORY):
 		DirAccess.open("user://").make_dir_recursive("saves")
-		print("PersistenceService: Created save directory")
 
 func _setup_auto_save() -> void:
 	## Setup automatic save system
@@ -90,9 +88,7 @@ func save_campaign(file_name: String = "", campaign_data: Dictionary = {}) -> bo
 	
 	if result:
 		_update_save_metadata(save_path, save_data)
-		print("PersistenceService: Campaign saved successfully - %s" % save_path)
 	else:
-		print("PersistenceService: Failed to save campaign - %s" % save_path)
 		save_error.emit("Failed to save campaign to " + save_path)
 	
 	save_completed.emit(save_path, result)
@@ -107,7 +103,7 @@ func load_campaign(file_path: String) -> Dictionary:
 		# Attempt automatic recovery
 		var recovery_result = attempt_recovery(file_path, ErrorType.FILE_ACCESS_ERROR)
 		if recovery_result.success:
-			print("PersistenceService: Load recovered using: %s" % recovery_result.get("recovery_source", "unknown"))
+			push_warning("PersistenceService: Load recovered using: %s" % recovery_result.get("recovery_source", "unknown"))
 			load_completed.emit(file_path, true, recovery_result.data)
 			return recovery_result.data
 		
@@ -123,7 +119,7 @@ func load_campaign(file_path: String) -> Dictionary:
 		# Attempt recovery for corrupted file
 		var recovery_result = attempt_recovery(file_path, ErrorType.DATA_CORRUPTION_ERROR)
 		if recovery_result.success:
-			print("PersistenceService: Load recovered using: %s" % recovery_result.get("recovery_source", "unknown"))
+			push_warning("PersistenceService: Load recovered using: %s" % recovery_result.get("recovery_source", "unknown"))
 			load_completed.emit(file_path, true, recovery_result.data)
 			return recovery_result.data
 		
@@ -139,7 +135,7 @@ func load_campaign(file_path: String) -> Dictionary:
 		# Attempt recovery for validation failure
 		var recovery_result = attempt_recovery(file_path, error_type)
 		if recovery_result.success:
-			print("PersistenceService: Load recovered using: %s" % recovery_result.get("recovery_source", "unknown"))
+			push_warning("PersistenceService: Load recovered using: %s" % recovery_result.get("recovery_source", "unknown"))
 			load_completed.emit(file_path, true, recovery_result.data)
 			return recovery_result.data
 		
@@ -162,7 +158,6 @@ func load_campaign(file_path: String) -> Dictionary:
 		if _legacy and _legacy.has_method("deserialize"):
 			_legacy.deserialize(_qol.get("hall_of_fame", {}))
 
-	print("PersistenceService: Campaign loaded successfully - %s" % file_path)
 	load_completed.emit(file_path, true, save_data)
 	return save_data
 
@@ -182,9 +177,8 @@ func quick_save() -> bool:
 	var result = _write_save_file(quick_save_path, campaign_data)
 	
 	if result:
-		print("PersistenceService: Quick save completed with backup rotation")
+		pass
 	else:
-		print("PersistenceService: Quick save failed")
 		save_error.emit("Quick save failed")
 	
 	return result
@@ -227,9 +221,8 @@ func delete_save(file_name: String) -> bool:
 	var result = DirAccess.remove_absolute(file_path) == OK
 	
 	if result:
-		print("PersistenceService: Save file deleted - %s" % file_name)
+		pass
 	else:
-		print("PersistenceService: Failed to delete save file - %s" % file_name)
 		save_error.emit("Failed to delete save file: " + file_name)
 	
 	return result
@@ -241,21 +234,19 @@ func start_auto_save() -> void:
 	if auto_save_timer:
 		auto_save_timer.start()
 		auto_save_enabled = true
-		print("PersistenceService: Auto-save started (interval: %d seconds)" % auto_save_interval)
+		pass # Auto-save started
 
 func stop_auto_save() -> void:
 	## Stop automatic save system
 	if auto_save_timer:
 		auto_save_timer.stop()
 		auto_save_enabled = false
-		print("PersistenceService: Auto-save stopped")
 
 func set_auto_save_interval(seconds: float) -> void:
 	## Set auto-save interval in seconds
 	auto_save_interval = seconds
 	if auto_save_timer:
 		auto_save_timer.wait_time = auto_save_interval
-		print("PersistenceService: Auto-save interval set to %d seconds" % seconds)
 
 ## Private Methods
 
@@ -328,7 +319,6 @@ func _write_save_file(file_path: String, save_data: Dictionary) -> bool:
 	var temp_file = FileAccess.open(temp_file_path, FileAccess.WRITE)
 	
 	if not temp_file:
-		print("PersistenceService: Failed to open temporary file for writing - %s" % temp_file_path)
 		return false
 	
 	# Convert to JSON with pretty formatting for debugging
@@ -338,7 +328,6 @@ func _write_save_file(file_path: String, save_data: Dictionary) -> bool:
 	
 	# Step 2: Verify temporary file was written correctly
 	if not FileAccess.file_exists(temp_file_path):
-		print("PersistenceService: Temporary file verification failed - %s" % temp_file_path)
 		return false
 	
 	# Step 3: Create backup of existing save (if it exists)
@@ -350,14 +339,12 @@ func _write_save_file(file_path: String, save_data: Dictionary) -> bool:
 		# Rename current save to backup
 		var dir = DirAccess.open(file_path.get_base_dir())
 		if dir.rename(file_path.get_file(), backup_file_path.get_file()) != OK:
-			print("PersistenceService: Failed to create backup of existing save")
 			DirAccess.remove_absolute(temp_file_path)  # Clean up temp file
 			return false
 	
 	# Step 4: Rename temporary file to final save file (atomic operation)
 	var dir = DirAccess.open(file_path.get_base_dir())
 	if dir.rename(temp_file_path.get_file(), file_path.get_file()) != OK:
-		print("PersistenceService: Failed to rename temporary file to final save - %s" % file_path)
 		# Attempt to restore backup if it existed
 		if FileAccess.file_exists(backup_file_path):
 			dir.rename(backup_file_path.get_file(), file_path.get_file())
@@ -366,10 +353,8 @@ func _write_save_file(file_path: String, save_data: Dictionary) -> bool:
 	
 	# Step 5: Final verification
 	if not FileAccess.file_exists(file_path):
-		print("PersistenceService: Final file verification failed after atomic save - %s" % file_path)
 		return false
 	
-	print("PersistenceService: Atomic save completed successfully - %s" % file_path)
 	return true
 
 func _read_save_file(file_path: String) -> Dictionary:
@@ -377,27 +362,24 @@ func _read_save_file(file_path: String) -> Dictionary:
 	var file = FileAccess.open(file_path, FileAccess.READ)
 	
 	if not file:
-		print("PersistenceService: Failed to open file for reading - %s" % file_path)
 		return {}
 	
 	var json_string = file.get_as_text()
 	file.close()
 	
 	if json_string.is_empty():
-		print("PersistenceService: Empty file content - %s" % file_path)
 		return {}
 	
 	var json = JSON.new()
 	var parse_result = json.parse(json_string)
 	
 	if parse_result != OK:
-		print("PersistenceService: JSON parse error at line %d - %s" % [json.get_error_line(), json.get_error_message()])
+		push_warning("PersistenceService: JSON parse error at line %d - %s" % [json.get_error_line(), json.get_error_message()])
 		return {}
 	
 	var save_data = json.data
 	
 	if not save_data is Dictionary:
-		print("PersistenceService: Invalid save data format - not a dictionary")
 		return {}
 	
 	return save_data
@@ -414,10 +396,10 @@ func _validate_save_data(save_data: Dictionary) -> Dictionary:
 	# Check save version compatibility
 	var save_version = save_data.get("save_version", "")
 	if save_version != SAVE_VERSION:
-		print("PersistenceService: Save version mismatch - file: %s, current: %s" % [save_version, SAVE_VERSION])
 		# For now, allow version mismatches but log them
 		# Future: Implement save migration system
-	
+		pass
+
 	# Verify data integrity if checksum is present
 	if save_data.has("data_checksum"):
 		var stored_checksum = save_data["data_checksum"]
@@ -432,9 +414,8 @@ func _validate_save_data(save_data: Dictionary) -> Dictionary:
 		if stored_checksum != calculated_checksum:
 			return {"valid": false, "error": "Data integrity check failed - save file may be corrupted or tampered with"}
 		
-		print("PersistenceService: Data integrity verified successfully")
 	else:
-		print("PersistenceService: Warning - No data integrity checksum found (older save format)")
+		push_warning("PersistenceService: No data integrity checksum found (older save format)")
 	
 	return {"valid": true, "error": ""}
 
@@ -476,7 +457,6 @@ func _on_auto_save_triggered() -> void:
 	## Handle auto-save timer trigger with backup rotation
 	var gs = get_node_or_null("/root/GameState")
 	if not gs:
-		print("PersistenceService: Auto-save skipped - GameState not available")
 		return
 
 	auto_save_triggered.emit()
@@ -490,9 +470,8 @@ func _on_auto_save_triggered() -> void:
 	var result = _write_save_file(auto_save_path, campaign_data)
 	
 	if result:
-		print("PersistenceService: Auto-save completed with backup rotation")
+		pass
 	else:
-		print("PersistenceService: Auto-save failed")
 		save_error.emit("Auto-save failed")
 
 ## Cleanup and Maintenance
@@ -508,7 +487,7 @@ func cleanup_old_saves() -> void:
 		for save_file in files_to_delete:
 			delete_save(save_file.file_name)
 		
-		print("PersistenceService: Cleaned up %d old save files" % files_to_delete.size())
+		pass # Save files cleaned up
 
 func _rotate_save_backups(base_file_path: String, max_backups: int) -> void:
 	## Rotate save backups to maintain backup history
@@ -539,7 +518,7 @@ func _rotate_save_backups(base_file_path: String, max_backups: int) -> void:
 	var first_backup = "%s_1.%s" % [base_name, extension]
 	dir.rename(base_file_path.get_file(), first_backup)
 	
-	print("PersistenceService: Rotated backups for %s (max: %d)" % [base_file_path.get_file(), max_backups])
+	pass # Backups rotated
 
 ## Data Integrity Functions
 
@@ -600,9 +579,8 @@ func _report_detailed_error(error_type: ErrorType, context: Dictionary, message:
 	
 	# Log error details
 	var severity_text = ["LOW", "MEDIUM", "HIGH", "CRITICAL"][error_details.severity]
-	print("PersistenceService ERROR [%s]: %s" % [severity_text, message])
 	if not context.is_empty():
-		print("  Context: %s" % context)
+		pass
 
 func _get_error_severity(error_type: ErrorType) -> int:
 	## Get error severity level (0=Low, 1=Medium, 2=High, 3=Critical)
@@ -670,7 +648,7 @@ func attempt_recovery(file_path: String, error_type: ErrorType) -> Dictionary:
 	var context = {"original_file": file_path, "error_type": ErrorType.keys()[error_type]}
 	recovery_attempt_started.emit("auto_recovery", context)
 	
-	print("PersistenceService: Attempting recovery for %s (error: %s)" % [file_path, ErrorType.keys()[error_type]])
+	push_warning("PersistenceService: Attempting recovery for %s (error: %s)" % [file_path, ErrorType.keys()[error_type]])
 	
 	# Try recovery strategies in order of preference
 	var recovery_strategies = _get_ordered_recovery_strategies(error_type, file_path)
@@ -680,10 +658,10 @@ func attempt_recovery(file_path: String, error_type: ErrorType) -> Dictionary:
 		
 		if result.success:
 			recovery_completed.emit(true, RecoveryStrategy.keys()[strategy], result)
-			print("PersistenceService: Recovery successful using strategy: %s" % RecoveryStrategy.keys()[strategy])
+			push_warning("PersistenceService: Recovery successful using strategy: %s" % RecoveryStrategy.keys()[strategy])
 			return result
 		else:
-			print("PersistenceService: Recovery strategy %s failed: %s" % [RecoveryStrategy.keys()[strategy], result.get("error", "Unknown error")])
+			push_warning("PersistenceService: Recovery strategy %s failed: %s" % [RecoveryStrategy.keys()[strategy], result.get("error", "Unknown error")])
 	
 	# All recovery strategies failed
 	var failure_result = {"success": false, "error": "All recovery strategies failed", "data": {}}
@@ -752,7 +730,6 @@ func _try_backup_recovery(original_file: String) -> Dictionary:
 	if not FileAccess.file_exists(backup_file):
 		return {"success": false, "error": "No backup file found"}
 	
-	print("PersistenceService: Attempting backup recovery from: %s" % backup_file)
 	
 	var backup_data = _read_save_file(backup_file)
 	if backup_data.is_empty():
@@ -771,7 +748,6 @@ func _try_auto_save_recovery() -> Dictionary:
 	if not FileAccess.file_exists(auto_save_path):
 		return {"success": false, "error": "No auto-save file found"}
 	
-	print("PersistenceService: Attempting auto-save recovery from: %s" % auto_save_path)
 	
 	var auto_save_data = _read_save_file(auto_save_path)
 	if auto_save_data.is_empty():
@@ -790,7 +766,6 @@ func _try_quick_save_recovery() -> Dictionary:
 	if not FileAccess.file_exists(quick_save_path):
 		return {"success": false, "error": "No quick-save file found"}
 	
-	print("PersistenceService: Attempting quick-save recovery from: %s" % quick_save_path)
 	
 	var quick_save_data = _read_save_file(quick_save_path)
 	if quick_save_data.is_empty():
@@ -804,7 +779,6 @@ func _try_quick_save_recovery() -> Dictionary:
 
 func _try_partial_data_recovery(original_file: String) -> Dictionary:
 	## Try to recover partial data from corrupted save
-	print("PersistenceService: Attempting partial data recovery from: %s" % original_file)
 	
 	var raw_data = _read_save_file_raw(original_file)
 	if raw_data.is_empty():
@@ -814,14 +788,12 @@ func _try_partial_data_recovery(original_file: String) -> Dictionary:
 	var partial_data = _extract_partial_save_data(raw_data)
 	
 	if partial_data.has("campaign_state") and not partial_data["campaign_state"].is_empty():
-		print("PersistenceService: Partial recovery successful - some campaign data recovered")
 		return {"success": true, "data": partial_data, "recovery_source": original_file, "partial": true}
 	
 	return {"success": false, "error": "No recoverable data found"}
 
 func _try_factory_reset() -> Dictionary:
 	## Last resort - return minimal valid save structure
-	print("PersistenceService: Performing factory reset - creating minimal save structure")
 	
 	var factory_data = {
 		"save_version": SAVE_VERSION,

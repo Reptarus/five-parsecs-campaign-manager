@@ -180,7 +180,7 @@ static func _ensure_tables_loaded() -> void:
 	_equipment_tables = UniversalResourceLoader.load_json_safe(tables_path, "StartingEquipmentGenerator equipment tables")
 	_tables_loaded = true
 
-	print("StartingEquipmentGenerator: Loaded equipment tables with ", _equipment_tables.size(), " categories")
+	pass
 
 ## Merge equipment dictionaries safely
 static func _merge_equipment(base: Dictionary, addition: Dictionary) -> Dictionary:
@@ -283,6 +283,6 @@ static func validate_equipment_tables() -> bool:
 			is_valid = false
 
 	if is_valid:
-		print("StartingEquipmentGenerator: All equipment tables validated successfully")
+		pass
 
 	return is_valid

@@ -97,10 +97,7 @@ static func _ensure_tables_loaded() -> void:
 
 	_tables_loaded = true
 
-	# Log successful loading
-	print("CharacterCreationTables: Loaded tables - Background events: ", _background_events.size(), " backgrounds")
-	print("CharacterCreationTables: Loaded tables - Motivations: ", _motivation_table.size(), " entries")
-	print("CharacterCreationTables: Loaded tables - Quirks: ", _quirks_table.size(), " entries")
+	pass
 
 ## Safe background name getter with error handling
 static func _safe_get_background_name(background: GlobalEnums.Background) -> String:
@@ -157,7 +154,7 @@ static func validate_tables() -> bool:
 		is_valid = false
 
 	if is_valid:
-		print("CharacterCreationTables: All tables validated successfully")
+		pass
 
 	return is_valid
 

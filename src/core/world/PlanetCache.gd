@@ -1,7 +1,5 @@
 @tool
 extends Node
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GamePlanet = preload("res://src/game/world/GamePlanet.gd")
 const WorldDataMigration = preload("res://src/core/migration/WorldDataMigration.gd")
 

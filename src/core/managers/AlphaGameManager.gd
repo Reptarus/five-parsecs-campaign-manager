@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 
 ## Alpha Game Manager for Five Parsecs Campaign Manager
 ## Optimized central coordinator for all core systems
@@ -43,7 +43,6 @@ var _system_load_times: Dictionary = {}
 func _init() -> void:
 	name = "AlphaGameManager"
 	_initialization_start_time = Time.get_ticks_msec()
-	print("AlphaGameManager: Initializing (Performance tracking enabled)...")
 
 func _ready() -> void:
 	# Defer initialization to next frame to ensure all autoloads are ready
@@ -51,7 +50,6 @@ func _ready() -> void:
 
 func initialize_systems() -> void:
 	# Initialize all core systems in proper order with performance tracking
-	print("AlphaGameManager: Starting optimized system initialization...")
 	initialization_errors.clear()
 	systems_ready.clear()
 	_system_load_times.clear()
@@ -71,13 +69,11 @@ func initialize_systems() -> void:
 ## Optimized manager initialization wrapper with performance tracking
 func _initialize_manager(manager_name: String, init_function: Callable) -> void:
 	var start_time = Time.get_ticks_msec()
-	print("AlphaGameManager: Initializing %s..." % manager_name)
 	
 	init_function.call()
 	
 	var load_time = Time.get_ticks_msec() - start_time
 	_system_load_times[manager_name] = load_time
-	print("AlphaGameManager: %s loaded in %d ms" % [manager_name, load_time])
 
 ## Optimized script loader with caching
 static func _load_script_cached(script_path: String) -> Script:
@@ -134,7 +130,6 @@ func _create_manager_instance(script_path: String, manager_name: String, setup_d
 	# Setup dependencies if available
 	if instance.has_method("setup") and setup_dependencies.size() > 0:
 		instance.callv("setup", setup_dependencies)
-		print("AlphaGameManager: %s setup completed with dependencies" % manager_name)
 	
 	systems_ready[manager_name] = true
 	manager_ready.emit(manager_name, instance)
@@ -252,23 +247,19 @@ func _finalize_initialization() -> void:
 	
 	# Performance reporting
 	var total_init_time = Time.get_ticks_msec() - _initialization_start_time
-	print("AlphaGameManager: Initialization complete - %d/%d systems ready in %d ms" % [ready_count, total_count, total_init_time])
 	
 	# Detailed performance breakdown
-	print("AlphaGameManager: Performance breakdown:")
 	for system_name in _system_load_times:
-		print("  - %s: %d ms" % [system_name, _system_load_times[system_name]])
+		pass
 
 	if initialization_errors.size() > 0:
-		print("AlphaGameManager: Initialization errors:")
 		for error in initialization_errors:
-			print("  - " + error)
+			pass
 
 	systems_initialized.emit(is_initialized, initialization_errors)
 
 	if is_initialized:
 		all_systems_ready.emit()
-		print("AlphaGameManager: All systems ready! Total startup time: %d ms" % total_init_time)
 	else:
 		push_error("AlphaGameManager: System initialization failed")
 
@@ -322,27 +313,23 @@ func get_battle_manager() -> Node:
 	# Secondary option: Look for global BattleManager autoload
 	var battle_manager: Node = _get_autoload_cached("/root/BattleManager")
 	if battle_manager and is_instance_valid(battle_manager):
-		print("AlphaGameManager: Using global BattleManager autoload")
 		return battle_manager
 
 	# Tertiary option: Check GameStateManager's manager registry
 	if game_state_manager and game_state_manager.has_method("get_manager"):
 		var registered_manager = game_state_manager.get_manager("FiveParsecsCombatManager")
 		if registered_manager and is_instance_valid(registered_manager):
-			print("AlphaGameManager: Using registered FiveParsecsCombatManager")
 			return registered_manager
 		
 		# Also try standard BattleManager name
 		registered_manager = game_state_manager.get_manager("BattleManager")
 		if registered_manager and is_instance_valid(registered_manager):
-			print("AlphaGameManager: Using registered BattleManager")
 			return registered_manager
 
 	# Quaternary option: Try to find any battle-related manager in the tree
 	var root_node = get_tree().root
 	for child in root_node.get_children():
 		if child.name.contains("Battle") and child.name.contains("Manager"):
-			print("AlphaGameManager: Found battle manager by name search: %s" % child.name)
 			return child
 
 	# Final fallback: Try to create a minimal battle manager wrapper
@@ -358,7 +345,6 @@ func get_battle_manager() -> Node:
 			instance.name = "EmergencyBattleManager"
 			add_child(instance)
 			battle_results_manager = instance
-			print("AlphaGameManager: Created emergency battle manager")
 			return instance
 	
 	push_error("AlphaGameManager: Unable to provide any battle manager - battle functionality will be unavailable")
@@ -473,12 +459,10 @@ func get_performance_report() -> String:
 ## Clear performance caches (useful for testing)
 static func clear_caches() -> void:
 	_script_cache.clear()
-	print("AlphaGameManager: Script cache cleared")
 
 ## Clear autoload cache (instance method)
 func clear_autoload_cache() -> void:
 	_autoload_cache.clear()
-	print("AlphaGameManager: Autoload cache cleared")
 
 func start_new_campaign(config: Dictionary = {}) -> bool:
 	# Start a new campaign with the given configuration
@@ -490,7 +474,6 @@ func start_new_campaign(config: Dictionary = {}) -> bool:
 		push_error("AlphaGameManager: Cannot start campaign - GameStateManager not available")
 		return false
 
-	print("AlphaGameManager: Starting new campaign...")
 	return game_state_manager.start_new_campaign(config)
 
 func get_current_phase() -> int:
@@ -534,12 +517,11 @@ func save_current_state() -> bool:
 		if not current_state or (current_state is Dictionary and current_state.is_empty()):
 			push_warning("AlphaGameManager: Saving empty game state")
 	
-	print("AlphaGameManager: Starting state save operation...")
 	var success = game_state_manager.save_current_state()
 	var save_time = Time.get_ticks_msec() - start_time
 	
 	if success:
-		print("AlphaGameManager: State saved successfully in %d ms" % save_time)
+		pass
 	else:
 		push_error("AlphaGameManager: State save failed after %d ms" % save_time)
 	
@@ -568,14 +550,12 @@ func load_saved_state(save_name: String = "current_campaign") -> bool:
 	if game_state_manager.has_method("backup_current_state"):
 		backup_created = game_state_manager.backup_current_state()
 		if backup_created:
-			print("AlphaGameManager: Current state backed up before loading")
+			pass
 	
-	print("AlphaGameManager: Loading saved state '%s'..." % save_name)
 	var success = game_state_manager.load_saved_state(save_name)
 	var load_time = Time.get_ticks_msec() - start_time
 	
 	if success:
-		print("AlphaGameManager: State loaded successfully in %d ms" % load_time)
 		# Trigger system refresh after successful load
 		if is_initialized:
 			_finalize_initialization()
@@ -583,7 +563,6 @@ func load_saved_state(save_name: String = "current_campaign") -> bool:
 		push_error("AlphaGameManager: State load failed after %d ms" % load_time)
 		# Attempt to restore backup if available
 		if backup_created and game_state_manager.has_method("restore_backup"):
-			print("AlphaGameManager: Attempting to restore backup state...")
 			if game_state_manager.restore_backup():
 				push_warning("AlphaGameManager: Backup state restored after load failure")
 			else:
@@ -594,14 +573,13 @@ func load_saved_state(save_name: String = "current_campaign") -> bool:
 func restart_systems() -> void:
 	# Restart all systems with progressive restart logic and graceful degradation
 	var restart_start_time = Time.get_ticks_msec()
-	print("AlphaGameManager: Starting comprehensive system restart...")
 	
 	# Phase 1: Save current state for recovery
 	var state_backed_up = false
 	if is_initialized and game_state_manager and game_state_manager.has_method("backup_current_state"):
 		state_backed_up = game_state_manager.backup_current_state()
 		if state_backed_up:
-			print("AlphaGameManager: Current state backed up before restart")
+			pass
 	
 	# Phase 2: Graceful shutdown of systems in reverse dependency order
 	is_initialized = false
@@ -614,17 +592,14 @@ func restart_systems() -> void:
 
 	# Clean up systems in reverse order (dependent systems first)
 	if battle_results_manager and is_instance_valid(battle_results_manager):
-		print("AlphaGameManager: Shutting down BattleResultsManager...")
 		battle_results_manager.queue_free()
 		battle_results_manager = null
 
 	if campaign_phase_manager and is_instance_valid(campaign_phase_manager):
-		print("AlphaGameManager: Shutting down CampaignPhaseManager...")
 		campaign_phase_manager.queue_free()
 		campaign_phase_manager = null
 
 	if campaign_creation_manager and is_instance_valid(campaign_creation_manager):
-		print("AlphaGameManager: Shutting down CampaignCreationManager...")
 		campaign_creation_manager.queue_free()
 		campaign_creation_manager = null
 
@@ -632,7 +607,6 @@ func restart_systems() -> void:
 	clear_autoload_cache()
 	
 	# Phase 3: Progressive restart with health monitoring
-	print("AlphaGameManager: Beginning progressive system restart...")
 	
 	# Wait one frame to ensure cleanup is complete
 	await get_tree().process_frame
@@ -652,14 +626,11 @@ func restart_systems() -> void:
 			systems_lost += 1
 			push_warning("AlphaGameManager: System '%s' failed to restart" % system_name)
 	
-	print("AlphaGameManager: System restart completed in %d ms" % restart_time)
-	print("AlphaGameManager: Recovery statistics - Restored: %d, Lost: %d" % [systems_restored, systems_lost])
 	
 	# Phase 5: Attempt state recovery if possible
 	if state_backed_up and is_initialized and game_state_manager and game_state_manager.has_method("restore_backup"):
-		print("AlphaGameManager: Attempting to restore backed up state...")
 		if game_state_manager.restore_backup():
-			print("AlphaGameManager: State successfully restored after restart")
+			pass
 		else:
 			push_warning("AlphaGameManager: Failed to restore state after restart")
 	
@@ -668,7 +639,6 @@ func restart_systems() -> void:
 
 func _exit_tree() -> void:
 	# Clean up when the manager is removed
-	print("AlphaGameManager: Shutting down...")
 
 	# Disconnect all signals first
 	_disconnect_all_signals()
@@ -696,7 +666,6 @@ func _exit_tree() -> void:
 	_autoload_cache.clear() # Clear autoload cache during cleanup
 	is_initialized = false
 
-	print("AlphaGameManager: Cleanup completed")
 
 func _disconnect_all_signals() -> void:
 	## Disconnect all signal connections to prevent orphaned references
@@ -708,7 +677,6 @@ func _disconnect_all_signals() -> void:
 			if game_state_manager.state_changed.is_connected(_on_game_state_changed):
 				game_state_manager.state_changed.disconnect(_on_game_state_changed)
 
-	print("AlphaGameManager: Signal disconnection completed")
 
 # Signal handler implementations
 func _on_game_state_changed(new_state: Variant) -> void:
@@ -716,8 +684,6 @@ func _on_game_state_changed(new_state: Variant) -> void:
 	if not new_state or typeof(new_state) != TYPE_DICTIONARY:
 		push_warning("AlphaGameManager: Invalid state change data received")
 		return
-	
-	print("AlphaGameManager: Game state changed - %s" % str(new_state))
 	
 	# Propagate to dependent systems
 	if campaign_phase_manager and campaign_phase_manager.has_method("on_state_changed"):

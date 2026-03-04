@@ -5,7 +5,6 @@ const BaseCharacterManager = preload("res://src/core/character/management/Charac
 
 # This file should be referenced via preload
 # Use explicit preloads instead of global class names
-const Self = preload("res://src/game/character/CharacterManager.gd")
 
 ## Game-specific character manager implementation
 ##

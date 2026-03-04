@@ -65,7 +65,6 @@ func _update_status(status: String) -> void:
 	## Update status message
 	if battle_status:
 		battle_status.text = status
-	print("BattleTransitionUI: %s" % status)
 
 func _update_progress(value: float) -> void:
 	## Update progress bar (0-100)

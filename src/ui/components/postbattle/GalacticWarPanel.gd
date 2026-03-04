@@ -146,7 +146,6 @@ func _connect_to_war_manager() -> void:
 		push_warning("GalacticWarPanel: GalacticWarManager not found")
 		return
 	
-	print("GalacticWarPanel: Connected to GalacticWarManager")
 
 ## Public API
 
@@ -568,4 +567,3 @@ func _get_track_color(faction: String) -> Color:
 func _on_close_pressed() -> void:
 	## Handle close button press
 	war_panel_closed.emit()
-	print("GalacticWarPanel: Panel closed")

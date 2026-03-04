@@ -335,8 +335,8 @@ func _on_clear_pressed() -> void:
 	clear_feed()
 
 func _on_settings_pressed() -> void:
-	# TODO: Show dice settings
-	print("Dice Feed Settings - TODO: Implement")
+	# NOTE: Deferred — dice settings dialog not yet implemented
+	pass
 
 func _on_auto_hide_timeout() -> void:
 	if is_expanded:

@@ -58,11 +58,11 @@ func _get_manager_safely(manager_name: String) -> Node:
 # MAIN PROCESSING PIPELINE
 # =====================================================
 
+## Process complete battle end per Core Rules p.119
 func process_battle_end(
 		tracked_units: Dictionary,
 		battle_context: Dictionary
 		) -> BattlefieldTypes.BattleResults:
-	## Process complete battle end per Core Rules p.119
 	## @param tracked_units: Dictionary of unit_id -> UnitData from battle tracker
 	## @param battle_context: Battle context including victory, rounds, held_field, etc.
 	## @return: Complete battle results ready for post-battle phase

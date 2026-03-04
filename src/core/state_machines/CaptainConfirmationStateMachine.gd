@@ -1,4 +1,4 @@
-﻿class_name CaptainConfirmationStateMachine
+class_name CaptainConfirmationStateMachine
 extends RefCounted
 
 ## Captain Confirmation State Machine
@@ -65,7 +65,7 @@ var retry_count: int = 0
 var max_retries: int = 3
 
 func _init() -> void:
-	print("CaptainConfirmationStateMachine: Initialized")
+	pass
 
 ## Public API Methods
 
@@ -176,7 +176,6 @@ func retry_current_operation() -> bool:
 		return false
 	
 	retry_count += 1
-	print("CaptainConfirmationStateMachine: Retrying operation (attempt %d/%d)" % [retry_count, max_retries])
 	
 	# Transition to recovery state
 	if not _transition_to_state(State.RECOVERY, Event.RETRY_OPERATION):
@@ -212,12 +211,6 @@ func _transition_to_state(new_state: State, event: Event) -> bool:
 	var old_state = current_state
 	previous_state = current_state
 	current_state = new_state
-	
-	print("CaptainConfirmationStateMachine: %s -> %s (event: %s)" % [
-		get_state_name(old_state),
-		get_state_name(new_state),
-		get_event_name(event)
-	])
 	
 	# Execute state entry actions
 	_on_state_entered(new_state, event)

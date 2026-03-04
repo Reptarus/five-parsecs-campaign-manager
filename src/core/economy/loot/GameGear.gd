@@ -7,9 +7,6 @@ const Self = preload("res://src/core/economy/loot/GameGear.gd")
 
 # Import necessary classes
 const GameDataManager = preload("res://src/core/managers/GameDataManager.gd")
-
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 @export var gear_id: String = ""
 @export var gear_name: String = ""
 @export var gear_category: String = ""

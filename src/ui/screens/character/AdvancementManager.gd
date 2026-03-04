@@ -18,7 +18,6 @@ var selected_character: Dictionary = {}
 var selected_advancement: Dictionary = {}
 
 func _ready() -> void:
-	print("AdvancementManager: Initializing...")
 	_load_crew_roster()
 	_refresh_crew_list()
 	_setup_advancement_icons()
@@ -198,7 +197,8 @@ func _create_injury_panel(injury: String) -> Control:
 
 	# Injury icon - Phase 4: Character Injury Status Integration
 	var injury_icon: TextureRect = TextureRect.new()
-	injury_icon.texture = preload("res://assets/basic icons/icon_character_injury.svg")
+	# Icon asset not yet created — will be assigned when available
+	#injury_icon.texture = preload("res://assets/basic icons/icon_character_injury.svg")
 	injury_icon.custom_minimum_size = Vector2(24, 24)
 	injury_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	injury_icon.modulate = UIColors.COLOR_RED  # Red tint to indicate injury status
@@ -290,7 +290,8 @@ func _create_advancement_option_panel(option: Dictionary) -> Control:
 
 	var select_button: Button = Button.new()
 	select_button.text = "Select"
-	select_button.icon = preload("res://assets/basic icons/icon_character_advancement.svg")
+	# Icon asset not yet created — will be assigned when available
+	#select_button.icon = preload("res://assets/basic icons/icon_character_advancement.svg")
 	select_button.expand_icon = true
 	select_button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	select_button.pressed.connect(_on_advancement_selected.bind(option))
@@ -323,11 +324,9 @@ func _on_heal_injury(injury: String) -> void:
 	_update_character_details(selected_character)
 
 	injury_healed.emit(selected_character, {"name": injury})
-	print("Healed injury: ", injury, " for ", selected_character.name)
 
 func _on_back_pressed() -> void:
 	## Handle back button press
-	print("AdvancementManager: Back pressed")
 	var scene_router = get_node("/root/SceneRouter")
 	if scene_router and scene_router and scene_router.has_method("navigate_back"):
 		scene_router.navigate_back()
@@ -362,19 +361,18 @@ func _on_apply_advancement_pressed() -> void:
 	apply_advancement_button.disabled = true
 
 	character_advanced.emit(selected_character, selected_advancement)
-	print("Applied advancement: ", selected_advancement.name, " to ", selected_character.name)
 
 func _on_advanced_training_pressed() -> void:
 	## Handle advanced training button press
-	print("AdvancementManager: Advanced training pressed")
 	# Open advanced training interface
 	# Implementation would show specialized training options
+	pass
 
 func _on_heal_injuries_pressed() -> void:
 	## Handle heal injuries button press
-	print("AdvancementManager: Heal injuries pressed")
 	# Open medical treatment interface
 	# Implementation would show injury healing options and medical costs
+	pass
 
 ## Setup advancement icons for enhanced visual clarity
 func _setup_advancement_icons() -> void:
@@ -383,9 +381,9 @@ func _setup_advancement_icons() -> void:
 	
 	# Apply Advancement Button - icon_character_advancement.svg
 	if apply_advancement_button:
-		apply_advancement_button.icon = preload("res://assets/basic icons/icon_character_advancement.svg")
+		# Icon asset not yet created — will be assigned when available
+		#apply_advancement_button.icon = preload("res://assets/basic icons/icon_character_advancement.svg")
 		apply_advancement_button.expand_icon = true
 		apply_advancement_button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
-		print("AdvancementManager: Character advancement icon applied to apply button successfully")
 	else:
 		push_warning("AdvancementManager: Apply advancement button not found for icon assignment")

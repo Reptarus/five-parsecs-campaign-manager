@@ -9,10 +9,8 @@
 # Use explicit preloads instead of global class names
 extends Node
 
-const Self = preload("res://src/utils/helpers/PathFinder.gd")
 const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
 const BattlefieldManager = preload("res://src/core/battle/BattlefieldManager.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const AuthPathFinder = preload("res://src/core/utils/PathFinder.gd")
 
 

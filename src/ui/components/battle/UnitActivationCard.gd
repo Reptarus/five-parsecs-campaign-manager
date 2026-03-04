@@ -64,7 +64,6 @@ func _ready() -> void:
 	# Initial visual state
 	_update_visual_state()
 
-	print("UnitActivationCard: Ready - unit_id: %s" % unit_id)
 
 # ============ PUBLIC INTERFACE ============
 func initialize(unit_data: Dictionary) -> void:
@@ -88,7 +87,6 @@ func initialize(unit_data: Dictionary) -> void:
 	is_activated = false
 
 	_update_visual_state()
-	print("UnitActivationCard: Initialized - %s (%d/%d HP)" % [unit_name, current_health, max_health])
 
 
 func set_activated(activated: bool) -> void:
@@ -98,7 +96,6 @@ func set_activated(activated: bool) -> void:
 
 	is_activated = activated
 	_update_activation_dot()
-	print("UnitActivationCard: %s activation set to %s" % [unit_name, activated])
 
 
 func update_health(current: int, max_hp: int) -> void:
@@ -106,7 +103,6 @@ func update_health(current: int, max_hp: int) -> void:
 	current_health = current
 	max_health = max_hp
 	_update_health_bar()
-	print("UnitActivationCard: %s health updated to %d/%d" % [unit_name, current, max_hp])
 
 
 func update_status_effects(effects: Array) -> void:
@@ -116,14 +112,12 @@ func update_status_effects(effects: Array) -> void:
 		status_effects.append(str(effect))
 
 	_update_status_effects()
-	print("UnitActivationCard: %s status effects updated (%d effects)" % [unit_name, effects.size()])
 
 
 func set_team(is_crew_member: bool) -> void:
 	## Set team color (crew blue, enemy red)
 	is_crew = is_crew_member
 	_update_team_border()
-	print("UnitActivationCard: %s team set to %s" % [unit_name, "crew" if is_crew else "enemy"])
 
 
 # ============ VISUAL UPDATE METHODS ============
@@ -304,11 +298,9 @@ func _handle_tap() -> void:
 	if current_health <= 0:
 		# Dead units can't activate, but can be selected
 		unit_selected.emit(unit_id)
-		print("UnitActivationCard: Dead unit selected - %s" % unit_name)
 		return
 
 	# Toggle activation
 	is_activated = !is_activated
 	_update_activation_dot()
 	activation_toggled.emit(unit_id)
-	print("UnitActivationCard: Activation toggled - %s (%s)" % [unit_name, is_activated])

@@ -87,8 +87,8 @@ static func _load_mission_data_static() -> void:
 		var parse_result = json.parse(json_string)
 		if parse_result == OK:
 			# Since we can't modify const, we'll work around this limitation
-			print("MissionTypeRegistry: Mission types data loaded successfully")
-	
+			pass
+
 	# Load mission difficulty data
 	var mission_difficulty_file = FileAccess.open("res://data/mission_tables/mission_difficulty.json", FileAccess.READ)
 	if mission_difficulty_file:
@@ -96,7 +96,7 @@ static func _load_mission_data_static() -> void:
 		var json = JSON.new()
 		var parse_result = json.parse(json_string)
 		if parse_result == OK:
-			print("MissionTypeRegistry: Mission difficulty data loaded successfully")
+			pass
 	
 	# Load mission rewards data
 	var mission_rewards_file = FileAccess.open("res://data/mission_tables/mission_rewards.json", FileAccess.READ)
@@ -105,7 +105,7 @@ static func _load_mission_data_static() -> void:
 		var json = JSON.new()
 		var parse_result = json.parse(json_string)
 		if parse_result == OK:
-			print("MissionTypeRegistry: Mission rewards data loaded successfully")
+			pass
 
 ## Generate a mission based on campaign context
 static func generate_mission(context: Dictionary) -> Mission:

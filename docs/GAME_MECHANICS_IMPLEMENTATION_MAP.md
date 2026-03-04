@@ -1,7 +1,7 @@
 ﻿# Five Parsecs Campaign Manager - Complete Data Flow & Implementation Map
 
 **Created**: 2025-11-29
-**Last Updated**: 2026-03-01
+**Last Updated**: 2026-03-03
 **Source**: Parallel agent analysis of core_rules.md vs codebase, Sprint 1-10 completions, Battle Phase Manager sprints, Tech Debt + Feature Gaps 12 sprints, Phase 5 Script Consolidation, Phase 16-22J Battle+UI sprints
 **Purpose**: Map every functional mechanic to implementation status
 
@@ -95,6 +95,14 @@
 - UI polish: CheatSheet +8 compendium sections, DLCManagementDialog, grid movement ref
 - ~15 new files, ~20 modified files, ~5,000 lines added
 - Zero impact on core gameplay when all DLC disabled
+
+**Compendium Mechanics Wiring Audit (10 sprints C-1 to C-10, Mar 2026)**:
+- Found only 10/37 flags actually wired into gameplay despite data classes existing for all
+- Fixed BOT_UPGRADES inversion (bots skipped in crew list), wired 12 additional flags
+- Wired: EXPANDED_MISSIONS, DEPLOYMENT_VARIABLES, DIFFICULTY_TOGGLES math, PSIONICS legality, INTRODUCTORY_CAMPAIGN routing, EXPANDED_QUESTS, EXPANDED_LOANS, EXPANDED_CONNECTIONS, AI_VARIATIONS, DRAMATIC_COMBAT, NAME_GENERATION (ship+world), TERRAIN_GENERATION, FRINGE_WORLD_STRIFE downstream
+- Style fixes: explicit preloads in 4 files, randomized weapon types, variable rename
+- 12 files modified, zero compile errors, all scene nodes verified
+- Final status: 22/37 wired, 10 deferred, 5 placeholder (Bug Hunt)
 
 **Data Integrity Fixes (Feb 2026)**:
 - PostBattlePhase verified: all 18+ data types persist to GameState/campaign
@@ -578,6 +586,7 @@ Zero impact on core gameplay when disabled. All output follows tabletop companio
 ## REMAINING GAPS
 
 ### HIGH PRIORITY
+
 No remaining high-priority gaps.
 
 ### MEDIUM PRIORITY
@@ -589,9 +598,18 @@ No remaining high-priority gaps.
 | LegacySystem lifecycle | No campaign archival on end, no legacy bonus on new campaign | EndPhasePanel, CampaignCreationCoordinator |
 | CampaignJournal character events | Only PostBattlePhase generates entries; advancement/injuries unlogged | AdvancementPhasePanel, CharacterPhasePanel |
 
-### LOW PRIORITY
+### LOW PRIORITY (Compendium Deferred Items)
 
-No remaining low-priority gaps.
+| Gap | Impact | Location |
+|-----|--------|----------|
+| Full PSIONICS (creation/advancement/battle) | Legality wired; no character creation, advancement, or battle action hooks | PsionicSystem.gd, CharacterCreator, TacticalBattleUI |
+| PVP_BATTLES / COOP_BATTLES | Complete rule sets exist, no battle mode selection UI | TacticalBattleUI |
+| PRISON_PLANET_CHARACTER | Full effect data exists, no character creation panel option | CharacterCreator |
+| GRID_BASED_MOVEMENT | Flag stored, no grid system reads it | TacticalBattleUI |
+| Species creation text + armor rules | Krag/Skulker creation guidance not shown, armor rules not enforced | CharacterCreator, EquipmentManager |
+| PSIONIC_EQUIPMENT psionic_only | Restriction not enforced in equipment assignment | EquipmentManager |
+| NEW_TRAINING one_per_crew | Freelancer Cert/Instructor duplicate purchase allowed | AdvancementPhasePanel |
+| NEW_SHIP_PARTS to ship slots | Parts go to generic pool, not dedicated ship slots | ShipPanel |
 
 ### RESOLVED (Previously listed as gaps)
 | Gap | Resolution | Date |
@@ -667,6 +685,6 @@ No remaining low-priority gaps.
 ---
 
 **Document Status**: COMPREHENSIVE UPDATE COMPLETE
-**Last Updated**: 2026-03-01
+**Last Updated**: 2026-03-03
 **Engine Version**: Godot 4.6-stable
 **Test Framework**: gdUnit4 v6.0.3

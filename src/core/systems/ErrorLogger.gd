@@ -1,6 +1,5 @@
 @tool
 extends Node
-class_name ErrorLogger
 
 ## Error logging system for tracking, filtering, and resolving errors
 ##
@@ -193,7 +192,7 @@ func _print_error(error_data: Dictionary) -> void:
 	
 	match error_data.severity:
 		ErrorSeverity.INFO:
-			print(message)
+			pass
 		ErrorSeverity.WARNING:
 			push_warning(message)
 		ErrorSeverity.ERROR, ErrorSeverity.CRITICAL:

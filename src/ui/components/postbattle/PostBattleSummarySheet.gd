@@ -95,7 +95,6 @@ func _ready() -> void:
 	# Apply design system styling
 	_apply_design_system_styling()
 
-	print("PostBattleSummarySheet: Ready")
 
 func _exit_tree() -> void:
 	# Clean up invasion warning timer if exists
@@ -143,7 +142,6 @@ func setup(summary_data: Dictionary) -> void:
 	# Populate campaign changes
 	_setup_campaign_changes()
 
-	print("PostBattleSummarySheet: Setup complete - Victory: %s" % summary_data.get("victory", false))
 
 # ============================================================================
 # PRIVATE HELPER METHODS - SETUP
@@ -422,5 +420,4 @@ func _start_invasion_pulse() -> void:
 
 func _on_continue_pressed() -> void:
 	## Handle continue button press
-	print("PostBattleSummarySheet: Continue pressed")
 	continue_pressed.emit()

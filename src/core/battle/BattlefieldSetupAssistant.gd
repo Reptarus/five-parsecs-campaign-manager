@@ -1,4 +1,4 @@
-﻿class_name FPCM_BattlefieldSetupAssistant
+class_name FPCM_BattlefieldSetupAssistant
 extends Node
 
 ## Battlefield Setup Assistant - Refactored
@@ -52,7 +52,6 @@ func inject_battlefield_data(battlefield_data: Resource) -> void:
 	# Store reference to battlefield data for use in generation
 	if battlefield_data:
 		last_generation_context["battlefield_data"] = battlefield_data
-		print("BattlefieldSetupAssistant: Battlefield data injected successfully")
 	else:
 		push_warning("BattlefieldSetupAssistant: Null battlefield data provided")
 
@@ -116,15 +115,15 @@ func clear_battlefield() -> void:
 
 func _on_generation_started(theme_name: String) -> void:
 	# Forward progress updates to interested parties
-	print("Battlefield generation started with theme: %s" % theme_name)
+	pass
 
 func _on_generation_progress(step: String, progress: float) -> void:
 	# Forward progress updates - could be connected to UI progress bars
-	print("Generation progress: %s (%.1f%%)" % [step, progress * 100])
+	pass
 
 func _on_generation_completed(battlefield_data: Dictionary) -> void:
 	# Generation completed successfully
-	print("Battlefield generation completed successfully")
+	pass
 
 func _on_generation_error(error_message: String) -> void:
 	# Handle generation errors by forwarding to our error signal

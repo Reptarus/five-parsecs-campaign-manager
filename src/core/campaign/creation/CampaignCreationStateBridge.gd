@@ -1,4 +1,4 @@
-﻿class_name CampaignCreationStateBridgeClass
+class_name CampaignCreationStateBridgeClass
 extends Node
 
 ## Campaign Creation State Bridge
@@ -52,7 +52,6 @@ func _init() -> void:
 		push_warning("CampaignCreationStateBridge: Multiple instances detected")
 
 func _ready() -> void:
-	print("CampaignCreationStateBridge: Initializing scene coordination system...")
 	_initialize_systems()
 	# Initialize auto-save timer
 	_setup_auto_save_timer()
@@ -63,7 +62,6 @@ func _initialize_systems() -> void:
 	state_manager = CampaignCreationStateManager.new()
 	if state_manager:
 		_connect_state_manager_signals()
-		print("CampaignCreationStateBridge: State manager connected")
 	else:
 		push_error("CampaignCreationStateBridge: Failed to create state manager")
 	
@@ -71,7 +69,6 @@ func _initialize_systems() -> void:
 	scene_router = get_node_or_null("/root/SceneRouter")
 	if scene_router:
 		_connect_scene_router_signals()
-		print("CampaignCreationStateBridge: Scene router connected")
 	else:
 		push_warning("CampaignCreationStateBridge: Scene router not found, will retry on scene transitions")
 
@@ -103,7 +100,6 @@ func _connect_scene_router_signals() -> void:
 
 func transition_to_scene(scene_name: String, context: Dictionary = {}) -> void:
 	## Transition to a new scene with state preservation
-	print("CampaignCreationStateBridge: Transitioning to scene: %s" % scene_name)
 	
 	# Save current scene state if we have a current scene
 	if not current_scene.is_empty():
@@ -137,7 +133,6 @@ func return_to_previous_scene() -> void:
 		return
 	
 	var previous_scene = scene_history.pop_back()
-	print("CampaignCreationStateBridge: Returning to previous scene: %s" % previous_scene)
 	
 	# Restore previous scene context if available
 	var restored_context = scene_states.get(previous_scene, {})
@@ -177,14 +172,12 @@ func save_current_scene_state() -> void:
 	
 	scene_states[current_scene] = scene_data
 	state_saved.emit(current_scene, scene_data)
-	print("CampaignCreationStateBridge: Saved state for scene: %s" % current_scene)
 
 func restore_scene_state(scene_name: String) -> Dictionary:
 	## Restore state for a specific scene
 	var scene_data = scene_states.get(scene_name, {})
 	if not scene_data.is_empty():
 		state_restored.emit(scene_name, scene_data)
-		print("CampaignCreationStateBridge: Restored state for scene: %s" % scene_name)
 	
 	return scene_data
 
@@ -205,7 +198,6 @@ func update_campaign_data(phase: CampaignCreationStateManager.Phase, data: Dicti
 		return
 	
 	state_manager.update_phase_data(phase, data)
-	print("CampaignCreationStateBridge: Updated campaign data for phase: %s" % phase)
 
 func get_campaign_data() -> Dictionary:
 	## Get the current campaign data
@@ -233,7 +225,6 @@ func handle_crew_creation_data(crew_data: Dictionary) -> void:
 	scene_validation_states["crew_creation"] = true
 	scene_validation_changed.emit("crew_creation", true)
 	
-	print("CampaignCreationStateBridge: Crew creation data processed")
 
 func handle_character_update(character: Character) -> void:
 	## Handle character updates from CharacterCreator
@@ -252,7 +243,6 @@ func handle_character_update(character: Character) -> void:
 	crew_data["crew_members"] = crew_members
 	update_campaign_data(CampaignCreationStateManager.Phase.CREW_SETUP, crew_data)
 	
-	print("CampaignCreationStateBridge: Character updated: %s" % character.character_name)
 
 func handle_equipment_generation(equipment_data: Dictionary) -> void:
 	## Handle equipment generation completion
@@ -262,7 +252,6 @@ func handle_equipment_generation(equipment_data: Dictionary) -> void:
 	scene_validation_states["equipment_generation"] = true
 	scene_validation_changed.emit("equipment_generation", true)
 	
-	print("CampaignCreationStateBridge: Equipment generation data processed")
 
 func handle_campaign_config(config_data: Dictionary) -> void:
 	## Handle campaign configuration data
@@ -272,7 +261,6 @@ func handle_campaign_config(config_data: Dictionary) -> void:
 	scene_validation_states["campaign_setup"] = true
 	scene_validation_changed.emit("campaign_setup", true)
 	
-	print("CampaignCreationStateBridge: Campaign config data processed")
 
 ## Progress Tracking
 
@@ -304,7 +292,7 @@ func is_campaign_creation_complete() -> bool:
 
 func _on_state_manager_updated(phase: CampaignCreationStateManager.Phase, data: Dictionary) -> void:
 	## Handle state manager updates
-	print("CampaignCreationStateBridge: State manager updated for phase: %s" % phase)
+	pass
 
 func _on_state_validation_changed(is_valid: bool, errors: Array) -> void:
 	## Handle state validation changes
@@ -314,7 +302,6 @@ func _on_state_validation_changed(is_valid: bool, errors: Array) -> void:
 
 func _on_phase_completed(phase: CampaignCreationStateManager.Phase) -> void:
 	## Handle phase completion
-	print("CampaignCreationStateBridge: Phase completed: %s" % phase)
 	
 	# Update progress
 	var progress = get_creation_progress()
@@ -322,7 +309,6 @@ func _on_phase_completed(phase: CampaignCreationStateManager.Phase) -> void:
 
 func _on_creation_completed(campaign_data: Dictionary) -> void:
 	## Handle campaign creation completion
-	print("CampaignCreationStateBridge: Campaign creation completed!")
 	
 	# Navigate to campaign dashboard
 	transition_to_scene("campaign_turn_controller", {"campaign_data": campaign_data})
@@ -331,7 +317,6 @@ func _on_scene_changed(new_scene: String, previous_scene: String) -> void:
 	## Handle scene router scene changes
 	current_scene = new_scene
 	scene_transition_completed.emit(new_scene, scene_context)
-	print("CampaignCreationStateBridge: Scene transition completed: %s -> %s" % [previous_scene, new_scene])
 
 func _on_navigation_error(scene_name: String, error: String) -> void:
 	## Handle scene router navigation errors
@@ -363,7 +348,6 @@ func clear_campaign_creation_state() -> void:
 	if state_manager:
 		state_manager.initialize() # Reset state manager
 	
-	print("CampaignCreationStateBridge: Campaign creation state cleared")
 
 ## Static access methods for global use
 static func get_instance() -> CampaignCreationStateBridgeClass:
@@ -400,14 +384,12 @@ func _setup_auto_save_timer() -> void:
 	_auto_save_timer.timeout.connect(_perform_auto_save)
 	if auto_save_enabled:
 		_auto_save_timer.start()
-		print("CampaignCreationStateBridge: Auto-save timer started")
 
 func _perform_auto_save() -> void:
 	## Perform automatic save of campaign creation state
 	if current_scene.is_empty():
 		return # Nothing to save
 	
-	print("CampaignCreationStateBridge: Performing auto-save...")
 	
 	var save_data = {
 		"timestamp": Time.get_unix_time_from_system(),
@@ -423,7 +405,6 @@ func _perform_auto_save() -> void:
 	var success = _save_to_file(recovery_save_path, save_data)
 	if success:
 		auto_save_completed.emit(recovery_save_path)
-		print("CampaignCreationStateBridge: Auto-save completed successfully")
 	else:
 		push_error("CampaignCreationStateBridge: Auto-save failed")
 
@@ -445,7 +426,7 @@ func save_campaign_creation_progress(custom_path: String = "") -> bool:
 	
 	var success = _save_to_file(save_path, save_data)
 	if success:
-		print("CampaignCreationStateBridge: Manual save completed: %s" % save_path)
+		pass
 	else:
 		push_error("CampaignCreationStateBridge: Manual save failed: %s" % save_path)
 	
@@ -458,13 +439,11 @@ func check_for_recovery_data() -> bool:
 func load_recovery_data() -> Dictionary:
 	## Load recovery data if available
 	if not check_for_recovery_data():
-		print("CampaignCreationStateBridge: No recovery data found")
 		return {}
 	
 	var recovery_data = _load_from_file(recovery_save_path)
 	if not recovery_data.is_empty():
 		recovery_data_found.emit(recovery_data)
-		print("CampaignCreationStateBridge: Recovery data loaded from %s" % recovery_save_path)
 	
 	return recovery_data
 
@@ -474,7 +453,6 @@ func restore_from_recovery_data(recovery_data: Dictionary) -> bool:
 		push_warning("CampaignCreationStateBridge: Cannot restore - recovery data is empty")
 		return false
 	
-	print("CampaignCreationStateBridge: Restoring from recovery data...")
 	
 	# Validate recovery data
 	if not _validate_recovery_data(recovery_data):
@@ -498,7 +476,6 @@ func restore_from_recovery_data(recovery_data: Dictionary) -> bool:
 				if not phase_data.is_empty():
 					state_manager.update_phase_data(_string_to_phase(phase_key), phase_data)
 	
-	print("CampaignCreationStateBridge: Recovery restoration completed")
 	return true
 
 func clear_recovery_data() -> void:
@@ -508,7 +485,7 @@ func clear_recovery_data() -> void:
 		if dir:
 			var error = dir.remove(recovery_save_path.get_file())
 			if error == OK:
-				print("CampaignCreationStateBridge: Recovery data cleared")
+				pass
 			else:
 				push_error("CampaignCreationStateBridge: Failed to clear recovery data")
 
@@ -609,12 +586,10 @@ func _string_to_phase(phase_string: String) -> CampaignCreationStateManager.Phas
 func set_auto_save_enabled(enabled: bool) -> void:
 	## Enable or disable auto-save
 	auto_save_enabled = enabled
-	print("CampaignCreationStateBridge: Auto-save %s" % ("enabled" if enabled else "disabled"))
 
 func set_auto_save_interval(interval_seconds: float) -> void:
 	## Set auto-save interval
 	auto_save_interval = max(10.0, interval_seconds) # Minimum 10 seconds
-	print("CampaignCreationStateBridge: Auto-save interval set to %s seconds" % auto_save_interval)
 
 func get_auto_save_status() -> Dictionary:
 	## Get auto-save status information

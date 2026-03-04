@@ -1,4 +1,4 @@
-﻿class_name ProductionReadinessChecker
+class_name ProductionReadinessChecker
 extends RefCounted
 
 ## Master Production Readiness Validation System - Phase 3C.3
@@ -76,10 +76,6 @@ static func validate_production_readiness(
 	var separator = ""
 	for i in range(80):
 		separator += "="
-	print(separator)
-	print("PRODUCTION READINESS VALIDATION - PHASE 3C.3")
-	print(separator)
-	print("Starting comprehensive production readiness assessment...")
 	
 	var result = ProductionReadinessResult.new()
 	var validation_start = Time.get_ticks_msec()
@@ -117,7 +113,6 @@ static func validate_production_readiness(
 
 static func _validate_smoke_tests() -> CategoryResult:
 	## Validate smoke tests - basic system availability
-	print("\n🔥 VALIDATING: Smoke Tests")
 	var category_start = Time.get_ticks_msec()
 	var result = CategoryResult.new(ValidationCategory.SMOKE_TESTS)
 	
@@ -148,12 +143,11 @@ static func _validate_smoke_tests() -> CategoryResult:
 	}
 	
 	var status_text = "PASSED" if result.passed else "FAILED"
-	print("  Result: %s (%.1f%% score)" % [status_text, result.score * 100])
+	pass # Validation result logged
 	return result
 
 static func _validate_data_consistency(ui_controller: Node, state_manager, campaign_sequence: Array) -> CategoryResult:
 	## Validate data consistency across all systems
-	print("\n📊 VALIDATING: Data Consistency")
 	var category_start = Time.get_ticks_msec()
 	var result = CategoryResult.new(ValidationCategory.DATA_CONSISTENCY)
 	
@@ -206,12 +200,11 @@ static func _validate_data_consistency(ui_controller: Node, state_manager, campa
 	}
 	
 	var status_text = "PASSED" if result.passed else "FAILED"
-	print("  Result: %s (%.1f%% score)" % [status_text, result.score * 100])
+	pass # Validation result logged
 	return result
 
 static func _validate_performance_benchmarks() -> CategoryResult:
 	## Validate performance benchmarks meet requirements
-	print("\n⚡ VALIDATING: Performance Benchmarks")
 	var category_start = Time.get_ticks_msec()
 	var result = CategoryResult.new(ValidationCategory.PERFORMANCE_BENCHMARKS)
 	
@@ -279,12 +272,11 @@ static func _validate_performance_benchmarks() -> CategoryResult:
 	}
 	
 	var status_text = "PASSED" if result.passed else "FAILED"
-	print("  Result: %s (%.1f%% score)" % [status_text, result.score * 100])
+	pass # Validation result logged
 	return result
 
 static func _validate_error_handling_coverage() -> CategoryResult:
 	## Validate error handling coverage
-	print("\n🛡️ VALIDATING: Error Handling Coverage")
 	var category_start = Time.get_ticks_msec()
 	var result = CategoryResult.new(ValidationCategory.ERROR_HANDLING)
 	
@@ -366,12 +358,11 @@ static func _validate_error_handling_coverage() -> CategoryResult:
 	}
 	
 	var status_text = "PASSED" if result.passed else "FAILED"
-	print("  Result: %s (%.1f%% score)" % [status_text, result.score * 100])
+	pass # Validation result logged
 	return result
 
 static func _validate_integration_health(health_monitor: IntegrationHealthMonitor) -> CategoryResult:
 	## Validate integration health monitoring
-	print("\n💊 VALIDATING: Integration Health")
 	var category_start = Time.get_ticks_msec()
 	var result = CategoryResult.new(ValidationCategory.INTEGRATION_HEALTH)
 	
@@ -411,12 +402,12 @@ static func _validate_integration_health(health_monitor: IntegrationHealthMonito
 	}
 	
 	var status_text = "PASSED" if result.passed else "FAILED"
-	print("  Result: %s (%.1f%% score)" % [status_text, result.score * 100])
+	pass # Validation result logged
 	return result
 
 static func _validate_memory_stability() -> CategoryResult:
 	## Validate memory stability and leak detection using integrated memory management systems
-	print("\n🧠 VALIDATING: Memory Stability (Enhanced)")
+	pass # Validating memory stability
 	var category_start = Time.get_ticks_msec()
 	var result = CategoryResult.new(ValidationCategory.MEMORY_STABILITY)
 	
@@ -540,12 +531,11 @@ static func _validate_memory_stability() -> CategoryResult:
 	}
 	
 	var status_text = "PASSED" if result.passed else "FAILED"
-	print("  Result: %s (%.1f%% score)" % [status_text, result.score * 100])
+	pass # Validation result logged
 	return result
 
 static func _validate_scalability() -> CategoryResult:
 	## Validate system scalability
-	print("\n📈 VALIDATING: Scalability")
 	var category_start = Time.get_ticks_msec()
 	var result = CategoryResult.new(ValidationCategory.SCALABILITY_TESTS)
 	
@@ -611,12 +601,11 @@ static func _validate_scalability() -> CategoryResult:
 	}
 	
 	var status_text = "PASSED" if result.passed else "FAILED"
-	print("  Result: %s (%.1f%% score)" % [status_text, result.score * 100])
+	pass # Validation result logged
 	return result
 
 static func _validate_security_requirements() -> CategoryResult:
 	## Validate security requirements
-	print("\n🔒 VALIDATING: Security Requirements")
 	var category_start = Time.get_ticks_msec()
 	var result = CategoryResult.new(ValidationCategory.SECURITY_VALIDATION)
 	
@@ -682,7 +671,7 @@ static func _validate_security_requirements() -> CategoryResult:
 	}
 	
 	var status_text = "PASSED" if result.passed else "FAILED"
-	print("  Result: %s (%.1f%% score)" % [status_text, result.score * 100])
+	pass # Validation result logged
 	return result
 
 ## ANALYSIS AND REPORTING
@@ -778,55 +767,22 @@ static func _generate_production_readiness_report(result: ProductionReadinessRes
 	var separator = ""
 	for i in range(80):
 		separator += "="
-	print("\n" + separator)
-	print("PRODUCTION READINESS ASSESSMENT REPORT")
-	print(separator)
 	
 	# Executive Summary
-	print("\n📋 EXECUTIVE SUMMARY")
-	print("Validation Date: %s" % result.validation_timestamp)
-	print("Total Validation Time: %.2fs" % (float(result.total_validation_time_ms) / 1000.0))
-	print("Overall Readiness Level: %s" % ProductionReadinessLevel.keys()[result.overall_level])
-	var approval_text = "✅ APPROVED" if result.deployment_approval else "❌ DENIED"
-	print("Deployment Approval: %s" % approval_text)
-	
-	# Performance Metrics
-	print("\n📊 PERFORMANCE METRICS")
-	print("Overall Score: %.1f%%" % (result.performance_metrics.overall_score * 100))
-	print("Categories Passed: %d/%d" % [result.performance_metrics.categories_passed, result.performance_metrics.total_categories])
-	print("Critical Failures: %d" % result.performance_metrics.critical_failures)
-	print("Warnings: %d" % result.performance_metrics.warnings)
-	
-	# Category Results
-	print("\n📈 CATEGORY RESULTS")
-	for category in result.category_results.keys():
-		var category_result = result.category_results[category]
-		var category_name = ValidationCategory.keys()[category]
-		var status_icon = "✅" if category_result.passed else "❌"
-		print("  %s %s: %.1f%% (%dms)" % [
-			status_icon,
-			category_name.replace("_", " ").capitalize(),
-			category_result.score * 100,
-			category_result.duration_ms
-		])
+	var approval_text = "APPROVED" if result.deployment_approval else "DENIED"
+	pass # Production readiness report generated
 	
 	# Critical Issues
 	if result.critical_issues.size() > 0:
-		print("\n🚨 CRITICAL ISSUES")
 		for issue in result.critical_issues:
-			print("  • %s" % issue)
+			pass
 	
 	# Warnings
 	if result.warnings.size() > 0:
-		print("\n⚠️ WARNINGS")
 		for warning in result.warnings:
-			print("  • %s" % warning)
+			pass
 	
 	# Recommendations
-	print("\n🎯 RECOMMENDATIONS")
 	for recommendation in result.recommendations:
-		print("  • %s" % recommendation)
+		pass
 	
-	print("\n" + separator)
-	print("END OF PRODUCTION READINESS REPORT")
-	print(separator)

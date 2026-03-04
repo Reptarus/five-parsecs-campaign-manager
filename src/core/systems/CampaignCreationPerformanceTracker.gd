@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 class_name CampaignCreationPerformanceTracker
 extends RefCounted
 
@@ -31,7 +31,6 @@ func _init():
 	# Use available memory tracking method or fallback
 	memory_usage_baseline = _get_memory_usage_safe()
 	start_time = Time.get_unix_time_from_system()
-	print("CampaignCreationPerformanceTracker: Initialized with baseline memory: %d bytes" % memory_usage_baseline)
 
 func track_phase_transition(phase: int, duration_ms: float) -> void:
 	## Track phase transition performance
@@ -151,7 +150,6 @@ func create_baseline() -> Dictionary:
 		"error_handling_overhead": 0.0
 	}
 	
-	print("CampaignCreationPerformanceTracker: Created baseline: %s" % str(baseline))
 	return baseline
 
 func _calculate_phase_averages() -> Dictionary:

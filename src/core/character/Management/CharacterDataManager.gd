@@ -6,8 +6,6 @@ const CREW_FILE_EXTENSION = ".crew.json"
 const PORTRAIT_DIR = "user://portraits/"
 const Character = preload("res://src/core/character/Base/Character.gd")
 const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
-const GameEnums = preload("res://src/core/systems/GlobalEnums.gd")
-
 var game_state_manager: GameStateManager
 
 func _init(_game_state_manager: GameStateManager):

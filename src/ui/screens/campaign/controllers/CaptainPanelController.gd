@@ -449,7 +449,7 @@ func _emit_error(message: String) -> void:
 	push_error("CaptainPanelController: " + message)
 
 func debug_print(message: String) -> void:
-	print("CaptainPanelController: " + message)
+	pass
 
 func _safe_get_node(path: String) -> Node:
 	if not panel_node:

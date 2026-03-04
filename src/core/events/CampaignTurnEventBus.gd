@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 
 ## CampaignTurnEventBus
 ##
@@ -66,7 +66,6 @@ var event_subscribers: Dictionary = {} # TurnEvent -> Array[Callable]
 
 func _ready() -> void:
 	name = "CampaignTurnEventBus"
-	print("CampaignTurnEventBus: Initialized - replacing signal hell with type-safe events")
 
 ## Public API: Publish events
 func publish_event(event_type: TurnEvent, data: Dictionary = {}) -> void:
@@ -74,7 +73,7 @@ func publish_event(event_type: TurnEvent, data: Dictionary = {}) -> void:
 	var event_name = TurnEvent.keys()[event_type]
 	
 	if debug_mode:
-		print("CampaignTurnEventBus: Publishing %s with data: %s" % [event_name, data])
+		pass
 	
 	# Store event in history for debugging
 	var event_record = {
@@ -129,7 +128,6 @@ func _dispatch_event(event_type: TurnEvent, data: Dictionary) -> void:
 func enable_debug_mode(enabled: bool = true) -> void:
 	## Enable debug mode for event monitoring
 	debug_mode = enabled
-	print("CampaignTurnEventBus: Debug mode %s" % ("enabled" if enabled else "disabled"))
 
 func get_event_history() -> Array[Dictionary]:
 	## Get event history for debugging
@@ -143,7 +141,6 @@ func get_recent_events(count: int = 10) -> Array[Dictionary]:
 func clear_event_history() -> void:
 	## Clear event history
 	event_history.clear()
-	print("CampaignTurnEventBus: Event history cleared")
 
 ## Convenience Methods for Common Events
 func publish_upkeep_completed(upkeep_data: Dictionary) -> void:

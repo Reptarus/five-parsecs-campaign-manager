@@ -1,4 +1,4 @@
-﻿class_name CampaignCreationStateManager
+class_name CampaignCreationStateManager
 extends RefCounted
 
 ## Enterprise-grade Campaign Creation State Manager
@@ -77,7 +77,7 @@ func set_phase(new_phase: Phase) -> bool:
 	if new_phase >= Phase.CONFIG and new_phase <= Phase.FINAL_REVIEW:
 		current_phase = new_phase
 		_validate_current_phase()
-		print("CampaignCreationStateManager: Phase set to %s" % str(new_phase))
+		pass # Phase set
 		return true
 	else:
 		push_warning("CampaignCreationStateManager: Invalid phase: %s" % str(new_phase))
@@ -86,7 +86,7 @@ func set_phase(new_phase: Phase) -> bool:
 func advance_to_next_phase() -> bool:
 	## Advance to next phase with enhanced progression logic - allows warnings
 	# CRITICAL FIX: Require proper validation before advancing
-	print("CampaignCreationStateManager: Attempting to advance from phase: %s" % get_phase_name(current_phase))
+	pass # Attempting phase advance
 	
 	# Validate current phase before allowing advancement
 	var validation_result: Dictionary = _validate_phase_with_warnings(current_phase)
@@ -97,7 +97,7 @@ func advance_to_next_phase() -> bool:
 	
 	# Allow progression if only warnings exist
 	if validation_result.has_warnings:
-		print("CampaignCreationStateManager: Advancing with warnings: %s" % str(validation_result.warnings))
+		push_warning("CampaignCreationStateManager: Advancing with warnings: %s" % str(validation_result.warnings))
 
 	var next_phase_int: int = int(current_phase) + 1
 	if next_phase_int < int(Phase.FINAL_REVIEW) + 1:
@@ -110,15 +110,13 @@ func advance_to_next_phase() -> bool:
 
 func go_to_previous_phase() -> bool:
 	## Go back to the previous phase if possible
-	print("CampaignCreationStateManager: Attempting to go to previous phase from %s" % get_phase_name(current_phase))
+	pass # Attempting to go to previous phase
 	
 	if current_phase == Phase.CONFIG:
-		print("CampaignCreationStateManager: Cannot go back from CONFIG phase")
 		return false # Cannot go back from first phase
 	
 	var previous_phase_int: int = int(current_phase) - 1
 	if previous_phase_int < 0:
-		print("CampaignCreationStateManager: Invalid previous phase calculation")
 		return false
 	
 	var previous_phase: Phase = Phase.values()[previous_phase_int] as Phase
@@ -128,7 +126,7 @@ func go_to_previous_phase() -> bool:
 	state_updated.emit(current_phase, get_phase_data(current_phase))
 	_validate_current_phase()
 	
-	print("CampaignCreationStateManager: ✅ Successfully moved back to phase: %s" % get_phase_name(current_phase))
+	pass # Moved back to previous phase
 	return true
 
 func can_go_to_previous_phase() -> bool:
@@ -242,12 +240,10 @@ func _validate_crew_phase() -> bool:
 
 	# Allow empty crew data initially - panels will populate it
 	if crew.is_empty():
-		print("CampaignCreationStateManager: Crew data empty, allowing for initial setup")
 		return true
 
 	if not crew.has("members"):
 		# If no members key exists, assume default crew is being used
-		print("CampaignCreationStateManager: No members key found, assuming default crew setup")
 		return true
 
 	# If members array exists but is empty, that's an error
@@ -295,7 +291,7 @@ func _validate_crew_phase() -> bool:
 	# If we have enough members and a captain, crew setup is complete
 	# The completion_level check was designed for manual character editing which isn't required
 
-	print("CampaignCreationStateManager: Crew validation passed - %d members with captain" % members_array.size())
+	pass # Crew validation passed
 	return true
 
 func _validate_captain_phase() -> bool:
@@ -304,7 +300,6 @@ func _validate_captain_phase() -> bool:
 
 	# Allow initial empty state for captain creation UI
 	if captain.is_empty():
-		print("CampaignCreationStateManager: Captain data empty - allowing initial creation")
 		return true
 
 	# Basic captain validation
@@ -326,7 +321,7 @@ func _validate_captain_phase() -> bool:
 		validation_errors.append("Captain needs more customization")
 		return false
 
-	print("CampaignCreationStateManager: Captain validation passed - %s" % str(captain.get("character_name", "")))
+	pass # Captain validation passed
 	return true
 
 func _validate_ship_phase() -> bool:
@@ -387,13 +382,12 @@ func _validate_final_phase() -> bool:
 	for phase_idx: int in range(int(Phase.FINAL_REVIEW)):
 		var phase_valid: bool = _is_phase_valid(phase_idx as Phase)
 		if not phase_valid:
-			print("DEBUG: Phase %d failed validation. Errors: %s" % [phase_idx, validation_errors])
 			all_phases_valid = false
 
 	if all_phases_valid:
 		campaign_data["metadata"]["is_complete"] = true
 	else:
-		print("DEBUG: Final validation failed. Total errors: %d" % validation_errors.size())
+		push_warning("CampaignCreationStateManager: Final validation failed. Total errors: %d" % validation_errors.size())
 
 	return all_phases_valid
 
@@ -845,7 +839,6 @@ func import_from_save(save_data: Dictionary) -> bool:
 	# Security validation for imported data
 	var validation_result = _validate_imported_data(save_data)
 	if not validation_result.valid:
-		print("CampaignCreationStateManager: IMPORT_FAILED - ", validation_result.error)
 		return false
 	
 	campaign_data = validation_result.sanitized_value
@@ -927,11 +920,9 @@ func update_campaign_config_secure(config_data: Dictionary) -> bool:
 			local_validation_errors.append("Crew size: " + crew_validation.error)
 	
 	if local_validation_errors.size() > 0:
-		print("CampaignCreationStateManager: CONFIG_VALIDATION_FAILED - Errors: ", local_validation_errors)
 		return false
 	
 	campaign_data["config"].merge(config_data)
-	print("CampaignCreationStateManager: CONFIG_UPDATED - Campaign config validated and updated")
 	return true
 
 func update_character_secure(character_data: Dictionary, character_type: String = "crew") -> bool:
@@ -967,7 +958,7 @@ func update_character_secure(character_data: Dictionary, character_type: String 
 				local_validation_errors.append(attr.capitalize() + ": " + attr_validation.error)
 	
 	if local_validation_errors.size() > 0:
-		print("CampaignCreationStateManager: CHARACTER_VALIDATION_FAILED - Character: ", character_data.get("name", "Unknown"), ", Errors: ", local_validation_errors)
+		push_warning("CampaignCreationStateManager: CHARACTER_VALIDATION_FAILED - Character: %s, Errors: %s" % [character_data.get("name", "Unknown"), str(local_validation_errors)])
 		return false
 	
 	# Update appropriate data structure
@@ -979,7 +970,7 @@ func update_character_secure(character_data: Dictionary, character_type: String 
 				campaign_data["crew"]["members"] = []
 			(campaign_data["crew"]["members"] as Array).append(character_data)
 	
-	print("CampaignCreationStateManager: CHARACTER_UPDATED - Character validated: ", character_data.get("name", "Unknown"))
+	pass # Character validated and updated
 	return true
 
 # Public API methods for external access
@@ -1040,7 +1031,6 @@ func update_captain_data(captain_data: Dictionary) -> bool:
 # PHASE 1A: Atomic captain confirmation with concurrency protection
 func confirm_captain_creation(captain_data: Dictionary) -> Dictionary:
 	## Confirm captain creation with atomic operations and concurrency protection
-	print("CampaignCreationStateManager: Confirming captain creation")
 	
 	# Lock for atomic operation
 	_operation_lock.lock()
@@ -1097,7 +1087,6 @@ func confirm_captain_creation(captain_data: Dictionary) -> Dictionary:
 	result.success = true
 	result.captain_name = captain_data.get("character_name", "Unknown")
 	
-	print("CampaignCreationStateManager: ✅ Captain confirmation successful for %s" % result.captain_name)
 	
 	# Emit state update
 	state_updated.emit(Phase.CAPTAIN_CREATION, get_phase_data(Phase.CAPTAIN_CREATION))
@@ -1130,7 +1119,6 @@ func create_captain_confirmation_transaction(captain_data: Dictionary) -> String
 	# Add validation operation
 	transaction.add_operation("validate_phase", {"phase": Phase.CAPTAIN_CREATION}, {})
 	
-	print("CampaignCreationStateManager: Created captain confirmation transaction %s" % transaction_id)
 	return transaction_id
 
 func execute_transaction(transaction_id: String) -> Dictionary:
@@ -1161,7 +1149,6 @@ func execute_transaction(transaction_id: String) -> Dictionary:
 	# Emit state update signals
 	state_updated.emit(Phase.CAPTAIN_CREATION, get_phase_data(Phase.CAPTAIN_CREATION))
 	
-	print("CampaignCreationStateManager: Transaction %s executed successfully" % transaction_id)
 	return result
 
 func rollback_transaction(transaction_id: String, reason: String = "") -> bool:
@@ -1177,7 +1164,6 @@ func rollback_transaction(transaction_id: String, reason: String = "") -> bool:
 		# Emit state update signals after rollback
 		_validate_current_phase()
 		state_updated.emit(current_phase, get_phase_data(current_phase))
-		print("CampaignCreationStateManager: Transaction %s rolled back successfully" % transaction_id)
 	
 	return success
 
@@ -1187,7 +1173,6 @@ func cleanup_transaction(transaction_id: String) -> void:
 		var transaction = _active_transactions[transaction_id]
 		transaction.cleanup_transaction()
 		_active_transactions.erase(transaction_id)
-		print("CampaignCreationStateManager: Cleaned up transaction %s" % transaction_id)
 
 func get_transaction_status(transaction_id: String) -> Dictionary:
 	## Get status of a specific transaction
@@ -1213,7 +1198,7 @@ func cleanup_completed_transactions() -> void:
 	for transaction_id in completed_transactions:
 		cleanup_transaction(transaction_id)
 	
-	print("CampaignCreationStateManager: Cleaned up %d completed transactions" % completed_transactions.size())
+	pass # Transactions cleaned up
 
 func update_ship_data(ship_data: Dictionary) -> bool:
 	## Update ship data - wrapper for UI integration
@@ -1313,10 +1298,9 @@ func get_phase_name(phase: Phase) -> String:
 func update_campaign_data(update_data: Dictionary) -> bool:
 	## Update complete campaign data - comprehensive update method for UI integration
 	if update_data.is_empty():
-		print("CampaignCreationStateManager: Empty update data provided")
 		return false
 	
-	print("CampaignCreationStateManager: Updating campaign data with keys: %s" % str(update_data.keys()))
+	pass # Updating campaign data
 	
 	# Update each section of campaign data
 	var sections_updated = []
@@ -1369,5 +1353,5 @@ func update_campaign_data(update_data: Dictionary) -> bool:
 	# Emit state update signal
 	state_updated.emit(current_phase, get_phase_data(current_phase))
 	
-	print("CampaignCreationStateManager: ✅ Campaign data updated - sections: %s" % str(sections_updated))
+	pass # Campaign data updated
 	return true

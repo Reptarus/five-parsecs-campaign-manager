@@ -39,7 +39,7 @@ func undo_last_action() -> bool:
 	var state = undo_stack.pop_back()
 	redo_stack.append(state)
 	
-	# TODO: Actually restore state (needs GameState integration)
+	# NOTE: Deferred — needs GameState integration to actually restore state
 	undo_state_changed.emit(can_undo(), can_redo())
 	return true
 

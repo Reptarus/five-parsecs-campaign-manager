@@ -3,7 +3,6 @@
 # Use explicit preloads instead of global class names
 extends BaseCrewMember
 
-const Self = preload("res://src/game/campaign/crew/FiveParsecsCrewMember.gd")
 const BaseCrewMember = preload("res://src/base/campaign/crew/BaseCrewMember.gd")
 const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const FiveParsecsGameEnums = preload("res://src/game/campaign/crew/FiveParsecsGameEnums.gd")

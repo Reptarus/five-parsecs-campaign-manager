@@ -45,7 +45,6 @@ func _initialize_default_data() -> void:
 		"components": []
 	}
 
-	print("Campaign: Initialized with simple data structures")
 
 ## Add crew member to campaign
 func add_crew_member(character_data: Dictionary) -> void:

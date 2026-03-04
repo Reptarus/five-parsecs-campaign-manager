@@ -1,4 +1,4 @@
-﻿@tool
+@tool
 extends RefCounted
 class_name PsionicSystem
 
@@ -183,19 +183,17 @@ func resolve_psionic_projection(psionic_character: PsionicCharacter, power: Psio
 		# Resolve strain effects
 		if strain_roll == 4 or strain_roll == 5:
 			psionic_character.add_stun_marker()
-			print("Psionic strained and is Stunned.")
 		elif strain_roll == 6:
 			psionic_character.add_stun_marker()
-			print("Psionic strained, is Stunned, and power failed.")
 			var power_dict = {"type": power.power_type, "name": power.name}
 			psionic_power_used.emit(psionic_character.character, power_dict, false)
 			return false
 	
 	var success = total_range >= range_needed
 	if success:
-		print("Psionic power %s used successfully!" % power.name)
+		pass
 	else:
-		print("Psionic power %s failed to reach target." % power.name)
+		pass
 	
 	var power_dict = {"type": power.power_type, "name": power.name}
 	psionic_power_used.emit(psionic_character.character, power_dict, success)
@@ -242,17 +240,14 @@ func acquire_psionic_power(psionic_character: PsionicCharacter, dice_system = nu
 		new_power = PsionicPower.new(power_type)
 	
 	psionic_character.add_power(new_power)
-	print("Acquired new psionic power: %s" % new_power.name)
 	return true
 
 func enhance_psionic_power(psionic_character: PsionicCharacter, power: PsionicPower) -> bool:
 	## Enhance existing psionic power with experience points (XP)
 	if power in psionic_character.psionic_powers:
 		power.enhanced = true
-		print("Enhanced psionic power: %s" % power.name)
 		return true
 	
-	print("Character does not possess the power to enhance: %s" % power.name)
 	return false
 
 func create_psionic_character(base_character: Character) -> PsionicCharacter:

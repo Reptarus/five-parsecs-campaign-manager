@@ -496,11 +496,11 @@ func _get_stress_bonus_multiplier() -> float:
 
 func _complete_mission() -> void:
 	# Mark mission as completed
-	print("Escort mission completed for VIP: %s" % vip_name)
+	pass
 
 func _fail_mission() -> void:
 	# Mark mission as failed
-	print("Escort mission failed for VIP: %s" % vip_name)
+	pass
 
 func has(property: String) -> bool:
 	# Simple property check for objectives

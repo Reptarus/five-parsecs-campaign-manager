@@ -20,7 +20,6 @@ func _ready() -> void:
 	_setup_background()
 	_connect_signals()
 	_setup_accessibility_panel()
-	print("SettingsScreen: Ready")
 
 func _setup_background() -> void:
 	## Apply consistent background styling
@@ -50,10 +49,9 @@ func _setup_accessibility_panel() -> void:
 
 func _on_back_pressed() -> void:
 	## Navigate back to Campaign Dashboard
-	print("SettingsScreen: Returning to Campaign Dashboard")
 	SceneRouter.navigate_back()
 
 func _on_theme_selected(theme_variant: int) -> void:
 	## Handle theme selection - auto-save preference
-	print("SettingsScreen: Theme selected - %d" % theme_variant)
 	# Theme is applied by AccessibilitySettingsPanel via ThemeManager
+	pass
