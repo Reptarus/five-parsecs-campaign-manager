@@ -43,9 +43,11 @@ func _ready() -> void:
 	if buy_button:
 		buy_button.pressed.connect(_on_buy_button_pressed)
 		buy_button.disabled = true
+		_style_button_disabled(buy_button)
 	if sell_button:
 		sell_button.pressed.connect(_on_sell_button_pressed)
 		sell_button.disabled = true
+		_style_button_disabled(sell_button)
 	if complete_button:
 		complete_button.pressed.connect(_on_complete_button_pressed)
 	if available_items:
@@ -117,7 +119,7 @@ func load_market_items() -> void:
 				var item_cost: int = item.get("value", 50)
 				var uses: int = item.get("remaining_uses", -1)
 				var uses_str: String = " [%d uses]" % uses if uses >= 0 else ""
-				available_items.add_item("%s%s (%d cr)" % [item_name, uses_str, item_cost])
+				available_items.add_item("%s%s (%s)" % [item_name, uses_str, _format_credits_short(item_cost)])
 	else:
 		# Fallback if EquipmentManager unavailable
 		var fallback_items: Array = [
@@ -127,7 +129,7 @@ func load_market_items() -> void:
 		]
 		for item in fallback_items:
 			available_market_items.append(item)
-			available_items.add_item("%s (%d cr)" % [item.get("name", "?"), item.get("value", 0)])
+			available_items.add_item("%s (%s)" % [item.get("name", "?"), _format_credits_short(item.get("value", 0))])
 
 	# Compendium DLC: Ship parts + Psionic equipment
 	var compendium_items: Array[Dictionary] = CompendiumEquipmentRef.get_trade_phase_items()
@@ -141,7 +143,7 @@ func load_market_items() -> void:
 		var item_cost: int = item.get("cost", 0)
 		var slot: String = item.get("slot", "")
 		var slot_str: String = " [%s]" % slot if not slot.is_empty() else ""
-		available_items.add_item("%s%s (%d cr)" % [item_name, slot_str, item_cost])
+		available_items.add_item("%s%s (%s)" % [item_name, slot_str, _format_credits_short(item_cost)])
 
 func load_inventory() -> void:
 	if not inventory_items:
@@ -182,7 +184,7 @@ func load_inventory() -> void:
 			var item_name: String = inv_item.get("name", "Unknown")
 			var inv_uses: int = inv_item.get("remaining_uses", -1)
 			var inv_uses_str: String = " [%d uses]" % inv_uses if inv_uses >= 0 else ""
-			inventory_items.add_item("%s%s [%s] (%d cr)" % [item_name, inv_uses_str, owner_name, sell_val])
+			inventory_items.add_item("%s%s [%s] (%s)" % [item_name, inv_uses_str, owner_name, _format_credits_short(sell_val)])
 
 	# Load ship stash (equipment pool)
 	if "equipment_data" in campaign:
@@ -207,7 +209,12 @@ func load_inventory() -> void:
 			var item_name: String = inv_item.get("name", "Unknown")
 			var pool_uses: int = inv_item.get("remaining_uses", -1)
 			var pool_uses_str: String = " [%d uses]" % pool_uses if pool_uses >= 0 else ""
-			inventory_items.add_item("%s%s [Ship Stash] (%d cr)" % [item_name, pool_uses_str, sell_val])
+			inventory_items.add_item("%s%s [Ship Stash] (%s)" % [item_name, pool_uses_str, _format_credits_short(sell_val)])
+
+	# Empty state for inventory
+	if inventory.is_empty():
+		inventory_items.add_item("No items to sell")
+		inventory_items.set_item_disabled(0, true)
 
 func _calculate_sell_value(item: Dictionary) -> int:
 	var base_value: int = item.get("value", 50)
@@ -216,28 +223,34 @@ func _calculate_sell_value(item: Dictionary) -> int:
 
 func update_credits_display() -> void:
 	if credits_label:
-		credits_label.text = "Credits: " + str(current_credits)
+		credits_label.text = "Credits: " + _format_credits(current_credits)
 
 func _on_market_item_selected(index: int) -> void:
 	if index >= 0 and index < available_market_items.size():
 		selected_market_item = available_market_items[index]
 		var cost: int = selected_market_item.get("value", 0)
 		if buy_button:
-			buy_button.disabled = cost > current_credits
+			var too_expensive: bool = cost > current_credits
+			buy_button.disabled = too_expensive
+			if too_expensive:
+				buy_button.tooltip_text = "Need %s, have %s" \
+					% [_format_credits_long(cost), _format_credits_long(current_credits)]
+			else:
+				buy_button.tooltip_text = ""
 		if item_details:
 			var name_str: String = selected_market_item.get("name", "Unknown")
 			var type_str: String = selected_market_item.get("type", "")
 			var desc: String = name_str
 			if not type_str.is_empty():
 				desc += " (%s)" % type_str
-			desc += "\nCost: %d credits" % cost
+			desc += "\nCost: %s" % _format_credits_long(cost)
 			var traits: Array = selected_market_item.get("traits", [])
 			if not traits.is_empty():
 				desc += "\nTraits: %s" % ", ".join(traits)
 			var uses: int = selected_market_item.get("remaining_uses", -1)
 			if uses >= 0:
 				desc += "\nUses: %d" % uses
-			item_details.text = desc
+			_set_keyword_text(item_details, desc)
 
 func _on_inventory_item_selected(index: int) -> void:
 	if index >= 0 and index < inventory.size():
@@ -253,8 +266,8 @@ func _on_inventory_item_selected(index: int) -> void:
 			if not type_str.is_empty():
 				desc += " (%s)" % type_str
 			desc += "\nOwner: %s" % owner
-			desc += "\nSell Value: %d credits" % sell_val
-			item_details.text = desc
+			desc += "\nSell Value: %s" % _format_credits_long(sell_val)
+			_set_keyword_text(item_details, desc)
 
 func _on_buy_button_pressed() -> void:
 	if selected_market_item.is_empty():
@@ -345,7 +358,7 @@ func _refresh_market_list() -> void:
 	for item in available_market_items:
 		var item_name: String = item.get("name", "Unknown Item")
 		var item_cost: int = item.get("value", 50)
-		available_items.add_item("%s (%d cr)" % [item_name, item_cost])
+		available_items.add_item("%s (%s)" % [item_name, _format_credits_short(item_cost)])
 
 func _on_complete_button_pressed() -> void:
 	var campaign = _get_campaign_safe()

@@ -24,6 +24,9 @@ func _ready() -> void:
 	if continue_button:
 		continue_button.pressed.connect(_on_continue_button_pressed)
 		continue_button.disabled = true
+		_style_button_disabled(continue_button)
+		_setup_validation_hint(continue_button)
+		_show_validation_hint("Save your campaign before continuing")
 
 func setup_phase() -> void:
 	super.setup_phase()
@@ -77,9 +80,21 @@ func update_summary_display() -> void:
 		child.queue_free()
 
 	# Add stats to container
+	if cycle_summary.is_empty():
+		var empty_label = Label.new()
+		empty_label.text = "No campaign data available"
+		empty_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
+		stats_container.add_child(empty_label)
+		return
 	for stat in cycle_summary:
 		var stat_label = Label.new()
-		stat_label.text = stat.capitalize().replace("_", " ") + ": " + str(cycle_summary[stat])
+		var value = cycle_summary[stat]
+		var value_str: String
+		if value is int and stat in ["credits", "story_points"]:
+			value_str = _format_credits(value)
+		else:
+			value_str = str(value)
+		stat_label.text = stat.capitalize().replace("_", " ") + ": " + value_str
 		stats_container.add_child(stat_label)
 
 func _on_save_button_pressed() -> void:
@@ -94,6 +109,7 @@ func _on_save_button_pressed() -> void:
 		save_button.disabled = true
 	if continue_button:
 		continue_button.disabled = false
+		_hide_validation_hint()
 
 func _try_archive_campaign() -> void:
 	if not game_state or not game_state.campaign:

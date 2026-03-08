@@ -143,7 +143,11 @@ func _update_header(campaign) -> void:
 	if phase_label:
 		var phase_text: String = campaign.game_phase \
 			if "game_phase" in campaign else "—"
-		phase_label.text = "Phase: %s" % phase_text.capitalize()
+		var pd: Dictionary = campaign.progress_data \
+			if "progress_data" in campaign else {}
+		var turn: int = pd.get("turns_played", 0) + 1
+		phase_label.text = "Turn %d — %s" \
+			% [turn, phase_text.capitalize()]
 		phase_label.add_theme_color_override(
 			"font_color", COLOR_CYAN
 		)
@@ -720,7 +724,13 @@ func _update_phase_ui(phase) -> void:
 	var phase_names = GameEnums.PHASE_NAMES
 	var phase_name: String = phase_names.get(phase, "Unknown")
 	if phase_label:
-		phase_label.text = "Phase: " + phase_name
+		var campaign = _get_campaign()
+		var turn: int = 1
+		if campaign:
+			var pd: Dictionary = campaign.progress_data \
+				if "progress_data" in campaign else {}
+			turn = pd.get("turns_played", 0) + 1
+		phase_label.text = "Turn %d — %s" % [turn, phase_name]
 	if action_button:
 		var nxt = _get_next_phase(phase)
 		var next_name: String = phase_names.get(nxt, "Unknown")

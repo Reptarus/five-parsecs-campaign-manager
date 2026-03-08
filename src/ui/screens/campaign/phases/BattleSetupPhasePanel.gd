@@ -67,6 +67,9 @@ func _ready() -> void:
 	_style_section_label(equipment_label)
 	_style_item_list(equipment_list)
 	_style_phase_button(start_battle_button, true)
+	_style_button_disabled(start_battle_button)
+	if start_battle_button:
+		_setup_validation_hint(start_battle_button)
 	_connect_signals()
 
 func _connect_signals() -> void:
@@ -232,7 +235,7 @@ func _load_mission_info() -> void:
 	for rule in _get_location_property("special_rules", []):
 		info += "• " + str(rule) + "\n"
 
-	mission_info.text = info
+	_set_keyword_text(mission_info, info)
 
 func _get_deployment_description(type: GameEnums.DeploymentType) -> String:
 	match type:
@@ -260,6 +263,7 @@ func _load_crew() -> void:
 		return
 	crew_list.clear()
 	var crew_members = _get_crew_members()
+	var available_count: int = 0
 	for member in crew_members:
 		if member in deployed_crew:
 			continue
@@ -269,6 +273,12 @@ func _load_crew() -> void:
 		elif "character_name" in member:
 			name_str = member.character_name
 		crew_list.add_item(name_str)
+		available_count += 1
+	if available_count == 0:
+		var msg: String = "All crew deployed" if not deployed_crew.is_empty() \
+			else "No crew members available"
+		crew_list.add_item(msg)
+		crew_list.set_item_disabled(0, true)
 
 func _get_crew_members() -> Array:
 	var campaign = _get_game_state_property("campaign")
@@ -292,10 +302,20 @@ func _load_equipment() -> void:
 			equipment_list.add_item(item.get("name", "Unknown Item"))
 		elif "name" in item:
 			equipment_list.add_item(item.name)
+	if equipment_list.item_count == 0:
+		equipment_list.add_item("No equipment available")
+		equipment_list.set_item_disabled(0, true)
 
 func _update_ui() -> void:
 	if start_battle_button:
-		start_battle_button.disabled = deployed_crew.is_empty()
+		var no_crew: bool = deployed_crew.is_empty()
+		start_battle_button.disabled = no_crew
+		if no_crew:
+			_show_validation_hint(
+				"Deploy at least one crew member to start"
+			)
+		else:
+			_hide_validation_hint()
 
 	if not deployment_container:
 		return

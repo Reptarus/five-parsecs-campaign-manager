@@ -170,7 +170,7 @@ func _update_character_info() -> void:
 	info += "Toughness: %d/%d\n" % [_member_get(selected_crew_member, "toughness", 3), max_stats.TOUGHNESS]
 	info += "Luck: %d/%d\n" % [_member_get(selected_crew_member, "luck", 0), max_stats.LUCK]
 
-	character_info.text = info
+	_set_keyword_text(character_info, info)
 
 func _update_advancement_options() -> void:
 	if not advancement_options:

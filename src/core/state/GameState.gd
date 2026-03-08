@@ -113,7 +113,8 @@ func _try_auto_load_last_campaign() -> void:
 		return
 	var loaded = FiveParsecsCampaignCore.load_from_file(path)
 	if loaded:
-		current_campaign = loaded
+		set_current_campaign(loaded)
+		campaign_loaded.emit(loaded)
 	else:
 		push_warning("GameState: Failed to auto-load from: %s" % path)
 

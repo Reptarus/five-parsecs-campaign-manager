@@ -1125,10 +1125,16 @@ func _validate_campaign_data() -> Array[String]:
 		config_data = {"campaign_name": "New Campaign", "difficulty_level": 2}
 		campaign_data["campaign_config"] = config_data
 
-	# Apply default campaign name if missing (instead of blocking)
+	# Apply default campaign name if missing — try coordinator first before using timestamp
 	if config_data.get("campaign_name", "").strip_edges().is_empty():
-		var default_name: String = "Campaign_%s" % Time.get_datetime_string_from_system().replace(":", "-")
-		config_data["campaign_name"] = default_name
+		var found_name := ""
+		if coordinator and coordinator.has_method("get_unified_campaign_state"):
+			var state = coordinator.get_unified_campaign_state()
+			var cc = state.get("campaign_config", {})
+			found_name = cc.get("campaign_name", "") if cc is Dictionary else ""
+		if found_name.strip_edges().is_empty():
+			found_name = "Campaign_%s" % Time.get_datetime_string_from_system().replace(":", "-")
+		config_data["campaign_name"] = found_name
 
 	# BLOCKING ERROR: Must have crew members
 	var crew_data: Dictionary = campaign_data.get("crew", {})

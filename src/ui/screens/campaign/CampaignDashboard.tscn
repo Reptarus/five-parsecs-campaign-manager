@@ -138,36 +138,42 @@ alignment = 1
 
 [node name="ButtonContainer" type="GridContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-columns = 6
+columns = 3
 theme_override_constants/h_separation = 10
 theme_override_constants/v_separation = 8
 
 [node name="ActionButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonContainer"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 text = "Next Phase"
-
-[node name="ManageCrewButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Manage Crew"
 
 [node name="SaveButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonContainer"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 text = "Save"
 
-[node name="ExportButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonContainer"]
+[node name="ManageCrewButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonContainer"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Export"
+size_flags_horizontal = 3
+text = "Manage Crew"
 
 [node name="LoadButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonContainer"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 text = "Load"
+
+[node name="ExportButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Export"
 
 [node name="QuitButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonContainer"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 text = "Quit"

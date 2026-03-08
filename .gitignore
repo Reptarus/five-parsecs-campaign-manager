@@ -51,3 +51,4 @@ test_*_output.txt
 test_results.txt
 test_e2e_*.txt
 test_full_run.txt
+.mcp/

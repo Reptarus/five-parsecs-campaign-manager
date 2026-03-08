@@ -35,8 +35,9 @@ func _ready() -> void:
 	_show_panel(0)
 	_update_step_label()
 
-	# Initial navigation state
-	back_button.visible = false
+	# Initial navigation state — back button always visible (Cancel on Step 1)
+	back_button.visible = true
+	back_button.text = "Cancel"
 	finish_button.visible = false
 	next_button.visible = true
 	next_button.disabled = false
@@ -136,7 +137,9 @@ func _set_coordinator_on_panels() -> void:
 			panel.set_coordinator(coordinator)
 
 func _on_navigation_updated(can_go_back: bool, can_go_forward: bool, can_finish: bool) -> void:
-	back_button.visible = can_go_back
+	# Always show back button — on Step 1 it acts as Cancel (return to MainMenu)
+	back_button.visible = true
+	back_button.text = "Cancel" if coordinator.current_step == 0 else "Back"
 	next_button.visible = can_go_forward and not can_finish
 	finish_button.visible = can_finish
 	next_button.disabled = not can_go_forward
@@ -165,6 +168,12 @@ func _on_next_pressed() -> void:
 	coordinator.advance_to_next_phase()
 
 func _on_back_pressed() -> void:
+	if coordinator.current_step == 0:
+		# On Step 1, Cancel returns to MainMenu
+		var router = get_node_or_null("/root/SceneRouter")
+		if router:
+			router.navigate_back()
+		return
 	coordinator.go_back_to_previous_phase()
 
 func _on_finish_pressed() -> void:

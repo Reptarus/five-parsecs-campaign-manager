@@ -295,7 +295,8 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 
 	# Set world data as current_location in GameStateManager
 	if GameStateManager and not world_data.is_empty() and GameStateManager.has_method("set_location"):
-		GameStateManager.set_location(world_data)
+		var location_name: String = world_data.get("name", "Unknown World")
+		GameStateManager.set_location(location_name)
 
 	# Transfer victory conditions from config
 	var victory_conditions = config.get("victory_conditions", {})

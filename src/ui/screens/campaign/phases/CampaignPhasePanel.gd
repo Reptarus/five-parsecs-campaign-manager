@@ -44,6 +44,8 @@ func _ready() -> void:
 	if accept_button:
 		accept_button.pressed.connect(_on_accept_pressed)
 		accept_button.disabled = true
+		_style_button_disabled(accept_button)
+		_setup_validation_hint(accept_button)
 
 func setup_phase() -> void:
 	super.setup_phase()
@@ -105,7 +107,12 @@ func _update_ui() -> void:
 	if mission_details and not selected_mission:
 		mission_details.text = "Select a mission to view details"
 	if accept_button:
-		accept_button.disabled = selected_mission == null
+		var no_mission: bool = selected_mission == null
+		accept_button.disabled = no_mission
+		if no_mission:
+			_show_validation_hint("Select a mission to accept")
+		else:
+			_hide_validation_hint()
 
 func _on_mission_button_pressed(mission) -> void:
 	selected_mission = mission

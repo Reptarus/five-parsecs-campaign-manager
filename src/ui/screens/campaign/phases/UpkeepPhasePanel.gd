@@ -27,8 +27,10 @@ func _ready() -> void:
 	_style_section_label(resources_label)
 	_style_item_list(resources_list)
 	_style_phase_button(pay_upkeep_button, true)
+	_style_button_disabled(pay_upkeep_button)
 	if pay_upkeep_button:
 		pay_upkeep_button.pressed.connect(_on_pay_upkeep_pressed)
+		_setup_validation_hint(pay_upkeep_button)
 
 func setup_phase() -> void:
 	super.setup_phase()
@@ -114,7 +116,7 @@ func _calculate_upkeep() -> void:
 				member_cost -= 2
 		total_upkeep_cost += member_cost
 	if upkeep_cost_label:
-		upkeep_cost_label.text = "Total Upkeep Cost: %d credits" % total_upkeep_cost
+		upkeep_cost_label.text = "Total Upkeep Cost: %s" % _format_credits_long(total_upkeep_cost)
 
 func _update_resources_list() -> void:
 	if not resources_list:
@@ -122,9 +124,16 @@ func _update_resources_list() -> void:
 	resources_list.clear()
 	var campaign = game_state.campaign if game_state else null
 	var credits: int = campaign.credits if campaign else 0
-	resources_list.add_item("Credits: " + str(credits))
+	resources_list.add_item("Credits: %s" % _format_credits(credits))
 	if pay_upkeep_button:
-		pay_upkeep_button.disabled = credits < total_upkeep_cost
+		var can_pay: bool = credits >= total_upkeep_cost
+		pay_upkeep_button.disabled = not can_pay
+		if not can_pay:
+			var msg := "Not enough credits — need %s, have %s" \
+				% [_format_credits(total_upkeep_cost), _format_credits(credits)]
+			_show_validation_hint(msg)
+		else:
+			_hide_validation_hint()
 
 func _on_pay_upkeep_pressed() -> void:
 	var campaign = game_state.campaign if game_state else null

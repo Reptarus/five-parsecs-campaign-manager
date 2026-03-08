@@ -43,6 +43,8 @@ func _ready() -> void:
 	if resolve_button:
 		resolve_button.pressed.connect(_on_resolve_pressed)
 		resolve_button.disabled = true
+		_style_button_disabled(resolve_button)
+		_setup_validation_hint(resolve_button)
 
 func setup_phase() -> void:
 	super.setup_phase()
@@ -123,20 +125,26 @@ func _update_ui() -> void:
 		event_details.text = "Select a story event"
 		_clear_choices()
 		resolve_button.disabled = true
+		_show_validation_hint("Select an event to continue")
 		return
-	
+
 	# Update event details
 	var details = "[b]%s[/b]\n\n%s\n\n[b]Choices:[/b]" % [
 		selected_event.title,
 		selected_event.description
 	]
-	event_details.text = details
-	
+	_set_keyword_text(event_details, details)
+
 	# Update choices
 	_update_choices()
-	
+
 	# Update resolve button
-	resolve_button.disabled = selected_choice.is_empty()
+	var no_choice: bool = selected_choice.is_empty()
+	resolve_button.disabled = no_choice
+	if no_choice:
+		_show_validation_hint("Select a choice to resolve")
+	else:
+		_hide_validation_hint()
 
 func _update_choices() -> void:
 	_clear_choices()

@@ -911,11 +911,7 @@ func _on_world_generated_from_generator(world_data: Dictionary) -> void:
 	# Update validation state
 	_update_validation_state()
 
-	# Emit enhanced signal for other systems
-	if campaign_signals:
-		campaign_signals.emit_safe_signal("world_generated", [world_data])
-
-	# Emit panel signal for CampaignCreationUI
+	# Emit panel signal for CampaignCreationUI (and coordinator via CampaignCreationUI wiring)
 	world_generated.emit(world_data)
 
 func _send_world_data_to_coordinator(world_data: Dictionary) -> void:
@@ -1190,8 +1186,8 @@ func _on_campaign_state_updated(state_data: Dictionary) -> void:
 		var crew_data = campaign_data.get("crew", {})
 		var crew_size = crew_data.get("members", []).size()
 		var captain_data = campaign_data.get("captain", {})
-		var captain_background = captain_data.get("background", "")
-		
+		var captain_background = str(captain_data.get("background", ""))
+
 		var danger_modifier = _calculate_danger_level(crew_size, captain_background)
 
 func _generate_world_from_campaign_data(campaign_data: Dictionary) -> void:
@@ -1209,9 +1205,9 @@ func _generate_world_from_campaign_data(campaign_data: Dictionary) -> void:
 	
 	# Determine world characteristics based on campaign data
 	var crew_size = crew_data.get("members", []).size()
-	var captain_background = captain_data.get("background", "")
-	var ship_type = ship_data.get("type", "")
-	
+	var captain_background = str(captain_data.get("background", ""))
+	var ship_type = str(ship_data.get("type", ""))
+
 	# Generate appropriate world type and danger level
 	var world_type = _determine_world_type_from_campaign(captain_background, ship_type)
 	var danger_level = _calculate_danger_level(crew_size, captain_background)
@@ -1259,7 +1255,7 @@ func _adjust_world_generation_parameters(campaign_data: Dictionary) -> void:
 	var danger_modifier = clamp(5 - crew_size, 0, 2)  # Smaller crews = higher danger
 	
 	# Adjust based on captain background
-	var captain_background = captain_data.get("background", "")
+	var captain_background = str(captain_data.get("background", ""))
 	if captain_background in ["military", "veteran"]:
 		danger_modifier = max(0, danger_modifier - 1)  # Military reduces danger
 	elif captain_background in ["academic", "diplomat"]:
@@ -1307,8 +1303,8 @@ func _determine_tech_level_from_campaign(campaign_data: Dictionary) -> int:
 	var base_tech = 3  # Standard tech level
 	
 	var captain_data = campaign_data.get("captain", {})
-	var captain_background = captain_data.get("background", "")
-	
+	var captain_background = str(captain_data.get("background", ""))
+
 	match captain_background:
 		"academic", "scientist":
 			base_tech += 1  # Academics prefer high-tech worlds

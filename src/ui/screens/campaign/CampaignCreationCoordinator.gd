@@ -474,12 +474,23 @@ func update_captain_state(captain_data: Dictionary) -> void:
 
 	# NORMALIZATION: Extract captain name from multiple possible locations
 	var captain_name = ""
-	if captain_data.has("name"):
+	if captain_data.has("name") and captain_data.name is String and not captain_data.name.is_empty():
 		captain_name = captain_data.name
-	elif captain_data.has("character_name"):
+	elif captain_data.has("character_name") and captain_data.character_name is String and not captain_data.character_name.is_empty():
 		captain_name = captain_data.character_name
-	elif captain_data.has("captain") and captain_data.captain is Dictionary:
-		captain_name = captain_data.captain.get("character_name", captain_data.captain.get("name", ""))
+	elif captain_data.has("captain"):
+		var nested = captain_data.captain
+		if nested is Dictionary:
+			captain_name = nested.get("character_name", nested.get("name", ""))
+		elif nested is Object and nested.has_method("get"):
+			# Character Resource objects — extract name property
+			var cn = nested.get("character_name")
+			if cn and cn is String and not cn.is_empty():
+				captain_name = cn
+			else:
+				var n = nested.get("name")
+				if n and n is String and not n.is_empty():
+					captain_name = n
 
 	# Update captain data - SPRINT 5 FIX: Provide BOTH keys for compatibility
 	if not captain_name.is_empty():
@@ -489,14 +500,26 @@ func update_captain_state(captain_data: Dictionary) -> void:
 	# Extract background from nested or top-level
 	if captain_data.has("background"):
 		unified_campaign_state.captain.background = captain_data.background
-	elif captain_data.has("captain") and captain_data.captain is Dictionary:
-		unified_campaign_state.captain.background = captain_data.captain.get("background", "")
+	elif captain_data.has("captain"):
+		var nested = captain_data.captain
+		if nested is Dictionary:
+			unified_campaign_state.captain.background = nested.get("background", "")
+		elif nested is Object and nested.has_method("get"):
+			var bg = nested.get("background")
+			if bg != null:
+				unified_campaign_state.captain.background = bg
 
 	# Extract motivation from nested or top-level
 	if captain_data.has("motivation"):
 		unified_campaign_state.captain.motivation = captain_data.motivation
-	elif captain_data.has("captain") and captain_data.captain is Dictionary:
-		unified_campaign_state.captain.motivation = captain_data.captain.get("motivation", "")
+	elif captain_data.has("captain"):
+		var nested = captain_data.captain
+		if nested is Dictionary:
+			unified_campaign_state.captain.motivation = nested.get("motivation", "")
+		elif nested is Object and nested.has_method("get"):
+			var mv = nested.get("motivation")
+			if mv != null:
+				unified_campaign_state.captain.motivation = mv
 
 	if captain_data.has("is_complete"):
 		unified_campaign_state.captain.is_complete = captain_data.is_complete
@@ -749,8 +772,27 @@ func _character_to_dict(character) -> Dictionary:
 			character["name"] = character.get("character_name", "")
 		elif not character.has("character_name") and character.has("name"):
 			character["character_name"] = character.get("name", "")
-		# If we have a name, this is a valid character dict - return it
-		# Don't require "background" - captain/crew may not have all fields yet
+		# BUG-021 FIX: If this dict wraps a Character object (e.g. captain from update_captain_state),
+		# extract stats from the Character into the dict before returning
+		if character.has("character") and character["character"] is Resource:
+			var char_obj = character["character"]
+			if char_obj.has_method("to_dictionary"):
+				var full_dict = char_obj.to_dictionary()
+				# Merge all keys from to_dictionary() without overwriting existing keys
+				for key in full_dict:
+					if not character.has(key):
+						character[key] = full_dict[key]
+			else:
+				# Manual extraction fallback for Resource without to_dictionary()
+				for prop in ["background", "motivation", "origin", "character_class",
+						"combat", "reactions", "reaction", "toughness", "savvy",
+						"speed", "luck", "experience", "traits", "starting_rolls",
+						"id", "injuries"]:
+					if prop in char_obj and not character.has(prop):
+						character[prop] = char_obj.get(prop)
+				# Normalize reaction → reactions
+				if character.has("reaction") and not character.has("reactions"):
+					character["reactions"] = character["reaction"]
 		return character
 
 	# Extract from Character object or Dictionary

@@ -69,4 +69,4 @@ text = "Apply Advancement"
 
 [node name="DoneButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
-text = "Done"
+text = "Complete Advancement"

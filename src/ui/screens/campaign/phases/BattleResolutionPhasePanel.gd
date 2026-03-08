@@ -99,7 +99,7 @@ func _update_battle_summary() -> void:
 	]
 	summary += "Casualties: %d\n" % casualties.size()
 	summary += "\n[b]Rewards:[/b]\n"
-	summary += "Credits: %d\n" % rewards.get("credits", 0)
+	summary += "Credits: %s\n" % _format_credits(rewards.get("credits", 0))
 	results_container.text = summary
 
 func _update_objectives() -> void:

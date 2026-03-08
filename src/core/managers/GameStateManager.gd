@@ -47,6 +47,27 @@ func _ready() -> void:
 	set_reputation(initial_reputation)
 	set_story_progress(0)
 	load_settings()
+	# Defer campaign sync to ensure all autoloads are ready
+	call_deferred("_connect_campaign_signals")
+
+func _connect_campaign_signals() -> void:
+	var gs = get_node_or_null("/root/GameState")
+	if not gs:
+		return
+	if gs.has_signal("campaign_loaded"):
+		gs.campaign_loaded.connect(_on_campaign_loaded)
+	# If a campaign was already auto-loaded before we connected, sync now
+	var campaign = gs.get("current_campaign")
+	if campaign != null:
+		_on_campaign_loaded(campaign)
+
+## Sync internal resource tracking from loaded campaign data
+func _on_campaign_loaded(campaign) -> void:
+	if campaign == null:
+		return
+	var loaded_credits = campaign.get("credits")
+	if loaded_credits != null:
+		set_credits(int(loaded_credits))
 
 # State management
 func set_game_state(new_state: GameState) -> void:

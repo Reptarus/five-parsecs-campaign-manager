@@ -43,4 +43,4 @@ layout_mode = 2
 
 [node name="ContinueButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
-text = "Continue"
+text = "Complete Character Phase"
