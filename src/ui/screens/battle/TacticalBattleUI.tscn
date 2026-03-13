@@ -70,6 +70,7 @@ grow_vertical = 2
 
 [node name="TopBar" type="HBoxContainer" parent="MainContainer"]
 layout_mode = 2
+custom_minimum_size = Vector2(0, 52)
 theme_override_constants/separation = 10
 
 [node name="TitleLabel" type="Label" parent="MainContainer/TopBar"]

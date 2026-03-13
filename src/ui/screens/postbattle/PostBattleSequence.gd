@@ -310,21 +310,34 @@ func _on_backend_battlefield_finds(finds: Array) -> void:
 
 func _on_backend_rival_status(rivals_removed: Array) -> void:
 	## Handle rival status resolution from backend
+	var npc_tracker = get_node_or_null("/root/NPCTracker")
+	var turn: int = _get_current_turn()
 	for rival in rivals_removed:
 		if rival is Dictionary:
 			var rival_name = rival.get("name", "Unknown Rival")
+			var rival_id = rival.get("rival_id", rival.get("id", rival_name))
 			var follows = rival.get("follows", false)
 			if follows:
 				_add_result_to_log("Rival %s follows you to the next world" % rival_name)
 			else:
 				_add_result_to_log("Rival %s stays behind" % rival_name)
+			# Track rival encounter in NPCTracker
+			if npc_tracker and npc_tracker.has_method("track_rival_encounter"):
+				var result = "victory" if not follows else "ongoing"
+				npc_tracker.track_rival_encounter(str(rival_id), result, turn)
 
 func _on_backend_patron_status(patrons_added: Array) -> void:
 	## Handle patron status resolution from backend
+	var npc_tracker = get_node_or_null("/root/NPCTracker")
+	var turn: int = _get_current_turn()
 	for patron in patrons_added:
 		if patron is Dictionary:
 			var patron_name = patron.get("name", "Unknown Patron")
+			var patron_id = patron.get("patron_id", patron.get("id", patron_name))
 			_add_result_to_log("Patron update: %s" % patron_name)
+			# Track patron interaction in NPCTracker
+			if npc_tracker and npc_tracker.has_method("track_patron_interaction"):
+				npc_tracker.track_patron_interaction(str(patron_id), "job_completed", {"turn": turn})
 
 func _on_backend_purchases_made(purchases: Array) -> void:
 	## Handle purchases made from backend
@@ -708,7 +721,7 @@ func _is_crew_member_bot(crew_member: Dictionary) -> bool:
 		return true
 
 	# Fallback: check origin field
-	var origin = crew_member.get("origin", "")
+	var origin = str(crew_member.get("origin", ""))
 	return origin == "BOT" or origin == "Bot"
 
 
@@ -844,21 +857,20 @@ func _add_training_content() -> void:
 	# Instantiate training dialog
 	var dialog = TrainingDialog.instantiate()
 	if dialog:
-		# Get current crew and credits
-		var crew = _get_current_crew()
-		var credits = _get_current_credits()
+		# Add to tree FIRST so @onready vars resolve
+		step_content.add_child(dialog)
 
-		# Setup with current crew data
-		if dialog.has_method("setup"):
-			dialog.setup(crew, credits)
-
-		# Connect signals
+		# Connect signals before setup to catch any immediate emissions
 		if dialog.has_signal("training_completed"):
 			dialog.training_completed.connect(_on_training_completed)
 		if dialog.has_signal("dialog_closed"):
 			dialog.dialog_closed.connect(_on_training_closed)
 
-		step_content.add_child(dialog)
+		# Setup AFTER add_child so @onready node refs are valid
+		var crew = _get_current_crew()
+		var credits = _get_current_credits()
+		if dialog.has_method("setup"):
+			dialog.setup(crew, credits)
 
 func _add_purchase_content() -> void:
 	## Add purchase content using PurchaseItemsComponent (Core Rules p.123)
@@ -921,7 +933,7 @@ func _on_campaign_event_roll() -> void:
 	var roll = 0
 	
 	if dice_manager:
-		roll = dice_manager.roll_dice("Campaign Event", "D100")
+		roll = dice_manager.roll_d100("Campaign Event")
 	else:
 		roll = randi_range(1, 100)
 	
@@ -995,7 +1007,7 @@ func _on_character_event_roll(crew_member: Dictionary) -> void:
 	var roll = 0
 	
 	if dice_manager:
-		roll = dice_manager.roll_dice("Character Event: " + crew_member.get("name", "Unknown"), "D100")
+		roll = dice_manager.roll_d100("Character Event: " + crew_member.get("name", "Unknown"))
 	else:
 		roll = randi_range(1, 100)
 	
@@ -1022,16 +1034,23 @@ func _add_galactic_war_content() -> void:
 	# Instantiate war panel
 	var panel = WarPanel.instantiate()
 	if panel:
-		# Setup with current war events/state
+		# Add to tree FIRST so @onready vars resolve
+		step_content.add_child(panel)
+
+		# Connect signals before setup
+		if panel.has_signal("war_panel_closed"):
+			panel.war_panel_closed.connect(_on_war_panel_closed)
+
+		# Setup AFTER add_child so @onready node refs are valid
 		if panel.has_method("setup"):
 			var war_events = _get_war_events()
 			panel.setup(war_events)
 
-		# Connect signals
-		if panel.has_signal("war_panel_closed"):
-			panel.war_panel_closed.connect(_on_war_panel_closed)
-
-		step_content.add_child(panel)
+func _get_current_turn() -> int:
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.current_campaign and "progress_data" in gs.current_campaign:
+		return gs.current_campaign.progress_data.get("turns_played", 0)
+	return 0
 
 func _add_result_to_log(result: String) -> void:
 	## Add a result to the results log
@@ -1071,8 +1090,8 @@ func _on_roll_pressed() -> void:
 		11, 12: # Campaign and Character Events
 			dice_type = "D100"
 	
-	if dice_manager and dice_manager.has_method("roll_dice"):
-		roll_result = dice_manager.roll_dice("Post-Battle Step %d" % (current_step + 1), dice_type)
+	if dice_manager:
+		roll_result = dice_manager.roll_d100("Post-Battle Step %d" % (current_step + 1)) if dice_type == "D100" else dice_manager.roll_d6("Post-Battle Step %d" % (current_step + 1))
 	else:
 		roll_result = randi_range(1, 6) if dice_type == "D6" else randi_range(1, 100)
 	
@@ -1204,7 +1223,7 @@ func _on_rival_status_roll(rival: Dictionary) -> void:
 	var roll = 0
 	
 	if dice_manager:
-		roll = dice_manager.roll_dice("Rival Status: " + rival.get("name", "Unknown"), "D6")
+		roll = dice_manager.roll_d6("Rival Status: " + rival.get("name", "Unknown"))
 	else:
 		roll = randi_range(1, 6)
 	
@@ -1313,7 +1332,7 @@ func _on_injury_roll(type: String, num: int, is_casualty: bool) -> void:
 	var roll = 0
 
 	if dice_manager:
-		roll = dice_manager.roll_dice("%s %d Injury" % [type, num], "D100")
+		roll = dice_manager.roll_d100("%s %d Injury" % [type, num])
 	else:
 		roll = randi_range(1, 100)
 
@@ -1349,7 +1368,7 @@ func _on_narrative_injury_cancelled(type: String, num: int) -> void:
 	var roll = 0
 
 	if dice_manager:
-		roll = dice_manager.roll_dice("%s %d Injury (cancelled narrative)" % [type, num], "D100")
+		roll = dice_manager.roll_d100("%s %d Injury (cancelled narrative)" % [type, num])
 	else:
 		roll = randi_range(1, 100)
 
@@ -1514,7 +1533,7 @@ func _on_experience_roll(crew_member: Dictionary) -> void:
 	var roll = 0
 	
 	if dice_manager:
-		roll = dice_manager.roll_dice("Advancement: " + crew_member.get("name", "Unknown"), "D6")
+		roll = dice_manager.roll_d6("Advancement: " + crew_member.get("name", "Unknown"))
 	else:
 		roll = randi_range(1, 6)
 	
@@ -1571,8 +1590,8 @@ func _get_injury_color(severity: String) -> Color:
 func _was_crew_casualty(crew_member: Dictionary) -> bool:
 	## Check if crew member was a casualty in battle
 	# Get crew member ID
-	var crew_id = crew_member.get("id", "")
-	if crew_id == "" or crew_id == 0:
+	var crew_id = str(crew_member.get("id", ""))
+	if crew_id == "" or crew_id == "0":
 		crew_id = str(crew_member.get("character_id", ""))
 	if crew_id == "":
 		return false

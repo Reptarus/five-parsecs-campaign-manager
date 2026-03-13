@@ -65,7 +65,6 @@ func _on_creation_cancelled() -> void:
 func _update_ui() -> void:
 	if current_captain:
 		var info_text = """Captain Information:
-			pass
 		Name: %s
 		Class: %s
 		Origin: %s

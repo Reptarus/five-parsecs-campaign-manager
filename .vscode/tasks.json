@@ -8,11 +8,12 @@
                 "isDefault": true
             },
             "type": "process",
-            "command": "C:\\Users\\elija\\Desktop\\GoDot\\Godot_v4.4-stable_mono_win64\\Godot_v4.4-stable_mono_win64.exe",
+            "command": "C:\\Users\\admin\\Desktop\\Godot_v4.6-stable_win64.exe\\Godot_v4.6-stable_win64_console.exe",
             "args": [
                 "--headless",
-                "--script",
-                "${workspaceFolder}\\build.gd"
+                "--quit",
+                "--path",
+                "${workspaceFolder}"
             ],
             "problemMatcher": {
                 "owner": "godot",
@@ -31,141 +32,62 @@
         {
             "label": "run-tests",
             "type": "process",
-            "command": "${config:godot.editorPath}",
-            "args": [
-                "--path",
-                "${workspaceFolder}",
-                "--script",
-                "res://tests/run_cli.gd"
-            ],
-            "problemMatcher": {
-                "owner": "godot-test",
-                "fileLocation": [
-                    "relative",
-                    "${workspaceFolder}"
-                ],
-                "pattern": [
-                    {
-                        "regexp": "^\\s*# (.*) - (\\d+)\\s*$",
-                        "file": 1,
-                        "line": 2
-                    },
-                    {
-                        "regexp": "^\\s*Failed:\\s*(.*)$",
-                        "message": 1,
-                        "loop": true
-                    }
-                ]
-            },
-            "group": {
-                "kind": "test",
-                "isDefault": true
-            }
-        },
-        {
-            "label": "run-current-test",
-            "type": "process",
-            "command": "${config:godot.editorPath}",
-            "args": [
-                "--path",
-                "${workspaceFolder}",
-                "--script",
-                "res://tests/run_cli.gd",
-                "--test-file",
-                "res://tests/unit/${fileBasename}"
-            ],
-            "problemMatcher": {
-                "owner": "godot-test",
-                "fileLocation": [
-                    "relative",
-                    "${workspaceFolder}"
-                ],
-                "pattern": [
-                    {
-                        "regexp": "^\\s*# (.*) - (\\d+)\\s*$",
-                        "file": 1,
-                        "line": 2
-                    },
-                    {
-                        "regexp": "^\\s*Failed:\\s*(.*)$",
-                        "message": 1,
-                        "loop": true
-                    }
-                ]
-            }
-        },
-        {
-            "label": "run-test-at-cursor",
-            "type": "process",
-            "command": "${config:godot.editorPath}",
-            "args": [
-                "--path",
-                "${workspaceFolder}",
-                "--script",
-                "res://tests/run_cli.gd",
-                "--test-file",
-                "res://tests/unit/${fileBasename}",
-                "--test-func",
-                "${selectedText}"
-            ],
-            "problemMatcher": {
-                "owner": "godot-test",
-                "fileLocation": [
-                    "relative",
-                    "${workspaceFolder}"
-                ],
-                "pattern": [
-                    {
-                        "regexp": "^\\s*# (.*) - (\\d+)\\s*$",
-                        "file": 1,
-                        "line": 2
-                    },
-                    {
-                        "regexp": "^\\s*Failed:\\s*(.*)$",
-                        "message": 1,
-                        "loop": true
-                    }
-                ]
-            }
-        },
-        {
-            "label": "watch-tests",
-            "type": "process",
-            "command": "${config:godot.editorPath}",
+            "command": "C:\\Users\\admin\\Desktop\\Godot_v4.6-stable_win64.exe\\Godot_v4.6-stable_win64_console.exe",
             "args": [
                 "--path",
                 "${workspaceFolder}",
                 "--headless",
                 "--script",
-                "res://addons/gut/gut_cmdln.gd",
-                "-gdir=res://tests",
-                "-gprefix=test_",
-                "-gwatch",
-                "-glog=2"
+                "addons/gdUnit4/bin/GdUnitCmdTool.gd",
+                "-a",
+                "tests/unit/",
+                "--quit-after",
+                "120"
             ],
-            "isBackground": true,
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
             "problemMatcher": {
                 "owner": "godot-test",
                 "fileLocation": [
                     "relative",
                     "${workspaceFolder}"
                 ],
-                "pattern": [
-                    {
-                        "regexp": "^\\s*# (.*) - (\\d+)\\s*$",
-                        "file": 1,
-                        "line": 2
-                    },
-                    {
-                        "regexp": "^\\s*Failed:\\s*(.*)$",
-                        "message": 1,
-                        "loop": true
-                    }
+                "pattern": {
+                    "regexp": "^\\s*(.*):(\\d+):\\s+(.*)$",
+                    "file": 1,
+                    "line": 2,
+                    "message": 3
+                }
+            }
+        },
+        {
+            "label": "run-current-test",
+            "type": "process",
+            "command": "C:\\Users\\admin\\Desktop\\Godot_v4.6-stable_win64.exe\\Godot_v4.6-stable_win64_console.exe",
+            "args": [
+                "--path",
+                "${workspaceFolder}",
+                "--headless",
+                "--script",
+                "addons/gdUnit4/bin/GdUnitCmdTool.gd",
+                "-a",
+                "${file}",
+                "--quit-after",
+                "60"
+            ],
+            "problemMatcher": {
+                "owner": "godot-test",
+                "fileLocation": [
+                    "relative",
+                    "${workspaceFolder}"
                 ],
-                "background": {
-                    "activeOnStart": true,
-                    "beginsPattern": "^Watching for changes",
-                    "endsPattern": "^Finished running tests"
+                "pattern": {
+                    "regexp": "^\\s*(.*):(\\d+):\\s+(.*)$",
+                    "file": 1,
+                    "line": 2,
+                    "message": 3
                 }
             }
         }

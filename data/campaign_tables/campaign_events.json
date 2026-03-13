@@ -1,0 +1,411 @@
+{
+	"_comment": "Post-Battle Campaign Events D100 Table (Core Rules p.126-128)",
+	"name": "campaign_events",
+	"entries": [
+		{
+			"roll_range": [1, 3],
+			"result": {
+				"type": "story_point_gain",
+				"name": "Local Friends",
+				"description": "You've made friends in the area.",
+				"category": "story_points"
+			}
+		},
+		{
+			"roll_range": [4, 5],
+			"result": {
+				"type": "story_point_gain",
+				"name": "Lucky Break",
+				"description": "Fortune smiles on the crew.",
+				"category": "story_points"
+			}
+		},
+		{
+			"roll_range": [6, 7],
+			"result": {
+				"type": "story_point_gain",
+				"name": "New Ally",
+				"description": "A new ally offers support.",
+				"category": "story_points"
+			}
+		},
+		{
+			"roll_range": [8, 11],
+			"result": {
+				"type": "credit_gain_d6",
+				"name": "Valuable Find",
+				"description": "You discover something worth selling.",
+				"category": "credits"
+			}
+		},
+		{
+			"roll_range": [12, 14],
+			"result": {
+				"type": "credit_gain_2d6",
+				"name": "Windfall",
+				"description": "An unexpected financial windfall.",
+				"category": "credits"
+			}
+		},
+		{
+			"roll_range": [15, 17],
+			"result": {
+				"type": "credit_gain_d6_plus1",
+				"name": "Odd Job",
+				"description": "A quick side job earns some credits.",
+				"category": "credits"
+			}
+		},
+		{
+			"roll_range": [18, 20],
+			"result": {
+				"type": "credit_loss_d6_or_sp",
+				"name": "Unexpected Bill",
+				"description": "An unexpected expense arrives.",
+				"category": "credits"
+			}
+		},
+		{
+			"roll_range": [21, 23],
+			"result": {
+				"type": "credit_loss_d6_engineer",
+				"name": "Life Support Issues",
+				"description": "Life support systems need urgent repair.",
+				"category": "credits"
+			}
+		},
+		{
+			"roll_range": [24, 26],
+			"result": {
+				"type": "quest_rumor_gain",
+				"name": "Old Contact",
+				"description": "An old contact passes along useful information.",
+				"category": "rumors"
+			}
+		},
+		{
+			"roll_range": [27, 29],
+			"result": {
+				"type": "quest_rumor_gain",
+				"name": "Valuable Intel",
+				"description": "You intercept valuable intelligence.",
+				"category": "rumors"
+			}
+		},
+		{
+			"roll_range": [30, 31],
+			"result": {
+				"type": "information_broker",
+				"name": "Information Broker",
+				"description": "A broker offers rumors for 2 credits each (up to 3).",
+				"category": "rumors"
+			}
+		},
+		{
+			"roll_range": [32, 33],
+			"result": {
+				"type": "quest_rumor_gain_plus_rival",
+				"name": "Dangerous Information",
+				"description": "Sensitive info draws unwanted attention.",
+				"category": "rumors"
+			}
+		},
+		{
+			"roll_range": [34, 36],
+			"result": {
+				"type": "rival_gain",
+				"name": "Mouthed Off",
+				"description": "Someone in the crew offended the wrong people.",
+				"category": "rivals"
+			}
+		},
+		{
+			"roll_range": [37, 38],
+			"result": {
+				"type": "rival_gain",
+				"name": "Made Enemy",
+				"description": "Your actions have earned you a new enemy.",
+				"category": "rivals"
+			}
+		},
+		{
+			"roll_range": [39, 40],
+			"result": {
+				"type": "rival_tracks",
+				"name": "Suspicious Activity",
+				"description": "A rival is tracking your movements.",
+				"category": "rivals"
+			}
+		},
+		{
+			"roll_range": [41, 42],
+			"result": {
+				"type": "settled_business",
+				"name": "Settled Business",
+				"description": "An opportunity to resolve old grudges.",
+				"category": "rivals"
+			}
+		},
+		{
+			"roll_range": [43, 44],
+			"result": {
+				"type": "rival_truce",
+				"name": "Rival Truce",
+				"description": "A rival offers to settle differences — for a price.",
+				"category": "rivals"
+			}
+		},
+		{
+			"roll_range": [45, 46],
+			"result": {
+				"type": "patron_search_bonus",
+				"name": "Reputation Grows",
+				"description": "Word of your deeds is spreading.",
+				"category": "patrons"
+			}
+		},
+		{
+			"roll_range": [47, 48],
+			"result": {
+				"type": "patron_gain",
+				"name": "New Patron",
+				"description": "A new patron seeks your services.",
+				"category": "patrons"
+			}
+		},
+		{
+			"roll_range": [49, 50],
+			"result": {
+				"type": "patron_request",
+				"name": "Patron Request",
+				"description": "A patron has an urgent job with bonus pay.",
+				"category": "patrons"
+			}
+		},
+		{
+			"roll_range": [51, 52],
+			"result": {
+				"type": "patron_fallout",
+				"name": "Patron Fallout",
+				"description": "Relations with a patron have soured.",
+				"category": "patrons"
+			}
+		},
+		{
+			"roll_range": [53, 54],
+			"result": {
+				"type": "market_surplus",
+				"name": "Market Surplus",
+				"description": "A glut of goods drives prices down.",
+				"category": "market"
+			}
+		},
+		{
+			"roll_range": [55, 56],
+			"result": {
+				"type": "trade_opportunity",
+				"name": "Trade Opportunity",
+				"description": "An exceptional trade deal presents itself.",
+				"category": "market"
+			}
+		},
+		{
+			"roll_range": [57, 58],
+			"result": {
+				"type": "equipment_damage",
+				"name": "Equipment Malfunction",
+				"description": "A piece of equipment breaks down.",
+				"category": "equipment"
+			}
+		},
+		{
+			"roll_range": [59, 60],
+			"result": {
+				"type": "hull_repair",
+				"name": "Ship Parts",
+				"description": "Salvageable ship parts found.",
+				"category": "ship"
+			}
+		},
+		{
+			"roll_range": [61, 62],
+			"result": {
+				"type": "recovery_reduction",
+				"name": "Friendly Doc",
+				"description": "A friendly doctor offers medical help.",
+				"category": "medical"
+			}
+		},
+		{
+			"roll_range": [63, 64],
+			"result": {
+				"type": "sickbay_heal",
+				"name": "Medical Supplies",
+				"description": "Medical supplies allow immediate recovery.",
+				"category": "medical"
+			}
+		},
+		{
+			"roll_range": [65, 66],
+			"result": {
+				"type": "xp_random_crew",
+				"name": "Skill Training",
+				"description": "Downtime allows for focused skill practice.",
+				"category": "xp"
+			}
+		},
+		{
+			"roll_range": [67, 68],
+			"result": {
+				"type": "xp_all_crew",
+				"name": "Crew Bonding",
+				"description": "Shared experience strengthens the crew.",
+				"category": "xp"
+			}
+		},
+		{
+			"roll_range": [69, 70],
+			"result": {
+				"type": "injury_random",
+				"name": "Bar Brawl",
+				"description": "A crew member gets into a bar fight.",
+				"category": "injury"
+			}
+		},
+		{
+			"roll_range": [71, 72],
+			"result": {
+				"type": "gambling",
+				"name": "Gambling Opportunity",
+				"description": "A chance to test your luck at the tables.",
+				"category": "gambling"
+			}
+		},
+		{
+			"roll_range": [73, 74],
+			"result": {
+				"type": "cargo_job",
+				"name": "Cargo Opportunity",
+				"description": "A cargo hauling job with quick pay.",
+				"category": "cargo"
+			}
+		},
+		{
+			"roll_range": [75, 76],
+			"result": {
+				"type": "tax_collection",
+				"name": "Tax Collection",
+				"description": "Local authorities demand payment.",
+				"category": "government"
+			}
+		},
+		{
+			"roll_range": [77, 78],
+			"result": {
+				"type": "government_inspection",
+				"name": "Government Inspection",
+				"description": "Officials want to inspect your cargo.",
+				"category": "government"
+			}
+		},
+		{
+			"roll_range": [79, 80],
+			"result": {
+				"type": "bureaucratic_delay",
+				"name": "Bureaucratic Delay",
+				"description": "Red tape prevents departure.",
+				"category": "government"
+			}
+		},
+		{
+			"roll_range": [81, 82],
+			"result": {
+				"type": "crew_dispute",
+				"name": "Crew Dispute",
+				"description": "Internal tensions flare up.",
+				"category": "leadership"
+			}
+		},
+		{
+			"roll_range": [83, 84],
+			"result": {
+				"type": "war_rumors",
+				"name": "War Rumors",
+				"description": "Rumors of impending conflict spread.",
+				"category": "invasion"
+			}
+		},
+		{
+			"roll_range": [85, 86],
+			"result": {
+				"type": "invasion_warning",
+				"name": "Invasion Warning",
+				"description": "Intelligence reports suggest an imminent invasion.",
+				"category": "invasion"
+			}
+		},
+		{
+			"roll_range": [87, 88],
+			"result": {
+				"type": "refugee_crisis",
+				"name": "Refugee Crisis",
+				"description": "Displaced civilians need assistance.",
+				"category": "invasion"
+			}
+		},
+		{
+			"roll_range": [89, 90],
+			"result": {
+				"type": "reputation_loss",
+				"name": "Bad Reputation",
+				"description": "Negative rumors damage your standing.",
+				"category": "reputation"
+			}
+		},
+		{
+			"roll_range": [91, 92],
+			"result": {
+				"type": "reputation_gain",
+				"name": "Reputation Boost",
+				"description": "Word of your deeds improves your reputation.",
+				"category": "reputation"
+			}
+		},
+		{
+			"roll_range": [93, 94],
+			"result": {
+				"type": "pickpocketed",
+				"name": "Pickpocketed",
+				"description": "A crew member's pockets are picked.",
+				"category": "crime"
+			}
+		},
+		{
+			"roll_range": [95, 96],
+			"result": {
+				"type": "quest_rumor_gain",
+				"name": "Strange Signal",
+				"description": "An unusual signal contains quest information.",
+				"category": "special"
+			}
+		},
+		{
+			"roll_range": [97, 98],
+			"result": {
+				"type": "alien_artifact",
+				"name": "Alien Artifact",
+				"description": "A mysterious alien artifact is discovered.",
+				"category": "special"
+			}
+		},
+		{
+			"roll_range": [99, 100],
+			"result": {
+				"type": "local_festival",
+				"name": "Local Festival",
+				"description": "A local celebration lifts spirits but raises prices.",
+				"category": "special"
+			}
+		}
+	]
+}

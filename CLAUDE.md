@@ -1,6 +1,6 @@
 # Five Parsecs Campaign Manager - Development Guide
 
-**Last Updated**: 2026-03-04
+**Last Updated**: 2026-03-11
 **Engine**: Godot 4.6-stable (non-mono, pure GDScript)
 **Repository**: https://github.com/Reptarus/five-parsecs-campaign-manager
 
@@ -309,6 +309,60 @@ coordinator.step_changed.connect(_on_step_changed)
 # Panel signal adapters (Control-based panels → Dict format):
 panel.captain_updated.connect(func(captain): coordinator.update_captain_state({"captain": captain}))
 ```
+
+---
+
+## Agent & Skill Architecture (Token Optimization)
+
+Seven specialized agents with three-tier model routing to minimize token usage on routine tasks:
+
+| Agent | Model | Domain |
+| ----- | ----- | ------ |
+| `fpcm-project-manager` | **opus** | Orchestration, task decomposition, cross-agent coordination |
+| `battle-systems-engineer` | **opus** | Battle state machine, combat resolution, deployment, victory |
+| `campaign-systems-engineer` | **sonnet** | Campaign creation/turns, save/load, state management |
+| `character-data-engineer` | **sonnet** | Character model, enums, JSON data, equipment, world |
+| `bug-hunt-specialist` | **sonnet** | Bug Hunt gamemode, cross-mode safety |
+| `qa-specialist` | **sonnet** | Testing, QA, gdUnit4 |
+| `ui-panel-developer` | **haiku** | UI components, Deep Space theme, TweenFX |
+
+### Agent Files
+
+- **Agent definitions**: `.claude/agents/*.md` (7 files)
+- **Agent memory**: `.claude/agent-memory/{agent-name}/MEMORY.md` (7 files, persistent across sessions)
+- **Skills**: `.claude/skills/{skill-name}/SKILL.md` + `references/*.md` (7 skills, 22 reference files)
+- **Token settings**: `MAX_THINKING_TOKENS=10000`, `AUTOCOMPACT_PCT=50` in `.claude/settings.local.json`
+
+### Routing Rules
+
+- Each agent owns specific files — route tasks by file ownership (see `.claude/skills/fpcm-project-management/references/agent-roster.md`)
+- `character-data-engineer` exclusively owns all 3 enum files (three-enum sync rule)
+- Multi-domain tasks → decompose via `fpcm-project-manager`
+- `bug-hunt-specialist` reviews any shared file changes (TacticalBattleUI, GameState, SceneRouter)
+- `qa-specialist` is always the final verification step
+- Dependency order: data → campaign → battle → bug-hunt → UI → QA
+
+---
+
+## Dev Environment & Workflow
+
+### Synology Drive Sync
+Project lives in `SynologyDrive/` — background sync touches file timestamps, triggering phantom change events. Mitigated by Cursor `files.watcherExclude` and Godot `checkOnChange: false`.
+
+### Godot Ports (from docs)
+
+- **6005** — LSP (GDScript language server)
+- **6006** — DAP (Debug Adapter Protocol)
+- **6007** — Editor connection
+
+### MCP Servers (`.mcp.json`)
+Versions are **pinned** — do NOT change to `@latest` (causes npm downloads on every agent start). To update, run `npm view <package> version` and update the version string.
+
+### Import Cache (`.godot/imported/`)
+Godot never cleans orphaned cached imports. If the cache grows large (>600MB) or causes crashes, delete `.godot/imported/` — Godot regenerates it on next editor open.
+
+### File Watcher Exclusions
+Both `.vscode/settings.json` and Cursor user settings exclude: `.godot/`, `.mcp/`, `node_modules/`, `mcp-servers/`. The `.cursorignore` file additionally excludes `*.import` and `*.uid` from AI indexing.
 
 ---
 

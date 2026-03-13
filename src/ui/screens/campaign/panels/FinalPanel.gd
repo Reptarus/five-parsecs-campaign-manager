@@ -359,10 +359,11 @@ func _create_config_summary_card() -> PanelContainer:
 	var victory_label := Label.new()
 	if selected_conditions.size() > 0:
 		victory_label.text = "Victory: %s" % ", ".join(selected_conditions)
+		victory_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	else:
-		victory_label.text = "Victory: None Selected"
+		victory_label.text = "⚠ Victory: None Selected — campaign will have no win condition"
+		victory_label.add_theme_color_override("font_color", COLOR_WARNING)
 	victory_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
-	victory_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	victory_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(victory_label)
 	
@@ -465,7 +466,7 @@ func _get_captain_stats_from_data(captain_data: Dictionary) -> Dictionary:
 			"reactions": captain.reaction if "reaction" in captain else 0,
 			"toughness": captain.toughness if "toughness" in captain else 0,
 			"savvy": captain.savvy if "savvy" in captain else 0,
-			"tech": 0,
+			"luck": captain.luck if "luck" in captain else 0,
 			"speed": captain.speed if "speed" in captain else 4,
 			"xp": captain.experience if "experience" in captain else 0
 		}
@@ -476,7 +477,7 @@ func _get_captain_stats_from_data(captain_data: Dictionary) -> Dictionary:
 		"reactions": captain.get("reactions", captain.get("reaction", 0)),
 		"toughness": captain.get("toughness", 0),
 		"savvy": captain.get("savvy", 0),
-		"tech": captain.get("tech", 0),
+		"luck": captain.get("luck", 0),
 		"speed": captain.get("speed", captain.get("move", 4)),
 		"xp": captain.get("xp", captain.get("experience", 0))
 	}
@@ -506,9 +507,9 @@ func _create_captain_summary_card() -> PanelContainer:
 		char_class = _enum_to_display(captain_obj.character_class if "character_class" in captain_obj else 0, "CharacterClass")
 		motivation = _enum_to_display(captain_obj.motivation if "motivation" in captain_obj else 0, "Motivation")
 	elif captain_data.has("background"):
-		background = str(captain_data.get("background", ""))
-		char_class = str(captain_data.get("class", ""))
-		motivation = str(captain_data.get("motivation", ""))
+		background = _enum_to_display(captain_data.get("background", ""), "Background")
+		char_class = _enum_to_display(captain_data.get("class", captain_data.get("character_class", "")), "CharacterClass")
+		motivation = _enum_to_display(captain_data.get("motivation", ""), "Motivation")
 	
 	if not background.is_empty():
 		var bg_label := Label.new()
@@ -537,9 +538,9 @@ func _create_captain_summary_card() -> PanelContainer:
 		stats_grid.add_child(_create_stat_badge("Combat", stats.get("combat", 0), true))
 		stats_grid.add_child(_create_stat_badge("Reactions", stats.get("reactions", 0)))
 		stats_grid.add_child(_create_stat_badge("Toughness", stats.get("toughness", 0)))
-		# Row 2: Savvy, Tech, Speed
+		# Row 2: Savvy, Luck, Speed
 		stats_grid.add_child(_create_stat_badge("Savvy", stats.get("savvy", 0)))
-		stats_grid.add_child(_create_stat_badge("Tech", stats.get("tech", 0)))
+		stats_grid.add_child(_create_stat_badge("Luck", stats.get("luck", 0)))
 		stats_grid.add_child(_create_stat_badge("Speed", stats.get("speed", 4)))
 		# Row 3: XP (standalone - important stat)
 		stats_grid.add_child(_create_stat_badge("XP", stats.get("xp", 0)))
@@ -576,8 +577,8 @@ func _create_crew_summary_card() -> PanelContainer:
 			elif "reactions" in member:
 				total_reactions += member.reactions
 
-		var avg_combat: int = total_combat / crew_members.size()
-		var avg_reactions: int = total_reactions / crew_members.size()
+		var avg_combat: int = total_combat / max(crew_members.size(), 1)
+		var avg_reactions: int = total_reactions / max(crew_members.size(), 1)
 
 		# Average stats (using StatBadge components)
 		var avg_stats_hbox := HBoxContainer.new()

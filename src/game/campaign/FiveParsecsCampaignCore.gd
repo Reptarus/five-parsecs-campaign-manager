@@ -28,6 +28,8 @@ var progress_data: Dictionary = {}
 # Campaign resources (accumulated from character creation)
 var credits: int = 0
 var story_points: int = 0
+var supplies: int = 0
+var reputation: int = 0
 var patrons: Array = []
 var rivals: Array = []
 var quest_rumors: int = 0
@@ -95,6 +97,8 @@ func initialize_resources(data: Dictionary) -> void:
 	## Initialize campaign resources from character creation
 	credits = data.get("credits", 0)
 	story_points = data.get("story_points", 0)
+	supplies = data.get("supplies", 0)
+	reputation = data.get("reputation", 0)
 	patrons = data.get("patrons", []).duplicate()
 	rivals = data.get("rivals", []).duplicate()
 	var rumors = data.get("quest_rumors", [])
@@ -106,6 +110,8 @@ func get_resources() -> Dictionary:
 	return {
 		"credits": credits,
 		"story_points": story_points,
+		"supplies": supplies,
+		"reputation": reputation,
 		"patrons": patrons.duplicate(),
 		"rivals": rivals.duplicate(),
 		"quest_rumors": quest_rumors
@@ -209,6 +215,8 @@ func to_dictionary() -> Dictionary:
 		"resources": {
 			"credits": credits,
 			"story_points": story_points,
+			"supplies": supplies,
+			"reputation": reputation,
 			"patrons": patrons.duplicate(),
 			"rivals": rivals.duplicate(),
 			"quest_rumors": quest_rumors
@@ -268,6 +276,8 @@ func from_dictionary(data: Dictionary) -> void:
 		var res = data.resources
 		credits = res.get("credits", 0)
 		story_points = res.get("story_points", 0)
+		supplies = res.get("supplies", 0)
+		reputation = res.get("reputation", 0)
 		patrons = res.get("patrons", []).duplicate()
 		rivals = res.get("rivals", []).duplicate()
 		quest_rumors = res.get("quest_rumors", 0)

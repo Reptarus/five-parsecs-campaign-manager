@@ -1,0 +1,6 @@
+.godot/
+.mcp/
+node_modules/
+mcp-servers/
+*.import
+*.uid

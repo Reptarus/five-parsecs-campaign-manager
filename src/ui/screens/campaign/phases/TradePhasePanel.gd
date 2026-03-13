@@ -9,6 +9,15 @@ signal item_purchased(item_data: Dictionary)
 signal item_sold(item_data: Dictionary)
 signal trading_completed
 
+const BASIC_WEAPONS: Array = [
+	{"name": "Handgun", "type": "weapon", "value": 1, "_basic": true},
+	{"name": "Blade", "type": "weapon", "value": 1, "_basic": true},
+	{"name": "Colony Rifle", "type": "weapon", "value": 1, "_basic": true},
+	{"name": "Shotgun", "type": "weapon", "value": 1, "_basic": true},
+]
+const MAX_SELL_PER_TURN: int = 3
+const TABLE_ROLL_COST: int = 3
+
 @onready var title_label: Label = $VBoxContainer/TitleLabel
 @onready var credits_label: Label = $VBoxContainer/CreditsLabel
 @onready var market_label: Label = $VBoxContainer/MarketLabel
@@ -27,6 +36,11 @@ var selected_market_item: Dictionary
 var selected_inventory_item: Dictionary
 var purchased_items: Array[Dictionary] = []
 var sold_items: Array[Dictionary] = []
+var roll_table_button: Button = null
+var merchant_reroll_button: Button = null
+var has_merchant_crew: bool = false
+var merchant_reroll_used: bool = false
+var last_rolled_item: Dictionary = {}
 
 func _ready() -> void:
 	super._ready()
@@ -54,6 +68,21 @@ func _ready() -> void:
 		available_items.item_selected.connect(_on_market_item_selected)
 	if inventory_items:
 		inventory_items.item_selected.connect(_on_inventory_item_selected)
+	# Add "Roll on Table (3cr)" button
+	var btn_container = buy_button.get_parent() if buy_button else null
+	if btn_container:
+		roll_table_button = Button.new()
+		roll_table_button.text = "Roll Random Item (3cr)"
+		roll_table_button.pressed.connect(_on_roll_table_pressed)
+		btn_container.add_child(roll_table_button)
+		_style_phase_button(roll_table_button)
+		# Merchant reroll button (hidden by default)
+		merchant_reroll_button = Button.new()
+		merchant_reroll_button.text = "Merchant Reroll"
+		merchant_reroll_button.pressed.connect(_on_merchant_reroll_pressed)
+		merchant_reroll_button.visible = false
+		btn_container.add_child(merchant_reroll_button)
+		_style_phase_button(merchant_reroll_button)
 	update_credits_display()
 
 func _get_campaign_safe():
@@ -65,14 +94,18 @@ func setup_phase() -> void:
 	sold_items.clear()
 	selected_market_item = {}
 	selected_inventory_item = {}
+	merchant_reroll_used = false
+	last_rolled_item = {}
 	var campaign = _get_campaign_safe()
 	if campaign and "credits" in campaign:
 		current_credits = campaign.credits
 	else:
 		current_credits = 0
+	has_merchant_crew = _check_merchant_crew()
 	load_market_items()
 	load_inventory()
 	update_credits_display()
+	_update_sell_button_state()
 
 func _get_world_trait() -> int:
 	var campaign = _get_campaign_safe()
@@ -108,6 +141,12 @@ func load_market_items() -> void:
 	available_items.clear()
 	available_market_items.clear()
 
+	# Basic weapons — always available, 1 credit each, unlimited (p.126)
+	for bw in BASIC_WEAPONS:
+		var item: Dictionary = bw.duplicate()
+		available_market_items.append(item)
+		available_items.add_item("%s (1cr - Basic)" % item.get("name", "?"))
+
 	var eq_mgr = get_node_or_null("/root/EquipmentManager")
 	if eq_mgr and eq_mgr.has_method("generate_market_items"):
 		var location_type: int = _get_world_trait()
@@ -131,19 +170,27 @@ func load_market_items() -> void:
 			available_market_items.append(item)
 			available_items.add_item("%s (%s)" % [item.get("name", "?"), _format_credits_short(item.get("value", 0))])
 
-	# Compendium DLC: Ship parts + Psionic equipment
-	var compendium_items: Array[Dictionary] = CompendiumEquipmentRef.get_trade_phase_items()
+	# Compendium DLC: Ship parts + Psionic equipment (with lock indicators)
+	var compendium_items: Array[Dictionary] = CompendiumEquipmentRef.get_trade_phase_items_with_lock_status()
 	for item in compendium_items:
 		# Normalize cost key to "value" to match existing market item format
 		var normalized: Dictionary = item.duplicate()
 		normalized["value"] = item.get("cost", 0)
 		normalized["compendium_id"] = item.get("id", "")
+		var is_locked: bool = item.get("_dlc_locked", false)
+		normalized["_dlc_locked"] = is_locked
 		available_market_items.append(normalized)
 		var item_name: String = item.get("name", "Unknown")
 		var item_cost: int = item.get("cost", 0)
 		var slot: String = item.get("slot", "")
 		var slot_str: String = " [%s]" % slot if not slot.is_empty() else ""
-		available_items.add_item("%s%s (%s)" % [item_name, slot_str, _format_credits_short(item_cost)])
+		if is_locked:
+			available_items.add_item("(DLC) %s%s" % [item_name, slot_str])
+			var idx: int = available_items.item_count - 1
+			available_items.set_item_disabled(idx, true)
+			available_items.set_item_tooltip(idx, "Requires Compendium DLC to purchase")
+		else:
+			available_items.add_item("%s%s (%s)" % [item_name, slot_str, _format_credits_short(item_cost)])
 
 func load_inventory() -> void:
 	if not inventory_items:
@@ -217,8 +264,18 @@ func load_inventory() -> void:
 		inventory_items.set_item_disabled(0, true)
 
 func _calculate_sell_value(item: Dictionary) -> int:
-	var base_value: int = item.get("value", 50)
-	var condition: int = item.get("condition", 100)
+	var base_value: int = int(item.get("value", 50))
+	var raw_condition = item.get("condition", 100)
+	var condition: int = 100
+	if raw_condition is int or raw_condition is float:
+		condition = int(raw_condition)
+	elif raw_condition is String:
+		match raw_condition.to_lower():
+			"standard", "good", "new": condition = 100
+			"worn": condition = 75
+			"damaged": condition = 50
+			"broken": condition = 25
+			_: condition = 100
 	return int(base_value * (condition / 100.0) * 0.5)
 
 func update_credits_display() -> void:
@@ -272,6 +329,11 @@ func _on_inventory_item_selected(index: int) -> void:
 func _on_buy_button_pressed() -> void:
 	if selected_market_item.is_empty():
 		return
+	if selected_market_item.get("_dlc_locked", false):
+		if item_details:
+			_set_keyword_text(item_details,
+				"[color=#D97706]This item requires Compendium DLC[/color]")
+		return
 	var cost: int = selected_market_item.get("value", 0)
 	if cost > current_credits:
 		return
@@ -293,10 +355,12 @@ func _on_buy_button_pressed() -> void:
 		campaign.equipment_data["equipment"] = pool
 	purchased_items.append(selected_market_item.duplicate())
 	item_purchased.emit(selected_market_item)
-	# Remove purchased item from market
-	var idx: int = available_market_items.find(selected_market_item)
-	if idx >= 0:
-		available_market_items.remove_at(idx)
+	# Remove purchased item from market (basic weapons stay — unlimited supply, p.126)
+	var is_basic_weapon: bool = selected_market_item.get("_basic", false)
+	if not is_basic_weapon:
+		var idx: int = available_market_items.find(selected_market_item)
+		if idx >= 0:
+			available_market_items.remove_at(idx)
 	selected_market_item = {}
 	if buy_button:
 		buy_button.disabled = true
@@ -306,6 +370,13 @@ func _on_buy_button_pressed() -> void:
 
 func _on_sell_button_pressed() -> void:
 	if selected_inventory_item.is_empty():
+		return
+	# Enforce sell cap: max 3 un-damaged items per turn (p.126)
+	if sold_items.size() >= MAX_SELL_PER_TURN:
+		if item_details:
+			_set_keyword_text(item_details,
+				"[color=#D97706]Sell limit reached (max %d per turn)[/color]"
+				% MAX_SELL_PER_TURN)
 		return
 	var sell_val: int = selected_inventory_item.get("_sell_value", 0)
 	current_credits += sell_val
@@ -350,6 +421,7 @@ func _on_sell_button_pressed() -> void:
 		sell_button.disabled = true
 	load_inventory()
 	update_credits_display()
+	_update_sell_button_state()
 
 func _refresh_market_list() -> void:
 	if not available_items:
@@ -358,7 +430,19 @@ func _refresh_market_list() -> void:
 	for item in available_market_items:
 		var item_name: String = item.get("name", "Unknown Item")
 		var item_cost: int = item.get("value", 50)
-		available_items.add_item("%s (%s)" % [item_name, _format_credits_short(item_cost)])
+		if item.get("_dlc_locked", false):
+			var slot: String = item.get("slot", "")
+			var slot_str: String = " [%s]" % slot if not slot.is_empty() else ""
+			available_items.add_item("(DLC) %s%s" % [item_name, slot_str])
+			var idx: int = available_items.item_count - 1
+			available_items.set_item_disabled(idx, true)
+			available_items.set_item_tooltip(idx, "Requires Compendium DLC to purchase")
+		elif item.get("_basic", false):
+			available_items.add_item("%s (1cr - Basic)" % item_name)
+		else:
+			var uses: int = item.get("remaining_uses", -1)
+			var uses_str: String = " [%d uses]" % uses if uses >= 0 else ""
+			available_items.add_item("%s%s (%s)" % [item_name, uses_str, _format_credits_short(item_cost)])
 
 func _on_complete_button_pressed() -> void:
 	var campaign = _get_campaign_safe()
@@ -376,3 +460,122 @@ func get_phase_data() -> Dictionary:
 		"purchased_items": purchased_items.duplicate(),
 		"sold_items": sold_items.duplicate()
 	}
+
+func _update_sell_button_state() -> void:
+	## Disable sell button when sell cap reached
+	if sell_button and sold_items.size() >= MAX_SELL_PER_TURN:
+		sell_button.disabled = true
+		sell_button.tooltip_text = "Sell limit reached (%d/%d)" \
+			% [sold_items.size(), MAX_SELL_PER_TURN]
+
+func _on_roll_table_pressed() -> void:
+	## Purchase random item from Military/Gear/Gadget table (3cr, p.126)
+	if current_credits < TABLE_ROLL_COST:
+		if item_details:
+			_set_keyword_text(item_details,
+				"[color=#D97706]Need %s to roll on table[/color]"
+				% _format_credits_long(TABLE_ROLL_COST))
+		return
+	current_credits -= TABLE_ROLL_COST
+	var eq_mgr = get_node_or_null("/root/EquipmentManager")
+	var rolled_item: Dictionary = {}
+	if eq_mgr and eq_mgr.has_method("generate_market_items"):
+		var items: Array = eq_mgr.generate_market_items(0, 1)
+		if not items.is_empty() and items[0] is Dictionary:
+			rolled_item = items[0]
+	if rolled_item.is_empty():
+		# Fallback random item
+		rolled_item = {"name": "Field Supplies", "value": 15, "type": "gear"}
+	last_rolled_item = rolled_item.duplicate()
+	# Add to campaign equipment pool
+	var campaign = _get_campaign_safe()
+	if campaign and "equipment_data" in campaign:
+		var pool: Array = campaign.equipment_data.get("equipment", [])
+		pool.append(rolled_item.duplicate())
+		campaign.equipment_data["equipment"] = pool
+	purchased_items.append(rolled_item.duplicate())
+	item_purchased.emit(rolled_item)
+	if item_details:
+		_set_keyword_text(item_details,
+			"[color=#10B981]Rolled: %s[/color]\nAdded to Ship Stash"
+			% rolled_item.get("name", "Unknown"))
+	# Show merchant reroll option if available
+	if has_merchant_crew and not merchant_reroll_used:
+		if merchant_reroll_button:
+			merchant_reroll_button.visible = true
+	load_inventory()
+	update_credits_display()
+
+func _on_merchant_reroll_pressed() -> void:
+	## Merchant school reroll — reroll last table purchase (1/turn, p.126)
+	if merchant_reroll_used:
+		if item_details:
+			_set_keyword_text(item_details,
+				"[color=#D97706]Merchant reroll already used this turn[/color]")
+		return
+	if last_rolled_item.is_empty():
+		return
+	merchant_reroll_used = true
+	if merchant_reroll_button:
+		merchant_reroll_button.visible = false
+	# Remove last rolled item from pool
+	var campaign = _get_campaign_safe()
+	if campaign and "equipment_data" in campaign:
+		var pool: Array = campaign.equipment_data.get("equipment", [])
+		var old_name: String = last_rolled_item.get("name", "")
+		for i in range(pool.size() - 1, -1, -1):
+			if pool[i] is Dictionary and pool[i].get("name", "") == old_name:
+				pool.remove_at(i)
+				break
+		campaign.equipment_data["equipment"] = pool
+	# Remove from purchased list
+	for i in range(purchased_items.size() - 1, -1, -1):
+		if purchased_items[i].get("name", "") == last_rolled_item.get("name", ""):
+			purchased_items.remove_at(i)
+			break
+	# Roll new item
+	var eq_mgr = get_node_or_null("/root/EquipmentManager")
+	var new_item: Dictionary = {}
+	if eq_mgr and eq_mgr.has_method("generate_market_items"):
+		var items: Array = eq_mgr.generate_market_items(0, 1)
+		if not items.is_empty() and items[0] is Dictionary:
+			new_item = items[0]
+	if new_item.is_empty():
+		new_item = {"name": "Repair Kit", "value": 20, "type": "gear"}
+	# Add replacement to pool
+	if campaign and "equipment_data" in campaign:
+		var pool: Array = campaign.equipment_data.get("equipment", [])
+		pool.append(new_item.duplicate())
+		campaign.equipment_data["equipment"] = pool
+	purchased_items.append(new_item.duplicate())
+	var old_item_name: String = last_rolled_item.get("name", "?")
+	last_rolled_item = new_item.duplicate()
+	if item_details:
+		_set_keyword_text(item_details,
+			"[color=#4FC3F7]Merchant Reroll: %s[/color]\n(replaces %s)"
+			% [new_item.get("name", "?"), old_item_name])
+	load_inventory()
+
+func _check_merchant_crew() -> bool:
+	## Check if any crew member has Merchant school training
+	var campaign = _get_campaign_safe()
+	if not campaign:
+		return false
+	var members: Array = []
+	if campaign.has_method("get_crew_members"):
+		members = campaign.get_crew_members()
+	elif "crew_data" in campaign:
+		members = campaign.crew_data.get("members", [])
+	for member in members:
+		if not member is Dictionary:
+			continue
+		var training: Array = member.get("training", [])
+		for t in training:
+			var t_name: String = ""
+			if t is Dictionary:
+				t_name = t.get("name", "").to_lower()
+			elif t is String:
+				t_name = t.to_lower()
+			if "merchant" in t_name:
+				return true
+	return false

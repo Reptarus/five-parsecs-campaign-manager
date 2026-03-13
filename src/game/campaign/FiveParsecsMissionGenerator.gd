@@ -115,6 +115,11 @@ func generate_mission(difficulty: int = 2, type: int = -1) -> Dictionary:
 	if type < 0:
 		type = randi() % FiveParsecsMissionType.size()
 	
+	# Determine terrain theme from location
+	var location_name: String = mission_locations[randi() % mission_locations.size()]
+	var terrain_themes := ["urban", "wilderness", "industrial", "space_station", "wasteland"]
+	var terrain_theme: String = terrain_themes[randi() % terrain_themes.size()]
+
 	var mission = {
 		"id": str(randi()),
 		"type": type,
@@ -122,12 +127,14 @@ func generate_mission(difficulty: int = 2, type: int = -1) -> Dictionary:
 		"title": generate_mission_title(type),
 		"description": generate_mission_description(type, difficulty),
 		"reward": calculate_mission_reward(difficulty, type),
-		"location": mission_locations[randi() % mission_locations.size()],
+		"location": location_name,
 		"enemy_faction": enemy_factions[randi() % enemy_factions.size()],
 		"enemy_count": calculate_enemy_count(difficulty, type),
 		"special_rules": generate_special_rules(type),
 		"objectives": generate_objectives(type),
 		"loot_table": generate_loot_table(difficulty),
+		"terrain": terrain_theme,
+		"theme": terrain_theme,
 		"completed": false,
 		"success": false
 	}

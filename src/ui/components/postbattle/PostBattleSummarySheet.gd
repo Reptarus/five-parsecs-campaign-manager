@@ -82,6 +82,7 @@ const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY # Gray secondary tex
 
 var _summary_data: Dictionary = {}
 var _invasion_timer: Timer = null
+var _battlefield_recap_section: VBoxContainer = null
 
 # ============================================================================
 # LIFECYCLE METHODS
@@ -133,6 +134,9 @@ func setup(summary_data: Dictionary) -> void:
 	# Populate stats
 	_setup_stats()
 
+	# Battlefield recap (compact map view, hidden if no terrain data)
+	_setup_battlefield_recap()
+
 	# Populate crew changes
 	_setup_crew_changes()
 
@@ -146,6 +150,66 @@ func setup(summary_data: Dictionary) -> void:
 # ============================================================================
 # PRIVATE HELPER METHODS - SETUP
 # ============================================================================
+
+func _setup_battlefield_recap() -> void:
+	## Add compact battlefield map recap between stats and crew changes.
+	## Reads terrain data from summary_data or GameState temp_data.
+	## Hidden entirely if no terrain data is available (backwards compatible).
+
+	# Clean up previous recap section if re-setup
+	if _battlefield_recap_section and is_instance_valid(_battlefield_recap_section):
+		_battlefield_recap_section.queue_free()
+		_battlefield_recap_section = null
+
+	# Try to get terrain data from summary or GameState passthrough
+	var terrain_sectors: Array = _summary_data.get("terrain_sectors", [])
+	var terrain_theme: String = _summary_data.get("terrain_theme", "")
+
+	if terrain_sectors.is_empty():
+		var game_state = get_node_or_null("/root/GameState")
+		if game_state and "temp_data" in game_state:
+			var bf_terrain: Dictionary = game_state.temp_data.get("battlefield_terrain", {})
+			terrain_sectors = bf_terrain.get("sectors", [])
+			terrain_theme = bf_terrain.get("theme_name", "")
+
+	if terrain_sectors.is_empty():
+		return  # No terrain data — skip section entirely
+
+	# Build the recap section
+	_battlefield_recap_section = VBoxContainer.new()
+	_battlefield_recap_section.add_theme_constant_override("separation", SPACING_SM)
+
+	var section_header := Label.new()
+	section_header.text = "Battlefield"
+	section_header.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	section_header.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	_battlefield_recap_section.add_child(section_header)
+
+	var map_container := Control.new()
+	map_container.custom_minimum_size = Vector2(0, 300)
+	map_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_battlefield_recap_section.add_child(map_container)
+
+	var map_view := BattlefieldMapView.new()
+	map_view.set_anchors_preset(Control.PRESET_FULL_RECT)
+	map_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	map_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	map_view.set_compact_mode(true)
+	map_view.show_unit_markers = true
+	map_view.populate_from_sectors(terrain_sectors, terrain_theme)
+
+	# Add unit positions with casualty markers if available
+	var unit_positions: Array = _summary_data.get("unit_positions", [])
+	if not unit_positions.is_empty():
+		map_view.set_unit_positions(unit_positions)
+
+	map_container.add_child(map_view)
+
+	# Insert after StatsSection (index 2 in MainVBox: Header=0, Stats=1, recap=2)
+	if main_vbox:
+		var insert_idx: int = stats_section.get_index() + 1 if stats_section else 2
+		main_vbox.add_child(_battlefield_recap_section)
+		main_vbox.move_child(_battlefield_recap_section, insert_idx)
 
 func _setup_header() -> void:
 	## Setup mission title and victory/defeat outcome

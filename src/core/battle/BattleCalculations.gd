@@ -871,14 +871,14 @@ static func calculate_battle_credits(
 
 #region Initiative Calculations
 
-## Roll to seize initiative (2d6 + highest savvy >= 9)
+## Roll to seize initiative (2d6 + highest savvy >= 10, Core Rules p.95)
 static func check_seize_initiative(
 	die1: int,
 	die2: int,
 	highest_savvy: int
 ) -> Dictionary:
 	var total := die1 + die2 + highest_savvy
-	var seized := total >= 9
+	var seized := total >= 10
 
 	return {
 		"seized": seized,
@@ -896,9 +896,10 @@ static func check_seize_initiative(
 static func get_reaction_dice_count(crew_alive: int) -> int:
 	return crew_alive
 
-## Determine if action is Quick or Slow based on reaction die
-static func is_quick_action(reaction_die: int) -> bool:
-	return reaction_die >= 4  # 4+ is quick action
+## Determine if action is Quick or Slow based on reaction die vs character Reaction stat
+## Core Rules p.96: Roll D6 per crew member; roll <= Reaction = Quick Actions
+static func is_quick_action(reaction_die: int, reaction_stat: int = 1) -> bool:
+	return reaction_die <= reaction_stat
 
 #endregion
 

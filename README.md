@@ -2,7 +2,7 @@
 
 ![Godot 4.6](https://img.shields.io/badge/Godot-4.6--stable-478CBF?logo=godotengine&logoColor=white)
 ![License: MIT](https://img.shields.io/github/license/Reptarus/five-parsecs-campaign-manager)
-![Status: Pre-Beta](https://img.shields.io/badge/Status-Pre--Beta-orange)
+![Status: Demo-Ready](https://img.shields.io/badge/Status-Demo--Ready-green)
 ![GDScript](https://img.shields.io/badge/GDScript-100%25-478CBF)
 
 A digital campaign companion for [**Five Parsecs From Home**](https://modiphius.net/en-us/collections/five-parsecs-from-home) built in Godot 4.6. It handles the bookkeeping, dice rolling, table lookups, and campaign tracking so you can focus on actually playing.
@@ -11,13 +11,19 @@ A digital campaign companion for [**Five Parsecs From Home**](https://modiphius.
 
 ## Screenshots
 
-![Main Menu](docs/screenshots/main-menu.jpg)
+![Main Menu](docs/screenshots/main-menu.png)
+
+![Campaign Creation — Step 1 config with difficulty settings and campaign options](docs/screenshots/campaign-creation.png)
+
+![Campaign Dashboard — Crew manifest, ship status, world info, patrons, and campaign history](docs/screenshots/campaign-dashboard.png)
 
 ![Battle Companion — Tactical UI with 4x4 battlefield grid, crew sidebar, combat modifiers, and battle journal](docs/screenshots/battle-companion.png)
 
 ![Choose Your Companion Level — Log Only, Assisted, or Full Oracle](docs/screenshots/companion-levels.png)
 
 ![World Phase — Crew task assignment and results](docs/screenshots/world-phase.png)
+
+![Post-Battle Sequence — 14-step processing with injury, loot, experience, and morale](docs/screenshots/post-battle.png)
 
 ---
 
@@ -49,7 +55,7 @@ Tools include: dice dashboard, combat calculator, combat situation analyzer, act
 
 ### Visual Battlefield Grid
 
-4x4 sector grid (A1–D4) generated from terrain themes — Industrial Zone, Wilderness, Alien Ruin, Crash Site, and more. Each cell draws terrain shapes for buildings, rocks, walls, trees, water, hills, containers, and hazards. Click any cell for detailed descriptions and gameplay effects. Regenerate for new layouts.
+4x4 sector grid (A1–D4) generated from terrain themes — Industrial Zone, Wilderness, Alien Ruin, Crash Site, Urban Settlement, Wasteland, Ship Interior, and more. Each cell draws terrain shapes for buildings, rocks, walls, trees, water, hills, containers, and hazards. Click any cell for detailed descriptions and gameplay effects. Regenerate for new layouts.
 
 ### Post-Battle Processing
 
@@ -75,6 +81,14 @@ All Compendium content is separated from core as optional modules with zero impa
 - **Freelancer's Handbook** — Progressive difficulty, AI variations, escalating battles, elite enemies, no-minis combat, grid movement, PvP/co-op, expanded missions/quests/connections
 - **Fixer's Guidebook** — Stealth missions, street fights, salvage jobs, expanded factions, world strife, loans, compendium names, introductory campaign, prison planet
 
+### Bug Hunt Gamemode (Compendium)
+
+Standalone military-themed variant with its own 3-stage turn loop, separate creation wizard, and dedicated dashboard. Includes special assignments, contact markers, and character transfer between standard and Bug Hunt campaigns.
+
+### Store & DLC System
+
+Tri-platform purchase system (Steam, Android, iOS) with offline fallback. All Compendium content is gated behind DLC flags and can be purchased in-app or unlocked for testing.
+
 ### Quality of Life
 
 - Campaign journal with auto-generated entries and character histories
@@ -82,6 +96,7 @@ All Compendium content is separated from core as optional modules with zero impa
 - Equipment comparison panel
 - 21 victory condition types
 - Custom dark "Deep Space" UI theme with responsive layout
+- Cross-platform in-app review prompts
 
 ---
 
@@ -104,7 +119,7 @@ git clone https://github.com/Reptarus/five-parsecs-campaign-manager.git
 
 ### Current Status
 
-This project is in **pre-beta**. Core features are complete and the full campaign gameplay loop is playable, but expect rough edges. Bug reports and feedback are welcome via [Issues](https://github.com/Reptarus/five-parsecs-campaign-manager/issues).
+This project is **demo-ready**. All core features are complete, the full campaign gameplay loop is playable across all 9 phases, and the Bug Hunt gamemode is fully functional. The project has zero compile errors with 100% game mechanics coverage. Bug reports and feedback are welcome via [Issues](https://github.com/Reptarus/five-parsecs-campaign-manager/issues).
 
 ---
 
@@ -112,9 +127,10 @@ This project is in **pre-beta**. Core features are complete and the full campaig
 
 - Better battlefield visualization (pushing toward a more graphic-centric interface)
 - UI polish and mobile optimization
-- **Bug Hunt** as a post-1.0 expansion, fully implemented as its own separate manager
+- Bug Hunt co-op mode support
 - [**Five Parsecs: Tactics**](https://modiphius.net/en-us/products/five-parsecs-from-home-tactics) support — the framework is being built with the goal of eventually handling Tactics as well, with multi-squad management, vehicles, and larger battlefield setups
 - Community feedback and playtesting
+- Public beta (pending Modiphius approval)
 
 ---
 
@@ -132,11 +148,13 @@ Contributions are welcome! Whether it's bug reports, feature requests, or pull r
 | Detail | Value |
 | ------ | ----- |
 | Engine | Godot 4.6-stable (pure GDScript) |
-| Scripts | ~870 GDScript files |
+| Scripts | ~900 GDScript files |
 | Test Framework | gdUnit4 v6.0.3 |
 | Mechanics Coverage | 170/170 (100%) |
 | Core Rules Systems | 11/11 verified |
 | Campaign Phases | 9/9 wired |
+| Bug Hunt Gamemode | Complete (38 files, 3-stage turn) |
+| Store/DLC System | Tri-platform (Steam/Android/iOS) |
 
 ---
 

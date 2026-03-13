@@ -493,9 +493,9 @@ func import_campaign(external_path: String) -> Dictionary:
 func _log_error(message: String, code: int = -1) -> void:
 	if is_instance_valid(_error_logger):
 		if code != -1:
-			_error_logger.log_error(message, code, "GameState")
+			_error_logger.log_error_with_code(message, code, "GameState")
 		else:
-			_error_logger.log_error(message, "GameState")
+			_error_logger.log_error_simple(message, "GameState")
 	else:
 		push_error("GameState: " + message + ((" (Code: " + str(code) + ")") if code != -1 else ""))
 
@@ -894,6 +894,14 @@ func set_turn_number(value: int) -> bool:
 		state_changed.emit()
 		return true
 	return false
+
+## Advances the turn number by 1 and syncs to campaign progress_data
+## Called by CampaignPhaseManager at end of turn cycle
+func advance_turn() -> void:
+	_turn_number += 1
+	if current_campaign and "progress_data" in current_campaign:
+		current_campaign.progress_data["turns_played"] = _turn_number - 1
+	state_changed.emit()
 
 ## Gets the current story points
 ## @return int: The current story points

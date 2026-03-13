@@ -68,6 +68,18 @@ func _on_campaign_loaded(campaign) -> void:
 	var loaded_credits = campaign.get("credits")
 	if loaded_credits != null:
 		set_credits(int(loaded_credits))
+	var loaded_supplies = campaign.get("supplies")
+	if loaded_supplies != null:
+		supplies = int(loaded_supplies)
+		supplies_changed.emit(supplies)
+	var loaded_reputation = campaign.get("reputation")
+	if loaded_reputation != null:
+		reputation = int(loaded_reputation)
+		reputation_changed.emit(reputation)
+	var loaded_story = campaign.get("story_points")
+	if loaded_story != null:
+		story_progress = int(loaded_story)
+		story_progress_changed.emit(story_progress)
 
 # State management
 func set_game_state(new_state: GameState) -> void:
@@ -100,21 +112,36 @@ func set_language(language_name: String) -> void:
 func set_credits(new_amount: int) -> void:
 	if credits != new_amount:
 		credits = new_amount
+		# Sync back to campaign Resource so saves persist the correct value
+		if game_state and game_state.current_campaign and "credits" in game_state.current_campaign:
+			game_state.current_campaign.credits = new_amount
 		credits_changed.emit(credits)
 
 func set_supplies(new_amount: int) -> void:
 	if supplies != new_amount:
 		supplies = new_amount
+		# Sync back to campaign Resource so saves persist
+		var camp = game_state.current_campaign if game_state else null
+		if camp and "supplies" in camp:
+			camp.supplies = new_amount
 		supplies_changed.emit(supplies)
 
 func set_reputation(new_amount: int) -> void:
 	if reputation != new_amount:
 		reputation = new_amount
+		# Sync back to campaign Resource so saves persist the correct value
+		var camp = game_state.current_campaign if game_state else null
+		if camp and "reputation" in camp:
+			camp.reputation = new_amount
 		reputation_changed.emit(reputation)
 
 func set_story_progress(new_amount: int) -> void:
 	if story_progress != new_amount:
 		story_progress = new_amount
+		# Sync back to campaign Resource so saves persist the correct value
+		var camp = game_state.current_campaign if game_state else null
+		if camp and "story_points" in camp:
+			camp.story_points = new_amount
 		story_progress_changed.emit(story_progress)
 
 # Getters

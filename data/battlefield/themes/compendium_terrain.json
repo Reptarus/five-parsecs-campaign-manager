@@ -117,6 +117,90 @@
 				"Insulation chunk",
 				"Cracked viewport glass"
 			]
+		},
+		"urban_settlement": {
+			"name": "Urban Settlement",
+			"description": "City blocks, hab-units, and street barricades. Dense cover with multiple elevation levels.",
+			"notable_features": [
+				"Multi-story hab-block (full cover, 3 levels, roof access, multiple entry points)",
+				"Street barricade checkpoint (full cover, blocks vehicle access, firing slits)",
+				"Market stall plaza (partial cover from stalls, open center, lots of scatter)",
+				"Elevated walkway bridge (partial cover, connects buildings, exposed from below)",
+				"Collapsed building ruin (full cover, unstable - dangerous terrain on upper floor)",
+				"Communications tower (full cover at base, climbable, elevated sniper position)"
+			],
+			"regular_features": [
+				"Parked ground vehicle (full cover, low profile)",
+				"Concrete jersey barrier (partial cover, waist height)",
+				"Dumpster unit (partial cover, can be pushed for mobile cover)",
+				"Street lamp post (no cover, LOS reference point)",
+				"Shopfront with shattered windows (partial cover, can enter for full cover)",
+				"Sandbag emplacement (partial cover, prepared firing position)"
+			],
+			"scatter_terrain": [
+				"Trash pile",
+				"Broken signage",
+				"Street debris",
+				"Abandoned crate",
+				"Fire hydrant",
+				"Manhole cover"
+			]
+		},
+		"wasteland": {
+			"name": "Wasteland",
+			"description": "Blasted terrain with craters, wreckage, and toxic pools. Sparse cover and hazardous footing.",
+			"notable_features": [
+				"Deep blast crater (below ground, full cover inside, exposed from elevation)",
+				"Wrecked vehicle hulk (full cover, dangerous terrain - sharp metal edges)",
+				"Collapsed overpass section (full cover, elevated platform, unstable edges)",
+				"Toxic pool (open, dangerous terrain - 1 wound on contact, blocks movement)",
+				"Rusted storage silo (full cover, tall, single entry, can climb exterior)",
+				"Rubble mound (partial cover, elevated, difficult terrain to climb)"
+			],
+			"regular_features": [
+				"Shallow crater (partial cover when prone, open when standing)",
+				"Twisted metal wreckage (partial cover, difficult terrain)",
+				"Concrete slab fragment (partial cover, stable footing)",
+				"Dead tree stump (no cover, LOS marker)",
+				"Ash drift (concealment only, difficult terrain)",
+				"Exposed pipe cluster (partial cover, can be used as bridge)"
+			],
+			"scatter_terrain": [
+				"Scrap metal",
+				"Broken brick",
+				"Charred debris",
+				"Spent shell casing pile",
+				"Corroded barrel",
+				"Dust mound"
+			]
+		},
+		"ship_interior": {
+			"name": "Ship Interior",
+			"description": "Corridors, bulkheads, and cargo bays inside a starship. Tight spaces with chokepoints and airlocks.",
+			"notable_features": [
+				"Bulkhead doorway (full cover when closed, chokepoint when open, can be sealed)",
+				"Cargo bay with stacked crates (full cover, multiple firing positions, 2 levels)",
+				"Engineering console bank (partial cover, low wall, sparks on hit - dangerous)",
+				"Airlock chamber (full cover, VERY dangerous - can be vented to space)",
+				"Turbolift shaft (full cover, vertical movement between decks, ambush point)",
+				"Medbay with equipment (full cover, can treat wounded - +1 to recovery rolls)"
+			],
+			"regular_features": [
+				"Corridor junction (partial cover at corners, multiple approach angles)",
+				"Maintenance panel (partial cover, wall-mounted, can be removed)",
+				"Crew locker bank (partial cover, narrow space between rows)",
+				"Ventilation grate (no cover, can be opened for alternate route)",
+				"Power conduit housing (partial cover, dangerous - electrified on hit roll of 1)",
+				"Emergency supply locker (partial cover, may contain useful items)"
+			],
+			"scatter_terrain": [
+				"Floor grating",
+				"Loose cable bundle",
+				"Fire extinguisher",
+				"Tool case",
+				"Deck plate",
+				"Warning sign"
+			]
 		}
 	},
 	"scatter_per_sector": "1d6+2",

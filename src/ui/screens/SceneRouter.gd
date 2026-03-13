@@ -76,7 +76,12 @@ const SCENE_PATHS = {
 	"new_campaign_tutorial": "res://src/ui/screens/tutorial/NewCampaignTutorial.tscn",
 
 	# Help / Library
-	"help": "res://src/ui/help/HelpScreen.tscn"
+	"help": "res://src/ui/help/HelpScreen.tscn",
+
+	# Bug Hunt gamemode
+	"bug_hunt_creation": "res://src/ui/screens/bug_hunt/BugHuntCreationUI.tscn",
+	"bug_hunt_dashboard": "res://src/ui/screens/bug_hunt/BugHuntDashboard.tscn",
+	"bug_hunt_turn_controller": "res://src/ui/screens/bug_hunt/BugHuntTurnController.tscn",
 }
 
 # Navigation history for back button functionality

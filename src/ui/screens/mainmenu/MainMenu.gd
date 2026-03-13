@@ -283,7 +283,7 @@ func _on_battle_simulator_pressed() -> void:
 	show_message("Battle Simulator feature is coming soon!")
 
 func _on_bug_hunt_pressed() -> void:
-	show_message("Bug Hunt feature is coming soon!")
+	request_scene_change("bug_hunt_creation")
 
 func _on_options_pressed() -> void:
 	request_scene_change("options")
@@ -322,6 +322,7 @@ func request_scene_change(scene_name: String) -> void:
 		"options": "settings",
 		"campaign_dashboard": "campaign_turn_controller",
 		"campaign_turn_controller": "campaign_turn_controller",
+		"bug_hunt_creation": "bug_hunt_creation",
 		"help": "help",
 	}
 

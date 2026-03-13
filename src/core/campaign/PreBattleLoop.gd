@@ -232,14 +232,20 @@ func _validate_battle_readiness() -> bool:
 
 ## Prepare battle data for the coordinator
 func _prepare_battle_data() -> Dictionary:
+	# Use terrain data from generate_terrain() instead of hardcoded values
+	var terrain: Dictionary = generate_terrain()
 	var battle_data := {
 		"mission_id": current_mission.get("id", ""),
-		"mission_type": current_mission.get("battle_type", GlobalEnums.BattleType.NONE),
-		"difficulty": current_mission.get("difficulty", GlobalEnums.DifficultyLevel.NORMAL),
+		"mission_type": current_mission.get(
+			"battle_type", GlobalEnums.BattleType.NONE),
+		"difficulty": current_mission.get(
+			"difficulty", GlobalEnums.DifficultyLevel.NORMAL),
 		"battlefield_config": {
-			"size": Vector2i(24, 24), # Default size
-			"environment": GlobalEnums.PlanetEnvironment.URBAN, # Default environment
-			"cover_density": 0.2
+			"size": Vector2i(24, 24),
+			"environment": terrain.get("type", "WILDERNESS"),
+			"cover_density": terrain.get("cover_density", 0.5),
+			"movement_modifier": terrain.get("movement_modifier", 1.0),
+			"features": terrain.get("features", []),
 		},
 		"player_units": _prepare_player_units_data(),
 		"enemy_units": _prepare_enemy_units_data(),
@@ -429,18 +435,31 @@ func generate_enemies(difficulty: int) -> Array:
 	
 	return enemies
 
-# Helper function to generate terrain
+# Helper function to generate terrain — reads from GameState battlefield data if available
 func generate_terrain() -> Dictionary:
+	# Try to use structured terrain data persisted by CampaignTurnController
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.has_method("get_battlefield_data"):
+		var bf_data: Dictionary = gs.get_battlefield_data()
+		if not bf_data.is_empty():
+			return {
+				"type": bf_data.get("terrain_type", "WILDERNESS"),
+				"cover_density": bf_data.get("cover_density", 0.5),
+				"movement_modifier": bf_data.get("movement_modifier", 1.0),
+				"features": bf_data.get("terrain_features", []),
+				"hazards": randf() > 0.7
+			}
+
+	# Fallback: random generation (legacy path)
 	var terrain_types = ["forest", "urban", "desert", "swamp", "mountains"]
 	var selected_terrain = terrain_types[randi() % terrain_types.size()]
-	
-	var terrain_data = {
+	return {
 		"type": selected_terrain,
 		"cover_density": randf_range(0.2, 0.8),
-		"hazards": randf() > 0.7 # 30% chance for hazards
+		"movement_modifier": 1.0,
+		"features": [],
+		"hazards": randf() > 0.7
 	}
-	
-	return terrain_data
 
 # Helper function to generate objectives
 func generate_objectives(difficulty: int) -> Array:

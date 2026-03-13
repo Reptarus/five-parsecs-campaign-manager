@@ -1,5 +1,5 @@
 class_name FPCM_DiceDashboard
-extends Control
+extends MarginContainer
 
 ## Dice Dashboard - Quick Dice Rolling Widget
 ##

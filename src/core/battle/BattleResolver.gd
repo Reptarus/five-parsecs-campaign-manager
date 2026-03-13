@@ -16,7 +16,7 @@ const MIN_COMBAT_ROUNDS := 3
 
 # Victory conditions (Core Rules p.119)
 const HOLD_FIELD_ENEMY_THRESHOLD := 3  # Must eliminate 3+ enemies to hold field on retreat
-const VICTORY_LOSS_RATIO_MULTIPLIER := 1.5  # Enemy loss% must exceed crew loss% * this
+const VICTORY_LOSS_RATIO_MULTIPLIER := 1.2  # Enemy loss% must meet/exceed crew loss% * this
 
 # Post-battle rewards (Core Rules p.119-120)
 const BATTLEFIELD_FINDS_MIN := 0
@@ -145,10 +145,10 @@ static func initialize_battle(
 	# Sprint 26.3: Character-Everywhere - check Object first
 	for crew in crew_deployed:
 		var unit: Dictionary = {}
-		if crew != null and crew.has_method("to_dictionary"):
-			unit = crew.to_dictionary()
-		elif crew is Dictionary:
+		if crew is Dictionary:
 			unit = crew.duplicate(true)
+		elif crew != null and crew.has_method("to_dictionary"):
+			unit = crew.to_dictionary()
 		else:
 			# Fallback for objects without to_dictionary
 			unit = {"character_name": crew.character_name if "character_name" in crew else "", "toughness": crew.toughness if "toughness" in crew else DEFAULT_TOUGHNESS}
@@ -166,6 +166,7 @@ static func initialize_battle(
 		unit["is_stunned"] = false
 		unit["is_suppressed"] = false
 		unit["is_alive"] = true
+		unit["kills"] = 0
 		battle_state["enemy_units"].append(unit)
 	
 	# Apply deployment condition effects (e.g., "ambush" gives crew first strike)
@@ -292,7 +293,7 @@ static func _execute_unit_attacks(
 		
 		# Find alive target
 		var target := _find_alive_target(defenders)
-		if target == null:
+		if target == null or target.is_empty():
 			break
 		
 		# Prepare attack context
@@ -322,12 +323,14 @@ static func _execute_unit_attacks(
 		# Apply damage if hit
 		if attack_result["hit"] and not attack_result.get("armor_saved", false):
 			var damage: int = attack_result.get("wounds_inflicted", 1)
+			if not target.has("hp_current"):
+				target["hp_current"] = target.get("toughness", DEFAULT_TOUGHNESS)
 			target["hp_current"] -= damage
-			
+
 			if target["hp_current"] <= 0:
 				target["is_alive"] = false
 				result["casualties"] += 1
-				attacker["kills"] += 1
+				attacker["kills"] = attacker.get("kills", 0) + 1
 				
 				result["events"].append({
 					"type": "elimination",
@@ -387,8 +390,8 @@ static func calculate_battle_outcome(
 		var crew_loss_percent := float(crew_casualties) / float(total_crew)
 		var enemy_loss_percent := float(enemy_casualties) / float(total_enemies)
 		
-		# Victory if enemy losses significantly exceed crew losses
-		success = enemy_loss_percent > crew_loss_percent * VICTORY_LOSS_RATIO_MULTIPLIER
+		# Victory if enemy losses meet or exceed crew losses * multiplier
+		success = enemy_loss_percent >= crew_loss_percent * VICTORY_LOSS_RATIO_MULTIPLIER
 		
 		# Held field if victory OR killed 3+ enemies (Core Rules p.119)
 		held_field = success or enemy_casualties >= HOLD_FIELD_ENEMY_THRESHOLD
@@ -446,14 +449,23 @@ static func _estimate_range(attacker: Dictionary, target: Dictionary, battlefiel
 	return randf_range(MIN_ENGAGEMENT_RANGE, float(weapon_range))
 
 ## Check if unit has cover based on battlefield data
-static func _has_cover(unit: Dictionary, battlefield_data: Dictionary, condition_effects: Dictionary) -> bool:
+static func _has_cover(
+		unit: Dictionary,
+		battlefield_data: Dictionary,
+		condition_effects: Dictionary) -> bool:
 	# Headlong assault removes all cover
 	if condition_effects.get("no_cover", false):
 		return false
-	
-	# Simplified: DEFAULT_COVER_CHANCE of units have cover by default
-	# Real implementation would check battlefield_data for cover positions
-	return randf() > DEFAULT_COVER_CHANCE
+
+	# Defensive cover deployment gives guaranteed cover
+	if condition_effects.get("defensive_cover", false):
+		return true
+
+	# Use terrain-based cover density from JSON data pipeline
+	var cover_chance: float = battlefield_data.get(
+		"cover_density", DEFAULT_COVER_CHANCE)
+	cover_chance = clampf(cover_chance, 0.0, 1.0)
+	return randf() < cover_chance
 
 ## Clear temporary round-based status effects
 static func _clear_round_status(units: Array) -> void:

@@ -4,7 +4,7 @@
       "command": "npx",
       "args": [
         "-y",
-        "@modelcontextprotocol/server-filesystem@latest",
+        "@modelcontextprotocol/server-filesystem@2026.1.14",
         "C:\\Users\\admin\\SynologyDrive\\Godot\\five-parsecs-campaign-manager",
         "C:\\Users\\admin\\SynologyDrive\\Godot"
       ],
@@ -17,7 +17,7 @@
       "command": "npx",
       "args": [
         "-y",
-        "@wonderwhy-er/desktop-commander@latest"
+        "@wonderwhy-er/desktop-commander@0.2.38"
       ],
       "env": {
         "NODE_ENV": "production",
@@ -38,22 +38,11 @@
         "MCP_TIMEOUT": "30000"
       }
     },
-    "claude-diagnostics": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-diagnostics@latest"
-      ],
-      "env": {
-        "NODE_ENV": "production",
-        "MCP_TIMEOUT": "30000"
-      }
-    },
     "context7": {
       "command": "npx",
       "args": [
         "-y",
-        "@upstash/context7-mcp@latest"
+        "@upstash/context7-mcp@2.1.3"
       ],
       "env": {
         "NODE_ENV": "production",
@@ -64,7 +53,7 @@
       "command": "npx",
       "args": [
         "-y",
-        "@modelcontextprotocol/server-memory@latest"
+        "@modelcontextprotocol/server-memory@2026.1.26"
       ],
       "env": {
         "NODE_ENV": "production",
@@ -75,7 +64,7 @@
       "command": "npx",
       "args": [
         "-y",
-        "@anthropic/mcp-server-playwright@latest"
+        "@playwright/mcp@0.0.68"
       ],
       "env": {
         "NODE_ENV": "production",

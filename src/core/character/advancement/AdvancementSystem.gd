@@ -173,6 +173,11 @@ func advance_stat(character: Resource, stat_name: String) -> bool:
 	var current_stat = Godot4Utils.safe_get_property(character, stat_name, 0)
 	var max_stat = stat_max_values.get(stat_name, 5)
 
+	# Engineer restriction: Cannot raise Toughness above 4 (Core Rules p.124)
+	var char_class: String = Godot4Utils.safe_get_property(character, "character_class", "")
+	if char_class.to_upper() == "ENGINEER" and stat_name == "toughness":
+		max_stat = mini(max_stat, 4)
+
 	# Check if advancement is possible
 	if current_xp < cost:
 		return false
@@ -297,6 +302,11 @@ func get_available_advancements(character: Resource) -> Array[Dictionary]:
 		var current_stat = Godot4Utils.safe_get_property(character, stat_name, 0)
 		var max_stat = stat_max_values.get(stat_name, 5)
 		var cost = stat_advancement_costs[stat_name]
+
+		# Engineer restriction: Cannot raise Toughness above 4 (Core Rules p.124)
+		var adv_char_class: String = Godot4Utils.safe_get_property(character, "character_class", "")
+		if adv_char_class.to_upper() == "ENGINEER" and stat_name == "toughness":
+			max_stat = mini(max_stat, 4)
 
 		if current_stat < max_stat and current_xp >= cost:
 			advancements.append({

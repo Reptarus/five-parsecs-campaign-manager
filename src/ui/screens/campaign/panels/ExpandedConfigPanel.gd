@@ -10,6 +10,7 @@ const STEP_NUMBER := 1  # Step 1 of 7 in campaign wizard (Configuration)
 const FPCM_VictoryDescriptions = preload("res://src/game/victory/VictoryDescriptions.gd")
 const CustomVictoryDialog = preload("res://src/ui/components/victory/CustomVictoryDialog.gd")
 const CompendiumMissionsExpandedRef = preload("res://src/data/compendium_missions_expanded.gd")
+const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 
 # GDScript 2.0: Typed signals
 signal campaign_config_updated(config: Dictionary)
@@ -171,6 +172,8 @@ var difficulty_levels: Dictionary = {
 var selected_victory_conditions: Dictionary = {}
 var selected_story_track: String = ""
 var selected_tutorial_mode: String = ""
+var selected_difficulty_toggles: Array[String] = []
+var difficulty_toggle_checkboxes: Dictionary = {}  # id -> CheckBox
 
 # Custom victory dialog
 var custom_victory_button: Button
@@ -220,6 +223,7 @@ func _initialize_components() -> void:
 	_build_campaign_identity_section(main_container)
 	_build_campaign_type_section(main_container)
 	_build_difficulty_section(main_container)
+	_build_difficulty_toggles_section(main_container)
 	# NOTE: Crew size moved to CrewPanel (Step 3) - Sprint 26.7
 	_build_victory_conditions_section(main_container)
 	_build_story_track_section(main_container)
@@ -295,6 +299,64 @@ func _build_difficulty_section(parent: Control) -> void:
 	)
 	parent.add_child(card)
 
+
+func _build_difficulty_toggles_section(parent: Control) -> void:
+	## Build Compendium difficulty toggles (DLC-gated)
+	var toggles: Array[Dictionary] = CompendiumDifficultyTogglesRef.get_difficulty_toggles()
+	difficulty_toggle_checkboxes.clear()
+
+	var content = VBoxContainer.new()
+	content.add_theme_constant_override("separation", SPACING_SM)
+
+	if toggles.is_empty():
+		# DLC not enabled — show locked indicator
+		var locked_label := Label.new()
+		locked_label.text = "Requires Compendium DLC to unlock combat toggles"
+		locked_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		locked_label.add_theme_color_override("font_color", COLOR_TEXT_DISABLED)
+		locked_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		content.add_child(locked_label)
+	else:
+		# Group toggles by category
+		var categories: Array[String] = CompendiumDifficultyTogglesRef.get_categories()
+		for category in categories:
+			var cat_toggles: Array[Dictionary] = CompendiumDifficultyTogglesRef.get_toggles_by_category(category)
+			if cat_toggles.is_empty():
+				continue
+
+			# Category header
+			var cat_label := Label.new()
+			cat_label.text = CompendiumDifficultyTogglesRef.get_category_name(category)
+			cat_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+			cat_label.add_theme_color_override("font_color", COLOR_ACCENT)
+			content.add_child(cat_label)
+
+			# Checkboxes for each toggle in this category
+			for toggle in cat_toggles:
+				var toggle_id: String = toggle.get("id", "")
+				var cb := CheckBox.new()
+				cb.text = toggle.get("name", toggle_id)
+				cb.tooltip_text = toggle.get("description", "")
+				cb.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+				cb.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+				cb.toggled.connect(_on_difficulty_toggle_changed.bind(toggle_id))
+				content.add_child(cb)
+				difficulty_toggle_checkboxes[toggle_id] = cb
+
+	var card = _create_section_card(
+		"COMPENDIUM COMBAT OPTIONS",
+		content,
+		"Optional rules from the Five Parsecs Compendium"
+	)
+	parent.add_child(card)
+
+func _on_difficulty_toggle_changed(enabled: bool, toggle_id: String) -> void:
+	if enabled and toggle_id not in selected_difficulty_toggles:
+		selected_difficulty_toggles.append(toggle_id)
+	elif not enabled and toggle_id in selected_difficulty_toggles:
+		selected_difficulty_toggles.erase(toggle_id)
+	local_campaign_config["difficulty_toggles"] = selected_difficulty_toggles.duplicate()
+	campaign_config_data_changed.emit(local_campaign_config)
 
 func _build_victory_conditions_section(parent: Control) -> void:
 	## Build victory conditions section with card selectors
@@ -849,6 +911,13 @@ func _reset_to_defaults() -> void:
 	selected_victory_conditions = {}
 	selected_story_track = ""
 	selected_tutorial_mode = ""
+	selected_difficulty_toggles.clear()
+
+	# Reset toggle checkboxes
+	for toggle_id in difficulty_toggle_checkboxes:
+		var cb: CheckBox = difficulty_toggle_checkboxes[toggle_id]
+		if cb:
+			cb.set_pressed_no_signal(false)
 
 	# Reset UI components
 	_reset_ui_components()
@@ -1022,6 +1091,7 @@ func get_campaign_config_data() -> Dictionary:
 		"campaign_name": local_campaign_config.campaign_name,
 		"campaign_type": local_campaign_config.campaign_type,
 		"difficulty_level": local_campaign_config.difficulty_level,
+		"difficulty_toggles": selected_difficulty_toggles.duplicate(),
 		"victory_conditions": selected_victory_conditions.duplicate(),
 		"story_track": selected_story_track,
 		"tutorial_mode": selected_tutorial_mode,
@@ -1056,6 +1126,21 @@ func restore_panel_data(data: Dictionary) -> void:
 				if difficulty_option.get_item_id(i) == data.difficulty_level:
 					difficulty_option.select(i)
 					break
+
+	# Restore difficulty toggles
+	if data.has("difficulty_toggles"):
+		selected_difficulty_toggles.clear()
+		var toggles_data = data.difficulty_toggles
+		if toggles_data is Array:
+			for tid in toggles_data:
+				if tid is String:
+					selected_difficulty_toggles.append(tid)
+		local_campaign_config["difficulty_toggles"] = selected_difficulty_toggles.duplicate()
+		# Update checkboxes
+		for toggle_id in difficulty_toggle_checkboxes:
+			var cb: CheckBox = difficulty_toggle_checkboxes[toggle_id]
+			if cb:
+				cb.set_pressed_no_signal(toggle_id in selected_difficulty_toggles)
 
 	# Restore victory conditions
 	if data.has("victory_conditions"):
@@ -1096,6 +1181,11 @@ func cleanup_panel() -> void:
 	selected_victory_conditions.clear()
 	selected_story_track = ""
 	selected_tutorial_mode = ""
+	selected_difficulty_toggles.clear()
+	for toggle_id in difficulty_toggle_checkboxes:
+		var cb: CheckBox = difficulty_toggle_checkboxes[toggle_id]
+		if cb:
+			cb.set_pressed_no_signal(false)
 
 	# Reset UI components if available
 	if campaign_name_input:

@@ -51,7 +51,7 @@ func _ready() -> void:
 	# Restore turn number from loaded campaign data BEFORE UI init
 	var campaign = game_state.get_current_campaign()
 	if campaign and "progress_data" in campaign:
-		var saved_turn: int = campaign.progress_data.get("turn_number", 0)
+		var saved_turn: int = campaign.progress_data.get("turns_played", 0)
 		if saved_turn > 0 and campaign_phase_manager.turn_number == 0:
 			campaign_phase_manager.turn_number = saved_turn
 
@@ -59,16 +59,14 @@ func _ready() -> void:
 
 	# Start a campaign turn if:
 	# - New campaign (turn 0), OR
-	# - Loaded campaign with no active phase (phase is NONE — can't resume)
+	# - Loaded campaign with no active phase (phase is NONE — can't resume mid-phase)
 	# Must run BEFORE backend systems so phase UI is visible
 	var current_phase = campaign_phase_manager.get_current_phase()
-	if game_state.get_campaign_turn() == 0:
+	if current_phase == GlobalEnums.FiveParsecsCampaignPhase.NONE:
+		# Both new campaigns (turn 0) and loaded campaigns (completed turn N)
+		# need a fresh turn. start_new_turn() increments turn_number and
+		# begins at UPKEEP, so a loaded game with turns_played=2 starts turn 3.
 		start_new_campaign_turn()
-	elif current_phase == GlobalEnums.FiveParsecsCampaignPhase.NONE:
-		# Loaded campaign — phase not saved, resume at UPKEEP without
-		# incrementing turn number (player is still on the saved turn).
-		campaign_phase_manager.campaign_turn_started.emit(campaign_phase_manager.turn_number)
-		campaign_phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.UPKEEP)
 
 	# Backend integration systems are optional — errors must not
 	# block the core turn flow above
@@ -177,6 +175,8 @@ func _initialize_ui_state() -> void:
 		_hide_all_phase_uis()
 	else:
 		_show_phase_ui(current_phase)
+		var phase_name = _get_phase_name(current_phase)
+		_update_phase_display(phase_name)
 
 func _exit_tree() -> void:
 	## Cleanup all signal connections to prevent memory leaks
@@ -441,14 +441,20 @@ func start_new_campaign_turn() -> void:
 	campaign_phase_manager.start_new_campaign_turn()
 
 func _on_campaign_turn_started(turn_number: int) -> void:
-	## Handle campaign turn start
+	## Handle campaign turn start — sync turn into progress_data so dashboard reads it
+	var campaign: Resource = GameState.current_campaign if GameState else null
+	if campaign and "progress_data" in campaign:
+		campaign.progress_data["turns_played"] = turn_number - 1
 	_update_turn_display(turn_number)
 	self.campaign_turn_started.emit(turn_number)
 
 func _on_campaign_turn_completed(turn_number: int) -> void:
-	## Handle campaign turn completion
+	## Handle campaign turn completion — sync turns_played to progress_data
+	var campaign: Resource = GameState.current_campaign if GameState else null
+	if campaign and "progress_data" in campaign:
+		campaign.progress_data["turns_played"] = turn_number
 	self.campaign_turn_completed.emit(turn_number)
-	
+
 	# Auto-start next turn (production behavior)
 	await get_tree().create_timer(2.0).timeout
 	start_new_campaign_turn()
@@ -552,6 +558,8 @@ func _hide_all_phase_uis() -> void:
 		pre_battle_ui.hide()
 	if tactical_battle_ui:
 		tactical_battle_ui.hide()
+		if tactical_battle_ui.has_method("_hide_overlay"):
+			tactical_battle_ui._hide_overlay()
 	if advancement_phase_panel:
 		advancement_phase_panel.hide()
 	if trade_phase_panel:
@@ -615,9 +623,17 @@ func _initiate_battle_sequence() -> void:
 	battle_results["deployment_condition"] = deployment_condition
 
 	# Persist battlefield data in GameState
+	# Enrich with terrain_types.json data (cover, movement, type)
+	var terrain_guide: Dictionary = _generate_terrain_setup_guide(
+		mission_data)
 	var full_bf_data: Dictionary = {
 		"terrain": battlefield_data,
-		"deployment_condition": deployment_condition
+		"deployment_condition": deployment_condition,
+		"cover_density": terrain_guide.get("cover_density", 0.5),
+		"movement_modifier": terrain_guide.get(
+			"movement_modifier", 1.0),
+		"terrain_type": terrain_guide.get("terrain_type", "WILDERNESS"),
+		"terrain_features": terrain_guide.get("features", []),
 	}
 	if game_state.has_method("set_battlefield_data"):
 		game_state.set_battlefield_data(full_bf_data)
@@ -670,6 +686,19 @@ func _on_post_battle_completed(results: Dictionary) -> void:
 
 	# Store final post-battle results
 	game_state.set_battle_results(results)
+
+	# Record battle result directly in progress_data for EndPhasePanel summary
+	# Note: FiveParsecsCampaignCore (Resource) does NOT have record_battle_result()
+	# — that method only exists on FiveParsecsCampaign which is not the runtime class.
+	var campaign: Resource = GameState.current_campaign if GameState else null
+	if campaign and "progress_data" in campaign:
+		var victory: bool = results.get("victory", false) or results.get("won", false)
+		var pd: Dictionary = campaign.progress_data
+		pd["missions_completed"] = pd.get("missions_completed", 0) + 1
+		if victory:
+			pd["battles_won"] = pd.get("battles_won", 0) + 1
+		else:
+			pd["battles_lost"] = pd.get("battles_lost", 0) + 1
 
 	# Validate crew status before next phase
 	_validate_crew_status_post_battle()
@@ -886,24 +915,41 @@ func _generate_terrain_setup_guide(mission_data: Dictionary) -> Dictionary:
 
 	# Build terrain guide from JSON data
 	if not selected_terrain.is_empty():
-		terrain["theme"] = selected_terrain.get("name", "Standard Battlefield")
-		terrain["description"] = selected_terrain.get("description", "Set up a standard battlefield.")
+		terrain["theme"] = selected_terrain.get(
+			"name", "Standard Battlefield")
+		terrain["description"] = selected_terrain.get(
+			"description", "Set up a standard battlefield.")
 		var features: Array = selected_terrain.get("features", [])
 		var cover: float = selected_terrain.get("cover_density", 0.5)
-		var piece_count: int = int(5 + cover * 5)  # 5-10 pieces based on density
+		var piece_count: int = int(5 + cover * 5)
+
+		# Structured data for downstream consumers
+		terrain["cover_density"] = cover
+		terrain["movement_modifier"] = selected_terrain.get(
+			"movement_modifier", 1.0)
+		terrain["terrain_type"] = selected_terrain.get(
+			"type", "WILDERNESS")
+		terrain["features"] = features
 
 		terrain["suggestions"] = [
-			"Set up a %s battlefield (2x2 or 3x3 feet)" % terrain["theme"],
-			"Place %d-%d terrain pieces across the battlefield" % [piece_count, piece_count + 2],
+			"Set up a %s battlefield (2x2 or 3x3 feet)" % terrain[
+				"theme"],
+			"Place %d-%d terrain pieces" % [
+				piece_count, piece_count + 2],
 			"Recommended features: %s" % ", ".join(features),
 			"Cover density: %s (%d%% of area)" % [
-				"Dense" if cover >= 0.6 else ("Moderate" if cover >= 0.4 else "Sparse"),
+				"Dense" if cover >= 0.6 else (
+					"Moderate" if cover >= 0.4 else "Sparse"),
 				int(cover * 100)]
 		]
 	else:
 		# Fallback if JSON loading fails
 		terrain["theme"] = "Standard Battlefield"
-		terrain["description"] = "Set up a standard battlefield (2x2 or 3x3 feet)."
+		terrain["description"] = "Set up a standard battlefield."
+		terrain["cover_density"] = 0.5
+		terrain["movement_modifier"] = 1.0
+		terrain["terrain_type"] = "WILDERNESS"
+		terrain["features"] = ["basic_cover"]
 		terrain["suggestions"] = [
 			"Place 5-8 terrain pieces across the battlefield",
 			"Include 2-3 pieces of cover (walls, barricades, crates)",

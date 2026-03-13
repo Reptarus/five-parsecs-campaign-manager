@@ -1183,6 +1183,11 @@ func _build_contacts_panel() -> PanelContainer:
 	p_sep.modulate = COLOR_BORDER
 	vbox.add_child(p_sep)
 	var patrons: Array = npc_tracker.get_all_patrons()
+	# Fall back to campaign data if NPCTracker has no entries
+	if patrons.is_empty():
+		var campaign = _get_campaign()
+		if campaign and "patrons" in campaign:
+			patrons = campaign.patrons if campaign.patrons is Array else []
 	if patrons.is_empty():
 		var empty := Label.new()
 		empty.text = "No patrons yet"
@@ -1200,6 +1205,11 @@ func _build_contacts_panel() -> PanelContainer:
 	r_sep2.modulate = COLOR_BORDER
 	vbox.add_child(r_sep2)
 	var rivals: Array = npc_tracker.get_all_rivals()
+	# Fall back to campaign data if NPCTracker has no entries
+	if rivals.is_empty():
+		var campaign_r = _get_campaign()
+		if campaign_r and "rivals" in campaign_r:
+			rivals = campaign_r.rivals if campaign_r.rivals is Array else []
 	if rivals.is_empty():
 		var empty := Label.new()
 		empty.text = "No rivals yet"

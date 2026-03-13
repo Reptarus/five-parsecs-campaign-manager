@@ -333,6 +333,23 @@ static func get_trade_phase_items() -> Array[Dictionary]:
 	return items
 
 
+## Returns trade phase items with DLC lock status for UI display.
+## Each item gets "_dlc_locked": bool. Locked items should be shown but not purchasable.
+static func get_trade_phase_items_with_lock_status() -> Array[Dictionary]:
+	var items: Array[Dictionary] = []
+	var ship_unlocked: bool = _is_flag_enabled("NEW_SHIP_PARTS")
+	for part in NEW_SHIP_PARTS:
+		var entry: Dictionary = part.duplicate()
+		entry["_dlc_locked"] = not ship_unlocked
+		items.append(entry)
+	var psi_unlocked: bool = _is_flag_enabled("PSIONIC_EQUIPMENT")
+	for psi in PSIONIC_EQUIPMENT:
+		var entry: Dictionary = psi.duplicate()
+		entry["_dlc_locked"] = not psi_unlocked
+		items.append(entry)
+	return items
+
+
 ## Returns ALL advancement phase compendium options.
 ## Combines advanced training + compendium bot upgrades.
 static func get_advancement_phase_items() -> Array[Dictionary]:

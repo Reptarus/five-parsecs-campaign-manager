@@ -743,6 +743,27 @@ func _merge_captain_into_crew() -> void:
 		captain_dict = _character_to_dict(captain)
 	else:
 		captain_dict = captain.duplicate()
+	# BUG-021 FIX: If captain dict wraps a Character Resource under "character" key,
+	# extract all stats from the Resource into the dict so they persist in crew_data
+	if captain_dict.has("character") and captain_dict["character"] is Resource:
+		var char_obj = captain_dict["character"]
+		if char_obj.has_method("to_dictionary"):
+			var full_dict: Dictionary = char_obj.to_dictionary()
+			for key in full_dict:
+				if not captain_dict.has(key):
+					captain_dict[key] = full_dict[key]
+		else:
+			# Manual extraction for Resource without to_dictionary()
+			for prop in ["background", "motivation", "origin", "character_class",
+					"combat", "toughness", "savvy", "speed", "luck",
+					"experience", "traits", "starting_rolls", "id", "injuries"]:
+				if prop in char_obj and not captain_dict.has(prop):
+					captain_dict[prop] = char_obj.get(prop)
+			# Handle reaction/reactions naming
+			if "reactions" in char_obj and not captain_dict.has("reactions"):
+				captain_dict["reactions"] = char_obj.get("reactions")
+			elif "reaction" in char_obj and not captain_dict.has("reactions"):
+				captain_dict["reactions"] = char_obj.get("reaction")
 	if captain_dict.is_empty():
 		return
 	captain_dict["is_captain"] = true
@@ -1113,8 +1134,9 @@ func get_overall_completion_percentage() -> float:
 ## State Manager Event Handlers
 
 func _on_state_updated(phase: CampaignCreationStateManager.Phase, data: Dictionary) -> void:
-	## Handle state manager updates
-	current_step = int(phase)
+	## Handle state manager data updates — refresh navigation only
+	## Do NOT change current_step here: data updates are not navigation events.
+	## Only advance_to_next_phase() and go_back_to_previous_phase() should move the step.
 	_update_navigation_state()
 
 func _on_phase_completed(phase: CampaignCreationStateManager.Phase) -> void:
@@ -1141,12 +1163,12 @@ func _do_navigation_update() -> void:
 	_navigation_update_pending = false
 
 	# Sync check: ensure current_step matches state_manager phase
+	# State manager's current_phase is authoritative — current_step follows it
 	if state_manager:
 		var expected_step: int = int(state_manager.current_phase)
 		if current_step != expected_step:
-			push_warning("CampaignCreationCoordinator: Step/phase desync detected (step=%d, phase=%d). Syncing." % [current_step, expected_step])
-			state_manager.set_phase(
-				CampaignCreationStateManager.Phase.values()[current_step] if current_step >= 0 and current_step < CampaignCreationStateManager.Phase.size() else state_manager.current_phase)
+			push_warning("CampaignCreationCoordinator: Step/phase desync detected (step=%d, phase=%d). Syncing step to phase." % [current_step, expected_step])
+			current_step = expected_step
 
 	var nav_state = _calculate_navigation_state()
 

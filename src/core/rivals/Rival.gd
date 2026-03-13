@@ -33,6 +33,8 @@ func get_threat_modifier() -> float:
 			return 1.2
 		GameEnums.DifficultyLevel.HARDCORE:
 			return 1.4
+		GameEnums.DifficultyLevel.NIGHTMARE:
+			return 1.5
 		GameEnums.DifficultyLevel.ELITE:
 			return 1.6
 	return 1.0
@@ -64,6 +66,6 @@ func deserialize(data: Dictionary) -> void:
 	reputation = data.get("reputation", 0)
 	active = data.get("active", true)
 	last_encounter_turn = data.get("last_encounter_turn", -1)
-	special_traits = data.get("special_traits", [])
+	special_traits.assign(data.get("special_traits", []))
 	resources = data.get("resources", {})
-	encounter_history = data.get("encounter_history", [])
+	encounter_history.assign(data.get("encounter_history", []))

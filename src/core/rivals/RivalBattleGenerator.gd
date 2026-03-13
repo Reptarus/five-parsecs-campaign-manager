@@ -12,7 +12,7 @@ const Rival = preload("res://src/core/rivals/Rival.gd")
 ## Rival Battle Data Structure
 class RivalBattle:
 	var rival_id: String
-	var battle_type: String  # "AMBUSH", "ATTACK", "PURSUIT", "CONFRONTATION"
+	var battle_type: String  # "AMBUSH", "BROUGHT_FRIENDS", "SHOWDOWN", "ASSAULT", "RAID" (Core Rules p.91)
 	var force_size: int = 3
 	var force_composition: Array[Dictionary] = []
 	var threat_level: int = 1
@@ -120,26 +120,29 @@ func _load_escalation_rules() -> void:
 		}
 	}
 
-## Load battle type weights based on situation
+## Load battle type weights based on situation (Core Rules p.91 — 5 attack types)
 func _load_battle_type_weights() -> void:
 	battle_type_weights = {
 		"default": {
-			"AMBUSH": 30,
-			"ATTACK": 40,
-			"PURSUIT": 20,
-			"CONFRONTATION": 10
+			"AMBUSH": 20,
+			"BROUGHT_FRIENDS": 20,
+			"SHOWDOWN": 20,
+			"ASSAULT": 20,
+			"RAID": 20
 		},
 		"high_escalation": {
-			"AMBUSH": 20,
-			"ATTACK": 30,
-			"PURSUIT": 35,
-			"CONFRONTATION": 15
+			"AMBUSH": 15,
+			"BROUGHT_FRIENDS": 25,
+			"SHOWDOWN": 15,
+			"ASSAULT": 25,
+			"RAID": 20
 		},
 		"first_encounter": {
-			"AMBUSH": 50,
-			"ATTACK": 30,
-			"PURSUIT": 15,
-			"CONFRONTATION": 5
+			"AMBUSH": 35,
+			"BROUGHT_FRIENDS": 15,
+			"SHOWDOWN": 20,
+			"ASSAULT": 20,
+			"RAID": 10
 		}
 	}
 
@@ -213,7 +216,7 @@ func _determine_battle_type(rival_data: Rival, escalation_level: int) -> String:
 		if roll <= current_weight:
 			return battle_type
 	
-	return "ATTACK"  # Fallback
+	return "ASSAULT"  # Fallback (Core Rules p.91)
 
 ## Generate rival force composition
 func _generate_rival_force(battle: RivalBattle, rival_data: Rival, crew_size: int) -> void:
@@ -256,7 +259,7 @@ func _generate_rival_force(battle: RivalBattle, rival_data: Rival, crew_size: in
 			battle.force_composition.append(unit.duplicate())
 	
 	# Add special rules from template
-	battle.special_rules = template.special_rules.duplicate()
+	battle.special_rules.assign(template.special_rules.duplicate())
 	
 	# Add escalation special rules
 	if battle.escalation_level >= 2:
@@ -266,40 +269,46 @@ func _generate_rival_force(battle: RivalBattle, rival_data: Rival, crew_size: in
 	if battle.escalation_level >= 4:
 		battle.special_rules.append("elite_equipment")
 
-## Apply battle-specific conditions
+## Apply battle-specific conditions (Core Rules p.91 — 5 rival attack types)
 func _apply_battle_conditions(battle: RivalBattle, rival_data: Rival) -> void:
 	match battle.battle_type:
 		"AMBUSH":
 			battle.special_rules.append("surprise_attack")
 			battle.special_rules.append("prepared_positions")
 			battle.terrain_modifiers.append("cover_bonus")
-		
-		"ATTACK":
-			battle.special_rules.append("aggressive_assault")
+
+		"BROUGHT_FRIENDS":
+			battle.special_rules.append("reinforced_numbers")
+			battle.force_size += randi_range(1, 3)
 			if battle.escalation_level >= 2:
 				battle.special_rules.append("coordinated_strike")
-		
-		"PURSUIT":
-			battle.special_rules.append("running_battle")
-			battle.special_rules.append("mobile_engagement")
-			battle.terrain_modifiers.append("no_prepared_defenses")
-		
-		"CONFRONTATION":
+
+		"SHOWDOWN":
 			battle.special_rules.append("formal_challenge")
 			battle.special_rules.append("honor_combat")
 			battle.victory_conditions.append("defeat_leader")
 
+		"ASSAULT":
+			battle.special_rules.append("aggressive_assault")
+			battle.special_rules.append("full_force_attack")
+			battle.terrain_modifiers.append("no_prepared_defenses")
+
+		"RAID":
+			battle.special_rules.append("hit_and_run")
+			battle.special_rules.append("mobile_engagement")
+			battle.terrain_modifiers.append("escape_routes")
+
 ## Set victory and defeat conditions
 func _set_battle_outcomes(battle: RivalBattle, rival_data: Rival) -> void:
 	# Standard victory conditions
-	battle.victory_conditions = ["defeat_all_enemies", "achieve_objectives"]
+	battle.victory_conditions.assign(["defeat_all_enemies", "achieve_objectives"])
 	
 	# Escalation-specific conditions
 	if battle.escalation_level >= 3:
 		battle.victory_conditions.append("capture_leader")
 	
 	# Defeat consequences
-	battle.defeat_consequences = ["crew_injuries", "equipment_loss"]
+	battle.defeat_consequences.assign(["crew_injuries", "equipment_loss"])
 	
 	if battle.escalation_level >= 2:
 		battle.defeat_consequences.append("rival_escalation")
@@ -328,17 +337,15 @@ func process_rival_defeat(rival_data: Rival, battle_result: Dictionary) -> Dicti
 		"special_effects": []
 	}
 	
-	# Check for permanent removal (Five Parsecs rules)
+	# Check for permanent removal (Core Rules p.119 — 1D6 +mods, 4+ = removed)
 	var removal_roll = randi_range(1, 6)
-	var removal_threshold = 6  # Base threshold
-	
-	# Modifiers for removal
-	if battle_result.get("total_victory", false):
-		removal_roll += 1
+	var removal_threshold = 4  # Core Rules: 4+ to remove rival
+
+	# Modifiers per Core Rules p.119
+	if battle_result.get("tracked", false):
+		removal_roll += 1  # +1 if rival was tracked
 	if battle_result.get("leader_defeated", false):
-		removal_roll += 1
-	if battle_result.get("no_crew_losses", false):
-		removal_roll += 1
+		removal_roll += 1  # +1 if killed Unique Individual
 	
 	if removal_roll >= removal_threshold:
 		result.rival_removed = true

@@ -864,6 +864,8 @@ func _persist_equipment_to_manager(crew_members: Array) -> void:
 	var persisted_count: int = 0
 	var failed_count: int = 0
 
+	# Auto-assign unassigned equipment round-robin to crew members
+	var crew_index: int = 0
 	for equipment_item: Dictionary in generated_equipment:
 		# Ensure equipment has a unique ID
 		if not equipment_item.has("id") or equipment_item.id.is_empty():
@@ -871,9 +873,15 @@ func _persist_equipment_to_manager(crew_members: Array) -> void:
 
 		var owner_name: String = equipment_item.get("owner", "Unassigned")
 
-		# Add to ship stash if unassigned, or to character if assigned
+		# Auto-assign to crew if unassigned and crew is available
+		if (owner_name == "Unassigned" or owner_name.is_empty()) and not crew_members.is_empty():
+			var member = crew_members[crew_index % crew_members.size()]
+			owner_name = member.character_name if "character_name" in member else (member.name if "name" in member else "")
+			equipment_item["owner"] = owner_name
+			crew_index += 1
+
+		# Add to ship stash if still unassigned (no crew available)
 		if owner_name == "Unassigned" or owner_name.is_empty():
-			# Add to ship stash (for later assignment in World Phase)
 			if equipment_manager.add_to_ship_stash(equipment_item):
 				persisted_count += 1
 			else:

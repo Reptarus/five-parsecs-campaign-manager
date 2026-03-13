@@ -1,17 +1,20 @@
 {
-    "godot.editorPath": "C:\\Users\\elija\\Desktop\\GoDot\\Godot_v4.4-stable_mono_win64\\Godot_v4.4-stable_mono_win64.exe",
-    "godotTools.editorPath.godot4": "C:\\Users\\elija\\Desktop\\GoDot\\Godot_v4.4-stable_mono_win64\\Godot_v4.4-stable_mono_win64.exe",
+    "godot.editorPath": "C:\\Users\\admin\\Desktop\\Godot_v4.6-stable_win64.exe\\Godot_v4.6-stable_win64_console.exe",
+    "godotTools.editorPath.godot4": "C:\\Users\\admin\\Desktop\\Godot_v4.6-stable_win64.exe\\Godot_v4.6-stable_win64_console.exe",
     "godot.editor.port": 6007,
     "godot.editor.host": "127.0.0.1",
-    "godot.editor.showOutputOnStart": true,
-    "godot.editor.reconnectOnStart": true,
-    "godot.lsp.serverPort": 6008,
+    "godot.editor.showOutputOnStart": false,
+    "godot.editor.reconnectOnStart": false,
+    "godot.lsp.serverPort": 6005,
     "godot.lsp.useDefaultHost": true,
-    "godot.lsp.useDefaultPort": false,
+    "godot.lsp.useDefaultPort": true,
     "godot.lsp.enableDiagnostics": true,
     "godot.lsp.enableSignatureHelp": true,
     "godot.lsp.enableHover": true,
     "godot.lsp.enableCompletions": true,
+    "godot.lsp.checkOnSave": true,
+    "godot.lsp.checkOnType": true,
+    "godot.lsp.checkOnChange": false,
     "debug.openDebug": "openOnDebugBreak",
     "debug.internalConsoleOptions": "openOnSessionStart",
     "debug.console.closeOnEnd": false,
@@ -54,31 +57,18 @@
     "terminal.integrated.enableVisualBell": false,
     "problems.decorations.enabled": true,
     "problems.autoReveal": true,
-    "godot.problemMatcher.watchFileRegex": "\\.gd$",
-    "godot.problemMatcher.problemPattern": {
-        "regexp": "^\\s*(.*):(\\d+):\\s+(.*)$",
-        "file": 1,
-        "line": 2,
-        "message": 3,
-        "severity": 4
-    },
-    "godot.lsp.checkOnSave": true,
-    "godot.lsp.checkOnType": true,
-    "godot.lsp.checkOnChange": true,
     "editor.formatOnSave": true,
-    "editor.formatOnType": true,
+    "editor.formatOnType": false,
+    "editor.codeActionsOnSave": {
+        "source.fixAll": "explicit"
+    },
     "files.associations": {
         "*.gd": "gdscript"
     },
-    "gut-extension.command": "${config:godot.editorPath} --path ${workspaceFolder} --script res://tests/run_from_ide.gd",
-    "gut-extension.singleTestCommand": "${config:godot.editorPath} --path ${workspaceFolder} --script res://tests/run_from_ide.gd --test",
-    "gut-extension.testFilePattern": "test_*.gd",
-    "gut-extension.testMethodPrefix": "test_",
-    "gut-extension.testFolders": [
-        "res://tests/unit",
-        "res://tests/integration"
-    ],
-    "editor.codeActionsOnSave": {
-        "source.fixAll": "explicit"
+    "files.watcherExclude": {
+        "**/.godot/**": true,
+        "**/.mcp/**": true,
+        "**/node_modules/**": true,
+        "**/mcp-servers/**": true
     }
 }

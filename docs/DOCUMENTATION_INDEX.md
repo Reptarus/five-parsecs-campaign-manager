@@ -1,6 +1,6 @@
 # Five Parsecs Campaign Manager - Documentation Index
 
-**Last Updated**: February 28, 2026
+**Last Updated**: March 12, 2026
 **Engine**: Godot 4.6-stable (pure GDScript)
 **Test Framework**: gdUnit4 v6.0.3
 
@@ -8,7 +8,7 @@
 
 ## Getting Started
 - **[Quick Start Guide](QUICK_START.md)** - Developer setup and onboarding
-- **[Project Status](PROJECT_STATUS_2026.md)** - Current state (Feb 2026)
+- **[Project Status](PROJECT_STATUS_2026.md)** - Current state (Mar 2026)
 - **[README](README.md)** - Main documentation hub
 
 ## Core Game Documentation
@@ -39,12 +39,45 @@
 - **[Battle HUD Signal Architecture](technical/BATTLE_HUD_SIGNAL_ARCHITECTURE.md)** - Signal patterns
 
 ## Development
+
 - **[Core Rules Compliance Report](development/core_rules_compliance_report.md)** - 11/11 systems verified
 - **[Development Implementation Guide](development/DEVELOPMENT_IMPLEMENTATION_GUIDE.md)** - Dev workflow
 - **[Codebase Cleanup List](development/CODEBASE_CLEANUP_LIST.md)** - Cleanup tracking
 
+## Agent & Skill Architecture (Claude Code Token Optimization)
+
+Seven specialized agents with three-tier model routing (Haiku/Sonnet/Opus) for token-optimized task handling.
+
+- **[Agent Roster](../.claude/skills/fpcm-project-management/references/agent-roster.md)** - All 7 agents: domain, model, files owned, routing rules
+- **[Task Decomposition](../.claude/skills/fpcm-project-management/references/task-decomposition.md)** - Dependency order, decomposition framework, worked examples
+- **[Project Status (Agent View)](../.claude/skills/fpcm-project-management/references/project-status.md)** - Per-system status for agent routing
+
+### Agent Definitions (`.claude/agents/`)
+
+| Agent | Model | Skill |
+| ----- | ----- | ----- |
+| `fpcm-project-manager` | opus | `fpcm-project-management` (3 references) |
+| `battle-systems-engineer` | opus | `battle-systems` (4 references) |
+| `campaign-systems-engineer` | sonnet | `campaign-systems` (4 references) |
+| `character-data-engineer` | sonnet | `character-data` (4 references) |
+| `bug-hunt-specialist` | sonnet | `bug-hunt-gamemode` (3 references) |
+| `qa-specialist` | sonnet | `qa-specialist` (6 references) |
+| `ui-panel-developer` | haiku | `ui-development` (4 references) |
+
+### Skill Reference Files (`.claude/skills/`)
+
+- **character-data**: character-model.md, enum-systems.md, json-data-catalog.md, equipment-world.md
+- **campaign-systems**: campaign-creation-flow.md, campaign-turn-phases.md, save-load-persistence.md, autoload-contracts.md
+- **battle-systems**: battle-state-machine.md, combat-resolution.md, deployment-victory.md, battle-ui-wiring.md
+- **ui-development**: deep-space-theme.md, panel-patterns.md, tweenfx-guide.md, scene-router.md
+- **bug-hunt-gamemode**: bug-hunt-data-model.md, bug-hunt-turn-flow.md, cross-mode-safety.md
+- **fpcm-project-management**: agent-roster.md, task-decomposition.md, project-status.md
+- **qa-specialist**: 6 existing reference files (unchanged)
+
 ## Testing
 - **[Testing Guide](../tests/TESTING_GUIDE.md)** - gdUnit4 test methodology
+- **[UI/UX Test Results](UIUX_TEST_RESULTS.md)** - MCP automated runtime testing: 71 bugs found & fixed across 12 sessions
+- **[Demo QA Script](testing/DEMO_QA_SCRIPT.md)** - Demo recording QA gate: Campaign Creation → Two Turns → Save & Reload (all sections VERIFIED)
 
 ## Design
 - **[UI Overview](design/ui_overview.md)** - User interface design

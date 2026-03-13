@@ -328,6 +328,45 @@ User Action → Panel Handler → Validation → State Update → UI Update
 - Resource pooling for memory efficiency
 - Lazy loading for faster startup
 
+## 🤖 Agent & Skill Architecture (Claude Code)
+
+The project uses a **three-tier model routing** system via Claude Code agents and skills to optimize token usage:
+
+### Model Tiers
+
+- **Haiku** (~1/15th Opus cost): `ui-panel-developer` — 125+ UI component files following Deep Space theme patterns. Procedural, low-ambiguity work.
+- **Sonnet** (~1/5th Opus cost): `campaign-systems-engineer`, `character-data-engineer`, `bug-hunt-specialist`, `qa-specialist` — moderate reasoning tasks (phase ordering, enum sync, data model distinctions, test coverage).
+- **Opus** (full cost): `fpcm-project-manager`, `battle-systems-engineer` — complex multi-tier state machines, strategic decomposition, cross-system coordination.
+
+### File Structure
+
+```text
+.claude/
+├── agents/                     # 7 agent definitions (.md with YAML frontmatter)
+├── agent-memory/               # Per-agent persistent memory (survives across sessions)
+│   └── {agent-name}/MEMORY.md
+├── skills/                     # 7 skills with lazy-loaded reference files
+│   └── {skill-name}/
+│       ├── SKILL.md            # Trigger description + reference table
+│       └── references/*.md     # Code-sourced API docs (22 total)
+└── settings.local.json         # Token budget: MAX_THINKING_TOKENS, AUTOCOMPACT_PCT
+```
+
+### Routing Protocol
+
+1. Each agent owns specific files — tasks route by file ownership
+2. `character-data-engineer` exclusively owns all 3 enum files (three-enum sync rule)
+3. Multi-domain tasks decompose via `fpcm-project-manager` following dependency order:
+   `data → campaign → battle → bug-hunt → UI → QA`
+4. `bug-hunt-specialist` reviews any shared file changes for cross-mode safety
+5. `qa-specialist` is always the final verification step
+
+### Reference Files
+
+Skill reference files contain **code-sourced API surfaces** extracted from actual `.gd` files — signals, methods, properties, enums, and architectural patterns. They are lazy-loaded ("read as needed") to minimize context window usage.
+
+---
+
 ## 🔗 External Resources
 
 - [Godot Best Practices](https://docs.godotengine.org/en/stable/tutorials/best_practices/)

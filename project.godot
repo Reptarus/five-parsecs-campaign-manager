@@ -21,7 +21,6 @@ config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
-McpBridge="*res://mcp_bridge.gd"
 GlobalEnums="*res://src/core/systems/GlobalEnums.gd"
 GameDataManager="*res://src/core/managers/GameDataManager.gd"
 DataManager="*res://src/core/data/DataManager.gd"
@@ -54,8 +53,6 @@ TweenFX="*uid://d2n10rw2dnx8o"
 
 [debug]
 
-settings/stdout/print_fps=true
-settings/stdout/verbose_stdout=true
 gdscript/warnings/enable=false
 gdscript/warnings/unused_variable=true
 gdscript/warnings/unused_signal=true
@@ -72,6 +69,7 @@ gdscript/completion/autocomplete_setters_and_getters=true
 
 window/size/viewport_width=1920
 window/size/viewport_height=1080
+window/size/initial_position_type=3
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 

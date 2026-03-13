@@ -1,0 +1,92 @@
+{
+    "name": "notable_sights",
+    "description": "Notable Sights table (Core Rules p.88). Roll D100 on the correct column. Not used during Invasion battles. Place sight 2D6+2 inches from center in random direction. Acquire by moving into contact and foregoing other actions that round.",
+    "columns": {
+        "opportunity_patron": {
+            "description": "Opportunity and Patron missions",
+            "entries": [
+                {"roll_range": [1, 20], "result": "NOTHING"},
+                {"roll_range": [21, 30], "result": "DOCUMENTATION"},
+                {"roll_range": [31, 40], "result": "PRIORITY_TARGET"},
+                {"roll_range": [41, 50], "result": "LOOT_CACHE"},
+                {"roll_range": [51, 60], "result": "SHINY_BITS"},
+                {"roll_range": [61, 70], "result": "REALLY_SHINY_BITS"},
+                {"roll_range": [71, 80], "result": "PERSON_OF_INTEREST"},
+                {"roll_range": [81, 90], "result": "PECULIAR_ITEM"},
+                {"roll_range": [91, 100], "result": "CURIOUS_ITEM"}
+            ]
+        },
+        "rival": {
+            "description": "Rival missions",
+            "entries": [
+                {"roll_range": [1, 40], "result": "NOTHING"},
+                {"roll_range": [41, 50], "result": "DOCUMENTATION"},
+                {"roll_range": [51, 60], "result": "PRIORITY_TARGET"},
+                {"roll_range": [61, 70], "result": "LOOT_CACHE"},
+                {"roll_range": [71, 75], "result": "SHINY_BITS"},
+                {"roll_range": [76, 80], "result": "REALLY_SHINY_BITS"},
+                {"roll_range": [81, 90], "result": "PERSON_OF_INTEREST"},
+                {"roll_range": [91, 95], "result": "PECULIAR_ITEM"},
+                {"roll_range": [96, 100], "result": "CURIOUS_ITEM"}
+            ]
+        },
+        "quest": {
+            "description": "Quest missions",
+            "entries": [
+                {"roll_range": [1, 10], "result": "NOTHING"},
+                {"roll_range": [11, 25], "result": "DOCUMENTATION"},
+                {"roll_range": [26, 35], "result": "PRIORITY_TARGET"},
+                {"roll_range": [36, 50], "result": "LOOT_CACHE"},
+                {"roll_range": [51, 55], "result": "SHINY_BITS"},
+                {"roll_range": [56, 65], "result": "REALLY_SHINY_BITS"},
+                {"roll_range": [66, 80], "result": "PERSON_OF_INTEREST"},
+                {"roll_range": [81, 90], "result": "PECULIAR_ITEM"},
+                {"roll_range": [91, 100], "result": "CURIOUS_ITEM"}
+            ]
+        }
+    },
+    "sight_effects": {
+        "NOTHING": {
+            "name": "Nothing special",
+            "instruction": "No Notable Sight on the battlefield this mission."
+        },
+        "DOCUMENTATION": {
+            "name": "Documentation",
+            "instruction": "NOTABLE SIGHT: Documentation. Place marker 2D6+2\" from center. Move into contact and forego other actions to acquire. Effect: Gain a Quest Rumor."
+        },
+        "PRIORITY_TARGET": {
+            "name": "Priority Target",
+            "instruction": "NOTABLE SIGHT: Priority Target. Select a random enemy figure. Add +1 to their Toughness. If they are slain, gain 1D3 credits."
+        },
+        "LOOT_CACHE": {
+            "name": "Loot Cache",
+            "instruction": "NOTABLE SIGHT: Loot Cache. Place marker 2D6+2\" from center. Move into contact and forego other actions to acquire. Effect: Roll once on the Loot Table (p.131)."
+        },
+        "SHINY_BITS": {
+            "name": "Shiny Bits",
+            "instruction": "NOTABLE SIGHT: Shiny Bits. Place marker 2D6+2\" from center. Move into contact and forego other actions to acquire. Effect: Gain 1 credit."
+        },
+        "REALLY_SHINY_BITS": {
+            "name": "Really Shiny Bits",
+            "instruction": "NOTABLE SIGHT: Really Shiny Bits. Place marker 2D6+2\" from center. Move into contact and forego other actions to acquire. Effect: Gain 2 credits."
+        },
+        "PERSON_OF_INTEREST": {
+            "name": "Person of Interest",
+            "instruction": "NOTABLE SIGHT: Person of Interest. Place marker 2D6+2\" from center. Move into contact and forego other actions to acquire. Effect: Gain +1 story point."
+        },
+        "PECULIAR_ITEM": {
+            "name": "Peculiar Item",
+            "instruction": "NOTABLE SIGHT: Peculiar Item. Place marker 2D6+2\" from center. Move into contact and forego other actions to acquire. Effect: Gain +2 XP."
+        },
+        "CURIOUS_ITEM": {
+            "name": "Curious Item",
+            "instruction": "NOTABLE SIGHT: Curious Item. Place marker 2D6+2\" from center. Move into contact and forego other actions to acquire. Effect: Roll 1D6. On 1-4, sell for 1 credit. On 5-6, roll on the Loot Table (p.131)."
+        }
+    },
+    "placement": {
+        "distance": "2D6+2 inches from center",
+        "direction": "Random",
+        "acquisition": "Move into contact, forego all other actions that round"
+    },
+    "exclusions": ["INVASION"]
+}

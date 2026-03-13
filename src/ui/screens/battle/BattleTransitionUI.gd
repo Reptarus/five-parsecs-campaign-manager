@@ -148,7 +148,7 @@ func _get_deployed_crew_data() -> Array:
 				entry["name"] = member.character_name if "character_name" in member else str(member)
 				entry["class"] = member.character_class if "character_class" in member else "Crew"
 				entry["stats"] = {
-					"reactions": member.reaction if "reaction" in member else 1,
+					"reaction": member.reaction if "reaction" in member else 1,
 					"speed": member.speed if "speed" in member else 4,
 					"combat": member.combat if "combat" in member else 0,
 					"toughness": member.toughness if "toughness" in member else 3,

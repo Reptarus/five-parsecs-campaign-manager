@@ -294,7 +294,6 @@ func _update_mission_briefing() -> void:
 		return
 
 	var briefing = """Mission Briefing:
-		pass
 
 Objective: %s
 Enemy: %s

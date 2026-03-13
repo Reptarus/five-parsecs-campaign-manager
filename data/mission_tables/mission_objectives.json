@@ -1,152 +1,214 @@
 {
     "name": "mission_objectives",
+    "description": "Mission Objectives (Core Rules pp.89-91). Three separate D10 tables by mission type. Quest finale is always FIGHT_OFF with +1 enemy.",
+    "tables": {
+        "opportunity": {
+            "description": "Opportunity Mission Objectives (D10)",
+            "die": "D10",
+            "entries": [
+                {"roll_range": [1, 2], "type": "MOVE_THROUGH"},
+                {"roll_range": [3, 4], "type": "DELIVER"},
+                {"roll_range": [5, 6], "type": "ACCESS"},
+                {"roll_range": [7, 8], "type": "PATROL"},
+                {"roll_range": [9, 10], "type": "FIGHT_OFF"}
+            ]
+        },
+        "quest": {
+            "description": "Quest Mission Objectives (D10)",
+            "die": "D10",
+            "entries": [
+                {"roll_range": [1, 2], "type": "MOVE_THROUGH"},
+                {"roll_range": [3, 4], "type": "SEARCH"},
+                {"roll_range": [5, 6], "type": "DEFEND"},
+                {"roll_range": [7, 8], "type": "ACQUIRE"},
+                {"roll_range": [9, 10], "type": "FIGHT_OFF"}
+            ]
+        },
+        "patron": {
+            "description": "Patron Mission Objectives (D10)",
+            "die": "D10",
+            "entries": [
+                {"roll_range": [1, 2], "type": "DELIVER"},
+                {"roll_range": [3, 3], "type": "ELIMINATE"},
+                {"roll_range": [4, 5], "type": "MOVE_THROUGH"},
+                {"roll_range": [6, 7], "type": "SECURE"},
+                {"roll_range": [8, 8], "type": "PROTECT"},
+                {"roll_range": [9, 10], "type": "FIGHT_OFF"}
+            ]
+        }
+    },
+    "objective_definitions": {
+        "MOVE_THROUGH": {
+            "name": "Move Through",
+            "description": "Push through enemy territory. At least 3 crew members must exit from the opposite table edge.",
+            "placement_rules": "Deploy on one edge, must reach opposite edge.",
+            "victory_condition": "At least 3 crew members exit from the opposite table edge."
+        },
+        "DELIVER": {
+            "name": "Deliver",
+            "description": "Transport an item to a drop point on the opposite side.",
+            "placement_rules": "Assign one crew the delivery item. Mark drop point on opposite edge center.",
+            "victory_condition": "One crew member starts with the item. Must reach drop point and spend 1 action to deliver."
+        },
+        "ACCESS": {
+            "name": "Access",
+            "description": "Reach a computer console at the center of the battlefield and gain access.",
+            "placement_rules": "Console placed at exact table center. Standard deployment.",
+            "victory_condition": "Reach console, roll 1D6+Savvy scoring 6+. Costs a Combat Action per attempt. Up to 2 characters per round. Soulless within 6\". Engineer/Bot add +1."
+        },
+        "PATROL": {
+            "name": "Patrol",
+            "description": "Sweep the area and check all patrol markers.",
+            "placement_rules": "Place 4 markers in each table quarter. Standard deployment.",
+            "victory_condition": "Check all 4 patrol markers (move within 3\", spend 1 action). Any crew member."
+        },
+        "FIGHT_OFF": {
+            "name": "Fight Off",
+            "description": "Standard engagement. Drive off or eliminate all enemies.",
+            "placement_rules": "Standard deployment zones on opposite edges.",
+            "victory_condition": "All enemies driven off or eliminated. Quest finale always uses this objective with +1 enemy."
+        },
+        "SEARCH": {
+            "name": "Search",
+            "description": "Find a specific item among several search markers.",
+            "placement_rules": "Place 3 search markers in enemy half of table.",
+            "victory_condition": "Check each marker (1 action within 1\"). Roll D6: 1-2 nothing, 3-4 encounter, 5-6 item found. Find item and exit."
+        },
+        "DEFEND": {
+            "name": "Defend",
+            "description": "Hold your ground and protect a location.",
+            "placement_rules": "Place objective 12\" from your edge. Deploy within 6\" of objective.",
+            "victory_condition": "Survive 6 rounds with at least one crew within 6\" of objective. Enemies must not hold it."
+        },
+        "ACQUIRE": {
+            "name": "Acquire",
+            "description": "Grab an item at the center and escape with it.",
+            "placement_rules": "Place objective marker at table center. Standard deployment.",
+            "victory_condition": "Crew member reaches item (center), picks it up (1 action), exits from your table edge."
+        },
+        "ELIMINATE": {
+            "name": "Eliminate",
+            "description": "Take out a specific target among the enemy forces.",
+            "placement_rules": "Designate one enemy as the target. Standard deployment.",
+            "victory_condition": "The designated target must be eliminated."
+        },
+        "SECURE": {
+            "name": "Secure",
+            "description": "Clear and hold a strategic position.",
+            "placement_rules": "Mark the position at table center. Standard deployment.",
+            "victory_condition": "At least 2 crew within 3\" of the position with no enemies within 6\" at end of any round."
+        },
+        "PROTECT": {
+            "name": "Protect",
+            "description": "Keep a VIP alive during the battle.",
+            "placement_rules": "VIP deploys with your crew. Has Toughness 3, no combat ability.",
+            "victory_condition": "VIP must survive. Follows a random crew member. If killed, mission fails."
+        }
+    },
     "entries": [
         {
-            "roll_range": [
-                1,
-                20
-            ],
+            "roll_range": [1, 20],
             "result": {
-                "type": "SEARCH",
-                "name": "Search and Recover",
-                "description": "Search the area for valuable items or information.",
-                "requirements": [
-                    "exploration_capability"
-                ],
-                "completion_conditions": [
-                    "reach_locations",
-                    "collect_items"
-                ],
+                "type": "MOVE_THROUGH",
+                "name": "Move Through",
+                "description": "Push through enemy territory.",
+                "requirements": ["combat_capability"],
+                "completion_conditions": ["exit_opposite_edge"],
                 "reward_modifier": 1.0
             },
             "weight": 1.0,
-            "tags": [
-                "exploration",
-                "basic"
-            ]
+            "tags": ["movement", "basic"]
         },
         {
-            "roll_range": [
-                21,
-                40
-            ],
+            "roll_range": [21, 40],
             "result": {
-                "type": "SECURE",
-                "name": "Secure Location",
-                "description": "Clear and hold a strategic position.",
-                "requirements": [
-                    "combat_capability"
-                ],
-                "completion_conditions": [
-                    "eliminate_threats",
-                    "hold_position"
-                ],
-                "reward_modifier": 1.2
+                "type": "FIGHT_OFF",
+                "name": "Fight Off",
+                "description": "Drive off or eliminate all enemies.",
+                "requirements": ["combat_capability"],
+                "completion_conditions": ["eliminate_threats"],
+                "reward_modifier": 1.0
             },
             "weight": 1.0,
-            "tags": [
-                "combat",
-                "defense"
-            ]
+            "tags": ["combat", "basic"]
         },
         {
-            "roll_range": [
-                41,
-                60
-            ],
+            "roll_range": [41, 55],
             "result": {
-                "type": "ELIMINATE",
-                "name": "Elimination",
-                "description": "Eliminate specific targets or hostile forces.",
-                "requirements": [
-                    "combat_capability",
-                    "tactical_advantage"
-                ],
-                "completion_conditions": [
-                    "eliminate_targets"
-                ],
-                "reward_modifier": 1.3
+                "type": "DELIVER",
+                "name": "Deliver",
+                "description": "Transport an item to a drop point.",
+                "requirements": ["combat_capability"],
+                "completion_conditions": ["deliver_item"],
+                "reward_modifier": 1.1
             },
             "weight": 0.8,
-            "tags": [
-                "combat",
-                "assassination"
-            ]
+            "tags": ["transport", "basic"]
         },
         {
-            "roll_range": [
-                61,
-                75
-            ],
+            "roll_range": [56, 65],
             "result": {
-                "type": "PROTECT",
-                "name": "Protection Detail",
-                "description": "Protect an asset or VIP during the mission.",
-                "requirements": [
-                    "combat_capability",
-                    "defensive_equipment"
-                ],
-                "completion_conditions": [
-                    "protect_target",
-                    "reach_extraction"
-                ],
-                "reward_modifier": 1.4
+                "type": "ACCESS",
+                "name": "Access",
+                "description": "Reach and hack a computer console at table center.",
+                "requirements": ["tech_capability"],
+                "completion_conditions": ["access_console"],
+                "reward_modifier": 1.2
             },
             "weight": 0.7,
-            "tags": [
-                "defense",
-                "escort"
-            ]
+            "tags": ["technical", "basic"]
         },
         {
-            "roll_range": [
-                76,
-                85
-            ],
+            "roll_range": [66, 75],
             "result": {
-                "type": "SABOTAGE",
-                "name": "Sabotage Operation",
-                "description": "Disable or destroy specific targets.",
-                "requirements": [
-                    "tech_capability",
-                    "stealth_option"
-                ],
-                "completion_conditions": [
-                    "destroy_targets",
-                    "escape_area"
-                ],
-                "reward_modifier": 1.5
+                "type": "PATROL",
+                "name": "Patrol",
+                "description": "Check all 4 patrol markers across the battlefield.",
+                "requirements": ["exploration_capability"],
+                "completion_conditions": ["check_markers"],
+                "reward_modifier": 1.0
+            },
+            "weight": 0.7,
+            "tags": ["exploration", "basic"]
+        },
+        {
+            "roll_range": [76, 85],
+            "result": {
+                "type": "DEFEND",
+                "name": "Defend",
+                "description": "Hold your ground and protect a location for 6 rounds.",
+                "requirements": ["combat_capability", "defensive_equipment"],
+                "completion_conditions": ["hold_position"],
+                "reward_modifier": 1.2
             },
             "weight": 0.6,
-            "tags": [
-                "stealth",
-                "technical"
-            ]
+            "tags": ["defense", "basic"]
         },
         {
-            "roll_range": [
-                86,
-                95
-            ],
+            "roll_range": [86, 92],
             "result": {
-                "type": "INVESTIGATE",
-                "name": "Investigation",
-                "description": "Gather intelligence and investigate anomalies.",
-                "requirements": [
-                    "tech_capability",
-                    "exploration_capability"
-                ],
-                "completion_conditions": [
-                    "gather_intel",
-                    "analyze_data"
-                ],
+                "type": "SEARCH",
+                "name": "Search",
+                "description": "Find a specific item among search markers.",
+                "requirements": ["exploration_capability"],
+                "completion_conditions": ["find_item", "exit_battlefield"],
+                "reward_modifier": 1.1
+            },
+            "weight": 0.5,
+            "tags": ["exploration", "basic"]
+        },
+        {
+            "roll_range": [93, 100],
+            "result": {
+                "type": "ACQUIRE",
+                "name": "Acquire",
+                "description": "Grab an item at table center and escape.",
+                "requirements": ["combat_capability"],
+                "completion_conditions": ["grab_item", "exit_battlefield"],
                 "reward_modifier": 1.2
             },
             "weight": 0.5,
-            "tags": [
-                "exploration",
-                "technical"
-            ]
+            "tags": ["retrieval", "basic"]
         }
     ],
     "validation_rules": [
@@ -154,40 +216,26 @@
             "type": "mission_type_requirement",
             "params": {
                 "RED_ZONE": {
-                    "allowed_objectives": [
-                        "SEARCH",
-                        "SECURE",
-                        "ELIMINATE"
-                    ],
+                    "allowed_objectives": ["MOVE_THROUGH", "FIGHT_OFF", "PATROL"],
                     "reward_modifier": 1.0
                 },
                 "BLACK_ZONE": {
-                    "allowed_objectives": [
-                        "ELIMINATE",
-                        "SABOTAGE",
-                        "INVESTIGATE"
-                    ],
+                    "allowed_objectives": ["FIGHT_OFF", "ELIMINATE", "ACCESS"],
                     "reward_modifier": 1.3
                 },
                 "PATRON": {
-                    "allowed_objectives": [
-                        "PROTECT",
-                        "INVESTIGATE",
-                        "SECURE"
-                    ],
+                    "allowed_objectives": ["DELIVER", "ELIMINATE", "MOVE_THROUGH", "SECURE", "PROTECT", "FIGHT_OFF"],
                     "reward_modifier": 1.2
                 }
             }
         }
     ],
     "default_result": {
-        "type": "SEARCH",
-        "name": "Basic Search",
-        "description": "Search the area for items of interest.",
+        "type": "FIGHT_OFF",
+        "name": "Fight Off",
+        "description": "Standard engagement. Drive off all enemies.",
         "requirements": [],
-        "completion_conditions": [
-            "reach_locations"
-        ],
+        "completion_conditions": ["eliminate_threats"],
         "reward_modifier": 1.0
     }
 }

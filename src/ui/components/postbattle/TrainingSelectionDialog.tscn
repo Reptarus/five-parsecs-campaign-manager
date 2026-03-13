@@ -96,7 +96,7 @@ layout_mode = 2
 [node name="RollButton" type="Button" parent="MainContainer/RollSection"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Roll for Approval (6+ on D6)"
+text = "Roll for Approval (4+ on 2D6)"
 
 [node name="ResultDisplay" type="Label" parent="MainContainer/RollSection"]
 unique_name_in_owner = true

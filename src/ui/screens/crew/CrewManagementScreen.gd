@@ -109,22 +109,55 @@ func _create_character_card_entry(character) -> void:
 		character_cards.append(card)
 	elif character is Dictionary:
 		# Dictionary-based crew member (from save file)
-		var name_str: String = character.get("character_name", character.get("name", "Unknown"))
-		var species: String = character.get("species", "Unknown")
-		var char_class: String = character.get("class", "Unknown")
-		var stats := {
-			"C": character.get("combat", 0),
-			"R": character.get("reaction", 0),
-			"T": character.get("toughness", 0),
-			"S": character.get("speed", 0),
-			"Sv": character.get("savvy", 0),
-			"L": character.get("luck", 0),
-		}
+		var name_str: String = character.get(
+			"character_name", character.get("name", "Unknown"))
 		var is_captain: bool = character.get("is_captain", false)
+
+		# Resolve background/class from enum ints or traits
+		var bg_val = character.get("background", -1)
+		var cls_val = character.get("character_class",
+			character.get("class", -1))
+		var bg_name: String = _resolve_background_name(bg_val)
+		var cls_name: String = _resolve_class_name(cls_val)
+
+		# Captain entries lack flat stats — parse traits
+		if bg_name == "Unknown" or cls_name == "Unknown":
+			var parsed := _parse_traits(
+				character.get("traits", []))
+			if bg_name == "Unknown" and not parsed.bg.is_empty():
+				bg_name = parsed.bg
+			if cls_name == "Unknown" and not parsed.cls.is_empty():
+				cls_name = parsed.cls
+
+		# Build stat display — captain may lack flat stats
+		var char_ref = character.get("character", null)
+		var stats := {}
+		if character.has("combat") or character.has("reactions"):
+			stats = {
+				"C": int(character.get("combat", 0)),
+				"R": int(character.get("reactions",
+					character.get("reaction", 0))),
+				"T": int(character.get("toughness", 0)),
+				"S": int(character.get("speed", 0)),
+				"Sv": int(character.get("savvy", 0)),
+				"L": int(character.get("luck", 0)),
+			}
+		elif char_ref is Resource and char_ref.has_method("get"):
+			stats = {
+				"C": int(char_ref.get("combat") if char_ref.get("combat") else 0),
+				"R": int(char_ref.get("reactions") if char_ref.get("reactions") else 0),
+				"T": int(char_ref.get("toughness") if char_ref.get("toughness") else 0),
+				"S": int(char_ref.get("speed") if char_ref.get("speed") else 0),
+				"Sv": int(char_ref.get("savvy") if char_ref.get("savvy") else 0),
+				"L": int(char_ref.get("luck") if char_ref.get("luck") else 0),
+			}
+
 		var display_name := name_str
 		if is_captain:
 			display_name = "[Captain] " + name_str
-		var card := _create_character_card(display_name, "%s / %s" % [species, char_class], stats)
+		var subtitle := "%s / %s" % [bg_name, cls_name]
+		var card := _create_character_card(
+			display_name, subtitle, stats)
 		crew_grid.add_child(card)
 
 func _update_crew_count() -> void:
@@ -208,4 +241,38 @@ func _on_back_pressed() -> void:
 	if router:
 		router.navigate_to("campaign_turn_controller")
 	else:
-		get_tree().change_scene_to_file("res://src/ui/screens/campaign/CampaignTurnController.tscn")
+		get_tree().change_scene_to_file(
+			"res://src/ui/screens/campaign/CampaignTurnController.tscn"
+		)
+
+# ============ DATA RESOLUTION HELPERS ============
+
+func _parse_traits(traits: Array) -> Dictionary:
+	var result := {"bg": "", "cls": ""}
+	for trait_str in traits:
+		if trait_str is String:
+			if trait_str.begins_with("Background: "):
+				result.bg = trait_str.substr(12)
+			elif trait_str.begins_with("Class: "):
+				result.cls = trait_str.substr(7)
+	return result
+
+func _resolve_background_name(val) -> String:
+	if val is String:
+		return val
+	if val is int or val is float:
+		var idx := int(val)
+		var keys: Array = GlobalEnums.Background.keys()
+		if idx >= 0 and idx < keys.size():
+			return keys[idx].capitalize()
+	return "Unknown"
+
+func _resolve_class_name(val) -> String:
+	if val is String:
+		return val
+	if val is int or val is float:
+		var idx := int(val)
+		var keys: Array = GlobalEnums.CharacterClass.keys()
+		if idx >= 0 and idx < keys.size():
+			return keys[idx].capitalize()
+	return "Unknown"

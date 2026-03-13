@@ -298,7 +298,8 @@ func _can_transition_to_phase(new_phase: FiveParcsecsCampaignPhase) -> bool:
 		FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
 			return current_phase == FiveParcsecsCampaignPhase.BATTLE_SETUP
 		FiveParcsecsCampaignPhase.POST_MISSION:
-			return current_phase == FiveParcsecsCampaignPhase.BATTLE_RESOLUTION
+			# Allow from MISSION — battle UI covers BATTLE_SETUP/BATTLE_RESOLUTION visually
+			return current_phase in [FiveParcsecsCampaignPhase.BATTLE_RESOLUTION, FiveParcsecsCampaignPhase.MISSION]
 		FiveParcsecsCampaignPhase.ADVANCEMENT:
 			return current_phase in [FiveParcsecsCampaignPhase.BATTLE_RESOLUTION, FiveParcsecsCampaignPhase.POST_MISSION]
 		FiveParcsecsCampaignPhase.TRADING:

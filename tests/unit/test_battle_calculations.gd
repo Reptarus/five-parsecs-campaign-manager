@@ -335,20 +335,20 @@ func test_calculate_battle_credits_with_bonus() -> void:
 #region Initiative Tests
 
 func test_seize_initiative_success() -> void:
-	# 4 + 3 + 2 = 9 (just enough)
-	var result := BattleCalculations.check_seize_initiative(4, 3, 2)
+	# 4 + 4 + 2 = 10 (just enough, Core Rules p.95: >= 10)
+	var result := BattleCalculations.check_seize_initiative(4, 4, 2)
 	assert_bool(result["seized"]).is_true()
-	assert_int(result["roll_total"]).is_equal(9)
+	assert_int(result["roll_total"]).is_equal(10)
 
 func test_seize_initiative_failure() -> void:
-	# 3 + 3 + 2 = 8 (not enough)
-	var result := BattleCalculations.check_seize_initiative(3, 3, 2)
+	# 4 + 3 + 2 = 9 (not enough, need 10+)
+	var result := BattleCalculations.check_seize_initiative(4, 3, 2)
 	assert_bool(result["seized"]).is_false()
-	assert_int(result["roll_total"]).is_equal(8)
+	assert_int(result["roll_total"]).is_equal(9)
 
 func test_high_savvy_helps_initiative() -> void:
-	# 2 + 2 + 5 = 9 (high savvy compensates)
-	var result := BattleCalculations.check_seize_initiative(2, 2, 5)
+	# 2 + 3 + 5 = 10 (high savvy compensates)
+	var result := BattleCalculations.check_seize_initiative(2, 3, 5)
 	assert_bool(result["seized"]).is_true()
 
 #endregion
@@ -360,14 +360,17 @@ func test_reaction_dice_count() -> void:
 	assert_int(BattleCalculations.get_reaction_dice_count(6)).is_equal(6)
 
 func test_quick_action_threshold() -> void:
-	assert_bool(BattleCalculations.is_quick_action(4)).is_true()
-	assert_bool(BattleCalculations.is_quick_action(5)).is_true()
-	assert_bool(BattleCalculations.is_quick_action(6)).is_true()
+	# Core Rules p.96: roll <= Reaction stat = Quick Action
+	# Reaction stat 4: rolls 1-4 are quick
+	assert_bool(BattleCalculations.is_quick_action(1, 4)).is_true()
+	assert_bool(BattleCalculations.is_quick_action(4, 4)).is_true()
+	assert_bool(BattleCalculations.is_quick_action(3, 3)).is_true()
 
 func test_slow_action_threshold() -> void:
-	assert_bool(BattleCalculations.is_quick_action(1)).is_false()
-	assert_bool(BattleCalculations.is_quick_action(2)).is_false()
-	assert_bool(BattleCalculations.is_quick_action(3)).is_false()
+	# Core Rules p.96: roll > Reaction stat = Slow Action
+	assert_bool(BattleCalculations.is_quick_action(5, 4)).is_false()
+	assert_bool(BattleCalculations.is_quick_action(6, 4)).is_false()
+	assert_bool(BattleCalculations.is_quick_action(4, 3)).is_false()
 
 #endregion
 

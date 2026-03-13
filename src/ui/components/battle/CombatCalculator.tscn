@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://src/ui/components/battle/CombatCalculator.gd" id="1_combat_calculator"]
 
-[node name="CombatCalculator" type="Control"]
+[node name="CombatCalculator" type="MarginContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 script = ExtResource("1_combat_calculator")

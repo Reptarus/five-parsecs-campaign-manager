@@ -58,6 +58,12 @@ func _build_layout() -> void:
 	var header := HBoxContainer.new()
 	vbox.add_child(header)
 
+	var cancel_button := Button.new()
+	cancel_button.text = "< Cancel"
+	cancel_button.custom_minimum_size = Vector2(100, 40)
+	cancel_button.pressed.connect(_on_cancel_pressed)
+	header.add_child(cancel_button)
+
 	var title := Label.new()
 	title.text = "BUG HUNT — NEW CAMPAIGN"
 	title.add_theme_font_size_override("font_size", 28)
@@ -204,3 +210,11 @@ func _on_back_pressed() -> void:
 
 func _on_finish_pressed() -> void:
 	coordinator.finalize()
+
+
+func _on_cancel_pressed() -> void:
+	var router = get_node_or_null("/root/SceneRouter")
+	if router:
+		router.navigate_to("main_menu")
+	else:
+		push_error("BugHuntCreationUI: SceneRouter not found")

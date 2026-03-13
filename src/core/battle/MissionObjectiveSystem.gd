@@ -35,11 +35,23 @@ var objective_registry: Array[Objective] = []
 var current_objective: Objective
 var objective_progress: Dictionary = {}
 
+# D10 tables per mission type (Core Rules pp.89-91)
+var _d10_tables: Dictionary = {}  # mission_type -> Array[{roll_range, type}]
+# Objective definitions keyed by type ID
+var _objective_defs: Dictionary = {}  # type_id -> {name, description, ...}
+
 func _init() -> void:
 	_initialize_objective_registry()
 
 ## Roll battle objective based on mission type
+## Core Rules pp.89-91: Uses D10 per mission type (opportunity/quest/patron)
 func roll_objective(mission_type: String) -> Objective:
+	var type_key := mission_type.to_lower().replace(" ", "_")
+	# Use D10 tables if available for this mission type
+	if _d10_tables.has(type_key):
+		var roll := randi_range(1, 10)
+		return _get_objective_from_d10(roll, type_key)
+	# Fallback to D100 registry
 	var roll := randi_range(1, 100)
 	return get_objective_for_roll(roll, mission_type)
 
@@ -97,25 +109,65 @@ func check_completion() -> bool:
 
 	return false
 
+## Look up objective from D10 table for a mission type
+func _get_objective_from_d10(roll: int, mission_type: String) -> Objective:
+	var table: Array = _d10_tables.get(mission_type, [])
+	for entry in table:
+		var r: Array = entry.get("roll_range", [0, 0])
+		if roll >= r[0] and roll <= r[1]:
+			var type_id: String = entry.get("type", "")
+			var obj := get_objective_by_id(type_id)
+			if obj:
+				current_objective = obj
+				objective_rolled.emit(obj)
+				return obj
+	# Fallback
+	return objective_registry[0] if objective_registry.size() > 0 else null
+
 func _initialize_objective_registry() -> void:
 	objective_registry.clear()
+	_d10_tables.clear()
+	_objective_defs.clear()
 
 	# Try JSON first
 	var dm = Engine.get_main_loop().root.get_node_or_null("/root/DataManager") if Engine.get_main_loop() else null
 	if dm and dm.has_method("load_json_file"):
 		var json_data: Dictionary = dm.load_json_file("res://data/mission_tables/mission_objectives.json")
-		var entries: Array = json_data.get("entries", [])
-		if not entries.is_empty():
+
+		# Load D10 tables (Core Rules pp.89-91)
+		var tables: Dictionary = json_data.get("tables", {})
+		for table_key in tables:
+			var table_data: Dictionary = tables[table_key]
+			_d10_tables[table_key] = table_data.get("entries", [])
+
+		# Load objective definitions
+		var obj_defs: Dictionary = json_data.get("objective_definitions", {})
+		for type_id in obj_defs:
+			var def_data: Dictionary = obj_defs[type_id]
+			_objective_defs[type_id] = def_data
+			# Create Objective resource for the registry
+			var obj := Objective.new()
+			obj.objective_id = type_id
+			obj.name = def_data.get("name", type_id)
+			obj.description = def_data.get("description", "")
+			obj.victory_condition = def_data.get("victory_condition", "")
+			obj.placement_rules = def_data.get("placement_rules", "")
+			objective_registry.append(obj)
+
+		if not objective_registry.is_empty():
+			# Also load legacy flat entries for backward compatibility
+			var entries: Array = json_data.get("entries", [])
 			for entry in entries:
 				var result: Dictionary = entry.get("result", {})
-				var obj := Objective.new()
-				obj.objective_id = result.get("type", "")
-				obj.name = result.get("name", "")
-				obj.description = result.get("description", "")
-				obj.victory_condition = result.get("victory_condition", "")
-				obj.placement_rules = result.get("placement_rules", "")
-				obj.roll_ranges = {"default": entry.get("roll_range", [1, 100])}
-				objective_registry.append(obj)
+				var type_id: String = result.get("type", "")
+				# Only add if not already in registry from definitions
+				if not get_objective_by_id(type_id):
+					var obj := Objective.new()
+					obj.objective_id = type_id
+					obj.name = result.get("name", "")
+					obj.description = result.get("description", "")
+					obj.roll_ranges = {"default": entry.get("roll_range", [1, 100])}
+					objective_registry.append(obj)
 			return
 
 	# Fallback to hardcoded data (has richer per-mission-type roll ranges)

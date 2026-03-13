@@ -41,11 +41,9 @@ func _ready() -> void:
 		_show_current_step()
 
 func process_post_battle() -> void:
-	_resolve_combat_results()
-	_apply_injuries()
-	_collect_loot()
-	_update_mission_status()
-	_record_experience()
+	## Backend post-battle processing.
+	## Note: Most post-battle logic is handled by PostBattleSequence (UI).
+	## This backend only handles journal persistence and story track advancement.
 	_persist_battle_journal()
 	_advance_story_track()
 	phase_completed.emit()
@@ -55,10 +53,10 @@ func _persist_battle_journal() -> void:
 	var journal = get_node_or_null("/root/CampaignJournal")
 	if not journal or not journal.has_method("auto_create_battle_entry"):
 		return
-	var battle_results = game_state.current_battle_results if game_state else null
-	if not battle_results:
+	var battle_results: Dictionary = game_state.get_battle_results() if game_state else {}
+	if battle_results.is_empty():
 		return
-	var victory: bool = battle_results.victory if "victory" in battle_results else false
+	var victory: bool = battle_results.get("victory", false)
 	var battle_entry: Dictionary = {
 		"turn": game_state.current_turn if "current_turn" in game_state else 0,
 		"outcome": "victory" if victory else "defeat",
@@ -103,8 +101,11 @@ func _advance_story_track() -> void:
 	pass
 
 func _resolve_combat_results() -> void:
-	var battle_results = game_state.current_battle_results
-	if battle_results.victory:
+	var battle_results: Dictionary = game_state.get_battle_results() if game_state else {}
+	if battle_results.is_empty():
+		push_warning("PostBattlePhase: No battle results available, skipping combat resolution")
+		return
+	if battle_results.get("victory", false):
 		_handle_victory()
 	else:
 		_handle_defeat()
@@ -136,12 +137,12 @@ func _collect_loot() -> void:
 	
 	var loot = loot_generator.generate_post_battle_loot(
 		game_state.current_mission,
-		game_state.current_battle_results
+		game_state.get_battle_results()
 	)
 	loot_generator.apply_loot(game_state.current_crew, loot)
 
 func _update_mission_status() -> void:
-	if game_state.current_battle_results.victory:
+	if game_state.get_battle_results().get("victory", false):
 		_process_mission_completion()
 	else:
 		_process_mission_failure()
@@ -172,7 +173,7 @@ func _determine_injury_type(severity: int) -> String:
 
 func _calculate_experience_gain(character: Character) -> int:
 	var base_xp = 10
-	if game_state.current_battle_results.victory:
+	if game_state.get_battle_results().get("victory", false):
 		base_xp += 5
 	if character.current_health < character.max_health:
 		base_xp += 3

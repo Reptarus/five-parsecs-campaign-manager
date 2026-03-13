@@ -1,6 +1,6 @@
 # Five Parsecs Campaign Manager - Project Status
 
-**Last Updated**: March 4, 2026 (LSP Parse Error Cleanup Complete)
+**Last Updated**: March 12, 2026 (Demo QA Runtime Testing Complete)
 **Engine**: Godot 4.6-stable (pure GDScript, non-mono)
 **Test Framework**: gdUnit4 v6.0.3
 **Repository**: https://github.com/Reptarus/five-parsecs-campaign-manager
@@ -35,6 +35,10 @@
 | Bug Hunt Gamemode | **Complete** — 38 files (15 JSON + 23 GDScript/TSCN), 3-stage turn, character transfer, battle wiring, cross-mode safety audit |
 | TweenFX Integration (Phase 26) | **Complete** — 8 sprints, 23 files modified, bug fixes + raw tween migration + new UX animations |
 | LSP Parse Error Cleanup | **Complete** — 3 automated passes: 1,859 orphan pass removed, 5,915 space→tab fixes, 31 deep-indent orphans, enum/type fixes |
+| Agent & Skill Architecture | **Complete** — 7 agents with Haiku/Sonnet/Opus model tiers, 7 skills, 22 code-sourced reference files, per-agent persistent memory |
+| MCP UI/UX Testing (Sessions T-0 to S8) | **Complete** — 71 bugs found, 71 fixed across 12 sessions, automated runtime testing via Godot MCP bridge |
+| MCP Bug Fix Sprint | **Complete** — 15 bugs fixed in 1 session: auto-generate UX redesign, stat/enum display fixes, world phase checkpoint restore |
+| Demo QA Runtime Testing (10 sessions) | **Complete** — Full re-run PASS: CC-1→CC-11, Turn 1 all phases, Turn 2 all phases, SR-1→SR-6. 18/18 bugs confirmed fixed. Zero regressions. Save file integrity verified (credits, crew stats, ship, world, patrons, equipment). |
 
 ---
 
@@ -115,6 +119,35 @@ Integrated the **TweenFX addon** (v1.2, EvilBunnyMan) across 23 UI files for com
 - **S8**: Game event celebrations — critical warning alarm, dice critical tada, save success punch, phase completion tada
 
 Accessibility: `UIColors.should_animate()` checks ThemeManager `_reduced_animation` flag. All TweenFX calls guarded.
+
+### MCP UI/UX Testing (Mar 11-14, 2026)
+
+Automated runtime UI testing using Godot MCP bridge (UDP port 9900). 12 sessions completed across campaign creation, battle, post-battle, crew management, patron/rival, trading, and compendium systems.
+
+**Testing methodology**: MCP bridge injected as autoload → `get_ui_elements` for node discovery → `take_screenshot` for visual verification → `simulate_input`/`click_element` for interaction → `run_script` for state inspection → `get_debug_output` for error detection.
+
+**71 bugs discovered and fixed across 12 sessions** (see [UIUX_TEST_RESULTS.md](UIUX_TEST_RESULTS.md) for full tracker).
+
+### Demo QA Runtime Testing (Mar 12, 2026)
+
+MCP-automated gameplay path testing following the [Demo QA Script](testing/DEMO_QA_SCRIPT.md). 9 sessions verified the full demo recording path:
+
+**Campaign Creation (CC-1→CC-11)**: All 11 steps PASS. Cold-start wizard, custom crew names/species, auto-generation, final review.
+
+**Turn 1 Phases**:
+
+- Story/Travel/World: PASS — event resolution, upkeep, crew tasks, job offers, mission selection
+- Battle/PostBattle: PARTIAL → PASS after roll_dice fix (7 call sites in PostBattleSequence.gd corrected from non-existent `dice_manager.roll_dice()` to `DiceManager.roll_d100()`/`roll_d6()`)
+- Advancement→Turn End: PASS — phase transitions verified through full loop
+
+**Turn 2 Phases**: All PASS — Story, Travel, World/Upkeep, Battle, PostBattle (14 steps), Advancement, Trading, Character, Turn End all verified.
+
+**Save/Reload (SR-1→SR-6)**: All PASS after B70 fix. Campaign name, turn number, crew (4 members, all 6 stats), credits (1800), ship (Cosmic Hunter, hull 27/27, debt 14), world (New Campaign Prime, Desert World, danger 4), patrons (2), equipment (2 items) all persist correctly. Full JSON integrity verified.
+
+**Key bugs fixed during Demo QA**:
+
+- **B69**: EndPhasePanel turn summary showed stale data — now reads canonical `progress_data["turns_played"]` via CampaignPhaseManager.turn_number
+- **B70**: Save/reload turn restoration — key mismatch (`"turn_number"` vs `"turns_played"`) in CampaignTurnController.gd + simplified phase resume logic (single branch: if `current_phase == NONE`, start new turn)
 
 ### Scene Routing & Navigation (Feb 9, 2026)
 - **SceneRouter migration**: All 20 player-facing `change_scene_to_file()` calls across 12 files migrated to `SceneRouter.navigate_to()` / `navigate_back()` / `return_to_main_menu()`. Remaining raw calls are infrastructure-only (SceneRouter.gd, TransitionManager.gd, BaseController.gd, DeveloperDashboard.gd).
@@ -530,3 +563,17 @@ Follow-up audit of the UI/UX overhaul to close integration gaps, register missin
   - **Pass 3**: Fixed empty function bodies (2), missing SVG preloads (4), wrong enum namespace (mission.gd GameEnums→GlobalEnums), enum type mismatch (UnifiedTerrainSystem), type inference failures (HelpScreen `:=` on RefCounted-typed vars)
   - Root cause: AI-generated code used spaces instead of tabs and inserted `pass` at continuation-line indent depth instead of body indent depth
   - Result: Zero GDScript parse errors across all ~900 scripts
+- **Mar 11, 2026**: Agent & Skill Architecture (42 files):
+  - 7 specialized agents with three-tier model routing: Haiku (UI) → Sonnet (campaign/data/QA) → Opus (battle/orchestration)
+  - 7 paired skills with 22 code-sourced reference files (API surfaces extracted from actual .gd files)
+  - Per-agent persistent memory in `.claude/agent-memory/{agent-name}/MEMORY.md`
+  - Token optimization: `MAX_THINKING_TOKENS=10000`, `AUTOCOMPACT_PCT=50` in `.claude/settings.local.json`
+  - Expected ~60-70% token reduction on routine tasks by routing to appropriate model tier
+  - Agent roster: fpcm-project-manager (opus), battle-systems-engineer (opus), campaign-systems-engineer (sonnet), character-data-engineer (sonnet), bug-hunt-specialist (sonnet), qa-specialist (sonnet), ui-panel-developer (haiku)
+- **Mar 12, 2026**: Demo QA Runtime Testing (9 MCP sessions):
+  - Campaign Creation CC-1→CC-11 all PASS (cold-start wizard, custom crew, auto-generation, final review)
+  - Turn 1 Story/Travel/World phases PASS
+  - PostBattleSequence roll_dice fix: 7 call sites corrected from `dice_manager.roll_dice()` to `DiceManager.roll_d100()`/`roll_d6()`
+  - B69: EndPhasePanel turn summary data integrity — reads canonical `progress_data["turns_played"]` via CampaignPhaseManager
+  - B70: Save/reload turn restoration — fixed key mismatch (`"turn_number"` → `"turns_played"`) in CampaignTurnController.gd, simplified phase resume logic
+  - Save/Reload SR-1→SR-5 all PASS (campaign name, turn number, crew, credits, stats persist correctly)

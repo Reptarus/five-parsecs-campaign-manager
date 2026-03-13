@@ -1,28 +1,6 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-        {
-            "name": "Launch (Select Scene)",
-            "type": "godot-mono",
-            "request": "launch",
-            "mode": "executable",
-            "preLaunchTask": "build",
-            "executable": "C:\\Users\\elija\\Desktop\\GoDot\\Godot_v4.3-stable_win64.exe\\Godot_v4.3-stable_win64.exe",
-            "executableArguments": [
-                "--path",
-                "",
-                "SelectLaunchScene"
-            ]
-        },
-        {
-            "name": "Play in Editor",
-            "type": "godot-mono",
-            "mode": "playInEditor",
-            "request": "launch"
-        },
         {
             "name": "GDScript: Launch Project",
             "type": "godot",
@@ -35,19 +13,16 @@
             "debug_collisions": false,
             "debug_paths": false,
             "debug_navigation": false,
-            "additional_options": "--debug-collisions --verbose",
             "scene_file": "",
-            "debugServer": 6008,
+            "debugServer": 6006,
             "debug_mode": true,
             "debug_output": true,
             "env": {
-                "GODOT_DEBUG_ENABLED": "1",
-                "GODOT_DEBUG_COLLISIONS": "1",
-                "GODOT_PRINT_DEBUG_MESSAGES": "1"
+                "GODOT_DEBUG_ENABLED": "1"
             }
         },
         {
-            "name": "Run GUT Tests",
+            "name": "GDScript: Launch Current Scene",
             "type": "godot",
             "request": "launch",
             "project": "${workspaceFolder}",
@@ -55,35 +30,24 @@
             "address": "127.0.0.1",
             "launch_game_instance": true,
             "launch_scene": true,
-            "scene_file": "res://addons/gut/GutScene.tscn",
+            "scene_file": "${file}",
+            "debugServer": 6006,
             "debug_mode": true,
-            "debug_output": true,
-            "additional_options": "--verbose --debug",
-            "env": {
-                "GODOT_DEBUG_ENABLED": "1",
-                "GUT_TEST_MODE": "1",
-                "GODOT_TYPE_VALIDATION": "1"
-            }
+            "debug_output": true
         },
         {
-            "name": "Debug Current Test",
+            "name": "gdUnit4: Run Tests",
             "type": "godot",
             "request": "launch",
             "project": "${workspaceFolder}",
             "port": 6007,
             "address": "127.0.0.1",
             "launch_game_instance": true,
-            "launch_scene": true,
-            "scene_file": "res://addons/gut/GutScene.tscn",
+            "launch_scene": false,
+            "debugServer": 6006,
             "debug_mode": true,
             "debug_output": true,
-            "additional_options": "--verbose --debug",
-            "env": {
-                "GODOT_DEBUG_ENABLED": "1",
-                "GUT_TEST_MODE": "1",
-                "GUT_CURRENT_TEST": "${file}",
-                "GODOT_TYPE_VALIDATION": "1"
-            }
+            "additional_options": "--headless --script addons/gdUnit4/bin/GdUnitCmdTool.gd -a tests/unit/ --quit-after 120"
         }
     ]
 }

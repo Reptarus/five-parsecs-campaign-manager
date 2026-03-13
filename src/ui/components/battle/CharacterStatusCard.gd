@@ -66,7 +66,8 @@ func set_character_data(character) -> void:
 		return
 
 	# Extract character stats using safe access
-	var char_name: String = character_data.get("character_name", "Unknown")
+	var char_name: String = character_data.get("character_name",
+		character_data.get("name", "Unknown"))
 	var combat: int = character_data.get("combat", 0)
 	var toughness: int = character_data.get("toughness", 4)
 	var speed: int = character_data.get("speed", 4)
@@ -90,7 +91,8 @@ func _update_display() -> void:
 	if not is_node_ready():
 		return
 
-	var char_name: String = character_data.get("character_name", "Unknown")
+	var char_name: String = character_data.get("character_name",
+		character_data.get("name", "Unknown"))
 
 	# Update name
 	if name_label:

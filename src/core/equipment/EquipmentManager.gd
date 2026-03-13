@@ -1404,12 +1404,10 @@ func _apply_market_markup(base_value: int, market_quality: int, location_type: i
 	elif market_quality <= 2:
 		markup += 0.1
 	
-	# Random market fluctuation
-	markup += (randf() * 0.2) - 0.1 # +/- 10%
-	
-	# Calculate final price
+	# Calculate final price (no per-item random fluctuation — prevents
+	# duplicate items at different prices and unrealistic 1cr values)
 	var final_value = int(base_value * markup)
-	
+
 	# Ensure minimum value
 	return max(10, final_value)
 

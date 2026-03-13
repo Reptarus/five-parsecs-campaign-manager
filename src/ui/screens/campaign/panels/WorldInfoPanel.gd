@@ -129,13 +129,17 @@ func _ready() -> void:
 
 	# Debug verification of button creation
 	call_deferred("_verify_button_creation")
-	
+
 	_connect_campaign_signals()
 	_apply_mobile_layout()
 
+	# BUG-018/019/020/023: Auto-generate and confirm world on panel entry
+	# so Next is immediately available. User can still reroll for a different world.
+	call_deferred("_auto_generate_if_needed")
+
 func _verify_button_creation() -> void:
 	## Verify buttons were created and added correctly
-	if not generate_button or not reroll_button or not confirm_button:
+	if not reroll_button or not confirm_button:
 		push_warning("WorldInfoPanel: One or more control buttons failed to create")
 
 func _apply_input_styling() -> void:
@@ -165,11 +169,12 @@ func _initialize_world_generator() -> void:
 		push_error("WorldInfoPanel: Failed to create WorldGenerator instance")
 		return
 
-	# Connect world generation signal with defensive check
-	if world_generator.has_signal("world_generated"):
-		world_generator.world_generated.connect(_on_world_generated_from_generator)
-	else:
-		push_warning("WorldInfoPanel: WorldGenerator missing expected signal")
+	# NOTE: Do NOT connect world_generated signal here. WorldGenerator.generate_world()
+	# emits the signal with RAW data (no government_type, no custom name). Instead,
+	# _generate_world_with_fallback() calls _on_world_generated_from_generator() directly
+	# AFTER enriching the data with government_type, tech_level, and custom name.
+	# Connecting the signal caused a double-call bug where the first display showed
+	# incomplete data (BUG-018/021).
 
 func _setup_world_panel() -> void:
 	# Initialize world display components
@@ -206,15 +211,8 @@ func _setup_control_buttons() -> void:
 	button_container.alignment = BoxContainer.ALIGNMENT_CENTER
 	button_container.add_theme_constant_override("separation", SPACING_LG)
 	
-	# Create Generate World button
-	generate_button = Button.new()
-	generate_button.text = "Generate World"
-	generate_button.custom_minimum_size = Vector2(150, TOUCH_TARGET_MIN)
-	generate_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	generate_button.pressed.connect(_on_generate_button_pressed)
-	button_container.add_child(generate_button)
-
-	# Create Reroll button (initially disabled)
+	# Single Reroll button — auto-generation handles initial world creation,
+	# so only a re-roll action is needed (removes redundant "Re-generate World" button)
 	reroll_button = Button.new()
 	reroll_button.text = "Reroll World"
 	reroll_button.custom_minimum_size = Vector2(150, TOUCH_TARGET_MIN)
@@ -238,6 +236,22 @@ func _setup_control_buttons() -> void:
 	# Move to bottom of content if possible
 	content_container.move_child(button_container, content_container.get_child_count() - 1)
 	
+
+func _auto_generate_if_needed() -> void:
+	## BUG-018/019/020/023: Auto-generate world on panel entry if none exists.
+	## Eliminates the dead-end where panel is blank and Next is hidden.
+	if not is_world_generated:
+		_on_generate_button_pressed()
+		# Also auto-confirm so Next is enabled immediately
+		_on_confirm_button_pressed()
+
+	# Enable reroll for users who want a different world
+	if reroll_button:
+		reroll_button.disabled = false
+
+	# Direct coordinator notification as fallback (signals may debounce)
+	if coordinator and coordinator.has_method("mark_phase_complete"):
+		coordinator.mark_phase_complete(5, true)  # 5 = WORLD_GENERATION
 
 func _on_generate_button_pressed() -> void:
 	## Handle generate world button press
@@ -265,16 +279,19 @@ func _on_generate_button_pressed() -> void:
 
 func _on_reroll_button_pressed() -> void:
 	## Handle reroll world button press
-	
+
 	# Generate a new world with different seed
 	var campaign_name = _get_campaign_name_safe()
 	var world_suffix = ["Alpha", "Beta", "Gamma", "Delta", "Prime", "Nova", "Echo", "Zeta"].pick_random()
 	_generate_world_with_fallback(campaign_name + " " + world_suffix)
-	
-	# Keep confirm button enabled
+
+	# Reset confirm state — user needs to re-confirm the new world
 	is_world_generated = true
 	is_world_confirmed = false
-	
+	if confirm_button:
+		confirm_button.text = "Confirm World"
+		confirm_button.disabled = false
+
 	# Update validation
 	_update_validation_state()
 
@@ -473,7 +490,6 @@ func _select_appropriate_template() -> String:
 
 func _display_world_data(world_data: Dictionary) -> void:
 	## Display world data in UI components with DataValidator safety
-	# Use DataValidator for safe access to world data
 	var safe_name = DataValidator.safe_get_string(world_data, "name", "Unknown World")
 	var safe_traits = DataValidator.safe_get_array(world_data, "traits", [])
 	var safe_government = DataValidator.safe_get_string(world_data, "government_type", "Independent Colony")
@@ -482,7 +498,7 @@ func _display_world_data(world_data: Dictionary) -> void:
 	var safe_market_prices = DataValidator.safe_get_dict(world_data, "market_prices", {})
 	var safe_threats = DataValidator.safe_get_array(world_data, "rival_threats", [])
 
-	# Display world name (FIX: was never being updated)
+	# Display world name
 	if world_name_label:
 		world_name_label.text = "Current World: " + safe_name
 
@@ -510,9 +526,9 @@ func _display_world_traits(world_features: Array) -> void:
 		if feature_data is Dictionary:
 			_create_trait_card(feature_data)
 		elif feature_data is String:
-			# Legacy format - just display the trait ID
+			# Legacy format - convert snake_case ID to Title Case display name
 			var feature_label = Label.new()
-			feature_label.text = "• %s" % feature_data
+			feature_label.text = "• %s" % feature_data.replace("_", " ").capitalize()
 			feature_label.add_theme_color_override("font_color", UIColors.INFO_COLOR)
 			world_traits_container.add_child(feature_label)
 
@@ -818,9 +834,8 @@ func _update_world_summary() -> void:
 	if not world_summary:
 		return
 	
-	# Use DataValidator for safe access to world data
-	var world_name = DataValidator.safe_get_string(current_world_data, "planet_name", 
-		DataValidator.safe_get_string(current_world_data, "name", "Unknown World"))
+	# Use DataValidator for safe access to world data — key is "name", not "planet_name"
+	var world_name = DataValidator.safe_get_string(current_world_data, "name", "Unknown World")
 	var tech_level = DataValidator.safe_get_int(current_world_data, "tech_level", 3)
 	var opportunities_count = world_opportunities.size()
 	var threats_count = world_threats.size()
@@ -936,7 +951,7 @@ func _send_world_data_to_coordinator(world_data: Dictionary) -> void:
 ## Signal handlers
 func _on_world_discovered(world_data: Dictionary) -> void:
 	current_world_data = world_data
-	update_world_display(world_data.get("planet_name", "Unknown World"))
+	update_world_display(world_data.get("name", "Unknown World"))
 
 func _on_location_explored(location_name: String, discoveries: Array) -> void:
 	# Update world data with new discoveries
@@ -946,7 +961,7 @@ func _on_location_explored(location_name: String, discoveries: Array) -> void:
 		current_world_data["discovered_locations"] = discovered_locations
 	
 	# Update display
-	update_world_display(current_world_data.get("planet_name", "Unknown World"))
+	update_world_display(current_world_data.get("name", "Unknown World"))
 
 func _on_patron_encountered(patron_data: Dictionary) -> void:
 	# Add new patron to opportunities
@@ -1042,12 +1057,12 @@ func _populate_opportunities_and_threats_from_world_data(world_data: Dictionary)
 	##
 
 func _generate_compact_world_summary() -> String:
-	var world_name = current_world_data.get("planet_name", "Unknown")
+	var world_name = current_world_data.get("name", "Unknown")
 	var tech_level = current_world_data.get("tech_level", 3)
 	return "World: %s (Tech %d)" % [world_name, tech_level]
 
 func _generate_detailed_world_summary() -> String:
-	var world_name = current_world_data.get("planet_name", "Unknown World")
+	var world_name = current_world_data.get("name", "Unknown World")
 	var tech_level = current_world_data.get("tech_level", 3)
 	var government_type = current_world_data.get("government_type", "Unknown")
 	var opportunities_count = world_opportunities.size()
@@ -1152,10 +1167,18 @@ func _on_coordinator_set() -> void:
 
 func _on_campaign_state_updated(state_data: Dictionary) -> void:
 	## React to campaign state updates - setup initial world display
-	
+
+	# BUG-018 GUARD: If we already have valid auto-generated world data, don't let
+	# provide_initial_state_to_panel() overwrite it. The display and button states
+	# are already correct from _auto_generate_if_needed().
+	if is_world_generated and not current_world_data.is_empty() and current_world_data.has("name"):
+		# Still update generation parameters from campaign data (crew size, etc.)
+		_adjust_world_generation_parameters(state_data.duplicate())
+		return
+
 	# Store campaign data for world generation
 	var campaign_data = state_data.duplicate()
-	
+
 	# Extract any existing world data
 	if state_data.has("world") and state_data.world is Dictionary and not state_data.world.is_empty():
 		var existing_world = state_data.world
@@ -1583,19 +1606,23 @@ func _sync_with_coordinator() -> void:
 	## Synchronize with coordinator's current state
 	if not coordinator:
 		return
-		
+
 	if coordinator.has_method("get_unified_campaign_state"):
 		var state = coordinator.get_unified_campaign_state()
 		if state and state.has("world"):
 			var world_state = state.get("world", {})
-			if world_state is Dictionary and not world_state.is_empty():
+			# BUG-018 FIX: Only treat as valid world data if it has a non-empty name.
+			# The coordinator initializes world with empty-string defaults (name="",
+			# government_type="", etc.) — a non-empty dict but NOT real world data.
+			var world_name = world_state.get("name", "") if world_state is Dictionary else ""
+			if world_state is Dictionary and not world_state.is_empty() and world_name != "":
 				current_world_data = world_state
 				_display_world_data(current_world_data)
-				
+
 				# Update generation state based on existing data
-				is_world_generated = not current_world_data.is_empty()
+				is_world_generated = true
 				is_world_confirmed = world_state.get("is_complete", false)
-				
+
 				# Update button states
 				_update_button_states()
 	
@@ -1604,42 +1631,31 @@ func _update_button_states() -> void:
 	## Update control button states based on current world status
 	if generate_button:
 		generate_button.disabled = is_world_generated
-	
+
 	if reroll_button:
 		reroll_button.disabled = not is_world_generated or is_world_confirmed
-	
+
 	if confirm_button:
 		confirm_button.disabled = not is_world_generated or is_world_confirmed
 		confirm_button.text = "✓ World Confirmed" if is_world_confirmed else "Confirm World"
-	
-	# Trigger initial sync
-	sync_with_coordinator()
 
 func sync_with_coordinator() -> void:
-	## Sync panel with coordinator state
+	## Sync panel display with coordinator state (read-only — does NOT generate worlds).
+	## Initial generation is handled exclusively by _auto_generate_if_needed().
 	if not coordinator:
 		return
-	
-	
-	# Get campaign state from coordinator
+
 	var campaign_state = {}
 	if coordinator.has_method("get_unified_campaign_state"):
 		campaign_state = coordinator.get_unified_campaign_state()
 	elif coordinator.has_method("get_state"):
 		campaign_state = coordinator.get_state()
-	
-	# If we have campaign data and no world yet, generate one
-	if not campaign_state.is_empty() and current_world_data.is_empty():
-		_generate_world_from_campaign_data(campaign_state)
-	
-	# Update display with any existing world data
+
+	# Only update display if coordinator has valid world data with a name
 	var world_data = campaign_state.get("world", {})
-	if not world_data.is_empty():
+	if not world_data.is_empty() and world_data.get("name", "") != "":
 		current_world_data = world_data
 		_display_world_data(world_data)
-	elif current_world_data.is_empty():
-		# Generate a default world if nothing exists
-		_generate_default_world()
 	
 
 func _generate_default_world() -> void:

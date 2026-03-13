@@ -94,5 +94,9 @@
       "Bash(git clone https://github.com/Reptarus/tacticaprototype1.git /tmp/tacticaprototype1)"
     ]
   },
-  "outputStyle": "Explanatory"
+  "outputStyle": "Explanatory",
+  "env": {
+    "MAX_THINKING_TOKENS": "10000",
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "50"
+  }
 }

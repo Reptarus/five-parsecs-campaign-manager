@@ -217,7 +217,9 @@ enum Origin {
 	DEEP_SPACE,
 	COLONY,
 	HIVE_WORLD,
-	FORGE_WORLD
+	FORGE_WORLD,
+	KRAG,    # Compendium DLC — Trailblazer's Toolkit
+	SKULKER  # Compendium DLC — Trailblazer's Toolkit
 }
 
 ## Character Background

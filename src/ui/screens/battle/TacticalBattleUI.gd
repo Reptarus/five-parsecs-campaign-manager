@@ -1094,8 +1094,8 @@ func _determine_initiative_order() -> void:
 
 	# Each unit rolls for initiative
 	for unit in all_units:
-		unit.initiative_roll = _roll_dice("Initiative: " + unit.name, "D6") + unit.get_initiative_bonus()
-		_log_message("%s initiative: %d" % [unit.name, unit.initiative_roll], Color.WHITE)
+		unit.initiative_roll = _roll_dice("Initiative: " + unit.node_name, "D6") + unit.get_initiative_bonus()
+		_log_message("%s initiative: %d" % [unit.node_name, unit.initiative_roll], Color.WHITE)
 
 	# Sort by initiative (highest first)
 	all_units.sort_custom(func(a, b): return a.initiative_roll > b.initiative_roll)
@@ -1107,7 +1107,9 @@ func _determine_initiative_order() -> void:
 		battle_journal.log_initiative(crew_first, first.initiative_roll)
 
 func _start_unit_turn() -> void:
-	## Start a unit's turn
+	## Start a unit's turn (skip dead units)
+	while current_unit_index < all_units.size() and all_units[current_unit_index].health <= 0:
+		current_unit_index += 1
 	if current_unit_index >= all_units.size():
 		_end_combat_round()
 		return
@@ -1118,8 +1120,8 @@ func _start_unit_turn() -> void:
 
 	turn_phase = "movement"
 	if turn_indicator:
-		turn_indicator.text = "Round %d - %s's Turn" % [current_turn, selected_unit.name]
-	_log_message("%s's turn begins" % selected_unit.name, UIColors.COLOR_CYAN)
+		turn_indicator.text = "Round %d - %s's Turn" % [current_turn, selected_unit.node_name]
+	_log_message("%s's turn begins" % selected_unit.node_name, UIColors.COLOR_CYAN)
 
 	_update_action_buttons_for_combat()
 	_update_unit_info_display()
@@ -1332,7 +1334,7 @@ func _on_dash_clicked() -> void:
 
 func _on_skip_turn_clicked() -> void:
 	## Skip the current unit's turn
-	_log_message("%s ends their turn" % selected_unit.name, UIColors.COLOR_TEXT_SECONDARY)
+	_log_message("%s ends their turn" % selected_unit.node_name, UIColors.COLOR_TEXT_SECONDARY)
 	_end_unit_turn()
 
 func _on_place_unit_clicked() -> void:
@@ -1348,7 +1350,7 @@ func _on_auto_deploy_clicked() -> void:
 
 	for i: int in range(min(crew_units.size(), crew_positions.size())):
 		crew_units[i].position = crew_positions[i]
-		_log_message("%s deployed at (%d, %d)" % [crew_units[i].name, crew_positions[i].x, crew_positions[i].y], Color.WHITE)
+		_log_message("%s deployed at (%d, %d)" % [crew_units[i].node_name, crew_positions[i].x, crew_positions[i].y], Color.WHITE)
 
 	# Auto-deploy enemies too
 	_auto_deploy_enemies()
@@ -1363,7 +1365,7 @@ func _auto_deploy_enemies() -> void:
 
 	for i: int in range(min(enemy_units.size(), enemy_positions.size())):
 		enemy_units[i].position = enemy_positions[i]
-		_log_message("%s deployed at (%d, %d)" % [enemy_units[i].name, enemy_positions[i].x, enemy_positions[i].y], Color.WHITE)
+		_log_message("%s deployed at (%d, %d)" % [enemy_units[i].node_name, enemy_positions[i].x, enemy_positions[i].y], Color.WHITE)
 
 func _end_unit_turn() -> void:
 	## End the current unit's turn
@@ -1374,6 +1376,10 @@ func _end_combat_round() -> void:
 	## End the current combat round
 	current_turn += 1
 	current_unit_index = 0
+
+	# Sync round HUD with current turn counter
+	if battle_round_hud and battle_round_hud.has_method("_on_tracker_round_changed"):
+		battle_round_hud._on_tracker_round_changed(current_turn)
 
 	_log_message("Round %d complete" % (current_turn - 1), UIColors.COLOR_AMBER)
 
@@ -1403,6 +1409,12 @@ func _check_victory_conditions() -> bool:
 func _resolve_battle() -> void:
 	## Resolve the tactical battle
 	battle_phase = "resolution"
+
+	# Hide combat controls — battle is over
+	if action_buttons:
+		action_buttons.visible = false
+	if end_turn_button:
+		end_turn_button.visible = false
 
 	var crew_alive = crew_units.filter(func(u): return u.health > 0).size()
 	var enemies_alive = enemy_units.filter(func(u): return u.health > 0).size()
@@ -1956,6 +1968,12 @@ func _map_theme_name_to_key(theme_name: String) -> String:
 		return "alien_ruin"
 	elif "crash" in lower:
 		return "crash_site"
+	elif "urban" in lower or "settlement" in lower or "city" in lower:
+		return "urban_settlement"
+	elif "waste" in lower or "blasted" in lower:
+		return "wasteland"
+	elif "ship" in lower or "interior" in lower or "corridor" in lower:
+		return "ship_interior"
 	# Fallback
 	return "wilderness"
 

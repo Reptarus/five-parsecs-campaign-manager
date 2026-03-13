@@ -151,7 +151,7 @@ func _connect_to_war_manager() -> void:
 
 func setup(events: Array) -> void:
 	## Setup panel with war progression events
-	war_events = events.duplicate()
+	war_events.assign(events)
 	refresh_display()
 
 func refresh_display() -> void:

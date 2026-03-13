@@ -11,8 +11,10 @@ signal insufficient_funds(required: int, available: int)
 # Economy system reference for credit management
 var economy_system: Node = null
 
-# Upkeep costs from Five Parsecs rules
-const BASE_CREW_UPKEEP = 1 # 1 credit per crew member
+# Upkeep costs from Five Parsecs rules (p.76)
+# Rulebook: 1 credit for 4-6 crew, +1 per crew past 6
+const CREW_UPKEEP_THRESHOLD = 4 # Crew size at which upkeep starts
+const CREW_UPKEEP_CAP = 6 # Crew size above which extra cost applies
 const SHIP_MAINTENANCE_BASE = 1 # Base ship maintenance cost
 const INJURY_TREATMENT_COST = 2 # Cost per injured crew member
 const LUXURY_UPKEEP_MODIFIER = 2 # Multiplier for luxury living
@@ -35,8 +37,12 @@ func calculate_upkeep_costs(campaign_data: Resource) -> Dictionary:
 	var ship_data = _get_ship_data(campaign_data)
 	var living_standard = _get_living_standard(campaign_data)
 
-	# Calculate crew upkeep
-	breakdown.crew_upkeep = crew_members.size() * BASE_CREW_UPKEEP
+	# Calculate crew upkeep (rulebook p.76: 1 credit for 4-6 crew, +1 per crew past 6)
+	var crew_size: int = crew_members.size()
+	if crew_size >= CREW_UPKEEP_THRESHOLD:
+		breakdown.crew_upkeep = 1 + max(0, crew_size - CREW_UPKEEP_CAP)
+	else:
+		breakdown.crew_upkeep = 0
 
 	# Calculate ship maintenance
 	if ship_data:
@@ -101,31 +107,34 @@ func _calculate_injury_costs(crew_members: Array) -> int:
 
 	return injury_cost
 
-func handle_upkeep_failure(campaign_data: Resource) -> Dictionary:
+func handle_upkeep_failure(campaign_data: Resource, credits_short: int = 1) -> Dictionary:
 	## Handle what happens when upkeep cannot be paid
+	## Rulebook p.76: Each credit short = 1 crew member refuses jobs this turn
 	var consequences = {
-		"crew_morale_penalty": false,
-		"ship_degradation": false,
-		"crew_departure": false,
-		"medical_complications": false
+		"crew_locked_out": 0,
+		"locked_out_members": [] as Array[String]
 	}
 
-	# Random consequences for failing upkeep (simplified Five Parsecs rules)
-	var consequence_roll = randi_range(1, 6)
+	var crew_members = _get_crew_members(campaign_data)
+	var lockout_count: int = min(credits_short, crew_members.size())
+	consequences.crew_locked_out = lockout_count
 
-	match consequence_roll:
-		1, 2: # Crew morale penalty
-			consequences.crew_morale_penalty = true
-			_apply_crew_morale_penalty(campaign_data)
-		3, 4: # Ship degradation
-			consequences.ship_degradation = true
-			_apply_ship_degradation(campaign_data)
-		5: # Crew member might leave
-			consequences.crew_departure = true
-			_check_crew_departure(campaign_data)
-		6: # Medical complications for injured crew
-			consequences.medical_complications = true
-			_apply_medical_complications(campaign_data)
+	# Lock out crew members (random selection per rulebook)
+	var available_crew: Array = crew_members.duplicate()
+	for i in range(lockout_count):
+		if available_crew.is_empty():
+			break
+		var locked_member = available_crew.pick_random()
+		available_crew.erase(locked_member)
+		var member_name: String = ""
+		if locked_member is Resource and locked_member.has_method("get"):
+			member_name = locked_member.get("character_name") if locked_member.get("character_name") else "Unknown"
+		elif locked_member is Dictionary:
+			member_name = locked_member.get("character_name", locked_member.get("name", "Unknown"))
+		consequences.locked_out_members.append(member_name)
+		# Mark as locked out for this turn
+		if locked_member is Resource and locked_member.has_method("set_meta"):
+			locked_member.set_meta("locked_out_this_turn", true)
 
 	return consequences
 

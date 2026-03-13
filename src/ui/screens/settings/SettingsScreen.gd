@@ -5,6 +5,7 @@ extends Control
 ## Provides navigation back to Campaign Dashboard
 
 const AccessibilitySettingsPanelScript = preload("res://src/ui/screens/settings/AccessibilitySettingsPanel.gd")
+const DifficultyTogglesPanelScript = preload("res://src/ui/screens/settings/DifficultyTogglesPanel.gd")
 
 # UI References
 @onready var back_button: Button = %BackButton
@@ -20,6 +21,7 @@ func _ready() -> void:
 	_setup_background()
 	_connect_signals()
 	_setup_accessibility_panel()
+	_setup_difficulty_toggles_panel()
 
 func _setup_background() -> void:
 	## Apply consistent background styling
@@ -46,6 +48,17 @@ func _setup_accessibility_panel() -> void:
 
 	# Connect theme selection signal
 	accessibility_panel.theme_selected.connect(_on_theme_selected)
+
+func _setup_difficulty_toggles_panel() -> void:
+	## Add difficulty toggles panel (Compendium DLC)
+	if not settings_container:
+		return
+	var separator := HSeparator.new()
+	separator.add_theme_constant_override("separation", 16)
+	settings_container.add_child(separator)
+	var toggles_panel = DifficultyTogglesPanelScript.new()
+	toggles_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	settings_container.add_child(toggles_panel)
 
 func _on_back_pressed() -> void:
 	## Navigate back to Campaign Dashboard

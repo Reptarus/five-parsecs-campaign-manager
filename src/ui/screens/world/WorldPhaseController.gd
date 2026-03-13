@@ -163,6 +163,45 @@ func _connect_ui_signals() -> void:
 
 func _setup_initial_state() -> void:
 	## Setup initial UI state and fetch campaign data from GameStateManager
+
+	# BUG-030 fix: Load checkpoint from campaign storage if local _checkpoint_data
+	# is empty (scene was destroyed and re-instantiated by SceneRouter)
+	if _checkpoint_data.is_empty():
+		var gs = get_node_or_null("/root/GameState")
+		if gs and gs.current_campaign:
+			var campaign = gs.current_campaign
+			if campaign is Dictionary and "world_phase_checkpoint" in campaign:
+				_checkpoint_data = campaign["world_phase_checkpoint"].duplicate()
+			elif campaign is Resource and campaign.has_meta("world_phase_checkpoint"):
+				_checkpoint_data = campaign.get_meta("world_phase_checkpoint").duplicate()
+
+	# Validate checkpoint: if ALL steps are marked complete, this is stale data
+	# from a previous turn — discard it so the new turn starts fresh
+	if not _checkpoint_data.is_empty():
+		var stale_checkpoint := true
+		var cp_steps: Dictionary = _checkpoint_data.get("step_completed", {})
+		for step_key in cp_steps:
+			if not cp_steps[step_key]:
+				stale_checkpoint = false
+				break
+		if cp_steps.is_empty():
+			stale_checkpoint = false
+		if stale_checkpoint:
+			_checkpoint_data = {}
+			clear_checkpoint()
+
+	# Check for existing checkpoint (BUG-030: preserve progress on Back to Dashboard)
+	if has_checkpoint():
+		restore_from_checkpoint()
+		# Sprint C: Create step indicators (needed even on restore)
+		_create_step_indicators()
+		if proceed_to_battle_button:
+			proceed_to_battle_button.visible = false
+		_fetch_campaign_data()
+		_update_ui_display()
+		_show_current_step()
+		return
+
 	current_step = WorldPhaseStep.UPKEEP
 	step_completed = {
 		WorldPhaseStep.UPKEEP: false,
@@ -665,6 +704,9 @@ func _on_proceed_to_battle_pressed() -> void:
 func _on_back_to_dashboard_pressed() -> void:
 	## Handle Back to Dashboard button - return navigation
 
+	# Save checkpoint so progress is preserved on re-entry
+	save_checkpoint()
+
 	# Emit signal for external listeners
 	return_to_dashboard.emit()
 
@@ -729,6 +771,10 @@ func _on_phase_completed(data: Dictionary) -> void:
 			step_completed[WorldPhaseStep.RESOLVE_RUMORS] = true
 		"mission_prep":
 			step_completed[WorldPhaseStep.MISSION_PREP] = true
+		"crew_tasks":
+			step_completed[WorldPhaseStep.CREW_TASKS] = true
+		"job_offers":
+			step_completed[WorldPhaseStep.JOB_OFFERS] = true
 		# Note: purchase_items, campaign_event, character_event are now in PostBattleSequence
 
 	_update_ui_display()
@@ -741,8 +787,8 @@ func _on_phase_completed(data: Dictionary) -> void:
 func _complete_world_phase() -> void:
 	## Complete the entire world phase and transition to battle
 
-	# Final checkpoint save before battle transition
-	_save_world_phase_checkpoint()
+	# Clear checkpoint — world phase is done, next turn should start fresh
+	clear_checkpoint()
 
 	# Gather results from all 9 components
 	var upkeep_results = {}
@@ -1420,8 +1466,15 @@ func has_checkpoint() -> bool:
 	return not _checkpoint_data.is_empty()
 
 func clear_checkpoint() -> void:
-	## Sprint 26.4: Clear saved checkpoint data
+	## Sprint 26.4: Clear saved checkpoint data (both local and campaign storage)
 	_checkpoint_data = {}
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.current_campaign:
+		var campaign = gs.current_campaign
+		if campaign is Dictionary and "world_phase_checkpoint" in campaign:
+			campaign.erase("world_phase_checkpoint")
+		elif campaign is Resource and campaign.has_meta("world_phase_checkpoint"):
+			campaign.remove_meta("world_phase_checkpoint")
 
 func _save_world_phase_checkpoint() -> void:
 	## Deprecated: Use save_checkpoint() instead. Kept for backward compatibility.

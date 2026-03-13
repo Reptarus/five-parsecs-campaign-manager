@@ -142,9 +142,8 @@ func _setup_battlefield_preview(data: Dictionary) -> void:
 		terrain_system.generate_battlefield(data)
 		return
 
-	# Fallback: show terrain suggestions as formatted text
+	# Gather terrain data from preview data or GameState
 	var terrain_data: Dictionary = data.get("terrain", {})
-	# Also try loading from GameState battlefield data
 	if terrain_data.is_empty():
 		var game_state = get_node_or_null("/root/GameState")
 		if game_state and game_state.has_method("get_battlefield_data"):
@@ -160,7 +159,68 @@ func _setup_battlefield_preview(data: Dictionary) -> void:
 		battlefield_preview.add_child(placeholder)
 		return
 
-	# Render terrain suggestions as text
+	var theme_name: String = terrain_data.get("theme", terrain_data.get("theme_name", ""))
+
+	# Try to extract sector data for the visual map view
+	var sector_array: Array = _extract_sector_array(terrain_data)
+	if not sector_array.is_empty():
+		# Use BattlefieldMapView for visual overhead grid
+		var map_view := BattlefieldMapView.new()
+		map_view.set_anchors_preset(Control.PRESET_FULL_RECT)
+		map_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		map_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		map_view.populate_from_sectors(sector_array, theme_name)
+		battlefield_preview.add_child(map_view)
+
+		# Store terrain data for passthrough to post-battle
+		_store_terrain_for_passthrough(sector_array, theme_name)
+		return
+
+	# Fallback: render terrain suggestions as text
+	_setup_text_terrain_fallback(terrain_data, theme_name)
+
+## Extract sector data into the Array format BattlefieldMapView expects.
+## Handles both dict-keyed sectors and pre-formatted sector arrays.
+func _extract_sector_array(terrain_data: Dictionary) -> Array:
+	# Format A: sectors as Array of {label, features}
+	if terrain_data.has("sector_list"):
+		var sector_list = terrain_data.get("sector_list", [])
+		if sector_list is Array and not sector_list.is_empty():
+			return sector_list
+
+	# Format B: sectors as Dictionary {label: features_or_description}
+	var sectors = terrain_data.get("sectors", {})
+	if sectors is Dictionary and not sectors.is_empty():
+		var result: Array = []
+		for sector_key: String in sectors:
+			var sector_info = sectors[sector_key]
+			var features: Array = []
+			if sector_info is Array:
+				features = sector_info
+			elif sector_info is String:
+				# Single description string — split on comma or use as-is
+				if ", " in sector_info:
+					features = sector_info.split(", ")
+				else:
+					features = [sector_info]
+			elif sector_info is Dictionary:
+				features = sector_info.get("features", [])
+			result.append({"label": sector_key, "features": features})
+		return result
+
+	return []
+
+## Store terrain data in GameState temp_data for post-battle passthrough
+func _store_terrain_for_passthrough(sectors: Array, theme_name: String) -> void:
+	var game_state = get_node_or_null("/root/GameState")
+	if game_state and "temp_data" in game_state:
+		game_state.temp_data["battlefield_terrain"] = {
+			"sectors": sectors,
+			"theme_name": theme_name
+		}
+
+## Text fallback for terrain data without structured sectors
+func _setup_text_terrain_fallback(terrain_data: Dictionary, theme_name: String) -> void:
 	var terrain_log := RichTextLabel.new()
 	terrain_log.bbcode_enabled = true
 	terrain_log.fit_content = true
@@ -169,21 +229,10 @@ func _setup_battlefield_preview(data: Dictionary) -> void:
 	terrain_log.add_theme_font_size_override("normal_font_size", 14)
 
 	var bbcode: String = "[b]Terrain Setup Guide[/b]\n\n"
-
-	# Theme
-	var theme_name: String = terrain_data.get("theme", "")
 	if theme_name != "":
 		bbcode += "[color=#f59e0b]Theme:[/color] %s\n\n" % theme_name
 
-	# Sectors
-	var sectors: Dictionary = terrain_data.get("sectors", {})
-	if not sectors.is_empty():
-		for sector_key in sectors:
-			var sector_info = sectors[sector_key]
-			var desc: String = sector_info if sector_info is String else str(sector_info)
-			bbcode += "[color=#3b82f6]%s:[/color] %s\n" % [sector_key, desc]
-	elif terrain_data.has("suggestions"):
-		# Array of suggestion strings
+	if terrain_data.has("suggestions"):
 		var suggestions: Array = terrain_data.get("suggestions", [])
 		for suggestion in suggestions:
 			bbcode += "- %s\n" % str(suggestion)
@@ -209,6 +258,19 @@ func setup_crew_selection(available_crew: Array) -> void:
 		else:
 			char_button.text = str(item)
 		char_button.toggle_mode = true
+		# Style the pressed/selected state for visual feedback
+		var pressed_style := StyleBoxFlat.new()
+		pressed_style.bg_color = Color("#2D5A7B")  # COLOR_ACCENT
+		pressed_style.border_color = Color("#4FC3F7")  # COLOR_FOCUS
+		pressed_style.set_border_width_all(2)
+		pressed_style.set_corner_radius_all(8)
+		char_button.add_theme_stylebox_override("pressed", pressed_style)
+		var normal_style := StyleBoxFlat.new()
+		normal_style.bg_color = Color("#1E1E36")  # COLOR_INPUT
+		normal_style.border_color = Color("#3A3A5C")  # COLOR_BORDER
+		normal_style.set_border_width_all(1)
+		normal_style.set_corner_radius_all(8)
+		char_button.add_theme_stylebox_override("normal", normal_style)
 		char_button.pressed.connect(_on_character_selected.bind(item))
 		crew_list.add_child(char_button)
 
@@ -261,5 +323,8 @@ func cleanup() -> void:
 		child.queue_free()
 	for child in enemy_info_panel.get_children():
 		child.queue_free()
+	for child in battlefield_preview.get_children():
+		if not child == terrain_system:
+			child.queue_free()
 	for child in crew_selection_panel.get_children():
 		child.queue_free()

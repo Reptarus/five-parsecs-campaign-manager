@@ -1,5 +1,5 @@
 class_name FPCM_CombatCalculator
-extends Control
+extends MarginContainer
 
 ## Combat Calculator - Five Parsecs Combat Math Assistant
 ##

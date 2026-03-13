@@ -126,6 +126,10 @@ func _connect_panel_signals() -> void:
 		world_panel.world_updated.connect(func(world_data: Dictionary):
 			coordinator.update_world_state(world_data)
 		)
+	if world_panel.has_signal("world_created"):
+		world_panel.world_created.connect(func(world_data: Dictionary):
+			coordinator.update_world_state(world_data)
+		)
 
 	# FinalPanel (extends FiveParsecsCampaignPanel)
 	if final_panel.has_signal("campaign_finalization_complete"):
@@ -151,6 +155,9 @@ func _on_step_changed(step: int, _total_steps: int) -> void:
 	# Provide initial state to FiveParsecsCampaignPanel types
 	if current_panel and current_panel.has_method("set_coordinator"):
 		coordinator.provide_initial_state_to_panel(current_panel)
+	# Force navigation refresh after step change — the deferred nav update from
+	# advance_to_next_phase() may have already fired with stale phase data
+	call_deferred("_force_navigation_refresh")
 
 func _show_panel(step: int) -> void:
 	if current_panel:
@@ -200,6 +207,13 @@ func _on_campaign_finalized(data: Dictionary) -> void:
 		router.navigate_to("campaign_turn_controller")
 	else:
 		push_error("CampaignCreationUI: SceneRouter not found")
+
+func _force_navigation_refresh() -> void:
+	# Bypass debounce — directly recalculate and emit navigation state
+	var can_back: bool = coordinator.can_go_back_to_previous_phase()
+	var can_fwd: bool = coordinator.can_advance_to_next_phase()
+	var can_fin: bool = coordinator.can_finish_campaign_creation()
+	_on_navigation_updated(can_back, can_fwd, can_fin)
 
 func get_current_panel() -> Control:
 	return current_panel

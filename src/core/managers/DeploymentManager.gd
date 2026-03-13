@@ -196,3 +196,62 @@ func _calculate_feature_count(feature_type: GameEnums.TerrainFeatureType) -> int
 			return 3
 		_:
 			return 0
+
+## Infer terrain feature summary strings from battlefield data
+static func infer_terrain_features(
+		battlefield_data: Dictionary) -> Array[String]:
+	var summaries: Array[String] = []
+	var cover: float = battlefield_data.get("cover_density", 0.5)
+	var movement: float = battlefield_data.get(
+		"movement_modifier", 1.0)
+	var features: Array = battlefield_data.get(
+		"terrain_features", battlefield_data.get("features", []))
+	var terrain_type: String = battlefield_data.get(
+		"terrain_type", "")
+
+	# Cover assessment
+	if cover >= 0.7:
+		summaries.append("dense cover")
+	elif cover >= 0.4:
+		summaries.append("moderate cover")
+	else:
+		summaries.append("open terrain")
+
+	# Movement assessment
+	if movement <= 0.7:
+		summaries.append("restricted movement")
+	elif movement <= 0.85:
+		summaries.append("slowed movement")
+
+	# Feature-based hazards
+	for feat in features:
+		var f: String = str(feat).to_lower()
+		if f.find("hazard") >= 0 or f.find("airlock") >= 0:
+			summaries.append("hazardous")
+			break
+
+	# Terrain type flavor
+	if not terrain_type.is_empty():
+		summaries.append(terrain_type.to_lower().replace("_", " "))
+
+	return summaries
+
+## Infer deployment type from mission and battlefield context
+static func infer_deployment_type(
+		mission_data: Dictionary,
+		battlefield_data: Dictionary
+		) -> GameEnums.DeploymentType:
+	var battle_type: String = str(
+		mission_data.get("battle_type", ""))
+	var terrain_type: String = battlefield_data.get(
+		"terrain_type", "")
+
+	# Ship interiors use line deployment (corridors)
+	if terrain_type == "SHIP_INTERIOR":
+		return GameEnums.DeploymentType.LINE
+
+	# Defensive missions use defensive deployment
+	if battle_type.find("DEFEND") >= 0:
+		return GameEnums.DeploymentType.DEFENSIVE
+
+	return GameEnums.DeploymentType.STANDARD

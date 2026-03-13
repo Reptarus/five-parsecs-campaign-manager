@@ -46,7 +46,11 @@ func generate_cycle_summary() -> void:
 	var campaign = game_state.campaign
 	var pd: Dictionary = campaign.progress_data \
 		if "progress_data" in campaign else {}
-	cycle_summary["turns_played"] = pd.get("turns_played", 0)
+	# turns_played in progress_data may not be updated yet (written at turn completion),
+	# so also check CampaignPhaseManager.turn_number as the authoritative source.
+	var cpm = get_node_or_null("/root/CampaignPhaseManager")
+	var turn_num: int = cpm.turn_number if cpm and "turn_number" in cpm else pd.get("turns_played", 0)
+	cycle_summary["turns_played"] = turn_num
 	cycle_summary["missions_completed"] = pd.get("missions_completed", 0)
 	cycle_summary["battles_won"] = pd.get("battles_won", 0)
 	cycle_summary["battles_lost"] = pd.get("battles_lost", 0)
@@ -63,11 +67,28 @@ func generate_cycle_summary() -> void:
 	var vc: Dictionary = campaign.victory_conditions \
 		if "victory_conditions" in campaign else {}
 	if not vc.is_empty():
-		cycle_summary["victory_progress"] = "%d / %d (%s)" % [
-			vc.get("progress", pd.get("turns_played", 0)),
-			vc.get("target", 0),
-			vc.get("type", "")
-		]
+		# Victory conditions may be stored in two formats:
+		# 1) Direct: {target, type, progress}
+		# 2) Creation format: {selected_conditions: {type: {target: N}}}
+		var vc_target: int = 0
+		var vc_type: String = ""
+		var vc_progress: int = int(pd.get("turns_played", 0))
+		if vc.has("target"):
+			vc_target = int(vc.get("target", 0))
+			vc_type = str(vc.get("type", ""))
+			vc_progress = int(vc.get("progress", vc_progress))
+		elif vc.has("selected_conditions"):
+			var sel: Dictionary = vc.get("selected_conditions", {})
+			for cond_type in sel:
+				vc_type = str(cond_type)
+				var cond_data = sel[cond_type]
+				if cond_data is Dictionary:
+					vc_target = int(cond_data.get("target", 0))
+				break
+		if vc_target > 0:
+			cycle_summary["victory_progress"] = "%d / %d (%s)" % [
+				vc_progress, vc_target, vc_type
+			]
 
 func update_summary_display() -> void:
 	if summary_label:
@@ -90,8 +111,10 @@ func update_summary_display() -> void:
 		var stat_label = Label.new()
 		var value = cycle_summary[stat]
 		var value_str: String
-		if value is int and stat in ["credits", "story_points"]:
-			value_str = _format_credits(value)
+		if (value is int or value is float) and stat in ["credits", "story_points"]:
+			value_str = _format_credits(int(value))
+		elif value is float and value == floorf(value):
+			value_str = str(int(value))
 		else:
 			value_str = str(value)
 		stat_label.text = stat.capitalize().replace("_", " ") + ": " + value_str

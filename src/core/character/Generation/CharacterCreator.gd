@@ -153,7 +153,37 @@ func _ready() -> void:
 	_update_preview()
 
 func _populate_dropdowns() -> void:
-	_populate_option_button(origin_options, ORIGIN_ITEMS)
+	# Build origin list with DLC species if enabled
+	var origins: Array = ORIGIN_ITEMS.duplicate()
+	var dlc = Engine.get_main_loop().root.get_node_or_null(
+		"/root/DLCManager") if Engine.get_main_loop() else null
+	# Track which DLC species are locked (shown but disabled)
+	var locked_species: Array[String] = []
+	if dlc and dlc.has_method("is_feature_enabled"):
+		var flags = dlc.get("ContentFlag") if dlc.has_method("get") else null
+		if not flags and "ContentFlag" in dlc:
+			flags = dlc.ContentFlag
+		if flags:
+			if "SPECIES_KRAG" in flags:
+				if dlc.is_feature_enabled(flags.SPECIES_KRAG):
+					origins.append(["Krag (DLC)", GlobalEnums.Origin.KRAG])
+				else:
+					origins.append(["Krag (DLC Required)", GlobalEnums.Origin.KRAG])
+					locked_species.append("Krag")
+			if "SPECIES_SKULKER" in flags:
+				if dlc.is_feature_enabled(flags.SPECIES_SKULKER):
+					origins.append(["Skulker (DLC)", GlobalEnums.Origin.SKULKER])
+				else:
+					origins.append(["Skulker (DLC Required)", GlobalEnums.Origin.SKULKER])
+					locked_species.append("Skulker")
+	_populate_option_button(origin_options, origins)
+	# Disable locked DLC species entries in dropdown
+	for i in range(origin_options.item_count):
+		var item_text: String = origin_options.get_item_text(i)
+		for species_name in locked_species:
+			if species_name in item_text and "Required" in item_text:
+				origin_options.set_item_disabled(i, true)
+				origin_options.set_item_tooltip(i, "Requires Trailblazer's Toolkit DLC")
 	_populate_option_button(background_options, BACKGROUND_ITEMS)
 	_populate_option_button(class_options, CLASS_ITEMS)
 	_populate_option_button(motivation_options, MOTIVATION_ITEMS)
@@ -301,6 +331,12 @@ func _apply_origin_bonuses(origin_id: int) -> void:
 			current_bonuses.origin["REACTIONS"] = 1
 		GlobalEnums.Origin.BOT:
 			current_bonuses.origin["TOUGHNESS"] = 1
+		GlobalEnums.Origin.KRAG:
+			current_bonuses.origin["TOUGHNESS"] = 1
+			current_bonuses.origin["SAVVY"] = -1
+		GlobalEnums.Origin.SKULKER:
+			current_bonuses.origin["SPEED"] = 1
+			current_bonuses.origin["TOUGHNESS"] = -1
 		# HUMAN: no stat bonuses
 
 	_apply_bonuses(current_bonuses.origin)

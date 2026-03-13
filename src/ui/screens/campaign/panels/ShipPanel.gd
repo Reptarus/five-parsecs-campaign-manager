@@ -105,6 +105,10 @@ func _ready() -> void:
 	# Initialize components immediately after base structure is ready
 	_initialize_components()
 
+	# BUG-017/016/023: Auto-generate a ship so Next is immediately available.
+	# The user can still re-roll via the Reroll button.
+	call_deferred("_auto_generate_if_needed")
+
 # NOTE: _add_progress_indicator() removed - CampaignCreationUI handles progress display centrally
 
 func _apply_input_styling() -> void:
@@ -335,6 +339,14 @@ func _initialize_components() -> void:
 			debt_spinbox = _create_debt_section(content_node)
 	else:
 		pass
+
+	# BUG-016 FIX: Override scene-defined spinbox properties that have wrong values
+	# Scene has debt step=100 (should be 1) and hull max=20 (should be 100)
+	if debt_spinbox:
+		debt_spinbox.step = 1
+		debt_spinbox.max_value = 200
+	if hull_points_spinbox:
+		hull_points_spinbox.max_value = 100
 	
 	# Traits might be at different location
 	traits_container = content_node.get_node_or_null("Traits/Container")
@@ -376,11 +388,10 @@ func _initialize_components() -> void:
 
 	_connect_signals()
 	_initialize_ship_data()
-	_generate_ship()
+	# NOTE: Do NOT call _generate_ship() here — _auto_generate_if_needed() handles it
+	# to avoid double-generation (which causes spinbox/card value mismatch BUG-016)
 	# Wrap form sections in glass morphism cards
 	call_deferred("_wrap_form_in_cards")
-	# Ensure UI is updated with ship data after components are ready
-	call_deferred("_update_ship_display")
 	call_deferred("emit_panel_ready")
 
 # Remove ShipManager integration to prevent overlay issues
@@ -778,33 +789,57 @@ func _create_ship_stat_card(stat_name: String, current_value: int, max_value: in
 	panel.add_child(vbox)
 	return panel
 
+func _auto_generate_if_needed() -> void:
+	## BUG-017/016/023: Auto-generate ship on panel entry if no ship data exists yet.
+	## This eliminates the dead-end where data is visible but Next is disabled.
+	if not local_ship_data.get("is_complete", false):
+		_on_generate_pressed()
+
+	# After auto-generation, hide Generate and show Reroll as the primary action
+	if generate_button:
+		generate_button.visible = false
+	if reroll_button:
+		reroll_button.visible = true
+		reroll_button.text = "Re-roll Ship"
+
+	# Direct coordinator notification as fallback (signals may debounce)
+	var coord: Node = null
+	if has_method("get_coordinator"):
+		coord = get_coordinator()
+	elif _coordinator:
+		coord = _coordinator
+	if coord and coord.has_method("mark_phase_complete"):
+		coord.mark_phase_complete(4, true)  # 4 = SHIP_ASSIGNMENT
+
 # Signal handlers
 func _on_generate_pressed() -> void:
-	## Generate ship and mark panel as complete
+	## Generate ship and mark panel as complete.
+	## _generate_ship() populates ship_data and updates the UI via _update_ship_display().
+	## We then set completion flags and emit signals ONCE with the final data.
 	_generate_ship()
-	
+
 	# Mark panel as complete after successful generation
 	local_ship_data["is_complete"] = true
+	local_ship_data["ship"] = ship_data.duplicate()
 	ship_data["is_configured"] = true
-	
-	# Update ship UI with generated data
-	if ship_name_input:
-		ship_name_input.text = ship_data.get("name", "Unnamed Ship")
-	if ship_type_option:
-		ship_type_option.text = ship_data.get("type", "Worn Freighter")
-	if hull_points_spinbox:
-		hull_points_spinbox.value = ship_data.get("hull_points", 10)
-	if debt_spinbox:
-		debt_spinbox.value = ship_data.get("debt", 0)
-	
-	# Update validation status and emit signals
+	is_ship_complete = true
+
+	# UI is already updated by _generate_ship() → _update_ship_display()
+	# No need to set spinboxes/inputs again (was causing spinbox/card mismatch BUG-016)
+
+	# Emit completion signals with flat data dict
 	_update_validation_status()
 	panel_data_changed.emit(local_ship_data)
 	panel_validation_changed.emit(true)
-	# Removed redundant panel_completed.emit() - completion handled by _validate_and_complete()
+	var complete_data: Dictionary = _build_ship_data()
+	ship_data_complete.emit(complete_data)
+	# Note: _generate_ship() already emits ship_updated with raw ship_data,
+	# but we emit again with the enriched complete_data (includes is_complete flag)
+	ship_updated.emit(complete_data)
 	
 func _on_reroll_pressed() -> void:
-	_generate_ship()
+	## Re-roll delegates to _on_generate_pressed() to ensure completion flags are set
+	_on_generate_pressed()
 
 func _on_select_specific_pressed() -> void:
 	## Show ship selection dialog - implement based on your UI architecture
@@ -1392,8 +1427,8 @@ func _create_debt_section(parent: Node) -> SpinBox:
 	var spinbox = SpinBox.new()
 	spinbox.name = "Value"
 	spinbox.min_value = 0
-	spinbox.max_value = 100000
-	spinbox.step = 1000
+	spinbox.max_value = 200
+	spinbox.step = 1
 	spinbox.value = 0
 	spinbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	spinbox.custom_minimum_size.y = TOUCH_TARGET_MIN
