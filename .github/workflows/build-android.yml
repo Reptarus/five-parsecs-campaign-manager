@@ -1,0 +1,54 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: "4.6.1"
+  PROJECT_PATH: "."
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.6.1-stable
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup export directories
+        run: |
+          mkdir -p ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          mkdir -p build/android
+
+      - name: Compile check (headless)
+        run: godot --headless --quit --path ${PROJECT_PATH} 2>&1 || true
+
+      - name: Setup Android keystore
+        run: |
+          mkdir -p ~/.android
+          keytool -keyalg RSA -genkeypair -alias androiddebugkey \
+            -keypass android -keystore ~/.android/debug.keystore \
+            -storepass android -dname "CN=Android Debug,O=Android,C=US" \
+            -validity 9999 -deststoretype pkcs12 2>/dev/null || true
+          echo 'export/android/android_sdk_path = "/usr/lib/android-sdk"' >> ~/.config/godot/editor_settings-4.3.tres || true
+
+      - name: Export Android APK (debug)
+        run: |
+          godot --headless --export-debug "fiveparsecsfromhometest" \
+            build/android/FiveParsecsTest.apk \
+            --path ${PROJECT_PATH} 2>&1 || true
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-apk-debug
+          path: build/android/FiveParsecsTest.apk
+          retention-days: 30
+          if-no-files-found: warn

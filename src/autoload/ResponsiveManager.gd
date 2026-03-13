@@ -14,20 +14,26 @@ const BREAKPOINTS := {
 
 signal breakpoint_changed(new_breakpoint: int)
 signal viewport_resized(new_size: Vector2)
+signal orientation_changed(is_landscape: bool)
 
 var current_breakpoint: int = Breakpoint.DESKTOP
 var current_viewport_size: Vector2 = Vector2.ZERO
+var is_landscape: bool = true
+var screen_scale_factor: float = 1.0
 var _viewport: Viewport = null
 
 func _ready() -> void:
 	_viewport = get_tree().root
+	_detect_screen_scale()
 	_update_breakpoint()
+	_update_orientation()
 	if _viewport:
 		_viewport.size_changed.connect(_on_viewport_size_changed)
 
 func _on_viewport_size_changed() -> void:
 	var previous_breakpoint := current_breakpoint
 	_update_breakpoint()
+	_update_orientation()
 	viewport_resized.emit(current_viewport_size)
 	if current_breakpoint != previous_breakpoint:
 		breakpoint_changed.emit(current_breakpoint)
@@ -123,6 +129,23 @@ func get_breakpoint_name() -> String:
 		Breakpoint.DESKTOP: return "DESKTOP"
 		Breakpoint.WIDE: return "WIDE"
 	return "UNKNOWN"
+
+func is_portrait() -> bool:
+	return not is_landscape
+
+func get_screen_scale() -> float:
+	return screen_scale_factor
+
+func _update_orientation() -> void:
+	var was_landscape := is_landscape
+	is_landscape = current_viewport_size.x >= current_viewport_size.y
+	if is_landscape != was_landscape:
+		orientation_changed.emit(is_landscape)
+
+func _detect_screen_scale() -> void:
+	screen_scale_factor = DisplayServer.screen_get_scale()
+	if screen_scale_factor <= 0.0:
+		screen_scale_factor = 1.0
 
 func debug_print_state() -> void:
 	pass

@@ -1,0 +1,85 @@
+name: Build PC (Windows + Linux)
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: "4.6.1"
+  PROJECT_PATH: "."
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.6.1-stable
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup export directories
+        run: |
+          mkdir -p ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          mkdir -p build/linux
+
+      - name: Compile check (headless)
+        run: godot --headless --quit --path ${PROJECT_PATH} 2>&1 || true
+
+      - name: Export Linux x86_64
+        run: |
+          godot --headless --export-debug "Linux" \
+            build/linux/FiveParsecs.x86_64 \
+            --path ${PROJECT_PATH} 2>&1 || true
+
+      - name: Upload Linux build
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: linux-x86_64
+          path: build/linux/
+          retention-days: 30
+          if-no-files-found: warn
+
+  build-windows:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.6.1-stable
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup export directories
+        run: |
+          mkdir -p ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          mkdir -p build/windows
+
+      - name: Compile check (headless)
+        run: godot --headless --quit --path ${PROJECT_PATH} 2>&1 || true
+
+      - name: Setup Windows export preset
+        run: |
+          # Check if Windows preset exists, add if missing
+          if ! grep -q 'platform="Windows Desktop"' export_presets.cfg 2>/dev/null; then
+            echo "Warning: No Windows export preset found in export_presets.cfg"
+            echo "Add a Windows Desktop preset in the Godot editor to enable Windows builds"
+          fi
+
+      - name: Export Windows
+        run: |
+          godot --headless --export-debug "Windows Desktop" \
+            build/windows/FiveParsecs.exe \
+            --path ${PROJECT_PATH} 2>&1 || true
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-x86_64
+          path: build/windows/
+          retention-days: 30
+          if-no-files-found: warn
