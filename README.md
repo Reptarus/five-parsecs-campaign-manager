@@ -1,102 +1,90 @@
 # Five Parsecs Campaign Manager
 
-![Godot 4.6](https://img.shields.io/badge/Godot-4.6--stable-478CBF?logo=godotengine&logoColor=white)
-![License: MIT](https://img.shields.io/github/license/Reptarus/five-parsecs-campaign-manager)
+> A digital campaign companion for [**Five Parsecs From Home**](https://modiphius.net/en-us/collections/five-parsecs-from-home) — handles the bookkeeping, dice rolling, table lookups, and campaign tracking so you can focus on actually playing.
+
+[![Godot 4.6](https://img.shields.io/badge/Godot-4.6--stable-478CBF?logo=godotengine&logoColor=white)](https://godotengine.org/)
+[![License: MIT](https://img.shields.io/github/license/Reptarus/five-parsecs-campaign-manager)](LICENSE)
 ![Status: Demo-Ready](https://img.shields.io/badge/Status-Demo--Ready-green)
 ![GDScript](https://img.shields.io/badge/GDScript-100%25-478CBF)
+[![GitHub Stars](https://img.shields.io/github/stars/Reptarus/five-parsecs-campaign-manager?style=social)](https://github.com/Reptarus/five-parsecs-campaign-manager/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/Reptarus/five-parsecs-campaign-manager?style=social)](https://github.com/Reptarus/five-parsecs-campaign-manager/network/members)
 
-A digital campaign companion for [**Five Parsecs From Home**](https://modiphius.net/en-us/collections/five-parsecs-from-home) built in Godot 4.6. It handles the bookkeeping, dice rolling, table lookups, and campaign tracking so you can focus on actually playing.
+[![GitHub Issues](https://img.shields.io/github/issues/Reptarus/five-parsecs-campaign-manager)](https://github.com/Reptarus/five-parsecs-campaign-manager/issues)
+[![Last Commit](https://img.shields.io/github/last-commit/Reptarus/five-parsecs-campaign-manager)](https://github.com/Reptarus/five-parsecs-campaign-manager/commits/master)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20This%20Project-FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/)
+[![Patreon](https://img.shields.io/badge/Patreon-Support%20This%20Project-F96854?logo=patreon&logoColor=white)](https://patreon.com/)
 
-> Developed with the awareness and blessing of [Modiphius Entertainment](https://modiphius.net/).
+<!-- Replace the Ko-fi and Patreon URLs above with your actual pages when ready -->
+
+Developed with the awareness and blessing of [Modiphius Entertainment](https://modiphius.net/). 170 out of 170 game mechanics implemented — **100% core rules coverage** including all Compendium content.
+
+---
+
+![Campaign Dashboard](docs/screenshots/campaign-dashboard.png)
+
+---
 
 ## Screenshots
 
-![Main Menu](docs/screenshots/main-menu.png)
-
-![Campaign Creation — Step 1 config with difficulty settings and campaign options](docs/screenshots/campaign-creation.png)
-
-![Campaign Dashboard — Crew manifest, ship status, world info, patrons, and campaign history](docs/screenshots/campaign-dashboard.png)
-
-![Battle Companion — Tactical UI with 4x4 battlefield grid, crew sidebar, combat modifiers, and battle journal](docs/screenshots/battle-companion.png)
-
-![Choose Your Companion Level — Log Only, Assisted, or Full Oracle](docs/screenshots/companion-levels.png)
-
-![World Phase — Crew task assignment and results](docs/screenshots/world-phase.png)
-
-![Post-Battle Sequence — 14-step processing with injury, loot, experience, and morale](docs/screenshots/post-battle.png)
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/main-menu.png" alt="Main Menu" width="400"/><br/><b>Main Menu</b></td>
+    <td align="center"><img src="docs/screenshots/campaign-creation.png" alt="Campaign Creation" width="400"/><br/><b>Campaign Creation</b><br/>Step 1 config with difficulty settings</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/battle-companion.png" alt="Battle Companion" width="400"/><br/><b>Battle Companion</b><br/>4x4 grid, combat tools, dice dashboard</td>
+    <td align="center"><img src="docs/screenshots/companion-levels.png" alt="Companion Levels" width="400"/><br/><b>Companion Levels</b><br/>Log Only, Assisted, or Full Oracle</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/world-phase.png" alt="World Phase" width="400"/><br/><b>World Phase</b><br/>Crew task assignment and results</td>
+    <td align="center"><img src="docs/screenshots/post-battle.png" alt="Post-Battle Sequence" width="400"/><br/><b>Post-Battle Sequence</b><br/>14-step processing with injury, loot, XP</td>
+  </tr>
+</table>
 
 ---
 
 ## Features
 
-### Full Campaign Lifecycle
-
-- **7-phase campaign creation wizard**: Config, Captain, Crew, Equipment, Ship, World, Review
-- **Complete 9-phase campaign turn loop**: Story, Travel, Upkeep, Mission, Post-Battle, Advancement, Trading, Character, Retirement
-- Save/load with auto-save at each turn start and rotating backups
-
-### 100% Core Rules Coverage
-
-- **170 out of 170** game mechanics implemented, including all Compendium content
-- 11 core rules systems verified against the published rulebook
-- All dice tables, event charts, injury tables, loot tables, and encounter generators match the rules as written
+### Campaign Lifecycle
+- **7-phase creation wizard**: Config, Captain, Crew, Equipment, Ship, World, Review
+- **Complete 9-phase turn loop**: Story, Travel, Upkeep, Mission, Post-Battle, Advancement, Trading, Character, Retirement
+- Save/load with auto-save and rotating backups
 
 ### Battle Companion
+A **tabletop assistant** that generates text instructions for your physical tabletop. Three tracking tiers:
 
-The battle system is a **tabletop companion assistant** — it generates text instructions for you to execute on your physical tabletop. Three tracking tiers depending on how much you want the app to handle:
+| Tier | You Handle | App Handles |
+| ---- | ---------- | ----------- |
+| **Log Only** | Everything | Records results |
+| **Assisted** | Confirmation | Suggests rolls and outcomes |
+| **Full Oracle** | Nothing | All mechanics (great for solo) |
 
-| Tier | Description |
-| ---- | ----------- |
-| **Log Only** | You resolve everything, the app records results |
-| **Assisted** | App suggests rolls and outcomes, you confirm |
-| **Full Oracle** | App resolves all mechanics automatically (great for solo play) |
+Includes: dice dashboard, combat calculator, situation analyzer, activation tracker, weapon reference, terrain setup guide, enemy intent suggestions, deployment zone calculator, and victory condition tracker.
 
-Tools include: dice dashboard, combat calculator, combat situation analyzer, activation/initiative tracker, round tracker, weapon table reference, cheat sheet, terrain setup guide, enemy intent suggestions, deployment zone calculator, and victory condition tracker.
-
-### Visual Battlefield Grid
-
-4x4 sector grid (A1–D4) generated from terrain themes — Industrial Zone, Wilderness, Alien Ruin, Crash Site, Urban Settlement, Wasteland, Ship Interior, and more. Each cell draws terrain shapes for buildings, rocks, walls, trees, water, hills, containers, and hazards. Click any cell for detailed descriptions and gameplay effects. Regenerate for new layouts.
+### Visual Battlefield
+4x4 sector grid (A1-D4) with procedural terrain from 8+ themes — Industrial Zone, Wilderness, Alien Ruin, Crash Site, Urban Settlement, Wasteland, Ship Interior, and more. Click any cell for descriptions and gameplay effects.
 
 ### Post-Battle Processing
-
-Handles all 14 sub-steps: injury processing (human + bot tables), loot gathering with implant auto-install, experience distribution, Stars of Story persistence, morale updates, equipment damage/repair, recovery ticks, and journal entries.
+All 14 sub-steps automated: injury tables (human + bot), loot with implant auto-install, XP distribution, Stars of Story, morale, equipment damage/repair, recovery, and journal entries.
 
 ### Crew Management
-
-Full character system with combat, reaction, toughness, speed, savvy, and luck stats. Skills, abilities, XP/leveling, equipment loadouts with comparison tool, implant system (6 types, max 3), morale tracking, faction relations, and character history with timeline.
+Full character system: combat, reaction, toughness, speed, savvy, luck. Skills, abilities, XP/leveling, equipment loadouts with comparison tool, implant system (6 types, max 3), morale, faction relations, and character history.
 
 ### World Phase
-
-- **Crew tasks**: Trade, explore, recruit, train — with proper D100 result tables matching Core Rules pp. 76–82
-- **Patron system**: Job generation and completion tracking
-- **Faction system**: Rival reputation and faction missions
-- **Planet tracking**: Per-planet contacts and data across visits
-- **World economy**: Trade modifiers by world type
+Crew tasks (trade, explore, recruit, train) with D100 result tables matching Core Rules pp. 76-82. Patron jobs, faction missions, per-planet tracking, and world economy modifiers.
 
 ### Compendium Support (3 Optional Packs)
+All Compendium content separated as optional modules — zero impact when disabled:
 
-All Compendium content is separated from core as optional modules with zero impact when disabled:
+- **Trailblazer's Toolkit** — Krag & Skulker species, psionics, bot upgrades, psionic gear
+- **Freelancer's Handbook** — Progressive difficulty, AI variations, elite enemies, expanded missions
+- **Fixer's Guidebook** — Stealth missions, street fights, salvage jobs, expanded factions
 
-- **Trailblazer's Toolkit** — Krag & Skulker species, psionics, training, bot upgrades, ship parts, psionic gear
-- **Freelancer's Handbook** — Progressive difficulty, AI variations, escalating battles, elite enemies, no-minis combat, grid movement, PvP/co-op, expanded missions/quests/connections
-- **Fixer's Guidebook** — Stealth missions, street fights, salvage jobs, expanded factions, world strife, loans, compendium names, introductory campaign, prison planet
-
-### Bug Hunt Gamemode (Compendium)
-
-Standalone military-themed variant with its own 3-stage turn loop, separate creation wizard, and dedicated dashboard. Includes special assignments, contact markers, and character transfer between standard and Bug Hunt campaigns.
+### Bug Hunt Gamemode
+Standalone military-themed variant with its own 3-stage turn loop, creation wizard, dashboard, and character transfer between campaign modes.
 
 ### Store & DLC System
-
-Tri-platform purchase system (Steam, Android, iOS) with offline fallback. All Compendium content is gated behind DLC flags and can be purchased in-app or unlocked for testing.
-
-### Quality of Life
-
-- Campaign journal with auto-generated entries and character histories
-- JSON and Markdown import/export
-- Equipment comparison panel
-- 21 victory condition types
-- Custom dark "Deep Space" UI theme with responsive layout
-- Cross-platform in-app review prompts
+Tri-platform purchase system (Steam, Android, iOS) with offline fallback. Compendium content gated behind DLC flags.
 
 ---
 
@@ -115,35 +103,37 @@ git clone https://github.com/Reptarus/five-parsecs-campaign-manager.git
 1. Open Godot 4.6
 2. Click **Import** and navigate to the cloned folder
 3. Select `project.godot` and open the project
-4. Press **F5** (or click the Play button) to run
+4. Press **F5** to run
 
 ### Current Status
 
-This project is **demo-ready**. All core features are complete, the full campaign gameplay loop is playable across all 9 phases, and the Bug Hunt gamemode is fully functional. The project has zero compile errors with 100% game mechanics coverage. Bug reports and feedback are welcome via [Issues](https://github.com/Reptarus/five-parsecs-campaign-manager/issues).
+**Demo-ready.** All core features complete, the full campaign gameplay loop is playable across all 9 phases, and Bug Hunt is fully functional. Zero compile errors, 100% game mechanics coverage. Bug reports and feedback welcome via [Issues](https://github.com/Reptarus/five-parsecs-campaign-manager/issues).
 
 ---
 
 ## Roadmap
 
-- Better battlefield visualization (pushing toward a more graphic-centric interface)
+- Better battlefield visualization (more graphic-centric interface)
 - UI polish and mobile optimization
-- Bug Hunt co-op mode support
-- [**Five Parsecs: Tactics**](https://modiphius.net/en-us/products/five-parsecs-from-home-tactics) support — the framework is being built with the goal of eventually handling Tactics as well, with multi-squad management, vehicles, and larger battlefield setups
-- Community feedback and playtesting
-- Public beta (pending Modiphius approval)
+- Bug Hunt co-op mode
+- [**Five Parsecs: Tactics**](https://modiphius.net/en-us/products/five-parsecs-from-home-tactics) support — multi-squad management, vehicles, larger battlefields
+- Community playtesting and public beta (pending Modiphius approval)
 
 ---
 
 ## Contributing
 
-Contributions are welcome! Whether it's bug reports, feature requests, or pull requests — all are appreciated.
+Contributions are welcome — bug reports, feature requests, and pull requests all appreciated.
 
 - [Report a Bug](https://github.com/Reptarus/five-parsecs-campaign-manager/issues/new?template=bug_report.md)
 - [Request a Feature](https://github.com/Reptarus/five-parsecs-campaign-manager/issues/new?template=feature_request.md)
 
+If you find this project useful, consider giving it a **star** — it helps others discover it.
+
 ---
 
-## Technical Details
+<details>
+<summary><b>Technical Details</b></summary>
 
 | Detail | Value |
 | ------ | ----- |
@@ -156,6 +146,8 @@ Contributions are welcome! Whether it's bug reports, feature requests, or pull r
 | Bug Hunt Gamemode | Complete (38 files, 3-stage turn) |
 | Store/DLC System | Tri-platform (Steam/Android/iOS) |
 
+</details>
+
 ---
 
 ## License
@@ -164,5 +156,5 @@ This project is licensed under the MIT License — see the [LICENSE](LICENSE) fi
 
 ## Acknowledgments
 
-- **[Five Parsecs From Home](https://modiphius.net/en-us/collections/five-parsecs-from-home)** is a tabletop game by Modiphius Entertainment. This project is a fan-made companion tool and is not an official Modiphius product.
+- **[Five Parsecs From Home](https://modiphius.net/en-us/collections/five-parsecs-from-home)** is a tabletop game by [Modiphius Entertainment](https://modiphius.net/). This is a fan-made companion tool, not an official Modiphius product.
 - Built with the [Godot Engine](https://godotengine.org/).
