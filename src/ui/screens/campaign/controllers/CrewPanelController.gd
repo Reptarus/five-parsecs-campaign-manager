@@ -7,7 +7,6 @@ extends Node
 
 # Character creation system integration
 const SimpleCharacterCreator = preload("res://src/core/character/Generation/SimpleCharacterCreator.gd")
-const Character = preload("res://src/core/character/Character.gd")
 
 # Base class properties
 var panel_node: Control = null

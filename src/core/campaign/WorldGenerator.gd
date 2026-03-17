@@ -78,6 +78,25 @@ func generate_world(campaign_turn: int = 1) -> Dictionary:
 	# Step 6: Determine special features
 	var special_features = _determine_special_features(planet_type, danger_level)
 	
+	# Core Rules parameters (p.80-86)
+	var tech_level: int = randi_range(1, 6)
+	var government_roll: int = randi_range(1, 10)
+	var population_scale: int = randi_range(1, 6)
+
+	var tech_name: String = "Standard"
+	if tech_level <= 2:
+		tech_name = "Low Tech"
+	elif tech_level >= 5:
+		tech_name = "High Tech"
+
+	var gov_name: String = _get_government_type(government_roll)
+
+	var pop_name: String = "Moderate"
+	if population_scale <= 2:
+		pop_name = "Sparse"
+	elif population_scale >= 5:
+		pop_name = "Dense"
+
 	# Create the world data dictionary
 	var world_data = {
 		"id": "world_" + str(Time.get_unix_time_from_system()),
@@ -85,6 +104,12 @@ func generate_world(campaign_turn: int = 1) -> Dictionary:
 		"type": planet_type.get("type", "Unknown"),
 		"type_name": planet_type.get("name", "Unknown Planet"),
 		"danger_level": danger_level,
+		"tech_level": tech_level,
+		"tech_name": tech_name,
+		"government_type": government_roll,
+		"government_name": gov_name,
+		"population_scale": population_scale,
+		"population_name": pop_name,
 		"traits": traits,
 		"locations": locations,
 		"special_features": special_features,
@@ -99,6 +124,21 @@ func generate_world(campaign_turn: int = 1) -> Dictionary:
 	world_generated.emit(world_data)
 	
 	return world_data
+
+## Government type from d10 roll (Core Rules p.82)
+func _get_government_type(roll: int) -> String:
+	match roll:
+		1: return "Anarchy"
+		2: return "Corporate"
+		3: return "Democracy"
+		4: return "Dictatorship"
+		5: return "Feudal"
+		6: return "Military Junta"
+		7: return "Oligarchy"
+		8: return "Technocracy"
+		9: return "Theocracy"
+		10: return "Unity Oversight"
+		_: return "Unknown"
 
 ## Generate a planet type according to rulebook tables (p.80)
 func _generate_planet_type() -> Dictionary:

@@ -96,8 +96,9 @@ func set_crew_data(crew: Array) -> void:
 		if savvy > highest_savvy:
 			highest_savvy = savvy
 
-		# Check for Feral species (origin property on Character)
-		var species: String = member.origin if "origin" in member else ""
+		# Check for Feral species (origin property on Character — may be String or int)
+		var species_raw = member.origin if "origin" in member else ""
+		var species: String = str(species_raw) if species_raw is int else (species_raw if species_raw is String else "")
 		if species.to_lower() == "feral":
 			has_feral = true
 

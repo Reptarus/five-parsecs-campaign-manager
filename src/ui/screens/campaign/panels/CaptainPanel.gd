@@ -1,6 +1,6 @@
 extends Control
 
-const Character = preload("res://src/core/character/Base/Character.gd")
+# Character class_name is globally available — do NOT preload Base/Character.gd (shadows the canonical class)
 const CharacterCreator = preload("res://src/core/character/Generation/CharacterCreator.gd")
 signal captain_updated(captain)
 
@@ -11,7 +11,7 @@ signal captain_updated(captain)
 @onready var edit_button = $Content/Controls/EditButton
 @onready var randomize_button = $Content/Controls/RandomizeButton
 
-var current_captain # Character instance (untyped to avoid class_name resolution mismatch)
+var current_captain # Untyped — CharacterCreator may return canonical Character or BaseCharacterResource
 
 func _ready() -> void:
 	_connect_signals()
@@ -46,6 +46,8 @@ func _on_randomize_pressed() -> void:
 
 func _on_character_created(character) -> void:
 	current_captain = character
+	if character and "is_captain" in character:
+		character.is_captain = true
 	character_creator.hide()
 	content.show()
 	_update_ui()
@@ -53,6 +55,8 @@ func _on_character_created(character) -> void:
 
 func _on_character_edited(character) -> void:
 	current_captain = character
+	if character and "is_captain" in character:
+		character.is_captain = true
 	character_creator.hide()
 	content.show()
 	_update_ui()
@@ -64,17 +68,32 @@ func _on_creation_cancelled() -> void:
 
 func _update_ui() -> void:
 	if current_captain:
-		var info_text = """Captain Information:
-		Name: %s
-		Class: %s
-		Origin: %s
-		Background: %s
-		Motivation: %s""" % [
+		var fmt := "Captain Information:" \
+			+ "\nName: %s\nClass: %s\nOrigin: %s" \
+			+ "\nBackground: %s\nMotivation: %s" \
+			+ "\n\nStats:" \
+			+ "\n  Combat: %d    Reactions: %d    Toughness: %d" \
+			+ "\n  Speed: %d     Savvy: %d       Luck: %d"
+		var info_text = fmt % [
 			current_captain.character_name,
-			_enum_value_name(GlobalEnums.CharacterClass, current_captain.character_class),
-			_enum_value_name(GlobalEnums.Origin, current_captain.origin),
-			_enum_value_name(GlobalEnums.Background, current_captain.background),
-			_enum_value_name(GlobalEnums.Motivation, current_captain.motivation)
+			_enum_value_name(
+				GlobalEnums.CharacterClass,
+				current_captain.character_class),
+			_enum_value_name(
+				GlobalEnums.Origin,
+				current_captain.origin),
+			_enum_value_name(
+				GlobalEnums.Background,
+				current_captain.background),
+			_enum_value_name(
+				GlobalEnums.Motivation,
+				current_captain.motivation),
+			current_captain.combat,
+			current_captain.reaction,
+			current_captain.toughness,
+			current_captain.speed,
+			current_captain.savvy,
+			current_captain.luck,
 		]
 
 		captain_info.text = info_text
@@ -87,7 +106,11 @@ func _update_ui() -> void:
 		edit_button.hide()
 		randomize_button.show()
 
-func _enum_value_name(enum_dict: Dictionary, value: int) -> String:
+func _enum_value_name(enum_dict: Dictionary, value: Variant) -> String:
+	if value is String:
+		if value.is_empty():
+			return "None"
+		return value.capitalize()
 	for key in enum_dict:
 		if enum_dict[key] == value:
 			return key.capitalize()

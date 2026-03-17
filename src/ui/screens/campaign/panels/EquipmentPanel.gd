@@ -909,6 +909,26 @@ func _persist_equipment_to_manager(crew_members: Array) -> void:
 					failed_count += 1
 					push_warning("  → Failed to add equipment: %s" % equipment_item.get("name"))
 
+	# Sync equipment names back to Character.equipment (Array[String]) for save/load consistency.
+	# EquipmentManager stores rich Dicts, but Character.to_dictionary() serializes the simple
+	# equipment Array[String]. Without this sync, equipment may be lost on save/load.
+	if equipment_manager:
+		for member in crew_members:
+			var char_id: String = ""
+			if "character_id" in member:
+				char_id = member.character_id
+			if char_id.is_empty():
+				continue
+			if equipment_manager.has_method("get_character_equipment"):
+				var assigned_ids: Array = equipment_manager.get_character_equipment(char_id)
+				var names: Array[String] = []
+				for eq_id in assigned_ids:
+					var eq: Dictionary = equipment_manager.get_equipment(eq_id)
+					if not eq.is_empty():
+						names.append(eq.get("name", "Unknown"))
+				if not names.is_empty() and "equipment" in member:
+					member.equipment = names
+
 
 func _get_character_id_from_name(crew_members: Array, character_name: String) -> String:
 	## Get character ID from crew member name
@@ -1600,8 +1620,18 @@ func validate_panel() -> bool:
 	return errors.is_empty()
 
 func get_panel_data() -> Dictionary:
-	## Get panel data - interface implementation
-	return get_equipment_data()
+	## Get panel data - canonical implementation
+	return {
+		"equipment": generated_equipment.duplicate(),
+		"credits": starting_credits,
+		"crew_size": crew_size,
+		"is_complete": local_equipment_data.is_complete,
+		"metadata": {
+			"last_modified": Time.get_unix_time_from_system(),
+			"version": "1.0",
+			"panel_type": "equipment_generation"
+		}
+	}
 
 func set_panel_data(data: Dictionary) -> void:
 	## Set panel data - interface implementation. Delegates to restore_panel_data.
@@ -1679,18 +1709,8 @@ func _validate_equipment_data() -> Array[String]:
 
 func get_equipment_data() -> Dictionary:
 	## DEPRECATED: Use get_panel_data() instead. Will be removed in future version.
-	push_warning("EquipmentPanel.get_equipment_data() is deprecated - use get_panel_data() instead")
-	return {
-		"equipment": generated_equipment.duplicate(),
-		"credits": starting_credits,
-		"crew_size": crew_size,
-		"is_complete": local_equipment_data.is_complete,
-		"metadata": {
-			"last_modified": Time.get_unix_time_from_system(),
-			"version": "1.0",
-			"panel_type": "equipment_generation"
-		}
-	}
+	push_warning("EquipmentPanel.get_equipment_data() is deprecated - use get_panel_data()")
+	return get_panel_data()
 
 ## Panel Data Persistence Implementation
 
@@ -1909,13 +1929,13 @@ func _on_equipment_dialog_closed(popup: AcceptDialog) -> void:
 	_validate_and_complete()
 	popup.queue_free()
 	# Switch to manual equipment selection mode
-	var equipment_data = get_equipment_data()
+	var equipment_data = get_panel_data()
 	equipment_data["manual_mode"] = true
 	# Removed redundant panel_completed.emit() - completion handled by _validate_and_complete()
 
 func _validate_equipment_selection() -> void:
 	## Validate current equipment selection
-	var equipment_data = get_equipment_data()
+	var equipment_data = get_panel_data()
 	var total_value = equipment_data.get("total_value", 0)
 	var is_valid = total_value > 0
 

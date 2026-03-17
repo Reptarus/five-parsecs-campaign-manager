@@ -1028,11 +1028,13 @@ func previous_panel() -> bool:
 func can_advance_to_next_phase() -> bool:
 	## Check if we can advance to the next phase
 	var current_phase = state_manager.current_phase
-	
-	# Special case: Allow advancing from CONFIG phase even if empty for initial setup
+
+	# CONFIG phase: require campaign name before allowing Next
 	if current_phase == CampaignCreationStateManager.Phase.CONFIG:
-		return true
-	
+		var config: Dictionary = state_manager.campaign_data.get("config", {})
+		var name_str: String = str(config.get("campaign_name", ""))
+		return not name_str.strip_edges().is_empty()
+
 	# Check if current phase is completed
 	return phase_completion_status.get(current_phase, false)
 
@@ -1340,7 +1342,40 @@ func _aggregate_all_phase_data() -> Dictionary:
 		campaign_data["victory_conditions"] = victory_conditions
 		campaign_data["story_track_enabled"] = config_data.get("story_track_enabled", false)
 
-	pass # Campaign data aggregated
+	# BUG-035 FIX: Distribute equipment to crew members based on "owner" field.
+	# EquipmentPanel stores a flat array with owner assignments; translate that
+	# into per-crew-member equipment lists so Mission Prep and gameplay see them.
+	var equip_items: Array = campaign_data.get("equipment", {}).get("equipment", [])
+	if equip_items.is_empty():
+		equip_items = campaign_data.get("equipment", {}).get("items", [])
+	var crew_dict: Dictionary = campaign_data.get("crew", {})
+	var members: Array = crew_dict.get("members", [])
+	if not equip_items.is_empty() and not members.is_empty():
+		# Initialize equipment arrays on crew members
+		for member in members:
+			if not member.has("equipment"):
+				member["equipment"] = []
+		# Ship stash: items that are unassigned
+		var ship_stash: Array = []
+		for item in equip_items:
+			var owner_name: String = item.get("owner", "Unassigned")
+			if owner_name == "Unassigned" or owner_name.is_empty():
+				ship_stash.append(item)
+				continue
+			# Find matching crew member by name
+			var assigned = false
+			for member in members:
+				var member_name: String = member.get("name", member.get("character_name", ""))
+				if member_name == owner_name:
+					member["equipment"].append(item)
+					assigned = true
+					break
+			if not assigned:
+				ship_stash.append(item)
+		# Update equipment_data with ship stash only (assigned items are on crew)
+		campaign_data["equipment"] = {"equipment": ship_stash}
+		campaign_data["crew"]["members"] = members
+
 	return campaign_data
 
 func get_phase_name(phase: CampaignCreationStateManager.Phase) -> String:

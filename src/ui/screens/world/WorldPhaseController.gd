@@ -434,6 +434,8 @@ func _initialize_components_with_data() -> void:
 		for item in equipment:
 			if item is Dictionary:
 				typed_equipment.append(item)
+		# BUG-035 FIX: Enrich crew dicts with equipment from EquipmentManager
+		_enrich_crew_equipment(typed_crew)
 		mission_prep_component.initialize_mission_prep(mission, typed_crew, typed_equipment)
 
 	# Note: Post-battle components (PurchaseItems, CampaignEvent, CharacterEvent) now initialized in PostBattleSequence
@@ -955,6 +957,8 @@ func _refresh_mission_prep() -> void:
 				if item is Dictionary:
 					typed_equipment.append(item)
 
+		# BUG-035 FIX: Enrich crew dicts with equipment from EquipmentManager
+		_enrich_crew_equipment(typed_crew)
 		mission_prep_component.initialize_mission_prep(accepted_job, typed_crew, typed_equipment)
 
 func _refresh_assign_equipment() -> void:
@@ -1526,3 +1530,17 @@ func _show_battle_scene_missing_error() -> void:
 	error_dialog.popup_centered()
 	# Dialog will be freed when user acknowledges it
 	error_dialog.confirmed.connect(error_dialog.queue_free)
+
+## BUG-035 FIX: Enrich crew member dicts with equipment from EquipmentManager
+func _enrich_crew_equipment(typed_crew: Array[Dictionary]) -> void:
+	var eq_mgr = get_node_or_null("/root/EquipmentManager")
+	if not eq_mgr or not eq_mgr.has_method("get_character_equipment"):
+		return
+	for i in range(typed_crew.size()):
+		var member_id: String = typed_crew[i].get(
+			"id", typed_crew[i].get("character_id", ""))
+		if member_id.is_empty():
+			continue
+		var member_equip: Array = eq_mgr.get_character_equipment(member_id)
+		if not member_equip.is_empty():
+			typed_crew[i]["equipment"] = member_equip

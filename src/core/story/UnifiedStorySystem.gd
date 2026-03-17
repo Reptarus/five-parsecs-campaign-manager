@@ -5,7 +5,7 @@ extends Node
 ## Dependencies
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
-const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
+const CharacterDataMgr = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
 const StoryQuestData := preload("res://src/game/story/StoryQuestData.gd")
 const GameLocation = preload("res://src/game/world/GameLocation.gd")

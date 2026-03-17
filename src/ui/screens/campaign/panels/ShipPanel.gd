@@ -490,11 +490,12 @@ func _validate_no_ui_duplication() -> void:
 
 func _find_containers_recursive(node: Node, content_list: Array, form_list: Array) -> void:
 	## Recursively find all Content and FormContainer nodes
-	if "Content" in node.name and node.name != "ContentMargin":
+	# Match exact name "Content" only — not substrings like "FormContent", "MainContent"
+	if node.name == "Content":
 		content_list.append(node.get_path())
-	if "FormContainer" in node.name:
+	if node.name == "FormContainer":
 		form_list.append(node.get_path())
-	
+
 	for child in node.get_children():
 		_find_containers_recursive(child, content_list, form_list)
 
@@ -595,53 +596,53 @@ func _generate_ship_name() -> String:
 	return "%s %s" % [prefixes[randi() % prefixes.size()], suffixes[randi() % suffixes.size()]]
 
 func _populate_ship_types() -> void:
-	## Populate ship type dropdown with all Five Parsecs ship types
+	## Populate ship type dropdown with Five Parsecs Core Rules ship types
 	if not ship_type_option:
 		return
 	ship_type_option.clear()
+	ship_type_option.add_item("Freelancer")
 	ship_type_option.add_item("Worn Freighter")
-	ship_type_option.add_item("Patrol Boat")
-	ship_type_option.add_item("Converted Transport")
 	ship_type_option.add_item("Scout Ship")
+	ship_type_option.add_item("Patrol Boat")
 	ship_type_option.add_item("Armed Trader")
+	ship_type_option.add_item("Converted Transport")
 	ship_type_option.add_item("Light Freighter")
-	ship_type_option.add_item("Modified Corvette")
-	ship_type_option.add_item("Salvage Hauler")
-	ship_type_option.add_item("Deep Space Explorer")
 
 func _calculate_starting_hull(ship_type: String) -> int:
-	## Calculate starting hull points based on ship type
+	## Calculate starting hull points based on ship type (Core Rules scale: 6-14)
 	match ship_type:
-		"Worn Freighter": return 30
-		"Patrol Boat": return 25
-		"Converted Transport": return 35
-		"Scout Ship": return 20
-		"Armed Trader": return 28
-		_: return randi_range(20, 35)
+		"Freelancer": return 10
+		"Worn Freighter": return 8
+		"Scout Ship": return 6
+		"Patrol Boat": return 10
+		"Armed Trader": return 10
+		"Converted Transport": return 12
+		"Light Freighter": return 10
+		_: return 10
 
 func _calculate_starting_debt(ship_type: String) -> int:
-	## Calculate starting debt based on ship type
+	## Calculate starting debt based on ship type (Core Rules scale: 0-5)
 	match ship_type:
-		"Worn Freighter": return randi_range(1, 6) + 20 # 1D6+20 credits debt
-		"Patrol Boat": return randi_range(2, 12) + 15 # 2D6+15 credits debt
-		"Converted Transport": return randi_range(1, 6) + 25 # 1D6+25 credits debt
-		"Scout Ship": return randi_range(2, 12) + 10 # 2D6+10 credits debt
-		"Armed Trader": return randi_range(3, 18) + 20 # 3D6+20 credits debt
-		_: return randi_range(2, 12) + randi_range(1, 20) # Variable debt
+		"Freelancer": return randi_range(0, 3)
+		"Worn Freighter": return randi_range(1, 5)
+		"Scout Ship": return 0
+		"Patrol Boat": return randi_range(1, 4)
+		"Armed Trader": return randi_range(1, 4)
+		"Converted Transport": return randi_range(2, 5)
+		"Light Freighter": return randi_range(0, 3)
+		_: return randi_range(0, 3)
 
 func _calculate_cargo_capacity(ship_type: String) -> int:
 	## Calculate cargo capacity based on ship type (FinalPanel compatibility)
 	match ship_type:
-		"Worn Freighter": return 20  # Freighters are cargo specialists
-		"Patrol Boat": return 8      # Combat vessel, minimal cargo
-		"Converted Transport": return 30  # Transport = big cargo
-		"Scout Ship": return 6       # Fast and light
-		"Armed Trader": return 15    # Balanced trade vessel
-		"Modified Corvette": return 10  # Military retrofit
-		"Salvage Hauler": return 25   # Cargo for salvage
-		"Deep Space Explorer": return 12  # Long-range supplies
-		"Racing Ship": return 4       # Speed over cargo
-		_: return 10  # Default moderate capacity
+		"Freelancer": return 5
+		"Worn Freighter": return 8
+		"Scout Ship": return 2
+		"Patrol Boat": return 3
+		"Armed Trader": return 6
+		"Converted Transport": return 10
+		"Light Freighter": return 7
+		_: return 5
 
 func _update_ship_display() -> void:
 	## Update UI to reflect current ship data with glass morphism styling
@@ -953,52 +954,52 @@ func _generate_ship() -> void:
 	_validate_and_complete()
 
 func _create_worn_freighter() -> void:
-	## Create a Worn Freighter (most common starting ship)
+	## Create a Worn Freighter — reliable but aging, higher debt
 	ship_data.type = "Worn Freighter"
-	ship_data.debt = randi_range(1, 6) + 20 # 1D6+20 credits debt
-	ship_data.hull_points = 30
-	ship_data.max_hull = 30
+	ship_data.debt = randi_range(1, 5)
+	ship_data.hull_points = 8
+	ship_data.max_hull = 8
 	ship_data.traits = _roll_ship_traits()
 
 func _create_patrol_boat() -> void:
-	## Create a Patrol Boat
+	## Create a Patrol Boat — sturdy military surplus
 	ship_data.type = "Patrol Boat"
-	ship_data.debt = randi_range(2, 12) + 15 # 2D6+15 credits debt
-	ship_data.hull_points = 25
-	ship_data.max_hull = 25
+	ship_data.debt = randi_range(1, 4)
+	ship_data.hull_points = 10
+	ship_data.max_hull = 10
 	ship_data.traits = _roll_ship_traits()
 
 func _create_converted_transport() -> void:
-	## Create a Converted Transport
+	## Create a Converted Transport — large hull, higher debt
 	ship_data.type = "Converted Transport"
-	ship_data.debt = randi_range(1, 6) + 25 # 1D6+25 credits debt
-	ship_data.hull_points = 35
-	ship_data.max_hull = 35
+	ship_data.debt = randi_range(2, 5)
+	ship_data.hull_points = 12
+	ship_data.max_hull = 12
 	ship_data.traits = _roll_ship_traits()
 
 func _create_scout_ship() -> void:
-	## Create a Scout Ship
+	## Create a Scout Ship — small and nimble, no debt
 	ship_data.type = "Scout Ship"
-	ship_data.debt = randi_range(2, 12) + 10 # 2D6+10 credits debt
-	ship_data.hull_points = 20
-	ship_data.max_hull = 20
+	ship_data.debt = 0
+	ship_data.hull_points = 6
+	ship_data.max_hull = 6
 	ship_data.traits = _roll_ship_traits()
 
 func _create_armed_trader() -> void:
-	## Create an Armed Trader
+	## Create an Armed Trader — balanced combat/trade vessel
 	ship_data.type = "Armed Trader"
-	ship_data.debt = randi_range(3, 18) + 20 # 3D6+20 credits debt
-	ship_data.hull_points = 28
-	ship_data.max_hull = 28
+	ship_data.debt = randi_range(1, 4)
+	ship_data.hull_points = 10
+	ship_data.max_hull = 10
 	ship_data.traits = _roll_ship_traits()
 
 func _create_custom_ship() -> void:
-	## Create a custom/unique ship
-	var ship_types = ["Modified Corvette", "Salvage Hauler", "Deep Space Explorer", "Racing Ship"]
+	## Create a Freelancer or Light Freighter — versatile starter ship
+	var ship_types = ["Freelancer", "Light Freighter"]
 	ship_data.type = ship_types[randi() % ship_types.size()]
-	ship_data.debt = randi_range(2, 12) + randi_range(1, 20) # Variable debt
-	ship_data.hull_points = randi_range(20, 35)
-	ship_data.max_hull = ship_data.hull_points
+	ship_data.debt = randi_range(0, 3)
+	ship_data.hull_points = 10
+	ship_data.max_hull = 10
 	ship_data.traits = _roll_ship_traits()
 
 func _roll_ship_traits() -> Array[String]:
@@ -1427,7 +1428,7 @@ func _create_debt_section(parent: Node) -> SpinBox:
 	var spinbox = SpinBox.new()
 	spinbox.name = "Value"
 	spinbox.min_value = 0
-	spinbox.max_value = 200
+	spinbox.max_value = 10
 	spinbox.step = 1
 	spinbox.value = 0
 	spinbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL

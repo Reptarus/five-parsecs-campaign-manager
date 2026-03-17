@@ -10,6 +10,8 @@ const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_diffic
 const ProgressiveDifficultyTrackerRef = preload("res://src/core/systems/ProgressiveDifficultyTracker.gd")
 const CompendiumNoMinisCombat = preload("res://src/data/compendium_no_minis.gd")
 const BattleResolverClass = preload("res://src/core/battle/BattleResolver.gd")
+const RedZoneSystem = preload("res://src/core/mission/RedZoneSystem.gd")
+const BlackZoneSystem = preload("res://src/core/mission/BlackZoneSystem.gd")
 
 # Safe dependency loading - loaded at runtime in _ready()
 # GlobalEnums available as autoload singleton
@@ -230,9 +232,63 @@ func _process_battle_setup() -> void:
 	# Get mission type from setup data or generate
 	var mission_type = battle_setup_data.get("mission_type", _generate_mission_type())
 
-	# Generate enemy forces
-	var enemy_count = _determine_enemy_count()
+	# Check if this is a Red/Black Zone mission (Core Rules Appendix III)
+	var is_red_zone: bool = battle_setup_data.get("is_red_zone", false)
+	var is_black_zone: bool = battle_setup_data.get("is_black_zone", false)
+	var red_zone_threat: Dictionary = {}
+	var red_zone_time_constraint: Dictionary = {}
+	var black_zone_mission: Dictionary = {}
+
+	# Generate enemy forces (Red/Black Zone override standard count)
+	var enemy_count: int
+	if is_black_zone:
+		# Black Zone: 4 teams of 4 from Roving Threats (initial wave only)
+		var bz_opposition := BlackZoneSystem.get_opposition_rules()
+		var team_size: int = bz_opposition.get("team_size", 4)
+		var initial_teams: int = bz_opposition.get("initial_teams", 4)
+		enemy_count = team_size * initial_teams
+		black_zone_mission = BlackZoneSystem.roll_mission_type()
+		print("BattlePhase: BLACK ZONE — %d enemies (%d teams of %d), Mission: %s" % [
+			enemy_count, initial_teams, team_size, black_zone_mission.get("name", "Unknown")
+		])
+	elif is_red_zone:
+		var opposition := RedZoneSystem.get_opposition_rules()
+		enemy_count = opposition.get("base_enemy_count", 7)
+		red_zone_threat = RedZoneSystem.roll_threat_condition()
+		red_zone_time_constraint = RedZoneSystem.roll_time_constraint()
+		# Heavy Opposition threat condition: +2 enemies
+		if red_zone_threat.get("name", "") == "Heavy Opposition":
+			enemy_count += 2
+		print("BattlePhase: RED ZONE — %d enemies, Threat: %s, Time: %s" % [
+			enemy_count, red_zone_threat.get("name", "None"), red_zone_time_constraint.get("name", "None")
+		])
+	else:
+		enemy_count = _determine_enemy_count()
 	var enemy_types = _generate_enemies(enemy_count)
+
+	# Get difficulty for Unique Individual and specialist modifiers
+	var difficulty: int = GlobalEnums.DifficultyLevel.NORMAL
+	if game_state_manager and game_state_manager.has_method("get_difficulty"):
+		difficulty = game_state_manager.get_difficulty()
+
+	# Insanity mode: +1 specialist enemy per battle (Core Rules p.65)
+	var specialist_bonus: int = DifficultyModifiers.get_specialist_enemy_modifier(difficulty)
+	if specialist_bonus > 0:
+		for i in range(specialist_bonus):
+			var specialist: Dictionary = {
+				"id": "specialist_bonus_%d" % i,
+				"type": _get_random_enemy_type(),
+				"combat_skill": randi_range(1, 3),
+				"toughness": randi_range(4, 5),
+				"speed": randi_range(4, 6),
+				"weapons": ["Military Rifle"],
+				"weapon_traits": ["ranged"],
+				"is_specialist": true
+			}
+			enemy_types.append(specialist)
+
+	# Determine Unique Individual presence (Core Rules pp.64-65, 94)
+	var unique_individual: Dictionary = _determine_unique_individual(difficulty, mission_type)
 
 	# Determine battlefield conditions
 	var terrain_type = _determine_terrain()
@@ -241,11 +297,18 @@ func _process_battle_setup() -> void:
 	# Store setup data
 	battle_setup_data = {
 		"mission_type": mission_type,
-		"enemy_count": enemy_count,
+		"enemy_count": enemy_types.size(),
 		"enemy_types": enemy_types,
 		"terrain": terrain_type,
 		"deployment": deployment_conditions,
-		"round_limit": max_rounds
+		"round_limit": max_rounds,
+		"unique_individual": unique_individual,
+		"difficulty": difficulty,
+		"is_red_zone": is_red_zone,
+		"red_zone_threat": red_zone_threat,
+		"red_zone_time_constraint": red_zone_time_constraint,
+		"is_black_zone": is_black_zone,
+		"black_zone_mission": black_zone_mission
 	}
 
 	# DLC: Apply compendium difficulty modifiers
@@ -395,6 +458,45 @@ func _determine_deployment_conditions() -> Dictionary:
 		"enemy_deployment_zone": "standard",
 		"special_conditions": []
 	}
+
+func _determine_unique_individual(difficulty: int, mission_type: int) -> Dictionary:
+	## Determine if a Unique Individual is present (Core Rules pp.64-65, 94)
+	##
+	## - Standard: Roll 2D6, on 9+ a Unique Individual is present
+	## - Hardcore: +1 to the roll
+	## - Insanity: Always forced. On 2D6 roll of 11-12, TWO Unique Individuals
+	## - Invasion battles and Roving Threats: no Unique Individual (standard rules)
+	var result: Dictionary = {"present": false, "count": 0, "forced": false}
+
+	# Check if Unique Individual is forced (Insanity mode)
+	if DifficultyModifiers.is_unique_individual_forced(difficulty):
+		result.present = true
+		result.count = 1
+		result.forced = true
+		# Insanity: Roll 2D6, on 11-12 include TWO Unique Individuals
+		if DifficultyModifiers.can_have_double_unique_individual(difficulty):
+			var double_roll: int = randi_range(1, 6) + randi_range(1, 6)
+			if double_roll >= 11:
+				result.count = 2
+				print("BattlePhase: INSANITY — Double Unique Individual! (rolled %d)" % double_roll)
+		print("BattlePhase: INSANITY — Forced Unique Individual (count: %d)" % result.count)
+		return result
+
+	# Standard roll: 2D6, 9+ = Unique Individual present
+	var roll: int = randi_range(1, 6) + randi_range(1, 6)
+
+	# Hardcore: +1 to roll for Unique Individual
+	var modifier: int = DifficultyModifiers.get_unique_individual_roll_modifier(difficulty)
+	var final_roll: int = roll + modifier
+
+	if final_roll >= 9:
+		result.present = true
+		result.count = 1
+		print("BattlePhase: Unique Individual present (roll %d + mod %d = %d >= 9)" % [roll, modifier, final_roll])
+	else:
+		print("BattlePhase: No Unique Individual (roll %d + mod %d = %d < 9)" % [roll, modifier, final_roll])
+
+	return result
 
 func _process_deployment() -> void:
 	## Step 2: Deployment - Position forces on battlefield

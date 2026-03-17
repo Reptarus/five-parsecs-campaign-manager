@@ -95,6 +95,12 @@
       "name": "Unity Presence",
       "trait_type": 2,
       "description": "Unity patrols provide safety. Reduced chance of ambush events."
+    },
+    {
+      "id": "high_cost",
+      "name": "High Cost of Living",
+      "trait_type": 1,
+      "description": "Crew size counts as 2 higher for Upkeep costs. Supplies and services cost more."
     }
   ]
 }

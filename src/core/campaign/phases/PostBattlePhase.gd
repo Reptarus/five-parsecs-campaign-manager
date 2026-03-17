@@ -14,6 +14,8 @@ const InjuryConstants = preload("res://src/core/systems/InjurySystemConstants.gd
 const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 const MoraleSystemRef = preload("res://src/core/systems/MoraleSystem.gd")
 const CharacterRef = preload("res://src/core/character/Character.gd")
+const RedZoneSystemRef = preload("res://src/core/mission/RedZoneSystem.gd")
+const BlackZoneSystemRef = preload("res://src/core/mission/BlackZoneSystem.gd")
 var dice_manager: Variant = null
 var game_state_manager: Variant = null
 ## Sprint 28.2: Cached GameState reference (avoids 18+ get_node_or_null calls)
@@ -482,12 +484,19 @@ func _process_payment() -> void:
 		_process_battlefield_finds()
 		return
 
-	# Get difficulty setting (0 = Easy, 1 = Normal, 2+ = Harder)
+	# Get difficulty setting (uses GlobalEnums.DifficultyLevel values)
 	var difficulty: int = _get_campaign_difficulty()
-	var is_easy_mode: bool = difficulty == 0
+	var is_easy_mode: bool = (difficulty == GlobalEnums.DifficultyLevel.EASY)
 
 	# Roll base D6 for payment multiplier
 	var base_roll: int = _roll_d6("Payment base roll")
+
+	# Red Zone: roll twice, pick better (Core Rules Appendix III, Improved Rewards)
+	var is_red_zone: bool = battle_result.get("is_red_zone", false)
+	if is_red_zone:
+		var red_second_roll: int = _roll_d6("Red Zone second credit roll")
+		base_roll = max(base_roll, red_second_roll)
+		print("PostBattlePhase: Red Zone — credit roll %d vs %d, using %d" % [base_roll, red_second_roll, base_roll])
 
 	# Quest finale: roll twice, pick better, +1 (Core Rules p.86)
 	var is_quest_finale: bool = battle_result.get("is_quest_finale", false)
@@ -495,7 +504,7 @@ func _process_payment() -> void:
 		var second_roll: int = _roll_d6("Quest finale second roll")
 		base_roll = max(base_roll, second_roll) + 1
 
-	# Easy mode: +1 (Core Rules difficulty modifiers)
+	# Easy mode: +1 credit reward (Core Rules p.64)
 	if is_easy_mode:
 		base_roll += 1
 
@@ -514,15 +523,22 @@ func _process_payment() -> void:
 	var total_payment: int = int(raw_payment * payment_multiplier)
 
 	# F-3 fix: Apply difficulty multiplier to payment
-	# Higher difficulty = higher rewards (0.875x to 1.375x based on difficulty 1-5)
+	# Higher difficulty = higher rewards. Uses GlobalEnums.DifficultyLevel values.
 	if total_payment > 0:
-		difficulty = clampi(difficulty, 0, 5)
-		var difficulty_multiplier: float = 0.75 + ((difficulty + 1) * 0.125) # 0.875 to 1.5
-		var adjusted_payment: int = int(total_payment * difficulty_multiplier)
-		total_payment = adjusted_payment
+		var pay_multiplier: float = 1.0
+		if difficulty == GlobalEnums.DifficultyLevel.EASY:
+			pay_multiplier = 0.875
+		elif difficulty == GlobalEnums.DifficultyLevel.CHALLENGING:
+			pay_multiplier = 1.0
+		elif difficulty == GlobalEnums.DifficultyLevel.HARDCORE:
+			pay_multiplier = 1.25
+		elif difficulty == GlobalEnums.DifficultyLevel.INSANITY:
+			pay_multiplier = 1.5
+		# NORMAL = 1.0x (default)
+		total_payment = int(total_payment * pay_multiplier)
 
 	# Sprint 26.5: Debug log payment breakdown
-	var difficulty_bonus_amount: int = int(total_payment - (raw_payment * payment_multiplier)) if difficulty > 0 else 0
+	var difficulty_bonus_amount: int = int(total_payment - (raw_payment * payment_multiplier)) if difficulty != GlobalEnums.DifficultyLevel.NORMAL else 0
 	_debug_log_payment(base_payment, danger_pay, 0, 0, total_payment)
 
 	# Award payment
@@ -654,14 +670,20 @@ func _process_invasion_check() -> void:
 		modifiers -= 1
 		modifier_reasons.append("-1 held field")
 
-	# Difficulty modifiers
+	# Difficulty modifiers (Core Rules pp.64-65, using DifficultyModifiers for correct enum mapping)
 	var difficulty: int = _get_campaign_difficulty()
-	if difficulty >= 3:  # Hardcore
-		modifiers += 2
-		modifier_reasons.append("+2 Hardcore")
-	if difficulty >= 4:  # Insanity
-		modifiers += 1
-		modifier_reasons.append("+1 Insanity")
+	var invasion_difficulty_mod: int = DifficultyModifiers.get_invasion_roll_modifier(difficulty)
+	if invasion_difficulty_mod != 0:
+		modifiers += invasion_difficulty_mod
+		var diff_name: String = DifficultyModifiers.get_difficulty_summary(difficulty).split(":")[0]
+		modifier_reasons.append("+%d %s" % [invasion_difficulty_mod, diff_name])
+
+	# Red Zone: +2 to invasion rolls (Core Rules Appendix III)
+	if battle_result.get("is_red_zone", false):
+		var rz_mods: Dictionary = RedZoneSystemRef.get_invasion_modifiers()
+		var rz_invasion_mod: int = rz_mods.get("invasion_roll_modifier", 2)
+		modifiers += rz_invasion_mod
+		modifier_reasons.append("+%d Red Zone" % rz_invasion_mod)
 
 	var final_roll: int = invasion_roll + modifiers
 	var invasion_pending: bool = final_roll >= 9
@@ -1088,11 +1110,16 @@ func _calculate_crew_xp(crew_id: String) -> int:
 		xp += 1
 		xp_breakdown.append("+1 unique kill")
 
-	# Easy mode bonus: +1 (Core Rules difficulty)
+	# Easy mode bonus: +1 XP per battle survivor (Core Rules p.64)
 	var difficulty: int = _get_campaign_difficulty()
-	if difficulty == 0: # Easy
+	var xp_bonus: int = DifficultyModifiers.get_xp_bonus(difficulty)
+	if xp_bonus > 0:
+		xp += xp_bonus
+
+	# Red Zone: +1 XP per survivor who held the field (Core Rules Appendix III)
+	if battle_result.get("is_red_zone", false) and battle_result.get("held_field", false):
 		xp += 1
-		xp_breakdown.append("+1 Easy mode")
+		xp_breakdown.append("+%d Easy mode" % xp_bonus)
 
 	# Quest finale bonus: +1
 	if battle_result.get("is_quest_finale", false):
@@ -1110,12 +1137,19 @@ func _calculate_crew_xp(crew_id: String) -> int:
 
 func _apply_xp_multiplier(base_xp: int) -> int:
 	## Apply difficulty-based XP multiplier (F-3 fix)
+	## Uses GlobalEnums.DifficultyLevel values — no index array, use match instead
 	var difficulty: int = _get_campaign_difficulty()
-	difficulty = clampi(difficulty, 0, 5)
 
-	# Easy = 0.75x, Normal = 1.0x, Hard = 1.0x, Hardcore = 1.25x, Insanity = 1.5x
-	var xp_multipliers: Array[float] = [0.75, 1.0, 1.0, 1.25, 1.5, 1.5]
-	var final_xp: int = maxi(1, int(base_xp * xp_multipliers[difficulty]))
+	var multiplier: float = 1.0
+	if difficulty == GlobalEnums.DifficultyLevel.EASY:
+		multiplier = 0.75
+	elif difficulty == GlobalEnums.DifficultyLevel.HARDCORE:
+		multiplier = 1.25
+	elif difficulty == GlobalEnums.DifficultyLevel.INSANITY:
+		multiplier = 1.5
+	# NORMAL and CHALLENGING = 1.0x (default)
+
+	var final_xp: int = maxi(1, int(base_xp * multiplier))
 
 	if base_xp != final_xp:
 		pass
@@ -2996,13 +3030,7 @@ func _add_character_xp(character: Variant, xp_amount: int) -> void:
 	var char_name: String = character.character_name if "character_name" in character else (character.name if "name" in character else "Unknown")
 	print("PostBattlePhase: %s gained +%d XP" % [char_name, xp_amount])
 
-func _roll_d6(_context: String = "") -> int:
-	## Roll a single D6, return 1-6
-	return randi_range(1, 6)
-
-func _roll_2d6(_context: String = "") -> int:
-	## Roll 2D6, return 2-12
-	return randi_range(1, 6) + randi_range(1, 6)
+## _roll_d6 and _roll_2d6 are defined earlier in this file (lines 131/138)
 	##
 	## func _reduce_character_recovery(character: Variant, turns: int) -> void:
 	## ## Reduce recovery time for specific character via status_effects duration
@@ -3372,6 +3400,14 @@ func _roll_2d6(_context: String = "") -> int:
 # Stub functions for methods whose implementations are commented out above.
 # These stubs prevent parse/compile errors from live code that calls them.
 # ═══════════════════════════════════════════════════════════════════════════════
+
+func _process_injuries() -> void:
+	## Step 8: Determine Injuries and Recovery (stub — full logic commented out above)
+	pass
+
+func _debug_log_experience(_xp_awards: Array, _total_xp: int, _advancements: Array) -> void:
+	## Debug log experience awards (stub)
+	pass
 
 func _debug_log_post_battle_input(_battle_data: Dictionary) -> void:
 	## Log post-battle input data for debugging handoff from Battle Phase (stub)

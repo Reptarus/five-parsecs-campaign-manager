@@ -6,7 +6,6 @@ extends Node
 ## Handles captain character creation, editing, and display
 
 # Character creation system integration
-const Character = preload("res://src/core/character/Character.gd")
 const SimpleCharacterCreator = preload("res://src/core/character/Generation/SimpleCharacterCreator.gd")
 
 # Base class properties

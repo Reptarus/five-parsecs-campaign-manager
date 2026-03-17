@@ -115,13 +115,46 @@ func _setup_buttons() -> void:
 
 ## Set crew data for automatic savvy detection
 func set_crew(crew: Array) -> void:
+	if not initiative_system:
+		initiative_system = SeizeInitiativeSystem.new()
 	initiative_system.set_crew_data(crew)
 
 	# Update savvy display
 	if savvy_value:
 		savvy_value.value = initiative_system.highest_savvy
 
+	# BUG-042 FIX: Auto-detect equipment modifiers from crew data
+	_auto_detect_equipment(crew)
+
 	_update_probability()
+
+## BUG-042 FIX: Scan crew equipment for initiative-relevant items
+func _auto_detect_equipment(crew: Array) -> void:
+	var has_motion_tracker := false
+	var has_scanner_bot := false
+	for member in crew:
+		var equip_list: Array = []
+		if member is Dictionary:
+			equip_list = member.get("equipment", [])
+		elif "equipment" in member:
+			var eq = member.equipment
+			equip_list = eq if eq is Array else []
+		for item in equip_list:
+			var item_name: String = ""
+			if item is Dictionary:
+				item_name = item.get("name", "").to_lower()
+			elif item is String:
+				item_name = item.to_lower()
+			if "motion tracker" in item_name:
+				has_motion_tracker = true
+			if "scanner bot" in item_name:
+				has_scanner_bot = true
+	if motion_tracker_check:
+		motion_tracker_check.button_pressed = has_motion_tracker
+		initiative_system.set_motion_tracker(has_motion_tracker)
+	if scanner_bot_check:
+		scanner_bot_check.button_pressed = has_scanner_bot
+		initiative_system.set_scanner_bot(has_scanner_bot)
 
 ## Set highest savvy manually
 func set_savvy(value: int) -> void:

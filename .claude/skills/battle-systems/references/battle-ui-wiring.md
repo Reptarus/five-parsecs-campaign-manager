@@ -21,12 +21,34 @@ return_to_battle_resolution()
 - `turn_phase: String` (movement/action/resolution)
 - `tier_controller: Resource` (FPCM_BattleTierController)
 - `current_deployment_type: GameEnums.DeploymentType`
+- `@onready var bottom_bar: PanelContainer = $MainContainer/BottomBar`
 
 ### Main Setup Method
 ```gdscript
 func initialize_battle(crew_members: Array, enemies: Array, mission_data = null) -> void
 ```
 Sets up crew/enemy lists, shows tier selection, initializes components.
+
+### Phase 30: Battle Setup Additions (BattlePhase.gd)
+
+`battle_setup_data` now includes:
+- `"unique_individual"`: Dict with `present`, `count`, `forced` — determined by `_determine_unique_individual()` using `DifficultyModifiers`
+- `"is_red_zone"` / `"is_black_zone"`: Zone mission flags
+- `"red_zone_threat"`: Threat Condition (D6 table) for Red Zone missions
+- `"red_zone_time_constraint"`: Time Constraint (Round 6 D6 table)
+- `"black_zone_mission"`: Mission type for Black Zone (5 types)
+- `"difficulty"`: `GlobalEnums.DifficultyLevel` int value
+
+New systems: `RedZoneSystem.gd`, `BlackZoneSystem.gd` — preloaded in BattlePhase.gd.
+
+### Stage Visibility (`_apply_stage_visibility()`)
+
+Controls per-stage UI element visibility (added QA Sprint Mar 15, 2026):
+
+- **TIER_SELECT**: hides `bottom_bar`, `phase_breadcrumb`; shows overlay
+- **SETUP/DEPLOYMENT**: shows `bottom_bar`, `phase_breadcrumb`, `battle_round_hud`
+- **COMBAT**: shows all; sets fallback `turn_indicator.text = "Round 1 - Combat"` when no `round_tracker`
+- **RESOLUTION**: hides `battle_round_hud`, `action_buttons`, `phase_breadcrumb`; sets `turn_indicator.text = "Battle Complete"`
 
 ### Three Oracle Tiers
 
@@ -49,6 +71,39 @@ Sets up crew/enemy lists, shows tier selection, initializes components.
 func _apply_tier_visibility(tier: int) -> void
 ```
 Shows/hides components based on selected tier. Components are lazily instantiated.
+
+### Terrain Map Enhancements (QA Sprint Mar 15, 2026)
+
+- **BattlefieldShapeLibrary**: New static `get_rotation_range(shape_type) -> float` method returns per-shape rotation angles
+- **BattlefieldMapView**: Terrain rotation applied per piece; `_objective_position` property with `set_objective_position()` API; `_draw_terrain_labels_on()` labels ALL terrain with inch-position callouts; gold diamond + "OBJ" objective marker
+- **BattlefieldGridPanel**: Terrain legend with colored swatches added
+- **BattlefieldGenerator**: `generate_terrain_suggestions()` now creates 0-2 cross-sector spanning features; density boosted (0.6 -> 0.75 + 30% cluster chance)
+- **compendium_terrain.json**: `regular_feature_per_sector_chance` updated 0.6 -> 0.75
+
+### Initiative Calculator Wiring (Phase 31 Fix, Mar 16 2026)
+
+The `InitiativeCalculator` component requires explicit data setup. Prior to Phase 31 (BUG-042), it was instantiated but never given crew data, causing initiative rolls to fail silently.
+
+**Required wiring in `initialize_battle()`**:
+```gdscript
+if initiative_calculator:
+    initiative_calculator.set_crew(crew_members)
+    initiative_calculator.auto_detect_equipment()
+```
+
+**CRITICAL property name (BUG-043)**: The `InitiativeResult` object uses `result.success` (boolean), NOT `result.seized`. Code that checks initiative outcome must use the correct property name.
+
+### Equipment Auto-Detection
+
+`InitiativeCalculator.auto_detect_equipment()` scans crew member equipment for initiative-relevant modifiers (e.g., scanner, tactical visor). Must be called after `set_crew()` to detect bonuses correctly.
+
+### Terrain Theme Propagation (Phase 31 Fix)
+
+Battle context terrain data must be structured with terrain_guide inside the `terrain` sub-dict, not at the top level. CampaignTurnController merges `terrain_guide` into the `terrain` dictionary before passing to TacticalBattleUI (BUG-038 fix).
+
+### Scatter Item Rendering (Phase 31 Fix)
+
+`BattlefieldShapeLibrary.classify_feature()` now sets `is_scatter = true` for scatter-type terrain. `BattlefieldMapView` skips scatter items in SVS rendering and label drawing (BUG-040). Features also carry a `size_category` key ("Large", "Small", "Linear", "Scatter") used for label prefixes (BUG-041).
 
 ### Shared Between Modes
 TacticalBattleUI is shared between Standard 5PFH and Bug Hunt. Bug Hunt mode detection happens at higher level (BugHuntBattleSetup, temp_data `"bug_hunt_*"` keys). Any modifications must preserve both modes.

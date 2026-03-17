@@ -12,7 +12,7 @@ extends Node
 
 # Dependencies (use preload to avoid circular references)
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
-const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
+const CharacterDataMgr = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
 const StoryQuestData = preload("res://src/core/story/StoryQuestData.gd")
 const GameLocation = preload("res://src/game/world/GameLocation.gd")

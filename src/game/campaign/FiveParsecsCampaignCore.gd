@@ -41,12 +41,32 @@ var house_rules: Array = []
 # SPRINT 6.2: Story track setting (persisted from wizard)
 var story_track_enabled: bool = false
 
+# Phase 30: Red Zone Jobs (Core Rules Appendix III)
+var red_zone_licensed: bool = false
+var red_zone_turns_completed: int = 0
+
+# Phase 30: Being Without a Ship (Core Rules p.59)
+var has_ship: bool = true
+var ship_debt: int = 0  # Remaining loan amount (max financed 70cr)
+
 # QoL data stored for deferred loading (scene tree not ready during _init)
 var _pending_qol_data: Dictionary = {}
 
 func _init() -> void:
 	created_at = Time.get_datetime_string_from_system()
 	last_modified = created_at
+	# BUG-031 FIX: Initialize progress_data with default counters
+	# so they're never null on first save/load cycle
+	progress_data = {
+		"turns_played": 0,
+		"credits": credits,
+		"supplies": supplies,
+		"reputation": reputation,
+		"story_points": story_points,
+		"missions_completed": 0,
+		"battles_won": 0,
+		"battles_lost": 0,
+	}
 
 func get_campaign_id() -> String:
 	if campaign_id.is_empty() and not campaign_name.is_empty():
@@ -224,6 +244,11 @@ func to_dictionary() -> Dictionary:
 		# SPRINT 6.1/6.2: Top-level for easy access
 		"house_rules": house_rules.duplicate(),
 		"story_track_enabled": story_track_enabled,
+		# Phase 30: Red Zone Jobs + Shipless State
+		"red_zone_licensed": red_zone_licensed,
+		"red_zone_turns_completed": red_zone_turns_completed,
+		"has_ship": has_ship,
+		"ship_debt": ship_debt,
 		"victory_conditions": victory_conditions.duplicate(true),
 		"qol_data": _build_qol_data()
 	}
@@ -270,6 +295,13 @@ func from_dictionary(data: Dictionary) -> void:
 	equipment_data = data.get("equipment", {})
 	world_data = data.get("world", {})
 	progress_data = data.get("progress", {})
+	# BUG-031 FIX: Ensure counter fields have defaults for saves from older versions
+	if not progress_data.has("missions_completed"):
+		progress_data["missions_completed"] = 0
+	if not progress_data.has("battles_won"):
+		progress_data["battles_won"] = 0
+	if not progress_data.has("battles_lost"):
+		progress_data["battles_lost"] = 0
 
 	# Load resources
 	if data.has("resources"):
@@ -281,6 +313,15 @@ func from_dictionary(data: Dictionary) -> void:
 		patrons = res.get("patrons", []).duplicate()
 		rivals = res.get("rivals", []).duplicate()
 		quest_rumors = res.get("quest_rumors", 0)
+	# Sync resource fields into progress_data for save persistence consistency
+	if not progress_data.has("credits") or progress_data["credits"] == null:
+		progress_data["credits"] = credits
+	if not progress_data.has("supplies") or progress_data["supplies"] == null:
+		progress_data["supplies"] = supplies
+	if not progress_data.has("reputation") or progress_data["reputation"] == null:
+		progress_data["reputation"] = reputation
+	if not progress_data.has("story_points") or progress_data["story_points"] == null:
+		progress_data["story_points"] = story_points
 
 	# SPRINT 6.1/6.2: Load house rules, story track, and victory conditions
 	# Check top-level first, then config for backwards compatibility
@@ -293,6 +334,16 @@ func from_dictionary(data: Dictionary) -> void:
 		story_track_enabled = data.get("story_track_enabled", false)
 	elif data.has("config") and data.config.has("story_track_enabled"):
 		story_track_enabled = data.config.get("story_track_enabled", false)
+
+	# Phase 30: Red Zone Jobs + Shipless State
+	if data.has("red_zone_licensed"):
+		red_zone_licensed = data.get("red_zone_licensed", false)
+	if data.has("red_zone_turns_completed"):
+		red_zone_turns_completed = data.get("red_zone_turns_completed", 0)
+	if data.has("has_ship"):
+		has_ship = data.get("has_ship", true)
+	if data.has("ship_debt"):
+		ship_debt = data.get("ship_debt", 0)
 
 	if data.has("victory_conditions"):
 		victory_conditions = data.get("victory_conditions", {}).duplicate(true)

@@ -20,7 +20,6 @@ const SafeDataAccess = preload("res://src/utils/SafeDataAccess.gd")
 
 # Proper dependency imports - compile-time validation
 # GlobalEnums available as autoload singleton
-const Character = preload("res://src/core/character/Character.gd")
 const GameState = preload("res://src/core/state/GameState.gd")
 
 # Patron Management Signals

@@ -1,17 +1,12 @@
 class_name BattlefieldMapView
 extends Control
 
-## Overhead gridded battlefield map with terrain features, deployment zones, and
-## optional unit markers. Designed to be embedded in any parent Control.
+## Graph-paper style battlefield map with terrain features, deployment zones,
+## and unit markers. Inspired by labrador.dev/layout_builder and GW mission cards.
 ##
-## Usage:
-##   var map_view := BattlefieldMapView.new()
-##   parent.add_child(map_view)
-##   map_view.populate_from_sectors(sectors, "Industrial Zone")
-##
-## Supports two modes:
-## - Interactive (default): zoom via mouse wheel, pan via middle-click drag
-## - Compact: auto-scales to fit container, no interaction (for post-battle recap)
+## Terrain pieces are rendered as ScalableVectorShape2D nodes (RECT/ELLIPSE)
+## for crisp anti-aliased vector shapes at any zoom level.
+## Background grid, axes, and zones use _draw() for efficiency.
 
 signal cell_hovered(sector_label: String, features: Array)
 signal cell_clicked(sector_label: String, features: Array)
@@ -28,22 +23,36 @@ const ROW_LABELS := ["A", "B", "C", "D"]
 const COL_LABELS := ["1", "2", "3", "4"]
 
 # ============================================================================
-# VISUAL CONSTANTS
+# GRAPH-PAPER COLOR PALETTE (labrador.dev style)
 # ============================================================================
 
-const COLOR_BACKGROUND := Color(0.067, 0.094, 0.153, 1.0)
-const COLOR_GRID_LINE := Color(0.216, 0.255, 0.318, 0.2)
-const COLOR_SECTOR_LINE := Color(0.216, 0.255, 0.318, 0.6)
-const COLOR_SECTOR_LABEL := Color(0.878, 0.878, 0.878, 0.4)
-const COLOR_ZONE_CREW := Color(0.176, 0.353, 0.482, 0.15)
-const COLOR_ZONE_ENEMY := Color(0.545, 0.153, 0.153, 0.15)
-const COLOR_HOVER := Color(0.961, 0.788, 0.043, 0.25)
-const COLOR_UNIT_CREW := Color(0.118, 0.565, 1.0, 0.9)
-const COLOR_UNIT_ENEMY := Color(0.863, 0.153, 0.153, 0.9)
-const COLOR_UNIT_DEAD := Color(0.502, 0.502, 0.502, 0.6)
-const COLOR_TOOLTIP_BG := Color(0.067, 0.094, 0.153, 0.95)
-const COLOR_TOOLTIP_BORDER := Color(0.063, 0.725, 0.506, 0.8)
-const COLOR_TOOLTIP_TEXT := Color(0.878, 0.878, 0.878, 1.0)
+const COLOR_BACKGROUND := Color(0.96, 0.96, 0.96, 1.0)        # Near-white paper
+const COLOR_GRID_LINE := Color(0.82, 0.85, 0.88, 0.4)         # Subtle blue-gray
+const COLOR_GRID_LINE_MAJOR := Color(0.70, 0.73, 0.78, 0.5)   # Bolder every 4th
+const COLOR_SECTOR_LINE := Color(0.45, 0.48, 0.53, 0.7)       # Sector dividers
+const COLOR_SECTOR_LABEL := Color(0.30, 0.30, 0.35, 0.5)      # Subtle dark labels
+const COLOR_AXIS_TEXT := Color(0.35, 0.35, 0.40, 0.8)         # Axis numbers
+const COLOR_ZONE_CREW := Color(0.18, 0.65, 0.35, 0.12)        # Green overlay
+const COLOR_ZONE_ENEMY := Color(0.85, 0.25, 0.25, 0.12)       # Pink/red overlay
+const COLOR_CENTER_LINE := Color(0.40, 0.40, 0.45, 0.5)       # Dashed center line
+const COLOR_HOVER := Color(0.2, 0.5, 0.8, 0.15)               # Subtle blue hover
+const COLOR_UNIT_CREW := Color(0.13, 0.53, 0.90, 0.9)         # Blue crew dots
+const COLOR_UNIT_ENEMY := Color(0.85, 0.15, 0.15, 0.9)        # Red enemy dots
+const COLOR_UNIT_DEAD := Color(0.50, 0.50, 0.50, 0.6)
+const COLOR_LABEL_BG := Color(0.10, 0.10, 0.12, 0.85)         # Black label bg
+const COLOR_LABEL_TEXT := Color(0.95, 0.95, 0.95, 1.0)         # White label text
+const COLOR_TOOLTIP_BG := Color(0.12, 0.12, 0.15, 0.92)
+const COLOR_TOOLTIP_BORDER := Color(0.40, 0.40, 0.45, 0.8)
+const COLOR_TOOLTIP_TEXT := Color(0.93, 0.93, 0.93, 1.0)
+
+# ============================================================================
+# LAYOUT CONSTANTS
+# ============================================================================
+
+const AXIS_MARGIN := 28.0          # Space reserved for axis labels
+const SHAPE_SCALE_MULT := 1.5      # Terrain shape scale multiplier
+const PLACEMENT_ATTEMPTS := 12     # Random position tries before fallback
+const PLACEMENT_PADDING := 6.0     # Min px gap between shapes (pre-scale)
 
 const ZOOM_MIN := 0.5
 const ZOOM_MAX := 3.0
@@ -53,49 +62,37 @@ const ZOOM_STEP := 0.15
 # PROPERTIES
 # ============================================================================
 
-## Base pixel size per grid cell (before zoom).
 var cell_size: float = 24.0
-
-## Current zoom level (1.0 = default).
 var zoom_level: float = 1.0
-
-## Current pan offset in pixels.
 var pan_offset: Vector2 = Vector2.ZERO
-
-## When true, disables zoom/pan and auto-scales to fit the container.
 var compact_mode: bool = false
-
-## When true, renders unit position markers on the grid.
 var show_unit_markers: bool = false
-
-## Theme name displayed in the corner.
 var theme_name: String = ""
 
 # ============================================================================
 # INTERNAL STATE
 # ============================================================================
 
-# 2D array [sector_row][sector_col] of classified shape arrays.
-# Each entry is an Array of shape dictionaries from BattlefieldShapeLibrary.
-var _sector_shapes: Array = []  # [row][col] -> Array[Dictionary]
-var _sector_features: Array = []  # [row][col] -> Array[String] (raw feature text)
-
-# Unit markers: Array of {position: Vector2i, team: String, name: String, status: String}
+var _sector_shapes: Array = []     # [row][col] -> Array[Dictionary]
+var _sector_features: Array = []   # [row][col] -> Array[String]
 var _unit_positions: Array = []
-
-# Hovered cell in grid coordinates, or Vector2i(-1, -1) if none.
 var _hovered_cell: Vector2i = Vector2i(-1, -1)
-
-# Pan drag state
 var _is_panning: bool = false
 var _pan_start: Vector2 = Vector2.ZERO
+var _deployment_highlighted: bool = false
+var _objective_position: Vector2 = Vector2(-1, -1)  # Grid cell coords; -1 = no objective
+
+# Terrain rendering
+var _terrain_container: Node2D
+var _overlay_control: Control
+var _shape_library := BattlefieldShapeLibrary.new()
+
+# Pre-computed organic placements: [row][col] -> Array[Vector2] (normalized 0-1)
+var _sector_placements: Array = []
 
 # Tooltip
 var _tooltip_panel: PanelContainer
 var _tooltip_label: RichTextLabel
-
-# Shape library
-var _shape_library := BattlefieldShapeLibrary.new()
 
 # ============================================================================
 # LIFECYCLE
@@ -104,6 +101,20 @@ var _shape_library := BattlefieldShapeLibrary.new()
 func _ready() -> void:
 	clip_contents = true
 	mouse_filter = Control.MOUSE_FILTER_STOP
+
+	# Terrain container (Node2D) — holds ScalableVectorShape2D children
+	_terrain_container = Node2D.new()
+	_terrain_container.name = "TerrainContainer"
+	add_child(_terrain_container)
+
+	# Overlay control — draws labels, unit markers, hover on top of terrain
+	_overlay_control = Control.new()
+	_overlay_control.name = "OverlayControl"
+	_overlay_control.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_overlay_control.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_overlay_control.draw.connect(_draw_overlay)
+	add_child(_overlay_control)
+
 	_build_tooltip()
 
 func _build_tooltip() -> void:
@@ -144,18 +155,16 @@ func _build_tooltip() -> void:
 # PUBLIC API
 # ============================================================================
 
-## Populate the map from sector data (same format as BattlefieldGridPanel.populate()).
-## sectors: Array of {label: "A1", features: ["Boulder (full cover)", ...]}
 func populate_from_sectors(sectors: Array, p_theme_name: String = "") -> void:
 	theme_name = p_theme_name
 
 	# Initialize 4x4 sector arrays
 	_sector_shapes = []
 	_sector_features = []
-	for _r: int in range(4):
+	for row_i: int in range(4):
 		var shape_row: Array = []
 		var feat_row: Array = []
-		for _c: int in range(4):
+		for col_i: int in range(4):
 			shape_row.append([])
 			feat_row.append([])
 		_sector_shapes.append(shape_row)
@@ -177,15 +186,19 @@ func populate_from_sectors(sectors: Array, p_theme_name: String = "") -> void:
 		_sector_features[row_idx][col_idx] = features
 		_sector_shapes[row_idx][col_idx] = _shape_library.classify_features(features)
 
-	queue_redraw()
+	# Default objective to center of map if not set
+	if _objective_position == Vector2(-1, -1):
+		_objective_position = Vector2(GRID_COLUMNS / 2.0, GRID_ROWS / 2.0)
 
-## Set unit positions for display on the map.
-## units: Array of {position: Vector2i, team: "crew"|"enemy", name: String, status: "alive"|"dead"}
+	# Compute organic placements and build SVS terrain nodes
+	_rebuild_terrain_shapes()
+	queue_redraw()
+	_overlay_control.queue_redraw()
+
 func set_unit_positions(units: Array) -> void:
 	_unit_positions = units
-	queue_redraw()
+	_overlay_control.queue_redraw()
 
-## Enable or disable compact mode (auto-scale, no interaction).
 func set_compact_mode(enabled: bool) -> void:
 	compact_mode = enabled
 	if compact_mode:
@@ -193,20 +206,158 @@ func set_compact_mode(enabled: bool) -> void:
 		pan_offset = Vector2.ZERO
 		_hovered_cell = Vector2i(-1, -1)
 		_tooltip_panel.visible = false
+	_update_terrain_transform()
+	queue_redraw()
+	_overlay_control.queue_redraw()
+
+func set_deployment_highlight(enabled: bool) -> void:
+	_deployment_highlighted = enabled
 	queue_redraw()
 
-## Clear all data.
+func set_objective_position(grid_pos: Vector2) -> void:
+	_objective_position = grid_pos
+	_overlay_control.queue_redraw()
+
 func clear() -> void:
 	_sector_shapes = []
 	_sector_features = []
 	_unit_positions = []
+	_sector_placements = []
 	_hovered_cell = Vector2i(-1, -1)
+	_objective_position = Vector2(-1, -1)
 	theme_name = ""
 	_tooltip_panel.visible = false
+	_clear_terrain_nodes()
 	queue_redraw()
+	_overlay_control.queue_redraw()
 
 # ============================================================================
-# RENDERING
+# TERRAIN NODE MANAGEMENT
+# ============================================================================
+
+func _clear_terrain_nodes() -> void:
+	for child in _terrain_container.get_children():
+		child.queue_free()
+
+func _rebuild_terrain_shapes() -> void:
+	_clear_terrain_nodes()
+
+	if _sector_shapes.is_empty():
+		return
+
+	# Seed RNG deterministically so same data = same layout across redraws
+	var placement_rng := RandomNumberGenerator.new()
+	placement_rng.seed = hash(theme_name) ^ _sector_shapes.size()
+
+	# Initialize placement cache
+	_sector_placements = []
+	for row_i: int in range(4):
+		var row: Array = []
+		for col_i: int in range(4):
+			row.append([])
+		_sector_placements.append(row)
+
+	# Effective cell and sector sizes for placement computation
+	var base_cs: float = cell_size
+	var sector_w: float = SECTOR_COLS * base_cs
+	var sector_h: float = SECTOR_ROWS * base_cs
+	var scale_factor: float = SHAPE_SCALE_MULT
+
+	for sr: int in range(4):
+		for sc: int in range(4):
+			var shapes: Array = _sector_shapes[sr][sc]
+			if shapes.is_empty():
+				_sector_placements[sr][sc] = []
+				continue
+
+			var sector_origin := Vector2(
+				sc * sector_w + 4.0,
+				sr * sector_h + 14.0  # Leave room for sector label
+			)
+			var avail_w: float = sector_w - 8.0
+			var avail_h: float = sector_h - 18.0
+
+			var placed_rects: Array[Rect2] = []
+			var positions: Array = []
+
+			for shape_idx: int in range(shapes.size()):
+				var shape: Dictionary = shapes[shape_idx]
+				# BUG-040 FIX: Skip scatter items (flavor text, not counted features)
+				if shape.get("is_scatter", false):
+					continue
+				var w: float = shape.get("width", 30.0) * scale_factor
+				var h: float = shape.get("height", 20.0) * scale_factor
+
+				# Try random positions within sector
+				var placed: bool = false
+				for attempt: int in range(PLACEMENT_ATTEMPTS):
+					var try_x: float = placement_rng.randf() * maxf(avail_w - w, 1.0)
+					var try_y: float = placement_rng.randf() * maxf(avail_h - h, 1.0)
+					var candidate := Rect2(try_x, try_y, w, h)
+
+					# Check collision with already-placed shapes
+					var collides: bool = false
+					for placed_rect: Rect2 in placed_rects:
+						if candidate.grow(PLACEMENT_PADDING).intersects(placed_rect):
+							collides = true
+							break
+
+					if not collides:
+						placed_rects.append(candidate)
+						positions.append(sector_origin + Vector2(try_x, try_y))
+						placed = true
+						break
+
+				# Fallback: deterministic offset
+				if not placed:
+					var fallback_x: float = (shape_idx % 3) * avail_w / 3.0
+					var fallback_y: float = (shape_idx / 3) * avail_h / 2.0
+					fallback_x = clampf(fallback_x, 0.0, avail_w - w)
+					fallback_y = clampf(fallback_y, 0.0, avail_h - h)
+					placed_rects.append(Rect2(fallback_x, fallback_y, w, h))
+					positions.append(sector_origin + Vector2(fallback_x, fallback_y))
+
+				# Create the SVS terrain node
+				var svs: ScalableVectorShape2D = _shape_library.create_vector_shape(
+					shape, scale_factor)
+				svs.position = positions[positions.size() - 1]
+				_terrain_container.add_child(svs)
+
+				# Apply random rotation for organic look
+				var shape_type_str: String = shape.get("shape", "rect")
+				var max_rot: float = BattlefieldShapeLibrary.get_rotation_range(shape_type_str)
+				if max_rot > 0.0:
+					svs.rotation = placement_rng.randf_range(-max_rot, max_rot)
+
+			_sector_placements[sr][sc] = positions
+
+	_update_terrain_transform()
+
+func _get_base_cell_size() -> float:
+	## The unzoomed cell size that makes the grid fill the container.
+	var margin: float = 0.0 if compact_mode else AXIS_MARGIN * 2
+	var available: Vector2 = size - Vector2(margin, margin)
+	if available.x <= 0 or available.y <= 0:
+		return cell_size
+	var fit_x: float = available.x / float(GRID_COLUMNS)
+	var fit_y: float = available.y / float(GRID_ROWS)
+	return minf(fit_x, fit_y)
+
+func _update_terrain_transform() -> void:
+	if not is_instance_valid(_terrain_container):
+		return
+	var effective_cs: float = _get_effective_cell_size()
+	var grid_w: float = GRID_COLUMNS * effective_cs
+	var grid_h: float = GRID_ROWS * effective_cs
+	var offset: Vector2 = _get_draw_offset(grid_w, grid_h)
+
+	# Scale terrain from placement coords (based on cell_size=24) to actual pixels
+	var base_scale: float = effective_cs / cell_size
+	_terrain_container.scale = Vector2(base_scale, base_scale)
+	_terrain_container.position = offset
+
+# ============================================================================
+# RENDERING — Background layer (_draw on self)
 # ============================================================================
 
 func _draw() -> void:
@@ -215,74 +366,117 @@ func _draw() -> void:
 	var grid_pixel_h: float = GRID_ROWS * effective_cell
 	var offset: Vector2 = _get_draw_offset(grid_pixel_w, grid_pixel_h)
 
-	# Layer 1: Background
+	# 1. Background
 	draw_rect(Rect2(Vector2.ZERO, size), COLOR_BACKGROUND)
 
-	# Layer 2: Deployment zone tinting (rows A-B = crew, C-D = enemy)
+	# 2. Deployment zone overlays
 	_draw_deployment_zones(offset, effective_cell, grid_pixel_w)
 
-	# Layer 3: Grid lines
+	# 3. Grid lines (graph paper)
 	_draw_grid_lines(offset, effective_cell, grid_pixel_w, grid_pixel_h)
 
-	# Layer 4: Sector dividers and labels
+	# 4. Center line (dashed)
+	_draw_center_line(offset, effective_cell, grid_pixel_w)
+
+	# 5. Sector dividers and labels
 	_draw_sector_dividers(offset, effective_cell, grid_pixel_w, grid_pixel_h)
 
-	# Layer 5: Terrain features
-	_draw_terrain_features(offset, effective_cell)
+	# 6. Axes (numbered borders)
+	_draw_axes(offset, effective_cell, grid_pixel_w, grid_pixel_h)
 
-	# Layer 6: Unit markers
-	if show_unit_markers:
-		_draw_unit_markers(offset, effective_cell)
-
-	# Layer 7: Hover highlight
-	if _hovered_cell != Vector2i(-1, -1) and not compact_mode:
-		_draw_hover_highlight(offset, effective_cell)
+	# Terrain shapes render automatically as SVS child nodes (between self._draw and overlay._draw)
 
 func _get_effective_cell_size() -> float:
+	# Always auto-scale to fill the available space, then apply zoom
+	var margin: float = 0.0 if compact_mode else AXIS_MARGIN * 2
+	var available: Vector2 = size - Vector2(margin, margin)
+	if available.x <= 0 or available.y <= 0:
+		return cell_size
+	var fit_x: float = available.x / float(GRID_COLUMNS)
+	var fit_y: float = available.y / float(GRID_ROWS)
+	var base_cell: float = minf(fit_x, fit_y)
 	if compact_mode:
-		# Scale to fit container
-		var available: Vector2 = size
-		var scale_x: float = available.x / (GRID_COLUMNS * cell_size)
-		var scale_y: float = available.y / (GRID_ROWS * cell_size)
-		return cell_size * minf(scale_x, scale_y)
-	return cell_size * zoom_level
+		return base_cell
+	return base_cell * zoom_level
 
 func _get_draw_offset(grid_w: float, grid_h: float) -> Vector2:
+	# Center the grid in available space (accounting for axis margins)
+	var center_x: float = (size.x - grid_w) / 2.0
+	var center_y: float = (size.y - grid_h) / 2.0
 	if compact_mode:
-		# Center the grid in the container
-		return Vector2(
-			(size.x - grid_w) / 2.0,
-			(size.y - grid_h) / 2.0
-		)
-	return pan_offset
+		return Vector2(maxf(center_x, 0), maxf(center_y, 0))
+	return pan_offset + Vector2(maxf(center_x, AXIS_MARGIN), maxf(center_y, AXIS_MARGIN))
 
 func _draw_deployment_zones(offset: Vector2, cs: float, grid_w: float) -> void:
+	var alpha_mult: float = 2.5 if _deployment_highlighted else 1.0
+
 	# Crew zone: rows 0-7 (sectors A and B)
 	var crew_h: float = SECTOR_ROWS * 2 * cs
-	draw_rect(Rect2(offset, Vector2(grid_w, crew_h)), COLOR_ZONE_CREW)
+	var crew_color := Color(
+		COLOR_ZONE_CREW.r, COLOR_ZONE_CREW.g, COLOR_ZONE_CREW.b,
+		minf(COLOR_ZONE_CREW.a * alpha_mult, 0.4))
+	draw_rect(Rect2(offset, Vector2(grid_w, crew_h)), crew_color)
 
 	# Enemy zone: rows 8-15 (sectors C and D)
 	var enemy_y: float = offset.y + crew_h
 	var enemy_h: float = SECTOR_ROWS * 2 * cs
-	draw_rect(Rect2(Vector2(offset.x, enemy_y), Vector2(grid_w, enemy_h)), COLOR_ZONE_ENEMY)
+	var enemy_color := Color(
+		COLOR_ZONE_ENEMY.r, COLOR_ZONE_ENEMY.g, COLOR_ZONE_ENEMY.b,
+		minf(COLOR_ZONE_ENEMY.a * alpha_mult, 0.4))
+	draw_rect(
+		Rect2(Vector2(offset.x, enemy_y), Vector2(grid_w, enemy_h)),
+		enemy_color)
+
+	# Deployment zone labels
+	if _deployment_highlighted and cs >= 12.0:
+		var font: Font = ThemeDB.fallback_font
+		var font_size: int = clampi(int(cs * 1.0), 10, 20)
+		var crew_lbl_pos := Vector2(
+			offset.x + grid_w / 2.0 - 60,
+			offset.y + crew_h / 2.0 + font_size / 2.0)
+		draw_string(font, crew_lbl_pos, "CREW DEPLOYMENT",
+			HORIZONTAL_ALIGNMENT_CENTER, -1, font_size,
+			Color(0.15, 0.50, 0.30, 0.6))
+		var enemy_lbl_pos := Vector2(
+			offset.x + grid_w / 2.0 - 60,
+			enemy_y + enemy_h / 2.0 + font_size / 2.0)
+		draw_string(font, enemy_lbl_pos, "ENEMY DEPLOYMENT",
+			HORIZONTAL_ALIGNMENT_CENTER, -1, font_size,
+			Color(0.70, 0.20, 0.20, 0.6))
 
 func _draw_grid_lines(offset: Vector2, cs: float, grid_w: float, grid_h: float) -> void:
 	# Vertical lines
 	for col: int in range(GRID_COLUMNS + 1):
 		var x: float = offset.x + col * cs
-		draw_line(Vector2(x, offset.y), Vector2(x, offset.y + grid_h), COLOR_GRID_LINE, 1.0)
+		var is_major: bool = col % 4 == 0
+		var color: Color = COLOR_GRID_LINE_MAJOR if is_major else COLOR_GRID_LINE
+		var width: float = 1.5 if is_major else 1.0
+		draw_line(Vector2(x, offset.y), Vector2(x, offset.y + grid_h), color, width)
 
 	# Horizontal lines
 	for row: int in range(GRID_ROWS + 1):
 		var y: float = offset.y + row * cs
-		draw_line(Vector2(offset.x, y), Vector2(offset.x + grid_w, y), COLOR_GRID_LINE, 1.0)
+		var is_major: bool = row % 4 == 0
+		var color: Color = COLOR_GRID_LINE_MAJOR if is_major else COLOR_GRID_LINE
+		var width: float = 1.5 if is_major else 1.0
+		draw_line(Vector2(offset.x, y), Vector2(offset.x + grid_w, y), color, width)
+
+func _draw_center_line(offset: Vector2, cs: float, grid_w: float) -> void:
+	var mid_y: float = offset.y + GRID_ROWS / 2.0 * cs
+	var dash_len: float = 8.0
+	var gap_len: float = 6.0
+	var x: float = offset.x
+	while x < offset.x + grid_w:
+		var end_x: float = minf(x + dash_len, offset.x + grid_w)
+		draw_line(Vector2(x, mid_y), Vector2(end_x, mid_y), COLOR_CENTER_LINE, 1.5)
+		x += dash_len + gap_len
 
 func _draw_sector_dividers(offset: Vector2, cs: float, grid_w: float, grid_h: float) -> void:
 	var sector_w: float = SECTOR_COLS * cs
 	var sector_h: float = SECTOR_ROWS * cs
 
 	# Vertical sector dividers
-	for col: int in range(5):  # 0 through 4, inclusive edges
+	for col: int in range(5):
 		var x: float = offset.x + col * sector_w
 		draw_line(Vector2(x, offset.y), Vector2(x, offset.y + grid_h),
 			COLOR_SECTOR_LINE, 2.0 if col > 0 and col < 4 else 1.5)
@@ -293,8 +487,8 @@ func _draw_sector_dividers(offset: Vector2, cs: float, grid_w: float, grid_h: fl
 		draw_line(Vector2(offset.x, y), Vector2(offset.x + grid_w, y),
 			COLOR_SECTOR_LINE, 2.0 if row > 0 and row < 4 else 1.5)
 
-	# Sector labels (A1-D4) in top-left corner of each sector
-	if cs >= 10.0:  # Only draw labels when cells are large enough to read
+	# Sector labels (A1-D4) in top-left corner
+	if cs >= 10.0:
 		var font: Font = ThemeDB.fallback_font
 		var font_size: int = clampi(int(cs * 0.6), 8, 16)
 		for sr: int in range(4):
@@ -305,65 +499,150 @@ func _draw_sector_dividers(offset: Vector2, cs: float, grid_w: float, grid_h: fl
 				draw_string(font, Vector2(lx, ly), label_text,
 					HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, COLOR_SECTOR_LABEL)
 
-func _draw_terrain_features(offset: Vector2, cs: float) -> void:
-	if _sector_shapes.is_empty():
+func _draw_axes(offset: Vector2, cs: float, grid_w: float, grid_h: float) -> void:
+	if compact_mode and cs < 8.0:
+		return  # Too small to read axis labels
+
+	var font: Font = ThemeDB.fallback_font
+	var font_size: int = clampi(int(cs * 0.45), 8, 14)
+
+	# Five Parsecs table: map 24 columns to ~30", 16 rows to ~20"
+	# Each cell ≈ 1.25" horizontal, 1.25" vertical
+	var inches_per_col: float = 30.0 / GRID_COLUMNS
+	var inches_per_row: float = 20.0 / GRID_ROWS
+
+	# Bottom axis (X — inches from left)
+	for col: int in range(GRID_COLUMNS + 1):
+		var inch_val: float = col * inches_per_col
+		if fmod(inch_val, 5.0) > 0.1:
+			continue  # Only label every 5"
+		var x: float = offset.x + col * cs
+		var label: String = str(int(inch_val))
+		draw_string(font, Vector2(x - 4, offset.y + grid_h + font_size + 4),
+			label, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, COLOR_AXIS_TEXT)
+
+	# Top axis (mirror)
+	for col: int in range(GRID_COLUMNS + 1):
+		var inch_val: float = col * inches_per_col
+		if fmod(inch_val, 5.0) > 0.1:
+			continue
+		var x: float = offset.x + col * cs
+		var label: String = str(int(inch_val))
+		draw_string(font, Vector2(x - 4, offset.y - 4),
+			label, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, COLOR_AXIS_TEXT)
+
+	# Left axis (Y — inches from top)
+	for row: int in range(GRID_ROWS + 1):
+		var inch_val: float = row * inches_per_row
+		if fmod(inch_val, 5.0) > 0.1:
+			continue
+		var y: float = offset.y + row * cs
+		var label: String = str(int(inch_val))
+		draw_string(font, Vector2(offset.x - AXIS_MARGIN + 2, y + 4),
+			label, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, COLOR_AXIS_TEXT)
+
+	# Right axis (mirror)
+	for row: int in range(GRID_ROWS + 1):
+		var inch_val: float = row * inches_per_row
+		if fmod(inch_val, 5.0) > 0.1:
+			continue
+		var y: float = offset.y + row * cs
+		var label: String = str(int(inch_val))
+		draw_string(font, Vector2(offset.x + grid_w + 4, y + 4),
+			label, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, COLOR_AXIS_TEXT)
+
+# ============================================================================
+# RENDERING — Overlay layer (terrain labels, unit markers, hover)
+# ============================================================================
+
+func _draw_overlay() -> void:
+	var effective_cell: float = _get_effective_cell_size()
+	var grid_pixel_w: float = GRID_COLUMNS * effective_cell
+	var grid_pixel_h: float = GRID_ROWS * effective_cell
+	var offset: Vector2 = _get_draw_offset(grid_pixel_w, grid_pixel_h)
+
+	# Terrain labels (notable terrain only, when zoomed in enough)
+	if effective_cell >= 20.0:
+		_draw_terrain_labels_on(_overlay_control, offset, effective_cell)
+
+	# Objective marker
+	if _objective_position != Vector2(-1, -1):
+		_draw_objective_marker(_overlay_control, offset, effective_cell)
+
+	# Unit markers
+	if show_unit_markers:
+		_draw_unit_markers_on(_overlay_control, offset, effective_cell)
+
+	# Hover highlight
+	if _hovered_cell != Vector2i(-1, -1) and not compact_mode:
+		var hx: float = offset.x + _hovered_cell.x * effective_cell
+		var hy: float = offset.y + _hovered_cell.y * effective_cell
+		_overlay_control.draw_rect(
+			Rect2(hx, hy, effective_cell, effective_cell), COLOR_HOVER)
+
+func _draw_terrain_labels_on(canvas: Control, offset: Vector2, cs: float) -> void:
+	if _sector_shapes.is_empty() or _sector_placements.is_empty():
 		return
 
-	var sector_w: float = SECTOR_COLS * cs
-	var sector_h: float = SECTOR_ROWS * cs
-	# Scale factor relative to the library's default sector cell size (~120px)
-	var scale_factor: float = cs / 24.0
+	var font: Font = ThemeDB.fallback_font
+	var font_size: int = clampi(int(cs * 0.4), 8, 12)
+	var scale: float = cs / cell_size
+
+	var inches_per_col: float = 30.0 / GRID_COLUMNS
+	var inches_per_row: float = 20.0 / GRID_ROWS
 
 	for sr: int in range(4):
 		for sc: int in range(4):
 			var shapes: Array = _sector_shapes[sr][sc]
-			if shapes.is_empty():
-				# Draw open-ground marker in center of sector
-				var sector_origin := Vector2(
-					offset.x + sc * sector_w,
-					offset.y + sr * sector_h
-				)
-				var center := sector_origin + Vector2(sector_w, sector_h) / 2.0
-				var s: float = minf(sector_w, sector_h) * 0.15
-				draw_line(center - Vector2(s, s), center + Vector2(s, s),
-					BattlefieldShapeLibrary.SHAPE_COLOR_OPEN, 1.0)
-				draw_line(center - Vector2(-s, s), center + Vector2(-s, s),
-					BattlefieldShapeLibrary.SHAPE_COLOR_OPEN, 1.0)
-				continue
+			var placements: Array = _sector_placements[sr][sc]
 
-			# Position features within the sector using a flow layout
-			var sector_origin := Vector2(
-				offset.x + sc * sector_w + 4.0 * scale_factor,
-				offset.y + sr * sector_h + 14.0 * scale_factor  # Leave room for sector label
-			)
-			var avail_w: float = sector_w - 8.0 * scale_factor
-			var avail_h: float = sector_h - 18.0 * scale_factor
+			for i: int in range(mini(shapes.size(), placements.size())):
+				var shape: Dictionary = shapes[i]
+				# BUG-040: Skip scatter items in label rendering
+				if shape.get("is_scatter", false):
+					continue
+				var short_label: String = shape.get("short_label", "")
+				if short_label.is_empty():
+					continue
 
-			var x_cursor: float = 0.0
-			var y_cursor: float = 0.0
-			var row_height: float = 0.0
+				var is_notable: bool = shape.get("notable", false)
+				var base_pos: Vector2 = placements[i]
+				var w: float = shape.get("width", 30.0) * SHAPE_SCALE_MULT * scale
+				var h: float = shape.get("height", 20.0) * SHAPE_SCALE_MULT * scale
 
-			for shape: Dictionary in shapes:
-				var w: float = shape.get("width", 30.0) * scale_factor
-				var h: float = shape.get("height", 20.0) * scale_factor
+				# Compute inch position from grid coordinates
+				var sw: float = shape.get("width", 30.0) * SHAPE_SCALE_MULT
+				var sh: float = shape.get("height", 20.0) * SHAPE_SCALE_MULT
+				var inch_x: int = int(
+					(base_pos.x + sw * 0.5) / cell_size * inches_per_col)
+				var inch_y: int = int(
+					(base_pos.y + sh * 0.5) / cell_size * inches_per_row)
+				# BUG-041 FIX: Prepend size category prefix
+				var cat: String = shape.get("size_category", "")
+				var prefix: String = "%s: " % cat if not cat.is_empty() else ""
+				var callout: String = "%s%s %d\",%d\"" % [
+					prefix, short_label, inch_x, inch_y]
 
-				# Wrap to next row
-				if x_cursor + w > avail_w and x_cursor > 0.0:
-					x_cursor = 0.0
-					y_cursor += row_height + 3.0 * scale_factor
-					row_height = 0.0
+				# Position label below the shape
+				var label_x: float = offset.x + base_pos.x * scale
+				var label_y: float = offset.y + base_pos.y * scale + h + 4.0
+				var label_w: float = font.get_string_size(
+					callout, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x + 8.0
 
-				# Skip if out of vertical space
-				if y_cursor + h > avail_h:
-					break
+				# Black background pill (warm tint for notable)
+				var bg_color: Color = COLOR_LABEL_BG
+				if is_notable:
+					bg_color = Color(0.15, 0.12, 0.05, 0.9)
+				canvas.draw_rect(
+					Rect2(label_x, label_y - font_size, label_w, font_size + 4),
+					bg_color)
+				# White text
+				canvas.draw_string(font,
+					Vector2(label_x + 4, label_y),
+					callout, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size,
+					COLOR_LABEL_TEXT)
 
-				var draw_origin := sector_origin + Vector2(x_cursor, y_cursor)
-				_shape_library.draw_shape(self, shape, draw_origin, scale_factor)
-
-				x_cursor += w + 4.0 * scale_factor
-				row_height = maxf(row_height, h)
-
-func _draw_unit_markers(offset: Vector2, cs: float) -> void:
+func _draw_unit_markers_on(canvas: Control, offset: Vector2, cs: float) -> void:
 	var marker_radius: float = cs * 0.35
 	for unit: Dictionary in _unit_positions:
 		var grid_pos: Vector2i = unit.get("position", Vector2i.ZERO)
@@ -383,24 +662,46 @@ func _draw_unit_markers(offset: Vector2, cs: float) -> void:
 		else:
 			color = COLOR_UNIT_CREW
 
-		# Draw unit circle
-		draw_circle(center, marker_radius, color)
+		canvas.draw_circle(center, marker_radius, color)
 
-		# Draw X for dead units
 		if status == "dead":
 			var xs: float = marker_radius * 0.6
-			draw_line(center - Vector2(xs, xs), center + Vector2(xs, xs),
+			canvas.draw_line(center - Vector2(xs, xs), center + Vector2(xs, xs),
 				Color.WHITE.darkened(0.3), 2.0)
-			draw_line(center - Vector2(-xs, xs), center + Vector2(-xs, xs),
+			canvas.draw_line(center - Vector2(-xs, xs), center + Vector2(-xs, xs),
 				Color.WHITE.darkened(0.3), 2.0)
 		else:
-			# Inner dot
-			draw_circle(center, marker_radius * 0.3, color.lightened(0.4))
+			canvas.draw_circle(center, marker_radius * 0.3, color.lightened(0.4))
 
-func _draw_hover_highlight(offset: Vector2, cs: float) -> void:
-	var hx: float = offset.x + _hovered_cell.x * cs
-	var hy: float = offset.y + _hovered_cell.y * cs
-	draw_rect(Rect2(hx, hy, cs, cs), COLOR_HOVER)
+func _draw_objective_marker(canvas: Control, offset: Vector2, cs: float) -> void:
+	var center := Vector2(
+		offset.x + _objective_position.x * cs,
+		offset.y + _objective_position.y * cs)
+	var marker_size: float = cs * 1.5
+
+	# Diamond shape
+	var hw: float = marker_size / 2.0
+	var points := PackedVector2Array([
+		center + Vector2(0, -hw),
+		center + Vector2(hw, 0),
+		center + Vector2(0, hw),
+		center + Vector2(-hw, 0),
+	])
+	canvas.draw_colored_polygon(points, Color(0.96, 0.78, 0.04, 0.25))
+	canvas.draw_polyline(points, Color(0.96, 0.78, 0.04, 0.9), 2.0)
+	# Close the diamond outline
+	canvas.draw_line(points[3], points[0], Color(0.96, 0.78, 0.04, 0.9), 2.0)
+
+	# Center dot
+	canvas.draw_circle(center, cs * 0.2, Color(0.96, 0.78, 0.04, 0.8))
+
+	# "OBJ" label
+	var font: Font = ThemeDB.fallback_font
+	var font_size: int = clampi(int(cs * 0.5), 8, 14)
+	canvas.draw_string(font,
+		Vector2(center.x - 10, center.y + hw + font_size + 4),
+		"OBJ", HORIZONTAL_ALIGNMENT_LEFT, -1, font_size,
+		Color(0.96, 0.78, 0.04, 1.0))
 
 # ============================================================================
 # INPUT HANDLING
@@ -435,7 +736,9 @@ func _gui_input(event: InputEvent) -> void:
 		var mm: InputEventMouseMotion = event
 		if _is_panning:
 			pan_offset += mm.relative
+			_update_terrain_transform()
 			queue_redraw()
+			_overlay_control.queue_redraw()
 		else:
 			_update_hover(mm.position)
 
@@ -445,10 +748,11 @@ func _zoom(delta: float, anchor: Vector2) -> void:
 	if zoom_level == old_zoom:
 		return
 
-	# Zoom toward mouse position
 	var zoom_ratio: float = zoom_level / old_zoom
 	pan_offset = anchor - (anchor - pan_offset) * zoom_ratio
+	_update_terrain_transform()
 	queue_redraw()
+	_overlay_control.queue_redraw()
 
 func _handle_click(mouse_pos: Vector2) -> void:
 	var cell: Vector2i = _mouse_to_grid(mouse_pos)
@@ -467,7 +771,7 @@ func _update_hover(mouse_pos: Vector2) -> void:
 		return
 
 	_hovered_cell = cell
-	queue_redraw()
+	_overlay_control.queue_redraw()
 
 	if cell == Vector2i(-1, -1):
 		_tooltip_panel.visible = false
@@ -484,7 +788,6 @@ func _update_hover(mouse_pos: Vector2) -> void:
 	var features: Array = _sector_features[sr][sc]
 	cell_hovered.emit(sector_label, features)
 
-	# Update tooltip
 	var bbcode: String = "[b]%s[/b]" % sector_label
 	if features.is_empty():
 		bbcode += "\nOpen ground"
@@ -494,7 +797,6 @@ func _update_hover(mouse_pos: Vector2) -> void:
 	_tooltip_label.text = bbcode
 	_tooltip_panel.visible = true
 
-	# Position tooltip near mouse but keep on screen
 	var tip_pos := mouse_pos + Vector2(16, 16)
 	if tip_pos.x + 200 > size.x:
 		tip_pos.x = mouse_pos.x - 200
@@ -507,13 +809,17 @@ func _notification(what: int) -> void:
 		if _hovered_cell != Vector2i(-1, -1):
 			_hovered_cell = Vector2i(-1, -1)
 			_tooltip_panel.visible = false
-			queue_redraw()
+			_overlay_control.queue_redraw()
+	elif what == NOTIFICATION_RESIZED:
+		_update_terrain_transform()
+		queue_redraw()
+		if is_instance_valid(_overlay_control):
+			_overlay_control.queue_redraw()
 
 # ============================================================================
 # COORDINATE HELPERS
 # ============================================================================
 
-## Convert mouse position to grid cell coordinates. Returns (-1,-1) if outside grid.
 func _mouse_to_grid(mouse_pos: Vector2) -> Vector2i:
 	var effective_cell: float = _get_effective_cell_size()
 	var grid_w: float = GRID_COLUMNS * effective_cell
@@ -528,7 +834,6 @@ func _mouse_to_grid(mouse_pos: Vector2) -> Vector2i:
 	var row: int = int(local.y / effective_cell)
 	return Vector2i(clampi(col, 0, GRID_COLUMNS - 1), clampi(row, 0, GRID_ROWS - 1))
 
-## Convert grid cell to sector label (e.g., Vector2i(7, 5) → "B2").
 func _grid_to_sector_label(cell: Vector2i) -> String:
 	var sr: int = cell.y / SECTOR_ROWS
 	var sc: int = cell.x / SECTOR_COLS

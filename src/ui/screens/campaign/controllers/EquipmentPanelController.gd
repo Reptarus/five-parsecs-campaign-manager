@@ -7,7 +7,6 @@ extends BaseController
 
 # Equipment generation system integration
 const StartingEquipmentGenerator = preload("res://src/core/character/Equipment/StartingEquipmentGenerator.gd")
-const Character = preload("res://src/core/character/Character.gd")
 
 # Additional signals specific to equipment management
 signal equipment_generated(equipment: Array[Dictionary])

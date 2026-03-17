@@ -1,7 +1,7 @@
 extends Node
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
-const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
+const CharacterDataMgr = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
 const UnifiedAISystem = preload("res://src/core/systems/UnifiedAISystem.gd")
 const BaseCombatManager = preload("res://src/base/combat/BaseCombatManager.gd")

@@ -1,20 +1,28 @@
-[gd_scene load_steps=3 format=3 uid="uid://dd6c3h40j8r88"]
+[gd_scene format=3 uid="uid://dd6c3h40j8r88"]
 
-[ext_resource type="Script" path="res://src/core/enemy/BattlefieldGeneratorEnemy.gd" id="1_8f41t"]
+[ext_resource type="Script" uid="uid://b7q6itkp781xm" path="res://src/core/enemy/BattlefieldGeneratorEnemy.gd" id="1_8f41t"]
+[ext_resource type="Script" uid="uid://drn85imdgc7ej" path="res://src/core/enemy/EnemyData.gd" id="2_r0cyo"]
+
+[sub_resource type="Resource" id="Resource_v4xmv"]
+resource_name = "EnemyData"
+script = ExtResource("2_r0cyo")
+enemy_id = "1773719644.815"
+name = "Default Enemy"
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_b6b1w"]
 
-[node name="BattlefieldGeneratorEnemy" type="Node2D"]
+[node name="BattlefieldGeneratorEnemy" type="Node2D" unique_id=1484027122]
 script = ExtResource("1_8f41t")
+metadata/enemy_data = SubResource("Resource_v4xmv")
 
-[node name="Collision" type="CollisionShape2D" parent="."]
+[node name="Collision" type="CollisionShape2D" parent="." unique_id=1365044862]
 shape = SubResource("RectangleShape2D_b6b1w")
 
-[node name="Enemy" type="Sprite2D" parent="Collision"]
+[node name="Enemy" type="Sprite2D" parent="Collision" unique_id=1487783335]
 
-[node name="WeaponSystem" type="Node" parent="."]
+[node name="WeaponSystem" type="Node" parent="." unique_id=1616655218]
 
-[node name="HealthBar" type="ProgressBar" parent="."]
+[node name="HealthBar" type="ProgressBar" parent="." unique_id=1208734932]
 offset_left = -20.0
 offset_top = -30.0
 offset_right = 20.0
@@ -22,6 +30,6 @@ offset_bottom = -26.0
 value = 100.0
 show_percentage = false
 
-[node name="HealthSystem" type="Node" parent="."]
+[node name="HealthSystem" type="Node" parent="." unique_id=1956110432]
 
-[node name="StatusEffects" type="Node" parent="."]
+[node name="StatusEffects" type="Node" parent="." unique_id=1295032841]

@@ -195,6 +195,9 @@ func _on_sell_pressed() -> void:
 		stash_items.remove_at(selected)
 		current_credits += SELL_PRICE_PER_ITEM
 		items_sold_this_turn += 1
+		# BUG-039 FIX: Sync sell revenue to GameStateManager for save persistence
+		if GameStateManager:
+			GameStateManager.add_credits(SELL_PRICE_PER_ITEM)
 
 		_populate_sell_items()
 		_update_ui_display()

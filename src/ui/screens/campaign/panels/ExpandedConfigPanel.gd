@@ -30,7 +30,7 @@ signal tutorial_mode_selected(tutorial: String)
 var local_campaign_config: Dictionary = {
 	"campaign_name": "",
 	"campaign_type": "standard",
-	"difficulty_level": 2,  # Default: STANDARD
+	"difficulty_level": GlobalEnums.DifficultyLevel.NORMAL,  # Default: STANDARD
 	"victory_conditions": {},
 	"story_track": "",
 	"tutorial_mode": "",
@@ -145,27 +145,28 @@ var tutorial_modes: Dictionary = {
 	}
 }
 
-# Difficulty levels matching GlobalEnums.DifficultyLevel
+# Difficulty levels keyed by GlobalEnums.DifficultyLevel enum values
+# CRITICAL: Keys must match GlobalEnums values exactly (EASY=1, NORMAL=2, CHALLENGING=4, HARDCORE=6, INSANITY=8)
 var difficulty_levels: Dictionary = {
-	1: {
+	GlobalEnums.DifficultyLevel.EASY: {
 		"name": "Story",
-		"description": "Relaxed difficulty for narrative focus. Enemies are weaker, resources more abundant, and crew survives longer."
+		"description": "Relaxed difficulty for narrative focus. +1 XP per battle, +1 credit reward, remove 1 enemy if 5+. Only basic victory conditions."
 	},
-	2: {
+	GlobalEnums.DifficultyLevel.NORMAL: {
 		"name": "Standard",
-		"description": "The core Five Parsecs experience. Balanced challenge that rewards tactical play while remaining fair."
+		"description": "The core Five Parsecs experience. All rules apply as written."
 	},
-	3: {
+	GlobalEnums.DifficultyLevel.CHALLENGING: {
 		"name": "Challenging",
-		"description": "Increased danger for experienced players. Tougher enemies, scarcer resources, and higher stakes."
+		"description": "Increased danger. Enemy dice showing 1-2 are rerolled (more enemies on average)."
 	},
-	4: {
+	GlobalEnums.DifficultyLevel.HARDCORE: {
 		"name": "Hardcore",
-		"description": "Brutal difficulty for veterans. Every decision matters, losses are punishing, survival is the goal."
+		"description": "Brutal difficulty. +1 enemy per battle, +2 invasion rolls, -2 Seize Initiative, +1 Unique Individual rolls, -1 starting story point."
 	},
-	5: {
+	GlobalEnums.DifficultyLevel.INSANITY: {
 		"name": "Nightmare",
-		"description": "Near-impossible difficulty. Only the most skilled and lucky crews will survive the Fringe."
+		"description": "Near-impossible. +1 specialist per battle, forced Unique Individual, +3 invasion rolls, -3 initiative, NO story points, no Stars of the Story."
 	}
 }
 
@@ -185,8 +186,8 @@ func _on_campaign_state_updated(state_data: Dictionary) -> void:
 	if state_data.has("campaign_config") and state_data.campaign_config is Dictionary:
 		var config_state_data = state_data.campaign_config
 		if config_state_data.has("campaign_name"):
-			# Update local campaign config state from external changes
-			local_campaign_config = config_state_data.duplicate()
+			# Merge external changes into local config to preserve required keys
+			local_campaign_config.merge(config_state_data, true)
 			_update_display()
 
 func _ready() -> void:
@@ -603,22 +604,22 @@ func _setup_campaign_type_options() -> void:
 	campaign_type_option.select(0)
 
 func _setup_difficulty_options() -> void:
-	## Setup difficulty options matching GlobalEnums.DifficultyLevel
+	## Setup difficulty options using actual GlobalEnums.DifficultyLevel enum values as IDs
 	if not difficulty_option:
 		return
 
 	difficulty_option.clear()
 
-	# Add difficulty levels with their enum values as IDs
-	difficulty_option.add_item("Story", 1)       # GlobalEnums.DifficultyLevel.EASY
-	difficulty_option.add_item("Standard", 2)    # GlobalEnums.DifficultyLevel.NORMAL
-	difficulty_option.add_item("Challenging", 3) # GlobalEnums.DifficultyLevel.CHALLENGING
-	difficulty_option.add_item("Hardcore", 4)    # GlobalEnums.DifficultyLevel.HARDCORE
-	difficulty_option.add_item("Nightmare", 5)   # GlobalEnums.DifficultyLevel.INSANITY
+	# CRITICAL: IDs must be actual GlobalEnums.DifficultyLevel values so DifficultyModifiers works
+	difficulty_option.add_item("Story", GlobalEnums.DifficultyLevel.EASY)             # 1
+	difficulty_option.add_item("Standard", GlobalEnums.DifficultyLevel.NORMAL)        # 2
+	difficulty_option.add_item("Challenging", GlobalEnums.DifficultyLevel.CHALLENGING) # 4
+	difficulty_option.add_item("Hardcore", GlobalEnums.DifficultyLevel.HARDCORE)       # 6
+	difficulty_option.add_item("Nightmare", GlobalEnums.DifficultyLevel.INSANITY)     # 8
 
-	# Default to Standard (index 1, which is ID 2)
+	# Default to Standard (index 1, which is ID GlobalEnums.DifficultyLevel.NORMAL)
 	difficulty_option.select(1)
-	local_campaign_config.difficulty_level = 2
+	local_campaign_config.difficulty_level = GlobalEnums.DifficultyLevel.NORMAL
 
 func _setup_victory_conditions() -> void:
 	## Setup victory conditions as interactive card selectors
@@ -698,13 +699,46 @@ func _on_difficulty_changed(index: int) -> void:
 	if not difficulty_option:
 		return
 
-	# Get the difficulty level ID from the selected item
+	# Get the difficulty level ID from the selected item (actual GlobalEnums.DifficultyLevel value)
 	var difficulty_id = difficulty_option.get_item_id(index)
 	local_campaign_config.difficulty_level = difficulty_id
+
+	# Easy mode restricts available victory conditions (Core Rules p.64)
+	_update_victory_conditions_availability(difficulty_id)
 
 	_update_difficulty_description()
 	_update_display()
 	_validate_and_complete()
+
+func _update_victory_conditions_availability(difficulty: int) -> void:
+	## Enable/disable victory condition cards based on difficulty (Core Rules p.64)
+	## Easy mode: only "Play 20 turns" and "Win 20 battles" are available
+	if not victory_conditions_list:
+		return
+
+	var is_restricted: bool = DifficultyModifiers.are_only_basic_victory_conditions_available(difficulty)
+
+	for child in victory_conditions_list.get_children():
+		if child == custom_victory_button:
+			# Hide custom button in Easy mode
+			child.visible = not is_restricted
+			continue
+
+		# Victory condition cards store their key in metadata
+		if not child.has_meta("victory_key"):
+			continue
+
+		var vc_key: String = child.get_meta("victory_key")
+		if is_restricted:
+			# Easy mode: only basic victory conditions (Core Rules p.64: "Play 20 turns" / "Win 20 battles")
+			# Map panel keys to basic conditions: "combat" (win battles) and "story" (complete missions)
+			var is_basic: bool = vc_key in ["combat", "story"]
+			child.modulate.a = 1.0 if is_basic else 0.4
+			# Deselect any restricted condition
+			if not is_basic and selected_victory_conditions.has(vc_key):
+				selected_victory_conditions.erase(vc_key)
+		else:
+			child.modulate.a = 1.0
 
 
 func _create_victory_condition_card(key: String, condition: Dictionary) -> PanelContainer:
@@ -765,12 +799,22 @@ func _create_victory_condition_card(key: String, condition: Dictionary) -> Panel
 	vbox.add_child(target)
 	
 	card.add_child(vbox)
-	
+
+	# BUG-029 FIX: Children must not consume mouse events — pass them through
+	# to the PanelContainer so gui_input fires on click
+	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	checkmark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	target.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
 	# Make clickable
+	card.mouse_filter = Control.MOUSE_FILTER_STOP
 	card.gui_input.connect(_on_victory_card_clicked.bind(key, card))
 	card.mouse_entered.connect(_on_victory_card_hover.bind(card))
 	card.mouse_exited.connect(_on_victory_card_unhover.bind(card))
-	
+
 	return card
 
 func _on_victory_card_clicked(event: InputEvent, key: String, card: PanelContainer) -> void:
@@ -812,13 +856,15 @@ func _on_victory_card_unhover(card: PanelContainer) -> void:
 func _set_card_selected_state(card: PanelContainer, selected: bool) -> void:
 	## Update visual state of victory condition card
 	var style = card.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
-	var checkmark = card.get_node_or_null("VBoxContainer/HBoxContainer/Checkmark")
+	var checkmark = card.find_child("Checkmark", true, false)
 	
 	if selected:
-		# Selected state: focus border, subtle tint, visible checkmark
+		# Selected state: focus border, subtle accent tint, visible checkmark
+		# BUG-034 FIX: Use darkened accent instead of near-white background
+		# so light-colored title text remains readable
 		style.border_color = COLOR_FOCUS
 		style.set_border_width_all(3)
-		style.bg_color = COLOR_FOCUS.lightened(0.85)
+		style.bg_color = COLOR_ACCENT.darkened(0.2)
 		if checkmark:
 			checkmark.visible = true
 	else:
@@ -902,7 +948,7 @@ func _reset_to_defaults() -> void:
 	local_campaign_config = {
 		"campaign_name": "",
 		"campaign_type": "standard",
-		"difficulty_level": 2,  # Default: STANDARD
+		"difficulty_level": GlobalEnums.DifficultyLevel.NORMAL,  # Default: STANDARD
 		"victory_conditions": {},
 		"story_track": "",
 		"tutorial_mode": "",
@@ -981,8 +1027,8 @@ func _validate_and_complete() -> void:
 	local_campaign_config.story_track = selected_story_track
 	local_campaign_config.tutorial_mode = selected_tutorial_mode
 	
-	# Emit data change signal and notify coordinator
-	campaign_config_data_changed.emit(local_campaign_config)
+	# Emit completion signal (connected in CampaignCreationUI) and notify coordinator
+	campaign_config_data_complete.emit(local_campaign_config)
 	_notify_coordinator_of_campaign_config_update()
 
 func _validate_campaign_config() -> Array[String]:
@@ -999,9 +1045,9 @@ func _validate_campaign_config() -> Array[String]:
 	if not campaign_types.has(local_campaign_config.campaign_type):
 		errors.append("Invalid campaign type selection")
 	
-	# Validate victory conditions (at least one required)
-	if selected_victory_conditions.is_empty():
-		errors.append("At least one victory condition must be selected")
+	# Victory conditions validated at finalization (Step 7), not here —
+	# blocking here prevents campaign name from propagating to coordinator
+	# when the user types a name before selecting victory conditions.
 	
 	# Validate story track (optional)
 	if not selected_story_track.is_empty() and not story_tracks.has(selected_story_track):
@@ -1046,8 +1092,8 @@ func get_campaign_config() -> Dictionary:
 	return local_campaign_config.duplicate()
 
 func set_campaign_config(config: Dictionary) -> void:
-	## Set campaign configuration from external source
-	local_campaign_config = config.duplicate()
+	## Set campaign configuration from external source — merge to preserve required keys
+	local_campaign_config.merge(config, true)
 	selected_victory_conditions = config.get("victory_conditions", {}).duplicate()
 	selected_story_track = config.get("story_track", "")
 	selected_tutorial_mode = config.get("tutorial_mode", "")
@@ -1088,14 +1134,14 @@ func reset_panel() -> void:
 func get_campaign_config_data() -> Dictionary:
 	## Get campaign config data in standardized format
 	return {
-		"campaign_name": local_campaign_config.campaign_name,
-		"campaign_type": local_campaign_config.campaign_type,
-		"difficulty_level": local_campaign_config.difficulty_level,
+		"campaign_name": local_campaign_config.get("campaign_name", ""),
+		"campaign_type": local_campaign_config.get("campaign_type", "standard"),
+		"difficulty_level": local_campaign_config.get("difficulty_level", 2),
 		"difficulty_toggles": selected_difficulty_toggles.duplicate(),
 		"victory_conditions": selected_victory_conditions.duplicate(),
 		"story_track": selected_story_track,
 		"tutorial_mode": selected_tutorial_mode,
-		"is_complete": local_campaign_config.is_complete,
+		"is_complete": local_campaign_config.get("is_complete", false),
 		"metadata": {
 			"last_modified": Time.get_unix_time_from_system(),
 			"version": "1.0",
@@ -1170,7 +1216,7 @@ func cleanup_panel() -> void:
 	local_campaign_config = {
 		"campaign_name": "",
 		"campaign_type": "standard",
-		"difficulty_level": 2,  # Default: STANDARD
+		"difficulty_level": GlobalEnums.DifficultyLevel.NORMAL,  # Default: STANDARD
 		"victory_conditions": {},
 		"story_track": "",
 		"tutorial_mode": "",

@@ -25,8 +25,8 @@ enum StarAbility {
 	RAINY_DAY_FUND          ## Gain 1D6+5 credits immediately
 }
 
-## Difficulty constants (aligned with GameState.Difficulty enum)
-const DIFFICULTY_INSANITY := 4
+## Difficulty check uses DifficultyModifiers for correct enum mapping
+# (Previously hardcoded as 4, but GlobalEnums.DifficultyLevel.INSANITY = 8)
 
 ## Elite ranks required for bonus use
 const ELITE_RANKS_PER_BONUS_USE := 5
@@ -60,7 +60,7 @@ var _elite_ranks: int = 0
 ## @param difficulty: Campaign difficulty (Insanity = no stars)
 func initialize(elite_ranks: int, difficulty: int) -> void:
 	_elite_ranks = elite_ranks
-	_is_active = (difficulty != DIFFICULTY_INSANITY)
+	_is_active = not DifficultyModifiers.are_stars_of_story_disabled(difficulty)
 
 	if not _is_active:
 		# Insanity mode - no abilities available

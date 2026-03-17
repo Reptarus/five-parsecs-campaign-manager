@@ -12,6 +12,8 @@ export_presets.cfg
 /builds/
 *.apk
 *.idsig
+*.pck
+*.exe
 
 # Imported translations (automatically generated from CSV files)
 *.translation
@@ -20,6 +22,20 @@ export_presets.cfg
 .mono/
 data_*/
 *.tmp
+
+# Native binaries — plugin libs, Steam SDK, export templates
+*.dll
+*.so
+*.dylib
+*.aar
+*.framework
+*.xcframework
+
+# Large art assets (not source code)
+Assets/BookImages/
+
+# Third-party addons with large binary content
+addons/curved_lines_2d/
 
 # System/tool-specific ignores
 .DS_Store

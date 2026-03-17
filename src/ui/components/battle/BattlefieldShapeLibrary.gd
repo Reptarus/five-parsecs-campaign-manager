@@ -3,13 +3,11 @@ extends RefCounted
 
 ## Shared terrain shape classification and drawing library.
 ##
-## Extracted from BattlefieldGridPanel. Provides a reusable set of terrain
-## shape types and drawing primitives that can be rendered on any Control's
-## _draw() callback. Used by BattlefieldGridPanel (sector view) and
-## BattlefieldMapView (overhead grid view).
+## Provides terrain shape classification, _draw() primitives for sector cells,
+## and ScalableVectorShape2D node creation for the graph-paper map view.
 
 # ============================================================================
-# SHAPE COLOR CONSTANTS
+# SHAPE COLOR CONSTANTS (used by sector cell _draw() rendering)
 # ============================================================================
 
 const SHAPE_COLOR_BUILDING := Color(0.29, 0.565, 0.851, 0.9)    # Steel blue
@@ -27,6 +25,23 @@ const SHAPE_COLOR_OPEN := Color(0.25, 0.25, 0.35, 0.3)          # Very dim
 const SHAPE_COLOR_GOLD_OUTLINE := Color(0.961, 0.788, 0.043, 0.9) # Gold for notable
 
 # ============================================================================
+# MAP VIEW COLORS (graph-paper style, labrador.dev-inspired)
+# ============================================================================
+
+const MAP_COLOR_BUILDING := Color(0.55, 0.56, 0.58)     # Gray ruins
+const MAP_COLOR_WALL := Color(0.50, 0.50, 0.52)          # Dark gray wall
+const MAP_COLOR_ROCK := Color(0.65, 0.65, 0.67)          # Light gray rock
+const MAP_COLOR_HILL := Color(0.64, 0.70, 0.54)          # Olive elevation
+const MAP_COLOR_VEGETATION := Color(0.23, 0.49, 0.27)    # Dark green forest
+const MAP_COLOR_WATER := Color(0.58, 0.77, 0.99)         # Light blue
+const MAP_COLOR_CONTAINER := Color(0.18, 0.48, 0.55)     # Teal obstacles
+const MAP_COLOR_CRYSTAL := Color(0.49, 0.23, 0.93)       # Purple crystal
+const MAP_COLOR_HAZARD := Color(0.86, 0.15, 0.15)        # Red hazard
+const MAP_COLOR_DEBRIS := Color(0.47, 0.44, 0.42)        # Brown-gray debris
+const MAP_COLOR_SCATTER := Color(0.60, 0.58, 0.56)       # Warm gray scatter
+const MAP_COLOR_NOTABLE_STROKE := Color(0.96, 0.78, 0.04) # Gold notable outline
+
+# ============================================================================
 # PUBLIC CLASSIFICATION API
 # ============================================================================
 
@@ -34,16 +49,24 @@ const SHAPE_COLOR_GOLD_OUTLINE := Color(0.961, 0.788, 0.043, 0.9) # Gold for not
 ## Returns: {shape, color, width, height, notable, label}
 func classify_feature(feat: String) -> Dictionary:
 	var lower: String = feat.to_lower()
-	var is_notable: bool = feat.begins_with("NOTABLE:")
+	var is_notable: bool = feat.begins_with("NOTABLE:") or feat.begins_with("LARGE:")
+	var is_linear: bool = feat.begins_with("LINEAR:")
 
-	# Strip prefix for keyword matching
+	# Strip category prefix for keyword matching
 	var text: String = lower
 	if text.begins_with("notable: "):
 		text = text.substr(9)
+	elif text.begins_with("large: "):
+		text = text.substr(7)
+	elif text.begins_with("small: "):
+		text = text.substr(7)
+	elif text.begins_with("linear: "):
+		text = text.substr(8)
 	elif text.begins_with("scatter: "):
-		# Scatter line contains comma-separated items
+		# BUG-040 FIX: Mark scatter as non-terrain (not counted in 13 max)
 		return {"shape": "scatter", "color": SHAPE_COLOR_SCATTER,
 			"width": 48.0, "height": 16.0, "notable": false,
+			"is_scatter": true, "size_category": "",
 			"label": feat.substr(9) if feat.begins_with("Scatter: ") else feat}
 
 	# Keyword -> shape mapping (ordered by specificity)
@@ -57,60 +80,80 @@ func classify_feature(feat: String) -> Dictionary:
 			"room", "section", "interior", "machinery", "nacelle"]):
 		shape = "rect"
 		color = SHAPE_COLOR_BUILDING
-		w = 42.0; h = 28.0
+		w = 56.0; h = 38.0
 	elif _text_has_any(text, ["barricade", "wall", "pipeline", "conveyor",
 			"plate", "fence", "barrier", "railing", "walkway",
 			"strut", "gear", "rack", "spool"]):
 		shape = "line"
 		color = SHAPE_COLOR_WALL
-		w = 44.0; h = 6.0
+		w = 52.0; h = 8.0
 	elif _text_has_any(text, ["crystal", "crystalline", "energy field",
 			"monolith", "pillar", "shard"]):
 		shape = "diamond"
 		color = SHAPE_COLOR_CRYSTAL
-		w = 20.0; h = 28.0
+		w = 28.0; h = 36.0
 	elif _text_has_any(text, ["rock", "boulder", "outcrop", "stone"]):
 		shape = "circle"
 		color = SHAPE_COLOR_ROCK
-		w = 24.0; h = 24.0
+		w = 32.0; h = 32.0
 	elif _text_has_any(text, ["hill", "hilltop", "crater", "mound",
 			"elevation", "ridge", "elevated"]):
 		shape = "triangle"
 		color = SHAPE_COLOR_HILL
-		w = 32.0; h = 24.0
+		w = 40.0; h = 36.0
 	elif _text_has_any(text, ["tree", "bush", "grass", "vegetation",
 			"vine", "growth", "fungal", "spore", "mushroom", "flower"]):
 		shape = "tree"
 		color = SHAPE_COLOR_VEGETATION
-		w = 22.0; h = 26.0
+		w = 44.0; h = 44.0
 	elif _text_has_any(text, ["creek", "pond", "stream", "water", "pool"]):
 		shape = "water"
 		color = SHAPE_COLOR_WATER
-		w = 36.0; h = 18.0
+		w = 42.0; h = 24.0
 	elif _text_has_any(text, ["container", "crate", "barrel", "drum",
 			"tank", "cargo", "seat"]):
 		shape = "box"
 		color = SHAPE_COLOR_CONTAINER
-		w = 20.0; h = 20.0
+		w = 30.0; h = 30.0
 	elif _text_has_any(text, ["dangerous", "hazard", "radiation",
 			"explode", "electrical", "fuel"]):
 		shape = "hazard"
 		color = SHAPE_COLOR_HAZARD
-		w = 24.0; h = 24.0
+		w = 30.0; h = 30.0
 	elif _text_has_any(text, ["rubble", "debris", "scrap", "junk",
 			"wreckage", "pile", "fragment", "wire", "cable", "panel",
 			"insulation", "glass", "chunk", "artifact", "bone", "log",
 			"effects"]):
 		shape = "debris"
 		color = SHAPE_COLOR_DEBRIS
-		w = 32.0; h = 18.0
+		w = 38.0; h = 22.0
+
+	# LINEAR category features default to line shape if not already matched
+	if is_linear and shape == "rect":
+		shape = "line"
+		color = SHAPE_COLOR_WALL
+		w = 52.0; h = 8.0
 
 	if is_notable:
 		w *= 1.3
 		h *= 1.3
 
+	# Short label for map view (1-2 words)
+	var short_label: String = _get_short_label(shape, text)
+
+	# BUG-041 FIX: Store size category for label prefixes
+	var size_category: String = ""
+	if feat.begins_with("LARGE:") or feat.begins_with("NOTABLE:"):
+		size_category = "LARGE"
+	elif feat.begins_with("SMALL:"):
+		size_category = "SMALL"
+	elif feat.begins_with("LINEAR:"):
+		size_category = "LINEAR"
+
 	return {"shape": shape, "color": color, "width": w, "height": h,
-		"notable": is_notable, "label": feat}
+		"notable": is_notable, "is_scatter": false,
+		"size_category": size_category,
+		"label": feat, "short_label": short_label}
 
 ## Classify all feature strings for a cell into drawable shape dictionaries.
 func classify_features(features: Array) -> Array:
@@ -212,6 +255,22 @@ func _text_has_any(text: String, keywords: Array) -> bool:
 		if kw in text:
 			return true
 	return false
+
+## Get a 1-2 word label for map view display based on shape type
+func _get_short_label(shape_type: String, text: String) -> String:
+	match shape_type:
+		"rect": return "Ruins" if "ruin" in text else "Building"
+		"line": return "Wall"
+		"circle": return "Rock"
+		"triangle": return "Hill"
+		"tree": return "Trees"
+		"water": return "Water"
+		"box": return "Crate"
+		"diamond": return "Crystal"
+		"hazard": return "Hazard"
+		"debris": return "Debris"
+		"scatter": return ""  # Scatter doesn't need a label
+	return ""
 
 # ============================================================================
 # INDIVIDUAL SHAPE DRAWING METHODS
@@ -354,3 +413,86 @@ func _draw_scatter(canvas: Control, origin: Vector2,
 			canvas.draw_rect(Rect2(sx, sy, 5, 5), color)
 		else:
 			canvas.draw_circle(Vector2(sx + 2.5, sy + 2.5), 3.0, color)
+
+# ============================================================================
+# VECTOR SHAPE FACTORY (for graph-paper map view)
+# ============================================================================
+
+## Create a ScalableVectorShape2D node for a classified terrain feature.
+## Returns a configured node ready to be added to the scene tree.
+## scale: multiplier applied to the shape's base dimensions.
+func create_vector_shape(shape_info: Dictionary, scale: float = 1.0) -> ScalableVectorShape2D:
+	var svs := ScalableVectorShape2D.new()
+	svs.update_curve_at_runtime = true
+
+	var shape_type: String = shape_info.get("shape", "rect")
+	var w: float = shape_info.get("width", 30.0) * scale
+	var h: float = shape_info.get("height", 20.0) * scale
+	var is_notable: bool = shape_info.get("notable", false)
+	var fill_color: Color = _get_map_color(shape_type)
+	var stroke_col: Color = fill_color.darkened(0.3)
+
+	if is_notable:
+		stroke_col = MAP_COLOR_NOTABLE_STROKE
+
+	# Choose SVS shape type
+	match shape_type:
+		"tree", "circle", "triangle":
+			svs.shape_type = ScalableVectorShape2D.ShapeType.ELLIPSE
+		_:
+			svs.shape_type = ScalableVectorShape2D.ShapeType.RECT
+			svs.rx = 4.0
+			svs.ry = 4.0
+
+	svs.size = Vector2(w, h)
+
+	# Fill (Polygon2D child)
+	var fill := Polygon2D.new()
+	fill.color = fill_color
+	svs.add_child(fill)
+	svs.polygon = fill
+
+	# Stroke (Line2D child)
+	var stroke := Line2D.new()
+	svs.add_child(stroke)
+	svs.line = stroke
+	svs.stroke_color = stroke_col
+	svs.stroke_width = 3.0 if is_notable else 2.0
+
+	# Store metadata for labels/tooltips
+	svs.set_meta("shape_info", shape_info)
+
+	return svs
+
+## Get maximum rotation angle (radians) for a shape type.
+## Buildings get subtle rotation; natural features get full rotation.
+static func get_rotation_range(shape_type: String) -> float:
+	match shape_type:
+		"rect": return deg_to_rad(15.0)       # Buildings: subtle
+		"line": return deg_to_rad(45.0)        # Walls: varied angles
+		"circle": return deg_to_rad(360.0)     # Rocks: any rotation
+		"triangle": return deg_to_rad(360.0)   # Hills: any rotation
+		"tree": return deg_to_rad(360.0)       # Trees: any rotation
+		"water": return deg_to_rad(10.0)       # Water: very subtle
+		"box": return deg_to_rad(45.0)         # Containers: moderate
+		"diamond": return deg_to_rad(30.0)     # Crystals: moderate
+		"hazard": return deg_to_rad(20.0)      # Hazards: subtle
+		"debris": return deg_to_rad(360.0)     # Debris: any rotation
+		"scatter": return deg_to_rad(360.0)    # Scatter: any
+	return deg_to_rad(15.0)
+
+## Get the map-view fill color for a shape type (graph-paper palette).
+func _get_map_color(shape_type: String) -> Color:
+	match shape_type:
+		"rect": return MAP_COLOR_BUILDING
+		"line": return MAP_COLOR_WALL
+		"circle": return MAP_COLOR_ROCK
+		"triangle": return MAP_COLOR_HILL
+		"tree": return MAP_COLOR_VEGETATION
+		"water": return MAP_COLOR_WATER
+		"box": return MAP_COLOR_CONTAINER
+		"diamond": return MAP_COLOR_CRYSTAL
+		"hazard": return MAP_COLOR_HAZARD
+		"debris": return MAP_COLOR_DEBRIS
+		"scatter": return MAP_COLOR_SCATTER
+	return MAP_COLOR_DEBRIS

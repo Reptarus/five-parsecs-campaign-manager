@@ -28,9 +28,10 @@ signal story_milestone_reached(milestone: int)
 # Tutorial integration signals (for guided campaign mode)
 signal tutorial_requested(event_id: String, companion_tools: Array, story_context: String)
 
-# Story Clock mechanics (from Core Rules Appendix V)
-var story_clock_ticks: int = 6 # Initial clock setting
-var max_clock_ticks: int = 6
+# Story Clock mechanics (from Core Rules Appendix V, p.153)
+# Clock starts at 5 ticks. After each event, clock resets to event's clock_ticks value.
+var story_clock_ticks: int = 5 # Initial clock setting (Core Rules: "set the Clock at 5 Ticks")
+var max_clock_ticks: int = 5
 var evidence_pieces: int = 0
 var current_event_index: int = 0
 
@@ -68,105 +69,108 @@ func _initialize_dice_manager() -> void:
 func set_dice_manager(dm: Node) -> void:
 	dice_manager = dm
 
-## Initialize the 6 story events from Appendix V pattern
+## Initialize 7 story events from Core Rules Appendix V (pp.153-162)
+## Clock ticks between events match the book exactly.
 func _initialize_story_events() -> void:
 	story_events.clear()
 
-	# Event 1: Initial Discovery
+	# Event 1: Foiled! (Clock starts at 5 ticks — set in start_story_track)
 	var event1 := StoryEvent.new()
-	event1.event_id = "discovery_signal"
-	event1.title = "Mysterious Signal"
-	event1.description = "Your crew picks up a mysterious signal from an abandoned research facility..."
+	event1.event_id = "foiled"
+	event1.title = "Foiled!"
+	event1.description = "A big job lined up — mega-corp, good benefits. Then hired guns were waiting at the meeting place. What's going on?"
 	event1.event_type = "story_track"
-	event1.trigger_conditions = {"required_evidence": 0}
-	event1.tutorial_config_key = "discovery_signal"  # Links to tutorial config JSON
+	event1.trigger_conditions = {"required_evidence": 0, "clock_ticks": 3}
+	event1.tutorial_config_key = "discovery_signal"
 	_add_event_choices(event1, [
-		{"text": "Investigate immediately", "risk": "high", "reward": "tech_data", "evidence_gain": 2},
-		{"text": "Monitor from distance", "risk": "low", "reward": "information", "evidence_gain": 1},
-		{"text": "Report to authorities", "risk": "none", "reward": "credits", "evidence_gain": 0}
+		{"text": "Hold the Field and investigate", "risk": "high", "reward": "intel", "evidence_gain": 2},
+		{"text": "Flee the ambush", "risk": "medium", "reward": "safety", "evidence_gain": 0}
 	])
-
 	story_events.append(event1)
 
-	# Event 2: First Contact
+	# Event 2: On the Trail (Clock: 3 ticks after Event 1)
 	var event2 := StoryEvent.new()
-	event2.event_id = "first_contact"
-	event2.title = "Unexpected Contact"
-	event2.description = "A transmission reveals someone else is searching for the same thing..."
+	event2.event_id = "on_the_trail"
+	event2.title = "On the Trail"
+	event2.description = "Your snooping paid off. Q'narr, a smuggler from the disputed sectors — you used to be tight, but he got a dirty deal you couldn't take. Now he's quite the big shot, and he's decided to get even."
 	event2.event_type = "story_track"
-	event2.trigger_conditions = {"required_evidence": 1}
-	event2.tutorial_config_key = "first_contact"  # Links to tutorial config JSON
+	event2.trigger_conditions = {"required_evidence": 1, "clock_ticks": 2}
+	event2.tutorial_config_key = "first_contact"
 	_add_event_choices(event2, [
-		{"text": "Attempt to make contact", "risk": "medium", "reward": "ally", "evidence_gain": 2},
-		{"text": "Follow them secretly", "risk": "high", "reward": "intel", "evidence_gain": 3},
-		{"text": "Avoid them entirely", "risk": "low", "reward": "none", "evidence_gain": 0}
+		{"text": "Fight Blood Storm Mercs head-on", "risk": "high", "reward": "story_point", "evidence_gain": 1},
+		{"text": "Capture a mercenary for intel", "risk": "very_high", "reward": "story_point_plus", "evidence_gain": 2}
 	])
-
 	story_events.append(event2)
 
-	# Event 3: Hidden Conspiracy
+	# Event 3: Disrupting the Plan (Clock: 2 ticks, must travel first)
 	var event3 := StoryEvent.new()
-	event3.event_id = "conspiracy_revealed"
-	event3.title = "Corporate Conspiracy"
-	event3.description = "Evidence points to a massive corporate cover-up involving illegal experiments..."
+	event3.event_id = "disrupting_the_plan"
+	event3.title = "Disrupting the Plan"
+	event3.description = "Your old friend is up to something big. You've found where his organization stores contraband. Time to pay them a visit."
 	event3.event_type = "story_track"
-	event3.trigger_conditions = {"required_evidence": 3}
-	event3.tutorial_config_key = "conspiracy_revealed"  # Links to tutorial config JSON
+	event3.trigger_conditions = {"required_evidence": 2, "clock_ticks": 5}
+	event3.tutorial_config_key = "conspiracy_revealed"
 	_add_event_choices(event3, [
-		{"text": "Expose the conspiracy", "risk": "very_high", "reward": "reputation", "evidence_gain": 1},
-		{"text": "Blackmail for profit", "risk": "high", "reward": "credits", "evidence_gain": 1},
-		{"text": "Sell data to competitors", "risk": "medium", "reward": "contacts", "evidence_gain": 0}
+		{"text": "Plant sabotage device at center", "risk": "high", "reward": "loot", "evidence_gain": 1},
+		{"text": "Drive off all enemies first", "risk": "very_high", "reward": "loot_plus", "evidence_gain": 1}
 	])
-
 	story_events.append(event3)
 
-	# Event 4: Personal Stakes
+	# Event 4: The Enemy Strikes Back (Clock: 5 ticks after Event 3)
 	var event4 := StoryEvent.new()
-	event4.event_id = "personal_connection"
-	event4.title = "Personal Connection"
-	event4.description = "You discover someone close to you was involved in the original research..."
+	event4.event_id = "enemy_strikes_back"
+	event4.title = "The Enemy Strikes Back"
+	event4.description = "A direct attack on your ship while docked in port! They distracted starport security. Fight for your life!"
 	event4.event_type = "story_track"
-	event4.trigger_conditions = {"required_evidence": 4}
-	event4.tutorial_config_key = "dangerous_escalation"  # Links to tutorial config JSON
+	event4.trigger_conditions = {"required_evidence": 3, "clock_ticks": 3}
+	event4.tutorial_config_key = "dangerous_escalation"
 	_add_event_choices(event4, [
-		{"text": "Confront them directly", "risk": "medium", "reward": "truth", "evidence_gain": 2},
-		{"text": "Search for more evidence", "risk": "low", "reward": "intel", "evidence_gain": 3},
-		{"text": "Protect them from discovery", "risk": "high", "reward": "loyalty", "evidence_gain": 0}
+		{"text": "Defend the ship with full crew", "risk": "extreme", "reward": "xp_bonus", "evidence_gain": 1},
+		{"text": "Include Sick Bay crew (Impaired)", "risk": "extreme", "reward": "xp_plus", "evidence_gain": 1}
 	])
-
 	story_events.append(event4)
 
-	# Event 5: The Hunt Begins
+	# Event 5: Kidnap (Clock: 3 ticks after Event 4)
 	var event5 := StoryEvent.new()
-	event5.event_id = "hunt_begins"
-	event5.title = "The Hunt Begins"
-	event5.description = "Your old companion has been taken by those who want to silence the truth..."
+	event5.event_id = "kidnap"
+	event5.title = "Kidnap"
+	event5.description = "Q'Narr has gone after another of your old companions. They're out of the business, living clean — but goons attacked their family."
 	event5.event_type = "story_track"
-	event5.trigger_conditions = {"required_evidence": 5}
-	event5.tutorial_config_key = "final_revelation"  # Links to tutorial config JSON
+	event5.trigger_conditions = {"required_evidence": 4, "clock_ticks": 0}
+	event5.tutorial_config_key = "final_revelation"
 	_add_event_choices(event5, [
-		{"text": "Mount immediate rescue", "risk": "very_high", "reward": "companion", "evidence_gain": 1},
-		{"text": "Gather allies first", "risk": "medium", "reward": "support", "evidence_gain": 2},
-		{"text": "Negotiate for release", "risk": "high", "reward": "deal", "evidence_gain": 0}
+		{"text": "Travel immediately to investigate", "risk": "high", "reward": "evidence", "evidence_gain": 2},
+		{"text": "Take shuttle (4 crew max, 3 cr)", "risk": "medium", "reward": "evidence", "evidence_gain": 1}
 	])
-
 	story_events.append(event5)
 
-	# Event 6: Final Confrontation
+	# Event 6: We're Coming! (Clock: evidence-gated, 1D6+evidence >= 7)
 	var event6 := StoryEvent.new()
-	event6.event_id = "final_confrontation"
+	event6.event_id = "were_coming"
 	event6.title = "We're Coming!"
-	event6.description = "You've tracked down where they're holding your friend. Time for diplomacy, Fringe-style!"
+	event6.description = "You've tracked down where they're holding your friend. It's time for diplomacy, Fringe-style!"
 	event6.event_type = "story_track"
-	event6.trigger_conditions = {"required_evidence": 7}
-	event6.tutorial_config_key = "story_aftermath"  # Links to tutorial config JSON
+	event6.trigger_conditions = {"required_evidence": 6, "clock_ticks": 2}
+	event6.tutorial_config_key = "story_aftermath"
 	_add_event_choices(event6, [
-		{"text": "Full frontal assault", "risk": "extreme", "reward": "victory", "evidence_gain": 0},
-		{"text": "Stealth infiltration", "risk": "very_high", "reward": "rescue", "evidence_gain": 0},
-		{"text": "Create distraction", "risk": "high", "reward": "opportunity", "evidence_gain": 0}
+		{"text": "Stealth approach (sneak past sentries)", "risk": "high", "reward": "rescue", "evidence_gain": 0},
+		{"text": "Direct assault", "risk": "very_high", "reward": "rescue", "evidence_gain": 0}
 	])
-
 	story_events.append(event6)
+
+	# Event 7: Time to Settle This (Clock: 2 ticks, can delay up to 3 turns)
+	var event7 := StoryEvent.new()
+	event7.event_id = "time_to_settle_this"
+	event7.title = "Time to Settle This"
+	event7.description = "This is it. You've tracked your old rival to his hideout on the dead moon of a barren world. His forces are depleted. You'll never get a better chance."
+	event7.event_type = "story_track"
+	event7.trigger_conditions = {"required_evidence": 7, "clock_ticks": 0}
+	event7.tutorial_config_key = "story_aftermath"
+	_add_event_choices(event7, [
+		{"text": "Storm the compound now", "risk": "extreme", "reward": "victory", "evidence_gain": 0},
+		{"text": "Delay (up to 3 turns)", "risk": "medium", "reward": "preparation", "evidence_gain": 0}
+	])
+	story_events.append(event7)
 
 ## Add choices to a story event using global StoryEvent structure
 func _add_event_choices(event: StoryEvent, choices_data: Array) -> void:

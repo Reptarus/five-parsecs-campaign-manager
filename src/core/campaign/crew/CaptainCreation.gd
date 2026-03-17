@@ -1,6 +1,5 @@
 extends Control
 
-const Character = preload("res://src/core/character/Base/Character.gd")
 const CharacterStats = preload("res://src/core/character/Base/CharacterStats.gd")
 const CharacterTableRoller = preload("res://src/core/character/Generation/CharacterTableRoller.gd")
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")

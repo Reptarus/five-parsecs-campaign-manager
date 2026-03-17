@@ -831,20 +831,31 @@ func _update_crew_preview() -> void:
 		crew_hbox.add_child(no_crew_label)
 		return
 	
-	# Create CharacterCard COMPACT for each crew member
-	# Sprint 26.3: Character-Everywhere - crew members are always Character objects
+	# Create crew member cards — handle both Character objects and Dictionary data
 	for member in crew_members:
-		var card = CharacterCardScene.instantiate()
-		card.current_variant = 0  # COMPACT = 80px
-		card.custom_minimum_size = Vector2(200, 80)
-
-		# Set character data directly
 		if member is Character:
+			var card = CharacterCardScene.instantiate()
+			card.current_variant = 0  # COMPACT = 80px
+			card.custom_minimum_size = Vector2(200, 80)
 			card.set_character(member)
+			crew_hbox.add_child(card)
+		elif member is Dictionary:
+			# UX-074 FIX: Handle Dictionary crew data from coordinator
+			var char_name: String = member.get(
+				"name", member.get("character_name", "Unknown"))
+			var char_class: String = member.get("character_class", "")
+			var origin: String = member.get("origin", "")
+			var subtitle: String = char_class if char_class else origin
+			var stats: Dictionary = {}
+			for stat_key in ["combat", "reactions", "toughness",
+					"savvy", "speed", "luck"]:
+				if member.has(stat_key):
+					stats[stat_key] = member[stat_key]
+			var card = _create_character_card(char_name, subtitle, stats)
+			card.custom_minimum_size = Vector2(200, 80)
+			crew_hbox.add_child(card)
 		else:
-			push_warning("FinalPanel: Expected Character object, got %s" % type_string(typeof(member)))
-
-		crew_hbox.add_child(card)
+			push_warning("FinalPanel: Unexpected crew type: %s" % type_string(typeof(member)))
 
 func _update_validation_feedback() -> void:
 	## Update validation feedback panel based on campaign data validation

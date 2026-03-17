@@ -7,7 +7,6 @@ class_name FiveParsecsCharacter
 ## Migration-safe with backward compatibility adapters
 
 # Safe imports - using global autoloads where possible
-const Character = preload("res://src/core/character/Character.gd")
 const FiveParsecsCharacterGeneration = preload("res://src/core/character/CharacterGeneration.gd")
 const CharacterCreationTables = preload("res://src/core/character/tables/CharacterCreationTables.gd")
 # DataManager accessed via autoload singleton (not preload)

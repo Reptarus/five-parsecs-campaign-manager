@@ -6,7 +6,6 @@ extends Control
 # Safe imports
 # Removed UniversalNodeValidator dependency - using simple Godot node validation
 # GlobalEnums available as autoload singleton
-const Character = preload("res://src/core/character/Character.gd")
 
 # Character Stat Types
 enum CharacterStatType {

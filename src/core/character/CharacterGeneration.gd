@@ -12,7 +12,6 @@ class_name FiveParsecsCharacterGeneration
 
 # GlobalEnums available as autoload singleton
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
-const Character = preload("res://src/core/character/Character.gd")
 const UniversalResourceLoader = preload("res://src/core/systems/UniversalResourceLoader.gd")
 # DataManager accessed via autoload singleton (not preload)
 const SafeDataAccess = preload("res://src/utils/SafeDataAccess.gd")

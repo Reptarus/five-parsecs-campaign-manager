@@ -4,7 +4,6 @@ const SAVE_DIR = "user://saves/"
 const CHARACTER_FILE_EXTENSION = ".char.json"
 const CREW_FILE_EXTENSION = ".crew.json"
 const PORTRAIT_DIR = "user://portraits/"
-const Character = preload("res://src/core/character/Base/Character.gd")
 const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
 var game_state_manager: GameStateManager
 

@@ -221,8 +221,17 @@ func _generate_job_offers(patron_data: Dictionary, location: String) -> Array[Di
 		# Fallback: roll d6/2
 		job_count = max(1, int(GameDataLoader.roll_d6() / 2))
 
+	var seen_types: Array[String] = []
 	for i in range(job_count):
 		var job = _create_job_offer_from_table(effective_patron, location, i, job_type_table, patron_table)
+		var job_key: String = job.get("job_type", "") + "_" + job.get("objective", "")
+		# Re-roll duplicates (up to 3 attempts)
+		var attempts := 0
+		while job_key in seen_types and attempts < 3:
+			job = _create_job_offer_from_table(effective_patron, location, i, job_type_table, patron_table)
+			job_key = job.get("job_type", "") + "_" + job.get("objective", "")
+			attempts += 1
+		seen_types.append(job_key)
 		jobs.append(job)
 
 	return jobs
@@ -236,11 +245,19 @@ func _generate_job_offers_fallback(patron_data: Dictionary, location: String) ->
 		effective_patron = {"patron_name": "Open Market", "patron_type": "generic"}
 	
 	var job_count = max(1, int(GameDataLoader.roll_d6() / 2))
-	
+
+	var seen_types: Array[String] = []
 	for i in range(job_count):
 		var job = _create_job_offer(effective_patron, location, i)
+		var job_key: String = job.get("job_type", "") + "_" + job.get("objective", "")
+		var attempts := 0
+		while job_key in seen_types and attempts < 3:
+			job = _create_job_offer(effective_patron, location, i)
+			job_key = job.get("job_type", "") + "_" + job.get("objective", "")
+			attempts += 1
+		seen_types.append(job_key)
 		jobs.append(job)
-	
+
 	return jobs
 
 ## Roll on patron contact table (2d6)

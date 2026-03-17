@@ -1,6 +1,5 @@
 @tool
 extends Resource
-const Character = preload("res://src/core/character/Base/Character.gd")
 
 signal campaign_started
 signal campaign_ended(victory: bool)

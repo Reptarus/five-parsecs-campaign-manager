@@ -10,12 +10,16 @@ Campaign data is persisted as JSON at `user://saves/{campaign_id}.save`. The fol
 {
   "campaign_name": "string (required, non-empty)",
   "campaign_id": "string (auto-generated UUID)",
-  "difficulty": "string (enum: EASY|NORMAL|HARD|CHALLENGING|NIGHTMARE|HARDCORE|ELITE|INSANITY)",
+  "difficulty": "int (GlobalEnums.DifficultyLevel: EASY=1, NORMAL=2, CHALLENGING=4, HARDCORE=6, INSANITY=8)",
   "campaign_type": "string (enum: STANDARD|CUSTOM|TUTORIAL|STORY|SANDBOX)",
   "ironman_mode": "bool",
   "victory_conditions": ["array of victory condition strings"],
   "story_track_enabled": "bool",
   "house_rules": ["array of rule strings"],
+  "red_zone_licensed": "bool (Phase 30: Red Zone Jobs endgame access)",
+  "red_zone_turns_completed": "int (turns played in Red Zone worlds)",
+  "has_ship": "bool (Phase 30: false when ship destroyed, Core Rules p.59)",
+  "ship_debt": "int (loan remaining, interest +1/+2 per turn, seizure risk at >75)",
   "schema_version": "int (current: 1)",
   "created_at": "string (ISO datetime)",
   "last_modified": "string (ISO datetime)",
@@ -78,13 +82,18 @@ The key is `"equipment"`, **NOT** `"pool"`. Using `"pool"` was a systemic bug fi
 {
   "ship": {
     "name": "string",
-    "hull_points": "int",
+    "type": "string (Freelancer|Worn Freighter|Scout Ship|Patrol Boat|Armed Trader|Converted Transport|Light Freighter)",
+    "hull_points": "int (Core Rules: 6-14, NOT 20-35)",
+    "max_hull": "int (matches hull_points at creation)",
     "fuel": "int",
-    "debt": "int (0+)",
+    "debt": "int (Core Rules: 0-5, NOT 12-38)",
+    "traits": ["array of trait strings"],
     "components": {}
   }
 }
 ```
+
+**CRITICAL (Mar 16 fix)**: Ship values were fabricated at hull 20-35 / debt 12-38. Now corrected to Core Rules scale. Default type is "Freelancer". SpinBox constraints: hull max=20, debt max=10. Persistent test campaigns from before Mar 16 have INVALID ship data.
 
 ### World Data
 
@@ -96,10 +105,18 @@ The key is `"equipment"`, **NOT** `"pool"`. Using `"pool"` was a systemic bug fi
     "environment": "string",
     "trait": "string",
     "strife_level": "string",
-    "market_state": "string (NORMAL|CRISIS|BOOM|RESTRICTED)"
+    "market_state": "string (NORMAL|CRISIS|BOOM|RESTRICTED)",
+    "tech_level": "int (1-6, d6 roll: 1-2=Low Tech, 3-4=Standard, 5-6=High Tech)",
+    "tech_name": "string (Low Tech|Standard|High Tech)",
+    "government_type": "int (1-10, d10 roll)",
+    "government_name": "string (Anarchy|Corporate|Democracy|Dictatorship|Feudal|Military Junta|Oligarchy|Technocracy|Theocracy|Unity Oversight)",
+    "population_scale": "int (1-6, d6 roll: 1-2=Sparse, 3-4=Moderate, 5-6=Dense)",
+    "population_name": "string (Sparse|Moderate|Dense)"
   }
 }
 ```
+
+**NOTE (Mar 16 fix)**: tech_level, government_type, and population_scale are new fields added to WorldGenerator. Saves from before Mar 16 will not have these fields — code should handle missing keys gracefully.
 
 ### Progress Data (Runtime State)
 
@@ -110,6 +127,9 @@ The key is `"equipment"`, **NOT** `"pool"`. Using `"pool"` was a systemic bug fi
     "current_phase": "string (FiveParsecsCampaignPhase enum value)",
     "credits": "int",
     "story_points": "int",
+    "missions_completed": "int",
+    "battles_won": "int",
+    "battles_lost": "int",
     "patrons": [],
     "rivals": [],
     "quest_rumors": []
@@ -118,6 +138,10 @@ The key is `"equipment"`, **NOT** `"pool"`. Using `"pool"` was a systemic bug fi
 ```
 
 FiveParsecsCampaignCore is a Resource — `campaign["key"] = val` silently fails. Use `progress_data["key"]` for runtime state. Use `"key" in campaign` instead of `.has("key")`.
+
+**BUG-031 FIXED (Phase 30, Mar 16 2026)**: All 4 GameStateManager setters now dual-sync to both the campaign resource property AND `progress_data`. `_on_campaign_loaded()` routes through setters to ensure consistency. `FiveParsecsCampaignCore._init()` and `from_dictionary()` initialize default zero values for `credits`, `missions_completed`, `battles_won`, `battles_lost`.
+
+**BUG-035 FIXED (Phase 31, Mar 16 2026)**: Equipment in ship stash is now restored to EquipmentManager on campaign load via `_restore_equipment_from_campaign()`. Crew dicts are enriched with per-member equipment via `_enrich_crew_equipment()`.
 
 ---
 
@@ -189,6 +213,10 @@ Load saved JSON. Verify:
 6. **Stat ranges**: All stats within valid ranges (see table above)
 7. **Status values**: All member statuses are valid enum strings
 8. **Array lengths match**: crew count, equipment count preserved
+9. **Progress counters non-null**: `progress_data.credits` must not be null; `missions_completed`, `battles_won`, `battles_lost` must persist (BUG-031 — FIXED Phase 30)
+10. **Origin field populated**: All crew members should have a non-empty `origin` field (BUG-030 — FIXED Phase 30: default dropdown selection now triggers `_on_origin_changed(0)`)
+11. **Dual-sync consistency**: `campaign.credits` must equal `progress_data["credits"]`; same for `missions_completed`, `battles_won`, `battles_lost`. All 4 setters in GameStateManager now sync both (Phase 30 fix). If these diverge, the setter pathway was bypassed
+12. **Equipment restored on load**: After `load_campaign()`, EquipmentManager must contain the ship stash items from `equipment_data["equipment"]`. Crew member dicts must have per-member `equipment` arrays (BUG-035 — FIXED Phase 31)
 
 ### Step 3: Re-Save and Binary Compare
 Save the loaded state again. Compare JSON strings (after normalization) to verify idempotent serialization.

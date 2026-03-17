@@ -3,6 +3,7 @@ extends "res://src/ui/screens/campaign/phases/BasePhasePanel.gd"
 # Use explicit preloads instead of global class names
 
 const ThisClass = preload("res://src/ui/screens/campaign/phases/EndPhasePanel.gd")
+const PlayerProfileRef = preload("res://src/core/player/PlayerProfile.gd")
 
 signal cycle_completed
 signal campaign_saved
@@ -11,6 +12,7 @@ signal campaign_saved
 @onready var stats_container: VBoxContainer = $VBoxContainer/StatsContainer
 @onready var save_button: Button = $VBoxContainer/SaveButton
 @onready var continue_button: Button = $VBoxContainer/ContinueButton
+@onready var _cpm: Node = get_node_or_null("/root/CampaignPhaseManager")
 
 var cycle_summary: Dictionary = {}
 
@@ -48,8 +50,7 @@ func generate_cycle_summary() -> void:
 		if "progress_data" in campaign else {}
 	# turns_played in progress_data may not be updated yet (written at turn completion),
 	# so also check CampaignPhaseManager.turn_number as the authoritative source.
-	var cpm = get_node_or_null("/root/CampaignPhaseManager")
-	var turn_num: int = cpm.turn_number if cpm and "turn_number" in cpm else pd.get("turns_played", 0)
+	var turn_num: int = _cpm.turn_number if _cpm and "turn_number" in _cpm else pd.get("turns_played", 0)
 	cycle_summary["turns_played"] = turn_num
 	cycle_summary["missions_completed"] = pd.get("missions_completed", 0)
 	cycle_summary["battles_won"] = pd.get("battles_won", 0)
@@ -149,6 +150,15 @@ func _try_archive_campaign() -> void:
 	var pd: Dictionary = campaign.progress_data \
 		if "progress_data" in campaign else {}
 	var turns: int = pd.get("turns_played", 0)
+
+	# Award Elite Rank on victory (Core Rules p.65)
+	if is_victory:
+		var vc_type: int = vc.get("type", -1)
+		var profile = PlayerProfileRef.get_instance()
+		if profile and vc_type >= 0:
+			var awarded: bool = profile.award_elite_rank(vc_type)
+			if awarded:
+				print("EndPhasePanel: Elite Rank awarded for victory condition %d (total: %d)" % [vc_type, profile.elite_ranks])
 
 	# Archive on victory or after 20+ turns
 	if not is_victory and turns < 20:

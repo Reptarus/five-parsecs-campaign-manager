@@ -12,7 +12,6 @@ extends "res://src/base/combat/BaseCombatManager.gd"
 ## Required dependencies
 var GameEnums = null
 var GlobalEnums = null
-const Character = preload("res://src/core/character/Base/Character.gd")
 const FiveParsecsBattleRules = preload("res://src/game/combat/FiveParsecsBattleRules.gd")
 const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
 

@@ -1,7 +1,6 @@
 @tool
 extends Node
 const FiveParcsecsCampaign = preload("res://src/core/campaign/Campaign.gd")
-const Character = preload("res://src/core/character/Base/Character.gd")
 const GameState = preload("res://src/core/state/GameState.gd")
 const SaveManager = preload("res://src/core/state/SaveManager.gd")
 

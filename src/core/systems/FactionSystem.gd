@@ -14,7 +14,6 @@ extends Node
 
 # Proper dependency imports - compile-time validation
 # GlobalEnums available as autoload singleton
-const Character = preload("res://src/core/character/Character.gd")
 
 # Use preload pattern for dependencies
 const GameState = preload("res://src/core/state/GameState.gd")

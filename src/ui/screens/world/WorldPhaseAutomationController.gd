@@ -1184,21 +1184,59 @@ func _automate_patron_search_optimized(crew_member: String) -> Dictionary:
 func _automate_recruitment_optimized(crew_member: String) -> Dictionary:
 	if world_phase_handler and world_phase_handler.has_method("_resolve_recruit_task"):
 		return world_phase_handler._resolve_recruit_task(crew_member)
-	
+
 	var recruit_roll: int = await _perform_validated_dice_roll_async(
 		func(): return dice_manager.roll_d6("Crew Task: Recruit - Talent Search"),
 		"Recruit Task",
 		{"min_value": 1, "max_value": 6, "expected_type": "integer"}
 	)
-	
+
+	var recruit_data = null
+	if recruit_roll >= 4:
+		recruit_data = _create_recruited_character()
+
 	return {
 		"crew_id": crew_member,
 		"task": GlobalEnums.CrewTaskType.RECRUIT,
 		"success": recruit_roll >= 4,
-		"details": "Found potential recruit" if recruit_roll >= 4 else "No suitable recruits found",
-		"recruit_data": {"id": "fallback_recruit"} if recruit_roll >= 4 else null,
+		"details": "Found recruit: %s" % recruit_data.get("name", "Unknown") if recruit_data else "No suitable recruits found",
+		"recruit_data": recruit_data,
 		"dice_roll": recruit_roll
 	}
+
+## Create a fully-equipped Character for a successful recruitment roll.
+## Uses Character.generate_character() which populates stats and equipment (Array[String]).
+## Also persists equipment to EquipmentManager for gameplay use (battle, trading).
+func _create_recruited_character() -> Dictionary:
+	var recruit: Character = Character.generate_character()
+	# generate_character() already calls _generate_starting_equipment() internally,
+	# so recruit.equipment is populated with Array[String] items.
+
+	# Persist equipment to EquipmentManager autoload for rich gameplay data
+	var equip_mgr = get_node_or_null("/root/EquipmentManager")
+	if equip_mgr and equip_mgr.has_method("add_equipment"):
+		for item_name: String in recruit.equipment:
+			var item_dict := {
+				"id": "equip_%d_%d" % [Time.get_ticks_msec(), randi() % 10000],
+				"name": item_name,
+				"category": _infer_equipment_category(item_name),
+				"condition": "standard",
+				"quality_modifier": 0,
+			}
+			equip_mgr.add_equipment(item_dict)
+			if equip_mgr.has_method("assign_equipment_to_character"):
+				equip_mgr.assign_equipment_to_character(recruit.character_id, item_dict.id)
+
+	return recruit.to_dictionary()
+
+## Infer equipment category from item name string for EquipmentManager persistence.
+func _infer_equipment_category(item_name: String) -> int:
+	var lower := item_name.to_lower()
+	if "rifle" in lower or "pistol" in lower or "blade" in lower or "gun" in lower or "weapon" in lower or "knife" in lower:
+		return 0  # WEAPON
+	elif "armor" in lower or "shield" in lower:
+		return 1  # ARMOR
+	return 2  # GEAR
 
 ## PERFORMANCE OPTIMIZED: Training automation with async processing
 func _automate_training_optimized(crew_member: String) -> Dictionary:
@@ -1368,20 +1406,24 @@ func _automate_recruitment(crew_member: String) -> Dictionary:
 	## Automate crew recruitment task
 	if world_phase_handler and world_phase_handler.has_method("_resolve_recruit_task"):
 		return world_phase_handler._resolve_recruit_task(crew_member)
-	
+
 	# Enhanced fallback with Digital Dice System integration
 	var recruit_roll: int = await _perform_validated_dice_roll(
 		func(): return dice_manager.roll_d6("Crew Task: Recruit - Talent Search"),
 		"Recruit Task",
 		{"min_value": 1, "max_value": 6, "expected_type": "integer"}
 	)
-	
+
+	var recruit_data = null
+	if recruit_roll >= 4:
+		recruit_data = _create_recruited_character()
+
 	return {
 		"crew_id": crew_member,
 		"task": GlobalEnums.CrewTaskType.RECRUIT,
 		"success": recruit_roll >= 4,
-		"details": "Found potential recruit" if recruit_roll >= 4 else "No suitable recruits found",
-		"recruit_data": {"id": "fallback_recruit"} if recruit_roll >= 4 else null,
+		"details": "Found recruit: %s" % recruit_data.get("name", "Unknown") if recruit_data else "No suitable recruits found",
+		"recruit_data": recruit_data,
 		"dice_roll": recruit_roll
 	}
 

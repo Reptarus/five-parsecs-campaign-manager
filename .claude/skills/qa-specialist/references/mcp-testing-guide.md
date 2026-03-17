@@ -137,16 +137,48 @@ The bridge is accessed via the Godot MCP tools above (they communicate with the 
 
 ---
 
-## Known Limitations (from Sprint T-1)
+## Phase 31 Testing Notes (Mar 16, 2026)
+
+### Fixes That Affect MCP Test Flows
+
+1. **Initiative roll now works**: `InitiativeCalculator.set_crew()` is wired in `initialize_battle()`. MCP tests that enter TacticalBattleUI can now verify initiative results via `run_script` — check `initiative_calculator.last_result.success` (NOT `.seized`)
+2. **Save/reload regression test**: After loading a campaign, verify equipment persistence:
+   - `EquipmentManager.get_all_items()` should return ship stash items
+   - Crew dicts should contain per-member `equipment` arrays
+   - `progress_data["credits"]` should match `campaign.credits` (dual-sync)
+3. **Terrain map labels**: `BattlefieldMapView` now shows size-category prefixes (Large/Small/Linear) on terrain labels. Scatter items are excluded from SVS rendering and label display
+4. **Nav button styling**: Campaign creation Back/Next/Cancel buttons now have Deep Space StyleBox overrides — visual verification via `take_screenshot` should show themed buttons matching `#1A1A2E` palette
+
+### New Regression Test Recipe: Save/Load Equipment Persistence
+
+```
+1. Create campaign (Recipe 7)
+2. Play through to post-battle → Purchase Items step
+3. Buy an item
+4. Complete turn → auto-save
+5. run_script: read GameState.campaign.equipment_data["equipment"] → record count
+6. stop_project → run_project
+7. run_script: GameState.load_campaign("user://campaigns/<latest>.fpcs")
+8. run_script: read EquipmentManager.get_all_items() → verify count matches step 5
+9. run_script: read crew member dicts → verify equipment arrays present
+```
+
+## Known Limitations (updated Phase 31, Mar 16 2026)
 
 | Issue | Workaround |
 |-------|-----------|
 | **Native Window popups invisible to screenshots** | Use custom PanelContainer popups instead of AcceptDialog |
 | **Native AcceptDialogs not dismissable via input** | Use `run_script` to call `hide()` on the dialog |
 | **`run_script` with `await` causes 30s timeout** | Never use `await` in execute(). Return synchronous data only |
-| **`pressed.emit()` via run_script can crash** | Don't simulate button presses via emit(). Use `click_element` or coordinate clicks instead |
-| **`click_element` reports "not visible" incorrectly** | Use coordinate-based `mouse_button` click as fallback |
+| **`pressed.emit()` via run_script can crash on complex handlers** | For simple buttons, `pressed.emit()` works fine. For async handlers, use `click_element` |
+| **`click_element` reports "not visible" incorrectly** | Multiple nodes with same name cause ambiguity. Use coordinate-based `mouse_button` or `run_script` `pressed.emit()` |
 | **Headless mode: no viewport** | Always run with UI (not --headless) for MCP testing |
+| **`find_child()` returns FIRST match** | Two CharacterCreators exist (CaptainPanel + CrewPanel). Scope search to parent panel: `crew_panel.find_child("CharacterCreator")` |
+| **ItemList click by coordinates unreliable** | Use `list.select(idx)` + `list.item_selected.emit(idx)` via `run_script` |
+| **OptionButton.select() doesn't update visuals alone** | Must also emit `item_selected` signal: `ob.select(idx); ob.item_selected.emit(idx)` |
+| **Auto-generated node names (`@Button@NNN`)** | Change across sessions. Find by parent node path or named ancestors instead |
+| **`get_method_list()` iteration too heavy** | Can cause 30s timeout on large objects. Use `has_method()` checks instead |
+| **Multiple NextButtons in CampaignTurnController** | Filter by `is_visible_in_tree()` + `text` + `not disabled` to find the correct one |
 
 ---
 

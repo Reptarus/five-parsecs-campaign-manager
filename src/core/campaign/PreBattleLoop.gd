@@ -5,7 +5,7 @@ class_name PreBattleLoop
 
 ## Dependencies
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
-const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
+const CharacterDataMgr = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const Mission = preload("res://src/core/systems/Mission.gd")
 const UnifiedTerrainSystem = preload("res://src/core/terrain/UnifiedTerrainSystem.gd")
 const PreBattleUI = preload("res://src/ui/screens/battle/PreBattleUI.gd")

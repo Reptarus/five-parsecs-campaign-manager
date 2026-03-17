@@ -12,7 +12,6 @@ extends Control
 
 # Dependencies
 # GlobalEnums available as autoload singleton
-const Character = preload("res://src/core/character/Character.gd")
 
 # Battle Event Types
 enum BattleEventType {

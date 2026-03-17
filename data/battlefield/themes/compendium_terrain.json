@@ -1,29 +1,40 @@
 {
-	"description": "Compendium-style terrain suggestion themes for tabletop setup. Each theme provides text descriptions telling the player what to physically place on the table.",
+	"description": "Core Rules terrain themes for tabletop setup. Features are categorized as Large/Small/Linear per the Standard Terrain Set (p.44-45). Total features capped at 13 for a 3x3 table.",
 	"sector_grid": {
 		"columns": 4,
 		"rows": 4,
 		"labels": ["A1","A2","A3","A4","B1","B2","B3","B4","C1","C2","C3","C4","D1","D2","D3","D4"]
 	},
+	"standard_terrain_set": {
+		"large": 3,
+		"small": 6,
+		"linear": 4,
+		"total": 13
+	},
 	"themes": {
 		"industrial_zone": {
 			"name": "Industrial Zone",
 			"description": "Factories, warehouses, and cargo yards. Dense cover with narrow corridors.",
-			"notable_features": [
+			"large_features": [
 				"Large factory building (full cover, blocks LOS, can enter for elevated position)",
 				"Fuel storage tanks (full cover, dangerous - explodes on hit roll of 1)",
 				"Cargo crane (elevated platform, partial cover, +1 to hit from height)",
 				"Control tower (full cover, 2 levels, overlooks entire battlefield)",
-				"Pipeline junction (partial cover, creates chokepoint between sectors)",
 				"Loading dock with parked hauler (full cover, can shelter behind)"
 			],
-			"regular_features": [
+			"small_features": [
 				"Stack of cargo containers (full cover, can climb on top)",
 				"Heavy machinery (partial cover, difficult terrain around base)",
-				"Metal barricade (partial cover, low wall)",
 				"Scrap pile (partial cover, difficult terrain)",
 				"Conveyor belt structure (partial cover, elevated walkway)",
-				"Chemical drum cluster (partial cover, treat as dangerous terrain)"
+				"Chemical drum cluster (partial cover, treat as dangerous terrain)",
+				"Pipeline junction (partial cover, creates chokepoint)"
+			],
+			"linear_features": [
+				"Metal barricade line, 6\" (partial cover, waist height)",
+				"Chain-link fence section, 5\" (partial cover, blocks movement)",
+				"Conveyor rail barrier, 4\" (partial cover, low wall)",
+				"Safety railing, 6\" (no cover, blocks movement, can vault)"
 			],
 			"scatter_terrain": [
 				"Small crate",
@@ -37,21 +48,26 @@
 		"wilderness": {
 			"name": "Wilderness",
 			"description": "Natural terrain with rocks, vegetation, and uneven ground.",
-			"notable_features": [
+			"large_features": [
 				"Large rock formation (full cover, can climb for elevated position)",
 				"Dense tree cluster (full cover, blocks LOS, difficult terrain inside)",
-				"Creek or shallow pond (open terrain, -1\" movement to cross)",
 				"Hilltop (elevated, open, +1 to hit from height but exposed)",
 				"Ruined cabin (full cover, single room, can enter)",
-				"Fallen tree trunk (partial cover, can climb over)"
+				"Creek or shallow pond (open terrain, -1\" movement to cross)"
 			],
-			"regular_features": [
+			"small_features": [
 				"Boulder (full cover for crouching, partial for standing)",
 				"Dense bushes (partial cover, difficult terrain)",
 				"Rocky outcrop (partial cover, uneven ground)",
 				"Tall grass patch (concealment only, no cover bonus)",
 				"Small hill (slight elevation, partial cover at crest)",
-				"Dead tree (no cover, LOS marker)"
+				"Fallen tree trunk (partial cover, can climb over)"
+			],
+			"linear_features": [
+				"Stone wall section, 6\" (partial cover, waist height)",
+				"Fallen log barrier, 5\" (partial cover, low obstacle)",
+				"Hedge row, 8\" (concealment, blocks LOS, can push through)",
+				"Stream bank, 6\" (no cover, -1\" to cross, delineates terrain)"
 			],
 			"scatter_terrain": [
 				"Small rock",
@@ -65,21 +81,26 @@
 		"alien_ruin": {
 			"name": "Alien Ruin",
 			"description": "Ancient alien structures, strange formations, and otherworldly terrain.",
-			"notable_features": [
+			"large_features": [
 				"Crystalline pillar (full cover, reflects shots - reroll 1s against targets adjacent)",
 				"Collapsed alien wall section (full cover on one side, partial on other)",
-				"Energy field generator (partial cover, glowing - blocks LOS to anything directly behind)",
 				"Strange growth mound (full cover, organic, difficult terrain around base)",
 				"Sunken chamber entrance (full cover, drop-down access, hard to assault)",
 				"Monolith (full cover, tall, creates shadow zone behind)"
 			],
-			"regular_features": [
+			"small_features": [
 				"Alien rubble pile (partial cover, difficult terrain)",
 				"Glowing crystal cluster (partial cover, illuminates area - no darkness penalties)",
 				"Cracked floor plate (open, treat as dangerous terrain - may collapse)",
 				"Vine-covered column (partial cover, climbable)",
 				"Ancient console (partial cover, low wall equivalent)",
 				"Spore pod cluster (partial cover, release spores when hit - concealment in 3\")"
+			],
+			"linear_features": [
+				"Crystal ridge line, 6\" (partial cover, glowing, blocks LOS at ground level)",
+				"Ancient wall fragment, 5\" (full cover, crumbling at ends)",
+				"Energy barrier, 4\" (no cover, blocks movement, dangerous on contact)",
+				"Vine curtain, 8\" (concealment, blocks LOS, can push through)"
 			],
 			"scatter_terrain": [
 				"Crystal shard",
@@ -93,21 +114,26 @@
 		"crash_site": {
 			"name": "Crash Site",
 			"description": "Downed spacecraft wreckage scattered across the area.",
-			"notable_features": [
+			"large_features": [
 				"Main hull section (full cover, can enter, 2 access points)",
 				"Engine nacelle (full cover, dangerous terrain - radiation leak)",
 				"Cockpit wreckage (full cover, elevated on impact crater rim)",
 				"Cargo bay section (full cover, large open interior, multiple entries)",
-				"Fuel tank (full cover, VERY dangerous - explodes on any hit, 3\" blast)",
 				"Wing section (partial cover, angled surface, can climb on top)"
 			],
-			"regular_features": [
+			"small_features": [
 				"Hull plate debris (partial cover, scattered across sector)",
 				"Seat cluster (partial cover, low obstacle)",
 				"Landing gear strut (partial cover, tall, blocks LOS at ground level)",
 				"Impact crater (below ground level, full cover when inside, open from above)",
 				"Scattered cargo (partial cover, creates uneven terrain)",
 				"Electrical hazard zone (open, dangerous terrain - stun on contact)"
+			],
+			"linear_features": [
+				"Hull plate wall section, 6\" (full cover, jagged edges)",
+				"Fuselage ribbing, 5\" (partial cover, can see through gaps)",
+				"Cable tangle barrier, 4\" (no cover, difficult terrain, blocks movement)",
+				"Debris wall, 8\" (partial cover, unstable - collapses on hit roll of 1)"
 			],
 			"scatter_terrain": [
 				"Metal fragment",
@@ -121,21 +147,26 @@
 		"urban_settlement": {
 			"name": "Urban Settlement",
 			"description": "City blocks, hab-units, and street barricades. Dense cover with multiple elevation levels.",
-			"notable_features": [
+			"large_features": [
 				"Multi-story hab-block (full cover, 3 levels, roof access, multiple entry points)",
-				"Street barricade checkpoint (full cover, blocks vehicle access, firing slits)",
 				"Market stall plaza (partial cover from stalls, open center, lots of scatter)",
 				"Elevated walkway bridge (partial cover, connects buildings, exposed from below)",
 				"Collapsed building ruin (full cover, unstable - dangerous terrain on upper floor)",
 				"Communications tower (full cover at base, climbable, elevated sniper position)"
 			],
-			"regular_features": [
+			"small_features": [
 				"Parked ground vehicle (full cover, low profile)",
-				"Concrete jersey barrier (partial cover, waist height)",
 				"Dumpster unit (partial cover, can be pushed for mobile cover)",
-				"Street lamp post (no cover, LOS reference point)",
 				"Shopfront with shattered windows (partial cover, can enter for full cover)",
-				"Sandbag emplacement (partial cover, prepared firing position)"
+				"Sandbag emplacement (partial cover, prepared firing position)",
+				"Street lamp post (no cover, LOS reference point)",
+				"Concrete planter (partial cover, waist height)"
+			],
+			"linear_features": [
+				"Concrete jersey barrier row, 6\" (partial cover, waist height)",
+				"Chain-link fence, 8\" (partial cover, blocks movement, can cut through)",
+				"Street barricade line, 5\" (full cover, blocks vehicle access, firing slits)",
+				"Low wall section, 6\" (partial cover, can vault over)"
 			],
 			"scatter_terrain": [
 				"Trash pile",
@@ -149,21 +180,26 @@
 		"wasteland": {
 			"name": "Wasteland",
 			"description": "Blasted terrain with craters, wreckage, and toxic pools. Sparse cover and hazardous footing.",
-			"notable_features": [
+			"large_features": [
 				"Deep blast crater (below ground, full cover inside, exposed from elevation)",
 				"Wrecked vehicle hulk (full cover, dangerous terrain - sharp metal edges)",
 				"Collapsed overpass section (full cover, elevated platform, unstable edges)",
-				"Toxic pool (open, dangerous terrain - 1 wound on contact, blocks movement)",
 				"Rusted storage silo (full cover, tall, single entry, can climb exterior)",
 				"Rubble mound (partial cover, elevated, difficult terrain to climb)"
 			],
-			"regular_features": [
+			"small_features": [
 				"Shallow crater (partial cover when prone, open when standing)",
 				"Twisted metal wreckage (partial cover, difficult terrain)",
 				"Concrete slab fragment (partial cover, stable footing)",
 				"Dead tree stump (no cover, LOS marker)",
 				"Ash drift (concealment only, difficult terrain)",
 				"Exposed pipe cluster (partial cover, can be used as bridge)"
+			],
+			"linear_features": [
+				"Rubble wall, 6\" (partial cover, uneven height)",
+				"Corroded pipe run, 5\" (partial cover, low obstacle)",
+				"Blast barrier, 4\" (full cover, reinforced)",
+				"Chain-link fence remnant, 8\" (no cover, blocks movement)"
 			],
 			"scatter_terrain": [
 				"Scrap metal",
@@ -177,21 +213,26 @@
 		"ship_interior": {
 			"name": "Ship Interior",
 			"description": "Corridors, bulkheads, and cargo bays inside a starship. Tight spaces with chokepoints and airlocks.",
-			"notable_features": [
+			"large_features": [
 				"Bulkhead doorway (full cover when closed, chokepoint when open, can be sealed)",
 				"Cargo bay with stacked crates (full cover, multiple firing positions, 2 levels)",
-				"Engineering console bank (partial cover, low wall, sparks on hit - dangerous)",
 				"Airlock chamber (full cover, VERY dangerous - can be vented to space)",
 				"Turbolift shaft (full cover, vertical movement between decks, ambush point)",
 				"Medbay with equipment (full cover, can treat wounded - +1 to recovery rolls)"
 			],
-			"regular_features": [
+			"small_features": [
+				"Engineering console bank (partial cover, low wall, sparks on hit - dangerous)",
 				"Corridor junction (partial cover at corners, multiple approach angles)",
 				"Maintenance panel (partial cover, wall-mounted, can be removed)",
 				"Crew locker bank (partial cover, narrow space between rows)",
 				"Ventilation grate (no cover, can be opened for alternate route)",
-				"Power conduit housing (partial cover, dangerous - electrified on hit roll of 1)",
 				"Emergency supply locker (partial cover, may contain useful items)"
+			],
+			"linear_features": [
+				"Bulkhead wall section, 6\" (full cover, blast doors at intervals)",
+				"Corridor railing, 5\" (no cover, blocks movement, can vault)",
+				"Pipe run, 4\" (partial cover, low obstacle, sparks if hit)",
+				"Emergency barrier, 6\" (partial cover, extendable, blocks corridor)"
 			],
 			"scatter_terrain": [
 				"Floor grating",
@@ -202,8 +243,5 @@
 				"Warning sign"
 			]
 		}
-	},
-	"scatter_per_sector": "1d6+2",
-	"notable_feature_count": "1d3",
-	"regular_feature_per_sector_chance": 0.6
+	}
 }

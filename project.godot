@@ -21,6 +21,7 @@ config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
+
 GlobalEnums="*res://src/core/systems/GlobalEnums.gd"
 GameDataManager="*res://src/core/managers/GameDataManager.gd"
 DataManager="*res://src/core/data/DataManager.gd"
@@ -69,12 +70,12 @@ gdscript/completion/autocomplete_setters_and_getters=true
 
 window/size/viewport_width=1920
 window/size/viewport_height=1080
-window/size/viewport_min_width=480
-window/size/viewport_min_height=320
 window/size/initial_position_type=3
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
-window/handheld/orientation=0
+window/handheld/orientation=4
+window/size/viewport_min_width=480
+window/size/viewport_min_height=320
 
 [dotnet]
 
@@ -82,7 +83,7 @@ project/assembly_name="Five Parsecs Campaign Manager"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/AndroidIAPP/plugin.cfg", "res://addons/InappReviewPlugin/plugin.cfg", "res://addons/TweenFX/plugin.cfg", "res://addons/gdUnit4/plugin.cfg")
+enabled=PackedStringArray("res://addons/AndroidIAPP/plugin.cfg", "res://addons/InappReviewPlugin/plugin.cfg", "res://addons/TweenFX/plugin.cfg", "res://addons/curved_lines_2d/plugin.cfg", "res://addons/gdUnit4/plugin.cfg", "res://addons/shader_library/plugin.cfg")
 
 [rendering]
 

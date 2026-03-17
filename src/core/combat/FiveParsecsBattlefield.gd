@@ -7,7 +7,6 @@ class_name FiveParsecsBattlefield
 ## Handles terrain generation, character positioning, and tactical calculations
 
 # Safe imports
-const Character = preload("res://src/core/character/Character.gd")
 
 # Battlefield signals
 signal battlefield_generated(size: Vector2i, terrain_count: int)

@@ -42,6 +42,9 @@ func _ready() -> void:
 	next_button.visible = true
 	next_button.disabled = false
 
+	# UX-060/UX-070 FIX: Style navigation buttons with Deep Space theme
+	_style_navigation_buttons()
+
 func _connect_coordinator_signals() -> void:
 	coordinator.navigation_updated.connect(_on_navigation_updated)
 	coordinator.step_changed.connect(_on_step_changed)
@@ -68,6 +71,14 @@ func _connect_panel_signals() -> void:
 	if config_panel.has_signal("campaign_config_data_complete"):
 		config_panel.campaign_config_data_complete.connect(func(data: Dictionary):
 			coordinator.update_campaign_config_state(data)
+		)
+	if config_panel.has_signal("campaign_config_data_changed"):
+		config_panel.campaign_config_data_changed.connect(func(data: Dictionary):
+			coordinator.update_campaign_config_state(data)
+		)
+	if config_panel.has_signal("victory_conditions_changed"):
+		config_panel.victory_conditions_changed.connect(func(conditions: Dictionary):
+			coordinator.update_campaign_config_state({"victory_conditions": conditions})
 		)
 
 	# CaptainPanel (extends Control) — wrap into dict
@@ -217,3 +228,71 @@ func _force_navigation_refresh() -> void:
 
 func get_current_panel() -> Control:
 	return current_panel
+
+## UX-060/UX-070 FIX: Apply consistent Deep Space theme styling to nav buttons
+func _style_navigation_buttons() -> void:
+	for btn in [back_button, next_button, finish_button]:
+		if not btn:
+			continue
+		btn.custom_minimum_size.y = 48  # TOUCH_TARGET_MIN
+
+		var normal := StyleBoxFlat.new()
+		normal.bg_color = Color("#2D5A7B")  # COLOR_ACCENT
+		normal.border_color = Color("#3A7199")
+		normal.set_border_width_all(1)
+		normal.set_corner_radius_all(4)
+		normal.content_margin_left = 20
+		normal.content_margin_right = 20
+		normal.content_margin_top = 10
+		normal.content_margin_bottom = 10
+		btn.add_theme_stylebox_override("normal", normal)
+
+		var hover := StyleBoxFlat.new()
+		hover.bg_color = Color("#3A7199")  # COLOR_ACCENT_HOVER
+		hover.border_color = Color("#4FC3F7")  # COLOR_FOCUS
+		hover.set_border_width_all(1)
+		hover.set_corner_radius_all(4)
+		hover.content_margin_left = 20
+		hover.content_margin_right = 20
+		hover.content_margin_top = 10
+		hover.content_margin_bottom = 10
+		btn.add_theme_stylebox_override("hover", hover)
+
+		var pressed := StyleBoxFlat.new()
+		pressed.bg_color = Color("#1E4A66")
+		pressed.border_color = Color("#4FC3F7")
+		pressed.set_border_width_all(2)
+		pressed.set_corner_radius_all(4)
+		pressed.content_margin_left = 20
+		pressed.content_margin_right = 20
+		pressed.content_margin_top = 10
+		pressed.content_margin_bottom = 10
+		btn.add_theme_stylebox_override("pressed", pressed)
+
+		var disabled := StyleBoxFlat.new()
+		disabled.bg_color = Color("#1A1A2E")  # COLOR_BASE
+		disabled.border_color = Color("#3A3A5C")  # COLOR_BORDER
+		disabled.set_border_width_all(1)
+		disabled.set_corner_radius_all(4)
+		disabled.content_margin_left = 20
+		disabled.content_margin_right = 20
+		disabled.content_margin_top = 10
+		disabled.content_margin_bottom = 10
+		btn.add_theme_stylebox_override("disabled", disabled)
+
+		btn.add_theme_color_override("font_color", Color("#E0E0E0"))
+		btn.add_theme_color_override("font_hover_color", Color.WHITE)
+		btn.add_theme_color_override("font_disabled_color", Color("#404040"))
+
+	# Make Finish button more prominent (accent highlight)
+	if finish_button:
+		var finish_normal := StyleBoxFlat.new()
+		finish_normal.bg_color = Color("#10B981")  # COLOR_SUCCESS
+		finish_normal.border_color = Color("#34D399")
+		finish_normal.set_border_width_all(1)
+		finish_normal.set_corner_radius_all(4)
+		finish_normal.content_margin_left = 24
+		finish_normal.content_margin_right = 24
+		finish_normal.content_margin_top = 12
+		finish_normal.content_margin_bottom = 12
+		finish_button.add_theme_stylebox_override("normal", finish_normal)

@@ -1,6 +1,5 @@
 extends Control
 
-const Character = preload("res://src/core/character/Base/Character.gd")
 const CrewRelationshipManager = preload("res://src/core/campaign/crew/CrewRelationshipManager.gd")
 @onready var crew_characteristic_label := $VBoxContainer/CrewCharacteristicLabel
 @onready var meeting_story_label := $VBoxContainer/MeetingStoryLabel

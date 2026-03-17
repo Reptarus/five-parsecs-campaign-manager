@@ -10,7 +10,6 @@ extends Resource
 
 # Import required classes
 const ValidationResult = preload("res://src/core/validation/ValidationResult.gd")
-const Character = preload("res://src/core/character/Character.gd")
 
 @export var config: Resource # Will be CampaignConfig when available
 @export var crew_data: CrewData

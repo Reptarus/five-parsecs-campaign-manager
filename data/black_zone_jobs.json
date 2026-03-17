@@ -1,0 +1,110 @@
+{
+	"_comment": "Black Zone Jobs — Core Rules Appendix III (pp.91-92)",
+	"_rules_reference": "Near-suicide missions for Unity government. Requires 10+ turns in Red Zone first.",
+
+	"access_requirements": {
+		"min_red_zone_turns": 10,
+		"description": "Must have played at least 10 campaign turns in a Red Zone."
+	},
+
+	"advantages": {
+		"no_rival_interference": true,
+		"no_upkeep_payment": true,
+		"ship_loan_no_increase": true,
+		"ship_cannot_be_seized": true,
+		"free_weapon_rolls": 3,
+		"description": "No Rival interference, no Upkeep, loan frozen, 3 free Weapon Table rolls."
+	},
+
+	"mission_types": [
+		{
+			"roll_range": [1, 2],
+			"name": "Destroy Strong Point",
+			"description": "Reach the center of the battlefield, spend an Action and roll 1D6+Savvy. On 5+, charges are set. Detonate as Free Action — all within 1D6+3 inches become casualties. You Win.",
+			"objective": "reach_center_plant_charges",
+			"savvy_check": 5
+		},
+		{
+			"roll_range": [3, 4],
+			"name": "Hold Against Assault",
+			"description": "Hold out for 10 rounds. You Win at end of Round 10.",
+			"objective": "survive_rounds",
+			"required_rounds": 10
+		},
+		{
+			"roll_range": [5, 6],
+			"name": "Eliminate Priority Target",
+			"description": "Place target 6 inches onto battlefield from enemy edge center. Toughness 5, cannot be fired upon beyond 20 inches. Eliminate to Win. Target does not move but may fire.",
+			"objective": "eliminate_target",
+			"target_toughness": 5,
+			"max_fire_range": 20
+		},
+		{
+			"roll_range": [7, 8],
+			"name": "Destroy Enemy Platoon",
+			"description": "Kill 25 enemy to Win.",
+			"objective": "kill_count",
+			"required_kills": 25
+		},
+		{
+			"roll_range": [9, 10],
+			"name": "Penetrate the Lines",
+			"description": "At least 2 crew members must exit the opposing battlefield edge to Win.",
+			"objective": "exit_edge",
+			"required_exits": 2
+		}
+	],
+
+	"setup": {
+		"no_notable_sights": true,
+		"no_deployment_conditions": true,
+		"seize_initiative_allowed": true,
+		"seize_initiative_bonus": 1,
+		"description": "No Notable Sights or Deployment Conditions. May roll to Seize Initiative with +1 bonus."
+	},
+
+	"opposition": {
+		"enemy_source": "roving_threats",
+		"team_size": 4,
+		"initial_teams": 4,
+		"team_placement": "midway_line",
+		"initial_state": "active",
+		"reinforcement_schedule": "every_round",
+		"reinforcement_entry": "neutral_edge_random",
+		"reinforcement_state": "passive",
+		"specialist_per_team": true,
+		"description": "Roving Threats only. 4 teams of 4 at midway. New passive team each round from random neutral edge."
+	},
+
+	"active_passive_rules": {
+		"active": "Fight like normal troops.",
+		"passive": "Does not move or fight the round placed. At end of each round, assign number to each passive team and roll 1D6. If matches, becomes Active.",
+		"passive_activation_triggers": ["fired_upon", "crew_within_8_inches"],
+		"description": "Passive teams activate when fired upon, crew within 8 inches, or D6 roll matches their number."
+	},
+
+	"ending": {
+		"win_evac_delay": 1,
+		"flee_penalty": "casualty",
+		"flee_description": "Any crew member that flees automatically becomes a casualty and must test for post-battle Injuries.",
+		"description": "Win: evac'd at end of following round. Flee: each fleeing crew member becomes casualty."
+	},
+
+	"rewards": {
+		"failure": {
+			"standard_failed_rewards": true,
+			"unity_casualty_pay": 1,
+			"description": "Normal failed rewards. Unity pays 1 credit per crew casualty."
+		},
+		"victory": {
+			"clear_all_rivals": true,
+			"add_patrons": 2,
+			"patron_type": "persistent",
+			"bonus_credits": 5,
+			"ship_loan_payoff": 5,
+			"loot_rolls": 3,
+			"xp_bonus_all_crew": 1,
+			"description": "Clear ALL Rivals, +2 persistent Patrons, 5 credits, pay off 5 loan, 3 Loot rolls, +1 XP all crew."
+		}
+	}
+}

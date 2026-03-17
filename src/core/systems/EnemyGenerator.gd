@@ -184,11 +184,13 @@ func _calculate_enemy_count(difficulty: int, crew_size: int) -> int:
 	## - Size 5: Roll 1D6
 	## - Size 4: Roll 2D6, pick LOWER result
 	##
-	## Difficulty Modifiers:
+	## Difficulty Modifiers (via DifficultyModifiers.gd, uses GlobalEnums.DifficultyLevel values):
 	## - Challenging: Reroll 1s and 2s before picking (more enemies, still 1-6 range)
-	## - Hardcore/Insanity: Add +1 to final count
+	## - Hardcore: Add +1 basic enemy to final count
+	## - Insanity: +1 specialist enemy added separately (not here — see BattlePhase)
+	## - Easy: Remove 1 Basic enemy if total is 5+ opponents
 	var base_count: int = 0
-	var is_challenging := (difficulty == 3)  # CHALLENGING difficulty rerolls low dice
+	var is_challenging := DifficultyModifiers.should_reroll_low_enemy_dice(difficulty)
 
 	# Helper function to roll a die, rerolling 1s and 2s for CHALLENGING
 	var _roll_die := func() -> int:
@@ -234,19 +236,16 @@ func _calculate_enemy_count(difficulty: int, crew_size: int) -> int:
 			base_count = max(roll1, roll2)
 
 	var pre_modifier_count: int = base_count
-	var modifier: int = 0
 
-	# Step 2: Apply difficulty-based modifiers (for non-CHALLENGING difficulties)
-	match difficulty:
-		1: # Easy (STORY) - reduce count slightly
-			modifier = -1
-			base_count = max(1, base_count - 1)
-		4: # Hardcore - add +1 to count
-			modifier = 1
-			base_count += 1
-		5: # Nightmare - significantly increase count
-			modifier = 2
-			base_count += 2
+	# Step 2: Apply difficulty-based modifiers using DifficultyModifiers (Core Rules pp.64-65)
+	# Hardcore: +1 basic enemy per battle
+	var modifier: int = DifficultyModifiers.get_enemy_count_modifier(difficulty)
+	base_count += modifier
+
+	# Easy: Remove 1 Basic enemy if total would be 5+ (Core Rules Easy mode)
+	var easy_reduction: int = DifficultyModifiers.get_easy_enemy_reduction(base_count, difficulty)
+	base_count -= easy_reduction
+	modifier -= easy_reduction
 
 	# Ensure minimum of 1 enemy
 	var final_count: int = max(1, base_count)

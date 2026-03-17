@@ -14,7 +14,6 @@ extends Node
 
 # Proper dependency imports - compile-time validation
 # GlobalEnums available as autoload singleton
-const Character = preload("res://src/core/character/Character.gd")
 
 # Remove these runtime variables
 # # GlobalEnums available as autoload singleton

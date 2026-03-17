@@ -449,10 +449,10 @@ func _on_campaign_turn_started(turn_number: int) -> void:
 	self.campaign_turn_started.emit(turn_number)
 
 func _on_campaign_turn_completed(turn_number: int) -> void:
-	## Handle campaign turn completion — sync turns_played to progress_data
-	var campaign: Resource = GameState.current_campaign if GameState else null
-	if campaign and "progress_data" in campaign:
-		campaign.progress_data["turns_played"] = turn_number
+	## Handle campaign turn completion — sync turns_played via GameStateManager (BUG-031 fix)
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("increment_turns_played"):
+		gsm.increment_turns_played()
 	self.campaign_turn_completed.emit(turn_number)
 
 	# Auto-start next turn (production behavior)
@@ -491,6 +491,10 @@ func _show_phase_ui(phase: int) -> void:
 		GlobalEnums.FiveParsecsCampaignPhase.TRAVEL:
 			if travel_phase_ui:
 				travel_phase_ui.show()
+				# FIX: Travel phase was missing setup_phase() — UI showed uninitialized,
+				# causing it to appear skipped or broken
+				if travel_phase_ui.has_method("setup_phase"):
+					travel_phase_ui.setup_phase()
 				current_ui_phase = travel_phase_ui
 
 		GlobalEnums.FiveParsecsCampaignPhase.UPKEEP:
@@ -626,8 +630,11 @@ func _initiate_battle_sequence() -> void:
 	# Enrich with terrain_types.json data (cover, movement, type)
 	var terrain_guide: Dictionary = _generate_terrain_setup_guide(
 		mission_data)
+	# BUG-038 FIX: Merge terrain_guide INTO battlefield_data so theme propagates
+	var merged_terrain: Dictionary = battlefield_data.duplicate()
+	merged_terrain.merge(terrain_guide)  # terrain_guide has "theme", "terrain_type", etc.
 	var full_bf_data: Dictionary = {
-		"terrain": battlefield_data,
+		"terrain": merged_terrain,
 		"deployment_condition": deployment_condition,
 		"cover_density": terrain_guide.get("cover_density", 0.5),
 		"movement_modifier": terrain_guide.get(
@@ -684,21 +691,25 @@ func _on_auto_resolve_completed(_result: Dictionary) -> void:
 
 func _on_post_battle_completed(results: Dictionary) -> void:
 
+	# BUG-033 FIX: Read victory from the ORIGINAL battle results (stored by
+	# _on_battle_completed in self.battle_results), NOT from the post-battle
+	# processing results which don't carry the victory flag.
+	var victory: bool = battle_results.get("victory", false) or battle_results.get("won", false)
+
 	# Store final post-battle results
 	game_state.set_battle_results(results)
 
-	# Record battle result directly in progress_data for EndPhasePanel summary
-	# Note: FiveParsecsCampaignCore (Resource) does NOT have record_battle_result()
-	# — that method only exists on FiveParsecsCampaign which is not the runtime class.
-	var campaign: Resource = GameState.current_campaign if GameState else null
-	if campaign and "progress_data" in campaign:
-		var victory: bool = results.get("victory", false) or results.get("won", false)
-		var pd: Dictionary = campaign.progress_data
-		pd["missions_completed"] = pd.get("missions_completed", 0) + 1
+	# Record battle result via GameStateManager dual-sync (BUG-031 fix)
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if gsm:
+		if gsm.has_method("increment_missions_completed"):
+			gsm.increment_missions_completed()
 		if victory:
-			pd["battles_won"] = pd.get("battles_won", 0) + 1
+			if gsm.has_method("increment_battles_won"):
+				gsm.increment_battles_won()
 		else:
-			pd["battles_lost"] = pd.get("battles_lost", 0) + 1
+			if gsm.has_method("increment_battles_lost"):
+				gsm.increment_battles_lost()
 
 	# Validate crew status before next phase
 	_validate_crew_status_post_battle()
@@ -932,8 +943,8 @@ func _generate_terrain_setup_guide(mission_data: Dictionary) -> Dictionary:
 		terrain["features"] = features
 
 		terrain["suggestions"] = [
-			"Set up a %s battlefield (2x2 or 3x3 feet)" % terrain[
-				"theme"],
+			"Set up %s %s battlefield (2x2 or 3x3 feet)" % [
+				_article_for(terrain["theme"]), terrain["theme"]],
 			"Place %d-%d terrain pieces" % [
 				piece_count, piece_count + 2],
 			"Recommended features: %s" % ", ".join(features),
@@ -966,6 +977,15 @@ func _generate_terrain_setup_guide(mission_data: Dictionary) -> Dictionary:
 		terrain["suggestions"].append("Mission type: %s" % mission_type)
 
 	return terrain
+
+func _article_for(word: String) -> String:
+	## Returns "an" for words starting with a vowel sound, "a" otherwise
+	if word.is_empty():
+		return "a"
+	var first: String = word[0].to_lower()
+	if first in ["a", "e", "i", "o", "u"]:
+		return "an"
+	return "a"
 
 func _on_deployment_confirmed() -> void:
 	## Transition from PreBattle to TacticalBattle for combat

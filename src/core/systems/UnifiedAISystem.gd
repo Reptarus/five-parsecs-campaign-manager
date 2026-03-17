@@ -6,7 +6,7 @@ extends Node
 
 ## Dependencies
 const GameEnums = preload("res://src/core/enums/GameEnums.gd")
-const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
+const CharacterDataMgr = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const EnemyData = preload("res://src/core/rivals/EnemyData.gd")
 
 ## Emitted when an AI unit decides on an action

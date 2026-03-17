@@ -292,9 +292,11 @@ func _populate_available_tasks() -> void:
 			"repair":
 				task_text += " (Repair)"
 
-		# Show current crew count
+		# Show current crew count and full indicator
 		var assigned_count = task_assignments.get(task_id, []).size()
-		if assigned_count > 0:
+		if assigned_count >= task.max_crew:
+			task_text += " [FULL %d/%d]" % [assigned_count, task.max_crew]
+		elif assigned_count > 0:
 			task_text += " [%d/%d crew]" % [assigned_count, task.max_crew]
 
 		available_tasks_list.add_item(task_text)
@@ -325,12 +327,12 @@ func _on_assign_task_pressed() -> void:
 	# Check if crew is in Sick Bay
 	var is_in_sick_bay = crew_member.get("in_sick_bay", false) or crew_member.get("status", "") == "injured"
 	if is_in_sick_bay:
-		pass # Crew member in Sick Bay
+		push_warning("CrewTaskComponent: %s is in Sick Bay and cannot be assigned" % crew_member.get("character_name", "Crew"))
 		return
 
 	# Check if crew already assigned
 	if crew_id in assigned_tasks:
-		pass # Already has task
+		push_warning("CrewTaskComponent: %s already has a task assigned" % crew_member.get("character_name", "Crew"))
 		return
 
 	# Check max_crew limit
@@ -338,7 +340,10 @@ func _on_assign_task_pressed() -> void:
 		task_assignments[task_id] = []
 
 	if task_assignments[task_id].size() >= task.max_crew:
-		pass # Task at max crew
+		var task_name: String = task.get("name", task_id)
+		push_warning("CrewTaskComponent: %s is full (%d/%d crew)" % [task_name, task_assignments[task_id].size(), task.max_crew])
+		# Refresh task list to show updated capacity indicators
+		_populate_available_tasks()
 		return
 
 	# Assign task

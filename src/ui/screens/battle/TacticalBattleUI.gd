@@ -13,8 +13,7 @@ extends Control
 signal tactical_battle_completed(battle_result: BattleResult)
 signal return_to_battle_resolution()
 
-const BattlefieldManager = preload("res://src/core/battle/BattlefieldManager.gd")
-const TerrainTypes = preload("res://src/core/terrain/TerrainTypes.gd")
+## BattlefieldManager and TerrainTypes preloads removed — terrain via BattlefieldGenerator
 const BattleTierControllerClass = preload("res://src/core/battle/BattleTierController.gd")
 const TierSelectionPanelClass = preload("res://src/ui/components/battle/TierSelectionPanel.gd")
 const PreBattleChecklistClass = preload("res://src/ui/components/battle/PreBattleChecklist.gd")
@@ -50,33 +49,34 @@ const StealthMissionPanelClass = preload("res://src/ui/components/battle/Stealth
 const BattleResolverClass = preload("res://src/core/battle/BattleResolver.gd")
 # GlobalEnums available as autoload singleton
 
-# UI Nodes — three-zone tabbed companion layout
+# UI Nodes — progressive disclosure layout
 @onready var return_button: Button = %ReturnButton
 @onready var auto_resolve_button: Button = %AutoResolveButton
 @onready var title_label: Label = %TitleLabel
 @onready var tier_badge: Label = %TierBadge
+@onready var phase_breadcrumb: HBoxContainer = %PhaseBreadcrumb
 
-# Zone containers (components instanced in Sprints 3-6)
-@onready var left_tabs: TabContainer = %LeftTabs
+# Panel containers (visibility controlled by _apply_stage_visibility)
+@onready var left_panel: PanelContainer = %LeftPanel
 @onready var crew_content: VBoxContainer = %CrewContent
-@onready var units_content: VBoxContainer = %UnitsContent
-@onready var enemies_content: VBoxContainer = %EnemiesContent
+@onready var center_panel: VBoxContainer = %CenterPanel
 @onready var battlefield_grid_panel: PanelContainer = %BattlefieldGridPanel
-@onready var center_tabs: TabContainer = %CenterTabs
-@onready var battle_log_content: VBoxContainer = %BattleLogContent
-@onready var tracking_content: VBoxContainer = %TrackingContent
-@onready var events_content: VBoxContainer = %EventsContent
+@onready var phase_content_panel: PanelContainer = %PhaseContentPanel
+@onready var phase_content: VBoxContainer = %PhaseContent
+@onready var right_panel: PanelContainer = %RightPanel
 @onready var right_tabs: TabContainer = %RightTabs
 @onready var tools_content: VBoxContainer = %ToolsContent
 @onready var reference_content: VBoxContainer = %ReferenceContent
 @onready var setup_content: VBoxContainer = %SetupContent
 
-# Bottom bar
+# Bottom bar (two rows: PhaseHUD + ActionBar)
+@onready var bottom_bar: PanelContainer = $MainContainer/BottomBar
+@onready var phase_hud: HBoxContainer = %PhaseHUD
 @onready var turn_indicator: Label = %TurnIndicator
 @onready var action_buttons: HBoxContainer = %PhaseButtonsContainer
 @onready var end_turn_button: Button = %EndTurnButton
 
-# Fallback log (replaced by BattleJournal component in Sprint 3)
+# Battle log (inside PhaseContentPanel)
 @onready var battle_log: RichTextLabel = %FallbackLog
 
 # Overlay nodes (for tier selection, checklists, popups)
@@ -90,7 +90,7 @@ var character_assignment_list: VBoxContainer = null
 var confirm_assignments_button: Button = null
 
 # Core Systems
-var battlefield_manager: BattlefieldManager
+## battlefield_manager removed — terrain handled by BattlefieldGenerator + GridPanel
 var dice_manager: Node = null
 var alpha_manager: Node = null
 var battle_tracker: Node = null  # For reaction economy tracking
@@ -129,6 +129,9 @@ var weapon_table_display: PanelContainer = null
 var combat_situation_panel: PanelContainer = null
 var dual_input_roll: HBoxContainer = null
 
+# Quick Dice Bar (always visible in right panel)
+var _quick_dice_label: Label = null
+
 # Compendium DLC panel instances
 var no_minis_combat_panel: PanelContainer = null
 var stealth_mission_panel: PanelContainer = null
@@ -145,20 +148,24 @@ var crew_units: Array[TacticalUnit] = []
 var enemy_units: Array[TacticalUnit] = []
 var all_units: Array[TacticalUnit] = []
 var current_turn: int = 0
-var current_unit_index: int = 0
-var selected_unit: TacticalUnit = null
-var battle_phase: String = "deployment" # deployment, combat, resolution
-var turn_phase: String = "movement" # movement, action, resolution
+var _is_bug_hunt_mode: bool = false
+## Battle stage enum — controls progressive disclosure UI
+enum BattleStage {
+	TIER_SELECT,
+	SETUP,
+	DEPLOYMENT,
+	COMBAT,
+	RESOLUTION
+}
+var current_stage: int = BattleStage.TIER_SELECT
+var battle_phase: String = "deployment" # legacy compat — will migrate fully to BattleStage
 
 # DLC Escalating Battles tracking (Compendium pp.46-48)
 var _dlc_ai_type: String = ""
 var _dlc_escalation_count: int = 0
 var _dlc_escalation_history: Array[String] = []  # Track for variation mode
 
-# Grid and positioning
-var grid_size: Vector2i = Vector2i(20, 20)
-var _cell_size: int = 32
-var deployment_zones: Dictionary = {}
+## Grid/positioning/deployment_zones removed — handled by BattlefieldGenerator
 
 # Battle Result
 class BattleResult:
@@ -169,7 +176,6 @@ class BattleResult:
 
 func _ready() -> void:
 	_initialize_managers()
-	_setup_battlefield()
 	_connect_signals()
 	_setup_ui()
 
@@ -179,109 +185,9 @@ func _initialize_managers() -> void:
 	dice_manager = get_node("/root/DiceManager") if has_node("/root/DiceManager") else null
 	battle_tracker = get_node("/root/BattleTracker") if has_node("/root/BattleTracker") else null
 
-	# Create battlefield systems
-	battlefield_manager = BattlefieldManager.new()
-	add_child(battlefield_manager)
-
-func _setup_battlefield() -> void:
-	## Setup the tactical battlefield
-	battlefield_manager.battlefield_width = grid_size.x
-	battlefield_manager.battlefield_height = grid_size.y
-	battlefield_manager._setup_battlefield()
-
-	# Generate terrain and cover
-	_generate_battlefield_terrain()
-	_setup_deployment_zones()
-
-func _generate_battlefield_terrain() -> void:
-	## Generate terrain using Five Parsecs rules
-	# Use dice to determine terrain features
-	var terrain_roll = _roll_dice("Terrain Generation", "D6")
-	var num_features = terrain_roll + 2 # 3-8 terrain features
-
-	_log_message("Generating battlefield with %d terrain features..." % num_features, UIColors.COLOR_CYAN)
-
-	for i: int in range(num_features):
-		var x = randi_range(2, grid_size.x - 3)
-		var y = randi_range(2, grid_size.y - 3)
-		var feature_type = _roll_dice("Terrain Type", "D6")
-
-		match feature_type:
-			1, 2: # Cover (walls, rocks)
-				_place_cover_feature(x, y)
-			3, 4: # Elevation (hills, platforms)
-				_place_elevation_feature(x, y)
-			5: # Difficult terrain (debris, mud)
-				_place_difficult_terrain(x, y)
-			6: # Special feature (determined by mission)
-				_place_special_feature(x, y)
-
-func _place_cover_feature(x: int, y: int) -> void:
-	## Place a cover feature on the battlefield
-	# Create L-shaped or straight cover
-	var cover_pattern = _roll_dice("Cover Pattern", "D6")
-	var positions: Array = []
-
-	match cover_pattern:
-		1, 2, 3: # Straight line (horizontal)
-			for i: int in range(3):
-				if x + i < grid_size.x:
-					positions.append(Vector2i(x + i, y))
-		4, 5: # Straight line (vertical)
-			for i: int in range(3):
-				if y + i < grid_size.y:
-					positions.append(Vector2i(x, y + i))
-		6: # L-shape
-			positions.append(Vector2i(x, y))
-			positions.append(Vector2i(x + 1, y))
-			positions.append(Vector2i(x, y + 1))
-
-	for pos in positions:
-		if _is_valid_position(pos):
-			battlefield_manager.cover_map[pos.x][pos.y] = 2 # Full cover
-
-func _place_elevation_feature(x: int, y: int) -> void:
-	## Place an elevation feature
-	var size = _roll_dice("Elevation Size", "D6")
-	var elevation_value: int = 1 if size <= 3 else 2
-
-	# Create small elevated area
-	for dx: int in range(-1, 2):
-		for dy: int in range(-1, 2):
-			var pos = Vector2i(x + dx, y + dy)
-			if _is_valid_position(pos):
-				battlefield_manager.elevation_map[pos.x][pos.y] = elevation_value
-
-func _place_difficult_terrain(x: int, y: int) -> void:
-	## Place difficult terrain
-	# Mark area as difficult terrain (movement cost x2)
-	for dx: int in range(-1, 2):
-		for dy: int in range(-1, 2):
-			var pos = Vector2i(x + dx, y + dy)
-			if _is_valid_position(pos):
-				battlefield_manager.terrain_map[pos.x][pos.y] = TerrainTypes.Type.DIFFICULT
-
-func _place_special_feature(x: int, y: int) -> void:
-	## Place mission-specific special feature
-	# Could be objectives, spawn points, etc.
-	var pos = Vector2i(x, y)
-	if _is_valid_position(pos):
-		battlefield_manager.terrain_map[pos.x][pos.y] = TerrainTypes.Type.HAZARD # Use HAZARD for special features
-		_log_message("Special feature placed at (%d, %d)" % [x, y], UIColors.COLOR_AMBER)
-
-func _setup_deployment_zones() -> void:
-	## Setup deployment zones for crew and enemies
-	# Crew deploys on left side
-	deployment_zones["crew"] = []
-	for x: int in range(0, 4):
-		for y: int in range(grid_size.y):
-			deployment_zones["crew"].append(Vector2i(x, y))
-
-	# Enemies deploy on right side
-	deployment_zones["enemies"] = []
-	for x: int in range(grid_size.x - 4, grid_size.x):
-		for y: int in range(grid_size.y):
-			deployment_zones["enemies"].append(Vector2i(x, y))
+## Legacy _setup_battlefield(), _generate_battlefield_terrain(), terrain placement methods,
+## and _setup_deployment_zones() removed. Terrain is now generated by FPCM_BattlefieldGenerator
+## and displayed via BattlefieldGridPanel/BattlefieldMapView using text-based sector descriptions.
 
 func _connect_signals() -> void:
 	## Connect UI and system signals
@@ -292,11 +198,7 @@ func _connect_signals() -> void:
 	if auto_resolve_button:
 		auto_resolve_button.pressed.connect(_on_auto_resolve_battle)
 
-	# Battlefield signals (handlers removed as dead code in Sprint 26.16)
-	# NOTE: Deferred — terrain/cover UI signal handlers removed as dead code in Sprint 26.16
-	# if battlefield_manager:
-	# 	battlefield_manager.terrain_updated.connect(_on_terrain_updated)
-	# 	battlefield_manager.cover_updated.connect(_on_cover_updated)
+	# Battlefield signals removed — terrain is text-based via BattlefieldGenerator
 
 	# Reaction Dice signals
 	if confirm_assignments_button:
@@ -311,9 +213,9 @@ func _connect_signals() -> void:
 			combat_system.reaction_dice_assigned.connect(_on_reaction_dice_assigned)
 
 func _setup_ui() -> void:
-	## Setup the tactical UI and show tier selection overlay
+	## Setup the tactical UI with progressive disclosure
 	if turn_indicator:
-		turn_indicator.text = "Deployment Phase"
+		turn_indicator.text = "Setting Up"
 	if battle_log:
 		battle_log.clear()
 	_log_message("Tactical battle mode activated", UIColors.COLOR_EMERALD)
@@ -324,8 +226,166 @@ func _setup_ui() -> void:
 	# Default to LOG_ONLY visibility until tier is selected
 	_apply_tier_visibility(0)
 
-	# Tier selection is deferred to initialize_battle() so it doesn't
-	# appear during World Phase (TacticalBattleUI is a persistent scene child)
+	# Build breadcrumb navigation
+	_build_phase_breadcrumb()
+
+	# Start with everything hidden — tier selection deferred to initialize_battle()
+	_apply_stage_visibility(BattleStage.TIER_SELECT)
+
+func _apply_stage_visibility(stage: int) -> void:
+	## Control which panels are visible based on current battle stage
+	current_stage = stage
+
+	# Update breadcrumb
+	_update_breadcrumb(stage)
+
+	match stage:
+		BattleStage.TIER_SELECT:
+			# Only overlay visible — everything else hidden
+			if left_panel: left_panel.visible = false
+			if center_panel: center_panel.visible = false
+			if right_panel: right_panel.visible = false
+			if phase_content_panel: phase_content_panel.visible = false
+			if return_button: return_button.visible = false
+			if auto_resolve_button: auto_resolve_button.visible = false
+			if end_turn_button: end_turn_button.visible = false
+			if bottom_bar: bottom_bar.visible = false
+			if phase_breadcrumb: phase_breadcrumb.visible = false
+
+		BattleStage.SETUP:
+			# Map + setup checklist only
+			if left_panel: left_panel.visible = false
+			if center_panel: center_panel.visible = true
+			if battlefield_grid_panel: battlefield_grid_panel.visible = true
+			if phase_content_panel: phase_content_panel.visible = false
+			if right_panel: right_panel.visible = true
+			if right_tabs: right_tabs.current_tab = 0  # Setup tab
+			if return_button: return_button.visible = false
+			if auto_resolve_button: auto_resolve_button.visible = false
+			if end_turn_button:
+				end_turn_button.visible = true
+				end_turn_button.text = "Begin Battle"
+			if turn_indicator:
+				turn_indicator.text = "Set Up Your Battlefield"
+			if bottom_bar: bottom_bar.visible = true
+			if phase_breadcrumb: phase_breadcrumb.visible = true
+			if battle_round_hud: battle_round_hud.visible = true
+			if action_buttons: action_buttons.visible = true
+
+		BattleStage.DEPLOYMENT:
+			# Map with zones + crew cards + deployment info
+			if left_panel: left_panel.visible = true
+			if center_panel: center_panel.visible = true
+			if battlefield_grid_panel: battlefield_grid_panel.visible = true
+			if phase_content_panel: phase_content_panel.visible = false
+			if right_panel: right_panel.visible = true
+			if right_tabs: right_tabs.current_tab = 0  # Setup tab
+			if return_button: return_button.visible = false
+			if auto_resolve_button: auto_resolve_button.visible = false
+			if end_turn_button:
+				end_turn_button.visible = true
+				end_turn_button.text = "Confirm Deployment"
+			if turn_indicator:
+				turn_indicator.text = "Deploy Your Crew"
+			if bottom_bar: bottom_bar.visible = true
+			if phase_breadcrumb: phase_breadcrumb.visible = true
+			if battle_round_hud: battle_round_hud.visible = true
+			if action_buttons: action_buttons.visible = true
+			# Highlight deployment zones on the map
+			_set_map_deployment_highlight(true)
+
+		BattleStage.COMBAT:
+			# Full companion layout
+			if left_panel: left_panel.visible = true
+			if center_panel: center_panel.visible = true
+			if battlefield_grid_panel: battlefield_grid_panel.visible = true
+			if phase_content_panel: phase_content_panel.visible = true
+			if right_panel: right_panel.visible = true
+			if right_tabs: right_tabs.current_tab = 1  # Tools tab
+			if return_button: return_button.visible = true
+			if auto_resolve_button: auto_resolve_button.visible = true
+			if end_turn_button:
+				end_turn_button.visible = true
+				end_turn_button.text = "End Turn"
+			if bottom_bar: bottom_bar.visible = true
+			if phase_breadcrumb: phase_breadcrumb.visible = true
+			if battle_round_hud: battle_round_hud.visible = true
+			if action_buttons: action_buttons.visible = true
+			if turn_indicator:
+				if round_tracker and round_tracker.has_method("get_current_round"):
+					turn_indicator.text = "Round %d - Combat" % round_tracker.get_current_round()
+				else:
+					turn_indicator.text = "Round 1 - Combat"
+			# Subtle deployment zones during combat
+			_set_map_deployment_highlight(false)
+
+		BattleStage.RESOLUTION:
+			# Results only
+			if left_panel: left_panel.visible = false
+			if center_panel: center_panel.visible = true
+			if battlefield_grid_panel: battlefield_grid_panel.visible = false
+			if phase_content_panel: phase_content_panel.visible = true
+			if right_panel: right_panel.visible = false
+			if return_button: return_button.visible = true
+			if auto_resolve_button: auto_resolve_button.visible = false
+			if end_turn_button:
+				end_turn_button.visible = true
+				end_turn_button.text = "Return to Campaign"
+			if battle_round_hud: battle_round_hud.visible = false
+			if phase_breadcrumb: phase_breadcrumb.visible = false
+			if action_buttons: action_buttons.visible = false
+			if turn_indicator:
+				turn_indicator.text = "Battle Complete"
+
+func _build_phase_breadcrumb() -> void:
+	## Build the stage breadcrumb in TopBar
+	if not phase_breadcrumb:
+		return
+	# Clear existing
+	for child in phase_breadcrumb.get_children():
+		child.queue_free()
+
+	var stages := ["Setup", "Deploy", "Combat"]
+	for i: int in range(stages.size()):
+		if i > 0:
+			var sep := Label.new()
+			sep.text = " > "
+			sep.add_theme_color_override(
+				"font_color", Color(0.4, 0.4, 0.5))
+			sep.add_theme_font_size_override("font_size", 12)
+			phase_breadcrumb.add_child(sep)
+		var lbl := Label.new()
+		lbl.text = stages[i]
+		lbl.add_theme_font_size_override("font_size", 12)
+		lbl.add_theme_color_override(
+			"font_color", Color(0.4, 0.4, 0.5))
+		lbl.name = "Breadcrumb_%d" % i
+		phase_breadcrumb.add_child(lbl)
+
+func _update_breadcrumb(stage: int) -> void:
+	## Highlight the active stage in the breadcrumb
+	if not phase_breadcrumb:
+		return
+	# Map BattleStage to breadcrumb index (TIER_SELECT=none, SETUP=0, DEPLOY=1, COMBAT=2)
+	var active_idx: int = -1
+	match stage:
+		BattleStage.SETUP: active_idx = 0
+		BattleStage.DEPLOYMENT: active_idx = 1
+		BattleStage.COMBAT, BattleStage.RESOLUTION: active_idx = 2
+
+	for i: int in range(3):
+		var lbl: Label = phase_breadcrumb.get_node_or_null(
+			"Breadcrumb_%d" % i)
+		if lbl:
+			if i == active_idx:
+				lbl.add_theme_color_override(
+					"font_color", Color(0.878, 0.878, 0.878))
+			elif i < active_idx:
+				lbl.add_theme_color_override(
+					"font_color", Color(0.063, 0.725, 0.506))
+			else:
+				lbl.add_theme_color_override(
+					"font_color", Color(0.4, 0.4, 0.5))
 
 func _instance_log_only_components() -> void:
 	## Instance and add LOG_ONLY tier components to zones
@@ -333,8 +393,8 @@ func _instance_log_only_components() -> void:
 	battle_journal = BattleJournalScene.instantiate()
 	battle_journal.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	battle_journal.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	if battle_log_content:
-		battle_log_content.add_child(battle_journal)
+	if phase_content:
+		phase_content.add_child(battle_journal)
 
 	# DiceDashboard → Right / "Tools" tab
 	dice_dashboard = DiceDashboardScene.instantiate()
@@ -383,6 +443,9 @@ func _instance_log_only_components() -> void:
 	if reference_content:
 		reference_content.add_child(weapon_table_display)
 
+	# Quick Dice Bar — always visible below the right panel tabs
+	_build_quick_dice_bar()
+
 	# Connect component signals to journal logging
 	_connect_component_signals()
 
@@ -392,44 +455,154 @@ func _instance_log_only_components() -> void:
 	# Instance FULL_ORACLE tier components (hidden by tab visibility)
 	_instance_oracle_components()
 
+func _build_quick_dice_bar() -> void:
+	## Build a persistent quick dice bar at the bottom of the right panel.
+	## Always visible regardless of active tab — 1d6, 2d6, d100 + last result.
+	if not right_panel:
+		return
+
+	# The right panel is a PanelContainer with RightTabs as its child.
+	# We need to wrap the content in a VBox so the dice bar sits below the tabs.
+	var existing_tabs: TabContainer = right_tabs
+	if not existing_tabs:
+		return
+
+	# Reparent: remove TabContainer from right_panel, add VBox, add both
+	right_panel.remove_child(existing_tabs)
+	var right_vbox := VBoxContainer.new()
+	right_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	right_panel.add_child(right_vbox)
+
+	# Re-add tabs (takes most space)
+	existing_tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	right_vbox.add_child(existing_tabs)
+
+	# Separator
+	var sep := HSeparator.new()
+	sep.modulate = Color(0.216, 0.255, 0.318, 0.5)
+	right_vbox.add_child(sep)
+
+	# Quick Dice Bar
+	var dice_bar := HBoxContainer.new()
+	dice_bar.name = "QuickDiceBar"
+	dice_bar.add_theme_constant_override("separation", 4)
+	dice_bar.custom_minimum_size = Vector2(0, 40)
+	right_vbox.add_child(dice_bar)
+
+	var bar_label := Label.new()
+	bar_label.text = "Quick:"
+	bar_label.add_theme_font_size_override("font_size", 11)
+	bar_label.add_theme_color_override("font_color", Color(0.502, 0.502, 0.502))
+	dice_bar.add_child(bar_label)
+
+	# Dice buttons
+	var btn_style := StyleBoxFlat.new()
+	btn_style.bg_color = Color(0.122, 0.137, 0.216, 0.8)
+	btn_style.border_width_left = 1
+	btn_style.border_width_top = 1
+	btn_style.border_width_right = 1
+	btn_style.border_width_bottom = 1
+	btn_style.border_color = Color(0.216, 0.255, 0.318, 1)
+	btn_style.corner_radius_top_left = 4
+	btn_style.corner_radius_top_right = 4
+	btn_style.corner_radius_bottom_right = 4
+	btn_style.corner_radius_bottom_left = 4
+	btn_style.content_margin_left = 8.0
+	btn_style.content_margin_right = 8.0
+	btn_style.content_margin_top = 4.0
+	btn_style.content_margin_bottom = 4.0
+
+	for dice_config: Array in [["1d6", 1, 6], ["2d6", 2, 6], ["d100", 1, 100]]:
+		var btn := Button.new()
+		btn.text = dice_config[0]
+		btn.custom_minimum_size = Vector2(0, 32)
+		btn.add_theme_font_size_override("font_size", 12)
+		btn.add_theme_color_override("font_color", Color(0.878, 0.878, 0.878))
+		btn.add_theme_stylebox_override("normal", btn_style.duplicate())
+		var count: int = dice_config[1]
+		var sides: int = dice_config[2]
+		btn.pressed.connect(_on_quick_dice_pressed.bind(count, sides, dice_config[0]))
+		dice_bar.add_child(btn)
+
+	# Result label
+	_quick_dice_label = Label.new()
+	_quick_dice_label.text = "—"
+	_quick_dice_label.add_theme_font_size_override("font_size", 14)
+	_quick_dice_label.add_theme_color_override("font_color", Color(0.961, 0.62, 0.043))
+	_quick_dice_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_quick_dice_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	dice_bar.add_child(_quick_dice_label)
+
+func _on_quick_dice_pressed(count: int, sides: int, label: String) -> void:
+	## Roll dice from the quick dice bar
+	var dice_mgr = get_node_or_null("/root/DiceManager")
+	var total: int = 0
+	var results: Array[int] = []
+	for i: int in range(count):
+		var roll: int = 0
+		if dice_mgr and dice_mgr.has_method("roll_dice"):
+			roll = dice_mgr.roll_dice(1, sides)
+		else:
+			roll = randi_range(1, sides)
+		results.append(roll)
+		total += roll
+
+	# Update result label
+	if _quick_dice_label:
+		if count == 1:
+			_quick_dice_label.text = "%s: %d" % [label, total]
+		else:
+			_quick_dice_label.text = "%s: %d (%s)" % [label, total, "+".join(results.map(func(r): return str(r)))]
+
+	# Log to battle journal
+	var log_text: String
+	if count > 1:
+		log_text = "Quick %s: %d (%s)" % [label, total, "+".join(results.map(func(r): return str(r)))]
+	else:
+		log_text = "Quick %s: %d" % [label, total]
+	if battle_journal and battle_journal.has_method("add_entry"):
+		battle_journal.add_entry("dice", log_text)
+	_log_message(log_text, Color(0.961, 0.62, 0.043))
+
 func _instance_assisted_components() -> void:
 	## Instance ASSISTED tier components into their zones
 	# MoralePanicTracker → Center / "Tracking" tab
 	morale_tracker = MoralePanicTrackerScene.instantiate()
 	morale_tracker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if tracking_content:
-		tracking_content.add_child(morale_tracker)
+	if phase_content:
+		phase_content.add_child(morale_tracker)
 
 	# VictoryProgressPanel → Center / "Tracking" tab
 	victory_progress = VictoryProgressPanelClass.new()
 	victory_progress.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if tracking_content:
-		tracking_content.add_child(victory_progress)
+	if phase_content:
+		phase_content.add_child(victory_progress)
 
 	# ReactionDicePanel → Center / "Tracking" tab
 	reaction_dice_panel = ReactionDicePanelScene.instantiate()
 	reaction_dice_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if tracking_content:
-		tracking_content.add_child(reaction_dice_panel)
+	if phase_content:
+		phase_content.add_child(reaction_dice_panel)
 
 	# ActivationTrackerPanel → Left / "Units" tab
 	activation_tracker = ActivationTrackerScene.instantiate()
 	activation_tracker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	activation_tracker.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	if units_content:
-		units_content.add_child(activation_tracker)
+	if phase_content:
+		phase_content.add_child(activation_tracker)
 
 	# DeploymentConditionsPanel → Center / "Events" tab
 	deployment_conditions = DeploymentConditionsScene.instantiate()
 	deployment_conditions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if events_content:
-		events_content.add_child(deployment_conditions)
+	if phase_content:
+		phase_content.add_child(deployment_conditions)
 
 	# ObjectiveDisplay → Center / "Events" tab
 	objective_display = ObjectiveDisplayScene.instantiate()
 	objective_display.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if events_content:
-		events_content.add_child(objective_display)
+	if phase_content:
+		phase_content.add_child(objective_display)
 
 	# InitiativeCalculator → stored for overlay popup
 	initiative_calculator = InitiativeCalculatorScene.instantiate()
@@ -446,14 +619,14 @@ func _instance_oracle_components() -> void:
 	enemy_intent_panel = EnemyIntentPanelClass.new()
 	enemy_intent_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	enemy_intent_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	if enemies_content:
-		enemies_content.add_child(enemy_intent_panel)
+	if phase_content:
+		phase_content.add_child(enemy_intent_panel)
 
 	# EnemyGenerationWizard → Left / "Enemies" tab
 	enemy_generation_wizard = EnemyGenerationWizardScene.instantiate()
 	enemy_generation_wizard.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if enemies_content:
-		enemies_content.add_child(enemy_generation_wizard)
+	if phase_content:
+		phase_content.add_child(enemy_generation_wizard)
 
 	# Connect FULL_ORACLE component signals
 	if enemy_intent_panel and battle_journal:
@@ -565,7 +738,7 @@ func _connect_assisted_signals() -> void:
 	if initiative_calculator and battle_journal:
 		initiative_calculator.initiative_calculated.connect(
 			func(result) -> void:
-				var seized: String = "Seized!" if result and result.seized else "Normal"
+				var seized: String = "Seized!" if result and result.success else "Normal"
 				battle_journal.log_action("Initiative", seized)
 		)
 
@@ -644,36 +817,39 @@ func _hide_overlay() -> void:
 
 func _show_tier_selection() -> void:
 	## Show the tier selection overlay so the player picks their tracking level
+	_apply_stage_visibility(BattleStage.TIER_SELECT)
 	var panel := TierSelectionPanelClass.new()
 	panel.tier_selected.connect(_on_tier_selected)
 	_show_overlay(panel)
 
 func _on_tier_selected(tier: int) -> void:
-	## Handle tier selection — store tier, apply visibility, show checklist
+	## Handle tier selection — store tier, transition to SETUP stage
 	# Create tier controller
 	tier_controller = BattleTierControllerClass.new()
 	tier_controller.set_tier(tier, true)  # force = true at battle start
 
 	_apply_tier_visibility(tier)
 	_hide_overlay()
+	_apply_stage_visibility(BattleStage.SETUP)
 
-	# Show pre-battle checklist
-	_show_pre_battle_checklist(tier)
+	# Embed checklist in Setup tab (non-blocking, grid stays visible)
+	_embed_checklist_in_setup_tab(tier)
 
-func _show_pre_battle_checklist(tier: int) -> void:
-	## Show the pre-battle setup checklist overlay
+func _embed_checklist_in_setup_tab(tier: int) -> void:
+	## Embed the pre-battle checklist in the Setup tab so the battlefield grid
+	## remains visible while the player sets up their physical table.
+	# Clear existing setup tab content
+	for child in setup_content.get_children():
+		child.queue_free()
+
+	# Create checklist and add to Setup tab
 	var checklist := PreBattleChecklistClass.new()
-	checklist.checklist_completed.connect(
-		_on_checklist_completed
-	)
-
-	# Wrap checklist with a "Begin Battle" button
-	var wrapper := VBoxContainer.new()
-	wrapper.add_theme_constant_override("separation", 16)
-	wrapper.add_child(checklist)
+	checklist.checklist_completed.connect(_on_checklist_completed)
+	setup_content.add_child(checklist)
 	# Set tier AFTER adding to tree so _ready() has built the UI
 	checklist.set_tier(tier)
 
+	# Add "Begin Battle" button at bottom of Setup tab
 	var begin_btn := Button.new()
 	begin_btn.text = "Begin Battle"
 	begin_btn.custom_minimum_size = Vector2(0, 56)
@@ -690,9 +866,10 @@ func _show_pre_battle_checklist(tier: int) -> void:
 	btn_hover.bg_color = UIColors.COLOR_ACCENT_HOVER
 	begin_btn.add_theme_stylebox_override("hover", btn_hover)
 	begin_btn.pressed.connect(_on_checklist_dismissed)
-	wrapper.add_child(begin_btn)
+	setup_content.add_child(begin_btn)
 
-	_show_overlay(wrapper)
+	# Switch to Setup tab so checklist is immediately visible (tab 0 = Setup)
+	right_tabs.current_tab = 0
 
 func _on_checklist_completed() -> void:
 	## All checklist items checked — log it (player can still click Begin)
@@ -701,10 +878,11 @@ func _on_checklist_completed() -> void:
 	)
 
 func _on_checklist_dismissed() -> void:
-	## Player clicked Begin Battle — hide overlay and start
-	_hide_overlay()
+	## Player clicked Begin Battle — transition to deployment
+	_apply_stage_visibility(BattleStage.DEPLOYMENT)
+	_update_action_buttons_for_deployment()
 	_log_message(
-		"Deploy your crew in the western deployment zone",
+		"Deploy your crew in the deployment zone",
 		UIColors.COLOR_CYAN
 	)
 
@@ -719,17 +897,9 @@ func _apply_tier_visibility(tier: int) -> void:
 	var show_assisted := tier >= 1
 	var show_oracle := tier >= 2
 
-	# Left sidebar tabs: Crew always visible, Units at ASSISTED+, Enemies at FULL_ORACLE
-	if left_tabs:
-		# Tab indices: 0=Crew, 1=Units, 2=Enemies
-		left_tabs.set_tab_hidden(1, not show_assisted)
-		left_tabs.set_tab_hidden(2, not show_oracle)
-
-	# Center tabs: Battle Log always visible, Tracking + Events at ASSISTED+
-	if center_tabs:
-		# Tab indices: 0=Battle Log, 1=Tracking, 2=Events
-		center_tabs.set_tab_hidden(1, not show_assisted)
-		center_tabs.set_tab_hidden(2, not show_assisted)
+	# Left panel: crew cards (no tabs — single scroll)
+	# PhaseContentPanel: phase-specific components shown/hidden per phase
+	# No tab-hiding needed — visibility controlled by _apply_stage_visibility()
 
 	# Right sidebar tabs: always visible (0=Tools, 1=Reference, 2=Setup)
 	# No changes needed — all three tabs shown at all tiers
@@ -857,14 +1027,16 @@ func _on_battle_event_triggered(round_num: int, _event_type: String) -> void:
 			_show_overlay(event_resolution)
 
 func _on_tracker_battle_started() -> void:
-	## Handle battle start from tracker
-	_log_message("Tactical combat initiated via round tracker", UIColors.COLOR_EMERALD)
+	## Handle battle start from tracker — transition to COMBAT stage
+	_log_message("Tactical combat initiated", UIColors.COLOR_EMERALD)
 	battle_phase = "combat"
+	_apply_stage_visibility(BattleStage.COMBAT)
 
 func _on_tracker_battle_ended() -> void:
-	## Handle battle end from tracker
-	_log_message("Battle concluded via round tracker", UIColors.COLOR_AMBER)
+	## Handle battle end from tracker — transition to RESOLUTION stage
+	_log_message("Battle concluded", UIColors.COLOR_AMBER)
 	battle_phase = "resolution"
+	_resolve_battle()
 
 func _update_action_buttons_for_phase(phase: int) -> void:
 	## Update action buttons based on current combat phase from round tracker
@@ -885,39 +1057,87 @@ func _update_action_buttons_for_phase(phase: int) -> void:
 			_show_end_phase_ui()
 
 func _show_reaction_roll_ui() -> void:
-	## Show UI for reaction roll phase
+	## REACTION ROLL — surface ReactionDicePanel if available
 	_clear_action_buttons()
+	_surface_phase_component(reaction_dice_panel)
+	if right_tabs: right_tabs.current_tab = 1  # Tools tab — dice needed
 	var roll_button := Button.new()
 	roll_button.text = "Roll Reactions"
 	roll_button.pressed.connect(_on_roll_reactions_pressed)
 	action_buttons.add_child(roll_button)
 
 func _show_quick_actions_ui() -> void:
-	## Show UI for quick actions phase - crew with successful reactions act first
-	_log_message("Quick Actions - Crew with reactions act first", UIColors.COLOR_CYAN)
-	_update_action_buttons_for_combat()
+	## QUICK ACTIONS — surface ActivationTrackerPanel for crew checklist
+	_clear_action_buttons()
+	_surface_phase_component(activation_tracker)
+	_log_message(
+		"Quick Actions — crew who passed reactions act now.",
+		UIColors.COLOR_CYAN)
+	var done_button := Button.new()
+	done_button.text = "All Quick Actions Done"
+	done_button.pressed.connect(_on_advance_phase_pressed)
+	action_buttons.add_child(done_button)
 
 func _show_enemy_actions_ui() -> void:
-	## Show UI for enemy actions phase
+	## ENEMY ACTIONS — tier-aware display
 	_clear_action_buttons()
-	_log_message("Enemy Actions - AI controlling enemy units", UIColors.COLOR_RED)
-	var skip_button := Button.new()
-	skip_button.text = "Process Enemy Actions"
-	skip_button.pressed.connect(_on_process_enemy_actions_pressed)
-	action_buttons.add_child(skip_button)
+	# At FULL_ORACLE tier, surface EnemyIntentPanel with AI oracle
+	if tier_controller and tier_controller.current_tier >= 2:
+		_surface_phase_component(enemy_intent_panel)
+		if right_tabs: right_tabs.current_tab = 2  # Reference tab — enemy AI info
+	else:
+		_surface_phase_component(null)  # Clear phase content
+		if right_tabs: right_tabs.current_tab = 1  # Tools tab
+	_log_message(
+		"Enemy Actions — move each enemy toward closest, shoot if in range.",
+		UIColors.COLOR_RED)
+	var done_button := Button.new()
+	done_button.text = "Enemy Actions Done"
+	done_button.pressed.connect(_on_advance_phase_pressed)
+	action_buttons.add_child(done_button)
 
 func _show_slow_actions_ui() -> void:
-	## Show UI for slow actions phase - remaining crew act
-	_log_message("Slow Actions - Remaining crew members act", UIColors.COLOR_CYAN)
-	_update_action_buttons_for_combat()
+	## SLOW ACTIONS — surface ActivationTrackerPanel for remaining crew
+	_clear_action_buttons()
+	_surface_phase_component(activation_tracker)
+	_log_message(
+		"Slow Actions — remaining crew act now.",
+		UIColors.COLOR_CYAN)
+	var done_button := Button.new()
+	done_button.text = "All Slow Actions Done"
+	done_button.pressed.connect(_on_advance_phase_pressed)
+	action_buttons.add_child(done_button)
 
 func _show_end_phase_ui() -> void:
-	## Show UI for end phase
+	## END PHASE — surface morale/events/victory components
 	_clear_action_buttons()
+	# Show morale tracker at ASSISTED+ tier (hidden in Bug Hunt mode)
+	if not _is_bug_hunt_mode and tier_controller and tier_controller.current_tier >= 1:
+		_surface_phase_component(morale_tracker)
+	else:
+		_surface_phase_component(victory_progress if is_instance_valid(victory_progress) else null)
 	var advance_button := Button.new()
 	advance_button.text = "End Round / Morale Check"
 	advance_button.pressed.connect(_on_advance_phase_pressed)
 	action_buttons.add_child(advance_button)
+
+func _surface_phase_component(component: Control) -> void:
+	## Bring a component to the front of the phase content area.
+	## Hides other phase-specific components, shows this one.
+	if not phase_content:
+		return
+	# Hide all phase-swappable components
+	var phase_components: Array = [
+		reaction_dice_panel, activation_tracker,
+		morale_tracker, event_resolution, victory_progress,
+		enemy_intent_panel,
+	]
+	for comp in phase_components:
+		if is_instance_valid(comp):
+			comp.visible = false
+	# Show the requested one
+	if is_instance_valid(component):
+		component.visible = true
 
 func _on_roll_reactions_pressed() -> void:
 	## Handle reaction roll button press
@@ -938,24 +1158,8 @@ func _on_roll_reactions_pressed() -> void:
 		round_tracker.advance_phase()
 
 func _on_process_enemy_actions_pressed() -> void:
-	## Process AI enemy actions
-	_log_message("Processing enemy actions...", UIColors.COLOR_RED)
-	for unit in enemy_units:
-		if unit.health > 0:
-			# Simple AI: Move toward nearest crew and shoot if in range
-			var target = _find_nearest_enemy(unit)
-			if target:
-				var distance = unit.node_position.distance_to(target.node_position)
-				if distance <= 12:  # In shooting range
-					_log_message("  %s shoots at %s" % [unit.node_name, target.node_name], UIColors.COLOR_RED)
-					# Simplified shot resolution
-					var hit_roll = _roll_dice("Enemy Shot", "D6")
-					if hit_roll <= 4:
-						var damage = _roll_dice("Damage", "D6")
-						target.take_damage(damage)
-						_log_message("    HIT! %d damage to %s" % [damage, target.node_name], UIColors.COLOR_AMBER)
-				else:
-					_log_message("  %s moves toward crew" % unit.node_name, UIColors.COLOR_RED)
+	## Enemy actions — companion tells player what enemies do, no simulation
+	_log_message("All enemies act now. Move each toward closest crew, shoot if in range.", UIColors.COLOR_RED)
 
 	# Advance phase via round tracker
 	if round_tracker and round_tracker.has_method("advance_phase"):
@@ -966,8 +1170,7 @@ func _on_advance_phase_pressed() -> void:
 	if round_tracker and round_tracker.has_method("advance_phase"):
 		round_tracker.advance_phase()
 	else:
-		# Fallback if no round tracker
-		_end_combat_round()
+		push_warning("TacticalBattleUI: No round tracker — cannot advance phase")
 
 ## Initialize tactical battle with crew and enemies
 
@@ -1003,22 +1206,39 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 	# Create CharacterStatusCards for crew
 	_create_character_cards(crew_members)
 
+	# BUG-042 FIX: Pass crew data to initiative calculator for equipment auto-detection
+	if initiative_calculator and initiative_calculator.has_method("set_crew"):
+		initiative_calculator.set_crew(crew_members)
+
 	# Log to journal if available
 	if battle_journal:
 		battle_journal.start_battle()
 
-	# Start deployment phase
-	_start_deployment_phase()
+	# Ensure BattleRoundTracker exists (canonical Five Parsecs 5-phase combat)
+	if not round_tracker:
+		var BattleRoundTrackerClass = preload("res://src/core/battle/BattleRoundTracker.gd")
+		var tracker := BattleRoundTrackerClass.new()
+		tracker.name = "BattleRoundTracker"
+		add_child(tracker)
+		set_round_tracker(tracker)
 
-	# Populate battlefield setup tab
+	# Populate battlefield setup tab (data only, no stage change)
 	_stored_mission_data = mission_data
 	_populate_setup_tab(mission_data)
+
+	# NOTE: Deployment phase starts AFTER tier selection completes
+	# (see _on_tier_selected → _apply_stage_visibility(SETUP) → checklist → DEPLOYMENT)
+
+	# Detect Bug Hunt mode from mission context
+	var mission_dict: Dictionary = mission_data if mission_data is Dictionary else {}
+	_is_bug_hunt_mode = mission_dict.get("battle_mode", "") == "bug_hunt"
+	if _is_bug_hunt_mode:
+		_log_message("Bug Hunt mode — morale hidden, contact markers active", UIColors.COLOR_AMBER)
 
 	# DLC: Wire No-Minis Combat panel if enabled
 	_setup_no_minis_panel(crew_members.size(), enemies.size())
 
 	# DLC: Wire Stealth Mission panel if this is a stealth mission
-	var mission_dict: Dictionary = mission_data if mission_data is Dictionary else {}
 	if mission_dict.get("type", "") == "stealth":
 		_setup_stealth_panel(mission_dict)
 
@@ -1066,65 +1286,15 @@ func _create_character_cards(crew_members: Array) -> void:
 func _start_deployment_phase() -> void:
 	## Start the deployment phase
 	battle_phase = "deployment"
-	if turn_indicator:
-		turn_indicator.text = "Deployment Phase - Place your crew"
+	_apply_stage_visibility(BattleStage.DEPLOYMENT)
 	_log_message("Place your crew members in the deployment zone", UIColors.COLOR_CYAN)
 
 	# Enable deployment UI
 	_update_action_buttons_for_deployment()
 
-func _start_combat_phase() -> void:
-	## Start the main combat phase
-	battle_phase = "combat"
-	current_turn = 1
-	current_unit_index = 0
-
-	# Roll for initiative order
-	_determine_initiative_order()
-
-	if turn_indicator:
-		turn_indicator.text = "Combat Round %d" % current_turn
-	_log_message("Combat begins! Round %d" % current_turn, UIColors.COLOR_RED)
-
-	_start_unit_turn()
-
-func _determine_initiative_order() -> void:
-	## Determine turn order using Five Parsecs initiative rules
-	_log_message("Rolling for initiative...", UIColors.COLOR_AMBER)
-
-	# Each unit rolls for initiative
-	for unit in all_units:
-		unit.initiative_roll = _roll_dice("Initiative: " + unit.node_name, "D6") + unit.get_initiative_bonus()
-		_log_message("%s initiative: %d" % [unit.node_name, unit.initiative_roll], Color.WHITE)
-
-	# Sort by initiative (highest first)
-	all_units.sort_custom(func(a, b): return a.initiative_roll > b.initiative_roll)
-
-	# Log initiative results to BattleJournal
-	if battle_journal and not all_units.is_empty():
-		var first: TacticalUnit = all_units[0]
-		var crew_first: bool = first.team == "crew"
-		battle_journal.log_initiative(crew_first, first.initiative_roll)
-
-func _start_unit_turn() -> void:
-	## Start a unit's turn (skip dead units)
-	while current_unit_index < all_units.size() and all_units[current_unit_index].health <= 0:
-		current_unit_index += 1
-	if current_unit_index >= all_units.size():
-		_end_combat_round()
-		return
-
-	selected_unit = all_units[current_unit_index]
-	selected_unit.actions_remaining = selected_unit.max_actions
-	selected_unit.movement_remaining = selected_unit.movement_points
-
-	turn_phase = "movement"
-	if turn_indicator:
-		turn_indicator.text = "Round %d - %s's Turn" % [current_turn, selected_unit.node_name]
-	_log_message("%s's turn begins" % selected_unit.node_name, UIColors.COLOR_CYAN)
-
-	_update_action_buttons_for_combat()
-	_update_unit_info_display()
+## Legacy _start_combat_phase() removed — combat now starts via round_tracker.start_battle()
+## Legacy _determine_initiative_order() removed — Five Parsecs uses Reaction Roll, not initiative
+## Legacy _start_unit_turn() removed — round tracker drives phase progression
 
 func _update_action_buttons_for_deployment() -> void:
 	## Update action buttons for deployment phase
@@ -1143,57 +1313,8 @@ func _update_action_buttons_for_deployment() -> void:
 	auto_deploy_button.pressed.connect(_on_auto_deploy_clicked)
 	action_buttons.add_child(auto_deploy_button)
 
-func _update_action_buttons_for_combat() -> void:
-	## Update action buttons for combat phase
-	if not action_buttons:
-		return
-	_clear_action_buttons()
-
-	if not selected_unit or selected_unit.team != "crew":
-		return # Only show actions for crew units
-
-	# Check reaction availability (reaction economy system)
-	var has_reactions := selected_unit.can_use_reaction()
-
-	# Movement - requires reaction
-	if selected_unit.movement_remaining > 0:
-		var move_button := Button.new()
-		move_button.text = "Move (%d left)" % selected_unit.movement_remaining
-		move_button.pressed.connect(_on_move_clicked)
-		if not has_reactions:
-			move_button.disabled = true
-			move_button.tooltip_text = "No reactions remaining"
-		action_buttons.add_child(move_button)
-
-	# Shooting - requires reaction
-	if selected_unit.actions_remaining > 0:
-		var shoot_button := Button.new()
-		shoot_button.text = "Shoot"
-		shoot_button.pressed.connect(_on_shoot_clicked)
-		if not has_reactions:
-			shoot_button.disabled = true
-			shoot_button.tooltip_text = "No reactions remaining"
-		action_buttons.add_child(shoot_button)
-
-	# Dash (extra movement) - requires reaction
-	if selected_unit.actions_remaining > 0:
-		var dash_button := Button.new()
-		dash_button.text = "Dash"
-		dash_button.pressed.connect(_on_dash_clicked)
-		if not has_reactions:
-			dash_button.disabled = true
-			dash_button.tooltip_text = "No reactions remaining"
-		action_buttons.add_child(dash_button)
-
-	# Skip turn - always available
-	var skip_button := Button.new()
-	skip_button.text = "End Turn"
-	skip_button.pressed.connect(_on_skip_turn_clicked)
-	action_buttons.add_child(skip_button)
-
-	# Show exhaustion warning
-	if not has_reactions:
-		_log_message("⚠ %s has no reactions remaining this round!" % selected_unit.node_name, UIColors.COLOR_AMBER)
+## Legacy _update_action_buttons_for_combat() removed — phase-specific buttons
+## are now created by _show_reaction_roll_ui(), _show_quick_actions_ui(), etc.
 
 func _clear_action_buttons() -> void:
 	## Clear all action buttons
@@ -1202,195 +1323,32 @@ func _clear_action_buttons() -> void:
 	for child in action_buttons.get_children():
 		child.queue_free()
 
-func _update_unit_info_display() -> void:
-	## Update the selected unit info display
-	if not selected_unit:
-		return
+## Legacy _update_unit_info_display() removed — CharacterStatusCards show unit info
 
-	# Update unit info panel
-	# Show stats, health, reactions, equipment
-	var reactions_remaining := selected_unit.get_reactions_remaining()
-	var max_reactions := selected_unit.max_reactions_per_round
-	var reaction_color := UIColors.COLOR_EMERALD if reactions_remaining > 0 else UIColors.COLOR_RED
-
-	_log_message("Selected: %s (Team: %s)" % [selected_unit.node_name, selected_unit.team], UIColors.COLOR_AMBER)
-	_log_message("  HP: %d/%d | Actions: %d | Movement: %d" % [
-		selected_unit.health, selected_unit.max_health,
-		selected_unit.actions_remaining, selected_unit.movement_remaining
-	], Color.WHITE)
-	_log_message("  Reactions: %d/%d %s" % [
-		reactions_remaining, max_reactions,
-		"(EXHAUSTED)" if reactions_remaining == 0 else ""
-	], reaction_color)
-
-# Action handlers
-func _on_move_clicked() -> void:
-	## Handle move action
-	if not selected_unit or not selected_unit.can_move():
-		_log_message("Cannot move - no movement remaining!", UIColors.COLOR_RED)
-		return
-
-	# Check and spend reaction (reaction economy system)
-	if not selected_unit.can_use_reaction():
-		_log_message("Cannot move - no reactions remaining!", UIColors.COLOR_RED)
-		return
-	selected_unit.spend_reaction()
-
-	_log_message("%s is moving... (Movement: %d remaining, Reactions: %d/%d)" % [
-		selected_unit.node_name, selected_unit.movement_remaining,
-		selected_unit.get_reactions_remaining(), selected_unit.max_reactions_per_round
-	], UIColors.COLOR_CYAN)
-	
-	# For now, auto-move toward nearest enemy (will be replaced with UI selection)
-	var nearest_enemy = _find_nearest_enemy(selected_unit)
-	if nearest_enemy:
-		var move_vector = (nearest_enemy.node_position - selected_unit.node_position).sign()
-		var new_pos = selected_unit.node_position + Vector2i(move_vector.x, move_vector.y)
-		
-		if _is_valid_position(new_pos):
-			selected_unit.node_position = new_pos
-			selected_unit.movement_remaining = max(0, selected_unit.movement_remaining - 1)
-			_log_message("%s moved to (%d, %d)" % [selected_unit.node_name, new_pos.x, new_pos.y], UIColors.COLOR_CYAN)
-		else:
-			_log_message("Invalid move position!", UIColors.COLOR_RED)
-	
-	_update_action_buttons_for_combat()
-
-func _on_shoot_clicked() -> void:
-	## Handle shoot action
-	if not selected_unit or not selected_unit.can_act():
-		_log_message("Cannot shoot - no actions remaining!", UIColors.COLOR_RED)
-		return
-
-	# Check and spend reaction (reaction economy system)
-	if not selected_unit.can_use_reaction():
-		_log_message("Cannot shoot - no reactions remaining!", UIColors.COLOR_RED)
-		return
-	selected_unit.spend_reaction()
-
-	# Find nearest enemy to shoot (will be replaced with UI targeting)
-	var target = _find_nearest_enemy(selected_unit)
-	if not target:
-		_log_message("No valid targets!", UIColors.COLOR_RED)
-		return
-	
-	var distance = selected_unit.node_position.distance_to(target.node_position)
-	
-	# Check range (24 inches = 24 grid squares)
-	if distance > 24:
-		_log_message("Target out of range! (Distance: %.0f)" % distance, UIColors.COLOR_RED)
-		return
-	
-	_log_message("%s shooting at %s (Range: %.0f)" % [selected_unit.node_name, target.node_name, distance], UIColors.COLOR_AMBER)
-	
-	# Calculate to-hit (Five Parsecs rules)
-	var base_skill = selected_unit.combat_skill
-	var cover_mod = _get_cover_modifier(target)
-	var to_hit_bonus = base_skill + cover_mod
-	
-	# Roll to hit (D6, need <= modified skill + 3)
-	var hit_roll = _roll_dice("To Hit", "D6")
-	var hit_threshold = 3 + to_hit_bonus
-	var hit = hit_roll <= hit_threshold
-	
-	if hit:
-		# Roll damage
-		var damage = _roll_dice("Damage", "D6")
-		var actual_damage = max(1, damage - (target.toughness / 2))
-		
-		target.take_damage(actual_damage)
-		_log_message("HIT! Rolled %d (needed <=%d) - %d damage dealt!" % [hit_roll, hit_threshold, actual_damage], UIColors.COLOR_EMERALD)
-		_log_message("%s: %d/%d HP remaining" % [target.node_name, target.health, target.max_health], UIColors.COLOR_AMBER)
-		
-		if target.is_dead:
-			_log_message("%s is DOWN!" % target.node_name, UIColors.COLOR_RED)
-			if battle_journal:
-				if target.team == "crew":
-					battle_journal.log_crew_casualty(target.node_name, "Combat damage")
-				else:
-					battle_journal.log_enemy_casualty(target.node_name, selected_unit.node_name)
-	else:
-		_log_message("MISS! Rolled %d (needed <=%d)" % [hit_roll, hit_threshold], UIColors.COLOR_TEXT_SECONDARY)
-	
-	# Consume action
-	selected_unit.actions_remaining -= 1
-	_update_action_buttons_for_combat()
-
-func _on_dash_clicked() -> void:
-	## Handle dash action (extra movement)
-	# Check and spend reaction (reaction economy system)
-	if not selected_unit.can_use_reaction():
-		_log_message("Cannot dash - no reactions remaining!", UIColors.COLOR_RED)
-		return
-	selected_unit.spend_reaction()
-
-	selected_unit.movement_remaining += selected_unit.movement_points
-	selected_unit.actions_remaining -= 1
-	_log_message("%s dashes forward! (Reactions: %d/%d)" % [
-		selected_unit.node_name,
-		selected_unit.get_reactions_remaining(), selected_unit.max_reactions_per_round
-	], UIColors.COLOR_AMBER)
-	_update_action_buttons_for_combat()
-
-func _on_skip_turn_clicked() -> void:
-	## Skip the current unit's turn
-	_log_message("%s ends their turn" % selected_unit.node_name, UIColors.COLOR_TEXT_SECONDARY)
-	_end_unit_turn()
+## Legacy per-unit action handlers removed (_on_move/shoot/dash/skip_turn_clicked)
+## The companion now tells the player what to do; it doesn't simulate combat
 
 func _on_place_unit_clicked() -> void:
 	## Handle unit placement in deployment
 	_log_message("Click on the deployment zone to place units", UIColors.COLOR_CYAN)
 
 func _on_auto_deploy_clicked() -> void:
-	## Auto-deploy all crew units
-	_log_message("Auto-deploying crew members...", UIColors.COLOR_CYAN)
+	## Mark all units as deployed and start combat
+	## (Tabletop companion — player places figures physically, app just confirms)
+	_log_message("All crew and enemies marked as deployed.", UIColors.COLOR_CYAN)
+	for unit in crew_units:
+		_log_message("  %s — deployed" % unit.node_name, Color.WHITE)
 
-	var crew_positions = deployment_zones["crew"].duplicate()
-	crew_positions.shuffle()
-
-	for i: int in range(min(crew_units.size(), crew_positions.size())):
-		crew_units[i].position = crew_positions[i]
-		_log_message("%s deployed at (%d, %d)" % [crew_units[i].node_name, crew_positions[i].x, crew_positions[i].y], Color.WHITE)
-
-	# Auto-deploy enemies too
-	_auto_deploy_enemies()
-
-	# Start combat
-	_start_combat_phase()
-
-func _auto_deploy_enemies() -> void:
-	## Auto-deploy enemy units
-	var enemy_positions: Array[Vector2] = deployment_zones["enemies"].duplicate()
-	enemy_positions.shuffle()
-
-	for i: int in range(min(enemy_units.size(), enemy_positions.size())):
-		enemy_units[i].position = enemy_positions[i]
-		_log_message("%s deployed at (%d, %d)" % [enemy_units[i].node_name, enemy_positions[i].x, enemy_positions[i].y], Color.WHITE)
-
-func _end_unit_turn() -> void:
-	## End the current unit's turn
-	current_unit_index += 1
-	_start_unit_turn()
-
-func _end_combat_round() -> void:
-	## End the current combat round
-	current_turn += 1
-	current_unit_index = 0
-
-	# Sync round HUD with current turn counter
-	if battle_round_hud and battle_round_hud.has_method("_on_tracker_round_changed"):
-		battle_round_hud._on_tracker_round_changed(current_turn)
-
-	_log_message("Round %d complete" % (current_turn - 1), UIColors.COLOR_AMBER)
-
-	# Reset reactions for all units at start of new round (reaction economy system)
-	_reset_all_unit_reactions()
-
-	# Check victory conditions
-	if _check_victory_conditions():
-		_resolve_battle()
+	# Start combat via round tracker (Five Parsecs 5-phase combat)
+	if round_tracker and round_tracker.has_method("start_battle"):
+		battle_phase = "combat"
+		round_tracker.start_battle()
 	else:
-		_start_unit_turn()
+		push_error("TacticalBattleUI: No round tracker available")
+		battle_phase = "combat"
+
+## Legacy _end_unit_turn() and _end_combat_round() removed
+## Round progression now driven by BattleRoundTracker.advance_phase()
 
 func _reset_all_unit_reactions() -> void:
 	## Reset reactions for all units at the start of a new round
@@ -1399,22 +1357,12 @@ func _reset_all_unit_reactions() -> void:
 			unit.reset_reactions()
 	_log_message("All units' reactions reset for Round %d" % current_turn, UIColors.COLOR_CYAN)
 
-func _check_victory_conditions() -> bool:
-	## Check if battle should end
-	var crew_alive = crew_units.filter(func(u): return u.health > 0).size()
-	var enemies_alive = enemy_units.filter(func(u): return u.health > 0).size()
-
-	return crew_alive == 0 or enemies_alive == 0 or current_turn > 20 # Max 20 rounds
+## Legacy _check_victory_conditions() removed — VictoryProgressPanel handles this in END_PHASE
 
 func _resolve_battle() -> void:
-	## Resolve the tactical battle
+	## Resolve the tactical battle — transition to RESOLUTION stage
 	battle_phase = "resolution"
-
-	# Hide combat controls — battle is over
-	if action_buttons:
-		action_buttons.visible = false
-	if end_turn_button:
-		end_turn_button.visible = false
+	_apply_stage_visibility(BattleStage.RESOLUTION)
 
 	var crew_alive = crew_units.filter(func(u): return u.health > 0).size()
 	var enemies_alive = enemy_units.filter(func(u): return u.health > 0).size()
@@ -1453,9 +1401,17 @@ func _resolve_battle() -> void:
 	tactical_battle_completed.emit(result)
 
 func _on_end_turn() -> void:
-	## Handle end turn button
-	if battle_phase == "combat":
-		_end_unit_turn()
+	## Context-sensitive end turn button — behavior depends on current stage
+	match current_stage:
+		BattleStage.SETUP:
+			_on_checklist_dismissed()
+		BattleStage.DEPLOYMENT:
+			_on_auto_deploy_clicked()
+		BattleStage.COMBAT:
+			if round_tracker and round_tracker.has_method("advance_phase"):
+				round_tracker.advance_phase()
+		BattleStage.RESOLUTION:
+			_on_return_to_battle_resolution()
 
 func _on_return_to_battle_resolution() -> void:
 	## Return to battle resolution UI
@@ -1580,9 +1536,7 @@ func _on_auto_resolve_battle() -> void:
 
 ## Utility functions
 
-func _is_valid_position(pos: Vector2i) -> bool:
-	## Check if position is valid on battlefield
-	return pos.x >= 0 and pos.x < grid_size.x and pos.y >= 0 and pos.y < grid_size.y
+## Legacy _is_valid_position() removed — no grid-based positioning in companion
 
 func _roll_dice(context: String, pattern: String) -> int:
 	## Roll dice using the dice system
@@ -1598,32 +1552,12 @@ func _log_message(message: String, color: Color = Color.WHITE) -> void:
 	## Log a message to the battle log
 	if not battle_log:
 		return
-	var timestamp: String = "[%02d:%02d] " % [current_turn, current_unit_index]
+	var timestamp: String = "[R%d] " % current_turn
 	battle_log.append_text("[color=%s]%s%s[/color]\n" % [color.to_html(), timestamp, message])
 	battle_log.scroll_to_line(battle_log.get_line_count())
 
-func _find_nearest_enemy(unit: TacticalUnit) -> TacticalUnit:
-	## Find the nearest enemy unit to the given unit
-	var enemies = enemy_units if unit.team == "crew" else crew_units
-	var nearest: TacticalUnit = null
-	var min_distance = INF
-	
-	for enemy in enemies:
-		if enemy.health > 0:
-			var dist = unit.node_position.distance_to(enemy.node_position)
-			if dist < min_distance:
-				min_distance = dist
-				nearest = enemy
-	
-	return nearest
-
-func _get_cover_modifier(unit: TacticalUnit) -> int:
-	## Get cover modifier for a unit at their position
-	# Check terrain at unit position
-	var terrain_data = battlefield_manager.get_terrain_data(unit.node_position)
-	if terrain_data and terrain_data.has("cover"):
-		return -terrain_data["cover"]  # Cover makes them harder to hit (negative modifier)
-	return 0
+## Legacy _find_nearest_enemy() and _get_cover_modifier() removed
+## The companion doesn't simulate combat — it guides the player
 
 ## Reaction Dice System
 
@@ -1722,6 +1656,21 @@ func _on_assign_dice_to_character(character_name: String) -> void:
 
 	_log_message("No dice available to assign!", UIColors.COLOR_RED)
 
+## ── Battlefield View Helpers ───────────────────────────────────────
+
+func _set_map_deployment_highlight(enabled: bool) -> void:
+	## Toggle deployment zone highlighting on the BattlefieldMapView
+	if not battlefield_grid_panel:
+		return
+	var map_view = battlefield_grid_panel.get_node_or_null("BattlefieldMapView")
+	if not map_view:
+		# MapView is built dynamically — try the internal reference
+		if battlefield_grid_panel.has_method("get") and battlefield_grid_panel.get("_map_view"):
+			battlefield_grid_panel._map_view.set_deployment_highlight(enabled)
+		return
+	if map_view.has_method("set_deployment_highlight"):
+		map_view.set_deployment_highlight(enabled)
+
 ## ── Battlefield Setup Tab ──────────────────────────────────────────
 
 func _populate_setup_tab(mission_data) -> void:
@@ -1747,7 +1696,9 @@ func _populate_setup_tab(mission_data) -> void:
 	var deployment_condition: Dictionary = bf_data.get("deployment_condition", {})
 
 	# Determine terrain theme key for BattlefieldGenerator
-	var theme_name: String = terrain_data.get("theme", "Standard Battlefield")
+	# BUG-038 FIX: Check terrain sub-dict first, then fall back to top-level
+	var theme_name: String = terrain_data.get("theme",
+		bf_data.get("terrain_type", "Standard Battlefield"))
 	_current_terrain_theme = _map_theme_name_to_key(theme_name)
 
 	# Generate rich per-sector terrain suggestions
@@ -2095,8 +2046,8 @@ func _setup_no_minis_panel(crew_size: int, enemy_count: int) -> void:
 	no_minis_combat_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
 	# Add to center "Battle Log" tab alongside the journal
-	if battle_log_content:
-		battle_log_content.add_child(no_minis_combat_panel)
+	if phase_content:
+		phase_content.add_child(no_minis_combat_panel)
 
 	# Initialize the abstract battle
 	no_minis_combat_panel.setup_battle(crew_size, enemy_count)
@@ -2130,8 +2081,8 @@ func _setup_stealth_panel(mission_dict: Dictionary) -> void:
 	stealth_mission_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
 	# Add to center "Events" tab
-	if events_content:
-		events_content.add_child(stealth_mission_panel)
+	if phase_content:
+		phase_content.add_child(stealth_mission_panel)
 
 	# Initialize with mission data
 	stealth_mission_panel.setup_mission(mission_dict)
@@ -2155,12 +2106,7 @@ func _setup_stealth_panel(mission_dict: Dictionary) -> void:
 
 	_log_message("Stealth Mission mode active", UIColors.COLOR_EMERALD)
 
-	# Switch to Events tab to show stealth panel
-	if center_tabs:
-		for i in center_tabs.get_tab_count():
-			if center_tabs.get_tab_title(i) == "Events":
-				center_tabs.current_tab = i
-				break
+	# Stealth panel is in phase_content — visible during combat stages
 
 
 ## Tactical Unit Class

@@ -99,7 +99,20 @@ func _get_ship_data() -> Dictionary:
 		return game_state_manager.get_ship_data()
 	return {}
 
+## Check if crew has a ship (Core Rules p.59)
+func _crew_has_ship() -> bool:
+	if _campaign and "has_ship" in _campaign:
+		return _campaign.has_ship
+	return true  # Default: assume has ship
+
 func _calculate_final_travel_cost() -> int:
+	# Shipless: commercial passage at 1cr/member (Core Rules p.59)
+	if not _crew_has_ship():
+		var crew_size: int = 6
+		if game_state_manager and game_state_manager.has_method("get_crew_size"):
+			crew_size = game_state_manager.get_crew_size()
+		return crew_size * travel_costs.get("commercial_passage_per_crew", 1)
+
 	var base_cost: int = travel_costs.get("starship_travel", 5)
 	var ship: Dictionary = _get_ship_data()
 	var traits: Array = ship.get("traits", [])

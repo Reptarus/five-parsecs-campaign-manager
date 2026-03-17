@@ -76,7 +76,7 @@ func roll_patron_contact(modifiers: Dictionary = {}) -> Dictionary:
 	var tier_mult: float = tier_multipliers.get(patron_tier, 1.0)
 	var danger_bonuses: Dictionary = _payment_modifiers.get("danger_level_bonuses", {})
 	var danger_bonus: int = danger_bonuses.get(str(danger_level), 0)
-	var final_pay: int = int((base_pay + danger_bonus) * tier_mult)
+	var final_pay: int = int(base_pay * tier_mult) + danger_bonus
 
 	var patron_data: Dictionary = {
 		"id": patron_id,

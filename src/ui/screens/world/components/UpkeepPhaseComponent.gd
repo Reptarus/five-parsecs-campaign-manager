@@ -98,10 +98,11 @@ func initialize_upkeep_phase(ship: Dictionary, crew: Array) -> void:
 	## Initialize upkeep phase with current ship and crew data
 	ship_data = ship.duplicate()
 	crew_data = crew.duplicate()
-	
+
 	# Reset state for new calculation
 	upkeep_completed = false
-	_setup_initial_state()
+	# Auto-calculate costs immediately so the player sees real values on entry
+	current_upkeep_data = calculate_upkeep_costs()
 	_update_ui_display()
 	
 	# Publish phase started event

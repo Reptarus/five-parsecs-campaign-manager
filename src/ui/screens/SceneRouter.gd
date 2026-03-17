@@ -444,7 +444,7 @@ func _validate_critical_scenes() -> void:
 	var critical_scenes: Array[String] = [
 		"main_menu",
 		"campaign_creation",
-		"main_game"
+		"campaign_turn_controller"
 	]
 	
 	var missing_critical: Array[String] = []

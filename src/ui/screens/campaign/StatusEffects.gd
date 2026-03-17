@@ -2,7 +2,6 @@
 # Use explicit preloads instead of global class names
 extends Resource
 
-const Character = preload("res://src/core/character/Base/Character.gd")
 
 enum StatusEffectType {
 	STUN,

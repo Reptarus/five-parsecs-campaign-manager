@@ -1,6 +1,6 @@
 extends Resource
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
-const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
+const CharacterDataMgr = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const SaveManager = preload("res://src/core/state/SaveManager.gd")
 
 var game_state: FiveParsecsGameState

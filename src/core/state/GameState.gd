@@ -1,4 +1,3 @@
-@tool
 extends Node
 # This file should be referenced via preload
 # Use explicit preloads instead of global class names
@@ -114,6 +113,8 @@ func _try_auto_load_last_campaign() -> void:
 	var loaded = FiveParsecsCampaignCore.load_from_file(path)
 	if loaded:
 		set_current_campaign(loaded)
+		# BUG-035 FIX: Restore EquipmentManager state on auto-load too
+		_restore_equipment_from_campaign(loaded)
 		campaign_loaded.emit(loaded)
 	else:
 		push_warning("GameState: Failed to auto-load from: %s" % path)
@@ -427,6 +428,9 @@ func load_campaign(path: String) -> Dictionary:
 
 	set_current_campaign(loaded)
 
+	# BUG-035 FIX: Restore EquipmentManager state from campaign data
+	_restore_equipment_from_campaign(loaded)
+
 	# Update settings with loaded campaign ID
 	var loaded_id: String = ""
 	if loaded.has_method("get_campaign_id"):
@@ -498,6 +502,29 @@ func _log_error(message: String, code: int = -1) -> void:
 			_error_logger.log_error_simple(message, "GameState")
 	else:
 		push_error("GameState: " + message + ((" (Code: " + str(code) + ")") if code != -1 else ""))
+
+## BUG-035 FIX: Restore EquipmentManager transient storage from campaign data
+func _restore_equipment_from_campaign(campaign) -> void:
+	if not campaign:
+		return
+	# During _init(), we're not in the tree yet — defer to _ready()
+	if not is_inside_tree():
+		call_deferred("_restore_equipment_from_campaign", campaign)
+		return
+	var eq_mgr = get_node_or_null("/root/EquipmentManager")
+	if not eq_mgr:
+		return
+	# Clear transient storage to avoid duplicates on reload
+	if "_equipment_storage" in eq_mgr:
+		eq_mgr._equipment_storage.clear()
+	if "_character_equipment" in eq_mgr:
+		eq_mgr._character_equipment.clear()
+	# Repopulate from campaign's persisted equipment data
+	if campaign.has_method("get_all_equipment"):
+		var all_items: Array = campaign.get_all_equipment()
+		for item in all_items:
+			if item is Dictionary and item.has("id"):
+				eq_mgr.add_equipment(item)
 
 # Campaign Management
 

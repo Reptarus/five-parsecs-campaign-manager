@@ -1,7 +1,6 @@
 # PostBattle.gd
 extends Control
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
-const Character = preload("res://src/core/character/Base/Character.gd")
 
 signal phase_completed
 signal level_up_triggered(character: Character)

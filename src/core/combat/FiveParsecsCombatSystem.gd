@@ -7,7 +7,6 @@ class_name FiveParsecsCombatSystem
 ## Replaces 8 complex Base classes with unified combat system
 
 # Safe imports
-const Character = preload("res://src/core/character/Character.gd")
 const FiveParsecsBattlefield = preload("res://src/core/combat/FiveParsecsBattlefield.gd")
 const FiveParsecsCombatData = preload("res://src/core/combat/FiveParsecsCombatData.gd")
 

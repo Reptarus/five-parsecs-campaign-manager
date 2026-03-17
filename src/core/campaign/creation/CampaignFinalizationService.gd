@@ -9,6 +9,7 @@ extends RefCounted
 const SecureSaveManager = preload("res://src/core/validation/SecureSaveManager.gd")
 const CampaignValidator = preload("res://src/core/validation/CampaignValidator.gd")
 const FiveParsecsCampaignCore = preload("res://src/game/campaign/FiveParsecsCampaignCore.gd")
+const PlayerProfileRef = preload("res://src/core/player/PlayerProfile.gd")
 
 signal finalization_started()
 signal validation_completed(result: Dictionary)
@@ -228,7 +229,16 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	campaign.ironman_mode = config.get("ironman_mode", campaign_config.get("ironman_mode", false))
 	campaign.created_at = Time.get_datetime_string_from_system()
 	campaign.version = "1.0.0"
-	
+
+	# Elite Rank bonuses (Core Rules p.65) — register campaign start and store bonuses
+	var profile = PlayerProfileRef.get_instance()
+	if profile:
+		profile.register_campaign_start()
+		# Store Elite Rank bonus data in progress_data for downstream consumption
+		campaign.progress_data["elite_rank_xp_bonus"] = profile.get_starting_xp_bonus()
+		campaign.progress_data["extra_starting_characters"] = profile.get_extra_starting_characters()
+		# Story point bonus applied later in initialize_resources via DifficultyModifiers
+
 	# RULES FIX: crew.members now includes captain (merged by coordinator)
 	var crew_data = data.get("crew", {})
 	var transformed_crew = _transform_crew_data_for_turn_system(crew_data)
@@ -341,10 +351,19 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	if rivals_data.is_empty():
 		rivals_data = crew_data.get("rivals", [])
 
+	# Apply Elite Rank story point bonus + difficulty modifier (Core Rules pp.64-65)
+	# Elite Rank: +1 story point per rank. Hardcore: -1. Insanity: 0 (can never receive them).
+	var base_story_points: int = resources.get("story_points", 0)
+	if profile:
+		base_story_points += profile.get_starting_story_point_bonus()
+	var final_story_points: int = DifficultyModifiers.apply_starting_story_points_modifier(
+		base_story_points, campaign.difficulty
+	)
+
 	# Always initialize resources, even if empty dict - equipment credits must be included
 	campaign.initialize_resources({
 		"credits": total_credits,
-		"story_points": resources.get("story_points", 0),
+		"story_points": final_story_points,
 		"patrons": patrons_data,
 		"rivals": rivals_data,
 		"quest_rumors": resources.get("quest_rumors", [])

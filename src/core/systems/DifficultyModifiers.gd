@@ -105,20 +105,24 @@ static func apply_starting_story_points_modifier(base_story_points: int, difficu
 
 # MARK: - Public API - Battle Mechanics
 
-## Get Invasion roll modifier (for Invasion battles).
+## Get Invasion roll modifier (Core Rules pp.64-65).
 ## Returns:
-##   +3 for NIGHTMARE, 0 otherwise
+##   +2 for HARDCORE, +3 for INSANITY, 0 otherwise
 static func get_invasion_roll_modifier(difficulty: int) -> int:
 	if difficulty == GlobalEnums.DifficultyLevel.INSANITY:
 		return 3
+	elif difficulty == GlobalEnums.DifficultyLevel.HARDCORE:
+		return 2
 	return 0
 
-## Get Seize the Initiative roll modifier.
+## Get Seize the Initiative roll modifier (Core Rules pp.64-65).
 ## Returns:
-##   -3 for NIGHTMARE, 0 otherwise
+##   -2 for HARDCORE, -3 for INSANITY, 0 otherwise
 static func get_seize_initiative_modifier(difficulty: int) -> int:
 	if difficulty == GlobalEnums.DifficultyLevel.INSANITY:
 		return -3
+	elif difficulty == GlobalEnums.DifficultyLevel.HARDCORE:
+		return -2
 	return 0
 
 ## Get Rival resistance roll modifier (for Rival battles).
@@ -128,6 +132,44 @@ static func get_rival_resistance_modifier(difficulty: int) -> int:
 	if difficulty == GlobalEnums.DifficultyLevel.HARDCORE:
 		return -2
 	return 0
+
+# MARK: - Public API - Unique Individual (Core Rules pp.64-65)
+
+## Get modifier to Unique Individual presence roll.
+## Returns:
+##   +1 for HARDCORE, 0 otherwise. INSANITY forces presence instead (see below).
+static func get_unique_individual_roll_modifier(difficulty: int) -> int:
+	if difficulty == GlobalEnums.DifficultyLevel.HARDCORE:
+		return 1
+	return 0
+
+## Check if a Unique Individual is forced in every battle (INSANITY mode).
+## Core Rules: "The opposing side always includes a Unique Individual, even for Roving Threats."
+static func is_unique_individual_forced(difficulty: int) -> bool:
+	return difficulty == GlobalEnums.DifficultyLevel.INSANITY
+
+## Check if double Unique Individuals are possible (INSANITY mode).
+## Core Rules: "Roll 2D6. On an 11-12, they include two Unique Individuals."
+static func can_have_double_unique_individual(difficulty: int) -> bool:
+	return difficulty == GlobalEnums.DifficultyLevel.INSANITY
+
+# MARK: - Public API - Easy Mode Enemy Reduction
+
+## Get number of Basic enemies to remove for Easy mode (Core Rules p.64).
+## Core Rules: "When setting up a tabletop battle, if you would face 5+ opponents, remove one Basic enemy."
+## Returns:
+##   1 if EASY mode and total_enemies >= 5, 0 otherwise
+static func get_easy_enemy_reduction(total_enemies: int, difficulty: int) -> int:
+	if difficulty == GlobalEnums.DifficultyLevel.EASY and total_enemies >= 5:
+		return 1
+	return 0
+
+# MARK: - Public API - Stars of the Story
+
+## Check if Stars of the Story options are disabled (INSANITY mode).
+## Core Rules: "Receive no 'Stars of the Story' options."
+static func are_stars_of_story_disabled(difficulty: int) -> bool:
+	return difficulty == GlobalEnums.DifficultyLevel.INSANITY
 
 # MARK: - Public API - Victory Conditions
 
@@ -183,6 +225,14 @@ static func get_all_modifiers(difficulty: int) -> Dictionary:
 		"seize_initiative_modifier": get_seize_initiative_modifier(difficulty),
 		"rival_resistance_modifier": get_rival_resistance_modifier(difficulty),
 
+		# Unique Individuals
+		"unique_individual_roll_modifier": get_unique_individual_roll_modifier(difficulty),
+		"unique_individual_forced": is_unique_individual_forced(difficulty),
+		"double_unique_possible": can_have_double_unique_individual(difficulty),
+
+		# Stars of the Story
+		"stars_of_story_disabled": are_stars_of_story_disabled(difficulty),
+
 		# Victory Conditions
 		"only_basic_victory_conditions": are_only_basic_victory_conditions_available(difficulty),
 		"allowed_victory_conditions": get_allowed_victory_conditions(difficulty),
@@ -204,10 +254,10 @@ static func get_difficulty_summary(difficulty: int) -> String:
 			return "Increased challenge: Reroll enemy dice showing 1 or 2"
 
 		GlobalEnums.DifficultyLevel.HARDCORE:
-			return "Hard mode: +1 enemy per battle, -1 starting story point, -2 rival resistance"
+			return "Hard mode: +1 enemy, +1 Unique Individual roll, +2 invasion, -2 initiative, -1 story point, -2 rival resistance"
 
 		GlobalEnums.DifficultyLevel.INSANITY:
-			return "Extreme difficulty: +1 specialist per battle, +3 invasion rolls, -3 initiative, NO story points"
+			return "Extreme: +1 specialist, forced Unique Individual, +3 invasion, -3 initiative, NO story points, NO Stars of the Story"
 
 		_:
 			return "Unknown difficulty level"
@@ -250,9 +300,21 @@ static func get_difficulty_detailed_description(difficulty: int) -> String:
 	if modifiers.rival_resistance_modifier != 0:
 		details.append("• Rival Resistance: %+d" % modifiers.rival_resistance_modifier)
 
+	# Unique Individual
+	if modifiers.unique_individual_forced:
+		details.append("• Unique Individual: FORCED in every battle")
+		if modifiers.double_unique_possible:
+			details.append("• Double Unique: 2D6, on 11-12 TWO Unique Individuals")
+	elif modifiers.unique_individual_roll_modifier != 0:
+		details.append("• Unique Individual Roll: %+d" % modifiers.unique_individual_roll_modifier)
+
+	# Stars of the Story
+	if modifiers.stars_of_story_disabled:
+		details.append("• Stars of the Story: DISABLED")
+
 	# Victory Conditions
 	if modifiers.only_basic_victory_conditions:
-		details.append("• Victory Conditions: Basic only")
+		details.append("• Victory Conditions: Basic only (Play 20 / Win 20)")
 
 	if details.size() == 2: # Only header + empty line
 		details.append("• No special modifiers (standard rules)")

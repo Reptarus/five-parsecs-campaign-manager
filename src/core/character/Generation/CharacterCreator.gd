@@ -22,6 +22,7 @@ const STAT_PROPERTY_MAP := {
 	"SAVVY": "savvy",
 	"LUCK": "luck",
 	"SPEED": "speed",
+	"CREDITS": "credits",  # Resource bonus (used by WEALTH motivation)
 }
 
 # Rulebook-order dropdown items: [display_name, enum_value]
@@ -203,6 +204,14 @@ func start_creation(mode = CreatorMode.CHARACTER) -> void:
 	_is_editing = false
 	clear()
 	if is_inside_tree() and not Engine.is_editor_hint():
+		# BUG-030 FIX: Initialize character properties from default dropdown
+		# selections AFTER clear() creates a new character. Godot OptionButton
+		# doesn't fire item_selected for the default index 0, so properties
+		# like origin would stay at NONE if the player doesn't interact.
+		_on_origin_changed(origin_options.selected)
+		_on_background_changed(background_options.selected)
+		_on_class_changed(class_options.selected)
+		_on_motivation_changed(motivation_options.selected)
 		_sync_ui_from_character()
 		_update_mode_ui()
 		_update_preview()
@@ -296,7 +305,11 @@ func _apply_stat_bonus(stat_key: String, bonus: int) -> void:
 	var prop_name: String = STAT_PROPERTY_MAP.get(stat_key, "")
 	if prop_name.is_empty() or not current_character:
 		return
-	var current_val: int = current_character.get(prop_name)
+	var raw_val = current_character.get(prop_name)
+	if raw_val == null:
+		# Property doesn't exist on character (e.g., "credits" is campaign-level)
+		return
+	var current_val: int = raw_val
 	current_character.set(prop_name, current_val + bonus)
 
 func _remove_bonuses(bonus_dict: Dictionary) -> void:
@@ -432,15 +445,15 @@ func _apply_motivation_bonuses(motivation_id: int) -> void:
 	_remove_bonuses(current_bonuses.motivation)
 	current_bonuses.motivation.clear()
 
-	# Motivations give narrative effects, not stat bonuses
-	# These few are simplified stat approximations
+	# Motivations give narrative effects; a few grant direct bonuses
 	match motivation_id:
 		GlobalEnums.Motivation.GLORY:
 			current_bonuses.motivation["COMBAT_SKILL"] = 1
 		GlobalEnums.Motivation.WEALTH:
-			current_bonuses.motivation["SAVVY"] = 1
+			# Core Rules: WEALTH gives bonus starting credits, not a stat
+			current_bonuses.motivation["CREDITS"] = 100
 		GlobalEnums.Motivation.SURVIVAL:
-			current_bonuses.motivation["REACTIONS"] = 1
+			current_bonuses.motivation["TOUGHNESS"] = 1
 
 	_apply_bonuses(current_bonuses.motivation)
 

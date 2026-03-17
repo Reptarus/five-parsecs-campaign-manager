@@ -6,7 +6,6 @@ extends Control
 ## Integrates with Campaign Creation State Bridge for modular architecture
 
 # Safe imports with error boundaries
-const Character = preload("res://src/core/character/Character.gd")
 # GlobalEnums available as autoload singleton
 const SafeDataAccess = preload("res://src/utils/SafeDataAccess.gd")
 

@@ -1,4 +1,4 @@
-﻿extends RefCounted
+extends RefCounted
 class_name FiveParsecsCombatData
 
 ## Five Parsecs Combat Data - Consolidated Implementation
@@ -7,7 +7,6 @@ class_name FiveParsecsCombatData
 ## Pure data structures with Five Parsecs rule constants
 
 # Safe imports
-const Character = preload("res://src/core/character/Character.gd")
 
 ## Five Parsecs Combat Constants - Direct from rulebook
 

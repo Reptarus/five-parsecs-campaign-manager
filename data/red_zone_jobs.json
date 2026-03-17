@@ -1,0 +1,113 @@
+{
+	"_comment": "Red Zone Jobs — Core Rules Appendix III (pp.89-91)",
+	"_rules_reference": "Endgame content for experienced crews. Requires license to access.",
+
+	"license_requirements": {
+		"min_campaign_turns": 10,
+		"license_fee_credits": 15,
+		"min_crew_members": 7,
+		"broker_discount": 2
+	},
+
+	"threat_conditions": [
+		{
+			"roll": 1,
+			"name": "Comms Interference",
+			"description": "Each Reaction Roll phase, roll one die less than you normally would. A character not assigned a die will act in the Slow Actions phase."
+		},
+		{
+			"roll": 2,
+			"name": "Elite Opposition",
+			"description": "All opponents with +0 Combat Skill are upgraded to +1. Ignore if not applicable to enemy type."
+		},
+		{
+			"roll": 3,
+			"name": "Pitch Black",
+			"description": "Visibility is limited to 6 inches. This overrides any other visibility reductions."
+		},
+		{
+			"roll": 4,
+			"name": "Heavy Opposition",
+			"description": "Increase the opposing force by +2 enemy."
+		},
+		{
+			"roll": 5,
+			"name": "Armored Opponents",
+			"description": "All opponents with 3 Toughness are upgraded to 4. Ignore if not applicable to enemy type."
+		},
+		{
+			"roll": 6,
+			"name": "Enemy Captain",
+			"description": "Add an additional Lieutenant with Combat Skill +2 and Toughness 5, regardless of the normal profile used."
+		}
+	],
+
+	"time_constraints": [
+		{
+			"roll": 1,
+			"name": "None",
+			"description": "Nothing happens. Carry on.",
+			"effect": "none"
+		},
+		{
+			"roll": 2,
+			"name": "Reinforcements",
+			"description": "3 additional enemy arrive from the center of either neutral battlefield edge. One of the arrivals is a Specialist.",
+			"effect": "reinforcements",
+			"enemy_count": 3,
+			"specialist_count": 1
+		},
+		{
+			"roll": 3,
+			"name": "Significant Reinforcements",
+			"description": "3 additional enemy arrive from neutral edge (1 Specialist). Additional enemies arrive from the center of the opponents' battlefield edge.",
+			"effect": "significant_reinforcements",
+			"enemy_count": 3,
+			"specialist_count": 1,
+			"additional_from_enemy_edge": true
+		},
+		{
+			"roll": 4,
+			"name": "Count Down",
+			"description": "Roll 1D6 each round hereafter. On a 1, the Battle ends immediately. Next round 1-2, then 1-3, etc. Must complete objective before clock runs out.",
+			"effect": "countdown"
+		},
+		{
+			"roll": 5,
+			"name": "Evac Now!",
+			"description": "The battle ends immediately. You do not Hold the Field, and you only Win if you have achieved your objective already.",
+			"effect": "evac_now"
+		},
+		{
+			"roll": 6,
+			"name": "Elite Reinforcements",
+			"description": "A Unique Individual and 2 enemy (one of which is a Lieutenant) arrive. Place them at the center of the opponents' battlefield edge.",
+			"effect": "elite_reinforcements",
+			"unique_individual": true,
+			"enemy_count": 2,
+			"lieutenant_count": 1
+		}
+	],
+
+	"increased_opposition": {
+		"base_enemy_count": 7,
+		"specialist_count": 3,
+		"lieutenant_count": 1,
+		"unique_individual_modifier": 1,
+		"description": "Do not roll for opposing numbers. Base of 7 figures + any modifier from the enemy type. 3 Specialists (one is a Lieutenant). +1 to Unique Individual roll."
+	},
+
+	"invasion_modifiers": {
+		"invasion_roll_modifier": 2,
+		"galactic_war_modifier": -1,
+		"description": "All rolls for Invasion Threat are at +2. All rolls for Galactic War Progress are at -1."
+	},
+
+	"improved_rewards": {
+		"xp_bonus_per_survivor": 1,
+		"credits_roll_twice_pick_best": true,
+		"quest_roll_three_dice_pick_best_plus_one": true,
+		"extra_loot_roll_on_win": true,
+		"description": "Hold the Field: +1 XP per survivor. Credits: roll twice, pick better. Quest finale: roll 3, pick best +1. Win: extra Loot roll."
+	}
+}

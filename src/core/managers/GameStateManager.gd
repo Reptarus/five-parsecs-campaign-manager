@@ -54,6 +54,9 @@ func _connect_campaign_signals() -> void:
 	var gs = get_node_or_null("/root/GameState")
 	if not gs:
 		return
+	# BUG-031 FIX: Assign game_state so set_credits()/set_supplies()/etc.
+	# can write back to campaign Resource for save persistence
+	game_state = gs
 	if gs.has_signal("campaign_loaded"):
 		gs.campaign_loaded.connect(_on_campaign_loaded)
 	# If a campaign was already auto-loaded before we connected, sync now
@@ -70,16 +73,13 @@ func _on_campaign_loaded(campaign) -> void:
 		set_credits(int(loaded_credits))
 	var loaded_supplies = campaign.get("supplies")
 	if loaded_supplies != null:
-		supplies = int(loaded_supplies)
-		supplies_changed.emit(supplies)
+		set_supplies(int(loaded_supplies))
 	var loaded_reputation = campaign.get("reputation")
 	if loaded_reputation != null:
-		reputation = int(loaded_reputation)
-		reputation_changed.emit(reputation)
+		set_reputation(int(loaded_reputation))
 	var loaded_story = campaign.get("story_points")
 	if loaded_story != null:
-		story_progress = int(loaded_story)
-		story_progress_changed.emit(story_progress)
+		set_story_progress(int(loaded_story))
 
 # State management
 func set_game_state(new_state: GameState) -> void:
@@ -115,6 +115,9 @@ func set_credits(new_amount: int) -> void:
 		# Sync back to campaign Resource so saves persist the correct value
 		if game_state and game_state.current_campaign and "credits" in game_state.current_campaign:
 			game_state.current_campaign.credits = new_amount
+			# Also sync to progress_data for EndPhasePanel and data consistency
+			if "progress_data" in game_state.current_campaign:
+				game_state.current_campaign.progress_data["credits"] = new_amount
 		credits_changed.emit(credits)
 
 func set_supplies(new_amount: int) -> void:
@@ -124,6 +127,9 @@ func set_supplies(new_amount: int) -> void:
 		var camp = game_state.current_campaign if game_state else null
 		if camp and "supplies" in camp:
 			camp.supplies = new_amount
+			# Also sync to progress_data for save persistence
+			if "progress_data" in camp:
+				camp.progress_data["supplies"] = new_amount
 		supplies_changed.emit(supplies)
 
 func set_reputation(new_amount: int) -> void:
@@ -133,6 +139,9 @@ func set_reputation(new_amount: int) -> void:
 		var camp = game_state.current_campaign if game_state else null
 		if camp and "reputation" in camp:
 			camp.reputation = new_amount
+			# Also sync to progress_data for save persistence
+			if "progress_data" in camp:
+				camp.progress_data["reputation"] = new_amount
 		reputation_changed.emit(reputation)
 
 func set_story_progress(new_amount: int) -> void:
@@ -142,6 +151,9 @@ func set_story_progress(new_amount: int) -> void:
 		var camp = game_state.current_campaign if game_state else null
 		if camp and "story_points" in camp:
 			camp.story_points = new_amount
+			# Also sync to progress_data for save persistence
+			if "progress_data" in camp:
+				camp.progress_data["story_points"] = new_amount
 		story_progress_changed.emit(story_progress)
 
 # Getters
@@ -253,10 +265,38 @@ func modify_credits(amount: int) -> void:
 func add_story_points(amount: int) -> void:
 	var c = _get_campaign()
 	if c:
-		c.story_points += amount
+		# Insanity mode: story points disabled entirely (Core Rules p.65)
+		if DifficultyModifiers.are_story_points_disabled(c.difficulty):
+			return
+		set_story_progress(c.story_points + amount)
 
 func modify_story_progress(amount: int) -> void:
+	var c = _get_campaign()
+	if c and DifficultyModifiers.are_story_points_disabled(c.difficulty):
+		return
 	set_story_progress(max(0, get_story_progress() + amount))
+
+# --- Progress counter increments (BUG-031 fix) ---
+
+func increment_turns_played() -> void:
+	var c = _get_campaign()
+	if c and "progress_data" in c:
+		c.progress_data["turns_played"] = c.progress_data.get("turns_played", 0) + 1
+
+func increment_missions_completed() -> void:
+	var c = _get_campaign()
+	if c and "progress_data" in c:
+		c.progress_data["missions_completed"] = c.progress_data.get("missions_completed", 0) + 1
+
+func increment_battles_won() -> void:
+	var c = _get_campaign()
+	if c and "progress_data" in c:
+		c.progress_data["battles_won"] = c.progress_data.get("battles_won", 0) + 1
+
+func increment_battles_lost() -> void:
+	var c = _get_campaign()
+	if c and "progress_data" in c:
+		c.progress_data["battles_lost"] = c.progress_data.get("battles_lost", 0) + 1
 
 # --- Reputation arithmetic ---
 

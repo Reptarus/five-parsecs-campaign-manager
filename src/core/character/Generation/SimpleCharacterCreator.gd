@@ -4,7 +4,6 @@ class_name SimpleCharacterCreator
 ## Enhanced Character Creator for Five Parsecs
 ## Includes Origin (species), Background, Motivation with rulebook descriptions
 
-const Character = preload("res://src/core/character/Character.gd")
 const UniversalResourceLoader = preload("res://src/core/systems/UniversalResourceLoader.gd")
 
 signal character_created(character: Character)

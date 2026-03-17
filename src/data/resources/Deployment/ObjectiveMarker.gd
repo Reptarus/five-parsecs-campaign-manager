@@ -2,9 +2,9 @@
 # Use explicit preloads instead
 extends Area3D
 
-const Character = preload("res://src/base/character/character_base.gd")
+# BaseCharacter is available as global class_name from character_base.gd
 
-signal objective_reached(by_unit: Character)
+signal objective_reached(by_unit: BaseCharacter)
 signal objective_completed
 signal objective_failed
 signal objective_progress_updated(progress: float)
@@ -14,7 +14,7 @@ signal objective_progress_updated(progress: float)
 @export var capture_radius := 2.0
 @export var fail_on_enemy_capture := false
 
-var capturing_unit: Character = null
+var capturing_unit: BaseCharacter = null
 var turns_held := 0
 
 func _ready() -> void:
@@ -25,7 +25,7 @@ func _ready() -> void:
 func _on_area_entered(area: Area3D) -> void:
 	if area.is_in_group("units"):
 		var node = area.get_parent()
-		if node is Character:
+		if node is BaseCharacter:
 			capturing_unit = node
 			if fail_on_enemy_capture and capturing_unit.is_enemy():
 				objective_failed.emit()

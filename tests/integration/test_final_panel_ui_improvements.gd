@@ -7,7 +7,6 @@ extends GdUnitTestSuite
 # Must use scene to get @onready nodes initialized properly
 const FinalPanelScene = preload("res://src/ui/screens/campaign/panels/FinalPanel.tscn")
 const FinalPanelScript = preload("res://src/ui/screens/campaign/panels/FinalPanel.gd")
-const Character = preload("res://src/core/character/Character.gd")
 
 # GDScript 2.0: Use actual script type to access FinalPanel properties
 var panel: PanelContainer = null  # Will be cast after instantiation

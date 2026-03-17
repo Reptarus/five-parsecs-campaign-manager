@@ -1,6 +1,6 @@
 extends Node
 
-const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
+const CharacterDataMgr = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const FiveParsecsCharacter = preload("res://src/base/character/character_base.gd")
 
 # Helper functions for crew roster generation

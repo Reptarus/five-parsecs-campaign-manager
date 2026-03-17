@@ -254,25 +254,32 @@ func _on_next_phase_pressed() -> void:
 	next_phase_requested.emit()
 
 func _style_phase_button(button: Button, is_active: bool) -> void:
-	## Apply styling to phase button
+	## Legacy wrapper — use _style_phase_button_state instead
+	_style_phase_button_state(button, "active" if is_active else "upcoming")
+
+func _style_phase_button_state(button: Button, state: String) -> void:
+	## Apply color-coded styling: "completed" (green), "active" (cyan), "upcoming" (gray)
 	var stylebox := StyleBoxFlat.new()
-	
-	if is_active:
-		# Active phase: Blue accent
-		stylebox.bg_color = COLOR_BLUE
-		button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-		button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	else:
-		# Inactive phase: Secondary background
-		stylebox.bg_color = COLOR_SECONDARY
-		button.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
-		button.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+
+	match state:
+		"completed":
+			stylebox.bg_color = COLOR_EMERALD.darkened(0.6)
+			button.add_theme_color_override("font_color", COLOR_EMERALD)
+			button.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		"active":
+			stylebox.bg_color = COLOR_BLUE
+			button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+			button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		_:  # upcoming
+			stylebox.bg_color = COLOR_SECONDARY
+			button.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
+			button.add_theme_font_size_override("font_size", FONT_SIZE_SM)
 
 	stylebox.border_width_left = 1
 	stylebox.border_width_right = 1
 	stylebox.border_width_top = 1
 	stylebox.border_width_bottom = 1
-	stylebox.border_color = COLOR_BORDER
+	stylebox.border_color = COLOR_BORDER if state != "active" else Color(0.31, 0.76, 0.97, 0.8)
 	stylebox.corner_radius_top_left = 4
 	stylebox.corner_radius_top_right = 4
 	stylebox.corner_radius_bottom_left = 4
@@ -300,10 +307,15 @@ func _update_round_display() -> void:
 		_round_label.text = "ROUND %d" % _current_round
 
 func _update_phase_display() -> void:
-	## Update phase button states
+	## Update phase button states with color coding:
+	## completed = green, current = cyan, upcoming = gray
 	for i in range(_phase_buttons.size()):
-		var is_active: bool = (i == _current_phase)
-		_style_phase_button(_phase_buttons[i], is_active)
+		if i < _current_phase:
+			_style_phase_button_state(_phase_buttons[i], "completed")
+		elif i == _current_phase:
+			_style_phase_button_state(_phase_buttons[i], "active")
+		else:
+			_style_phase_button_state(_phase_buttons[i], "upcoming")
 	_update_reminder_text()
 
 func _check_battle_event_indicator() -> void:
@@ -347,13 +359,13 @@ func _on_phase_button_pressed(phase_idx: int) -> void:
 # PHASE REMINDERS & TIER-AWARE FEATURES
 # =====================================================
 
-## Five Parsecs Core Rules phase reminder text
+## Five Parsecs Core Rules phase instructions (p.118)
 const PHASE_REMINDERS: Dictionary = {
-	0: "Roll 1d6 per crew member. Result <= Reactions stat = Quick Action this round.",
-	1: "Activate crew with Quick Actions first. Each can Move + Act (shoot, brawl, dash, etc.).",
-	2: "Move and act with all enemy figures according to their AI type.",
-	3: "Activate remaining crew with Slow Actions. Each can Move + Act.",
-	4: "Check morale (if casualties this round). Rounds 2 & 4: roll for Battle Event.",
+	0: "Roll 1D6 per crew member. Results <= Reactions = Quick Actions.",
+	1: "Crew who passed reactions act now. Move+Shoot OR Double Move each.",
+	2: "All enemies act. Move toward closest crew, shoot if in range.",
+	3: "Remaining crew act now. Same options as Quick Actions.",
+	4: "Morale check (if 3+ enemies down). Battle events (R2, R4). Victory check.",
 }
 
 func _update_reminder_text() -> void:

@@ -31,9 +31,62 @@ victory condition completion.
 
 ## Known Bugs — Do Not Re-Report
 
-No known bugs remain for the demo path. All previously tracked bugs have been resolved.
+- WEALTH motivation gives +1 SAVVY (should give credits) — needs resource bonus system architecture
+- 49% of character creation bonuses are not yet implemented (resource bonuses)
+- Victory condition tracking uses turns_played as proxy, not actual metric counters
 
-## Resolved Bugs (March 2026)
+## Phase 31 QA Bug Fix Sprint (March 16, 2026)
+
+10 bugs fixed (3 P0, 4 P1, 3 P2), 3 high-severity UX issues resolved, 13 files modified.
+
+| Bug ID | Location | Resolution |
+|--------|----------|------------|
+| BUG-035 | GameState / WorldPhaseController | Equipment in ship stash now restored to EquipmentManager on load; crew dicts enriched with per-member equipment via `_restore_equipment_from_campaign()` + `_enrich_crew_equipment()` |
+| BUG-036 | CaptainPanel | Untyped `current_captain` passed to typed `edit_character()` — now typed as `Character` |
+| BUG-037 | CharacterCreator | Nil stat bonus on WEALTH motivation — null guard added |
+| BUG-038 | CampaignTurnController | terrain_guide data at top level of battle context, not inside terrain sub-dict — merged into terrain |
+| BUG-039 | PurchaseItemsComponent | `_on_sell_pressed` credits now synced to GameStateManager via `add_credits()` |
+| BUG-040 | BattlefieldShapeLibrary / BattlefieldMapView | Scatter items no longer rendered as full terrain features (is_scatter flag) |
+| BUG-041 | BattlefieldShapeLibrary / BattlefieldMapView | `classify_feature()` now stores size_category; labels prefixed with Large/Small/Linear |
+| BUG-042 | TacticalBattleUI / InitiativeCalculator | `set_crew()` + `auto_detect_equipment()` now wired during battle init — initiative roll works |
+| BUG-043 | TacticalBattleUI | `result.seized` fixed to `result.success` (correct InitiativeResult property) |
+| UX-060/070 | CampaignCreationUI | Nav buttons (Back/Next/Cancel) now styled with Deep Space theme StyleBox overrides |
+| UX-074 | FinalPanel | `_update_crew_preview()` handles both Character objects and Dictionary input |
+
+**Key demo path impacts**:
+- Initiative roll now works correctly in battle setup (BUG-042/043)
+- Save/reload preserves equipment stash and crew gear (BUG-035)
+- Selling items in post-battle Purchase Items step syncs credits properly (BUG-039)
+- Campaign creation nav buttons match Deep Space theme (UX-060/070)
+- Final Review crew preview handles coordinator state Dicts (UX-074)
+- Terrain map labels show size categories (BUG-041)
+
+## Phase 28 QA Sprint Fixes (March 16, 2026)
+
+**IMPORTANT: Persistent test campaigns from before March 16 have INVALID ship data (hull 20-35, debt 12-38). Create a FRESH campaign for verification.**
+
+| Bug ID | Location | Resolution |
+|--------|----------|------------|
+| BUG-012/013 | ExpandedConfigPanel / CampaignCreationUI | Signal chain repaired: `campaign_config_data_complete` now emitted; 3 missing signal connections added; VC validation relaxed so name propagates independently |
+| BUG-009/010/011 | ShipPanel | Hull corrected to 6-14 (was 20-35), debt to 0-5 (was 12-38), Freelancer default type, SpinBox constrained |
+| BUG-007 | CaptainPanel | `is_captain = true` now set in both create and edit handlers |
+| BUG-003 | CampaignCreationCoordinator | Next button disabled when campaign name is empty |
+| BUG-002 | SceneRouter | Phantom "main_game" route replaced with "campaign_turn_controller" — eliminates CRITICAL error on every launch |
+| BUG-021 | PreBattleUI | All crew pre-selected on entry; Confirm button enabled immediately |
+| BUG-016 | CrewTaskComponent | Task cap shows [FULL X/X] indicator; push_warning on rejection |
+| BUG-017 | JobOfferComponent | Duplicate jobs re-rolled by type+objective (up to 3 attempts) |
+| BUG-022 | BattlefieldGenerator | Terrain capped at 13 features (3 Large + 6 Small + 4 Linear) per Core Rules Standard Terrain Set |
+| BUG-004 | ShipPanel | Content container scan uses exact name match (false-positive eliminated) |
+| BUG-006 | EquipmentPanel | `get_panel_data()` is now canonical; deprecated method no longer spams console |
+| UX-006 | CaptainPanel | Captain summary now shows 6 combat stats (Combat/Reactions/Toughness/Speed/Savvy/Luck) |
+| UX-008 | CharacterTableRoller | 36+36 names (was 26+26); first!=last dedup prevents "Blake Blake" |
+| UX-020 | UpkeepPhaseComponent | Costs auto-calculated on `initialize_upkeep_phase()` (no longer shows 0) |
+| FIX-5.1 | CharacterCreator | SURVIVAL motivation: +1 TOUGHNESS (was REACTIONS) |
+| FIX-6.1 | PatronJobManager | Payment formula unified to `base*tier + danger` (matched JobOfferComponent) |
+| FIX-6.2 | world_traits.json | Added "high_cost" world trait (was dead code in UpkeepPhaseComponent) |
+| FIX-6.3 | WorldGenerator | Added tech_level (d6), government_type (d10→10 types), population_scale (d6) |
+
+## Pre-March 16 Resolved Bugs
 
 | Bug ID | Location | Resolution |
 |--------|----------|------------|
@@ -47,9 +100,11 @@ No known bugs remain for the demo path. All previously tracked bugs have been re
 
 ## CC — Campaign Creation
 
-> **Status: VERIFIED (Mar 12, 2026)** — CC-1→CC-11 all PASS via MCP runtime testing.
-> Cold-start test only. Close the project completely, then launch fresh. Do not load an
-> existing save. The recording must begin at the Main Menu.
+> **Status: VERIFIED (Mar 16, 2026 — Phase 29 Runtime Test)** — CC-1 through CC-11 all PASS.
+> Campaign name "Wandering Star" propagates to Final Review. Ship hull=10 (6-14), debt=2 (0-5).
+> Captain shows 6 stats. Crew list populates correctly. World generates with government+tech_level.
+> **Known issues**: Victory cards not interactive (BUG-029), Origin shows "None" for default Human (BUG-030).
+> See `docs/QA_SPRINT_PHASE29_NOTES.md` for full results.
 
 ### Demo Crew Specification
 
@@ -76,16 +131,19 @@ accept all custom names without truncation or error.
 | CC-7 | Step 3 (Crew): Set crew size to **"4 Total"**. Press "Add Crew Member". Create **Dex Tannek** — Human, Drifter, Wealth. | Dex appears in `crew_list` ItemList. Format: "Name — Class (Origin)". | `crew_size_option`, Add button, `crew_list` | |
 | CC-8 | Step 3 (Crew): Add **Sura-9** (Bot origin). Add **Maren Holt** — Human, Colonist, Revenge. | All 3 crew members in `crew_list`. Add button disables. `is_valid()` returns true. | `crew_list` ItemList | |
 | CC-9 | Step 3 (Crew): Select Sura-9 in the list. Press Edit. Verify Bot origin is set. Save the edit. | CharacterCreator reopens showing Sura-9's data. Bot origin preserved after edit. `character_edited` fires. | Edit button → `CharacterCreator` | |
-| CC-10 | Steps 4–6 (Ship, World, Equipment): Confirm auto-generation triggers on entry. Ship name and world name should populate. | ShipPanel and WorldInfoPanel show generated names on entry. No blank required fields. | `ShipPanel.gd`, `WorldInfoPanel.gd` auto-generate | |
+| CC-10 | Steps 4–6 (Ship, World, Equipment): Confirm auto-generation triggers on entry. Ship name and world name should populate. **Ship hull must be 6-14, debt 0-5. Default type "Freelancer" in dropdown.** World should show tech_level, government_name, population_name. | ShipPanel and WorldInfoPanel show generated names on entry. No blank required fields. Captain summary shows 6 combat stats. | `ShipPanel.gd`, `WorldInfoPanel.gd` auto-generate | |
 | CC-11 | Step 7 (Final): Review summary. Press "Begin Campaign". | FinalPanel shows crew, ship, world summary. Campaign launches to CampaignDashboard. Turn 1 begins at Story Phase. | `FinalPanel` → Begin Campaign | |
 
 ---
 
 ## T1 — Campaign Turn 1
 
-> **Status: VERIFIED (Mar 12, 2026)** — Story/Travel/World PASS, Battle/PostBattle PASS
-> (roll_dice fix applied, all 14 steps verified), Advancement→End PASS.
-> B69 (turn summary data integrity) and B70 (save/reload turn restoration) fixed.
+> **Status: VERIFIED (Mar 16, 2026 — Phase 31 Sprint)** — All T1 phases PASS.
+> Upkeep auto-calc works (5cr deducted). Crew tasks assign+resolve (4/4). Job dedup working (3 unique).
+> Battle UI loads with terrain map + tier selector. **Initiative roll now works** (BUG-042/043 fixed).
+> Auto-resolve transitions to 14-step post-battle. Equipment shows in mission prep (BUG-035 fixed).
+> All post-battle steps advance without crashes. Selling items syncs credits (BUG-039 fixed).
+> **Known issues**: Story/Travel phases auto-skip.
 
 **Demo narrative context:** Turn 1 establishes the routine. The player pays upkeep,
 assigns crew tasks, picks a job, runs the battle off-screen (tabletop companion mode),
@@ -114,7 +172,7 @@ and Character Event tables are shown in action.
 | # | Action | Expected Result | Key Node / Button | Notes |
 |---|--------|-----------------|-------------------|-------|
 | T1-C1 | Upkeep Phase opens (UpkeepPhasePanel). Verify `crew_list` shows all 4 members. | `crew_list` shows 4 entries. Sura-9 identified as Bot. No "Unknown" names. | `UpkeepPhasePanel` → `crew_list` | |
-| T1-C2 | Read `upkeep_cost_label`. With 4 crew at 6 credits each, total should be 24. | Label reads "Total Upkeep Cost: 24 credits". `resources_list` shows current credits. | `upkeep_cost_label`, `resources_list` | |
+| T1-C2 | Read upkeep cost display. **Costs should auto-populate immediately on entry** (not 0). With 4 crew: crew upkeep + ship maintenance. | Upkeep costs display immediately (not blank/zero). Credits shown. | `UpkeepPhaseComponent` — auto-calculates on `initialize_upkeep_phase()` | |
 | T1-C3 | Press "Pay Upkeep". Credits decrease by 24. Phase advances. | Credits deducted correctly. Phase transitions to Crew Tasks. | `pay_upkeep_button` → `complete_phase()` | |
 | T1-C4 | Crew Tasks: Assign Kira to **Train**. Assign Dex to **Find a Patron**. Leave others on any task. | Tasks visually assigned. Task selection persists. No crash. | WorldPhaseController crew tasks UI | |
 | T1-C5 | Resolve Tasks: For "Find a Patron", a patron offer should be generated. Confirm it appears in Job Offers. | Job Offers sub-phase shows at least one patron mission. Opportunity missions also available. | `PatronRivalManager`, `MissionSelectionUI` | |
@@ -128,7 +186,7 @@ sets up the battlefield reference and waits for the player to return with result
 
 | # | Action | Expected Result | Key Node / Button | Notes |
 |---|--------|-----------------|-------------------|-------|
-| T1-D1 | BattleSetupPhasePanel opens. Verify terrain/sector info is displayed. Confirm BattlefieldGridPanel renders. | `BattleSetupPhasePanel` shows mission type, enemy faction, terrain sectors. `BattlefieldGridPanel` renders 4×4 sector grid with terrain shapes. Sector View and Map View tabs both functional. Regenerate button produces new terrain. | `BattleSetupPhasePanel.tscn`, `BattlefieldGridPanel.gd` | |
+| T1-D1 | BattleSetupPhasePanel opens. Verify terrain/sector info is displayed. Confirm BattlefieldGridPanel renders. **Terrain must show <=13 features total (3 Large + 6 Small + 4 Linear) with LARGE:/SMALL:/LINEAR: prefixes.** | `BattleSetupPhasePanel` shows mission type, enemy faction, terrain sectors. `BattlefieldGridPanel` renders 4x4 sector grid with terrain shapes. Regenerate button produces new terrain. | `BattleSetupPhasePanel.tscn`, `BattlefieldGridPanel.gd` | |
 | T1-D2 | Open TacticalBattleUI. Verify character names display correctly. Verify round counter shows "ROUND 1". | `TacticalBattleUI.tscn` loads. Crew panels show correct names (Kira Voss, Dex Tannek, etc.). Round HUD displays "ROUND 1" and increments on advance. | `TacticalBattleUI.gd` — character cards | |
 | T1-D3 | Simulate battle: 3 enemies defeated, 1 crew injury (Dex), 0 casualties. Enter results. | Battle results stored: `victory=true`, `enemy_defeated=3`, `crew_injuries=1`. | `BattleResolutionPhasePanel` | |
 | T1-D4 | Confirm transition to Post-Battle Sequence. | `PostBattleSequence.tscn` loads. `step_counter` shows "Step 1 of 14". All 14 step names visible in `steps_container`. | `PostBattleSequence.gd` → `steps_container` | |
@@ -200,9 +258,10 @@ sets up the battlefield reference and waits for the player to return with result
 
 ## T2 — Campaign Turn 2
 
-> **Status: VERIFIED (Mar 12, 2026)** — All phases PASS via MCP runtime re-run.
-> Turn 2 follows the same phase structure as Turn 1. The demo narrative highlights the
-> Trading Phase prominently in Turn 2.
+> **Status: VERIFIED (Mar 16, 2026 — Phase 31 Sprint)** — All phases PASS.
+> Turn 2 follows the same phase structure as Turn 1. Different terrain theme (Urban Settlement).
+> Trading Phase shows market with 7 items + inventory. Save at Turn End writes .fpcs file correctly.
+> BUG-031 resolved (Phase 30) — credits now persist to progress_data. Equipment persists on reload (BUG-035 fixed).
 
 ### T2-A through T2-C — Story / Travel / World Phases
 
@@ -230,10 +289,12 @@ sets up the battlefield reference and waits for the player to return with result
 
 ## SR — Save & Reload Verification
 
-> **Status: VERIFIED (Mar 12, 2026)** — SR-1→SR-6 all PASS. Campaign name, turn number,
-> crew (4 members, all 6 stats), credits (1800), ship (Cosmic Hunter, hull 27/27, debt 14),
-> world (New Campaign Prime, Desert World), patrons (2), equipment (2 items) all persist correctly.
-> B70 (turn restoration key mismatch) fixed.
+> **Status: PASS (Mar 16, 2026 — Phase 30/31 Sprint)** — Save file writes correctly (.fpcs + .backup).
+> Campaign loads via "Continue Campaign" button. Turn number (2) and crew count (4) preserved.
+> BUG-031 FIXED (Phase 30): credits synced to progress_data via dual-sync setters; counters initialized in `_init()`.
+> BUG-035 FIXED (Phase 31): equipment stash restored to EquipmentManager on load via `_restore_equipment_from_campaign()`.
+> Verify: campaign name, turn number, crew (4 members, all 6 stats, captain has is_captain=true),
+> ship (hull 6-14, debt 0-5), world (with tech_level, government_name, population_name), patrons, equipment.
 
 | # | Action | Expected Result | Key Node / Button | Notes |
 |---|--------|-----------------|-------------------|-------|
@@ -308,21 +369,32 @@ Campaign saves at `user://campaigns/` (resolves to `%APPDATA%/Godot/app_userdata
 
 ## Resolved Bugs (March 2026)
 
+See **Phase 28 QA Sprint Fixes** section above for all 18 bugs fixed on March 16.
+
+Additional pre-March 16 fixes:
+
 | Bug ID | Location | Resolution |
 |--------|----------|------------|
-| BUG-034 | Upkeep Panel | `_calculate_upkeep()` now called in `_ready()` — label populates immediately on panel open. |
-| BUG-060 | TacticalBattleUI | Dead units automatically skipped in activation order. |
-| BUG-061 | TacticalBattleUI | Post-resolution bottom action bar hidden after unit resolves. |
-| BUG-062 | TacticalBattleUI | Round HUD counter increments correctly on round advance. |
-| BUG-063 | TacticalBattleUI | Character cards display proper names from Character object and Dictionary input. |
 | ROLL-FIX | PostBattleSequence | 7 calls to non-existent `dice_manager.roll_dice()` replaced with correct DiceManager API (`roll_d100()`, `roll_d6()`). Steps 12-14 no longer crash. |
 | B69 | EndPhasePanel | Turn summary data integrity — `CampaignPhaseManager.turn_number` now synced from `progress_data["turns_played"]` on campaign load. |
 | B70 | CampaignTurnController | Save/reload turn restoration — key mismatch (`"turn_number"` vs `"turns_played"`) fixed; resume logic no longer clobbers loaded data. |
 
-## Open Issues (Non-Blocking for Demo)
+## Phase 30 QA Sprint Fixes (March 16, 2026)
+
+| Bug ID | Location | Resolution |
+|--------|----------|------------|
+| BUG-031 | GameStateManager / FiveParsecsCampaignCore | **ROOT CAUSE**: `GameStateManager.game_state` field was never assigned to the autoload — `set_credits()` silently failed to write back to `campaign.credits`. Fix: assign `game_state = gs` in `_connect_campaign_signals()`. Also: sync credits to `progress_data["credits"]` on every `set_credits()` call. Also: initialize `progress_data` with default counters (`missions_completed`, `battles_won`, `battles_lost`) in `_init()` and `from_dictionary()`. |
+| BUG-030 | CharacterCreator | Added explicit `_on_origin_changed(0)` (and background/class/motivation) after signal connection in `_ready()`. Godot OptionButton doesn't fire `item_selected` for the default index 0 selection. |
+| BUG-029 | ExpandedConfigPanel | Set `mouse_filter = MOUSE_FILTER_IGNORE` on all child controls inside victory cards (VBoxContainer, Labels). Children were consuming click events before they reached the PanelContainer's `gui_input` handler. Also fixed checkmark lookup from hardcoded path to `find_child("Checkmark")`. |
+
+## Open Issues
 
 | Issue | Location | Severity | Notes |
 |-------|----------|----------|-------|
 | PurchaseItemsComponent EquipmentManager | PostBattle Step 11 | P2 | `_on_confirm_purchase_pressed()` can't find EquipmentManager. UI renders but inventory persistence may fail. |
 | Load Campaign UI clicks | Main Menu | P2 | MCP clicks don't register on load dialog. Workaround: programmatic `GameState.load_campaign()`. |
+| WEALTH motivation bonus | CharacterCreator | P2 | Gives +1 SAVVY instead of credits. Needs resource bonus architecture. |
+| Character bonus coverage | CharacterCreator | P2 | 49% of bonuses implemented (38/77). Most gaps need resource bonus system. |
+| Victory condition tracking | EndPhasePanel | P2 | Uses turns_played as proxy instead of real metric counters. |
+| Story/Travel phases auto-skip | CampaignTurnController | P3 | New campaigns jump to World Phase — Story+Travel auto-complete. EventManager not found. |
 

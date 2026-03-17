@@ -7,7 +7,6 @@ class_name PsionicSystem
 ## Handles psionic powers, projection mechanics, and character abilities
 ## following Five Parsecs From Home Core Rules.
 
-const Character = preload("res://src/core/character/Character.gd")
 # DataManager accessed via autoload singleton (not preload)
 const DiceSystem = preload("res://src/core/systems/DiceSystem.gd")
 

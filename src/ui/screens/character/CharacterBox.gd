@@ -5,7 +5,6 @@ extends PanelContainer
 
 # Safe imports
 # GlobalEnums available as autoload singleton
-const Character = preload("res://src/core/character/Character.gd")
 # Removed PortraitManager dependency - using simple Godot-native image loading
 
 # UI Components

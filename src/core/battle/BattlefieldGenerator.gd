@@ -44,7 +44,8 @@ var _compendium_data: Dictionary = {}
 
 ## Public API: Generate text-based terrain suggestions for physical table setup.
 ## Returns readable text descriptions per sector telling the player what to place.
-## theme: "industrial_zone", "wilderness", "alien_ruin", "crash_site"
+## Uses Core Rules Standard Terrain Set: 3 Large + 6 Small + 4 Linear = 13 features max.
+## theme: "industrial_zone", "wilderness", "alien_ruin", "crash_site", etc.
 func generate_terrain_suggestions(theme: String = "wilderness") -> Dictionary:
 	_ensure_compendium_loaded()
 
@@ -56,72 +57,98 @@ func generate_terrain_suggestions(theme: String = "wilderness") -> Dictionary:
 	var theme_data: Dictionary = themes[theme]
 	var grid_info: Dictionary = _compendium_data.get("sector_grid", {})
 	var sector_labels: Array = grid_info.get("labels", [])
+	var terrain_set: Dictionary = _compendium_data.get("standard_terrain_set", {})
 	var local_rng := RandomNumberGenerator.new()
 	local_rng.seed = Time.get_unix_time_from_system()
 
-	var sectors: Array[Dictionary] = []
-	var notable_features: Array = theme_data.get("notable_features", [])
-	var regular_features: Array = theme_data.get("regular_features", [])
+	# Core Rules Standard Terrain Set counts (3x3 table)
+	var large_count: int = terrain_set.get("large", 3)
+	var small_count: int = terrain_set.get("small", 6)
+	var linear_count: int = terrain_set.get("linear", 4)
+
+	# Load categorized feature pools
+	var large_pool: Array = theme_data.get("large_features", [])
+	var small_pool: Array = theme_data.get("small_features", [])
+	var linear_pool: Array = theme_data.get("linear_features", [])
 	var scatter_items: Array = theme_data.get("scatter_terrain", [])
-	var regular_chance: float = _compendium_data.get(
-		"regular_feature_per_sector_chance", 0.6)
 
-	# Roll for notable features (1d3 placed across the battlefield)
-	var notable_count: int = local_rng.randi_range(NOTABLE_FEATURE_MIN, NOTABLE_FEATURE_MAX)
-	var used_notable_indices: Array[int] = []
-	var notable_placements: Dictionary = {}
+	# Select features from each category (no duplicates)
+	var selected_large: Array[String] = _pick_unique(large_pool, large_count, local_rng)
+	var selected_small: Array[String] = _pick_unique(small_pool, small_count, local_rng)
+	var selected_linear: Array[String] = _pick_unique(linear_pool, linear_count, local_rng)
 
-	for i in range(mini(notable_count, notable_features.size())):
-		var sector_idx: int = local_rng.randi_range(
-			0, sector_labels.size() - 1)
-		var feat_idx: int = local_rng.randi_range(
-			0, notable_features.size() - 1)
-		# Avoid duplicate features
-		while feat_idx in used_notable_indices \
-				and used_notable_indices.size() < notable_features.size():
-			feat_idx = (feat_idx + 1) % notable_features.size()
-		used_notable_indices.append(feat_idx)
-		notable_placements[sector_idx] = notable_features[feat_idx]
+	# Build a flat list of all features with their category tags
+	var all_features: Array[Dictionary] = []
+	for feat: String in selected_large:
+		all_features.append({"text": feat, "category": "LARGE"})
+	for feat: String in selected_small:
+		all_features.append({"text": feat, "category": "SMALL"})
+	for feat: String in selected_linear:
+		all_features.append({"text": feat, "category": "LINEAR"})
 
-	# Build per-sector descriptions
-	for sector_idx: int in range(sector_labels.size()):
-		var sector_label: String = sector_labels[sector_idx]
-		var features: Array[String] = []
+	# Distribute features across sectors with center priority
+	# Center sectors (B2, B3, C2, C3) get first large feature for objective missions
+	var center_sectors: Array[int] = []
+	for label: String in ["B2", "B3", "C2", "C3"]:
+		var idx: int = sector_labels.find(label)
+		if idx >= 0:
+			center_sectors.append(idx)
 
-		# Add notable feature if placed here
-		if notable_placements.has(sector_idx):
-			features.append(
-				"NOTABLE: %s" % notable_placements[sector_idx])
+	# Initialize sector feature lists
+	var sector_features: Dictionary = {}  # sector_idx -> Array[String]
+	for i: int in range(sector_labels.size()):
+		sector_features[i] = []
 
-		# Regular feature chance per sector
-		if local_rng.randf() < regular_chance \
-				and regular_features.size() > 0:
-			var reg_idx: int = local_rng.randi_range(
-				0, regular_features.size() - 1)
-			features.append(regular_features[reg_idx])
+	# Place first large feature in a center sector (for objective missions)
+	if all_features.size() > 0 and center_sectors.size() > 0:
+		var center_idx: int = center_sectors[local_rng.randi_range(0, center_sectors.size() - 1)]
+		var first_large: Dictionary = all_features[0]
+		sector_features[center_idx].append("%s: %s" % [first_large.category, first_large.text])
+		all_features.remove_at(0)
 
-		# Scatter terrain (1d6+2 small items if any features)
-		if features.size() > 0:
-			var scatter_count: int = local_rng.randi_range(1, SCATTER_DICE) + SCATTER_BASE
+	# Shuffle remaining features and distribute evenly
+	_shuffle_array(all_features, local_rng)
+	var sector_order: Array[int] = []
+	for i: int in range(sector_labels.size()):
+		sector_order.append(i)
+	_shuffle_array(sector_order, local_rng)
+
+	var slot: int = 0
+	for feat: Dictionary in all_features:
+		var target_sector: int = sector_order[slot % sector_order.size()]
+		# Skip sectors that already have 2+ features (spread evenly)
+		var attempts: int = 0
+		while sector_features[target_sector].size() >= 2 and attempts < sector_labels.size():
+			slot += 1
+			target_sector = sector_order[slot % sector_order.size()]
+			attempts += 1
+		sector_features[target_sector].append("%s: %s" % [feat.category, feat.text])
+		slot += 1
+
+	# Add scatter as flavor text (not counted features) to sectors with features
+	for sector_idx: int in sector_features:
+		if sector_features[sector_idx].size() > 0 and scatter_items.size() > 0:
+			var scatter_count: int = local_rng.randi_range(1, 3)
 			var scatter_list: Array[String] = []
-			for s in range(mini(scatter_count, scatter_items.size())):
-				var s_idx: int = local_rng.randi_range(
-					0, scatter_items.size() - 1)
-				scatter_list.append(scatter_items[s_idx])
-			if scatter_list.size() > 0:
-				features.append(
-					"Scatter: %s" % ", ".join(scatter_list))
+			for _si: int in range(scatter_count):
+				scatter_list.append(scatter_items[local_rng.randi_range(0, scatter_items.size() - 1)])
+			sector_features[sector_idx].append("Scatter: %s" % ", ".join(scatter_list))
 
+	# Build sector array output
+	var sectors: Array[Dictionary] = []
+	for sector_idx: int in range(sector_labels.size()):
 		sectors.append({
-			"label": sector_label,
-			"features": features,
+			"label": sector_labels[sector_idx],
+			"features": sector_features.get(sector_idx, []),
 		})
 
 	# Build summary text
+	var total_placed: int = selected_large.size() + selected_small.size() + selected_linear.size()
 	var summary_lines: Array[String] = []
-	summary_lines.append(
-		"Theme: %s" % theme_data.get("name", theme))
+	summary_lines.append("Theme: %s" % theme_data.get("name", theme))
 	summary_lines.append(theme_data.get("description", ""))
+	summary_lines.append("Standard Terrain Set: %d Large, %d Small, %d Linear (%d total)" % [
+		selected_large.size(), selected_small.size(), selected_linear.size(), total_placed])
 	summary_lines.append("")
 	for sector: Dictionary in sectors:
 		if sector.features.size() > 0:
@@ -129,16 +156,37 @@ func generate_terrain_suggestions(theme: String = "wilderness") -> Dictionary:
 			for feat: String in sector.features:
 				summary_lines.append("  - %s" % feat)
 		else:
-			summary_lines.append(
-				"Sector %s: Open ground" % sector.label)
+			summary_lines.append("Sector %s: Open ground" % sector.label)
 
 	return {
 		"theme": theme,
 		"theme_name": theme_data.get("name", theme),
 		"sectors": sectors,
 		"summary": "\n".join(summary_lines),
-		"notable_count": notable_count,
+		"notable_count": selected_large.size(),
+		"terrain_set": {"large": selected_large.size(), "small": selected_small.size(), "linear": selected_linear.size()},
 	}
+
+## Pick up to count unique items from a pool (no duplicates).
+func _pick_unique(pool: Array, count: int, local_rng: RandomNumberGenerator) -> Array[String]:
+	var result: Array[String] = []
+	if pool.is_empty():
+		return result
+	var indices: Array[int] = []
+	for i: int in range(pool.size()):
+		indices.append(i)
+	_shuffle_array(indices, local_rng)
+	for i: int in range(mini(count, indices.size())):
+		result.append(str(pool[indices[i]]))
+	return result
+
+## Fisher-Yates shuffle for any array.
+func _shuffle_array(arr: Array, local_rng: RandomNumberGenerator) -> void:
+	for i: int in range(arr.size() - 1, 0, -1):
+		var j: int = local_rng.randi_range(0, i)
+		var temp: Variant = arr[i]
+		arr[i] = arr[j]
+		arr[j] = temp
 
 ## Regenerate a single sector's features.
 func regenerate_sector(
@@ -150,27 +198,29 @@ func regenerate_sector(
 		return {}
 
 	var theme_data: Dictionary = themes[theme]
-	var regular_features: Array = theme_data.get(
-		"regular_features", [])
+	var small_pool: Array = theme_data.get("small_features", [])
+	var linear_pool: Array = theme_data.get("linear_features", [])
 	var scatter_items: Array = theme_data.get("scatter_terrain", [])
 	var local_rng := RandomNumberGenerator.new()
 	local_rng.seed = Time.get_unix_time_from_system()
 
 	var features: Array[String] = []
 
-	# Always place at least one regular feature on re-roll
-	if regular_features.size() > 0:
-		features.append(regular_features[
-			local_rng.randi_range(0, regular_features.size() - 1)])
+	# Re-roll places one small or linear feature
+	var combined_pool: Array = small_pool + linear_pool
+	if combined_pool.size() > 0:
+		var pick: String = str(combined_pool[local_rng.randi_range(0, combined_pool.size() - 1)])
+		var category: String = "SMALL" if pick in small_pool else "LINEAR"
+		features.append("%s: %s" % [category, pick])
 
 	# Scatter
-	var scatter_count: int = local_rng.randi_range(1, SCATTER_DICE) + SCATTER_BASE
-	var scatter_list: Array[String] = []
-	for s in range(mini(scatter_count, scatter_items.size())):
-		scatter_list.append(scatter_items[
-			local_rng.randi_range(0, scatter_items.size() - 1)])
-	if scatter_list.size() > 0:
-		features.append("Scatter: %s" % ", ".join(scatter_list))
+	if scatter_items.size() > 0:
+		var scatter_count: int = local_rng.randi_range(1, 3)
+		var scatter_list: Array[String] = []
+		for _si: int in range(scatter_count):
+			scatter_list.append(scatter_items[local_rng.randi_range(0, scatter_items.size() - 1)])
+		if scatter_list.size() > 0:
+			features.append("Scatter: %s" % ", ".join(scatter_list))
 
 	return {
 		"label": sector_label,

@@ -8,7 +8,7 @@ const BASE_INTEREST_RATE := 0.1
 const LATE_PAYMENT_PENALTY := 0.2
 const MAX_LOAN_AMOUNT := 50000
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
-const Character = preload("res://src/core/character/Management/CharacterDataManager.gd")
+const CharacterDataMgr = preload("res://src/core/character/Management/CharacterDataManager.gd")
 const WorldEconomyManager = preload("res://src/core/managers/WorldEconomyManager.gd")
 
 var game_state: FiveParsecsGameState

@@ -1,6 +1,6 @@
 extends Control
 
-const Character = preload("res://src/core/character/Base/Character.gd")
+# Character class_name is globally available — do NOT preload Base/Character.gd (shadows the canonical class)
 const CharacterCreator = preload("res://src/core/character/Generation/CharacterCreator.gd")
 signal crew_updated(crew: Array)
 
@@ -9,13 +9,29 @@ signal crew_updated(crew: Array)
 @onready var crew_list = $Content/CrewList/ItemList
 @onready var character_creator = $CharacterCreator
 
-var crew_members: Array = []
+var crew_members: Array = [] # Untyped — avoids Character.gd type shadowing crash
 var selected_size: int = 4
 
 func _ready() -> void:
+	_add_guidance_label()
 	_setup_crew_size_options()
 	_connect_signals()
 	_update_crew_list()
+
+func _add_guidance_label() -> void:
+	## Add guidance text at top of content area
+	var guidance := Label.new()
+	guidance.text = (
+		"Select your crew size and add members."
+		+ " Each crew member is generated with random"
+		+ " backgrounds, skills, and starting equipment."
+	)
+	guidance.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	guidance.add_theme_color_override(
+		"font_color", Color("#808080"))
+	guidance.add_theme_font_size_override("font_size", 14)
+	content.add_child(guidance)
+	content.move_child(guidance, 0)
 
 func _setup_crew_size_options() -> void:
 	crew_size_option.clear()

@@ -6,7 +6,6 @@ extends Control
 
 ## Dependencies
 const StoryQuestData = preload("res://src/core/story/StoryQuestData.gd")
-const Character = preload("res://src/core/character/Base/Character.gd")
 const UnifiedTerrainSystem = preload("res://src/core/terrain/UnifiedTerrainSystem.gd")
 
 ## Optional dependencies that may not exist
@@ -270,11 +269,15 @@ func setup_crew_selection(available_crew: Array) -> void:
 		normal_style.border_color = Color("#3A3A5C")  # COLOR_BORDER
 		normal_style.set_border_width_all(1)
 		normal_style.set_corner_radius_all(8)
-		char_button.add_theme_stylebox_override("normal", normal_style)
 		char_button.pressed.connect(_on_character_selected.bind(item))
 		crew_list.add_child(char_button)
+		# Pre-select all crew members (common case: send full crew to battle)
+		char_button.button_pressed = true
+		selected_crew.append(item)
 
 	crew_selection_panel.add_child(crew_list)
+	crew_selected.emit(selected_crew)
+	_update_confirm_button()
 
 ## Handle character selection
 func _on_character_selected(character) -> void:

@@ -63,6 +63,7 @@ func _ready() -> void:
 	_connect_backend_signals()  # Sprint 20.1: Connect to PostBattlePhase backend signals
 	_show_current_step()
 	_setup_postbattle_icons()
+	_style_step_content_panel()
 
 
 func _initialize_advancement_system() -> void:
@@ -353,33 +354,57 @@ func _on_backend_substep_changed(substep: int) -> void:
 		current_step = substep
 		_show_current_step()
 
+## Step group headers inserted before specific step indices
+const STEP_GROUP_HEADERS: Dictionary = {
+	0: "── RESOLUTION ──",
+	3: "── REWARDS ──",
+	7: "── CASUALTIES ──",
+	8: "── GROWTH ──",
+	10: "── ECONOMY ──",
+	11: "── EVENTS ──",
+}
+
 func _refresh_steps_list() -> void:
-	## Refresh the steps list display
+	## Refresh the steps list display with status icons and group headers
 	# Clear existing steps
 	for child in steps_container.get_children():
 		child.queue_free()
 
-	# Add step items
+	# Add step items with group headers
 	for i: int in range(max_steps):
+		# Insert group header before certain steps
+		if i in STEP_GROUP_HEADERS:
+			var header: Label = Label.new()
+			header.text = STEP_GROUP_HEADERS[i]
+			header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			header.add_theme_color_override("font_color", Color("#808080"))
+			header.add_theme_font_size_override("font_size", 11)
+			steps_container.add_child(header)
+
 		var step_panel: Control = _create_step_panel(i)
 		steps_container.add_child(step_panel)
 
 func _create_step_panel(step_index: int) -> Control:
-	## Create a panel for a post-battle step
+	## Create a panel for a post-battle step with status icon
 	var panel: PanelContainer = PanelContainer.new()
 	var label: Label = Label.new()
 	panel.add_child(label)
 
 	var step = post_battle_steps[step_index]
-	label.text = step.name
 
-	# Color coding based on completion status
+	# Prepend status indicator based on completion
+	var icon: String
 	if step_index < current_step:
+		icon = "✓ "
 		label.modulate = UIColors.COLOR_EMERALD # Completed
 	elif step_index == current_step:
+		icon = "► "
 		label.modulate = UIColors.COLOR_AMBER # Current
 	else:
-		label.modulate = Color.WHITE # Pending
+		icon = "○ "
+		label.modulate = Color("#808080") # Future (gray)
+
+	label.text = icon + step.name
 
 	return panel
 
@@ -1166,6 +1191,30 @@ func _setup_postbattle_icons() -> void:
 	if finish_button:
 		finish_button.expand_icon = true
 		finish_button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+
+func _style_step_content_panel() -> void:
+	## Apply Deep Space card styling to the step content panel
+	# The step_content VBoxContainer is inside a PanelContainer ("CurrentStep")
+	var panel_container: PanelContainer = step_content.get_parent().get_parent() as PanelContainer
+	if not panel_container:
+		return
+
+	var stylebox: StyleBoxFlat = StyleBoxFlat.new()
+	stylebox.bg_color = Color("#252542")  # COLOR_ELEVATED
+	stylebox.border_color = Color("#3A3A5C")  # COLOR_BORDER
+	stylebox.border_width_left = 2
+	stylebox.border_width_top = 2
+	stylebox.border_width_right = 2
+	stylebox.border_width_bottom = 2
+	stylebox.corner_radius_top_left = 8
+	stylebox.corner_radius_top_right = 8
+	stylebox.corner_radius_bottom_left = 8
+	stylebox.corner_radius_bottom_right = 8
+	stylebox.content_margin_left = 16  # SPACING_MD
+	stylebox.content_margin_top = 16
+	stylebox.content_margin_right = 16
+	stylebox.content_margin_bottom = 16
+	panel_container.add_theme_stylebox_override("panel", stylebox)
 
 # Enhanced roll interpretation functions using Five Parsecs tables
 
