@@ -53,6 +53,14 @@ func _setup_screen() -> void:
 	_create_history_overlay()
 
 func _exit_tree() -> void:
+	# Disconnect autoload signals to prevent memory leaks
+	if phase_manager:
+		if phase_manager.has_signal("phase_changed") and phase_manager.phase_changed.is_connected(_on_phase_changed):
+			phase_manager.phase_changed.disconnect(_on_phase_changed)
+		if phase_manager.has_signal("phase_completed") and phase_manager.phase_completed.is_connected(_on_phase_completed):
+			phase_manager.phase_completed.disconnect(_on_phase_completed)
+		if phase_manager.has_signal("phase_event_triggered") and phase_manager.phase_event_triggered.is_connected(_on_phase_event):
+			phase_manager.phase_event_triggered.disconnect(_on_phase_event)
 	_cleanup_dialogs()
 	super._exit_tree()
 

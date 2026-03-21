@@ -1,4 +1,4 @@
-extends Control
+extends WorldPhaseComponent
 class_name PurchaseItemsComponent
 
 ## Purchase Items Component - Shopping/Trading System
@@ -7,10 +7,7 @@ class_name PurchaseItemsComponent
 ## - Sell items (1 credit each, max 3 per turn)
 ## - Buy basic items (Handgun, Blade, Colony Rifle, Shotgun for 1 credit)
 
-# Event bus integration
-const CampaignTurnEventBus = preload("res://src/core/events/CampaignTurnEventBus.gd")
 const TradingSystem = preload("res://src/core/systems/TradingSystem.gd")
-var event_bus: CampaignTurnEventBus = null
 
 # Market system integration
 var trading_system: TradingSystem = null
@@ -53,27 +50,13 @@ var basic_items: Array[Dictionary] = [
 
 func _ready() -> void:
 	name = "PurchaseItemsComponent"
-
-	_initialize_event_bus()
-	_connect_ui_signals()
-	_setup_initial_state()
-
-func _initialize_event_bus() -> void:
-	## Connect to the centralized event bus
-	event_bus = get_node_or_null("/root/CampaignTurnEventBus")
-	if event_bus:
-		event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
-
+	super._ready()
 	# Initialize market systems
 	equipment_manager = get_node_or_null("/root/EquipmentManager")
 	trading_system = TradingSystem.new()
-	if equipment_manager:
-		pass
 
-func _exit_tree() -> void:
-	## Cleanup event bus subscriptions to prevent memory leaks
-	if event_bus:
-		event_bus.unsubscribe_from_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
+func _subscribe_to_events() -> void:
+	_subscribe(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
 
 func _connect_ui_signals() -> void:
 	## Connect UI button signals

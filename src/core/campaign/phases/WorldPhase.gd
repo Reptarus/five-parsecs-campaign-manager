@@ -43,11 +43,11 @@ var available_job_offers: Array[Dictionary] = []
 var current_rumors: int = 0
 var equipment_loadout: Dictionary = {}
 
-## Upkeep costs (Core Rulebook p.XX)
+## Upkeep costs — sourced from FiveParsecsConstants.ECONOMY (Core Rules p.76)
 var upkeep_costs: Dictionary = {
-	"base_crew_4_to_6": 1, # 1 credit for 4-6 crew members
-	"additional_crew": 1, # +1 per additional crew member
-	"sick_bay_per_patient": 1 # 1 credit per crew in sick bay
+	"base_crew_4_to_6": FiveParsecsConstants.ECONOMY.base_upkeep,
+	"additional_crew": FiveParsecsConstants.ECONOMY.additional_crew_cost,
+	"sick_bay_per_patient": FiveParsecsConstants.ECONOMY.injury_treatment_cost,
 }
 
 ## Campaign reference - set by CampaignPhaseManager
@@ -265,7 +265,7 @@ func start_world_phase(world_data: Dictionary = {}) -> void:
 	## total_cost += upkeep_costs.base_crew_4_to_6
 	## total_cost += (crew_size - 6) * upkeep_costs.additional_crew
 	##
-	## # Sick bay costs (1 credit per crew member in sick bay)
+	## # Sick bay costs (2 credits per crew member — FiveParsecsConstants.ECONOMY.injury_treatment_cost)
 	## var sick_crew_count = _get_sick_crew_count()
 	## total_cost += sick_crew_count * upkeep_costs.sick_bay_per_patient
 	##

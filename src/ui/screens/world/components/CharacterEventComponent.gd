@@ -1,13 +1,9 @@
-extends Control
+extends WorldPhaseComponent
 class_name CharacterEventComponent
 
 ## Character Event Component - Personal Character Events
 ## Implements Core Rules pp.129-132 - D100 Character Event Table
 ## Select random non-Bot character and roll for personal events
-
-# Event bus integration
-const CampaignTurnEventBus = preload("res://src/core/events/CampaignTurnEventBus.gd")
-var event_bus: CampaignTurnEventBus = null
 
 # UI Components
 @onready var character_label: Label = %CharacterLabel
@@ -51,16 +47,10 @@ var character_events: Array[Dictionary] = [
 
 func _ready() -> void:
 	name = "CharacterEventComponent"
+	super._ready()
 
-	_initialize_event_bus()
-	_connect_ui_signals()
-	_setup_initial_state()
-
-func _initialize_event_bus() -> void:
-	## Connect to the centralized event bus
-	event_bus = get_node_or_null("/root/CampaignTurnEventBus")
-	if event_bus:
-		event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
+func _subscribe_to_events() -> void:
+	_subscribe(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
 
 func _connect_ui_signals() -> void:
 	## Connect UI button signals
@@ -269,6 +259,13 @@ func _on_phase_started(data: Dictionary) -> void:
 		pass
 
 ## Public API
+## WorldPhaseComponent overrides
+func is_phase_completed() -> bool:
+	return event_resolved
+
+func reset_phase() -> void:
+	reset_event_phase()
+
 func is_event_resolved() -> bool:
 	## Check if event phase is completed
 	return event_resolved

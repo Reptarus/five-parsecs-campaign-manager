@@ -350,8 +350,10 @@ func from_dictionary(data: Dictionary) -> void:
 
 	# Store QoL data for deferred loading by autoloads
 	# (from_dictionary runs during GameState._init before scene tree is ready)
+	# Only store the qol_data subtree (wrapped for consumer compatibility),
+	# not the entire campaign dict — avoids unnecessary memory bloat.
 	if data.has("qol_data"):
-		_pending_qol_data = data.duplicate(true)
+		_pending_qol_data = {"qol_data": data.get("qol_data", {}).duplicate(true)}
 
 func apply_pending_qol_data() -> void:
 	## Called after scene tree is ready to load QoL data into autoloads

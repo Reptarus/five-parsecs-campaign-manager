@@ -88,6 +88,29 @@ func _connect_signals() -> void:
 	quick_save_button.pressed.connect(_on_quick_save_pressed)
 	auto_save_toggle.toggled.connect(_on_auto_save_toggled)
 
+func _exit_tree() -> void:
+	# Disconnect autoload signals to prevent memory leaks
+	if save_manager:
+		if save_manager.has_signal("save_completed") and save_manager.save_completed.is_connected(_on_save_manager_save_completed):
+			save_manager.save_completed.disconnect(_on_save_manager_save_completed)
+		if save_manager.has_signal("load_completed") and save_manager.load_completed.is_connected(_on_save_manager_load_completed):
+			save_manager.load_completed.disconnect(_on_save_manager_load_completed)
+		if save_manager.has_signal("backup_created") and save_manager.backup_created.is_connected(_on_save_manager_backup_created):
+			save_manager.backup_created.disconnect(_on_save_manager_backup_created)
+		if save_manager.has_signal("validation_failed") and save_manager.validation_failed.is_connected(_on_save_manager_validation_failed):
+			save_manager.validation_failed.disconnect(_on_save_manager_validation_failed)
+		if save_manager.has_signal("recovery_attempted") and save_manager.recovery_attempted.is_connected(_on_save_manager_recovery_attempted):
+			save_manager.recovery_attempted.disconnect(_on_save_manager_recovery_attempted)
+	if game_state:
+		if game_state.has_signal("save_started") and game_state.save_started.is_connected(_on_save_started):
+			game_state.save_started.disconnect(_on_save_started)
+		if game_state.has_signal("save_completed") and game_state.save_completed.is_connected(_on_save_completed):
+			game_state.save_completed.disconnect(_on_save_completed)
+		if game_state.has_signal("load_started") and game_state.load_started.is_connected(_on_load_started):
+			game_state.load_started.disconnect(_on_load_started)
+		if game_state.has_signal("load_completed") and game_state.load_completed.is_connected(_on_load_completed):
+			game_state.load_completed.disconnect(_on_load_completed)
+
 func _refresh_save_list() -> void:
 	save_list.clear()
 	var saves = save_manager.get_save_list()

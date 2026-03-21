@@ -40,6 +40,16 @@ var status_effects: Dictionary = {}
 # Initialization flag
 var _is_initialized: bool = false
 
+# Index maps for O(1) lookups (built after data load)
+var _enemy_types_index: Dictionary = {}  # enemy_id → enemy dict
+var _mission_templates_index: Dictionary = {}  # template_id → template dict
+var _weapon_index: Dictionary = {}  # weapon_id → weapon dict
+var _armor_index: Dictionary = {}  # armor_id → armor dict
+var _status_effect_index: Dictionary = {}  # effect_id → effect dict
+
+# Reusable JSON parser (avoids creating new JSON instance per file)
+var _json_parser: JSON = JSON.new()
+
 func _init() -> void:
 	# We don't automatically load data on initialization
 	# to allow for more control over when data is loaded
@@ -96,6 +106,10 @@ func load_all_data() -> bool:
 	var critical_data_loaded = loaded_successfully["enemy_types"] and loaded_successfully["weapons_database"] and loaded_successfully["armor_database"]
 	_is_initialized = critical_data_loaded
 	
+	# Build index maps for O(1) lookups
+	if critical_data_loaded:
+		_build_index_maps()
+
 	# Log the initialization status
 	if _is_initialized:
 		if not all_loaded:
@@ -511,24 +525,65 @@ func load_status_effects() -> bool:
 	emit_signal("data_loaded", "status_effects")
 	return true
 
-# Generic JSON file loader
+# Generic JSON file loader (reuses singleton parser to reduce allocations)
 func load_json_file(file_path: String) -> Variant:
 	var file = FileAccess.open(file_path, FileAccess.READ)
 	if file == null:
 		var error = FileAccess.get_open_error()
 		push_error("Failed to open JSON file: " + file_path + " Error: " + str(error))
 		return null
-	
+
 	var json_text = file.get_as_text()
 	file.close()
-	
-	var json = JSON.new()
-	var error = json.parse(json_text)
+
+	var error = _json_parser.parse(json_text)
 	if error != OK:
-		push_error("Failed to parse JSON file: " + file_path + " Error: " + json.get_error_message() + " at line " + str(json.get_error_line()))
+		push_error("Failed to parse JSON file: " + file_path + " Error: " + _json_parser.get_error_message() + " at line " + str(_json_parser.get_error_line()))
 		return null
-	
-	return json.get_data()
+
+	return _json_parser.get_data()
+
+## Build O(1) index maps from loaded data
+func _build_index_maps() -> void:
+	# Enemy types index: flatten categories → id-based lookup
+	_enemy_types_index.clear()
+	for category in enemy_types.get("enemy_categories", []):
+		for enemy in category.get("enemies", []):
+			var eid: String = enemy.get("id", "")
+			if eid != "":
+				_enemy_types_index[eid] = enemy
+
+	# Mission templates index
+	_mission_templates_index.clear()
+	for template in mission_templates:
+		if template is Dictionary:
+			var tid: String = template.get("id", "")
+			if tid != "":
+				_mission_templates_index[tid] = template
+
+	# Weapon index
+	_weapon_index.clear()
+	for weapon in weapons_database.get("weapons", []):
+		if weapon is Dictionary:
+			var wid: String = weapon.get("id", "")
+			if wid != "":
+				_weapon_index[wid] = weapon
+
+	# Armor index
+	_armor_index.clear()
+	for armor_item in armor_database.get("armor", []):
+		if armor_item is Dictionary:
+			var aid: String = armor_item.get("id", "")
+			if aid != "":
+				_armor_index[aid] = armor_item
+
+	# Status effect index
+	_status_effect_index.clear()
+	for effect in status_effects.get("effects", []):
+		if effect is Dictionary:
+			var sid: String = effect.get("id", "")
+			if sid != "":
+				_status_effect_index[sid] = effect
 
 # Helper methods to access data
 
@@ -562,19 +617,11 @@ func get_enemy_type(enemy_id: String) -> Dictionary:
 	if not _is_initialized:
 		push_error("GameDataManager not initialized. Call load_all_data() first.")
 		return {}
-	
-	if not enemy_types.has("enemy_categories"):
-		push_error("Enemy types data is missing 'enemy_categories' key")
-		return {}
-		
-	for category in enemy_types.get("enemy_categories", []):
-		if not category.has("enemies"):
-			continue
-			
-		for enemy in category.get("enemies", []):
-			if enemy.has("id") and enemy.get("id") == enemy_id:
-				return enemy
-	
+
+	# O(1) indexed lookup (index built in _build_index_maps)
+	if _enemy_types_index.has(enemy_id):
+		return _enemy_types_index[enemy_id]
+
 	push_error("Enemy type not found: " + enemy_id)
 	return {}
 
@@ -655,11 +702,11 @@ func get_mission_template(template_id: String) -> Dictionary:
 	if not _is_initialized:
 		push_error("GameDataManager not initialized. Call load_all_data() first.")
 		return {}
-	
-	for mission_template in mission_templates:
-		if mission_template.id == template_id:
-			return mission_template
-	
+
+	# O(1) indexed lookup
+	if _mission_templates_index.has(template_id):
+		return _mission_templates_index[template_id]
+
 	push_error("Mission template not found: " + template_id)
 	return {}
 
@@ -722,31 +769,19 @@ static func is_data_type_loaded(data_type: String) -> bool:
 	return get_instance().is_data_loaded(data_type)
 
 func get_weapon_by_id(weapon_id: String) -> Dictionary:
-	if not weapons_database.has("weapons"):
-		return {}
-	
-	for weapon in weapons_database.weapons:
-		if weapon.id == weapon_id:
-			return weapon
-	
+	# O(1) indexed lookup
+	if _weapon_index.has(weapon_id):
+		return _weapon_index[weapon_id]
 	return {}
 
 func get_armor_by_id(armor_id: String) -> Dictionary:
-	if not armor_database.has("armor"):
-		return {}
-	
-	for armor in armor_database.armor:
-		if armor.id == armor_id:
-			return armor
-	
+	# O(1) indexed lookup
+	if _armor_index.has(armor_id):
+		return _armor_index[armor_id]
 	return {}
 
 func get_status_effect_by_id(effect_id: String) -> Dictionary:
-	if not status_effects.has("effects"):
-		return {}
-	
-	for effect in status_effects.effects:
-		if effect.id == effect_id:
-			return effect
-	
+	# O(1) indexed lookup
+	if _status_effect_index.has(effect_id):
+		return _status_effect_index[effect_id]
 	return {}

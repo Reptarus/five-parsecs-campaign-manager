@@ -21,7 +21,6 @@ config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
-
 GlobalEnums="*res://src/core/systems/GlobalEnums.gd"
 GameDataManager="*res://src/core/managers/GameDataManager.gd"
 DataManager="*res://src/core/data/DataManager.gd"
@@ -33,8 +32,6 @@ SceneRouter="*res://src/ui/screens/SceneRouter.gd"
 PlanetCache="*res://src/core/world/PlanetCache.gd"
 WorldEconomyManager="*res://src/core/world/WorldEconomyManager.gd"
 ResourceSystem="*res://src/core/systems/ResourceSystem.gd"
-zzzCharacterManager="*res://src/core/character/Management/CharacterManager.gd"
-zzzBattleStateMachine="*res://src/core/battle/state/BattleStateMachine.gd"
 KeywordDB="*res://src/autoload/KeywordDB.gd"
 TurnPhaseChecklist="*res://src/qol/TurnPhaseChecklist.gd"
 CampaignJournal="*res://src/core/campaign/CampaignJournal.gd"

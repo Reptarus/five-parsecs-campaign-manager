@@ -798,23 +798,21 @@ func calculate_upkeep() -> Dictionary:
 		"total": 0
 	}
 	
-	# Calculate crew upkeep
+	# Calculate crew upkeep (Core Rules p.76: 1 credit for 4-6 crew, +1 per crew past 6)
+	var econ := FiveParsecsConstants.ECONOMY
 	if "crew" in campaign and campaign.crew:
-		# For each crew member, upkeep is 10 credits
+		var crew_size: int = 0
 		if campaign.crew.has_method("get_members"):
-			var members = campaign.crew.get_members()
-			upkeep.crew = members.size() * 10
+			crew_size = campaign.crew.get_members().size()
 		elif "members" in campaign.crew:
-			upkeep.crew = campaign.crew.members.size() * 10
-	
-	# Calculate equipment upkeep
-	if "equipment" in campaign:
-		upkeep.equipment = round(len(campaign.equipment) * 5)
-	
-	# Calculate ship upkeep if applicable
+			crew_size = campaign.crew.members.size()
+		if crew_size >= econ.upkeep_threshold:
+			upkeep.crew = econ.base_upkeep + max(0, crew_size - econ.upkeep_cap)
+
+	# Ship maintenance
 	if "ship" in campaign and campaign.ship:
-		upkeep.ship = 50
-	
+		upkeep.ship = econ.ship_maintenance_base
+
 	# Calculate total
 	upkeep.total = upkeep.crew + upkeep.equipment + upkeep.ship
 	

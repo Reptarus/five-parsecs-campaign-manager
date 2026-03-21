@@ -15,6 +15,8 @@ const PurchaseItemsComponent = preload("res://src/ui/screens/world/components/Pu
 
 # Bot upgrade system instance
 var _advancement_system: RefCounted = null
+# Cached for _exit_tree() signal cleanup
+var _post_battle_phase: Node = null
 
 signal post_battle_completed(results: Dictionary)
 signal step_completed(step_index: int, results: Dictionary)
@@ -122,6 +124,9 @@ func _connect_backend_signals() -> void:
 		# Error dialog is deferred to when the panel is actually shown via setup_post_battle().
 		return
 
+	# Cache reference for _exit_tree() cleanup
+	_post_battle_phase = post_battle_phase
+
 
 	# Connect all backend signals to UI handlers
 	if post_battle_phase.has_signal("payment_received"):
@@ -172,6 +177,44 @@ func _connect_backend_signals() -> void:
 	if post_battle_phase.has_signal("post_battle_substep_changed"):
 		post_battle_phase.post_battle_substep_changed.connect(_on_backend_substep_changed)
 
+func _exit_tree() -> void:
+	# Disconnect PostBattlePhase signals to prevent memory leaks
+	# (PostBattlePhase is a child of CampaignPhaseManager autoload — persists across scenes)
+	if _post_battle_phase and is_instance_valid(_post_battle_phase):
+		var _pbp := _post_battle_phase
+		if _pbp.has_signal("payment_received") and _pbp.payment_received.is_connected(_on_backend_payment_received):
+			_pbp.payment_received.disconnect(_on_backend_payment_received)
+		if _pbp.has_signal("quest_progress_updated") and _pbp.quest_progress_updated.is_connected(_on_backend_quest_progress):
+			_pbp.quest_progress_updated.disconnect(_on_backend_quest_progress)
+		if _pbp.has_signal("invasion_checked") and _pbp.invasion_checked.is_connected(_on_backend_invasion_checked):
+			_pbp.invasion_checked.disconnect(_on_backend_invasion_checked)
+		if _pbp.has_signal("experience_awarded") and _pbp.experience_awarded.is_connected(_on_backend_experience_awarded):
+			_pbp.experience_awarded.disconnect(_on_backend_experience_awarded)
+		if _pbp.has_signal("campaign_event_occurred") and _pbp.campaign_event_occurred.is_connected(_on_backend_campaign_event):
+			_pbp.campaign_event_occurred.disconnect(_on_backend_campaign_event)
+		if _pbp.has_signal("character_event_occurred") and _pbp.character_event_occurred.is_connected(_on_backend_character_event):
+			_pbp.character_event_occurred.disconnect(_on_backend_character_event)
+		if _pbp.has_signal("galactic_war_updated") and _pbp.galactic_war_updated.is_connected(_on_backend_galactic_war_updated):
+			_pbp.galactic_war_updated.disconnect(_on_backend_galactic_war_updated)
+		if _pbp.has_signal("training_completed") and _pbp.training_completed.is_connected(_on_backend_training_result):
+			_pbp.training_completed.disconnect(_on_backend_training_result)
+		if _pbp.has_signal("precursor_event_choice_available") and _pbp.precursor_event_choice_available.is_connected(_on_backend_precursor_event_choice):
+			_pbp.precursor_event_choice_available.disconnect(_on_backend_precursor_event_choice)
+		if _pbp.has_signal("loot_gathered") and _pbp.loot_gathered.is_connected(_on_backend_loot_generated):
+			_pbp.loot_gathered.disconnect(_on_backend_loot_generated)
+		if _pbp.has_signal("injuries_resolved") and _pbp.injuries_resolved.is_connected(_on_backend_injury_result):
+			_pbp.injuries_resolved.disconnect(_on_backend_injury_result)
+		if _pbp.has_signal("battlefield_finds_completed") and _pbp.battlefield_finds_completed.is_connected(_on_backend_battlefield_finds):
+			_pbp.battlefield_finds_completed.disconnect(_on_backend_battlefield_finds)
+		if _pbp.has_signal("rival_status_resolved") and _pbp.rival_status_resolved.is_connected(_on_backend_rival_status):
+			_pbp.rival_status_resolved.disconnect(_on_backend_rival_status)
+		if _pbp.has_signal("patron_status_resolved") and _pbp.patron_status_resolved.is_connected(_on_backend_patron_status):
+			_pbp.patron_status_resolved.disconnect(_on_backend_patron_status)
+		if _pbp.has_signal("purchases_made") and _pbp.purchases_made.is_connected(_on_backend_purchases_made):
+			_pbp.purchases_made.disconnect(_on_backend_purchases_made)
+		if _pbp.has_signal("post_battle_substep_changed") and _pbp.post_battle_substep_changed.is_connected(_on_backend_substep_changed):
+			_pbp.post_battle_substep_changed.disconnect(_on_backend_substep_changed)
+	_post_battle_phase = null
 
 ## Backend Signal Handlers - Sprint 20.1
 ## These receive data from PostBattlePhase and update UI accordingly

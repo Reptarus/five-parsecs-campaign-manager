@@ -13,40 +13,51 @@ extends Control
 signal tactical_battle_completed(battle_result: BattleResult)
 signal return_to_battle_resolution()
 
-## BattlefieldManager and TerrainTypes preloads removed — terrain via BattlefieldGenerator
+## Keep-as-preload: used externally for enum/static access, always needed
 const BattleTierControllerClass = preload("res://src/core/battle/BattleTierController.gd")
-const TierSelectionPanelClass = preload("res://src/ui/components/battle/TierSelectionPanel.gd")
-const PreBattleChecklistClass = preload("res://src/ui/components/battle/PreBattleChecklist.gd")
-# LOG_ONLY tier component scenes (Sprint 3)
-const BattleJournalScene = preload("res://src/ui/components/battle/BattleJournal.tscn")
-const DiceDashboardScene = preload("res://src/ui/components/battle/DiceDashboard.tscn")
-const CombatCalculatorScene = preload("res://src/ui/components/battle/CombatCalculator.tscn")
-const CharacterStatusCardScene = preload("res://src/ui/components/battle/CharacterStatusCard.tscn")
-const BattleRoundHUDClass = preload("res://src/ui/components/battle/BattleRoundHUD.gd")
-# ASSISTED tier component scenes/scripts (Sprint 4)
-const MoralePanicTrackerScene = preload("res://src/ui/components/battle/MoralePanicTracker.tscn")
-const ActivationTrackerScene = preload("res://src/ui/components/battle/ActivationTrackerPanel.tscn")
-const DeploymentConditionsScene = preload("res://src/ui/components/battle/DeploymentConditionsPanel.tscn")
-const InitiativeCalculatorScene = preload("res://src/ui/components/battle/InitiativeCalculator.tscn")
-const ObjectiveDisplayScene = preload("res://src/ui/components/battle/ObjectiveDisplay.tscn")
-const ReactionDicePanelScene = preload("res://src/ui/components/battle/ReactionDicePanel.tscn")
-const EventResolutionPanelClass = preload("res://src/ui/components/battle/EventResolutionPanel.gd")
-const VictoryProgressPanelClass = preload("res://src/ui/components/battle/VictoryProgressPanel.gd")
-# FULL_ORACLE tier component scenes/scripts (Sprint 5)
-const EnemyIntentPanelClass = preload("res://src/ui/components/battle/EnemyIntentPanel.gd")
-const EnemyGenerationWizardScene = preload("res://src/ui/components/battle/EnemyGenerationWizard.tscn")
-# Always-visible components (Sprint 6)
-const CheatSheetPanelClass = preload("res://src/ui/components/battle/CheatSheetPanel.gd")
-const WeaponTableDisplayScene = preload("res://src/ui/components/battle/WeaponTableDisplay.tscn")
-const CombatSituationPanelScene = preload("res://src/ui/components/battle/CombatSituationPanel.tscn")
-const DualInputRollClass = preload("res://src/ui/components/battle/DualInputRoll.gd")
-const BattlefieldGeneratorClass = preload("res://src/core/battle/BattlefieldGenerator.gd")
-# Compendium DLC preloads
 const EscalatingBattlesManagerRef = preload("res://src/core/managers/EscalatingBattlesManager.gd")
 const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
-const NoMinisCombatPanelClass = preload("res://src/ui/components/battle/NoMinisCombatPanel.gd")
-const StealthMissionPanelClass = preload("res://src/ui/components/battle/StealthMissionPanel.gd")
 const BattleResolverClass = preload("res://src/core/battle/BattleResolver.gd")
+
+## Lazy-load registry: scenes/scripts loaded on first access per tier (Phase 33 optimization)
+const _SCENE_REGISTRY: Dictionary = {
+	# Core (always needed)
+	"tier_selection": "res://src/ui/components/battle/TierSelectionPanel.gd",
+	"pre_battle_checklist": "res://src/ui/components/battle/PreBattleChecklist.gd",
+	"battlefield_generator": "res://src/core/battle/BattlefieldGenerator.gd",
+	"character_status_card": "res://src/ui/components/battle/CharacterStatusCard.tscn",
+	# LOG_ONLY tier
+	"battle_journal": "res://src/ui/components/battle/BattleJournal.tscn",
+	"dice_dashboard": "res://src/ui/components/battle/DiceDashboard.tscn",
+	"combat_calculator": "res://src/ui/components/battle/CombatCalculator.tscn",
+	"battle_round_hud": "res://src/ui/components/battle/BattleRoundHUD.gd",
+	"cheat_sheet": "res://src/ui/components/battle/CheatSheetPanel.gd",
+	"weapon_table": "res://src/ui/components/battle/WeaponTableDisplay.tscn",
+	"combat_situation": "res://src/ui/components/battle/CombatSituationPanel.tscn",
+	"dual_input_roll": "res://src/ui/components/battle/DualInputRoll.gd",
+	# ASSISTED tier
+	"morale_tracker": "res://src/ui/components/battle/MoralePanicTracker.tscn",
+	"reaction_dice": "res://src/ui/components/battle/ReactionDicePanel.tscn",
+	"activation_tracker": "res://src/ui/components/battle/ActivationTrackerPanel.tscn",
+	"deployment_conditions": "res://src/ui/components/battle/DeploymentConditionsPanel.tscn",
+	"objective_display": "res://src/ui/components/battle/ObjectiveDisplay.tscn",
+	"initiative_calculator": "res://src/ui/components/battle/InitiativeCalculator.tscn",
+	"event_resolution": "res://src/ui/components/battle/EventResolutionPanel.gd",
+	"victory_progress": "res://src/ui/components/battle/VictoryProgressPanel.gd",
+	# FULL_ORACLE tier
+	"enemy_intent": "res://src/ui/components/battle/EnemyIntentPanel.gd",
+	"enemy_generation": "res://src/ui/components/battle/EnemyGenerationWizard.tscn",
+	# Compendium DLC
+	"no_minis_combat": "res://src/ui/components/battle/NoMinisCombatPanel.gd",
+	"stealth_mission": "res://src/ui/components/battle/StealthMissionPanel.gd",
+}
+var _scene_cache: Dictionary = {}
+
+## Lazy-load a scene/script from the registry (loads on first access, cached)
+func _get_res(key: String) -> Resource:
+	if key not in _scene_cache:
+		_scene_cache[key] = load(_SCENE_REGISTRY[key])
+	return _scene_cache[key]
 # GlobalEnums available as autoload singleton
 
 # UI Nodes — progressive disclosure layout
@@ -390,14 +401,14 @@ func _update_breadcrumb(stage: int) -> void:
 func _instance_log_only_components() -> void:
 	## Instance and add LOG_ONLY tier components to zones
 	# BattleJournal → Center / "Battle Log" tab
-	battle_journal = BattleJournalScene.instantiate()
+	battle_journal = _get_res("battle_journal").instantiate()
 	battle_journal.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	battle_journal.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	if phase_content:
 		phase_content.add_child(battle_journal)
 
 	# DiceDashboard → Right / "Tools" tab
-	dice_dashboard = DiceDashboardScene.instantiate()
+	dice_dashboard = _get_res("dice_dashboard").instantiate()
 	dice_dashboard.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if dice_manager:
 		dice_dashboard.set_dice_system(dice_manager)
@@ -405,39 +416,39 @@ func _instance_log_only_components() -> void:
 		tools_content.add_child(dice_dashboard)
 
 	# CombatCalculator → Right / "Tools" tab
-	combat_calculator = CombatCalculatorScene.instantiate()
+	combat_calculator = _get_res("combat_calculator").instantiate()
 	combat_calculator.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if tools_content:
 		tools_content.add_child(combat_calculator)
 
 	# BattleRoundHUD → Bottom bar (before action buttons)
-	battle_round_hud = BattleRoundHUDClass.new()
+	battle_round_hud = _get_res("battle_round_hud").new()
 	battle_round_hud.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if action_buttons and action_buttons.get_parent():
 		action_buttons.get_parent().add_child(battle_round_hud)
 		action_buttons.get_parent().move_child(battle_round_hud, 0)
 
 	# CombatSituationPanel → Right / "Tools" tab
-	combat_situation_panel = CombatSituationPanelScene.instantiate()
+	combat_situation_panel = _get_res("combat_situation").instantiate()
 	combat_situation_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if tools_content:
 		tools_content.add_child(combat_situation_panel)
 
 	# DualInputRoll → Right / "Tools" tab (standalone quick roller)
-	dual_input_roll = DualInputRollClass.new()
+	dual_input_roll = _get_res("dual_input_roll").new()
 	dual_input_roll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if tools_content:
 		tools_content.add_child(dual_input_roll)
 
 	# CheatSheetPanel → Right / "Reference" tab
-	cheat_sheet_panel = CheatSheetPanelClass.new()
+	cheat_sheet_panel = _get_res("cheat_sheet").new()
 	cheat_sheet_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	cheat_sheet_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	if reference_content:
 		reference_content.add_child(cheat_sheet_panel)
 
 	# WeaponTableDisplay → Right / "Reference" tab
-	weapon_table_display = WeaponTableDisplayScene.instantiate()
+	weapon_table_display = _get_res("weapon_table").instantiate()
 	weapon_table_display.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	weapon_table_display.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	if reference_content:
@@ -568,47 +579,47 @@ func _on_quick_dice_pressed(count: int, sides: int, label: String) -> void:
 func _instance_assisted_components() -> void:
 	## Instance ASSISTED tier components into their zones
 	# MoralePanicTracker → Center / "Tracking" tab
-	morale_tracker = MoralePanicTrackerScene.instantiate()
+	morale_tracker = _get_res("morale_tracker").instantiate()
 	morale_tracker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if phase_content:
 		phase_content.add_child(morale_tracker)
 
 	# VictoryProgressPanel → Center / "Tracking" tab
-	victory_progress = VictoryProgressPanelClass.new()
+	victory_progress = _get_res("victory_progress").new()
 	victory_progress.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if phase_content:
 		phase_content.add_child(victory_progress)
 
 	# ReactionDicePanel → Center / "Tracking" tab
-	reaction_dice_panel = ReactionDicePanelScene.instantiate()
+	reaction_dice_panel = _get_res("reaction_dice").instantiate()
 	reaction_dice_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if phase_content:
 		phase_content.add_child(reaction_dice_panel)
 
 	# ActivationTrackerPanel → Left / "Units" tab
-	activation_tracker = ActivationTrackerScene.instantiate()
+	activation_tracker = _get_res("activation_tracker").instantiate()
 	activation_tracker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	activation_tracker.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	if phase_content:
 		phase_content.add_child(activation_tracker)
 
 	# DeploymentConditionsPanel → Center / "Events" tab
-	deployment_conditions = DeploymentConditionsScene.instantiate()
+	deployment_conditions = _get_res("deployment_conditions").instantiate()
 	deployment_conditions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if phase_content:
 		phase_content.add_child(deployment_conditions)
 
 	# ObjectiveDisplay → Center / "Events" tab
-	objective_display = ObjectiveDisplayScene.instantiate()
+	objective_display = _get_res("objective_display").instantiate()
 	objective_display.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if phase_content:
 		phase_content.add_child(objective_display)
 
 	# InitiativeCalculator → stored for overlay popup
-	initiative_calculator = InitiativeCalculatorScene.instantiate()
+	initiative_calculator = _get_res("initiative_calculator").instantiate()
 
 	# EventResolutionPanel → stored for overlay popup
-	event_resolution = EventResolutionPanelClass.new()
+	event_resolution = _get_res("event_resolution").new()
 
 	# Connect ASSISTED component signals
 	_connect_assisted_signals()
@@ -616,14 +627,14 @@ func _instance_assisted_components() -> void:
 func _instance_oracle_components() -> void:
 	## Instance FULL_ORACLE tier components into their zones
 	# EnemyIntentPanel → Left / "Enemies" tab
-	enemy_intent_panel = EnemyIntentPanelClass.new()
+	enemy_intent_panel = _get_res("enemy_intent").new()
 	enemy_intent_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	enemy_intent_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	if phase_content:
 		phase_content.add_child(enemy_intent_panel)
 
 	# EnemyGenerationWizard → Left / "Enemies" tab
-	enemy_generation_wizard = EnemyGenerationWizardScene.instantiate()
+	enemy_generation_wizard = _get_res("enemy_generation").instantiate()
 	enemy_generation_wizard.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if phase_content:
 		phase_content.add_child(enemy_generation_wizard)
@@ -818,7 +829,7 @@ func _hide_overlay() -> void:
 func _show_tier_selection() -> void:
 	## Show the tier selection overlay so the player picks their tracking level
 	_apply_stage_visibility(BattleStage.TIER_SELECT)
-	var panel := TierSelectionPanelClass.new()
+	var panel: Control = _get_res("tier_selection").new()
 	panel.tier_selected.connect(_on_tier_selected)
 	_show_overlay(panel)
 
@@ -843,7 +854,7 @@ func _embed_checklist_in_setup_tab(tier: int) -> void:
 		child.queue_free()
 
 	# Create checklist and add to Setup tab
-	var checklist := PreBattleChecklistClass.new()
+	var checklist: Control = _get_res("pre_battle_checklist").new()
 	checklist.checklist_completed.connect(_on_checklist_completed)
 	setup_content.add_child(checklist)
 	# Set tier AFTER adding to tree so _ready() has built the UI
@@ -982,6 +993,20 @@ func _disconnect_round_tracker_signals() -> void:
 		round_tracker.battle_ended.disconnect(_on_tracker_battle_ended)
 
 	_round_tracker_connected = false
+
+func _exit_tree() -> void:
+	# Disconnect round tracker signals (autoload-child, persists across scenes)
+	_disconnect_round_tracker_signals()
+	# Disconnect FiveParsecsCombatSystem autoload signals
+	var combat_system = get_node_or_null("/root/FiveParsecsCombatSystem")
+	if combat_system:
+		if combat_system.has_signal("reaction_dice_rolled") and combat_system.reaction_dice_rolled.is_connected(_on_reaction_dice_rolled):
+			combat_system.reaction_dice_rolled.disconnect(_on_reaction_dice_rolled)
+		if combat_system.has_signal("reaction_dice_assigned") and combat_system.reaction_dice_assigned.is_connected(_on_reaction_dice_assigned):
+			combat_system.reaction_dice_assigned.disconnect(_on_reaction_dice_assigned)
+	# Note: Lambda connections to local child components (battle_journal, morale_tracker,
+	# enemy_intent_panel, etc.) are automatically cleaned up when children are freed
+	# with this parent Control node. No explicit disconnect needed.
 
 ## BattleRoundTracker Signal Handlers
 
@@ -1254,7 +1279,7 @@ func _create_character_cards(crew_members: Array) -> void:
 		return
 
 	for crew_member in crew_members:
-		var card: PanelContainer = CharacterStatusCardScene.instantiate()
+		var card: PanelContainer = _get_res("character_status_card").instantiate()
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		crew_content.add_child(card)
 
@@ -1684,7 +1709,7 @@ func _populate_setup_tab(mission_data) -> void:
 
 	# Initialize battlefield generator
 	if not _battlefield_generator:
-		_battlefield_generator = BattlefieldGeneratorClass.new()
+		_battlefield_generator = _get_res("battlefield_generator").new()
 
 	# Read battlefield data from GameState
 	var game_state = get_node_or_null("/root/GameState")
@@ -2041,7 +2066,7 @@ func _setup_no_minis_panel(crew_size: int, enemy_count: int) -> void:
 	if not dlc_mgr.is_feature_enabled(dlc_mgr.ContentFlag.NO_MINIS_COMBAT):
 		return
 
-	no_minis_combat_panel = NoMinisCombatPanelClass.new()
+	no_minis_combat_panel = _get_res("no_minis_combat").new()
 	no_minis_combat_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	no_minis_combat_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
@@ -2076,7 +2101,7 @@ func _setup_no_minis_panel(crew_size: int, enemy_count: int) -> void:
 
 func _setup_stealth_panel(mission_dict: Dictionary) -> void:
 	## Create and wire Stealth Mission panel for stealth mission type
-	stealth_mission_panel = StealthMissionPanelClass.new()
+	stealth_mission_panel = _get_res("stealth_mission").new()
 	stealth_mission_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	stealth_mission_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 

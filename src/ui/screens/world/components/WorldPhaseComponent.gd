@@ -1,110 +1,123 @@
-@tool
 extends Control
 class_name WorldPhaseComponent
 
-## Base class for WorldPhaseUI component extraction
-## Provides common functionality and signal forwarding for extracted components
+## Base class for World Phase UI components.
+## Provides event bus integration with auto-cleanup, lifecycle hooks,
+## and shared utilities. All 9 world phase components extend this.
+##
+## Phase 33 Sprint 9: Redesigned from unused 111-line stub to actively
+## inherited base with event bus auto-subscription pattern.
 
-# Signals forwarded to parent WorldPhaseUI
+# Signals for parent integration
 signal component_ready(component_name: String)
 signal component_error(component_name: String, error_message: String)
-signal component_state_changed(component_name: String, new_state: Dictionary)
 
-# Common references that all components need
-var world_phase: Resource = null
-var data_manager: Node = null
-var parent_ui: Control = null
+# Design system constants shared by all world phase components
+const TOUCH_TARGET_MIN := 48  # Minimum interactive element height (8px grid, Sprint 26.4)
+
+# Event bus integration
+const CampaignTurnEventBus = preload("res://src/core/events/CampaignTurnEventBus.gd")
+var event_bus: CampaignTurnEventBus = null
+var _event_subscriptions: Array[Dictionary] = []
+
+# Component identity
 var component_name: String = ""
-var is_initialized: bool = false
 
-# Feature flag support
+# Feature flag
 var feature_enabled: bool = true
 
-func _init(p_component_name: String = "UnknownComponent"):
-	component_name = p_component_name
-	name = component_name
-
 func _ready() -> void:
+	if component_name.is_empty():
+		component_name = name
 	if not feature_enabled:
 		hide()
 		return
-	
-	_initialize_component()
+	_initialize_event_bus()
+	_connect_ui_signals()
+	_setup_initial_state()
 
-func _initialize_component() -> void:
-	## Override in derived classes for component-specific initialization
-	if _validate_dependencies():
-		_setup_component_ui()
-		_connect_component_signals()
-		is_initialized = true
-		component_ready.emit(component_name)
-	else:
-		component_error.emit(component_name, "Failed to validate dependencies")
+func _initialize_event_bus() -> void:
+	## Resolve event bus autoload and call virtual _subscribe_to_events().
+	event_bus = get_node_or_null("/root/CampaignTurnEventBus")
+	_subscribe_to_events()
 
-func _validate_dependencies() -> bool:
-	## Override to validate component-specific dependencies
-	return parent_ui != null
-
-func _setup_component_ui() -> void:
-	## Override to create component-specific UI
+func _subscribe_to_events() -> void:
+	## Override: subscribe to specific event bus events using _subscribe().
 	pass
 
-func _connect_component_signals() -> void:
-	## Override to connect component-specific signals
+func _subscribe(event_type: CampaignTurnEventBus.TurnEvent, handler: Callable) -> void:
+	## Subscribe to an event with automatic cleanup in _exit_tree().
+	if event_bus:
+		event_bus.subscribe_to_event(event_type, handler)
+		_event_subscriptions.append({"event": event_type, "handler": handler})
+
+func _exit_tree() -> void:
+	## Auto-cleanup all event bus subscriptions.
+	if event_bus:
+		for sub in _event_subscriptions:
+			event_bus.unsubscribe_from_event(sub.event, sub.handler)
+	_event_subscriptions.clear()
+
+func _connect_ui_signals() -> void:
+	## Override: connect component-specific UI signals.
 	pass
 
-func set_world_phase_data(phase_data: Resource) -> void:
-	## Set world phase data reference
-	world_phase = phase_data
-	if is_initialized:
-		_on_world_phase_data_changed()
-
-func _on_world_phase_data_changed() -> void:
-	## Override to handle world phase data changes
+func _setup_initial_state() -> void:
+	## Override: initialize component state for first use.
 	pass
 
-func set_parent_ui(ui: Control) -> void:
-	## Set parent WorldPhaseUI reference
-	parent_ui = ui
+# --- Public API (override in subclasses) ---
 
-func set_data_manager(manager: Node) -> void:
-	## Set data manager reference
-	data_manager = manager
+func is_phase_completed() -> bool:
+	## Override: return whether this component's phase work is done.
+	return false
 
-func enable_feature(enabled: bool) -> void:
-	## Enable or disable this component based on feature flag
-	feature_enabled = enabled
-	visible = enabled
-	
-	if enabled and not is_initialized:
-		_initialize_component()
+func get_step_results() -> Dictionary:
+	## Override: return standardized results dict.
+	return {"component_name": component_name}
 
-func get_component_state() -> Dictionary:
-	## Override to return component state for debugging/monitoring
-	return {
-		"component_name": component_name,
-		"is_initialized": is_initialized,
-		"feature_enabled": feature_enabled,
-		"visible": visible
-	}
+func reset_phase() -> void:
+	## Override: reset state for new campaign turn.
+	pass
 
-# Error handling utilities
-func _handle_error(error_message: String, should_hide: bool = false) -> void:
-	## Standard error handling for components
+# --- Event handler stubs ---
+
+func _on_phase_started(_data: Dictionary) -> void:
+	## Override: react to phase started events.
+	pass
+
+func _on_automation_toggled(_data: Dictionary) -> void:
+	## Override: react to automation toggle.
+	pass
+
+# --- Shared utilities ---
+
+func _handle_error(error_message: String) -> void:
 	push_error("%s Error: %s" % [component_name, error_message])
 	component_error.emit(component_name, error_message)
-	
-	if should_hide:
-		hide()
 
-func _log_info(message: String) -> void:
-	## Standard logging for component operations
-	pass
+func _publish_phase_completed(phase_name: String, extra_data: Dictionary = {}) -> void:
+	if event_bus:
+		var data: Dictionary = {"phase_name": phase_name}
+		data.merge(extra_data)
+		event_bus.publish_event(CampaignTurnEventBus.TurnEvent.PHASE_COMPLETED, data)
 
-# Signal forwarding utilities
-func _forward_signal(signal_name: String, args: Array = []) -> void:
-	## Forward signals to parent UI when needed
-	if parent_ui and parent_ui.has_signal(signal_name):
-		parent_ui.emit_signal(signal_name, args)
-	else:
-		_log_info("Cannot forward signal %s - parent UI not available or signal doesn't exist" % signal_name)
+var _help_dialog: AcceptDialog = null
+
+func _show_help_dialog(title: String, content: String) -> void:
+	if not _help_dialog:
+		_help_dialog = AcceptDialog.new()
+		_help_dialog.dialog_hide_on_ok = true
+		add_child(_help_dialog)
+	_help_dialog.title = title
+	var existing := _help_dialog.get_node_or_null("HelpContent")
+	if existing:
+		existing.queue_free()
+	var rtl := RichTextLabel.new()
+	rtl.name = "HelpContent"
+	rtl.bbcode_enabled = true
+	rtl.fit_content = true
+	rtl.custom_minimum_size = Vector2(400, 200)
+	rtl.text = content
+	_help_dialog.add_child(rtl)
+	_help_dialog.popup_centered()

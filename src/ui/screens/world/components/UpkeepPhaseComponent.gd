@@ -1,4 +1,4 @@
-extends Control
+extends WorldPhaseComponent
 class_name UpkeepPhaseComponent
 
 ## Upkeep Phase Component - Single Responsibility
@@ -6,10 +6,6 @@ class_name UpkeepPhaseComponent
 ## Implements Core Rules p.76 - Ship maintenance and crew upkeep calculations
 
 const RulesHelpText = preload("res://src/data/rules_help_text.gd")
-
-# Event bus integration
-const CampaignTurnEventBus = preload("res://src/core/events/CampaignTurnEventBus.gd")
-var event_bus: CampaignTurnEventBus = null
 
 # Five Parsecs dependencies
 const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
@@ -25,14 +21,7 @@ const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResour
 @onready var progress_bar: ProgressBar = %UpkeepProgressBar
 @onready var help_button: Button = %HelpButton
 
-# Design System Colors
-const COLOR_AMBER := Color("#f59e0b")
-const COLOR_EMERALD := Color("#10b981")
-const COLOR_RED := Color("#ef4444")
-const COLOR_TEXT_SECONDARY := Color("#9ca3af")
-
-# Help dialog reference
-var _help_dialog: AcceptDialog = null
+# Design System Colors — use UIColors singleton (no local duplicates)
 
 # Upkeep calculation state
 var current_upkeep_data: Dictionary = {}
@@ -48,30 +37,11 @@ const DAMAGED_SHIP_MULTIPLIER: float = 2.0  # Double cost if ship damaged
 
 func _ready() -> void:
 	name = "UpkeepPhaseComponent"
-	
-	_initialize_event_bus()
-	_connect_ui_signals()
-	_setup_initial_state()
+	super._ready()
 
-func _initialize_event_bus() -> void:
-	## Connect to the centralized event bus
-
-	# Access the globally registered CampaignTurnEventBus singleton (autoload)
-	event_bus = get_node("/root/CampaignTurnEventBus")
-
-	# Validate event_bus type (for editor and runtime safety)
-	assert(event_bus is CampaignTurnEventBus, "UpkeepPhaseComponent: Event bus is not of type CampaignTurnEventBus")
-
-	# Subscribe to relevant events
-	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
-	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.AUTOMATION_TOGGLED, _on_automation_toggled)
-
-
-func _exit_tree() -> void:
-	## Cleanup event bus subscriptions to prevent memory leaks
-	if event_bus:
-		event_bus.unsubscribe_from_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
-		event_bus.unsubscribe_from_event(CampaignTurnEventBus.TurnEvent.AUTOMATION_TOGGLED, _on_automation_toggled)
+func _subscribe_to_events() -> void:
+	_subscribe(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
+	_subscribe(CampaignTurnEventBus.TurnEvent.AUTOMATION_TOGGLED, _on_automation_toggled)
 
 func _connect_ui_signals() -> void:
 	## Connect UI button signals
@@ -221,31 +191,6 @@ func _on_help_button_pressed() -> void:
 	## Show upkeep rules help dialog
 	_show_help_dialog("Upkeep Phase", RulesHelpText.get_tooltip("upkeep_phase"))
 
-func _show_help_dialog(title: String, content: String) -> void:
-	## Show a help dialog with rules text
-	if not _help_dialog:
-		_help_dialog = AcceptDialog.new()
-		_help_dialog.dialog_hide_on_ok = true
-		add_child(_help_dialog)
-	
-	_help_dialog.title = title
-	
-	# Create or update content
-	var existing_content := _help_dialog.get_node_or_null("HelpContent")
-	if existing_content:
-		existing_content.queue_free()
-	
-	var rich_text := RichTextLabel.new()
-	rich_text.name = "HelpContent"
-	rich_text.bbcode_enabled = true
-	rich_text.fit_content = true
-	rich_text.custom_minimum_size = Vector2(400, 200)
-	rich_text.text = content
-	rich_text.add_theme_color_override("default_color", Color("#f3f4f6"))
-	_help_dialog.add_child(rich_text)
-	
-	_help_dialog.popup_centered()
-
 ## UI Event Handlers
 func _on_auto_calculate_pressed() -> void:
 	## Handle auto-calculate upkeep button press
@@ -311,7 +256,7 @@ func _update_ui_display() -> void:
 		credits_display.text = credit_text
 		# Color based on affordability
 		var can_afford: bool = current_upkeep_data.get("can_afford", true)
-		credits_display.add_theme_color_override("font_color", COLOR_EMERALD if can_afford else COLOR_RED)
+		credits_display.add_theme_color_override("font_color", UIColors.COLOR_EMERALD if can_afford else UIColors.COLOR_RED)
 
 	if not current_upkeep_data.is_empty():
 		if crew_upkeep_label:
@@ -325,7 +270,7 @@ func _update_ui_display() -> void:
 			var status := " ✓" if upkeep_completed else ""
 			total_cost_label.text = "%d credits%s" % [total_cost, status]
 			# Color: amber normally, green if paid, red if can't afford
-			var color := COLOR_EMERALD if upkeep_completed else (COLOR_AMBER if current_upkeep_data.get("can_afford", true) else COLOR_RED)
+			var color := UIColors.COLOR_EMERALD if upkeep_completed else (UIColors.COLOR_AMBER if current_upkeep_data.get("can_afford", true) else UIColors.COLOR_RED)
 			total_cost_label.add_theme_color_override("font_color", color)
 
 ## Event Bus Handlers

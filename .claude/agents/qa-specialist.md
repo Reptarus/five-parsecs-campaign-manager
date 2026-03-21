@@ -58,6 +58,8 @@ You have a detailed reference skill at `.claude/skills/qa-specialist/` with test
 | `references/mcp-testing-guide.md` | Automated UI testing recipes using MCP tools, known limitations |
 | `references/data-consistency.md` | Save/load schema, character validation, enum sync, cross-mode safety |
 | `references/gdunit4-patterns.md` | Test writing templates, lifecycle, assertions, factories, signal patterns |
+| `references/bug-notes.md` | Known bugs (fixed/open), regression triggers, patterns to watch |
+| `references/cross-system-verification.md` | Autoload signal contracts, dual-sync verification, cross-mode isolation, enum sync |
 
 ## Project Context
 

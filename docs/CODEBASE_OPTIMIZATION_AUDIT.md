@@ -24,7 +24,7 @@ The project has reached 100% game mechanics compliance (170/170) and demo-ready 
 6. [HIGH: Magic Numbers / Hardcoded Costs](#6-high-magic-numbers--hardcoded-costs)
 7. [HIGH: Save/Load Robustness Gaps](#7-high-saveload-robustness-gaps)
 8. [MEDIUM: Dictionary Memory Waste](#8-medium-dictionary-memory-waste)
-9. [MEDIUM: String Concatenation GC Pressure](#9-medium-string-concatenation-gc-pressure)
+9. [MEDIUM: String Concatenation Copy-on-Write Overhead](#9-medium-string-concatenation-copy-on-write-overhead)
 10. [MEDIUM: Dead Code / Unused Classes](#10-medium-dead-code--unused-classes)
 11. [MEDIUM: Type Safety Gaps](#11-medium-type-safety-gaps)
 12. [LOW: _process() Usage Review](#12-low-_process-usage-review)
@@ -53,13 +53,15 @@ The project has reached 100% game mechanics compliance (170/170) and demo-ready 
 ### Verified Metrics
 | Metric | Count |
 |--------|-------|
-| `.connect()` calls in `src/` | **1,280** across 284 files |
+| `.connect()` calls in `src/` | **1,232** across 272 files |
 | `.disconnect()` calls in `src/` | **113** across 37 files |
 | `_exit_tree()` implementations | **26** across 26 files |
-| **Leak ratio** | **11.3:1** (connects to disconnects) |
+| **Leak ratio** | **10.9:1** (connects to disconnects) |
 
 ### Root Cause
 UI panels and components connect to long-lived autoload signals (GameState, CampaignPhaseManager, etc.) in `_ready()` but never disconnect in `_exit_tree()`. When scenes are freed, the autoload retains references to dead callables.
+
+**Nuance (verified 2026-03-20)**: GDScript auto-cleans simple `signal.connect(method)` bindings when the receiving node is freed via `queue_free()`. The real leak risk is with **lambda/closure connections** (which capture references preventing cleanup), **reference cycles through autoloads**, and **C# delegates**. Manual `_exit_tree()` disconnection is still best practice for defensive safety, especially given this project's mix of simple and lambda-based connections.
 
 ### Worst Offenders (by connect count)
 | File | Connects | Disconnects |
@@ -191,10 +193,10 @@ func get_enemy_type(enemy_id: String) -> Dictionary:
 ## 4. HIGH: Excessive Unconditional Preloading
 
 ### Root Cause
-`src/ui/screens/battle/TacticalBattleUI.gd` has **33 unconditional `preload()` statements** (lines 17-49). Every battle loads all 33 scenes regardless of battle mode (standard, bug_hunt, stealth, escalating).
+`src/ui/screens/battle/TacticalBattleUI.gd` has **28 unconditional `preload()` statements** (lines 17-49). Every battle loads all 28 scenes regardless of battle mode (standard, bug_hunt, stealth, escalating).
 
 ### Estimated Waste
-- 33 scenes x ~350KB avg = **~11.6MB loaded**
+- 28 scenes x ~350KB avg = **~9.8MB loaded**
 - Per battle: only 8-14 scenes actually used -> **45-75% wasted**
 
 ### Context7 Validation
@@ -225,7 +227,7 @@ func _get_scene(key: String) -> Resource:
 ## 5. HIGH: Serialization Bug in FiveParsecsCampaignCore
 
 ### Root Cause
-`src/game/campaign/FiveParsecsCampaignCore.gd`, line 303 -- `from_dictionary()` assigns the **entire campaign data dict** to `_pending_qol_data` instead of extracting just the QoL sub-dict:
+`src/game/campaign/FiveParsecsCampaignCore.gd`, line 354 -- `from_dictionary()` assigns the **entire campaign data dict** to `_pending_qol_data` instead of extracting just the QoL sub-dict:
 
 ```gdscript
 # BUG: Assigns entire dict
@@ -238,10 +240,10 @@ if data.has("qol_data"):
 ```
 
 ### Impact
-QoL data deferred loading via `apply_pending_qol_data()` receives the full campaign state instead of QoL-specific data, causing potential silent corruption of CampaignJournal, NPCTracker, and TurnPhaseChecklist state.
+QoL data deferred loading via `apply_pending_qol_data()` receives the full campaign state instead of QoL-specific data. Consumers (CampaignJournal, TurnPhaseChecklist) navigate via `save_data["qol_data"]["journal"]` etc., so they find the correct data — but carry ~15 unnecessary top-level keys in memory. NPCTracker correctly extracts via `.get("qol_data", {}).get("npc_tracker", {})`.
 
 ### Severity
-**HIGH** -- data corruption risk during campaign load. Needs verification: does `apply_pending_qol_data()` filter keys internally (mitigating the bug) or does it blindly consume the dict?
+**MEDIUM** (downgraded from HIGH) -- memory bloat rather than data corruption. Consumers navigate correctly through the `"qol_data"` key, but unnecessary deep-copy of the full campaign dict wastes memory. **FIXED 2026-03-20**: Now stores `{"qol_data": data.get("qol_data", {}).duplicate(true)}` — preserving consumer interface while eliminating bloat.
 
 ---
 
@@ -319,21 +321,30 @@ func serialize() -> Dictionary:
 
 ---
 
-## 9. MEDIUM: String Concatenation GC Pressure
+## 9. MEDIUM: String Concatenation Copy-on-Write Overhead
 
 ### Root Cause
-56 occurrences of `+=` string concatenation in UI code, creating intermediate String objects that become garbage.
+56 occurrences of `+=` string concatenation in UI code. For **loop-built strings**, each `+=` triggers `CowData::_copy_on_write()` which copies the entire string — O(n^2) behavior for growing strings (see Godot issue #90203). GDScript uses reference counting, not tracing GC, so the concern is memcpy overhead rather than GC pressure.
 
-### Recommended Fix (Context7 validated)
-Use format strings or `"\n".join()`:
+**Note (verified 2026-03-20)**: For one-off string building (UI labels, log entries), `+` concatenation is actually **faster** than the `%` format operator. The `%` operator is recommended for **readability**, not performance. The real problem is repeated `+=` in loops.
+
+### Recommended Fix (Verified 2026-03-20)
+
+Use `PackedStringArray` and `.join()` for loop-built strings; `%` for readability:
 ```gdscript
-# Before (3 intermediate allocations):
+# Before (O(n^2) copy-on-write in loops):
 var desc = ""
-desc += "Name: " + character.name
-desc += ", Level: " + str(character.level)
+for item in items:
+    desc += item.name + "\n"
 
-# After (1 allocation):
-var desc = "Name: %s, Level: %d" % [character.name, character.level]
+# After (O(n) with join):
+var parts: PackedStringArray = []
+for item in items:
+    parts.append(item.name)
+var desc = "\n".join(parts)
+
+# For one-off formatting (readability, not performance):
+var label = "Name: %s, Level: %d" % [character.name, character.level]
 ```
 
 ---
@@ -461,9 +472,9 @@ After each sprint:
 | 19 | `src/ui/screens/campaign/panels/FinalPanel.gd` | **1,273** | Final review UI |
 | 20 | `src/core/systems/GlobalEnums.gd` | **1,225** | Global enums |
 
-### PostBattlePhase.gd -- Extreme God Object (4,204 lines)
+### PostBattlePhase.gd -- Extreme God Object (4,240 lines)
 
-**64 functions** across **25+ responsibility domains**:
+**84 functions** across **25+ responsibility domains**:
 
 | Domain | Functions | LOC Est. | Extractable? |
 |--------|-----------|----------|-------------|
@@ -675,8 +686,9 @@ MEDIUM -- enum ordinal values must be preserved exactly. Any reordering breaks s
 
 ## 20. MEDIUM: Autoload Consolidation
 
-### Current State: 22+ Autoloads
-Every autoload adds to startup time and global namespace. Some may be candidates for merging.
+### Current State: 29 Autoloads (26 active + 2 disabled + 1 addon)
+
+Consolidation benefits are **architectural** (reduced global namespace, simpler initialization order), not performance-based. Verified 2026-03-20: no evidence that autoload count itself impacts startup time — the cost is what each autoload does in `_ready()`, not the count.
 
 ### Consolidation Candidates
 

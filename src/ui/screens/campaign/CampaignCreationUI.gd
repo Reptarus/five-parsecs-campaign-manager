@@ -45,6 +45,16 @@ func _ready() -> void:
 	# UX-060/UX-070 FIX: Style navigation buttons with Deep Space theme
 	_style_navigation_buttons()
 
+func _exit_tree() -> void:
+	# Disconnect coordinator signals (defensive cleanup)
+	if coordinator and is_instance_valid(coordinator):
+		if coordinator.navigation_updated.is_connected(_on_navigation_updated):
+			coordinator.navigation_updated.disconnect(_on_navigation_updated)
+		if coordinator.step_changed.is_connected(_on_step_changed):
+			coordinator.step_changed.disconnect(_on_step_changed)
+	# Note: Lambda panel-to-coordinator connections are cleaned up automatically
+	# because both panels and coordinator are children of this Control.
+
 func _connect_coordinator_signals() -> void:
 	coordinator.navigation_updated.connect(_on_navigation_updated)
 	coordinator.step_changed.connect(_on_step_changed)

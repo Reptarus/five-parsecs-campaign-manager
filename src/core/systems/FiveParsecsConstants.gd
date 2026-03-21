@@ -75,14 +75,22 @@ const CAMPAIGN_TURNS = {
 	"story_quest_minimum": 3 # Minimum story quests for victory
 }
 
-# Economic System Constants
+# Economic System Constants (Core Rules p.76 upkeep, p.64 travel)
 const ECONOMY = {
 	"starting_debt": 75, # Standard starting ship debt
-	"upkeep_threshold": 4, # Crew size threshold for upkeep
-	"base_upkeep": 1, # Base upkeep cost per turn
-	"additional_crew_cost": 1, # Cost per crew member over threshold
+	"upkeep_threshold": 4, # Crew size at which upkeep starts (p.76)
+	"upkeep_cap": 6, # Crew size above which extra upkeep cost applies (p.76)
+	"base_upkeep": 1, # Base upkeep cost: 1 credit for 4-6 crew (p.76)
+	"additional_crew_cost": 1, # Cost per crew member over upkeep_cap (p.76)
+	"ship_maintenance_base": 1, # Base ship maintenance cost per turn
+	"injury_treatment_cost": 2, # Cost per injured crew member in sick bay
+	"luxury_upkeep_modifier": 2, # Multiplier for luxury living standard
+	"hull_repair_cost_per_point": 3, # Credits per hull point to repair
 	"trade_profit_multiplier": 10, # Base trade profit calculation
-	"equipment_degradation": 0.1 # Equipment wear rate per battle
+	"equipment_degradation": 0.1, # Equipment wear rate per battle
+	# Travel costs (p.64)
+	"starship_travel": 5, # Cost to travel via own starship
+	"commercial_passage_per_crew": 1, # Cost per crew member for commercial passage
 }
 
 # Combat System Constants

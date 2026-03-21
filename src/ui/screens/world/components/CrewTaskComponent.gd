@@ -1,4 +1,4 @@
-extends Control
+extends WorldPhaseComponent
 class_name CrewTaskComponent
 
 ## Crew Task Component - Single Responsibility
@@ -7,16 +7,12 @@ class_name CrewTaskComponent
 
 const RulesHelpText = preload("res://src/data/rules_help_text.gd")
 
-# Event bus integration
-const CampaignTurnEventBus = preload("res://src/core/events/CampaignTurnEventBus.gd")
-var event_bus: CampaignTurnEventBus = null
-
 # Five Parsecs dependencies
 const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
 const DiceManager = preload("res://src/core/managers/DiceManager.gd")
 
 # Design system constants
-const TOUCH_TARGET_MIN := 48  # Minimum touch target height for mobile (Sprint 26.4)
+
 
 # UI Components
 @onready var crew_task_container: VBoxContainer = %CrewTaskContainer
@@ -26,9 +22,6 @@ const TOUCH_TARGET_MIN := 48  # Minimum touch target height for mobile (Sprint 2
 @onready var resolve_all_button: Button = %ResolveAllButton
 @onready var progress_container: VBoxContainer = %ProgressContainer
 @onready var help_button: Button = %HelpButton
-
-# Help dialog reference
-var _help_dialog: AcceptDialog = null
 
 # Crew task state
 var crew_data: Array = []
@@ -138,31 +131,11 @@ var credits_spent_on_tasks: Dictionary = {}  # task_id -> credits spent
 
 func _ready() -> void:
 	name = "CrewTaskComponent"
-	
-	_initialize_event_bus()
-	_connect_ui_signals()
-	_setup_initial_state()
+	super._ready()
 
-func _initialize_event_bus() -> void:
-	## Connect to the centralized event bus
-	# Find or create event bus
-	event_bus = get_node("/root/CampaignTurnEventBus")
-	if not event_bus:
-		# Create if doesn't exist
-		event_bus = CampaignTurnEventBus.new()
-		get_tree().root.add_child(event_bus)
-		event_bus.name = "CampaignTurnEventBus"
-	
-	# Subscribe to relevant events
-	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
-	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.AUTOMATION_TOGGLED, _on_automation_toggled)
-	
-
-func _exit_tree() -> void:
-	## Cleanup event bus subscriptions to prevent memory leaks
-	if event_bus:
-		event_bus.unsubscribe_from_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
-		event_bus.unsubscribe_from_event(CampaignTurnEventBus.TurnEvent.AUTOMATION_TOGGLED, _on_automation_toggled)
+func _subscribe_to_events() -> void:
+	_subscribe(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
+	_subscribe(CampaignTurnEventBus.TurnEvent.AUTOMATION_TOGGLED, _on_automation_toggled)
 
 func _connect_ui_signals() -> void:
 	## Connect UI signals
@@ -184,30 +157,6 @@ func _connect_ui_signals() -> void:
 func _on_help_button_pressed() -> void:
 	## Show crew tasks help dialog
 	_show_help_dialog("Crew Tasks", RulesHelpText.get_tooltip("crew_tasks"))
-
-func _show_help_dialog(title: String, content: String) -> void:
-	## Show a help dialog with rules text
-	if not _help_dialog:
-		_help_dialog = AcceptDialog.new()
-		_help_dialog.dialog_hide_on_ok = true
-		add_child(_help_dialog)
-	
-	_help_dialog.title = title
-	
-	var existing_content := _help_dialog.get_node_or_null("HelpContent")
-	if existing_content:
-		existing_content.queue_free()
-	
-	var rich_text := RichTextLabel.new()
-	rich_text.name = "HelpContent"
-	rich_text.bbcode_enabled = true
-	rich_text.fit_content = true
-	rich_text.custom_minimum_size = Vector2(400, 250)
-	rich_text.text = content
-	rich_text.add_theme_color_override("default_color", Color("#f3f4f6"))
-	_help_dialog.add_child(rich_text)
-	
-	_help_dialog.popup_centered()
 
 func _setup_initial_state() -> void:
 	## Initialize component state

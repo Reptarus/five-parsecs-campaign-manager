@@ -1,42 +1,9 @@
-extends Control
+extends WorldPhaseComponent
 class_name JobOfferComponent
 
 ## Job Offer Phase Component - Single Responsibility
 ## Extracted from WorldPhaseUI monolith to handle Five Parsecs job offers only
 ## Implements Core Rules p.78-80 - Patron jobs and opportunities
-
-# ============ DESIGN SYSTEM (from BaseCampaignPanel) ============
-
-## Spacing System (8px grid)
-const SPACING_XS := 4   # Icon padding, label-to-input gap
-const SPACING_SM := 8   # Element gaps within cards
-const SPACING_MD := 16  # Inner card padding
-const SPACING_LG := 24  # Section gaps between cards
-const SPACING_XL := 32  # Panel edge padding
-
-## Touch Target Minimums
-const TOUCH_TARGET_MIN := 48      # Minimum interactive element height
-const TOUCH_TARGET_COMFORT := 56  # Comfortable input height
-
-## Typography Sizes
-const FONT_SIZE_XS := 11  # Captions, limits
-const FONT_SIZE_SM := 14  # Descriptions, helpers
-const FONT_SIZE_MD := 16  # Body text, inputs
-const FONT_SIZE_LG := 18  # Section headers
-const FONT_SIZE_XL := 24  # Panel titles
-
-## Color Palette - Deep Space Theme
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")   # Main content
-const COLOR_TEXT_SECONDARY := Color("#808080") # Descriptions
-const COLOR_TEXT_DISABLED := Color("#404040")  # Inactive
-
-const COLOR_SUCCESS := Color("#10B981")  # Green
-const COLOR_WARNING := Color("#D97706")  # Orange
-const COLOR_DANGER := Color("#DC2626")   # Red
-
-# Event bus integration
-const CampaignTurnEventBus = preload("res://src/core/events/CampaignTurnEventBus.gd")
-var event_bus: CampaignTurnEventBus = null
 
 # Five Parsecs dependencies
 const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
@@ -58,33 +25,11 @@ var automation_enabled: bool = false
 
 func _ready() -> void:
 	name = "JobOfferComponent"
+	super._ready()
 
-	_initialize_event_bus()
-	_connect_ui_signals()
-	_setup_initial_state()
-
-func _initialize_event_bus() -> void:
-	## Connect to the centralized event bus
-	# Find or create event bus (use get_node_or_null to prevent crash)
-	event_bus = get_node_or_null("/root/CampaignTurnEventBus")
-	if not event_bus:
-		# Create if doesn't exist
-		event_bus = CampaignTurnEventBus.new()
-		get_tree().root.add_child(event_bus)
-		event_bus.name = "CampaignTurnEventBus"
-
-	# Subscribe to relevant events
-	if event_bus:
-		event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
-		event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.AUTOMATION_TOGGLED, _on_automation_toggled)
-	else:
-		pass
-
-func _exit_tree() -> void:
-	## Cleanup event bus subscriptions to prevent memory leaks
-	if event_bus:
-		event_bus.unsubscribe_from_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
-		event_bus.unsubscribe_from_event(CampaignTurnEventBus.TurnEvent.AUTOMATION_TOGGLED, _on_automation_toggled)
+func _subscribe_to_events() -> void:
+	_subscribe(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
+	_subscribe(CampaignTurnEventBus.TurnEvent.AUTOMATION_TOGGLED, _on_automation_toggled)
 
 func _connect_ui_signals() -> void:
 	## Connect UI button and list signals

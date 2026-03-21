@@ -1,13 +1,9 @@
-extends Control
+extends WorldPhaseComponent
 class_name MissionPrepComponent
 
 ## Mission Prep Phase Component - Single Responsibility
 ## Extracted from WorldPhaseUI monolith to handle Five Parsecs mission preparation
 ## Implements Core Rules p.82-85 - Equipment assignment and crew readiness
-
-# Event bus integration
-const CampaignTurnEventBus = preload("res://src/core/events/CampaignTurnEventBus.gd")
-var event_bus: CampaignTurnEventBus = null
 
 # Five Parsecs dependencies
 const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
@@ -34,33 +30,12 @@ var automation_enabled: bool = false
 
 func _ready() -> void:
 	name = "MissionPrepComponent"
+	super._ready()
 
-	_initialize_event_bus()
-	_connect_ui_signals()
-	_setup_initial_state()
-
-func _initialize_event_bus() -> void:
-	## Connect to the centralized event bus
-	# Find or create event bus
-	event_bus = get_node("/root/CampaignTurnEventBus")
-	if not event_bus:
-		# Create if doesn't exist
-		event_bus = CampaignTurnEventBus.new()
-		get_tree().root.add_child(event_bus)
-		event_bus.name = "CampaignTurnEventBus"
-
-	# Subscribe to relevant events
-	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
-	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.AUTOMATION_TOGGLED, _on_automation_toggled)
-	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.JOB_ACCEPTED, _on_job_accepted)
-
-
-func _exit_tree() -> void:
-	## Cleanup event bus subscriptions to prevent memory leaks
-	if event_bus:
-		event_bus.unsubscribe_from_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
-		event_bus.unsubscribe_from_event(CampaignTurnEventBus.TurnEvent.AUTOMATION_TOGGLED, _on_automation_toggled)
-		event_bus.unsubscribe_from_event(CampaignTurnEventBus.TurnEvent.JOB_ACCEPTED, _on_job_accepted)
+func _subscribe_to_events() -> void:
+	_subscribe(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
+	_subscribe(CampaignTurnEventBus.TurnEvent.AUTOMATION_TOGGLED, _on_automation_toggled)
+	_subscribe(CampaignTurnEventBus.TurnEvent.JOB_ACCEPTED, _on_job_accepted)
 
 func _connect_ui_signals() -> void:
 	## Connect UI button and list signals
@@ -199,7 +174,10 @@ func check_crew_readiness() -> Dictionary:
 		readiness.is_ready = false
 		readiness.warnings.append("Error: Mission requires at least %d crew members" % required_crew)
 
-	pass # Readiness check complete
+	# UX-091 FIX: Don't show READY if no crew have any equipment assigned
+	if readiness.crew_count > 0 and readiness.equipped_crew == 0:
+		readiness.is_ready = false
+		readiness.warnings.append("Error: No crew members have equipment assigned")
 
 	return readiness
 
@@ -313,10 +291,10 @@ Prepare your crew and assign equipment for battle.""" % [
 
 func _update_crew_list() -> void:
 	## Update crew list display
-	pass # Updating crew list
 	if not crew_list:
 		return
 
+	var prev_selection = selected_crew_index
 	crew_list.clear()
 	for i in range(crew_data.size()):
 		var member = crew_data[i]
@@ -333,12 +311,20 @@ func _update_crew_list() -> void:
 		var crew_text = "%s (%d equipment)" % [member_name, equipment_count]
 		crew_list.add_item(crew_text)
 
+	# UX-092 FIX: Restore crew selection after list rebuild to keep button states in sync
+	if prev_selection >= 0 and prev_selection < crew_list.item_count:
+		crew_list.select(prev_selection)
+		selected_crew_index = prev_selection
+	else:
+		selected_crew_index = -1
+
 func _update_equipment_list() -> void:
 	## Update equipment list display
-	pass # Updating equipment list
 	if not equipment_list:
 		return
 
+	# UX-092 FIX: Reset equipment selection when list is rebuilt — old index is stale
+	selected_equipment_index = -1
 	equipment_list.clear()
 	for equipment_item in available_equipment:
 		var equipment_id: String = equipment_item.get("id", "") if equipment_item is Dictionary else ""

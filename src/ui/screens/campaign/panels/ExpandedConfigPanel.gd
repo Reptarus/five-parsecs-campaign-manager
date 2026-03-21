@@ -857,16 +857,31 @@ func _set_card_selected_state(card: PanelContainer, selected: bool) -> void:
 	## Update visual state of victory condition card
 	var style = card.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
 	var checkmark = card.find_child("Checkmark", true, false)
-	
+
+	# BUG-034 FIX: Update description/target text color alongside background
+	# so contrast remains readable on the darkened accent background
+	var desc_label: Label = null
+	var target_label: Label = null
+	var vbox = card.get_child(0) if card.get_child_count() > 0 else null
+	if vbox:
+		for child in vbox.get_children():
+			if child is Label and child.name != "Checkmark":
+				if child.text.begins_with("Target:"):
+					target_label = child
+				elif child.autowrap_mode == TextServer.AUTOWRAP_WORD_SMART:
+					desc_label = child
+
 	if selected:
 		# Selected state: focus border, subtle accent tint, visible checkmark
-		# BUG-034 FIX: Use darkened accent instead of near-white background
-		# so light-colored title text remains readable
 		style.border_color = COLOR_FOCUS
 		style.set_border_width_all(3)
 		style.bg_color = COLOR_ACCENT.darkened(0.2)
 		if checkmark:
 			checkmark.visible = true
+		if desc_label:
+			desc_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+		if target_label:
+			target_label.add_theme_color_override("font_color", COLOR_FOCUS)
 	else:
 		# Unselected state: normal border, default background
 		style.border_color = COLOR_BORDER
@@ -874,7 +889,11 @@ func _set_card_selected_state(card: PanelContainer, selected: bool) -> void:
 		style.bg_color = COLOR_ELEVATED
 		if checkmark:
 			checkmark.visible = false
-	
+		if desc_label:
+			desc_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		if target_label:
+			target_label.add_theme_color_override("font_color", COLOR_ACCENT)
+
 	card.add_theme_stylebox_override("panel", style)
 
 

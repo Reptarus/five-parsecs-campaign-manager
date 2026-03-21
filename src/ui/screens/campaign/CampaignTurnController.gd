@@ -267,8 +267,16 @@ func _exit_tree() -> void:
 		if story_phase_panel.phase_completed.is_connected(_on_story_phase_completed):
 			story_phase_panel.phase_completed.disconnect(_on_story_phase_completed)
 
-	# Note: Backend system signals (PlanetDataManager, ContactManager, RivalBattleGenerator)
-	# are automatically cleaned up when their child nodes are freed
+	# ContactManager and RivalBattleGenerator are child nodes — auto-cleaned on free.
+	# PlanetDataManager is an autoload — must disconnect explicitly.
+	var planet_manager = get_node_or_null("/root/PlanetDataManager")
+	if planet_manager:
+		if planet_manager.has_signal("planet_discovered") and planet_manager.planet_discovered.is_connected(_on_backend_planet_discovered):
+			planet_manager.planet_discovered.disconnect(_on_backend_planet_discovered)
+		if planet_manager.has_signal("planet_visited") and planet_manager.planet_visited.is_connected(_on_backend_planet_visited):
+			planet_manager.planet_visited.disconnect(_on_backend_planet_visited)
+		if planet_manager.has_signal("planet_data_updated") and planet_manager.planet_data_updated.is_connected(_on_backend_planet_data_updated):
+			planet_manager.planet_data_updated.disconnect(_on_backend_planet_data_updated)
 
 ## SPRINT ENHANCEMENT: Backend Integration Systems
 

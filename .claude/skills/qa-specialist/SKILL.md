@@ -19,6 +19,19 @@ Read these as needed — don't load all at once. Each covers a specific testing 
 | `references/mcp-testing-guide.md` | Running automated UI tests | MCP tool usage, test recipes, known limitations, workarounds |
 | `references/data-consistency.md` | Validating save/load, data schemas | Campaign JSON schema, character validation, cross-mode isolation |
 | `references/gdunit4-patterns.md` | Writing new gdUnit4 tests | Templates, assertions, factories, helpers, execution commands |
+| `references/bug-notes.md` | Checking known bugs, regression triggers | Fixed bugs (BUG-029–043), open issues, patterns to watch |
+| `references/cross-system-verification.md` | Cross-system checks, signal contracts | Autoload signals, dual-sync verification, cross-mode isolation, enum sync |
+
+## Master QA Documentation (docs/)
+
+These 4 docs are the primary QA tracking system. Update them after each QA sprint.
+
+| Document | When to Read | Contents |
+|----------|-------------|----------|
+| `docs/QA_STATUS_DASHBOARD.md` | Starting any QA work, reporting status | Consolidated health view, open bugs, coverage %, risk areas, next priorities |
+| `docs/QA_CORE_RULES_TEST_PLAN.md` | Checking if a mechanic is tested, planning test coverage | All 170 mechanics → test verification status (NOT_TESTED → RULES_VERIFIED) |
+| `docs/QA_INTEGRATION_SCENARIOS.md` | Running E2E workflow tests | 9 scenarios with 219 checkpoints + MCP command templates |
+| `docs/QA_UX_UI_TEST_PLAN.md` | Theme audit, responsive testing, animation verification | 38 routes, Deep Space compliance, TweenFX, empty states, accessibility |
 
 ---
 
@@ -46,6 +59,12 @@ Route based on what the user is asking for:
 
 **"MCP test" / "Automated test" / "Run the game and test"**
 → Read `references/mcp-testing-guide.md`, follow test recipes
+
+**"Bug notes" / "Known issues" / "Regression triggers"**
+→ Read `references/bug-notes.md`
+
+**"Cross-system check" / "Signal contracts" / "Enum sync"**
+→ Read `references/cross-system-verification.md`
 
 **"Edge cases" / "Boundary testing"**
 → Read `references/edge-cases.md`, select system-specific cases

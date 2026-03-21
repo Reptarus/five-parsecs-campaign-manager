@@ -1,12 +1,30 @@
 extends Node
 signal save_completed(success: bool, message: String)
 signal load_completed(success: bool, data: Dictionary)
+signal backup_created(slot: int)
+signal validation_failed(reason: String)
+signal recovery_attempted(success: bool, message: String)
+
+## Load error codes — allows callers to distinguish error types
+enum LoadError {
+	OK = 0,
+	INVALID_SLOT = 1,
+	FILE_NOT_FOUND = 2,
+	FILE_OPEN_FAILED = 3,
+	PARSE_ERROR = 4,
+	BACKUP_CORRUPT = 5,
+	NO_BACKUP = 6,
+	VERSION_MISMATCH = 7,
+}
 
 const SAVE_DIR := "user://saves/"
 const SAVE_FILE_EXTENSION := ".save"
 const SAVE_VERSION := "1.0.0"
 const MAX_BACKUPS := 3
 const MAX_SAVE_SLOTS := 10
+
+## Last load error code (check after load_completed(false, {}))
+var last_load_error: LoadError = LoadError.OK
 
 func _ready() -> void:
 	_ensure_save_directory()
@@ -42,18 +60,23 @@ func save_game(save_data: Dictionary, slot: int = 0) -> void:
 	save_completed.emit(true, "Game saved successfully")
 
 func load_game(slot: int = 0) -> void:
+	last_load_error = LoadError.OK
+
 	if slot < 0 or slot >= MAX_SAVE_SLOTS:
+		last_load_error = LoadError.INVALID_SLOT
 		load_completed.emit(false, {})
 		return
 
 	var save_path := _get_save_path(slot)
 
 	if not FileAccess.file_exists(save_path):
+		last_load_error = LoadError.FILE_NOT_FOUND
 		load_completed.emit(false, {})
 		return
 
 	var file := FileAccess.open(save_path, FileAccess.READ)
 	if file == null:
+		last_load_error = LoadError.FILE_OPEN_FAILED
 		load_completed.emit(false, {})
 		return
 
@@ -63,17 +86,33 @@ func load_game(slot: int = 0) -> void:
 	var json := JSON.new()
 	var parse_result := json.parse(json_string)
 	if parse_result != OK:
+		push_warning("SaveManager: Primary save corrupt, attempting backup recovery")
+		recovery_attempted.emit(false, "Primary save corrupt")
 		# Try to load backup
 		if _try_load_backup(slot):
+			recovery_attempted.emit(true, "Loaded from backup")
 			return
+		last_load_error = LoadError.BACKUP_CORRUPT
 		load_completed.emit(false, {})
 		return
 
 	var save_data: Dictionary = json.get_data()
 
-	# Version check
-	if save_data.get("save_version", "0.0.0") != SAVE_VERSION:
-		push_warning("Loading save from different version")
+	# Version compatibility check
+	var save_version: String = save_data.get("save_version", "0.0.0")
+	if save_version != SAVE_VERSION:
+		var save_major := save_version.split(".")[0] if save_version.contains(".") else "0"
+		var current_major := SAVE_VERSION.split(".")[0]
+		if save_major != current_major:
+			# Major version mismatch — block load
+			last_load_error = LoadError.VERSION_MISMATCH
+			push_error("SaveManager: Incompatible save version %s (current: %s)" % [save_version, SAVE_VERSION])
+			validation_failed.emit("Incompatible save version: %s" % save_version)
+			load_completed.emit(false, {})
+			return
+		else:
+			# Minor version mismatch — warn but proceed
+			push_warning("SaveManager: Loading save from version %s (current: %s)" % [save_version, SAVE_VERSION])
 
 	load_completed.emit(true, save_data)
 

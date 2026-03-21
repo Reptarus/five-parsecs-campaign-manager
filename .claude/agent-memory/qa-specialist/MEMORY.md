@@ -2,6 +2,14 @@
 
 <!-- This file is loaded into your system prompt. Keep it under 200 lines. -->
 
+## Critical Gotchas — Must Remember
+
+1. **Godot 4.6 type inference**: `var x := dict["key"]` will NOT compile. Always use `var x: Type = dict["key"]`. Zero exceptions. This is the #1 cause of compile errors in new code.
+2. **Three-Enum Sync Rule**: GlobalEnums, GameEnums, FiveParsecsGameEnums must stay aligned. When testing enum-dependent code, verify all three.
+3. **`--headless --quit` is NOT comprehensive**: Only validates startup scripts. The Godot editor LSP loads ALL scripts. Always reboot editor after headless check.
+
+---
+
 ## Phase 30 Core Rules Parity (Mar 16, 2026) — CRITICAL FOR TESTING
 
 **Difficulty enum mismatch was found and fixed.** Before Phase 30, ALL difficulty modifiers were dead code because ExpandedConfigPanel stored IDs 1-5 while DifficultyModifiers.gd compared against GlobalEnums values (CHALLENGING=4, HARDCORE=6, INSANITY=8).
@@ -44,8 +52,8 @@
 | BUG-038 | **P2** | Battlefield theme always "Wilderness" | **FIXED** |
 | BUG-040 | **P2** | Terrain feature count exceeds 13-feature cap | **FIXED** |
 | BUG-041 | **P3** | Missing LARGE/SMALL/LINEAR type prefixes | **FIXED** |
-| BUG-033 | P1 | Battle victory flag not passed through post-battle results | OPEN |
-| BUG-034 | P2 | Selected VC card description text low contrast on blue bg | CONFIRMED |
+| BUG-033 | P1 | Victory counter not persisted — read from wrong results dict | **VERIFIED FIXED (already in code, confirmed at runtime Mar 20)** |
+| BUG-034 | P2 | Selected VC card description text low contrast on blue bg | **FIXED (Mar 20)** |
 | BUG-029 | P2 | Victory cards not interactive | **VERIFIED FIXED (Phase 30)** |
 | BUG-030 | P2 | Default Origin "None" on manual creation | **FIXED (Phase 30)** |
 
@@ -91,13 +99,10 @@
 
 | Item | Sev | Notes |
 |------|-----|-------|
-| BUG-033 | P1 | Battle victory flag not passed through post-battle |
-| BUG-034 | P2 | VC card text contrast on blue selected bg |
 | WEALTH motivation | Deferred | Needs resource bonus system architecture |
 | 49% character bonus coverage | Deferred | Most gaps need resource bonuses |
 | Equipment table names | Deferred | User decision: generic vs Core Rules |
 | Victory condition metric tracking | Deferred | Feature addition: counters for enemies/credits/worlds |
-| UX-091/092 | Medium | Mission Prep "READY" with 0/4 equipped; Assign Equipment grayed |
 
 ### MCP Testing Gotchas (updated Phase 31)
 
@@ -110,8 +115,72 @@
 
 ### Recommended Next QA Focus
 
-1. BUG-033: Battle victory flag through post-battle (P1 — may affect campaign stats)
-2. BUG-034: VC card text contrast (P2 — accessibility)
-3. Full save/reload validation (confirm BUG-031 fix holds across multiple turns)
-4. Equipment flow: creation → save → reload → Mission Prep (confirm BUG-035 fix)
-5. UX-091/092: Mission Prep equipment display accuracy
+1. Difficulty modifier matrix — test EASY, CHALLENGING, HARDCORE, INSANITY across full turn
+2. Elite Ranks end-to-end — complete campaign, verify profile.json, verify bonuses on new campaign
+3. Ship System coverage — 5/11 mechanics NOT_TESTED
+4. Compendium DLC — 20/35 NOT_TESTED, especially world systems and psionics
+5. RULES_VERIFIED pass — cross-reference MCP_VALIDATED mechanics against Core Rules text
+
+---
+
+## Mar 20-21 QA Sprint Results
+
+### Bugs Fixed This Session (4 total)
+
+- **BUG-033** (P1): Victory counter — already fixed in code (`self.battle_results` in CampaignTurnController:705), confirmed at runtime
+- **BUG-034** (P2): VC card text contrast — swap to COLOR_TEXT_PRIMARY when selected (ExpandedConfigPanel.gd)
+- **UX-091**: Mission Prep "READY" with 0 equipped — added `equipped_crew == 0` guard (MissionPrepComponent.gd)
+- **UX-092**: Assign Equipment grayed out — preserve crew selection across rebuilds, auto-select first (AssignEquipmentComponent.gd)
+
+### Phase 33 Runtime Fixes (3 issues found during MCP testing)
+
+- **UpkeepPhaseComponent.gd**: Duplicate `_help_dialog` var/method collided with WorldPhaseComponent base class — removed
+- **CrewTaskComponent.gd**: Same `_help_dialog` duplicate removal
+- **TacticalBattleUI.gd**: Godot 4.6 type inference — `var panel := _get_res(...).new()` changed to `var panel: Control = ...` (2 sites)
+- **WorldPhaseComponent.gd**: Added `TOUCH_TARGET_MIN := 48` constant for child component inheritance
+
+### 5-Turn Campaign Playthrough (PASS)
+
+- Turns 3-5 completed on "Iron Wolves" campaign via MCP
+- Counters consistent: turns=5, missions=5, battles_won=4, battles_lost=1, credits=1,575
+- Zero crashes, zero errors (only expected warnings)
+- Event bus auto-cleanup verified: clean subscribe/unsubscribe cycles each turn
+- PostBattlePhase: 19/19 signals verified, 100% emission isolation
+- WorldPhaseComponent: 9/9 components extend correctly
+- Equipment save/reload: 9-stage chain verified E2E
+- Difficulty modifiers: 18/18 Core Rules, 40+ methods, 11 call sites, 100% compliance
+
+### Current Status: 0 confirmed bugs, 0 UX issues, 4 deferred items
+
+---
+
+## QA Documentation Suite (Mar 20, 2026)
+
+4 new QA documents created — use these as the master reference for all testing work:
+
+| Document | Location | Purpose |
+|----------|----------|---------|
+| **QA Status Dashboard** | `docs/QA_STATUS_DASHBOARD.md` | Consolidated health view — open bugs, coverage %, risk areas, cross-reference index |
+| **Core Rules Test Plan** | `docs/QA_CORE_RULES_TEST_PLAN.md` | All 170 mechanics mapped to test verification status (NOT_TESTED→RULES_VERIFIED) |
+| **Integration Scenarios** | `docs/QA_INTEGRATION_SCENARIOS.md` | 9 E2E workflow scripts (219 checkpoints) + MCP command templates |
+| **UX/UI Test Plan** | `docs/QA_UX_UI_TEST_PLAN.md` | Systematic theme/responsive/animation/accessibility coverage (623 test cases) |
+
+### Coverage Snapshot (Mar 20, 2026)
+- **47 mechanics NOT_TESTED** — Ship(5), Equipment(5), Compendium(20), Travel edge cases
+- **35 UNIT_TESTED** — Loot(10), Character(8), Battle calcs, Difficulty modifiers
+- **25 INTEGRATION_TESTED** — Campaign phases, save/load, equipment pipeline
+- **63 MCP_VALIDATED** — Campaign creation, turn flow, post-battle, trading
+- **0 RULES_VERIFIED** — No mechanic has been cross-referenced against Core Rules text yet
+
+### Critical Untested Areas
+1. **Elite Ranks (PlayerProfile.gd)** — 4 bonus formulas, 0 tests
+2. **6/8 difficulty battle modifiers** — only XP bonus and story points tested
+3. **Compendium DLC (20/35 NOT_TESTED)** — mostly world systems, psionics, misc
+4. **Ship System (5/11 NOT_TESTED)** — data resource, fuel, components
+
+### When to Use Each Doc
+- **"What should I test next?"** → Dashboard §Next Priority Items
+- **"Is mechanic X tested?"** → Core Rules Test Plan, search by mechanic name
+- **"Run a full workflow test"** → Integration Scenarios, pick scenario by priority
+- **"Check UI compliance"** → UX/UI Test Plan §2 (theme) or §3 (responsive)
+- **"Update after a fix sprint"** → Dashboard (update counts) + Core Rules Plan (update status per mechanic)

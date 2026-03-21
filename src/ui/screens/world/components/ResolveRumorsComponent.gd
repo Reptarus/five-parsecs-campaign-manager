@@ -1,13 +1,9 @@
-extends Control
+extends WorldPhaseComponent
 class_name ResolveRumorsComponent
 
 ## Resolve Rumors Component - Quest Generation System
 ## Implements Core Rules p.85 - Resolve rumors to generate quests
 ## Roll D6 - if equal or below number of rumors, convert to Quest
-
-# Event bus integration
-const CampaignTurnEventBus = preload("res://src/core/events/CampaignTurnEventBus.gd")
-var event_bus: CampaignTurnEventBus = null
 
 # UI Components
 @onready var rumors_count_label: Label = %RumorsCountLabel
@@ -27,29 +23,17 @@ var last_roll: int = 0
 
 func _ready() -> void:
 	name = "ResolveRumorsComponent"
-
-	_initialize_event_bus()
-	_connect_ui_signals()
-	_setup_initial_state()
+	super._ready()
 	_apply_touch_target_sizing()
+
+func _subscribe_to_events() -> void:
+	_subscribe(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
 
 ## Sprint C: Apply 48px minimum touch targets for mobile UX
 func _apply_touch_target_sizing() -> void:
-	## Apply 48px minimum item height to ItemLists for touch compliance
 	const TOUCH_TARGET_MIN := 48
 	if rumors_list:
 		rumors_list.add_theme_constant_override("item_height", TOUCH_TARGET_MIN)
-
-func _initialize_event_bus() -> void:
-	## Connect to the centralized event bus
-	event_bus = get_node_or_null("/root/CampaignTurnEventBus")
-	if event_bus:
-		event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
-
-func _exit_tree() -> void:
-	## Cleanup event bus subscriptions to prevent memory leaks
-	if event_bus:
-		event_bus.unsubscribe_from_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
 
 func _connect_ui_signals() -> void:
 	## Connect UI button signals

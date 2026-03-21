@@ -1,13 +1,9 @@
-extends Control
+extends WorldPhaseComponent
 class_name AssignEquipmentComponent
 
 ## Assign Equipment Component - Equipment Management System
 ## Implements Core Rules p.85 - Transfer items between crew members and stash
 ## Characters can trade items, leave items in stash, or take items from stash
-
-# Event bus integration
-const CampaignTurnEventBus = preload("res://src/core/events/CampaignTurnEventBus.gd")
-var event_bus: CampaignTurnEventBus = null
 
 # UI Components
 @onready var crew_list: ItemList = %CrewList
@@ -28,15 +24,14 @@ var assignment_completed: bool = false
 
 func _ready() -> void:
 	name = "AssignEquipmentComponent"
-
-	_initialize_event_bus()
-	_connect_ui_signals()
-	_setup_initial_state()
+	super._ready()
 	_apply_touch_target_sizing()
+
+func _subscribe_to_events() -> void:
+	_subscribe(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
 
 ## Sprint C: Apply 48px minimum touch targets for mobile UX
 func _apply_touch_target_sizing() -> void:
-	## Apply 48px minimum item height to all ItemLists for touch compliance
 	const TOUCH_TARGET_MIN := 48
 	if crew_list:
 		crew_list.add_theme_constant_override("item_height", TOUCH_TARGET_MIN)
@@ -44,17 +39,6 @@ func _apply_touch_target_sizing() -> void:
 		crew_equipment_list.add_theme_constant_override("item_height", TOUCH_TARGET_MIN)
 	if stash_list:
 		stash_list.add_theme_constant_override("item_height", TOUCH_TARGET_MIN)
-
-func _initialize_event_bus() -> void:
-	## Connect to the centralized event bus
-	event_bus = get_node_or_null("/root/CampaignTurnEventBus")
-	if event_bus:
-		event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
-
-func _exit_tree() -> void:
-	## Cleanup event bus subscriptions to prevent memory leaks
-	if event_bus:
-		event_bus.unsubscribe_from_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, _on_phase_started)
 
 func _connect_ui_signals() -> void:
 	## Connect UI button signals
@@ -85,9 +69,14 @@ func initialize_equipment_phase(crew: Array, stash: Array) -> void:
 
 	_populate_crew_list()
 	_populate_stash_list()
-	_update_ui_display()
 
-	pass # Equipment phase initialized
+	# UX-092 FIX: Auto-select first crew member so transfer buttons are immediately usable
+	if crew_data.size() > 0 and crew_list and crew_list.item_count > 0:
+		crew_list.select(0)
+		selected_crew_index = 0
+		_populate_crew_equipment()
+
+	_update_ui_display()
 
 	if event_bus:
 		event_bus.publish_event(CampaignTurnEventBus.TurnEvent.PHASE_STARTED, {

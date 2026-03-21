@@ -2,6 +2,14 @@
 
 <!-- This file is loaded into your system prompt. Keep it under 200 lines. -->
 
+## Critical Gotchas — Must Remember
+
+1. **BattleResolver is static** (RefCounted) — use `BattleResolver.resolve_battle()`, never instantiate as Node.
+2. **TacticalBattleUI shared** between Standard and Bug Hunt — changes must not break either mode.
+3. **Godot 4.6 type inference**: `var x := dict["key"]` will NOT compile. Always use `var x: Type = dict["key"]`. Zero exceptions.
+
+---
+
 ## Phase 31 QA Bug Fix Sprint (Mar 16, 2026)
 
 10 bugs + 3 UX issues fixed across 14 files, 0 compile errors. Key battle-domain fixes below.
@@ -33,6 +41,23 @@ Terrain labels were missing LARGE/SMALL/LINEAR type prefixes. Added `size_catego
 - `src/ui/components/battle/BattlefieldShapeLibrary.gd` — `is_scatter` flag, `size_category` property
 - `src/ui/components/battle/BattlefieldMapView.gd` — scatter skip, size prefix labels
 - `src/ui/screens/campaign/CampaignTurnController.gd` — terrain_guide merge into terrain sub-dict
+
+## Mar 20-21 Runtime Verification
+
+### TacticalBattleUI Type Inference Fix
+
+Godot 4.6 type inference error in TacticalBattleUI.gd — `var panel := _get_res("tier_selection").new()` failed because `_get_res()` returns Variant. Fixed at 2 sites by changing to `var panel: Control = _get_res("tier_selection").new()`.
+
+### Battle Map / Auto-Resolve — Verified Through 3 Battle Cycles
+
+5-turn campaign playthrough (turns 3-5) included 3 battle cycles. All passed:
+
+- Battle map terrain rendering correct
+- Auto-resolve produces valid results with proper victory/defeat tracking
+- Post-battle results correctly propagated (BUG-033 confirmed fixed — reads from `self.battle_results`)
+- Counters after 5 turns: battles_won=4, battles_lost=1
+
+---
 
 ## Battle UI QA Sprint (Mar 15, 2026)
 

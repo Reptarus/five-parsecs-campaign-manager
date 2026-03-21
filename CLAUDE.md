@@ -58,6 +58,30 @@ STORY -> TRAVEL -> UPKEEP -> MISSION -> POST_MISSION -> ADVANCEMENT -> TRADING -
 ```
 Each phase has a dedicated panel wired into `CampaignPhaseManager` -> `CampaignTurnController` with completion signals and data handoff.
 
+### PostBattlePhase Subsystem Architecture (Phase 33)
+```
+PostBattlePhase.gd (296-line orchestrator, emits all 19 signals)
+  └─ post_battle/
+     ├─ PostBattleContext.gd      — DI hub (campaign, managers, battle result)
+     ├─ RivalPatronResolver.gd    — Steps 1-3 (rival/patron/quest)
+     ├─ PaymentProcessor.gd       — Steps 4-6 (pay, finds, invasion)
+     ├─ LootProcessor.gd          — Step 7
+     ├─ InjuryProcessor.gd        — Step 8
+     ├─ ExperienceTrainingProcessor.gd — Steps 9-11
+     ├─ CampaignEventEffects.gd   — Step 12 (80-case match)
+     ├─ CharacterEventEffects.gd  — Step 13 (60-case match)
+     ├─ GalacticWarProcessor.gd   — Step 14a
+     └─ PostBattleCompletion.gd   — Step 14b (stats, journal, morale)
+```
+Subsystems are RefCounted (not Node), return data to orchestrator which emits signals. Zero `.emit()` calls in subsystems.
+
+### WorldPhaseComponent Base Class (Phase 33)
+All 9 world phase components extend `WorldPhaseComponent` with:
+- Event bus auto-cleanup via `_subscribe()` + `_event_subscriptions` tracking
+- `TOUCH_TARGET_MIN` constant (48px) for mobile UX
+- `_help_dialog` + `_show_help_dialog()` shared utility
+- Virtual hooks: `_subscribe_to_events()`, `_connect_ui_signals()`, `_setup_initial_state()`
+
 ### Bug Hunt Gamemode (Compendium)
 
 Standalone military-themed variant with 3-stage turn, separate from the 9-phase campaign.
@@ -402,3 +426,14 @@ Both `.vscode/settings.json` and Cursor user settings exclude: `.godot/`, `.mcp/
 - `docs/GAME_MECHANICS_IMPLEMENTATION_MAP.md` — 100% compliance tracker (170/170)
 - `docs/DOCUMENTATION_INDEX.md` — Documentation hub
 - `tests/TESTING_GUIDE.md` — Test methodology (needs update for 4.6)
+
+### QA Documentation Suite (Mar 2026)
+
+| Document | Purpose |
+|----------|---------|
+| `docs/QA_STATUS_DASHBOARD.md` | Consolidated QA health — open bugs, coverage %, risk areas, next priorities |
+| `docs/QA_CORE_RULES_TEST_PLAN.md` | All 170 mechanics mapped to test verification status |
+| `docs/QA_INTEGRATION_SCENARIOS.md` | 9 end-to-end workflow scripts with MCP command templates |
+| `docs/QA_UX_UI_TEST_PLAN.md` | Systematic theme/responsive/animation/accessibility coverage |
+
+Update the dashboard and core rules plan after each QA sprint.

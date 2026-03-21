@@ -3,6 +3,14 @@
 <!-- This file is loaded into your system prompt. Keep it under 200 lines. -->
 <!-- Link to separate topic files for detailed notes. -->
 
+## Critical Gotchas — Must Remember
+
+1. **FiveParsecsCampaignCore is Resource**: `campaign["key"] = val` **silently fails**. Use `progress_data["key"]` for runtime state. Use `"key" in campaign` instead of `.has("key")`.
+2. **GameStateManager dual-sync**: ALL setters that modify campaign state MUST also write to `progress_data`. The canonical pattern: update campaign property → sync to progress_data → emit signal.
+3. **Godot 4.6 type inference**: `var x := dict["key"]` will NOT compile. Always use `var x: Type = dict["key"]`. Zero exceptions.
+
+---
+
 ## Phase 31 QA Bug Fix Sprint (Mar 16, 2026)
 
 10 bugs + 3 UX issues fixed across 14 files, 0 compile errors. Key campaign-domain fixes below.
@@ -55,6 +63,34 @@ Saves go to `user://campaigns/` (NOT `user://saves/`). Format is `.fpcs` JSON wi
 ### Story/Travel Phase Auto-Skip
 
 New campaigns jump directly to World Phase (Upkeep) — Story and Travel phases auto-complete. `StoryPhasePanel` warns "EventManager not found" and uses fallback generation.
+
+## Mar 20-21 Runtime Verification
+
+### PostBattlePhase Decomposition — Runtime Verified
+
+Phase 33 Sprint 8 decomposed PostBattlePhase (4,240 lines to 296-line orchestrator + 10 subsystems in `src/core/campaign/phases/post_battle/`). Runtime verification results:
+
+- **19/19 signals verified** — 0 dead signals, 100% emission isolation in orchestrator
+- Event bus auto-cleanup working: clean subscribe/unsubscribe cycles each turn
+- All 10 subsystems (`InjuryProcessor`, `LootDistributor`, `GalacticWarTracker`, etc.) function correctly
+
+### WorldPhaseComponent Inheritance — Runtime Verified
+
+Phase 33 Sprint 9 refactored 9 world phase components to extend `WorldPhaseComponent` base class with auto-cleanup event bus pattern.
+
+- **9/9 components extend correctly** after fixes
+- **Fix required**: `UpkeepPhaseComponent.gd` and `CrewTaskComponent.gd` had duplicate `_help_dialog` var and `_show_help_dialog()` method — collided with base class. Removed duplicates
+- **Fix required**: `WorldPhaseComponent.gd` needed `TOUCH_TARGET_MIN := 48` constant added so child components (e.g., JobOfferComponent) could inherit it
+
+### Upkeep Formula — Confirmed Correct
+
+Upkeep auto-calculation verified through 5-turn playthrough. Counters consistent: turns=5, missions=5, battles_won=4, battles_lost=1, credits=1,575.
+
+### Equipment Save/Reload — 9-Stage Chain Verified E2E
+
+Full equipment persistence pipeline confirmed working: creation -> assignment -> save -> reload -> Mission Prep display -> battle -> post-battle -> next turn -> save again.
+
+---
 
 ## Phase 29 QA Runtime Findings (Mar 16, 2026)
 
