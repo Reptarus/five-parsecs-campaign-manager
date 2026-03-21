@@ -454,6 +454,8 @@ func _apply_motivation_bonuses(motivation_id: int) -> void:
 			current_bonuses.motivation["COMBAT_SKILL"] = 1
 		GlobalEnums.Motivation.SURVIVAL:
 			current_bonuses.motivation["TOUGHNESS"] = 1
+		GlobalEnums.Motivation.KNOWLEDGE:
+			current_bonuses.motivation["SAVVY"] = 1
 		# WEALTH: +1D6 credits applied in CampaignFinalizationService
 		# FAME: +1 story point applied in CampaignFinalizationService
 

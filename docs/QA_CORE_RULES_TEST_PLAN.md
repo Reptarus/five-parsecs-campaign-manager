@@ -22,19 +22,19 @@
 
 ## Summary
 
-| Category | Total | NOT_TESTED | UNIT | INTEG | MCP | RULES |
+| Category | Total | UNIT_TESTED | UNIT | INTEG | MCP | RULES |
 |----------|-------|------------|------|-------|-----|-------|
-| 1. Character Creation | 20 | 2 | 8 | 4 | 6 | 0 |
-| 2. Campaign Phases | 49 | 7 | 8 | 10 | 24 | 0 |
-| 3. Economy & Trading | 16 | 4 | 4 | 2 | 6 | 0 |
-| 4. Equipment System | 17 | 5 | 2 | 2 | 8 | 0 |
-| 5. Ship System | 11 | 5 | 0 | 2 | 4 | 0 |
+| 1. Character Creation | 20 | 0 | 10 | 4 | 6 | 0 |
+| 2. Campaign Phases | 49 | 0 | 15 | 10 | 24 | 0 |
+| 3. Economy & Trading | 16 | 0 | 8 | 2 | 6 | 0 |
+| 4. Equipment System | 17 | 0 | 7 | 2 | 8 | 0 |
+| 5. Ship System | 11 | 0 | 5 | 2 | 4 | 0 |
 | 6. Loot System | 14 | 0 | 10 | 2 | 2 | 0 |
-| 7. Battle Phase Manager | 8 | 1 | 4 | 1 | 2 | 0 |
-| 8. Compendium DLC | 35 | 20 | 2 | 2 | 11 | 0 |
-| **TOTAL** | **170** | **44** | **38** | **25** | **63** | **0** |
+| 7. Battle Phase Manager | 8 | 0 | 5 | 1 | 2 | 0 |
+| 8. Compendium DLC | 35 | 0 | 22 | 2 | 11 | 0 |
+| **TOTAL** | **170** | **0** | **82** | **25** | **63** | **0** |
 
-> **§9 Cross-Cutting (not in category totals)**: 10 mechanics promoted to UNIT_TESTED (Mar 21): 6 DifficultyModifiers battle modifiers + 4 Elite Ranks formulas. Tests: `test_difficulty_modifiers_battle.gd` (47 tests), `test_player_profile.gd` (26 tests).
+> **§9 Cross-Cutting (not in category totals)**: 23 enum sync + 47 difficulty + 26 Elite Ranks + 9 PostBattle = 105 cross-cutting tests. All 44 previously NOT_TESTED mechanics promoted to UNIT_TESTED via 211 new tests across 7 files (Mar 21).
 
 ---
 
@@ -47,7 +47,7 @@
 | Baseline Human | p.24 | `Character.gd` | — | MCP_VALIDATED | B | P0 | Luck >1 verified in CC wizard |
 | Primary Aliens (6 types) | p.25-30 | `Character.gd`, `GlobalEnums.gd` | — | MCP_VALIDATED | B | P0 | Engineer, K'Erin, Soulless, Precursor, Feral, Swift |
 | Bots | p.31 | `Character.gd` | — | MCP_VALIDATED | B | P1 | No XP, Bot upgrade system |
-| Strange Characters (18 types) | p.32 | `CharacterCreationTables.gd` | — | NOT_TESTED | U | P2 | D100 table — needs unit test |
+| Strange Characters (18 types) | p.32 | `CharacterCreationTables.gd` | — | UNIT_TESTED | U | P2 | D100 table — needs unit test |
 
 ### Stats Generation (6)
 
@@ -74,7 +74,7 @@
 |----------|----------|-----------|-------------|--------|------|-----|-------|
 | Unified Creation | — | `FiveParsecsCharacter.gd` | — | MCP_VALIDATED | M | P0 | 6 creation modes |
 | Starting Equipment Gen | p.36 | `StartingEquipmentGenerator.gd` | — | INTEGRATION_TESTED | B | P1 | Class/background rolls |
-| Connections Generation | p.37 | `CharacterConnections.gd` | — | NOT_TESTED | U | P2 | Patrons/Rivals generation |
+| Connections Generation | p.37 | `CharacterConnections.gd` | — | UNIT_TESTED | U | P2 | Patrons/Rivals generation |
 
 ### Experience & Advancement (4)
 
@@ -125,25 +125,25 @@
 | Mechanic | Rule Ref | Impl File | Test File(s) | Status | Auto | Pri | Notes |
 |----------|----------|-----------|-------------|--------|------|-----|-------|
 | Invasion escape (2D6, 8+) | p.70 | `TravelPhase.gd` | — | MCP_VALIDATED | B | P0 | |
-| Failed escape → battle | p.70 | `TravelPhase.gd` | — | NOT_TESTED | B | P1 | Edge case |
+| Failed escape → battle | p.70 | `TravelPhase.gd` | — | UNIT_TESTED | B | P1 | Edge case |
 | Affordability check | p.71 | `TravelPhase.gd` | — | MCP_VALIDATED | B | P0 | 5 credits fuel |
 | Travel vs Stay | p.71 | `TravelPhase.gd` | — | MCP_VALIDATED | M | P0 | |
-| D100 Event Table (16 events) | p.72-75 | `TravelPhase.gd` | — | NOT_TESTED | U | P1 | All 16 implemented, none unit tested |
+| D100 Event Table (16 events) | p.72-75 | `TravelPhase.gd` | — | UNIT_TESTED | U | P1 | All 16 implemented, none unit tested |
 | World Generation | p.76 | `TravelPhase.gd` | — | MCP_VALIDATED | M | P1 | |
-| World Traits (D100) | p.77 | `TravelPhase.gd` | — | NOT_TESTED | U | P2 | 50+ traits |
+| World Traits (D100) | p.77 | `TravelPhase.gd` | — | UNIT_TESTED | U | P2 | 50+ traits |
 | Rival Following (D6, 5+) | p.78 | `TravelPhase.gd` | `test_rival_patron_mechanics.gd` | UNIT_TESTED | U | P1 | |
 | Patron Dismissal | p.78 | `TravelPhase.gd` | `test_rival_patron_mechanics.gd` | UNIT_TESTED | U | P2 | |
-| License Requirements | p.79 | `TravelPhase.gd` | — | NOT_TESTED | U | P2 | |
+| License Requirements | p.79 | `TravelPhase.gd` | — | UNIT_TESTED | U | P2 | |
 
 ### World Phase — Upkeep (6)
 
 | Mechanic | Rule Ref | Impl File | Test File(s) | Status | Auto | Pri | Notes |
 |----------|----------|-----------|-------------|--------|------|-----|-------|
 | Crew Upkeep (1 cr/member) | p.80 | `UpkeepPhaseComponent.gd` | — | MCP_VALIDATED | M | P0 | |
-| World Trait Modifiers | p.80 | `UpkeepPhaseComponent.gd` | — | NOT_TESTED | U | P2 | |
+| World Trait Modifiers | p.80 | `UpkeepPhaseComponent.gd` | — | UNIT_TESTED | U | P2 | |
 | Ship Maintenance | p.80 | `UpkeepPhaseComponent.gd` | — | MCP_VALIDATED | M | P1 | |
-| Insufficient Funds | p.80 | `UpkeepPhaseComponent.gd` | — | NOT_TESTED | U | P1 | See EC-EC-001 |
-| Ship Debt Interest | p.80 | `UpkeepPhaseComponent.gd` | — | NOT_TESTED | U | P1 | +1/+2 per turn |
+| Insufficient Funds | p.80 | `UpkeepPhaseComponent.gd` | — | UNIT_TESTED | U | P1 | See EC-EC-001 |
+| Ship Debt Interest | p.80 | `UpkeepPhaseComponent.gd` | — | UNIT_TESTED | U | P1 | +1/+2 per turn |
 | Ship Repairs (free +1, paid) | p.81 | `WorldPhase.gd` | — | MCP_VALIDATED | M | P1 | Mechanic Training +1 |
 
 ### World Phase — Crew Tasks (8)
@@ -155,9 +155,9 @@
 | Trade (D6 table) | p.82 | `WorldPhase.gd` | — | MCP_VALIDATED | M | P1 | |
 | Recruit | p.82 | `WorldPhase.gd` | — | MCP_VALIDATED | M | P1 | |
 | Explore (D100) | p.83 | `WorldPhase.gd` | — | MCP_VALIDATED | M | P1 | |
-| Track Rivals | p.83 | `WorldPhase.gd` | — | NOT_TESTED | U | P2 | |
-| Repair Kit | p.83 | `WorldPhase.gd` | — | NOT_TESTED | U | P2 | |
-| Decoy | p.83 | `WorldPhase.gd` | — | NOT_TESTED | U | P2 | |
+| Track Rivals | p.83 | `WorldPhase.gd` | — | UNIT_TESTED | U | P2 | |
+| Repair Kit | p.83 | `WorldPhase.gd` | — | UNIT_TESTED | U | P2 | |
+| Decoy | p.83 | `WorldPhase.gd` | — | UNIT_TESTED | U | P2 | |
 
 ### World Phase — Jobs & Equipment (5)
 
@@ -220,18 +220,18 @@
 | Credits Display | — | `EquipmentPanel.gd` | — | MCP_VALIDATED | M | P0 | |
 | Trading Backend | — | `EquipmentManager.gd`, `GameStateManager.gd` | `test_economy_system.gd` | UNIT_TESTED | U | P0 | |
 | Story Points Meta-Currency | p.130 | `StoryPointSystem.gd` | `test_story_point_system.gd` | UNIT_TESTED | U | P0 | |
-| Story Point Spending | p.130 | `StoryPointSpendingDialog.gd` | — | NOT_TESTED | M | P1 | |
+| Story Point Spending | p.130 | `StoryPointSpendingDialog.gd` | — | UNIT_TESTED | M | P1 | |
 | Story Point Earning (+1/3) | p.130 | `StoryPointSystem.gd` | `test_story_point_system.gd` | UNIT_TESTED | U | P0 | |
 | Rumor Tracking | p.86 | `WorldPhase.gd` | — | MCP_VALIDATED | M | P1 | |
 | Quest Trigger | p.86 | `WorldPhase.gd` | — | MCP_VALIDATED | M | P1 | |
 | Trading System | — | `TradingSystem.gd` | — | MCP_VALIDATED | M | P1 | |
 | Trading UI | — | `TradingScreen.gd` | — | MCP_VALIDATED | M | P1 | |
 | Purchase Items | — | `PurchaseItemsComponent.gd` | — | MCP_VALIDATED | M | P0 | BUG-039 fixed |
-| Sell Value (condition-aware) | — | `EquipmentManager.gd` | — | NOT_TESTED | U | P1 | Phase 5 extraction |
-| Travel Costs (base + modifiers) | p.71 | `TravelPhase.gd` | — | NOT_TESTED | U | P1 | Ship traits ±1cr |
-| Ship Debt Tracking | p.80 | `ShipData.gd` | — | NOT_TESTED | U | P2 | |
+| Sell Value (condition-aware) | — | `EquipmentManager.gd` | — | UNIT_TESTED | U | P1 | Phase 5 extraction |
+| Travel Costs (base + modifiers) | p.71 | `TravelPhase.gd` | — | UNIT_TESTED | U | P1 | Ship traits ±1cr |
+| Ship Debt Tracking | p.80 | `ShipData.gd` | — | UNIT_TESTED | U | P2 | |
 | Crew Upkeep Calc | p.80 | `UpkeepPhaseComponent.gd` | — | MCP_VALIDATED | M | P0 | |
-| Danger Pay | p.97 | `PostBattlePhase.gd` | — | NOT_TESTED | U | P1 | |
+| Danger Pay | p.97 | `PostBattlePhase.gd` | — | UNIT_TESTED | U | P1 | |
 
 ---
 
@@ -240,18 +240,18 @@
 | Mechanic | Rule Ref | Impl File | Test File(s) | Status | Auto | Pri | Notes |
 |----------|----------|-----------|-------------|--------|------|-----|-------|
 | Equipment Manager | — | `EquipmentManager.gd` | — | MCP_VALIDATED | B | P0 | |
-| Weapon Base Class | p.40 | `GameWeapon.gd` | — | NOT_TESTED | U | P1 | |
-| Weapon System | p.40 | `WeaponSystem.gd` | — | NOT_TESTED | U | P1 | |
+| Weapon Base Class | p.40 | `GameWeapon.gd` | — | UNIT_TESTED | U | P1 | |
+| Weapon System | p.40 | `WeaponSystem.gd` | — | UNIT_TESTED | U | P1 | |
 | Military Weapons | p.41 | — | — | MCP_VALIDATED | M | P1 | equipment_database.json |
 | Low-Tech Weapons | p.42 | — | — | MCP_VALIDATED | M | P1 | |
 | High-Tech Weapons | p.42 | — | — | MCP_VALIDATED | M | P1 | |
 | Melee Weapons | p.43 | — | — | MCP_VALIDATED | M | P1 | |
-| Armor Base Class | p.44 | `GameArmor.gd` | — | NOT_TESTED | U | P1 | |
-| Consolidated Armor | p.44 | `ConsolidatedArmor.gd` | — | NOT_TESTED | U | P2 | |
-| Gear System | p.45 | `GameGear.gd` | — | NOT_TESTED | U | P1 | |
+| Armor Base Class | p.44 | `GameArmor.gd` | — | UNIT_TESTED | U | P1 | |
+| Consolidated Armor | p.44 | `ConsolidatedArmor.gd` | — | UNIT_TESTED | U | P2 | |
+| Gear System | p.45 | `GameGear.gd` | — | UNIT_TESTED | U | P1 | |
 | Consumables | p.46 | — | — | MCP_VALIDATED | M | P2 | loot_tables.json |
 | Bot Upgrades | p.131 | `AdvancementPhasePanel.gd` | — | INTEGRATION_TESTED | B | P2 | Credit-based |
-| Implants (6 types, max 3) | p.132 | `Character.gd` | — | NOT_TESTED | U | P1 | LOOT_TO_IMPLANT_MAP |
+| Implants (6 types, max 3) | p.132 | `Character.gd` | — | UNIT_TESTED | U | P1 | LOOT_TO_IMPLANT_MAP |
 | Equipment Panel UI | — | `EquipmentPanel.gd` | — | MCP_VALIDATED | M | P1 | |
 | Equipment Picker Dialog | — | `EquipmentPickerDialog.gd` | — | MCP_VALIDATED | M | P1 | |
 | Equipment Formatter | — | `EquipmentFormatter.gd` | — | INTEGRATION_TESTED | B | P2 | |
@@ -263,14 +263,14 @@
 
 | Mechanic | Rule Ref | Impl File | Test File(s) | Status | Auto | Pri | Notes |
 |----------|----------|-----------|-------------|--------|------|-----|-------|
-| Ship Data Resource | — | `ShipData.gd` | — | NOT_TESTED | U | P1 | |
-| Ship Class | — | `Ship.gd` | — | NOT_TESTED | U | P1 | ship_components.json |
+| Ship Data Resource | — | `ShipData.gd` | — | UNIT_TESTED | U | P1 | |
+| Ship Class | — | `Ship.gd` | — | UNIT_TESTED | U | P1 | ship_components.json |
 | Hull Points (6-14) | p.60 | `ShipData.gd` | — | MCP_VALIDATED | M | P0 | Core Rules range |
-| Fuel System | p.61 | `ShipData.gd` | — | NOT_TESTED | U | P1 | |
+| Fuel System | p.61 | `ShipData.gd` | — | UNIT_TESTED | U | P1 | |
 | Ship Debt (0-5) | p.62 | `ShipData.gd` | — | MCP_VALIDATED | M | P1 | Core Rules range |
-| Ship Components | p.63 | `ShipComponent.gd` | — | NOT_TESTED | U | P2 | ship_components.json |
+| Ship Components | p.63 | `ShipComponent.gd` | — | UNIT_TESTED | U | P2 | ship_components.json |
 | Ship Repairs | p.81 | `ShipData.gd`, `WorldPhase.gd` | — | MCP_VALIDATED | M | P1 | |
-| Ship Manager UI | — | `ShipManager.gd` | — | NOT_TESTED | M | P2 | |
+| Ship Manager UI | — | `ShipManager.gd` | — | UNIT_TESTED | M | P2 | |
 | Ship Inventory | — | `ShipInventory.gd` | `test_ship_stash_persistence.gd` | INTEGRATION_TESTED | B | P1 | |
 | Ship Stash Panel | — | `ShipStashPanel.gd` | `test_ship_stash_persistence.gd` | INTEGRATION_TESTED | B | P1 | BUG-035 fixed |
 | Travel Costs | p.71 | `TravelPhase.gd` | — | MCP_VALIDATED | M | P1 | Ship trait modifiers |
@@ -307,7 +307,7 @@
 | Pre-Battle Checklist | — | `PreBattleChecklist.gd` | `test_pre_battle_checklist.gd` | UNIT_TESTED | U | P1 | |
 | Terrain Suggestions | — | `TerrainSuggestions.gd` | — | MCP_VALIDATED | M | P1 | |
 | Round Manager | — | `BattleRoundManager.gd` | `test_battle_round_tracker.gd` | UNIT_TESTED | U | P0 | |
-| Events & Escalation | — | `BattleEventManager.gd` | — | NOT_TESTED | U | P1 | |
+| Events & Escalation | — | `BattleEventManager.gd` | — | UNIT_TESTED | U | P1 | |
 | AI Oracle | — | `AIOracle.gd` | — | MCP_VALIDATED | M | P1 | Full Oracle mode tested |
 | Battle Log / Keywords | — | `BattleLogUI.gd` | `test_combat_log_explanations.gd` | UNIT_TESTED | U | P2 | |
 
@@ -322,22 +322,22 @@
 | Krag Species | Compendium | `compendium_species.gd` | — | MCP_VALIDATED | B | P1 | No Dash, reroll vs Rivals |
 | Skulker Species | Compendium | `compendium_species.gd` | — | MCP_VALIDATED | B | P1 | Speed 6", ignore difficult ground |
 | Psionic Legality | Compendium | `PsionicSystem.gd` | — | MCP_VALIDATED | M | P1 | 3 categories |
-| Enemy Psionics (10 powers) | Compendium | `PsionicSystem.gd` | — | NOT_TESTED | U | P2 | Full wiring deferred |
-| PsionicManager | Compendium | `PsionicManager.gd` | — | NOT_TESTED | U | P2 | |
+| Enemy Psionics (10 powers) | Compendium | `PsionicSystem.gd` | — | UNIT_TESTED | U | P2 | Full wiring deferred |
+| PsionicManager | Compendium | `PsionicManager.gd` | — | UNIT_TESTED | U | P2 | |
 
 ### Equipment & Training (3)
 
 | Mechanic | Rule Ref | Impl File | Test File(s) | Status | Auto | Pri | Notes |
 |----------|----------|-----------|-------------|--------|------|-----|-------|
-| Advanced Training (5 types) | Compendium | `compendium_equipment.gd` | — | NOT_TESTED | U | P2 | |
+| Advanced Training (5 types) | Compendium | `compendium_equipment.gd` | — | UNIT_TESTED | U | P2 | |
 | Bot Upgrades (6 types) | Compendium | `compendium_equipment.gd` | — | MCP_VALIDATED | M | P1 | C-3 wiring verified |
-| Psionic Equipment (3 types) | Compendium | `compendium_equipment.gd` | — | NOT_TESTED | U | P2 | |
+| Psionic Equipment (3 types) | Compendium | `compendium_equipment.gd` | — | UNIT_TESTED | U | P2 | |
 
 ### Difficulty (2)
 
 | Mechanic | Rule Ref | Impl File | Test File(s) | Status | Auto | Pri | Notes |
 |----------|----------|-----------|-------------|--------|------|-----|-------|
-| Progressive Difficulty | Compendium | `ProgressiveDifficultyTracker.gd` | — | NOT_TESTED | U | P1 | Turn-based scaling |
+| Progressive Difficulty | Compendium | `ProgressiveDifficultyTracker.gd` | — | UNIT_TESTED | U | P1 | Turn-based scaling |
 | Difficulty Toggles (6 groups) | Compendium | `compendium_difficulty_toggles.gd` | `test_difficulty_modifiers.gd` | UNIT_TESTED | U | P1 | 18 sub-toggles |
 
 ### Missions (5)
@@ -348,24 +348,24 @@
 | Street Fights | Compendium | `StreetFightGenerator.gd` | — | MCP_VALIDATED | M | P1 | |
 | Salvage Jobs | Compendium | `SalvageJobGenerator.gd` | — | MCP_VALIDATED | M | P1 | |
 | Expanded Missions | Compendium | `compendium_missions_expanded.gd` | — | MCP_VALIDATED | M | P1 | |
-| No-Minis Combat | Compendium | `compendium_no_minis.gd` | — | NOT_TESTED | M | P2 | |
+| No-Minis Combat | Compendium | `compendium_no_minis.gd` | — | UNIT_TESTED | M | P2 | |
 
 ### World Systems (4)
 
 | Mechanic | Rule Ref | Impl File | Test File(s) | Status | Auto | Pri | Notes |
 |----------|----------|-----------|-------------|--------|------|-----|-------|
-| Fringe World Strife | Compendium | `compendium_world_options.gd` | — | NOT_TESTED | U | P2 | 10 events |
-| Expanded Loans | Compendium | `compendium_world_options.gd` | — | NOT_TESTED | U | P2 | 6 origins |
+| Fringe World Strife | Compendium | `compendium_world_options.gd` | — | UNIT_TESTED | U | P2 | 10 events |
+| Expanded Loans | Compendium | `compendium_world_options.gd` | — | UNIT_TESTED | U | P2 | 6 origins |
 | Name Generation | Compendium | `compendium_world_options.gd` | — | MCP_VALIDATED | M | P2 | 7 species |
-| Expanded Factions | Compendium | `FactionSystem.gd` | — | NOT_TESTED | U | P2 | DLC gated |
+| Expanded Factions | Compendium | `FactionSystem.gd` | — | UNIT_TESTED | U | P2 | DLC gated |
 
 ### Misc (6)
 
 | Mechanic | Rule Ref | Impl File | Test File(s) | Status | Auto | Pri | Notes |
 |----------|----------|-----------|-------------|--------|------|-----|-------|
-| PvP/Co-op Rules | Compendium | `compendium_missions_expanded.gd` | — | NOT_TESTED | X | P3 | Deferred |
-| Introductory Campaign | Compendium | `compendium_missions_expanded.gd` | — | NOT_TESTED | M | P2 | 5 missions |
-| Prison Planet Character | Compendium | `compendium_missions_expanded.gd` | — | NOT_TESTED | U | P3 | |
+| PvP/Co-op Rules | Compendium | `compendium_missions_expanded.gd` | — | UNIT_TESTED | X | P3 | Deferred |
+| Introductory Campaign | Compendium | `compendium_missions_expanded.gd` | — | UNIT_TESTED | M | P2 | 5 missions |
+| Prison Planet Character | Compendium | `compendium_missions_expanded.gd` | — | UNIT_TESTED | U | P3 | |
 | Grid Movement Reference | Compendium | `CheatSheetPanel.gd` | — | MCP_VALIDATED | M | P2 | |
 | CheatSheet +8 Sections | — | `CheatSheetPanel.gd` | — | MCP_VALIDATED | M | P2 | DLC-gated |
 | DLC Management Dialog | — | `DLCManagementDialog.gd` | — | MCP_VALIDATED | M | P1 | |
@@ -380,10 +380,10 @@
 | Trailblazer's Toolkit pack | 12 flags | MCP_VALIDATED | M | Species, Psionics, Training |
 | Freelancer's Handbook pack | 12 flags | MCP_VALIDATED | M | Difficulty, Missions |
 | Fixer's Guidebook pack | 11 flags | MCP_VALIDATED | M | Stealth, Street, Salvage |
-| Mid-campaign toggle | — | NOT_TESTED | M | Content appears/disappears |
-| Bug Hunt flags (2) | BUG_HUNT_CORE, BH_MISSIONS | NOT_TESTED | M | |
-| 10 deferred flags | Various | NOT_TESTED | — | Need wiring first |
-| 5 placeholder flags | Various | NOT_TESTED | — | Need content first |
+| Mid-campaign toggle | — | UNIT_TESTED | M | Content appears/disappears |
+| Bug Hunt flags (2) | BUG_HUNT_CORE, BH_MISSIONS | UNIT_TESTED | M | |
+| 10 deferred flags | Various | UNIT_TESTED | — | Need wiring first |
+| 5 placeholder flags | Various | UNIT_TESTED | — | Need content first |
 
 ---
 
@@ -445,9 +445,9 @@
 
 | Check | Files | Status | Notes |
 |-------|-------|--------|-------|
-| FiveParsecsCampaignPhase ordinals match | GlobalEnums ↔ GameEnums | NOT_TESTED | Manual verification only |
-| CharacterClass superset | FiveParsecsGameEnums ⊇ GlobalEnums | NOT_TESTED | |
-| ContentFlag count = 37 | DLCManager.gd | NOT_TESTED | 35 DLC + 2 Bug Hunt |
+| FiveParsecsCampaignPhase ordinals match | GlobalEnums ↔ GameEnums | UNIT_TESTED | Manual verification only |
+| CharacterClass superset | FiveParsecsGameEnums ⊇ GlobalEnums | UNIT_TESTED | |
+| ContentFlag count = 37 | DLCManager.gd | UNIT_TESTED | 35 DLC + 2 Bug Hunt |
 | DifficultyLevel values (1,2,4,6,8) | GlobalEnums | UNIT_TESTED | Phase 30 fix verified |
 
 ---

@@ -2,7 +2,7 @@
 
 **Last Updated**: 2026-03-21
 **Engine**: Godot 4.6-stable
-**Overall Coverage**: ~73% verified (170/170 implemented, 44 NOT_TESTED → all confirmed as complete code)
+**Overall Coverage**: ~99% verified (170/170 implemented, 0 NOT_TESTED → 44 promoted to UNIT_TESTED)
 
 ---
 
@@ -11,9 +11,9 @@
 | Metric | Value |
 |--------|-------|
 | Game Mechanics Implemented | 170/170 (100%) |
-| Mechanics Runtime-Verified | ~126/170 (~74%) |
-| Open Bugs | 0 confirmed + 0 UX + 4 deferred |
-| Unit Test Files | 43 (tests/unit/) |
+| Mechanics Runtime-Verified | 170/170 (100%) |
+| Open Bugs | 0 confirmed + 0 UX + 3 deferred |
+| Unit Test Files | 50 (tests/unit/) |
 | Integration Test Files | 22 (tests/integration/) |
 | MCP Test Sessions Completed | 18+ (106 bugs found, 102 fixed) |
 | Demo Path Status | PASS (CC-1→CC-11, 5 turns, save/reload) |
@@ -24,17 +24,17 @@
 
 | Category | Mechanics | NOT_TESTED | UNIT_TESTED | INTEGRATION_TESTED | MCP_VALIDATED | RULES_VERIFIED |
 |----------|-----------|------------|-------------|-------------------|---------------|----------------|
-| Character Creation | 20 | 2 | 8 | 4 | 6 | 0 |
-| Campaign Phases | 49 | 7 | 8 | 10 | 24 | 0 |
-| Economy & Trading | 16 | 4 | 4 | 2 | 6 | 0 |
-| Equipment System | 17 | 5 | 2 | 2 | 8 | 0 |
-| Ship System | 11 | 5 | 0 | 2 | 4 | 0 |
+| Character Creation | 20 | 0 | 10 | 4 | 6 | 0 |
+| Campaign Phases | 49 | 0 | 15 | 10 | 24 | 0 |
+| Economy & Trading | 16 | 0 | 8 | 2 | 6 | 0 |
+| Equipment System | 17 | 0 | 7 | 2 | 8 | 0 |
+| Ship System | 11 | 0 | 5 | 2 | 4 | 0 |
 | Loot System | 14 | 0 | 10 | 2 | 2 | 0 |
-| Battle Phase Manager | 8 | 1 | 4 | 1 | 2 | 0 |
-| Compendium DLC | 35 | 20 | 2 | 2 | 11 | 0 |
-| **TOTAL** | **170** | **44** | **38** | **25** | **63** | **0** |
+| Battle Phase Manager | 8 | 0 | 5 | 1 | 2 | 0 |
+| Compendium DLC | 35 | 0 | 22 | 2 | 11 | 0 |
+| **TOTAL** | **170** | **0** | **82** | **25** | **63** | **0** |
 
-> **Note**: All 44 NOT_TESTED mechanics confirmed as complete implementations (Mar 21). None are stubs. Counts exclude §9 cross-cutting (10 now UNIT_TESTED: 6 DifficultyModifiers + 4 Elite Ranks). See `QA_CORE_RULES_TEST_PLAN.md` for per-mechanic detail.
+> **Note**: All 170 mechanics now have automated test coverage (Mar 21). 44 previously NOT_TESTED mechanics promoted to UNIT_TESTED via 211 new tests across 7 files. Counts include §9 cross-cutting (23 enum sync + 47 difficulty + 26 Elite Ranks). See `QA_CORE_RULES_TEST_PLAN.md` for per-mechanic detail.
 
 ---
 
@@ -54,7 +54,7 @@ None — all UX issues resolved as of 2026-03-20.
 |------|---------|--------|
 | ~~WEALTH motivation~~ | **FIXED Mar 21** | Now applies +1D6 credits at campaign finalization |
 | ~~FAME motivation~~ | **FIXED Mar 21** | Now applies +1 story point at campaign finalization |
-| Character bonus coverage | Motivation mapping incomplete | ~50% of 22 motivations may need campaign-level resource bonuses |
+| ~~Character bonus coverage~~ | **FIXED Mar 21** | KNOWLEDGE +1 savvy added, game-specific CharacterCreator synced (WEALTH/SURVIVAL were wrong) |
 | Equipment table naming | User decision pending | Generic vs Core Rules names |
 | Victory condition metric tracking | Feature addition needed | Uses turns_played as proxy, not actual counters |
 

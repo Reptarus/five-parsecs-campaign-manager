@@ -200,14 +200,18 @@ func _apply_motivation_bonuses(motivation_id: int) -> void:
 	_remove_bonuses(current_bonuses.motivation)
 	current_bonuses.motivation.clear()
 
-	# Apply new motivation bonuses based on selection
+	# Motivations give narrative effects; a few grant direct stat bonuses.
+	# Resource-based bonuses (credits, story points) are applied at campaign
+	# level in CampaignFinalizationService, not here.
 	match motivation_id:
 		GlobalEnums.Motivation.GLORY:
 			current_bonuses.motivation["COMBAT_SKILL"] = 1
-		GlobalEnums.Motivation.WEALTH:
-			current_bonuses.motivation["SAVVY"] = 1
 		GlobalEnums.Motivation.SURVIVAL:
-			current_bonuses.motivation["REACTIONS"] = 1
+			current_bonuses.motivation["TOUGHNESS"] = 1
+		GlobalEnums.Motivation.KNOWLEDGE:
+			current_bonuses.motivation["SAVVY"] = 1
+		# WEALTH: +1D6 credits applied in CampaignFinalizationService
+		# FAME: +1 story point applied in CampaignFinalizationService
 
 	# Apply new bonuses
 	_apply_bonuses(current_bonuses.motivation)
