@@ -22,7 +22,8 @@ const STAT_PROPERTY_MAP := {
 	"SAVVY": "savvy",
 	"LUCK": "luck",
 	"SPEED": "speed",
-	"CREDITS": "credits",  # Resource bonus (used by WEALTH motivation)
+	# CREDITS removed — not a character stat. WEALTH motivation credits
+	# applied at campaign level in CampaignFinalizationService
 }
 
 # Rulebook-order dropdown items: [display_name, enum_value]
@@ -445,15 +446,16 @@ func _apply_motivation_bonuses(motivation_id: int) -> void:
 	_remove_bonuses(current_bonuses.motivation)
 	current_bonuses.motivation.clear()
 
-	# Motivations give narrative effects; a few grant direct bonuses
+	# Motivations give narrative effects; a few grant direct stat bonuses.
+	# Resource-based bonuses (credits, story points) are applied at campaign
+	# level in CampaignFinalizationService, not here.
 	match motivation_id:
 		GlobalEnums.Motivation.GLORY:
 			current_bonuses.motivation["COMBAT_SKILL"] = 1
-		GlobalEnums.Motivation.WEALTH:
-			# Core Rules: WEALTH gives bonus starting credits, not a stat
-			current_bonuses.motivation["CREDITS"] = 100
 		GlobalEnums.Motivation.SURVIVAL:
 			current_bonuses.motivation["TOUGHNESS"] = 1
+		# WEALTH: +1D6 credits applied in CampaignFinalizationService
+		# FAME: +1 story point applied in CampaignFinalizationService
 
 	_apply_bonuses(current_bonuses.motivation)
 

@@ -1,6 +1,6 @@
 # Core Rules QA Test Plan
 
-**Last Updated**: 2026-03-20
+**Last Updated**: 2026-03-21
 **Source**: `docs/GAME_MECHANICS_IMPLEMENTATION_MAP.md` (170/170 mechanics)
 **Purpose**: Map every implemented mechanic to its *test verification status*
 
@@ -25,14 +25,16 @@
 | Category | Total | NOT_TESTED | UNIT | INTEG | MCP | RULES |
 |----------|-------|------------|------|-------|-----|-------|
 | 1. Character Creation | 20 | 2 | 8 | 4 | 6 | 0 |
-| 2. Campaign Phases | 49 | 10 | 5 | 10 | 24 | 0 |
+| 2. Campaign Phases | 49 | 7 | 8 | 10 | 24 | 0 |
 | 3. Economy & Trading | 16 | 4 | 4 | 2 | 6 | 0 |
 | 4. Equipment System | 17 | 5 | 2 | 2 | 8 | 0 |
 | 5. Ship System | 11 | 5 | 0 | 2 | 4 | 0 |
 | 6. Loot System | 14 | 0 | 10 | 2 | 2 | 0 |
 | 7. Battle Phase Manager | 8 | 1 | 4 | 1 | 2 | 0 |
 | 8. Compendium DLC | 35 | 20 | 2 | 2 | 11 | 0 |
-| **TOTAL** | **170** | **47** | **35** | **25** | **63** | **0** |
+| **TOTAL** | **170** | **44** | **38** | **25** | **63** | **0** |
+
+> **§9 Cross-Cutting (not in category totals)**: 10 mechanics promoted to UNIT_TESTED (Mar 21): 6 DifficultyModifiers battle modifiers + 4 Elite Ranks formulas. Tests: `test_difficulty_modifiers_battle.gd` (47 tests), `test_player_profile.gd` (26 tests).
 
 ---
 
@@ -188,16 +190,16 @@
 | Patron Contact | p.96 | `PostBattlePhase.gd` | — | MCP_VALIDATED | M | P1 | |
 | Quest Progress | p.97 | `PostBattlePhase.gd` | — | MCP_VALIDATED | M | P1 | |
 | Base Mission Pay | p.97 | `PostBattlePhase.gd` | — | MCP_VALIDATED | M | P0 | BUG-039 fixed |
-| Danger Pay Bonus | p.97 | `PostBattlePhase.gd` | — | NOT_TESTED | U | P1 | Difficulty multiplier |
+| Danger Pay Bonus | p.97 | `PostBattlePhase.gd` | `test_post_battle_subsystems.gd` | UNIT_TESTED | U | P1 | Difficulty multiplier, PaymentProcessor |
 | Battlefield Finds | p.66 | `PostBattlePhase.gd` | — | MCP_VALIDATED | M | P1 | |
 | Invasion Check (2D6, 9+) | p.98 | `PostBattlePhase.gd` | — | MCP_VALIDATED | M | P1 | |
 | Enemy Loot | p.98 | `PostBattlePhase.gd` | — | MCP_VALIDATED | M | P1 | |
 | Injury Determination | p.123 | `PostBattlePhase.gd` | `test_injury_determination.gd` | UNIT_TESTED | U | P0 | |
 | XP Calculation (7 sources) | p.89-90 | `PostBattlePhase.gd` | — | MCP_VALIDATED | M | P0 | |
-| Training Opportunities | p.129 | `PostBattlePhase.gd` | — | NOT_TESTED | U | P2 | 2D6 approval |
+| Training Opportunities | p.129 | `PostBattlePhase.gd` | `test_post_battle_subsystems.gd` | UNIT_TESTED | U | P2 | 2D6 approval, ExperienceTrainingProcessor |
 | Campaign Event (D100) | p.100 | `PostBattlePhase.gd` | — | MCP_VALIDATED | M | P1 | 53+ events |
 | Character Event | p.101 | `PostBattlePhase.gd` | — | MCP_VALIDATED | M | P1 | 23+ events |
-| Galactic War Update | p.102 | `PostBattlePhase.gd` | — | NOT_TESTED | M | P2 | 2D6 per planet |
+| Galactic War Update | p.102 | `PostBattlePhase.gd` | `test_post_battle_subsystems.gd` | UNIT_TESTED | M | P2 | 2D6 per planet, GalacticWarProcessor |
 
 ### Remaining Campaign Turn Phases (4)
 
@@ -393,25 +395,25 @@
 |----------|------|--------|-------------|----------|----------|-----------|--------|
 | XP Bonus | +1 | 0 | 0 | 0 | 0 | `test_difficulty_modifiers.gd` | UNIT_TESTED |
 | Story Points | 0 | 0 | 0 | -1 start | Disabled | `test_difficulty_modifiers.gd` | UNIT_TESTED |
-| Enemy Count | -1 if ≥5 | 0 | Reroll 1-2 | +1 basic | +1 specialist | — | NOT_TESTED |
-| Invasion Roll | 0 | 0 | 0 | +2 | +3 | — | NOT_TESTED |
-| Seize Initiative | 0 | 0 | 0 | -2 | -3 | — | NOT_TESTED |
-| Rival Resistance | 0 | 0 | 0 | -2 | 0 | — | NOT_TESTED |
-| Unique Individual | — | — | — | +1 roll | Forced every battle | — | NOT_TESTED |
-| Stars of Story | Yes | Yes | Yes | Yes | Disabled | — | NOT_TESTED |
+| Enemy Count | -1 if ≥5 | 0 | Reroll 1-2 | +1 basic | +1 specialist | `test_difficulty_modifiers_battle.gd` | UNIT_TESTED |
+| Invasion Roll | 0 | 0 | 0 | +2 | +3 | `test_difficulty_modifiers_battle.gd` | UNIT_TESTED |
+| Seize Initiative | 0 | 0 | 0 | -2 | -3 | `test_difficulty_modifiers_battle.gd` | UNIT_TESTED |
+| Rival Resistance | 0 | 0 | 0 | -2 | 0 | `test_difficulty_modifiers_battle.gd` | UNIT_TESTED |
+| Unique Individual | — | — | — | +1 roll | Forced every battle | `test_difficulty_modifiers_battle.gd` | UNIT_TESTED |
+| Stars of Story | Yes | Yes | Yes | Yes | Disabled | `test_difficulty_modifiers_battle.gd` | UNIT_TESTED |
 
-**Gap**: Only XP bonus and story point modifiers are unit tested. The 6 battle-affecting modifiers need tests. See TM-1 in test-matrices.md.
+**Status (Mar 21)**: All 8 modifiers now UNIT_TESTED. 47 tests in `test_difficulty_modifiers_battle.gd` cover all 5 difficulty levels × all modifier types + integration helpers.
 
 ### 9b. Elite Ranks (PlayerProfile.gd)
 
 | Bonus | Formula | Test File | Status | Notes |
 |-------|---------|-----------|--------|-------|
-| Story Point Bonus | +1 per rank | — | NOT_TESTED | `get_starting_story_point_bonus()` |
-| XP Bonus | +2 per rank | — | NOT_TESTED | `get_starting_xp_bonus()` |
-| Extra Starting Characters | +1 per 3 ranks | — | NOT_TESTED | `get_extra_starting_characters()` |
-| Stars of Story Uses | 1 + (rank / 5) | — | NOT_TESTED | `get_stars_of_story_bonus_uses()` |
+| Story Point Bonus | +1 per rank | `test_player_profile.gd` | UNIT_TESTED | `get_starting_story_point_bonus()` |
+| XP Bonus | +2 per rank | `test_player_profile.gd` | UNIT_TESTED | `get_starting_xp_bonus()` |
+| Extra Starting Characters | +1 per 3 ranks | `test_player_profile.gd` | UNIT_TESTED | `get_extra_starting_characters()` |
+| Stars of Story Uses | 1 + (rank / 5) | `test_player_profile.gd` | UNIT_TESTED | `get_stars_of_story_bonus_uses()` |
 
-**Gap**: No tests exist for PlayerProfile. All 4 bonus formulas need unit tests + integration test for cross-campaign persistence.
+**Status (Mar 21)**: All 4 bonus formulas UNIT_TESTED (26 tests). Covers boundary values, scaling, duplicate prevention, reset, and bonus summary. Cross-campaign persistence tested via award/reset cycle.
 
 ### 9c. Victory Conditions (VictoryChecker.gd — 21 types)
 

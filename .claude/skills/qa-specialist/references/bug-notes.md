@@ -23,13 +23,16 @@ Canonical bug tracker for QA reference. Updated after each fix sprint.
 | BUG-034 | VC card description text low contrast (#808080 on #244862 ≈ 3.2:1) | Updated `_set_card_selected_state()` to swap desc text to COLOR_TEXT_PRIMARY and target to COLOR_FOCUS when selected. ExpandedConfigPanel.gd |
 | UX-091 | Mission Prep shows "READY" with 0/4 crew equipped — no equipment check in readiness | Added `equipped_crew == 0` guard in `check_crew_readiness()`. MissionPrepComponent.gd |
 | UX-092 | Assign Equipment buttons grayed out — crew selection lost on list rebuild, no auto-select | Preserve crew selection across `_update_crew_list()` rebuilds, reset stale equipment index, auto-select first crew in AssignEquipmentComponent. MissionPrepComponent.gd + AssignEquipmentComponent.gd |
+| WEALTH-FIX | WEALTH motivation silently failed — `_apply_stat_bonus("CREDITS", 100)` tried to set `credits` on Character (no such property). Credits are campaign-level. | Removed CREDITS from STAT_PROPERTY_MAP. Now applies +1D6 credits at campaign finalization in CampaignFinalizationService.gd. CharacterCreator.gd + CampaignFinalizationService.gd |
+| FAME-FIX | FAME motivation never granted story point — same pattern as WEALTH | Added FAME check in CampaignFinalizationService.gd, applies +1 story point. CampaignFinalizationService.gd |
+| SHADOW-FIX | `const Character := preload(Base/Character.gd)` in 7 files shadowed global `class_name Character` — could cause wrong type annotations | Removed all 7 shadowing consts. Global class_name Character now resolves correctly. 7 files |
 
 ## Open / Needs Investigation
 
 | Bug | Severity | Notes |
 |-----|----------|-------|
-| WEALTH motivation | Deferred | Needs resource bonus system architecture for proper implementation |
-| 49% character bonus coverage | Deferred | Most gaps need resource bonuses — blocked on architecture |
+| ~~WEALTH motivation~~ | **FIXED** | Applied +1D6 credits at campaign finalization (Mar 21) |
+| Character bonus coverage (~50%) | Deferred | ~10 of 22 motivations may need campaign-level bonuses (same pattern as WEALTH/FAME fix) |
 | Equipment table names | Deferred | User decision pending: generic vs Core Rules names |
 | Victory condition metric tracking | Deferred | Feature addition: counters for enemies/credits/worlds |
 

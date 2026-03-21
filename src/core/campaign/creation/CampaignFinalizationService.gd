@@ -342,6 +342,18 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	var creation_credits = resources.get("credits", 0)
 	var total_credits = creation_credits + equipment_credits
 
+	# MOTIVATION BONUS: Apply campaign-level resource bonuses from crew motivations
+	# Core Rules: WEALTH gives +1D6 starting credits, FAME gives +1 story point
+	var motivation_story_bonus: int = 0
+	var crew_members_for_bonus = crew_data.get("members", [])
+	for member in crew_members_for_bonus:
+		if member is Dictionary:
+			var m: int = member.get("motivation", 0)
+			if m == GlobalEnums.Motivation.WEALTH:
+				total_credits += randi_range(1, 6)  # +1D6 credits per Core Rules
+			elif m == GlobalEnums.Motivation.FAME:
+				motivation_story_bonus += 1  # +1 story point
+
 	# DATA MAPPING FIX: Coordinator stores patrons/rivals in crew dict, not resources
 	# Fall back to crew_data if resources dict doesn't have them
 	var patrons_data = resources.get("patrons", [])
@@ -353,7 +365,7 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 
 	# Apply Elite Rank story point bonus + difficulty modifier (Core Rules pp.64-65)
 	# Elite Rank: +1 story point per rank. Hardcore: -1. Insanity: 0 (can never receive them).
-	var base_story_points: int = resources.get("story_points", 0)
+	var base_story_points: int = resources.get("story_points", 0) + motivation_story_bonus
 	if profile:
 		base_story_points += profile.get_starting_story_point_bonus()
 	var final_story_points: int = DifficultyModifiers.apply_starting_story_points_modifier(

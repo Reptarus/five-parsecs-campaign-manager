@@ -190,7 +190,18 @@ Read `references/data-consistency.md` cross-mode section:
 - Bug Hunt save has no standard keys
 - Wrong loader fails gracefully
 
-### Phase 12: Report
+### Phase 12: Multi-Turn Playthrough (5+ turns)
+Validates cumulative state integrity across multiple turns:
+1. Load existing campaign (or create new via Phase 3)
+2. Snapshot baseline: `progress_data` counters, credits, crew, equipment
+3. For each turn, script: upkeep → world steps → battle (auto-resolve) → post-battle → late phases → save
+4. At each turn boundary, verify: `turns_played`, `battles_won/lost`, `missions_completed`, credits delta matches upkeep
+5. MCP pattern: `_debug_complete_current_step()` + `_advance_to_next_step()` for world phase, `_on_auto_resolve_battle()` for battle
+6. Check debug output for zero errors (warnings OK)
+
+**Established baseline** (Mar 21, 2026): 5-turn playthrough PASS (Turns 3-5), all counters consistent, 0 crashes.
+
+### Phase 13: Report
 Generate structured report with:
 - Total tests run / passed / failed
 - Bugs found (with severity and IDs from edge-cases.md)

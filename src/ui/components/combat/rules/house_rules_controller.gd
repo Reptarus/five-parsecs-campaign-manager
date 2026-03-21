@@ -2,7 +2,6 @@ extends Node
 
 ## Required dependencies
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const Character := preload("res://src/core/character/Base/Character.gd")
 const BaseCombatManager := preload("res://src/base/combat/BaseCombatManager.gd")
 const GameState := preload("res://src/core/state/GameState.gd")
 

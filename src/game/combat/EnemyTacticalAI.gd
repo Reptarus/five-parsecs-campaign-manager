@@ -11,7 +11,6 @@ signal group_coordination_updated(group: Array, leader: Object)
 
 ## Dependencies
 const GlobalEnums := preload("res://src/core/systems/GlobalEnums.gd")
-const Character := preload("res://src/core/character/Base/Character.gd")
 const BattlefieldManagerClass := preload("res://src/core/battle/BattlefieldManager.gd")
 const BaseCombatManager := preload("res://src/base/combat/BaseCombatManager.gd")
 

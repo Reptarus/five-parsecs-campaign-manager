@@ -4,7 +4,6 @@ extends Node
 
 const GameEnums := preload("res://src/core/systems/GlobalEnums.gd")
 const FiveParsecsGameState := preload("res://src/core/state/GameState.gd")
-const Character := preload("res://src/core/character/Base/Character.gd")
 
 signal training_completed(character: Character, skill: String)
 signal training_failed(character: Character, reason: String)
