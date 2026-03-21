@@ -23,22 +23,22 @@ var current_filter: String = "all"
 # Equipment categories
 const EQUIPMENT_CATEGORIES = ["all", "weapons", "armor", "gear", "consumables"]
 
-# Default equipment database
+# Default equipment database — Core Rules items as fallback
 const DEFAULT_EQUIPMENT = [
 	{"id": "hand_gun", "name": "Hand Gun", "category": "weapons", "bonus": 0},
 	{"id": "military_rifle", "name": "Military Rifle", "category": "weapons", "bonus": 1},
 	{"id": "plasma_rifle", "name": "Plasma Rifle", "category": "weapons", "bonus": 2},
 	{"id": "blade", "name": "Blade", "category": "weapons", "bonus": 0},
 	{"id": "shotgun", "name": "Shotgun", "category": "weapons", "bonus": 1},
-	{"id": "light_armor", "name": "Light Armor", "category": "armor", "bonus": 0},
 	{"id": "combat_armor", "name": "Combat Armor", "category": "armor", "bonus": 1},
-	{"id": "powered_armor", "name": "Powered Armor", "category": "armor", "bonus": 2},
-	{"id": "med_kit", "name": "Med Kit", "category": "consumables", "bonus": 0},
-	{"id": "frag_grenade", "name": "Frag Grenade", "category": "consumables", "bonus": 0},
-	{"id": "scavenger_kit", "name": "Scavenger Kit", "category": "gear", "bonus": 1},
-	{"id": "lucky_charm", "name": "Lucky Charm", "category": "gear", "bonus": 1},
-	{"id": "targeting_system", "name": "Targeting System", "category": "gear", "bonus": 1},
-	{"id": "combat_drone", "name": "Combat Drone", "category": "gear", "bonus": 2}
+	{"id": "frag_vest", "name": "Frag Vest", "category": "armor", "bonus": 0},
+	{"id": "screen_generator", "name": "Screen Generator", "category": "armor", "bonus": 1},
+	{"id": "booster_pills", "name": "Booster Pills", "category": "consumables", "bonus": 0},
+	{"id": "stim_pack", "name": "Stim-pack", "category": "consumables", "bonus": 0},
+	{"id": "motion_tracker", "name": "Motion Tracker", "category": "gear", "bonus": 1},
+	{"id": "battle_visor", "name": "Battle Visor", "category": "gear", "bonus": 1},
+	{"id": "jump_belt", "name": "Jump Belt", "category": "gear", "bonus": 1},
+	{"id": "communicator", "name": "Communicator", "category": "gear", "bonus": 1}
 ]
 
 func _init() -> void:

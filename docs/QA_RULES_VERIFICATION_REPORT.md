@@ -117,17 +117,49 @@ These require the physical Five Parsecs from Home Core Rules book for true RULES
 |------|--------|-------|
 | `weapons.json` | **FIXED** | Rewritten from Core Rules p.50 (36 weapons) |
 | `equipment_database.json` | **FIXED** | Weapons section rewritten from Core Rules p.50 |
-| `armor.json` | **NEEDS REWRITE** | 18 invented armors (Padded Jacket, Exo-Armor, etc.). Core Rules has only ~5 armor types |
+| `armor.json` | **FIXED** | Rewritten with 9 Core Rules protective devices (pp.54-55): 5 armor + 4 screens |
+| `implants.json` | **FIXED** | Rewritten with 11 Core Rules implants (p.55). MAX_IMPLANTS changed 3→2 |
+| `consumables.json` | **NEW** | 6 Core Rules consumables (p.54) with exact book effects |
+| `utility_devices.json` | **FIXED** | Rewritten with all 20 Core Rules utility devices (pp.56-57) |
+| `onboard_items.json` | **NEW** | 19 Core Rules on-board items (pp.57-58) |
+| `weapon_modifications.json` | **FIXED** | Rewritten with 8 gun mods + 5 gun sights (p.53) from book |
+| `loot_tables.json` | **FIXED** | Full weapon/gear/odds subtables matching pp.131-133 D100 entries |
 | `gear_database.json` | **NEEDS AUDIT** | Species data partially accurate, gear items unverified |
-| `loot_tables.json` | **STRUCTURE OK, DETAILS WRONG** | Main table ranges match p.131 but weapon subtables are simplified (missing ~20 weapons from D100 rolls). Page ref should be p.131 not p.70-72 |
 | `enemy_types.json` | **NEEDS AUDIT** | Unverified against Bestiary |
 | `injury_table.json` | **NEEDS AUDIT** | Unverified against Core Rules injury table |
 | `character_species.json` | **NEEDS AUDIT** | May duplicate/conflict with SpeciesList.json |
 
+### Code Wiring Status (Mar 21)
+
+| Code File | Status | Changes |
+|-----------|--------|---------|
+| `Character.gd` | **FIXED** | MAX_IMPLANTS=2, 11 book IMPLANT_TYPES, LOOT_TO_IMPLANT_MAP rewritten |
+| `LootSystemConstants.gd` | **FIXED** | CONSUMABLE_ITEMS rewritten (6 book items), all subtable item lists updated |
+| `EquipmentPickerDialog.gd` | **FIXED** | Default equipment updated to book-accurate items |
+| `test_equipment_classes.gd` | **FIXED** | Implant tests rewritten for book-accurate types |
+| `test_loot_gear_and_odds.gd` | **FIXED** | Validation lists updated for all 9 armor + 11 implants |
+| `LootSystemHelper.gd` | **FIXED** | Item lists updated for consumables/implants |
+
+### Compendium DLC Audit Status (Mar 21)
+
+| Compendium Section | Code File | Status | Changes |
+|--------------------|-----------|--------|---------|
+| Species (Krag, Skulker) | `compendium_species.gd` | **VERIFIED** | Stats match book pp.14-18 |
+| Advanced Training (5) | `compendium_equipment.gd` | **VERIFIED** | All 5 courses match book p.27 |
+| Bot Upgrades (6) | `compendium_equipment.gd` | **FIXED** | Jump Module description corrected (Dash allowed, not forbidden) |
+| New Ship Parts | `compendium_equipment.gd` | **FIXED** | Replaced 7 invented parts with 2 book components + 1 mod (p.29) |
+| Psionic Equipment | `compendium_equipment.gd` | **FIXED** | Replaced 5 invented items with 3 book items (p.29) |
+| Difficulty Toggles | `compendium_difficulty_toggles.gd` | **NOT AUDITED** | Needs verification against pp.34-36 |
+| No-minis Combat | `compendium_no_minis.gd` | **NOT AUDITED** | Needs verification against pp.68-75 |
+| Expanded Missions | `compendium_missions_expanded.gd` | **NOT AUDITED** | Needs verification against pp.76-88 |
+| World Options | `compendium_world_options.gd` | **NOT AUDITED** | Needs verification |
+
 ## Recommendations
 
-1. ~~**Fix species bugs (BUG-036/037/038)**~~ — BUG-037/038 FIXED. BUG-036 (Precursor psionic) needs design work
+1. ~~**Fix species bugs (BUG-036/037/038)**~~ — BUG-037/038 FIXED. BUG-036 RESOLVED (not a bug)
 2. ~~**Fix weapon data**~~ — DONE. All weapons match Core Rules p.50
-3. **Rewrite armor.json** — Needs book armor table (probably near p.50)
-4. **Expand loot_tables.json** — Weapon subtables need full D100 entries from p.131
-5. **Physical book review needed** for remaining ~137 mechanics
+3. ~~**Rewrite armor.json**~~ — DONE. 9 protective devices from pp.54-55
+4. ~~**Expand loot_tables.json**~~ — DONE. Full D100 entries from pp.131-133
+5. **Audit remaining data files** — enemy_types.json, injury_table.json, character_species.json
+6. **Audit remaining Compendium data** — difficulty toggles, no-minis, expanded missions, world options
+7. **Physical book review needed** for remaining ~137 mechanics

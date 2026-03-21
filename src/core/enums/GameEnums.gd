@@ -182,17 +182,41 @@ enum ItemType {
 	SPECIAL # Special item
 }
 
-## Character Classes
+## Character Classes (synced with GlobalEnums.CharacterClass)
+## Legacy values (0-8) preserved for save compatibility
 enum CharacterClass {
-	NONE, # No character class
-	SOLDIER, # Soldier class
-	MEDIC, # Medic class
-	ENGINEER, # Engineer class
-	PILOT, # Pilot class
-	MERCHANT, # Merchant class
-	SECURITY, # Security class
-	BROKER, # Broker class
-	BOT_TECH # Bot Tech class
+	NONE, # 0
+	SOLDIER, # 1
+	MEDIC, # 2 (legacy — not a book class)
+	ENGINEER, # 3 (legacy — not a book class)
+	PILOT, # 4 (legacy — not a book class)
+	MERCHANT, # 5 (legacy — not a book class)
+	SECURITY, # 6 (legacy — not a book class)
+	BROKER, # 7 (legacy — not a book class)
+	BOT_TECH, # 8 (legacy — not a book class)
+	# Book classes (Core Rules p.27) appended for save compat
+	WORKING_CLASS, # 9
+	TECHNICIAN, # 10
+	SCIENTIST, # 11
+	HACKER, # 12
+	MERCENARY, # 13
+	AGITATOR, # 14
+	PRIMITIVE, # 15
+	ARTIST, # 16
+	NEGOTIATOR, # 17
+	TRADER, # 18
+	STARSHIP_CREW, # 19
+	PETTY_CRIMINAL, # 20
+	GANGER, # 21
+	SCOUNDREL, # 22
+	ENFORCER, # 23
+	SPECIAL_AGENT, # 24
+	TROUBLESHOOTER, # 25
+	BOUNTY_HUNTER, # 26
+	NOMAD, # 27
+	EXPLORER, # 28
+	PUNK, # 29
+	SCAVENGER # 30
 }
 
 ## Character Origins
@@ -777,8 +801,8 @@ enum EnemyCategory {
 	NONE, # No category
 	CRIMINAL_ELEMENTS, # Criminal gangs and outlaws
 	HIRED_MUSCLE, # Mercenaries and hired forces
-	MILITARY_FORCES, # Organized military units
-	ALIEN_THREATS # Non-human hostile forces
+	INTERESTED_PARTIES, # Other groups with stakes (was MILITARY_FORCES)
+	ROVING_THREATS # Dangerous creatures and threats (was ALIEN_THREATS)
 }
 
 ## Enemy Behaviors

@@ -56,33 +56,36 @@ const MAIN_LOOT_RANGES: Dictionary = {
 ## WEAPON SUBTABLE (D100)
 ## ==========================================
 
+## Core Rules p.131 — Weapon Category Subtable
 const WEAPON_SUBTABLE_RANGES: Dictionary = {
-	"basic_weapons": {"min": 1, "max": 35, "items": ["Hand Gun", "Military Rifle", "Shotgun", "Auto Rifle"]},
-	"energy_weapons": {"min": 36, "max": 50, "items": ["Hand Laser", "Infantry Laser", "Blast Rifle"]},
-	"plasma_weapons": {"min": 51, "max": 65, "items": ["Plasma Rifle", "Fury Rifle", "Needle Rifle"]},
-	"melee_weapons": {"min": 66, "max": 85, "items": ["Blade", "Ripper Sword", "Boarding Saber"]},
-	"grenades": {"min": 86, "max": 100, "items": ["3 Frakk Grenades", "2 Dazzle Grenades", "2 Shock Grenades"]}
+	"slug_weapons": {"min": 1, "max": 35, "items": ["Hold Out Pistol", "Hand Gun", "Scrap Pistol", "Machine Pistol", "Duelling Pistol", "Hand Cannon", "Colony Rifle", "Military Rifle", "Shotgun", "Flak Gun", "Hunting Rifle", "Marksman's Rifle", "Auto Rifle", "Rattle Gun"]},
+	"energy_weapons": {"min": 36, "max": 50, "items": ["Hand Laser", "Beam Pistol", "Infantry Laser", "Blast Pistol", "Blast Rifle", "Hyper Blaster"]},
+	"special_weapons": {"min": 51, "max": 65, "items": ["Needle Rifle", "Plasma Rifle", "Fury Rifle", "Shell Gun", "Cling Fire Pistol", "Hand Flamer"]},
+	"melee_weapons": {"min": 66, "max": 85, "items": ["Blade", "Brutal Melee Weapon", "Boarding Saber", "Ripper Sword", "Shatter Axe", "Power Claw", "Glare Sword", "Suppression Maul"]},
+	"grenades": {"min": 86, "max": 100, "items": ["3 Frakk Grenades", "3 Dazzle Grenades"]}
 }
 
 ## ==========================================
 ## GEAR SUBTABLE (D100)
 ## ==========================================
 
+## Core Rules p.132 — Gear Subtable
 const GEAR_SUBTABLE_RANGES: Dictionary = {
-	"gun_mods": {"min": 1, "max": 20, "items": ["Assault Blade", "Bipod", "Stabilizer", "Laser Sight", "Heavy Duty Magazine"]},
-	"gun_sights": {"min": 21, "max": 40, "items": ["Laser Sight", "Quality Sight", "Seeker Sight", "Night Sight"]},
-	"protective_items": {"min": 41, "max": 75, "items": ["Combat Armor", "Frag Vest", "Flak Screen", "Deflector Field", "Shield Generator"]},
-	"utility_items": {"min": 76, "max": 100, "items": ["Motion Tracker", "Jump Belt", "Battle Visor", "Scanner Bot", "Communicator", "Grapple Launcher"]}
+	"gun_mods": {"min": 1, "max": 20, "items": ["Assault Blade", "Beam Light", "Bipod", "Hot Shot Pack", "Cyber-configurable Nano-Sludge", "Stabilizer", "Shock Attachment", "Upgrade Kit"]},
+	"gun_sights": {"min": 21, "max": 40, "items": ["Laser Sight", "Quality Sight", "Seeker Sight", "Tracker Sight", "Unity Battle Sight"]},
+	"protective_items": {"min": 41, "max": 75, "items": ["Battle Dress", "Camo Cloak", "Combat Armor", "Deflector Field", "Flak Screen", "Flex-Armor", "Frag Vest", "Screen Generator", "Stealth Gear"]},
+	"utility_items": {"min": 76, "max": 100, "items": ["Auto Sensor", "Battle Visor", "Communicator", "Concealed Blade", "Displacer", "Distraction Bot", "Grapple Launcher", "Grav Dampener", "Hazard Suit", "Hover Board", "Insta-Wall", "Jump Belt", "Motion Tracker", "Multi-Cutter", "Robo-Rabbit's Foot", "Scanner Bot", "Snooper Bot", "Sonic Emitter", "Steel Boots", "Time Distorter"]}
 }
 
 ## ==========================================
 ## ODDS AND ENDS SUBTABLE (D100)
 ## ==========================================
 
+## Core Rules p.133 — Odds and Ends Subtable
 const ODDS_AND_ENDS_RANGES: Dictionary = {
-	"consumables": {"min": 1, "max": 55, "items": ["Booster Pills", "Combat Serum", "Stim-pack", "Rage Out", "Still"], "uses": 2},
-	"implants": {"min": 56, "max": 70, "items": ["Boosted Arm", "Boosted Leg", "Health Boost", "Night Sight", "Pain Suppressor", "Neural Optimization"]},
-	"ship_items": {"min": 71, "max": 100, "items": ["Med-patch", "Spare Parts", "Repair Bot", "Nano-doc", "Colonist Ration Packs", "Fuel Cell"]}
+	"consumables": {"min": 1, "max": 55, "items": ["Booster Pills", "Combat Serum", "Kiranin Crystals", "Rage Out", "Still", "Stim-pack"], "uses": 2},
+	"implants": {"min": 56, "max": 70, "items": ["AI Companion", "Body Wire", "Boosted Arm", "Boosted Leg", "Cyber Hand", "Genetic Defenses", "Health Boost", "Nerve Adjuster", "Neural Optimization", "Night Sight", "Pain Suppressor"]},
+	"ship_items": {"min": 71, "max": 100, "items": ["Med-patch", "Spare Parts", "Repair Bot", "Nano-doc", "Colonist Ration Packs"]}
 }
 
 ## ==========================================
@@ -155,55 +158,72 @@ const WEAPON_DEFINITIONS: Dictionary = {
 ## EXPANDED GEAR DEFINITIONS (Core Rules p.131)
 ## ==========================================
 
+## Core Rules pp.53-58, 132-133 — exact book descriptions
 const GEAR_DEFINITIONS: Dictionary = {
-	# Gun Mods
-	"Assault Blade": {"effect": "melee_attachment", "description": "Add melee attack to weapon"},
-	"Bipod": {"effect": "stability_bonus", "description": "+1 to hit when stationary"},
-	"Stabilizer": {"effect": "recoil_reduction", "description": "Reduce multi-shot penalty"},
-	"Laser Sight": {"effect": "accuracy_bonus", "description": "+1 to hit within 12\""},
-	"Heavy Duty Magazine": {"effect": "extra_shots", "description": "+1 Shots stat"},
-	"Hot Shot Pack": {"effect": "damage_boost", "description": "+1 Damage (energy weapons only)"},
-	"Suppressor": {"effect": "stealth", "description": "Reduces detection range"},
+	# Gun Mods (p.53) — permanent, 1 per weapon, cannot be removed
+	"Assault Blade": {"effect": "melee_mod", "description": "Weapon gains Melee trait. Damage +1, wins on Draw. Non-Pistol only."},
+	"Beam Light": {"effect": "visibility", "description": "Increase visibility by +3\" in reduced visibility conditions."},
+	"Bipod": {"effect": "stability_bonus", "description": "+1 to Hit at ranges over 8\" when Aiming or from Cover. Non-Pistol only."},
+	"Hot Shot Pack": {"effect": "damage_boost", "description": "+1 Damage for Blast Pistol/Blast Rifle/Hand Laser/Infantry Laser. Natural 6 = overheat (inoperable rest of fight)."},
+	"Cyber-configurable Nano-Sludge": {"effect": "hit_bonus", "description": "Permanent +1 Hit bonus."},
+	"Stabilizer": {"effect": "ignore_heavy", "description": "Weapon may ignore Heavy trait."},
+	"Shock Attachment": {"effect": "stun_mod", "description": "Weapon receives Stun trait against targets within 8\"."},
+	"Upgrade Kit": {"effect": "range_bonus", "description": "+2\" Range increase."},
 
-	# Gun Sights
-	"Quality Sight": {"effect": "range_bonus", "description": "+4\" Range"},
-	"Seeker Sight": {"effect": "ignore_cover_light", "description": "Ignore light cover"},
-	"Night Sight": {"effect": "dark_vision", "description": "No penalty in darkness"},
-	"Holo Sight": {"effect": "quick_aim", "description": "May fire at full rate after moving"},
+	# Gun Sights (p.53) — movable, 1 per weapon, damaged with weapon
+	"Laser Sight": {"effect": "snap_shot", "description": "Weapon receives Snap Shot trait. Pistol only."},
+	"Quality Sight": {"effect": "range_reroll", "description": "+2\" Range. Reroll 1s when firing only 1 shot."},
+	"Seeker Sight": {"effect": "stationary_bonus", "description": "+1 to Hit if shooter did not Move this round."},
+	"Tracker Sight": {"effect": "tracking_bonus", "description": "+1 to Hit if fired at same target previous round."},
+	"Unity Battle Sight": {"effect": "hit_bonus", "description": "+1 to all Hit rolls."},
 
-	# Protective Items
-	"Combat Armor": {"effect": "armor_bonus", "value": 5, "description": "5+ Armor save"},
-	"Frag Vest": {"effect": "armor_bonus", "value": 5, "description": "5+ Armor save (torso only)"},
-	"Flak Screen": {"effect": "field_armor", "value": 4, "description": "4+ Field save vs ranged"},
-	"Deflector Field": {"effect": "field_deflect", "description": "5+ save, deflects attack on 6"},
-	"Shield Generator": {"effect": "regenerating_shield", "description": "4+ save, regenerates each turn"},
-	"Hazard Suit": {"effect": "environment_protection", "description": "Ignore environmental hazards"},
+	# Protective Items (pp.54-55) — armor (max 1) + screen (max 1)
+	"Battle Dress": {"effect": "armor_save", "value": 5, "description": "+1 Reactions (max 4) and 5+ Saving Throw."},
+	"Camo Cloak": {"effect": "cover_extension", "description": "Within 2\" of Cover counts as in Cover. No effect if shooter within 4\"."},
+	"Combat Armor": {"effect": "armor_save", "value": 5, "description": "5+ Saving Throw."},
+	"Deflector Field": {"effect": "auto_deflect", "description": "Automatically deflects one ranged Hit per battle. Decide before Toughness/armor rolls."},
+	"Flak Screen": {"effect": "area_reduction", "description": "Area weapons have Damage reduced by -1 (cap +0)."},
+	"Flex-Armor": {"effect": "conditional_toughness", "description": "If did not move last activation, +1 Toughness (max 6)."},
+	"Frag Vest": {"effect": "armor_save", "value": 6, "description": "6+ Saving Throw, improved to 5+ vs Area attacks."},
+	"Screen Generator": {"effect": "ranged_save", "value": 5, "description": "5+ Saving Throw vs gunfire. No effect vs Area or Melee."},
+	"Stealth Gear": {"effect": "range_penalty", "description": "Enemies firing from over 9\" are -1 to Hit."},
 
-	# Utility Items
-	"Motion Tracker": {"effect": "detect_hidden", "description": "Reveals hidden enemies within 12\""},
-	"Jump Belt": {"effect": "jump_move", "description": "May jump 6\" (ignoring terrain)"},
-	"Battle Visor": {"effect": "target_lock", "description": "+1 to hit one target per battle"},
-	"Scanner Bot": {"effect": "scan_area", "description": "Reveals all enemies within 18\""},
-	"Communicator": {"effect": "coordinate", "description": "Allies within 6\" +1 initiative"},
-	"Grapple Launcher": {"effect": "vertical_move", "description": "Move vertically up to 12\""},
-	"Med-kit": {"effect": "heal_wounds", "uses": 3, "description": "Heal 1 wound (3 uses)"},
-	"Repair Kit": {"effect": "repair_gear", "uses": 2, "description": "Repair damaged equipment"}
+	# Utility Items (pp.56-57) — max 3 per character
+	"Auto Sensor": {"effect": "reaction_fire", "description": "Fire one Pistol shot at enemy moving within 4\" LoS. Hits only on natural 6."},
+	"Battle Visor": {"effect": "reroll_ones", "description": "Reroll any 1s on firing dice when shooting."},
+	"Communicator": {"effect": "reaction_bonus", "description": "Roll one extra die on Reaction roll, discard one."},
+	"Concealed Blade": {"effect": "thrown_weapon", "description": "Throw at enemy within 2\" as Free Action. Damage +0. Once per battle, free replacement."},
+	"Displacer": {"effect": "teleport", "description": "Teleport to point 1D6\" from aimed spot. Once per mission. Precursor: pick from 2 landing points."},
+	"Distraction Bot": {"effect": "disable_enemy", "description": "Target enemy within 12\" cannot act next activation. Once per battle."},
+	"Grapple Launcher": {"effect": "vertical_move", "description": "Scale terrain within 1\", ascend up to 12\". Combat Action."},
+	"Grav Dampener": {"effect": "fall_immunity", "description": "No falling damage. Drops over 6\" count as Move."},
+	"Hazard Suit": {"effect": "hazard_save", "description": "5+ Saving Throw vs environmental hazards."},
+	"Hover Board": {"effect": "fast_move", "description": "Move up to 9\" ignoring man-height terrain. No combat while boarding."},
+	"Insta-Wall": {"effect": "force_wall", "description": "Place 2\" impenetrable wall within 3\". Dissipates on D6 roll of 6 each round. Once per mission."},
+	"Jump Belt": {"effect": "jump_move", "description": "Jump 9\" forward and 3\" up. May take Combat Action after landing."},
+	"Motion Tracker": {"effect": "initiative_bonus", "description": "+1 to all Seize the Initiative rolls."},
+	"Multi-Cutter": {"effect": "terrain_cut", "description": "Cut man-sized hole through terrain up to 1\" thick. Combat Action. No effect on force fields."},
+	"Robo-Rabbit's Foot": {"effect": "luck_boost", "description": "Luck 0 counts as Luck 1. Prevents death once (destroyed)."},
+	"Scanner Bot": {"effect": "crew_initiative", "description": "+1 to all crew Seize the Initiative rolls."},
+	"Snooper Bot": {"effect": "negate_penalty", "description": "Ignore Seize the Initiative penalties. Damaged on D6 roll of 1."},
+	"Sonic Emitter": {"effect": "debuff_enemies", "description": "Enemies within 5\" suffer -1 to all Hit rolls when shooting."},
+	"Steel Boots": {"effect": "kick_attack", "description": "On natural 5-6 Brawl win, kick opponent Damage +0, knockback 1D3\"."},
+	"Time Distorter": {"effect": "freeze_enemies", "description": "Freeze up to 3 enemies until end of following round. Single-use."}
 }
 
 ## ==========================================
 ## CONSUMABLE ITEMS TABLE (Core Rules)
 ## ==========================================
 
+## Core Rules p.54 — exact book effects. All consumables are single-use.
+## Bots and Soulless cannot use consumables.
 const CONSUMABLE_ITEMS: Dictionary = {
-	"Booster Pills": {"uses": 2, "effect": "+1 to all rolls for one battle", "duration": "battle"},
-	"Combat Serum": {"uses": 1, "effect": "+2 Combat Skill for one battle", "duration": "battle"},
-	"Stim-pack": {"uses": 3, "effect": "Remove Stun or recover 1 wound", "duration": "instant"},
-	"Rage Out": {"uses": 1, "effect": "+1 Damage in melee, -1 to hit ranged", "duration": "battle"},
-	"Still": {"uses": 2, "effect": "Ignore Fear/Morale checks", "duration": "battle"},
-	"Focus": {"uses": 1, "effect": "+2 to hit one attack", "duration": "instant"},
-	"Analyzer": {"uses": 1, "effect": "Reveal enemy stats", "duration": "instant"},
-	"Smoke Grenade": {"uses": 1, "effect": "Create smoke cloud (3\" radius)", "duration": "2_rounds"},
-	"Flash Bomb": {"uses": 1, "effect": "Stun all enemies within 3\"", "duration": "instant"}
+	"Booster Pills": {"uses": 1, "effect": "Remove all Stun markers. Move at double Speed this round.", "duration": "round"},
+	"Combat Serum": {"uses": 1, "effect": "+2\" Speed and +2 Reactions for the rest of the battle.", "duration": "battle"},
+	"Kiranin Crystals": {"uses": 1, "effect": "Daze all characters within 4\" (unable to act this round). No effect on already-acted or user. Brawl defense normal.", "duration": "round"},
+	"Rage Out": {"uses": 1, "effect": "+2\" Speed and +1 to Brawling rolls for this and next round. K'Erin: rest of battle.", "duration": "2_rounds"},
+	"Still": {"uses": 1, "effect": "+1 to Hit, but cannot Move this and next round.", "duration": "2_rounds"},
+	"Stim-pack": {"uses": 1, "effect": "If character would become casualty, remain with 1 Stun marker. Reflexive, no action required.", "duration": "instant"}
 }
 
 ## ==========================================

@@ -54,8 +54,8 @@ func test_gear_protective_items():
 	var result = helper._roll_gear_subtable(50)
 
 	assert_that(result).is_not_empty()
-	# Should be one of: Combat Armor, Frag Vest, Flak Screen, Deflector Field
-	var valid_armor = ["Combat Armor", "Frag Vest", "Flak Screen", "Deflector Field"]
+	# Should be one of the Core Rules protective items (p.132)
+	var valid_armor = ["Combat Armor", "Frag Vest", "Flak Screen", "Deflector Field", "Battle Dress", "Camo Cloak", "Flex-Armor", "Screen Generator", "Stealth Gear"]
 	assert_that(valid_armor).contains(result)
 
 func test_gear_utility_items():
@@ -96,8 +96,8 @@ func test_odds_implants():
 	var result = helper._roll_odds_and_ends_subtable(60)
 
 	assert_that(result).is_not_empty()
-	# Should be one of: Boosted Arm, Boosted Leg, Health Boost, Night Sight, Pain Suppressor
-	var valid_implants = ["Boosted Arm", "Boosted Leg", "Health Boost", "Night Sight", "Pain Suppressor"]
+	# Should be one of the 11 Core Rules implants (p.133)
+	var valid_implants = ["AI Companion", "Body Wire", "Boosted Arm", "Boosted Leg", "Cyber Hand", "Genetic Defenses", "Health Boost", "Nerve Adjuster", "Neural Optimization", "Night Sight", "Pain Suppressor"]
 	assert_that(valid_implants).contains(result)
 
 func test_odds_ship_items():

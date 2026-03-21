@@ -48,22 +48,24 @@ func _load_enemy_data() -> void:
 
 func _load_fallback_enemy_data() -> void:
 	## Load fallback enemy data if JSON fails
+	# Fallback categories using book names (Core Rules pp.94-103)
 	enemy_categories = {
-		"criminal": ["Thug", "Gang Leader", "Crime Boss", "Hired Gun", "Smuggler"],
-		"alien": ["K'Erin Warrior", "Swift Scout", "Engineer Tech", "Precursor", "Soulless"],
-		"hostile": ["Converted", "Swarm Warrior", "Pirate", "Raider", "Mercenary"],
-		"security": ["Unity Guard", "Corporate Security", "Local Militia", "Police Officer"],
-		"wildlife": ["Predator", "Pack Hunter", "Giant Insect", "Toxic Creature"]
+		"criminal_elements": ["Gangers", "Punks", "Raiders", "Cultists", "Pirates"],
+		"hired_muscle": ["Unknown Mercs", "Enforcers", "Corporate Security", "Unity Grunts"],
+		"interested_parties": ["Vigilantes", "Bounty Hunters", "Colonial Militia", "Salvage Team"],
+		"roving_threats": ["Razor Lizards", "Sand Runners", "Large Bugs", "Vent Crawlers"]
 	}
-	
+
+	# Book-accurate fallback stats
 	enemy_stats_base = {
-		"Thug": {"combat_skill": 1, "toughness": 3, "speed": 4, "weapons": ["Blade", "Handgun"]},
-		"Gang Leader": {"combat_skill": 2, "toughness": 4, "speed": 4, "weapons": ["Auto Pistol", "Blade"]},
-		"K'Erin Warrior": {"combat_skill": 3, "toughness": 4, "speed": 5, "weapons": ["Blade", "Handgun"]},
-		"Unity Guard": {"combat_skill": 2, "toughness": 4, "speed": 4, "weapons": ["Military Rifle", "Armor"]},
-		"Pirate": {"combat_skill": 2, "toughness": 3, "speed": 4, "weapons": ["Shotgun", "Blade"]},
-		"Converted": {"combat_skill": 2, "toughness": 5, "speed": 3, "weapons": ["Bio Weapon", "Armor"]},
-		"Predator": {"combat_skill": 2, "toughness": 4, "speed": 6, "weapons": ["Natural Weapons"]}
+		"Gangers": {"combat_skill": 0, "toughness": 3, "speed": 4, "weapons": ["Handgun"]},
+		"Punks": {"combat_skill": 0, "toughness": 3, "speed": 4, "weapons": ["Scrap Pistol"]},
+		"Raiders": {"combat_skill": 1, "toughness": 3, "speed": 4, "weapons": ["Colony Rifle", "Blade"]},
+		"Unknown Mercs": {"combat_skill": 1, "toughness": 4, "speed": 5, "weapons": ["Military Rifle"]},
+		"Enforcers": {"combat_skill": 1, "toughness": 4, "speed": 4, "weapons": ["Military Rifle"]},
+		"Corporate Security": {"combat_skill": 1, "toughness": 4, "speed": 4, "weapons": ["Military Rifle"]},
+		"Razor Lizards": {"combat_skill": 1, "toughness": 3, "speed": 6, "weapons": ["Fangs"]},
+		"Sand Runners": {"combat_skill": 0, "toughness": 3, "speed": 7, "weapons": ["Fangs"]}
 	}
 
 func _build_legacy_compatibility() -> void:
@@ -121,40 +123,40 @@ func _determine_enemy_category(mission_type: String) -> String:
 		elif not primary_categories.is_empty():
 			return primary_categories.pick_random()
 	
-	# Enhanced fallback logic using JSON category data
+	# Enhanced fallback logic using JSON category data (Core Rules p.94)
 	if not enemy_data.get("enemy_categories", []).is_empty():
 		match mission_type:
 			"Patrol", "Investigate":
-				return _select_from_categories(["raiders", "corporate_security"])
+				return _select_from_categories(["criminal_elements", "hired_muscle"])
 			"Hunt", "Bounty":
-				return _select_from_categories(["raiders", "alien_creatures"])
+				return _select_from_categories(["criminal_elements", "interested_parties"])
 			"Guard", "Defend":
-				return _select_from_categories(["raiders", "cultists"])
+				return _select_from_categories(["hired_muscle", "criminal_elements"])
 			"Deliver", "Trade":
-				return _select_from_categories(["raiders", "corporate_security"])
+				return _select_from_categories(["criminal_elements", "hired_muscle"])
 			"Explore":
-				return _select_from_categories(["alien_creatures", "cultists", "raiders"])
+				return _select_from_categories(["roving_threats", "interested_parties"])
 			"Salvage":
-				return _select_from_categories(["raiders", "alien_creatures"])
+				return _select_from_categories(["roving_threats", "interested_parties"])
 			_:
-				return _select_from_categories(["raiders", "corporate_security"])
+				return _select_from_categories(["criminal_elements", "hired_muscle"])
 	
-	# Ultimate fallback to legacy system
+	# Ultimate fallback using book category IDs
 	match mission_type:
 		"Patrol", "Investigate":
-			return ["criminal", "hostile"].pick_random()
+			return ["criminal_elements", "hired_muscle"].pick_random()
 		"Hunt", "Bounty":
-			return ["criminal", "alien"].pick_random()
+			return ["criminal_elements", "interested_parties"].pick_random()
 		"Guard", "Defend":
-			return ["hostile", "criminal"].pick_random()
+			return ["hired_muscle", "criminal_elements"].pick_random()
 		"Deliver", "Trade":
-			return ["criminal", "security"].pick_random()
+			return ["criminal_elements", "hired_muscle"].pick_random()
 		"Explore":
-			return ["wildlife", "alien", "hostile"].pick_random()
+			return ["roving_threats", "interested_parties"].pick_random()
 		"Salvage":
-			return ["criminal", "wildlife"].pick_random()
+			return ["roving_threats", "interested_parties"].pick_random()
 		_:
-			return "criminal"
+			return "criminal_elements"
 
 func _select_from_categories(preferred_categories: Array) -> String:
 	## Select enemy category from preferred list, fallback to available categories
@@ -174,7 +176,7 @@ func _select_from_categories(preferred_categories: Array) -> String:
 		return available_categories.pick_random()
 	
 	# Ultimate fallback
-	return "raiders"
+	return "criminal_elements"
 
 func _calculate_enemy_count(difficulty: int, crew_size: int) -> int:
 	## Calculate enemy count based on crew size and difficulty (Core Rules p.63)

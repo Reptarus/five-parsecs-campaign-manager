@@ -141,11 +141,12 @@ Character.create_implant_from_type(implant_type_key: String) -> Dictionary
 Character.create_implant_from_loot(loot_name: String) -> Dictionary
 ```
 
-### Implant System
-- **MAX_IMPLANTS**: 3
-- **6 types**: NEURAL_LINK, COMBAT_REFLEX, DERMAL_ARMOR, MUSCLE_GRAFT, TARGETING_EYE, LUCK_CHIP
-- **LOOT_TO_IMPLANT_MAP**: Converts loot items → implant dictionaries
-- Each implant: `{type: String, name: String, stat_bonus: Dictionary}`
+### Implant System (Core Rules p.55)
+- **MAX_IMPLANTS**: 2 (book says max 2, Bots/Soulless cannot use)
+- **11 types**: AI_COMPANION, BODY_WIRE, BOOSTED_ARM, BOOSTED_LEG, CYBER_HAND, GENETIC_DEFENSES, HEALTH_BOOST, NERVE_ADJUSTER, NEURAL_OPTIMIZATION, NIGHT_SIGHT, PAIN_SUPPRESSOR
+- **LOOT_TO_IMPLANT_MAP**: Maps book implant names directly to type keys
+- Each implant: `{type: String, name: String, stat_bonus: Dictionary, description: String}`
+- Most implants have special abilities (text descriptions) rather than stat bonuses
 
 ### Serialization Format (to_dictionary)
 ```json

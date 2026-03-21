@@ -31,7 +31,7 @@ Canonical bug tracker for QA reference. Updated after each fix sprint.
 
 | Bug | Severity | Notes |
 |-----|----------|-------|
-| BUG-036 | P2 | Precursor species missing psionic power at creation — only gives +1 Savvy, rules say "Start with one Psionic power". Needs design work. |
+| ~~BUG-036~~ | **NOT A BUG** | Precursor ability is "roll 2 Character Events, pick 1" (p.17), NOT psionic power. EquipmentItems.json reference was wrong. Stats now correct: S+1, T-1. |
 | ~~BUG-037~~ | **FIXED** | Swift now +2 Speed (was +1 Speed +1 Reactions). Matched Core Rules p.50. |
 | ~~BUG-038~~ | **FIXED** | Soulless now +1 Toughness only (removed extra +1 Reactions). Matched Core Rules p.50. |
 | ~~Character bonus coverage~~ | **FIXED** | KNOWLEDGE +1 savvy added, game-specific CharacterCreator synced (Mar 21) |

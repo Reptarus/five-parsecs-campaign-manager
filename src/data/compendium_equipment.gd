@@ -94,10 +94,11 @@ const ADVANCED_TRAINING: Array[Dictionary] = [
 
 
 ## ============================================================================
-## COMPENDIUM BOT UPGRADES (Compendium pp.30-32)
-## Purchased during Advancement Phase with credits.
-## These are ADDITIONAL to the 6 core bot upgrades.
+## COMPENDIUM BOT UPGRADES (Compendium p.28)
+## Purchased during Post-Battle Step 11 (Purchase Items) with credits.
 ## Max 1 upgrade installed per campaign turn.
+## One of each upgrade per Bot. Lost if Bot is permanently destroyed.
+## Soulless cannot use these (different tech base).
 ## ============================================================================
 
 const COMPENDIUM_BOT_UPGRADES: Array[Dictionary] = [
@@ -107,9 +108,8 @@ const COMPENDIUM_BOT_UPGRADES: Array[Dictionary] = [
 		"cost_formula": "3 x Shots + 1 x Damage",
 		"cost": 0,  # Variable, computed at purchase
 		"effect": "negate_heavy_clumsy",
-		"description": "Convert any weapon to built-in. Negates Heavy and Clumsy traits. Cost: 3 per Shots + 1 per Damage. Revert for 1 cr.",
-		"instruction": "BOT UPGRADE: Built-in Weapon (3xShots + 1xDamage cr) - Negates Heavy/Clumsy. Max 1 per turn. Revert: 1 cr.",
-		"max_per_turn": 1,
+		"description": "Any weapon built into chassis. Negates Heavy and Clumsy traits. Cost: 3 Credits per Shot on weapon profile + 1 Credit per point of weapon Damage. 1 Credit to revert.",
+		"instruction": "BOT UPGRADE: Built-in Weapon (3 cr x Shots + 1 cr x Damage) - Negates Heavy/Clumsy. 1 cr to revert.",
 		"revert_cost": 1,
 	},
 	{
@@ -117,169 +117,118 @@ const COMPENDIUM_BOT_UPGRADES: Array[Dictionary] = [
 		"name": "Improved Armor Casing",
 		"cost": 5,
 		"effect": "builtin_save_5plus",
-		"description": "Built-in armor saving throw of 5+. Does not stack with worn armor.",
-		"instruction": "BOT UPGRADE: Improved Armor Casing (5 cr) - Built-in 5+ Armor Save (no stacking).",
+		"description": "Improve the Bot's built-in Armor Saving Throw to 5+.",
+		"instruction": "BOT UPGRADE: Improved Armor Casing (5 cr) - Built-in 5+ Armor Save.",
 	},
 	{
 		"id": "deflection_module",
 		"name": "Deflection Module",
 		"cost": 8,
 		"effect": "save_counts_screen_and_armor",
-		"description": "Saving throw counts as both Screen and Armor save.",
-		"instruction": "BOT UPGRADE: Deflection Module (8 cr) - Save counts as Screen AND Armor.",
+		"description": "The Bot's built-in saving throw becomes both a Screen and Armor, allowing a save as long as the attack does not negate both forms of defense.",
+		"instruction": "BOT UPGRADE: Deflection Module (8 cr) - Save counts as both Screen AND Armor.",
 	},
 	{
 		"id": "jump_module",
 		"name": "Jump Module",
 		"cost": 6,
 		"effect": "replace_move_with_jump",
-		"description": "Replace normal movement with Jump: move in straight line, ignoring terrain. Cannot Dash.",
-		"instruction": "BOT UPGRADE: Jump Module (6 cr) - Jump movement (ignore terrain, no Dashing).",
+		"description": "May replace any portion of movement (including Dash movement) by a Jump of equal distance. Jumping does not affect or restrict other actions.",
+		"instruction": "BOT UPGRADE: Jump Module (6 cr) - Replace any movement (incl. Dash) with Jump of equal distance.",
 	},
 	{
 		"id": "multi_scanner",
 		"name": "Multi-wave Scanner",
 		"cost": 10,
 		"effect": "plus1_seize_initiative",
-		"description": "+1 to Seize the Initiative rolls.",
-		"instruction": "BOT UPGRADE: Multi-wave Scanner (10 cr) - +1 Seize the Initiative.",
+		"description": "+1 to all rolls to Seize the Initiative. Cumulative with a party-carried Motion Tracker.",
+		"instruction": "BOT UPGRADE: Multi-wave Scanner (10 cr) - +1 Seize the Initiative (stacks with Motion Tracker).",
 	},
 	{
 		"id": "broad_spectrum",
 		"name": "Broad Spectrum Vision",
 		"cost": 6,
 		"effect": "see_through_darkness_smoke_fog",
-		"description": "See through darkness, smoke, and fog. Ignore visibility penalties.",
-		"instruction": "BOT UPGRADE: Broad Spectrum Vision (6 cr) - Ignore darkness/smoke/fog penalties.",
+		"description": "See through darkness, smoke, fog, gas and other impediments normally, without penalty.",
+		"instruction": "BOT UPGRADE: Broad Spectrum Vision (6 cr) - Ignore all visibility penalties.",
 	},
 ]
 
 
 ## ============================================================================
-## NEW SHIP PARTS (Compendium pp.34-36)
-## Purchased during Trade Phase with credits.
-## Installed on ship (one slot per part type).
+## NEW SHIP PARTS (Compendium p.29)
+## Installed using normal ship component rules (Core Rules p.60).
 ## ============================================================================
 
 const NEW_SHIP_PARTS: Array[Dictionary] = [
 	{
-		"id": "emergency_drives",
-		"name": "Emergency Drives",
-		"cost": 20,
-		"slot": "engine",
-		"effect": "reroll_flee_travel_event",
-		"description": "May re-roll one failed flee attempt per travel event.",
-		"instruction": "SHIP PART: Emergency Drives (20 cr) - Re-roll one failed flee attempt per travel event.",
-	},
-	{
-		"id": "cargo_hold_expansion",
-		"name": "Expanded Cargo Hold",
+		"id": "expanded_database",
+		"name": "Expanded Database",
 		"cost": 10,
-		"slot": "cargo",
-		"effect": "plus3_cargo_capacity",
-		"description": "+3 cargo capacity for stash and trade goods.",
-		"instruction": "SHIP PART: Expanded Cargo Hold (10 cr) - +3 cargo capacity.",
+		"type": "component",
+		"effect": "plus1_quest_progress",
+		"description": "Constantly updated database with AI assistance. When rolling to progress an active Quest (Post-Battle Step 3) add +1 to the roll.",
+		"instruction": "SHIP COMPONENT: Expanded Database (10 cr) - +1 to Quest progress rolls.",
 	},
 	{
-		"id": "fuel_converter",
-		"name": "Fuel Converter",
-		"cost": 15,
-		"slot": "fuel",
-		"effect": "reduce_fuel_cost_by_1",
-		"description": "Reduce fuel cost per jump by 1 (minimum 1).",
-		"instruction": "SHIP PART: Fuel Converter (15 cr) - -1 fuel per jump (min 1).",
+		"id": "scientific_research",
+		"name": "Scientific Research System",
+		"cost": 10,
+		"type": "component",
+		"effect": "travel_research_roll",
+		"description": "Gathers and analyzes space debris samples. When traveling to another world, roll 1D6: 1-2 Nothing, 3-4 Research data (2 Credits), 5-6 +1 Quest Rumor.",
+		"instruction": "SHIP COMPONENT: Scientific Research System (10 cr) - Travel roll: 1D6: 1-2 nothing, 3-4 earn 2 cr, 5-6 +1 Quest Rumor.",
 	},
 	{
-		"id": "medical_bay",
-		"name": "Medical Bay",
-		"cost": 25,
-		"slot": "medical",
-		"effect": "reduce_recovery_by_1_turn",
-		"description": "Reduce crew recovery time by 1 campaign turn (minimum 1).",
-		"instruction": "SHIP PART: Medical Bay (25 cr) - -1 turn recovery time (min 1).",
-	},
-	{
-		"id": "weapon_hardpoint",
-		"name": "Weapon Hardpoint",
-		"cost": 15,
-		"slot": "weapon",
-		"effect": "plus1_weapon_mount",
-		"description": "+1 weapon mount for ship combat.",
-		"instruction": "SHIP PART: Weapon Hardpoint (15 cr) - +1 weapon mount.",
-	},
-	{
-		"id": "reinforced_hull",
-		"name": "Reinforced Hull Plating",
-		"cost": 20,
-		"slot": "hull",
-		"effect": "plus2_max_hull",
-		"description": "+2 maximum hull points.",
-		"instruction": "SHIP PART: Reinforced Hull Plating (20 cr) - +2 max hull points.",
-	},
-	{
-		"id": "sensor_suite",
-		"name": "Advanced Sensor Suite",
-		"cost": 12,
-		"slot": "sensor",
-		"effect": "plus1_exploration_rolls",
-		"description": "+1 to all exploration and scanning rolls.",
-		"instruction": "SHIP PART: Advanced Sensor Suite (12 cr) - +1 exploration/scan rolls.",
+		"id": "miniaturized_components",
+		"name": "Miniaturized Components",
+		"cost": 5,
+		"type": "component_mod",
+		"effect": "negate_fuel_cost_for_component",
+		"description": "State-of-the-art lightweight components. The modified component is not counted towards increased fuel costs (Core Rules p.61). Cannot be removed once applied. Can retrofit existing component for 8 Credits.",
+		"instruction": "COMPONENT MOD: Miniaturized Components (+5 cr / 8 cr retrofit) - Component doesn't count toward fuel costs.",
+		"retrofit_cost": 8,
+		"permanent": true,
 	},
 ]
 
 
 ## ============================================================================
-## PSIONIC EQUIPMENT (Compendium pp.40-42)
-## Purchased during Trade Phase with credits.
+## PSIONIC EQUIPMENT (Compendium p.29)
+## Purchased during Post-Battle Step 11 (Purchase Items) with credits.
 ## Requires PSIONIC_EQUIPMENT DLC flag.
 ## ============================================================================
 
 const PSIONIC_EQUIPMENT: Array[Dictionary] = [
 	{
-		"id": "psionic_amplifier",
-		"name": "Psionic Amplifier",
-		"cost": 15,
-		"slot": "gear",
-		"effect": "plus1_psionic_projection",
-		"description": "+1 to all psionic projection rolls. Gear slot.",
-		"instruction": "PSIONIC GEAR: Psionic Amplifier (15 cr) - +1 to psionic projection rolls. (Gear slot)",
-	},
-	{
-		"id": "mind_shield",
-		"name": "Mind Shield",
-		"cost": 12,
-		"slot": "gear",
-		"effect": "plus2_resist_enemy_psionic",
-		"description": "+2 to resist enemy psionic attacks. Gear slot.",
-		"instruction": "PSIONIC GEAR: Mind Shield (12 cr) - +2 resist enemy psionics. (Gear slot)",
-	},
-	{
-		"id": "psi_dampener",
-		"name": "Psi-Dampener",
-		"cost": 8,
-		"slot": "consumable",
-		"uses": 1,
-		"effect": "suppress_psionics_6in_1round",
-		"description": "Single-use. Suppress all psionic powers within 6\" for 1 round.",
-		"instruction": "PSIONIC GEAR: Psi-Dampener (8 cr) - Suppress psionics within 6\" for 1 round. Single use.",
-	},
-	{
-		"id": "focus_crystal",
-		"name": "Focus Crystal",
+		"id": "warding_shrel",
+		"name": "Warding Shrel",
 		"cost": 10,
-		"slot": "gear",
-		"effect": "reroll_one_strain_die",
-		"description": "May re-roll one strain die per battle. Gear slot.",
-		"instruction": "PSIONIC GEAR: Focus Crystal (10 cr) - Re-roll one strain die per battle. (Gear slot)",
+		"slot": "utility",
+		"effect": "avoid_psionic_strain",
+		"description": "Odd Precursor device. If the wearer would suffer the effects of psionic Strain, the effect is avoided and the device shuts down for the rest of the battle. Carrying two Shrels cancels the effects of both.",
+		"instruction": "PSIONIC GEAR: Warding Shrel (10 cr, Utility) - Avoid one Strain effect per battle. Cannot carry two.",
+		"max_carried": 1,
 	},
 	{
-		"id": "psionic_blade",
-		"name": "Psionic Blade",
-		"cost": 18,
-		"slot": "weapon",
-		"effect": "melee_plus1_damage_psionic_only",
-		"description": "Melee weapon. +1 Damage. Only usable by psionic characters.",
-		"instruction": "PSIONIC GEAR: Psionic Blade (18 cr) - Melee, +1 Damage. Psionic-only.",
+		"id": "psionic_focus",
+		"name": "Psionic Focus",
+		"cost": 10,
+		"slot": "utility",
+		"effect": "plus1_power_range",
+		"description": "Wrist-mounted device that helps channel psionic waves. Add +1\" to the range of all powers.",
+		"instruction": "PSIONIC GEAR: Psionic Focus (10 cr, Utility) - +1\" range to all psionic powers.",
+	},
+	{
+		"id": "nullification_surgery",
+		"name": "Nullification Surgery",
+		"cost": 3,
+		"slot": "implant",
+		"effect": "permanently_lose_psionics",
+		"description": "The character permanently loses all psionic abilities. This is non-reversible.",
+		"instruction": "PSIONIC GEAR: Nullification Surgery (3 cr, Implant) - Permanently remove all psionic abilities. Irreversible.",
+		"permanent": true,
+		"irreversible": true,
 	},
 ]
 

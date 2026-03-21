@@ -461,15 +461,21 @@ func _apply_motivation_bonuses(motivation_id: int) -> void:
 	# Motivations give narrative effects; a few grant direct stat bonuses.
 	# Resource-based bonuses (credits, story points) are applied at campaign
 	# level in CampaignFinalizationService, not here.
+	# Five Parsecs motivation stat bonuses (Core Rules p.26)
 	match motivation_id:
 		GlobalEnums.Motivation.GLORY:
 			current_bonuses.motivation["COMBAT_SKILL"] = 1
 		GlobalEnums.Motivation.SURVIVAL:
 			current_bonuses.motivation["TOUGHNESS"] = 1
-		GlobalEnums.Motivation.KNOWLEDGE:
+		GlobalEnums.Motivation.ESCAPE:
+			current_bonuses.motivation["SPEED"] = 1
+		GlobalEnums.Motivation.TECHNOLOGY:
+			current_bonuses.motivation["SAVVY"] = 1
+		GlobalEnums.Motivation.DISCOVERY:
 			current_bonuses.motivation["SAVVY"] = 1
 		# WEALTH: +1D6 credits applied in CampaignFinalizationService
 		# FAME: +1 story point applied in CampaignFinalizationService
+		# REVENGE/POWER/FREEDOM: +2 XP applied in CampaignFinalizationService
 
 	_apply_bonuses(current_bonuses.motivation)
 

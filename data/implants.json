@@ -1,232 +1,92 @@
 {
   "Implants": {
-    "description": "Cybernetic and biological implants from Five Parsecs From Home (Odds & Ends Loot)",
+    "description": "Implants from Five Parsecs From Home Core Rules (p.55). A character may have up to 2 implants. Once applied, they cannot be damaged or removed. Bots and Soulless cannot use implants.",
     "max_per_character": 2,
+    "restrictions": ["Bots cannot use implants", "Soulless cannot use implants", "Once applied, cannot be damaged or removed"],
     "types": [
       {
-        "id": "neural_enhancer",
-        "name": "Neural Enhancer",
-        "type": "cybernetic",
-        "rarity": "uncommon",
-        "cost": 5000,
-        "stat_bonus": {
-          "savvy": 1
-        },
-        "description": "Cognitive enhancement implant that boosts analytical capabilities and problem-solving speed.",
-        "side_effects": []
+        "id": "ai_companion",
+        "name": "AI Companion",
+        "description": "When making Savvy rolls, the character may roll twice and pick the better score.",
+        "stat_bonus": {},
+        "special_ability": "Roll twice on Savvy checks, pick better result"
       },
       {
-        "id": "reflex_booster",
-        "name": "Reflex Booster",
-        "type": "cybernetic",
-        "rarity": "uncommon",
-        "cost": 6000,
-        "stat_bonus": {
-          "reactions": 1
-        },
-        "description": "Spinal interface that accelerates neural signals to muscles, improving reaction time.",
-        "side_effects": []
+        "id": "body_wire",
+        "name": "Body Wire",
+        "description": "+1 Reactions.",
+        "stat_bonus": {"reactions": 1},
+        "special_ability": ""
       },
       {
-        "id": "combat_processor",
-        "name": "Combat Processor",
-        "type": "cybernetic",
-        "rarity": "rare",
-        "cost": 8000,
-        "stat_bonus": {
-          "combat": 1
-        },
-        "description": "Military-grade targeting assist system integrated into the visual cortex.",
-        "side_effects": []
+        "id": "boosted_arm",
+        "name": "Boosted Arm",
+        "description": "Increase Grenade range by +2\". If the character ends their Move in contact with an obstacle that is no taller than the miniature, they may pull themselves up on top (but not cross) as a Free Action.",
+        "stat_bonus": {},
+        "special_ability": "Grenade range +2\", climb low obstacles as Free Action"
       },
       {
-        "id": "muscle_weave",
-        "name": "Muscle Weave",
-        "type": "biological",
-        "rarity": "uncommon",
-        "cost": 5500,
-        "stat_bonus": {
-          "toughness": 1
-        },
-        "description": "Bio-engineered muscle fiber reinforcement throughout the body.",
-        "side_effects": []
+        "id": "boosted_leg",
+        "name": "Boosted Leg",
+        "description": "Increase base move and Dash speed by +1\" each.",
+        "stat_bonus": {"speed": 1},
+        "special_ability": "Dash speed also +1\""
       },
       {
-        "id": "speed_enhancer",
-        "name": "Leg Actuators",
-        "type": "cybernetic",
-        "rarity": "uncommon",
-        "cost": 4500,
-        "stat_bonus": {
-          "speed": 1
-        },
-        "description": "Hydraulic assist systems integrated into leg joints for enhanced mobility.",
-        "side_effects": []
+        "id": "cyber_hand",
+        "name": "Cyber Hand",
+        "description": "The character may take any one Pistol they own and build it into their hand. Range is reduced to half, but the weapon always shoots with +1 to Hit and an additional +1 bonus when Brawling.",
+        "stat_bonus": {},
+        "special_ability": "Built-in Pistol (half range, +1 Hit, +1 Brawling)"
       },
       {
-        "id": "luck_modifier",
-        "name": "Probability Engine",
-        "type": "cybernetic",
-        "rarity": "rare",
-        "cost": 10000,
-        "stat_bonus": {
-          "luck": 1
-        },
-        "description": "Quantum computing implant that subtly influences probabilistic outcomes. How it works is anyone's guess.",
-        "side_effects": []
+        "id": "genetic_defenses",
+        "name": "Genetic Defenses",
+        "description": "5+ Saving Throw, if subjected to any poison, virus, gas, or disease.",
+        "stat_bonus": {},
+        "special_ability": "5+ save vs poison/virus/gas/disease"
       },
       {
-        "id": "tech_interface",
-        "name": "Tech Interface Jack",
-        "type": "cybernetic",
-        "rarity": "common",
-        "cost": 3000,
-        "stat_bonus": {
-          "tech": 1
-        },
-        "description": "Direct neural link for interfacing with electronic systems and computers.",
-        "side_effects": []
+        "id": "health_boost",
+        "name": "Health Boost",
+        "description": "If a post-battle Injury would result in 2+ campaign turns of recovery time, reduce the time by 1. If the character has Toughness 3 when receiving this implant, raise it to 4.",
+        "stat_bonus": {},
+        "special_ability": "Reduce recovery time by 1 turn (if 2+). Toughness 3 becomes 4 on install."
       },
       {
-        "id": "dermal_armor",
-        "name": "Subdermal Plating",
-        "type": "cybernetic",
-        "rarity": "rare",
-        "cost": 7500,
-        "stat_bonus": {
-          "toughness": 2
-        },
-        "description": "Ceramic-titanium plates implanted beneath the skin provide significant protection.",
-        "side_effects": ["Movement slightly reduced"]
+        "id": "nerve_adjuster",
+        "name": "Nerve Adjuster",
+        "description": "Whenever the character is Stunned for any reason, they receive a 5+ Saving Throw to avoid the Stun.",
+        "stat_bonus": {},
+        "special_ability": "5+ save to avoid Stun"
       },
       {
-        "id": "adrenal_surge",
-        "name": "Adrenal Booster",
-        "type": "biological",
-        "rarity": "uncommon",
-        "cost": 5000,
-        "stat_bonus": {
-          "combat": 1,
-          "speed": 1
-        },
-        "description": "Synthetic adrenal gland that releases combat stimulants on demand.",
-        "side_effects": ["May cause jitteriness"]
+        "id": "neural_optimization",
+        "name": "Neural Optimization",
+        "description": "The character cannot be Stunned.",
+        "stat_bonus": {},
+        "special_ability": "Stun immunity"
       },
       {
-        "id": "targeting_eye",
-        "name": "Targeting Optics",
-        "type": "cybernetic",
-        "rarity": "uncommon",
-        "cost": 6500,
-        "stat_bonus": {
-          "combat": 1,
-          "savvy": 1
-        },
-        "description": "Replacement eye with built-in targeting computer and threat assessment systems.",
-        "side_effects": ["Visible cybernetic eye"]
+        "id": "night_sight",
+        "name": "Night Sight",
+        "description": "The character does not suffer visibility reductions due to darkness, but is affected by smoke, gas, etc. normally.",
+        "stat_bonus": {},
+        "special_ability": "Ignore darkness visibility penalties"
       },
       {
-        "id": "bone_lacing",
-        "name": "Bone Reinforcement",
-        "type": "biological",
-        "rarity": "rare",
-        "cost": 9000,
-        "stat_bonus": {
-          "toughness": 1,
-          "combat": 1
-        },
-        "description": "Metal-ceramic composite woven into bones for increased durability and striking power.",
-        "side_effects": ["Triggers metal detectors"]
-      },
-      {
-        "id": "neural_dampener",
+        "id": "pain_suppressor",
         "name": "Pain Suppressor",
-        "type": "cybernetic",
-        "rarity": "common",
-        "cost": 3500,
-        "stat_bonus": {
-          "toughness": 1
-        },
-        "description": "Neural implant that blocks pain signals, allowing continued operation despite injuries.",
-        "side_effects": ["May not notice injuries"]
-      },
-      {
-        "id": "synaptic_accelerator",
-        "name": "Synaptic Accelerator",
-        "type": "biological",
-        "rarity": "rare",
-        "cost": 12000,
-        "stat_bonus": {
-          "reactions": 2
-        },
-        "description": "Experimental treatment that permanently enhances neural transmission speeds.",
-        "side_effects": ["Occasional headaches"]
-      },
-      {
-        "id": "enhanced_lungs",
-        "name": "Respiratory Enhancement",
-        "type": "biological",
-        "rarity": "uncommon",
-        "cost": 4000,
-        "stat_bonus": {
-          "speed": 1,
-          "toughness": 1
-        },
-        "description": "Bio-engineered lungs with increased capacity and filtration capabilities.",
-        "side_effects": []
-      },
-      {
-        "id": "tactical_hud",
-        "name": "Tactical Display",
-        "type": "cybernetic",
-        "rarity": "uncommon",
-        "cost": 5500,
-        "stat_bonus": {
-          "savvy": 1,
-          "reactions": 1
-        },
-        "description": "Heads-up display overlay providing real-time tactical information and threat analysis.",
-        "side_effects": []
-      },
-      {
-        "id": "hand_razors",
-        "name": "Retractable Blades",
-        "type": "cybernetic",
-        "rarity": "uncommon",
-        "cost": 4000,
-        "stat_bonus": {
-          "combat": 1
-        },
-        "description": "Mono-molecular blades concealed in the forearms that extend from the knuckles.",
-        "special_ability": "Can make unarmed melee attacks at +1 damage",
-        "side_effects": []
-      },
-      {
-        "id": "body_plating",
-        "name": "Full Body Conversion",
-        "type": "cybernetic",
-        "rarity": "legendary",
-        "cost": 25000,
-        "stat_bonus": {
-          "toughness": 2,
-          "combat": 1,
-          "speed": -1
-        },
-        "description": "Major cybernetic overhaul replacing significant portions of the body with machinery.",
-        "side_effects": ["Obvious cyborg appearance", "Reduced agility"]
+        "description": "The character can perform crew tasks while in Sick Bay, though they cannot participate in battles.",
+        "stat_bonus": {},
+        "special_ability": "Crew tasks available while in Sick Bay"
       }
     ],
-    "rarity_weights": {
-      "common": 40,
-      "uncommon": 35,
-      "rare": 20,
-      "legendary": 5
-    },
     "implant_rules": {
-      "max_per_character": 3,
-      "installation_risk": "On a roll of 1 during installation, suffer a minor complication",
-      "removal_difficulty": "Implants can be removed at a medical facility for 50% of their value",
-      "compatibility_note": "Some implants may conflict - GM discretion applies"
+      "max_per_character": 2,
+      "removal": "Cannot be removed once applied",
+      "damage": "Cannot be damaged",
+      "species_restrictions": "Bots and Soulless cannot use implants"
     }
   }
 }

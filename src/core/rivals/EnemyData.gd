@@ -73,11 +73,11 @@ func _setup_category_defaults() -> void:
 			morale = 12
 			weapon_class = GameEnums.EnemyWeaponClass.ADVANCED
 			add_characteristic(GameEnums.EnemyTrait.TOUGH_FIGHT)
-		GameEnums.EnemyCategory.MILITARY_FORCES:
+		GameEnums.EnemyCategory.INTERESTED_PARTIES:
 			morale = 15
 			weapon_class = GameEnums.EnemyWeaponClass.ELITE
 			add_characteristic(GameEnums.EnemyTrait.ALERT)
-		GameEnums.EnemyCategory.ALIEN_THREATS:
+		GameEnums.EnemyCategory.ROVING_THREATS:
 			morale = 20
 			weapon_class = GameEnums.EnemyWeaponClass.ELITE
 			add_characteristic(GameEnums.EnemyTrait.FEROCIOUS)

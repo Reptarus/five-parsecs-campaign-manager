@@ -655,48 +655,66 @@ static func _generate_name(existing_names: Array = [], species: String = "human"
 	return name + " " + str(randi() % 100 + 1)
 
 static func _generate_background() -> String:
-	@warning_ignore("untyped_declaration")
-	var backgrounds = ["Military", "Trader", "Explorer", "Engineer", "Medic", "Pilot", "Criminal", "Scholar"]
-	@warning_ignore("unsafe_call_argument")
-	return SafeTypeConverter.safe_array_get(backgrounds, randi() % backgrounds.size(), "Civilian")
+	## Generate background via d100 roll (Core Rules pp.24-25)
+	var roll: int = randi() % 100 + 1
+	# D100 background table — exact ranges from book
+	var table: Array = [
+		[4, "Peaceful, High-Tech Colony"], [9, "Giant, Overcrowded City"],
+		[13, "Low-Tech Colony"], [17, "Mining Colony"],
+		[21, "Military Brat"], [25, "Space Station"],
+		[29, "Military Outpost"], [34, "Drifter"],
+		[39, "Lower Megacity Class"], [42, "Wealthy Merchant Family"],
+		[46, "Frontier Gang"], [49, "Religious Cult"],
+		[52, "War-Torn Hell-Hole"], [55, "Tech Guild"],
+		[59, "Subjugated Colony"], [64, "Long-Term Space Mission"],
+		[68, "Research Outpost"], [72, "Primitive World"],
+		[76, "Orphan Utility Program"], [80, "Isolationist Enclave"],
+		[84, "Comfortable Megacity"], [89, "Industrial World"],
+		[93, "Bureaucrat"], [97, "Wasteland Nomads"],
+		[100, "Alien Culture"],
+	]
+	for entry in table:
+		if roll <= entry[0]:
+			return entry[1]
+	return "Drifter"
 
 static func _generate_motivation() -> String:
-	@warning_ignore("untyped_declaration")
-	var motivations = ["Wealth", "Fame", "Revenge", "Family", "Adventure", "Knowledge", "Justice", "Survival"]
-	@warning_ignore("unsafe_call_argument")
-	return SafeTypeConverter.safe_array_get(motivations, randi() % motivations.size(), "Unknown")
+	## Generate motivation via d100 roll (Core Rules p.26)
+	var roll: int = randi() % 100 + 1
+	var table: Array = [
+		[8, "Wealth"], [14, "Fame"], [19, "Glory"],
+		[26, "Survival"], [32, "Escape"], [39, "Adventure"],
+		[44, "Truth"], [49, "Technology"], [56, "Discovery"],
+		[63, "Loyalty"], [69, "Revenge"], [74, "Romance"],
+		[79, "Faith"], [84, "Political"], [90, "Power"],
+		[95, "Order"], [100, "Freedom"],
+	]
+	for entry in table:
+		if roll <= entry[0]:
+			return entry[1]
+	return "Survival"
 
 @warning_ignore("shadowed_variable")
 static func _generate_starting_equipment(background: String) -> Array[String]:
 	## Generate starting equipment based on character background
+	## Starting rolls are per Core Rules pp.24-25
 	@warning_ignore("shadowed_variable")
 	var equipment: Array[String] = []
-	
-	# Base equipment for all characters
 	equipment.append("Basic Kit")
-	equipment.append("Clothing")
-	
-	# Background-specific equipment
-	match background:
-		"Military":
-			equipment.append("Combat Rifle")
-			equipment.append("Body Armor")
-		"Trader":
-			equipment.append("Hand Weapon")
-			equipment.append("Trade Goods")
-		"Engineer":
-			equipment.append("Tool Kit")
-			equipment.append("Repair Kit")
-		"Medic":
-			equipment.append("Medical Kit")
-			equipment.append("Stimms")
-		"Pilot":
-			equipment.append("Hand Weapon")
-			equipment.append("Navigation Kit")
-		_:
-			equipment.append("Hand Weapon")
-			equipment.append("Basic Gear")
-	
+	# Backgrounds that grant starting rolls
+	var bg_lower: String = background.to_lower()
+	if "low-tech" in bg_lower or "lower megacity" in bg_lower \
+		or "primitive" in bg_lower or "wasteland" in bg_lower:
+		equipment.append("Low-tech Weapon")
+	elif "war-torn" in bg_lower:
+		equipment.append("Military Weapon")
+	elif "tech guild" in bg_lower or "alien culture" in bg_lower:
+		equipment.append("High-tech Weapon")
+	elif "space station" in bg_lower or "drifter" in bg_lower \
+		or "industrial" in bg_lower:
+		equipment.append("Gear")
+	elif "subjugated" in bg_lower or "research" in bg_lower:
+		equipment.append("Gadget")
 	return equipment
 
 # Validation methods
@@ -874,28 +892,37 @@ func process_recovery_turn() -> void:
 
 # ========== IMPLANT MANAGEMENT (Five Parsecs Odds & Ends Loot) ==========
 
-const MAX_IMPLANTS: int = 3
+const MAX_IMPLANTS: int = 2
 
-## Implant type registry (Core Rules - Odds and Ends loot table)
+## Implant type registry — Core Rules p.55 (exact book entries)
+## Bots and Soulless cannot use implants. Once applied, cannot be damaged or removed.
 const IMPLANT_TYPES: Dictionary = {
-	"NEURAL_LINK": {"name": "Neural Link", "stat_bonus": {"savvy": 1}, "description": "Enhanced cognitive processing"},
-	"COMBAT_REFLEX": {"name": "Combat Reflex", "stat_bonus": {"reactions": 1}, "description": "Accelerated reflexes"},
-	"DERMAL_ARMOR": {"name": "Dermal Armor", "stat_bonus": {"toughness": 1}, "description": "Sub-dermal plating"},
-	"MUSCLE_GRAFT": {"name": "Muscle Graft", "stat_bonus": {"speed": 1}, "description": "Synthetic muscle augmentation"},
-	"TARGETING_EYE": {"name": "Targeting Eye", "stat_bonus": {"combat": 1}, "description": "Optical targeting system"},
-	"LUCK_CHIP": {"name": "Luck Chip", "stat_bonus": {"luck": 1}, "description": "Neural luck optimizer", "humans_only": true}
+	"AI_COMPANION": {"name": "AI Companion", "stat_bonus": {}, "description": "When making Savvy rolls, the character may roll twice and pick the better score."},
+	"BODY_WIRE": {"name": "Body Wire", "stat_bonus": {"reactions": 1}, "description": "+1 Reactions."},
+	"BOOSTED_ARM": {"name": "Boosted Arm", "stat_bonus": {}, "description": "Increase Grenade range by +2\". If the character ends their Move in contact with an obstacle no taller than the miniature, they may pull themselves up on top (but not cross) as a Free Action."},
+	"BOOSTED_LEG": {"name": "Boosted Leg", "stat_bonus": {"speed": 1}, "description": "Increase base move and Dash speed by +1\" each."},
+	"CYBER_HAND": {"name": "Cyber Hand", "stat_bonus": {}, "description": "The character may take any one Pistol they own and build it into their hand. Range is reduced to half, but the weapon always shoots with +1 to Hit and an additional +1 bonus when Brawling."},
+	"GENETIC_DEFENSES": {"name": "Genetic Defenses", "stat_bonus": {}, "description": "5+ Saving Throw, if subjected to any poison, virus, gas, or disease."},
+	"HEALTH_BOOST": {"name": "Health Boost", "stat_bonus": {}, "description": "If a post-battle Injury would result in 2+ campaign turns of recovery time, reduce the time by 1. If the character has Toughness 3 when receiving this implant, raise it to 4."},
+	"NERVE_ADJUSTER": {"name": "Nerve Adjuster", "stat_bonus": {}, "description": "Whenever the character is Stunned for any reason, they receive a 5+ Saving Throw to avoid the Stun."},
+	"NEURAL_OPTIMIZATION": {"name": "Neural Optimization", "stat_bonus": {}, "description": "The character cannot be Stunned."},
+	"NIGHT_SIGHT": {"name": "Night Sight", "stat_bonus": {}, "description": "The character does not suffer visibility reductions due to darkness, but is affected by smoke, gas, etc. normally."},
+	"PAIN_SUPPRESSOR": {"name": "Pain Suppressor", "stat_bonus": {}, "description": "The character can perform crew tasks while in Sick Bay, though they cannot participate in battles."}
 }
 
-## Map loot item names to implant type keys
+## Map loot item names to implant type keys (book implant names map directly)
 const LOOT_TO_IMPLANT_MAP: Dictionary = {
-	"Boosted Arm": "MUSCLE_GRAFT",
-	"Boosted Leg": "MUSCLE_GRAFT",
-	"Health Boost": "DERMAL_ARMOR",
-	"Pain Suppressor": "DERMAL_ARMOR",
-	"Night Sight": "TARGETING_EYE",
-	"Neural Optimization": "NEURAL_LINK",
-	"Combat Stimulator": "COMBAT_REFLEX",
-	"Lucky Charm": "LUCK_CHIP"
+	"AI Companion": "AI_COMPANION",
+	"Body Wire": "BODY_WIRE",
+	"Boosted Arm": "BOOSTED_ARM",
+	"Boosted Leg": "BOOSTED_LEG",
+	"Cyber Hand": "CYBER_HAND",
+	"Genetic Defenses": "GENETIC_DEFENSES",
+	"Health Boost": "HEALTH_BOOST",
+	"Nerve Adjuster": "NERVE_ADJUSTER",
+	"Neural Optimization": "NEURAL_OPTIMIZATION",
+	"Night Sight": "NIGHT_SIGHT",
+	"Pain Suppressor": "PAIN_SUPPRESSOR"
 }
 
 static func create_implant_from_type(implant_type_key: String) -> Dictionary:
@@ -918,7 +945,7 @@ static func create_implant_from_loot(loot_name: String) -> Dictionary:
 	return create_implant_from_type(implant_key)
 
 func add_implant(implant: Dictionary) -> bool:
-	## Add an implant to the character (max 3)
+	## Add an implant to the character (max 2, Core Rules p.55)
 	if not implant.has("type") or not implant.has("name"):
 		push_error("Character.add_implant: Invalid implant data - missing required fields")
 		return false

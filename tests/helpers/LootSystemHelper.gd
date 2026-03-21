@@ -128,19 +128,19 @@ func _roll_gear_subtable(d100_roll: int = 0) -> String:
 	var roll = d100_roll if d100_roll > 0 else (randi() % 100) + 1
 
 	if roll <= 20:
-		# Gun Mods
-		var mods = ["Assault Blade", "Bipod", "Stabilizer", "Laser Sight"]
+		# Gun Mods (p.132) — representative subset
+		var mods = ["Assault Blade", "Bipod", "Stabilizer", "Hot Shot Pack"]
 		return mods[randi() % mods.size()]
 	elif roll <= 40:
-		# Gun Sights
-		var sights = ["Laser Sight", "Quality Sight", "Seeker Sight"]
+		# Gun Sights (p.132) — representative subset
+		var sights = ["Laser Sight", "Quality Sight", "Seeker Sight", "Unity Battle Sight"]
 		return sights[randi() % sights.size()]
 	elif roll <= 75:
-		# Protective Items
+		# Protective Items (p.132) — representative subset
 		var armor = ["Combat Armor", "Frag Vest", "Flak Screen", "Deflector Field"]
 		return armor[randi() % armor.size()]
 	else:
-		# Utility Items
+		# Utility Items (p.133) — representative subset
 		var utility = ["Motion Tracker", "Jump Belt", "Battle Visor", "Scanner Bot", "Communicator"]
 		return utility[randi() % utility.size()]
 
@@ -153,12 +153,12 @@ func _roll_odds_and_ends_subtable(d100_roll: int = 0) -> String:
 	var roll = d100_roll if d100_roll > 0 else (randi() % 100) + 1
 
 	if roll <= 55:
-		# Consumables (2 uses)
-		var consumables = ["Booster Pills", "Combat Serum", "Stim-pack", "Rage Out"]
+		# Consumables (2 uses, p.133) — all 6 book consumables
+		var consumables = ["Booster Pills", "Combat Serum", "Kiranin Crystals", "Rage Out", "Still", "Stim-pack"]
 		return "%s (2 uses)" % consumables[randi() % consumables.size()]
 	elif roll <= 70:
-		# Implants
-		var implants = ["Boosted Arm", "Boosted Leg", "Health Boost", "Night Sight", "Pain Suppressor"]
+		# Implants (p.133) — all 11 book implants
+		var implants = ["AI Companion", "Body Wire", "Boosted Arm", "Boosted Leg", "Cyber Hand", "Genetic Defenses", "Health Boost", "Nerve Adjuster", "Neural Optimization", "Night Sight", "Pain Suppressor"]
 		return implants[randi() % implants.size()]
 	else:
 		# Ship Items

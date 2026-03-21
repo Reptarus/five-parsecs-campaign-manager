@@ -4,22 +4,47 @@ extends Node
 # This file should be referenced via preload
 # Use explicit preloads instead of global class names
 ## Five Parsecs Character Classes
+## Legacy values (0-14) preserved for save compatibility
+## Book classes (Core Rules p.27) appended starting at 15
 enum CharacterClass {
-	NONE,
-	SOLDIER,
-	MEDIC,
-	ROGUE,
-	PSIONICIST,
-	TECH,
-	BRUTE,
-	GUNSLINGER,
-	ACADEMIC,
-	PILOT,
-	ENGINEER,
-	MERCHANT,
-	SECURITY,
-	BROKER,
-	BOT_TECH
+	NONE, # 0
+	SOLDIER, # 1
+	MEDIC, # 2 (legacy)
+	ROGUE, # 3 (legacy)
+	PSIONICIST, # 4 (legacy)
+	TECH, # 5 (legacy)
+	BRUTE, # 6 (legacy)
+	GUNSLINGER, # 7 (legacy)
+	ACADEMIC, # 8 (legacy)
+	PILOT, # 9 (legacy)
+	ENGINEER, # 10 (legacy)
+	MERCHANT, # 11 (legacy)
+	SECURITY, # 12 (legacy)
+	BROKER, # 13 (legacy)
+	BOT_TECH, # 14 (legacy)
+	# Book classes (Core Rules p.27)
+	WORKING_CLASS, # 15
+	TECHNICIAN, # 16
+	SCIENTIST, # 17
+	HACKER, # 18
+	MERCENARY, # 19
+	AGITATOR, # 20
+	PRIMITIVE, # 21
+	ARTIST, # 22
+	NEGOTIATOR, # 23
+	TRADER, # 24
+	STARSHIP_CREW, # 25
+	PETTY_CRIMINAL, # 26
+	GANGER, # 27
+	SCOUNDREL, # 28
+	ENFORCER, # 29
+	SPECIAL_AGENT, # 30
+	TROUBLESHOOTER, # 31
+	BOUNTY_HUNTER, # 32
+	NOMAD, # 33
+	EXPLORER, # 34
+	PUNK, # 35
+	SCAVENGER, # 36
 }
 
 ## Character Status Types for Five Parsecs
@@ -94,7 +119,30 @@ const CHARACTER_CLASS_NAMES = {
 	CharacterClass.MERCHANT: "Merchant",
 	CharacterClass.SECURITY: "Security",
 	CharacterClass.BROKER: "Broker",
-	CharacterClass.BOT_TECH: "Bot Tech"
+	CharacterClass.BOT_TECH: "Bot Tech",
+	# Book classes (Core Rules p.27)
+	CharacterClass.WORKING_CLASS: "Working Class",
+	CharacterClass.TECHNICIAN: "Technician",
+	CharacterClass.SCIENTIST: "Scientist",
+	CharacterClass.HACKER: "Hacker",
+	CharacterClass.MERCENARY: "Mercenary",
+	CharacterClass.AGITATOR: "Agitator",
+	CharacterClass.PRIMITIVE: "Primitive",
+	CharacterClass.ARTIST: "Artist",
+	CharacterClass.NEGOTIATOR: "Negotiator",
+	CharacterClass.TRADER: "Trader",
+	CharacterClass.STARSHIP_CREW: "Starship Crew",
+	CharacterClass.PETTY_CRIMINAL: "Petty Criminal",
+	CharacterClass.GANGER: "Ganger",
+	CharacterClass.SCOUNDREL: "Scoundrel",
+	CharacterClass.ENFORCER: "Enforcer",
+	CharacterClass.SPECIAL_AGENT: "Special Agent",
+	CharacterClass.TROUBLESHOOTER: "Troubleshooter",
+	CharacterClass.BOUNTY_HUNTER: "Bounty Hunter",
+	CharacterClass.NOMAD: "Nomad",
+	CharacterClass.EXPLORER: "Explorer",
+	CharacterClass.PUNK: "Punk",
+	CharacterClass.SCAVENGER: "Scavenger",
 }
 
 ## Human-readable names for Character Status

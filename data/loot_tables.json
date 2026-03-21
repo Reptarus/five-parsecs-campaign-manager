@@ -1,7 +1,7 @@
 {
   "name": "Main Loot Table",
   "version": "3.0",
-  "source": "Five Parsecs from Home Core Rules p.70-72",
+  "source": "Five Parsecs from Home Core Rules pp.131-133",
   "dice_type": "d100",
   "description": "Roll D100 on Main Loot Table for each loot opportunity earned.",
   "tables": {
@@ -42,22 +42,22 @@
       }
     ],
     "weapon_subtable": [
-      {"roll_range": [1, 35], "category": "basic_weapons", "items": ["Hand Gun", "Military Rifle", "Shotgun", "Auto Rifle"]},
-      {"roll_range": [36, 50], "category": "energy_weapons", "items": ["Hand Laser", "Infantry Laser", "Blast Rifle"]},
-      {"roll_range": [51, 65], "category": "plasma_weapons", "items": ["Plasma Rifle", "Fury Rifle", "Needle Rifle"]},
-      {"roll_range": [66, 85], "category": "melee_weapons", "items": ["Blade", "Ripper Sword", "Boarding Saber"]},
-      {"roll_range": [86, 100], "category": "grenades", "items": ["3 Frakk Grenades", "2 Dazzle Grenades", "2 Shock Grenades"]}
+      {"roll_range": [1, 35], "category": "slug_weapons", "items": ["Hold Out Pistol", "Hand Gun", "Scrap Pistol", "Machine Pistol", "Duelling Pistol", "Hand Cannon", "Colony Rifle", "Military Rifle", "Shotgun", "Flak Gun", "Hunting Rifle", "Marksman's Rifle", "Auto Rifle", "Rattle Gun"]},
+      {"roll_range": [36, 50], "category": "energy_weapons", "items": ["Hand Laser", "Beam Pistol", "Infantry Laser", "Blast Pistol", "Blast Rifle", "Hyper Blaster"]},
+      {"roll_range": [51, 65], "category": "special_weapons", "items": ["Needle Rifle", "Plasma Rifle", "Fury Rifle", "Shell Gun", "Cling Fire Pistol", "Hand Flamer"]},
+      {"roll_range": [66, 85], "category": "melee_weapons", "items": ["Blade", "Brutal Melee Weapon", "Boarding Saber", "Ripper Sword", "Shatter Axe", "Power Claw", "Glare Sword", "Suppression Maul"]},
+      {"roll_range": [86, 100], "category": "grenades", "items": ["3 Frakk Grenades", "3 Dazzle Grenades"]}
     ],
     "gear_subtable": [
-      {"roll_range": [1, 20], "category": "gun_mods", "items": ["Assault Blade", "Bipod", "Stabilizer", "Laser Sight", "Heavy Duty Magazine"]},
-      {"roll_range": [21, 40], "category": "gun_sights", "items": ["Laser Sight", "Quality Sight", "Seeker Sight", "Night Sight"]},
-      {"roll_range": [41, 75], "category": "protective_items", "items": ["Combat Armor", "Frag Vest", "Flak Screen", "Deflector Field", "Shield Generator"]},
-      {"roll_range": [76, 100], "category": "utility_items", "items": ["Motion Tracker", "Jump Belt", "Battle Visor", "Scanner Bot", "Communicator", "Grapple Launcher"]}
+      {"roll_range": [1, 20], "category": "gun_mods", "items": ["Assault Blade", "Beam Light", "Bipod", "Hot Shot Pack", "Cyber-configurable Nano-Sludge", "Stabilizer", "Shock Attachment", "Upgrade Kit"]},
+      {"roll_range": [21, 40], "category": "gun_sights", "items": ["Laser Sight", "Quality Sight", "Seeker Sight", "Tracker Sight", "Unity Battle Sight"]},
+      {"roll_range": [41, 75], "category": "protective_items", "items": ["Battle Dress", "Camo Cloak", "Combat Armor", "Deflector Field", "Flak Screen", "Flex-Armor", "Frag Vest", "Screen Generator", "Stealth Gear"]},
+      {"roll_range": [76, 100], "category": "utility_items", "items": ["Auto Sensor", "Battle Visor", "Communicator", "Concealed Blade", "Displacer", "Distraction Bot", "Grapple Launcher", "Grav Dampener", "Hazard Suit", "Hover Board", "Insta-Wall", "Jump Belt", "Motion Tracker", "Multi-Cutter", "Robo-Rabbit's Foot", "Scanner Bot", "Snooper Bot", "Sonic Emitter", "Steel Boots", "Time Distorter"]}
     ],
     "odds_and_ends_subtable": [
-      {"roll_range": [1, 55], "category": "consumables", "items": ["Booster Pills", "Combat Serum", "Stim-pack", "Rage Out", "Still"], "uses": 2},
-      {"roll_range": [56, 70], "category": "implants", "items": ["Boosted Arm", "Boosted Leg", "Health Boost", "Night Sight", "Pain Suppressor", "Neural Optimization"]},
-      {"roll_range": [71, 100], "category": "ship_items", "items": ["Med-patch", "Spare Parts", "Repair Bot", "Nano-doc", "Colonist Ration Packs", "Fuel Cell"]}
+      {"roll_range": [1, 55], "category": "consumables", "items": ["Booster Pills", "Combat Serum", "Kiranin Crystals", "Rage Out", "Still", "Stim-pack"], "uses": 2},
+      {"roll_range": [56, 70], "category": "implants", "items": ["AI Companion", "Body Wire", "Boosted Arm", "Boosted Leg", "Cyber Hand", "Genetic Defenses", "Health Boost", "Nerve Adjuster", "Neural Optimization", "Night Sight", "Pain Suppressor"]},
+      {"roll_range": [71, 100], "category": "ship_items", "items": ["Med-patch", "Spare Parts", "Repair Bot", "Nano-doc", "Colonist Ration Packs"]}
     ],
     "rewards_subtable": [
       {"roll_range": [1, 10], "item": "Documents", "rumors": 1},

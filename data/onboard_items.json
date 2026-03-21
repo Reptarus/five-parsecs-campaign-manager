@@ -1,0 +1,205 @@
+{
+  "description": "On-board Items from Five Parsecs From Home Core Rules (pp.57-58). These items are not carried into battle by a specific crew member. Instead, they are usually left behind on the ship, and used at other points of the campaign turn.",
+  "rules": {
+    "storage": "Ship (not carried into battle)",
+    "usage": "Used during campaign turn phases, not during battle"
+  },
+  "onboard_items": [
+    {
+      "id": "analyzer",
+      "name": "Analyzer",
+      "description": "Add +1 when rolling to see if Rumors result in a Quest and when rolling for Quest resolution.",
+      "effect": {
+        "rumor_quest_bonus": 1,
+        "quest_resolution_bonus": 1
+      },
+      "single_use": false
+    },
+    {
+      "id": "colonist_ration_packs",
+      "name": "Colonist Ration Packs",
+      "description": "Ignore Upkeep costs for one campaign turn. +1 story point. Single-use.",
+      "effect": {
+        "ignore_upkeep": true,
+        "story_points": 1
+      },
+      "single_use": true
+    },
+    {
+      "id": "duplicator",
+      "name": "Duplicator",
+      "description": "Create a perfect copy of any one item in your inventory. A Duplicator cannot copy a Duplicator. Single-use.",
+      "effect": {
+        "copy_item": true,
+        "cannot_copy_self": true
+      },
+      "single_use": true
+    },
+    {
+      "id": "fake_id",
+      "name": "Fake ID",
+      "description": "Add +1 to all attempts to obtain a license or other legal document.",
+      "effect": {
+        "license_bonus": 1
+      },
+      "single_use": false
+    },
+    {
+      "id": "fixer",
+      "name": "Fixer",
+      "description": "One piece of damaged or destroyed personal equipment can be repaired automatically, and at no cost. Single-use.",
+      "effect": {
+        "free_repair": true
+      },
+      "single_use": true
+    },
+    {
+      "id": "genetic_reconfiguration_kit",
+      "name": "Genetic Reconfiguration Kit",
+      "description": "Reduce the cost of an ability score upgrade by 2 XP. Has no effect on Bots or Soulless. K'Erin may only use this to increase Toughness. Single-use.",
+      "effect": {
+        "xp_discount": 2,
+        "restrictions": ["No effect on Bots", "No effect on Soulless", "K'Erin: Toughness only"]
+      },
+      "single_use": true
+    },
+    {
+      "id": "loaded_dice",
+      "name": "Loaded Dice",
+      "description": "Each campaign turn, one crew member may gamble on the side. Roll 1D6. On a 1-4, earn that many credits. On a 5, earn nothing. On a 6, the locals don't take kindly to losing: The dice are lost and the crew member must roll on the post-battle Injury Table.",
+      "effect": {
+        "gamble": true,
+        "roll_table": {
+          "1-4": "earn_credits_equal_to_roll",
+          "5": "nothing",
+          "6": "lose_dice_and_injury_roll"
+        }
+      },
+      "single_use": false,
+      "can_be_lost": true
+    },
+    {
+      "id": "lucky_dice",
+      "name": "Lucky Dice",
+      "description": "Each campaign turn, one crew member may gamble on the side, earning +1 credit. If you have both Lucky and Loaded Dice, you can use both, but rolling a 6 for the Loaded dice means you lose both sets of dice.",
+      "effect": {
+        "gamble": true,
+        "credits": 1
+      },
+      "single_use": false,
+      "can_be_lost": true
+    },
+    {
+      "id": "mk_ii_translator",
+      "name": "Mk II Translator",
+      "description": "When rolling to Recruit, you may roll an additional D6.",
+      "effect": {
+        "recruit_bonus_die": 1
+      },
+      "single_use": false
+    },
+    {
+      "id": "med_patch",
+      "name": "Med-patch",
+      "description": "A character recovering from an Injury may subtract one campaign turn from the recovery duration required. If this reduces the time to zero turns, they may act normally this campaign turn. Single-use.",
+      "effect": {
+        "recovery_reduction": 1
+      },
+      "single_use": true
+    },
+    {
+      "id": "meditation_orb",
+      "name": "Meditation Orb",
+      "description": "The crew all feel reassured of their karmic balance. Add +2 story points. All Swift or Precursor in the crew may also add +1 XP. Single-use.",
+      "effect": {
+        "story_points": 2,
+        "species_xp_bonus": {
+          "species": ["Swift", "Precursor"],
+          "xp": 1
+        }
+      },
+      "single_use": true
+    },
+    {
+      "id": "nano_doc",
+      "name": "Nano-doc",
+      "description": "Prevent one roll on the post-battle Injury Table, no matter the source of the injury. You must decide before rolling the dice. Single-use.",
+      "effect": {
+        "prevent_injury_roll": true,
+        "timing": "before_rolling"
+      },
+      "single_use": true
+    },
+    {
+      "id": "novelty_stuffed_animal",
+      "name": "Novelty Stuffed Animal",
+      "description": "Give to any character that isn't Soulless, K'Erin, or a Bot. The character receives +1 XP, and may roll 1D6. On a 6, you may add +1 story point as well. Single-use.",
+      "effect": {
+        "xp": 1,
+        "story_point_chance": "6_on_d6",
+        "restrictions": ["Not Soulless", "Not K'Erin", "Not Bot"]
+      },
+      "single_use": true
+    },
+    {
+      "id": "purifier",
+      "name": "Purifier",
+      "description": "Each campaign turn, the Purifier can be used to generate clean water which can be sold off for 1 credit. This does not require a crew member to operate, but only one Purifier may be used at a time.",
+      "effect": {
+        "credits_per_turn": 1,
+        "requires_crew": false,
+        "max_active": 1
+      },
+      "single_use": false
+    },
+    {
+      "id": "repair_bot",
+      "name": "Repair Bot",
+      "description": "+1 to all Repair attempts.",
+      "effect": {
+        "repair_bonus": 1
+      },
+      "single_use": false
+    },
+    {
+      "id": "sector_permit",
+      "name": "Sector Permit",
+      "description": "Whenever you arrive at a planet where a license is required, roll 1D6. On a 4+, the Sector Permit is accepted. You must roll for each license type, on each planet.",
+      "effect": {
+        "license_chance": "4+_on_d6",
+        "per_license_per_planet": true
+      },
+      "single_use": false
+    },
+    {
+      "id": "spare_parts",
+      "name": "Spare Parts",
+      "description": "Add +1 when making a Repair attempt. If the roll is a natural 1, the Spare Parts are used up and must be erased from your roster.",
+      "effect": {
+        "repair_bonus": 1,
+        "consumed_on": "natural_1"
+      },
+      "single_use": false,
+      "can_be_lost": true
+    },
+    {
+      "id": "teach_bot",
+      "name": "Teach-bot",
+      "description": "A character engaging in the Train crew task will earn 1D6 additional XP. Single-use.",
+      "effect": {
+        "training_xp_bonus": "1D6"
+      },
+      "single_use": true
+    },
+    {
+      "id": "transcender",
+      "name": "Transcender",
+      "description": "The character activating this mysterious device receives +1 XP. The entire crew makes realizations about their place in the cosmos. Add +2 story points. Single-use.",
+      "effect": {
+        "xp": 1,
+        "story_points": 2
+      },
+      "single_use": true
+    }
+  ]
+}

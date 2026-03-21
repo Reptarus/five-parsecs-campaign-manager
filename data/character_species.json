@@ -1,488 +1,319 @@
 {
-    "name": "character_species",
-    "description": "Available species for character creation in Five Parsecs from Home",
-    "species": [
-        {
-            "id": "human",
-            "name": "Human",
-            "description": "Humans are the most common species in the galaxy, known for their adaptability and tenacity. They have spread to countless worlds and can be found in virtually every profession and social stratum.",
-            "stat_modifiers": {
-                "combat": 0,
-                "toughness": 0,
-                "speed": 0,
-                "savvy": 0
-            },
-            "special_abilities": [
-                {
-                    "name": "Adaptable",
-                    "description": "Humans can reroll one failed check per battle."
-                },
-                {
-                    "name": "Quick Learner",
-                    "description": "Humans gain +1 XP after each mission."
-                }
-            ],
-            "starting_equipment_options": [
-                "Standard equipment package",
-                "Specialized equipment package (choose one skill and gain related gear)"
-            ],
-            "lifespan": "80-120 years",
-            "average_height": "5'5\" - 6'2\"",
-            "homeworlds": [
-                "Earth (historical homeworld)",
-                "Various colony worlds throughout the galaxy"
-            ],
-            "culture_notes": "Human cultures are incredibly diverse, reflecting their origins from Old Earth and subsequent adaptation to countless colony worlds. They tend to form the backbone of most interstellar governments and corporations.",
-            "compatible_backgrounds": [
-                "any"
-            ],
-            "tags": [
-                "common",
-                "adaptable",
-                "widespread"
-            ]
-        },
-        {
-            "id": "synthoid",
-            "name": "Synthoid",
-            "description": "Synthetic humanoids created for labor, warfare, or companionship who have gained independence. They possess artificial bodies with organic components and fully sentient AI minds.",
-            "stat_modifiers": {
-                "combat": 0,
-                "toughness": 1,
-                "speed": 0,
-                "savvy": 0
-            },
-            "special_abilities": [
-                {
-                    "name": "Artificial Body",
-                    "description": "Synthoids are immune to poison, disease, and do not need to breathe. They recover from injuries faster, healing one additional wound during recovery."
-                },
-                {
-                    "name": "Machine Logic",
-                    "description": "Synthoids gain +1 on all Tech skill checks."
-                }
-            ],
-            "starting_equipment_options": [
-                "Standard equipment package",
-                "Technical toolkit and diagnostic equipment"
-            ],
-            "lifespan": "Indefinite with maintenance",
-            "average_height": "5'0\" - 6'6\"",
-            "homeworlds": [
-                "Manufacturing centers",
-                "AI research facilities",
-                "Corporate worlds"
-            ],
-            "culture_notes": "Synthoid culture is still developing, with many seeking to define their identity beyond their original programming. Some embrace their artificial nature, while others attempt to become more 'human-like'. Many face prejudice and legal restrictions in certain jurisdictions.",
-            "compatible_backgrounds": [
-                "Combat Bot",
-                "Corporate Agent",
-                "Scientist",
-                "Mercenary",
-                "Drifter"
-            ],
-            "tags": [
-                "artificial",
-                "resilient",
-                "logical"
-            ]
-        },
-        {
-            "id": "altered_human",
-            "name": "Altered Human",
-            "description": "Humans who have been genetically modified or cybernetically enhanced beyond standard medical procedures, often for specific environments or purposes.",
-            "stat_modifiers": {
-                "combat": 0,
-                "toughness": 0,
-                "speed": 1,
-                "savvy": 0
-            },
-            "special_abilities": [
-                {
-                    "name": "Enhanced Physiology",
-                    "description": "Altered Humans can select one physical attribute (strength, reflexes, endurance) at character creation and gain +1 to all related checks."
-                },
-                {
-                    "name": "Specialized Adaptation",
-                    "description": "Altered Humans have been modified for specific environments or tasks. Choose one environment type (aquatic, low-gravity, high-radiation, etc.) or task (combat, technical work, stealth) and gain immunity to related hazards or +1 to related checks."
-                }
-            ],
-            "starting_equipment_options": [
-                "Standard equipment package",
-                "Specialized equipment related to their modifications"
-            ],
-            "lifespan": "80-200 years depending on modifications",
-            "average_height": "5'0\" - 7'0\"",
-            "homeworlds": [
-                "Advanced medical research centers",
-                "Corporate worlds",
-                "Frontier colonies with harsh environments"
-            ],
-            "culture_notes": "Altered Humans often face discrimination from baseline humans, with some viewing their modifications as 'unnatural'. They frequently form tight-knit communities with others who share similar modifications. Some alterations are obvious, while others are invisible to casual observation.",
-            "compatible_backgrounds": [
-                "Military Veteran",
-                "Scientist",
-                "Mercenary",
-                "Frontier Colonist",
-                "Corporate Agent",
-                "Drifter"
-            ],
-            "tags": [
-                "modified",
-                "specialized",
-                "adaptable"
-            ]
-        },
-        {
-            "id": "avian",
-            "name": "Avian",
-            "description": "Humanoid species with avian characteristics including feathers, lightweight bones, and in some cases, vestigial wings. Known for their keen eyesight and agility.",
-            "stat_modifiers": {
-                "combat": 0,
-                "toughness": -1,
-                "speed": 2,
-                "savvy": 0
-            },
-            "special_abilities": [
-                {
-                    "name": "Keen Senses",
-                    "description": "Avians gain +2 on all awareness checks and cannot be surprised."
-                },
-                {
-                    "name": "Gliding",
-                    "description": "Avians can safely descend from any height and can glide horizontally a distance equal to the height they fell."
-                }
-            ],
-            "starting_equipment_options": [
-                "Standard equipment package",
-                "Lightweight armor and ranged weapons"
-            ],
-            "lifespan": "60-80 years",
-            "average_height": "5'0\" - 5'8\"",
-            "homeworlds": [
-                "Mountainous worlds",
-                "Low-gravity planets",
-                "Worlds with extensive aerial habitats"
-            ],
-            "culture_notes": "Avian cultures typically value freedom of movement and open spaces. Their architecture favors height and openness, with many structures featuring multiple levels connected by open air rather than stairs. Many Avians find enclosed spaces psychologically distressing.",
-            "compatible_backgrounds": [
-                "Pilot",
-                "Frontier Colonist",
-                "Mercenary",
-                "Drifter"
-            ],
-            "tags": [
-                "agile",
-                "perceptive",
-                "lightweight"
-            ]
-        },
-        {
-            "id": "reptilian",
-            "name": "Reptilian",
-            "description": "Humanoid species with reptilian features such as scales, cold-blooded physiology, and regenerative capabilities. Known for their durability and patience.",
-            "stat_modifiers": {
-                "combat": 0,
-                "toughness": 2,
-                "speed": -1,
-                "savvy": 0
-            },
-            "special_abilities": [
-                {
-                    "name": "Natural Armor",
-                    "description": "Reptilians have tough scales that provide a natural armor save of 6+."
-                },
-                {
-                    "name": "Regeneration",
-                    "description": "Reptilians can regenerate wounds more quickly, healing one additional wound during recovery."
-                }
-            ],
-            "starting_equipment_options": [
-                "Standard equipment package",
-                "Heat-regulation equipment for cold environments"
-            ],
-            "lifespan": "150-200 years",
-            "average_height": "5'6\" - 7'0\"",
-            "homeworlds": [
-                "Desert worlds",
-                "Tropical jungle planets",
-                "Volcanic worlds"
-            ],
-            "culture_notes": "Reptilian cultures tend to be tradition-bound and hierarchical, with great respect for elders. They often have complex social rituals and can appear stoic or emotionless to other species. Many Reptilian societies practice sun-worship or similar heat-based religious practices.",
-            "compatible_backgrounds": [
-                "Military Veteran",
-                "Frontier Colonist",
-                "Mercenary",
-                "Criminal",
-                "Drifter"
-            ],
-            "tags": [
-                "durable",
-                "patient",
-                "traditional"
-            ]
-        },
-        {
-            "id": "insectoid",
-            "name": "Insectoid",
-            "description": "Humanoid species with insect-like characteristics including exoskeletons, compound eyes, and sometimes multiple limbs. Known for their specialized abilities and collective mindset.",
-            "stat_modifiers": {
-                "combat": 1,
-                "toughness": 0,
-                "speed": 1,
-                "savvy": -1
-            },
-            "special_abilities": [
-                {
-                    "name": "Exoskeleton",
-                    "description": "Insectoids have a natural armor save of 5+ but cannot wear standard armor (must be custom-fitted at increased cost)."
-                },
-                {
-                    "name": "Wall Climbing",
-                    "description": "Insectoids can climb walls and ceilings at their normal movement rate."
-                }
-            ],
-            "starting_equipment_options": [
-                "Standard equipment package",
-                "Specialized tools adapted for insectoid physiology"
-            ],
-            "lifespan": "40-60 years",
-            "average_height": "4'6\" - 6'0\"",
-            "homeworlds": [
-                "Hive worlds",
-                "Dense jungle planets",
-                "Underground colony worlds"
-            ],
-            "culture_notes": "Insectoid cultures often emphasize collective effort over individual achievement. Many insectoid societies are organized around specialized roles or castes, though those who venture into the wider galaxy are typically more individualistic than their homeworld kin. They often have difficulty understanding the concept of personal space.",
-            "compatible_backgrounds": [
-                "Frontier Colonist",
-                "Scientist",
-                "Mercenary",
-                "Drifter"
-            ],
-            "tags": [
-                "specialized",
-                "collective",
-                "adaptable"
-            ]
-        },
-        {
-            "id": "psyker",
-            "name": "Psyker",
-            "description": "Humanoids with powerful psychic abilities, often appearing similar to baseline humans but with distinctive features like unusual eye colors or faint bioluminescence.",
-            "stat_modifiers": {
-                "combat": 0,
-                "toughness": -1,
-                "speed": 0,
-                "savvy": 2
-            },
-            "special_abilities": [
-                {
-                    "name": "Psychic Powers",
-                    "description": "Psykers begin with two psionic powers of their choice and can use them a number of times per battle equal to their Savvy stat."
-                },
-                {
-                    "name": "Mental Shield",
-                    "description": "Psykers are immune to mind control and gain +2 to resist other psychic abilities."
-                }
-            ],
-            "starting_equipment_options": [
-                "Standard equipment package",
-                "Psionic focus items (crystals, meditation aids, etc.)"
-            ],
-            "lifespan": "70-90 years",
-            "average_height": "5'4\" - 6'0\"",
-            "homeworlds": [
-                "Worlds with high background radiation",
-                "Planets near spatial anomalies",
-                "Ancient colony worlds with mysterious histories"
-            ],
-            "culture_notes": "Psyker cultures often revolve around the development and control of their abilities. Many face fear and persecution from non-psychic populations, leading to secretive communities or nomadic lifestyles. Some worlds revere psykers as spiritual leaders, while others hunt them as dangerous aberrations.",
-            "compatible_backgrounds": [
-                "Scientist",
-                "Criminal",
-                "Frontier Colonist",
-                "Drifter"
-            ],
-            "tags": [
-                "psychic",
-                "sensitive",
-                "mysterious"
-            ]
-        },
-        {
-            "id": "felinoid",
-            "name": "Felinoid",
-            "description": "Humanoid species with feline characteristics including fur, enhanced reflexes, and acute senses. Known for their agility and independence.",
-            "stat_modifiers": {
-                "combat": 1,
-                "toughness": 0,
-                "speed": 1,
-                "savvy": -1
-            },
-            "special_abilities": [
-                {
-                    "name": "Night Vision",
-                    "description": "Felinoids ignore penalties for darkness and low-light conditions."
-                },
-                {
-                    "name": "Lightning Reflexes",
-                    "description": "Felinoids always act first in the first turn of battle unless facing another Felinoid."
-                }
-            ],
-            "starting_equipment_options": [
-                "Standard equipment package",
-                "Stealth gear and light weapons"
-            ],
-            "lifespan": "60-80 years",
-            "average_height": "5'2\" - 6'4\"",
-            "homeworlds": [
-                "Savanna worlds",
-                "Dense forest planets",
-                "Urban colony worlds"
-            ],
-            "culture_notes": "Felinoid cultures typically value personal freedom and individual prowess. Their societies tend to be loosely organized, with leadership based on demonstrated ability rather than heredity. Many Felinoids have a strong territorial instinct and can be fiercely protective of their personal space and possessions.",
-            "compatible_backgrounds": [
-                "Criminal",
-                "Mercenary",
-                "Pilot",
-                "Frontier Colonist",
-                "Drifter"
-            ],
-            "tags": [
-                "agile",
-                "independent",
-                "territorial"
-            ]
-        }
-    ],
-    "species_compatibility": {
-        "backgrounds": {
-            "Military Veteran": [
-                "human",
-                "altered_human",
-                "reptilian",
-                "felinoid"
-            ],
-            "Criminal": [
-                "human",
-                "altered_human",
-                "reptilian",
-                "felinoid",
-                "psyker"
-            ],
-            "Scientist": [
-                "human",
-                "synthoid",
-                "altered_human",
-                "insectoid",
-                "psyker"
-            ],
-            "Mercenary": [
-                "human",
-                "synthoid",
-                "altered_human",
-                "avian",
-                "reptilian",
-                "insectoid",
-                "felinoid"
-            ],
-            "Frontier Colonist": [
-                "human",
-                "altered_human",
-                "avian",
-                "reptilian",
-                "insectoid",
-                "psyker",
-                "felinoid"
-            ],
-            "Pilot": [
-                "human",
-                "synthoid",
-                "altered_human",
-                "avian",
-                "felinoid"
-            ],
-            "Corporate Agent": [
-                "human",
-                "synthoid",
-                "altered_human"
-            ],
-            "Combat Bot": [
-                "synthoid"
-            ],
-            "Drifter": [
-                "human",
-                "synthoid",
-                "altered_human",
-                "avian",
-                "reptilian",
-                "insectoid",
-                "psyker",
-                "felinoid"
-            ]
-        },
-        "skills": {
-            "Tactics": [
-                "human",
-                "synthoid",
-                "altered_human",
-                "reptilian"
-            ],
-            "Stealth": [
-                "human",
-                "altered_human",
-                "avian",
-                "insectoid",
-                "felinoid"
-            ],
-            "Tech": [
-                "human",
-                "synthoid",
-                "altered_human",
-                "insectoid"
-            ],
-            "Medicine": [
-                "human",
-                "synthoid",
-                "altered_human",
-                "psyker"
-            ],
-            "Survival": [
-                "human",
-                "altered_human",
-                "avian",
-                "reptilian",
-                "insectoid",
-                "felinoid"
-            ],
-            "Pilot": [
-                "human",
-                "synthoid",
-                "altered_human",
-                "avian",
-                "felinoid"
-            ],
-            "Streetwise": [
-                "human",
-                "altered_human",
-                "reptilian",
-                "felinoid",
-                "psyker"
-            ],
-            "Negotiation": [
-                "human",
-                "synthoid",
-                "altered_human",
-                "psyker"
-            ],
-            "Discipline": [
-                "human",
-                "synthoid",
-                "altered_human",
-                "reptilian",
-                "psyker"
-            ]
-        }
-    }
+	"name": "character_species",
+	"description": "Core Rules species for character creation in Five Parsecs from Home (pp.15-22)",
+	"primary_aliens": [
+		{
+			"id": "human",
+			"name": "Human",
+			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
+			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
+			"special_rules": ["Can exceed 1 point of Luck"],
+			"rolls_creation_tables": true,
+			"page_reference": "p.15"
+		},
+		{
+			"id": "bot",
+			"name": "Bot",
+			"base_stats": {"reactions": 2, "speed": 4, "combat_skill": 1, "toughness": 4, "savvy": 2},
+			"stat_modifiers": {"combat": 1, "toughness": 1, "speed": 0, "savvy": 2, "reactions": 1},
+			"special_rules": [
+				"No rolls on character creation tables",
+				"Use Bot injury table",
+				"6+ Armor Saving Throw",
+				"Cannot earn XP (upgrade via credits)",
+				"Cannot use Consumables or Implants",
+				"Cannot be subject of Character Events",
+				"Do not receive Luck if selected as Leader"
+			],
+			"rolls_creation_tables": false,
+			"page_reference": "p.15"
+		},
+		{
+			"id": "engineer",
+			"name": "Engineer",
+			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 2, "savvy": 1},
+			"stat_modifiers": {"combat": 0, "toughness": -1, "speed": 0, "savvy": 1, "reactions": 0},
+			"special_rules": [
+				"+1 to repair rolls",
+				"Toughness cannot exceed 4 (even with equipment)"
+			],
+			"rolls_creation_tables": true,
+			"page_reference": "p.16"
+		},
+		{
+			"id": "kerin",
+			"name": "K'Erin",
+			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 4, "savvy": 0},
+			"stat_modifiers": {"combat": 0, "toughness": 1, "speed": 0, "savvy": 0, "reactions": 0},
+			"special_rules": [
+				"Roll twice in Brawling, pick better result",
+				"Must move to Brawl if enemy within base movement speed"
+			],
+			"rolls_creation_tables": true,
+			"page_reference": "p.16"
+		},
+		{
+			"id": "soulless",
+			"name": "Soulless",
+			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 4, "savvy": 1},
+			"stat_modifiers": {"combat": 0, "toughness": 1, "speed": 0, "savvy": 1, "reactions": 0},
+			"special_rules": [
+				"6+ Armor Saving Throw",
+				"Cannot use Consumables or Implants",
+				"Use Bot injury table",
+				"Earn XP normally (unlike Bots)",
+				"May have Bot Upgrades at 1.5x cost (rounded up)"
+			],
+			"rolls_creation_tables": true,
+			"page_reference": "p.17"
+		},
+		{
+			"id": "precursor",
+			"name": "Precursor",
+			"base_stats": {"reactions": 1, "speed": 5, "combat_skill": 0, "toughness": 2, "savvy": 0},
+			"stat_modifiers": {"combat": 0, "toughness": -1, "speed": 1, "savvy": 0, "reactions": 0},
+			"special_rules": [
+				"Roll 2 Character Events and pick preferred one",
+				"May spend 1 story point to avoid Character Event entirely"
+			],
+			"rolls_creation_tables": true,
+			"page_reference": "p.17"
+		},
+		{
+			"id": "feral",
+			"name": "Feral",
+			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
+			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
+			"special_rules": [
+				"Enemy penalties to Seize the Initiative are ignored",
+				"If Reaction Roll scores single 1, must be given to Feral if possible"
+			],
+			"rolls_creation_tables": true,
+			"page_reference": "p.18"
+		},
+		{
+			"id": "swift",
+			"name": "Swift",
+			"base_stats": {"reactions": 1, "speed": 5, "combat_skill": 0, "toughness": 3, "savvy": 0},
+			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 1, "savvy": 0, "reactions": 0},
+			"special_rules": [
+				"Can glide to lower position (distance = height difference)",
+				"Leap gaps up to 4\" wide, jump down from any height without damage",
+				"Multi-shot weapons must direct all shots at same target"
+			],
+			"rolls_creation_tables": true,
+			"page_reference": "p.18"
+		}
+	],
+	"strange_characters": [
+		{
+			"id": "de_converted",
+			"name": "De-converted",
+			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
+			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
+			"special_rules": [
+				"6+ Armor Saving Throw (built-in plating)",
+				"Can be fitted with up to 3 implants",
+				"Savvy can never be improved",
+				"Motivation is always Revenge"
+			],
+			"forced_motivation": "revenge",
+			"rolls_creation_tables": true,
+			"page_reference": "p.19"
+		},
+		{
+			"id": "unity_agent",
+			"name": "Unity Agent",
+			"base_stats": {"reactions": 2, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
+			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 1},
+			"special_rules": [
+				"Call in a Favor: Roll 2D6 each turn. 10-12: remove Rival, gain Quest Rumor, or gain Patron. 2-4: must travel to next planet or lose trait permanently",
+				"Motivation is always Order"
+			],
+			"forced_motivation": "order",
+			"rolls_creation_tables": true,
+			"page_reference": "p.20"
+		},
+		{
+			"id": "mysterious_past",
+			"name": "Mysterious Past",
+			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
+			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
+			"special_rules": [
+				"As Baseline Human",
+				"Roll twice on Background Table, apply both results",
+				"Bonus story points from Background/Motivation/Class are ignored"
+			],
+			"rolls_creation_tables": true,
+			"double_background": true,
+			"page_reference": "p.20"
+		},
+		{
+			"id": "hakshan",
+			"name": "Hakshan",
+			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
+			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
+			"special_rules": [
+				"Automatically has Truth motivation in addition to rolled motivation"
+			],
+			"forced_motivation": "truth",
+			"rolls_creation_tables": true,
+			"page_reference": "p.20"
+		},
+		{
+			"id": "stalker",
+			"name": "Stalker",
+			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
+			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
+			"special_rules": [
+				"Can teleport instead of moving: Roll 1D6\" and reposition anywhere within distance",
+				"Teleport upgradeable twice (4 XP each, +1\" per upgrade)"
+			],
+			"rolls_creation_tables": true,
+			"page_reference": "p.20"
+		},
+		{
+			"id": "hulker",
+			"name": "Hulker",
+			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 1, "toughness": 5, "savvy": 0},
+			"stat_modifiers": {"combat": 1, "toughness": 2, "speed": 0, "savvy": 0, "reactions": 0},
+			"special_rules": [
+				"Combat Skill always treated as +0 when shooting (no weapon/sight/mod bonuses)",
+				"Ignores Clumsy and Heavy weapon traits",
+				"Class roll of Technician/Scientist/Hacker treated as Primitive"
+			],
+			"rolls_creation_tables": true,
+			"page_reference": "p.21"
+		},
+		{
+			"id": "hopeful_rookie",
+			"name": "Hopeful Rookie",
+			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
+			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
+			"special_rules": [
+				"As Baseline Human",
+				"Begin with 1 Luck",
+				"+1 bonus XP each game where not a casualty",
+				"First casualty (with no Luck): lose all Luck permanently, no more bonus XP"
+			],
+			"rolls_creation_tables": true,
+			"page_reference": "p.21"
+		},
+		{
+			"id": "genetic_uplift",
+			"name": "Genetic Uplift",
+			"base_stats": {"reactions": 2, "speed": 5, "combat_skill": 1, "toughness": 4, "savvy": 1},
+			"stat_modifiers": {"combat": 1, "toughness": 1, "speed": 1, "savvy": 1, "reactions": 1},
+			"special_rules": [
+				"Background rolls granting bonus credits are ignored",
+				"Crew receives 1 additional Rival"
+			],
+			"rolls_creation_tables": true,
+			"page_reference": "p.21"
+		},
+		{
+			"id": "mutant",
+			"name": "Mutant",
+			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
+			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
+			"special_rules": [
+				"As Baseline Human",
+				"Cannot perform Recruit or Find a Patron tasks",
+				"Background is always Lower Megacity Class"
+			],
+			"forced_background": "lower_megacity_class",
+			"rolls_creation_tables": true,
+			"page_reference": "p.21"
+		},
+		{
+			"id": "assault_bot",
+			"name": "Assault Bot",
+			"base_stats": {"reactions": 2, "speed": 4, "combat_skill": 1, "toughness": 4, "savvy": 0},
+			"stat_modifiers": {"combat": 1, "toughness": 1, "speed": 0, "savvy": 0, "reactions": 1},
+			"special_rules": [
+				"As Bot but Savvy is +0 and cannot be upgraded",
+				"Ignores Clumsy and Heavy weapon traits",
+				"5+ Armor Saving Throw (heavy metallic construction)",
+				"No background, motivation, or class"
+			],
+			"rolls_creation_tables": false,
+			"page_reference": "p.21"
+		},
+		{
+			"id": "manipulator",
+			"name": "Manipulator",
+			"base_stats": {"reactions": 2, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 1},
+			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 1, "reactions": 1},
+			"special_rules": [
+				"Cannot enter Brawl voluntarily",
+				"May fire 2 Pistols at separate targets using tentacles",
+				"When crew earns story points, roll 1D6 per Manipulator: 6 = bonus story point",
+				"Background is always Bureaucrat"
+			],
+			"forced_background": "bureaucrat",
+			"rolls_creation_tables": true,
+			"page_reference": "p.22"
+		},
+		{
+			"id": "primitive_character",
+			"name": "Primitive",
+			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
+			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
+			"special_rules": [
+				"As Baseline Human",
+				"Cannot benefit from gun sights or fire above 8\" range",
+				"All Melee weapons count as Elegant",
+				"Background is always Primitive or Regressed World"
+			],
+			"forced_background": "primitive_world",
+			"rolls_creation_tables": true,
+			"page_reference": "p.22"
+		},
+		{
+			"id": "feeler",
+			"name": "Feeler",
+			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
+			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
+			"special_rules": [
+				"As Baseline Human",
+				"Roll twice on Motivation Table and receive benefits of both",
+				"If in fight with another crew member, has mental breakdown and leaves permanently"
+			],
+			"double_motivation": true,
+			"rolls_creation_tables": true,
+			"page_reference": "p.22"
+		},
+		{
+			"id": "emo_suppressed",
+			"name": "Emo-suppressed",
+			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
+			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
+			"special_rules": [
+				"As Baseline Human",
+				"Will never voluntarily leave crew",
+				"May ignore events requiring fights with locals/crew",
+				"Can never receive Luck points",
+				"Motivation is always Survival"
+			],
+			"forced_motivation": "survival",
+			"rolls_creation_tables": true,
+			"page_reference": "p.22"
+		},
+		{
+			"id": "minor_alien",
+			"name": "Minor Alien",
+			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
+			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
+			"special_rules": [
+				"As Baseline Human",
+				"Bonus credits or story points from tables reduced by 1",
+				"Roll 1D6 for XP discount: 1=Reactions, 2-3=Speed, 4=Combat, 5=Toughness, 6=Savvy (cost reduced by 1 XP)"
+			],
+			"rolls_creation_tables": true,
+			"page_reference": "p.22"
+		}
+	],
+	"species_compatibility": {
+		"note": "All species roll on Background, Motivation, and Class tables unless specifically noted otherwise. Bot and Assault Bot do not roll on any creation tables."
+	}
 }

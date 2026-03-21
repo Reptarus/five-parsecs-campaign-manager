@@ -186,24 +186,26 @@ func load_enemy_types() -> bool:
 # Initialize a default enemy types structure for fallback
 func _initialize_default_enemy_types() -> void:
 	enemy_types = {
-		"name": "enemy_types",
 		"enemy_categories": [
 			{
-				"id": "raiders",
-				"name": "Raiders",
-				"description": "Opportunistic bandits and pirates who prey on the weak.",
+				"id": "criminal_elements",
+				"name": "Criminal Elements",
 				"enemies": [
 					{
-						"id": "raider_grunt",
-						"name": "Raider Grunt",
-						"description": "Common bandit armed with basic weapons.",
-						"tags": ["common", "grunt"]
+						"id": "gangers",
+						"name": "Gangers",
+						"roll_range": [1, 10],
+						"numbers": "+2",
+						"panic": "1-2",
+						"speed": 4,
+						"combat_skill": 0,
+						"toughness": 3,
+						"ai": "A",
+						"weapons": "1 A"
 					}
 				]
 			}
-		],
-		"enemy_loot_tables": {},
-		"enemy_spawn_rules": {}
+		]
 	}
 
 func load_world_traits() -> bool:

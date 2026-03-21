@@ -91,7 +91,8 @@
       "Bash(powershell.exe -ExecutionPolicy Bypass -File /tmp/check_remaining.ps1)",
       "Bash(gh repo view Reptarus/tacticaprototype1 --json name,description,defaultBranchRef,url)",
       "Bash(git ls-remote https://github.com/Reptarus/tacticaprototype1.git HEAD)",
-      "Bash(git clone https://github.com/Reptarus/tacticaprototype1.git /tmp/tacticaprototype1)"
+      "Bash(git clone https://github.com/Reptarus/tacticaprototype1.git /tmp/tacticaprototype1)",
+      "Bash(\"C:\\\\Users\\\\admin\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python.exe\" -c:*)"
     ]
   },
   "outputStyle": "Explanatory",

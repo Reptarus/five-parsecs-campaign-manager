@@ -8,7 +8,7 @@ All game data lives in `data/` at project root. Loaded by `GameDataManager` auto
 | File | Consumer | Schema |
 |------|----------|--------|
 | `data/weapons.json` | GameDataManager.load_weapons_database() | Array of {id, name, type, range, shots, damage, traits[], cost} |
-| `data/armor.json` | GameDataManager.load_armor_database() | Array of {id, name, defense_bonus, cost, special} |
+| `data/armor.json` | GameDataManager.load_armor_database() | 9 protective devices (pp.54-55): {id, name, category (armor/screen), armor_save, effects{}, special_rules} |
 | `data/gear.json` | GameDataManager.load_gear_database() | Array of {id, name, description, effect, cost, type} |
 | `data/equipment.json` | GameDataManager.load_equipment_database() | Combined equipment catalog |
 | `data/injury_tables.json` | GameDataManager.load_injury_tables() | {table_name: [{roll_min, roll_max, result, effect, recovery_turns}]} |
