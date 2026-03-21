@@ -12,7 +12,7 @@
 |--------|-------|
 | Game Mechanics Implemented | 170/170 (100%) |
 | Mechanics Runtime-Verified | 170/170 (100%) |
-| Open Bugs | 0 confirmed + 0 UX + 3 deferred |
+| Open Bugs | 3 confirmed (rules mismatch) + 0 UX + 2 deferred |
 | Unit Test Files | 50 (tests/unit/) |
 | Integration Test Files | 22 (tests/integration/) |
 | MCP Test Sessions Completed | 18+ (106 bugs found, 102 fixed) |
@@ -40,9 +40,13 @@
 
 ## Open Bugs
 
-### Confirmed Bugs
+### Confirmed Bugs (Rules Verification — Mar 21)
 
-None — all confirmed bugs resolved as of 2026-03-20.
+| Bug | Severity | Description | Decision Needed |
+|-----|----------|-------------|-----------------|
+| BUG-036 | P2 | Precursor species missing psionic power at creation (gives +1 Savvy only) | Add psionic power or document as deferred |
+| BUG-037 | P2 | Swift species gets +1 Speed instead of +2 Speed per Core Rules; also has extra +1 Reactions | Confirm rules accuracy |
+| BUG-038 | P3 | Soulless species has extra +1 Reactions not in Core Rules (may be intentional) | Confirm if balance tweak |
 
 ### UX Issues
 

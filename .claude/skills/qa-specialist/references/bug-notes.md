@@ -31,8 +31,10 @@ Canonical bug tracker for QA reference. Updated after each fix sprint.
 
 | Bug | Severity | Notes |
 |-----|----------|-------|
-| ~~WEALTH motivation~~ | **FIXED** | Applied +1D6 credits at campaign finalization (Mar 21) |
-| Character bonus coverage (~50%) | Deferred | ~10 of 22 motivations may need campaign-level bonuses (same pattern as WEALTH/FAME fix) |
+| BUG-036 (new) | P2 | Precursor species missing psionic power at creation — only gives +1 Savvy, rules say "Start with one Psionic power". User decision needed. |
+| BUG-037 (new) | P2 | Swift species +1 Speed instead of +2 Speed per rules. Also has extra +1 Reactions. User decision needed. |
+| BUG-038 (new) | P3 | Soulless species has extra +1 Reactions not in Core Rules. May be intentional balance tweak. |
+| ~~Character bonus coverage~~ | **FIXED** | KNOWLEDGE +1 savvy added, game-specific CharacterCreator synced (Mar 21) |
 | Equipment table names | Deferred | User decision pending: generic vs Core Rules names |
 | Victory condition metric tracking | Deferred | Feature addition: counters for enemies/credits/worlds |
 
