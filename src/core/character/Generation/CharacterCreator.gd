@@ -327,29 +327,43 @@ func _apply_origin_bonuses(origin_id: int) -> void:
 	_remove_bonuses(current_bonuses.origin)
 	current_bonuses.origin.clear()
 
-	# Five Parsecs species/origin stat bonuses (Core Rules pp.18-20)
+	# Five Parsecs species/origin stat bonuses (Core Rules pp.15-18)
+	# Bonuses are relative to Human baseline: R1/S4/CS+0/T3/Sa+0
 	match origin_id:
+		GlobalEnums.Origin.BOT:
+			# Bot: R2/S4/CS+1/T4/Sa+2 (p.15)
+			current_bonuses.origin["REACTIONS"] = 1
+			current_bonuses.origin["COMBAT_SKILL"] = 1
+			current_bonuses.origin["TOUGHNESS"] = 1
+			current_bonuses.origin["SAVVY"] = 2
 		GlobalEnums.Origin.ENGINEER:
+			# Engineer: R1/S4/CS+0/T2/Sa+1 (p.16)
+			current_bonuses.origin["TOUGHNESS"] = -1
 			current_bonuses.origin["SAVVY"] = 1
 		GlobalEnums.Origin.KERIN:
-			current_bonuses.origin["COMBAT_SKILL"] = 1
+			# K'Erin: R1/S4/CS+0/T4/Sa+0 (p.16)
+			current_bonuses.origin["TOUGHNESS"] = 1
 		GlobalEnums.Origin.SOULLESS:
+			# Soulless: R1/S4/CS+0/T4/Sa+1 (p.17)
 			current_bonuses.origin["TOUGHNESS"] = 1
-		GlobalEnums.Origin.PRECURSOR:
 			current_bonuses.origin["SAVVY"] = 1
-		GlobalEnums.Origin.FERAL:
+		GlobalEnums.Origin.PRECURSOR:
+			# Precursor: R1/S5/CS+0/T2/Sa+0 (p.17)
 			current_bonuses.origin["SPEED"] = 1
+			current_bonuses.origin["TOUGHNESS"] = -1
+		GlobalEnums.Origin.FERAL:
+			# Feral: R1/S4/CS+0/T3/Sa+0 (p.18) — same as Human
+			pass
 		GlobalEnums.Origin.SWIFT:
-			current_bonuses.origin["SPEED"] = 2
-		GlobalEnums.Origin.BOT:
-			current_bonuses.origin["TOUGHNESS"] = 1
+			# Swift: R1/S5/CS+0/T3/Sa+0 (p.18)
+			current_bonuses.origin["SPEED"] = 1
 		GlobalEnums.Origin.KRAG:
 			current_bonuses.origin["TOUGHNESS"] = 1
 			current_bonuses.origin["SAVVY"] = -1
 		GlobalEnums.Origin.SKULKER:
 			current_bonuses.origin["SPEED"] = 1
 			current_bonuses.origin["TOUGHNESS"] = -1
-		# HUMAN: no stat bonuses
+		# HUMAN: no stat bonuses (R1/S4/CS+0/T3/Sa+0)
 
 	_apply_bonuses(current_bonuses.origin)
 
