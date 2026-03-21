@@ -327,22 +327,20 @@ func _apply_origin_bonuses(origin_id: int) -> void:
 	_remove_bonuses(current_bonuses.origin)
 	current_bonuses.origin.clear()
 
-	# Five Parsecs species/origin stat bonuses
+	# Five Parsecs species/origin stat bonuses (Core Rules pp.18-20)
 	match origin_id:
 		GlobalEnums.Origin.ENGINEER:
 			current_bonuses.origin["SAVVY"] = 1
 		GlobalEnums.Origin.KERIN:
 			current_bonuses.origin["COMBAT_SKILL"] = 1
 		GlobalEnums.Origin.SOULLESS:
-			current_bonuses.origin["REACTIONS"] = 1
 			current_bonuses.origin["TOUGHNESS"] = 1
 		GlobalEnums.Origin.PRECURSOR:
 			current_bonuses.origin["SAVVY"] = 1
 		GlobalEnums.Origin.FERAL:
 			current_bonuses.origin["SPEED"] = 1
 		GlobalEnums.Origin.SWIFT:
-			current_bonuses.origin["SPEED"] = 1
-			current_bonuses.origin["REACTIONS"] = 1
+			current_bonuses.origin["SPEED"] = 2
 		GlobalEnums.Origin.BOT:
 			current_bonuses.origin["TOUGHNESS"] = 1
 		GlobalEnums.Origin.KRAG:

@@ -1,160 +1,35 @@
 {
 	"weapons": [
-		{
-			"id": "assault_rifle",
-			"name": "Assault Rifle",
-			"type": "Military",
-			"damage": 2,
-			"range": 24,
-			"shots": 3,
-			"traits": [
-				"Rapid Fire"
-			],
-			"cost": 50,
-			"rarity": "Common",
-			"description": "Standard military-grade assault rifle with good all-around performance."
-		},
-		{
-			"id": "sniper_rifle",
-			"name": "Sniper Rifle",
-			"type": "Military",
-			"damage": 3,
-			"range": 36,
-			"shots": 1,
-			"traits": [
-				"Accurate",
-				"Scope"
-			],
-			"cost": 75,
-			"rarity": "Uncommon",
-			"description": "Long-range precision rifle with excellent accuracy at distance."
-		},
-		{
-			"id": "shotgun",
-			"name": "Shotgun",
-			"type": "Military",
-			"damage": 3,
-			"range": 12,
-			"shots": 2,
-			"traits": [
-				"Spread",
-				"Knockback"
-			],
-			"cost": 45,
-			"rarity": "Common",
-			"description": "Close-range weapon with devastating stopping power."
-		},
-		{
-			"id": "plasma_pistol",
-			"name": "Plasma Pistol",
-			"type": "High-Tech",
-			"damage": 3,
-			"range": 12,
-			"shots": 1,
-			"traits": [
-				"Pistol",
-				"Energy",
-				"Overheat"
-			],
-			"cost": 65,
-			"rarity": "Uncommon",
-			"description": "Advanced sidearm that fires superheated plasma bolts."
-		},
-		{
-			"id": "laser_rifle",
-			"name": "Laser Rifle",
-			"type": "High-Tech",
-			"damage": 2,
-			"range": 30,
-			"shots": 2,
-			"traits": [
-				"Energy",
-				"Accurate",
-				"Silent"
-			],
-			"cost": 80,
-			"rarity": "Uncommon",
-			"description": "Precision energy weapon with excellent range and accuracy."
-		},
-		{
-			"id": "vibro_blade",
-			"name": "Vibro-Blade",
-			"type": "Melee",
-			"damage": 3,
-			"range": 0,
-			"shots": 0,
-			"traits": [
-				"Melee",
-				"Piercing",
-				"Silent"
-			],
-			"cost": 40,
-			"rarity": "Common",
-			"description": "High-frequency blade that can cut through most materials."
-		},
-		{
-			"id": "pulse_cannon",
-			"name": "Pulse Cannon",
-			"type": "High-Tech",
-			"damage": 4,
-			"range": 18,
-			"shots": 1,
-			"traits": [
-				"Energy",
-				"Heavy",
-				"Area Effect"
-			],
-			"cost": 120,
-			"rarity": "Rare",
-			"description": "Heavy energy weapon that emits devastating pulses of energy."
-		},
-		{
-			"id": "gauss_rifle",
-			"name": "Gauss Rifle",
-			"type": "Military",
-			"damage": 3,
-			"range": 30,
-			"shots": 2,
-			"traits": [
-				"Piercing",
-				"Accurate"
-			],
-			"cost": 90,
-			"rarity": "Rare",
-			"description": "Electromagnetic rifle that fires metal projectiles at extreme velocities."
-		},
-		{
-			"id": "flamethrower",
-			"name": "Flamethrower",
-			"type": "Military",
-			"damage": 2,
-			"range": 8,
-			"shots": 2,
-			"traits": [
-				"Area Effect",
-				"Burn",
-				"Heavy"
-			],
-			"cost": 70,
-			"rarity": "Uncommon",
-			"description": "Weapon that projects streams of ignited fuel, setting targets ablaze."
-		},
-		{
-			"id": "neural_disruptor",
-			"name": "Neural Disruptor",
-			"type": "High-Tech",
-			"damage": 1,
-			"range": 12,
-			"shots": 1,
-			"traits": [
-				"Stun",
-				"Non-lethal",
-				"Energy"
-			],
-			"cost": 60,
-			"rarity": "Uncommon",
-			"description": "Non-lethal weapon that temporarily disrupts neural functions."
-		}
+		{"id": "hand_gun", "name": "Hand Gun", "type": "Slug", "damage": 0, "range": 12, "shots": 1, "traits": ["Pistol"], "cost": 15, "rarity": "Common", "description": "Standard sidearm. Grants +1 to Brawling rolls."},
+		{"id": "hand_cannon", "name": "Hand Cannon", "type": "Slug", "damage": 2, "range": 8, "shots": 1, "traits": ["Pistol"], "cost": 30, "rarity": "Uncommon", "description": "Heavy pistol with devastating stopping power."},
+		{"id": "colony_rifle", "name": "Colony Rifle", "type": "Slug", "damage": 0, "range": 18, "shots": 1, "traits": [], "cost": 15, "rarity": "Common", "description": "Basic frontier rifle."},
+		{"id": "military_rifle", "name": "Military Rifle", "type": "Slug", "damage": 0, "range": 24, "shots": 1, "traits": [], "cost": 25, "rarity": "Common", "description": "Standard military-issue rifle."},
+		{"id": "auto_rifle", "name": "Auto Rifle", "type": "Slug", "damage": 0, "range": 24, "shots": 2, "traits": [], "cost": 30, "rarity": "Common", "description": "Automatic rifle with burst-fire capability."},
+		{"id": "shotgun", "name": "Shotgun", "type": "Slug", "damage": 1, "range": 12, "shots": 2, "traits": ["Focused"], "cost": 25, "rarity": "Common", "description": "Close-range weapon. Must direct all shots against a single target."},
+		{"id": "hunting_rifle", "name": "Hunting Rifle", "type": "Slug", "damage": 1, "range": 30, "shots": 1, "traits": ["Heavy"], "cost": 35, "rarity": "Common", "description": "Long-range rifle. Suffers -1 to hit when moving."},
+		{"id": "marksmans_rifle", "name": "Marksman's Rifle", "type": "Slug", "damage": 0, "range": 36, "shots": 1, "traits": ["Heavy"], "cost": 40, "rarity": "Uncommon", "description": "Precision long-range rifle."},
+		{"id": "rattle_gun", "name": "Rattle Gun", "type": "Slug", "damage": 0, "range": 24, "shots": 3, "traits": ["Heavy"], "cost": 45, "rarity": "Uncommon", "description": "High-rate-of-fire support weapon."},
+		{"id": "flak_gun", "name": "Flak Gun", "type": "Slug", "damage": 1, "range": 8, "shots": 2, "traits": ["Focused", "Critical"], "cost": 35, "rarity": "Uncommon", "description": "Short-range weapon that fires fragmentation rounds."},
+		{"id": "shell_gun", "name": "Shell Gun", "type": "Slug", "damage": 0, "range": 30, "shots": 2, "traits": ["Heavy", "Area"], "cost": 50, "rarity": "Uncommon", "description": "Fires explosive shells over long range."},
+		{"id": "hand_laser", "name": "Hand Laser", "type": "Energy", "damage": 0, "range": 12, "shots": 1, "traits": ["Snap Shot", "Pistol"], "cost": 25, "rarity": "Common", "description": "Compact energy sidearm."},
+		{"id": "beam_pistol", "name": "Beam Pistol", "type": "Energy", "damage": 1, "range": 10, "shots": 1, "traits": ["Pistol", "Critical"], "cost": 30, "rarity": "Uncommon", "description": "Focused beam sidearm with armor-cracking potential."},
+		{"id": "infantry_laser", "name": "Infantry Laser", "type": "Energy", "damage": 0, "range": 30, "shots": 1, "traits": ["Snap Shot"], "cost": 35, "rarity": "Common", "description": "Standard-issue energy rifle."},
+		{"id": "blast_rifle", "name": "Blast Rifle", "type": "Energy", "damage": 1, "range": 16, "shots": 1, "traits": [], "cost": 40, "rarity": "Uncommon", "description": "Mid-range energy weapon."},
+		{"id": "hyper_blaster", "name": "Hyper Blaster", "type": "Energy", "damage": 1, "range": 24, "shots": 3, "traits": [], "cost": 55, "rarity": "Uncommon", "description": "High-output energy weapon with rapid fire."},
+		{"id": "fury_rifle", "name": "Fury Rifle", "type": "Energy", "damage": 2, "range": 24, "shots": 1, "traits": ["Heavy", "Piercing"], "cost": 65, "rarity": "Rare", "description": "Powerful energy rifle that ignores saving throws."},
+		{"id": "plasma_rifle", "name": "Plasma Rifle", "type": "Special", "damage": 1, "range": 20, "shots": 2, "traits": ["Focused", "Piercing"], "cost": 60, "rarity": "Rare", "description": "Advanced weapon that fires superheated plasma. Ignores saving throws."},
+		{"id": "needle_rifle", "name": "Needle Rifle", "type": "Special", "damage": 0, "range": 18, "shots": 2, "traits": ["Critical"], "cost": 45, "rarity": "Uncommon", "description": "Fires microscopic needles that find weak points."},
+		{"id": "cling_fire_pistol", "name": "Cling Fire Pistol", "type": "Special", "damage": 1, "range": 12, "shots": 2, "traits": ["Focused", "Terrifying"], "cost": 50, "rarity": "Rare", "description": "Projects adhesive incendiary compounds."},
+		{"id": "hand_flamer", "name": "Hand Flamer", "type": "Special", "damage": 1, "range": 12, "shots": 2, "traits": ["Focused", "Area"], "cost": 45, "rarity": "Uncommon", "description": "Projects a cone of flame. Affects all figures within 2 inches."},
+		{"id": "blade", "name": "Blade", "type": "Melee", "damage": 0, "range": 0, "shots": 0, "traits": ["Melee"], "cost": 10, "rarity": "Common", "description": "Basic melee weapon. Grants +2 to Brawling rolls."},
+		{"id": "ripper_sword", "name": "Ripper Sword", "type": "Melee", "damage": 1, "range": 0, "shots": 0, "traits": ["Melee"], "cost": 20, "rarity": "Common", "description": "Serrated blade that inflicts vicious wounds."},
+		{"id": "boarding_saber", "name": "Boarding Saber", "type": "Melee", "damage": 1, "range": 0, "shots": 0, "traits": ["Melee", "Elegant"], "cost": 25, "rarity": "Uncommon", "description": "Refined melee weapon favored by ship crews."},
+		{"id": "shatter_axe", "name": "Shatter Axe", "type": "Melee", "damage": 2, "range": 0, "shots": 0, "traits": ["Melee"], "cost": 30, "rarity": "Uncommon", "description": "Heavy axe designed to breach armor."},
+		{"id": "power_claw", "name": "Power Claw", "type": "Melee", "damage": 3, "range": 0, "shots": 0, "traits": ["Melee", "Clumsy"], "cost": 40, "rarity": "Rare", "description": "Powered crushing weapon. Clumsy but devastating."},
+		{"id": "glare_sword", "name": "Glare Sword", "type": "Melee", "damage": 0, "range": 0, "shots": 0, "traits": ["Melee", "Elegant", "Piercing"], "cost": 50, "rarity": "Rare", "description": "Energy-edged blade that ignores saving throws."},
+		{"id": "suppression_maul", "name": "Suppression Maul", "type": "Melee", "damage": 1, "range": 0, "shots": 0, "traits": ["Melee", "Impact"], "cost": 35, "rarity": "Uncommon", "description": "Heavy impact weapon used for crowd control."},
+		{"id": "frakk_grenade", "name": "Frakk Grenade", "type": "Grenade", "damage": 0, "range": 6, "shots": 2, "traits": ["Heavy", "Area", "Single use"], "cost": 15, "rarity": "Common", "description": "Fragmentation grenade. Affects all figures within 2 inches."},
+		{"id": "dazzle_grenade", "name": "Dazzle Grenade", "type": "Grenade", "damage": 0, "range": 6, "shots": 1, "traits": ["Heavy", "Area", "Stun", "Single use"], "cost": 15, "rarity": "Common", "description": "Stun grenade that disorients targets within blast radius."}
 	],
 	"armor": [
 		{
