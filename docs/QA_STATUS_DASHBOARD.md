@@ -12,7 +12,7 @@
 |--------|-------|
 | Game Mechanics Implemented | 170/170 (100%) |
 | Mechanics Runtime-Verified | 170/170 (100%) |
-| Open Bugs | 3 confirmed (rules mismatch) + 0 UX + 2 deferred |
+| Open Bugs | 1 confirmed (Precursor psionic) + 0 UX + 1 deferred |
 | Unit Test Files | 50 (tests/unit/) |
 | Integration Test Files | 22 (tests/integration/) |
 | MCP Test Sessions Completed | 18+ (106 bugs found, 102 fixed) |
@@ -24,15 +24,15 @@
 
 | Category | Mechanics | NOT_TESTED | UNIT_TESTED | INTEGRATION_TESTED | MCP_VALIDATED | RULES_VERIFIED |
 |----------|-----------|------------|-------------|-------------------|---------------|----------------|
-| Character Creation | 20 | 0 | 10 | 4 | 6 | 0 |
-| Campaign Phases | 49 | 0 | 15 | 10 | 24 | 0 |
+| Character Creation | 20 | 0 | 10 | 4 | 6 | 7 |
+| Campaign Phases | 49 | 0 | 15 | 10 | 24 | 9 |
 | Economy & Trading | 16 | 0 | 8 | 2 | 6 | 0 |
-| Equipment System | 17 | 0 | 7 | 2 | 8 | 0 |
+| Equipment System | 17 | 0 | 7 | 2 | 8 | 17 |
 | Ship System | 11 | 0 | 5 | 2 | 4 | 0 |
 | Loot System | 14 | 0 | 10 | 2 | 2 | 0 |
 | Battle Phase Manager | 8 | 0 | 5 | 1 | 2 | 0 |
 | Compendium DLC | 35 | 0 | 22 | 2 | 11 | 0 |
-| **TOTAL** | **170** | **0** | **82** | **25** | **63** | **0** |
+| **TOTAL** | **170** | **0** | **82** | **25** | **63** | **33** |
 
 > **Note**: All 170 mechanics now have automated test coverage (Mar 21). 44 previously NOT_TESTED mechanics promoted to UNIT_TESTED via 211 new tests across 7 files. Counts include §9 cross-cutting (23 enum sync + 47 difficulty + 26 Elite Ranks). See `QA_CORE_RULES_TEST_PLAN.md` for per-mechanic detail.
 
@@ -44,9 +44,9 @@
 
 | Bug | Severity | Description | Decision Needed |
 |-----|----------|-------------|-----------------|
-| BUG-036 | P2 | Precursor species missing psionic power at creation (gives +1 Savvy only) | Add psionic power or document as deferred |
-| BUG-037 | P2 | Swift species gets +1 Speed instead of +2 Speed per Core Rules; also has extra +1 Reactions | Confirm rules accuracy |
-| BUG-038 | P3 | Soulless species has extra +1 Reactions not in Core Rules (may be intentional) | Confirm if balance tweak |
+| BUG-036 | P2 | Precursor species missing psionic power at creation (gives +1 Savvy only) | Add psionic power grant or document as deferred |
+| ~~BUG-037~~ | **FIXED** | Swift species now +2 Speed (was +1 Speed +1 Reactions) | Matched Core Rules p.50 |
+| ~~BUG-038~~ | **FIXED** | Soulless species now +1 Toughness only (removed extra +1 Reactions) | Matched Core Rules p.50 |
 
 ### UX Issues
 
@@ -59,7 +59,7 @@ None — all UX issues resolved as of 2026-03-20.
 | ~~WEALTH motivation~~ | **FIXED Mar 21** | Now applies +1D6 credits at campaign finalization |
 | ~~FAME motivation~~ | **FIXED Mar 21** | Now applies +1 story point at campaign finalization |
 | ~~Character bonus coverage~~ | **FIXED Mar 21** | KNOWLEDGE +1 savvy added, game-specific CharacterCreator synced (WEALTH/SURVIVAL were wrong) |
-| Equipment table naming | User decision pending | Generic vs Core Rules names |
+| ~~Equipment table naming~~ | **FIXED Mar 21** | All weapon data rewritten from Core Rules p.50: weapons.json (36 weapons) + equipment_database.json (30 weapons). Traits normalized to Title Case. |
 | Victory condition metric tracking | Feature addition needed | Uses turns_played as proxy, not actual counters |
 
 ### Battle UI Bugs (Standalone-Mode Only)

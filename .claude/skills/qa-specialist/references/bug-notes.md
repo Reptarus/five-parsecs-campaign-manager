@@ -31,11 +31,11 @@ Canonical bug tracker for QA reference. Updated after each fix sprint.
 
 | Bug | Severity | Notes |
 |-----|----------|-------|
-| BUG-036 (new) | P2 | Precursor species missing psionic power at creation — only gives +1 Savvy, rules say "Start with one Psionic power". User decision needed. |
-| BUG-037 (new) | P2 | Swift species +1 Speed instead of +2 Speed per rules. Also has extra +1 Reactions. User decision needed. |
-| BUG-038 (new) | P3 | Soulless species has extra +1 Reactions not in Core Rules. May be intentional balance tweak. |
+| BUG-036 | P2 | Precursor species missing psionic power at creation — only gives +1 Savvy, rules say "Start with one Psionic power". Needs design work. |
+| ~~BUG-037~~ | **FIXED** | Swift now +2 Speed (was +1 Speed +1 Reactions). Matched Core Rules p.50. |
+| ~~BUG-038~~ | **FIXED** | Soulless now +1 Toughness only (removed extra +1 Reactions). Matched Core Rules p.50. |
 | ~~Character bonus coverage~~ | **FIXED** | KNOWLEDGE +1 savvy added, game-specific CharacterCreator synced (Mar 21) |
-| Equipment table names | Deferred | User decision pending: generic vs Core Rules names |
+| ~~Equipment table names~~ | **FIXED** | All weapon data rewritten from Core Rules p.50 (weapons.json + equipment_database.json). Invented weapons removed. |
 | Victory condition metric tracking | Deferred | Feature addition: counters for enemies/credits/worlds |
 
 ## Patterns to Watch

@@ -38,8 +38,8 @@
 
 ### Action Items (Species)
 - **BUG-036**: Precursor missing psionic power assignment at creation. Code only gives +1 Savvy. Needs design decision: add psionic power in CharacterCreator or document as deferred.
-- **BUG-037**: Swift gets +1 Speed instead of +2 Speed per rules. Also has +1 Reactions not in rules.
-- **BUG-038**: Soulless has extra +1 Reactions not specified in rules. May be intentional balance tweak — needs user decision.
+- ~~**BUG-037**~~: **FIXED** — Swift now gives +2 Speed (was +1 Speed +1 Reactions). Matched Core Rules p.50.
+- ~~**BUG-038**~~: **FIXED** — Soulless now gives +1 Toughness only (removed extra +1 Reactions). Matched Core Rules p.50.
 
 ---
 
@@ -83,7 +83,7 @@ Three separate weapon databases exist with **no synchronization**:
 - weapons.json: UPPERCASE (`FOCUSED`, `MELEE`, `HEAVY`)
 - equipment_database.json: Mixed (`Rapid Fire`, `Accurate`, `Knockback`)
 
-**Conclusion**: This is the known "equipment table naming" deferred item. The three databases serve different purposes (reference, data, gameplay) and were never intended to be synchronized. The game-specific database has higher damage values for gameplay balance. **User decision needed on canonical source.**
+**Resolution (Mar 21)**: Both `weapons.json` and `equipment_database.json` rewritten from Core Rules p.50. All 36 weapons matched exactly. Trait names normalized to Title Case per book (not UPPERCASE). Old invented weapons (Assault Rifle, Gauss Rifle, etc.) removed. This is a tabletop companion app — all data must match the book exactly.
 
 ---
 
