@@ -93,13 +93,29 @@ func _update_battle_summary() -> void:
 	if not results_container:
 		return
 	var summary: String = "[b]Battle Summary[/b]\n\n"
+
+	# DLC: Show battle type if non-conventional
+	var bt: String = battle_state.get("battle_type", "")
+	if not bt.is_empty() and bt != "conventional":
+		var bt_label: String = bt.replace("_", " ").capitalize()
+		summary += "[b]Battle Type:[/b] [color=#4FC3F7]%s[/color]\n" % bt_label
+
 	summary += "Objectives Completed: %d/%d\n" % [
 		completed_objectives.size(),
 		completed_objectives.size() + failed_objectives.size()
 	]
 	summary += "Casualties: %d\n" % casualties.size()
+
+	# DLC: Show escalation effect if one occurred
+	var esc: Dictionary = battle_state.get("escalation_effect", {})
+	if not esc.is_empty():
+		summary += "\n[b]Escalation:[/b]\n"
+		summary += "[color=#D97706]%s[/color]\n" % esc.get(
+			"instruction", "Unknown effect")
+
 	summary += "\n[b]Rewards:[/b]\n"
-	summary += "Credits: %s\n" % _format_credits(rewards.get("credits", 0))
+	summary += "Credits: %s\n" % _format_credits(
+		rewards.get("credits", 0))
 	results_container.text = summary
 
 func _update_objectives() -> void:

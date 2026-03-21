@@ -235,6 +235,35 @@ func _load_mission_info() -> void:
 	for rule in _get_location_property("special_rules", []):
 		info += "• " + str(rule) + "\n"
 
+	# DLC: Show Compendium battle type if non-conventional
+	var battle_type: String = _get_mission_property(
+		"battle_type_name", "")
+	if battle_type.is_empty():
+		# Derive from battle_setup_data if available
+		var bs_data: Variant = _get_campaign_property(
+			"battle_setup_data")
+		if bs_data is Dictionary:
+			battle_type = bs_data.get("battle_type", "")
+	if not battle_type.is_empty() and battle_type != "conventional":
+		var type_label: String = battle_type.replace("_", " ").capitalize()
+		info += "\n[b]Battle Type: [color=#4FC3F7]%s[/color][/b]\n" % type_label
+
+	# DLC: Show deployment variable instructions
+	var deploy_data: Variant = _get_mission_property(
+		"dlc_deployment", {})
+	if deploy_data is Dictionary and not deploy_data.is_empty():
+		var deploy_instr: String = deploy_data.get("instruction", "")
+		if not deploy_instr.is_empty():
+			info += "\n[b]Deployment Variable:[/b]\n"
+			info += "[color=#D97706]%s[/color]\n" % deploy_instr
+
+	# DLC: Show escalation trigger rules
+	var esc_rules: String = _get_mission_property(
+		"escalation_trigger_rules", "")
+	if not esc_rules.is_empty():
+		info += "\n[b]Escalation:[/b]\n"
+		info += "[color=#D97706]%s[/color]\n" % esc_rules
+
 	_set_keyword_text(mission_info, info)
 
 func _get_deployment_description(type: GameEnums.DeploymentType) -> String:

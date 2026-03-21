@@ -9,6 +9,11 @@ const EnemyGenerator = preload("res://src/core/systems/EnemyGenerator.gd")
 const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 const ProgressiveDifficultyTrackerRef = preload("res://src/core/systems/ProgressiveDifficultyTracker.gd")
 const CompendiumNoMinisCombat = preload("res://src/data/compendium_no_minis.gd")
+const CompendiumDeploymentVars = preload("res://src/data/compendium_deployment_variables.gd")
+const CompendiumEscalation = preload("res://src/data/compendium_escalating_battles.gd")
+const CompendiumStealthMissions = preload("res://src/data/compendium_stealth_missions.gd")
+const CompendiumStreetFights = preload("res://src/data/compendium_street_fights.gd")
+const CompendiumSalvageJobs = preload("res://src/data/compendium_salvage_jobs.gd")
 const BattleResolverClass = preload("res://src/core/battle/BattleResolver.gd")
 const RedZoneSystem = preload("res://src/core/mission/RedZoneSystem.gd")
 const BlackZoneSystem = preload("res://src/core/mission/BlackZoneSystem.gd")
@@ -232,6 +237,14 @@ func _process_battle_setup() -> void:
 	# Get mission type from setup data or generate
 	var mission_type = battle_setup_data.get("mission_type", _generate_mission_type())
 
+	# DLC: Determine battle type (conventional/stealth/street_fight/salvage)
+	# from Compendium p.118 mission selection table
+	var battle_type: String = battle_setup_data.get("battle_type", "conventional")
+	var mission_source: String = battle_setup_data.get("mission_source", "")
+	if battle_type == "conventional" and not mission_source.is_empty():
+		battle_type = CompendiumStealthMissions.roll_battle_type(mission_source)
+	battle_setup_data["battle_type"] = battle_type
+
 	# Check if this is a Red/Black Zone mission (Core Rules Appendix III)
 	var is_red_zone: bool = battle_setup_data.get("is_red_zone", false)
 	var is_black_zone: bool = battle_setup_data.get("is_black_zone", false)
@@ -319,6 +332,37 @@ func _process_battle_setup() -> void:
 	if dlc_cm and dlc_cm.has_method("is_feature_enabled"):
 		battle_setup_data["no_minis_combat"] = dlc_cm.is_feature_enabled(dlc_cm.ContentFlag.NO_MINIS_COMBAT)
 		battle_setup_data["grid_based_movement"] = dlc_cm.is_feature_enabled(dlc_cm.ContentFlag.GRID_BASED_MOVEMENT)
+
+	# DLC: Generate special mission type setup data (Compendium pp.117-147)
+	match battle_type:
+		"stealth":
+			var stealth_setup: Dictionary = CompendiumStealthMissions.generate_mission_setup()
+			if not stealth_setup.is_empty():
+				battle_setup_data["stealth_mission"] = stealth_setup
+				battle_setup_data["no_minis_combat"] = false # Stealth incompatible with no-minis
+				battle_setup_data["grid_based_movement"] = false # Stealth incompatible with grid
+				print("BattlePhase DLC: Stealth Mission — %s" % stealth_setup.get("objective", {}).get("id", "unknown"))
+		"street_fight":
+			var street_setup: Dictionary = CompendiumStreetFights.generate_mission_setup()
+			if not street_setup.is_empty():
+				battle_setup_data["street_fight"] = street_setup
+				print("BattlePhase DLC: Street Fight — %s" % street_setup.get("objective", {}).get("id", "unknown"))
+		"salvage":
+			var salvage_setup: Dictionary = CompendiumSalvageJobs.generate_mission_setup()
+			if not salvage_setup.is_empty():
+				battle_setup_data["salvage_mission"] = salvage_setup
+				print("BattlePhase DLC: Salvage Job")
+
+	# DLC: Escalating Battles check data (Compendium pp.46-47)
+	# Pre-compute whether escalation is applicable for this battle type
+	var escalation_applicable: bool = battle_type == "conventional"
+	if battle_type == "stealth":
+		escalation_applicable = false # Not during stealth rounds or Round 1
+	elif battle_type == "street_fight" or battle_type == "salvage":
+		escalation_applicable = false # Not used in Street Fights or Salvage
+	battle_setup_data["escalation_applicable"] = escalation_applicable
+	if escalation_applicable:
+		battle_setup_data["escalation_trigger_rules"] = CompendiumEscalation.TRIGGER_RULES
 
 	battle_setup_completed.emit(battle_setup_data)
 
@@ -453,11 +497,27 @@ func _determine_terrain() -> int:
 
 func _determine_deployment_conditions() -> Dictionary:
 	## Determine deployment conditions
-	return {
+	## DLC: Deployment Variables (Compendium pp.44-45) — roll by AI type when
+	## initiative is NOT seized. Disabled in Stealth, Street Fight, and Salvage modes.
+	var result: Dictionary = {
 		"crew_deployment_zone": "standard",
 		"enemy_deployment_zone": "standard",
 		"special_conditions": []
 	}
+
+	var battle_type: String = battle_setup_data.get("battle_type", "conventional")
+	if battle_type != "conventional":
+		return result # Deployment Variables not used in Stealth/Street/Salvage
+
+	var seized: bool = battle_setup_data.get("seized_initiative", false)
+	var ai_type: String = battle_setup_data.get("dlc_ai_type", "tactical")
+	var deploy: Dictionary = CompendiumDeploymentVars.roll_deployment(ai_type, seized)
+	if not deploy.is_empty():
+		result["dlc_deployment"] = deploy
+		result["special_conditions"].append(deploy.get("instruction", ""))
+		print("BattlePhase DLC: Deployment Variable — %s" % deploy.get("name", "Line"))
+
+	return result
 
 func _determine_unique_individual(difficulty: int, mission_type: int) -> Dictionary:
 	## Determine if a Unique Individual is present (Core Rules pp.64-65, 94)
@@ -1000,16 +1060,33 @@ func _simulate_battle_outcome() -> void:
 		"combat_mode": "auto_resolve"
 	}
 
-	# DLC: Append no-minis location data if enabled
+	# DLC: Append no-minis setup data if enabled (Compendium pp.68-75)
 	if combat_results.get("no_minis_combat", false):
 		combat_results["combat_mode"] = "no_minis"
-		var locations = CompendiumNoMinisCombat.LOCATION_TYPES
-		var battle_locations: Array[String] = []
-		var num_locations = randi_range(3, 5)
-		for loc_i in range(num_locations):
-			var loc = locations[loc_i % locations.size()]
-			battle_locations.append(loc.get("instruction", ""))
-		combat_results["no_minis_locations"] = battle_locations
+		var crew_size: int = battle_setup_data.get("crew_size", 4)
+		var enemy_count: int = combat_results.get("enemy_count", 6)
+		var no_minis_setup: Dictionary = CompendiumNoMinisCombat.generate_battle_setup(
+			crew_size, enemy_count)
+		combat_results["no_minis_setup"] = no_minis_setup
+		combat_results["no_minis_instructions"] = CompendiumNoMinisCombat.generate_setup_text(
+			no_minis_setup)
+
+	# DLC: Include battle type and escalation data in results
+	combat_results["battle_type"] = battle_setup_data.get("battle_type", "conventional")
+	if battle_setup_data.get("escalation_applicable", false):
+		# Roll an escalation check for auto-resolve results to include as instruction
+		var ai_type: String = battle_setup_data.get("dlc_ai_type", "tactical")
+		var escalation: Dictionary = CompendiumEscalation.roll_escalation(ai_type)
+		if not escalation.is_empty():
+			combat_results["escalation_effect"] = escalation
+
+	# Include special mission data in results for PostBattle reference
+	if battle_setup_data.has("stealth_mission"):
+		combat_results["stealth_mission"] = battle_setup_data["stealth_mission"]
+	if battle_setup_data.has("street_fight"):
+		combat_results["street_fight"] = battle_setup_data["street_fight"]
+	if battle_setup_data.has("salvage_mission"):
+		combat_results["salvage_mission"] = battle_setup_data["salvage_mission"]
 
 	# Complete battle phase
 	await _complete_battle_phase()

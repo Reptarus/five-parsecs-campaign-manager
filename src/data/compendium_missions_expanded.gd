@@ -1,20 +1,17 @@
 class_name CompendiumMissionsExpanded
 extends RefCounted
-## Expanded Missions, Quests, Connections + PvP/Co-op + Introductory Campaign
+## Expanded Missions, Quests, Connections + PvP/Co-op
 ##
-## Data-driven compendium additions for mission variety, quest progression,
-## connection benefits, introductory campaign, PvP, and co-op play.
-##
-## All output is TEXT INSTRUCTIONS for the tabletop companion model.
+## Book-accurate data from Compendium pp.74-88 (missions/quests/connections),
+## pp.35-41 (PvP/Co-op). All output is TEXT INSTRUCTIONS for the tabletop
+## companion model.
 ##
 ## Features:
-##   EXPANDED_MISSIONS    - Additional objectives, deployment conditions, notable sights
-##   EXPANDED_QUESTS      - Quest progression tables, more quest types
-##   EXPANDED_CONNECTIONS - Enhanced opportunity mission connections
+##   EXPANDED_MISSIONS    - Objective overview, specific objectives, time/extraction, patron conditions
+##   EXPANDED_QUESTS      - D100 quest progression + conclusion rules
+##   EXPANDED_CONNECTIONS - D6 main table + 5 subtables (30 narrative scenarios)
 ##   PVP_BATTLES          - Two-player opposed battles
 ##   COOP_BATTLES         - Two-player cooperative battles
-##   INTRODUCTORY_CAMPAIGN - 5-mission guided campaign for new players
-##   PRISON_PLANET_CHARACTER - Ex-prisoner starting option
 
 
 ## ============================================================================
@@ -38,314 +35,635 @@ static func _is_flag_enabled(flag_name: String) -> bool:
 
 
 ## ============================================================================
-## EXPANDED MISSION OBJECTIVES (D100, replaces/extends core table)
+## OBJECTIVE OVERVIEW (Compendium p.74, D100)
+## Determines how many objectives and win conditions.
 ## ============================================================================
 
-const EXPANDED_OBJECTIVES: Array[Dictionary] = [
-	{"roll_min": 1, "roll_max": 8, "id": "patrol_and_secure",
-	 "instruction": "OBJECTIVE: Patrol and Secure. Place 4 waypoint markers. Crew must move within 3\" of each. All visited = victory."},
-	{"roll_min": 9, "roll_max": 16, "id": "data_extraction",
-	 "instruction": "OBJECTIVE: Data Extraction. Place terminal marker in center. Crew member spends 2 actions to download. Must extract off-board."},
-	{"roll_min": 17, "roll_max": 24, "id": "sabotage",
-	 "instruction": "OBJECTIVE: Sabotage. Place 2 objective markers in enemy half. Crew spends 1 action at each to plant charges. Both planted = victory."},
-	{"roll_min": 25, "roll_max": 32, "id": "vip_extraction",
-	 "instruction": "OBJECTIVE: VIP Extraction. Place VIP in center. Crew must reach VIP (1 action) then escort to table edge. VIP: Speed 4\", Toughness 3."},
-	{"roll_min": 33, "roll_max": 40, "id": "supply_raid",
-	 "instruction": "OBJECTIVE: Supply Raid. 3 supply crates in enemy zone. Crew picks up (1 action) and carries to own edge. Each crate = +2 credits."},
-	{"roll_min": 41, "roll_max": 48, "id": "ambush_defense",
-	 "instruction": "OBJECTIVE: Ambush Defense. Crew deploys center. Enemies enter from 2 edges. Survive 6 rounds or eliminate all enemies."},
-	{"roll_min": 49, "roll_max": 56, "id": "recon_mission",
-	 "instruction": "OBJECTIVE: Recon Mission. 3 scan points placed by opponent. Move within 6\" with LoS to scan (1 action). All 3 scanned = victory."},
-	{"roll_min": 57, "roll_max": 64, "id": "demolition",
-	 "instruction": "OBJECTIVE: Demolition. Place structure in center. Crew must deal 15 damage to structure (Toughness 6, no save). Structure destroyed = victory."},
-	{"roll_min": 65, "roll_max": 72, "id": "rescue_hostages",
-	 "instruction": "OBJECTIVE: Rescue Hostages. 2 hostage markers in enemy zone. Reach hostage (1 action to free), escort to edge. Each rescued = +3 credits."},
-	{"roll_min": 73, "roll_max": 80, "id": "hold_the_line",
-	 "instruction": "OBJECTIVE: Hold the Line. Mark defensive zone (6\" square). At least 2 crew in zone at end of Round 6 = victory."},
-	{"roll_min": 81, "roll_max": 88, "id": "bounty_hunt",
-	 "instruction": "OBJECTIVE: Bounty Hunt. Target is enemy leader (+2 Combat, +1 Toughness). Defeat target = victory + 5 credits. Target flees at Round 5 if unwounded."},
-	{"roll_min": 89, "roll_max": 94, "id": "artifact_recovery",
-	 "instruction": "OBJECTIVE: Artifact Recovery. Place 3 dig sites. Crew digs (2 actions, D6: 5-6 = artifact found). Find and extract artifact = victory."},
-	{"roll_min": 95, "roll_max": 100, "id": "last_stand",
-	 "instruction": "OBJECTIVE: Last Stand. +50% enemies. No reinforcements. Survive 8 rounds = victory. Each surviving crew member = +1 XP bonus."},
+const OBJECTIVE_OVERVIEW: Array[Dictionary] = [
+	{"roll_min": 1, "roll_max": 60, "id": "single",
+	 "count": 1, "requirement": "must_complete",
+	 "instruction": "OVERVIEW: Single objective. Generate 1 objective — you must complete it to win."},
+	{"roll_min": 61, "roll_max": 85, "id": "dual_both",
+	 "count": 2, "requirement": "complete_both",
+	 "instruction": "OVERVIEW: Two objectives, BOTH required. Generate 2 objectives with separate time constraints. Complete both to win (any order). Bonus: a random crew member gets +1 XP if both achieved."},
+	{"roll_min": 86, "roll_max": 100, "id": "dual_choice",
+	 "count": 2, "requirement": "complete_one",
+	 "instruction": "OVERVIEW: Two objectives, complete ONE. Generate 2 objectives with separate time constraints. Complete either to win. No need to choose in advance. No extra reward for both."},
 ]
 
 
 ## ============================================================================
-## EXPANDED DEPLOYMENT CONDITIONS (D6)
+## SPECIFIC OBJECTIVES (Compendium p.75, D100)
+## Roll once per objective. * = core rulebook objectives.
 ## ============================================================================
 
-const EXPANDED_DEPLOYMENT: Array[Dictionary] = [
-	{"roll": 1, "id": "night_ops",
-	 "instruction": "DEPLOYMENT: Night Operations. Max visibility 12\". Weapons over 12\" range fire at -1. Stealth bonus: -1 to enemy spotting."},
-	{"roll": 2, "id": "hazardous_terrain",
-	 "instruction": "DEPLOYMENT: Hazardous Terrain. D3 hazard zones (4\" radius). Entering = D6: 1-2 = D6 damage. Enemies also affected."},
-	{"roll": 3, "id": "elevated_positions",
-	 "instruction": "DEPLOYMENT: Elevated Positions. Both sides may deploy on structures. +1 to hit from elevation. Falling = D6 damage."},
-	{"roll": 4, "id": "flanking_approach",
-	 "instruction": "DEPLOYMENT: Flanking Approach. Split crew into 2 groups. Group A deploys normally. Group B enters from side edge on Round 2."},
-	{"roll": 5, "id": "scattered_start",
-	 "instruction": "DEPLOYMENT: Scattered Start. Each crew member deploys randomly: D6 for X, D6 for Y (in inches from corner). May be separated."},
-	{"roll": 6, "id": "reinforced_enemy",
-	 "instruction": "DEPLOYMENT: Reinforced Enemy. +2 basic enemies. They deploy in reserve, arriving at random edge Round 3."},
+const SPECIFIC_OBJECTIVES: Array[Dictionary] = [
+	{"roll_min": 1, "roll_max": 8, "id": "access",
+	 "instruction": "OBJECTIVE: Access*. As core rulebook p.90."},
+	{"roll_min": 9, "roll_max": 15, "id": "acquire",
+	 "instruction": "OBJECTIVE: Acquire*. As core rulebook p.90."},
+	{"roll_min": 16, "roll_max": 20, "id": "defend",
+	 "instruction": "OBJECTIVE: Defend*. As core rulebook p.90."},
+	{"roll_min": 21, "roll_max": 28, "id": "deliver",
+	 "instruction": "OBJECTIVE: Deliver*. As core rulebook p.90."},
+	{"roll_min": 29, "roll_max": 34, "id": "eliminate",
+	 "instruction": "OBJECTIVE: Eliminate*. As core rulebook p.90."},
+	{"roll_min": 35, "roll_max": 38, "id": "fight_off",
+	 "instruction": "OBJECTIVE: Fight Off*. As core rulebook p.90."},
+	{"roll_min": 39, "roll_max": 45, "id": "investigate",
+	 "instruction": "OBJECTIVE: Investigate. Place 6 markers evenly (none within 6\" of edge). When crew moves within 1\", remove marker and roll D6. If roll <= markers removed so far, objective achieved."},
+	{"roll_min": 46, "roll_max": 51, "id": "move_through",
+	 "instruction": "OBJECTIVE: Move Through*. As core rulebook p.90."},
+	{"roll_min": 52, "roll_max": 57, "id": "patrol",
+	 "instruction": "OBJECTIVE: Patrol*. As core rulebook p.90."},
+	{"roll_min": 58, "roll_max": 64, "id": "protect",
+	 "instruction": "OBJECTIVE: Protect*. As core rulebook p.91. Ignore the reward for fast mission completion."},
+	{"roll_min": 65, "roll_max": 71, "id": "rescue",
+	 "instruction": "OBJECTIVE: Rescue. Place figure 1D6\" from center. Ignored by enemies until crew moves within 1\". Then treated as VIP (Protect rules). Acts immediately when freed. Must reach table edge to complete."},
+	{"roll_min": 72, "roll_max": 77, "id": "secure",
+	 "instruction": "OBJECTIVE: Secure*. As core rulebook p.91."},
+	{"roll_min": 78, "roll_max": 85, "id": "search",
+	 "instruction": "OBJECTIVE: Search*. As core rulebook p.91."},
+	{"roll_min": 86, "roll_max": 92, "id": "sneak",
+	 "instruction": "OBJECTIVE: Sneak. Place objective 1D6\" from center. To complete: crew member must begin activation within 1\" of objective AND not within Line of Sight of any enemy."},
+	{"roll_min": 93, "roll_max": 100, "id": "sweep",
+	 "instruction": "OBJECTIVE: Sweep. Place 3 objectives evenly (none within 6\" of edge). If crew begins activation within 1\" and no enemies within 4\", remove objective. All 3 removed = success."},
 ]
 
 
 ## ============================================================================
-## EXPANDED NOTABLE SIGHTS (D6)
+## TIME CONSTRAINTS (Compendium p.76, D100 per objective)
 ## ============================================================================
 
-const EXPANDED_NOTABLE_SIGHTS: Array[Dictionary] = [
-	{"roll": 1, "id": "crashed_shuttle",
-	 "instruction": "NOTABLE SIGHT: Crashed Shuttle. Place wreck marker. Search (2 actions): D6 1-3=nothing, 4-5=D6 credits, 6=rare item (roll loot table)."},
-	{"roll": 2, "id": "ancient_console",
-	 "instruction": "NOTABLE SIGHT: Ancient Console. Place marker. Savvy test (D6+Savvy, 7+): Success = Quest Rumor. Fail = +1 enemy reinforcement."},
-	{"roll": 3, "id": "hidden_cache",
-	 "instruction": "NOTABLE SIGHT: Hidden Cache. Place marker behind terrain. Search (1 action, must be in cover): D6 3+ = 2D6 credits."},
-	{"roll": 4, "id": "wounded_stranger",
-	 "instruction": "NOTABLE SIGHT: Wounded Stranger. Heal (1 action, medical supply): Gain temporary ally (+0 Combat, Toughness 3) or +1 Patron lead."},
-	{"roll": 5, "id": "comm_relay",
-	 "instruction": "NOTABLE SIGHT: Comm Relay. Activate (1 action): Choose one - call in support (D3 militia arrive Round 4) OR intercept intel (+1 Quest Rumor)."},
-	{"roll": 6, "id": "unstable_structure",
-	 "instruction": "NOTABLE SIGHT: Unstable Structure. D6 at start of each round: 1 = collapse! All within 4\" take D6 damage. After collapse: clear terrain."},
+const TIME_CONSTRAINTS: Array[Dictionary] = [
+	{"roll_min": 1, "roll_max": 15, "id": "no_limit",
+	 "rounds": 0,
+	 "instruction": "TIME: No time limit."},
+	{"roll_min": 16, "roll_max": 45, "id": "six_rounds",
+	 "rounds": 6,
+	 "instruction": "TIME: Objective must be completed in the first 6 rounds."},
+	{"roll_min": 46, "roll_max": 70, "id": "five_rounds",
+	 "rounds": 5,
+	 "instruction": "TIME: Objective must be completed in the first 5 rounds."},
+	{"roll_min": 71, "roll_max": 85, "id": "four_rounds",
+	 "rounds": 4,
+	 "instruction": "TIME: Objective must be completed in the first 4 rounds."},
+	{"roll_min": 86, "roll_max": 100, "id": "extraction_unknown",
+	 "rounds": 0,
+	 "instruction": "TIME: No time limit. Extraction unknown — do not roll extraction until objectives are completed."},
 ]
 
 
 ## ============================================================================
-## EXPANDED QUEST PROGRESSION (D6 when quest advances)
+## EXTRACTION (Compendium p.76, D100)
+## ============================================================================
+
+const EXTRACTION: Array[Dictionary] = [
+	{"roll_min": 1, "roll_max": 30, "id": "immediate",
+	 "instruction": "EXTRACTION: Mission ends immediately upon objective completion."},
+	{"roll_min": 31, "roll_max": 50, "id": "exit_any_edge",
+	 "instruction": "EXTRACTION: Exit across any battlefield edge."},
+	{"roll_min": 51, "roll_max": 70, "id": "exit_any_edge_timed",
+	 "instruction": "EXTRACTION: Exit across any battlefield edge within the next 3 rounds, or you fail the mission."},
+	{"roll_min": 71, "roll_max": 85, "id": "exit_arrival_edge",
+	 "instruction": "EXTRACTION: Exit across the battlefield edge you arrived from."},
+	{"roll_min": 86, "roll_max": 100, "id": "reinforcements_exit",
+	 "instruction": "EXTRACTION: 4 additional basic enemies arrive from the opposing edge. Mission ends when all figures exit any edge OR after 3 game turns."},
+]
+
+
+## ============================================================================
+## PATRON SPECIAL CONDITIONS (Compendium pp.76-77, D100, Patron jobs only)
+## ============================================================================
+
+const PATRON_CONDITIONS: Array[Dictionary] = [
+	{"roll_min": 1, "roll_max": 5, "id": "collateral_restriction",
+	 "instruction": "CONDITION: Collateral Damage Restriction*. Cannot deploy weapons with Shot 3+ or Damage 2+."},
+	{"roll_min": 6, "roll_max": 10, "id": "gas_leaks",
+	 "instruction": "CONDITION: Gas Leaks. Non-Area weapons fire creates 2\" gas cloud around shooter and target. Persists rest of round, blocks visibility."},
+	{"roll_min": 11, "roll_max": 14, "id": "special_ammo",
+	 "instruction": "CONDITION: Special Ammo Required*. All non-Area weapons restricted to 1 Shot per round."},
+	{"roll_min": 15, "roll_max": 18, "id": "explosive_restriction",
+	 "instruction": "CONDITION: Explosive Weapon Restriction*. No Area weapons may be deployed."},
+	{"roll_min": 19, "roll_max": 22, "id": "hacking_required",
+	 "instruction": "CONDITION: Hacking Required to Enter. Crew begins off-map. Each character must roll 6+ on 1D6+Savvy to enter from your edge. Roll each round start. If all fail, select one to enter."},
+	{"roll_min": 23, "roll_max": 26, "id": "look_humane",
+	 "instruction": "CONDITION: Have to Look Humane*. No Melee weapons may be deployed."},
+	{"roll_min": 27, "roll_max": 30, "id": "light_weapons",
+	 "instruction": "CONDITION: Light Weapons Only*. Only Pistol and Melee weapons may be deployed."},
+	{"roll_min": 31, "roll_max": 34, "id": "cautious_progress",
+	 "instruction": "CONDITION: Cautious Progress Required*. No Jump, Flight, or Teleport devices may be deployed."},
+	{"roll_min": 35, "roll_max": 39, "id": "heavy_gear_impractical",
+	 "instruction": "CONDITION: Heavy Gear Impractical*. No Armor may be deployed."},
+	{"roll_min": 40, "roll_max": 44, "id": "erratic_lighting",
+	 "instruction": "CONDITION: Erratic Lighting. At start of each phase (Quick/Enemy/Slow), roll 2D6 for max visibility in inches."},
+	{"roll_min": 45, "roll_max": 50, "id": "electronic_interference",
+	 "instruction": "CONDITION: Electronic Interference. No Screens or Gunsights may be deployed."},
+	{"roll_min": 51, "roll_max": 55, "id": "environmental_protection",
+	 "instruction": "CONDITION: Environmental Protection Gear Required. Except Engineers and Soulless, no character may Dash."},
+	{"roll_min": 56, "roll_max": 59, "id": "organics_only",
+	 "instruction": "CONDITION: Organics Only*. No Bots or Soulless may be deployed."},
+	{"roll_min": 60, "roll_max": 65, "id": "no_psionics",
+	 "instruction": "CONDITION: No Psionics*. No Psionics may be deployed."},
+	{"roll_min": 66, "roll_max": 70, "id": "flash_flooding",
+	 "instruction": "CONDITION: Flash Flooding. Marker on random edge. Each round, move 1D3\" toward opposite edge. Area between marker and initial edge is flooded — any character there washed away (removed, no damage/injury)."},
+	{"roll_min": 71, "roll_max": 76, "id": "unstable_ground",
+	 "instruction": "CONDITION: Unstable Ground. End of each round, D6: on 1, tremors. All ground characters Stunned. Characters on terrain within 1\" of edge: D6 > base Speed = fall down."},
+	{"roll_min": 77, "roll_max": 81, "id": "watch_your_shots",
+	 "instruction": "CONDITION: Watch Your Shots*. No more than 3 crew may fire a weapon each round."},
+	{"roll_min": 82, "roll_max": 86, "id": "scan_before_progress",
+	 "instruction": "CONDITION: Scan Before You Progress*. No more than 3 crew may move each round."},
+	{"roll_min": 87, "roll_max": 92, "id": "special_vision",
+	 "instruction": "CONDITION: Special Vision Required. Helmet visors limit visual range to 8+Savvy\" (8\" for enemies)."},
+	{"roll_min": 93, "roll_max": 100, "id": "strict_engagement",
+	 "instruction": "CONDITION: Strict Rules of Engagement*. Cannot shoot targets unless they shot at your crew last round OR are within 6\"."},
+]
+
+
+## ============================================================================
+## EXPANDED QUEST PROGRESSION (Compendium pp.78-79, D100)
+##
+## In Post-Battle Step 3, roll 1D6 + Quest Rumors acquired.
+## Modified 6 or less = roll on this table. 7+ = Quest Conclusion.
 ## ============================================================================
 
 const QUEST_PROGRESSION: Array[Dictionary] = [
-	{"roll": 1, "id": "dead_end",
-	 "instruction": "QUEST: Dead End. No progress this turn. Must spend 1 crew action next turn to find new lead."},
-	{"roll": 2, "id": "minor_clue",
-	 "instruction": "QUEST: Minor Clue. +1 quest progress. Gain vague hint about next step."},
-	{"roll": 3, "id": "significant_lead",
-	 "instruction": "QUEST: Significant Lead. +2 quest progress. Next quest battle: +1 notable sight."},
-	{"roll": 4, "id": "ally_contact",
-	 "instruction": "QUEST: Ally Contact. +1 quest progress. Gain temporary ally for next quest battle (+1 Combat, Toughness 4)."},
-	{"roll": 5, "id": "rival_interference",
-	 "instruction": "QUEST: Rival Interference! +1 quest progress but add 1 Rival who also seeks the quest goal."},
-	{"roll": 6, "id": "breakthrough",
-	 "instruction": "QUEST: Breakthrough! +3 quest progress. May immediately attempt quest resolution if progress >= target."},
+	{"roll_min": 1, "roll_max": 10, "id": "info_source",
+	 "instruction": "QUEST: Track down info source. Costs 1D6 credits. Until paid, cannot progress Quest. Once paid, receive 1 Quest Rumor."},
+	{"roll_min": 11, "roll_max": 20, "id": "analyze_data",
+	 "instruction": "QUEST: Analyze data. Generate research points = combined crew Savvy + 1D6. If total >= 20, receive 1 Quest Rumor. Otherwise, accumulate each turn until you reach 20. Cannot progress Quest until done."},
+	{"roll_min": 21, "roll_max": 28, "id": "tough_fight",
+	 "instruction": "QUEST: Tough fight ahead. Random enemy, +2 numbers, -1 Panic range. Fight at any time but cannot progress Quest until done. If you Hold the Field, receive 1 Quest Rumor."},
+	{"roll_min": 29, "roll_max": 38, "id": "hard_work",
+	 "instruction": "QUEST: Hard work required. New crew task: 'Work on the Quest'. Once 6 such tasks performed (over multiple turns), receive 1 Quest Rumor. Cannot progress until done."},
+	{"roll_min": 39, "roll_max": 53, "id": "data_cache_access",
+	 "instruction": "QUEST: Find data cache. Set up normal Opportunity mission with Access objective. Enemy deployed within 3\" of objective, crew at least 12\" away. When completed, receive 1 Quest Rumor. Cannot progress until done."},
+	{"roll_min": 54, "roll_max": 65, "id": "data_cache_dangerous",
+	 "instruction": "QUEST: Data cache in bad place. No-objective mission. Crew in center. Roving Threats foe. Each round, 1 basic enemy from center of each 4 edges. Roll D6/round (+1 for Engineer), track total. At 28+, end mission. +1 Quest Rumor. Cannot progress until done."},
+	{"roll_min": 66, "roll_max": 80, "id": "business_contact",
+	 "instruction": "QUEST: Business contact needs help. Set up Protect mission. Enemy AI changed to Aggressive. When completed, receive 1 Quest Rumor. Cannot progress until done."},
+	{"roll_min": 81, "roll_max": 92, "id": "enemy_massing",
+	 "instruction": "QUEST: Enemy is massing. All future Quest battles add +1 to enemy numbers (does not affect data cache missions). Add 1 Quest Rumor."},
+	{"roll_min": 93, "roll_max": 100, "id": "enemy_determined",
+	 "instruction": "QUEST: Enemy more determined. All future Quest battles reduce enemy Panic range by -1. Add 1 Quest Rumor."},
 ]
 
-
-## ============================================================================
-## EXPANDED CONNECTIONS (opportunity mission benefits)
-## ============================================================================
-
-const EXPANDED_CONNECTIONS: Array[Dictionary] = [
-	{"id": "smuggler_network", "name": "Smuggler Network",
-	 "instruction": "CONNECTION: Smuggler Network. Can buy contraband items (weapons +1 damage mod, 3x price). Travel to adjacent world costs 1 cr less."},
-	{"id": "medical_contact", "name": "Medical Contact",
-	 "instruction": "CONNECTION: Medical Contact. Injury recovery -1 turn (min 1). Once per campaign: free surgery (remove permanent injury)."},
-	{"id": "info_broker", "name": "Information Broker",
-	 "instruction": "CONNECTION: Information Broker. +1 to Patron search rolls. Once per 3 turns: reveal enemy composition before battle."},
-	{"id": "mechanic_guild", "name": "Mechanic Guild",
-	 "instruction": "CONNECTION: Mechanic Guild. Ship repairs cost 50% less. Once per campaign: free hull point repair."},
-	{"id": "bounty_board", "name": "Bounty Board Access",
-	 "instruction": "CONNECTION: Bounty Board. After winning battle: D6 5-6 = bounty on defeated leader (+3 credits). Stacks with normal rewards."},
-	{"id": "safe_house", "name": "Safe House",
-	 "instruction": "CONNECTION: Safe House. When fleeing from battle: crew that fled are safe (no casualty roll). Cannot be used 2 turns in a row."},
-]
-
-
-## ============================================================================
-## PVP BATTLES (Freelancer's Handbook)
-## ============================================================================
-
-const PVP_RULES: Dictionary = {
-	"initiative_points": {
-		"instruction": "PVP INITIATIVE: Each player rolls 1D6 + crew Savvy (highest). Winner gets Initiative Points = difference (min 1). Spend 1 IP to activate 1 figure.",
-	},
-	"power_rating": {
-		"instruction": "PVP BALANCE: Calculate Power Rating per crew.\n  Base: 1 per crew member\n  +1 per Combat Skill above 0\n  +1 per Toughness above 3\n  +1 per heavy weapon\n  +0.5 per piece of armor\n  Lower-rated crew gets bonus: +1 basic ally per 3 point difference.",
-	},
-	"objectives": [
-		{"id": "pvp_control", "instruction": "PVP OBJECTIVE: Control. 3 objective markers. Hold (within 3\", no enemies within 3\") at end of Round 6. Most held = winner."},
-		{"id": "pvp_elimination", "instruction": "PVP OBJECTIVE: Elimination. Remove all enemy crew from play. Routed crew (3+ casualties) must pass Morale check or flee."},
-		{"id": "pvp_heist", "instruction": "PVP OBJECTIVE: Heist. Loot marker in center. Pick up (1 action), carry to own edge. Carrier moves -2\". If carrier hit, drop loot."},
-		{"id": "pvp_king_of_hill", "instruction": "PVP OBJECTIVE: King of the Hill. Central zone (6\" radius). Score 1 VP per figure in zone at end of each round. First to 10 VP wins."},
-	],
-	"setup": "PVP SETUP:\n  1. Each player selects crew (max 8 figures)\n  2. Calculate Power Rating for balance\n  3. Roll for deployment sides\n  4. Alternate placing terrain (6-10 pieces)\n  5. Roll D6 for objective type\n  6. Deploy within 6\" of own edge\n  7. Roll Initiative Points each round",
+const QUEST_CONCLUSION: Dictionary = {
+	"instruction": "QUEST CONCLUSION: Final battle is always a Straight Up Fight, no special conditions. +1 to enemy numbers (plus Quest Progression modifiers). Enemy always accompanied by Unique Individual. Enemies will NOT test Morale — fight to the death. Rewards: roll twice for Credits (pick highest, +1), 3 Loot rolls, +1 Story Point.",
 }
 
 
 ## ============================================================================
-## CO-OP BATTLES (Freelancer's Handbook)
+## EXPANDED CONNECTIONS (Compendium pp.80-86)
+##
+## Check during Opportunity missions: D6 5-6 = Connection.
+## First game with expansion: automatic Connection.
+## D6 determines subtable (1-2: Person, 3: Place, 4: Job, 5: Faction, 6: Personal).
+## ============================================================================
+
+const CONNECTION_MAIN_TABLE: Array[Dictionary] = [
+	{"roll_min": 1, "roll_max": 2, "id": "person", "subtable": 1,
+	 "instruction": "CONNECTION TYPE: A person you've met. Roll on Subtable 1."},
+	{"roll_min": 3, "roll_max": 3, "id": "place", "subtable": 2,
+	 "instruction": "CONNECTION TYPE: A place you've been. Roll on Subtable 2."},
+	{"roll_min": 4, "roll_max": 4, "id": "job", "subtable": 3,
+	 "instruction": "CONNECTION TYPE: A job you've done. Roll on Subtable 3."},
+	{"roll_min": 5, "roll_max": 5, "id": "faction", "subtable": 4,
+	 "instruction": "CONNECTION TYPE: A faction or group you've met. Roll on Subtable 4."},
+	{"roll_min": 6, "roll_max": 6, "id": "personal", "subtable": 5,
+	 "instruction": "CONNECTION TYPE: Personal connection for a random crew member (not captain). Roll on Subtable 5."},
+]
+
+## Subtable 1: A Person You've Met (D6)
+const CONNECTION_SUBTABLE_1: Array[Dictionary] = [
+	{"roll": 1, "id": "old_friend_trouble", "decline_allowed": true,
+	 "instruction": "CONNECTION 1-1*: Old friend in trouble. Enemy from Criminal Elements. Play Assault (Rival Attacks). Fail/decline = friend killed, -1 Story Point. Succeed = enemy becomes Rival, but friend joins crew (roll on all creation tables)."},
+	{"roll": 2, "id": "associate_data_cache", "decline_allowed": false,
+	 "instruction": "CONNECTION 1-2: Associate gave location of data cache. Play unlicensed salvage job. If you investigate all Points of Interest, add 2 Quest Rumors."},
+	{"roll": 3, "id": "favor_owed", "decline_allowed": true,
+	 "instruction": "CONNECTION 1-3*: Former employer collecting favor. Patron Mission Objectives table. Objective in 6 rounds. +1 Specialist enemy. Success = +2 credits. May decline."},
+	{"roll": 4, "id": "cryptic_message", "decline_allowed": false,
+	 "instruction": "CONNECTION 1-4: Cryptic message from friend in over their head. Fight Off vs Criminal Elements. Random enemy is your friend (moves by AI, won't attack crew). Move crew within 4\" = they switch sides (Reactions 1). Survive/move off edge = +1 Story Point + keep their weapons."},
+	{"roll": 5, "id": "payback", "decline_allowed": true,
+	 "instruction": "CONNECTION 1-5*: Old associate wants payback. Eliminate vs Hired Muscle, +2 basic enemies. Success = 1 extra Loot roll. If >5 rounds, enemy identifies you → add as Rival."},
+	{"roll": 6, "id": "anonymous_tip", "decline_allowed": true,
+	 "instruction": "CONNECTION 1-6*: 'Anonymous' tip. Search objective. 2 fewer enemies, but at end of Round 4, 1D6 additional enemies arrive (if 5-6, 1 is specialist). Success = 1 extra Loot roll."},
+]
+
+## Subtable 2: A Place You've Been (D6)
+const CONNECTION_SUBTABLE_2: Array[Dictionary] = [
+	{"roll": 1, "id": "hidden_interest", "decline_allowed": true,
+	 "instruction": "CONNECTION 2-1*: Location hid something. Search vs Hired Muscle + Unique Individual. Find objective = 3 Quest Rumors."},
+	{"roll": 2, "id": "critters_overrun", "decline_allowed": true,
+	 "instruction": "CONNECTION 2-2*: Site overrun by critters. Roving Threat, Defend +1 numbers. Fail/decline + Invasion Threat = world auto-invaded. Fail/decline + not Invasion = +1 to future Invasion rolls on this world."},
+	{"roll": 3, "id": "bad_guys_ruins", "decline_allowed": true,
+	 "instruction": "CONNECTION 2-3*: Bad guys set up in ruins. Eliminate vs Criminal Elements. +2 credits on completion."},
+	{"roll": 4, "id": "crew_secret", "decline_allowed": true,
+	 "instruction": "CONNECTION 2-4*: Random crew member (not captain) has secret reason to return. Acquire objective. If THAT crew member carries item off table = +3 XP for them, +1 Story Point. If they're Swift, any Swift crew goes without you if you decline (separate mission, no credits, +2 XP each)."},
+	{"roll": 5, "id": "coincidence", "decline_allowed": false,
+	 "instruction": "CONNECTION 2-5: Same place, surely coincidence. Rival Ambush mission. Pick random past Rival (or current/random if none). +2 Specialists, Panic -1. Victory = captain +3 XP."},
+	{"roll": 6, "id": "scavenge_site", "decline_allowed": true,
+	 "instruction": "CONNECTION 2-6*: Abandoned site, might be scavenge-worthy. Unlicensed salvage job vs Roving Threat."},
+]
+
+## Subtable 3: A Job You've Done (D6)
+const CONNECTION_SUBTABLE_3: Array[Dictionary] = [
+	{"roll": 1, "id": "grunt_revenge", "decline_allowed": false,
+	 "instruction": "CONNECTION 3-1: Random grunt wants revenge. Prior enemy type becomes Rival, attacks immediately. Accompanied by Enemy Boss UI in addition to all normal numbers. Kill Boss = remove Rival automatically."},
+	{"roll": 2, "id": "employer_callback", "decline_allowed": true,
+	 "instruction": "CONNECTION 3-2*: Employer kept your info. Patron Mission Objectives table. Roll Danger Pay and Benefits. +1 Specialist enemy. May decline after seeing details."},
+	{"roll": 3, "id": "powerful_sponsor", "decline_allowed": false,
+	 "instruction": "CONNECTION 3-3: Powerful sponsor targeting you. Random mission as normal. Enemy adds Freelancer UI (removed after Round 5). Kill Freelancer = 2 Quest Rumors."},
+	{"roll": 4, "id": "encrypted_intel", "decline_allowed": true,
+	 "instruction": "CONNECTION 3-4*: Encrypted intel deciphered. Discard all Quest Rumors, begin Quest immediately. During Quest, D6 each mission: on 6, enemy has Secret Agent. Or sell intel for 3 credits."},
+	{"roll": 5, "id": "strange_message", "decline_allowed": true,
+	 "instruction": "CONNECTION 3-5*: Strange message referencing the job. Protect mission, VIP is Corporate Slick (core rules p.172). Success = next turn is Opportunity with random Connection. Complete THAT objective = +1 Story Point."},
+	{"roll": 6, "id": "dirt_on_employer", "decline_allowed": true,
+	 "instruction": "CONNECTION 3-6*: Contact dug up dirt on employer. Acquire vs Hired Muscle. Guards: Panic -1, if T3 → raise to T4. Complete in 5 rounds or less = 1D6 credits."},
+]
+
+## Subtable 4: A Faction or Group (D6)
+const CONNECTION_SUBTABLE_4: Array[Dictionary] = [
+	{"roll": 1, "id": "rival_ceasefire", "decline_allowed": true,
+	 "instruction": "CONNECTION 4-1*: Random Rival offers ceasefire. Fight random Opportunity mission. Panic -1, +1 basic enemy. Rival sends 1 basic figure (Reactions 2) to help. Victory = remove old Rival from roster."},
+	{"roll": 2, "id": "defector", "decline_allowed": true,
+	 "instruction": "CONNECTION 4-2*: Employee wants to defect from old Patron. Acquire mission — 'item' is a Scientist (core rules p.172). Placed when you 'pick up'. Acts as crew. Rescue them = Patron never works with you again, but 1 Loot roll + 1 Story Point."},
+	{"roll": 3, "id": "former_patron_job", "decline_allowed": true,
+	 "instruction": "CONNECTION 4-3*: Former Patron needs you. Pick prior Patron. Job offered immediately, all details rolled normally."},
+	{"roll": 4, "id": "setup_suspicion", "decline_allowed": false,
+	 "instruction": "CONNECTION 4-4: Not sure if you're being set up. Fight same enemy as last mission (Roving Threat → Hired Muscle instead). Enemy has Secret Agent UI. All Panic -1."},
+	{"roll": 5, "id": "agent_tip", "decline_allowed": false,
+	 "instruction": "CONNECTION 4-5: Former employer tips you off. Roll twice for Notable Sights (core rules p.89). At end of Round 4, any uncollected sights removed from table."},
+	{"roll": 6, "id": "valuable_info", "decline_allowed": false,
+	 "instruction": "CONNECTION 4-6: Info valuable to former Patron. Win mission to claim data. Hand over = they become Persistent Patron. Sell on black market = +2 credits."},
+]
+
+## Subtable 5: Personal Connection (D6, random crew member, not captain)
+const CONNECTION_SUBTABLE_5: Array[Dictionary] = [
+	{"roll": 1, "id": "old_enemies", "decline_allowed": true,
+	 "instruction": "CONNECTION 5-1*: Crew member's old enemies. Eliminate vs Criminal Elements. Random basic enemy gets +1 Toughness and +1 Combat Skill. Success = +2 XP for crew member, +1 Story Point."},
+	{"roll": 2, "id": "protect_family", "decline_allowed": true,
+	 "instruction": "CONNECTION 5-2*: Crew member's allies need protection. Patrol vs Roving Threat. No Invasion chance from this encounter. Success = +2 XP, +1 Story Point."},
+	{"roll": 3, "id": "stolen_heirloom", "decline_allowed": true,
+	 "instruction": "CONNECTION 5-3*: Something stolen from crew member's people. Access vs Criminal Elements + Enemy Boss UI. Success = +2 XP, +1 Story Point."},
+	{"roll": 4, "id": "important_contact", "decline_allowed": true,
+	 "instruction": "CONNECTION 5-4*: Need to make contact. Move Through vs Roving Threat, +1 basic enemy. Success = +2 XP, +1 Story Point."},
+	{"roll": 5, "id": "wrong_people", "decline_allowed": true,
+	 "instruction": "CONNECTION 5-5*: Upset the wrong people! Hand over crew member (remove from roster) OR fight. Fight: Hired Muscle + 2 Specialists + 2 basic enemies. Raid mission (Rival Attacks). Success = +2 XP, +1 Story Point."},
+	{"roll": 6, "id": "promising_lead", "decline_allowed": true,
+	 "instruction": "CONNECTION 5-6*: Crew member found promising lead. Secure objective. Success = +1 Quest Rumor, +2 XP, +1 Story Point."},
+]
+
+
+## ============================================================================
+## SETUP RULES (Compendium p.76)
+## ============================================================================
+
+const SETUP_RULES: String = (
+	"EXPANDED MISSION SETUP:\n" +
+	"Randomly select enemy deployment side.\n" +
+	"2-foot table: Enemy within 6\" of their edge. Crew arrives from opposing edge Round 1.\n" +
+	"3-foot table: Enemy within 9\" of their edge. Crew within 9\" of own edge.\n" +
+	"Objectives placed in center move 1D6\" in random direction."
+)
+
+
+## ============================================================================
+## PVP BATTLES (Compendium pp.35-39)
+## ============================================================================
+
+const PVP_BATTLE_REASON: Array[Dictionary] = [
+	{"roll_min": 1, "roll_max": 25, "id": "chance_encounter",
+	 "instruction": "PVP REASON: A chance encounter in the field turns hostile."},
+	{"roll_min": 26, "roll_max": 40, "id": "opposing_sides",
+	 "instruction": "PVP REASON: The two crews were hired by opposing sides."},
+	{"roll_min": 41, "roll_max": 50, "id": "clear_contacts",
+	 "instruction": "PVP REASON: Both crews have jobs in the same location, but one crew was hired to clear out all contacts."},
+	{"roll_min": 51, "roll_max": 75, "id": "personal_rivalry",
+	 "instruction": "PVP REASON: A long-standing personal rivalry flares up."},
+	{"roll_min": 76, "roll_max": 85, "id": "interfering_objectives",
+	 "instruction": "PVP REASON: The crews have jobs in the same location and the objectives interfere with each other."},
+	{"roll_min": 86, "roll_max": 100, "id": "same_target",
+	 "instruction": "PVP REASON: Each crew is after the same thing in this location."},
+]
+
+const PVP_INITIATIVE_USES: Array[Dictionary] = [
+	{"id": "extra_fire", "instruction": "IP USE: Fire +1 shot with any weapon and reroll 1s to Hit. Spend before rolling."},
+	{"id": "double_speed", "instruction": "IP USE: Double Speed for one move."},
+	{"id": "remove_stun", "instruction": "IP USE: Remove all Stun markers from a crew figure. Only when that figure is selected to act."},
+	{"id": "draw_brawl", "instruction": "IP USE: Count a lost brawl as a draw instead."},
+]
+
+const PVP_POWER_RATING: String = (
+	"PVP POWER RATING: +1 per figure fielded, +1 per Combat Skill +2 or above, " +
+	"+1 per Rattle Gun or Hyper Blaster, +1 per 5+ Saving Throw or better.\n" +
+	"Difference → Bonus IPs to outgunned side: 1-2=1, 3-4=2, 5-6=3, 7-8=4, 9+=5."
+)
+
+const PVP_THIRD_PARTY_DEPLOYMENT: Array[Dictionary] = [
+	{"roll_min": 1, "roll_max": 40, "id": "standard",
+	 "instruction": "3RD PARTY: Deployed on neutral battlefield edge."},
+	{"roll_min": 41, "roll_max": 60, "id": "reinforced",
+	 "instruction": "3RD PARTY: Deployed on neutral edge + 1 Specialist + 1 Lieutenant."},
+	{"roll_min": 61, "roll_max": 70, "id": "center",
+	 "instruction": "3RD PARTY: Deployed within 6\" of the center of the battlefield."},
+	{"roll_min": 71, "roll_max": 80, "id": "delayed",
+	 "instruction": "3RD PARTY: Arrives at start of Round 3 from random neutral edge."},
+	{"roll_min": 81, "roll_max": 90, "id": "random_timing",
+	 "instruction": "3RD PARTY: Roll 1D6 at start. Arrives at that round number from random neutral edge."},
+	{"roll_min": 91, "roll_max": 100, "id": "reinforced_late",
+	 "instruction": "3RD PARTY: Deployed on neutral edge. Round 3: 1D6 additional basic enemies from same edge (if 5-6 arrive, one is specialist)."},
+]
+
+const PVP_RULES: Dictionary = {
+	"setup": (
+		"PVP SETUP (pp.35-39):\n" +
+		"- No Deployment Conditions rolled. Each player rolls+places a Notable Sight.\n" +
+		"- Each side gets objective from Opportunity Mission Objectives table.\n" +
+		"- Alternate deploying 2 figures (lower Power Rating starts).\n" +
+		"- Story Points and Stars of the Story CANNOT be used.\n" +
+		"- Seize Initiative: success = +1 bonus IP at game start (both can succeed)."
+	),
+	"round_sequence": (
+		"PVP ROUND SEQUENCE:\n" +
+		"1. Randomly determine First Player (Round 1). Token passes each round.\n" +
+		"2. First Player rolls+assigns Reaction dice, then Second Player.\n" +
+		"3. Fast Actions: Alternate selecting 1-2 eligible characters.\n" +
+		"4. Enemy Actions (AI-controlled forces only, if any).\n" +
+		"5. Slow Actions: Same alternating pattern.\n" +
+		"End: Roll 2D6 — if < round number, battle ends next round."
+	),
+	"aftermath": (
+		"PVP AFTERMATH:\n" +
+		"- NEVER results in Rivals. Each crew paid normally.\n" +
+		"- No Battlefield Finds. Each crew gets 1 Loot roll (+1 if fought 5+ Power Rating).\n" +
+		"- Injuries and Experience handled normally."
+	),
+	"three_way": (
+		"PVP THREE-WAY BATTLE:\n" +
+		"- Roll enemy for neutral edge. +1 basic + 1 specialist to numbers.\n" +
+		"- Always accompanied by Unique Individual (unless Roving Threat).\n" +
+		"- Cannot agree to end battle while third party on table."
+	),
+	"instruction": (
+		"PVP RULES: See Compendium pp.35-39. Each player gets 1 Initiative Point/round " +
+		"(spend for: +1 shot + reroll 1s, double Speed, remove Stun, draw lost brawl). " +
+		"Power Rating balances forces. Modified alternating activation sequence."
+	),
+}
+
+
+## ============================================================================
+## CO-OP BATTLES (Compendium pp.39-43)
 ## ============================================================================
 
 const COOP_RULES: Dictionary = {
-	"scaling": {
-		"instruction": "CO-OP SCALING: Double base enemy count. +1 Specialist per crew. +1 Lieutenant if combined crew > 8. All enemies get +1 Toughness.",
-	},
-	"shared_objectives": {
-		"instruction": "CO-OP OBJECTIVES: Both crews share objective. Only ONE crew needs to complete (e.g., reach extraction). Other crew provides support.",
-	},
-	"coordination": {
-		"instruction": "CO-OP COORDINATION:\n  - Players alternate activating 1 figure each\n  - Adjacent friendly figures from different crews: +1 to hit (coordinated fire)\n  - One crew can spend 1 action to provide covering fire: -1 to enemy hits vs other crew this round",
-	},
-	"rewards": {
-		"instruction": "CO-OP REWARDS:\n  - Credits split evenly (round up for primary crew)\n  - XP: each crew gets own XP (no splitting)\n  - Loot: alternate picks from loot table\n  - Quest progress: both crews advance if applicable",
-	},
-	"setup": "CO-OP SETUP:\n  1. Each player brings their crew (max 6 each)\n  2. Combined crew deploys on same edge (or 2 adjacent edges)\n  3. Generate enemies with co-op scaling\n  4. Roll for shared objective\n  5. Alternate activations between players\n  6. Both crews must extract to fully succeed",
+	"enemy_generation": (
+		"CO-OP ENEMIES:\n" +
+		"- Each player rolls enemy type. Face BOTH types.\n" +
+		"- Generate each normally but +2 to number encountered.\n" +
+		"- Larger force = Wave 1. Smaller = Wave 2. If equal, randomize.\n" +
+		"- Add 1 Unique Individual to Wave 2.\n" +
+		"- Wave 2 arrives start of Round 3 (D6: 1-2 left, 3-4 enemy, 5-6 right edge).\n" +
+		"- Wave 3: Roll 2D6 end of each round from Round 3. If < round number, " +
+		"Hired Muscle force arrives + 1 specialist + Unique Individual " +
+		"(D6: 1-2 left, 3-4 behind you, 5-6 right; opposite Wave 2 if same)."
+	),
+	"setup": (
+		"CO-OP SETUP:\n" +
+		"- Best on 3-foot square table. Terrain: 4 large, 6 small, 4 linear.\n" +
+		"- Forces 24\"+ apart. Wave 1 deployed first, then both crews.\n" +
+		"- Two crews on same side, 8\"+ apart. NO Seize Initiative roll.\n" +
+		"- Objective: ALWAYS Fight Off. Hold the Field to win.\n" +
+		"- Roll Deployment Condition normally. 2 Notable Sights (1D6+3\" left/right of center)."
+	),
+	"round_sequence": (
+		"CO-OP ROUND SEQUENCE:\n" +
+		"- Two crews are single force. Each player rolls Reaction dice separately.\n" +
+		"- Quick/Slow Actions: players alternate, fewer figures goes first.\n" +
+		"- Enemies act in Enemy Actions phase per normal rules.\n" +
+		"- From Round 6+, if table cleared of enemies, game ends (even if Wave 3 hasn't arrived)."
+	),
+	"tough_fight": (
+		"CO-OP TOUGH FIGHT:\n" +
+		"- All opponents: Panic range of 1 (flee only on roll of 1).\n" +
+		"- Each Wave separate for Morale (Wave 1 casualties only affect Wave 1).\n" +
+		"- Cautious/Defensive AI treated as Tactical AI instead."
+	),
+	"aftermath": (
+		"CO-OP AFTERMATH (if at least 1 figure Holds Field, BOTH crews win):\n" +
+		"- Resolve Rival Status: normally.\n" +
+		"- Get Paid: each crew +1 when rolling credits.\n" +
+		"- Battlefield Finds: each crew may roll.\n" +
+		"- Check Invasion: roll once, +1 per Wave with Invasion Threat.\n" +
+		"- Loot: each crew rolls normally. One player makes extra roll — BOTH crews get that item."
+	),
+	"instruction": (
+		"CO-OP RULES: See Compendium pp.39-43. Two crews vs strengthened opposition. " +
+		"3 enemy Waves with escalating difficulty. Objective always Fight Off. " +
+		"Both crews win if at least 1 figure Holds the Field."
+	),
 }
 
 
 ## ============================================================================
-## INTRODUCTORY CAMPAIGN (5 missions, Fixer's Guidebook)
+## INTRODUCTORY CAMPAIGN (Compendium pp.104-109, 5 turns)
 ## ============================================================================
 
-const INTRODUCTORY_MISSIONS: Array[Dictionary] = [
+const INTRODUCTORY_CAMPAIGN: Array[Dictionary] = [
 	{
-		"mission": 1,
-		"title": "First Steps",
-		"instruction": "INTRODUCTORY MISSION 1: First Steps\n\n" +
-			"[b]Setup:[/b] 4 basic enemies, no specialists. Open terrain with light cover.\n" +
-			"[b]Objective:[/b] Eliminate all enemies.\n" +
-			"[b]Special Rules:[/b]\n" +
-			"  - Crew gets +1 to all hit rolls (training bonus)\n" +
-			"  - No injury rolls this battle (knocked out = miss next mission only)\n" +
-			"  - Enemies do not use cover effectively\n" +
-			"[b]Rewards:[/b] 3 credits, 1 XP per crew member\n" +
-			"[b]Tutorial:[/b] Practice basic movement, shooting, and brawling.",
+		"turn": 0, "title": "Training Battle",
+		"instruction": (
+			"INTRO: TRAINING BATTLE (no campaign steps)\n" +
+			"Straight-up fight, no objectives, no Deployment Conditions, no Notable Sights.\n" +
+			"Enemy: 4 Starport Scum (Panic 1-3, Speed 4\", Combat +0, T3, AI:A, Hand gun)\n" +
+			"       1 Specialist (same stats, Shotgun)\n" +
+			"Knocked-out crew recover with no consequences. No XP or post-battle."
+		),
 	},
 	{
-		"mission": 2,
-		"title": "Market Day",
-		"instruction": "INTRODUCTORY MISSION 2: Market Day\n\n" +
-			"[b]Setup:[/b] 5 basic enemies + 1 specialist. Urban terrain.\n" +
-			"[b]Objective:[/b] Retrieve package from center of map, extract to edge.\n" +
-			"[b]Special Rules:[/b]\n" +
-			"  - Crew training bonus reduced to +0 (normal rolls)\n" +
-			"  - Standard injury rules apply\n" +
-			"  - 1 Notable Sight placed on map\n" +
-			"[b]Rewards:[/b] 5 credits, standard XP\n" +
-			"[b]Tutorial:[/b] Practice objectives, item interaction, Notable Sights.",
+		"turn": 1, "title": "Campaign Turn 1",
+		"instruction": (
+			"INTRO TURN 1: No pre-battle steps.\n" +
+			"Enemy: 4 Security Bots (Panic 0, Speed 3\", Combat +0, T5, AI:D, Hand laser)\n" +
+			"Eager players variant: 5th bot at center of enemy edge start of Round 3, +1 XP to killer.\n" +
+			"No Deployment Conditions/Notable Sights/Unique Individuals. +1 to Seize Initiative.\n" +
+			"Objective: Fight Off. Bots have no Panic — must destroy all.\n" +
+			"After: Get Paid, Battlefield Finds (if Held Field), Loot, Injuries, XP."
+		),
 	},
 	{
-		"mission": 3,
-		"title": "Trouble Brewing",
-		"instruction": "INTRODUCTORY MISSION 3: Trouble Brewing\n\n" +
-			"[b]Setup:[/b] 6 basic enemies + 1 specialist + 1 lieutenant. Mixed terrain.\n" +
-			"[b]Objective:[/b] Hold position (6\" zone) for 4 rounds.\n" +
-			"[b]Special Rules:[/b]\n" +
-			"  - D6 at Round 3: 4+ = D3 reinforcements from random edge\n" +
-			"  - First Rival encounter possible (D6: 6 = gain 1 Rival)\n" +
-			"[b]Rewards:[/b] 6 credits, standard XP, roll on loot table\n" +
-			"[b]Tutorial:[/b] Practice defensive play, reinforcement handling.",
+		"turn": 2, "title": "Campaign Turn 2",
+		"instruction": (
+			"INTRO TURN 2: Pre-battle — Pay Medical, limited crew tasks (Train/Trade/Recruit/Explore/Repair), Assign Equipment.\n" +
+			"Enemy: 4 Isolationist (Panic 1-2, Speed 4\", Combat +0, T3, AI:C, Colony rifle)\n" +
+			"       1 Specialist (same, Auto rifle), 1 Leader (Panic 1-2, Speed 4\", Combat +1, T4, AI:C, Hand cannon)\n" +
+			"Roll Deployment Conditions. No Notable Sights/Unique Individuals.\n" +
+			"Objective: Patrol. After: Pay/Finds/Loot/Injuries/XP/Purchase/Campaign Event/Character Event."
+		),
 	},
 	{
-		"mission": 4,
-		"title": "A Friend in Need",
-		"instruction": "INTRODUCTORY MISSION 4: A Friend in Need\n\n" +
-			"[b]Setup:[/b] 7 enemies (standard composition). Complex terrain.\n" +
-			"[b]Objective:[/b] Rescue NPC from enemy zone, extract both NPC and crew.\n" +
-			"[b]Special Rules:[/b]\n" +
-			"  - Full campaign rules apply\n" +
-			"  - NPC: Speed 4\", Toughness 3, unarmed\n" +
-			"  - Success: NPC becomes Patron (guaranteed)\n" +
-			"[b]Rewards:[/b] 7 credits, standard XP, 1 Patron\n" +
-			"[b]Tutorial:[/b] Practice escort mechanics, patron system.",
+		"turn": 3, "title": "Campaign Turn 3",
+		"instruction": (
+			"INTRO TURN 3: Travel to new world (free this time). Starship Travel Event. New World Arrival.\n" +
+			"Pre-battle: Upkeep, limited crew tasks, Assign Equipment.\n" +
+			"Enemy: 3 Mercenary (Panic 1-2, Speed 5\", Combat +1, T4, AI:T, Military rifle)\n" +
+			"       1 Specialist (same, Rattle gun), 1 Leader (Speed 6\", Machine pistol + Blade)\n" +
+			"ALL enemies set up in/behind Cover. No Deployment Conditions. Roll Notable Sight.\n" +
+			"Seize Initiative at -1. Objective: Secure."
+		),
 	},
 	{
-		"mission": 5,
-		"title": "Making a Name",
-		"instruction": "INTRODUCTORY MISSION 5: Making a Name\n\n" +
-			"[b]Setup:[/b] Standard enemy generation (full rules). Full terrain setup.\n" +
-			"[b]Objective:[/b] Standard objective roll (full rules).\n" +
-			"[b]Special Rules:[/b]\n" +
-			"  - All campaign rules apply (no training wheels)\n" +
-			"  - Quest Rumor guaranteed if not already obtained\n" +
-			"  - After this mission: full campaign begins\n" +
-			"[b]Rewards:[/b] Standard + 2 bonus credits for completing intro campaign\n" +
-			"[b]Tutorial:[/b] Full rules confirmation. Campaign ready!",
+		"turn": 4, "title": "Campaign Turn 4",
+		"instruction": (
+			"INTRO TURN 4: Pre-battle — full Upkeep, Find a Patron added to crew tasks, Determine Job Offers, Assign Equipment, Resolve Rumors.\n" +
+			"Roll standard mission (Patron/Quest if available, else Opportunity).\n" +
+			"Standard encounter/opposition rules including Unique Individuals.\n" +
+			"Special: Any enemy Combat Skill +2 or higher reduced to +1 this mission.\n" +
+			"If Patrons from character creation: roll job for each, pick one.\n" +
+			"If Rumors: check if they lead to a Quest."
+		),
+	},
+	{
+		"turn": 5, "title": "Campaign Turn 5 (Full Rules)",
+		"instruction": (
+			"INTRO TURN 5: ALL standard rules. Full pre-battle and post-battle sequences.\n" +
+			"No more training wheels. Tutorial complete!\n" +
+			"If using Story Track: set clock to 5 Ticks.\n" +
+			"Collect 2 Story Points for completing the introductory campaign."
+		),
 	},
 ]
-
-
-## ============================================================================
-## PRISON PLANET CHARACTER (Fixer's Guidebook)
-## ============================================================================
-
-const PRISON_PLANET_OPTIONS: Dictionary = {
-	"id": "prison_planet",
-	"name": "Prison Planet Veteran",
-	"dlc_flag": "PRISON_PLANET_CHARACTER",
-	"instruction": "PRISON PLANET CHARACTER:\n" +
-		"  One crew member may be an ex-prisoner.\n" +
-		"  - KEEP: All stats (Combat, Toughness, Speed, Savvy, Reactions, Luck)\n" +
-		"  - LOSE: ALL equipment and Implants (stripped on arrival)\n" +
-		"  - GAIN: +3 Enforcer Rivals\n" +
-		"  - GAIN: +1 Story Point\n" +
-		"  - GAIN: +3 XP (survival bonus)\n" +
-		"  NOTE: Cannot be a Bot or Soulless (organic beings only).",
-	"effects": {
-		"keep_stats": true,
-		"lose_equipment": true,
-		"lose_implants": true,
-		"enforcer_rivals": 3,
-		"story_points": 1,
-		"bonus_xp": 3,
-		"excluded_origins": ["BOT", "SOULLESS"],
-	},
-}
 
 
 ## ============================================================================
 ## QUERY METHODS
 ## ============================================================================
 
-## Roll an expanded mission objective. Returns empty if DLC disabled.
-static func roll_expanded_objective() -> Dictionary:
+## Roll objective overview (D100). Returns empty if DLC disabled.
+static func roll_objective_overview() -> Dictionary:
 	if not _is_flag_enabled("EXPANDED_MISSIONS"):
 		return {}
 	var roll := randi_range(1, 100)
-	for obj in EXPANDED_OBJECTIVES:
+	for entry in OBJECTIVE_OVERVIEW:
+		if roll >= entry.roll_min and roll <= entry.roll_max:
+			var result: Dictionary = entry.duplicate()
+			result["roll"] = roll
+			return result
+	return OBJECTIVE_OVERVIEW[0]
+
+
+## Roll a specific objective (D100). Returns empty if DLC disabled.
+static func roll_specific_objective() -> Dictionary:
+	if not _is_flag_enabled("EXPANDED_MISSIONS"):
+		return {}
+	var roll := randi_range(1, 100)
+	for obj in SPECIFIC_OBJECTIVES:
 		if roll >= obj.roll_min and roll <= obj.roll_max:
-			return obj
-	return EXPANDED_OBJECTIVES[0]
+			var result: Dictionary = obj.duplicate()
+			result["roll"] = roll
+			return result
+	return SPECIFIC_OBJECTIVES[0]
 
 
-## Roll expanded deployment condition. Returns empty if DLC disabled.
-static func roll_expanded_deployment() -> Dictionary:
+## Roll time constraint (D100). Returns empty if DLC disabled.
+static func roll_time_constraint() -> Dictionary:
 	if not _is_flag_enabled("EXPANDED_MISSIONS"):
 		return {}
-	var roll := randi_range(1, 6)
-	for dep in EXPANDED_DEPLOYMENT:
-		if dep.roll == roll:
-			return dep
-	return EXPANDED_DEPLOYMENT[0]
+	var roll := randi_range(1, 100)
+	for tc in TIME_CONSTRAINTS:
+		if roll >= tc.roll_min and roll <= tc.roll_max:
+			var result: Dictionary = tc.duplicate()
+			result["roll"] = roll
+			return result
+	return TIME_CONSTRAINTS[0]
 
 
-## Roll expanded notable sight. Returns empty if DLC disabled.
-static func roll_expanded_notable_sight() -> Dictionary:
+## Roll extraction method (D100). Returns empty if DLC disabled.
+static func roll_extraction() -> Dictionary:
 	if not _is_flag_enabled("EXPANDED_MISSIONS"):
 		return {}
-	var roll := randi_range(1, 6)
-	for sight in EXPANDED_NOTABLE_SIGHTS:
-		if sight.roll == roll:
-			return sight
-	return EXPANDED_NOTABLE_SIGHTS[0]
+	var roll := randi_range(1, 100)
+	for ext in EXTRACTION:
+		if roll >= ext.roll_min and roll <= ext.roll_max:
+			var result: Dictionary = ext.duplicate()
+			result["roll"] = roll
+			return result
+	return EXTRACTION[0]
 
 
-## Roll quest progression. Returns empty if DLC disabled.
+## Roll patron special condition (D100). Returns empty if DLC disabled.
+static func roll_patron_condition() -> Dictionary:
+	if not _is_flag_enabled("EXPANDED_MISSIONS"):
+		return {}
+	var roll := randi_range(1, 100)
+	for cond in PATRON_CONDITIONS:
+		if roll >= cond.roll_min and roll <= cond.roll_max:
+			var result: Dictionary = cond.duplicate()
+			result["roll"] = roll
+			return result
+	return PATRON_CONDITIONS[0]
+
+
+## Roll quest progression (D100). Returns empty if DLC disabled.
 static func roll_quest_progression() -> Dictionary:
 	if not _is_flag_enabled("EXPANDED_QUESTS"):
 		return {}
-	var roll := randi_range(1, 6)
+	var roll := randi_range(1, 100)
 	for step in QUEST_PROGRESSION:
-		if step.roll == roll:
-			return step
+		if roll >= step.roll_min and roll <= step.roll_max:
+			var result: Dictionary = step.duplicate()
+			result["roll"] = roll
+			return result
 	return QUEST_PROGRESSION[0]
 
 
-## Get all available connections. Returns empty if DLC disabled.
-static func get_available_connections() -> Array[Dictionary]:
+## Get quest conclusion text.
+static func get_quest_conclusion() -> String:
+	if not _is_flag_enabled("EXPANDED_QUESTS"):
+		return ""
+	return QUEST_CONCLUSION.instruction
+
+
+## Check for connection during Opportunity mission (D6: 5-6).
+static func check_for_connection() -> bool:
 	if not _is_flag_enabled("EXPANDED_CONNECTIONS"):
-		return []
-	return EXPANDED_CONNECTIONS.duplicate()
+		return false
+	return randi_range(1, 6) >= 5
+
+
+## Roll connection type (D6). Returns main table entry.
+static func roll_connection_type() -> Dictionary:
+	if not _is_flag_enabled("EXPANDED_CONNECTIONS"):
+		return {}
+	var roll := randi_range(1, 6)
+	for entry in CONNECTION_MAIN_TABLE:
+		if roll >= entry.roll_min and roll <= entry.roll_max:
+			var result: Dictionary = entry.duplicate()
+			result["roll"] = roll
+			return result
+	return CONNECTION_MAIN_TABLE[0]
+
+
+## Roll on a specific connection subtable (1-5). Returns entry.
+static func roll_connection_subtable(subtable_num: int) -> Dictionary:
+	if not _is_flag_enabled("EXPANDED_CONNECTIONS"):
+		return {}
+	var table: Array[Dictionary] = []
+	match subtable_num:
+		1: table.assign(CONNECTION_SUBTABLE_1)
+		2: table.assign(CONNECTION_SUBTABLE_2)
+		3: table.assign(CONNECTION_SUBTABLE_3)
+		4: table.assign(CONNECTION_SUBTABLE_4)
+		5: table.assign(CONNECTION_SUBTABLE_5)
+		_: return {}
+	var roll := randi_range(1, 6)
+	for entry in table:
+		if entry.roll == roll:
+			var result: Dictionary = entry.duplicate()
+			result["subtable"] = subtable_num
+			return result
+	return table[0] if not table.is_empty() else {}
 
 
 ## Get PvP setup text. Returns empty if DLC disabled.
@@ -355,20 +673,37 @@ static func get_pvp_setup() -> String:
 	return PVP_RULES.setup
 
 
-## Roll PvP objective. Returns empty if DLC disabled.
-static func roll_pvp_objective() -> Dictionary:
-	if not _is_flag_enabled("PVP_BATTLES"):
-		return {}
-	var objectives: Array = PVP_RULES.objectives
-	return objectives[randi() % objectives.size()]
-
-
 ## Get PvP rules text for a specific aspect.
 static func get_pvp_rules(aspect: String) -> String:
 	if not _is_flag_enabled("PVP_BATTLES"):
 		return ""
-	var rules: Dictionary = PVP_RULES.get(aspect, {})
-	return rules.get("instruction", "")
+	return PVP_RULES.get(aspect, PVP_RULES.get("instruction", ""))
+
+
+## Roll PvP battle reason (D100).
+static func roll_pvp_battle_reason() -> Dictionary:
+	if not _is_flag_enabled("PVP_BATTLES"):
+		return {}
+	var roll := randi_range(1, 100)
+	for entry in PVP_BATTLE_REASON:
+		if roll >= entry.roll_min and roll <= entry.roll_max:
+			var result: Dictionary = entry.duplicate()
+			result["roll"] = roll
+			return result
+	return PVP_BATTLE_REASON[0]
+
+
+## Roll PvP third party deployment (D100).
+static func roll_pvp_third_party() -> Dictionary:
+	if not _is_flag_enabled("PVP_BATTLES"):
+		return {}
+	var roll := randi_range(1, 100)
+	for entry in PVP_THIRD_PARTY_DEPLOYMENT:
+		if roll >= entry.roll_min and roll <= entry.roll_max:
+			var result: Dictionary = entry.duplicate()
+			result["roll"] = roll
+			return result
+	return PVP_THIRD_PARTY_DEPLOYMENT[0]
 
 
 ## Get co-op setup text. Returns empty if DLC disabled.
@@ -382,40 +717,23 @@ static func get_coop_setup() -> String:
 static func get_coop_rules(aspect: String) -> String:
 	if not _is_flag_enabled("COOP_BATTLES"):
 		return ""
-	var rules: Dictionary = COOP_RULES.get(aspect, {})
-	return rules.get("instruction", "")
+	return COOP_RULES.get(aspect, COOP_RULES.get("instruction", ""))
 
 
 ## Get introductory campaign mission. Returns empty if DLC disabled.
-static func get_introductory_mission(mission_number: int) -> Dictionary:
+static func get_introductory_mission(turn_number: int) -> Dictionary:
 	if not _is_flag_enabled("INTRODUCTORY_CAMPAIGN"):
 		return {}
-	if mission_number < 1 or mission_number > INTRODUCTORY_MISSIONS.size():
-		return {}
-	return INTRODUCTORY_MISSIONS[mission_number - 1]
+	for mission in INTRODUCTORY_CAMPAIGN:
+		if mission.turn == turn_number:
+			return mission
+	return {}
 
 
 ## Get all introductory missions. Returns empty if DLC disabled.
 static func get_all_introductory_missions() -> Array[Dictionary]:
 	if not _is_flag_enabled("INTRODUCTORY_CAMPAIGN"):
 		return []
-	return INTRODUCTORY_MISSIONS.duplicate()
-
-
-## Check if prison planet character option is available.
-static func is_prison_planet_available() -> bool:
-	return _is_flag_enabled("PRISON_PLANET_CHARACTER")
-
-
-## Get prison planet character creation text.
-static func get_prison_planet_text() -> String:
-	if not _is_flag_enabled("PRISON_PLANET_CHARACTER"):
-		return ""
-	return PRISON_PLANET_OPTIONS.instruction
-
-
-## Get prison planet effects dictionary.
-static func get_prison_planet_effects() -> Dictionary:
-	if not _is_flag_enabled("PRISON_PLANET_CHARACTER"):
-		return {}
-	return PRISON_PLANET_OPTIONS.effects.duplicate()
+	var result: Array[Dictionary] = []
+	result.assign(INTRODUCTORY_CAMPAIGN)
+	return result

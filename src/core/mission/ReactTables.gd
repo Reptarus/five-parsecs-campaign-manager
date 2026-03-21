@@ -169,28 +169,29 @@ func _calculate_enemy_distribution(danger_level: int, mission_type: int) -> Dict
     
 	return base_distribution
 
-## Determine enemy faction based on React tables (rulebook p.125)
+## Determine enemy faction based on React tables (Core Rules pp.94-107)
+## Book categories: criminal_elements, hired_muscle, interested_parties, roving_threats
 func _determine_enemy_faction(location_type: String, mission_type: int) -> String:
-	var possible_factions = ["raiders", "military", "criminals", "aliens"]
+	var possible_factions = ["criminal_elements", "hired_muscle", "interested_parties", "roving_threats"]
 	var faction = possible_factions[randi() % possible_factions.size()]
-    
+
 	# Adjust faction probability based on mission type
 	match mission_type:
 		GlobalEnums.MissionType.PATROL:
-			# Patrol missions more likely to encounter raiders
+			# Patrol missions more likely to encounter roving threats
 			if randf() < 0.6:
-				faction = "raiders"
-        
+				faction = "roving_threats"
+
 		GlobalEnums.MissionType.RAID:
-			# Raid missions more likely to encounter military
+			# Raid missions more likely to encounter hired muscle
 			if randf() < 0.7:
-				faction = "military"
-        
+				faction = "hired_muscle"
+
 		GlobalEnums.MissionType.SABOTAGE:
-			# Sabotage missions more likely to encounter military
+			# Sabotage missions more likely to encounter interested parties
 			if randf() < 0.8:
-				faction = "military"
-    
+				faction = "interested_parties"
+
 	emit_signal("enemy_faction_determined", faction)
 	return faction
 

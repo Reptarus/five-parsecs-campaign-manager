@@ -38,11 +38,23 @@
 | — | Functional Gaps Cleanup (7 sprints F-1 to F-7) |
 | — | LSP Parse Error Cleanup (3 passes) |
 | — | Dev Environment Optimization (1 sprint) |
-| — | Agent & Skill Architecture (current) |
+| — | Agent & Skill Architecture |
+| 27 | Battle Map + UI Overhaul (6 files) |
+| 28-29 | QA Sprint Fix Plan + Runtime Demo (22 files) |
+| 30 | Core Rules Parity (difficulty, elite ranks) |
+| 31 | QA Bug Fix Sprint (14 files) |
+| 33 | Codebase Optimization (12 sprints) |
+| 34-36 | QA Sprints + Full Test Coverage (293 tests) |
+| 37 | Equipment & Compendium Data Audit (8 data files) |
+| **38** | **Full Rules Parity** — backgrounds/motivations/classes/species/enemies all book-accurate, three-enum sync, d100 weighted rolling (4 data + 10 code files) |
+| **39** | **Compendium Data Audit** — 6 data files rewritten, 2 new created, 5 code files fixed. No-minis/strife/loans/names/missions/PvP/Co-op/deployment/escalation all book-accurate (14 files, +571 lines) |
+| **40** | **Compendium Mission Types + Full Wiring** — 3 data files created (stealth/street/salvage, ~900 lines), 7 UI/pipeline files fixed. Mission type selection (p.118) wired end-to-end: JobOffer→WorldPhase→BattlePhase→UI. Deployment vars, escalation, strife all display in UI. (24 files, +1477/-706 lines) |
 
 ## Roadmap / Future Work
 
-- **Compendium deferred**: Full PSIONICS wiring, PVP/COOP, PRISON_PLANET_CHARACTER, GRID_BASED_MOVEMENT
+- **Core Rules data audit**: COMPLETE (Phases 37-38)
+- **Compendium data audit**: ~99% complete (Phase 40). Remaining: AI Variations detailed D6 tables (pp.42-43, LOW priority)
+- **Compendium deferred**: Full PSIONICS wiring, GRID_BASED_MOVEMENT
 - **Bug Hunt Phase 8**: Co-op mode support (stretch)
 - **Integration gaps**: BattleJournal logging, NPCTracker gameplay calls, LegacySystem lifecycle
 - **Store IDs**: Placeholder — need real IDs from Modiphius

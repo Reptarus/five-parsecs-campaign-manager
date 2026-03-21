@@ -837,6 +837,9 @@ func _complete_world_phase() -> void:
 		if "progress_data" in campaign:
 			# Save accepted job as current_mission (required by battle system)
 			if not job_results.is_empty():
+				# Derive mission source for Compendium battle type selection (p.118)
+				var mission_source: String = job_results.get("mission_source",
+					job_results.get("source", "opportunity"))
 				var mission_dict: Dictionary = {
 					"objective": job_results.get("objective", "patrol"),
 					"objective_description": job_results.get("objective_description", ""),
@@ -851,6 +854,9 @@ func _complete_world_phase() -> void:
 					"benefits": job_results.get("benefits", []),
 					"hazards": job_results.get("hazards", []),
 					"location": job_results.get("location", ""),
+					# Mission source for Compendium battle type selection
+					"source": mission_source,
+					"mission_source": mission_source,
 					# PreBattleUI-compatible alias keys
 					"title": "%s Mission" % job_results.get("objective", "Patrol").capitalize(),
 					"description": job_results.get("objective_description", "Complete the mission objective."),

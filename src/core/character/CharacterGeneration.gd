@@ -1438,22 +1438,45 @@ static func _apply_background_effects(character: Character) -> void:
 		"OUTCAST":
 			character.add_trait("Outcast Experience")
 
-## Apply motivation effects to character
+## Apply motivation effects to character (Core Rules p.25 — 17 motivations)
+## Note: Primary stat/resource bonuses come from D100 MOTIVATION_TABLE.
+## This method adds thematic traits for flavor.
 static func _apply_motivation_effects(character: Character) -> void:
 	match character.motivation:
-		"REVENGE":
-			character.add_trait("Driven by Revenge")
 		"WEALTH":
 			character.add_trait("Wealth Seeker")
-			character.credits_earned += 300
-		"POWER":
-			character.add_trait("Power Hungry")
+		"FAME":
+			character.add_trait("Fame Seeker")
+		"GLORY":
+			character.add_trait("Glory Seeker")
 		"SURVIVAL":
 			character.add_trait("Survivalist")
-			character.toughness = mini(character.toughness + 1, 6)
-		"KNOWLEDGE":
-			character.add_trait("Knowledge Seeker")
-			character.savvy = mini(character.savvy + 1, 3)
+		"ESCAPE":
+			character.add_trait("Driven to Escape")
+		"ADVENTURE":
+			character.add_trait("Adventurer")
+		"TRUTH":
+			character.add_trait("Truth Seeker")
+		"TECHNOLOGY":
+			character.add_trait("Technology Enthusiast")
+		"DISCOVERY":
+			character.add_trait("Explorer at Heart")
+		"LOYALTY":
+			character.add_trait("Loyal to the Cause")
+		"REVENGE":
+			character.add_trait("Driven by Revenge")
+		"ROMANCE":
+			character.add_trait("Romantic Idealist")
+		"FAITH":
+			character.add_trait("Person of Faith")
+		"POLITICAL":
+			character.add_trait("Political Idealist")
+		"POWER":
+			character.add_trait("Power Hungry")
+		"ORDER":
+			character.add_trait("Seeker of Order")
+		"FREEDOM":
+			character.add_trait("Freedom Fighter")
 
 ## Enhanced character creation with full table integration
 static func create_enhanced_character(

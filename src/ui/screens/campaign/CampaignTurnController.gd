@@ -606,6 +606,10 @@ func _initiate_battle_sequence() -> void:
 		"units": enemies,
 		"count": enemies.size()
 	}
+	# Ensure mission_source flows to BattlePhase for Compendium battle type (p.118)
+	if not mission_data.has("mission_source"):
+		mission_data["mission_source"] = mission_data.get(
+			"source", "opportunity")
 	# Check for rival encounters before starting battle
 	_check_rival_encounter_backend(current_planet_id, current_turn)
 

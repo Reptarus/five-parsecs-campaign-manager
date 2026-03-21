@@ -203,11 +203,13 @@ func _try_alternative_node_paths() -> void:
 
 func _populate_options() -> void:
 	## Populate dropdown options with data from JSON files
-	# Populate Origin (Species) options
+	# Populate Origin (Species) options — schema: primary_aliens[] + strange_characters[]
 	if origin_options:
 		origin_options.clear()
 		origin_options.add_item("Select Origin...", -1)
-		for species in species_data.get("species", []):
+		for species in species_data.get("primary_aliens", []):
+			origin_options.add_item(species.get("name", "Unknown"), origin_options.get_item_count())
+		for species in species_data.get("strange_characters", []):
 			origin_options.add_item(species.get("name", "Unknown"), origin_options.get_item_count())
 	
 	# Populate Background options
@@ -486,8 +488,11 @@ func _update_description() -> void:
 
 
 func _get_species_data(species_name: String) -> Dictionary:
-	## Get species data by name
-	for species in species_data.get("species", []):
+	## Get species data by name — searches primary_aliens + strange_characters
+	for species in species_data.get("primary_aliens", []):
+		if species.get("name", "") == species_name:
+			return species
+	for species in species_data.get("strange_characters", []):
 		if species.get("name", "") == species_name:
 			return species
 	return {}

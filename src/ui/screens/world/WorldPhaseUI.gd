@@ -71,6 +71,26 @@ func _update_ui() -> void:
 			"unity_progress": current_world.unity_progress
 		})
 
+	# DLC: Show Compendium Fringe World Strife event (pp.148-152)
+	var game_state = get_node_or_null("/root/GameState")
+	if game_state and game_state.current_campaign:
+		var progress: Variant = null
+		if "progress_data" in game_state.current_campaign:
+			progress = game_state.current_campaign.progress_data
+		if progress is Dictionary:
+			var strife_evt: Dictionary = progress.get(
+				"strife_event", {})
+			if not strife_evt.is_empty():
+				events_panel.add_event({
+					"type": "compendium_strife",
+					"name": strife_evt.get(
+						"name", "Unknown"),
+					"instruction": strife_evt.get(
+						"instruction", ""),
+					"instability_mod": strife_evt.get(
+						"instability_mod", 0),
+				})
+
 func _on_world_updated(world: GameWorld) -> void:
 	if world == current_world:
 		_update_ui()

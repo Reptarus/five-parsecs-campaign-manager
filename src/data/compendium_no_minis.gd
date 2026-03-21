@@ -1,20 +1,18 @@
 class_name CompendiumNoMinisCombat
 extends RefCounted
-## No-Minis Combat - Abstract battle resolution without miniatures
+## No-Minis Combat Resolution - Compendium pp.68-75 (book pp.66-73)
 ##
-## Allows campaign progression without a physical table (Compendium pp.86-100).
-## Battlefield = abstract space with Locations (3-5 per battle).
+## Abstract battle resolution without miniatures. Allows campaign
+## progression without a physical table. Can be mixed with tabletop battles.
 ##
 ## All output is TEXT INSTRUCTIONS for the tabletop companion model.
 ## Gated behind DLCManager.ContentFlag.NO_MINIS_COMBAT.
 ##
-## Key mechanics:
-##   - Locations replace positioning (FAR / MEDIUM / CLOSE / COVER)
-##   - Initiative: Roll one die LESS than normal
-##   - Initiative Actions: Engage, Fire, Take Cover, Sprint
-##   - Enemy Actions: D6 per enemy determines behavior
-##   - Firefight resolution: simultaneous fire, then movement
-##   - Optional variants: Hectic Combat, Faster Combat, Battle Flow Events
+## Book structure:
+##   - Round phases: (1) Battle Flow Events (optional), (2) Initiative, (3) Firefight
+##   - Locations: Suspected → Known via Scout action. 1 character per Location.
+##   - Initiative: Roll one die LESS than normal. Captain + those ≤ Reactions get actions.
+##   - Firefight: Randomly select 3 enemies (4 if 7+ total). Resolve one at a time.
 ##   - NOT compatible with: AI Variations, Escalating Battles, Deployment Variables
 
 
@@ -30,91 +28,183 @@ static func _is_enabled() -> bool:
 
 
 ## ============================================================================
-## LOCATION TYPES
-## ============================================================================
-
-enum LocationZone { FAR, MEDIUM, CLOSE, COVER }
-
-const LOCATION_TYPES: Array[Dictionary] = [
-	{"id": "open_ground", "name": "Open Ground", "zone": LocationZone.FAR,
-	 "cover": false, "elevated": false,
-	 "instruction": "LOCATION: Open Ground. No cover. Full visibility. Ranged attacks at normal accuracy."},
-	{"id": "light_cover", "name": "Light Cover", "zone": LocationZone.MEDIUM,
-	 "cover": true, "elevated": false,
-	 "instruction": "LOCATION: Light Cover. Partial cover (-1 to hit). Standard engagement range."},
-	{"id": "heavy_cover", "name": "Heavy Cover", "zone": LocationZone.COVER,
-	 "cover": true, "elevated": false,
-	 "instruction": "LOCATION: Heavy Cover. Full cover (-2 to hit). Must leave cover to fire (except if elevated)."},
-	{"id": "elevated", "name": "Elevated Position", "zone": LocationZone.FAR,
-	 "cover": true, "elevated": true,
-	 "instruction": "LOCATION: Elevated Position. Cover (-1 to hit). +1 to ranged attacks from here. Can fire while in cover."},
-	{"id": "objective", "name": "Objective Site", "zone": LocationZone.MEDIUM,
-	 "cover": false, "elevated": false,
-	 "instruction": "LOCATION: Objective Site. Mission-critical location. Interact with 1 action while here."},
-	{"id": "hazard", "name": "Hazardous Area", "zone": LocationZone.CLOSE,
-	 "cover": false, "elevated": false,
-	 "instruction": "LOCATION: Hazardous Area. Entering: D6 1-2 = D6 damage. Enemies avoid unless forced."},
-]
-
-
-## ============================================================================
-## INITIATIVE ACTIONS (player choices per activated figure)
+## INITIATIVE ACTIONS (Compendium p.70)
+## Characters with die ≤ Reactions + Captain each get 1 Initiative Action.
+## 2D6 Battlefield Tests where indicated. +1 bonus if character has a
+## logically applicable ability/item.
 ## ============================================================================
 
 const INITIATIVE_ACTIONS: Array[Dictionary] = [
-	{"id": "fire", "name": "Fire",
-	 "instruction": "ACTION: Fire. Roll to hit using weapon profile. Target must be in LoS (not behind Heavy Cover unless you're elevated). -1 die from normal (no-minis penalty)."},
-	{"id": "engage", "name": "Engage (Brawl)",
-	 "instruction": "ACTION: Engage. Move to target's Location and initiate Brawl. Both roll D6 + Combat Skill. Higher wins. Loser takes 1 wound. Ties = both take 1 wound."},
+	{"id": "scout_for_locations", "name": "Scout for Locations",
+	 "test": "6+", "speed_bonus": true, "not_round_1": true,
+	 "description": "Select a suspected Location — it becomes known.",
+	 "instruction": "ACTION: Scout for Locations. Select a suspected Location to discover. 2D6 Battlefield Test: 6+ required. +1 if Speed 5\"+. Cannot be used in Round 1."},
+	{"id": "move_up", "name": "Move Up",
+	 "test": "none", "speed_bonus": false, "not_round_1": false,
+	 "description": "Move to any known Location (no character already there), or leave a Location to general battle space.",
+	 "instruction": "ACTION: Move Up. Move to any known Location (must be unoccupied). Or leave current Location to general battle space. No roll required."},
+	{"id": "carry_out_task", "name": "Carry Out Task",
+	 "test": "scenario", "speed_bonus": false, "not_round_1": false,
+	 "description": "Achieve objectives. Must be at correct Location. Character may still fight if engaged later.",
+	 "instruction": "ACTION: Carry Out Task. Must be at the correct Location. Perform scenario objective action. Character may still fight normally if engaged this round."},
+	{"id": "charge", "name": "Charge",
+	 "test": "6+", "speed_bonus": true, "not_round_1": false,
+	 "description": "Select random enemy. May engage in immediate Brawl. If D6 > your Speed, enemy fires first at 6\" (Cover).",
+	 "instruction": "ACTION: Charge. Select a random enemy. 2D6 Battlefield Test: 6+ (+1 if Speed 5\"+, +1 for special movement). If you pass, you may Brawl. Roll 1D6: if > your Speed, enemy fires at 6\" range (Cover) before Brawl."},
+	{"id": "optimal_shot", "name": "Optimal Shot",
+	 "test": "7+", "speed_bonus": false, "not_round_1": false,
+	 "description": "Select random enemy. Fire at chosen range (up to max). Crew fires first. Enemy returns fire if alive.",
+	 "instruction": "ACTION: Optimal Shot. Select random enemy. 2D6 Battlefield Test: 7+ (-1 for Heavy weapon). Choose range up to weapon max. Crew member fires first; if target survives, they return fire. If enemy fires here, they skip the Firefight phase."},
+	{"id": "support", "name": "Support",
+	 "test": "none", "speed_bonus": false, "not_round_1": false,
+	 "description": "Select a crew member. If they are engaged, the Supporter takes their place. Lasts until Supporter is engaged.",
+	 "instruction": "ACTION: Support. Select a crew member. If that ally is engaged in combat this round, you take their place instead. Lasts until you are engaged for any reason. Can support multiple allies simultaneously."},
 	{"id": "take_cover", "name": "Take Cover",
-	 "instruction": "ACTION: Take Cover. Move to nearest Cover location (or hunker down if already in cover). Gain -1 to be hit until next activation. Cannot fire this activation."},
-	{"id": "sprint", "name": "Sprint",
-	 "instruction": "ACTION: Sprint. Move up to 2 Locations (normally 1). Cannot fire or engage. D6: 1 = stumble (stay at current location)."},
-	{"id": "search", "name": "Search/Interact",
-	 "instruction": "ACTION: Search/Interact. Must be at Objective location. Spend 1 action. Roll D6+Savvy: 6+ = success. Some objectives require multiple successes."},
-	{"id": "first_aid", "name": "First Aid",
-	 "instruction": "ACTION: First Aid. Target ally at same Location. Roll D6: 4+ = remove 1 wound (or remove Stunned). Requires medical supplies for bonus (+1)."},
+	 "test": "6+", "speed_bonus": false, "not_round_1": false,
+	 "description": "All shots by/against this character hit only on natural 6. Lost when using Move Up or engaging in Brawl.",
+	 "instruction": "ACTION: Take Cover. 2D6 Battlefield Test: 6+ (-1 if at a Location). All shots by and against you hit only on natural 6. Brawl enemies still engage you. Status lost when you Move Up or Brawl."},
+	{"id": "keep_distance", "name": "Keep Distance",
+	 "test": "6+", "speed_bonus": true, "not_round_1": false,
+	 "description": "Can only be targeted by weapons with range >12\". If engaged, both sides limited to >12\" weapons only.",
+	 "instruction": "ACTION: Keep Distance. 2D6 Battlefield Test: 6+ (+1 if Speed 5\"+). This round, you can only be targeted by enemies with weapon range >12\". If targeted, both sides can only use weapons with range >12\"."},
 ]
 
 
 ## ============================================================================
-## ENEMY ACTION TABLE (D6 per enemy each round)
+## FIREFIGHT RULES (Compendium pp.71-72)
+## Main phase: randomly select 3 enemies (4 if 7+ total). Resolve one at a time.
 ## ============================================================================
 
-const ENEMY_ACTION_TABLE: Array[Dictionary] = [
-	{"roll": 1, "id": "advance_fire",
-	 "instruction": "ENEMY: Advance and Fire. Enemy moves 1 Location closer, then fires at nearest crew."},
-	{"roll": 2, "id": "advance_fire_2",
-	 "instruction": "ENEMY: Advance and Fire. Enemy moves 1 Location closer, then fires at nearest crew."},
-	{"roll": 3, "id": "hold_fire",
-	 "instruction": "ENEMY: Hold and Fire. Enemy stays at current Location and fires at nearest visible crew. +1 to hit (steady aim)."},
-	{"roll": 4, "id": "hold_fire_2",
-	 "instruction": "ENEMY: Hold and Fire. Enemy stays at current Location and fires at nearest visible crew. +1 to hit (steady aim)."},
-	{"roll": 5, "id": "advance_engage",
-	 "instruction": "ENEMY: Advance and Engage. Enemy sprints toward nearest crew. If at same Location, initiates Brawl."},
-	{"roll": 6, "id": "special",
-	 "instruction": "ENEMY: Special Action. Roll D6:\n  1-2: Retreat to Cover\n  3-4: Coordinate (next enemy ally gets +1 to hit)\n  5-6: Aggressive Rush (move 2 Locations toward objective, fire if able)"},
-]
+const FIREFIGHT_RULES: Dictionary = {
+	"selection": "Randomly select 3 enemies to fight (4 if 7+ total enemies). Resolve one at a time. Player chooses order.",
+	"ranged_vs_ranged": "Both have ranged weapons: Longer range fires first. If tied, crew fires first. Stationary, max range, Cover, max Shots.",
+	"melee_only": "One is melee-only: Opponent shoots first at 6\" (Cover, no Heavy/Area weapons). If target survives, resolve Brawl. If defender fired, no Melee weapon bonus (Pistol bonus OK).",
+	"melee_and_guns": "Enemy has melee + is out-ranged: Enemy chooses Brawl instead. Crew may also choose this. Pistol-only combatants cannot use this rule.",
+	"taking_cover": "Character Taking Cover: All shots by/against hit only on natural 6. If enemy has Brawl weapon, they engage in Brawl (no fire). Covering character may use any weapon in Brawl.",
+	"multiple_attacks": "A character may fire only once per round. Crew may choose not to fire. Enemies always fire if able.",
+	"ignored_traits": "Area and Terrifying weapon traits are ignored in no-minis combat.",
+	"stun": "All Stun markers removed at end of round. Stunned characters cannot attempt Brawling.",
+	"support": "If targeted character is Supported, the Supporter may take their place. Does not affect Locations.",
+}
+
+const FIREFIGHT_INSTRUCTION: String = (
+	"[b]FIREFIGHT PHASE[/b]\n" +
+	"Randomly select 3 enemies (4 if 7+ total). Resolve one at a time (player chooses order).\n" +
+	"Each enemy targets a random crew member.\n\n" +
+	"[b]Both Ranged:[/b] Longer range fires first (crew first if tied). Stationary, max range, Cover, max Shots.\n" +
+	"[b]One Melee-Only:[/b] Opponent shoots at 6\" (Cover) first. Survivor resolves Brawl.\n" +
+	"[b]Melee + Guns (out-ranged):[/b] Enemy may choose Brawl instead. Crew can too. Not for Pistol-only.\n" +
+	"[b]Taking Cover:[/b] All shots hit only on natural 6. Brawl enemies still engage.\n" +
+	"[b]Notes:[/b] Max 1 fire per character/round. Area & Terrifying ignored. Stun clears at round end."
+)
 
 
 ## ============================================================================
-## BATTLE FLOW EVENTS (optional, D6 per round)
+## BATTLE FLOW EVENTS — D100 table (Compendium p.73, optional)
+## Roll at beginning of each round. Actions do not prevent normal activation.
 ## ============================================================================
 
 const BATTLE_FLOW_EVENTS: Array[Dictionary] = [
-	{"roll": 1, "id": "quiet",
-	 "instruction": "FLOW EVENT: Quiet Round. No special effects. Fight proceeds normally."},
-	{"roll": 2, "id": "dust_storm",
-	 "instruction": "FLOW EVENT: Dust Storm. All ranged attacks -1 to hit this round. Sprint actions auto-succeed (no stumble check)."},
-	{"roll": 3, "id": "power_fluctuation",
-	 "instruction": "FLOW EVENT: Power Fluctuation. Energy weapons malfunction on natural 1 (cannot fire next round). Ballistic weapons unaffected."},
-	{"roll": 4, "id": "reinforcements_possible",
-	 "instruction": "FLOW EVENT: Reinforcements Inbound. Roll D6: 5-6 = D3 basic enemies arrive at FAR location next round."},
-	{"roll": 5, "id": "morale_shift",
-	 "instruction": "FLOW EVENT: Morale Shift. If crew has more casualties than enemies: -1 to crew hit rolls. If enemies have more: enemies retreat 1 Location."},
-	{"roll": 6, "id": "opportunity",
-	 "instruction": "FLOW EVENT: Opportunity! One crew member may take a free action (any type) in addition to normal activation this round."},
+	{"roll_min": 1, "roll_max": 6, "id": "fleeting_shot",
+	 "instruction": "FLOW: Fleeting Shot. A random crew member may immediately shoot a target of your choice. Max weapon range, firer counts as moving (Heavy penalty), target in Cover. No return fire."},
+	{"roll_min": 7, "roll_max": 14, "id": "running_firefight",
+	 "instruction": "FLOW: Running Firefight. Random character from each side fires at each other simultaneously. Range = shortest weapon. Both in Cover, both count as moving. Melee-only cannot fire."},
+	{"roll_min": 15, "roll_max": 22, "id": "stumble_into_each_other",
+	 "instruction": "FLOW: Stumble Into Each Other. Random character from each side. Resolve a Brawl immediately."},
+	{"roll_min": 23, "roll_max": 29, "id": "exposed",
+	 "instruction": "FLOW: Exposed! A random enemy immediately fires on a random crew member. Max weapon range, stationary shooter, target in Cover. No return fire."},
+	{"roll_min": 30, "roll_max": 35, "id": "spot_firing_position",
+	 "instruction": "FLOW: Spot Firing Position. Add a known Firing Position Location. A character there counts all ranged targets as being in the open."},
+	{"roll_min": 36, "roll_max": 43, "id": "find_shortcut",
+	 "instruction": "FLOW: Find Shortcut. A random crew member may move to any known Location, if desired."},
+	{"roll_min": 44, "roll_max": 50, "id": "discover_location",
+	 "instruction": "FLOW: Discover Location. If any suspected Locations remain, randomly discover one (it becomes known)."},
+	{"roll_min": 51, "roll_max": 58, "id": "difficult_sight_lines",
+	 "instruction": "FLOW: Difficult Sight-lines. During the Firefight phase this round, select one FEWER enemy figure."},
+	{"roll_min": 59, "roll_max": 65, "id": "kill_zone",
+	 "instruction": "FLOW: Kill Zone. Roll 1D6+10. ALL gunfire this round takes place at that range (inches). Weapons unable to reach cannot fire."},
+	{"roll_min": 66, "roll_max": 72, "id": "open_ground",
+	 "instruction": "FLOW: Open Ground. All characters attempting to enter Brawling combat count as being in the open if fired upon."},
+	{"roll_min": 73, "roll_max": 80, "id": "intense_fight",
+	 "instruction": "FLOW: Intense Fight. During the Firefight phase this round, select one MORE enemy figure."},
+	{"roll_min": 81, "roll_max": 86, "id": "careful_maneuvering",
+	 "instruction": "FLOW: Careful Maneuvering. Choose an enemy figure. This figure cannot attack in the Firefight phase this round."},
+	{"roll_min": 87, "roll_max": 94, "id": "covered_retreat",
+	 "instruction": "FLOW: Covered Retreat. You may immediately retreat any number of crew members, if desired."},
+	{"roll_min": 95, "roll_max": 100, "id": "separated",
+	 "instruction": "FLOW: Separated. No Brawling combat can be attempted this round. Melee-only enemies will not attack."},
 ]
+
+
+## ============================================================================
+## MORALE & RETREAT (Compendium p.74)
+## ============================================================================
+
+const MORALE_RULES: String = (
+	"MORALE: Enemies take morale tests as normal at end of round. " +
+	"Morale failures remove regular foes first, then Specialists."
+)
+
+const RETREAT_RULES: String = (
+	"RETREAT: At end of each round, you may retreat up to 2 crew. " +
+	"Roll 1D6 per figure: if roll <= their movement Speed, they escape " +
+	"(as if leaving the battlefield edge). Characters with special " +
+	"movement (Jump Belt, etc.) leave automatically and do not count " +
+	"toward the 2-figure limit."
+)
+
+
+## ============================================================================
+## MISSION-SPECIFIC NOTES (Compendium pp.74-75)
+## ============================================================================
+
+const MISSION_NOTES: Array[Dictionary] = [
+	{"id": "access", "name": "Access",
+	 "instruction": "MISSION (Access): The console is a suspected Location. Soulless receive +1 bonus to locating it."},
+	{"id": "acquire", "name": "Acquire",
+	 "instruction": "MISSION (Acquire): The item is in a suspected Location. Pick up by moving there. Character must exit via Retreat rules. If character becomes casualty, item becomes a new known Location."},
+	{"id": "defend", "name": "Defend",
+	 "instruction": "MISSION (Defend): No additional notes required."},
+	{"id": "deliver", "name": "Deliver",
+	 "instruction": "MISSION (Deliver): The delivery point is a suspected Location. If the item is dropped, it becomes a new known Location."},
+	{"id": "eliminate", "name": "Eliminate",
+	 "instruction": "MISSION (Eliminate): The target is not removed due to morale failures unless it is the last enemy on the table."},
+	{"id": "fight_off", "name": "Fight Off",
+	 "instruction": "MISSION (Fight Off): No additional notes required."},
+	{"id": "move_through", "name": "Move Through",
+	 "instruction": "MISSION (Move Through): The exit is a suspected Location. Once known, a crew member who moves there can exit the battlefield, fulfilling the condition."},
+	{"id": "patrol", "name": "Patrol",
+	 "instruction": "MISSION (Patrol): Each objective is a suspected Location. Check an objective by moving a crew member there."},
+	{"id": "protect", "name": "Protect",
+	 "instruction": "MISSION (Protect): The VIP is attached to a crew member and always accompanies them. While the crew member is on the field, the VIP cannot be attacked directly. If the crew member is a casualty, the VIP acts as a regular character. The objective is a suspected Location."},
+	{"id": "secure", "name": "Secure",
+	 "instruction": "MISSION (Secure): The center of the battlefield is a suspected Location. Any crew figure at the Location AND not attacked in Brawling combat for 2 consecutive rounds achieves the objective."},
+	{"id": "search", "name": "Search",
+	 "instruction": "MISSION (Search): Assume there are 5 suspected Locations capable of holding the item."},
+]
+
+
+## ============================================================================
+## OPTIONAL VARIANTS (Compendium p.72)
+## ============================================================================
+
+const HECTIC_COMBAT: Dictionary = {
+	"id": "hectic_combat",
+	"name": "Hectic Combat",
+	"instruction": "HECTIC COMBAT VARIANT (optional):\n" +
+		"Allow characters to shoot EACH TIME they are engaged by an enemy.\n" +
+		"After the initial exchange, any subsequent attacks by that character\n" +
+		"during the same round will hit only on natural 6s.",
+}
+
+const FASTER_COMBAT: Dictionary = {
+	"id": "faster_combat",
+	"name": "Faster Combat",
+	"instruction": "FASTER COMBAT VARIANT (optional):\n" +
+		"The first exchange of fire each Firefight phase counts both\n" +
+		"combatants as being in the open (no Cover). Subsequent\n" +
+		"exchanges assume Cover as normal.",
+}
 
 
 ## ============================================================================
@@ -129,36 +219,7 @@ const INCOMPATIBLE_FLAGS: Array[String] = [
 
 
 ## ============================================================================
-## HECTIC COMBAT VARIANT (optional)
-## ============================================================================
-
-const HECTIC_COMBAT: Dictionary = {
-	"instruction": "HECTIC COMBAT VARIANT:\n" +
-		"  - Simultaneous activation: ALL crew act, THEN all enemies act\n" +
-		"  - No initiative roll (crew always goes first)\n" +
-		"  - All attacks resolve simultaneously (casualties removed after all fire)\n" +
-		"  - Brawls resolved immediately when both in same Location\n" +
-		"  - Faster pace: reduce battle to 5 rounds max\n" +
-		"  - Recommended for: quick sessions, simple battles",
-}
-
-
-## ============================================================================
-## FASTER COMBAT VARIANT (optional)
-## ============================================================================
-
-const FASTER_COMBAT: Dictionary = {
-	"instruction": "FASTER COMBAT VARIANT:\n" +
-		"  - Reduce enemy count by 25% (round down, min 3)\n" +
-		"  - Reduce Locations to 3 (FAR, MEDIUM, CLOSE)\n" +
-		"  - Battle ends after 4 rounds (whoever holds objective wins)\n" +
-		"  - No reinforcements or flow events\n" +
-		"  - Recommended for: campaign marathons, multiple battles per session",
-}
-
-
-## ============================================================================
-## BATTLE GENERATION
+## QUERY METHODS (DLC-gated)
 ## ============================================================================
 
 ## Generate a no-minis battle setup. Returns empty if disabled.
@@ -166,32 +227,17 @@ static func generate_battle_setup(crew_size: int, enemy_count: int) -> Dictionar
 	if not _is_enabled():
 		return {}
 
-	var location_count := clampi(3 + ceili(crew_size / 3.0), 3, 5)
-	var locations: Array[Dictionary] = []
-	var available := LOCATION_TYPES.duplicate()
-
-	# Always include at least 1 cover and 1 objective
-	for loc in available:
-		if loc.id == "light_cover":
-			locations.append(loc.duplicate())
-			break
-	for loc in available:
-		if loc.id == "objective":
-			locations.append(loc.duplicate())
-			break
-
-	# Fill remaining randomly
-	while locations.size() < location_count:
-		var pick: Dictionary = available[randi() % available.size()]
-		locations.append(pick.duplicate())
+	# Firefight selects 3 enemies normally, 4 if 7+ total
+	var firefight_count := 4 if enemy_count >= 7 else 3
 
 	return {
 		"type": "no_minis",
-		"locations": locations,
 		"crew_size": crew_size,
 		"enemy_count": enemy_count,
+		"firefight_selection_count": firefight_count,
 		"current_round": 0,
-		"max_rounds": 6,
+		"suspected_locations": [], # Filled by scenario
+		"known_locations": [],
 	}
 
 
@@ -200,38 +246,31 @@ static func generate_setup_text(battle: Dictionary) -> String:
 	if not _is_enabled():
 		return ""
 
+	var crew_size: int = battle.get("crew_size", 4)
+	var enemy_count: int = battle.get("enemy_count", 6)
+	var ff_count: int = battle.get("firefight_selection_count", 3)
+
 	var lines: Array[String] = [
-		"[b]NO-MINIS COMBAT SETUP[/b]",
+		"[b]NO-MINIS COMBAT SETUP[/b] (Compendium pp.68-75)",
 		"",
-		"[b]Battlefield:[/b] %d abstract Locations" % battle.get("locations", []).size(),
+		"[b]Crew:[/b] %d figures." % crew_size,
+		"[b]Enemies:[/b] %d figures." % enemy_count,
 		"",
+		"[b]Round Phases:[/b]",
+		"  1. Battle Flow Events (optional — roll D100)",
+		"  2. Initiative (roll one die LESS than normal)",
+		"  3. Firefight (select %d random enemies)" % ff_count,
+		"",
+		"[b]Initiative:[/b] Captain + characters with die <= Reactions each get 1 Initiative Action.",
+		"  Characters above their Reactions are in the general firefight (no specific actions).",
+		"  Available actions: Scout / Move Up / Carry Out Task / Charge / Optimal Shot / Support / Take Cover / Keep Distance",
+		"",
+		FIREFIGHT_INSTRUCTION,
+		"",
+		MORALE_RULES,
+		"",
+		RETREAT_RULES,
 	]
-
-	var locs: Array = battle.get("locations", [])
-	for i in locs.size():
-		var loc: Dictionary = locs[i]
-		lines.append("  Location %d: %s" % [i + 1, loc.get("instruction", "")])
-
-	lines.append_array([
-		"",
-		"[b]Crew:[/b] %d figures. Deploy at FAR or MEDIUM locations." % battle.get("crew_size", 4),
-		"[b]Enemies:[/b] %d figures. Deploy at FAR locations (opposite side)." % battle.get("enemy_count", 6),
-		"",
-		"[b]Initiative:[/b] Roll 1D6 + highest crew Savvy. On 4+: crew acts first.",
-		"  (Note: Roll ONE DIE LESS than normal rules for initiative)",
-		"",
-		"[b]Each Activation:[/b] Choose 1 Initiative Action per figure:",
-		"  Fire | Engage | Take Cover | Sprint | Search | First Aid",
-		"",
-		"[b]Enemy Turn:[/b] Roll D6 per enemy for behavior.",
-		"",
-		"[b]Movement:[/b] 1 Location per activation (Sprint = 2 Locations).",
-		"[b]Cover:[/b] Light = -1 to hit. Heavy = -2 to hit.",
-		"[b]Brawl:[/b] Same Location required. D6 + Combat Skill, highest wins.",
-		"",
-		"[b]Victory:[/b] Complete objective OR eliminate all enemies.",
-		"[b]Max Rounds:[/b] %d (draw if neither side wins)." % battle.get("max_rounds", 6),
-	])
 
 	return "\n".join(lines)
 
@@ -241,49 +280,45 @@ static func generate_round_text(round_num: int, _battle: Dictionary) -> String:
 	if not _is_enabled():
 		return ""
 
+	var ff_count: int = _battle.get("firefight_selection_count", 3)
+
 	var lines: Array[String] = [
 		"[b]NO-MINIS ROUND %d[/b]" % round_num,
 		"",
-		"[b]1. Initiative Phase:[/b]",
-		"  Roll 1D6 + Savvy. 4+ = crew acts first.",
-		"",
-		"[b]2. Crew Activation:[/b]",
-		"  Each crew member chooses 1 action: Fire / Engage / Take Cover / Sprint / Search / First Aid",
-		"",
-		"[b]3. Enemy Phase:[/b]",
-		"  Roll D6 per enemy:",
-		"  1-2: Advance + Fire | 3-4: Hold + Fire (+1 aim) | 5: Advance + Engage | 6: Special",
-		"",
-		"[b]4. Resolve:[/b]",
-		"  Remove casualties. Check morale (3+ crew down = test). Update positions.",
-		"",
 	]
 
-	if round_num > 1:
-		lines.append("[b]Optional: Battle Flow Event[/b] - Roll D6 for round event.")
-		lines.append("")
+	lines.append("[b]1. Battle Flow Event (optional):[/b] Roll D100 on Battle Flow Events table.")
+	lines.append("")
+	lines.append("[b]2. Initiative:[/b] Roll initiative (one die LESS than normal).")
+	lines.append("   Captain + characters with die <= Reactions get 1 Initiative Action each.")
+	lines.append("")
+	lines.append("[b]3. Firefight:[/b] Randomly select %d enemies. Resolve one at a time." % ff_count)
+	lines.append("   Each targets a random crew member. Player chooses resolution order.")
+	lines.append("")
+	lines.append("[b]4. End of Round:[/b] Remove casualties. Enemy morale test (regulars removed first). May retreat up to 2 crew (1D6 <= Speed = escape).")
 
 	return "\n".join(lines)
 
 
-## Roll a battle flow event.
+## Roll a D100 battle flow event.
 static func roll_battle_flow_event() -> Dictionary:
 	if not _is_enabled():
 		return {}
-	var roll := randi_range(1, 6)
+	var roll := randi_range(1, 100)
 	for event in BATTLE_FLOW_EVENTS:
-		if event.roll == roll:
-			return event
+		if roll >= event.roll_min and roll <= event.roll_max:
+			var result: Dictionary = event.duplicate()
+			result["roll"] = roll
+			return result
 	return BATTLE_FLOW_EVENTS[0]
 
 
-## Roll enemy action for one enemy figure.
-static func roll_enemy_action() -> Dictionary:
-	var roll := randi_range(1, 6)
-	for action in ENEMY_ACTION_TABLE:
-		if action.roll == roll:
-			return action
-	return ENEMY_ACTION_TABLE[0]
+## Get mission-specific notes for a mission type.
+static func get_mission_notes(mission_id: String) -> String:
+	for note in MISSION_NOTES:
+		if note.id == mission_id:
+			return note.instruction
+	return ""
 
 
 ## Check if a flag is incompatible with no-minis mode.
@@ -303,3 +338,10 @@ static func get_faster_combat_text() -> String:
 	if not _is_enabled():
 		return ""
 	return FASTER_COMBAT.instruction
+
+
+## Get firefight rules instruction text.
+static func get_firefight_rules() -> String:
+	if not _is_enabled():
+		return ""
+	return FIREFIGHT_INSTRUCTION

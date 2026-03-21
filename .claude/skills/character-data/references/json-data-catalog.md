@@ -12,7 +12,7 @@ All game data lives in `data/` at project root. Loaded by `GameDataManager` auto
 | `data/gear.json` | GameDataManager.load_gear_database() | Array of {id, name, description, effect, cost, type} |
 | `data/equipment.json` | GameDataManager.load_equipment_database() | Combined equipment catalog |
 | `data/injury_tables.json` | GameDataManager.load_injury_tables() | {table_name: [{roll_min, roll_max, result, effect, recovery_turns}]} |
-| `data/enemy_types.json` | GameDataManager.load_enemy_types() | {id: {name, combat, toughness, weapons[], ai_behavior, panic}} |
+| `data/enemy_types.json` | EnemyGenerator via DataManager | 4 categories (criminal_elements, hired_muscle, interested_parties, roving_threats), 59 enemies with roll_range/numbers/panic/speed/combat_skill/toughness/ai/weapons/special_rules, 22 unique_individuals, weapon_tables, ai_types mapping (pp.94-107) |
 | `data/loot_tables.json` | GameDataManager.load_loot_tables() | {table_name: [{roll_min, roll_max, item_id, quantity}]} |
 | `data/mission_templates.json` | GameDataManager.load_mission_templates() | Array of {id, type, objective, enemies, rewards, deployment} |
 | `data/status_effects.json` | GameDataManager.load_status_effects() | {id: {name, duration, effect_type, modifier}} |
@@ -20,13 +20,14 @@ All game data lives in `data/` at project root. Loaded by `GameDataManager` auto
 | `data/planet_types.json` | GameDataManager | {id: {name, danger_level, traits[], locations[]}} |
 | `data/location_types.json` | GameDataManager | {id: {name, services[], danger_modifier}} |
 
-### Character Creation Data
+### Character Creation Data (Phase 38 — Book-Accurate)
 | File | Consumer | Schema |
 |------|----------|--------|
-| `data/character_creation.json` | GameDataManager.load_character_creation_data() | {backgrounds: [], origins: [], motivations: [], classes: []} |
-| `data/backgrounds.json` | Character.generate_character() | Array of {id, name, stat_modifiers, starting_equipment} |
-| `data/origins.json` | Character.generate_character() | Array of {id, name, traits[], stat_modifiers} |
-| `data/motivations.json` | Character.generate_character() | Array of {id, name, description} |
+| `data/gear_database.json` | DataManager, GameDataManager | races[] (8 species with base_stats/special_rules), backgrounds[] (25 with roll_range/stat_bonuses/resources/starting_rolls), motivations[] (17 with d100 ranges), classes[] (23 with d100 ranges), weapon_tables{} (5 tables), crew_starting_equipment{} |
+| `data/character_species.json` | SimpleCharacterCreator | primary_aliens[] (8 species), strange_characters[] (15 types), each with base_stats/stat_modifiers/special_rules/rolls_creation_tables flag |
+| `data/consumables.json` | LootSystemConstants | 6 book consumables (p.54) |
+| `data/onboard_items.json` | LootSystemConstants | 19 book on-board items (pp.57-58) |
+| `data/character_creation_tables/` | CharacterCreationTables.gd | background_events.json, motivation_table.json, quirks_table.json |
 
 ### Campaign Data
 | File | Consumer | Schema |

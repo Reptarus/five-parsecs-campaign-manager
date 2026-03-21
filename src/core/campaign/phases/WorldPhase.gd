@@ -319,6 +319,9 @@ func start_world_phase(world_data: Dictionary = {}) -> void:
 	## - Paid: 1 credit per hull point (text instruction for player)
 	## - Warning: No travel while damaged, emergency takeoff = 3D6 hull damage
 	##
+	# DLC: Check for Fringe World Strife events on arrival (Compendium pp.148-152)
+	_check_dlc_world_strife(world_data)
+
 	if not game_state_manager or not game_state_manager.has_method("get_ship_data"):
 		return
 
@@ -349,6 +352,24 @@ func start_world_phase(world_data: Dictionary = {}) -> void:
 		pass # Ship repairs processed
 	elif actual_free > 0:
 		pass
+
+## DLC: Check for Fringe World Strife events on world arrival (Compendium pp.148-152)
+func _check_dlc_world_strife(world_data: Dictionary = {}) -> void:
+	var is_fringe: bool = world_data.get(
+		"is_fringe", _current_world_data.get("is_fringe", false))
+	if CompendiumWorldOptionsRef.should_check_strife(is_fringe):
+		var strife_event: Dictionary = CompendiumWorldOptionsRef.roll_strife_event()
+		if not strife_event.is_empty():
+			print("WorldPhase DLC: Strife event — %s" % strife_event.get("name", "Unknown"))
+			_current_world_data["strife_event"] = strife_event
+			var instability: int = _current_world_data.get("instability", 0)
+			instability += strife_event.get("instability_mod", 0)
+			_current_world_data["instability"] = clampi(instability, 0, 10)
+			# Persist to GameState for UI access
+			var gs = get_node_or_null("/root/GameState")
+			if gs and gs.current_campaign and "progress_data" in gs.current_campaign:
+				gs.current_campaign.progress_data["strife_event"] = strife_event
+
 
 func _process_crew_tasks() -> void:
 	## Step 2: Assign and Resolve Crew Tasks

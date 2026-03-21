@@ -219,17 +219,15 @@ func _calculate_enemy_strength(enemy_data: Dictionary) -> float:
 	var base_enemy_strength = 8.0
 	var enemy_count = enemy_data.get("count", 3)
 	
-	# Adjust for enemy type
-	match enemy_data.get("type", "criminals"):
-		"criminals":
+	# Adjust for enemy category (Core Rules pp.94-107: 4 categories)
+	match enemy_data.get("category", enemy_data.get("type", "criminal_elements")):
+		"criminal_elements":
 			base_enemy_strength *= 1.0
-		"pirates":
+		"hired_muscle":
 			base_enemy_strength *= 1.2
-		"cultists":
-			base_enemy_strength *= 1.1
-		"corporate_security":
+		"interested_parties":
 			base_enemy_strength *= 1.3
-		"alien_wildlife":
+		"roving_threats":
 			base_enemy_strength *= 0.9
 	
 	# Adjust for difficulty

@@ -392,6 +392,9 @@ func _create_job_offer_from_table(patron_data: Dictionary, location: String, job
 	# Calculate final payment
 	var final_pay = int(base_pay * tier_multiplier) + danger_bonus
 	
+	# Derive mission source for Compendium battle type selection (p.118)
+	var mission_source: String = _derive_mission_source(patron_data)
+
 	# Build job structure
 	var job = {
 		"id": "job_%d_%s" % [job_index, Time.get_ticks_msec()],
@@ -411,9 +414,11 @@ func _create_job_offer_from_table(patron_data: Dictionary, location: String, job
 		"conditions": [],
 		"enemy_type": _determine_enemy_type(),
 		"double_roll_bonus": false,
-		"patron": patron_data.get("patron_name", "Unknown")
+		"patron": patron_data.get("patron_name", "Unknown"),
+		"source": mission_source,
+		"mission_source": mission_source,
 	}
-	
+
 	return job
 
 ## Original job creation method (fallback)
@@ -440,6 +445,9 @@ func _create_job_offer(patron_data: Dictionary, location: String, job_index: int
 	# 5. Roll Benefits/Hazards/Conditions
 	var bhc = _roll_bhc(dice_manager, patron_type)
 
+	# Derive mission source for Compendium battle type selection (p.118)
+	var mission_source: String = _derive_mission_source(patron_data)
+
 	# Build complete job structure
 	var job = {
 		"id": "job_%d_%s" % [job_index, Time.get_ticks_msec()],
@@ -458,7 +466,9 @@ func _create_job_offer(patron_data: Dictionary, location: String, job_index: int
 		# Legacy fields for compatibility
 		"pay": danger_pay.credits,
 		"danger_level": (dice_manager.roll_d6() % 3) + 1 if dice_manager else 1,
-		"patron": patron_name
+		"patron": patron_name,
+		"source": mission_source,
+		"mission_source": mission_source,
 	}
 
 	return job
@@ -697,6 +707,21 @@ func _determine_enemy_type() -> String:
 		return enemy_types[index % enemy_types.size()]
 
 	return enemy_types[0]
+
+## Derive mission source category for Compendium battle type selection (p.118)
+## Maps patron_type to source: "patron", "opportunity", "rival", "faction", "quest"
+func _derive_mission_source(patron_data: Dictionary) -> String:
+	var pt: String = patron_data.get("patron_type", "generic").to_lower()
+	if pt == "generic" or pt == "open market" or pt == "":
+		return "opportunity"
+	if "faction" in pt:
+		return "faction"
+	if "rival" in pt:
+		return "rival"
+	if "quest" in pt:
+		return "quest"
+	# All other patron types (minor, regular, major, elite, corporation, etc.)
+	return "patron"
 
 ## Job acceptance/rejection
 func accept_selected_job() -> bool:

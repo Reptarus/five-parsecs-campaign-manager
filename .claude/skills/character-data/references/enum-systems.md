@@ -13,9 +13,13 @@ Any enum modification MUST be applied to all three files simultaneously.
 ## FiveParsecsGameEnums (Smallest — 4 Enums)
 
 ```gdscript
-# CharacterClass (15 values)
+# CharacterClass (37 values — Phase 38 sync)
+# Legacy 0-14 preserved for save compat, book classes appended 15-36
 enum CharacterClass { NONE, SOLDIER, MEDIC, ROGUE, PSIONICIST, TECH, BRUTE,
-  GUNSLINGER, ACADEMIC, PILOT, ENGINEER, MERCHANT, SECURITY, BROKER, BOT_TECH }
+  GUNSLINGER, ACADEMIC, PILOT, ENGINEER, MERCHANT, SECURITY, BROKER, BOT_TECH,
+  WORKING_CLASS, TECHNICIAN, SCIENTIST, HACKER, MERCENARY, AGITATOR, PRIMITIVE,
+  ARTIST, NEGOTIATOR, TRADER, STARSHIP_CREW, PETTY_CRIMINAL, GANGER, SCOUNDREL,
+  ENFORCER, SPECIAL_AGENT, TROUBLESHOOTER, BOUNTY_HUNTER, NOMAD, EXPLORER, PUNK, SCAVENGER }
 
 # CharacterStatus (11 values)
 enum CharacterStatus { NONE, HEALTHY, INJURED, SERIOUSLY_INJURED, CRITICALLY_INJURED,
@@ -42,10 +46,12 @@ Helper methods: `get_character_class_name()`, `get_character_status_name()`, `ge
 - `EditMode` (4 values): NONE, CREATE, EDIT, VIEW
 
 ### Character Enums
-- `CharacterClass` (30 values — superset of FiveParsecsGameEnums)
-- `Origin` (15 values): HUMAN, ENGINEER, FERAL, KERIN, PRECURSOR, SOULLESS, SWIFT, BOT, CORE_WORLDS, FRONTIER, DEEP_SPACE, COLONY, HIVE_WORLD, FORGE_WORLD
-- `Background` (32 values): MILITARY, MERCENARY, CRIMINAL, COLONIST, ACADEMIC, EXPLORER, TRADER, etc.
-- `Motivation` (22 values): WEALTH, REVENGE, GLORY, KNOWLEDGE, POWER, JUSTICE, SURVIVAL, etc.
+- `CharacterClass` (31 values — 7 legacy + 23 book + NONE): SOLDIER, MEDIC(L), ENGINEER(L), PILOT(L), MERCHANT(L), SECURITY(L), BROKER(L), BOT_TECH(L), WORKING_CLASS, TECHNICIAN, SCIENTIST, HACKER, MERCENARY, AGITATOR, PRIMITIVE, ARTIST, NEGOTIATOR, TRADER, STARSHIP_CREW, PETTY_CRIMINAL, GANGER, SCOUNDREL, ENFORCER, SPECIAL_AGENT, TROUBLESHOOTER, BOUNTY_HUNTER, NOMAD, EXPLORER, PUNK, SCAVENGER
+- `Origin` (17 values): HUMAN, ENGINEER, FERAL, KERIN, PRECURSOR, SOULLESS, SWIFT, BOT, CORE_WORLDS, FRONTIER, DEEP_SPACE, COLONY, HIVE_WORLD, FORGE_WORLD, KRAG(DLC), SKULKER(DLC)
+- `Background` (38 values — 12 legacy + 25 book + NONE): 25 book entries (PEACEFUL_HIGH_TECH_COLONY through ALIEN_CULTURE) + 12 legacy (MILITARY, MERCENARY, etc.)
+- `Motivation` (21 values — 4 legacy + 16 book + NONE): 16 book entries (WEALTH through FREEDOM) + 4 legacy (KNOWLEDGE, JUSTICE, REDEMPTION, DUTY)
+- `EnemyCategory` (5 values): CRIMINAL_ELEMENTS, HIRED_MUSCLE, INTERESTED_PARTIES(was MILITARY_FORCES), ROVING_THREATS(was ALIEN_THREATS)
+- `EnemyType` (64 values — 17 legacy + 46 book + NONE): All 59 book enemies from pp.94-103
 - `Training` (9 values)
 
 ### Combat & Battle Enums

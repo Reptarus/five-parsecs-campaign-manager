@@ -38,7 +38,7 @@ static func _is_flag_enabled(flag_name: String) -> bool:
 
 
 ## ============================================================================
-## DIFFICULTY TOGGLES (Compendium pp.56-80)
+## DIFFICULTY TOGGLES (Compendium pp.34-36)
 ## ============================================================================
 
 const DIFFICULTY_TOGGLES: Array[Dictionary] = [
@@ -63,8 +63,8 @@ const DIFFICULTY_TOGGLES: Array[Dictionary] = [
 		"name": "Slower Progression",
 		"category": "economy",
 		"dlc_flag": "DIFFICULTY_TOGGLES",
-		"description": "Increased XP costs: Reactions 8, Combat 8, Speed 5, Savvy 5, Toughness 8, Luck 10.",
-		"instruction": "PROGRESSION: XP costs increased - Reactions/Combat/Toughness: 8 XP, Speed/Savvy: 5 XP, Luck: 10 XP.",
+		"description": "Increased XP costs and unchanged max levels: Reactions 8 XP (max 4), Combat Skill 8 XP (max +3), Speed 5 XP (max 8\"), Savvy 5 XP (max +5), Toughness 8 XP (max 5), Luck 10 XP (max 3).",
+		"instruction": "PROGRESSION: XP costs — Reactions 8 (max 4), Combat 8 (max +3), Speed 5 (max 8\"), Savvy 5 (max +5), Toughness 8 (max 5), Luck 10 (max 3).",
 	},
 	{
 		"id": "veteran",
@@ -95,8 +95,8 @@ const DIFFICULTY_TOGGLES: Array[Dictionary] = [
 		"name": "Better Leadership",
 		"category": "combat_difficulty",
 		"dlc_flag": "DIFFICULTY_TOGGLES",
-		"description": "Unique Individuals appear on a roll of 7+ instead of 9+.",
-		"instruction": "COMBAT: Unique Individuals appear on 7+ (not 9+).",
+		"description": "Unique Individuals appear on 7+ (not 9+). For enemy types that cannot have a Unique Individual, a random enemy gets +2 Combat Skill and +2 Toughness (max +4 / T6).",
+		"instruction": "COMBAT: Unique Individuals on 7+ (not 9+). If enemy type has no UI, a random enemy gets +2 Combat/Toughness (max +4/T6).",
 	},
 	{
 		"id": "paying_by_hour",
@@ -127,23 +127,24 @@ const DIFFICULTY_TOGGLES: Array[Dictionary] = [
 		"name": "Starting in the Gutter",
 		"category": "economy",
 		"dlc_flag": "DIFFICULTY_TOGGLES",
-		"description": "Start campaign with 0 credits and only basic weapons. A harder beginning.",
-		"instruction": "START: Begin with 0 credits and basic weapons only.",
+		"description": "Three sub-options (use 1-3): (1) Start with only 3 Low-Tech Weapons rolls + 1 Gear or Gadget roll, no free Military/Hi-Tech rolls, no 1cr/crew. (2) Begin with only 3 crew instead of 6. (3) Begin without a ship — must purchase one (Core Rules p.60).",
+		"instruction": "START: (1) Only 3 Low-Tech + 1 Gear/Gadget roll, no Military/Hi-Tech, no 1cr/crew. (2) Only 3 crew. (3) No starting ship.",
 	},
 	{
 		"id": "reduced_lethality",
 		"name": "Reduced Lethality",
 		"category": "combat_difficulty",
 		"dlc_flag": "DIFFICULTY_TOGGLES",
-		"description": "Characters knocked out of action are only killed on a natural 1 on the injury roll. Easier survival.",
-		"instruction": "COMBAT: Characters only killed on natural 1 on injury roll (easier survival).",
+		"description": "Before rolling post-battle injuries, if 2+ characters are injured, select one to be exempt — they recover fully with no Sick Bay time (works for biological, Soulless, or Bot). If only 1 character is injured, roll normally.",
+		"instruction": "COMBAT: If 2+ injured post-battle, exempt 1 from injury roll (full recovery, no Sick Bay). If only 1 injured, roll normally.",
 	},
 ]
 
 
 ## ============================================================================
-## D6 AI BEHAVIOR TABLE (Compendium pp.82-84)
-## Roll D6 per enemy group to determine their behavior pattern.
+## D6 AI TYPE SELECTOR (simplified from AI Variations, Compendium pp.42-43)
+## Roll D6 per enemy group to determine their AI type.
+## Full AI Variations have per-type D6 action tables — see pp.42-43 for details.
 ## ============================================================================
 
 const AI_BEHAVIOR_TABLE: Array[Dictionary] = [
