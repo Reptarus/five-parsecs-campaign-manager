@@ -111,10 +111,23 @@ These require the physical Five Parsecs from Home Core Rules book for true RULES
 
 ---
 
+## Data Files Audit Status (Mar 21)
+
+| File | Status | Issue |
+|------|--------|-------|
+| `weapons.json` | **FIXED** | Rewritten from Core Rules p.50 (36 weapons) |
+| `equipment_database.json` | **FIXED** | Weapons section rewritten from Core Rules p.50 |
+| `armor.json` | **NEEDS REWRITE** | 18 invented armors (Padded Jacket, Exo-Armor, etc.). Core Rules has only ~5 armor types |
+| `gear_database.json` | **NEEDS AUDIT** | Species data partially accurate, gear items unverified |
+| `loot_tables.json` | **STRUCTURE OK, DETAILS WRONG** | Main table ranges match p.131 but weapon subtables are simplified (missing ~20 weapons from D100 rolls). Page ref should be p.131 not p.70-72 |
+| `enemy_types.json` | **NEEDS AUDIT** | Unverified against Bestiary |
+| `injury_table.json` | **NEEDS AUDIT** | Unverified against Core Rules injury table |
+| `character_species.json` | **NEEDS AUDIT** | May duplicate/conflict with SpeciesList.json |
+
 ## Recommendations
 
-1. **Fix species bugs (BUG-036/037/038)** after user confirms whether rules JSON is correct
-2. **Do NOT fix difficulty divergences** — digital adaptation is correct by design
-3. **Defer weapon data sync** — user decision on canonical source pending
-4. **Mark 9 campaign structure mechanics as RULES_VERIFIED** — perfect match confirmed
+1. ~~**Fix species bugs (BUG-036/037/038)**~~ — BUG-037/038 FIXED. BUG-036 (Precursor psionic) needs design work
+2. ~~**Fix weapon data**~~ — DONE. All weapons match Core Rules p.50
+3. **Rewrite armor.json** — Needs book armor table (probably near p.50)
+4. **Expand loot_tables.json** — Weapon subtables need full D100 entries from p.131
 5. **Physical book review needed** for remaining ~137 mechanics
