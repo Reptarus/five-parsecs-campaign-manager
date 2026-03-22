@@ -191,6 +191,8 @@ Cross-platform in-app review prompts via ReviewManager autoload:
 | WorldEconomyManager | src/core/world/WorldEconomyManager.gd | World economy |
 | ResourceSystem | src/core/systems/ResourceSystem.gd | Resource management |
 | TweenFX | addons/TweenFX/TweenFX.gd | Animation addon (70 animations, auto-lifecycle) |
+| GalacticWarManager | src/core/campaign/GalacticWarManager.gd | Galactic war progress tracking |
+| FactionSystem | src/core/systems/FactionSystem.gd | Faction/rival management + DLC expanded factions |
 
 ---
 

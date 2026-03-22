@@ -8,6 +8,7 @@ class_name JobOfferComponent
 # Five Parsecs dependencies
 const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
 const GameDataLoader = preload("res://src/utils/GameDataLoader.gd")
+const CompendiumMissionsExpanded = preload("res://src/data/compendium_missions_expanded.gd")
 
 # UI Components
 @onready var job_offer_container: VBoxContainer = %JobOfferContainer
@@ -73,6 +74,21 @@ func initialize_job_offers(world_phase_data: Dictionary) -> void:
 	## Initialize job offers from world phase data - wrapper for controller compatibility
 	var patrons = world_phase_data.get("patrons", [])
 	var location = world_phase_data.get("location", "Unknown Location")
+
+	# Check for introductory campaign — provide guided missions instead of random
+	var intro_mission: Dictionary = _check_introductory_mission()
+	if not intro_mission.is_empty():
+		job_accepted = false
+		selected_job_index = -1
+		available_jobs = [intro_mission]
+		_update_ui_display()
+		if event_bus:
+			event_bus.publish_event(CampaignTurnEventBus.TurnEvent.JOB_OFFERS_GENERATED, {
+				"location": location,
+				"job_count": 1,
+				"introductory": true
+			})
+		return
 
 	# Generate jobs from ALL patrons, not just the first one
 	var all_jobs: Array[Dictionary] = []
@@ -177,6 +193,7 @@ func _generate_job_offers(patron_data: Dictionary, location: String) -> Array[Di
 			job_key = job.get("job_type", "") + "_" + job.get("objective", "")
 			attempts += 1
 		seen_types.append(job_key)
+		_enhance_job_with_compendium(job)
 		jobs.append(job)
 
 	return jobs
@@ -201,6 +218,7 @@ func _generate_job_offers_fallback(patron_data: Dictionary, location: String) ->
 			job_key = job.get("job_type", "") + "_" + job.get("objective", "")
 			attempts += 1
 		seen_types.append(job_key)
+		_enhance_job_with_compendium(job)
 		jobs.append(job)
 
 	return jobs
@@ -864,7 +882,30 @@ func _update_job_details() -> void:
 		details += "\n"
 
 	# Location
-	details += "LOCATION: %s" % job.get("location", "Unknown")
+	details += "LOCATION: %s\n" % job.get("location", "Unknown")
+
+	# Compendium DLC enhancements (if available)
+	if job.has("dlc_objective_overview"):
+		details += "\n--- COMPENDIUM MISSION DETAILS ---\n"
+		details += "OVERVIEW: %s\n" % job.get("dlc_objective_overview", "")
+		if not job.get("dlc_objective_instruction", "").is_empty():
+			details += "  %s\n" % job.get("dlc_objective_instruction", "")
+	if job.has("dlc_specific_objective"):
+		details += "SPECIFIC OBJECTIVE: %s\n" % job.get("dlc_specific_objective", "")
+		if not job.get("dlc_specific_instruction", "").is_empty():
+			details += "  %s\n" % job.get("dlc_specific_instruction", "")
+	if job.has("dlc_time_constraint"):
+		details += "TIME CONSTRAINT: %s\n" % job.get("dlc_time_constraint", "")
+		if not job.get("dlc_time_instruction", "").is_empty():
+			details += "  %s\n" % job.get("dlc_time_instruction", "")
+	if job.has("dlc_patron_condition"):
+		details += "PATRON CONDITION: %s\n" % job.get("dlc_patron_condition", "")
+		if not job.get("dlc_patron_instruction", "").is_empty():
+			details += "  %s\n" % job.get("dlc_patron_instruction", "")
+	if job.has("dlc_extraction"):
+		details += "EXTRACTION: %s\n" % job.get("dlc_extraction", "")
+		if not job.get("dlc_extraction_instruction", "").is_empty():
+			details += "  %s\n" % job.get("dlc_extraction_instruction", "")
 
 	job_details_label.text = details
 
@@ -915,3 +956,76 @@ func reset_job_phase() -> void:
 	selected_job_index = -1
 	available_jobs.clear()
 	_update_ui_display()
+
+## ── Compendium Introductory Campaign (DLC) ──
+
+func _check_introductory_mission() -> Dictionary:
+	## If introductory_campaign is enabled, return the guided mission for this turn.
+	## Returns {} if not applicable (flag not set, DLC disabled, or turn past intro range).
+	var game_state_node = get_node_or_null("/root/GameState")
+	if not game_state_node:
+		return {}
+	var campaign = game_state_node.campaign if "campaign" in game_state_node else null
+	if not campaign:
+		return {}
+	if not "progress_data" in campaign:
+		return {}
+	if not campaign.progress_data.get("introductory_campaign", false):
+		return {}
+
+	var turn: int = campaign.progress_data.get("current_turn", 1)
+	var intro: Dictionary = CompendiumMissionsExpanded.get_introductory_mission(turn)
+	if intro.is_empty():
+		return {}  # Past introductory range — fall through to normal generation
+
+	# Convert introductory mission format to job offer format
+	return {
+		"id": "intro_turn_%d" % turn,
+		"location": "Introductory Mission",
+		"patron_type": "Tutorial",
+		"patron_name": "Campaign Guide",
+		"objective": intro.get("name", "Introductory Mission"),
+		"objective_description": intro.get("instruction", ""),
+		"danger_pay": intro.get("pay", 2),
+		"pay": intro.get("pay", 2),
+		"double_roll_bonus": false,
+		"time_frame": "This Turn",
+		"danger_level": intro.get("danger", 1),
+		"benefits": [],
+		"hazards": [],
+		"conditions": [],
+		"enemy_type": intro.get("enemy_type", "Determined by scenario"),
+		"source": "introductory",
+		"mission_source": "introductory",
+		"_introductory": true,
+	}
+
+## ── Compendium Expanded Missions (DLC, pp.118-125) ──
+
+func _enhance_job_with_compendium(job: Dictionary) -> void:
+	## Enhance a job offer with Compendium expanded mission data.
+	## Self-gated: methods return {} if EXPANDED_MISSIONS DLC disabled.
+	var objective_overview: Dictionary = CompendiumMissionsExpanded.roll_objective_overview()
+	if not objective_overview.is_empty():
+		job["dlc_objective_overview"] = objective_overview.get("name", "")
+		job["dlc_objective_instruction"] = objective_overview.get("instruction", "")
+
+	var specific_obj: Dictionary = CompendiumMissionsExpanded.roll_specific_objective()
+	if not specific_obj.is_empty():
+		job["dlc_specific_objective"] = specific_obj.get("name", "")
+		job["dlc_specific_instruction"] = specific_obj.get("instruction", "")
+
+	var time_constraint: Dictionary = CompendiumMissionsExpanded.roll_time_constraint()
+	if not time_constraint.is_empty():
+		job["dlc_time_constraint"] = time_constraint.get("name", "")
+		job["dlc_time_instruction"] = time_constraint.get("instruction", "")
+
+	var patron_cond: Dictionary = CompendiumMissionsExpanded.roll_patron_condition()
+	if not patron_cond.is_empty():
+		job["dlc_patron_condition"] = patron_cond.get("name", "")
+		job["dlc_patron_instruction"] = patron_cond.get("instruction", "")
+
+	var extraction: Dictionary = CompendiumMissionsExpanded.roll_extraction()
+	if not extraction.is_empty():
+		job["dlc_extraction"] = extraction.get("name", "")
+		job["dlc_extraction_instruction"] = extraction.get("instruction", "")

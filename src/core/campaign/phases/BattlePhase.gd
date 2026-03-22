@@ -1071,6 +1071,18 @@ func _simulate_battle_outcome() -> void:
 		combat_results["no_minis_instructions"] = CompendiumNoMinisCombat.generate_setup_text(
 			no_minis_setup)
 
+	# DLC: Append grid movement instructions if enabled (Compendium p.66)
+	if combat_results.get("grid_based_movement", false):
+		var grid_instructions: Array[String] = [
+			"GRID MOVEMENT ACTIVE: 1 square = 2\". Convert all distances.",
+			"Speed: 4\"=2sq, 6\"=3sq, 8\"=4sq",
+			"Range: 12\"=6sq, 24\"=12sq, 36\"=18sq",
+			"Close Quarters: Enemy in same square = automatic Brawl",
+			"Flanking: Attack from adjacent square = +1 to hit",
+			"Large Features: Span multiple squares; enter via adjacent square",
+		]
+		combat_results["grid_movement_instructions"] = grid_instructions
+
 	# DLC: Include battle type and escalation data in results
 	combat_results["battle_type"] = battle_setup_data.get("battle_type", "conventional")
 	if battle_setup_data.get("escalation_applicable", false):
@@ -1366,6 +1378,18 @@ func _apply_dlc_difficulty_modifiers(setup_data: Dictionary) -> void:
 	if not ai.is_empty():
 		difficulty_instructions.append(ai.get("instruction", ""))
 		setup_data["dlc_ai_type"] = ai.get("id", "")
+
+	# Dramatic Combat: weapon-specific narrative instructions (Compendium p.92)
+	# Self-gated: get_dramatic_effect() returns "" when DRAMATIC_COMBAT flag disabled
+	var dramatic_effects: Array[String] = []
+	var weapon_types: Array[String] = ["blade", "pistol", "rifle", "heavy", "grenade", "melee"]
+	for wt in weapon_types:
+		var effect: String = CompendiumDifficultyTogglesRef.get_dramatic_effect(wt)
+		if not effect.is_empty():
+			dramatic_effects.append(effect)
+	if not dramatic_effects.is_empty():
+		setup_data["dramatic_combat_effects"] = dramatic_effects
+		difficulty_instructions.append("DRAMATIC COMBAT ACTIVE: Describe weapon-specific effects per the Compendium.")
 
 	if not difficulty_instructions.is_empty():
 		setup_data["dlc_difficulty_instructions"] = difficulty_instructions

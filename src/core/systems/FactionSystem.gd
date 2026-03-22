@@ -1,7 +1,7 @@
 @warning_ignore("return_value_discarded")
 # UNSAFE_METHOD_ACCESS and UNTYPED_DECLARATION warnings fixed with type safety patterns
-class_name FactionSystem
 extends Node
+## FactionSystem — registered as autoload (no class_name per Godot 4.6 gotcha)
 
 ## Consolidated Faction System for Five Parsecs Campaign Manager
 ##

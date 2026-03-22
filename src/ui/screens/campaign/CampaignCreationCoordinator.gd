@@ -668,6 +668,8 @@ func update_campaign_config_state(campaign_config_data: Dictionary) -> void:
 		unified_campaign_state.campaign_config.victory_condition = campaign_config_data.victory_condition
 	if campaign_config_data.has("story_track_enabled"):  # Alternative key name
 		unified_campaign_state.campaign_config.story_track_enabled = campaign_config_data.story_track_enabled
+	if campaign_config_data.has("introductory_campaign"):  # Compendium DLC flag
+		unified_campaign_state.campaign_config.introductory_campaign = campaign_config_data.introductory_campaign
 
 	# CORE FIX: Sync to StateManager for validation
 	if state_manager:

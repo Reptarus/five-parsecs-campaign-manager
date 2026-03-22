@@ -1,4 +1,6 @@
-# Project Status (March 2026)
+# Project Status (March 21, 2026)
+
+## Current Phase: 41 — Rules Gap Remediation (PLANNED, not started)
 
 ## Key Metrics
 
@@ -12,7 +14,10 @@
 | Store/Paywall System | Tri-platform (Steam/Android/iOS) |
 | Compile Errors | 0 |
 | GDScript Files | ~900 (excl. addons) |
-| Autoloads | 22+ |
+| Autoloads | 26 (project.godot lines 24-50) |
+| MCP QA Sprint (Mar 21) | 7 sessions, 62/66 PASS, 4 N/A |
+| Compendium Integration | 11/11 data files, 8/11 fully wired, 3 partially wired |
+| Phase 41 Gaps | 8 real gaps + 6 intentionally deferred features |
 
 ## Completed Phases
 

@@ -178,6 +178,12 @@ func _populate_dropdowns() -> void:
 				else:
 					origins.append(["Skulker (DLC Required)", GlobalEnums.Origin.SKULKER])
 					locked_species.append("Skulker")
+			if "PRISON_PLANET_CHARACTER" in flags:
+				if dlc.is_feature_enabled(flags.PRISON_PLANET_CHARACTER):
+					origins.append(["Prison Planet (DLC)", GlobalEnums.Origin.PRISON_PLANET])
+				else:
+					origins.append(["Prison Planet (DLC Required)", GlobalEnums.Origin.PRISON_PLANET])
+					locked_species.append("Prison Planet")
 	_populate_option_button(origin_options, origins)
 	# Disable locked DLC species entries in dropdown
 	for i in range(origin_options.item_count):
@@ -185,7 +191,8 @@ func _populate_dropdowns() -> void:
 		for species_name in locked_species:
 			if species_name in item_text and "Required" in item_text:
 				origin_options.set_item_disabled(i, true)
-				origin_options.set_item_tooltip(i, "Requires Trailblazer's Toolkit DLC")
+				var dlc_name: String = "Fixer's Guidebook DLC" if species_name == "Prison Planet" else "Trailblazer's Toolkit DLC"
+				origin_options.set_item_tooltip(i, "Requires " + dlc_name)
 	_populate_option_button(background_options, BACKGROUND_ITEMS)
 	_populate_option_button(class_options, CLASS_ITEMS)
 	_populate_option_button(motivation_options, MOTIVATION_ITEMS)
@@ -363,6 +370,9 @@ func _apply_origin_bonuses(origin_id: int) -> void:
 		GlobalEnums.Origin.SKULKER:
 			current_bonuses.origin["SPEED"] = 1
 			current_bonuses.origin["TOUGHNESS"] = -1
+		GlobalEnums.Origin.PRISON_PLANET:
+			current_bonuses.origin["TOUGHNESS"] = 1
+			current_bonuses.origin["COMBAT"] = 1
 		# HUMAN: no stat bonuses (R1/S4/CS+0/T3/Sa+0)
 
 	_apply_bonuses(current_bonuses.origin)
@@ -505,7 +515,13 @@ func _on_randomize_pressed() -> void:
 		return
 
 	# Generate random character data using curated rulebook arrays
-	var rand_name = FiveParsecsCharacterTableRoller.generate_random_name()
+	# Prefer Compendium name generation (DLC) if available, else use base tables
+	var rand_name: String = ""
+	var CompendiumWorldOptions = load("res://src/data/compendium_world_options.gd")
+	if CompendiumWorldOptions:
+		rand_name = CompendiumWorldOptions.generate_name("")
+	if rand_name.is_empty():
+		rand_name = FiveParsecsCharacterTableRoller.generate_random_name()
 	_set_character_property(current_character, "character_name", rand_name)
 
 	var origin_entry = ORIGIN_ITEMS[randi() % ORIGIN_ITEMS.size()]

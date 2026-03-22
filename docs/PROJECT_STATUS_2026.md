@@ -1,6 +1,6 @@
 # Five Parsecs Campaign Manager - Project Status
 
-**Last Updated**: March 12, 2026 (Demo QA Runtime Testing Complete)
+**Last Updated**: March 21, 2026 (Phase 41: Rules Gap Remediation Complete)
 **Engine**: Godot 4.6-stable (pure GDScript, non-mono)
 **Test Framework**: gdUnit4 v6.0.3
 **Repository**: https://github.com/Reptarus/five-parsecs-campaign-manager
@@ -577,3 +577,34 @@ Follow-up audit of the UI/UX overhaul to close integration gaps, register missin
   - B69: EndPhasePanel turn summary data integrity — reads canonical `progress_data["turns_played"]` via CampaignPhaseManager
   - B70: Save/reload turn restoration — fixed key mismatch (`"turn_number"` → `"turns_played"`) in CampaignTurnController.gd, simplified phase resume logic
   - Save/Reload SR-1→SR-5 all PASS (campaign name, turn number, crew, credits, stats persist correctly)
+- **Mar 21, 2026**: Phase 41: Rules Gap Remediation (5 sprints):
+  - **Sprint 1**: TravelPhase._process_world_arrival() implemented (world traits, rival follows, licensing) + GalacticWarManager registered as autoload (removed class_name, deleted duplicate stub, updated 2 UI panels)
+  - **Sprint 2**: Expanded Loans wired to TradePhasePanel (Compendium pp.152-158) + Name generation wired to ShipPanel, WorldInfoPanel, CharacterCreator (3 files)
+  - **Sprint 3**: Expanded Missions wired to JobOfferComponent (objectives, time constraints, patron conditions, extraction) + Introductory campaign flow wired end-to-end (ExpandedConfigPanel → Coordinator → FinalizationService → JobOfferComponent)
+  - **Sprint 4**: AI Variations + Elite Enemies verified ALREADY WIRED (BattlePhase:1365, BattlePhase:454-464) — no changes needed
+  - **Sprint 5**: Deferred features documented (see below)
+
+---
+
+## Phase 42: Foundational Data for Deferred Features (Mar 21, 2026)
+
+Built foundational data layers for 4 previously-deferred DLC features across 5 sprints:
+
+| Sprint | Feature | What Was Done |
+| ------ | ------- | ------------- |
+| 42-1 | Three-Enum Sync + Dramatic Combat | Fixed GameEnums.Origin (added KRAG/SKULKER), wired `get_dramatic_effect()` into BattlePhase + TacticalBattleUI |
+| 42-2 | Grid-Based Movement | Generated grid movement instruction text (speed/range/flanking/close quarters) in BattlePhase + TacticalBattleUI |
+| 42-3 | Expanded Factions | Activated FactionSystem (857 lines) as autoload, wired save/load via progress_data |
+| 42-4 | Prison Planet Character | Added PRISON_PLANET origin to both enums, species data (+1 Toughness, +1 Combat), CharacterCreator DLC-gated dropdown |
+| 42-5 | Documentation | Updated deferred features table, added Phase 42 summary |
+
+## Intentionally Deferred Features
+
+The following Compendium features remain deferred — they require new multiplayer/unit management systems. They are NOT bugs.
+
+| Feature | ContentFlag | Why Deferred | Estimated Effort |
+| ------- | ----------- | ----------- | --------------- |
+| PvP Battles | PVP_BATTLES | Requires multi-player state management, turn alternation, separate battle flow | LARGE (weeks) |
+| Co-op Battles | COOP_BATTLES | Requires shared battle state, coordinated phases, network sync | LARGE (weeks) |
+
+These features have data classes (`compendium_missions_expanded.gd`) that return instruction text when queried. Full gameplay integration requires manual unit management redesign and is deferred to a future development phase.

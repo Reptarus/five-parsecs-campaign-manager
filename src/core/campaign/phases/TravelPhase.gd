@@ -646,8 +646,74 @@ func _handle_travel_event_with_effects(event: Dictionary) -> String:
 	##
 
 func _process_world_arrival() -> void:
-	## Step 4: New World Arrival Steps (if applicable)
-	pass
+	## Step 4: New World Arrival Steps (Core Rules pp.64-67)
+	## 1. Generate world traits (D100)
+	## 2. Check if rivals follow (D6 per rival, 1-3 = follows)
+	## 3. Check licensing requirements (D6 for type)
+	## 4. Emit world_arrival_completed with full world data
+
+	# Roll D100 for world trait
+	var trait_roll: int = randi_range(1, 100)
+	var world_trait_name: String = "Unknown"
+	var world_trait_value: Variant = 0
+
+	for entry in world_traits_table:
+		if trait_roll >= entry.range[0] and trait_roll <= entry.range[1]:
+			world_trait_name = entry.get("name", "Unknown")
+			world_trait_value = entry.get("trait", 0)
+			break
+
+	# Generate a world name (fallback — Compendium name gen wired in Sprint 2)
+	var world_name: String = "World-%03d" % randi_range(1, 999)
+
+	# Check if rivals follow to new world (Core Rules p.65: D6 per rival, 1-3 = follows)
+	_rival_follows = false
+	var rivals_that_follow: Array[String] = []
+	if game_state_manager and game_state_manager.has_method("get_rivals"):
+		var rivals: Array = game_state_manager.get_rivals()
+		for rival in rivals:
+			var follow_roll: int = randi_range(1, 6)
+			if follow_roll <= 3:
+				_rival_follows = true
+				var rival_name: String = ""
+				if rival is Dictionary:
+					rival_name = rival.get("name", rival.get("rival_name", "Unknown Rival"))
+				elif rival is String:
+					rival_name = rival
+				else:
+					rival_name = str(rival)
+				rivals_that_follow.append(rival_name)
+
+	# Check licensing requirements (Core Rules p.66: some worlds need a license)
+	# D6: 1-2 = no license, 3-4 = basic license (10cr), 5-6 = full license (20cr)
+	var license_roll: int = randi_range(1, 6)
+	_license_required = license_roll >= 3
+	var license_cost: int = 0
+	if license_roll >= 5:
+		license_cost = 20
+	elif license_roll >= 3:
+		license_cost = 10
+
+	# Build world data dictionary
+	_last_world_data = {
+		"name": world_name,
+		"trait": world_trait_value,
+		"trait_name": world_trait_name,
+		"trait_roll": trait_roll,
+		"rivals_followed": rivals_that_follow,
+		"rival_follows": _rival_follows,
+		"license_required": _license_required,
+		"license_cost": license_cost,
+	}
+
+	# Debug log world arrival
+	_debug_log_world_arrival(world_name, world_trait_name, trait_roll, _rival_follows, _license_required)
+
+	# Emit world arrival signal for UI and downstream phases
+	world_arrival_completed.emit(_last_world_data)
+
+	# Continue to phase completion
+	_complete_travel_phase()
 
 func _complete_travel_phase() -> void:
 	## Complete the Travel Phase

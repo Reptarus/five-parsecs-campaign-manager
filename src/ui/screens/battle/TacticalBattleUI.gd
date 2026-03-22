@@ -1821,6 +1821,26 @@ func _populate_setup_tab(mission_data) -> void:
 			_add_setup_text(esc_text, Color("#D97706"))
 			_add_setup_separator()
 
+	# Section 5b: Dramatic Combat effects (Compendium DLC)
+	var dramatic_effects: Array = mission_dict.get("dramatic_combat_effects", [])
+	if not dramatic_effects.is_empty():
+		_add_setup_section_header("DRAMATIC COMBAT")
+		for effect in dramatic_effects:
+			var effect_str: String = str(effect)
+			if not effect_str.is_empty():
+				_add_setup_text(effect_str, Color("#E879F9"))  # Purple for dramatic
+		_add_setup_separator()
+
+	# Section 5c: Grid Movement instructions (Compendium DLC)
+	var grid_instructions: Array = mission_dict.get("grid_movement_instructions", [])
+	if not grid_instructions.is_empty():
+		_add_setup_section_header("GRID-BASED MOVEMENT")
+		for grid_inst in grid_instructions:
+			var inst_str: String = str(grid_inst)
+			if not inst_str.is_empty():
+				_add_setup_text(inst_str, Color("#38BDF8"))  # Sky blue for grid
+		_add_setup_separator()
+
 	# Section 6: Regenerate button
 	var regen_button := Button.new()
 	regen_button.text = "Regenerate Terrain Layout"

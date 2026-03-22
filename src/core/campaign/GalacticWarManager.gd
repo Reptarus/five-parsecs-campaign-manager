@@ -1,5 +1,5 @@
-class_name GalacticWarManager
 extends Node
+## GalacticWarManager — registered as autoload (no class_name per Godot 4.6 gotcha)
 
 ## Galactic War Progress Tracking System
 ##

@@ -354,6 +354,11 @@ func save_campaign(campaign = null, path: String = "") -> Dictionary:
 			return {"success": false, "message": error_msg}
 		path = SAVE_DIRECTORY + cid + ".save"
 
+	# Sync FactionSystem state into progress_data before saving
+	var faction_sys = get_node_or_null("/root/FactionSystem")
+	if faction_sys and faction_sys.has_method("get_data") and "progress_data" in campaign:
+		campaign.progress_data["faction_state"] = faction_sys.get_data()
+
 	# Delegate to campaign's own save method if available
 	if campaign.has_method("save_to_file"):
 		var err = campaign.save_to_file(path)
@@ -430,6 +435,13 @@ func load_campaign(path: String) -> Dictionary:
 
 	# BUG-035 FIX: Restore EquipmentManager state from campaign data
 	_restore_equipment_from_campaign(loaded)
+
+	# Restore FactionSystem state from campaign progress_data
+	var faction_sys = get_node_or_null("/root/FactionSystem")
+	if faction_sys and faction_sys.has_method("update_data") and "progress_data" in loaded:
+		var faction_state: Dictionary = loaded.progress_data.get("faction_state", {})
+		if not faction_state.is_empty():
+			faction_sys.update_data(faction_state)
 
 	# Update settings with loaded campaign ID
 	var loaded_id: String = ""

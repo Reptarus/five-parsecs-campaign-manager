@@ -235,7 +235,10 @@ enum Origin {
 	DEEP_SPACE, # Deep Space origin
 	COLONY, # Colony origin
 	HIVE_WORLD, # Hive World origin
-	FORGE_WORLD # Forge World origin
+	FORGE_WORLD, # Forge World origin
+	KRAG,           # Compendium DLC — Trailblazer's Toolkit
+	SKULKER,        # Compendium DLC — Trailblazer's Toolkit
+	PRISON_PLANET   # Compendium DLC — Fixer's Guidebook
 }
 
 ## Character Background

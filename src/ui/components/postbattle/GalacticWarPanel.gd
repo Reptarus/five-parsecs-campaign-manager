@@ -49,7 +49,7 @@ const MAX_THRESHOLD := 10      # Campaign ending at 10/10
 
 ## State
 
-var war_manager: GalacticWarManager = null
+var war_manager: Node = null
 var war_events: Array[Dictionary] = []
 var main_container: VBoxContainer = null
 

@@ -434,8 +434,17 @@ func _generate_world_with_fallback(world_name: String) -> void:
 		
 		# Check if world generation was successful
 		if world_data and not world_data.is_empty():
-			# Customize world name
-			world_data["name"] = world_name if not world_name.is_empty() else world_data.get("name", "New World")
+			# Customize world name — prefer Compendium DLC name gen if available
+			var CompendiumWorldOptions = load("res://src/data/compendium_world_options.gd")
+			var compendium_name: String = ""
+			if CompendiumWorldOptions:
+				compendium_name = CompendiumWorldOptions.generate_world_name()
+			if not compendium_name.is_empty():
+				world_data["name"] = compendium_name
+			elif not world_name.is_empty():
+				world_data["name"] = world_name
+			else:
+				world_data["name"] = world_data.get("name", "New World")
 			
 			# Add additional UI-specific data
 			world_data["government_type"] = _determine_government_type(world_data)

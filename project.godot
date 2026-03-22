@@ -48,6 +48,8 @@ NotificationManager="res://src/autoload/NotificationManager.gd"
 StoreManager="*res://src/core/store/StoreManager.gd"
 ReviewManager="*res://src/core/store/ReviewManager.gd"
 TweenFX="*uid://d2n10rw2dnx8o"
+GalacticWarManager="*res://src/core/campaign/GalacticWarManager.gd"
+FactionSystem="*res://src/core/systems/FactionSystem.gd"
 
 [debug]
 

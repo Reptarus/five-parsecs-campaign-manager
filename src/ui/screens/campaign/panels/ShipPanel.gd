@@ -590,7 +590,14 @@ func _initialize_ship_data() -> void:
 	}
 
 func _generate_ship_name() -> String:
-	## Generate a random ship name following Five Parsecs naming conventions
+	## Generate a random ship name — Compendium DLC tables (pp.157-162) if available,
+	## otherwise local prefix/suffix arrays.
+	var CompendiumWorldOptions = load("res://src/data/compendium_world_options.gd")
+	if CompendiumWorldOptions:
+		var compendium_name: String = CompendiumWorldOptions.generate_ship_name()
+		if not compendium_name.is_empty():
+			return compendium_name
+	# Fallback: local name generation
 	var prefixes = ["Star", "Nova", "Dawn", "Void", "Deep", "Far", "Solar", "Cosmic", "Stellar", "Astral"]
 	var suffixes = ["Runner", "Wanderer", "Seeker", "Hunter", "Trader", "Explorer", "Voyager", "Nomad", "Spirit", "Quest"]
 	return "%s %s" % [prefixes[randi() % prefixes.size()], suffixes[randi() % suffixes.size()]]

@@ -142,6 +142,27 @@ const SPECIES: Dictionary = {
 			"description": "Skulker home worlds always have Adventurous trait + one rolled normally. 'Alien species restricted' = no result.",
 		},
 	},
+	"prison_planet": {
+		"id": "prison_planet",
+		"name": "Prison Planet",
+		"origin_enum": "PRISON_PLANET",
+		"base_stats": {
+			"toughness": 1,   # +1 Toughness (hardened survivor)
+			"combat_skill": 1, # +1 Combat Skill (prison fighting)
+		},
+		"special_rules": [
+			{
+				"id": "hardened_survivor",
+				"type": "background_modifier",
+				"description": "Prison Planet origin. Hardened by brutal conditions. +1 Toughness, +1 Combat Skill.",
+			},
+		],
+		"armor_rules": {
+			"requires_modification": false,
+			"universal_fit": false,
+			"description": "Standard armor compatibility.",
+		},
+	},
 }
 
 
@@ -164,6 +185,8 @@ static func get_species(id: String) -> Dictionary:
 			flag = dlc_mgr.ContentFlag.SPECIES_KRAG
 		elif flag_name == "SPECIES_SKULKER":
 			flag = dlc_mgr.ContentFlag.SPECIES_SKULKER
+		elif flag_name == "SPECIES_PRISON_PLANET":
+			flag = dlc_mgr.ContentFlag.PRISON_PLANET_CHARACTER
 		if flag >= 0 and not dlc_mgr.is_feature_enabled(flag):
 			return {}
 	return species_data.duplicate(true)

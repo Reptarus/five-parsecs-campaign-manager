@@ -45,7 +45,7 @@ const COLOR_DANGER := UIColors.COLOR_DANGER
 
 ## State
 
-var war_manager: GalacticWarManager = null
+var war_manager: Node = null
 var expanded_tracks: Dictionary = {}  # track_id -> bool
 var main_container: VBoxContainer = null
 

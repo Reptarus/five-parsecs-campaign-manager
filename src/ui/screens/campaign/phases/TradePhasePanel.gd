@@ -4,6 +4,7 @@ extends "res://src/ui/screens/campaign/phases/BasePhasePanel.gd"
 
 const ThisClass = preload("res://src/ui/screens/campaign/phases/TradePhasePanel.gd")
 const CompendiumEquipmentRef = preload("res://src/data/compendium_equipment.gd")
+const CompendiumWorldOptions = preload("res://src/data/compendium_world_options.gd")
 
 signal item_purchased(item_data: Dictionary)
 signal item_sold(item_data: Dictionary)
@@ -41,6 +42,11 @@ var merchant_reroll_button: Button = null
 var has_merchant_crew: bool = false
 var merchant_reroll_used: bool = false
 var last_rolled_item: Dictionary = {}
+# Expanded Loans (Compendium DLC — self-gated via CompendiumWorldOptions)
+var loan_container: VBoxContainer = null
+var loan_status_label: RichTextLabel = null
+var take_loan_button: Button = null
+var current_loan: Dictionary = {}  # Active loan data (origin, rate, enforcement, debt)
 
 func _ready() -> void:
 	super._ready()
@@ -83,6 +89,7 @@ func _ready() -> void:
 		merchant_reroll_button.visible = false
 		btn_container.add_child(merchant_reroll_button)
 		_style_phase_button(merchant_reroll_button)
+	_setup_loan_ui()
 	update_credits_display()
 
 func _get_campaign_safe():
@@ -579,3 +586,120 @@ func _check_merchant_crew() -> bool:
 			if "merchant" in t_name:
 				return true
 	return false
+
+## ── Expanded Loans (Compendium DLC, pp.152-158) ──
+
+func _setup_loan_ui() -> void:
+	## Add loan section between credits and market (only visible when DLC enabled)
+	var root_vbox = credits_label.get_parent() if credits_label else null
+	if not root_vbox:
+		return
+	# Probe: returns {} if EXPANDED_LOANS flag disabled
+	var probe: Dictionary = CompendiumWorldOptions.roll_loan_origin()
+	if probe.is_empty():
+		return  # DLC not enabled — no loan UI
+
+	loan_container = VBoxContainer.new()
+	loan_container.name = "LoanSection"
+
+	var loan_header: Label = Label.new()
+	loan_header.text = "Loan Office"
+	_style_section_label(loan_header)
+	loan_container.add_child(loan_header)
+
+	loan_status_label = RichTextLabel.new()
+	loan_status_label.bbcode_enabled = true
+	loan_status_label.fit_content = true
+	loan_status_label.custom_minimum_size = Vector2(0, 40)
+	loan_status_label.scroll_active = false
+	_style_rich_text(loan_status_label)
+	loan_container.add_child(loan_status_label)
+
+	take_loan_button = Button.new()
+	take_loan_button.text = "Take Out a Loan"
+	take_loan_button.pressed.connect(_on_take_loan_pressed)
+	_style_phase_button(take_loan_button)
+	loan_container.add_child(take_loan_button)
+
+	# Insert after credits_label
+	var credits_idx: int = root_vbox.get_children().find(credits_label)
+	root_vbox.add_child(loan_container)
+	if credits_idx >= 0:
+		root_vbox.move_child(loan_container, credits_idx + 1)
+
+	_refresh_loan_display()
+
+func _refresh_loan_display() -> void:
+	## Update loan status text and button state
+	if not loan_status_label:
+		return
+	_load_current_loan()
+	if current_loan.is_empty():
+		loan_status_label.text = "No active loan. Take one out if you need credits."
+		if take_loan_button:
+			take_loan_button.disabled = false
+			take_loan_button.text = "Take Out a Loan"
+	else:
+		var debt: int = current_loan.get("debt", 0)
+		var origin_name: String = current_loan.get("origin_name", "Unknown")
+		var rate_name: String = current_loan.get("rate_name", "Standard")
+		loan_status_label.text = "[color=#D97706]Active Loan[/color] from %s\nDebt: [color=#DC2626]%dcr[/color] | Rate: %s\nPay debt from credits to clear." % [origin_name, debt, rate_name]
+		if take_loan_button:
+			take_loan_button.disabled = true
+			take_loan_button.text = "Already have a loan"
+
+func _load_current_loan() -> void:
+	## Load active loan from campaign progress_data
+	current_loan = {}
+	var campaign = _get_campaign_safe()
+	if not campaign:
+		return
+	if "progress_data" in campaign:
+		current_loan = campaign.progress_data.get("active_loan", {})
+
+func _save_current_loan() -> void:
+	## Persist active loan to campaign progress_data
+	var campaign = _get_campaign_safe()
+	if not campaign or not "progress_data" in campaign:
+		return
+	if current_loan.is_empty():
+		campaign.progress_data.erase("active_loan")
+	else:
+		campaign.progress_data["active_loan"] = current_loan.duplicate()
+
+func _on_take_loan_pressed() -> void:
+	## Roll loan terms using Compendium tables and offer to player
+	var origin: Dictionary = CompendiumWorldOptions.roll_loan_origin()
+	if origin.is_empty():
+		return
+	var rate: Dictionary = CompendiumWorldOptions.roll_interest_rate()
+	var enforcement: Dictionary = CompendiumWorldOptions.roll_enforcement_threshold()
+
+	# Loan amount: flat 20cr (Compendium standard starting loan)
+	var loan_amount: int = 20
+
+	current_loan = {
+		"debt": loan_amount,
+		"origin_id": origin.get("id", ""),
+		"origin_name": origin.get("name", "Unknown"),
+		"rate_id": rate.get("id", ""),
+		"rate_name": rate.get("name", "Standard"),
+		"rate_low": rate.get("low", 1),
+		"rate_high": rate.get("high", 2),
+		"enforcement_threshold_1": enforcement.get("threshold_1", 0),
+		"enforcement_threshold_2": enforcement.get("threshold_2", 0),
+		"turns_active": 0,
+	}
+
+	# Grant loan credits
+	current_credits += loan_amount
+	_save_current_loan()
+	update_credits_display()
+	_refresh_loan_display()
+
+	if item_details:
+		var desc: String = "[color=#10B981]Loan Taken: +%dcr[/color]\n" % loan_amount
+		desc += "Origin: %s\n" % origin.get("name", "Unknown")
+		desc += "Rate: %s\n" % rate.get("name", "Standard")
+		desc += origin.get("instruction", "")
+		_set_keyword_text(item_details, desc)

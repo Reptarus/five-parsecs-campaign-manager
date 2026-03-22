@@ -239,6 +239,11 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 		campaign.progress_data["extra_starting_characters"] = profile.get_extra_starting_characters()
 		# Story point bonus applied later in initialize_resources via DifficultyModifiers
 
+	# Compendium DLC: Introductory campaign flag (guided missions for first few turns)
+	var config: Dictionary = data.get("campaign_config", data.get("config", {}))
+	if config.get("introductory_campaign", false):
+		campaign.progress_data["introductory_campaign"] = true
+
 	# RULES FIX: crew.members now includes captain (merged by coordinator)
 	var crew_data = data.get("crew", {})
 	var transformed_crew = _transform_crew_data_for_turn_system(crew_data)

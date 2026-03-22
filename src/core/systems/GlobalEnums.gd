@@ -218,8 +218,9 @@ enum Origin {
 	COLONY,
 	HIVE_WORLD,
 	FORGE_WORLD,
-	KRAG,    # Compendium DLC — Trailblazer's Toolkit
-	SKULKER  # Compendium DLC — Trailblazer's Toolkit
+	KRAG,           # Compendium DLC — Trailblazer's Toolkit
+	SKULKER,        # Compendium DLC — Trailblazer's Toolkit
+	PRISON_PLANET   # Compendium DLC — Fixer's Guidebook
 }
 
 ## Character Background

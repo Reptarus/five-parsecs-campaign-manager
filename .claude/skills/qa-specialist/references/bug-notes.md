@@ -38,6 +38,18 @@ Canonical bug tracker for QA reference. Updated after each fix sprint.
 | ~~Equipment table names~~ | **FIXED** | All weapon data rewritten from Core Rules p.50 (weapons.json + equipment_database.json). Invented weapons removed. |
 | Victory condition metric tracking | Deferred | Feature addition: counters for enemies/credits/worlds |
 
+## MCP QA Sprint Results (Mar 21, 2026)
+
+7 sessions (QA-1 through QA-7), 62/66 PASS, 4 N/A. Full new campaign creation + 1 complete turn + save/load roundtrip.
+
+**All regressions verified PASS**: BUG-031 (dual-sync), BUG-033 (battles_won), BUG-035 (equipment), species bonuses (Swift +1 Speed, Soulless +1T/+1Sv).
+
+**Companion app audit PASS**: Every phase requires player clicks, battle UI shows text instructions + tabletop tools, 3-tier companion level (Log Only / Assisted / Full Oracle).
+
+**DLC flag activation gotcha**: `set_dlc_owned()` sets ownership but does NOT auto-enable feature flags. Must also call `set_feature_enabled()` per flag for MCP testing.
+
+**Compendium street fights method name**: `roll_enemy_type()` NOT `roll_enemy()`. Calling wrong name triggers debugger break.
+
 ## Patterns to Watch
 
 - **GameStateManager dual-sync**: All setters that modify campaign state MUST also write to `progress_data`. If a new setter is added, check that both paths sync. Root cause of BUG-031.
