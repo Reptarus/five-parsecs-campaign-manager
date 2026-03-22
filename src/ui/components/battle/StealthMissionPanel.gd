@@ -8,6 +8,7 @@ extends PanelContainer
 ## Usage: var panel = StealthMissionPanel.new(); panel.setup_mission(mission_data)
 
 const StealthGenRef = preload("res://src/core/mission/StealthMissionGenerator.gd")
+const CompendiumStealthRef = preload("res://src/data/compendium_stealth_missions.gd")
 
 const COLOR_STEALTH := UIColors.COLOR_EMERALD  # Green - undetected
 const COLOR_DETECTED := UIColors.COLOR_DANGER   # Red - detected
@@ -137,6 +138,21 @@ func setup_mission(mission_data: Dictionary) -> void:
 
 func _show_setup() -> void:
 	var setup_text := StealthGenRef.generate_setup_instructions(_mission_data)
+	# Enrich with Compendium stealth rules if DLC enabled
+	var compendium_setup := CompendiumStealthRef.generate_mission_setup()
+	if not compendium_setup.is_empty():
+		setup_text += "\n\n[color=#2D5A7B]── Compendium Stealth Rules ──[/color]\n"
+		if compendium_setup.has("objective"):
+			setup_text += "\n" + compendium_setup.objective.get("instruction", "")
+		if compendium_setup.has("finding_target"):
+			setup_text += "\n\n" + str(compendium_setup.finding_target)
+		if compendium_setup.has("individual"):
+			var ind: Dictionary = compendium_setup.individual
+			setup_text += "\n\nINDIVIDUAL: %s" % ind.get("name", "Unknown")
+			setup_text += "\n" + CompendiumStealthRef.INDIVIDUAL_RULES
+		if compendium_setup.has("item_rules"):
+			setup_text += "\n\n" + str(compendium_setup.item_rules)
+		setup_text += "\n\n" + CompendiumStealthRef.DEPLOYMENT_RULES
 	_instruction_display.text = setup_text
 	_round_label.text = "Round: Setup"
 	_status_label.text = "Status: HIDDEN"
@@ -153,6 +169,13 @@ func _on_advance_pressed() -> void:
 	var round_text := StealthGenRef.generate_stealth_round_instructions(
 		_current_round, _mission_data
 	)
+	# Append compendium detection/tools rules on each round
+	var compendium_setup := CompendiumStealthRef.generate_mission_setup()
+	if not compendium_setup.is_empty():
+		round_text += "\n\n[color=#2D5A7B]── Stealth Tools ──[/color]"
+		for tool_data: Dictionary in CompendiumStealthRef.STEALTH_TOOLS:
+			round_text += "\n• " + tool_data.get("instruction", "")
+		round_text += "\n\n" + CompendiumStealthRef.DETECTION_RULES
 	_instruction_display.text = round_text
 	round_advanced.emit(_current_round)
 

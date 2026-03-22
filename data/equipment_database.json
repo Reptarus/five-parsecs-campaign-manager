@@ -1,292 +1,101 @@
 {
 	"_metadata": {
 		"name": "Equipment Database (Commerce)",
-		"description": "Equipment with cost/rarity data for trading UI. Weapons section matches Core Rules. CAUTION: armor, gear, and attachments sections are placeholder/fabricated data from early development — NOT from Core Rules. Canonical game data lives in: armor.json, consumables.json, utility_devices.json, onboard_items.json, implants.json, weapon_modifications.json.",
-		"status": "weapons_verified_armor_gear_attachments_fabricated",
-		"version": "1.0"
+		"description": "All equipment with cost/rarity data for trading UI. All items verified against Core Rules pp.49-58. Costs are game-balance estimates (Core Rules uses table-roll purchasing at 3 credits per roll). Canonical detailed data lives in: armor.json, consumables.json, utility_devices.json, onboard_items.json, implants.json, weapon_modifications.json.",
+		"source": "Five Parsecs from Home Core Rules pp.49-58, 125",
+		"version": "2.0",
+		"purchase_rules": "Pay 3 credits for a roll on Military Weapon, Gear, or Gadget table. Basic items (Hand Gun, Blade, Colony Rifle, Shotgun) cost 1 credit each. Sell up to 3 items for 1 credit each."
 	},
 	"weapons": [
-		{"id": "hand_gun", "name": "Hand Gun", "type": "Slug", "damage": 0, "range": 12, "shots": 1, "traits": ["Pistol"], "cost": 15, "rarity": "Common", "description": "Standard sidearm. Grants +1 to Brawling rolls."},
-		{"id": "hand_cannon", "name": "Hand Cannon", "type": "Slug", "damage": 2, "range": 8, "shots": 1, "traits": ["Pistol"], "cost": 30, "rarity": "Uncommon", "description": "Heavy pistol with devastating stopping power."},
-		{"id": "colony_rifle", "name": "Colony Rifle", "type": "Slug", "damage": 0, "range": 18, "shots": 1, "traits": [], "cost": 15, "rarity": "Common", "description": "Basic frontier rifle."},
-		{"id": "military_rifle", "name": "Military Rifle", "type": "Slug", "damage": 0, "range": 24, "shots": 1, "traits": [], "cost": 25, "rarity": "Common", "description": "Standard military-issue rifle."},
-		{"id": "auto_rifle", "name": "Auto Rifle", "type": "Slug", "damage": 0, "range": 24, "shots": 2, "traits": [], "cost": 30, "rarity": "Common", "description": "Automatic rifle with burst-fire capability."},
-		{"id": "shotgun", "name": "Shotgun", "type": "Slug", "damage": 1, "range": 12, "shots": 2, "traits": ["Focused"], "cost": 25, "rarity": "Common", "description": "Close-range weapon. Must direct all shots against a single target."},
-		{"id": "hunting_rifle", "name": "Hunting Rifle", "type": "Slug", "damage": 1, "range": 30, "shots": 1, "traits": ["Heavy"], "cost": 35, "rarity": "Common", "description": "Long-range rifle. Suffers -1 to hit when moving."},
-		{"id": "marksmans_rifle", "name": "Marksman's Rifle", "type": "Slug", "damage": 0, "range": 36, "shots": 1, "traits": ["Heavy"], "cost": 40, "rarity": "Uncommon", "description": "Precision long-range rifle."},
-		{"id": "rattle_gun", "name": "Rattle Gun", "type": "Slug", "damage": 0, "range": 24, "shots": 3, "traits": ["Heavy"], "cost": 45, "rarity": "Uncommon", "description": "High-rate-of-fire support weapon."},
-		{"id": "flak_gun", "name": "Flak Gun", "type": "Slug", "damage": 1, "range": 8, "shots": 2, "traits": ["Focused", "Critical"], "cost": 35, "rarity": "Uncommon", "description": "Short-range weapon that fires fragmentation rounds."},
-		{"id": "shell_gun", "name": "Shell Gun", "type": "Slug", "damage": 0, "range": 30, "shots": 2, "traits": ["Heavy", "Area"], "cost": 50, "rarity": "Uncommon", "description": "Fires explosive shells over long range."},
-		{"id": "hand_laser", "name": "Hand Laser", "type": "Energy", "damage": 0, "range": 12, "shots": 1, "traits": ["Snap Shot", "Pistol"], "cost": 25, "rarity": "Common", "description": "Compact energy sidearm."},
-		{"id": "beam_pistol", "name": "Beam Pistol", "type": "Energy", "damage": 1, "range": 10, "shots": 1, "traits": ["Pistol", "Critical"], "cost": 30, "rarity": "Uncommon", "description": "Focused beam sidearm with armor-cracking potential."},
-		{"id": "infantry_laser", "name": "Infantry Laser", "type": "Energy", "damage": 0, "range": 30, "shots": 1, "traits": ["Snap Shot"], "cost": 35, "rarity": "Common", "description": "Standard-issue energy rifle."},
-		{"id": "blast_rifle", "name": "Blast Rifle", "type": "Energy", "damage": 1, "range": 16, "shots": 1, "traits": [], "cost": 40, "rarity": "Uncommon", "description": "Mid-range energy weapon."},
-		{"id": "hyper_blaster", "name": "Hyper Blaster", "type": "Energy", "damage": 1, "range": 24, "shots": 3, "traits": [], "cost": 55, "rarity": "Uncommon", "description": "High-output energy weapon with rapid fire."},
-		{"id": "fury_rifle", "name": "Fury Rifle", "type": "Energy", "damage": 2, "range": 24, "shots": 1, "traits": ["Heavy", "Piercing"], "cost": 65, "rarity": "Rare", "description": "Powerful energy rifle that ignores saving throws."},
-		{"id": "plasma_rifle", "name": "Plasma Rifle", "type": "Special", "damage": 1, "range": 20, "shots": 2, "traits": ["Focused", "Piercing"], "cost": 60, "rarity": "Rare", "description": "Advanced weapon that fires superheated plasma. Ignores saving throws."},
-		{"id": "needle_rifle", "name": "Needle Rifle", "type": "Special", "damage": 0, "range": 18, "shots": 2, "traits": ["Critical"], "cost": 45, "rarity": "Uncommon", "description": "Fires microscopic needles that find weak points."},
-		{"id": "cling_fire_pistol", "name": "Cling Fire Pistol", "type": "Special", "damage": 1, "range": 12, "shots": 2, "traits": ["Focused", "Terrifying"], "cost": 50, "rarity": "Rare", "description": "Projects adhesive incendiary compounds."},
-		{"id": "hand_flamer", "name": "Hand Flamer", "type": "Special", "damage": 1, "range": 12, "shots": 2, "traits": ["Focused", "Area"], "cost": 45, "rarity": "Uncommon", "description": "Projects a cone of flame. Affects all figures within 2 inches."},
-		{"id": "blade", "name": "Blade", "type": "Melee", "damage": 0, "range": 0, "shots": 0, "traits": ["Melee"], "cost": 10, "rarity": "Common", "description": "Basic melee weapon. Grants +2 to Brawling rolls."},
-		{"id": "ripper_sword", "name": "Ripper Sword", "type": "Melee", "damage": 1, "range": 0, "shots": 0, "traits": ["Melee"], "cost": 20, "rarity": "Common", "description": "Serrated blade that inflicts vicious wounds."},
-		{"id": "boarding_saber", "name": "Boarding Saber", "type": "Melee", "damage": 1, "range": 0, "shots": 0, "traits": ["Melee", "Elegant"], "cost": 25, "rarity": "Uncommon", "description": "Refined melee weapon favored by ship crews."},
-		{"id": "shatter_axe", "name": "Shatter Axe", "type": "Melee", "damage": 2, "range": 0, "shots": 0, "traits": ["Melee"], "cost": 30, "rarity": "Uncommon", "description": "Heavy axe designed to breach armor."},
-		{"id": "power_claw", "name": "Power Claw", "type": "Melee", "damage": 3, "range": 0, "shots": 0, "traits": ["Melee", "Clumsy"], "cost": 40, "rarity": "Rare", "description": "Powered crushing weapon. Clumsy but devastating."},
-		{"id": "glare_sword", "name": "Glare Sword", "type": "Melee", "damage": 0, "range": 0, "shots": 0, "traits": ["Melee", "Elegant", "Piercing"], "cost": 50, "rarity": "Rare", "description": "Energy-edged blade that ignores saving throws."},
-		{"id": "suppression_maul", "name": "Suppression Maul", "type": "Melee", "damage": 1, "range": 0, "shots": 0, "traits": ["Melee", "Impact"], "cost": 35, "rarity": "Uncommon", "description": "Heavy impact weapon used for crowd control."},
-		{"id": "frakk_grenade", "name": "Frakk Grenade", "type": "Grenade", "damage": 0, "range": 6, "shots": 2, "traits": ["Heavy", "Area", "Single use"], "cost": 15, "rarity": "Common", "description": "Fragmentation grenade. Affects all figures within 2 inches."},
-		{"id": "dazzle_grenade", "name": "Dazzle Grenade", "type": "Grenade", "damage": 0, "range": 6, "shots": 1, "traits": ["Heavy", "Area", "Stun", "Single use"], "cost": 15, "rarity": "Common", "description": "Stun grenade that disorients targets within blast radius."}
+		{"id": "hand_gun", "name": "Hand Gun", "type": "Slug", "damage": 0, "range": 12, "shots": 1, "traits": ["Pistol"], "cost": 1, "rarity": "Common", "description": "Conventional semi-automatic pistol in a medium caliber."},
+		{"id": "hand_cannon", "name": "Hand Cannon", "type": "Slug", "damage": 2, "range": 8, "shots": 1, "traits": ["Pistol"], "cost": 3, "rarity": "Uncommon", "description": "Heavy pistol in a massive caliber."},
+		{"id": "scrap_pistol", "name": "Scrap Pistol", "type": "Slug", "damage": 0, "range": 9, "shots": 1, "traits": ["Pistol"], "cost": 1, "rarity": "Common", "description": "A pistol pieced together from scavenged parts."},
+		{"id": "machine_pistol", "name": "Machine Pistol", "type": "Slug", "damage": 0, "range": 8, "shots": 2, "traits": ["Pistol", "Focused"], "cost": 2, "rarity": "Common", "description": "A compact, fully automatic firearm in pistol caliber."},
+		{"id": "hold_out_pistol", "name": "Hold Out Pistol", "type": "Slug", "damage": 0, "range": 4, "shots": 1, "traits": ["Pistol", "Melee"], "cost": 1, "rarity": "Common", "description": "Compact pocket-pistol for personal defense."},
+		{"id": "duelling_pistol", "name": "Duelling Pistol", "type": "Slug", "damage": 0, "range": 8, "shots": 1, "traits": ["Pistol", "Critical"], "cost": 3, "rarity": "Uncommon", "description": "Custom-made pistol built for careful aiming."},
+		{"id": "colony_rifle", "name": "Colony Rifle", "type": "Slug", "damage": 0, "range": 18, "shots": 1, "traits": [], "cost": 1, "rarity": "Common", "description": "Standard-type defensive rifle, popular with colonists."},
+		{"id": "military_rifle", "name": "Military Rifle", "type": "Slug", "damage": 0, "range": 24, "shots": 1, "traits": [], "cost": 3, "rarity": "Common", "description": "Conventional military automatic rifle."},
+		{"id": "auto_rifle", "name": "Auto Rifle", "type": "Slug", "damage": 0, "range": 24, "shots": 2, "traits": [], "cost": 3, "rarity": "Common", "description": "Heavy rifle fitted with an ammo drum for medium-range fire support."},
+		{"id": "shotgun", "name": "Shotgun", "type": "Slug", "damage": 1, "range": 12, "shots": 2, "traits": ["Focused"], "cost": 1, "rarity": "Common", "description": "Smooth-bore weapon firing a hail of pellets."},
+		{"id": "hunting_rifle", "name": "Hunting Rifle", "type": "Slug", "damage": 1, "range": 30, "shots": 1, "traits": ["Heavy"], "cost": 3, "rarity": "Common", "description": "Typical high-caliber rifle for hunting large, dangerous animals."},
+		{"id": "marksmans_rifle", "name": "Marksman's Rifle", "type": "Slug", "damage": 0, "range": 36, "shots": 1, "traits": ["Heavy"], "cost": 3, "rarity": "Uncommon", "description": "Military rifle built for sharp shooting."},
+		{"id": "rattle_gun", "name": "Rattle Gun", "type": "Slug", "damage": 0, "range": 24, "shots": 3, "traits": ["Heavy"], "cost": 3, "rarity": "Uncommon", "description": "Conventional machine gun, typically belt-fed."},
+		{"id": "flak_gun", "name": "Flak Gun", "type": "Slug", "damage": 1, "range": 8, "shots": 2, "traits": ["Focused", "Critical"], "cost": 3, "rarity": "Uncommon", "description": "Powerful military shotgun for boarding operations."},
+		{"id": "shell_gun", "name": "Shell Gun", "type": "Slug", "damage": 0, "range": 30, "shots": 2, "traits": ["Heavy", "Area"], "cost": 3, "rarity": "Uncommon", "description": "Stand-alone grenade launcher, often custom-built."},
+		{"id": "hand_laser", "name": "Hand Laser", "type": "Energy", "damage": 0, "range": 12, "shots": 1, "traits": ["Snap Shot", "Pistol"], "cost": 3, "rarity": "Common", "description": "Portable energy-based pistol, popular due to ease of use."},
+		{"id": "beam_pistol", "name": "Beam Pistol", "type": "Energy", "damage": 1, "range": 10, "shots": 1, "traits": ["Pistol", "Critical"], "cost": 3, "rarity": "Uncommon", "description": "Military-grade heavy-energy pistol with tightly focused beam."},
+		{"id": "blast_pistol", "name": "Blast Pistol", "type": "Energy", "damage": 1, "range": 8, "shots": 1, "traits": ["Pistol"], "cost": 3, "rarity": "Uncommon", "description": "Projects a bolt of searing energy which detonates on impact."},
+		{"id": "infantry_laser", "name": "Infantry Laser", "type": "Energy", "damage": 0, "range": 30, "shots": 1, "traits": ["Snap Shot"], "cost": 3, "rarity": "Common", "description": "Military energy rifle with detachable battery pack."},
+		{"id": "blast_rifle", "name": "Blast Rifle", "type": "Energy", "damage": 1, "range": 16, "shots": 1, "traits": [], "cost": 3, "rarity": "Uncommon", "description": "Rifle or carbine energy bolt weapon."},
+		{"id": "hyper_blaster", "name": "Hyper Blaster", "type": "Energy", "damage": 1, "range": 24, "shots": 3, "traits": [], "cost": 3, "rarity": "Rare", "description": "Rapid-fire blast weapon with three rotating barrels."},
+		{"id": "fury_rifle", "name": "Fury Rifle", "type": "Energy", "damage": 2, "range": 24, "shots": 1, "traits": ["Heavy", "Piercing"], "cost": 3, "rarity": "Rare", "description": "High-powered beam weapon modified from anti-tank designs."},
+		{"id": "plasma_rifle", "name": "Plasma Rifle", "type": "Special", "damage": 1, "range": 20, "shots": 2, "traits": ["Focused", "Piercing"], "cost": 3, "rarity": "Rare", "description": "Heavy rifle firing blue-white energy bolts."},
+		{"id": "needle_rifle", "name": "Needle Rifle", "type": "Special", "damage": 0, "range": 18, "shots": 2, "traits": ["Critical"], "cost": 3, "rarity": "Uncommon", "description": "Uses magnetism to launch razor-sharp needles."},
+		{"id": "cling_fire_pistol", "name": "Cling Fire Pistol", "type": "Special", "damage": 1, "range": 12, "shots": 2, "traits": ["Focused", "Terrifying"], "cost": 3, "rarity": "Rare", "description": "Side arm firing a spray of sticky, burning chemicals."},
+		{"id": "hand_flamer", "name": "Hand Flamer", "type": "Special", "damage": 1, "range": 12, "shots": 2, "traits": ["Focused", "Area"], "cost": 3, "rarity": "Uncommon", "description": "Portable flame-throwing device with broad focus."},
+		{"id": "blade", "name": "Blade", "type": "Melee", "damage": 0, "range": 0, "shots": 0, "traits": ["Melee"], "cost": 1, "rarity": "Common", "description": "Sturdy, light-weight fencing or slashing blade."},
+		{"id": "ripper_sword", "name": "Ripper Sword", "type": "Melee", "damage": 1, "range": 0, "shots": 0, "traits": ["Melee"], "cost": 3, "rarity": "Common", "description": "Short, chopping blade fitted with microscopic teeth."},
+		{"id": "boarding_saber", "name": "Boarding Saber", "type": "Melee", "damage": 1, "range": 0, "shots": 0, "traits": ["Melee", "Elegant"], "cost": 3, "rarity": "Uncommon", "description": "Heavy but carefully balanced sword, often fitted with hand guards."},
+		{"id": "brutal_melee_weapon", "name": "Brutal Melee Weapon", "type": "Melee", "damage": 1, "range": 0, "shots": 0, "traits": ["Melee", "Clumsy"], "cost": 3, "rarity": "Common", "description": "A heavy, unpleasant-looking weapon for smashing."},
+		{"id": "shatter_axe", "name": "Shatter Axe", "type": "Melee", "damage": 2, "range": 0, "shots": 0, "traits": ["Melee"], "cost": 3, "rarity": "Uncommon", "description": "Bulky weapon that discharges energy as it strikes."},
+		{"id": "power_claw", "name": "Power Claw", "type": "Melee", "damage": 3, "range": 0, "shots": 0, "traits": ["Melee", "Clumsy"], "cost": 3, "rarity": "Rare", "description": "Heavy servo-boosted gauntlet capable of punching through steel."},
+		{"id": "glare_sword", "name": "Glare Sword", "type": "Melee", "damage": 0, "range": 0, "shots": 0, "traits": ["Melee", "Elegant", "Piercing"], "cost": 3, "rarity": "Rare", "description": "Elegant fencing weapon encased in a disruptive energy field."},
+		{"id": "suppression_maul", "name": "Suppression Maul", "type": "Melee", "damage": 1, "range": 0, "shots": 0, "traits": ["Melee", "Impact"], "cost": 3, "rarity": "Uncommon", "description": "Riot-control weapon that overloads pain receptors."},
+		{"id": "frakk_grenade", "name": "Frakk Grenade", "type": "Grenade", "damage": 0, "range": 6, "shots": 2, "traits": ["Heavy", "Area", "Single use"], "cost": 1, "rarity": "Common", "description": "Explosive charge surrounded by a metal casing."},
+		{"id": "dazzle_grenade", "name": "Dazzle Grenade", "type": "Grenade", "damage": 0, "range": 6, "shots": 1, "traits": ["Heavy", "Area", "Stun", "Single use"], "cost": 1, "rarity": "Common", "description": "Shock charge emitting a loud flash and deafening sound."}
 	],
 	"armor": [
-		{
-			"id": "light_armor",
-			"name": "Light Armor",
-			"type": "Personal",
-			"protection": 1,
-			"mobility_penalty": 0,
-			"traits": [
-				"Light",
-				"Flexible"
-			],
-			"cost": 30,
-			"rarity": "Common",
-			"description": "Basic protection that doesn't restrict movement."
-		},
-		{
-			"id": "combat_armor",
-			"name": "Combat Armor",
-			"type": "Military",
-			"protection": 2,
-			"mobility_penalty": 1,
-			"traits": [
-				"Durable",
-				"Environmental"
-			],
-			"cost": 75,
-			"rarity": "Common",
-			"description": "Standard military-grade armor with good all-around protection."
-		},
-		{
-			"id": "heavy_armor",
-			"name": "Heavy Armor",
-			"type": "Military",
-			"protection": 3,
-			"mobility_penalty": 2,
-			"traits": [
-				"Heavy",
-				"Reinforced"
-			],
-			"cost": 120,
-			"rarity": "Uncommon",
-			"description": "Heavy-duty armor that provides excellent protection at the cost of mobility."
-		},
-		{
-			"id": "powered_armor",
-			"name": "Powered Armor",
-			"type": "High-Tech",
-			"protection": 4,
-			"mobility_penalty": 0,
-			"traits": [
-				"Powered",
-				"Environmental",
-				"Strength Boost"
-			],
-			"cost": 200,
-			"rarity": "Rare",
-			"description": "Advanced exoskeleton that enhances strength while providing superior protection."
-		},
-		{
-			"id": "stealth_suit",
-			"name": "Stealth Suit",
-			"type": "High-Tech",
-			"protection": 1,
-			"mobility_penalty": 0,
-			"traits": [
-				"Stealth",
-				"Light",
-				"Sensor Dampening"
-			],
-			"cost": 150,
-			"rarity": "Rare",
-			"description": "Specialized suit that reduces visibility to sensors and the naked eye."
-		},
-		{
-			"id": "hazard_suit",
-			"name": "Hazard Suit",
-			"type": "Specialist",
-			"protection": 2,
-			"mobility_penalty": 1,
-			"traits": [
-				"Environmental",
-				"Radiation Resistant",
-				"Chemical Resistant"
-			],
-			"cost": 90,
-			"rarity": "Uncommon",
-			"description": "Specialized protection against environmental hazards and contamination."
-		}
+		{"id": "frag_vest", "name": "Frag Vest", "type": "Armor", "saving_throw": "6+", "area_saving_throw": "5+", "cost": 3, "rarity": "Common", "description": "6+ Saving Throw, improved to 5+ against any Area attack."},
+		{"id": "combat_armor", "name": "Combat Armor", "type": "Armor", "saving_throw": "5+", "cost": 3, "rarity": "Common", "description": "Saving Throw 5+."},
+		{"id": "battle_dress", "name": "Battle Dress", "type": "Armor", "saving_throw": "5+", "stat_bonus": {"reactions": 1, "reactions_cap": 4}, "cost": 3, "rarity": "Uncommon", "description": "+1 Reactions (max 4) and a Saving Throw of 5+."},
+		{"id": "flex_armor", "name": "Flex-Armor", "type": "Armor", "saving_throw": "none", "conditional_bonus": {"toughness": 1, "toughness_cap": 6, "condition": "did_not_move"}, "cost": 3, "rarity": "Common", "description": "If the character did not move, +1 Toughness (max 6)."},
+		{"id": "stealth_gear", "name": "Stealth Gear", "type": "Armor", "saving_throw": "none", "hit_penalty": {"amount": -1, "condition": "range_over_9"}, "cost": 3, "rarity": "Common", "description": "Enemies firing from over 9\" are -1 to Hit."},
+		{"id": "camo_cloak", "name": "Camo Cloak", "type": "Screen", "saving_throw": "none", "cover_extension": "2\"", "negated_within": "4\"", "cost": 3, "rarity": "Common", "description": "Within 2\" of Cover, counts as in Cover. Not if shooter within 4\"."},
+		{"id": "deflector_field", "name": "Deflector Field", "type": "Screen", "saving_throw": "none", "auto_deflect": 1, "per": "battle", "cost": 3, "rarity": "Uncommon", "description": "Automatically deflects one ranged Hit per battle."},
+		{"id": "flak_screen", "name": "Flak Screen", "type": "Screen", "saving_throw": "none", "area_damage_reduction": -1, "area_damage_floor": 0, "cost": 3, "rarity": "Common", "description": "Area weapons have Damage reduced by -1 (min +0)."},
+		{"id": "screen_generator", "name": "Screen Generator", "type": "Screen", "saving_throw": "5+", "effective_against": "gunfire", "no_effect": ["area", "melee"], "cost": 3, "rarity": "Uncommon", "description": "5+ Saving Throw against gunfire. No effect against Area or Melee."}
 	],
 	"gear": [
-		{
-			"id": "medkit",
-			"name": "Medkit",
-			"type": "Medical",
-			"effect": "Heal 1D6 health points",
-			"uses": 3,
-			"cost": 40,
-			"rarity": "Common",
-			"description": "Standard medical kit for treating injuries in the field."
-		},
-		{
-			"id": "repair_kit",
-			"name": "Repair Kit",
-			"type": "Technical",
-			"effect": "Repair damaged equipment or restore 1D6 health to bots",
-			"uses": 3,
-			"cost": 35,
-			"rarity": "Common",
-			"description": "Tools and parts for field repairs of equipment and mechanical units."
-		},
-		{
-			"id": "scanner",
-			"name": "Scanner",
-			"type": "Technical",
-			"effect": "Detect hidden objects and lifeforms within 12 inches",
-			"uses": "Unlimited",
-			"cost": 50,
-			"rarity": "Common",
-			"description": "Handheld device that can detect various signatures through walls and obstacles."
-		},
-		{
-			"id": "grapple_gun",
-			"name": "Grapple Gun",
-			"type": "Mobility",
-			"effect": "Move to any point within 18 inches that can support your weight",
-			"uses": 3,
-			"cost": 45,
-			"rarity": "Uncommon",
-			"description": "Launches a grappling hook that allows rapid vertical and horizontal movement."
-		},
-		{
-			"id": "stim_pack",
-			"name": "Stim Pack",
-			"type": "Medical",
-			"effect": "+1 to all stats for one turn, then -1 to all stats for one turn",
-			"uses": 1,
-			"cost": 30,
-			"rarity": "Uncommon",
-			"description": "Combat stimulant that temporarily enhances performance followed by a crash."
-		},
-		{
-			"id": "cloaking_device",
-			"name": "Cloaking Device",
-			"type": "High-Tech",
-			"effect": "Become invisible to visual detection for 1D3 turns",
-			"uses": 1,
-			"cost": 100,
-			"rarity": "Rare",
-			"description": "Personal stealth field generator that bends light around the user."
-		},
-		{
-			"id": "energy_shield",
-			"name": "Energy Shield",
-			"type": "High-Tech",
-			"effect": "+2 protection against all attacks for 1D3 turns",
-			"uses": 2,
-			"cost": 85,
-			"rarity": "Rare",
-			"description": "Portable energy barrier that provides temporary protection from attacks."
-		},
-		{
-			"id": "hacking_tool",
-			"name": "Hacking Tool",
-			"type": "Technical",
-			"effect": "Bypass electronic locks or control automated systems",
-			"uses": 3,
-			"cost": 60,
-			"rarity": "Uncommon",
-			"description": "Advanced device for interfacing with and overriding electronic systems."
-		}
+		{"id": "booster_pills", "name": "Booster Pills", "type": "Consumable", "single_use": true, "cost": 3, "rarity": "Common", "description": "Remove all Stun markers. Move at double Speed this round."},
+		{"id": "combat_serum", "name": "Combat Serum", "type": "Consumable", "single_use": true, "cost": 3, "rarity": "Uncommon", "description": "+2\" Speed and +2 Reactions for the rest of the battle."},
+		{"id": "kiranin_crystals", "name": "Kiranin Crystals", "type": "Consumable", "single_use": true, "cost": 3, "rarity": "Rare", "description": "Daze all characters within 4\" (unable to act this round)."},
+		{"id": "rage_out", "name": "Rage Out", "type": "Consumable", "single_use": true, "cost": 3, "rarity": "Uncommon", "description": "+2\" Speed and +1 Brawling for this and next round. K'Erin: rest of battle."},
+		{"id": "still", "name": "Still", "type": "Consumable", "single_use": true, "cost": 3, "rarity": "Common", "description": "+1 to Hit, but cannot Move this and next round."},
+		{"id": "stim_pack", "name": "Stim-pack", "type": "Consumable", "single_use": true, "cost": 3, "rarity": "Common", "description": "Prevent casualty — remain on table with 1 Stun. Reflexive, no action required."},
+		{"id": "auto_sensor", "name": "Auto Sensor", "type": "Utility Device", "single_use": false, "cost": 3, "rarity": "Uncommon", "description": "Fire one Pistol shot at enemies beginning/ending move within 4\" and LoS. Hits on natural 6 only."},
+		{"id": "battle_visor", "name": "Battle Visor", "type": "Utility Device", "single_use": false, "cost": 3, "rarity": "Uncommon", "description": "When shooting, reroll any 1s on the firing dice."},
+		{"id": "communicator", "name": "Communicator", "type": "Utility Device", "single_use": false, "cost": 3, "rarity": "Common", "description": "Roll one additional Reaction die, then discard one."},
+		{"id": "concealed_blade", "name": "Concealed Blade", "type": "Utility Device", "single_use": false, "cost": 3, "rarity": "Common", "description": "Throw at enemy within 2\" as Free Action. Damage +0. Once per battle, replaced free."},
+		{"id": "displacer", "name": "Displacer", "type": "Utility Device", "single_use": false, "cost": 3, "rarity": "Rare", "description": "Once per mission: teleport 1D6\" from aimed point. Precursors get two landing points."},
+		{"id": "distraction_bot", "name": "Distraction Bot", "type": "Utility Device", "single_use": false, "cost": 3, "rarity": "Uncommon", "description": "Once per battle: enemy within 12\" cannot act next activation."},
+		{"id": "grapple_launcher", "name": "Grapple Launcher", "type": "Utility Device", "single_use": false, "cost": 3, "rarity": "Common", "description": "As Combat Action, scale terrain within 1\". Ascend up to 12\"."},
+		{"id": "grav_dampener", "name": "Grav Dampener", "type": "Utility Device", "single_use": false, "cost": 3, "rarity": "Common", "description": "No falling damage. Descend from any height safely. Drop >6\" counts as Move."},
+		{"id": "hazard_suit", "name": "Hazard Suit", "type": "Utility Device", "single_use": false, "cost": 3, "rarity": "Common", "description": "5+ Saving Throw against environmental hazard Hits."},
+		{"id": "hover_board", "name": "Hover Board", "type": "Utility Device", "single_use": false, "cost": 3, "rarity": "Uncommon", "description": "Move up to 9\", ignore man-height terrain. No combat while boarding."},
+		{"id": "insta_wall", "name": "Insta-Wall", "type": "Utility Device", "single_use": false, "cost": 3, "rarity": "Rare", "description": "Once per mission: place 2\" impenetrable force wall within 3\". Dissipates on D6=6."},
+		{"id": "jump_belt", "name": "Jump Belt", "type": "Utility Device", "single_use": false, "cost": 3, "rarity": "Uncommon", "description": "Instead of moving: jump 9\" forward and 3\" up. Combat Action allowed after."},
+		{"id": "motion_tracker", "name": "Motion Tracker", "type": "Utility Device", "single_use": false, "cost": 3, "rarity": "Common", "description": "+1 to all Seize the Initiative rolls."},
+		{"id": "multi_cutter", "name": "Multi-Cutter", "type": "Utility Device", "single_use": false, "cost": 3, "rarity": "Common", "description": "As Combat Action, cut man-sized hole through terrain up to 1\" thick."},
+		{"id": "robo_rabbits_foot", "name": "Robo-Rabbit's Foot", "type": "Utility Device", "single_use": false, "cost": 3, "rarity": "Rare", "description": "Luck 0 counts as 1. Prevents death once (destroyed after)."},
+		{"id": "scanner_bot", "name": "Scanner Bot", "type": "Utility Device", "single_use": false, "cost": 3, "rarity": "Uncommon", "description": "Crew +1 to all Seize the Initiative rolls."},
+		{"id": "snooper_bot", "name": "Snooper Bot", "type": "Utility Device", "single_use": false, "cost": 3, "rarity": "Uncommon", "description": "Ignore Seize the Initiative penalties. Damaged on D6=1."},
+		{"id": "sonic_emitter", "name": "Sonic Emitter", "type": "Utility Device", "single_use": false, "cost": 3, "rarity": "Uncommon", "description": "Enemies within 5\" suffer -1 to all Hit rolls when shooting."},
+		{"id": "steel_boots", "name": "Steel Boots", "type": "Utility Device", "single_use": false, "cost": 3, "rarity": "Common", "description": "On natural 5-6 Brawl win: kick opponent 1D3\" back, Damage +0."},
+		{"id": "time_distorter", "name": "Time Distorter", "type": "Utility Device", "single_use": true, "cost": 3, "rarity": "Rare", "description": "Freeze up to 3 enemies until end of following round. Single-use."}
 	],
 	"attachments": [
-		{
-			"id": "scope",
-			"name": "Weapon Scope",
-			"compatible_with": [
-				"assault_rifle",
-				"sniper_rifle",
-				"gauss_rifle"
-			],
-			"effect": "+1 to hit at long range",
-			"cost": 25,
-			"rarity": "Common",
-			"description": "Optical enhancement that improves accuracy at long distances."
-		},
-		{
-			"id": "silencer",
-			"name": "Silencer",
-			"compatible_with": [
-				"assault_rifle",
-				"sniper_rifle",
-				"plasma_pistol"
-			],
-			"effect": "Weapon becomes silent",
-			"cost": 20,
-			"rarity": "Common",
-			"description": "Suppresses the sound of weapon discharge."
-		},
-		{
-			"id": "extended_magazine",
-			"name": "Extended Magazine",
-			"compatible_with": [
-				"assault_rifle",
-				"shotgun",
-				"plasma_pistol"
-			],
-			"effect": "+1 shot per turn",
-			"cost": 15,
-			"rarity": "Common",
-			"description": "Increases ammunition capacity, allowing for more shots before reloading."
-		},
-		{
-			"id": "targeting_system",
-			"name": "Targeting System",
-			"compatible_with": [
-				"assault_rifle",
-				"sniper_rifle",
-				"laser_rifle",
-				"gauss_rifle"
-			],
-			"effect": "+1 to hit on all ranges",
-			"cost": 40,
-			"rarity": "Uncommon",
-			"description": "Advanced aiming assistance that improves accuracy at all ranges."
-		},
-		{
-			"id": "bayonet",
-			"name": "Bayonet",
-			"compatible_with": [
-				"assault_rifle",
-				"shotgun",
-				"laser_rifle"
-			],
-			"effect": "Can be used as a melee weapon (damage 1)",
-			"cost": 10,
-			"rarity": "Common",
-			"description": "Blade attachment that allows the weapon to be used in close combat."
-		},
-		{
-			"id": "stabilizer",
-			"name": "Stabilizer",
-			"compatible_with": [
-				"pulse_cannon",
-				"flamethrower",
-				"gauss_rifle"
-			],
-			"effect": "Reduce recoil penalty by 1",
-			"cost": 30,
-			"rarity": "Uncommon",
-			"description": "Reduces weapon recoil, improving control during sustained fire."
-		}
+		{"id": "assault_blade", "name": "Assault Blade", "type": "Gun Mod", "permanent": true, "restrictions": ["Non-Pistol only"], "cost": 3, "rarity": "Common", "description": "Weapon gains Melee trait. Damage +1, wins on Draw."},
+		{"id": "beam_light", "name": "Beam Light", "type": "Gun Mod", "permanent": true, "restrictions": [], "cost": 3, "rarity": "Common", "description": "Increase visibility by +3\" in reduced visibility."},
+		{"id": "bipod", "name": "Bipod", "type": "Gun Mod", "permanent": true, "restrictions": ["Non-Pistol only"], "cost": 3, "rarity": "Common", "description": "+1 to Hit over 8\" when Aiming or from Cover."},
+		{"id": "hot_shot_pack", "name": "Hot Shot Pack", "type": "Gun Mod", "permanent": true, "restrictions": ["Blast Pistol", "Blast Rifle", "Hand Laser", "Infantry Laser"], "cost": 3, "rarity": "Uncommon", "description": "+1 Damage. Natural 6 on shooting dice causes overheat (inoperable rest of fight)."},
+		{"id": "nano_sludge", "name": "Cyber-configurable Nano-sludge", "type": "Gun Mod", "permanent": true, "restrictions": [], "cost": 3, "rarity": "Rare", "description": "Permanent +1 Hit bonus."},
+		{"id": "stabilizer_mod", "name": "Stabilizer", "type": "Gun Mod", "permanent": true, "restrictions": [], "cost": 3, "rarity": "Uncommon", "description": "Weapon may ignore Heavy trait."},
+		{"id": "shock_attachment", "name": "Shock Attachment", "type": "Gun Mod", "permanent": true, "restrictions": [], "cost": 3, "rarity": "Uncommon", "description": "Weapon receives Stun trait against targets within 8\"."},
+		{"id": "upgrade_kit", "name": "Upgrade Kit", "type": "Gun Mod", "permanent": true, "restrictions": [], "cost": 3, "rarity": "Common", "description": "+2\" Range increase."},
+		{"id": "laser_sight", "name": "Laser Sight", "type": "Gun Sight", "permanent": false, "restrictions": ["Pistol only"], "cost": 3, "rarity": "Common", "description": "Weapon receives Snap Shot trait."},
+		{"id": "quality_sight", "name": "Quality Sight", "type": "Gun Sight", "permanent": false, "restrictions": [], "cost": 3, "rarity": "Uncommon", "description": "+2\" Range. Reroll 1s when firing only 1 shot."},
+		{"id": "seeker_sight", "name": "Seeker Sight", "type": "Gun Sight", "permanent": false, "restrictions": [], "cost": 3, "rarity": "Uncommon", "description": "+1 to Hit if shooter did not Move this round."},
+		{"id": "tracker_sight", "name": "Tracker Sight", "type": "Gun Sight", "permanent": false, "restrictions": [], "cost": 3, "rarity": "Common", "description": "+1 to Hit if fired at same target last round."},
+		{"id": "unity_battle_sight", "name": "Unity Battle Sight", "type": "Gun Sight", "permanent": false, "restrictions": [], "cost": 3, "rarity": "Rare", "description": "+1 to all Hit rolls."}
 	]
 }

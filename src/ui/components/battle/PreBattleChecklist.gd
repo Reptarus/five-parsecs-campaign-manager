@@ -13,6 +13,8 @@ extends PanelContainer
 const BattleTierControllerClass = preload("res://src/core/battle/BattleTierController.gd")
 const DualInputRollScene = preload("res://src/ui/components/battle/DualInputRoll.gd")
 const CompendiumSpeciesRef = preload("res://src/data/compendium_species.gd")
+const CompendiumEquipmentRef = preload("res://src/data/compendium_equipment.gd")
+const CompendiumNoMinisRef = preload("res://src/data/compendium_no_minis.gd")
 
 signal checklist_completed()
 signal checklist_item_checked(item_id: String, checked: bool)
@@ -335,6 +337,72 @@ func add_psionic_reminders(crew_dicts: Array) -> void:
 		var item_node := _create_checklist_item(item_data)
 		_vbox.add_child(item_node)
 		_check_states[psi_id] = false
+
+
+## Add compendium equipment instruction reminders for crew with DLC items.
+## Call with an array of compendium item IDs the crew currently has equipped.
+func add_equipment_reminders(equipped_item_ids: Array) -> void:
+	var entries: Array[String] = []
+	for item_id in equipped_item_ids:
+		if item_id is String and not item_id.is_empty():
+			var text: String = CompendiumEquipmentRef.get_instruction_text(item_id)
+			if not text.is_empty():
+				entries.append(text)
+	if entries.is_empty():
+		return
+
+	var sep_label := Label.new()
+	sep_label.text = "Compendium Equipment"
+	sep_label.name = "Item_equipment_header"
+	sep_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	sep_label.add_theme_color_override("font_color", COLOR_ACCENT)
+	_vbox.add_child(sep_label)
+
+	for i in range(entries.size()):
+		var eq_id := "equipment_reminder_%d" % i
+		var item_data := {"id": eq_id, "label": entries[i], "tier": 0}
+		var item_node := _create_checklist_item(item_data)
+		_vbox.add_child(item_node)
+		_check_states[eq_id] = false
+
+
+## Add no-minis combat mission notes and incompatibility warnings.
+## mission_id: the current mission objective type (e.g., "access", "deliver")
+## active_flags: array of active DLC flag strings to check for incompatibilities
+func add_no_minis_notes(mission_id: String, active_flags: Array) -> void:
+	var notes_text: String = CompendiumNoMinisRef.get_mission_notes(mission_id)
+	var incompatible: Array[String] = []
+	for flag in active_flags:
+		if flag is String and CompendiumNoMinisRef.is_incompatible(flag):
+			incompatible.append(flag)
+
+	if notes_text.is_empty() and incompatible.is_empty():
+		return
+
+	var sep_label := Label.new()
+	sep_label.text = "No-Minis Combat Notes"
+	sep_label.name = "Item_nominis_header"
+	sep_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	sep_label.add_theme_color_override("font_color", COLOR_ACCENT)
+	_vbox.add_child(sep_label)
+
+	var idx := 0
+	if not notes_text.is_empty():
+		var note_id := "nominis_note_%d" % idx
+		var item_data := {"id": note_id, "label": notes_text, "tier": 0}
+		var item_node := _create_checklist_item(item_data)
+		_vbox.add_child(item_node)
+		_check_states[note_id] = false
+		idx += 1
+
+	for flag_name: String in incompatible:
+		var warn_id := "nominis_warn_%d" % idx
+		var warn_text := "WARNING: %s is incompatible with No-Minis Combat and has been disabled." % flag_name.replace("_", " ").capitalize()
+		var item_data := {"id": warn_id, "label": warn_text, "tier": 0}
+		var item_node := _create_checklist_item(item_data)
+		_vbox.add_child(item_node)
+		_check_states[warn_id] = false
+		idx += 1
 
 
 func _load_psionic_powers_data() -> Dictionary:
