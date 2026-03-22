@@ -1,4 +1,10 @@
 {
+	"_metadata": {
+		"name": "Equipment Database (Commerce)",
+		"description": "Equipment with cost/rarity data for trading UI. Weapons section matches Core Rules. CAUTION: armor, gear, and attachments sections are placeholder/fabricated data from early development — NOT from Core Rules. Canonical game data lives in: armor.json, consumables.json, utility_devices.json, onboard_items.json, implants.json, weapon_modifications.json.",
+		"status": "weapons_verified_armor_gear_attachments_fabricated",
+		"version": "1.0"
+	},
 	"weapons": [
 		{"id": "hand_gun", "name": "Hand Gun", "type": "Slug", "damage": 0, "range": 12, "shots": 1, "traits": ["Pistol"], "cost": 15, "rarity": "Common", "description": "Standard sidearm. Grants +1 to Brawling rolls."},
 		{"id": "hand_cannon", "name": "Hand Cannon", "type": "Slug", "damage": 2, "range": 8, "shots": 1, "traits": ["Pistol"], "cost": 30, "rarity": "Uncommon", "description": "Heavy pistol with devastating stopping power."},

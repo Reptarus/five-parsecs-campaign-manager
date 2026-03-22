@@ -1,7 +1,7 @@
 {
   "name": "Injury Tables",
   "version": "3.0",
-  "source": "Five Parsecs from Home Core Rules p.119",
+  "source": "Five Parsecs from Home Core Rules p.122",
   "dice_type": "d100",
   "description": "Roll for each character that became a casualty. Bot/Soulless use Bot Injury Table. Knocked out (3 Stun) characters skip this roll.",
   "rules": {
@@ -163,15 +163,19 @@
     ]
   },
   "xp_table": {
-    "source": "Core Rules p.119",
-    "description": "XP awards for battle participants. Bots do not receive XP.",
+    "source": "Core Rules p.123",
+    "description": "XP awards for battle participants. Bots do not receive XP. Any character that flees the battlefield in the first 2 rounds receives no XP.",
     "awards": [
       {"condition": "Became a casualty", "xp": 1},
       {"condition": "Survived, but did not Win", "xp": 2},
       {"condition": "Survived and Won", "xp": 3},
       {"condition": "First character to inflict a casualty", "xp": 1},
       {"condition": "Killed Unique Individual", "xp": 1},
-      {"condition": "Campaign is on Easy mode", "xp": 1}
+      {"condition": "Campaign is on Easy mode", "xp": 1},
+      {"condition": "Crew completed the final stage of a Quest", "xp": 1}
+    ],
+    "restrictions": [
+      "Any character that flees the battlefield in the first 2 rounds receives no XP"
     ]
   }
 }

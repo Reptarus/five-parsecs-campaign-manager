@@ -1,6 +1,6 @@
 # Project Status (March 22, 2026)
 
-## Current Phase: Phase 43 — Core+Compendium Gap Remediation (4/6 sprints done)
+## Current Phase: Phase 43 — Core+Compendium Gap Remediation (5/6 sprints done)
 
 ## Key Metrics
 
@@ -18,7 +18,7 @@
 | MCP QA Sprint (Mar 21) | 7 sessions, 62/66 PASS, 4 N/A |
 | Compendium Integration | 11/11 data files, ~45/93 methods wired (was 15 before Phase 43) |
 | Phase 41-42 | COMPLETE — 8 gaps fixed, 4 deferred features activated |
-| Phase 43 | IN PROGRESS — 4/6 sprints done: StreetFight+Salvage panels, BUG-036 fix, WorldOptions wiring, dead code cleanup |
+| Phase 43 | IN PROGRESS — 5/6 sprints done: StreetFight+Salvage panels, BUG-036 fix, WorldOptions wiring, dead code cleanup, data file audit |
 | Open Bugs | 0 (BUG-036 Precursor psionic fixed this session) |
 
 ## Completed Phases
