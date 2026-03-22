@@ -386,27 +386,68 @@ func _generate_job_description() -> String:
 	return descriptions[randi() % descriptions.size()]
 
 func _generate_mission_title() -> String:
-	var adjectives = ["Hidden", "Lost", "Stolen", "Ancient", "Dangerous", "Mysterious", "Valuable", "Secret"]
-	var nouns = ["Treasure", "Technology", "Weapon", "Artifact", "Intelligence", "Outpost", "Facility", "Shipment"]
-	
-	var adjective = adjectives[randi() % adjectives.size()]
-	var noun = nouns[randi() % nouns.size()]
-	
-	return "The " + adjective + " " + noun
+	## Generate mission title from mission_titles.json
+	var data: Dictionary = _load_json_safe("res://data/mission_tables/mission_titles.json")
+	var modifiers: Array = data.get("modifiers", [])
+	# Get default adjectives/nouns from PATRON modifier (most common)
+	var adjectives: Array = ["Hidden", "Lost", "Stolen", "Ancient", "Dangerous"]
+	var nouns: Array = ["Treasure", "Technology", "Weapon", "Artifact", "Intelligence"]
+	for mod in modifiers:
+		if mod is Dictionary:
+			var params: Dictionary = mod.get("params", {})
+			var patron: Dictionary = params.get("PATRON", {})
+			if not patron.is_empty():
+				adjectives = patron.get("adjectives", adjectives)
+				nouns = patron.get("nouns", nouns)
+				break
+	# Pick format from entries
+	var entries: Array = data.get("entries", [])
+	var format_str := "The {ADJ} {NOUN}"
+	if not entries.is_empty():
+		var entry: Dictionary = entries[randi() % entries.size()]
+		format_str = entry.get("result", format_str)
+	var adj: String = adjectives[randi() % adjectives.size()]
+	var noun: String = nouns[randi() % nouns.size()]
+	return format_str.replace("{ADJECTIVE}", adj).replace("{NOUN}", noun)
 
 func _generate_mission_description() -> String:
-	var descriptions = [
-		"A mission of opportunity with significant risk and reward.",
-		"A dangerous expedition into uncharted territory.",
-		"A recovery operation in a contested zone.",
-		"A high-stakes infiltration mission.",
-		"A defensive operation against overwhelming odds.",
-		"A time-critical extraction under fire.",
-		"A salvage operation with unexpected complications.",
-		"A reconnaissance mission in enemy territory."
-	]
-	
-	return descriptions[randi() % descriptions.size()]
+	## Generate mission description from mission_descriptions.json
+	var data: Dictionary = _load_json_safe("res://data/mission_tables/mission_descriptions.json")
+	var entries: Array = data.get("entries", [])
+	if entries.is_empty():
+		return "A standard mission requiring attention to detail."
+	var entry: Dictionary = entries[randi() % entries.size()]
+	var template: String = entry.get("result", data.get("default_result", ""))
+	# Get objective descriptions from modifiers
+	var modifiers: Array = data.get("modifiers", [])
+	var obj_descs: Array = ["The objective must be secured."]
+	for mod in modifiers:
+		if mod is Dictionary:
+			var params: Dictionary = mod.get("params", {})
+			var patron: Dictionary = params.get("PATRON", {})
+			if not patron.is_empty():
+				obj_descs = patron.get("objective_desc", obj_descs)
+				template = template.replace("{MISSION_TYPE}", patron.get(
+					"mission_type", "contract"))
+				template = template.replace("{SKILL_TYPE}", patron.get(
+					"skill_type", "specialized"))
+				break
+	template = template.replace("{OBJECTIVE_DESC}",
+		obj_descs[randi() % obj_descs.size()])
+	return template
+
+func _load_json_safe(path: String) -> Dictionary:
+	if not FileAccess.file_exists(path):
+		return {}
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return {}
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		return {}
+	if json.data is Dictionary:
+		return json.data
+	return {}
 
 # Handle battle results from the BattleCoordinator
 func _on_battle_completed(results: Dictionary) -> void:

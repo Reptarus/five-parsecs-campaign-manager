@@ -12,7 +12,7 @@ class_name WorldPhase
 # DataManager accessed via autoload singleton (not preload)
 const Godot4Utils = preload("res://src/utils/Godot4Utils.gd")
 const CompendiumWorldOptionsRef = preload("res://src/data/compendium_world_options.gd")
-const PsionicManagerRef = preload("res://src/core/managers/PsionicManager.gd")
+const PsionicSystemRef = preload("res://src/core/systems/PsionicSystem.gd")
 
 # Runtime-loaded optional dependencies (loaded conditionally in _ready)
 var EnhancedCampaignSignals = null
@@ -321,6 +321,8 @@ func start_world_phase(world_data: Dictionary = {}) -> void:
 	##
 	# DLC: Check for Fringe World Strife events on arrival (Compendium pp.148-152)
 	_check_dlc_world_strife(world_data)
+	# DLC: Roll psionic legality for this world (Core Rules pp.96-101)
+	_check_dlc_psionic_legality()
 
 	if not game_state_manager or not game_state_manager.has_method("get_ship_data"):
 		return
@@ -378,6 +380,21 @@ func _check_dlc_world_strife(world_data: Dictionary = {}) -> void:
 			var gs = get_node_or_null("/root/GameState")
 			if gs and gs.current_campaign and "progress_data" in gs.current_campaign:
 				gs.current_campaign.progress_data["strife_event"] = strife_event
+
+
+## DLC: Roll psionic legality for the current world (Core Rules pp.96-101)
+func _check_dlc_psionic_legality() -> void:
+	var dlc = get_node_or_null("/root/DLCManager")
+	if not dlc or not dlc.is_feature_enabled(dlc.ContentFlag.PSIONICS):
+		return
+	var legality: int = PsionicSystemRef.roll_psionic_legality()
+	_current_world_data["psionic_legality"] = legality
+	var legality_name: String = PsionicSystemRef.get_legality_name(legality)
+	print("WorldPhase DLC: Psionic legality — %s" % legality_name)
+	# Persist for downstream phases (battle, post-battle)
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.current_campaign and "progress_data" in gs.current_campaign:
+		gs.current_campaign.progress_data["psionic_legality"] = legality
 
 
 func _process_crew_tasks() -> void:
@@ -931,15 +948,42 @@ func _generate_job_offers() -> Array[Dictionary]:
 	return offers
 
 func _generate_opportunity_mission() -> Dictionary:
-	## Generate standard opportunity mission
+	## Generate opportunity mission from opportunity_missions.json
+	var data: Dictionary = _load_json_file("res://data/missions/opportunity_missions.json")
+	var missions: Dictionary = data.get("opportunity_missions", {})
+	var mission_keys: Array = missions.keys()
+	var chosen_key: String = ""
+	var chosen: Dictionary = {}
+	if not mission_keys.is_empty():
+		chosen_key = mission_keys[randi() % mission_keys.size()]
+		chosen = missions.get(chosen_key, {})
+	var display_name: String = chosen.get("display_name", "Opportunity Mission")
+	var desc: String = chosen.get("description", "Standard freelance job opportunity")
+	var diff_range: Array = chosen.get("difficulty_range", [1, 3])
+	var min_diff: int = diff_range[0] if diff_range.size() > 0 else 1
+	var max_diff: int = diff_range[1] if diff_range.size() > 1 else 3
 	return {
 		"id": "opportunity_" + str(Time.get_unix_time_from_system()),
 		"type": "opportunity",
-		"name": "Opportunity Mission",
-		"payment": randi_range(4, 8),
-		"danger_level": randi_range(1, 3),
-		"description": "Standard freelance job opportunity"
+		"mission_subtype": chosen.get("mission_type", ""),
+		"name": display_name,
+		"payment": chosen.get("base_payment", randi_range(4, 8)),
+		"danger_level": randi_range(min_diff, max_diff),
+		"description": desc
 	}
+
+func _load_json_file(path: String) -> Dictionary:
+	if not FileAccess.file_exists(path):
+		return {}
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return {}
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		return {}
+	if json.data is Dictionary:
+		return json.data
+	return {}
 
 func _generate_patron_job() -> Dictionary:
 	## Generate patron-specific job - delegates to PatronSystem if available
@@ -1180,19 +1224,6 @@ func _handle_equipment_assignment() -> void:
 	## _current_world_data["instability"] = clampi(instability, 0, 10)
 	##
 	##
-	## ## DLC: Roll psionic legality for the current world
-	## func _check_dlc_psionic_legality() -> void:
-	## var dlc = Engine.get_main_loop().root.get_node_or_null("/root/DLCManager") if Engine.get_main_loop() else null
-	## if not dlc or not dlc.is_feature_enabled(dlc.ContentFlag.PSIONICS):
-	## return
-	## var psi_mgr = PsionicManagerRef.new()
-	## var result: Dictionary = psi_mgr.roll_world_legality()
-	## if result.get("enabled", false):
-	## _current_world_data["psionic_legality"] = result.get("legality", 0)
-	## print("WorldPhase DLC: Psionic legality - %s" % result.get("name", "Unknown"))
-	##
-	##
-
 func _process_rumors() -> void:
 	## Step 5: Resolve any Rumors
 	if GlobalEnums:

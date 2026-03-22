@@ -53,7 +53,8 @@ var training_costs: Dictionary = {
 	"merchant": 10,
 	"bot_tech": 10,
 	"engineer": 15,
-	"psionics": 25 # If using psionics rules
+	"psionics": 12, # Acquire new psionic power (Core Rules p.101)
+	"psionics_enhance": 6 # Enhance existing psionic power (Core Rules p.101)
 }
 
 # Bot upgrades (credits-based, not XP) - Five Parsecs Core Rules p.98
@@ -178,6 +179,11 @@ func advance_stat(character: Resource, stat_name: String) -> bool:
 	if char_class.to_upper() == "ENGINEER" and stat_name == "toughness":
 		max_stat = mini(max_stat, 4)
 
+	# Psionic restriction: Cannot increase Combat Skill through XP (Core Rules p.96)
+	var psionic_power_val: String = Godot4Utils.safe_get_property(character, "psionic_power", "")
+	if psionic_power_val != "" and stat_name == "combat_skill":
+		return false
+
 	# Check if advancement is possible
 	if current_xp < cost:
 		return false
@@ -290,6 +296,31 @@ func _apply_training_benefits(character: Resource, training_type: String) -> voi
 			var engineering_bonus = Godot4Utils.safe_get_property(character, "engineering_bonus", 0) + 1
 			if character and character.has_method("set"): character.set("engineering_bonus", engineering_bonus)
 
+		"psionics":
+			# Acquire new psionic power (Core Rules p.101, 12 XP)
+			# Roll D10 for power. If duplicate of existing, modify roll ±1
+			var psionic_data: Dictionary = _load_psionic_powers_json()
+			var power_ids: Array = psionic_data.keys()
+			if power_ids.is_empty():
+				return
+			var roll_index: int = _roll_dice("Psionic Acquisition", "D10") - 1
+			roll_index = clampi(roll_index, 0, power_ids.size() - 1)
+			var new_power_id: String = power_ids[roll_index]
+			var current_power: String = Godot4Utils.safe_get_property(character, "psionic_power", "")
+			if new_power_id == current_power and power_ids.size() > 1:
+				# Duplicate — modify roll ±1 (Core Rules)
+				var alt_index: int = (roll_index + 1) % power_ids.size()
+				new_power_id = power_ids[alt_index]
+			if character and character.has_method("set"):
+				character.set("psionic_power", new_power_id)
+
+		"psionics_enhance":
+			# Enhance existing psionic power (Core Rules p.101, 6 XP)
+			# +1D6 to projection roll for chosen power
+			var has_power: String = Godot4Utils.safe_get_property(character, "psionic_power", "")
+			if has_power != "" and character and character.has_method("set"):
+				character.set("psionic_power_enhanced", true)
+
 ## Get available advancements for a character
 
 func get_available_advancements(character: Resource) -> Array[Dictionary]:
@@ -307,6 +338,11 @@ func get_available_advancements(character: Resource) -> Array[Dictionary]:
 		var adv_char_class: String = Godot4Utils.safe_get_property(character, "character_class", "")
 		if adv_char_class.to_upper() == "ENGINEER" and stat_name == "toughness":
 			max_stat = mini(max_stat, 4)
+
+		# Psionic restriction: Cannot increase Combat Skill through XP (Core Rules p.96)
+		var adv_psionic: String = Godot4Utils.safe_get_property(character, "psionic_power", "")
+		if adv_psionic != "" and stat_name == "combat_skill":
+			continue
 
 		if current_stat < max_stat and current_xp >= cost:
 			advancements.append({
@@ -558,3 +594,22 @@ func _is_bot(character: Resource) -> bool:
 	# Fallback: Check origin property
 	var origin = Godot4Utils.safe_get_property(character, "origin", "")
 	return origin == "BOT" or origin == "Bot"
+
+
+func _load_psionic_powers_json() -> Dictionary:
+	## Load psionic powers from JSON data file (same source as CharacterCreator)
+	var path := "res://data/psionic_powers.json"
+	if not FileAccess.file_exists(path):
+		push_warning("AdvancementSystem: psionic_powers.json not found at %s" % path)
+		return {}
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return {}
+	var json := JSON.new()
+	var err := json.parse(file.get_as_text())
+	if err != OK:
+		push_warning("AdvancementSystem: Failed to parse psionic_powers.json")
+		return {}
+	if json.data is Dictionary:
+		return json.data
+	return {}

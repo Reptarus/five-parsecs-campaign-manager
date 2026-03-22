@@ -59,6 +59,21 @@
 4. `bug-hunt-specialist` has review authority over any shared file (TacticalBattleUI, GameState, SceneRouter, GameStateManager)
 5. `qa-specialist` is always the final step for verification
 
+## Search Accuracy by Model Tier
+
+| Tier | Agents | Search Guidance |
+| ---- | ------ | --------------- |
+| Opus | project-manager, battle-systems | Highest accuracy. Use for cross-system searches, complex pattern matching. Can handle broad queries. |
+| Sonnet | campaign, character, bug-hunt, qa | Good accuracy with specific prompts. Always provide file path hints and exact names. |
+| Haiku | ui-panel-developer | Lowest search accuracy. Provide exact file paths, limit search scope to known dirs, always verify claims. Do not delegate search-heavy exploration to Haiku agents. |
+
+### Search Delegation Rules
+
+- When routing tasks, verify that claimed files/APIs actually exist before downstream agents start work
+- Include structural anchors in every agent prompt: key directories, known file paths, class names
+- If an agent returns results that seem wrong or incomplete, re-search with a higher-tier model
+- Never trust a single Explore result for routing decisions — spot-check by reading actual files
+
 ## Cross-Domain Flow Examples
 
 ### Adding a new character trait

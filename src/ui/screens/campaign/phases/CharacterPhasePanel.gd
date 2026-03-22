@@ -90,6 +90,24 @@ func _generate_crew_events() -> void:
 
 		character_event_resolved.emit(member_name, event.type)
 
+		# Log character event to CampaignJournal
+		var journal = get_node_or_null("/root/CampaignJournal")
+		if journal and journal.has_method("auto_create_character_event"):
+			var member_id: String = ""
+			if member is Dictionary:
+				member_id = member.get("character_id", member.get("id", ""))
+			elif "character_id" in member:
+				member_id = member.character_id
+			if not member_id.is_empty():
+				var turn_num: int = 0
+				var campaign = game_state.campaign if game_state else null
+				if campaign and "progress_data" in campaign:
+					turn_num = campaign.progress_data.get("turns_played", 0)
+				journal.auto_create_character_event(member_id, event.type, {
+					"turn": turn_num,
+					"description": event.description,
+				})
+
 func _get_crew_members() -> Array:
 	if not game_state:
 		return []

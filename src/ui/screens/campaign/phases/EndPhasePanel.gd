@@ -160,8 +160,9 @@ func _try_archive_campaign() -> void:
 			if awarded:
 				print("EndPhasePanel: Elite Rank awarded for victory condition %d (total: %d)" % [vc_type, profile.elite_ranks])
 
-	# Archive on victory or after 20+ turns
-	if not is_victory and turns < 20:
+	# Archive on victory, after 20+ turns, or explicit crew retirement
+	var crew_retired: bool = pd.get("crew_retired", false)
+	if not is_victory and not crew_retired and turns < 20:
 		return
 
 	var legacy_sys = get_node_or_null("/root/LegacySystem")
@@ -189,6 +190,18 @@ func _try_archive_campaign() -> void:
 		"victory": is_victory,
 		"credits_earned": campaign.credits if "credits" in campaign else 0,
 	})
+
+	# Log campaign archive as milestone in CampaignJournal
+	var journal_sys = get_node_or_null("/root/CampaignJournal")
+	if journal_sys and journal_sys.has_method("auto_create_milestone_entry"):
+		journal_sys.auto_create_milestone_entry("campaign_archive", {
+			"turn": turns,
+			"stats": {
+				"victory": is_victory,
+				"crew_count": crew_dicts.size(),
+				"turns_survived": turns,
+			},
+		})
 
 func _on_continue_button_pressed() -> void:
 	cycle_completed.emit()

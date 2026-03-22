@@ -405,6 +405,53 @@ func add_no_minis_notes(mission_id: String, active_flags: Array) -> void:
 		idx += 1
 
 
+## Add enemy psionic notes for Compendium DLC (DLC-gated).
+## enemy_type: the enemy group type string (e.g., "Swift", "Rogue Psionic")
+## legality: PsionicLegality enum int from progress_data, or -1 if unknown
+func add_enemy_psionic_notes(enemy_type: String, legality: int = -1) -> void:
+	var dlc = Engine.get_main_loop().root.get_node_or_null(
+		"/root/DLCManager") if Engine.get_main_loop() else null
+	if not dlc or not dlc.is_feature_enabled(dlc.ContentFlag.PSIONICS):
+		return
+
+	const PsionicSysRef = preload(
+		"res://src/core/systems/PsionicSystem.gd")
+	var psi_data: Dictionary = PsionicSysRef.determine_enemy_psionics(
+		enemy_type)
+	var psi_text: String = PsionicSysRef.get_enemy_psionic_text(psi_data)
+
+	var entries: Array[String] = []
+	if not psi_text.is_empty():
+		entries.append(psi_text)
+
+	# Legality warning
+	if legality == PsionicSysRef.PsionicLegality.OUTLAWED:
+		entries.append(
+			"WARNING: Psionics OUTLAWED on this world. "
+			+ "Post-battle detection check required if used.")
+	elif legality == PsionicSysRef.PsionicLegality.HIGHLY_UNUSUAL:
+		entries.append(
+			"Psionics Highly Unusual: If 2+ projection dice "
+			+ "show 6, reinforcements arrive.")
+
+	if entries.is_empty():
+		return
+
+	var sep_label := Label.new()
+	sep_label.text = "Enemy Psionics"
+	sep_label.name = "Item_enemy_psionic_header"
+	sep_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	sep_label.add_theme_color_override("font_color", COLOR_ACCENT)
+	_vbox.add_child(sep_label)
+
+	for i in range(entries.size()):
+		var ep_id := "enemy_psionic_%d" % i
+		var item_data := {"id": ep_id, "label": entries[i], "tier": 1}
+		var item_node := _create_checklist_item(item_data)
+		_vbox.add_child(item_node)
+		_check_states[ep_id] = false
+
+
 func _load_psionic_powers_data() -> Dictionary:
 	var path := "res://data/psionic_powers.json"
 	if not FileAccess.file_exists(path):

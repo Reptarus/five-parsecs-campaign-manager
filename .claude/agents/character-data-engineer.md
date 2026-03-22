@@ -131,6 +131,24 @@ When modifying data systems:
 
 **Update your agent memory** as you discover data patterns, enum sync issues, and serialization edge cases.
 
+## Search & Verification Protocol
+
+1. **Be specific**: Search for exact function/class names with file path hints from your reference files. Never search with vague descriptions.
+2. **Verify before claiming**: Never claim a file is a stub, empty, or missing without reading it with the Read tool. Read at least the first 100 lines.
+3. **Structured results**: Report search findings as `[file_path]:[line_number]: [exact code]`. Include line numbers.
+4. **Use reference anchors**: Your reference files list key file paths — use them as search starting points instead of broad codebase sweeps.
+5. **Multiple strategies**: If Grep misses, try Glob for file patterns. If both miss, Read the likely directory listing with `ls`.
+
+### Search Anchors
+
+- `src/core/character/` — Character.gd (~1,900 lines), BaseCharacterResource
+- `src/core/enums/GameEnums.gd` — GameEnums class
+- `src/core/systems/GlobalEnums.gd` — autoloaded enums
+- `src/game/campaign/crew/FiveParsecsGameEnums.gd` — CharacterClass enum
+- `src/core/equipment/` — EquipmentManager
+- `src/core/data/` — DataManager
+- `data/` — 132 JSON game data files
+
 # Persistent Agent Memory
 
 You have a persistent agent memory directory at `c:\Users\admin\SynologyDrive\Godot\five-parsecs-campaign-manager\.claude\agent-memory\character-data-engineer\`. Its contents persist across conversations.

@@ -120,6 +120,22 @@ Parent calls down to child methods. Child signals up to parent. Never call paren
 - Never leave looping animations running after panel is hidden
 - Never bypass SceneRouter for navigation
 
+## Search & Verification Protocol
+
+1. **Be specific**: Search for exact function/class names with file path hints from your reference files. Never search with vague descriptions.
+2. **Verify before claiming**: Never claim a file is a stub, empty, or missing without reading it with the Read tool. Read at least the first 100 lines.
+3. **Structured results**: Report search findings as `[file_path]:[line_number]: [exact code]`. Include line numbers.
+4. **Use reference anchors**: Your reference files list key file paths — use them as search starting points instead of broad codebase sweeps.
+5. **Multiple strategies**: If Grep misses, try Glob for file patterns. If both miss, Read the likely directory listing with `ls`.
+
+### Search Anchors
+
+- `src/ui/components/` — 125+ UI component files
+- `src/ui/screens/` — all screen subdirectories
+- `src/ui/screens/campaign/panels/BaseCampaignPanel.gd` — Deep Space theme base
+- `src/ui/screens/SceneRouter.gd` — scene routing (70+ routes)
+- `addons/TweenFX/TweenFX.gd` — animation addon (70 animations)
+
 # Persistent Agent Memory
 
 You have a persistent agent memory directory at `c:\Users\admin\SynologyDrive\Godot\five-parsecs-campaign-manager\.claude\agent-memory\ui-panel-developer\`. Its contents persist across conversations.

@@ -139,6 +139,22 @@ func _on_pay_upkeep_pressed() -> void:
 	var campaign = game_state.campaign if game_state else null
 	if campaign and "credits" in campaign:
 		campaign.credits -= total_upkeep_cost
+	# Log upkeep to CampaignJournal
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry") and total_upkeep_cost > 0:
+		var turn_num: int = 0
+		if campaign and "progress_data" in campaign:
+			turn_num = campaign.progress_data.get("turns_played", 0)
+		journal.create_entry({
+			"turn_number": turn_num,
+			"type": "purchase",
+			"auto_generated": true,
+			"title": "Upkeep Paid",
+			"description": "Paid %d credits upkeep for %d crew members." % [total_upkeep_cost, _get_crew_members().size()],
+			"mood": "neutral",
+			"tags": ["upkeep"],
+			"stats": {"credits_spent": total_upkeep_cost},
+		})
 	_update_resources_list()
 	complete_phase()
 

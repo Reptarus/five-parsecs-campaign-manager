@@ -138,6 +138,7 @@ var reactions_used_this_round: int = 0  # Reset at start of each battle round
 # Psionic Power (Five Parsecs Core Rules p.35)
 # Precursor characters begin with one randomly determined Psionic Power
 @export var psionic_power: String = ""  # Power ID from psionic_powers.json, empty if none
+@export var psionic_power_enhanced: bool = false  # True if power enhanced via 6 XP training (Core Rules p.101)
 
 # Implant System (Five Parsecs odds-and-ends loot table)
 # Maximum 3 implants per character (rulebook limit)
@@ -898,58 +899,57 @@ func process_recovery_turn() -> void:
 
 const MAX_IMPLANTS: int = 2
 
-## Implant type registry — Core Rules p.55 (exact book entries)
+## Implant data loaded from implants.json (Core Rules p.55)
 ## Bots and Soulless cannot use implants. Once applied, cannot be damaged or removed.
-const IMPLANT_TYPES: Dictionary = {
-	"AI_COMPANION": {"name": "AI Companion", "stat_bonus": {}, "description": "When making Savvy rolls, the character may roll twice and pick the better score."},
-	"BODY_WIRE": {"name": "Body Wire", "stat_bonus": {"reactions": 1}, "description": "+1 Reactions."},
-	"BOOSTED_ARM": {"name": "Boosted Arm", "stat_bonus": {}, "description": "Increase Grenade range by +2\". If the character ends their Move in contact with an obstacle no taller than the miniature, they may pull themselves up on top (but not cross) as a Free Action."},
-	"BOOSTED_LEG": {"name": "Boosted Leg", "stat_bonus": {"speed": 1}, "description": "Increase base move and Dash speed by +1\" each."},
-	"CYBER_HAND": {"name": "Cyber Hand", "stat_bonus": {}, "description": "The character may take any one Pistol they own and build it into their hand. Range is reduced to half, but the weapon always shoots with +1 to Hit and an additional +1 bonus when Brawling."},
-	"GENETIC_DEFENSES": {"name": "Genetic Defenses", "stat_bonus": {}, "description": "5+ Saving Throw, if subjected to any poison, virus, gas, or disease."},
-	"HEALTH_BOOST": {"name": "Health Boost", "stat_bonus": {}, "description": "If a post-battle Injury would result in 2+ campaign turns of recovery time, reduce the time by 1. If the character has Toughness 3 when receiving this implant, raise it to 4."},
-	"NERVE_ADJUSTER": {"name": "Nerve Adjuster", "stat_bonus": {}, "description": "Whenever the character is Stunned for any reason, they receive a 5+ Saving Throw to avoid the Stun."},
-	"NEURAL_OPTIMIZATION": {"name": "Neural Optimization", "stat_bonus": {}, "description": "The character cannot be Stunned."},
-	"NIGHT_SIGHT": {"name": "Night Sight", "stat_bonus": {}, "description": "The character does not suffer visibility reductions due to darkness, but is affected by smoke, gas, etc. normally."},
-	"PAIN_SUPPRESSOR": {"name": "Pain Suppressor", "stat_bonus": {}, "description": "The character can perform crew tasks while in Sick Bay, though they cannot participate in battles."}
-}
+static var _implants_data: Array = []
+static var _implants_loaded: bool = false
 
-## Map loot item names to implant type keys (book implant names map directly)
-const LOOT_TO_IMPLANT_MAP: Dictionary = {
-	"AI Companion": "AI_COMPANION",
-	"Body Wire": "BODY_WIRE",
-	"Boosted Arm": "BOOSTED_ARM",
-	"Boosted Leg": "BOOSTED_LEG",
-	"Cyber Hand": "CYBER_HAND",
-	"Genetic Defenses": "GENETIC_DEFENSES",
-	"Health Boost": "HEALTH_BOOST",
-	"Nerve Adjuster": "NERVE_ADJUSTER",
-	"Neural Optimization": "NEURAL_OPTIMIZATION",
-	"Night Sight": "NIGHT_SIGHT",
-	"Pain Suppressor": "PAIN_SUPPRESSOR"
-}
+static func _ensure_implants_loaded() -> void:
+	if _implants_loaded:
+		return
+	_implants_loaded = true
+	var path := "res://data/implants.json"
+	if not FileAccess.file_exists(path):
+		return
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		return
+	if json.data is Dictionary:
+		_implants_data = json.data.get("Implants", {}).get("types", [])
 
 static func create_implant_from_type(implant_type_key: String) -> Dictionary:
-	## Create an implant dictionary from a type key
-	if not IMPLANT_TYPES.has(implant_type_key):
-		return {}
-	var template: Dictionary = IMPLANT_TYPES[implant_type_key]
-	return {
-		"type": implant_type_key,
-		"name": template.get("name", implant_type_key),
-		"stat_bonus": template.get("stat_bonus", {}).duplicate(),
-		"description": template.get("description", "")
-	}
+	## Create an implant dictionary from a type key (loads from JSON)
+	_ensure_implants_loaded()
+	var key_lower := implant_type_key.to_lower()
+	for entry in _implants_data:
+		if entry is Dictionary and entry.get("id", "") == key_lower:
+			return {
+				"type": implant_type_key,
+				"name": entry.get("name", implant_type_key),
+				"stat_bonus": entry.get("stat_bonus", {}).duplicate(),
+				"description": entry.get("description", "")
+			}
+	return {}
 
 static func create_implant_from_loot(loot_name: String) -> Dictionary:
-	## Create an implant dictionary from a loot item name
-	var implant_key: String = LOOT_TO_IMPLANT_MAP.get(loot_name, "")
-	if implant_key.is_empty():
-		return {}
-	return create_implant_from_type(implant_key)
+	## Create an implant dictionary from a loot item name (loads from JSON)
+	_ensure_implants_loaded()
+	for entry in _implants_data:
+		if entry is Dictionary and entry.get("name", "") == loot_name:
+			return {
+				"type": entry.get("id", "").to_upper(),
+				"name": entry.get("name", loot_name),
+				"stat_bonus": entry.get("stat_bonus", {}).duplicate(),
+				"description": entry.get("description", "")
+			}
+	return {}
 
 func add_implant(implant: Dictionary) -> bool:
 	## Add an implant to the character (max 2, Core Rules p.55)
+	## WARNING: Psionics lose all powers permanently when given any implant (Core Rules p.96)
 	if not implant.has("type") or not implant.has("name"):
 		push_error("Character.add_implant: Invalid implant data - missing required fields")
 		return false
@@ -961,6 +961,12 @@ func add_implant(implant: Dictionary) -> bool:
 		if existing.get("type", "") == new_type:
 			return false
 	implants.append(implant)
+	# Core Rules p.96: Psionics lose abilities permanently if given any implant
+	if psionic_power != "":
+		push_warning("Character %s: Implant removes psionic power '%s'" % [
+			character_name, psionic_power])
+		psionic_power = ""
+		psionic_power_enhanced = false
 	return true
 
 func remove_implant(index: int) -> void:
@@ -1047,6 +1053,7 @@ func to_dictionary() -> Dictionary:
 		"current_recovery_turns": current_recovery_turns,
 		# Augmentations
 		"psionic_power": psionic_power,
+		"psionic_power_enhanced": psionic_power_enhanced,
 		"implants": implants.duplicate(),
 		"bot_upgrades": bot_upgrades.duplicate(),
 		# Lifetime statistics
@@ -1152,6 +1159,7 @@ func from_dictionary(data: Dictionary) -> void:
 
 	# Psionic Power (Precursor origin, Core Rules p.17)
 	psionic_power = data.get("psionic_power", "")
+	psionic_power_enhanced = data.get("psionic_power_enhanced", false)
 
 	# Implants
 	var implants_data = data.get("implants", [])

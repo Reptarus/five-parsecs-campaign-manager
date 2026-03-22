@@ -21,6 +21,7 @@ var planet_data_manager: Variant = null
 var campaign_journal: Variant = null
 var equipment_manager: Variant = null
 var dlc_manager: Variant = null
+var galactic_war_manager: Variant = null
 
 # Campaign and battle state (set per start_post_battle_phase() call)
 var campaign: Variant = null

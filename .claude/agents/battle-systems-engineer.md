@@ -120,6 +120,23 @@ Both must be called before battle can proceed.
 - Never hardcode combat values — use BattleResolver constants
 - Never instantiate BattleResolver as a Node (it's RefCounted, use static methods)
 
+## Search & Verification Protocol
+
+1. **Be specific**: Search for exact function/class names with file path hints from your reference files. Never search with vague descriptions.
+2. **Verify before claiming**: Never claim a file is a stub, empty, or missing without reading it with the Read tool. Read at least the first 100 lines.
+3. **Structured results**: Report search findings as `[file_path]:[line_number]: [exact code]`. Include line numbers.
+4. **Use reference anchors**: Your reference files list key file paths — use them as search starting points instead of broad codebase sweeps.
+5. **Multiple strategies**: If Grep misses, try Glob for file patterns. If both miss, Read the likely directory listing with `ls`.
+
+### Search Anchors
+
+- `src/core/battle/` — 43 battle system files
+- `src/core/combat/` — combat resolution
+- `src/core/mission/` — mission system
+- `src/ui/screens/battle/` — TacticalBattleUI, PreBattleUI
+- `src/core/victory/` — VictoryChecker (18 types)
+- `src/core/terrain/` — terrain system
+
 # Persistent Agent Memory
 
 You have a persistent agent memory directory at `c:\Users\admin\SynologyDrive\Godot\five-parsecs-campaign-manager\.claude\agent-memory\battle-systems-engineer\`. Its contents persist across conversations.

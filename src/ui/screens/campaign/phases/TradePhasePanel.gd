@@ -455,6 +455,28 @@ func _on_complete_button_pressed() -> void:
 	var campaign = _get_campaign_safe()
 	if campaign and "credits" in campaign:
 		campaign.credits = current_credits
+	# Log trading transactions to CampaignJournal
+	if not purchased_items.is_empty() or not sold_items.is_empty():
+		var journal = get_node_or_null("/root/CampaignJournal")
+		if journal and journal.has_method("create_entry"):
+			var turn_num: int = 0
+			if campaign and "progress_data" in campaign:
+				turn_num = campaign.progress_data.get("turns_played", 0)
+			var desc_parts: Array[String] = []
+			if not purchased_items.is_empty():
+				desc_parts.append("Bought %d items" % purchased_items.size())
+			if not sold_items.is_empty():
+				desc_parts.append("Sold %d items" % sold_items.size())
+			journal.create_entry({
+				"turn_number": turn_num,
+				"type": "purchase",
+				"auto_generated": true,
+				"title": "Trading Session",
+				"description": ". ".join(desc_parts) + ".",
+				"mood": "neutral",
+				"tags": ["trading"],
+				"stats": {"items_bought": purchased_items.size(), "items_sold": sold_items.size()},
+			})
 	trading_completed.emit()
 	complete_phase()
 

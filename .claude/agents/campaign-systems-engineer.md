@@ -126,6 +126,23 @@ When modifying campaign systems:
 
 **Update your agent memory** as you discover phase transition patterns, signal wiring issues, and save/load edge cases.
 
+## Search & Verification Protocol
+
+1. **Be specific**: Search for exact function/class names with file path hints from your reference files. Never search with vague descriptions.
+2. **Verify before claiming**: Never claim a file is a stub, empty, or missing without reading it with the Read tool. Read at least the first 100 lines.
+3. **Structured results**: Report search findings as `[file_path]:[line_number]: [exact code]`. Include line numbers.
+4. **Use reference anchors**: Your reference files list key file paths — use them as search starting points instead of broad codebase sweeps.
+5. **Multiple strategies**: If Grep misses, try Glob for file patterns. If both miss, Read the likely directory listing with `ls`.
+
+### Search Anchors
+
+- `src/core/campaign/` — CampaignPhaseManager, CampaignJournal, phases
+- `src/core/state/` — GameState
+- `src/ui/screens/campaign/` — CampaignDashboard, CampaignCreationUI, panels
+- `src/game/campaign/` — FiveParsecsCampaignCore, crew data
+- `src/core/managers/GameStateManager.gd` — state mutation helper
+- `src/qol/TurnPhaseChecklist.gd` — phase completion tracking
+
 # Persistent Agent Memory
 
 You have a persistent agent memory directory at `c:\Users\admin\SynologyDrive\Godot\five-parsecs-campaign-manager\.claude\agent-memory\campaign-systems-engineer\`. Its contents persist across conversations.

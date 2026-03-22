@@ -31,11 +31,35 @@ enum EquipmentCategory {
 var _equipment_storage: Array = []
 var _character_equipment: Dictionary = {}
 
+# Equipment database loaded from JSON (Core Rules pp.49-58)
+var _equipment_db: Dictionary = {}
+var _db_weapons: Array = []
+var _db_armor: Array = []
+var _db_gear: Array = []
+
 func _init() -> void:
 	pass
 
 func _ready() -> void:
-	pass
+	_load_equipment_database()
+
+func _load_equipment_database() -> void:
+	var path := "res://data/equipment_database.json"
+	if not FileAccess.file_exists(path):
+		push_warning("EquipmentManager: equipment_database.json not found")
+		return
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		push_warning("EquipmentManager: Failed to parse equipment_database.json")
+		return
+	if json.data is Dictionary:
+		_equipment_db = json.data
+		_db_weapons = _equipment_db.get("weapons", [])
+		_db_armor = _equipment_db.get("armor", [])
+		_db_gear = _equipment_db.get("gear", [])
 
 func setup(state: FiveParsecsGameState, char_manager, battle_results_manager: BattleResultsManager) -> void:
 	game_state = state
@@ -264,17 +288,17 @@ func _roll_on_loot_table() -> Dictionary:
 			"value": 0
 		}
 	elif roll <= 40:
-		# Standard Weapon
-		return _generate_weapon_by_rulebook()
+		# Standard Weapon (from JSON)
+		return _generate_market_weapon(3)
 	elif roll <= 55:
-		# Armor
-		return _generate_armor_by_rulebook()
+		# Armor (from JSON)
+		return _generate_market_armor(3)
 	elif roll <= 65:
-		# Medical Supplies
-		return create_gear_item("Medical Kit", "medkit", {"healing": 1 + (randi() % 3)})
+		# Consumable (from JSON)
+		return _generate_consumable_item()
 	elif roll <= 75:
-		# Targeting System
-		return create_gear_item("Targeting System", "targeting", {"accuracy": 1 + (randi() % 2)})
+		# Gear (from JSON)
+		return _generate_market_gear(3)
 	elif roll <= 85:
 		# Utility Item
 		return _generate_utility_item()
@@ -285,276 +309,64 @@ func _roll_on_loot_table() -> Dictionary:
 		# Unique Item (very rare, powerful)
 		return _generate_unique_item()
 
-## Generate a weapon based on the rulebook's weapon tables
+## Generate weapon from JSON database (replaces hardcoded fabrication)
 func _generate_weapon_by_rulebook() -> Dictionary:
-	# Roll for weapon type according to rulebook probability
-	var weapon_type_roll = randi() % 100 + 1
-	var weapon_type = GameEnums.WeaponType.BASIC
-	
-	if weapon_type_roll <= 40:
-		weapon_type = GameEnums.WeaponType.PISTOL
-	elif weapon_type_roll <= 75:
-		weapon_type = GameEnums.WeaponType.RIFLE
-	elif weapon_type_roll <= 90:
-		weapon_type = GameEnums.WeaponType.ADVANCED
-	else:
-		weapon_type = GameEnums.WeaponType.HEAVY
-	
-	# Roll for weapon quality
-	var quality_roll = randi() % 100 + 1
-	var damage_bonus = 0
-	var range_bonus = 0
-	var weapon_condition = 100
-	var name_prefix = "Standard"
-	
-	if quality_roll <= 10:
-		# Poor quality
-		weapon_condition = 60 + (randi() % 21) # 60-80%
-		name_prefix = "Worn"
-	elif quality_roll <= 25:
-		# Below average
-		weapon_condition = 80 + (randi() % 11) # 80-90%
-		name_prefix = "Used"
-	elif quality_roll <= 75:
-		# Average quality
-		weapon_condition = 90 + (randi() % 11) # 90-100%
-		name_prefix = "Standard"
-	elif quality_roll <= 90:
-		# Good quality
-		damage_bonus = 1
-		name_prefix = "Enhanced"
-	else:
-		# Excellent quality
-		damage_bonus = 1
-		range_bonus = 1
-		name_prefix = "Superior"
-	
-	# Base stats based on weapon type
-	var base_damage = 0
-	var base_range = 0
-	var weapon_name = ""
-	
-	match weapon_type:
-		GameEnums.WeaponType.PISTOL:
-			base_damage = 1
-			base_range = 1
-			weapon_name = name_prefix + " Pistol"
-		GameEnums.WeaponType.RIFLE:
-			base_damage = 2
-			base_range = 2
-			weapon_name = name_prefix + " Rifle"
-		GameEnums.WeaponType.ADVANCED:
-			base_damage = 3
-			base_range = 2
-			weapon_name = name_prefix + " Advanced Weapon"
-		GameEnums.WeaponType.HEAVY:
-			base_damage = 4
-			base_range = 1
-			weapon_name = name_prefix + " Heavy Weapon"
-		_:
-			base_damage = 1
-			base_range = 1
-			weapon_name = name_prefix + " Basic Weapon"
-	
-	# Create the weapon with appropriate stats
-	var weapon = create_weapon_item(
-		weapon_name,
-		weapon_type,
-		base_damage + damage_bonus,
-		base_range + range_bonus
-	)
-	
-	# Set the condition
-	weapon["condition"] = weapon_condition
-	
-	return weapon
+	return _generate_market_weapon(3)
 
-## Generate armor based on the rulebook's armor tables
+## Generate armor from JSON database (replaces hardcoded fabrication)
 func _generate_armor_by_rulebook() -> Dictionary:
-	# Roll for armor type
-	var armor_type_roll = randi() % 100 + 1
-	var armor_type = GameEnums.ArmorType.LIGHT
-	
-	if armor_type_roll <= 60:
-		armor_type = GameEnums.ArmorType.LIGHT
-	elif armor_type_roll <= 90:
-		armor_type = GameEnums.ArmorType.MEDIUM
-	else:
-		armor_type = GameEnums.ArmorType.HEAVY
-	
-	# Roll for armor quality
-	var quality_roll = randi() % 100 + 1
-	var protection_bonus = 0
-	var armor_condition = 100
-	var name_prefix = "Standard"
-	
-	if quality_roll <= 10:
-		# Poor quality
-		armor_condition = 60 + (randi() % 21) # 60-80%
-		name_prefix = "Patched"
-	elif quality_roll <= 25:
-		# Below average
-		armor_condition = 80 + (randi() % 11) # 80-90%
-		name_prefix = "Used"
-	elif quality_roll <= 75:
-		# Average quality
-		armor_condition = 90 + (randi() % 11) # 90-100%
-		name_prefix = "Standard"
-	elif quality_roll <= 90:
-		# Good quality
-		protection_bonus = 1
-		name_prefix = "Reinforced"
-	else:
-		# Excellent quality
-		protection_bonus = 2
-		name_prefix = "Superior"
-	
-	# Base protection based on armor type
-	var base_protection = 0
-	var armor_name = ""
-	
-	match armor_type:
-		GameEnums.ArmorType.LIGHT:
-			base_protection = 1
-			armor_name = name_prefix + " Light Armor"
-		GameEnums.ArmorType.MEDIUM:
-			base_protection = 2
-			armor_name = name_prefix + " Medium Armor"
-		GameEnums.ArmorType.HEAVY:
-			base_protection = 3
-			armor_name = name_prefix + " Heavy Armor"
-		_:
-			base_protection = 1
-			armor_name = name_prefix + " Armor"
-	
-	# Create the armor with appropriate stats
-	var armor = create_armor_item(
-		armor_name,
-		armor_type,
-		base_protection + protection_bonus
-	)
-	
-	# Set the condition
-	armor["condition"] = armor_condition
-	
-	return armor
+	return _generate_market_armor(3)
 
-## Generate utility items based on the rulebook's gear tables
+## Generate consumable item from JSON database (Core Rules p.54)
+func _generate_consumable_item() -> Dictionary:
+	var consumables: Array = _db_gear.filter(
+		func(g): return g is Dictionary and g.get("type", "") == "Consumable")
+	if consumables.is_empty():
+		return create_gear_item("Stim-pack", "consumable", {})
+	var chosen: Dictionary = consumables[randi() % consumables.size()]
+	var item: Dictionary = chosen.duplicate()
+	item["category"] = EquipmentCategory.CONSUMABLE
+	item["condition"] = 100
+	item["value"] = item.get("cost", 3) * 25
+	return item
+
+## Generate utility item from equipment_database.json (Core Rules pp.56-57)
 func _generate_utility_item() -> Dictionary:
-	var utility_types = [
-		"scanner",
-		"toolkit",
-		"communicator",
-		"field rations",
-		"climbing gear"
-	]
-	
-	var selected_type = utility_types[randi() % utility_types.size()]
-	var effect = {}
-	
-	match selected_type:
-		"scanner":
-			effect = {"detection": 1 + (randi() % 2)}
-		"toolkit":
-			effect = {"repair": 1 + (randi() % 2)}
-		"communicator":
-			effect = {"communication": 1 + (randi() % 2)}
-		"field rations":
-			effect = {"survival": 1 + (randi() % 2)}
-		"climbing gear":
-			effect = {"mobility": 1 + (randi() % 2)}
-	
-	return create_gear_item("Utility " + selected_type.capitalize(), selected_type, effect)
+	var utilities: Array = _db_gear.filter(
+		func(g): return g is Dictionary and g.get("type", "") == "Utility Device")
+	if utilities.is_empty():
+		return create_gear_item("Communicator", "utility", {})
+	var chosen: Dictionary = utilities[randi() % utilities.size()]
+	var item: Dictionary = chosen.duplicate()
+	item["category"] = EquipmentCategory.GEAR
+	item["condition"] = 100
+	item["value"] = item.get("cost", 3) * 25
+	return item
 
-## Generate rare equipment based on the rulebook's rare find tables
+## Generate rare equipment — picks Rare rarity from any category in JSON
 func _generate_rare_equipment() -> Dictionary:
-	var rare_types = [
-		"shield generator",
-		"stealth field",
-		"combat stims",
-		"bionic enhancement",
-		"rare weapon mod"
-	]
-	
-	var selected_type = rare_types[randi() % rare_types.size()]
-	var effect = {}
-	
-	match selected_type:
-		"shield generator":
-			effect = {"defense": 2 + (randi() % 2)}
-		"stealth field":
-			effect = {"stealth": 2 + (randi() % 2)}
-		"combat stims":
-			effect = {"reaction": 2 + (randi() % 2)}
-		"bionic enhancement":
-			effect = {"attribute": 1, "attribute_type": ["strength", "speed", "reaction"][randi() % 3]}
-		"rare weapon mod":
-			effect = {"damage": 1, "accuracy": 1}
-	
-	return create_gear_item("Rare " + selected_type.capitalize(), selected_type, effect)
+	var rare_items: Array = []
+	for item in _db_weapons:
+		if item is Dictionary and item.get("rarity", "") == "Rare":
+			rare_items.append(item)
+	for item in _db_armor:
+		if item is Dictionary and item.get("rarity", "") == "Rare":
+			rare_items.append(item)
+	for item in _db_gear:
+		if item is Dictionary and item.get("rarity", "") == "Rare":
+			rare_items.append(item)
+	if rare_items.is_empty():
+		return _generate_market_weapon(5)
+	var chosen: Dictionary = rare_items[randi() % rare_items.size()]
+	var item: Dictionary = chosen.duplicate()
+	item["condition"] = 90 + (randi() % 11)
+	item["value"] = item.get("cost", 3) * 40
+	return item
 
-## Generate unique powerful items (very rare)
+## Generate unique powerful items — picks rarest available from JSON
 func _generate_unique_item() -> Dictionary:
-	var unique_items = [
-		{
-			"name": "Experimental Weapon Prototype",
-			"type": "weapon",
-			"stats": {
-				"weapon_type": GameEnums.WeaponType.SPECIAL,
-				"damage": 5,
-				"range": 3
-			}
-		},
-		{
-			"name": "Advanced Power Armor",
-			"type": "armor",
-			"stats": {
-				"armor_type": GameEnums.ArmorType.POWERED,
-				"protection": 4
-			}
-		},
-		{
-			"name": "Alien Artifact",
-			"type": "gear",
-			"gear_type": "artifact",
-			"effect": {"special": 3, "description": "Unknown alien technology with powerful effects"}
-		},
-		{
-			"name": "Neural Interface",
-			"type": "gear",
-			"gear_type": "augment",
-			"effect": {"skills": 2, "reaction": 2}
-		}
-	]
-	
-	var selected_item = unique_items[randi() % unique_items.size()]
-	
-	match selected_item.type:
-		"weapon":
-			return create_weapon_item(
-				selected_item.name,
-				selected_item.stats.weapon_type,
-				selected_item.stats.damage,
-				selected_item.stats.range
-			)
-		"armor":
-			return create_armor_item(
-				selected_item.name,
-				selected_item.stats.armor_type,
-				selected_item.stats.protection
-			)
-		"gear":
-			return create_gear_item(
-				selected_item.name,
-				selected_item.gear_type,
-				selected_item.effect
-			)
-		_:
-			return create_gear_item(
-				"Mysterious Item",
-				"unknown",
-				{"unknown": 3}
-			)
+	# Unique items are the rarest in the database
+	return _generate_rare_equipment()
 
 ## Create a weapon with the specified parameters (used by import/generation systems)
 func create_weapon_item(name: String, weapon_type: int, damage: int, range_val: int) -> Dictionary:
@@ -707,82 +519,18 @@ func _update_character_with_equipment(character_id: String) -> void:
 	# Update character in manager
 	character_manager.update_character(character_id, character)
 
-## Generate a random item (used for loot generation)
+## Generate a random item (used for loot generation, from equipment_database.json)
 func _generate_random_item(difficulty: int) -> Dictionary:
-	var item_type = randi() % 3 # 0: Weapon, 1: Armor, 2: Gear
-	var item = {}
-	
+	# Map difficulty to market quality for rarity filtering
+	var quality: int = clampi(difficulty, 1, 5)
+	var item_type := randi() % 3
 	match item_type:
-		0: # Weapon
-			var weapon_types = [
-				GameEnums.WeaponType.BASIC,
-				GameEnums.WeaponType.PISTOL,
-				GameEnums.WeaponType.RIFLE
-			]
-			
-			# Add advanced weapons at higher difficulties
-			if difficulty >= 3:
-				weapon_types.append(GameEnums.WeaponType.ADVANCED)
-			
-			# Add heavy weapons at high difficulties
-			if difficulty >= 5:
-				weapon_types.append(GameEnums.WeaponType.HEAVY)
-			
-			var weapon_type = weapon_types[randi() % weapon_types.size()]
-			var damage = 1 + (randi() % (1 + difficulty / 2))
-			var range_val = 1 + (randi() % 3)
-			
-			var prefixes = ["Standard", "Reliable", "Tactical", "Enhanced", "Advanced"]
-			var weapon_bases = ["Blaster", "Rifle", "Pistol", "Carbine", "Cannon"]
-			var name = prefixes[randi() % prefixes.size()] + " " + weapon_bases[randi() % weapon_bases.size()]
-			
-			item = create_weapon_item(name, weapon_type, damage, range_val)
-			
-		1: # Armor
-			var armor_types = [
-				GameEnums.ArmorType.LIGHT,
-				GameEnums.ArmorType.MEDIUM
-			]
-			
-			# Add heavy armor at higher difficulties
-			if difficulty >= 4:
-				armor_types.append(GameEnums.ArmorType.HEAVY)
-			
-			var armor_type = armor_types[randi() % armor_types.size()]
-			var protection = 1 + (randi() % (1 + difficulty / 2))
-			
-			var prefixes = ["Standard", "Reinforced", "Tactical", "Combat", "Advanced"]
-			var armor_bases = ["Vest", "Suit", "Armor", "Plating", "Shield"]
-			var name = prefixes[randi() % prefixes.size()] + " " + armor_bases[randi() % armor_bases.size()]
-			
-			item = create_armor_item(name, armor_type, protection)
-			
-		2: # Gear
-			var gear_types = ["medkit", "scanner", "toolkit", "booster", "shield"]
-			var gear_type = gear_types[randi() % gear_types.size()]
-			
-			var effect = {}
-			match gear_type:
-				"medkit":
-					effect = {"healing": 1 + (randi() % difficulty)}
-				"scanner":
-					effect = {"detection": 1 + (randi() % difficulty)}
-				"toolkit":
-					effect = {"repair": 1 + (randi() % difficulty)}
-				"booster":
-					effect = {"speed": 1 + (randi() % difficulty)}
-				"shield":
-					effect = {"defense": 1 + (randi() % difficulty)}
-			
-			var prefixes = ["Basic", "Reliable", "Advanced", "Premium", "Prototype"]
-			var name = prefixes[randi() % prefixes.size()] + " " + gear_type.capitalize()
-			
-			item = create_gear_item(name, gear_type, effect)
-	
-	# Randomly add condition variation (80-100%)
-	item["condition"] = 80 + (randi() % 21)
-	
-	return item
+		0:
+			return _generate_market_weapon(quality)
+		1:
+			return _generate_market_armor(quality)
+		_:
+			return _generate_market_gear(quality)
 
 func _calculate_weapon_value(weapon_type: int, damage: int, range_val: int) -> int:
 	var base_value = 100
@@ -1130,257 +878,74 @@ func _determine_market_item_type(market_quality: int) -> String:
 	else:
 		return "ammo"
 
-## Generate a weapon for the market based on quality
+## Generate a weapon for the market based on quality (from equipment_database.json)
 func _generate_market_weapon(market_quality: int) -> Dictionary:
-	# Higher quality markets have better weapons
-	var weapon_type = GameEnums.WeaponType.BASIC
-	
-	# Determine weapon type based on market quality
-	var type_roll = randi() % 100 + 1
+	if _db_weapons.is_empty():
+		# Fallback if JSON not loaded
+		return create_weapon_item("Basic Weapon", GameEnums.WeaponType.BASIC, 1, 1)
+	# Filter by rarity based on market quality
+	var allowed_rarities: Array[String] = ["Common"]
+	if market_quality >= 3:
+		allowed_rarities.append("Uncommon")
 	if market_quality >= 5:
-		# Top quality markets have advanced weapons
-		if type_roll <= 30:
-			weapon_type = GameEnums.WeaponType.ADVANCED
-		elif type_roll <= 70:
-			weapon_type = GameEnums.WeaponType.RIFLE
-		else:
-			weapon_type = GameEnums.WeaponType.PISTOL
-	elif market_quality >= 3:
-		# Good markets have rifles and pistols mostly
-		if type_roll <= 10:
-			weapon_type = GameEnums.WeaponType.ADVANCED
-		elif type_roll <= 50:
-			weapon_type = GameEnums.WeaponType.RIFLE
-		else:
-			weapon_type = GameEnums.WeaponType.PISTOL
-	else:
-		# Basic markets have basic weapons
-		if type_roll <= 30:
-			weapon_type = GameEnums.WeaponType.RIFLE
-		else:
-			weapon_type = GameEnums.WeaponType.PISTOL
-	
-	# Base stats based on weapon type
-	var base_damage = 0
-	var base_range = 0
-	var weapon_name = ""
-	var base_value = 0
-	
-	match weapon_type:
-		GameEnums.WeaponType.PISTOL:
-			base_damage = 1
-			base_range = 1
-			weapon_name = "Market Pistol"
-			base_value = 75
-		GameEnums.WeaponType.RIFLE:
-			base_damage = 2
-			base_range = 2
-			weapon_name = "Market Rifle"
-			base_value = 150
-		GameEnums.WeaponType.ADVANCED:
-			base_damage = 3
-			base_range = 2
-			weapon_name = "Advanced Market Weapon"
-			base_value = 300
-		GameEnums.WeaponType.HEAVY:
-			base_damage = 4
-			base_range = 1
-			weapon_name = "Heavy Market Weapon"
-			base_value = 400
-		_:
-			base_damage = 1
-			base_range = 1
-			weapon_name = "Basic Market Weapon"
-			base_value = 50
-	
-	# Create the weapon with appropriate stats
-	var weapon = create_weapon_item(
-		weapon_name,
-		weapon_type,
-		base_damage,
-		base_range
-	)
-	
-	# Set the condition (market weapons are generally in good condition)
-	weapon["condition"] = 80 + (randi() % 21) # 80-100%
-	
-	# Set the value
-	weapon["value"] = base_value
-	
-	# Special features based on market quality
-	if market_quality >= 4 and randf() < 0.3:
-		# 30% chance for a special trait in high quality markets
-		var available_traits = ["Reliable", "Rapid", "Penetrating", "Shred"]
-		var selected_trait = available_traits[randi() % available_traits.size()]
-		
-		var current_traits = weapon.get("traits", [])
-		current_traits.append(selected_trait)
-		weapon["traits"] = current_traits
-		
-		# Increase value for special trait
-		weapon["value"] += 100
-	
+		allowed_rarities.append("Rare")
+	var candidates: Array = []
+	for w in _db_weapons:
+		if w is Dictionary and w.get("rarity", "Common") in allowed_rarities:
+			candidates.append(w)
+	if candidates.is_empty():
+		candidates = _db_weapons.duplicate()
+	var chosen: Dictionary = candidates[randi() % candidates.size()]
+	var weapon: Dictionary = chosen.duplicate()
+	weapon["category"] = EquipmentCategory.WEAPON
+	weapon["condition"] = 80 + (randi() % 21)
+	weapon["value"] = weapon.get("cost", 3) * 25
 	return weapon
 
-## Generate armor for the market based on quality
+## Generate armor for the market based on quality (from equipment_database.json)
 func _generate_market_armor(market_quality: int) -> Dictionary:
-	# Higher quality markets have better armor
-	var armor_type = GameEnums.ArmorType.LIGHT
-	
-	# Determine armor type based on market quality
-	var type_roll = randi() % 100 + 1
+	if _db_armor.is_empty():
+		return create_armor_item("Basic Armor", GameEnums.ArmorType.LIGHT, 1)
+	var allowed_rarities: Array[String] = ["Common"]
+	if market_quality >= 3:
+		allowed_rarities.append("Uncommon")
 	if market_quality >= 5:
-		# Top quality markets have heavy armor
-		if type_roll <= 30:
-			armor_type = GameEnums.ArmorType.HEAVY
-		elif type_roll <= 70:
-			armor_type = GameEnums.ArmorType.MEDIUM
-		else:
-			armor_type = GameEnums.ArmorType.LIGHT
-	elif market_quality >= 3:
-		# Good markets have medium armor
-		if type_roll <= 10:
-			armor_type = GameEnums.ArmorType.HEAVY
-		elif type_roll <= 50:
-			armor_type = GameEnums.ArmorType.MEDIUM
-		else:
-			armor_type = GameEnums.ArmorType.LIGHT
-	else:
-		# Basic markets mainly have light armor
-		if type_roll <= 20:
-			armor_type = GameEnums.ArmorType.MEDIUM
-		else:
-			armor_type = GameEnums.ArmorType.LIGHT
-	
-	# Base stats based on armor type
-	var base_protection = 0
-	var mobility_penalty = 0
-	var armor_name = ""
-	var base_value = 0
-	var protection_bonus = 0
-	
-	match armor_type:
-		GameEnums.ArmorType.LIGHT:
-			base_protection = 1
-			mobility_penalty = 0
-			armor_name = "Light Market Armor"
-			base_value = 100
-		GameEnums.ArmorType.MEDIUM:
-			base_protection = 2
-			mobility_penalty = 1
-			armor_name = "Medium Market Armor"
-			base_value = 200
-		GameEnums.ArmorType.HEAVY:
-			base_protection = 3
-			mobility_penalty = 2
-			armor_name = "Heavy Market Armor"
-			base_value = 350
-		_:
-			base_protection = 1
-			mobility_penalty = 0
-			armor_name = "Basic Market Armor"
-			base_value = 75
-	
-	# Create armor with the appropriate stats
-	var armor = create_armor_item(
-		armor_name,
-		armor_type,
-		base_protection + protection_bonus
-	)
-	
-	# Set the condition (market armor is generally in good condition)
-	armor["condition"] = 80 + (randi() % 21) # 80-100%
-	
-	# Set the value
-	armor["value"] = base_value
-	
-	# Special features based on market quality
-	if market_quality >= 4 and randf() < 0.3:
-		# 30% chance for a special trait in high quality markets
-		var available_traits = ["Environmental", "Sealed", "Reinforced", "Stealth"]
-		var selected_trait = available_traits[randi() % available_traits.size()]
-		
-		var current_traits = armor.get("traits", [])
-		current_traits.append(selected_trait)
-		armor["traits"] = current_traits
-		
-		# Increase value for special trait
-		armor["value"] += 150
-	
+		allowed_rarities.append("Rare")
+	var candidates: Array = []
+	for a in _db_armor:
+		if a is Dictionary and a.get("rarity", "Common") in allowed_rarities:
+			candidates.append(a)
+	if candidates.is_empty():
+		candidates = _db_armor.duplicate()
+	var chosen: Dictionary = candidates[randi() % candidates.size()]
+	var armor: Dictionary = chosen.duplicate()
+	armor["category"] = EquipmentCategory.ARMOR
+	armor["condition"] = 80 + (randi() % 21)
+	armor["value"] = armor.get("cost", 3) * 25
 	return armor
 
-## Generate gear items for the market
+## Generate gear items for the market (from equipment_database.json)
 func _generate_market_gear(market_quality: int) -> Dictionary:
-	var gear_types = [
-		{
-			"name": "Medkit",
-			"type": "medkit",
-			"properties": {"healing": 1},
-			"base_value": 50
-		},
-		{
-			"name": "Targeting System",
-			"type": "targeting",
-			"properties": {"accuracy": 1},
-			"base_value": 75
-		},
-		{
-			"name": "Combat Stimulant",
-			"type": "stimulant",
-			"properties": {"combat_bonus": 1, "uses": 2},
-			"base_value": 60
-		},
-		{
-			"name": "Shield Generator",
-			"type": "shield",
-			"properties": {"defense": 1, "charges": 3},
-			"base_value": 100
-		},
-		{
-			"name": "Grappling Hook",
-			"type": "mobility",
-			"properties": {"climb": 1},
-			"base_value": 40
-		}
-	]
-	
-	# Add more high-quality items if the market is good
-	if market_quality >= 4:
-		gear_types.append({
-			"name": "Advanced Scanner",
-			"type": "scanner",
-			"properties": {"detection": 2, "range": 2},
-			"base_value": 120
-		})
-		
-		gear_types.append({
-			"name": "Energy Shield",
-			"type": "shield",
-			"properties": {"defense": 2, "charges": 5},
-			"base_value": 200
-		})
-	
-	# Select a random gear type
-	var selected_gear = gear_types[randi() % gear_types.size()]
-	
-	# Create the gear with appropriate properties
-	var gear = create_gear_item(
-		selected_gear.name,
-		selected_gear.type,
-		selected_gear.properties
-	)
-	
-	# Set the value
-	gear["value"] = selected_gear.base_value
-	
-	# Improve gear based on market quality
-	if market_quality >= 3 and randf() < 0.5:
-		# 50% chance to enhance the item in good markets
-		for key in gear.get("properties", {}).keys():
-			if key in ["healing", "accuracy", "combat_bonus", "defense"]:
-				gear["properties"][key] += 1
-				gear["value"] += 50
-	
+	if _db_gear.is_empty():
+		return create_gear_item("Basic Gear", "medkit", {"healing": 1})
+	var allowed_rarities: Array[String] = ["Common"]
+	if market_quality >= 3:
+		allowed_rarities.append("Uncommon")
+	if market_quality >= 5:
+		allowed_rarities.append("Rare")
+	var candidates: Array = []
+	for g in _db_gear:
+		if g is Dictionary and g.get("rarity", "Common") in allowed_rarities:
+			candidates.append(g)
+	if candidates.is_empty():
+		candidates = _db_gear.duplicate()
+	var chosen: Dictionary = candidates[randi() % candidates.size()]
+	var gear: Dictionary = chosen.duplicate()
+	gear["category"] = EquipmentCategory.GEAR
+	if chosen.get("single_use", false):
+		gear["category"] = EquipmentCategory.CONSUMABLE
+	gear["condition"] = 100
+	gear["value"] = gear.get("cost", 3) * 25
 	return gear
 
 ## Apply market-specific markup to item values

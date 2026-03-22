@@ -12,32 +12,32 @@ const DiceSystem = preload("res://src/core/systems/DiceSystem.gd")
 
 signal psionic_power_used(character: Character, power: Dictionary, result: bool)
 
-## Psionic Power Types enum
+## Psionic Power Types enum (Core Rules pp.96-101, D10 table order)
 enum PsionicPowerType {
-	UPLIFT,
-	LIFT,
-	BARRIER,
-	GUIDANCE,
-	FORCE,
-	DISTRACTION,
-	STUN,
-	PRECOGNITION,
-	TELEPATHY,
-	KINETIC_BOLT
+	BARRIER,        # D10=1
+	GRAB,           # D10=2
+	LIFT,           # D10=3
+	SHROUD,         # D10=4
+	ENRAGE,         # D10=5
+	PREDICT,        # D10=6 (Precursor default)
+	SHOCK,          # D10=7
+	REJUVENATE,     # D10=8
+	GUIDE,          # D10=9
+	PSIONIC_SCARE   # D10=10
 }
 
-## Power enum values for D10 generation
+## Power enum values for D10 generation (index 0-9 maps to D10 roll 1-10)
 var power_enum_values: Array[PsionicPowerType] = [
-	PsionicPowerType.UPLIFT,
-	PsionicPowerType.LIFT,
 	PsionicPowerType.BARRIER,
-	PsionicPowerType.GUIDANCE,
-	PsionicPowerType.FORCE,
-	PsionicPowerType.DISTRACTION,
-	PsionicPowerType.STUN,
-	PsionicPowerType.PRECOGNITION,
-	PsionicPowerType.TELEPATHY,
-	PsionicPowerType.KINETIC_BOLT
+	PsionicPowerType.GRAB,
+	PsionicPowerType.LIFT,
+	PsionicPowerType.SHROUD,
+	PsionicPowerType.ENRAGE,
+	PsionicPowerType.PREDICT,
+	PsionicPowerType.SHOCK,
+	PsionicPowerType.REJUVENATE,
+	PsionicPowerType.GUIDE,
+	PsionicPowerType.PSIONIC_SCARE
 ]
 
 ## Psionic Power class
@@ -46,38 +46,48 @@ class PsionicPower:
 	var name: String
 	var description: String
 	var enhanced: bool = false
-	
+
 	func _init(type: PsionicPowerType) -> void:
 		power_type = type
 		name = _get_power_name(type)
 		description = _get_power_description(type)
-	
+
 	func _get_power_name(type: PsionicPowerType) -> String:
 		match type:
-			PsionicPowerType.UPLIFT: return "Uplift"
-			PsionicPowerType.LIFT: return "Lift"
 			PsionicPowerType.BARRIER: return "Barrier"
-			PsionicPowerType.GUIDANCE: return "Guidance"
-			PsionicPowerType.FORCE: return "Force"
-			PsionicPowerType.DISTRACTION: return "Distraction"
-			PsionicPowerType.STUN: return "Stun"
-			PsionicPowerType.PRECOGNITION: return "Precognition"
-			PsionicPowerType.TELEPATHY: return "Telepathy"
-			PsionicPowerType.KINETIC_BOLT: return "Kinetic Bolt"
+			PsionicPowerType.GRAB: return "Grab"
+			PsionicPowerType.LIFT: return "Lift"
+			PsionicPowerType.SHROUD: return "Shroud"
+			PsionicPowerType.ENRAGE: return "Enrage"
+			PsionicPowerType.PREDICT: return "Predict"
+			PsionicPowerType.SHOCK: return "Shock"
+			PsionicPowerType.REJUVENATE: return "Rejuvenate"
+			PsionicPowerType.GUIDE: return "Guide"
+			PsionicPowerType.PSIONIC_SCARE: return "Psionic Scare"
 			_: return "Unknown"
-	
+
 	func _get_power_description(type: PsionicPowerType) -> String:
 		match type:
-			PsionicPowerType.UPLIFT: return "Helps allies move through difficult terrain"
-			PsionicPowerType.LIFT: return "Lift objects or characters"
-			PsionicPowerType.BARRIER: return "Create protective barriers"
-			PsionicPowerType.GUIDANCE: return "Provide tactical guidance"
-			PsionicPowerType.FORCE: return "Apply telekinetic force"
-			PsionicPowerType.DISTRACTION: return "Distract enemies"
-			PsionicPowerType.STUN: return "Stun target characters"
-			PsionicPowerType.PRECOGNITION: return "See future events"
-			PsionicPowerType.TELEPATHY: return "Communicate telepathically"
-			PsionicPowerType.KINETIC_BOLT: return "Launch kinetic projectiles"
+			PsionicPowerType.BARRIER:
+				return "Ranged hits on target negated on D6 4+. No Stun markers from negated hits."
+			PsionicPowerType.GRAB:
+				return "Push/pull target 1D6\" directly away from or towards the Psionic."
+			PsionicPowerType.LIFT:
+				return "Move friendly/neutral figure 1D6+1\" in any direction. Lands safely."
+			PsionicPowerType.SHROUD:
+				return "Place 3\"-wide fog wall within range. Blocks line of sight, grants Cover."
+			PsionicPowerType.ENRAGE:
+				return "Target moves full+2\" towards nearest enemy and Brawls. Cannot act later."
+			PsionicPowerType.PREDICT:
+				return "Target rolls twice for one action, picks better. Precursor default (D10=6)."
+			PsionicPowerType.SHOCK:
+				return "Target receives 1 Stun marker."
+			PsionicPowerType.REJUVENATE:
+				return "Target removes 1 Stun marker."
+			PsionicPowerType.GUIDE:
+				return "Allied figure takes one bonus Shot (non-Area weapon). Target must be visible to Psionic."
+			PsionicPowerType.PSIONIC_SCARE:
+				return "Target makes immediate Morale check (unless immune)."
 			_: return "Unknown power"
 
 ## Psionic Character class
@@ -164,6 +174,15 @@ func resolve_psionic_projection(psionic_character: PsionicCharacter, power: Psio
 	else:
 		projection_roll = randi_range(2, 12)
 	
+	# Enhanced power bonus: +1D6 to projection roll (Core Rules p.101)
+	if power.enhanced:
+		var enhance_roll: int = 0
+		if dice_mgr and dice_mgr.has_method("roll_dice"):
+			enhance_roll = dice_mgr.roll_dice(1, 6)
+		else:
+			enhance_roll = randi_range(1, 6)
+		projection_roll += enhance_roll
+
 	var range_needed = psionic_character.global_position.distance_to(target_position)
 	var total_range = projection_roll
 	var strained = false
@@ -179,21 +198,27 @@ func resolve_psionic_projection(psionic_character: PsionicCharacter, power: Psio
 		total_range += strain_roll
 		strained = true
 		
-		# Resolve strain effects
-		if strain_roll == 4 or strain_roll == 5:
-			psionic_character.add_stun_marker()
-		elif strain_roll == 6:
-			psionic_character.add_stun_marker()
-			var power_dict = {"type": power.power_type, "name": power.name}
-			psionic_power_used.emit(psionic_character.character, power_dict, false)
-			return false
-	
+		# Resolve strain effects (Core Rules p.97)
+		# Swift characters: Stunned on 5-6, no other effects
+		var is_swift: bool = false
+		if psionic_character.character and "origin" in psionic_character.character:
+			var origin_str: String = str(psionic_character.character.origin)
+			is_swift = origin_str == "SWIFT" or origin_str == "7"
+		if is_swift:
+			if strain_roll >= 5:
+				psionic_character.add_stun_marker()
+			# Swift: power always succeeds on strain (no fail on 6)
+		else:
+			if strain_roll == 4 or strain_roll == 5:
+				psionic_character.add_stun_marker()
+			elif strain_roll == 6:
+				psionic_character.add_stun_marker()
+				var power_dict = {"type": power.power_type, "name": power.name}
+				psionic_power_used.emit(psionic_character.character, power_dict, false)
+				return false
+
 	var success = total_range >= range_needed
-	if success:
-		pass
-	else:
-		pass
-	
+
 	var power_dict = {"type": power.power_type, "name": power.name}
 	psionic_power_used.emit(psionic_character.character, power_dict, success)
 	return success

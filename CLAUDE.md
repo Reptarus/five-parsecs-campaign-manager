@@ -422,6 +422,37 @@ Both `.vscode/settings.json` and Cursor user settings exclude: `.godot/`, `.mcp/
 
 ---
 
+## Agent Search Accuracy Protocol
+
+Agents frequently return inaccurate search results — claiming files are stubs, missing code, or returning wrong locations. Follow these rules to mitigate:
+
+### Prompt Specificity
+
+- Use exact function/class names, not vague descriptions: `EquipmentManager.get_sell_value()` not "equipment pricing"
+- Include file path hints: "search in `src/core/character/`" not "search for character code"
+- Request structured output: `[file_path]:[line_number]: [exact code line]`
+
+### Explore Agent Prompts
+
+- Always specify `"very thorough"` thoroughness level unless doing a trivial single-file lookup
+- Front-load structural context: key directories, known file paths, class names
+- Tell the agent what NOT to do: "Do not assume a file is a stub without reading it fully"
+
+### Verification (MANDATORY)
+
+- After any agent search/explore, READ at least 1-2 claimed files to spot-check accuracy
+- Never act on unverified search results — especially for routing decisions or code changes
+- If verification fails, re-search with more specific prompts rather than trusting the original result
+
+### Model Selection for Search Tasks
+
+- Opus: best for cross-system searches, complex pattern matching
+- Sonnet: good accuracy with specific, well-anchored prompts
+- Haiku: lowest search accuracy — provide extra file path hints, limit search scope, always verify claims
+- Do NOT use Haiku-model agents for search-heavy exploration tasks
+
+---
+
 ## Key Documentation
 
 - `docs/PROJECT_STATUS_2026.md` — Current project status

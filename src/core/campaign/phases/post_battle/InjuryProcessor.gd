@@ -40,6 +40,18 @@ func process_injuries(ctx: PostBattleContextClass) -> Array[Dictionary]:
 					processed_injuries.remove_at(worst_idx)
 					ctx.campaign.stars_of_story_data = stars.serialize()
 
+	# Log injuries to CampaignJournal
+	if ctx.campaign_journal and ctx.campaign_journal.has_method("auto_create_character_event"):
+		var turn_num: int = ctx.game_state_manager.turn_number if ctx.game_state_manager and "turn_number" in ctx.game_state_manager else 0
+		for inj in processed_injuries:
+			var crew_id: String = inj.get("crew_id", "")
+			if crew_id.is_empty():
+				continue
+			ctx.campaign_journal.auto_create_character_event(crew_id, "injury", {
+				"turn": turn_num,
+				"description": "Sustained %s injury. Recovery: %d turns." % [inj.get("type", "unknown"), inj.get("recovery_turns", 0)],
+			})
+
 	return processed_injuries
 
 func process_single_injury(ctx: PostBattleContextClass, injury_data: Dictionary) -> Dictionary:

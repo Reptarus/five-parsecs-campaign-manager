@@ -717,6 +717,24 @@ func _process_world_arrival() -> void:
 
 func _complete_travel_phase() -> void:
 	## Complete the Travel Phase
+	# Log travel to CampaignJournal
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		var destination: String = _last_world_data.get("name", "Unknown") if _last_world_data else "Unknown"
+		var turn_num: int = 0
+		var gs = get_node_or_null("/root/GameState")
+		if gs and gs.current_campaign and "progress_data" in gs.current_campaign:
+			turn_num = gs.current_campaign.progress_data.get("turns_played", 0)
+		journal.create_entry({
+			"turn_number": turn_num,
+			"type": "travel",
+			"auto_generated": true,
+			"title": "Travel to %s" % destination,
+			"description": "Crew traveled to %s." % destination,
+			"mood": "neutral",
+			"tags": ["travel"],
+			"location": destination,
+		})
 	if GlobalEnums:
 		current_substep = GlobalEnums.TravelSubPhase.NONE
 	travel_phase_completed.emit()

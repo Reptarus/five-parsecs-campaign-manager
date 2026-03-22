@@ -1,6 +1,6 @@
 # Project Status (March 22, 2026)
 
-## Current Phase: Phase 43 — Core+Compendium Gap Remediation (5/6 sprints done)
+## Current Phase: Phase 44 COMPLETE — Integration Gap Audit + Psionics Subsystem (6/6 sprints)
 
 ## Key Metrics
 
@@ -16,10 +16,12 @@
 | GDScript Files | ~900 (excl. addons) |
 | Autoloads | 28 (project.godot — added GalacticWarManager + FactionSystem) |
 | MCP QA Sprint (Mar 21) | 7 sessions, 62/66 PASS, 4 N/A |
-| Compendium Integration | 11/11 data files, ~45/93 methods wired (was 15 before Phase 43) |
+| Compendium Integration | 11/11 data files, ~52/93 methods wired. 0 low-priority flags remaining |
 | Phase 41-42 | COMPLETE — 8 gaps fixed, 4 deferred features activated |
-| Phase 43 | IN PROGRESS — 5/6 sprints done: StreetFight+Salvage panels, BUG-036 fix, WorldOptions wiring, dead code cleanup, data file audit |
-| Open Bugs | 0 (BUG-036 Precursor psionic fixed this session) |
+| Phase 43 | COMPLETE — 6/6 sprints: panels, BUG-036, wiring, dead code, data audit, equipment rewrite, utility method wiring |
+| Phase 44 | COMPLETE — 6/6 sprints: CampaignJournal wiring (9 sites), autoload fixes (NPCTracker/LegacySystem/GalacticWarProcessor), PsionicSystem full rewrite+wiring (advancement/battle/UI/implant interaction) |
+| Open Bugs | 0 |
+| Data Consumption Gap | equipment_database.json rewrite is unconsumed — EquipmentManager uses hardcoded data |
 
 ## Completed Phases
 
@@ -53,21 +55,22 @@
 | 33 | Codebase Optimization (12 sprints) |
 | 34-36 | QA Sprints + Full Test Coverage (293 tests) |
 | 37 | Equipment & Compendium Data Audit (8 data files) |
-| **38** | **Full Rules Parity** — backgrounds/motivations/classes/species/enemies all book-accurate, three-enum sync, d100 weighted rolling (4 data + 10 code files) |
-| **39** | **Compendium Data Audit** — 6 data files rewritten, 2 new created, 5 code files fixed. No-minis/strife/loans/names/missions/PvP/Co-op/deployment/escalation all book-accurate (14 files, +571 lines) |
-| **40** | **Compendium Mission Types + Full Wiring** — 3 data files created (stealth/street/salvage, ~900 lines), 7 UI/pipeline files fixed. Mission type selection (p.118) wired end-to-end: JobOffer→WorldPhase→BattlePhase→UI. Deployment vars, escalation, strife all display in UI. (24 files, +1477/-706 lines) |
-| **41** | **Rules Gap Remediation** — 5 sprints: world arrival, GalacticWarManager autoload, loans, names, missions, introductory campaign |
-| **42** | **Foundational DLC Data** — 5 sprints: three-enum sync fix, dramatic combat, grid movement text, FactionSystem activated, Prison Planet origin |
-| **43** | **Core+Compendium Gap Remediation** — 4/6 sprints: StreetFight+Salvage battle panels (2 new files), BUG-036 psionic fix, WorldOptions loan lifecycle, dead code cleanup. Audit corrected 80→48 dead methods. (2 created, 8 modified, 2 deleted) |
+| 38 | Full Rules Parity (4 data + 10 code files) |
+| 39 | Compendium Data Audit (6 data + 2 new + 5 code files) |
+| 40 | Compendium Mission Types + Full Wiring (3 data + 7 UI files) |
+| 41 | Rules Gap Remediation (5 sprints) |
+| 42 | Foundational DLC Data (5 sprints) |
+| 43 | Core+Compendium Gap Remediation (6 sprints, 18 files) |
+| **44** | **Integration Gap Audit + Psionics** (6 sprints, 22 files) — CampaignJournal 9 call sites, autoload delegation fixes, PsionicSystem power enum rewrite (10 Core Rules names), advancement handlers (12/6 XP), gameplay constraints (combat block, one-per-crew, implant loss), DLC-gated UI (AdvancementPhasePanel + PsionicLegalityBadge), battle integration (PreBattleChecklist enemy psionics, PostBattlePhase detection), PsionicManager stub deleted |
 
 ## Roadmap / Future Work
 
-- **Core Rules data audit**: COMPLETE (Phases 37-38)
-- **Phase 43 Sprint 6 PENDING**: Data file rules accuracy audit (gear_database, enemy_types, injury_table, character_species vs Core Rules PDF)
-- **Phase 43 Sprint 4 SKIPPED**: Low-impact utility method wiring (stealth sub-rolls, equipment instruction text, no-minis notes)
-- **Compendium deferred**: Full PSIONICS wiring (subsystem incomplete), GRID_BASED_MOVEMENT
+- **Core Rules data audit**: COMPLETE (Phases 37-38, + Sprint 43-6 verified all key files vs PDF)
+- **equipment_database.json**: REWRITTEN with Core Rules data. 36 weapons, 9 armor, 26 gear, 13 attachments. **UNCONSUMED** — EquipmentManager.gd uses hardcoded inline arrays. Refactor needed.
+- **Psionics subsystem**: NOW FULLY WIRED (Phase 44). Only remaining: PsionicSystem.resolve_psionic_projection() enhanced bonus (+1D6) not yet applied for `psionic_power_enhanced` characters at runtime
+- **Compendium deferred**: GRID_BASED_MOVEMENT text helpers, species text helpers, PvP/Co-op modes
 - **Bug Hunt Phase 8**: Co-op mode support (stretch)
-- **Integration gaps**: BattleJournal logging, NPCTracker gameplay calls, LegacySystem lifecycle
+- **Battle UX**: User wants per-character "smart dice roll" — select character, choose action, roll with stats. Currently TacticalBattleUI has basic 1d6/2d6/d100 quick dice with no character context
 - **Store IDs**: Placeholder — need real IDs from Modiphius
 - **steam_appid.txt**: Needed for Steam deployment
 - **Public beta**: Pending Modiphius approval
@@ -80,3 +83,4 @@
 - **Store adapter pattern**: StoreManager → SteamStore/AndroidStore/iOSStore/OfflineStore
 - **Battle is tabletop companion**: Text instructions, not automated simulation
 - **DLC self-gating**: compendium_*.gd classes check ContentFlags internally
+- **Psionics subsystem**: PsionicSystem.gd (static methods) + Character.psionic_power (JSON ID) + psionic_power_enhanced (bool). DLC-gated behind ContentFlag.PSIONICS

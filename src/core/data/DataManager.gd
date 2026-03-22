@@ -756,9 +756,9 @@ func load_json_file(file_path: String, context: String = "JSON data") -> Diction
 	## ## Get all equipment database data
 	## return _equipment_database.duplicate()
 	##
-	## func get_psionic_powers() -> Dictionary:
-	## ## Get all psionic powers data
-	## return _psionic_powers_database.duplicate()
+func get_psionic_powers() -> Dictionary:
+	## Get all psionic powers data
+	return _psionic_powers_database.duplicate()
 	##
 	## func get_elite_enemy_types() -> Dictionary:
 	## ## Get all elite enemy types data

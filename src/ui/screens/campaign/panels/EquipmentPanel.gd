@@ -177,28 +177,57 @@ func _generate_five_parsecs_equipment(crew_members: Array) -> void:
 	# - 1 roll on Gadget Table
 	# - 1 credit per crew member
 	
-	var military_weapons = [
-		"Military Rifle", "Infantry Laser", "Marksman's Rifle", "Needle Rifle",
-		"Auto Rifle", "Rattle Gun", "Boarding Saber", "Shatter Axe"
-	]
-	
-	var low_tech_weapons = [
-		"Handgun", "Scrap Pistol", "Machine Pistol", "Colony Rifle",
-		"Shotgun", "Hunting Rifle", "Blade", "Brutal Melee Weapon"
-	]
-	
-	var gear_items = [
-		"Assault Blade", "Beam Light", "Bipod", "Booster Pills", "Camo Cloak",
-		"Combat Armor", "Communicator", "Concealed Blade", "Fake ID", "Fixer",
-		"Frag Vest", "Grapple Launcher", "Hazard Suit", "Laser Sight",
-		"Med-patch", "Nano-doc", "Scanner bot", "Steel Boots", "Tracker Sight"
-	]
-	
-	var gadget_items = [
-		"Analyzer", "Battle Visor", "Deflector Field", "Distraction Bot",
-		"Grav Dampener", "Holo Sight", "Jump Belt", "Motion Tracker",
-		"Neural Optimization", "Rage Serum", "Repair Bot", "Sonic Emitter"
-	]
+	# Load from equipment_database.json instead of hardcoded arrays
+	var eq_db: Dictionary = _load_equipment_db()
+	var db_weapons: Array = eq_db.get("weapons", [])
+	var db_gear: Array = eq_db.get("gear", [])
+	var db_attachments: Array = eq_db.get("attachments", [])
+
+	# Military weapons: non-Pistol, non-Melee ranged weapons (Core Rules p.28)
+	var military_weapons: Array[String] = []
+	for w in db_weapons:
+		if w is Dictionary:
+			var traits: Array = w.get("traits", [])
+			var wtype: String = w.get("type", "")
+			if "Pistol" not in traits and wtype != "Melee" and wtype != "Grenade":
+				military_weapons.append(w.get("name", ""))
+	if military_weapons.is_empty():
+		military_weapons = ["Military Rifle", "Infantry Laser", "Auto Rifle"]
+
+	# Low-tech weapons: Pistols, basic slug weapons, melee (Core Rules p.28)
+	var low_tech_weapons: Array[String] = []
+	for w in db_weapons:
+		if w is Dictionary:
+			var traits: Array = w.get("traits", [])
+			var wtype: String = w.get("type", "")
+			var rarity: String = w.get("rarity", "")
+			if ("Pistol" in traits or wtype == "Melee") and rarity == "Common":
+				low_tech_weapons.append(w.get("name", ""))
+	if low_tech_weapons.is_empty():
+		low_tech_weapons = ["Hand Gun", "Blade", "Colony Rifle", "Shotgun"]
+
+	# Gear items: armor + utility devices + consumables
+	var gear_items: Array[String] = []
+	for g in db_gear:
+		if g is Dictionary:
+			gear_items.append(g.get("name", ""))
+	# Also include attachments as gear rolls
+	for a in db_attachments:
+		if a is Dictionary:
+			gear_items.append(a.get("name", ""))
+	if gear_items.is_empty():
+		gear_items = ["Frag Vest", "Communicator", "Booster Pills"]
+
+	# Gadget items: Uncommon/Rare utility devices (Core Rules p.28)
+	var gadget_items: Array[String] = []
+	for g in db_gear:
+		if g is Dictionary:
+			var rarity: String = g.get("rarity", "")
+			var gtype: String = g.get("type", "")
+			if gtype == "Utility Device" and rarity != "Common":
+				gadget_items.append(g.get("name", ""))
+	if gadget_items.is_empty():
+		gadget_items = ["Battle Visor", "Deflector Field", "Jump Belt"]
 	
 	# Generate 3 military weapons
 	for i in range(3):
@@ -2024,3 +2053,19 @@ func _apply_desktop_layout() -> void:
 	var auto_assign := get_node_or_null("%AutoAssignButton")
 	if auto_assign:
 		auto_assign.custom_minimum_size = Vector2(140, TOUCH_TARGET_MIN)
+
+
+func _load_equipment_db() -> Dictionary:
+	## Load equipment_database.json for starting equipment generation
+	var path := "res://data/equipment_database.json"
+	if not FileAccess.file_exists(path):
+		return {}
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return {}
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		return {}
+	if json.data is Dictionary:
+		return json.data
+	return {}

@@ -86,6 +86,11 @@ func process_galactic_war(ctx: PostBattleContextClass) -> Dictionary:
 
 		progress["planet_results"].append(outcome)
 
+	# Delegate war track progression to GalacticWarManager autoload
+	if ctx.galactic_war_manager and ctx.galactic_war_manager.has_method("process_turn_war_progression"):
+		var war_events: Array = ctx.galactic_war_manager.process_turn_war_progression()
+		progress["war_track_events"] = war_events
+
 	return progress
 
 func _get_invaded_planets(ctx: PostBattleContextClass) -> Array:

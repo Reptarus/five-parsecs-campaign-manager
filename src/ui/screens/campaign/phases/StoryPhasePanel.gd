@@ -195,7 +195,20 @@ func _on_resolve_pressed() -> void:
 		"outcome": _generate_outcome()
 	}
 	story_event_resolved.emit(resolution_data)
-	
+
+	# Log story event to CampaignJournal
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("auto_create_milestone_entry"):
+		var turn_num: int = 0
+		var campaign = game_state.campaign if game_state else null
+		if campaign and "progress_data" in campaign:
+			turn_num = campaign.progress_data.get("turns_played", 0)
+		var event_title: String = selected_event.get("title", selected_event.get("name", "Story Event"))
+		journal.auto_create_milestone_entry("story_track", {
+			"turn": turn_num,
+			"stats": {"event_title": event_title, "choice": selected_choice.get("text", "")},
+		})
+
 	# Remove resolved event
 	var event_index = available_events.find(selected_event)
 	if event_index != -1:
@@ -224,6 +237,11 @@ func _apply_choice_effects(effects: Dictionary) -> void:
 			"allies":
 				if game_state and game_state.has_method("add_reputation"):
 					game_state.add_reputation(5)
+				# Track new patron in NPCTracker
+				var npc = get_node_or_null("/root/NPCTracker")
+				if npc and npc.has_method("add_patron"):
+					var pid := "patron_story_%d" % Time.get_ticks_msec()
+				npc.add_patron({"name": "Story Ally", "patron_id": pid})
 	if effects.has("trigger_event") and event_manager and event_manager.has_method("trigger_campaign_event"):
 		event_manager.trigger_campaign_event(effects.trigger_event)
 

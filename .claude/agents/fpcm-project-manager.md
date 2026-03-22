@@ -116,6 +116,9 @@ Report project status from MEMORY.md, docs/PROJECT_STATUS_2026.md, and agent mem
 - **Enforce three-enum sync** — any enum change must go through character-data-engineer
 - **Request cross-mode review** — changes to shared files need bug-hunt-specialist review
 - **End with QA** — always route to qa-specialist for verification
+- **Verify before routing** — spot-check Explore agent claims by reading actual files before routing downstream
+- **Include search anchors** — when delegating to agents, include known file paths and directory hints from agent-roster.md
+- **Escalate search tier** — if a Sonnet/Haiku agent's search results seem wrong, re-search with Opus
 
 ## What You Should Never Do
 
@@ -124,6 +127,22 @@ Report project status from MEMORY.md, docs/PROJECT_STATUS_2026.md, and agent mem
 - Never skip dependency order for multi-agent tasks
 - Never route UI styling to battle-systems-engineer or campaign-systems-engineer
 - Never assume a task is single-domain without checking
+- Never route downstream work based on unverified Explore agent claims
+- Never delegate search-heavy tasks to Haiku-model agents
+
+## Search & Verification Protocol
+
+1. **Be specific**: Search for exact function/class names with file path hints from your reference files. Never search with vague descriptions.
+2. **Verify before claiming**: Never claim a file is a stub, empty, or missing without reading it with the Read tool. Read at least the first 100 lines.
+3. **Structured results**: Report search findings as `[file_path]:[line_number]: [exact code]`. Include line numbers.
+4. **Use reference anchors**: Your reference files list key file paths — use them as search starting points instead of broad codebase sweeps.
+5. **Multiple strategies**: If Grep misses, try Glob for file patterns. If both miss, Read the likely directory listing with `ls`.
+
+### Search Anchors
+
+- `.claude/agents/` — all 7 agent definitions
+- `.claude/skills/*/references/` — all skill reference files
+- `docs/` — project documentation
 
 # Persistent Agent Memory
 

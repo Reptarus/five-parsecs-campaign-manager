@@ -258,84 +258,75 @@ func _on_confirm_purchase_pressed() -> void:
 	_update_cart_display()
 	_update_ui_display()
 
-## Table Rolls (Simplified - expand with full tables later)
+## Table Rolls — pick from equipment_database.json (Core Rules pp.28-29)
 func _roll_on_military_table() -> Dictionary:
-	## Roll D100 on Military Weapons Table (Core Rules p.28)
-	var roll = randi() % 100 + 1
-	var result = {"cost": TABLE_ROLL_COST, "type": "weapon", "category": "military"}
-
-	if roll <= 25:
-		result["name"] = "Military Rifle"
-	elif roll <= 45:
-		result["name"] = "Infantry Laser"
-	elif roll <= 50:
-		result["name"] = "Marksman's Rifle"
-	elif roll <= 60:
-		result["name"] = "Needle Rifle"
-	elif roll <= 75:
-		result["name"] = "Auto Rifle"
-	elif roll <= 80:
-		result["name"] = "Rattle Gun"
-	elif roll <= 95:
-		result["name"] = "Boarding Saber"
-	else:
-		result["name"] = "Shatter Axe"
-
-	return result
+	var db: Dictionary = _load_equipment_db()
+	var weapons: Array = db.get("weapons", [])
+	# Military = non-Pistol, non-Melee ranged weapons
+	var candidates: Array = []
+	for w in weapons:
+		if w is Dictionary:
+			var traits: Array = w.get("traits", [])
+			var wtype: String = w.get("type", "")
+			if "Pistol" not in traits and wtype != "Melee" and wtype != "Grenade":
+				candidates.append(w)
+	if candidates.is_empty():
+		return {"cost": TABLE_ROLL_COST, "type": "weapon",
+			"category": "military", "name": "Military Rifle"}
+	var chosen: Dictionary = candidates[randi() % candidates.size()]
+	return {"cost": TABLE_ROLL_COST, "type": "weapon",
+		"category": "military", "name": chosen.get("name", "Military Rifle")}
 
 func _roll_on_gear_table() -> Dictionary:
-	## Roll D100 on Gear Table (Core Rules p.29)
-	var roll = randi() % 100 + 1
-	var result = {"cost": TABLE_ROLL_COST, "type": "gear"}
-
-	# Simplified - expand with full 100-entry table
-	if roll <= 10:
-		result["name"] = "Beam Light"
-	elif roll <= 20:
-		result["name"] = "Bipod"
-	elif roll <= 30:
-		result["name"] = "Combat Armor"
-	elif roll <= 40:
-		result["name"] = "Communicator"
-	elif roll <= 52:
-		result["name"] = "Frag Vest"
-	elif roll <= 65:
-		result["name"] = "Laser Sight"
-	elif roll <= 80:
-		result["name"] = "Med-patch"
-	elif roll <= 90:
-		result["name"] = "Nano-doc"
-	else:
-		result["name"] = "Scanner Bot"
-
-	return result
+	var db: Dictionary = _load_equipment_db()
+	var gear: Array = db.get("gear", [])
+	var attachments: Array = db.get("attachments", [])
+	# Gear = armor + utility devices + consumables + attachments
+	var candidates: Array = []
+	for g in gear:
+		if g is Dictionary:
+			candidates.append(g)
+	for a in attachments:
+		if a is Dictionary:
+			candidates.append(a)
+	if candidates.is_empty():
+		return {"cost": TABLE_ROLL_COST, "type": "gear",
+			"name": "Frag Vest"}
+	var chosen: Dictionary = candidates[randi() % candidates.size()]
+	return {"cost": TABLE_ROLL_COST, "type": "gear",
+		"name": chosen.get("name", "Gear")}
 
 func _roll_on_gadget_table() -> Dictionary:
-	## Roll D100 on Gadget Table (Core Rules p.29)
-	var roll = randi() % 100 + 1
-	var result = {"cost": TABLE_ROLL_COST, "type": "gadget"}
+	var db: Dictionary = _load_equipment_db()
+	var gear: Array = db.get("gear", [])
+	# Gadgets = Uncommon/Rare utility devices
+	var candidates: Array = []
+	for g in gear:
+		if g is Dictionary:
+			var rarity: String = g.get("rarity", "")
+			var gtype: String = g.get("type", "")
+			if gtype == "Utility Device" and rarity != "Common":
+				candidates.append(g)
+	if candidates.is_empty():
+		return {"cost": TABLE_ROLL_COST, "type": "gadget",
+			"name": "Battle Visor"}
+	var chosen: Dictionary = candidates[randi() % candidates.size()]
+	return {"cost": TABLE_ROLL_COST, "type": "gadget",
+		"name": chosen.get("name", "Gadget")}
 
-	# Simplified - expand with full 100-entry table
-	if roll <= 9:
-		result["name"] = "Analyzer"
-	elif roll <= 17:
-		result["name"] = "Battle Visor"
-	elif roll <= 27:
-		result["name"] = "Displacer"
-	elif roll <= 41:
-		result["name"] = "Duplicator"
-	elif roll <= 55:
-		result["name"] = "Jump Belt"
-	elif roll <= 70:
-		result["name"] = "Repair Bot"
-	elif roll <= 83:
-		result["name"] = "Screen Generator"
-	elif roll <= 93:
-		result["name"] = "Stealth Gear"
-	else:
-		result["name"] = "Stim-pack"
-
-	return result
+func _load_equipment_db() -> Dictionary:
+	var path := "res://data/equipment_database.json"
+	if not FileAccess.file_exists(path):
+		return {}
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return {}
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		return {}
+	if json.data is Dictionary:
+		return json.data
+	return {}
 
 ## UI Updates
 func _update_cart_display() -> void:

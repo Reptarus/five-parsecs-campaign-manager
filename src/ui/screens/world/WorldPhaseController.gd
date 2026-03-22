@@ -29,6 +29,7 @@ const ResolveRumorsComponent = preload("res://src/ui/screens/world/components/Re
 # Five Parsecs dependencies
 const WorldPhase = preload("res://src/core/campaign/phases/WorldPhase.gd")
 const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
+const PsionicLegalityBadgeClass = preload("res://src/ui/components/world/PsionicLegalityBadge.gd")
 
 # UI Components (replaced monolith references)
 @onready var phase_container: Control = %PhaseContainer
@@ -78,6 +79,7 @@ var automation_enabled: bool = false
 @onready var mission_prep_component = %MissionPrepContainer/MissionPrepComponent
 # Note: Post-battle component refs removed - now in PostBattleSequence
 var mission_selection_ui: MissionSelectionUI = null
+var _psionic_badge: PsionicLegalityBadgeClass = null
 
 # Campaign data
 var world_phase_data: Dictionary = {}
@@ -306,6 +308,9 @@ func _fetch_campaign_data() -> void:
 			if gs and gs.current_campaign and "progress_data" in gs.current_campaign:
 				turn = gs.current_campaign.progress_data.get("turns_played", 0)
 			npc_tracker.visit_location(location_name, turn)
+
+	# Display psionic legality badge (DLC-gated)
+	_setup_psionic_legality_badge()
 
 	# Initialize components with fetched data
 	_initialize_components_with_data()
@@ -1550,3 +1555,27 @@ func _enrich_crew_equipment(typed_crew: Array[Dictionary]) -> void:
 		var member_equip: Array = eq_mgr.get_character_equipment(member_id)
 		if not member_equip.is_empty():
 			typed_crew[i]["equipment"] = member_equip
+
+
+func _setup_psionic_legality_badge() -> void:
+	## Display PsionicLegalityBadge in upkeep container (DLC-gated)
+	if _psionic_badge:
+		_psionic_badge.queue_free()
+		_psionic_badge = null
+	var dlc = get_node_or_null("/root/DLCManager")
+	if not dlc or not dlc.is_feature_enabled(dlc.ContentFlag.PSIONICS):
+		return
+	# Read legality from campaign progress_data (set by WorldPhase)
+	var gs = get_node_or_null("/root/GameState")
+	if not gs or not gs.current_campaign:
+		return
+	if not "progress_data" in gs.current_campaign:
+		return
+	var pd: Dictionary = gs.current_campaign.progress_data
+	var legality: int = pd.get("psionic_legality", -1)
+	if legality < 0:
+		return
+	_psionic_badge = PsionicLegalityBadgeClass.new()
+	_psionic_badge.set_legality(legality)
+	if upkeep_container:
+		upkeep_container.add_child(_psionic_badge)

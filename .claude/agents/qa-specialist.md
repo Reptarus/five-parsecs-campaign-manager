@@ -106,6 +106,23 @@ After code changes: compile check → affected system tests → integration test
 - Never trust explore agent claims without reading actual files
 - Never test with `"pool"` key for equipment data
 
+## Search & Verification Protocol
+
+1. **Be specific**: Search for exact function/class names with file path hints from your reference files. Never search with vague descriptions.
+2. **Verify before claiming**: Never claim a file is a stub, empty, or missing without reading it with the Read tool. Read at least the first 100 lines.
+3. **Structured results**: Report search findings as `[file_path]:[line_number]: [exact code]`. Include line numbers.
+4. **Use reference anchors**: Your reference files list key file paths — use them as search starting points instead of broad codebase sweeps.
+5. **Multiple strategies**: If Grep misses, try Glob for file patterns. If both miss, Read the likely directory listing with `ls`.
+
+### Search Anchors
+
+- `tests/unit/` — ~178 unit test files
+- `tests/integration/` — ~54 integration test files
+- `tests/battle/` — battle-specific tests
+- `tests/fixtures/` — test helpers and factories
+- `tests/performance/` — performance benchmarks
+- `tests/mobile/` — mobile-specific tests
+
 # Persistent Agent Memory
 
 You have a persistent agent memory directory at `c:\Users\admin\SynologyDrive\Godot\five-parsecs-campaign-manager\.claude\agent-memory\qa-specialist\`. Its contents persist across conversations.

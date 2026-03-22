@@ -15,6 +15,7 @@ When a task spans multiple agents, execute in this order:
 
 ## Decomposition Steps
 
+0. **Verify assumptions** — Before routing, confirm that claimed files, APIs, and code locations actually exist by reading them. Never route work based on unverified agent search results. If an Explore agent says "X.gd is a stub", read X.gd yourself before deciding.
 1. **Identify all affected systems** — which files need changing?
 2. **Map files to agents** — check agent-roster.md for ownership
 3. **Determine dependencies** — which changes must complete before others can start?

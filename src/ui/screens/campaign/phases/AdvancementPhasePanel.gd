@@ -251,6 +251,39 @@ func _get_available_advancements() -> Array:
 		}
 	])
 
+	# Psionic training (Compendium DLC, Core Rules pp.96-101)
+	var dlc = Engine.get_main_loop().root.get_node_or_null("/root/DLCManager") if Engine.get_main_loop() else null
+	if dlc and dlc.is_feature_enabled(dlc.ContentFlag.PSIONICS):
+		var char_psionic: String = _member_get(selected_crew_member, "psionic_power", "")
+		var char_enhanced: bool = _member_get(selected_crew_member, "psionic_power_enhanced", false)
+		var crew_has_psionic: bool = _crew_has_psionic_member()
+
+		# Acquire: character is already psionic (learn another), OR no psionic in crew yet
+		if char_psionic != "" or not crew_has_psionic:
+			advancements.append({
+				"name": "Acquire Psionic Power",
+				"type": "PSIONICS",
+				"stat": "",
+				"amount": 0,
+				"cost": 12,
+				"max": 0,
+				"training_key": "psionics",
+				"description": "Roll D10 for a new psionic power (Core Rules p.101)"
+			})
+
+		# Enhance: character must already have a power and not be enhanced
+		if char_psionic != "" and not char_enhanced:
+			advancements.append({
+				"name": "Enhance Psionic Power",
+				"type": "PSIONICS_ENHANCE",
+				"stat": "",
+				"amount": 0,
+				"cost": 6,
+				"max": 0,
+				"training_key": "psionics_enhance",
+				"description": "+1D6 to projection roll for chosen power (Core Rules p.101)"
+			})
+
 	# Compendium DLC: Advanced training + bot upgrades (cost in credits, not XP)
 	var compendium_items: Array[Dictionary] = CompendiumEquipmentRef.get_advancement_phase_items()
 	for item in compendium_items:
@@ -290,6 +323,10 @@ func _can_apply_advancement(advancement: Dictionary) -> bool:
 		var current_value: int = _member_get(selected_crew_member, advancement.stat, 0)
 		if current_value >= advancement.max:
 			return false
+		# Psionic restriction: Cannot increase Combat through XP (Core Rules p.96)
+		var char_psionic_check: String = _member_get(selected_crew_member, "psionic_power", "")
+		if char_psionic_check != "" and advancement.stat == "combat":
+			return false
 
 	return true
 
@@ -309,6 +346,9 @@ func _get_requirement_tooltip(advancement: Dictionary) -> String:
 		var current_value: int = _member_get(selected_crew_member, advancement.stat, 0)
 		if current_value >= advancement.max:
 			tooltip = "Maximum value reached"
+		var tip_psionic: String = _member_get(selected_crew_member, "psionic_power", "")
+		if tip_psionic != "" and advancement.stat == "combat":
+			tooltip = "Psionics cannot increase Combat Skill (Core Rules p.96)"
 
 	return tooltip
 
@@ -343,6 +383,27 @@ func _on_apply_pressed() -> void:
 				selected_crew_member[selected_advancement.stat] = current_val + selected_advancement.amount
 			else:
 				selected_crew_member.set(selected_advancement.stat, current_val + selected_advancement.amount)
+		"PSIONICS":
+			# Acquire psionic power — roll D10, assign from psionic_powers.json
+			var psionic_data: Dictionary = _load_psionic_powers_json()
+			var power_ids: Array = psionic_data.keys()
+			if not power_ids.is_empty():
+				var roll_index: int = randi_range(0, power_ids.size() - 1)
+				var new_power_id: String = power_ids[roll_index]
+				var current_power: String = _member_get(selected_crew_member, "psionic_power", "")
+				if new_power_id == current_power and power_ids.size() > 1:
+					roll_index = (roll_index + 1) % power_ids.size()
+					new_power_id = power_ids[roll_index]
+				if selected_crew_member is Dictionary:
+					selected_crew_member["psionic_power"] = new_power_id
+				else:
+					selected_crew_member.set("psionic_power", new_power_id)
+		"PSIONICS_ENHANCE":
+			# Enhance existing psionic power — +1D6 projection bonus
+			if selected_crew_member is Dictionary:
+				selected_crew_member["psionic_power_enhanced"] = true
+			else:
+				selected_crew_member.set("psionic_power_enhanced", true)
 
 	# Deduct cost
 	if is_bot:
@@ -363,8 +424,13 @@ func _on_apply_pressed() -> void:
 		var char_name: String = _member_get(selected_crew_member, "character_name",
 			_member_get(selected_crew_member, "name", "Unknown"))
 		var adv_desc: String = ""
-		if selected_advancement.type == "STAT":
-			adv_desc = "%s +%d" % [selected_advancement.stat.capitalize(), selected_advancement.amount]
+		match selected_advancement.type:
+			"STAT":
+				adv_desc = "%s +%d" % [selected_advancement.stat.capitalize(), selected_advancement.amount]
+			"PSIONICS":
+				adv_desc = "Acquired psionic power: %s" % _member_get(selected_crew_member, "psionic_power", "unknown")
+			"PSIONICS_ENHANCE":
+				adv_desc = "Enhanced psionic power"
 		journal.auto_create_character_event(char_id, "advancement", {
 			"character_name": char_name,
 			"advancement": adv_desc,
@@ -384,3 +450,28 @@ func get_phase_data() -> Dictionary:
 	return {
 		"crew_count": _get_crew_members().size(),
 	}
+
+func _crew_has_psionic_member() -> bool:
+	## Check if any crew member already has a psionic power (one psionic per crew rule, Core Rules p.96)
+	var members := _get_crew_members()
+	for member in members:
+		var power: String = _member_get(member, "psionic_power", "")
+		if power != "":
+			return true
+	return false
+
+func _load_psionic_powers_json() -> Dictionary:
+	## Load psionic powers from JSON data file
+	var path := "res://data/psionic_powers.json"
+	if not FileAccess.file_exists(path):
+		return {}
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return {}
+	var json := JSON.new()
+	var err := json.parse(file.get_as_text())
+	if err != OK:
+		return {}
+	if json.data is Dictionary:
+		return json.data
+	return {}

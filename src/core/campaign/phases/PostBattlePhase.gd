@@ -20,6 +20,7 @@ const CampaignEventEffectsClass = preload("res://src/core/campaign/phases/post_b
 const CharacterEventEffectsClass = preload("res://src/core/campaign/phases/post_battle/CharacterEventEffects.gd")
 const GalacticWarProcessorClass = preload("res://src/core/campaign/phases/post_battle/GalacticWarProcessor.gd")
 const PostBattleCompletionClass = preload("res://src/core/campaign/phases/post_battle/PostBattleCompletion.gd")
+const PsionicSystemRef = preload("res://src/core/systems/PsionicSystem.gd")
 
 # Autoload references (resolved in _ready())
 var dice_manager: Variant = null
@@ -95,6 +96,7 @@ func _ensure_subsystems() -> void:
 	_ctx.campaign_journal = get_node_or_null("/root/CampaignJournal")
 	_ctx.equipment_manager = get_node_or_null("/root/EquipmentManager")
 	_ctx.dlc_manager = get_node_or_null("/root/DLCManager")
+	_ctx.galactic_war_manager = get_node_or_null("/root/GalacticWarManager")
 	_rival_patron = RivalPatronResolverClass.new()
 	_payment = PaymentProcessorClass.new()
 	_loot = LootProcessorClass.new()
@@ -277,6 +279,9 @@ func _process_character_event_step() -> void:
 	var war_progress: Dictionary = _galactic_war.process_galactic_war(_ctx)
 	galactic_war_updated.emit(war_progress)
 
+	# Step 14b: Psionic detection check (DLC-gated, Core Rules p.97)
+	_check_psionic_detection()
+
 	# Complete
 	_complete_post_battle_phase()
 
@@ -294,3 +299,33 @@ func _emit_substep(substep: int) -> void:
 	if GlobalEnums:
 		current_substep = substep
 		post_battle_substep_changed.emit(current_substep)
+
+func _check_psionic_detection() -> void:
+	## Post-battle psionic detection when legality is OUTLAWED (Core Rules p.97)
+	## DLC-gated behind ContentFlag.PSIONICS
+	var dlc = get_node_or_null("/root/DLCManager")
+	if not dlc or not dlc.is_feature_enabled(dlc.ContentFlag.PSIONICS):
+		return
+	if not _campaign or not "progress_data" in _campaign:
+		return
+	var pd: Dictionary = _campaign.progress_data
+	var legality: int = pd.get("psionic_legality", -1)
+	if legality != PsionicSystemRef.PsionicLegality.OUTLAWED:
+		return
+	# Check if any crew used psionics this battle
+	var times_used: int = battle_result.get("psionic_uses", 0)
+	if times_used <= 0:
+		return
+	var detection: Dictionary = PsionicSystemRef.check_outlawed_detection(
+		times_used)
+	pd["psionic_enforcement"] = detection
+	# Log to journal
+	if _ctx and _ctx.campaign_journal:
+		var j = _ctx.campaign_journal
+		if j.has_method("create_entry"):
+			var msg: String = "Psionic detection roll: %d" % detection.get(
+				"roll", 0)
+			if detection.get("detected", false):
+				var etype: Dictionary = detection.get("enforcement", {})
+				msg += " — DETECTED! %s" % etype.get("type", "Enforcers")
+			j.create_entry({"type": "battle", "text": msg})
