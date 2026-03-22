@@ -640,13 +640,59 @@ func _refresh_loan_display() -> void:
 			take_loan_button.disabled = false
 			take_loan_button.text = "Take Out a Loan"
 	else:
+		# Apply interest for this turn (Compendium loan lifecycle)
+		_apply_loan_interest()
+		# Check enforcement threshold
+		var enforcement_text := _check_loan_enforcement()
+
 		var debt: int = current_loan.get("debt", 0)
 		var origin_name: String = current_loan.get("origin_name", "Unknown")
 		var rate_name: String = current_loan.get("rate_name", "Standard")
-		loan_status_label.text = "[color=#D97706]Active Loan[/color] from %s\nDebt: [color=#DC2626]%dcr[/color] | Rate: %s\nPay debt from credits to clear." % [origin_name, debt, rate_name]
+		var turns: int = current_loan.get("turns_active", 0)
+		var display := "[color=#D97706]Active Loan[/color] from %s\nDebt: [color=#DC2626]%dcr[/color] | Rate: %s | Turn %d" % [origin_name, debt, rate_name, turns]
+		if not enforcement_text.is_empty():
+			display += "\n[color=#DC2626]%s[/color]" % enforcement_text
+		display += "\nPay debt from credits to clear."
+		loan_status_label.text = display
 		if take_loan_button:
 			take_loan_button.disabled = true
 			take_loan_button.text = "Already have a loan"
+
+
+func _apply_loan_interest() -> void:
+	## Calculate and apply interest using Compendium loan tables
+	if current_loan.is_empty():
+		return
+	var rate_data := {
+		"low": current_loan.get("rate_low", 1),
+		"high": current_loan.get("rate_high", 2),
+	}
+	var interest: int = CompendiumWorldOptions.calculate_interest(
+		current_loan.get("debt", 0), rate_data
+	)
+	if interest > 0:
+		current_loan["debt"] = current_loan.get("debt", 0) + interest
+		current_loan["turns_active"] = current_loan.get("turns_active", 0) + 1
+		_save_current_loan()
+
+
+func _check_loan_enforcement() -> String:
+	## Check if debt has exceeded enforcement thresholds (Compendium loan rules)
+	if current_loan.is_empty():
+		return ""
+	var debt: int = current_loan.get("debt", 0)
+	var threshold_2: int = current_loan.get("enforcement_threshold_2", 0)
+	var threshold_1: int = current_loan.get("enforcement_threshold_1", 0)
+	var origin_id: String = current_loan.get("origin_id", "")
+
+	if threshold_2 > 0 and debt >= threshold_2:
+		var method: Dictionary = CompendiumWorldOptions.roll_enforcement_method(origin_id)
+		if not method.is_empty():
+			return "ENFORCEMENT (Tier 2): %s" % method.get("instruction", "Lender takes action")
+	elif threshold_1 > 0 and debt >= threshold_1:
+		var method: Dictionary = CompendiumWorldOptions.roll_enforcement_method(origin_id)
+		if not method.is_empty():
+			return "WARNING: %s" % method.get("instruction", "Lender is getting impatient")
 
 func _load_current_loan() -> void:
 	## Load active loan from campaign progress_data

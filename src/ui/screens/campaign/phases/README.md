@@ -8,7 +8,6 @@ This directory contains UI panels for the different phases of a Five Parsecs cam
 - `StoryPhasePanel.gd/tscn` - Story phase UI (narrative events, story progression)
 - `CampaignPhasePanel.gd/tscn` - Campaign phase UI (campaign management)
 - `BattleSetupPhasePanel.gd/tscn` - Battle setup phase UI (preparing for battles)
-- `BattleResolutionPhasePanel.gd/tscn` - Battle resolution phase UI (resolving battle outcomes)
 - `AdvancementPhasePanel.gd/tscn` - Advancement phase UI (character progression)
 - `TradePhasePanel.gd/tscn` - Trade phase UI (buying, selling, trading)
 - `EndPhasePanel.gd/tscn` - End phase UI (campaign turn conclusion)

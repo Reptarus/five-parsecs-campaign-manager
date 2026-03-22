@@ -62,6 +62,28 @@ func _add_loot_to_inventory(ctx: PostBattleContextClass, loot_item: Dictionary) 
 	if ctx.game_state and ctx.game_state.has_method("add_inventory_item"):
 		ctx.game_state.add_inventory_item(equipment_data)
 
-func _try_install_implant_from_loot(_loot_name: String) -> bool:
+func _try_install_implant_from_loot(loot_name: String) -> bool:
 	## Attempt to install an implant from loot on an eligible crew member.
-	return false
+	## Uses Character.create_implant_from_loot() + add_implant() pipeline.
+	## Returns true if installed, false if no eligible crew member found.
+	var implant: Dictionary = CharacterRef.create_implant_from_loot(loot_name)
+	if implant.is_empty():
+		return false
+
+	# Find an eligible crew member (under MAX_IMPLANTS limit, not a bot)
+	var gs = Engine.get_main_loop().root.get_node_or_null("/root/GameState") if Engine.get_main_loop() else null
+	if not gs or not gs.current_campaign:
+		return false
+
+	var crew_members: Array = []
+	if "crew_data" in gs.current_campaign:
+		crew_members = gs.current_campaign.crew_data.get("members", [])
+
+	for member in crew_members:
+		if member is CharacterRef:
+			if member.is_bot:
+				continue  # Bots cannot receive implants
+			if member.add_implant(implant):
+				return true
+
+	return false  # No eligible crew member found

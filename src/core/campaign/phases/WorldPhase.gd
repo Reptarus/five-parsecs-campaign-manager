@@ -364,6 +364,15 @@ func _check_dlc_world_strife(world_data: Dictionary = {}) -> void:
 			_current_world_data["strife_event"] = strife_event
 			var instability: int = _current_world_data.get("instability", 0)
 			instability += strife_event.get("instability_mod", 0)
+
+			# DLC: Apply instability delta based on active rivals/patron jobs (Compendium)
+			var active_rivals: int = _current_world_data.get("active_rivals", 0)
+			var has_patron_job: bool = _current_world_data.get("has_patron_job", false)
+			var held_field: bool = _current_world_data.get("held_field_roving", false)
+			var delta: int = CompendiumWorldOptionsRef.roll_instability_delta(
+				active_rivals, has_patron_job, held_field
+			)
+			instability += delta
 			_current_world_data["instability"] = clampi(instability, 0, 10)
 			# Persist to GameState for UI access
 			var gs = get_node_or_null("/root/GameState")
@@ -813,9 +822,13 @@ func _resolve_decoy_task(crew_id: String) -> Dictionary:
 
 func _generate_patron_data() -> Dictionary:
 	## Generate patron data for found patrons
+	# Use Compendium corporate name generator for DLC-flavored patron names
+	var patron_name: String = CompendiumWorldOptionsRef.generate_corporate_name()
+	if patron_name.is_empty():
+		patron_name = "Patron " + str(randi_range(1, 999))
 	return {
 		"id": "patron_" + str(Time.get_unix_time_from_system()),
-		"name": "Patron " + str(randi_range(1, 999)),
+		"name": patron_name,
 		"type": randi_range(1, 10),
 		"payment": randi_range(3, 8),
 		"danger_pay": randi_range(0, 3)

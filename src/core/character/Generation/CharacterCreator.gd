@@ -356,8 +356,10 @@ func _apply_origin_bonuses(origin_id: int) -> void:
 			current_bonuses.origin["SAVVY"] = 1
 		GlobalEnums.Origin.PRECURSOR:
 			# Precursor: R1/S5/CS+0/T2/Sa+0 (p.17)
+			# Precursor characters begin with one randomly determined Psionic Power (p.17)
 			current_bonuses.origin["SPEED"] = 1
 			current_bonuses.origin["TOUGHNESS"] = -1
+			_grant_random_psionic_power()
 		GlobalEnums.Origin.FERAL:
 			# Feral: R1/S4/CS+0/T3/Sa+0 (p.18) — same as Human
 			pass
@@ -376,6 +378,34 @@ func _apply_origin_bonuses(origin_id: int) -> void:
 		# HUMAN: no stat bonuses (R1/S4/CS+0/T3/Sa+0)
 
 	_apply_bonuses(current_bonuses.origin)
+
+
+func _grant_random_psionic_power() -> void:
+	## Grant a random psionic power to the current character (Precursor origin, Core Rules p.17)
+	if not current_character:
+		return
+	var psionic_data: Dictionary = _load_psionic_powers()
+	if psionic_data.is_empty():
+		return
+	var power_ids: Array = psionic_data.keys()
+	var chosen_id: String = power_ids[randi() % power_ids.size()]
+	current_character.psionic_power = chosen_id
+
+
+func _load_psionic_powers() -> Dictionary:
+	var path := "res://data/psionic_powers.json"
+	if not FileAccess.file_exists(path):
+		return {}
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return {}
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		return {}
+	if json.data is Dictionary:
+		return json.data
+	return {}
+
 
 func _apply_background_bonuses(bg_id: int) -> void:
 	if not current_character:

@@ -1,6 +1,6 @@
-# Project Status (March 21, 2026)
+# Project Status (March 22, 2026)
 
-## Current Phase: 41 — Rules Gap Remediation (PLANNED, not started)
+## Current Phase: Phase 43 — Core+Compendium Gap Remediation (4/6 sprints done)
 
 ## Key Metrics
 
@@ -14,10 +14,12 @@
 | Store/Paywall System | Tri-platform (Steam/Android/iOS) |
 | Compile Errors | 0 |
 | GDScript Files | ~900 (excl. addons) |
-| Autoloads | 26 (project.godot lines 24-50) |
+| Autoloads | 28 (project.godot — added GalacticWarManager + FactionSystem) |
 | MCP QA Sprint (Mar 21) | 7 sessions, 62/66 PASS, 4 N/A |
-| Compendium Integration | 11/11 data files, 8/11 fully wired, 3 partially wired |
-| Phase 41 Gaps | 8 real gaps + 6 intentionally deferred features |
+| Compendium Integration | 11/11 data files, ~45/93 methods wired (was 15 before Phase 43) |
+| Phase 41-42 | COMPLETE — 8 gaps fixed, 4 deferred features activated |
+| Phase 43 | IN PROGRESS — 4/6 sprints done: StreetFight+Salvage panels, BUG-036 fix, WorldOptions wiring, dead code cleanup |
+| Open Bugs | 0 (BUG-036 Precursor psionic fixed this session) |
 
 ## Completed Phases
 
@@ -54,12 +56,16 @@
 | **38** | **Full Rules Parity** — backgrounds/motivations/classes/species/enemies all book-accurate, three-enum sync, d100 weighted rolling (4 data + 10 code files) |
 | **39** | **Compendium Data Audit** — 6 data files rewritten, 2 new created, 5 code files fixed. No-minis/strife/loans/names/missions/PvP/Co-op/deployment/escalation all book-accurate (14 files, +571 lines) |
 | **40** | **Compendium Mission Types + Full Wiring** — 3 data files created (stealth/street/salvage, ~900 lines), 7 UI/pipeline files fixed. Mission type selection (p.118) wired end-to-end: JobOffer→WorldPhase→BattlePhase→UI. Deployment vars, escalation, strife all display in UI. (24 files, +1477/-706 lines) |
+| **41** | **Rules Gap Remediation** — 5 sprints: world arrival, GalacticWarManager autoload, loans, names, missions, introductory campaign |
+| **42** | **Foundational DLC Data** — 5 sprints: three-enum sync fix, dramatic combat, grid movement text, FactionSystem activated, Prison Planet origin |
+| **43** | **Core+Compendium Gap Remediation** — 4/6 sprints: StreetFight+Salvage battle panels (2 new files), BUG-036 psionic fix, WorldOptions loan lifecycle, dead code cleanup. Audit corrected 80→48 dead methods. (2 created, 8 modified, 2 deleted) |
 
 ## Roadmap / Future Work
 
 - **Core Rules data audit**: COMPLETE (Phases 37-38)
-- **Compendium data audit**: ~99% complete (Phase 40). Remaining: AI Variations detailed D6 tables (pp.42-43, LOW priority)
-- **Compendium deferred**: Full PSIONICS wiring, GRID_BASED_MOVEMENT
+- **Phase 43 Sprint 6 PENDING**: Data file rules accuracy audit (gear_database, enemy_types, injury_table, character_species vs Core Rules PDF)
+- **Phase 43 Sprint 4 SKIPPED**: Low-impact utility method wiring (stealth sub-rolls, equipment instruction text, no-minis notes)
+- **Compendium deferred**: Full PSIONICS wiring (subsystem incomplete), GRID_BASED_MOVEMENT
 - **Bug Hunt Phase 8**: Co-op mode support (stretch)
 - **Integration gaps**: BattleJournal logging, NPCTracker gameplay calls, LegacySystem lifecycle
 - **Store IDs**: Placeholder — need real IDs from Modiphius

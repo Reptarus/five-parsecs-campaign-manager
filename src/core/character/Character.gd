@@ -135,6 +135,10 @@ var combat_skill: int:
 @export var max_reactions_per_round: int = 3
 var reactions_used_this_round: int = 0  # Reset at start of each battle round
 
+# Psionic Power (Five Parsecs Core Rules p.35)
+# Precursor characters begin with one randomly determined Psionic Power
+@export var psionic_power: String = ""  # Power ID from psionic_powers.json, empty if none
+
 # Implant System (Five Parsecs odds-and-ends loot table)
 # Maximum 3 implants per character (rulebook limit)
 @export var implants: Array[Dictionary] = []  # Each: {type: String, name: String, stat_bonus: Dictionary}
@@ -1042,6 +1046,7 @@ func to_dictionary() -> Dictionary:
 		"is_wounded": is_wounded,
 		"current_recovery_turns": current_recovery_turns,
 		# Augmentations
+		"psionic_power": psionic_power,
 		"implants": implants.duplicate(),
 		"bot_upgrades": bot_upgrades.duplicate(),
 		# Lifetime statistics
@@ -1144,6 +1149,9 @@ func from_dictionary(data: Dictionary) -> void:
 	for injury in injuries_data:
 		if injury is Dictionary:
 			injuries.append(injury)
+
+	# Psionic Power (Precursor origin, Core Rules p.17)
+	psionic_power = data.get("psionic_power", "")
 
 	# Implants
 	var implants_data = data.get("implants", [])

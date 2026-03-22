@@ -50,6 +50,8 @@ const _SCENE_REGISTRY: Dictionary = {
 	# Compendium DLC
 	"no_minis_combat": "res://src/ui/components/battle/NoMinisCombatPanel.gd",
 	"stealth_mission": "res://src/ui/components/battle/StealthMissionPanel.gd",
+	"street_fight_mission": "res://src/ui/components/battle/StreetFightPanel.gd",
+	"salvage_mission": "res://src/ui/components/battle/SalvageMissionPanel.gd",
 }
 var _scene_cache: Dictionary = {}
 
@@ -146,6 +148,8 @@ var _quick_dice_label: Label = null
 # Compendium DLC panel instances
 var no_minis_combat_panel: PanelContainer = null
 var stealth_mission_panel: PanelContainer = null
+var street_fight_panel: PanelContainer = null
+var salvage_mission_panel: PanelContainer = null
 
 # Battlefield Setup tab state
 var _battlefield_generator: FPCM_BattlefieldGenerator = null
@@ -1263,9 +1267,14 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 	# DLC: Wire No-Minis Combat panel if enabled
 	_setup_no_minis_panel(crew_members.size(), enemies.size())
 
-	# DLC: Wire Stealth Mission panel if this is a stealth mission
-	if mission_dict.get("type", "") == "stealth":
+	# DLC: Wire mission-type-specific panels
+	var mission_type: String = mission_dict.get("type", "")
+	if mission_type == "stealth":
 		_setup_stealth_panel(mission_dict)
+	elif mission_type == "street_fight":
+		_setup_street_fight_panel(mission_dict)
+	elif mission_type == "salvage":
+		_setup_salvage_panel(mission_dict)
 
 func _create_character_cards(crew_members: Array) -> void:
 	## Create a CharacterStatusCard for each crew member
@@ -2152,6 +2161,76 @@ func _setup_stealth_panel(mission_dict: Dictionary) -> void:
 	_log_message("Stealth Mission mode active", UIColors.COLOR_EMERALD)
 
 	# Stealth panel is in phase_content — visible during combat stages
+
+
+## ── DLC: Street Fight Panel (Compendium pp.123-138) ─────────────
+
+func _setup_street_fight_panel(mission_dict: Dictionary) -> void:
+	## Create and wire Street Fight panel for street fight mission type
+	street_fight_panel = _get_res("street_fight_mission").new()
+	street_fight_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	street_fight_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+	# Add to center "Events" tab
+	if phase_content:
+		phase_content.add_child(street_fight_panel)
+
+	# Initialize with mission data
+	street_fight_panel.setup_mission(mission_dict)
+
+	# Connect signals to journal
+	if battle_journal:
+		street_fight_panel.round_advanced.connect(
+			func(round_num: int) -> void:
+				battle_journal.add_entry("[b]STREET FIGHT:[/b] Round %d" % round_num)
+		)
+		street_fight_panel.suspect_revealed.connect(
+			func() -> void:
+				battle_journal.add_entry(
+					"[color=#D97706][b]SUSPECT IDENTIFIED[/b][/color]")
+		)
+		street_fight_panel.mission_completed.connect(
+			func() -> void:
+				battle_journal.add_entry(
+					"[color=#10B981][b]STREET FIGHT COMPLETE[/b][/color]")
+		)
+
+	_log_message("Street Fight mode active", UIColors.COLOR_AMBER)
+
+
+## ── DLC: Salvage Mission Panel (Compendium pp.137-147) ──────────
+
+func _setup_salvage_panel(mission_dict: Dictionary) -> void:
+	## Create and wire Salvage Mission panel for salvage mission type
+	salvage_mission_panel = _get_res("salvage_mission").new()
+	salvage_mission_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	salvage_mission_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+	# Add to center "Events" tab
+	if phase_content:
+		phase_content.add_child(salvage_mission_panel)
+
+	# Initialize with mission data
+	salvage_mission_panel.setup_mission(mission_dict)
+
+	# Connect signals to journal
+	if battle_journal:
+		salvage_mission_panel.round_advanced.connect(
+			func(round_num: int) -> void:
+				battle_journal.add_entry("[b]SALVAGE:[/b] Round %d" % round_num)
+		)
+		salvage_mission_panel.contact_revealed.connect(
+			func() -> void:
+				battle_journal.add_entry(
+					"[color=#D97706][b]CONTACT RESOLVED[/b][/color]")
+		)
+		salvage_mission_panel.mission_completed.connect(
+			func() -> void:
+				battle_journal.add_entry(
+					"[color=#10B981][b]SALVAGE JOB COMPLETE[/b][/color]")
+		)
+
+	_log_message("Salvage Job mode active", UIColors.COLOR_CYAN)
 
 
 ## Tactical Unit Class

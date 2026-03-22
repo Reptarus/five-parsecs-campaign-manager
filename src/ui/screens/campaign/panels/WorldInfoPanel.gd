@@ -438,7 +438,12 @@ func _generate_world_with_fallback(world_name: String) -> void:
 			var CompendiumWorldOptions = load("res://src/data/compendium_world_options.gd")
 			var compendium_name: String = ""
 			if CompendiumWorldOptions:
-				compendium_name = CompendiumWorldOptions.generate_world_name()
+				# Use colony name for colony-type worlds, generic name for others
+				var world_type: String = world_data.get("type", "")
+				if world_type == "colony" or world_type == "mining_colony":
+					compendium_name = CompendiumWorldOptions.generate_colony_name()
+				if compendium_name.is_empty():
+					compendium_name = CompendiumWorldOptions.generate_world_name()
 			if not compendium_name.is_empty():
 				world_data["name"] = compendium_name
 			elif not world_name.is_empty():

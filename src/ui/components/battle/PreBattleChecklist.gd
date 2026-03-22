@@ -303,3 +303,50 @@ func add_species_reminders(crew_origins: Array) -> void:
 		var item_node := _create_checklist_item(item)
 		_vbox.add_child(item_node)
 		_check_states[reminder_id] = false
+
+
+## Add psionic power reminders for crew members with Psionic Powers.
+## Call with an array of crew member dictionaries from Character.to_dictionary().
+func add_psionic_reminders(crew_dicts: Array) -> void:
+	var psionic_data: Dictionary = _load_psionic_powers_data()
+	var psionic_entries: Array[String] = []
+	for member in crew_dicts:
+		if member is Dictionary:
+			var power_id: String = member.get("psionic_power", "")
+			if not power_id.is_empty():
+				var power_info: Dictionary = psionic_data.get(power_id, {})
+				var power_name: String = power_info.get("name", power_id.capitalize())
+				var desc: String = power_info.get("description", "")
+				var member_name: String = member.get("character_name", member.get("name", "Unknown"))
+				psionic_entries.append("%s has Psionic Power: %s — %s" % [member_name, power_name, desc])
+	if psionic_entries.is_empty():
+		return
+
+	var sep_label := Label.new()
+	sep_label.text = "Psionic Powers"
+	sep_label.name = "Item_psionic_header"
+	sep_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	sep_label.add_theme_color_override("font_color", COLOR_ACCENT)
+	_vbox.add_child(sep_label)
+
+	for i in range(psionic_entries.size()):
+		var psi_id := "psionic_reminder_%d" % i
+		var item_data := {"id": psi_id, "label": psionic_entries[i], "tier": 0}
+		var item_node := _create_checklist_item(item_data)
+		_vbox.add_child(item_node)
+		_check_states[psi_id] = false
+
+
+func _load_psionic_powers_data() -> Dictionary:
+	var path := "res://data/psionic_powers.json"
+	if not FileAccess.file_exists(path):
+		return {}
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return {}
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		return {}
+	if json.data is Dictionary:
+		return json.data
+	return {}
