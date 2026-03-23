@@ -1,0 +1,186 @@
+{
+  "metadata": {
+    "name": "Patron Job Generation Tables",
+    "source": "Five Parsecs from Home Core Rules 3e pp.83-84 — VERIFIED Mar 22, 2026",
+    "notes": "All tables use D10. Proceed through Patron Type → Danger Pay → Time Frame → BHC."
+  },
+  "patron_type_table": {
+    "roll_type": "D10",
+    "page_reference": "p.83",
+    "entries": [
+      {"roll_range": [1, 2], "type": "Corporation", "notes": "+1 to Danger Pay roll"},
+      {"roll_range": [3, 4], "type": "Local Government", "notes": ""},
+      {"roll_range": [5, 5], "type": "Sector Government", "notes": ""},
+      {"roll_range": [6, 7], "type": "Wealthy Individual", "notes": ""},
+      {"roll_range": [8, 9], "type": "Private Organization", "notes": ""},
+      {"roll_range": [10, 10], "type": "Secretive Group", "notes": "+1 to Time Frame roll"}
+    ]
+  },
+  "danger_pay_table": {
+    "roll_type": "D10",
+    "page_reference": "p.83",
+    "modifier_notes": "+1 if working for a Corporation",
+    "entries": [
+      {"roll_range": [1, 4], "danger_pay": 1, "description": "+1 credit"},
+      {"roll_range": [5, 8], "danger_pay": 2, "description": "+2 credits"},
+      {"roll_range": [9, 9], "danger_pay": 3, "description": "+3 credits"},
+      {"roll_range": [10, 99], "danger_pay": 3, "description": "+3 credits and roll twice for mission pay, pick higher die", "bonus_pay_rule": "roll_twice_pick_higher"}
+    ]
+  },
+  "time_frame_table": {
+    "roll_type": "D10",
+    "page_reference": "p.83",
+    "modifier_notes": "+1 if working for a Secretive Group",
+    "entries": [
+      {"roll_range": [1, 5], "turns": 1, "description": "This campaign turn"},
+      {"roll_range": [6, 7], "turns": 2, "description": "This or the next campaign turn"},
+      {"roll_range": [8, 9], "turns": 3, "description": "This or the following 2 campaign turns"},
+      {"roll_range": [10, 99], "turns": -1, "description": "Any time (no deadline)"}
+    ]
+  },
+  "bhc_thresholds": {
+    "roll_type": "D10",
+    "page_reference": "p.83",
+    "notes": "Roll D10 for each of Benefits, Hazards, and Conditions. If roll >= threshold, that category applies. Then roll on subtable.",
+    "by_patron_type": {
+      "Corporation":          {"benefits": 8, "hazards": 8, "conditions": 5},
+      "Local Government":     {"benefits": 8, "hazards": 8, "conditions": 8},
+      "Sector Government":    {"benefits": 8, "hazards": 8, "conditions": 8},
+      "Wealthy Individual":   {"benefits": 5, "hazards": 8, "conditions": 8},
+      "Private Organization": {"benefits": 8, "hazards": 8, "conditions": 8},
+      "Secretive Group":      {"benefits": 8, "hazards": 5, "conditions": 8}
+    }
+  },
+  "benefits_subtable": {
+    "roll_type": "D10",
+    "page_reference": "p.83-84",
+    "entries": [
+      {"roll_range": [1, 2], "name": "Fringe Benefit", "effect": "Roll on the Loot Table (p.131)"},
+      {"roll_range": [3, 4], "name": "Connections", "effect": "Gain a Rumor"},
+      {"roll_range": [5, 5], "name": "Company Store", "effect": "Roll on the Trade Table (p.79)"},
+      {"roll_range": [6, 6], "name": "Health Insurance", "effect": "Mark down 2 campaign turns of injury recovery, assigned as you see fit"},
+      {"roll_range": [7, 7], "name": "Security Team", "effect": "-1 enemy this turn"},
+      {"roll_range": [8, 9], "name": "Persistent", "effect": "Patron remains available if you travel"},
+      {"roll_range": [10, 10], "name": "Negotiable", "effect": "If you accept this job, reroll Danger Pay and pick the better of the two rolls"}
+    ]
+  },
+  "hazards_subtable": {
+    "roll_type": "D10",
+    "page_reference": "p.84",
+    "entries": [
+      {"roll_range": [1, 2], "name": "Dangerous Job", "effect": "Increase enemy force numbers by +1"},
+      {"roll_range": [3, 4], "name": "Hot Job", "effect": "After the job, earn enemy on 1-2 instead of normal 1"},
+      {"roll_range": [5, 5], "name": "VIP", "effect": "A random enemy has +1 Toughness and final Combat Skill of +2 regardless of current value"},
+      {"roll_range": [6, 6], "name": "Veteran Opposition", "effect": "Enemy is -1 to Bail Range"},
+      {"roll_range": [7, 7], "name": "Low Priority", "effect": "Reduce enemy force numbers by 1"},
+      {"roll_range": [8, 10], "name": "Private Transport", "effect": "If you have Rivals, they cannot track you this campaign turn"}
+    ]
+  },
+  "conditions_subtable": {
+    "roll_type": "D10",
+    "page_reference": "p.84",
+    "entries": [
+      {"roll_range": [1, 1], "name": "Vengeful", "effect": "If the mission fails, the Patron becomes a Rival"},
+      {"roll_range": [2, 3], "name": "Demanding", "effect": "Danger Pay is only upon success"},
+      {"roll_range": [4, 4], "name": "Small Squad", "effect": "You cannot deploy more than 4 crew"},
+      {"roll_range": [5, 5], "name": "Full Squad", "effect": "You must have 6 available crew"},
+      {"roll_range": [6, 6], "name": "Clean", "effect": "You cannot ever have made law enforcement Rivals"},
+      {"roll_range": [7, 8], "name": "Busy", "effect": "If mission is success, Patron offers a new job next campaign turn"},
+      {"roll_range": [9, 9], "name": "One-time Contract", "effect": "This Patron cannot be retained as a contact"},
+      {"roll_range": [10, 10], "name": "Reputation Required", "effect": "You must have completed a prior Patron job on this world"}
+    ]
+  },
+  "mission_objectives": {
+    "_metadata": "Core Rules pp.89-91 + Compendium pp.74-76. Core objectives marked with source.",
+    "opportunity_objectives": {
+      "roll_type": "D10",
+      "page_reference": "Core Rules p.89",
+      "entries": [
+        {"roll_range": [1, 2], "objective": "Move Through", "source": "core"},
+        {"roll_range": [3, 4], "objective": "Deliver", "source": "core"},
+        {"roll_range": [5, 6], "objective": "Access", "source": "core"},
+        {"roll_range": [7, 8], "objective": "Patrol", "source": "core"},
+        {"roll_range": [9, 10], "objective": "Fight Off", "source": "core"}
+      ]
+    },
+    "patron_objectives": {
+      "roll_type": "D10",
+      "page_reference": "Core Rules p.89",
+      "entries": [
+        {"roll_range": [1, 2], "objective": "Deliver", "source": "core"},
+        {"roll_range": [3, 3], "objective": "Eliminate", "source": "core"},
+        {"roll_range": [4, 5], "objective": "Move Through", "source": "core"},
+        {"roll_range": [6, 7], "objective": "Secure", "source": "core"},
+        {"roll_range": [8, 8], "objective": "Protect", "source": "core"},
+        {"roll_range": [9, 10], "objective": "Fight Off", "source": "core"}
+      ]
+    },
+    "quest_objectives": {
+      "roll_type": "D10",
+      "page_reference": "Core Rules p.89",
+      "entries": [
+        {"roll_range": [1, 2], "objective": "Move Through", "source": "core"},
+        {"roll_range": [3, 4], "objective": "Search", "source": "core"},
+        {"roll_range": [5, 6], "objective": "Defend", "source": "core"},
+        {"roll_range": [7, 8], "objective": "Acquire", "source": "core"},
+        {"roll_range": [9, 10], "objective": "Fight Off", "source": "core"}
+      ]
+    },
+    "expanded_objectives": {
+      "roll_type": "D100",
+      "page_reference": "Compendium pp.74-75",
+      "notes": "Expanded mission system — replaces standard D10 tables when using Compendium rules",
+      "entries": [
+        {"roll_range": [1, 8], "objective": "Access", "source": "core"},
+        {"roll_range": [9, 15], "objective": "Acquire", "source": "core"},
+        {"roll_range": [16, 20], "objective": "Defend", "source": "core"},
+        {"roll_range": [21, 28], "objective": "Deliver", "source": "core"},
+        {"roll_range": [29, 34], "objective": "Eliminate", "source": "core"},
+        {"roll_range": [35, 38], "objective": "Fight Off", "source": "core"},
+        {"roll_range": [39, 45], "objective": "Investigate", "source": "compendium"},
+        {"roll_range": [46, 51], "objective": "Move Through", "source": "core"},
+        {"roll_range": [52, 57], "objective": "Patrol", "source": "core"},
+        {"roll_range": [58, 64], "objective": "Protect", "source": "core"},
+        {"roll_range": [65, 71], "objective": "Rescue", "source": "compendium"},
+        {"roll_range": [72, 77], "objective": "Secure", "source": "core"},
+        {"roll_range": [78, 85], "objective": "Search", "source": "core"},
+        {"roll_range": [86, 92], "objective": "Sneak", "source": "compendium"},
+        {"roll_range": [93, 100], "objective": "Sweep", "source": "compendium"}
+      ]
+    },
+    "objective_descriptions": {
+      "Access": {"description": "Reach computer console at table center, roll 1D6+Savvy 6+ to access. Combat Action per attempt. Natural 1 = hardened, second natural 1 = mission fail.", "page": "Core Rules p.90"},
+      "Acquire": {"description": "Item at table center. Move into contact + Combat Action, then exit table. If carrier KO'd: 1D6, on 1 item destroyed.", "page": "Core Rules p.90"},
+      "Defend": {"description": "Drive off enemy. Win = Hold the Field. Enemy AI switches to Aggressive. +1 enemy numbers.", "page": "Core Rules p.90"},
+      "Deliver": {"description": "Crew member carries package to table center. Combat Action to place. If carrier KO'd: 1D6, on 1 item destroyed.", "page": "Core Rules p.90"},
+      "Eliminate": {"description": "Select random enemy as target. Kill to Win. If target would Bail, they freeze for 1 round.", "page": "Core Rules p.90"},
+      "Fight Off": {"description": "Drive off all enemies. Win = Hold the Field.", "page": "Core Rules p.90"},
+      "Investigate": {"description": "Place 6 markers scattered on table, none within 6\" of edge. Move within 1\" to check. Roll 1D6 <= markers removed so far = success.", "page": "Compendium p.75"},
+      "Move Through": {"description": "At least 2 crew must exit opposing battlefield edge.", "page": "Core Rules p.90"},
+      "Patrol": {"description": "Select 3 random large terrain features. Crew must end move within 2\" of each.", "page": "Core Rules p.90"},
+      "Protect": {"description": "VIP (R1/4\"/+0/3, unarmed) must spend full round within 3\" of table center. Fast completion (4 rounds) = +2 credits.", "page": "Core Rules p.91"},
+      "Rescue": {"description": "Place figure randomly 1D6\" from center. Ignored by enemy until crew within 1\". Then acts as Protect VIP. Must reach table edge.", "page": "Compendium p.75"},
+      "Secure": {"description": "End 2 consecutive rounds with crew within 2\" of table center, no enemy within 6\".", "page": "Core Rules p.91"},
+      "Search": {"description": "Token on each medium/large terrain. Contact + Combat Action = roll 1D6, 5+ finds item. All fails = item not here.", "page": "Core Rules p.91"},
+      "Sneak": {"description": "Place objective 1D6\" from center. Crew must begin activation within 1\" of objective and NOT within Line of Sight of any enemy.", "page": "Compendium p.75"},
+      "Sweep": {"description": "Place 3 objectives, none within 6\" of edge. Crew begins activation within 1\" + no enemies within 4\" = objective removed. Remove all 3 to win.", "page": "Compendium p.75"}
+    },
+    "compendium_mission_types": {
+      "_notes": "Additional mission types from Compendium, separate from standard objectives",
+      "stealth_missions": {"page": "Compendium p.117", "description": "New scenario type with stealth mechanics and detection rules"},
+      "street_fights": {"page": "Compendium p.123", "description": "Close-quarters urban combat scenario"},
+      "salvage_jobs": {"page": "Compendium p.116+", "description": "Salvage-focused mission with special loot rules"}
+    },
+    "rival_attack_types": {
+      "roll_type": "D10",
+      "page_reference": "Core Rules p.91",
+      "entries": [
+        {"roll_range": [1, 1], "type": "Ambush", "effect": "Deploy 1 fewer crew, cannot Seize the Initiative"},
+        {"roll_range": [2, 3], "type": "Brought Friends", "effect": "+1 additional enemy"},
+        {"roll_range": [4, 7], "type": "Showdown", "effect": "Straight-up fight, no modifications"},
+        {"roll_range": [8, 8], "type": "Assault", "effect": "+1 enemy, crew must set up in/adjacent to building. Fail to Hold = lose 1D3 credits"},
+        {"roll_range": [9, 10], "type": "Raid", "effect": "Standard encounter"}
+      ]
+    }
+  }
+}
