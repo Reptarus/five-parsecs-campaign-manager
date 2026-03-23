@@ -97,83 +97,35 @@
       "effect": "Generate 3 worlds (roll traits, problems, licensing). Choose one as destination. All 3 remain for later visits."
     }
   ],
-  "mission_events": [
-    {
-      "name": "Unexpected Ally",
-      "description": "A stranger offers assistance during your mission.",
-      "effect": "Gain a temporary ally (use Skulker stats) for this mission only."
-    },
-    {
-      "name": "Equipment Malfunction",
-      "description": "A critical piece of gear stops working at the worst moment.",
-      "effect": "One random piece of equipment is damaged and cannot be used for the rest of the mission."
-    },
-    {
-      "name": "Hostile Environment",
-      "description": "The local conditions are worse than expected.",
-      "effect": "All characters take a -1 penalty to all rolls for the duration of the mission."
-    },
-    {
-      "name": "Lucky Break",
-      "description": "An unexpected opportunity presents itself.",
-      "effect": "Gain advantage (roll twice, take best result) on your next roll or action."
-    },
-    {
-      "name": "Rival Interference",
-      "description": "One of your rivals shows up to complicate matters.",
-      "effect": "Add an additional enemy group (use Rival crew stats) to the current encounter."
-    },
-    {
-      "name": "Hidden Cache",
-      "description": "You stumble upon a hidden stash of goods.",
-      "effect": "Roll twice on the Loot Table and choose one item to keep."
-    },
-    {
-      "name": "Local Uprising",
-      "description": "The locals are rebelling against the current authorities.",
-      "effect": "Choose to either help the rebels (+1 Reputation, -100 credits) or the authorities (-1 Reputation, +100 credits)."
-    },
-    {
-      "name": "Time Pressure",
-      "description": "You receive word that you have less time than initially thought.",
-      "effect": "The mission must be completed in half the original number of turns, rounded up."
-    },
-    {
-      "name": "Reinforcements",
-      "description": "Enemy reinforcements arrive unexpectedly.",
-      "effect": "Add 1D3 enemies of the same type as the current encounter to the battlefield."
-    },
-    {
-      "name": "Tactical Advantage",
-      "description": "You spot a weakness in the enemy's defenses.",
-      "effect": "Your next attack against any enemy automatically hits and deals maximum damage."
-    }
-  ],
-  "post_mission_events": [
-    {
-      "name": "Celebratory Mood",
-      "description": "The successful mission has lifted everyone's spirits.",
-      "effect": "All crew members recover 1 stress."
-    },
-    {
-      "name": "Loot Discovery",
-      "description": "While leaving the mission area, you find some overlooked valuables.",
-      "effect": "Roll once on the Loot Table."
-    },
-    {
-      "name": "Medical Emergency",
-      "description": "One of your crew members' wounds turns out to be worse than initially thought.",
-      "effect": "A random crew member who took damage during the mission must roll on the Injury Table."
-    },
-    {
-      "name": "Reputation Boost",
-      "description": "Word of your success spreads quickly.",
-      "effect": "Gain +1 Reputation in the current star system."
-    },
-    {
-      "name": "Gear Degradation",
-      "description": "The wear and tear of the mission has taken its toll on your equipment.",
-      "effect": "One random piece of gear or weapon is damaged and requires repair."
-    }
-  ]
+  "battle_events": {
+    "_metadata": "Optional Battle Events table — Core Rules pp.116-117. Roll at end of Round 2 and Round 4. VERIFIED Mar 22, 2026.",
+    "roll_type": "D100",
+    "timing": "End of Round 2, then end of Round 4. Max 2 events per battle.",
+    "entries": [
+      {"roll_range": [1, 5], "name": "Renewed efforts", "effect": "After all enemy actions, select random enemy for second Move + Combat Action for rest of battle"},
+      {"roll_range": [6, 9], "name": "Enemy reinforcements", "effect": "2 additional enemies arrive at center of opposing edge. 1 armed as Specialist"},
+      {"roll_range": [10, 13], "name": "Change of plans", "effect": "Enemy switches to Cautious AI (if already Cautious: Tactical). No-ranged enemies unaffected"},
+      {"roll_range": [14, 16], "name": "Lost heart", "effect": "Enemy leaves the field at end of next round"},
+      {"roll_range": [17, 20], "name": "Seized the moment", "effect": "Select crew member who acts in both Quick and Slow phases next round"},
+      {"roll_range": [21, 26], "name": "Critters!", "effect": "Place 1D3 Vent Crawlers (p.102) at table center, move each 1D6\" random direction. Attack nearest figure regardless of side"},
+      {"roll_range": [27, 30], "name": "Ammo fault", "effect": "Random crew member: if fired last round, weapon unusable rest of battle. If not, random weapon fires once only"},
+      {"roll_range": [31, 34], "name": "Visibility change", "effect": "If reduced: +1D6\" range. If unlimited: reduce to 1D6+6\""},
+      {"roll_range": [35, 38], "name": "Tougher than expected", "effect": "Random enemy gets +1 Toughness (max 6) and remove all Stun markers"},
+      {"roll_range": [39, 42], "name": "Snap shot", "effect": "Select crew member for immediate fire. Pistol: auto-hit. Otherwise: roll normally"},
+      {"roll_range": [43, 46], "name": "Cunning plan", "effect": "Next round: no Initiative roll. Each crew acts in Quick or Slow as you prefer"},
+      {"roll_range": [47, 50], "name": "Possible reinforcements", "effect": "3 markers on opposing edge. Each round: random marker, 1D6 on 5-6 spawns basic enemy. Crew within 3\" removes marker"},
+      {"roll_range": [51, 54], "name": "Clock is running out", "effect": "End of next+ rounds: 1D6, on 6 game ends immediately. No objectives, no Hold unless enemies cleared"},
+      {"roll_range": [55, 60], "name": "Environmental hazard", "effect": "Random terrain feature: figures in/on/within 1\" roll 1D6+Savvy 5+ (enemies 1D6 4+) or take Damage+1 ignoring armor"},
+      {"roll_range": [61, 65], "name": "A desperate plan", "effect": "Random crew can't act next round. Select another who acts in both Quick and Slow phases"},
+      {"roll_range": [66, 70], "name": "A moment of hesitation", "effect": "Next round: only 1 figure in Quick (must be Feral if present). All others in Slow"},
+      {"roll_range": [71, 73], "name": "Fumbled grenade", "effect": "Random enemy runs 6\" random direction, Stunned. All within 4\" run 4\" away. Grenade harmless. No effect if enemy wouldn't use grenades"},
+      {"roll_range": [74, 77], "name": "Back up", "effect": "If spare crew available, one arrives at center of your edge"},
+      {"roll_range": [78, 80], "name": "Enemy VIP", "effect": "Unique Individual joins enemy at center of their edge"},
+      {"roll_range": [81, 85], "name": "Fog cloud", "effect": "Dense fog at table center, 6\" radius, blocks visibility past 2\" for rest of battle"},
+      {"roll_range": [86, 89], "name": "Lost!", "effect": "Random crew member removed from battle (rejoins safely after). Ignore if outnumbered"},
+      {"roll_range": [90, 93], "name": "I found something!", "effect": "Random crew, place marker 1D6\" away. Contact + non-Combat Action = Loot roll (p.131)"},
+      {"roll_range": [94, 97], "name": "Looks valuable", "effect": "Random crew, place marker 1D6\" away. Contact + non-Combat Action = 1D3 credits"},
+      {"roll_range": [98, 100], "name": "You want me to check that out?", "effect": "Random crew may leave battle. After battle: roll on Loot Table. If declined, chance lost"}
+    ]
+  }
 }

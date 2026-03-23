@@ -1,0 +1,212 @@
+{
+  "metadata": {
+    "name": "Trade Table",
+    "source": "Five Parsecs from Home Core Rules 3e pp.79-80 — VERIFIED Mar 22, 2026",
+    "roll_type": "D100",
+    "notes": "Roll for each crew member Trading. 3 credits for additional rolls (requires at least 1 crew Trading)."
+  },
+  "entries": [
+    {
+      "roll_range": [1, 3],
+      "name": "A personal weapon",
+      "effect": "Roll once on the Low Tech Weapon Table (p.28)",
+      "requires_roll": true
+    },
+    {
+      "roll_range": [4, 6],
+      "name": "Sell some cargo",
+      "effect": "Earn 2 credits",
+      "credits": 2
+    },
+    {
+      "roll_range": [7, 9],
+      "name": "Find something useful",
+      "effect": "Roll once on the Gear Table (p.29)",
+      "requires_roll": true
+    },
+    {
+      "roll_range": [10, 11],
+      "name": "Quality food and booze",
+      "effect": "Recruit a new character",
+      "single_use": true
+    },
+    {
+      "roll_range": [12, 14],
+      "name": "Instruction book",
+      "effect": "+1 XP to crew member of choice",
+      "xp": 1,
+      "single_use": true
+    },
+    {
+      "roll_range": [15, 18],
+      "name": "Bits of scrap",
+      "effect": "Earn 1 credit",
+      "credits": 1
+    },
+    {
+      "roll_range": [19, 22],
+      "name": "Medical pack",
+      "effect": "Choice of Stim-pack or Med-patch",
+      "items": ["Stim-pack", "Med-patch"]
+    },
+    {
+      "roll_range": [23, 24],
+      "name": "Worthless trinket",
+      "effect": "Roll 1D6, on 6: +1 story point",
+      "requires_roll": true
+    },
+    {
+      "roll_range": [25, 26],
+      "name": "Local maps",
+      "effect": "If Quest received this or next world, add 1 Rumor",
+      "single_use": true
+    },
+    {
+      "roll_range": [27, 28],
+      "name": "Luxury trinket",
+      "effect": "+2 to Recruit roll, OR sell (roll twice on Trade Table). Swift keeps for +2 XP",
+      "single_use": true
+    },
+    {
+      "roll_range": [29, 30],
+      "name": "Basic supplies",
+      "effect": "Skip Upkeep for 1 turn",
+      "single_use": true
+    },
+    {
+      "roll_range": [31, 34],
+      "name": "Contraband",
+      "effect": "Accept: earn 1D6 credits, on 4-6 also gain a Rival",
+      "requires_roll": true
+    },
+    {
+      "roll_range": [35, 37],
+      "name": "Gun Upgrade Kit",
+      "effect": "Choice of Laser Sight, Bipod, or Beam Light",
+      "items": ["Laser Sight", "Bipod", "Beam Light"]
+    },
+    {
+      "roll_range": [38, 39],
+      "name": "Useless trinket",
+      "effect": "Roll 1D6, on 6: +1 story point",
+      "requires_roll": true
+    },
+    {
+      "roll_range": [40, 44],
+      "name": "Trade goods",
+      "effect": "On each new planet, roll 1D6 for sell value. On 1: worthless",
+      "requires_roll": true
+    },
+    {
+      "roll_range": [45, 48],
+      "name": "Something interesting",
+      "effect": "Roll once on the Loot Table",
+      "requires_roll": true
+    },
+    {
+      "roll_range": [49, 51],
+      "name": "Fuel",
+      "effect": "Roll 1D6: that many credits of fuel for travel costs",
+      "single_use": true,
+      "requires_roll": true
+    },
+    {
+      "roll_range": [52, 53],
+      "name": "Spare parts",
+      "effect": "+1 to Repair attempt. Natural 1 uses them up",
+      "single_use": false
+    },
+    {
+      "roll_range": [54, 55],
+      "name": "Tourist garbage",
+      "effect": "Roll 1D6, on 5-6: +1 story point",
+      "requires_roll": true
+    },
+    {
+      "roll_range": [56, 56],
+      "name": "Don't usually see these for sale",
+      "effect": "Pay 3 credits, roll on Loot Table. Item for trading crew member only",
+      "credits": -3,
+      "requires_roll": true
+    },
+    {
+      "roll_range": [57, 59],
+      "name": "Ordnance",
+      "effect": "3 grenades (Frakk or Dazzle, any combination)",
+      "items": ["Frakk grenade", "Dazzle grenade"]
+    },
+    {
+      "roll_range": [60, 62],
+      "name": "Basic firearms",
+      "effect": "Choice of Handgun, Colony Rifle, or Shotgun",
+      "items": ["Handgun", "Colony Rifle", "Shotgun"]
+    },
+    {
+      "roll_range": [63, 63],
+      "name": "Odd device",
+      "effect": "Pay 1 credit, roll 1D6. On 6: Loot Table roll. Otherwise garbage",
+      "credits": -1,
+      "requires_roll": true
+    },
+    {
+      "roll_range": [64, 65],
+      "name": "Military fuel cell",
+      "effect": "Zero travel costs to next planet",
+      "single_use": true
+    },
+    {
+      "roll_range": [66, 69],
+      "name": "Hot tip",
+      "effect": "Gain 1 Quest Rumor"
+    },
+    {
+      "roll_range": [70, 71],
+      "name": "Insider information",
+      "effect": "Auto-obtain Patron next turn if searching",
+      "single_use": true
+    },
+    {
+      "roll_range": [72, 75],
+      "name": "Army surplus",
+      "effect": "Choice of Auto Rifle, Blast Pistol, or Glare Sword",
+      "items": ["Auto Rifle", "Blast Pistol", "Glare Sword"]
+    },
+    {
+      "roll_range": [76, 78],
+      "name": "A chance to unload some stuff",
+      "effect": "Sell weapons for 2 credits each (undamaged only)",
+      "credits": 2
+    },
+    {
+      "roll_range": [79, 81],
+      "name": "A lot of blinking lights",
+      "effect": "Roll once on the Gear Loot subtable",
+      "requires_roll": true
+    },
+    {
+      "roll_range": [82, 86],
+      "name": "Gently used",
+      "effect": "Roll once on the Gear Loot subtable (item damaged, needs Repair)",
+      "requires_roll": true
+    },
+    {
+      "roll_range": [87, 91],
+      "name": "Pre-owned",
+      "effect": "Roll once on the Loot Table (item damaged, needs Repair)",
+      "requires_roll": true
+    },
+    {
+      "roll_range": [92, 95],
+      "name": "Medical reserves",
+      "effect": "2 Stim-packs and 2 Med-patches",
+      "items": ["Stim-pack", "Stim-pack", "Med-patch", "Med-patch"]
+    },
+    {
+      "roll_range": [96, 100],
+      "name": "Starship repair parts",
+      "effect": "Count as 1D6 credits for Hull Point repair",
+      "single_use": true,
+      "requires_roll": true
+    }
+  ]
+}

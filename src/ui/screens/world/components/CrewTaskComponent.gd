@@ -29,99 +29,39 @@ var assigned_tasks: Dictionary = {} # crew_member_id -> task_data
 var completed_tasks: Array = []
 var all_tasks_resolved: bool = false
 
-# Five Parsecs crew tasks (Core Rules pp.76-82)
-# Task mechanics: dice_target is base roll needed on D6
-# max_crew: maximum crew assignable, credit_bonus: max credits for +1 each
-var available_crew_tasks: Array[Dictionary] = [
-	{
-		"id": "find_patron",
-		"name": "Find a Patron",
-		"description": "Search for someone willing to offer paid work",
-		"dice_target": 5,
-		"max_crew": 2,
-		"credit_bonus": 3,
-		"success_reward": "Add 1 Patron",
-		"failure_penalty": "None",
-		"resolution_type": "dice_roll"
-	},
-	{
-		"id": "train",
-		"name": "Train",
-		"description": "Practice combat skills or study",
-		"dice_target": 0,  # Auto-success
-		"max_crew": 2,
-		"credit_bonus": 0,
-		"success_reward": "+1 XP",
-		"failure_penalty": "None",
-		"resolution_type": "automatic"
-	},
-	{
-		"id": "trade",
-		"name": "Trade",
-		"description": "Buy and sell goods in local markets. 3 credits for extra rolls",
-		"dice_target": 0,  # Roll on Trade Table
-		"max_crew": 2,  # Core Rules p.78: up to 2 per task
-		"credit_bonus": 0,
-		"success_reward": "Roll on Trade Table",
-		"failure_penalty": "None",
-		"resolution_type": "table_roll"
-	},
-	{
-		"id": "recruit",
-		"name": "Recruit",
-		"description": "Search for new crew members to hire",
-		"dice_target": 6,
-		"max_crew": 2,
-		"credit_bonus": 3,
-		"success_reward": "New recruit available",
-		"failure_penalty": "None",
-		"resolution_type": "dice_roll"
-	},
-	{
-		"id": "explore",
-		"name": "Explore",
-		"description": "Search the area for opportunities",
-		"dice_target": 0,  # Roll on Exploration Table
-		"max_crew": 2,
-		"credit_bonus": 0,
-		"success_reward": "Roll on Exploration Table",
-		"failure_penalty": "Possible danger",
-		"resolution_type": "table_roll"
-	},
-	{
-		"id": "track",
-		"name": "Track",
-		"description": "Track down a Rival for a showdown. Requires Rivals",
-		"dice_target": 6,  # Core Rules p.78: 6+ to locate
-		"max_crew": 2,
-		"credit_bonus": 3,  # Can spend credits for +1 each
-		"success_reward": "Located Rival - fight this turn",
-		"failure_penalty": "None",
-		"resolution_type": "dice_roll"
-	},
-	{
-		"id": "repair_kit",
-		"name": "Repair Your Kit",
-		"description": "Roll D6 + Savvy to repair. Engineer +1. Natural 1 = unfixable",
-		"dice_target": 6,  # Core Rules p.78: 6+ to repair
-		"max_crew": 1,
-		"credit_bonus": 5,  # Spare parts: +1 per credit spent
-		"success_reward": "Item repaired",
-		"failure_penalty": "Natural 1 = item beyond repair",
-		"resolution_type": "repair"
-	},
-	{
-		"id": "decoy",
-		"name": "Decoy",
-		"description": "Help avoid Rivals finding you. +1 to avoid roll per crew",
-		"dice_target": 0,  # Auto-success
-		"max_crew": 2,  # Core Rules p.78: up to 2 per task
-		"credit_bonus": 0,
-		"success_reward": "+1 to Rival avoidance roll per crew",
-		"failure_penalty": "None",
-		"resolution_type": "automatic"
-	}
-]
+# Five Parsecs crew tasks — loaded from data/crew_tasks.json (Core Rules pp.76-82)
+var available_crew_tasks: Array[Dictionary] = []
+
+func _load_crew_tasks() -> void:
+	var path := "res://data/crew_tasks.json"
+	if not FileAccess.file_exists(path):
+		push_error("CrewTaskComponent: crew_tasks.json not found")
+		return
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		push_error("CrewTaskComponent: Failed to open crew_tasks.json")
+		return
+	var json := JSON.new()
+	var err := json.parse(file.get_as_text())
+	file.close()
+	if err != OK:
+		push_error("CrewTaskComponent: Failed to parse crew_tasks.json: %s" % json.get_error_message())
+		return
+	var data: Dictionary = json.data
+	var tasks: Array = data.get("tasks", [])
+	available_crew_tasks.clear()
+	for task: Dictionary in tasks:
+		available_crew_tasks.append({
+			"id": task.get("id", ""),
+			"name": task.get("name", ""),
+			"description": task.get("description", ""),
+			"dice_target": int(task.get("dice_target", 0)),
+			"max_crew": int(task.get("max_crew", 2)),
+			"credit_bonus": int(task.get("credit_bonus_max", 0)),
+			"success_reward": task.get("success_reward", ""),
+			"failure_penalty": task.get("failure_penalty", "None"),
+			"resolution_type": task.get("resolution_type", "dice_roll")
+		})
 
 # Track crew per task for multi-assignment
 var task_assignments: Dictionary = {}  # task_id -> Array of crew_ids
@@ -131,6 +71,7 @@ var credits_spent_on_tasks: Dictionary = {}  # task_id -> credits spent
 
 func _ready() -> void:
 	name = "CrewTaskComponent"
+	_load_crew_tasks()
 	super._ready()
 
 func _subscribe_to_events() -> void:

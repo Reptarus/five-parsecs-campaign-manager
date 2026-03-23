@@ -115,146 +115,274 @@ Each rule in the book should eventually have an entry like this:
 
 ## Chapter 1: Character Creation (Core Rules pp.15-37)
 
+### Architecture Overview
+
+**Two code paths** consume character creation data:
+
+| Path | Entry Point | JSON Files Loaded | Purpose |
+|------|-------------|-------------------|---------|
+| **Primary** | `CharacterCreator.gd` | `background_table.json`, `class_table.json`, `motivation_table.json`, `character_creation_bonuses.json` | Full creator with DLC species, enum-based bonus lookup |
+| **Secondary** | `SimpleCharacterCreator.gd` | `character_species.json`, `character_backgrounds.json`, `motivation_table.json` | Simplified creator with direct stat modifier application |
+
+**Key Functions**:
+- `CharacterCreator._lookup_bonuses(table_key, id)` → [CharacterCreator.gd:460-469](src/core/character/Generation/CharacterCreator.gd#L460-L469) — Central bonus resolver
+- `CharacterCreator._apply_origin_bonuses(origin_id)` → [CharacterCreator.gd:339-355](src/core/character/Generation/CharacterCreator.gd#L339-L355)
+- `CharacterCreator._apply_background_bonuses(bg_id)` → [CharacterCreator.gd:471-483](src/core/character/Generation/CharacterCreator.gd#L471-L483)
+- `CharacterCreator._apply_class_bonuses(class_id)` → [CharacterCreator.gd:485-497](src/core/character/Generation/CharacterCreator.gd#L485-L497)
+- `CharacterCreator._apply_motivation_bonuses(motivation_id)` → [CharacterCreator.gd:499-513](src/core/character/Generation/CharacterCreator.gd#L499-L513)
+- `CharacterCreator._populate_dropdowns()` → [CharacterCreator.gd:165-206](src/core/character/Generation/CharacterCreator.gd#L165-L206) — DLC species gating
+- `SimpleCharacterCreator._load_character_data()` → [SimpleCharacterCreator.gd:66-72](src/core/character/Generation/SimpleCharacterCreator.gd#L66-L72)
+- `SimpleCharacterCreator._get_species_data()` → [SimpleCharacterCreator.gd:492-500](src/core/character/Generation/SimpleCharacterCreator.gd#L492-L500)
+- `SimpleCharacterCreator._on_origin_changed()` → [SimpleCharacterCreator.gd:526-533](src/core/character/Generation/SimpleCharacterCreator.gd#L526-L533)
+
+**DLC Species** (hardcoded in [compendium_species.gd](src/data/compendium_species.gd)):
+- Krag (lines 27-56), Skulker (lines 83-132), Prison Planet (lines 134-166)
+- Gated by `DLCManager.ContentFlag.SPECIES_KRAG`, `.SPECIES_SKULKER`, `.PRISON_PLANET_CHARACTER`
+
+**Test Files**:
+- [tests/unit/test_character_creation_tables.gd](tests/unit/test_character_creation_tables.gd) — Background events, motivation rolls, quirks, connections
+- [tests/integration/test_campaign_creation_data_flow.gd](tests/integration/test_campaign_creation_data_flow.gd) — End-to-end 7-phase wizard data flow
+- [tests/test_character_diversity.gd](tests/test_character_diversity.gd) — Generation diversity, backgrounds/motivations/classes
+
 ### 1A: Species Stats (pp.15-22)
 
-**Data Sources**: `data/character_species.json`, `data/RulesReference/SpeciesList.json`
+**Data Sources**: [data/character_species.json](data/character_species.json) (320 lines, 8 primary + 15 strange = 23 total), [data/RulesReference/SpeciesList.json](data/RulesReference/SpeciesList.json) (flavor only — no stat data)
+**Implementing Code**: [SimpleCharacterCreator.gd:68](src/core/character/Generation/SimpleCharacterCreator.gd#L68) (loads JSON), [SimpleCharacterCreator.gd:526-533](src/core/character/Generation/SimpleCharacterCreator.gd#L526-L533) (applies modifiers)
+**Bonus Application**: [CharacterCreator.gd:339-355](src/core/character/Generation/CharacterCreator.gd#L339-L355) via [character_creation_bonuses.json](data/character_creation_bonuses.json) `origin_bonuses` section
 
-| ID | Item | Page | What to Verify | Status | By | Date |
-|----|------|------|---------------|--------|-----|------|
-| 1A-001 | Human base stats | p.15 | R:1, S:4, C:0, T:3, Sv:0, Luck >1 allowed | UNVERIFIED | | |
-| 1A-002 | Engineer stats | p.16 | Stat modifiers, T_max=4, special rules | UNVERIFIED | | |
-| 1A-003 | K'Erin stats | p.17 | Stat modifiers, brawl reroll rule | UNVERIFIED | | |
-| 1A-004 | Soulless stats | p.18 | Stat modifiers, 6+ save, no XP restrictions | UNVERIFIED | | |
-| 1A-005 | Precursor stats | p.19 | Stat modifiers, 2 character events rule | UNVERIFIED | | |
-| 1A-006 | Feral stats | p.20 | R+1, T-1 (or equivalent), special rules | UNVERIFIED | | |
-| 1A-007 | Swift stats | p.21 | S+2 (Phase 43 fix), special rules | UNVERIFIED | | |
-| 1A-008 | Bot stats | p.22 | No XP, Bot upgrade system, restrictions | UNVERIFIED | | |
-| 1A-009 | Strange Characters (18 types) | p.32 | D100 table ranges, each type's modifiers | UNVERIFIED | | |
+| ID | Item | Page | JSON Value | Code Path | Status | By | Date |
+|----|------|------|-----------|-----------|--------|-----|------|
+| 1A-001 | Human base stats | p.15 | `character_species.json:8` R:1, S:4, C:0, T:3, Sv:0 + special "Can exceed 1 point of Luck" | `SimpleCharacterCreator.gd:526` (modifiers all 0) | UNVERIFIED — needs book confirmation of base stats | | |
+| 1A-002 | Engineer stats | p.16 | `character_species.json:34-35` T:-1, Sv:+1 + "T_max=4", "+1 repair rolls" | `character_creation_bonuses.json:10` key "2": T:-1, Sv:+1 | UNVERIFIED — needs book confirmation | | |
+| 1A-003 | K'Erin stats | p.16 | `character_species.json:47` T:+1 + "brawl reroll", "must move to brawl" | `character_creation_bonuses.json:11` key "4": T:+1 | UNVERIFIED — needs book confirmation | | |
+| 1A-004 | Soulless stats | p.17 | `character_species.json:58-59` T:+1, Sv:+1 + "6+ save", "no consumables/implants", "XP normally" | `character_creation_bonuses.json:12` key "6": T:+1, Sv:+1 | UNVERIFIED — needs book confirmation | | |
+| 1A-005 | Precursor stats | p.17 | `character_species.json:73-74` S:+1, T:-1 + "2 char events pick preferred", "1 story point to avoid" | `character_creation_bonuses.json:13` key "5": S:+1, T:-1 + `CharacterCreator.gd:352` grants psionic | UNVERIFIED — needs book confirmation | | |
+| 1A-006 | Feral stats | p.18 | `character_species.json:85-86` all modifiers 0 + "ignore seize penalty", "react 1 must go to Feral" | `character_creation_bonuses.json`: NO entry for Feral (key "3" missing) | **INCONSISTENCY** — species JSON has no stat mods but Appendix C #18 flags this as missing from bonuses JSON | | |
+| 1A-007 | Swift stats | p.18 | `character_species.json:97-98` S:+1 + "glide", "leap 4\" gaps", "multi-shot same target" | `character_creation_bonuses.json:14` key "7": S:+1 | UNVERIFIED — needs book confirmation (Phase 43 fixed S+2→S+1 in base_stats, verify which is correct) | | |
+| 1A-008 | Bot stats | p.15 | `character_species.json:17-18` R:+1, C:+1, T:+1, Sv:+2 + "no XP", "6+ save", "no consumables", "no events", "no leader luck" | `character_creation_bonuses.json:9` key "8": R:+1, C:+1, T:+1, Sv:+2 | UNVERIFIED — bot page listed as p.15, verify | | |
+| 1A-009 | Strange Characters (15 types) | pp.19-22 | `character_species.json:108-318` — De-converted, Unity Agent, Mysterious Past, Hakshan, Stalker, Hulker, Hopeful Rookie, Genetic Uplift, Mutant, Assault Bot, Manipulator, Primitive, Feeler, Emo-suppressed, Minor Alien | `SimpleCharacterCreator.gd:492-500` searches both `primary_aliens` and `strange_characters` arrays | UNVERIFIED — book says 18 types (audit item says p.32), JSON has 15. **GAP?** Verify book count | | |
+| 1A-010 | DLC: Krag stats | Compendium | `compendium_species.gd:27-56` T:+1, Sv:-1 + armor rules, no dash, belligerent reroll | `character_creation_bonuses.json:15` key "9": T:+1, Sv:-1 | UNVERIFIED — needs Compendium verification | | |
+| 1A-011 | DLC: Skulker stats | Compendium | `compendium_species.gd:83-132` S:+1, T:-1 + difficult ground immunity, climb discount, bio resistance | `character_creation_bonuses.json:16` key "10": S:+1, T:-1 | UNVERIFIED — needs Compendium verification | | |
+| 1A-012 | DLC: Prison Planet stats | Compendium | `compendium_species.gd:134-166` T:+1, C:+1 | `character_creation_bonuses.json:17` key "11": T:+1, C:+1 | UNVERIFIED — needs Compendium verification | | |
 
-### 1B: Background Table (p.33)
+**Conditionals to verify**:
+- Bot/Assault Bot: `rolls_creation_tables: false` → must skip background/motivation/class → check `CharacterCreator._populate_dropdowns()` disables these
+- Precursor: `CharacterCreator.gd:352` grants random psionic → verify book says "begin with one randomly determined Psionic Power"
+- Strange char forced backgrounds/motivations: `forced_motivation`, `forced_background`, `double_background`, `double_motivation` flags in JSON → verify code respects these
+- Feral: Missing from `character_creation_bonuses.json` origin_bonuses — if Feral has no stat bonuses in book this is correct, if it does have bonuses this is a bug
 
-**Data Sources**: `data/character_creation_tables/background_table.json`, `data/character_backgrounds.json`
+### 1B: Background Table (pp.24-25)
 
-| ID | Item | Page | What to Verify | Status | By | Date |
-|----|------|------|---------------|--------|-----|------|
-| 1B-001 | Background D100 ranges | p.33 | All roll ranges match book | UNVERIFIED | | |
-| 1B-002 | Background stat modifiers | p.33 | Each background's stat bonus/penalty | UNVERIFIED | | |
-| 1B-003 | Background count | p.33 | Total number of backgrounds matches book | UNVERIFIED | | |
+**Data Sources**: [data/character_creation_tables/background_table.json](data/character_creation_tables/background_table.json) (D100 table with stat_bonuses, resources, equipment_rolls per entry)
+**Implementing Code**: [CharacterCreator.gd:407](src/core/character/Generation/CharacterCreator.gd#L407) (loads JSON), [CharacterCreator.gd:471-483](src/core/character/Generation/CharacterCreator.gd#L471-L483) (applies bonuses via `_lookup_bonuses("background_bonuses", bg_id)`)
+**Bonus Data**: [character_creation_bonuses.json:19-31](data/character_creation_bonuses.json) — 12 backgrounds with stat bonuses mapped by enum int ID
+**Roll Function**: [CharacterCreationTables.gd:21](src/core/character/tables/CharacterCreationTables.gd#L21) — `roll_background_event()` (D66)
 
-### 1C: Motivation Table (p.34)
+| ID | Item | Page | JSON Value | Code Path | Status | By | Date |
+|----|------|------|-----------|-----------|--------|-----|------|
+| 1B-001 | Background D100 ranges | pp.24-25 | `background_table.json` entries: "1-4" through "96-100" (26 backgrounds) | `CharacterCreator.gd:407` loads full table | UNVERIFIED — verify all 26 D100 range boundaries match book | | |
+| 1B-002 | Background stat modifiers | pp.24-25 | `character_creation_bonuses.json:19-31` — 12 backgrounds have bonuses (Sv+1, S+1, T+1, C+1, R+1 variants) | `CharacterCreator.gd:479` applies via `_lookup_bonuses()` | UNVERIFIED — verify each bonus matches book. 14 backgrounds have no bonus — confirm this is correct | | |
+| 1B-003 | Background count | pp.24-25 | 26 entries in `background_table.json` | N/A | UNVERIFIED — verify book has exactly 26 backgrounds | | |
+| 1B-004 | Background resources | pp.24-25 | Some backgrounds grant `credits_roll: "1D6"` or `"2D6"`, `equipment_rolls` arrays | `StartingEquipmentGenerator.gd:120` — `_get_background_equipment()` | UNVERIFIED — verify resource grants per background | | |
 
-**Data Sources**: `data/character_creation_tables/motivation_table.json`
+### 1C: Motivation Table (p.26)
 
-| ID | Item | Page | What to Verify | Status | By | Date |
-|----|------|------|---------------|--------|-----|------|
-| 1C-001 | Motivation D66 ranges | p.34 | All roll ranges match book | UNVERIFIED | | |
-| 1C-002 | WEALTH bonus | p.34 | +1D6 credits at finalization (BUG-037 fixed) | UNVERIFIED | | |
-| 1C-003 | FAME bonus | p.34 | +1 story point at finalization | UNVERIFIED | | |
-| 1C-004 | SURVIVAL bonus | p.34 | Correct stat bonus | UNVERIFIED | | |
-| 1C-005 | KNOWLEDGE bonus | p.34 | +1 savvy | UNVERIFIED | | |
+**Data Sources**: [data/character_creation_tables/motivation_table.json](data/character_creation_tables/motivation_table.json) (D100 table, marked "VERIFIED against Core Rules 3e Mar 22, 2026")
+**Implementing Code**: [CharacterCreator.gd:409](src/core/character/Generation/CharacterCreator.gd#L409) (loads JSON), [CharacterCreator.gd:499-513](src/core/character/Generation/CharacterCreator.gd#L499-L513) (applies bonuses)
+**Secondary Loader**: [SimpleCharacterCreator.gd:70](src/core/character/Generation/SimpleCharacterCreator.gd#L70)
+**Bonus Data**: [character_creation_bonuses.json:50-55](data/character_creation_bonuses.json) — 5 motivations with stat bonuses + [character_creation_bonuses.json:58-60](data/character_creation_bonuses.json) campaign-level bonuses
+**Roll Function**: [CharacterCreationTables.gd:39](src/core/character/tables/CharacterCreationTables.gd#L39) — `roll_motivation()` (D100)
 
-### 1D: Class Table (p.35)
+| ID | Item | Page | JSON Value | Code Path | Status | By | Date |
+|----|------|------|-----------|-----------|--------|-----|------|
+| 1C-001 | Motivation D100 ranges | p.26 | `motivation_table.json` entries: "1-8" Wealth through "91-100" Freedom (14 motivations) | `CharacterCreator.gd:409` loads, `CharacterCreationTables.gd:39` rolls | UNVERIFIED — JSON header says "VERIFIED" but no verifier initials/date recorded here | | |
+| 1C-002 | WEALTH bonus | p.26 | `motivation_table.json:9` credits_roll: "1D6" | `character_creation_bonuses.json:59` type: "credits", dice: "1D6" (applied in CampaignFinalizationService) | UNVERIFIED — verify +1D6 credits at finalization | | |
+| 1C-003 | FAME bonus | p.26 | `motivation_table.json:16` story_points: 1 | `character_creation_bonuses.json:60` type: "story_points", amount: 1 | UNVERIFIED — verify +1 story point | | |
+| 1C-004 | SURVIVAL stat bonus | p.26 | `motivation_table.json:29` toughness: 1 | `character_creation_bonuses.json:52` key "7": T:+1 | UNVERIFIED — verify Survival grants T+1 | | |
+| 1C-005 | GLORY stat bonus | p.26 | `motivation_table.json:22-23` combat: 1, equipment_rolls: ["military_weapon"] | `character_creation_bonuses.json:51` key "3": C:+1 | UNVERIFIED — verify Glory grants C+1 + military weapon | | |
+| 1C-006 | ESCAPE stat bonus | p.26 | `motivation_table.json:35` speed: 1, equipment_rolls: ["low_tech_weapon"] | `character_creation_bonuses.json:53` key "14": S:+1 | UNVERIFIED — verify Escape grants S+1 + low-tech weapon | | |
+| 1C-007 | TECHNOLOGY stat bonus | p.26 | `motivation_table.json:57` savvy: 1, equipment_rolls: ["gear"] | `character_creation_bonuses.json:54` key "17": Sv:+1 | UNVERIFIED — verify Technology grants Sv+1 + gear | | |
+| 1C-008 | DISCOVERY stat bonus | p.26 | `motivation_table.json:63` savvy: 1 | `character_creation_bonuses.json:55` key "10": Sv:+1 | UNVERIFIED — verify Discovery grants Sv+1 | | |
+| 1C-009 | REVENGE special | p.26 | `motivation_table.json:79` special: { xp: 2 } | Not in `character_creation_bonuses.json` — applied where? | UNVERIFIED — verify Revenge grants +2 XP and trace applying code | | |
+| 1C-010 | TRUTH special | p.26 | `motivation_table.json:51-52` quest_rumors: 1, story_points: 1, equipment_rolls: ["gadget"] | Not in stat bonuses — campaign-level | UNVERIFIED — verify Truth grants quest rumor + story point + gadget | | |
 
-**Data Sources**: `data/character_creation_tables/class_table.json`
+### 1D: Class Table (pp.26-27)
 
-| ID | Item | Page | What to Verify | Status | By | Date |
-|----|------|------|---------------|--------|-----|------|
-| 1D-001 | Class D66 ranges | p.35 | All roll ranges match book | UNVERIFIED | | |
-| 1D-002 | Class stat modifiers | p.35 | Each class's equipment/credit grants | UNVERIFIED | | |
-| 1D-003 | Class count | p.35 | Total number of classes matches book | UNVERIFIED | | |
+**Data Sources**: [data/character_creation_tables/class_table.json](data/character_creation_tables/class_table.json) (D100 table)
+**Implementing Code**: [CharacterCreator.gd:408](src/core/character/Generation/CharacterCreator.gd#L408) (loads JSON), [CharacterCreator.gd:485-497](src/core/character/Generation/CharacterCreator.gd#L485-L497) (applies bonuses)
+**Bonus Data**: [character_creation_bonuses.json:33-48](data/character_creation_bonuses.json) — 16 classes with stat bonuses mapped by enum int ID
+**Equipment**: [StartingEquipmentGenerator.gd:113](src/core/character/Equipment/StartingEquipmentGenerator.gd#L113) — `_get_class_equipment()`
 
-### 1E: Starting Equipment (p.36)
+| ID | Item | Page | JSON Value | Code Path | Status | By | Date |
+|----|------|------|-----------|-----------|--------|-----|------|
+| 1D-001 | Class D100 ranges | pp.26-27 | `class_table.json` entries: "1-5" Working Class through end (count TBD) | `CharacterCreator.gd:408` loads full table | UNVERIFIED — verify all D100 range boundaries | | |
+| 1D-002 | Class stat modifiers | pp.26-27 | `character_creation_bonuses.json:33-48` — 16 classes: Sv+1 (Working Class, Technician, Scientist, Hacker, Starship Crew), C+1 (Soldier, Mercenary, Enforcer), S+1 (Primitive, Petty Criminal, Scoundrel, Bounty Hunter), R+1 (Ganger, Special Agent, Troubleshooter), Luck+1 (Working Class) | `CharacterCreator.gd:493` applies via `_lookup_bonuses()` | UNVERIFIED — verify each class bonus matches book | | |
+| 1D-003 | Class count | pp.26-27 | At least 18 classes visible in `class_table.json` (Trader at range 45-49 visible, more follow) | N/A | UNVERIFIED — count full table and compare to book | | |
+| 1D-004 | Class resources | pp.26-27 | Some classes grant credits_roll ("1D6", "2D6"), patron, rival, story_points | `StartingEquipmentGenerator.gd:113` + campaign finalization | UNVERIFIED — verify resource grants per class | | |
 
-**Data Sources**: `data/character_creation_tables/equipment_tables.json`
+### 1E: Starting Equipment (p.36 / per-class tables)
 
-| ID | Item | Page | What to Verify | Status | By | Date |
-|----|------|------|---------------|--------|-----|------|
-| 1E-001 | Starting weapon table | p.36 | D100 ranges and weapon assignments | UNVERIFIED | | |
-| 1E-002 | Starting gear table | p.36 | D100 ranges and gear assignments | UNVERIFIED | | |
+**Data Sources**: [data/character_creation_tables/equipment_tables.json](data/character_creation_tables/equipment_tables.json) — `class_equipment` (9 classes) + `background_equipment` sections
+**Implementing Code**: [StartingEquipmentGenerator.gd:179-180](src/core/character/Equipment/StartingEquipmentGenerator.gd#L179-L180) (loads JSON), [StartingEquipmentGenerator.gd:113](src/core/character/Equipment/StartingEquipmentGenerator.gd#L113) (`_get_class_equipment()`), [StartingEquipmentGenerator.gd:120](src/core/character/Equipment/StartingEquipmentGenerator.gd#L120) (`_get_background_equipment()`)
+**UI Display**: [EquipmentPanel.gd:387-405](src/ui/screens/campaign/panels/EquipmentPanel.gd#L387-L405) (loads and displays in campaign creation Step 4)
 
-### 1F: Connections (p.37)
+| ID | Item | Page | JSON Value | Code Path | Status | By | Date |
+|----|------|------|-----------|-----------|--------|-----|------|
+| 1E-001 | Class-based starting equipment | pp.26-27 | `equipment_tables.json:3-56` — 9 class kits (soldier, scout, medic, engineer, pilot, merchant, security, broker, bot_tech) with weapons, armor, gear, credits | `StartingEquipmentGenerator.gd:113` | UNVERIFIED — **CONCERN**: JSON has 9 class kits but class_table has 18+ classes. Many classes may have no starting equipment defined | | |
+| 1E-002 | Background-based starting gear | pp.24-25 | `equipment_tables.json:58+` — `background_equipment` section | `StartingEquipmentGenerator.gd:120` | UNVERIFIED — verify background equipment grants | | |
+| 1E-003 | Equipment roll types | pp.24-27 | `background_table.json` and `motivation_table.json` reference `equipment_rolls`: "low_tech_weapon", "gear", "military_weapon", "gadget" | `StartingEquipmentGenerator.gd` processes these roll types | UNVERIFIED — verify each roll type maps to correct item pool | | |
 
-**Data Sources**: `data/character_creation_tables/connections_table.json`, `data/expanded_connections.json`
+### 1F: Connections (p.28)
 
-| ID | Item | Page | What to Verify | Status | By | Date |
-|----|------|------|---------------|--------|-----|------|
-| 1F-001 | Patron connections | p.37 | Generation rules, probabilities | UNVERIFIED | | |
-| 1F-002 | Rival connections | p.37 | Generation rules, probabilities | UNVERIFIED | | |
+**Data Sources**: [data/character_creation_tables/connections_table.json](data/character_creation_tables/connections_table.json) — `background_connections` (9 backgrounds) + `random_connections` (D6 table, 6 entries)
+**Implementing Code**: [CharacterConnections.gd:154-155](src/core/character/connections/CharacterConnections.gd#L154-L155) (loads JSON), [CharacterConnections.gd:94](src/core/character/connections/CharacterConnections.gd#L94) (`_get_background_connections()`)
 
-### 1G: Character Creation Bonuses
+| ID | Item | Page | JSON Value | Code Path | Status | By | Date |
+|----|------|------|-----------|-----------|--------|-----|------|
+| 1F-001 | Background-based connections | p.28 | `connections_table.json:3-38` — 9 background categories (military, mercenary, criminal, colonist, academic, explorer, trader, noble, outcast) with 2 contacts each | `CharacterConnections.gd:94` | UNVERIFIED — verify connection types per background | | |
+| 1F-002 | Random connections D6 | p.28 | `connections_table.json:40-47` — 6 entries (Starport Official through Jealous Competitor rival) | `CharacterConnections.gd` | UNVERIFIED — verify D6 table matches book | | |
+| 1F-003 | Patron/Rival generation rules | p.28 | Classes like Hacker and Agitator grant `rival: true`, Negotiator grants `patron: true` | `CharacterCreator.gd` processes class resources | UNVERIFIED — verify which classes grant patrons/rivals | | |
 
-**Data Sources**: `data/character_creation_bonuses.json`, `data/character_creation_data.json`
+### 1G: Character Creation Bonuses (Cross-cutting)
 
-| ID | Item | Page | What to Verify | Status | By | Date |
-|----|------|------|---------------|--------|-----|------|
-| 1G-001 | Creation bonus values | p.33-35 | All stat/credit bonuses per background/class/motivation | UNVERIFIED | | |
+**Data Sources**: [data/character_creation_bonuses.json](data/character_creation_bonuses.json) — Unified bonus lookup by GlobalEnums int values
+**Implementing Code**: [CharacterCreator.gd:390-403](src/core/character/Generation/CharacterCreator.gd#L390-L403) (loads JSON), [CharacterCreator.gd:460-469](src/core/character/Generation/CharacterCreator.gd#L460-L469) (`_lookup_bonuses()` — central resolver)
+
+| ID | Item | Page | JSON Value | Code Path | Status | By | Date |
+|----|------|------|-----------|-----------|--------|-----|------|
+| 1G-001 | Origin bonus count | pp.15-18 | 9 entries in `origin_bonuses` (keys 2,4,5,6,7,8,9,10,11) — Human(1) and Feral(3) missing | `CharacterCreator.gd:347` | **INCONSISTENCY** — Human having no bonuses is likely correct, but Feral missing needs book verification (Appendix C #18) | | |
+| 1G-002 | Background bonus count | pp.24-25 | 12 entries in `background_bonuses` out of 26 backgrounds — 14 have no stat bonus | `CharacterCreator.gd:479` | UNVERIFIED — verify which backgrounds have no stat bonus in book | | |
+| 1G-003 | Class bonus count | pp.26-27 | 16 entries in `class_bonuses` | `CharacterCreator.gd:493` | UNVERIFIED — verify against full class list in book | | |
+| 1G-004 | Motivation bonus count | p.26 | 5 entries in `motivation_bonuses` (Glory C+1, Survival T+1, Escape S+1, Technology Sv+1, Discovery Sv+1) + campaign bonuses | `CharacterCreator.gd:509` | UNVERIFIED — verify which motivations have stat bonuses vs campaign bonuses | | |
+| 1G-005 | Strange char bonuses | pp.19-22 | `character_creation_bonuses.json` has NO strange character entries | `SimpleCharacterCreator.gd:526` applies from `character_species.json` stat_modifiers directly | **INCONSISTENCY** — Appendix C #17 flags 0/16 strange chars in bonuses JSON. CharacterCreator path may not apply strange char bonuses correctly | | |
 
 ---
 
 ## Chapter 2: Equipment & Weapons (Core Rules pp.40-58)
 
+### Architecture Overview
+
+**Three data sources** for weapons/equipment, plus a consolidated database:
+
+| Source | File | Items | Purpose |
+|--------|------|-------|---------|
+| **Canonical** | [data/weapons.json](data/weapons.json) | 42 weapons (6 tagged GAME_BALANCE_ESTIMATE) | Per-weapon stats: range, shots, damage, traits, category |
+| **Consolidated** | [data/equipment_database.json](data/equipment_database.json) | All equipment types | Combined weapons+armor+gear for EquipmentManager |
+| **Constants** | [LootSystemConstants.gd](src/core/systems/LootSystemConstants.gd) | 20+ weapon defs | Loot generation with quality modifiers |
+| **Armor** | [data/armor.json](data/armor.json) | 9 armor/screen items | Saving throws, stat bonuses, effects |
+| **Implants** | [data/implants.json](data/implants.json) | 11 implant types | Stat bonuses, special abilities |
+| **Onboard** | [data/onboard_items.json](data/onboard_items.json) | ? | **NOT WIRED** — no GDScript consumer |
+
+> **WARNING**: 11 weapon stat mismatches between weapons.json and LootSystemConstants.gd were FIXED in Phase 46 (Appendix C #1-11). Verify no new drift has occurred.
+
+**Key Functions**:
+
+- [EquipmentManager.gd:44-71](src/core/equipment/EquipmentManager.gd#L44-L71) — `_load_equipment_database()` loads `equipment_database.json` (primary entry point)
+- [EquipmentManager.gd:382-393](src/core/equipment/EquipmentManager.gd#L382-L393) — `create_weapon_item()`
+- [EquipmentManager.gd:396-422](src/core/equipment/EquipmentManager.gd#L396-L422) — `create_armor_item()`
+- [EquipmentManager.gd:545-567](src/core/equipment/EquipmentManager.gd#L545-L567) — `_calculate_weapon_value()`
+- [EquipmentManager.gd:615-677](src/core/equipment/EquipmentManager.gd#L615-L677) — `upgrade_weapon()`
+- [EquipmentManager.gd:891-959](src/core/equipment/EquipmentManager.gd#L891-L959) — Market generation (weapon/armor/gear by quality 1-5)
+- [LootSystemConstants.gd](src/core/systems/LootSystemConstants.gd) — `get_weapon_from_subtable()`, `get_gear_from_subtable()`, `get_odds_and_ends_from_subtable()`
+- [TradingSystem.gd:82-84](src/core/systems/TradingSystem.gd#L82-L84) — Fallback loader for individual JSON files
+- [Character.gd:907-948](src/core/character/Character.gd#L907-L948) — Implant loading and creation
+
+**Fallback Pattern**: `TradingSystem.gd` falls back to `weapons.json`, `armor.json`, `gear_database.json` individually if `equipment_database.json` fails to load.
+
+**Test Files**:
+
+- [tests/unit/test_equipment_classes.gd](tests/unit/test_equipment_classes.gd) — Equipment class definitions
+- [tests/integration/phase2_backend/test_equipment_management.gd](tests/integration/phase2_backend/test_equipment_management.gd) — Equipment management integration
+
 ### 2A: Weapon Stats Table (p.50)
 
-**Data Sources**: `data/weapons.json`, `data/equipment_database.json`, `src/core/systems/LootSystemConstants.gd`
+**Data Sources**: [data/weapons.json](data/weapons.json) (42 weapons), [data/equipment_database.json](data/equipment_database.json), [LootSystemConstants.gd](src/core/systems/LootSystemConstants.gd) (20+ weapon defs)
+**Implementing Code**: [EquipmentManager.gd:44-71](src/core/equipment/EquipmentManager.gd#L44-L71) (loads consolidated DB), [TradingSystem.gd:82](src/core/systems/TradingSystem.gd#L82) (fallback)
+**Battle Usage**: `BattleResolver.gd`, `BattleCalculations.gd` — consume weapon range/damage/traits during combat resolution
 
-> **WARNING**: Known internal inconsistencies between these 3 sources — see Appendix C.
+> **WARNING**: 11 weapon stat mismatches between weapons.json and LootSystemConstants.gd were FIXED in Phase 46 (Appendix C #1-11). 6 weapons tagged `GAME_BALANCE_ESTIMATE` need Core Rules verification.
 
-| ID | Item | Page | What to Verify | Status | By | Date |
-|----|------|------|---------------|--------|-----|------|
-| 2A-001 | All weapon names | p.50 | Names match book exactly | UNVERIFIED | | |
-| 2A-002 | All weapon ranges | p.50 | Range in inches for each weapon | UNVERIFIED | | |
-| 2A-003 | All weapon shots | p.50 | Shots per weapon | UNVERIFIED | | |
-| 2A-004 | All weapon damage | p.50 | Damage modifier per weapon | UNVERIFIED | | |
-| 2A-005 | All weapon traits | p.50 | Trait list per weapon | UNVERIFIED | | |
-| 2A-006 | Weapon count | p.50 | Total number matches book | UNVERIFIED | | |
-| 2A-007 | Weapon categories | p.50 | slug/energy/melee/special/grenade assignments | UNVERIFIED | | |
+| ID | Item | Page | JSON Value | Code Path | Status | By | Date |
+|----|------|------|-----------|-----------|--------|-----|------|
+| 2A-001 | Weapon names (42 total) | p.50 | `weapons.json:7-48` — 42 weapons from Auto Rifle to Shock Grenade | `EquipmentManager.gd:44` loads consolidated DB | UNVERIFIED — 6 weapons tagged GAME_BALANCE_ESTIMATE (carbine, laser_rifle, plasma_pistol, auto_cannon, missile_launcher, shock_grenade). Verify all 42 names exist in book, or if some are invented | | |
+| 2A-002 | Weapon ranges | p.50 | `weapons.json` range field per weapon (4-36 inches) | `BattleCalculations.gd` uses range for combat | UNVERIFIED — Phase 46 fixed 11 mismatches vs LootSystemConstants. Book verification still needed | | |
+| 2A-003 | Weapon shots | p.50 | `weapons.json` shots field (0-3) | `BattleResolver.gd` uses shots for attack resolution | UNVERIFIED — needs book verification | | |
+| 2A-004 | Weapon damage | p.50 | `weapons.json` damage field (0-3 modifier) | `BattleCalculations.gd` uses for damage resolution | UNVERIFIED — needs book verification | | |
+| 2A-005 | Weapon traits | p.50+ | `weapons.json` traits arrays (Pistol, Critical, Heavy, Melee, Elegant, Piercing, Focused, Area, Stun, Snap Shot, Impact, Clumsy, Single use) | `keywords.json` defines trait effects | UNVERIFIED — verify all trait names and which weapons have which traits | | |
+| 2A-006 | Weapon count | p.50 | 42 in `weapons.json`, 6 tagged GAME_BALANCE_ESTIMATE | N/A | UNVERIFIED — book weapon count unknown. **Possible 36 real + 6 invented?** | | |
+| 2A-007 | Weapon categories | p.50 | 5 categories: slug (13), energy (8), melee (7), special (5), grenade (3) + GAME_BALANCE tagged (6) | `weapons.json` category field | UNVERIFIED — verify category assignments match book | | |
 
-### 2B: Armor (pp.44-45)
+### 2B: Armor & Screens (pp.54-55)
 
-**Data Sources**: `data/armor.json`, `data/equipment_database.json`
+**Data Sources**: [data/armor.json](data/armor.json) (9 items — armor + screens), [data/equipment_database.json](data/equipment_database.json)
+**Implementing Code**: [EquipmentManager.gd:396-422](src/core/equipment/EquipmentManager.gd#L396-L422) (`create_armor_item()`), [EquipmentManager.gd:569-590](src/core/equipment/EquipmentManager.gd#L569-L590) (`_calculate_armor_value()`)
+**Battle Usage**: `BattleResolver.gd` — armor save checks, `Character.gd:994-1017` — `get_effective_stat()`
+**Rules**: Max 1 armor + 1 screen per character (`armor.json:5-7`)
 
-| ID | Item | Page | What to Verify | Status | By | Date |
-|----|------|------|---------------|--------|-----|------|
-| 2B-001 | Armor types | pp.44-45 | All types listed in book present | UNVERIFIED | | |
-| 2B-002 | Armor save values | pp.44-45 | Save modifier per type | UNVERIFIED | | |
-| 2B-003 | Armor costs | pp.44-45 | Purchase price per type | UNVERIFIED | | |
+| ID | Item | Page | JSON Value | Code Path | Status | By | Date |
+|----|------|------|-----------|-----------|--------|-----|------|
+| 2B-001 | Armor types (9 items) | pp.54-55 | `armor.json:21-end` — Battle Dress (5+ save, R+1), Camo Cloak (screen, cover extension), plus 7 more | `EquipmentManager.gd:396` creates armor items | UNVERIFIED — verify all 9 types exist in book and none are missing | | |
+| 2B-002 | Armor save values | pp.54-55 | `armor.json` `armor_save` field per item (0-5) + `effects.saving_throw` (e.g. "5+") | `BattleResolver.gd` checks saving throws | UNVERIFIED — verify each save value matches book | | |
+| 2B-003 | Armor stat bonuses | pp.54-55 | `armor.json` `effects.stat_bonus` (e.g. Battle Dress: R+1 with cap R:4) | `Character.gd` applies via equipment stats | UNVERIFIED — verify stat bonuses per armor type | | |
+| 2B-004 | Max armor/screen rule | pp.54-55 | `armor.json:5-7` max_armor: 1, max_screen: 1 | Verify enforcement in code | UNVERIFIED — verify rule is enforced when equipping | | |
 
-### 2C: Gear & Consumables (pp.45-47)
+### 2C: Gear & Consumables (pp.56-57)
 
-**Data Sources**: `data/gear_database.json`, `data/equipment_database.json`
+**Data Sources**: [data/gear_database.json](data/gear_database.json), [data/equipment_database.json](data/equipment_database.json)
+**Implementing Code**: [EquipmentManager.gd:343](src/core/equipment/EquipmentManager.gd#L343) — utility item generation, [EquipmentManager.gd:937-959](src/core/equipment/EquipmentManager.gd#L937-L959) — market gear generation
+**Consumables**: [LootSystemConstants.gd](src/core/systems/LootSystemConstants.gd) — 6 consumable types (Booster Pills, Combat Serum, Kiranin Crystals, Rage Out, Still, Stim-pack)
 
-| ID | Item | Page | What to Verify | Status | By | Date |
-|----|------|------|---------------|--------|-----|------|
-| 2C-001 | Gear items list | pp.45-47 | All items from book present | UNVERIFIED | | |
-| 2C-002 | Gear effects | pp.45-47 | Effect descriptions match book | UNVERIFIED | | |
-| 2C-003 | Gear costs | pp.45-47 | Prices match book | UNVERIFIED | | |
+| ID | Item | Page | JSON Value | Code Path | Status | By | Date |
+|----|------|------|-----------|-----------|--------|-----|------|
+| 2C-001 | Gear items list | pp.56-57 | `gear_database.json` + `equipment_database.json` gear section | `EquipmentManager.gd:937` generates for market | UNVERIFIED — count gear items and compare to book | | |
+| 2C-002 | Gear effects | pp.56-57 | Per-item effect descriptions in JSON | `EquipmentManager.gd` applies effects | UNVERIFIED — verify each effect matches book | | |
+| 2C-003 | Consumable types (6) | pp.56-57 | `LootSystemConstants.gd` — Booster Pills, Combat Serum, Kiranin Crystals, Rage Out, Still, Stim-pack | `EquipmentManager.gd:992-1005` `use_consumable()` | UNVERIFIED — verify all 6 exist in book, check if Kiranin Crystals is DLC-only | | |
 
-### 2D: Implants (p.132)
+### 2D: Implants (p.55)
 
-**Data Sources**: `data/implants.json`
+**Data Sources**: [data/implants.json](data/implants.json) (11 types, max 2 per character)
+**Implementing Code**: [Character.gd:900](src/core/character/Character.gd#L900) (`MAX_IMPLANTS = 2`), [Character.gd:907-948](src/core/character/Character.gd#L907-L948) (loading + creation), [Character.gd:950-977](src/core/character/Character.gd#L950-L977) (add/remove)
+**PostBattle Integration**: [LootProcessor.gd:75](src/core/campaign/phases/post_battle/LootProcessor.gd#L75) — implant loot routing
 
-| ID | Item | Page | What to Verify | Status | By | Date |
-|----|------|------|---------------|--------|-----|------|
-| 2D-001 | Implant types (6) | p.132 | All 6 types present | UNVERIFIED | | |
-| 2D-002 | Implant effects | p.132 | Stat bonuses match book | UNVERIFIED | | |
-| 2D-003 | Max implants per char | p.132 | Max 3 rule | UNVERIFIED | | |
+> **CORRECTION**: CLAUDE.md says "6 types, max 3" — actual data has **11 types, max 2**. Both `implants.json:86` and `Character.gd:900` agree on max 2. CLAUDE.md needs updating.
+
+| ID | Item | Page | JSON Value | Code Path | Status | By | Date |
+|----|------|------|-----------|-----------|--------|-----|------|
+| 2D-001 | Implant types (11) | p.55 | `implants.json:6-83` — AI Companion, Body Wire, Boosted Arm, Boosted Leg, Cyber Hand, Genetic Defenses, Health Boost, Nerve Adjuster, Neural Optimization, Night Sight, Pain Suppressor | `Character.gd:923-948` creates from type/loot name | UNVERIFIED — **book says how many types?** JSON has 11. Verify count and names | | |
+| 2D-002 | Implant stat bonuses | p.55 | `implants.json` `stat_bonus` field — Body Wire (R+1), Boosted Leg (S+1), others have special abilities only | `Character.gd:979-992` `get_implant_bonuses()` sums stat bonuses | UNVERIFIED — verify each implant's effect matches book | | |
+| 2D-003 | Max implants per char | p.55 | `implants.json:86` max_per_character: 2, `Character.gd:900` MAX_IMPLANTS: 2 | `Character.gd:956` enforces limit | UNVERIFIED — **CLAUDE.md says 3, code says 2**. Verify book value | | |
+| 2D-004 | Species restrictions | p.55 | `implants.json:89` "Bots and Soulless cannot use implants" | `Character.gd:950-970` validation in `add_implant()` | UNVERIFIED — verify Bot/Soulless restriction matches book | | |
+| 2D-005 | Psionic incompatibility | p.96 | `Character.gd:952` WARNING comment: "Psionics lose all powers permanently" | `Character.gd:964+` enforced in `add_implant()` | UNVERIFIED — verify Core Rules p.96 states this rule | | |
+| 2D-006 | Removal rule | p.55 | `implants.json:87` "Cannot be removed once applied" | No removal UI exists (only `remove_implant()` for serialization) | UNVERIFIED — verify book states non-removable | | |
 
 ### 2E: Weapon Trait Definitions
 
-**Data Sources**: `data/weapons.json` trait arrays, `data/keywords.json`
+**Data Sources**: [data/weapons.json](data/weapons.json) trait arrays, [data/keywords.json](data/keywords.json) (trait definitions)
+**Implementing Code**: `BattleResolver.gd` applies trait effects during combat, `keywords.json` provides tooltip definitions for `KeywordDB` autoload
 
-| ID | Item | Page | What to Verify | Status | By | Date |
-|----|------|------|---------------|--------|-----|------|
-| 2E-001 | Trait names | p.50+ | All trait names match book | UNVERIFIED | | |
-| 2E-002 | Trait effects | p.50+ | Trait mechanic descriptions | UNVERIFIED | | |
+| ID | Item | Page | JSON Value | Code Path | Status | By | Date |
+|----|------|------|-----------|-----------|--------|-----|------|
+| 2E-001 | Trait names | p.50+ | `weapons.json` uses: Pistol, Critical, Heavy, Melee, Elegant, Piercing, Focused, Area, Stun, Snap Shot, Impact, Clumsy, Single use, Terrifying | `keywords.json` defines each trait | UNVERIFIED — verify all trait names match book terminology | | |
+| 2E-002 | Trait effects | p.50+ | `keywords.json` descriptions per trait | `BattleResolver.gd` implements mechanical effects | UNVERIFIED — verify each trait's mechanical effect matches book | | |
 
 ### 2F: Onboard Items
 
-**Data Sources**: `data/onboard_items.json`
+**Data Sources**: [data/onboard_items.json](data/onboard_items.json)
+**Implementing Code**: **NONE** — grep finds zero GDScript consumers. Data file exists but is not wired.
 
-| ID | Item | Page | What to Verify | Status | By | Date |
-|----|------|------|---------------|--------|-----|------|
-| 2F-001 | Onboard item list | p.59+ | Items, effects, costs | UNVERIFIED | | |
+| ID | Item | Page | JSON Value | Code Path | Status | By | Date |
+|----|------|------|-----------|-----------|--------|-----|------|
+| 2F-001 | Onboard item list | p.59+ | `onboard_items.json` exists | **NO CONSUMER** — file is not loaded by any GDScript | **MISSING** — data exists but not wired to gameplay code | | |
+
+### 2G: Equipment Quality System
+
+**Data Sources**: [LootSystemConstants.gd](src/core/systems/LootSystemConstants.gd) — ItemQuality enum and QUALITY_MODIFIERS
+**Implementing Code**: `LootSystemConstants.gd` applies quality at loot generation, `EquipmentManager.gd` uses for sell value
+
+| ID | Item | Page | JSON Value | Code Path | Status | By | Date |
+|----|------|------|-----------|-----------|--------|-----|------|
+| 2G-001 | Quality tiers (6) | p.? | `LootSystemConstants.gd` ItemQuality: DAMAGED, WORN, STANDARD, QUALITY, MILITARY, ARTIFACT | Applied at loot generation | UNVERIFIED — verify book has quality system and tier names match | | |
+| 2G-002 | Sell value multipliers | p.? | `LootSystemConstants.gd` QUALITY_MODIFIERS per tier | `EquipmentManager.gd` `get_sell_value()` | UNVERIFIED — verify sell formula matches book | | |
 
 ---
 

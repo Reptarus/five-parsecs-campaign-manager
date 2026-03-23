@@ -1,0 +1,167 @@
+{
+  "metadata": {
+    "name": "Crew Tasks",
+    "source": "Five Parsecs from Home Core Rules 3e pp.76-82 — VERIFIED Mar 22, 2026",
+    "notes": "Each campaign turn, crew members not in Sick Bay can perform one task. Up to 2 crew per task (Core Rules p.78)."
+  },
+  "tasks": [
+    {
+      "id": "find_patron",
+      "enum_key": "FIND_PATRON",
+      "name": "Find a Patron",
+      "description": "Search for someone willing to offer paid work",
+      "page_reference": "p.77",
+      "roll_mechanic": "1D6 + crew searching + old Patrons + credits spent",
+      "dice_target": 5,
+      "second_threshold": 6,
+      "second_threshold_effect": "Found 2 Patrons, may choose either job",
+      "max_crew": 2,
+      "credit_bonus_max": -1,
+      "credit_bonus_note": "Each credit spent = +1 (no cap stated)",
+      "success_reward": "Found 1 Patron to hire you",
+      "failure_penalty": "None",
+      "resolution_type": "dice_roll",
+      "special_rules": [
+        "Old Patrons in contacts add +1 each to roll",
+        "5+ = found 1 Patron",
+        "6+ = found 2 Patrons, choose either job"
+      ]
+    },
+    {
+      "id": "train",
+      "enum_key": "TRAIN",
+      "name": "Train",
+      "description": "Practice combat skills or study",
+      "page_reference": "p.77",
+      "roll_mechanic": "Automatic success",
+      "dice_target": 0,
+      "max_crew": 2,
+      "credit_bonus_max": 0,
+      "success_reward": "+1 XP",
+      "failure_penalty": "None",
+      "resolution_type": "automatic",
+      "special_rules": [
+        "If XP earned allows a Character Upgrade (p.123), resolve immediately"
+      ]
+    },
+    {
+      "id": "trade",
+      "enum_key": "TRADE",
+      "name": "Trade",
+      "description": "Buy and sell goods in local markets",
+      "page_reference": "p.79",
+      "roll_mechanic": "Roll D100 on Trade Table per crew member trading",
+      "dice_target": 0,
+      "max_crew": 2,
+      "credit_bonus_max": -1,
+      "credit_bonus_note": "3 credits per additional Trade Table roll (at least 1 crew must be Trading)",
+      "success_reward": "Trade Table result",
+      "failure_penalty": "None",
+      "resolution_type": "table_roll",
+      "table_name": "trade_table",
+      "special_rules": [
+        "Each crew member Trading gets 1 roll on Trade Table",
+        "Can spend 3 credits for each additional roll (requires at least 1 crew Trading)"
+      ]
+    },
+    {
+      "id": "recruit",
+      "enum_key": "RECRUIT",
+      "name": "Recruit",
+      "description": "Search for new crew members to hire",
+      "page_reference": "p.78",
+      "roll_mechanic": "Auto if <6 crew, else 1D6 + crew recruiting",
+      "dice_target": 6,
+      "max_crew": 2,
+      "credit_bonus_max": 0,
+      "success_reward": "New recruit joins (random creation, starts with Handgun)",
+      "failure_penalty": "None",
+      "resolution_type": "dice_roll",
+      "special_rules": [
+        "If crew < 6: automatic success, 1 recruit per crew sent",
+        "If crew >= 6: roll 1D6 + crew recruiting, 6+ = 1 new recruit",
+        "Recruits use random creation but do NOT roll on background tables",
+        "Recruits start with basic profile for type + Handgun"
+      ]
+    },
+    {
+      "id": "explore",
+      "enum_key": "EXPLORE",
+      "name": "Explore",
+      "description": "See the sights around town",
+      "page_reference": "p.80",
+      "roll_mechanic": "Roll D100 on Exploration Table per crew member exploring",
+      "dice_target": 0,
+      "max_crew": 2,
+      "credit_bonus_max": 0,
+      "success_reward": "Exploration Table result",
+      "failure_penalty": "Possible danger",
+      "resolution_type": "table_roll",
+      "table_name": "exploration_table",
+      "special_rules": [
+        "Each crew member exploring rolls once on Exploration Table"
+      ]
+    },
+    {
+      "id": "track",
+      "enum_key": "TRACK",
+      "name": "Track",
+      "description": "Track down a Rival for a showdown",
+      "page_reference": "p.78",
+      "roll_mechanic": "1D6 + crew tracking + credits spent",
+      "dice_target": 6,
+      "max_crew": 2,
+      "credit_bonus_max": -1,
+      "credit_bonus_note": "Each credit spent = +1 (no cap stated)",
+      "success_reward": "Located Rival of choice — fight this turn",
+      "failure_penalty": "None",
+      "resolution_type": "dice_roll",
+      "requires": "At least 1 Rival",
+      "special_rules": [
+        "Requires having Rivals",
+        "6+ locates a Rival of your choice",
+        "May spend credits for +1 each before rolling"
+      ]
+    },
+    {
+      "id": "repair_kit",
+      "enum_key": "REPAIR",
+      "name": "Repair Your Kit",
+      "description": "Attempt to fix broken items",
+      "page_reference": "p.78",
+      "roll_mechanic": "1D6 + Savvy + Engineer bonus + credits spent",
+      "dice_target": 6,
+      "max_crew": 1,
+      "credit_bonus_max": -1,
+      "credit_bonus_note": "Each credit spent on spare parts = +1 (no cap stated)",
+      "success_reward": "Item repaired and usable",
+      "failure_penalty": "Natural 1 = item beyond repair (destroyed)",
+      "resolution_type": "repair",
+      "requires": "At least 1 damaged item",
+      "special_rules": [
+        "Roll 1D6 + Savvy of repairing character",
+        "+1 if character is an Engineer",
+        "May spend credits on spare parts: +1 per credit",
+        "6+ = item repaired",
+        "Natural 1 ALWAYS fails regardless of modifiers — item destroyed"
+      ]
+    },
+    {
+      "id": "decoy",
+      "enum_key": "DECOY",
+      "name": "Decoy",
+      "description": "Help avoid Rivals finding you",
+      "page_reference": "p.78",
+      "roll_mechanic": "Passive modifier",
+      "dice_target": 0,
+      "max_crew": 2,
+      "credit_bonus_max": 0,
+      "success_reward": "+1 to Rival avoidance roll per crew assigned",
+      "failure_penalty": "None",
+      "resolution_type": "automatic",
+      "special_rules": [
+        "Passive effect: +1 to the roll when checking if Rivals track you down, per crew sent as Decoy"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,210 @@
+{
+  "metadata": {
+    "name": "Exploration Table",
+    "source": "Five Parsecs from Home Core Rules 3e pp.80-82 — VERIFIED Mar 22, 2026",
+    "roll_type": "D100",
+    "notes": "Each crew member Exploring rolls once on this table."
+  },
+  "entries": [
+    {
+      "roll_range": [1, 3],
+      "name": "I know a good deal when I see one",
+      "effect": "Roll on the Trade Table instead",
+      "requires_roll": false
+    },
+    {
+      "roll_range": [4, 6],
+      "name": "Meet a Patron",
+      "effect": "You are offered a Patron job",
+      "patron": true
+    },
+    {
+      "roll_range": [7, 8],
+      "name": "Must've been something I ate",
+      "effect": "Crew member must go to Sick Bay for 1 turn",
+      "sick_bay_turns": 1,
+      "species_exceptions": {
+        "Soulless": "immune",
+        "KErin": "immune"
+      }
+    },
+    {
+      "roll_range": [9, 11],
+      "name": "Meet someone interesting",
+      "effect": "Gain a Quest Rumor. If Precursor, roll 1D6: on 5+ gain a second Quest Rumor",
+      "rumor": true,
+      "species_exceptions": {
+        "Precursor": "roll_1d6_5plus_second_rumor"
+      }
+    },
+    {
+      "roll_range": [12, 15],
+      "name": "Had a nice chat",
+      "effect": "Roll 1D6+Savvy. On 5+ gain +1 story point",
+      "requires_roll": true
+    },
+    {
+      "roll_range": [16, 18],
+      "name": "See the sights, enjoy the view",
+      "effect": "No effects"
+    },
+    {
+      "roll_range": [19, 21],
+      "name": "Make a new friend",
+      "effect": "Roll up a new character and add to crew. If Feral, the new friend is also Feral",
+      "species_exceptions": {
+        "Feral": "new_friend_is_feral"
+      }
+    },
+    {
+      "roll_range": [22, 24],
+      "name": "Time to relax",
+      "effect": "No effects"
+    },
+    {
+      "roll_range": [25, 28],
+      "name": "Possible bargain",
+      "effect": "Give up a weapon. Roll 1D6: on 6 roll on the Loot Table, otherwise receive 1 credit",
+      "requires_roll": true,
+      "credits": 1
+    },
+    {
+      "roll_range": [29, 31],
+      "name": "Alien merchant",
+      "effect": "Give any item, then roll on the Loot Table",
+      "requires_roll": false
+    },
+    {
+      "roll_range": [32, 34],
+      "name": "Got yourself noticed",
+      "effect": "If you have Rivals, select a random one. You must fight them this campaign turn",
+      "rival": true
+    },
+    {
+      "roll_range": [35, 37],
+      "name": "You hear a tip",
+      "effect": "You may automatically track down a Rival to fight this campaign turn",
+      "rival": true
+    },
+    {
+      "roll_range": [38, 40],
+      "name": "Completely lost",
+      "effect": "Roll 1D6+Savvy. On 4+ find your way back. Otherwise miss the battle this turn. Roll again on this table",
+      "requires_roll": true
+    },
+    {
+      "roll_range": [41, 44],
+      "name": "Someone wants a package delivered",
+      "effect": "When you travel to a new world, receive 3 credits. Roll 1D6: on 1-2 gain a Rival and +1 story point",
+      "credits": 3,
+      "requires_roll": true
+    },
+    {
+      "roll_range": [45, 47],
+      "name": "A tech fanatic offers to help out",
+      "effect": "Pick a damaged item. Roll 1D6: on 5-6 it is repaired for free. If an Engineer, gain +2 XP",
+      "requires_roll": true,
+      "xp": 2,
+      "species_exceptions": {
+        "Engineer": "gain_2_xp"
+      }
+    },
+    {
+      "roll_range": [48, 50],
+      "name": "Got a few drinks",
+      "effect": "No effects"
+    },
+    {
+      "roll_range": [51, 53],
+      "name": "I don't have a gambling problem!",
+      "effect": "Discard 1 item",
+      "species_exceptions": {
+        "Soulless": "immune"
+      }
+    },
+    {
+      "roll_range": [54, 57],
+      "name": "Overheard some talk",
+      "effect": "Gain 1 Rumor",
+      "rumor": true
+    },
+    {
+      "roll_range": [58, 60],
+      "name": "Pick a fight",
+      "effect": "Add a Rival. If K'Erin, in first battle against them the enemy has -1 figure",
+      "rival": true,
+      "species_exceptions": {
+        "KErin": "first_battle_minus_1_enemy"
+      }
+    },
+    {
+      "roll_range": [61, 64],
+      "name": "Found a trainer",
+      "effect": "Gain +2 XP",
+      "xp": 2
+    },
+    {
+      "roll_range": [65, 68],
+      "name": "Information broker",
+      "effect": "You may buy up to 3 Rumors for 2 credits each",
+      "rumor": true
+    },
+    {
+      "roll_range": [69, 71],
+      "name": "Arms dealer",
+      "effect": "You may purchase rolls on the Military Weapons Table for 3 credits each",
+      "requires_roll": false
+    },
+    {
+      "roll_range": [72, 75],
+      "name": "Promising lead",
+      "effect": "If you undertake an Opportunity mission this campaign turn, receive +3 credits upon completion",
+      "credits": 3
+    },
+    {
+      "roll_range": [76, 79],
+      "name": "Just needs a little love",
+      "effect": "Roll on the Gadget Table. Item is received damaged. If an Engineer, the item works right away",
+      "requires_roll": false,
+      "species_exceptions": {
+        "Engineer": "item_works_immediately"
+      }
+    },
+    {
+      "roll_range": [80, 82],
+      "name": "Get in a bad fight",
+      "effect": "Go to Sick Bay for 1D3 turns and lose 1 item",
+      "requires_roll": true,
+      "sick_bay_turns": -1
+    },
+    {
+      "roll_range": [83, 86],
+      "name": "Offered a small job",
+      "effect": "Select a random enemy type. If you kill one during a battle this turn, receive 2 credits",
+      "credits": 2
+    },
+    {
+      "roll_range": [87, 90],
+      "name": "Offered a reward",
+      "effect": "Select a random terrain feature. If you reach it during a battle this turn, receive 2 credits",
+      "credits": 2
+    },
+    {
+      "roll_range": [91, 94],
+      "name": "You make a useful contact",
+      "effect": "Gain +1 to Recruit, Patron, or Track rolls next campaign turn",
+      "single_use": true
+    },
+    {
+      "roll_range": [95, 96],
+      "name": "Who left this lying around?",
+      "effect": "Receive your choice of a Handgun, Blade, Colony Rifle, or Shotgun",
+      "items": ["Handgun", "Blade", "Colony Rifle", "Shotgun"]
+    },
+    {
+      "roll_range": [97, 100],
+      "name": "This place is rather nice, really",
+      "effect": "Pay 1 story point or one crew member leaves the crew"
+    }
+  ]
+}

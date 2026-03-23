@@ -6,18 +6,57 @@ extends RefCounted
 ## Provides constants for table access, dice thresholds, and UI configurations
 ## Eliminates magic numbers and improves type safety
 
-# Crew Task Difficulty Thresholds — VERIFIED against Core Rules 3e pp.77-78 (Mar 22, 2026)
-# Note: Most tasks are 1D6 + crew count, NOT 2D6 + stat
-static var CREW_TASK_DIFFICULTIES = {
-	GlobalEnums.CrewTaskType.FIND_PATRON: 5, # 1D6 + crew searching, 5+ finds one, 6+ finds two (Core Rules p.77) VERIFIED
-	GlobalEnums.CrewTaskType.TRAIN: 0, # Always succeeds, earns 1 XP (Core Rules p.77) VERIFIED
-	GlobalEnums.CrewTaskType.TRADE: 0, # Always succeeds, roll on Trade Table (Core Rules p.79) VERIFIED
-	GlobalEnums.CrewTaskType.RECRUIT: 6, # Auto if <6 crew, else 1D6 + crew recruiting, 6+ (Core Rules p.78) VERIFIED
-	GlobalEnums.CrewTaskType.EXPLORE: 0, # Always succeeds, roll on Exploration Table (Core Rules p.80) VERIFIED
-	GlobalEnums.CrewTaskType.TRACK: 6, # 1D6 + crew tracking, 6+ locates a Rival (Core Rules p.78) VERIFIED
-	GlobalEnums.CrewTaskType.REPAIR: 6, # 1D6 + Savvy + Engineer bonus, 6+ repairs item (Core Rules p.78) VERIFIED
-	GlobalEnums.CrewTaskType.DECOY: 0 # Passive: +1 to Rival tracking roll per crew sent (Core Rules p.78) VERIFIED
-}
+# Crew Task Difficulty Thresholds — loaded from data/crew_tasks.json
+# Fallback values here match Core Rules 3e pp.77-78 (VERIFIED Mar 22, 2026)
+static var CREW_TASK_DIFFICULTIES = {}
+static var _crew_tasks_loaded: bool = false
+
+static func _ensure_crew_tasks_loaded() -> void:
+	if _crew_tasks_loaded:
+		return
+	_crew_tasks_loaded = true
+	var path := "res://data/crew_tasks.json"
+	if not FileAccess.file_exists(path):
+		_load_crew_task_fallbacks()
+		return
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		_load_crew_task_fallbacks()
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		file.close()
+		_load_crew_task_fallbacks()
+		return
+	file.close()
+	var data: Dictionary = json.data
+	var enum_map := {
+		"FIND_PATRON": GlobalEnums.CrewTaskType.FIND_PATRON,
+		"TRAIN": GlobalEnums.CrewTaskType.TRAIN,
+		"TRADE": GlobalEnums.CrewTaskType.TRADE,
+		"RECRUIT": GlobalEnums.CrewTaskType.RECRUIT,
+		"EXPLORE": GlobalEnums.CrewTaskType.EXPLORE,
+		"TRACK": GlobalEnums.CrewTaskType.TRACK,
+		"REPAIR": GlobalEnums.CrewTaskType.REPAIR,
+		"DECOY": GlobalEnums.CrewTaskType.DECOY,
+	}
+	for task: Dictionary in data.get("tasks", []):
+		var key_str: String = task.get("enum_key", "")
+		if key_str in enum_map:
+			CREW_TASK_DIFFICULTIES[enum_map[key_str]] = int(task.get("dice_target", 0))
+
+static func _load_crew_task_fallbacks() -> void:
+	push_warning("FiveParsecsConstants: crew_tasks.json not found, using hardcoded fallbacks")
+	CREW_TASK_DIFFICULTIES = {
+		GlobalEnums.CrewTaskType.FIND_PATRON: 5,
+		GlobalEnums.CrewTaskType.TRAIN: 0,
+		GlobalEnums.CrewTaskType.TRADE: 0,
+		GlobalEnums.CrewTaskType.RECRUIT: 6,
+		GlobalEnums.CrewTaskType.EXPLORE: 0,
+		GlobalEnums.CrewTaskType.TRACK: 6,
+		GlobalEnums.CrewTaskType.REPAIR: 6,
+		GlobalEnums.CrewTaskType.DECOY: 0,
+	}
 
 # Dice Types for Consistent Rolling
 const DICE_TYPES = {
@@ -207,6 +246,7 @@ const VERSION = {
 
 static func get_crew_task_difficulty(task_type: GlobalEnums.CrewTaskType) -> int:
 	## Get difficulty threshold for crew task type
+	_ensure_crew_tasks_loaded()
 	return CREW_TASK_DIFFICULTIES.get(task_type, 7)
 
 static func get_table_name(table_key: String) -> String:

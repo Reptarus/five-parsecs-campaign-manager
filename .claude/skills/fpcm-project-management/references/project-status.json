@@ -1,0 +1,117 @@
+{
+  "last_updated": "2026-03-22",
+  "current_phase": "Phase 46 QA — PDF Verification In Progress",
+  "key_metrics": {
+    "game_mechanics_compliance": "100% (170/170)",
+    "core_rules_systems": "11/11 verified",
+    "campaign_turn_phases": "9/9 fully wired",
+    "campaign_creation": "7-phase coordinator system",
+    "bug_hunt_gamemode": "Phases 1-7 + battle wiring + cleanup COMPLETE",
+    "store_paywall_system": "Tri-platform (Steam/Android/iOS)",
+    "compile_errors": 0,
+    "gdscript_files": "~900 (excl. addons)",
+    "autoloads": 28,
+    "mcp_qa_sprint_mar21": "7 sessions, 62/66 PASS, 4 N/A",
+    "compendium_integration": "11/11 data files, ~52/93 methods wired",
+    "open_bugs": 0,
+    "pdf_verified_values": "~318/825+"
+  },
+  "phase_46_qa": {
+    "status": "IN PROGRESS",
+    "description": "Core Rules PDF verification sprint",
+    "fixes": [
+      {
+        "item": "motivation_table.json",
+        "severity": "CRITICAL",
+        "description": "Completely rewritten from fabricated D66 (36 fake entries) to Core Rules D100 (17 entries, p.26)",
+        "note": "Entry 96-100 name unreadable from PDF, marked BOOK_VERIFICATION_NEEDED"
+      },
+      {
+        "item": "ships.json",
+        "severity": "CRITICAL",
+        "description": "13 Core Rules types (hull 20-40, debt 1D6+base), replacing 7 fabricated types"
+      },
+      {
+        "item": "FiveParsecsConstants.gd ECONOMY",
+        "severity": "HIGH",
+        "description": "6 wrong thresholds corrected from pp.76-78"
+      },
+      {
+        "item": "loot_tables.json ship_items",
+        "severity": "HIGH",
+        "description": "14 missing ship items added (had 5/19)"
+      }
+    ],
+    "verified_domains": [
+      { "domain": "Enemy Types", "count": 60, "result": "ALL MATCH (pp.94-107)" },
+      { "domain": "Species Stats", "count": 9, "result": "ALL MATCH (pp.15-22)" },
+      { "domain": "Starting Equipment Tables", "count": 5, "result": "ALL MATCH (pp.28-29)" },
+      { "domain": "Advancement Costs", "count": "all", "result": "ALL MATCH (pp.123-130)" },
+      { "domain": "Weapon Stats", "count": 43, "result": "ALL MATCH (p.50)" },
+      { "domain": "Economy/Crew Tasks", "count": "~20", "result": "VERIFIED (pp.76-80)" },
+      { "domain": "Ship Data", "count": 13, "result": "VERIFIED + rewritten (p.31)" },
+      { "domain": "Loot Table Ranges", "count": "all", "result": "ALL MATCH (pp.131-133)" },
+      { "domain": "Trade Table", "count": 12, "result": "Spot-checked, first 12 entries match (p.79)" }
+    ],
+    "remaining_unverified": [
+      "Campaign Events (pp.100-102) — ~100 values",
+      "Travel & World (pp.70-79) — ~40 values",
+      "Missions (pp.84-97) — ~50 values",
+      "Victory Conditions (p.134) — ~10 values",
+      "Compendium/DLC (supplements) — ~100 values"
+    ]
+  },
+  "completed_phases": [
+    { "phase": "1-4", "description": "Godot 4.5.1 → 4.6 Migration" },
+    { "phase": "5", "description": "Script Consolidation (9 sprints)" },
+    { "phase": "6-10", "description": "LSP, Refs, Signals (25+ sprints)" },
+    { "phase": "11", "description": "Campaign Creation (4 sprints)" },
+    { "phase": "12", "description": "Save/Load Persistence" },
+    { "phase": "13", "description": "Dashboard + UI Framework" },
+    { "phase": "14", "description": "Campaign Loop Fixes (7 sprints)" },
+    { "phase": "15", "description": "JSON Data Accuracy (12 sprints)" },
+    { "phase": "16-18", "description": "Battle Audit + Wiring (30 sprints)" },
+    { "phase": "21", "description": "World→Battle Data Flow (3 sub-phases)" },
+    { "phase": "22", "description": "Equipment + PreBattle (4 sprints)" },
+    { "phase": "23", "description": "UI/UX Asset Integration (5 sprints)" },
+    { "phase": "24", "description": "Store/Paywall System (7 sprints)" },
+    { "phase": "25", "description": "Review System (2 sprints)" },
+    { "phase": "26", "description": "TweenFX Integration (8 sprints)" },
+    { "phase": "27", "description": "Battle Map + UI Overhaul (6 files)" },
+    { "phase": "28-29", "description": "QA Sprint Fix Plan + Runtime Demo (22 files)" },
+    { "phase": "30", "description": "Core Rules Parity (difficulty, elite ranks)" },
+    { "phase": "31", "description": "QA Bug Fix Sprint (14 files)" },
+    { "phase": "33", "description": "Codebase Optimization (12 sprints)" },
+    { "phase": "34-36", "description": "QA Sprints + Full Test Coverage (293 tests)" },
+    { "phase": "37", "description": "Equipment & Compendium Data Audit (8 data files)" },
+    { "phase": "38", "description": "Full Rules Parity (4 data + 10 code files)" },
+    { "phase": "39", "description": "Compendium Data Audit (6 data + 2 new + 5 code files)" },
+    { "phase": "40", "description": "Compendium Mission Types + Full Wiring (3 data + 7 UI files)" },
+    { "phase": "41", "description": "Rules Gap Remediation (5 sprints)" },
+    { "phase": "42", "description": "Foundational DLC Data (5 sprints)" },
+    { "phase": "43", "description": "Core+Compendium Gap Remediation (6 sprints, 18 files)" },
+    { "phase": "44", "description": "Integration Gap Audit + Psionics (6 sprints, 22 files)" },
+    { "phase": "45", "description": "Full JSON Data Consistency (8 sprints, 19 files, -575 net lines)" },
+    { "phase": "Bug Hunt", "description": "~25 sprints + 7 wiring + 5 cleanup" },
+    { "phase": "Compendium", "description": "Mechanics Wiring Audit (10 sprints)" },
+    { "phase": "Functional Gaps", "description": "Cleanup (7 sprints F-1 to F-7)" }
+  ],
+  "roadmap": {
+    "remaining_pdf_verification": "Campaign Events, Travel, Missions, Victory Conditions, Compendium",
+    "equipment_database": "FULLY WIRED (Phase 45). 36 weapons, 9 armor, 26 gear, 13 attachments.",
+    "psionics": "FULLY WIRED (Phase 44). One enhanced bonus not yet applied at runtime.",
+    "compendium_deferred": ["GRID_BASED_MOVEMENT text helpers", "species text helpers", "PvP/Co-op modes"],
+    "bug_hunt_phase_8": "Co-op mode support (stretch)",
+    "battle_ux": "Per-character smart dice roll requested by user",
+    "store_ids": "Placeholder — need real IDs from Modiphius",
+    "public_beta": "Pending Modiphius approval"
+  },
+  "architecture_notes": {
+    "game_modes": "Standard 5PFH (9-phase) + Bug Hunt (3-stage) — incompatible data models",
+    "enum_systems": "Three must stay in sync: GlobalEnums, GameEnums, FiveParsecsGameEnums",
+    "store_pattern": "StoreManager → SteamStore/AndroidStore/iOSStore/OfflineStore",
+    "battle_mode": "Tabletop companion — text instructions, not automated simulation",
+    "dlc_gating": "compendium_*.gd classes check ContentFlags internally",
+    "psionics": "PsionicSystem.gd (static) + Character.psionic_power (JSON ID) + psionic_power_enhanced (bool), DLC-gated"
+  }
+}
