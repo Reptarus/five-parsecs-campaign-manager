@@ -124,7 +124,7 @@ The battle system is a **tabletop companion assistant** (NOT a tactical simulato
 - API stub: `character_base.gd`
 - **Stats are flat properties**: `combat`, `reaction`, `toughness`, `speed`, `savvy`, `luck` (NO `stats` sub-object)
 - `CharacterStats.gd` exists as a separate Resource but is NOT used as a property on characters
-- Implants: 6 types, max 3, `LOOT_TO_IMPLANT_MAP` pipeline
+- Implants: 11 types (Core Rules p.55), max 2 per character. `Character.create_implant_from_loot()` does name-match scan (no separate map constant)
 
 ### DLC/Compendium System
 - 35 ContentFlags across 3 DLC packs (Trailblazer's Toolkit, Freelancer's Handbook, Fixer's Guidebook)

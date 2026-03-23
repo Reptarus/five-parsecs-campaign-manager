@@ -219,17 +219,17 @@ func _initialize_travel_tables() -> void:
 			{"range": [98, 100], "trait": GlobalEnums.WorldTrait.MILITARY, "name": "Military"}
 		]
 	else:
-		# Fallback table with numeric values
+		# Fallback table with numeric values (names must match primary table above)
 		world_traits_table = [
 			{"range": [1, 15], "trait": 1, "name": "Frontier World"},
-			{"range": [16, 30], "trait": 2, "name": "Trade Center"},
-			{"range": [31, 45], "trait": 3, "name": "Industrial Hub"},
-			{"range": [46, 60], "trait": 4, "name": "Tech Center"},
-			{"range": [61, 75], "trait": 5, "name": "Mining Colony"},
-			{"range": [76, 85], "trait": 6, "name": "Agricultural World"},
-			{"range": [86, 92], "trait": 7, "name": "Pirate Haven"},
-			{"range": [93, 97], "trait": 8, "name": "Free Port"},
-			{"range": [98, 100], "trait": 9, "name": "Corporate Controlled"}
+			{"range": [16, 30], "trait": 2, "name": "Trade Hub"},
+			{"range": [31, 45], "trait": 3, "name": "Industrial"},
+			{"range": [46, 60], "trait": 4, "name": "Research"},
+			{"range": [61, 75], "trait": 5, "name": "Criminal"},
+			{"range": [76, 85], "trait": 6, "name": "Affluent"},
+			{"range": [86, 92], "trait": 7, "name": "Dangerous"},
+			{"range": [93, 97], "trait": 8, "name": "Corporate"},
+			{"range": [98, 100], "trait": 9, "name": "Military"}
 		]
 
 func _load_travel_events_from_json() -> Array[Dictionary]:

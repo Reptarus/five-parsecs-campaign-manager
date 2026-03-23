@@ -1,4 +1,5 @@
 {
+  "_UNWIRED": "WARNING: As of Mar 2026, NO GDScript file loads or consumes this data. This file exists but is not wired to gameplay code. Needs a consumer implemented.",
   "description": "On-board Items from Five Parsecs From Home Core Rules (pp.57-58). These items are not carried into battle by a specific crew member. Instead, they are usually left behind on the ship, and used at other points of the campaign turn.",
   "rules": {
     "storage": "Ship (not carried into battle)",

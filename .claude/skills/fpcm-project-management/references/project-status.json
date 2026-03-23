@@ -1,6 +1,6 @@
 {
   "last_updated": "2026-03-22",
-  "current_phase": "Phase 46 QA — PDF Verification In Progress",
+  "current_phase": "Phase 46 QA VERIFICATION COMPLETE — 7 fabricated files flagged, rewrite sprint next",
   "key_metrics": {
     "game_mechanics_compliance": "100% (170/170)",
     "core_rules_systems": "11/11 verified",
@@ -14,7 +14,9 @@
     "mcp_qa_sprint_mar21": "7 sessions, 62/66 PASS, 4 N/A",
     "compendium_integration": "11/11 data files, ~52/93 methods wired",
     "open_bugs": 0,
-    "pdf_verified_values": "~318/825+"
+    "pdf_verified_values": "~400/825+",
+    "fabricated_files_flagged": 7,
+    "new_json_data_files": 5
   },
   "phase_46_qa": {
     "status": "IN PROGRESS",
