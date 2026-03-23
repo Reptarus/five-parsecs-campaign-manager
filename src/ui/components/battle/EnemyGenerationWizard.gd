@@ -218,12 +218,12 @@ func _build_category_step() -> void:
 	step_container.add_child(or_label)
 
 	category_option = OptionButton.new()
-	category_option.add_item("Criminal Elements")
-	category_option.add_item("Military/Security")
-	category_option.add_item("Alien Hostiles")
-	category_option.add_item("Pirates/Raiders")
-	category_option.add_item("Wildlife")
-	category_option.add_item("Cultists")
+	category_option.add_item("Criminal Elements")  # criminal_elements
+	category_option.add_item("Hired Muscle")        # hired_muscle
+	category_option.add_item("Interested Parties")  # interested_parties
+	category_option.add_item("Pirates/Raiders")     # criminal_elements (sub-type)
+	category_option.add_item("Roving Threats")      # roving_threats
+	category_option.add_item("Cultists")            # criminal_elements (sub-type)
 	category_option.item_selected.connect(_on_category_selected)
 	step_container.add_child(category_option)
 
@@ -425,30 +425,40 @@ func _on_difficulty_changed(value: float) -> void:
 
 	_update_enemy_count_preview()
 
-func _on_roll_category() -> void:
-	var categories := ["criminal", "military", "alien", "pirate", "wildlife", "cultists"]
-	enemy_category = categories.pick_random()
+## Map UI display index to canonical JSON category IDs from enemy_types.json
+const CATEGORY_IDS: Array[String] = [
+	"criminal_elements",   # Criminal Elements
+	"hired_muscle",        # Military/Security
+	"interested_parties",  # Alien Hostiles
+	"criminal_elements",   # Pirates/Raiders (sub-type within criminal_elements)
+	"roving_threats",      # Wildlife
+	"criminal_elements",   # Cultists (sub-type within criminal_elements)
+]
 
-	# Update selection label
-	var selection_label = step_container.get_node_or_null("SelectionLabel")
-	if selection_label:
-		selection_label.text = "Selected: %s" % enemy_category
-		selection_label.add_theme_color_override("font_color", COLOR_EMERALD)
+const CATEGORY_DISPLAY_NAMES: Dictionary = {
+	"criminal_elements": "Criminal Elements",
+	"hired_muscle": "Hired Muscle",
+	"interested_parties": "Interested Parties",
+	"roving_threats": "Roving Threats",
+}
+
+func _on_roll_category() -> void:
+	enemy_category = CATEGORY_IDS.pick_random()
+	_update_category_label()
 
 func _on_category_selected(index: int) -> void:
-	match index:
-		0: enemy_category = "criminal"
-		1: enemy_category = "military"
-		2: enemy_category = "alien"
-		3: enemy_category = "pirate"
-		4: enemy_category = "wildlife"
-		5: enemy_category = "cultists"
-		_: enemy_category = "criminal"
+	if index >= 0 and index < CATEGORY_IDS.size():
+		enemy_category = CATEGORY_IDS[index]
+	else:
+		enemy_category = "criminal_elements"
+	_update_category_label()
 
-	# Update selection label
+func _update_category_label() -> void:
 	var selection_label = step_container.get_node_or_null("SelectionLabel")
 	if selection_label:
-		selection_label.text = "Selected: %s" % enemy_category
+		var display: String = CATEGORY_DISPLAY_NAMES.get(
+			enemy_category, enemy_category)
+		selection_label.text = "Selected: %s" % display
 		selection_label.add_theme_color_override("font_color", COLOR_EMERALD)
 
 func _on_back_pressed() -> void:

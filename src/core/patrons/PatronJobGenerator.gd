@@ -317,11 +317,19 @@ func _select_job_type(patron_data: Patron) -> String:
 	var preferred_jobs: Array = modifiers.preferred_jobs
 	
 	# 70% chance for preferred job type, 30% for any job type
+	var all_job_types: Array = job_templates.keys()
+	if all_job_types.is_empty():
+		return "ESCORT"  # Absolute fallback
+
 	if randi_range(1, 100) <= 70 and preferred_jobs.size() > 0:
-		return preferred_jobs[randi() % preferred_jobs.size()]
-	else:
-		var all_job_types = job_templates.keys()
-		return all_job_types[randi() % all_job_types.size()]
+		# Filter preferred_jobs to only keys that exist in job_templates
+		var valid_preferred: Array = preferred_jobs.filter(
+			func(j: String) -> bool: return job_templates.has(j))
+		if valid_preferred.size() > 0:
+			return valid_preferred[randi() % valid_preferred.size()]
+
+	# Fall back to any loaded template key
+	return all_job_types[randi() % all_job_types.size()]
 
 ## Generate mission title and description
 func _generate_mission_details(job: PatronJob, template: Dictionary) -> void:

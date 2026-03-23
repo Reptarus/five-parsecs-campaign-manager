@@ -658,32 +658,68 @@ static func _apply_enum_background_bonuses(character: Character) -> void:
 
 ## Apply class-specific bonuses
 static func apply_class_bonuses(character: Character) -> void:
+	## Apply class bonuses matching Core Rules Class Table (pp.26-27).
+	## Stat bonuses are already applied via CLASS_TABLE roll results.
+	## This method adds class-specific traits for gameplay effects.
 	match character.character_class:
+		"WORKING_CLASS":
+			character.add_trait("Working Class Grit")
+		"TECHNICIAN":
+			character.add_trait("Technical Training")
+		"SCIENTIST":
+			character.add_trait("Scientific Training")
+		"HACKER":
+			character.add_trait("Hacker Skills")
 		"SOLDIER":
-			character.combat = clampi(character.combat + 1, 0, 5)
 			character.add_trait("Military Training")
-		"SCOUT":
-			character.speed = clampi(character.speed + 1, 4, 8)
-			character.add_trait("Scout Training")
+		"MERCENARY":
+			character.add_trait("Mercenary Experience")
+		"AGITATOR":
+			character.add_trait("Rabble Rouser")
+		"PRIMITIVE":
+			character.add_trait("Primitive Instincts")
+		"ARTIST":
+			character.add_trait("Creative Eye")
+		"NEGOTIATOR":
+			character.add_trait("Silver Tongue")
+		"TRADER":
+			character.add_trait("Trade Contacts")
+		"STARSHIP_CREW":
+			character.add_trait("Spacer Skills")
+		"PETTY_CRIMINAL":
+			character.add_trait("Street Smarts")
+		"GANGER":
+			character.add_trait("Gang Tactics")
+		"SCOUNDREL":
+			character.add_trait("Quick Feet")
+		"ENFORCER":
+			character.add_trait("Law Enforcement")
+		"SPECIAL_AGENT":
+			character.add_trait("Covert Ops")
+		"TROUBLESHOOTER":
+			character.add_trait("Problem Solver")
+		"BOUNTY_HUNTER":
+			character.add_trait("Tracker Instinct")
+		"NOMAD":
+			character.add_trait("Wanderer")
+		"EXPLORER":
+			character.add_trait("Pathfinder")
+		"PUNK":
+			character.add_trait("Rebellious Spirit")
+		"SCAVENGER":
+			character.add_trait("Salvage Expertise")
+		# Legacy aliases (pre-table-roll code paths)
 		"MEDIC":
-			character.savvy = clampi(character.savvy + 1, 0, 5)
 			character.add_trait("Medical Training")
 		"ENGINEER":
-			# Engineers can't exceed T4 in Savvy (Five Parsecs p.18)
-			var engineer_max_savvy = 4 if character.character_class.to_lower() == "engineer" else 5
-			character.savvy = clampi(character.savvy + 1, 0, engineer_max_savvy)
 			character.add_trait("Engineering Training")
 		"PILOT":
-			character.reactions = clampi(character.reactions + 1, 1, 6)
 			character.add_trait("Pilot Training")
 		"MERCHANT":
-			character.savvy = clampi(character.savvy + 1, 0, 5)
 			character.add_trait("Merchant Training")
 		"SECURITY":
-			character.combat = clampi(character.combat + 1, 0, 5)
 			character.add_trait("Security Training")
 		"BROKER":
-			character.savvy = clampi(character.savvy + 1, 0, 5)
 			character.add_trait("Broker Training")
 
 ## Generate starting equipment using hybrid approach
@@ -1241,43 +1277,15 @@ static func _generate_fallback_equipment(character: Character) -> Dictionary:
 		"weapons": [],
 		"armor": [],
 		"gear": [],
-		"credits": 1000,
+		"credits": 0,  # Credits set by campaign creation (Core Rules p.28)
 		"condition_modifiers": {}
 	}
-	
-	# Add class-specific equipment (original basic implementation) - now using string comparison
-	match character.character_class:
-		"SOLDIER":
-			equipment.weapons.append("Combat Rifle")
-			equipment.armor.append("Trooper Armor")
-		"SCOUT":
-			equipment.weapons.append("Carbine")
-			equipment.armor.append("Light Armor")
-		"MEDIC":
-			equipment.weapons.append("Service Pistol")
-			equipment.gear.append("Medkit")
-		"ENGINEER":
-			equipment.weapons.append("Service Pistol")
-			equipment.gear.append("Repair Kit")
-		"PILOT":
-			equipment.weapons.append("Service Pistol")
-			equipment.gear.append("Flight Computer")
-		"MERCHANT":
-			equipment.weapons.append("Service Pistol")
-			equipment.gear.append("Trade Computer")
-		"SECURITY":
-			equipment.weapons.append("Combat Rifle")
-			equipment.armor.append("Security Armor")
-		"BROKER":
-			equipment.weapons.append("Service Pistol")
-			equipment.gear.append("Negotiation Tools")
-	
-	# Add random bonus equipment (simulated without dice)
-	var bonus_weapons = ["Blade", "Pistol", "Hand Weapon"]
-	equipment.weapons.append(bonus_weapons[randi() % bonus_weapons.size()])
-	
-	# Add random credits bonus (500-1500 range)
-	equipment.credits += randi_range(0, 500)
+
+	# Core Rules p.77: recruits come armed with a Handgun.
+	# Class-specific starting rolls (weapons, gear, gadgets) are handled
+	# by CLASS_TABLE entries via roll_character_tables(). This fallback
+	# just ensures every character has at least a Handgun.
+	equipment.weapons.append("Handgun")
 	
 	return equipment
 

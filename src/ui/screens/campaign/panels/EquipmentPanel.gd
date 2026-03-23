@@ -1616,15 +1616,15 @@ func _validate_and_complete() -> void:
 		local_equipment_data.is_complete = true
 		
 		# Emit panel data update for signal-based architecture with proper data
-		panel_data_changed.emit(get_data())
-		
+		panel_data_changed.emit(get_panel_data())
+
 		# Emit granular data change signal for real-time integration
-		equipment_data_changed.emit(get_data())
+		equipment_data_changed.emit(get_panel_data())
 
 		# Emit completion signal if the panel is valid
 		if not _completion_emitted:
-			panel_completed.emit(get_data())
-			equipment_data_complete.emit(get_data())
+			panel_completed.emit(get_panel_data())
+			equipment_data_complete.emit(get_panel_data())
 			equipment_generation_complete.emit(generated_equipment)
 			_completion_emitted = true  # Prevent duplicate emissions
 		

@@ -58,9 +58,9 @@ func _initialize_rival_data() -> void:
 	_load_escalation_rules()
 	_load_battle_type_weights()
 
-## Load canonical JSON data (future: data/rival_battles.json)
-## TODO: Extract rival battle tables from Core Rules pp.91,119
-## into data/rival_battles.json and wire them here.
+## Load canonical JSON overlay if available (data/rival_battles.json).
+## Core Rules pp.91,119 define attack types (D10) and removal roll (4+),
+## but not rival-specific force templates — those are app-defined groupings.
 func _load_ref_data() -> void:
 	var path := "res://data/rival_battles.json"
 	if not FileAccess.file_exists(path):
@@ -137,28 +137,31 @@ func _load_escalation_rules() -> void:
 		}
 	}
 
-## Load battle type weights based on situation (Core Rules p.91 — 5 attack types)
+## Load battle type weights based on situation (Core Rules p.91 — D10 table)
+## Default weights match exact D10 probabilities:
+##   1=Ambush(10%), 2-3=Brought Friends(20%), 4-7=Showdown(40%),
+##   8=Assault(10%), 9-10=Raid(20%)
 func _load_battle_type_weights() -> void:
 	battle_type_weights = {
 		"default": {
-			"AMBUSH": 20,
+			"AMBUSH": 10,
 			"BROUGHT_FRIENDS": 20,
-			"SHOWDOWN": 20,
-			"ASSAULT": 20,
+			"SHOWDOWN": 40,
+			"ASSAULT": 10,
 			"RAID": 20
 		},
 		"high_escalation": {
-			"AMBUSH": 15,
+			"AMBUSH": 10,
 			"BROUGHT_FRIENDS": 25,
-			"SHOWDOWN": 15,
-			"ASSAULT": 25,
-			"RAID": 20
+			"SHOWDOWN": 25,
+			"ASSAULT": 15,
+			"RAID": 25
 		},
 		"first_encounter": {
-			"AMBUSH": 35,
+			"AMBUSH": 25,
 			"BROUGHT_FRIENDS": 15,
-			"SHOWDOWN": 20,
-			"ASSAULT": 20,
+			"SHOWDOWN": 40,
+			"ASSAULT": 10,
 			"RAID": 10
 		}
 	}
