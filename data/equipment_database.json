@@ -88,7 +88,7 @@
 		{"id": "beam_light", "name": "Beam Light", "type": "Gun Mod", "permanent": true, "restrictions": [], "cost": 3, "rarity": "Common", "description": "Increase visibility by +3\" in reduced visibility."},
 		{"id": "bipod", "name": "Bipod", "type": "Gun Mod", "permanent": true, "restrictions": ["Non-Pistol only"], "cost": 3, "rarity": "Common", "description": "+1 to Hit over 8\" when Aiming or from Cover."},
 		{"id": "hot_shot_pack", "name": "Hot Shot Pack", "type": "Gun Mod", "permanent": true, "restrictions": ["Blast Pistol", "Blast Rifle", "Hand Laser", "Infantry Laser"], "cost": 3, "rarity": "Uncommon", "description": "+1 Damage. Natural 6 on shooting dice causes overheat (inoperable rest of fight)."},
-		{"id": "nano_sludge", "name": "Cyber-configurable Nano-sludge", "type": "Gun Mod", "permanent": true, "restrictions": [], "cost": 3, "rarity": "Rare", "description": "Permanent +1 Hit bonus."},
+		{"id": "nano_sludge", "name": "Cyber-configurable Nano-Sludge", "type": "Gun Mod", "permanent": true, "restrictions": [], "cost": 3, "rarity": "Rare", "description": "Permanent +1 Hit bonus."},
 		{"id": "stabilizer_mod", "name": "Stabilizer", "type": "Gun Mod", "permanent": true, "restrictions": [], "cost": 3, "rarity": "Uncommon", "description": "Weapon may ignore Heavy trait."},
 		{"id": "shock_attachment", "name": "Shock Attachment", "type": "Gun Mod", "permanent": true, "restrictions": [], "cost": 3, "rarity": "Uncommon", "description": "Weapon receives Stun trait against targets within 8\"."},
 		{"id": "upgrade_kit", "name": "Upgrade Kit", "type": "Gun Mod", "permanent": true, "restrictions": [], "cost": 3, "rarity": "Common", "description": "+2\" Range increase."},

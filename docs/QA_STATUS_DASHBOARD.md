@@ -74,22 +74,29 @@ None — all UX issues resolved as of 2026-03-20.
 
 | Domain | JSON Files | GDScript Files | Est. Values | Verified | Incorrect | Status |
 |--------|-----------|---------------|-------------|----------|-----------|--------|
-| Weapons & Equipment | 4 | 1 | ~150 | 0 | 0 | NOT STARTED |
-| Species & Characters | 4 | 0 | ~80 | 0 | 0 | NOT STARTED |
-| Injuries | 1 | 1 | ~25 | 0 | 0 | NOT STARTED |
-| Loot Tables | 2 | 1 | ~60 | 0 | 0 | NOT STARTED |
-| Economy & Upkeep | 1 | 2 | ~30 | 0 | 0 | NOT STARTED |
-| Campaign Events | 2 | 0 | ~100 | 0 | 0 | NOT STARTED |
-| Battle & Enemies | 5 | 1 | ~60 | 0 | 0 | NOT STARTED |
-| Ships | 2 | 0 | ~20 | 0 | 0 | NOT STARTED |
+| Weapons & Equipment | 4 | 1 | ~150 | 0 | 12 FIXED | INTERNAL CONSISTENCY PASS |
+| Species & Characters | 4 | 0 | ~80 | 0 | 0 | NEEDS BOOK VERIFICATION |
+| Injuries | 1 | 1 | ~25 | 0 | 0 | INTERNAL CONSISTENCY PASS |
+| Loot Tables | 2 | 1 | ~60 | 0 | 1 FIXED | INTERNAL CONSISTENCY PASS |
+| Economy & Upkeep | 1 | 2 | ~30 | 8 | 4 open | CONFLICTS FOUND — NEEDS BOOK |
+| Campaign Events | 2 | 0 | ~100 | 0 | 0 | NEEDS BOOK VERIFICATION |
+| Battle & Enemies | 5 | 1 | ~60 | 0 | 1 FIXED | INTERNAL CONSISTENCY PASS |
+| Ships | 2 | 0 | ~20 | 0 | 0 | NEEDS BOOK VERIFICATION |
 | Compendium/DLC | 15+ | 0 | ~100 | 0 | 0 | NOT STARTED |
-| Other (travel, missions, etc.) | 15+ | 3 | ~120+ | 0 | 0 | NOT STARTED |
-| **TOTAL** | **~50** | **~9** | **~745+** | **0** | **0** | **NOT STARTED** |
+| Other (travel, missions, etc.) | 15+ | 3 | ~120+ | 0 | 0 | NEEDS BOOK VERIFICATION |
+| **TOTAL** | **~50** | **~9** | **~745+** | **8** | **14 FIXED + 4 open** | **INTERNAL PASS COMPLETE** |
 
-**Known Internal Inconsistencies** (code disagrees with itself — see `QA_RULES_ACCURACY_AUDIT.md` Appendix C):
-- Infantry Laser: `weapons.json` range=30 vs `LootSystemConstants.gd` range=18
-- Hunting Rifle: `weapons.json` damage=1 vs `LootSystemConstants.gd` damage=0
-- Upkeep cost: `FiveParsecsConstants.gd` base_upkeep=1 vs `WorldEconomyManager.gd` BASE_UPKEEP_COST=100
+**Internal Consistency Pass (Mar 22, 2026)**: 14 mismatches fixed, 4 open conflicts require Core Rules book. See Appendix C.
+
+**Open Conflicts** (require Core Rules book verification):
+- Upkeep cost: `FiveParsecsConstants.gd` base_upkeep=1 vs `campaign_rules.json` base_cost_per_member=6 (Core Rules p.76-80)
+- Starting credits: `FiveParsecsConstants.gd` 10 vs `campaign_rules.json` 100 (Core Rules p.15)
+- WorldEconomyManager 100x scale: credits=1000 init vs FiveParsecsConstants 10 (unit system mismatch)
+- Injury fatal split: `injury_table.json` (1-5 + 6-15) vs `InjurySystemConstants.gd` (1-15 combined)
+
+**Tagged as GAME_BALANCE_ESTIMATE** (78% of economy constants lack Core Rules citations):
+- 50+ values in FiveParsecsConstants.gd, EquipmentManager.gd, GameCampaignManager.gd tagged
+- Equipment pricing (all round 100s), mission rewards (500-1500, 1000-2500), bot upgrades, training costs
 
 ---
 
@@ -151,9 +158,10 @@ All 5 previous priority items are now verified:
 
 | Document | Location | Purpose |
 |----------|----------|---------|
+| **Rules Accuracy Audit** | `docs/QA_RULES_ACCURACY_AUDIT.md` | Master rulebook verification checklist (745+ values, 131 files). **BLOCKS RELEASE** |
 | **Core Rules Test Plan** | `docs/QA_CORE_RULES_TEST_PLAN.md` | Per-mechanic test status (170 mechanics) |
-| **Integration Scenarios** | `docs/QA_INTEGRATION_SCENARIOS.md` | 9 end-to-end workflow test scripts |
-| **UX/UI Test Plan** | `docs/QA_UX_UI_TEST_PLAN.md` | Systematic UI coverage (theme, responsive, animations) |
+| **Integration Scenarios** | `docs/QA_INTEGRATION_SCENARIOS.md` | 10 end-to-end workflow test scripts (incl. Scenario 10: Rules Accuracy Spot Check) |
+| **UX/UI Test Plan** | `docs/QA_UX_UI_TEST_PLAN.md` | Systematic UI coverage (theme, responsive, animations, §8: rules-faithful display + flow) |
 | UI/UX Session Walkthroughs | `docs/testing/UI_UX_TEST_PLAN.md` | 8-session walkthrough plan (~200 tests) |
 | Demo QA Script | `docs/testing/DEMO_QA_SCRIPT.md` | Demo recording gate script |
 | UIUX Test Results | `docs/UIUX_TEST_RESULTS.md` | Historical MCP results (106 bugs) |

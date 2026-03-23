@@ -76,21 +76,22 @@ const CAMPAIGN_TURNS = {
 }
 
 # Economic System Constants (Core Rules p.76 upkeep, p.64 travel)
+# NOTE: Values marked GAME_BALANCE_ESTIMATE need Core Rules verification before release.
 const ECONOMY = {
-	"starting_debt": 75, # Standard starting ship debt
-	"upkeep_threshold": 4, # Crew size at which upkeep starts (p.76)
-	"upkeep_cap": 6, # Crew size above which extra upkeep cost applies (p.76)
-	"base_upkeep": 1, # Base upkeep cost: 1 credit for 4-6 crew (p.76)
-	"additional_crew_cost": 1, # Cost per crew member over upkeep_cap (p.76)
-	"ship_maintenance_base": 1, # Base ship maintenance cost per turn
-	"injury_treatment_cost": 2, # Cost per injured crew member in sick bay
-	"luxury_upkeep_modifier": 2, # Multiplier for luxury living standard
-	"hull_repair_cost_per_point": 3, # Credits per hull point to repair
-	"trade_profit_multiplier": 10, # Base trade profit calculation
-	"equipment_degradation": 0.1, # Equipment wear rate per battle
-	# Travel costs (p.64)
-	"starship_travel": 5, # Cost to travel via own starship
-	"commercial_passage_per_crew": 1, # Cost per crew member for commercial passage
+	"starting_debt": 75, # GAME_BALANCE_ESTIMATE — needs Core Rules p.59-62 verification
+	"upkeep_threshold": 4, # Crew size at which upkeep starts (Core Rules p.76)
+	"upkeep_cap": 6, # Crew size above which extra upkeep cost applies (Core Rules p.76)
+	"base_upkeep": 1, # Base upkeep cost: 1 credit for 4-6 crew (Core Rules p.76)
+	"additional_crew_cost": 1, # Cost per crew member over upkeep_cap (Core Rules p.76)
+	"ship_maintenance_base": 1, # GAME_BALANCE_ESTIMATE — needs Core Rules p.80 verification
+	"injury_treatment_cost": 2, # GAME_BALANCE_ESTIMATE — needs Core Rules p.124 verification
+	"luxury_upkeep_modifier": 2, # GAME_BALANCE_ESTIMATE — needs Core Rules verification
+	"hull_repair_cost_per_point": 3, # GAME_BALANCE_ESTIMATE — needs Core Rules p.81 verification
+	"trade_profit_multiplier": 10, # GAME_BALANCE_ESTIMATE — needs Core Rules verification
+	"equipment_degradation": 0.1, # GAME_BALANCE_ESTIMATE — not from Core Rules (app feature)
+	# Travel costs (Core Rules p.64)
+	"starship_travel": 5, # Cost to travel via own starship (Core Rules p.64)
+	"commercial_passage_per_crew": 1, # Cost per crew member for commercial passage (Core Rules p.64)
 }
 
 # Combat System Constants
@@ -109,12 +110,13 @@ const COMBAT = {
 }
 
 # Mission Generation Constants
+# NOTE: Values marked GAME_BALANCE_ESTIMATE need Core Rules verification before release.
 const MISSIONS = {
-	"patron_jobs_per_turn": 3, # Maximum patron jobs available
-	"opportunity_jobs": 2, # Opportunity mission chances
-	"mission_pay_multiplier": 5, # Base mission payment
-	"danger_pay_bonus": 2, # Bonus for dangerous missions
-	"story_mission_frequency": 6 # Story mission appearance frequency
+	"patron_jobs_per_turn": 3, # GAME_BALANCE_ESTIMATE — needs Core Rules p.84 verification
+	"opportunity_jobs": 2, # GAME_BALANCE_ESTIMATE — needs Core Rules p.84 verification
+	"mission_pay_multiplier": 5, # GAME_BALANCE_ESTIMATE — needs Core Rules p.97 verification
+	"danger_pay_bonus": 2, # GAME_BALANCE_ESTIMATE — needs Core Rules p.97 verification
+	"story_mission_frequency": 6 # GAME_BALANCE_ESTIMATE — needs Core Rules verification
 }
 
 # Tutorial System Configuration

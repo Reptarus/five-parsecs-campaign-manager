@@ -31,6 +31,16 @@ This checklist is organized by **Core Rules book chapter order** so a human can 
 - **P1**: Event table D100 ranges, loot tables, enemy stats — affect gameplay but less visible
 - **P2**: Mission descriptions, flavor text, world traits — lower gameplay impact
 
+### UI/UX Display & Flow Verification
+
+Data correctness alone is not enough — the UI must also **display** correct values and **follow** the Core Rules book's prescribed sequences. After verifying data values in this document:
+
+1. **Display accuracy**: Confirm values shown on-screen match the underlying data. A correct JSON value can still render wrong due to formatting bugs, stale caches, or wrong field bindings. See `QA_UX_UI_TEST_PLAN.md` §8a for per-screen checks.
+
+2. **Flow fidelity**: Confirm UI workflows (creation wizard steps, campaign turn phases, post-battle sequence, dice roll presentations) match the order and structure in the Core Rules book. See `QA_UX_UI_TEST_PLAN.md` §8b for per-flow checks.
+
+3. **Dice roll display**: Confirm D100/D66/D6 results map to the correct table entry text and correctly update game state. See `QA_UX_UI_TEST_PLAN.md` §8c.
+
 ---
 
 ## Progress Summary

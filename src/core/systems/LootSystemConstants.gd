@@ -145,7 +145,7 @@ const WEAPON_DEFINITIONS: Dictionary = {
 
 	# Heavy Weapons
 	"Auto Cannon": {"range": 24, "shots": 3, "damage": 1, "special": "HEAVY", "category": "heavy"},
-	"Flak Gun": {"range": 18, "shots": 4, "damage": 0, "special": "HEAVY", "category": "heavy"},
+	"Flak Gun": {"range": 8, "shots": 2, "damage": 1, "special": "FOCUSED CRITICAL", "category": "slug"},
 	"Missile Launcher": {"range": 30, "shots": 1, "damage": 3, "special": "HEAVY AREA", "category": "heavy"},
 
 	# Grenades (Range 86-100)

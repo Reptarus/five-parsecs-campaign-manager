@@ -374,46 +374,6 @@
 			  "Cop killer: Enforcers always become Rivals after a battle.",
 			  "Blast and clear: Two basic enemies have under-barrel Shotguns fitted to their weapons. They will fire the Shotgun if they are in range, and the other weapon if not.",
 			  "Subdue: Enforcer strikes when brawling receive the Impact trait."
-		]
-	  },
-	  {
-		"table_name": "Elite Hired Muscle",
-		"description": "Someone has hired goons to stop you from achieving your goal. Alternatively, they may have been hired to bother whoever is paying you.",
-		"special_rules": [
-		  "Paid professionals: Apply a –1 modifier when you try to Seize the Initiative.",
-		  "Well supplied: Lieutenants and Captains receive a 4+ Armor Saving Throw, replacing any existing protection they would have."
-		],
-		"enemies": [
-		  {
-			"name": "Unknown Mercs",
-			"roll_range": [1, 14],
-			"num": "+2",
-			"panic": "1-2",
-			"speed": "5\"",
-			"combat_skill": "+1",
-			"toughness": 4,
-			"ai": "T",
-			"weapons": "2B",
-			"special_rules": [
-			  "Let us just call it a day: If the Mercs are reduced to 1 or 2 remaining figures, you may call a truce at the end of any round. The battle ends and you do not Hold the Field.",
-			  "Tacti-cool: Two basic enemies have sighted weapons, adding +1 to Hit rolls when shooting.",
-			  "Supporting fire: If you defeat a Merc in a brawl, randomly select a Merc with Line of Sight to the winner. They will fire immediately as a bonus action, Hitting only on a natural 6."
-			]
-		  },
-		  {
-			"name": "Enforcers",
-			"roll_range": [15, 26],
-			"num": "+2",
-			"panic": "1",
-			"speed": "4\"",
-			"combat_skill": "+1",
-			"toughness": 4,
-			"ai": "T",
-			"weapons": "2A",
-			"special_rules": [
-			  "Cop killer: Enforcers always become Rivals after a battle.",
-			  "Blast and clear: Two basic enemies have under-barrel Shotguns fitted to their weapons. They will fire the Shotgun if they are in range, and the other weapon if not.",
-			  "Subdue: Enforcer strikes when brawling receive the Impact trait."
 			]
 		  },
 		  {
@@ -623,4 +583,4 @@
 	  }
 	]
   }
-]}}
+}
