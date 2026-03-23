@@ -278,6 +278,7 @@ These areas have confirmed or suspected AI-fabricated data:
 4. **Equipment costs**: `equipment_database.json` uses `cost: 3` for nearly everything, with metadata note "Costs are game-balance estimates." Not from Core Rules.
 5. **WorldEconomyManager.gd BASE_UPKEEP_COST = 100**: Does not match `FiveParsecsConstants.gd` which says `base_upkeep: 1`. One is wrong.
 6. **GameCampaignManager.gd rewards**: Patron jobs 500-1500 credits, missions 1000-2500 credits — no Core Rules page references cited.
+7. **ships.json — FULL REWRITE NEEDED**: Only 7 fabricated ship types (book p.31 has 13). Hull 6-14 is wrong (book: 20-40). Debt 0-5 is wrong (book: 1D6+10 to 1D6+35). The Phase 30 "fix" that changed hull from 20-35 → 6-14 made it WORSE — the original values were closer to the book. This is the worst hallucination cascade: AI fabricated data → AI "fixed" it with different fabricated data → docs recorded the wrong fix as canonical.
 
 ### Internal Consistency Check Protocol
 

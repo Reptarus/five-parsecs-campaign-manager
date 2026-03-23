@@ -394,10 +394,12 @@ Both `.vscode/settings.json` and Cursor user settings exclude: `.godot/`, `.mcp/
 
 ## Data Integrity Rules
 
-- **NEVER invent game data values**: When adding or modifying any numeric game data (stats, costs, ranges, probabilities, D100 table boundaries), the value MUST come from the Core Rules book or be explicitly tagged as `GAME_BALANCE_ESTIMATE`. AI agents must ask the user for book values rather than guessing.
+- **NEVER invent game data values**: When adding or modifying any numeric game data (stats, costs, ranges, probabilities, D100 table boundaries), the value MUST come from the Core Rules book. AI agents must ask the user for book values rather than guessing. Tag intentional deviations as `GAME_BALANCE_ESTIMATE`.
+- **CHECK `data/RulesReference/` FIRST**: 18 JSON files extracted from the rulebooks/Compendium PDFs exist at `data/RulesReference/`. ALWAYS check these before inventing values. They cover: Bestiary, Campaign rules, Difficulty, Elite Enemies, Enemy AI, Equipment, Expanded Missions, Factions, Name Tables, Psionics, Salvage, Species, Stealth/Street, Terrain. If the data you need isn't in RulesReference, ask the user to extract it from the PDF.
+- **NEVER "fix" data without the book**: Phase 30 changed ship hull from 20-35 to 6-14, documenting it as a "Core Rules correction." The Core Rules actually says 20-40. The "fix" made it WORSE. Never assume a value is wrong without checking the source material.
 - **NEVER create duplicate data sources**: If a value already exists in a JSON file, load it from there. Do not create a parallel constant in GDScript. Single Source of Truth: JSON file is canonical for each data domain.
 - **All data changes require book page citation**: Include the Core Rules page number in commit messages when modifying game data. Example: `"Fix Infantry Laser range to 30" (Core Rules p.50)"`
-- **Data Source Authority Hierarchy**: Core Rules book > Dedicated JSON data file > GDScript constants file > Inline hardcoded values. When sources disagree, the higher-authority source wins.
+- **Data Source Authority Hierarchy**: Core Rules PDF / `data/RulesReference/*.json` > Dedicated JSON data file > GDScript constants file > Inline hardcoded values. When sources disagree, the higher-authority source wins.
 - **Verification checklist**: See `docs/QA_RULES_ACCURACY_AUDIT.md` for the master verification checklist (745+ values across 131 files).
 
 ---

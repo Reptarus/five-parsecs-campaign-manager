@@ -217,11 +217,12 @@ Data correctness alone is not enough — the UI must also **display** correct va
 
 | ID | Item | Page | What to Verify | Status | By | Date |
 |----|------|------|---------------|--------|-----|------|
-| 3A-001 | Ship type names | p.60 | All types match book | UNVERIFIED | | |
-| 3A-002 | Hull point ranges | p.60 | 6-14 range (NOT 20-35) | UNVERIFIED | | |
-| 3A-003 | Starting ship debt | p.62 | 0-5 range (NOT 12-38) | UNVERIFIED | | |
-| 3A-004 | Ship component types | p.63 | All components from book | UNVERIFIED | | |
-| 3A-005 | Ship traits | p.60-61 | Trait list and effects | UNVERIFIED | | |
+| 3A-001 | Ship type names (13 types) | p.31 | Book has 13 types; code has 7 fabricated types. FULL REWRITE NEEDED | **INCORRECT** | User | 2026-03-22 |
+| 3A-002 | Hull point ranges | p.31 | Book: 20-40. Code was "fixed" from 20-35 → 6-14 — BOTH WRONG. Phase 30 "fix" moved values FURTHER from book | **INCORRECT** | User | 2026-03-22 |
+| 3A-003 | Starting ship debt | p.31 | Book: 1D6+10 to 1D6+35. Code was "fixed" from 12-38 → 0-5 — BOTH WRONG. Original was closer to correct | **INCORRECT** | User | 2026-03-22 |
+| 3A-004 | Ship component types | p.31+ | All components from book | UNVERIFIED | | |
+| 3A-005 | Ship traits | p.31+ | Trait list and effects | UNVERIFIED | | |
+| 3A-006 | Ship type count | p.31 | Book has 13; code has 7 | **INCORRECT** | User | 2026-03-22 |
 
 ---
 
@@ -739,6 +740,10 @@ These inconsistencies were found **between code sources within the project** —
 | 16 | Injury page reference | `injury_table.json`: "p.122" | `InjurySystemConstants.gd`: "p.94-95" | Which page is correct? |
 | 17 | Strange Characters bonuses | `character_species.json`: 16 types | `character_creation_bonuses.json`: 0 of 16 | Missing from bonuses JSON |
 | 18 | Feral origin bonus | `character_species.json`: defined | `character_creation_bonuses.json`: missing | Origin key not in bonuses JSON |
+| 19 | **Ship types count** | `ships.json`: 7 types | Core Rules p.31: 13 types | **FULL REWRITE NEEDED** — 6 types missing, existing types may be fabricated |
+| 20 | **Ship hull ranges** | `ships.json`: 6-14 (Phase 30 "fix") | Core Rules p.31: 20-40 | **Phase 30 "fix" was WRONG** — moved values FURTHER from book. Original 20-35 was closer |
+| 21 | **Ship debt formula** | `ships.json`: 0-5 (Phase 30 "fix") | Core Rules p.31: 1D6+10 to 1D6+35 | **Phase 30 "fix" was WRONG** — original 12-38 was actually in range |
+| 22 | **ShipPanel SpinBox max** | `ShipPanel.tscn`: hull max=20, debt max=10 | Core Rules p.31: hull ~40, debt ~41 | SpinBox constraints prevent entering correct book values |
 
 ---
 
