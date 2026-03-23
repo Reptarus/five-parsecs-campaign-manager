@@ -102,7 +102,7 @@ func subscribe_to_event(event_type: TurnEvent, handler: Callable) -> void:
 			turn_event_published.connect(_dispatch_event)
 		
 		if debug_mode:
-			print("CampaignTurnEventBus: Subscribed handler to %s" % TurnEvent.keys()[event_type])
+			print_verbose("CampaignTurnEventBus: Subscribed handler to %s" % TurnEvent.keys()[event_type])
 
 ## Public API: Unsubscribe from events
 func unsubscribe_from_event(event_type: TurnEvent, handler: Callable) -> void:
@@ -111,7 +111,7 @@ func unsubscribe_from_event(event_type: TurnEvent, handler: Callable) -> void:
 		event_subscribers[event_type].erase(handler)
 		
 		if debug_mode:
-			print("CampaignTurnEventBus: Unsubscribed handler from %s" % TurnEvent.keys()[event_type])
+			print_verbose("CampaignTurnEventBus: Unsubscribed handler from %s" % TurnEvent.keys()[event_type])
 
 ## Event Dispatcher - routes events to specific handlers
 func _dispatch_event(event_type: TurnEvent, data: Dictionary) -> void:

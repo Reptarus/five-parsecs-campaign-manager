@@ -189,7 +189,7 @@ func initialize_battle(mission_data: Resource, crew_members: Array, enemy_forces
 	transition_to_phase(BattleManagerPhase.PRE_BATTLE)
 	
 	if debug_mode:
-		print("Battle initialized: Mission=%s, Crew=%d, Enemies=%d" % [
+		print_verbose("Battle initialized: Mission=%s, Crew=%d, Enemies=%d" % [
 			Godot4Utils.safe_get_property(mission_data, "name", "Unknown") if mission_data else "None",
 			crew_members.size(),
 			enemy_forces.size()
@@ -240,7 +240,7 @@ func transition_to_phase(new_phase: BattleManagerPhase) -> bool:
 		ui_transition_requested.emit(ui_name, _get_phase_data(new_phase))
 	
 	if debug_mode:
-		print("Phase transition: %s -> %s (UI: %s)" % [
+		print_verbose("Phase transition: %s -> %s (UI: %s)" % [
 			BattleManagerPhase.keys()[old_phase],
 			BattleManagerPhase.keys()[new_phase],
 			ui_name
@@ -421,7 +421,7 @@ func _finalize_battle_resolution() -> void:
 	
 	# Log resolution completion
 	if debug_mode:
-		print("FPCM_BattleManager: Resolution complete - %s, %d casualties, %d injuries" % [
+		print_verbose("FPCM_BattleManager: Resolution complete - %s, %d casualties, %d injuries" % [
 			"Victory" if battle_result.victory else "Defeat",
 			battle_result.crew_casualties.size(),
 			battle_result.crew_injuries.size()
@@ -445,7 +445,7 @@ func _finalize_post_battle() -> void:
 	
 	# Log post-battle finalization
 	if debug_mode:
-		print("FPCM_BattleManager: Post-battle complete - %d credits, %d XP awards" % [
+		print_verbose("FPCM_BattleManager: Post-battle complete - %d credits, %d XP awards" % [
 			battle_result.credits_earned,
 			battle_result.experience_gained.size()
 		])

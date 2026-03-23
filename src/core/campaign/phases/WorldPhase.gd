@@ -362,7 +362,7 @@ func _check_dlc_world_strife(world_data: Dictionary = {}) -> void:
 	if CompendiumWorldOptionsRef.should_check_strife(is_fringe):
 		var strife_event: Dictionary = CompendiumWorldOptionsRef.roll_strife_event()
 		if not strife_event.is_empty():
-			print("WorldPhase DLC: Strife event — %s" % strife_event.get("name", "Unknown"))
+			print_verbose("WorldPhase DLC: Strife event — %s" % strife_event.get("name", "Unknown"))
 			_current_world_data["strife_event"] = strife_event
 			var instability: int = _current_world_data.get("instability", 0)
 			instability += strife_event.get("instability_mod", 0)
@@ -390,7 +390,7 @@ func _check_dlc_psionic_legality() -> void:
 	var legality: int = PsionicSystemRef.roll_psionic_legality()
 	_current_world_data["psionic_legality"] = legality
 	var legality_name: String = PsionicSystemRef.get_legality_name(legality)
-	print("WorldPhase DLC: Psionic legality — %s" % legality_name)
+	print_verbose("WorldPhase DLC: Psionic legality — %s" % legality_name)
 	# Persist for downstream phases (battle, post-battle)
 	var gs = get_node_or_null("/root/GameState")
 	if gs and gs.current_campaign and "progress_data" in gs.current_campaign:

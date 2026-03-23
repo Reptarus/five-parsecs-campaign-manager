@@ -11,10 +11,10 @@
 
 [![GitHub Issues](https://img.shields.io/github/issues/Reptarus/five-parsecs-campaign-manager)](https://github.com/Reptarus/five-parsecs-campaign-manager/issues)
 [![Last Commit](https://img.shields.io/github/last-commit/Reptarus/five-parsecs-campaign-manager)](https://github.com/Reptarus/five-parsecs-campaign-manager/commits/master)
-[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20This%20Project-FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/)
-[![Patreon](https://img.shields.io/badge/Patreon-Support%20This%20Project-F96854?logo=patreon&logoColor=white)](https://patreon.com/)
-
-<!-- Replace the Ko-fi and Patreon URLs above with your actual pages when ready -->
+<!-- Uncomment and replace URLs when support pages are live:
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20This%20Project-FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/YOUR_PAGE)
+[![Patreon](https://img.shields.io/badge/Patreon-Support%20This%20Project-F96854?logo=patreon&logoColor=white)](https://patreon.com/YOUR_PAGE)
+-->
 
 Developed with the awareness and blessing of [Modiphius Entertainment](https://modiphius.net/). 170 out of 170 game mechanics implemented — **100% core rules coverage** including all Compendium content.
 

@@ -218,7 +218,7 @@ func _try_archive_campaign() -> void:
 		if profile and vc_type >= 0:
 			var awarded: bool = profile.award_elite_rank(vc_type)
 			if awarded:
-				print("EndPhasePanel: Elite Rank awarded for victory condition %d (total: %d)" % [vc_type, profile.elite_ranks])
+				print_verbose("EndPhasePanel: Elite Rank awarded for victory condition %d (total: %d)" % [vc_type, profile.elite_ranks])
 
 	# Archive on victory, after 20+ turns, or explicit crew retirement
 	var crew_retired: bool = pd.get("crew_retired", false)

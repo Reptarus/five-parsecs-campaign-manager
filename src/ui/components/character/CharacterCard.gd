@@ -185,7 +185,7 @@ func _build_layout() -> void:
 	
 	_build_time_usec = Time.get_ticks_usec() - start_time
 	if OS.is_debug_build():
-		print("CharacterCard: Built %s layout in %d μs" % [CardVariant.find_key(current_variant), _build_time_usec])
+		print_verbose("CharacterCard: Built %s layout in %d μs" % [CardVariant.find_key(current_variant), _build_time_usec])
 
 func _rebuild_layout() -> void:
 	## Rebuild layout when variant changes

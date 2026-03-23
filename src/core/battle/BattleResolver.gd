@@ -491,15 +491,15 @@ static func _debug_log_combat_round(round_num: int, crew_alive: int, enemy_alive
 	## Log combat round summary
 	if not DEBUG_COMBAT_FLOW:
 		return
-	print("│ Initiative: %s" % ("CREW" if crew_has_initiative else "ENEMY"))
+	print_verbose("│ Initiative: %s" % ("CREW" if crew_has_initiative else "ENEMY"))
 
 
 static func _debug_log_battle_outcome(success: bool, crew_alive: int, enemies_alive: int, crew_casualties: int, enemies_defeated: int, held_field: bool) -> void:
 	## Log final battle outcome
 	if not DEBUG_COMBAT_FLOW:
 		return
-	print("│ BATTLE OUTCOME: %s                                     │" % ("VICTORY" if success else "DEFEAT "))
-	print("│ Held Field: %s" % ("Yes" if held_field else "No"))
+	print_verbose("│ BATTLE OUTCOME: %s                                     │" % ("VICTORY" if success else "DEFEAT "))
+	print_verbose("│ Held Field: %s" % ("Yes" if held_field else "No"))
 
 
 static func _debug_log_unit_attack(attacker_name: String, target_name: String, hit: bool, damage: int, target_status: String) -> void:

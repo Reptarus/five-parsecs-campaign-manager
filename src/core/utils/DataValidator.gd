@@ -144,18 +144,18 @@ static func debug_data_structure(data, label: String = "Data") -> void:
 	if not OS.is_debug_build():
 		return
 	if data is Dictionary:
-		print("  Dictionary with keys: %s" % str(data.keys()))
+		print_verbose("  Dictionary with keys: %s" % str(data.keys()))
 		for key in data.keys():
 			var value = data[key]
 			if value is Array:
-				print("    %s: Array[%d]" % [key, value.size()])
+				print_verbose("    %s: Array[%d]" % [key, value.size()])
 			elif value is Dictionary:
-				print("    %s: Dictionary[%s]" % [key, str(value.keys())])
+				print_verbose("    %s: Dictionary[%s]" % [key, str(value.keys())])
 			else:
-				print("    %s: %s" % [key, typeof(value)])
+				print_verbose("    %s: %s" % [key, typeof(value)])
 	elif data is Array:
-		print("  Array with %d elements" % data.size())
+		print_verbose("  Array with %d elements" % data.size())
 		for i in range(min(3, data.size())):  # Show first 3 elements
-			print("    [%d]: %s" % [i, typeof(data[i])])
+			print_verbose("    [%d]: %s" % [i, typeof(data[i])])
 	else:
-		print("  Type: %s, Value: %s" % [typeof(data), str(data)])
+		print_verbose("  Type: %s, Value: %s" % [typeof(data), str(data)])

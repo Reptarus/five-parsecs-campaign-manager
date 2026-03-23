@@ -1777,29 +1777,29 @@ static func _debug_log_ranged_attack(attacker_name: String, target_name: String,
 	if not DEBUG_COMBAT_CALCS:
 		return
 	if hit:
-		print("│ Save: %s (%s)" % ["SAVED" if saved else "FAILED", save_type])
+		print_verbose("│ Save: %s (%s)" % ["SAVED" if saved else "FAILED", save_type])
 
 
 static func _debug_log_brawl(combatant1: String, combatant2: String, roll1: int, roll2: int, bonus1: int, bonus2: int, winner: String, damage: int) -> void:
 	## Log brawl combat resolution
 	if not DEBUG_COMBAT_CALCS:
 		return
-	print("│ COMBAT: BRAWL (MELEE)                                      │")
+	print_verbose("│ COMBAT: BRAWL (MELEE)                                      │")
 
 
 static func _debug_log_save(save_roll: int, armor_threshold: int, screen_threshold: int, is_piercing: bool, saved: bool, save_type: String) -> void:
 	## Log save resolution
 	if not DEBUG_COMBAT_CALCS:
 		return
-	print("│ Armor Save: %d+ %s" % [armor_threshold, "(PIERCED - ignored)" if is_piercing else ""])
+	print_verbose("│ Armor Save: %d+ %s" % [armor_threshold, "(PIERCED - ignored)" if is_piercing else ""])
 
 
 static func _debug_log_area_attack(origin: Vector2, radius: float, targets_hit: int, damage_roll: int, total_damage: int) -> void:
 	## Log area attack resolution
 	if not DEBUG_COMBAT_CALCS:
 		return
-	print("│ Origin: (%.1f, %.1f)" % [origin.x, origin.y])
-	print("│ Total Damage (shared): %d per target" % total_damage)
+	print_verbose("│ Origin: (%.1f, %.1f)" % [origin.x, origin.y])
+	print_verbose("│ Total Damage (shared): %d per target" % total_damage)
 
 
 static func _debug_log_hit_modifiers(base_skill: int, cover_mod: int, elevation_mod: int, range_mod: int, status_mod: int, total: int) -> void:

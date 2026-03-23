@@ -261,7 +261,7 @@ func _process_battle_setup() -> void:
 		var initial_teams: int = bz_opposition.get("initial_teams", 4)
 		enemy_count = team_size * initial_teams
 		black_zone_mission = BlackZoneSystem.roll_mission_type()
-		print("BattlePhase: BLACK ZONE — %d enemies (%d teams of %d), Mission: %s" % [
+		print_verbose("BattlePhase: BLACK ZONE — %d enemies (%d teams of %d), Mission: %s" % [
 			enemy_count, initial_teams, team_size, black_zone_mission.get("name", "Unknown")
 		])
 	elif is_red_zone:
@@ -272,7 +272,7 @@ func _process_battle_setup() -> void:
 		# Heavy Opposition threat condition: +2 enemies
 		if red_zone_threat.get("name", "") == "Heavy Opposition":
 			enemy_count += 2
-		print("BattlePhase: RED ZONE — %d enemies, Threat: %s, Time: %s" % [
+		print_verbose("BattlePhase: RED ZONE — %d enemies, Threat: %s, Time: %s" % [
 			enemy_count, red_zone_threat.get("name", "None"), red_zone_time_constraint.get("name", "None")
 		])
 	else:
@@ -354,17 +354,17 @@ func _process_battle_setup() -> void:
 				battle_setup_data["stealth_mission"] = stealth_setup
 				battle_setup_data["no_minis_combat"] = false # Stealth incompatible with no-minis
 				battle_setup_data["grid_based_movement"] = false # Stealth incompatible with grid
-				print("BattlePhase DLC: Stealth Mission — %s" % stealth_setup.get("objective", {}).get("id", "unknown"))
+				print_verbose("BattlePhase DLC: Stealth Mission — %s" % stealth_setup.get("objective", {}).get("id", "unknown"))
 		"street_fight":
 			var street_setup: Dictionary = CompendiumStreetFights.generate_mission_setup()
 			if not street_setup.is_empty():
 				battle_setup_data["street_fight"] = street_setup
-				print("BattlePhase DLC: Street Fight — %s" % street_setup.get("objective", {}).get("id", "unknown"))
+				print_verbose("BattlePhase DLC: Street Fight — %s" % street_setup.get("objective", {}).get("id", "unknown"))
 		"salvage":
 			var salvage_setup: Dictionary = CompendiumSalvageJobs.generate_mission_setup()
 			if not salvage_setup.is_empty():
 				battle_setup_data["salvage_mission"] = salvage_setup
-				print("BattlePhase DLC: Salvage Job")
+				print_verbose("BattlePhase DLC: Salvage Job")
 
 	# DLC: Escalating Battles check data (Compendium pp.46-47)
 	# Pre-compute whether escalation is applicable for this battle type
@@ -528,7 +528,7 @@ func _determine_deployment_conditions() -> Dictionary:
 	if not deploy.is_empty():
 		result["dlc_deployment"] = deploy
 		result["special_conditions"].append(deploy.get("instruction", ""))
-		print("BattlePhase DLC: Deployment Variable — %s" % deploy.get("name", "Line"))
+		print_verbose("BattlePhase DLC: Deployment Variable — %s" % deploy.get("name", "Line"))
 
 	return result
 
@@ -551,8 +551,8 @@ func _determine_unique_individual(difficulty: int, mission_type: int) -> Diction
 			var double_roll: int = randi_range(1, 6) + randi_range(1, 6)
 			if double_roll >= 11:
 				result.count = 2
-				print("BattlePhase: INSANITY — Double Unique Individual! (rolled %d)" % double_roll)
-		print("BattlePhase: INSANITY — Forced Unique Individual (count: %d)" % result.count)
+				print_verbose("BattlePhase: INSANITY — Double Unique Individual! (rolled %d)" % double_roll)
+		print_verbose("BattlePhase: INSANITY — Forced Unique Individual (count: %d)" % result.count)
 		# Roll on the Unique Individual table for each
 		for i in range(result.count):
 			var individual: Dictionary = _roll_unique_individual_type()
@@ -573,11 +573,11 @@ func _determine_unique_individual(difficulty: int, mission_type: int) -> Diction
 		var individual: Dictionary = _roll_unique_individual_type()
 		if not individual.is_empty():
 			result.individuals.append(individual)
-		print("BattlePhase: Unique Individual present (roll %d + mod %d = %d >= 9) — %s" % [
+		print_verbose("BattlePhase: Unique Individual present (roll %d + mod %d = %d >= 9) — %s" % [
 			roll, modifier, final_roll,
 			individual.get("name", "unknown")])
 	else:
-		print("BattlePhase: No Unique Individual (roll %d + mod %d = %d < 9)" % [roll, modifier, final_roll])
+		print_verbose("BattlePhase: No Unique Individual (roll %d + mod %d = %d < 9)" % [roll, modifier, final_roll])
 
 	return result
 

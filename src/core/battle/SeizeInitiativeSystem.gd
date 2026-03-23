@@ -64,17 +64,17 @@ func _debug_log_initiative_roll(result: InitiativeResult) -> void:
 	if not DEBUG_INITIATIVE:
 		return
 
-	print("│ SAVVY BONUS: +%d (highest in crew)" % result.savvy_bonus)
+	print_verbose("│ SAVVY BONUS: +%d (highest in crew)" % result.savvy_bonus)
 	if result.modifiers_breakdown.is_empty():
-		print("│   (none)")
+		print_verbose("│   (none)")
 	else:
 		for mod in result.modifiers_breakdown:
 			var sign_str := "+" if mod.value > 0 else ""
 			var applied_str := "" if mod.applied else " [NOT APPLIED]"
-	print("│ CALCULATION: %d (roll) + %d (savvy) + %d (mods) = %d" % [
+	print_verbose("│ CALCULATION: %d (roll) + %d (savvy) + %d (mods) = %d" % [
 		result.base_roll, result.savvy_bonus, result.total_modifiers, result.roll_total])
 	if result.success:
-		print("│ Crew may move OR fire (hits on natural 6 only)")
+		print_verbose("│ Crew may move OR fire (hits on natural 6 only)")
 	else:
 		pass
 

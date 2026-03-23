@@ -561,7 +561,7 @@ func _debug_log_enemy_count(crew_size: int, difficulty: int, roll_method: String
 	## Log enemy count calculation for debugging
 	if not DEBUG_ENEMY_COUNT:
 		return
-	print("│ Dice Rolls: %s" % str(rolls))
+	print_verbose("│ Dice Rolls: %s" % str(rolls))
 	if modifier != 0:
 		pass
 

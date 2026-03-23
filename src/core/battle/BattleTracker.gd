@@ -762,7 +762,7 @@ func record_kill(attacker_id: String, target_id: String) -> void:
 	})
 
 	if OS.is_debug_build():
-		print("[BattleTracker] Kill recorded: %s killed %s (round %d)" % [attacker_id, target_id, current_round])
+		print_verbose("[BattleTracker] Kill recorded: %s killed %s (round %d)" % [attacker_id, target_id, current_round])
 
 func get_kills_for_character(character_id: String) -> Array:
 	## Get list of targets killed by a character in this battle
