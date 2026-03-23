@@ -11,7 +11,7 @@ signal transaction_completed(amount: int, type: String)
 var _current_credits: int = 0
 var _transaction_history: Array = []
 func _init() -> void:
-	_current_credits = 1000 # Starting credits
+	_current_credits = 0 # Set by campaign creation (Core Rules p.28: 1 credit per crew member)
 
 func get_credits() -> int:
 	return _current_credits

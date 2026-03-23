@@ -114,8 +114,8 @@
 		}
 	},
 	"campaign": {
-		"_CONFLICT": "starting_credits: 100 here vs 10 in FiveParsecsConstants.gd vs 1/crew (VERIFIED Core Rules p.28). Needs book verification — may be campaign pool vs per-character vs per-crew-member. WorldEconomyManager._init() hardcodes 1000.",
-		"starting_credits": 100,
+		"_FIXED": "Core Rules p.28: 1 credit per crew member at campaign start. FiveParsecsConstants.starting_credits_per_crew = 1 is canonical. WorldEconomyManager._init() fixed to 0.",
+		"starting_credits_per_crew": 1,
 		"starting_supplies": 50,
 		"starting_fuel": 20,
 		"starting_reputation": 0,

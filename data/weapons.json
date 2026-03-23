@@ -13,7 +13,7 @@
     {"id": "brutal_melee_weapon", "name": "Brutal Melee Weapon", "category": "melee", "range": 0, "shots": 0, "damage": 1, "traits": ["Melee", "Clumsy"]},
     {"id": "cling_fire_pistol", "name": "Cling Fire Pistol", "category": "special", "range": 12, "shots": 2, "damage": 1, "traits": ["Focused", "Terrifying"]},
     {"id": "colony_rifle", "name": "Colony Rifle", "category": "slug", "range": 18, "shots": 1, "damage": 0, "traits": []},
-    {"id": "dazzle_grenade", "name": "Dazzle Grenade", "category": "grenade", "range": 6, "shots": 1, "damage": 0, "traits": ["Heavy", "Area", "Stun", "Single use"]},
+    {"id": "dazzle_grenade", "name": "Dazzle Grenade", "category": "grenade", "range": 6, "shots": 1, "damage": 0, "traits": ["Area", "Stun", "Single use"]},
     {"id": "duelling_pistol", "name": "Duelling Pistol", "category": "slug", "range": 8, "shots": 1, "damage": 0, "traits": ["Pistol", "Critical"]},
     {"id": "flak_gun", "name": "Flak Gun", "category": "slug", "range": 8, "shots": 2, "damage": 1, "traits": ["Focused", "Critical"]},
     {"id": "frakk_grenade", "name": "Frakk Grenade", "category": "grenade", "range": 6, "shots": 2, "damage": 0, "traits": ["Heavy", "Area", "Single use"]},
@@ -40,11 +40,11 @@
     {"id": "shell_gun", "name": "Shell Gun", "category": "slug", "range": 30, "shots": 2, "damage": 0, "traits": ["Heavy", "Area"]},
     {"id": "shotgun", "name": "Shotgun", "category": "slug", "range": 12, "shots": 2, "damage": 1, "traits": ["Focused"]},
     {"id": "suppression_maul", "name": "Suppression Maul", "category": "melee", "range": 0, "shots": 0, "damage": 1, "traits": ["Melee", "Impact"]},
-    {"id": "carbine", "name": "Carbine", "category": "slug", "range": 18, "shots": 1, "damage": 0, "traits": [], "_note": "GAME_BALANCE_ESTIMATE — stats from LootSystemConstants, needs Core Rules verification"},
-    {"id": "laser_rifle", "name": "Laser Rifle", "category": "energy", "range": 30, "shots": 1, "damage": 1, "traits": [], "_note": "GAME_BALANCE_ESTIMATE — stats from LootSystemConstants, needs Core Rules verification"},
-    {"id": "plasma_pistol", "name": "Plasma Pistol", "category": "special", "range": 10, "shots": 1, "damage": 2, "traits": ["Pistol"], "_note": "GAME_BALANCE_ESTIMATE — stats from LootSystemConstants, needs Core Rules verification"},
-    {"id": "auto_cannon", "name": "Auto Cannon", "category": "slug", "range": 24, "shots": 3, "damage": 1, "traits": ["Heavy"], "_note": "GAME_BALANCE_ESTIMATE — stats from LootSystemConstants, needs Core Rules verification"},
-    {"id": "missile_launcher", "name": "Missile Launcher", "category": "special", "range": 30, "shots": 1, "damage": 3, "traits": ["Heavy", "Area"], "_note": "GAME_BALANCE_ESTIMATE — stats from LootSystemConstants, needs Core Rules verification"},
-    {"id": "shock_grenade", "name": "Shock Grenade", "category": "grenade", "range": 6, "shots": 1, "damage": 0, "traits": ["Heavy", "Area", "Stun", "Single use"], "_note": "GAME_BALANCE_ESTIMATE — stats from LootSystemConstants, needs Core Rules verification"}
+    {"id": "carbine", "name": "Carbine", "category": "slug", "range": 18, "shots": 1, "damage": 0, "traits": [], "_note": "NOT IN CORE RULES — stats from LootSystemConstants. Used by CharacterGeneration.gd. Verify against Compendium."},
+    {"id": "laser_rifle", "name": "Laser Rifle", "category": "energy", "range": 30, "shots": 1, "damage": 1, "traits": [], "_note": "NOT IN CORE RULES — stats from LootSystemConstants. Verify against Compendium."},
+    {"id": "plasma_pistol", "name": "Plasma Pistol", "category": "special", "range": 10, "shots": 1, "damage": 2, "traits": ["Pistol"], "_note": "NOT IN CORE RULES — stats from LootSystemConstants. Verify against Compendium."},
+    {"id": "auto_cannon", "name": "Auto Cannon", "category": "slug", "range": 24, "shots": 3, "damage": 1, "traits": ["Heavy"], "_note": "NOT IN CORE RULES — stats from LootSystemConstants. Verify against Compendium."},
+    {"id": "missile_launcher", "name": "Missile Launcher", "category": "special", "range": 30, "shots": 1, "damage": 3, "traits": ["Heavy", "Area"], "_note": "NOT IN CORE RULES — stats from LootSystemConstants. Verify against Compendium."},
+    {"id": "shock_grenade", "name": "Shock Grenade", "category": "grenade", "range": 6, "shots": 1, "damage": 0, "traits": ["Area", "Stun", "Single use"], "_note": "NOT IN CORE RULES — stats from LootSystemConstants. Verify against Compendium."}
   ]
 }

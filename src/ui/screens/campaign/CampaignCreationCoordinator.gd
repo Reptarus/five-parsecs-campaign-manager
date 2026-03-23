@@ -810,7 +810,9 @@ func _character_to_dict(character) -> Dictionary:
 				for prop in ["background", "motivation", "origin", "character_class",
 						"combat", "reactions", "reaction", "toughness", "savvy",
 						"speed", "luck", "experience", "traits", "starting_rolls",
-						"id", "injuries"]:
+						"id", "injuries", "psionic_power", "psionic_power_enhanced",
+						"is_captain", "is_bot", "is_soulless", "is_human",
+						"character_type", "level"]:
 					if prop in char_obj and not character.has(prop):
 						character[prop] = char_obj.get(prop)
 				# Normalize reaction → reactions

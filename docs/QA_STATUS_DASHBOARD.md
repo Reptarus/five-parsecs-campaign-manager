@@ -12,7 +12,7 @@
 |--------|-------|
 | Game Mechanics Implemented | 170/170 (100%) |
 | Mechanics Runtime-Verified | 170/170 (100%) |
-| Open Bugs | 1 confirmed (Precursor psionic) + 0 UX + 1 deferred |
+| Open Bugs | 0 confirmed + 0 UX + 1 deferred (BUG-036 Precursor psionic FIXED Mar 22) |
 | Unit Test Files | 50 (tests/unit/) |
 | Integration Test Files | 22 (tests/integration/) |
 | MCP Test Sessions Completed | 18+ (106 bugs found, 102 fixed) |
@@ -44,7 +44,7 @@
 
 | Bug | Severity | Description | Decision Needed |
 |-----|----------|-------------|-----------------|
-| BUG-036 | P2 | Precursor species missing psionic power at creation (gives +1 Savvy only) | Add psionic power grant or document as deferred |
+| ~~BUG-036~~ | **FIXED** | Precursor psionic power preserved during campaign creation (property whitelist expanded: +8 props in CampaignCreationCoordinator) | Root cause: 15-prop whitelist dropped `psionic_power` during Resource→Dict conversion |
 | ~~BUG-037~~ | **FIXED** | Swift species now +2 Speed (was +1 Speed +1 Reactions) | Matched Core Rules p.50 |
 | ~~BUG-038~~ | **FIXED** | Soulless species now +1 Toughness only (removed extra +1 Reactions) | Matched Core Rules p.50 |
 
@@ -92,7 +92,7 @@ None — all UX issues resolved as of 2026-03-20.
 - Upkeep cost: `FiveParsecsConstants.gd` base_upkeep=1 vs `campaign_rules.json` base_cost_per_member=6 (Core Rules p.76-80)
 - Starting credits: `FiveParsecsConstants.gd` 10 vs `campaign_rules.json` 100 (Core Rules p.15)
 - WorldEconomyManager 100x scale: credits=1000 init vs FiveParsecsConstants 10 (unit system mismatch)
-- Injury fatal split: `injury_table.json` (1-5 + 6-15) vs `InjurySystemConstants.gd` (1-15 combined)
+- ~~Injury fatal split~~: **FIXED** — split into GRUESOME_FATE(1-5) + FATAL(6-15) in both `injury_table.json` and `InjurySystemConstants.gd`
 
 **Tagged as GAME_BALANCE_ESTIMATE** (78% of economy constants lack Core Rules citations):
 - 50+ values in FiveParsecsConstants.gd, EquipmentManager.gd, GameCampaignManager.gd tagged

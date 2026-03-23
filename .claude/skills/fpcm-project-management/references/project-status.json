@@ -1,6 +1,6 @@
 {
   "last_updated": "2026-03-22",
-  "current_phase": "Traceability Matrix 12/13 chapters code-mapped (~195 items). Book verification next. 4 code fixes applied (CLAUDE.md implants, world trait fallback, onboard_items flag).",
+  "current_phase": "Traceability Matrix 13/13 chapters code-mapped (~266 items). Compendium C1-C4 mapped. Upkeep stub FIXED. Injury split FIXED. Treatment system ADDED. Patron rewards FIXED. 39 uncommitted files across 2 parallel chats.",
   "key_metrics": {
     "game_mechanics_compliance": "100% (170/170)",
     "core_rules_systems": "11/11 verified",
@@ -11,56 +11,39 @@
     "compile_errors": 0,
     "gdscript_files": "~900 (excl. addons)",
     "autoloads": 28,
-    "mcp_qa_sprint_mar21": "7 sessions, 62/66 PASS, 4 N/A",
-    "compendium_integration": "11/11 data files, ~52/93 methods wired",
-    "open_bugs": 0,
-    "pdf_verified_values": "~400/825+",
-    "fabricated_files_flagged": 7,
-    "new_json_data_files": 5
+    "traceability_items_mapped": 266,
+    "traceability_items_verified": 0,
+    "traceability_chapters_mapped": "13/13",
+    "compendium_items_mapped": 71,
+    "open_conflicts": 4,
+    "fabricated_files_flagged": 9,
+    "fixes_this_session": 9
   },
   "phase_46_qa": {
-    "status": "IN PROGRESS",
-    "description": "Core Rules PDF verification sprint",
-    "fixes": [
-      {
-        "item": "motivation_table.json",
-        "severity": "CRITICAL",
-        "description": "Completely rewritten from fabricated D66 (36 fake entries) to Core Rules D100 (17 entries, p.26)",
-        "note": "Entry 96-100 name unreadable from PDF, marked BOOK_VERIFICATION_NEEDED"
-      },
-      {
-        "item": "ships.json",
-        "severity": "CRITICAL",
-        "description": "13 Core Rules types (hull 20-40, debt 1D6+base), replacing 7 fabricated types"
-      },
-      {
-        "item": "FiveParsecsConstants.gd ECONOMY",
-        "severity": "HIGH",
-        "description": "6 wrong thresholds corrected from pp.76-78"
-      },
-      {
-        "item": "loot_tables.json ship_items",
-        "severity": "HIGH",
-        "description": "14 missing ship items added (had 5/19)"
-      }
+    "status": "IN PROGRESS — All chapters mapped, fixes applied",
+    "description": "Core Rules PDF verification sprint + Compendium mapping",
+    "fixes_session_2": [
+      "CampaignPhaseManager._calculate_upkeep_costs() implemented (was stub returning 0)",
+      "InjurySystemConstants: FATAL split into GRUESOME_FATE(1-5) + FATAL(6-15)",
+      "InjurySystemConstants: TreatmentType system added (Sick Bay/Surgery/Natural)",
+      "PatronRivalManager fallback payments fixed (1200-3500 → 3-7, D6-scale)",
+      "credit_rewards.json flagged FABRICATED (~100x Core Rules scale)",
+      "campaign_rules.json upkeep fixed (6→1), file flagged as unwired",
+      "Compendium C1-C4: 71 items mapped with file:line refs",
+      "Ships rewritten with 13 types (2nd chat)",
+      "Precursor double-roll implemented (2nd chat)",
+      "PaymentProcessor rewritten to Core Rules formula (2nd chat)"
     ],
-    "verified_domains": [
-      { "domain": "Enemy Types", "count": 60, "result": "ALL MATCH (pp.94-107)" },
-      { "domain": "Species Stats", "count": 9, "result": "ALL MATCH (pp.15-22)" },
-      { "domain": "Starting Equipment Tables", "count": 5, "result": "ALL MATCH (pp.28-29)" },
-      { "domain": "Advancement Costs", "count": "all", "result": "ALL MATCH (pp.123-130)" },
-      { "domain": "Weapon Stats", "count": 43, "result": "ALL MATCH (p.50)" },
-      { "domain": "Economy/Crew Tasks", "count": "~20", "result": "VERIFIED (pp.76-80)" },
-      { "domain": "Ship Data", "count": 13, "result": "VERIFIED + rewritten (p.31)" },
-      { "domain": "Loot Table Ranges", "count": "all", "result": "ALL MATCH (pp.131-133)" },
-      { "domain": "Trade Table", "count": 12, "result": "Spot-checked, first 12 entries match (p.79)" }
+    "remaining_open": [
+      "Starting credits 3-way conflict (needs book pp.15/28)",
+      "WorldEconomyManager hardcodes 1000 (needs book)",
+      "ShipPanel SpinBox max constraints",
+      "~266 items need book verification to promote to VERIFIED"
     ],
-    "remaining_unverified": [
-      "Campaign Events (pp.100-102) — ~100 values",
-      "Travel & World (pp.70-79) — ~40 values",
-      "Missions (pp.84-97) — ~50 values",
-      "Victory Conditions (p.134) — ~10 values",
-      "Compendium/DLC (supplements) — ~100 values"
+    "resolved_this_sprint": [
+      "BUG-036: Precursor psionic power lost during creation — property whitelist expanded (8 new props)",
+      "credit_rewards.json DELETED — fabricated, unwired dead code (~100x Core Rules scale)",
+      "Compendium stealth/street/salvage duplication: generators are canonical, compendium classes are reference-only (6 consumers exist, NOT dead code)"
     ]
   },
   "completed_phases": [
@@ -99,12 +82,10 @@
     { "phase": "Functional Gaps", "description": "Cleanup (7 sprints F-1 to F-7)" }
   ],
   "roadmap": {
-    "remaining_pdf_verification": "Campaign Events, Travel, Missions, Victory Conditions, Compendium",
+    "next_priority": "Runtime QA sprint — compile-clean, all systems code-mapped, ready for runtime testing",
+    "remaining_pdf_verification": "~266 items need book verification",
     "equipment_database": "FULLY WIRED (Phase 45). 36 weapons, 9 armor, 26 gear, 13 attachments.",
-    "psionics": "FULLY WIRED (Phase 44). One enhanced bonus not yet applied at runtime.",
-    "compendium_deferred": ["GRID_BASED_MOVEMENT text helpers", "species text helpers", "PvP/Co-op modes"],
-    "bug_hunt_phase_8": "Co-op mode support (stretch)",
-    "battle_ux": "Per-character smart dice roll requested by user",
+    "compendium_deferred": ["species text helpers", "PvP/Co-op modes"],
     "store_ids": "Placeholder — need real IDs from Modiphius",
     "public_beta": "Pending Modiphius approval"
   },
@@ -114,6 +95,7 @@
     "store_pattern": "StoreManager → SteamStore/AndroidStore/iOSStore/OfflineStore",
     "battle_mode": "Tabletop companion — text instructions, not automated simulation",
     "dlc_gating": "compendium_*.gd classes check ContentFlags internally",
-    "psionics": "PsionicSystem.gd (static) + Character.psionic_power (JSON ID) + psionic_power_enhanced (bool), DLC-gated"
+    "injury_system": "GRUESOME_FATE(1-5) + FATAL(6-15) + 7 other types. TreatmentType: SICK_BAY/SURGERY/NATURAL",
+    "payment_system": "D6 + danger_pay (1-3 from patron_generation.json). Single-digit credit scale."
   }
 }

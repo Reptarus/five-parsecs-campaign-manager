@@ -311,6 +311,47 @@
 			],
 			"rolls_creation_tables": true,
 			"page_reference": "p.22"
+		},
+		{
+			"id": "traveler",
+			"name": "Traveler",
+			"base_stats": {"reactions": 3, "speed": 4, "combat_skill": 0, "toughness": 4, "savvy": 2},
+			"stat_modifiers": {"combat": 0, "toughness": 1, "speed": 0, "savvy": 2, "reactions": 2},
+			"special_rules": [
+				"Begin with +2 story points and 2 Quest Rumors",
+				"Speed is +2\" if moving directly away from a visible enemy",
+				"After every battle, roll 2D6: On 2, disappear permanently (crew gains 2 story points). On 11-12, crew immediately receives a Quest",
+				"Motivation is always Truth"
+			],
+			"forced_motivation": "truth",
+			"rolls_creation_tables": true,
+			"page_reference": "p.22"
+		},
+		{
+			"id": "empath",
+			"name": "Empath",
+			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
+			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
+			"special_rules": [
+				"As Baseline Human",
+				"When sent on Recruit or Find a Patron tasks, add +1 to the roll",
+				"Cannot be given implants without losing this ability"
+			],
+			"rolls_creation_tables": true,
+			"page_reference": "p.23"
+		},
+		{
+			"id": "bio_upgrade",
+			"name": "Bio-upgrade",
+			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
+			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
+			"special_rules": [
+				"As Baseline Human",
+				"May have up to 4 implants, and could benefit from 2 of the same implant",
+				"If Background, Motivation, or Class rolls produce bonus credits, receive 2 credits less"
+			],
+			"rolls_creation_tables": true,
+			"page_reference": "p.23"
 		}
 	],
 	"species_compatibility": {

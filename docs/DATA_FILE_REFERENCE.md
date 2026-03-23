@@ -116,7 +116,7 @@ Mission generation and rewards.
 | `mission_titles.json` | Mission name generation |
 | `bonus_objectives.json` | Optional objectives |
 | `bonus_rewards.json` | Bonus loot |
-| `credit_rewards.json` | Credit payout tables |
+| ~~`credit_rewards.json`~~ | ~~DELETED — was fabricated (~100x scale). Use `mission_rewards.json`~~ |
 | `deployment_points.json` | Deployment rules |
 | `rival_involvement.json` | Rival encounter chance |
 | `reward_items.json` | Specific item rewards |
