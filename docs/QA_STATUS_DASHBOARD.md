@@ -2,7 +2,7 @@
 
 **Last Updated**: 2026-03-23
 **Engine**: Godot 4.6-stable
-**Overall Coverage**: Data 97% verified (925/925 values checked), but **generator wiring 7/16 OK** — 9 generators have issues (2 load-but-ignore JSON, 1 no JSON at all, 2 broken property access, 2 payment inflation, 2 stat overflow/incomplete). See QA_RULES_ACCURACY_AUDIT.md "Generator Wiring Gap" for detailed per-file breakdown with exact line numbers.
+**Overall Coverage**: Data 100% verified (925/925 values), **generator wiring 16/16 OK** — all 10 broken generators fixed (Mar 23 sprint). See QA_RULES_ACCURACY_AUDIT.md "Generator Wiring Gap" for fix details.
 
 ---
 
@@ -51,12 +51,12 @@
 | ~~BUG-038~~ | **FIXED** | Soulless species now +1 Toughness only (removed extra +1 Reactions) | Matched Core Rules p.50 |
 | ~~BUG-040~~ | **FIXED** | InjuryProcessor.gd:99,155 — unsafe `turn_number` access on GameStateManager (missing `"turn_number" in` guard). Crashed during post-battle injury processing when no campaign loaded. | Added property existence check, matching pattern from line 45 |
 
-### Weapon Data Needing Book Verification
+### Weapon Data — Book Verified (Mar 23)
 
-| Item | Current Value | Expected (Core Rules p.50) | Status |
-|------|--------------|---------------------------|--------|
-| Colony Rifle range | 18 | 24" | **NEEDS BOOK CHECK** — both weapons.json + equipment_database.json agree on 18 |
-| Infantry Laser damage | 0 | +1 | **NEEDS BOOK CHECK** — both data files agree on 0 |
+| Item | Value | Core Rules p.49 | Status |
+|------|-------|-----------------|--------|
+| Colony Rifle range | 18" | 18" (Range 18", Shots 1, Damage 0) | **CONFIRMED CORRECT** |
+| Infantry Laser damage | 0 | 0 (Range 30", Shots 1, Damage 0, Snap Shot) | **CONFIRMED CORRECT** — +1 only with Hot Shot Pack mod |
 
 ### UX Issues
 

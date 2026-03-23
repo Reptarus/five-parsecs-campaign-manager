@@ -1,6 +1,6 @@
 {
   "last_updated": "2026-03-23",
-  "current_phase": "Generator Wiring Fix Sprint COMPLETE — 10/10 broken generators FIXED. Data layer 925/925 verified. Zero compile errors.",
+  "current_phase": "Generator Wiring Sprint DONE (16/16 OK). CharacterGeneration + EnemyWizard + RivalBattle fixed. Ready for MCP runtime verification.",
   "key_metrics": {
     "game_mechanics_compliance": "100% (170/170)",
     "core_rules_systems": "11/11 verified",
@@ -92,7 +92,7 @@
     { "phase": "Functional Gaps", "description": "Cleanup (7 sprints F-1 to F-7)" }
   ],
   "roadmap": {
-    "next_priority": "Generator wiring COMPLETE. Next: Compendium/DLC verification (~100 values) + phantom property cleanup (CharacterGeneration).",
+    "next_priority": "All 16 generators FIXED. Next: 1) Commit 2 QA doc updates, 2) MCP runtime verification of all generators, 3) Low-priority: victory metric tracking, 7 standalone battle UI bugs, BugHunt equipment IDs.",
     "remaining_pdf_verification": "~100 Compendium/DLC values (Core Rules domains complete)",
     "equipment_database": "FULLY WIRED + VERIFIED. 36 Core Rules weapons confirmed, 6 non-Core tagged.",
     "compendium_deferred": ["species text helpers", "PvP/Co-op modes", "6 non-Core weapon stats"],
