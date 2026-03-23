@@ -111,8 +111,8 @@ func generate_battle_loot(defeated_enemies: Array, battle_context: Dictionary = 
 		
 		# Track credits separately
 		for item in enemy_loot:
-			if item.item_type == 0: # CREDITS type
-				total_credits += item.value
+			if item.item_category == "credits":
+				total_credits += item.item_cost.get("credits", 0) if item.item_cost is Dictionary else int(item.item_cost)
 	
 	# Apply battle-wide bonuses
 	var battle_bonus: Dictionary = _calculate_battle_bonus(defeated_enemies, battle_context)
@@ -202,7 +202,7 @@ func _build_loot_context(enemy: Enemy, context: Dictionary) -> Dictionary:
 	
 	# Add enemy-specific context
 	loot_context["enemy_type"] = enemy.get_enemy_type()
-	loot_context["enemy_level"] = enemy._max_health / 10 # Rough level estimate
+	loot_context["enemy_level"] = 1 # Default level
 	loot_context["base_loot_chance"] = base_loot_chance
 	loot_context["rare_multiplier"] = rare_loot_multiplier
 	
@@ -212,113 +212,86 @@ func _build_loot_context(enemy: Enemy, context: Dictionary) -> Dictionary:
 	
 	return loot_context
 
-func _generate_category_loot(loot_data: Array, category: String, context: Dictionary) -> Array[GameItem]:
+func _generate_category_loot(loot_data: Array, category: String, _context: Dictionary) -> Array[GameItem]:
 	var items: Array[GameItem] = []
-	
 	for loot_entry in loot_data:
 		var chance: float = loot_entry.get("chance", 0.5)
-		var base_value: int = loot_entry.get("value", 10)
-		var quality_tier: int = loot_entry.get("quality", 2)
-		
-		# Apply context modifiers
-		chance *= context.get("chance_multiplier", 1.0)
-		quality_tier += context.get("quality_bonus", 0)
-		
-		# Roll for loot
 		if randf() <= chance:
 			var item: GameItem = _create_item_from_loot_data(loot_entry, category)
-			_apply_context_modifiers(item, context)
 			items.append(item)
-	
 	return items
 
 func _create_item_from_loot_data(loot_data: Dictionary, category: String) -> GameItem:
 	var item: GameItem = GameItem.new()
-	
-	# Set basic properties
-	item.item_name = loot_data.get("name", "Unknown Item")
-	item.item_description = loot_data.get("description", "")
-	item.value = loot_data.get("value", 10)
-	
-	# Set item type based on category
-	item.item_type = _determine_item_type(loot_data, category)
-	
-	# Set quality and condition
-	item.quality = _parse_quality_enum(loot_data.get("quality", "standard"))
-	item.condition = _parse_condition_enum(loot_data.get("condition", "good"))
-	
-	# Set specialized properties
-	_set_specialized_properties(item, loot_data, category)
-	
+	var item_type_str: String = loot_data.get("type", category).to_lower()
+
+	# For weapons: resolve to a canonical weapon from weapons.json
+	if item_type_str == "weapon" or category == "weapons":
+		var weapon_data: Dictionary = _pick_random_canonical_weapon()
+		if not weapon_data.is_empty():
+			item.initialize_from_data(weapon_data)
+			return item
+
+	# For other item types: use the loot_data as-is via initialize_from_data
+	var init_data: Dictionary = {
+		"id": loot_data.get("id", "loot_%s" % str(randi())),
+		"name": loot_data.get("name", "Unknown Item"),
+		"category": item_type_str,
+		"description": loot_data.get("description", ""),
+		"cost": loot_data.get("value", 1),
+		"tags": loot_data.get("tags", []),
+	}
+	item.initialize_from_data(init_data)
 	return item
 
-func _determine_item_type(loot_data: Dictionary, category: String) -> int:
-	var item_type: String = loot_data.get("type", category)
-	
-	match item_type.to_lower():
-		"weapon": return 1 # WEAPON
-		"armor": return 2 # ARMOR
-		"equipment": return 3 # EQUIPMENT
-		"consumable": return 4 # CONSUMABLE
-		"trade_good": return 5 # TRADE_GOOD
-		"data": return 6 # DATA
-		"credits": return 0 # CREDITS
-		"contraband": return 7 # CONTRABAND
-		"biological": return 8 # BIOLOGICAL
-		_: return 3 # EQUIPMENT
 
-func _parse_quality_enum(quality: String) -> int:
-	match quality.to_lower():
-		"poor": return 1 # POOR
-		"standard": return 2 # STANDARD
-		"good": return 3 # GOOD
-		"excellent": return 4 # EXCELLENT
-		"masterwork": return 5 # MASTERWORK
-		_: return 2 # STANDARD
+## Cached canonical weapon data from weapons.json
+static var _weapons_cache: Array = []
+static var _weapons_loaded: bool = false
 
-func _parse_condition_enum(condition: String) -> int:
-	match condition.to_lower():
-		"broken": return 1 # BROKEN
-		"poor": return 2 # POOR
-		"damaged": return 3 # DAMAGED
-		"good": return 4 # GOOD
-		"excellent": return 5 # EXCELLENT
-		_: return 4 # GOOD
+static func _load_weapons_cache() -> void:
+	if _weapons_loaded:
+		return
+	var path := "res://data/weapons.json"
+	if not FileAccess.file_exists(path):
+		_weapons_loaded = true
+		return
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		_weapons_loaded = true
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		_weapons_loaded = true
+		return
+	if json.data is Dictionary and json.data.has("weapons"):
+		_weapons_cache = json.data["weapons"]
+	_weapons_loaded = true
 
-func _apply_context_modifiers(item: GameItem, context: Dictionary) -> void:
-	# Apply difficulty-based value modifications
-	var difficulty_modifier: float = context.get("difficulty_modifier", 1.0)
-	item.value = int(item.value * difficulty_modifier)
-	
-	# Apply luck-based quality improvements
-	var luck_bonus: float = context.get("luck_bonus", 0.0)
-	if randf() < luck_bonus:
-		# Potentially upgrade quality
-		if randf() < 0.3:
-			item.quality = mini(item.quality + 1, 5) # MASTERWORK
+static func _pick_random_canonical_weapon() -> Dictionary:
+	_load_weapons_cache()
+	if _weapons_cache.is_empty():
+		return {}
+	var weapon: Dictionary = _weapons_cache[randi() % _weapons_cache.size()]
+	# Convert weapons.json format to GameItem.initialize_from_data format
+	return {
+		"id": weapon.get("id", "unknown_weapon"),
+		"name": weapon.get("name", "Unknown Weapon"),
+		"category": "weapon",
+		"description": "Range: %d\", Shots: %d, Damage: +%d. Traits: %s" % [
+			weapon.get("range", 0),
+			weapon.get("shots", 0),
+			weapon.get("damage", 0),
+			", ".join(weapon.get("traits", [])) if weapon.get("traits", []) else "None"
+		],
+		"cost": weapon.get("damage", 0) + weapon.get("shots", 1),
+		"tags": weapon.get("traits", []),
+		"effect": "Range %d\", Shots %d, Damage +%d" % [
+			weapon.get("range", 0), weapon.get("shots", 0), weapon.get("damage", 0)
+		],
+	}
 
-func _set_specialized_properties(item: GameItem, loot_data: Dictionary, category: String) -> void:
-	# Set category-specific properties
-	if category == "weapons":
-		item.tags.append("combat")
-		if loot_data.has("range"):
-			item.tags.append("range_" + str(loot_data.range))
-	
-	elif category == "armor":
-		item.tags.append("protection")
-		if loot_data.has("armor_value"):
-			item.tags.append("armor_" + str(loot_data.armor_value))
-	
-	elif category == "equipment":
-		item.tags.append("utility")
-		if loot_data.has("specialization"):
-			item.tags.append("spec_" + loot_data.specialization)
-	
-	# Add source information
-	if loot_data.has("source"):
-		item.tags.append("source_" + loot_data.source)
-
-func _calculate_battle_bonus(defeated_enemies: Array, context: Dictionary) -> Dictionary:
+func _calculate_battle_bonus(defeated_enemies: Array, _context: Dictionary) -> Dictionary:
 	var bonus: Dictionary = {}
 
 	var enemy_count: int = defeated_enemies.size()
@@ -333,53 +306,44 @@ func _calculate_battle_bonus(defeated_enemies: Array, context: Dictionary) -> Di
 	# Bonus for diverse enemy types
 	if enemy_types.size() >= 3:
 		var bonus_item: GameItem = GameItem.new()
-		bonus_item.item_name = "Combat Experience Data"
-		bonus_item.item_description = "Valuable tactical data from engaging diverse enemy types"
-		bonus_item.item_type = 6 # DATA
-		bonus_item.value = 500
-		bonus_item.quality = 3 # GOOD
-		bonus_item.tags.append("tactical_data")
-		bonus_item.tags.append("bonus_loot")
+		bonus_item.initialize_from_data({
+			"id": "combat_experience_data",
+			"name": "Combat Experience Data",
+			"category": "special",
+			"description": "Tactical data from engaging diverse enemy types",
+			"cost": 1,
+			"tags": ["tactical_data", "bonus_loot"],
+		})
 		return {"bonus_items": [bonus_item], "bonus_credits": 0}
 	
 	return {}
 
 func _consolidate_loot_items(loot_items: Array) -> Array[GameItem]:
 	var consolidated: Dictionary = {}
-	
 	for item in loot_items:
-		if item.item_type == 0: # CREDITS
-			# Consolidate credits
-			if consolidated.has("credits"):
-				consolidated["credits"].value += item.value
-			else:
-				consolidated["credits"] = item
-		else:
-			# Keep unique items
-			var key: String = item.item_name + "_" + str(item.item_type)
-			if not consolidated.has(key):
-				consolidated[key] = item
-	
+		# Keep unique items by name + category
+		var key: String = item.item_name + "_" + item.item_category
+		if not consolidated.has(key):
+			consolidated[key] = item
 	return consolidated.values()
 
 func _extract_rare_items(loot_items: Array) -> Array[GameItem]:
 	var rare_items: Array[GameItem] = []
-	
 	for item in loot_items:
-		if item.quality >= 4 or item.tags.has("rare"): # EXCELLENT or higher
+		if item.item_tags.has("rare") or item.item_tags.has("Piercing") or item.item_tags.has("Critical"):
 			rare_items.append(item)
-	
 	return rare_items
 
 func _calculate_total_loot_value(loot_items: Array) -> int:
 	var total: int = 0
-	
 	for item in loot_items:
-		total += item.value
-	
+		if item.item_cost is Dictionary:
+			total += item.item_cost.get("credits", 0)
+		elif item.item_cost is int:
+			total += item.item_cost
 	return total
 
-func _generate_generic_loot_table(enemy: Enemy) -> Dictionary:
+func _generate_generic_loot_table(_enemy: Enemy) -> Dictionary:
 	# Fallback loot table for enemies without specific tables
 	return {
 		"credits": [
@@ -390,20 +354,3 @@ func _generate_generic_loot_table(enemy: Enemy) -> Dictionary:
 		]
 	}
 
-func _create_item(name: String, type: int, base_value: int, quality_tier: int) -> GameItem:
-	var item: GameItem = GameItem.new()
-	item.item_name = name
-	item.item_type = type
-	item.value = base_value
-	
-	# Set quality based on tier
-	match quality_tier:
-		1: item.quality = 1 # POOR
-		2: item.quality = 2 # STANDARD
-		3: item.quality = 3 # GOOD
-		4: item.quality = 4 # EXCELLENT
-		5: item.quality = 5 # MASTERWORK
-		_: item.quality = 2 # STANDARD
-	
-	item.condition = 4 # GOOD
-	return item

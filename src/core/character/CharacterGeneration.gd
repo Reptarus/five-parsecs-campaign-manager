@@ -854,37 +854,71 @@ static func _apply_basic_equipment(character: Character) -> void:
 ## Note: Origin-based properties like is_bot(), is_human() are derived from origin string
 ## so we only need to apply the stat modifiers and traits here
 static func set_character_flags(character: Character) -> void:
+	## Apply species stat_modifiers and special rules from character_species.json (VERIFIED).
+	## Stat modifiers are RELATIVE to whatever generate_character_attributes() produced.
 	match character.origin:
 		"HUMAN":
-			# Human: +1 luck (Five Parsecs p.18)
+			# Human: Can exceed 1 Luck (Core Rules p.15). No stat modifiers.
 			character.luck = clampi(character.luck + 1, 0, 3)
 		"BOT":
-			# Bot: 6+ Armor save (Five Parsecs p.18) - origin already set
-			character.add_trait("Bot: 6+ Armor Save")
-		"SOULLESS":
-			# Soulless: 6+ Armor save (Five Parsecs p.19) - origin already set
-			character.add_trait("Soulless: 6+ Armor Save")
-		"ENGINEER":
-			# Engineer: +1 Savvy, -1 Reaction, can't exceed T4 in Savvy (Five Parsecs p.18)
-			character.savvy = clampi(character.savvy + 1, 0, 4) # T4 cap
-			character.reactions = clampi(character.reactions - 1, 1, 6)
-			character.add_trait("Engineer: +1 to repair rolls, T4 Savvy cap")
-		"KERIN":
-			# K'Erin: Toughness 4, +1 melee damage (Five Parsecs p.19)
-			character.toughness = 4 # Force T4
-			character.add_trait("K'Erin: +1 damage with melee weapons")
-		"PRECURSOR":
-			# Precursor: +2 Savvy, roll twice on events (Five Parsecs p.19)
+			# Bot: R+1, C+1, T+1, Sv+2 (Core Rules p.15). 6+ Armor. No creation tables.
+			character.reactions = clampi(character.reactions + 1, 1, 6)
+			character.combat = clampi(character.combat + 1, 0, 5)
+			character.toughness = clampi(character.toughness + 1, 3, 8)
 			character.savvy = clampi(character.savvy + 2, 0, 5)
+			character.add_trait("Bot: 6+ Armor Save, no XP (upgrade via credits), no consumables/implants")
+		"SOULLESS":
+			# Soulless: T+1, Sv+1 (Core Rules p.16). 6+ Armor. Bot injury table.
+			character.toughness = clampi(character.toughness + 1, 3, 6)
+			character.savvy = clampi(character.savvy + 1, 0, 5)
+			character.add_trait("Soulless: 6+ Armor Save, no consumables/implants, Bot injury table")
+		"ENGINEER":
+			# Engineer: T-1, Sv+1 (Core Rules p.16). +1 repair. Toughness max 4.
+			character.toughness = clampi(character.toughness - 1, 2, 4)
+			character.savvy = clampi(character.savvy + 1, 0, 5)
+			character.add_trait("Engineer: +1 to repair rolls, Toughness cannot exceed 4")
+		"KERIN":
+			# K'Erin: T+1 (Core Rules p.16). Brawl reroll. Must charge if in range.
+			character.toughness = clampi(character.toughness + 1, 3, 6)
+			character.add_trait("K'Erin: Roll twice in Brawling (pick better), must move to Brawl if enemy in range")
+		"PRECURSOR":
+			# Precursor: T-1, Sp+1 (Core Rules p.17). Roll 2 char events. Psionic power.
+			character.toughness = clampi(character.toughness - 1, 2, 6)
+			character.speed = clampi(character.speed + 1, 4, 8)
 			character.add_trait("Precursor: Roll twice on events, keep preferred")
+			_grant_precursor_psionic_power(character)
 		"FERAL":
-			# Feral: Ignore enemy penalties (Five Parsecs p.20)
-			character.add_trait("Feral: Ignore suppression and enemy penalties")
+			# Feral: No stat modifiers (Core Rules p.18). Ignore seize penalties. Reaction 1 priority.
+			character.add_trait("Feral: Enemy Seize the Initiative penalties ignored, Reaction Roll 1 goes to Feral")
 		"SWIFT":
-			# Swift: +2 Speed, limited to 1 Reaction per round (Five Parsecs p.20)
-			character.speed = clampi(character.speed + 2, 4, 8)
-			character.max_reactions_per_round = 1 # Hard cap for Swift
-			character.add_trait("Swift: Glide abilities, 1 Reaction per round")
+			# Swift: Sp+1 (Core Rules p.18). Glide/leap. Multi-shot same target.
+			character.speed = clampi(character.speed + 1, 4, 8)
+			character.add_trait("Swift: Glide to lower position, leap 4\" gaps, jump from any height, multi-shot same target")
+
+## Grant a random psionic power to a Precursor character (Core Rules p.17)
+static func _grant_precursor_psionic_power(character: Character) -> void:
+	var path := "res://data/psionic_powers.json"
+	if not FileAccess.file_exists(path):
+		character.add_trait("Precursor: Psionic (power data unavailable)")
+		return
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		return
+	if not json.data is Dictionary:
+		return
+	var power_ids: Array = json.data.keys()
+	if power_ids.is_empty():
+		return
+	var chosen_id: String = power_ids[randi() % power_ids.size()]
+	if "psionic_power" in character:
+		character.psionic_power = chosen_id
+	else:
+		character.set_meta("psionic_power", chosen_id)
+	character.add_trait("Psionic Power: %s" % chosen_id)
+
 
 ## Validate character meets Five Parsecs constraints
 static func validate_character(character: Character) -> Dictionary:

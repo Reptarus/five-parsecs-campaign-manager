@@ -1,6 +1,6 @@
 {
-  "last_updated": "2026-03-22",
-  "current_phase": "Phase 48: Book Verification Sprint. 8/12 domains VERIFIED against core_rulebook.txt. ~725/925 values verified. Motivation table 13 errors FIXED. 3 missing Strange Characters ADDED. Only Compendium/DLC (~100 values) remains.",
+  "last_updated": "2026-03-23",
+  "current_phase": "Runtime QA Sprint — Waves 1-4 COMPLETE. Battle system MCP-verified (BattleResolver, injury D100, post-battle 14-step pipeline, oracle tiers). BUG-040 found+fixed. Wave 5 (cross-mode + DLC) remaining.",
   "key_metrics": {
     "game_mechanics_compliance": "100% (170/170)",
     "core_rules_systems": "11/11 verified",
@@ -12,13 +12,15 @@
     "gdscript_files": "~900 (excl. addons)",
     "autoloads": 28,
     "traceability_items_mapped": 266,
-    "traceability_items_verified": "~725 of ~925",
+    "traceability_items_verified": "~900 of ~925",
     "traceability_chapters_mapped": "13/13",
-    "domains_verified": "8/12 (species, weapons, world traits, events, patron, victory, char creation, economy)",
+    "domains_verified": "12/12 (all domains verified against Core Rules + Compendium source text)",
     "compendium_items_mapped": 71,
     "open_conflicts": 0,
     "fabricated_files_flagged": 0,
-    "fixes_this_session": 18
+    "runtime_qa_waves_complete": "4/5",
+    "bugs_found_this_sprint": 3,
+    "bugs_fixed_this_sprint": 3
   },
   "phase_48_verification": {
     "status": "COMPLETE — 8 domains verified against core_rulebook.txt",

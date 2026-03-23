@@ -49,6 +49,14 @@
 | ~~BUG-036~~ | **FIXED** | Precursor psionic power preserved during campaign creation (property whitelist expanded: +8 props in CampaignCreationCoordinator) | Root cause: 15-prop whitelist dropped `psionic_power` during Resource→Dict conversion |
 | ~~BUG-037~~ | **FIXED** | Swift species now +2 Speed (was +1 Speed +1 Reactions) | Matched Core Rules p.50 |
 | ~~BUG-038~~ | **FIXED** | Soulless species now +1 Toughness only (removed extra +1 Reactions) | Matched Core Rules p.50 |
+| ~~BUG-040~~ | **FIXED** | InjuryProcessor.gd:99,155 — unsafe `turn_number` access on GameStateManager (missing `"turn_number" in` guard). Crashed during post-battle injury processing when no campaign loaded. | Added property existence check, matching pattern from line 45 |
+
+### Weapon Data Needing Book Verification
+
+| Item | Current Value | Expected (Core Rules p.50) | Status |
+|------|--------------|---------------------------|--------|
+| Colony Rifle range | 18 | 24" | **NEEDS BOOK CHECK** — both weapons.json + equipment_database.json agree on 18 |
+| Infantry Laser damage | 0 | +1 | **NEEDS BOOK CHECK** — both data files agree on 0 |
 
 ### UX Issues
 
@@ -119,6 +127,7 @@ None — all UX issues resolved as of 2026-03-20.
 
 | Phase | Date | Scope | Bugs Found | Bugs Fixed |
 |-------|------|-------|------------|------------|
+| Runtime QA Wave 4 (Battle System) | Mar 23, 2026 | BattleResolver MCP-tested: 4v5 combat resolved (5 rounds, crew victory, held field, all 10 result keys). Injury D100: full coverage verified (zero gaps/overlaps), GRUESOME_FATE(1-5)/FATAL(6-15) confirmed. Bot injury table verified. Post-battle 14-step pipeline: all 10 subsystems loaded+instantiated as RefCounted, Steps 4/7/8/9 exercised end-to-end (payment 8cr, loot 1 item, injury processed, 3 XP each). Oracle tiers: 3-tier cumulative architecture (5→12→14 components), purely UI layer. BUG-040 found+fixed. 2 weapon values flagged for book check. | 1 bug | 1 (BUG-040 InjuryProcessor turn_number) |
 | Runtime QA Sprint (Waves 1-3) | Mar 23, 2026 | User-facing campaign creation + turn + save/load. BUG-036 psionic fully fixed (BaseCharacterResource property added). Upkeep formula verified (4 crew + 1 ship = 5 credits). Save roundtrip: psionic, equipment key, dual-sync all PASS. EliteEnemies.json truncation fixed. credit_rewards.json deleted (fabricated dead code). | 2 bugs | 2 (BUG-036 root cause, EliteEnemies.json truncation) |
 | Phase 48: Full Book Verification | Mar 23, 2026 | All 12 data domains verified against core_rulebook.txt + compendium_source.txt. 190+ fixes: motivation table 13 errors, 3 Strange Characters added, 5 fabricated weapons removed, 4 Compendium tables rewritten, salvage rules rewritten, prison planet reclassified, starting credits fixed | 190+ data | 190+ (all fixed) |
 | Phase 47: Data Rewrite | Mar 22, 2026 | 7 fabricated JSON files rewritten from Core Rules. Payment formula fixed (100x inflated). 17 JSON files wired to consumers. Species exception handling added | 150+ data | 150+ (all fixed) |
