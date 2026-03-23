@@ -1,4 +1,5 @@
 {
+  "_WARNING": "FABRICATED DATA — reward_modifier, risk_factor, reputation_requirement, potential_contacts, and job_types are NOT from Core Rules. See data/patron_generation.json for verified D10 tables (Core Rules pp.83-84). This file needs rewrite to remove fabricated fields.",
   "patron_types": [
 	{
 	  "type": "CORPORATION",

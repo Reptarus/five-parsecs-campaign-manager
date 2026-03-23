@@ -1,4 +1,5 @@
 {
+	"_WARNING": "FABRICATED MISSION TYPES — Core Rules uses D10 objective tables (Move Through, Deliver, Access, Patrol, Fight Off, Search, Defend, Acquire, Secure, Protect, Eliminate). This file has invented types (Salvage, Rescue, Bounty Hunt, Exploration, Convoy). See data/patron_generation.json for verified objectives.",
 	"_metadata": {
 		"name": "Mission Generation Data",
 		"description": "All mission generation text data for FiveParsecsMissionGenerator. Locations, factions, titles, descriptions, objectives, special rules.",
