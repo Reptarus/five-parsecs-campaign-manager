@@ -240,8 +240,8 @@ func _apply_choice_effects(effects: Dictionary) -> void:
 				# Track new patron in NPCTracker
 				var npc = get_node_or_null("/root/NPCTracker")
 				if npc and npc.has_method("add_patron"):
-					var pid := "patron_story_%d" % Time.get_ticks_msec()
-				npc.add_patron({"name": "Story Ally", "patron_id": pid})
+					var patron_id := "patron_story_%d" % Time.get_ticks_msec()
+					npc.add_patron({"name": "Story Ally", "patron_id": patron_id})
 	if effects.has("trigger_event") and event_manager and event_manager.has_method("trigger_campaign_event"):
 		event_manager.trigger_campaign_event(effects.trigger_event)
 

@@ -723,6 +723,7 @@ func _check_loan_enforcement() -> String:
 		var method: Dictionary = CompendiumWorldOptions.roll_enforcement_method(origin_id)
 		if not method.is_empty():
 			return "WARNING: %s" % method.get("instruction", "Lender is getting impatient")
+	return ""
 
 func _load_current_loan() -> void:
 	## Load active loan from campaign progress_data

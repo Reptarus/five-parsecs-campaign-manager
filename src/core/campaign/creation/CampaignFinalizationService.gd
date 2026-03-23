@@ -240,8 +240,8 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 		# Story point bonus applied later in initialize_resources via DifficultyModifiers
 
 	# Compendium DLC: Introductory campaign flag (guided missions for first few turns)
-	var config: Dictionary = data.get("campaign_config", data.get("config", {}))
-	if config.get("introductory_campaign", false):
+	var campaign_cfg: Dictionary = data.get("campaign_config", data.get("config", {}))
+	if campaign_cfg.get("introductory_campaign", false):
 		campaign.progress_data["introductory_campaign"] = true
 
 	# RULES FIX: crew.members now includes captain (merged by coordinator)

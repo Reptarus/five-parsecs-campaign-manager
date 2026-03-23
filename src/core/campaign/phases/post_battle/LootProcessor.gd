@@ -43,7 +43,9 @@ func _roll_enemy_loot(enemy: Dictionary) -> Array[Dictionary]:
 func _add_loot_to_inventory(ctx: PostBattleContextClass, loot_item: Dictionary) -> void:
 	## Add loot to inventory. Attempts implant installation first.
 	var loot_name: String = loot_item.get("name", loot_item.get("description", ""))
-	if CharacterRef.LOOT_TO_IMPLANT_MAP.has(loot_name):
+	# Check if loot is an implant (uses JSON-loaded data via Character.create_implant_from_loot)
+	var implant_check: Dictionary = CharacterRef.create_implant_from_loot(loot_name)
+	if not implant_check.is_empty():
 		if _try_install_implant_from_loot(loot_name):
 			return
 

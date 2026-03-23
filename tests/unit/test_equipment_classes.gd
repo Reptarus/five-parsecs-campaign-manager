@@ -355,7 +355,9 @@ func test_character_max_implants_is_two():
 
 func test_implant_types_has_eleven_entries():
 	# Core Rules p.55 lists exactly 11 implants
-	assert_that(CharacterClass.IMPLANT_TYPES.size()).is_equal(11)
+	# Implants now loaded from JSON (data/implants.json), not a const array
+	CharacterClass._ensure_implants_loaded()
+	assert_that(CharacterClass._implants_data.size()).is_equal(11)
 
 func test_create_implant_from_type_body_wire():
 	var implant: Dictionary = CharacterClass.create_implant_from_type("BODY_WIRE")

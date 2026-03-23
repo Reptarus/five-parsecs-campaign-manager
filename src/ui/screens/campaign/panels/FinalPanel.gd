@@ -1023,9 +1023,13 @@ func _on_create_campaign_pressed() -> void:
 		# Emit campaign_confirmed signal
 		campaign_confirmed.emit()
 		
-		# Load and use CampaignFinalizationService
-		const CampaignFinalizationService = preload("res://src/core/campaign/creation/CampaignFinalizationService.gd")
-		var service = CampaignFinalizationService.new()
+		# Load CampaignFinalizationService at runtime to avoid parse-time dependency chain
+		var FinalizationScript = load("res://src/core/campaign/creation/CampaignFinalizationService.gd")
+		if not FinalizationScript:
+			push_error("FinalPanel: Could not load CampaignFinalizationService.gd")
+			create_button.disabled = false
+			return
+		var service = FinalizationScript.new()
 		var state_manager = coordinator.state_manager if coordinator and "state_manager" in coordinator else null
 		
 		var result = await service.finalize_campaign(campaign_data, state_manager)

@@ -53,8 +53,9 @@ func test_psionic_system_construction():
 
 func test_psionic_power_types_exist():
 	"""Should have 10 PsiPowerType enum values"""
-	if PsionicSystem.get("PsiPowerType") != null:
-		var keys = PsionicSystem.PsiPowerType.keys()
+	var system := PsionicSystem.new()
+	if "PsiPowerType" in system:
+		var keys: Array = system.PsiPowerType.keys()
 		assert_that(keys.size()).is_equal(10)
 
 func test_psionic_power_creation():
@@ -103,7 +104,7 @@ func test_faction_categories_exist():
 func test_faction_creation():
 	var system := FactionSystem.new()
 	if system.has_method("create_faction"):
-		var faction = system.create_faction("Test Faction", 0)
+		var faction = system.create_faction("Test Faction", "")
 		assert_that(faction).is_not_null()
 	elif system.has_method("add_faction"):
 		assert_that(system).is_not_null()
