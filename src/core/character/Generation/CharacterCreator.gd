@@ -364,7 +364,12 @@ func _grant_random_psionic_power() -> void:
 		return
 	var power_ids: Array = psionic_data.keys()
 	var chosen_id: String = power_ids[randi() % power_ids.size()]
-	current_character.psionic_power = chosen_id
+	# Use safe setter — BaseCharacterResource may not have psionic_power property
+	if "psionic_power" in current_character:
+		current_character.psionic_power = chosen_id
+	else:
+		# Store as metadata for later transfer to full Character object
+		current_character.set_meta("psionic_power", chosen_id)
 
 
 func _load_psionic_powers() -> Dictionary:
