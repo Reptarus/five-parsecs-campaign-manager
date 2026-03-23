@@ -647,23 +647,26 @@ func _populate_ship_types() -> void:
 			ship_type_option.add_item(entry.get("name", "Unknown"))
 
 func _calculate_starting_hull(ship_type: String) -> int:
-	## Calculate starting hull points from ships.json (Core Rules scale: 6-14)
+	## Calculate starting hull points from ships.json (Core Rules p.31: 20-40)
 	var data: Dictionary = _get_ship_type_data(ship_type)
-	return int(data.get("hull_points", 10))
+	return int(data.get("hull_points", 30))
 
 func _calculate_starting_debt(ship_type: String) -> int:
-	## Calculate starting debt from ships.json (Core Rules scale: 0-5)
+	## Calculate starting debt from ships.json (Core Rules p.31: 1D6 + base)
 	var data: Dictionary = _get_ship_type_data(ship_type)
-	var debt_min: int = int(data.get("debt_min", 0))
-	var debt_max: int = int(data.get("debt_max", 3))
+	# New format: debt_base + 1D6
+	if data.has("debt_base"):
+		return int(data.get("debt_base", 20)) + randi_range(1, 6)
+	# Legacy format fallback
+	var debt_min: int = int(data.get("debt_min", 20))
+	var debt_max: int = int(data.get("debt_max", 26))
 	if debt_min == debt_max:
 		return debt_min
 	return randi_range(debt_min, debt_max)
 
-func _calculate_cargo_capacity(ship_type: String) -> int:
-	## Calculate cargo capacity from ships.json (FinalPanel compatibility)
-	var data: Dictionary = _get_ship_type_data(ship_type)
-	return int(data.get("cargo_capacity", 5))
+func _calculate_cargo_capacity(_ship_type: String) -> int:
+	## Cargo capacity — not in Core Rules ship table, app feature
+	return 0
 
 func _update_ship_display() -> void:
 	## Update UI to reflect current ship data with glass morphism styling
@@ -978,22 +981,28 @@ func _generate_ship() -> void:
 	_validate_and_complete()
 
 func _create_ship_from_type_id(type_id: String) -> void:
-	## Create a ship from its JSON type ID (e.g., "worn_freighter", "scout_ship")
+	## Create a ship from its JSON type ID (Core Rules p.31)
 	for entry in _ships_db.get("ship_types", []):
 		if entry is Dictionary and entry.get("id", "") == type_id:
-			ship_data.type = entry.get("name", "Freelancer")
-			var hull: int = int(entry.get("hull_points", 10))
+			ship_data.type = entry.get("name", "Worn Freighter")
+			var hull: int = int(entry.get("hull_points", 30))
 			ship_data.hull_points = hull
 			ship_data.max_hull = hull
-			var debt_min: int = int(entry.get("debt_min", 0))
-			var debt_max: int = int(entry.get("debt_max", 3))
-			ship_data.debt = debt_min if debt_min == debt_max else randi_range(debt_min, debt_max)
-			ship_data.traits = _roll_ship_traits()
+			# Core Rules: debt = 1D6 + base
+			if entry.has("debt_base"):
+				ship_data.debt = int(entry.get("debt_base", 20)) + randi_range(1, 6)
+			else:
+				var debt_min: int = int(entry.get("debt_min", 20))
+				var debt_max: int = int(entry.get("debt_max", 26))
+				ship_data.debt = debt_min if debt_min == debt_max else randi_range(debt_min, debt_max)
+			# Core Rules: traits from ship table, not random roll
+			var ship_traits: Array = entry.get("traits", [])
+			ship_data.traits = ship_traits if not ship_traits.is_empty() else _roll_ship_traits()
 			return
-	# Fallback if type_id not found
-	ship_data.type = "Freelancer"
-	ship_data.hull_points = 10
-	ship_data.max_hull = 10
+	# Fallback if type_id not found (Core Rules default: Worn Freighter)
+	ship_data.type = "Worn Freighter"
+	ship_data.hull_points = 30
+	ship_data.max_hull = 30
 	ship_data.debt = randi_range(0, 3)
 	ship_data.traits = _roll_ship_traits()
 

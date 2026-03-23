@@ -82,18 +82,18 @@ The key is `"equipment"`, **NOT** `"pool"`. Using `"pool"` was a systemic bug fi
 {
   "ship": {
     "name": "string",
-    "type": "string (Freelancer|Worn Freighter|Scout Ship|Patrol Boat|Armed Trader|Converted Transport|Light Freighter)",
-    "hull_points": "int (Core Rules: 6-14, NOT 20-35)",
+    "type": "string (13 types from Core Rules p.31: Worn Freighter, Retired Troop Transport, etc.)",
+    "hull_points": "int (Core Rules p.31: 20-40, NOT 6-14)",
     "max_hull": "int (matches hull_points at creation)",
     "fuel": "int",
-    "debt": "int (Core Rules: 0-5, NOT 12-38)",
+    "debt": "int (Core Rules p.31: 1D6+10 to 1D6+35, typically 11-41)",
     "traits": ["array of trait strings"],
     "components": {}
   }
 }
 ```
 
-**CRITICAL (Mar 16 fix)**: Ship values were fabricated at hull 20-35 / debt 12-38. Now corrected to Core Rules scale. Default type is "Freelancer". SpinBox constraints: hull max=20, debt max=10. Persistent test campaigns from before Mar 16 have INVALID ship data.
+**CRITICAL (Mar 22 UPDATE)**: Ship data requires FULL REWRITE. The Phase 30 "fix" (Mar 16) that changed hull from 20-35 → 6-14 and debt from 12-38 → 0-5 was WRONG — it moved values FURTHER from the Core Rules. Book (p.31) has 13 ship types with hull 20-40 and debt 1D6+10 to 1D6+35. The original 20-35 hull values were actually closer to correct. Code currently has 7 fabricated ship types (book has 13). SpinBox constraints (hull max=20, debt max=10) are also wrong — must be hull max≈40, debt max≈41.
 
 ### World Data
 

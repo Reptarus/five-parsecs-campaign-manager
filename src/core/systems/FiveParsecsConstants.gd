@@ -6,16 +6,17 @@ extends RefCounted
 ## Provides constants for table access, dice thresholds, and UI configurations
 ## Eliminates magic numbers and improves type safety
 
-# Crew Task Difficulty Thresholds (Five Parsecs Core Rules)
+# Crew Task Difficulty Thresholds — VERIFIED against Core Rules 3e pp.77-78 (Mar 22, 2026)
+# Note: Most tasks are 1D6 + crew count, NOT 2D6 + stat
 static var CREW_TASK_DIFFICULTIES = {
-	GlobalEnums.CrewTaskType.FIND_PATRON: 7, # 2d6, 7+ to find patron
-	GlobalEnums.CrewTaskType.TRAIN: 8, # 2d6, 8+ for training success
-	GlobalEnums.CrewTaskType.TRADE: 5, # Varies by world, 5+ base
-	GlobalEnums.CrewTaskType.RECRUIT: 5, # 1d10, varies by candidate quality
-	GlobalEnums.CrewTaskType.EXPLORE: 0, # Always successful, results vary on d100
-	GlobalEnums.CrewTaskType.TRACK: 8, # 2d6 + Savvy, 8+ to succeed
-	GlobalEnums.CrewTaskType.REPAIR: 7, # 2d6 + Tech, 7+ to repair
-	GlobalEnums.CrewTaskType.DECOY: 8 # 2d6 + Savvy, 8+ to confuse rivals
+	GlobalEnums.CrewTaskType.FIND_PATRON: 5, # 1D6 + crew searching, 5+ finds one, 6+ finds two (Core Rules p.77) VERIFIED
+	GlobalEnums.CrewTaskType.TRAIN: 0, # Always succeeds, earns 1 XP (Core Rules p.77) VERIFIED
+	GlobalEnums.CrewTaskType.TRADE: 0, # Always succeeds, roll on Trade Table (Core Rules p.79) VERIFIED
+	GlobalEnums.CrewTaskType.RECRUIT: 6, # Auto if <6 crew, else 1D6 + crew recruiting, 6+ (Core Rules p.78) VERIFIED
+	GlobalEnums.CrewTaskType.EXPLORE: 0, # Always succeeds, roll on Exploration Table (Core Rules p.80) VERIFIED
+	GlobalEnums.CrewTaskType.TRACK: 6, # 1D6 + crew tracking, 6+ locates a Rival (Core Rules p.78) VERIFIED
+	GlobalEnums.CrewTaskType.REPAIR: 6, # 1D6 + Savvy + Engineer bonus, 6+ repairs item (Core Rules p.78) VERIFIED
+	GlobalEnums.CrewTaskType.DECOY: 0 # Passive: +1 to Rival tracking roll per crew sent (Core Rules p.78) VERIFIED
 }
 
 # Dice Types for Consistent Rolling
@@ -75,23 +76,24 @@ const CAMPAIGN_TURNS = {
 	"story_quest_minimum": 3 # Minimum story quests for victory
 }
 
-# Economic System Constants (Core Rules p.76 upkeep, p.64 travel)
-# NOTE: Values marked GAME_BALANCE_ESTIMATE need Core Rules verification before release.
+# Economic System Constants — VERIFIED against Core Rules 3e (Mar 22, 2026)
 const ECONOMY = {
-	"starting_debt": 75, # GAME_BALANCE_ESTIMATE — needs Core Rules p.59-62 verification
-	"upkeep_threshold": 4, # Crew size at which upkeep starts (Core Rules p.76)
-	"upkeep_cap": 6, # Crew size above which extra upkeep cost applies (Core Rules p.76)
-	"base_upkeep": 1, # Base upkeep cost: 1 credit for 4-6 crew (Core Rules p.76)
-	"additional_crew_cost": 1, # Cost per crew member over upkeep_cap (Core Rules p.76)
-	"ship_maintenance_base": 1, # GAME_BALANCE_ESTIMATE — needs Core Rules p.80 verification
-	"injury_treatment_cost": 2, # GAME_BALANCE_ESTIMATE — needs Core Rules p.124 verification
-	"luxury_upkeep_modifier": 2, # GAME_BALANCE_ESTIMATE — needs Core Rules verification
-	"hull_repair_cost_per_point": 3, # GAME_BALANCE_ESTIMATE — needs Core Rules p.81 verification
-	"trade_profit_multiplier": 10, # GAME_BALANCE_ESTIMATE — needs Core Rules verification
+	"starting_debt": 75, # Ship seizure threshold (Core Rules p.76: debt ≥75 → 2D6 roll, 2-6 seized)
+	"upkeep_threshold": 4, # Crew size at which upkeep starts (Core Rules p.76) VERIFIED
+	"upkeep_cap": 6, # Crew size above which extra upkeep cost applies (Core Rules p.76) VERIFIED
+	"base_upkeep": 1, # Base upkeep cost: 1 credit for 4-6 crew (Core Rules p.76) VERIFIED
+	"additional_crew_cost": 1, # Cost per crew member over upkeep_cap (Core Rules p.76) VERIFIED
+	"ship_maintenance_base": 0, # Ship auto-repairs 1 HP free per turn (Core Rules p.76) VERIFIED — no base cost
+	"injury_treatment_cost": 4, # 4 credits removes 1 campaign turn from recovery (Core Rules p.76) VERIFIED
+	"luxury_upkeep_modifier": 2, # GAME_BALANCE_ESTIMATE — not explicitly in Core Rules
+	"hull_repair_cost_per_point": 1, # 1 credit per hull point (Core Rules p.76) VERIFIED
+	"trade_profit_multiplier": 10, # GAME_BALANCE_ESTIMATE — not explicitly in Core Rules
 	"equipment_degradation": 0.1, # GAME_BALANCE_ESTIMATE — not from Core Rules (app feature)
 	# Travel costs (Core Rules p.64)
-	"starship_travel": 5, # Cost to travel via own starship (Core Rules p.64)
-	"commercial_passage_per_crew": 1, # Cost per crew member for commercial passage (Core Rules p.64)
+	"starship_travel": 5, # Cost to travel via own starship (Core Rules p.64) VERIFIED
+	"commercial_passage_per_crew": 1, # Cost per crew member for commercial passage (Core Rules p.64) VERIFIED
+	# Starting resources (Core Rules p.28)
+	"starting_credits_per_crew": 1, # 1 credit per crew member at start (Core Rules p.28) VERIFIED
 }
 
 # Combat System Constants

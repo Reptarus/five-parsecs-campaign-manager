@@ -1,90 +1,138 @@
 {
   "metadata": {
-    "version": "1.0",
-    "source": "Five Parsecs from Home Core Rules pp.68-71",
-    "last_updated": "2026-03-22"
+    "version": "2.0",
+    "source": "Five Parsecs from Home Core Rules 3e pp.30-31 — VERIFIED Mar 22, 2026",
+    "last_updated": "2026-03-22",
+    "notes": "Hull 20-40, Debt 1D6+10 to 1D6+35. Previous version had fabricated 6-14 hull / 0-5 debt."
   },
   "ship_types": [
     {
-      "id": "freelancer",
-      "name": "Freelancer",
-      "hull_points": 10,
-      "cargo_capacity": 5,
-      "debt_min": 0,
-      "debt_max": 3
-    },
-    {
       "id": "worn_freighter",
       "name": "Worn Freighter",
-      "hull_points": 8,
-      "cargo_capacity": 8,
-      "debt_min": 1,
-      "debt_max": 5
+      "hull_points": 30,
+      "debt_formula": "1D6+20",
+      "debt_base": 20,
+      "traits": ["Emergency Drives"]
     },
     {
-      "id": "scout_ship",
-      "name": "Scout Ship",
-      "hull_points": 6,
-      "cargo_capacity": 2,
-      "debt_min": 0,
-      "debt_max": 0
+      "id": "retired_troop_transport",
+      "name": "Retired Troop Transport",
+      "hull_points": 35,
+      "debt_formula": "1D6+30",
+      "debt_base": 30,
+      "traits": []
     },
     {
-      "id": "patrol_boat",
-      "name": "Patrol Boat",
-      "hull_points": 10,
-      "cargo_capacity": 3,
-      "debt_min": 1,
-      "debt_max": 4
+      "id": "strange_alien_vessel",
+      "name": "Strange Alien Vessel",
+      "hull_points": 25,
+      "debt_formula": "1D6+15",
+      "debt_base": 15,
+      "traits": ["Fuel-efficient"]
     },
     {
-      "id": "armed_trader",
-      "name": "Armed Trader",
-      "hull_points": 10,
-      "cargo_capacity": 6,
-      "debt_min": 1,
-      "debt_max": 4
+      "id": "upgraded_shuttle",
+      "name": "Upgraded Shuttle",
+      "hull_points": 20,
+      "debt_formula": "1D6+10",
+      "debt_base": 10,
+      "traits": []
     },
     {
-      "id": "converted_transport",
-      "name": "Converted Transport",
-      "hull_points": 12,
-      "cargo_capacity": 10,
-      "debt_min": 2,
-      "debt_max": 5
+      "id": "retired_scout_ship",
+      "name": "Retired Scout Ship",
+      "hull_points": 25,
+      "debt_formula": "1D6+20",
+      "debt_base": 20,
+      "traits": ["Fuel Hog"]
     },
     {
-      "id": "light_freighter",
-      "name": "Light Freighter",
-      "hull_points": 10,
-      "cargo_capacity": 7,
-      "debt_min": 0,
-      "debt_max": 3
+      "id": "repurposed_science_vessel",
+      "name": "Repurposed Science Vessel",
+      "hull_points": 20,
+      "debt_formula": "1D6+10",
+      "debt_base": 10,
+      "traits": []
+    },
+    {
+      "id": "battered_mining_ship",
+      "name": "Battered Mining Ship",
+      "hull_points": 35,
+      "debt_formula": "1D6+20",
+      "debt_base": 20,
+      "traits": ["Dodgy Drive"]
+    },
+    {
+      "id": "unreliable_merchant_cruiser",
+      "name": "Unreliable Merchant Cruiser",
+      "hull_points": 30,
+      "debt_formula": "1D6+20",
+      "debt_base": 20,
+      "traits": []
+    },
+    {
+      "id": "former_diplomatic_vessel",
+      "name": "Former Diplomatic Vessel",
+      "hull_points": 25,
+      "debt_formula": "1D6+15",
+      "debt_base": 15,
+      "traits": ["Standard Issue"]
+    },
+    {
+      "id": "ancient_low_tech_craft",
+      "name": "Ancient Low-tech Craft",
+      "hull_points": 35,
+      "debt_formula": "1D6+20",
+      "debt_base": 20,
+      "traits": ["Armored"]
+    },
+    {
+      "id": "built_from_salvaged_wrecks",
+      "name": "Built from Salvaged Wrecks",
+      "hull_points": 30,
+      "debt_formula": "1D6+20",
+      "debt_base": 20,
+      "traits": []
+    },
+    {
+      "id": "worn_colony_ship",
+      "name": "Worn Colony Ship",
+      "hull_points": 25,
+      "debt_formula": "1D6+20",
+      "debt_base": 20,
+      "traits": []
+    },
+    {
+      "id": "retired_military_patrol_ship",
+      "name": "Retired Military Patrol Ship",
+      "hull_points": 40,
+      "debt_formula": "1D6+35",
+      "debt_base": 35,
+      "traits": []
     }
   ],
   "generation_table": [
     {"range": [1, 12], "type": "worn_freighter"},
-    {"range": [13, 25], "type": "patrol_boat"},
-    {"range": [26, 40], "type": "converted_transport"},
-    {"range": [41, 60], "type": "scout_ship"},
-    {"range": [61, 80], "type": "armed_trader"},
-    {"range": [81, 100], "type": "freelancer"}
+    {"range": [13, 18], "type": "retired_troop_transport"},
+    {"range": [19, 23], "type": "strange_alien_vessel"},
+    {"range": [24, 31], "type": "upgraded_shuttle"},
+    {"range": [32, 38], "type": "retired_scout_ship"},
+    {"range": [39, 45], "type": "repurposed_science_vessel"},
+    {"range": [46, 56], "type": "battered_mining_ship"},
+    {"range": [57, 65], "type": "unreliable_merchant_cruiser"},
+    {"range": [66, 70], "type": "former_diplomatic_vessel"},
+    {"range": [71, 76], "type": "ancient_low_tech_craft"},
+    {"range": [77, 84], "type": "built_from_salvaged_wrecks"},
+    {"range": [85, 95], "type": "worn_colony_ship"},
+    {"range": [96, 100], "type": "retired_military_patrol_ship"}
   ],
-  "custom_ship_types": ["freelancer", "light_freighter"],
-  "traits": {
-    "primary": [
-      {"range": [1, 20], "name": "Fast Engine"},
-      {"range": [21, 40], "name": "Heavy Armor"},
-      {"range": [41, 60], "name": "Extra Cargo"},
-      {"range": [61, 80], "name": "Advanced Sensors"},
-      {"range": [81, 100], "name": "Weapon Hardpoints"}
-    ],
-    "secondary": [
-      {"name": "Efficient Drive"},
-      {"name": "Luxury Interior"},
-      {"name": "Advanced AI"}
-    ],
-    "secondary_chance": 0.3
+  "ship_trait_definitions": {
+    "Emergency Drives": "If you have to perform an emergency take-off while your ship is damaged, reduce the Hull damage sustained on the roll by 3.",
+    "Fuel-efficient": "When traveling to a new world, the fuel cost is reduced by 1 credit.",
+    "Fuel Hog": "When traveling to a new world, the fuel cost is increased by 1 credit.",
+    "Standard Issue": "The cost of all Starship Components is reduced by 1 credit.",
+    "Dodgy Drive": "Any time the ship takes Hull damage, roll 2D6. If the roll is equal to or below the amount of damage sustained, the drive is misbehaving, and 2 additional points of damage are sustained.",
+    "Armored": "Any time the ship takes damage, you lose 1 Hull Point less than indicated by the rules."
   },
   "ship_names": {
     "prefixes": ["Star", "Nova", "Dawn", "Void", "Deep", "Far", "Solar", "Cosmic", "Stellar", "Astral"],
