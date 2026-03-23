@@ -138,8 +138,8 @@ const DIFFICULTY_TOGGLES: Array[Dictionary] = [
 		"name": "Movement All Over",
 		"category": "time_pressure",
 		"dlc_flag": "DIFFICULTY_TOGGLES",
-		"description": "Each round after Round 1: Roll D6. If result <= round number, +1 enemy arrives.",
-		"instruction": "TIME: Each round, roll D6. If D6 <= round number, +1 enemy spawns.",
+		"description": "Each round including the first: Roll D6. If result <= round number, +1 enemy arrives.",
+		"instruction": "TIME: Each round (including Round 1), roll D6. If D6 <= round number, +1 enemy spawns.",
 	},
 	{
 		"id": "fickle_scans",
@@ -172,205 +172,167 @@ const DIFFICULTY_TOGGLES: Array[Dictionary] = [
 ## D6 AI TYPE SELECTOR (simplified from AI Variations, Compendium pp.42-43)
 ## Roll D6 per enemy group to determine their AI type.
 ## Full AI Variations have per-type D6 action tables — see pp.42-43 for details.
+## AI Variations (Compendium pp.42-43): Per-type D6 action tables for known AI types.
+## Beast, Rampage, and Guardian AI function unchanged (no D6 roll needed).
+## Figures within 2" of each other share the same D6 roll (group actions).
 ## ============================================================================
 
-const AI_BEHAVIOR_TABLE: Array[Dictionary] = [
-	{
-		"roll": 1,
-		"id": "aggressive",
-		"name": "Aggressive",
-		"description": "Always advance toward nearest crew. Prioritize brawling over shooting.",
-		"instruction": "AI: AGGRESSIVE - Enemies always advance and prefer brawling.",
+const AI_VARIATION_TABLES: Dictionary = {
+	"cautious": {
+		"base_condition": "If in Cover and visible opponents within 12\", move away to most distant position that remains in Cover and in range with Line of Sight, then fire.",
+		"actions": [
+			{"roll": 1, "action": "Retreat a full move, remaining in Cover. Maintain Line of Sight if possible."},
+			{"roll": 2, "action": "Remain in place or maneuver within current Cover to fire."},
+			{"roll": 3, "action": "Remain in place or maneuver within current Cover to fire."},
+			{"roll": 4, "action": "Advance to within 12\" of the nearest enemy and fire. Remain in Cover."},
+			{"roll": 5, "action": "Advance to within 12\" of the nearest enemy and fire. Remain in Cover."},
+			{"roll": 6, "action": "Advance on the nearest enemy and fire, ending in Cover if possible."},
+		],
 	},
-	{
-		"roll": 2,
-		"id": "defensive",
-		"name": "Defensive",
-		"description": "Maximize cover usage. Retreat when wounded. Hold objectives.",
-		"instruction": "AI: DEFENSIVE - Enemies seek cover, retreat when wounded.",
+	"aggressive": {
+		"base_condition": "If able to engage an opponent in brawling combat this round, advance to do so.",
+		"actions": [
+			{"roll": 1, "action": "Maneuver within current Cover to fire."},
+			{"roll": 2, "action": "Maneuver within current Cover to fire."},
+			{"roll": 3, "action": "Advance to the next forward position in Cover. Fire if eligible."},
+			{"roll": 4, "action": "Advance and fire on the nearest enemy. Use Cover."},
+			{"roll": 5, "action": "Advance and fire on the nearest enemy. Fastest route."},
+			{"roll": 6, "action": "Dash towards the nearest enemy. Fastest route."},
+		],
 	},
-	{
-		"roll": 3,
-		"id": "tactical",
-		"name": "Tactical",
-		"description": "Attempt flanking maneuvers. Focus fire on weakest/wounded targets.",
-		"instruction": "AI: TACTICAL - Enemies flank and focus fire on weak targets.",
+	"tactical": {
+		"base_condition": "If in Cover and within 12\" of visible opponents, remain in position and fire.",
+		"actions": [
+			{"roll": 1, "action": "Remain in place to fire."},
+			{"roll": 2, "action": "Maneuver within current Cover to fire."},
+			{"roll": 3, "action": "Advance to the next forward position in Cover or move to flank."},
+			{"roll": 4, "action": "Advance to the next forward position in Cover or move to flank."},
+			{"roll": 5, "action": "Advance and fire on the nearest enemy. Use Cover."},
+			{"roll": 6, "action": "Advance and fire on the nearest enemy. Use Cover."},
+		],
 	},
-	{
-		"roll": 4,
-		"id": "cautious",
-		"name": "Cautious",
-		"description": "Hold position until engaged. Fire at targets of opportunity.",
-		"instruction": "AI: CAUTIOUS - Enemies hold position, fire at opportunity.",
+	"defensive": {
+		"base_condition": "If in Cover and opponents in the open are visible, remain in position and fire.",
+		"actions": [
+			{"roll": 1, "action": "Remain in place to fire."},
+			{"roll": 2, "action": "Maneuver within current Cover to fire."},
+			{"roll": 3, "action": "Maneuver within current Cover to fire."},
+			{"roll": 4, "action": "Maneuver within current Cover to fire."},
+			{"roll": 5, "action": "Advance to the next forward position in Cover."},
+			{"roll": 6, "action": "Advance and fire on the nearest enemy. Use Cover."},
+		],
 	},
-	{
-		"roll": 5,
-		"id": "beast",
-		"name": "Beast",
-		"description": "Move toward nearest target. Always brawl if possible.",
-		"instruction": "AI: BEAST - Move to nearest, always brawl.",
-	},
-	{
-		"roll": 6,
-		"id": "rampage",
-		"name": "Rampage",
-		"description": "Move toward nearest target. Fire or brawl, whichever is available.",
-		"instruction": "AI: RAMPAGE - Move to nearest, fire or brawl.",
-	},
-]
+}
+
+## Legacy alias — code may reference AI_BEHAVIOR_TABLE. Returns empty since structure changed.
+const AI_BEHAVIOR_TABLE: Array[Dictionary] = []
 
 
 ## ============================================================================
-## CASUALTY TABLE (Compendium p.86)
-## When a character reaches 0 HP, roll D6.
+## CASUALTY TABLES (Compendium pp.99-100) — 3 tables by creature type.
+## Roll D6 when a figure would become a casualty. Regular column for crew/normal enemies,
+## Boss column for captains/leaders/unique. Multiple hits: roll all, apply highest single result.
+## If event causes auto-casualty (no Toughness roll), casualty tables are NOT used.
+## Critical Hit optional rule: natural 6 to Hit = roll one extra on Casualty table, use highest.
 ## ============================================================================
 
-const CASUALTY_TABLE: Array[Dictionary] = [
-	{
-		"roll": 1,
-		"id": "instant_kill",
-		"name": "Instantly Killed",
-		"instruction": "CASUALTY: Character is KILLED instantly. Remove from campaign.",
+const CASUALTY_TABLES: Dictionary = {
+	"humanoid": {
+		"name": "Table 1: Humanoid Combatants",
+		"entries": [
+			{"regular": [1, 2], "boss": [1, 2], "outcome": "Dazed", "effect": "On their next activation, they do not remove a Stun marker automatically. Ignore this result if already Dazed."},
+			{"regular": [3, 4], "boss": [3, 5], "outcome": "Wounded", "effect": "Move at half speed. Reduce Combat Skill by 1 (can go to -1). If Wounded again, they are a Goner."},
+			{"regular": [5, 6], "boss": [6, 6], "outcome": "Goner", "effect": "The character is removed from play."},
+		],
 	},
-	{
-		"roll": 2,
-		"id": "severe_wound_low",
-		"name": "Severely Wounded",
-		"instruction": "CASUALTY: Severely Wounded. Cannot act for rest of battle. Roll on injury table post-battle.",
+	"cybernetic": {
+		"name": "Table 2: Cybernetic Combatants (Soulless, Converted, Bots)",
+		"entries": [
+			{"regular": [1, 2], "boss": [1, 2], "outcome": "Temporary Shutdown", "effect": "On their next activation, do not remove a Stun marker automatically. Ignore if already shut down."},
+			{"regular": [3, 4], "boss": [3, 5], "outcome": "Damaged", "effect": "Mark with token. Every activation, roll D6: on 6, falls apart and removed. Multiple instances no effect. +1 to future casualty rolls."},
+			{"regular": [5, 6], "boss": [6, 6], "outcome": "Goner", "effect": "The character is removed from play."},
+		],
 	},
-	{
-		"roll": 3,
-		"id": "severe_wound_high",
-		"name": "Severely Wounded",
-		"instruction": "CASUALTY: Severely Wounded. Cannot act for rest of battle. Roll on injury table post-battle.",
+	"beast": {
+		"name": "Table 3: Beasts and Monsters",
+		"entries": [
+			{"regular": [1, 2], "boss": [1, 2], "outcome": "Knock down / Drive off", "effect": "Move 2\" directly away from the firer per hit inflicted by the attack."},
+			{"regular": [3, 4], "boss": [3, 5], "outcome": "Bleeding", "effect": "Roll D6 at end of next activation: On 1, Bleeding ends. On 6, they are a Goner. +1 to future injury rolls. Multiple instances no effect."},
+			{"regular": [5, 6], "boss": [6, 6], "outcome": "Goner", "effect": "The character is removed from play."},
+		],
 	},
-	{
-		"roll": 4,
-		"id": "stunned_low",
-		"name": "Stunned",
-		"instruction": "CASUALTY: Stunned. Lose next activation, return at 1 HP.",
-	},
-	{
-		"roll": 5,
-		"id": "stunned_high",
-		"name": "Stunned",
-		"instruction": "CASUALTY: Stunned. Lose next activation, return at 1 HP.",
-	},
-	{
-		"roll": 6,
-		"id": "shrugged_off",
-		"name": "Shrugged It Off",
-		"instruction": "CASUALTY: Shrugged it off! Stay at 1 HP, continue acting normally.",
-	},
-]
+	"_cleanup": "All Bleeding/Damaged/Wounded conditions removed at end of battle, no long-term effects.",
+}
+
+## Legacy alias — old code may reference CASUALTY_TABLE
+const CASUALTY_TABLE: Array[Dictionary] = []
 
 
 ## ============================================================================
 ## DETAILED INJURY TABLE (Compendium pp.88-90)
-## 2D6 expanded injury table (replaces standard 6-result table).
+## DETAILED POST-BATTLE INJURIES (Compendium pp.101-102) — D100 table, replaces Core Rules injury table.
+## Synthetic characters (Bots/Soulless) still use the Core Rules Bot Injury table.
+## Medical facilities: Roll 1D6 — 1-2 = crew member Savvy test 6+ to find off-world medic (+1cr fee), 3-6 = available.
 ## ============================================================================
 
 const DETAILED_INJURY_TABLE: Array[Dictionary] = [
-	{
-		"roll": 2,
-		"id": "critical_injury",
-		"name": "Critical Injury",
-		"instruction": "INJURY (2): CRITICAL. Roll D6: 1-3 = death, 4-6 = permanent -1 to a random stat.",
-	},
-	{
-		"roll": 3,
-		"id": "severe_head",
-		"name": "Severe Head Wound",
-		"instruction": "INJURY (3): Severe Head Wound. 6 turns recovery, -1 Savvy during recovery. Surgery: 15 cr to halve recovery.",
-	},
-	{
-		"roll": 4,
-		"id": "severe_torso",
-		"name": "Severe Torso Wound",
-		"instruction": "INJURY (4): Severe Torso Wound. 5 turns recovery, -1 Toughness during recovery. Surgery: 12 cr to halve recovery.",
-	},
-	{
-		"roll": 5,
-		"id": "broken_limb",
-		"name": "Broken Limb",
-		"instruction": "INJURY (5): Broken Limb. 4 turns recovery, -1 Speed during recovery.",
-	},
-	{
-		"roll": 6,
-		"id": "moderate_wound",
-		"name": "Moderate Wound",
-		"instruction": "INJURY (6): Moderate Wound. 3 turns recovery, -1 Combat Skill during recovery.",
-	},
-	{
-		"roll": 7,
-		"id": "flesh_wound",
-		"name": "Flesh Wound",
-		"instruction": "INJURY (7): Flesh Wound. 2 turns recovery. No stat penalty.",
-	},
-	{
-		"roll": 8,
-		"id": "light_wound",
-		"name": "Light Wound",
-		"instruction": "INJURY (8): Light Wound. 2 turns recovery. No stat penalty.",
-	},
-	{
-		"roll": 9,
-		"id": "bruised",
-		"name": "Bruised and Battered",
-		"instruction": "INJURY (9): Bruised. 1 turn recovery. No stat penalty.",
-	},
-	{
-		"roll": 10,
-		"id": "knocked_out",
-		"name": "Knocked Out",
-		"instruction": "INJURY (10): Knocked out. 1 turn recovery. No stat penalty.",
-	},
-	{
-		"roll": 11,
-		"id": "minor_scratch",
-		"name": "Minor Scratch",
-		"instruction": "INJURY (11): Minor scratch. Cosmetic only, no recovery needed.",
-	},
-	{
-		"roll": 12,
-		"id": "miraculous",
-		"name": "Miraculous Recovery",
-		"instruction": "INJURY (12): MIRACULOUS! No injury. Gain +1 XP. D6 6 = gain Lucky trait.",
-	},
+	{"roll_min": 0, "roll_max": 10, "id": "death", "name": "Death",
+	 "effect": "The character is slain. A random item they carried is damaged.",
+	 "sick_bay": -1},
+	{"roll_min": 11, "roll_max": 15, "id": "critical_strike", "name": "Critical Strike",
+	 "effect": "Is the character wearing Armor? If so, they survive but the armor is damaged. Otherwise, they are slain.",
+	 "sick_bay_roll": "1D6+3"},
+	{"roll_min": 16, "roll_max": 20, "id": "extensive_injury", "name": "Extensive Injury",
+	 "effect": "Requires specialized treatment. Roll 1D6+1 for cost in Credits. Cannot take crew tasks or fight until paid. Sick Bay begins after treatment.",
+	 "sick_bay": -2, "treatment_cost_roll": "1D6+1"},
+	{"roll_min": 21, "roll_max": 30, "id": "item_hit", "name": "Item Hit",
+	 "effect": "Randomly select a carried item and roll 1D6. On 1-4 it is damaged. On 5-6 it is destroyed.",
+	 "sick_bay": 0},
+	{"roll_min": 31, "roll_max": 40, "id": "lingering_injury", "name": "Lingering Injury",
+	 "effect": "After recovery, before every mission roll 1D6: On 1, cannot participate. On 2-5, fine. On 6, fully recovered (remove condition). Multiple lingering injuries roll separately.",
+	 "sick_bay_roll": "1D6+1"},
+	{"roll_min": 41, "roll_max": 50, "id": "injured_arm", "name": "Injured Arm",
+	 "effect": "Combat Skill counts as 1 lower (min -1) when firing non-Pistol weapons or Brawling. 3 Credits medical treatment to remove.",
+	 "sick_bay_roll": "1D3", "treatment_cost": 3},
+	{"roll_min": 51, "roll_max": 60, "id": "injured_leg", "name": "Injured Leg",
+	 "effect": "Reduce Speed by 1\". 3 Credits medical treatment to remove.",
+	 "sick_bay_roll": "1D3", "treatment_cost": 3},
+	{"roll_min": 61, "roll_max": 70, "id": "injured_torso", "name": "Injured Torso",
+	 "effect": "Knocked out after two Stun markers instead of three. 3 Credits medical treatment to remove.",
+	 "sick_bay_roll": "1D3", "treatment_cost": 3},
+	{"roll_min": 71, "roll_max": 75, "id": "serious_injury", "name": "Serious Injury",
+	 "effect": "No side effects.",
+	 "sick_bay_roll": "1D3+1"},
+	{"roll_min": 76, "roll_max": 80, "id": "minor_injury", "name": "Minor Injury",
+	 "effect": "No side effects.",
+	 "sick_bay": 1},
+	{"roll_min": 81, "roll_max": 95, "id": "knocked_out", "name": "Knocked Out",
+	 "effect": "No side effects.",
+	 "sick_bay": 0},
+	{"roll_min": 96, "roll_max": 100, "id": "school_of_hard_knocks", "name": "School of Hard Knocks",
+	 "effect": "+1 XP.",
+	 "sick_bay": 0},
 ]
 
 
 ## ============================================================================
-## DRAMATIC COMBAT EFFECTS (Compendium p.92)
-## Optional weapon-specific dramatic effects text.
+## DRAMATIC COMBAT (Compendium pp.87-89) — Lunging mechanic + Dramatic Weapons.
+## Dramatic Weapons table changes many weapon stats from Core Rules — see Compendium pp.88-89.
 ## ============================================================================
 
-const DRAMATIC_EFFECTS: Array[Dictionary] = [
-	{
-		"weapon_type": "blade",
-		"instruction": "DRAMATIC: Blade strikes spark off armor. Describe the parry and riposte.",
+const DRAMATIC_COMBAT_RULES: Dictionary = {
+	"lunging": {
+		"description": "A Lunging character is immediately moved a full move towards the shooter, attempting to enter Brawling combat.",
+		"movement_reduction_ignore": 2,
+		"per_round_limit": 1,
+		"is_bonus_action": true,
+		"instruction": "DRAMATIC COMBAT: Lunging — character moves full move toward shooter to Brawl. Ignores up to 2\" movement reduction. Once per round. Does not affect normal activation.",
 	},
-	{
-		"weapon_type": "pistol",
-		"instruction": "DRAMATIC: Pistol shot echoes through corridors. Describe the impact.",
-	},
-	{
-		"weapon_type": "rifle",
-		"instruction": "DRAMATIC: Rifle round pierces cover. Describe debris and suppression.",
-	},
-	{
-		"weapon_type": "heavy",
-		"instruction": "DRAMATIC: Heavy weapon devastates the area. Describe the destruction.",
-	},
-	{
-		"weapon_type": "grenade",
-		"instruction": "DRAMATIC: Explosion sends shrapnel flying. Describe the blast radius.",
-	},
-	{
-		"weapon_type": "melee",
-		"instruction": "DRAMATIC: Close quarters clash. Describe the grapple and struggle.",
-	},
-]
+	"dramatic_weapons_note": "If using Dramatic Weapons (Compendium pp.88-89), many weapon stats change (e.g., Blade +1 Damage, Blast Pistol 6\" range, Boarding Saber +2 Damage, etc.). Use with Adjusted Shooting hit numbers from p.87.",
+}
+
+## Legacy alias — old code may reference DRAMATIC_EFFECTS
+const DRAMATIC_EFFECTS: Array[Dictionary] = []
 
 
 ## ============================================================================

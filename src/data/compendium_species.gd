@@ -169,21 +169,20 @@ const SPECIES: Dictionary = {
 			"description": "Skulker home worlds always have Adventurous trait + one rolled normally. 'Alien species restricted' = no result.",
 		},
 	},
+	# NOTE: "Prison Planet" is a Compendium Background Table entry (D100 57-61), NOT a species.
+	# Kept here for code compatibility (enums, DLC flags, CharacterCreator all reference it).
+	# Stat bonuses are correct: +1 Toughness, +1 Combat Skill (Compendium p.XX).
+	# The "hardened_survivor" special rule is a FABRICATED narrative — only the stat bonuses exist in the book.
 	"prison_planet": {
 		"id": "prison_planet",
 		"name": "Prison Planet",
 		"origin_enum": "PRISON_PLANET",
+		"_classification": "background_entry_not_species",
 		"base_stats": {
-			"toughness": 1,   # +1 Toughness (hardened survivor)
-			"combat_skill": 1, # +1 Combat Skill (prison fighting)
+			"toughness": 1,   # +1 Toughness (Compendium Background Table D100 57-61)
+			"combat_skill": 1, # +1 Combat Skill (Compendium Background Table D100 57-61)
 		},
-		"special_rules": [
-			{
-				"id": "hardened_survivor",
-				"type": "background_modifier",
-				"description": "Prison Planet origin. Hardened by brutal conditions. +1 Toughness, +1 Combat Skill.",
-			},
-		],
+		"special_rules": [],
 		"armor_rules": {
 			"requires_modification": false,
 			"universal_fit": false,

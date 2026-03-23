@@ -124,10 +124,10 @@ const ECONOMY = {
 	"additional_crew_cost": 1, # Cost per crew member over upkeep_cap (Core Rules p.76) VERIFIED
 	"ship_maintenance_base": 0, # Ship auto-repairs 1 HP free per turn (Core Rules p.76) VERIFIED — no base cost
 	"injury_treatment_cost": 4, # 4 credits removes 1 campaign turn from recovery (Core Rules p.76) VERIFIED
-	"luxury_upkeep_modifier": 2, # GAME_BALANCE_ESTIMATE — not explicitly in Core Rules
+	"luxury_upkeep_modifier": 2, # APP_SPECIFIC — not in Core Rules, controls luxury ship upkeep
 	"hull_repair_cost_per_point": 1, # 1 credit per hull point (Core Rules p.76) VERIFIED
-	"trade_profit_multiplier": 10, # GAME_BALANCE_ESTIMATE — not explicitly in Core Rules
-	"equipment_degradation": 0.1, # GAME_BALANCE_ESTIMATE — not from Core Rules (app feature)
+	"trade_profit_multiplier": 10, # APP_SPECIFIC — not in Core Rules, controls trade UI scaling
+	"equipment_degradation": 0.1, # APP_SPECIFIC — not in Core Rules, controls app equipment wear
 	# Travel costs (Core Rules p.64)
 	"starship_travel": 5, # Cost to travel via own starship (Core Rules p.64) VERIFIED
 	"commercial_passage_per_crew": 1, # Cost per crew member for commercial passage (Core Rules p.64) VERIFIED
@@ -135,33 +135,25 @@ const ECONOMY = {
 	"starting_credits_per_crew": 1, # 1 credit per crew member at start (Core Rules p.28) VERIFIED
 }
 
-# Combat System Constants
+# Combat System Constants — APP ABSTRACTIONS, not direct Core Rules values.
+# Core Rules uses: Seize Initiative = 2D6+Savvy, 10+ (p.112). Reaction Roll = D6 per crew vs Reaction score (p.112).
+# To-Hit: within 6" open=3+, weapon range open OR 6" cover=5+, weapon range cover=6+ (p.44).
+# Stun: removed 1/activation after acting, 3+ stuns = knocked out (p.40). Panic: per-enemy-type ranges.
 const COMBAT = {
-	"initiative_base": 6, # Base initiative roll
-	"reaction_threshold": 4, # Minimum reaction roll
-	"stun_recovery": 5, # Roll needed to recover from stun
-	"morale_threshold": 7, # Base morale check difficulty
-	"range_bands": {
-		"point_blank": 0,
-		"short": 6,
-		"medium": 12,
-		"long": 24,
-		"extreme": 48
-	}
+	"seize_initiative_target": 10, # 2D6 + highest Savvy, 10+ to seize (Core Rules p.112) VERIFIED
+	"stun_knockout_threshold": 3, # 3+ stun markers = knocked out (Core Rules p.40) VERIFIED
+	"to_hit_open_close": 3, # Within 6" and in the open (Core Rules p.44) VERIFIED
+	"to_hit_standard": 5, # Within weapon range open, OR within 6" cover (Core Rules p.44) VERIFIED
+	"to_hit_cover": 6, # Within weapon range and in Cover (Core Rules p.44) VERIFIED
 }
 
-# Mission Generation Constants
-# NOTE: Values marked GAME_BALANCE_ESTIMATE need Core Rules verification before release.
+# Mission Generation Constants — Use patron_generation.json for canonical D10 tables.
+# These are app-level defaults; JSON data is authoritative where it exists.
 const MISSIONS = {
-	"patron_jobs_per_turn": 3, # GAME_BALANCE_ESTIMATE — needs Core Rules p.84 verification
-	"opportunity_jobs": 2, # GAME_BALANCE_ESTIMATE — needs Core Rules p.84 verification
-	# GAME_BALANCE_ESTIMATE — needs Core Rules p.97 verification.
-	# Note: credit_rewards.json DELETED (was fabricated, ~100x Core Rules scale). Use patron_generation.json
-	"mission_pay_multiplier": 5,
-	# GAME_BALANCE_ESTIMATE — CONFLICTS with patron_generation.json
-	# danger_pay_table (D10: 1-3 credits, VERIFIED p.83). JSON wins.
-	"danger_pay_bonus": 2,
-	"story_mission_frequency": 6 # GAME_BALANCE_ESTIMATE — needs Core Rules verification
+	# Note: credit_rewards.json DELETED (was fabricated). Use patron_generation.json for all payment tables.
+	# Danger pay: D10 table in patron_generation.json (1-4:+1cr, 5-8:+2cr, 9:+3cr, 10+:+3cr+reroll). VERIFIED p.83.
+	# Mission pay: D6 base (Core Rules p.120). VERIFIED.
+	"story_mission_frequency": 6, # APP_SPECIFIC — not a Core Rules value, controls app story pacing
 }
 
 # Tutorial System Configuration

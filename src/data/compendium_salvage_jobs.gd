@@ -253,11 +253,32 @@ const POI_REVEALS: Array[Dictionary] = [
 ## ============================================================================
 
 const SALVAGE_VALUE_RULES: String = (
-	"SALVAGE POST-MISSION:\n" +
-	"- Each Salvage unit can be sold for 1 Credit during Trade phase.\n" +
-	"- Alternatively, each Salvage unit can be rolled on the Loot table instead.\n" +
-	"- Illegal job payoff check happens after normal Rival determination."
+	"SALVAGE POST-MISSION (Compendium pp.146-148):\n" +
+	"1. POI COMPLETION REWARD: For each POI investigated, roll 1D6:\n" +
+	"   1-4: Nothing found.\n" +
+	"   5: Gain 1 Salvage unit.\n" +
+	"   6: Roll on Discovery D100 table.\n" +
+	"2. DISCOVERY D100: 01-40 Roll on Loot table, 41-70 +1 Salvage unit,\n" +
+	"   71-85 +1 Quest Rumor, 86-100 +1D3 Credits.\n" +
+	"3. SCRAPPERS: Roll 3 times on the Loot table. Each item costs 1D6\n" +
+	"   Salvage units (minimum 2). Pay Salvage to claim the item.\n" +
+	"4. SALVAGE AS CURRENCY: 1 Salvage unit = 1 Credit toward ship repairs,\n" +
+	"   ship modules, or bot upgrades ONLY (cannot be sold for cash).\n" +
+	"5. Illegal job payoff check happens after normal Rival determination."
 )
+
+const DISCOVERY_TABLE: Array[Dictionary] = [
+	{"roll_min": 1, "roll_max": 40, "result": "loot_roll", "description": "Roll on Loot table"},
+	{"roll_min": 41, "roll_max": 70, "result": "salvage_1", "description": "+1 Salvage unit"},
+	{"roll_min": 71, "roll_max": 85, "result": "quest_rumor", "description": "+1 Quest Rumor"},
+	{"roll_min": 86, "roll_max": 100, "result": "credits_1d3", "description": "+1D3 Credits"},
+]
+
+const POI_REWARD_TABLE: Array[Dictionary] = [
+	{"roll_min": 1, "roll_max": 4, "result": "nothing", "description": "Nothing found"},
+	{"roll_min": 5, "roll_max": 5, "result": "salvage_1", "description": "Gain 1 Salvage unit"},
+	{"roll_min": 6, "roll_max": 6, "result": "discovery_roll", "description": "Roll on Discovery D100 table"},
+]
 
 
 ## ============================================================================

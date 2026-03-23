@@ -126,13 +126,13 @@ const WEAPON_DEFINITIONS: Dictionary = {
 	"Infantry Laser": {"range": 30, "shots": 1, "damage": 0, "special": "SNAP_FIRE", "category": "laser"},
 	"Blast Rifle": {"range": 16, "shots": 1, "damage": 1, "special": "", "category": "laser"},
 	"Beam Pistol": {"range": 10, "shots": 1, "damage": 1, "special": "", "category": "laser"},
-	"Laser Rifle": {"range": 30, "shots": 1, "damage": 1, "special": "", "category": "laser"},
+	# "Laser Rifle" REMOVED — fabricated, not in Core Rules or Compendium
 
 	# Plasma Weapons (Range 51-65)
 	"Plasma Rifle": {"range": 20, "shots": 2, "damage": 1, "special": "FOCUSED_PIERCING", "category": "plasma"},
 	"Fury Rifle": {"range": 24, "shots": 1, "damage": 2, "special": "HEAVY_PIERCING", "category": "plasma"},
 	"Needle Rifle": {"range": 18, "shots": 2, "damage": 0, "special": "CRITICAL", "category": "plasma"},
-	"Plasma Pistol": {"range": 10, "shots": 1, "damage": 2, "special": "", "category": "plasma"},
+	# "Plasma Pistol" REMOVED — fabricated, not in Core Rules or Compendium
 	"Hyper Blaster": {"range": 24, "shots": 3, "damage": 1, "special": "", "category": "energy"},
 
 	# Melee Weapons (Range 66-85)
@@ -144,14 +144,14 @@ const WEAPON_DEFINITIONS: Dictionary = {
 	"Glare Sword": {"range": 0, "shots": 0, "damage": 2, "special": "MELEE ELEGANT", "category": "melee"},
 
 	# Heavy Weapons
-	"Auto Cannon": {"range": 24, "shots": 3, "damage": 1, "special": "HEAVY", "category": "heavy"},
+	# "Auto Cannon" REMOVED — fabricated, not in Core Rules or Compendium
 	"Flak Gun": {"range": 8, "shots": 2, "damage": 1, "special": "FOCUSED CRITICAL", "category": "slug"},
-	"Missile Launcher": {"range": 30, "shots": 1, "damage": 3, "special": "HEAVY AREA", "category": "heavy"},
+	# "Missile Launcher" REMOVED — fabricated, not in Core Rules or Compendium
 
 	# Grenades (Range 86-100)
 	"Frakk Grenade": {"range": 6, "shots": 0, "damage": 1, "special": "AREA SINGLE_USE", "category": "grenade"},
 	"Dazzle Grenade": {"range": 6, "shots": 0, "damage": 0, "special": "STUN AREA SINGLE_USE", "category": "grenade"},
-	"Shock Grenade": {"range": 6, "shots": 0, "damage": 0, "special": "STUN_BOTS AREA SINGLE_USE", "category": "grenade"}
+	# "Shock Grenade" REMOVED — fabricated, not in Core Rules or Compendium
 }
 
 ## ==========================================

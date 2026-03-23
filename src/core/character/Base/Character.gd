@@ -54,6 +54,10 @@ var is_bot: bool = false
 var is_soulless: bool = false
 var is_human: bool = false
 
+# Psionic powers (Precursor species start with one)
+var psionic_power: String = ""
+var psionic_power_enhanced: bool = false
+
 # Additional traits for Five Parsecs
 var traits: Array = []
 

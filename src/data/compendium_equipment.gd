@@ -207,8 +207,9 @@ const PSIONIC_EQUIPMENT: Array[Dictionary] = [
 		"slot": "utility",
 		"effect": "avoid_psionic_strain",
 		"description": "Odd Precursor device. If the wearer would suffer the effects of psionic Strain, the effect is avoided and the device shuts down for the rest of the battle. Carrying two Shrels cancels the effects of both.",
-		"instruction": "PSIONIC GEAR: Warding Shrel (10 cr, Utility) - Avoid one Strain effect per battle. Cannot carry two.",
-		"max_carried": 1,
+		"instruction": "PSIONIC GEAR: Warding Shrel (10 cr, Utility) - Avoid one Strain effect per battle. Carrying two cancels both.",
+		"max_carried": -1,
+		"carry_two_cancels": true,
 	},
 	{
 		"id": "psionic_focus",

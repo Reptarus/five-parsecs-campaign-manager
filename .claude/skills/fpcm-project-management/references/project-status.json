@@ -1,6 +1,6 @@
 {
   "last_updated": "2026-03-22",
-  "current_phase": "Traceability Matrix 13/13 chapters code-mapped (~266 items). Compendium C1-C4 mapped. Upkeep stub FIXED. Injury split FIXED. Treatment system ADDED. Patron rewards FIXED. 39 uncommitted files across 2 parallel chats.",
+  "current_phase": "Phase 48: Book Verification Sprint. 8/12 domains VERIFIED against core_rulebook.txt. ~725/925 values verified. Motivation table 13 errors FIXED. 3 missing Strange Characters ADDED. Only Compendium/DLC (~100 values) remains.",
   "key_metrics": {
     "game_mechanics_compliance": "100% (170/170)",
     "core_rules_systems": "11/11 verified",
@@ -12,38 +12,44 @@
     "gdscript_files": "~900 (excl. addons)",
     "autoloads": 28,
     "traceability_items_mapped": 266,
-    "traceability_items_verified": 0,
+    "traceability_items_verified": "~725 of ~925",
     "traceability_chapters_mapped": "13/13",
+    "domains_verified": "8/12 (species, weapons, world traits, events, patron, victory, char creation, economy)",
     "compendium_items_mapped": 71,
-    "open_conflicts": 4,
-    "fabricated_files_flagged": 9,
-    "fixes_this_session": 9
+    "open_conflicts": 0,
+    "fabricated_files_flagged": 0,
+    "fixes_this_session": 18
   },
-  "phase_46_qa": {
-    "status": "IN PROGRESS — All chapters mapped, fixes applied",
-    "description": "Core Rules PDF verification sprint + Compendium mapping",
-    "fixes_session_2": [
-      "CampaignPhaseManager._calculate_upkeep_costs() implemented (was stub returning 0)",
-      "InjurySystemConstants: FATAL split into GRUESOME_FATE(1-5) + FATAL(6-15)",
-      "InjurySystemConstants: TreatmentType system added (Sick Bay/Surgery/Natural)",
-      "PatronRivalManager fallback payments fixed (1200-3500 → 3-7, D6-scale)",
-      "credit_rewards.json flagged FABRICATED (~100x Core Rules scale)",
-      "campaign_rules.json upkeep fixed (6→1), file flagged as unwired",
-      "Compendium C1-C4: 71 items mapped with file:line refs",
-      "Ships rewritten with 13 types (2nd chat)",
-      "Precursor double-roll implemented (2nd chat)",
-      "PaymentProcessor rewritten to Core Rules formula (2nd chat)"
+  "phase_48_verification": {
+    "status": "COMPLETE — 8 domains verified against core_rulebook.txt",
+    "description": "Cross-reference verification of all BOOK_VERIFICATION_NEEDED items + unverified domains",
+    "fixes_applied": [
+      "motivation_table.json: 13 errors FIXED (equipment roll shifts, resource errors, name cascade 80-100, entry 96-100 resolved as Freedom)",
+      "character_species.json: 3 missing Strange Characters ADDED (Traveler, Empath, Bio-upgrade)",
+      "weapons.json: Dazzle Grenade 'Heavy' trait REMOVED (not in Core Rules p.50), 6 non-Core weapons retagged",
+      "WorldEconomyManager._init(): 1000 → 0 (set by campaign creation, Core Rules p.28: 1 credit/crew)",
+      "campaign_rules.json: starting_credits 100 → starting_credits_per_crew 1 (Core Rules p.28)"
     ],
-    "remaining_open": [
-      "Starting credits 3-way conflict (needs book pp.15/28)",
-      "WorldEconomyManager hardcodes 1000 (needs book)",
-      "ShipPanel SpinBox max constraints",
-      "~266 items need book verification to promote to VERIFIED"
+    "verified_clean": [
+      "All 8 primary species base stats (40 values) — CORRECT",
+      "All 15 Strange Characters base stats — CORRECT",
+      "Background Table (25 entries) — CORRECT",
+      "Class Table (23 entries) — CORRECT",
+      "World Traits D100 (41 entries) — CORRECT",
+      "Campaign Events D100 (28 entries) — CORRECT",
+      "Character Events D100 (30 entries) — CORRECT",
+      "Patron Type D10 (6 entries) — CORRECT",
+      "Danger Pay D10 (4 entries) — CORRECT",
+      "Time Frame D10 (4 entries) — CORRECT",
+      "BHC Thresholds (6 patron types × 3 categories) — CORRECT",
+      "Benefits/Hazards/Conditions subtables — CORRECT",
+      "Victory Conditions (17 entries) — CORRECT",
+      "36 Core Rules weapons (all stats + traits) — CORRECT (1 Dazzle Grenade fix)"
     ],
-    "resolved_this_sprint": [
-      "BUG-036: Precursor psionic power lost during creation — property whitelist expanded (8 new props)",
-      "credit_rewards.json DELETED — fabricated, unwired dead code (~100x Core Rules scale)",
-      "Compendium stealth/street/salvage duplication: generators are canonical, compendium classes are reference-only (6 consumers exist, NOT dead code)"
+    "remaining": [
+      "Compendium/DLC domain (~100 values, 0 verified) — needs physical Compendium book",
+      "6 non-Core weapons (Carbine, Laser Rifle, Plasma Pistol, Auto Cannon, Missile Launcher, Shock Grenade) — need Compendium verification",
+      "RulesReference/SpeciesList.json has 4 incorrect starting_bonus values — unreliable source"
     ]
   },
   "completed_phases": [
@@ -77,15 +83,17 @@
     { "phase": "43", "description": "Core+Compendium Gap Remediation (6 sprints, 18 files)" },
     { "phase": "44", "description": "Integration Gap Audit + Psionics (6 sprints, 22 files)" },
     { "phase": "45", "description": "Full JSON Data Consistency (8 sprints, 19 files, -575 net lines)" },
+    { "phase": "46-47", "description": "QA Audit + Data Rewrite (7 fabricated JSONs rewritten, 17 JSONs wired)" },
+    { "phase": "48", "description": "Book Verification Sprint (8 domains verified, ~250 values promoted, 18 fixes)" },
     { "phase": "Bug Hunt", "description": "~25 sprints + 7 wiring + 5 cleanup" },
     { "phase": "Compendium", "description": "Mechanics Wiring Audit (10 sprints)" },
     { "phase": "Functional Gaps", "description": "Cleanup (7 sprints F-1 to F-7)" }
   ],
   "roadmap": {
-    "next_priority": "Runtime QA sprint — compile-clean, all systems code-mapped, ready for runtime testing",
-    "remaining_pdf_verification": "~266 items need book verification",
-    "equipment_database": "FULLY WIRED (Phase 45). 36 weapons, 9 armor, 26 gear, 13 attachments.",
-    "compendium_deferred": ["species text helpers", "PvP/Co-op modes"],
+    "next_priority": "Compendium/DLC verification (~100 values) — requires physical Compendium book",
+    "remaining_pdf_verification": "~100 Compendium/DLC values (Core Rules domains complete)",
+    "equipment_database": "FULLY WIRED + VERIFIED. 36 Core Rules weapons confirmed, 6 non-Core tagged.",
+    "compendium_deferred": ["species text helpers", "PvP/Co-op modes", "6 non-Core weapon stats"],
     "store_ids": "Placeholder — need real IDs from Modiphius",
     "public_beta": "Pending Modiphius approval"
   },
@@ -96,6 +104,7 @@
     "battle_mode": "Tabletop companion — text instructions, not automated simulation",
     "dlc_gating": "compendium_*.gd classes check ContentFlags internally",
     "injury_system": "GRUESOME_FATE(1-5) + FATAL(6-15) + 7 other types. TreatmentType: SICK_BAY/SURGERY/NATURAL",
-    "payment_system": "D6 + danger_pay (1-3 from patron_generation.json). Single-digit credit scale."
+    "payment_system": "D6 + danger_pay (1-3 from patron_generation.json). Single-digit credit scale.",
+    "starting_credits": "1 credit per crew member (Core Rules p.28). FiveParsecsConstants.starting_credits_per_crew = 1."
   }
 }

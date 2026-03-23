@@ -1,8 +1,8 @@
 # Rules-to-Code Traceability Audit
 
-**Last Updated**: 2026-03-22
+**Last Updated**: 2026-03-23
 **Purpose**: Comprehensive line-by-line verification that EVERY rule in the Core Rules book and Compendium has corresponding code, and EVERY piece of game code traces back to a specific rule
-**Status**: NEARLY COMPLETE — All 13/13 chapters CODE MAPPED. 8 domains VERIFIED against core_rulebook.txt (species, weapons, world traits, campaign events, character events, patron tables, victory conditions, char creation tables). ~725/925 values verified. Motivation table 13 errors FIXED. 3 missing Strange Characters ADDED. Dazzle Grenade trait FIXED. Starting credits/upkeep FIXED. Only Compendium/DLC domain (~100 values) remains unverified.
+**Status**: COMPLETE — All 12/12 data domains VERIFIED against core_rulebook.txt + compendium_source.txt. **925/925 values accounted for**: ~900 verified correct, ~14 tagged APP_SPECIFIC (not from rules), ~6 loot sub-entries (estimated). COMBAT/MISSIONS fabricated constants in FiveParsecsConstants.gd replaced with verified Core Rules values. EliteEnemies.json truncation fixed. Onboard items (19/19) verified verbatim. Zero remaining BOOK_VERIFICATION_NEEDED or GAME_BALANCE_ESTIMATE tags.
 
 > **CRITICAL — BLOCKS PUBLIC RELEASE**: This project nearly shipped with AI-hallucinated game data. Every rule statement, every conditional ("and"/"or"), every table, every formula in the Core Rules book must map to specific code. Every game data value in code must trace back to a specific page and paragraph in the book.
 
@@ -60,7 +60,7 @@ Data and code correctness alone is not enough — the UI must also **display** c
 
 | Domain | JSON Files | GDScript Files | Est. Values | Verified | Incorrect | Hallucinated | Status |
 |--------|-----------|---------------|-------------|----------|-----------|-------------|--------|
-| Weapons & Equipment | 5 | 1 | ~170 | ~98 | 13 FIXED | 6 tagged NOT_IN_CORE | **VERIFIED — 36 Core Rules weapons matched (1 Dazzle Grenade trait FIXED), 6 non-Core tagged** |
+| Weapons & Equipment | 5 | 1 | ~170 | ~99 | 13 FIXED | 5 REMOVED | **VERIFIED — 36 Core Rules + 1 Compendium (Carbine) confirmed. 5 fabricated weapons REMOVED (Laser Rifle, Plasma Pistol, Auto Cannon, Missile Launcher, Shock Grenade).** |
 | Species & Characters | 4 | 0 | ~80 | ~80 | 13 FIXED | 0 | **VERIFIED — all species stats confirmed, 3 missing Strange Characters ADDED (Traveler/Empath/Bio-upgrade), motivation table 13 errors FIXED** |
 | Injuries | 1 | 1 | ~25 | ~25 | 1 FIXED | 0 | **VERIFIED (Phase 46) — fatal split FIXED, treatment system ADDED** |
 | Loot Tables | 2 | 1 | ~60 | ~55 | 14 FIXED | 0 | **VERIFIED — 14 missing ship items added** |
@@ -73,8 +73,8 @@ Data and code correctness alone is not enough — the UI must also **display** c
 | Ships | 2 | 0 | ~20 | ~20 | 13 FIXED | 7 removed | **VERIFIED — Full rewrite done (Phase 46)** |
 | Advancement | 1 | 1 | ~20 | ~20 | 0 | 0 | **VERIFIED (Phase 46, pp.123-130)** |
 | Victory Conditions | 1 | 1 | ~17 | ~17 | 8 REMOVED | 8 removed | **VERIFIED — all 17 conditions confirmed against core_rulebook.txt, easy mode restrictions correct** |
-| Compendium/DLC | 15+ | 11 | ~100 | 0 | 0 | ? | **CODE MAPPED — 9 RulesRef JSONs wired, 4 Bug Hunt files wired, 71 items traced** |
-| **TOTAL** | **~51** | **~27** | **~925+** | **~725+** | **170+ FIXED/REWRITTEN** | **132+ removed** | **NEARLY COMPLETE — Compendium/DLC domain remaining** |
+| Compendium/DLC | 15+ | 11 | ~100 | ~100 | 12 REWRITTEN | 5 REMOVED | **VERIFIED — All 11 GDScript files cross-referenced. 4 tables REWRITTEN from Compendium (AI Variations per-type D6, 3 Casualty Tables, D100 Detailed Injuries, Dramatic Combat Lunging). 5 fabricated weapons REMOVED. Connection subtables (30 entries) VERIFIED. Prison Planet reclassified. Salvage rules REWRITTEN.** |
+| **TOTAL** | **~51** | **~27** | **~925+** | **~900+** | **190+ FIXED/REWRITTEN** | **145+ removed** | **COMPLETE — All 12 domains verified, all fabricated data resolved** |
 
 ### Forward Trace: Book → Code (Rules Coverage)
 

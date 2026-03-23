@@ -374,4 +374,15 @@
 			  {
 				"name": "Renegade Soldiers",
 				"improvements": [
-				  "Grudge: If encountered as a Rival,
+				  "Grudge: If encountered as a Rival, add +1 to the number encountered.",
+				  "Scrap armor: All receive a 6+ Armor Saving Throw.",
+				  "Suppressing fire: Renegade soldiers firing an Auto-rifle or Rattle Gun add +1 shot."
+				]
+			  }
+			]
+		  }
+		]
+	  }
+	]
+  }
+}

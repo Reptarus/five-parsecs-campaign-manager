@@ -306,7 +306,7 @@ const SHIP_PART1: Array[String] = [
 	"Invincible", "Plucky", "Determined", "Majestic", "Brave",
 	"Independent", "Reliable", "Proud", "Loyal", "Furious",
 	"Courageous", "Ambitious", "Regal", "Stalwart", "Fearsome",
-	"Magnificent", "Unsurpassable", "Inexhaustable", "Indispensable", "Curious",
+	"Magnificent", "Unsurpassable", "Inexhaustible", "Indispensable", "Curious",
 ]
 
 ## Ship Names Part 2 (D100, nouns)
