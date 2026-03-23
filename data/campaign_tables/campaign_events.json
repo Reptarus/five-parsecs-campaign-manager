@@ -1,4 +1,5 @@
 {
+	"_WARNING": "FABRICATED — Entry names, D100 ranges, and effects do NOT match Core Rules pp.126-128. Book has 33 specific events (1-3: Friendly doc, 4-8: Life support, 9-12: New ally, 13-16: Local friends, 17-20: Mouthed off, etc.). This file has generic fabricated entries. Needs full rewrite.",
 	"_comment": "Post-Battle Campaign Events D100 Table (Core Rules p.126-128)",
 	"name": "campaign_events",
 	"entries": [

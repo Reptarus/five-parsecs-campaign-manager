@@ -1,4 +1,5 @@
 {
+  "_WARNING": "PARTIALLY FABRICATED — Core Rules (pp.63-64) victory conditions are: Play 20/50 turns (difficulty-gated), Win 20/50/100 battles, Complete 5/10 Quests, Kill 10/25 Unique Individuals, Upgrade 10 times (1/3/5 characters). This file has fabricated entries: credits accumulation (50K/100K), reputation levels (10/20), crew size (10), story points (10/20). Also missing: difficulty mode requirements, Unique Individual kills, character upgrade conditions.",
   "version": "1.0",
   "description": "Five Parsecs From Home Campaign Victory Conditions",
   "conditions": {

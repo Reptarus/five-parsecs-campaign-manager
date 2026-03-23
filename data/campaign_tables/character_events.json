@@ -1,4 +1,5 @@
 {
+	"_WARNING": "FABRICATED — Entry names, D100 ranges, and effects do NOT match Core Rules pp.128-130. Book has ~33 specific events (1-3: Violence depressing, 4-6: Business elsewhere, 7-10: Local friends, etc.) with species-specific exceptions (K'Erin, Swift, Engineer, Precursor). This file has generic fabricated entries. Needs full rewrite.",
 	"_comment": "Post-Battle Character Events D100 Table (Core Rules p.128-130). Roll on random non-Bot non-Soulless crew member. Precursors roll twice and pick either.",
 	"name": "character_events",
 	"entries": [
