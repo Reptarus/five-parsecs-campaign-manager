@@ -119,6 +119,8 @@ None — all UX issues resolved as of 2026-03-20.
 
 | Phase | Date | Scope | Bugs Found | Bugs Fixed |
 |-------|------|-------|------------|------------|
+| Phase 46: MCP Runtime QA | Mar 22, 2026 | 7-step campaign wizard MCP playthrough, 6 LSP parse errors found+fixed, psionic_power crash fixed, touch target audit (12 MainMenu buttons below 48px), empty state verification | 7 runtime | 7 (all fixed) |
+| Phase 46: Internal Consistency Audit | Mar 22, 2026 | 4-domain cross-check (weapons/economy/injuries/enemies), 15 data fixes, 12 D100 tables verified PASS, 8 world traits added, economy values tagged | 15 data | 15 (all fixed) |
 | Phase 46: Deferred Items + Audit Prep | Mar 22, 2026 | D100 weighted CharacterCreator randomize, NotableSightsSystem.gd, unique individual D100 table wiring, orphan JSON cleanup (4 deleted), QA doc updates | 0 | 0 (wiring + cleanup) |
 | QA Coverage Sprint | Mar 21, 2026 | Character shadowing fix (7 files), 82 new unit tests (3 files), 47→44 NOT_TESTED, all 170 confirmed COMPLETE, integration gap analysis | 0 | 0 (coverage + verification only) |
 | QA Playthrough | Mar 20, 2026 | 5-turn campaign (T3-T5): world→battle→post-battle→late phases. Sprint 9 runtime fixes. | 3 runtime | 3 (UpkeepPhaseComponent _help_dialog, CrewTaskComponent _help_dialog, TacticalBattleUI type inference) |
