@@ -14,6 +14,7 @@
 | Mechanics Runtime-Verified | 170/170 (100%) |
 | Open Bugs | 0 confirmed + 0 UX + 0 deferred (all resolved Mar 23) |
 | Data Values Verified | 925/925 (100%) against Core Rules + Compendium source text |
+| Rules-Verified Mechanics | 76/170 (45%) — PyPDF2 cross-reference against Core Rules PDF (218 values, 0 mismatches) |
 | Data Fixes Applied | 190+ fixes, 145+ fabricated values removed |
 | Unit Test Files | 50 (tests/unit/) |
 | Integration Test Files | 22 (tests/integration/) |

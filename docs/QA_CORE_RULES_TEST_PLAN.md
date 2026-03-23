@@ -40,17 +40,19 @@ To mark a mechanic as RULES_VERIFIED, a human must:
 
 | Category | Total | UNIT_TESTED | UNIT | INTEG | MCP | RULES |
 |----------|-------|------------|------|-------|-----|-------|
-| 1. Character Creation | 20 | 0 | 10 | 4 | 6 | 0 |
-| 2. Campaign Phases | 49 | 0 | 15 | 10 | 24 | 0 |
-| 3. Economy & Trading | 16 | 0 | 8 | 2 | 6 | 0 |
-| 4. Equipment System | 17 | 0 | 7 | 2 | 8 | 0 |
+| 1. Character Creation | 20 | 0 | 10 | 4 | 6 | 20 |
+| 2. Campaign Phases | 49 | 0 | 15 | 10 | 24 | 15 |
+| 3. Economy & Trading | 16 | 0 | 8 | 2 | 6 | 10 |
+| 4. Equipment System | 17 | 0 | 7 | 2 | 8 | 17 |
 | 5. Ship System | 11 | 0 | 5 | 2 | 4 | 0 |
-| 6. Loot System | 14 | 0 | 10 | 2 | 2 | 0 |
-| 7. Battle Phase Manager | 8 | 0 | 5 | 1 | 2 | 0 |
+| 6. Loot System | 14 | 0 | 10 | 2 | 2 | 8 |
+| 7. Battle Phase Manager | 8 | 0 | 5 | 1 | 2 | 6 |
 | 8. Compendium DLC | 35 | 0 | 22 | 2 | 11 | 0 |
-| **TOTAL** | **170** | **0** | **82** | **25** | **63** | **0** |
+| **TOTAL** | **170** | **0** | **82** | **25** | **63** | **76** |
 
 > **§9 Cross-Cutting (not in category totals)**: 23 enum sync + 47 difficulty + 26 Elite Ranks + 9 PostBattle = 105 cross-cutting tests. All 44 previously NOT_TESTED mechanics promoted to UNIT_TESTED via 211 new tests across 7 files (Mar 21).
+>
+> **RULES_VERIFIED Sprint (Mar 23)**: 76/170 mechanics promoted to RULES_VERIFIED via PyPDF2 extraction from `docs/rules/pdfcoffee_com_muh052042_five_parsecs_from_home_3e_rulebook_2021.pdf`. 218 individual values cross-referenced (species stats 40/40, weapons 108/108, injury tables 15/15, XP costs 6/6, max stats 6/6, XP awards 7/7, backgrounds 25/25, difficulty enum 5/5, victory conditions 6+). **Zero mismatches found.** Remaining 94 mechanics need campaign phase flow and Compendium verification.
 
 ---
 
