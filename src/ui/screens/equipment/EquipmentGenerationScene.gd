@@ -92,24 +92,25 @@ func _initialize_dependencies() -> void:
 		push_warning("EquipmentGenerationScene: Equipment generator not found - will use fallback generation")
 
 func _find_equipment_generator() -> Node:
-	## Find equipment generator from possible system locations
+	## Find equipment generator — check actual autoload paths
+	# EquipmentManager is the registered autoload for equipment operations
+	var eq_mgr = get_node_or_null("/root/EquipmentManager")
+	if eq_mgr:
+		return eq_mgr
+
+	# Fallback: check legacy system paths
 	var possible_paths = [
-		"/root/SystemsAutoload",
-		"/root/GameStateManagerAutoload",
-		"/root/CoreSystemSetup"
+		"/root/GameStateManager",
+		"/root/GameDataManager",
 	]
-	
+
 	for path in possible_paths:
 		var system = get_node_or_null(path)
 		if system and system.has_method("get_equipment_generator"):
 			var generator = system.get_equipment_generator()
 			if generator:
 				return generator
-		elif system and system.has_method("get_manager"):
-			var generator = system.get_manager("EquipmentGenerator")
-			if generator:
-				return generator
-	
+
 	return null
 
 ## Campaign Creation State Bridge Integration

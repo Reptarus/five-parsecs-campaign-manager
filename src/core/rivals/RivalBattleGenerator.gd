@@ -197,11 +197,11 @@ func _determine_battle_type(rival_data: Rival, escalation_level: int) -> String:
 	
 	# Select weight table based on situation
 	if rival_data.encounter_history.size() == 0:
-		weights = battle_type_weights.first_encounter
+		weights = battle_type_weights["first_encounter"]
 	elif escalation_level >= 3:
-		weights = battle_type_weights.high_escalation
+		weights = battle_type_weights["high_escalation"]
 	else:
-		weights = battle_type_weights.default
+		weights = battle_type_weights["default"]
 	
 	# Roll with weights
 	var total_weight = 0
@@ -224,7 +224,8 @@ func _generate_rival_force(battle: RivalBattle, rival_data: Rival, crew_size: in
 	var rival_type = rival_data.rival_type if rival_data.rival_type != "" else "CRIMINAL_GANG"
 	
 	# Get force template
-	var template = rival_force_templates.get(rival_type, rival_force_templates.CRIMINAL_GANG)
+	var template = rival_force_templates.get(
+		rival_type, rival_force_templates["CRIMINAL_GANG"])
 	
 	# Calculate base force size
 	var base_size = template.base_size

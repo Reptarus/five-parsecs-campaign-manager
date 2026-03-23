@@ -1,6 +1,6 @@
 {
   "last_updated": "2026-03-23",
-  "current_phase": "Runtime QA Sprint — Waves 1-4 COMPLETE. Battle system MCP-verified (BattleResolver, injury D100, post-battle 14-step pipeline, oracle tiers). BUG-040 found+fixed. Wave 5 (cross-mode + DLC) remaining.",
+  "current_phase": "Generator Wiring Fix Sprint COMPLETE — 10/10 broken generators FIXED. Data layer 925/925 verified. Zero compile errors.",
   "key_metrics": {
     "game_mechanics_compliance": "100% (170/170)",
     "core_rules_systems": "11/11 verified",
@@ -12,13 +12,13 @@
     "gdscript_files": "~900 (excl. addons)",
     "autoloads": 28,
     "traceability_items_mapped": 266,
-    "traceability_items_verified": "~900 of ~925",
+    "traceability_items_verified": "925/925",
     "traceability_chapters_mapped": "13/13",
     "domains_verified": "12/12 (all domains verified against Core Rules + Compendium source text)",
     "compendium_items_mapped": 71,
     "open_conflicts": 0,
     "fabricated_files_flagged": 0,
-    "runtime_qa_waves_complete": "4/5",
+    "runtime_qa_waves_complete": "5/5",
     "bugs_found_this_sprint": 3,
     "bugs_fixed_this_sprint": 3
   },
@@ -92,7 +92,7 @@
     { "phase": "Functional Gaps", "description": "Cleanup (7 sprints F-1 to F-7)" }
   ],
   "roadmap": {
-    "next_priority": "Compendium/DLC verification (~100 values) — requires physical Compendium book",
+    "next_priority": "Generator wiring COMPLETE. Next: Compendium/DLC verification (~100 values) + phantom property cleanup (CharacterGeneration).",
     "remaining_pdf_verification": "~100 Compendium/DLC values (Core Rules domains complete)",
     "equipment_database": "FULLY WIRED + VERIFIED. 36 Core Rules weapons confirmed, 6 non-Core tagged.",
     "compendium_deferred": ["species text helpers", "PvP/Co-op modes", "6 non-Core weapon stats"],

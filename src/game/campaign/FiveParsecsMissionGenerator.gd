@@ -69,7 +69,7 @@ func _init() -> void:
 		])
 
 func _load_mission_gen_data() -> void:
-	# Load mission objectives from canonical patron_generation.json (Core Rules pp.89-91)
+	# Load mission objectives + danger pay from canonical patron_generation.json (Core Rules pp.83-91)
 	var gen_path := "res://data/patron_generation.json"
 	if FileAccess.file_exists(gen_path):
 		var gen_file := FileAccess.open(gen_path, FileAccess.READ)
@@ -79,6 +79,10 @@ func _load_mission_gen_data() -> void:
 				var gen_data: Dictionary = gen_json.data
 				if gen_data.has("mission_objectives"):
 					_mission_gen_data["core_rules_objectives"] = gen_data["mission_objectives"]
+				# Load danger pay table (Core Rules p.83) for reward calculation
+				var danger_table: Dictionary = gen_data.get("danger_pay_table", {})
+				if danger_table.has("entries"):
+					_mission_gen_data["danger_pay_entries"] = danger_table["entries"]
 			gen_file.close()
 
 	# Load supplementary data from mission_generation_data.json (locations, terrain, etc.)
@@ -170,16 +174,34 @@ func generate_mission_description(type: int, difficulty: int) -> String:
 	return type_desc + " " + difficulty_desc
 
 func calculate_mission_reward(difficulty: int, type: int) -> int:
-	# Basic reward calculation based on difficulty
-	var base_reward = difficulty * 100
+	# Core Rules p.120: Mission pay = D6 credits base
+	var base_reward: int = randi_range(1, 6)
 
-	# Adjust based on mission type using JSON multipliers
-	var multipliers: Dictionary = _mission_gen_data.get("reward_multipliers", {})
-	var type_key: String = str(type)
-	if multipliers.has(type_key):
-		base_reward = int(base_reward * float(multipliers[type_key]))
+	# Core Rules p.83: Danger pay from D10 table (loaded from patron_generation.json)
+	var danger_pay: int = 0
+	var core_objs: Dictionary = _mission_gen_data.get("core_rules_objectives", {})
+	# Danger pay table is loaded alongside patron data
+	var danger_table: Array = _mission_gen_data.get("danger_pay_entries", [])
+	if danger_table.size() > 0:
+		var danger_roll: int = randi_range(1, 10)
+		for entry in danger_table:
+			var r: Array = entry.get("roll_range", [0, 0])
+			if danger_roll >= r[0] and danger_roll <= r[1]:
+				danger_pay = entry.get("danger_pay", 1)
+				# 10+: roll twice for base pay, pick higher
+				if entry.get("bonus_pay_rule", "") == "roll_twice_pick_higher":
+					var second_roll: int = randi_range(1, 6)
+					base_reward = maxi(base_reward, second_roll)
+				break
+	else:
+		# Fallback: flat +1 danger pay if JSON unavailable
+		danger_pay = 1
 
-	return base_reward
+	# Higher difficulty missions add +1 danger pay (app-specific scaling)
+	if difficulty >= 4:
+		danger_pay += 1
+
+	return base_reward + danger_pay
 
 func calculate_enemy_count(difficulty: int, type: int) -> int:
 	var base_count = difficulty + 2
@@ -273,10 +295,10 @@ func generate_loot_table(difficulty: int) -> Array:
 		var loot_entry = {}
 		
 		match loot_type:
-			0: # Credits
+			0: # Credits (Core Rules single-digit economy)
 				loot_entry = {
 					"type": "credits",
-					"amount": (randi() % 5 + 1) * 100
+					"amount": randi_range(1, 3)
 				}
 			1: # Item
 				loot_entry = {

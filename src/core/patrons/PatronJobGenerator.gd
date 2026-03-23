@@ -207,44 +207,47 @@ func _load_job_templates_hardcoded() -> void:
 		}
 	}
 
-## Load patron type modifiers
+## Load patron type modifiers — keyed to match Core Rules p.83 patron types
 func _load_patron_modifiers() -> void:
+	# Keys match patron_generation.json patron_type_table (Core Rules p.83)
 	patron_type_modifiers = {
-		"CORPORATION": {
+		"Corporation": {
 			"payment_modifier": 1.2,
 			"preferred_jobs": ["ESCORT", "DELIVERY", "INVESTIGATION"],
 			"bonus_equipment": true,
+			"reputation_value": 2,
+			"danger_pay_bonus": 1 # Core Rules: +1 to Danger Pay roll
+		},
+		"Local Government": {
+			"payment_modifier": 1.0,
+			"preferred_jobs": ["PATROL", "ESCORT", "INVESTIGATION"],
+			"authority_bonus": true,
 			"reputation_value": 2
 		},
-		"MILITARY": {
+		"Sector Government": {
 			"payment_modifier": 1.0,
 			"preferred_jobs": ["PATROL", "ASSAULT", "ESCORT"],
-			"danger_bonus": 1,
-			"reputation_value": 2
+			"authority_bonus": true,
+			"reputation_value": 3
 		},
-		"CRIMINAL": {
-			"payment_modifier": 1.3,
-			"preferred_jobs": ["DELIVERY", "ASSAULT", "INVESTIGATION"],
-			"risk_bonus": true,
-			"reputation_value": -1
+		"Wealthy Individual": {
+			"payment_modifier": 1.1,
+			"preferred_jobs": ["ESCORT", "SALVAGE", "INVESTIGATION"],
+			"bonus_equipment": true,
+			"reputation_value": 1
 		},
-		"TRADER": {
+		"Private Organization": {
 			"payment_modifier": 0.9,
-			"preferred_jobs": ["ESCORT", "DELIVERY", "SALVAGE"],
+			"preferred_jobs": ["DELIVERY", "SALVAGE", "ESCORT"],
 			"equipment_discount": true,
 			"reputation_value": 1
 		},
-		"SCIENTIST": {
-			"payment_modifier": 1.1,
-			"preferred_jobs": ["SALVAGE", "INVESTIGATION", "ESCORT"],
-			"story_bonus": true,
-			"reputation_value": 1
-		},
-		"GOVERNMENT": {
-			"payment_modifier": 1.0,
-			"preferred_jobs": ["PATROL", "INVESTIGATION", "ESCORT"],
-			"authority_bonus": true,
-			"reputation_value": 3
+		"Secretive Group": {
+			"payment_modifier": 1.3,
+			"preferred_jobs": ["DELIVERY", "ASSAULT", "INVESTIGATION"],
+			"risk_bonus": true,
+			"reputation_value": -1,
+			"time_frame_bonus": 1 # Core Rules: +1 to Time Frame roll
 		}
 	}
 
@@ -287,11 +290,31 @@ func generate_patron_job(patron_data: Patron, crew_size: int = 4, relationship_l
 	
 	return job
 
+## Map FactionType enum to Core Rules patron type string (p.83)
+func _get_patron_type_string(patron_data: Patron) -> String:
+	var GameEnumsRef = preload("res://src/core/enums/GameEnums.gd")
+	match patron_data.faction_type:
+		GameEnumsRef.FactionType.CORPORATE:
+			return "Corporation"
+		GameEnumsRef.FactionType.IMPERIAL:
+			return "Sector Government"
+		GameEnumsRef.FactionType.REBEL:
+			return "Secretive Group"
+		GameEnumsRef.FactionType.MERCENARY:
+			return "Private Organization"
+		GameEnumsRef.FactionType.PIRATE:
+			return "Secretive Group"
+		GameEnumsRef.FactionType.ALIEN:
+			return "Wealthy Individual"
+		_:
+			return "Private Organization"
+
 ## Select job type based on patron preferences
 func _select_job_type(patron_data: Patron) -> String:
-	var patron_type = patron_data.patron_type if patron_data.patron_type != "" else "TRADER"
-	var modifiers = patron_type_modifiers.get(patron_type, patron_type_modifiers.TRADER)
-	var preferred_jobs = modifiers.preferred_jobs
+	var patron_type: String = _get_patron_type_string(patron_data)
+	var modifiers: Dictionary = patron_type_modifiers.get(
+		patron_type, patron_type_modifiers["Private Organization"])
+	var preferred_jobs: Array = modifiers.preferred_jobs
 	
 	# 70% chance for preferred job type, 30% for any job type
 	if randi_range(1, 100) <= 70 and preferred_jobs.size() > 0:
@@ -317,10 +340,11 @@ func _generate_mission_details(job: PatronJob, template: Dictionary) -> void:
 func _calculate_payment(job: PatronJob, patron_data: Patron, relationship_level: int) -> void:
 	var template = job_templates[job.job_type]
 	var base_payment = template.base_payment
-	
+
 	# Apply patron type modifier
-	var patron_type = patron_data.patron_type if patron_data.patron_type != "" else "TRADER"
-	var patron_mod = patron_type_modifiers.get(patron_type, patron_type_modifiers.TRADER)
+	var patron_type: String = _get_patron_type_string(patron_data)
+	var patron_mod: Dictionary = patron_type_modifiers.get(
+		patron_type, patron_type_modifiers["Private Organization"])
 	var payment_modifier = patron_mod.payment_modifier
 	
 	# Apply relationship modifier
@@ -334,8 +358,8 @@ func _calculate_payment(job: PatronJob, patron_data: Patron, relationship_level:
 	var danger_range = template.danger_range
 	job.danger_pay = randi_range(danger_range[0], danger_range[1])
 	
-	# Add bonus payment for high-reputation patrons
-	if patron_data.reputation >= 2:
+	# Add bonus payment for high-relationship patrons
+	if patron_data.relationship >= 2:
 		job.bonus_payment = randi_range(1, 3)
 
 ## Set job difficulty and requirements
@@ -373,8 +397,9 @@ func _add_special_elements(job: PatronJob, patron_data: Patron, template: Dictio
 	job.success_rewards = success_bonus.duplicate()
 	
 	# Add patron-specific bonuses
-	var patron_type = patron_data.patron_type if patron_data.patron_type != "" else "TRADER"
-	var patron_mod = patron_type_modifiers.get(patron_type, patron_type_modifiers.TRADER)
+	var patron_type: String = _get_patron_type_string(patron_data)
+	var patron_mod: Dictionary = patron_type_modifiers.get(
+		patron_type, patron_type_modifiers["Private Organization"])
 	
 	if patron_mod.get("bonus_equipment", false):
 		job.success_rewards["equipment_bonus"] = true
@@ -432,13 +457,15 @@ func process_job_completion(job: PatronJob, success: bool, performance_rating: i
 
 ## Update patron relationship
 func update_patron_relationship(patron_data: Patron, relationship_change: int) -> int:
-	var old_level = patron_data.reputation
-	patron_data.reputation = clamp(patron_data.reputation + relationship_change, -3, 3)
-	
-	if patron_data.reputation != old_level:
-		self.patron_relationship_updated.emit(patron_data.patron_name, patron_data.reputation)
-	
-	return patron_data.reputation
+	var old_level: int = patron_data.relationship
+	patron_data.relationship = clampi(
+		patron_data.relationship + relationship_change, -3, 3)
+
+	if patron_data.relationship != old_level:
+		self.patron_relationship_updated.emit(
+			patron_data.patron_name, patron_data.relationship)
+
+	return patron_data.relationship
 
 ## Check if patron has jobs available
 func has_jobs_available(patron_data: Patron, relationship_level: int) -> bool:

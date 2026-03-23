@@ -1,6 +1,6 @@
 # UX/UI QA Test Plan — Systematic Coverage
 
-**Last Updated**: 2026-03-20
+**Last Updated**: 2026-03-23
 **Complements**: `docs/testing/UI_UX_TEST_PLAN.md` (session-based walkthroughs, ~200 tests)
 **Purpose**: Systematic design-system and accessibility coverage that session walkthroughs miss
 
@@ -583,4 +583,104 @@ for child in root.get_children():
         if size not in standard:
             non_standard.append(child.name + ": " + str(size))
 return "Non-standard: " + str(non_standard.size()) + "\n" + "\n".join(non_standard)
+```
+
+---
+
+## 8. Output Accuracy Verification — JSON Data Flow to UI
+
+**Added**: 2026-03-23 (Generator Wiring Fix Sprint)
+**Unit Tests**: `tests/unit/test_generator_wiring.gd` (25 tests)
+
+Verifies that values displayed in the UI originate from canonical JSON data files, not fabricated hardcoded constants. This section guards against the "load but never use" anti-pattern where generators load JSON but ignore it.
+
+### 8a. Economy Display Accuracy
+
+All credit amounts shown in UI must use Core Rules single-digit economy (1-12 credits per transaction, not hundreds).
+
+| Screen | Value Displayed | Expected Range | Source | Check |
+|--------|----------------|----------------|--------|-------|
+| Mission briefing | Mission reward | 2-12 cr | `patron_generation.json` danger_pay + D6 base | [ ] |
+| Post-battle summary | Loot credits | 1-3 cr per roll | D100 loot table | [ ] |
+| Patron job offer | Base + danger pay | 3-15 cr total | `patron_generation.json` | [ ] |
+| Campaign creation | Starting credits | 1 cr × crew size | `FiveParsecsConstants.starting_credits_per_crew` | [ ] |
+| Equipment generation | Bonus credits | 0 (items only) | `StartingEquipmentGenerator` returns 0 | [ ] |
+| Upkeep phase | Upkeep cost | 1-3 cr | `FiveParsecsConstants.ECONOMY` | [ ] |
+| Salvage trade | Salvage conversion | 2-18 cr | `SalvageJobGenerator.SALVAGE_CONVERSION` | [ ] |
+
+**Red flag**: Any credit value > 50 in normal gameplay is likely a fabricated constant regression.
+
+### 8b. Character Stat Display Accuracy
+
+Stats shown in character panels must be within model range (1-6).
+
+| Screen | Value | Expected Range | Source | Check |
+|--------|-------|----------------|--------|-------|
+| Character creator | Generated stats | 1-6 each | `SimpleCharacterCreator._roll_stat()` = ceil(2D6/3) | [ ] |
+| Character details | Current stats | 1-6 each (0-6 with penalties) | `Character.combat/reactions/etc` | [ ] |
+| Crew panel | Stat summary | 1-6 each | Same | [ ] |
+| Advancement | Stat costs | 5-10 XP | `campaign_rules.json` or `FiveParsecsConstants` | [ ] |
+
+**Red flag**: Any stat > 6 is likely a raw 2D6 regression.
+
+### 8c. Patron Type Display Accuracy
+
+Patron types shown in UI must match Core Rules p.83 (6 types).
+
+| UI Element | Expected Values | Source | Check |
+|------------|----------------|--------|-------|
+| Patron type label | Corporation, Local Government, Sector Government, Wealthy Individual, Private Organization, Secretive Group | `patron_generation.json` | [ ] |
+| Patron job type | Maps from FactionType enum via `_get_patron_type_string()` | `PatronJobGenerator` | [ ] |
+| Danger pay modifier | +1 for Corporation | `patron_generation.json` | [ ] |
+| Time frame modifier | +1 for Secretive Group | `patron_generation.json` | [ ] |
+
+**Red flag**: Types like "MILITARY", "CRIMINAL", "TRADER", "SCIENTIST" are fabricated (pre-fix) keys.
+
+### 8d. Compendium Mission Data Accuracy (DLC-gated)
+
+When DLC is enabled, mission data shown in tactical UI must come from JSON, not const arrays alone.
+
+| Mission Type | JSON Source | Key Data Points | Check |
+|-------------|------------|-----------------|-------|
+| Street Fight | `StealthAndStreet.json` → `street_fights` | Suspect markers, identification rules, police response | [ ] |
+| Salvage Job | `SalvageJobs.json` | Tension track, contact resolution, POI table | [ ] |
+| Stealth Mission | `StealthAndStreet.json` → `stealth` | Objectives (D100), spotting modifiers, detection rules | [ ] |
+
+### 8e. MCP Verification Scripts
+
+```gdscript
+# Check mission reward range in running game
+var gen = load("res://src/game/campaign/FiveParsecsMissionGenerator.gd").new()
+var rewards = []
+for i in range(20):
+    rewards.append(gen.calculate_mission_reward(3, 0))
+var max_r = rewards.max()
+var min_r = rewards.min()
+return "Reward range: %d-%d (expect 2-12, FAIL if >20)" % [min_r, max_r]
+```
+
+```gdscript
+# Check character stat generation range
+var creator = load("res://src/core/character/Generation/SimpleCharacterCreator.gd").new()
+var stats = []
+for i in range(100):
+    stats.append(creator._roll_stat())
+var max_s = stats.max()
+var min_s = stats.min()
+creator.free()
+return "Stat range: %d-%d (expect 1-6, FAIL if >6)" % [min_s, max_s]
+```
+
+```gdscript
+# Check patron type mapping completeness
+var gen_class = load("res://src/core/patrons/PatronJobGenerator.gd")
+var gen = gen_class.new()
+var keys = gen.patron_type_modifiers.keys()
+gen.free()
+var expected = ["Corporation", "Local Government", "Sector Government", "Wealthy Individual", "Private Organization", "Secretive Group"]
+var missing = []
+for e in expected:
+    if e not in keys:
+        missing.append(e)
+return "Patron types: %d/6 present. Missing: %s" % [6 - missing.size(), str(missing)]
 ```

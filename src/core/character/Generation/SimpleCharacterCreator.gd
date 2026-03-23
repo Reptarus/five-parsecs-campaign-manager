@@ -382,21 +382,22 @@ func _generate_random_stats() -> void:
 	if not current_character:
 		current_character = Character.new()
 	
-	# Generate base stats using Five Parsecs rules (2d6 for each stat)
-	current_character.combat = _roll_2d6()
-	current_character.reactions = _roll_2d6()
-	current_character.toughness = _roll_2d6()
-	current_character.savvy = _roll_2d6()
-	current_character.tech = _roll_2d6()
-	current_character.speed = _roll_2d6()
+	# Generate base stats: ceil(2D6 / 3) gives 1-4 range
+	# (FiveParsecsConstants: attribute_dice="2d6", attribute_divisor=3)
+	current_character.combat = _roll_stat()
+	current_character.reactions = _roll_stat()
+	current_character.toughness = _roll_stat()
+	current_character.savvy = _roll_stat()
+	current_character.tech = _roll_stat()
+	current_character.speed = _roll_stat()
 	current_character.luck = 1 # Starting luck
 
 	# Captains get better stats
 	if current_mode == CreatorMode.CAPTAIN:
-		current_character.combat = max(current_character.combat, 3)
-		current_character.reactions = max(current_character.reactions, 2)
-		current_character.toughness = max(current_character.toughness, 3)
-		current_character.savvy = max(current_character.savvy, 3)
+		current_character.combat = maxi(current_character.combat, 3)
+		current_character.reactions = maxi(current_character.reactions, 2)
+		current_character.toughness = maxi(current_character.toughness, 3)
+		current_character.savvy = maxi(current_character.savvy, 3)
 		current_character.luck = 2
 	
 	# Calculate health
@@ -413,8 +414,14 @@ func _generate_random_stats() -> void:
 	_update_description()
 
 func _roll_2d6() -> int:
-	## Roll 2d6 for Five Parsecs stat generation
+	## Roll 2d6 (raw, used for non-stat rolls)
 	return randi_range(1, 6) + randi_range(1, 6)
+
+func _roll_stat() -> int:
+	## Roll stat: ceil(2D6 / 3), clamped to 1-6
+	## FiveParsecsConstants: attribute_dice="2d6", attribute_divisor=3
+	var raw: int = randi_range(1, 6) + randi_range(1, 6)
+	return clampi(ceili(raw / 3.0), 1, 6)
 
 func _update_stats_display() -> void:
 	## Update the stats display with current character values

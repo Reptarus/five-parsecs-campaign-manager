@@ -177,6 +177,7 @@ static func generate_stealth_mission() -> Dictionary:
 	if not _is_enabled():
 		return {}
 
+	_ensure_ref_loaded()
 	var objective := _roll_objective()
 	var sentry_count := randi_range(3, 6)
 	var individual := {}

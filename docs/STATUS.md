@@ -1,10 +1,10 @@
 # Five Parsecs from Home — Campaign Manager
 
-**Status:** Data Verification Complete — all game data verified against rulebooks, ready for runtime QA
-**Urgency:** Medium
-**Last win:** Phase 48 Full Book Verification (Mar 23) — ~900/925 values verified against Core Rules + Compendium source text, 190+ fixes applied, 145+ fabricated values removed, zero compile errors
-**Blocked by:** Runtime QA playthrough to verify all data fixes work in gameplay; IRL play session
-**Next:** Run MCP-automated QA verification (campaign creation + world phase + battle), then schedule IRL test session
+**Status:** Generator Wiring Fix needed — data is verified but 10/16 generators don't use it
+**Urgency:** High
+**Last win:** Phase 48 data verification complete (925/925 values). Generator audit discovered 10 broken generators.
+**Blocked by:** Generator wiring refactor (10 files) — generators load canonical JSON but ignore it, using fabricated const arrays. 3 files have 100x payment inflation. 2 files write to non-existent properties.
+**Next:** Fix generator wiring (priority: payment inflation → broken properties → load-but-ignore → stat overflow), then runtime QA
 
 ## Notes
 - **Engine**: Godot 4.6-stable, pure GDScript, ~900 source files

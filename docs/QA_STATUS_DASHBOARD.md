@@ -2,7 +2,7 @@
 
 **Last Updated**: 2026-03-23
 **Engine**: Godot 4.6-stable
-**Overall Coverage**: 100% verified (170/170 implemented, 0 NOT_TESTED → 44 promoted to UNIT_TESTED, ~900/925 data values verified against source text)
+**Overall Coverage**: Data 97% verified (925/925 values checked), but **generator wiring 7/16 OK** — 9 generators have issues (2 load-but-ignore JSON, 1 no JSON at all, 2 broken property access, 2 payment inflation, 2 stat overflow/incomplete). See QA_RULES_ACCURACY_AUDIT.md "Generator Wiring Gap" for detailed per-file breakdown with exact line numbers.
 
 ---
 
@@ -97,14 +97,16 @@ None — all UX issues resolved as of 2026-03-20.
 | Ships | ~20 | ~20 | **VERIFIED** |
 | Victory Conditions | ~17 | ~17 | **VERIFIED** — 17 conditions + easy mode restrictions |
 | Compendium/DLC | ~100 | ~100 | **VERIFIED** — 11 GDScript files cross-referenced. 4 tables REWRITTEN. 5 fabricated weapons REMOVED. |
-| **TOTAL** | **~925+** | **~900+** | **COMPLETE — All 12 domains verified against source text** |
+| **TOTAL** | **~925+** | **~900+** | **DATA VERIFIED — but generator wiring audit found 10/16 generators don't use the verified data** |
 
-**Full Book Verification Complete (Mar 23, 2026)**: All game data cross-referenced against `core_rulebook.txt` + `compendium_source.txt`. 190+ fixes applied, 145+ fabricated values removed. See `QA_RULES_ACCURACY_AUDIT.md` for per-entry detail.
+**Data Verification Complete (Mar 23, 2026)**: All JSON/GDScript data values cross-referenced against source text. 190+ fixes applied, 145+ fabricated values removed.
 
-**All Conflicts Resolved**:
-- ~~Upkeep cost~~: **FIXED** — `campaign_rules.json` corrected, `FiveParsecsConstants.gd` base_upkeep=1 confirmed (Core Rules p.76)
-- ~~Starting credits~~: **FIXED** — 1 credit per crew member (Core Rules p.28), `WorldEconomyManager` 1000→0
-- ~~Economy scale~~: **FIXED** — payment formula rewritten to D6+danger_pay, reward generators fixed
+**Generator Wiring Gap (Mar 23, 2026)**: Code-level audit found 10 of 16 generators have issues. 5 load canonical JSON but use fabricated const arrays instead. 3 write to non-existent GameItem properties. 3 have 100x payment inflation. See `QA_RULES_ACCURACY_AUDIT.md` "Generator Wiring Gap" for full table. **BLOCKS PUBLIC RELEASE.**
+
+**Economy conflicts — PARTIALLY resolved**:
+- ~~Upkeep cost~~: **FIXED** in data files — but `FiveParsecsMissionGenerator.calculate_mission_reward()` still uses `difficulty * 100`
+- ~~Starting credits~~: **FIXED** in `WorldEconomyManager` and `campaign_rules.json` — but `StartingEquipmentGenerator` still uses `1000 + D10×100` and `CharacterGeneration._convert_gear_array_to_dict()` hardcodes `1000`
+- ~~Payment formula~~: **FIXED** in `PaymentProcessor` and `patron_generation.json` — but `PatronJobGenerator` uses fabricated multipliers that never match the JSON keys
 
 ---
 
@@ -112,13 +114,15 @@ None — all UX issues resolved as of 2026-03-20.
 
 | Area | Risk | Reason | Mitigation |
 |------|------|--------|------------|
-| ~~Data Accuracy — AI Hallucination~~ | **RESOLVED** | ~900/925 values verified against Core Rules + Compendium source text. 145+ fabricated values removed, 190+ fixes applied (Phase 48, Mar 23). No longer blocks release. | `QA_RULES_ACCURACY_AUDIT.md` — status COMPLETE |
-| Duplicate Data Sources | **MEDIUM** | Some data still in multiple places (motivation table in JSON + CharacterGeneration.gd). Most conflicts resolved during Phase 48. | Single-source-of-truth refactoring as time permits |
+| Generator Wiring Gap | **CRITICAL** | 10/16 generators don't use verified JSON data. 5 load-but-ignore, 3 broken property access, 3 payment inflation. Data is correct but code doesn't read it. | `QA_RULES_ACCURACY_AUDIT.md` "Generator Wiring Gap". **BLOCKS RELEASE.** |
+| ~~Data Accuracy — AI Hallucination~~ | **RESOLVED** | ~900/925 data values verified against source text. Fabricated values removed. Data layer is clean. | Data audit complete, generator wiring is the remaining gap |
+| Duplicate Data Sources | **HIGH** | Generators have fabricated const arrays that duplicate (incorrectly) the verified JSON data. Must be replaced with JSON reads. | Part of generator wiring fix |
 | Save/Load dual-sync | **HIGH** | BUG-031 was systemic — all setters must sync to 3 targets | Dual-sync regression test in integration scenarios |
 | Three-enum sync | **HIGH** | GlobalEnums, GameEnums, FiveParsecsGameEnums must stay aligned manually | Automated enum comparison test needed |
 | ~~Character type shadowing~~ | **RESOLVED** | 7 files fixed Mar 21 — removed `const Character := preload(Base/Character.gd)` shadowing class_name | Fixed: consts removed, global class_name used |
 | TweenFX pivot_offset | **MEDIUM** | 13 animations silently break without `pivot_offset = size / 2` | Checklist in QA_UX_UI_TEST_PLAN.md |
-| Bug Hunt cross-contamination | **LOW** | Namespace isolation verified, temp_data keys prefixed | Integration scenario 4 |
+| Bug Hunt cross-contamination | **LOW** | Namespace isolation verified, temp_data keys prefixed. **Wave 5 MCP-confirmed**: data models fully incompatible (flat vs nested), no ship/patron/rival in Bug Hunt. | Integration scenario 4 |
+| Bug Hunt cross-load | **MEDIUM** | `GameState.load_campaign()` hardcodes `FiveParsecsCampaignCore.load_from_file()` — no type detection routing. Bug Hunt relies on manual SceneRouter routing. CLAUDE.md `_detect_campaign_type()` claim is inaccurate. | Add type peek + routing to `load_campaign()` |
 | Difficulty enum format | **LOW** | Fixed Phase 30, but old saves with 1-5 values map incorrectly | Migration handling in GameState |
 
 ---
@@ -127,6 +131,7 @@ None — all UX issues resolved as of 2026-03-20.
 
 | Phase | Date | Scope | Bugs Found | Bugs Fixed |
 |-------|------|-------|------------|------------|
+| Runtime QA Wave 5 (Cross-Mode + DLC) | Mar 23, 2026 | Bug Hunt data model isolation MCP-verified: main_characters/grunts (flat), NO ship/patrons/rivals, campaign_type="bug_hunt". Serialization roundtrip: squad/meta keys correct, no ship data. DLC 2-layer gating: 33 flags across 3 packs (TT=7, FH=17, FG=9), ownership+toggle verified, unowned-pack gate blocks correctly, serialize/deserialize roundtrip PASS. Difficulty: EASY(+1 XP), HARDCORE(+1 enemy, -2 seize), INSANITY(story disabled, -3 seize, unique individual forced) all correct. Enum sync: GlobalEnums(31)=GameEnums(31), FPGameEnums(37, +6 expected). Cross-load gap: `_detect_campaign_type()` missing from GameState — CLAUDE.md inaccuracy flagged. | 0 bugs | 0 (1 doc inaccuracy flagged) |
 | Runtime QA Wave 4 (Battle System) | Mar 23, 2026 | BattleResolver MCP-tested: 4v5 combat resolved (5 rounds, crew victory, held field, all 10 result keys). Injury D100: full coverage verified (zero gaps/overlaps), GRUESOME_FATE(1-5)/FATAL(6-15) confirmed. Bot injury table verified. Post-battle 14-step pipeline: all 10 subsystems loaded+instantiated as RefCounted, Steps 4/7/8/9 exercised end-to-end (payment 8cr, loot 1 item, injury processed, 3 XP each). Oracle tiers: 3-tier cumulative architecture (5→12→14 components), purely UI layer. BUG-040 found+fixed. 2 weapon values flagged for book check. | 1 bug | 1 (BUG-040 InjuryProcessor turn_number) |
 | Runtime QA Sprint (Waves 1-3) | Mar 23, 2026 | User-facing campaign creation + turn + save/load. BUG-036 psionic fully fixed (BaseCharacterResource property added). Upkeep formula verified (4 crew + 1 ship = 5 credits). Save roundtrip: psionic, equipment key, dual-sync all PASS. EliteEnemies.json truncation fixed. credit_rewards.json deleted (fabricated dead code). | 2 bugs | 2 (BUG-036 root cause, EliteEnemies.json truncation) |
 | Phase 48: Full Book Verification | Mar 23, 2026 | All 12 data domains verified against core_rulebook.txt + compendium_source.txt. 190+ fixes: motivation table 13 errors, 3 Strange Characters added, 5 fabricated weapons removed, 4 Compendium tables rewritten, salvage rules rewritten, prison planet reclassified, starting credits fixed | 190+ data | 190+ (all fixed) |
@@ -157,12 +162,12 @@ All 5 previous priority items are now verified:
 
 ## Next Priority Items
 
-1. ~~**RULES ACCURACY AUDIT**~~ — **COMPLETE** (Mar 23). ~900/925 values verified against source text. 190+ fixes, 145+ fabricated removed. No longer blocks release.
-2. **Runtime QA sprint** — MCP-automated campaign creation + world phase + battle playthrough to verify all data fixes work in gameplay
-3. **Remaining NOT_TESTED coverage** — 44 mechanics need unit tests: Compendium DLC (20), Ship (5), Equipment (5), Economy (4), Travel/Upkeep (7), Character (2), Battle (1)
-4. **Victory condition metric tracking** — Uses turns_played as proxy, not actual counters
-5. **Battle UI standalone mode** — 7 bugs only when TacticalBattleUI launched without campaign flow
-6. **Data duplication cleanup** — Motivation table in both JSON + CharacterGeneration.gd; some Compendium data in both GDScript + RulesReference JSON
+1. **GENERATOR WIRING FIX** — 10/16 generators don't use verified data. Priority order: payment inflation (3 files), broken property access (2 files), load-but-ignore pattern (5 files), stat overflow (1 file), phantom properties (1 file). **BLOCKS RELEASE.**
+2. ~~**RULES ACCURACY AUDIT**~~ — **DATA COMPLETE** (Mar 23). 925/925 values verified. But generator wiring gap discovered — data is correct, code doesn't read it.
+3. **Runtime QA sprint** — MCP-automated playthrough to verify generator fixes work in gameplay
+4. **Remaining NOT_TESTED coverage** — 44 mechanics need unit tests
+5. **Victory condition metric tracking** — Uses turns_played as proxy, not actual counters
+6. **Battle UI standalone mode** — 7 bugs only when TacticalBattleUI launched without campaign flow
 
 ---
 

@@ -155,6 +155,7 @@ static func generate_salvage_job(crew_size: int) -> Dictionary:
 	if not _is_enabled():
 		return {}
 
+	_ensure_ref_loaded()
 	var initial_tension := ceili(crew_size / 2.0)
 	var poi_count := randi_range(3, 6)
 
@@ -173,6 +174,7 @@ static func generate_salvage_job(crew_size: int) -> Dictionary:
 static func find_salvage_job() -> Dictionary:
 	if not _is_enabled():
 		return {}
+	_ensure_ref_loaded()
 	var roll := randi_range(1, 6)
 	for entry in FIND_JOB_TABLE:
 		if entry.roll == roll:

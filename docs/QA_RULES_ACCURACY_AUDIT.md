@@ -2,9 +2,193 @@
 
 **Last Updated**: 2026-03-23
 **Purpose**: Comprehensive line-by-line verification that EVERY rule in the Core Rules book and Compendium has corresponding code, and EVERY piece of game code traces back to a specific rule
-**Status**: COMPLETE — All 12/12 data domains VERIFIED against core_rulebook.txt + compendium_source.txt. **925/925 values accounted for**: ~900 verified correct, ~14 tagged APP_SPECIFIC (not from rules), ~6 loot sub-entries (estimated). COMBAT/MISSIONS fabricated constants in FiveParsecsConstants.gd replaced with verified Core Rules values. EliteEnemies.json truncation fixed. Onboard items (19/19) verified verbatim. Zero remaining BOOK_VERIFICATION_NEEDED or GAME_BALANCE_ESTIMATE tags.
+**Status**: DATA VERIFIED, WIRING INCOMPLETE — All 12/12 data domains verified against source text (925/925 values). However, a **generator wiring audit** (Mar 23) found that 10 of 16 generation engines have issues: 5 load canonical JSON but never read it (using fabricated const arrays instead), 3 write to non-existent object properties (data silently lost), 3 have 100x payment inflation. See "Generator Wiring Gap" section below.
 
 > **CRITICAL — BLOCKS PUBLIC RELEASE**: This project nearly shipped with AI-hallucinated game data. Every rule statement, every conditional ("and"/"or"), every table, every formula in the Core Rules book must map to specific code. Every game data value in code must trace back to a specific page and paragraph in the book.
+
+---
+
+## Generator Wiring Gap (Discovered Mar 23, 2026)
+
+**What the audit verified**: JSON/GDScript data values match the Core Rules and Compendium source text (925/925).
+
+**What the audit did NOT verify**: Whether generation engines actually READ the verified data at runtime. A code-level audit of all 16 generators found that many load canonical JSON but then ignore it, using fabricated hardcoded const arrays instead.
+
+### Generator Health (verified by code reading, not agent-only)
+
+| Generator | Status | Issue |
+|-----------|--------|-------|
+| StreetFightGenerator | **BROKEN** | Loads `StealthAndStreet.json` → never reads it. All 4 tables are fabricated consts. |
+| SalvageJobGenerator | **BROKEN** | Loads `SalvageJobs.json` → never reads it. POI + hostile tables are fabricated consts. |
+| RivalBattleGenerator | **BROKEN** | Zero JSON loading. All force templates/escalation rules fabricated. |
+| LootEconomyIntegrator | **BROKEN** | Writes `.value/.quality/.condition/.tags` to GameItem — none exist. Data silently lost. |
+| EquipmentGenerationScene | **BROKEN** | Wrong autoload paths → fabricated fallback always triggers. |
+| FiveParsecsMissionGenerator | **WRONG VALUES** | `difficulty * 100` payment (100x inflation). Non-canonical faction names. |
+| PatronJobGenerator | **WRONG VALUES** | Type keys never match `patron_generation.json`. Payment multipliers fabricated. |
+| CharacterGeneration | **PARTIAL** | 5 phantom properties (silently lost). Only 8/23 classes get bonuses. Only 8/25 backgrounds mapped. |
+| SimpleCharacterCreator | **PARTIAL** | Raw 2D6 stats (2-12) vs model expecting 0-6. Speed UI cap wrong. |
+| StartingEquipmentGenerator | **PARTIAL** | Credits = 1000+D10×100 (fabricated). Weapon names non-canonical. |
+| EnemyGenerator | **PARTIAL** | Primary JSON path OK. Fallback has wrong category names. |
+| StealthMissionGenerator | **OK** | All const arrays are intentional Compendium data (no JSON file expected). DLC-gated correctly. |
+| EnemyGenerationWizard | **PARTIAL** | Category IDs mismatched from EnemyGenerator fallback IDs (6 wizard categories vs 4 fallback). |
+| BugHuntEnemyGenerator | **OK** | All 4 JSON files loaded and used correctly. |
+| BugHuntCharacterGeneration | **OK** | Origin/training/history from JSON. Minor unresolved equipment IDs. |
+| BattlefieldGenerator | **OK** | Loads canonical terrain JSON correctly. |
+
+### Fix Priority
+
+1. **Payment inflation** (FiveParsecsMissionGenerator, PatronJobGenerator) — gameplay-breaking wrong values
+2. **"Load but never use" pattern** (StreetFight, Salvage) — switch `generate_*()` to read `_ref_data`
+3. **Broken property access** (LootEconomyIntegrator, EquipmentGenerationScene) — data silently lost
+4. **Stat overflow** (SimpleCharacterCreator 2D6 unclamped) — character model corruption
+5. **Phantom properties** (CharacterGeneration) — data silently lost
+6. **Incomplete coverage** (8/23 class bonuses, 8/25 background mapping) — silent no-ops
+7. **Category ID mismatch** (EnemyGenerator ↔ EnemyGenerationWizard) — fallback generation fails
+
+### Detailed Per-Generator Breakdown
+
+#### BROKEN: StreetFightGenerator.gd
+
+**File**: `src/core/mission/StreetFightGenerator.gd` (267 lines)
+
+| Issue | Lines | Detail |
+|-------|-------|--------|
+| JSON loaded, never read | 119-144 | `_ensure_ref_loaded()` opens `StealthAndStreet.json` correctly |
+| Fabricated: STREET_FIGHT_OBJECTIVES | 23-72 | 6 objectives with D100 ranges — never reads `_ref_data` |
+| Fabricated: BUILDING_TYPES | 79-86 | 6 building types with cover/floors |
+| Fabricated: SUSPECT_IDENTITY | 93-100 | 6 suspect types with hostile flags |
+| Fabricated: POLICE_RESPONSE_TEXT | 107-112 | 4 hardcoded response strings |
+| Methods ignoring JSON | 181-202 | `_roll_objective()`, `_roll_building()`, `roll_suspect_identity()` all iterate const arrays |
+
+**Fix**: Each `_roll_*()` method calls `_ensure_ref_loaded()` then reads from `_ref_data.get("street_fights", {})` with const fallback.
+
+#### BROKEN: SalvageJobGenerator.gd
+
+**File**: `src/core/mission/SalvageJobGenerator.gd` (293 lines)
+
+| Issue | Lines | Detail |
+|-------|-------|--------|
+| JSON loaded, never read | 116-136 | `_ensure_ref_loaded()` opens `SalvageJobs.json` correctly |
+| Fabricated: FIND_JOB_TABLE | 25-32 | 6 job types with D6 rolls |
+| Fabricated: CONTACT_RESOLUTION | 39-46 | 6 contact outcomes with tension modifiers |
+| Fabricated: HOSTILE_TYPES | 53-66 | 4 hostile categories with D100 ranges |
+| Fabricated: POINTS_OF_INTEREST | 73-96 | 10 POI types with salvage/tension values |
+| Fabricated: SALVAGE_CONVERSION | 103-109 | 5 credit tiers |
+| Methods ignoring JSON | 173-211 | All 5 generate methods use consts only |
+
+**Fix**: Same pattern — each method reads `_ref_data` first, falls back to const.
+
+#### BROKEN: RivalBattleGenerator.gd
+
+**File**: `src/core/rivals/RivalBattleGenerator.gd` (450+ lines)
+
+| Issue | Lines | Detail |
+|-------|-------|--------|
+| Zero JSON infrastructure | — | No `_ensure_ref_loaded()`, no JSON path, no `_ref_data` |
+| Fabricated: rival_force_templates | ~60-102 | 4 rival types (CRIMINAL_GANG, CORPORATE_SECURITY, PIRATE_CREW, MERCENARY_UNIT) |
+| Fabricated: escalation_rules | ~105-121 | Escalation levels 0-4 with encounter frequency |
+| Fabricated: battle_type_weights | ~124-147 | Battle type distributions |
+
+**Fix**: Add full JSON loading infrastructure. Create or identify canonical JSON source for rival mechanics. Replace all hardcoded templates with `_ref_data` lookups.
+
+#### BROKEN: LootEconomyIntegrator.gd
+
+**File**: `src/game/economy/loot/LootEconomyIntegrator.gd` (542 lines)
+
+| Issue | Lines | Detail |
+|-------|-------|--------|
+| Phantom: `item.quality` | 102-107 | Reads quality for market value multiplier — property may not exist on GameItem |
+| Phantom: `item.condition` | 110-115 | Reads condition for market value multiplier — property may not exist |
+| Phantom: `item.tags` | 248, 264, 268, 287, 292, 327 | Reads tags array — property may not exist |
+| Phantom: `item.value` | 51-79 | Reads value in `process_battle_loot()` |
+
+**Fix**: Verify `GameItem.gd` properties. Either add missing properties to GameItem or refactor all access to use safe `.get()` with defaults.
+
+#### BROKEN: EquipmentGenerationScene.gd
+
+**File**: `src/ui/screens/equipment/EquipmentGenerationScene.gd` (501 lines)
+
+| Issue | Lines | Detail |
+|-------|-------|--------|
+| Wrong autoload paths | 97-99 | Searches `/root/SystemsAutoload`, `/root/GameStateManagerAutoload`, `/root/CoreSystemSetup` — none exist |
+| Fabricated fallback | 278-303 | Generates "Military Rifle", "Combat Armor", "Field Kit" when generator not found |
+
+**Fix**: Update `_find_equipment_generator()` with correct autoload paths from project.godot. Verify fallback is intentional design or fix to use correct paths.
+
+#### WRONG VALUES: FiveParsecsMissionGenerator.gd
+
+**File**: `src/game/campaign/FiveParsecsMissionGenerator.gd` (377 lines)
+
+| Issue | Lines | Detail |
+|-------|-------|--------|
+| 100x payment inflation | 174 | `difficulty * 100` produces 200-500 credits (should be ~20-50) |
+| Hardcoded factions | 65-69 | 10 faction names not from JSON, non-canonical |
+| Objectives work correctly | 223-262 | D10 rolling on patron_generation.json objective tables ✅ |
+
+**Fix**: Replace line 174 with Core Rules-verified payment formula. Wire factions from `mission_generation_data.json`.
+
+#### WRONG VALUES: PatronJobGenerator.gd
+
+**File**: `src/core/patrons/PatronJobGenerator.gd` (512 lines)
+
+| Issue | Lines | Detail |
+|-------|-------|--------|
+| Fabricated job base_payments | 122-208 | 8 job types with single-digit base pay (ESCORT:6, SABOTAGE:8, etc.) — no Core Rules citation |
+| Fabricated patron multipliers | 212-249 | 6 patron types (MILITARY:1.2, CRIME_BOSS:1.3, etc.) — undocumented |
+| Type key mismatch | 317-331 | Job type keys don't match `patron_generation.json` schema |
+| Missing difficulty scaling | 346 | Payment returned without difficulty adjustment |
+
+**Fix**: Load job templates and patron multipliers from `patron_generation.json`. Add difficulty scaling. Verify all values against Core Rules pp.89-91.
+
+#### PARTIAL: CharacterGeneration.gd
+
+**File**: `src/core/character/CharacterGeneration.gd` (1662 lines)
+
+| Issue | Lines | Detail |
+|-------|-------|--------|
+| Background mapping: 8/25 | 626-636 | Missing 17 backgrounds (VAGRANT, SCAVENGER, etc.) — `_get_background_id_from_string()` |
+| Class bonuses: 8/23 | 645-690 | Missing 15 classes (GAMBLER, ARISTOCRAT, etc.) — `apply_class_bonuses()` |
+| Background effects: 8/25 | 1455-1474 | Match statement covers only 8 backgrounds for trait assignment |
+| Combat clamp: 0-5 vs 0-3 | 663, 866 | `apply_class_bonuses()` and BOT species use 0-5, but `validate_character()` expects 0-3 |
+| Duplicate methods | 1583-1662 | Static + instance versions of `_ensure_character_equipment` and `_ensure_character_relationships` |
+
+**Fix**: Expand all three match statements to cover all 25 backgrounds and 23 classes. Fix combat clamping to canonical 0-3. Remove duplicate static methods.
+
+#### PARTIAL: SimpleCharacterCreator.gd
+
+**File**: `src/core/character/Generation/SimpleCharacterCreator.gd` (668 lines)
+
+| Issue | Lines | Detail |
+|-------|-------|--------|
+| Raw 2D6 stats (2-12) | 415-417, 386-392 | `_roll_2d6()` returns 2-12 instead of canonical 2D6/3.0 → 1-4 |
+| Universal 0-6 clamping | 600-667 | All stats capped 0-6 instead of per-stat ranges |
+| Speed range wrong | 649-657 | Speed capped 0-6 instead of canonical 4-8 |
+
+**Canonical stat ranges** (from `validate_character()` in CharacterGeneration.gd):
+- combat: 0-3, reactions: 1-6, toughness: 3-6, speed: 4-8, savvy: 0-3, luck: 0-3
+
+**Fix**: Replace `_roll_2d6()` with `ceili(float(randi_range(2, 12)) / 3.0)`. Replace all clampi calls with per-stat canonical ranges.
+
+#### PARTIAL: StartingEquipmentGenerator.gd
+
+**File**: `src/core/character/Equipment/StartingEquipmentGenerator.gd` (289 lines)
+
+| Issue | Lines | Detail |
+|-------|-------|--------|
+| Fabricated credits formula | 46 | `1000 + (credit_roll * 100)` = 1100-2000 credits — no Core Rules citation |
+
+**Fix**: Verify starting credits formula against Core Rules. Core Rules p.28 says 1 credit per crew member — this formula is wildly inflated.
+
+#### PARTIAL: EnemyGenerator.gd + EnemyGenerationWizard.gd
+
+**Files**: `src/core/systems/EnemyGenerator.gd` (577 lines) + `src/ui/components/battle/EnemyGenerationWizard.gd` (484 lines)
+
+| Issue | Lines | Detail |
+|-------|-------|--------|
+| Fallback category name mismatch | EG:59-64, EGW:440-446 | Generator uses "criminal_elements"/"hired_muscle"/"interested_parties"/"roving_threats"; Wizard maps to "criminal"/"military"/"alien"/"pirate"/"wildlife"/"cultists" |
+| Wizard has 6 categories, fallback has 4 | EG:59-64 | "wildlife" and "cultists" have no fallback |
+
+**Fix**: Align EnemyGenerator fallback IDs to match Wizard's abbreviated IDs. Expand fallback to support all 6 categories.
 
 ---
 

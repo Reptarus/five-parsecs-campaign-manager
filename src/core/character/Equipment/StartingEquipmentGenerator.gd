@@ -40,12 +40,9 @@ static func generate_starting_equipment(character: Character, dice_manager: Node
 		var bonus_gear: Dictionary = _lookup_bonus_equipment(bonus_roll)
 		equipment = _merge_equipment(equipment, bonus_gear)
 
-	# Credits calculation: 1000 + (d10 × 100)
-	if dice_manager and dice_manager.has_method("roll_d10"):
-		var credit_roll: int = dice_manager.roll_d10("Starting Credits")
-		equipment.credits = 1000 + (credit_roll * 100)
-	else:
-		equipment.credits = 1000 # Fallback
+	# Starting credits are set by campaign creation (1 credit per crew, Core Rules p.28).
+	# Equipment generation does NOT add bonus credits — items only.
+	equipment.credits = 0
 
 	return equipment
 

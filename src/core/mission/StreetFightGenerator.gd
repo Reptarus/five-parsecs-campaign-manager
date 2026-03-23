@@ -163,6 +163,7 @@ static func generate_street_fight() -> Dictionary:
 	if not _is_enabled():
 		return {}
 
+	_ensure_ref_loaded()
 	var objective := _roll_objective()
 	var buildings: Array[Dictionary] = []
 	for i in range(objective.suspect_count):

@@ -97,7 +97,7 @@ MainMenu → BugHuntCreationUI (4-step wizard) → BugHuntDashboard → BugHuntT
 - **BugHuntPhaseManager**: 3-stage turn orchestration (vs 9-phase CampaignPhaseManager)
 - **TacticalBattleUI** reused with `battle_mode: "bug_hunt"` (hides morale, adds ContactMarkerPanel)
 - **CharacterTransferService**: Bidirectional transfer (5PFH ↔ Bug Hunt) with enlistment rolls
-- **GameState.load_campaign()**: Peeks JSON via `_detect_campaign_type()` to route to correct loader
+- **GameState.load_campaign()**: Currently hardcodes `FiveParsecsCampaignCore.load_from_file()`. Bug Hunt uses separate SceneRouter path. **TODO**: Add type detection routing to support loading both campaign types from a single entry point
 - **SceneRouter keys**: `bug_hunt_creation`, `bug_hunt_dashboard`, `bug_hunt_turn_controller`
 - **15 JSON data files** in `data/bug_hunt/`, **23 GDScript/TSCN files** across `src/`
 
@@ -127,7 +127,7 @@ The battle system is a **tabletop companion assistant** (NOT a tactical simulato
 - Implants: 11 types (Core Rules p.55), max 2 per character. `Character.create_implant_from_loot()` does name-match scan (no separate map constant)
 
 ### DLC/Compendium System
-- 35 ContentFlags across 3 DLC packs (Trailblazer's Toolkit, Freelancer's Handbook, Fixer's Guidebook)
+- 33 ContentFlags across 3 DLC packs (Trailblazer's Toolkit=7, Freelancer's Handbook=17, Fixer's Guidebook=9)
 - DLC gating pattern:
 ```gdscript
 var dlc = Engine.get_main_loop().root.get_node_or_null("/root/DLCManager") if Engine.get_main_loop() else null
@@ -425,7 +425,7 @@ Both `.vscode/settings.json` and Cursor user settings exclude: `.godot/`, `.mcp/
 - **GodotApplePlugins StoreKitManager is NOT a singleton**: Use `ClassDB.class_exists(&"StoreKitManager")` + `ClassDB.instantiate(&"StoreKitManager")`. Do NOT use `Engine.get_singleton()`
 - **AndroidIAPP file layout**: `plugin.cfg` + `.gd` in `addons/AndroidIAPP/`, AARs (`.aar` files) in `android_IAPP/` at project root
 - **Steam needs `steam_appid.txt`**: Place at project root with base game App ID. Without it, `steamInitEx()` returns status 1
-- **Bug Hunt ↔ 5PFH campaign types are incompatible**: `BugHuntCampaignCore` has `main_characters`/`grunts` (flat Arrays), `FiveParsecsCampaignCore` has `crew_data["members"]` (nested Dict). Always validate `"main_characters" in campaign` before Bug Hunt code. `GameState._detect_campaign_type()` peeks JSON to choose correct loader
+- **Bug Hunt ↔ 5PFH campaign types are incompatible**: `BugHuntCampaignCore` has `main_characters`/`grunts` (flat Arrays), `FiveParsecsCampaignCore` has `crew_data["members"]` (nested Dict). Always validate `"main_characters" in campaign` before Bug Hunt code. `GameState.load_campaign()` currently only loads FiveParsecsCampaignCore — Bug Hunt uses separate SceneRouter-based loading
 - **Bug Hunt temp_data keys use `"bug_hunt_*"` prefix**: `"bug_hunt_battle_context"`, `"bug_hunt_battle_result"`, `"bug_hunt_mission"`. Standard keys: `"world_phase_results"`, `"return_screen"`, `"selected_character"`. No collisions
 - **TacticalBattleUI shared between both modes**: Bug Hunt code is guarded by `battle_mode == "bug_hunt"` and `_check_bug_hunt_launch()` validation. Standard flow unaffected
 - **TweenFX pivot_offset**: TweenFX NEVER sets `pivot_offset`. Must call `node.pivot_offset = node.size / 2` before any scale/rotation animation (`press`, `pop_in`, `pulsate`, `punch_in`, `breathe`, `tada`, `critical_hit`, `upgrade`, `attract`, `headshake`). Safe without: `fade_in`, `fade_out`, `blink`, `spotlight`, `alarm`, `shake`

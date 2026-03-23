@@ -51,7 +51,7 @@ func process_battle_loot(battle_loot: Dictionary, location_context: Dictionary =
 	for item in all_items:
 		match item.item_type:
 			0: # CREDITS
-				processed_result.immediate_credits += item.value
+				processed_result.immediate_credits += item.get_value()
 			
 			5: # TRADE_GOOD
 				var trade_value: int = _process_trade_good(item, location_context)
@@ -95,24 +95,16 @@ func process_battle_loot(battle_loot: Dictionary, location_context: Dictionary =
 
 ## Calculate market value for a specific item
 func calculate_market_value(item: GameItem, market_context: Dictionary = {}) -> int:
-	var base_value: int = item.value
+	var base_value: int = item.get_value()
 	var market_modifier: float = 1.0
-	
-	# Apply quality modifiers
-	match item.quality:
-		1: market_modifier *= 0.6 # POOR
-		2: market_modifier *= 1.0 # STANDARD
-		3: market_modifier *= 1.3 # GOOD
-		4: market_modifier *= 1.7 # EXCELLENT
-		5: market_modifier *= 2.5 # MASTERWORK
-	
-	# Apply condition modifiers
-	match item.condition:
-		1: market_modifier *= 0.2 # BROKEN
-		2: market_modifier *= 0.5 # POOR
-		3: market_modifier *= 0.8 # DAMAGED
-		4: market_modifier *= 1.0 # GOOD
-		5: market_modifier *= 1.2 # EXCELLENT
+
+	# Apply rarity modifiers (GameItem uses rarity strings, not quality/condition ints)
+	match item.get_rarity():
+		"Common": market_modifier *= 1.0
+		"Uncommon": market_modifier *= 1.3
+		"Rare": market_modifier *= 1.7
+		"Very Rare": market_modifier *= 2.2
+		"Legendary": market_modifier *= 3.0
 	
 	# Market demand adjustments
 	var demand_level: float = _get_market_demand(item, market_context)
@@ -220,7 +212,7 @@ func _process_trade_good(item: GameItem, context: Dictionary) -> int:
 func _process_contraband(item: GameItem, context: Dictionary) -> Dictionary:
 	var result: Dictionary = {
 		"item": item,
-		"base_value": item.value,
+		"base_value": item.get_value(),
 		"market_value": 0,
 		"risk_level": 0,
 		"potential_complications": []
@@ -245,11 +237,11 @@ func _process_equipment(item: GameItem, context: Dictionary) -> int:
 	var market_value: int = calculate_market_value(item, context)
 	
 	# Military equipment has restricted markets
-	if item.tags.has("military"):
+	if item.has_tag("military"):
 		market_value = roundi(market_value * 0.8) # Harder to sell legally
 	
 	# Illegal equipment is treated as contraband
-	if item.tags.has("illegal"):
+	if item.has_tag("illegal"):
 		market_value = roundi(market_value * illegal_goods_penalty)
 	
 	return market_value
@@ -261,11 +253,11 @@ func _process_biological_sample(item: GameItem, context: Dictionary) -> int:
 	var research_modifier: float = 1.0
 	
 	# Rare species or special abilities increase value
-	if item.tags.has("apex_predator") or item.tags.has("rare"):
+	if item.has_tag("apex_predator") or item.has_tag("rare"):
 		research_modifier *= 2.0
 	
 	# Environmental adaptation has scientific value
-	for tag in item.tags:
+	for tag in item.item_tags:
 		if tag.begins_with("environment_"):
 			research_modifier *= 1.3
 			break
@@ -284,12 +276,12 @@ func _process_data_item(item: GameItem, context: Dictionary) -> Dictionary:
 	var base_value: int = calculate_market_value(item, context)
 	
 	# Determine intelligence type and value
-	if item.tags.has("tactical_data"):
+	if item.has_tag("tactical_data"):
 		result.intelligence_type = "tactical"
 		result.information_value = roundi(base_value * 1.5)
 		result.potential_buyers.append("mercenaries")
 		result.potential_buyers.append("military")
-	elif item.tags.has("classified"):
+	elif item.has_tag("classified"):
 		result.intelligence_type = "classified"
 		result.information_value = roundi(base_value * 2.0)
 		result.security_risk = 3
@@ -324,16 +316,25 @@ func _get_location_modifier(item: GameItem, context: Dictionary) -> float:
 		"trading_hub":
 			modifier = 1.1 # General bonus for all items
 		"lawless":
-			if item.tags.has("illegal") or item.item_type == 7: # CONTRABAND
+			if item.has_tag("illegal") or item.item_type == 7: # CONTRABAND
 				modifier = 1.4
 	
 	return modifier
 
 func _get_item_market_key(item: GameItem) -> String:
 	var key: String = _get_item_type_string(item.item_type)
-	if item.tags.size() > 0:
-		key += "_" + item.tags[0]
+	if item.item_tags.size() > 0:
+		key += "_" + item.item_tags[0]
 	return key
+
+func _rarity_score(rarity: String) -> int:
+	match rarity:
+		"Common": return 0
+		"Uncommon": return 1
+		"Rare": return 2
+		"Very Rare": return 3
+		"Legendary": return 4
+		_: return 0
 
 func _get_item_type_string(item_type: int) -> String:
 	match item_type:
@@ -349,7 +350,7 @@ func _get_item_type_string(item_type: int) -> String:
 		_: return "UNKNOWN"
 
 func _extract_danger_level(item: GameItem) -> int:
-	for tag in item.tags:
+	for tag in item.item_tags:
 		if tag.begins_with("danger_"):
 			return int(tag.split("_")[1])
 	return 1
@@ -385,7 +386,7 @@ func _attempt_contraband_trade(item: GameItem, total_risk: int, context: Diction
 	
 	if randf() < success_chance:
 		trade_result.success = true
-		trade_result.value = roundi(item.value * 1.8) # High premium for successful contraband trade
+		trade_result.value = roundi(item.get_value() * 1.8) # High premium for successful contraband trade
 		trade_result.heat_increase = 1
 	else:
 		trade_result.success = false
@@ -404,39 +405,39 @@ func _generate_market_report(items: Array, context: Dictionary) -> Dictionary:
 		"recommendations": []
 	}
 	
-	var total_quality: int = 0
-	var quality_items: int = 0
-	
+	var total_rarity_score: int = 0
+	var scored_items: int = 0
+
 	# Analyze item composition
 	for item in items:
 		var type_key: String = _get_item_type_string(item.item_type)
 		report.item_type_breakdown[type_key] = report.item_type_breakdown.get(type_key, 0) + 1
-		
-		total_quality += item.quality
-		quality_items += 1
-	
-	# Calculate average quality
-	if quality_items > 0:
-		report.average_quality = float(total_quality) / quality_items
-	
-	# Determine market sentiment
-	if report.average_quality >= 3: # GOOD
+
+		total_rarity_score += _rarity_score(item.get_rarity())
+		scored_items += 1
+
+	# Calculate average rarity score (0-4 scale)
+	if scored_items > 0:
+		report.average_quality = float(total_rarity_score) / scored_items
+
+	# Determine market sentiment based on rarity
+	if report.average_quality >= 2.0: # Rare+ average
 		report.market_sentiment = "positive"
 		report.recommendations.append("Hold for better prices")
-	elif report.average_quality <= 1: # POOR
+	elif report.average_quality <= 0.5: # Mostly Common
 		report.market_sentiment = "negative"
 		report.recommendations.append("Sell quickly before further devaluation")
 	else:
 		report.market_sentiment = "neutral"
 		report.recommendations.append("Consider market timing")
 
-	# High quality bonus analysis
-	var high_quality_count: int = 0
+	# High rarity bonus analysis
+	var high_rarity_count: int = 0
 	for item in items:
-		if item.quality >= 4: # EXCELLENT
-			high_quality_count += 1
+		if _rarity_score(item.get_rarity()) >= 3: # Very Rare+
+			high_rarity_count += 1
 	
-	if high_quality_count >= 3:
+	if high_rarity_count >= 3:
 		report.reputation_change = 1
 	
 	return report
@@ -456,13 +457,13 @@ func _calculate_economic_impact(items: Array, total_value: int, context: Diction
 	elif total_value >= 2000:
 		impact.economic_activity = "moderate"
 	
-	# High-quality items boost reputation
-	var high_quality_count: int = 0
+	# High-rarity items boost reputation
+	var high_rarity_count: int = 0
 	for item in items:
-		if item.quality >= 4: # EXCELLENT
-			high_quality_count += 1
-	
-	if high_quality_count >= 3:
+		if _rarity_score(item.get_rarity()) >= 3: # Very Rare+
+			high_rarity_count += 1
+
+	if high_rarity_count >= 3:
 		impact.reputation_change = 1
 	
 	return impact
