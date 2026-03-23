@@ -47,8 +47,8 @@ To mark a mechanic as RULES_VERIFIED, a human must:
 | 5. Ship System | 11 | 0 | 5 | 2 | 4 | 0 |
 | 6. Loot System | 14 | 0 | 10 | 2 | 2 | 8 |
 | 7. Battle Phase Manager | 8 | 0 | 5 | 1 | 2 | 6 |
-| 8. Compendium DLC | 35 | 0 | 22 | 2 | 11 | 0 |
-| **TOTAL** | **170** | **0** | **82** | **25** | **63** | **76** |
+| 8. Compendium DLC | 35 | 0 | 22 | 2 | 11 | 28 |
+| **TOTAL** | **170** | **0** | **82** | **25** | **63** | **104** |
 
 > **§9 Cross-Cutting (not in category totals)**: 23 enum sync + 47 difficulty + 26 Elite Ranks + 9 PostBattle = 105 cross-cutting tests. All 44 previously NOT_TESTED mechanics promoted to UNIT_TESTED via 211 new tests across 7 files (Mar 21).
 >
