@@ -60,7 +60,7 @@ func test_background_event_various_backgrounds():
 		assert_that(result).is_not_null()
 
 # ============================================================================
-# Motivation Table (d66)
+# Motivation Table (D100 — Core Rules p.26)
 # ============================================================================
 
 func test_roll_motivation_returns_dict():
@@ -68,7 +68,8 @@ func test_roll_motivation_returns_dict():
 	assert_that(result).is_not_null()
 
 func test_get_motivation_by_roll():
-	var result: Dictionary = CharacterCreationTables.get_motivation(11)
+	# D100 range: 1-100 (e.g., roll 5 → "Wealth" range 1-8)
+	var result: Dictionary = CharacterCreationTables.get_motivation(5)
 	assert_that(result).is_not_null()
 
 func test_motivation_has_description():

@@ -139,7 +139,7 @@ var _bonus_tables: Dictionary = {}
 ## D100/2D6 creation tables loaded from data/character_creation_tables/
 var _background_d100: Dictionary = {}
 var _class_d100: Dictionary = {}
-var _motivation_2d6: Dictionary = {}
+var _motivation_d100: Dictionary = {}
 
 func _init() -> void:
 	current_character = FiveParsecsCharacter.new()
@@ -406,7 +406,7 @@ func _load_creation_tables() -> void:
 	## Load D100/2D6 weighted creation tables (Core Rules pp.24-27)
 	_background_d100 = _load_json_file("res://data/character_creation_tables/background_table.json")
 	_class_d100 = _load_json_file("res://data/character_creation_tables/class_table.json")
-	_motivation_2d6 = _load_json_file("res://data/character_creation_tables/motivation_table.json")
+	_motivation_d100 = _load_json_file("res://data/character_creation_tables/motivation_table.json")
 
 func _load_json_file(path: String) -> Dictionary:
 	if not FileAccess.file_exists(path):
@@ -571,10 +571,10 @@ func _on_randomize_pressed() -> void:
 				class_entry = CLASS_ITEMS[idx]
 	_set_character_property(current_character, "character_class", class_entry[1])
 
-	# Motivation: D66 weighted roll (Core Rules p.26)
+	# Motivation: D100 weighted roll (Core Rules p.26)
 	var mot_entry = MOTIVATION_ITEMS[randi() % MOTIVATION_ITEMS.size()]  # fallback
-	if not _motivation_2d6.is_empty():
-		var mot_name: String = _roll_2d6_table(_motivation_2d6)
+	if not _motivation_d100.is_empty():
+		var mot_name: String = _roll_d100_table(_motivation_d100)
 		if not mot_name.is_empty():
 			var idx: int = _find_item_index_by_name(MOTIVATION_ITEMS, mot_name)
 			if idx >= 0:

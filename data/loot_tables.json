@@ -57,7 +57,7 @@
     "odds_and_ends_subtable": [
       {"roll_range": [1, 55], "category": "consumables", "items": ["Booster Pills", "Combat Serum", "Kiranin Crystals", "Rage Out", "Still", "Stim-pack"], "uses": 2},
       {"roll_range": [56, 70], "category": "implants", "items": ["AI Companion", "Body Wire", "Boosted Arm", "Boosted Leg", "Cyber Hand", "Genetic Defenses", "Health Boost", "Nerve Adjuster", "Neural Optimization", "Night Sight", "Pain Suppressor"]},
-      {"roll_range": [71, 100], "category": "ship_items", "items": ["Med-patch", "Spare Parts", "Repair Bot", "Nano-doc", "Colonist Ration Packs"]}
+      {"roll_range": [71, 100], "category": "ship_items", "items": ["Analyzer", "Colonist Ration Packs", "Duplicator", "Fake ID", "Fixer", "Genetic Reconfiguration Kit", "Loaded Dice", "Lucky Dice", "Mk II Translator", "Med-patch", "Meditation Orb", "Nano-doc", "Novelty Stuffed Animal", "Purifier", "Repair Bot", "Sector Permit", "Spare Parts", "Teach-Bot", "Transcender"]}
     ],
     "rewards_subtable": [
       {"roll_range": [1, 10], "item": "Documents", "rumors": 1},

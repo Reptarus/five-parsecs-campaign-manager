@@ -35,17 +35,14 @@ static func roll_background_event(background: GlobalEnums.Background) -> Diction
 
 	return _lookup_table_result(events, roll, "background_event")
 
-## Roll character motivation (Core Rules p.16)
+## Roll character motivation (Core Rules p.26 — D100 table)
 static func roll_motivation() -> Dictionary:
 	_ensure_tables_loaded()
 
-	var dice_manager: Node = Engine.get_singleton("DiceManager")
-	if not dice_manager or not dice_manager.has_method("roll_d66"):
-		push_error("CharacterCreationTables: DiceManager not available")
-		return {"name": "Survival", "description": "Basic survival instinct", "bonus": "None"}
-
-	var roll: int = dice_manager.roll_d66("Character Motivation")
-	return _lookup_table_result(_motivation_table, roll, "motivation")
+	# Motivation uses D100, not D66 (Core Rules p.26)
+	var roll: int = (randi() % 100) + 1
+	var entries: Dictionary = _motivation_table.get("entries", _motivation_table)
+	return _lookup_table_result(entries, roll, "motivation")
 
 ## Roll character quirk/trait
 static func roll_character_quirk() -> Dictionary:
@@ -68,10 +65,11 @@ static func get_background_event(background: GlobalEnums.Background, roll: int) 
 
 	return _lookup_table_result(events, roll, "background_event")
 
-## Get motivation without rolling (for testing)
+## Get motivation without rolling (for testing — pass D100 value 1-100)
 static func get_motivation(roll: int) -> Dictionary:
 	_ensure_tables_loaded()
-	return _lookup_table_result(_motivation_table, roll, "motivation")
+	var entries: Dictionary = _motivation_table.get("entries", _motivation_table)
+	return _lookup_table_result(entries, roll, "motivation")
 
 ## Get quirk without rolling (for testing)
 static func get_character_quirk(roll: int) -> Dictionary:

@@ -223,11 +223,13 @@ func _populate_options() -> void:
 	if motivation_options:
 		motivation_options.clear()
 		motivation_options.add_item("Select Motivation...", -1)
-		# Handle motivation table format (key-value pairs)
-		for key in motivations_data.keys():
-			if key != "name" and key != "description": # Skip metadata
-				var motivation = motivations_data[key]
-				motivation_options.add_item(motivation.get("name", "Unknown"), motivation_options.get_item_count())
+		# Handle motivation table format — entries nested under "entries" key (D100 table, Core Rules p.26)
+		var mot_entries: Dictionary = motivations_data.get("entries", motivations_data)
+		for key in mot_entries.keys():
+			if key != "name" and key != "description" and key != "roll_type" and key != "entries":
+				var motivation = mot_entries[key]
+				if motivation is Dictionary:
+					motivation_options.add_item(motivation.get("name", "Unknown"), motivation_options.get_item_count())
 
 func _connect_signals() -> void:
 	## Connect all UI signals
@@ -505,13 +507,12 @@ func _get_background_data(background_name: String) -> Dictionary:
 	return {}
 
 func _get_motivation_data(motivation_name: String) -> Dictionary:
-	## Get motivation data by name
-	# Handle motivation table format (key-value pairs)
-	for key in motivations_data.keys():
-		if key != "name" and key != "description": # Skip metadata
-			var motivation = motivations_data[key]
-			if motivation.get("name", "") == motivation_name:
-				return motivation
+	## Get motivation data by name from D100 entries
+	var mot_entries: Dictionary = motivations_data.get("entries", motivations_data)
+	for key in mot_entries.keys():
+		var motivation = mot_entries[key]
+		if motivation is Dictionary and motivation.get("name", "") == motivation_name:
+			return motivation
 	return {}
 
 func _on_origin_changed(index: int) -> void:

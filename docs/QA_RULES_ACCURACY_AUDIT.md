@@ -1,66 +1,115 @@
-# Rules Accuracy Audit Checklist
+# Rules-to-Code Traceability Audit
 
 **Last Updated**: 2026-03-22
-**Purpose**: Systematic verification that ALL game data values match the Five Parsecs From Home Core Rules book
-**Status**: NOT STARTED — 0/580+ values verified
+**Purpose**: Comprehensive line-by-line verification that EVERY rule in the Core Rules book and Compendium has corresponding code, and EVERY piece of game code traces back to a specific rule
+**Status**: IN PROGRESS — Phase 46 QA Sprint (Mar 22, 2026). Multiple domains verified against Core Rules PDF.
 
-> **CRITICAL — BLOCKS PUBLIC RELEASE**: This project nearly shipped with AI-hallucinated game data. All numeric values (stats, costs, ranges, probabilities, D100 table boundaries) must be verified against the physical Core Rules book before any public release.
+> **CRITICAL — BLOCKS PUBLIC RELEASE**: This project nearly shipped with AI-hallucinated game data. Every rule statement, every conditional ("and"/"or"), every table, every formula in the Core Rules book must map to specific code. Every game data value in code must trace back to a specific page and paragraph in the book.
 
 ---
 
-## How to Use This Document
+## Audit Philosophy
 
-This checklist is organized by **Core Rules book chapter order** so a human can read the book linearly and check off items.
+This is NOT a spot-check. This is a **complete traceability matrix**:
+
+- **Forward tracing** (Book → Code): Read every rule in the Core Rules. For each rule, identify the GDScript function(s) and JSON data that implement it. If no code exists, that's a gap.
+- **Reverse tracing** (Code → Book): For every game data value in JSON/GDScript, identify the Core Rules page and paragraph it comes from. If no book reference exists, it's either hallucinated or a `GAME_BALANCE_ESTIMATE` that must be explicitly tagged.
+- **Conditional coverage**: Every "and"/"or"/"if"/"unless"/"except" in a rule should correspond to a conditional branch in code. Missing conditionals mean rules are partially implemented.
+- **Table completeness**: Every row in a Core Rules table (D100, D66, D6) must have a corresponding entry in the JSON data. Missing rows = incomplete implementation.
+
+### Data Sources (Canonical Order)
+
+1. **Core Rules PDF** — Ultimate authority for all Five Parsecs From Home mechanics
+2. **Compendium PDFs** — Authority for DLC/expansion content (Trailblazer's Toolkit, Freelancer's Handbook, Fixer's Guidebook, Bug Hunt)
+3. **`data/RulesReference/*.json`** (18 files) — Extracted rules data from the PDFs. CHECK THESE FIRST before inventing anything
+4. **`data/*.json`** (132 files) — Game data files. Must trace back to source #1 or #2
+5. **GDScript constants** — Must reference the JSON files, not duplicate them
 
 ### Workflow
 
 1. **Internal Consistency First** — Run automated cross-checks between JSON files and GDScript constants (see Appendix D: MCP Scripts). Fix internal inconsistencies before book verification.
-2. **Book Verification** — Open the Core Rules to the referenced page, compare each value.
-3. **Mark Status** — For each item:
+2. **Forward Trace (Book → Code)** — Read the Core Rules page by page. For each rule statement, find the implementing code. Record the mapping.
+3. **Reverse Trace (Code → Book)** — For each JSON data value and GDScript constant, find the Core Rules source. If none exists, mark as `HALLUCINATED` or `GAME_BALANCE_ESTIMATE`.
+4. **Mark Status** — For each item:
    - `UNVERIFIED` — Not yet checked against book
-   - `VERIFIED` — Matches Core Rules exactly
+   - `VERIFIED` — Matches Core Rules exactly, code traced to specific page/paragraph
    - `INCORRECT` — Does NOT match Core Rules (record book value in Notes)
    - `FIXED` — Was INCORRECT, now corrected to match Core Rules
-   - `GAME_BALANCE` — Intentional deviation from Core Rules (must be documented)
+   - `MISSING` — Rule exists in book but NO code implements it
+   - `PARTIAL` — Rule partially implemented (missing conditionals or edge cases)
+   - `GAME_BALANCE` — Intentional deviation from Core Rules (must be documented with rationale)
+   - `HALLUCINATED` — Value exists in code with no corresponding rule in book
    - `N/A` — Not from Core Rules (UI text, tutorials, etc.)
-4. **Record Verifier** — Initial and date each verification
-
-### Priority Order
-
-- **P0** (verify first): Weapon stats, species stats, injury tables, economy values — players see these directly
-- **P1**: Event table D100 ranges, loot tables, enemy stats — affect gameplay but less visible
-- **P2**: Mission descriptions, flavor text, world traits — lower gameplay impact
+5. **Record Verifier** — Initial and date each verification
 
 ### UI/UX Display & Flow Verification
 
-Data correctness alone is not enough — the UI must also **display** correct values and **follow** the Core Rules book's prescribed sequences. After verifying data values in this document:
+Data and code correctness alone is not enough — the UI must also **display** correct values and **follow** the Core Rules book's prescribed sequences:
 
-1. **Display accuracy**: Confirm values shown on-screen match the underlying data. A correct JSON value can still render wrong due to formatting bugs, stale caches, or wrong field bindings. See `QA_UX_UI_TEST_PLAN.md` §8a for per-screen checks.
-
-2. **Flow fidelity**: Confirm UI workflows (creation wizard steps, campaign turn phases, post-battle sequence, dice roll presentations) match the order and structure in the Core Rules book. See `QA_UX_UI_TEST_PLAN.md` §8b for per-flow checks.
-
-3. **Dice roll display**: Confirm D100/D66/D6 results map to the correct table entry text and correctly update game state. See `QA_UX_UI_TEST_PLAN.md` §8c.
+1. **Display accuracy**: Confirm values shown on-screen match the underlying data. See `QA_UX_UI_TEST_PLAN.md` §8a.
+2. **Flow fidelity**: Confirm UI workflows match the book's prescribed order and structure. See `QA_UX_UI_TEST_PLAN.md` §8b.
+3. **Dice roll display**: Confirm D100/D66/D6 results map to correct table entries. See `QA_UX_UI_TEST_PLAN.md` §8c.
+4. **Conditional presentation**: When a rule says "if X, then Y; otherwise Z" — verify the UI shows the correct branch to the player.
+5. **Layout & UX improvements**: See `QA_UX_UI_TEST_PLAN.md` §9 for layout tightening suggestions.
 
 ---
 
 ## Progress Summary
 
-| Domain | JSON Files | GDScript Files | Est. Values | Verified | Incorrect | Status |
-|--------|-----------|---------------|-------------|----------|-----------|--------|
-| Weapons & Equipment | 4 | 1 | ~150 | 0 | 0 | NOT STARTED |
-| Species & Characters | 4 | 0 | ~80 | 0 | 0 | NOT STARTED |
-| Injuries | 1 | 1 | ~25 | 0 | 0 | NOT STARTED |
-| Loot Tables | 2 | 1 | ~60 | 0 | 0 | NOT STARTED |
-| Economy & Upkeep | 1 | 2 | ~30 | 0 | 0 | NOT STARTED |
-| Campaign Events | 2 | 0 | ~100 | 0 | 0 | NOT STARTED |
-| Travel & World | 2 | 0 | ~40 | 0 | 0 | NOT STARTED |
-| Battle & Enemies | 5 | 1 | ~60 | 0 | 0 | NOT STARTED |
-| Missions | 6 | 0 | ~50 | 0 | 0 | NOT STARTED |
-| Ships | 2 | 0 | ~20 | 0 | 0 | NOT STARTED |
-| Advancement | 1 | 1 | ~20 | 0 | 0 | NOT STARTED |
-| Victory Conditions | 1 | 0 | ~10 | 0 | 0 | NOT STARTED |
-| Compendium/DLC | 15+ | 0 | ~100 | 0 | 0 | NOT STARTED |
-| **TOTAL** | **~46** | **~7** | **~745+** | **0** | **0** | **NOT STARTED** |
+### Reverse Trace: Code → Book (Data Values)
+
+| Domain | JSON Files | GDScript Files | Est. Values | Verified | Incorrect | Hallucinated | Status |
+|--------|-----------|---------------|-------------|----------|-----------|-------------|--------|
+| Weapons & Equipment | 4 | 1 | ~150 | ~43 | 12 FIXED | 6 tagged | **INTERNAL PASS DONE** |
+| Species & Characters | 4 | 0 | ~80 | 0 | 0 | ? | NOT STARTED |
+| Injuries | 1 | 1 | ~25 | ~25 | 0 | 0 | **VERIFIED (Phase 46)** |
+| Loot Tables | 2 | 1 | ~60 | ~55 | 14 FIXED | 0 | **VERIFIED — 14 missing ship items added** |
+| Economy & Upkeep | 1 | 2 | ~30 | ~20 | 6 FIXED | 3 tagged | **VERIFIED (Phase 46, pp.76-80)** |
+| Campaign Events | 2 | 0 | ~100 | 0 | 0 | ? | NOT STARTED |
+| Travel & World | 2 | 0 | ~40 | 0 | 0 | ? | NOT STARTED |
+| Battle & Enemies | 5 | 1 | ~60 | ~60 | 0 | 0 | **VERIFIED (Phase 46, pp.94-107)** |
+| Char Creation Tables | 3 | 2 | ~80 | ~75 | 1 REWRITE | 36 removed | **MOTIVATION TABLE REWRITTEN** |
+| Missions | 6 | 0 | ~50 | 0 | 0 | ? | NOT STARTED |
+| Ships | 2 | 0 | ~20 | ~20 | 13 FIXED | 7 removed | **VERIFIED — Full rewrite done (Phase 46)** |
+| Advancement | 1 | 1 | ~20 | ~20 | 0 | 0 | **VERIFIED (Phase 46, pp.123-130)** |
+| Victory Conditions | 1 | 0 | ~10 | 0 | 0 | ? | NOT STARTED |
+| Compendium/DLC | 15+ | 0 | ~100 | 0 | 0 | ? | NOT STARTED |
+| **TOTAL** | **~49** | **~9** | **~825+** | **~318** | **46 FIXED** | **9 tagged** | **IN PROGRESS** |
+
+### Forward Trace: Book → Code (Rules Coverage)
+
+| Book Section | Pages | Est. Rules | Code Exists | Fully Traced | Missing | Partial | Status |
+|-------------|-------|-----------|-------------|-------------|---------|---------|--------|
+| Character Creation | pp.15-37 | ~50 | ? | 0 | ? | ? | NOT STARTED |
+| Equipment & Weapons | pp.40-58 | ~40 | ? | 0 | ? | ? | NOT STARTED |
+| Ships | pp.59-65 | ~20 | ? | 0 | ? | ? | NOT STARTED |
+| Travel Phase | pp.70-79 | ~30 | ? | 0 | ? | ? | NOT STARTED |
+| World Phase / Upkeep | pp.80-86 | ~25 | ? | 0 | ? | ? | NOT STARTED |
+| Battle Setup & Combat | pp.87-95 | ~40 | ? | 0 | ? | ? | NOT STARTED |
+| Post-Battle | pp.96-102 | ~35 | ? | 0 | ? | ? | NOT STARTED |
+| Injuries & Recovery | pp.122-124 | ~15 | ? | 0 | ? | ? | NOT STARTED |
+| Advancement | pp.128-132 | ~20 | ? | 0 | ? | ? | NOT STARTED |
+| Loot Tables | pp.66-72 | ~25 | ? | 0 | ? | ? | NOT STARTED |
+| Victory Conditions | p.134 | ~10 | ? | 0 | ? | ? | NOT STARTED |
+| Difficulty Modifiers | various | ~15 | ? | 0 | ? | ? | NOT STARTED |
+| Compendium / DLC | supplements | ~80 | ? | 0 | ? | ? | NOT STARTED |
+| **TOTAL** | **~300 pp** | **~405** | **?** | **0** | **?** | **?** | **NOT STARTED** |
+
+### Per-Rule Traceability Entry Format
+
+Each rule in the book should eventually have an entry like this:
+
+```
+#### Rule: "If crew size is 6+, roll 2D6 and pick the HIGHER die" (p.88)
+- **Book**: Core Rules p.88, paragraph 2, Enemy Count section
+- **Conditionals**: "If crew size is 6+" (AND), "pick the HIGHER" (selection logic)
+- **Implementing Code**: `src/core/systems/EnemyGenerator.gd:181-195`
+- **Data Source**: Hardcoded in GDScript (should be in JSON)
+- **Test**: `tests/unit/test_crew_size_enemy_calc.gd`
+- **UI Display**: TacticalBattleUI enemy count panel
+- **Status**: VERIFIED / INCORRECT / PARTIAL / MISSING
+- **Conditionals Covered**: 2/2 (crew size check + pick-higher logic)
+```
 
 ---
 
