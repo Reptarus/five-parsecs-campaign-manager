@@ -41,7 +41,11 @@ func process_battle_loot(battle_loot: Dictionary, location_context: Dictionary =
 		"economic_impact": {}
 	}
 	
-	var all_items: Array[GameItem] = battle_loot.get("combined_items", [])
+	var raw_items: Array = battle_loot.get("combined_items", [])
+	var all_items: Array[GameItem] = []
+	for item in raw_items:
+		if item is GameItem:
+			all_items.append(item)
 	var total_market_value: int = 0
 	
 	# Process immediate credits

@@ -382,8 +382,7 @@ func _generate_random_stats() -> void:
 	if not current_character:
 		current_character = Character.new()
 	
-	# Generate base stats: ceil(2D6 / 3) gives 1-4 range
-	# (FiveParsecsConstants: attribute_dice="2d6", attribute_divisor=3)
+	# Generate base stats: ceil(2D6 / 3) gives 1-4 range (Core Rules)
 	current_character.combat = _roll_stat()
 	current_character.reactions = _roll_stat()
 	current_character.toughness = _roll_stat()
@@ -418,8 +417,7 @@ func _roll_2d6() -> int:
 	return randi_range(1, 6) + randi_range(1, 6)
 
 func _roll_stat() -> int:
-	## Roll stat: ceil(2D6 / 3), clamped to 1-6
-	## FiveParsecsConstants: attribute_dice="2d6", attribute_divisor=3
+	## Roll stat: ceil(2D6 / 3), clamped to 1-6 (Core Rules)
 	var raw: int = randi_range(1, 6) + randi_range(1, 6)
 	return clampi(ceili(raw / 3.0), 1, 6)
 

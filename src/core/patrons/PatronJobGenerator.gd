@@ -337,7 +337,7 @@ func _generate_mission_details(job: PatronJob, template: Dictionary) -> void:
 	job.mission_description = description_template % location
 
 ## Calculate payment based on various factors
-func _calculate_payment(job: PatronJob, patron_data: Patron, relationship_level: int) -> void:
+func _calculate_payment(job: PatronJob, patron_data: Patron, _relationship_level: int) -> void:
 	var template = job_templates[job.job_type]
 	var base_payment = template.base_payment
 
@@ -346,20 +346,21 @@ func _calculate_payment(job: PatronJob, patron_data: Patron, relationship_level:
 	var patron_mod: Dictionary = patron_type_modifiers.get(
 		patron_type, patron_type_modifiers["Private Organization"])
 	var payment_modifier = patron_mod.payment_modifier
-	
-	# Apply relationship modifier
-	var relationship_mod = relationship_benefits.get(relationship_level, relationship_benefits[0])
+
+	# Apply relationship modifier — derive tier from Patron's actual relationship
+	var tier: int = _get_relationship_tier(patron_data)
+	var relationship_mod: Dictionary = relationship_benefits.get(tier, relationship_benefits[0])
 	payment_modifier *= relationship_mod.payment_mod
-	
+
 	# Calculate final payment
 	job.base_payment = int(base_payment * payment_modifier)
-	
+
 	# Generate danger pay
 	var danger_range = template.danger_range
 	job.danger_pay = randi_range(danger_range[0], danger_range[1])
-	
-	# Add bonus payment for high-relationship patrons
-	if patron_data.relationship >= 2:
+
+	# Add bonus payment for high-relationship patrons (tier 2+ = relationship >= 50)
+	if tier >= 2:
 		job.bonus_payment = randi_range(1, 3)
 
 ## Set job difficulty and requirements
@@ -455,11 +456,11 @@ func process_job_completion(job: PatronJob, success: bool, performance_rating: i
 	self.patron_mission_completed.emit(job.patron_id, success)
 	return result
 
-## Update patron relationship
+## Update patron relationship (Patron.gd clamps to -100..+100 internally)
 func update_patron_relationship(patron_data: Patron, relationship_change: int) -> int:
 	var old_level: int = patron_data.relationship
-	patron_data.relationship = clampi(
-		patron_data.relationship + relationship_change, -3, 3)
+	# Let Patron.gd's setter handle clamping (-100..+100)
+	patron_data.relationship = patron_data.relationship + relationship_change
 
 	if patron_data.relationship != old_level:
 		self.patron_relationship_updated.emit(
@@ -467,9 +468,26 @@ func update_patron_relationship(patron_data: Patron, relationship_change: int) -
 
 	return patron_data.relationship
 
+## Map Patron.relationship (-100..+100) to benefit tier key (-2..+3)
+func _get_relationship_tier(patron_data: Patron) -> int:
+	var rel: int = patron_data.relationship
+	if rel >= 75:
+		return 3
+	elif rel >= 50:
+		return 2
+	elif rel >= 25:
+		return 1
+	elif rel >= -25:
+		return 0
+	elif rel >= -50:
+		return -1
+	else:
+		return -2
+
 ## Check if patron has jobs available
-func has_jobs_available(patron_data: Patron, relationship_level: int) -> bool:
-	var relationship_info = relationship_benefits.get(relationship_level, relationship_benefits[0])
+func has_jobs_available(patron_data: Patron, _relationship_level: int = 0) -> bool:
+	var tier: int = _get_relationship_tier(patron_data)
+	var relationship_info: Dictionary = relationship_benefits.get(tier, relationship_benefits[0])
 	var job_frequency = relationship_info.job_frequency
 	
 	# Roll against job frequency (higher relationship = more jobs)

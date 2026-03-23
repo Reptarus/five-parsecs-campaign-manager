@@ -112,7 +112,10 @@ func generate_battle_loot(defeated_enemies: Array, battle_context: Dictionary = 
 		# Track credits separately
 		for item in enemy_loot:
 			if item.item_category == "credits":
-				total_credits += item.item_cost.get("credits", 0) if item.item_cost is Dictionary else int(item.item_cost)
+				if item.item_cost is Dictionary:
+					total_credits += item.item_cost.get("credits", 0)
+				else:
+					total_credits += int(str(item.item_cost))
 	
 	# Apply battle-wide bonuses
 	var battle_bonus: Dictionary = _calculate_battle_bonus(defeated_enemies, battle_context)

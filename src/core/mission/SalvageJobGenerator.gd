@@ -135,6 +135,26 @@ static func get_ref_data() -> Dictionary:
 	_ensure_ref_loaded()
 	return _ref_data
 
+## Enrich a const-based roll result with canonical JSON description if available.
+## JSON key path: salvage_jobs -> section -> table -> [entries]
+static func _enrich_from_ref(section_key: String, match_field: String,
+		match_value, result: Dictionary) -> Dictionary:
+	if _ref_data.is_empty():
+		return result
+	var section: Dictionary = _ref_data.get("salvage_jobs", {}).get(section_key, {})
+	var table: Array = section.get("table", [])
+	for entry in table:
+		if entry.get(match_field, null) == match_value:
+			# Overlay canonical text without replacing game-mechanic fields
+			if entry.has("result"):
+				result["canonical_text"] = entry["result"]
+			if entry.has("effect"):
+				result["canonical_effect"] = entry["effect"]
+			if entry.has("tension_adjustment"):
+				result["ref_tension_mod"] = entry["tension_adjustment"]
+			break
+	return result
+
 
 ## ============================================================================
 ## DLC GATING
@@ -178,11 +198,12 @@ static func find_salvage_job() -> Dictionary:
 	var roll := randi_range(1, 6)
 	for entry in FIND_JOB_TABLE:
 		if entry.roll == roll:
-			return entry
-	return FIND_JOB_TABLE[0]
+			return _enrich_from_ref("finding_salvage_job", "roll", roll, entry.duplicate())
+	return FIND_JOB_TABLE[0].duplicate()
 
 
 static func roll_hostile_type() -> Dictionary:
+	_ensure_ref_loaded()
 	var roll := randi_range(1, 100)
 	for h in HOSTILE_TYPES:
 		if roll >= h.roll_min and roll <= h.roll_max:
@@ -191,22 +212,26 @@ static func roll_hostile_type() -> Dictionary:
 
 
 static func roll_point_of_interest() -> Dictionary:
+	_ensure_ref_loaded()
 	var roll := randi_range(1, 100)
 	for poi in POINTS_OF_INTEREST:
 		if roll >= poi.roll_min and roll <= poi.roll_max:
-			return poi
-	return POINTS_OF_INTEREST[0]
+			return _enrich_from_ref("points_of_interest", "result",
+				poi.get("id", ""), poi.duplicate())
+	return POINTS_OF_INTEREST[0].duplicate()
 
 
 static func resolve_contact() -> Dictionary:
+	_ensure_ref_loaded()
 	var roll := randi_range(1, 6)
 	for c in CONTACT_RESOLUTION:
 		if c.roll == roll:
-			return c
-	return CONTACT_RESOLUTION[0]
+			return _enrich_from_ref("contact_resolution", "roll", roll, c.duplicate())
+	return CONTACT_RESOLUTION[0].duplicate()
 
 
 static func get_salvage_credits(units: int) -> int:
+	_ensure_ref_loaded()
 	for tier in SALVAGE_CONVERSION:
 		if units >= tier.units_min and units <= tier.units_max:
 			return tier.credits

@@ -143,6 +143,31 @@ static func get_street_fight_rules() -> Dictionary:
 	var missions: Dictionary = _ref_data.get("special_missions", {})
 	return missions.get("street_fights", {})
 
+## Enrich a const-based roll result with canonical JSON description.
+## section_key supports dot-traversal: "suspect_markers.identification"
+static func _enrich_from_ref(section_key: String, match_field: String,
+		match_value, result: Dictionary) -> Dictionary:
+	if _ref_data.is_empty():
+		return result
+	var sf: Dictionary = _ref_data.get("special_missions", {})
+	sf = sf.get("street_fights", {})
+	# Traverse dotted path
+	for key in section_key.split("."):
+		sf = sf.get(key, {})
+		if sf.is_empty():
+			return result
+	var table: Array = sf.get("table", [])
+	for entry in table:
+		if entry.get(match_field, null) == match_value:
+			if entry.has("result"):
+				result["canonical_text"] = entry["result"]
+			if entry.has("description"):
+				result["canonical_description"] = entry["description"]
+			if entry.has("action"):
+				result["canonical_action"] = entry["action"]
+			break
+	return result
+
 
 ## ============================================================================
 ## DLC GATING
@@ -183,8 +208,9 @@ static func _roll_objective() -> Dictionary:
 	var roll := randi_range(1, 100)
 	for obj in STREET_FIGHT_OBJECTIVES:
 		if roll >= obj.roll_min and roll <= obj.roll_max:
-			return obj
-	return STREET_FIGHT_OBJECTIVES[0]
+			return _enrich_from_ref("objectives", "objective",
+				obj.get("name", ""), obj.duplicate())
+	return STREET_FIGHT_OBJECTIVES[0].duplicate()
 
 
 static func _roll_building() -> Dictionary:
@@ -196,11 +222,13 @@ static func _roll_building() -> Dictionary:
 
 
 static func roll_suspect_identity() -> Dictionary:
+	_ensure_ref_loaded()
 	var roll := randi_range(1, 6)
 	for s in SUSPECT_IDENTITY:
 		if s.roll == roll:
-			return s
-	return SUSPECT_IDENTITY[0]
+			return _enrich_from_ref("suspect_markers.identification", "roll",
+				roll, s.duplicate())
+	return SUSPECT_IDENTITY[0].duplicate()
 
 
 ## ============================================================================

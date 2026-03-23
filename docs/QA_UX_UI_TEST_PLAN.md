@@ -646,7 +646,48 @@ When DLC is enabled, mission data shown in tactical UI must come from JSON, not 
 | Salvage Job | `SalvageJobs.json` | Tension track, contact resolution, POI table | [ ] |
 | Stealth Mission | `StealthAndStreet.json` → `stealth` | Objectives (D100), spotting modifiers, detection rules | [ ] |
 
-### 8e. MCP Verification Scripts
+### 8e. Rival Battle Display Accuracy
+
+| UI Element | Expected | Source | Check |
+|------------|----------|--------|-------|
+| Rival force size | 3-8 units scaled by escalation | `RivalBattleGenerator.rival_force_templates` | [ ] |
+| Battle type | AMBUSH / BROUGHT_FRIENDS / SHOWDOWN / ASSAULT / RAID | Core Rules p.91, `battle_type_weights` | [ ] |
+| Rival removal threshold | 4+ on D6 (+mods) | Core Rules p.119 | [ ] |
+| Escalation indicators | 0-4, based on encounter history | `escalation_rules` | [ ] |
+
+### 8f. Character Creation Trait Display Accuracy
+
+| UI Element | Expected | Source | Check |
+|------------|----------|--------|-------|
+| Background bonuses | Stat mods from JSON | `character_backgrounds.json` via CharacterCreator | [ ] |
+| Class bonuses | Stat mods from JSON | `character_creation_tables/class_table.json` | [ ] |
+| Species stat mods | Per-species adjustments | `character_species.json` stat_modifiers | [ ] |
+| Background coverage | 25/25 backgrounds apply bonuses | CharacterGeneration (currently 8/25 — GAP) | [ ] |
+| Class coverage | 23/23 classes apply bonuses | CharacterGeneration (currently 8/23 — GAP) | [ ] |
+
+**Red flag**: If a background/class gives zero bonuses, check whether it's intentional (no bonus) or unmapped.
+
+### 8g. Loot & Equipment Display Accuracy
+
+| UI Element | Expected | Source | Check |
+|------------|----------|--------|-------|
+| Item value | From `get_value()` (rarity-based) | `GameItem.get_value()` | [ ] |
+| Item rarity | Common/Uncommon/Rare/Very Rare/Legendary | `GameItem.get_rarity()` | [ ] |
+| Item tags | From `item_tags` array | `GameItem.item_tags` / `has_tag()` | [ ] |
+| Equipment names | From weapons.json / equipment_tables.json | Canonical JSON files | [ ] |
+| Fallback equipment | "Military Rifle", "Combat Armor", "Field Kit" | `EquipmentGenerationScene._generate_fallback_equipment()` | [ ] |
+
+**Red flag**: `.value`, `.quality`, `.condition`, `.tags` access on GameItem = regression to broken API.
+
+### 8h. Enemy Category Display Accuracy
+
+| UI Element | Expected | Source | Check |
+|------------|----------|--------|-------|
+| Enemy type labels | From enemy JSON data | `enemies.json` / `bestiary.json` | [ ] |
+| Enemy stats | Combat/Toughness/Speed from JSON | Enemy data files | [ ] |
+| Category names | Must match JSON categories | EnemyGenerator (6 wizard vs 4 fallback — known gap) | [ ] |
+
+### 8i. MCP Verification Scripts
 
 ```gdscript
 # Check mission reward range in running game

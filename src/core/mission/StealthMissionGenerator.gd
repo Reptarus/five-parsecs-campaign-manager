@@ -156,6 +156,28 @@ static func get_stealth_rules() -> Dictionary:
 	var missions: Dictionary = _ref_data.get("special_missions", {})
 	return missions.get("stealth", {})
 
+## Enrich a const-based roll result with canonical JSON description.
+## section_key supports dot-traversal within stealth section.
+static func _enrich_from_ref(section_key: String, match_field: String,
+		match_value, result: Dictionary) -> Dictionary:
+	if _ref_data.is_empty():
+		return result
+	var st: Dictionary = _ref_data.get("special_missions", {})
+	st = st.get("stealth", {})
+	for key in section_key.split("."):
+		st = st.get(key, {})
+		if st.is_empty():
+			return result
+	var table: Array = st.get("table", [])
+	for entry in table:
+		if entry.get(match_field, null) == match_value:
+			if entry.has("description"):
+				result["canonical_description"] = entry["description"]
+			if entry.has("objective"):
+				result["canonical_objective"] = entry["objective"]
+			break
+	return result
+
 
 ## ============================================================================
 ## DLC GATING
@@ -198,8 +220,9 @@ static func _roll_objective() -> Dictionary:
 	var roll := randi_range(1, 100)
 	for obj in STEALTH_OBJECTIVES:
 		if roll >= obj.roll_min and roll <= obj.roll_max:
-			return obj
-	return STEALTH_OBJECTIVES[0]
+			return _enrich_from_ref("objectives", "objective",
+				obj.get("name", ""), obj.duplicate())
+	return STEALTH_OBJECTIVES[0].duplicate()
 
 
 static func _roll_individual_type() -> Dictionary:

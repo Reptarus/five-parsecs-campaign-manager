@@ -46,15 +46,32 @@ signal rival_defeated_permanently(rival_id: String)
 var rival_force_templates: Dictionary = {}
 var escalation_rules: Dictionary = {}
 var battle_type_weights: Dictionary = {}
+var _ref_data: Dictionary = {}  # Canonical JSON overlay (when available)
 
 func _ready() -> void:
 	_initialize_rival_data()
 
 ## Initialize rival battle data
 func _initialize_rival_data() -> void:
+	_load_ref_data()
 	_load_force_templates()
 	_load_escalation_rules()
 	_load_battle_type_weights()
+
+## Load canonical JSON data (future: data/rival_battles.json)
+## TODO: Extract rival battle tables from Core Rules pp.91,119
+## into data/rival_battles.json and wire them here.
+func _load_ref_data() -> void:
+	var path := "res://data/rival_battles.json"
+	if not FileAccess.file_exists(path):
+		return
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+		_ref_data = json.data
+	file.close()
 
 ## Load rival force templates
 func _load_force_templates() -> void:
