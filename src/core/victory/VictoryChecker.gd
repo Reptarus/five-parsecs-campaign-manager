@@ -10,7 +10,24 @@ static func check_victory(campaign: Variant, turn_number: int = 0) -> Dictionary
 	if not campaign:
 		return {"achieved": false, "message": ""}
 
-	var vc: int = campaign.get_victory_condition() if campaign.has_method("get_victory_condition") else 0
+	# Read victory condition — supports both enum int and dict-based formats
+	var vc: int = 0
+	if campaign.has_method("get_victory_condition"):
+		vc = campaign.get_victory_condition()
+	elif "victory_conditions" in campaign and campaign.victory_conditions is Dictionary:
+		# Dict-based format from ExpandedConfigPanel: {"selected_conditions": {...}, ...}
+		# or direct format: {"type": int}
+		var vcd: Dictionary = campaign.victory_conditions
+		if vcd.has("type") and vcd["type"] is int:
+			vc = vcd["type"]
+		elif vcd.has("selected_conditions") and vcd["selected_conditions"] is Dictionary:
+			# Use first selected condition — map string key to enum
+			var sc: Dictionary = vcd["selected_conditions"]
+			if not sc.is_empty():
+				vc = _map_condition_key_to_enum(sc.keys()[0])
+		elif not vcd.is_empty():
+			# Direct dict with condition keys (legacy/simple format)
+			vc = _map_condition_key_to_enum(vcd.keys()[0])
 	if vc == GlobalEnums.FiveParsecsCampaignVictoryType.NONE:
 		return {"achieved": false, "message": "No victory condition set"}
 
@@ -112,3 +129,28 @@ static func check_victory(campaign: Variant, turn_number: int = 0) -> Dictionary
 		return {"achieved": true, "message": "VICTORY! %s achieved!" % vc_name}
 	else:
 		return {"achieved": false, "message": "%s: %d / %d" % [vc_name, progress, required]}
+
+## Map string condition keys (from ExpandedConfigPanel) to enum values
+static func _map_condition_key_to_enum(key: String) -> int:
+	var _map := {
+		"turns_20": GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_20,
+		"turns_50": GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_50,
+		"turns_100": GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_100,
+		"wealth": GlobalEnums.FiveParsecsCampaignVictoryType.CREDITS_THRESHOLD,
+		"credits_threshold": GlobalEnums.FiveParsecsCampaignVictoryType.CREDITS_THRESHOLD,
+		"credits_50k": GlobalEnums.FiveParsecsCampaignVictoryType.CREDITS_50K,
+		"credits_100k": GlobalEnums.FiveParsecsCampaignVictoryType.CREDITS_100K,
+		"reputation": GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_THRESHOLD,
+		"reputation_10": GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_10,
+		"reputation_20": GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_20,
+		"quests_3": GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_3,
+		"quests_5": GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_5,
+		"quests_10": GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_10,
+		"battles_20": GlobalEnums.FiveParsecsCampaignVictoryType.BATTLES_20,
+		"battles_50": GlobalEnums.FiveParsecsCampaignVictoryType.BATTLES_50,
+		"battles_100": GlobalEnums.FiveParsecsCampaignVictoryType.BATTLES_100,
+		"story_complete": GlobalEnums.FiveParsecsCampaignVictoryType.STORY_COMPLETE,
+		"story_points_10": GlobalEnums.FiveParsecsCampaignVictoryType.STORY_POINTS_10,
+		"story_points_20": GlobalEnums.FiveParsecsCampaignVictoryType.STORY_POINTS_20,
+	}
+	return _map.get(key.to_lower(), GlobalEnums.FiveParsecsCampaignVictoryType.NONE)

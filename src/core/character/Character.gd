@@ -140,6 +140,9 @@ var reactions_used_this_round: int = 0  # Reset at start of each battle round
 @export var psionic_power: String = ""  # Power ID from psionic_powers.json, empty if none
 @export var psionic_power_enhanced: bool = false  # True if power enhanced via 6 XP training (Core Rules p.101)
 
+# Class-based traits from CharacterGeneration.apply_class_bonuses()
+@export var traits: Array[String] = []
+
 # Implant System (Five Parsecs odds-and-ends loot table)
 # Maximum 3 implants per character (rulebook limit)
 @export var implants: Array[Dictionary] = []  # Each: {type: String, name: String, stat_bonus: Dictionary}
@@ -217,6 +220,13 @@ signal experience_changed(new_amount: int)
 signal advancement_available(character: Resource)
 
 ## Add experience points to this character (called by GameState.add_crew_experience)
+func add_trait(trait_name: String) -> void:
+	if trait_name not in traits:
+		traits.append(trait_name)
+
+func has_trait(trait_name: String) -> bool:
+	return trait_name in traits
+
 func add_experience(amount: int) -> void:
 	experience += amount
 	experience_changed.emit(experience)
@@ -1069,7 +1079,8 @@ func to_dictionary() -> Dictionary:
 		"faction_relations": faction_relations.duplicate(),
 		"morale": morale,
 		"credits_earned": credits_earned,
-		"missions_completed": missions_completed
+		"missions_completed": missions_completed,
+		"traits": traits.duplicate()
 	}
 
 func _deserialize_enhanced_property(property_name: String, serialized_data: Variant) -> String:
@@ -1200,3 +1211,10 @@ func from_dictionary(data: Dictionary) -> void:
 	morale = data.get("morale", 5)
 	credits_earned = data.get("credits_earned", 0)
 	missions_completed = data.get("missions_completed", 0)
+
+	# Traits (from class bonuses)
+	var traits_data = data.get("traits", [])
+	traits.clear()
+	for t in traits_data:
+		if t is String:
+			traits.append(t)
