@@ -496,3 +496,67 @@ if dlc:
     checks.append("ContentFlag count: " + str(dlc.ContentFlag.size()))
 return "\n".join(checks)
 ```
+
+### A6: Weapon Data Cross-Check (Scenario 10)
+
+```gdscript
+extends RefCounted
+func execute(scene_tree: SceneTree) -> Variant:
+    var weapons_file = FileAccess.get_file_as_string("res://data/weapons.json")
+    if not weapons_file:
+        return {"error": "Cannot read weapons.json"}
+    var weapons_json = JSON.parse_string(weapons_file)
+    if not weapons_json or not weapons_json.has("weapons"):
+        return {"error": "Invalid weapons.json format"}
+    var lsc = LootSystemConstants.WEAPON_DEFINITIONS
+    var mismatches = []
+    for w in weapons_json["weapons"]:
+        var wname = w.get("name", "")
+        if wname in lsc:
+            var lsc_w = lsc[wname]
+            if lsc_w.get("range", -1) != w.get("range", -1):
+                mismatches.append(wname + " range: JSON=" + str(w.range) + " LSC=" + str(lsc_w.range))
+            if lsc_w.get("damage", -1) != w.get("damage", -1):
+                mismatches.append(wname + " damage: JSON=" + str(w.damage) + " LSC=" + str(lsc_w.damage))
+            if lsc_w.get("shots", -1) != w.get("shots", -1):
+                mismatches.append(wname + " shots: JSON=" + str(w.shots) + " LSC=" + str(lsc_w.shots))
+    return {"total_mismatches": mismatches.size(), "details": mismatches}
+```
+
+### A7: Injury Data Cross-Check (Scenario 10)
+
+```gdscript
+extends RefCounted
+func execute(scene_tree: SceneTree) -> Variant:
+    var injury_file = FileAccess.get_file_as_string("res://data/injury_table.json")
+    if not injury_file:
+        return {"error": "Cannot read injury_table.json"}
+    var injury_json = JSON.parse_string(injury_file)
+    var isc_ranges = InjurySystemConstants.INJURY_ROLL_RANGES
+    var mismatches = []
+    if injury_json.has("injuries"):
+        for entry in injury_json["injuries"]:
+            var type_name = entry.get("type", "")
+            if type_name in isc_ranges:
+                var isc_range = isc_ranges[type_name]
+                var json_range = [entry.get("min_roll", -1), entry.get("max_roll", -1)]
+                if isc_range[0] != json_range[0] or isc_range[1] != json_range[1]:
+                    mismatches.append(type_name + ": JSON=" + str(json_range) + " ISC=" + str(isc_range))
+    return {"total_mismatches": mismatches.size(), "details": mismatches}
+```
+
+### A8: Economy Constants Cross-Check (Scenario 10)
+
+```gdscript
+extends RefCounted
+func execute(scene_tree: SceneTree) -> Variant:
+    var checks = []
+    var fpc_upkeep = FiveParsecsConstants.ECONOMY.get("base_upkeep", -1)
+    var wem = scene_tree.root.get_node_or_null("/root/WorldEconomyManager")
+    var wem_upkeep = wem.BASE_UPKEEP_COST if wem and "BASE_UPKEEP_COST" in wem else -1
+    if fpc_upkeep != wem_upkeep:
+        checks.append("UPKEEP MISMATCH: FiveParsecsConstants=" + str(fpc_upkeep) + " WorldEconomyManager=" + str(wem_upkeep))
+    if checks.is_empty():
+        return {"status": "ALL CONSISTENT", "checks_run": 1}
+    return {"status": "INCONSISTENCIES FOUND", "details": checks}
+```

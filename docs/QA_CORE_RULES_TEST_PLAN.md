@@ -18,6 +18,22 @@
 
 **Automatable column**: `U` = gdUnit4, `M` = MCP automated, `B` = Both, `X` = Manual only
 
+### RULES_VERIFIED Promotion Procedure
+
+To mark a mechanic as RULES_VERIFIED, a human must:
+
+1. Open the Core Rules book to the page listed in the "Rule Ref" column
+2. For each numeric value in the mechanic (stat ranges, costs, thresholds, D100 boundaries):
+   a. Read the value from the book
+   b. Check the corresponding JSON file(s) AND GDScript constant file(s)
+   c. If ALL sources match the book: mark VERIFIED
+   d. If ANY source disagrees with the book: mark INCORRECT with the book value in Notes
+3. If the same value exists in multiple code sources (e.g., weapons in `weapons.json` + `LootSystemConstants.gd`), check ALL sources
+4. Initial and date the verification
+5. Update the RULES column count in the Summary table
+
+> **CRITICAL**: This column exists because the project nearly shipped with AI-hallucinated game data. The gameplay loop worked but values were fabricated. See `docs/QA_RULES_ACCURACY_AUDIT.md` for the full checklist with per-item tracking.
+
 ---
 
 ## Summary

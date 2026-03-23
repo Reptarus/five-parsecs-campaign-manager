@@ -1,6 +1,6 @@
 # QA Status Dashboard
 
-**Last Updated**: 2026-03-21
+**Last Updated**: 2026-03-22
 **Engine**: Godot 4.6-stable
 **Overall Coverage**: ~99% verified (170/170 implemented, 0 NOT_TESTED → 44 promoted to UNIT_TESTED)
 
@@ -24,15 +24,15 @@
 
 | Category | Mechanics | NOT_TESTED | UNIT_TESTED | INTEGRATION_TESTED | MCP_VALIDATED | RULES_VERIFIED |
 |----------|-----------|------------|-------------|-------------------|---------------|----------------|
-| Character Creation | 20 | 0 | 10 | 4 | 6 | 7 |
-| Campaign Phases | 49 | 0 | 15 | 10 | 24 | 9 |
+| Character Creation | 20 | 0 | 10 | 4 | 6 | 0 |
+| Campaign Phases | 49 | 0 | 15 | 10 | 24 | 0 |
 | Economy & Trading | 16 | 0 | 8 | 2 | 6 | 0 |
-| Equipment System | 17 | 0 | 7 | 2 | 8 | 17 |
+| Equipment System | 17 | 0 | 7 | 2 | 8 | 0 |
 | Ship System | 11 | 0 | 5 | 2 | 4 | 0 |
 | Loot System | 14 | 0 | 10 | 2 | 2 | 0 |
 | Battle Phase Manager | 8 | 0 | 5 | 1 | 2 | 0 |
 | Compendium DLC | 35 | 0 | 22 | 2 | 11 | 0 |
-| **TOTAL** | **170** | **0** | **82** | **25** | **63** | **33** |
+| **TOTAL** | **170** | **0** | **82** | **25** | **63** | **0** |
 
 > **Note**: All 170 mechanics now have automated test coverage (Mar 21). 44 previously NOT_TESTED mechanics promoted to UNIT_TESTED via 211 new tests across 7 files. Counts include §9 cross-cutting (23 enum sync + 47 difficulty + 26 Elite Ranks). See `QA_CORE_RULES_TEST_PLAN.md` for per-mechanic detail.
 
@@ -112,6 +112,7 @@ None — all UX issues resolved as of 2026-03-20.
 
 | Phase | Date | Scope | Bugs Found | Bugs Fixed |
 |-------|------|-------|------------|------------|
+| Phase 46: Deferred Items + Audit Prep | Mar 22, 2026 | D100 weighted CharacterCreator randomize, NotableSightsSystem.gd, unique individual D100 table wiring, orphan JSON cleanup (4 deleted), QA doc updates | 0 | 0 (wiring + cleanup) |
 | QA Coverage Sprint | Mar 21, 2026 | Character shadowing fix (7 files), 82 new unit tests (3 files), 47→44 NOT_TESTED, all 170 confirmed COMPLETE, integration gap analysis | 0 | 0 (coverage + verification only) |
 | QA Playthrough | Mar 20, 2026 | 5-turn campaign (T3-T5): world→battle→post-battle→late phases. Sprint 9 runtime fixes. | 3 runtime | 3 (UpkeepPhaseComponent _help_dialog, CrewTaskComponent _help_dialog, TacticalBattleUI type inference) |
 | QA Sprint | Mar 20, 2026 | BUG-033/034 + UX-091/092 fix sweep | 4 | 4 (BUG-033 was already fixed, confirmed; 3 code fixes) |

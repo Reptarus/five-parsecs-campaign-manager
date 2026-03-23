@@ -219,7 +219,7 @@ This checklist is organized by **Core Rules book chapter order** so a human can 
 
 ### 4A: Travel Event Table D100 (pp.72-75)
 
-**Data Sources**: `src/core/campaign/TravelPhase.gd` (16 hardcoded events)
+**Data Sources**: `data/event_tables.json` (travel_events section, 16 events with D100 ranges), `src/core/campaign/phases/TravelPhase.gd` (loader)
 
 | ID | Item | Page | What to Verify | Status | By | Date |
 |----|------|------|---------------|--------|-----|------|
@@ -604,7 +604,7 @@ All JSON data files in `data/` with their rules-data status.
 | 28 | `data/red_zone_jobs.json` | Yes | UNVERIFIED |
 | 29 | `data/black_zone_jobs.json` | Yes | UNVERIFIED |
 | 30 | `data/notable_sights.json` | Yes | UNVERIFIED |
-| 31 | `data/expanded_missions.json` | Yes (DLC) | UNVERIFIED |
+| ~~31~~ | ~~`data/expanded_missions.json`~~ | ~~Duplicate~~ | DELETED (duplicate of RulesReference/ExpandedMissions.json) |
 | 32 | `data/expanded_connections.json` | Yes (DLC) | UNVERIFIED |
 | 33 | `data/expanded_quest_progressions.json` | Yes (DLC) | UNVERIFIED |
 | 34 | `data/mission_generation_data.json` | Yes | UNVERIFIED |
@@ -622,8 +622,8 @@ All JSON data files in `data/` with their rules-data status.
 | 46 | `data/character_creation_tables/quirks_table.json` | Yes | UNVERIFIED |
 | 47 | `data/character_creation_tables/flavor_table.json` | No (flavor) | N/A |
 | 48 | `data/campaign_tables/unique_individuals.json` | Yes | UNVERIFIED |
-| 49 | `data/campaign_tables/campaign_phases.json` | Partial | UNVERIFIED |
-| 50 | `data/campaign_tables/phase_events.json` | Yes | UNVERIFIED |
+| ~~49~~ | ~~`data/campaign_tables/campaign_phases.json`~~ | ~~Not Core Rules~~ | DELETED (generic progression, not game data) |
+| ~~50~~ | ~~`data/campaign_tables/phase_events.json`~~ | ~~Not Core Rules~~ | DELETED (generic events, not game data) |
 | 51 | `data/campaign_tables/world_phase/patron_jobs.json` | Yes | UNVERIFIED |
 | 52 | `data/campaign_tables/world_phase/crew_task_modifiers.json` | Yes | UNVERIFIED |
 | 53 | `data/campaign_tables/crew_tasks/crew_task_resolution.json` | Yes | UNVERIFIED |
@@ -669,7 +669,7 @@ All JSON data files in `data/` with their rules-data status.
 | 126 | `data/help_text.json` | No (UI text) | N/A |
 | 127 | `data/help_context_map.json` | No (UI config) | N/A |
 | 128 | `data/keywords.json` | Partial (trait defs) | UNVERIFIED |
-| 129 | `data/shaders.json` | No (rendering) | N/A |
+| ~~129~~ | ~~`data/shaders.json`~~ | ~~Not game data~~ | DELETED (scraped shader catalog, not game data) |
 | 130 | `data/resources.json` | Partial | UNVERIFIED |
 | 131 | `data/autoload/system_config.json` | No (config) | N/A |
 
@@ -700,17 +700,35 @@ All JSON data files in `data/` with their rules-data status.
 
 These inconsistencies were found **between code sources within the project** — before even comparing to the Core Rules book. Each must be resolved to a single correct value.
 
+### Fixed (Mar 22, 2026 — Phase 46 Internal Consistency Pass)
+
+| # | Item | Source A | Source B | Resolution |
+|---|------|----------|----------|------------|
+| 1 | Infantry Laser range | `weapons.json`: 30 | `LootSystemConstants.gd`: ~~18~~ → 30 | **FIXED** — LSC synced to weapons.json |
+| 2 | Infantry Laser damage | `weapons.json`: 0 | `LootSystemConstants.gd`: ~~1~~ → 0 | **FIXED** — LSC synced to weapons.json |
+| 3 | Blast Rifle range | `weapons.json`: 16 | `LootSystemConstants.gd`: ~~24~~ → 16 | **FIXED** — LSC synced to weapons.json |
+| 4 | Blast Rifle shots | `weapons.json`: 1 | `LootSystemConstants.gd`: ~~2~~ → 1 | **FIXED** — LSC synced to weapons.json |
+| 5 | Blast Rifle damage | `weapons.json`: 1 | `LootSystemConstants.gd`: ~~0~~ → 1 | **FIXED** — LSC synced to weapons.json |
+| 6 | Fury Rifle shots | `weapons.json`: 1 | `LootSystemConstants.gd`: ~~2~~ → 1 | **FIXED** — LSC synced to weapons.json |
+| 7 | Fury Rifle damage | `weapons.json`: 2 | `LootSystemConstants.gd`: ~~1~~ → 2 | **FIXED** — LSC synced to weapons.json |
+| 8 | Plasma Rifle shots | `weapons.json`: 2 | `LootSystemConstants.gd`: ~~1~~ → 2 | **FIXED** — LSC synced to weapons.json |
+| 9 | Plasma Rifle damage | `weapons.json`: 1 | `LootSystemConstants.gd`: ~~2~~ → 1 | **FIXED** — LSC synced to weapons.json |
+| 10 | Needle Rifle shots | `weapons.json`: 2 | `LootSystemConstants.gd`: ~~3~~ → 2 | **FIXED** — LSC synced to weapons.json |
+| 11 | Hyper Blaster range | `weapons.json`: 24 | `LootSystemConstants.gd`: ~~18~~ → 24 | **FIXED** — LSC synced to weapons.json |
+
+> Note: Hunting Rifle and Flak Gun were fixed in Phase 43 equipment rewrite.
+
+### Open (Requires Core Rules Book Verification)
+
 | # | Item | Source A | Source B | Discrepancy |
 |---|------|----------|----------|-------------|
-| 1 | Infantry Laser range | `weapons.json`: range=30 | `LootSystemConstants.gd`: range=18 | 30 vs 18 inches |
-| 2 | Infantry Laser damage | `weapons.json`: damage=0 | `LootSystemConstants.gd`: damage=1 | +0 vs +1 |
-| 3 | Hunting Rifle damage | `weapons.json`: damage=1 | `LootSystemConstants.gd`: damage=0 | +1 vs +0 |
-| 4 | Flak Gun range | `weapons.json`: range=8 | `LootSystemConstants.gd`: range=18 | 8 vs 18 inches |
-| 5 | Flak Gun shots | `weapons.json`: shots=2 | `LootSystemConstants.gd`: shots=4 | 2 vs 4 |
-| 6 | Blast Rifle range | `weapons.json`: range=16 | `LootSystemConstants.gd`: range=24 | 16 vs 24 inches |
-| 7 | Blast Rifle shots | `weapons.json`: shots=1 | `LootSystemConstants.gd`: shots=2 | 1 vs 2 |
-| 8 | Injury table page ref | `injury_table.json`: "p.122" | `InjurySystemConstants.gd`: "p.94-95" | Different page numbers |
-| 9 | Base upkeep cost | `FiveParsecsConstants.gd`: base_upkeep=1 | `WorldEconomyManager.gd`: BASE_UPKEEP_COST=100 | 1 vs 100 credits |
+| 12 | Base upkeep cost | `FiveParsecsConstants.gd`: 1 | `campaign_rules.json`: 6 per member | Need Core Rules p.76-80 |
+| 13 | Starting credits | `FiveParsecsConstants.gd`: 10 | `campaign_rules.json`: 100 | Need Core Rules p.15 |
+| 14 | WorldEconomyManager scale | `FiveParsecsConstants.gd`: 1 credit | `WorldEconomyManager.gd`: 100x scale (1000 starting) | Different unit scales (1:1 vs 100x) |
+| 15 | Injury fatal split | `injury_table.json`: 1-5 Gruesome + 6-15 Death | `InjurySystemConstants.gd`: 1-15 FATAL combined | Need Core Rules p.122-123 |
+| 16 | Injury page reference | `injury_table.json`: "p.122" | `InjurySystemConstants.gd`: "p.94-95" | Which page is correct? |
+| 17 | Strange Characters bonuses | `character_species.json`: 16 types | `character_creation_bonuses.json`: 0 of 16 | Missing from bonuses JSON |
+| 18 | Feral origin bonus | `character_species.json`: defined | `character_creation_bonuses.json`: missing | Origin key not in bonuses JSON |
 
 ---
 

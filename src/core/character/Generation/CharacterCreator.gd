@@ -136,6 +136,10 @@ var current_bonuses: Dictionary = {
 }
 ## Bonus tables loaded from character_creation_bonuses.json (Core Rules pp.15-18, 24-27)
 var _bonus_tables: Dictionary = {}
+## D100/2D6 creation tables loaded from data/character_creation_tables/
+var _background_d100: Dictionary = {}
+var _class_d100: Dictionary = {}
+var _motivation_2d6: Dictionary = {}
 
 func _init() -> void:
 	current_character = FiveParsecsCharacter.new()
@@ -144,6 +148,7 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
 	_load_bonus_tables()
+	_load_creation_tables()
 	_populate_dropdowns()
 	name_input.text_changed.connect(_on_name_changed)
 	origin_options.item_selected.connect(_on_origin_changed)
@@ -392,6 +397,61 @@ func _load_bonus_tables() -> void:
 	if json.data is Dictionary:
 		_bonus_tables = json.data
 
+func _load_creation_tables() -> void:
+	## Load D100/2D6 weighted creation tables (Core Rules pp.24-27)
+	_background_d100 = _load_json_file("res://data/character_creation_tables/background_table.json")
+	_class_d100 = _load_json_file("res://data/character_creation_tables/class_table.json")
+	_motivation_2d6 = _load_json_file("res://data/character_creation_tables/motivation_table.json")
+
+func _load_json_file(path: String) -> Dictionary:
+	if not FileAccess.file_exists(path):
+		return {}
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return {}
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		return {}
+	if json.data is Dictionary:
+		return json.data
+	return {}
+
+func _roll_d100_table(table: Dictionary) -> String:
+	## Roll D100 and return the matching entry name from a creation table.
+	## Table format: { "entries": { "1-4": { "name": "..." }, "5-9": { ... } } }
+	var entries: Dictionary = table.get("entries", {})
+	if entries.is_empty():
+		return ""
+	var roll: int = (randi() % 100) + 1  # 1-100
+	for range_key in entries:
+		var parts: PackedStringArray = range_key.split("-")
+		if parts.size() == 2:
+			var low: int = int(parts[0])
+			var high: int = int(parts[1])
+			if roll >= low and roll <= high:
+				return entries[range_key].get("name", "")
+	return ""
+
+func _roll_2d6_table(table: Dictionary) -> String:
+	## Roll 2D6 (as D66: tens + units) and return the matching entry name.
+	## Table format: { "11": { "name": "..." }, "12": { ... } }
+	var d1: int = (randi() % 6) + 1
+	var d2: int = (randi() % 6) + 1
+	var key: String = str(d1) + str(d2)
+	if key in table:
+		return table[key].get("name", "")
+	return ""
+
+func _find_item_index_by_name(items: Array, entry_name: String) -> int:
+	## Find the index in a const items array whose display name best matches entry_name.
+	for i in range(items.size()):
+		if items[i][0].to_lower().replace("-", " ").replace("'", "") == entry_name.to_lower().replace("-", " ").replace("'", ""):
+			return i
+		# Partial match fallback (e.g. "Peaceful High-Tech Colony" vs "Peaceful High Tech Colony")
+		if items[i][0].to_lower().begins_with(entry_name.to_lower().left(10)):
+			return i
+	return -1
+
 func _lookup_bonuses(table_key: String, id: int) -> Dictionary:
 	## Look up stat bonuses from JSON by enum int value. Returns empty dict if not found.
 	var table: Dictionary = _bonus_tables.get(table_key, {})
@@ -482,16 +542,38 @@ func _on_randomize_pressed() -> void:
 		rand_name = FiveParsecsCharacterTableRoller.generate_random_name()
 	_set_character_property(current_character, "character_name", rand_name)
 
+	# Origin: flat random (no D100 table in Core Rules for species selection)
 	var origin_entry = ORIGIN_ITEMS[randi() % ORIGIN_ITEMS.size()]
 	_set_character_property(current_character, "origin", origin_entry[1])
 
-	var class_entry = CLASS_ITEMS[randi() % CLASS_ITEMS.size()]
-	_set_character_property(current_character, "character_class", class_entry[1])
-
-	var bg_entry = BACKGROUND_ITEMS[randi() % BACKGROUND_ITEMS.size()]
+	# Background: D100 weighted roll (Core Rules pp.24-25)
+	var bg_entry = BACKGROUND_ITEMS[randi() % BACKGROUND_ITEMS.size()]  # fallback
+	if not _background_d100.is_empty():
+		var bg_name: String = _roll_d100_table(_background_d100)
+		if not bg_name.is_empty():
+			var idx: int = _find_item_index_by_name(BACKGROUND_ITEMS, bg_name)
+			if idx >= 0:
+				bg_entry = BACKGROUND_ITEMS[idx]
 	_set_character_property(current_character, "background", bg_entry[1])
 
-	var mot_entry = MOTIVATION_ITEMS[randi() % MOTIVATION_ITEMS.size()]
+	# Class: D100 weighted roll (Core Rules pp.26-27)
+	var class_entry = CLASS_ITEMS[randi() % CLASS_ITEMS.size()]  # fallback
+	if not _class_d100.is_empty():
+		var cls_name: String = _roll_d100_table(_class_d100)
+		if not cls_name.is_empty():
+			var idx: int = _find_item_index_by_name(CLASS_ITEMS, cls_name)
+			if idx >= 0:
+				class_entry = CLASS_ITEMS[idx]
+	_set_character_property(current_character, "character_class", class_entry[1])
+
+	# Motivation: D66 weighted roll (Core Rules p.26)
+	var mot_entry = MOTIVATION_ITEMS[randi() % MOTIVATION_ITEMS.size()]  # fallback
+	if not _motivation_2d6.is_empty():
+		var mot_name: String = _roll_2d6_table(_motivation_2d6)
+		if not mot_name.is_empty():
+			var idx: int = _find_item_index_by_name(MOTIVATION_ITEMS, mot_name)
+			if idx >= 0:
+				mot_entry = MOTIVATION_ITEMS[idx]
 	_set_character_property(current_character, "motivation", mot_entry[1])
 
 	# Apply all bonuses (origin, background, class, motivation)

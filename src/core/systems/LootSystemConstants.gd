@@ -123,17 +123,17 @@ const WEAPON_DEFINITIONS: Dictionary = {
 
 	# Energy Weapons (Range 36-50)
 	"Hand Laser": {"range": 12, "shots": 1, "damage": 0, "special": "SNAP_FIRE", "category": "laser"},
-	"Infantry Laser": {"range": 18, "shots": 1, "damage": 1, "special": "", "category": "laser"},
-	"Blast Rifle": {"range": 24, "shots": 2, "damage": 0, "special": "AREA", "category": "laser"},
+	"Infantry Laser": {"range": 30, "shots": 1, "damage": 0, "special": "SNAP_FIRE", "category": "laser"},
+	"Blast Rifle": {"range": 16, "shots": 1, "damage": 1, "special": "", "category": "laser"},
 	"Beam Pistol": {"range": 10, "shots": 1, "damage": 1, "special": "", "category": "laser"},
 	"Laser Rifle": {"range": 30, "shots": 1, "damage": 1, "special": "", "category": "laser"},
 
 	# Plasma Weapons (Range 51-65)
-	"Plasma Rifle": {"range": 20, "shots": 1, "damage": 2, "special": "CRITICAL", "category": "plasma"},
-	"Fury Rifle": {"range": 24, "shots": 2, "damage": 1, "special": "CRITICAL", "category": "plasma"},
-	"Needle Rifle": {"range": 18, "shots": 3, "damage": 0, "special": "PIERCE", "category": "plasma"},
+	"Plasma Rifle": {"range": 20, "shots": 2, "damage": 1, "special": "FOCUSED_PIERCING", "category": "plasma"},
+	"Fury Rifle": {"range": 24, "shots": 1, "damage": 2, "special": "HEAVY_PIERCING", "category": "plasma"},
+	"Needle Rifle": {"range": 18, "shots": 2, "damage": 0, "special": "CRITICAL", "category": "plasma"},
 	"Plasma Pistol": {"range": 10, "shots": 1, "damage": 2, "special": "", "category": "plasma"},
-	"Hyper Blaster": {"range": 18, "shots": 3, "damage": 1, "special": "", "category": "plasma"},
+	"Hyper Blaster": {"range": 24, "shots": 3, "damage": 1, "special": "", "category": "energy"},
 
 	# Melee Weapons (Range 66-85)
 	"Blade": {"range": 0, "shots": 0, "damage": 0, "special": "MELEE", "category": "melee"},

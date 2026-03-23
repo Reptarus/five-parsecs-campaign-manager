@@ -307,6 +307,18 @@ func _process_battle_setup() -> void:
 	var terrain_type = _determine_terrain()
 	var deployment_conditions = _determine_deployment_conditions()
 
+	# Roll Notable Sights (Core Rules p.88) — not during Invasion battles
+	var notable_sight: Dictionary = {}
+	var is_invasion: bool = battle_setup_data.get("is_invasion", false)
+	if not is_invasion and not is_black_zone:
+		var sights_system := NotableSightsSystem.new()
+		if sights_system.is_loaded():
+			var is_patron: bool = battle_setup_data.get("is_patron_mission", false)
+			var is_rival: bool = battle_setup_data.get("is_rival_battle", false)
+			var is_quest: bool = battle_setup_data.get("is_quest_mission", false)
+			var column: String = sights_system.get_mission_column(is_patron, is_rival, is_quest)
+			notable_sight = sights_system.roll_notable_sight(column)
+
 	# Store setup data
 	battle_setup_data = {
 		"mission_type": mission_type,
@@ -316,6 +328,7 @@ func _process_battle_setup() -> void:
 		"deployment": deployment_conditions,
 		"round_limit": max_rounds,
 		"unique_individual": unique_individual,
+		"notable_sight": notable_sight,
 		"difficulty": difficulty,
 		"is_red_zone": is_red_zone,
 		"red_zone_threat": red_zone_threat,
@@ -526,7 +539,7 @@ func _determine_unique_individual(difficulty: int, mission_type: int) -> Diction
 	## - Hardcore: +1 to the roll
 	## - Insanity: Always forced. On 2D6 roll of 11-12, TWO Unique Individuals
 	## - Invasion battles and Roving Threats: no Unique Individual (standard rules)
-	var result: Dictionary = {"present": false, "count": 0, "forced": false}
+	var result: Dictionary = {"present": false, "count": 0, "forced": false, "individuals": []}
 
 	# Check if Unique Individual is forced (Insanity mode)
 	if DifficultyModifiers.is_unique_individual_forced(difficulty):
@@ -540,6 +553,11 @@ func _determine_unique_individual(difficulty: int, mission_type: int) -> Diction
 				result.count = 2
 				print("BattlePhase: INSANITY — Double Unique Individual! (rolled %d)" % double_roll)
 		print("BattlePhase: INSANITY — Forced Unique Individual (count: %d)" % result.count)
+		# Roll on the Unique Individual table for each
+		for i in range(result.count):
+			var individual: Dictionary = _roll_unique_individual_type()
+			if not individual.is_empty():
+				result.individuals.append(individual)
 		return result
 
 	# Standard roll: 2D6, 9+ = Unique Individual present
@@ -552,11 +570,46 @@ func _determine_unique_individual(difficulty: int, mission_type: int) -> Diction
 	if final_roll >= 9:
 		result.present = true
 		result.count = 1
-		print("BattlePhase: Unique Individual present (roll %d + mod %d = %d >= 9)" % [roll, modifier, final_roll])
+		var individual: Dictionary = _roll_unique_individual_type()
+		if not individual.is_empty():
+			result.individuals.append(individual)
+		print("BattlePhase: Unique Individual present (roll %d + mod %d = %d >= 9) — %s" % [
+			roll, modifier, final_roll,
+			individual.get("name", "unknown")])
 	else:
 		print("BattlePhase: No Unique Individual (roll %d + mod %d = %d < 9)" % [roll, modifier, final_roll])
 
 	return result
+
+func _roll_unique_individual_type() -> Dictionary:
+	## Roll D100 on the unique_individuals table from enemy_types.json (Core Rules pp.64-65)
+	var data_manager = get_node_or_null("/root/GameDataManager")
+	if not data_manager:
+		data_manager = get_node_or_null("/root/DataManager")
+	var enemy_data: Dictionary = {}
+	if data_manager and data_manager.has_method("get_enemy_data"):
+		enemy_data = data_manager.get_enemy_data()
+	# Fallback: load directly
+	if enemy_data.is_empty():
+		var path := "res://data/enemy_types.json"
+		if FileAccess.file_exists(path):
+			var file := FileAccess.open(path, FileAccess.READ)
+			if file:
+				var json := JSON.new()
+				if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+					enemy_data = json.data
+
+	var individuals: Array = enemy_data.get("unique_individuals", [])
+	if individuals.is_empty():
+		return {}
+
+	var roll: int = (randi() % 100) + 1  # 1-100
+	for entry in individuals:
+		var roll_range: Array = entry.get("roll_range", [])
+		if roll_range.size() == 2:
+			if roll >= int(roll_range[0]) and roll <= int(roll_range[1]):
+				return entry.duplicate()
+	return {}
 
 func _process_deployment() -> void:
 	## Step 2: Deployment - Position forces on battlefield
