@@ -202,25 +202,8 @@ func _initialize_autoloads() -> void:
 func _initialize_travel_tables() -> void:
 	## Initialize the travel events and world traits tables
 	# Starship Travel Events Table (D100) - Core Rulebook pp.72-75
-	# Official ranges (irregular, NOT 10-point equal buckets)
-	travel_events_table = [
-		{"range": [1, 7], "name": "Asteroids", "description": "Rocky debris field. Savvy check or hull damage."},
-		{"range": [8, 12], "name": "Navigation Trouble", "description": "Lost in empty space. Lose 1 story point, re-roll."},
-		{"range": [13, 17], "name": "Raided", "description": "Pirates attack. Savvy check or cramped battle."},
-		{"range": [18, 25], "name": "Deep Space Wreckage", "description": "Old wreck found. 2 rolls on Gear Subtable (damaged)."},
-		{"range": [26, 29], "name": "Drive Trouble", "description": "Engine malfunction. Savvy checks or grounded."},
-		{"range": [30, 38], "name": "Down-time", "description": "Long journey. +1 XP to chosen crew, repair 1 item free."},
-		{"range": [39, 44], "name": "Distress Call", "description": "Emergency signal. Choice to aid, D6 for outcome."},
-		{"range": [45, 50], "name": "Patrol Ship", "description": "Unity patrol hails you. Possible item confiscation."},
-		{"range": [51, 53], "name": "Cosmic Phenomenon", "description": "Strange vision. +1 Luck to witness (once per campaign)."},
-		{"range": [54, 60], "name": "Escape Pod", "description": "Drifting pod. D6 for occupant (criminal/reward/recruit)."},
-		{"range": [61, 66], "name": "Accident", "description": "Crew member injured during maintenance. 1 item damaged."},
-		{"range": [67, 75], "name": "Travel-time", "description": "Long approach. Injured crew may rest 1 turn."},
-		{"range": [76, 85], "name": "Uneventful Trip", "description": "Cards and gun cleaning. Repair 1 damaged item."},
-		{"range": [86, 91], "name": "Time to Reflect", "description": "Contemplation. +1 story point."},
-		{"range": [92, 95], "name": "Time to Read", "description": "Education time. D6 for XP distribution."},
-		{"range": [96, 100], "name": "Locked in the Library", "description": "Research. Generate 3 worlds, choose destination."},
-	]
+	# Loaded from event_tables.json
+	travel_events_table = _load_travel_events_from_json()
 
 	# World Traits Table (D100) - Core Rulebook
 	if GlobalEnums:
@@ -248,6 +231,50 @@ func _initialize_travel_tables() -> void:
 			{"range": [93, 97], "trait": 8, "name": "Free Port"},
 			{"range": [98, 100], "trait": 9, "name": "Corporate Controlled"}
 		]
+
+func _load_travel_events_from_json() -> Array[Dictionary]:
+	## Load travel events from event_tables.json (Core Rules pp.72-75)
+	var path := "res://data/event_tables.json"
+	if not FileAccess.file_exists(path):
+		push_warning("TravelPhase: event_tables.json not found, using fallback")
+		return _fallback_travel_events()
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return _fallback_travel_events()
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		push_warning("TravelPhase: Failed to parse event_tables.json")
+		return _fallback_travel_events()
+	if json.data is Dictionary:
+		var events: Array = json.data.get("travel_events", [])
+		var result: Array[Dictionary] = []
+		for e in events:
+			if e is Dictionary and e.has("range"):
+				result.append(e)
+		if result.size() > 0:
+			return result
+	return _fallback_travel_events()
+
+func _fallback_travel_events() -> Array[Dictionary]:
+	## Hardcoded fallback if event_tables.json unavailable
+	return [
+		{"range": [1, 7], "name": "Asteroids", "description": "Rocky debris field."},
+		{"range": [8, 12], "name": "Navigation Trouble", "description": "Lost in empty space."},
+		{"range": [13, 17], "name": "Raided", "description": "Pirates attack."},
+		{"range": [18, 25], "name": "Deep Space Wreckage", "description": "Old wreck found."},
+		{"range": [26, 29], "name": "Drive Trouble", "description": "Engine malfunction."},
+		{"range": [30, 38], "name": "Down-time", "description": "Long journey."},
+		{"range": [39, 44], "name": "Distress Call", "description": "Emergency signal."},
+		{"range": [45, 50], "name": "Patrol Ship", "description": "Unity patrol hails you."},
+		{"range": [51, 53], "name": "Cosmic Phenomenon", "description": "Strange vision."},
+		{"range": [54, 60], "name": "Escape Pod", "description": "Drifting pod."},
+		{"range": [61, 66], "name": "Accident", "description": "Crew member injured."},
+		{"range": [67, 75], "name": "Travel-time", "description": "Long approach."},
+		{"range": [76, 85], "name": "Uneventful Trip", "description": "Cards and gun cleaning."},
+		{"range": [86, 91], "name": "Time to Reflect", "description": "Contemplation."},
+		{"range": [92, 95], "name": "Time to Read", "description": "Education time."},
+		{"range": [96, 100], "name": "Locked in the Library", "description": "Research opportunity."},
+	]
 
 ## Main Travel Phase Processing
 func start_travel_phase() -> void:

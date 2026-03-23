@@ -56,6 +56,9 @@ var ship_data: Dictionary = {
 }
 var available_ships: Array[Dictionary] = []
 
+# Ship data loaded from ships.json (Core Rules pp.68-71)
+var _ships_db: Dictionary = {}
+
 # Guard variable to prevent duplicate panel_completed emissions
 var _completion_emitted: bool = false
 
@@ -91,6 +94,9 @@ func _ready() -> void:
 
 	# Call parent _ready() to initialize BaseCampaignPanel structure
 	super._ready()
+
+	# Load ship data from JSON
+	_load_ships_database()
 
 	# Apply design system styling to scene-defined inputs
 	call_deferred("_apply_input_styling")
@@ -574,6 +580,28 @@ func _connect_signals() -> void:
 	if debt_spinbox and not debt_spinbox.value_changed.is_connected(_on_debt_changed):
 		debt_spinbox.value_changed.connect(_on_debt_changed)
 
+func _load_ships_database() -> void:
+	var path := "res://data/ships.json"
+	if not FileAccess.file_exists(path):
+		push_warning("ShipPanel: ships.json not found, using fallback data")
+		return
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		push_warning("ShipPanel: Failed to parse ships.json")
+		return
+	if json.data is Dictionary:
+		_ships_db = json.data
+
+func _get_ship_type_data(ship_name: String) -> Dictionary:
+	## Look up ship type data from ships.json by display name
+	for entry in _ships_db.get("ship_types", []):
+		if entry is Dictionary and entry.get("name", "") == ship_name:
+			return entry
+	return {}
+
 func _initialize_ship_data() -> void:
 	## Initialize ship data structure
 	# Reset to default values
@@ -591,65 +619,51 @@ func _initialize_ship_data() -> void:
 
 func _generate_ship_name() -> String:
 	## Generate a random ship name — Compendium DLC tables (pp.157-162) if available,
-	## otherwise local prefix/suffix arrays.
+	## then ships.json, otherwise hardcoded fallback.
 	var CompendiumWorldOptions = load("res://src/data/compendium_world_options.gd")
 	if CompendiumWorldOptions:
 		var compendium_name: String = CompendiumWorldOptions.generate_ship_name()
 		if not compendium_name.is_empty():
 			return compendium_name
-	# Fallback: local name generation
-	var prefixes = ["Star", "Nova", "Dawn", "Void", "Deep", "Far", "Solar", "Cosmic", "Stellar", "Astral"]
-	var suffixes = ["Runner", "Wanderer", "Seeker", "Hunter", "Trader", "Explorer", "Voyager", "Nomad", "Spirit", "Quest"]
+	# JSON-driven name generation from ships.json
+	var names_data: Dictionary = _ships_db.get("ship_names", {})
+	var prefixes: Array = names_data.get("prefixes", ["Star", "Nova", "Dawn", "Void", "Deep", "Far", "Solar", "Cosmic", "Stellar", "Astral"])
+	var suffixes: Array = names_data.get("suffixes", ["Runner", "Wanderer", "Seeker", "Hunter", "Trader", "Explorer", "Voyager", "Nomad", "Spirit", "Quest"])
 	return "%s %s" % [prefixes[randi() % prefixes.size()], suffixes[randi() % suffixes.size()]]
 
 func _populate_ship_types() -> void:
-	## Populate ship type dropdown with Five Parsecs Core Rules ship types
+	## Populate ship type dropdown from ships.json (Core Rules pp.68-71)
 	if not ship_type_option:
 		return
 	ship_type_option.clear()
-	ship_type_option.add_item("Freelancer")
-	ship_type_option.add_item("Worn Freighter")
-	ship_type_option.add_item("Scout Ship")
-	ship_type_option.add_item("Patrol Boat")
-	ship_type_option.add_item("Armed Trader")
-	ship_type_option.add_item("Converted Transport")
-	ship_type_option.add_item("Light Freighter")
+	var ship_types: Array = _ships_db.get("ship_types", [])
+	if ship_types.is_empty():
+		# Fallback if JSON not loaded
+		for sname in ["Freelancer", "Worn Freighter", "Scout Ship", "Patrol Boat", "Armed Trader", "Converted Transport", "Light Freighter"]:
+			ship_type_option.add_item(sname)
+		return
+	for entry in ship_types:
+		if entry is Dictionary:
+			ship_type_option.add_item(entry.get("name", "Unknown"))
 
 func _calculate_starting_hull(ship_type: String) -> int:
-	## Calculate starting hull points based on ship type (Core Rules scale: 6-14)
-	match ship_type:
-		"Freelancer": return 10
-		"Worn Freighter": return 8
-		"Scout Ship": return 6
-		"Patrol Boat": return 10
-		"Armed Trader": return 10
-		"Converted Transport": return 12
-		"Light Freighter": return 10
-		_: return 10
+	## Calculate starting hull points from ships.json (Core Rules scale: 6-14)
+	var data: Dictionary = _get_ship_type_data(ship_type)
+	return int(data.get("hull_points", 10))
 
 func _calculate_starting_debt(ship_type: String) -> int:
-	## Calculate starting debt based on ship type (Core Rules scale: 0-5)
-	match ship_type:
-		"Freelancer": return randi_range(0, 3)
-		"Worn Freighter": return randi_range(1, 5)
-		"Scout Ship": return 0
-		"Patrol Boat": return randi_range(1, 4)
-		"Armed Trader": return randi_range(1, 4)
-		"Converted Transport": return randi_range(2, 5)
-		"Light Freighter": return randi_range(0, 3)
-		_: return randi_range(0, 3)
+	## Calculate starting debt from ships.json (Core Rules scale: 0-5)
+	var data: Dictionary = _get_ship_type_data(ship_type)
+	var debt_min: int = int(data.get("debt_min", 0))
+	var debt_max: int = int(data.get("debt_max", 3))
+	if debt_min == debt_max:
+		return debt_min
+	return randi_range(debt_min, debt_max)
 
 func _calculate_cargo_capacity(ship_type: String) -> int:
-	## Calculate cargo capacity based on ship type (FinalPanel compatibility)
-	match ship_type:
-		"Freelancer": return 5
-		"Worn Freighter": return 8
-		"Scout Ship": return 2
-		"Patrol Boat": return 3
-		"Armed Trader": return 6
-		"Converted Transport": return 10
-		"Light Freighter": return 7
-		_: return 5
+	## Calculate cargo capacity from ships.json (FinalPanel compatibility)
+	var data: Dictionary = _get_ship_type_data(ship_type)
+	return int(data.get("cargo_capacity", 5))
 
 func _update_ship_display() -> void:
 	## Update UI to reflect current ship data with glass morphism styling
@@ -930,22 +944,25 @@ func set_data(data: Dictionary) -> void:
 	ship_updated.emit(ship_data)
 
 func _generate_ship() -> void:
-	## Generate ship following Five Parsecs Ship Table (Core Rules pp. 1918-1920)
-	var ship_roll = randi_range(1, 100)
+	## Generate ship following Five Parsecs Ship Table from ships.json (Core Rules pp.68-71)
+	var ship_roll: int = randi_range(1, 100)
+	var gen_table: Array = _ships_db.get("generation_table", [])
+	var chosen_type_id: String = ""
 
-	# Ship Table (simplified for initial implementation)
-	if ship_roll <= 12:
-		_create_worn_freighter()
-	elif ship_roll <= 25:
-		_create_patrol_boat()
-	elif ship_roll <= 40:
-		_create_converted_transport()
-	elif ship_roll <= 60:
-		_create_scout_ship()
-	elif ship_roll <= 80:
-		_create_armed_trader()
-	else:
-		_create_custom_ship()
+	for entry in gen_table:
+		if entry is Dictionary:
+			var r: Array = entry.get("range", [1, 100])
+			if ship_roll >= int(r[0]) and ship_roll <= int(r[1]):
+				chosen_type_id = entry.get("type", "")
+				break
+
+	if chosen_type_id.is_empty():
+		# Fallback: pick random from custom_ship_types
+		var custom_types: Array = _ships_db.get("custom_ship_types", ["freelancer"])
+		chosen_type_id = custom_types[randi() % custom_types.size()]
+
+	# Find the ship type data and apply it
+	_create_ship_from_type_id(chosen_type_id)
 
 	# Set default name if empty
 	if ship_data.name.is_empty():
@@ -960,77 +977,54 @@ func _generate_ship() -> void:
 	_completion_emitted = false
 	_validate_and_complete()
 
-func _create_worn_freighter() -> void:
-	## Create a Worn Freighter — reliable but aging, higher debt
-	ship_data.type = "Worn Freighter"
-	ship_data.debt = randi_range(1, 5)
-	ship_data.hull_points = 8
-	ship_data.max_hull = 8
-	ship_data.traits = _roll_ship_traits()
-
-func _create_patrol_boat() -> void:
-	## Create a Patrol Boat — sturdy military surplus
-	ship_data.type = "Patrol Boat"
-	ship_data.debt = randi_range(1, 4)
+func _create_ship_from_type_id(type_id: String) -> void:
+	## Create a ship from its JSON type ID (e.g., "worn_freighter", "scout_ship")
+	for entry in _ships_db.get("ship_types", []):
+		if entry is Dictionary and entry.get("id", "") == type_id:
+			ship_data.type = entry.get("name", "Freelancer")
+			var hull: int = int(entry.get("hull_points", 10))
+			ship_data.hull_points = hull
+			ship_data.max_hull = hull
+			var debt_min: int = int(entry.get("debt_min", 0))
+			var debt_max: int = int(entry.get("debt_max", 3))
+			ship_data.debt = debt_min if debt_min == debt_max else randi_range(debt_min, debt_max)
+			ship_data.traits = _roll_ship_traits()
+			return
+	# Fallback if type_id not found
+	ship_data.type = "Freelancer"
 	ship_data.hull_points = 10
 	ship_data.max_hull = 10
-	ship_data.traits = _roll_ship_traits()
-
-func _create_converted_transport() -> void:
-	## Create a Converted Transport — large hull, higher debt
-	ship_data.type = "Converted Transport"
-	ship_data.debt = randi_range(2, 5)
-	ship_data.hull_points = 12
-	ship_data.max_hull = 12
-	ship_data.traits = _roll_ship_traits()
-
-func _create_scout_ship() -> void:
-	## Create a Scout Ship — small and nimble, no debt
-	ship_data.type = "Scout Ship"
-	ship_data.debt = 0
-	ship_data.hull_points = 6
-	ship_data.max_hull = 6
-	ship_data.traits = _roll_ship_traits()
-
-func _create_armed_trader() -> void:
-	## Create an Armed Trader — balanced combat/trade vessel
-	ship_data.type = "Armed Trader"
-	ship_data.debt = randi_range(1, 4)
-	ship_data.hull_points = 10
-	ship_data.max_hull = 10
-	ship_data.traits = _roll_ship_traits()
-
-func _create_custom_ship() -> void:
-	## Create a Freelancer or Light Freighter — versatile starter ship
-	var ship_types = ["Freelancer", "Light Freighter"]
-	ship_data.type = ship_types[randi() % ship_types.size()]
 	ship_data.debt = randi_range(0, 3)
-	ship_data.hull_points = 10
-	ship_data.max_hull = 10
 	ship_data.traits = _roll_ship_traits()
 
 func _roll_ship_traits() -> Array[String]:
-	## Roll for random ship traits
+	## Roll for random ship traits from ships.json
 	var traits: Array[String] = []
+	var traits_data: Dictionary = _ships_db.get("traits", {})
 	var trait_roll: int = randi_range(1, 100)
 
-	# Primary trait based on roll
-	if trait_roll <= 20:
-		traits.append("Fast Engine")
-	elif trait_roll <= 40:
-		traits.append("Heavy Armor")
-	elif trait_roll <= 60:
-		traits.append("Extra Cargo")
-	elif trait_roll <= 80:
-		traits.append("Advanced Sensors")
+	# Primary trait based on D100 roll
+	var primary_table: Array = traits_data.get("primary", [])
+	if primary_table.is_empty():
+		# Fallback
+		traits.append(["Fast Engine", "Heavy Armor", "Extra Cargo", "Advanced Sensors", "Weapon Hardpoints"][randi() % 5])
 	else:
-		traits.append("Weapon Hardpoints")
+		for entry in primary_table:
+			if entry is Dictionary:
+				var r: Array = entry.get("range", [1, 100])
+				if trait_roll >= int(r[0]) and trait_roll <= int(r[1]):
+					traits.append(entry.get("name", "Unknown Trait"))
+					break
 
-	# 30% chance for second trait
-	if randf() <= 0.3:
-		var second_traits: Array[String] = ["Efficient Drive", "Luxury Interior", "Advanced AI"]
-		var second_trait: String = second_traits[randi() % second_traits.size()]
-		if not traits.has(second_trait):
+	# Secondary trait chance
+	var secondary_chance: float = traits_data.get("secondary_chance", 0.3)
+	if randf() <= secondary_chance:
+		var secondary_table: Array = traits_data.get("secondary", [])
+		if secondary_table.is_empty():
+			secondary_table = [{"name": "Efficient Drive"}, {"name": "Luxury Interior"}, {"name": "Advanced AI"}]
+		var second_entry: Dictionary = secondary_table[randi() % secondary_table.size()]
+		var second_trait: String = second_entry.get("name", "")
+		if not second_trait.is_empty() and not traits.has(second_trait):
 			traits.append(second_trait)
 
 	return traits

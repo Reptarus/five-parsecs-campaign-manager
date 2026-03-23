@@ -1,0 +1,65 @@
+{
+	"_metadata": {
+		"name": "Character Creation Stat Bonuses",
+		"description": "Maps enum int values to stat bonuses for each creation category. Keys match GlobalEnums enum values. Stat keys match STAT_PROPERTY_MAP in CharacterCreator.gd.",
+		"source": "Five Parsecs from Home Core Rules pp.15-18 (origins), pp.24-25 (backgrounds), pp.26-27 (classes), p.26 (motivations)",
+		"version": "1.0"
+	},
+	"origin_bonuses": {
+		"8": {"REACTIONS": 1, "COMBAT_SKILL": 1, "TOUGHNESS": 1, "SAVVY": 2, "_comment": "Bot (p.15)"},
+		"2": {"TOUGHNESS": -1, "SAVVY": 1, "_comment": "Engineer (p.16)"},
+		"4": {"TOUGHNESS": 1, "_comment": "K'Erin (p.16)"},
+		"6": {"TOUGHNESS": 1, "SAVVY": 1, "_comment": "Soulless (p.17)"},
+		"5": {"SPEED": 1, "TOUGHNESS": -1, "_comment": "Precursor (p.17)"},
+		"7": {"SPEED": 1, "_comment": "Swift (p.18)"},
+		"9": {"TOUGHNESS": 1, "SAVVY": -1, "_comment": "Krag"},
+		"10": {"SPEED": 1, "TOUGHNESS": -1, "_comment": "Skulker"},
+		"11": {"TOUGHNESS": 1, "COMBAT": 1, "_comment": "Prison Planet"}
+	},
+	"background_bonuses": {
+		"12": {"SAVVY": 1, "_comment": "Peaceful High Tech Colony"},
+		"13": {"SPEED": 1, "_comment": "Giant Overcrowded Dystopian City"},
+		"15": {"TOUGHNESS": 1, "_comment": "Mining Colony"},
+		"16": {"COMBAT_SKILL": 1, "_comment": "Military Brat"},
+		"18": {"REACTIONS": 1, "_comment": "Military Outpost"},
+		"22": {"COMBAT_SKILL": 1, "_comment": "Frontier Gang"},
+		"24": {"REACTIONS": 1, "_comment": "War Torn Hell Hole"},
+		"25": {"SAVVY": 1, "_comment": "Tech Guild"},
+		"27": {"SAVVY": 1, "_comment": "Long Term Space Mission"},
+		"28": {"SAVVY": 1, "_comment": "Research Outpost"},
+		"29": {"TOUGHNESS": 1, "_comment": "Primitive World"},
+		"35": {"REACTIONS": 1, "_comment": "Wasteland Nomads"}
+	},
+	"class_bonuses": {
+		"9": {"SAVVY": 1, "LUCK": 1, "_comment": "Working Class"},
+		"10": {"SAVVY": 1, "_comment": "Technician"},
+		"11": {"SAVVY": 1, "_comment": "Scientist"},
+		"12": {"SAVVY": 1, "_comment": "Hacker"},
+		"1": {"COMBAT_SKILL": 1, "_comment": "Soldier"},
+		"13": {"COMBAT_SKILL": 1, "_comment": "Mercenary"},
+		"15": {"SPEED": 1, "_comment": "Primitive"},
+		"19": {"SAVVY": 1, "_comment": "Starship Crew"},
+		"20": {"SPEED": 1, "_comment": "Petty Criminal"},
+		"21": {"REACTIONS": 1, "_comment": "Ganger"},
+		"22": {"SPEED": 1, "_comment": "Scoundrel"},
+		"23": {"COMBAT_SKILL": 1, "_comment": "Enforcer"},
+		"24": {"REACTIONS": 1, "_comment": "Special Agent"},
+		"25": {"REACTIONS": 1, "_comment": "Troubleshooter"},
+		"26": {"SPEED": 1, "_comment": "Bounty Hunter"}
+	},
+	"motivation_bonuses": {
+		"3": {"COMBAT_SKILL": 1, "_comment": "Glory"},
+		"7": {"TOUGHNESS": 1, "_comment": "Survival"},
+		"14": {"SPEED": 1, "_comment": "Escape"},
+		"17": {"SAVVY": 1, "_comment": "Technology"},
+		"10": {"SAVVY": 1, "_comment": "Discovery"}
+	},
+	"precursor_grants_psionic": true,
+	"motivation_campaign_bonuses": {
+		"1": {"type": "credits", "dice": "1D6", "_comment": "Wealth — applied in CampaignFinalizationService"},
+		"13": {"type": "story_points", "amount": 1, "_comment": "Fame — applied in CampaignFinalizationService"},
+		"2": {"type": "xp", "amount": 2, "_comment": "Revenge — applied in CampaignFinalizationService"},
+		"5": {"type": "xp", "amount": 2, "_comment": "Power — applied in CampaignFinalizationService"},
+		"9": {"type": "xp", "amount": 2, "_comment": "Freedom — applied in CampaignFinalizationService"}
+	}
+}

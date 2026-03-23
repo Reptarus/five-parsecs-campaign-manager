@@ -61,6 +61,16 @@ func _load_equipment_database() -> void:
 		_db_armor = _equipment_db.get("armor", [])
 		_db_gear = _equipment_db.get("gear", [])
 
+## Return basic weapons (always available, 1 credit each — Core Rules p.126)
+func get_basic_weapons() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for w in _db_weapons:
+		if w is Dictionary and w.get("basic", false):
+			result.append({"name": w.get("name", ""), "type": "weapon", "value": int(w.get("cost", 1)), "_basic": true})
+	if result.is_empty():
+		push_warning("EquipmentManager: No basic weapons found in equipment_database.json")
+	return result
+
 func setup(state: FiveParsecsGameState, char_manager, battle_results_manager: BattleResultsManager) -> void:
 	game_state = state
 	character_manager = char_manager

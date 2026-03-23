@@ -10,12 +10,8 @@ signal item_purchased(item_data: Dictionary)
 signal item_sold(item_data: Dictionary)
 signal trading_completed
 
-const BASIC_WEAPONS: Array = [
-	{"name": "Handgun", "type": "weapon", "value": 1, "_basic": true},
-	{"name": "Blade", "type": "weapon", "value": 1, "_basic": true},
-	{"name": "Colony Rifle", "type": "weapon", "value": 1, "_basic": true},
-	{"name": "Shotgun", "type": "weapon", "value": 1, "_basic": true},
-]
+## Basic weapons loaded from equipment_database.json via EquipmentManager (Core Rules p.126)
+var _basic_weapons: Array[Dictionary] = []
 const MAX_SELL_PER_TURN: int = 3
 const TABLE_ROLL_COST: int = 3
 
@@ -74,6 +70,18 @@ func _ready() -> void:
 		available_items.item_selected.connect(_on_market_item_selected)
 	if inventory_items:
 		inventory_items.item_selected.connect(_on_inventory_item_selected)
+	# Load basic weapons from JSON via EquipmentManager
+	var eq_mgr = get_node_or_null("/root/EquipmentManager")
+	if eq_mgr and eq_mgr.has_method("get_basic_weapons"):
+		_basic_weapons = eq_mgr.get_basic_weapons()
+	if _basic_weapons.is_empty():
+		# Fallback if EquipmentManager unavailable
+		_basic_weapons = [
+			{"name": "Hand Gun", "type": "weapon", "value": 1, "_basic": true},
+			{"name": "Blade", "type": "weapon", "value": 1, "_basic": true},
+			{"name": "Colony Rifle", "type": "weapon", "value": 1, "_basic": true},
+			{"name": "Shotgun", "type": "weapon", "value": 1, "_basic": true},
+		]
 	# Add "Roll on Table (3cr)" button
 	var btn_container = buy_button.get_parent() if buy_button else null
 	if btn_container:
@@ -149,7 +157,7 @@ func load_market_items() -> void:
 	available_market_items.clear()
 
 	# Basic weapons — always available, 1 credit each, unlimited (p.126)
-	for bw in BASIC_WEAPONS:
+	for bw in _basic_weapons:
 		var item: Dictionary = bw.duplicate()
 		available_market_items.append(item)
 		available_items.add_item("%s (1cr - Basic)" % item.get("name", "?"))

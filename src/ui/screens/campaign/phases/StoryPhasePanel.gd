@@ -19,6 +19,8 @@ var available_events: Array[Dictionary] = []
 var selected_event: Dictionary
 var selected_choice: Dictionary
 var event_history: Array[Dictionary] = []
+## Story events loaded from story_events.json
+var _story_events_db: Array = []
 
 func _ready() -> void:
 	super._ready()
@@ -27,6 +29,7 @@ func _ready() -> void:
 	_style_rich_text(event_details)
 	_style_phase_button(resolve_button, true)
 
+	_load_story_events()
 	event_manager = get_node_or_null("/root/EventManager")
 	if event_manager:
 		if event_manager.has_signal("event_triggered"):
@@ -69,55 +72,52 @@ func _generate_story_events() -> void:
 		available_events.append(event)
 		event_list.add_item(event.title)
 
+func _load_story_events() -> void:
+	## Load story events from story_events.json
+	var path := "res://data/story_events.json"
+	if not FileAccess.file_exists(path):
+		push_warning("StoryPhasePanel: story_events.json not found")
+		return
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		push_warning("StoryPhasePanel: Failed to parse story_events.json")
+		return
+	if json.data is Dictionary:
+		_story_events_db = json.data.get("events", [])
+
 func _create_story_event() -> Dictionary:
-	# NOTE: Deferred — wire to EventManager for real story event generation; using sample events
+	## Create a story event from story_events.json (or fallback)
+	if _story_events_db.size() > 0:
+		var src: Dictionary = _story_events_db[randi() % _story_events_db.size()]
+		return {
+			"title": src.get("title", "Unknown Event"),
+			"description": src.get("description", ""),
+			"choices": src.get("choices", [
+				{"text": "Continue", "effects": {"story_points": 0, "risk_level": "none", "potential_reward": "none"}}
+			])
+		}
+	# Hardcoded fallback if JSON unavailable
 	var sample_events = [
 		{
 			"title": "Mysterious Signal",
 			"description": "Your crew picks up an unusual signal from a nearby system.",
 			"choices": [
-				{
-					"text": "Investigate the signal",
-					"effects": {
-						"story_points": 2,
-						"risk_level": "high",
-						"potential_reward": "technology"
-					}
-				},
-				{
-					"text": "Ignore it and continue",
-					"effects": {
-						"story_points": - 1,
-						"risk_level": "none",
-						"potential_reward": "none"
-					}
-				}
+				{"text": "Investigate the signal", "effects": {"story_points": 2, "risk_level": "high", "potential_reward": "technology"}},
+				{"text": "Ignore it and continue", "effects": {"story_points": -1, "risk_level": "none", "potential_reward": "none"}}
 			]
 		},
 		{
 			"title": "Local Conflict",
 			"description": "A local settlement is caught in a dispute between rival factions.",
 			"choices": [
-				{
-					"text": "Support the settlers",
-					"effects": {
-						"story_points": 3,
-						"risk_level": "medium",
-						"potential_reward": "allies"
-					}
-				},
-				{
-					"text": "Stay neutral",
-					"effects": {
-						"story_points": 0,
-						"risk_level": "low",
-						"potential_reward": "none"
-					}
-				}
+				{"text": "Support the settlers", "effects": {"story_points": 3, "risk_level": "medium", "potential_reward": "allies"}},
+				{"text": "Stay neutral", "effects": {"story_points": 0, "risk_level": "low", "potential_reward": "none"}}
 			]
 		}
 	]
-	
 	return sample_events[randi() % sample_events.size()]
 
 func _update_ui() -> void:

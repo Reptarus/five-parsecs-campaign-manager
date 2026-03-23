@@ -1,6 +1,6 @@
 # Project Status (March 22, 2026)
 
-## Current Phase: Phase 44 COMPLETE — Integration Gap Audit + Psionics Subsystem (6/6 sprints)
+## Current Phase: Phase 45 COMPLETE — Full JSON Data Consistency (8/8 sprints)
 
 ## Key Metrics
 
@@ -21,7 +21,8 @@
 | Phase 43 | COMPLETE — 6/6 sprints: panels, BUG-036, wiring, dead code, data audit, equipment rewrite, utility method wiring |
 | Phase 44 | COMPLETE — 6/6 sprints: CampaignJournal wiring (9 sites), autoload fixes (NPCTracker/LegacySystem/GalacticWarProcessor), PsionicSystem full rewrite+wiring (advancement/battle/UI/implant interaction) |
 | Open Bugs | 0 |
-| Data Consumption Gap | equipment_database.json rewrite is unconsumed — EquipmentManager uses hardcoded data |
+| Phase 45 (JSON Consistency) | COMPLETE — 8/8 sprints, 4 new JSONs, 8 GDScript files wired, -575 net lines |
+| Data Consumption Gap | RESOLVED — all major JSON files now consumed by their target GDScript files |
 
 ## Completed Phases
 
@@ -61,12 +62,13 @@
 | 41 | Rules Gap Remediation (5 sprints) |
 | 42 | Foundational DLC Data (5 sprints) |
 | 43 | Core+Compendium Gap Remediation (6 sprints, 18 files) |
-| **44** | **Integration Gap Audit + Psionics** (6 sprints, 22 files) — CampaignJournal 9 call sites, autoload delegation fixes, PsionicSystem power enum rewrite (10 Core Rules names), advancement handlers (12/6 XP), gameplay constraints (combat block, one-per-crew, implant loss), DLC-gated UI (AdvancementPhasePanel + PsionicLegalityBadge), battle integration (PreBattleChecklist enemy psionics, PostBattlePhase detection), PsionicManager stub deleted |
+| 44 | Integration Gap Audit + Psionics (6 sprints, 22 files) — CampaignJournal, autoload fixes, PsionicSystem rewrite+wiring, PsionicManager deleted |
+| **45** | **Full JSON Data Consistency** (8 sprints, 19 files) — Deleted 5 superseded JSONs. Created 4 new JSONs (ships.json, character_creation_bonuses.json, mission_generation_data.json, campaign_config.json). Enhanced event_tables.json (+6 events, +D100 ranges) and equipment_database.json (+basic flag). Wired 8 GDScript files to JSON: TradePhasePanel, CharacterCreator, ShipPanel, TravelPhase, StoryPhasePanel, FiveParsecsMissionGenerator, ExpandedConfigPanel, EquipmentManager. Net -575 lines. |
 
 ## Roadmap / Future Work
 
 - **Core Rules data audit**: COMPLETE (Phases 37-38, + Sprint 43-6 verified all key files vs PDF)
-- **equipment_database.json**: REWRITTEN with Core Rules data. 36 weapons, 9 armor, 26 gear, 13 attachments. **UNCONSUMED** — EquipmentManager.gd uses hardcoded inline arrays. Refactor needed.
+- **equipment_database.json**: FULLY WIRED (Phase 45). 36 weapons, 9 armor, 26 gear, 13 attachments. Consumed by EquipmentManager, EquipmentPanel, PurchaseItemsComponent, TradePhasePanel (basic weapons via `basic` flag).
 - **Psionics subsystem**: NOW FULLY WIRED (Phase 44). Only remaining: PsionicSystem.resolve_psionic_projection() enhanced bonus (+1D6) not yet applied for `psionic_power_enhanced` characters at runtime
 - **Compendium deferred**: GRID_BASED_MOVEMENT text helpers, species text helpers, PvP/Co-op modes
 - **Bug Hunt Phase 8**: Co-op mode support (stretch)

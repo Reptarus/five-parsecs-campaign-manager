@@ -68,10 +68,37 @@ None — all UX issues resolved as of 2026-03-20.
 
 ---
 
+## Rules Accuracy Status
+
+> **BLOCKS PUBLIC RELEASE**: All game data must be verified against the Five Parsecs From Home Core Rules book. See `docs/QA_RULES_ACCURACY_AUDIT.md` for the full checklist.
+
+| Domain | JSON Files | GDScript Files | Est. Values | Verified | Incorrect | Status |
+|--------|-----------|---------------|-------------|----------|-----------|--------|
+| Weapons & Equipment | 4 | 1 | ~150 | 0 | 0 | NOT STARTED |
+| Species & Characters | 4 | 0 | ~80 | 0 | 0 | NOT STARTED |
+| Injuries | 1 | 1 | ~25 | 0 | 0 | NOT STARTED |
+| Loot Tables | 2 | 1 | ~60 | 0 | 0 | NOT STARTED |
+| Economy & Upkeep | 1 | 2 | ~30 | 0 | 0 | NOT STARTED |
+| Campaign Events | 2 | 0 | ~100 | 0 | 0 | NOT STARTED |
+| Battle & Enemies | 5 | 1 | ~60 | 0 | 0 | NOT STARTED |
+| Ships | 2 | 0 | ~20 | 0 | 0 | NOT STARTED |
+| Compendium/DLC | 15+ | 0 | ~100 | 0 | 0 | NOT STARTED |
+| Other (travel, missions, etc.) | 15+ | 3 | ~120+ | 0 | 0 | NOT STARTED |
+| **TOTAL** | **~50** | **~9** | **~745+** | **0** | **0** | **NOT STARTED** |
+
+**Known Internal Inconsistencies** (code disagrees with itself — see `QA_RULES_ACCURACY_AUDIT.md` Appendix C):
+- Infantry Laser: `weapons.json` range=30 vs `LootSystemConstants.gd` range=18
+- Hunting Rifle: `weapons.json` damage=1 vs `LootSystemConstants.gd` damage=0
+- Upkeep cost: `FiveParsecsConstants.gd` base_upkeep=1 vs `WorldEconomyManager.gd` BASE_UPKEEP_COST=100
+
+---
+
 ## Risk Areas
 
 | Area | Risk | Reason | Mitigation |
 |------|------|--------|------------|
+| Data Accuracy — AI Hallucination | **CRITICAL** | 137 JSON files + ~12 GDScript constants files may contain AI-fabricated values not from Core Rules book. Nearly shipped publicly with wrong data | `QA_RULES_ACCURACY_AUDIT.md` checklist; human book verification required. BLOCKS PUBLIC RELEASE |
+| Duplicate Data Sources | **HIGH** | Same data defined in multiple places (weapons in 3 files, upkeep in 2 files) with confirmed inconsistencies | Internal consistency pass first (MCP scripts in Appendix D), then single-source-of-truth refactoring |
 | Save/Load dual-sync | **HIGH** | BUG-031 was systemic — all setters must sync to 3 targets | Dual-sync regression test in integration scenarios |
 | Three-enum sync | **HIGH** | GlobalEnums, GameEnums, FiveParsecsGameEnums must stay aligned manually | Automated enum comparison test needed |
 | ~~Character type shadowing~~ | **RESOLVED** | 7 files fixed Mar 21 — removed `const Character := preload(Base/Character.gd)` shadowing class_name | Fixed: consts removed, global class_name used |
@@ -108,13 +135,14 @@ All 5 previous priority items are now verified:
 
 ## Next Priority Items
 
-1. ~~**Character type shadowing**~~ — FIXED Mar 21 (7 files, 0 compile errors)
-2. ~~**47 NOT_TESTED mechanics**~~ — All 44 remaining confirmed as COMPLETE implementations. 13 promoted to UNIT_TESTED (3 PostBattle + 6 DifficultyModifiers + 4 Elite Ranks). New tests: `test_difficulty_modifiers_battle.gd` (47 tests), `test_player_profile.gd` (26 tests), `test_post_battle_subsystems.gd` (9 tests)
-3. ~~**Integration gaps**~~ — RESOLVED: BattleJournal fully wired (20+ calls), NPCTracker design-scoped to post-battle, LegacySystem superseded by PlayerProfile (wired at campaign start + end)
-4. **RULES_VERIFIED column** — Cross-reference 170 mechanics against Core Rules text (0/170 done)
-5. **Remaining NOT_TESTED coverage** — 44 mechanics need unit tests: Compendium DLC (20), Ship (5), Equipment (5), Economy (4), Travel/Upkeep (7), Character (2), Battle (1)
-6. **Deferred architectural items** — WEALTH motivation resource bonuses, victory metric counters
-7. **Battle UI standalone mode** — 7 bugs only when TacticalBattleUI launched without campaign flow
+1. **RULES ACCURACY AUDIT** — Verify ALL game data against Core Rules book (0/745+ values verified). Internal consistency check first (9 known discrepancies), then human book verification. See `docs/QA_RULES_ACCURACY_AUDIT.md`. **BLOCKS PUBLIC RELEASE.**
+2. **RULES_VERIFIED column** — Cross-reference 170 mechanics against Core Rules text (0/170 done). Procedure documented in `QA_CORE_RULES_TEST_PLAN.md`.
+3. ~~**Character type shadowing**~~ — FIXED Mar 21 (7 files, 0 compile errors)
+4. ~~**47 NOT_TESTED mechanics**~~ — All 44 remaining confirmed as COMPLETE implementations. 13 promoted to UNIT_TESTED (3 PostBattle + 6 DifficultyModifiers + 4 Elite Ranks). New tests: `test_difficulty_modifiers_battle.gd` (47 tests), `test_player_profile.gd` (26 tests), `test_post_battle_subsystems.gd` (9 tests)
+5. ~~**Integration gaps**~~ — RESOLVED: BattleJournal fully wired (20+ calls), NPCTracker design-scoped to post-battle, LegacySystem superseded by PlayerProfile (wired at campaign start + end)
+6. **Remaining NOT_TESTED coverage** — 44 mechanics need unit tests: Compendium DLC (20), Ship (5), Equipment (5), Economy (4), Travel/Upkeep (7), Character (2), Battle (1)
+7. **Deferred architectural items** — WEALTH motivation resource bonuses, victory metric counters
+8. **Battle UI standalone mode** — 7 bugs only when TacticalBattleUI launched without campaign flow
 
 ---
 

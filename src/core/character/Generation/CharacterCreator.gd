@@ -134,6 +134,8 @@ var current_bonuses: Dictionary = {
 	"class": {},
 	"motivation": {}
 }
+## Bonus tables loaded from character_creation_bonuses.json (Core Rules pp.15-18, 24-27)
+var _bonus_tables: Dictionary = {}
 
 func _init() -> void:
 	current_character = FiveParsecsCharacter.new()
@@ -141,6 +143,7 @@ func _init() -> void:
 func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
+	_load_bonus_tables()
 	_populate_dropdowns()
 	name_input.text_changed.connect(_on_name_changed)
 	origin_options.item_selected.connect(_on_origin_changed)
@@ -335,47 +338,14 @@ func _apply_origin_bonuses(origin_id: int) -> void:
 	current_bonuses.origin.clear()
 
 	# Five Parsecs species/origin stat bonuses (Core Rules pp.15-18)
-	# Bonuses are relative to Human baseline: R1/S4/CS+0/T3/Sa+0
-	match origin_id:
-		GlobalEnums.Origin.BOT:
-			# Bot: R2/S4/CS+1/T4/Sa+2 (p.15)
-			current_bonuses.origin["REACTIONS"] = 1
-			current_bonuses.origin["COMBAT_SKILL"] = 1
-			current_bonuses.origin["TOUGHNESS"] = 1
-			current_bonuses.origin["SAVVY"] = 2
-		GlobalEnums.Origin.ENGINEER:
-			# Engineer: R1/S4/CS+0/T2/Sa+1 (p.16)
-			current_bonuses.origin["TOUGHNESS"] = -1
-			current_bonuses.origin["SAVVY"] = 1
-		GlobalEnums.Origin.KERIN:
-			# K'Erin: R1/S4/CS+0/T4/Sa+0 (p.16)
-			current_bonuses.origin["TOUGHNESS"] = 1
-		GlobalEnums.Origin.SOULLESS:
-			# Soulless: R1/S4/CS+0/T4/Sa+1 (p.17)
-			current_bonuses.origin["TOUGHNESS"] = 1
-			current_bonuses.origin["SAVVY"] = 1
-		GlobalEnums.Origin.PRECURSOR:
-			# Precursor: R1/S5/CS+0/T2/Sa+0 (p.17)
-			# Precursor characters begin with one randomly determined Psionic Power (p.17)
-			current_bonuses.origin["SPEED"] = 1
-			current_bonuses.origin["TOUGHNESS"] = -1
-			_grant_random_psionic_power()
-		GlobalEnums.Origin.FERAL:
-			# Feral: R1/S4/CS+0/T3/Sa+0 (p.18) — same as Human
-			pass
-		GlobalEnums.Origin.SWIFT:
-			# Swift: R1/S5/CS+0/T3/Sa+0 (p.18)
-			current_bonuses.origin["SPEED"] = 1
-		GlobalEnums.Origin.KRAG:
-			current_bonuses.origin["TOUGHNESS"] = 1
-			current_bonuses.origin["SAVVY"] = -1
-		GlobalEnums.Origin.SKULKER:
-			current_bonuses.origin["SPEED"] = 1
-			current_bonuses.origin["TOUGHNESS"] = -1
-		GlobalEnums.Origin.PRISON_PLANET:
-			current_bonuses.origin["TOUGHNESS"] = 1
-			current_bonuses.origin["COMBAT"] = 1
-		# HUMAN: no stat bonuses (R1/S4/CS+0/T3/Sa+0)
+	# Loaded from character_creation_bonuses.json
+	var bonuses: Dictionary = _lookup_bonuses("origin_bonuses", origin_id)
+	for key in bonuses:
+		current_bonuses.origin[key] = bonuses[key]
+
+	# Precursor characters begin with one randomly determined Psionic Power (p.17)
+	if origin_id == GlobalEnums.Origin.PRECURSOR:
+		_grant_random_psionic_power()
 
 	_apply_bonuses(current_bonuses.origin)
 
@@ -407,6 +377,32 @@ func _load_psionic_powers() -> Dictionary:
 	return {}
 
 
+func _load_bonus_tables() -> void:
+	var path := "res://data/character_creation_bonuses.json"
+	if not FileAccess.file_exists(path):
+		push_warning("CharacterCreator: character_creation_bonuses.json not found, using fallback")
+		return
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		push_warning("CharacterCreator: Failed to parse character_creation_bonuses.json")
+		return
+	if json.data is Dictionary:
+		_bonus_tables = json.data
+
+func _lookup_bonuses(table_key: String, id: int) -> Dictionary:
+	## Look up stat bonuses from JSON by enum int value. Returns empty dict if not found.
+	var table: Dictionary = _bonus_tables.get(table_key, {})
+	var entry: Dictionary = table.get(str(id), {})
+	# Strip _comment keys — only return stat bonus keys
+	var result: Dictionary = {}
+	for key in entry:
+		if key != "_comment":
+			result[key] = entry[key]
+	return result
+
 func _apply_background_bonuses(bg_id: int) -> void:
 	if not current_character:
 		return
@@ -414,37 +410,10 @@ func _apply_background_bonuses(bg_id: int) -> void:
 	current_bonuses.background.clear()
 
 	# Five Parsecs background stat bonuses (pp.24-25)
-	match bg_id:
-		GlobalEnums.Background.PEACEFUL_HIGH_TECH_COLONY:
-			current_bonuses.background["SAVVY"] = 1
-		GlobalEnums.Background.GIANT_OVERCROWDED_CITY:
-			current_bonuses.background["SPEED"] = 1
-		GlobalEnums.Background.MINING_COLONY:
-			current_bonuses.background["TOUGHNESS"] = 1
-		GlobalEnums.Background.MILITARY_BRAT:
-			current_bonuses.background["COMBAT_SKILL"] = 1
-		GlobalEnums.Background.MILITARY_OUTPOST:
-			current_bonuses.background["REACTIONS"] = 1
-		GlobalEnums.Background.FRONTIER_GANG:
-			current_bonuses.background["COMBAT_SKILL"] = 1
-		GlobalEnums.Background.WAR_TORN_HELLHOLE:
-			current_bonuses.background["REACTIONS"] = 1
-		GlobalEnums.Background.TECH_GUILD:
-			current_bonuses.background["SAVVY"] = 1
-		GlobalEnums.Background.LONG_TERM_SPACE_MISSION:
-			current_bonuses.background["SAVVY"] = 1
-		GlobalEnums.Background.RESEARCH_OUTPOST:
-			current_bonuses.background["SAVVY"] = 1
-		GlobalEnums.Background.PRIMITIVE_WORLD:
-			current_bonuses.background["TOUGHNESS"] = 1
-		GlobalEnums.Background.WASTELAND_NOMADS:
-			current_bonuses.background["REACTIONS"] = 1
-		# LOW_TECH_COLONY, SPACE_STATION, DRIFTER,
-		# LOWER_MEGACITY_CLASS, WEALTHY_MERCHANT_FAMILY,
-		# RELIGIOUS_CULT, SUBJUGATED_COLONY,
-		# ORPHAN_UTILITY_PROGRAM, ISOLATIONIST_ENCLAVE,
-		# COMFORTABLE_MEGACITY, INDUSTRIAL_WORLD,
-		# BUREAUCRAT, ALIEN_CULTURE: no stat bonuses
+	# Loaded from character_creation_bonuses.json
+	var bonuses: Dictionary = _lookup_bonuses("background_bonuses", bg_id)
+	for key in bonuses:
+		current_bonuses.background[key] = bonuses[key]
 
 	_apply_bonuses(current_bonuses.background)
 
@@ -455,40 +424,10 @@ func _apply_class_bonuses(class_id: int) -> void:
 	current_bonuses["class"].clear()
 
 	# Five Parsecs class stat bonuses (pp.26-27)
-	match class_id:
-		GlobalEnums.CharacterClass.WORKING_CLASS:
-			current_bonuses["class"]["SAVVY"] = 1
-			current_bonuses["class"]["LUCK"] = 1
-		GlobalEnums.CharacterClass.TECHNICIAN:
-			current_bonuses["class"]["SAVVY"] = 1
-		GlobalEnums.CharacterClass.SCIENTIST:
-			current_bonuses["class"]["SAVVY"] = 1
-		GlobalEnums.CharacterClass.HACKER:
-			current_bonuses["class"]["SAVVY"] = 1
-		GlobalEnums.CharacterClass.SOLDIER:
-			current_bonuses["class"]["COMBAT_SKILL"] = 1
-		GlobalEnums.CharacterClass.MERCENARY:
-			current_bonuses["class"]["COMBAT_SKILL"] = 1
-		GlobalEnums.CharacterClass.PRIMITIVE:
-			current_bonuses["class"]["SPEED"] = 1
-		GlobalEnums.CharacterClass.STARSHIP_CREW:
-			current_bonuses["class"]["SAVVY"] = 1
-		GlobalEnums.CharacterClass.PETTY_CRIMINAL:
-			current_bonuses["class"]["SPEED"] = 1
-		GlobalEnums.CharacterClass.GANGER:
-			current_bonuses["class"]["REACTIONS"] = 1
-		GlobalEnums.CharacterClass.SCOUNDREL:
-			current_bonuses["class"]["SPEED"] = 1
-		GlobalEnums.CharacterClass.ENFORCER:
-			current_bonuses["class"]["COMBAT_SKILL"] = 1
-		GlobalEnums.CharacterClass.SPECIAL_AGENT:
-			current_bonuses["class"]["REACTIONS"] = 1
-		GlobalEnums.CharacterClass.TROUBLESHOOTER:
-			current_bonuses["class"]["REACTIONS"] = 1
-		GlobalEnums.CharacterClass.BOUNTY_HUNTER:
-			current_bonuses["class"]["SPEED"] = 1
-		# AGITATOR, ARTIST, NEGOTIATOR, TRADER,
-		# NOMAD, EXPLORER, PUNK, SCAVENGER: no stat bonuses
+	# Loaded from character_creation_bonuses.json
+	var bonuses: Dictionary = _lookup_bonuses("class_bonuses", class_id)
+	for key in bonuses:
+		current_bonuses["class"][key] = bonuses[key]
 
 	_apply_bonuses(current_bonuses["class"])
 
@@ -498,24 +437,13 @@ func _apply_motivation_bonuses(motivation_id: int) -> void:
 	_remove_bonuses(current_bonuses.motivation)
 	current_bonuses.motivation.clear()
 
-	# Motivations give narrative effects; a few grant direct stat bonuses.
-	# Resource-based bonuses (credits, story points) are applied at campaign
+	# Motivations give narrative effects; a few grant direct stat bonuses (Core Rules p.26).
+	# Resource-based bonuses (credits, story points, XP) are applied at campaign
 	# level in CampaignFinalizationService, not here.
-	# Five Parsecs motivation stat bonuses (Core Rules p.26)
-	match motivation_id:
-		GlobalEnums.Motivation.GLORY:
-			current_bonuses.motivation["COMBAT_SKILL"] = 1
-		GlobalEnums.Motivation.SURVIVAL:
-			current_bonuses.motivation["TOUGHNESS"] = 1
-		GlobalEnums.Motivation.ESCAPE:
-			current_bonuses.motivation["SPEED"] = 1
-		GlobalEnums.Motivation.TECHNOLOGY:
-			current_bonuses.motivation["SAVVY"] = 1
-		GlobalEnums.Motivation.DISCOVERY:
-			current_bonuses.motivation["SAVVY"] = 1
-		# WEALTH: +1D6 credits applied in CampaignFinalizationService
-		# FAME: +1 story point applied in CampaignFinalizationService
-		# REVENGE/POWER/FREEDOM: +2 XP applied in CampaignFinalizationService
+	# Loaded from character_creation_bonuses.json
+	var bonuses: Dictionary = _lookup_bonuses("motivation_bonuses", motivation_id)
+	for key in bonuses:
+		current_bonuses.motivation[key] = bonuses[key]
 
 	_apply_bonuses(current_bonuses.motivation)
 

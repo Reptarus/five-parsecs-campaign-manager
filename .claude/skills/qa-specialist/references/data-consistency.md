@@ -262,6 +262,55 @@ else:
 
 ---
 
+## Rules Accuracy Validation
+
+### The Hallucination Problem
+
+AI-generated game data can contain fabricated values that look plausible but don't match the Five Parsecs From Home Core Rules book. This project nearly shipped publicly with wrong data — the gameplay loop worked but actual values (weapon stats, event tables, costs, probabilities) were invented. All numeric values must be verified against the physical book.
+
+### Known Hallucination Hotspots
+
+These areas have confirmed or suspected AI-fabricated data:
+
+1. **LootSystemConstants.gd WEAPON_DEFINITIONS**: Multiple weapons have different stats than `weapons.json`. Infantry Laser, Hunting Rifle, Flak Gun, Blast Rifle stats diverge between sources. Neither source has been verified against the book.
+2. **FiveParsecsConstants.gd ECONOMY**: Values like `starting_debt: 75`, `injury_treatment_cost: 2`, `hull_repair_cost_per_point: 3` may be fabricated. Cross-reference with Core Rules pp.59-65 and p.80.
+3. **Page references contradict**: `injury_table.json` says "p.122", `InjurySystemConstants.gd` says "p.94-95" — at least one is wrong.
+4. **Equipment costs**: `equipment_database.json` uses `cost: 3` for nearly everything, with metadata note "Costs are game-balance estimates." Not from Core Rules.
+5. **WorldEconomyManager.gd BASE_UPKEEP_COST = 100**: Does not match `FiveParsecsConstants.gd` which says `base_upkeep: 1`. One is wrong.
+6. **GameCampaignManager.gd rewards**: Patron jobs 500-1500 credits, missions 1000-2500 credits — no Core Rules page references cited.
+
+### Internal Consistency Check Protocol
+
+Before human book verification, run automated cross-checks between duplicate data sources:
+
+1. **Weapons**: Compare `weapons.json` vs `equipment_database.json` vs `LootSystemConstants.WEAPON_DEFINITIONS`
+2. **Injuries**: Compare `injury_table.json` vs `InjurySystemConstants.gd`
+3. **Species**: Compare `character_species.json` vs `Character.gd` species modifiers
+4. **Economy**: Compare `FiveParsecsConstants.ECONOMY` vs `WorldEconomyManager` constants vs `UpkeepPhaseComponent` values
+
+MCP scripts for these checks are in `docs/QA_RULES_ACCURACY_AUDIT.md` Appendix D.
+
+### Data Source Authority Hierarchy
+
+When multiple sources disagree:
+
+1. **Core Rules book** (ultimate authority)
+2. **Dedicated JSON data file** (canonical data source)
+3. **GDScript constants file** (should reference JSON, not duplicate it)
+4. **Inline hardcoded values** (should not exist; extract to JSON or constants)
+
+### Prevention: New Data Checklist
+
+Before adding or modifying any game data value:
+
+- [ ] Value sourced from Core Rules book (cite page number)
+- [ ] Value added to canonical JSON file (not hardcoded in GDScript)
+- [ ] No duplicate definitions in other files
+- [ ] If value must exist in multiple places, add cross-reference comment
+- [ ] Page reference verified against physical book
+
+---
+
 ## Enum Consistency Validation
 
 Three enum systems must stay in sync:

@@ -31,6 +31,7 @@ Each scenario has:
 | 7 | Elite Ranks Cross-Campaign Flow | P1 | 20 min | 8 | MCP |
 | 8 | Store/Paywall Adapter Testing | P2 | 20 min | 6 | MANUAL |
 | 9 | Three-Enum Sync Validation | P0 | 15 min | 5 | MCP |
+| 10 | Rules Accuracy Spot Check | P0 | 60 min | 20 | HYBRID |
 
 ---
 
@@ -46,6 +47,8 @@ Each scenario has:
 2. **Play Turn 1**: All 9 phases (STORY → TRAVEL → UPKEEP → MISSION → POST_MISSION → ADVANCEMENT → TRADING → CHARACTER → RETIREMENT)
    - `[CHECK-1.1]` Turn counter shows 1 after completion
    - `[CHECK-1.2]` Credits changed from starting value (upkeep deducted, mission pay added)
+   - `[CHECK-1.2a]` Starting credits value matches Core Rules book (verify against book)
+   - `[CHECK-1.2b]` Upkeep deduction amount matches Core Rules p.80
    - `[CHECK-1.3]` CampaignJournal has Turn 1 entries
 
 3. **Play Turn 2**: Same 9-phase flow
@@ -75,7 +78,9 @@ Each scenario has:
    - `[CHECK-1.17]` progress_data.battles_won > 0 (BUG-033 regression)
    - `[CHECK-1.18]` progress_data.missions_completed > 0
    - `[CHECK-1.19]` Crew XP increased from starting values
+   - `[CHECK-1.19a]` XP values are within Core Rules expected ranges (p.89-90)
    - `[CHECK-1.20]` Equipment count reflects loot/purchases across turns
+   - `[CHECK-1.20a]` Equipment stats on generated items match Core Rules p.50
    - `[CHECK-1.21]` Dual-sync: campaign.credits == progress_data.credits
    - `[CHECK-1.22]` Dual-sync: campaign.supplies == progress_data.supplies
    - `[CHECK-1.23]` Dual-sync: campaign.reputation == progress_data.reputation
@@ -244,6 +249,7 @@ Each scenario has:
 
 1. **Create EASY campaign**
    - `[CHECK-6.1]` DifficultyModifiers.get_xp_bonus() returns +1
+   - `[CHECK-6.1a]` XP bonus value (+1 for EASY) matches Core Rules difficulty table
    - `[CHECK-6.2]` Story points NOT disabled
    - `[CHECK-6.3]` Victory conditions limited to basic set
 
@@ -336,6 +342,70 @@ Each scenario has:
 
 5. **No shadowing conflicts**
    - `[CHECK-9.5]` No enum name collisions between the three files
+
+---
+
+## Scenario 10: Rules Accuracy Spot Check (P0, ~60 min)
+
+**Goal**: Verify specific game data values match the Core Rules book during live gameplay.
+
+**Prerequisites**: Active campaign, physical Core Rules book at hand
+
+**Method**: HYBRID — MCP pre-check for internal consistency, then human book verification
+
+### Pre-Check: Internal Consistency (MCP Automated, ~10 min)
+
+Run internal consistency scripts before human verification to catch code-vs-code discrepancies.
+
+1. **Weapon data cross-check** (run A6 script below)
+   - `[CHECK-10.1]` weapons.json stats match LootSystemConstants.WEAPON_DEFINITIONS for all shared weapons
+   - `[CHECK-10.2]` weapons.json stats match equipment_database.json for all shared weapons
+
+2. **Injury data cross-check** (run A7 script below)
+   - `[CHECK-10.3]` injury_table.json ranges match InjurySystemConstants.INJURY_ROLL_RANGES
+
+3. **Economy constants cross-check** (run A8 script below)
+   - `[CHECK-10.4]` FiveParsecsConstants.ECONOMY.base_upkeep matches WorldEconomyManager.BASE_UPKEEP_COST
+
+### Human Verification: Book Check (~50 min)
+
+Requires a human with the physical Core Rules book open.
+
+4. **Species Stats** (Core Rules pp.15-22)
+   - Create characters of each species (Human, Engineer, K'Erin, Soulless, Precursor, Feral, Swift, Bot)
+   - `[CHECK-10.5]` Each species' stat modifiers match Core Rules table
+   - `[CHECK-10.6]` Special rules text matches book
+
+5. **Weapon Stats** (Core Rules p.50)
+   - Open equipment panel, inspect 5 randomly selected weapons
+   - `[CHECK-10.7]` Each weapon's Range matches book
+   - `[CHECK-10.8]` Each weapon's Shots matches book
+   - `[CHECK-10.9]` Each weapon's Damage modifier matches book
+   - `[CHECK-10.10]` Each weapon's Traits match book
+
+6. **Upkeep Economy** (Core Rules p.80)
+   - Enter upkeep phase with known crew size
+   - `[CHECK-10.11]` Upkeep cost per crew member matches book
+   - `[CHECK-10.12]` Ship maintenance cost matches book
+
+7. **Injury Table** (Core Rules pp.122-124)
+   - Trigger post-battle with casualties
+   - `[CHECK-10.13]` Injury D100 ranges match book (Fatal 1-15, etc.)
+   - `[CHECK-10.14]` Recovery times match book
+
+8. **Loot Tables** (Core Rules pp.66-72)
+   - `[CHECK-10.15]` Battlefield finds D100 ranges match book
+   - `[CHECK-10.16]` Main loot table D100 ranges match book
+
+9. **Advancement XP Costs** (Core Rules p.128)
+   - Open advancement panel
+   - `[CHECK-10.17]` XP cost per stat advancement matches book
+   - `[CHECK-10.18]` Max stat values per species match book
+
+10. **Enemy Generation** (Core Rules p.88)
+    - Enter battle phase
+    - `[CHECK-10.19]` Enemy count formula matches book
+    - `[CHECK-10.20]` Spot check 3 enemy type stat blocks against book
 
 ---
 

@@ -54,96 +54,13 @@ var story_track_description: Label
 var tutorial_mode_description: Label
 var introductory_campaign_checkbox: CheckBox  # DLC: Introductory Campaign
 
-# Campaign configuration options
-var campaign_types: Dictionary = {
-	"standard": {
-		"name": "Standard Campaign",
-		"description": "A full campaign with all systems enabled"
-	},
-	"story_focused": {
-		"name": "Story-Focused Campaign",
-		"description": "Emphasis on narrative and story track progression"
-	},
-	"combat_focused": {
-		"name": "Combat-Focused Campaign",
-		"description": "Emphasis on tactical combat and missions"
-	},
-	"exploration_focused": {
-		"name": "Exploration-Focused Campaign",
-		"description": "Emphasis on exploration and discovery"
-	}
-}
-
-var victory_conditions: Dictionary = {
-	"wealth": {
-		"name": "Wealth Victory",
-		"description": "Accumulate 10,000 credits",
-		"target": 10000,
-		"type": "credits"
-	},
-	"reputation": {
-		"name": "Reputation Victory",
-		"description": "Achieve maximum reputation with 3 factions",
-		"target": 3,
-		"type": "factions"
-	},
-	"exploration": {
-		"name": "Exploration Victory",
-		"description": "Visit 20 different worlds",
-		"target": 20,
-		"type": "worlds"
-	},
-	"combat": {
-		"name": "Combat Victory",
-		"description": "Defeat 50 enemies in total",
-		"target": 50,
-		"type": "enemies"
-	},
-	"story": {
-		"name": "Story Victory",
-		"description": "Complete 5 story missions",
-		"target": 5,
-		"type": "missions"
-	}
-}
-
-var story_tracks: Dictionary = {
-	"none": {
-		"name": "No Story Track",
-		"description": "Standard campaign without story progression"
-	},
-	"mystery_signal": {
-		"name": "Mystery Signal",
-		"description": "Your crew discovers a mysterious signal that leads to a greater conspiracy"
-	},
-	"faction_conflict": {
-		"name": "Faction Conflict",
-		"description": "Navigate the complex politics between warring factions"
-	},
-	"ancient_ruins": {
-		"name": "Ancient Ruins",
-		"description": "Explore ancient alien ruins and uncover their secrets"
-	},
-	"smuggler_network": {
-		"name": "Smuggler Network",
-		"description": "Build a criminal empire in the shadows"
-	}
-}
-
-var tutorial_modes: Dictionary = {
-	"none": {
-		"name": "No Tutorial",
-		"description": "Standard campaign without tutorial guidance"
-	},
-	"quick_start": {
-		"name": "Quick Start Tutorial",
-		"description": "Learn basic mechanics with guided steps"
-	},
-	"advanced": {
-		"name": "Advanced Tutorial",
-		"description": "Master all systems with comprehensive guidance"
-	}
-}
+# Campaign configuration options — loaded from campaign_config.json
+var campaign_types: Dictionary = {}
+var victory_conditions: Dictionary = {}
+var story_tracks: Dictionary = {}
+var tutorial_modes: Dictionary = {}
+## Config data loaded from JSON
+var _config_db: Dictionary = {}
 
 # Difficulty levels keyed by GlobalEnums.DifficultyLevel enum values
 # CRITICAL: Keys must match GlobalEnums values exactly (EASY=1, NORMAL=2, CHALLENGING=4, HARDCORE=6, INSANITY=8)
@@ -191,14 +108,68 @@ func _on_campaign_state_updated(state_data: Dictionary) -> void:
 			_update_display()
 
 func _ready() -> void:
-	# GDScript 2.0: Set panel info before base initialization - updated to emphasize victory conditions
-	set_panel_info("Campaign Setup", "Configure campaign name, victory conditions, and options. Victory conditions define how you'll achieve victory in your Five Parsecs campaign.")
-	
+	# Load config data from JSON
+	_load_campaign_config()
+
+	# GDScript 2.0: Set panel info before base initialization
+	set_panel_info("Campaign Setup", "Configure campaign name, victory conditions, and options.")
+
 	# GDScript 2.0: Use super() keyword
 	super()
-	
+
 	# Initialize campaign config-specific functionality
 	call_deferred("_initialize_components")
+
+func _load_campaign_config() -> void:
+	var path := "res://data/campaign_config.json"
+	if not FileAccess.file_exists(path):
+		push_warning("ExpandedConfigPanel: campaign_config.json not found, using fallback")
+		_apply_fallback_config()
+		return
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		_apply_fallback_config()
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		push_warning("ExpandedConfigPanel: Failed to parse campaign_config.json")
+		_apply_fallback_config()
+		return
+	if json.data is Dictionary:
+		_config_db = json.data
+		campaign_types = _config_db.get("campaign_types", {})
+		victory_conditions = _config_db.get("victory_conditions", {})
+		story_tracks = _config_db.get("story_tracks", {})
+		tutorial_modes = _config_db.get("tutorial_modes", {})
+	if campaign_types.is_empty():
+		_apply_fallback_config()
+
+func _apply_fallback_config() -> void:
+	campaign_types = {
+		"standard": {"name": "Standard Campaign", "description": "A full campaign with all systems enabled"},
+		"story_focused": {"name": "Story-Focused Campaign", "description": "Emphasis on narrative and story track progression"},
+		"combat_focused": {"name": "Combat-Focused Campaign", "description": "Emphasis on tactical combat and missions"},
+		"exploration_focused": {"name": "Exploration-Focused Campaign", "description": "Emphasis on exploration and discovery"}
+	}
+	victory_conditions = {
+		"wealth": {"name": "Wealth Victory", "description": "Accumulate 10,000 credits", "target": 10000, "type": "credits"},
+		"reputation": {"name": "Reputation Victory", "description": "Achieve maximum reputation with 3 factions", "target": 3, "type": "factions"},
+		"exploration": {"name": "Exploration Victory", "description": "Visit 20 different worlds", "target": 20, "type": "worlds"},
+		"combat": {"name": "Combat Victory", "description": "Defeat 50 enemies in total", "target": 50, "type": "enemies"},
+		"story": {"name": "Story Victory", "description": "Complete 5 story missions", "target": 5, "type": "missions"}
+	}
+	story_tracks = {
+		"none": {"name": "No Story Track", "description": "Standard campaign without story progression"},
+		"mystery_signal": {"name": "Mystery Signal", "description": "Your crew discovers a mysterious signal that leads to a greater conspiracy"},
+		"faction_conflict": {"name": "Faction Conflict", "description": "Navigate the complex politics between warring factions"},
+		"ancient_ruins": {"name": "Ancient Ruins", "description": "Explore ancient alien ruins and uncover their secrets"},
+		"smuggler_network": {"name": "Smuggler Network", "description": "Build a criminal empire in the shadows"}
+	}
+	tutorial_modes = {
+		"none": {"name": "No Tutorial", "description": "Standard campaign without tutorial guidance"},
+		"quick_start": {"name": "Quick Start Tutorial", "description": "Learn basic mechanics with guided steps"},
+		"advanced": {"name": "Advanced Tutorial", "description": "Master all systems with comprehensive guidance"}
+	}
 
 func _setup_panel_content() -> void:
 	## Override from BaseCampaignPanel - setup campaign config-specific content

@@ -1,0 +1,93 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "source": "Five Parsecs from Home Core Rules pp.68-71",
+    "last_updated": "2026-03-22"
+  },
+  "ship_types": [
+    {
+      "id": "freelancer",
+      "name": "Freelancer",
+      "hull_points": 10,
+      "cargo_capacity": 5,
+      "debt_min": 0,
+      "debt_max": 3
+    },
+    {
+      "id": "worn_freighter",
+      "name": "Worn Freighter",
+      "hull_points": 8,
+      "cargo_capacity": 8,
+      "debt_min": 1,
+      "debt_max": 5
+    },
+    {
+      "id": "scout_ship",
+      "name": "Scout Ship",
+      "hull_points": 6,
+      "cargo_capacity": 2,
+      "debt_min": 0,
+      "debt_max": 0
+    },
+    {
+      "id": "patrol_boat",
+      "name": "Patrol Boat",
+      "hull_points": 10,
+      "cargo_capacity": 3,
+      "debt_min": 1,
+      "debt_max": 4
+    },
+    {
+      "id": "armed_trader",
+      "name": "Armed Trader",
+      "hull_points": 10,
+      "cargo_capacity": 6,
+      "debt_min": 1,
+      "debt_max": 4
+    },
+    {
+      "id": "converted_transport",
+      "name": "Converted Transport",
+      "hull_points": 12,
+      "cargo_capacity": 10,
+      "debt_min": 2,
+      "debt_max": 5
+    },
+    {
+      "id": "light_freighter",
+      "name": "Light Freighter",
+      "hull_points": 10,
+      "cargo_capacity": 7,
+      "debt_min": 0,
+      "debt_max": 3
+    }
+  ],
+  "generation_table": [
+    {"range": [1, 12], "type": "worn_freighter"},
+    {"range": [13, 25], "type": "patrol_boat"},
+    {"range": [26, 40], "type": "converted_transport"},
+    {"range": [41, 60], "type": "scout_ship"},
+    {"range": [61, 80], "type": "armed_trader"},
+    {"range": [81, 100], "type": "freelancer"}
+  ],
+  "custom_ship_types": ["freelancer", "light_freighter"],
+  "traits": {
+    "primary": [
+      {"range": [1, 20], "name": "Fast Engine"},
+      {"range": [21, 40], "name": "Heavy Armor"},
+      {"range": [41, 60], "name": "Extra Cargo"},
+      {"range": [61, 80], "name": "Advanced Sensors"},
+      {"range": [81, 100], "name": "Weapon Hardpoints"}
+    ],
+    "secondary": [
+      {"name": "Efficient Drive"},
+      {"name": "Luxury Interior"},
+      {"name": "Advanced AI"}
+    ],
+    "secondary_chance": 0.3
+  },
+  "ship_names": {
+    "prefixes": ["Star", "Nova", "Dawn", "Void", "Deep", "Far", "Solar", "Cosmic", "Stellar", "Astral"],
+    "suffixes": ["Runner", "Wanderer", "Seeker", "Hunter", "Trader", "Explorer", "Voyager", "Nomad", "Spirit", "Quest"]
+  }
+}

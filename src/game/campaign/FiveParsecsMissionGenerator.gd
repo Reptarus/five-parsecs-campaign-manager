@@ -18,32 +18,11 @@ enum FiveParsecsMissionType {
 	DEFENSE = 9
 }
 
-# Five Parsecs specific mission properties
-var mission_locations: Array = [
-	"Abandoned Outpost",
-	"Derelict Ship",
-	"Urban Ruins",
-	"Mining Facility",
-	"Research Station",
-	"Jungle Wilderness",
-	"Desert Wasteland",
-	"Space Station",
-	"Underground Complex",
-	"Orbital Platform"
-]
-
-var enemy_factions: Array = [
-	"Marauders",
-	"Corporate Security",
-	"Alien Horde",
-	"Rogue AI",
-	"Rival Crew",
-	"Government Forces",
-	"Cultists",
-	"Mercenaries",
-	"Rebels",
-	"Pirates"
-]
+# Five Parsecs specific mission properties — loaded from mission_generation_data.json
+var mission_locations: Array = []
+var enemy_factions: Array = []
+## Mission generation data loaded from JSON
+var _mission_gen_data: Dictionary = {}
 
 func _init() -> void:
 	# Initialize signals
@@ -53,11 +32,11 @@ func _init() -> void:
 		add_user_signal("mission_generated")
 	if not has_signal("generation_completed"):
 		add_user_signal("generation_completed")
-	
+
 	# Ensure mission_types is initialized
 	if mission_types == null:
 		mission_types = {}
-	
+
 	# Override mission types with Five Parsecs specific types
 	mission_types = {
 		FiveParsecsMissionType.BATTLE: "Battle",
@@ -71,35 +50,38 @@ func _init() -> void:
 		FiveParsecsMissionType.CONVOY_ESCORT: "Convoy Escort",
 		FiveParsecsMissionType.DEFENSE: "Defense"
 	}
-	
-	# Ensure mission properties are initialized
-	if mission_locations == null:
-		mission_locations = [
-			"Abandoned Outpost",
-			"Derelict Ship",
-			"Urban Ruins",
-			"Mining Facility",
-			"Research Station",
-			"Jungle Wilderness",
-			"Desert Wasteland",
-			"Space Station",
-			"Underground Complex",
-			"Orbital Platform"
-		]
-		
-	if enemy_factions == null:
-		enemy_factions = [
-			"Marauders",
-			"Corporate Security",
-			"Alien Horde",
-			"Rogue AI",
-			"Rival Crew",
-			"Government Forces",
-			"Cultists",
-			"Mercenaries",
-			"Rebels",
-			"Pirates"
-		]
+
+	# Load mission generation data from JSON
+	_load_mission_gen_data()
+
+	# Apply loaded data (or fallback)
+	if mission_locations.is_empty():
+		mission_locations = _mission_gen_data.get("locations", [
+			"Abandoned Outpost", "Derelict Ship", "Urban Ruins", "Mining Facility",
+			"Research Station", "Jungle Wilderness", "Desert Wasteland", "Space Station",
+			"Underground Complex", "Orbital Platform"
+		])
+	if enemy_factions.is_empty():
+		enemy_factions = _mission_gen_data.get("enemy_factions", [
+			"Marauders", "Corporate Security", "Alien Horde", "Rogue AI",
+			"Rival Crew", "Government Forces", "Cultists", "Mercenaries",
+			"Rebels", "Pirates"
+		])
+
+func _load_mission_gen_data() -> void:
+	var path := "res://data/mission_generation_data.json"
+	if not FileAccess.file_exists(path):
+		push_warning("FiveParsecsMissionGenerator: mission_generation_data.json not found")
+		return
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		push_warning("FiveParsecsMissionGenerator: Failed to parse mission_generation_data.json")
+		return
+	if json.data is Dictionary:
+		_mission_gen_data = json.data
 
 func generate_mission(difficulty: int = 2, type: int = -1) -> Dictionary:
 	# Emit generation started signal
@@ -117,7 +99,7 @@ func generate_mission(difficulty: int = 2, type: int = -1) -> Dictionary:
 	
 	# Determine terrain theme from location
 	var location_name: String = mission_locations[randi() % mission_locations.size()]
-	var terrain_themes := ["urban", "wilderness", "industrial", "space_station", "wasteland"]
+	var terrain_themes: Array = _mission_gen_data.get("terrain_themes", ["urban", "wilderness", "industrial", "space_station", "wasteland"])
 	var terrain_theme: String = terrain_themes[randi() % terrain_themes.size()]
 
 	var mission = {
@@ -151,95 +133,36 @@ func generate_mission_title(type: int) -> String:
 	# Safety check - if titles dict is malformed, return a safe default
 	if not mission_types or not mission_types.has(type):
 		return "Generic Mission"
-		
-	var titles = {
-		FiveParsecsMissionType.BATTLE: [
-			"Desperate Stand", "Firefight", "Skirmish", "Ambush", "Raid"
-		],
-		FiveParsecsMissionType.PATRON_JOB: [
-			"Special Contract", "Lucrative Offer", "Patron's Request", "High-Stakes Job", "Covert Operation"
-		],
-		FiveParsecsMissionType.STORY_MISSION: [
-			"Critical Moment", "Turning Point", "Revelation", "Confrontation", "Discovery"
-		],
-		FiveParsecsMissionType.RIVAL_ENCOUNTER: [
-			"Old Enemies", "Showdown", "Rivalry", "Contested Ground", "Face-Off"
-		],
-		FiveParsecsMissionType.SALVAGE_RUN: [
-			"Valuable Salvage", "Wreckage Recovery", "Scavenging Operation", "Derelict Exploration", "Abandoned Tech"
-		],
-		FiveParsecsMissionType.RESCUE_OPERATION: [
-			"Desperate Rescue", "Extraction Mission", "Hostage Situation", "Prisoner Recovery", "Emergency Evacuation"
-		],
-		FiveParsecsMissionType.BOUNTY_HUNT: [
-			"High-Value Target", "Wanted Dead or Alive", "Dangerous Quarry", "Fugitive Hunt", "Bounty Collection"
-		],
-		FiveParsecsMissionType.EXPLORATION: [
-			"Uncharted Territory", "Strange Discovery", "Ancient Ruins", "Mysterious Signal", "Frontier Expedition"
-		],
-		FiveParsecsMissionType.CONVOY_ESCORT: [
-			"Valuable Cargo", "Dangerous Transit", "Escort Duty", "Supply Run", "VIP Transport"
-		],
-		FiveParsecsMissionType.DEFENSE: [
-			"Last Stand", "Hold the Line", "Defensive Position", "Protect the Asset", "Fortified Defense"
-		]
-	}
-	
-	# Safety check for type value
-	if not type in titles or not titles[type] is Array or titles[type].size() == 0:
-		return mission_types.get(type, "Five Parsecs Mission")
-	
-	return titles[type][randi() % titles[type].size()]
+
+	# Load titles from JSON (keyed by type int as string)
+	var all_titles: Dictionary = _mission_gen_data.get("titles", {})
+	var type_key: String = str(type)
+	if all_titles.has(type_key) and all_titles[type_key] is Array and all_titles[type_key].size() > 0:
+		var title_list: Array = all_titles[type_key]
+		return title_list[randi() % title_list.size()]
+
+	return mission_types.get(type, "Five Parsecs Mission")
 
 func generate_mission_description(type: int, difficulty: int) -> String:
-	var difficulty_desc = ""
-	match difficulty:
-		1: difficulty_desc = "This should be a straightforward mission."
-		2: difficulty_desc = "A standard operation with moderate risk."
-		3: difficulty_desc = "This mission presents significant challenges."
-		4: difficulty_desc = "A high-risk operation with serious dangers."
-		5: difficulty_desc = "An extremely dangerous mission with overwhelming odds."
-	
-	var type_desc = ""
-	match type:
-		FiveParsecsMissionType.BATTLE:
-			type_desc = "Engage and defeat enemy forces in direct combat."
-		FiveParsecsMissionType.PATRON_JOB:
-			type_desc = "Complete a specialized task for an influential patron."
-		FiveParsecsMissionType.STORY_MISSION:
-			type_desc = "A pivotal mission that will advance your crew's story."
-		FiveParsecsMissionType.RIVAL_ENCOUNTER:
-			type_desc = "Face off against a rival crew competing for the same objective."
-		FiveParsecsMissionType.SALVAGE_RUN:
-			type_desc = "Recover valuable salvage from a dangerous location."
-		FiveParsecsMissionType.RESCUE_OPERATION:
-			type_desc = "Extract hostages or stranded personnel from enemy territory."
-		FiveParsecsMissionType.BOUNTY_HUNT:
-			type_desc = "Track down and capture or eliminate a high-value target."
-		FiveParsecsMissionType.EXPLORATION:
-			type_desc = "Explore an uncharted area and document your findings."
-		FiveParsecsMissionType.CONVOY_ESCORT:
-			type_desc = "Protect a convoy of vehicles from enemy attacks."
-		FiveParsecsMissionType.DEFENSE:
-			type_desc = "Hold a strategic position against waves of enemies."
-	
+	# Load descriptions from JSON
+	var diff_descs: Dictionary = _mission_gen_data.get("difficulty_descriptions", {})
+	var type_descs: Dictionary = _mission_gen_data.get("type_descriptions", {})
+
+	var difficulty_desc: String = diff_descs.get(str(difficulty), "A standard operation.")
+	var type_desc: String = type_descs.get(str(type), "Complete the mission objectives.")
+
 	return type_desc + " " + difficulty_desc
 
 func calculate_mission_reward(difficulty: int, type: int) -> int:
 	# Basic reward calculation based on difficulty
 	var base_reward = difficulty * 100
-	
-	# Adjust based on mission type
-	match type:
-		FiveParsecsMissionType.PATRON_JOB:
-			base_reward *= 1.5 # Patron jobs pay more
-		FiveParsecsMissionType.STORY_MISSION:
-			base_reward *= 2.0 # Story missions have the highest rewards
-		FiveParsecsMissionType.RIVAL_ENCOUNTER:
-			base_reward *= 1.3 # Rival encounters have good rewards
-		FiveParsecsMissionType.SALVAGE_RUN:
-			base_reward *= 1.2 # Salvage missions have slightly higher rewards
-	
+
+	# Adjust based on mission type using JSON multipliers
+	var multipliers: Dictionary = _mission_gen_data.get("reward_multipliers", {})
+	var type_key: String = str(type)
+	if multipliers.has(type_key):
+		base_reward = int(base_reward * float(multipliers[type_key]))
+
 	return base_reward
 
 func calculate_enemy_count(difficulty: int, type: int) -> int:
@@ -262,22 +185,15 @@ func calculate_enemy_count(difficulty: int, type: int) -> int:
 
 func generate_special_rules(type: int) -> Array:
 	var special_rules = []
-	
+
 	# 50% chance to have a special rule
 	if randf() < 0.5:
-		var possible_rules = [
-			"Limited Visibility",
-			"Hazardous Environment",
-			"Reinforcements",
-			"Time Limit",
-			"Restricted Equipment",
-			"Unstable Ground",
-			"Extreme Weather",
-			"Radiation Zone",
-			"Automated Defenses",
-			"Civilian Presence"
-		]
-		
+		var possible_rules: Array = _mission_gen_data.get("special_rules", [
+			"Limited Visibility", "Hazardous Environment", "Reinforcements",
+			"Time Limit", "Restricted Equipment", "Unstable Ground",
+			"Extreme Weather", "Radiation Zone", "Automated Defenses", "Civilian Presence"
+		]).duplicate()
+
 		# Add 1-2 special rules
 		var rule_count = randi() % 2 + 1
 		for i in range(rule_count):
@@ -285,55 +201,31 @@ func generate_special_rules(type: int) -> Array:
 				var rule_index = randi() % possible_rules.size()
 				special_rules.append(possible_rules[rule_index])
 				possible_rules.remove_at(rule_index)
-	
+
 	return special_rules
 
 func generate_objectives(type: int) -> Array:
 	var objectives = []
-	
-	match type:
-		FiveParsecsMissionType.BATTLE:
-			objectives.append("Defeat all enemies")
-		FiveParsecsMissionType.PATRON_JOB:
-			objectives.append("Complete the patron's task")
-			objectives.append("Return to the extraction point")
-		FiveParsecsMissionType.STORY_MISSION:
-			objectives.append("Achieve the primary objective")
-			objectives.append("Survive the encounter")
-		FiveParsecsMissionType.RIVAL_ENCOUNTER:
-			objectives.append("Defeat the rival crew")
-			objectives.append("Secure the contested resource")
-		FiveParsecsMissionType.SALVAGE_RUN:
-			objectives.append("Collect at least 3 salvage tokens")
-			objectives.append("Extract safely")
-		FiveParsecsMissionType.RESCUE_OPERATION:
-			objectives.append("Locate and secure all hostages")
-			objectives.append("Escort hostages to extraction point")
-		FiveParsecsMissionType.BOUNTY_HUNT:
-			objectives.append("Capture or eliminate the target")
-			objectives.append("Collect proof of completion")
-		FiveParsecsMissionType.EXPLORATION:
-			objectives.append("Explore at least 3 points of interest")
-			objectives.append("Document findings")
-		FiveParsecsMissionType.CONVOY_ESCORT:
-			objectives.append("Protect the convoy vehicles")
-			objectives.append("Reach the destination")
-		FiveParsecsMissionType.DEFENSE:
-			objectives.append("Hold the position for 5 turns")
-			objectives.append("Prevent enemy access to the objective")
-	
+
+	# Load objectives from JSON by type
+	var all_objectives: Dictionary = _mission_gen_data.get("objectives", {})
+	var type_key: String = str(type)
+	if all_objectives.has(type_key) and all_objectives[type_key] is Array:
+		for obj in all_objectives[type_key]:
+			objectives.append(obj)
+	else:
+		objectives.append("Complete the mission objectives")
+
 	# 30% chance to add a bonus objective
 	if randf() < 0.3:
-		var bonus_objectives = [
-			"Recover the hidden data cache",
-			"Eliminate the enemy leader",
-			"Avoid triggering alarms",
-			"Complete the mission without casualties",
+		var bonus_list: Array = _mission_gen_data.get("bonus_objectives", [
+			"Recover the hidden data cache", "Eliminate the enemy leader",
+			"Avoid triggering alarms", "Complete the mission without casualties",
 			"Find and secure the secret weapon"
-		]
-		
-		objectives.append("BONUS: " + bonus_objectives[randi() % bonus_objectives.size()])
-	
+		])
+		if bonus_list.size() > 0:
+			objectives.append("BONUS: " + bonus_list[randi() % bonus_list.size()])
+
 	return objectives
 
 func generate_loot_table(difficulty: int) -> Array:
@@ -369,7 +261,7 @@ func generate_loot_table(difficulty: int) -> Array:
 					"rarity": min(randi() % (difficulty + 1), 4)
 				}
 			4: # Resource
-				var resources = ["medical_supplies", "spare_parts", "salvage", "ammunition"]
+				var resources: Array = _mission_gen_data.get("resource_types", ["medical_supplies", "spare_parts", "salvage", "ammunition"])
 				loot_entry = {
 					"type": "resource",
 					"resource": resources[randi() % resources.size()],

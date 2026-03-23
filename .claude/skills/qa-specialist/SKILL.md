@@ -60,6 +60,9 @@ Route based on what the user is asking for:
 **"MCP test" / "Automated test" / "Run the game and test"**
 → Read `references/mcp-testing-guide.md`, follow test recipes
 
+**"Rules accuracy" / "Verify data" / "Hallucinated data" / "Check against book"**
+→ Read `references/data-consistency.md` (Rules Accuracy Validation section), then follow [Rules Accuracy Audit Protocol](#rules-accuracy-audit-protocol)
+
 **"Bug notes" / "Known issues" / "Regression triggers"**
 → Read `references/bug-notes.md`
 
@@ -201,11 +204,18 @@ Validates cumulative state integrity across multiple turns:
 
 **Established baseline** (Mar 21, 2026): 5-turn playthrough PASS (Turns 3-5), all counters consistent, 0 crashes.
 
-### Phase 13: Report
+### Phase 13: Rules Accuracy Gate
+Before any public release, verify rules accuracy status:
+- Run internal consistency MCP scripts (see `docs/QA_RULES_ACCURACY_AUDIT.md` Appendix D)
+- Check `QA_RULES_ACCURACY_AUDIT.md` progress: must be >95% VERIFIED, 0 INCORRECT remaining
+- If not met: **BLOCK RELEASE** and escalate to user for book verification session
+
+### Phase 14: Report
 Generate structured report with:
 - Total tests run / passed / failed
 - Bugs found (with severity and IDs from edge-cases.md)
 - Coverage gaps identified
+- Rules accuracy status (X/745+ values verified)
 - Recommendations
 
 ---

@@ -392,6 +392,16 @@ Both `.vscode/settings.json` and Cursor user settings exclude: `.godot/`, `.mcp/
 
 ---
 
+## Data Integrity Rules
+
+- **NEVER invent game data values**: When adding or modifying any numeric game data (stats, costs, ranges, probabilities, D100 table boundaries), the value MUST come from the Core Rules book or be explicitly tagged as `GAME_BALANCE_ESTIMATE`. AI agents must ask the user for book values rather than guessing.
+- **NEVER create duplicate data sources**: If a value already exists in a JSON file, load it from there. Do not create a parallel constant in GDScript. Single Source of Truth: JSON file is canonical for each data domain.
+- **All data changes require book page citation**: Include the Core Rules page number in commit messages when modifying game data. Example: `"Fix Infantry Laser range to 30" (Core Rules p.50)"`
+- **Data Source Authority Hierarchy**: Core Rules book > Dedicated JSON data file > GDScript constants file > Inline hardcoded values. When sources disagree, the higher-authority source wins.
+- **Verification checklist**: See `docs/QA_RULES_ACCURACY_AUDIT.md` for the master verification checklist (745+ values across 131 files).
+
+---
+
 ## Gotchas
 
 - **`.exe` directory name**: The Godot installation folder IS named `*.exe` — this is a directory, not an executable
