@@ -85,6 +85,7 @@ func _ensure_panel_structure() -> void:
 	# Check if structure already exists
 	if has_node("ContentMargin/MainContent/FormContent/FormContainer"):
 		content_container = $ContentMargin/MainContent/FormContent/FormContainer
+		_apply_max_width_constraint()
 		return
 	
 	# Create the expected structure
@@ -105,7 +106,15 @@ func _ensure_panel_structure() -> void:
 	form_content.add_child(form_container)
 	
 	content_container = form_container
-	pass # Panel structure created
+	_apply_max_width_constraint()
+
+## Apply max-width for desktop readability (centered, 1200px max)
+func _apply_max_width_constraint() -> void:
+	var cm = get_node_or_null("ContentMargin")
+	if cm:
+		cm.custom_maximum_size.x = 1200
+		cm.size_flags_horizontal = (
+			Control.SIZE_SHRINK_CENTER)
 
 ## Core Interface - Override in derived classes
 # Validation state
@@ -995,6 +1004,14 @@ func _style_button(button: Button, is_primary: bool = false) -> void:
 	var pressed_style := style.duplicate()
 	pressed_style.bg_color = Color(style.bg_color.r - 0.1, style.bg_color.g - 0.1, style.bg_color.b - 0.1)
 	button.add_theme_stylebox_override("pressed", pressed_style)
+
+	# Disabled state — clearly distinguishable from enabled
+	var disabled_style := style.duplicate()
+	disabled_style.bg_color = Color(style.bg_color.r, style.bg_color.g, style.bg_color.b, 0.2)
+	disabled_style.border_color = Color(COLOR_BORDER.r, COLOR_BORDER.g, COLOR_BORDER.b, 0.25)
+	disabled_style.set_border_width_all(1)
+	button.add_theme_stylebox_override("disabled", disabled_style)
+	button.add_theme_color_override("font_disabled_color", Color("#4b5563"))
 
 
 func _style_danger_button(button: Button) -> void:

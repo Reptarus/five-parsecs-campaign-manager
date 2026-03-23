@@ -580,6 +580,14 @@ func _connect_signals() -> void:
 	if debt_spinbox and not debt_spinbox.value_changed.is_connected(_on_debt_changed):
 		debt_spinbox.value_changed.connect(_on_debt_changed)
 
+	# Style action buttons with accent fill
+	if generate_button:
+		_style_button(generate_button, true)
+	if reroll_button:
+		_style_button(reroll_button, false)
+	if select_button:
+		_style_button(select_button, false)
+
 func _load_ships_database() -> void:
 	var path := "res://data/ships.json"
 	if not FileAccess.file_exists(path):
@@ -746,6 +754,15 @@ func _update_traits_display() -> void:
 		# Initialize traits array if missing
 		if not ship_data.has("traits"):
 			ship_data["traits"] = []
+
+	# Empty-state message when no traits exist
+	if ship_data.get("traits", []).is_empty():
+		var empty_label := Label.new()
+		empty_label.text = "No special traits — generate a ship to see its traits"
+		empty_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		empty_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		empty_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		traits_container.add_child(empty_label)
 
 func _update_ship_stats_display() -> void:
 	## Create glass morphism stat containers for ship stats

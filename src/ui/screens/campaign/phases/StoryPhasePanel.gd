@@ -29,6 +29,9 @@ func _ready() -> void:
 	_style_rich_text(event_details)
 	_style_phase_button(resolve_button, true)
 
+	# Wrap content in cards
+	_wrap_story_content_in_cards()
+
 	_load_story_events()
 	event_manager = get_node_or_null("/root/EventManager")
 	if event_manager:
@@ -54,6 +57,38 @@ func _ready() -> void:
 			resolve_button.disabled = true
 			_style_button_disabled(resolve_button)
 		_setup_validation_hint(resolve_button)
+
+func _wrap_story_content_in_cards() -> void:
+	# Wrap event list + details + choices in a single card
+	var vbox = $VBoxContainer
+	if not vbox:
+		return
+	# Remove HSeparators
+	for child in vbox.get_children():
+		if child is HSeparator:
+			child.queue_free()
+	# Build events content container
+	var events_content := VBoxContainer.new()
+	events_content.add_theme_constant_override(
+		"separation", UIColors.SPACING_SM)
+	events_content.size_flags_horizontal = (
+		Control.SIZE_EXPAND_FILL)
+	# Reparent event_list, event_details, choice_container
+	if event_list and event_list.get_parent() == vbox:
+		vbox.remove_child(event_list)
+		events_content.add_child(event_list)
+	if event_details and event_details.get_parent() == vbox:
+		vbox.remove_child(event_details)
+		events_content.add_child(event_details)
+	if choice_container \
+		and choice_container.get_parent() == vbox:
+		vbox.remove_child(choice_container)
+		events_content.add_child(choice_container)
+	var card := _create_phase_card(
+		"Story Events", events_content)
+	# Insert after title
+	vbox.add_child(card)
+	vbox.move_child(card, 1)
 
 func setup_phase() -> void:
 	super.setup_phase()

@@ -98,7 +98,51 @@ func _ready() -> void:
 		btn_container.add_child(merchant_reroll_button)
 		_style_phase_button(merchant_reroll_button)
 	_setup_loan_ui()
+	_wrap_trade_content_in_cards()
 	update_credits_display()
+
+func _wrap_trade_content_in_cards() -> void:
+	var vbox = $VBoxContainer
+	if not vbox:
+		return
+	# Remove HSeparators
+	for child in vbox.get_children():
+		if child is HSeparator:
+			child.queue_free()
+	# Marketplace card: market_label + available_items
+	var market_content := VBoxContainer.new()
+	market_content.add_theme_constant_override(
+		"separation", UIColors.SPACING_SM)
+	if market_label and market_label.get_parent() == vbox:
+		vbox.remove_child(market_label)
+		market_content.add_child(market_label)
+	if available_items \
+		and available_items.get_parent() == vbox:
+		vbox.remove_child(available_items)
+		market_content.add_child(available_items)
+	var market_card := _create_phase_card(
+		"Marketplace", market_content)
+	vbox.add_child(market_card)
+	vbox.move_child(market_card, 2)  # After title + credits
+	# Inventory card: inventory_label + inventory_items
+	var inv_content := VBoxContainer.new()
+	inv_content.add_theme_constant_override(
+		"separation", UIColors.SPACING_SM)
+	if inventory_label \
+		and inventory_label.get_parent() == vbox:
+		vbox.remove_child(inventory_label)
+		inv_content.add_child(inventory_label)
+	if inventory_items \
+		and inventory_items.get_parent() == vbox:
+		vbox.remove_child(inventory_items)
+		inv_content.add_child(inventory_items)
+	var inv_card := _create_phase_card(
+		"Inventory", inv_content)
+	vbox.add_child(inv_card)
+	vbox.move_child(inv_card, 3)
+	# Item details card
+	if item_details and item_details.get_parent() == vbox:
+		_wrap_in_phase_card(item_details, "Item Details")
 
 func _get_campaign_safe():
 	return game_state.campaign if game_state else null

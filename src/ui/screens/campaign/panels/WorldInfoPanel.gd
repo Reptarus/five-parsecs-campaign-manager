@@ -219,6 +219,7 @@ func _setup_control_buttons() -> void:
 	reroll_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	reroll_button.disabled = true
 	reroll_button.pressed.connect(_on_reroll_button_pressed)
+	_style_button(reroll_button, false)
 	button_container.add_child(reroll_button)
 
 	# Create Confirm button (initially disabled)
@@ -228,6 +229,7 @@ func _setup_control_buttons() -> void:
 	confirm_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	confirm_button.disabled = true
 	confirm_button.pressed.connect(_on_confirm_button_pressed)
+	_style_button(confirm_button, true)
 	button_container.add_child(confirm_button)
 	
 	# Add button container to the Content VBoxContainer
@@ -504,23 +506,93 @@ func _select_appropriate_template() -> String:
 
 func _display_world_data(world_data: Dictionary) -> void:
 	## Display world data in UI components with DataValidator safety
-	var safe_name = DataValidator.safe_get_string(world_data, "name", "Unknown World")
-	var safe_traits = DataValidator.safe_get_array(world_data, "traits", [])
-	var safe_government = DataValidator.safe_get_string(world_data, "government_type", "Independent Colony")
-	var safe_tech_level = DataValidator.safe_get_int(world_data, "tech_level", 3)
-	var safe_patrons = DataValidator.safe_get_array(world_data, "known_patrons", [])
-	var safe_market_prices = DataValidator.safe_get_dict(world_data, "market_prices", {})
-	var safe_threats = DataValidator.safe_get_array(world_data, "rival_threats", [])
+	var safe_name = DataValidator.safe_get_string(
+		world_data, "name", "Unknown World")
+	var safe_traits = DataValidator.safe_get_array(
+		world_data, "traits", [])
+	var safe_government = DataValidator.safe_get_string(
+		world_data, "government_type",
+		"Independent Colony")
+	var safe_tech_level = DataValidator.safe_get_int(
+		world_data, "tech_level", 3)
+	var safe_patrons = DataValidator.safe_get_array(
+		world_data, "known_patrons", [])
+	var safe_market_prices = DataValidator.safe_get_dict(
+		world_data, "market_prices", {})
+	var safe_threats = DataValidator.safe_get_array(
+		world_data, "rival_threats", [])
 
 	# Display world name
 	if world_name_label:
 		world_name_label.text = "Current World: " + safe_name
+		world_name_label.add_theme_font_size_override(
+			"font_size", UIColors.FONT_SIZE_XL)
+		world_name_label.add_theme_color_override(
+			"font_color", UIColors.COLOR_TEXT_PRIMARY)
+
+	# Wrap section containers in cards (once)
+	_ensure_section_cards()
 
 	_display_world_traits(safe_traits)
 	_display_government_info(safe_government, safe_tech_level)
 	_display_opportunities(safe_patrons, safe_market_prices)
 	_display_threats(safe_threats)
 	_update_world_summary()
+
+## Wrap each section container in a styled card, if not done.
+func _ensure_section_cards() -> void:
+	_wrap_in_card(world_traits_container, "WORLD TRAITS")
+	_wrap_in_card(opportunities_container, "OPPORTUNITIES")
+	_wrap_in_card(threats_container, "THREATS")
+
+func _wrap_in_card(
+	container: Control, title: String
+) -> void:
+	if not container:
+		return
+	# Skip if already wrapped
+	var parent = container.get_parent()
+	if parent and parent.name.begins_with("__card_"):
+		return
+	var card_inner := VBoxContainer.new()
+	card_inner.add_theme_constant_override("separation", 4)
+	# Title label
+	var title_lbl := Label.new()
+	title_lbl.text = title
+	title_lbl.add_theme_font_size_override(
+		"font_size", UIColors.FONT_SIZE_LG)
+	title_lbl.add_theme_color_override(
+		"font_color", UIColors.COLOR_TEXT_SECONDARY)
+	card_inner.add_child(title_lbl)
+	var sep := HSeparator.new()
+	sep.modulate = UIColors.COLOR_BORDER
+	card_inner.add_child(sep)
+	# Reparent the container into the card
+	var orig_parent = container.get_parent()
+	var idx = container.get_index()
+	orig_parent.remove_child(container)
+	card_inner.add_child(container)
+	# Wrap in PanelContainer
+	var panel := PanelContainer.new()
+	panel.name = "__card_%s" % title.to_lower().replace(
+		" ", "_")
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(
+		UIColors.COLOR_SECONDARY.r,
+		UIColors.COLOR_SECONDARY.g,
+		UIColors.COLOR_SECONDARY.b, 0.8)
+	style.border_color = Color(
+		UIColors.COLOR_BORDER.r,
+		UIColors.COLOR_BORDER.g,
+		UIColors.COLOR_BORDER.b, 0.5)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(12)
+	style.set_content_margin_all(UIColors.SPACING_MD)
+	panel.add_theme_stylebox_override("panel", style)
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_child(card_inner)
+	orig_parent.add_child(panel)
+	orig_parent.move_child(panel, idx)
 	
 
 func _display_world_traits(world_features: Array) -> void:
@@ -698,6 +770,12 @@ func _display_opportunities(known_patrons: Array, market_prices: Dictionary) -> 
 			if trade_card:
 				opportunities_container.add_child(trade_card)
 				has_content = true
+	else:
+		var no_market_label := Label.new()
+		no_market_label.text = "No market data available for this world"
+		no_market_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+		no_market_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
+		opportunities_container.add_child(no_market_label)
 
 	# Show placeholder if no opportunities
 	if not has_content:

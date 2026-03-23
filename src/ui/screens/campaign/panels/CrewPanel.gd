@@ -17,6 +17,7 @@ func _ready() -> void:
 	_add_guidance_label()
 	_setup_crew_size_options()
 	_connect_signals()
+	_style_action_buttons()
 	_update_crew_list()
 
 ## Apply Deep Space COLOR_BASE background
@@ -142,25 +143,206 @@ func _on_crew_member_selected(index: int) -> void:
 
 func _update_crew_list() -> void:
 	crew_list.clear()
-	
+	# Also clear dynamic card container if it exists
+	var card_container := crew_list.get_parent().get_node_or_null(
+		"__crew_cards")
+	if card_container:
+		for child in card_container.get_children():
+			child.queue_free()
+	else:
+		# Create card container as sibling of crew_list
+		card_container = VBoxContainer.new()
+		card_container.name = "__crew_cards"
+		card_container.add_theme_constant_override(
+			"separation", 8)
+		crew_list.get_parent().add_child(card_container)
+		crew_list.get_parent().move_child(
+			card_container, crew_list.get_index() + 1)
+
+	# Hide the plain ItemList, show cards instead
+	crew_list.visible = false
+
+	if crew_members.is_empty():
+		var empty := PanelContainer.new()
+		empty.add_theme_stylebox_override(
+			"panel", _card_style())
+		empty.size_flags_horizontal = (
+			Control.SIZE_EXPAND_FILL)
+		var lbl := Label.new()
+		lbl.text = "No crew members yet.\n" \
+			+ "Use 'Randomize All' or 'Add Member' below."
+		lbl.add_theme_font_size_override("font_size", 14)
+		lbl.add_theme_color_override(
+			"font_color", Color("#6b7280"))
+		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		lbl.horizontal_alignment = (
+			HORIZONTAL_ALIGNMENT_CENTER)
+		empty.add_child(lbl)
+		card_container.add_child(empty)
+	else:
+		for i in range(crew_members.size()):
+			var card := _build_crew_card(crew_members[i], i)
+			card_container.add_child(card)
+
+	# Keep ItemList in sync for selection logic
 	for character in crew_members:
 		var text = "%s - %s (%s)" % [
 			character.character_name,
-			_enum_value_name(GlobalEnums.CharacterClass, int(character.character_class)),
-			_enum_value_name(GlobalEnums.Origin, int(character.origin))
+			_enum_value_name(
+				GlobalEnums.CharacterClass,
+				int(character.character_class)),
+			_enum_value_name(
+				GlobalEnums.Origin,
+				int(character.origin))
 		]
 		crew_list.add_item(text)
-	
+
 	# Update controls state
-	$Content/Controls/AddButton.disabled = crew_members.size() >= selected_size - 1
+	$Content/Controls/AddButton.disabled = (
+		crew_members.size() >= selected_size - 1)
 	$Content/Controls/EditButton.disabled = true
 	$Content/Controls/RemoveButton.disabled = true
+
+func _build_crew_card(
+	character, index: int
+) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override(
+		"panel", _card_style())
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	# Make card clickable for selection
+	panel.gui_input.connect(
+		_on_crew_card_input.bind(index))
+	panel.mouse_default_cursor_shape = (
+		Control.CURSOR_POINTING_HAND)
+
+	var hbox := HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 12)
+	panel.add_child(hbox)
+
+	# Left: Name + subtitle
+	var info_vbox := VBoxContainer.new()
+	info_vbox.size_flags_horizontal = (
+		Control.SIZE_EXPAND_FILL)
+	info_vbox.add_theme_constant_override("separation", 2)
+
+	var name_lbl := Label.new()
+	name_lbl.text = character.character_name
+	name_lbl.add_theme_font_size_override("font_size", 16)
+	name_lbl.add_theme_color_override(
+		"font_color", Color("#f3f4f6"))
+	info_vbox.add_child(name_lbl)
+
+	var cls := _enum_value_name(
+		GlobalEnums.CharacterClass,
+		int(character.character_class))
+	var origin := _enum_value_name(
+		GlobalEnums.Origin, int(character.origin))
+	var sub_lbl := Label.new()
+	sub_lbl.text = "%s  •  %s" % [cls, origin]
+	sub_lbl.add_theme_font_size_override("font_size", 12)
+	sub_lbl.add_theme_color_override(
+		"font_color", Color("#9ca3af"))
+	info_vbox.add_child(sub_lbl)
+
+	hbox.add_child(info_vbox)
+
+	# Right: Compact stat row
+	var stat_lbl := Label.new()
+	stat_lbl.text = "C:%d R:%d T:%d S:%d V:%d L:%d" % [
+		character.combat, character.reaction,
+		character.toughness, character.speed,
+		character.savvy, character.luck]
+	stat_lbl.add_theme_font_size_override("font_size", 11)
+	stat_lbl.add_theme_color_override(
+		"font_color", Color("#3b82f6"))
+	hbox.add_child(stat_lbl)
+
+	return panel
+
+func _on_crew_card_input(
+	event: InputEvent, index: int
+) -> void:
+	if event is InputEventMouseButton \
+		and event.pressed \
+		and event.button_index == MOUSE_BUTTON_LEFT:
+		# Select in hidden ItemList for edit/remove
+		if index < crew_list.item_count:
+			crew_list.select(index)
+			_on_crew_member_selected(index)
+		# Highlight selected card
+		var card_cont := crew_list.get_parent() \
+			.get_node_or_null("__crew_cards")
+		if card_cont:
+			for i in range(card_cont.get_child_count()):
+				var card = card_cont.get_child(i)
+				if card is PanelContainer:
+					var s := _card_style()
+					if i == index:
+						s.border_color = Color("#3b82f6")
+						s.set_border_width_all(2)
+					card.add_theme_stylebox_override(
+						"panel", s)
+
+func _card_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("#111827")
+	style.border_color = Color("#374151")
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(12)
+	style.set_content_margin_all(12)
+	return style
 
 func _enum_value_name(enum_dict: Dictionary, value: int) -> String:
 	for key in enum_dict:
 		if enum_dict[key] == value:
 			return key.capitalize()
 	return "Unknown"
+
+## Style action buttons with Deep Space accent theme
+func _style_action_buttons() -> void:
+	_apply_button_style(
+		$Content/Controls/RandomizeButton, true)
+	_apply_button_style(
+		$Content/Controls/AddButton, false)
+	_apply_button_style(
+		$Content/Controls/EditButton, false)
+	_apply_button_style(
+		$Content/Controls/RemoveButton, false)
+
+func _apply_button_style(
+	button: Button, is_primary: bool
+) -> void:
+	if not button:
+		return
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("#3b82f6") if is_primary \
+		else Color("#1f2937")
+	style.set_corner_radius_all(8)
+	style.set_content_margin_all(8)
+	button.add_theme_stylebox_override("normal", style)
+	button.add_theme_font_size_override("font_size", 16)
+	button.add_theme_color_override(
+		"font_color", Color("#f3f4f6"))
+	button.custom_minimum_size.y = 48
+	var hover := style.duplicate()
+	hover.bg_color = Color("#60a5fa") if is_primary \
+		else Color("#2d3748")
+	button.add_theme_stylebox_override("hover", hover)
+	var pressed := style.duplicate()
+	pressed.bg_color = Color(
+		style.bg_color.r - 0.1,
+		style.bg_color.g - 0.1,
+		style.bg_color.b - 0.1)
+	button.add_theme_stylebox_override("pressed", pressed)
+	var disabled := style.duplicate()
+	disabled.bg_color = Color(
+		style.bg_color.r, style.bg_color.g,
+		style.bg_color.b, 0.2)
+	button.add_theme_stylebox_override("disabled", disabled)
+	button.add_theme_color_override(
+		"font_disabled_color", Color("#4b5563"))
 
 func get_crew_data() -> Array:
 	return crew_members.duplicate()

@@ -260,6 +260,9 @@ func _apply_phase_theme() -> void:
 		style.set_content_margin_all(UIColors.SPACING_MD)
 		add_theme_stylebox_override("panel", style)
 
+	# Apply max-width constraint for desktop readability
+	_apply_max_width_constraint()
+
 	# Ensure a COLOR_BASE background exists behind this panel.
 	# This prevents the default black/gray fallback on panels that
 	# don't inherit a themed parent background.
@@ -303,6 +306,9 @@ func _style_phase_button(button: Button, is_primary: bool = false) -> void:
 		style.bg_color.b - 0.1
 	)
 	button.add_theme_stylebox_override("pressed", pressed)
+
+	# Auto-apply disabled state styling for all phase buttons
+	_style_button_disabled(button)
 
 ## Style a title label (panel titles)
 func _style_phase_title(label: Label) -> void:
@@ -381,17 +387,107 @@ func _hide_validation_hint() -> void:
 	if _validation_hint_label:
 		_validation_hint_label.visible = false
 
-## Style a disabled button with reduced opacity for visual feedback
+## Apply a max-width constraint to the panel's main VBox
+## so content doesn't stretch uncomfortably wide on desktop.
+func _apply_max_width_constraint() -> void:
+	var vbox: VBoxContainer = null
+	for child in get_children():
+		if child is VBoxContainer:
+			vbox = child
+			break
+		if child is PanelContainer:
+			for sub in child.get_children():
+				if sub is VBoxContainer:
+					vbox = sub
+					break
+	if vbox:
+		vbox.custom_maximum_size.x = 1200
+		vbox.size_flags_horizontal = (
+			Control.SIZE_SHRINK_CENTER)
+
+## Create a themed card container with a title header.
+## Content is placed inside the card below the title separator.
+func _create_phase_card(
+	title: String, content: Control,
+	description: String = ""
+) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(
+		UIColors.COLOR_SECONDARY.r,
+		UIColors.COLOR_SECONDARY.g,
+		UIColors.COLOR_SECONDARY.b, 0.8)
+	style.border_color = Color(
+		UIColors.COLOR_BORDER.r,
+		UIColors.COLOR_BORDER.g,
+		UIColors.COLOR_BORDER.b, 0.5)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(12)
+	style.set_content_margin_all(UIColors.SPACING_MD)
+	panel.add_theme_stylebox_override("panel", style)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override(
+		"separation", UIColors.SPACING_SM)
+
+	var title_label := Label.new()
+	title_label.text = title.to_upper()
+	title_label.add_theme_font_size_override(
+		"font_size", UIColors.FONT_SIZE_LG)
+	title_label.add_theme_color_override(
+		"font_color", UIColors.COLOR_TEXT_SECONDARY)
+	vbox.add_child(title_label)
+
+	var sep := HSeparator.new()
+	sep.modulate = UIColors.COLOR_BORDER
+	vbox.add_child(sep)
+
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.add_child(content)
+
+	if not description.is_empty():
+		var desc := Label.new()
+		desc.text = description
+		desc.add_theme_font_size_override(
+			"font_size", UIColors.FONT_SIZE_SM)
+		desc.add_theme_color_override(
+			"font_color", UIColors.COLOR_TEXT_MUTED)
+		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		vbox.add_child(desc)
+
+	panel.add_child(vbox)
+	return panel
+
+## Wrap an existing node in a phase card by reparenting it.
+## Replaces the node at its current position in the tree.
+func _wrap_in_phase_card(
+	node: Control, title: String
+) -> PanelContainer:
+	if not node or not node.get_parent():
+		return null
+	var parent = node.get_parent()
+	var idx = node.get_index()
+	parent.remove_child(node)
+	var card := _create_phase_card(title, node)
+	parent.add_child(card)
+	parent.move_child(card, idx)
+	return card
+
+## Style a disabled button with clearly reduced contrast for visual feedback
 func _style_button_disabled(button: Button) -> void:
 	if not button:
 		return
 	var disabled_style := StyleBoxFlat.new()
 	disabled_style.bg_color = Color(UIColors.COLOR_TERTIARY.r, UIColors.COLOR_TERTIARY.g,
-		UIColors.COLOR_TERTIARY.b, 0.4)
+		UIColors.COLOR_TERTIARY.b, 0.2)
+	disabled_style.border_color = Color(UIColors.COLOR_BORDER.r, UIColors.COLOR_BORDER.g,
+		UIColors.COLOR_BORDER.b, 0.25)
+	disabled_style.set_border_width_all(1)
 	disabled_style.set_corner_radius_all(8)
 	disabled_style.content_margin_left = UIColors.SPACING_MD
 	disabled_style.content_margin_right = UIColors.SPACING_MD
 	disabled_style.content_margin_top = UIColors.SPACING_SM
 	disabled_style.content_margin_bottom = UIColors.SPACING_SM
 	button.add_theme_stylebox_override("disabled", disabled_style)
-	button.add_theme_color_override("font_disabled_color", UIColors.COLOR_TEXT_MUTED)
+	button.add_theme_color_override("font_disabled_color", Color("#4b5563"))

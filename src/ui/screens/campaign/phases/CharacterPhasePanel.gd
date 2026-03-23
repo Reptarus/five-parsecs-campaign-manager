@@ -21,6 +21,18 @@ func _ready() -> void:
 	_style_phase_button(continue_button, true)
 	if continue_button:
 		continue_button.pressed.connect(_on_continue_pressed)
+	_wrap_character_content_in_cards()
+
+func _wrap_character_content_in_cards() -> void:
+	var vbox = $VBoxContainer
+	if not vbox:
+		return
+	for child in vbox.get_children():
+		if child is HSeparator:
+			child.queue_free()
+	# Wrap events_list in a card
+	if events_list and events_list.get_parent() == vbox:
+		_wrap_in_phase_card(events_list, "Character Events")
 
 func setup_phase() -> void:
 	super.setup_phase()

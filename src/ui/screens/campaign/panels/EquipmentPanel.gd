@@ -481,6 +481,9 @@ func _initialize_components() -> void:
 	auto_assign_button = get_node_or_null("%AutoAssignButton")
 	if not auto_assign_button:
 		auto_assign_button = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/EquipmentSection/EquipmentHeader/AutoAssignButton")
+	if auto_assign_button:
+		auto_assign_button.size_flags_horizontal = Control.SIZE_SHRINK_END
+		auto_assign_button.custom_minimum_size.x = 110
 
 	crew_loadout_container = get_node_or_null("%CrewLoadoutContainer")
 	if not crew_loadout_container:
@@ -652,6 +655,13 @@ func _connect_signals() -> void:
 	# PHASE 1: Connect auto-assign button
 	if auto_assign_button and not auto_assign_button.pressed.is_connected(_on_auto_assign_pressed):
 		auto_assign_button.pressed.connect(_on_auto_assign_pressed)
+
+	# Style action buttons with accent fill for visual weight
+	_style_button(generate_button, true)
+	_style_button(reroll_button, false)
+	_style_button(manual_button, false)
+	if auto_assign_button:
+		_style_button(auto_assign_button, false)
 
 func set_crew_data(crew: Array) -> void:
 	## Set crew data and generate equipment

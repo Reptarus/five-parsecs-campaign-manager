@@ -59,6 +59,51 @@ func _ready() -> void:
 	_style_phase_button(apply_button)
 	_style_phase_button(done_button, true)
 	_connect_signals()
+	_wrap_advancement_content_in_cards()
+
+func _wrap_advancement_content_in_cards() -> void:
+	var vbox = $VBoxContainer
+	if not vbox:
+		return
+	# Remove HSeparators
+	for child in vbox.get_children():
+		if child is HSeparator:
+			child.queue_free()
+	# Crew section: label + list + character info
+	var crew_content := VBoxContainer.new()
+	crew_content.add_theme_constant_override(
+		"separation", UIColors.SPACING_SM)
+	if crew_section_label \
+		and crew_section_label.get_parent() == vbox:
+		vbox.remove_child(crew_section_label)
+		crew_content.add_child(crew_section_label)
+	if crew_list and crew_list.get_parent() == vbox:
+		vbox.remove_child(crew_list)
+		crew_content.add_child(crew_list)
+	if character_info \
+		and character_info.get_parent() == vbox:
+		vbox.remove_child(character_info)
+		crew_content.add_child(character_info)
+	var crew_card := _create_phase_card(
+		"Crew Members", crew_content)
+	vbox.add_child(crew_card)
+	vbox.move_child(crew_card, 1)
+	# Advancement section: label + options
+	var adv_content := VBoxContainer.new()
+	adv_content.add_theme_constant_override(
+		"separation", UIColors.SPACING_SM)
+	if advancement_label \
+		and advancement_label.get_parent() == vbox:
+		vbox.remove_child(advancement_label)
+		adv_content.add_child(advancement_label)
+	if advancement_options \
+		and advancement_options.get_parent() == vbox:
+		vbox.remove_child(advancement_options)
+		adv_content.add_child(advancement_options)
+	var adv_card := _create_phase_card(
+		"Advancement Options", adv_content)
+	vbox.add_child(adv_card)
+	vbox.move_child(adv_card, 2)
 
 func _connect_signals() -> void:
 	if crew_list:

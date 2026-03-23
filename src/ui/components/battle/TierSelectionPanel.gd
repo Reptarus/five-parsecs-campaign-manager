@@ -78,6 +78,9 @@ func _build_ui() -> void:
 		vbox.add_child(btn)
 		_tier_buttons.append(btn)
 
+	# Skip/dismiss button — defaults to LOG_ONLY so user isn't stuck
+	vbox.add_child(_create_skip_button())
+
 func _create_tier_button(tier: int, info: Dictionary) -> Button:
 	var btn := Button.new()
 	btn.name = "TierButton_%d" % tier
@@ -118,6 +121,28 @@ func _create_tier_button(tier: int, info: Dictionary) -> Button:
 	btn.add_theme_font_size_override("font_size", FONT_SIZE_MD)
 
 	btn.pressed.connect(_on_tier_button_pressed.bind(tier))
+	return btn
+
+func _create_skip_button() -> Button:
+	var btn := Button.new()
+	btn.text = "Skip — Use Log Only"
+	btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(COLOR_ELEVATED.r, COLOR_ELEVATED.g, COLOR_ELEVATED.b, 0.5)
+	style.set_corner_radius_all(8)
+	style.set_content_margin_all(SPACING_MD)
+	btn.add_theme_stylebox_override("normal", style)
+	btn.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	btn.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+
+	var hover := style.duplicate()
+	hover.bg_color = Color(COLOR_ELEVATED.r + 0.05, COLOR_ELEVATED.g + 0.05, COLOR_ELEVATED.b + 0.05, 0.7)
+	btn.add_theme_stylebox_override("hover", hover)
+
+	btn.pressed.connect(func():
+		tier_selected.emit(BattleTierControllerClass.TrackingTier.LOG_ONLY)
+	)
 	return btn
 
 func _on_tier_button_pressed(tier: int) -> void:

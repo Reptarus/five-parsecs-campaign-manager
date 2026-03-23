@@ -24,11 +24,23 @@ func _ready() -> void:
 	if save_button:
 		save_button.pressed.connect(_on_save_button_pressed)
 	if continue_button:
-		continue_button.pressed.connect(_on_continue_button_pressed)
+		continue_button.pressed.connect(
+			_on_continue_button_pressed)
 		continue_button.disabled = true
 		_style_button_disabled(continue_button)
 		_setup_validation_hint(continue_button)
-		_show_validation_hint("Save your campaign before continuing")
+		_show_validation_hint(
+			"Save your campaign before continuing")
+	# Remove bare HSeparators, wrap stats in a card
+	var vbox = $VBoxContainer
+	if vbox:
+		for child in vbox.get_children():
+			if child is HSeparator:
+				child.queue_free()
+		if stats_container \
+			and stats_container.get_parent() == vbox:
+			_wrap_in_phase_card(
+				stats_container, "Turn Summary")
 
 func setup_phase() -> void:
 	super.setup_phase()
