@@ -3,6 +3,8 @@
 ## BaseCampaignPanel (FiveParsecsCampaignPanel)
 - **Path**: `src/ui/screens/campaign/panels/BaseCampaignPanel.gd`
 - **extends**: Control
+- **Auto-background**: `_ensure_base_background()` in `_ready()` injects a COLOR_BASE ColorRect behind all panels (added Mar 23 2026). BasePhasePanel has the same pattern via `_apply_phase_theme()`.
+- **Background pattern**: ColorRect with `show_behind_parent = true`, `MOUSE_FILTER_IGNORE`, `PRESET_FULL_RECT`, named `"__panel_bg"` or `"__phase_bg"` to prevent duplicates.
 - **class_name**: FiveParsecsCampaignPanel
 
 ## Signals

@@ -1,6 +1,6 @@
 # Five Parsecs Campaign Manager - Development Guide
 
-**Last Updated**: 2026-03-22
+**Last Updated**: 2026-03-23
 **Engine**: Godot 4.6-stable (non-mono, pure GDScript)
 **Repository**: https://github.com/Reptarus/five-parsecs-campaign-manager
 
@@ -431,6 +431,11 @@ Both `.vscode/settings.json` and Cursor user settings exclude: `.godot/`, `.mcp/
 - **TweenFX pivot_offset**: TweenFX NEVER sets `pivot_offset`. Must call `node.pivot_offset = node.size / 2` before any scale/rotation animation (`press`, `pop_in`, `pulsate`, `punch_in`, `breathe`, `tada`, `critical_hit`, `upgrade`, `attract`, `headshake`). Safe without: `fade_in`, `fade_out`, `blink`, `spotlight`, `alarm`, `shake`
 - **TweenFX looping cleanup**: Looping animations (`alarm`, `breathe`, `attract`, `glow_pulse`) must be explicitly stopped with `TweenFX.stop(node, TweenFX.Animations.X)` or `TweenFX.stop_all(node)` in cleanup/hide code
 - **TweenFX.tada() signature**: Takes only 2 args `(node, duration)` — no scale parameter
+- **GameEnums ↔ GlobalEnums ordinal sync**: After the Mar 23 fix, shared enum members MUST have identical ordinal values. GameEnums-only extras use explicit `= N` values. Verify with MCP Scenario 9 after any enum changes
+- **CampaignDashboard dict key fallbacks**: Crew reads `"origin"`/`"character_class"` with fallback to `"species"`/`"class"`. Equipment reads `"weapons"`/`"armor"`/`"gear"` but auto-decomposes from `"equipment"` if unified format found. Always `str()` wrap values assigned to String-typed vars (character_class may be int)
+- **BasePhasePanel + BaseCampaignPanel auto-background**: Both inject a `COLOR_BASE` ColorRect in `_ready()` with `show_behind_parent = true`. Named `"__phase_bg"` / `"__panel_bg"` to prevent duplicates. New panels inheriting either base get correct background automatically
+- **TransitionManager overlay blocks MCP screenshots**: `TransitionOverlay` (full-screen ColorRect) must be disabled (`visible = false`) for MCP take_screenshot to work during scene transitions. Safe to disable for automated testing
+- **UI/UX issues tracker**: `docs/QA_UI_UX_ISSUES.md` — 30 issues found, 21 fixed, 9 deferred (card containers, dialog backdrop, max-width, disabled button contrast)
 
 ---
 

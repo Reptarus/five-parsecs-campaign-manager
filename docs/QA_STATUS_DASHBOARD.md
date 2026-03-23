@@ -12,7 +12,10 @@
 |--------|-------|
 | Game Mechanics Implemented | 170/170 (100%) |
 | Mechanics Runtime-Verified | 170/170 (100%) |
-| Open Bugs | 0 confirmed + 0 UX + 0 deferred (all resolved Mar 23) |
+| Open Bugs | 0 code bugs + 9 deferred UI/UX (see QA_UI_UX_ISSUES.md) |
+| UI/UX Screens Audited | 21/21 screenshotted + structurally analyzed |
+| UI/UX Issues Found | 30 total: 21 fixed, 9 deferred |
+| MCP Integration Scenarios | 3/10 PASS (S1 Campaign Lifecycle, S3 Save/Load, S9 Enum Sync) |
 | Data Values Verified | 925/925 (100%) against Core Rules + Compendium source text |
 | Rules-Verified Mechanics | **170/170 (100%)** — PyPDF2 cross-reference against Core Rules + Compendium PDFs (218+ values, 0 mismatches) |
 | Data Fixes Applied | 190+ fixes, 145+ fabricated values removed |
