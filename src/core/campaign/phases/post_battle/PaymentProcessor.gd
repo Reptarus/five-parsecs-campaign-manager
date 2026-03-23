@@ -10,54 +10,46 @@ const RedZoneSystemRef = preload("res://src/core/mission/RedZoneSystem.gd")
 const DifficultyModifiers = preload("res://src/core/systems/DifficultyModifiers.gd")
 
 func process_payment(ctx: PostBattleContextClass) -> int:
-	## Step 4: Calculate and award mission payment. Returns total credits paid.
+	## Step 4: Get Paid (Core Rules p.120)
+	## You earn 1D6 credits in pay, loot, bounty or salvage.
+	## - Invasion battles: no payment
+	## - Quest finale: roll twice pick better, +1
+	## - Easy mode: +1
+	## - Won objective (non-Rival): treat 1-2 as 3
+	## - Patron job: add Danger Pay (1-3 credits from D10 table)
 	if ctx.battle_result.get("is_invasion", false):
 		return 0
-	if not ctx.mission_successful:
-		return 0
 
-	var difficulty: int = ctx.get_campaign_difficulty()
-	var is_easy_mode: bool = (difficulty == GlobalEnums.DifficultyLevel.EASY)
+	# Roll 1D6 for base payment (Core Rules p.120)
+	var credit_roll: int = ctx.roll_d6("Payment credit roll")
 
-	var base_roll: int = ctx.roll_d6("Payment base roll")
-
-	# Red Zone: roll twice, pick better
+	# Red Zone: roll twice, pick better (Compendium)
 	if ctx.battle_result.get("is_red_zone", false):
 		var red_second_roll: int = ctx.roll_d6("Red Zone second credit roll")
-		base_roll = max(base_roll, red_second_roll)
+		credit_roll = maxi(credit_roll, red_second_roll)
 
-	# Quest finale: roll twice, pick better, +1
+	# Quest finale: roll twice, pick better, +1 (Core Rules p.120)
 	if ctx.battle_result.get("is_quest_finale", false):
 		var second_roll: int = ctx.roll_d6("Quest finale second roll")
-		base_roll = max(base_roll, second_roll) + 1
+		credit_roll = maxi(credit_roll, second_roll) + 1
 
-	# Easy mode: +1 credit reward
-	if is_easy_mode:
-		base_roll += 1
+	# Easy mode: +1 credit (Core Rules p.64)
+	var difficulty: int = ctx.get_campaign_difficulty()
+	if difficulty == GlobalEnums.DifficultyLevel.EASY:
+		credit_roll += 1
 
-	# Victory objective: treat 1-2 as 3 (except Rival missions)
+	# Won objective: treat 1-2 as 3 (except Rival missions) (Core Rules p.120)
 	var is_rival_mission: bool = ctx.battle_result.get("is_rival_mission", false)
-	if ctx.mission_successful and not is_rival_mission and base_roll < 3:
-		base_roll = 3
+	if ctx.mission_successful and not is_rival_mission and credit_roll < 3:
+		credit_roll = 3
 
-	var base_payment: int = ctx.battle_result.get("base_payment", 100)
+	# Total payment = credit roll + Danger Pay for patron jobs (Core Rules p.120)
 	var danger_pay: int = ctx.battle_result.get("danger_pay", 0)
-	var raw_payment: int = base_payment + danger_pay
-	var payment_multiplier: float = base_roll / 3.0
-	var total_payment: int = int(raw_payment * payment_multiplier)
+	var total_payment: int = credit_roll + danger_pay
 
-	# F-3 fix: Apply difficulty multiplier
-	if total_payment > 0:
-		var pay_multiplier: float = 1.0
-		if difficulty == GlobalEnums.DifficultyLevel.EASY:
-			pay_multiplier = 0.875
-		elif difficulty == GlobalEnums.DifficultyLevel.CHALLENGING:
-			pay_multiplier = 1.0
-		elif difficulty == GlobalEnums.DifficultyLevel.HARDCORE:
-			pay_multiplier = 1.25
-		elif difficulty == GlobalEnums.DifficultyLevel.INSANITY:
-			pay_multiplier = 1.5
-		total_payment = int(total_payment * pay_multiplier)
+	# Failed missions get nothing (no post-battle rewards for losses)
+	if not ctx.mission_successful:
+		total_payment = 0
 
 	if total_payment > 0 and ctx.game_state and ctx.game_state.has_method("add_credits"):
 		ctx.game_state.add_credits(total_payment)

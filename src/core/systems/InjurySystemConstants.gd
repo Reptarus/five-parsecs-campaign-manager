@@ -7,9 +7,13 @@ class_name InjurySystemConstants
 ## Architecture: Pure constants class - no state, no dependencies
 
 ## Injury type enumeration (matches Five Parsecs rulebook categories)
+## Split per Core Rules p.122 / injury_table.json:
+##   1-5 Gruesome Fate (dead + ALL equipment damaged)
+##   6-15 Death/permanent injury (dead, equipment intact)
 enum InjuryType {
-	FATAL,              # 1-15: Character dies
-	MIRACULOUS_ESCAPE,  # 16: No injury
+	GRUESOME_FATE,      # 1-5: Dead + all carried equipment damaged
+	FATAL,              # 6-15: Dead or permanently removed
+	MIRACULOUS_ESCAPE,  # 16: No injury (+1 Luck, lose all items)
 	EQUIPMENT_LOSS,     # 17-30: Equipment damaged/lost
 	CRIPPLING_WOUND,    # 31-45: Requires surgery or long recovery
 	SERIOUS_INJURY,     # 46-54: Extended recovery time
@@ -18,9 +22,10 @@ enum InjuryType {
 	HARD_KNOCKS         # 96-100: Learns from experience (+1 XP)
 }
 
-## D100 roll ranges for each injury type (Five Parsecs rulebook p.94)
+## D100 roll ranges for each injury type (Five Parsecs rulebook p.122)
 const INJURY_ROLL_RANGES: Dictionary = {
-	InjuryType.FATAL: {"min": 1, "max": 15},
+	InjuryType.GRUESOME_FATE: {"min": 1, "max": 5},
+	InjuryType.FATAL: {"min": 6, "max": 15},
 	InjuryType.MIRACULOUS_ESCAPE: {"min": 16, "max": 16},
 	InjuryType.EQUIPMENT_LOSS: {"min": 17, "max": 30},
 	InjuryType.CRIPPLING_WOUND: {"min": 31, "max": 45},
@@ -33,6 +38,10 @@ const INJURY_ROLL_RANGES: Dictionary = {
 ## Recovery time ranges for each injury type
 ## For dice rolls, use min/max to determine D6 or D3+1 rolls
 const RECOVERY_TIMES: Dictionary = {
+	InjuryType.GRUESOME_FATE: {
+		"min": 0, "max": 0,
+		"description": "Character is dead - all carried equipment damaged"
+	},
 	InjuryType.FATAL: {
 		"min": 0, "max": 0,
 		"description": "Character is dead - no recovery"
@@ -72,6 +81,7 @@ const RECOVERY_TIMES: Dictionary = {
 
 ## Injury type names (short form for service layer)
 const INJURY_TYPE_NAMES: Dictionary = {
+	InjuryType.GRUESOME_FATE: "GRUESOME_FATE",
 	InjuryType.FATAL: "FATAL",
 	InjuryType.MIRACULOUS_ESCAPE: "MIRACULOUS_ESCAPE",
 	InjuryType.EQUIPMENT_LOSS: "EQUIPMENT_LOSS",
@@ -84,6 +94,7 @@ const INJURY_TYPE_NAMES: Dictionary = {
 
 ## Injury descriptions for UI display
 const INJURY_DESCRIPTIONS: Dictionary = {
+	InjuryType.GRUESOME_FATE: "GRUESOME FATE - Dead, all carried equipment damaged",
 	InjuryType.FATAL: "DEAD - Fatal injury",
 	InjuryType.MIRACULOUS_ESCAPE: "Miraculous escape - No injury",
 	InjuryType.EQUIPMENT_LOSS: "Equipment damaged/lost",
@@ -96,6 +107,13 @@ const INJURY_DESCRIPTIONS: Dictionary = {
 
 ## Special injury properties (surgery, equipment loss, XP bonus)
 const INJURY_PROPERTIES: Dictionary = {
+	InjuryType.GRUESOME_FATE: {
+		"is_fatal": true,
+		"requires_surgery": false,
+		"equipment_lost": true,
+		"all_equipment": true, # ALL carried items damaged (Core Rules p.122)
+		"bonus_xp": 0
+	},
 	InjuryType.FATAL: {
 		"is_fatal": true,
 		"requires_surgery": false,
@@ -269,6 +287,8 @@ static func get_injury_special_effect(injury_type: InjuryType) -> String:
 	## Returns:
 	## 	Special effect description (empty string if none)
 	match injury_type:
+		InjuryType.GRUESOME_FATE:
+			return "All carried equipment is damaged"
 		InjuryType.HARD_KNOCKS:
 			return "Character gains +1 XP from learning experience"
 		InjuryType.CRIPPLING_WOUND:
@@ -279,6 +299,76 @@ static func get_injury_special_effect(injury_type: InjuryType) -> String:
 			return "No injury sustained despite being knocked out"
 		_:
 			return ""
+
+# =============================================================================
+# MEDICAL TREATMENT SYSTEM (Core Rules p.76, p.122)
+# Treatment options to reduce or eliminate recovery time
+# =============================================================================
+
+## Treatment types available during Upkeep phase
+enum TreatmentType {
+	SICK_BAY,       # Pay credits to reduce recovery by 1 turn per payment
+	SURGERY,        # Pay 1D6 credits to instantly heal Crippling Wound
+	NATURAL,        # Free — wait out the recovery turns
+}
+
+## Treatment costs and rules (Core Rules p.76)
+const TREATMENT_OPTIONS: Dictionary = {
+	TreatmentType.SICK_BAY: {
+		"name": "Sick Bay Treatment",
+		"cost_per_turn": 4, # Core Rules p.76 VERIFIED
+		"description": "Pay 4 credits to reduce recovery by 1 turn",
+		"applicable_to": [
+			InjuryType.CRIPPLING_WOUND,
+			InjuryType.SERIOUS_INJURY,
+			InjuryType.MINOR_INJURY,
+		],
+	},
+	TreatmentType.SURGERY: {
+		"name": "Emergency Surgery",
+		"cost_dice": "1d6", # Core Rules p.122 (Crippling Wound entry)
+		"cost_min": 1,
+		"cost_max": 6,
+		"description": "Pay 1D6 credits for instant recovery",
+		"applicable_to": [InjuryType.CRIPPLING_WOUND],
+		"effect": "instant_recovery",
+	},
+	TreatmentType.NATURAL: {
+		"name": "Natural Recovery",
+		"cost_per_turn": 0,
+		"description": "Wait out recovery turns at no cost",
+		"applicable_to": [
+			InjuryType.CRIPPLING_WOUND,
+			InjuryType.SERIOUS_INJURY,
+			InjuryType.MINOR_INJURY,
+		],
+	},
+}
+
+## Get available treatment options for an injury type
+static func get_treatment_options(
+	injury_type: InjuryType,
+) -> Array[Dictionary]:
+	var options: Array[Dictionary] = []
+	for treatment_type in TREATMENT_OPTIONS.keys():
+		var treatment: Dictionary = TREATMENT_OPTIONS[treatment_type]
+		var applicable: Array = treatment.get("applicable_to", [])
+		if injury_type in applicable:
+			var option: Dictionary = treatment.duplicate()
+			option["treatment_type"] = treatment_type
+			options.append(option)
+	return options
+
+## Calculate sick bay cost to fully heal (all remaining turns)
+static func calculate_sick_bay_cost(
+	remaining_turns: int,
+) -> int:
+	var cost_per: int = TREATMENT_OPTIONS[TreatmentType.SICK_BAY].cost_per_turn
+	return remaining_turns * cost_per
+
+## Roll surgery cost (1D6 credits)
+static func roll_surgery_cost() -> int:
+	return randi_range(1, 6)
 
 # =============================================================================
 # BOT / SOULLESS INJURY TABLE (Core Rules p.94-95)

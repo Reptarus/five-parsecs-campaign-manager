@@ -21,6 +21,29 @@ func _init() -> void:
 	_load_patron_tables()
 
 func _load_patron_tables() -> void:
+	# Load from canonical patron_generation.json (Core Rules pp.83-84)
+	var gen_path := "res://data/patron_generation.json"
+	if FileAccess.file_exists(gen_path):
+		var file := FileAccess.open(gen_path, FileAccess.READ)
+		if file:
+			var json := JSON.new()
+			if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+				var data: Dictionary = json.data
+				_patron_tables = data.get("patron_type_table", {})
+				_job_type_table = data.get("mission_objectives", {})
+				_payment_modifiers = {
+					"danger_pay": data.get("danger_pay_table", {}),
+					"time_frame": data.get("time_frame_table", {}),
+					"bhc": data.get("bhc_thresholds", {}),
+					"benefits": data.get("benefits_subtable", {}),
+					"hazards": data.get("hazards_subtable", {}),
+					"conditions": data.get("conditions_subtable", {})
+				}
+				file.close()
+				return
+			file.close()
+
+	# Fallback to legacy patron_jobs.json
 	var path := "res://data/campaign_tables/world_phase/patron_jobs.json"
 	if not FileAccess.file_exists(path):
 		return

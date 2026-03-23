@@ -69,9 +69,21 @@ func _init() -> void:
 		])
 
 func _load_mission_gen_data() -> void:
+	# Load mission objectives from canonical patron_generation.json (Core Rules pp.89-91)
+	var gen_path := "res://data/patron_generation.json"
+	if FileAccess.file_exists(gen_path):
+		var gen_file := FileAccess.open(gen_path, FileAccess.READ)
+		if gen_file:
+			var gen_json := JSON.new()
+			if gen_json.parse(gen_file.get_as_text()) == OK and gen_json.data is Dictionary:
+				var gen_data: Dictionary = gen_json.data
+				if gen_data.has("mission_objectives"):
+					_mission_gen_data["core_rules_objectives"] = gen_data["mission_objectives"]
+			gen_file.close()
+
+	# Load supplementary data from mission_generation_data.json (locations, terrain, etc.)
 	var path := "res://data/mission_generation_data.json"
 	if not FileAccess.file_exists(path):
-		push_warning("FiveParsecsMissionGenerator: mission_generation_data.json not found")
 		return
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
@@ -81,7 +93,11 @@ func _load_mission_gen_data() -> void:
 		push_warning("FiveParsecsMissionGenerator: Failed to parse mission_generation_data.json")
 		return
 	if json.data is Dictionary:
-		_mission_gen_data = json.data
+		# Merge supplementary data without overwriting core rules objectives
+		var supp: Dictionary = json.data
+		for key in supp:
+			if not _mission_gen_data.has(key):
+				_mission_gen_data[key] = supp[key]
 
 func generate_mission(difficulty: int = 2, type: int = -1) -> Dictionary:
 	# Emit generation started signal
@@ -205,26 +221,43 @@ func generate_special_rules(type: int) -> Array:
 	return special_rules
 
 func generate_objectives(type: int) -> Array:
-	var objectives = []
+	var objectives: Array = []
 
-	# Load objectives from JSON by type
-	var all_objectives: Dictionary = _mission_gen_data.get("objectives", {})
-	var type_key: String = str(type)
-	if all_objectives.has(type_key) and all_objectives[type_key] is Array:
-		for obj in all_objectives[type_key]:
-			objectives.append(obj)
-	else:
-		objectives.append("Complete the mission objectives")
+	# Use Core Rules D10 objective tables from patron_generation.json (pp.89-91)
+	var core_objs: Dictionary = _mission_gen_data.get("core_rules_objectives", {})
+	if not core_objs.is_empty():
+		# Select table based on mission type
+		var table_key: String = "opportunity_objectives"
+		if type == FiveParsecsMissionType.PATRON_JOB:
+			table_key = "patron_objectives"
+		elif type == FiveParsecsMissionType.STORY_MISSION:
+			table_key = "quest_objectives"
 
-	# 30% chance to add a bonus objective
-	if randf() < 0.3:
-		var bonus_list: Array = _mission_gen_data.get("bonus_objectives", [
-			"Recover the hidden data cache", "Eliminate the enemy leader",
-			"Avoid triggering alarms", "Complete the mission without casualties",
-			"Find and secure the secret weapon"
-		])
-		if bonus_list.size() > 0:
-			objectives.append("BONUS: " + bonus_list[randi() % bonus_list.size()])
+		var table: Dictionary = core_objs.get(table_key, {})
+		var entries: Array = table.get("entries", [])
+		if entries.size() > 0:
+			# Roll D10 on the appropriate table
+			var roll: int = randi_range(1, 10)
+			for entry in entries:
+				var r: Array = entry.get("roll_range", [0, 0])
+				if roll >= r[0] and roll <= r[1]:
+					var obj_name: String = entry.get("objective", "Fight Off")
+					# Look up full description
+					var descs: Dictionary = core_objs.get("objective_descriptions", {})
+					var desc: Dictionary = descs.get(obj_name, {})
+					var full_desc: String = desc.get("description", obj_name)
+					objectives.append(obj_name + ": " + full_desc)
+					break
+
+	# Fallback to legacy data if Core Rules tables unavailable
+	if objectives.is_empty():
+		var all_objectives: Dictionary = _mission_gen_data.get("objectives", {})
+		var type_key: String = str(type)
+		if all_objectives.has(type_key) and all_objectives[type_key] is Array:
+			for obj in all_objectives[type_key]:
+				objectives.append(obj)
+		else:
+			objectives.append("Complete the mission objectives")
 
 	return objectives
 

@@ -64,7 +64,10 @@ func _get_campaign_event(roll: int) -> Dictionary:
 	for entry in entries:
 		var roll_range: Array = entry.get("roll_range", [0, 0])
 		if roll >= roll_range[0] and roll <= roll_range[1]:
-			return entry.get("result", {"type": "none", "name": "No Event", "description": "Nothing significant occurs"})
+			var result: Dictionary = entry.get("result", {"type": "none", "name": "No Event", "description": "Nothing significant occurs"}).duplicate()
+			if entry.has("species_exceptions"):
+				result["species_exceptions"] = entry["species_exceptions"]
+			return result
 	return {"type": "none", "name": "No Event", "description": "Nothing significant occurs"}
 
 func _has_precursor_crew(ctx: PostBattleContextClass) -> bool:
@@ -83,323 +86,152 @@ func _has_precursor_crew(ctx: PostBattleContextClass) -> bool:
 
 func apply_effect(event_title: String, ctx: PostBattleContextClass) -> String:
 	## Apply campaign event effects based on event title (Core Rules p.126-128)
+	## All 28 events from the D100 Campaign Events Table
 	var gsm = ctx.game_state_manager
 	match event_title:
-		# Story Point Events
-		"Local Friends", "Lucky Break", "New Ally":
-			if gsm and gsm.has_method("add_story_points"):
-				gsm.add_story_points(1)
-			return "+1 Story Point"
+		"Friendly Doc":
+			ctx.reduce_recovery_time(2)
+			return "Friendly doc: Reduced recovery by 1 turn (up to 2 crew)"
 
-		# Credit Events
-		"Valuable Find":
-			var credits_val: int = randi_range(1, 6)
-			if gsm:
-				gsm.add_credits(credits_val)
-			return "+%d Credits" % credits_val
-
-		"Windfall":
-			var credits_val: int = randi_range(1, 6) + randi_range(1, 6)
-			if gsm:
-				gsm.add_credits(credits_val)
-			return "+%d Credits (windfall)" % credits_val
-
-		"Life Support Issues":
+		"Life Support Upgrade":
 			var cost: int = randi_range(1, 6)
 			var engineer_present: bool = ctx.has_crew_with_class("Engineer")
 			if engineer_present:
-				cost = max(1, cost - 1)
+				cost = maxi(1, cost - 1)
 			if gsm:
 				gsm.add_credits(-cost)
-			return "Paid %d Credits (Life Support)" % cost
+			return "Life support upgrade: Paid %d credits (ship grounded until paid)" % cost
 
-		"Odd Job":
-			var credits_val: int = randi_range(1, 6) + 1
+		"New Ally":
+			# Choice: new crew member OR +1 story point
+			if gsm and gsm.has_method("add_story_points"):
+				gsm.add_story_points(1)
+			return "New ally: +1 Story Point (or roll new crew member)"
+
+		"Local Friends":
+			if gsm and gsm.has_method("add_story_points"):
+				gsm.add_story_points(1)
+			return "Local friends: +1 Story Point"
+
+		"Mouthed Off":
+			ctx.add_rival("Offended locals")
+			return "Mouthed off: +1 Rival"
+
+		"Old Nemesis":
+			ctx.add_rival("Old nemesis (persistent, +1 enemies)")
+			return "Old nemesis: +1 persistent Rival (+1 to enemy numbers)"
+
+		"Shady Deal":
+			return "Shady deal: Give 1 item, roll on Trade Table"
+
+		"Cargo Sale":
+			var credits_val: int = randi_range(1, 6)
 			if gsm:
 				gsm.add_credits(credits_val)
-			return "+%d Credits (Odd Job)" % credits_val
+			return "Cargo sale: +%d Credits" % credits_val
 
-		"Unexpected Bill":
-			var cost: int = randi_range(1, 6)
-			if gsm:
-				var current_credits: int = 0
-				if gsm.has_method("get_credits"):
-					current_credits = gsm.get_credits()
-				if current_credits >= cost:
-					gsm.add_credits(-cost)
-					return "Paid %d Credits" % cost
-				else:
-					if gsm.has_method("add_story_points"):
-						gsm.add_story_points(-1)
-					return "Lost 1 Story Point (couldn't pay %d Credits)" % cost
-			return "Unexpected bill of %d Credits" % cost
-
-		# Rumor Events
-		"Old Contact", "Valuable Intel":
+		"Overheard Something":
 			ctx.add_quest_rumor()
-			return "+1 Quest Rumor"
+			return "Overheard something: +1 Rumor"
 
-		"Information Broker":
-			return "Information Broker available (2 credits per rumor)"
+		"Settle Old Business":
+			# Choice: remove rival OR captain +1 XP
+			var has_rivals: bool = false
+			if gsm and gsm.has_method("get_rivals"):
+				has_rivals = gsm.get_rivals().size() > 0
+			if has_rivals:
+				return "Settle old business: Remove 1 Rival of your choice"
+			else:
+				ctx.award_xp_to_captain(1)
+				return "Settle old business: Captain +1 XP (no rivals to remove)"
 
-		"Dangerous Information":
-			ctx.add_quest_rumor()
-			ctx.add_quest_rumor()
-			ctx.add_rival("Information leak")
-			return "+2 Quest Rumors, +1 Rival"
+		"Admirer":
+			return "Admirer: Gain base-profile crew member (no equipment, Feral if crew has Feral)"
 
-		# Rival Events
-		"Mouthed Off", "Made Enemy":
-			ctx.add_rival("Offended party")
-			return "+1 Rival"
+		"Alien Merchant":
+			return "Alien merchant: Pay 4 credits to roll on Loot Table"
 
-		"Suspicious Activity":
-			var gc = ctx._get_current_campaign()
-			if gc is Dictionary:
-				var rivals: Array = gc.get("rivals", [])
-				if rivals.size() > 0:
-					return "Rival tracks you down this turn"
-			return "No rivals to track you"
-
-		# Patron Events
-		"Reputation Grows":
-			return "+1 to next Patron search roll"
-
-		# Market Events
-		"Market Surplus":
-			return "All purchases -1 credit (min 1) this turn"
-
-		"Trade Opportunity":
-			return "Roll twice on Trade Table this turn"
-
-		# Equipment/Ship Events
 		"Equipment Malfunction":
 			ctx.damage_random_equipment()
-			return "Random item damaged"
+			return "Equipment malfunction: Random stash item damaged"
 
-		"Ship Parts":
-			if gsm and gsm.has_method("repair_hull"):
-				gsm.repair_hull(1)
-			return "Repaired 1 Hull Point"
+		"Bad Reputation":
+			ctx.remove_random_patron()
+			return "Bad reputation: Lost 1 Patron on current world"
 
-		# Medical Events
-		"Friendly Doc":
-			ctx.reduce_recovery_time(2)
-			return "Reduced recovery time by 1 turn (up to 2 crew)"
-
-		"Medical Supplies":
-			ctx.heal_crew_in_sickbay()
-			return "One crew in Sick Bay recovers immediately"
-
-		# XP/Training Events
-		"Skill Training":
-			ctx.award_xp_to_random_crew(1)
-			return "+1 XP to random crew member"
-
-		"Crew Bonding":
-			ctx.award_xp_to_all_crew(1)
-			return "+1 XP to all crew"
-
-		# Injury Events
-		"Bar Brawl":
-			ctx.injure_random_crew(1)
-			return "Random crew member injured (1 turn recovery)"
-
-		# Gambling Events
-		"Gambling Opportunity":
-			return "Gambling opportunity (bet 1-6 credits)"
-
-		# Cargo Events
-		"Cargo Opportunity":
-			return "Cargo job: +3 credits but cannot travel this turn"
-
-		# Tax/Government Events
-		"Tax Collection":
-			var die1: int = ctx.roll_d6("Tax collection die 1")
-			var die2: int = ctx.roll_d6("Tax collection die 2")
-			var tax: int = max(die1, die2)
+		"Tax Man":
+			var die1: int = randi_range(1, 6)
+			var die2: int = randi_range(1, 6)
+			var tax: int = maxi(die1, die2)
 			if gsm:
 				var available: int = 0
 				if gsm.has_method("get_credits"):
 					available = gsm.get_credits()
 				if available >= tax:
 					gsm.add_credits(-tax)
-					return "Paid %d Credits in taxes (rolled %d, %d)" % [tax, die1, die2]
+					return "Tax man: Paid %d Credits (rolled %d, %d)" % [tax, die1, die2]
 				else:
-					return "Ship impounded! Pay %d Credits to retrieve" % (tax + 5)
-			return "Tax collector demands %d Credits" % tax
+					return "Tax man: Ship impounded! Pay %d Credits to retrieve" % tax
+			return "Tax man demands %d Credits" % tax
 
-		"Government Inspection":
-			var fine: int = ctx.roll_d6("Inspection fine")
-			return "Government inspection: Discard illegal goods or pay %d credit fine" % fine
-
-		"Bureaucratic Delay":
-			return "Bureaucratic delay: Cannot depart this turn"
-
-		# Leadership Events
 		"New Captain":
-			var roll: int = ctx.roll_d6("Captain transition")
+			var roll: int = randi_range(1, 6)
 			if roll == 1:
-				return "Select new captain (+3 XP), old captain departs with D6 credits"
-			return "Select new captain (+3 XP)"
+				return "New captain: Select new captain (+3 XP). Old captain leaves permanently with gear. K'Erin priority."
+			return "New captain: Select new captain (+3 XP). K'Erin must be selected or they leave."
 
-		"Crew Dispute":
-			return "Crew dispute: Captain must mediate or -1 morale"
-
-		"Leadership Challenge":
-			return "Leadership challenged: Captain must win combat roll or -2 morale"
-
-		# Invasion/War Events
-		"War Rumors":
-			return "War rumors: +2 to invasion check while on this planet"
-
-		"Invasion Warning":
-			var invasion_roll: int = ctx.roll_2d6("Invasion warning")
-			if invasion_roll >= 9:
-				if gsm and gsm.has_method("set_invasion_pending"):
-					gsm.set_invasion_pending(true)
-				return "Invasion imminent! (rolled %d) Invasion begins next turn" % invasion_roll
-			return "Invasion warning subsides (rolled %d)" % invasion_roll
-
-		"Refugee Crisis":
-			if gsm:
-				gsm.add_credits(-1)
-			ctx.add_quest_rumor()
-			return "Helped refugees (-1 Credit, +1 Rumor)"
-
-		# Reputation Events
-		"Bad Reputation":
-			ctx.remove_random_patron()
-			return "Bad reputation spreads: Lost 1 Patron"
-
-		"Reputation Boost":
-			if gsm and gsm.has_method("add_reputation"):
-				gsm.add_reputation(1)
-			return "+1 Reputation"
-
-		"Reputation Damaged":
-			if gsm and gsm.has_method("add_reputation"):
-				gsm.add_reputation(-1)
-			return "-1 Reputation"
-
-		# Rival Events (extended)
-		"Settled Business":
-			return "Settled business: Remove 1 Rival OR Captain gains +1 XP"
-
-		"Rival Ambush":
-			return "Rival ambush! Fight immediately (no deployment phase)"
-
-		"Rival Truce":
-			var truce_cost: int = ctx.roll_d6("Truce cost")
-			return "Rival offers truce: Pay %d Credits to remove them" % truce_cost
-
-		"Rival Alliance":
-			return "Two rivals have allied! Face combined forces next battle"
-
-		# Patron Events (extended)
-		"Patron Request":
-			return "Patron requests urgent mission: +2 Credits if completed this turn"
-
-		"Patron Fallout":
-			return "Patron relationship strained: -1 to next Patron roll"
-
-		"New Patron":
+		"Business Contacts":
 			ctx.add_patron()
-			return "Gained new Patron contact"
+			return "Business contacts: +1 Patron"
 
-		# Supply/Resource Events
-		"Supply Shortage":
-			if gsm and gsm.has_method("remove_supplies"):
-				gsm.remove_supplies(1)
-			return "Supply shortage: -1 Supplies"
+		"Learning Opportunity":
+			ctx.award_xp_to_all_crew(1)
+			return "Learning opportunity: All crew +1 XP"
 
-		"Supply Cache":
-			if gsm and gsm.has_method("add_supplies"):
-				gsm.add_supplies(2)
-			return "Found supply cache: +2 Supplies"
-
-		"Fuel Price Surge":
-			return "Fuel prices surge: Travel costs +1 Credit this turn"
-
-		"Fuel Discount":
-			return "Fuel discount: Travel costs -1 Credit this turn"
-
-		# Ship Events (extended)
-		"Hull Damage":
+		"Gravitational Adjuster":
+			var hull_dmg: int = randi_range(1, 6)
 			if gsm and gsm.has_method("damage_hull"):
-				gsm.damage_hull(1)
-			return "Ship hull damaged: -1 Hull Point"
+				gsm.damage_hull(hull_dmg)
+			return "Gravitational adjuster misaligned: Ship takes %d Hull damage" % hull_dmg
 
-		"System Failure":
-			return "Ship system failure: Pay D6 Credits or cannot travel"
+		"Crew Bonding":
+			if gsm and gsm.has_method("add_story_points"):
+				gsm.add_story_points(1)
+			return "Crew bonding: +1 Story Point"
 
-		"Free Repairs":
-			if gsm and gsm.has_method("repair_hull"):
-				gsm.repair_hull(2)
-			return "Free repair services: +2 Hull Points"
+		"Arms Dealer Contact":
+			return "Arms dealer: Add 3 weapons (choose from Hand Cannon, Military Rifle, Shotgun, Machine Pistol)"
 
-		"Stowaway":
-			var stowaway_roll: int = ctx.roll_d6("Stowaway")
-			if stowaway_roll <= 2:
-				if gsm:
-					gsm.add_credits(-randi_range(1, 6))
-				return "Stowaway was a thief! Lost D6 Credits"
-			elif stowaway_roll <= 4:
-				return "Stowaway is refugee seeking passage"
-			else:
-				return "Stowaway offers to join crew (roll on character table)"
-
-		# Quest Events (extended)
-		"Quest Lead":
-			ctx.add_quest_rumor()
-			ctx.add_quest_rumor()
-			return "Major quest lead: +2 Quest Rumors"
-
-		"Quest Setback":
-			ctx.remove_quest_rumor()
-			return "Quest setback: -1 Quest Rumor"
-
-		"False Lead":
-			return "Quest lead was false: No progress this turn"
-
-		# Market Events (extended)
-		"Black Market":
-			return "Black market access: Rare items available (illegal)"
-
-		"Merchant Guild":
-			return "Merchant guild membership offered: 10 Credits for permanent -1 cost"
-
-		"Trade War":
-			return "Local trade war: All buying/selling suspended this turn"
-
-		# Crime Events
-		"Pickpocketed":
-			var loss: int = ctx.roll_d6("Pickpocket loss")
+		"Renegotiate Debts":
+			var debt_relief: int = randi_range(1, 6) + 1
 			if gsm:
-				gsm.add_credits(-loss)
-			return "Crew member pickpocketed: -%d Credits" % loss
+				# If no debt, earn 2 credits instead
+				gsm.add_credits(2)
+			return "Renegotiate debts: Reduce debt by %d, or +2 Credits if debt-free" % debt_relief
 
-		"Bounty Posted":
-			return "Bounty posted on crew: +1 Rival (bounty hunter)"
+		"Rumors of War":
+			return "Rumors of war: +2 to Invasion rolls while on this planet"
 
-		"Crime Syndicate":
-			return "Crime syndicate offers job: High pay but +1 Rival if accepted"
+		"Time on Your Hands":
+			return "Time on your hands: 2 random crew roll on Exploration Table"
 
-		# Special Events
-		"Alien Artifact":
-			return "Alien artifact discovered: Roll on artifact table"
+		"Got Noticed":
+			ctx.add_rival("Unwanted attention")
+			return "Got noticed: +1 Rival (forced battle next turn if on Quest, +1 enemies)"
 
-		"Psychic Disturbance":
-			return "Psychic disturbance: -1 to all Savvy rolls this battle"
+		"Time to Go":
+			return "Time to go! +1 Rival each turn you stay on this planet"
 
-		"Strange Signal":
-			ctx.add_quest_rumor()
-			return "Strange signal detected: +1 Quest Rumor"
+		"No Ships Authorized":
+			return "No ships authorized: Cannot leave planet for 2 turns"
 
-		"Local Festival":
-			return "Local festival: +1 morale, trade prices +1 Credit"
+		"Great Story":
+			# Casualty gets +1 Luck, else +1 story point
+			if gsm and gsm.has_method("add_story_points"):
+				gsm.add_story_points(1)
+			return "Great story: Casualty +1 Luck, or +1 Story Point if no casualties"
 
 		_:
-			return "Event requires manual resolution"
+			return "Campaign event: %s (manual resolution)" % event_title
 
 	return "Event resolved"

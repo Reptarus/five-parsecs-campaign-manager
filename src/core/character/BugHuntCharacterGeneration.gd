@@ -7,9 +7,15 @@ extends RefCounted
 
 const DATA_PATH := "res://data/bug_hunt/bug_hunt_character_creation.json"
 const REGIMENT_PATH := "res://data/bug_hunt/bug_hunt_regiment_names.json"
+const WEAPONS_PATH := "res://data/bug_hunt/bug_hunt_weapons.json"
+const ARMOR_PATH := "res://data/bug_hunt/bug_hunt_armor.json"
+const GEAR_PATH := "res://data/bug_hunt/bug_hunt_gear.json"
 
 var _creation_data: Dictionary = {}
 var _regiment_data: Dictionary = {}
+var _weapons_data: Dictionary = {}
+var _armor_data: Dictionary = {}
+var _gear_data: Dictionary = {}
 var _loaded: bool = false
 
 
@@ -20,6 +26,9 @@ func _init() -> void:
 func _load_data() -> void:
 	_creation_data = _load_json(DATA_PATH)
 	_regiment_data = _load_json(REGIMENT_PATH)
+	_weapons_data = _load_json(WEAPONS_PATH)
+	_armor_data = _load_json(ARMOR_PATH)
+	_gear_data = _load_json(GEAR_PATH)
 	_loaded = not _creation_data.is_empty() and not _regiment_data.is_empty()
 
 
@@ -284,3 +293,68 @@ func _ordinal_suffix(n: int) -> String:
 		2: return "nd"
 		3: return "rd"
 		_: return "th"
+
+
+## ============================================================================
+## EQUIPMENT LOOKUP (Bug Hunt weapons/armor/gear from Compendium JSON)
+## ============================================================================
+
+func get_weapon_by_id(weapon_id: String) -> Dictionary:
+	## Look up weapon stats from bug_hunt_weapons.json by ID
+	for weapon in _weapons_data.get("weapons", []):
+		if weapon.get("id", "") == weapon_id:
+			return weapon
+	return {}
+
+func get_armor_by_id(armor_id: String) -> Dictionary:
+	## Look up armor stats from bug_hunt_armor.json by ID
+	for armor in _armor_data.get("armor", []):
+		if armor.get("id", "") == armor_id:
+			return armor
+	return {}
+
+func get_gear_by_id(gear_id: String) -> Dictionary:
+	## Look up gear stats from bug_hunt_gear.json by ID
+	for gear in _gear_data.get("gear", []):
+		if gear.get("id", "") == gear_id:
+			return gear
+	return {}
+
+func get_all_weapons() -> Array:
+	## Get all Bug Hunt weapons
+	return _weapons_data.get("weapons", [])
+
+func get_all_armor() -> Array:
+	## Get all Bug Hunt armor types
+	return _armor_data.get("armor", [])
+
+func get_all_gear() -> Array:
+	## Get all Bug Hunt gear items
+	return _gear_data.get("gear", [])
+
+func get_standard_issue_weapons() -> Array:
+	## Get weapons marked as standard issue
+	var result: Array = []
+	for weapon in _weapons_data.get("weapons", []):
+		if weapon.get("is_standard_issue", false):
+			result.append(weapon)
+	return result
+
+func resolve_equipment(equipment_ids: Array) -> Array:
+	## Convert equipment ID list to full stat block dictionaries
+	var resolved: Array = []
+	for eq_id in equipment_ids:
+		var weapon := get_weapon_by_id(eq_id)
+		if not weapon.is_empty():
+			resolved.append(weapon)
+			continue
+		var armor := get_armor_by_id(eq_id)
+		if not armor.is_empty():
+			resolved.append(armor)
+			continue
+		var gear := get_gear_by_id(eq_id)
+		if not gear.is_empty():
+			resolved.append(gear)
+			continue
+		resolved.append({"id": eq_id, "name": eq_id, "type": "unknown"})
+	return resolved

@@ -191,11 +191,12 @@ func generate_patrons() -> void:
 				"id": str(randi()),
 				"title": _generate_job_title(),
 				"description": _generate_job_description(),
-				"reward": (randi() % 10 + 5) * 100,
+				"reward": randi_range(1, 6),  # Core Rules p.120: 1D6 credits base
+				"danger_pay": randi_range(1, 3),  # Core Rules p.83: D10 → 1-3 credits
 				"difficulty": randi() % 5 + 1,
 				"location": galaxy_systems[randi() % galaxy_systems.size()]
 			}
-			
+
 			patron.jobs.append(job)
 		
 		available_patrons.append(patron)
@@ -243,7 +244,8 @@ func generate_missions() -> void:
 			"description": _generate_mission_description(),
 			"type": randi() % GlobalEnums.MissionType.size(),
 			"difficulty": randi() % 5 + 1,
-			"reward": (randi() % 15 + 10) * 100,
+			"reward": randi_range(1, 6),  # Core Rules p.120: 1D6 credits base
+			"danger_pay": 0,  # Added by patron job if applicable
 			"location": galaxy_systems[randi() % galaxy_systems.size()],
 			"patron_id": "",
 			"rival_id": ""
@@ -284,8 +286,8 @@ func generate_crew_tasks() -> Array:
 			"difficulty": randi() % 3 + 1,
 			"duration": randi() % 3 + 1,
 			"reward": {
-				"credits": randi() % 200 + 100,
-				"experience": randi() % 10 + 5
+				"credits": randi_range(1, 6),  # Core Rules p.120: 1D6 credits
+				"experience": randi_range(1, 3)  # Core Rules: 1-3 XP per task
 			},
 			"required_skills": []
 		}
@@ -306,7 +308,8 @@ func generate_job_offers() -> Array:
 			"id": str(randi()),
 			"title": _generate_job_title(),
 			"description": _generate_job_description(),
-			"reward": (randi() % 10 + 5) * 100,
+			"reward": randi_range(1, 6),  # Core Rules p.120: 1D6 credits base
+			"danger_pay": randi_range(1, 3),  # Core Rules p.83: 1-3 credits
 			"difficulty": randi() % 5 + 1,
 			"location": galaxy_systems[randi() % galaxy_systems.size()],
 			"duration": randi() % 5 + 1,

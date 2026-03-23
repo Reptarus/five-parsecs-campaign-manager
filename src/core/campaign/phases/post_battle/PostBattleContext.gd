@@ -193,6 +193,27 @@ func is_crew_member_bot(crew_id: String) -> bool:
 			return char_class == "Bot" or char_class == "BOT"
 	return false
 
+func get_character_origin(character: Variant) -> String:
+	## Get the origin/species of a character (Core Rules species: Human, K'Erin, Swift, Engineer, Soulless, Precursor, Feral, Bot)
+	if "origin" in character:
+		return str(character.origin)
+	elif character is Dictionary:
+		return character.get("origin", character.get("species", "Human"))
+	return "Human"
+
+func has_crew_with_origin(origin_name: String) -> bool:
+	## Check if any crew member has the given origin/species
+	var crew := get_crew_members()
+	for member in crew:
+		if get_character_origin(member).to_lower() == origin_name.to_lower():
+			return true
+	return false
+
+func is_character_bot_or_soulless(character: Variant) -> bool:
+	## Check if character is Bot or Soulless (excluded from character events per Core Rules p.128)
+	var origin: String = get_character_origin(character).to_lower()
+	return origin == "bot" or origin == "soulless"
+
 func has_crew_with_class(character_class: String) -> bool:
 	var crew := get_crew_members()
 	for member in crew:

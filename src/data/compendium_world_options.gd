@@ -14,6 +14,32 @@ extends RefCounted
 
 
 ## ============================================================================
+## JSON DATA LOADING (RulesReference canonical, const fallback)
+## ============================================================================
+
+static var _ref_data: Dictionary = {}
+static var _ref_loaded: bool = false
+
+static func _ensure_ref_loaded() -> void:
+	if _ref_loaded:
+		return
+	_ref_loaded = true
+	# Load terrain tables and fringe world strife data
+	for path in ["res://data/RulesReference/TerrainTables.json", "res://data/RulesReference/FringeWorldStrife"]:
+		if FileAccess.file_exists(path):
+			var file := FileAccess.open(path, FileAccess.READ)
+			if file:
+				var json := JSON.new()
+				if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+					_ref_data.merge(json.data)
+				file.close()
+
+static func get_ref_data() -> Dictionary:
+	_ensure_ref_loaded()
+	return _ref_data
+
+
+## ============================================================================
 ## DLC GATING HELPER
 ## ============================================================================
 

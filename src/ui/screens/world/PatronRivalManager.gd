@@ -659,19 +659,22 @@ func _generate_available_jobs() -> Array[Dictionary]:
 			available_jobs.append(job)
 	else:
 		# Fallback job generation
+		# NOTE: Payment values are D6-scale per Core Rules (1-6 credits base).
+		# See patron_generation.json (VERIFIED Core Rules pp.83-84).
 		available_jobs = [
-			{"title": "Escort Convoy", "payment": 2000, "difficulty": "Normal", "type": "escort", "danger_level": 2},
-			{"title": "Investigate Outpost", "payment": 1500, "difficulty": "Easy", "type": "investigation", "danger_level": 1},
-			{"title": "Clear Pirate Base", "payment": 3500, "difficulty": "Hard", "type": "combat", "danger_level": 4},
-			{"title": "Deliver Supplies", "payment": 1200, "difficulty": "Easy", "type": "delivery", "danger_level": 1}
+			{"title": "Escort Convoy", "payment": 5, "difficulty": "Normal", "type": "escort", "danger_level": 2},
+			{"title": "Investigate Outpost", "payment": 4, "difficulty": "Easy", "type": "investigation", "danger_level": 1},
+			{"title": "Clear Pirate Base", "payment": 7, "difficulty": "Hard", "type": "combat", "danger_level": 4},
+			{"title": "Deliver Supplies", "payment": 3, "difficulty": "Easy", "type": "delivery", "danger_level": 1}
 		]
 	
 	return available_jobs
 
 func _create_job_from_template(category: Dictionary) -> Dictionary:
 	## Create job from template category
-	var base_payment = category.get("base_payment", 1000)
-	var payment_variance = randi_range(-200, 500)
+	# Core Rules D6-scale payments (1-6 credits base)
+	var base_payment = category.get("base_payment", 4)
+	var payment_variance = randi_range(-1, 2)
 	
 	return {
 		"title": category.get("name", "Unknown Job"),

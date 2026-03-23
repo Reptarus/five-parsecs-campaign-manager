@@ -205,32 +205,12 @@ func _initialize_travel_tables() -> void:
 	# Loaded from event_tables.json
 	travel_events_table = _load_travel_events_from_json()
 
-	# World Traits Table (D100) - Core Rulebook
-	if GlobalEnums:
-		world_traits_table = [
-			{"range": [1, 15], "trait": GlobalEnums.WorldTrait.FRONTIER, "name": "Frontier World"},
-			{"range": [16, 30], "trait": GlobalEnums.WorldTrait.TRADE_HUB, "name": "Trade Hub"},
-			{"range": [31, 45], "trait": GlobalEnums.WorldTrait.INDUSTRIAL, "name": "Industrial"},
-			{"range": [46, 60], "trait": GlobalEnums.WorldTrait.RESEARCH, "name": "Research"},
-			{"range": [61, 75], "trait": GlobalEnums.WorldTrait.CRIMINAL, "name": "Criminal"},
-			{"range": [76, 85], "trait": GlobalEnums.WorldTrait.AFFLUENT, "name": "Affluent"},
-			{"range": [86, 92], "trait": GlobalEnums.WorldTrait.DANGEROUS, "name": "Dangerous"},
-			{"range": [93, 97], "trait": GlobalEnums.WorldTrait.CORPORATE, "name": "Corporate"},
-			{"range": [98, 100], "trait": GlobalEnums.WorldTrait.MILITARY, "name": "Military"}
-		]
-	else:
-		# Fallback table with numeric values (names must match primary table above)
-		world_traits_table = [
-			{"range": [1, 15], "trait": 1, "name": "Frontier World"},
-			{"range": [16, 30], "trait": 2, "name": "Trade Hub"},
-			{"range": [31, 45], "trait": 3, "name": "Industrial"},
-			{"range": [46, 60], "trait": 4, "name": "Research"},
-			{"range": [61, 75], "trait": 5, "name": "Criminal"},
-			{"range": [76, 85], "trait": 6, "name": "Affluent"},
-			{"range": [86, 92], "trait": 7, "name": "Dangerous"},
-			{"range": [93, 97], "trait": 8, "name": "Corporate"},
-			{"range": [98, 100], "trait": 9, "name": "Military"}
-		]
+	# World Traits Table (D100) - Core Rules pp.72-75
+	# Load from JSON (canonical source), fallback to hardcoded if file missing
+	world_traits_table = _load_world_traits_from_json()
+	if world_traits_table.is_empty():
+		push_warning("TravelPhase: world_traits.json not found or empty, using fallback")
+		world_traits_table = _fallback_world_traits()
 
 func _load_travel_events_from_json() -> Array[Dictionary]:
 	## Load travel events from event_tables.json (Core Rules pp.72-75)
@@ -274,6 +254,76 @@ func _fallback_travel_events() -> Array[Dictionary]:
 		{"range": [86, 91], "name": "Time to Reflect", "description": "Contemplation."},
 		{"range": [92, 95], "name": "Time to Read", "description": "Education time."},
 		{"range": [96, 100], "name": "Locked in the Library", "description": "Research opportunity."},
+	]
+
+func _load_world_traits_from_json() -> Array[Dictionary]:
+	## Load world traits from world_traits.json (Core Rules pp.72-75)
+	var path := "res://data/world_traits.json"
+	if not FileAccess.file_exists(path):
+		return []
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return []
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		push_warning("TravelPhase: Failed to parse world_traits.json")
+		return []
+	file.close()
+	if json.data is Dictionary:
+		var traits: Array = json.data.get("world_traits", [])
+		var result: Array[Dictionary] = []
+		for t in traits:
+			if t is Dictionary and t.has("roll_range"):
+				result.append({"range": t["roll_range"], "name": t.get("name", "Unknown"), "id": t.get("id", ""), "description": t.get("description", ""), "category": t.get("category", ""), "effect_type": t.get("effect_type", "")})
+		if result.size() > 0:
+			return result
+	return []
+
+func _fallback_world_traits() -> Array[Dictionary]:
+	## Hardcoded fallback if world_traits.json unavailable (Core Rules pp.72-75 subset)
+	return [
+		{"range": [1, 3], "name": "Haze", "id": "haze"},
+		{"range": [4, 6], "name": "Overgrown", "id": "overgrown"},
+		{"range": [7, 8], "name": "Warzone", "id": "warzone"},
+		{"range": [9, 10], "name": "Heavily Enforced", "id": "heavily_enforced"},
+		{"range": [11, 12], "name": "Rampant Crime", "id": "rampant_crime"},
+		{"range": [13, 14], "name": "Invasion Risk", "id": "invasion_risk"},
+		{"range": [15, 16], "name": "Imminent Invasion", "id": "imminent_invasion"},
+		{"range": [17, 18], "name": "Lacks Starship Facilities", "id": "lacks_starship_facilities"},
+		{"range": [19, 20], "name": "Easy Recruiting", "id": "easy_recruiting"},
+		{"range": [21, 22], "name": "Medical Science", "id": "medical_science"},
+		{"range": [23, 24], "name": "Technical Knowledge", "id": "technical_knowledge"},
+		{"range": [25, 26], "name": "Opportunities", "id": "opportunities"},
+		{"range": [27, 29], "name": "Booming Economy", "id": "booming_economy"},
+		{"range": [30, 32], "name": "Busy Markets", "id": "busy_markets"},
+		{"range": [33, 34], "name": "Bureaucratic Mess", "id": "bureaucratic_mess"},
+		{"range": [35, 36], "name": "Restricted Education", "id": "restricted_education"},
+		{"range": [37, 38], "name": "Expensive Education", "id": "expensive_education"},
+		{"range": [39, 41], "name": "Travel Restricted", "id": "travel_restricted"},
+		{"range": [42, 43], "name": "Unity Safe Sector", "id": "unity_safe_sector"},
+		{"range": [44, 46], "name": "Gloom", "id": "gloom"},
+		{"range": [47, 48], "name": "Bot Manufacturing", "id": "bot_manufacturing"},
+		{"range": [49, 51], "name": "Fuel Refinery", "id": "fuel_refinery"},
+		{"range": [52, 53], "name": "Alien Species Restricted", "id": "alien_species_restricted"},
+		{"range": [54, 55], "name": "Weapon Licensing", "id": "weapon_licensing"},
+		{"range": [56, 57], "name": "Import Restrictions", "id": "import_restrictions"},
+		{"range": [58, 59], "name": "Military Outpost", "id": "military_outpost"},
+		{"range": [60, 62], "name": "Dangerous", "id": "dangerous"},
+		{"range": [63, 64], "name": "Shipyards", "id": "shipyards"},
+		{"range": [65, 67], "name": "Barren", "id": "barren"},
+		{"range": [68, 69], "name": "Vendetta System", "id": "vendetta_system"},
+		{"range": [70, 72], "name": "Free Trade Zone", "id": "free_trade_zone"},
+		{"range": [73, 74], "name": "Corporate State", "id": "corporate_state"},
+		{"range": [75, 76], "name": "Adventurous Population", "id": "adventurous_population"},
+		{"range": [77, 79], "name": "Frozen", "id": "frozen"},
+		{"range": [80, 81], "name": "Flat", "id": "flat"},
+		{"range": [82, 84], "name": "Fuel Shortage", "id": "fuel_shortage"},
+		{"range": [85, 86], "name": "Reflective Dust", "id": "reflective_dust"},
+		{"range": [87, 89], "name": "High Cost", "id": "high_cost"},
+		{"range": [90, 91], "name": "Interdiction", "id": "interdiction"},
+		{"range": [92, 93], "name": "Null Zone", "id": "null_zone"},
+		{"range": [94, 96], "name": "Crystals", "id": "crystals"},
+		{"range": [97, 100], "name": "Fog", "id": "fog"},
 	]
 
 ## Main Travel Phase Processing
@@ -679,15 +729,18 @@ func _process_world_arrival() -> void:
 	## 3. Check licensing requirements (D6 for type)
 	## 4. Emit world_arrival_completed with full world data
 
-	# Roll D100 for world trait
+	# Roll D100 for world trait (Core Rules pp.72-75)
 	var trait_roll: int = randi_range(1, 100)
 	var world_trait_name: String = "Unknown"
-	var world_trait_value: Variant = 0
+	var world_trait_value: Variant = "none"
+	var world_trait_data: Dictionary = {}
 
 	for entry in world_traits_table:
-		if trait_roll >= entry.range[0] and trait_roll <= entry.range[1]:
+		var r: Array = entry.get("range", [0, 0])
+		if trait_roll >= r[0] and trait_roll <= r[1]:
 			world_trait_name = entry.get("name", "Unknown")
-			world_trait_value = entry.get("trait", 0)
+			world_trait_value = entry.get("id", entry.get("name", "unknown"))
+			world_trait_data = entry
 			break
 
 	# Generate a world name (fallback — Compendium name gen wired in Sprint 2)
@@ -726,6 +779,10 @@ func _process_world_arrival() -> void:
 		"name": world_name,
 		"trait": world_trait_value,
 		"trait_name": world_trait_name,
+		"trait_id": world_trait_value,
+		"trait_description": world_trait_data.get("description", ""),
+		"trait_category": world_trait_data.get("category", ""),
+		"trait_effect_type": world_trait_data.get("effect_type", ""),
 		"trait_roll": trait_roll,
 		"rivals_followed": rivals_that_follow,
 		"rival_follows": _rival_follows,

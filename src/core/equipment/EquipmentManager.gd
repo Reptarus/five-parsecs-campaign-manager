@@ -36,6 +36,7 @@ var _equipment_db: Dictionary = {}
 var _db_weapons: Array = []
 var _db_armor: Array = []
 var _db_gear: Array = []
+var _onboard_items: Array = []  # On-board items from Core Rules pp.57-58
 
 func _init() -> void:
 	pass
@@ -60,6 +61,40 @@ func _load_equipment_database() -> void:
 		_db_weapons = _equipment_db.get("weapons", [])
 		_db_armor = _equipment_db.get("armor", [])
 		_db_gear = _equipment_db.get("gear", [])
+
+	# Load on-board items (Core Rules pp.57-58 — ship items not carried into battle)
+	_load_onboard_items()
+
+func _load_onboard_items() -> void:
+	var path := "res://data/onboard_items.json"
+	if not FileAccess.file_exists(path):
+		return
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		push_warning("EquipmentManager: Failed to parse onboard_items.json")
+		return
+	file.close()
+	if json.data is Dictionary:
+		_onboard_items = json.data.get("onboard_items", [])
+
+## Get all on-board items (Core Rules pp.57-58)
+func get_onboard_items() -> Array:
+	return _onboard_items
+
+## Get on-board item by ID
+func get_onboard_item(item_id: String) -> Dictionary:
+	for item in _onboard_items:
+		if item is Dictionary and item.get("id", "") == item_id:
+			return item
+	return {}
+
+## Check if an on-board item is single-use
+func is_onboard_item_single_use(item_id: String) -> bool:
+	var item := get_onboard_item(item_id)
+	return item.get("single_use", false)
 
 ## Return basic weapons (always available, 1 credit each — Core Rules p.126)
 func get_basic_weapons() -> Array[Dictionary]:

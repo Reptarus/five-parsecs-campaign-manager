@@ -16,6 +16,8 @@ signal generation_failed(error: String)
 var enemy_data: Dictionary = {}
 var loot_tables: Dictionary = {}
 var spawn_rules: Dictionary = {}
+var bestiary_ref: Dictionary = {}  # RulesReference/Bestiary.json
+var elite_enemies_ref: Dictionary = {}  # RulesReference/EliteEnemies.json
 var data_manager: Node = null  # DataManager autoload
 
 # Legacy compatibility - fallback data
@@ -32,6 +34,11 @@ func _load_enemy_data() -> void:
 	
 	# Load main enemy types data
 	enemy_data = data_manager.load_json_file("res://data/enemy_types.json")
+
+	# Load RulesReference data for cross-validation and elite enemies
+	bestiary_ref = data_manager.load_json_file("res://data/RulesReference/Bestiary.json")
+	elite_enemies_ref = data_manager.load_json_file("res://data/RulesReference/EliteEnemies.json")
+
 	if enemy_data.is_empty():
 		push_error("Failed to load enemy data from res://data/enemy_types.json")
 		_load_fallback_enemy_data()

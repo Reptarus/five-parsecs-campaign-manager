@@ -7,14 +7,23 @@ extends RefCounted
 
 const TACTICAL_LOCATIONS_PATH := "res://data/bug_hunt/bug_hunt_tactical_locations.json"
 const SPAWN_RULES_PATH := "res://data/bug_hunt/bug_hunt_spawn_rules.json"
+const WEAPONS_PATH := "res://data/bug_hunt/bug_hunt_weapons.json"
+const ARMOR_PATH := "res://data/bug_hunt/bug_hunt_armor.json"
+const GEAR_PATH := "res://data/bug_hunt/bug_hunt_gear.json"
 
 var _tactical_data: Dictionary = {}
 var _spawn_data: Dictionary = {}
+var _weapons_data: Dictionary = {}
+var _armor_data: Dictionary = {}
+var _gear_data: Dictionary = {}
 
 
 func _init() -> void:
 	_tactical_data = _load_json(TACTICAL_LOCATIONS_PATH)
 	_spawn_data = _load_json(SPAWN_RULES_PATH)
+	_weapons_data = _load_json(WEAPONS_PATH)
+	_armor_data = _load_json(ARMOR_PATH)
+	_gear_data = _load_json(GEAR_PATH)
 
 
 func generate_battle_context(mission_context: Dictionary, campaign: Resource = null) -> Dictionary:
@@ -45,8 +54,25 @@ func generate_battle_context(mission_context: Dictionary, campaign: Resource = n
 		"terrain_theme": "indoor",  # Bug Hunt is typically indoor/facility
 		"contact_table_rules": _spawn_data.get("contact_table", {}),
 		"aggression_dice": _spawn_data.get("aggression_dice", {}),
-		"chance_dice": _spawn_data.get("chance_dice", {})
+		"chance_dice": _spawn_data.get("chance_dice", {}),
+		"weapons_table": _weapons_data.get("weapons", []),
+		"armor_table": _armor_data.get("armor", []),
+		"gear_table": _gear_data.get("gear", [])
 	}
+
+## Look up weapon stats by ID from bug_hunt_weapons.json
+func get_weapon(weapon_id: String) -> Dictionary:
+	for weapon in _weapons_data.get("weapons", []):
+		if weapon.get("id", "") == weapon_id:
+			return weapon
+	return {}
+
+## Look up armor stats by ID from bug_hunt_armor.json
+func get_armor(armor_id: String) -> Dictionary:
+	for armor in _armor_data.get("armor", []):
+		if armor.get("id", "") == armor_id:
+			return armor
+	return {}
 
 
 func _generate_contact_markers(count: int) -> Array:

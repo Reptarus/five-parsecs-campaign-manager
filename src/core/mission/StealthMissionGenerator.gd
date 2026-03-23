@@ -126,6 +126,38 @@ const SPOTTING_MODIFIERS: Array[Dictionary] = [
 
 
 ## ============================================================================
+## JSON DATA LOADING (RulesReference canonical, const fallback)
+## ============================================================================
+
+static var _ref_data: Dictionary = {}
+static var _ref_loaded: bool = false
+
+static func _ensure_ref_loaded() -> void:
+	if _ref_loaded:
+		return
+	_ref_loaded = true
+	var path := "res://data/RulesReference/StealthAndStreet.json"
+	if not FileAccess.file_exists(path):
+		return
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+		_ref_data = json.data
+	file.close()
+
+static func get_ref_data() -> Dictionary:
+	_ensure_ref_loaded()
+	return _ref_data
+
+static func get_stealth_rules() -> Dictionary:
+	_ensure_ref_loaded()
+	var missions: Dictionary = _ref_data.get("special_missions", {})
+	return missions.get("stealth", {})
+
+
+## ============================================================================
 ## DLC GATING
 ## ============================================================================
 

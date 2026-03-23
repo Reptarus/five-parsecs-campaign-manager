@@ -155,8 +155,12 @@ const COMBAT = {
 const MISSIONS = {
 	"patron_jobs_per_turn": 3, # GAME_BALANCE_ESTIMATE — needs Core Rules p.84 verification
 	"opportunity_jobs": 2, # GAME_BALANCE_ESTIMATE — needs Core Rules p.84 verification
-	"mission_pay_multiplier": 5, # GAME_BALANCE_ESTIMATE — needs Core Rules p.97 verification
-	"danger_pay_bonus": 2, # GAME_BALANCE_ESTIMATE — needs Core Rules p.97 verification
+	# GAME_BALANCE_ESTIMATE — needs Core Rules p.97 verification.
+	# Note: credit_rewards.json has D100 table (500-3000 base pay, unverified)
+	"mission_pay_multiplier": 5,
+	# GAME_BALANCE_ESTIMATE — CONFLICTS with patron_generation.json
+	# danger_pay_table (D10: 1-3 credits, VERIFIED p.83). JSON wins.
+	"danger_pay_bonus": 2,
 	"story_mission_frequency": 6 # GAME_BALANCE_ESTIMATE — needs Core Rules verification
 }
 

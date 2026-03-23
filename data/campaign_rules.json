@@ -1,8 +1,12 @@
 {
 	"_comment": "Five Parsecs From Home - Campaign Rules Data (Core Rulebook)",
+	"_WARNING": "This file has NO GDScript consumer as of Mar 2026. Canonical economy values are in FiveParsecsConstants.gd (VERIFIED). Fix or wire this file before relying on its values.",
 	"upkeep": {
-		"base_cost_per_member": 6,
-		"minimum_cost_per_member": 1,
+		"_source": "Core Rules p.76 — VERIFIED in FiveParsecsConstants.gd",
+		"base_upkeep": 1,
+		"upkeep_threshold": 4,
+		"upkeep_cap": 6,
+		"additional_crew_cost": 1,
 		"trait_discounts": {
 			"TACTICAL_MIND": 1,
 			"STREET_SMART": 2
@@ -110,6 +114,7 @@
 		}
 	},
 	"campaign": {
+		"_CONFLICT": "starting_credits: 100 here vs 10 in FiveParsecsConstants.gd vs 1/crew (VERIFIED Core Rules p.28). Needs book verification — may be campaign pool vs per-character vs per-crew-member. WorldEconomyManager._init() hardcodes 1000.",
 		"starting_credits": 100,
 		"starting_supplies": 50,
 		"starting_fuel": 20,

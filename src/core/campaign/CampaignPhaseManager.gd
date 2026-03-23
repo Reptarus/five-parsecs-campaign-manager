@@ -637,8 +637,31 @@ func _generate_available_missions() -> Array:
 	return []
 
 func _calculate_upkeep_costs() -> int:
-	# Stub: Calculate crew and ship upkeep
-	return 0
+	## Calculate crew upkeep costs (Core Rules p.76, VERIFIED).
+	## 0 credits for crews ≤ upkeep_threshold (4).
+	## base_upkeep (1) credit for crews of upkeep_threshold+1 to upkeep_cap (4-6).
+	## +additional_crew_cost (1) per member over upkeep_cap (6).
+	if not game_state or not game_state.current_campaign:
+		return 0
+	var crew_size: int = 0
+	var campaign = game_state.current_campaign
+	if campaign.has_method("get_crew_size"):
+		crew_size = campaign.get_crew_size()
+	elif "crew_data" in campaign and campaign.crew_data is Dictionary:
+		var members = campaign.crew_data.get("members", [])
+		crew_size = members.size() if members is Array else 0
+	else:
+		crew_size = 4 # Fallback to minimum
+	var threshold: int = FiveParsecsConstants.ECONOMY.upkeep_threshold # 4
+	var cap: int = FiveParsecsConstants.ECONOMY.upkeep_cap # 6
+	var base: int = FiveParsecsConstants.ECONOMY.base_upkeep # 1
+	var extra: int = FiveParsecsConstants.ECONOMY.additional_crew_cost # 1
+	if crew_size <= threshold:
+		return 0
+	var total: int = base
+	if crew_size > cap:
+		total += (crew_size - cap) * extra
+	return total
 
 func _generate_story_events() -> Array:
 	# Stub: Generate story events

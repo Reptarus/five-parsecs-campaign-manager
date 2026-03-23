@@ -1,82 +1,26 @@
 {
-	"_WARNING": "FABRICATED MISSION TYPES — Core Rules uses D10 objective tables (Move Through, Deliver, Access, Patrol, Fight Off, Search, Defend, Acquire, Secure, Protect, Eliminate). This file has invented types (Salvage, Rescue, Bounty Hunt, Exploration, Convoy). See data/patron_generation.json for verified objectives.",
-	"_metadata": {
-		"name": "Mission Generation Data",
-		"description": "All mission generation text data for FiveParsecsMissionGenerator. Locations, factions, titles, descriptions, objectives, special rules.",
-		"source": "Five Parsecs from Home Core Rules",
-		"version": "1.0"
-	},
+	"_source": "Supplementary mission generation data. Core Rules mission objectives are in data/patron_generation.json (pp.89-91).",
+	"_note": "This file provides locations, terrain themes, and flavor text for FiveParsecsMissionGenerator. Mission objectives (D10 tables) are loaded from patron_generation.json as canonical source. The old fabricated mission types (Salvage, Rescue, Bounty Hunt, Exploration, Convoy) have been removed.",
 	"locations": [
 		"Abandoned Outpost", "Derelict Ship", "Urban Ruins", "Mining Facility",
 		"Research Station", "Jungle Wilderness", "Desert Wasteland", "Space Station",
 		"Underground Complex", "Orbital Platform"
 	],
 	"enemy_factions": [
-		"Marauders", "Corporate Security", "Alien Horde", "Rogue AI",
-		"Rival Crew", "Government Forces", "Cultists", "Mercenaries",
-		"Rebels", "Pirates"
+		"Criminal Elements", "Hired Muscle", "Interested Parties", "Roving Threats"
 	],
 	"terrain_themes": ["urban", "wilderness", "industrial", "space_station", "wasteland"],
-	"resource_types": ["medical_supplies", "spare_parts", "salvage", "ammunition"],
-	"titles": {
-		"0": ["Desperate Stand", "Firefight", "Skirmish", "Ambush", "Raid"],
-		"1": ["Special Contract", "Lucrative Offer", "Patron's Request", "High-Stakes Job", "Covert Operation"],
-		"2": ["Critical Moment", "Turning Point", "Revelation", "Confrontation", "Discovery"],
-		"3": ["Old Enemies", "Showdown", "Rivalry", "Contested Ground", "Face-Off"],
-		"4": ["Valuable Salvage", "Wreckage Recovery", "Scavenging Operation", "Derelict Exploration", "Abandoned Tech"],
-		"5": ["Desperate Rescue", "Extraction Mission", "Hostage Situation", "Prisoner Recovery", "Emergency Evacuation"],
-		"6": ["High-Value Target", "Wanted Dead or Alive", "Dangerous Quarry", "Fugitive Hunt", "Bounty Collection"],
-		"7": ["Uncharted Territory", "Strange Discovery", "Ancient Ruins", "Mysterious Signal", "Frontier Expedition"],
-		"8": ["Valuable Cargo", "Dangerous Transit", "Escort Duty", "Supply Run", "VIP Transport"],
-		"9": ["Last Stand", "Hold the Line", "Defensive Position", "Protect the Asset", "Fortified Defense"]
-	},
 	"difficulty_descriptions": {
-		"1": "This should be a straightforward mission.",
+		"1": "A straightforward operation.",
 		"2": "A standard operation with moderate risk.",
 		"3": "This mission presents significant challenges.",
 		"4": "A high-risk operation with serious dangers.",
 		"5": "An extremely dangerous mission with overwhelming odds."
 	},
-	"type_descriptions": {
-		"0": "Engage and defeat enemy forces in direct combat.",
-		"1": "Complete a specialized task for an influential patron.",
-		"2": "A pivotal mission that will advance your crew's story.",
-		"3": "Face off against a rival crew competing for the same objective.",
-		"4": "Recover valuable salvage from a dangerous location.",
-		"5": "Extract hostages or stranded personnel from enemy territory.",
-		"6": "Track down and capture or eliminate a high-value target.",
-		"7": "Explore an uncharted area and document your findings.",
-		"8": "Protect a convoy of vehicles from enemy attacks.",
-		"9": "Hold a strategic position against waves of enemies."
-	},
-	"objectives": {
-		"0": ["Defeat all enemies"],
-		"1": ["Complete the patron's task", "Return to the extraction point"],
-		"2": ["Achieve the primary objective", "Survive the encounter"],
-		"3": ["Defeat the rival crew", "Secure the contested resource"],
-		"4": ["Collect at least 3 salvage tokens", "Extract safely"],
-		"5": ["Locate and secure all hostages", "Escort hostages to extraction point"],
-		"6": ["Capture or eliminate the target", "Collect proof of completion"],
-		"7": ["Explore at least 3 points of interest", "Document findings"],
-		"8": ["Protect the convoy vehicles", "Reach the destination"],
-		"9": ["Hold the position for 5 turns", "Prevent enemy access to the objective"]
-	},
-	"bonus_objectives": [
-		"Recover the hidden data cache",
-		"Eliminate the enemy leader",
-		"Avoid triggering alarms",
-		"Complete the mission without casualties",
-		"Find and secure the secret weapon"
-	],
-	"special_rules": [
-		"Limited Visibility", "Hazardous Environment", "Reinforcements",
-		"Time Limit", "Restricted Equipment", "Unstable Ground",
-		"Extreme Weather", "Radiation Zone", "Automated Defenses", "Civilian Presence"
-	],
-	"reward_multipliers": {
-		"1": 1.5,
-		"2": 2.0,
-		"3": 1.3,
-		"4": 1.2
+	"titles": {
+		"battle": ["Desperate Stand", "Firefight", "Skirmish", "Ambush", "Raid"],
+		"patron_job": ["Special Contract", "Patron's Request", "Lucrative Offer", "High-Stakes Job"],
+		"story_mission": ["Critical Moment", "Turning Point", "Revelation", "Confrontation"],
+		"rival_encounter": ["Old Enemies", "Showdown", "Rivalry", "Contested Ground", "Face-Off"]
 	}
 }

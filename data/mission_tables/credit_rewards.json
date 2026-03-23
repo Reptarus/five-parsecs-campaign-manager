@@ -1,4 +1,5 @@
 {
+    "_WARNING": "FABRICATED — This entire D100 table (500-3000 credits) is AI-invented. Core Rules uses D6 base payment (1-6 credits) + D10 danger pay (1-3 credits). See data/patron_generation.json for VERIFIED tables (Core Rules pp.83-84). Values here are ~100x the Core Rules scale. Difficulty and zone modifiers are also fabricated.",
     "name": "credit_rewards",
     "entries": [
         {

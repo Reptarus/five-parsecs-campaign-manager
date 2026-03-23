@@ -78,15 +78,29 @@ func _load_dependencies() -> void:
 	## Load all JSON data dependencies using DataManager static API
 	# Remove unnecessary DataManager instance - use static API
 	
-	# Load patron types data using static DataManager API
-	var patron_data_file = DataManager._load_json_safe("res://data/patron_types.json", "patron_types")
-	if not patron_data_file.is_empty():
-		patron_types_data = patron_data_file
-		var patron_types_array = SafeDataAccess.safe_get(patron_types_data, "patron_types", [], "patron types loading")
-		pass
+	# Load patron types from canonical patron_generation.json (Core Rules pp.83-84)
+	var patron_gen_file = DataManager._load_json_safe("res://data/patron_generation.json", "patron_generation")
+	if not patron_gen_file.is_empty() and patron_gen_file.has("patron_type_table"):
+		# Convert patron_generation.json format to patron_types_data format
+		var type_table: Dictionary = patron_gen_file.get("patron_type_table", {})
+		var entries: Array = type_table.get("entries", [])
+		var types_array: Array = []
+		for entry in entries:
+			types_array.append({
+				"type": entry.get("type", "Unknown").to_upper().replace(" ", "_"),
+				"display_name": entry.get("type", "Unknown"),
+				"notes": entry.get("notes", ""),
+				"roll_range": entry.get("roll_range", [0, 0])
+			})
+		patron_types_data = {"patron_types": types_array, "_source": "patron_generation.json"}
 	else:
-		push_warning("Patron types data not found in DataManager, using fallback")
-		_load_fallback_patron_data()
+		# Fallback to legacy patron_types.json
+		var patron_data_file = DataManager._load_json_safe("res://data/patron_types.json", "patron_types")
+		if not patron_data_file.is_empty():
+			patron_types_data = patron_data_file
+		else:
+			push_warning("Patron types data not found, using fallback")
+			_load_fallback_patron_data()
 	
 	# Load mission data using static DataManager API
 	var mission_data_file = DataManager._load_json_safe("res://data/mission_tables/mission_types.json", "mission_types")

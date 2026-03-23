@@ -1,223 +1,56 @@
 {
-  "_WARNING": "PARTIALLY FABRICATED — patron_contact_table uses fabricated 2D6 with patron tiers (minor/regular/major/elite) and reputation modifiers. Core Rules uses 1D6+crew, 5+=1 patron, 6+=2 patrons. See data/patron_generation.json for verified tables.",
-  "name": "Patron Job Generation Table",
-  "version": "1.0",
-  "source": "Five Parsecs from Home Core Rules p.75-77",
-  "description": "Tables for generating patron job offers during the World Step",
-  "patron_contact_table": {
-    "dice_type": "2d6",
-    "description": "Roll to determine if patron contact is made",
-    "results": {
-      "2-6": {
-        "outcome": "no_contact",
-        "description": "No patron contact made this turn",
-        "narrative": "Despite your efforts, no suitable patrons are interested"
-      },
-      "7-8": {
-        "outcome": "minor_patron",
-        "patron_tier": "minor",
-        "description": "Contact with minor patron offering small jobs",
-        "narrative": "You make contact with a local patron with modest needs"
-      },
-      "9-10": {
-        "outcome": "regular_patron",
-        "patron_tier": "regular",
-        "description": "Contact with regular patron offering standard jobs",
-        "narrative": "A respectable patron approaches with legitimate work"
-      },
-      "11": {
-        "outcome": "major_patron",
-        "patron_tier": "major",
-        "description": "Contact with major patron offering significant jobs",
-        "narrative": "An influential patron takes interest in your capabilities"
-      },
-      "12": {
-        "outcome": "elite_patron",
-        "patron_tier": "elite",
-        "description": "Contact with elite patron offering lucrative opportunities",
-        "narrative": "A powerful patron offers access to high-stakes operations"
-      }
-    },
-    "modifiers": {
-      "skill_bonuses": {
-        "CONNECTIONS": {
-          "bonus": 2,
-          "description": "Connections skill helps find patrons"
-        },
-        "SAVVY": {
-          "bonus": 1,
-          "description": "Savvy characters know where to look for work"
-        }
-      },
-      "reputation_modifiers": {
-        "positive_reputation": {
-          "threshold": 10,
-          "bonus": 1,
-          "description": "Good reputation attracts patron attention"
-        },
-        "excellent_reputation": {
-          "threshold": 25,
-          "bonus": 2,
-          "description": "Excellent reputation draws elite patrons"
-        },
-        "negative_reputation": {
-          "threshold": -5,
-          "penalty": -1,
-          "description": "Poor reputation limits patron options"
-        }
-      },
-      "world_modifiers": {
-        "TRADE_HUB": {
-          "bonus": 1,
-          "description": "Trade hubs attract various patrons"
-        },
-        "CAPITAL": {
-          "bonus": 2,
-          "description": "Capital worlds have many potential patrons"
-        },
-        "CORPORATE": {
-          "bonus": 1,
-          "description": "Corporate worlds offer business opportunities"
-        },
-        "FRONTIER": {
-          "penalty": -1,
-          "description": "Frontier worlds have fewer established patrons"
-        },
-        "BACKWATER": {
-          "penalty": -2,
-          "description": "Backwater worlds rarely attract quality patrons"
-        }
-      }
-    }
-  },
-  "job_type_table": {
-    "dice_type": "d10",
-    "description": "Determine the type of job offered by patron",
-    "results": {
-      "1": {
-        "job_type": "DELIVERY",
-        "description": "Transport goods or information to destination",
-        "base_pay": 4,
-        "danger_level": 1,
-        "typical_requirements": ["Transport", "Basic combat capability"]
-      },
-      "2": {
-        "job_type": "ESCORT",
-        "description": "Protect person or convoy during travel",
-        "base_pay": 5,
-        "danger_level": 2,
-        "typical_requirements": ["Combat skills", "Weapons", "Transport"]
-      },
-      "3": {
-        "job_type": "INVESTIGATION",
-        "description": "Gather information or solve mysteries",
-        "base_pay": 4,
-        "danger_level": 1,
-        "typical_requirements": ["Savvy skill", "Social connections"]
-      },
-      "4": {
-        "job_type": "SECURITY",
-        "description": "Guard facility or person against threats",
-        "base_pay": 5,
-        "danger_level": 2,
-        "typical_requirements": ["Combat training", "Vigilance", "Weapons"]
-      },
-      "5": {
-        "job_type": "RETRIEVAL",
-        "description": "Recover stolen or lost items",
-        "base_pay": 6,
-        "danger_level": 3,
-        "typical_requirements": ["Combat ability", "Investigation skills"]
-      },
-      "6": {
-        "job_type": "ELIMINATION",
-        "description": "Remove specific threats or targets",
-        "base_pay": 7,
-        "danger_level": 4,
-        "typical_requirements": ["Superior combat skills", "Stealth capability"]
-      },
-      "7": {
-        "job_type": "SABOTAGE",
-        "description": "Disrupt enemy operations or facilities",
-        "base_pay": 6,
-        "danger_level": 3,
-        "typical_requirements": ["Tech skills", "Stealth", "Explosives"]
-      },
-      "8": {
-        "job_type": "EXPLORATION",
-        "description": "Survey unknown areas or recover artifacts",
-        "base_pay": 5,
-        "danger_level": 2,
-        "typical_requirements": ["Survival skills", "Scientific equipment"]
-      },
-      "9": {
-        "job_type": "RESCUE",
-        "description": "Extract persons from dangerous situations",
-        "base_pay": 7,
-        "danger_level": 4,
-        "typical_requirements": ["Combat expertise", "Medical training", "Transport"]
-      },
-      "10": {
-        "job_type": "SPECIAL",
-        "description": "Unique mission requiring specific expertise",
-        "base_pay": 8,
-        "danger_level": 3,
-        "typical_requirements": ["Variable based on mission specifics"]
-      }
-    }
-  },
-  "job_payment_modifiers": {
-    "patron_tier_multipliers": {
-      "minor": 0.8,
-      "regular": 1.0,
-      "major": 1.3,
-      "elite": 1.6
-    },
-    "danger_level_bonuses": {
-      "1": 0,
-      "2": 1,
-      "3": 2,
-      "4": 4,
-      "5": 6
-    },
-    "world_payment_modifiers": {
-      "WEALTHY": {
-        "multiplier": 1.2,
-        "description": "Wealthy worlds pay premium rates"
-      },
-      "POOR": {
-        "multiplier": 0.8,
-        "description": "Poor worlds offer reduced payment"
-      },
-      "DANGEROUS": {
-        "bonus": 2,
-        "description": "Danger premium for hazardous worlds"
-      },
-      "WAR_ZONE": {
-        "bonus": 3,
-        "description": "War zone premium for extreme risk"
-      }
-    }
-  },
-  "special_rules": {
-    "reputation_requirements": {
-      "rule": "Some job types require minimum reputation levels",
-      "elimination_min": 5,
-      "rescue_min": 3,
-      "special_min": 10,
-      "description": "High-risk jobs require proven track records"
-    },
-    "equipment_requirements": {
-      "rule": "Jobs may specify required equipment or capabilities",
-      "description": "Patrons ensure crews can handle job requirements"
-    },
-    "time_pressure": {
-      "rule": "Some jobs have time limits or urgency factors",
-      "description": "Time-sensitive missions may offer bonuses or penalties"
-    },
-    "ongoing_relationships": {
-      "rule": "Successful job completion improves patron relationship",
-      "description": "Good performance leads to better future opportunities"
-    }
-  }
+	"_source": "Core Rules pp.83-84 — Patron Job Generation. CANONICAL DATA in data/patron_generation.json. This file provides legacy compatibility format for PatronJobManager.gd fallback.",
+	"_note": "PatronJobManager, PatronJobGenerator, and PatronSystem now load from patron_generation.json first. This file is retained as fallback only.",
+	"name": "Patron Job Generation Table (Legacy Format)",
+	"version": "2.0",
+	"source": "Five Parsecs from Home Core Rules pp.83-84",
+	"patron_contact_table": {
+		"_note": "Core Rules p.82: Assign crew to Find a Patron task. Roll 2D6, 5+ = 1 patron found.",
+		"dice_type": "2d6",
+		"description": "Roll 2D6 for patron contact (crew task: Find a Patron)",
+		"results": {
+			"2-4": {
+				"outcome": "no_contact",
+				"description": "No patron contact made this turn"
+			},
+			"5-8": {
+				"outcome": "patron_found",
+				"patron_count": 1,
+				"description": "Found 1 patron. Roll D10 for patron type (see patron_generation.json)."
+			},
+			"9-12": {
+				"outcome": "patron_found",
+				"patron_count": 1,
+				"description": "Found 1 patron with favorable terms. Roll D10 for patron type."
+			}
+		}
+	},
+	"job_type_table": {
+		"_note": "DEPRECATED — mission objectives now in patron_generation.json mission_objectives section. These are Core Rules D10 objective types, not job categories.",
+		"dice_type": "D10",
+		"description": "Patron mission objective (Core Rules p.89)",
+		"results": {
+			"1": {"objective": "Deliver", "source": "core"},
+			"2": {"objective": "Deliver", "source": "core"},
+			"3": {"objective": "Eliminate", "source": "core"},
+			"4": {"objective": "Move Through", "source": "core"},
+			"5": {"objective": "Move Through", "source": "core"},
+			"6": {"objective": "Secure", "source": "core"},
+			"7": {"objective": "Secure", "source": "core"},
+			"8": {"objective": "Protect", "source": "core"},
+			"9": {"objective": "Fight Off", "source": "core"},
+			"10": {"objective": "Fight Off", "source": "core"}
+		}
+	},
+	"job_payment_modifiers": {
+		"_note": "Danger Pay from Core Rules p.83. No patron tiers — that was fabricated.",
+		"danger_pay": {
+			"1-4": 1,
+			"5-8": 2,
+			"9": 3,
+			"10+": 3
+		},
+		"corporation_bonus": "+1 to Danger Pay roll",
+		"secretive_group_bonus": "+1 to Time Frame roll"
+	}
 }

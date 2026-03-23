@@ -70,11 +70,33 @@ func _initialize_job_data() -> void:
 	_load_patron_modifiers()
 	_load_relationship_benefits()
 
-## Load job templates for different mission types
+## Load job templates from canonical patron_generation.json (Core Rules pp.83-84, 89-91)
 func _load_job_templates() -> void:
-	# Try JSON first
+	# Try patron_generation.json first (canonical source)
 	var dm = Engine.get_main_loop().root.get_node_or_null("/root/DataManager") if Engine.get_main_loop() else null
 	if dm and dm.has_method("load_json_file"):
+		var gen_data: Dictionary = dm.load_json_file("res://data/patron_generation.json")
+		if not gen_data.is_empty() and gen_data.has("mission_objectives"):
+			var objectives: Dictionary = gen_data.get("mission_objectives", {})
+			var obj_descs: Dictionary = objectives.get("objective_descriptions", {})
+			for obj_name in obj_descs:
+				var desc: Dictionary = obj_descs[obj_name]
+				var job_type: String = obj_name.to_upper()
+				if not job_templates.has(job_type):
+					job_templates[job_type] = {
+						"titles": [obj_name],
+						"descriptions": [desc.get("description", "")],
+						"base_payment": 5,
+						"danger_range": [1, 3],
+						"difficulty_range": [1, 3],
+						"special_rules": [],
+						"success_bonus": {},
+						"page_reference": desc.get("page", "")
+					}
+			if not job_templates.is_empty():
+				return
+
+		# Fallback: try legacy patron_jobs.json
 		var json_data: Dictionary = dm.load_json_file("res://data/campaign_tables/world_phase/patron_jobs.json")
 		var job_type_table: Dictionary = json_data.get("job_type_table", {})
 		var job_results: Dictionary = job_type_table.get("results", {})

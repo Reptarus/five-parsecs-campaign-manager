@@ -1,411 +1,285 @@
 {
-	"_WARNING": "FABRICATED — Entry names, D100 ranges, and effects do NOT match Core Rules pp.128-130. Book has ~33 specific events (1-3: Violence depressing, 4-6: Business elsewhere, 7-10: Local friends, etc.) with species-specific exceptions (K'Erin, Swift, Engineer, Precursor). This file has generic fabricated entries. Needs full rewrite.",
-	"_comment": "Post-Battle Character Events D100 Table (Core Rules p.128-130). Roll on random non-Bot non-Soulless crew member. Precursors roll twice and pick either.",
+	"_source": "Core Rules pp.128-130 — Character Events Table (D100)",
+	"_note": "Roll D100 on a random non-Bot, non-Soulless crew member. If crew has Precursor members, they roll twice and pick either. Species exceptions noted per entry.",
 	"name": "character_events",
 	"entries": [
 		{
 			"roll_range": [1, 3],
 			"result": {
-				"type": "focused_training",
-				"name": "Focused Training",
-				"description": "Intense combat practice pays off.",
-				"category": "xp"
+				"type": "combat_refusal",
+				"name": "Violence is Depressing",
+				"description": "All this endless violence is depressing you. The character refuses to participate in any battle during the next campaign turn (except for an Invasion battle). Get +1 story point, as they get a new perspective on life.",
+				"effects": {"skip_next_battle": true, "invasion_exception": true, "story_points": 1},
+				"species_exceptions": {"K'Erin": "Unaffected by this event"}
 			}
 		},
 		{
-			"roll_range": [4, 5],
+			"roll_range": [4, 6],
 			"result": {
-				"type": "technical_study",
-				"name": "Technical Study",
-				"description": "Time spent studying technical manuals.",
-				"category": "xp"
-			}
-		},
-		{
-			"roll_range": [6, 7],
-			"result": {
-				"type": "physical_training",
-				"name": "Physical Training",
-				"description": "A rigorous physical training regime.",
-				"category": "xp"
-			}
-		},
-		{
-			"roll_range": [8, 9],
-			"result": {
-				"type": "personal_growth",
-				"name": "Personal Growth",
-				"description": "A period of significant personal development.",
-				"category": "xp"
-			}
-		},
-		{
-			"roll_range": [10, 11],
-			"result": {
-				"type": "moment_of_glory",
-				"name": "Moment of Glory",
-				"description": "A defining moment of achievement.",
-				"category": "xp"
-			}
-		},
-		{
-			"roll_range": [12, 13],
-			"result": {
-				"type": "combat_drill",
-				"name": "Combat Drill",
-				"description": "Participation in a combat drill sharpens skills.",
-				"category": "xp"
-			}
-		},
-		{
-			"roll_range": [14, 15],
-			"result": {
-				"type": "mentor",
-				"name": "Mentor",
-				"description": "Learning from an experienced mentor.",
-				"category": "xp"
-			}
-		},
-		{
-			"roll_range": [16, 17],
-			"result": {
-				"type": "hard_lessons",
-				"name": "Hard Lessons",
-				"description": "A painful failure teaches valuable lessons.",
-				"category": "xp"
-			}
-		},
-		{
-			"roll_range": [18, 19],
-			"result": {
-				"type": "old_friend",
-				"name": "Old Friend",
-				"description": "Reconnecting with an old friend.",
-				"category": "story_points"
-			}
-		},
-		{
-			"roll_range": [20, 22],
-			"result": {
-				"type": "side_job",
-				"name": "Side Job",
-				"description": "A quick side job earns some credits.",
-				"category": "credits"
-			}
-		},
-		{
-			"roll_range": [23, 25],
-			"result": {
-				"type": "unexpected_windfall",
-				"name": "Unexpected Windfall",
-				"description": "An unexpected financial gain.",
-				"category": "credits"
-			}
-		},
-		{
-			"roll_range": [26, 28],
-			"result": {
-				"type": "gambling",
-				"name": "Gambling",
-				"description": "A gambling session with uncertain outcome.",
-				"category": "credits"
-			}
-		},
-		{
-			"roll_range": [29, 30],
-			"result": {
-				"type": "inheritance",
-				"name": "Inheritance",
-				"description": "An inheritance arrives from a distant relative.",
-				"category": "credits"
-			}
-		},
-		{
-			"roll_range": [31, 32],
-			"result": {
-				"type": "collected_debt",
-				"name": "Collected Debt",
-				"description": "An old debt is finally repaid.",
-				"category": "credits"
-			}
-		},
-		{
-			"roll_range": [33, 34],
-			"result": {
-				"type": "found_item",
-				"name": "Found Item",
-				"description": "A useful item is discovered.",
-				"category": "equipment"
-			}
-		},
-		{
-			"roll_range": [35, 36],
-			"result": {
-				"type": "equipment_care",
-				"name": "Equipment Care",
-				"description": "Careful maintenance restores damaged gear.",
-				"category": "equipment"
-			}
-		},
-		{
-			"roll_range": [37, 38],
-			"result": {
-				"type": "equipment_lost",
-				"name": "Equipment Lost",
-				"description": "A piece of equipment goes missing.",
-				"category": "equipment"
-			}
-		},
-		{
-			"roll_range": [39, 40],
-			"result": {
-				"type": "lucky_find",
-				"name": "Lucky Find",
-				"description": "A lucky discovery of valuable gear.",
-				"category": "equipment"
-			}
-		},
-		{
-			"roll_range": [41, 43],
-			"result": {
-				"type": "bar_fight",
-				"name": "Bar Fight",
-				"description": "A confrontation in a local bar.",
-				"category": "injury"
-			}
-		},
-		{
-			"roll_range": [44, 45],
-			"result": {
-				"type": "wound_heals",
-				"name": "Wound Heals",
-				"description": "An old wound heals faster than expected.",
-				"category": "medical"
-			}
-		},
-		{
-			"roll_range": [46, 47],
-			"result": {
-				"type": "recurring_injury",
-				"name": "Recurring Injury",
-				"description": "An old injury flares up again.",
-				"category": "injury"
-			}
-		},
-		{
-			"roll_range": [48, 49],
-			"result": {
-				"type": "sick",
-				"name": "Sick",
-				"description": "A sudden illness strikes.",
-				"category": "injury"
-			}
-		},
-		{
-			"roll_range": [50, 51],
-			"result": {
-				"type": "accident",
-				"name": "Accident",
-				"description": "An accident with uncertain severity.",
-				"category": "injury"
-			}
-		},
-		{
-			"roll_range": [52, 53],
-			"result": {
-				"type": "made_contact",
-				"name": "Made Contact",
-				"description": "A useful new contact is established.",
-				"category": "relationship"
-			}
-		},
-		{
-			"roll_range": [54, 55],
-			"result": {
-				"type": "made_enemy",
-				"name": "Made Enemy",
-				"description": "Actions have earned a new enemy.",
-				"category": "relationship"
-			}
-		},
-		{
-			"roll_range": [56, 57],
-			"result": {
-				"type": "valuable_intel",
-				"name": "Valuable Intel",
-				"description": "Valuable intelligence is uncovered.",
-				"category": "relationship"
-			}
-		},
-		{
-			"roll_range": [58, 59],
-			"result": {
-				"type": "made_friend",
-				"name": "Made Friend",
-				"description": "A valuable friendship is formed.",
-				"category": "relationship"
-			}
-		},
-		{
-			"roll_range": [60, 61],
-			"result": {
-				"type": "old_comrade",
-				"name": "Old Comrade",
-				"description": "An old comrade turns up unexpectedly.",
-				"category": "relationship"
-			}
-		},
-		{
-			"roll_range": [62, 63],
-			"result": {
-				"type": "family_trouble",
-				"name": "Family Trouble",
-				"description": "Family matters demand attention.",
-				"category": "relationship"
-			}
-		},
-		{
-			"roll_range": [64, 65],
-			"result": {
-				"type": "business_elsewhere",
+				"type": "absence",
 				"name": "Business Elsewhere",
-				"description": "Personal business requires temporary absence.",
-				"category": "special"
+				"description": "You have some business to attend to elsewhere. The character is unavailable for the next two campaign turns. They require no Upkeep during this time, and cannot be the target of any events. When they return, award them 1D6 XP, and roll once on the Loot Table.",
+				"effects": {"unavailable_turns": 2, "no_upkeep": true, "return_xp_roll": "1D6", "return_loot_roll": 1},
+				"species_exceptions": {"Swift": "They never return but are replaced with a brand new Swift character rolled up normally"}
 			}
 		},
 		{
-			"roll_range": [66, 67],
+			"roll_range": [7, 10],
 			"result": {
-				"type": "in_a_scrap",
-				"name": "In a Scrap",
-				"description": "A fight breaks out between crew members.",
-				"category": "special"
+				"type": "xp",
+				"name": "Local Friends",
+				"description": "You make some local friends. The character earns +1 XP.",
+				"effects": {"xp": 1}
 			}
 		},
 		{
-			"roll_range": [68, 70],
+			"roll_range": [11, 12],
 			"result": {
-				"type": "letter_from_home",
+				"type": "potential_departure",
+				"name": "Time to Move On",
+				"description": "You are starting to wonder if it is time to move on. If the character is currently in Sick Bay, roll 1D6. If the roll is equal or below the number of campaign turns of recovery left, they will decide to leave the crew.",
+				"effects": {"sick_bay_check": true, "leave_if_roll_lte_recovery": true}
+			}
+		},
+		{
+			"roll_range": [13, 15],
+			"result": {
+				"type": "xp_quest",
 				"name": "Letter from Home",
-				"description": "A letter from home brings news.",
-				"category": "special"
+				"description": "You get a letter from home. The character earns +1 XP. Roll 1D6. On a 5-6 you immediately receive a Quest.",
+				"effects": {"xp": 1, "quest_roll": "1D6_on_5_6"}
 			}
 		},
 		{
-			"roll_range": [71, 72],
+			"roll_range": [16, 19],
 			"result": {
-				"type": "scars_tell_story",
-				"name": "Scars Tell Story",
-				"description": "Battle scars earn respect from others.",
-				"category": "xp"
+				"type": "task_refusal",
+				"name": "Argue with Crew",
+				"description": "You argue with the rest of the crew. During the next campaign turn, the crew member refuses to do any tasks but will participate in battle normally.",
+				"effects": {"skip_tasks_next_turn": true, "battles_ok": true}
 			}
 		},
 		{
-			"roll_range": [73, 74],
+			"roll_range": [20, 23],
 			"result": {
-				"type": "trait_development",
-				"name": "Trait Development",
-				"description": "A positive character trait develops.",
-				"category": "trait"
+				"type": "crew_fight",
+				"name": "Scrap with Crewmate",
+				"description": "You get in a scrap with another crew member. Randomly select another crew member and roll 1D6+Combat Skill for each. The lower score must spend one campaign turn in Sick Bay. On a draw, both go to Sick Bay.",
+				"effects": {"combat_roll_vs_random": true, "loser_sick_bay": 1, "draw_both_sick_bay": true},
+				"species_exceptions": {"K'Erin": "If a K'Erin is in the crew, you must fight them"}
 			}
 		},
 		{
-			"roll_range": [75, 76],
+			"roll_range": [24, 26],
 			"result": {
-				"type": "life_changing_event",
-				"name": "Life-Changing Event",
-				"description": "A life-changing experience shifts perspective.",
-				"category": "trait"
+				"type": "recovery_or_xp",
+				"name": "Good Food",
+				"description": "The local food is sitting well with you. If in Sick Bay, reduce your recovery time by one campaign turn. If not, earn +1 XP.",
+				"effects": {"choice_conditional": {"in_sick_bay": "reduce_recovery_1", "not_sick_bay": "xp_1"}},
+				"species_exceptions": {"Engineer": "Receives no benefit from this"}
 			}
 		},
 		{
-			"roll_range": [77, 78],
+			"roll_range": [27, 29],
 			"result": {
-				"type": "quiet_day",
-				"name": "Quiet Day",
-				"description": "A peaceful day allows for reflection.",
-				"category": "xp"
+				"type": "motivation_change",
+				"name": "Not the Same Person",
+				"description": "You are not sure you are really the same person any longer. Roll on the Motivation Table (p.26) and change to that motivation. You do not receive any items or resources, but if the new motivation would have any ability score bonuses, earn +1 XP for each +1 ability score you would have received normally. If you roll the current motivation, the character becomes particularly self-assured. Earn +1 story point.",
+				"effects": {"reroll_motivation": true, "xp_per_ability_bonus": 1, "same_motivation_story_point": 1}
 			}
 		},
 		{
-			"roll_range": [79, 80],
+			"roll_range": [30, 33],
 			"result": {
-				"type": "bad_dreams",
-				"name": "Bad Dreams",
-				"description": "Nightmares disturb rest.",
-				"category": "morale"
+				"type": "cosmetic",
+				"name": "Make-over",
+				"description": "The character changes their clothes, hair-style, or something else. This is only cosmetic. If you are able to, reflect this on the miniature.",
+				"effects": {"cosmetic_only": true}
 			}
 		},
 		{
-			"roll_range": [81, 82],
+			"roll_range": [34, 38],
 			"result": {
-				"type": "homesick",
-				"name": "Homesick",
-				"description": "Longing for home weighs heavily.",
-				"category": "morale"
+				"type": "rumor",
+				"name": "Overhear Something Useful",
+				"description": "Overhear something useful. Earn 1 Quest Rumor.",
+				"effects": {"quest_rumors": 1}
+			}
+		},
+		{
+			"roll_range": [39, 41],
+			"result": {
+				"type": "credits",
+				"name": "Earn on the Side",
+				"description": "Earn a little on the side. Receive +2 credits.",
+				"effects": {"credits": 2}
+			}
+		},
+		{
+			"roll_range": [42, 45],
+			"result": {
+				"type": "xp_shared",
+				"name": "Heart to Heart",
+				"description": "Have a heart to heart talk with a crew member. Select a random crew member. Both earn +1 XP.",
+				"effects": {"xp": 1, "random_other_xp": 1}
+			}
+		},
+		{
+			"roll_range": [46, 48],
+			"result": {
+				"type": "xp",
+				"name": "Exercise",
+				"description": "Time spent exercising is never wasted. Earn +2 XP.",
+				"effects": {"xp": 2}
+			}
+		},
+		{
+			"roll_range": [49, 51],
+			"result": {
+				"type": "story_hobby",
+				"name": "Unusual Hobby",
+				"description": "You pick up an unusual hobby. Earn +1 story point and the character talks about it constantly.",
+				"effects": {"story_points": 1},
+				"species_exceptions": {"Swift": "Also earn +2 XP", "Precursor": "Also earn +2 XP"}
+			}
+		},
+		{
+			"roll_range": [52, 55],
+			"result": {
+				"type": "xp_conditional",
+				"name": "Scars Tell the Story",
+				"description": "The scars tell the story. If the character was injured in any way last or this campaign turn, they earn +2 XP.",
+				"effects": {"xp_if_injured": 2}
+			}
+		},
+		{
+			"roll_range": [56, 59],
+			"result": {
+				"type": "xp",
+				"name": "Time to Reflect",
+				"description": "You've had time to reflect on your adventures. Earn +1D3 XP.",
+				"effects": {"xp_roll": "1D3"}
+			}
+		},
+		{
+			"roll_range": [60, 62],
+			"result": {
+				"type": "ability_increase",
+				"name": "Personal Breakthrough",
+				"description": "You've made a real personal breakthrough. Select one ability score that has not been increased from its starting value when the character entered the campaign. It increases by +1 immediately.",
+				"effects": {"increase_non_upgraded_ability": 1}
+			}
+		},
+		{
+			"roll_range": [63, 66],
+			"result": {
+				"type": "injury_and_damage",
+				"name": "Hurt Working on Ship",
+				"description": "You get hurt while working on the ship. Spend one campaign turn in Sick Bay, and the ship takes 1 Hull Point damage.",
+				"effects": {"sick_bay_turns": 1, "hull_damage": 1}
+			}
+		},
+		{
+			"roll_range": [67, 68],
+			"result": {
+				"type": "story_love",
+				"name": "Found True Love",
+				"description": "You have finally found true love in this bleak universe. If the character's motivation was True Love, they earn +1D6 XP. Regardless, get +1 story point. And it's a rather nice thought, isn't it?",
+				"effects": {"story_points": 1, "true_love_xp_roll": "1D6"}
+			}
+		},
+		{
+			"roll_range": [69, 71],
+			"result": {
+				"type": "rival_personal",
+				"name": "Personal Enemy",
+				"description": "A personal enemy has tracked you down. Add a Rival. If this character leaves your crew, the Rival also leaves.",
+				"effects": {"add_rival": 1, "rival_tied_to_character": true}
+			}
+		},
+		{
+			"roll_range": [72, 75],
+			"result": {
+				"type": "loot",
+				"name": "Gift",
+				"description": "Someone has sent you a gift. Roll once on the Loot Table (p.131).",
+				"effects": {"loot_table_roll": 1}
+			}
+		},
+		{
+			"roll_range": [76, 78],
+			"result": {
+				"type": "injury_immunity",
+				"name": "Feel Great",
+				"description": "You feel great. Eating well must be paying off. Put a note on your record sheet: Next time this character would be forced to roll on the Injury Table, the roll is ignored.",
+				"effects": {"ignore_next_injury_roll": true},
+				"species_exceptions": {"Engineer": "Cannot benefit from this event"}
+			}
+		},
+		{
+			"roll_range": [79, 82],
+			"result": {
+				"type": "patron_gain",
+				"name": "Someone Who Knows Someone",
+				"description": "You know someone who knows someone. Add a Patron.",
+				"effects": {"add_patron": 1}
 			}
 		},
 		{
 			"roll_range": [83, 84],
 			"result": {
-				"type": "inspired",
-				"name": "Inspired",
-				"description": "A burst of inspiration energizes.",
-				"category": "morale"
+				"type": "luck",
+				"name": "Charmed Existence",
+				"description": "Maybe you are leading a charmed existence? Add +1 Luck.",
+				"effects": {"luck": 1}
 			}
 		},
 		{
-			"roll_range": [85, 86],
+			"roll_range": [85, 87],
 			"result": {
-				"type": "confidence",
-				"name": "Confidence",
-				"description": "Growing confidence boosts performance.",
-				"category": "morale"
+				"type": "repair",
+				"name": "Hard Work",
+				"description": "You've put in a lot of hard work around here. Either repair 2 Hull Point damage or Repair one damaged item in the inventory.",
+				"effects": {"choice": ["repair_hull_2", "repair_item_1"]},
+				"species_exceptions": {"Engineer": "May do both"}
 			}
 		},
 		{
-			"roll_range": [87, 88],
+			"roll_range": [88, 91],
 			"result": {
-				"type": "doubt",
-				"name": "Doubt",
-				"description": "Self-doubt creeps in.",
-				"category": "morale"
+				"type": "item_damage",
+				"name": "Don't Make Them Like They Used To",
+				"description": "They don't make them like they used to. A random item carried by the character is damaged, and must be Repaired before it can be used again.",
+				"effects": {"damage_random_item": 1},
+				"species_exceptions": {"Engineer": "Not affected by this event"}
 			}
 		},
 		{
-			"roll_range": [89, 90],
+			"roll_range": [92, 94],
 			"result": {
-				"type": "spiritual_experience",
-				"name": "Spiritual Experience",
-				"description": "A profound spiritual experience.",
-				"category": "special"
+				"type": "item_loss",
+				"name": "Where Did It Go",
+				"description": "A random item carried by the character has been lost. When rolling for a Character Event next campaign turn, roll 1D6+Savvy as well. On a 5+, the item turns up again, otherwise it is lost for good.",
+				"effects": {"lose_random_item": 1, "recovery_check_next_turn": "1D6_plus_savvy_5_plus"}
 			}
 		},
 		{
-			"roll_range": [91, 92],
+			"roll_range": [95, 97],
 			"result": {
-				"type": "prophetic_dream",
-				"name": "Prophetic Dream",
-				"description": "A dream reveals hidden truths.",
-				"category": "special"
+				"type": "xp_denial",
+				"name": "Melancholy",
+				"description": "A deep feeling of melancholy and despair is afflicting you. The character will earn no XP next campaign turn.",
+				"effects": {"no_xp_next_turn": true},
+				"species_exceptions": {"K'Erin": "Not affected by this event"}
 			}
 		},
 		{
-			"roll_range": [93, 95],
+			"roll_range": [98, 100],
 			"result": {
-				"type": "strange_encounter",
-				"name": "Strange Encounter",
-				"description": "An unusual encounter with uncertain consequences.",
-				"category": "special"
-			}
-		},
-		{
-			"roll_range": [96, 100],
-			"result": {
-				"type": "no_event",
-				"name": "No Event",
-				"description": "Nothing of note occurs.",
-				"category": "none"
+				"type": "extra_action",
+				"name": "Time to Burn",
+				"description": "You've had a lot of time to burn. Next campaign turn, the character may perform an additional action, even if they are in Sick Bay.",
+				"effects": {"extra_action_next_turn": true, "works_in_sick_bay": true}
 			}
 		}
 	]

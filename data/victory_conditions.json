@@ -1,257 +1,193 @@
 {
-  "_WARNING": "PARTIALLY FABRICATED — Core Rules (pp.63-64) victory conditions are: Play 20/50 turns (difficulty-gated), Win 20/50/100 battles, Complete 5/10 Quests, Kill 10/25 Unique Individuals, Upgrade 10 times (1/3/5 characters). This file has fabricated entries: credits accumulation (50K/100K), reputation levels (10/20), crew size (10), story points (10/20). Also missing: difficulty mode requirements, Unique Individual kills, character upgrade conditions.",
-  "version": "1.0",
-  "description": "Five Parsecs From Home Campaign Victory Conditions",
-  "conditions": {
-    "TURNS_20": {
-      "id": "turns_20",
-      "name": "Short Campaign",
-      "description": "Complete 20 campaign turns",
-      "required": 20,
-      "category": "turns"
-    },
-    "TURNS_50": {
-      "id": "turns_50",
-      "name": "Standard Campaign",
-      "description": "Complete 50 campaign turns",
-      "required": 50,
-      "category": "turns"
-    },
-    "TURNS_100": {
-      "id": "turns_100",
-      "name": "Epic Campaign",
-      "description": "Complete 100 campaign turns",
-      "required": 100,
-      "category": "turns"
-    },
-    "BATTLES_20": {
-      "id": "battles_20",
-      "name": "Seasoned Crew",
-      "description": "Win 20 battles",
-      "required": 20,
-      "category": "battles"
-    },
-    "BATTLES_50": {
-      "id": "battles_50",
-      "name": "Veteran Crew",
-      "description": "Win 50 battles",
-      "required": 50,
-      "category": "battles"
-    },
-    "BATTLES_100": {
-      "id": "battles_100",
-      "name": "Legendary Crew",
-      "description": "Win 100 battles",
-      "required": 100,
-      "category": "battles"
-    },
-    "QUESTS_3": {
-      "id": "quests_3",
-      "name": "Quest Starter",
-      "description": "Complete 3 story quests",
-      "required": 3,
-      "category": "quests"
-    },
-    "QUESTS_5": {
-      "id": "quests_5",
-      "name": "Quest Seeker",
-      "description": "Complete 5 story quests",
-      "required": 5,
-      "category": "quests"
-    },
-    "QUESTS_10": {
-      "id": "quests_10",
-      "name": "Quest Master",
-      "description": "Complete 10 story quests",
-      "required": 10,
-      "category": "quests"
-    },
-    "STORY_POINTS_10": {
-      "id": "story_points_10",
-      "name": "Story Builder",
-      "description": "Accumulate 10 story points",
-      "required": 10,
-      "category": "story"
-    },
-    "STORY_POINTS_20": {
-      "id": "story_points_20",
-      "name": "Story Master",
-      "description": "Accumulate 20 story points",
-      "required": 20,
-      "category": "story"
-    },
-    "CREDITS_50K": {
-      "id": "credits_50k",
-      "name": "Wealthy",
-      "description": "Accumulate 50,000 credits",
-      "required": 50000,
-      "category": "credits"
-    },
-    "CREDITS_100K": {
-      "id": "credits_100k",
-      "name": "Rich",
-      "description": "Accumulate 100,000 credits",
-      "required": 100000,
-      "category": "credits"
-    },
-    "REPUTATION_10": {
-      "id": "reputation_10",
-      "name": "Known",
-      "description": "Achieve reputation level 10",
-      "required": 10,
-      "category": "reputation"
-    },
-    "REPUTATION_20": {
-      "id": "reputation_20",
-      "name": "Famous",
-      "description": "Achieve reputation level 20",
-      "required": 20,
-      "category": "reputation"
-    },
-    "CHARACTER_SURVIVAL": {
-      "id": "character_survival",
-      "name": "Survivor",
-      "description": "Keep a specific character alive through the campaign",
-      "required": 1,
-      "category": "special"
-    },
-    "CREW_SIZE_10": {
-      "id": "crew_size_10",
-      "name": "Big Crew",
-      "description": "Build a crew of 10 members",
-      "required": 10,
-      "category": "crew"
-    },
-    "STORY_COMPLETE": {
-      "id": "story_complete",
-      "name": "Story Complete",
-      "description": "Complete the main story track",
-      "required": 1,
-      "category": "story"
-    },
-    "UPGRADE_1_CHARACTER_10_TIMES": {
-      "id": "upgrade_1_10",
-      "name": "Elite Fighter",
-      "description": "Upgrade one character 10 times",
-      "required": 10,
-      "category": "advancement"
-    },
-    "UPGRADE_3_CHARACTERS_10_TIMES": {
-      "id": "upgrade_3_10",
-      "name": "Elite Squad",
-      "description": "Upgrade 3 characters 10 times each",
-      "required": 30,
-      "category": "advancement"
-    },
-    "UPGRADE_5_CHARACTERS_10_TIMES": {
-      "id": "upgrade_5_10",
-      "name": "Elite Crew",
-      "description": "Upgrade 5 characters 10 times each",
-      "required": 50,
-      "category": "advancement"
-    },
-    "TURNS_50_CHALLENGING": {
-      "id": "turns_50_challenging",
-      "name": "Challenging Veteran",
-      "description": "Survive 50 turns on Challenging difficulty",
-      "required": 50,
-      "category": "difficulty"
-    },
-    "TURNS_50_HARDCORE": {
-      "id": "turns_50_hardcore",
-      "name": "Hardcore Veteran",
-      "description": "Survive 50 turns on Hardcore difficulty",
-      "required": 50,
-      "category": "difficulty"
-    }
-  },
-  "campaign_types": {
-    "STANDARD": {
-      "default_conditions": ["CREDITS_50K", "REPUTATION_10"],
-      "description": "Standard campaign with credit and reputation goals"
-    },
-    "FREELANCER": {
-      "default_conditions": ["QUESTS_5"],
-      "description": "Quest-focused freelancer campaign"
-    },
-    "MERCENARY": {
-      "default_conditions": ["TURNS_100"],
-      "description": "Long-form mercenary campaign"
-    },
-    "EXPLORER": {
-      "default_conditions": ["BATTLES_20"],
-      "description": "Combat-focused exploration campaign"
-    },
-    "CUSTOM": {
-      "default_conditions": [],
-      "description": "Custom campaign with user-defined victory conditions"
-    }
-  },
-  "custom_condition_templates": {
-    "CUSTOM_TURNS": {
-      "id": "custom_turns",
-      "name": "Custom Turn Goal",
-      "description": "Complete a custom number of campaign turns",
-      "category": "turns",
-      "min_value": 1,
-      "max_value": 500,
-      "default_value": 30
-    },
-    "CUSTOM_BATTLES": {
-      "id": "custom_battles",
-      "name": "Custom Battle Goal",
-      "description": "Win a custom number of battles",
-      "category": "battles",
-      "min_value": 1,
-      "max_value": 200,
-      "default_value": 25
-    },
-    "CUSTOM_QUESTS": {
-      "id": "custom_quests",
-      "name": "Custom Quest Goal",
-      "description": "Complete a custom number of quests",
-      "category": "quests",
-      "min_value": 1,
-      "max_value": 50,
-      "default_value": 5
-    },
-    "CUSTOM_CREDITS": {
-      "id": "custom_credits",
-      "name": "Custom Credit Goal",
-      "description": "Accumulate a custom amount of credits",
-      "category": "credits",
-      "min_value": 1000,
-      "max_value": 1000000,
-      "default_value": 25000
-    },
-    "CUSTOM_REPUTATION": {
-      "id": "custom_reputation",
-      "name": "Custom Reputation Goal",
-      "description": "Achieve a custom reputation level",
-      "category": "reputation",
-      "min_value": 1,
-      "max_value": 50,
-      "default_value": 15
-    },
-    "CUSTOM_STORY_POINTS": {
-      "id": "custom_story_points",
-      "name": "Custom Story Point Goal",
-      "description": "Accumulate a custom number of story points",
-      "category": "story",
-      "min_value": 1,
-      "max_value": 100,
-      "default_value": 15
-    },
-    "CUSTOM_CREW_SIZE": {
-      "id": "custom_crew_size",
-      "name": "Custom Crew Size Goal",
-      "description": "Build a crew of custom size",
-      "category": "crew",
-      "min_value": 4,
-      "max_value": 20,
-      "default_value": 8
-    }
-  },
-  "allow_multiple_conditions": true,
-  "allow_custom_targets": true
+	"_source": "Core Rules pp.63-64 — Victory Conditions + Difficulty Modes",
+	"_note": "Select at campaign start. Cannot be changed mid-campaign. Cannot add conditions after start. Only one selected condition counts, even if you qualify for others. Completing awards Elite Rank (p.65). Character upgrade deaths still count toward the total.",
+	"version": "2.0",
+	"conditions": {
+		"TURNS_20": {
+			"id": "turns_20",
+			"name": "Play 20 Campaign Turns",
+			"description": "Complete 20 campaign turns",
+			"required": 20,
+			"category": "turns",
+			"difficulty_allowed": ["easy", "normal", "challenging", "hardcore", "insanity"]
+		},
+		"TURNS_50": {
+			"id": "turns_50",
+			"name": "Play 50 Campaign Turns",
+			"description": "Complete 50 campaign turns",
+			"required": 50,
+			"category": "turns",
+			"difficulty_allowed": ["normal", "challenging", "hardcore", "insanity"]
+		},
+		"TURNS_100": {
+			"id": "turns_100",
+			"name": "Play 100 Campaign Turns",
+			"description": "Complete 100 campaign turns",
+			"required": 100,
+			"category": "turns",
+			"difficulty_allowed": ["normal", "challenging", "hardcore", "insanity"]
+		},
+		"QUESTS_3": {
+			"id": "quests_3",
+			"name": "Complete 3 Quests",
+			"description": "Complete 3 Quests",
+			"required": 3,
+			"category": "quests",
+			"difficulty_allowed": ["normal", "challenging", "hardcore", "insanity"]
+		},
+		"QUESTS_5": {
+			"id": "quests_5",
+			"name": "Complete 5 Quests",
+			"description": "Complete 5 Quests",
+			"required": 5,
+			"category": "quests",
+			"difficulty_allowed": ["normal", "challenging", "hardcore", "insanity"]
+		},
+		"QUESTS_10": {
+			"id": "quests_10",
+			"name": "Complete 10 Quests",
+			"description": "Complete 10 Quests",
+			"required": 10,
+			"category": "quests",
+			"difficulty_allowed": ["normal", "challenging", "hardcore", "insanity"]
+		},
+		"BATTLES_20": {
+			"id": "battles_20",
+			"name": "Win 20 Tabletop Battles",
+			"description": "Win 20 tabletop battles",
+			"required": 20,
+			"category": "battles",
+			"difficulty_allowed": ["easy", "normal", "challenging", "hardcore", "insanity"]
+		},
+		"BATTLES_50": {
+			"id": "battles_50",
+			"name": "Win 50 Tabletop Battles",
+			"description": "Win 50 tabletop battles",
+			"required": 50,
+			"category": "battles",
+			"difficulty_allowed": ["normal", "challenging", "hardcore", "insanity"]
+		},
+		"BATTLES_100": {
+			"id": "battles_100",
+			"name": "Win 100 Tabletop Battles",
+			"description": "Win 100 tabletop battles",
+			"required": 100,
+			"category": "battles",
+			"difficulty_allowed": ["normal", "challenging", "hardcore", "insanity"]
+		},
+		"KILLS_UNIQUE_10": {
+			"id": "kills_unique_10",
+			"name": "Kill 10 Unique Individuals",
+			"description": "Kill 10 Unique Individuals",
+			"required": 10,
+			"category": "kills",
+			"difficulty_allowed": ["normal", "challenging", "hardcore", "insanity"]
+		},
+		"KILLS_UNIQUE_25": {
+			"id": "kills_unique_25",
+			"name": "Kill 25 Unique Individuals",
+			"description": "Kill 25 Unique Individuals",
+			"required": 25,
+			"category": "kills",
+			"difficulty_allowed": ["normal", "challenging", "hardcore", "insanity"]
+		},
+		"UPGRADE_1_CHARACTER_10_TIMES": {
+			"id": "upgrade_1_10",
+			"name": "Upgrade a Character 10 Times",
+			"description": "Upgrade a single character 10 times. The character does not have to be in the crew at the end — deaths still count.",
+			"required": 10,
+			"category": "advancement",
+			"characters_required": 1,
+			"difficulty_allowed": ["normal", "challenging", "hardcore", "insanity"]
+		},
+		"UPGRADE_3_CHARACTERS_10_TIMES": {
+			"id": "upgrade_3_10",
+			"name": "Upgrade 3 Characters 10 Times",
+			"description": "Upgrade 3 characters 10 times each. Characters do not have to be alive simultaneously.",
+			"required": 10,
+			"category": "advancement",
+			"characters_required": 3,
+			"difficulty_allowed": ["normal", "challenging", "hardcore", "insanity"]
+		},
+		"UPGRADE_5_CHARACTERS_10_TIMES": {
+			"id": "upgrade_5_10",
+			"name": "Upgrade 5 Characters 10 Times",
+			"description": "Upgrade 5 characters 10 times each. Characters do not have to be alive simultaneously.",
+			"required": 10,
+			"category": "advancement",
+			"characters_required": 5,
+			"difficulty_allowed": ["normal", "challenging", "hardcore", "insanity"]
+		},
+		"TURNS_50_CHALLENGING": {
+			"id": "turns_50_challenging",
+			"name": "50 Turns in Challenging Mode",
+			"description": "Play 50 campaign turns in Challenging mode",
+			"required": 50,
+			"category": "difficulty",
+			"difficulty_required": "challenging",
+			"difficulty_allowed": ["challenging"]
+		},
+		"TURNS_50_HARDCORE": {
+			"id": "turns_50_hardcore",
+			"name": "50 Turns in Hardcore Mode",
+			"description": "Play 50 campaign turns in Hardcore mode",
+			"required": 50,
+			"category": "difficulty",
+			"difficulty_required": "hardcore",
+			"difficulty_allowed": ["hardcore"]
+		},
+		"TURNS_50_INSANITY": {
+			"id": "turns_50_insanity",
+			"name": "50 Turns in Insanity Mode",
+			"description": "Play 50 campaign turns in Insanity mode",
+			"required": 50,
+			"category": "difficulty",
+			"difficulty_required": "insanity",
+			"difficulty_allowed": ["insanity"]
+		}
+	},
+	"easy_mode_restrictions": {
+		"_note": "Easy mode can only complete these two conditions (Core Rules p.64)",
+		"allowed_conditions": ["TURNS_20", "BATTLES_20"]
+	},
+	"elite_ranks": {
+		"_source": "Core Rules pp.65",
+		"per_rank_benefits": [
+			"One bonus story point per Elite Rank",
+			"Receive 2 XP per Elite Rank, assignable to any characters, resolving Character Upgrades immediately (Note: pre-campaign upgrades do not count for Upgrade victory conditions)",
+			"For every 3 Elite Ranks, roll up an additional starting character (still limited to starting crew size, but pick from larger pool)",
+			"For every 5 Elite Ranks, pick one Stars of the Story option that can be used twice (must pick at campaign start)"
+		]
+	},
+	"allow_multiple_conditions": false,
+	"allow_custom_targets": true,
+	"custom_condition_templates": {
+		"CUSTOM_TURNS": {
+			"id": "custom_turns",
+			"name": "Custom Turn Goal",
+			"description": "Complete a custom number of campaign turns",
+			"category": "turns",
+			"min_value": 1,
+			"max_value": 500,
+			"default_value": 30
+		},
+		"CUSTOM_BATTLES": {
+			"id": "custom_battles",
+			"name": "Custom Battle Goal",
+			"description": "Win a custom number of battles",
+			"category": "battles",
+			"min_value": 1,
+			"max_value": 200,
+			"default_value": 25
+		},
+		"CUSTOM_QUESTS": {
+			"id": "custom_quests",
+			"name": "Custom Quest Goal",
+			"description": "Complete a custom number of quests",
+			"category": "quests",
+			"min_value": 1,
+			"max_value": 50,
+			"default_value": 5
+		}
+	}
 }

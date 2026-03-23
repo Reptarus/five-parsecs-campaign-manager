@@ -237,11 +237,15 @@ static func process_character_injury(character: Dictionary, has_medical_supplies
 	# Check if character died
 	result["character_died"] = result.is_fatal
 
-	# Handle equipment loss injuries
+	# Handle equipment loss/damage
 	result["equipment_lost"] = []
-	if result.injury_type == InjurySystemConstants.InjuryType.EQUIPMENT_LOSS:
-		# Determine which equipment is lost (implementation depends on equipment system)
-		# For now, return empty array - calling code should handle equipment selection
+	result["all_equipment_damaged"] = false
+	if result.injury_type == InjurySystemConstants.InjuryType.GRUESOME_FATE:
+		# Gruesome Fate (1-5): ALL carried equipment is damaged
+		result["all_equipment_damaged"] = true
+	elif result.injury_type == InjurySystemConstants.InjuryType.EQUIPMENT_LOSS:
+		# Equipment Loss (17-30): Random carried item damaged
+		# Calling code should handle equipment selection
 		pass
 
 	return result
@@ -363,6 +367,8 @@ static func get_injury_stats(character: Dictionary) -> Dictionary:
 			var injury_type: int = injury.get("injury_type", InjurySystemConstants.InjuryType.KNOCKED_OUT)
 
 			match injury_type:
+				InjurySystemConstants.InjuryType.GRUESOME_FATE:
+					stats.fatal_injuries += 1
 				InjurySystemConstants.InjuryType.FATAL:
 					stats.fatal_injuries += 1
 				InjurySystemConstants.InjuryType.MIRACULOUS_ESCAPE:

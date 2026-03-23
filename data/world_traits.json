@@ -1,155 +1,351 @@
 {
-  "_WARNING": "FABRICATED — Trait names and effects do NOT match Core Rules world traits table (pp.73-75). Book has ~40 D100 entries (Haze 1-3, Overgrown 4-6, Warzone 7-8, etc.). This file has invented traits with no D100 ranges. Needs full rewrite.",
-  "world_traits": [
-    {
-      "id": "haze",
-      "name": "Haze",
-      "trait_type": 3,
-      "description": "Visibility reduced. All shooting beyond 12\" is at -1 to Hit."
-    },
-    {
-      "id": "overgrown",
-      "name": "Overgrown",
-      "trait_type": 2,
-      "description": "Vegetation provides +1 Cover bonus."
-    },
-    {
-      "id": "industrial_world",
-      "name": "Industrial World",
-      "trait_type": 3,
-      "description": "Buildings and structures provide Hard Cover."
-    },
-    {
-      "id": "hot_climate",
-      "name": "Hot Climate",
-      "trait_type": 1,
-      "description": "Characters carrying 3+ items lose 1\" of movement per round."
-    },
-    {
-      "id": "cold_climate",
-      "name": "Cold Climate",
-      "trait_type": 1,
-      "description": "At the start of each round, roll 1D6. On a 1, one random crew member is Stunned."
-    },
-    {
-      "id": "toxic_atmosphere",
-      "name": "Toxic Atmosphere",
-      "trait_type": 1,
-      "description": "Any character knocked out of action must roll an additional injury check."
-    },
-    {
-      "id": "low_gravity",
-      "name": "Low Gravity",
-      "trait_type": 2,
-      "description": "All movement increased by 1\". Grenades scatter an additional 1\"."
-    },
-    {
-      "id": "high_gravity",
-      "name": "High Gravity",
-      "trait_type": 1,
-      "description": "All movement reduced by 1\" (minimum 3\"). Jump moves are not possible."
-    },
-    {
-      "id": "war_torn",
-      "name": "War-torn",
-      "trait_type": 1,
-      "description": "Roll 1D6 at start of battle. On 1-2, a random piece of terrain is destroyed."
-    },
-    {
-      "id": "heavily_policed",
-      "name": "Heavily Policed",
-      "trait_type": 2,
-      "description": "Criminal enemy types are -1 to Combat Skill. Illegal items cost +50% more."
-    },
-    {
-      "id": "lawless",
-      "name": "Lawless",
-      "trait_type": 1,
-      "description": "Enemy reinforcements arrive 1 round earlier. +1 rival per campaign turn."
-    },
-    {
-      "id": "trade_hub",
-      "name": "Trade Hub",
-      "trait_type": 2,
-      "description": "Trading actions give +1 bonus item. Equipment costs are -10%."
-    },
-    {
-      "id": "frontier_world",
-      "name": "Frontier World",
-      "trait_type": 3,
-      "description": "Limited gear selection but lower prices. Only basic weapons and gear available."
-    },
-    {
-      "id": "tech_advanced",
-      "name": "Tech Advanced",
-      "trait_type": 2,
-      "description": "Advanced weapons and gear available. Medical treatment +1 bonus."
-    },
-    {
-      "id": "pirate_haven",
-      "name": "Pirate Haven",
-      "trait_type": 1,
-      "description": "Increased risk of rival encounters. Stolen goods available for trade."
-    },
-    {
-      "id": "unity_presence",
-      "name": "Unity Presence",
-      "trait_type": 2,
-      "description": "Unity patrols provide safety. Reduced chance of ambush events."
-    },
-    {
-      "id": "high_cost",
-      "name": "High Cost of Living",
-      "trait_type": 1,
-      "description": "Crew size counts as 2 higher for Upkeep costs. Supplies and services cost more."
-    },
-    {
-      "id": "agricultural_world",
-      "name": "Agricultural World",
-      "trait_type": 3,
-      "description": "Farming colony. Food is cheap but technology is limited. GAME_BALANCE_ESTIMATE"
-    },
-    {
-      "id": "research_outpost",
-      "name": "Research Outpost",
-      "trait_type": 2,
-      "description": "Scientific facility. Advanced medical care available. GAME_BALANCE_ESTIMATE"
-    },
-    {
-      "id": "industrial_hub",
-      "name": "Industrial Hub",
-      "trait_type": 3,
-      "description": "Manufacturing center. Equipment repair costs reduced. GAME_BALANCE_ESTIMATE"
-    },
-    {
-      "id": "mining_world",
-      "name": "Mining World",
-      "trait_type": 3,
-      "description": "Resource extraction colony. Rough workers, higher danger pay available. GAME_BALANCE_ESTIMATE"
-    },
-    {
-      "id": "military_base",
-      "name": "Military Base",
-      "trait_type": 2,
-      "description": "Controlled zone. Military weapons available but restricted. GAME_BALANCE_ESTIMATE"
-    },
-    {
-      "id": "trade_center",
-      "name": "Trade Center",
-      "trait_type": 2,
-      "description": "Major commerce hub. Wide selection of goods at competitive prices. GAME_BALANCE_ESTIMATE"
-    },
-    {
-      "id": "corporate_world",
-      "name": "Corporate World",
-      "trait_type": 3,
-      "description": "Corporate-controlled territory. High-end goods but everything costs more. GAME_BALANCE_ESTIMATE"
-    },
-    {
-      "id": "free_port",
-      "name": "Free Port",
-      "trait_type": 3,
-      "description": "Unregulated spaceport. Anything available but at a premium. GAME_BALANCE_ESTIMATE"
-    }
-  ]
+	"_source": "Core Rules pp.72-75 — World Traits Table (D100)",
+	"_note": "Roll D100 on new world arrival. Visibility restrictions rolled at start of each campaign turn. If scenario adds second visibility restriction, use shortest.",
+	"_optional_rule": "Wild Galaxy: Roll twice per world. If results contradict, ignore second roll.",
+	"world_traits": [
+		{
+			"id": "haze",
+			"name": "Haze",
+			"roll_range": [1, 3],
+			"description": "During battle, visibility is reduced to 1D6+8\".",
+			"category": "battlefield",
+			"effect_type": "visibility"
+		},
+		{
+			"id": "overgrown",
+			"name": "Overgrown",
+			"roll_range": [4, 6],
+			"description": "When setting up the table, you must add 1D6+2 individual plant features or 1D3 areas of vegetation (roughly 3-5\" across).",
+			"category": "battlefield",
+			"effect_type": "terrain"
+		},
+		{
+			"id": "warzone",
+			"name": "Warzone",
+			"roll_range": [7, 8],
+			"description": "When setting up the table, you must add 1D3 ruined buildings or craters to the table.",
+			"category": "battlefield",
+			"effect_type": "terrain"
+		},
+		{
+			"id": "heavily_enforced",
+			"name": "Heavily Enforced",
+			"roll_range": [9, 10],
+			"description": "When fighting opponents from the Criminal Elements Encounter Table, the number encountered is reduced by 1. When rolling to see if they become Rivals, only roll a single die as normal.",
+			"category": "law",
+			"effect_type": "encounter_modifier"
+		},
+		{
+			"id": "rampant_crime",
+			"name": "Rampant Crime",
+			"roll_range": [11, 12],
+			"description": "When fighting opponents from the Criminal Elements encounter list, add 1 to the number encountered.",
+			"category": "law",
+			"effect_type": "encounter_modifier"
+		},
+		{
+			"id": "invasion_risk",
+			"name": "Invasion Risk",
+			"roll_range": [13, 14],
+			"description": "Add +1 to all Invasion rolls.",
+			"category": "war",
+			"effect_type": "invasion_modifier"
+		},
+		{
+			"id": "imminent_invasion",
+			"name": "Imminent Invasion",
+			"roll_range": [15, 16],
+			"description": "Add +2 to all Invasion rolls and if the world is invaded, rolls for war progress are at -1.",
+			"category": "war",
+			"effect_type": "invasion_modifier"
+		},
+		{
+			"id": "lacks_starship_facilities",
+			"name": "Lacks Starship Facilities",
+			"roll_range": [17, 18],
+			"description": "You cannot spend more than 3 credits per campaign turn on starship Repairs.",
+			"category": "services",
+			"effect_type": "cost_modifier"
+		},
+		{
+			"id": "easy_recruiting",
+			"name": "Easy Recruiting",
+			"roll_range": [19, 20],
+			"description": "Add +1 to the roll when Recruiting.",
+			"category": "services",
+			"effect_type": "roll_modifier"
+		},
+		{
+			"id": "medical_science",
+			"name": "Medical Science",
+			"roll_range": [21, 22],
+			"description": "The cost for accelerated medical care is only 3 credits per character.",
+			"category": "services",
+			"effect_type": "cost_modifier"
+		},
+		{
+			"id": "technical_knowledge",
+			"name": "Technical Knowledge",
+			"roll_range": [23, 24],
+			"description": "Add +1 to all Repair attempts.",
+			"category": "services",
+			"effect_type": "roll_modifier"
+		},
+		{
+			"id": "opportunities",
+			"name": "Opportunities",
+			"roll_range": [25, 26],
+			"description": "Add +1 to the roll when searching for Patrons.",
+			"category": "services",
+			"effect_type": "roll_modifier"
+		},
+		{
+			"id": "booming_economy",
+			"name": "Booming Economy",
+			"roll_range": [27, 29],
+			"description": "When rolling for post-battle credit rewards, any 1 on the dice is rerolled until it shows a score other than 1.",
+			"category": "economy",
+			"effect_type": "reward_modifier"
+		},
+		{
+			"id": "busy_markets",
+			"name": "Busy Markets",
+			"roll_range": [30, 32],
+			"description": "Each campaign turn, you may spend 2 credits once to roll on the Trade Table (p.79).",
+			"category": "economy",
+			"effect_type": "trade_modifier"
+		},
+		{
+			"id": "bureaucratic_mess",
+			"name": "Bureaucratic Mess",
+			"roll_range": [33, 34],
+			"description": "When attempting to leave, you must roll 2D6. On a 2-4, you are delayed and cannot leave this campaign turn without a bribe equal to the roll in credits. You may try again next campaign turn.",
+			"category": "travel",
+			"effect_type": "departure_restriction"
+		},
+		{
+			"id": "restricted_education",
+			"name": "Restricted Education",
+			"roll_range": [35, 36],
+			"description": "You must roll 6+ to be approved for Advanced Training on this world.",
+			"category": "services",
+			"effect_type": "training_restriction"
+		},
+		{
+			"id": "expensive_education",
+			"name": "Expensive Education",
+			"roll_range": [37, 38],
+			"description": "The fee to enroll in Advanced Training is 3 credits.",
+			"category": "services",
+			"effect_type": "cost_modifier"
+		},
+		{
+			"id": "travel_restricted",
+			"name": "Travel Restricted",
+			"roll_range": [39, 41],
+			"description": "No more than one crew member may take the Explore option each campaign turn.",
+			"category": "travel",
+			"effect_type": "action_restriction"
+		},
+		{
+			"id": "unity_safe_sector",
+			"name": "Unity Safe Sector",
+			"roll_range": [42, 43],
+			"description": "The world cannot be Invaded.",
+			"category": "war",
+			"effect_type": "invasion_modifier"
+		},
+		{
+			"id": "gloom",
+			"name": "Gloom",
+			"roll_range": [44, 46],
+			"description": "In battle, maximum visibility is restricted to 1D6+6\".",
+			"category": "battlefield",
+			"effect_type": "visibility"
+		},
+		{
+			"id": "bot_manufacturing",
+			"name": "Bot Manufacturing",
+			"roll_range": [47, 48],
+			"description": "All Bot upgrades are 1 credit cheaper.",
+			"category": "services",
+			"effect_type": "cost_modifier"
+		},
+		{
+			"id": "fuel_refinery",
+			"name": "Fuel Refinery",
+			"roll_range": [49, 51],
+			"description": "Traveling from this world costs only 3 credits.",
+			"category": "travel",
+			"effect_type": "cost_modifier"
+		},
+		{
+			"id": "alien_species_restricted",
+			"name": "Alien Species Restricted",
+			"roll_range": [52, 53],
+			"description": "Roll 1D10 to determine restricted species: 1=Engineer, 2-4=K'Erin, 5=Soulless, 6=Precursor, 7-9=Feral, 10=Swift. Characters of this type cannot be hired here (count as baseline Humans instead), and cannot undertake any crew jobs. They may participate in combat normally.",
+			"category": "species",
+			"effect_type": "species_restriction",
+			"species_table": [
+				{"roll": [1, 1], "species": "Engineer"},
+				{"roll": [2, 4], "species": "K'Erin"},
+				{"roll": [5, 5], "species": "Soulless"},
+				{"roll": [6, 6], "species": "Precursor"},
+				{"roll": [7, 9], "species": "Feral"},
+				{"roll": [10, 10], "species": "Swift"}
+			]
+		},
+		{
+			"id": "weapon_licensing",
+			"name": "Weapon Licensing",
+			"roll_range": [54, 55],
+			"description": "Any weapon obtained through the Trade Table or purchased outright costs +1 credit.",
+			"category": "economy",
+			"effect_type": "cost_modifier"
+		},
+		{
+			"id": "import_restrictions",
+			"name": "Import Restrictions",
+			"roll_range": [56, 57],
+			"description": "You cannot sell any items on this world.",
+			"category": "economy",
+			"effect_type": "trade_restriction"
+		},
+		{
+			"id": "military_outpost",
+			"name": "Military Outpost",
+			"roll_range": [58, 59],
+			"description": "Add +2 to Invasion rolls. Add +2 when checking for war progress.",
+			"category": "war",
+			"effect_type": "invasion_modifier"
+		},
+		{
+			"id": "dangerous",
+			"name": "Dangerous",
+			"roll_range": [60, 62],
+			"description": "When rolling on the Roving Threats Encounter Table, increase the number of opponents by +1.",
+			"category": "encounter",
+			"effect_type": "encounter_modifier"
+		},
+		{
+			"id": "shipyards",
+			"name": "Shipyards",
+			"roll_range": [63, 64],
+			"description": "The cost of all Ship Components is reduced by 2 credits.",
+			"category": "services",
+			"effect_type": "cost_modifier"
+		},
+		{
+			"id": "barren",
+			"name": "Barren",
+			"roll_range": [65, 67],
+			"description": "No plant features can be used on the battlefield.",
+			"category": "battlefield",
+			"effect_type": "terrain"
+		},
+		{
+			"id": "vendetta_system",
+			"name": "Vendetta System",
+			"roll_range": [68, 69],
+			"description": "Opponents become your Rivals on a roll of 1 or 2.",
+			"category": "encounter",
+			"effect_type": "rival_modifier"
+		},
+		{
+			"id": "free_trade_zone",
+			"name": "Free Trade Zone",
+			"roll_range": [70, 72],
+			"description": "One crew member per campaign turn can roll twice when using the Trade Table, and choose either result.",
+			"category": "economy",
+			"effect_type": "trade_modifier"
+		},
+		{
+			"id": "corporate_state",
+			"name": "Corporate State",
+			"roll_range": [73, 74],
+			"description": "+2 when rolling to find a Patron. Patrons are always Corporations. Failing a mission means being blacklisted and you cannot get Patrons here again.",
+			"category": "patron",
+			"effect_type": "patron_modifier"
+		},
+		{
+			"id": "adventurous_population",
+			"name": "Adventurous Population",
+			"roll_range": [75, 76],
+			"description": "When successfully Recruiting, you may roll up one additional character and then choose who to hire.",
+			"category": "services",
+			"effect_type": "recruit_modifier"
+		},
+		{
+			"id": "frozen",
+			"name": "Frozen",
+			"roll_range": [77, 79],
+			"description": "Any character making a Dash may opt to slide. They move 1D6\" in a straight line, and must move the full distance. If they collide with anything, they — and any character they collide with — are knocked 1\" in a random direction and become Stunned.",
+			"category": "battlefield",
+			"effect_type": "movement_modifier"
+		},
+		{
+			"id": "flat",
+			"name": "Flat",
+			"roll_range": [80, 81],
+			"description": "Do not place any hills or raised ground on the battlefield.",
+			"category": "battlefield",
+			"effect_type": "terrain"
+		},
+		{
+			"id": "fuel_shortage",
+			"name": "Fuel Shortage",
+			"roll_range": [82, 84],
+			"description": "The cost to travel from this world is raised by 1D3 credits. You may roll each campaign turn.",
+			"category": "travel",
+			"effect_type": "cost_modifier"
+		},
+		{
+			"id": "reflective_dust",
+			"name": "Reflective Dust",
+			"roll_range": [85, 86],
+			"description": "All Laser, Beam, or Blast weapons are -1 to Hit at ranges exceeding 9\".",
+			"category": "battlefield",
+			"effect_type": "combat_modifier"
+		},
+		{
+			"id": "high_cost",
+			"name": "High Cost",
+			"roll_range": [87, 89],
+			"description": "Your crew size counts as being 2 higher for the purpose of Upkeep costs.",
+			"category": "economy",
+			"effect_type": "cost_modifier"
+		},
+		{
+			"id": "interdiction",
+			"name": "Interdiction",
+			"roll_range": [90, 91],
+			"description": "You are only approved to stay for 1D3 campaign turns. To extend your stay, you must obtain a license. Roll 2D6, requiring an 8+.",
+			"category": "travel",
+			"effect_type": "departure_restriction"
+		},
+		{
+			"id": "null_zone",
+			"name": "Null Zone",
+			"roll_range": [92, 93],
+			"description": "No teleportation device of any type works.",
+			"category": "battlefield",
+			"effect_type": "equipment_restriction"
+		},
+		{
+			"id": "crystals",
+			"name": "Crystals",
+			"roll_range": [94, 96],
+			"description": "Place 2D6 crystals on the battlefield. If you don't have any, use rocks.",
+			"category": "battlefield",
+			"effect_type": "terrain"
+		},
+		{
+			"id": "fog",
+			"name": "Fog",
+			"roll_range": [97, 100],
+			"description": "All shots beyond 8\" are -1 to Hit.",
+			"category": "battlefield",
+			"effect_type": "visibility"
+		}
+	]
 }
