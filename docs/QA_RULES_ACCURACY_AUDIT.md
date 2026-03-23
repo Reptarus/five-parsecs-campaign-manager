@@ -2,7 +2,7 @@
 
 **Last Updated**: 2026-03-23
 **Purpose**: Comprehensive line-by-line verification that EVERY rule in the Core Rules book and Compendium has corresponding code, and EVERY piece of game code traces back to a specific rule
-**Status**: DATA VERIFIED, GENERATOR WIRING COMPLETE — All 12/12 data domains verified against source text (925/925 values). Generator wiring audit (Mar 23) found 10/16 generators had issues; all 10 have been fixed as of Mar 23 sprint. See "Generator Wiring Gap" section below for fix details.
+**Status**: DATA VERIFIED, GENERATOR WIRING COMPLETE, CLEANUP SPRINT COMPLETE — All 12/12 data domains verified against source text (925/925 values). Generator wiring audit (Mar 23) found 10/16 generators had issues; all 10 fixed. Cleanup sprint (Mar 23): Dazzle Grenade data sync, PatronJobGenerator preferred_jobs→JSON objective names, game CharacterCreator class bonuses (6→21 classes), SpeciesList.json 6 starting_bonus corrections. 5 "non-Core weapons" confirmed phantom (never existed as data entries).
 
 > **CRITICAL — BLOCKS PUBLIC RELEASE**: This project nearly shipped with AI-hallucinated game data. Every rule statement, every conditional ("and"/"or"), every table, every formula in the Core Rules book must map to specific code. Every game data value in code must trace back to a specific page and paragraph in the book.
 
@@ -35,15 +35,15 @@
 | BugHuntCharacterGeneration | **OK** | Origin/training/history from JSON. Minor unresolved equipment IDs. |
 | BattlefieldGenerator | **OK** | Loads canonical terrain JSON correctly. |
 
-### Fix Priority
+### Fix Priority (ALL RESOLVED — Mar 23, 2026)
 
-1. **Payment inflation** (FiveParsecsMissionGenerator, PatronJobGenerator) — gameplay-breaking wrong values
-2. **"Load but never use" pattern** (StreetFight, Salvage) — switch `generate_*()` to read `_ref_data`
-3. **Broken property access** (LootEconomyIntegrator, EquipmentGenerationScene) — data silently lost
-4. **Stat overflow** (SimpleCharacterCreator 2D6 unclamped) — character model corruption
-5. **Phantom properties** (CharacterGeneration) — data silently lost
-6. **Incomplete coverage** (8/23 class bonuses, 8/25 background mapping) — silent no-ops
-7. **Category ID mismatch** (EnemyGenerator ↔ EnemyGenerationWizard) — fallback generation fails
+1. ~~**Payment inflation**~~ — FIXED: D6 base + D10 danger pay from `patron_generation.json`
+2. ~~**"Load but never use" pattern**~~ — FIXED: `_enrich_from_ref()` overlays JSON onto const results
+3. ~~**Broken property access**~~ — FIXED: API aligned to `get_value()`/`has_tag()`/`item_tags`
+4. ~~**Stat overflow**~~ — FIXED: `ceil(2D6/3)` gives 1-4 range
+5. ~~**Phantom properties**~~ — FIXED: Expanded to all 23+6 classes
+6. ~~**Incomplete coverage**~~ — FIXED: All Core Rules classes covered
+7. ~~**Category ID mismatch**~~ — FIXED: `CATEGORY_IDS` const maps UI to JSON IDs
 
 ### Detailed Per-Generator Breakdown
 

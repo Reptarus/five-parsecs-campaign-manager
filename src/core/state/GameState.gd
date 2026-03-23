@@ -414,6 +414,21 @@ func save_campaign(campaign = null, path: String = "") -> Dictionary:
 
 	return {"success": true, "message": success_msg, "path": path}
 
+## Detect campaign type from save file JSON without fully loading it
+static func _detect_campaign_type(path: String) -> String:
+	if not FileAccess.file_exists(path):
+		return "five_parsecs"
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return "five_parsecs"
+	var text := file.get_as_text()
+	file.close()
+	var data = JSON.parse_string(text)
+	if data is Dictionary:
+		# BugHuntCampaignCore writes "campaign_type": "bug_hunt" at root level
+		return data.get("campaign_type", "five_parsecs")
+	return "five_parsecs"
+
 ## Load a campaign from a save file on disk
 func load_campaign(path: String) -> Dictionary:
 	load_started.emit()
@@ -424,7 +439,17 @@ func load_campaign(path: String) -> Dictionary:
 		load_completed.emit(false, error_msg)
 		return {"success": false, "message": error_msg}
 
-	var loaded = FiveParsecsCampaignCore.load_from_file(path)
+	# Detect campaign type and route to correct loader
+	var campaign_type := _detect_campaign_type(path)
+	var loaded: Resource = null
+	if campaign_type == "bug_hunt":
+		var BugHuntCore = load(
+			"res://src/game/campaign/BugHuntCampaignCore.gd"
+		)
+		if BugHuntCore:
+			loaded = BugHuntCore.load_from_file(path)
+	else:
+		loaded = FiveParsecsCampaignCore.load_from_file(path)
 	if not loaded:
 		var error_msg = "Failed to parse campaign save file"
 		_log_error(error_msg)

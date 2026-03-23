@@ -18,17 +18,17 @@ const SCENE_PATHS = {
 
 	# Campaign management
 	"campaign_creation": "res://src/ui/screens/campaign/CampaignCreationUI.tscn",
-	"main_campaign": "res://src/ui/screens/campaign/MainCampaignScene.tscn",
-	"campaign_turn": "res://src/ui/CampaignTurnUI.tscn",
+	# "main_campaign": UNUSED - no navigate_to calls exist
+	# "campaign_turn": DEPRECATED - replaced by campaign_turn_controller
 	"campaign_dashboard": "res://src/ui/screens/campaign/CampaignDashboard.tscn",
 	"campaign_setup": "res://src/ui/screens/campaign/CampaignSetupDialog.tscn",
 	"campaign_turn_controller": "res://src/ui/screens/campaign/CampaignTurnController.tscn",
-	"victory_progress": "res://src/ui/screens/campaign/VictoryProgressPanel.tscn",
+	# "victory_progress": UNUSED - no navigate_to calls exist
 
 	# Character management
 	"character_creator": "res://src/ui/screens/character/SimpleCharacterCreator.tscn",
 	"character_details": "res://src/ui/screens/character/CharacterDetailsScreen.tscn",
-	"character_progression": "res://src/ui/screens/character/CharacterProgression.tscn",
+	# "character_progression": UNUSED - no navigate_to calls exist
 	"advancement_manager": "res://src/ui/screens/character/AdvancementManager.tscn",
 	# "crew_creation": DEPRECATED - CrewPanel handles crew creation in CampaignCreationUI wizard
 	"crew_management": "res://src/ui/screens/crew/CrewManagementScreen.tscn",
@@ -43,7 +43,7 @@ const SCENE_PATHS = {
 	"world_phase": "res://src/ui/screens/world/WorldPhaseController.tscn",
 	"mission_selection": "res://src/ui/screens/world/MissionSelectionUI.tscn",
 	"patron_rival_manager": "res://src/ui/screens/world/PatronRivalManager.tscn",
-	"world_phase_summary": "res://src/ui/screens/world/WorldPhaseSummary.tscn",
+	# "world_phase_summary": UNUSED - no navigate_to calls exist
 	"travel_phase": "res://src/ui/screens/travel/TravelPhaseUI.tscn",
 
 	# Battle system
@@ -224,9 +224,9 @@ func get_scenes_by_category(category: String) -> Array[String]:
 	var scenes: Array[String] = []
 	match category.to_lower():
 		"campaign":
-			scenes = ["campaign_creation", "campaign_dashboard", "campaign_setup", "victory_progress"]
+			scenes = ["campaign_creation", "campaign_dashboard", "campaign_setup", "campaign_turn_controller"]
 		"character":
-			scenes = ["character_creator", "character_details", "character_progression", "advancement_manager", "crew_management"]
+			scenes = ["character_creator", "character_details", "advancement_manager", "crew_management"]
 		"equipment":
 			scenes = ["equipment_manager", "ship_manager", "ship_inventory"]
 		"world":

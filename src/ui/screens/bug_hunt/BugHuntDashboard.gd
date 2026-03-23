@@ -16,6 +16,7 @@ const COLOR_ACCENT := Color("#2D5A7B")
 var _campaign: Resource
 var _content: VBoxContainer
 var _save_btn: Button
+var _play_btn: Button  # Stored for TweenFX.breathe cleanup
 
 
 func _ready() -> void:
@@ -162,6 +163,7 @@ func _populate() -> void:
 	play_btn.custom_minimum_size = Vector2(200, 48)
 	play_btn.pressed.connect(_on_continue)
 	nav.add_child(play_btn)
+	_play_btn = play_btn
 
 	_save_btn = Button.new()
 	_save_btn.text = "Save"
@@ -196,6 +198,11 @@ func _stagger_card_reveal() -> void:
 				await get_tree().create_timer(0.05).timeout
 			TweenFX.fade_in(children[i], 0.25)
 
+
+func _exit_tree() -> void:
+	# Stop looping TweenFX animations to prevent orphaned tweens
+	if _play_btn and is_instance_valid(_play_btn):
+		TweenFX.stop_all(_play_btn)
 
 func _on_continue() -> void:
 	var router = get_node_or_null("/root/SceneRouter")

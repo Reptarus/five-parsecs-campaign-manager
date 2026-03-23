@@ -172,11 +172,41 @@ func _apply_class_bonuses(class_id: int) -> void:
 	_remove_bonuses(current_bonuses["class"])
 	current_bonuses["class"].clear()
 
-	# Apply new class bonuses based on selection
+	# Core Rules class stat bonuses (pp.26-27) + legacy app-specific classes
 	match class_id:
+		# Core Rules classes with stat bonuses
+		GlobalEnums.CharacterClass.WORKING_CLASS:
+			current_bonuses["class"]["SAVVY"] = 1
+			current_bonuses["class"]["LUCK"] = 1
+		GlobalEnums.CharacterClass.TECHNICIAN:
+			current_bonuses["class"]["SAVVY"] = 1
+		GlobalEnums.CharacterClass.SCIENTIST:
+			current_bonuses["class"]["SAVVY"] = 1
+		GlobalEnums.CharacterClass.HACKER:
+			current_bonuses["class"]["SAVVY"] = 1
 		GlobalEnums.CharacterClass.SOLDIER:
 			current_bonuses["class"]["COMBAT_SKILL"] = 1
-			current_bonuses["class"]["TOUGHNESS"] = 1
+		GlobalEnums.CharacterClass.MERCENARY:
+			current_bonuses["class"]["COMBAT_SKILL"] = 1
+		GlobalEnums.CharacterClass.PRIMITIVE:
+			current_bonuses["class"]["SPEED"] = 1
+		GlobalEnums.CharacterClass.STARSHIP_CREW:
+			current_bonuses["class"]["SAVVY"] = 1
+		GlobalEnums.CharacterClass.PETTY_CRIMINAL:
+			current_bonuses["class"]["SPEED"] = 1
+		GlobalEnums.CharacterClass.GANGER:
+			current_bonuses["class"]["REACTIONS"] = 1
+		GlobalEnums.CharacterClass.SCOUNDREL:
+			current_bonuses["class"]["SPEED"] = 1
+		GlobalEnums.CharacterClass.ENFORCER:
+			current_bonuses["class"]["COMBAT_SKILL"] = 1
+		GlobalEnums.CharacterClass.SPECIAL_AGENT:
+			current_bonuses["class"]["REACTIONS"] = 1
+		GlobalEnums.CharacterClass.TROUBLESHOOTER:
+			current_bonuses["class"]["REACTIONS"] = 1
+		GlobalEnums.CharacterClass.BOUNTY_HUNTER:
+			current_bonuses["class"]["SPEED"] = 1
+		# Legacy app-specific classes (not in Core Rules class table)
 		GlobalEnums.CharacterClass.MEDIC:
 			current_bonuses["class"]["SAVVY"] = 1
 		GlobalEnums.CharacterClass.ENGINEER:
@@ -188,6 +218,8 @@ func _apply_class_bonuses(class_id: int) -> void:
 			current_bonuses["class"]["REACTIONS"] = 1
 		GlobalEnums.CharacterClass.BOT_TECH:
 			current_bonuses["class"]["SAVVY"] = 1
+		# Classes with no stat bonuses: AGITATOR, ARTIST, NEGOTIATOR, TRADER,
+		# NOMAD, EXPLORER, PUNK, SCAVENGER, MERCHANT, BROKER
 
 	# Apply new bonuses
 	_apply_bonuses(current_bonuses["class"])

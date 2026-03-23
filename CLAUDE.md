@@ -97,7 +97,7 @@ MainMenu → BugHuntCreationUI (4-step wizard) → BugHuntDashboard → BugHuntT
 - **BugHuntPhaseManager**: 3-stage turn orchestration (vs 9-phase CampaignPhaseManager)
 - **TacticalBattleUI** reused with `battle_mode: "bug_hunt"` (hides morale, adds ContactMarkerPanel)
 - **CharacterTransferService**: Bidirectional transfer (5PFH ↔ Bug Hunt) with enlistment rolls
-- **GameState.load_campaign()**: Currently hardcodes `FiveParsecsCampaignCore.load_from_file()`. Bug Hunt uses separate SceneRouter path. **TODO**: Add type detection routing to support loading both campaign types from a single entry point
+- **GameState.load_campaign()**: Uses `_detect_campaign_type()` to peek at save file JSON `campaign_type` field, routing to `FiveParsecsCampaignCore` (default) or `BugHuntCampaignCore` loader. Legacy saves without the field default to standard 5PFH.
 - **SceneRouter keys**: `bug_hunt_creation`, `bug_hunt_dashboard`, `bug_hunt_turn_controller`
 - **15 JSON data files** in `data/bug_hunt/`, **23 GDScript/TSCN files** across `src/`
 

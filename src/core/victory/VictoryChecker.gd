@@ -17,8 +17,18 @@ static func check_victory(campaign: Variant, turn_number: int = 0) -> Dictionary
 	var progress := 0
 	var required := 1
 	var vc_name := "Campaign Goal"
-	var resources: Dictionary = campaign.resources if "resources" in campaign else {}
-	var battle_stats: Dictionary = campaign.battle_stats if "battle_stats" in campaign else {}
+	# Read from FiveParsecsCampaignCore's actual data structure:
+	# - credits/reputation/story_points are direct properties on campaign
+	# - battles_won/missions_completed are in progress_data dict
+	var pd: Dictionary = campaign.progress_data if "progress_data" in campaign else {}
+	var _credits: int = campaign.credits if "credits" in campaign else pd.get("credits", 0)
+	var _reputation: int = campaign.reputation if "reputation" in campaign else pd.get("reputation", 0)
+	var _story_points: int = campaign.story_points if "story_points" in campaign else pd.get("story_points", 0)
+	var _battles_won: int = pd.get("battles_won", 0)
+	var _missions_completed: int = pd.get("missions_completed", 0)
+	# Also check completed_missions array if it exists (quest-style tracking)
+	if "completed_missions" in campaign and campaign.completed_missions is Array:
+		_missions_completed = maxi(_missions_completed, campaign.completed_missions.size())
 
 	match vc:
 		GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_20:
@@ -35,51 +45,51 @@ static func check_victory(campaign: Variant, turn_number: int = 0) -> Dictionary
 			required = 100
 		GlobalEnums.FiveParsecsCampaignVictoryType.CREDITS_THRESHOLD:
 			vc_name = "Wealthy (10,000 Credits)"
-			progress = resources.get("credits", 0)
+			progress = _credits
 			required = 10000
 		GlobalEnums.FiveParsecsCampaignVictoryType.CREDITS_50K:
 			vc_name = "Wealthy (50,000 Credits)"
-			progress = resources.get("credits", 0)
+			progress = _credits
 			required = 50000
 		GlobalEnums.FiveParsecsCampaignVictoryType.CREDITS_100K:
 			vc_name = "Rich (100,000 Credits)"
-			progress = resources.get("credits", 0)
+			progress = _credits
 			required = 100000
 		GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_THRESHOLD:
 			vc_name = "Famous (Reputation 20)"
-			progress = resources.get("reputation", 0)
+			progress = _reputation
 			required = 20
 		GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_10:
 			vc_name = "Known (Reputation 10)"
-			progress = resources.get("reputation", 0)
+			progress = _reputation
 			required = 10
 		GlobalEnums.FiveParsecsCampaignVictoryType.REPUTATION_20:
 			vc_name = "Famous (Reputation 20)"
-			progress = resources.get("reputation", 0)
+			progress = _reputation
 			required = 20
 		GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_3:
 			vc_name = "Quest Starter (3 Quests)"
-			progress = campaign.completed_missions.size() if "completed_missions" in campaign else 0
+			progress = _missions_completed
 			required = 3
 		GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_5:
 			vc_name = "Quest Seeker (5 Quests)"
-			progress = campaign.completed_missions.size() if "completed_missions" in campaign else 0
+			progress = _missions_completed
 			required = 5
 		GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_10:
 			vc_name = "Quest Master (10 Quests)"
-			progress = campaign.completed_missions.size() if "completed_missions" in campaign else 0
+			progress = _missions_completed
 			required = 10
 		GlobalEnums.FiveParsecsCampaignVictoryType.BATTLES_20:
 			vc_name = "Seasoned Crew (20 Battles)"
-			progress = battle_stats.get("battles_won", 0)
+			progress = _battles_won
 			required = 20
 		GlobalEnums.FiveParsecsCampaignVictoryType.BATTLES_50:
 			vc_name = "Veteran Crew (50 Battles)"
-			progress = battle_stats.get("battles_won", 0)
+			progress = _battles_won
 			required = 50
 		GlobalEnums.FiveParsecsCampaignVictoryType.BATTLES_100:
 			vc_name = "Legendary Crew (100 Battles)"
-			progress = battle_stats.get("battles_won", 0)
+			progress = _battles_won
 			required = 100
 		GlobalEnums.FiveParsecsCampaignVictoryType.STORY_COMPLETE:
 			vc_name = "Story Complete"
@@ -87,11 +97,11 @@ static func check_victory(campaign: Variant, turn_number: int = 0) -> Dictionary
 			required = 1
 		GlobalEnums.FiveParsecsCampaignVictoryType.STORY_POINTS_10:
 			vc_name = "Story Builder (10 Story Points)"
-			progress = resources.get("story_points", 0)
+			progress = _story_points
 			required = 10
 		GlobalEnums.FiveParsecsCampaignVictoryType.STORY_POINTS_20:
 			vc_name = "Story Master (20 Story Points)"
-			progress = resources.get("story_points", 0)
+			progress = _story_points
 			required = 20
 		_:
 			vc_name = "Campaign Goal"

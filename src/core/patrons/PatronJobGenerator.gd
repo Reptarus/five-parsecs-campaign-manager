@@ -210,41 +210,44 @@ func _load_job_templates_hardcoded() -> void:
 ## Load patron type modifiers — keyed to match Core Rules p.83 patron types
 func _load_patron_modifiers() -> void:
 	# Keys match patron_generation.json patron_type_table (Core Rules p.83)
+	# Keys include BOTH JSON-loaded objective names (Core Rules pp.89-91) AND
+	# hardcoded fallback names. The filter in _select_job_type() only uses keys
+	# that exist in job_templates, so unused names are safely ignored.
 	patron_type_modifiers = {
 		"Corporation": {
 			"payment_modifier": 1.2,
-			"preferred_jobs": ["ESCORT", "DELIVERY", "INVESTIGATION"],
+			"preferred_jobs": ["DELIVER", "SECURE", "PROTECT", "ESCORT", "DELIVERY", "INVESTIGATION"],
 			"bonus_equipment": true,
 			"reputation_value": 2,
 			"danger_pay_bonus": 1 # Core Rules: +1 to Danger Pay roll
 		},
 		"Local Government": {
 			"payment_modifier": 1.0,
-			"preferred_jobs": ["PATROL", "ESCORT", "INVESTIGATION"],
+			"preferred_jobs": ["PATROL", "PROTECT", "SECURE", "ESCORT", "INVESTIGATION"],
 			"authority_bonus": true,
 			"reputation_value": 2
 		},
 		"Sector Government": {
 			"payment_modifier": 1.0,
-			"preferred_jobs": ["PATROL", "ASSAULT", "ESCORT"],
+			"preferred_jobs": ["FIGHT OFF", "ELIMINATE", "PATROL", "ASSAULT", "ESCORT"],
 			"authority_bonus": true,
 			"reputation_value": 3
 		},
 		"Wealthy Individual": {
 			"payment_modifier": 1.1,
-			"preferred_jobs": ["ESCORT", "SALVAGE", "INVESTIGATION"],
+			"preferred_jobs": ["PROTECT", "ACQUIRE", "DELIVER", "ESCORT", "SALVAGE", "INVESTIGATION"],
 			"bonus_equipment": true,
 			"reputation_value": 1
 		},
 		"Private Organization": {
 			"payment_modifier": 0.9,
-			"preferred_jobs": ["DELIVERY", "SALVAGE", "ESCORT"],
+			"preferred_jobs": ["DELIVER", "SEARCH", "ACQUIRE", "DELIVERY", "SALVAGE", "ESCORT"],
 			"equipment_discount": true,
 			"reputation_value": 1
 		},
 		"Secretive Group": {
 			"payment_modifier": 1.3,
-			"preferred_jobs": ["DELIVERY", "ASSAULT", "INVESTIGATION"],
+			"preferred_jobs": ["ELIMINATE", "DELIVER", "INVESTIGATE", "DELIVERY", "ASSAULT", "INVESTIGATION"],
 			"risk_bonus": true,
 			"reputation_value": -1,
 			"time_frame_bonus": 1 # Core Rules: +1 to Time Frame roll

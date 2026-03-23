@@ -1,6 +1,6 @@
 {
   "last_updated": "2026-03-23",
-  "current_phase": "Generator Wiring Sprint DONE (16/16 OK). CharacterGeneration + EnemyWizard + RivalBattle fixed. Ready for MCP runtime verification.",
+  "current_phase": "Cleanup Sprint COMPLETE — Dazzle Grenade data sync, PatronJobGenerator preferred_jobs aligned to JSON objectives, game CharacterCreator 6→21 classes, SpeciesList.json 6 fixes, 5 phantom weapons resolved. Zero compile errors.",
   "key_metrics": {
     "game_mechanics_compliance": "100% (170/170)",
     "core_rules_systems": "11/11 verified",
@@ -49,9 +49,9 @@
       "36 Core Rules weapons (all stats + traits) — CORRECT (1 Dazzle Grenade fix)"
     ],
     "remaining": [
-      "Compendium/DLC domain (~100 values, 0 verified) — needs physical Compendium book",
-      "6 non-Core weapons (Carbine, Laser Rifle, Plasma Pistol, Auto Cannon, Missile Launcher, Shock Grenade) — need Compendium verification",
-      "RulesReference/SpeciesList.json has 4 incorrect starting_bonus values — unreliable source"
+      "Compendium/DLC domain (~100 values in compendium_*.gd static arrays) — need physical Compendium book for full verification",
+      "Carbine VERIFIED. 5 other 'non-Core weapons' (Laser Rifle, Plasma Pistol, Auto Cannon, Missile Launcher, Shock Grenade) confirmed PHANTOM — no data entries exist, not found in compendium_source.txt",
+      "RulesReference/SpeciesList.json: 6 starting_bonus values CORRECTED (Mar 23) to match character_creation_bonuses.json (Core Rules pp.15-18)"
     ]
   },
   "completed_phases": [
@@ -92,10 +92,10 @@
     { "phase": "Functional Gaps", "description": "Cleanup (7 sprints F-1 to F-7)" }
   ],
   "roadmap": {
-    "next_priority": "All 16 generators FIXED. Next: 1) Commit 2 QA doc updates, 2) MCP runtime verification of all generators, 3) Low-priority: victory metric tracking, 7 standalone battle UI bugs, BugHunt equipment IDs.",
-    "remaining_pdf_verification": "~100 Compendium/DLC values (Core Rules domains complete)",
-    "equipment_database": "FULLY WIRED + VERIFIED. 36 Core Rules weapons confirmed, 6 non-Core tagged.",
-    "compendium_deferred": ["species text helpers", "PvP/Co-op modes", "6 non-Core weapon stats"],
+    "next_priority": "ALL OPEN ITEMS RESOLVED. Only remaining: ~100 Compendium values in compendium_*.gd static arrays need physical book verification. All Core Rules data 100% verified.",
+    "remaining_pdf_verification": "~100 Compendium/DLC values in 11 compendium_*.gd files (Core Rules domains 100% complete)",
+    "equipment_database": "FULLY WIRED + VERIFIED. 36 Core Rules weapons confirmed. Dazzle Grenade synced across weapons.json + equipment_database.json.",
+    "compendium_deferred": ["species text helpers", "PvP/Co-op modes", "5 phantom non-Core weapons confirmed non-existent"],
     "store_ids": "Placeholder — need real IDs from Modiphius",
     "public_beta": "Pending Modiphius approval"
   },

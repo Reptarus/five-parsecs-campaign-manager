@@ -20,7 +20,8 @@
           "Tech-savvy: +1 to all rolls involving technology",
           "Analytical: +1 to Problem Solving rolls"
         ],
-        "starting_bonus": "+1 Savvy"
+        "starting_bonus": "+1 Savvy, -1 Toughness",
+        "_source": "Core Rules p.16"
       },
       {
         "name": "Feral",
@@ -31,7 +32,8 @@
           "Enhanced Senses: +1 to detection rolls",
           "Primal Instincts: +1 to Initiative rolls"
         ],
-        "starting_bonus": "+1 Speed"
+        "starting_bonus": "None",
+        "_source": "Core Rules p.16"
       },
       {
         "name": "K'Erin",
@@ -42,7 +44,8 @@
           "Warrior Culture: +1 to Combat Skill",
           "Honor-bound: Cannot flee from combat"
         ],
-        "starting_bonus": "+1 Combat Skill"
+        "starting_bonus": "+1 Toughness",
+        "_source": "Core Rules p.16"
       },
       {
         "name": "Precursor",
@@ -53,7 +56,8 @@
           "Psionic: Can use psionic powers",
           "Ancient Wisdom: +1 to Savvy"
         ],
-        "starting_bonus": "Start with one Psionic power"
+        "starting_bonus": "+1 Speed, -1 Toughness",
+        "_source": "Core Rules p.17"
       },
       {
         "name": "Soulless",
@@ -64,7 +68,8 @@
           "Robotic: Immune to fear and mind-affecting abilities",
           "Collective Intelligence: Can share information instantaneously with other Soulless"
         ],
-        "starting_bonus": "+1 Toughness"
+        "starting_bonus": "+1 Toughness, +1 Savvy",
+        "_source": "Core Rules p.17"
       },
       {
         "name": "Swift",
@@ -75,7 +80,8 @@
           "Winged: Can fly short distances",
           "Agile: +1 to dodge rolls"
         ],
-        "starting_bonus": "+2 Speed"
+        "starting_bonus": "+1 Speed",
+        "_source": "Core Rules p.18"
       },
       {
         "name": "Converted",

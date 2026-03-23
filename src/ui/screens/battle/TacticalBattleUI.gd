@@ -174,6 +174,7 @@ enum BattleStage {
 }
 var current_stage: int = BattleStage.TIER_SELECT
 var battle_phase: String = "deployment" # legacy compat — will migrate fully to BattleStage
+var _battle_initialized: bool = false  # Tracks whether initialize_battle() was called
 
 # DLC Escalating Battles tracking (Compendium pp.46-48)
 var _dlc_ai_type: String = ""
@@ -193,6 +194,9 @@ func _ready() -> void:
 	_initialize_managers()
 	_connect_signals()
 	_setup_ui()
+	# Deferred check: if initialize_battle() wasn't called by the campaign flow,
+	# show tier selection anyway so standalone/MCP/demo mode works (BUG-B01 fix)
+	call_deferred("_check_standalone_mode")
 
 func _initialize_managers() -> void:
 	## Initialize manager references
@@ -246,6 +250,14 @@ func _setup_ui() -> void:
 
 	# Start with everything hidden — tier selection deferred to initialize_battle()
 	_apply_stage_visibility(BattleStage.TIER_SELECT)
+
+func _check_standalone_mode() -> void:
+	## If initialize_battle() was never called (standalone/MCP/demo load),
+	## show tier selection overlay so the UI is usable (BUG-B01, B06, B17, B18 fix)
+	if _battle_initialized:
+		return
+	_log_message("Standalone mode — no campaign data. Set up your table manually.", UIColors.COLOR_WARNING)
+	_show_tier_selection()
 
 func _apply_stage_visibility(stage: int) -> void:
 	## Control which panels are visible based on current battle stage
@@ -1205,6 +1217,7 @@ func _on_advance_phase_pressed() -> void:
 
 func initialize_battle(crew_members: Array, enemies: Array, mission_data = null) -> void:
 	## Initialize the tactical battle
+	_battle_initialized = true
 	_log_message("Initializing tactical battle...", UIColors.COLOR_CYAN)
 
 	# Show tier selection now that battle is actually starting
