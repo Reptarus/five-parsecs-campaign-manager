@@ -101,6 +101,54 @@
       "name": "High Cost of Living",
       "trait_type": 1,
       "description": "Crew size counts as 2 higher for Upkeep costs. Supplies and services cost more."
+    },
+    {
+      "id": "agricultural_world",
+      "name": "Agricultural World",
+      "trait_type": 3,
+      "description": "Farming colony. Food is cheap but technology is limited. GAME_BALANCE_ESTIMATE"
+    },
+    {
+      "id": "research_outpost",
+      "name": "Research Outpost",
+      "trait_type": 2,
+      "description": "Scientific facility. Advanced medical care available. GAME_BALANCE_ESTIMATE"
+    },
+    {
+      "id": "industrial_hub",
+      "name": "Industrial Hub",
+      "trait_type": 3,
+      "description": "Manufacturing center. Equipment repair costs reduced. GAME_BALANCE_ESTIMATE"
+    },
+    {
+      "id": "mining_world",
+      "name": "Mining World",
+      "trait_type": 3,
+      "description": "Resource extraction colony. Rough workers, higher danger pay available. GAME_BALANCE_ESTIMATE"
+    },
+    {
+      "id": "military_base",
+      "name": "Military Base",
+      "trait_type": 2,
+      "description": "Controlled zone. Military weapons available but restricted. GAME_BALANCE_ESTIMATE"
+    },
+    {
+      "id": "trade_center",
+      "name": "Trade Center",
+      "trait_type": 2,
+      "description": "Major commerce hub. Wide selection of goods at competitive prices. GAME_BALANCE_ESTIMATE"
+    },
+    {
+      "id": "corporate_world",
+      "name": "Corporate World",
+      "trait_type": 3,
+      "description": "Corporate-controlled territory. High-end goods but everything costs more. GAME_BALANCE_ESTIMATE"
+    },
+    {
+      "id": "free_port",
+      "name": "Free Port",
+      "trait_type": 3,
+      "description": "Unregulated spaceport. Anything available but at a premium. GAME_BALANCE_ESTIMATE"
     }
   ]
 }
