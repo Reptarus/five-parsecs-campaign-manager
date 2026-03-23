@@ -108,18 +108,66 @@ func update_summary_display() -> void:
 		empty_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 		stats_container.add_child(empty_label)
 		return
-	for stat in cycle_summary:
-		var stat_label = Label.new()
-		var value = cycle_summary[stat]
-		var value_str: String
-		if (value is int or value is float) and stat in ["credits", "story_points"]:
-			value_str = _format_credits(int(value))
-		elif value is float and value == floorf(value):
-			value_str = str(int(value))
-		else:
-			value_str = str(value)
-		stat_label.text = stat.capitalize().replace("_", " ") + ": " + value_str
-		stats_container.add_child(stat_label)
+
+	# Campaign Stats card
+	var stats_card := PanelContainer.new()
+	_style_sub_panel(stats_card)
+	var stats_vbox := VBoxContainer.new()
+	stats_vbox.add_theme_constant_override("separation", 4)
+
+	var stats_title := Label.new()
+	stats_title.text = "CAMPAIGN STATS"
+	_style_section_label(stats_title)
+	stats_vbox.add_child(stats_title)
+	stats_vbox.add_child(HSeparator.new())
+
+	# Core stats with formatting
+	var stat_entries := {
+		"Turns Played": str(cycle_summary.get("turns_played", 0)),
+		"Battles": "%dW / %dL" % [
+			int(cycle_summary.get("battles_won", 0)),
+			int(cycle_summary.get("battles_lost", 0))
+		],
+		"Missions Completed": str(cycle_summary.get("missions_completed", 0)),
+		"Credits": _format_credits(int(cycle_summary.get("credits", 0))),
+		"Story Points": str(cycle_summary.get("story_points", 0)),
+		"Crew Size": str(cycle_summary.get("crew_size", 0)),
+	}
+	for label_text in stat_entries:
+		var row := HBoxContainer.new()
+		var name_lbl := Label.new()
+		name_lbl.text = label_text
+		name_lbl.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(name_lbl)
+		var val_lbl := Label.new()
+		val_lbl.text = stat_entries[label_text]
+		val_lbl.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
+		val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		row.add_child(val_lbl)
+		stats_vbox.add_child(row)
+
+	stats_card.add_child(stats_vbox)
+	stats_container.add_child(stats_card)
+
+	# Victory Progress card (if available)
+	var vp: String = str(cycle_summary.get("victory_progress", ""))
+	if not vp.is_empty():
+		var vp_card := PanelContainer.new()
+		_style_sub_panel(vp_card)
+		var vp_vbox := VBoxContainer.new()
+		var vp_title := Label.new()
+		vp_title.text = "VICTORY PROGRESS"
+		_style_section_label(vp_title)
+		vp_vbox.add_child(vp_title)
+		vp_vbox.add_child(HSeparator.new())
+		var vp_lbl := Label.new()
+		vp_lbl.text = vp
+		vp_lbl.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
+		vp_lbl.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_LG)
+		vp_vbox.add_child(vp_lbl)
+		vp_card.add_child(vp_vbox)
+		stats_container.add_child(vp_card)
 
 func _on_save_button_pressed() -> void:
 	if game_state and game_state.has_method("save_campaign"):

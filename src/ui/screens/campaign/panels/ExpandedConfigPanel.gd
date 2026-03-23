@@ -764,7 +764,7 @@ func _create_victory_condition_card(key: String, condition: Dictionary) -> Panel
 	
 	# Target badge
 	var target = Label.new()
-	target.text = "Target: %s %s" % [condition.target, condition.type]
+	target.text = "Target: %d %s" % [int(condition.target), condition.type]
 	target.add_theme_font_size_override("font_size", FONT_SIZE_XS)
 	target.add_theme_color_override("font_color", COLOR_ACCENT)
 	vbox.add_child(target)

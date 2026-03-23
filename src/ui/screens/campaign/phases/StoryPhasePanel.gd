@@ -40,13 +40,19 @@ func _ready() -> void:
 			event_manager.event_effects_applied.connect(_on_event_effects_applied)
 	else:
 		push_warning("StoryPhasePanel: EventManager not found (panel has fallback event generation)")
+		# Allow skipping when no event manager — user can't be stuck
+		if resolve_button:
+			resolve_button.text = "Continue — No Events This Turn"
+			resolve_button.disabled = false
 
 	if event_list:
 		event_list.item_selected.connect(_on_event_selected)
 	if resolve_button:
 		resolve_button.pressed.connect(_on_resolve_pressed)
-		resolve_button.disabled = true
-		_style_button_disabled(resolve_button)
+		if event_manager:
+			# Only disable when event manager exists (events expected)
+			resolve_button.disabled = true
+			_style_button_disabled(resolve_button)
 		_setup_validation_hint(resolve_button)
 
 func setup_phase() -> void:

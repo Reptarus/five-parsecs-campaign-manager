@@ -14,8 +14,20 @@ signal captain_updated(captain)
 var current_captain # Untyped — CharacterCreator may return canonical Character or BaseCharacterResource
 
 func _ready() -> void:
+	_apply_base_background()
 	_connect_signals()
 	_update_ui()
+
+## Apply Deep Space COLOR_BASE background
+func _apply_base_background() -> void:
+	var bg := ColorRect.new()
+	bg.name = "__panel_bg"
+	bg.color = Color("#1A1A2E")  # COLOR_BASE
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.show_behind_parent = true
+	add_child(bg)
+	move_child(bg, 0)
 
 func _connect_signals() -> void:
 	create_button.pressed.connect(_on_create_pressed)

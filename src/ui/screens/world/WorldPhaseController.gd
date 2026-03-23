@@ -1468,6 +1468,13 @@ func restore_from_checkpoint() -> void:
 	world_phase_data = _checkpoint_data.get("world_phase_data", {}).duplicate()
 	automation_enabled = _checkpoint_data.get("automation_enabled", false)
 
+	# Ensure all step keys exist with defaults (guards against incomplete checkpoint data)
+	for step_key in [WorldPhaseStep.UPKEEP, WorldPhaseStep.CREW_TASKS,
+			WorldPhaseStep.JOB_OFFERS, WorldPhaseStep.ASSIGN_EQUIPMENT,
+			WorldPhaseStep.RESOLVE_RUMORS, WorldPhaseStep.MISSION_PREP]:
+		if step_key not in step_completed:
+			step_completed[step_key] = false
+
 	# Restore UI state
 	_show_current_step()
 	_update_ui_display()

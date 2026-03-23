@@ -36,11 +36,25 @@ const RM_DESKTOP := 2
 const RM_WIDE := 3
 
 func _ready() -> void:
+	_ensure_base_background()
 	_ensure_panel_structure()
 	_setup_panel_content()
 
 	# Setup responsive layout system
 	_setup_responsive_layout()
+
+## Ensure a COLOR_BASE background exists behind this panel.
+## Prevents black fallback when the panel isn't nested inside a themed parent.
+func _ensure_base_background() -> void:
+	if not has_node("__panel_bg"):
+		var bg := ColorRect.new()
+		bg.name = "__panel_bg"
+		bg.color = COLOR_BASE
+		bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bg.show_behind_parent = true
+		add_child(bg)
+		move_child(bg, 0)
 
 	# Connect to ResponsiveManager for centralized breakpoint management (if enabled)
 	if _responsive_manager:

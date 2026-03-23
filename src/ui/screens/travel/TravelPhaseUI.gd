@@ -83,10 +83,22 @@ var _log_entries: Array[String] = []
 # ============================================================================
 
 func _ready() -> void:
+	_apply_base_background()
 	_fetch_campaign_data()
 	_setup_ui()
 	_setup_tooltips()
 	_add_log_entry("[color=#4FC3F7]Travel Phase started (Step 1 of Campaign Turn)[/color]")
+
+## Apply the Deep Space COLOR_BASE background behind this panel
+func _apply_base_background() -> void:
+	var bg := ColorRect.new()
+	bg.name = "__phase_bg"
+	bg.color = Color("#1A1A2E")  # COLOR_BASE
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.show_behind_parent = true
+	add_child(bg)
+	move_child(bg, 0)
 
 func _fetch_campaign_data() -> void:
 	## Fetch campaign data from GameStateManager (self-initialization)

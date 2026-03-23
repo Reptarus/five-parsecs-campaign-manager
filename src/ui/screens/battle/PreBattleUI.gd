@@ -32,9 +32,21 @@ var selected_crew: Array = []
 var terrain_system: Node # Will be cast to UnifiedTerrainSystem if available
 
 func _ready() -> void:
+	_apply_base_background()
 	_initialize_systems()
 	_connect_signals()
 	confirm_button.disabled = true
+
+## Apply the Deep Space COLOR_BASE background behind this panel
+func _apply_base_background() -> void:
+	var bg := ColorRect.new()
+	bg.name = "__phase_bg"
+	bg.color = Color("#1A1A2E")  # COLOR_BASE
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.show_behind_parent = true
+	add_child(bg)
+	move_child(bg, 0)
 
 ## Initialize required systems
 func _initialize_systems() -> void:

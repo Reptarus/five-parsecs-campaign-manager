@@ -221,8 +221,8 @@ func _build_crew_card(member) -> PanelContainer:
 		char_name = member.get(
 			"character_name", member.get("name", "Unknown")
 		)
-		species = member.get("species", "Unknown")
-		char_class = member.get("class", "Unknown")
+		species = str(member.get("origin", member.get("species", "Unknown")))
+		char_class = str(member.get("character_class", member.get("class", "Unknown")))
 		is_captain = member.get("is_captain", false)
 		stats = {
 			"C": member.get("combat", 0),
@@ -417,6 +417,26 @@ func _build_equipment_section(campaign) -> void:
 		)
 		center_vbox.add_child(empty)
 		return
+
+	# If equipment is stored in unified "equipment" array (from creation),
+	# decompose into typed sub-arrays for display
+	if ed.has("equipment") and not ed.has("weapons"):
+		var all_items: Array = ed.get("equipment", [])
+		var _weapons: Array = []
+		var _armor: Array = []
+		var _gear: Array = []
+		for item in all_items:
+			if item is Dictionary:
+				var itype: String = item.get("type", "gear")
+				if itype == "weapon":
+					_weapons.append(item)
+				elif itype == "armor":
+					_armor.append(item)
+				else:
+					_gear.append(item)
+		ed["weapons"] = _weapons
+		ed["armor"] = _armor
+		ed["gear"] = _gear
 
 	# Weapons list
 	var weapons: Array = ed.get("weapons", [])
@@ -688,9 +708,15 @@ func _update_progress_strip(campaign) -> void:
 			)
 
 	# Difficulty
-	var diff_names := {0: "Easy", 1: "Normal", 2: "Hard", 3: "Insanity"}
+	var diff_names := {
+		GlobalEnums.DifficultyLevel.EASY: "Story",
+		GlobalEnums.DifficultyLevel.NORMAL: "Standard",
+		GlobalEnums.DifficultyLevel.CHALLENGING: "Challenging",
+		GlobalEnums.DifficultyLevel.HARDCORE: "Hardcore",
+		GlobalEnums.DifficultyLevel.INSANITY: "Nightmare"
+	}
 	var diff_name: String = diff_names.get(
-		campaign.difficulty, "Normal"
+		int(campaign.difficulty), "Standard"
 	)
 	progress_hbox.add_child(
 		_create_progress_stat("Difficulty", diff_name)

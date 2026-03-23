@@ -3,13 +3,17 @@ extends RefCounted
 class_name GameEnums
 
 ## Enumeration for difficulty levels in the game
+## Synced with GlobalEnums.DifficultyLevel — ordinals MUST match
 enum DifficultyLevel {
-	EASY, # Easy difficulty - more forgiving gameplay
-	NORMAL, # Normal difficulty - balanced gameplay
-	HARD, # Hard difficulty - challenging gameplay
-	NIGHTMARE, # Nightmare difficulty - extremely challenging gameplay
-	HARDCORE, # Hardcore difficulty - permadeath
-	ELITE # Elite difficulty - maximum challenge
+	NONE, # 0 - No difficulty set
+	EASY, # 1 - Easy difficulty - more forgiving gameplay
+	NORMAL, # 2 - Normal difficulty - balanced gameplay
+	HARD, # 3 - Hard difficulty - challenging gameplay
+	CHALLENGING, # 4 - Challenging difficulty
+	NIGHTMARE, # 5 - Nightmare difficulty - extremely challenging gameplay
+	HARDCORE, # 6 - Hardcore difficulty - permadeath
+	ELITE, # 7 - Elite difficulty - maximum challenge
+	INSANITY # 8 - Insanity difficulty
 }
 
 ## Edit Mode
@@ -77,21 +81,22 @@ enum StatusEffect {
 }
 
 ## Enumeration for mission types
+## Synced with GlobalEnums.MissionType — ordinals MUST match for shared members
 enum MissionType {
-	NONE, # No mission type
-	BATTLE, # Standard battle mission
-	RETRIEVAL, # Item retrieval mission
-	ESCORT, # Escort mission
-	DEFENSE, # Defend location mission
-	SABOTAGE, # Sabotage mission
-	PATROL, # Patrol mission
-	RESCUE, # Rescue mission
-	PATRON, # Patron mission
-	BLACK_ZONE, # Black zone mission (high danger)
-	GREEN_ZONE, # Green zone mission (low danger)
-	RED_ZONE, # Red zone mission (medium danger)
-	ASSASSINATION, # Assassination mission
-	RAID # Raid mission
+	NONE, # 0 - No mission type
+	SABOTAGE, # 1 - Sabotage mission
+	RESCUE, # 2 - Rescue mission
+	BLACK_ZONE, # 3 - Black zone mission (high danger)
+	GREEN_ZONE, # 4 - Green zone mission (low danger)
+	RED_ZONE, # 5 - Red zone mission (medium danger)
+	PATROL, # 6 - Patrol mission
+	ESCORT, # 7 - Escort mission
+	ASSASSINATION, # 8 - Assassination mission
+	PATRON, # 9 - Patron mission
+	RAID, # 10 - Raid mission
+	DEFENSE, # 11 - Defend location mission
+	BATTLE = 12, # GameEnums-only: Standard battle mission
+	RETRIEVAL = 13 # GameEnums-only: Item retrieval mission
 }
 
 ## Enumeration for mission objectives
@@ -148,25 +153,29 @@ enum WeaponType {
 }
 
 ## Enumeration for armor types
+## Synced with GlobalEnums.ArmorType — ordinals MUST match
 enum ArmorType {
-	NONE, # No armor type
-	LIGHT, # Light armor
-	MEDIUM, # Medium armor
-	HEAVY, # Heavy armor
-	POWERED, # Powered armor
-	HAZARD, # Hazard protection armor
-	STEALTH # Stealth-enhancing armor
+	NONE, # 0 - No armor type
+	LIGHT, # 1 - Light armor
+	MEDIUM, # 2 - Medium armor
+	HEAVY, # 3 - Heavy armor
+	POWERED, # 4 - Powered armor
+	HAZARD, # 5 - Hazard protection armor
+	STEALTH, # 6 - Stealth-enhancing armor
+	SHIELD # 7 - Shield
 }
 
 ## Character Status
+## Synced with GlobalEnums.CharacterStatus — ordinals MUST match for shared members
 enum CharacterStatus {
-	HEALTHY, # Character is in good health
-	INJURED, # Character is injured
-	CRITICAL, # Character is critically injured
-	INCAPACITATED, # Character is incapacitated
-	DEAD, # Character is dead
-	CAPTURED, # Character has been captured
-	MISSING # Character is missing
+	NONE, # 0 - No status set
+	HEALTHY, # 1 - Character is in good health
+	INJURED, # 2 - Character is injured
+	CRITICAL, # 3 - Character is critically injured
+	DEAD, # 4 - Character is dead
+	CAPTURED, # 5 - Character has been captured
+	MISSING, # 6 - Character is missing
+	INCAPACITATED = 7 # GameEnums-only: Character is incapacitated
 }
 
 ## Item Types
@@ -622,15 +631,20 @@ enum Trait {
 }
 
 ## Faction Types
+## Synced with GlobalEnums.FactionType — ordinals MUST match for shared members
 enum FactionType {
-	NONE, # No faction
-	NEUTRAL, # Neutral faction
-	IMPERIAL, # Imperial/government faction
-	REBEL, # Rebel/resistance faction
-	PIRATE, # Pirate/outlaw faction
-	CORPORATE, # Corporate/business faction
-	MERCENARY, # Mercenary/hired guns faction
-	ALIEN # Alien/non-human faction
+	NONE, # 0 - No faction
+	NEUTRAL, # 1 - Neutral faction
+	FRIENDLY, # 2 - Friendly faction
+	HOSTILE, # 3 - Hostile faction
+	CORPORATE, # 4 - Corporate/business faction
+	PIRATE, # 5 - Pirate/outlaw faction
+	REBEL, # 6 - Rebel/resistance faction
+	IMPERIAL, # 7 - Imperial/government faction
+	ENEMY, # 8 - Enemy faction
+	ALLIED, # 9 - Allied faction
+	MERCENARY = 10, # GameEnums-only: Mercenary/hired guns faction
+	ALIEN = 11 # GameEnums-only: Alien/non-human faction
 }
 
 ## Terrain Feature Types
@@ -847,18 +861,19 @@ enum QuestType {
 }
 
 ## Deployment Types
+## Synced with GlobalEnums.DeploymentType — ordinals MUST match
 enum DeploymentType {
-	NONE, # No deployment type
-	STANDARD, # Standard deployment
-	LINE, # Linear deployment
-	AMBUSH, # Ambush deployment
-	SCATTERED, # Scattered deployment
-	DEFENSIVE, # Defensive deployment
-	REINFORCEMENT, # Reinforcement deployment
-	INFILTRATION, # Stealth deployment
-	OFFENSIVE, # Aggressive deployment
-	BOLSTERED_LINE, # Reinforced line
-	CONCEALED # Hidden deployment
+	NONE, # 0 - No deployment type
+	STANDARD, # 1 - Standard deployment
+	LINE, # 2 - Linear deployment
+	AMBUSH, # 3 - Ambush deployment
+	SCATTERED, # 4 - Scattered deployment
+	DEFENSIVE, # 5 - Defensive deployment
+	INFILTRATION, # 6 - Stealth deployment
+	REINFORCEMENT, # 7 - Reinforcement deployment
+	BOLSTERED_LINE, # 8 - Reinforced line
+	CONCEALED, # 9 - Hidden deployment
+	OFFENSIVE # 10 - Aggressive deployment
 }
 
 ## Unit States
@@ -1124,25 +1139,72 @@ enum DebugLevel {
 }
 
 ## Enemy Types
+## Synced with GlobalEnums.EnemyType — ordinals MUST match
 enum EnemyType {
-	NONE, # No specific type
-	GANGERS, # Street gang members
-	PUNKS, # Urban troublemakers
-	RAIDERS, # Aggressive scavengers
-	PIRATES, # Space pirates
-	CULTISTS, # Religious fanatics
-	PSYCHOS, # Unhinged individuals
-	WAR_BOTS, # Combat robots
-	SECURITY_BOTS, # Law enforcement robots
-	BLACK_OPS_TEAM, # Covert operatives
-	SECRET_AGENTS, # Intelligence agents
-	ELITE, # Superior forces
-	BOSS, # Leader enemies
-	MINION, # Basic followers
-	ENFORCERS, # Law enforcement
-	ASSASSINS, # Professional killers
-	UNITY_GRUNTS, # Unity faction soldiers
-	BLACK_DRAGON_MERCS # Black Dragon mercenaries
+	NONE, # 0
+	GANGERS, # 1
+	PUNKS, # 2
+	RAIDERS, # 3
+	PIRATES, # 4
+	CULTISTS, # 5
+	PSYCHOS, # 6
+	WAR_BOTS, # 7
+	SECURITY_BOTS, # 8
+	BLACK_OPS_TEAM, # 9
+	SECRET_AGENTS, # 10
+	ELITE, # 11
+	BOSS, # 12
+	MINION, # 13
+	ENFORCERS, # 14
+	ASSASSINS, # 15
+	UNITY_GRUNTS, # 16
+	BLACK_DRAGON_MERCS, # 17
+	BRAT_GANG, # 18
+	GENE_RENEGADES, # 19
+	ANARCHISTS, # 20
+	KERIN_OUTLAWS, # 21
+	SKULKER_BRIGANDS, # 22
+	TECH_GANGERS, # 23
+	STARPORT_SCUM, # 24
+	HULKER_GANG, # 25
+	GUN_SLINGERS, # 26
+	UNKNOWN_MERCS, # 27
+	GUILD_TROOPS, # 28
+	ROID_GANGERS, # 29
+	FERAL_MERCENARIES, # 30
+	SKULKER_MERCENARIES, # 31
+	CORPORATE_SECURITY, # 32
+	RAGE_LIZARD_MERCS, # 33
+	BLOOD_STORM_MERCS, # 34
+	RENEGADE_SOLDIERS, # 35
+	BOUNTY_HUNTERS_ENEMY, # 36
+	ABANDONED, # 37
+	VIGILANTES, # 38
+	ISOLATIONISTS, # 39
+	ZEALOTS, # 40
+	MUTANTS_ENEMY, # 41
+	PRIMITIVES_ENEMY, # 42
+	PRECURSOR_EXILES, # 43
+	KERIN_COLONISTS, # 44
+	SWIFT_WAR_SQUAD, # 45
+	SOULLESS_TASK_FORCE, # 46
+	TECH_ZEALOTS, # 47
+	COLONIAL_MILITIA, # 48
+	PLANETARY_NOMADS, # 49
+	SALVAGE_TEAM, # 50
+	CONVERTED_ACQUISITION, # 51
+	CONVERTED_INFILTRATORS, # 52
+	ABDUCTOR_RAIDERS, # 53
+	SWARM_BROOD, # 54
+	HAYWIRE_ROBOTS, # 55
+	RAZOR_LIZARDS, # 56
+	SAND_RUNNERS, # 57
+	VOID_RIPPERS, # 58
+	KRORG, # 59
+	LARGE_BUGS, # 60
+	CARNIVORE_CHASERS, # 61
+	VENT_CRAWLERS, # 62
+	DISTORTS # 63
 }
 
 ## Character Stats

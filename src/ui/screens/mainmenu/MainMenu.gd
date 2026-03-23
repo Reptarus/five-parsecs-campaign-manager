@@ -83,7 +83,16 @@ func _connect_tutorial_signals() -> void:
 
 func setup_ui() -> void:
 	_connect_buttons()
+	_enforce_touch_targets()
 	add_fade_in_animation()
+
+func _enforce_touch_targets() -> void:
+	# Ensure all menu buttons meet TOUCH_TARGET_MIN (48px)
+	for btn in [continue_button, load_campaign_button, new_campaign_button,
+			coop_campaign_button, battle_simulator_button, bug_hunt_button,
+			options_button, library_button]:
+		if btn:
+			btn.custom_minimum_size.y = maxf(btn.custom_minimum_size.y, 48.0)
 
 func _connect_buttons() -> void:
 	if continue_button:

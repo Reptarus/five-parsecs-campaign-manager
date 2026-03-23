@@ -13,10 +13,22 @@ var crew_members: Array = [] # Untyped — avoids Character.gd type shadowing cr
 var selected_size: int = 4
 
 func _ready() -> void:
+	_apply_base_background()
 	_add_guidance_label()
 	_setup_crew_size_options()
 	_connect_signals()
 	_update_crew_list()
+
+## Apply Deep Space COLOR_BASE background
+func _apply_base_background() -> void:
+	var bg := ColorRect.new()
+	bg.name = "__panel_bg"
+	bg.color = Color("#1A1A2E")  # COLOR_BASE
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.show_behind_parent = true
+	add_child(bg)
+	move_child(bg, 0)
 
 func _add_guidance_label() -> void:
 	## Add guidance text at top of content area

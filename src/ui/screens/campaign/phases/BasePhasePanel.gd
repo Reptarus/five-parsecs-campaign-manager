@@ -241,9 +241,11 @@ func _on_keyword_clicked(meta: Variant) -> void:
 
 # ── Theme Infrastructure ──────────────────────────────────────────
 
-## Style the root PanelContainer with deep-space glass card appearance.
+## Apply the Deep Space theme to this phase panel.
 ## Called automatically from _ready(). Override in subclasses to add
 ## panel-specific styling after calling super._ready().
+## Ensures ALL phase panels have the correct COLOR_BASE background,
+## whether they are PanelContainers or plain Controls.
 func _apply_phase_theme() -> void:
 	if is_class("PanelContainer"):
 		var style := StyleBoxFlat.new()
@@ -257,6 +259,19 @@ func _apply_phase_theme() -> void:
 		style.set_corner_radius_all(12)
 		style.set_content_margin_all(UIColors.SPACING_MD)
 		add_theme_stylebox_override("panel", style)
+
+	# Ensure a COLOR_BASE background exists behind this panel.
+	# This prevents the default black/gray fallback on panels that
+	# don't inherit a themed parent background.
+	if not has_node("__phase_bg"):
+		var bg := ColorRect.new()
+		bg.name = "__phase_bg"
+		bg.color = UIColors.COLOR_BASE
+		bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bg.show_behind_parent = true
+		add_child(bg)
+		move_child(bg, 0)
 
 ## Style a button with deep-space accent theme
 func _style_phase_button(button: Button, is_primary: bool = false) -> void:
