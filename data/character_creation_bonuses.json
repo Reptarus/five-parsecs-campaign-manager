@@ -12,9 +12,9 @@
 		"6": {"TOUGHNESS": 1, "SAVVY": 1, "_comment": "Soulless (p.17)"},
 		"5": {"SPEED": 1, "TOUGHNESS": -1, "_comment": "Precursor (p.17)"},
 		"7": {"SPEED": 1, "_comment": "Swift (p.18)"},
-		"9": {"TOUGHNESS": 1, "SAVVY": -1, "_comment": "Krag"},
-		"10": {"SPEED": 1, "TOUGHNESS": -1, "_comment": "Skulker"},
-		"11": {"TOUGHNESS": 1, "COMBAT": 1, "_comment": "Prison Planet"}
+		"9": {"TOUGHNESS": 1, "_comment": "Krag (Compendium p.12: R1 Sp4 C+0 T4 Sa+0)"},
+		"10": {"SPEED": 2, "SAVVY": 1, "_comment": "Skulker (Compendium p.14: R1 Sp6 C+0 T3 Sa+1)"},
+		"11": {"TOUGHNESS": 1, "COMBAT_SKILL": 1, "_comment": "Prison Planet (Compendium background)"}
 	},
 	"background_bonuses": {
 		"12": {"SAVVY": 1, "_comment": "Peaceful High Tech Colony"},

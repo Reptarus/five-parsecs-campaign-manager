@@ -2,7 +2,7 @@
 
 **Last Updated**: 2026-03-23
 **Engine**: Godot 4.6-stable
-**Overall Coverage**: Data 100% verified (925/925 values), **generator wiring 16/16 OK**, **cleanup sprint COMPLETE** — Dazzle Grenade data sync, PatronJobGenerator preferred_jobs alignment, game CharacterCreator class bonuses (6→21 classes), SpeciesList.json 6 starting_bonus corrections, 5 phantom "non-Core weapons" confirmed non-existent. See QA_RULES_ACCURACY_AUDIT.md for details.
+**Overall Coverage**: Data 100% verified (925/925 values), **generator wiring 16/16 OK**, **Compendium PDF-verified** — 100+ Compendium values verified against Five Parsecs Compendium PDF. 3 origin bonus bugs found+fixed (Krag, Skulker, Prison Planet). Deployment (54 D100 ranges), Escalation (42 D100 ranges), Equipment (17 items), Species profiles, Salvage mechanics all confirmed correct. See QA_RULES_ACCURACY_AUDIT.md for details.
 
 ---
 
