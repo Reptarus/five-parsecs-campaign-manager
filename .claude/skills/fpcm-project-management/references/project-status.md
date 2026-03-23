@@ -1,6 +1,15 @@
 # Project Status (March 22, 2026)
 
-## Current Phase: Phase 45 COMPLETE — Full JSON Data Consistency (8/8 sprints)
+## Current Phase: QA Doc Overhaul COMPLETE — Rules-to-Code Traceability Audit NEXT
+
+### QA Documentation Overhaul (Mar 22, 2026)
+- Created `docs/QA_RULES_ACCURACY_AUDIT.md` — bidirectional rules-to-code traceability matrix (framework only, not populated)
+- Updated all 4 QA docs: Dashboard, Integration Scenarios (Scenario 10), Core Rules Test Plan (RULES_VERIFIED procedure), UX/UI Test Plan (§8 display+flow, §9 layout improvements)
+- Updated 11/14 agent+skill files with `data/RulesReference/` mandate and "never invent data" rules
+- Updated CLAUDE.md with Data Integrity Rules section
+- Updated `data-consistency.md` with hallucination hotspots and ship data CRITICAL warning
+- **Ship data CONFIRMED WRONG**: Book has 13 types (hull 20-40, debt 1D6+10 to 1D6+35). Code has 7 types (hull 6-14). Full rewrite needed.
+- **Next**: Populate traceability matrix — ~405 rules across ~300 pages need line-by-line code mapping
 
 ## Key Metrics
 

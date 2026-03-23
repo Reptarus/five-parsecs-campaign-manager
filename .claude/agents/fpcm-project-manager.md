@@ -95,8 +95,9 @@ Report project status from MEMORY.md, docs/PROJECT_STATUS_2026.md, and agent mem
 2. **Multi-domain tasks** → Decompose, route in dependency order
 3. **Enum changes** → Always route to `character-data-engineer` (owns all 3 enum files)
 4. **Shared file changes** → Route to primary agent + `bug-hunt-specialist` for cross-mode review
-5. **Testing** → Always route to `qa-specialist` as final step
-6. **Ambiguous tasks** → Clarify with user before routing
+5. **Data changes** → Verify agent checked `data/RulesReference/` before approving. NEVER route data tasks without RulesReference validation
+6. **Testing** → Always route to `qa-specialist` as final step
+7. **Ambiguous tasks** → Clarify with user before routing
 
 ## Dependency Order (Multi-Agent Tasks)
 

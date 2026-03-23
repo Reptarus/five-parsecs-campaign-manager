@@ -101,6 +101,7 @@ Panels initialized at `_ready()` with stale data. Must call `_refresh_*()` from 
 
 ## What You Should Always Do
 
+- **Verify campaign data against `data/RulesReference/`** — event tables, world traits, upkeep costs, and turn phase mechanics must match the Core Rules. Check `Campaign.json`, `DifficultyOptions.json` before implementing
 - **Emit phase_completed signals** with proper completion data from panels
 - **Use FiveParsecsCampaignPhase** (14 values), not deprecated CampaignPhase (10 values)
 - **Guard autoload access** with `get_node_or_null("/root/AutoloadName")`
@@ -109,6 +110,7 @@ Panels initialized at `_ready()` with stale data. Must call `_refresh_*()` from 
 
 ## What You Should Never Do
 
+- **Never invent campaign event outcomes, costs, or thresholds** — source from `data/RulesReference/` or ask the user
 - Never use `campaign["key"] = val` on FiveParsecsCampaignCore (Resource — use progress_data)
 - Never skip coordinator for creation state — panels must signal through CampaignCreationCoordinator
 - Never hardcode phase transitions — always go through CampaignPhaseManager

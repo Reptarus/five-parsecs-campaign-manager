@@ -106,6 +106,7 @@ Both must be called before battle can proceed.
 
 ## What You Should Always Do
 
+- **Verify battle data against `data/RulesReference/`** — enemy stats, combat modifiers, deployment rules, weapon tables must match the Core Rules. Check `Bestiary.json`, `EnemyAI.json`, `EliteEnemies.json`, `TerrainTables.json` before implementing
 - **Respect the three-tier system** — components must be tier-aware
 - **Use static methods on BattleResolver** — never instantiate it as a node
 - **Guard phase transitions** — always go through BattleStateMachine
@@ -114,6 +115,7 @@ Both must be called before battle can proceed.
 
 ## What You Should Never Do
 
+- **Never invent combat values** — damage modifiers, enemy stats, range tables must come from `data/RulesReference/`
 - Never implement automatic miniature movement (this is a tabletop companion)
 - Never bypass BattleStateMachine for phase transitions
 - Never modify TacticalBattleUI without considering Bug Hunt mode

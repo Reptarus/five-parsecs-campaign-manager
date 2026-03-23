@@ -38,6 +38,12 @@ description: "Use this skill when working with character data models, the three-
 | `src/core/world/PlanetDataManager.gd` | Autoload | Planet persistence, world events |
 | `src/core/world/WorldEconomyManager.gd` | Autoload | Credits, transactions, price adjustments |
 
+## Rules Data Authority
+
+All game data values MUST be verified against `data/RulesReference/` files (extracted from Core Rules and Compendium PDFs). Key RulesReference files for this skill: `SpeciesList.json`, `EquipmentItems.json`, `Bestiary.json`, `Campaign.json`, `DifficultyOptions.json`.
+
+**NEVER invent stats, costs, ranges, or probabilities.** If data isn't in RulesReference, ask the user to provide it from the book. See `docs/QA_RULES_ACCURACY_AUDIT.md` for the full verification checklist.
+
 ## Critical Gotchas
 
 1. **Stats are FLAT** — `combat`, `reactions`, `toughness`, `speed`, `savvy`, `luck`, `tech` are direct properties. NO `stats` sub-object

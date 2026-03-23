@@ -34,6 +34,12 @@ description: "Use this skill when working with the battle state machine, combat 
 | `src/ui/screens/battle/TacticalBattleUI.gd` | `FPCM_TacticalBattleUI` | Tactical battle companion (3 oracle tiers) |
 | `src/ui/screens/battle/PreBattleUI.gd` | Control | Pre-battle crew selection + preview |
 
+## Rules Data Authority
+
+All battle mechanics MUST be verified against `data/RulesReference/` files. Key files: `Bestiary.json` (enemy stats/tables), `EnemyAI.json` (AI behavior), `EliteEnemies.json` (elite variants), `TerrainTables.json` (terrain rules), `AlternateEnemyDeployment.json`.
+
+**NEVER invent combat values, enemy stats, or weapon modifiers.** Verify against RulesReference before implementing.
+
 ## Critical Gotchas
 
 1. **Tabletop companion, not simulator** — output is text instructions, not automatic movement
@@ -41,4 +47,4 @@ description: "Use this skill when working with the battle state machine, combat 
 3. **BattleResolver is static** — use `BattleResolver.resolve_battle()`, never instantiate as Node
 4. **PreBattleUI has two setup methods** — `setup_preview(data)` + `setup_crew_selection(crew)`, not one
 5. **TacticalBattleUI shared with Bug Hunt** — changes must work in both modes
-6. **MAX_COMBAT_ROUNDS = 6** (Five Parsecs p.118), MIN = 3
+6. **MAX_COMBAT_ROUNDS = 6** (Five Parsecs p.118 — verify in `data/RulesReference/`), MIN = 3

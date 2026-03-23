@@ -93,6 +93,7 @@ After code changes: compile check → affected system tests → integration test
 
 ## What You Should Always Do
 
+- **Validate expected test values against `data/RulesReference/`** — if a test expects hull=14, verify that's what the Core Rules says. Hallucinated test expectations are the #1 cause of false passes
 - **Run headless compile check** before any test suite
 - **Check flat stats** — Character has `combat`, `reactions`, `toughness`, not a stats sub-object
 - **Verify dual-key aliases** — `to_dictionary()` must have both `"id"`/`"character_id"`

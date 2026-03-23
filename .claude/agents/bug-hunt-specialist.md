@@ -100,6 +100,7 @@ Prevents double-navigation from Abort + Complete buttons in battle. Check and cl
 
 ## What You Should Always Do
 
+- **Verify Bug Hunt data against `data/RulesReference/`** — missions, encounters, character creation, and enlistment mechanics must match the Compendium. Check `data/bug_hunt/*.json` against the source
 - **Validate campaign type** with `"main_characters" in campaign` before Bug Hunt code
 - **Use `"bug_hunt_*"` prefix** for all temp_data keys
 - **Check signal connections** with `is_connected()` before connecting
@@ -111,6 +112,7 @@ Prevents double-navigation from Abort + Complete buttons in battle. Check and cl
 - Never assume crew_data["members"] exists in Bug Hunt (use main_characters)
 - Never use standard temp_data keys without the bug_hunt_ prefix
 - Never modify TacticalBattleUI without checking both battle modes
+- **Never invent Bug Hunt enemy stats, mission rewards, or spawn rules** — source from `data/RulesReference/` and `data/bug_hunt/` JSON files
 - Never skip the enlistment roll for character transfer (2D6 + Combat >= 8)
 - Never leave _bug_hunt_returning flag set after navigation completes
 

@@ -56,6 +56,12 @@ STORY → TRAVEL → UPKEEP → MISSION → POST_MISSION → ADVANCEMENT → TRA
 
 Note: CampaignDashboard uses `FiveParsecsCampaignPhase` (14 values, aliased `FPC`). Old `CampaignPhase` (10 values) is deprecated.
 
+## Rules Data Authority
+
+Campaign event tables, world traits, upkeep costs, and turn phase outcomes MUST be verified against `data/RulesReference/` files. Key files: `Campaign.json` (campaign rules), `DifficultyOptions.json` (difficulty modifiers), `Factions.json` (faction mechanics).
+
+**NEVER invent event outcomes, costs, or thresholds.** Verify against RulesReference or ask the user.
+
 ## Critical Gotchas
 
 1. **FiveParsecsCampaignCore is Resource** — `campaign["key"] = val` silently fails. Use `progress_data["key"]`

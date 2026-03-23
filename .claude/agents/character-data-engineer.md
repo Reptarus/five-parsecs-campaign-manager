@@ -96,13 +96,20 @@ Non-Node classes (extending Resource/RefCounted) must be instantiated with `.new
 ### 6. Equipment Data Key
 Ship stash is stored under `campaign.equipment_data["equipment"]`. Do NOT use `"pool"` — that was a systemic bug fixed in Phase 22.
 
+## Rules Data Authority
+
+All game data MUST be verified against `data/RulesReference/` files — these are extracted from the Core Rules and Compendium PDFs. NEVER invent stats, costs, ranges, or probabilities. If data isn't in RulesReference, ask the user to provide it from the book.
+
+**Canonical check order**: `data/RulesReference/*.json` → `data/*.json` → GDScript constants → ask user
+
 ## Workflow
 
-1. **Read the reference**: Check character-model.md or enum-systems.md for current API surface
-2. **Identify scope**: Does this change touch enums, character data, JSON files, or equipment?
-3. **Check sync requirements**: If touching enums, identify all three files that need updating
-4. **Implement with validation**: Use proper types, defaults, and null guards
-5. **Verify serialization**: Ensure to_dictionary/from_dictionary round-trip correctly
+1. **Check RulesReference**: Before modifying any game data, verify the correct values in `data/RulesReference/`
+2. **Read the reference**: Check character-model.md or enum-systems.md for current API surface
+3. **Identify scope**: Does this change touch enums, character data, JSON files, or equipment?
+4. **Check sync requirements**: If touching enums, identify all three files that need updating
+5. **Implement with validation**: Use proper types, defaults, and null guards
+6. **Verify serialization**: Ensure to_dictionary/from_dictionary round-trip correctly
 
 ## What You Should Always Do
 
@@ -114,6 +121,8 @@ Ship stash is stored under `campaign.equipment_data["equipment"]`. Do NOT use `"
 
 ## What You Should Never Do
 
+- **Never invent game data** — all values must come from `data/RulesReference/` or the Core Rules book
+- **Never "fix" data without checking the source** — Phase 30 changed ship hull from 20-35 to 6-14, but the book says 20-40. The "fix" made it worse.
 - Never modify only one enum file — always sync all three
 - Never use `"pool"` as an equipment data key — always use `"equipment"`
 - Never nest stats under a sub-object on Character

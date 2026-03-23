@@ -33,11 +33,15 @@ description: "Use this skill when working with the Bug Hunt gamemode — creatio
 | `CharacterTransferService.gd` | `CharacterTransferService` | Bidirectional 5PFH ↔ Bug Hunt transfer |
 | `data/bug_hunt/` | 15 JSON files | Bug Hunt-specific data |
 
+## Rules Data Authority
+
+Bug Hunt data — missions, enemies, spawn rules, character creation, enlistment mechanics — MUST be verified against `data/RulesReference/` Compendium files and `data/bug_hunt/*.json` (15 files). Never invent Bug Hunt values.
+
 ## Critical Gotchas
 
 1. **Incompatible data models** — `main_characters[]` (BH) vs `crew_data["members"]` (5PFH)
 2. **Validate campaign type** — `"main_characters" in campaign` before Bug Hunt code
 3. **Temp data namespacing** — Bug Hunt keys use `"bug_hunt_*"` prefix
 4. **Stat key differences** — `reactions`/`combat_skill` (BH) vs `reaction`/`combat` (5PFH)
-5. **Enlistment roll required** — 2D6 + Combat >= 8 to transfer 5PFH → Bug Hunt
+5. **Enlistment roll required** — 2D6 + Combat >= 8 to transfer 5PFH → Bug Hunt (verify in RulesReference)
 6. **_bug_hunt_returning flag** — prevents double-navigation, must be cleared after use
