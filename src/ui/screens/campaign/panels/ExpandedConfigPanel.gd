@@ -122,12 +122,9 @@ func _ready() -> void:
 
 func _load_campaign_config() -> void:
 	var path := "res://data/campaign_config.json"
-	if not FileAccess.file_exists(path):
-		push_warning("ExpandedConfigPanel: campaign_config.json not found, using fallback")
-		_apply_fallback_config()
-		return
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
+		push_warning("ExpandedConfigPanel: Failed to open campaign_config.json at %s, using fallback" % path)
 		_apply_fallback_config()
 		return
 	var json := JSON.new()

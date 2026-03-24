@@ -67,13 +67,10 @@ static func load_json_safe(path: String, context: String = "") -> Dictionary:
 		push_error("CRASH PREVENTION: Empty JSON file path - %s" % context)
 		return {}
 
-	if not FileAccess.file_exists(path):
-		push_error("CRASH PREVENTION: JSON file not found: %s - %s" % [path, context])
-		return {}
-
+	# No file_exists guard — fails on Android PCK. open() handles missing files.
 	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
 	if not file:
-		push_error("CRASH PREVENTION: Failed to open JSON file: %s - %s" % [path, context])
+		push_error("CRASH PREVENTION: Cannot open JSON file: %s - %s" % [path, context])
 		return {}
 
 	var json_string = file.get_as_text()

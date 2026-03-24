@@ -189,12 +189,8 @@ func _add_event_choices(event: StoryEvent, choices_data: Array) -> void:
 func _load_tutorial_config() -> void:
 	var config_path := "res://data/tutorial/story_companion_tutorials.json"
 
-	if not FileAccess.file_exists(config_path):
-		return
-
 	var file := FileAccess.open(config_path, FileAccess.READ)
 	if not file:
-		push_error("StoryTrackSystem: Failed to open tutorial config")
 		return
 
 	var json_text := file.get_as_text()

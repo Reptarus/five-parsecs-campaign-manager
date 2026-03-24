@@ -256,9 +256,6 @@ static func _load_weapons_cache() -> void:
 	if _weapons_loaded:
 		return
 	var path := "res://data/weapons.json"
-	if not FileAccess.file_exists(path):
-		_weapons_loaded = true
-		return
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
 		_weapons_loaded = true

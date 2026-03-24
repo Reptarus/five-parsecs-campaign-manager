@@ -149,8 +149,6 @@ func _generate_spawn_points(spawn_rating: int) -> Array:
 
 
 func _load_json(path: String) -> Dictionary:
-	if not FileAccess.file_exists(path):
-		return {}
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
 		return {}

@@ -40,13 +40,9 @@ func _ready() -> void:
 
 func load_war_tracks() -> void:
 	## Load war track definitions from JSON
-	if not FileAccess.file_exists(WAR_DATA_PATH):
-		push_error("GalacticWarManager: War data file not found: " + WAR_DATA_PATH)
-		return
-	
 	var file = FileAccess.open(WAR_DATA_PATH, FileAccess.READ)
 	if not file:
-		push_error("GalacticWarManager: Failed to open war data file")
+		push_error("GalacticWarManager: Failed to open war data file: " + WAR_DATA_PATH)
 		return
 	
 	var json_text = file.get_as_text()

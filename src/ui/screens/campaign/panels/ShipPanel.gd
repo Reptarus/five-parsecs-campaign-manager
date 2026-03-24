@@ -590,11 +590,9 @@ func _connect_signals() -> void:
 
 func _load_ships_database() -> void:
 	var path := "res://data/ships.json"
-	if not FileAccess.file_exists(path):
-		push_warning("ShipPanel: ships.json not found, using fallback data")
-		return
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
+		push_warning("ShipPanel: Failed to open ships.json at %s, using fallback data" % path)
 		return
 	var json := JSON.new()
 	if json.parse(file.get_as_text()) != OK:

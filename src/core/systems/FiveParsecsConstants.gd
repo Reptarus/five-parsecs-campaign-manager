@@ -16,9 +16,6 @@ static func _ensure_crew_tasks_loaded() -> void:
 		return
 	_crew_tasks_loaded = true
 	var path := "res://data/crew_tasks.json"
-	if not FileAccess.file_exists(path):
-		_load_crew_task_fallbacks()
-		return
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
 		_load_crew_task_fallbacks()

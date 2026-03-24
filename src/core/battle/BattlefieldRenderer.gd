@@ -117,7 +117,7 @@ func _create_primitive(asset_info: Dictionary) -> MeshInstance3D:
 
 func _instance_scene(asset_info: Dictionary) -> Node3D:
 	var path = asset_info.get("path", "")
-	if not FileAccess.file_exists(path):
+	if not ResourceLoader.exists(path):
 		push_error("Scene file not found for asset: %s" % path)
 		return null
 

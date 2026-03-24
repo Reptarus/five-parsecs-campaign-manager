@@ -508,8 +508,6 @@ func _crew_has_psionic_member() -> bool:
 func _load_psionic_powers_json() -> Dictionary:
 	## Load psionic powers from JSON data file
 	var path := "res://data/psionic_powers.json"
-	if not FileAccess.file_exists(path):
-		return {}
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
 		return {}

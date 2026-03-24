@@ -9,7 +9,7 @@ const StoryQuestData = preload("res://src/core/story/StoryQuestData.gd")
 const UnifiedTerrainSystem = preload("res://src/core/terrain/UnifiedTerrainSystem.gd")
 
 ## Optional dependencies that may not exist
-var _terrain_system_script = preload("res://src/core/terrain/UnifiedTerrainSystem.gd") if FileAccess.file_exists("res://src/core/terrain/UnifiedTerrainSystem.gd") else null
+var _terrain_system_script = preload("res://src/core/terrain/UnifiedTerrainSystem.gd") if ResourceLoader.exists("res://src/core/terrain/UnifiedTerrainSystem.gd") else null
 
 ## Signals
 signal crew_selected(crew: Array)

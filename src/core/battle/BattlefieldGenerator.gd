@@ -307,10 +307,10 @@ func _load_all_data_files() -> void:
 	validation_rules = _load_json_file("res://data/battlefield/rules/validation_rules.json")
 
 func _load_json_file(path: String) -> Dictionary:
-	if not FileAccess.file_exists(path):
+	var file = FileAccess.open(path, FileAccess.READ)
+	if not file:
 		push_error("Failed to load JSON file: %s" % path)
 		return {}
-	var file = FileAccess.open(path, FileAccess.READ)
 	var data = JSON.parse_string(file.get_as_text())
 	return data if data else {}
 

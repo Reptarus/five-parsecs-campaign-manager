@@ -440,8 +440,6 @@ func _generate_mission_description() -> String:
 	return template
 
 func _load_json_safe(path: String) -> Dictionary:
-	if not FileAccess.file_exists(path):
-		return {}
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
 		return {}

@@ -71,24 +71,21 @@ func _init() -> void:
 func _load_mission_gen_data() -> void:
 	# Load mission objectives + danger pay from canonical patron_generation.json (Core Rules pp.83-91)
 	var gen_path := "res://data/patron_generation.json"
-	if FileAccess.file_exists(gen_path):
-		var gen_file := FileAccess.open(gen_path, FileAccess.READ)
-		if gen_file:
-			var gen_json := JSON.new()
-			if gen_json.parse(gen_file.get_as_text()) == OK and gen_json.data is Dictionary:
-				var gen_data: Dictionary = gen_json.data
-				if gen_data.has("mission_objectives"):
-					_mission_gen_data["core_rules_objectives"] = gen_data["mission_objectives"]
-				# Load danger pay table (Core Rules p.83) for reward calculation
-				var danger_table: Dictionary = gen_data.get("danger_pay_table", {})
-				if danger_table.has("entries"):
-					_mission_gen_data["danger_pay_entries"] = danger_table["entries"]
-			gen_file.close()
+	var gen_file := FileAccess.open(gen_path, FileAccess.READ)
+	if gen_file:
+		var gen_json := JSON.new()
+		if gen_json.parse(gen_file.get_as_text()) == OK and gen_json.data is Dictionary:
+			var gen_data: Dictionary = gen_json.data
+			if gen_data.has("mission_objectives"):
+				_mission_gen_data["core_rules_objectives"] = gen_data["mission_objectives"]
+			# Load danger pay table (Core Rules p.83) for reward calculation
+			var danger_table: Dictionary = gen_data.get("danger_pay_table", {})
+			if danger_table.has("entries"):
+				_mission_gen_data["danger_pay_entries"] = danger_table["entries"]
+		gen_file.close()
 
 	# Load supplementary data from mission_generation_data.json (locations, terrain, etc.)
 	var path := "res://data/mission_generation_data.json"
-	if not FileAccess.file_exists(path):
-		return
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
 		return

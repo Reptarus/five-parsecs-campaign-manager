@@ -63,8 +63,6 @@ func _initialize_rival_data() -> void:
 ## but not rival-specific force templates — those are app-defined groupings.
 func _load_ref_data() -> void:
 	var path := "res://data/rival_battles.json"
-	if not FileAccess.file_exists(path):
-		return
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
 		return

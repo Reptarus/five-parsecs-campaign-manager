@@ -51,7 +51,7 @@ static func run_comprehensive_test() -> Dictionary:
 
 	# Test 7: Core data files exist
 	var test7_start: int = Time.get_ticks_msec()
-	var data_exists: bool = FileAccess.file_exists("res://data/equipment_database.json") or FileAccess.file_exists("res://data/weapons.json")
+	var data_exists: bool = ResourceLoader.exists("res://data/equipment_database.json") or ResourceLoader.exists("res://data/weapons.json")
 	_add_test_result(results, "Core Data Files", data_exists, Time.get_ticks_msec() - test7_start)
 
 	# Update overall success

@@ -21,8 +21,6 @@ static func _ensure_ref_loaded() -> void:
 		return
 	_ref_loaded = true
 	var path := "res://data/RulesReference/AlternateEnemyDeployment.json"
-	if not FileAccess.file_exists(path):
-		return
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
 		return

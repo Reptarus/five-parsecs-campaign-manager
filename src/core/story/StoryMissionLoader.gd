@@ -136,10 +136,6 @@ func convert_to_mission_resource(mission_data: Dictionary) -> Resource:
 
 ## Private: Load JSON file
 func _load_json_file(file_path: String) -> Dictionary:
-	if not FileAccess.file_exists(file_path):
-		push_error("StoryMissionLoader: File not found: %s" % file_path)
-		return {}
-
 	var file := FileAccess.open(file_path, FileAccess.READ)
 	if not file:
 		push_error("StoryMissionLoader: Could not open file: %s" % file_path)

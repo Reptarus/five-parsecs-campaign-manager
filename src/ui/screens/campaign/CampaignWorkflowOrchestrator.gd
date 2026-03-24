@@ -121,7 +121,7 @@ func _validate_scene_availability() -> Dictionary:
 	
 	for state in workflow_scenes:
 		var scene_path = workflow_scenes[state]
-		if not FileAccess.file_exists(scene_path):
+		if not ResourceLoader.exists(scene_path):
 			missing_scenes.append(scene_path)
 	
 	if missing_scenes.is_empty():
@@ -175,7 +175,7 @@ func _start_workflow_step(step: WorkflowState) -> void:
 
 func _transition_to_scene(scene_path: String) -> void:
 	## Production-safe scene transition with error handling
-	if not FileAccess.file_exists(scene_path):
+	if not ResourceLoader.exists(scene_path):
 		_handle_workflow_error(WorkflowError.SCENE_LOAD_FAILED, "Scene file not found: " + scene_path)
 		return
 	

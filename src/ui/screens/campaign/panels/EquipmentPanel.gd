@@ -385,13 +385,9 @@ func _ready() -> void:
 func _load_equipment_tables() -> void:
 	## Load equipment data from equipment_tables.json
 	var file_path = "res://data/character_creation_tables/equipment_tables.json"
-	if not FileAccess.file_exists(file_path):
-		push_warning("EquipmentPanel: equipment_tables.json not found at %s" % file_path)
-		return
-
 	var file = FileAccess.open(file_path, FileAccess.READ)
 	if not file:
-		push_error("EquipmentPanel: Failed to open equipment_tables.json")
+		push_warning("EquipmentPanel: Failed to open equipment_tables.json at %s" % file_path)
 		return
 
 	var json = JSON.new()
@@ -2068,10 +2064,9 @@ func _apply_desktop_layout() -> void:
 func _load_equipment_db() -> Dictionary:
 	## Load equipment_database.json for starting equipment generation
 	var path := "res://data/equipment_database.json"
-	if not FileAccess.file_exists(path):
-		return {}
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
+		push_warning("EquipmentPanel: Failed to open equipment_database.json at %s" % path)
 		return {}
 	var json := JSON.new()
 	if json.parse(file.get_as_text()) != OK:

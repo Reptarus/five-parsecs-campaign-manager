@@ -599,11 +599,9 @@ func _is_bot(character: Resource) -> bool:
 func _load_psionic_powers_json() -> Dictionary:
 	## Load psionic powers from JSON data file (same source as CharacterCreator)
 	var path := "res://data/psionic_powers.json"
-	if not FileAccess.file_exists(path):
-		push_warning("AdvancementSystem: psionic_powers.json not found at %s" % path)
-		return {}
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
+		push_warning("AdvancementSystem: Could not open psionic_powers.json at %s" % path)
 		return {}
 	var json := JSON.new()
 	var err := json.parse(file.get_as_text())

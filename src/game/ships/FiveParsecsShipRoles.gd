@@ -4,7 +4,7 @@ extends Resource
 
 
 # Preloads
-const CharacterManager = preload("res://src/core/character/management/CharacterManager.gd")
+const CharacterManager = preload("res://src/core/character/Management/CharacterManager.gd")
 
 # Signals
 signal role_assigned(character_id: String, role: int)

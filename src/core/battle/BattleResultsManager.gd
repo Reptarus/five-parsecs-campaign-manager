@@ -1,6 +1,6 @@
 @tool
 extends Node
-const CharacterManager = preload("res://src/core/character/management/CharacterManager.gd")
+const CharacterManager = preload("res://src/core/character/Management/CharacterManager.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 
 signal battle_results_recorded(results: Dictionary)

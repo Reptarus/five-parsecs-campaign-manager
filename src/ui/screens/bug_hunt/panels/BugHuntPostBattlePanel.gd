@@ -58,8 +58,6 @@ func complete() -> void:
 
 
 func _load_data() -> void:
-	if not FileAccess.file_exists(POST_BATTLE_PATH):
-		return
 	var file := FileAccess.open(POST_BATTLE_PATH, FileAccess.READ)
 	if not file:
 		return

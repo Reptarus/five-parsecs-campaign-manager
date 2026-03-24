@@ -1,7 +1,7 @@
 @tool
 extends Node
 # Reference the base class via preload to avoid "Could not resolve class" error
-const BaseCharacterManager = preload("res://src/core/character/management/CharacterManager.gd")
+const BaseCharacterManager = preload("res://src/core/character/Management/CharacterManager.gd")
 
 # This file should be referenced via preload
 # Use explicit preloads instead of global class names

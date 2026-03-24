@@ -141,7 +141,7 @@ func navigate_to(scene_name: String, context: Dictionary = {}, add_to_history: b
 
 	# Check if scene file exists
 	@warning_ignore("unsafe_call_argument")
-	if not FileAccess.file_exists(scene_path):
+	if not ResourceLoader.exists(scene_path):
 		var error_msg: String = "Scene file not found: " + scene_path
 		push_error("SceneRouter: " + error_msg)
 		navigation_error.emit(scene_name, error_msg)
@@ -450,7 +450,7 @@ func _validate_critical_scenes() -> void:
 	var missing_critical: Array[String] = []
 	for scene_name in critical_scenes:
 		var scene_path = SCENE_PATHS.get(scene_name, "")
-		if scene_path.is_empty() or not FileAccess.file_exists(scene_path):
+		if scene_path.is_empty() or not ResourceLoader.exists(scene_path):
 			missing_critical.append(scene_name)
 	
 	if not missing_critical.is_empty():
@@ -468,7 +468,7 @@ func validate_all_scenes() -> bool:
 		@warning_ignore("untyped_declaration")
 		var scene_path = SCENE_PATHS[scene_name]
 		@warning_ignore("unsafe_call_argument")
-		if FileAccess.file_exists(scene_path):
+		if ResourceLoader.exists(scene_path):
 			@warning_ignore("unsafe_method_access")
 			results.valid.append(scene_name)
 		else:

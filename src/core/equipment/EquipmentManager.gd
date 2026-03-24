@@ -46,11 +46,9 @@ func _ready() -> void:
 
 func _load_equipment_database() -> void:
 	var path := "res://data/equipment_database.json"
-	if not FileAccess.file_exists(path):
-		push_warning("EquipmentManager: equipment_database.json not found")
-		return
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
+		push_warning("EquipmentManager: Cannot open equipment_database.json")
 		return
 	var json := JSON.new()
 	if json.parse(file.get_as_text()) != OK:
@@ -67,8 +65,6 @@ func _load_equipment_database() -> void:
 
 func _load_onboard_items() -> void:
 	var path := "res://data/onboard_items.json"
-	if not FileAccess.file_exists(path):
-		return
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
 		return

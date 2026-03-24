@@ -52,10 +52,9 @@ func _load_tutorial_steps(tutorial_name: String) -> Array[Dictionary]:
     
 	# Try loading from file
 	var file_path = "res://data/tutorials/" + tutorial_name + ".json"
-	if not FileAccess.file_exists(file_path):
-		return []
-    
 	var file = FileAccess.open(file_path, FileAccess.READ)
+	if not file:
+		return []
 	var json = JSON.new()
 	var parse_result = json.parse(file.get_as_text())
 	if parse_result != OK:

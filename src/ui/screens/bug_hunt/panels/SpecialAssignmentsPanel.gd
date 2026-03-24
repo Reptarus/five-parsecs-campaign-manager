@@ -55,8 +55,6 @@ func complete() -> void:
 
 
 func _load_assignments_data() -> void:
-	if not FileAccess.file_exists(ASSIGNMENTS_PATH):
-		return
 	var file := FileAccess.open(ASSIGNMENTS_PATH, FileAccess.READ)
 	if not file:
 		return

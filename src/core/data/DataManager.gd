@@ -202,9 +202,9 @@ func _load_basic_game_data() -> void:
 
 func _load_resource_with_validation(path: String, expected_type: GDScript) -> Resource:
 	## Enhanced resource loading with validation - works with existing enterprise systems
-	if not FileAccess.file_exists(path):
+	if not ResourceLoader.exists(path):
 		return null
-	
+
 	var resource = load(path)
 	if not resource:
 		push_error("DataManager: Failed to load resource: " + path)
@@ -315,7 +315,7 @@ func _validate_data_paths() -> void:
 	
 	var missing_count = 0
 	for path in resource_paths:
-		if not FileAccess.file_exists(path):
+		if not ResourceLoader.exists(path):
 			push_warning("DataManager: Resource file not found (will be created): " + path)
 			missing_count += 1
 	
@@ -404,19 +404,12 @@ func _load_crew_task_system() -> bool:
 ## Safe JSON Loading with Validation
 func _load_json_safe(file_path: String, context: String) -> Dictionary:
 	## Production-grade JSON loading with comprehensive error handling
-	# Stage 1: File existence validation
-	if not FileAccess.file_exists(file_path):
-		var error_msg: String = "Data file not found: " + file_path
-		push_error("DataManager: " + error_msg)
-		_load_errors.append("Missing file: " + file_path)
-		return {}
-
-	# Stage 2: File access validation
+	# File access validation (no file_exists guard — fails on Android PCK)
 	var file: FileAccess = FileAccess.open(file_path, FileAccess.READ)
 	if not file:
-		var error_msg: String = "Failed to open file: " + file_path
+		var error_msg: String = "Cannot open data file: " + file_path
 		push_error("DataManager: " + error_msg)
-		_load_errors.append("File access failed: " + file_path)
+		_load_errors.append("Cannot open: " + file_path)
 		return {}
 
 	# Stage 3: Content reading validation

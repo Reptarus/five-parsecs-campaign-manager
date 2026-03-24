@@ -64,8 +64,6 @@ func _load_data() -> void:
 
 
 func _load_json(path: String) -> Dictionary:
-	if not FileAccess.file_exists(path):
-		return {}
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
 		return {}

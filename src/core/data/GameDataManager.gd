@@ -134,12 +134,11 @@ func filter_by_tags(items: Array, required_tags: Array, excluded_tags: Array = [
 
 ## Helper to load JSON data from a file
 func _load_json_data(file_path: String) -> Dictionary:
-	if not FileAccess.file_exists(file_path):
-		push_error("Data file not found: " + file_path)
-		data_error.emit(file_path.get_file().get_basename(), "File not found")
-		return {}
-		
 	var file = FileAccess.open(file_path, FileAccess.READ)
+	if not file:
+		push_error("Cannot open data file: " + file_path)
+		data_error.emit(file_path.get_file().get_basename(), "Cannot open file")
+		return {}
 	var text = file.get_as_text()
 	file.close()
 	

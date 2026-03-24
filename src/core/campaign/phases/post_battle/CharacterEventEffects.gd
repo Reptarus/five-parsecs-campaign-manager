@@ -62,8 +62,6 @@ func select_precursor_event(choice: int) -> Dictionary:
 func _get_character_event(roll: int) -> Dictionary:
 	## Get character event based on D100 roll from JSON data file (Core Rules p.128-130)
 	var json_path: String = "res://data/campaign_tables/character_events.json"
-	if not FileAccess.file_exists(json_path):
-		return {"type": "none", "name": "No Event"}
 	var file: FileAccess = FileAccess.open(json_path, FileAccess.READ)
 	if not file:
 		return {"type": "none", "name": "No Event"}

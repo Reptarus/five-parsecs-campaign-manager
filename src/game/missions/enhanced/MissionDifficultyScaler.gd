@@ -45,13 +45,9 @@ static func _ensure_difficulty_data_loaded() -> void:
 
 ## Safe JSON loading method (similar to DataManager)
 static func _load_json_safe(file_path: String, context: String) -> Dictionary:
-	if not FileAccess.file_exists(file_path):
-		push_warning("MissionDifficultyScaler: Data file not found: " + file_path)
-		return {}
-	
 	var file: FileAccess = FileAccess.open(file_path, FileAccess.READ)
 	if not file:
-		push_warning("MissionDifficultyScaler: Failed to open file: " + file_path)
+		push_warning("MissionDifficultyScaler: Data file not found or failed to open: " + file_path)
 		return {}
 	
 	var text: String = file.get_as_text()

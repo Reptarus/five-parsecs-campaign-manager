@@ -18,11 +18,9 @@ func _init() -> void:
 	_load_data()
 
 func _load_data() -> void:
-	if not FileAccess.file_exists(DATA_PATH):
-		push_warning("NotableSightsSystem: %s not found" % DATA_PATH)
-		return
 	var file := FileAccess.open(DATA_PATH, FileAccess.READ)
 	if not file:
+		push_warning("NotableSightsSystem: %s not found or failed to open" % DATA_PATH)
 		return
 	var json := JSON.new()
 	if json.parse(file.get_as_text()) != OK:

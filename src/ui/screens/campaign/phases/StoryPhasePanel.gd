@@ -116,11 +116,9 @@ func _generate_story_events() -> void:
 func _load_story_events() -> void:
 	## Load story events from story_events.json
 	var path := "res://data/story_events.json"
-	if not FileAccess.file_exists(path):
-		push_warning("StoryPhasePanel: story_events.json not found")
-		return
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
+		push_warning("StoryPhasePanel: Failed to open story_events.json at %s" % path)
 		return
 	var json := JSON.new()
 	if json.parse(file.get_as_text()) != OK:

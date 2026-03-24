@@ -215,11 +215,9 @@ func _initialize_travel_tables() -> void:
 func _load_travel_events_from_json() -> Array[Dictionary]:
 	## Load travel events from event_tables.json (Core Rules pp.72-75)
 	var path := "res://data/event_tables.json"
-	if not FileAccess.file_exists(path):
-		push_warning("TravelPhase: event_tables.json not found, using fallback")
-		return _fallback_travel_events()
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
+		push_warning("TravelPhase: event_tables.json not found or failed to open, using fallback")
 		return _fallback_travel_events()
 	var json := JSON.new()
 	if json.parse(file.get_as_text()) != OK:
@@ -259,10 +257,9 @@ func _fallback_travel_events() -> Array[Dictionary]:
 func _load_world_traits_from_json() -> Array[Dictionary]:
 	## Load world traits from world_traits.json (Core Rules pp.72-75)
 	var path := "res://data/world_traits.json"
-	if not FileAccess.file_exists(path):
-		return []
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
+		push_warning("TravelPhase: world_traits.json not found or failed to open")
 		return []
 	var json := JSON.new()
 	if json.parse(file.get_as_text()) != OK:

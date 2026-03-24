@@ -187,7 +187,7 @@ func _update_portrait_display(character: Character) -> void:
 	
 	# Simple fallback to default portrait - no complex portrait management
 	var default_portrait_path = "res://assets/portraits/default_character.png"
-	if FileAccess.file_exists(default_portrait_path):
+	if ResourceLoader.exists(default_portrait_path):
 		portrait.texture = load(default_portrait_path)
 		portrait.modulate = Color.WHITE
 	else:

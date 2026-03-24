@@ -454,8 +454,6 @@ func add_enemy_psionic_notes(enemy_type: String, legality: int = -1) -> void:
 
 func _load_psionic_powers_data() -> Dictionary:
 	var path := "res://data/psionic_powers.json"
-	if not FileAccess.file_exists(path):
-		return {}
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
 		return {}

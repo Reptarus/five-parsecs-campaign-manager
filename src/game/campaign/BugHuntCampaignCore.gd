@@ -86,20 +86,19 @@ func _init() -> void:
 
 func _init_movie_magic() -> void:
 	var json_path := "res://data/bug_hunt/bug_hunt_movie_magic.json"
-	if FileAccess.file_exists(json_path):
-		var file := FileAccess.open(json_path, FileAccess.READ)
-		if file:
-			var json := JSON.new()
-			if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
-				var abilities: Array = json.data.get("abilities", [])
-				for ability in abilities:
-					var ability_id: String = ability.get("id", "")
-					if not ability_id.is_empty():
-						movie_magic_used[ability_id] = false
-				file.close()
-				if not movie_magic_used.is_empty():
-					return
+	var file := FileAccess.open(json_path, FileAccess.READ)
+	if file:
+		var json := JSON.new()
+		if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+			var abilities: Array = json.data.get("abilities", [])
+			for ability in abilities:
+				var ability_id: String = ability.get("id", "")
+				if not ability_id.is_empty():
+					movie_magic_used[ability_id] = false
 			file.close()
+			if not movie_magic_used.is_empty():
+				return
+		file.close()
 	# Fallback to hardcoded IDs
 	for ability_id in ["barricade", "double_up", "escape", "evac", "extra_support",
 			"lucky_find", "reinforcements", "remove_contact", "survived", "you_want_some_too"]:
@@ -459,9 +458,6 @@ func save_to_file(path: String) -> Error:
 
 
 static func load_from_file(path: String) -> BugHuntCampaignCore:
-	if not FileAccess.file_exists(path):
-		return null
-
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
 		return null

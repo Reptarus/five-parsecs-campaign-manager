@@ -193,37 +193,37 @@ func _initialize_story_content() -> void:
 ## Load story events from JSON file
 func _load_story_events() -> void:
 	var story_events_filepath = "res://src/data/resources/Story/story_events.json"
-	if FileAccess.file_exists(story_events_filepath):
-		var file := FileAccess.open(story_events_filepath, FileAccess.READ)
+	var file := FileAccess.open(story_events_filepath, FileAccess.READ)
+	if file:
 		var json := JSON.new()
 		var parse_result := json.parse(file.get_as_text())
 		file.close()
-		
+
 		if parse_result == OK:
 			story_event_templates = json.get_data()
 		else:
 			push_error("Failed to parse story events file: %s at line %s" % [json.get_error_message(), json.get_error_line()])
 			story_event_templates = _get_default_story_events()
 	else:
-		push_warning("Story events file not found, using built-in defaults")
+		push_warning("Story events file not found or not readable, using built-in defaults")
 		story_event_templates = _get_default_story_events()
 
 ## Load quest templates from JSON file
 func _load_quest_templates() -> void:
 	var quest_templates_filepath = "res://src/data/resources/Story/quest_templates.json"
-	if FileAccess.file_exists(quest_templates_filepath):
-		var file := FileAccess.open(quest_templates_filepath, FileAccess.READ)
+	var file := FileAccess.open(quest_templates_filepath, FileAccess.READ)
+	if file:
 		var json := JSON.new()
 		var parse_result := json.parse(file.get_as_text())
 		file.close()
-		
+
 		if parse_result == OK:
 			quest_templates = json.get_data()
 		else:
 			push_error("Failed to parse quest templates file: %s at line %s" % [json.get_error_message(), json.get_error_line()])
 			quest_templates = _get_default_quest_templates()
 	else:
-		push_warning("Quest templates file not found, using built-in defaults")
+		push_warning("Quest templates file not found or not readable, using built-in defaults")
 		quest_templates = _get_default_quest_templates()
 
 ## Get default story events when the file is missing

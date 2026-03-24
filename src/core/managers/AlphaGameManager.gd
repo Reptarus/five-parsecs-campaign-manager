@@ -80,10 +80,10 @@ static func _load_script_cached(script_path: String) -> Script:
 	if script_path in _script_cache:
 		return _script_cache[script_path]
 	
-	if not FileAccess.file_exists(script_path):
+	if not ResourceLoader.exists(script_path):
 		push_error("AlphaGameManager: Script not found: " + script_path)
 		return null
-	
+
 	var script = load(script_path) as Script
 	if script:
 		_script_cache[script_path] = script

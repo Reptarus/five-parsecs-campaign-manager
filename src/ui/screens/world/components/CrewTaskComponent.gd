@@ -34,12 +34,9 @@ var available_crew_tasks: Array[Dictionary] = []
 
 func _load_crew_tasks() -> void:
 	var path := "res://data/crew_tasks.json"
-	if not FileAccess.file_exists(path):
-		push_error("CrewTaskComponent: crew_tasks.json not found")
-		return
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
-		push_error("CrewTaskComponent: Failed to open crew_tasks.json")
+		push_error("CrewTaskComponent: Failed to open crew_tasks.json at %s" % path)
 		return
 	var json := JSON.new()
 	var err := json.parse(file.get_as_text())

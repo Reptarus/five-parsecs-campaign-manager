@@ -72,12 +72,19 @@ func fade_to_scene(scene_path: String, duration: float = DEFAULT_DURATION, fade_
 		push_warning("TransitionManager: Already transitioning, ignoring request")
 		return
 
-	if not FileAccess.file_exists(scene_path):
+	if not ResourceLoader.exists(scene_path):
 		push_error("TransitionManager: Scene file not found: " + scene_path)
 		return
 
 	_is_transitioning = true
 	transition_started.emit()
+
+	# Safety timeout: prevent permanent input blocking if transition stalls
+	get_tree().create_timer(5.0).timeout.connect(func():
+		if _is_transitioning:
+			push_warning("TransitionManager: Safety timeout — forcing transition cancel")
+			cancel_transition()
+	, CONNECT_ONE_SHOT)
 
 	# Fade out
 	await _fade_out(duration, fade_color)

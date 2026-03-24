@@ -12,8 +12,8 @@ const PreBattleUI = preload("res://src/ui/screens/battle/PreBattleUI.gd")
 const BattleCoordinator = preload("res://src/core/battle/BattleCoordinator.gd")
 
 ## Optional dependencies that may not exist
-var _terrain_system_script = preload("res://src/core/terrain/UnifiedTerrainSystem.gd") if FileAccess.file_exists("res://src/core/terrain/UnifiedTerrainSystem.gd") else null
-var _battle_ui_script = preload("res://src/ui/screens/battle/PreBattleUI.gd") if FileAccess.file_exists("res://src/ui/screens/battle/PreBattleUI.gd") else null
+var _terrain_system_script = preload("res://src/core/terrain/UnifiedTerrainSystem.gd") if ResourceLoader.exists("res://src/core/terrain/UnifiedTerrainSystem.gd") else null
+var _battle_ui_script = preload("res://src/ui/screens/battle/PreBattleUI.gd") if ResourceLoader.exists("res://src/ui/screens/battle/PreBattleUI.gd") else null
 
 ## Signals
 signal battle_ready(mission_data: Dictionary)

@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" uid="uid://2omxjg1p5h8" path="res://src/ui/screens/campaign/panels/CrewPanel.gd" id="1_3euny"]
-[ext_resource type="Texture2D" uid="uid://bm6c4rx645ove" path="res://assets/BookImages/Nov_23_Sunset2_.png" id="2_kkjtj"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/Nov_23_Sunset2_.png" id="2_kkjtj"]
 [ext_resource type="PackedScene" uid="uid://fai4eundogs5" path="res://src/ui/screens/character/CharacterCreator.tscn" id="3_chrcr"]
 
 [node name="CrewPanel" type="Control"]

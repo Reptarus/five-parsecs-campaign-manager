@@ -33,11 +33,9 @@ func _load_data() -> void:
 
 
 func _load_json(path: String) -> Dictionary:
-	if not FileAccess.file_exists(path):
-		push_warning("BugHuntCharacterGeneration: File not found: %s" % path)
-		return {}
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
+		push_warning("BugHuntCharacterGeneration: Could not open file: %s" % path)
 		return {}
 	var json := JSON.new()
 	var err := json.parse(file.get_as_text())

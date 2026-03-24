@@ -973,8 +973,6 @@ func _generate_opportunity_mission() -> Dictionary:
 	}
 
 func _load_json_file(path: String) -> Dictionary:
-	if not FileAccess.file_exists(path):
-		return {}
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
 		return {}

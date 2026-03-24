@@ -374,10 +374,9 @@ func _grant_random_psionic_power() -> void:
 
 func _load_psionic_powers() -> Dictionary:
 	var path := "res://data/psionic_powers.json"
-	if not FileAccess.file_exists(path):
-		return {}
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
+		push_warning("CharacterCreator: Could not open %s" % path)
 		return {}
 	var json := JSON.new()
 	if json.parse(file.get_as_text()) != OK:
@@ -389,11 +388,9 @@ func _load_psionic_powers() -> Dictionary:
 
 func _load_bonus_tables() -> void:
 	var path := "res://data/character_creation_bonuses.json"
-	if not FileAccess.file_exists(path):
-		push_warning("CharacterCreator: character_creation_bonuses.json not found, using fallback")
-		return
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
+		push_warning("CharacterCreator: Could not open character_creation_bonuses.json, using fallback")
 		return
 	var json := JSON.new()
 	if json.parse(file.get_as_text()) != OK:
@@ -409,10 +406,9 @@ func _load_creation_tables() -> void:
 	_motivation_d100 = _load_json_file("res://data/character_creation_tables/motivation_table.json")
 
 func _load_json_file(path: String) -> Dictionary:
-	if not FileAccess.file_exists(path):
-		return {}
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
+		push_warning("CharacterCreator: Could not open %s" % path)
 		return {}
 	var json := JSON.new()
 	if json.parse(file.get_as_text()) != OK:
@@ -712,7 +708,7 @@ func _update_preview() -> void:
 	var portrait_path: String = _get_character_property(
 		current_character, "portrait_path", "")
 	if portrait_path.is_empty():
-		portrait_path = "res://assets/BookImages/portrait_02.png"
+		portrait_path = "res://assets/portraits/portrait_01.jpg"
 
 	var portrait_size: int = _get_portrait_size()
 	var bbcode := "[center][bgcolor=black][img=%dx%d]%s[/img][/bgcolor]\n" % [

@@ -24,14 +24,14 @@ func save_character(character: Character, file_name: String) -> void:
 		var portrait_path = PORTRAIT_DIR + portrait_file_name
 		
 		# Copy portrait to portraits directory
-		if FileAccess.file_exists(character.portrait_path):
+		if ResourceLoader.exists(character.portrait_path):
 			var image = Image.new()
 			var err = image.load(character.portrait_path)
 			if err == OK:
 				err = image.save_png(portrait_path)
 				if err == OK:
 					character.portrait_path = portrait_path
-	
+
 	# Save character data
 	var file = FileAccess.open(SAVE_DIR + file_name + CHARACTER_FILE_EXTENSION, FileAccess.WRITE)
 	if file:
@@ -52,7 +52,7 @@ func load_character(file_name: String) -> Character:
 			character.initialize_managers(game_state_manager)
 			
 			# Load portrait if it exists
-			if character.portrait_path.length() > 0 and FileAccess.file_exists(character.portrait_path):
+			if character.portrait_path.length() > 0 and ResourceLoader.exists(character.portrait_path):
 				var image = Image.new()
 				var err = image.load(character.portrait_path)
 				if err != OK:
@@ -60,7 +60,7 @@ func load_character(file_name: String) -> Character:
 					character.portrait_path = ""
 			else:
 				character.portrait_path = ""
-			
+
 			return character
 		else:
 			push_error("JSON Parse Error: " + json.get_error_message())
@@ -76,7 +76,7 @@ func save_crew(crew: Array[Character], file_name: String) -> void:
 			var portrait_path = PORTRAIT_DIR + portrait_file_name
 			
 			# Copy portrait to portraits directory
-			if FileAccess.file_exists(character.portrait_path):
+			if ResourceLoader.exists(character.portrait_path):
 				var image = Image.new()
 				var err = image.load(character.portrait_path)
 				if err == OK:
@@ -107,7 +107,7 @@ func load_crew(file_name: String) -> Array[Character]:
 				character.initialize_managers(game_state_manager)
 				
 				# Load portrait if it exists
-				if character.portrait_path.length() > 0 and FileAccess.file_exists(character.portrait_path):
+				if character.portrait_path.length() > 0 and ResourceLoader.exists(character.portrait_path):
 					var image = Image.new()
 					var err = image.load(character.portrait_path)
 					if err != OK:

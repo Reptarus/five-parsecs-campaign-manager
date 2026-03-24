@@ -316,8 +316,6 @@ func _roll_on_gadget_table() -> Dictionary:
 
 func _load_equipment_db() -> Dictionary:
 	var path := "res://data/equipment_database.json"
-	if not FileAccess.file_exists(path):
-		return {}
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
 		return {}

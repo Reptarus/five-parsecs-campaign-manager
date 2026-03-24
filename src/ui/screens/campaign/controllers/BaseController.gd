@@ -411,7 +411,7 @@ func safe_scene_change(tree: SceneTree, scene_path: String, context: String = ""
 		push_error("CRASH PREVENTION: Tree is null for scene change - %s" % context)
 		return false
 
-	if not FileAccess.file_exists(scene_path):
+	if not ResourceLoader.exists(scene_path):
 		push_error("Scene file not found: %s - %s" % [scene_path, context])
 		return false
 

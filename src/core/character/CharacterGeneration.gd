@@ -934,11 +934,9 @@ static func set_character_flags(character: Character) -> void:
 ## Grant a random psionic power to a Precursor character (Core Rules p.17)
 static func _grant_precursor_psionic_power(character: Character) -> void:
 	var path := "res://data/psionic_powers.json"
-	if not FileAccess.file_exists(path):
-		character.add_trait("Precursor: Psionic (power data unavailable)")
-		return
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
+		character.add_trait("Precursor: Psionic (power data unavailable)")
 		return
 	var json := JSON.new()
 	if json.parse(file.get_as_text()) != OK:

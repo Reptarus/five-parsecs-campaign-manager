@@ -13,7 +13,7 @@ var gear_db: Resource
 
 func _init() -> void:
 	var db_path = "res://src/core/character/Equipment/GearDatabase.gd"
-	if FileAccess.file_exists(db_path):
+	if ResourceLoader.exists(db_path):
 		gear_db = load(db_path).new()
 	else:
 		push_error("GearDatabase resource not found at: " + db_path)

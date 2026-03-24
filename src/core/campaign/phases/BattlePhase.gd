@@ -592,12 +592,11 @@ func _roll_unique_individual_type() -> Dictionary:
 	# Fallback: load directly
 	if enemy_data.is_empty():
 		var path := "res://data/enemy_types.json"
-		if FileAccess.file_exists(path):
-			var file := FileAccess.open(path, FileAccess.READ)
-			if file:
-				var json := JSON.new()
-				if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
-					enemy_data = json.data
+		var file := FileAccess.open(path, FileAccess.READ)
+		if file:
+			var json := JSON.new()
+			if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
+				enemy_data = json.data
 
 	var individuals: Array = enemy_data.get("unique_individuals", [])
 	if individuals.is_empty():

@@ -919,10 +919,9 @@ static func _ensure_implants_loaded() -> void:
 		return
 	_implants_loaded = true
 	var path := "res://data/implants.json"
-	if not FileAccess.file_exists(path):
-		return
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
+		push_warning("Character: Could not open %s" % path)
 		return
 	var json := JSON.new()
 	if json.parse(file.get_as_text()) != OK:

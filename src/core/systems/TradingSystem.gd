@@ -53,9 +53,6 @@ func _load_trading_data() -> void:
 ## Local JSON loading helper (safe for use during _init when autoloads may not be ready)
 func _load_json_safe(file_path: String) -> Dictionary:
 	## Load JSON file safely without relying on autoloads
-	if not FileAccess.file_exists(file_path):
-		return {}
-	
 	var file: FileAccess = FileAccess.open(file_path, FileAccess.READ)
 	if not file:
 		return {}

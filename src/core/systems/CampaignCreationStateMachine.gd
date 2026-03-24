@@ -250,7 +250,7 @@ func _check_transition_guards(target_state: UIState, event_data: Dictionary) -> 
 # Guard condition functions
 func _can_load_panel(event_data: Dictionary) -> bool:
 	## Guard: Check if panel can be loaded
-	return event_data.has("panel_path") and FileAccess.file_exists(event_data["panel_path"])
+	return event_data.has("panel_path") and ResourceLoader.exists(event_data["panel_path"])
 
 func _can_transition_phase(event_data: Dictionary) -> bool:
 	## Guard: Check if phase transition is allowed

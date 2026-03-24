@@ -210,14 +210,10 @@ func _get_total_accesses() -> int:
 
 func _load_keyword_database() -> void:
 	## Load keyword database from JSON
-	if not FileAccess.file_exists(DATABASE_PATH):
-		push_error("Keyword database not found: " + DATABASE_PATH)
-		_create_default_database()
-		return
-	
 	var file = FileAccess.open(DATABASE_PATH, FileAccess.READ)
 	if not file:
-		push_error("Failed to open keyword database")
+		push_error("Keyword database not found or failed to open: " + DATABASE_PATH)
+		_create_default_database()
 		return
 	
 	var json_text = file.get_as_text()

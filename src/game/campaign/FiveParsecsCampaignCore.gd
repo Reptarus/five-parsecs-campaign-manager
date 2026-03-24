@@ -465,9 +465,6 @@ static func create_new_campaign(name: String, difficulty: int = 0) -> FiveParsec
 
 static func load_from_file(path: String) -> FiveParsecsCampaignCore:
 	## Load campaign from save file
-	if not FileAccess.file_exists(path):
-		return null
-
 	var file = FileAccess.open(path, FileAccess.READ)
 	if not file:
 		return null

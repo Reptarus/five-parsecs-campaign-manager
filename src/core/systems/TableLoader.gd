@@ -59,15 +59,11 @@ static func load_table_from_file(file_path: String, validate: bool = true, force
 			cache_entry.timestamp = current_time
 			return cache_entry.table
 	
-	# File loading with error handling
-	if not FileAccess.file_exists(file_path):
-		push_error("Table file not found: " + file_path)
-		return null
-	
+	# File loading with error handling (no file_exists guard — fails on Android PCK)
 	var file = FileAccess.open(file_path, FileAccess.READ)
 	if file == null:
 		var err = FileAccess.get_open_error()
-		push_error("Failed to open table file %s (Error: %d)" % [file_path, err])
+		push_error("Cannot open table file %s (Error: %d)" % [file_path, err])
 		return null
 		
 	var json_string = file.get_as_text()
@@ -176,10 +172,7 @@ static func load_table_in_background(file_path: String, high_priority: bool = fa
 	if _table_cache.has(file_path) or _background_loading_tables.has(file_path):
 		return true
 		
-	if not FileAccess.file_exists(file_path):
-		push_error("Table file not found for background loading: " + file_path)
-		return false
-	
+	# Note: no file_exists guard — fails on Android PCK. open() will catch missing files.
 	# Setup tracking info
 	_background_loading_tables[file_path] = {
 		"status": "loading",

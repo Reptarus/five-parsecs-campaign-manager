@@ -49,8 +49,6 @@ func finalize_event(event: Dictionary, ctx: PostBattleContextClass) -> void:
 func _get_campaign_event(roll: int) -> Dictionary:
 	## Get campaign event based on D100 roll from JSON data file (Core Rules p.126-128)
 	var json_path: String = "res://data/campaign_tables/campaign_events.json"
-	if not FileAccess.file_exists(json_path):
-		return {"type": "none", "name": "No Event", "description": "Nothing significant occurs"}
 	var file: FileAccess = FileAccess.open(json_path, FileAccess.READ)
 	if not file:
 		return {"type": "none", "name": "No Event", "description": "Nothing significant occurs"}
