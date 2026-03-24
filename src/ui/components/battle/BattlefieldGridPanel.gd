@@ -285,6 +285,12 @@ func _build_popover_bbcode(sector_label: String, features: Array) -> String:
 		else:
 			bbcode += "%s\n" % feat
 
+		# Core Rules terrain category (p.37-39) with LOS/cover/movement rules
+		if not feat.begins_with("Scatter:"):
+			var category: String = BattlefieldShapeLibrary.classify_terrain_rules_category(feat)
+			var rules_text: String = BattlefieldShapeLibrary.get_terrain_rules_text(category)
+			bbcode += "  [color=#9CA3AF][i]%s — %s[/i][/color]\n" % [category, rules_text]
+
 	var cover: String = _infer_cover(features)
 	if not cover.is_empty():
 		var cover_color: String = "#10B981" if cover == "FULL" else "#D97706"

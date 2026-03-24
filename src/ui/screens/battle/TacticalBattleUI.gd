@@ -35,9 +35,12 @@ const _SCENE_REGISTRY: Dictionary = {
 	"weapon_table": "res://src/ui/components/battle/WeaponTableDisplay.tscn",
 	"combat_situation": "res://src/ui/components/battle/CombatSituationPanel.tscn",
 	"dual_input_roll": "res://src/ui/components/battle/DualInputRoll.gd",
+	"character_quick_roll": "res://src/ui/components/battle/CharacterQuickRollPanel.gd",
+	"brawl_resolver": "res://src/ui/components/battle/BrawlResolverPanel.gd",
 	# ASSISTED tier
 	"morale_tracker": "res://src/ui/components/battle/MoralePanicTracker.tscn",
 	"reaction_dice": "res://src/ui/components/battle/ReactionDicePanel.tscn",
+	"reaction_assignment": "res://src/ui/components/battle/ReactionRollAssignment.gd",
 	"activation_tracker": "res://src/ui/components/battle/ActivationTrackerPanel.tscn",
 	"deployment_conditions": "res://src/ui/components/battle/DeploymentConditionsPanel.tscn",
 	"objective_display": "res://src/ui/components/battle/ObjectiveDisplay.tscn",
@@ -141,6 +144,11 @@ var cheat_sheet_panel: PanelContainer = null
 var weapon_table_display: PanelContainer = null
 var combat_situation_panel: PanelContainer = null
 var dual_input_roll: HBoxContainer = null
+
+# Battle Parity components (Phase 34 — Core Rules combat companion)
+var character_quick_roll: PanelContainer = null
+var brawl_resolver: PanelContainer = null
+var reaction_assignment: PanelContainer = null
 
 # Quick Dice Bar (always visible in right panel)
 var _quick_dice_label: Label = null
@@ -470,6 +478,18 @@ func _instance_log_only_components() -> void:
 	if reference_content:
 		reference_content.add_child(weapon_table_display)
 
+	# CharacterQuickRollPanel → Right / "Tools" tab (Core Rules combat companion)
+	character_quick_roll = _get_res("character_quick_roll").new()
+	character_quick_roll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if tools_content:
+		tools_content.add_child(character_quick_roll)
+
+	# BrawlResolverPanel → Right / "Tools" tab (step-by-step brawl resolution)
+	brawl_resolver = _get_res("brawl_resolver").new()
+	brawl_resolver.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if tools_content:
+		tools_content.add_child(brawl_resolver)
+
 	# Quick Dice Bar — always visible below the right panel tabs
 	_build_quick_dice_bar()
 
@@ -636,6 +656,12 @@ func _instance_assisted_components() -> void:
 
 	# EventResolutionPanel → stored for overlay popup
 	event_resolution = _get_res("event_resolution").new()
+
+	# ReactionRollAssignment → Right / "Tools" tab (interactive dice assignment)
+	reaction_assignment = _get_res("reaction_assignment").new()
+	reaction_assignment.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if tools_content:
+		tools_content.add_child(reaction_assignment)
 
 	# Connect ASSISTED component signals
 	_connect_assisted_signals()

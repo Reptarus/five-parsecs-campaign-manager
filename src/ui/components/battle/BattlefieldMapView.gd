@@ -51,8 +51,8 @@ const COLOR_TOOLTIP_TEXT := Color(0.93, 0.93, 0.93, 1.0)
 
 const AXIS_MARGIN := 28.0          # Space reserved for axis labels
 const SHAPE_SCALE_MULT := 1.5      # Terrain shape scale multiplier
-const PLACEMENT_ATTEMPTS := 12     # Random position tries before fallback
-const PLACEMENT_PADDING := 6.0     # Min px gap between shapes (pre-scale)
+const PLACEMENT_ATTEMPTS := 30     # Random position tries before fallback
+const PLACEMENT_PADDING := 12.0    # Min px gap between shapes (pre-scale)
 
 const ZOOM_MIN := 0.5
 const ZOOM_MAX := 3.0
@@ -308,13 +308,24 @@ func _rebuild_terrain_shapes() -> void:
 						placed = true
 						break
 
-				# Fallback: deterministic offset
+				# Fallback: flow-layout (avoids overlap by accumulating offsets)
 				if not placed:
-					var fallback_x: float = (shape_idx % 3) * avail_w / 3.0
-					var fallback_y: float = (shape_idx / 3) * avail_h / 2.0
-					fallback_x = clampf(fallback_x, 0.0, avail_w - w)
-					fallback_y = clampf(fallback_y, 0.0, avail_h - h)
-					placed_rects.append(Rect2(fallback_x, fallback_y, w, h))
+					var fallback_x: float = 0.0
+					var fallback_y: float = 0.0
+					# Find next open position by flowing past already-placed shapes
+					for existing: Rect2 in placed_rects:
+						var candidate_x: float = existing.position.x + existing.size.x + PLACEMENT_PADDING
+						if candidate_x + w <= avail_w:
+							fallback_x = candidate_x
+							fallback_y = existing.position.y
+						else:
+							# Wrap to next row below the tallest shape so far
+							fallback_x = 0.0
+							fallback_y = maxf(fallback_y, existing.end.y + PLACEMENT_PADDING)
+					fallback_x = clampf(fallback_x, 0.0, maxf(avail_w - w, 0.0))
+					fallback_y = clampf(fallback_y, 0.0, maxf(avail_h - h, 0.0))
+					var fb_rect := Rect2(fallback_x, fallback_y, w, h)
+					placed_rects.append(fb_rect)
 					positions.append(sector_origin + Vector2(fallback_x, fallback_y))
 
 				# Create the SVS terrain node

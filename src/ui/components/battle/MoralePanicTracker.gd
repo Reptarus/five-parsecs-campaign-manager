@@ -35,6 +35,7 @@ func _ready() -> void:
 	_setup_panel_style()
 	_setup_buttons()
 	_update_display()
+	_build_end_phase_panic_ui()
 
 func _setup_panel_style() -> void:
 	var style := StyleBoxFlat.new()
@@ -222,3 +223,142 @@ func _clear_result() -> void:
 
 func _on_roll_morale() -> void:
 	roll_morale_check()
+
+# =====================================================
+# END PHASE PANIC (Core Rules p.113)
+# =====================================================
+# SEPARATE from morale checks. At end of each round:
+# Roll D6 per enemy killed THIS round. Each die within
+# the enemy's Panic range = one enemy Bails (closest to
+# enemy battlefield edge first).
+
+var _panic_section: VBoxContainer
+var _panic_range_spin: SpinBox
+var _panic_kills_spin: SpinBox
+var _panic_roll_button: Button
+var _panic_result_label: RichTextLabel
+
+## Build the End Phase Panic UI section (called from _ready)
+func _build_end_phase_panic_ui() -> void:
+	var parent: Node = $VBox if has_node("VBox") else self
+	if not parent:
+		return
+
+	var sep := HSeparator.new()
+	parent.add_child(sep)
+
+	_panic_section = VBoxContainer.new()
+	_panic_section.add_theme_constant_override("separation", 4)
+	parent.add_child(_panic_section)
+
+	var header := Label.new()
+	header.text = "End Phase — Panic Rolls (p.113)"
+	header.add_theme_font_size_override("font_size", 16)
+	header.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
+	_panic_section.add_child(header)
+
+	# Panic range input
+	var range_row := HBoxContainer.new()
+	range_row.add_theme_constant_override("separation", 8)
+	_panic_section.add_child(range_row)
+
+	var range_lbl := Label.new()
+	range_lbl.text = "Enemy Panic Range:"
+	range_lbl.add_theme_font_size_override("font_size", 14)
+	range_lbl.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
+	range_row.add_child(range_lbl)
+
+	_panic_range_spin = SpinBox.new()
+	_panic_range_spin.min_value = 0
+	_panic_range_spin.max_value = 6
+	_panic_range_spin.value = 1
+	_panic_range_spin.custom_minimum_size = Vector2(70, 40)
+	_panic_range_spin.tooltip_text = "0 = fight to the death. 1-2 = typical. Check enemy stats."
+	range_row.add_child(_panic_range_spin)
+
+	# Kills this round input (auto-populated from casualties_this_round)
+	var kills_row := HBoxContainer.new()
+	kills_row.add_theme_constant_override("separation", 8)
+	_panic_section.add_child(kills_row)
+
+	var kills_lbl := Label.new()
+	kills_lbl.text = "Kills This Round:"
+	kills_lbl.add_theme_font_size_override("font_size", 14)
+	kills_lbl.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
+	kills_row.add_child(kills_lbl)
+
+	_panic_kills_spin = SpinBox.new()
+	_panic_kills_spin.min_value = 0
+	_panic_kills_spin.max_value = 20
+	_panic_kills_spin.value = 0
+	_panic_kills_spin.custom_minimum_size = Vector2(70, 40)
+	kills_row.add_child(_panic_kills_spin)
+
+	# Roll button
+	_panic_roll_button = Button.new()
+	_panic_roll_button.text = "Roll End Phase Panic"
+	_panic_roll_button.custom_minimum_size.y = 44
+	var btn_style := StyleBoxFlat.new()
+	btn_style.bg_color = Color(0.55, 0.15, 0.15, 0.8)
+	btn_style.set_corner_radius_all(6)
+	_panic_roll_button.add_theme_stylebox_override("normal", btn_style)
+	_panic_roll_button.pressed.connect(_on_roll_end_phase_panic)
+	_panic_section.add_child(_panic_roll_button)
+
+	# Result display
+	_panic_result_label = RichTextLabel.new()
+	_panic_result_label.bbcode_enabled = true
+	_panic_result_label.fit_content = true
+	_panic_result_label.custom_minimum_size = Vector2(0, 40)
+	_panic_result_label.scroll_active = false
+	_panic_result_label.add_theme_font_size_override("normal_font_size", 14)
+	_panic_result_label.add_theme_color_override("default_color", UIColors.COLOR_TEXT_PRIMARY)
+	_panic_section.add_child(_panic_result_label)
+
+func _on_roll_end_phase_panic() -> void:
+	var kills: int = int(_panic_kills_spin.value)
+	var panic_range: int = int(_panic_range_spin.value)
+
+	if kills <= 0:
+		_panic_result_label.text = "[color=#808080]No kills this round — no panic rolls needed.[/color]"
+		return
+
+	if panic_range <= 0:
+		_panic_result_label.text = "[color=#808080]Panic range 0 — enemies fight to the death![/color]"
+		return
+
+	# Roll D6 per kill (Core Rules p.113)
+	var rolls: Array[int] = []
+	var bails: int = 0
+	for i: int in range(kills):
+		var roll: int = randi_range(1, 6)
+		rolls.append(roll)
+		if roll <= panic_range:
+			bails += 1
+
+	# Build result display
+	var bbcode := "[b]End Phase Panic Rolls[/b]\n"
+	bbcode += "Panic Range: [b]%d[/b] (die <= %d = Bail)\n" % [panic_range, panic_range]
+	bbcode += "Rolls: "
+	for i: int in range(rolls.size()):
+		var r: int = rolls[i]
+		if r <= panic_range:
+			bbcode += "[color=#10B981][b]%d[/b][/color] " % r
+		else:
+			bbcode += "%d " % r
+	bbcode += "\n\n"
+
+	if bails > 0:
+		bbcode += "[color=#10B981][b]%d enemy/enemies Bail![/b][/color]\n" % bails
+		bbcode += "Remove %d figures closest to the enemy battlefield edge.\n" % bails
+		bbcode += "[color=#808080](Bailed enemies do not count as killed)[/color]"
+
+		# Update tracker state
+		fled_enemies += bails
+		enemies_remaining = maxi(0, enemies_remaining - bails)
+		enemy_fled.emit(bails)
+		_update_display()
+	else:
+		bbcode += "[color=#D97706]No enemies Bail — they hold firm.[/color]"
+
+	_panic_result_label.text = bbcode

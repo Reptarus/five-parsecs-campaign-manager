@@ -162,6 +162,75 @@ func classify_features(features: Array) -> Array:
 		result.append(classify_feature(feat))
 	return result
 
+## Core Rules terrain category (p.37-39): determines LOS, cover, and movement rules.
+## Returns one of: "Linear", "Individual", "Area", "Field", "Block", "Interior"
+static func classify_terrain_rules_category(feature_name: String) -> String:
+	var lower: String = feature_name.to_lower()
+	# Strip size/type prefixes
+	for prefix: String in ["notable: ", "large: ", "small: ", "linear: ", "scatter: "]:
+		if lower.begins_with(prefix):
+			lower = lower.substr(prefix.length())
+			break
+
+	# Linear: long features figures cannot stand on (walls, fences, barricades)
+	if _text_has_any_static(lower, ["wall", "fence", "barricade", "sandbag", "barrier",
+			"pipe", "cable", "rail", "ridge"]):
+		return "Linear"
+
+	# Interior: enclosed spaces figures can enter (buildings, tunnels, caves)
+	if _text_has_any_static(lower, ["building", "room", "interior", "cabin", "tunnel",
+			"cave", "chamber", "cockpit", "cargo bay", "section", "nacelle"]):
+		return "Interior"
+
+	# Block: climbable but not enterable (boulders, containers, sealed structures)
+	if _text_has_any_static(lower, ["container", "boulder", "sealed", "crate", "tower",
+			"pillar", "monolith", "statue", "console", "generator", "machinery",
+			"warehouse", "factory", "dock", "control tower", "hull"]):
+		return "Block"
+
+	# Field: open area effects, no LOS blocking (mud, water, lava, toxic)
+	if _text_has_any_static(lower, ["water", "pool", "lake", "river", "mud", "lava",
+			"toxic", "swamp", "bog", "sludge", "acid"]):
+		return "Field"
+
+	# Area: larger features with LOS blocking and possible difficult terrain
+	if _text_has_any_static(lower, ["forest", "grove", "thicket", "bush", "vegetation",
+			"rubble", "ruin", "debris", "wreckage", "fungal", "crystal",
+			"crater", "hill", "mound", "dune", "rock formation"]):
+		return "Area"
+
+	# Individual: single objects providing partial cover
+	if _text_has_any_static(lower, ["barrel", "tree", "sign", "post", "rock",
+			"terminal", "lamp", "pole"]):
+		return "Individual"
+
+	# Default to Block (most defensive assumption)
+	return "Block"
+
+## Get Core Rules interaction text for a terrain category (p.37-39)
+static func get_terrain_rules_text(category: String) -> String:
+	match category:
+		"Linear":
+			return "Cover when adjacent. Cannot be placed on top of. Can be climbed. LOS exists across but target gets Cover unless shooter within 1\"."
+		"Individual":
+			return "Partial cover from one side. Does not block LOS if target is partially visible."
+		"Area":
+			return "Blocks LOS at nearest edge. Figures inside can see out from edges only. May be Difficult terrain (+1\" per 2\" moved)."
+		"Field":
+			return "Does NOT block LOS. Cannot provide Cover. May be Difficult or Impassable terrain."
+		"Block":
+			return "Can be climbed. Cannot be entered. Blocks LOS. Provides Cover."
+		"Interior":
+			return "Can be entered. Figures inside cannot see out (and vice versa) except from edges/windows."
+		_:
+			return ""
+
+static func _text_has_any_static(text: String, keywords: Array) -> bool:
+	for kw: String in keywords:
+		if text.contains(kw):
+			return true
+	return false
+
 # ============================================================================
 # PUBLIC DRAWING API
 # ============================================================================

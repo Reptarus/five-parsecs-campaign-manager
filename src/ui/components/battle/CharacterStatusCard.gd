@@ -25,6 +25,11 @@ var movement_remaining: int = 6
 var _display_tier: int = 0 # 0=LOG_ONLY, 1=ASSISTED, 2=FULL_ORACLE
 var _is_activated: bool = false
 
+# Battle state tracking (Phase 4 — Snap Fire, Aim, Panic Fire)
+var is_aiming: bool = false          # Didn't move, chose to aim (Core Rules p.46)
+var is_holding_snap: bool = false    # Quick Action char holding for snap fire (p.113)
+var has_panic_fired: bool = false    # Used panic fire — weapon empty rest of battle (p.46)
+
 # UI References
 @onready var name_label: Label = %CharacterName
 @onready var stats_label: Label = %StatsDisplay
@@ -48,6 +53,24 @@ func _connect_button_signals() -> void:
 		damage_button.pressed.connect(_on_damage_button_pressed)
 	if use_action_button:
 		use_action_button.pressed.connect(_on_use_action_button_pressed)
+
+	# Add Aim and Snap Fire toggle buttons to action container
+	if action_container:
+		var aim_btn := Button.new()
+		aim_btn.text = "Aim"
+		aim_btn.toggle_mode = true
+		aim_btn.custom_minimum_size = Vector2(60, 44)
+		aim_btn.tooltip_text = "Reroll 1s on hit dice (must not move, Core Rules p.46)"
+		aim_btn.toggled.connect(_on_aim_toggled)
+		action_container.add_child(aim_btn)
+
+		var snap_btn := Button.new()
+		snap_btn.text = "Snap"
+		snap_btn.toggle_mode = true
+		snap_btn.custom_minimum_size = Vector2(60, 44)
+		snap_btn.tooltip_text = "Hold for Snap Fire during Enemy Actions (-1 hit, p.113)"
+		snap_btn.toggled.connect(_on_snap_toggled)
+		action_container.add_child(snap_btn)
 
 # =====================================================
 # CHARACTER DATA SETUP
@@ -130,7 +153,17 @@ func _update_display() -> void:
 		var status_parts: Array[String] = []
 
 		if stun_markers > 0:
-			status_parts.append("Stunned: %d" % stun_markers)
+			if stun_markers >= 3:
+				status_parts.append("[KNOCKED OUT - 3+ Stuns]")
+			else:
+				status_parts.append("Stunned x%d (Move OR Combat, not both)" % stun_markers)
+
+		if is_aiming:
+			status_parts.append("[AIMING - reroll 1s]")
+		if is_holding_snap:
+			status_parts.append("[SNAP FIRE - waiting]")
+		if has_panic_fired:
+			status_parts.append("[WEAPON EMPTY]")
 
 		if actions_remaining >= 0:
 			status_parts.append("Actions: %d" % actions_remaining)
@@ -184,9 +217,16 @@ func reset_round() -> void:
 	actions_remaining = character_data.get("max_actions", 2)
 	movement_remaining = character_data.get("max_movement", 6)
 
-	# Stun markers persist across rounds (Five Parsecs rules)
+	# Reset per-round states (aim/snap fire reset each round)
+	is_aiming = false
+	is_holding_snap = false
+	# Note: has_panic_fired persists for the entire battle (weapon stays empty)
+	# Note: stun markers persist across rounds (Five Parsecs rules)
+
 	character_data["actions_remaining"] = actions_remaining
 	character_data["movement_remaining"] = movement_remaining
+	character_data["is_aiming"] = false
+	character_data["is_holding_snap"] = false
 
 	_update_display()
 
@@ -244,6 +284,36 @@ func _on_damage_button_pressed() -> void:
 func _on_use_action_button_pressed() -> void:
 	## Handle Use Action button press
 	use_action()
+
+func _on_aim_toggled(pressed: bool) -> void:
+	## Toggle Aim state (Core Rules p.46: reroll 1s if didn't move)
+	is_aiming = pressed
+	if pressed:
+		is_holding_snap = false  # Can't aim and snap fire simultaneously
+	character_data["is_aiming"] = is_aiming
+	character_data["is_holding_snap"] = is_holding_snap
+	_update_display()
+	action_used.emit(get_character_name(), "aim" if pressed else "aim_cancel")
+
+func _on_snap_toggled(pressed: bool) -> void:
+	## Toggle Snap Fire hold (Core Rules p.113: -1 to hit during enemy actions)
+	is_holding_snap = pressed
+	if pressed:
+		is_aiming = false  # Can't snap fire and aim simultaneously
+	character_data["is_holding_snap"] = is_holding_snap
+	character_data["is_aiming"] = is_aiming
+	_update_display()
+	action_used.emit(get_character_name(), "snap_fire" if pressed else "snap_cancel")
+
+func set_panic_fired() -> void:
+	## Mark weapon as empty after Panic Fire (Core Rules p.46)
+	has_panic_fired = true
+	character_data["has_panic_fired"] = true
+	_update_display()
+
+func get_stun_markers() -> int:
+	## Get stun marker count (used by brawl calculations: +1 per stun to attacker)
+	return stun_markers
 
 # =====================================================
 # VISUAL FEEDBACK
