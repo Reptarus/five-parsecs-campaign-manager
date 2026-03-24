@@ -85,7 +85,6 @@ func _ensure_panel_structure() -> void:
 	# Check if structure already exists
 	if has_node("ContentMargin/MainContent/FormContent/FormContainer"):
 		content_container = $ContentMargin/MainContent/FormContent/FormContainer
-		_apply_max_width_constraint()
 		return
 	
 	# Create the expected structure
@@ -106,15 +105,6 @@ func _ensure_panel_structure() -> void:
 	form_content.add_child(form_container)
 	
 	content_container = form_container
-	_apply_max_width_constraint()
-
-## Apply max-width for desktop readability (centered, 1200px max)
-func _apply_max_width_constraint() -> void:
-	var cm = get_node_or_null("ContentMargin")
-	if cm:
-		cm.custom_maximum_size.x = 1200
-		cm.size_flags_horizontal = (
-			Control.SIZE_SHRINK_CENTER)
 
 ## Core Interface - Override in derived classes
 # Validation state

@@ -260,9 +260,6 @@ func _apply_phase_theme() -> void:
 		style.set_content_margin_all(UIColors.SPACING_MD)
 		add_theme_stylebox_override("panel", style)
 
-	# Apply max-width constraint for desktop readability
-	_apply_max_width_constraint()
-
 	# Ensure a COLOR_BASE background exists behind this panel.
 	# This prevents the default black/gray fallback on panels that
 	# don't inherit a themed parent background.
@@ -386,24 +383,6 @@ func _show_validation_hint(message: String) -> void:
 func _hide_validation_hint() -> void:
 	if _validation_hint_label:
 		_validation_hint_label.visible = false
-
-## Apply a max-width constraint to the panel's main VBox
-## so content doesn't stretch uncomfortably wide on desktop.
-func _apply_max_width_constraint() -> void:
-	var vbox: VBoxContainer = null
-	for child in get_children():
-		if child is VBoxContainer:
-			vbox = child
-			break
-		if child is PanelContainer:
-			for sub in child.get_children():
-				if sub is VBoxContainer:
-					vbox = sub
-					break
-	if vbox:
-		vbox.custom_maximum_size.x = 1200
-		vbox.size_flags_horizontal = (
-			Control.SIZE_SHRINK_CENTER)
 
 ## Create a themed card container with a title header.
 ## Content is placed inside the card below the title separator.

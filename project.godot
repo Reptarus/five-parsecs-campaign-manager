@@ -18,7 +18,7 @@ config/name="Five Parsecs Campaign Manager"
 config/version="0.9.0"
 run/main_scene="res://src/ui/screens/mainmenu/MainMenu.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
-config/icon="res://icon.svg"
+config/icon="res://assets/iconnew.png"
 
 [autoload]
 
@@ -83,7 +83,11 @@ project/assembly_name="Five Parsecs Campaign Manager"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/AndroidIAPP/plugin.cfg", "res://addons/InappReviewPlugin/plugin.cfg", "res://addons/TweenFX/plugin.cfg", "res://addons/curved_lines_2d/plugin.cfg", "res://addons/gdUnit4/plugin.cfg", "res://addons/shader_library/plugin.cfg")
+enabled=PackedStringArray("res://addons/TweenFX/plugin.cfg", "res://addons/curved_lines_2d/plugin.cfg", "res://addons/gdUnit4/plugin.cfg", "res://addons/shader_library/plugin.cfg")
+
+[logging]
+
+file_logging/enable_file_logging=true
 
 [rendering]
 

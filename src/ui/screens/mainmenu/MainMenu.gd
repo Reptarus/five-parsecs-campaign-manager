@@ -151,7 +151,7 @@ func _on_continue_pressed() -> void:
 
 func _on_new_campaign_pressed() -> void:
 	if not is_instance_valid(game_state_manager):
-		push_error("MainMenu: Game state manager is invalid")
+		show_message("Error: Game state manager not available")
 		return
 	_start_new_campaign()
 
@@ -320,7 +320,7 @@ func show_message(text: String) -> void:
 func request_scene_change(scene_name: String) -> void:
 	var router = get_node_or_null("/root/SceneRouter")
 	if not router:
-		push_error("MainMenu: SceneRouter not found")
+		show_message("Error: SceneRouter not found")
 		return
 
 	# Map MainMenu scene names to SceneRouter keys
