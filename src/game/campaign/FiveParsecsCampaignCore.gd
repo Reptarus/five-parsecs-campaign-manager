@@ -123,6 +123,13 @@ func initialize_resources(data: Dictionary) -> void:
 	rivals = data.get("rivals", []).duplicate()
 	var rumors = data.get("quest_rumors", [])
 	quest_rumors = rumors.size() if rumors is Array else rumors
+	# QA-FIX BUG-04b: Sync resource properties to progress_data.
+	# _init() sets progress_data["credits"] = 0 before initialize_resources runs,
+	# so the starting credits were never reflected in progress_data.
+	progress_data["credits"] = credits
+	progress_data["story_points"] = story_points
+	progress_data["supplies"] = supplies
+	progress_data["reputation"] = reputation
 	_update_modified_time()
 
 func get_resources() -> Dictionary:

@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3 uid="uid://csqbucd4d273l"]
 
 [ext_resource type="Script" uid="uid://cjsfsfp076uu" path="res://src/ui/screens/character/CharacterDetailsScreen.gd" id="1"]
-[ext_resource type="Script" uid="uid://cq2bcbd6g4t4f" path="res://src/ui/components/ResponsiveContainer.gd" id="2"]
+[ext_resource type="Script" uid="uid://twh7bkt1mcfn" path="res://src/ui/components/base/ResponsiveContainer.gd" id="2"]
 [ext_resource type="PackedScene" uid="uid://ci3xehq12huc8" path="res://src/ui/components/character/CharacterCard.tscn" id="3"]
 [ext_resource type="Script" uid="uid://de5o1q00s85o7" path="res://src/ui/components/tooltips/KeywordTooltip.gd" id="4"]
 

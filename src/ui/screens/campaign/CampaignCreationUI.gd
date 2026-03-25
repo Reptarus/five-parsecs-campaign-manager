@@ -45,6 +45,9 @@ func _ready() -> void:
 	# UX-060/UX-070 FIX: Style navigation buttons with Deep Space theme
 	_style_navigation_buttons()
 
+	# QA-FIX: Connect StepPanels resize to keep panels bounded
+	$MarginContainer/VBoxContainer/StepPanels.resized.connect(_on_step_panels_resized)
+
 func _exit_tree() -> void:
 	# Disconnect coordinator signals (defensive cleanup)
 	if coordinator and is_instance_valid(coordinator):
@@ -186,6 +189,31 @@ func _show_panel(step: int) -> void:
 	if step >= 0 and step < panels.size():
 		current_panel = panels[step]
 		current_panel.show()
+		# QA-FIX: Force panel to fit within StepPanels bounds. PanelContainer
+		# (BaseCampaignPanel root) enforces minimum size from children, which can
+		# overflow StepPanels and push Navigation off-screen. Explicitly sizing
+		# the panel allows its internal ScrollContainer to activate scrolling.
+		_fit_panel_to_step_bounds()
+
+func _fit_panel_to_step_bounds() -> void:
+	if current_panel:
+		var step_panels := $MarginContainer/VBoxContainer/StepPanels
+		# Reset position and anchors so panel fills StepPanels exactly
+		current_panel.position = Vector2.ZERO
+		current_panel.anchor_left = 0.0
+		current_panel.anchor_top = 0.0
+		current_panel.anchor_right = 1.0
+		current_panel.anchor_bottom = 1.0
+		current_panel.offset_left = 0
+		current_panel.offset_top = 0
+		current_panel.offset_right = 0
+		current_panel.offset_bottom = 0
+		# Override minimum size to allow shrinking below content height
+		current_panel.custom_minimum_size = Vector2.ZERO
+		current_panel.size = step_panels.size
+
+func _on_step_panels_resized() -> void:
+	_fit_panel_to_step_bounds()
 
 func _update_step_label() -> void:
 	var phase_name = coordinator.get_current_phase_name()

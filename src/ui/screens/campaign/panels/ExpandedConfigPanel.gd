@@ -64,26 +64,27 @@ var _config_db: Dictionary = {}
 
 # Difficulty levels keyed by GlobalEnums.DifficultyLevel enum values
 # CRITICAL: Keys must match GlobalEnums values exactly (EASY=1, NORMAL=2, CHALLENGING=4, HARDCORE=6, INSANITY=8)
+# Core Rules p.65 — difficulty levels (EASY is a custom addition, not in book)
 var difficulty_levels: Dictionary = {
 	GlobalEnums.DifficultyLevel.EASY: {
-		"name": "Story",
-		"description": "Relaxed difficulty for narrative focus. +1 XP per battle, +1 credit reward, remove 1 enemy if 5+. Only basic victory conditions."
+		"name": "Easy",
+		"description": "+1 XP per battle. +1 credit post-battle reward. Remove 1 Basic enemy if facing 5+. Only 'Play 20 turns' and 'Win 20 battles' victories allowed."
 	},
 	GlobalEnums.DifficultyLevel.NORMAL: {
-		"name": "Standard",
-		"description": "The core Five Parsecs experience. All rules apply as written."
+		"name": "Normal",
+		"description": "No changes to game mechanics. All rules apply as written."
 	},
 	GlobalEnums.DifficultyLevel.CHALLENGING: {
 		"name": "Challenging",
-		"description": "Increased danger. Enemy dice showing 1-2 are rerolled (more enemies on average)."
+		"description": "When rolling 2D6 for enemy numbers, reroll any die showing 1-2 before selecting the highest."
 	},
 	GlobalEnums.DifficultyLevel.HARDCORE: {
 		"name": "Hardcore",
-		"description": "Brutal difficulty. +1 enemy per battle, +2 invasion rolls, -2 Seize Initiative, +1 Unique Individual rolls, -1 starting story point."
+		"description": "+1 Basic enemy per battle. +2 Invasion rolls. -2 Seize the Initiative. +1 Unique Individual rolls. -1 starting story point."
 	},
 	GlobalEnums.DifficultyLevel.INSANITY: {
-		"name": "Nightmare",
-		"description": "Near-impossible. +1 specialist per battle, forced Unique Individual, +3 invasion rolls, -3 initiative, NO story points, no Stars of the Story."
+		"name": "Insanity",
+		"description": "+1 Specialist enemy per battle. Always a Unique Individual (2D6: 11-12 = two). +3 Invasion. -3 Initiative. No story points ever. No Stars of the Story."
 	}
 }
 
@@ -148,12 +149,25 @@ func _apply_fallback_config() -> void:
 		"combat_focused": {"name": "Combat-Focused Campaign", "description": "Emphasis on tactical combat and missions"},
 		"exploration_focused": {"name": "Exploration-Focused Campaign", "description": "Emphasis on exploration and discovery"}
 	}
+	# Core Rules p.64 — exact victory conditions from the book
 	victory_conditions = {
-		"wealth": {"name": "Wealth Victory", "description": "Accumulate 10,000 credits", "target": 10000, "type": "credits"},
-		"reputation": {"name": "Reputation Victory", "description": "Achieve maximum reputation with 3 factions", "target": 3, "type": "factions"},
-		"exploration": {"name": "Exploration Victory", "description": "Visit 20 different worlds", "target": 20, "type": "worlds"},
-		"combat": {"name": "Combat Victory", "description": "Defeat 50 enemies in total", "target": 50, "type": "enemies"},
-		"story": {"name": "Story Victory", "description": "Complete 5 story missions", "target": 5, "type": "missions"}
+		"turns_20": {"name": "Play 20 Campaign Turns", "description": "Complete 20 full campaign turns", "target": 20, "type": "turns", "category": "duration"},
+		"turns_50": {"name": "Play 50 Campaign Turns", "description": "Complete 50 full campaign turns", "target": 50, "type": "turns", "category": "duration"},
+		"turns_100": {"name": "Play 100 Campaign Turns", "description": "Complete 100 full campaign turns", "target": 100, "type": "turns", "category": "duration"},
+		"quests_3": {"name": "Complete 3 Quests", "description": "Complete 3 story quests", "target": 3, "type": "quests", "category": "quest"},
+		"quests_5": {"name": "Complete 5 Quests", "description": "Complete 5 story quests", "target": 5, "type": "quests", "category": "quest"},
+		"quests_10": {"name": "Complete 10 Quests", "description": "Complete 10 story quests", "target": 10, "type": "quests", "category": "quest"},
+		"battles_20": {"name": "Win 20 Tabletop Battles", "description": "Win 20 tabletop battles", "target": 20, "type": "battles_won", "category": "combat"},
+		"battles_50": {"name": "Win 50 Tabletop Battles", "description": "Win 50 tabletop battles", "target": 50, "type": "battles_won", "category": "combat"},
+		"battles_100": {"name": "Win 100 Tabletop Battles", "description": "Win 100 tabletop battles", "target": 100, "type": "battles_won", "category": "combat"},
+		"unique_kills_10": {"name": "Kill 10 Unique Individuals", "description": "Defeat 10 Unique Individuals in battle", "target": 10, "type": "unique_kills", "category": "combat"},
+		"unique_kills_25": {"name": "Kill 25 Unique Individuals", "description": "Defeat 25 Unique Individuals in battle", "target": 25, "type": "unique_kills", "category": "combat"},
+		"upgrade_1x10": {"name": "Upgrade 1 Character 10 Times", "description": "Upgrade a single character 10 times", "target": 10, "type": "character_upgrades", "category": "growth", "characters_required": 1},
+		"upgrade_3x10": {"name": "Upgrade 3 Characters 10 Times", "description": "Upgrade 3 characters 10 times each", "target": 10, "type": "character_upgrades", "category": "growth", "characters_required": 3},
+		"upgrade_5x10": {"name": "Upgrade 5 Characters 10 Times", "description": "Upgrade 5 characters 10 times each", "target": 10, "type": "character_upgrades", "category": "growth", "characters_required": 5},
+		"challenging_50": {"name": "50 Turns in Challenging Mode", "description": "Play 50 campaign turns in Challenging difficulty", "target": 50, "type": "turns", "category": "challenge", "required_difficulty": "challenging"},
+		"hardcore_50": {"name": "50 Turns in Hardcore Mode", "description": "Play 50 campaign turns in Hardcore difficulty", "target": 50, "type": "turns", "category": "challenge", "required_difficulty": "hardcore"},
+		"insanity_50": {"name": "50 Turns in Insanity Mode", "description": "Play 50 campaign turns in Insanity difficulty", "target": 50, "type": "turns", "category": "challenge", "required_difficulty": "insanity"},
 	}
 	story_tracks = {
 		"none": {"name": "No Story Track", "description": "Standard campaign without story progression"},

@@ -93,3 +93,11 @@ Each phase has validation rules checked by `coordinator.validate_current_phase()
 | FINAL_REVIEW | All prior phases valid |
 
 Navigation buttons are enabled/disabled based on `navigation_updated` signal.
+
+## Rules PDF Reference
+
+Campaign creation rules (difficulty modes, victory conditions, crew sizes, starting equipment) can be verified against source PDFs:
+- **Core Rules PDF**: `docs/rules/pdfcoffee_com_muh052042_five_parsecs_from_home_3e_rulebook_2021.pdf`
+- **Compendium PDF**: `docs/rules/Five Parsecs From Home-Compendium.pdf`
+- **Text extractions**: `docs/rules/core_rulebook.txt` and `docs/rules/compendium_source.txt`
+- **Python page extraction**: `py -c "import fitz; doc = fitz.open('path'); print(doc[PAGE].get_text())"` (PyMuPDF 1.27.1 via `py` launcher)

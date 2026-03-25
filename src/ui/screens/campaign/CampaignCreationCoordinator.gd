@@ -149,7 +149,7 @@ func _initialize_unified_state() -> void:
 	# Canonical key is 'equipment', 'items' is legacy alias
 	unified_campaign_state.equipment.equipment = []  # Canonical
 	unified_campaign_state.equipment.items = []  # Legacy alias for backwards compat
-	unified_campaign_state.equipment.credits = 1000 # Default starting credits
+	unified_campaign_state.equipment.credits = 0 # Set by EquipmentPanel generation (Core Rules: 1D6 x 100)
 	unified_campaign_state.equipment.is_complete = false
 	
 	unified_campaign_state.ship.name = "Wandering Star"

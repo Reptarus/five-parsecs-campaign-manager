@@ -62,6 +62,7 @@ text = "Step 1 of 7: Configuration"
 [node name="StepPanels" type="Control" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
+clip_contents = true
 
 [node name="ExpandedConfigPanel" parent="MarginContainer/VBoxContainer/StepPanels" instance=ExtResource("3_config")]
 layout_mode = 1

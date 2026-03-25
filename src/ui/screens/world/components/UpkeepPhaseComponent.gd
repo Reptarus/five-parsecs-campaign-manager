@@ -175,15 +175,22 @@ func apply_upkeep_costs(upkeep_results: Dictionary) -> bool:
 
 func _handle_insufficient_funds(upkeep_results: Dictionary) -> void:
 	## Handle case where crew cannot afford upkeep
-	
-	# In Five Parsecs, this could trigger debt, crew leaving, etc.
-	# For now, just show error and publish event
+	var deficit: int = upkeep_results.total_cost - upkeep_results.current_credits
+
+	# QA-FIX: Show visible error dialog — previously only published an event bus
+	# message that was never rendered, causing silent failure on "Pay Upkeep" click
+	var msg := (
+		"Cannot pay upkeep! Need %d credits but only have %d (short %d).\n"
+		+ "Per Core Rules: crew may go into debt or members may leave."
+	) % [upkeep_results.total_cost, upkeep_results.current_credits, deficit]
+	_show_help_dialog("Insufficient Credits", msg)
+
 	if event_bus:
 		event_bus.publish_event(CampaignTurnEventBus.TurnEvent.UPKEEP_ERROR, {
 			"error_type": "insufficient_funds",
 			"required": upkeep_results.total_cost,
 			"available": upkeep_results.current_credits,
-			"deficit": upkeep_results.total_cost - upkeep_results.current_credits
+			"deficit": deficit
 		})
 
 ## Help System

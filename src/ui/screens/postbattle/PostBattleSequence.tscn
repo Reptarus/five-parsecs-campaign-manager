@@ -1,7 +1,7 @@
 [gd_scene load_steps=2 format=3 uid="uid://e9x6y3w8v4n5m"]
 
 [ext_resource type="Script" path="res://src/ui/screens/postbattle/PostBattleSequence.gd" id="1_postbattle"]
-[ext_resource type="Script" path="res://src/ui/components/ResponsiveContainer.gd" id="2_responsive"]
+[ext_resource type="Script" uid="uid://twh7bkt1mcfn" path="res://src/ui/components/base/ResponsiveContainer.gd" id="2_responsive"]
 
 [node name="PostBattleSequence" type="Control"]
 layout_mode = 3

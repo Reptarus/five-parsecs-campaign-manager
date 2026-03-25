@@ -390,16 +390,41 @@ Godot never cleans orphaned cached imports. If the cache grows large (>600MB) or
 ### File Watcher Exclusions
 Both `.vscode/settings.json` and Cursor user settings exclude: `.godot/`, `.mcp/`, `node_modules/`, `mcp-servers/`. The `.cursorignore` file additionally excludes `*.import` and `*.uid` from AI indexing.
 
+### Python Tools
+
+Python 3.14.2 is available via `py` launcher (NOT `python` — Windows app alias blocks that).
+Installed PDF libraries:
+
+- **PyPDF2** 3.0.1 — PDF text extraction, page manipulation
+- **PyMuPDF** 1.27.1 (fitz) — Fast PDF rendering, text extraction, image extraction
+
+Use for: extracting game data values from rulebook PDFs, verifying text extractions, batch PDF operations.
+Example: `py -c "import fitz; doc = fitz.open('docs/rules/Five Parsecs From Home-Compendium.pdf'); print(doc[5].get_text())"`
+
 ---
 
 ## Data Integrity Rules
 
+- **THE CORE RULES AND COMPENDIUM ARE THE CANONICAL AUTHORITY FOR ALL GAME MECHANICS.** Every mechanic name, stat value, table range, cost, probability, weapon property, species trait, and game term in this project MUST match the Core Rules and Compendium PDFs exactly. These books are the **default dictionary** — if the code says one thing and the book says another, the book is right and the code is wrong. No exceptions. No "balancing." No "improvements." The books define the game.
 - **NEVER invent game data values**: When adding or modifying any numeric game data (stats, costs, ranges, probabilities, D100 table boundaries), the value MUST come from the Core Rules book. AI agents must ask the user for book values rather than guessing. Tag intentional deviations as `GAME_BALANCE_ESTIMATE`.
-- **CHECK `data/RulesReference/` FIRST**: 18 JSON files extracted from the rulebooks/Compendium PDFs exist at `data/RulesReference/`. ALWAYS check these before inventing values. They cover: Bestiary, Campaign rules, Difficulty, Elite Enemies, Enemy AI, Equipment, Expanded Missions, Factions, Name Tables, Psionics, Salvage, Species, Stealth/Street, Terrain. If the data you need isn't in RulesReference, ask the user to extract it from the PDF.
+- **CHECK `data/RulesReference/` FIRST**: 18 JSON files extracted from the rulebooks/Compendium PDFs exist at `data/RulesReference/`. ALWAYS check these before inventing values. They cover: Bestiary, Campaign rules, Difficulty, Elite Enemies, Enemy AI, Equipment, Expanded Missions, Factions, Name Tables, Psionics, Salvage, Species, Stealth/Street, Terrain. If the data you need isn't in RulesReference, extract it from the PDF using Python (see Dev Environment).
+- **Core Rules PDFs available in repo — USE THEM**: Both the Core Rulebook and Compendium PDFs are at `docs/rules/`:
+  - `docs/rules/pdfcoffee_com_muh052042_five_parsecs_from_home_3e_rulebook_2021.pdf` — Core Rules 3e
+  - `docs/rules/Five Parsecs From Home-Compendium.pdf` — Compendium
+  - `docs/rules/core_rulebook.txt` — Text extraction of Core Rules
+  - `docs/rules/compendium_source.txt` — Text extraction of Compendium
+  - `docs/rules/5PCompendium/` — Compendium source directory
+  - Text extractions may have OCR artifacts — verify against the PDF when precision matters
 - **NEVER "fix" data without the book**: Phase 30 changed ship hull from 20-35 to 6-14, documenting it as a "Core Rules correction." The Core Rules actually says 20-40. The "fix" made it WORSE. Never assume a value is wrong without checking the source material.
 - **NEVER create duplicate data sources**: If a value already exists in a JSON file, load it from there. Do not create a parallel constant in GDScript. Single Source of Truth: JSON file is canonical for each data domain.
 - **All data changes require book page citation**: Include the Core Rules page number in commit messages when modifying game data. Example: `"Fix Infantry Laser range to 30" (Core Rules p.50)"`
-- **Data Source Authority Hierarchy**: Core Rules PDF / `data/RulesReference/*.json` > Dedicated JSON data file > GDScript constants file > Inline hardcoded values. When sources disagree, the higher-authority source wins.
+- **Data Source Authority Hierarchy (absolute, no exceptions)**:
+  1. **Core Rules PDF + Compendium PDF** — Word of God. Always right. Extract with `py -c "import fitz; ..."`
+  2. `data/RulesReference/*.json` — Direct extractions from the PDFs. Trust these, but verify against PDF if suspicious
+  3. Dedicated JSON data file in `data/` — May have errors introduced by agents
+  4. GDScript constants file — Lowest code authority
+  5. Inline hardcoded values — Least trustworthy, often wrong
+  When sources disagree, the higher-authority source wins. ALWAYS.
 - **Verification checklist**: See `docs/QA_RULES_ACCURACY_AUDIT.md` for the master verification checklist (745+ values across 131 files).
 
 ---

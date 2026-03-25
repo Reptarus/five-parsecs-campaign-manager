@@ -361,7 +361,7 @@ func _generate_five_parsecs_equipment(crew_members: Array) -> void:
 	_update_equipment_display()
 	_update_summary()
 	equipment_generated.emit(generated_equipment)
-	equipment_data_changed.emit(get_data())
+	equipment_data_changed.emit(get_panel_data())
 	_validate_and_complete()
 
 func _ready() -> void:
@@ -679,13 +679,16 @@ func set_generated_equipment(equipment: Array, credits: int) -> void:
 	equipment_generated.emit(generated_equipment)
 	
 	# Emit granular signal for real-time integration
-	equipment_data_changed.emit(get_data())
+	equipment_data_changed.emit(get_panel_data())
 	_validate_and_complete()
 
 func _generate_equipment_for_actual_crew(crew_members: Array) -> void:
 	## Generate equipment for actual crew from campaign state (CRITICAL FIX)
 	generated_equipment.clear()
-	starting_credits = 0
+	# QA-FIX BUG-04b: Calculate starting credits (Core Rules) instead of resetting to 0.
+	# Previous code set starting_credits = 0 here and never recalculated.
+	var dice_roll: int = (randi() % 6) + 1  # 1D6
+	starting_credits = dice_roll * 100
 	
 	for crew_member in crew_members:
 		# Handle Character, BaseCharacterResource, and Dictionary
@@ -738,7 +741,7 @@ func _generate_equipment_for_actual_crew(crew_members: Array) -> void:
 	equipment_generated.emit(generated_equipment)
 	
 	# Emit granular signal for real-time integration
-	equipment_data_changed.emit(get_data())
+	equipment_data_changed.emit(get_panel_data())
 	_validate_and_complete()
 
 func _merge_character_equipment(char_equipment: Dictionary, owner_name: String) -> void:
@@ -807,7 +810,7 @@ func _generate_starting_equipment(crew: Array = []) -> void:
 	equipment_generated.emit(generated_equipment)
 	
 	# Emit granular signal for real-time integration
-	equipment_data_changed.emit(get_data())
+	equipment_data_changed.emit(get_panel_data())
 	_validate_and_complete()
 
 func _create_mock_crew() -> Array[CharacterClass]:
@@ -880,7 +883,7 @@ func _on_generate_pressed() -> void:
 				coordinator.call("update_navigation_state")
 
 		# Also emit panel data change for real-time updates
-		panel_data_changed.emit(get_data())
+		panel_data_changed.emit(get_panel_data())
 	else:
 		push_warning("EquipmentPanel: No crew data available")
 		if summary_label:
@@ -1065,8 +1068,8 @@ func _generate_default_equipment() -> void:
 	local_equipment_data.is_complete = true
 	
 	# Emit signals to update UI
-	panel_data_changed.emit(get_data())
-	equipment_data_changed.emit(get_data())
+	panel_data_changed.emit(get_panel_data())
+	equipment_data_changed.emit(get_panel_data())
 	
 	# Notify coordinator
 	if coordinator and is_instance_valid(coordinator):
@@ -1303,8 +1306,8 @@ func _on_equipment_assignment_changed(selected_index: int, equipment_index: int)
 	_update_crew_loadout_display()
 	
 	# Emit data change signal
-	equipment_data_changed.emit(get_data())
-	panel_data_changed.emit(get_data())
+	equipment_data_changed.emit(get_panel_data())
+	panel_data_changed.emit(get_panel_data())
 	
 	# Validate and potentially complete
 	_validate_and_complete()

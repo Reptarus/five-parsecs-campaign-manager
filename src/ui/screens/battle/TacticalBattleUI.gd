@@ -264,6 +264,16 @@ func _check_standalone_mode() -> void:
 	## show tier selection overlay so the UI is usable (BUG-B01, B06, B17, B18 fix)
 	if _battle_initialized:
 		return
+	# QA-FIX: Only show tier selection if actually visible and not embedded in campaign flow.
+	# When loaded as a child of CampaignTurnController's PhaseContainer, this node starts
+	# hidden — tier selection should only appear when initialize_battle() is called explicitly.
+	if not visible:
+		return
+	var ancestor := get_parent()
+	while ancestor:
+		if ancestor.name == "PhaseContainer":
+			return  # Embedded in campaign turn flow — not standalone
+		ancestor = ancestor.get_parent()
 	_log_message("Standalone mode — no campaign data. Set up your table manually.", UIColors.COLOR_WARNING)
 	_show_tier_selection()
 

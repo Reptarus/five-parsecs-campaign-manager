@@ -43,6 +43,9 @@ func _ready() -> void:
 	# Setup responsive layout system
 	_setup_responsive_layout()
 
+	# Deferred: fix touch scrolling by setting MOUSE_FILTER_PASS on all non-interactive containers
+	call_deferred("_fix_touch_scroll_filters")
+
 ## Ensure a COLOR_BASE background exists behind this panel.
 ## Prevents black fallback when the panel isn't nested inside a themed parent.
 func _ensure_base_background() -> void:
@@ -646,12 +649,14 @@ func _create_section_card(title: String, content: Control, description: String =
 	## Create a styled section card with title, content, optional description and icon.
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.mouse_filter = Control.MOUSE_FILTER_PASS  # Allow touch scroll through cards
 
 	# Apply glass morphism style (modern look)
 	panel.add_theme_stylebox_override("panel", _create_glass_card_style())
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", SPACING_SM)
+	vbox.mouse_filter = Control.MOUSE_FILTER_PASS  # Allow touch scroll through cards
 
 	# Section header with optional icon (updated to support icon parameter)
 	if not icon.is_empty():
@@ -699,6 +704,24 @@ func _create_section_card(title: String, content: Control, description: String =
 
 	panel.add_child(vbox)
 	return panel
+
+
+func _fix_touch_scroll_filters() -> void:
+	## Recursively set MOUSE_FILTER_PASS on layout containers so touch scrolling
+	## works through cards/panels on mobile. Buttons and interactive controls keep STOP.
+	_apply_pass_filter_recursive(self)
+
+func _apply_pass_filter_recursive(node: Node) -> void:
+	if node is Button or node is LineEdit or node is TextEdit or node is SpinBox \
+		or node is OptionButton or node is CheckBox or node is CheckButton \
+		or node is ScrollContainer or node is LinkButton:
+		return  # Interactive controls must keep MOUSE_FILTER_STOP
+	if node is Control:
+		var ctrl := node as Control
+		if ctrl.mouse_filter == Control.MOUSE_FILTER_STOP:
+			ctrl.mouse_filter = Control.MOUSE_FILTER_PASS
+	for child in node.get_children():
+		_apply_pass_filter_recursive(child)
 
 
 func _create_glass_card_style(alpha: float = 0.8) -> StyleBoxFlat:

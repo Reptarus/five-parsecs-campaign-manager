@@ -3,11 +3,27 @@
 <!-- This file is loaded into your system prompt. Keep it under 200 lines. -->
 <!-- Link to separate topic files for detailed notes. -->
 
+## ABSOLUTE RULE: Core Rules & Compendium Are Word of God
+
+The Core Rules and Compendium PDFs at `docs/rules/` are the canonical authority for ALL game mechanics. If code disagrees with the book, the code is wrong.
+
+---
+
 ## Critical Gotchas — Must Remember
 
 1. **FiveParsecsCampaignCore is Resource**: `campaign["key"] = val` **silently fails**. Use `progress_data["key"]` for runtime state. Use `"key" in campaign` instead of `.has("key")`.
 2. **GameStateManager dual-sync**: ALL setters that modify campaign state MUST also write to `progress_data`. The canonical pattern: update campaign property → sync to progress_data → emit signal.
 3. **Godot 4.6 type inference**: `var x := dict["key"]` will NOT compile. Always use `var x: Type = dict["key"]`. Zero exceptions.
+
+---
+
+## PDF Rulebooks & Python Extraction Tools
+
+Source PDFs for verifying campaign rules — use these instead of guessing values:
+- **Core Rules PDF**: `docs/rules/pdfcoffee_com_muh052042_five_parsecs_from_home_3e_rulebook_2021.pdf`
+- **Compendium PDF**: `docs/rules/Five Parsecs From Home-Compendium.pdf`
+- **Text extractions**: `docs/rules/core_rulebook.txt` and `docs/rules/compendium_source.txt`
+- **Python**: `py` launcher (NOT `python`), PyMuPDF installed. Example: `py -c "import fitz; doc = fitz.open('path'); print(doc[PAGE].get_text())"`
 
 ---
 

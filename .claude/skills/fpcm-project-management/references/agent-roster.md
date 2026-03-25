@@ -74,6 +74,18 @@
 - If an agent returns results that seem wrong or incomplete, re-search with a higher-tier model
 - Never trust a single Explore result for routing decisions — spot-check by reading actual files
 
+## Tools & Environment
+
+### PDF Rulebooks and Python Extraction
+
+Rulebook PDFs and Python tools are available for data extraction and verification:
+
+- **Core Rules PDF**: `docs/rules/pdfcoffee_com_muh052042_five_parsecs_from_home_3e_rulebook_2021.pdf`
+- **Compendium PDF**: `docs/rules/Five Parsecs From Home-Compendium.pdf`
+- **Text extractions**: `docs/rules/core_rulebook.txt` and `docs/rules/compendium_source.txt`
+- **Python**: 3.14.2 via `py` launcher (NOT `python`). PyPDF2 3.0.1 and PyMuPDF 1.27.1 (fitz) installed.
+- **Example**: `py -c "import fitz; doc = fitz.open('path'); print(doc[PAGE].get_text())"`
+
 ## Cross-Domain Flow Examples
 
 ### Adding a new character trait

@@ -200,6 +200,16 @@ else:
 - Ordering changed in one file — serialized enum values decode to wrong constant
 - Obsolete enum value referenced in code — crash or wrong behavior at runtime
 
+### PDF Verification Tools
+
+Rulebook PDFs and Python tools are available for verifying game data against source material:
+- **Core Rules PDF**: `docs/rules/pdfcoffee_com_muh052042_five_parsecs_from_home_3e_rulebook_2021.pdf`
+- **Compendium PDF**: `docs/rules/Five Parsecs From Home-Compendium.pdf`
+- **Text extractions**: `docs/rules/core_rulebook.txt` and `docs/rules/compendium_source.txt`
+- **Python page extraction**: `py -c "import fitz; doc = fitz.open('path'); print(doc[PAGE].get_text())"` (Python 3.14.2 via `py` launcher, PyMuPDF 1.27.1)
+
+Use these to spot-check any game value (stats, costs, roll tables) against the actual rulebook page.
+
 ### Automated Check Script (run_script via MCP)
 
 ```gdscript

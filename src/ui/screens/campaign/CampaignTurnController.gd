@@ -457,10 +457,10 @@ func _on_campaign_turn_started(turn_number: int) -> void:
 	self.campaign_turn_started.emit(turn_number)
 
 func _on_campaign_turn_completed(turn_number: int) -> void:
-	## Handle campaign turn completion — sync turns_played via GameStateManager (BUG-031 fix)
-	var gsm = get_node_or_null("/root/GameStateManager")
-	if gsm and gsm.has_method("increment_turns_played"):
-		gsm.increment_turns_played()
+	## Handle campaign turn completion
+	# QA-FIX BUG-08: Removed duplicate increment_turns_played() call.
+	# GameState.advance_turn() already sets progress_data["turns_played"].
+	# The extra GameStateManager.increment_turns_played() caused double-counting.
 	self.campaign_turn_completed.emit(turn_number)
 
 	# Auto-start next turn (production behavior)
@@ -656,6 +656,18 @@ func _initiate_battle_sequence() -> void:
 	}
 	if game_state.has_method("set_battlefield_data"):
 		game_state.set_battlefield_data(full_bf_data)
+
+	# QA-FIX BUG-06: Enrich mission_data with terrain + deployment for PreBattleUI.
+	# Previously terrain was only stored in game_state.set_battlefield_data() but
+	# never added to mission_data, causing "Unknown Mission" / "Battle Type: NONE".
+	mission_data["terrain"] = merged_terrain
+	mission_data["deployment_condition"] = deployment_condition
+	if not mission_data.has("title") or mission_data["title"] == "":
+		mission_data["title"] = mission_data.get("objective",
+			"Combat Mission")
+	if not mission_data.has("battle_type"):
+		mission_data["battle_type"] = GlobalEnums.BattleType.get(
+			mission_data.get("type", "STANDARD"), 0)
 
 	# Initialize BattleTransitionUI with mission context
 	if battle_transition_ui:
@@ -1004,16 +1016,17 @@ func _on_deployment_confirmed() -> void:
 
 	_hide_all_phase_uis()
 	if tactical_battle_ui:
-		tactical_battle_ui.show()
-		current_ui_phase = tactical_battle_ui
-
-		# Initialize TacticalBattle with crew and enemy data
+		# QA-FIX: Initialize BEFORE show() so _battle_initialized = true prevents
+		# _check_standalone_mode from firing the tier selection overlay
 		var crew_data = game_state.get_active_crew() if game_state.has_method("get_active_crew") else []
 		var enemy_data = game_state.get_current_enemies() if game_state.has_method("get_current_enemies") else []
 		var mission_data = game_state.get_current_mission() if game_state.has_method("get_current_mission") else null
 
 		if tactical_battle_ui.has_method("initialize_battle"):
 			tactical_battle_ui.initialize_battle(crew_data, enemy_data, mission_data)
+
+		tactical_battle_ui.show()
+		current_ui_phase = tactical_battle_ui
 
 func _on_prebattle_back() -> void:
 	## Handle back button from PreBattle - return to BattleTransition

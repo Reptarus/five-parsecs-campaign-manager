@@ -10,7 +10,7 @@ signal crew_updated(crew: Array)
 @onready var character_creator = $CharacterCreator
 
 var crew_members: Array = [] # Untyped — avoids Character.gd type shadowing crash
-var selected_size: int = 4
+var selected_size: int = 6  # Core Rules p.63 default crew size
 
 func _ready() -> void:
 	_apply_base_background()
@@ -53,7 +53,7 @@ func _setup_crew_size_options() -> void:
 	crew_size_option.add_item("5 Total (Captain + 4 Crew)", 5)
 	crew_size_option.add_item("6 Total (Captain + 5 Crew)", 6)
 	
-	crew_size_option.select(0) # Default to 4 members
+	crew_size_option.select(2) # Default to 6 members (Core Rules p.63 default)
 
 func _connect_signals() -> void:
 	crew_size_option.item_selected.connect(_on_crew_size_selected)
@@ -250,7 +250,8 @@ func _build_crew_card(
 
 	# Right: Compact stat row
 	var stat_lbl := Label.new()
-	stat_lbl.text = "C:%d R:%d T:%d S:%d V:%d L:%d" % [
+	# QA-FIX BUG-13: Changed "V" (savvy) to "Sv" for clarity
+	stat_lbl.text = "C:%d R:%d T:%d S:%d Sv:%d L:%d" % [
 		character.combat, character.reaction,
 		character.toughness, character.speed,
 		character.savvy, character.luck]

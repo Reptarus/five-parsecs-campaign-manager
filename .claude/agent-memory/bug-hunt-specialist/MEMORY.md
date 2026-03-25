@@ -3,6 +3,12 @@
 <!-- This file is loaded into your system prompt. Keep it under 200 lines. -->
 <!-- Save: cross-mode isolation issues, data model mismatches, transfer bugs -->
 
+## ABSOLUTE RULE: Core Rules & Compendium Are Word of God
+
+The Compendium PDF at `docs/rules/Five Parsecs From Home-Compendium.pdf` is the canonical authority for all Bug Hunt mechanics. If code disagrees with the book, the code is wrong.
+
+---
+
 ## Critical Gotchas — Must Remember
 
 ### 1. Incompatible Data Models
@@ -49,7 +55,15 @@ Never use a Bug Hunt prefix on standard keys or vice versa.
 
 Bug Hunt recruitment: 2D6 + Combat >= 8. This is a Bug Hunt-specific mechanic that does not exist in Standard mode.
 
-### 6. Godot 4.6 Type Inference
+### 6. PDF Rulebooks & Python Extraction Tools
+
+Bug Hunt rules are in the Compendium — extract directly instead of guessing:
+- **Compendium PDF**: `docs/rules/Five Parsecs From Home-Compendium.pdf`
+- **Core Rules PDF**: `docs/rules/pdfcoffee_com_muh052042_five_parsecs_from_home_3e_rulebook_2021.pdf`
+- **Text extractions**: `docs/rules/core_rulebook.txt` and `docs/rules/compendium_source.txt`
+- **Python**: `py` launcher (NOT `python`), PyMuPDF installed. Example: `py -c "import fitz; doc = fitz.open('path'); print(doc[PAGE].get_text())"`
+
+### 7. Godot 4.6 Type Inference
 
 `var x := dict["key"]` will NOT compile — Dictionary values are always Variant.
 Always use explicit type annotation: `var x: Type = dict["key"]`. Zero exceptions.

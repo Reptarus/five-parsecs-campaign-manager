@@ -756,7 +756,12 @@ func _update_traits_display() -> void:
 	# Empty-state message when no traits exist
 	if ship_data.get("traits", []).is_empty():
 		var empty_label := Label.new()
-		empty_label.text = "No special traits — generate a ship to see its traits"
+		# QA-FIX BUG-09: Show contextual message — if ship is already configured,
+		# say "no special traits" rather than "generate a ship" which is confusing
+		if ship_data.get("is_configured", false) or not ship_data.get("name", "").is_empty():
+			empty_label.text = "This ship has no special traits"
+		else:
+			empty_label.text = "No special traits — generate a ship to see its traits"
 		empty_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
 		empty_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		empty_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

@@ -3,6 +3,12 @@
 <!-- This file is loaded into your system prompt. Keep it under 200 lines. -->
 <!-- Save: routing decisions, cross-domain coordination patterns, project-level gotchas -->
 
+## ABSOLUTE RULE: Core Rules & Compendium Are Word of God
+
+The Core Rules and Compendium PDFs at `docs/rules/` are the canonical authority for ALL game mechanics. When routing data tasks, ensure agents verify values against the PDFs, not just code. Any agent can extract data using `py -c "import fitz; ..."`.
+
+---
+
 ## Critical Gotchas — Must Remember
 
 ### 1. Three-Enum Sync Rule
@@ -42,6 +48,17 @@ Route bugs about "lost state" or "data not persisting" to campaign-systems-engin
 
 `var x := dict["key"]` will NOT compile — Dictionary values are always Variant.
 This is the root cause of "Cannot infer the type" errors project-wide. Always use explicit type annotation: `var x: Type = dict["key"]`.
+
+---
+
+## PDF Rulebooks & Python Extraction Tools
+
+All agents can now extract data directly from source PDFs — route data verification tasks accordingly:
+- **Core Rules PDF**: `docs/rules/pdfcoffee_com_muh052042_five_parsecs_from_home_3e_rulebook_2021.pdf`
+- **Compendium PDF**: `docs/rules/Five Parsecs From Home-Compendium.pdf`
+- **Text extractions**: `docs/rules/core_rulebook.txt` and `docs/rules/compendium_source.txt`
+- **Python**: `py` launcher (NOT `python`), PyMuPDF 1.27.1 (fitz) installed
+- **Example**: `py -c "import fitz; doc = fitz.open('path'); print(doc[PAGE].get_text())"`
 
 ---
 

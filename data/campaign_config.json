@@ -2,8 +2,8 @@
 	"_metadata": {
 		"name": "Campaign Configuration Options",
 		"description": "UI-facing configuration data for ExpandedConfigPanel. Campaign types, victory conditions, story tracks, tutorial modes.",
-		"source": "Five Parsecs from Home Core Rules",
-		"version": "1.0"
+		"source": "Five Parsecs from Home Core Rules p.64-65",
+		"version": "2.0"
 	},
 	"campaign_types": {
 		"standard": {
@@ -24,36 +24,138 @@
 		}
 	},
 	"victory_conditions": {
-		"wealth": {
-			"name": "Wealth Victory",
-			"description": "Accumulate 10,000 credits",
-			"target": 10000,
-			"type": "credits"
-		},
-		"reputation": {
-			"name": "Reputation Victory",
-			"description": "Achieve maximum reputation with 3 factions",
-			"target": 3,
-			"type": "factions"
-		},
-		"exploration": {
-			"name": "Exploration Victory",
-			"description": "Visit 20 different worlds",
+		"turns_20": {
+			"name": "Play 20 Campaign Turns",
+			"description": "Complete 20 full campaign turns",
 			"target": 20,
-			"type": "worlds"
+			"type": "turns",
+			"category": "duration"
 		},
-		"combat": {
-			"name": "Combat Victory",
-			"description": "Defeat 50 enemies in total",
+		"turns_50": {
+			"name": "Play 50 Campaign Turns",
+			"description": "Complete 50 full campaign turns",
 			"target": 50,
-			"type": "enemies"
+			"type": "turns",
+			"category": "duration"
 		},
-		"story": {
-			"name": "Story Victory",
-			"description": "Complete 5 story missions",
+		"turns_100": {
+			"name": "Play 100 Campaign Turns",
+			"description": "Complete 100 full campaign turns",
+			"target": 100,
+			"type": "turns",
+			"category": "duration"
+		},
+		"quests_3": {
+			"name": "Complete 3 Quests",
+			"description": "Complete 3 story quests",
+			"target": 3,
+			"type": "quests",
+			"category": "quest"
+		},
+		"quests_5": {
+			"name": "Complete 5 Quests",
+			"description": "Complete 5 story quests",
 			"target": 5,
-			"type": "missions"
+			"type": "quests",
+			"category": "quest"
+		},
+		"quests_10": {
+			"name": "Complete 10 Quests",
+			"description": "Complete 10 story quests",
+			"target": 10,
+			"type": "quests",
+			"category": "quest"
+		},
+		"battles_20": {
+			"name": "Win 20 Tabletop Battles",
+			"description": "Win 20 tabletop battles",
+			"target": 20,
+			"type": "battles_won",
+			"category": "combat"
+		},
+		"battles_50": {
+			"name": "Win 50 Tabletop Battles",
+			"description": "Win 50 tabletop battles",
+			"target": 50,
+			"type": "battles_won",
+			"category": "combat"
+		},
+		"battles_100": {
+			"name": "Win 100 Tabletop Battles",
+			"description": "Win 100 tabletop battles",
+			"target": 100,
+			"type": "battles_won",
+			"category": "combat"
+		},
+		"unique_kills_10": {
+			"name": "Kill 10 Unique Individuals",
+			"description": "Defeat 10 Unique Individuals in battle",
+			"target": 10,
+			"type": "unique_kills",
+			"category": "combat"
+		},
+		"unique_kills_25": {
+			"name": "Kill 25 Unique Individuals",
+			"description": "Defeat 25 Unique Individuals in battle",
+			"target": 25,
+			"type": "unique_kills",
+			"category": "combat"
+		},
+		"upgrade_1x10": {
+			"name": "Upgrade 1 Character 10 Times",
+			"description": "Upgrade a single character 10 times",
+			"target": 10,
+			"type": "character_upgrades",
+			"category": "growth",
+			"characters_required": 1
+		},
+		"upgrade_3x10": {
+			"name": "Upgrade 3 Characters 10 Times",
+			"description": "Upgrade 3 characters 10 times each",
+			"target": 10,
+			"type": "character_upgrades",
+			"category": "growth",
+			"characters_required": 3
+		},
+		"upgrade_5x10": {
+			"name": "Upgrade 5 Characters 10 Times",
+			"description": "Upgrade 5 characters 10 times each",
+			"target": 10,
+			"type": "character_upgrades",
+			"category": "growth",
+			"characters_required": 5
+		},
+		"challenging_50": {
+			"name": "50 Turns in Challenging Mode",
+			"description": "Play 50 campaign turns in Challenging difficulty",
+			"target": 50,
+			"type": "turns",
+			"category": "challenge",
+			"required_difficulty": "challenging"
+		},
+		"hardcore_50": {
+			"name": "50 Turns in Hardcore Mode",
+			"description": "Play 50 campaign turns in Hardcore difficulty",
+			"target": 50,
+			"type": "turns",
+			"category": "challenge",
+			"required_difficulty": "hardcore"
+		},
+		"insanity_50": {
+			"name": "50 Turns in Insanity Mode",
+			"description": "Play 50 campaign turns in Insanity difficulty",
+			"target": 50,
+			"type": "turns",
+			"category": "challenge",
+			"required_difficulty": "insanity"
 		}
+	},
+	"victory_categories": {
+		"duration": {"name": "Duration", "description": "Complete a set number of campaign turns"},
+		"quest": {"name": "Quests", "description": "Complete story quests"},
+		"combat": {"name": "Combat", "description": "Win battles or defeat Unique Individuals"},
+		"growth": {"name": "Character Growth", "description": "Upgrade characters"},
+		"challenge": {"name": "Difficulty Challenge", "description": "Survive in harder difficulty modes"}
 	},
 	"story_tracks": {
 		"none": {

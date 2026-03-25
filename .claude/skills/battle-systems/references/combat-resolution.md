@@ -93,3 +93,11 @@ BattleResolver.enable_debug_logging() -> void
 BattleResolver.disable_debug_logging() -> void
 # Static var DEBUG_COMBAT_FLOW: bool
 ```
+
+## Combat Rules PDF Source
+
+All combat constants (hit thresholds, range bands, damage, toughness saves) must match the rulebooks:
+- **Core Rules PDF**: `docs/rules/pdfcoffee_com_muh052042_five_parsecs_from_home_3e_rulebook_2021.pdf` (combat: pp.113-125)
+- **Compendium PDF**: `docs/rules/Five Parsecs From Home-Compendium.pdf`
+- **Text extractions**: `docs/rules/core_rulebook.txt` and `docs/rules/compendium_source.txt`
+- **Python page extraction**: `py -c "import fitz; doc = fitz.open('path'); print(doc[PAGE].get_text())"` (PyMuPDF 1.27.1 via `py` launcher)

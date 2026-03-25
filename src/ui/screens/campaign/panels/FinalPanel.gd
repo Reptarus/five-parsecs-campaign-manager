@@ -535,7 +535,9 @@ func _create_captain_summary_card() -> PanelContainer:
 	var stats = _get_captain_stats_from_data(captain_data)
 	if not stats.is_empty():
 		# Row 1: Combat, Reactions, Toughness
-		stats_grid.add_child(_create_stat_badge("Combat", stats.get("combat", 0), true))
+		# QA-FIX BUG-11: Don't use show_plus for captain combat — shows "+2"
+		# instead of "2", inconsistent with other stats that show raw values
+		stats_grid.add_child(_create_stat_badge("Combat", stats.get("combat", 0)))
 		stats_grid.add_child(_create_stat_badge("Reactions", stats.get("reactions", 0)))
 		stats_grid.add_child(_create_stat_badge("Toughness", stats.get("toughness", 0)))
 		# Row 2: Savvy, Luck, Speed

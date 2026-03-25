@@ -49,6 +49,8 @@ func _ready() -> void:
 		push_error("BasePhasePanel: GameState autoload not found")
 	_apply_phase_theme()
 	_setup_breadcrumb()
+	# Deferred: fix touch scrolling on mobile
+	call_deferred("_fix_touch_scroll_filters")
 
 ## Setup the phase panel
 func setup_phase() -> void:
@@ -392,6 +394,7 @@ func _create_phase_card(
 ) -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.mouse_filter = Control.MOUSE_FILTER_PASS  # Allow touch scroll through cards
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(
 		UIColors.COLOR_SECONDARY.r,
@@ -407,6 +410,7 @@ func _create_phase_card(
 	panel.add_theme_stylebox_override("panel", style)
 
 	var vbox := VBoxContainer.new()
+	vbox.mouse_filter = Control.MOUSE_FILTER_PASS  # Allow touch scroll through cards
 	vbox.add_theme_constant_override(
 		"separation", UIColors.SPACING_SM)
 
@@ -452,6 +456,23 @@ func _wrap_in_phase_card(
 	parent.add_child(card)
 	parent.move_child(card, idx)
 	return card
+
+func _fix_touch_scroll_filters() -> void:
+	## Recursively set MOUSE_FILTER_PASS on layout containers so touch scrolling
+	## works through cards/panels on mobile. Buttons and interactive controls keep STOP.
+	_apply_pass_filter_recursive(self)
+
+func _apply_pass_filter_recursive(node: Node) -> void:
+	if node is Button or node is LineEdit or node is TextEdit or node is SpinBox \
+		or node is OptionButton or node is CheckBox or node is CheckButton \
+		or node is ScrollContainer or node is LinkButton:
+		return  # Interactive controls must keep MOUSE_FILTER_STOP
+	if node is Control:
+		var ctrl := node as Control
+		if ctrl.mouse_filter == Control.MOUSE_FILTER_STOP:
+			ctrl.mouse_filter = Control.MOUSE_FILTER_PASS
+	for child in node.get_children():
+		_apply_pass_filter_recursive(child)
 
 ## Style a disabled button with clearly reduced contrast for visual feedback
 func _style_button_disabled(button: Button) -> void:

@@ -3,6 +3,12 @@
 <!-- This file is loaded into your system prompt. Keep it under 200 lines. -->
 <!-- Save: enum sync issues, stat edge cases, serialization gotchas, equipment key bugs -->
 
+## ABSOLUTE RULE: Core Rules & Compendium Are Word of God
+
+The Core Rules PDF and Compendium PDF are the **canonical, final authority** for ALL game mechanics, values, names, stats, tables, and terminology. If code disagrees with the book, the code is wrong. No exceptions. No "balancing." No "improvements." Extract values with `py -c "import fitz; doc = fitz.open('docs/rules/...'); print(doc[PAGE].get_text())"`.
+
+---
+
 ## Critical Gotchas — Must Remember
 
 ### 1. Three-Enum Sync Rule
@@ -41,7 +47,18 @@ Using `"pool"` was a systemic bug fixed in Phase 22.
 
 Always include both aliases when creating character dicts manually (tests, factories).
 
-### 5. Godot 4.6 Type Inference
+### 5. PDF Rulebooks & Python Extraction Tools
+
+Source PDFs are available for direct data extraction — NEVER guess game values:
+- **Core Rules PDF**: `docs/rules/pdfcoffee_com_muh052042_five_parsecs_from_home_3e_rulebook_2021.pdf`
+- **Compendium PDF**: `docs/rules/Five Parsecs From Home-Compendium.pdf`
+- **Text extractions**: `docs/rules/core_rulebook.txt` and `docs/rules/compendium_source.txt`
+- **Python**: `py` launcher (NOT `python`), PyPDF2 3.0.1, PyMuPDF 1.27.1 (fitz) installed
+- **Example**: `py -c "import fitz; doc = fitz.open('path/to/pdf'); print(doc[PAGE].get_text())"`
+
+Always extract from the PDF when `data/RulesReference/` doesn't have the value you need.
+
+### 6. Godot 4.6 Type Inference
 
 `var x := dict["key"]` will NOT compile — Dictionary values are always Variant.
 Always use explicit type annotation: `var x: Type = dict["key"]`. Zero exceptions.

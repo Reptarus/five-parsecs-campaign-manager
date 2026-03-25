@@ -299,28 +299,32 @@ static func finalize_crew_resources(characters: Array, campaign) -> Dictionary:
 	if not campaign:
 		return total_resources
 
-	# Apply to campaign
-	# Generate patron entities
-	for i in total_resources.patrons:
-		var patron = _create_starting_patron(i)
-		if campaign is Resource and "patrons" in campaign:
-			campaign.patrons.append(patron)
-		elif campaign is Dictionary:
-			if not campaign.has("patrons"):
-				campaign["patrons"] = []
-			campaign["patrons"].append(patron)
-		pass # Starting patron created
+	# Apply to campaign — generate patron/rival entities linked to source characters
+	# QA-FIX: Preserve per-character context so patrons/rivals track their origin
+	var patron_idx: int = 0
+	var rival_idx: int = 0
+	for character in characters:
+		var char_res = character.get_meta("creation_resources", {})
+		var char_name: String = character.character_name if "character_name" in character else str(character)
+		for _p in range(char_res.get("patrons", 0)):
+			var patron = _create_starting_patron(patron_idx, char_name)
+			if campaign is Resource and "patrons" in campaign:
+				campaign.patrons.append(patron)
+			elif campaign is Dictionary:
+				if not campaign.has("patrons"):
+					campaign["patrons"] = []
+				campaign["patrons"].append(patron)
+			patron_idx += 1
 
-	# Generate rival entities
-	for i in total_resources.rivals:
-		var rival = _create_starting_rival(i)
-		if campaign is Resource and "rivals" in campaign:
-			campaign.rivals.append(rival)
-		elif campaign is Dictionary:
-			if not campaign.has("rivals"):
-				campaign["rivals"] = []
-			campaign["rivals"].append(rival)
-		pass # Starting rival created
+		for _r in range(char_res.get("rivals", 0)):
+			var rival = _create_starting_rival(rival_idx, char_name)
+			if campaign is Resource and "rivals" in campaign:
+				campaign.rivals.append(rival)
+			elif campaign is Dictionary:
+				if not campaign.has("rivals"):
+					campaign["rivals"] = []
+				campaign["rivals"].append(rival)
+			rival_idx += 1
 
 	# Add quest rumors
 	if campaign is Resource and "quest_rumors" in campaign:
@@ -359,33 +363,42 @@ static func finalize_crew_resources(characters: Array, campaign) -> Dictionary:
 
 	return total_resources
 
-## Create a starting patron from character creation
-static func _create_starting_patron(index: int) -> Dictionary:
-	var patron_types = ["Corporate", "Government", "Criminal", "Military", "Trade Guild", "Religious Order"]
-	var patron_names = ["Director Chen", "Commissioner Vale", "Boss Krynn", "Colonel Drake", "Merchant Lord Vex", "High Priest Zara"]
+## Create a starting patron from character creation (linked to source character)
+static func _create_starting_patron(index: int, source_character: String = "") -> Dictionary:
+	var patron_types = ["Corporate", "Government", "Criminal",
+		"Military", "Trade Guild", "Religious Order"]
+	var patron_names = ["Director Chen", "Commissioner Vale",
+		"Boss Krynn", "Colonel Drake", "Merchant Lord Vex",
+		"High Priest Zara"]
 
 	return {
-		"id": "starting_patron_%d_%d" % [Time.get_unix_time_from_system(), index],
+		"id": "starting_patron_%d_%d" % [
+			Time.get_unix_time_from_system(), index],
 		"name": patron_names[index % patron_names.size()],
 		"type": patron_types[index % patron_types.size()],
 		"reputation": 0,
 		"jobs_completed": 0,
 		"jobs_failed": 0,
-		"is_starting_patron": true
+		"is_starting_patron": true,
+		"source_character": source_character,
 	}
 
-## Create a starting rival from character creation
-static func _create_starting_rival(index: int) -> Dictionary:
-	var rival_types = ["Gang", "Corporate", "Criminal", "Personal Enemy", "Mercenary Band"]
-	var rival_names = ["The Red Fang", "Nexus Corp Enforcers", "Shadow Syndicate", "Vendetta Hunter", "Steel Dogs"]
+## Create a starting rival from character creation (linked to source character)
+static func _create_starting_rival(index: int, source_character: String = "") -> Dictionary:
+	var rival_types = ["Gang", "Corporate", "Criminal",
+		"Personal Enemy", "Mercenary Band"]
+	var rival_names = ["The Red Fang", "Nexus Corp Enforcers",
+		"Shadow Syndicate", "Vendetta Hunter", "Steel Dogs"]
 
 	return {
-		"id": "starting_rival_%d_%d" % [Time.get_unix_time_from_system(), index],
+		"id": "starting_rival_%d_%d" % [
+			Time.get_unix_time_from_system(), index],
 		"name": rival_names[index % rival_names.size()],
 		"type": rival_types[index % rival_types.size()],
 		"strength": 1,
 		"hostility": 5,
-		"is_starting_rival": true
+		"is_starting_rival": true,
+		"source_character": source_character,
 	}
 
 ## Load all necessary JSON data for character creation

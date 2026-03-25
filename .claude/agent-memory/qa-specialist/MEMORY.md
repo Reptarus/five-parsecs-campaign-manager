@@ -2,11 +2,30 @@
 
 <!-- This file is loaded into your system prompt. Keep it under 200 lines. -->
 
+## ABSOLUTE RULE: Core Rules & Compendium Are Word of God
+
+The Core Rules PDF and Compendium PDF are the **canonical, final authority** for ALL game mechanics. Every value in this project must match the books exactly. If code disagrees with the book, the code is wrong — file a bug, don't rationalize the discrepancy.
+
+---
+
 ## Critical Gotchas — Must Remember
 
 1. **Godot 4.6 type inference**: `var x := dict["key"]` will NOT compile. Always use `var x: Type = dict["key"]`. Zero exceptions. This is the #1 cause of compile errors in new code.
 2. **Three-Enum Sync Rule**: GlobalEnums, GameEnums, FiveParsecsGameEnums must stay aligned. When testing enum-dependent code, verify all three.
 3. **`--headless --quit` is NOT comprehensive**: Only validates startup scripts. The Godot editor LSP loads ALL scripts. Always reboot editor after headless check.
+
+---
+
+## PDF Rulebooks & Python Extraction Tools
+
+For RULES_VERIFIED status, extract values directly from source PDFs:
+- **Core Rules PDF**: `docs/rules/pdfcoffee_com_muh052042_five_parsecs_from_home_3e_rulebook_2021.pdf`
+- **Compendium PDF**: `docs/rules/Five Parsecs From Home-Compendium.pdf`
+- **Text extractions**: `docs/rules/core_rulebook.txt` and `docs/rules/compendium_source.txt`
+- **Python**: `py` launcher (NOT `python`), PyPDF2 3.0.1, PyMuPDF 1.27.1 (fitz) installed
+- **Example**: `py -c "import fitz; doc = fitz.open('path/to/pdf'); print(doc[PAGE].get_text())"`
+
+Use this to cross-reference game values when promoting mechanics from MCP_VALIDATED to RULES_VERIFIED.
 
 ---
 

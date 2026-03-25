@@ -3,6 +3,12 @@
 <!-- This file is loaded into your system prompt. Keep it under 200 lines. -->
 <!-- Save: theme gotchas, TweenFX patterns, panel construction issues, responsive edge cases -->
 
+## ABSOLUTE RULE: Core Rules & Compendium Are Word of God
+
+The Core Rules and Compendium PDFs at `docs/rules/` define all game terminology, stat names, and mechanic labels displayed in UI. If a UI label doesn't match the book, the UI is wrong.
+
+---
+
 ## Critical Gotchas — Must Remember
 
 ### 1. TweenFX pivot_offset
@@ -59,6 +65,13 @@ else:
     desc_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)  # muted on normal bg
 ```
 
-### 8. UIColors Over Local Constants
+### 8. PDF Rulebooks Available
+
+If you need to verify UI labels, stat names, or game terminology against the source material:
+- **Core Rules PDF**: `docs/rules/pdfcoffee_com_muh052042_five_parsecs_from_home_3e_rulebook_2021.pdf`
+- **Compendium PDF**: `docs/rules/Five Parsecs From Home-Compendium.pdf`
+- **Python**: `py -c "import fitz; doc = fitz.open('path'); print(doc[PAGE].get_text())"`
+
+### 9. UIColors Over Local Constants
 
 World phase components should use `UIColors.COLOR_EMERALD`, `UIColors.COLOR_RED`, etc. instead of local `const COLOR_*` definitions. Base class provides `TOUCH_TARGET_MIN := 48`.

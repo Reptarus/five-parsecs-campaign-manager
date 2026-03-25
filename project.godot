@@ -21,6 +21,8 @@ config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://assets/iconnew.png"
 
 [autoload]
+
+McpBridge="*res://mcp_bridge.gd"
 GlobalEnums="*res://src/core/systems/GlobalEnums.gd"
 GameDataManager="*res://src/core/managers/GameDataManager.gd"
 DataManager="*res://src/core/data/DataManager.gd"
@@ -83,6 +85,14 @@ project/assembly_name="Five Parsecs Campaign Manager"
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/TweenFX/plugin.cfg", "res://addons/curved_lines_2d/plugin.cfg", "res://addons/gdUnit4/plugin.cfg", "res://addons/shader_library/plugin.cfg")
+
+[gui]
+
+common/default_scroll_deadzone=16
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
 
 [logging]
 

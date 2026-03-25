@@ -177,17 +177,35 @@ func _setup_initial_state() -> void:
 			elif campaign is Resource and campaign.has_meta("world_phase_checkpoint"):
 				_checkpoint_data = campaign.get_meta("world_phase_checkpoint").duplicate()
 
-	# Validate checkpoint: if ALL steps are marked complete, this is stale data
-	# from a previous turn — discard it so the new turn starts fresh
+	# QA-FIX BUG-12: Validate checkpoint staleness by checking turn number.
+	# Previously only "all steps complete" was detected as stale, but partially
+	# complete checkpoints from a PREVIOUS turn leaked step_completed state
+	# (e.g., step 5 checkmark appearing on Turn 2's Upkeep).
 	if not _checkpoint_data.is_empty():
-		var stale_checkpoint := true
-		var cp_steps: Dictionary = _checkpoint_data.get("step_completed", {})
-		for step_key in cp_steps:
-			if not cp_steps[step_key]:
-				stale_checkpoint = false
-				break
-		if cp_steps.is_empty():
-			stale_checkpoint = false
+		var stale_checkpoint := false
+		# Check turn number mismatch
+		var cp_turn: int = _checkpoint_data.get("turn_number", -1)
+		var current_turn: int = -1
+		var gs = get_node_or_null("/root/GameState")
+		if gs and "current_campaign" in gs and gs.current_campaign:
+			if "progress_data" in gs.current_campaign:
+				current_turn = gs.current_campaign.progress_data.get(
+					"turns_played", 0)
+		if cp_turn >= 0 and current_turn >= 0 and cp_turn != current_turn:
+			stale_checkpoint = true
+		# Also check: if ALL steps are complete, it's stale regardless
+		if not stale_checkpoint:
+			var all_done := true
+			var cp_steps: Dictionary = _checkpoint_data.get(
+				"step_completed", {})
+			for step_key in cp_steps:
+				if not cp_steps[step_key]:
+					all_done = false
+					break
+			if cp_steps.is_empty():
+				all_done = false
+			if all_done:
+				stale_checkpoint = true
 		if stale_checkpoint:
 			_checkpoint_data = {}
 			clear_checkpoint()
@@ -1435,11 +1453,19 @@ func _debug_complete_current_step() -> void:
 func save_checkpoint() -> void:
 	## Sprint 26.4: Save World Phase checkpoint before transitioning away.
 	## Saves to local _checkpoint_data for quick restore and to campaign for persistence.
+	# QA-FIX BUG-12: Include turn_number so stale checkpoints from previous
+	# turns can be detected and discarded on restore.
+	var current_turn: int = 0
+	var gs_ref = get_node_or_null("/root/GameState")
+	if gs_ref and gs_ref.current_campaign and "progress_data" in gs_ref.current_campaign:
+		current_turn = gs_ref.current_campaign.progress_data.get(
+			"turns_played", 0)
 	_checkpoint_data = {
 		"current_step": current_step,
 		"step_completed": step_completed.duplicate(),
 		"world_phase_data": world_phase_data.duplicate(),
 		"automation_enabled": automation_enabled,
+		"turn_number": current_turn,
 		"timestamp": Time.get_datetime_string_from_system()
 	}
 
