@@ -71,7 +71,7 @@ func _setup_ui() -> void:
 
 	_update_display()
 func _initialize_default_resources() -> void:
-	add_resource("credits", 1000) # Starting credits
+	add_resource("credits", 0)  # Loaded from campaign state (Core Rules p.28)
 	add_resource("story_points", 3) # Starting story points
 	add_resource("reputation", 0) # Starting reputation
 	add_resource("supplies", 10) # Starting supplies

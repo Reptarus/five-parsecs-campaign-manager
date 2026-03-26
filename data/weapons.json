@@ -13,7 +13,7 @@
     {"id": "brutal_melee_weapon", "name": "Brutal Melee Weapon", "category": "melee", "range": 0, "shots": 0, "damage": 1, "traits": ["Melee", "Clumsy"]},
     {"id": "cling_fire_pistol", "name": "Cling Fire Pistol", "category": "special", "range": 12, "shots": 2, "damage": 1, "traits": ["Focused", "Terrifying"]},
     {"id": "colony_rifle", "name": "Colony Rifle", "category": "slug", "range": 18, "shots": 1, "damage": 0, "traits": []},
-    {"id": "dazzle_grenade", "name": "Dazzle Grenade", "category": "grenade", "range": 6, "shots": 1, "damage": 0, "traits": ["Area", "Stun", "Single use"]},
+    {"id": "dazzle_grenade", "name": "Dazzle Grenade", "category": "grenade", "range": 6, "shots": 1, "damage": 0, "traits": ["Heavy", "Area", "Stun", "Single use"]},
     {"id": "duelling_pistol", "name": "Duelling Pistol", "category": "slug", "range": 8, "shots": 1, "damage": 0, "traits": ["Pistol", "Critical"]},
     {"id": "flak_gun", "name": "Flak Gun", "category": "slug", "range": 8, "shots": 2, "damage": 1, "traits": ["Focused", "Critical"]},
     {"id": "frakk_grenade", "name": "Frakk Grenade", "category": "grenade", "range": 6, "shots": 2, "damage": 0, "traits": ["Heavy", "Area", "Single use"]},

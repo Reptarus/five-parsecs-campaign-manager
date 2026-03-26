@@ -289,7 +289,7 @@ func _on_coop_campaign_pressed() -> void:
 	show_message("Co-op Campaign feature is coming soon!")
 
 func _on_battle_simulator_pressed() -> void:
-	show_message("Battle Simulator feature is coming soon!")
+	request_scene_change("battle_simulator")
 
 func _on_bug_hunt_pressed() -> void:
 	request_scene_change("bug_hunt_creation")
@@ -332,6 +332,7 @@ func request_scene_change(scene_name: String) -> void:
 		"campaign_dashboard": "campaign_turn_controller",
 		"campaign_turn_controller": "campaign_turn_controller",
 		"bug_hunt_creation": "bug_hunt_creation",
+		"battle_simulator": "battle_simulator",
 		"help": "help",
 	}
 

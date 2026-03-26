@@ -352,10 +352,21 @@ func _generate_five_parsecs_equipment(crew_members: Array) -> void:
 					"quality_modifier": 0
 				})
 	
-	# Calculate starting credits: 1 credit per crew member (base)
-	# Plus 1D6+1 x 100 credits total
-	var dice_roll = (randi() % 6) + 1  # 1D6
-	starting_credits = (dice_roll + 1) * 100 + crew_members.size()
+	# Calculate starting credits (Core Rules p.28):
+	# 1 credit per crew member + background resource bonuses (1D6 or 2D6 per character)
+	starting_credits = crew_members.size()  # Base: 1 per crew member
+	for member in crew_members:
+		var bg: String = ""
+		if member is Dictionary:
+			bg = str(member.get("background", "")).to_lower()
+		elif member is Character:
+			bg = member.background.to_lower() if member.background else ""
+		# Roll background credits bonus from data (most backgrounds give 1D6)
+		var bg_credits_roll: String = _get_background_credits_roll(bg)
+		if bg_credits_roll == "2D6":
+			starting_credits += randi_range(1, 6) + randi_range(1, 6)
+		elif bg_credits_roll == "1D6":
+			starting_credits += randi_range(1, 6)
 	
 	# Update display and emit signals
 	_update_equipment_display()
@@ -685,10 +696,19 @@ func set_generated_equipment(equipment: Array, credits: int) -> void:
 func _generate_equipment_for_actual_crew(crew_members: Array) -> void:
 	## Generate equipment for actual crew from campaign state (CRITICAL FIX)
 	generated_equipment.clear()
-	# QA-FIX BUG-04b: Calculate starting credits (Core Rules) instead of resetting to 0.
-	# Previous code set starting_credits = 0 here and never recalculated.
-	var dice_roll: int = (randi() % 6) + 1  # 1D6
-	starting_credits = dice_roll * 100
+	# Core Rules p.28: 1 credit per crew member + background bonuses
+	starting_credits = crew_members.size()
+	for cm in crew_members:
+		var bg: String = ""
+		if cm is Dictionary:
+			bg = str(cm.get("background", "")).to_lower()
+		elif cm is Character:
+			bg = cm.background.to_lower() if cm.background else ""
+		var roll_type: String = _get_background_credits_roll(bg)
+		if roll_type == "2D6":
+			starting_credits += randi_range(1, 6) + randi_range(1, 6)
+		elif roll_type == "1D6":
+			starting_credits += randi_range(1, 6)
 	
 	for crew_member in crew_members:
 		# Handle Character, BaseCharacterResource, and Dictionary
@@ -1017,10 +1037,8 @@ func _generate_default_equipment() -> void:
 
 	generated_equipment.clear()
 
-	# Generate default equipment following Five Parsecs rules
-	# Generate starting credits: (1D6+1) × 100
-	var dice_roll = randi_range(1, 6)
-	starting_credits = (dice_roll + 1) * 100 + effective_crew_size
+	# Core Rules p.28: 1 credit per crew member (no backgrounds available in default mode)
+	starting_credits = effective_crew_size
 	# Generate default weapons
 	var military_weapons = ["Colony Rifle", "Auto Rifle", "Military Rifle"]
 	var low_tech_weapons = ["Handgun", "Scrap Pistol", "Colony Rifle"]
@@ -1599,6 +1617,23 @@ func _force_display_update() -> void:
 		pass
 
 # --- Additions to EquipmentPanel.gd ---
+
+## Look up background credit bonus from character_creation_tables/background_table.json
+## Returns "1D6", "2D6", or "" (no bonus) per Core Rules pp.24-27
+func _get_background_credits_roll(background_name: String) -> String:
+	# Backgrounds that give +2D6 credits (Core Rules pp.25, 27)
+	var two_d6_backgrounds := ["wealthy merchant family", "trader"]
+	# Backgrounds that give +1D6 credits (Core Rules pp.24-27)
+	var one_d6_backgrounds := [
+		"peaceful high-tech colony", "tech guild", "comfortable megacity class",
+		"bureaucrat", "wealth", "adventure", "soldier", "artist"
+	]
+	var bg_lower := background_name.to_lower().strip_edges()
+	if bg_lower in two_d6_backgrounds:
+		return "2D6"
+	if bg_lower in one_d6_backgrounds:
+		return "1D6"
+	return ""
 
 func _validate_and_complete() -> void:
 	local_equipment_data.equipment = generated_equipment

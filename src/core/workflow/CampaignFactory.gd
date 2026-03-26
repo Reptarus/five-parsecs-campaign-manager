@@ -238,7 +238,7 @@ static func _create_initial_story_state() -> Dictionary:
 static func _create_initial_campaign_state() -> Dictionary:
 	## Create initial campaign game state
 	return {
-		"credits": 1000,  # Starting credits
+		"credits": 0,  # Set by equipment generation step (Core Rules p.28)
 		"reputation": 0,
 		"current_world": "",
 		"visited_worlds": [],

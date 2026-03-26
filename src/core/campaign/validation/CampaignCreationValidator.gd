@@ -272,19 +272,19 @@ static func _validate_victory_condition(victory_condition: String) -> Validation
 	return result
 
 static func _validate_starting_credits(credits: int) -> ValidationResult:
-	## Validate starting credits
-	if credits < 500:
-		return ValidationResult.new(false, "Starting credits must be at least 500")
-	
-	if credits > 5000:
-		return ValidationResult.new(false, "Starting credits cannot exceed 5000")
-	
+	## Validate starting credits (Core Rules p.28: typically 6-30 for a starting crew)
+	if credits < 0:
+		return ValidationResult.new(false, "Starting credits cannot be negative")
+
+	if credits > 100:
+		return ValidationResult.new(false, "Starting credits cannot exceed 100 (Core Rules p.28)")
+
 	var result = ValidationResult.new(true)
-	
-	if credits < 1000:
-		result.add_warning("Low starting credits - early game will be challenging")
-	elif credits > 2000:
-		result.add_warning("High starting credits - early game will be easier")
+
+	if credits == 0:
+		result.add_warning("No starting credits - will be set during equipment generation")
+	elif credits > 50:
+		result.add_warning("High starting credits for Core Rules (typical: 10-30)")
 	
 	return result
 
@@ -610,7 +610,7 @@ static func _validate_cross_phase_dependencies(campaign_data: Dictionary) -> Val
 		warnings.append("Captain in config doesn't match crew captain")
 	
 	# Credits consistency
-	var config_credits = config.get("starting_credits", 1000)
+	var config_credits = config.get("starting_credits", 0)
 	var equipment_value = 0
 	for item in equipment:
 		equipment_value += item.get("value", 0)

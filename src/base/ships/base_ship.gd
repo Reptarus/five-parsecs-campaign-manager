@@ -18,8 +18,8 @@ signal power_state_changed(available: int, required: int)
 @export var level: int = 1
 @export var power_capacity: int = 10
 @export var power_generation: int = 5
-@export var hull_points: int = 100
-@export var max_hull_points: int = 100
+@export var hull_points: int = 25  # Core Rules p.31: ships range 20-40 hull
+@export var max_hull_points: int = 25
 
 # Ship state
 var is_powered: bool = true
@@ -114,7 +114,7 @@ func deserialize(data: Dictionary) -> void:
 	level = data.get("level", 1)
 	power_capacity = data.get("power_capacity", 10)
 	power_generation = data.get("power_generation", 5)
-	hull_points = data.get("hull_points", 100)
-	max_hull_points = data.get("max_hull_points", 100)
+	hull_points = data.get("hull_points", 25)
+	max_hull_points = data.get("max_hull_points", 25)
 	is_powered = data.get("is_powered", true)
 	power_usage = data.get("power_usage", 0)

@@ -9,14 +9,14 @@ const MAX_CREW_SIZE: int = 8
 const MIN_CREW_SIZE: int = 3
 
 var members: Array = []
-var credits: int = 1000
+var credits: int = 0  # Set during campaign creation (Core Rules p.28: 1/crew + background rolls)
 var name: String = ""
 var characteristic: String = ""
 var meeting_story: String = ""
 
 func _init() -> void:
 	members = []
-	credits = 1000
+	credits = 0
 	
 	# Ensure resource has a unique path for serialization
 	if resource_path.is_empty():

@@ -77,7 +77,7 @@ func _init(name: String = "New Five Parsecs Campaign") -> void:
 
 func _initialize_five_parsecs_resources() -> void:
 	resources = {
-		"credits": 1500, # Five Parsecs starts with 1500 credits
+		"credits": 0,  # Set during equipment generation (Core Rules p.28: 1/crew + background rolls)
 		"reputation": 0,
 		"story_points": 3,
 		"salvage": 0,

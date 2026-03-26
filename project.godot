@@ -22,7 +22,6 @@ config/icon="res://assets/iconnew.png"
 
 [autoload]
 
-McpBridge="*res://mcp_bridge.gd"
 GlobalEnums="*res://src/core/systems/GlobalEnums.gd"
 GameDataManager="*res://src/core/managers/GameDataManager.gd"
 DataManager="*res://src/core/data/DataManager.gd"

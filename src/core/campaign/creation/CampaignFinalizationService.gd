@@ -696,7 +696,7 @@ func _transform_equipment_data_for_turn_system(equipment_data: Dictionary) -> Di
 	pass # Equipment data transformed
 
 	if not transformed.has("credits"):
-		transformed["credits"] = 1000
+		transformed["credits"] = 0  # Set during equipment generation (Core Rules p.28)
 
 	return transformed
 

@@ -137,25 +137,35 @@ class UnitData extends Resource:
 		team = &"crew"
 
 		# Extract stats safely with fallbacks
-		var combat_value = null
-		if crew_member and crew_member.has_method("get"):
-			combat_value = crew_member.get("combat_skill")
-		combat_skill = int(combat_value) if combat_value != null else 0
+		# Phase 49: Use effective stats (injury/implant modifiers) for Character objects
+		# and fix "combat" → "combat_skill" key mismatch
+		if crew_member is Character:
+			combat_skill = crew_member.get_effective_combat_skill()
+			toughness = crew_member.get_effective_toughness()
+			savvy = crew_member.get_effective_savvy()
+			reactions = crew_member.get_effective_reactions()
+		else:
+			var combat_value = null
+			if crew_member and crew_member.has_method("get"):
+				combat_value = crew_member.get("combat_skill")
+				if combat_value == null:
+					combat_value = crew_member.get("combat")
+			combat_skill = int(combat_value) if combat_value != null else 0
 
-		var tough_value = null
-		if crew_member and crew_member.has_method("get"):
-			tough_value = crew_member.get("toughness")
-		toughness = int(tough_value) if tough_value != null else 0
+			var tough_value = null
+			if crew_member and crew_member.has_method("get"):
+				tough_value = crew_member.get("toughness")
+			toughness = int(tough_value) if tough_value != null else 0
 
-		var savvy_value = null
-		if crew_member and crew_member.has_method("get"):
-			savvy_value = crew_member.get("savvy")
-		savvy = int(savvy_value) if savvy_value != null else 0
+			var savvy_value = null
+			if crew_member and crew_member.has_method("get"):
+				savvy_value = crew_member.get("savvy")
+			savvy = int(savvy_value) if savvy_value != null else 0
 
-		var reactions_value = null
-		if crew_member and crew_member.has_method("get"):
-			reactions_value = crew_member.get("reactions")
-		reactions = int(reactions_value) if reactions_value != null else 0
+			var reactions_value = null
+			if crew_member and crew_member.has_method("get"):
+				reactions_value = crew_member.get("reactions")
+			reactions = int(reactions_value) if reactions_value != null else 0
 
 		# Set health based on toughness (Five Parsecs rule)
 		max_health = max(1, toughness + 2)

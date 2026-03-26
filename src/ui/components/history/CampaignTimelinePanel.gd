@@ -24,6 +24,13 @@ const TYPE_COLORS = {
 	"purchase": Color("#10B981"),
 	"injury": Color("#EF4444"),
 	"custom": Color("#6B7280"),
+	# Post-battle entry types (Phase 49)
+	"payment": Color("#10B981"),
+	"loot": Color("#F59E0B"),
+	"experience": Color("#3B82F6"),
+	"campaign_event": Color("#8B5CF6"),
+	"character_event": Color("#A855F7"),
+	"galactic_war": Color("#EF4444"),
 }
 
 var _type_filter: String = "all"
@@ -116,7 +123,12 @@ func _add_filter_bar(parent: VBoxContainer) -> void:
 	type_filter.add_item("Purchases", 4)
 	type_filter.add_item("Injuries", 5)
 	type_filter.add_item("Custom", 6)
-	type_filter.custom_minimum_size = Vector2(140, 36)
+	type_filter.add_item("Payment", 7)
+	type_filter.add_item("Loot", 8)
+	type_filter.add_item("Experience", 9)
+	type_filter.add_item("Campaign Events", 10)
+	type_filter.add_item("Galactic War", 11)
+	type_filter.custom_minimum_size = Vector2(160, 36)
 	type_filter.item_selected.connect(_on_type_filter_changed)
 	hbox.add_child(type_filter)
 
@@ -229,7 +241,7 @@ func _add_export_bar(parent: VBoxContainer) -> void:
 	hbox.add_child(json_btn)
 
 func _on_type_filter_changed(index: int) -> void:
-	var type_map = {0: "all", 1: "battle", 2: "milestone", 3: "story", 4: "purchase", 5: "injury", 6: "custom"}
+	var type_map = {0: "all", 1: "battle", 2: "milestone", 3: "story", 4: "purchase", 5: "injury", 6: "custom", 7: "payment", 8: "loot", 9: "experience", 10: "campaign_event", 11: "galactic_war"}
 	_type_filter = type_map.get(index, "all")
 	_refresh_entries()
 

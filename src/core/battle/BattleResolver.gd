@@ -143,15 +143,29 @@ static func initialize_battle(
 	
 	# Copy crew units and apply deployment effects
 	# Sprint 26.3: Character-Everywhere - check Object first
+	# Phase 49: Use effective stats (injury/implant modifiers) and fix combat→combat_skill key
 	for crew in crew_deployed:
 		var unit: Dictionary = {}
-		if crew is Dictionary:
+		if crew is Character:
+			# Character object: use effective stats that include injury/implant modifiers
+			unit = crew.to_dictionary()
+			unit["combat_skill"] = crew.get_effective_combat_skill()
+			unit["toughness"] = crew.get_effective_toughness()
+			unit["reactions"] = crew.get_effective_reactions()
+			unit["savvy"] = crew.get_effective_savvy()
+			unit["speed"] = crew.get_effective_speed()
+		elif crew is Dictionary:
 			unit = crew.duplicate(true)
+			# Remap "combat" → "combat_skill" if needed (BattleCalculations expects "combat_skill")
+			if "combat" in unit and "combat_skill" not in unit:
+				unit["combat_skill"] = unit["combat"]
 		elif crew != null and crew.has_method("to_dictionary"):
 			unit = crew.to_dictionary()
+			if "combat" in unit and "combat_skill" not in unit:
+				unit["combat_skill"] = unit["combat"]
 		else:
 			# Fallback for objects without to_dictionary
-			unit = {"character_name": crew.character_name if "character_name" in crew else "", "toughness": crew.toughness if "toughness" in crew else DEFAULT_TOUGHNESS}
+			unit = {"character_name": crew.character_name if "character_name" in crew else "", "toughness": crew.toughness if "toughness" in crew else DEFAULT_TOUGHNESS, "combat_skill": crew.combat if "combat" in crew else 0}
 		unit["hp_current"] = unit.get("toughness", DEFAULT_TOUGHNESS)
 		unit["is_stunned"] = false
 		unit["is_suppressed"] = false

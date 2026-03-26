@@ -4,6 +4,8 @@ extends Control
 ## Production-Ready Campaign Turn Orchestrator
 ## Connects CampaignPhaseManager with UI components for complete turn flow
 
+const MissionTableManagerClass = preload("res://src/core/mission/MissionTableManager.gd")
+
 # Core Dependencies
 @onready var campaign_phase_manager: Node = get_node("/root/CampaignPhaseManager")
 @onready var game_state: Node = get_node("/root/GameState")
@@ -449,7 +451,7 @@ func _check_rival_encounter_backend(planet_id: String, turn_number: int) -> void
 	if rival_count <= 0:
 		return
 
-	var table_mgr := MissionTableManager.new()
+	var table_mgr := MissionTableManagerClass.new()
 	var check: Dictionary = table_mgr.check_rival_tracking(
 		rival_count, decoy_count)
 	if check.get("tracked_down", false):
@@ -635,7 +637,7 @@ func _initiate_battle_sequence() -> void:
 			"source", "opportunity")
 
 	# Enrich with Core Rules tables (pp.88-91, 120-121)
-	var mtm := MissionTableManager.new()
+	var mtm := MissionTableManagerClass.new()
 	var source: String = mission_data.get(
 		"mission_source", "opportunity")
 

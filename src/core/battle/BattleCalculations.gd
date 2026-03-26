@@ -51,9 +51,9 @@ const SCREEN_SAVE_BASIC := 6     # Basic energy screen
 const SCREEN_SAVE_MILITARY := 5  # Military-grade screen
 const SCREEN_SAVE_ADVANCED := 4  # Advanced screen technology
 
-# Status effect thresholds
-const STUN_THRESHOLD := 8
-const SUPPRESS_THRESHOLD := 6
+# Status effects: Core Rules p.40 — stun from weapon Stun/Impact traits, NOT damage threshold
+# STUN_THRESHOLD was fabricated (removed). Stun is trait-based per Core Rules p.51.
+const SUPPRESS_THRESHOLD := 6  # APP_SPECIFIC — not in Core Rules
 
 # Experience awards
 const XP_PARTICIPATION := 1
@@ -746,9 +746,14 @@ static func mark_auto_medicator_used(target: Dictionary) -> void:
 
 #region Status Effects
 
-## Check if attack causes stun
-static func check_stun(total_damage: int, target_toughness: int) -> bool:
-	return total_damage + target_toughness >= STUN_THRESHOLD
+## Check if attack causes stun — Core Rules p.51: only weapons with Stun or Impact trait
+## Impact trait: "If target is Stunned, place a second Stun marker" (double stun)
+## Stun trait: "Targets hit are Stunned. Toughness is ignored but Saving Throws apply."
+static func check_stun(_total_damage: int, _target_toughness: int, weapon_traits: Array = []) -> bool:
+	for trait_name in weapon_traits:
+		if str(trait_name).to_lower() == "stun":
+			return true
+	return false
 
 ## Check if attack causes suppression
 static func check_suppression(hit_occurred: bool, _weapon_traits: Array = []) -> bool:

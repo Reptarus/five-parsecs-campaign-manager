@@ -839,12 +839,12 @@ func set_resources(resources: Dictionary) -> bool:
 	
 	# Ensure critical resources are present with default values if not provided
 	if not _resources.has(GlobalEnums.ResourceType.CREDITS):
-		_resources[GlobalEnums.ResourceType.CREDITS] = 1000
+		_resources[GlobalEnums.ResourceType.CREDITS] = 0  # Set by campaign creation (Core Rules p.28)
 	if not _resources.has(GlobalEnums.ResourceType.FUEL):
 		_resources[GlobalEnums.ResourceType.FUEL] = 10
 	if not _resources.has(GlobalEnums.ResourceType.TECH_PARTS):
 		_resources[GlobalEnums.ResourceType.TECH_PARTS] = 5
-	
+
 	# Also set campaign resources if available
 	if current_campaign and current_campaign.has_method("set_resources"):
 		current_campaign.set_resources(_resources) # Pass our validated resources

@@ -11,7 +11,7 @@ signal supplies_changed(new_amount: int)
 signal reputation_changed(new_amount: int)
 signal story_progress_changed(new_amount: int)
 
-@export var initial_credits: int = 1000
+@export var initial_credits: int = 0  # Set during campaign creation (Core Rules p.28)
 @export var initial_supplies: int = 5
 @export var initial_reputation: int = 0
 

@@ -14,7 +14,7 @@ const GamePlanet = preload("res://src/game/world/GamePlanet.gd")
 const GameLocation = preload("res://src/game/world/GameLocation.gd")
 
 func _init() -> void:
-	_current_credits = 1000 # Starting credits
+	_current_credits = 0  # Loaded from campaign save (Core Rules p.28)
 
 func get_credits() -> int:
 	return _current_credits

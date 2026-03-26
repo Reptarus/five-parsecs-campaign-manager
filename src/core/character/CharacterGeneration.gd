@@ -887,7 +887,7 @@ static func _convert_gear_array_to_dict(gear_array: Array) -> Dictionary:
 static func _apply_equipment_data(character: Character, equipment_data: Dictionary) -> void:
 	# Store equipment data (would integrate with equipment system)
 	character.personal_equipment = equipment_data
-	character.credits_earned = equipment_data.get("credits", 1000)
+	character.credits_earned = equipment_data.get("credits", 0)
 
 ## Apply basic equipment fallback
 static func _apply_basic_equipment(character: Character) -> void:
@@ -895,9 +895,9 @@ static func _apply_basic_equipment(character: Character) -> void:
 		"weapons": ["Basic Pistol"],
 		"armor": ["Light Armor"],
 		"gear": ["Comm Unit"],
-		"credits": 1000
+		"credits": 0
 	}
-	character.credits_earned = 1000
+	character.credits_earned = 0
 
 ## Set character flags based on origin (Five Parsecs p.18-20)
 ## Note: Origin-based properties like is_bot(), is_human() are derived from origin string

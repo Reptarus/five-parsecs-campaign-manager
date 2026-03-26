@@ -655,7 +655,7 @@ func complete_campaign_creation() -> Dictionary:
 	
 	final_metadata.completed_at = Time.get_datetime_string_from_system()
 	final_metadata.total_crew_size = final_crew.get("size", 0)
-	final_metadata.starting_credits = final_equipment.get("starting_credits", 1000)
+	final_metadata.starting_credits = final_equipment.get("starting_credits", 0)
 	
 	# Enhanced character data serialization
 	final_data.crew = _serialize_crew_data(final_crew)

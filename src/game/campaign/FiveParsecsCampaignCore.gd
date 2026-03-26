@@ -304,6 +304,10 @@ func _build_qol_data() -> Dictionary:
 	var war_mgr = root.get_node_or_null("/root/GalacticWarManager")
 	if war_mgr and war_mgr.has_method("get_save_data"):
 		qol["galactic_war"] = war_mgr.get_save_data()
+	# DLCManager: per-campaign ContentFlag toggles
+	var dlc_mgr = root.get_node_or_null("/root/DLCManager")
+	if dlc_mgr and dlc_mgr.has_method("serialize_campaign_flags"):
+		qol["dlc_flags"] = dlc_mgr.serialize_campaign_flags()
 	return qol
 
 func from_dictionary(data: Dictionary) -> void:
@@ -434,6 +438,12 @@ func apply_pending_qol_data() -> void:
 		var war_data: Dictionary = qol.get("galactic_war", {})
 		if not war_data.is_empty():
 			war_mgr.load_save_data(war_data)
+	# DLCManager: restore per-campaign ContentFlag toggles
+	var dlc_mgr = root.get_node_or_null("/root/DLCManager")
+	if dlc_mgr and dlc_mgr.has_method("deserialize_campaign_flags"):
+		var dlc_data: Dictionary = qol.get("dlc_flags", {})
+		if not dlc_data.is_empty():
+			dlc_mgr.deserialize_campaign_flags(dlc_data)
 	_pending_qol_data = {}
 
 ## Campaign Management Methods

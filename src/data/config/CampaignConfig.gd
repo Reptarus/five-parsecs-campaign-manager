@@ -15,7 +15,7 @@ const ValidationResult = preload("res://src/core/validation/ValidationResult.gd"
 # Core configuration properties with explicit typing
 @export var campaign_name: String = ""
 @export var difficulty_level: int = 1
-@export var starting_credits: int = 1000
+@export var starting_credits: int = 0  # Calculated during equipment step (Core Rules p.28)
 @export var max_crew_size: int = 6
 @export var campaign_length: int = 100  # number of turns
 
@@ -128,7 +128,7 @@ static func from_dictionary(data: Dictionary) -> CampaignConfig:
 
 	config.campaign_name = data.get("campaign_name", "")
 	config.difficulty_level = data.get("difficulty_level", 1)
-	config.starting_credits = data.get("starting_credits", 1000)
+	config.starting_credits = data.get("starting_credits", 0)
 	config.max_crew_size = data.get("max_crew_size", 6)
 	config.campaign_length = data.get("campaign_length", 100)
 

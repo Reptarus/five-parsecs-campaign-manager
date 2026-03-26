@@ -19,7 +19,7 @@ const DEFAULT_CONFIG = {
 	"victory_condition": "none",
 	"story_track_enabled": false,
 	"elite_ranks": 0,
-	"starting_credits": 1000,
+	"starting_credits": 0,  # Calculated during equipment step (Core Rules p.28)
 	"description": ""
 }
 
@@ -162,10 +162,10 @@ func validate_panel_data() -> ValidationResult:
 	if not VICTORY_CONDITIONS.values().has(victory):
 		errors.append("Invalid victory condition selected")
 	
-	# Validate starting credits
+	# Validate starting credits (Core Rules p.28: typically 0 at config time, set during equipment step)
 	var credits = panel_data.get("starting_credits", 0)
-	if credits < 500 or credits > 5000:
-		errors.append("Starting credits must be between 500 and 5000")
+	if credits < 0 or credits > 100:
+		errors.append("Starting credits must be between 0 and 100 (Core Rules p.28)")
 	
 	if errors.is_empty():
 		return ValidationResult.new(true)
@@ -198,7 +198,7 @@ func collect_panel_data() -> Dictionary:
 		data.story_track_enabled = story_track_toggle.button_pressed
 	
 	# Add derived fields
-	data.starting_credits = panel_data.get("starting_credits", 1000)
+	data.starting_credits = panel_data.get("starting_credits", 0)
 	data.elite_ranks = panel_data.get("elite_ranks", 0)
 	data.description = _generate_campaign_description(data)
 	

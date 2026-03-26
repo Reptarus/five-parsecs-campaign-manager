@@ -243,16 +243,12 @@ func _calculate_crew_xp(ctx: PostBattleContextClass, crew_id: String) -> int:
 
 	return _apply_xp_multiplier(ctx, xp)
 
-func _apply_xp_multiplier(ctx: PostBattleContextClass, base_xp: int) -> int:
-	var difficulty: int = ctx.get_campaign_difficulty()
-	var multiplier: float = 1.0
-	if difficulty == GlobalEnums.DifficultyLevel.EASY:
-		multiplier = 0.75
-	elif difficulty == GlobalEnums.DifficultyLevel.HARDCORE:
-		multiplier = 1.25
-	elif difficulty == GlobalEnums.DifficultyLevel.INSANITY:
-		multiplier = 1.5
-	return maxi(1, int(base_xp * multiplier))
+func _apply_xp_multiplier(_ctx: PostBattleContextClass, base_xp: int) -> int:
+	# Core Rules p.123: No XP multipliers for any difficulty.
+	# Easy mode +1 XP bonus is already applied via DifficultyModifiers.get_xp_bonus()
+	# at line 234. Hardcore/Insanity have NO XP changes per Core Rules p.65.
+	# Previous multipliers (0.75x/1.25x/1.5x) were fabricated — removed.
+	return maxi(1, base_xp)
 
 func _was_crew_casualty_in_battle(ctx: PostBattleContextClass, crew_id: String) -> bool:
 	if crew_id.is_empty():

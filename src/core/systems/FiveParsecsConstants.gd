@@ -96,7 +96,7 @@ const STAT_RANGES = {
 
 # Character Generation Constants (Core Rules)
 const CHARACTER_CREATION = {
-	"starting_credits": 10, # Credits per character
+	"starting_credits": 1, # 1 credit per crew member (Core Rules p.28)
 	"max_crew_size": 8, # Maximum crew members
 	"min_crew_size": 4, # Minimum crew members
 	"attribute_dice": "2d6", # Dice for attribute generation

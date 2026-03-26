@@ -23,7 +23,7 @@ var story_points: int = 0
 func _init() -> void:
 	super ()
 	name = "New Five Parsecs Crew"
-	credits = 1500 # Five Parsecs starts with more credits
+	credits = 0  # Set during equipment generation step (Core Rules p.28)
 	
 	# Ensure resource has valid path for testing/serialization
 	if resource_path.is_empty():

@@ -391,7 +391,7 @@ func _calculate_final_results() -> Dictionary:
 		"turns_completed": GameState.get_campaign_turn() if GameState else 0,
 		"victory_achieved": false, # Future: Check actual victory conditions
 		"final_crew_size": 4, # Future: Get actual crew size
-		"credits_earned": 1000, # Future: Get actual credits
+		"credits_earned": 0, # Future: Get actual credits from campaign state
 		"completion_date": Time.get_datetime_string_from_system()
 	}
 

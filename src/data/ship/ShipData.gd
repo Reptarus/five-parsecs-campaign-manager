@@ -63,23 +63,26 @@ func _init() -> void:
 	_initialize_ship_defaults()
 
 func _initialize_ship_defaults() -> void:
+	# Hull values aligned with Core Rules p.31 ship table (range 20-40)
+	# NOTE: These ship classes don't map 1:1 to Core Rules ships.
+	# Canonical ship data is in data/ships.json. These are fallback defaults.
 	match ship_class:
 		ShipClass.BASIC_SHIP:
-			max_hull_points = 8
+			max_hull_points = 20  # Core Rules: Upgraded Shuttle (p.31)
 			max_fuel_units = 6
 			cargo_capacity = 12
 			crew_quarters = 4
 			weapon_mounts = 1
 			current_value = 50000
 		ShipClass.MERCHANT_VESSEL:
-			max_hull_points = 10
+			max_hull_points = 30  # Core Rules: Worn Freighter (p.31)
 			max_fuel_units = 8
 			cargo_capacity = 20
 			crew_quarters = 6
 			weapon_mounts = 1
 			current_value = 75000
 		ShipClass.PATROL_SHIP:
-			max_hull_points = 10
+			max_hull_points = 25  # Core Rules: Retired Scout Ship (p.31)
 			max_fuel_units = 10
 			cargo_capacity = 8
 			crew_quarters = 6
@@ -87,7 +90,7 @@ func _initialize_ship_defaults() -> void:
 			defense_systems = 1
 			current_value = 80000
 		ShipClass.EXPLORATION_SHIP:
-			max_hull_points = 8
+			max_hull_points = 25  # Core Rules: Strange Alien Vessel (p.31)
 			max_fuel_units = 12
 			cargo_capacity = 15
 			crew_quarters = 6
@@ -95,7 +98,7 @@ func _initialize_ship_defaults() -> void:
 			defense_systems = 0
 			current_value = 70000
 		ShipClass.MILITARY_TRANSPORT:
-			max_hull_points = 14
+			max_hull_points = 35  # Core Rules: Retired Troop Transport (p.31)
 			max_fuel_units = 8
 			cargo_capacity = 20
 			crew_quarters = 8
@@ -103,7 +106,7 @@ func _initialize_ship_defaults() -> void:
 			defense_systems = 1
 			current_value = 120000
 		ShipClass.ASSAULT_SHIP:
-			max_hull_points = 12
+			max_hull_points = 35  # Core Rules: Battered Mining Ship range (p.31)
 			max_fuel_units = 8
 			cargo_capacity = 10
 			crew_quarters = 8
@@ -111,7 +114,7 @@ func _initialize_ship_defaults() -> void:
 			defense_systems = 2
 			current_value = 150000
 		ShipClass.CAPITAL_SHIP:
-			max_hull_points = 20
+			max_hull_points = 40  # Core Rules: Retired Military Patrol Ship (p.31)
 			max_fuel_units = 6
 			cargo_capacity = 30
 			crew_quarters = 12

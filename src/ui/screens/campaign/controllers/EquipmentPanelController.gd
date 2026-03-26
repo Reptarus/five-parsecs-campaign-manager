@@ -26,14 +26,14 @@ var equipment_scroll: ScrollContainer
 
 # Equipment management data
 var generated_equipment: Array[Dictionary] = []
-var starting_credits: int = 1000
+var starting_credits: int = 0
 var crew_size: int = 4
 var equipment_generator: StartingEquipmentGenerator = null
 var dice_manager: Node = null
 
-# Equipment generation rules per Five Parsecs
-const CREDITS_PER_CREW_MEMBER = 250
-const BASE_STARTING_CREDITS = 1000
+# Equipment generation rules per Five Parsecs (Core Rules p.28)
+const CREDITS_PER_CREW_MEMBER = 1  # 1 credit per crew member
+const BASE_STARTING_CREDITS = 0  # No flat bonus — credits come from crew count + background rolls
 const EQUIPMENT_TYPES = ["weapon", "armor", "gear", "consumable"]
 
 func _init(panel_node: Control = null) -> void:

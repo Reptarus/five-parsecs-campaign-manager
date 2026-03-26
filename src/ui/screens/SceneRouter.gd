@@ -82,6 +82,9 @@ const SCENE_PATHS = {
 	"bug_hunt_creation": "res://src/ui/screens/bug_hunt/BugHuntCreationUI.tscn",
 	"bug_hunt_dashboard": "res://src/ui/screens/bug_hunt/BugHuntDashboard.tscn",
 	"bug_hunt_turn_controller": "res://src/ui/screens/bug_hunt/BugHuntTurnController.tscn",
+
+	# Battle Simulator
+	"battle_simulator": "res://src/ui/screens/battle_simulator/BattleSimulatorUI.tscn",
 }
 
 # Navigation history for back button functionality

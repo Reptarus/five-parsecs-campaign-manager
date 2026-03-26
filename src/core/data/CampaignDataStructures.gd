@@ -106,7 +106,7 @@ class CharacterRelationship extends Resource:
 
 # Economic tracking data
 class EconomicData extends Resource:
-	@export var current_credits: int = 1000
+	@export var current_credits: int = 0  # Set during campaign creation (Core Rules p.28)
 	@export var credit_history: Array[Dictionary] = []
 	@export var trade_history: Array[Dictionary] = []
 	@export var debt_amount: int = 0

@@ -138,14 +138,21 @@ func _create_timeline_item(entry: Dictionary) -> Control:
 func _get_entry_icon(entry_type: String) -> String:
 	## Get icon emoji for entry type
 	var icons = {
-		"battle": "⚔️",
-		"milestone": "🏆",
-		"story": "📖",
-		"purchase": "💰",
-		"injury": "⚠️",
-		"custom": "📝"
+		"battle": "[B]",
+		"milestone": "[M]",
+		"story": "[S]",
+		"purchase": "[$]",
+		"injury": "[!]",
+		"custom": "[N]",
+		# Post-battle entry types
+		"payment": "[$]",
+		"loot": "[L]",
+		"experience": "[XP]",
+		"campaign_event": "[CE]",
+		"character_event": "[CH]",
+		"galactic_war": "[GW]",
 	}
-	return icons.get(entry_type, "•")
+	return icons.get(entry_type, "*")
 
 ## ===== SEARCH & FILTER =====
 

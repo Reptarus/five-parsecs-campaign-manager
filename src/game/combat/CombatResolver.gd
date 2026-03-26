@@ -152,7 +152,7 @@ enum ReactionType {
 }
 
 ## Constants
-const STUN_THRESHOLD := 8
+# STUN_THRESHOLD removed — Core Rules p.40: stun from weapon traits, not hit roll threshold
 const SUPPRESS_THRESHOLD := 6
 const INSPIRE_THRESHOLD := 7
 const FOCUS_THRESHOLD := 7
@@ -608,8 +608,14 @@ func _calculate_damage(attacker: CharacterScript, target: CharacterScript, hit_r
 	return maxi(1, base_damage - armor_reduction) # Minimum 1 damage
 
 func _apply_combat_effects(attacker: CharacterScript, target: CharacterScript, hit_roll: int) -> void:
-	# Status effects based on hit roll
-	if hit_roll >= STUN_THRESHOLD:
+	# Status effects — Core Rules p.51: stun only from weapon Stun trait
+	var weapon_traits: Array = attacker.get("weapon_traits", []) if attacker is Dictionary else []
+	var has_stun_trait := false
+	for t in weapon_traits:
+		if str(t).to_lower() == "stun":
+			has_stun_trait = true
+			break
+	if has_stun_trait:
 		target.apply_status_effect({"effect": "stun", "duration": 1})
 		emit_signal(&"combat_effect_applied", target, "stun")
 		log_combat_event("%s was stunned" % _get_character_name(target))

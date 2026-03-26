@@ -523,6 +523,16 @@ func get_effective_reactions() -> int:
 	var modifiers := get_combat_modifiers()
 	return reactions + modifiers.get("reactions", 0)
 
+## Get effective savvy including all modifiers
+func get_effective_savvy() -> int:
+	var modifiers := get_combat_modifiers()
+	return savvy + modifiers.get("savvy", 0)
+
+## Get effective speed including all modifiers
+func get_effective_speed() -> int:
+	var modifiers := get_combat_modifiers()
+	return speed + modifiers.get("speed", 0)
+
 ## Get natural armor save (for species with natural armor)
 func get_natural_armor_save() -> int:
 	match origin.to_lower():
