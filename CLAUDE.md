@@ -101,6 +101,26 @@ MainMenu → BugHuntCreationUI (4-step wizard) → BugHuntDashboard → BugHuntT
 - **SceneRouter keys**: `bug_hunt_creation`, `bug_hunt_dashboard`, `bug_hunt_turn_controller`
 - **15 JSON data files** in `data/bug_hunt/`, **23 GDScript/TSCN files** across `src/`
 
+### Battle Simulator (Standalone Battles)
+
+Standalone battle mode accessible from MainMenu — no campaign required. Ungated for demo (DLC gating planned).
+
+```
+MainMenu → "Battle Simulator" button
+  └─ SceneRouter.navigate_to("battle_simulator")
+       └─ BattleSimulatorUI (thin shell, code-built)
+            ├─ BattleSimulatorSetupPanel (single-screen config)
+            │   ├─ Crew Size (3-6), Enemy Category/Type, Mission, Difficulty
+            ├─ TacticalBattleUI (instantiated on launch from .tscn)
+            └─ BattleSimulatorResultsPanel (shown after battle)
+```
+
+- **BattleSimulatorSetup.gd** (RefCounted): Loads `enemy_types.json` + `mission_templates.json`, generates lightweight crew dicts + enemy squads
+- **Crew uses minimal dicts** (not Character resources) — `TacticalBattleUI.TacticalUnit` handles both
+- **Critical timing**: `initialize_battle()` must be called sync after `add_child()` — TacticalBattleUI `call_deferred("_check_standalone_mode")` fires otherwise
+- **Results don't persist** — no campaign to save to, just Play Again / Main Menu
+- **SceneRouter key**: `battle_simulator`
+
 ### Battle Phase Manager
 The battle system is a **tabletop companion assistant** (NOT a tactical simulator). All output is TEXT INSTRUCTIONS for the player to execute on the physical tabletop. Three-tier tracking: LOG_ONLY / ASSISTED / FULL_ORACLE.
 

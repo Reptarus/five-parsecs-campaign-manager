@@ -106,7 +106,20 @@ Battle context terrain data must be structured with terrain_guide inside the `te
 `BattlefieldShapeLibrary.classify_feature()` now sets `is_scatter = true` for scatter-type terrain. `BattlefieldMapView` skips scatter items in SVS rendering and label drawing (BUG-040). Features also carry a `size_category` key ("Large", "Small", "Linear", "Scatter") used for label prefixes (BUG-041).
 
 ### Shared Between Modes
-TacticalBattleUI is shared between Standard 5PFH and Bug Hunt. Bug Hunt mode detection happens at higher level (BugHuntBattleSetup, temp_data `"bug_hunt_*"` keys). Any modifications must preserve both modes.
+TacticalBattleUI is shared between Standard 5PFH, Bug Hunt, and Battle Simulator. Bug Hunt mode detection happens at higher level (BugHuntBattleSetup, temp_data `"bug_hunt_*"` keys). Battle Simulator passes lightweight crew/enemy dicts (not Character resources). Any modifications must preserve all three modes.
+
+### Battle Simulator Integration (Mar 26, 2026)
+
+`BattleSimulatorUI` hosts TacticalBattleUI as a dynamically instantiated scene:
+
+```gdscript
+_battle_ui = TacticalBattleScene.instantiate()
+_panel_container.add_child(_battle_ui)
+_battle_ui.initialize_battle(context.crew, context.enemies, context.mission_data)
+```
+**Critical**: `initialize_battle()` MUST be called synchronously after `add_child()` — TacticalBattleUI uses `call_deferred("_check_standalone_mode")` which would show fallback UI if `_battle_initialized` is still false.
+
+Listens to `tactical_battle_completed` for results and `return_to_battle_resolution` for abandon.
 
 ---
 

@@ -41,6 +41,10 @@ max_cache_size: int = 10
 ### Bug Hunt
 `bug_hunt_creation`, `bug_hunt_dashboard`, `bug_hunt_turn_controller`
 
+### Battle Simulator
+
+`battle_simulator`
+
 ### Events
 `campaign_events`
 

@@ -609,7 +609,11 @@ func _calculate_damage(attacker: CharacterScript, target: CharacterScript, hit_r
 
 func _apply_combat_effects(attacker: CharacterScript, target: CharacterScript, hit_roll: int) -> void:
 	# Status effects — Core Rules p.51: stun only from weapon Stun trait
-	var weapon_traits: Array = attacker.get("weapon_traits", []) if attacker is Dictionary else []
+	var weapon_traits: Array = []
+	if attacker.has_method("get_equipped_weapon"):
+		var w: Dictionary = attacker.get_equipped_weapon()
+		if w.has("traits"):
+			weapon_traits = w.get("traits", [])
 	var has_stun_trait := false
 	for t in weapon_traits:
 		if str(t).to_lower() == "stun":

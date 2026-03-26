@@ -201,31 +201,59 @@
     "weapon_traits": [
       {
         "name": "Pistol",
-        "effect": "Grants +1 to Brawling rolls"
+        "effect": "+1 to Brawling rolls (Core Rules p.51)"
       },
       {
         "name": "Focused",
-        "effect": "Must direct all shots against a single target"
-      },
-      {
-        "name": "Aimed",
-        "effect": "Grants +1 Hit bonus if the firer does not move"
+        "effect": "All shots must be against a single target (Core Rules p.51)"
       },
       {
         "name": "Heavy",
-        "effect": "Suffers -1 to hit when moving"
+        "effect": "-1 penalty to Hit if the firer moved this round (Core Rules p.51)"
       },
       {
         "name": "Area",
-        "effect": "Affects all figures within 2\" of the target point"
+        "effect": "Resolve all shots against initial target, then one shot against every figure within 2\" (Core Rules p.51)"
       },
       {
         "name": "Melee",
-        "effect": "Grants +2 to Brawling rolls"
+        "effect": "+2 to Brawling rolls (Core Rules p.51)"
       },
       {
         "name": "Stun",
-        "effect": "Will Stun any target within 2\" of the target point on a 3+ roll"
+        "effect": "Targets hit are Stunned. Toughness is ignored but Saving Throws apply as normal (Core Rules p.51)"
+      },
+      {
+        "name": "Critical",
+        "effect": "A natural 6 on the to Hit roll will inflict 2 Hits on the target (Core Rules p.51)"
+      },
+      {
+        "name": "Elegant",
+        "effect": "When Brawling, the fighter may reroll the die (Core Rules p.51)"
+      },
+      {
+        "name": "Clumsy",
+        "effect": "-1 to Brawling rolls if opponent has higher Speed (Core Rules p.51)"
+      },
+      {
+        "name": "Snap Shot",
+        "effect": "+1 to Hit within 6\" (Core Rules p.51)"
+      },
+      {
+        "name": "Impact",
+        "effect": "If target is Stunned, place a second Stun marker (Core Rules p.51)"
+      },
+      {
+        "name": "Piercing",
+        "effect": "Ignore Armor Saving Throws (Core Rules p.51)"
+      },
+      {
+        "name": "Terrifying",
+        "effect": "Any target hit must retreat 1D6\" away from the firer (Core Rules p.51)"
+      },
+      {
+        "name": "Single use",
+        "effect": "Item can only be used once. Panic Fire rule cannot be used (Core Rules p.51)"
       },
       {
         "name": "Launcher",
